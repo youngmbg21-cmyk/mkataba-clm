@@ -29,6 +29,8 @@ const TRI_CODE = strip(TRI);
 const HOME_CODE = strip(read('js/views/home.js'));
 const HOME = read('js/views/home.js');
 const CONTRACT = read('js/views/contract.js');
+const CORE_CODE = strip(read('js/core.js'));
+const MOBILE_CODE = strip(read('js/mobile-contract.js'));
 const I18N = read('js/i18n.js');
 const NEGO = read('js/negotiation.js');
 const API = read('js/api.js');
@@ -638,7 +640,11 @@ describe('F273 — auto-triage on upload', () => {
          A FIRST WRITING OF THIS CLAIMED ALL THREE WERE UNPUBLISHED AND THE
          CALLBACK HAD NEVER RUN. It was read off the export's FIRST LINE, and
          that list spans several — the check below reads the whole statement. */
-      const i = CONTRACT.indexOf('if(wantTriage && window.triageRun)');
+      /* RE-POINTED 17 Sep 2026, in place: the callback moved into
+         triageAndPaint with the rest of the block. The claim is unchanged —
+         all three repaints are called bare — and is now asked of both doors at
+         once, because both call this one launcher. */
+      const i = CONTRACT.indexOf('function triageAndPaint(c){');
       const w = CONTRACT.slice(i, CONTRACT.indexOf('\n}\n', i));
       for (const f of ['renderChecksCard', 'renderKeyTerms', 'renderKeyTermsSide'])
         assert.ok(!new RegExp('window\\.' + f).test(w),
@@ -765,13 +771,20 @@ describe('F273 — auto-triage on upload', () => {
        marker and went red the day the block gained a comment — the claim is
        about what the block DOES, so it is sliced to the end of the function
        that holds it and costs nothing the next time somebody writes there. */
+    /* RE-POINTED 17 Sep 2026, in place: the block moved out of submitUpload
+       into triageAndPaint when the send door was given the same reading (see
+       AND COPILOT READS IT, WHATEVER DOOR MADE IT). Every claim below is the
+       claim it always was — not awaited, its own catch — asked of the one
+       launcher both doors now call, BY NAME rather than by its old call site. */
     test('the run is started after the contract is on screen, and not awaited', () => {
-      const i = CONTRACT.indexOf('if(wantTriage && window.triageRun)');
+      const i = CONTRACT.indexOf('function triageAndPaint(c){');
       const w = CONTRACT.slice(i, CONTRACT.indexOf('\n}\n', i));
       assert.ok(i > 0 && w.length > 0, 'the block is where it says it is');
       assert.ok(!/await\s+triageRun/.test(w),
         'nobody waits a minute to see their own contract');
       assert.match(w, /catch\(e\)/, 'and a failed reading cannot take the upload down with it');
+      assert.match(CONTRACT, /if\(wantTriage\) triageAndPaint\(c\);/,
+        'and the upload still reaches it only through the reader\'s own tick-box');
     });
     /* THE RECORD IS ON THE SERVER BEFORE IT IS READ (owner-reported 9 Sep 2026,
        on their own upload: the box was ticked and the Contract brief card still
@@ -783,9 +796,12 @@ describe('F273 — auto-triage on upload', () => {
        THE PAIR IS THE CLAIM: the save is waited for and the READINGS still are
        not, because awaiting them would make somebody watch a spinner before
        their own contract appeared. */
+    /* SLICED TO THE FUNCTION, NOT 1600 CHARACTERS. Its sibling above already
+       records why a byte count is the wrong instrument; this one still carried
+       one and would have gone red on the next comment written here. */
     test('the save is waited for, and the readings still are not', () => {
-      const w = CONTRACT.slice(CONTRACT.indexOf('if(wantTriage && window.triageRun)'),
-        CONTRACT.indexOf('if(wantTriage && window.triageRun)') + 1600);
+      const i2 = CONTRACT.indexOf('function triageAndPaint(c){');
+      const w = CONTRACT.slice(i2, CONTRACT.indexOf('\n}\n', i2));
       assert.match(w, /API_MODE\(\) && window\.flushSaves\) \? flushSaves\(\)/,
         'the pending save is flushed rather than left on its 400ms timer');
       assert.match(w, /\.then\(\(\) *=> *\{[\s\S]*triageRun\(c/,
@@ -857,4 +873,103 @@ describe('F273 — auto-triage on upload', () => {
         'a standard the contract is silent about is absent, not deviated from');
     });
   });
+
+  /* ============================================================
+     9 · EVERY DOOR, NOT JUST THE UPLOAD (Young ruled 17 Sep 2026)
+     ============================================================
+     *"Make sure no matter which door, where you create a contract and it is
+     pulled into the documents tab for negotiation or signing, copilot reads
+     it just like when generating a contract from draft new agreement."*
+
+     MEASURED BEFORE IT WAS BUILT, and the owner's own reference point was the
+     thing that was broken: triageRun had exactly ONE caller in the product —
+     submitUpload — so the wizard behind "Draft new agreement" did not read a
+     contract either, nor did the company standard library's Use button, both
+     template fills, the bulk import or the essentials form. Six of the seven
+     creation sites filed a contract nobody had read.
+
+     THE READING IS HOOKED TO THE MOMENT, NOT TO THE DOORS. Every send already
+     funnels through contractLeavesDrafting, so the claims below are asked of
+     that one act: a door added tomorrow inherits the reading rather than
+     having to remember it. EVERY ONE OF THESE IS RED AT THE PARENT. */
+  describe('9 · copilot reads it whatever door made it', () => {
+    test('the funnel that takes a contract out of Draft starts the readings', () => {
+      const i = CORE_CODE.indexOf('function contractLeavesDrafting(');
+      assert.ok(i > 0, 'the funnel is where it says it is');
+      const w = CORE_CODE.slice(i, CORE_CODE.indexOf('\n}\n', i));
+      assert.match(w, /window\.triageAndPaint\) triageAndPaint\(c\)/,
+        'a contract leaving Draft is read, whichever door created it');
+      assert.match(w, /try\{[^}]*triageAndPaint\(c\);[^}]*\}catch/,
+        'and a reading that throws cannot take the send down with it');
+    });
+    test('it is reached through a PUBLISHED name — f232 s own rule', () => {
+      /* js/views/contract.js is not on the counterparty's script list and
+         js/core.js is, so this call MUST be guarded; a guard on a name nobody
+         published is a guard that is always false, which is the fault f232
+         exists for. */
+      const exp = CONTRACT.slice(CONTRACT.indexOf('Object.assign(window,{'));
+      const names = exp.slice(0, exp.indexOf('});')).split(',').map(x => x.trim());
+      assert.ok(names.includes('triageAndPaint'),
+        'the launcher the funnel reaches for is on the export list');
+    });
+    test('nothing is read — or paid for — twice', () => {
+      const i = CONTRACT.indexOf('function triageAndPaint(c){');
+      const w = CONTRACT.slice(i, CONTRACT.indexOf('\n}\n', i));
+      assert.match(w, /if\(window\.triageOf && triageOf\(c\)\) return;/,
+        'a contract already read on arrival is not read again when it is sent');
+      /* triageRun stamps a fresh c.triage on every call and refuses only a
+         SECOND CONCURRENT run, so the "has this been read" question cannot be
+         left to it. */
+      assert.match(TRI_CODE, /c\.triage = t;/,
+        'triageRun has no memory of its own — which is why the question is asked above it');
+    });
+    test('the other door onto that same moment reads too, on both shells', () => {
+      /* "Send for review" does the funnel's job BY HAND rather than calling it
+         — drift that predates this work and is reported rather than fixed —
+         so it is a second place the same moment happens and a fix in the
+         funnel alone would not have reached it. THE PHONE IS NOT A FORK: it
+         has the same press and needed the same line. */
+      /* THE BRANCH, NOT A NUMBER OF CHARACTERS — this file's own lesson, paid
+         again while writing it: sliced at 700 the desktop claim went red
+         because the comment explaining the line pushed it past the window.
+         Each slice runs to the NEXT branch of the same handler, which is a
+         real boundary and costs nothing the next time somebody writes here. */
+      const deskAt = CONTRACT.indexOf("if(kind==='review')");
+      const desk = CONTRACT.slice(deskAt, CONTRACT.indexOf('if(kind===', deskAt + 10));
+      assert.ok(deskAt > 0 && desk.length > 0, 'the branch is where it says it is');
+      assert.match(desk, /triageAndPaint\(c\)/,
+        'the desktop send-for-review press starts the readings');
+      const phoneAt = MOBILE_CODE.indexOf("if(kind==='review')");
+      const phone = MOBILE_CODE.slice(phoneAt, MOBILE_CODE.indexOf('if(kind===', phoneAt + 10));
+      assert.match(phone, /window\.triageAndPaint\) triageAndPaint\(c\)/,
+        'and so does the phone s');
+    });
+    test('the two stage moves that are NOT a person sending are left alone', () => {
+      /* keyTermsProgress promotes a Draft the moment a counterparty and a value
+         are typed — no press, mid-form, blanks still in it, which is the exact
+         reading the owner and this change agreed not to pay for. And an
+         approval REJECTION moves a contract BACK to Under Review; it was never
+         in Draft. Both absences are deliberate and are asserted so nobody
+         "completes the set" later without meaning to. */
+      const kt = CONTRACT.slice(CONTRACT.indexOf('function keyTermsProgress(c){'),
+        CONTRACT.indexOf('function keyTermsProgress(c){') + 500);
+      assert.ok(!/triageAndPaint/.test(kt),
+        'filling a form is not sending it — no reading is paid for there');
+      const APPROVALS = strip(read('js/approvals.js'));
+      assert.ok(!/triageAndPaint/.test(APPROVALS),
+        'a rejected approval is a demotion, not a contract going out');
+    });
+    test('signing is not given a second door onto the same act', () => {
+      /* Before you sign already runs these three readings and, on the default
+         advise gate, HOLDS the signature until they have. A call from the
+         signing path as well would be two doors onto one act. */
+      const sign = CONTRACT.slice(CONTRACT.indexOf('async function signDocument(c){'),
+        CONTRACT.indexOf('async function captureSignature('));
+      assert.ok(!/triageAndPaint/.test(sign),
+        'signDocument does not start a reading of its own');
+      assert.match(CORE_CODE, /function contractLeavesDrafting\(/,
+        'the one door is the stage change, and it is still here');
+    });
+  });
+
 });

@@ -785,6 +785,10 @@ function mDoNextAction(kind){
       if(typeof todayStr==='function') c.lastAction=todayStr();
       if(window.logAudit) logAudit(c,'Status changed','Draft → Under Review (sent for review)');
       if(window.persist) persist(c);
+      /* THE PHONE IS NOT A FORK: the same moment as the desktop's own "send for
+         review", so the same reading. Through window because js/views/contract.js
+         is not guaranteed beside this file. */
+      try{ if(window.triageAndPaint) triageAndPaint(c); }catch(_){}
       if(window.toast) toast(i18t('mc_moved_to_review'));
       mRender();
     }

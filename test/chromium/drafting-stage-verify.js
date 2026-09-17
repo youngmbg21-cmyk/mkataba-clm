@@ -128,6 +128,8 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       return { status: c.status,
         word: e ? e.textContent.trim() : null,
         audit: (c.audit || []).map(a => `${a.action}: ${a.detail}`),
+        source: c.source || null,
+        triage: c.triage ? Object.keys(c.triage.steps || {}).sort() : null,
         round: (c.negotiation && c.negotiation.round) || null };
     });
     check('1d THE REPORTED FAULT: publishing a round leaves Drafting behind',
@@ -140,6 +142,21 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     check('1g and nothing claims it went back to Draft',
       !after.audit.some(l => /back to Draft/.test(l)),
       after.audit.filter(l => /Draft/.test(l)).slice(0, 3));
+
+    /* ---- AND COPILOT READ IT, THOUGH NOBODY UPLOADED IT (Young, 17 Sep 2026) ----
+       *"Make sure no matter which door ... copilot reads it."* Until today the
+       readings had ONE caller, the upload, so this contract — seeded from a
+       template, exactly like one made from the company standard library's Use
+       button — went out to the counterparty having never been read.
+
+       DRIVEN, not read off the source: the send above is the real press on the
+       real postbox, and what is asked here is whether the reading STARTED on
+       the far side of it. 1g2 is the CONTROL — with an upload in this chair the
+       claim would be satisfied by the old behaviour and prove nothing. */
+    check('1g2 the contract that just went out was never an upload (control)',
+      after.source !== 'upload', { source: after.source });
+    check('1g3 THE NEW RULE: leaving Draft starts the readings, whatever door made it',
+      Array.isArray(after.triage) && after.triage.length > 0, { triage: after.triage });
 
     /* IT REACHES THE LIST TOO — the register is where this was most wrong. */
     await page.evaluate(() => setView('register'));

@@ -4496,6 +4496,36 @@ function contractLeavesDrafting(c, why){
   logAudit(c,'Status changed',`Draft \u2192 Under Review \u2014 ${why}`);
   try{ if(typeof updateStatusUI==='function') updateStatusUI(c); }catch(_){}
   try{ if(typeof renderActionBar==='function') renderActionBar(c); }catch(_){}
+  /* ---- AND COPILOT READS IT, WHATEVER DOOR MADE IT (Young ruled 17 Sep 2026) ----
+     "Make sure no matter which door, where you create a contract and it is
+     pulled into the documents tab for negotiation or signing, copilot reads
+     it." MEASURED before it was built: triageRun had exactly ONE caller, the
+     upload, so six of the seven creation sites — the wizard, both template
+     fills, the company standard library's Use, the bulk import and the
+     essentials form — filed a contract nobody had read, and the owner's own
+     reference point ("just like draft new agreement") did not read either.
+
+     IT IS HOOKED HERE AND NOWHERE ELSE, for two reasons. This is the ONE act
+     that takes a contract out of Draft, and every send door already funnels
+     through it — the share dialog, all four round-send doors inside
+     reshareToLastRecipient, and the phone — so a seventh door added tomorrow
+     inherits the reading instead of having to remember it.
+
+     AND IT IS THE RIGHT MOMENT, not merely a convenient one. At CREATION a
+     template contract is a form with its blanks still in it: a brief of that
+     is a summary of "___", and measuring our own standard paper against our
+     own playbook answers nothing. By the time it leaves Draft the blanks are
+     filled and the wording is what the other side will actually read.
+
+     SIGNING IS DELIBERATELY NOT A SECOND DOOR HERE. Before you sign already
+     runs these same three readings and, on the default advise gate, HOLDS the
+     signature until they have run — so a contract cannot reach a signature
+     unread. A call here as well would be two doors onto one act, which is the
+     one thing THE ONE DOOR refuses.
+
+     Guarded on the published name because js/views/contract.js is not on the
+     counterparty's script list, and this file is. */
+  try{ if(window.triageAndPaint) triageAndPaint(c); }catch(_){}
   return true;
 }
 async function reshareToLastRecipient(c, opts={}){

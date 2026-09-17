@@ -1909,60 +1909,82 @@ async function submitUpload(){
   setView('workspace');
   renderSideFolders();
   /* ---- AND THEN IT IS READ, IF THE READER LEFT THE BOX TICKED ----
-     AFTER the contract is filed and on screen, and deliberately NOT awaited:
-     the three readings take the better part of a minute between them, and
-     making somebody watch a spinner before their own contract appears would
-     be paying for the feature twice. The cards fill in behind them.
-     ITS OWN CATCH, because a reading that fails must not take the upload — the
-     act that actually mattered — down with it. What went wrong is on the card. */
-  if(wantTriage && window.triageRun){
-    /* ---- BUT THE RECORD HAS TO EXIST ON THE SERVER BEFORE IT CAN BE READ ----
-       persist() in API mode is DEBOUNCED by 400ms and returns nothing to wait
-       on, so a reading started here fires before the contract has been created
-       — and POST /api/ai/brief looks the row up BEFORE it reads a word (it has
-       to: out of scope must read exactly like does not exist), so it answers
-       404 "Contract not found". MEASURED by driving a real upload: risk, Our
-       standards and the obligations all landed and the BRIEF failed every
-       time, which is the one card the reader was looking at.
+     The tick-box is the owner's ruling of 9 Sep 2026 and still governs THIS
+     door: no box means no reading on arrival. What the reading itself does,
+     and why it is neither awaited nor started before the save lands, is in
+     triageAndPaint — which the send door calls too. */
+  if(wantTriage) triageAndPaint(c);
+}
 
-       flushSaves() is this product's own move for exactly this moment — the
-       template library makes it after creating a contract, and the migration
-       importer awaits it before going on. THE READINGS ARE STILL NOT AWAITED,
-       which is what keeps the contract on screen at once; what is waited for
-       is the save they read. A save that FAILS still lets them start: the
-       reading then answers honestly on the card, which beats silence. */
-    const onServer = (API_MODE() && window.flushSaves) ? flushSaves() : Promise.resolve();
-    Promise.resolve(onServer).catch(()=>{}).then(()=>{
-      try{ triageRun(c,{ onStep:x=>{
-        /* EVERY SURFACE THE READING JUST MOVED, and the side column is the one
-           that was missing (owner-reported 9 Sep 2026: the Contract brief card
-           still read "Not written yet" with the brief already on the record).
-           A reading lands on `c._brief`, `c.playbook` and `c.scan` — the same
-           places the manual buttons write — so nothing has to be run twice;
-           what was wrong is that the card SAYING so was painted before the
-           reading finished and nothing repainted it. Each is guarded on its own
-           host, so a tab the reader is not on costs nothing. */
-        /* THE SIDE COLUMN WAS THE ONE THAT WAS MISSING (owner-reported 9 Sep
-           2026: the Contract brief card still read "Not written yet" with the
-           brief already on the record, so it offered to run what had just
-           run). A reading lands on `c._brief`, `c.playbook` and `c.scan` — the
-           same places the manual buttons write — so nothing ever had to be run
-           twice; what was wrong is that the card SAYING so was painted before
-           the reading finished and nothing repainted it.
+/* ---------- THE READINGS, RUN BEHIND THE READER ----------
+   ONE LAUNCHER, TWO DOORS. An upload calls this the moment it is filed; a
+   contract from any other door calls it through contractLeavesDrafting, the
+   one act behind every send (Young ruled 17 Sep 2026: "no matter which door
+   ... copilot reads it"). Written once because two copies of this would be two
+   readings that could disagree about when a contract has been read — this
+   codebase's most expensive fault class.
 
-           AND CALLED BARE, because `renderKeyTermsSide` is NOT on this file's
-           export list while its two neighbours are — so `window.` would have
-           been false for exactly the one being added, silently, which is this
-           codebase's most repeated defect. All three live in THIS file, so a
-           bare call cannot be wrong and there is no window question to get
-           right. The host check is the real guard: a tab nobody is on costs
-           nothing. */
-        if(document.getElementById('checks-card')) renderChecksCard(x);
-        if(document.getElementById('kt-rows')) renderKeyTerms(x);
-        if(document.getElementById('kt-side')) renderKeyTermsSide(x);
-      }}); }catch(e){ /* the card says what happened */ }
-    });
-  }
+   NOT AWAITED: the three readings take the better part of a minute between
+   them, and making somebody watch a spinner before their own contract appears
+   — or before their send is confirmed — would be paying for the feature twice.
+   The cards fill in behind them.
+
+   ITS OWN CATCH, because a reading that fails must not take the act that
+   actually mattered — the upload, or the send — down with it. What went wrong
+   is on the card.
+
+   ONCE, EVER. triageRun stamps a fresh `c.triage` on every call and has no
+   memory of its own, so the "has this been read" question is asked HERE, in
+   the one place both doors pass through. It is asked of the RECORD, so an
+   upload already read on arrival is not read again when it is sent, and a
+   reading that FAILED is not silently retried and paid for twice — the card
+   offers "Run it again" and that press is a person's. */
+function triageAndPaint(c){
+  if(!c || !window.triageRun) return;
+  /* already read, or already tried and reported — see ONCE, EVER above */
+  if(window.triageOf && triageOf(c)) return;
+  /* ---- BUT THE RECORD HAS TO EXIST ON THE SERVER BEFORE IT CAN BE READ ----
+     persist() in API mode is DEBOUNCED by 400ms and returns nothing to wait
+     on, so a reading started here fires before the contract has been created
+     — and POST /api/ai/brief looks the row up BEFORE it reads a word (it has
+     to: out of scope must read exactly like does not exist), so it answers
+     404 "Contract not found". MEASURED by driving a real upload: risk, Our
+     standards and the obligations all landed and the BRIEF failed every
+     time, which is the one card the reader was looking at.
+
+     flushSaves() is this product's own move for exactly this moment — the
+     template library makes it after creating a contract, and the migration
+     importer awaits it before going on. THE READINGS ARE STILL NOT AWAITED,
+     which is what keeps the contract on screen at once; what is waited for
+     is the save they read. A save that FAILS still lets them start: the
+     reading then answers honestly on the card, which beats silence. */
+  const onServer = (API_MODE() && window.flushSaves) ? flushSaves() : Promise.resolve();
+  Promise.resolve(onServer).catch(()=>{}).then(()=>{
+    try{ triageRun(c,{ onStep:x=>{
+      /* EVERY SURFACE THE READING JUST MOVED, and the side column is the one
+         that was missing (owner-reported 9 Sep 2026: the Contract brief card
+         still read "Not written yet" with the brief already on the record).
+         A reading lands on `c._brief`, `c.playbook` and `c.scan` — the same
+         places the manual buttons write — so nothing has to be run twice;
+         what was wrong is that the card SAYING so was painted before the
+         reading finished and nothing repainted it. Each is guarded on its own
+         host, so a tab the reader is not on costs nothing — which is also what
+         makes this safe from the send door, where the reader may well have
+         been thrown to the negotiation page or the register.
+
+         AND CALLED BARE, because `renderKeyTermsSide` is NOT on this file's
+         export list while its two neighbours are — so `window.` would have
+         been false for exactly the one being added, silently, which is this
+         codebase's most repeated defect. All three live in THIS file, so a
+         bare call cannot be wrong and there is no window question to get
+         right. The host check is the real guard: a tab nobody is on costs
+         nothing. */
+      if(document.getElementById('checks-card')) renderChecksCard(x);
+      if(document.getElementById('kt-rows')) renderKeyTerms(x);
+      if(document.getElementById('kt-side')) renderKeyTermsSide(x);
+      if(document.getElementById('kt-triage-slot')) paintKtTriage(x);
+    }}); }catch(e){ /* the card says what happened */ }
+  });
 }
 /* Fold confirmed metadata back into the contract's own fields + a metadata block. */
 function applyMetadata(c, m){
@@ -3510,7 +3532,14 @@ function wireActionBar(c){
       return;
     }
     if(kind==='review'){
-      if(c.status==='Draft'){ c.status='Under Review'; c.lastAction=todayStr(); logAudit(c,'Status changed','Draft → Under Review (sent for review)'); persist(c); updateStatusUI(c); renderWorkspace(); toast(i18t('ct_moved_to_review')); }
+      /* THE SAME MOMENT AS contractLeavesDrafting, REACHED BY A DIFFERENT DOOR.
+         This one press does the funnel's job by hand rather than calling it —
+         drift that predates today and is reported, not fixed here — so the
+         reading has to be asked for by name. See AND COPILOT READS IT,
+         WHATEVER DOOR MADE IT in js/core.js for why this is the right moment
+         and why triageAndPaint refuses a second reading of its own accord. */
+      if(c.status==='Draft'){ c.status='Under Review'; c.lastAction=todayStr(); logAudit(c,'Status changed','Draft → Under Review (sent for review)'); persist(c); updateStatusUI(c); renderWorkspace(); toast(i18t('ct_moved_to_review'));
+        try{ triageAndPaint(c); }catch(_){} }
       return;
     }
     /* The route lives on the Signing tab, so the button goes there and opens
@@ -11466,7 +11495,7 @@ function distributionPanelHtml(c){
 
 
 Object.assign(window,{paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,
-  wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,paintKtTriage,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
+  wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,paintKtTriage,triageAndPaint,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign
