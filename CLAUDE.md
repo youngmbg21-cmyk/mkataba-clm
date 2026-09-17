@@ -1127,6 +1127,19 @@ Tests: f322 (36 claims, 4 at the parent).
 - `owed` on `KPI_ALL_ORDER`, not in the default four; every figure borrowed, converted through `fxHome`, what has no rate LEFT OUT and counted, and the COUNT where the reader may not see money.
 Tests: f323 (30 claims, 0 at the parent), f274 re-pointed.
 
+### THE RENEWAL CARD IS ONE ROW, AND THE MACHINERY IS ON THE HOVER (Young ruled 17 Sep 2026)
+
+*"the buttons should be on the same line but also, the comments should be at a minimum"* — the POP-UP DIET applied to a CARD. Measured: ~95 words and two button rows became **32 words and one row** (five buttons, `buttonRows:1`, no divider).
+- **ONE ROW**: `decideRow` is now just the three answers plus a `<span>` label, placed BY the acts row (`${settled?'':decideRow}`); the divider and the block heading are gone. **The label survives inline on purpose** — dropped, "Renew" beside "Start the renewal" reads as two ways to do one thing, which is the one ambiguity this card cannot afford.
+- **CUT IS NOT DELETED**: `srcWhy` (the notice-period arithmetic), `rn_not_asked` (what Copilot would weigh up — now the hover on the button that does it) and `rn_to_none_why` are `title` attributes. `rn_fix_terms` / `rn_no_notice_fix` are STALE ON THE FACE, inert in both books; the way forward is a clause inside the line above instead.
+- **AN ABSENCE IS STILL STATED ON THE FACE**: "No notice period recorded — this counts to expiry, {date}. Set it on Key terms." may never move to a hover; without it the expiry is silently shown as the deadline, which is the fault that line was built for.
+- **WHO GETS CHASED SITS UNDER THE ROW**, not in it — in the row it competed for width with six controls and pushed them onto a second line.
+Tests: f310 (2) (three more retired calls) and f310 (5) (four claims); renewal-decision-verify unchanged at 23/24 — `6b` is red before and after this change.
+
+## THE CONTRACTS ACT IS DRAWN ONLY WHILE THE TABLE IS NARROWED — AND THAT IS THE FEATURE
+
+Young, 17 Sep 2026: *"I do not see the feature implemented in HaTi."* It IS implemented. MEASURED in a browser: at rest `regNarrowed()` is false and `#reg-cohort-slot` is deliberately EMPTY; set any filter and the slot fills with `Do this to these N ▾` (143×30) whose menu is the artifact's four rows. The artifact's own words: *"It is not drawn at all while the table shows everything, because then it would be an offer to act on the whole book."* If it looks missing, nothing is narrowing the table.
+
 ## Line numbers drift
 
 Line numbers were verified 2026-08-03. Code moves — treat them as starting points, re-verify with grep, and UPDATE THIS MAP when the layout changes.

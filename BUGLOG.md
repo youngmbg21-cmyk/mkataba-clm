@@ -15235,3 +15235,45 @@ Noticed, not fixed:
   nothing leaks; the comment is what is wrong.
 - white-band-and-tabs-verify 5d/5e stay red (Contracts list title line-height,
   20px vs 19.6px) - red before this work and unrelated to it.
+
+## 2026-09-17 — The renewal card goes on a diet; the Contracts act was never missing
+
+Young, over two pictures: "Image one which is idea number 2, I do not see the
+feature implemented in HaTi. Image 2, the buttons should be on the same line
+but also, the comments should be at a minimum so revise and advise."
+
+IMAGE 1 — NOT A DEFECT. Drove the real Contracts page in a browser. At rest the
+slot is deliberately empty; narrow the table by any filter and the button draws
+("Do this to these 6", 143x30) with all four artifact rows in its menu. The
+artifact's own rule: it is not drawn while the table shows everything, because
+then it would be an offer to act on the whole book. Nothing changed; the MAP now
+says this so the next reader does not go looking for a bug.
+
+IMAGE 2 — REVISED. The renewal card carried six blocks of prose and two rows of
+buttons. Measured before and after on a real contract with a passed decision
+date and no notice period on file:
+
+  words on the card   ~95  ->  32
+  rows of buttons       2  ->   1
+  dividers              1  ->   0
+
+What moved to a hover rather than being deleted: the notice-period arithmetic,
+the sentence describing what Copilot would weigh up (now on the button that
+does it), and why the administrators are the ones told. What stays on the face:
+the deadline, the fact that no notice period is recorded and where to set it,
+and who gets chased.
+
+The three decision answers and the two acts are now one row. The "What did you
+decide?" label survives as an inline span, deliberately: without it "Renew"
+sitting beside "Start the renewal" reads as two ways to do the same thing.
+
+Lint 0 errors. Full suite 7,425 tests / 1,475 suites / 0 fail.
+renewal-decision-verify 23/24 both before and after.
+
+Noticed, not fixed:
+- renewal-decision-verify 6b ("and the nags start again on their own") is red,
+  and is red identically on the commit before this change. It belongs to the
+  renewal-decision work that came in from main, not to this one.
+- The renewal card now offers five acts where the artifact specified three.
+  Advised the owner rather than cutting anything: "Renew" records a decision and
+  "Start the renewal" does the work, and those two are the pair worth merging.

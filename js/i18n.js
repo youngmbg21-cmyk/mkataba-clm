@@ -3260,12 +3260,14 @@ const STRINGS = {
        expiry it was counted back from and the notice period that was
        subtracted, and quote the phrase that notice period was read out of. */
     rn_from_quote: "Counted back from the expiry on file, {expiry}, less a {n}-day notice period read from your document:",
-    rn_from_terms: "Counted back from the expiry on file, {expiry}, less the {n}-day notice period recorded on Key terms.",
+    rn_from_terms: "{n} days' notice before {expiry}.",
+    rn_from_why: "Counted back from the expiry on file less the notice period recorded on Key terms. If that is not the notice period that governs renewal, correct it there and this recalculates.",
     rn_fix_terms: "If that is not the notice period that governs renewal, correct it on Key terms and this recalculates.",
     /* NO NOTICE PERIOD ON FILE (16 Sep 2026). Until now both slots were empty
        here, so the card printed a decision date that was silently the expiry
        date and looked correct — the one thing a renewal card must never do. */
-    rn_no_notice: "No notice period is recorded, so this counts to the expiry itself, {expiry}. If notice has to be given before then, the real deadline is earlier than the date above.",
+    rn_no_notice: "No notice period recorded \u2014 this counts to expiry, {expiry}. Set it on Key terms.",
+    rn_no_notice_why: "If notice has to be given before the expiry, the real deadline is earlier than the date above. Setting the notice period on Key terms recalculates it.",
     rn_no_notice_fix: "Set the notice period on Key terms and this recalculates.",
     /* A DEADLINE OLDER THAN THE RECORD IS NOT A MISS — see renewalWindow. */
     rn_before_filed: "The decision date was {date}, before this contract was filed here on {filed} — so nothing has been missed. Check the expiry and notice period on Key terms before acting on it.",
@@ -3290,7 +3292,8 @@ const STRINGS = {
     rn_to_owner_decide: "{who} owns this contract and gets the 14, 7 and 1-day reminders.",
     rn_to_owner_expiry: "{who} owns this contract and gets the 90, 60 and 30-day reminders before expiry.",
     rn_to_unreachable: "{who} owns this contract but cannot open this value stream, so the reminders go to the administrators.",
-    rn_to_none: "Nobody is recorded as owning this contract, so the reminders go to the administrators.",
+    rn_to_none: "Reminders go to the administrators.",
+    rn_to_none_why: "Nobody is recorded as owning this contract, so its reminders go to the administrators.",
     rn_what_decided: "What did you decide?",
     rn_ans_renew: "Renew",
     rn_ans_renegotiate: "Renegotiate",
@@ -9971,9 +9974,11 @@ const STRINGS = {
     rn_expires_on: "Slutar {date} — om {n} dagar.",
     rn_missed: "Beslutsdatumet har passerat — {date}, för {n} dagar sedan.",
     rn_from_quote: "Räknat bakåt från slutdatumet {expiry}, minus en uppsägningstid på {n} dagar som lästes ur ditt dokument:",
-    rn_from_terms: "Räknat bakåt från slutdatumet {expiry}, minus uppsägningstiden på {n} dagar som är registrerad under Nyckelvillkor.",
+    rn_from_terms: "{n} dagars uppsägning före {expiry}.",
+    rn_from_why: "Räknat bakåt från slutdatumet minus uppsägningstiden som är registrerad under Nyckelvillkor. Om det inte är den uppsägningstid som styr förnyelsen, rätta den där så räknas detta om.",
     rn_fix_terms: "Om det inte är den uppsägningstid som styr förnyelsen, ändra den under Nyckelvillkor så räknas detta om.",
-    rn_no_notice: "Ingen uppsägningstid är registrerad, så detta räknas till utgången själv, {expiry}. Om uppsägning måste ske dessförinnan är den verkliga deadline tidigare än datumet ovan.",
+    rn_no_notice: "Ingen uppsägningstid registrerad — detta räknas till utgången, {expiry}. Ange den under Nyckelvillkor.",
+    rn_no_notice_why: "Om uppsägning måste ske före utgången är den verkliga deadlinen tidigare än datumet ovan. Att ange uppsägningstiden under Nyckelvillkor räknar om den.",
     rn_no_notice_fix: "Ange uppsägningstiden under Nyckelvillkor så räknas detta om.",
     rn_before_filed: "Beslutsdatumet var {date}, innan avtalet lades in här den {filed} — så ingenting har missats. Kontrollera slutdatum och uppsägningstid under Nyckelvillkor innan du agerar.",
     rn_advice_failed: "Den skrivna bedömningen kunde inte tas fram. Datumen ovan påverkas inte.",
@@ -9988,7 +9993,8 @@ const STRINGS = {
     rn_to_owner_decide: "{who} äger detta avtal och får påminnelserna 14, 7 och 1 dag innan.",
     rn_to_owner_expiry: "{who} äger detta avtal och får påminnelserna 90, 60 och 30 dagar före utgång.",
     rn_to_unreachable: "{who} äger detta avtal men kan inte öppna detta värdeflöde, så påminnelserna går till administratörerna.",
-    rn_to_none: "Ingen är registrerad som ägare av detta avtal, så påminnelserna går till administratörerna.",
+    rn_to_none: "Påminnelser går till administratörerna.",
+    rn_to_none_why: "Ingen är registrerad som ägare av detta avtal, så dess påminnelser går till administratörerna.",
     rn_what_decided: "Vad beslutade ni?",
     rn_ans_renew: "Förnya",
     rn_ans_renegotiate: "Omförhandla",

@@ -4121,9 +4121,22 @@ function renewalCardHtml(c){
       ? `${_aiEsc(i18t('rn_from_quote',{expiry:when(w.expiry),n:w.notice}))}<br><i>&ldquo;${_aiEsc(quote)}&rdquo;</i>`
       : _aiEsc(i18t('rn_from_terms',{expiry:when(w.expiry),n:w.notice})))
     : _aiEsc(i18t('rn_no_notice',{expiry:when(w.expiry)}));
+  /* ---- THE MACHINERY GOES TO THE HOVER (Young ruled 17 Sep 2026: "the
+     comments should be at a minimum") ----
+     The POP-UP DIET's rule, applied to a card: the FACT stays on the page and
+     HOW IT IS WORKED OUT goes to `title`. What is left on screen is the
+     deadline, where the number came from, and the way to correct it — the
+     three things a reader acts on. An absence is still STATED, never guessed:
+     "no notice period recorded" is the one sentence this card may never drop,
+     because without it the expiry is silently shown as the deadline. */
+  const srcWhy=w.notice?i18t('rn_from_why'):i18t('rn_no_notice_why');
   /* The way out, said once. With a number on file it offers a correction; with
      none it asks for the number, and only where this reader could set it. */
-  const fixLine=may?_aiEsc(i18t(w.notice?'rn_fix_terms':'rn_no_notice_fix')):'';
+  /* `rn_fix_terms` / `rn_no_notice_fix` are STALE ON THE FACE (17 Sep 2026):
+     the way forward is a clause inside the line above and the reason is on its
+     hover, so the card no longer spends a paragraph on each. Both keys stay
+     inert in both books. */
+  const fixLine='';
   /* ---- WHAT DID YOU DECIDE, AND WHO IS BEING TOLD (owner-approved 16 Sep
      2026; the artifact "HaTi Build Plan" solutions 1 and 9) ----
      BOTH READINGS ARE BORROWED. `w.decision` / `w.staleDecision` ride on
@@ -4157,12 +4170,17 @@ function renewalCardHtml(c){
      puts the three back WITHOUT un-recording anything, so a mis-press costs
      nothing and the trail keeps exactly one line per decision actually taken. */
   const asking=may && (!dec || String(_rnChanging||'')===String(c.id));
+  /* ---- ONE ROW OF BUTTONS (Young ruled 17 Sep 2026) ----
+     The three answers had their own row, under a divider and an uppercase
+     heading; the two acts had another. That is three lines of chrome for five
+     presses. They are ONE row now, and the heading survives as a short inline
+     label at its head — dropped entirely, "Renew" sitting beside "Start the
+     renewal" would read as a second way to do the same thing, which is the
+     one ambiguity this card cannot afford. `decideRow` is now just the
+     buttons; the acts row below places them. */
   const decideRow=asking?`
-    <div style="height:1px;background:var(--color-divider);margin:11px 0 9px;flex:none"></div>
-    <div style="font-size:var(--t-label);font-weight:var(--w-strong);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:7px;flex:none">${i18t('rn_what_decided')}</div>
-    <div style="display:flex;flex-direction:row;gap:7px;flex-wrap:wrap;margin-bottom:2px;flex:none">
-      ${ANS.map(a=>`<button class="ui-btn" data-rn-decide="${a}" style="font-size:var(--t-label);padding:5px 11px">${_aiEsc(i18t('rn_ans_'+a))}</button>`).join('')}
-    </div>`:'';
+    <span style="font-size:var(--t-label);font-weight:var(--w-strong);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);flex:none">${i18t('rn_what_decided')}</span>
+    ${ANS.map(a=>`<button class="ui-btn" data-rn-decide="${a}" style="font-size:var(--t-label);padding:5px 11px">${_aiEsc(i18t('rn_ans_'+a))}</button>`).join('')}`:'';
   /* THE DECIDED READING. The deadline is not taken off the screen — it moves
      into the quiet line underneath, where it says what stopped and the one
      thing that would start it again. */
@@ -4194,7 +4212,7 @@ function renewalCardHtml(c){
     </div>
     ${settled?decidedBlock:`
       <p style="margin:0 0 6px;font-size:var(--t-meta);line-height:1.55;color:${w.missed?'var(--st-ruby-fg)':'var(--color-neutral-700)'}">${_aiEsc(line)}</p>
-      ${srcLine?`<p style="margin:0 0 6px;font-size:var(--t-label);line-height:1.55;color:var(--color-neutral-600)">${srcLine}</p>`:''}
+      ${srcLine?`<p title="${_aiEsc(srcWhy)}" style="margin:0 0 6px;font-size:var(--t-label);line-height:1.55;color:var(--color-neutral-600)">${srcLine}</p>`:''}
       ${fixLine?`<p style="margin:0 0 9px;font-size:var(--t-label);line-height:1.55;color:var(--color-neutral-600)">${fixLine}</p>`:''}
       ${staleLine?`<p style="margin:0 0 9px;font-size:var(--t-label);line-height:1.55;color:var(--color-neutral-600)">${staleLine}</p>`:''}
       ${err?`<p style="margin:0 0 9px;padding:6px var(--s-2);font-size:var(--t-meta);line-height:1.5;background:var(--st-amber-bg);color:var(--st-amber-fg);border:1px solid var(--st-amber-line)">${_aiEsc(err)}</p>`:''}
@@ -4206,12 +4224,14 @@ function renewalCardHtml(c){
         ${(a.because||[]).length?`<ul style="margin:0 0 7px;padding-left:17px">${(a.because||[]).map(b=>`<li style="font-size:var(--t-meta);line-height:1.5;margin:3px 0;color:var(--color-neutral-700)">${_aiEsc(b)}</li>`).join('')}</ul>`:''}
         ${(a.pushOn||[]).length?`<div style="font-size:var(--t-meta);line-height:1.5;margin-bottom:7px"><b>${i18t('rn_push_on')}</b> ${_aiEsc((a.pushOn||[]).join(' · '))}</div>`:''}
         ${a.watchIf?`<p style="margin:0 0 7px;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5">${_aiEsc(i18t('rn_watch_if'))} ${_aiEsc(a.watchIf)}</p>`:''}
-      `:`<p style="margin:0 0 9px;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.55">${_aiEsc(i18t('rn_not_asked'))}</p>`}
-      ${decideRow}
+      `:''/* `rn_not_asked` is STALE ON THE FACE: it described what the
+             "What should we do?" button does, twelve pixels above the button
+             itself. It is that button's hover now. Inert in both books. */}
     `}
-    <div style="display:flex;flex-direction:row;align-items:center;gap:9px;flex-wrap:wrap;margin-top:9px;flex:none">
+    <div style="display:flex;flex-direction:row;align-items:center;gap:7px;flex-wrap:wrap;margin-top:9px;flex:none">
+      ${settled?'':decideRow}
       ${settled&&may?`<button class="ui-btn" data-rn-change style="font-size:var(--t-label);padding:5px 11px">${i18t('rn_change')}</button>`:''}
-      ${!settled&&may?`<button class="ui-btn" data-rn-ask style="font-size:var(--t-label);padding:5px 11px">${a?i18t('rn_again'):i18t('rn_ask')}</button>`:''}
+      ${!settled&&may?`<button class="ui-btn" data-rn-ask title="${_aiEsc(i18t('rn_not_asked'))}" style="font-size:var(--t-label);padding:5px 11px">${a?i18t('rn_again'):i18t('rn_ask')}</button>`:''}
       ${may?`<button class="ui-btn" data-rn-start style="font-size:var(--t-label);padding:5px 11px">${i18t('rn_start')}</button>`:''}
       ${''/* ---- SERVE A NOTICE (S6, 16 Sep 2026) ----
              The third act, and the one the other two cannot do: renewing and
@@ -4222,8 +4242,11 @@ function renewalCardHtml(c){
              the card draws on stages where js/notice.js is not loaded. */}
       ${(may&&typeof window.noticeMayDraft==='function'&&noticeMayDraft(c))
         ?`<button class="ui-btn" data-rn-notice style="font-size:var(--t-label);padding:5px 11px">${i18t('nt_act')}</button>`:''}
-      ${!dec&&toLine?`<span style="font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600);flex:1 1 200px;min-width:0">${toLine}</span>`:''}
     </div>
+    ${''/* WHO GETS CHASED sits UNDER the row, not in it: in the row it competed
+           for width with six controls and pushed them onto a second line, which
+           is the thing this change is for. Its reason is on its hover. */}
+    ${!dec&&toLine?`<p title="${_aiEsc(note.why==='none'?i18t('rn_to_none_why'):'')}" style="margin:7px 0 0;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600);flex:none">${toLine}</p>`:''}
   </section>`;
 }
 function renderRenewalSection(c){

@@ -196,6 +196,14 @@ describe('f310 (2) — the other twenty-five: the retired sentences are not draw
     ['js/views/library.js', "i18t('tf_our_party_hint')"],
     ['js/views/library.js', 'Fill in the blanks. Everything you type'],
     ['js/views/library.js', 'For high-volume, low-variation paper'],
+    /* ---- THE RENEWAL CARD, 17 Sep 2026 (Young: "the comments should be at a
+       minimum") ---- The diet applied to a CARD rather than a pop-up: the two
+       sentences that explained the machinery, and the one that described what
+       the button beside them does, are hovers now. The keys stay in both books;
+       a CALL that prints them again is what this fails on. */
+    ['js/ai.js', "i18t('rn_not_asked'))}</p>"],
+    ['js/ai.js', "i18t('rn_fix_terms'"],
+    ['js/ai.js', "i18t('rn_no_notice_fix'"],
     ['js/templatefields.js', 'Everything here is filed as contract data'],
     ['js/templatefields.js', '→ ${esc(f.hint)}'],
     ['js/wizard.js', '→ so you can send it to them'],
@@ -271,5 +279,39 @@ describe('f310 (2) — the other twenty-five: the retired sentences are not draw
     const src = strip(read('js/playbook.js'));
     assert.match(src, /<details class="mt-1"><summary[^>]*>\$\{i18t\('pb_read_wording'\)\}<\/summary>/);
     assert.match(src, /_pbEsc\(cl\.preferred\)/, 'and the whole wording is there when it opens');
+  });
+});
+
+describe('f310 (5) — the renewal card is one row of buttons and three short lines', () => {
+  /* Young, 17 September 2026, over a picture of the card: *"the buttons should
+     be on the same line but also, the comments should be at a minimum"*. The
+     SHAPE is measured in a browser; what is pinned here is that the machinery
+     went to `title` rather than being deleted, and that the row is built once. */
+  const AI = require('node:fs').readFileSync(
+    require('node:path').join(__dirname, '..', 'js/ai.js'), 'utf8');
+  test('the three answers and the two acts are built into ONE row', () => {
+    assert.ok(/\$\{settled\?'':decideRow\}/.test(AI),
+      'the decision buttons are placed by the acts row, not by a row of their own');
+    assert.ok(!/decideRow=asking\?`\s*\n\s*<div style="height:1px/.test(AI),
+      'and the divider above them is gone');
+    assert.ok(!/\$\{decideRow\}\s*\n\s*`\}/.test(AI),
+      'decideRow is no longer emitted inside the reading block');
+  });
+  test('the label survives, inline, because Renew beside Start the renewal is ambiguous', () => {
+    assert.ok(/rn_what_decided/.test(AI), 'the question is still asked');
+    assert.ok(/<span[^>]*>\$\{i18t\('rn_what_decided'\)\}<\/span>/.test(AI),
+      'as a span on the row, never a block above it');
+  });
+  test('what was cut went to a hover, it was not thrown away', () => {
+    assert.ok(/title="\$\{_aiEsc\(srcWhy\)\}"/.test(AI), 'the notice-period machinery');
+    assert.ok(/data-rn-ask title="\$\{_aiEsc\(i18t\('rn_not_asked'\)\)\}"/.test(AI),
+      'what Copilot would weigh up is on the button that does it');
+    assert.ok(/rn_to_none_why/.test(AI), 'and why the administrators are the ones told');
+  });
+  test('an absence is still STATED on the face, never only on a hover', () => {
+    /* The one sentence this card may never drop: without it the expiry is
+       silently shown as the deadline, which is the fault it was built for. */
+    assert.ok(/i18t\('rn_no_notice',\{expiry:when\(w\.expiry\)\}\)/.test(AI),
+      'no notice period recorded is drawn, not hidden');
   });
 });
