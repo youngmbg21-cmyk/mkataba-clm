@@ -7162,6 +7162,27 @@ function rlPeekShow(clauseId, rungId, opts){
   panel.insertAdjacentHTML('beforeend', html);
   _rlPeek = { clauseId: String(clauseId), rungId: String(rungId), pinned: !!(opts && opts.pinned) };
   const card = document.getElementById('rl-peek');
+  /* ---- IT OPENS BESIDE THE RUNG, NOT AT THE TOP OF THE PANEL (Young
+     reported it 17 Sep 2026: "When I put my mouse on the R1 card I do not see
+     the updated clause") ----
+     THE CARD WAS DRAWING CORRECTLY AND NOBODY COULD SEE IT. `top` was a fixed
+     --s-3 from the panel's own top, so MEASURED: rungs sitting at y=217, 343,
+     513 and 640 all opened a card at y=84 — up to 550px above the pointer,
+     outside the reader's field of view while they were looking at the row.
+     A hover card that appears somewhere else is a hover card nobody finds.
+
+     So it is lined up with the row that owns it, CLAMPED inside the panel so a
+     rung near the foot cannot push it off the bottom of the screen. Measured
+     against the panel because that is the box it is positioned in. */
+  if (card && opts && opts.row && typeof opts.row.getBoundingClientRect === 'function'){
+    try{
+      const pr = panel.getBoundingClientRect(), rr = opts.row.getBoundingClientRect();
+      const ch = card.getBoundingClientRect().height || 0;
+      const want = rr.top - pr.top - 6;          /* its own top, a hair above */
+      const most = Math.max(8, pr.height - ch - 12);
+      card.style.top = Math.round(Math.min(Math.max(8, want), most)) + 'px';
+    }catch(_){ }
+  }
   if (card && !opts?.pinned){
     /* CROSSING FROM THE ROW TO THE CARD MAY NOT CLOSE IT: the card is not a
        child of the row it belongs to, so the pointer leaving the row would

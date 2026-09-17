@@ -15498,3 +15498,43 @@ redlines prior to going to the redlines page", and a Draft with redlines
 waiting is exactly that case. What it drops is the case where the offer could
 never have been kept. Pinned in f329 (3), including that the reading is asked
 BEFORE the count.
+
+## 17 Sep 2026 — TWO OF THE FIVE DID NOT WORK ON THE OWNER'S SCREEN
+
+Young, having used them: *"Point 5, When I put my mouse on the R1 card I do not
+see the updated clause. Point 4, when I am filling in the field or when my
+cursor is in the field, the contract should move to where that field is."*
+
+Both reproduced by MEASUREMENT before a line was changed, and both were faults
+in what shipped that morning rather than misunderstandings.
+
+- **THE PAPER NEVER SCROLLED AT ALL.** `contractFieldLight` read
+  `opts && opts.scroll !== false`, and every caller passes no opts — so the
+  whole condition was undefined and the scroll was skipped on every press. The
+  guard-that-is-always-false class, again. MEASURED: doc-scroll's scrollTop
+  stayed 0 for a field 781px down the wording. The default is now ON and only
+  an explicit `scroll:false` turns it off.
+  AND THE CHECK THAT SHOULD HAVE CAUGHT IT WAS PASSING BECAUSE OF THE BUG:
+  "the contract does not move by a pixel" measured the first paragraph's
+  VIEWPORT top, which conflated re-flow with scrolling and let the wrong one
+  win. Re-pointed: layout is measured INSIDE the document, where scrolling
+  cannot reach it, and the scroll has a claim of its own.
+
+- **THE RUNG'S CARD OPENED WHERE NOBODY WAS LOOKING.** It drew correctly every
+  time — the right wording, the right marks, visible, on top — at a FIXED inset
+  from the panel's top. MEASURED: rungs at y=217, 343, 513 and 640 all opened a
+  card at y=84, up to 550px above the pointer. A hover card that appears
+  somewhere else is a hover card nobody finds. It is now lined up with the row
+  that owns it, clamped inside the panel so a rung near the foot cannot push it
+  off the bottom.
+
+Both proved red against dd7406f, the commit that shipped them: 9f reports
+"0 → 0" and 23g2 reports "row 217→card 84 · row 343→card 84 · row 513→card 84 ·
+row 640→card 84".
+
+### Noticed, not fixed
+- The clause panel renders a body per clause and hides all but one
+  (`#rl-cp-body .rl-cp-src{display:none}`), so `#rl-cp [data-rl-rung-peek]`
+  matches rung rows in the hidden bodies too — they measure zero height. Every
+  reader here filters on a real box, but a future one that does not will find
+  rows it cannot hover.

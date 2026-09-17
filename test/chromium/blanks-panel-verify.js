@@ -253,9 +253,20 @@ const CONTRACT = (id, over) => Object.assign({
         ['9e', 'a cursor on the paper lights the box, and does not steal the caret']])
         check(n + ' ' + what, false, 'no panel box on this build');
     } else {
+      /* ---- WHAT "THE CONTRACT DOES NOT MOVE" MEANS, AND WHAT IT DOES NOT
+         (re-pointed 17 Sep 2026) ----
+         The first draft measured the first paragraph's VIEWPORT top and called
+         it unchanged. That conflated two different claims and the wrong one
+         won: the paper must not RE-FLOW (the light is an outline and a wash,
+         which cost no layout), but it absolutely must SCROLL — the owner's
+         words, "the contract should move to where that field is". The old
+         claim passed because a guard that was always false meant no scroll
+         ever ran. So layout is measured INSIDE the document, where scrolling
+         cannot reach it, and the scroll gets a claim of its own below. */
       const inkBefore9 = await page.evaluate(() => {
         const q = document.querySelector('#doc-canvas p');
-        return q ? Math.round(q.getBoundingClientRect().top) : null; });
+        const paper = document.getElementById('doc-canvas');
+        return q ? { top: q.offsetTop, w: Math.round(paper.getBoundingClientRect().width) } : null; });
       await boxes9[0].click(); await pause(250);
       const lit = await page.evaluate(() => {
         const all = [...document.querySelectorAll('.is-fieldlit')];
@@ -266,7 +277,8 @@ const CONTRACT = (id, over) => Object.assign({
           tag: onPaper[0] ? onPaper[0].tagName + '.' + onPaper[0].className : null,
           outline: cs ? cs.outlineWidth : null, ostyle: cs ? cs.outlineStyle : null,
           ocolor: cs ? cs.outlineColor : null, bg: cs ? cs.backgroundColor : null,
-          ink: q ? Math.round(q.getBoundingClientRect().top) : null };
+          ink: q ? { top: q.offsetTop,
+            w: Math.round(document.getElementById('doc-canvas').getBoundingClientRect().width) } : null };
       });
       check('9a a cursor in a box lights its word on the paper',
         lit.paper === 1, JSON.stringify(lit));
@@ -282,8 +294,10 @@ const CONTRACT = (id, over) => Object.assign({
         lit.bg === 'rgb(209, 250, 229)', lit.bg);
       check('9b exactly one word is lit — a reader tabbing down leaves no trail',
         lit.n === 1, 'lit ' + lit.n);
-      check('9c THE CONTRACT DOES NOT MOVE BY A PIXEL',
-        inkBefore9 != null && lit.ink === inkBefore9, `${inkBefore9} → ${lit.ink}`);
+      check('9c THE CONTRACT DOES NOT RE-FLOW BY A PIXEL',
+        inkBefore9 != null && lit.ink != null && lit.ink.top === inkBefore9.top
+          && lit.ink.w === inkBefore9.w,
+        `${JSON.stringify(inkBefore9)} → ${JSON.stringify(lit.ink)}`);
       /* LEAVING PUTS IT OUT. */
       await page.evaluate(() => document.activeElement && document.activeElement.blur());
       await pause(250);
@@ -292,6 +306,45 @@ const CONTRACT = (id, over) => Object.assign({
       const out9 = await page.evaluate(() => document.querySelectorAll('.is-fieldlit').length);
       check('9d leaving the box puts the light out',
         lit.n === 1 && out9 === 0, `${lit.n} lit → ${out9}`);
+      /* ---- AND THE PAPER GOES THERE (Young reported it 17 Sep 2026: "when I
+         am filling in the field or when my cursor is in the field, the
+         contract should move to where that field is") ----
+         Driven on the LAST box, which is furthest down the wording — the fault
+         only shows on a field that is not already on screen. MEASURED before
+         the fix: doc-scroll's scrollTop stayed 0 for a field 781px down. */
+      const low9 = await page.evaluate(() => {
+        const sc = document.getElementById('doc-scroll');
+        if (sc) sc.scrollTop = 0;
+        if (document.activeElement) document.activeElement.blur();
+        const boxes = [...document.querySelectorAll('#tplform-section [data-blankf]')];
+        const last = boxes[boxes.length - 1];
+        return { key: last ? last.getAttribute('data-blankf') : null,
+          doc: sc ? sc.scrollTop : null,
+          shell: (document.getElementById('content-scroll') || {}).scrollTop, win: window.scrollY };
+      });
+      if (!low9.key){
+        check('9f a cursor in a field low on the paper scrolls the contract to it', false, 'no box');
+      } else {
+        await page.click(`#tplform-section [data-blankf="${low9.key}"]`); await pause(500);
+        const moved9 = await page.evaluate(() => {
+          const sc = document.getElementById('doc-scroll');
+          const lit = document.querySelector('#doc-canvas .is-fieldlit');
+          const r = lit ? lit.getBoundingClientRect() : null;
+          const s = sc ? sc.getBoundingClientRect() : null;
+          return { doc: sc ? sc.scrollTop : null,
+            shell: (document.getElementById('content-scroll') || {}).scrollTop, win: window.scrollY,
+            inView: r && s ? (r.top >= s.top && r.bottom <= s.bottom) : null };
+        });
+        check('9f a cursor in a field low on the paper scrolls the contract to it',
+          moved9.doc > low9.doc, `${low9.doc} → ${moved9.doc}`);
+        check('9f2 and the word is on screen when it gets there',
+          moved9.inView === true, String(moved9.inView));
+        /* IT SCROLLS THE PAPER'S OWN SCROLLER AND NOTHING ELSE. */
+        check('9f3 the shell and the window stay exactly where they were',
+          moved9.shell === low9.shell && moved9.win === low9.win,
+          `shell ${low9.shell}→${moved9.shell} · window ${low9.win}→${moved9.win}`);
+      }
+
       /* AND THE OTHER WAY ROUND. The paper's own input takes the caret and the
          PANEL lights — the caret must not be taken back off the paper. */
       const pin = await page.$('#doc-canvas input[data-field], #doc-canvas input[data-sync]');

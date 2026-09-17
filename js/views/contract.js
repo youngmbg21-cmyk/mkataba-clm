@@ -6294,11 +6294,26 @@ function contractFieldLight(node, opts){
   document.querySelectorAll('.is-fieldlit').forEach(el => el.classList.remove('is-fieldlit'));
   if(!node) return false;
   node.classList.add('is-fieldlit');
-  /* LANDING, NEVER TRAVELLING. 'center' so the sentence the word sits in is
-     readable around it, and behavior:auto because a smooth scroll on a press
-     that is really a keystroke reads as the page wobbling. Guarded: jsdom has
-     no scrollIntoView. */
-  if(opts && opts.scroll !== false && typeof node.scrollIntoView === 'function'){
+  /* ---- AND THE PAPER GOES THERE (Young reported it 17 Sep 2026: "when I am
+     filling in the field ... the contract should move to where that field
+     is") ----
+     THE FIRST DRAFT NEVER SCROLLED AT ALL, and the reason is the fault class
+     this codebase calls a guard that is always false: it read
+     `opts && opts.scroll !== false`, and every caller passes no opts, so the
+     whole condition was undefined and the scroll was skipped on every press.
+     Nothing errored and the light still drew, so the screen looked almost
+     right. The default is now ON and only an explicit `scroll:false` turns it
+     off. MEASURED: doc-scroll's scrollTop stayed 0 for a field 781px down.
+
+     IT SCROLLS THE PAPER'S OWN SCROLLER AND NOTHING ELSE. scrollIntoView walks
+     to the nearest scrollable ancestor, which on this tab is #doc-scroll, so
+     the shell and the window stay where they are — asserted, not assumed.
+
+     LANDING, NEVER TRAVELLING. 'center' so the sentence the word sits in is
+     readable around it, and behavior:auto because a smooth scroll on what is
+     really a keystroke reads as the page wobbling. Guarded: jsdom has no
+     scrollIntoView. */
+  if(!(opts && opts.scroll === false) && typeof node.scrollIntoView === 'function'){
     try{ node.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'auto' }); }catch(_){ }
   }
   return true;

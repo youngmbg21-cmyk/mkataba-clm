@@ -710,6 +710,40 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
   await page.mouse.move(peek.paperLeft || 80, 300); await pause(500);
   const gone = await page.evaluate(() => !document.getElementById('rl-peek'));
   check('23g pointing away closes it', gone === true, String(gone));
+  /* ---- AND IT OPENS BESIDE THE RUNG (Young reported it 17 Sep 2026: "When I
+     put my mouse on the R1 card I do not see the updated clause") ----
+     The card was drawing correctly and nobody could see it: `top` was a fixed
+     inset from the panel, so rungs at y=217, 343, 513 and 640 ALL opened a
+     card at y=84 — up to 550px above the pointer. Driven on every rung that
+     has a box, because the fault only shows on the ones further down. */
+  const near23 = await (async () => {
+    const out = [];
+    const boxes = await page.evaluate(() =>
+      [...document.querySelectorAll('#rl-cp [data-rl-rung-peek]')]
+        .map((r, i) => ({ i, top: Math.round(r.getBoundingClientRect().top),
+          h: Math.round(r.getBoundingClientRect().height) })).filter(x => x.h > 0));
+    for (const b of boxes){
+      await rows23[b.i].hover(); await pause(280);
+      const got = await page.evaluate(() => {
+        const el = document.getElementById('rl-peek');
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        const p = document.getElementById('rl-cp').getBoundingClientRect();
+        return { y: Math.round(r.top), bottom: Math.round(r.bottom),
+          panelTop: Math.round(p.top), panelBottom: Math.round(p.bottom) };
+      });
+      out.push({ row: b.top, card: got });
+    }
+    return out;
+  })();
+  check('23g2 it opens BESIDE the rung, not at the top of the panel',
+    near23.length > 1 && near23.every(x => x.card && Math.abs(x.card.y - x.row) <= 24),
+    near23.map(x => `row ${x.row}→card ${x.card ? x.card.y : 'none'}`).join(' · '));
+  check('23g3 and a rung near the foot cannot push it off the bottom',
+    near23.every(x => x.card && x.card.bottom <= x.card.panelBottom + 2
+      && x.card.y >= x.card.panelTop - 2),
+    near23.map(x => x.card ? `${x.card.y}..${x.card.bottom} in ${x.card.panelTop}..${x.card.panelBottom}` : 'none').join(' · '));
+  await page.mouse.move(40, 300); await pause(400);
   /* A REAL PRESS PINS IT, so its two verbs can be reached with a mouse. */
   await rows23[0].click(); await pause(300);
   await page.mouse.move(40, 300); await pause(400);
