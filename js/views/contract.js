@@ -4581,8 +4581,13 @@ function ktTriageStripHtml(c){
      Its own quiet mark, no count, no tone — nothing to act on yet. */
   const tiles=triageTiles(c).map(x=>{
     const tone=x.working?'is-busy':(x.ok?((x.count!=null&&x.count>0)?'is-warn':'is-ok'):'is-no');
-    const mark=x.working?'&hellip;':(x.ok?((x.count!=null&&x.count>0)?String(x.count):'&#10003;'):'&mdash;');
-    return `<div class="kt-tri-tile${x.working?' is-busy':''}">
+    /* A READING IN FLIGHT TURNS (Young ruled 17 Sep 2026) — the strip repaints
+       only when a step LANDS, so a static mark left the page looking stuck for
+       most of a minute. The product's own spinner, not a second one; its
+       reduced-motion answer comes with it. See .kt-tri-chip.is-busy. */
+    const mark=x.working?'<span class="ob-spin" aria-hidden="true"></span>'
+      :(x.ok?((x.count!=null&&x.count>0)?String(x.count):'&#10003;'):'&mdash;');
+    return `<div class="kt-tri-tile${x.working?' is-busy':''}"${x.working?' aria-busy="true"':''}>
       <div class="kt-tri-th"><span class="kt-tri-chip ${tone}">${mark}</span>${esc(i18t(x.headKey))}</div>
       ${x.detail?`<div class="kt-tri-td">${esc(x.detail)}</div>`:''}
     </div>`; }).join('');
@@ -4783,8 +4788,39 @@ function ktDealFactsHtml(c,opts={}){
    contract says; that is The deal above. Every one is an existing reading
    asked through window, because this file is not the only stage they run on,
    and an absent one is sectionFieldHtml's em-dash rather than a guess. */
+/* ---- ONLY AN ISO DAY IS A DAY (Young reported NaN.NaN.NaN 17 Sep 2026) ----
+   The What Copilot read table printed `NaN.NaN.NaN` in the WHEN column of the
+   risk scan's row. Its printer sliced ten characters off whatever it was
+   handed and gave them to regDotDate, which does `new Date(iso+'T00:00:00')`
+   — so anything that is not an ISO day became an Invalid Date. The scan's
+   `at` is a LOCALE SENTENCE ("17 Sept 2026, 14:32") and always was; sliced, it
+   read "17 Sept 2".
+
+   THE GUARD IS THE FIX RATHER THAN THE CALLER: a reading that cannot answer
+   says nothing and the row draws its own em-dash, so no field can put a NaN on
+   a screen by being the wrong shape.
+
+   AND IT IS ONE PRINTER, WHERE THERE WERE FOUR. This table's, the record
+   grid's, the documents rows' and the room's fact row — four copies of six
+   characters' worth of formatting, none of them guarded. THE SAME NaN HAD
+   ALREADY BEEN REPORTED ONCE, on 13 Sep 2026 ("364 days to NaN.NaN.NaN" on
+   the room's fact row), and was fixed there by changing what that ONE caller
+   handed in. Four days later the same NaN arrived from a different copy. A
+   fault fixed at one of four call sites is a fault waiting for the next one.
+
+   IT RETURNS THE DAY UNESCAPED and every caller keeps the escaping it already
+   had. regDotDate emits digits and dots, so escaping it is a no-op either way
+   — which is exactly why it must not be guessed at: "right by luck" is the
+   sentence above, and doing it twice would be the same carelessness one line
+   down. */
+function ktDayDot(iso){
+  const d = String(iso == null ? '' : iso).slice(0, 10);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(d)) return '';
+  return window.regDotDate ? regDotDate(d) : d;
+}
+
 function ktRecordFactsHtml(c,opts={}){
-  const dot=iso=>(iso&&window.regDotDate)?esc(regDotDate(iso)):(iso?esc(String(iso)):'');
+  const dot=iso=>esc(ktDayDot(iso));   // one printer — see ktDayDot
   const R=ktFactReads(c);
   const owner=(window.contractOwnerName?contractOwnerName(c):'')||'';
   const signed=(()=>{ try{ return (window.contractSignedAt?contractSignedAt(c):'')||''; }
@@ -4839,8 +4875,9 @@ function ktRecordFactsHtml(c,opts={}){
    exists, not a replacement for what it says. */
 const OV_READ_TONE={ yes:'green', no:'', stale:'amber' };
 function ktReadingsRowsHtml(c){
-  const dot=iso=>{ const d=String(iso||'').slice(0,10);
-    return (d&&window.regDotDate)?esc(regDotDate(d)):(d?esc(d):''); };
+  /* The one printer, and its whole story is beside it — see ktDayDot. The scan
+     stamps `on` beside `at` now, so it has a day to give. */
+  const dot=iso=>esc(ktDayDot(iso));
   const rows=[];
   /* 1. THE BRIEF -- asked through _hasBrief AND _brief, the light list's
      boolean first: the memo itself rides only the single contract's GET, and a
@@ -4871,7 +4908,10 @@ function ktReadingsRowsHtml(c){
   let open=0; try{ open=((window.openFindings?openFindings(c):[])||[]).length; }catch(_){ open=0; }
   rows.push({ k:'scan', name:i18t('ov_r_scan'),
     said: (c&&c.scan)?i18tn('ov_r_open_n',open,{n:open}):i18t('ov_r_none'),
-    when: (c&&c.scan&&c.scan.at)||'', state:(c&&c.scan)?'yes':'no', tab:'docs' });
+    /* `on` IS THE DAY AND `at` IS THE SENTENCE — see runScan and `dot` above.
+       An older scan carries no `on` and the cell is an em-dash, which is the
+       honest answer for a day nobody recorded. */
+    when: (c&&c.scan&&c.scan.on)||'', state:(c&&c.scan)?'yes':'no', tab:'docs' });
   /* 5. THE PLAIN-ENGLISH EDITION -- docReadHeld is the ONE reading of "is
      there an edition to show", which the switch and the painter both ask. */
   /* ASKED BARE. docReadHeld is declared in THIS file, so `window.docReadHeld`
@@ -4907,7 +4947,7 @@ const OV_DOC_TONE={ lapsed:'ruby', missing:'ruby', soon:'amber', held:'' };
 function ktDocsRowsHtml(c){
   const rows=(window.contractDocuments?contractDocuments(c):[]);
   if(!rows.length) return '';
-  const dot=iso=>(iso&&window.regDotDate)?esc(regDotDate(iso)):(iso?esc(String(iso)):'');
+  const dot=ktDayDot;   // one printer — see ktDayDot; this caller escapes at the call site
   const may=(typeof canEdit==='function'?canEdit():true);
   const tr=o=>{
     const st=obligationDocState(o), tone=OV_DOC_TONE[st]||'';
@@ -6941,7 +6981,7 @@ function roomFactsHtml(c,opts={}){
      typo rather than a term) the expiry alone is still worth saying, printed in
      the register's own dotted form so a date reads the same in both places
      rather than as a raw ISO string. */
-  const dot=iso=>iso?(window.regDotDate?regDotDate(iso):String(iso||'')):'';
+  const dot=ktDayDot;   // one printer — see ktDayDot; and the 13 Sep NaN was this row's
   /* THE DATE PRINTED IS THE DATE THE TERM WAS READ FROM (owner-reported
      13 Sep 2026: "364 days to NaN.NaN.NaN"). docTermSpan falls back to the
      wording's own metadata.expiryDate where the record carries no expiry,
@@ -11718,7 +11758,7 @@ Object.assign(window,{paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,
      I walked it on re-rendered the workspace, which measures on the way in. */
   layoutDocResizer,renderSignButton,renderSignSide,roomFactsHtml,signBlockHtml,signReadinessCardHtml,signRowTitle,signLandOnList,signCheckEscalate,signCheckTake,signRiskDismiss,signConsentStamp,signHeadLabel,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,reviewReturnedRound,docWorkingTextNoteHtml,docNothingWrittenHtml,docHasNoWording,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
-  ROOM_TABS,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomCurrentTab,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,paintContractForm,renderBlankFormSection,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,openCheckPanel,roomHeadHtml,wireRoomHead,
+  ROOM_TABS,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomCurrentTab,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,ktDayDot,paintContractForm,renderBlankFormSection,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,openCheckPanel,roomHeadHtml,wireRoomHead,
   DOC_SEL_ACTIONS,wireDocCopilotSel,docAiRead,docSelKill,
   /* idea 7 — the plain-English layer. Published because a name read through
      window from another module, or from a test stage, is silence when it is

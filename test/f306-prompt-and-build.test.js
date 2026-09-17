@@ -319,10 +319,33 @@ describe('f306 (7) — one door into the record', () => {
     ]);
   });
 
+  /* PIN THE REGION, NOT A BYTE COUNT. This sliced 600 characters off the front
+     of tbAccept, so the wall added on 17 Sep 2026 — the second reading of
+     "is this card carrying wording" — pushed the line it is about out of the
+     window and the claim went red over a function that had not changed. The
+     f213 lesson, three days later and one file along: read the function's own
+     braces. */
+  const tbBodyOf = (name) => {
+    const m = new RegExp('async function\\s+' + name + '\\s*\\([^)]*\\)\\s*\\{').exec(TB);
+    if (!m) return '';
+    let i = m.index + m[0].length, depth = 1;
+    while (i < TB.length && depth > 0) {
+      const ch = TB[i];
+      if (ch === '{') depth++; else if (ch === '}') depth--;
+      i++;
+    }
+    return TB.slice(m.index, i);
+  };
   test('accepted wording lands on the block content a keystroke fills', () => {
-    const at = TB.indexOf('async function tbAccept');
-    const body = TB.slice(at, at + 600);
+    const body = tbBodyOf('tbAccept');
+    assert.ok(body, 'tbAccept is there');
     assert.match(body, /_tb\.blocks\[bi\]\.content = a\.text/);
+    /* ---- AND A REMARK ABOUT THE JOB IS NOT WORDING (17 Sep 2026) ----
+       Young, over a screenshot of a refusal drawn as section 3's wording and
+       applied into the template. The cause is fixed in aiLooksConversational;
+       this is the second wall, at the one press that writes. */
+    assert.match(body, /tbCardWording\(a\)/,
+      'the press asks whether the card carries wording at all');
     /* RE-POINTED IN PLACE, 17 Sep 2026. The claim is that Apply marks the page
        dirty, and it still does — through tbTouch, the one funnel that also
        keeps the draft (f306 (12)). Nine presses wrote the flag themselves and

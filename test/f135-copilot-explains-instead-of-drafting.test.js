@@ -420,31 +420,57 @@ describe('F135g — a section heading still reaches the card', () => {
     ]) assert.equal(ai.aiLooksConversational(s), true, s.slice(0, 52));
   });
 
-  test('MEASURED: the whole guard reads THREE sentences of 50 real agreements as talk', () => {
-    /* The claim is a NUMBER and it is deliberately not zero. Three survivors,
+  test('MEASURED: the whole guard reads FOUR sentences of 50 real agreements as talk', () => {
+    /* The claim is a NUMBER and it is deliberately not zero. Four survivors,
        each left on purpose and each a decision rather than a mystery:
 
          · a schedule footnote opening "Note:" — genuinely two-sided, because a
            model writes "Note:" as often as a schedule does;
          · two lines of a MARKETING EXHIBIT listing content-feature titles, one
-           of which carries a question mark inside a quoted title.
+           of which carries a question mark inside a quoted title;
+         · a signed CERTIFICATE declaration, "I have reviewed the attached
+           labels and the current Certificate of Analysis…".
 
-       Those last two are the measured cost of F135h's question rule, and they
+       The middle two are the measured cost of F135h's question rule, and they
        are worth it: across the same corpus not one PARAGRAPH ends in a question
        mark, which is the unit the guard is really asked about, and the reply
        that forced the rule was four paragraphs of commentary filed into a
        contract. Left on the standing rule that the worse error is the other
-       one. */
+       one.
+
+       ---- THE FOURTH ARRIVED 17 Sep 2026, ON PURPOSE ----
+       Young reported a refusal drawn as a template section's wording: "…, I
+       RISK DRAFTING something that either doesn't match your market practice…".
+       Not one pattern fired, because AI_MODEL_VOICE listed ELEVEN verbs the
+       model had been seen using and it wrote a twelfth. That list has been
+       extended three times; it is INVERTED now — what a contract says after a
+       standalone "I" is closed and ancient (hereby, agree, covenant, certify,
+       appoint, guarantee…) and everything else is the model.
+
+       THE CERTIFICATE IS WHAT THAT COST, and it is one sentence in 7,607. It
+       is a signed declaration rather than clause wording, and what happens to
+       it is that it lands in the advice bubble, where a reader can still read
+       it and type it in. Against that: a refusal written into a contract.
+       THREE MORE HITS WERE NOT ADDED, and that is why `or` is exempt below —
+       "and I or the Affiliated Companies" is "and/or" with the slash read as a
+       capital I, which is nobody speaking at all. */
     const corpus = require(path.join(__dirname, 'cuad', 'contracts.json'));
     const text = corpus.data
       .map(r => r.paragraphs.map(p => p.context || p.text || '').join('\n\n')).join('\n\n');
     const sentences = text.split(/(?<=[.!?])\s+/)
       .map(s => s.trim()).filter(s => s.length > 25);
     const talk = sentences.filter(s => ai.aiLooksConversational(s));
-    assert.equal(talk.length, 3, `three known survivors, got:\n`
+    assert.equal(talk.length, 4, `four known survivors, got:\n`
       + talk.map(s => '  ' + JSON.stringify(s.slice(0, 90))).join('\n'));
     assert.equal(talk.filter(s => /^Note:/.test(s)).length, 1, 'the footnote');
     assert.equal(talk.filter(s => /\?/.test(s)).length, 2, 'and the two quoted titles');
+    assert.equal(talk.filter(s => /^I have reviewed/.test(s)).length, 1,
+      'and the certificate declaration — the named cost of inverting the verb list');
+    /* THE OCR SLASH IS NOT A SURVIVOR, and this is what holds `or` exempt:
+       three sentences of this corpus read "and I or", which is "and/or". */
+    assert.equal(sentences.filter(s => /\band I or\b/.test(s)).length, 3, 'the corpus really carries them');
+    assert.equal(talk.filter(s => /\band I or\b/.test(s)).length, 0,
+      'and not one of them is read as anybody speaking');
 
     /* THE UNIT THAT ACTUALLY MATTERS. aiSplitReply judges PARAGRAPHS, and not
        one paragraph of 50 real agreements is read as talk. */

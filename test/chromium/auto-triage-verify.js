@@ -734,6 +734,63 @@ const SEED = t => {
     check('12f · and a send that changed nothing is not paid for twice',
       again.needs === false, again);
 
+    /* ============ 13 · A READING IN FLIGHT TURNS ============
+       Young, 17 Sep 2026, ringing the four chips: *"when the copilot is
+       reading, make the highlight features active or spinning so someone
+       knows something is happening."* The chip held a static "…" and the
+       strip repaints only when a step LANDS, so for most of a minute four
+       dead grey boxes sat on the page.
+
+       MEASURED, not read off the source: an animation either runs on a
+       painted element or it does not, and jsdom resolves neither. The busy
+       state is staged with the product's own flag (`_triaging`, what
+       triageRun sets for the life of a run) and the strip is repainted
+       through its own painter. */
+    const spin = await drive(id => {
+      const c = state.contracts.find(x => x.id === id) || state.contracts[0];
+      /* WHAT A RUN IN FLIGHT REALLY LOOKS LIKE, and it is the record's own
+         shape rather than a flag on its own: triageRun fills `t.steps`
+         progressively and holds `_triaging` for the life of the run, so a
+         tile is WORKING exactly while its step is still absent. Staged by
+         taking the later steps off — one second into a run — and put back
+         before this section ends. */
+      const keep = JSON.parse(JSON.stringify(c.triage.steps));
+      c.triage.steps = { risk: keep.risk };
+      c._triaging = true;
+      if (typeof paintKtTriage === 'function') paintKtTriage(c);
+      const chip = document.querySelector('.kt-tri-chip.is-busy');
+      const sp = chip && chip.querySelector('.ob-spin');
+      const done = document.querySelector('.kt-tri-chip.is-ok, .kt-tri-chip.is-warn');
+      const cs = sp ? getComputedStyle(sp) : null;
+      const out = {
+        chip: !!chip,
+        spinner: !!sp,
+        anim: cs ? cs.animationName : null,
+        turning: !!(cs && cs.animationName && cs.animationName !== 'none'
+          && parseFloat(cs.animationDuration) > 0),
+        painted: sp ? Math.round(sp.getBoundingClientRect().width) : 0,
+        /* THE CHIP MAY NOT GROW TO HOLD IT — the strip sits above the
+           agreement's own card and the row's height is the reader's. */
+        busyH: chip ? Math.round(chip.getBoundingClientRect().height) : 0,
+        doneH: done ? Math.round(done.getBoundingClientRect().height) : 0,
+        ellipsis: /…/.test((chip && chip.textContent) || ''),
+        busyTile: !!document.querySelector('.kt-tri-tile[aria-busy="true"]'),
+      };
+      c.triage.steps = keep;
+      delete c._triaging;
+      if (typeof paintKtTriage === 'function') paintKtTriage(c);
+      return out;
+    }, drew.id, { chip: false });
+    check('13a · a reading still in flight draws a busy chip', spin.chip === true, spin);
+    check('13b · and it holds the product\'s own spinner, not a static mark',
+      spin.spinner === true && spin.ellipsis === false, spin);
+    /* THE ASK ITSELF, as one measurement: it is really turning. */
+    check('13c · which is really animating, on a painted element',
+      spin.turning === true && spin.painted > 0, spin);
+    check('13d · the chip does not grow to hold it',
+      spin.doneH > 0 && spin.busyH === spin.doneH, { busy: spin.busyH, done: spin.doneH });
+    check('13e · and the tile says it is busy to a screen reader', spin.busyTile === true, spin);
+
     check('9 · and the whole journey raised no page error',
       errors.length === 0, errors.slice(0, 4));
 

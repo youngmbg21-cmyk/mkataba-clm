@@ -587,6 +587,31 @@ async function tbDraft(k, said, o = {}) {
   tbPaintRail();
 }
 
+/* ---- IS THIS CARD CARRYING WORDING, OR A REMARK ABOUT THE JOB? ----
+   (Young reported it 17 Sep 2026, over a screenshot of section 3 of a
+   Transportation Management template reading "Without seeing HaTi's own
+   standard wording … I risk drafting something that …")
+
+   THE CAUSE IS FIXED ONE LEVEL UP — aiLooksConversational's verb list is
+   inverted now, so a refusal comes back as `advice` with an empty
+   proposedText and tbSend's `answered` branch prints it with no card at all.
+   THIS IS THE SECOND WALL, and it exists because the first one is a
+   JUDGEMENT about sentences: the guard has been extended three times and the
+   model found a new phrasing each time. Asked again HERE, at the one press
+   that writes into the template, so a sentence that slips the reading still
+   cannot become a clause.
+
+   ONE READING, TWO ASKERS — the card and the press — so a card that offers
+   Apply and a press that refuses it can never be the same card. Where the
+   module that answers is not on this stage the answer is "wording", which is
+   exactly how this page behaved before the wall existed. */
+function tbCardWording(a){
+  const t = String((a && a.text) || '').trim();
+  if (!t) return false;
+  try{ if (typeof aiLooksConversational === 'function' && aiLooksConversational(t)) return false; }catch(_){ }
+  return true;
+}
+
 /* ---- APPLY: the one press that moves wording into the record ----
    It writes the SAME block content a keystroke writes — no second writer — and
    then asks the blanks reader what should be a blank. Walk me through it moves
@@ -595,6 +620,14 @@ async function tbDraft(k, said, o = {}) {
 async function tbAccept(k, idx) {
   const sec = tbSectionAt(k); const turn = tbThread(k)[idx]; const a = turn && turn.card;
   if (!sec || !a || !a.text || a.applied) return;
+  /* THE SECOND WALL, asked at the press — see tbCardWording. The card does not
+     draw Apply for one of these, so this is reached only by a door that got
+     round the drawing; it refuses in words rather than silently. */
+  if (!tbCardWording(a)){
+    tbTurn(k, { who: 'ai', text: i18t('tb_not_wording'), tone: 'amber' });
+    tbPaintRail();
+    return;
+  }
   const bi = tbWordingBlock(sec);
   _tb.blocks[bi].content = a.text;
   tbTouch();
@@ -933,6 +966,11 @@ function tbTurnHtml(t, i, sec) {
   const a = t.card;
   const draftNo = tbThread(sec.k).slice(0, i + 1).filter(x => x.card).length;
   const dev = !a.applied && tbCardDeviates(sec, a.text);
+  /* A REMARK ABOUT THE JOB IS NOT A DRAFT, so it is printed as what it is and
+     offered nothing to press — no Apply, no Refine, no redline against the
+     section it is not wording for. See tbCardWording. */
+  if (!tbCardWording(a))
+    return tbAiHtml(`<b>${i18t('tb_pb_no_wording')}</b> ${esc(a.text)}`);
   return `<div class="tb-ai">${t.text ? `<p class="t">${esc(t.text)}</p>` : ''}
     <div class="tb-card" data-tb-card="${i}">
       <div class="n">${esc(sec.head || i18t('tb_untitled'))} — ${draftNo}<span class="g"></span><span class="chip ${a.tone || 'ai'}">${esc(a.src)}</span>${dev ? `<span class="chip dev">${i18t('tb_ask_first_dev')}</span>` : ''}</div>
@@ -1724,7 +1762,7 @@ async function tbPaintBranding() {
 
 /* The readings are published and the screen is not: a check drives tbSections
    and tbCoverage over a block list it wrote itself, with no builder open. */
-Object.assign(window, { openTemplateBuilder, TB_BLOCK_META, TB_PB_KEY, TB_ASK_MAX, TB_BLANK_TYPE, TB_RAIL_MIN, TB_CHIP_ASK,
+Object.assign(window, { openTemplateBuilder, tbCardWording, TB_BLOCK_META, TB_PB_KEY, TB_ASK_MAX, TB_BLANK_TYPE, TB_RAIL_MIN, TB_CHIP_ASK,
   tbSplit, tbFitSplit, tbWireSplit, TB_SPLIT_KEY, TB_FMIN, TB_FMAX, TB_LEFT_MIN, TB_RIGHT_MIN, TB_GAP,
   tbSections, tbSectionText, tbKindOf, tbLibraryFor, tbCoverage, tbPbKey, tbStandardFor, tbPrecedentFor,
   tbFocus, tbSetTab, tbRailFits, tbNextEmpty, tbQuestionFor, tbChipsHtml, tbReadEditable, tbPaint, tbPaintRail, tbSend, tbAccept, tbOutlineAdd, tbTurn, tbSetWalk,

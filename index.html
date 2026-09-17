@@ -4680,16 +4680,39 @@
     font-weight:var(--w-title);}
   .kt-tri-td{margin-top:3px;line-height:1.4;font-size:var(--t-label);
     color:var(--color-neutral-600);}
-  .kt-tri-chip{display:inline-flex;align-items:center;font-size:var(--t-figure);
+  /* THE BOX IS THE SAME BOX IN EVERY STATE. Measured 17 Sep 2026 while the
+     spinner was being fitted: a chip holding a tick resolved 16px and one
+     holding the 9px spinner resolved 11, so the row twitched by five pixels
+     the moment a reading landed. The height was whatever line-height happened
+     to be inherited; it is STATED now, from the ladder's own chip rung
+     (--lh-tight is written "single-line controls: buttons, chips, tabs,
+     counts"), and the min-height derives from the same pair — so the two
+     states are equal by construction rather than by luck. */
+  .kt-tri-chip{display:inline-flex;align-items:center;justify-content:center;
+    font-size:var(--t-figure);line-height:var(--lh-tight);
+    min-height:calc(var(--t-figure) * var(--lh-tight) + 2px);
     font-weight:var(--w-title);padding:1px 5px;border-radius:var(--radius);}
   .kt-tri-chip.is-ok{background:var(--st-green-bg);color:var(--st-green-fg);}
   .kt-tri-chip.is-warn{background:var(--st-amber-bg);color:var(--st-amber-fg);}
   .kt-tri-chip.is-no{background:var(--st-ruby-bg);color:var(--st-ruby-fg);}
   /* STILL READING: neutral, because nothing has been found and nothing has
      failed — a tone here would be the strip claiming an outcome it does not
-     have. The tile's own words carry it ("Writing the brief…"), so no
-     animation is owed and none is drawn. */
+     have. The tile's own words carry it ("Writing the brief…").
+     ---- AND IT TURNS (Young ruled 17 Sep 2026) ----
+     *"when the copilot is reading, make the highlight features active or
+     spinning so someone knows something is happening."* This note used to end
+     "so no animation is owed and none is drawn", and the chip held a static
+     ellipsis. The readings take the better part of a minute and the strip
+     repaints only when one LANDS, so for most of that minute four dead grey
+     boxes sat there and the page looked stuck. The tone still claims nothing;
+     the motion is the only thing added, and it is the product's OWN spinner
+     (.ob-spin, the obligations scan's) rather than a second one — including
+     its reduced-motion answer, where the ring simply stops turning and is
+     still a ring. THE CHIP DOES NOT CHANGE SIZE: the spinner is sized to the
+     mark it replaces and drops .ob-spin's trailing margin, since nothing
+     follows it inside the chip. */
   .kt-tri-chip.is-busy{background:var(--color-neutral-100);color:var(--color-neutral-600);}
+  .kt-tri-chip.is-busy .ob-spin{width:9px;height:9px;margin:0;border-width:1.5px;vertical-align:0;}
   .kt-tri-tile.is-busy .kt-tri-th{color:var(--color-neutral-600);}
   /* ---- THE CHECK BEFORE SIGNING (13 Sep 2026) ----
      It borrows the arrival strip's tiles by id (.kt-tri) rather than forking

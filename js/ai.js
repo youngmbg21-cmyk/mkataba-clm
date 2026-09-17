@@ -248,7 +248,21 @@ function runScan(c){
      Swedish and the labels around it are English, which reads as a bug. A scan
      stored before this change has no stamp; treat those as English, which is
      what they are. */
+  /* ---- `at` IS A SENTENCE, `on` IS A DATE (Young reported the NaN 17 Sep 2026) ----
+     `at` has always been a LOCALE DISPLAY STRING — "17 Sept 2026, 14:32" —
+     written that way on purpose so the findings panel prints the day in the
+     language the scan was run in. The Overview's What Copilot read table then
+     read it as an ISO day, sliced ten characters off the front and handed
+     "17 Sept 2" to a date formatter, which printed NaN.NaN.NaN.
+
+     BOTH READINGS ARE OWED AND THEY ARE DIFFERENT FACTS, so both are stamped
+     rather than one being bent into the other: a screen that wants to PRINT
+     the moment reads `at`, and a screen that wants to FORMAT the day reads
+     `on`. A scan run before this has no `on`, and the table draws an em-dash
+     for it — the honest answer, and never a NaN again (see ktReadingsRowsHtml,
+     which now refuses anything that is not an ISO day). */
   c.scan = { at:new Date().toLocaleString(langLocale(),{dateStyle:'medium',timeStyle:'short'}),
+    on:(typeof todayStr==='function')?todayStr():new Date().toISOString().slice(0,10),
     lang:(typeof langId==='function'?langId():'en'),
     findings:scanRules(c), dismissed:prev };
 }
@@ -2771,13 +2785,50 @@ const AI_ENDS_ASKING = /\?["'’”)\]]*$/;
    list is the safety: "I, the undersigned, hereby appoint" is real wording and
    matches no verb here. The lookbehind is the other safety: "Article I can be
    amended" is a roman numeral wearing a capital I. */
+/* ---- AND THE VERB LIST IS INVERTED (Young reported it 17 Sep 2026) ----
+   The fourth costume, and the list is what let it in. The template builder
+   drew this as the wording of section 3 and applying it wrote it into the
+   template:
+
+     "Without seeing HaTi's own standard wording or understanding the specific
+      service categories you contract for, I RISK DRAFTING something that
+      either doesn't match your market practice or overstates commitments."
+
+   Not one of the five patterns fired. The list above named eleven verbs the
+   model had been seen using — need, require, cannot, see, received, was, am,
+   would, apologise — and the model wrote a twelfth. That list has been
+   extended three times and would need extending again next month, which is a
+   net that always lags what it is catching.
+
+   SO IT IS TURNED AROUND. What a model might say after "I" is open-ended and
+   changes monthly; WHAT A CONTRACT SAYS AFTER "I" IS CLOSED AND ANCIENT —
+   hereby, the undersigned, agree, acknowledge, covenant, warrant, certify,
+   appoint, guarantee, waive, indemnify. Those are exempt and everything else
+   after a standalone "I" is the model speaking, whatever it invents next.
+
+   MEASURED against the same 7,607 sentences of real drafting the rest of this
+   family was measured against: FOUR hits, and three of them are `and I or` —
+   an OCR artefact of "and/or" where the slash was read as a capital I, which
+   is why `or` is exempt below and is the one exemption that is not a verb.
+   The fourth is "I have reviewed the attached labels…", a signed CERTIFICATE
+   declaration rather than clause wording, and it is the one accepted cost:
+   it lands in the advice bubble, where a reader can still read it and type it
+   themselves. Against that, a refusal written into a contract.
+
+   The lookbehind is unchanged and is still the other safety: "Article I can
+   be amended" is a roman numeral wearing a capital I. */
+const AI_MODEL_INSTRUMENT = 'hereby|the\\s+undersigned|do\\s+hereby|agree|acknowledge|accept'
+  + '|undertake|covenant|warrant|represent|certify|declare|confirm|consent'
+  + '|appoint|authori[sz]e|nominate|constitute|grant|assign|transfer|convey'
+  + '|waive|release|indemnify|guarantee|promise|bind|submit|irrevocably'
+  /* NOT A VERB: `and I or` is "and/or" with the slash mis-read. Three of the
+     four corpus hits are this and none of them is anybody speaking. */
+  + '|or';
 const AI_MODEL_VOICE = new RegExp(
   '(?:^|[^\\w\'’])'
   + '(?<!\\b(?:Article|Section|Schedule|Part|Annex|Exhibit|Appendix|Clause|Chapter|Title|Phase|Class|Type|Table)\\s)'
   + '(?:I(?:\'|’)(?:m|d|ll|ve)\\b'
-  + '|I\\s+(?:need|require|cannot|can(?:\'|’)?t|can|could|see|received|was|am'
-  + '|do\\s+not|don(?:\'|’)t|have\\s+(?:not|no|only|received)|haven(?:\'|’)t'
-  + '|would|apologi[sz]e)\\b)');
+  + '|I\\s+(?!(?:' + AI_MODEL_INSTRUMENT + ')\\b)[a-z][a-z\'’]{1,}\\b)');
 
 /* ---------- AND THE SAME FAULT WITH THE "I" TAKEN OUT ----------
    (owner-reported 26 Aug 2026: "i asked copilot to replace an entire clause
@@ -4421,7 +4472,7 @@ Object.assign(window,{scanGoTo,
   AI_PROPOSAL_FORMAT,AI_EDIT_FORMAT,AI_ADVICE_FIELD,AI_KEEP_TAGS,AI_PROPOSAL_OPEN,aiProposals,aiSyncDock,
   AI_PLACEMENTS,AI_PLACEMENT_LABEL,AI_PLACEMENT_SHORT,aiNormalizePlacement,aiIsInsert,
   aiProposalAnchorHtml,aiProposalPlacementHtml,aiProposalSetPlacement,aiCleanAddedWording,
-  AI_NOT_WORDING,AI_ASKS_BACK,AI_ASKS_WHOLE,AI_MODEL_VOICE,AI_TASK_TALK,AI_ENDS_ASKING,aiAsksTheReader,aiLooksConversational,
+  AI_NOT_WORDING,AI_ASKS_BACK,AI_ASKS_WHOLE,AI_MODEL_VOICE,AI_MODEL_INSTRUMENT,AI_TASK_TALK,AI_ENDS_ASKING,aiAsksTheReader,aiLooksConversational,
   savedResultLang,
   aiBareText,aiSplitDisclaimer,aiSplitReply,
   aiRephrase,aiOpenRephraseSession,aiActiveRephrase,aiCloseRephraseSession,

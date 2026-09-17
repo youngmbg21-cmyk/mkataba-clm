@@ -567,6 +567,49 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
   const back20 = await page.evaluate(() => ({ page: !!document.querySelector('.rl-boardpage'), grid: getComputedStyle(document.getElementById('rl-grid')).display !== 'none', lit: !!document.querySelector('.rl-readwrap .rl-seg.on') }));
   check('20d pressing a reading puts the paper back', !back20.page && back20.grid && back20.lit, JSON.stringify(back20));
 
+  /* ============ 22 · THE CLAUSE SAYS A COUNT, NEVER A VERDICT ============
+     Young, 17 Sep 2026, over a clause badged `SETTLED · R1 ACCEPTED`: *"What
+     if the counterparty accepts one change and declines another change in the
+     same clause. What appears on the highlighted green area?"* Nothing honest
+     could: the chip read the FIRST accepted rung and announced it. His own
+     answer is the fix — *"make it a count, not a verdict: '3 changes · 2
+     agreed · 1 refused'. A count can't be wrong."*
+
+     BUILT THROUGH THE FUNNEL on the clause that carries one lone ask: answer
+     it, file a second on top of what now stands, refuse that one. Two rungs,
+     one each way, which is exactly the question. */
+  const mixed = await page.evaluate(async cid => {
+    try {
+      const c = window.CONTRACT;
+      const lone = (c.changes || []).find(x => x.clauseId === cid);
+      negoResolve(c, lone.id, 'accepted');
+      const again = await negoEditClause(c, cid,
+        '<p>' + String(lone.newText).replace('five (5) years', 'seven (7) years') + '</p>',
+        { side: 'counterparty', author: 'Amina Wanjiru' });
+      negoResolve(c, again.id, 'rejected');
+      renderRedline();
+      await new Promise(r => setTimeout(r, 500));
+      const sec = document.querySelector(`#rl-doc .rl-clause[data-clause="${CSS.escape(cid)}"]`);
+      const el = sec && sec.querySelector('.rl-rung');
+      if (!el) return { drawn: false };
+      const r = el.getBoundingClientRect();
+      return { drawn: r.width > 0 && r.height > 0, text: el.textContent.trim(),
+        rungs: (window.ladderRungs(c, cid) || []).length };
+    } catch (e) { return { error: String(e && e.message || e) }; }
+  }, staged.c5);
+  check('22a the stage really holds one agreed and one refused on one clause',
+    mixed.rungs === 2, JSON.stringify(mixed));
+  check('22b the chip is drawn on a clause where nothing is left on the table',
+    mixed.drawn === true, mixed.text);
+  check('22c and it COUNTS, rather than naming one outcome',
+    /2 changes/.test(mixed.text || ''), mixed.text);
+  check('22d it says the agreed one', /1 agreed/.test(mixed.text || ''), mixed.text);
+  /* THE FAULT ITSELF: the refused change the old badge could not mention. */
+  check('22e and the refused one, which the verdict could not',
+    /1 refused/.test(mixed.text || ''), mixed.text);
+  check('22f no word claims an outcome for the whole clause',
+    !/settled/i.test(mixed.text || ''), mixed.text);
+
   check('9 no page error anywhere in the run', errs.length === 0, errs.join(' | ').slice(0, 300));
   console.log(`\n${results.filter(r=>r.pass).length}/${results.length} passed`);
   await browser.close(); srv.close();

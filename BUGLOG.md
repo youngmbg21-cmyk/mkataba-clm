@@ -15397,3 +15397,39 @@ pressing the same act the paper presses.
   contractLeavesDrafting's job by hand rather than calling it (recorded earlier
   the same day; they ask for the reading by name, so nothing is missed).
 - js/pdfrich.js still has no caller.
+
+## 17 Sep 2026 — a refusal, a count, a spinner and a date
+
+Four reports off two screenshots.
+
+### Defects found and fixed
+- AI_MODEL_VOICE named eleven verbs the model had been seen using and it wrote
+  a twelfth ("I risk drafting"), so a refusal was drawn as a template section's
+  wording and applying it wrote it in. The list is INVERTED: what a contract
+  says after "I" is the exempt list and everything else is the model. Measured
+  on 7,607 real sentences — four hits, three of them an OCR slash.
+- The clause chip printed "Settled · R1 accepted" off the FIRST accepted rung,
+  so a clause with one change agreed and one refused announced the agreed one.
+  It is a count now.
+- The reading tiles' busy mark was a static ellipsis and the strip repaints
+  only when a step lands, so the page looked stuck for most of a minute.
+- FOUR copies of the same date printer in one file, none guarded. The risk
+  scan's stamp is a locale sentence, so the Overview's WHEN column printed
+  NaN.NaN.NaN. THE SAME NaN WAS REPORTED ON 13 SEP and fixed at one of the
+  four call sites; four days later it arrived from another.
+
+### Found while measuring
+- The triage chip changed height between busy and done (16px against 11), so
+  the row twitched when a reading landed. Its height is stated now. Found by a
+  browser measurement, not by reading the source.
+- f135's corpus census and f306's tbAccept claim both sliced fixed byte
+  windows that comments pushed past. Re-pointed to real boundaries. Second and
+  third time this week — pin the region, not a byte count.
+
+### Noticed, not fixed
+- ladder-verify 5b (the key's swatches) and redline-verify 5 (a highlight's
+  menu) are red on this branch and identically red at the parent.
+- The Checks card reads "21 obligations proposed" while the Overview's What
+  Copilot read row reads "0 found" on the same contract — the card counts the
+  triage proposals and the row counts the record. Owner ruled it out of scope:
+  he knows the reason.

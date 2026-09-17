@@ -153,6 +153,50 @@ function ladderSettled(rungs){
   return (Array.isArray(rungs) ? rungs : []).find(r => r.status === 'accepted') || null;
 }
 
+/* ---- A COUNT, NEVER A VERDICT (Young ruled 17 Sep 2026) ----
+   *"What if the counterparty accepts one change and declines another change in
+   the same clause. What appears on the highlighted green area?"* — and the
+   answer was that nothing honest could. The chip printed `Settled · R1
+   accepted` off ladderSettled, which finds the FIRST accepted rung; on a
+   clause carrying an accepted change and a refused one it announced the
+   accepted one and said nothing about the other. A decision in this product
+   is made on a CHANGE (negoResolve takes a change id) and a clause holds a
+   LIST of them, so any single word on the clause is false the moment two of
+   them go different ways. "Partly settled" would be no better — it names no
+   part.
+
+   *"If you want a line on the clause, make it a count, not a verdict: '3
+   changes · 2 agreed · 1 refused'. A count can't be wrong."*
+
+   IT COUNTS RUNGS, WHICH IS WHAT THE LADDER ALREADY IS — no second population
+   and no second reading of what settled means: `accepted` is agreed and
+   `rejected` or `withdrawn` is refused, exactly as ladderChip's own branches
+   read them. `open` is everything still on the table and is what tells the
+   chip this clause is not settled at all. */
+function ladderTally(rungs){
+  const list = Array.isArray(rungs) ? rungs : [];
+  let agreed = 0, refused = 0, open = 0;
+  for (const r of list){
+    if (!r) continue;
+    if (r.status === 'accepted') agreed++;
+    else if (r.status === 'rejected' || r.withdrawn) refused++;
+    else open++;
+  }
+  return { n: list.length, agreed, refused, open };
+}
+
+/* The words, built once so the chip and anything that reads it later cannot
+   disagree. Each part is DROPPED where it is zero — "2 changes · 2 agreed · 0
+   refused" invites the reader to work out that nothing was refused, which is
+   the sentence saying it. */
+function ladderTallyText(t){
+  if (!t || !t.n) return '';
+  const bits = [_ladderTn('ng_rung_n_changes', t.n, { n: t.n })];
+  if (t.agreed)  bits.push(_ladderTn('ng_rung_n_agreed', t.agreed, { n: t.agreed }));
+  if (t.refused) bits.push(_ladderTn('ng_rung_n_refused', t.refused, { n: t.refused }));
+  return bits.join(' · ');
+}
+
 /* ---- WHOSE MOVE THE PAPER IS SHOWING ----
    The words on the chip, and the class that colours it. Relative to the
    READER: the same clause says "your move" on one seat and "their move" on
@@ -204,17 +248,18 @@ function ladderChip(c, clauseId, viewerSide){
   const rungs = ladderRungs(c, clauseId);
   if (!rungs.length) return null;
   const mine = s => (s === 'counterparty') === (viewerSide === 'counterparty');
-  const acc = ladderSettled(rungs);
-  if (acc) return { cls: 'settled', key: 'settled', n: acc.n,
-    text: _ladderT('ng_rung_settled', { n: acc.n }) };
+  /* ---- NOTHING LEFT ON THE TABLE IS A COUNT, NOT A VERDICT ----
+     See ladderTally. This used to print `Settled · R{n} accepted` off the
+     FIRST accepted rung, which is a claim about one change wearing the whole
+     clause's clothes. The tally is drawn wherever every rung is settled —
+     whichever way each one went — so a clause with one agreed and one refused
+     now says so instead of announcing the agreed one. `ng_rung_settled` and
+     the two single-rung sentences below are STALE, inert in both books. */
+  const tally = ladderTally(rungs);
+  if (!tally.open) return { cls: tally.refused && !tally.agreed ? 'grey' : 'settled',
+    key: 'tally', n: rungs[rungs.length - 1].n, tally, text: ladderTallyText(tally) };
   const top = ladderTop(rungs);
-  if (!top){
-    const last = rungs[rungs.length - 1];
-    if (last && (last.status === 'rejected' || last.withdrawn))
-      return { cls: 'grey', key: 'back', n: last.n,
-        text: _ladderT(last.withdrawn ? 'ng_rung_withdrawn' : 'ng_rung_refused', { n: last.n }) };
-    return null;
-  }
+  if (!top) return null;
   const under = ladderUnder(rungs, top);
   const who = mine(top.side) ? 'you' : 'them';
   const key = under
@@ -236,6 +281,12 @@ function ladderChip(c, clauseId, viewerSide){
    i18n, and a head that throws takes the clause with it. */
 function _ladderT(key, vars){
   try { if (typeof i18t === 'function') return i18t(key, vars || {}); } catch (_){}
+  return String(key);
+}
+/* The plural sibling. `i18tn` is the product's own and takes the count; a
+   tally that said "1 changes" would be the first thing a reader noticed. */
+function _ladderTn(key, n, vars){
+  try { if (typeof i18tn === 'function') return i18tn(key, n, vars || {}); } catch (_){}
   return String(key);
 }
 
@@ -478,7 +529,7 @@ function ladderWithin(topic, figure, bound){
 
 if (typeof window !== 'undefined') Object.assign(window, {
   LADDER_CAP, ladderMoves, ladderRungs, ladderOverflow, ladderUnder, ladderBaseText,
-  ladderLive, ladderTop, ladderSettled, ladderChip, ladderTopic, ladderFigure,
+  ladderLive, ladderTop, ladderSettled, ladderTally, ladderTallyText, ladderChip, ladderTopic, ladderFigure,
   ladderTrack, ladderStandard, ladderSettledFigure, ladderStand, ladderBoard,
   ladderUnsent, ladderBaseline, ladderWords, ladderWriteFigure, ladderFallback, ladderWithin
 });
