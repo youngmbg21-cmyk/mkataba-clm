@@ -154,7 +154,11 @@ const RAIL = () => {
     check('5a · Apply puts the wording on the paper, in section 2', /freight within/.test(s.sec2), s.sec2.slice(0, 100));
     check('5b · the receipt names the section', /Applied to 2 · Definitions/.test(s.lane), s.lane.slice(-160));
     check('5c · the walk moves on to the next empty section, section 3', /Section 3 · Payment terms/.test(s.scope), s.scope);
-    check('5d · the foot counts 1 of N, and the strip says Unsaved changes', new RegExp('1 of ' + N).test(s.foot) && /Unsaved/.test(s.dirty), { foot: s.foot, dirty: s.dirty });
+    /* RE-POINTED IN PLACE, 17 Sep 2026 (the build plan's upgrade 1). The claim
+       is that Apply leaves work owing and the strip SAYS so; what it says
+       changed, because the work is now kept in this browser and "Unsaved
+       changes" would be untrue. Section 14 drives the whole journey. */
+    check('5d · the foot counts 1 of N, and the strip says the draft is kept', new RegExp('1 of ' + N).test(s.foot) && /kept/i.test(s.dirty) && !/saved/i.test(s.dirty), { foot: s.foot, dirty: s.dirty });
 
     /* ================= 6 · SAVE: the one door, end to end ================ */
     await page.click('#tb-save');
@@ -321,6 +325,102 @@ const RAIL = () => {
       const k3 = await page.evaluate(() => { const sc = document.getElementById('content-scroll'); return { fixed: sc.classList.contains('view-fixed'), gutter: getComputedStyle(sc).scrollbarGutter, builder: !!document.getElementById('tb-page'), detail: !!document.getElementById('tpllib-back') }; });
       check('13f · Back lands on the template\'s page with the channel reserved again', !k3.builder && k3.detail && !k3.fixed && k3.gutter === 'stable', k3);
     }
+
+    /* ========= 14 · THE DRAFT IS KEPT WHEN YOU PRESS ANYTHING ELSE =========
+       The build plan's upgrade 1, driven the way it is actually met: type on
+       the paper, walk out through the SIDEBAR — the door that used to take the
+       hour with it without even asking — and come back. f306 (12) reads the
+       shape; only a real browser can prove the work survives a page that was
+       replaced underneath it. */
+    const kept = async () => page.evaluate(id => {
+      let m = {}; try { m = JSON.parse(localStorage.getItem('hati.v1.tbDrafts') || '{}') || {}; } catch (_) { m = {}; }
+      return {
+        store: Object.keys(m),
+        words: JSON.stringify(m[id] || {}),
+        dirty: (document.getElementById('tb-dirty') || {}).textContent || '',
+        drop: !!document.getElementById('tb-drop'),
+        builder: !!document.getElementById('tb-page'),
+        paper: (document.getElementById('tb-paperslot') || {}).textContent || '',
+        overlay: !!document.getElementById('confirm-overlay'),
+      };
+    }, ids.tid + ':' + ids.vid);
+
+    await page.evaluate(ids => openTemplateBuilder(ids.tid, ids.vid), ids);
+    await pause(1100);
+    /* Typed with a real keyboard into the paper's own editable — the first way
+       in, and the one that used to be thrown away. */
+    await page.evaluate(() => { const e = document.querySelector('#tb-paperslot [data-tb-kind="text"]'); if (e) e.focus(); });
+    await page.keyboard.type('Freight is collected within two working days of booking.');
+    /* LONGER THAN THE DEBOUNCE ON PURPOSE. The first keystroke is written at
+       once so the strip is true immediately; the rest are held for TB_DRAFT_MS,
+       and a check that read the store at 400ms would be measuring the timer
+       rather than the feature. */
+    await pause(1100);
+    let d = await kept();
+    check('14a · typing keeps the draft in this browser, and the strip says kept rather than saved',
+      d.store.length === 1 && /within two working days/.test(d.words) && /kept/i.test(d.dirty) && !/saved/i.test(d.dirty),
+      { store: d.store, dirty: d.dirty });
+
+    /* THE PRESS THIS WHOLE CHANGE IS FOR. A sidebar door is a setView: it
+       replaces #content under the builder, and nothing asked. */
+    await page.evaluate(() => { const b = [...document.querySelectorAll('#side-nav .nav-item')].find(x => /Contract/i.test(x.textContent)); b && b.click(); });
+    await pause(1400);
+    d = await kept();
+    check('14b · a sidebar press still leaves without a question — and the work is kept anyway',
+      !d.builder && !d.overlay && d.store.length === 1 && /within two working days/.test(d.words),
+      { builder: d.builder, asked: d.overlay, store: d.store });
+
+    await page.evaluate(ids => openTemplateBuilder(ids.tid, ids.vid), ids);
+    await pause(1100);
+    d = await kept();
+    check('14c · coming back puts the work on the paper, names the restore and offers Discard beside it',
+      /within two working days/.test(d.paper) && /restored/i.test(d.dirty) && d.drop === true,
+      { dirty: d.dirty, drop: d.drop, paper: d.paper.slice(0, 90) });
+    await page.screenshot({ path: path.join(OUT, '08-draft-kept.png') });
+    /* REFUSAL 3 IS A NUMBER, so it is measured on THIS page rather than
+       assumed: the geometry is taken with the restored line and Discard drawn,
+       and again below once Discard has gone. */
+    const GEOM = () => {
+      const r = e => { const b = e && e.getBoundingClientRect(); return b ? { h: Math.round(b.height), top: Math.round(b.top) } : null; };
+      return { strip: r(document.querySelector('.tb-strip')), paper: r(document.getElementById('tb-paperslot')) };
+    };
+    const gWith = await page.evaluate(GEOM);
+
+    /* Discard puts the SERVER'S version back — a screen still showing the draft
+       after Discard would be the product disagreeing with itself. */
+    await page.click('#tb-drop'); await pause(300);
+    await page.click('#cf-ok'); await pause(1400);
+    d = await kept();
+    check('14d · Discard throws it away and the server’s wording comes back, with the strip quiet',
+      !/within two working days/.test(d.paper) && d.store.length === 0 && d.dirty.trim() === '' && !d.drop,
+      { store: d.store, dirty: d.dirty });
+    const gWithout = await page.evaluate(GEOM);
+    check('14d2 · the restored line and Discard ride in the strip’s own slot: one row, and the paper does not move (refusal 3)',
+      !!gWith.strip && !!gWithout.strip && gWith.strip.h === gWithout.strip.h && gWith.strip.h <= 30 && gWith.paper.top === gWithout.paper.top,
+      { withDraft: gWith, without: gWithout });
+
+    /* Save spends the draft: the version holds it now, so nothing may restore
+       it over a later one. */
+    await page.evaluate(() => { const e = document.querySelector('#tb-paperslot [data-tb-kind="text"]'); if (e) e.focus(); });
+    await page.keyboard.type('Saved wording.');
+    await pause(1100);
+    const before = (await kept()).store.length;
+    await page.click('#tb-save'); await pause(900);
+    d = await kept();
+    check('14e · Save spends the kept draft — it is on the server now',
+      before === 1 && d.store.length === 0 && d.dirty.trim() === '', { before, after: d.store, dirty: d.dirty });
+
+    /* And Back with work owing no longer blocks: the rung below a dialog. */
+    await page.evaluate(() => { const e = document.querySelector('#tb-paperslot [data-tb-kind="text"]'); if (e) e.focus(); });
+    await page.keyboard.type(' One more line.');
+    /* Pressed INSIDE the debounce window on purpose: leaving must spend the
+       pending keep, not lose the sentence the timer was still holding. */
+    await pause(150);
+    await page.click('#tb-back'); await pause(900);
+    d = await kept();
+    check('14f · Back leaves straight away, with no blocking question, and the draft is still kept',
+      !d.builder && !d.overlay && d.store.length === 1 && /One more line/.test(d.words),
+      { builder: d.builder, asked: d.overlay, store: d.store });
 
     check('11 · the page threw nothing', errors.length === 0, errors.slice(0, 3));
   } catch (e) {
