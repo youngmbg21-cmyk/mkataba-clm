@@ -2718,6 +2718,74 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     `ins ${[...new Set(ins28.map(r => r.line))].join('/')} · del ${[...new Set(del28.map(r => r.line))].join('/')}`);
   await page.screenshot({ path: path.join(OUT, '28-marks.png') });
 
+  /* ============================================================
+     29 · THE ROW IS THREE LINES (Young ruled 17 Sep 2026, "Image 2 = D")
+     ============================================================
+     THE WHOLE CLAIM IS GEOMETRY. The markup barely changed — what changed is
+     that the name, the summary and the verbs now sit on three different lines
+     with nothing reserved at the right. Only a rendered page knows that, and
+     the fault it fixes was measured on the owner's own screen: a clause name
+     cut at "Fees, Billing, an…" while a third of the row stood empty. */
+  const row29 = await page.evaluate(() => {
+    const r = document.querySelector('#rl-changes .rl-card-d');
+    if (!r) return { drawn: false };
+    /* .rl-card-txt is display:contents — it HAS no box, so measuring it reports
+       0 and reads as a defect. The real grid children are the metarow, the
+       summary and the verbs; the content edge is the metarow's, because the
+       row itself carries 16px of padding the verbs correctly stop inside. */
+    const txt = r.querySelector('.rl-card-metarow');
+    const side = r.querySelector('.rl-card-side');
+    const meta = r.querySelector('.rl-card-meta');
+    const sum = r.querySelector('.rl-card-sum');
+    const R = e => e ? e.getBoundingClientRect() : null;
+    const rr = R(r), rt = R(txt), rs = R(side), rm = R(meta), ru = R(sum);
+    const disc = r.querySelector('.rl-card-face [data-rl-retract]');
+    const verbs = [...r.querySelectorAll('.rl-card-face button')];
+    return { drawn: true,
+      cols: getComputedStyle(r).gridTemplateColumns,
+      rowW: rr ? Math.round(rr.width) : null,
+      txtW: rt ? Math.round(rt.width) : null,
+      sideTop: rs ? Math.round(rs.top) : null, txtBottom: rt ? Math.round(rt.bottom) : null,
+      sideRight: rs ? Math.round(rs.right) : null, rowRight: rt ? Math.round(rt.right) : null,
+      rowBox: rr ? Math.round(rr.right) : null,
+      metaTop: rm ? Math.round(rm.top) : null, sumTop: ru ? Math.round(ru.top) : null,
+      discardLast: verbs.length ? verbs[verbs.length - 1] === disc : null,
+      discardInk: disc ? getComputedStyle(disc).color : null,
+      otherInk: verbs.length > 1 ? getComputedStyle(verbs[0]).color : null,
+      symbols: verbs.filter(b => b.querySelector('svg')).length };
+  });
+  check('29a the row is drawn', row29.drawn === true, JSON.stringify(row29).slice(0, 140));
+  check('29b it is ONE column — nothing is held back at the right',
+    row29.drawn && /^[0-9.]+px$/.test(row29.cols || ''), row29.cols);
+  check('29c so the clause name has the WHOLE width, not two thirds',
+    row29.drawn && row29.txtW !== null && row29.txtW >= row29.rowW - 36,
+    `name line ${row29.txtW} of row ${row29.rowW} (row pads 16 each side)`);
+  check('29d the summary is on its own line, under the name',
+    row29.drawn && row29.sumTop > row29.metaTop, `name ${row29.metaTop} · summary ${row29.sumTop}`);
+  check('29e and the verbs are on a THIRD line, under both',
+    row29.drawn && row29.sideTop >= row29.txtBottom - 1,
+    `text ends ${row29.txtBottom} · verbs start ${row29.sideTop}`);
+  check('29f at the right wall — the same wall the clause name ends at',
+    row29.drawn && Math.abs(row29.sideRight - row29.rowRight) <= 2,
+    `verbs ${row29.sideRight} · name line ${row29.rowRight} · row box ${row29.rowBox}`);
+  check('29g THE VERBS KEEP THEIR WORDS — not one symbol among them',
+    row29.symbols === 0, row29.symbols + ' symbols');
+  if (row29.discardLast === null){
+    check('29h Discard is last on the row, and ruby', false, 'no Discard on this row');
+  } else {
+    check('29h Discard is last on the row', row29.discardLast === true, 'last: ' + row29.discardLast);
+    /* RUBY BY NAME, not merely "different": at the parent it was GREY, which
+       is also different from the accent, so "not the same as its neighbours"
+       passed on the colour this change exists to replace. Grey on a row where
+       every verb is a bare word reads as unavailable; ruby reads as careful,
+       and it is the ink this column already spends on Reject. */
+    check('29i and ruby, because it is the only press that throws work away',
+      row29.discardInk === 'rgb(190, 18, 60)' && row29.discardInk !== row29.otherInk,
+      `discard ${row29.discardInk} · others ${row29.otherInk}`);
+  }
+  await page.screenshot({ path: path.join(OUT, '29-three-line-row.png') });
+
+
   await browser.close();
   srv.close();
   const failed = results.filter(r => !r.pass);

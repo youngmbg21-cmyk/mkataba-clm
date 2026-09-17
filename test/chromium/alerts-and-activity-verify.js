@@ -140,6 +140,17 @@ const BOX = `(sel => { const el = document.querySelector(sel); if (!el) return n
       if (b) b.click();
     });
     await page.waitForTimeout(1600);
+    /* ---- WALKING PAST THE FIELDS QUESTION (17 Sep 2026) ----
+       An alert row is a door onto the negotiation, so since the owner's
+       "Image 3 = A" it meets the same offer to fill the contract's open fields
+       that every other door does — which is the point of putting that question
+       on the ONE funnel rather than on one button. This check is about whether
+       the alert is a DOOR, so it takes the door a person takes and carries on.
+       The question itself is measured in negotiations-door-verify 10. */
+    {
+      const skip = await page.$('#confirm-overlay #cf-cancel');
+      if (skip) { await skip.click(); await page.waitForTimeout(900); }
+    }
     const went = await page.evaluate(() => ({ view: state.view, held: redlineHeldId(),
       panelOpen: !!state.panelOpen }));
     check('pressing an alert goes to the thing that needs doing, not to a list',

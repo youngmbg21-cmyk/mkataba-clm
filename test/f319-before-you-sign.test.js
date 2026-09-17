@@ -263,8 +263,17 @@ describe('f319 (4c) THE BRIEF JOINS THE CHECK', () => {
   });
 
   test('the sweep runs it, forces where one is on file, and names it in the ask', () => {
-    assert.match(CT, /const wantBrief=r\.brief\.none===true\|\|r\.brief\.stale!==false\|\|r\.brief\.truncated===true;/,
+    /* ---- RE-POINTED IN PLACE, 17 Sep 2026 ----
+       The condition is unchanged and it MOVED: since the run control says how
+       many readings the press makes, the three conditions have one home
+       (signCheckWillRun) and the sweep asks it. The claim is the same claim at
+       its new address, plus the wall the move exists to build — that the sweep
+       spends that reading rather than keeping a copy of it. */
+    const SC = (() => { try { return require('node:fs').readFileSync(
+      require('node:path').join(__dirname, '..', 'js/signcheck.js'), 'utf8'); } catch (_) { return ''; } })();
+    assert.match(SC, /out\.brief\s*=\s*brief\.none === true \|\| brief\.stale !== false \|\| brief\.truncated === true;/,
       'unknown asks — the same instinct the other two use');
+    assert.match(CT, /const wantBrief=will\.brief/, 'and the sweep spends that one reading');
     assert.match(CT, /const res=await runContractBrief\(c,\{force:!r\.brief\.none\}\);/,
       'the route caches on its own hash, so a stale brief must be forced');
     assert.match(CT, /if\(wantBrief\) parts\.push\(i18t\('sc_will_brief'\)\);/, 'and the ask says so before it spends');

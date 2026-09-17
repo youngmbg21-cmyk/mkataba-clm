@@ -47,6 +47,11 @@ const SAME_IN_BOTH = new Set([
   'nav_administration',   // identical spelling in Swedish
   'int_fr_read',          // 'Copilot' — the product's own name, on the graph node's fact row (A-1)
   'tb_copilot',           // 'Copilot' — the product's own name, on the template builder's rail (13 Sep 2026)
+  'ng_blanks_these',      // '{names}.' — a slot and a full stop, and the field
+                          // labels inside it are already in the reader's own
+                          // language. It is a key rather than punctuation
+                          // written into the sentence so the separator can be
+                          // changed per language without touching the code.
   /* "Under #CHG-001" — 'under' is the same word in Swedish (13 Sep 2026) */
   'ng_badge_countered',
   /* The ladder's two bare labels (14 Sep 2026). 'R{n} · {who}' is a rung

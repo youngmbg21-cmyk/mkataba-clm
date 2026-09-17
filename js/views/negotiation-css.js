@@ -3016,7 +3016,14 @@ function redlineLayoutCss(){
   .redline-page .rl-card-d .rl-card-face .rl-rej{color:var(--st-ruby-fg)}
   .redline-page .rl-card-d .rl-card-face .rl-edit,.redline-page .rl-card-d .rl-card-face .rl-send{color:var(--accent-ink)}
   .redline-page .rl-card-d .rl-card-face .rl-verb-ai{color:var(--accent-ink)}
-  .redline-page .rl-card-d .rl-card-face [data-rl-retract]{color:var(--color-neutral-600)}
+  ${''/* ---- DISCARD IS RUBY, AND IT IS LAST (Young ruled 17 Sep 2026) ----
+         It was grey, sitting third among five accent words. On a row where
+         every verb is a bare word the grey read as "unavailable" rather than
+         "careful", and it was the only press there that throws work away.
+         Ruby is what this column already spends on Reject, for the same
+         reason. rlRowFaceVerbs moves it to the end of the row, away from the
+         four you can undo. */}
+  .redline-page .rl-card-d .rl-card-face [data-rl-retract]{color:var(--st-ruby-fg)}
   .redline-page .rl-card-d .rl-card-track{white-space:normal}
   
   .redline-page .rl-card-d .rl-card-track .rl-ladder-track{margin:0}
@@ -3083,8 +3090,32 @@ function redlineLayoutCss(){
   .redline-page .rl-card-d{padding:9px var(--s-4);margin:0;border:0;
     border-radius:var(--radius);
     border-top:1px solid var(--color-divider);background:none;box-shadow:none;
-    display:grid;grid-template-columns:minmax(0,2fr) minmax(var(--rl-verb-floor),1fr);
-    align-items:center;gap:var(--s-3)}
+    ${''/* ---- AND IT IS ONE COLUMN NOW: THREE LINES (Young ruled 17 Sep
+           2026, "Image 2 = D") ----
+           The two-thirds promise above is history for this row and the note is
+           kept because its REASON is what makes this safe. It was a real
+           promise honestly kept, and it still cost the wording a third of the
+           row on every change — INCLUDING the rows whose acts were two words
+           wide, because --rl-verb-floor is one width for the whole column.
+           The clause name was cut at "Fees, Billing, an…" on the owner's own
+           screen at an ordinary width.
+
+           THE VERBS DROP TO A ROW OF THEIR OWN, at the right wall where they
+           already sat, and nothing is held back at the right any more: the
+           clause name takes line one and the summary line two, each with the
+           whole column. That is why these verbs keep their WORDS — symbols
+           were only ever wanted because the words were stealing that width,
+           and the owner was shown both and picked the height instead.
+
+           THE COST IS HEIGHT and it is the only one: about half a row per
+           change, so a column of twenty shows roughly four fewer. Said out
+           loud to the owner before it was built.
+
+           --rl-verb-floor STAYS DECLARED: the counterparty's boxed card and
+           their receipt are drawn by the rules further up this sheet and are
+           untouched by any of this. */}
+    display:grid;grid-template-columns:minmax(0,1fr);
+    align-items:start;gap:2px}
   .redline-page .rl-card-d > .rl-card-txt{min-width:0}
   ${''/* ---- THE FRONT EDGE IS GONE (owner-asked 26 Aug 2026: "delete the
          color coding of theirs vs mine as I am still thinking of a better
@@ -3280,8 +3311,14 @@ function redlineLayoutCss(){
          receipt read the base rule further up the sheet and draw no bands at
          all, so neither can pick this up. */}
   .redline-page .rl-card-d.rl-card-quiet .rl-card-meta{color:var(--color-neutral-600)}
+  ${''/* THE THIRD LINE, AT THE RIGHT WALL. justify-content was already
+         flex-end when the verbs were a column of their own; what changes is
+         that they are now a ROW of the grid, so the wall they line up against
+         is the card's rather than a third of it. It wraps now — on a narrow
+         divider five words will not fit one line, and clipping a verb off the
+         end is the one thing --rl-verb-floor existed to prevent. */}
   .redline-page .rl-card-d .rl-card-side{display:flex;align-items:center;
-    justify-content:flex-end;flex-wrap:nowrap;gap:var(--s-3);min-width:0}
+    justify-content:flex-end;flex-wrap:wrap;gap:var(--s-3);min-width:0;margin-top:3px}
   ${''/* The provenance and reviewer strips take the whole row's width and drop
          under it — they are rare, and none may be dropped (a row with a hole
          in it and the explanation elsewhere is worse than either).
@@ -3372,11 +3409,33 @@ function redlineLayoutCss(){
          verbs the artifact draws. WRITTEN AFTER the row's own grid and side rules, because it beats
          them by ORDER at equal specificity. */}
   
-  .redline-page .rl-card-d{grid-template-columns:minmax(96px,1fr) minmax(0,max-content);row-gap:2px}
+  ${''/* ---- AND THEN IT BECAME THREE LINES (Young ruled 17 Sep 2026,
+         "Image 2 = D") ----
+         THIS IS THE RULE THAT GOVERNS, and the base grid 300 lines up is not:
+         both are (0,2,0) and this one is later, so it wins by ORDER — which
+         its own note above says, and which is exactly how the first draft of
+         this change came to declare one column up there and still measure two
+         down here. The browser reported it; the source read correct.
+
+         The verbs leave row 1 for a row of their own, so nothing is reserved
+         at the right at all and the clause name takes the WHOLE width. That is
+         what makes the words viable: symbols were only ever wanted because the
+         verbs were eating a third of every row, the rows with two words of
+         acts included, and the owner was shown both and picked the height.
+
+         THE COST IS HEIGHT, about half a row per change. Said out loud before
+         it was built. */}
+  .redline-page .rl-card-d{grid-template-columns:minmax(0,1fr);row-gap:2px}
   .redline-page .rl-card-d > .rl-card-txt{display:contents}
-  .redline-page .rl-card-d .rl-card-metarow{grid-column:1;grid-row:1;min-width:0}
-  .redline-page .rl-card-d > .rl-card-side{grid-column:2;grid-row:1;min-width:0;flex-wrap:wrap;row-gap:2px}
+  .redline-page .rl-card-d .rl-card-metarow{grid-column:1 / -1;grid-row:1;min-width:0}
   .redline-page .rl-card-d .rl-card-sum{grid-column:1 / -1;grid-row:2;margin-top:0}
+  ${''/* THE THIRD LINE, at the right wall it already lined up against — what
+         changes is that the wall is now the card's rather than a third of it.
+         It still wraps: on a narrow divider five words will not fit one line,
+         and clipping a verb off the end is the one thing --rl-verb-floor
+         existed to prevent. */}
+  .redline-page .rl-card-d > .rl-card-side{grid-column:1 / -1;grid-row:3;min-width:0;
+    justify-content:flex-end;flex-wrap:wrap;row-gap:2px;margin-top:3px}
   .redline-page .rl-card-d .rl-card-face{flex-wrap:wrap;row-gap:2px}
   ${''/* ---- AND THE STRIPS TAKE THE WHOLE WIDTH UNDER BOTH (15 Sep 2026) ----
          The sentences and the reviewer's verdict buttons that rode in the card
@@ -5460,6 +5519,54 @@ function redlineLayoutCss(){
   .redline-page .rl-rung-acts button.acc{color:var(--st-green-fg)}
   .redline-page .rl-ladder-foot{margin-top:10px}
   .redline-page .rl-rung-base .rl-rung-what{color:var(--color-neutral-600)}
+
+  ${''/* ---- THE RUNG'S WHOLE CLAUSE, OVER THE GREY (Young ruled 17 Sep 2026)
+         ----
+         right:100% inside #rl-cp puts its right edge on the seam between the
+         cards column and the paper's track, and it grows LEFTWARD into the
+         surplus this page deliberately leaves grey. So it never covers the
+         wording the reader is comparing it against, and the contract does not
+         move by a pixel — it is a layer, not a column.
+
+         IT IS THE PAPER'S OWN SHEET: the warm ground, the square corner the
+         contract keeps, the document's face. A translation of a contract set
+         in the product's UI face reads as a note ABOUT the contract; this is
+         the contract.
+
+         THE ROW SAYS IT CAN BE POINTED AT. A cursor and a quiet wash, so the
+         row a reader is about to open does not look like the row they have
+         already chosen (is-reading, which is a dashed accent outline). */}
+  .redline-page .rl-rung-row[data-rl-rung-peek]{cursor:zoom-in}
+  .redline-page .rl-rung-row[data-rl-rung-peek]:hover,
+  .redline-page .rl-rung-row[data-rl-rung-peek]:focus-visible{
+    background:color-mix(in srgb,var(--accent-solid) 5%,transparent);outline:none}
+  .redline-page .rl-rung-row[data-rl-rung-peek]:focus-visible{
+    box-shadow:inset 2px 0 0 var(--color-accent-600)}
+  .redline-page .rl-peek{position:absolute;right:100%;top:var(--s-3);z-index:4;
+    width:min(420px,46vw);margin-right:10px;
+    background:var(--color-doc-warm,#FDFCF6);
+    border:1px solid var(--color-doc-warm-line,#EFE2C2);
+    border-radius:0;box-shadow:var(--shadow-lg);
+    padding:11px 14px 10px;--doc-scale:1}
+  .redline-page .rl-peek-h{display:flex;align-items:baseline;gap:8px;
+    padding-bottom:6px;border-bottom:1px solid var(--color-doc-warm-line,#EFE2C2);
+    font-size:var(--t-label);color:var(--color-neutral-600)}
+  .redline-page .rl-peek-who{font-family:var(--font-code);font-weight:var(--w-title);
+    color:var(--color-text)}
+  .redline-page .rl-peek-esc{margin-left:auto;font-weight:var(--w-title);white-space:nowrap}
+  ${''/* THE WORDING SCROLLS INSIDE THE CARD rather than growing past the
+         window: a forty-clause rung would otherwise draw a sheet taller than
+         the screen with no way to reach its foot. */}
+  .redline-page .rl-peek-body{margin-top:7px;max-height:44vh;overflow:auto;
+    overscroll-behavior:contain;font-size:var(--t-meta);line-height:1.7;
+    color:var(--color-doc-text,#1a1a1a)}
+  .redline-page .rl-peek-acts{margin-top:8px;padding-top:7px;
+    border-top:1px solid var(--color-doc-warm-line,#EFE2C2)}
+  ${''/* Below the divider's own minimum there is no grey to grow into, so the
+         card sits over the cards column instead of off the side of the page. */}
+  @media (max-width:1023px){
+    .redline-page .rl-peek{right:auto;left:var(--s-3);width:auto;margin-right:0}
+  }
 
   ${''/* THE FIGURE, AS A TRACK. Where the argument is a number the whole
          argument fits on one line, and that line is the fastest reading on the

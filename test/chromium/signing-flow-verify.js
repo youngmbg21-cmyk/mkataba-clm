@@ -287,6 +287,57 @@ const check = (name, pass, detail) => {
       }
     }
 
+    /* ============================================================
+       7 · "RUN THE CHECK" IS A BUTTON THAT SAYS WHAT IT COSTS
+       (Young ruled 17 Sep 2026, "Image 1 = B": *"it is very easy to miss this
+       run the check so make sure it is a visible button instead"*)
+       ============================================================
+       MEASURED, because the fault was a measurement: the control read as part
+       of the label beside it. So this compares the two against each other
+       rather than typing a number — the claim is a RELATION. */
+    {
+      const b7 = await page.evaluate(() => {
+        const b = document.getElementById('sc-run');
+        if (!b) return { drawn: false };
+        const cs = getComputedStyle(b), r = b.getBoundingClientRect();
+        const t = b.closest('.sc-stage-h') ? b.closest('.sc-stage-h').querySelector('.sc-stage-t') : null;
+        const ts = t ? getComputedStyle(t) : null;
+        return { drawn: r.width > 0 && r.height > 0,
+          h: Math.round(r.height), label: b.textContent.replace(/\s+/g, ' ').trim(),
+          border: cs.borderTopWidth, bg: cs.backgroundColor, weight: cs.fontWeight,
+          glyph: !!b.querySelector('svg'),
+          glyphBox: (() => { const g = b.querySelector('svg');
+            if (!g || !g.getBBox) return null;
+            try { const bb = g.getBBox(); return Math.round(bb.width) + 'x' + Math.round(bb.height); }
+            catch (_) { return null; } })(),
+          headingWeight: ts ? ts.fontWeight : null, headingSize: ts ? ts.fontSize : null,
+          size: cs.fontSize };
+      });
+      check('7a the run control is drawn', b7.drawn === true, JSON.stringify(b7).slice(0, 160));
+      check('7b it is a BUTTON, not a bare word — it carries an edge',
+        b7.drawn && parseFloat(b7.border) >= 1, 'border ' + b7.border);
+      check('7c and it is NOT the filled one — Sign is this screen\'s filled button',
+        b7.drawn && /rgba\(0, 0, 0, 0\)|transparent/.test(b7.bg), b7.bg);
+      check('7d it stands on the product\'s own control rung, not the label\'s',
+        b7.drawn && b7.h >= 28, b7.h + 'px');
+      /* THE FAULT ITSELF: it used to share the heading's weight. */
+      check('7e it no longer wears the stage heading\'s weight',
+        b7.drawn && b7.weight !== b7.headingWeight,
+        `button ${b7.weight} · heading ${b7.headingWeight}`);
+      check('7f it carries the magnifier, and the symbol really paints',
+        b7.glyph === true && b7.glyphBox !== null && b7.glyphBox !== '0x0', String(b7.glyphBox));
+      /* AND IT SAYS WHAT THE PRESS COSTS, from the press's own reading. */
+      const n7 = await page.evaluate(() => {
+        try { const c = state.contracts.find(x => x.id === (window.state || {}).activeId) || null;
+          return c && window.signCheck && window.signCheckWillRun
+            ? signCheckWillRun(signCheck(c)).n : null; } catch (_) { return null; }
+      });
+      check('7g the label names a COUNT, and it is the press\'s own',
+        n7 === null || n7 === 0 ? /Run the check/i.test(b7.label || '')
+          : new RegExp('\\b' + n7 + '\\b').test(b7.label || ''),
+        `label "${b7.label}" · will run ${n7}`);
+    }
+
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } finally {
     await browser.close();

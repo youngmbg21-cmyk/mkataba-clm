@@ -4767,10 +4767,64 @@
   .sc-stage-h{display:flex;align-items:center;gap:10px;padding:11px 0 5px;}
   .sc-stage-t{flex:1;font-size:var(--t-micro);font-weight:var(--w-title);
     letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600);}
-  .sc-stage-act{flex:none;border:0;background:none;padding:0;font:inherit;
-    font-size:var(--t-label);font-weight:var(--w-title);color:var(--accent-ink);cursor:pointer;}
-  .sc-stage-act:hover:not(:disabled){text-decoration:underline;}
-  .sc-stage-act:disabled{color:var(--color-neutral-500);cursor:default;}
+  /* ---- THE ONE ACT ON THIS CARD IS A BUTTON (Young ruled 17 Sep 2026) ----
+     *"it is very easy to miss this run the check so make sure it is a visible
+     button instead"*. It was a bare accent word at --t-label/700 sitting
+     beside a stage heading at --t-micro/700 in the quiet ink — near enough in
+     size and identical in weight that the eye read the pair as one label.
+     This is HaTi's ordinary secondary button: the accent edge, the transparent
+     face, the --ctl-h rung, the 13px/400 label of .ui-btn-lg.
+     NOT FILLED, deliberately — one filled button per screen, and on this
+     screen that is Sign. Two filled buttons and the eye stops knowing which
+     one finishes the job. The owner was offered the filled one by name and
+     did not take it.
+     THE CLASS IS REWRITTEN RATHER THAN .ui-btn ADDED BESIDE IT. It has exactly
+     one user and always has, and the two carry the same declarations at the
+     same weight (0,1,0) — so which face the button wore would be decided by
+     which rule sits later in this file, which is not a thing anyone editing
+     either one would think to check. */
+  .sc-stage-act{flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+    font-family:var(--font-heading);font-size:var(--t-meta);font-weight:var(--w-body);
+    line-height:var(--lh-tight);color:var(--accent-ink);background:transparent;
+    border:1px solid var(--btn-edge);border-radius:var(--radius);
+    min-height:var(--ctl-h);padding:0 var(--pad-ctl-x);cursor:pointer;
+    transition:background var(--dur-1),border-color var(--dur-1),color var(--dur-1);}
+  .sc-stage-act:hover:not(:disabled){background:color-mix(in srgb,var(--accent-solid) 10%,transparent);}
+  /* GREYED IS STILL A BUTTON: the edge goes quiet with the ink rather than
+     away, so a reader can see there is a control there and ask why it will not
+     press. The reason is on the hover. */
+  .sc-stage-act:disabled{color:var(--color-neutral-500);
+    border-color:var(--color-neutral-300);background:transparent;cursor:default;}
+  .sc-run-i{flex:none;}
+
+  /* ---- THE FIELD AND ITS WORD ON THE PAPER (Young ruled 17 Sep 2026) ----
+     A cursor in a box in the right-hand column lights the place that fact
+     lands in the wording, and a cursor on the paper lights the box.
+
+     IT MAY NOT COST THE CONTRACT A PIXEL, which rules out a border, padding or
+     a bigger font: an outline and a background are painted OUTSIDE layout, so
+     the sentence around the lit word does not move and neither does anything
+     under it. MEASURED both ways before and after.
+
+     GREEN IS THE PRODUCT'S OWN WORD FOR "this just arrived", which is what a
+     reader is being told: this is the bit you are answering. It is a wash at
+     the tint the redline's own insertion mark uses, never a fill, so the
+     wording underneath stays black on near-white and keeps its contrast.
+
+     THE RING IS WRITTEN AT (0,1,1), NOT (0,1,0), AND THAT IS MEASURED. The
+     paper's own blanks carry `.field`, which states `outline:none` — the same
+     one class weight as `.is-fieldlit`, later in this file, so the wash landed
+     and the ring silently did not (computed outline-style read `none` while
+     the source read `2px solid`). A tag in the selector is what wins it on
+     merit; `!important` would have won it by force and taught the next rule to
+     do the same. Fixed by SCOPE. */
+  input.is-fieldlit,span.is-fieldlit,.hati-field.is-fieldlit{
+    outline:2px solid var(--st-green-dot);outline-offset:1px;
+    background:var(--st-green-bg);border-radius:var(--radius);}
+  /* And the class alone still carries the wash, for the PANEL's box — which is
+     what lights when the cursor is on the paper. */
+  .is-fieldlit{background:var(--st-green-bg);}
+  @media (prefers-reduced-motion: reduce){ .is-fieldlit{transition:none;} }
   .sc-stage:last-child .sc-find:last-child{border-bottom:0;}
   /* WAITING IS NOT HOLDING and may not read as an alarm: a hollow ring in the
      quiet ink, and the row's own words step back with it. */

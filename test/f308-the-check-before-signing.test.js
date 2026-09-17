@@ -265,10 +265,25 @@ describe('f308 (4) — the sweep runs only what is out of date', () => {
     assert.match(m[0], /sc_will_standards/, 'naming the standards read');
     assert.match(m[0], /sc_will_obligations/, 'and the obligations read');
   });
+  /* ---- RE-POINTED IN PLACE, 17 Sep 2026 ----
+     The three conditions were written out inside runSignCheck and pinned
+     there. They are unchanged and they have ONE home now: signCheckWillRun,
+     because the button says how many readings the press makes and a count
+     that disagrees with the press is worse than no count. So the claim is the
+     same claim at its new address, and a SECOND claim is added below — that
+     runSignCheck asks that reading rather than keeping a copy — which is the
+     wall the move exists to build. */
   test('the standards read runs only where the review is stale or absent', () => {
+    const m = /function signCheckWillRun\([\s\S]*?\n\}/.exec(strip(SIGNCHECK));
+    assert.ok(m, 'the one reading exists');
+    assert.match(m[0], /out\.standards\s*=\s*std\.unread\s*===\s*true\s*\|\|\s*std\.stale\s*!==\s*false/);
+    assert.match(m[0], /out\.obligations\s*=\s*ob\.unread\s*!==\s*false/);
+    assert.match(m[0], /out\.brief\s*=\s*brief\.none\s*===\s*true/, 'and the brief joined them');
+  });
+  test('and the sweep asks that one reading rather than keeping a copy', () => {
     const m = /async function runSignCheck\([\s\S]*?\n\}/.exec(code());
-    assert.match(m[0], /wantStd\s*=\s*r\.standards\.unread\s*===\s*true\s*\|\|\s*r\.standards\.stale\s*!==\s*false/);
-    assert.match(m[0], /wantOb\s*=\s*r\.obligations\.unread\s*!==\s*false/);
+    assert.match(m[0], /signCheckWillRun\(r\)/, 'the press reads what the button printed');
+    assert.match(m[0], /wantBrief\s*=\s*will\.brief/, 'and spends its answer');
   });
   /* A CUT-SHORT ANSWER IS NOT A CHECK. */
   test('the stamp is written only where everything came back', () => {

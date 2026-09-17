@@ -6965,7 +6965,14 @@ function rlLadderSectionHtml(c, cl, side, opts = {}){
        would have been refused every time it was offered. The rung SAYS where
        its decision lives instead. */
     const parked = r.status === 'countered' && r.ch && r.ch.counteredBy;
-    return `<li class="rl-rung-row rl-rung-${tone}${winIds.has(r.id) && !acc && !readAt ? ' rl-rung-win' : ''}${readAt === r.id ? ' is-reading' : ''}"${
+    /* ---- AND THE WHOLE CLAUSE IS ONE GLANCE AWAY (Young ruled 17 Sep 2026)
+       ----
+       The row carries the address of its own wording and a tab stop, so
+       pointing at it, tabbing to it or pressing it all reach the same card.
+       See rlRungPeekHtml: it costs nothing, because the rung already holds
+       every word it would show. */
+    return `<li class="rl-rung-row rl-rung-${tone}${winIds.has(r.id) && !acc && !readAt ? ' rl-rung-win' : ''}${readAt === r.id ? ' is-reading' : ''}"
+      data-rl-rung-peek="${_nea(id)}" data-rung="${_nea(r.id)}" tabindex="0"${
       winIds.has(r.id) ? ` title="${_nea(i18t('ng_rung_win_title'))}"` : ''}>
       <div class="rl-rung-who"><span class="rl-rung-n">R${r.n}</span>
         <span>${_ne(mine(r) ? i18t('ng_rung_you') : i18t('ng_rung_them'))}${
@@ -6983,7 +6990,8 @@ function rlLadderSectionHtml(c, cl, side, opts = {}){
   }).join('');
   const base = ladderBaseText(rungs);
   const baseFig = (track && typeof ladderFigure === 'function') ? ladderFigure(ladderTopic(rungs), base) : null;
-  const r0 = `<li class="rl-rung-row rl-rung-base${readAt === '0' ? ' is-reading' : ''}">
+  const r0 = `<li class="rl-rung-row rl-rung-base${readAt === '0' ? ' is-reading' : ''}"
+    data-rl-rung-peek="${_nea(id)}" data-rung="0" tabindex="0">
     <div class="rl-rung-who"><span class="rl-rung-n">R0</span>
       <span>${_ne(i18t('ng_rung_agreed'))}</span></div>
     ${baseFig != null ? `<div class="rl-rung-what">${_ne(String(baseFig))} ${_ne(track.unit || '')}</div>`
@@ -7054,6 +7062,128 @@ function rlLadderContract(){
    same renderer the version Compare window draws, so a diff reads the same
    wherever it is shown.
    A READING. It opens a dialog, draws, and closes; nothing is written. */
+
+/* ============================================================
+   A RUNG'S WHOLE CLAUSE, BESIDE THE LADDER
+   (Young ruled 17 Sep 2026, "Image 5 = A", off the ladder panel: "If you hover
+   over the R0 or R1 you see the full clause as it was.")
+   ============================================================
+   Both rows stop at "…" — R0 at 120 characters by this file's own slice, a
+   move at whatever its summary says. To read the rest you pressed "Read as it
+   stood", which redraws the paper and loses your place in the panel. That is
+   the right act for studying a version and much too heavy for a glance.
+
+   IT COSTS NOTHING. Every rung already carries its own `text` and the wording
+   it was measured against (`oldText`), and the change carries its stored ops —
+   so this is a reading of what is already in hand. No route, no fetch, no
+   model, no write.
+
+   HOVER ALONE IS NOT ENOUGH and never was: a hover cannot be reached with a
+   keyboard and does not exist on a touch screen. So the same card answers
+   pointing, tabbing and pressing, and closes on Escape — "every act has a key
+   beside its click", the product's own rule. Pointing opens it loosely and
+   pointing away closes it; PRESSING PINS it, so the two verbs on its foot can
+   be reached with a mouse without the card going out from under the hand.
+
+   IT SITS OVER THE GREY, never over the paper's text column and never inside
+   the panel's own scroller, so the contract does not move by a pixel. */
+const RL_PEEK_MS = 160;      /* the grace crossing from the row to the card */
+let _rlPeek = null;          /* {clauseId, rungId, pinned} — per sitting, in memory */
+let _rlPeekTimer = null;
+
+function rlPeekOpenId(){ return _rlPeek; }
+
+/* WHICH WORDING A RUNG IS, and the one place that question is answered.
+   R0 is the agreed wording and has no marks on it — nothing moved yet — so it
+   is drawn as the plain paragraph it is; every other rung is drawn by
+   rlChangeWordingHtml, the ONE builder for "what this change proposed", so the
+   card and the row's own card cannot disagree about what a move says. */
+function rlRungPeekHtml(c, clauseId, rungId){
+  if (!c || typeof window.ladderRungs !== 'function') return '';
+  const rungs = ladderRungs(c, String(clauseId || ''));
+  if (!rungs.length) return '';
+  const base = String(rungId == null ? '' : rungId);
+  const r = base === '0' ? null : rungs.find(x => String(x.id) === base);
+  if (base !== '0' && !r) return '';
+  const mine = r ? r.side !== 'counterparty' : true;
+  const unsent = r && typeof window.ladderUnsent === 'function'
+    && ladderUnsent(c, r, 'owner');
+  const who = r
+    ? [ `R${r.n}`, _ne(mine ? i18t('ng_rung_you') : i18t('ng_rung_them')),
+        _ne(i18t('ng_rung_round', { n: r.round })),
+        unsent ? _ne(i18t('ng_rung_not_sent')) : '' ].filter(Boolean).join(' · ')
+    : `R0 · ${_ne(i18t('ng_rung_agreed'))}`;
+  /* THE WORDING. A rung with nothing readable says so rather than drawing an
+     empty sheet — an absence is stated, never left blank. */
+  let body = '';
+  if (r && r.ch && typeof window.rlChangeWordingHtml === 'function'){
+    body = rlChangeWordingHtml(r.ch, { side: 'owner' });
+  } else {
+    const txt = r ? (r.text || r.oldText || '') : (typeof window.ladderBaseText === 'function'
+      ? ladderBaseText(rungs) : (rungs[0] && rungs[0].oldText) || '');
+    body = txt ? (typeof window.docRichFromText === 'function'
+      ? docRichFromText(String(txt)) : `<p>${_ne(String(txt))}</p>`) : '';
+  }
+  const acts = [];
+  if (r) acts.push(`<button type="button" data-rl-read-at="${_nea(clauseId)}" data-rung="${_nea(r.id)}"
+    title="${_nea(i18t('ng_rung_read_title'))}">${_ne(i18t('ng_rung_read'))}</button>`);
+  if (rungs.length > 1) acts.push(`<button type="button"
+    data-rl-rung-compare="${_nea(clauseId)}">${_ne(i18t('ng_ladder_compare'))}</button>`);
+  return `<aside class="rl-peek" id="rl-peek" role="dialog" aria-label="${_nea(who)}"
+    data-rl-peek-card="${_nea(clauseId)}">
+    <div class="rl-peek-h"><span class="rl-peek-who">${who}</span>
+      <span class="rl-peek-esc">${_ne(i18t('ng_peek_esc'))}</span></div>
+    <div class="rl-peek-body rl-cp-src">${body || `<p class="rl-cp-none">${_ne(i18t('ng_peek_none'))}</p>`}</div>
+    ${acts.length ? `<div class="rl-peek-acts rl-rung-acts">${acts.join('')}</div>` : ''}
+  </aside>`;
+}
+
+/* MOUNTED IN THE PANEL, which is what puts it over the grey beside the paper
+   without a second positioning context to keep in step: #rl-cp is already the
+   cards column's own box, so `right:100%` is the seam between them. */
+function rlPeekShow(clauseId, rungId, opts){
+  const c = rlLadderContract();
+  if (!c) return false;
+  /* NEVER IN A CLEAN READING and never on their seat — the pencil's own two
+     reasons, asked the same way. */
+  if (typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE) return false;
+  /* WHICHEVER SURFACE THE LADDER IS DRAWN ON. It has two homes — the clause
+     panel and the clause editor's Ladder tab — and a card that silently did
+     nothing on the second would be a hover the reader is entitled to and does
+     not get. The host is asked of the ROW rather than looked up by id, so a
+     third home inherits it. */
+  const panel = (opts && opts.row && opts.row.closest
+      && (opts.row.closest('#rl-cp') || opts.row.closest('.ce-rail')))
+    || document.getElementById('rl-cp');
+  if (!panel) return false;
+  const html = rlRungPeekHtml(c, clauseId, rungId);
+  if (!html) return false;
+  rlPeekHide(true);
+  panel.insertAdjacentHTML('beforeend', html);
+  _rlPeek = { clauseId: String(clauseId), rungId: String(rungId), pinned: !!(opts && opts.pinned) };
+  const card = document.getElementById('rl-peek');
+  if (card && !opts?.pinned){
+    /* CROSSING FROM THE ROW TO THE CARD MAY NOT CLOSE IT: the card is not a
+       child of the row it belongs to, so the pointer leaving the row would
+       otherwise take it away mid-reach. */
+    card.addEventListener('mouseenter', () => { clearTimeout(_rlPeekTimer); _rlPeekTimer = null; });
+    card.addEventListener('mouseleave', () => rlPeekLater());
+  }
+  return true;
+}
+function rlPeekHide(force){
+  if (!force && _rlPeek && _rlPeek.pinned) return false;
+  clearTimeout(_rlPeekTimer); _rlPeekTimer = null;
+  const el = document.getElementById('rl-peek');
+  if (el) el.remove();
+  _rlPeek = null;
+  return true;
+}
+function rlPeekLater(){
+  clearTimeout(_rlPeekTimer);
+  _rlPeekTimer = setTimeout(() => rlPeekHide(), RL_PEEK_MS);
+}
+
 function openLadderCompare(clauseId, aId, bId){
   const c = rlLadderContract();
   if (!c || typeof window.ladderRungs !== 'function') return;
@@ -7711,6 +7841,70 @@ const redlineHeldId = () => _redlineHeldId;
 function redlineEvict(){ return null; }
 /* Bring a contract to the bench. The one entry point, so the eviction cannot
    be skipped by a caller that sets state.activeId and calls setView itself. */
+/* ---- FILL THE OPEN FIELDS BEFORE YOU ARGUE ABOUT THEM (Young ruled 17 Sep
+   2026, "Image 3 = A": *"if I try to click on open negotiation, it should
+   first recommend that I fill in the open fields. This is because it may
+   address some of the redlines prior to going to the redlines page."*) ----
+
+   Which contracts have been asked, THIS SITTING, in memory. Never persisted,
+   and that is the decision rather than an omission: a question you answered
+   yesterday and are asked again today is a reminder; a question you answered
+   and are asked again on the next press is the alert you learn to dismiss
+   without reading, and this one is worth reading the first time.
+
+   ASKED, NOT ENFORCED. Both doors are on the one screen and neither is
+   hidden — Escape and the scrim take the reader through to the negotiation,
+   because that is what they pressed for. */
+const _rlBlanksAsked = new Set();
+
+/* The sentence, and the ONE arithmetic behind it: contractBlanksOpen, which is
+   the same count the panel's own N/M prints. A second tally here is how a
+   dialog comes to name a number the page beside it disagrees with. */
+function negoBlanksOpen(c){
+  if(!c || (typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE)) return [];
+  if(typeof window.contractBlanksOpen !== 'function') return [];
+  try{ return contractBlanksOpen(c) || []; }catch(_){ return []; }
+}
+const NG_BLANKS_NAMED = 3;   /* the artifact's three, then "and N more" */
+
+/* THE ASK ITSELF. Returns 'go' to carry on into the negotiation, 'fill' where
+   the reader chose the boxes instead, and 'none' where there was nothing to
+   ask about — three answers rather than a boolean, so the caller never has to
+   guess which silence it is looking at. */
+async function negoBlanksAsk(c){
+  const left = negoBlanksOpen(c);
+  if(!left.length) return 'none';
+  if(typeof confirmDialog !== 'function') return 'none';
+  const names = left.slice(0, NG_BLANKS_NAMED).map(b => b.label).filter(Boolean);
+  const more = left.length - names.length;
+  /* IT NAMES THEM, and that is the whole difference between this and a count.
+     A reader who can see the three are party names and dates can judge in one
+     glance whether they matter here; a bare "18 fields are empty" is something
+     you press through every time, and after a week it stops being read. */
+  const lines = [ i18tn('ng_blanks_msg', left.length, { n: left.length }) ];
+  if(names.length) lines.push(more > 0
+    ? i18tn('ng_blanks_these_more', more, { names: names.join(' · '), more })
+    : i18t('ng_blanks_these', { names: names.join(' · ') }));
+  const fill = await confirmDialog({
+    title: i18t('ng_blanks_title'),
+    message: lines.join(' '),
+    confirmLabel: i18t('ng_blanks_fill'),
+    cancelLabel: i18t('ng_blanks_go') });
+  return fill ? 'fill' : 'go';
+}
+
+/* Where "Fill them in" lands: the Document tab of the contract they were
+   leaving, with the cursor already in the first box that is still empty and
+   its word lit on the paper. Every step is a door the product already has. */
+function negoBlanksFill(c){
+  if(typeof openWorkspace === 'function') openWorkspace(c.id);
+  if(typeof roomGoTab === 'function') roomGoTab(c, 'docs');
+  /* AFTER THE PAINT, never before it: the panel this focuses is written by the
+     render roomGoTab just asked for, and a box that is not on the page yet
+     takes no cursor. */
+  setTimeout(() => { try{ if(window.contractFieldFocus) contractFieldFocus(c); }catch(_){ } }, 0);
+}
+
 function openRedlineWorkbench(id, opts = {}){
   const target = String(id == null ? '' : id) || (window.state && state.activeId);
   if (!target) return false;
@@ -7724,6 +7918,23 @@ function openRedlineWorkbench(id, opts = {}){
   const held = (typeof getContract === 'function') ? getContract(target) : null;
   if (held && window.negoMayStart && !negoMayStart(held).ok){
     if (typeof toast === 'function') toast(negoMayStartLine(held), 'warn');
+    return false;
+  }
+  /* ---- AND THE FIELDS ARE OFFERED FIRST (Young ruled 17 Sep 2026) ----
+     HERE, and not on the button, because this is the ONE funnel every named
+     door onto this page goes through — the same reason the sealed-record wall
+     above it is here. A door added tomorrow inherits both.
+     IT COMES AFTER THAT WALL, deliberately: a contract nobody may negotiate is
+     refused for that reason, not asked about its blanks first.
+     THE ANSWER RE-ENTERS rather than carrying on inline, so there is one path
+     into the page and the dialog cannot become a second one. */
+  if (held && !opts.blanksAsked && !_rlBlanksAsked.has(String(target))
+    && negoBlanksOpen(held).length){
+    _rlBlanksAsked.add(String(target));
+    negoBlanksAsk(held).then(ans => {
+      if (ans === 'fill') negoBlanksFill(held);
+      else openRedlineWorkbench(target, Object.assign({}, opts, { blanksAsked: true }));
+    });
     return false;
   }
   redlineEvict(target, opts);
@@ -16509,6 +16720,7 @@ function redlineChangeCardsHtml(c, opts = {}){
     const door = take(/data-rl-cp-editor-row=|data-rl-edit=|rl-verb-ai is-locked/);
     const acc = take(/data-nego-accept=/), rej = take(/data-nego-reject=/);
     const out = [];
+    let discard = '';   /* our own row's last word — see below */
     if (theirs && (acc || rej)){
       /* A LIVE ASK OF THEIRS IS THE ARTIFACT'S DECISION ROW: Accept · Reject ·
          Counter, and the door wears the artifact's word because countering is
@@ -16527,14 +16739,24 @@ function redlineChangeCardsHtml(c, opts = {}){
       for (const v of list) out.push(v === door ? relabel(door, i18t('act_edit')) : v);
       seen.clear(); list.forEach(v => seen.add(v));
     } else {
-      out.push(relabel(door, i18t('act_edit')), take(/data-rl-send=/),
-        relabel(take(/data-rl-retract=/), i18t('ng_discard')));
+      /* ---- DISCARD LEAVES THE MIDDLE (Young ruled 17 Sep 2026, "Image 2 = D")
+         ----
+         It was third of five, between Send and whatever followed. On a row of
+         five bare words the one press that throws work away sat where the hand
+         goes for Send. It is held out here and pushed on at the very END of
+         the row instead, after Ladder, and dressed in ruby by the sheet —
+         which REVERSES "Ladder is last" of 14 Sep. Ladder is a reading and
+         loses nothing by moving up one place; Discard beside Send is the
+         mistake that cannot be taken back. */
+      out.push(relabel(door, i18t('act_edit')), take(/data-rl-send=/));
+      discard = relabel(take(/data-rl-retract=/), i18t('ng_discard'));
     }
     for (const v of list) if (!seen.has(v)) out.push(v);
     if (tail) out.push(tail);
     if (ch.clauseId && typeof window.ladderRungs === 'function' && ladderRungs(c, String(ch.clauseId)).length)
       out.push(`<button type="button" class="rl-edit" data-rl-ladder="${_nea(ch.clauseId)}"
         title="${_nea(i18t('ng_rung_open_title'))}">${_ne(i18t('ng_row_ladder'))}</button>`);
+    if (discard) out.push(discard);
     const kept = out.filter(Boolean);
     /* IT WEARS BOTH CLASSES. `rl-card-face` is the artifact's bare-word
        dressing; `rl-card-verbs` is the name the rest of the product and half
@@ -18275,6 +18497,59 @@ if (typeof document !== 'undefined' && !document._rlNotesWired){
     if (window.openNotesPanel) openNotesPanel(cid, id);
   });
 }
+/* ---- THE RUNG'S WORDING ANSWERS A POINT, A TAB, A PRESS AND ESCAPE ----
+   (Young ruled 17 Sep 2026.) Delegated on document and armed at MODULE LOAD,
+   for the reason every listener in this file is: the panel that hosts the card
+   is painted into its mount partway through a render, so anything bound in the
+   head block above that paint would be live-looking and dead. Bound once.
+
+   POINTING OPENS IT LOOSELY; PRESSING PINS IT. A card that vanishes the moment
+   the pointer leaves the row cannot have its two verbs pressed with a mouse,
+   and one that never vanishes is a panel nobody asked for. So there are two
+   states and the press is what tells them apart. A pinned card closes on the
+   same press that opened it — the owner's rule about sliding panels, and the
+   ladder chip's own. */
+if (typeof document !== 'undefined' && !document._rlPeekWired){
+  document._rlPeekWired = true;
+  const rowOf = t => (t && t.closest) ? t.closest('[data-rl-rung-peek]') : null;
+  const addr = row => [row.getAttribute('data-rl-rung-peek'), row.getAttribute('data-rung')];
+  document.addEventListener('mouseover', ev => {
+    const row = rowOf(ev.target);
+    if (!row){ return; }
+    if (_rlPeek && _rlPeek.pinned) return;
+    const [cid, rid] = addr(row);
+    /* ALREADY SHOWING THIS ONE: keep it, and cancel any close in flight —
+       mouseover fires again for every child the pointer crosses inside the
+       row, and rebuilding the card under the reader on each one would flicker.
+       IT ASKS THE PAGE, NOT ONLY THE FLAG: the panel repaints on its own (a
+       filing, a decision, the twelve-second probe) and takes the card with it,
+       which would otherwise leave the flag saying "shown" over nothing and no
+       hover able to bring it back. */
+    if (_rlPeek && _rlPeek.clauseId === String(cid) && _rlPeek.rungId === String(rid)
+      && document.getElementById('rl-peek')){
+      clearTimeout(_rlPeekTimer); _rlPeekTimer = null; return;
+    }
+    rlPeekShow(cid, rid, { row });
+  });
+  document.addEventListener('mouseout', ev => {
+    const row = rowOf(ev.target);
+    if (!row || (_rlPeek && _rlPeek.pinned)) return;
+    /* Moving WITHIN the row is not leaving it. */
+    if (ev.relatedTarget && rowOf(ev.relatedTarget) === row) return;
+    rlPeekLater();
+  });
+  /* THE KEYBOARD GETS THE SAME CARD. focusin, because focus does not bubble
+     and the rows are rewritten on every paint of the panel. */
+  document.addEventListener('focusin', ev => {
+    const row = rowOf(ev.target);
+    if (!row){ if (_rlPeek && !_rlPeek.pinned && !document.getElementById('rl-peek')?.contains(ev.target)) rlPeekLater(); return; }
+    const [cid, rid] = addr(row);
+    rlPeekShow(cid, rid, { row });
+  });
+  document.addEventListener('keydown', ev => {
+    if (ev.key === 'Escape' && _rlPeek){ ev.stopPropagation(); rlPeekHide(true); }
+  }, true);
+}
 if (typeof document !== 'undefined' && !document._rlCpWired){
   document._rlCpWired = true;
   /* ---- IN THE CAPTURE PHASE, AND THAT IS LOAD-BEARING ----
@@ -18342,7 +18617,21 @@ if (typeof document !== 'undefined' && !document._rlCpWired){
       rlCpSetShown(lscope, rlCpOpenId() === lid ? null : lid, { ladder: true });
       return;
     }
-    const readAt = t.closest('[data-rl-read-at]');
+    /* A PRESS ON THE ROW PINS ITS WORDING, and the same press lets it go.
+       Asked BEFORE the verbs below it so a press on Read as it stood is still
+       that verb: those are buttons inside the row, and this stands down for
+       anything pressable. */
+    const peekRow = t.closest && t.closest('[data-rl-rung-peek]');
+        if (peekRow && !(t.closest && t.closest('button,a,input,select,textarea'))){
+          ev.preventDefault(); ev.stopPropagation();
+          const pcid = peekRow.getAttribute('data-rl-rung-peek');
+          const prid = peekRow.getAttribute('data-rung');
+          if (_rlPeek && _rlPeek.pinned && _rlPeek.clauseId === String(pcid)
+            && _rlPeek.rungId === String(prid)) rlPeekHide(true);
+          else rlPeekShow(pcid, prid, { pinned: true, row: peekRow });
+          return;
+        }
+        const readAt = t.closest('[data-rl-read-at]');
         if (readAt){
           ev.preventDefault(); ev.stopPropagation();
           rlSetReadAt(readAt.getAttribute('data-rl-read-at'), readAt.getAttribute('data-rung'));
@@ -19002,6 +19291,8 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlUnsentBandHtml, rlUnsentSendHtml, rlUnsentCount, rlCloseRoundHtml,
   rlFitTabRow, rlWireFitTabRow, rlObserveTabRow,
   redlineHeldId, redlineEvict, openRedlineWorkbench,
+  rlRungPeekHtml, rlPeekShow, rlPeekHide, rlPeekLater, rlPeekOpenId, RL_PEEK_MS,
+  negoBlanksOpen, negoBlanksAsk, negoBlanksFill, NG_BLANKS_NAMED,
   rlOwnerOpenActions, rlOwnerOpenTotal, rlJumpHtml,
   rlPbFindClause, rlPlaybookProposals, rlPbWordingLabel, rlFilePlaybookProposal, rlOpenPlaybookReview,
   rlPrepareRedlines, rlPrepareRowHtml, rlEmptyColumnActsHtml, rlFirstClauseId,

@@ -439,7 +439,34 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
   }, { c4: staged.c4, c5: staged.c5 });
   check('18a one row per argument — the parked asks fold under the counter', col18.rows === 2, 'rows ' + col18.rows);
   check('18b their live ask offers Accept · Reject · Counter · Ladder on its face', !!col18.v5 && /Accept/.test(col18.v5[0]) && /Reject/.test(col18.v5[1]) && /Counter/.test(col18.v5[2]) && col18.v5.some(v => /Ladder/.test(v)), JSON.stringify(col18.v5));
-  check('18c our unsent draft offers Edit · Send · Discard · Ladder', !!col18.v4 && /Edit/.test(col18.v4[0]) && /Send/.test(col18.v4[1]) && /Discard/.test(col18.v4[2]) && col18.v4.some(v => /Ladder/.test(v)), JSON.stringify(col18.v4));
+  /* ---- REVERSED IN PLACE 17 Sep 2026 (Young: "Image 2 = D") ----
+     It read Edit · Send · Discard · Ladder and pinned Discard THIRD. On a row
+     of five bare words the one press that throws work away sat exactly where
+     the hand goes for Send, so it is now LAST, after Ladder, and ruby rather
+     than grey. That reverses "Ladder is last" of 14 Sep: Ladder is a reading
+     and loses nothing by moving up a place. The claim is otherwise the same
+     claim — all four verbs, in a stated order. */
+  check('18c our unsent draft offers Edit · Send · Ladder · Discard, with Discard last',
+    !!col18.v4 && /Edit/.test(col18.v4[0]) && /Send/.test(col18.v4[1])
+    && /Ladder/.test(col18.v4[2]) && /Discard/.test(col18.v4[col18.v4.length - 1]),
+    JSON.stringify(col18.v4));
+  /* AND IT IS RUBY, measured rather than asserted off the sheet: on this row
+     every other verb is the accent, so the one that cannot be taken back has
+     to differ by more than position. */
+  const d18 = await page.evaluate(id => {
+    /* THE SAME LOOKUP THE CLAIM ABOVE USES: these rows are found by the clause
+       their Ladder verb names, not by a change id. A probe that reaches for
+       the wrong handle reports null and reads as a defect. */
+    const rows = [...document.querySelectorAll('#rl-changes .rl-card-d')];
+    const row = rows.find(r => { const l = r.querySelector('.rl-card-face [data-rl-ladder]');
+      return l && l.getAttribute('data-rl-ladder') === id; });
+    const b = row && row.querySelector('.rl-card-face [data-rl-retract]');
+    const e = row && row.querySelector('.rl-card-face [data-rl-send]');
+    return { discard: b ? getComputedStyle(b).color : null, send: e ? getComputedStyle(e).color : null };
+  }, staged.c4);
+  check('18c2 Discard is ruby, and the verb beside it is not',
+    !!d18.discard && /rgb\(190, 18, 60\)|rgb\(1[6-9][0-9], [0-9]+, [0-9]+\)/.test(d18.discard)
+    && d18.discard !== d18.send, d18.discard + ' vs send ' + d18.send);
   check('18d the argued figure is a track under the row', !!col18.track4 && /R0 12/.test(col18.track4) && /R3 18/.test(col18.track4), col18.track4);
   check('18e the piles carry the artifact\'s names', col18.bands.some(b => /not yet sent/i.test(b)) && col18.bands.some(b => /Awaiting you/i.test(b)), col18.bands.join(' · '));
   check('18f the pile that needs the reader is amber', !!col18.awaitingInk && col18.awaitingInk !== 'rgb(0, 0, 0)' && /rgb\(180, 83, 9\)|rgb\(251, 191, 36\)/.test(col18.awaitingInk), col18.awaitingInk);
@@ -609,6 +636,112 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
     /1 refused/.test(mixed.text || ''), mixed.text);
   check('22f no word claims an outcome for the whole clause',
     !/settled/i.test(mixed.text || ''), mixed.text);
+
+  /* ============================================================
+     23 · A RUNG'S WHOLE CLAUSE, BESIDE THE LADDER (Young ruled 17 Sep 2026,
+     "Image 5 = A": "If you hover over the R0 or R1 you see the full clause as
+     it was.")
+     ============================================================
+     MEASURED, not asserted: whether the card is really drawn, whether the
+     contract moved, and whether its words are the rung's own. Driven with a
+     REAL MOUSE and a REAL KEY — a dispatched mouseover would not prove the
+     hover works, and the whole feature is a hover. */
+  await page.evaluate(() => { try{ rlPeekHide(true); rlCpSetShown(document, null); }catch(_){} });
+  await pause(200);
+  /* THE PANEL IS OPENED BY ITS OWN FUNCTION rather than by pressing the chip:
+     the chip TOGGLES, section 18 already proves the press, and a toggle whose
+     starting state depends on what the sections above left behind is a stage
+     that can silently be shut. */
+  await page.evaluate(id => rlCpSetShown(document, id, { ladder: true }), staged.c4);
+  await pause(450);
+  /* THE CONTRACT'S OWN PIXELS, BEFORE. Refusal 3: the sheet may not move. */
+  const inkBefore = await page.evaluate(() => {
+    const w = document.querySelector('.rl-doc .rl-clause');
+    return w ? Math.round(w.getBoundingClientRect().left) : null;
+  });
+  const rows23 = await page.$$('#rl-cp [data-rl-rung-peek]');
+  check('23a every rung is a door', rows23.length >= 2, 'rows ' + rows23.length);
+  check('23a2 R0 among them — the row the owner named first',
+    await page.evaluate(() => !!document.querySelector('#rl-cp [data-rl-rung-peek][data-rung="0"]')),
+    'R0 carries the door');
+  /* ---- GUARDED, so a build WITHOUT the feature reports rather than times out
+     ---- Against the parent there are no rung doors at all, and every press
+     below would throw on an empty list — taking the file down with one stack
+     instead of naming the ten things that are missing. */
+  if (!rows23.length){
+    for (const [n, what] of [['23b', 'pointing at a rung draws the card'],
+      ['23c', 'it hangs off the LEFT of the panel'], ['23d', 'it keeps the square corner'],
+      ['23e', "it carries the rung's own wording"], ['23f', 'the contract does not move'],
+      ['23g', 'pointing away closes it'], ['23h', 'a press pins it'],
+      ['23i', 'the pinned card carries its ways on'], ['23j', 'Escape closes it'],
+      ['23k', 'tabbing to a rung opens it']]) check(n + ' ' + what, false, 'no rung door on this build');
+  } else {
+  /* A REAL HOVER, ON THE FIRST RUNG, because the panel's body scrolls and the last one can sit
+     below its fold — a probe that cannot see its target proves nothing. R0's
+     own door is asserted by its attribute in 23a2. */
+  await rows23[0].hover(); await pause(300);
+  const peek = await page.evaluate(() => {
+    const el = document.getElementById('rl-peek');
+    if (!el) return { drawn: false };
+    const r = el.getBoundingClientRect();
+    const paper = document.querySelector('.rl-doc .rl-clause');
+    const pr = paper ? paper.getBoundingClientRect() : null;
+    const cs = getComputedStyle(el);
+    return { drawn: r.width > 4 && r.height > 4, right: Math.round(r.right),
+      left: Math.round(r.left), radius: cs.borderRadius,
+      paperLeft: pr ? Math.round(pr.left) : null,
+      panelLeft: Math.round(document.getElementById('rl-cp').getBoundingClientRect().left),
+      words: (el.querySelector('.rl-peek-body') || {}).textContent
+        ? el.querySelector('.rl-peek-body').textContent.replace(/\s+/g, ' ').trim().slice(0, 90) : '' };
+  });
+  check('23b pointing at a rung draws the card', peek.drawn === true, JSON.stringify(peek).slice(0, 200));
+  check('23c it hangs off the LEFT of the panel, over the grey, not over the panel',
+    peek.drawn && peek.right <= peek.panelLeft + 2, `card right ${peek.right} · panel left ${peek.panelLeft}`);
+  check('23d it keeps the contract\'s square corner', peek.radius === '0px', peek.radius);
+  check('23e it carries the rung\'s own WORDING, not a summary',
+    (peek.words || '').length > 30, peek.words);
+  const inkAfter = await page.evaluate(() => {
+    const w = document.querySelector('.rl-doc .rl-clause');
+    return w ? Math.round(w.getBoundingClientRect().left) : null;
+  });
+  check('23f THE CONTRACT DOES NOT MOVE BY A PIXEL',
+    inkBefore !== null && inkBefore === inkAfter, `before ${inkBefore} · after ${inkAfter}`);
+  /* POINTING AWAY CLOSES IT — the loose state. */
+  await page.mouse.move(peek.paperLeft || 80, 300); await pause(500);
+  const gone = await page.evaluate(() => !document.getElementById('rl-peek'));
+  check('23g pointing away closes it', gone === true, String(gone));
+  /* A REAL PRESS PINS IT, so its two verbs can be reached with a mouse. */
+  await rows23[0].click(); await pause(300);
+  await page.mouse.move(40, 300); await pause(400);
+  const pinned = await page.evaluate(() => {
+    const el = document.getElementById('rl-peek');
+    return { up: !!el, pinned: !!(window.rlPeekOpenId() || {}).pinned,
+      acts: el ? [...el.querySelectorAll('.rl-peek-acts button')].map(b => b.textContent.trim()) : [] };
+  });
+  check('23h a press PINS it, and pointing away no longer takes it',
+    pinned.up === true && pinned.pinned === true, JSON.stringify(pinned));
+  check('23i the pinned card carries its two ways on',
+    pinned.acts.length >= 1, pinned.acts.join(' · '));
+  /* AND ESCAPE CLOSES IT — the half a hover can never answer. */
+  await page.keyboard.press('Escape'); await pause(300);
+  check('23j Escape closes it',
+    await page.evaluate(() => !document.getElementById('rl-peek')), 'closed');
+  /* THE KEYBOARD GETS THE SAME CARD: the rung is a real tab stop. */
+  /* THE FOCUS HAS TO MOVE, and the first draft of this check did not make it:
+     the press in 23h left the caret ON that rung, so .focus() on it fired no
+     focusin at all and the card was reported missing. It is also the right
+     product behaviour — Escape means "I have read it", and a card that came
+     straight back while the focus had not moved would defeat the key that
+     closed it. So this leaves the row first, the way a reader does. */
+  await page.evaluate(() => { document.activeElement && document.activeElement.blur(); });
+  await pause(150);
+  await page.evaluate(() => { const r = document.querySelector('#rl-cp [data-rl-rung-peek]'); r && r.focus(); });
+  await pause(300);
+  check('23k tabbing to a rung opens it too — a hover alone would not exist on a touch screen',
+    await page.evaluate(() => !!document.getElementById('rl-peek')), 'drawn on focus');
+  }
+
+  await page.evaluate(() => { try{ rlPeekHide(true); }catch(_){} });
 
   check('9 no page error anywhere in the run', errs.length === 0, errs.join(' | ').slice(0, 300));
   console.log(`\n${results.filter(r=>r.pass).length}/${results.length} passed`);

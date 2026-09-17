@@ -6210,10 +6210,160 @@ function paintBlankFormCount(c){
 function paintContractForm(c){
   if(c && c.templateForm){
     if(window.renderTemplateFormSection) renderTemplateFormSection(c);
-    return;
+  } else {
+    renderBlankFormSection(c);
   }
-  renderBlankFormSection(c);
+  /* BOTH PANELS GET THE LINK, AND IT IS ARMED HERE rather than inside either
+     builder: this is the one function that knows a panel was just drawn, and
+     the listeners are delegated so neither builder has to remember to re-arm
+     them. See wireFieldLink. */
+  wireFieldLink(c);
 }
+/* ============================================================
+   A CURSOR IN A FIELD LIGHTS THAT SPOT ON THE PAPER, AND BACK
+   (Young ruled 17 Sep 2026: "For every box or field that my cursor is in, it
+   should take me to that area in the contract and highlight that field.")
+   ============================================================
+   The panel and the paper are two views of one fact and have never said so.
+   A reader filling "Depositor Principal Place of Business" in the right-hand
+   column had no way to see WHERE that phrase lands, which is the whole
+   question a lawyer is asking when they hesitate over a box.
+
+   IT IS A READING AND A LIGHT, AND NOTHING ELSE. No write, no save, no record,
+   no repaint of either side — the two writers (the paper's own handler and
+   contractBlankSet) are untouched and this cannot reach them.
+
+   BOTH WAYS, because it is the same machinery pointed the other direction and
+   the paper is where people actually read. The owner asked for the panel half
+   and left the other to me.
+
+   THE CONTRACT DOES NOT MOVE BY A PIXEL: the light is an outline and a wash,
+   both of which cost no layout, and the scroll lands rather than travels. */
+
+/* THE ONE READING OF "which fact is this box about", asked of any of the four
+   shapes the product draws — and there are four because there are two panels
+   and two papers, not because anything here is loose:
+     the blanks panel's box      [data-blankf="<key>"]
+     the template form's box     [data-tplf="<index>"]   (an INDEX, so the
+                                 contract is what turns it back into a key)
+     the paper's own input       input[data-field] / input[data-sync]
+     the template paper's blank  .hati-field[data-field-key]
+   Anything else answers '' and every caller stands down on that. */
+function contractFieldKeyOf(el, c){
+  if(!el || !el.getAttribute) return '';
+  const direct = el.getAttribute('data-blankf')
+    || el.getAttribute('data-sync') || el.getAttribute('data-field')
+    || el.getAttribute('data-field-key');
+  if(direct) return String(direct);
+  const idx = el.getAttribute('data-tplf');
+  if(idx == null) return '';
+  const f = c && c.templateForm && Array.isArray(c.templateForm.fields)
+    ? c.templateForm.fields[Number(idx)] : null;
+  return f && f.fieldKey ? String(f.fieldKey) : '';
+}
+
+/* The node on the OTHER side. `where` is 'paper' or 'panel'; the selector per
+   side is a list because each side draws two shapes, and the first that
+   answers wins. A key nothing matches is not an error — a record can carry a
+   field its wording never printed. */
+function contractFieldPeer(key, where){
+  const k = String(key == null ? '' : key);
+  if(!k || typeof document === 'undefined') return null;
+  const q = (window.CSS && CSS.escape) ? CSS.escape(k) : k.replace(/["\\]/g, '\\$&');
+  const host = document.getElementById(where === 'panel' ? 'tplform-section' : 'doc-canvas');
+  if(!host) return null;
+  if(where === 'panel'){
+    const box = host.querySelector(`[data-blankf="${q}"]`);
+    if(box) return box;
+    /* The template form's boxes are keyed by INDEX, so the key has to be
+       carried back through the same map contractFieldKeyOf reads forward. */
+    const c = (typeof state === 'object' && state && typeof getContract === 'function')
+      ? getContract(state.activeId) : null;
+    const fields = c && c.templateForm && Array.isArray(c.templateForm.fields) ? c.templateForm.fields : [];
+    const i = fields.findIndex(f => f && String(f.fieldKey) === k);
+    return i < 0 ? null : host.querySelector(`[data-tplf="${i}"]`);
+  }
+  return host.querySelector(`[data-field="${q}"],[data-sync="${q}"],[data-field-key="${q}"]`);
+}
+
+/* ONE LIGHT AT A TIME, ON EITHER SIDE. The class is removed from everything
+   carrying it before it is given, so a reader tabbing down a form never leaves
+   a trail of lit words behind them. */
+function contractFieldLight(node, opts){
+  if(typeof document === 'undefined') return false;
+  document.querySelectorAll('.is-fieldlit').forEach(el => el.classList.remove('is-fieldlit'));
+  if(!node) return false;
+  node.classList.add('is-fieldlit');
+  /* LANDING, NEVER TRAVELLING. 'center' so the sentence the word sits in is
+     readable around it, and behavior:auto because a smooth scroll on a press
+     that is really a keystroke reads as the page wobbling. Guarded: jsdom has
+     no scrollIntoView. */
+  if(opts && opts.scroll !== false && typeof node.scrollIntoView === 'function'){
+    try{ node.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'auto' }); }catch(_){ }
+  }
+  return true;
+}
+function contractFieldUnlight(){
+  if(typeof document === 'undefined') return;
+  document.querySelectorAll('.is-fieldlit').forEach(el => el.classList.remove('is-fieldlit'));
+}
+
+/* The press "Fill them in" lands on, and the one door the dialog before
+   Negotiate uses: put the cursor in a named box in the panel, or the first one
+   still open, and light its word on the paper. */
+function contractFieldFocus(c, key){
+  const k = key || (typeof contractBlanksOpen === 'function'
+    && (contractBlanksOpen(c)[0] || {}).key) || '';
+  if(!k) return false;
+  const box = contractFieldPeer(k, 'panel');
+  if(!box) return false;
+  contractFieldLight(contractFieldPeer(k, 'paper'));
+  try{ box.focus({ preventScroll: true }); }catch(_){ try{ box.focus(); }catch(_e){ } }
+  if(typeof box.scrollIntoView === 'function'){
+    try{ box.scrollIntoView({ block: 'center', behavior: 'auto' }); }catch(_){ }
+  }
+  return true;
+}
+
+/* TWO DELEGATED LISTENERS, ONE EACH, BOUND ONCE PER ELEMENT. `focusin` rather
+   than `focus` because focus does not bubble, and a listener per box would
+   have to be re-bound every time either side repaints — which is exactly the
+   thing paintBlankForm exists to avoid doing.
+
+   THE PAPER'S OWN BLANKS ARE NOT GIVEN A SECOND DOOR: a template blank on the
+   paper is a span, not an input, and pressing it already opens its own typing
+   popover (tplFormBlankClick). Only real inputs answer here, which is the
+   paper of an ordinary contract. */
+function wireFieldLink(c){
+  if(typeof document === 'undefined') return;
+  const panel = document.getElementById('tplform-section');
+  const canvas = document.getElementById('doc-canvas');
+  if(panel && !panel._fieldLinkWired){
+    panel._fieldLinkWired = true;
+    panel.addEventListener('focusin', e => {
+      const held = (typeof state === 'object' && state && typeof getContract === 'function')
+        ? getContract(state.activeId) : c;
+      const key = contractFieldKeyOf(e.target, held);
+      if(key) contractFieldLight(contractFieldPeer(key, 'paper'));
+    });
+    panel.addEventListener('focusout', () => contractFieldUnlight());
+  }
+  if(canvas && !canvas._fieldLinkWired){
+    canvas._fieldLinkWired = true;
+    canvas.addEventListener('focusin', e => {
+      const held = (typeof state === 'object' && state && typeof getContract === 'function')
+        ? getContract(state.activeId) : c;
+      const key = contractFieldKeyOf(e.target, held);
+      /* THE OTHER WAY ROUND THE PANEL IS WHAT LIGHTS, and it does NOT take the
+         cursor: the reader is typing on the paper and moving focus out from
+         under them mid-word is the fault this whole feature is trying to fix
+         the opposite of. */
+      if(key) contractFieldLight(contractFieldPeer(key, 'panel'));
+    });
+    canvas.addEventListener('focusout', () => contractFieldUnlight());
+  }
+}
+
 function checksRowsHtml(c){
   const row=(kind,ic,name)=>{
     const v=checkVerdict(c,kind);
@@ -10132,9 +10282,16 @@ async function runSignCheck(c,opts={}){
      same instinct the other two already use — offering a reading nobody needed
      costs one press; skipping one they did costs a signature over a summary of
      wording that has since moved. */
-  const wantBrief=r.brief.none===true||r.brief.stale!==false||r.brief.truncated===true;
-  const wantStd=r.standards.unread===true||r.standards.stale!==false;
-  const wantOb=r.obligations.unread!==false;
+  /* ---- ONE READING, TWO ASKERS (Young ruled 17 Sep 2026) ----
+     These three conditions used to be written out here and nowhere else. The
+     button now says how many readings the press makes, so they are asked of
+     signCheckWillRun instead — a count that disagrees with what the press does
+     is worse than no count. */
+  const will=window.signCheckWillRun?signCheckWillRun(r)
+    :{ brief:r.brief.none===true||r.brief.stale!==false||r.brief.truncated===true,
+       standards:r.standards.unread===true||r.standards.stale!==false,
+       obligations:r.obligations.unread!==false };
+  const wantBrief=will.brief, wantStd=will.standards, wantOb=will.obligations;
   const after=typeof opts.after==='function'?opts.after:()=>{};
   /* NOTHING RUNS WHILE THE WORDING IS STILL MOVING: reading a contract mid-
      round spends money on an answer the next filing invalidates. The rows say
@@ -10349,9 +10506,23 @@ function signCheckCardHtml(c){
     /* THE RUN CONTROL BELONGS TO THE READINGS, so it sits on their heading —
        one press for the stage, never a button per row. It greys with the
        reason while the wording is still moving. */
+    /* ---- AND IT IS A BUTTON THAT SAYS WHAT IT COSTS (Young ruled 17 Sep
+       2026, "Image 1 = B": *"it is very easy to miss this run the check so
+       make sure it is a visible button instead"*) ----
+       It was a bare accent word at --t-label, the same weight and all but the
+       same size as the stage heading beside it, so the one control on this
+       card read as part of the label. Now it is HaTi's ordinary secondary
+       button with the magnifier on it, and the count comes from the one
+       reading the press itself obeys (signCheckWillRun), so the label cannot
+       promise two readings and make three. Zero keeps the plain word — "Run 0
+       readings" is a button describing nothing. NOT FILLED: one filled button
+       per screen, and on this screen that is Sign. */
+    const willN=(window.signCheckWillRun&&rc&&rc.ready)?signCheckWillRun(rc).n:0;
     const act=(st==='read'&&rc&&rc.ready)
       ? `<button type="button" class="sc-stage-act" id="sc-run" data-sc-run="1"${busy||rc.waiting?' disabled':''}
-          title="${esc(i18t(rc.waiting?'sc_wait_nego':'sc_run_title'))}">${esc(i18t(busy?'sc_running':'sc_run'))}</button>`
+          title="${esc(i18t(rc.waiting?'sc_wait_nego':'sc_run_title'))}"><svg class="sc-run-i" width="14" height="14"
+          viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-search"/></svg>${
+          esc(busy?i18t('sc_running'):(willN?i18tn('sc_run_n',willN,{n:willN}):i18t('sc_run')))}</button>`
       : '';
     return `<div class="sc-stage" data-sc-stage="${esc(st)}">
       <div class="sc-stage-h"><span class="sc-stage-t">${esc(i18t('sc_stage_'+st))}</span>${act}</div>
@@ -11758,7 +11929,7 @@ Object.assign(window,{paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,
      I walked it on re-rendered the workspace, which measures on the way in. */
   layoutDocResizer,renderSignButton,renderSignSide,roomFactsHtml,signBlockHtml,signReadinessCardHtml,signRowTitle,signLandOnList,signCheckEscalate,signCheckTake,signRiskDismiss,signConsentStamp,signHeadLabel,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,reviewReturnedRound,docWorkingTextNoteHtml,docNothingWrittenHtml,docHasNoWording,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
-  ROOM_TABS,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomCurrentTab,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,ktDayDot,paintContractForm,renderBlankFormSection,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,openCheckPanel,roomHeadHtml,wireRoomHead,
+  ROOM_TABS,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomCurrentTab,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,ktDayDot,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,openCheckPanel,roomHeadHtml,wireRoomHead,
   DOC_SEL_ACTIONS,wireDocCopilotSel,docAiRead,docSelKill,
   /* idea 7 — the plain-English layer. Published because a name read through
      window from another module, or from a test stage, is silence when it is

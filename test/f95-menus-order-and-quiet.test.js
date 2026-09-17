@@ -416,8 +416,18 @@ describe('F95 — the round’s queue slides over the page', () => {
 
   test('THE PHONE GETS NO DESKTOP OVERLAY', () => {
     const nego = (src('js/views/negotiation.js') + src('js/views/negotiation-css.js'));
-    const narrow = nego.slice(nego.lastIndexOf('@media (max-width:1023px)'));
-    const block = narrow.slice(0, narrow.indexOf('\n  }'));
+    /* ---- RE-POINTED 17 Sep 2026: PIN THE REGION, NOT A BOUNDARY THAT
+       HAPPENS TO HOLD ---- It took the LAST @media (max-width:1023px) in the
+       two files, which was this rule's only because nothing had been written
+       below it. A second narrow block (the ladder rung's wording card, which
+       has its own answer at that width) moved the boundary and this claim
+       reported the queue rule missing. It now finds the block that CONTAINS
+       its own subject, so a third one cannot move it either. */
+    const at = nego.lastIndexOf('.rl-queue{position:static');
+    assert.ok(at > 0, 'the narrow queue rule exists at all');
+    const open = nego.lastIndexOf('@media (max-width:1023px)', at);
+    assert.ok(open >= 0 && open < at, 'and it is inside a narrow media block');
+    const block = nego.slice(open, nego.indexOf('\n  }', at));
     assert.match(block, /\.rl-queue\{position:static!important/,
       'the queue goes back into the flow');
     assert.match(block, /\.rl-q-scrim,[\s\S]*\.rl-q-tab,[\s\S]*\.rl-q-min\{display:none!important\}/,

@@ -388,7 +388,11 @@ function clauseEditorCss(){
   .ce-exit:hover{background:var(--color-accent-700); border-color:var(--color-accent-700)}
   .ce-exit:focus-visible{box-shadow:var(--focus)}
   .ce-col{min-width:0; min-height:0; display:flex; flex-direction:column; overflow:hidden}
-  .ce-rail{min-width:0; min-height:0; display:flex; flex-direction:column;
+  /* position: the rung's wording card (rlRungPeekHtml) mounts here when the
+     ladder is drawn on this rail, and hangs off its left edge into the paper's
+     own track. Costs no layout — nothing here is absolutely positioned but
+     that card. */
+  .ce-rail{min-width:0; min-height:0; display:flex; flex-direction:column; position:relative;
     background:var(--color-surface); border-left:1px solid var(--color-divider)}
   .ce-rail .ce-lane{flex:1; min-height:0}
   .ce-railfoot{flex:none; display:flex; align-items:center; justify-content:flex-end; gap:var(--s-2);

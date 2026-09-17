@@ -15433,3 +15433,47 @@ Four reports off two screenshots.
   Copilot read row reads "0 found" on the same contract — the card counts the
   triage proposals and the row counts the record. Owner ruled it out of scope:
   he knows the reason.
+
+## 17 Sep 2026 — THE FIVE RENDERS THE OWNER PICKED (f329)
+
+Young was shown five boards and answered with letters: *"Image 1 = B, Image 2 =
+D, Image 3 = A, Image 4 = as recommended, Image 5 = A."* All five built.
+
+DEFECTS FOUND WHILE BUILDING, every one by MEASUREMENT rather than by reading:
+- The three-line row was declared on the base `.rl-card-d` grid and did not
+  take: a LATER rule (the 14 Sep artifact row) restates the columns at the same
+  specificity and wins by ORDER, exactly as its own note says it does. The
+  source read one column; the browser measured two. Fixed at the rule that
+  governs.
+- The field light's ring never painted. `.is-fieldlit` is one class; the
+  paper's own blanks carry `.field`, which states `outline:none` at the same
+  weight and later in index.html. Computed outline-style read `none` while the
+  source read `2px solid`. Fixed by SCOPE (a tag in the selector), never
+  `!important`.
+- An edit left orphaned prose and a stray comment terminator after an
+  already-closed CSS comment, killing every rule after it in that block.
+  Caught by the browser, not by lint.
+- f329's own `bodyOf` helper matched the brace in `function f(id, opts = {})`
+  and returned the SIGNATURE — a string with no code in it, which would have
+  passed every "it never calls X" claim in the file vacuously. It now skips the
+  parameter list, and `realBody` fails loudly on a body that is all signature.
+- ladder-verify 23k reported the keyboard door missing: the press in 23h had
+  left the caret on that rung, so `.focus()` fired no event. The probe was
+  wrong; the behaviour is right (Escape means "I have read it").
+- Three browser checks were passing at the parent for want of a stage
+  (blanks-panel 9d, negotiations-door 10e/10f, redline 29i). Each now asks that
+  the thing it is about was really there first.
+
+### Noticed, not fixed
+- `test/chromium/overview-as-drawn-verify.js:145` — `no-self-compare`, the one
+  lint error in the repo. Pre-existing, untouched by this work.
+- `redline-verify` check 5 ("no clause carries a Copilot button — and no menu
+  follows a highlight") fails identically at the parent. 227/228 both ways.
+- `ladder-verify` check 5b ("the key's swatches are the marks' own colours")
+  fails identically at the parent — the legend's amber swatch against a
+  deletion that now carries no fill (15 Sep's "the fill means arriving").
+- `negotiations-door-verify` — "the room shows four tabs" fails twice at the
+  parent: the room has drawn FIVE since Obligations joined ROOM_TABS.
+- A contract from a SAVED CUSTOM template still has no blanks to fill, so the
+  new question before Negotiate never fires on one. Named in js/blanks.js and
+  still the owner's ruling to make.

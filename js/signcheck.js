@@ -471,10 +471,37 @@ function signReadiness(c, opts){
   return { rows: ordered, holds, noted, settled, open: holds.concat(noted), n: holds.length };
 }
 
+/* ---- WHAT THE PRESS WILL ACTUALLY RUN (Young ruled 17 Sep 2026, "Image 1 = B") ----
+   The button says how many readings it is about to make, and a count on a
+   button that does not match what the press does is worse than no count at
+   all. So this is the ONE reading of "which of the three are out of date" and
+   both askers use it: the card, to write the label, and runSignCheck, to
+   decide what it runs. They carried the same three conditions in two places
+   until the label needed them, which is one edit away from a button that
+   promises two readings and makes three.
+
+   UNKNOWN ASKS, on all three (`!== false`) — the instinct the readings already
+   had. Offering a reading nobody needed costs one press; skipping one they did
+   costs a signature taken over a summary of wording that has since moved.
+
+   IT READS AND DECIDES NOTHING ELSE: no spend, no write, no stamp. A record
+   the check cannot run on at all answers zero, so the button draws its plain
+   word rather than "Run 0 readings". */
+function signCheckWillRun(r){
+  const out = { brief: false, standards: false, obligations: false, n: 0 };
+  if (!r || !r.ready) return out;
+  const brief = r.brief || {}, std = r.standards || {}, ob = r.obligations || {};
+  out.brief = brief.none === true || brief.stale !== false || brief.truncated === true;
+  out.standards = std.unread === true || std.stale !== false;
+  out.obligations = ob.unread !== false;
+  out.n = (out.brief ? 1 : 0) + (out.standards ? 1 : 0) + (out.obligations ? 1 : 0);
+  return out;
+}
+
 if (typeof window !== 'undefined') Object.assign(window, {
   SIGN_ACCEPT_MAX, SIGN_RECORD_ROWS, SIGN_CHECK_GATES, SIGN_CHECK_GATE_DEFAULT, SIGN_RISK_SEV,
   signCheckGate, signCheckApplies, signCheckBlocker, signCheckMayAccept, signCheckAcceptedProperly,
-  signCheckRowHolds, signCheckRows, signCheckHolding, signReadiness,
+  signCheckRowHolds, signCheckRows, signCheckHolding, signReadiness, signCheckWillRun,
   signCheck, signCheckReady, signCheckTableClear, signCheckWaiting,
   signCheckBrief, signCheckBriefAt, SIGN_STAGES, SIGN_STAGE_OF, signStageOf,
   signCheckStandards, signCheckObligations, signCheckRecord, signCheckRecordValue,

@@ -37,6 +37,17 @@ const EXEC = process.env.CHROMIUM_BIN
 
 const results = [];
 const pause = ms => new Promise(r => setTimeout(r, ms));
+/* ---- WALKING PAST THE FIELDS QUESTION (17 Sep 2026) ----
+   Since the owner's "Image 3 = A", the ONE funnel onto the negotiation offers
+   to fill a contract's open fields before it goes. That is a real extra step
+   in this file's journeys and it is not what any of them is measuring, so the
+   sections below take the door a person takes — "Open Negotiate anyway" — and
+   carry on. Section 10 is where the question itself is measured.
+   It asks once per contract per sitting, so this is a no-op after the first. */
+const passBlanks = async page => {
+  const ov = await page.$('#confirm-overlay #cf-cancel');
+  if (ov) { await ov.click(); await new Promise(r => setTimeout(r, 450)); }
+};
 const check = (name, pass, detail) => {
   results.push({ name, pass: !!pass });
   console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail != null ? ' — ' + detail : ''}`);
@@ -139,6 +150,7 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     await page.evaluate(id => roomGoTab(getContract(id), 'docs'), cid);
     await page.waitForTimeout(600);
     await page.click('#ws-to-nego');
+    await pause(400); await passBlanks(page);
     await page.waitForTimeout(1600);
     const inside = await page.evaluate(seen => ({
       view: state.view,
@@ -421,6 +433,7 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     /* Back into the first one, and press the door again — the count has moved
        and the other agreement is on the list to open. */
     await page.evaluate(id => openRedlineWorkbench(id), cid);
+    await pause(400); await passBlanks(page);
     await page.waitForTimeout(1600);
     const two = await page.evaluate(() =>
       ((document.querySelector('.rl-livelist-n') || {}).textContent || '').trim());
@@ -440,6 +453,7 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     /* Open the OTHER one from the list, and press the door from there too. */
     await page.click(`#reg-tbody tr[data-row="${cid2}"]`);
     await page.waitForTimeout(1600);
+    await passBlanks(page);
     check('a row opens the other negotiation',
       await page.evaluate(() => redlineHeldId()) === cid2);
     await page.click('[data-rl-live-list]');
@@ -717,6 +731,90 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     check('9f the reading shuts on ONE signature and on an archived record, and is open on live paper',
       model9.live === true && model9.half.ok === false && model9.half.why === 'sealed' && model9.archived.ok === false && model9.archived.why === 'archived',
       JSON.stringify(model9));
+
+    /* ============================================================
+       10 · THE FIELDS ARE OFFERED BEFORE THE ARGUMENT
+       (Young ruled 17 Sep 2026, "Image 3 = A": *"if I try to click on open
+       negotiation, it should first recommend that I fill in the open fields.
+       This is because it may address some of the redlines prior to going to
+       the redlines page."*)
+       ============================================================
+       DRIVEN, not described: the dialog is asked for by pressing the real
+       door, read off the real overlay, and answered with a real press.
+       jsdom could not tell an offered dialog from an unoffered one. */
+    const staged10 = await page.evaluate(() => {
+      /* A contract with blanks nobody has answered — the ordinary case this
+         is for, and the wording is what contractBlanks reads, so it has to be
+         real markup with real inputs in it. */
+      /* THE SHAPE THAT REALLY HAS BLANKS: a BUILT-IN template contract, in
+         Draft, with no stored wording — contractHasBlanks refuses every other
+         shape by name, and the first draft of this stage set redlineText,
+         which is exactly one of the things it refuses. Its paper is rebuilt
+         from c.fields on every paint, so emptying those empties the boxes. */
+      const c = state.contracts.find(x => x.id === 'MK-A1') || state.contracts[0];
+      if (!c) return null;
+      c.status = 'Draft';
+      delete c.templateForm; delete c.redlineText; delete c.source; delete c.upload;
+      c.template = 'PK';
+      c.fields = {};
+      return { id: c.id,
+        open: window.contractBlanksOpen ? contractBlanksOpen(c).length : null };
+    });
+    if (!staged10 || staged10.open === null || staged10.open < 2){
+      for (const [n, what] of [['10a', 'the dialog is offered'],
+        ['10b', 'it names the count'], ['10c', 'it names the first fields'],
+        ['10d', 'both doors are on the screen'], ['10e', 'dismissing it opens the negotiation'],
+        ['10f', 'and it does not ask twice in one sitting']])
+        check(n + ' ' + what, false, 'no open blanks on this build');
+    } else {
+      await page.evaluate(id => { openRedlineWorkbench(id); }, staged10.id);
+      await pause(500);
+      const dlg10 = await page.evaluate(() => {
+        const ov = document.getElementById('confirm-overlay');
+        if (!ov) return { up: false };
+        return { up: true,
+          title: (ov.querySelector('h3') || {}).textContent || '',
+          msg: (ov.querySelector('p') || {}).textContent || '',
+          ok: (ov.querySelector('#cf-ok') || {}).textContent || '',
+          cancel: (ov.querySelector('#cf-cancel') || {}).textContent || '',
+          view: (window.state || {}).view };
+      });
+      check('10a pressing into the negotiation offers the fields first',
+        dlg10.up === true, JSON.stringify(dlg10).slice(0, 160));
+      check('10b it NAMES THE COUNT, not just "some fields"',
+        new RegExp('\\b' + staged10.open + '\\b').test(dlg10.msg || ''),
+        `${staged10.open} open · "${(dlg10.msg || '').slice(0, 90)}"`);
+      /* IT NAMES THEM. Which labels the PK template draws is the template's
+         business, so this asks that the sentence carries field NAMES at all —
+         three of them, separated the way the builder joins them — rather than
+         typing in words this file would then have to keep in step. */
+      const named10 = ((dlg10.msg || '').match(/ · /g) || []).length + 1;
+      check('10c and names the fields, so a reader can judge whether they matter',
+        named10 === Math.min(staged10.open, 3),
+        `${named10} named of ${staged10.open} open · "${(dlg10.msg || '').slice(-70)}"`);
+      check('10d BOTH DOORS ARE ON THE ONE SCREEN, and neither is hidden',
+        /fill/i.test(dlg10.ok || '') && /negotiate|anyway/i.test(dlg10.cancel || ''),
+        `"${dlg10.ok}" · "${dlg10.cancel}"`);
+      /* IT DOES NOT BLOCK: the other door carries on with what was pressed. */
+      check('10d2 nothing navigated while the question was up',
+        dlg10.view !== 'redline', 'view ' + dlg10.view);
+      await page.click('#cf-cancel'); await pause(600);
+      /* THESE TWO ASK THAT THE QUESTION WAS REALLY THERE FIRST. "It carries on
+         into the negotiation" and "it does not ask twice" are both satisfied
+         by a build that never asks at all, which is a description. */
+      check('10e dismissing it carries on into the negotiation',
+        dlg10.up === true && await page.evaluate(() => (window.state || {}).view === 'redline'),
+        'landed');
+      /* ONCE PER CONTRACT PER SITTING. */
+      await page.evaluate(() => setView('register')); await pause(300);
+      await page.evaluate(id => { openRedlineWorkbench(id); }, staged10.id);
+      await pause(500);
+      const again10 = await page.evaluate(() => ({
+        up: !!document.getElementById('confirm-overlay'), view: (window.state || {}).view }));
+      check('10f and it does not ask twice in one sitting — an alert you answer twice stops being read',
+        dlg10.up === true && again10.up === false && again10.view === 'redline',
+        `asked once: ${dlg10.up} · asked again: ${again10.up}`);
+    }
 
     check('no page errors on the whole journey', errors.length === 0, errors.join(' | ') || 'clean');
   } catch (e) {

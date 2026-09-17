@@ -2789,6 +2789,25 @@ const STRINGS = {
     sc_stage_people: 'Who approves, and who signs?',
     sc_wait_nego: 'Waiting — settle the negotiation first, or a reading will be about wording that is about to move.',
     sc_run: 'Run the check',
+    /* ---- THE FIELDS, OFFERED BEFORE THE ARGUMENT (17 Sep 2026) ----
+       It NAMES the first three. A bare count is something a reader presses
+       through every time; three labels let them judge in a glance whether the
+       empty boxes are the ones that matter on this contract. */
+    ng_blanks_title: 'Fill the open fields first?',
+    ng_blanks_msg_one: "1 of this contract's fields is still empty. Filling it may settle some of the redlines waiting for you.",
+    ng_blanks_msg_other: "{n} of this contract's fields are still empty. Filling them may settle some of the redlines waiting for you.",
+    ng_blanks_these: '{names}.',
+    ng_blanks_these_more_one: '{names}, and 1 more.',
+    ng_blanks_these_more_other: '{names}, and {more} more.',
+    ng_blanks_fill: 'Fill them in',
+    ng_blanks_go: 'Open Negotiate anyway',
+    /* The rung's whole clause, beside the ladder. */
+    ng_peek_esc: 'Esc to close',
+    ng_peek_none: 'This move records no wording.',
+    /* The button says how many readings the press makes. The plain word above
+       survives for the one case this cannot describe: nothing to re-read. */
+    sc_run_n_one: 'Run 1 reading',
+    sc_run_n_other: 'Run {n} readings',
     sc_running: 'Running…',
     sc_run_title: 'Read this wording against your playbook and your obligations list',
     sc_run_msg: 'HaTi will {what}. Nothing is sent, nothing is filed and nothing is signed.',
@@ -9654,6 +9673,18 @@ const STRINGS = {
     sc_stage_people: 'Vem godkänner, och vem signerar?',
     sc_wait_nego: 'Väntar — avsluta förhandlingen först, annars gäller läsningen lydelse som är på väg att ändras.',
     sc_run: 'Kör kontrollen',
+    ng_blanks_title: 'Fyll i de tomma fälten först?',
+    ng_blanks_msg_one: 'Ett av avtalets fält är fortfarande tomt. Att fylla i det kan lösa några av de ändringar som väntar på dig.',
+    ng_blanks_msg_other: '{n} av avtalets fält är fortfarande tomma. Att fylla i dem kan lösa några av de ändringar som väntar på dig.',
+    ng_blanks_these: '{names}.',
+    ng_blanks_these_more_one: '{names} och 1 till.',
+    ng_blanks_these_more_other: '{names} och {more} till.',
+    ng_blanks_fill: 'Fyll i dem',
+    ng_blanks_go: 'Öppna förhandlingen ändå',
+    ng_peek_esc: 'Esc för att stänga',
+    ng_peek_none: 'Det här steget har ingen text registrerad.',
+    sc_run_n_one: 'Kör 1 genomläsning',
+    sc_run_n_other: 'Kör {n} genomläsningar',
     sc_running: 'Kör…',
     sc_run_title: 'Läs den här ordalydelsen mot er spelbok och er lista över åtaganden',
     sc_run_msg: 'HaTi kommer att {what}. Inget skickas, inget registreras och inget signeras.',

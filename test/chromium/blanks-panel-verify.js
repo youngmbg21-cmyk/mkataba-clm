@@ -40,6 +40,7 @@ const EXEC = process.env.CHROMIUM_BIN
   || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
 
 const results = [];
+const pause = ms => new Promise(r => setTimeout(r, ms));
 const check = (name, pass, detail) => {
   results.push({ name, pass: !!pass });
   console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail != null ? ' — ' + detail : ''}`);
@@ -236,6 +237,80 @@ const CONTRACT = (id, over) => Object.assign({
     const l = await page.evaluate(PANEL);
     check('6a a declared field list still gets ITS panel', l.libraryForm, l.libraryForm ? 'the library form' : 'not drawn');
     check('6b and never the other one as well', l.boxes.length === 0, l.boxes.length + ' blank boxes');
+
+    /* ============ 9. THE CURSOR AND THE PAPER (Young ruled 17 Sep 2026,
+       "Image 4 = as recommended") ============
+       MEASURED with a REAL CLICK into a real box. The whole claim is about
+       what a reader SEES when they put a cursor somewhere, and jsdom resolves
+       no layout, so nothing in f329 could tell a lit word from an unlit one.
+       Back on the contract that has ordinary blanks. */
+    await openRoom(page, built.id);
+    const boxes9 = await page.$$('#tplform-section [data-blankf]');
+    if (!boxes9.length){
+      for (const [n, what] of [['9a', 'a cursor in a box lights its word on the paper'],
+        ['9b', 'exactly one word is lit'], ['9c', 'the contract does not move a pixel'],
+        ['9d', 'leaving the box puts the light out'],
+        ['9e', 'a cursor on the paper lights the box, and does not steal the caret']])
+        check(n + ' ' + what, false, 'no panel box on this build');
+    } else {
+      const inkBefore9 = await page.evaluate(() => {
+        const q = document.querySelector('#doc-canvas p');
+        return q ? Math.round(q.getBoundingClientRect().top) : null; });
+      await boxes9[0].click(); await pause(250);
+      const lit = await page.evaluate(() => {
+        const all = [...document.querySelectorAll('.is-fieldlit')];
+        const onPaper = all.filter(e => e.closest('#doc-canvas'));
+        const q = document.querySelector('#doc-canvas p');
+        const cs = onPaper[0] ? getComputedStyle(onPaper[0]) : null;
+        return { n: all.length, paper: onPaper.length,
+          tag: onPaper[0] ? onPaper[0].tagName + '.' + onPaper[0].className : null,
+          outline: cs ? cs.outlineWidth : null, ostyle: cs ? cs.outlineStyle : null,
+          ocolor: cs ? cs.outlineColor : null, bg: cs ? cs.backgroundColor : null,
+          ink: q ? Math.round(q.getBoundingClientRect().top) : null };
+      });
+      check('9a a cursor in a box lights its word on the paper',
+        lit.paper === 1, JSON.stringify(lit));
+      /* ---- AND THE RING IS REALLY PAINTED ----
+         The first draft of this check asked only whether the class was ON the
+         element, and it passed while the ring was not drawn at all: the
+         paper's blanks carry `.field`, which states outline:none at the same
+         one-class weight and later in the sheet, so the computed style read
+         `none` while the source read `2px solid`. A class is not a pixel. */
+      check('9a2 the ring is PAINTED, not just the class applied',
+        lit.ostyle === 'solid' && lit.outline === '2px', `${lit.outline} ${lit.ostyle} ${lit.ocolor}`);
+      check('9a3 and the wash is the product\'s own "this just arrived" green',
+        lit.bg === 'rgb(209, 250, 229)', lit.bg);
+      check('9b exactly one word is lit — a reader tabbing down leaves no trail',
+        lit.n === 1, 'lit ' + lit.n);
+      check('9c THE CONTRACT DOES NOT MOVE BY A PIXEL',
+        inkBefore9 != null && lit.ink === inkBefore9, `${inkBefore9} → ${lit.ink}`);
+      /* LEAVING PUTS IT OUT. */
+      await page.evaluate(() => document.activeElement && document.activeElement.blur());
+      await pause(250);
+      /* IT ASKS THAT SOMETHING WAS LIT FIRST. "The light goes out" is satisfied
+         by a build that never lights anything, which is a description. */
+      const out9 = await page.evaluate(() => document.querySelectorAll('.is-fieldlit').length);
+      check('9d leaving the box puts the light out',
+        lit.n === 1 && out9 === 0, `${lit.n} lit → ${out9}`);
+      /* AND THE OTHER WAY ROUND. The paper's own input takes the caret and the
+         PANEL lights — the caret must not be taken back off the paper. */
+      const pin = await page.$('#doc-canvas input[data-field], #doc-canvas input[data-sync]');
+      if (!pin){
+        check('9e a cursor on the paper lights the box, and does not steal the caret',
+          false, 'no input on this paper');
+      } else {
+        await pin.click(); await pause(250);
+        const back = await page.evaluate(() => {
+          const all = [...document.querySelectorAll('.is-fieldlit')];
+          const a = document.activeElement;
+          return { inPanel: all.filter(e => e.closest('#tplform-section')).length,
+            onPaper: all.filter(e => e.closest('#doc-canvas')).length,
+            caretOnPaper: !!(a && a.closest && a.closest('#doc-canvas')) };
+        });
+        check('9e a cursor on the paper lights the box, and does not steal the caret',
+          back.inPanel === 1 && back.caretOnPaper === true, JSON.stringify(back));
+      }
+    }
 
     /* ============ 7. AND IT STOPS WHEN TYPING IS OVER ============ */
     await page.evaluate(() => {
