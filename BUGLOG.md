@@ -15477,3 +15477,24 @@ DEFECTS FOUND WHILE BUILDING, every one by MEASUREMENT rather than by reading:
 - A contract from a SAVED CUSTOM template still has no blanks to fill, so the
   new question before Negotiate never fires on one. Named in js/blanks.js and
   still the owner's ruling to make.
+
+### 17 Sep 2026, later — one more defect in the same run, found by measurement
+
+THE FIELDS QUESTION OFFERED SOMETHING THE PRODUCT COULD NOT HONOUR.
+`contractBlanksOpen` reads the WORDING, which still carries blanks on a
+contract that has left Draft; `renderBlankFormSection` asks `docFillable` and
+draws NOTHING once it is false. So the new question before Negotiate fired on
+contracts whose fill panel does not exist, and "Fill them in" landed the reader
+on a page with no boxes on it — a door onto nothing.
+
+CAUGHT BY competing-redlines-verify (3/9 against 12/13 at the parent), whose
+contracts are mid-negotiation and therefore past Draft. Every reading of the
+source looked correct; only a driven page showed it. Twelve other browser files
+were red for the same one cause.
+
+`negoBlanksOpen` now asks `docFillable` before it counts. It does NOT narrow
+what the owner asked for — their reason was "it may address some of the
+redlines prior to going to the redlines page", and a Draft with redlines
+waiting is exactly that case. What it drops is the case where the offer could
+never have been kept. Pinned in f329 (3), including that the reading is asked
+BEFORE the count.

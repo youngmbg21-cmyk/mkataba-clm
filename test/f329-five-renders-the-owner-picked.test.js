@@ -205,6 +205,23 @@ describe('f329 (3) — opening Negotiate offers to fill the open fields first', 
     assert.ok(!/_rlBlanksAsked[\s\S]{0,200}(persist|localStorage|lsSet)/.test(src),
       'a question you answered and are asked again on the next press stops being read');
   });
+  /* ---- THE OFFER MUST BE ONE THE PRODUCT CAN HONOUR (found by measurement,
+     17 Sep 2026) ----
+     contractBlanksOpen reads the WORDING, which still carries blanks on a
+     contract that has left Draft; renderBlankFormSection asks docFillable and
+     draws nothing at all once it has. Without this wall the question fired on
+     a contract whose fill panel does not exist, and "Fill them in" landed the
+     reader on a page with no boxes on it. competing-redlines-verify caught it
+     — its contracts are mid-negotiation, so past Draft — and every reading of
+     the source looked correct. */
+  test('it never offers to fill boxes the page will not draw', () => {
+    const fn = realBody(strip(NEGO), 'function negoBlanksOpen(');
+    assert.match(fn, /docFillable\(c\)/,
+      'the product\u2019s own reading of "may this paper still be typed into"');
+    const at = fn.indexOf('docFillable');
+    const ask = fn.indexOf('contractBlanksOpen(c)');
+    assert.ok(at > 0 && ask > at, 'and it is asked BEFORE the count, not after');
+  });
   test('the count is contractBlanksOpen\u2019s own, never a second tally', () => {
     const fn = realBody(strip(NEGO), 'function negoBlanksOpen(');
     assert.ok(fn, 'the reading exists');

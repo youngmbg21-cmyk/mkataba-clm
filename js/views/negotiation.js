@@ -7863,6 +7863,23 @@ const _rlBlanksAsked = new Set();
 function negoBlanksOpen(c){
   if(!c || (typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE)) return [];
   if(typeof window.contractBlanksOpen !== 'function') return [];
+  /* ---- AND THE BOXES HAVE TO STILL BE THERE TO FILL (found by measurement,
+     17 Sep 2026) ---- docFillable is the product's own reading of "may this
+     paper still be typed into", and renderBlankFormSection asks it before it
+     draws ANYTHING. contractBlanksOpen does not: it reads the wording, which
+     still carries blanks on a contract that has left Draft.
+
+     So without this the question fired on a contract whose fill panel is not
+     drawn at all, and "Fill them in" landed the reader on a page with no
+     boxes on it — a door onto nothing. Caught by competing-redlines-verify,
+     whose contracts are mid-negotiation and therefore past Draft; the source
+     looked correct.
+
+     IT DOES NOT NARROW WHAT THE OWNER ASKED FOR. Their reason was "it may
+     address some of the redlines prior to going to the redlines page", and a
+     contract still in Draft with redlines waiting is exactly that case. What
+     this drops is the case where the offer could not have been honoured. */
+  try{ if(typeof docFillable === 'function' && !docFillable(c)) return []; }catch(_){ }
   try{ return contractBlanksOpen(c) || []; }catch(_){ return []; }
 }
 const NG_BLANKS_NAMED = 3;   /* the artifact's three, then "and N more" */
