@@ -46,6 +46,13 @@ const TEXT =
 + 'The Supplier shall maintain product liability insurance throughout the term. '
 + 'This Agreement is governed by the laws of California and continues for 24 months. ';
 
+/* ---- HOW MANY READINGS, AND HOW MANY TILES ----
+   Read off the product's own two tables rather than typed, so a sixth reading
+   added tomorrow moves these claims with it instead of leaving them quietly
+   describing five. TRIAGE_HEADS IS the tile table (the free risk reading
+   deliberately draws none; FILED draws one and is not a reading). */
+let STEP_COUNT = 5, TILE_COUNT = 5;
+
 const SEED = t => {
   const c = { id: 'MK-407', name: 'Nordkust supply agreement', counterparty: 'Nordkust Industri AB',
     status: 'Under Review', source: 'upload', folder: 'proc', value: 78000000,
@@ -133,6 +140,16 @@ const SEED = t => {
     await page.evaluate(() => { if (typeof closeModal === 'function') closeModal(); });
     await pause(400);
 
+    /* The two counts, off the page's own tables. A build that has neither
+       keeps the numbers above, which are this commit's, so a missing table
+       reports a failed claim rather than passing vacuously. */
+    const tables = await drive(() => ({
+      steps: (typeof TRIAGE_STEPS !== 'undefined') ? TRIAGE_STEPS.length : null,
+      heads: (typeof TRIAGE_HEADS !== 'undefined') ? Object.keys(TRIAGE_HEADS).length : null,
+    }), undefined, { steps: null, heads: null });
+    if (tables.steps) STEP_COUNT = tables.steps;
+    if (tables.heads) TILE_COUNT = tables.heads;
+
     /* ============ 2 · THE RUN, FOR REAL ============ */
     /* No Copilot key on this server, so the brief and the standards check will
        refuse — which is the point of 2c: the run must still complete, the risk
@@ -149,8 +166,12 @@ const SEED = t => {
         held: ((t.steps.oblig && t.steps.oblig.found) || []).length,
         scanned: !!c.scan, seen: !!t.seenAt };
     }, id, { steps: {}, obligationsOnRecord: -1, held: -1, scanned: false, seen: null });
+    /* FIVE SINCE 17 Sep 2026 — filling the open blanks is the fifth reading
+       and runs last, because it is the only one that changes the paper.
+       Counted off the product's own list rather than typed, so a sixth cannot
+       leave this claim quietly describing five. */
     check('2a · the run completes and every step records an answer',
-      Object.keys(ran.steps).length === 4, ran.steps);
+      Object.keys(ran.steps).length === STEP_COUNT, ran.steps);
     check('2b · the free reading really ran — c.scan is on the record',
       ran.scanned === true, { scanned: ran.scanned });
     const toastsAfter = await page.evaluate(() =>
@@ -272,8 +293,10 @@ const SEED = t => {
     check('8b · above the Key terms card, not beside or under it',
       strip.drawn === true && strip.ktTop > strip.top,
       { strip: strip.top, keyTerms: strip.ktTop });
-    check('8c · and it carries all four tiles, borrowed from the same reading',
-      strip.tiles === 4, { tiles: strip.tiles, txt: strip.txt });
+    /* FIVE TILES SINCE 17 Sep 2026 (the fill reading draws its own) plus
+       FILED, which is what the +1 is. */
+    check('8c · and it carries a tile per reading, borrowed from the same reading',
+      strip.tiles === TILE_COUNT, { tiles: strip.tiles, want: TILE_COUNT, txt: strip.txt });
     /* THE REFUSAL, MEASURED. A strip above the tab content pushes what is under
        it down; on the Document tab that is the agreement, and the contract's
        pixels are the one thing the six questions refuse outright. */
@@ -642,6 +665,74 @@ const SEED = t => {
       !!(after11 && after11.cardWrite === true && after11.cardOpen === true),
       after11 && { write: after11.cardWrite, open: after11.cardOpen });
     await ctx.unroute('**/api/ai/brief');
+
+    /* ============ 12 · A CONTRACT HaTi DREW IS READ TOO ============
+       Young ruled it 17 Sep 2026, over a screenshot of a contract's Overview
+       reporting five readings as "Not read yet": *"anytime you create a
+       agreement, including using the door in image 1, copilot has to read the
+       agreement before it lands in overview."*
+
+       EVERY SECTION ABOVE IS AN UPLOAD. Uploads have been read on arrival
+       since 9 Sep; what had never been read was a contract HaTi drafted, which
+       is six of the seven doors — and no check in this file or anywhere else
+       could see it, because every one of them seeds `source:'upload'`. So this
+       section creates a contract from a BUILT-IN TEMPLATE, the way the menu's
+       first row does, and asks the same questions of it.
+
+       DRIVEN THROUGH THE PRODUCT'S OWN CREATOR rather than by seeding a
+       record: what is being measured is that the DOOR reads, and a hand-built
+       contract pushed onto state.contracts would prove only that triageRun
+       still works. */
+    const drew = await drive(() => {
+      if (typeof createFromTemplate !== 'function') return { made: false, why: 'no creator' };
+      const before = state.contracts.length;
+      createFromTemplate('PK');
+      const c = state.contracts[0];
+      return { made: state.contracts.length > before, id: c && c.id,
+        source: c && c.source, template: c && c.template,
+        started: !!(c && (c.triage || c._triaging)) };
+    }, undefined, { made: false, started: false, why: 'blocked' });
+    check('12a · the template door really files a contract',
+      drew.made === true && drew.template === 'PK', drew);
+    /* THE FAULT ITSELF, as one measurement: a contract nobody uploaded is
+       read. Before this work `triageRun` had exactly one caller and this was
+       false on every door but the upload. */
+    await pause(14000);
+    const drewRead = await drive(id => {
+      const c = state.contracts.find(x => x.id === id);
+      const t = c && c.triage;
+      if (!t) return { ran: false };
+      const st = t.steps || {};
+      return { ran: true, steps: Object.keys(st).join(','), status: c.status,
+        /* THE FIFTH READING, which is the other half of the same ask: the
+           open blanks are answered by the time the contract lands. */
+        fill: !!(st.fill && st.fill.ok),
+        filled: (st.fill && st.fill.filled) || [],
+        /* AND THE WORDING IT WAS READ AGAINST IS STAMPED, so the next send
+           asks whether it moved rather than paying again. */
+        hash: !!t.hash };
+    }, drew.id, { ran: false });
+    /* THE FAULT ITSELF, as one measurement: a contract nobody uploaded and
+       nobody SENT has been read. Asked after the wait rather than the instant
+       after the press, because triageAndPaint waits for the save to land
+       before it starts — its own note says why — so `c.triage` the same tick
+       is a race, not a claim. Still in Draft is what makes it "on arrival". */
+    check('12b · and a contract HaTi drew is READ on arrival, not only on send',
+      drewRead.ran === true && drewRead.status === 'Draft', drewRead);
+    check('12c · every reading runs on it, the fill one included',
+      drewRead.ran === true && /fill/.test(drewRead.steps || ''), drewRead);
+    check('12d · the open fields are filled in, and the reading names them',
+      drewRead.fill === true, drewRead);
+    check('12e · and the wording it was read against is stamped on the record',
+      drewRead.hash === true, drewRead);
+    /* ONCE PER WORDING. Asked of the product's own predicate rather than of a
+       counter kept here: a second send that moved no word owes nothing. */
+    const again = await drive(id => {
+      const c = state.contracts.find(x => x.id === id);
+      return { needs: typeof triageNeedsRead === 'function' ? triageNeedsRead(c) : null };
+    }, drew.id, { needs: null });
+    check('12f · and a send that changed nothing is not paid for twice',
+      again.needs === false, again);
 
     check('9 · and the whole journey raised no page error',
       errors.length === 0, errors.slice(0, 4));

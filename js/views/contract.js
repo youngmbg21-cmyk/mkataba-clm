@@ -1902,6 +1902,12 @@ async function submitUpload(){
      wsTabDefaults. Registered at every creation site because there is no
      single funnel for creating a contract. */
   if(window.roomOpenOnTerms) roomOpenOnTerms(c.id);
+  /* ---- THE ONE CREATION SITE THAT DOES NOT CALL contractArrived ----
+     and it is exempt for the owner's own reason rather than by omission. The
+     upload screen's tick-box is the 9 Sep 2026 ruling — NO BOX MEANS NO
+     READING — so this door asks the reader and the others do not have one to
+     ask. It presses the same launcher four lines down, which is the same act;
+     what it does not do is press it unconditionally. */
   state.activeId=c.id;
   persist(c);
   closeModal();
@@ -1941,8 +1947,16 @@ async function submitUpload(){
    offers "Run it again" and that press is a person's. */
 function triageAndPaint(c){
   if(!c || !window.triageRun) return;
-  /* already read, or already tried and reported — see ONCE, EVER above */
-  if(window.triageOf && triageOf(c)) return;
+  /* ---- ONCE PER WORDING, WHICH REPLACES ONCE EVER (17 Sep 2026) ----
+     The note above still holds — triageRun has no memory and the question must
+     be asked HERE, in the one place every door passes through — but the
+     question itself moved. "Has this been read" read at creation would leave a
+     template contract described for ever as the form it was made from, and
+     the whole point of reading it at creation is that it is then read again
+     once the blanks are filled. triageNeedsRead is that question and its own
+     note carries the three answers; a stage without it keeps exactly the old
+     behaviour, which is why the fallback is the guard it replaces. */
+  if(window.triageNeedsRead ? !triageNeedsRead(c) : (window.triageOf && triageOf(c))) return;
   /* ---- BUT THE RECORD HAS TO EXIST ON THE SERVER BEFORE IT CAN BE READ ----
      persist() in API mode is DEBOUNCED by 400ms and returns nothing to wait
      on, so a reading started here fires before the contract has been created
@@ -5982,6 +5996,184 @@ function tplFormOpenCount(c){
   return form.fields.filter(f=>f&&f.required&&f.fieldType!=='signature_name_title'
     && String(values[f.fieldKey]||'').trim()==='').length;
 }
+/* ============================================================
+   THE OPEN BLANKS, FILLABLE FROM THE COLUMN (Young ruled 17 Sep 2026)
+   ============================================================
+   *"In image 3 and 4 there is also an issue where some fields need to be
+   filled from the contract and some can be filled on the right hand side. All
+   contracts should have the possibility to fill in from the right hand side
+   panel like in image 4."*
+
+   MEASURED FIRST: image 4 is a contract from a LIBRARY template, which carries
+   a declared field list (`templateForm`) and has had its own right-hand panel
+   since the day it shipped. Image 3 is a contract from a BUILT-IN template,
+   whose blanks live in the paper as `<input data-field>` and were typable in
+   exactly one place. Two halves of the product built at different times, doing
+   one job two ways — not a bug, and not something a reader should have to know.
+
+   ONE SLOT, TWO BUILDERS, AND paintContractForm CHOOSES. A contract carrying
+   `templateForm` gets the library form and nothing here; one with blanks in its
+   paper gets this. They can never both draw, because one function decides and
+   both are painted through it.
+
+   THE CLOTHES FOLLOW THE BUILDER. This wears renderTemplateFormSection's own
+   shape — the same header line, the same counter, the same section captions,
+   the same label-over-box — because two panels in one slot that looked
+   different would read as two features.
+
+   IT IS A SECOND DOOR, AND THAT IS THE OWNER'S RULING. THE ONE DOOR refuses a
+   second door onto an act that already has one; the refusal was put to the
+   owner and lifted by name. What makes it safe is that there is still one ACT
+   underneath: a `field` box presses contractBlankSet, the same function the
+   paper's own handler presses, and a `sync` box presses THE PAPER'S OWN INPUT
+   so the record write, its repaint, its status check and its audit line all
+   happen exactly where they always did. This panel owns no writer of its own.
+
+   MONEY AND THE RECORD ARE NOT ITS TO DECIDE. `counterparty` and `value` draw
+   here as boxes, but they are handed straight to the page's own field; and
+   nothing in this panel is drawn at all once the contract is out of Draft,
+   because docFillable draws that same line for the same reason — from Under
+   Review a wording change is a tracked change somebody decides, not a blank
+   somebody types. */
+function blankFormSectionsOf(c){
+  const bs = (typeof contractBlanks === 'function') ? contractBlanks(c) : [];
+  const out = [];
+  for(const b of bs){
+    const name = b.section || '';
+    let g = out.find(x => x.name === name);
+    if(!g){ g = { name, blanks: [] }; out.push(g); }
+    g.blanks.push(b);
+  }
+  return out;
+}
+
+function blankFormInputHtml(b){
+  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:6px 9px;font:inherit;font-size:var(--t-meta);outline:none';
+  const type = b.type === 'date' ? 'date' : (b.type === 'number' ? 'number' : 'text');
+  return `<input type="${type}" data-blankf="${esc(b.key)}" value="${esc(b.value)}"
+    placeholder="${esc(b.ph||'')}" style="${INP}">`;
+}
+
+function renderBlankFormSection(c){
+  const host = document.getElementById('tplform-section');
+  if(!host) return;
+  /* NOT DRAWN AT ALL once the paper stops being fillable. docFillable is the
+     one reading of that and this asks it rather than keeping a second copy:
+     the panel and the page have to agree about when typing is over. */
+  if(!(typeof contractHasBlanks === 'function' && contractHasBlanks(c)) || !docFillable(c)){
+    host.innerHTML = ''; return;
+  }
+  const groups = blankFormSectionsOf(c);
+  const all = groups.reduce((n,g) => n + g.blanks.length, 0);
+  if(!all){ host.innerHTML = ''; return; }
+  const open = (typeof contractBlanksOpen === 'function') ? contractBlanksOpen(c).length : 0;
+  const filled = all - open;
+  const tname = (typeof TEMPLATES === 'object' && TEMPLATES && TEMPLATES[c.template])
+    ? TEMPLATES[c.template].name : '';
+  host.innerHTML = `
+    <div style="display:flex;align-items:center;gap:var(--s-2);padding:11px 14px;border-bottom:1px solid var(--color-divider)">
+      <h6 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-meta);margin:0;flex:1">${esc(i18t('bf_title'))}
+        ${tname?`<span style="font-weight:var(--w-body);color:var(--color-neutral-500)">${esc(i18t('bf_from',{name:tname}))}</span>`:''}</h6>
+      <span data-blankf-count style="font-size:var(--t-label);color:${open?'var(--st-amber-fg)':'var(--st-green-fg)'};font-weight:var(--w-strong)">${filled}/${all}</span>
+    </div>
+    <div style="padding:10px 14px;display:flex;flex-direction:column;gap:10px">
+      ${''/* WHAT COPILOT FILLED IS NAMED, NEVER VALUED — the values are in the
+             boxes below in a form a reader can correct, and a printed copy of
+             them is the one that reads as decided. DRAFT FROM A SENTENCE's own
+             ruling, and its own reason. */}
+      ${blankFormFilledLineHtml(c)}
+      ${groups.map(g => `
+        ${g.name?`<div style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-top:2px">${esc(g.name)}</div>`:''}
+        ${g.blanks.map(b => `<label style="display:block">
+          <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:3px">${esc(b.label)}</span>
+          ${blankFormInputHtml(b)}
+        </label>`).join('')}`).join('')}
+    </div>`;
+  wireBlankForm(c);
+}
+
+/* One line naming the boxes the arrival reading answered, so a reader can see
+   at a glance which figures are theirs and which arrived. Drawn only while
+   something was filled; silent otherwise, because a line saying "Copilot
+   filled 0" is a band about nothing. */
+function blankFormFilledLineHtml(c){
+  const t = (typeof triageOf === 'function') ? triageOf(c) : null;
+  const f = t && t.steps && t.steps.fill;
+  const names = (f && f.ok && Array.isArray(f.filled)) ? f.filled : [];
+  if(!names.length) return '';
+  return `<p style="margin:0;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5">${
+    esc(i18t('bf_copilot_filled',{fields:names.join(', ')}))}</p>`;
+}
+
+/* ---- THE PANEL PRESSES THE PAGE, THE PAGE DOES THE WRITING ----
+   A `sync` blank IS the record, and wireDocumentSync's handler on the page's
+   own input is what writes it — with its repaint, its key-terms progress check
+   and its audit line. So this puts the value in that input and dispatches the
+   event the page is already listening for, rather than writing the record from
+   a second place. A `field` blank presses contractBlankSet, the one act, and
+   the page's input is put in step without an event so the write happens once.
+
+   BOUND ONCE PER PAINT, on the host, because the host is rebuilt whole. */
+function wireBlankForm(c){
+  const host = document.getElementById('tplform-section');
+  if(!host) return;
+  host.querySelectorAll('[data-blankf]').forEach(el => {
+    el.addEventListener('change', () => {
+      const key = el.getAttribute('data-blankf');
+      const canvas = document.getElementById('doc-canvas');
+      const paper = canvas && canvas.querySelector(`[data-field="${key}"],[data-sync="${key}"]`);
+      if(paper && paper.hasAttribute('data-sync')){
+        paper.value = el.value;
+        paper.dispatchEvent(new Event('input', { bubbles: true }));
+      } else {
+        if(window.contractBlankSet) contractBlankSet(c, key, el.value);
+        if(paper) paper.value = el.value;
+      }
+      paintBlankFormCount(c);
+    });
+  });
+}
+
+/* Keep the two in step when the typing happened on the PAPER. The panel is
+   patched in place rather than rebuilt: rebuilding it under a reader who is
+   halfway through a box takes the box out from under them, which is the
+   `keepView` lesson the clause editor paid for twice. */
+function paintBlankForm(c, source){
+  const host = document.getElementById('tplform-section');
+  if(!host || !host.querySelector('[data-blankf]')) return;
+  const key = source && (source.getAttribute('data-field') || source.getAttribute('data-sync'));
+  if(key){
+    const box = host.querySelector(`[data-blankf="${key}"]`);
+    if(box && box !== source && box.value !== source.value) box.value = source.value;
+  }
+  paintBlankFormCount(c);
+}
+
+/* The counter is the one arithmetic contractBlanksOpen already does, asked
+   again rather than counted here — a second tally is how a panel comes to
+   report a different number from the page it sits beside. */
+function paintBlankFormCount(c){
+  const host = document.getElementById('tplform-section');
+  const out = host && host.querySelector('[data-blankf-count]');
+  if(!out) return;
+  const all = (typeof contractBlanks === 'function') ? contractBlanks(c).length : 0;
+  const open = (typeof contractBlanksOpen === 'function') ? contractBlanksOpen(c).length : 0;
+  out.textContent = `${all - open}/${all}`;
+  out.style.color = open ? 'var(--st-amber-fg)' : 'var(--st-green-fg)';
+}
+
+/* ---- ONE SLOT, ONE DECISION ----
+   Both panels live in `#tplform-section`, so exactly one function may choose
+   between them. Written as two independent calls they would both write the
+   same element and whichever ran last would win silently — which is how a
+   panel comes and goes for no reason a reader can see. */
+function paintContractForm(c){
+  if(c && c.templateForm){
+    if(window.renderTemplateFormSection) renderTemplateFormSection(c);
+    return;
+  }
+  renderBlankFormSection(c);
+}
 function checksRowsHtml(c){
   const row=(kind,ic,name)=>{
     const v=checkVerdict(c,kind);
@@ -7933,7 +8125,7 @@ function renderWorkspace(){
   docTabDefaults(c);   // Screening for in-progress, Signing once executed (per contract)
   wsTabDefaults(c);    // Document by default; the choice persists per contract
   wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderPlaybookSection(c); renderSharesSection(c); renderNegotiationSection(c); renderAuditSection(c);
-  if(window.renderTemplateFormSection) renderTemplateFormSection(c);
+  paintContractForm(c);   // one slot, two builders — see paintContractForm
   wireChecksCard(c);   // the three Run → rows, each pressing an existing act
   wireDocTabs(c);      // "Next: Signing" — the pair of sub-tabs it belonged to has gone
   wireWsTabs(c);       // the room's five tabs
@@ -9146,11 +9338,21 @@ function wireDocumentSync(c){
       persist(c); renderAuditSection(c);
     });
   });
+  /* ---- THE PAPER AND THE PANEL ARE TWO DOORS ONTO ONE ACT (17 Sep 2026) ----
+     Owner-asked: *"All contracts should have the possibility to fill in from
+     the right hand side panel."* THE ONE DOOR refuses a second door onto an
+     act that has one, and that refusal was put to the owner and lifted — so
+     what makes this safe is that there is still only one ACT. contractBlankSet
+     (js/blanks.js) is it: this handler and the panel both press it, so the two
+     cannot come to disagree about what changing a blank means. A stage without
+     that module writes exactly as it wrote before. */
   canvas.querySelectorAll('[data-field]').forEach(inp=>inp.addEventListener('input',()=>{
-    c.fields[inp.getAttribute('data-field')]=inp.value;
-    c.lastAction=todayStr();
-    logAudit(c,'Edited',`Updated field "${inp.getAttribute('data-field')}"`);
-    persist(c); renderAuditSection(c);
+    const key=inp.getAttribute('data-field');
+    if(window.contractBlankSet) contractBlankSet(c,key,inp.value);
+    else { c.fields[key]=inp.value; c.lastAction=todayStr();
+      logAudit(c,'Edited',`Updated field "${key}"`); persist(c); }
+    if(window.paintBlankForm) paintBlankForm(c,inp);
+    renderAuditSection(c);
   }));
   /* THE TERM AGREES IN BOTH DIRECTIONS. docTermSpan makes the paper read the
      record; this makes the record read the paper. Writing "3" into the term
@@ -11516,7 +11718,7 @@ Object.assign(window,{paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,
      I walked it on re-rendered the workspace, which measures on the way in. */
   layoutDocResizer,renderSignButton,renderSignSide,roomFactsHtml,signBlockHtml,signReadinessCardHtml,signRowTitle,signLandOnList,signCheckEscalate,signCheckTake,signRiskDismiss,signConsentStamp,signHeadLabel,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,reviewReturnedRound,docWorkingTextNoteHtml,docNothingWrittenHtml,docHasNoWording,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
-  ROOM_TABS,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomCurrentTab,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,openCheckPanel,roomHeadHtml,wireRoomHead,
+  ROOM_TABS,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomCurrentTab,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,paintContractForm,renderBlankFormSection,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,openCheckPanel,roomHeadHtml,wireRoomHead,
   DOC_SEL_ACTIONS,wireDocCopilotSel,docAiRead,docSelKill,
   /* idea 7 — the plain-English layer. Published because a name read through
      window from another module, or from a test stage, is silence when it is

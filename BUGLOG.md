@@ -15355,3 +15355,45 @@ Noticed, not fixed:
   would follow them and would also make a half-written template visible to
   colleagues before anybody meant it to be — so it is local, the strip says
   so, and "follows you between machines" is a separate decision for the owner.
+
+## 17 Sep 2026 — Copilot reads it at creation, and the open fields are filled
+
+Young, over three screenshots: the arrival reading was hooked to the moment a
+contract is SENT, so every contract landed on Overview reading "Not read yet";
+the open fields were pre-filled by nothing; and the right-hand form panel was
+drawn only for contracts carrying a declared field list.
+
+Built: contractArrived at every creation site (bulk importers refused by name,
+the upload's tick-box exempt); triageNeedsRead — once per wording, not once
+ever; a fifth reading that fills the open blanks, record first and a model only
+for what is left; js/blanks.js, the one reading of what blanks a contract has,
+read off the paper; and a right-hand panel for built-in-template contracts
+pressing the same act the paper presses.
+
+### Defects found on the way
+- triageApplies had NO caller in the product and its comment stated the
+  opposite of what the product did ("a contract HaTi drafted ... there is
+  nothing to discover in it"). Given a caller and reversed in place.
+- f213's "neither reading saves on its own" sliced each function to the next
+  newline-function, which held only while the next declaration happened to be a
+  plain one. An async function written under it fell inside the region and the
+  claim went red over somebody else's persist(. Re-pointed to the function's
+  own braces; still passes at the parent, and still bites.
+- The browser file's first 3c measured forecastWeeks, which carries the
+  drafting's own default and was never open — the product was right and the
+  check was wrong. Re-pointed to a blank that really is open.
+- The browser file's first refusal-3 control measured the OTHER contract's
+  paper and read null. Two papers are not a before and after; measured on the
+  same paper with and without the panel instead.
+
+### Noticed, not fixed
+- PORTAL_MODE is a BOOLEAN and six older sites still call it as a function
+  behind a side guard (already recorded, unchanged).
+- A contract from a SAVED CUSTOM template has no fillable blank after
+  creation: its wording is written out once with the answers baked in. Giving
+  it a panel means re-drafting from a template that may have been revised
+  since. Needs a ruling.
+- The action bar's kind==='review' branch and the phone's twin still do
+  contractLeavesDrafting's job by hand rather than calling it (recorded earlier
+  the same day; they ask for the reading by name, so nothing is missed).
+- js/pdfrich.js still has no caller.

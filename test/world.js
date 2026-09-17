@@ -162,6 +162,14 @@ const STANDARDS = 'js/standards.js';
    module's `typeof` fallbacks and prove nothing about the product. The
    obligations model goes under the playbook, which is js/app.js's order. */
 const TRIAGE = 'js/triage.js';
+/* The open blanks of a drafted contract (buildWorld({blanks:true})). A reading
+   with no view, no route and no store, on the shelf js/precedent.js sits on —
+   but it walks `docBody(c)`, so a stage that wants real blanks needs the
+   contract view under it and one without gets this module's documented empty
+   answer rather than a throw. The triage option brings it because the fill
+   step is one of the readings; js/templates.js goes under it for the same
+   reason builtinTemplateFields does. */
+const BLANKS = 'js/blanks.js';
 /* The overnight desk (buildWorld({desk:true})). A READING with no view, on the
    shelf js/precedent.js and js/payterms.js sit on — but it reads three of the
    product's own predicates through `typeof` (renewalWindow, obligationIsTheirs,
@@ -428,6 +436,7 @@ function buildWorld(opts = {}) {
      when it is absent, which is the order js/app.js uses too. */
   if (opts.templates) files.unshift(TEMPLATES_FILE);
   if (opts.templateFields) files.push(TEMPLATE_FIELDS_FILE);
+  if (opts.blanks) files.push(BLANKS);
   if (opts.family) files.push(FAMILY);
   if (opts.obligations) files.push(OBLIGATIONS);
   if (opts.intakeView) files.push(INTAKE_VIEW);
@@ -516,6 +525,32 @@ function buildWorld(opts = {}) {
       if (c && r && !r.error) c._brief = r;
       return r;
     };
+    /* ---- AND THE FIFTH READING'S STAND-IN (17 Sep 2026) ----
+       runFillBlanks lives in js/ai.js, which this world cannot load, so it is
+       stood in for — and the stand-in RUNS THE PRODUCT'S OWN deterministic
+       half (fillBlanksFromRecord, in js/blanks.js, which this option loads)
+       rather than answering out of thin air. What it stands in for is the one
+       thing that is genuinely absent here: the route. `win._ai.fill` scripts
+       what the model would have added and `win._ai.fillThrows` makes it fail
+       the way the real one fails. A stand-in kinder than the thing it replaces
+       turns its test into a description, and this file has paid that lesson
+       three times now. */
+    win.runFillBlanks = async (c) => {
+      if (win._ai.fillThrows) throw new Error('fill failed');
+      const rec = win.fillBlanksFromRecord ? win.fillBlanksFromRecord(c, { hold: true }) : { filled: [], left: [] };
+      const extra = (win._ai.fill && Array.isArray(win._ai.fill.fields)) ? win._ai.fill.fields : [];
+      const filled = rec.filled.slice();
+      const open = new Map((rec.left || []).map(b => [b.key, b]));
+      for (const f of extra) {
+        const b = open.get(f.key);
+        if (!b || !win.contractBlankSet) continue;
+        if (win.contractBlankSet(c, b.key, String(f.value || ''), { quiet: true, hold: true })) {
+          filled.push({ key: b.key, label: b.label, why: 'copilot' });
+          open.delete(b.key);
+        }
+      }
+      return { filled, left: [...open.values()] };
+    };
     /* The same two stand-ins the standards stage needs, for the same reason:
        playbook() reads `state` bare and playbookKeyFor opens by calling cKind,
        so without either every lookup throws into a swallowed try and the
@@ -526,6 +561,10 @@ function buildWorld(opts = {}) {
     });
     if (!opts.playbook && !opts.copilotRead && !opts.standards) files.push(PLAYBOOK);
     if (!opts.obligations) files.push(OBLIGATIONS);
+    /* The fill step is one of the readings, so the module it presses rides the
+       same option — a stage without it would exercise triage's own `typeof`
+       fallback and prove nothing about the product. */
+    if (!opts.blanks) files.push(BLANKS);
     files.push(TRIAGE);
   }
   if (opts.desk) {

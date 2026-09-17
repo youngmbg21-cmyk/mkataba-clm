@@ -3907,6 +3907,89 @@ async function runContractBrief(c,opts={}){
   }
   return null;
 }
+
+/* ============================================================
+   FILLING THE OPEN BLANKS (Young ruled 17 Sep 2026)
+   ============================================================
+   *"When it lands in overview the open fields have to be pre-filled by
+   copilot."*
+
+   THE RECORD ANSWERS FIRST, AND FOR FREE. fillBlanksFromRecord takes every
+   blank this workspace can answer without asking anybody — our own legal
+   identity, the address filed under Company & market, the day, and what the
+   last few contracts from this same template put in this same box. That is
+   this codebase's own rule rather than a shortcut: precedent has no route,
+   payment terms has no route, the risk scan costs nothing, and paying a model
+   to choose between "the last four said 45 days" and silence is paying for a
+   coin flip.
+
+   THE MODEL IS ONLY EVER SHOWN WHAT IS LEFT, and only where a key is
+   configured. No key is not a failure here — the deterministic half has
+   already run and is reported — so this returns what it filled rather than an
+   error, which is the difference between a feature that degrades and one that
+   disappears.
+
+   IT WRITES NO RECORD FIELD. `counterparty`, `value` and the term blank that
+   moves `c.expiry` are refused by name in js/blanks.js and never offered
+   here. Every money reading, the register, the calendar and every report run
+   off those; a figure put there by a reading is a number this product
+   invented and then reported as fact.
+
+   ONE AUDIT LINE FOR THE WHOLE RUN, naming the boxes. Forty lines reading
+   "Updated field" would bury the trail the day this shipped — see
+   contractBlankSet's `quiet`, which exists for exactly this caller. */
+async function runFillBlanks(c, opts={}){
+  if(typeof fillBlanksFromRecord!=='function') return { error:i18t('fb_not_available') };
+  /* THE FREE HALF ALWAYS RUNS, before any question of a key or a route. */
+  const rec = fillBlanksFromRecord(c, { hold:true });
+  const filled = rec.filled.slice();
+  let left = rec.left;
+  const done = () => {
+    if(filled.length){
+      /* aiNoteRead writes nothing to a sealed record — the one reading of
+         "may a reading still write here", shared with the other three. */
+      if(typeof aiNoteRead==='function')
+        aiNoteRead(c,'Filled',`Copilot filled ${filled.length} open field${filled.length===1?'':'s'}: ${filled.map(x=>x.label).join(', ')}`);
+      if(typeof persist==='function') persist(c);
+    }
+    return { filled, left };
+  };
+  if(!left.length) return done();
+  if(!(typeof API_MODE==='function'&&API_MODE())||!state.aiConfigured) return done();
+  try{
+    const text=(window.contractPlainText?contractPlainText(c):'');
+    const r=await api('ai/fill','POST',{
+      id:c.id,
+      text:String(text||''),
+      blanks:(typeof blanksAskPayload==='function')?blanksAskPayload(c,left):[],
+    },{ quiet:!!opts.quiet });
+    if(r&&r.notice) opts.notice=r.notice;
+    /* THE WALL, THE BROWSER'S HALF. The route drops a key this contract does
+       not have, and so does this — neither host has to trust the other about
+       which boxes exist, which is DRAFT FROM A SENTENCE's own shape and its
+       own reason. contractBlankSet is the third wall and refuses a record
+       field whatever either of them says. */
+    const open=new Map(left.map(b=>[b.key,b]));
+    for(const f of ((r&&Array.isArray(r.fields))?r.fields:[])){
+      const b=f&&open.get(f.key);
+      if(!b||!String(f.value||'').trim()) continue;
+      if(contractBlankSet(c,b.key,String(f.value).trim(),{ quiet:true, hold:true })){
+        filled.push({ key:b.key, label:b.label, why:'copilot' });
+        open.delete(b.key);
+      }
+    }
+    left=[...open.values()];
+  }catch(e){
+    /* A REFUSED ROUTE DOES NOT UNDO THE FREE HALF. What the record answered is
+       already on the contract and already true; reporting an error over it
+       would tell the reader nothing was filled while they look at boxes that
+       were. */
+    done();
+    return { filled, left, error:i18t('fb_failed')+(e&&e.message?' '+e.message:'') };
+  }
+  return done();
+}
+
 function briefFactsHtml(d){
   const t=d.term||{},m=d.money||{};
   const term=[t.start,t.end,t.notice].filter(Boolean).join(' · ');
@@ -4346,4 +4429,4 @@ Object.assign(window,{scanGoTo,
   aiKeepStructuralTags,aiStructureOf,aiSplitItems,aiRestoreEmphasis,aiPreserveTypography,aiDropRestatedHeading,
   aiParseProposal,copilotPropose,copilotProposeTemplate,AI_TEMPLATE_RULE,aiProposalCardHtml,aiOpenProposal,aiActiveProposal,
   aiProposalApply,aiProposalDecline,aiProposalToggleEdit,aiWireProposals,aiRefineProposal,aiStepBackIfSummoned,
-  AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,aiPortfolioFigures,aiPortfolioSays,aiWholeBookAsk,aiDegrade,AI_CHAT_STEPS,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,AI_DEPENDENTS_TOOL_DESC,AI_COUNTERPARTY_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,AI_WORKLIST_MIN,AI_WORKLIST_LABEL_MAX,aiWorklistHtml,aiCompareTable,aiChatMessages,aiChatContext, aiPageContext, aiPageSays, aiGraphSays, aiScreenContractId,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,runContractBrief,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});
+  AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,aiPortfolioFigures,aiPortfolioSays,aiWholeBookAsk,aiDegrade,AI_CHAT_STEPS,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,AI_DEPENDENTS_TOOL_DESC,AI_COUNTERPARTY_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,AI_WORKLIST_MIN,AI_WORKLIST_LABEL_MAX,aiWorklistHtml,aiCompareTable,aiChatMessages,aiChatContext, aiPageContext, aiPageSays, aiGraphSays, aiScreenContractId,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,runContractBrief,runFillBlanks,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});

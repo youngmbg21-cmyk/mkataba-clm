@@ -79,19 +79,32 @@ describe('F273 — auto-triage on upload', () => {
 
   /* --------------------------------------------------------------- */
   describe('2 · what it runs, and what it refuses to run on', () => {
-    test('only a received document is triaged', () => {
+    /* ---- REVERSED IN PLACE (Young ruled 17 Sep 2026) ----
+       *"anytime you create a agreement ... copilot has to read the agreement
+       before it lands in overview."* This claim used to read "only a received
+       document is triaged" and asserted that a contract HaTi drafted was not.
+       The old sentence is kept in triageApplies' own note because it is the
+       thing that was wrong. What the predicate still refuses is a record with
+       nothing on it at all. */
+    test('every contract is read on arrival, and an empty record is not', () => {
       const { win } = stage();
       assert.equal(win.triageApplies({ source: 'upload' }), true);
+      assert.equal(win.triageApplies({ id: 'MK-1', template: 'PK' }), true,
+        'a contract HaTi drafted is read too — our own paper against our own playbook is a real question');
       assert.equal(win.triageApplies({ source: null }), false,
-        'a contract HaTi drafted was written here — there is nothing to discover in it');
+        'a record with nothing on it is not read — a reading of nothing reports a clean contract');
       assert.equal(win.triageApplies(null), false);
     });
-    test('four readings, and the free one goes first', () => {
+    test('five readings, the free one first and the one that writes last', () => {
       const { win } = stage();
       /* Compared as a STRING: the list is built in the world's own realm, so a
          deep-equal against a local array fails on the prototype rather than on
          the value. */
-      assert.equal(win.TRIAGE_STEPS.join(','), 'risk,brief,playbook,oblig');
+      /* FIVE SINCE 17 Sep 2026: filling the open blanks is the fifth, and it
+         is LAST because it is the only one that changes the paper — run first
+         it would have the brief summarising a document the other four never
+         saw. See TRIAGE_STEPS' own note. */
+      assert.equal(win.TRIAGE_STEPS.join(','), 'risk,brief,playbook,oblig,fill');
       /* Asserted off the CALLS rather than off a comment: risk is
          deterministic and instant, so the card has something on it before the
          paid readings come back. */
@@ -99,8 +112,9 @@ describe('F273 — auto-triage on upload', () => {
       assert.ok(at('runScan(c)') < at('runContractBrief'), 'risk before the brief');
       assert.ok(at('runContractBrief') < at('runPlaybookReview'), 'brief before the standards');
       assert.ok(at('runPlaybookReview') < at('extractObligations'), 'standards before obligations');
+      assert.ok(at('extractObligations') < at('runFillBlanks'), 'and everything that READS the wording before the one that changes it');
     });
-    test('all four land, and each records what it found', async () => {
+    test('all five land, and each records what it found', async () => {
       const { win, c } = stage();
       const t = await win.triageRun(c);
       for (const k of win.TRIAGE_STEPS)
@@ -144,7 +158,7 @@ describe('F273 — auto-triage on upload', () => {
       await win.triageRun(c);
       const line = (c.audit || []).find(a => a.action === 'Read');
       assert.ok(line, 'a line saying the contract was read');
-      assert.match(line.detail, /4 of 4/, 'and how much of it landed');
+      assert.match(line.detail, /5 of 5/, 'and how much of it landed');
     });
   });
 
@@ -304,7 +318,14 @@ describe('F273 — auto-triage on upload', () => {
       const { win, c } = stage();
       const t = await win.triageRun(c);
       const tiles = win.triageTiles(c);
-      assert.equal(tiles.length, 4, 'four tiles');
+      /* FIVE SINCE 17 Sep 2026 — the fill reading draws its own, between the
+         obligations and FILED. Counted off TRIAGE_HEADS, which IS the tile
+         table, rather than typed: a sixth tile cannot leave this claim quietly
+         describing five, and the RISK reading deliberately draws none (it is
+         a step, not a tile — the Checks card is where findings are read). */
+      assert.equal(tiles.length, Object.keys(win.TRIAGE_HEADS).length, 'one tile per head');
+      assert.ok(!tiles.some(x => x.key === 'risk'), 'and the free reading draws none');
+      assert.ok(tiles.some(x => x.key === 'fill'), 'the fill reading draws its own');
       const std = tiles.find(x => x.key === 'playbook');
       assert.equal(std.count, (t.steps.playbook.dev || 0) + (t.steps.playbook.miss || 0),
         'the tile prints the step record, never a second count');
@@ -915,8 +936,18 @@ describe('F273 — auto-triage on upload', () => {
     test('nothing is read — or paid for — twice', () => {
       const i = CONTRACT.indexOf('function triageAndPaint(c){');
       const w = CONTRACT.slice(i, CONTRACT.indexOf('\n}\n', i));
-      assert.match(w, /if\(window\.triageOf && triageOf\(c\)\) return;/,
-        'a contract already read on arrival is not read again when it is sent');
+      /* ---- ONCE PER WORDING, WHICH REPLACED ONCE EVER (17 Sep 2026) ----
+         Read at creation and never again, a template contract would be
+         described for ever as the form it was made from. The guard asks
+         triageNeedsRead now — no reading at all is owed one, a reading whose
+         stamped wording differs from the wording now is owed another, and a
+         send that changed nothing is owed nothing. The old guard survives as
+         the fallback for a stage without that module, which is what the second
+         half of this expression is. */
+      assert.match(w, /triageNeedsRead\(c\)/,
+        'the question is "has the wording moved since Copilot read it"');
+      assert.match(w, /window\.triageOf && triageOf\(c\)/,
+        'and a stage without that reading keeps exactly the old behaviour');
       /* triageRun stamps a fresh c.triage on every call and refuses only a
          SECOND CONCURRENT run, so the "has this been read" question cannot be
          left to it. */

@@ -210,11 +210,31 @@ describe('F213 — the audit line stands down where the record is sealed', () =>
     assert.deepEqual(calls.persist, [], 'and above all no save to be refused');
   });
 
+  /* ---- PIN THE REGION, NOT A BOUNDARY THAT HAPPENS TO HOLD ----
+     Re-pointed 17 Sep 2026. This sliced each reading from its own `async
+     function` to the next `\nfunction ` — a boundary that held only while the
+     next declaration in the file happened to be a plain one. A new `async
+     function` written directly under runContractBrief fell INSIDE the slice,
+     and this claim went red over a `persist(` in somebody else's body while
+     the thing it is about was unchanged. THE CLAIM IS THE SAME; what moved is
+     that it now reads the function's OWN braces, which is a real boundary.
+     (The new neighbour does persist, correctly: unlike these two it WRITES to
+     the record — see runFillBlanks.) */
+  const bodyOf = (name) => {
+    const m = new RegExp('async function\\s+' + name + '\\s*\\([^)]*\\)\\s*\\{').exec(src);
+    if (!m) return null;
+    let i = m.index + m[0].length, depth = 1;
+    while (i < src.length && depth > 0) {
+      const ch = src[i];
+      if (ch === '{') depth++; else if (ch === '}') depth--;
+      i++;
+    }
+    return src.slice(m.index, i);
+  };
   test('both readings go through the one helper — neither saves on its own', () => {
     for (const name of ['runContractBrief', 'runRenewalAdvice']) {
-      const i = src.indexOf('async function ' + name + '(');
-      assert.ok(i > 0, name + ' is there');
-      const body = src.slice(i, src.indexOf('\nfunction ', i + 10));
+      const body = bodyOf(name);
+      assert.ok(body, name + ' is there');
       assert.match(body, /aiNoteRead\(/, name + ' notes the read through the helper');
       assert.ok(!/\bpersist\(/.test(body), name + ' does not save the record itself');
       assert.ok(!/\blogAudit\(/.test(body), name + ' does not write the trail itself');

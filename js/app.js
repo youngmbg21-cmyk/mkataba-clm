@@ -47,6 +47,7 @@ import './precedent.js';     // what this workspace's own settled rounds say (W3
 import './ladder.js';       // every move on one clause, across every round (14 Sep 2026)
 import './redlineplan.js';   // the co-pilot's first pass over their round (W3-1)
 import './standards.js';     // the Standards page's own readings (ideas 20 & 21)
+import './blanks.js';     // the open blanks of a drafted contract: one reading, read off the paper (17 Sep 2026)
 import './triage.js';       // auto-triage on upload: it presses the product's own four readings
 import './notice.js';    // the notice desk: a letter drafted from the record, never from a model (S6, 16 Sep 2026)
 import './desknight.js';    // the overnight desk: three kinds of prepared work, read off the record (idea 19)
@@ -932,6 +933,10 @@ function createFromTemplate(tid){
      wsTabDefaults. Registered at every creation site because there is no
      single funnel for creating a contract. */
   if(window.roomOpenOnTerms) roomOpenOnTerms(c.id);
+  /* AND COPILOT READS IT (Young ruled 17 Sep 2026) — registered at every
+     creation site beside roomOpenOnTerms, because there is no single funnel
+     for creating a contract. See contractArrived. */
+  if(window.contractArrived) contractArrived(c);
   state.activeId=c.id; state.selId=c.id;
   persist(c);
   toast(`New ${t.kind} created and filed in ${FOLDERS[t.folder].name}`);

@@ -6060,6 +6060,22 @@ const STRINGS = {
     tri_t_brief_ing: 'Writing the brief\u2026',
     tri_t_std_ing: 'Checking Our standards\u2026',
     tri_t_oblig_ing: 'Looking for obligations\u2026',
+    /* The fifth arrival reading: filling in the blanks the contract still has
+       open (17 Sep 2026). The heads say what happened rather than what was
+       written — the values are in the boxes, in a form the reader can correct. */
+    tri_t_fill: 'Open fields filled in',
+    tri_t_fill_no: 'Open fields not filled in',
+    tri_t_fill_ing: 'Filling in the open fields\u2026',
+    tri_fill_left_one: '{n} still open',
+    tri_fill_left_other: '{n} still open',
+    /* What the fill reading says when it cannot run or cannot finish. */
+    fb_not_available: 'Filling in the open fields is not available here',
+    fb_failed: 'Copilot could not fill the open fields.',
+    /* The right-hand panel a built-in template's contract now gets, so every
+       contract can be filled from the column and not only on the paper. */
+    bf_title: 'Contract form',
+    bf_from: 'from \u201c{name}\u201d',
+    bf_copilot_filled: 'Copilot filled in: {fields}. Correct anything it got wrong.',
     tri_kt_head: 'HaTi read this contract',
     tri_kt_head_no: 'HaTi could not read this contract',
     tri_kt_done: 'Got it',
@@ -12618,6 +12634,16 @@ const STRINGS = {
     tri_t_brief_ing: 'Skriver sammanfattningen\u2026',
     tri_t_std_ing: 'Kontrollerar V\u00e5ra standarder\u2026',
     tri_t_oblig_ing: 'S\u00f6ker \u00e5taganden\u2026',
+    tri_t_fill: 'Tomma f\u00e4lt ifyllda',
+    tri_t_fill_no: 'Tomma f\u00e4lt inte ifyllda',
+    tri_t_fill_ing: 'Fyller i tomma f\u00e4lt\u2026',
+    tri_fill_left_one: '{n} kvar',
+    tri_fill_left_other: '{n} kvar',
+    fb_not_available: 'Att fylla i tomma f\u00e4lt \u00e4r inte tillg\u00e4ngligt h\u00e4r',
+    fb_failed: 'Copilot kunde inte fylla i de tomma f\u00e4lten.',
+    bf_title: 'Avtalsformul\u00e4r',
+    bf_from: 'fr\u00e5n \u201d{name}\u201d',
+    bf_copilot_filled: 'Copilot fyllde i: {fields}. R\u00e4tta det som blivit fel.',
     tri_kt_head: 'HaTi har läst avtalet',
     tri_kt_head_no: 'HaTi kunde inte läsa avtalet',
     tri_kt_done: 'Uppfattat',

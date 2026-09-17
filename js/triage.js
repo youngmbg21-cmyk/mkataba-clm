@@ -33,13 +33,45 @@
 /* The four readings, in the order they run. RISK FIRST AND DELIBERATELY: it is
    the only one that costs nothing and answers instantly, so the contract's own
    Checks card has something on it before the paid readings have come back. */
-const TRIAGE_STEPS = ['risk', 'brief', 'playbook', 'oblig'];
+const TRIAGE_STEPS = ['risk', 'brief', 'playbook', 'oblig', 'fill'];
 
-/* Only a received document is triaged. A contract HaTi drafted was written
-   here, against this playbook, from this workspace's own wording — there is
-   nothing to discover in it, and reading it back would be paying to be told
-   what we already said. */
-const triageApplies = c => !!(c && c.source === 'upload');
+/* ---- AND THE FIFTH IS THE OTHER HALF OF THE OWNER'S ASK (17 Sep 2026) ----
+   *"When it lands in overview the open fields have to be pre-filled."* A
+   reading that tells you what a contract says, over a contract whose own
+   blanks are still empty, has read a form rather than an agreement — so
+   filling them is part of arriving, not a separate errand.
+
+   IT RUNS LAST, AND THAT IS THE POINT: the four readings above are about the
+   wording, and this one CHANGES the wording (a blank is a word on the page).
+   Run first it would have the brief summarising a document the other four
+   never saw. Run last, every reading above describes the paper as it stood,
+   and the next arrival reading — asked when the wording has MOVED, see
+   triageNeedsRead — describes it as it stands now. */
+
+/* ---- WHICH CONTRACTS ARE READ ON ARRIVAL ----
+   EVERY ONE OF THEM, since Young ruled it on 17 Sep 2026: *"anytime you create
+   a agreement, including using the door in image 1, copilot has to read the
+   agreement before it lands in overview."*
+
+   THIS REVERSES WHAT THIS LINE USED TO SAY, and the old reasoning is kept
+   because it is the thing that was wrong: *"a contract HaTi drafted was
+   written here, against this playbook, from this workspace's own wording —
+   there is nothing to discover in it."* Three answers to that, each measured
+   rather than argued. Our own standard paper against our own playbook is a
+   real question and the Standards page exists to ask it. The risk scan is
+   deterministic and free, and it finds things in our own templates. And a
+   drafted contract's obligations are commitments somebody has to keep
+   whoever typed them.
+
+   WHAT IT STILL REFUSES is a record with nothing on it to read — an id and a
+   status. A reading of nothing reports a clean contract, which is the wrong
+   answer wearing a right one's clothes, and triageRun's own no-text guard
+   says the same thing one step later for the same reason.
+
+   `source === 'upload'` SURVIVES AS A FACT ABOUT THE DOCUMENT, not as the
+   gate it used to be: the upload screen's tick-box is still the owner's 9 Sep
+   ruling and still governs that one door. */
+const triageApplies = c => !!(c && (c.id || c.template || c.source));
 
 /* WHAT THE READINGS ARE READ FROM, and it is the record rather than a fresh
    run: each of the four already stores its answer where its own screen reads
@@ -80,6 +112,7 @@ const TRIAGE_HEADS = {
   brief:    { ok: 'tri_t_brief',  no: 'tri_t_brief_no',  ing: 'tri_t_brief_ing' },
   playbook: { ok: 'tri_t_std',    no: 'tri_t_std_no',    ing: 'tri_t_std_ing' },
   oblig:    { ok: 'tri_t_oblig',  no: 'tri_t_oblig_no',  ing: 'tri_t_oblig_ing' },
+  fill:     { ok: 'tri_t_fill',   no: 'tri_t_fill_no',   ing: 'tri_t_fill_ing' },
   filed:    { ok: 'tri_t_filed',  no: 'tri_t_filed',     ing: 'tri_t_filed' },
 };
 /* IS IT STILL READING? `_triaging` is set for the life of the run and deleted
@@ -189,6 +222,24 @@ function triageTiles(c){
        with nothing under it — a number the reader cannot act on. */
     o.ok ? found.map(x => x && x.desc).filter(Boolean).slice(0, 3).join(' · ') : (o.why || ''),
     o.ok ? found.length : null);
+
+  /* ---- WHAT WAS FILLED IN, NAMED AND NEVER VALUED ----
+     The names of the boxes that were answered, and not one of their values.
+     That is DRAFT FROM A SENTENCE's own ruling, taken here for its own reason:
+     the values are a few pixels away in editable boxes a reader can correct,
+     and the uneditable copy is the one that reads as decided. The count is
+     what was filled; what was LEFT is the detail's other half, because a
+     reading that says "filled 3" over a form with five gaps has told you a
+     third of what you need. */
+  const fl = s.fill || {};
+  const names = Array.isArray(fl.filled) ? fl.filled : [];
+  add('fill',
+    fl.ok
+      ? [names.slice(0, 3).join(' · '),
+         fl.left ? ((typeof i18tn === 'function') ? i18tn('tri_fill_left', fl.left, { n: fl.left }) : '') : '']
+        .filter(Boolean).join(' — ')
+      : (fl.why || ''),
+    fl.ok ? names.length : null);
 
   /* FILED reports facts already on the record — the stream somebody picked on
      the upload screen and the owner HaTi stamps at creation. It proposes
@@ -395,16 +446,123 @@ async function triageRun(c, opts = {}){
       }
     }catch(e){ t.steps.oblig = { ok: false, why: String(e && e.message || e) }; }
 
+    /* 5 — FILL THE OPEN BLANKS. Last, because it is the one reading that
+       CHANGES the paper — see TRIAGE_STEPS. The record answers first and for
+       free; a model is asked only about what is left, and only where there is
+       a key. */
+    try{
+      if (typeof runFillBlanks !== 'function') t.steps.fill = { ok: false, why: triageAbsent() };
+      else {
+        const f = await runFillBlanks(c, { quiet: true });
+        t.steps.fill = f && f.error
+          ? { ok: false, why: f.error }
+          /* THE NAMES ONLY. See the tile's own note: a value printed where it
+             cannot be corrected is the copy that reads as decided. */
+          : { ok: true, filled: (f.filled || []).map(x => x.label || x.key), left: (f.left || []).length };
+      }
+    }catch(e){ t.steps.fill = { ok: false, why: String(e && e.message || e) }; }
+    paint();
+
     /* THE ONE AUDIT LINE, and it says what was read rather than what was
        found — the findings are on the record and have their own lines. */
     if (typeof logAudit === 'function')
       logAudit(c, 'Read', `Auto-triage: ${TRIAGE_STEPS.filter(k => t.steps[k] && t.steps[k].ok).length} of ${TRIAGE_STEPS.length} readings completed`);
+    /* ---- WHAT WAS READ, STAMPED ON WHAT WAS READ ---- (17 Sep 2026)
+       The wording as it stood when these five ran, so triageNeedsRead can ask
+       whether it has moved since. Stamped AFTER the fill step, so a blank this
+       run answered is inside the wording this run is recorded against and the
+       very next question does not report its own work as drift.
+
+       A FAILED RUN IS STAMPED TOO, deliberately: the "do not silently retry a
+       reading that failed and pay for it twice" rule is the whole reason
+       triageAndPaint asks before it runs, and a run left unstamped would be
+       retried on every send for ever. The card's own "Run it again" is a
+       person's press and does not come through here. */
+    t.hash = triageWordingHash(c);
     if (typeof persist === 'function') persist(c);
   } finally {
     delete c._triaging;
   }
   paint();
   return t;
+}
+
+/* ---- HAS THE WORDING MOVED SINCE COPILOT READ IT? ----
+   THE OBLIGATIONS SCAN'S OWN HASHER, through the playbook's wrapper, and not a
+   second one. `playbookStale` already asks this question of the standards
+   review with exactly this tool; a hasher written here would be a second
+   opinion about what "the same wording" means, and two readings of that would
+   disagree the first time either was tuned. Null where the hasher is not on
+   this stage — and null is read as "we do not know", never as "it moved". */
+function triageWordingHash(c){
+  try{
+    if (typeof playbookHashOf !== 'function') return null;
+    const txt = (typeof isUpload === 'function' && isUpload(c))
+      ? ((c.upload && c.upload.extractedText) || '')
+      : ((typeof contractPlainText === 'function') ? contractPlainText(c) || '' : '');
+    return String(txt).trim() ? playbookHashOf(txt) : null;
+  }catch(_){ return null; }
+}
+
+/* ---- IS A READING OWED? ----
+   THIS REPLACES "ONCE, EVER" (17 Sep 2026), and the sentence it replaces is
+   why. Read at creation and never again, a template contract would be
+   described for ever as the form it was on the day it was made: the brief
+   summarising blanks, the standards pass measuring a page nobody had filled
+   in. Read on every send instead and a contract that went round four rounds
+   would be read four times whether a word moved or not.
+
+   SO IT IS ONCE PER WORDING. No reading at all is owed one. A reading whose
+   stamped wording differs from the wording now is owed another — which is
+   exactly the send after the blanks were filled, and exactly a round that
+   changed a clause, and is NOT a send that changed nothing.
+
+   AND A NULL HASH MEANS NO. Either side unknown is "we cannot tell whether
+   this moved", and spending on a maybe, on a path nobody pressed a button on,
+   is the fault this whole guard exists to prevent. The card's own "Run it
+   again" is how a person overrules that, and it always was. */
+function triageNeedsRead(c){
+  if (!c || !triageApplies(c)) return false;
+  const t = triageOf(c);
+  if (!t) return true;
+  const was = t.hash, now = triageWordingHash(c);
+  return !!(was && now && was !== now);
+}
+
+/* ---- THE DOOR AT CREATION (Young ruled 17 Sep 2026) ----
+   *"anytime you create a agreement, including using the door in image 1,
+   copilot has to read the agreement before it lands in overview."*
+
+   MEASURED BEFORE IT WAS BUILT, twice. The 17 Sep change before this one hooked
+   the reading to contractLeavesDrafting — the moment a contract is SENT — so
+   every contract in the product still landed on its Overview tab reporting
+   five readings as "Not read yet", which is the screenshot the owner sent back.
+   The reasoning recorded at the time was that a template contract at creation
+   is "a form with its blanks still in it", and that is true of exactly ONE of
+   the seven doors: the wizard asks its questions BEFORE it mints anything, so
+   a contract from the menu's first row arrives with its answers already in it.
+
+   IT IS REGISTERED AT EVERY CREATION SITE, beside contractOwnerStamp and
+   roomOpenOnTerms, which is this codebase's own shape for this — there is no
+   single funnel for creating a contract and CLAUDE.md says so. A test holds
+   the eighth door to it, exactly as f170 holds roomOpenOnTerms.
+
+   A BULK ARRIVAL IS REFUSED BY NAME. The back-catalogue importer files
+   hundreds at once into its own review queue, and three model calls apiece is
+   a bill nobody pressed a button for. Those contracts are read when somebody
+   opens one and sends it, through contractLeavesDrafting, which is where they
+   were read before this existed.
+
+   IT DOES NOT AWAIT, and triageAndPaint's own note says why: the readings take
+   the better part of a minute and nobody should watch a spinner before their
+   own contract appears. */
+function contractArrived(c, opts){
+  const o = opts || {};
+  if (!c || o.bulk) return false;
+  if (typeof triageAndPaint !== 'function') return false;
+  if (!triageApplies(c)) return false;
+  try{ triageAndPaint(c); }catch(_){ return false; }
+  return true;
 }
 
 /* A READING THAT IS NOT ON THIS STAGE SAYS SO RATHER THAN VANISHING. Left
@@ -478,6 +636,7 @@ function triageAck(c){
 }
 
 Object.assign(window, { TRIAGE_STEPS, TRIAGE_HEADS, triageBusy, triageAbsent, triageNoText, triageApplies, triageOf, triageSeen, triageCards,
+  triageWordingHash, triageNeedsRead, contractArrived,
   triageTiles, triageFiledLine, triageLine, triageReadAnything, triageRun, triageBriefLine,
   triageHeldObligations,
   triageAck });

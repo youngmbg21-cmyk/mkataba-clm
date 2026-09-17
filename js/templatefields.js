@@ -335,6 +335,10 @@ function createBulkFromTemplate(t, rows, opts={}){
      wsTabDefaults. Registered at every creation site because there is no
      single funnel for creating a contract. */
   if(window.roomOpenOnTerms) roomOpenOnTerms(c.id);
+  /* AND COPILOT READS IT (Young ruled 17 Sep 2026) — registered at every
+     creation site beside roomOpenOnTerms, because there is no single funnel
+     for creating a contract. See contractArrived. */
+  if(window.contractArrived) contractArrived(c,{bulk:true});
     persist(c);
     made.push(c);
   }

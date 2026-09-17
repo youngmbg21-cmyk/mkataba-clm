@@ -371,6 +371,10 @@ function createFromWizard(tid, vars, opts){
   state.contracts.unshift(c); state.activeId=c.id;
   /* A NEW DRAFT OPENS ON KEY TERMS, not on its document — see wsTabDefaults. */
   if(window.roomOpenOnTerms) roomOpenOnTerms(c.id);
+  /* AND COPILOT READS IT (Young ruled 17 Sep 2026) — registered at every
+     creation site beside roomOpenOnTerms, because there is no single funnel
+     for creating a contract. See contractArrived. */
+  if(window.contractArrived) contractArrived(c);
   persist(c); closeModal();
   toast(`Draft created — ${t.kind}`);
   setView('workspace'); renderSideFolders&&renderSideFolders();

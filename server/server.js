@@ -1834,6 +1834,12 @@ const AI_FEATURE_LABEL = {
      omission records above: recordAiCall files an unknown feature under
      'other', and this is one an admin will look for by name. */
   draft: 'Draft from a sentence',
+  /* Filling in an existing contract's open blanks (17 Sep 2026). NOT the
+     `blanks` bucket above it, and the pair is worth naming so nobody merges
+     them: /api/ai/blanks proposes where a TEMPLATE being built should have
+     blanks at all, and /api/ai/fill answers the blanks a CONTRACT already has.
+     Named on arrival, for the reason conversion's omission records above. */
+  fill: 'Filling open blanks',
   /* The plain-English layer beside the document (idea 7). Named on
      arrival for the reason conversion's omission records above: an
      unnamed feature lands in the Other bucket, which is the one number
@@ -4886,6 +4892,107 @@ app.post('/api/ai/draft', auth, editor, rlAiLight, aiFeature('draft'), aiBudgetG
       .slice(0, DRAFT_FIELDS_MAX)
       .map(f => ({ key: f.key, value: String(f.value).trim().slice(0, 300) }));
     res.json({ templateId: chosen.id, why: typeof out.why === 'string' ? String(out.why).slice(0, 400) : '', fields, ...aiNotice(req, resp) });
+  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+});
+
+/* ---------- Copilot: fill this contract's open blanks (17 Sep 2026) ---------
+   Young: *"When it lands in overview the open fields have to be pre-filled by
+   copilot."*
+
+   THE FREE HALF HAS ALREADY RUN BEFORE THIS ROUTE IS CALLED. js/blanks.js
+   answers every blank the RECORD answers — our own legal identity, the filed
+   address, the day, and what the last few contracts from this same template
+   put in this same box — so what arrives here is strictly what the workspace
+   could not answer about itself. A route asked to fill boxes the product
+   already knows would be paying to be told what we already said, which is the
+   sentence this feature's own predicate had to stop believing.
+
+   /api/ai/draft IS NOT WIDENED TO DO THIS, and the reason is the one that
+   route gives for not being /api/ai/template: it answers a different question
+   over a different population. There the input is a SENTENCE and the output
+   picks a template; here the template is already chosen, the contract already
+   exists, and the input is its own wording plus what this workspace usually
+   writes. Two screens read the draft route today.
+
+   THE WALL IS ON BOTH HOSTS. A key must be one the caller listed as open, and
+   the browser drops a stray one again before it reaches a box — neither host
+   has to trust the other about which blanks this contract has. The browser
+   holds a third: contractBlankSet refuses `counterparty` and `value` outright,
+   whatever either of us says, because those are the record.
+
+   NOT GUESSING IS THE WHOLE JOB. The prompt below is the draft route's own
+   rules, and the "usually" figures are handed over as what they are — what
+   this workspace has written before — rather than as facts about this deal. */
+const FILL_BLANKS_MAX = 40;
+app.post('/api/ai/fill', auth, editor, rlAiLight, aiFeature('fill'), aiBudgetGuard, capAiInput, async (req, res) => {
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  const { text, blanks } = req.body || {};
+  if (!Array.isArray(blanks) || !blanks.length)
+    return res.status(400).json({ error: 'blanks are required' });
+  const asks = blanks
+    .filter(b => b && typeof b.key === 'string' && b.key)
+    .slice(0, FILL_BLANKS_MAX)
+    .map(b => ({
+      key: String(b.key).slice(0, 40),
+      asks: String(b.asks || b.key).slice(0, 80),
+      type: String(b.type || 'text').slice(0, 12),
+      ...(b.clause ? { clause: String(b.clause).slice(0, 120) } : {}),
+      ...(b.example ? { example: String(b.example).slice(0, 120) } : {}),
+      ...(b.usually ? { usually: String(b.usually).slice(0, 120), usually_seen: Number(b.usually_seen) || 0 } : {}),
+    }));
+  if (!asks.length) return res.status(400).json({ error: 'blanks are required' });
+  const tool = {
+    name: 'fill_blanks',
+    description: 'Answer the blanks in this contract that the workspace could not answer for itself.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        fields: { type: 'array', maxItems: FILL_BLANKS_MAX, description: 'Only the blanks you can answer from the contract itself or from what this workspace usually writes. Leave a blank OUT entirely rather than guessing at it.', items: { type: 'object', properties: {
+          key: { type: 'string', description: 'The blank key, copied exactly from the list you were given.' },
+          value: { type: 'string', description: 'The answer, as the person would type it into that box. A date is yyyy-mm-dd. A number is digits only, with no currency symbol, no thousands separator and no unit. Everything else is plain text.' },
+        }, required: ['key', 'value'] } },
+      },
+      required: ['fields'],
+    },
+  };
+  const RULES = [
+    'Answer only the blanks you can actually answer, via the fill_blanks tool. The rules that matter more than filling boxes:',
+    '- A "usually" figure is what this workspace has written on past contracts of this kind. Where it fits this contract, use it — that is the strongest evidence you have. Where the contract’s own wording contradicts it, follow the contract.',
+    '- ONLY what the contract itself says, or what this workspace plainly and repeatedly does. Nothing else.',
+    '- LEAVE A BLANK OUT rather than guess. An empty box a person fills in is right; a plausible wrong figure they do not notice is the one thing you must not produce.',
+    '- Never invent a counterparty, an amount, a date or a term that nothing in front of you supports.',
+    '- An example placeholder ("e.g. PET bottles") is the SHAPE of an answer, never the answer itself. Do not copy it back.',
+    '- Answer only the keys listed above.',
+  ].join('\n');
+  const prompt = 'You are filling in the blanks a person left open on a contract in their own contract system.\n\n'
+    + 'The blanks still open, each with the clause it sits in and — where this workspace has a habit — what it usually writes there (JSON):\n'
+    + JSON.stringify(asks)
+    + '\n\nThe contract as it stands:\n' + aiDocText(req, String(text || '')) + '\n\n'
+    + RULES;
+  try {
+    const resp = await anthropicMessages(key, 'fast', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'fill_blanks' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'fill', who: aiWho(req) });
+    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    const block = ((resp.data || {}).content || []).find(b => b.type === 'tool_use');
+    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    const out = block.input || {};
+    /* A KEY MUST BE ONE WE WERE ASKED ABOUT, and the example must not come
+       back as the answer — a model handed "e.g. PET bottles & preforms" as the
+       shape of a reply will sometimes return it as the reply, and an example
+       written into a contract reads as a term somebody agreed. */
+    const byKey = new Map(asks.map(a => [a.key, a]));
+    const seen = new Set();
+    const fields = (Array.isArray(out.fields) ? out.fields : [])
+      .filter(f => f && typeof f.key === 'string' && byKey.has(f.key))
+      .filter(f => typeof f.value === 'string' && f.value.trim())
+      .filter(f => {
+        const eg = String((byKey.get(f.key) || {}).example || '').replace(/^e\.g\.\s*/i, '').trim().toLowerCase();
+        return !eg || f.value.trim().toLowerCase() !== eg;
+      })
+      .filter(f => (seen.has(f.key) ? false : (seen.add(f.key), true)))
+      .slice(0, FILL_BLANKS_MAX)
+      .map(f => ({ key: f.key, value: String(f.value).trim().slice(0, 300) }));
+    res.json({ fields, ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
 
