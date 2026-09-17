@@ -733,6 +733,69 @@ function wireRegClear(){
     regRepaint();
   });
 }
+/* ============================================================
+   THE FILTER BAR STATES ITSELF (owner-approved 16 Sep 2026,
+   "HaTi's Next Fifteen")
+
+   Eight dropdowns across the top of the page said what COULD be
+   narrowed and never what WAS: a reader had to read every box to find
+   out what they were looking at. The bar is behind one act now, and
+   above it is one sentence — what is on screen, and what is cutting
+   it — in the shared grammar (sectionStatementHtml, js/section.js).
+
+   THE SENTENCE IS READ OFF THE CONTROLS THEMSELVES, not worked out a
+   second time: regPaintShowing walks the selects inside #reg-filters
+   and prints the option each one is actually set to. So the sentence
+   and the boxes cannot disagree, whatever a filter added later does,
+   and it is translated by construction.
+
+   NOTHING ABOUT THE TABLE MOVED. The rows, the columns, the sort, the
+   paging, the search, Adapt filters and every filter's own behaviour
+   are exactly as they were; this is the strip above them.
+   ============================================================ */
+let _regFiltersOpen = false;
+function regFiltersOpen(){ return !!_regFiltersOpen; }
+function regSetFiltersOpen(on){ _regFiltersOpen = !!on; }
+/* WHAT IS IN FORCE, IN WORDS. A select set to its own "all" answer is not
+   narrowing anything and is left out — the sentence names what CUTS the list,
+   which is what a reader is trying to find out. The search box is named here
+   too because it narrows the same list from the shell bar, where nothing else
+   would say so. */
+function regShowingRest(){
+  const bits = [];
+  const R = (typeof regState === 'function') ? regState() : {};
+  const q = (regScope() === 'negotiations') ? '' : String(R.query || '').trim();
+  if (q) bits.push(`&ldquo;${esc(q)}&rdquo;`);
+  document.querySelectorAll('#reg-filters select[data-reg-filter]').forEach(sel => {
+    const v = String(sel.value || '');
+    if (!v || v === 'all' || v === 'any') return;
+    const opt = sel.options[sel.selectedIndex];
+    const w = opt ? String(opt.textContent || '').trim() : '';
+    if (w) bits.push(esc(w));
+  });
+  if (R.only) bits.push(esc(i18t('reg_only_chip')));
+  return bits.join(' &middot; ');
+}
+/* THE COUNT IS THE ONE ON SCREEN. The search box in the shell bar repaints the
+   table BODY only, so a lead written once at render time was a stale number
+   over a narrowed table within one keystroke — measured. One builder, painted
+   wherever the body is. */
+function regShowingLead(cs){
+  const list = cs || ((typeof regFiltered === 'function') ? regFiltered() : []);
+  const n = list.length;
+  const noun = (regScope() === 'negotiations')
+    ? i18t('nav_negotiations').toLowerCase()
+    : i18tn('reg_agreements', n, { n: '' }).replace(/^[\s\d,.\u00a0]*/, '');
+  return `<b>${esc(n.toLocaleString(jxLocale()))}</b> ${esc(noun)}`;
+}
+function regPaintShowing(cs){
+  const lead = document.getElementById('reg-say-lead');
+  if (lead) lead.innerHTML = regShowingLead(cs);
+  const slot = document.getElementById('reg-say-rest');
+  if (slot) slot.innerHTML = regShowingRest();
+  const b = document.getElementById('reg-filters-toggle');
+  if (b) b.setAttribute('aria-expanded', String(regFiltersOpen()));
+}
 function regNarrowed(R){
   const st = R || regState();
   const q = (regScope()==='negotiations') ? '' : String(st.query||'').trim();
@@ -1398,8 +1461,11 @@ function renderRegisterBody(){
     document.getElementById('reg-flat')?.addEventListener('click',()=>{ const R=regState(); R.flat=!R.flat; renderRegisterBody(); }); }
   const pgr=document.getElementById('reg-pager'); if(pgr){ pgr.innerHTML=regPager(cs); wireRegPager(); }
   /* The search narrows from the shell bar, which repaints only this body — so
-     the way back has to follow it here rather than waiting for a full render. */
+     the way back, AND the sentence that says what is on screen, have to follow
+     it here rather than waiting for a full render. The list is handed over
+     rather than read again: one reading, one answer. */
   regPaintClear();
+  regPaintShowing(cs);
 }
 function regCloseMenus(){ document.querySelectorAll('#reg-tbody [data-menu-pop]').forEach(m=>m.style.display='none'); }
 function wireRegRows(){
@@ -1578,7 +1644,14 @@ function renderRegister(opts){
      dark answer and measures 9.59:1; the button beside it has read it since
      23 Aug and this control simply never did. The BORDER is fine either way
      (4.77:1) and is untouched. */
-  const selFilter=(id,opts,active,title,label)=>`<label class="reg-f"><span class="reg-f-l">${esc(label||title)}</span><select id="${id}" title="${title}" style="${selStyle};max-width:180px${active?';border-color:var(--color-accent);color:var(--accent-ink);font-weight:var(--w-strong)':''}">${opts}</select></label>`;
+  /* ---- A FILTER SAYS SO, POSITIVELY (16 Sep 2026) ----
+     `data-reg-filter` marks a control that NARROWS THE LIST, so the Showing
+     sentence above can name what is cutting the book without keeping a list of
+     the ones that are not — Sort and Density go through this same builder and
+     change what the rows LOOK like, never which rows there are. A negative
+     list would have to be kept in step with every control added later, which
+     is the fault this file keeps recording. `opts2.view` opts out. */
+  const selFilter=(id,opts,active,title,label,o2)=>`<label class="reg-f"><span class="reg-f-l">${esc(label||title)}</span><select id="${id}"${(o2&&o2.view)?'':' data-reg-filter'} title="${title}" style="${selStyle};max-width:180px${active?';border-color:var(--color-accent);color:var(--accent-ink);font-weight:var(--w-strong)':''}">${opts}</select></label>`;
   const stageOpts=REG_STAGES.map(s=>`<option value="${s.k}" ${R.stage===s.k?'selected':''}>${s.label}</option>`).join('');
   const typeOpts=regTypes().map(t=>`<option value="${t.k}" ${R.type===t.k?'selected':''}>${t.label}</option>`).join('');
   const viewOpts=`<option value="" ${R.view?'':'selected'}>${i18t('reg_quick_filters')}</option>`
@@ -2054,7 +2127,25 @@ function renderRegister(opts){
            then sort, full-text search (server mode) and the export — a single
            compact strip where three tiers of pills used to stack, so the table
            itself starts above the fold. -->
-      <div class="reg-filterbar" style="display:flex;flex-wrap:wrap;gap:var(--s-2) 10px;align-items:flex-end">
+      ${''/* ---- ONE SENTENCE, THEN THE BOXES BEHIND IT (16 Sep 2026) ----
+             The count is the register's own arithmetic (cs.length), the words
+             beside it are read off the controls after the paint, and the bar
+             itself is unchanged below — only folded. */}
+      ${''/* `reg-say`, NOT `reg-showing`: the footer's live region already holds
+             that id (see regFooterText's slot below), and getElementById
+             answers in document order — so the footer's own repaint wrote its
+             sentence over this one and took the Clear button with it. Two
+             elements with one id is how a "why did nothing happen" bug starts;
+             measured within the hour. */}
+      ${sectionStatementHtml({ id:'reg-say', title:i18t('reg_showing_word'),
+        lead:`<span id="reg-say-lead">${regShowingLead(cs)}</span>`,
+        rest:`<span id="reg-say-rest"></span>`,
+        acts:`<button id="reg-filters-toggle" type="button" class="ui-btn"
+            style="font-size:var(--t-label);padding:4px 11px" aria-expanded="false"
+            aria-controls="reg-filters">${esc(i18t('reg_change_shown'))}</button>
+          <span id="reg-clear-slot">${regClearHtml()}</span>` })}
+      <div id="reg-filters" class="reg-filterbar" style="display:flex;flex-wrap:wrap;gap:var(--s-2) 10px;align-items:flex-end"${
+        regFiltersOpen()?'':' hidden'}>
         ${lockChip}
         ${onlyChip}
         ${ftsBlock}
@@ -2081,7 +2172,6 @@ function renderRegister(opts){
                weight Fiori gives it. */}
         <button id="reg-adapt" type="button" title="${esc(i18t('reg_adapt_title'))}"
           style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink);background:none;border:0;cursor:pointer;padding:2px var(--s-1);align-self:flex-end;margin-bottom:7px">${esc(i18t('reg_adapt'))}</button>
-        <span id="reg-clear-slot">${regClearHtml()}</span>
         <span style="flex:1;min-width:8px"></span>
         ${''/* ---- SORT IS STACKED LIKE THE OTHER FIVE (owner-asked 25 Aug 2026:
                "stack Sort's label like the other five") ----
@@ -2107,8 +2197,11 @@ function renderRegister(opts){
                claim the book had been filtered when it has not.
                It goes through selFilter — the same builder as the other six —
                because one builder is what stops them drifting apart. */}
-        ${selFilter('reg-density',densityOpts,false,i18t('reg_density_title'),i18t('reg_density'))}
-        ${selFilter('reg-sort',sortOpts,false,i18t('reg_sort'))}
+        ${''/* NEITHER OF THESE NARROWS ANYTHING — they change what the rows look
+               like and what order they are in, so they are not named in the
+               Showing sentence. `{view:true}` is how they say so. */}
+        ${selFilter('reg-density',densityOpts,false,i18t('reg_density_title'),i18t('reg_density'),{view:true})}
+        ${selFilter('reg-sort',sortOpts,false,i18t('reg_sort'),null,{view:true})}
         ${''/* ---- AND NO NOTE UNDER THE SORT (M-5) ----
                Owner-reported in the same breath: *"remove the 'sorts within
                each group' writing."* It said that sorting on this page runs
@@ -2299,6 +2392,19 @@ function renderRegister(opts){
   document.getElementById('reg-view-sel')?.addEventListener('change',e=>{ R.view=e.target.value||null; R.page=1; regRepaint(); });
   document.getElementById('reg-only-clear')?.addEventListener('click',()=>{ R.only=null; R.page=1; regRepaint(); });
   wireRegClear();
+  /* ---- THE BOXES OPEN AND SHUT, AND THE SENTENCE IS PAINTED AFTER THEM ----
+     A CLASS FLIP, never a repaint: the reader's place in the table, the page
+     they are on and the sort they set all stay exactly where they were, which
+     is this page's own rule (keeps-your-place). The fold is per sitting and in
+     memory — it is a reading preference, not a fact about the book. */
+  document.getElementById('reg-filters-toggle')?.addEventListener('click',()=>{
+    const box=document.getElementById('reg-filters'); if(!box) return;
+    regSetFiltersOpen(!regFiltersOpen());
+    box.hidden=!regFiltersOpen();
+    regPaintShowing();
+  });
+  /* AFTER the controls are in the DOM, because it reads what they are set to. */
+  regPaintShowing();
 
   regWireColResize();
   regFitBandOffset();
@@ -2357,6 +2463,6 @@ function ftsSearch(q){
 Object.assign(window,{regSignedOn,regSignedYear,regSignedYears,regSignedCell,
   REG_COL_KEYS,REG_COL_KEYS_NEGO,REG_COL_W,REG_COL_W_NEGO,REG_COL_MIN_PX,
   regColWidths,regColSetWidths,regColReset,regColDefaults,regColTrade,regColApply,regWireColResize,
-  REG_CMP,REG_SORT_DEFDIR,regBlanksLast,regStreamName,regRefParts,regNarrowed,regClearHtml,regPaintClear,
+  REG_CMP,REG_SORT_DEFDIR,regBlanksLast,regStreamName,regRefParts,regNarrowed,regClearHtml,regPaintClear,regFiltersOpen,regSetFiltersOpen,regShowingRest,regShowingLead,regPaintShowing,
   REG_BAR_FILTERS,REG_BAR_DEFAULT,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,negoMoveSay,regShowOnly,renderRegister,renderRegisterBody,wireRegRows,
   regScope,regSetScope,regRepaint,regPageSize,regFitBandOffset,NEGO_BANDS,NEGO_BAND_DOT,negoGroupByMove,negoBandCounts,negoMovePillHtml,negoBandRowHtml});

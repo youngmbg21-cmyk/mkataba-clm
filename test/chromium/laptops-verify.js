@@ -161,6 +161,17 @@ const PROBE = () => {
        SIDEWAYS. A vertical scroll on a short laptop is the page working. */
     await page.evaluate(x => window.setView(x), 'dashboard');
     await page.waitForTimeout(500);
+    /* ---- EVERY SECTION OPEN, 16 SEP 2026 ---- Home is four named sections
+       and the Portfolio opens SHUT (its figures ride its head), so its four
+       tiles are not in the markup until somebody presses it. This claim is
+       about CLIPPING and sideways scroll, so it has to be asked of the page
+       with everything on it — the worst case, which is the case that matters
+       on a short laptop. */
+    await page.evaluate(() => {
+      const h = document.querySelector('[data-sec-toggle="hm.port"]');
+      if (h && h.getAttribute('aria-expanded') !== 'true') h.click();
+    });
+    await page.waitForTimeout(500);
     const fill = await page.evaluate(() => {
       const sc = document.getElementById('content-scroll');
       const pg = document.querySelector('.hm-page');

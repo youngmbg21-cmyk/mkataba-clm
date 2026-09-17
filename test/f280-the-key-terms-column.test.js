@@ -47,31 +47,51 @@ const TRIAGE = fs.readFileSync('js/triage.js', 'utf8');
 const I18N = fs.readFileSync('js/i18n.js', 'utf8');
 
 /* ---------------------------------------------------------------- 1 */
-test('f280 (1) a card in the Key terms column cannot be crushed', () => {
-  const rule = /\.terms-grid #kt-side > \*\{([^}]*)\}/.exec(HTML);
-  assert.ok(rule, 'the column states how its children size');
-  assert.match(rule[1], /flex:0 0 auto/,
-    'do not grow, DO NOT SHRINK — the card takes its content height');
+/* ---- REVERSED IN PLACE, 16 SEP 2026 ----
+   Both of these claims were about a SECOND COLUMN: cards in it could be
+   crushed below their own content height because they were flex children of a
+   column that scrolled, and the pair of rules (shrink 0 on the children,
+   overflow on the column) is what stopped a brief card's button drawing on top
+   of the family card beneath it.
+
+   THERE IS NO SECOND COLUMN NOW. The Overview is one stack of named sections
+   (owner-approved, "HaTi's Next Fifteen"): the renewal card leads it, the two
+   term sections follow, and the family and brief are sections at the foot.
+   Nothing is a flex child of anything, so nothing can be shrunk below its
+   content — the fault these two tests were written for cannot occur in this
+   layout, which is a better answer than a rule that prevents it.
+
+   WHAT IS ASSERTED INSTEAD is that the fix's own reasoning was not simply
+   thrown away: the retired rules are GONE rather than left to fight the new
+   ones, the stack exists, and the card's own inner rules — which are what let
+   a long list scroll inside whatever height a card ends up with — are
+   untouched. */
+test('f280 (1) nothing in the Overview is a flex child that can be crushed', () => {
+  assert.ok(!/\.terms-grid #kt-side > \*\{/.test(HTML),
+    'the shrink rule went with the column it was written for');
+  assert.ok(!/\.terms-grid\{/.test(HTML), 'and so did the column');
   /* THE OLD VALUE IS GONE rather than overridden further down: a second
      opinion about shrink is how this comes back. */
   assert.ok(!/#kt-side > \.kt-side-card\{[^}]*flex:0 1 auto/.test(HTML),
     'the shrinking rule it replaced is gone');
-  /* IT IS THE WHOLE COLUMN, not only .kt-side-card. #renewal-host is a plain
-     div and carried the default shrink of 1, so it could be crushed the same
-     way by a card added later. */
   assert.ok(!/#kt-side > \.kt-side-card\{/.test(HTML),
-    'the rule names every child, not one class of them');
+    'and no rule names one class of child rather than the column');
 });
 
 /* ---------------------------------------------------------------- 2 */
-test('f280 (2) and the column is still the thing that scrolls', () => {
-  /* THE OTHER HALF OF THE SAME CLAIM. Cards that cannot shrink are only safe
-     because the column they sit in can scroll — otherwise the fix would trade
-     an overlap for content pushed off the bottom of the page. */
-  const col = /\.terms-grid #kt-side\{([^}]*)\}/.exec(HTML);
-  assert.ok(col, 'the column has its own rule');
-  assert.match(col[1], /overflow-y:auto/, 'and it scrolls inside itself');
-  assert.match(col[1], /min-height:0/, 'with a bound to scroll inside');
+test('f280 (2) and the PANE is the thing that scrolls', () => {
+  /* THE OTHER HALF OF THE SAME CLAIM, moved up one level: the stack stops at
+     the page measure and takes its own content height, so whatever it grows to
+     the pane around it scrolls — which is what the two-column layout already
+     did below 980px. */
+  const stack = /\.ov-stack\{([^}]*)\}/.exec(HTML);
+  assert.ok(stack, 'the stack has its own rule');
+  assert.match(stack[1], /max-width:var\(--room-measure\)/,
+    'it fills the page measure and stops there');
+  assert.match(stack[1], /flex:0 0 auto/, 'and takes its own content height');
+  const CONTRACT = fs.readFileSync('js/views/contract.js', 'utf8');
+  assert.match(CONTRACT, /data-ws-pane="terms"[^>]*overflow-y:auto/,
+    'and the pane around it is what scrolls');
   /* THE CARD'S OWN INNER RULES ARE UNTOUCHED: a card is still a flex column so
      a list inside it can scroll within whatever height the card ends up with. */
   assert.match(HTML, /\.kt-side-card\{ display:flex; flex-direction:column; min-height:0; flex:1; \}/,

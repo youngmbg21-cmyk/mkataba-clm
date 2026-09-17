@@ -94,10 +94,15 @@ const QUESTION = 'why do I have a big workload runway today?';
     const drawn = await page.evaluate(() => {
       const d = window.pfWorkloadRunwayData();
       /* By its own card, not by its aria text: two runways are drawn on this
-         page and the label a reader sees is translated. */
-      const card = Array.from(document.querySelectorAll('#content div'))
-        .filter(el => (el.textContent || '').trim().indexOf(d.title) === 0 && el.querySelector('svg'))
-        .sort((a, b) => (a.textContent || '').length - (b.textContent || '').length)[0];
+         page and the label a reader sees is translated.
+         ---- RE-POINTED 16 SEP 2026 ---- Every panel is a SECTION now (the
+         shared grammar), so the title lives in the head's `.sec-t` and the head
+         carries a chevron svg of its own — the old walk over every `div` found
+         the head first, because it is the shortest match, and measured the
+         16x16 chevron as the chart. The panel's own body is `.pf-panel`. */
+      const sec = Array.from(document.querySelectorAll('#content .sec-box'))
+        .filter(el => ((el.querySelector('.sec-t') || {}).textContent || '').trim() === String(d.title).trim())[0];
+      const card = sec ? (sec.querySelector('.pf-panel') || sec) : null;
       const runway = card ? card.querySelector('svg') : null;
       const box = runway ? runway.getBoundingClientRect() : null;
       const titles = runway ? Array.from(runway.querySelectorAll('title')).map(t => t.textContent) : [];

@@ -37,6 +37,7 @@ const MODULES = [
   'js/versioning.js',
   'js/discuss.js',
   'js/negotiation.js',
+  'js/section.js',
   'js/precedent.js', 'js/ladder.js',
   'js/wordflow.js',
   'js/core.js',

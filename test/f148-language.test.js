@@ -620,12 +620,16 @@ describe('f148 — the shared renderers follow the language in both shells', () 
        ONE list, so the tab and the routing guard cannot come apart.
        NEGOTIATE IS STILL NOT ONE OF THEM: it left this row in Aug 2026 for a
        door of its own in the sidebar, and the workbench draws no row at all. */
+    /* AND REVERSED AGAIN 16 SEP 2026: the first tab is Overview. Its KEY is
+       still 'terms' — the address the product routes on — and the phone still
+       draws its own Key terms tab, which is why `tab_key_terms` is live in
+       both books rather than stale. */
     win.langSet('en', { repaint: false });
     assert.equal(strip(win.roomTabsHtml({}, 'docs')),
-      'Key terms Document Signing Obligations History');
+      'Overview Document Signing Obligations History');
     win.langSet('sv', { repaint: false });
     assert.equal(strip(win.roomTabsHtml({}, 'docs')),
-      'Nyckelvillkor Dokument Undertecknande Åtaganden Historik');
+      'Översikt Dokument Undertecknande Åtaganden Historik');
     assert.ok(!strip(win.roomTabsHtml({}, 'docs')).includes('Förhandla'));
   });
 

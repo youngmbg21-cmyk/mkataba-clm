@@ -69,6 +69,16 @@ const openKeyTerms = async (page, id) => {
      call, and the panel's visibility is what this file is here to measure. */
   await page.click('#ws-tabs [data-ws-tab="terms"]');
   await page.waitForTimeout(1200);
+  /* ---- AND THE STREAM ROW IS INSIDE `The record` (16 Sep 2026) ----
+     The tab is the Overview now: who a contract is with and where it is filed
+     are REFERENCE, so that group opens shut. Pressed, not toggled — this
+     helper runs several times in one sitting and the fold is remembered, so a
+     bare click would close it on the second call. */
+  await page.evaluate(() => {
+    const h = document.querySelector('[data-sec-toggle$=".record"]');
+    if (h && h.getAttribute('aria-expanded') !== 'true') h.click();
+  });
+  await page.waitForTimeout(700);
 };
 
 const seed = (id, name, folder, over = {}) => ({

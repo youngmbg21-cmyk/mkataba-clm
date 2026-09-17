@@ -1169,6 +1169,10 @@ function renderDashboard(){
      empty list is a press that makes the reader think they did something
      wrong. hmTile does that from the number itself, so it can never be
      forgotten on a tile added later. */
+  /* STALE SINCE 16 SEP 2026 — the section grammar's head replaced it (see the
+     page composition at the foot of this function). Kept, unused, because it
+     is the shape `.hm-sec` in the stylesheet still dresses and it is one line
+     to put back if the sections are ever reversed. */
   const hmSec=(title,extra)=>`
     <div class="hm-sec">
       <h2>${esc(title)}</h2><span class="hm-rule"></span>${extra||''}
@@ -1368,10 +1372,71 @@ function renderDashboard(){
   /* NOTHING PREPARED DRAWS NOTHING AT ALL — no heading, no empty state. An
      empty section that says so every morning is the furniture this rulebook
      keeps warning about, and the list below already has its own empty state. */
-  const deskSection=deskRows.length?`
-    ${hmSec(i18t('desk_sec'),`<span class="hm-desk-sub">${deskSub}</span>
-      <button type="button" class="hm-cz" data-desk-act="discard-all">${esc(i18t('desk_discard_all'))}</button>`)}
-    <div class="hm-rows" id="hm-desk-rows">${deskRows.map(deskRowHtml).join('')}</div>`:'';
+  const deskSection=(deskRows.length&&typeof sectionHtml==='function')
+    /* NO ACCENT BAR. A flat section's left border runs the whole height of the
+       list, and every row in this one already carries its own tone rule — so
+       the bar read as a bracket round work that is not itself urgent. Measured
+       on the page before it went. */
+    ? sectionHtml({ key:'hm.desk', title:i18t('desk_sec'), open:true, flat:true,
+        /* THE SAME SENTENCE, TWICE, AND ONLY ONE OF THEM IS EVER ON SCREEN.
+           "nothing was sent or filed" is a PROMISE this page makes about work
+           it did overnight, so it may not vanish when the section is open:
+           shut, it is the summary; open, it is the foot under the rows. */
+        summary:`<span class="hm-desk-sub">${deskSub}</span>`,
+        foot:`<span class="hm-desk-sub">${deskSub}</span>`,
+        body:`<div class="hm-rows" id="hm-desk-rows">${deskRows.map(deskRowHtml).join('')}</div>`,
+        acts:`<button type="button" class="hm-cz" data-desk-act="discard-all">${esc(i18t('desk_discard_all'))}</button>` })
+    : '';
+
+  /* ---- WORK FIRST, NUMBERS SECOND (owner-approved 16 Sep 2026, "HaTi's Next
+     Fifteen") ----
+     The page opened on eight figures and put the two lists of actual work
+     below them, so on a laptop a reader scrolled past the whole portfolio to
+     reach the first thing they could do. The order is the work now: what HaTi
+     prepared overnight, what is waiting on a decision, then your own four
+     numbers, then the book — which is REFERENCE and opens shut, with its
+     figures on its own head so nobody has to open it to read them.
+
+     THE SECTIONS ARE THE SHARED GRAMMAR (js/section.js), the same one the
+     contract Overview uses. Nothing about what any of these lists CONTAINS has
+     moved: the same builders, the same rows, the same ids, the same wiring
+     below. `hmSec` is STALE — the section head replaced it. */
+  const sec=(typeof sectionHtml==='function')?sectionHtml:null;
+  /* THE BOOK'S HEAD CARRIES ITS OWN FIGURES, borrowed from the very values the
+     four tiles are built from two dozen lines above, so the head and the tiles
+     can never state different numbers. Money obeys canViewValues by riding the
+     same `money` flag the lifecycle tile does. */
+  const portSum=[
+    money?`<b>${esc(fmtMoneyShort(valOf(live)))}</b> ${esc(i18t('home_active_value_sub').toLowerCase())}`:'',
+    esc(i18tn('home_live_by_stage',live.length,{n:live.length})),
+    `${compliancePct}% ${esc(i18t('home_playbook_conformance').toLowerCase())}`,
+    cov.total?`${Number(cov.unread).toLocaleString(jxLocale())} ${esc(i18t('home_still_to_read'))}`:'',
+  ].filter(Boolean).join(' &middot; ');
+  /* The four tiles the reader chose, named on the head so a shut section says
+     which numbers are behind it. KPI_META is the tiles' own label table. */
+  const workSum=kpiSel.map(id=>esc(String((window.KPI_META&&KPI_META[id])||id))).join(' &middot; ');
+  const workSec=sec?sec({ key:'hm.work', title:i18t('home_my_work'), open:true, flat:true,
+      summary:workSum,
+      body:`<div id="kpi-grid" class="hm-tiles is-work" data-kpi-cols="${kpiCols}">${workTiles}</div>
+        ${''/* A KEYBOARD AFFORDANCE NOBODY IS TOLD ABOUT IS ONE NOBODY USES.
+             Drawn for a screen reader only, because the cards already SAY
+             "drag to reorder" in the customizer's foot for everybody else. */}
+        <span id="kpi-reorder-hint" class="sr-only">${i18t('home_reorder_keys')}</span>`,
+      acts:`<button id="kpi-customize" class="hm-cz" title="${i18t('home_choose_metrics')}">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+        ${i18t('home_customize_metrics')}</button>` })
+    :'';
+  const portSec=sec?sec({ key:'hm.port', title:i18t('home_portfolio_sec'), open:false, flat:true,
+      summary:portSum,
+      body:`<div class="hm-tiles is-port">${portTiles}</div>` }):'';
+  /* A SHUT SECTION STILL ANSWERS: the count, and the first thing waiting. Both
+     are read off the very list the rows are drawn from. */
+  const ddSum=ddAll.length
+    ? [`<b>${esc(i18t('home_see_all',{n:ddAll.length}).replace(/^\S+\s/,''))}</b>`,
+        esc(String((ddAll[0]&&ddAll[0].txt)||'').replace(/<[^>]*>/g,''))].filter(Boolean).join(' &middot; ')
+    : esc(i18t('home_nothing_to_decide'));
+  const ddSec=sec?sec({ key:'hm.dd', title:i18t('home_needs_decision'), open:true, flat:true,
+      summary:ddSum, body:ddRows, acts:ddLink }):'';
 
   document.getElementById('content').innerHTML=`
   <div class="view-enter hm-page">
@@ -1386,25 +1451,10 @@ function renderDashboard(){
       </button>
     </div>
 
-    ${hmSec(i18t('home_my_work'),`
-      <button id="kpi-customize" class="hm-cz" title="${i18t('home_choose_metrics')}">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
-        ${i18t('home_customize_metrics')}
-      </button>`)}
-    <div id="kpi-grid" class="hm-tiles is-work" data-kpi-cols="${kpiCols}">${workTiles}</div>
-    ${''/* A KEYBOARD AFFORDANCE NOBODY IS TOLD ABOUT IS ONE NOBODY USES. Drawn
-         for a screen reader only, because the cards already SAY "drag to
-         reorder" in the customizer's foot for everybody else and a second
-         visible sentence under the row is furniture. */}
-    <span id="kpi-reorder-hint" class="sr-only">${i18t('home_reorder_keys')}</span>
-
-    ${hmSec(i18t('home_portfolio_sec'))}
-    <div class="hm-tiles is-port">${portTiles}</div>
-
     ${deskSection}
-
-    ${hmSec(i18t('home_needs_decision'),ddLink)}
-    ${ddRows}
+    ${ddSec}
+    ${workSec}
+    ${portSec}
   </div>`;
 
   // ---- wiring ----
@@ -1472,6 +1522,11 @@ function renderDashboard(){
     });
   });
   document.getElementById('kpi-customize')?.addEventListener('click',e=>{ e.stopPropagation(); openKpiCustomizer(e.currentTarget); });
+  /* THE SECTION HEADS OPEN AND SHUT, and the repaint is this page's own — the
+     grammar will not guess at a painter. Bound to `.hm-page`, which is written
+     fresh on every render, so there is one listener per paint and no stale
+     closure. The fold itself is in memory for this sitting only. */
+  if(window.sectionWire) sectionWire(document.querySelector('.hm-page'),()=>renderDashboard());
 
   /* ---- EVERY DOOR ON THIS PAGE GOES THROUGH ONE HANDLER ----
      One rule decides where each tile lands: it opens the list that would

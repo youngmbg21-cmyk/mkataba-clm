@@ -445,8 +445,14 @@ describe('F91 (1,2) — the Doc page header and its sub-navigation', () => {
        in the reader's language, and the label itself lives in js/i18n.js. The
        tab keys are what this test is really about and they have not moved. */
     const { STRINGS } = require('../js/i18n.js');
+    /* AND THE FIRST ONE IS THE OVERVIEW SINCE 16 SEP 2026. Its KEY is what
+       this block is really about and it has not moved: 'terms' is the address
+       every route, stored state and deep link is built on. Only the word
+       changed — the tab holds the whole record now, not the commercial terms
+       alone — and `tab_key_terms` is still live, because the PHONE draws its
+       own Key terms tab and was deliberately left alone. */
     [['docs', 'tab_document', 'Document'],
-      ['terms', 'tab_key_terms', 'Key terms'], ['sign', 'tab_signing', 'Signing'],
+      ['terms', 'tab_overview', 'Overview'], ['sign', 'tab_signing', 'Signing'],
       ['history', 'tab_history', 'History']].forEach(([k, key, english]) => {
       assert.ok(s.includes(`['${k}','${key}']`), `${english} is a tab, keyed '${k}'`);
       assert.equal(STRINGS.en[key], english, `and still reads "${english}" in English`);

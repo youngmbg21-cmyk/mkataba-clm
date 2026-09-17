@@ -518,9 +518,13 @@ describe('F273 — auto-triage on upload', () => {
         'exactly one mount');
       const terms = CONTRACT.indexOf('data-ws-pane="terms"');
       const slot = CONTRACT.indexOf('id="kt-triage-slot"');
-      const grid = CONTRACT.indexOf('class="terms-grid"', terms);
-      assert.ok(terms > 0 && slot > terms && slot < grid,
-        'between the pane opening and its grid');
+      /* The grid became one stack of sections on 16 Sep 2026 (the Overview);
+         the claim is the same one — the strip is ABOVE everything the tab
+         draws, and inside the terms pane, so it can never push the agreement
+         on the Document tab down. */
+      const stack = CONTRACT.indexOf('class="ov-stack"', terms);
+      assert.ok(terms > 0 && slot > terms && stack > slot,
+        'between the pane opening and the stack it leads');
     });
     test('the strip is drawn and wired in ONE place', () => {
       /* A second painter is how the strip and its dismiss come to disagree

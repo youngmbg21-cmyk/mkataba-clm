@@ -109,7 +109,12 @@ function loadViews(files, overrides = {}) {
      visible label reads through t() and every money formatter and governing-law
      sentence reads from the market pack, so a view evaluated without the pair
      throws — or worse, renders dictionary keys — on the first thing it draws. */
-  for (const f of ['js/i18n.js', 'js/jurisdiction.js', 'js/graphwhere.js'].concat(files)) {
+  /* js/section.js joins them (16 Sep 2026): five views compose their page out
+     of sectionHtml now, so a sandbox without it renders a page with no
+     sections in it at all — which looks like the view failing rather than the
+     harness being short a module. */
+  for (const f of ['js/i18n.js', 'js/jurisdiction.js', 'js/graphwhere.js',
+                   'js/section.js'].concat(files)) {
     // compiled once per process, see test/vmcache.js
     runFileInContext(path.join(__dirname, '..', f), sandbox, f);
   }

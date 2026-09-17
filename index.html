@@ -3057,7 +3057,9 @@
      980px, where two columns would leave the signature boxes too narrow to
      hold a drawn mark. */
   /* ---- KEY TERMS: THE FACTS, AND WHAT THEY COMMIT YOU TO ---- */
-  /* ---- THE TWO CARDS HAVE A DIVIDER BETWEEN THEM (owner-asked, 19 Aug 2026)
+  /* ---- THE TWO CARDS HAVE A DIVIDER BETWEEN THEM (owner-asked, 19 Aug 2026;
+     SUPERSEDED 16 Sep 2026 — see .ov-stack below. Kept because the reasoning
+     is what has to be re-read the day anybody puts a second column back.)
      ----
      "Keep the size of the card on the left intact and next changes the size.
      Add a divider between the two cards so that you can scroll on the right
@@ -3093,19 +3095,18 @@
      value at the other. 1440 is the design's own page width, so the cards fill
      the measure on every laptop this product is used on and stop growing
      exactly where the design stops describing them. */
-  .terms-grid{ display:grid;
-    grid-template-columns:minmax(0,1.15fr) var(--kt-gap,14px) minmax(0,1fr);
-    gap:0; max-width:var(--room-measure); width:100%; margin:0 auto;
-    /* A DEFINITE HEIGHT IS WHAT MAKES THE RIGHT COLUMN SCROLL. The pane is a
-       flex column; taking its height (flex:1, min-height:0) gives the grid a
-       bound to scroll inside instead of a height derived from its own tallest
-       card — which is the height a long renewal card would have grown without
-       limit. If the LEFT card outgrows that bound the pane scrolls, as it
-       always did. */
-    flex:1; min-height:0; }
-  .terms-grid > *:first-child{ align-self:start; }
-  .terms-grid #kt-side{ align-self:stretch; min-height:0; overflow-y:auto;
-    overscroll-behavior:contain; }
+  /* ---- AND ON 16 SEP 2026 THE TWO CARDS BECAME ONE STACK ----
+     The Overview is a column of named sections, so there is no split to set
+     and no second column to scroll inside: `.terms-grid`, `.kt-resizer` and
+     the stacking media query below them are STALE, and ktFitSplit /
+     ktWireSplit find no grid and stand down. The PANE is what scrolls, as it
+     did below 980px all along.
+     WHAT THE OLD RULES WERE PROTECTING still holds and is stated here: the
+     stack fills the page measure and stops at it, because a field row
+     stretched across an ultra-wide monitor is a label at one end and its value
+     at the other. */
+  .ov-stack{ max-width:var(--room-measure); width:100%; margin:0 auto;
+    flex:0 0 auto; min-width:0; }
   /* THE COLUMN TAKES THE HEIGHT; THE CARD IN IT TAKES ITS CONTENT. Measured on
      the real page: with the card stretched as well, a short Agreement family
      card became a floor-to-ceiling box with a paragraph at the top of it. The
@@ -3141,7 +3142,6 @@
      later. Nothing in this column has an inner scroller that relies on being
      shrunk — the obligations list, which did, left for the Checks card in
      August. */
-  .terms-grid #kt-side > *{ flex:0 0 auto; }
   /* The handle sits IN the gap it is dividing: it is the whole middle track, so
      there is no separate gutter to keep in step with it. Its grab area is the
      track's full width and the line it draws is 1px in the middle of that. */
@@ -3149,27 +3149,6 @@
      the field. text-transform applies to the placeholder as well, and an inline
      style has no way to say "not that". */
   #st-fx-code::placeholder{ text-transform:none; }
-  .kt-resizer{ position:relative; cursor:col-resize; align-self:stretch;
-    background:none; border:0; padding:0; touch-action:none; }
-  .kt-resizer::before{ content:''; position:absolute; top:2px; bottom:2px;
-    left:50%; width:1px; margin-left:-0.5px; background:var(--color-divider);
-    border-radius:var(--radius); transition:background var(--dur-1), width var(--dur-1); }
-  .kt-resizer:hover::before,.kt-resizer:focus-visible::before,
-  .kt-resizer[data-drag]::before{ background:var(--color-accent); width:3px; margin-left:-1.5px; }
-  .kt-resizer:focus-visible{ outline:2px solid var(--color-accent); outline-offset:-2px; }
-  /* AND IT SAYS WHEN IT WILL NOT GO FURTHER — the negotiation divider's own
-     rule: a splitter that stops following the cursor in silence reads as
-     broken exactly when somebody is pushing hardest at it. */
-  .kt-resizer[data-kt-at-limit]::before{ background:var(--st-amber-dot,#f59e0b); width:3px; margin-left:-1.5px; }
-  @media (max-width:980px){
-    /* Stacked: one column, no divider, and the pane scrolls as one page again —
-       there is no split to set and no second column to scroll inside. */
-    .terms-grid{ grid-template-columns:1fr !important; max-width:640px; gap:14px;
-      flex:0 0 auto; }
-    .terms-grid > *:first-child{ align-self:stretch; }
-    .terms-grid #kt-side{ overflow-y:visible; align-self:stretch; }
-    .kt-resizer{ display:none; }
-  }
   /* ---- A SUMMARY THAT BECOMES A FORM ONE ROW AT A TIME ----
      Values read as values. The row lights faintly on hover to say it can be
      changed, and only the row you press turns into a field. */
@@ -3226,20 +3205,130 @@
      The cap is on the ROWS so the head and the two buttons stay put. 322px is
      four rows and the top of a fifth: a list that ends flush at its boundary
      looks finished, and one that is visibly cut mid-row says "keep going". */
-  /* ---- THE TWO CARDS NO LONGER SQUARE OFF, AND THAT IS A REVERSAL ----
-     (owner-asked 19 Aug 2026: "keep the size of the card on the left intact".)
-     They were stretched to a common height so neither half of the screen ended
-     in mid-air. That was right while the right-hand slot held a short list; it
-     is wrong now that it can hold a paragraph of renewal reasoning, because the
-     card that grows would drag Key terms up with it. The RIGHT-hand column
-     stretches and scrolls inside itself (see .terms-grid above), and the left
-     card is its own height again.
-     The .kt-side-card rules below are unchanged and still do their own job:
-     the card fills the column it was given and the list inside it scrolls. */
-  .terms-grid{ align-items:start; }
+  /* The card rules below are UNCHANGED and still do their own job: the brief
+     and family cards fill the section they were given and their lists scroll
+     inside them. What they were squaring off against — a second column — is
+     what went on 16 Sep; the cards themselves are exactly as they were. */
   .kt-side-card{ display:flex; flex-direction:column; min-height:0; flex:1; }
   .kt-side-card > div{ display:flex; flex-direction:column; min-height:0; flex:1; }
   .ob-list{ flex:1; min-height:120px; max-height:322px; overflow-y:auto; padding-right:var(--s-1); }
+
+  /* ============================================================
+     THE SECTION GRAMMAR (16 Sep 2026) — js/section.js draws it; this
+     dresses it. Shared by the contract Overview, Home, Contracts,
+     Requests and Insights, so a rule written here reaches all five and
+     none of them may restate it.
+
+     Every value is a token. The head is one --ctl-h-ish row whether or
+     not the section can be shut, so a page of sections has an even
+     rhythm; the chevron is the only thing that says "this opens".
+     ============================================================ */
+  .sec-box{ background:var(--color-surface); border:1px solid var(--color-divider);
+    box-shadow:var(--shadow-sm); border-radius:var(--radius); margin-bottom:10px; min-width:0; }
+  .sec-box.has-accent{ border-left-width:3px; border-left-style:solid; }
+  .sec-box.is-flat{ background:none; border:0; box-shadow:none; margin-bottom:0; }
+  .sec-head{ display:flex; align-items:center; gap:12px; padding:10px 16px; min-width:0; }
+  .sec-head[data-sec-toggle]{ cursor:pointer; }
+  .sec-head.is-open{ border-bottom:1px solid var(--rule-faint); }
+  .sec-head:focus-visible{ outline:2px solid var(--color-accent); outline-offset:-2px; }
+  .sec-t{ margin:0; font-size:var(--t-card); font-weight:var(--w-strong);
+    font-family:var(--font-heading); flex:none; }
+  /* RULE 2 LIVES HERE: the summary is what a shut section answers with, so it
+     takes the room and elides rather than wrapping the head onto two lines. */
+  .sec-sum{ font-size:var(--t-meta); color:var(--color-neutral-600); flex:1; min-width:0;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .sec-sum b, .sec-sum strong{ color:var(--color-text); font-weight:var(--w-strong); }
+  .sec-chev{ flex:none; color:var(--color-neutral-500); transform:rotate(-90deg);
+    transition:transform var(--dur-1) var(--ease-exit, ease); }
+  .sec-chev.is-open{ transform:none; }
+  .sec-chip{ flex:none; font-size:var(--t-label); font-weight:var(--w-strong);
+    border-radius:var(--radius); padding:2px 8px; white-space:nowrap; }
+  .sec-chip-amber{ background:var(--st-amber-bg); color:var(--st-amber-fg); }
+  .sec-chip-ruby{ background:var(--st-ruby-bg); color:var(--st-ruby-fg); }
+  .sec-chip-green{ background:var(--st-green-bg); color:var(--st-green-fg); }
+  .sec-chip-steel{ background:var(--st-steel-bg); color:var(--st-steel-fg); }
+  .sec-chip-gray{ background:var(--st-gray-bg); color:var(--st-gray-fg); }
+  /* RULE 4: label above value, four to a row, and the caller never states a
+     column count — the grid narrows on its own. */
+  .sec-fields{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:12px 24px; padding:12px 16px 14px; }
+  .sec-f{ min-width:0; }
+  .sec-f-l{ display:block; font-size:var(--t-micro); font-weight:var(--w-title);
+    letter-spacing:.09em; text-transform:uppercase; color:var(--color-neutral-600);
+    margin-bottom:1px; }
+  .sec-f-v{ display:flex; align-items:baseline; gap:6px; min-width:0;
+    font-size:var(--t-body); font-weight:var(--w-strong); }
+  .sec-f-v.is-none{ color:var(--color-neutral-500); font-weight:var(--w-body); }
+  .sec-f-c{ font-style:normal; font-family:var(--font-code); font-size:var(--t-label);
+    font-weight:var(--w-body); color:var(--accent-ink); border:1px solid var(--color-accent-200);
+    background:var(--color-accent-50); border-radius:var(--radius); padding:0 5px; flex:none; }
+  .sec-acts{ display:flex; gap:8px; flex-wrap:wrap; padding:0 16px 13px; }
+  .sec-foot{ margin:0; padding:0 16px 13px; font-size:var(--t-label);
+    color:var(--color-neutral-600); }
+  .sec-body{ padding:12px 16px 14px; }
+  .sec-body > :first-child{ margin-top:0; }
+  .sec-body > :last-child{ margin-bottom:0; }
+  /* RULE 5: a row of controls becomes one sentence. */
+  .sec-say{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; min-width:0; }
+  .sec-say-lead{ font-size:var(--t-meta); font-weight:var(--w-strong); flex:none; }
+  .sec-say-rest{ font-size:var(--t-meta); color:var(--color-neutral-600); flex:1;
+    min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .sec-say-acts{ display:flex; gap:8px; flex:none; align-items:center; }
+  @media (max-width:1180px){ .sec-fields{ grid-template-columns:repeat(3,minmax(0,1fr)); } }
+  @media (max-width:900px){ .sec-fields{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  @media (max-width:640px){
+    .sec-fields{ grid-template-columns:1fr; }
+    .sec-head{ flex-wrap:wrap; row-gap:6px; }
+    .sec-sum{ flex-basis:100%; order:3; white-space:normal; overflow:visible; }
+    .sec-say-rest{ flex-basis:100%; white-space:normal; overflow:visible; }
+  }
+  @media (prefers-reduced-motion:reduce){ .sec-chev{ transition:none; } }
+  /* ---- THE OVERVIEW'S OWN BODIES ----
+     A section's body is whatever the caller built, so anything that is not a
+     .sec-fields grid states its own inset here rather than in a style="" on
+     the markup. The row lists keep their 16px, and a card drawn `bare` inside
+     a section draws no second card round itself. */
+  #kt-rows, #kt-rows-record{ padding:10px 16px 2px; }
+  .sec-box .kt-side-card{ border:0; box-shadow:none; background:none; }
+  /* The renewal card leads the stack as itself, so it takes the same gap a
+     section takes — otherwise it and The deal read as one box. */
+  #kt-ov-lead:not(:empty){ display:block; margin-bottom:10px; }
+  /* ---- A FLAT SECTION IS A HEAD AND WHAT IS UNDER IT ----
+     Home's rows and tiles are already cards, so their sections draw none: the
+     head replaces the old `.hm-sec` rule and the list keeps the page's own
+     rhythm. The accent bar survives the flattening BY SPECIFICITY — `.is-flat`
+     sets `border:0` and is written after `.has-accent`, so the pair is
+     restated here at (0,3,0) rather than fought with !important. */
+  .sec-box.is-flat{ margin:9px 0 var(--s-1); }
+  .sec-box.is-flat > .sec-head{ padding:0; gap:10px; }
+  .sec-box.is-flat > .sec-head.is-open{ border-bottom:0; }
+  .sec-box.is-flat > .sec-head > .sec-t{ font-size:var(--t-body);
+    font-weight:var(--w-title); line-height:1.25; }
+  .sec-box.is-flat.has-accent{ border-left-width:3px; border-left-style:solid;
+    padding-left:11px; }
+  /* A HEAD THAT CANNOT BE OPENED HAS NOWHERE ELSE TO PUT ITS SENTENCE, so it
+     wraps rather than elides. The ellipsis is right on a foldable head — the
+     rest is one press away — and wrong here, where the press does not exist:
+     measured, the Insights notice lost its last eight words. */
+  .sec-head:not([data-sec-toggle]) > .sec-sum{ white-space:normal; overflow:visible;
+    text-overflow:clip; line-height:1.5; }
+  /* The rule that used to run from the heading to the edge of the page. It is
+     the summary's job now where there is one, so it is drawn only where the
+     head has nothing else to say. */
+  /* ---- THE REQUESTS PAGE'S ROWS ---- one section per request; the ask and
+     the requester's note are prose inside it, so they state their own inset
+     rather than every row carrying a style="". */
+  .ik-list{ display:flex; flex-direction:column; gap:9px; }
+  .ik-list .sec-box{ margin-bottom:0; }
+  .ik-ref{ padding:10px 16px 0; font-size:var(--t-label);
+    color:var(--color-neutral-600); font-family:var(--font-mono); }
+  .ik-body{ padding:6px 16px 2px; }
+  .ik-need{ margin:0; font-size:var(--t-meta); line-height:1.55;
+    color:var(--color-neutral-700); white-space:pre-wrap; }
+  .ik-note{ margin:4px 0 0; font-size:var(--t-label); font-style:italic;
+    color:var(--color-neutral-600); }
+  .sec-box.is-flat > .sec-head > .sec-sum:empty{ border-bottom:1px solid var(--color-divider);
+    align-self:center; height:1px; }
   /* ---- THE OBLIGATIONS CARD IN THE SIDE PANEL ----
      It is the same card, moved whole, into openSidePanel's 400px host. Two
      things that were right in a stretched column are wrong in a panel that

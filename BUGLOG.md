@@ -14468,3 +14468,117 @@ NOTICED, NOT FIXED
   its number - so a contents row is the one mirrored block whose textContent no
   longer matches the paper's byte for byte. Deliberate: the tab is a tab stop, a
   layout instruction, not a word.
+
+================================================================================
+2026-09-16/17 — ONE PAGE OF NAMED SECTIONS, ON FIVE SCREENS
+(owner-approved: "HaTi's Next Fifteen" and "Six Screens, One Grammar";
+ the order was "implement 1, 2, 3 (the updated version), 5, and 6.
+ Leave 4 alone for now." — Home, Contracts, the contract Overview,
+ Insights and Requests; Obligations untouched.)
+================================================================================
+
+BUILT
+- js/section.js is the one grammar, a pure builder: no route, no store, no
+  field, nothing persisted. Five rules — name the group; a shut group still
+  answers; open what is acted on; label above value with an em-dash for
+  silence; a row of controls becomes one sentence. Registered in js/app.js,
+  test/world.js, test/portalworld.js, test/dom.js and four chromium harnesses.
+- THE CONTRACT ROOM'S FIRST TAB IS NAMED Overview. The KEY stays 'terms',
+  because that is the address every route, deep link and stored state is built
+  on; only the word moved. tab_key_terms is still LIVE — the phone draws its
+  own Key terms tab and was deliberately left alone.
+- The tab is one stack: the renewal card leads unwrapped (it names itself),
+  then The deal (open) and The record (shut) — both drawn by ktTermsRowsHtml
+  with opts.only, ONE row builder in the caller's order — then Related
+  agreements and What Copilot read, each hosting the card it always hosted,
+  drawn bare so its name is said once. Payment terms, the notice period,
+  governing law, the liability cap, the price-review basis and the category
+  are FIELDS on the page for the first time, read off c.metadata through
+  META_FIELDS' own labels; nothing is guessed and an absent key draws a dash.
+- Home leads with work: Prepared for you, Needs your decision, My work, then
+  the Portfolio SHUT with its four figures on its own head, borrowed from the
+  very values the tiles are built from.
+- Contracts states itself: one sentence above the table, the boxes behind
+  "Change what is shown". The sentence is read off the CONTROLS, so it and
+  they cannot disagree; data-reg-filter marks a control that NARROWS, and Sort
+  and Density say view:true because they change what rows look like, not
+  which rows there are.
+- Requests are rows that open; the first of the editor's queue opens by itself.
+- Every Insights panel is a section stating its finding, through pfCard, the
+  one builder — so the fold reaches all of them and none can drift. The
+  "cannot be grouped yet" amber band is a section ROW now, same words, same
+  act, without the full-width alarm.
+
+MEASURED, in a real Chrome on a seeded book
+- The Overview at 1440x900: the whole record on one screen, no scroll, with
+  The record, Related agreements and What Copilot read shut. Opening all four
+  sections needs 1166px and the pane scrolls, as it always did below 980px.
+- Contracts: the table's first row starts 210px down with the boxes folded.
+- Requests: four rows and the first one open, in 330px.
+
+DEFECTS FOUND AND FIXED ON THE WAY
+- sectionWire's press did nothing at all on a section drawn SHUT: sectionToggle
+  with no default assumes open, so the first press computed !open === shut.
+  The press reverses what aria-expanded SAYS now — the head was drawn with the
+  state it is in, so reading it back is exact by construction.
+- #reg-showing was already the register FOOTER's live region. getElementById
+  answers in document order, so the footer's own repaint wrote its sentence
+  over the new one and took the Clear button with it. Renamed to #reg-say.
+- The Requests page put two elements with one id on screen and one fold key on
+  two rows: an editor's own request is in BOTH lists. The key carries the list
+  and the row draws no id.
+- The Where-the-value-sits finding was blank on a real book: the biggest pile
+  is routinely the one with NO category, whose key is the empty string, and a
+  truthiness test on it silently drew nothing.
+
+REVERSED, AND SAID OUT LOUD
+- The two-card split on Key terms and the divider between them (owner-asked
+  19 Aug 2026) are gone: a stack has no split to set. .terms-grid, #kt-resizer
+  and the CSS that dressed them are STALE; ktFitSplit and ktWireSplit stand
+  down at their first guard and are KEPT, because they are the mechanism the
+  negotiation page's and the template builder's dividers are ports of.
+- readTermsHtml is a return-empty stub and ct_terms_in_wording is inert in both
+  books: it pointed at the Document tab for three facts now printed above it.
+- A summary is drawn only while a FOLDABLE section is shut. A head that cannot
+  be opened always draws it, and wraps rather than elides — there is nowhere
+  else for its sentence to go.
+
+THE COLOUR CENSUS
+- Four entries re-recorded BY HAND, two colours, audited as a set difference
+  and written up in theme-tokens-verify's own head: dashboard loses one grey
+  (the Portfolio tiles are not in the markup until the section is pressed) and
+  register gains the accent-at-45% edge of an ordinary .ui-btn. --save was NOT
+  used: it would have absorbed the thirteen entries that were already red.
+  27/40, exactly the number before this work.
+
+TESTS
+- Full node suite green: 7231 tests, 1433 suites, 0 fail. Lint 0 errors.
+- Browser set 82 of 108 green, against 78 before this work.
+- Reversed in place, each with the ruling beside it: f176 (three claims),
+  f280 (1)(2), f178, f273, f274, f91, f148, f3.
+- Browser files re-pointed: amendment-journey, auto-triage, home-page,
+  white-band-and-tabs, insights-panels, laptops, six-fixes, type-and-symbols,
+  refile-a-contract, share-recipient, playbook-opens-read. Each was run at
+  unmodified HEAD in a worktree first, so "already broken" is proved, never
+  asserted.
+
+NOTICED, NOT FIXED
+- white-band-and-tabs-verify 5d/5e (the register list titles compute a 20px
+  line box against the reading switch's 19.6px) are red at unmodified HEAD and
+  are left exactly as they were. They need a density ruling, not a drive-by.
+- The 26 browser files still red after this run — competing-redlines,
+  calendar-redesign, counterparty-reading-and-more, flat-rows-and-alerts,
+  ladder, nego-redesign, laptops, negotiation-memo, negotiations-door,
+  obligations-tab, paper-grows, portal-header-verbs, phone, redline,
+  reopen-a-refusal, room-order-and-notices, selection, round-delivery,
+  settled-ask-reopen, standard-paper, signing-on-paper, six-fixes,
+  tracked-changes-scroll, type-treatments-shots, theme-tokens,
+  upload-structure — were every one of them run at unmodified HEAD and fail
+  there identically.
+- The phone's contract tab is still the old one-column Key terms. It is a
+  separate renderer and was deliberately left alone; tab_key_terms is live for
+  it. The counterparty's page and Obligations are untouched by the owner's own
+  instruction.
+- "Fill from document" was an English literal in the markup rather than a
+  dictionary call. It was on the line being rewritten, so it became
+  ct_fill_from_doc rather than being left as a fault beside a fix.

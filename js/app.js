@@ -5,6 +5,7 @@ import './components.js';
 import './templates.js';
 import './jurisdiction.js'; // where this workspace operates: law, money, which statute checks apply
 import './graphwhere.js';   // the graph's structured filter, one predicate for both hosts (Copilot audit phase 4)
+import './section.js';      // the section grammar: one way of grouping a screen (16 Sep 2026)
 import './core.js';
 import './docx.js';
 import './richdoc.js';

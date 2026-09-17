@@ -66,6 +66,15 @@ for (let i = 1; i <= 12; i++)
        ============================================================ */
     await page.evaluate(() => setView('dashboard'));
     await pause(900);
+    /* Home's Portfolio section opens SHUT since 16 Sep 2026 (its figures ride
+       its head), so its four fixed tiles are not in the markup until it is
+       pressed. This block measures ALL EIGHT cards against each other, so it
+       opens it first. */
+    await page.evaluate(() => {
+      const h = document.querySelector('[data-sec-toggle="hm.port"]');
+      if (h && h.getAttribute('aria-expanded') !== 'true') h.click();
+    });
+    await pause(500);
     await page.screenshot({ path: path.join(OUT, '01-home.png') });
 
     const cards = await page.evaluate(() => {

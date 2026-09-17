@@ -357,7 +357,12 @@ function openLinkModal(c, onDone, opts={}){
 /* ---------- the family panel on a contract workspace ----------
    Shows where this document sits, which amendment set the live term, and both
    directions of the manual link. */
-function renderFamilySection(c){
+/* `opts.bare` drops the card's own head row, for the Overview's Related
+   agreements section, which already carries the name (16 Sep 2026). The acts
+   and every row are untouched; a caller that passes nothing gets exactly the
+   card this function has always drawn. */
+function renderFamilySection(c,opts){
+  const bare=!!(opts&&opts.bare);
   const host=document.getElementById('family-section'); if(!host) return;
   if(!c){ host.innerHTML=''; return; }
   const kids=familyChildren(c.id), parent=familyParent(c);
@@ -388,9 +393,9 @@ function renderFamilySection(c){
   }
   host.innerHTML=`
     <div style="padding:var(--s-4) 18px">
-      <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-1)">
-        <span style="color:var(--color-accent)">${icon('link','w-4 h-4')}</span>
-        <h4 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-card);margin:0">${i18t('fa_agreement_family')}</h4>
+      <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-1)${bare&&!(canEdit()&&parent)?';display:none':''}">
+        ${bare?'':`<span style="color:var(--color-accent)">${icon('link','w-4 h-4')}</span>
+        <h4 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-card);margin:0">${i18t('fa_agreement_family')}</h4>`}
         <span style="flex:1"></span>
         ${(canEdit()&&parent)
           ? `<button id="fam-unlink" style="${btn};border-color:var(--st-ruby-line);color:var(--st-ruby-fg)">${i18t('fa_unlink')}</button>`:''}

@@ -170,9 +170,16 @@ const REVIEW = {
     check('nor the heading and footnote it sat under',
       !/Quoted from the clause/i.test(kt.text) && kt.rows === 0,
       `${kt.rows} read-out row(s)`);
-    check('but it still says where those terms are',
-      /Governing law, the liability cap and the payment terms are in the wording, not in this panel/.test(kt.text)
-      && /<b>Document<\/b>/.test(kt.html));
+    /* ---- REVERSED IN PLACE, 16 SEP 2026 ---- The sentence pointed at the
+       Document tab for governing law, the liability cap and the payment terms
+       because this panel did not carry them. The Overview does: they are
+       FIELDS on The deal, read straight off the record. So the signpost went —
+       it would be sending a reader to another tab for a fact printed above it
+       — and what is asserted instead is that the terms it named are really
+       here, which is the stronger form of the same claim. */
+    check('but the terms it pointed at are ON this page now',
+      !/not in this panel/.test(kt.text)
+      && /Governing law/i.test(kt.text) && /Payment terms/i.test(kt.text));
 
     /* ================================================================
        ONE DOOR ONTO ADDING A CLAUSE, AND A CLAUSE IS NEVER ADDED TWICE

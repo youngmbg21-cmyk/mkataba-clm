@@ -531,8 +531,9 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
       tabsSeen.map(t => `${t.tab}:${t.drawn ? 'drawn' : 'hidden'}/${t.text}`));
 
     await page.evaluate(() => {
-      const t = [...document.querySelectorAll('.room-tab')]
-        .find(x => /key terms/i.test(x.textContent)); if (t) t.click();
+      /* The first tab is the Overview since 16 Sep 2026; its KEY is still
+         'terms', which is what this reaches for rather than a word. */
+      const t = document.querySelector('.room-tab[data-room-tab="terms"]'); if (t) t.click();
     });
     await pause(1600);
     await page.screenshot({ path: path.join(OUT, '09-keyterms.png') });
@@ -541,11 +542,15 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
         const r = e.getBoundingClientRect();
         return { x: Math.round(r.x), w: Math.round(r.width), y: Math.round(r.y) }; };
       const row = document.querySelector('.room-tabrow');
-      return { grid: bx('.terms-grid'), pane: bx('[data-ws-pane="terms"]'),
+      return { grid: bx('.ov-stack'), pane: bx('[data-ws-pane="terms"]'),
         tabrowBottom: row ? Math.round(row.getBoundingClientRect().bottom) : null };
     });
 
-    check('8b the cards start right under the tab row, with no band between',
+    /* `.terms-grid` became `.ov-stack` on 16 Sep 2026 — one column of named
+       sections in place of two cards and a divider. Both claims are unchanged:
+       nothing sits between the tab row and the first thing the tab draws, and
+       what it draws fills the page measure. */
+    check('8b the sections start right under the tab row, with no band between',
       kt.grid && kt.tabrowBottom != null && (kt.grid.y - kt.tabrowBottom) < 24,
       { tabrowBottom: kt.tabrowBottom, cardsTop: kt.grid && kt.grid.y,
         gap: kt.grid && (kt.grid.y - kt.tabrowBottom) });

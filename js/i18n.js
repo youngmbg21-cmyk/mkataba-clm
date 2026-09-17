@@ -164,6 +164,13 @@ const STRINGS = {
     tab_document: 'Document',
     tab_negotiate: 'Negotiate',
     tab_key_terms: 'Key terms',
+    /* ---- THE TAB IS NAMED AFTER THE PAGE IT IS (16 Sep 2026) ----
+       The desktop room's first tab holds the whole record now \u2014 the deal, the
+       filing, the family and what Copilot read \u2014 so it is named for that.
+       `tab_key_terms` is KEPT and still drawn: the PHONE draws its own Key
+       terms tab and was deliberately left alone, so the key is live, not
+       stale. */
+    tab_overview: 'Overview',
     tab_signing: 'Signing',
     tab_obligations: 'Obligations',
     tab_history: 'History',
@@ -320,6 +327,13 @@ const STRINGS = {
     reg_col_counterparty: 'Counterparty',
     reg_col_actions: 'Actions',
     reg_clear: 'Clear',
+    /* ---- THE FILTER BAR STATES ITSELF (16 Sep 2026) ----
+       One sentence above the table saying what is on screen, with the boxes
+       behind the act that changes them. `reg_showing` is the FOOTER's own
+       sentence and is untouched; this is the head's word. */
+    reg_showing_word: 'Showing',
+    reg_change_shown: 'Change what is shown',
+    reg_only_chip: 'a chosen list',
     reg_only_title: 'This list is narrowed to a set sent here from another screen. Everything else still filters within it.',
     reg_only_clear: 'Show the whole register again',
     reg_only_fallback: 'A chosen set',
@@ -1353,6 +1367,34 @@ const STRINGS = {
     ct_refile_done: 'Moved to {to}',
     ct_read_from_doc: 'Read from the document',
     ct_terms_in_wording: 'Governing law, the liability cap and the payment terms are in the wording, not in this panel. The playbook review on the <b>Document</b> tab reads them out and quotes the clause it found each one in.',
+
+    /* ---- THE OVERVIEW'S SECTION NAMES (16 Sep 2026) ----
+       One tab, five named groups. The names are what a reader scans, so they
+       are nouns for the thing inside, never instructions. A shut group still
+       answers: `*_sum` is the one line its head carries when it is folded. */
+    ov_renewal: 'Renewal decision',
+    ov_deal: 'The deal',
+    ov_deal_sum: 'What was agreed \u2014 value, dates, payment terms and the rest',
+    ov_deal_foot: 'Read from the wording, not typed. An em-dash means the agreement says nothing.',
+    ov_record: 'The record',
+    ov_record_sum: 'Who it is with, where it is filed, and who raised it',
+    ov_related: 'Related agreements',
+    ov_related_sum: 'Amendments, order forms and the agreement above this one',
+    ov_copilot: 'What Copilot read',
+    ov_copilot_sum: 'The brief, and what the readings found',
+    ov_wording: 'From the wording',
+    ov_filed: 'Filed',
+    ct_fill_from_doc: 'Fill from document',
+    /* ---- THE FIELD LABELS ARE BORROWED, NOT WRITTEN AGAIN ----
+       Payment terms, the notice period, governing law, the liability cap, the
+       category and the renewal kind are all in META_FIELDS already, each with
+       its own translated label and (for the closed lists) metaOptLabel beside
+       it. The Overview asks those, so the same fact cannot be called two
+       things on two screens. These three are the ones nothing else names. */
+    ov_f_owner: 'Owner',
+    ov_f_raised: 'Raised',
+    ov_f_reference: 'Reference',
+    ov_read_playbook: 'Read it against your playbook',
     ct_risk: 'Risk',
     ct_go_to_checks: 'Go to the checks &rarr;',
     ct_recompute_fingerprints: 'recompute every fingerprint',
@@ -3190,6 +3232,10 @@ const STRINGS = {
     ik_f_need: "Tell them what it is for",
     ik_f_need_ph: "Who it is with, what they will do for us or we for them, anything already agreed, and when you need it by.",
     ik_f_who: 'Who is it with? (optional)',
+    /* The two facts on an opened request that nothing else in the product
+       names. The other two are borrowed from the register (16 Sep 2026). */
+    ik_f_raised_by: 'Raised by',
+    ik_f_raised_on: 'Raised',
     ik_f_stream: 'Value stream (optional)',
     ik_f_stream_unsure: "Not sure — let them decide",
     ik_send: "Send the request",
@@ -4442,6 +4488,7 @@ const STRINGS = {
     rep_weekly_btn: 'Weekly review',
     rep_weekly_size: 'Size',
     pf_uncounted_head: '{n} contracts cannot be grouped yet.',
+    pf_uncounted_title: 'Not yet grouped',
     pf_uncounted_body: 'They were filed before HaTi could read a category off a document, so they fall out of every figure that groups by one. Reading them takes a moment each and you confirm every answer.',
     pf_uncounted_fix: 'Read them now',
     pf_workload_runway: 'The workload runway',
@@ -4544,6 +4591,9 @@ const STRINGS = {
     pf_in_focus: 'in focus',
     pf_focused_on: 'Focused on',
     pf_where_value: 'Where the value sits',
+    /* The finding a shut panel answers with (16 Sep 2026). Every value in it
+       is one the bars beneath already drew. */
+    pf_where_finding: '{pct}% of the book \u2014 {v} \u2014 sits in {name}',
     pf_where_foot: 'Read off the contracts themselves. Click a row to hold the whole page to it.',
     pf_values_hidden: 'Values are hidden for your account.',
     pf_ranked_by_count: 'Ranked by number of contracts instead.',
@@ -6879,6 +6929,7 @@ const STRINGS = {
     tab_document: 'Dokument',
     tab_negotiate: 'Förhandla',
     tab_key_terms: 'Nyckelvillkor',
+    tab_overview: 'Översikt',
     tab_signing: 'Undertecknande',
     tab_obligations: 'Åtaganden',
     tab_history: 'Historik',
@@ -7028,6 +7079,9 @@ const STRINGS = {
     reg_col_counterparty: 'Motpart',
     reg_col_actions: 'Åtgärder',
     reg_clear: 'Rensa',
+    reg_showing_word: 'Visar',
+    reg_change_shown: '\u00c4ndra vad som visas',
+    reg_only_chip: 'en vald lista',
     reg_only_title: 'Listan är begränsad till ett urval som skickats hit från en annan vy. Övriga filter gäller fortfarande inom det.',
     reg_only_clear: 'Visa hela registret igen',
     reg_only_fallback: 'Ett valt urval',
@@ -8001,6 +8055,24 @@ const STRINGS = {
     ct_refile_done: 'Flyttat till {to}',
     ct_read_from_doc: 'Utläst ur dokumentet',
     ct_terms_in_wording: 'Tillämplig lag, ansvarstaket och betalningsvillkoren står i avtalstexten, inte i den här panelen. Granskningen mot förhandlingsguiden på fliken <b>Dokument</b> läser ut dem och citerar klausulen den hittade var och en i.',
+
+    ov_renewal: 'F\u00f6rnyelsebeslut',
+    ov_deal: 'Aff\u00e4ren',
+    ov_deal_sum: 'Det som avtalats \u2014 v\u00e4rde, datum, betalningsvillkor och resten',
+    ov_deal_foot: 'L\u00e4st ur avtalstexten, inte inskrivet. Ett tankstreck betyder att avtalet inte s\u00e4ger n\u00e5got.',
+    ov_record: 'Uppgifterna',
+    ov_record_sum: 'Vem det \u00e4r med, var det \u00e4r arkiverat och vem som beg\u00e4rde det',
+    ov_related: 'Relaterade avtal',
+    ov_related_sum: '\u00c4ndringsavtal, best\u00e4llningar och avtalet ovanf\u00f6r detta',
+    ov_copilot: 'Vad Copilot l\u00e4ste',
+    ov_copilot_sum: 'Sammanfattningen, och vad genoml\u00e4sningarna hittade',
+    ov_wording: 'Ur avtalstexten',
+    ov_filed: 'Arkiverat',
+    ct_fill_from_doc: 'Fyll i fr\u00e5n dokumentet',
+    ov_f_owner: '\u00c4gare',
+    ov_f_raised: 'Beg\u00e4rt',
+    ov_f_reference: 'Referens',
+    ov_read_playbook: 'L\u00e4s det mot din f\u00f6rhandlingsguide',
     ct_risk: 'Risk',
     ct_go_to_checks: 'Gå till kontrollerna &rarr;',
     ct_recompute_fingerprints: 'räkna om varje fingeravtryck',
@@ -9541,6 +9613,8 @@ const STRINGS = {
     ik_f_need: "Berätta vad det gäller",
     ik_f_need_ph: "Vem det är med, vad de ska göra för oss eller vi för dem, vad som redan är överenskommet och när du behöver det.",
     ik_f_who: 'Vem är det med? (valfritt)',
+    ik_f_raised_by: 'Beg\u00e4rt av',
+    ik_f_raised_on: 'Beg\u00e4rt',
     ik_f_stream: 'Värdeström (valfritt)',
     ik_f_stream_unsure: "Osäker — låt dem avgöra",
     ik_send: "Skicka förfrågan",
@@ -10687,6 +10761,7 @@ const STRINGS = {
     rep_weekly_btn: 'Veckogenomgång',
     rep_weekly_size: 'Storlek',
     pf_uncounted_head: '{n} avtal kan ännu inte grupperas.',
+    pf_uncounted_title: 'Inte grupperade \u00e4n',
     pf_uncounted_body: 'De registrerades innan HaTi kunde läsa en kategori ur ett dokument, så de faller bort ur varje siffra som grupperar. Att läsa dem tar ett ögonblick var och du bekräftar varje svar.',
     pf_uncounted_fix: 'Läs dem nu',
     pf_workload_runway: 'Arbetsbanan',
@@ -10789,6 +10864,7 @@ const STRINGS = {
     pf_in_focus: 'i fokus',
     pf_focused_on: 'Fokus på',
     pf_where_value: 'Var värdet ligger',
+    pf_where_finding: '{pct}% av boken \u2014 {v} \u2014 ligger i {name}',
     pf_where_foot: 'Avläst ur avtalen själva. Klicka på en rad för att låsa hela sidan till den.',
     pf_values_hidden: 'Värden är dolda för ditt konto.',
     pf_ranked_by_count: 'Rangordnas efter antal avtal i stället.',

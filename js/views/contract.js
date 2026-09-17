@@ -3710,7 +3710,15 @@ function wsTabDefaults(c){
    drew, registered its press and redrew the previous page because the guard
    was written out separately. */
 const ROOM_TABS=[
-  ['terms','tab_key_terms'],['docs','tab_document'],
+  /* ---- THE FIRST TAB IS THE OVERVIEW (16 Sep 2026) ----
+     Its key stays 'terms': the tab key is an address the whole product routes
+     on (roomGoTab, wsTabDefaults, roomOpenOnTerms, every deep link) and
+     renaming an address to rename a label is how a door stops opening. What
+     changed is the WORD — the tab holds the whole record now, not the
+     commercial terms alone. The PHONE still draws `tab_key_terms` and its own
+     one-column Key terms tab: it was left alone on purpose, and this is a
+     desktop RENDERER, so nothing here reaches it. */
+  ['terms','tab_overview'],['docs','tab_document'],
   ['sign','tab_signing'],
   ['oblig','tab_obligations',c=>{
     if(!c||!window.obligationTabState) return '';
@@ -4264,6 +4272,14 @@ function ktStreamRowHtml(c){
 }
 function ktTermsRowsHtml(c,opts={}){
   const ed=!!opts.editable;
+  /* ---- ONE ROW BUILDER, TWO SECTIONS (16 Sep 2026) ----
+     The Overview splits these rows between two named sections: the deal (what
+     was agreed) and the record (who it is with and where it is filed). They are
+     the SAME rows, drawn by the same builder with the same handlers, so the two
+     sections can never disagree about what a term says. `opts.only` names which
+     of them to emit, in the order the caller asks for; absent means all of them,
+     in this file's own order, which is what every older caller means. */
+  const want=Array.isArray(opts.only)?opts.only:null;
   const KIN='min-width:0;width:100%;border:1px solid var(--color-accent);background:var(--color-bg);border-radius:var(--radius);padding:var(--s-1) var(--s-2);font:inherit;font-size:var(--t-meta);text-align:right;outline:none';
   const dash=`<span class="kt-none" data-kt-none="1">${i18t('ct_not_set')}</span>`;
   /* A DATE ROW SAYS SO IN WORDS AS WELL AS IN ITS ICON. "Not set" is a state;
@@ -4275,7 +4291,7 @@ function ktTermsRowsHtml(c,opts={}){
   const day=v=>v?esc((window.fmtDocDate&&fmtDocDate(v))||v):dashDate;
   const tmpl=c.template?((window.TEMPLATES&&TEMPLATES[c.template]&&TEMPLATES[c.template].name)||c.template)
     :(isUpload(c)?'Uploaded document':'');
-  return [
+  const rows=[
     /* ---- OUR PARTY, ABOVE THEIRS ----
        The two together are the sentence the paper opens with, so they read as a
        pair here. It is asked at drafting too, but this is the only place it can
@@ -4284,11 +4300,11 @@ function ktTermsRowsHtml(c,opts={}){
        existed. Empty is not "not set": it means the workspace, which is what
        the document has always said, so the read-out prints that name rather
        than a dash and says where it came from. */
-    ktRowHtml('party', i18t('tf_our_party'),
+    ['party', ktRowHtml('party', i18t('tf_our_party'),
       c.party?esc(c.party):`<span style="color:var(--color-neutral-500)">${esc((window.FIRST_PARTY)||'')}</span>`,
-      `<input data-kt="party" type="text" value="${(c.party||'').replace(/"/g,'&quot;')}" placeholder="${esc((window.FIRST_PARTY)||'')}" style="${KIN}"/>`, ed, 'pencil'),
-    ktRowHtml('counterparty','Counterparty', c.counterparty?esc(c.counterparty):dash,
-      `<input data-kt="counterparty" type="text" value="${(c.counterparty||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ct_who_is_this_with')}" style="${KIN}"/>`, ed, 'pencil'),
+      `<input data-kt="party" type="text" value="${(c.party||'').replace(/"/g,'&quot;')}" placeholder="${esc((window.FIRST_PARTY)||'')}" style="${KIN}"/>`, ed, 'pencil')],
+    ['counterparty', ktRowHtml('counterparty','Counterparty', c.counterparty?esc(c.counterparty):dash,
+      `<input data-kt="counterparty" type="text" value="${(c.counterparty||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ct_who_is_this_with')}" style="${KIN}"/>`, ed, 'pencil')],
     /* ---- THEIR EMAIL, ON THE ROW UNDER THEIR NAME ----
        This was a banner across the top of the negotiation asking for it. The
        address is a fact about the counterparty, exactly like the name directly
@@ -4296,8 +4312,8 @@ function ktTermsRowsHtml(c,opts={}){
        the commercial facts. Filling it in is what makes a send just a send;
        leaving it empty costs nothing, because the share dialog still collects
        an address at the moment of sending. */
-    ktRowHtml('cpEmail','Their email', c.counterpartyEmail?esc(c.counterpartyEmail):dash,
-      `<input data-kt="cpEmail" type="email" value="${(c.counterpartyEmail||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ct_changes_straight')}" style="${KIN}"/>`, ed, 'pencil'),
+    ['cpEmail', ktRowHtml('cpEmail','Their email', c.counterpartyEmail?esc(c.counterpartyEmail):dash,
+      `<input data-kt="cpEmail" type="email" value="${(c.counterpartyEmail||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ct_changes_straight')}" style="${KIN}"/>`, ed, 'pencil')],
     /* ---- AND WHEN THE SIGNING ROUTE SAYS SOMETHING ELSE, IT SAYS SO ----
        Two records can name the counterparty's address: this row — the general
        contact, where rounds of the negotiation go — and the signing route,
@@ -4311,20 +4327,23 @@ function ktTermsRowsHtml(c,opts={}){
        address is printed under the first, named, whenever the two disagree, and
        the row is absent when they agree, because a row repeating the line above
        it is furniture. */
-    ktRouteEmailRowHtml(c),
-    ktRowHtml('value','Contract value', `<span style="font-family:var(--font-mono)">${money}</span>`,
+    ['cpRouteEmail', ktRouteEmailRowHtml(c)],
+    ['value', ktRowHtml('value','Contract value', `<span style="font-family:var(--font-mono)">${money}</span>`,
       `<span style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
          <span style="font-size:var(--t-label);color:var(--color-neutral-500);flex:none">${jxCurrency()}</span>
          <input data-kt="value" type="text" inputmode="numeric" value="${isMonetary(c)&&c.value?Number(c.value).toLocaleString(jxLocale()):''}" placeholder="0" ${isMonetary(c)?'':'disabled'} style="${KIN};font-family:var(--font-mono)"/>
          <label style="display:flex;align-items:center;gap:5px;font-size:var(--t-label);color:var(--color-neutral-600);flex:none;white-space:nowrap">
-           <input data-kt="nonmonetary" type="checkbox" ${!isMonetary(c)?'checked':''} style="width:14px;height:14px;accent-color:var(--color-accent)"/>none</label></span>`, ed),
-    ktRowHtml('effDate','Effective', day(c.fields&&c.fields.effDate),
-      `<input data-kt="effDate" type="date" value="${(c.fields&&c.fields.effDate)||''}" style="${KIN}"/>`, ed, 'calendar'),
-    ktRowHtml('expiry','Expiry', day(c.expiry),
-      `<input data-kt="expiry" type="date" value="${c.expiry||''}" style="${KIN}"/>`, ed, 'calendar'),
-    ktStreamRowHtml(c),
-    tmpl?ktRowHtml('template','Template', esc(tmpl),'',false):'',
-  ].join('');
+           <input data-kt="nonmonetary" type="checkbox" ${!isMonetary(c)?'checked':''} style="width:14px;height:14px;accent-color:var(--color-accent)"/>none</label></span>`, ed)],
+    ['effDate', ktRowHtml('effDate','Effective', day(c.fields&&c.fields.effDate),
+      `<input data-kt="effDate" type="date" value="${(c.fields&&c.fields.effDate)||''}" style="${KIN}"/>`, ed, 'calendar')],
+    ['expiry', ktRowHtml('expiry','Expiry', day(c.expiry),
+      `<input data-kt="expiry" type="date" value="${c.expiry||''}" style="${KIN}"/>`, ed, 'calendar')],
+    ['stream', ktStreamRowHtml(c)],
+    ['template', tmpl?ktRowHtml('template','Template', esc(tmpl),'',false):''],
+  ];
+  if(!want) return rows.map(r=>r[1]).join('');
+  const by=new Map(rows);
+  return want.map(k=>by.get(k)||'').join('');
 }
 /* One row at a time. Opening a second closes the first, so the panel never
    becomes the form it was rescued from. Blur puts it back to reading. */
@@ -4468,9 +4487,17 @@ function ktTriageStripHtml(c){
 /* Repaint the panel from the record — after an edit, so the read-out beside a
    field agrees with what was just typed. */
 function renderKeyTerms(c){
-  const host=document.getElementById('kt-rows'); if(!host) return;
+  /* ---- ONE HOST, AND IT IS THE TWO SECTIONS (16 Sep 2026) ----
+     The rows sit in two named sections now, and an edit moves more than a row:
+     the value changes what The deal's shut summary says, and the counterparty
+     changes The record's. So the repaint is the SECTIONS, not the row list —
+     which also means a field's read-out and the summary above it can never
+     disagree. The fold state survives it: sectionOpen keeps it in memory, so
+     nothing a reader opened closes under them. */
+  const host=document.getElementById('kt-ov-terms'); if(!host) return;
   const ktEditable=c.status!=='Signed'&&canEdit()&&!PORTAL_MODE;
-  host.innerHTML=ktTermsRowsHtml(c,{editable:ktEditable});
+  const ktReadable=((isUpload(c)?(c.upload&&c.upload.extractedText):(window.docPlainText?docPlainText(c):''))||'').length>200;
+  host.innerHTML=ktOverviewTermsHtml(c,{editable:ktEditable,readable:ktReadable});
   wireKtRows(c); wireKeyTerms(c);
   /* The strip is OUTSIDE #kt-rows, so it needs its own paint — and this
      function is what auto-triage's onStep already calls as each reading lands,
@@ -4509,11 +4536,145 @@ function paintKtTriage(c){
    and the liability cap are not rows in it — and says where they are. Drawn
    whether or not a review has been run, because the question is the same
    either way. */
-function readTermsHtml(c){
-  return `<div style="margin-top:13px;padding-top:11px;border-top:1px solid var(--color-divider)">
-      <p style="margin:0;font-size:var(--t-meta);line-height:1.55;color:var(--color-neutral-600)">${i18t('ct_terms_in_wording')}</p>
-    </div>`;
+/* ---- AND ON 16 SEP 2026 THE SENTENCE STOPPED BEING TRUE ----
+   It said governing law, the liability cap and the payment terms were in the
+   wording and not in this panel, and pointed at the playbook review. They are
+   ON this panel now — The deal's own fields read them straight off the record
+   (ktDealFactsHtml), which is the whole point of the Overview. A sentence that
+   sends a reader somewhere else for a fact printed twelve pixels above it is
+   worse than no sentence. A `return ''` STUB rather than a deletion, because
+   the shape is what to bring back if the fields ever leave again.
+   `ct_terms_in_wording` is STALE — inert in both books. */
+function readTermsHtml(c){ return ''; }
+/* ============================================================
+   THE OVERVIEW (owner-approved 16 Sep 2026, "HaTi's Next Fifteen")
+
+   Key terms is named Overview and is ONE PAGE OF NAMED SECTIONS:
+   Renewal decision, The deal, The record, Related agreements, What
+   Copilot read. The grammar is js/section.js and is shared with four
+   other screens, so a reader learns to open and shut a group once.
+
+   WHAT THIS REVERSES, SAID OUT LOUD: the two-card split of 19 Aug 2026
+   and its divider. That layout put the commercial facts in one card and
+   the renewal/brief/family cards in a second beside it, with a handle
+   between them. The sections are a stack, so there is no split to set —
+   `.terms-grid`, `#kt-resizer`, ktFitSplit and ktWireSplit are STALE for
+   this pane. Nothing was lost: every card is a section, every act is
+   still on it, and the terms that were only reachable through the
+   playbook panel (payment terms, the notice period, governing law, the
+   liability cap) are on the page for the first time.
+
+   THE ROWS ARE THE SAME ROWS. ktTermsRowsHtml draws both halves with
+   the same handlers and the same one-at-a-time editing — see opts.only
+   there. Nothing about what a term MEANS is decided here.
+   ============================================================ */
+/* The fold keys are scoped to the contract so opening The record on one
+   agreement does not open it on the next. sectionForget('kt.') is what
+   clears them; the room calls it when the contract changes. */
+const OV_KEY = (c, name) => `kt.${(c && c.id) || '?'}.${name}`;
+/* WHAT THE WORDING SAYS. Every value is read off c.metadata — the record
+   the extraction wrote — and NOTHING here guesses: an absent key draws an
+   em-dash, which is sectionFieldHtml's own doing. The labels are borrowed
+   from META_FIELDS and the closed lists from metaOptLabel, so a fact is
+   called the same thing here as in the metadata review. */
+function ktDealFactsHtml(c){
+  const m=(c&&c.metadata)||{};
+  const lbl=k=>{ const f=(window.META_FIELDS||[]).find(x=>x.k===k); return (f&&f.label)||k; };
+  const opt=v=>{ const s=String(v==null?'':v).trim();
+    return s?((window.metaOptLabel?metaOptLabel(s):s)||s):''; };
+  const txt=v=>{ const s=String(v==null?'':v).trim(); return s?esc(s):''; };
+  const num=v=>{ const n=Number(v); return isFinite(n)&&n>0?String(n):''; };
+  /* THE TERM IS THE ROOM HEAD'S OWN READING. docTermSpan refuses a term
+     that runs backwards and refuses to invent an end date, and the fact
+     row above already prints what it answers — so the two cannot say
+     different things about the same agreement. */
+  const term=(()=>{ try{ const t=window.docTermSpan?docTermSpan(c):null;
+      if(t&&t.from&&t.to) return esc(`${t.from} – ${t.to}`); }catch(_){}
+    return ''; })();
+  return sectionFieldsHtml([
+    [lbl('paymentTerms'), txt(m.paymentTerms)],
+    [lbl('noticePeriodDays'), num(m.noticePeriodDays)],
+    [lbl('renewalType'), esc(opt(m.renewalType))],
+    [i18t('ct_term_label'), term],
+    [lbl('governingLaw'), txt(m.governingLaw)],
+    [lbl('liabilityCapped'), esc(opt(m.liabilityCapped)),'',
+      (m.liabilityCapped==='uncapped')?'amber':''],
+    [lbl('priceReview'), esc(opt(m.priceReview))],
+    [lbl('category'), esc(opt(m.category))],
+  ]);
 }
+/* WHERE THE RECORD SITS. Four facts nobody types on this screen — who
+   owns it, what stage it is at, when it was signed, when it was raised —
+   printed under the rows that ARE editable. `contractSignedAt` and
+   `contractOwnerName` are the product's own single readings of two of
+   them; each is asked through window, because this file is not the only
+   stage they run on. */
+function ktRecordFactsHtml(c){
+  const dot=iso=>(iso&&window.regDotDate)?esc(regDotDate(iso)):(iso?esc(String(iso)):'');
+  const owner=(window.contractOwnerName?contractOwnerName(c):'')||'';
+  const signed=(()=>{ try{ return (window.contractSignedAt?contractSignedAt(c):'')||''; }
+    catch(_){ return ''; } })();
+  const raised=String((c&&c._raisedAt)||(c&&c.createdAt)||'').slice(0,10);
+  return sectionFieldsHtml([
+    [i18t('ov_f_reference'), esc(String((c&&c.id)||''))],
+    [i18t('ov_f_owner'), esc(owner)],
+    [i18t('reg_col_status'), esc((window.statusLabel?statusLabel(c.status):c.status)||'')],
+    [i18t('reg_col_signed'), dot(signed)],
+    [i18t('ov_f_raised'), dot(raised)],
+  ]);
+}
+/* THE SHUT SECTIONS STILL ANSWER — rule 2 of the grammar. Each summary is
+   built from the record, and where the record says nothing the summary is
+   empty, which is honest: a head that only repeats its own name will not
+   draw a chevron (sectionHtml refuses it). */
+function ktRecordSummary(c){
+  const F=(typeof window!=='undefined'&&window.FOLDERS)||{};
+  const bits=[];
+  const ours=String((c&&c.party)||(window.FIRST_PARTY)||'').trim();
+  const them=String((c&&c.counterparty)||'').trim();
+  if(ours&&them) bits.push(`${esc(ours)} &middot; ${esc(them)}`);
+  else if(them) bits.push(esc(them));
+  else if(ours) bits.push(esc(ours));
+  if(c&&c.folder&&F[c.folder]) bits.push(esc(F[c.folder].name));
+  return bits.join(' &middot; ');
+}
+function ktDealSummary(c){
+  const m=(c&&c.metadata)||{};
+  const bits=[];
+  if(typeof isMonetary==='function'&&isMonetary(c)&&Number(c.value)>0)
+    bits.push(esc(window.fmtMoneyOf?fmtMoneyOf(c):fmtMoney(c.value)));
+  if(String(m.paymentTerms||'').trim()) bits.push(esc(String(m.paymentTerms).trim()));
+  const exp=String((c&&c.expiry)||m.expiryDate||'').trim();
+  if(exp&&window.regDotDate) bits.push(esc(regDotDate(exp)));
+  return bits.length?bits.join(' &middot; '):i18t('ov_deal_sum');
+}
+
+/* THE TWO TERM SECTIONS, which are the part of the Overview this file paints
+   and repaints. The renewal card above them and the family and brief cards
+   below are their own sections, painted by renderKeyTermsSide into their own
+   hosts, so an edit to a term never redraws them. */
+function ktOverviewTermsHtml(c,opts={}){
+  const ed=!!opts.editable, readable=!!opts.readable;
+  const fill=(ed&&readable)
+    ? `<button id="kt-fill" class="ui-btn" style="font-size:var(--t-label);padding:5px 12px" title="${
+        i18t('ct_read_out_details')}">${icon('sparkle','w-3 h-3')} ${i18t('ct_fill_from_doc')}</button>`
+    : '';
+  const deal=sectionHtml({
+    key:OV_KEY(c,'deal'), title:i18t('ov_deal'), open:true,
+    chip: ed?null:{ text:i18t('ct_confirmed'), tone:'green' },
+    summary: ktDealSummary(c),
+    body: `<div id="kt-rows">${ktTermsRowsHtml(c,{editable:ed,only:['value','effDate','expiry']})}</div>
+      <div id="kt-deal-facts">${ktDealFactsHtml(c)}</div>`,
+    acts: fill, foot: i18t('ov_deal_foot') });
+  const record=sectionHtml({
+    key:OV_KEY(c,'record'), title:i18t('ov_record'), open:false,
+    summary: ktRecordSummary(c),
+    body: `<div id="kt-rows-record">${ktTermsRowsHtml(c,
+        {editable:ed,only:['party','counterparty','cpEmail','cpRouteEmail','stream','template']})}</div>
+      <div id="kt-record-facts">${ktRecordFactsHtml(c)}</div>` });
+  return deal+record;
+}
+
 /* ---- RISK: A READ OF THE CHECKS YOU HAVE RUN, NOT A NEW NUMBER ----
    The mockup's risk score was invented. This one is arithmetic on findings
    that already exist: the playbook's verdicts, and the scan's open findings by
@@ -4609,8 +4770,15 @@ function riskCardHtml(c){
    signed paper is exactly what most needs explaining, and writing a brief
    touches nothing on the sealed record. A viewer reads a brief that exists and
    is not offered the writing of one. */
-function ktBriefCardHtml(c,CARD){
+/* ---- `opts.bare` DRAWS THE CARD WITHOUT ITS OWN SHELL OR ITS OWN NAME ----
+   (16 Sep 2026.) Inside the Overview it is the body of a section that is
+   already called What Copilot read, and a card head twelve pixels under a
+   section head saying the same thing is one fact printed twice — this file's
+   own standing complaint. Everywhere else the card is unchanged, shell, head
+   and all, which is why this is an argument rather than a rewrite. */
+function ktBriefCardHtml(c,CARD,opts){
   if(!c) return '';
+  const bare=!!(opts&&opts.bare);
   const v=(typeof checkVerdict==='function')?checkVerdict(c,'brief'):null;
   const may=(typeof canEdit==='function'?canEdit():true);
   /* ---- A BRIEF THAT WAS CUT SHORT IS PARTIAL, AND THE CARD SAYS SO ----
@@ -4627,11 +4795,15 @@ function ktBriefCardHtml(c,CARD){
   /* flex-direction:row said out loud: the column's own `.kt-side-card > div`
      rule makes every direct child a flex COLUMN, which stacks a head row's
      title and pill and reads as centred. Same reason on the renewal card. */
-  return `<section id="brief-card" class="kt-side-card" style="${CARD}">
-    <div style="display:flex;flex-direction:row;align-items:center;gap:var(--s-2);margin-bottom:6px;flex:none">
+  const head=bare
+    ? (v?`<div style="display:flex;flex-direction:row;align-items:center;margin-bottom:6px;flex:none"><span class="pill-x" style="background:var(--st-${cut?'amber':'green'}-bg);color:var(--st-${cut?'amber':'green'}-fg)">${esc(cut?i18t('br_partial'):v.label)}</span></div>`:'')
+    : `<div style="display:flex;flex-direction:row;align-items:center;gap:var(--s-2);margin-bottom:6px;flex:none">
       <h6 style="margin:0;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading);flex:1">${i18t('br_title')}</h6>
       ${v?`<span class="pill-x" style="background:var(--st-${cut?'amber':'green'}-bg);color:var(--st-${cut?'amber':'green'}-fg)">${esc(cut?i18t('br_partial'):v.label)}</span>`:''}
-    </div>
+    </div>`;
+  return `<section id="brief-card" class="kt-side-card"${bare?'':` style="${CARD}"`}${
+      bare?' style="padding:12px 16px 14px"':''}>
+    ${head}
     <p style="margin:0 0 9px;font-size:var(--t-meta);line-height:1.55;color:var(--color-neutral-600)">${
       v?(cut?i18t('br_partial_sub'):i18t('br_kt_sub')):(may?i18t('br_kt_none'):i18t('br_kt_none_viewer'))}</p>
     ${act?`<div style="display:flex;flex-direction:row;gap:7px;flex:none">${act}</div>`:''}
@@ -4684,12 +4856,38 @@ function renderKeyTermsSide(c){
      AND ONE CARD MAY NOT TAKE THE OTHER DOWN: they are rendered independently,
      so a failure in the first still leaves the second to draw. Each says what
      went wrong in its own box — see renderRenewalSection. */
-  host.innerHTML=`<div id="renewal-host" class="empty:hidden"></div>
-    ${ktBriefCardHtml(c,CARD)}
-    <section id="family-section" class="kt-side-card empty:hidden" style="${CARD}"></section>`;
+  /* ---- THE THREE CARDS ARE THREE SECTIONS NOW (16 Sep 2026) ----
+     Each keeps its own host id, so renderRenewalSection, renderFamilySection
+     and wireKtBriefCard are untouched and still paint exactly what they
+     painted. What changed is where the host sits: the renewal question LEADS
+     the Overview (it is the decision of the week), and the family and the
+     brief are named groups at the foot of it, shut by default because neither
+     is something a reader arrives to act on.
+     TWO HOSTS, because the sections between them are not this function's —
+     see ktOverviewTermsHtml. The lead host carries `empty:hidden`, so outside
+     the renewal window this draws nothing at all rather than an empty box. */
+  /* THE RENEWAL CARD IS NOT WRAPPED IN A SECTION, and that is deliberate: it
+     already draws its own card with its own name, its own verdict chip and its
+     own acts, so a section head above it would say Renewal twice. It leads the
+     stack as itself. The other two ARE wrapped, and are drawn `bare` so the
+     section head is the only place their name appears. */
+  const lead=document.getElementById('kt-ov-lead');
+  if(lead) lead.innerHTML=`<div id="renewal-host" class="empty:hidden"></div>`;
+  host.innerHTML=sectionHtml({ key:OV_KEY(c,'related'), title:i18t('ov_related'), open:false,
+      summary:i18t('ov_related_sum'),
+      body:`<section id="family-section" class="kt-side-card empty:hidden"></section>` })
+    +sectionHtml({ key:OV_KEY(c,'copilot'), title:i18t('ov_copilot'), open:false,
+      summary:i18t('ov_copilot_sum'), body:ktBriefCardHtml(c,CARD,{bare:true}) });
   try{ if(window.renderRenewalSection) renderRenewalSection(c); }catch(e){}
-  try{ if(window.renderFamilySection) renderFamilySection(c); }catch(e){}
+  try{ if(window.renderFamilySection) renderFamilySection(c,{bare:true}); }catch(e){}
   wireKtBriefCard(c);
+  /* THE HEADS ARE PRESSED HERE, and the repaint each one asks for is its own:
+     the two term sections are renderKeyTerms', these two are this function's.
+     Bound to the PANE, once (sectionWire's own dataset guard), so it survives
+     every repaint inside it. */
+  const pane=document.querySelector('[data-ws-pane="terms"]');
+  if(pane&&window.sectionWire) sectionWire(pane,key=>{
+    if(/\.(deal|record)$/.test(key)) renderKeyTerms(c); else renderKeyTermsSide(c); });
   /* #kt-readdoc's wiring went with the button — see readTermsHtml. */
 }
 
@@ -7243,34 +7441,23 @@ function renderWorkspace(){
              and leaves no element for the paint to replace. The product's own
              answer to exactly this is a slot and a painter (#ws-tabrow-end). */}
       <div id="kt-triage-slot"></div>
-      <div class="terms-grid">
-      ${''/* align-self is gone from BOTH columns, which is what squares them
-             off: left to itself each card was only as tall as its contents, so
-             the two halves of the screen ended at different places and neither
-             one looked deliberate. Stretched, the shorter card grows to meet
-             the taller and the obligations list — which is the part that varies
-             — scrolls inside its own bounds. See renderKeyTermsSide. */}
-      <div style="${CARD};padding:var(--s-4) 18px">
-        <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:10px">
-          <h6 style="margin:0;flex:1;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading)">${i18t('tab_key_terms')}</h6>
-          ${(!ktEditable)?`<span class="pill-x" style="background:var(--st-green-bg);color:var(--st-green-fg)">${i18t('ct_confirmed')}</span>`:''}
-          ${ktEditable&&ktReadable?`<button id="kt-fill" class="ui-btn" style="font-size:var(--t-label);padding:3px var(--s-2)" title="${i18t('ct_read_out_details')}">${icon('sparkle','w-3 h-3')} Fill from document</button>`:''}
-        </div>
-        <div id="kt-rows">${ktTermsRowsHtml(c,{editable:ktEditable})}</div>
-        ${readTermsHtml(c)}
-      </div>
-      ${''/* ---- THE DIVIDER BETWEEN THE TWO CARDS (owner-asked 19 Aug 2026)
-             ---- It is the grid's middle track, so the gap it sits in and the
-             handle are one thing rather than two that have to be kept in step.
-             A separator, not a button: it changes a width, it opens nothing,
-             and the keyboard reaches it as one (arrow keys in ktWireSplit). */}
-      <div id="kt-resizer" class="kt-resizer" role="separator" aria-orientation="vertical"
-        tabindex="0" aria-label="${i18t('ct_kt_split')}" title="${i18t('ct_kt_split_title')}"></div>
-      ${''/* Obligations: what this contract COMMITS you to — the question a
-             reader has the moment they have finished reading the terms
-             themselves. Filled by renderKeyTermsSide from the record the
-             Calendar already chases. */}
-      <div id="kt-side" style="display:flex;flex-direction:column;gap:var(--s-3);min-height:0"></div>
+      ${''/* ---- ONE COLUMN OF NAMED SECTIONS (16 Sep 2026) ----
+             `.terms-grid` and `#kt-resizer` are STALE for this pane: the
+             Overview is a stack, so there is no split to set. The three hosts
+             the old right-hand column carried are still here, still with their
+             own ids, still filled by their own painters — they are sections in
+             the stack now rather than cards beside it. ktFitSplit / ktWireSplit
+             find no grid and stand down. */}
+      <div class="ov-stack" id="kt-overview">
+        ${''/* The renewal question LEADS, and draws nothing outside its own
+               90-day window — renewalCardHtml returns '' there and the host
+               carries `empty:hidden`, so an ordinary contract opens on The
+               deal. Painted by renderKeyTermsSide. */}
+        <div id="kt-ov-lead" class="empty:hidden"></div>
+        <div id="kt-ov-terms">${ktOverviewTermsHtml(c,{editable:ktEditable,readable:ktReadable})}</div>
+        ${''/* Related agreements and What Copilot read, shut on arrival:
+               reference rather than work. Painted by renderKeyTermsSide. */}
+        <div id="kt-side"></div>
       </div>
     </div>
 
@@ -8643,6 +8830,15 @@ function ktStacked(){
   try { return !!(window.matchMedia && window.matchMedia('(max-width:980px)').matches); }
   catch (e) { return false; }
 }
+/* ---- STALE SINCE 16 SEP 2026, AND LEFT STANDING ON PURPOSE ----
+   The Overview is one stack of named sections, so there is no split to set:
+   nothing draws `.terms-grid` or `#kt-resizer` any more and both of these
+   return at their first guard. They are kept rather than deleted because they
+   are the WORKING mechanism — pointer position, a grab offset, a stored
+   fraction, arrows, a double-click reset — and the negotiation page's divider
+   and the template builder's are both ports of it. Deleting the original and
+   re-deriving it the day a second column comes back is how a fixed bug
+   returns. Nothing calls them into being; they cost one querySelector. */
 function ktFitSplit(scope){
   const root = (scope && scope.querySelector) ? scope : document;
   const grid = root.querySelector('.terms-grid');

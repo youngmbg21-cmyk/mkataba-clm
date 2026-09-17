@@ -247,6 +247,14 @@ const SHELL_ICONS = [
        and pressing a stage really goes there rather than merely carrying an
        attribute. */
     console.log('\n--- 3. the lifecycle tile, and its three doors ---');
+    /* The lifecycle tile is in Home's Portfolio section, which opens SHUT
+       since 16 Sep 2026 — its four figures ride its head, and the tiles are
+       not in the markup until it is pressed. */
+    await page.evaluate(() => {
+      const h = document.querySelector('[data-sec-toggle="hm.port"]');
+      if (h && h.getAttribute('aria-expanded') !== 'true') h.click();
+    });
+    await page.waitForTimeout(600);
     const head = await page.evaluate(() => {
       const tile = document.querySelector('.hm-tile.is-life');
       if (!tile) return { err: 'no lifecycle tile' };

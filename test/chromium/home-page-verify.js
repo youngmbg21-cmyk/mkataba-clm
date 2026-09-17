@@ -136,9 +136,20 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     check('2 every white surface is exactly #ffffff, not a shade of one',
       notWhite.length === 0, notWhite.slice(0, 3).join(' | ') || 'all pure');
 
-    /* ================= 3. THE THREE SECTIONS AND THEIR TILES ============= */
+    /* ================= 3. THE SECTIONS AND THEIR TILES ============= */
+    /* ---- REVERSED IN PLACE, 16 SEP 2026 ---- The page is four NAMED SECTIONS
+       in the shared grammar (owner-approved, "HaTi's Next Fifteen"): Prepared
+       for you, Needs your decision, My work, and the Portfolio — which is
+       reference and OPENS SHUT, with its four figures on its own head. The
+       heads are `.sec-t` rather than `.hm-sec h2`. The claims are the ones this
+       block always made: how many groups, how many tiles in each, and one
+       height per row. The portfolio is opened first, because its tiles are not
+       in the markup while the section is shut. */
+    await page.evaluate(() => { const h = document.querySelector('[data-sec-toggle="hm.port"]');
+      if (h && h.getAttribute('aria-expanded') !== 'true') h.click(); });
+    await page.waitForTimeout(500);
     const shape = await page.evaluate(() => ({
-      sections: [...document.querySelectorAll('.hm-sec h2')].map(e => e.textContent.trim()),
+      sections: [...document.querySelectorAll('.hm-page .sec-t')].map(e => e.textContent.trim()),
       work: document.querySelectorAll('.hm-tile.is-work').length,
       port: document.querySelectorAll('.hm-tile.is-port').length,
       workH: [...document.querySelectorAll('.hm-tile.is-work')].map(e => Math.round(e.getBoundingClientRect().height)),
@@ -146,8 +157,15 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       banner: document.querySelectorAll('.hm-banner').length,
       ring: document.querySelectorAll('.hm-pipe-card, #hm-segs, #hm-ring-row').length,
     }));
-    check('3 three sections, in the design\'s order',
-      shape.sections.length === 3, shape.sections.join(' · '));
+    /* THE ORDER IS THE CLAIM, not a count: `Prepared for you` draws only where
+       HaTi actually prepared something (section 11 stages that and asserts it
+       leads), so what has to hold on any book is that the reader's own work
+       comes before the numbers and the book comes last. */
+    const at = re => shape.sections.findIndex(x => re.test(x));
+    check('3 work before numbers, and the book last',
+      at(/decision|Beslut/i) >= 0 && at(/work|arbete/i) > at(/decision|Beslut/i)
+      && at(/Portfolio|Portf/i) === shape.sections.length - 1,
+      shape.sections.join(' · '));
     check('3 four tiles you choose and four that are fixed',
       shape.work === 4 && shape.port === 4, `${shape.work} + ${shape.port}`);
     check('3 and each row is one height, not four',
@@ -378,8 +396,9 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       const rows = [...document.querySelectorAll('#hm-desk-rows .hm-row')];
       const r0 = rows[0] ? rows[0].getBoundingClientRect() : null;
       const dd = document.querySelector('#hm-dd-rows .hm-row');
-      const sec = [...document.querySelectorAll('.hm-sec')]
-        .find(x => /Prepared for you/i.test((x.querySelector('h2') || {}).textContent || ''));
+      const secOf = re => [...document.querySelectorAll('.hm-page .sec-box')]
+        .find(x => re.test((x.querySelector('.sec-t') || {}).textContent || ''));
+      const sec = secOf(/Prepared for you/i);
       return {
         n: rows.length,
         painted: rows.filter(el => { const r = el.getBoundingClientRect();
@@ -388,11 +407,8 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
         /* THE HEADINGS, NOT THE ROWS. "Needs your decision" draws its own empty
            state when nothing is waiting, so a row there is not something this
            claim may depend on — and the claim is about where the SECTION sits. */
-        secTop: (() => { const h = [...document.querySelectorAll('.hm-sec')]
-          .find(x => /Prepared for you/i.test((x.querySelector('h2') || {}).textContent || ''));
-          return h ? Math.round(h.getBoundingClientRect().top) : null; })(),
-        ddSecTop: (() => { const h = [...document.querySelectorAll('.hm-sec')]
-          .find(x => /Needs your decision|Beslut/i.test((x.querySelector('h2') || {}).textContent || ''));
+        secTop: sec ? Math.round(sec.getBoundingClientRect().top) : null,
+        ddSecTop: (() => { const h = secOf(/Needs your decision|Beslut/i);
           return h ? Math.round(h.getBoundingClientRect().top) : null; })(),
         ddTop: dd ? Math.round(dd.getBoundingClientRect().top) : null,
         sub: sec ? ((sec.querySelector('.hm-desk-sub') || {}).textContent || '').trim() : '',

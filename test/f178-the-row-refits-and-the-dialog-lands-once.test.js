@@ -40,12 +40,24 @@ describe('F178 — Key terms stops offering the playbook review', () => {
       'a handler left behind for a control that is gone is how it comes back');
   });
 
-  test('but the sentence stays, and now says where the review lives', () => {
+  test('and on 16 Sep 2026 the sentence went too, because it stopped being true', () => {
+    /* REVERSED IN PLACE. The sentence said governing law, the liability cap
+       and the payment terms were in the wording and NOT in this panel, and
+       pointed at the playbook review on the Document tab. The Overview prints
+       all three as fields, read straight off the record — so the sentence had
+       become a signpost sending a reader to another tab for a fact printed
+       twelve pixels above it, which is worse than no sentence at all.
+       A STUB, NOT A DELETION: the shape is what to bring back if the fields
+       ever leave again, and the key is inert in both books. */
     const w = buildWorld({ negotiationView: true, contractView: true });
-    const html = w.win.readTermsHtml(supplyContract());
-    assert.match(html, /Governing law, the liability cap and the payment terms/,
-      'the sentence explains why those are not rows in this panel — only this panel raises that');
-    assert.match(html, /<b>Document<\/b> tab/, 'and points at the one door that remains');
+    assert.equal(w.win.readTermsHtml(supplyContract()), '',
+      'the builder draws nothing');
+    assert.ok(!/\$\{readTermsHtml\(/.test(CONTRACT),
+      'and nothing calls it — a stub with a caller is a blank line on a page');
+    const FACTS = /function ktDealFactsHtml\(c\)\{[\s\S]*?\n\}/.exec(CONTRACT);
+    assert.ok(FACTS, 'the fields that replaced it are there');
+    for (const k of ['governingLaw', 'liabilityCapped', 'paymentTerms'])
+      assert.ok(FACTS[0].includes(k), k + ' is a field on the page now');
   });
 });
 

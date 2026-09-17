@@ -188,6 +188,14 @@ const ROUTE = [
     await page.waitForTimeout(1500);
     await page.evaluate(() => { const t = document.querySelector('[data-ws-tab="terms"]'); if (t) t.click(); });
     await page.waitForTimeout(1200);
+    /* The two addresses live in `The record` on the Overview (16 Sep 2026) —
+       who the contract is with is reference, so the group opens shut. Pressed
+       only when it is shut, because the fold is remembered for the sitting. */
+    await page.evaluate(() => {
+      const h = document.querySelector('[data-sec-toggle$=".record"]');
+      if (h && h.getAttribute('aria-expanded') !== 'true') h.click();
+    });
+    await page.waitForTimeout(700);
 
     const kt = await page.evaluate(() => {
       const row = document.querySelector('[data-kt-row="cpRouteEmail"]');

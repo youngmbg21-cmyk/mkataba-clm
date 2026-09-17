@@ -467,6 +467,13 @@ const SEED = t => {
     await drive(() => { const b = document.querySelector('#ws-tabs [data-ws-tab="terms"]');
       if (b) b.click(); });
     await pause(600);
+    /* THE BRIEF CARD IS INSIDE `What Copilot read`, which opens shut (16 Sep
+       2026 — the Overview's own rule: reference opens shut, and the strip
+       above it is what carries the news). The claims below are about the two
+       boxes AGREEING, so the second box has to be on screen to be read. */
+    await drive(() => { const h = document.querySelector('[data-sec-toggle$=".copilot"]');
+      if (h && h.getAttribute('aria-expanded') !== 'true') h.click(); });
+    await pause(500);
     await page.screenshot({ path: path.join(OUT, '10-strip-and-card.png'), fullPage: false });
     /* ONE PROBE, BOTH BOXES. Read apart they can each look right. */
     const both = await drive(() => {
@@ -521,6 +528,13 @@ const SEED = t => {
     await drive(() => { const b = document.querySelector('#ws-tabs [data-ws-tab="terms"]');
       if (b) b.click(); });
     await pause(600);
+    /* THE BRIEF CARD IS INSIDE `What Copilot read`, which opens shut (16 Sep
+       2026 — the Overview's own rule: reference opens shut, and the strip
+       above it is what carries the news). The claims below are about the two
+       boxes AGREEING, so the second box has to be on screen to be read. */
+    await drive(() => { const h = document.querySelector('[data-sec-toggle$=".copilot"]');
+      if (h && h.getAttribute('aria-expanded') !== 'true') h.click(); });
+    await pause(500);
     const both2 = await drive(() => {
       const e = document.getElementById('kt-triage');
       const card = document.getElementById('brief-card');
@@ -575,6 +589,13 @@ const SEED = t => {
     await drive(() => { const b = document.querySelector('#ws-tabs [data-ws-tab="terms"]');
       if (b) b.click(); });
     await pause(600);
+    /* THE BRIEF CARD IS INSIDE `What Copilot read`, which opens shut (16 Sep
+       2026 — the Overview's own rule: reference opens shut, and the strip
+       above it is what carries the news). The claims below are about the two
+       boxes AGREEING, so the second box has to be on screen to be read. */
+    await drive(() => { const h = document.querySelector('[data-sec-toggle$=".copilot"]');
+      if (h && h.getAttribute('aria-expanded') !== 'true') h.click(); });
+    await pause(500);
     const read11 = () => drive(() => {
       const e = document.getElementById('kt-triage');
       const card = document.getElementById('brief-card');

@@ -71,19 +71,51 @@ function ikRowHtml(r, opts={}){
   if(may&&r.status==='open') acts.push(`<button class="ui-btn" data-ik-decline="${esc(r.id)}" style="font-size:var(--t-label);padding:var(--s-1) 10px">${i18t('ik_act_decline')}</button>`);
   if(r.contractId) acts.push(`<button class="ui-btn" data-ik-open="${esc(r.contractId)}" style="font-size:var(--t-label);padding:var(--s-1) 10px">${i18t('ik_act_open')}</button>`);
   if(isMine&&IK_LIVE.includes(r.status)) acts.push(`<button class="ui-btn" data-ik-withdraw="${esc(r.id)}" style="font-size:var(--t-label);padding:var(--s-1) 10px">${i18t('ik_act_withdraw')}</button>`);
-  return `<article class="ik-row" style="border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);padding:var(--s-3) 14px;display:flex;flex-direction:column;gap:6px">
-    <div style="display:flex;align-items:baseline;gap:9px;flex-wrap:wrap">
-      <span style="font-family:var(--font-mono);font-size:var(--t-label);color:var(--color-neutral-500)">${esc(r.id)}</span>
-      <span style="font-size:var(--t-card);font-weight:var(--w-strong);flex:1;min-width:0">${esc(r.title)}</span>
-      ${ikChip(r.status)}
-    </div>
-    <p style="margin:0;font-size:var(--t-meta);line-height:1.55;color:var(--color-neutral-700);white-space:pre-wrap">${esc(r.need)}</p>
-    <div style="font-size:var(--t-label);color:var(--color-neutral-600)">
-      ${esc(i18t('ik_asked_by',{name:(r.by&&r.by.name)||'—',date:when}))}${r.counterparty?' · '+esc(r.counterparty):''}${r.folder&&FOLDERS[r.folder]?' · '+esc(FOLDERS[r.folder].name):''}
-      ${r.note?`<div style="margin-top:3px;font-style:italic">${esc(r.note)}</div>`:''}
-    </div>
-    ${acts.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:2px">${acts.join('')}</div>`:''}
-  </article>`;
+  /* ---- A REQUEST IS A ROW THAT OPENS (owner-approved 16 Sep 2026, "HaTi's
+     Next Fifteen") ----
+     Every request drew its whole paragraph, its facts and its buttons at once,
+     so four of them filled a screen and a queue of twelve could only be read by
+     scrolling. It is one row now — reference, title, the ask in one line, its
+     state — and opening it shows the paragraph, the facts as fields and the
+     acts. The shared grammar draws it (js/section.js), so it folds the way the
+     contract Overview and Home do.
+
+     WHAT OPENS BY ITSELF: the one waiting on you. `opts.open` is the caller's,
+     and renderIntake gives it to the FIRST row of the editor's queue — the one
+     a reader came to this page to deal with. Everything else is reference.
+
+     NOTHING ABOUT A REQUEST MOVED: the same fields, the same four acts with the
+     same data attributes and the same wiring, the same status chip. */
+  const who=esc(i18t('ik_asked_by',{name:(r.by&&r.by.name)||'—',date:when}));
+  const line=String(r.need||'').replace(/\s+/g,' ').trim();
+  const sum=[line?esc(line):'', r.counterparty?esc(r.counterparty):'',
+    (r.folder&&FOLDERS[r.folder])?esc(FOLDERS[r.folder].name):''].filter(Boolean).join(' &middot; ');
+  const fields=(typeof sectionFieldsHtml==='function')?sectionFieldsHtml([
+    /* BORROWED LABELS, not new ones. `ik_f_who` and `ik_f_stream` are the
+       FORM's questions and carry "(optional)" — right on a box somebody types
+       into, wrong over a fact. The register already names these two. */
+    [i18t('ik_f_raised_by'), (r.by&&r.by.name)?esc(r.by.name):''],
+    [i18t('ik_f_raised_on'), esc(when)],
+    [i18t('reg_col_counterparty'), r.counterparty?esc(r.counterparty):''],
+    [i18t('ct_value_stream'), (r.folder&&FOLDERS[r.folder])?esc(FOLDERS[r.folder].name):''],
+  ]):'';
+  const body=`<div class="ik-body">
+      <p class="ik-need">${esc(r.need)}</p>
+      ${r.note?`<p class="ik-note">${esc(r.note)}</p>`:''}
+    </div>${fields}`;
+  if(typeof sectionHtml!=='function') return '';
+  /* THE FOLD KEY CARRIES THE LIST IT IS IN, and the row draws no element id.
+     An editor's own request is in BOTH lists — the queue and "my requests" —
+     so one key per request made a press on one row open the other as well, and
+     one id per request put two elements with the same id on the page, which is
+     how a "why did nothing happen" bug starts. Measured: four duplicates on
+     the seeded book. */
+  return sectionHtml({ key:`ik.${opts.list||'q'}.${r.id}`, open:!!opts.open,
+    title:esc(r.title), summary:sum,
+    chip:{ text:(INTAKE_STATUS[r.status]||INTAKE_STATUS.open).label,
+      tone:(INTAKE_STATUS[r.status]||INTAKE_STATUS.open).tone },
+    body:`<div class="ik-ref">${esc(r.id)} &middot; ${who}</div>${body}`,
+    acts:acts.join('') });
 }
 
 /* ---- THE ASK. Plain words, one line and a paragraph: a form that demanded
@@ -261,11 +293,13 @@ function renderIntake(){
       </section>
       ${may?`<section>
         <h3 style="font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading);margin:0 0 9px">${i18t('ik_queue_head',{n:queue.length})}</h3>
-        <div style="display:flex;flex-direction:column;gap:9px">${queue.length?queue.map(r=>ikRowHtml(r)).join(''):empty(i18t('ik_queue_empty'))}</div>
+        ${''/* THE FIRST ONE OPENS. It is what the reader came for; the rest
+               are reference and open shut — the grammar's own rule 3. */}
+        <div class="ik-list">${queue.length?queue.map((r,i)=>ikRowHtml(r,{open:i===0,list:'queue'})).join(''):empty(i18t('ik_queue_empty'))}</div>
       </section>`:''}
       <section>
         <h3 style="font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading);margin:0 0 9px">${i18t('ik_mine_head')}</h3>
-        <div style="display:flex;flex-direction:column;gap:9px">${mine.length?mine.map(r=>ikRowHtml(r)).join(''):empty(i18t('ik_mine_empty'))}</div>
+        <div class="ik-list">${mine.length?mine.map(r=>ikRowHtml(r,{list:'mine'})).join(''):empty(i18t('ik_mine_empty'))}</div>
       </section>
     </div>`;
   host.querySelector('#ik-new')?.addEventListener('click',()=>openIntakeForm());
@@ -273,6 +307,9 @@ function renderIntake(){
   host.querySelectorAll('[data-ik-decline]').forEach(b=>b.addEventListener('click',()=>intakeSetStatus(b.getAttribute('data-ik-decline'),'declined')));
   host.querySelectorAll('[data-ik-withdraw]').forEach(b=>b.addEventListener('click',()=>intakeSetStatus(b.getAttribute('data-ik-withdraw'),'withdrawn')));
   host.querySelectorAll('[data-ik-open]').forEach(b=>b.addEventListener('click',()=>openWorkspace(b.getAttribute('data-ik-open'))));
+  /* The rows open and shut. The repaint is this page's own, and it is bound to
+     the host, which is written fresh on every render. */
+  if(window.sectionWire) sectionWire(host,()=>renderIntake());
   if(typeof setActiveNav==='function') setActiveNav('intake');
   /* The list is fetched once per sitting and repainted here when it lands —
      the same shape the Advice Desk uses, and the reason the empty state is a

@@ -85,83 +85,60 @@ const VISIBLE = `(el) => {
     await page.evaluate(id => roomGoTab(getContract(id), 'terms'), cid);
     await page.waitForTimeout(800);
 
-    /* ================= 1 · THE SWAP, ON KEY TERMS ================= */
+    /* ================= 1 · THE SWAP, ON THE OVERVIEW ================= */
+    /* ---- REVERSED IN PLACE, 16 SEP 2026 ---- The tab is the Overview now and
+       it is ONE STACK OF NAMED SECTIONS (owner-approved, "HaTi's Next
+       Fifteen"), so the two-column layout, the divider and the column that
+       scrolled inside itself have all gone. What this block was really
+       protecting is unchanged and is asserted below: the Agreement family card
+       is ON SCREEN on this tab, it is the family card, Obligations has left it,
+       and nothing runs past the bottom of the page.
+
+       IT IS BEHIND A SECTION HEAD NOW, and that is the point of the redesign —
+       related agreements are reference, so they open shut. The press is real,
+       and the card is measured after it. */
+    const openSec = async suffix => {
+      const h = await page.$(`[data-sec-toggle$=".${suffix}"]`);
+      if (h) { await h.click(); await new Promise(r => setTimeout(r, 400)); }
+      return !!h;
+    };
+    const hadRelated = await openSec('related');
+    check('Related agreements is a section on the Overview', hadRelated);
     const side = await page.evaluate(`(() => {
       const vis = ${VISIBLE};
       const fam = document.getElementById('family-section');
       const ob = document.getElementById('obligations-section');
-      const kt = document.querySelector('#kt-main, .terms-grid > :first-child')
-        || document.getElementById('kt-side').parentElement.firstElementChild;
-      const r = el => el ? el.getBoundingClientRect() : null;
-      const a = r(fam), b = r(kt);
-      const side = document.getElementById('kt-side');
+      const stack = document.getElementById('kt-overview');
       const pane = document.querySelector('[data-ws-pane="terms"]');
-      const sr = r(side), pr = r(pane);
+      const r = el => el ? el.getBoundingClientRect() : null;
+      const a = r(fam), pr = r(pane), sr = r(stack);
+      const sec = fam ? fam.closest('.sec-box') : null;
       return { fam: vis(fam), obPresent: !!ob,
-        title: fam ? (fam.querySelector('h4') || {}).textContent : null,
-        famH: a ? Math.round(a.height) : 0, ktH: b ? Math.round(b.height) : 0,
-        sideScrolls: side ? getComputedStyle(side).overflowY : null,
-        sideH: sr ? Math.round(sr.height) : 0,
+        title: sec ? (sec.querySelector('.sec-t') || {}).textContent : null,
+        cardHead: fam ? !!fam.querySelector('h4') : null,
+        famH: a ? Math.round(a.height) : 0,
+        stackW: sr ? Math.round(sr.width) : 0, paneW: pr ? Math.round(pr.width) : 0,
+        paneScrolls: pane ? getComputedStyle(pane).overflowY : null,
+        gridGone: !document.querySelector('.terms-grid'),
         divider: !!document.getElementById('kt-resizer'),
-        overrun: (sr && pr) ? Math.round(sr.bottom - pr.bottom) : null };
+        overrun: (sr && pr) ? Math.round(sr.width - pr.width) : null };
     })()`);
-    check('Agreement family is on screen in the Key terms column',
+    check('Agreement family is on screen in the Overview',
       side.fam.on, side.fam.on ? `${side.fam.w}x${side.fam.h}` : side.fam.why);
-    check('and it is the family card, by its own heading',
-      /Agreement family/i.test(side.title || ''), side.title);
+    check('and its section is the one that names it',
+      /Related agreements/i.test(side.title || ''), side.title);
+    /* THE NAME IS SAID ONCE. The card is drawn `bare` inside a section that
+       already carries the name, so its own head row is not printed twice. */
+    check('…and the card does not print its own name under the section head',
+      side.cardHead === false, `card h4 present: ${side.cardHead}`);
     check('the Obligations card has left this tab — one door, not two',
       !side.obPresent);
-    /* ---- REVERSED IN PLACE, 19 Aug 2026 ---- this asserted that the two cards
-       SQUARE OFF, which is what f176's third block claimed and what the grid
-       used to do. The owner has asked for the opposite, and for a reason the
-       squared layout could not answer: "keep the size of the card on the left
-       intact ... add a divider between the two cards so that you can scroll on
-       the right hand side especially when you can ran a renewal reason."
-
-       Stretched, a tall right-hand card drags Key terms up with it and its own
-       content runs off the bottom of the window. So the right column takes the
-       column's full height and scrolls INSIDE it, the left card keeps its own
-       height, and a divider between them sets the split. The claim underneath
-       is the one that always mattered and is asserted last: neither card runs
-       past the bottom of the page. */
-    check('the right-hand COLUMN takes the height, and both cards keep their own',
-      side.sideH > side.famH + 2 && side.famH > 0,
-      `column ${side.sideH}px · family ${side.famH}px · key terms ${side.ktH}px`);
-    check('…and it scrolls inside itself rather than running off the page',
-      side.sideScrolls === 'auto' && side.overrun !== null && side.overrun <= 2,
-      `overflow-y:${side.sideScrolls}, ${side.overrun}px past the pane`);
-    check('…with a divider between the two to set the split', side.divider);
-
-    /* ---- AND IT IS A REAL DRAG, NOT A DECORATION ----
-       A splitter that renders and does not move is the fault this project has
-       shipped before with controls that looked live (the unsent band's Send,
-       dead on one seat for a day). Measured with a real pointer, both columns
-       before and after, and the contract's own tab left exactly where it was. */
-    const box = await page.evaluate(`(() => {
-      const g = document.querySelector('.terms-grid');
-      const kt = g.firstElementChild, sd = document.getElementById('kt-side');
-      const h = document.getElementById('kt-resizer');
-      const r = el => el.getBoundingClientRect();
-      return { left: Math.round(r(kt).width), right: Math.round(r(sd).width),
-        hx: r(h).left + r(h).width / 2, hy: r(h).top + r(h).height / 2 };
-    })()`);
-    await page.mouse.move(box.hx, box.hy);
-    await page.mouse.down();
-    await page.mouse.move(box.hx - 90, box.hy, { steps: 12 });
-    await page.mouse.up();
-    await new Promise(r => setTimeout(r, 260));
-    const after = await page.evaluate(`(() => {
-      const g = document.querySelector('.terms-grid');
-      const kt = g.firstElementChild, sd = document.getElementById('kt-side');
-      const r = el => el.getBoundingClientRect();
-      return { left: Math.round(r(kt).width), right: Math.round(r(sd).width),
-        saved: Number(localStorage.getItem('hati.v1.ktLeftFrac')) || 0 };
-    })()`);
-    check('dragging the divider gives the room from one card to the other',
-      after.left < box.left - 40 && after.right > box.right + 40,
-      `left ${box.left}→${after.left}px · right ${box.right}→${after.right}px`);
-    check('…and the split is remembered, so it is not re-set on the next paint',
-      after.saved > 0.2 && after.saved < 0.75, String(after.saved));
+    check('the two-column grid and its divider are gone',
+      side.gridGone && !side.divider,
+      `grid gone ${side.gridGone} · divider ${side.divider}`);
+    check('the stack fits its pane, and the PANE is what scrolls',
+      side.paneScrolls === 'auto' && side.overrun !== null && side.overrun <= 2,
+      `pane overflow-y:${side.paneScrolls}, stack ${side.stackW}px in ${side.paneW}px`);
 
     /* ================= 2 · THE BUTTONS ================= */
     const btns = await page.evaluate(`(() => {
@@ -352,6 +329,7 @@ const VISIBLE = `(el) => {
     await page.waitForTimeout(900);
     await page.evaluate(id => roomGoTab(getContract(id), 'terms'), childId);
     await page.waitForTimeout(700);
+    await openSec('related');          // reference opens shut — see section 1
     const child = await page.evaluate(() => ({
       create: !!document.getElementById('fam-create'),
       unlink: !!document.getElementById('fam-unlink'),
@@ -467,10 +445,18 @@ const VISIBLE = `(el) => {
        THE CLAIM IS GEOMETRY, three ways: no card's content exceeds its own
        box, every card's box ends before the next one starts, and the brief's
        own button is inside the brief's own card. A class check would pass on a
-       page where every one of those was false. */
+       page where every one of those was false.
+
+       ---- RE-POINTED AT THE STACK, 16 SEP 2026 ---- The column it was written
+       about is gone: the Overview is one stack of named sections, so nothing on
+       this tab is a flex child and the shrink that caused the fault cannot
+       happen. The three geometric claims are kept and asked of the STACK with
+       every section open, because they are what a reader would actually see go
+       wrong, and they must hold in the new layout too. */
     await page.setViewportSize({ width: 1500, height: 720 });
     await page.evaluate(id => roomGoTab(getContract(id), 'terms'), cid);
     await page.waitForTimeout(900);
+    for (const k of ['record', 'related', 'copilot']) await openSec(k);
     await page.evaluate(() => {
       const host = document.getElementById('renewal-host');
       if (host) host.innerHTML = '<section class="kt-side-card" style="background:var(--color-surface);'
@@ -481,8 +467,9 @@ const VISIBLE = `(el) => {
     });
     await page.waitForTimeout(500);
     const crowded = await page.evaluate(() => {
-      const side = document.getElementById('kt-side');
-      if (!side) return null;
+      const side = document.getElementById('kt-overview');
+      const pane = document.querySelector('[data-ws-pane="terms"]');
+      if (!side || !pane) return null;
       const R = el => { const r = el.getBoundingClientRect();
         return { top: Math.round(r.top), bottom: Math.round(r.bottom) }; };
       const kids = [...side.children].filter(k => k.getBoundingClientRect().height > 0);
@@ -490,9 +477,10 @@ const VISIBLE = `(el) => {
       const brief = document.getElementById('brief-card');
       return {
         n: kids.length,
-        /* THE COLUMN REALLY IS OVER-FULL — without this the section proves
-           nothing, because nothing overlaps when everything fits. */
-        overFull: side.scrollHeight > side.clientHeight + 1,
+        /* THE PAGE REALLY IS OVER-FULL — without this the section proves
+           nothing, because nothing overlaps when everything fits. It is the
+           PANE that scrolls now, so it is the pane that is asked. */
+        overFull: pane.scrollHeight > pane.clientHeight + 1,
         crushed: kids.filter(k => k.scrollHeight > k.clientHeight + 1)
           .map(k => (k.id || k.className) + ' needs ' + k.scrollHeight + ' has ' + k.clientHeight),
         overlaps: kids.slice(1).filter((k, i) => R(kids[i]).bottom > R(k).top)
@@ -501,9 +489,9 @@ const VISIBLE = `(el) => {
         btnGap: (btn && brief) ? Math.round(R(brief).bottom - R(btn).bottom) : null,
       };
     });
-    check('the Key terms column is over-full — the state this is about',
+    check('the Overview is over-full — the state this is about',
       !!crowded && crowded.overFull === true && crowded.n >= 3,
-      crowded ? `${crowded.n} cards, over-full: ${crowded.overFull}` : 'no column');
+      crowded ? `${crowded.n} sections, over-full: ${crowded.overFull}` : 'no stack');
     check('NO CARD IS SQUEEZED BELOW ITS OWN CONTENT',
       !!crowded && crowded.crushed.length === 0,
       crowded ? (crowded.crushed.join(' | ') || 'none') : '');

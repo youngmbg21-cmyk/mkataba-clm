@@ -289,9 +289,15 @@ describe('F274 — the overnight desk', () => {
     });
 
     test('Home draws the desk above the reader’s own list', () => {
+      /* The page is four named sections since 16 Sep 2026 and the whole point
+         of that order is this claim, widened: work first, numbers second. The
+         markers moved with the composition — `hmSec` is stale — and the claim
+         is the one it always made. */
       const i = HOME.indexOf('${deskSection}');
-      const j = HOME.indexOf("hmSec(i18t('home_needs_decision')");
+      const j = HOME.indexOf('${ddSec}');
+      const k = HOME.indexOf('${workSec}');
       assert.ok(i > 0 && j > i, 'prepared work leads, the reader’s own queue follows');
+      assert.ok(k > j, 'and both come before the reader’s own four numbers');
     });
   });
 
@@ -384,8 +390,12 @@ describe('F274 — the overnight desk', () => {
 
     /* AN EMPTY SECTION THAT SAYS SO EVERY MORNING IS FURNITURE. */
     test('nothing prepared draws no heading and no empty state', () => {
-      assert.match(HOME_CODE, /const deskSection=deskRows\.length\?`/);
-      assert.match(HOME_CODE, /<\/div>`:'';/);
+      /* Re-pointed 16 Sep 2026: the section is built by the shared grammar
+         now. The claim is unchanged and is the WHOLE of it — no rows, no
+         section at all, not a heading over an empty state. */
+      assert.match(HOME_CODE, /const deskSection=\(deskRows\.length&&/);
+      assert.match(HOME_CODE, /\n\s*: '';/,
+        'and the other half of the expression is an empty string');
     });
 
     /* NOT ONE OF THE ACTS IS A SECOND WAY OF DOING ANYTHING. */

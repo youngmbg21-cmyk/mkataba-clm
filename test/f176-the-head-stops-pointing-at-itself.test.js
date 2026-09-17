@@ -112,8 +112,17 @@ describe('F176 — the intent-to-sign step speaks without a button', () => {
   });
 
   test('the Key terms tab is the door that survives', () => {
-    assert.match(SRC, /\['terms','tab_key_terms'\]/,
+    /* REVERSED IN PLACE 16 Sep 2026. The claim is unchanged — removing the
+       head's copy must not remove the tab itself — and the tab is still there.
+       What moved is its WORD: it holds the whole record now (the deal, the
+       filing, the family, what Copilot read), so it is called Overview. THE
+       KEY IS WHAT MATTERS AND IT IS PINNED: 'terms' is the address the whole
+       product routes on, and a rename there is how a deep link stops
+       opening. */
+    assert.match(SRC, /\['terms','tab_overview'\]/,
       'removing the head\'s copy must not remove the tab itself');
+    assert.ok(!/\['terms','tab_key_terms'\]/.test(SRC),
+      'and the old label is not still on it as well');
   });
 
   test('and the act behind it is kept, published and wired', () => {
@@ -247,7 +256,7 @@ describe('F176 — Key terms and the card beside it square off', () => {
     const side = /function renderKeyTermsSide\(c\)\{[\s\S]*?\n\}/.exec(SRC);
     assert.ok(side, 'the renderer is still there');
     assert.match(side[0], /id="family-section"/, 'Agreement family is drawn');
-    assert.match(side[0], /renderFamilySection\(c\)/, 'and filled by its own renderer');
+    assert.match(side[0], /renderFamilySection\(c,/, 'and filled by its own renderer');
     assert.ok(!/riskCardHtml/.test(side[0]), 'Risk is not');
     assert.ok(!/obligations-section/.test(side[0]), 'and Obligations has moved to the Checks card');
     /* ---- REVERSED IN PLACE, 20 Aug 2026 ---- The claim used to be ONE card in
@@ -262,7 +271,7 @@ describe('F176 — Key terms and the card beside it square off', () => {
        card in the column is a kt-side-card (so they are one family and the
        column can size them), and an EMPTY one draws nothing rather than an
        empty bordered box. */
-    assert.match(side[0], /\$\{ktBriefCardHtml\(c,CARD\)\}/,
+    assert.match(side[0], /ktBriefCardHtml\(c,CARD,/,
       'the Contract Brief is composed into the column by its own builder');
     assert.match(SRC, /id="brief-card" class="kt-side-card"/,
       'and it is a card of the column\'s own family, so the column can size it');
@@ -305,18 +314,23 @@ describe('F176 — Key terms and the card beside it square off', () => {
        the LEFT card is its own height again. The claim underneath is the one
        this block always made — neither half is allowed to run past the bottom
        of the page — and the card's own list rules are untouched. */
-    assert.ok(!/id="kt-side" style="[^"]*align-self:start/.test(SRC),
-      'the side column is not pinned to its own contents');
+    /* ---- AND ON 16 SEP 2026 THERE IS NO SECOND COLUMN TO STRETCH ----
+       The Overview is one stack of named sections (owner-approved, "HaTi's
+       Next Fifteen"), so the split, the divider and the column that scrolled
+       inside itself all went with the layout that needed them. The claim
+       underneath is the one this block always made — NEITHER HALF MAY RUN PAST
+       THE BOTTOM OF THE PAGE — and it is now true by construction: there is one
+       column, and the PANE is what scrolls, exactly as it did below 980px all
+       along. What is asserted is that the stack exists, that it stops at the
+       page measure, and that the retired rules are really gone rather than
+       left behind to fight the new ones. */
     const html = fs.readFileSync(
       path.join(__dirname, '..', 'index.html'), 'utf8');
-    assert.match(html, /\.terms-grid\{ align-items:start; \}/,
-      'the grid lets the left card keep its own height');
-    assert.match(html, /\.terms-grid #kt-side\{[^}]*align-self:stretch/,
-      'while the right column takes the full height');
-    assert.match(html, /\.terms-grid #kt-side\{[^}]*overflow-y:auto/,
-      'and scrolls inside it, which is what a tall card there needs');
-    assert.match(html, /\.kt-resizer\{[^}]*cursor:col-resize/,
-      'with a divider between the two to set the split');
+    assert.match(html, /\.ov-stack\{[^}]*max-width:var\(--room-measure\)/,
+      'the stack fills the page measure and stops there');
+    assert.ok(!/\.terms-grid\{/.test(html), 'the two-column grid is gone');
+    assert.ok(!/\.kt-resizer\{/.test(html), 'and so is the divider between the two');
+    assert.ok(!/id="kt-resizer"/.test(SRC), 'and nothing draws one');
     assert.match(html, /\.ob-list\{[^}]*overflow-y:auto/,
       'and the list scrolls inside whatever height it is given');
     assert.match(html, /\.fam-list\{[^}]*overflow-y:auto/,
