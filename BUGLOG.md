@@ -16162,3 +16162,114 @@ rebuild the page, which is that page's own rule; a scroll is not a rebuild.
   changing section 5, which is not this task's to touch.
 - The Templates page's tab row still scrolls away. Not asked for; one line here
   rather than a change nobody requested.
+
+---
+
+## 18 Sep 2026 — the overnight run: ideas 4 to 9 and the seven repairs
+
+Young: *"In an overnight run, implement ideas 4 through 9 and the 7 repairs.
+Once done merge them to main."* Thirteen pieces of work off "HaTi, today and
+next" — the six upgrades left on its list, and the repair table, which became
+seven when the re-filing question was moved onto it earlier the same day.
+
+### The seven repairs
+
+1. **The standards check kept nothing.** Every re-run built a fresh
+   `c.playbook` and dropped the accepted departures with it — the reason a
+   colleague wrote, who they were, the escalation they answered — while HaTi
+   tells you to re-run after every round. `pbCarryDecisions` carries them
+   inside `runPlaybookReview`, the one place a review is built, so all eight
+   callers inherit it. Paired by category IN ORDER, because a category is not
+   unique (the supply playbook carries Liability cap as a position AND as a
+   range). Carried onto an open departure only. Where the wording it answered
+   has MOVED the stamp is kept — the reason is a record — and marked, which
+   stops it settling the row.
+2. **Builder Apply wrote one block** of a section the model had answered whole.
+   `tbDropExtraBody` removes what the accepted text replaced; removal only,
+   highest index first, and the three writers of block content are still three.
+3. **Section numbers were drawn by the screen** and never stored, so a
+   published contract had unnumbered headings. Derived instead, in
+   `templateFormDocHtml` — the renderer the server and the browser share — and
+   the builder's paper asks the same two readings. The first heading is the
+   document's title and carries no number; a heading carrying its own keeps it.
+4. **The blanks call was invisible.** Metered on the server, absent from the
+   card's "read N", and its failures — the daily ceiling included — swallowed
+   whole. It counts itself where the other two do and speaks through `tbSay`.
+   An empty answer is still silent: that is the ordinary case.
+5. **A contract could never be renamed.** A row on the record now, first,
+   through the same builder as every other. Writes on blur with one audit line;
+   an empty box never clears it; `name` is still frozen at execution.
+6. **Which side of the money we are on was asked at no door**, so the payment
+   terms analysis was blind across everything HaTi drafted itself. Both
+   creation lists ask it, mapped to the field the upload path already fills.
+   "Neither" writes nothing rather than claiming a category.
+7. **Re-filing waits on an admin.** A per-person grant in the shape the product
+   already uses five times, OFF BY DEFAULT — the 14 Aug ruling is not reversed
+   by the deploy, and until an admin turns it on `mayReFile` answers exactly
+   what `isAdmin` answered. Said out loud because it is the one item where the
+   instruction to fix it met a standing ruling.
+
+### The six upgrades
+
+- **4 · "Nothing fits" leads somewhere.** The refusal carries a door to
+  Requests with the sentence already typed, through the product's own ask form.
+- **5 · The type the record already holds.** `cKind` answers "External
+  Document" for an upload, which matches no playbook, so the check fell through
+  to the value stream. `contractTypeRead` prefers the curated template kind and
+  falls back to the extraction; the server mirrors it and f133 requires both to
+  agree. The Overview prints the type.
+- **6 · The approval card's clean state.** It drew nothing when nothing bit, so
+  a clean contract went to legal anyway. One more branch, opt-in, and only
+  while the record is open.
+- **7 · Obligations on the phone.** A fourth tab, the desktop tab's own count,
+  the same five bands, every reading borrowed. Read-only: marking a promise
+  done with a thumb on a train is a press nobody meant to make.
+- **8 · The dispute hold.** `hold` beside the status, not on
+  EXECUTED_IMMUTABLE, a display overlay outranking the other three, three
+  server refusals asked as a difference, a menu row beside Archive and a
+  filter. It is not the archive: it stays on every list.
+- **9 · A fifth link purpose.** The narrowing is in the payload builder, so
+  what an adviser is never sent is what they can never read. Its own door.
+
+### Defects found in the doing
+
+- **js/advice.js already existed** — the Advice Desk's model layer, 183 lines —
+  and the first draft of upgrade 9 OVERWROTE it with a new file of the same
+  name. f232 caught it within the hour (`hydrateAdvice` and
+  `loadAdviceRequests` read in core.js, published by nobody). Restored from
+  git; the new module is `js/adviserlink.js`. The standing rule is "before
+  deleting or overwriting, look at the target", and a `cat >` over a path
+  nobody checked is exactly that rule being skipped.
+- **Two i18n keys were written that already existed** (`ob_none_tracked`, and
+  a near-miss on `ob_no_wording`). The book's own sentence is kept; two
+  sentences under one key is this codebase's named fault.
+- **Two of my own new sweeps read PROSE, not code** — the pane's note names
+  `toggleObligation` as the thing it deliberately does not press, and the
+  server's note explains why the adviser purpose is not on `shareIsReadOnly`.
+  Both now blank comments first.
+
+### Proof
+
+- f332 (seven repairs) and f333 (six upgrades): 57 claims, **49 red at the
+  parent**. The eight that pass on both sides are named in each file's header
+  as WALLS — what must not have moved.
+- Full suite **7,776 / 0 fail** (was 7,713 before this run). Lint unchanged at
+  195 problems, 1 pre-existing error.
+- Browser: overview-as-drawn 18/18, signing-flow 35/35, contracts-page 100/0,
+  prompt-and-build 45/45, settings-tabs 84/84, auto-triage 64/64,
+  draft-from-a-sentence green.
+- Six nets re-pointed in place with the ruling written beside them: f200 (two),
+  f241, f7, f80, f330's list boundary.
+
+### Noticed, not fixed
+
+- `phone-verify` is 60/61 — "and offers no menu — no edits on the paper — the
+  selection menu still opens" fails at the parent too, measured.
+- The Templates page's tab row still scrolls away (carried from yesterday).
+- `PORTAL_MODE` is still called as a function at six older sites behind a
+  `side` guard, carried from 14 Sep.
+- The builder's paper draws the template NAME as its title and then numbers the
+  first heading as a clause, while `templateFormDocHtml` promotes that heading
+  to the document's title and drops the name. Repair 3 makes the NUMBERS agree;
+  which of the two is the contract's real title is a separate question and was
+  not touched.

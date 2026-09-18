@@ -5,7 +5,11 @@
    the 7 repairs."*  The seven repairs are in f332 beside this; these are the
    six upgrades from "HaTi, today and next", in its own numbering.
 
-   Every claim below is red at the parent except those named as controls.
+   Every claim below is red at the parent except these three, which are WALLS —
+   they state what must NOT have moved and pass on both sides:
+     4c  the picker stays as the other answer on "nothing fits"
+     7c  the phone files no changes of its own
+     8f  `hold` is NOT on EXECUTED_IMMUTABLE
    ============================================================ */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');

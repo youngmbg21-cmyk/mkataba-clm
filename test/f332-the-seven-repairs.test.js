@@ -7,7 +7,14 @@
    work.  This file holds the claims for the seven; the six upgrades are in
    f333 beside it.
 
-   Every claim below is red at the parent except those named as controls.
+   Every claim below is red at the parent except these five, which are WALLS —
+   they state what must NOT have moved, so they pass on both sides and their job
+   is to fail the day somebody changes them:
+     2b  the model really is shown every block (the fact that made R2 a bug)
+     2d  three writers of block content, and still three
+     3b  a heading carrying its own number is never numbered again
+     4c  an empty answer from the blanks call stays silent
+     5d  `name` is still frozen at execution
    ============================================================ */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
