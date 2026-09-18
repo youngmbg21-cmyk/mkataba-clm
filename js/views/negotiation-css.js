@@ -5458,15 +5458,48 @@ function redlineLayoutCss(){
   .redline-page .rl-rung-them{background:var(--st-amber-bg);color:var(--st-amber-fg)}
   .redline-page .rl-rung-settled{background:var(--st-green-bg);color:var(--st-green-fg)}
   .redline-page .rl-rung-grey{background:var(--color-neutral-100);color:var(--color-neutral-600)}
+  ${''/* ---- YOU ARE NOT LOOKING AT TODAY'S WORDING, AND IT IS SAID IN RED
+         (Young ruled 18 Sep 2026: "The Read as it stood, when it becomes Back
+         to now, it should then turn red until I click back to read as it
+         stood") ----
+         Reading an earlier move is a TEMPORARY posture, and the one thing the
+         reader must never do is take the clause under their eyes for the
+         contract. Everything that says "you are in that posture" is ruby and
+         nothing else on this page is: the chip on the clause itself, the way
+         back beside it, the way back in the ladder row, and the outline on the
+         row being read. They are one state, so they wear one colour — the
+         chip and its button sit twelve pixels apart and two colours there
+         would read as two different facts.
+         AT EQUAL WEIGHT AND LATER IN SOURCE than .rl-rung's own steel, which
+         is how it wins; never !important. */}
   ${''/* READING BACK IS A STATE THE READER MUST NOT LOSE TRACK OF, so the chip
          that says so is the loudest thing on the clause and is the way out of
-         it. Violet, which this page uses nowhere else — a reading of the past
-         is not one of the two sides and must not borrow either one's colour. */}
-  .redline-page .rl-rung-reading{background:var(--color-accent-100);color:var(--accent-ink);
-    box-shadow:inset 0 0 0 1px var(--color-accent-600)}
+         it.
+
+         ---- AND SINCE 18 SEP 2026 THAT LOUD THING IS RED (Young ruled it:
+         "The Read as it stood, when it becomes Back to now, it should then
+         turn red until I click back to read as it stood") ----
+         It was the accent, on the reasoning that a reading of the past is not
+         one of the two SIDES and must not borrow either one's colour. That
+         reasoning is kept here because it is the half that was wrong: the
+         accent is also the colour of every live door on this page, so the one
+         chip saying "these are not today's words" looked like every other
+         thing a reader may safely press. Red is not a third side — it is this
+         page's word for stop, which is what a temporary reading of an earlier
+         move needs to say. It reads beside a refused rung's own ruby without
+         confusion, because both mean the same thing: NOT THE LIVE WORDING.
+
+         ONE STATE, ONE COLOUR, FOUR MARKS. The chip on the clause, the way
+         back beside it, the way back in the ladder row, and the outline round
+         the clause being read — they sit within a screen of each other, and
+         two colours across them would read as two different facts. */}
+  .redline-page .rl-rung-reading{background:var(--st-ruby-bg);color:var(--st-ruby-fg);
+    box-shadow:inset 0 0 0 1px var(--st-ruby-dot)}
+  .redline-page .rl-baseline button[data-rl-read-now],
+  .redline-page .rl-rung-acts button[data-rl-read-now]{color:var(--st-ruby-fg)}
   ${''/* The clause being read back is dashed, not tinted: a fill would fight
          the marks inside it, which are the thing being read. */}
-  .redline-page .rl-read-at{outline:1px dashed var(--color-accent-600);outline-offset:6px}
+  .redline-page .rl-read-at{outline:1px dashed var(--st-ruby-dot);outline-offset:6px}
 
   ${''/* ---- THE LADDER IN THE CLAUSE PANEL ----
          The panel's own section furniture (.rl-cp-sec, .rl-cp-h) carries the
@@ -5496,7 +5529,7 @@ function redlineLayoutCss(){
   .redline-page .rl-rung-row.rl-rung-them::before{background:var(--st-amber-dot)}
   .redline-page .rl-rung-row.rl-rung-ok::before{background:var(--st-green-dot)}
   .redline-page .rl-rung-row.rl-rung-no::before{background:var(--st-ruby-dot)}
-  .redline-page .rl-rung-row.is-reading{outline:1px dashed var(--color-accent-600);outline-offset:-1px}
+  .redline-page .rl-rung-row.is-reading{outline:1px dashed var(--st-ruby-dot);outline-offset:-1px}
   .redline-page .rl-rung-who{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;
     font-size:var(--t-meta);color:var(--color-neutral-600)}
   .redline-page .rl-rung-n{font-family:var(--font-code);font-weight:var(--w-title);color:var(--color-text)}
@@ -5533,15 +5566,25 @@ function redlineLayoutCss(){
          in the product's UI face reads as a note ABOUT the contract; this is
          the contract.
 
-         THE ROW SAYS IT CAN BE POINTED AT. A cursor and a quiet wash, so the
-         row a reader is about to open does not look like the row they have
-         already chosen (is-reading, which is a dashed accent outline). */}
-  .redline-page .rl-rung-row[data-rl-rung-peek]{cursor:zoom-in}
+         THE ROW SAYS IT CAN BE POINTED AT AND PRESSED. A quiet wash under the
+         pointer, so the row a reader is about to open does not look like the
+         row they have already chosen (is-reading, which is a dashed ruby
+         outline) — and an ordinary pointer, because since 18 Sep 2026 the
+         press GOES TO THE CLAUSE rather than pinning the card. zoom-in was
+         right while the press only magnified what the hover already showed;
+         it is a lie about a door. */}
+  .redline-page .rl-rung-row[data-rl-rung-peek]{cursor:pointer}
   .redline-page .rl-rung-row[data-rl-rung-peek]:hover,
   .redline-page .rl-rung-row[data-rl-rung-peek]:focus-visible{
-    background:color-mix(in srgb,var(--accent-solid) 5%,transparent);outline:none}
+    background:color-mix(in srgb,var(--accent-solid) 5%,transparent)}
+  ${''/* ---- outline:none BELONGS TO THE FOCUS RING, NOT TO THE HOVER ----
+         It was written on the pair, to cancel the browser's own ring under
+         the inset mark below. MEASURED 18 Sep 2026: a hover has no ring to
+         cancel, and at (0,3,0) that declaration was deleting the ruby outline
+         on the row being READ the moment the pointer touched it — which is
+         precisely when the reader is looking at it. Fixed by SCOPE. */}
   .redline-page .rl-rung-row[data-rl-rung-peek]:focus-visible{
-    box-shadow:inset 2px 0 0 var(--color-accent-600)}
+    outline:none;box-shadow:inset 2px 0 0 var(--color-accent-600)}
   .redline-page .rl-peek{position:absolute;right:100%;top:var(--s-3);z-index:4;
     width:min(420px,46vw);margin-right:10px;
     background:var(--color-doc-warm,#FDFCF6);

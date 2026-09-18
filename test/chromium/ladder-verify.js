@@ -646,7 +646,7 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
      contract moved, and whether its words are the rung's own. Driven with a
      REAL MOUSE and a REAL KEY — a dispatched mouseover would not prove the
      hover works, and the whole feature is a hover. */
-  await page.evaluate(() => { try{ rlPeekHide(true); rlCpSetShown(document, null); }catch(_){} });
+  await page.evaluate(() => { try{ rlPeekHide(); rlCpSetShown(document, null); }catch(_){} });
   await pause(200);
   /* THE PANEL IS OPENED BY ITS OWN FUNCTION rather than by pressing the chip:
      the chip TOGGLES, section 18 already proves the press, and a toggle whose
@@ -672,9 +672,17 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
     for (const [n, what] of [['23b', 'pointing at a rung draws the card'],
       ['23c', 'it hangs off the LEFT of the panel'], ['23d', 'it keeps the square corner'],
       ['23e', "it carries the rung's own wording"], ['23f', 'the contract does not move'],
-      ['23g', 'pointing away closes it'], ['23h', 'a press pins it'],
-      ['23i', 'the pinned card carries its ways on'], ['23j', 'Escape closes it'],
-      ['23k', 'tabbing to a rung opens it']]) check(n + ' ' + what, false, 'no rung door on this build');
+      ['23e2', 'and it is really painted'], ['23g', 'pointing away closes it'], ['23h', 'a press goes to the clause'],
+      ['23i', "the card's ways on are reachable with a mouse"], ['23j', 'Escape closes it'],
+      ['23k', 'tabbing to a rung opens it'],
+      ['24a', 'the row says its press is a door'], ['24b', 'a press lights that clause'],
+      ['24c', 'Enter does the same'], ['24d', 'Read as it stood draws the earlier wording'],
+      ['24e', 'the row being read is outlined in RED, under the pointer'],
+      ['24f', 'the chip on the clause is red'], ['24g', 'both ways back are red'],
+      ['24h', 'the clause on the paper is outlined in red'],
+      ['24i', 'Back to now puts it all back'],
+      ['24j', 'the contract does not move by a pixel']])
+      check(n + ' ' + what, false, 'no rung door on this build');
   } else {
   /* A REAL HOVER, ON THE FIRST RUNG, because the panel's body scrolls and the last one can sit
      below its fold — a probe that cannot see its target proves nothing. R0's
@@ -700,6 +708,25 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
   check('23d it keeps the contract\'s square corner', peek.radius === '0px', peek.radius);
   check('23e it carries the rung\'s own WORDING, not a summary',
     (peek.words || '').length > 30, peek.words);
+  /* ---- AND IT IS REALLY PAINTED (added 18 Sep 2026, after it was not) ----
+     Every check above reads a RECT, and a rect is not a painted pixel: the
+     card was written into #rl-cp, which is overflow:hidden, and hangs outside
+     it by design — so it was addressed, positioned, sized, and clipped away
+     entirely. elementFromPoint is the instrument that can tell the two apart,
+     and it answered the paper's own paragraph across every part of the card.
+     Read at four points across its width because a partial clip is the shape
+     this fault takes when it comes back. */
+  const painted = await page.evaluate(() => {
+    const el = document.getElementById('rl-peek');
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return [0.05, 0.3, 0.6, 0.95].map(f => {
+      const hit = document.elementFromPoint(Math.round(r.left + r.width * f), Math.round(r.top + 20));
+      return hit && hit.closest && hit.closest('#rl-peek') ? 'card' : (hit ? (hit.className || hit.tagName) : 'none');
+    });
+  });
+  check('23e2 AND IT IS REALLY PAINTED: the card answers the pointer across its whole width',
+    !!painted && painted.every(x => x === 'card'), (painted || []).join(' · '));
   const inkAfter = await page.evaluate(() => {
     const w = document.querySelector('.rl-doc .rl-clause');
     return w ? Math.round(w.getBoundingClientRect().left) : null;
@@ -744,18 +771,34 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
       && x.card.y >= x.card.panelTop - 2),
     near23.map(x => x.card ? `${x.card.y}..${x.card.bottom} in ${x.card.panelTop}..${x.card.panelBottom}` : 'none').join(' · '));
   await page.mouse.move(40, 300); await pause(400);
-  /* A REAL PRESS PINS IT, so its two verbs can be reached with a mouse. */
-  await rows23[0].click(); await pause(300);
-  await page.mouse.move(40, 300); await pause(400);
-  const pinned = await page.evaluate(() => {
-    const el = document.getElementById('rl-peek');
-    return { up: !!el, pinned: !!(window.rlPeekOpenId() || {}).pinned,
-      acts: el ? [...el.querySelectorAll('.rl-peek-acts button')].map(b => b.textContent.trim()) : [] };
-  });
-  check('23h a press PINS it, and pointing away no longer takes it',
-    pinned.up === true && pinned.pinned === true, JSON.stringify(pinned));
-  check('23i the pinned card carries its two ways on',
-    pinned.acts.length >= 1, pinned.acts.join(' · '));
+  /* ---- REVERSED IN PLACE 18 Sep 2026 (Young: "when I click on the card it
+     should take me to that clause in the contract") ----
+     These two pinned the card on a press and read its verbs off the pinned
+     card. The press belongs to the CLAUSE now, and the card is purely what the
+     pointer is for — so 23h measures that pointing away still takes it, and
+     23i measures that the verbs are reachable the way they actually are, by
+     moving onto the card. The old reasoning ("its two verbs must be pressable
+     with a mouse") is still the thing being proved; only the mechanism moved
+     from a pin to the grace crossing. */
+  await rows23[0].hover(); await pause(320);
+  await rows23[0].click(); await pause(400);
+  await page.mouse.move(40, 300); await pause(500);
+  const loose = await page.evaluate(() => ({ up: !!document.getElementById('rl-peek'),
+    pinned: 'pinned' in (window.rlPeekOpenId() || {}) }));
+  check('23h a press does NOT pin it: pointing away still takes the card',
+    loose.up === false && loose.pinned === false, JSON.stringify(loose));
+  /* THE CARD HOLDS WHILE THE POINTER IS ON IT, which is what makes its verbs
+     pressable — driven, because only a real mouse crossing proves the grace. */
+  await rows23[0].hover(); await pause(320);
+  const cardBox = await page.evaluate(() => { const el = document.getElementById('rl-peek');
+    if (!el) return null; const r = el.getBoundingClientRect();
+    return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + 12) }; });
+  if (cardBox) await page.mouse.move(cardBox.x, cardBox.y);
+  await pause(500);
+  const onCard = await page.evaluate(() => { const el = document.getElementById('rl-peek');
+    return { up: !!el, acts: el ? [...el.querySelectorAll('.rl-peek-acts button')].map(b => b.textContent.trim()) : [] }; });
+  check('23i the card holds under the pointer, so its ways on are pressable',
+    onCard.up === true && onCard.acts.length >= 1, JSON.stringify(onCard));
   /* AND ESCAPE CLOSES IT — the half a hover can never answer. */
   await page.keyboard.press('Escape'); await pause(300);
   check('23j Escape closes it',
@@ -775,7 +818,132 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
     await page.evaluate(() => !!document.getElementById('rl-peek')), 'drawn on focus');
   }
 
-  await page.evaluate(() => { try{ rlPeekHide(true); }catch(_){} });
+  await page.evaluate(() => { try{ rlPeekHide(); }catch(_){} });
+
+  /* ============================================================
+     24 · THE LADDER JOURNEY (Young ruled 18 Sep 2026)
+     ============================================================
+     "When I click on ladder and it takes me to the ladder panel, when I click
+     on the card it should take me to that clause in the contract. When I then
+     click on read as it stood, it should show me what the previous read was.
+     The Read as it stood, when it becomes back to now, it should then turn red
+     until I click back to read as it stood."
+
+     THREE PRESSES, ONE JOURNEY, ALL DRIVEN WITH A REAL MOUSE AND A REAL KEY.
+     f329 pins that the three doors call ONE reading; what only a rendered page
+     can say is whether the paper answered and whether the red was painted —
+     the reading outline lost a cascade fight to its own hover rule, and the
+     source read correctly the whole time. */
+  await page.evaluate(() => { try{ rlCpSetShown(document, null); }catch(_){} });
+  await pause(250);
+  await page.evaluate(id => rlCpSetShown(document, id, { ladder: true }), staged.c4);
+  await pause(500);
+  const inkJ0 = await page.evaluate(() => { const w = document.querySelector('.rl-doc .rl-clause');
+    return w ? Math.round(w.getBoundingClientRect().left) : null; });
+  const jrows = await page.$$('#rl-cp [data-rl-rung-peek]');
+  if (!jrows.length){
+    for (const [n, what] of [['24a', 'the row says its press is a door'],
+      ['24b', 'a press lights that clause'], ['24c', 'Enter does the same'],
+      ['24d', 'Read as it stood draws the earlier wording'],
+      ['24e', 'the row being read is outlined in RED, under the pointer'],
+      ['24f', 'the chip on the clause is red'], ['24g', 'both ways back are red'],
+      ['24h', 'the clause on the paper is outlined in red'],
+      ['24i', 'Back to now puts it all back'],
+      ['24j', 'the contract does not move by a pixel']])
+      check(n + ' ' + what, false, 'no ladder on this build');
+  } else {
+  const says = await page.evaluate(() => { const r = document.querySelector('#rl-cp [data-rl-rung-peek]');
+    return { cursor: getComputedStyle(r).cursor, title: r.getAttribute('title') || '' }; });
+  check('24a the row says its press is a door onto the clause',
+    says.cursor === 'pointer' && /clause/i.test(says.title), JSON.stringify(says));
+  /* A REAL PRESS. rl-arrived is added by rlJumpToClause and by nothing else,
+     so it is the proof that the press reached the page's own door — and it is
+     stage-independent, where a scroll measurement is not: on a three-clause
+     contract nothing scrolls because nothing is off the screen. */
+  await page.evaluate(() => document.querySelectorAll('.rl-doc .rl-arrived')
+    .forEach(e => e.classList.remove('rl-arrived')));
+  await jrows[0].click(); await pause(900);
+  const lit = await page.evaluate(id => {
+    const e = document.querySelector(`#rl-doc [data-clause="${id}"]`);
+    const all = [...document.querySelectorAll('.rl-doc .rl-arrived')].length;
+    return { mine: e ? e.classList.contains('rl-arrived') : null, all };
+  }, staged.c4);
+  check('24b a press on a rung LIGHTS THAT CLAUSE on the paper, and only it',
+    lit.mine === true && lit.all === 1, JSON.stringify(lit));
+  /* AND THE KEYBOARD REACHES THE SAME DOOR. */
+  await page.evaluate(() => { document.activeElement && document.activeElement.blur();
+    document.querySelectorAll('.rl-doc .rl-arrived').forEach(e => e.classList.remove('rl-arrived')); });
+  await page.evaluate(() => { const r = document.querySelector('#rl-cp [data-rl-rung-peek]'); r && r.focus(); });
+  await pause(250);
+  await page.keyboard.press('Enter'); await pause(900);
+  check('24c Enter on a focused rung does the same — a hover is no door on a touch screen',
+    await page.evaluate(id => { const e = document.querySelector(`#rl-doc [data-clause="${id}"]`);
+      return !!(e && e.classList.contains('rl-arrived')); }, staged.c4), 'lit by key');
+  /* ---- READ AS IT STOOD ---- */
+  await page.evaluate(() => { try{ rlPeekHide(); }catch(_){} });
+  const wordsNow = await page.evaluate(id => { const e = document.querySelector(`#rl-doc [data-clause="${id}"]`);
+    return e ? e.textContent.replace(/\s+/g, ' ').trim() : ''; }, staged.c4);
+  const readBtn = await page.$('#rl-cp [data-rl-read-at]');
+  await readBtn.click(); await pause(900);
+  const read = await page.evaluate(id => {
+    const e = document.querySelector(`#rl-doc [data-clause="${id}"]`);
+    const at = document.querySelector('.rl-doc .rl-read-at');
+    return { drawn: !!at, words: e ? e.textContent.replace(/\s+/g, ' ').trim() : '',
+      outline: at ? getComputedStyle(at).outlineColor + ' ' + getComputedStyle(at).outlineStyle : null };
+  }, staged.c4);
+  check('24d Read as it stood draws that move on the paper, and its wording is not today\u2019s',
+    read.drawn === true && read.words !== wordsNow,
+    (read.drawn ? 'drawn' : 'MISSING') + ' · same words? ' + String(read.words === wordsNow));
+  /* ---- THE RED. MEASURED WITH THE POINTER OVER THE ROW, which is the case
+     that was broken: :hover carried outline:none at (0,3,0) and deleted the
+     ruby outline exactly when the reader was looking at it. ---- */
+  const readRow = await page.$('#rl-cp .rl-rung-row.is-reading');
+  if (readRow) await readRow.hover();
+  await pause(250);
+  const ruby = await page.evaluate(() => {
+    const px = s => { const d = document.createElement('i'); d.style.color = 'var(' + s + ')';
+      document.body.appendChild(d); const v = getComputedStyle(d).color; d.remove(); return v; };
+    const row = document.querySelector('#rl-cp .rl-rung-row.is-reading');
+    const chip = document.querySelector('.rl-doc .rl-rung-reading');
+    const inRow = document.querySelector('#rl-cp .rl-rung-acts button[data-rl-read-now]');
+    const base = document.querySelector('.rl-doc [data-rl-baseline] button[data-rl-read-now]');
+    const at = document.querySelector('.rl-doc .rl-read-at');
+    const cs = e => e ? getComputedStyle(e) : null;
+    return { rubyFg: px('--st-ruby-fg'), rubyDot: px('--st-ruby-dot'),
+      rowOutline: row ? cs(row).outlineColor + ' ' + cs(row).outlineStyle : null,
+      chip: chip ? { bg: cs(chip).backgroundColor, fg: cs(chip).color, t: chip.textContent.trim() } : null,
+      inRow: inRow ? cs(inRow).color : null, base: base ? cs(base).color : null,
+      atOutline: at ? cs(at).outlineColor + ' ' + cs(at).outlineStyle : null };
+  });
+  check('24e the row being read keeps its RED outline even under the pointer',
+    !!ruby.rowOutline && ruby.rowOutline === ruby.rubyDot + ' dashed',
+    ruby.rowOutline + ' · ruby dot ' + ruby.rubyDot);
+  check('24f the chip on the clause is red, ink and ground',
+    !!ruby.chip && ruby.chip.fg === ruby.rubyFg && ruby.chip.bg !== 'rgba(0, 0, 0, 0)',
+    JSON.stringify(ruby.chip));
+  check('24g both ways back are red — the ladder row\u2019s and the line under the clause',
+    ruby.inRow === ruby.rubyFg && ruby.base === ruby.rubyFg,
+    'row ' + ruby.inRow + ' · line ' + ruby.base + ' · ruby ' + ruby.rubyFg);
+  check('24h and the clause being read wears the same red',
+    ruby.atOutline === ruby.rubyDot + ' dashed', ruby.atOutline);
+  /* ---- AND BACK. The red is a TEMPORARY posture: pressing the way back must
+     leave nothing red behind, or the mark stops meaning anything. ---- */
+  await page.click('#rl-cp .rl-rung-acts button[data-rl-read-now]'); await pause(900);
+  const back = await page.evaluate(id => {
+    const e = document.querySelector(`#rl-doc [data-clause="${id}"]`);
+    return { readAt: !!document.querySelector('.rl-doc .rl-read-at'),
+      chip: !!document.querySelector('.rl-doc .rl-rung-reading'),
+      reading: !!document.querySelector('#rl-cp .rl-rung-row.is-reading'),
+      words: e ? e.textContent.replace(/\s+/g, ' ').trim() : '' };
+  }, staged.c4);
+  check('24i Back to now puts the paper back and takes every red mark with it',
+    back.readAt === false && back.chip === false && back.reading === false
+      && back.words === wordsNow, JSON.stringify(back).slice(0, 160));
+  const inkJ1 = await page.evaluate(() => { const w = document.querySelector('.rl-doc .rl-clause');
+    return w ? Math.round(w.getBoundingClientRect().left) : null; });
+  check('24j THE CONTRACT DOES NOT MOVE BY A PIXEL through the whole journey',
+    inkJ0 !== null && inkJ0 === inkJ1, `before ${inkJ0} · after ${inkJ1}`);
+  }
 
   check('9 no page error anywhere in the run', errs.length === 0, errs.join(' | ').slice(0, 300));
   console.log(`\n${results.filter(r=>r.pass).length}/${results.length} passed`);

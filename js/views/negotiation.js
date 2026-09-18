@@ -6972,8 +6972,10 @@ function rlLadderSectionHtml(c, cl, side, opts = {}){
        See rlRungPeekHtml: it costs nothing, because the rung already holds
        every word it would show. */
     return `<li class="rl-rung-row rl-rung-${tone}${winIds.has(r.id) && !acc && !readAt ? ' rl-rung-win' : ''}${readAt === r.id ? ' is-reading' : ''}"
-      data-rl-rung-peek="${_nea(id)}" data-rung="${_nea(r.id)}" tabindex="0"${
-      winIds.has(r.id) ? ` title="${_nea(i18t('ng_rung_win_title'))}"` : ''}>
+      data-rl-rung-peek="${_nea(id)}" data-rung="${_nea(r.id)}" tabindex="0"
+      title="${_nea(winIds.has(r.id)
+        ? i18t('ng_rung_win_title') + ' \u00b7 ' + i18t('ng_rung_go_title')
+        : i18t('ng_rung_go_title'))}">
       <div class="rl-rung-who"><span class="rl-rung-n">R${r.n}</span>
         <span>${_ne(mine(r) ? i18t('ng_rung_you') : i18t('ng_rung_them'))}${
           r.author ? ` · ${_ne(r.author)}` : ''}</span>
@@ -6991,7 +6993,8 @@ function rlLadderSectionHtml(c, cl, side, opts = {}){
   const base = ladderBaseText(rungs);
   const baseFig = (track && typeof ladderFigure === 'function') ? ladderFigure(ladderTopic(rungs), base) : null;
   const r0 = `<li class="rl-rung-row rl-rung-base${readAt === '0' ? ' is-reading' : ''}"
-    data-rl-rung-peek="${_nea(id)}" data-rung="0" tabindex="0">
+    data-rl-rung-peek="${_nea(id)}" data-rung="0" tabindex="0"
+    title="${_nea(i18t('ng_rung_go_title'))}">
     <div class="rl-rung-who"><span class="rl-rung-n">R0</span>
       <span>${_ne(i18t('ng_rung_agreed'))}</span></div>
     ${baseFig != null ? `<div class="rl-rung-what">${_ne(String(baseFig))} ${_ne(track.unit || '')}</div>`
@@ -7079,19 +7082,48 @@ function rlLadderContract(){
    model, no write.
 
    HOVER ALONE IS NOT ENOUGH and never was: a hover cannot be reached with a
-   keyboard and does not exist on a touch screen. So the same card answers
-   pointing, tabbing and pressing, and closes on Escape — "every act has a key
-   beside its click", the product's own rule. Pointing opens it loosely and
-   pointing away closes it; PRESSING PINS it, so the two verbs on its foot can
-   be reached with a mouse without the card going out from under the hand.
+   keyboard and does not exist on a touch screen. So the card answers pointing
+   AND tabbing, and closes on Escape — "every act has a key beside its click",
+   the product's own rule.
+
+   ---- POINTING READS, PRESSING GOES (Young ruled 18 Sep 2026) ----
+   The press used to PIN this card. It no longer does: a press on the row takes
+   the reader to that clause on the paper (see rlLadderGoClause), which is what
+   the ladder is for, and the card is purely what the pointer is for. The two
+   verbs on the card's foot are still reachable with a mouse because the card
+   holds while the pointer is on IT — the grace crossing below — so pinning was
+   buying nothing that the press then had to pay for.
 
    IT SITS OVER THE GREY, never over the paper's text column and never inside
    the panel's own scroller, so the contract does not move by a pixel. */
 const RL_PEEK_MS = 160;      /* the grace crossing from the row to the card */
-let _rlPeek = null;          /* {clauseId, rungId, pinned} — per sitting, in memory */
+let _rlPeek = null;          /* {clauseId, rungId} — per sitting, in memory */
 let _rlPeekTimer = null;
 
 function rlPeekOpenId(){ return _rlPeek; }
+
+/* ---- A RUNG IS A DOOR ONTO ITS OWN CLAUSE (Young ruled 18 Sep 2026) ----
+   "When I click on ladder and it takes me to the ladder panel, when I click on
+   the card it should take me to that clause in the contract."
+
+   ONE READING, THREE DOORS. The rung row's press, "Read as it stood" and
+   "Back to now" all mean the same thing about the paper — put this clause in
+   front of me — and three copies of that press would be three chances to
+   disagree about which surface moves. It presses the page's own door,
+   rlJumpToClause, which is what a change card's Edit has always used: the
+   clause scrolls to the middle and lights, so the reader can see the paper
+   answered them.
+
+   INSIDE THE CLAUSE EDITOR THERE IS NOWHERE TO GO. That page is one clause and
+   the ladder sits in its rail, so the jump would land on the clause the reader
+   is already standing in. Asked of the ROW, exactly as rlPeekShow asks which
+   surface it is mounting on, so a third home inherits the answer. */
+function rlLadderGoClause(clauseId, row){
+  if (!clauseId) return false;
+  if (row && row.closest && row.closest('.ce-rail')) return false;
+  if (typeof rlJumpToClause !== 'function') return false;
+  return !!rlJumpToClause(String(clauseId));
+}
 
 /* WHICH WORDING A RUNG IS, and the one place that question is answered.
    R0 is the agreed wording and has no marks on it — nothing moved yet — so it
@@ -7158,9 +7190,30 @@ function rlPeekShow(clauseId, rungId, opts){
   if (!panel) return false;
   const html = rlRungPeekHtml(c, clauseId, rungId);
   if (!html) return false;
-  rlPeekHide(true);
-  panel.insertAdjacentHTML('beforeend', html);
-  _rlPeek = { clauseId: String(clauseId), rungId: String(rungId), pinned: !!(opts && opts.pinned) };
+  rlPeekHide();
+  /* ---- AND IT MAY NOT BE WRITTEN INTO A BOX THAT CLIPS (measured 18 Sep
+     2026) ----
+     THE CARD WAS ADDRESSED, POSITIONED, AND NEVER PAINTED. #rl-cp is
+     overflow:hidden — it is the cards column and its own list scrolls — and
+     this card hangs OUTSIDE it by design, to the left, over the grey. So the
+     panel clipped the whole thing away: MEASURED, its rect read 526..946 and
+     elementFromPoint at every point across it answered the paper's own
+     paragraph. That is the rest of the owner's "I do not see the updated
+     clause", and the checks that passed on it were reading a RECT — a rect is
+     not a painted pixel.
+     So where the host clips, the card is written into the host's own
+     positioning parent instead and placed against the host's measured edge.
+     The clause editor's rail does not clip and keeps the plain mount. */
+  const clips = el => { const cs = getComputedStyle(el);
+    return /hidden|clip|auto|scroll/.test(cs.overflowX + ' ' + cs.overflowY); };
+  let home = panel, against = null;
+  if (clips(panel)){
+    let up = panel.parentElement;
+    while (up && up !== document.body && getComputedStyle(up).position === 'static') up = up.parentElement;
+    if (up && up !== document.body){ home = up; against = panel; }
+  }
+  home.insertAdjacentHTML('beforeend', html);
+  _rlPeek = { clauseId: String(clauseId), rungId: String(rungId) };
   const card = document.getElementById('rl-peek');
   /* ---- IT OPENS BESIDE THE RUNG, NOT AT THE TOP OF THE PANEL (Young
      reported it 17 Sep 2026: "When I put my mouse on the R1 card I do not see
@@ -7176,24 +7229,43 @@ function rlPeekShow(clauseId, rungId, opts){
      against the panel because that is the box it is positioned in. */
   if (card && opts && opts.row && typeof opts.row.getBoundingClientRect === 'function'){
     try{
-      const pr = panel.getBoundingClientRect(), rr = opts.row.getBoundingClientRect();
+      const box = home.getBoundingClientRect();
+      const pr = (against || panel).getBoundingClientRect();
+      const rr = opts.row.getBoundingClientRect();
+      /* WHERE IT SITS ACROSS THE PAGE. Re-homed, `right:100%` no longer means
+         the panel's edge, so the seam is measured: to the LEFT of the panel
+         where there is grey to grow into, and over the panel itself where
+         there is not — the same two cases the stylesheet states for the home
+         that does not clip. */
+      if (against){
+        const room = pr.left - box.left;
+        if (room >= 340){
+          card.style.right = Math.round(box.right - pr.left + 10) + 'px';
+          card.style.left = 'auto';
+        } else {
+          card.style.left = Math.round(pr.left - box.left + 8) + 'px';
+          card.style.right = 'auto';
+          card.style.width = Math.round(Math.max(240, pr.width - 16)) + 'px';
+        }
+      }
       const ch = card.getBoundingClientRect().height || 0;
-      const want = rr.top - pr.top - 6;          /* its own top, a hair above */
-      const most = Math.max(8, pr.height - ch - 12);
-      card.style.top = Math.round(Math.min(Math.max(8, want), most)) + 'px';
+      const want = rr.top - box.top - 6;          /* its own top, a hair above */
+      const most = Math.max(8, (pr.bottom - box.top) - ch - 12);
+      card.style.top = Math.round(Math.min(Math.max(Math.max(8, pr.top - box.top), want), most)) + 'px';
     }catch(_){ }
   }
-  if (card && !opts?.pinned){
+  if (card){
     /* CROSSING FROM THE ROW TO THE CARD MAY NOT CLOSE IT: the card is not a
        child of the row it belongs to, so the pointer leaving the row would
-       otherwise take it away mid-reach. */
+       otherwise take it away mid-reach. THIS IS WHAT MAKES THE CARD'S OWN TWO
+       VERBS REACHABLE WITH A MOUSE, and therefore what made pinning
+       unnecessary when the press became the door onto the clause. */
     card.addEventListener('mouseenter', () => { clearTimeout(_rlPeekTimer); _rlPeekTimer = null; });
     card.addEventListener('mouseleave', () => rlPeekLater());
   }
   return true;
 }
-function rlPeekHide(force){
-  if (!force && _rlPeek && _rlPeek.pinned) return false;
+function rlPeekHide(){
   clearTimeout(_rlPeekTimer); _rlPeekTimer = null;
   const el = document.getElementById('rl-peek');
   if (el) el.remove();
@@ -18541,12 +18613,10 @@ if (typeof document !== 'undefined' && !document._rlNotesWired){
    is painted into its mount partway through a render, so anything bound in the
    head block above that paint would be live-looking and dead. Bound once.
 
-   POINTING OPENS IT LOOSELY; PRESSING PINS IT. A card that vanishes the moment
-   the pointer leaves the row cannot have its two verbs pressed with a mouse,
-   and one that never vanishes is a panel nobody asked for. So there are two
-   states and the press is what tells them apart. A pinned card closes on the
-   same press that opened it — the owner's rule about sliding panels, and the
-   ladder chip's own. */
+   POINTING OPENS IT AND POINTING AWAY CLOSES IT, and that is the whole of the
+   card's own state since 18 Sep 2026: the press belongs to the CLAUSE now, not
+   to this card. Crossing from the row onto the card is what keeps it up long
+   enough for its verbs to be pressed. */
 if (typeof document !== 'undefined' && !document._rlPeekWired){
   document._rlPeekWired = true;
   const rowOf = t => (t && t.closest) ? t.closest('[data-rl-rung-peek]') : null;
@@ -18554,7 +18624,6 @@ if (typeof document !== 'undefined' && !document._rlPeekWired){
   document.addEventListener('mouseover', ev => {
     const row = rowOf(ev.target);
     if (!row){ return; }
-    if (_rlPeek && _rlPeek.pinned) return;
     const [cid, rid] = addr(row);
     /* ALREADY SHOWING THIS ONE: keep it, and cancel any close in flight —
        mouseover fires again for every child the pointer crosses inside the
@@ -18571,7 +18640,7 @@ if (typeof document !== 'undefined' && !document._rlPeekWired){
   });
   document.addEventListener('mouseout', ev => {
     const row = rowOf(ev.target);
-    if (!row || (_rlPeek && _rlPeek.pinned)) return;
+    if (!row) return;
     /* Moving WITHIN the row is not leaving it. */
     if (ev.relatedTarget && rowOf(ev.relatedTarget) === row) return;
     rlPeekLater();
@@ -18580,12 +18649,22 @@ if (typeof document !== 'undefined' && !document._rlPeekWired){
      and the rows are rewritten on every paint of the panel. */
   document.addEventListener('focusin', ev => {
     const row = rowOf(ev.target);
-    if (!row){ if (_rlPeek && !_rlPeek.pinned && !document.getElementById('rl-peek')?.contains(ev.target)) rlPeekLater(); return; }
+    if (!row){ if (_rlPeek && !document.getElementById('rl-peek')?.contains(ev.target)) rlPeekLater(); return; }
     const [cid, rid] = addr(row);
     rlPeekShow(cid, rid, { row });
   });
   document.addEventListener('keydown', ev => {
-    if (ev.key === 'Escape' && _rlPeek){ ev.stopPropagation(); rlPeekHide(true); }
+    if (ev.key === 'Escape' && _rlPeek){ ev.stopPropagation(); rlPeekHide(); return; }
+    /* ---- EVERY ACT HAS A KEY BESIDE ITS CLICK ----
+       The row is a tab stop that now DOES something, so Enter and Space reach
+       the same door the mouse does. A press on a verb inside the row is still
+       that verb: a button answers its own keys and this stands down for one,
+       the way the mouse branch does. */
+    if (ev.key !== 'Enter' && ev.key !== ' ') return;
+    const row = rowOf(ev.target);
+    if (!row || (ev.target.closest && ev.target.closest('button,a,input,select,textarea'))) return;
+    ev.preventDefault();
+    rlLadderGoClause(row.getAttribute('data-rl-rung-peek'), row);
   }, true);
 }
 if (typeof document !== 'undefined' && !document._rlCpWired){
@@ -18655,32 +18734,50 @@ if (typeof document !== 'undefined' && !document._rlCpWired){
       rlCpSetShown(lscope, rlCpOpenId() === lid ? null : lid, { ladder: true });
       return;
     }
-    /* A PRESS ON THE ROW PINS ITS WORDING, and the same press lets it go.
+    /* ---- A PRESS ON THE ROW TAKES THE READER TO THAT CLAUSE (Young ruled
+       18 Sep 2026: "when I click on the card it should take me to that clause
+       in the contract") ----
+       IT USED TO PIN THE HOVER CARD, which was the press doing nothing the
+       reader could see: the card was already open under their pointer, and
+       pinning only changed when it would go away. The division is plainer
+       this way and it is the one the rest of the page already uses — POINTING
+       READS (the card), PRESSING GOES (the paper), exactly as a change card's
+       own row behaves. The two verbs on the card's foot are still reachable
+       with a mouse because the card holds while the pointer is on it.
        Asked BEFORE the verbs below it so a press on Read as it stood is still
        that verb: those are buttons inside the row, and this stands down for
        anything pressable. */
     const peekRow = t.closest && t.closest('[data-rl-rung-peek]');
         if (peekRow && !(t.closest && t.closest('button,a,input,select,textarea'))){
           ev.preventDefault(); ev.stopPropagation();
-          const pcid = peekRow.getAttribute('data-rl-rung-peek');
-          const prid = peekRow.getAttribute('data-rung');
-          if (_rlPeek && _rlPeek.pinned && _rlPeek.clauseId === String(pcid)
-            && _rlPeek.rungId === String(prid)) rlPeekHide(true);
-          else rlPeekShow(pcid, prid, { pinned: true, row: peekRow });
+          rlLadderGoClause(peekRow.getAttribute('data-rl-rung-peek'), peekRow);
           return;
         }
         const readAt = t.closest('[data-rl-read-at]');
         if (readAt){
           ev.preventDefault(); ev.stopPropagation();
-          rlSetReadAt(readAt.getAttribute('data-rl-read-at'), readAt.getAttribute('data-rung'));
+          /* READ OFF THE NODE BEFORE THE REPAINT, which takes it out of the
+             page — the same reason every other handler in this block does. */
+          const atId = readAt.getAttribute('data-rl-read-at');
+          const atRail = !!(readAt.closest && readAt.closest('.ce-rail'));
+          rlSetReadAt(atId, readAt.getAttribute('data-rung'));
           rlRepaintFrom(readAt);
+          /* ---- AND THE PAPER GOES TO THE CLAUSE THAT JUST CHANGED ----
+             The press redraws ONE clause, and on a long contract that clause
+             is usually off the screen: the reader pressed "Read as it stood"
+             and watched nothing happen. A reading is only a reading where it
+             can be read. */
+          if (!atRail) rlLadderGoClause(atId);
           return;
         }
         const readNow = t.closest('[data-rl-read-now]');
         if (readNow){
           ev.preventDefault(); ev.stopPropagation();
-          rlSetReadAt(readNow.getAttribute('data-rl-read-now'), null);
+          const nowId = readNow.getAttribute('data-rl-read-now');
+          const nowRail = !!(readNow.closest && readNow.closest('.ce-rail'));
+          rlSetReadAt(nowId, null);
           rlRepaintFrom(readNow);
+          if (!nowRail) rlLadderGoClause(nowId);
           return;
         }
         const cmp = t.closest('[data-rl-rung-compare]');
@@ -19330,6 +19427,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlFitTabRow, rlWireFitTabRow, rlObserveTabRow,
   redlineHeldId, redlineEvict, openRedlineWorkbench,
   rlRungPeekHtml, rlPeekShow, rlPeekHide, rlPeekLater, rlPeekOpenId, RL_PEEK_MS,
+  rlLadderGoClause,
   negoBlanksOpen, negoBlanksAsk, negoBlanksFill, NG_BLANKS_NAMED,
   rlOwnerOpenActions, rlOwnerOpenTotal, rlJumpHtml,
   rlPbFindClause, rlPlaybookProposals, rlPbWordingLabel, rlFilePlaybookProposal, rlOpenPlaybookReview,

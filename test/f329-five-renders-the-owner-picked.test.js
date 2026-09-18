@@ -368,14 +368,25 @@ describe('f329 (5) — a ladder rung shows its whole clause', () => {
     assert.match(src, /data-rl-rung-peek="\$\{_nea\(id\)\}" data-rung="0" tabindex="0"/,
       'and R0, which is the row the owner named first');
   });
-  test('POINTING OPENS IT LOOSELY; PRESSING PINS IT, and the same press lets it go', () => {
+  /* ---- REVERSED IN PLACE 18 Sep 2026 (Young: "when I click on the card it
+     should take me to that clause in the contract") ----
+     This pinned the hover card on a press, and pinning was the reason the
+     card needed a second state at all. It reads POINTING READS, PRESSING GOES
+     now. The old claim is kept above its replacement because the reasoning
+     that justified it — the card's two verbs must be reachable with a mouse —
+     is still true and is still answered, by the grace crossing rather than by
+     a pin; see THE LADDER JOURNEY below. */
+  test('POINTING READS AND PRESSING GOES: nothing pins any more', () => {
     const src = strip(NEGO);
-    assert.match(src, /rlPeekShow\(pcid, prid, \{ pinned: true/, 'a press pins');
-    assert.match(src, /_rlPeek\.pinned[\s\S]{0,140}rlPeekHide\(true\)/,
-      'the press that opens a sliding panel closes it');
+    assert.ok(!/pinned: true/.test(src), 'no press pins the card');
+    assert.ok(!/_rlPeek\.pinned/.test(src), 'and no guard reads a pin that is never set');
     const hide = realBody(src, 'function rlPeekHide(');
-    assert.match(hide, /if \(!force && _rlPeek && _rlPeek\.pinned\) return false/,
-      'and pointing away cannot take a pinned card');
+    assert.ok(!/force/.test(hide), 'so rlPeekHide has no state to be forced past');
+    const show = realBody(src, 'function rlPeekShow(');
+    assert.match(show, /_rlPeek = \{ clauseId: String\(clauseId\), rungId: String\(rungId\) \}/,
+      'the card knows which rung it is and nothing else');
+    assert.match(show, /if \(card\)\{/,
+      'EVERY card gets the grace crossing, which is what makes its verbs reachable');
   });
   test('a press on a VERB inside the row is still that verb', () => {
     const src = strip(NEGO);
@@ -419,7 +430,8 @@ describe('f329 (6) — every new name is published, and nothing writes that shou
       [CONTRACT, ['contractFieldKeyOf', 'contractFieldPeer', 'contractFieldLight',
         'contractFieldUnlight', 'contractFieldFocus', 'wireFieldLink']],
       [NEGO, ['negoBlanksOpen', 'negoBlanksAsk', 'negoBlanksFill', 'NG_BLANKS_NAMED',
-        'rlRungPeekHtml', 'rlPeekShow', 'rlPeekHide', 'rlPeekLater', 'rlPeekOpenId']],
+        'rlRungPeekHtml', 'rlPeekShow', 'rlPeekHide', 'rlPeekLater', 'rlPeekOpenId',
+        'rlLadderGoClause']],
     ]) {
       const tail = src.slice(src.lastIndexOf('Object.assign(window'));
       for (const n of names) assert.ok(new RegExp('\\b' + n + '\\b').test(tail), n + ' is published');
@@ -431,11 +443,126 @@ describe('f329 (6) — every new name is published, and nothing writes that shou
       [CONTRACT, ['contractFieldKeyOf', 'contractFieldPeer', 'contractFieldLight',
         'contractFieldUnlight', 'contractFieldFocus', 'wireFieldLink']],
       [NEGO, ['negoBlanksOpen', 'negoBlanksAsk', 'negoBlanksFill',
-        'rlRungPeekHtml', 'rlPeekShow', 'rlPeekHide', 'rlPeekLater', 'rlPeekOpenId']],
+        'rlRungPeekHtml', 'rlPeekShow', 'rlPeekHide', 'rlPeekLater', 'rlPeekOpenId',
+        'rlLadderGoClause']],
     ]) {
       for (const n of names) {
         assert.ok(new RegExp('function ' + n + '\\(').test(src), n + ' has a body');
       }
     }
+  });
+});
+
+/* ================================================================
+   THE LADDER JOURNEY — A RUNG IS A DOOR, AND READING BACK IS RED
+   (Young ruled 18 Sep 2026)
+   ================================================================
+   "When I click on ladder and it takes me to the ladder panel, when I click on
+   the card it should take me to that clause in the contract. When I then click
+   on read as it stood, it should show me what the previous read was. The Read
+   as it stood, when it becomes back to now, it should then turn red until I
+   click back to read as it stood."
+
+   THREE PRESSES, ONE JOURNEY. What this pins is that the three of them cannot
+   drift: they all mean "put this clause in front of me", and they all go
+   through ONE reading. The pixels — that the paper really moves and that the
+   red is really painted — are ladder-verify's, because only a rendered page
+   knows whether a rule won its cascade fight. */
+describe('the ladder journey: pressing a rung goes to its clause', () => {
+  test('ONE READING, and it presses the page\u2019s own door', () => {
+    const fn = realBody(strip(NEGO), 'function rlLadderGoClause(');
+    assert.match(fn, /rlJumpToClause\(String\(clauseId\)\)/,
+      'the door a change card\u2019s Edit has always used, not a second scroller');
+    assert.ok(!/scrollIntoView/.test(fn), 'it does not scroll anything itself');
+  });
+  test('inside the clause editor there is nowhere to go, and it is asked of the ROW', () => {
+    const fn = realBody(strip(NEGO), 'function rlLadderGoClause(');
+    assert.match(fn, /row\.closest\('\.ce-rail'\)/,
+      'the same question rlPeekShow asks about which surface it is on');
+    assert.match(fn, /return false/, 'and it answers no rather than jumping');
+  });
+  test('READING MUST NOT WRITE: the reading files, decides and sends nothing', () => {
+    const fn = realBody(strip(NEGO), 'function rlLadderGoClause(');
+    for (const bad of ['negoInit', 'negoFileChange', 'changes.push', 'persist(', 'api(']) {
+      assert.ok(!fn.includes(bad), 'it never calls ' + bad);
+    }
+  });
+  test('the rung row presses it, and stands down for a verb inside the row', () => {
+    const src = strip(NEGO);
+    assert.match(src,
+      /peekRow && !\(t\.closest && t\.closest\('button,a,input,select,textarea'\)\)[\s\S]{0,260}rlLadderGoClause\(peekRow/,
+      'a press on the row goes to the clause');
+  });
+  test('Read as it stood and Back to now take the reader there too', () => {
+    const src = strip(NEGO);
+    const at = src.slice(src.indexOf("const readAt = t.closest('[data-rl-read-at]')"));
+    assert.match(at.slice(0, 900), /rlSetReadAt\(atId[\s\S]{0,300}rlLadderGoClause\(atId\)/,
+      'the reading is drawn and then shown');
+    const now = src.slice(src.indexOf("const readNow = t.closest('[data-rl-read-now]')"));
+    assert.match(now.slice(0, 700), /rlSetReadAt\(nowId, null\)[\s\S]{0,260}rlLadderGoClause\(nowId\)/,
+      'and the way back does the same');
+  });
+  test('the node is read BEFORE the repaint that takes it out of the page', () => {
+    const src = strip(NEGO);
+    const at = src.slice(src.indexOf("const readAt = t.closest('[data-rl-read-at]')"), );
+    const i = at.indexOf('rlRepaintFrom(readAt)');
+    assert.ok(i > 0, 'the repaint is there');
+    assert.match(at.slice(0, i), /const atId = readAt\.getAttribute/, 'the id first');
+    assert.match(at.slice(0, i), /const atRail = /, 'and which surface it was on');
+  });
+  test('EVERY ACT HAS A KEY BESIDE ITS CLICK: Enter and Space reach the same door', () => {
+    const src = strip(NEGO);
+    const m = src.slice(src.indexOf('document._rlPeekWired = true'));
+    assert.match(m.slice(0, 3400), /ev\.key !== 'Enter' && ev\.key !== ' '/, 'both keys');
+    assert.match(m.slice(0, 3400), /rlLadderGoClause\(row\.getAttribute\('data-rl-rung-peek'\), row\)/,
+      'and they press the one reading');
+  });
+  test('the row says what its press does, in both books', () => {
+    const src = strip(NEGO);
+    assert.match(src, /title="\$\{_nea\(winIds\.has\(r\.id\)/, 'the move rung carries it');
+    assert.match(src, /data-rung="0" tabindex="0"\s*\n\s*title="\$\{_nea\(i18t\('ng_rung_go_title'\)\)\}"/,
+      'and R0 does too');
+    assert.equal((I18N.match(/ng_rung_go_title:/g) || []).length, 2, 'ng_rung_go_title in both books');
+  });
+  test('the card is never written into a box that clips it away', () => {
+    const fn = realBody(strip(NEGO), 'function rlPeekShow(');
+    assert.match(fn, /const clips = el =>/, 'the host is asked whether it clips');
+    assert.match(fn, /overflowX \+ ' ' \+ cs\.overflowY/, 'both axes, because either one clips');
+    assert.match(fn, /getComputedStyle\(up\)\.position === 'static'/,
+      'and it walks up to a positioning parent');
+    assert.match(fn, /home\.insertAdjacentHTML\('beforeend', html\)/,
+      'the card is mounted THERE, not in the panel');
+    assert.match(fn, /box\.right - pr\.left \+ 10/,
+      're-homed, the seam is measured rather than assumed');
+  });
+  test('the cursor is a pointer, because the press is a door now', () => {
+    const m = /\.redline-page \.rl-rung-row\[data-rl-rung-peek\]\{[^}]*\}/.exec(NEGOCSS);
+    assert.ok(m, 'the row is dressed');
+    assert.match(m[0], /cursor:pointer/, 'not zoom-in, which named a magnifier');
+  });
+  test('READING BACK IS RED, in ONE rule and not a second one beside it', () => {
+    assert.equal((NEGOCSS.match(/\.redline-page \.rl-rung-reading\{/g) || []).length, 1,
+      'one rule for the chip, reversed in place \u2014 two would drift');
+    const m = /\.redline-page \.rl-rung-reading\{[^}]*\}/.exec(NEGOCSS);
+    assert.match(m[0], /--st-ruby-bg/, 'the chip on the clause is ruby');
+    assert.match(m[0], /--st-ruby-fg/, 'and its ink');
+  });
+  test('the ways back and the two outlines wear the same red', () => {
+    assert.match(NEGOCSS,
+      /\.redline-page \.rl-baseline button\[data-rl-read-now\],\s*\n\s*\.redline-page \.rl-rung-acts button\[data-rl-read-now\]\{color:var\(--st-ruby-fg\)\}/,
+      'both Back to now buttons');
+    assert.match(NEGOCSS, /\.rl-rung-row\.is-reading\{outline:1px dashed var\(--st-ruby-dot\)/,
+      'the row being read');
+    assert.match(NEGOCSS, /\.rl-read-at\{outline:1px dashed var\(--st-ruby-dot\)/,
+      'and the clause on the paper');
+  });
+  test('outline:none is scoped to the focus ring, so a hover cannot delete the red', () => {
+    const m = /\.redline-page \.rl-rung-row\[data-rl-rung-peek\]:hover,[\s\S]{0,200}?\}/.exec(NEGOCSS);
+    assert.ok(m, 'the hover wash is there');
+    assert.ok(!/outline:none/.test(m[0]),
+      'a hover has no ring to cancel, and at (0,3,0) it was deleting the reading outline');
+    assert.match(NEGOCSS,
+      /\[data-rl-rung-peek\]:focus-visible\{\s*\n?\s*outline:none;box-shadow:inset 2px 0 0/,
+      'the ring is cancelled where there is one');
   });
 });

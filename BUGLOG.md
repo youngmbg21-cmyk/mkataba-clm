@@ -15538,3 +15538,70 @@ row 640→card 84".
   matches rung rows in the hidden bodies too — they measure zero height. Every
   reader here filters on a real box, but a future one that does not will find
   rows it cannot hover.
+
+## 2026-09-18 — THE LADDER JOURNEY: A RUNG IS A DOOR, AND READING BACK IS RED
+
+Young: *"When I click on ladder and it takes me to the ladder panel, when I
+click on the card it should take me to that clause in the contract. When I then
+click on read as it stood, it should show me what the previous read was. The
+Read as it stood, when it becomes back to now, it should then turn red until I
+click back to read as it stood. Review this functionality and make it clear
+and, simple to follow and interactive."*
+
+MEASURED FIRST, in a driven browser, and both halves of the report reproduced:
+a press on a rung left the paper at `scroll 0 / clauseTop 358` and lit nothing,
+and "Back to now" printed `rgb(17, 94, 89)` — the accent, the colour of every
+live door on the page.
+
+### What was defective
+
+1. **A rung press pinned the hover card instead of going to the clause.** The
+   press did nothing the reader could see: the card was already open under
+   their pointer, and pinning only changed when it would go away.
+2. **THE HOVER CARD WAS NEVER PAINTED AT ALL.** `#rl-cp` is `overflow:hidden`
+   and the card hangs OUTSIDE it by design, to the left, over the grey — so the
+   panel clipped the whole thing away. Its rect read `526..946` and
+   `elementFromPoint` at four points across it answered the paper's own
+   paragraph (`P / P / P / rl-zoom`). Addressed, positioned, sized, invisible.
+   **This is the rest of "I do not see the updated clause" reported 17 Sep** —
+   the vertical fix that day was real and was not the whole fault. Every check
+   that passed on it was reading a RECT. **A rect is not a painted pixel.**
+3. **"Read as it stood" redrew a clause that was usually off the screen.** The
+   press was correct and unobservable.
+4. **Nothing said you were reading an earlier move.** The chip, the two ways
+   back and both outlines were the accent.
+5. **The row being read lost its outline under the pointer.** `:hover` carried
+   `outline:none` at (0,3,0) — written for the focus ring beside it, which a
+   hover does not have — and it deleted the reading outline exactly when the
+   reader was looking at the row. The source read correctly throughout.
+
+### What was built
+
+- `rlLadderGoClause(clauseId, row)` — ONE reading of "put this clause in front
+  of me", pressing the page's own `rlJumpToClause`. Three doors ask it (the
+  rung row, Read as it stood, Back to now); Enter and Space reach the same one.
+  It refuses inside the clause editor's rail, where that page is one clause.
+- The hover card is mounted in the host's positioning parent where the host
+  clips, and placed against the host's measured edge.
+- The reading posture is ruby: the chip on the clause, both ways back, the row
+  outline and the clause outline. ONE rule, reversed in place; the old ruling
+  ("violet, not one of the two sides") is kept beside it because it is the half
+  that was wrong — the accent is also every live door on the page.
+- `outline:none` scoped to `:focus-visible`. Fixed by SCOPE, never `!important`.
+- Pinning removed entirely: the card's verbs stay reachable by the grace
+  crossing that was already there, so the pin was buying nothing.
+
+### Tests
+
+f329 (16 claims, 16 red at the parent) · ladder-verify 23e2 + section 24
+(11 checks, 9 red at the parent; 23e2 reads `P / P / P / rl-zoom` there) ·
+23h/23i reversed in place with the ruling beside them. Full node suite
+7,609/7,609. clause-door 125/125, parity 47/47, clause-editor 290/290,
+round-two-comments 46/46, keeps-your-place 11/11.
+
+### Noticed, not fixed
+
+- `ladder-verify 5b` (the key's swatches), `redline-verify 5` and the
+  `nego-redesign-verify 1` breadcrumb group fail identically at the parent.
+- `overview-as-drawn-verify.js:145` still carries the repo's one lint error.
+- The 27 pre-existing red browser files in the whole-file sweep are unchanged.
