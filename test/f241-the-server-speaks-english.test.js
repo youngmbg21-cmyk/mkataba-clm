@@ -167,10 +167,17 @@ describe('f241 — the twelve screens the audit named', () => {
     const block = core.slice(start, core.indexOf('\n};', start));
     assert.ok(!/label:'Negotiate'/.test(block), 'still in the source: /label:\'Negotiate\'/');
     assert.ok(!/blurb:'For an advisor/.test(block), 'still in the source: /blurb:\'For an advisor/');
-    /* Getters, not calls: an object literal freezes the load-time language. */
-    assert.equal((block.match(/get label\(\)/g) || []).length, 3);
-    assert.equal((block.match(/get blurb\(\)/g) || []).length, 3);
-    assert.equal((block.match(/get line\(\)/g) || []).length, 3, 'the one-screen sentence turns over with the rest');
+    /* Getters, not calls: an object literal freezes the load-time language.
+       PIN THE RELATION, NOT THE NUMBER — this counted three, which was the
+       number of members on the day it was written; a fifth link purpose was
+       added on 18 Sep 2026 and the claim went red over an object that still
+       says exactly what it said. What it is about is that EVERY member is a
+       getter, so it counts the members. */
+    const members = (block.match(/^\s{2}[a-z]+:\{/gm) || []).length;
+    assert.ok(members >= 3, 'the members are found at all: ' + members);
+    assert.equal((block.match(/get label\(\)/g) || []).length, members);
+    assert.equal((block.match(/get blurb\(\)/g) || []).length, members);
+    assert.equal((block.match(/get line\(\)/g) || []).length, members, 'the one-screen sentence turns over with the rest');
   });
 
   test("the counterparty's verb row and everything it says afterwards", () => {

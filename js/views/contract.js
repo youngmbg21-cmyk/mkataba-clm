@@ -4457,7 +4457,7 @@ function ktRouteEmailRowHtml(c){
    is stated as a browser-local thing. */
 function ktStreamRowHtml(c){
   const read=esc((window.streamLabel?streamLabel(c):'')||'—');
-  const may=(typeof isAdmin==='function')&&isAdmin()&&!PORTAL_MODE&&typeof visibleFolders==='function';
+  const may=(typeof mayReFile==='function')&&mayReFile()&&!PORTAL_MODE&&typeof visibleFolders==='function';
   if(!may) return ktRowHtml('stream', i18t('ct_value_stream'), read, '', false);
   const opts=visibleFolders().slice();
   /* The drawer it is ALREADY in stays on the list even where it is out of
@@ -4489,6 +4489,13 @@ function ktFactReads(c){
   return {
     noticeDays,
     monetary: isMonetary(c),
+    /* THE AGREEMENT'S OWN NAME. Minted once at creation and, until 18 Sep 2026,
+       never changeable — ten agreements off one standard were ten identical
+       lines in the register, the search, the alerts and every mail subject. */
+    name: c.name?esc(c.name):'',
+    /* The reading the standards check matches on, printed where a reader can
+       see it — one reading, two consumers. */
+    contractType: (()=>{ try{ return esc((window.contractTypeRead?contractTypeRead(c):'')||''); }catch(_){ return ''; } })(),
     party: c.party?esc(c.party):'',
     counterparty: c.counterparty?esc(c.counterparty):'',
     cpEmail: c.counterpartyEmail?esc(c.counterpartyEmail):'',
@@ -4535,6 +4542,17 @@ function ktTermsRowsHtml(c,opts={}){
   const tmpl=c.template?((window.TEMPLATES&&TEMPLATES[c.template]&&TEMPLATES[c.template].name)||c.template)
     :(isUpload(c)?'Uploaded document':'');
   const rows=[
+    /* ---- THE AGREEMENT'S NAME (the fifth repair, 18 Sep 2026) ----
+       It is the first thing on the record because it is the first thing every
+       other screen shows. It writes on BLUR, not on every keystroke: a rename
+       is an act that moves what the register, the search, the alerts and every
+       mail subject say, so it is worth one audit line and not one per letter.
+       AN EMPTY BOX DOES NOT CLEAR IT — a nameless contract is unfindable
+       everywhere, so the row simply keeps the name it had. The server freezes
+       `name` on an executed record (EXECUTED_IMMUTABLE), which is why this row
+       stands down with the rest of the panel once the contract is signed. */
+    ['name', ktRowHtml('name', i18t('ov_f_name'), R.name||dash,
+      `<input data-kt="name" type="text" value="${(c.name||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ov_f_name_ph')}" style="${KIN}"/>`, ed, 'pencil')],
     /* ---- OUR PARTY, ABOVE THEIRS ----
        The two together are the sentence the paper opens with, so they read as a
        pair here. It is asked at drafting too, but this is the only place it can
@@ -4999,10 +5017,18 @@ function ktRecordFactsHtml(c,opts={}){
   /* LAST UPDATED prefers the trail's own stamp (the transport the light list
      carries) and falls back to the record's. No date is invented. */
   const updated=String((c&&c._lastAuditAt)||(c&&c.updatedAt)||(c&&c.updated_at)||'').slice(0,10);
-  const skip=opts.rowsAbove?new Set(['party','counterparty','cpEmail','stream','template','cpRouteEmail']):new Set();
+  const skip=opts.rowsAbove?new Set(['name','party','counterparty','cpEmail','stream','template','cpRouteEmail']):new Set();
   const rt=ktRouteEmailRead(c);
   return sectionFieldsHtml([
     ['reference', i18t('ov_f_reference'), esc(String((c&&c.id)||''))],
+    ['name', i18t('ov_f_name'), R.name],
+    /* ---- WHAT KIND OF PAPER THIS IS (upgrade 5, 18 Sep 2026) ----
+       The record printed twelve filing facts and not this one, so a reader
+       could not see the thing that decides which rulebook judged the contract
+       — and on an uploaded document that was the likeliest thing to be wrong.
+       Borrowed, never computed: contractTypeRead is the same reading the
+       playbook lookup asks. */
+    ['contractType', i18t('ov_f_type'), R.contractType],
     ['party', i18t('tf_our_party'), R.party||esc((window.FIRST_PARTY)||'')],
     ['counterparty', i18t('reg_col_counterparty'), R.counterparty],
     ['cpEmail', i18t('ov_f_email'), R.cpEmail],
@@ -5194,7 +5220,7 @@ function ktOverviewTermsHtml(c,opts={}){
      record's rows must still be reachable where the move is live, or an admin
      would lose the one door onto it — which is exactly what
      refile-a-contract-verify caught the hour this card was redrawn. */
-  const mayMove=(typeof isAdmin==='function')&&isAdmin()&&!PORTAL_MODE;
+  const mayMove=(typeof mayReFile==='function')&&mayReFile()&&!PORTAL_MODE;
   const dealEd=ed&&ovEditing(dealK), recEd=(ed||mayMove)&&ovEditing(recK);
   const editBtn=(k,on)=>ed?`<button type="button" class="ui-btn" style="font-size:var(--t-label);padding:5px 11px" data-ov-edit="${esc(k)}">${
     esc(on?i18t('ov_edit_done'):i18t('ov_edit_details'))}</button>`:'';
@@ -5234,7 +5260,7 @@ function ktOverviewTermsHtml(c,opts={}){
     summary: ktRecordSummary(c),
     body: (recEd
         ? `<div id="kt-rows-record">${ktTermsRowsHtml(c,
-            {editable:ed,only:['party','counterparty','cpEmail','cpRouteEmail','stream','template']})}</div>`
+            {editable:ed,only:['name','party','counterparty','cpEmail','cpRouteEmail','stream','template']})}</div>`
         : '<div id="kt-rows-record"></div>')
       + `<div id="kt-record-facts">${ktRecordFactsHtml(c,{rowsAbove:recEd})}</div>`,
     acts: editBtn(recK,recEd)+moveBtn });
@@ -7792,7 +7818,20 @@ function roomHeadHtml(c,opts={}){
           <div class="mgroup">${i18t('ct_view')}</div>
           <button type="button" id="ws-focus" aria-pressed="false" title="${i18t('ct_hide_header')}">${icon('scan','w-3.5 h-3.5')}Focus mode<span class="mnote">${i18t('ct_esc_to_leave')}</span></button>
           ${may?`<hr>
-          <button type="button" id="ws-archive" title="${i18t(c.archived?'ar_restore_title':'ar_archive_title')}">${icon(c.archived?'history':'folder','w-3.5 h-3.5')}${c.archived?i18t('reg_restore'):i18t('reg_archive')}</button>`:''}
+          <button type="button" id="ws-archive" title="${i18t(c.archived?'ar_restore_title':'ar_archive_title')}">${icon(c.archived?'history':'folder','w-3.5 h-3.5')}${c.archived?i18t('reg_restore'):i18t('reg_archive')}</button>
+          ${''/* ---- AND THE HOLD, ON THE SAME MENU AS ARCHIVE (upgrade 8) ----
+                 The two are opposites and belong beside each other: one takes a
+                 contract off every list, the other freezes it and leaves it on
+                 all of them. Same act shape, same one repaint. */}
+          ${''/* ---- ASK AN OUTSIDE ADVISER (upgrade 9, 18 Sep 2026) ----
+                 Its own row rather than a fifth segment on the send dialog's
+                 purpose picker: that row asks what THIS ROUND is for and every
+                 answer on it goes to the counterparty. This is a different
+                 person being asked a different question, and the screen has to
+                 ask which clauses. */}
+          <button type="button" id="ws-advice" title="${i18t('asl_title')}">${icon('users','w-3.5 h-3.5')}${i18t('asl_menu_row')}</button>
+          ${(()=>{ const held=!!(window.contractOnHold&&contractOnHold(c));
+            return `<button type="button" id="ws-hold" title="${i18t(held?'hd_release_title':'hd_hold_title')}">${icon(held?'history':'shield','w-3.5 h-3.5')}${held?i18t('hd_release'):i18t('hd_hold')}</button>`; })()}`:''}
           ${(may&&(c.status==='Draft'||c.status==='Under Review'))?`<hr>
           <button type="button" id="ws-delete" class="danger" title="${i18t('ct_delete_draft')}">${icon('trash','w-3.5 h-3.5')}${i18t('ct_delete_this_draft')}</button>`:''}
           ${''/* ws-new keeps its id and its data-page-new: it is a real button
@@ -7991,6 +8030,23 @@ function wireRoomHead(c){
      the room so the menu's word and the sub-line's tag both turn over */
   document.getElementById('ws-archive')?.addEventListener('click',()=>{
     if(window.contractSetArchived) contractSetArchived(c,!c.archived).then(ok=>{ if(ok) renderWorkspace(); });
+  });
+  /* THE HOLD ASKS FOR ITS REASON. A freeze nobody can explain three months
+     later is the thing this feature exists to avoid, so putting one on costs a
+     sentence; releasing it does not. */
+  document.getElementById('ws-advice')?.addEventListener('click',()=>{
+    if(window.openAdviserLink) openAdviserLink(c);
+  });
+  document.getElementById('ws-hold')?.addEventListener('click',async()=>{
+    if(!window.contractSetHold) return;
+    const on=!(window.contractOnHold&&contractOnHold(c));
+    let why='';
+    if(on){
+      why=window.promptDialog ? await promptDialog({ title:i18t('hd_ask_title'), message:i18t('hd_ask_msg'),
+        placeholder:i18t('hd_ask_ph'), confirmLabel:i18t('hd_hold'), multiline:true }) : '';
+      if(why==null) return;
+    }
+    contractSetHold(c,on,why).then(ok=>{ if(ok) renderWorkspace(); });
   });
 }
 
@@ -9918,12 +9974,22 @@ function wireKeyTerms(c){
        deliberately type=text with inputmode=numeric (it carries thousand
        separators), so this test reaches the notice row and nothing else. */
     const key=inp.getAttribute('data-kt');
-    const evt=(inp.type==='checkbox'||inp.type==='date'||inp.type==='number')?'change':'input';
+    /* AND THE NAME WRITES ON BLUR TOO, for its own reason: a rename is an act
+       whose audit line should be one line, not one per keystroke. */
+    const evt=(inp.type==='checkbox'||inp.type==='date'||inp.type==='number'||key==='name')?'change':'input';
     inp.addEventListener(evt,()=>{
       /* Our entity on this agreement. Cleared back to empty means "the
          workspace", which is the fallback contractParty already makes, so
          nothing is stored to say it. */
-      if(key==='party') c.party=inp.value.trim()||undefined;
+      /* A NAME IS NEVER CLEARED. An empty box leaves the stored name alone —
+         a nameless contract is unfindable in every list that draws it — and
+         the row puts it back on the next paint. */
+      if(key==='name'){
+        const was=String(c.name||''), now=inp.value.trim();
+        if(now && now!==was){ c.name=now; logAudit(c,'Record',`Renamed from "${was}" to "${now}"`); }
+        else if(!now) inp.value=was;
+      }
+      else if(key==='party') c.party=inp.value.trim()||undefined;
       else if(key==='counterparty') c.counterparty=inp.value.trim();
       /* Their address. Stored as typed and never refused mid-keystroke — half
          an email is what every email looks like on the way in. It is only ever
@@ -10407,7 +10473,10 @@ async function signCheckAccept(c,i,after){
   /* WHO, BY ID AND ROLE: an escalated acceptance is only good from the person
      it was escalated to or an admin, and the server checks the stamp, not
      the caller. */
-  v.accepted={ by:(me&&me.name)||'', byId:me?String(me.id):'', role:(me&&me.role)||'', at:new Date().toISOString(), why:text };
+  /* THE WORDING IT ANSWERED, so a later re-run can tell "the same departure,
+     still there" from "they reworded it" — pbCarryDecisions reads this. */
+  v.accepted={ by:(me&&me.name)||'', byId:me?String(me.id):'', role:(me&&me.role)||'', at:new Date().toISOString(),
+    why:text, quote:String(v.quote||'') };
   logAudit(c,'Playbook',`Deviation accepted on "${v.category||'a standard'}"${v.escalate?' (escalated)':''} — ${text}`);
   persist(c);
   toast(i18t('sc_accepted_toast'),'ok');
@@ -10601,6 +10670,7 @@ function signCheckCardHtml(c){
         } else {
           why=r.status==='missing'?i18t('sc_missing_w',{pos:r.position||''}):i18t('sc_deviation_w',{pos:r.position||''});
           if(r.badAccept) why+=' '+i18t('sc_bad_accept',{who:(r.accepted&&r.accepted.by)||i18t('sc_somebody')});
+          if(r.staleAccept) why+=' '+i18t('sc_stale_accept',{who:(r.accepted&&r.accepted.by)||i18t('sc_somebody'),why:(r.accepted&&r.accepted.why)||''});
           if(r.escalation&&r.escalation.to) why+=' '+i18t('sc_asked_line',{who:r.escalation.to.name||'',when:day(r.escalation.at)});
           /* ASK A COLLEAGUE LEADS EVERY ESCALATED ROW — for an admin too,
              who may decide it alone but may also hand it to the person who
@@ -10869,7 +10939,9 @@ function renderSignSide(c){
   const may=canEdit()&&!closed;
   const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius);padding:13px 15px';
   const H='margin:0;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading)';
-  const chain=window.approvalChainHtml?approvalChainHtml(c,{bare:true}):'';
+  /* `clear` asks for the card's other state — "nothing is in the way" — and
+     only while the contract is still open. See approvalChainHtml. */
+  const chain=window.approvalChainHtml?approvalChainHtml(c,{bare:true,clear:!closed}):'';
   const route=window.signerRouteHtml?signerRouteHtml(c,{bare:true}):'';
   host.innerHTML=`
     ${''/* ---- ONE LINE ABOVE BOTH CARDS ----
@@ -11505,6 +11577,15 @@ function signBlockers(c){
   const out=[];
   if(!c) return out;
   const add=(key,label,short)=>out.push({ key, label, short });
+  /* ---- A CONTRACT IN DISPUTE IS NOT SIGNED (upgrade 8, 18 Sep 2026) ----
+     FIRST in the list, because it is the one blocker that is not about this
+     contract being ready — it is about it being evidence. The server refuses
+     the signature at both doors; this is the sentence that stops a reader
+     pressing into a refusal. */
+  if(window.contractOnHold && contractOnHold(c)){
+    add('hold', i18t('hd_blocks_signing',{why:(c.hold&&c.hold.why)||''}), i18t('hd_blocks_short'));
+    return out;
+  }
   /* ---- THE INTENT ROW IS GONE FROM THIS LIST (13 Sep 2026) ----
      "I intend to sign electronically" is asked IN THE SIGNATURE PAD now, at
      the moment of adoption — the general practice for e-signature consent —

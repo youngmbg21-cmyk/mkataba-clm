@@ -181,12 +181,22 @@ function normaliseDateInput(v){
   return null;
 }
 /* Coerce a validated value into the type the record should store. */
+/* ---- AN OPTION MAY CARRY ITS OWN WORDS (18 Sep 2026, the sixth repair) ----
+   Every select in these two lists used to store exactly what it printed, which
+   is right for "auto-renew" and wrong for a question whose answers are a
+   sentence ("We are the customer — we pay them") stored as one word
+   ("customer"). An option is therefore a string OR a {v,l} pair, and this is
+   the ONE reading of which is which, asked by the coercer and by both field
+   renderers so a door cannot print one thing and store another. */
+const fieldOpt = o => (o && typeof o === 'object') ? { v:String(o.v), l:String(o.l==null?o.v:o.l) }
+                                                   : { v:String(o), l:String(o) };
+
 function coerceField(f, raw){
   const v=String(raw==null?'':raw).trim();
   if(!v) return '';
   if(f.type==='num') return Number(v.replace(/[, ]/g,''));
   if(f.type==='date') return normaliseDateInput(v)||'';
-  if(f.type==='select'){ const hit=(f.opts||[]).find(o=>String(o).toLowerCase()===v.toLowerCase()); return hit!=null?hit:v; }
+  if(f.type==='select'){ const hit=(f.opts||[]).map(fieldOpt).find(o=>o.v.toLowerCase()===v.toLowerCase()); return hit?hit.v:v; }
   return v;
 }
 
@@ -395,6 +405,22 @@ const CONTRACT_ESSENTIALS = [
     get ph(){ return (typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'; }, hint:'so you can send it to them' },
   { key:'value',        get label(){ return i18t('tf_contract_value'); }, type:'num', maps:'value',
     ph:'0', hint:'if known' },
+  /* ---- WHICH SIDE OF THE MONEY WE ARE ON (the sixth repair, 18 Sep 2026) ----
+     Never asked anywhere, at any door, so `metadata.category` was only ever
+     filled by the extractor reading an UPLOADED document — and the payment
+     terms analysis, which is good, was blind across every contract HaTi drafted
+     itself. It is the one question that reading cannot work out from our own
+     paper: the same supply template is a purchase to one business and a sale
+     to another.
+     THREE ANSWERS, AND THE THIRD WRITES NOTHING. "Neither" is not a category —
+     applyTemplateValues skips an empty value — so a contract that is not about
+     buying or selling records no claim, and the extractor may still fill it
+     later from the wording. The two that do write land on the SAME field the
+     upload path writes, so paySide has one reading and not two. */
+  { key:'side', get label(){ return i18t('tf_our_side'); }, type:'select', maps:'category', required:false, def:'',
+    get opts(){ return [ { v:'', l:i18t('tf_side_none') },
+                         { v:'customer', l:i18t('tf_side_customer') },
+                         { v:'supplier', l:i18t('tf_side_supplier') } ]; } },
   { key:'effDate',      label:'Start date',   type:'date', maps:'effDate' },
   { key:'expiry',       label:'End date', type:'date', maps:'expiry' },
   /* ---- WHERE THIS ONE IS FILED (Young ruled 18 Sep 2026) ----
@@ -445,6 +471,12 @@ function openContractEssentials(opts){
       <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${esc(f.label)}</span>
       <select id="ce-${f.key}" style="${ST}">${
         (typeof folderOptionsHtml==='function') ? folderOptionsHtml(f.def||null, false) : ''}</select></label>`;
+    /* The same control the wizard's answer step draws for a select, so the two
+       creation doors ask this question in one shape. */
+    if (f.type==='select') return `<label style="display:block">
+      <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${esc(f.label)}</span>
+      <select id="ce-${f.key}" style="${ST}">${(f.opts||[]).map(fieldOpt).map(o=>
+        `<option value="${esc(o.v).replace(/"/g,'&quot;')}"${String(f.def||'')===o.v?' selected':''}>${esc(o.l)}</option>`).join('')}</select></label>`;
     const it = f.type==='date' ? 'date' : (f.type==='num' ? 'number' : (f.type==='email' ? 'email' : 'text'));
     return `<label style="display:block">
       <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${esc(f.label)}${
@@ -568,7 +600,7 @@ function applyContractEssentials(c, values){
   if(em) c.counterpartyEmail = em;
   return true;
 }
-Object.assign(window,{CONTRACT_ESSENTIALS,essentialFields,openContractEssentials,ceWirePreview,applyContractEssentials});
+Object.assign(window,{CONTRACT_ESSENTIALS,essentialFields,fieldOpt,openContractEssentials,ceWirePreview,applyContractEssentials});
 
 /* ============================================================
    THE PAPER BESIDE THE QUESTIONS (the build plan's upgrade 2, 18 Sep 2026)

@@ -61,9 +61,80 @@ function mContractHeadHtml(c){
       <div style="display:flex">
         ${tab('doc')}${i18t('tab_document')}</button>
         ${tab('terms')}${i18t('tab_key_terms')}</button>
+        ${tab('oblig')}${i18t('tab_obligations')}${mObligCountHtml(c)}</button>
         ${tab('hist')}${i18t('tab_history')}</button>
       </div>
     </div>`;
+}
+
+/* ---------------------------------------------------- THE OBLIGATIONS TAB --*/
+/* ---- THE PROMISES, IN YOUR POCKET (upgrade 7, 18 Sep 2026) ----
+   The obligations system is the best object in the product for the person who
+   is not at a desk: it knows what each side promised, when it is due, who owes
+   it, how much it is worth, what is chained behind it and which document has
+   to be on file. The phone knew none of it — no tab, no row, no count; the
+   word appeared nowhere in the four mobile files. The owner who reads a
+   contract outside the depot on his phone is the exact person who needs to
+   know a rebate claim is seventeen days late.
+
+   NOTHING NEW IS READ OR COMPUTED. Every reading below is the desktop's own,
+   shared between the two shells exactly as the rest of this file shares
+   hmDashSlices and regFiltered: obligationTabState for the count,
+   obligationBand for the piles, obState, obligationDue, obligationOwner,
+   obligationIsTheirs, obligationAmount, obligationBlocked. This is a RENDERER,
+   which is why it had to be written at all — a fix in a shared function
+   reaches both shells and a desktop renderer does not.
+
+   READ-ONLY, DELIBERATELY. The desktop's every verb presses toggleObligation,
+   which writes; marking a promise done with a thumb on a train is a press
+   nobody meant to make. The phone shows the state and the contract room is
+   where it is changed — the same posture the phone takes to the negotiation.
+   Each reading is guarded: this file is staged without js/obligations.js. */
+const M_OB_BANDS = ['overdue','waiting','month','later','done'];
+const mObligList = c => ((c && c.obligations) || []);
+function mObligCountHtml(c){
+  if(typeof obligationTabState!=='function') return '';
+  let st; try{ st=obligationTabState(c); }catch(_){ return ''; }
+  if(!st.open) return '';
+  /* Amber only when something is overdue — the desktop tab's own rule, and the
+     sidebar counts' before it. A count that is always coloured is not read. */
+  return `<span class="m-ctab-n${st.overdue?' is-late':''}">${st.open}</span>`;
+}
+function mObligRowHtml(o, c){
+  const esc=mEsc;
+  const band = (typeof obligationBand==='function') ? obligationBand(o, c) : 'later';
+  const due = (typeof obligationDue==='function') ? obligationDue(o) : (o&&o.due);
+  const theirs = (typeof obligationIsTheirs==='function') ? obligationIsTheirs(o) : false;
+  const who = (typeof obligationOwner==='function') ? (obligationOwner(o, c)||'') : '';
+  const amt = (typeof obligationAmount==='function') ? obligationAmount(o, c) : null;
+  const money = (typeof obligationMoneyVisible==='function') ? obligationMoneyVisible() : false;
+  const when = due
+    ? new Date(String(due)+'T00:00:00').toLocaleDateString(langLocale(),{day:'2-digit',month:'short',year:'numeric'})
+    : i18t('ob_no_date');
+  const tone = band==='overdue' ? 'var(--st-ruby-fg)' : band==='waiting' ? 'var(--color-neutral-500)' : 'var(--color-neutral-600)';
+  return `<div class="m-ob-row" style="padding:10px 0;border-top:1px solid var(--color-divider)">
+    <div style="font-size:var(--t-card);line-height:1.45">${esc(String((o&&o.text)||(o&&o.description)||'').trim()||i18t('ob_no_wording'))}</div>
+    <div style="display:flex;align-items:baseline;gap:8px;margin-top:3px;font-size:var(--t-meta);color:${tone}">
+      <span>${esc(when)}</span>
+      <span style="color:var(--color-neutral-500)">${theirs?esc(i18t('ob_side_theirs')):esc(i18t('ob_side_ours'))}${who?' · '+esc(who):''}</span>
+      ${(money&&amt)?`<span style="margin-left:auto;font-family:var(--font-mono)">${esc(String(amt))}</span>`:''}
+    </div></div>`;
+}
+function mObligHtml(c){
+  const list = mObligList(c);
+  if(!list.length) return `<div class="m-card" style="margin:var(--s-4);padding:16px">
+    <p style="margin:0;font-size:var(--t-card);color:var(--color-neutral-600);line-height:1.5">${mEsc(i18t('ob_none_tracked'))}</p></div>`;
+  const band = o => (typeof obligationBand==='function') ? obligationBand(o, c) : 'later';
+  let html = '';
+  for(const k of M_OB_BANDS){
+    const rows = list.filter(o => band(o)===k);
+    if(!rows.length) continue;          /* an empty band draws nothing — the desktop's own rule */
+    html += `<div class="m-card" style="margin:var(--s-4) var(--s-4) 0;padding:12px 14px">
+      <div style="font-size:var(--t-label);font-weight:var(--w-strong);letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-600)">${
+        mEsc(i18t('ob_band_'+k))} · ${rows.length}</div>
+      ${rows.map(o=>mObligRowHtml(o, c)).join('')}</div>`;
+  }
+  return html + '<div style="height:var(--s-4)"></div>';
 }
 
 /* ------------------------------------------------------- THE DOCUMENT TAB --*/
@@ -418,7 +489,7 @@ function mContractHtml(){
       <button class="m-btn m-btn-primary" style="margin-top:14px" data-m-tab="contracts">${i18t('mc_open_contracts')}</button>
     </div></div>`;
   const s = mS();
-  const body = s.tab==='terms' ? mTermsHtml(c) : s.tab==='hist' ? mHistHtml(c) : mDocHtml(c);
+  const body = s.tab==='terms' ? mTermsHtml(c) : s.tab==='oblig' ? mObligHtml(c) : s.tab==='hist' ? mHistHtml(c) : mDocHtml(c);
   return mContractHeadHtml(c) + body + mActionBarHtml(c);
 }
 

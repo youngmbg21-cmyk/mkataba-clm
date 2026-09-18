@@ -149,7 +149,7 @@ async function draftRead(cands){
   try{
     const r=await api('ai/draft','POST',{ sentence, candidates:cands.map(c=>({ id:c.id, name:c.name, blurb:c.blurb, fields:c.fields })) });
     const pick=cands.find(c=>c.id===(r&&r.templateId));
-    if(!pick){ draftSay(out, i18t('dr_nothing_fits')); return; }
+    if(!pick){ draftNothingFits(out, sentence); return; }
     /* Keys the chosen template does not ask for are dropped HERE as well as
        at the route: two halves of one wall, so neither host has to trust the
        other about what this template's questions are. */
@@ -163,6 +163,25 @@ async function draftRead(cands){
        where the reader is looking, and leaves the sentence they typed alone. */
     draftSay(out, (e&&e.message)?String(e.message):i18t('dr_failed'));
   }finally{ btn.disabled=false; btn.textContent=was; }
+}
+/* ---- "NOTHING FITS" IS AN ANSWER, AND IT HAS A NEXT STEP (upgrade 4) ----
+   The sentence is unchanged and still leads. What is new is the door under it:
+   the reader has already written what they need, so Requests opens with those
+   very words in its box rather than asking for them a second time. It is the
+   product's OWN ask form — openIntakeForm, the one every other door opens —
+   never a second copy, and Requests is open to every role, so this is drawn
+   for whoever is standing here. The picker in the footer stays: looking for
+   yourself is still the other answer. */
+function draftNothingFits(out, sentence){
+  draftSay(out, i18t('dr_nothing_fits'));
+  if(typeof openIntakeForm!=='function') return;
+  const p=out.querySelector('#dr-note'); if(!p) return;
+  const b=document.createElement('button');
+  b.type='button'; b.id='dr-ask-team'; b.className='ui-btn';
+  b.style.cssText='margin-top:10px;font-size:var(--t-meta);padding:5px 11px';
+  b.textContent=i18t('dr_ask_team');
+  b.addEventListener('click',()=>{ closeModal(); openIntakeForm({ need:String(sentence||'') }); });
+  p.insertAdjacentElement('afterend', b);
 }
 function draftSay(out, msg){
   const esc=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
@@ -198,4 +217,4 @@ function draftHandOff(pick, prefill){
   if(typeof tplLibNewContract==='function') tplLibNewContract(pick.id, prefill);
 }
 
-Object.assign(window,{draftCandidates,draftApplyPrefill,draftPrefillFor,draftFilledLabels,draftAiReady,openDraftFromSentence,draftRead,draftOffer,draftHandOff,DRAFT_SENTENCE_MAX});
+Object.assign(window,{draftCandidates,draftApplyPrefill,draftPrefillFor,draftFilledLabels,draftAiReady,openDraftFromSentence,draftRead,draftOffer,draftNothingFits,draftHandOff,DRAFT_SENTENCE_MAX});

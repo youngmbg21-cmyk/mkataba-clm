@@ -282,12 +282,13 @@ const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role,
      browser and `paperMaker` here both answer an admin true, and a server
      that helpfully pre-resolved it would be a second place the rule lives. */
   newPaper: !!u.new_paper,
+  reFile: !!u.re_file,
   overseerId: u.overseer_id || null });
 /* The facts on that record that are ONE PERSON'S OWN and an admin's business,
    and nobody else's. Stripped from every colleague's copy at the bootstrap —
    see the note there. A new per-person setting belongs on this list the day it
    is added; f202 fails if one of these ever reaches a non-admin again. */
-const ADMIN_ONLY_USER_FIELDS = ['folderAccess', 'signCap', 'reviewChecked', 'reviewerId', 'overseerId', 'twoStep', 'newPaper'];
+const ADMIN_ONLY_USER_FIELDS = ['folderAccess', 'signCap', 'reviewChecked', 'reviewerId', 'overseerId', 'twoStep', 'newPaper', 'reFile'];
 
 /* ---------- per-contract storage (scales to large portfolios) ----------
    Each contract is its own row with its own version. Lists return a light
@@ -594,7 +595,16 @@ addColumnIfMissing('shares', 'send_error', 'TEXT');
    mode this feature has to survive is the FIFTH route — the one added next
    year by someone who never read this comment. A repeated condition protects
    the four that exist today; a shared guard protects the one that does not. */
-const SHARE_PURPOSES = ['negotiate', 'sign', 'view', 'history'];
+/* ---- A FIFTH PURPOSE: SOMEBODY ELSE'S LAWYER (upgrade 9, 18 Sep 2026) ----
+   The owner with no lawyer on staff wants his own advocate to rule on two
+   clauses out of forty pages without paying for a seat and without that
+   advocate reaching anything else; the in-house lawyer wants the mirror of it.
+   It is the same missing role asked for from two directions, and it is a
+   NARROWING of machinery that exists rather than a new subsystem: four link
+   purposes, a payload built by allow-list rather than copied, a notes system
+   with rooms, and a server that already serves exactly what the row's purpose
+   allows. */
+const SHARE_PURPOSES = ['negotiate', 'sign', 'view', 'history', 'advise'];
 const sharePurposeOf = s => String((s && s.purpose) || 'negotiate');
 const shareIsViewOnly = s => sharePurposeOf(s) === 'view';
 /* A history link is the record and nothing else — no wording to act on, no
@@ -604,6 +614,22 @@ const shareIsViewOnly = s => sharePurposeOf(s) === 'view';
    purpose becomes a hole. */
 const shareIsHistory = s => sharePurposeOf(s) === 'history';
 const shareIsReadOnly = s => shareIsViewOnly(s) || shareIsHistory(s);
+/* ---- AND THE ADVISER, WHO READS A FEW CLAUSES AND WRITES NOTES ----
+   Deliberately NOT on shareIsReadOnly. The two guards answer different
+   questions: a view link may not write at ALL, and an adviser link exists in
+   order to be written on — a note is the whole product of it. So the note
+   routes go on asking refuseIfViewOnly alone and pass, and every route that
+   touches the WORDING, a decision or a signature asks this one as well.
+   The warning above stands and is why this is written here, beside its
+   siblings, rather than as a condition inside one route. */
+const shareIsAdvice = s => sharePurposeOf(s) === 'advise';
+function refuseIfAdvice(s, res){
+  if (!shareIsAdvice(s)) return false;
+  res.status(403).json({ error: 'This link was sent for advice on named clauses. You can read those '
+    + 'clauses and leave notes on them, and nothing else — there is nothing here to sign and no '
+    + 'wording to change. Reply to the person who sent it if you need more.', purpose: 'advise' });
+  return true;
+}
 /* Returns a response and true when the request must not proceed. Callers read
    it as: `if (refuseIfViewOnly(s, res)) return;` */
 function refuseIfViewOnly(s, res){
@@ -851,6 +877,7 @@ addColumnIfMissing('users', 'can_view_values', 'INTEGER NOT NULL DEFAULT 1');
    own template (that is importing their wording, not writing ours), and NOT
    the housekeeping a template needs afterwards (rename, re-file, archive). */
 addColumnIfMissing('users', 'new_paper', 'INTEGER NOT NULL DEFAULT 0');
+addColumnIfMissing('users', 're_file', 'INTEGER NOT NULL DEFAULT 0');
 /* A member's JOB TITLE — "COO", "Finance Director" — which is a different
    thing from their `role` ("admin"/"legal"/"viewer"). `role` is a permission
    level: what they may do in the software. `title` is the capacity they sign
@@ -3290,6 +3317,33 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
        moving, not that the contract stops working." Taking the signature, filling
        in Key terms while the second signer is waited on, and every additive fact
        stay open, so nothing an SME does between two signatures is refused. */
+  /* ---------- A CONTRACT IN DISPUTE IS FROZEN (upgrade 8, 18 Sep 2026) ----------
+     When a dispute starts the wording stops being a working document and
+     becomes evidence. THREE REFUSALS, asked as a difference like every guard on
+     this route, and asked of the STORED record so a save cannot lift its own
+     hold and move the wording in one request:
+
+       1. the wording (the same four fields the signature freeze names),
+       2. the negotiation — changes, rounds, the table itself,
+       3. a signature.
+
+     WHAT IS NOT REFUSED is as deliberate: the hold itself can be released, the
+     audit trail goes on being written, notes can be added, and it stays on
+     every list, count and sweep — which is the point of it not being Archive.
+     `hold` is absent from EXECUTED_IMMUTABLE for the same reason: the contracts
+     this is asked of are mostly already signed. */
+  if (prev && prev.hold && prev.hold.at && c.hold && c.hold.at) {
+    const HELD_FROZEN = SIGNED_WORDING_FROZEN.concat(['changes', 'negotiation', 'signatures', 'execution']);
+    const moved = HELD_FROZEN.filter(k => stable(prev[k]) !== stable(c[k]));
+    if (moved.length) {
+      return res.status(409).json({
+        error: `${req.params.id} is on hold for a dispute, so its wording and its negotiation are frozen `
+          + `(${moved.join(', ')}). Release the hold first if it should be worked on again.`,
+        immutable: moved, heldFreeze: true,
+      });
+    }
+  }
+
     const changed = SIGNED_WORDING_FROZEN.filter(k => stable(prev[k]) !== stable(c[k]));
     if (changed.length) {
       return res.status(409).json({
@@ -3327,11 +3381,11 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
      the executed document mentions it — `folder` is deliberately absent from
      EXECUTED_IMMUTABLE, and a mis-filed executed contract is precisely the one
      you most want to be able to find. */
-  if (prev && req.user.role !== 'admin'
+  if (prev && !mayReFileRow(req.user)
       && String(prev.folder || '') !== String(c.folder || '')) {
     return res.status(403).json({
-      error: `${req.params.id} is filed under ${prev.folder || 'no value stream'} and only an admin can move it. `
-        + 'Ask an admin to re-file it.',
+      error: `${req.params.id} is filed under ${prev.folder || 'no value stream'} and you may not move it. `
+        + 'Ask an admin to re-file it, or to let you.',
       folderMove: { from: prev.folder || null, to: c.folder || null } });
   }
 
@@ -4099,6 +4153,15 @@ const templateManager = (req, res, next) => {
    sentence names the door that exists rather than stopping at "no", which is
    this codebase's rule for every refusal. */
 const mayMakeNewPaperRow = u => !!u && (u.role === 'admin' || Number(u.new_paper || 0) !== 0);
+/* ---- WHO MAY MOVE A CONTRACT TO ANOTHER VALUE STREAM (18 Sep 2026) ----
+   The seventh repair. Re-filing has been an admin's act since 14 Aug and the
+   wall below is what enforces it; people wait, and a mis-filed contract is
+   read by the wrong people, measured against the wrong rulebook and counted in
+   the wrong report while they do.
+   THE AUGUST RULING IS NOT REVERSED BY THIS DEPLOY. This is a per-person grant
+   in the shape the product already uses five times over, OFF BY DEFAULT: until
+   an admin turns it on for somebody, the answer is exactly what it was. */
+const mayReFileRow = u => !!u && (u.role === 'admin' || Number(u.re_file || 0) !== 0);
 const paperMaker = (req, res, next) => {
   if (req.user.role !== 'admin' && req.user.role !== 'legal')
     return res.status(403).json({ error: 'Admin or Editor access required' });
@@ -7075,6 +7138,16 @@ function copilotContractKind(c) {
   if (c && c.source === 'upload') return 'External Document';
   return COPILOT_TEMPLATE_KIND[c && c.template] || 'Contract';
 }
+/* The browser's contractTypeRead (js/core.js), line for line — see the note
+   there for why the extracted type answers where the curated one says nothing.
+   f133 runs both rules over the same contracts and requires the same key. */
+const COPILOT_KIND_SAYS_NOTHING = /^(external document|contract)$/i;
+function copilotContractType(c) {
+  const k = String(copilotContractKind(c) || '').trim();
+  if (k && !COPILOT_KIND_SAYS_NOTHING.test(k)) return k;
+  const t = String(((c && c.metadata) || {}).contractType || '').trim();
+  return t || k;
+}
 /* ---- THE CONTRACT'S OWN WORDING, THE WAY runPlaybookReview READS IT ----
    The stored body is the senior of the two (it is what the product renders and
    what a change is filed against); an upload's extracted text answers only
@@ -7090,7 +7163,7 @@ function copilotContractWording(c) {
 function copilotPlaybookKey(pb, c) {
   /* THE TYPE, NEVER THE TITLE — see above. The browser's own line is
      `const k=(cKind(c)||'').toLowerCase()`. */
-  const k = copilotContractKind(c).toLowerCase();
+  const k = copilotContractType(c).toLowerCase();
   const f = c.folder || '';
   for (const key in pb) {
     const p = pb[key];
@@ -9452,6 +9525,16 @@ app.patch('/api/users/:id', auth, (req, res) => {
        fact the product then ignores — two places saying different things about
        one person. Change the role first if that is what was meant. */
     const role = hasRole ? b.role : target.role;
+    /* The re-filing grant, on the same terms as the one above it: an admin's
+       to give, never self-service, and meaningless on the two roles that
+       already answer for themselves. */
+    if (b.reFile !== undefined) {
+      if (role === 'admin' && !b.reFile)
+        return res.status(400).json({ error: 'An admin may always re-file a contract.' });
+      if (role === 'viewer' && b.reFile)
+        return res.status(400).json({ error: 'A viewer may not edit a contract, so it cannot be re-filed by them.' });
+      db.prepare('UPDATE users SET re_file=? WHERE id=?').run(b.reFile ? 1 : 0, req.params.id);
+    }
     if (role === 'admin' && !b.newPaper)
       return res.status(400).json({ error: 'Admins may always write new paper. Change the role first if this member should not.' });
     if (role === 'viewer' && b.newPaper)
@@ -11108,6 +11191,7 @@ app.post('/api/shares/:token/otp', rlOtp, rlOtpToken, async (req, res) => {     
      history-link suite (f144), which replays the mutating routes against a
      read-only token — and it was already true of view links. */
   if (refuseIfViewOnly(s, res)) return;
+  if (refuseIfAdvice(s, res)) return;
   const invited = String(s.recipient_email || '').toLowerCase();
   if (!/.+@.+\..+/.test(invited))
     /* No recorded address means there is nothing this check could verify
@@ -11166,6 +11250,7 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
   const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
   if (refuseIfViewOnly(s, res)) return;
+  if (refuseIfAdvice(s, res)) return;
   if (s.revoked_at || shareExpired(s)) return res.status(410).json({ error: 'This share link is no longer active' });
   if (s.contract_id && !db.prepare('SELECT 1 FROM contracts WHERE id=?').get(s.contract_id))
     return res.status(410).json({ error: 'This contract is no longer available — your response could not be recorded. Contact the sender.' });
@@ -11233,6 +11318,21 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
      Asked of the STORED contract, so it cannot be answered by the page holding
      the link. The reason given is the reader's, not ours — they have done
      nothing wrong and the fix is not theirs to make. */
+  /* ---- AND NOTHING IS SIGNED ON A CONTRACT IN DISPUTE (upgrade 8) ----
+     The third of the hold's refusals, on the one door that reaches a signature
+     from outside. Asked of the STORED contract, like every wall on this route:
+     the page holding the link cannot answer it. */
+  if (r.action === 'sign') {
+    const held = (() => { try {
+      const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(String(s.contract_id));
+      const j = row ? JSON.parse(row.json) : null;
+      return !!(j && j.hold && j.hold.at);
+    } catch (_) { return false; } })();
+    if (held) return res.status(409).json({
+      error: 'This contract has been put on hold while a dispute is dealt with, so it cannot be signed. '
+        + 'The sender will be in touch when it is released.',
+      heldFreeze: true });
+  }
   if (r.action === 'sign' && !signingRouteOpen(s.contract_id))
     return res.status(403).json({
       error: 'This contract is for review only. Nobody has been named to sign it yet, so nothing '
@@ -13446,6 +13546,7 @@ app.post('/api/shares/:token/template-values', rlShare, (req, res) => {
   const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
   if (refuseIfViewOnly(s, res)) return;
+  if (refuseIfAdvice(s, res)) return;
   if (s.revoked_at || shareExpired(s)) return res.status(410).json({ error: 'This share link is no longer active' });
   let payload; try { payload = JSON.parse(s.payload); } catch (_) { return res.status(500).json({ error: 'This link’s copy could not be read' }); }
   const c = payload && payload.contract;

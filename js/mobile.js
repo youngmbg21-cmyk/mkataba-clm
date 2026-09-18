@@ -388,6 +388,11 @@ const M_CSS = `
     border-bottom:2px solid transparent;
   }
   .m-ctab.on{ color:var(--accent-ink); border-bottom-color:var(--accent-solid); }
+  /* The obligations count, the room tab's own shape (index.html .room-tab-n):
+     tabular figures, quiet at rest, amber only when something is overdue. */
+  .m-ctab-n{ margin-left:5px; font-size:var(--t-label); font-variant-numeric:tabular-nums;
+    color:var(--color-neutral-600); }
+  .m-ctab-n.is-late{ color:var(--st-amber-fg); font-weight:var(--w-title); }
   .m-notice{
     display:flex; align-items:center; gap:9px; margin-bottom:var(--s-3);
     border:1px solid var(--color-divider); border-radius:var(--radius); padding:11px 13px;

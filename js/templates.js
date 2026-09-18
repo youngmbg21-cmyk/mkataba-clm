@@ -287,6 +287,22 @@ const TEMPLATE_BASE_FIELDS = [
   { key:'counterparty', label:'Counterparty', type:'party', maps:'counterparty', required:true, def:'',
     ph:'Full registered name' },
   { key:'value',        get label(){ return `Contract value (${jxCurrency()})`; }, type:'num', maps:'value', required:false, def:'', ph:'0' },
+  /* ---- WHICH SIDE OF THE MONEY WE ARE ON (the sixth repair, 18 Sep 2026) ----
+     Never asked anywhere, at any door, so `metadata.category` was only ever
+     filled by the extractor reading an UPLOADED document — and the payment
+     terms analysis, which is good, was blind across every contract HaTi drafted
+     itself. It is the one question that reading cannot work out from our own
+     paper: the same supply template is a purchase to one business and a sale
+     to another.
+     THREE ANSWERS, AND THE THIRD WRITES NOTHING. "Neither" is not a category —
+     applyTemplateValues skips an empty value — so a contract that is not about
+     buying or selling records no claim, and the extractor may still fill it
+     later from the wording. The two that do write land on the SAME field the
+     upload path writes, so paySide has one reading and not two. */
+  { key:'side', get label(){ return i18t('tf_our_side'); }, type:'select', maps:'category', required:false, def:'',
+    get opts(){ return [ { v:'', l:i18t('tf_side_none') },
+                         { v:'customer', l:i18t('tf_side_customer') },
+                         { v:'supplier', l:i18t('tf_side_supplier') } ]; } },
   { key:'effDate',      label:'Start date', type:'date', maps:'effDate', required:false, def:'' },
   { key:'expiry',       label:'End / expiry date', type:'date', maps:'expiry', required:false, def:'' },
   /* ---- WHERE THIS ONE IS FILED, ASKED WHERE IT IS CREATED (Young ruled

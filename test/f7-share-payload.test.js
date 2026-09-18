@@ -45,7 +45,14 @@ describe('F7 — the payload field list', () => {
   });
 
   test('the format marker travels, or a rich document renders as markup', () => {
-    assert.match(payloadFields(), /format:c\.redlineText\?docFormat\(c\.format\):undefined/);
+    /* RE-POINTED IN PLACE, 18 Sep 2026 (upgrade 9). The line gained a branch:
+       an ADVICE link carries only the clauses the sender picked, so the full
+       wording and its marker are dropped for that purpose alone. What this
+       claim is about is unchanged — wherever the wording travels, the marker
+       travels with it, or the portal renders a rich document as markup. */
+    assert.match(payloadFields(), /format:\(opts&&opts\.purpose==='advise'\)\?undefined:\(c\.redlineText\?docFormat\(c\.format\):undefined\)/);
+    assert.match(payloadFields(), /redlineText:\(opts&&opts\.purpose==='advise'\)\?undefined:\(c\.redlineText\|\|undefined\)/,
+      'and the two are dropped together — a marker with no wording says nothing');
   });
 
   test('the upload is trimmed to the file itself', () => {

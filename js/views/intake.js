@@ -313,7 +313,15 @@ function ikClockHtml(r){
    product exists to avoid, and the person filling it in does not know those
    answers — that is WHY they are asking. Two optional facts (who it is with,
    which stream) because they are the two the requester always does know. */
-function openIntakeForm(){
+/* ---- IT TAKES WHAT THE READER ALREADY SAID (upgrade 4, 18 Sep 2026) ----
+   "Describe what you need" answers "nothing fits" more often than anything
+   else for a business signing thirty contracts a year, and it sent them back
+   to the picker holding the same problem they arrived with. The honest next
+   step is Requests, which already takes the ask as its own record and grants
+   nothing by taking it — so the refusal carries a door to THIS form, with the
+   sentence they typed already in the box. Additive: every older caller passes
+   nothing and draws exactly what it drew before. */
+function openIntakeForm(pre){
   const streams=(typeof visibleFolders==='function')?visibleFolders():Object.values(FOLDERS||{});
   /* READS THE ONE PAIR (25 Aug 2026). It was a local copy on its own
      padding and type; seven such copies in three flavours is how a form ends
@@ -324,9 +332,9 @@ function openIntakeForm(){
   openModal(`<div style="padding:24px">
     <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;margin:0 0 var(--s-1)">${i18t('ik_ask_title')}</h3>
     <label style="display:block;margin-bottom:10px"><span style="${LBL}">${i18t('ik_f_title')}</span>
-      <input id="ik-title" style="${FLD}" placeholder="${esc(i18t('ik_f_title_ph'))}" maxlength="200"/></label>
+      <input id="ik-title" value="${esc(String((pre&&pre.title)||''))}" style="${FLD}" placeholder="${esc(i18t('ik_f_title_ph'))}" maxlength="200"/></label>
     <label style="display:block;margin-bottom:10px"><span style="${LBL}">${i18t('ik_f_need')}</span>
-      <textarea id="ik-need" rows="5" style="${FLD};resize:vertical" placeholder="${esc(i18t('ik_f_need_ph'))}" maxlength="4000"></textarea></label>
+      <textarea id="ik-need" rows="5" style="${FLD};resize:vertical" placeholder="${esc(i18t('ik_f_need_ph'))}" maxlength="4000">${esc(String((pre&&pre.need)||''))}</textarea></label>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <label style="flex:1;min-width:170px"><span style="${LBL}">${i18t('ik_f_who')}</span>
         <input id="ik-cp" style="${FLD}" maxlength="200"/></label>
