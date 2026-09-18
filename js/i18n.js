@@ -5356,6 +5356,18 @@ const STRINGS = {
     tb_pb_use_ours: 'Use our {name}',
     tb_pb_one_read: 'one read',
     tb_pb_no_read: 'no read \u2014 this one is in your library',
+    /* ---- THE PAPER BESIDE THE QUESTIONS (upgrade 2, 18 Sep 2026) ----
+       A caption, not a band: it names what the right-hand half IS, which the
+       screen cannot otherwise say, and counts what is still open, which is the
+       one fact a drafter looking at half-filled paper wants. */
+    tf_preview_cap: 'The agreement you are about to create',
+    tf_preview_left_one: '{n} blank left',
+    tf_preview_left_other: '{n} blanks left',
+    /* ---- WORDING THAT IS ALREADY THERE (upgrade 3, 18 Sep 2026) ----
+       The hover carries the difference, never the label: one act keeps one
+       word for it. */
+    tb_pb_lib_over: 'no read \u2014 your own wording, shown as a change against what is there',
+    tb_pb_lib_same: 'This section already says what your library says \u2014 there is nothing to propose.',
     tb_pb_no_read_short: 'no read',
     tb_pb_read_n: 'read {n}',
     tb_pb_src_lib: 'Our standards',
@@ -5402,6 +5414,7 @@ const STRINGS = {
     tb_pb_dev_rides: 'A deviation is recorded on the version and rides every contract drawn from it. Publishing is never blocked.',
     tb_pick_lead: 'Press \u2726 beside a section on the paper, or pick one here.',
     tb_greet: 'Tell me what \u201c{head}\u201d should say and I will draft it \u2014 your own clause library and your playbook first, Copilot last.',
+    tb_greet_written: '\u201c{head}\u201d is written. Ask me to tighten it, or swap in your own standard wording \u2014 either way it arrives as a change you can read before it lands.',
     tb_walk_q: '{n} \u00b7 {head} \u2014 what should it say?',
     tb_walk_std: 'Your playbook asks for: {std}.',
     tb_walk_nostd: 'Your playbook has no position on this one, so it is yours to set.',
@@ -7126,6 +7139,18 @@ const STRINGS = {
     st_values_on: 'Sees contract values',
     st_values_off: 'Contract values are hidden',
     st_values_note: 'Amounts on the register, on a contract, in exports, in the dashboard and in anything they ask Copilot.',
+    /* ---- WHO MAY MAKE NEW PAPER (Young ruled 18 Sep 2026) ----
+       The note is the owner's own sentence off the row. It says what is STILL
+       open with the tick off, because a permission row that only names what it
+       takes away reads as a punishment; and it names the door (the contracts
+       team, i.e. Requests) rather than stopping at "no". */
+    st_paper_on: 'May create new paper',
+    st_paper_off: 'May not create new paper',
+    st_paper_note: 'Off by default. With it off, this person drafts from any approved template, uploads received paper, negotiates and signs within their limit \u2014 and asks the contracts team when nothing fits.',
+    st_paper_admin: 'Administrators may always create new paper.',
+    np_refused: 'You may draft from any approved template, but not write new paper.',
+    np_refused_ask: 'Ask an administrator for the grant, or send a request to the contracts team.',
+    np_ask_team: 'Ask the contracts team',
     st_folders_all_locked: 'An admin holds every folder. There is nothing to choose.',
     st_folders_all: 'Every folder',
     st_folders_pick: 'Only the folders ticked below',
@@ -11999,6 +12024,11 @@ const STRINGS = {
     tb_pb_use_ours: 'Anv\u00e4nd v\u00e5r {name}',
     tb_pb_one_read: 'en f\u00f6rfr\u00e5gan',
     tb_pb_no_read: 'ingen f\u00f6rfr\u00e5gan \u2014 den h\u00e4r finns i ert bibliotek',
+    tf_preview_cap: 'Avtalet du h\u00e5ller p\u00e5 att skapa',
+    tf_preview_left_one: '{n} lucka kvar',
+    tf_preview_left_other: '{n} luckor kvar',
+    tb_pb_lib_over: 'ingen f\u00f6rfr\u00e5gan \u2014 er egen lydelse, visad som en \u00e4ndring mot det som st\u00e5r',
+    tb_pb_lib_same: 'Det h\u00e4r avsnittet s\u00e4ger redan det biblioteket s\u00e4ger \u2014 det finns inget att f\u00f6resl\u00e5.',
     tb_pb_no_read_short: 'ingen f\u00f6rfr\u00e5gan',
     tb_pb_read_n: 'f\u00f6rfr\u00e5gan {n}',
     tb_pb_src_lib: 'V\u00e5ra standarder',
@@ -12042,6 +12072,7 @@ const STRINGS = {
     tb_pb_dev_rides: 'En avvikelse noteras p\u00e5 versionen och f\u00f6ljer med varje avtal som skapas fr\u00e5n den. Publicering stoppas aldrig.',
     tb_pick_lead: 'Tryck p\u00e5 \u2726 bredvid ett avsnitt p\u00e5 pappret, eller v\u00e4lj ett h\u00e4r.',
     tb_greet: 'Ber\u00e4tta vad \u201d{head}\u201d ska s\u00e4ga s\u00e5 skriver jag ett utkast \u2014 ert eget klausulbibliotek och er spelbok f\u00f6rst, Copilot sist.',
+    tb_greet_written: '\u201d{head}\u201d \u00e4r skriven. Be mig strama \u00e5t den, eller byt in er egen standardlydelse \u2014 hur som helst kommer den som en \u00e4ndring du kan l\u00e4sa innan den landar.',
     tb_walk_q: '{n} \u00b7 {head} \u2014 vad ska det st\u00e5?',
     tb_walk_std: 'Er spelbok kr\u00e4ver: {std}.',
     tb_walk_nostd: 'Er spelbok tar ingen st\u00e4llning h\u00e4r, s\u00e5 det \u00e4r ert att best\u00e4mma.',
@@ -13640,7 +13671,14 @@ const STRINGS = {
     st_role_viewer_desc: 'Endast läsa. Ingen utformning, inget undertecknande.',
     st_values_on: 'Ser avtalens belopp',
     st_values_off: 'Avtalens belopp är dolda',
-    st_values_note: 'Belopp i registret, på ett avtal, i exporter, på översikten och i allt de frågar Copilot om.',
+    st_values_note: 'Belopp i registret, p\u00e5 ett avtal, i exporter, p\u00e5 \u00f6versikten och i allt de fr\u00e5gar Copilot om.',
+    st_paper_on: 'F\u00e5r skapa nytt papper',
+    st_paper_off: 'F\u00e5r inte skapa nytt papper',
+    st_paper_note: 'Av som standard. Med den av kan personen uppr\u00e4tta avtal fr\u00e5n valfri godk\u00e4nd mall, ladda upp mottaget papper, f\u00f6rhandla och signera inom sin gr\u00e4ns \u2014 och fr\u00e5ga avtalsteamet n\u00e4r inget passar.',
+    st_paper_admin: 'Administrat\u00f6rer f\u00e5r alltid skapa nytt papper.',
+    np_refused: 'Du kan uppr\u00e4tta avtal fr\u00e5n valfri godk\u00e4nd mall, men inte skriva nytt papper.',
+    np_refused_ask: 'Be en administrat\u00f6r om beh\u00f6righeten, eller skicka en f\u00f6rfr\u00e5gan till avtalsteamet.',
+    np_ask_team: 'Fr\u00e5ga avtalsteamet',
     st_folders_all_locked: 'En administratör har alla mappar. Det finns inget att välja.',
     st_folders_all: 'Alla mappar',
     st_folders_pick: 'Bara mapparna som är ikryssade nedan',

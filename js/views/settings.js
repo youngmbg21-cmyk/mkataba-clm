@@ -529,6 +529,11 @@ function stAccessOf(u){
    always have it, and a member created before the permission existed defaults
    to having it, so this deploy changes nothing until an admin turns it off. */
 const stValuesOn=u=>u.role==='admin'||u.canViewValues!==false;
+/* The new-paper grant, read through the product's ONE reading (js/core.js) so
+   the drawer and every door it governs cannot disagree. Guarded because
+   settings.js runs on stages that do not load core. */
+const stNewPaperOn=u=>(typeof mayMakeNewPaper==='function')
+  ? mayMakeNewPaper(u) : (u.role==='admin'||u.newPaper===true);
 /* WHAT IS MISSING, AS A LIST OF WORDS — the same list the drawer refuses with
    and the same list the chip counts. One reading, three readers. */
 function stPersonMissing(u){
@@ -862,7 +867,24 @@ function settingsPersonDrawer(idOrNew){
         <input id="tm-values" type="checkbox" ${stValuesOn(u)?'checked':''}/>
         <span><span class="st-role-name">${esc(stValuesOn(u)?i18t('st_values_on'):i18t('st_values_off'))}</span>
         <span class="st-note">${esc(i18t('st_values_note'))}</span></span>
-      </label>`:''}`)}
+      </label>`:''}
+      ${''/* ---- WHO MAY MAKE NEW PAPER (Young ruled 18 Sep 2026) ----
+             THE FIFTH PER-PERSON GRANT, drawn in the fourth one's clothes and
+             under the same four conditions, because it is the same shape of
+             fact: an admin's decision about somebody else, on a workspace that
+             has a server to enforce it. A VIEWER is not offered it — a viewer
+             may not edit at all, so a tick there would be a grant the product
+             then ignores, and the server refuses it for the same reason.
+             An ADMIN holds it by rank and the row says so rather than drawing
+             a tick that cannot be untied. */}
+      ${(!isNew && isAdmin() && !isMe && API_MODE() && u.role!=='viewer')?(
+        u.role==='admin'
+        ? `<p class="st-note" style="margin-top:10px">${esc(i18t('st_paper_admin'))}</p>`
+        : `<label class="st-toggle" style="margin-top:10px">
+        <input id="tm-paper" type="checkbox" ${stNewPaperOn(u)?'checked':''}/>
+        <span><span class="st-role-name">${esc(stNewPaperOn(u)?i18t('st_paper_on'):i18t('st_paper_off'))}</span>
+        <span class="st-note">${esc(i18t('st_paper_note'))}</span></span>
+      </label>`):''}`)}
 
     ${sec(3,i18t('st_sec_folders'),
       (u.role==='admin'&&!isNew)
@@ -1044,6 +1066,11 @@ async function settingsSavePerson(existing){
   const valuesBox=document.getElementById('tm-values');
   const valuesTo = valuesBox ? !!valuesBox.checked : null;
   const valuesChanged = valuesTo!==null && valuesTo!==stValuesOn(target);
+  /* The new-paper grant, read the same way — absent box means the row was not
+     drawn (a viewer, an admin, yourself), and a null answer changes nothing. */
+  const paperBox=document.getElementById('tm-paper');
+  const paperTo = paperBox ? !!paperBox.checked : null;
+  const paperChanged = paperTo!==null && paperTo!==stNewPaperOn(target);
   if(valuesChanged && valuesTo===false){
     const ok=await confirmDialog({ title:`Hide contract values from ${target.name}?`,
       message:'They will stop seeing amounts on the register, on a contract, in exports, in the dashboard metrics and in anything they ask the Copilot. They keep their folder access and everything else. You can turn this back on at any time.',
@@ -1055,6 +1082,7 @@ async function settingsSavePerson(existing){
     if(name!==target.name || title!==(target.title||'')) { patch.name=name; patch.title=title; }
     if(roleChanged) patch.role=role;
     if(valuesChanged) patch.canViewValues=valuesTo;
+    if(paperChanged) patch.newPaper=paperTo;
     const capNow=(typeof signCapOf==='function')?signCapOf(target):{answered:false,limit:null};
     const capWas=capNow.answered?(capNow.limit==null?'none':capNow.limit):null;
     if(cap!==undefined && cap!==capWas) patch.signCap=cap;
@@ -1069,6 +1097,7 @@ async function settingsSavePerson(existing){
     if(patch.title!==undefined) body.title=patch.title;
     if(patch.role!==undefined) body.role=patch.role;
     if(patch.canViewValues!==undefined) body.canViewValues=patch.canViewValues;
+    if(patch.newPaper!==undefined) body.newPaper=patch.newPaper;
     if(patch.signCap!==undefined) body.signCap=patch.signCap;
     if(patch.reviewChecked!==undefined) body.reviewChecked=patch.reviewChecked;
     if(patch.reviewerId!==undefined) body.reviewerId=patch.reviewerId;
@@ -1080,6 +1109,7 @@ async function settingsSavePerson(existing){
     if(name) target.name=name; target.title=title;
     if(roleChanged) target.role=role;
     if(valuesChanged) target.canViewValues=valuesTo;
+    if(paperChanged) target.newPaper=paperTo;
     if(patch.signCap!==undefined) target.signCap=patch.signCap;
     if(patch.reviewChecked!==undefined) target.reviewChecked=patch.reviewChecked;
     if(patch.reviewerId!==undefined) target.reviewerId=patch.reviewerId;
