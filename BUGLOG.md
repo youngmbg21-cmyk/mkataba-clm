@@ -15729,6 +15729,53 @@ redline-verify 29g REVERSED in place plus 29g2/29j/29k; auto-triage-verify 14 �
   Young asked about the Overview strip, and that row is opened on purpose
   rather than arriving above the record.
 
+## THE SETTINGS LIST IS GROUPED, SEARCHED AND LED BY WHAT IS OWED (18 Sep 2026)
+
+Young: *"Implement the admin and settings as proposed but do not touch the
+corners as they should stay as they are."* Built off the "HaTi — Design
+Direction" canvas, boards 3 and 4. `--radius` is untouched: every new rule
+reads `var(--radius)` and resolves to the same 2px as the rest of the platform.
+
+MEASURED first, which is what made the diagnosis stick: the admin area
+registers 24 panels, SEVENTEEN of them on one tab, drawn at one height in one
+box, each ending in the same chevron and the same Mandatory / Optional tag,
+with no search and no order. Seventeen equal things read as none.
+
+- `ST_GROUPS` is the one ordered registry (five groups on platform, two on
+  build); every SET_PANELS entry carries a `group`; `stGroupKeyOf` drops an
+  ungrouped panel into its tab's LAST group rather than off the page.
+- The tag is NARROWED, not deleted: `Required` prints only where a panel is
+  mandatory and its own dot is not 'ok'. `st_optional` is inert in both books.
+- `stSearchHits` matches over all 24 on every tab; `stPaintList` repaints
+  `#st-list` alone, so the caret never leaves the box and the page holds still
+  (measured: the box moves 0px while the list narrows).
+- `stAttentionKeys` crosses tabs on purpose — the panel that stops mail leaving
+  the building lives on Build & launch. `stRepaintRow` now repaints EVERY
+  instance of a row, because the block means a panel can be drawn twice.
+- The drawer gained the group crumb, `n of total`, and a `Next:` door — not on
+  the one `foot:'save'` panel, where it would silently discard typed edits.
+
+Tests: settings-groups-verify — 33 checks, 30 red at the parent (2c, 5d and the
+page-error sweep are NAMED CONTROLS and pass both sides on purpose); f193's
+"the tab a row sits on" re-pointed in place from a flat-order compare to the
+tab's own groups, plus a new claim for the block; f148 SAME_IN_BOTH gained
+`st_grp_copilot`. Full suite 7,642 pass / 0 fail.
+
+### Noticed, not fixed
+
+- The drawer BODY was deliberately not moved onto the second surface, which was
+  the one item of board 4 left undone. `.st-sec` carries three interlocking
+  rules (`.st-sec + .st-sec`, `.st-sec-top`, `.st-adv > .st-sec:first-of-type`)
+  each with a documented reason, and only 12 of the 24 panel bodies use the
+  class at all — so carding it would re-decide three rules for every drawer and
+  leave half of them sitting on a tint with nothing to card. Needs its own pass.
+- A panel that wants a decision is on screen TWICE — once in the attention
+  block and once in its own group. That is what the approved board drew and the
+  block names its tab, so it reads as a shortcut rather than a duplicate; worth
+  watching once there is real data in it.
+- test/chromium/overview-as-drawn-verify.js:145 still carries the one eslint
+  error (no-self-compare, already logged 17 Sep). Untouched: `npm run lint` is
+  1 error, 194 warnings, exactly as at the parent.
 ## 18 Sep 2026 — WHO MAY MAKE NEW PAPER, AND THE BUILD PLAN'S UPGRADES 1, 2 AND 3
 
 Young: *"start from the latest main: Implement Who may make new paper per the

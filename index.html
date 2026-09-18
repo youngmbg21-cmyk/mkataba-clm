@@ -2495,6 +2495,83 @@
     border-radius:var(--radius); padding:2px 9px; background:var(--st-steel-bg);
     color:var(--st-steel-fg); }
   .st-row-go{ flex:none; color:var(--color-neutral-400); font-size:var(--t-card); line-height:1; }
+  /* ---- THE LIST IS GROUPED, SEARCHED, AND LED BY WHAT IS OWED ----
+     (owner-approved 18 Sep 2026.) Every radius below reads var(--radius) and
+     so is 2px like everything else on the platform — the corner was ruled out
+     of this change by name. */
+  /* ONE BOX OVER EVERY PANEL ON EVERY TAB. The border sits on the wrapper, not
+     the input, so the magnifier and the field share one outline and one focus
+     ring — an input with its own border inside a bordered box draws two. */
+  .st-search{ display:flex; align-items:center; gap:var(--s-2); height:34px;
+    padding:0 var(--s-3); margin-bottom:var(--s-4); background:var(--color-surface);
+    border:1px solid var(--field-line); border-radius:var(--radius);
+    color:var(--color-neutral-600); }
+  .st-search:focus-within{ outline:2px solid var(--btn-edge); outline-offset:1px; }
+  .st-search svg{ flex:none; }
+  .st-search input{ flex:1; min-width:0; border:0; outline:none; background:transparent;
+    font:inherit; font-size:var(--t-meta); color:var(--color-text); }
+  .st-search input::-webkit-search-cancel-button{ cursor:pointer; }
+  /* A GROUP NAME IS A LABEL, NOT A CARD: no edge, no fill, no radius. The
+     caption sits on the same line in sentence case, so the two never read as
+     two headings. */
+  .st-grp{ margin-bottom:22px; }
+  .st-grp:last-child{ margin-bottom:0; }
+  .st-grp-h{ display:flex; align-items:baseline; gap:var(--s-2); flex-wrap:wrap;
+    margin:0 0 7px 2px; font-size:var(--t-micro); font-weight:var(--w-title);
+    letter-spacing:.09em; text-transform:uppercase; color:var(--color-neutral-600); }
+  .st-grp-sub{ font-size:var(--t-label); font-weight:var(--w-body); letter-spacing:0;
+    text-transform:none; color:var(--color-neutral-600); }
+  /* ---- WHAT WANTS A DECISION ----
+     It is drawn only when it holds something (stAttentionHtml returns '' when
+     the list is empty), every row is a door to the panel that settles it, and
+     it names facts from tabs this one cannot show. Amber on the head alone:
+     amber under seventeen rows is the alarm that stops being read. */
+  .st-att{ margin-bottom:22px; border:1px solid var(--st-amber-line);
+    border-radius:var(--radius); overflow:hidden; background:var(--color-surface);
+    box-shadow:var(--shadow-sm); }
+  .st-att-h{ display:flex; align-items:center; gap:var(--s-2); margin:0;
+    padding:8px var(--s-3); background:var(--st-amber-bg);
+    border-bottom:1px solid var(--st-amber-line); font-size:var(--t-micro);
+    font-weight:var(--w-title); letter-spacing:.09em; text-transform:uppercase;
+    color:var(--st-amber-fg); }
+  /* The rows inside are already in a card, so they give up their own. */
+  .st-att .st-rows{ border:0; border-radius:0; box-shadow:none; }
+  .st-att-more{ margin:0; padding:7px var(--s-3); border-top:1px solid var(--color-divider);
+    background:var(--surface-2); font-size:var(--t-label); color:var(--color-neutral-600); }
+  /* WHICH TAB A ROW LIVES ON — drawn only where the list crosses tabs (the
+     attention block and a search result), never in a group, where the tab is
+     the one the reader is standing on. */
+  .st-row-where{ flex:none; font-size:var(--t-micro); letter-spacing:.06em;
+    text-transform:uppercase; color:var(--color-neutral-600);
+    background:var(--surface-2); border:1px solid var(--color-divider);
+    border-radius:var(--radius); padding:2px 7px; }
+  .st-found{ margin:0 0 var(--s-2) 2px; font-size:var(--t-label); color:var(--color-neutral-600); }
+  .st-none{ margin:0; padding:var(--s-6) var(--s-4); text-align:center;
+    background:var(--surface-2); border:1px solid var(--color-divider);
+    border-radius:var(--radius); font-size:var(--t-meta); color:var(--color-neutral-600); }
+  /* THE DOTS SAY WHAT THEY MEAN, ONCE, UNDER THE LIST. Three words replacing
+     the Mandatory / Optional tag that used to be printed on every row. */
+  .st-legend{ display:flex; flex-wrap:wrap; gap:var(--s-4); align-items:center;
+    padding:11px var(--s-3); background:var(--surface-2);
+    border:1px solid var(--color-divider); border-radius:var(--radius);
+    font-size:var(--t-label); color:var(--color-neutral-600); }
+  .st-legend span{ display:inline-flex; align-items:center; gap:6px; }
+  .st-legend i{ display:inline-block; }
+  /* ---- THE DRAWER'S OWN CRUMB AND ITS NEXT DOOR ----
+     The crumb sits above the shared dialog head and clears the ✕, which is
+     pinned 12px from the top right of .st-dhead. */
+  .st-dcrumb{ display:flex; align-items:center; gap:7px; padding:11px 20px 0 20px;
+    padding-right:44px; font-size:var(--t-micro); font-weight:var(--w-title);
+    letter-spacing:.09em; text-transform:uppercase; color:var(--color-neutral-600); }
+  .st-dcrumb-sep{ color:var(--color-neutral-400); letter-spacing:0; }
+  .st-dcrumb-n{ font-weight:var(--w-body); letter-spacing:.04em; text-transform:none; }
+  .st-dcrumb + .rvd-head{ padding-top:7px; }
+  /* A plain word at the far left of the foot. It is not a .ui-btn on purpose:
+     the foot already carries the one filled button this drawer is allowed. */
+  .st-dnext{ margin-right:auto; border:0; background:none; cursor:pointer; font:inherit;
+    font-size:var(--t-meta); color:var(--accent-ink); padding:4px 2px; text-align:left; }
+  .st-dnext:hover{ color:var(--color-text); }
+  .st-dnext:focus-visible{ outline:2px solid var(--btn-edge); outline-offset:2px; }
   /* ---- people ---- */
   .st-people-head{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
   .st-people-count{ font-family:var(--font-heading); font-weight:var(--w-strong); font-size:var(--t-card);
