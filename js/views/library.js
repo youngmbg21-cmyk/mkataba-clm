@@ -2116,7 +2116,11 @@ function renderPlaybookPage(){
     :`<p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0;line-height:1.6">${i18t('lib_no_deviations')} <b>${i18t('lib_copilot_review')}</b> ${i18t('lib_from_workspace')}</p>`;
 
   const tab=pbPageTab();
-  const tabRow=`<div class="st-tabs" role="tablist">${PB_PAGE_TABS.map(k=>
+  /* PINNED, LIKE TEAM & SETTINGS (Young ruled 18 Sep 2026: "Similar to the team
+     and settings page, the page should scroll behind the tab line"). The class
+     is the opt-in and the rule is in index.html; the Templates page's own
+     .st-tabs row is deliberately NOT opted in — it was not asked for. */
+  const tabRow=`<div class="st-tabs st-tabs-pin" role="tablist">${PB_PAGE_TABS.map(k=>
     `<button class="st-tab${k===tab?' on':''}" data-pb-tab="${k}" role="tab" aria-selected="${k===tab?'true':'false'}">${esc(i18t(PB_TAB_LABEL[k]))}</button>`).join('')}</div>`;
 
   document.getElementById('content').innerHTML=`
@@ -2197,6 +2201,13 @@ function renderPlaybookPage(){
     });
     document.querySelectorAll('[data-pb-sec]').forEach(s=>{ s.hidden=s.getAttribute('data-pb-sec')!==k; });
     const sub=document.getElementById('pb-tabsub'); if(sub) sub.textContent=i18t(PB_TAB_SUB[k]);
+    /* AND IT LANDS AT THE TOP OF THE TAB IT OPENED. Until the row was pinned
+       this came for free: reaching a tab meant already being at the top. Now a
+       tab can be pressed from the bottom of a long clause library, and a press
+       that NAVIGATES may land at the top — this is three different lists.
+       stLandTop is the settings page's own reading (js/views/settings.js),
+       asked through window because that module is not on every stage. */
+    if(typeof stLandTop==='function') stLandTop();
   }));
   setActiveNav('playbook');
 }

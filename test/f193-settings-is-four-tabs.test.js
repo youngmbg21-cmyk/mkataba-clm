@@ -636,21 +636,28 @@ describe('f193 — the tab row does not scroll away', () => {
      another element's padding. */
   const HTML = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   const BASE = /\.st-tabs\{[^}]*\}/.exec(HTML);
-  const RULE = /\.st-page > \.st-tabs\{[^}]*\}/.exec(HTML);
-  /* THE ROW HAS THREE HOMES, AND ONLY ONE WAS ASKED ABOUT. .st-tabs was made
-     one control on three pages on purpose — this page, the Templates page's
-     two tabs and Our standards' — so a pin written on the base rule would
-     silently pin two pages nobody mentioned, and would have fought the
-     Templates row's own inline margin-bottom as well. The base rule is
-     untouched and the pin is a second rule scoped to .st-page. */
-  test('the pin is scoped to this page, so the other two rows are untouched', () => {
+  const RULE = /\.st-tabs-pin\{[^}]*\}/.exec(HTML);
+  /* ---- THE PAGE OPTS IN WHERE IT DRAWS THE ROW ----
+     RE-KEYED IN PLACE 18 Sep 2026, and the claim is the same claim. .st-tabs is
+     one control on three pages — Team & Settings, Our standards and the
+     Templates page's two tabs — so a pin on the BASE rule pins all three. It
+     was keyed on the page for one day (.st-page > .st-tabs) and moved onto the
+     ROW when Young asked for Our standards too: with two of the three wanting
+     it, the decision belongs beside the markup that draws the row rather than
+     in a selector that has to grow a page name each time. */
+  test('the pin is an opt-in on the row, so an unopted page is untouched', () => {
     assert.ok(BASE, '.st-tabs still has its own base rule');
     assert.ok(!/position:sticky/.test(BASE[0]),
-      'the base rule pins nothing — Templates and Our standards wear it too');
-    assert.ok(RULE, 'the pin is its own rule, scoped to the settings page');
+      'the base rule pins nothing — every page that draws the row reads it');
+    assert.ok(RULE, 'the pin is its own rule, keyed on the row');
     const LIB = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'library.js'), 'utf8');
-    assert.ok((LIB.match(/class="st-tabs"/g) || []).length >= 2,
-      'the other two homes are still there — if they go, this scoping can be revisited');
+    const SET = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'settings.js'), 'utf8');
+    assert.match(SET, /class="st-tabs st-tabs-pin"/, 'Team & Settings opts in');
+    assert.match(LIB, /class="st-tabs st-tabs-pin"/, 'and so does Our standards');
+    /* THE TEMPLATES ROW WAS NOT ASKED FOR AND IS NOT OPTED IN. It also carries
+       an inline margin-bottom the bleed's shorthand would fight. */
+    const tplRow = /<div class="st-tabs" role="tablist" style="margin-bottom:14px">/.exec(LIB);
+    assert.ok(tplRow, 'the Templates row still draws without the opt-in');
   });
   test('the row is sticky at the top of the scroller, above the rows, opaque', () => {
     assert.ok(RULE, '.st-page > .st-tabs still has a rule of its own');
