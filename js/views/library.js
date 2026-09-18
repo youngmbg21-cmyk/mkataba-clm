@@ -1654,42 +1654,96 @@ function tplRowMoreMenu(ref){
   ['tm-vers','tm-meta','tm-shelf'].forEach(id=>document.getElementById(id)?.addEventListener('click',()=>{
     closeModal(); openTemplateLibDetail(tid); }));
 }
-/* "+ New template" holds both kinds of paper a workspace creates — a company
-   standard (published, versioned, permissioned) and a counterparty's own
-   template. One button, one honest question, no third screen. */
+/* ════ ONE BUTTON, ONE QUESTION, FIVE ANSWERS (Young confirmed 18 Sep 2026) ══
+   The page carried TWO buttons at the top — "Convert a document" and
+   "+ Build new template" — with three routes behind them, each landing
+   somewhere different, and the second opened a dialog asking what KIND of
+   paper this was before anybody had seen a word of it.
+
+   THE HONEST QUESTION IS WHERE THE WORDS COME FROM. That is the only thing a
+   person knows at this moment, and it decides everything else: a document you
+   have, wording you paste, a contract already signed, one of HaTi's twelve, or
+   nothing at all. The kind question disappears because the answer to this one
+   settles it — a pasted counterparty draft is their paper, a blank page is
+   ours — and the name is editable in the builder's own header afterwards.
+
+   NOTHING NEW IS MINTED HERE. Every row presses a door that already existed
+   and is already guarded; this is one screen in front of five of them. */
+const TPL_SOURCES = [
+  { k:'doc',    ic:'upload', get t(){ return i18t('lib_src_doc'); },    get d(){ return i18t('lib_src_doc_sub'); } },
+  { k:'paste',  ic:'copy',   get t(){ return i18t('lib_src_paste'); },  get d(){ return i18t('lib_src_paste_sub'); } },
+  { k:'signed', ic:'doc',    get t(){ return i18t('lib_src_signed'); }, get d(){ return i18t('lib_src_signed_sub'); } },
+  { k:'hati',   ic:'copy',   get t(){ return i18t('lib_src_hati'); },   get d(){ return i18t('lib_src_hati_sub'); } },
+  { k:'blank',  ic:'plus',   get t(){ return i18t('lib_src_blank'); },  get d(){ return i18t('lib_src_blank_sub'); } },
+];
 function tplNewMenu(){
   const lib=(typeof tplLibAll==='function')?tplLibAll():{canManage:false};
   const companyOk=API_MODE()&&lib.canManage;
-  if(!companyOk){ openCreateTemplateModal('paste'); return; }
-  /* ---- TWO EQUALS, SIDE BY SIDE (owner-reported 13 Sep 2026) ----
-     "This card is poorly designed with space not utilised well." It was a
-     380px box in a 512px frame, with the leftover blank down the right. One
-     question with two answers of the same weight: the answers are two tiles of
-     the same size that fill the frame edge to edge, the whole tile is the
-     button, and Cancel keeps the foot at the right edge the tiles reach. The
-     frame is the M rung (DLG_W in core.js) and the box states no width of its
-     own; the tiles stack under about 430px. The tile's hover is one rule in
-     index.html (.tn-tile) because an inline style cannot say :hover. */
-  const _npBlocked=()=>(typeof newPaperBlocked==='function') && newPaperBlocked();
-  const opt=(id,sym,label,sub,off)=>`<button id="${id}" class="tn-tile"${off?` disabled title="${esc(i18t('np_refused'))}" style="opacity:.55;cursor:not-allowed;`:' style="cursor:pointer;'}display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-height:132px;text-align:left;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:14px 15px 15px;font:inherit;color:var(--color-text)">
-    <span aria-hidden="true" style="width:28px;height:28px;border:1.5px solid var(--accent-ink);border-radius:var(--radius);display:inline-grid;place-items:center;color:var(--accent-ink)"><svg width="16" height="16" viewBox="0 0 16 16"><use href="#i-${sym}"/></svg></span>
-    <span style="display:block;font-size:var(--t-body);font-weight:var(--w-title);line-height:1.3">${label}</span><span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.45">${sub}</span></button>`;
+  const npBlocked=(typeof newPaperBlocked==='function')&&newPaperBlocked();
+  const row=(sc)=>{
+    /* A source is drawn DEAD where its door cannot work from here, with the
+       reason on it — never hidden, or the reader wonders what they are not
+       being shown. */
+    const off=(sc.k==='blank'||sc.k==='hati'||sc.k==='doc')&&(!companyOk||npBlocked);
+    const why=off?(npBlocked?i18t('np_refused_ask'):i18t('tl_needs_server')):'';
+    return `<button data-tpl-src="${sc.k}" class="tn-tile"${off?` disabled title="${_tplEsc(why)}"`:''}
+      style="display:flex;gap:12px;width:100%;text-align:left;padding:13px 14px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;color:var(--color-text);cursor:${off?'not-allowed':'pointer'};opacity:${off?'.55':'1'};margin-bottom:8px">
+      <span style="flex:none;width:30px;height:30px;border-radius:var(--radius);display:grid;place-items:center;background:var(--st-steel-bg);color:var(--st-steel-fg)">${icon(sc.ic,'w-4 h-4')}</span>
+      <span style="flex:1;min-width:0">
+        <span style="display:block;font-size:var(--t-body);font-weight:var(--w-title)">${_tplEsc(sc.t)}</span>
+        <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5">${_tplEsc(off?why:sc.d)}</span>
+      </span></button>`;
+  };
   openModal(`<div style="padding:24px">
-    <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0">${i18t('lib_what_kind')}</h3>
-    <div class="tn-tiles" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:16px">
-      ${''/* WHO MAY MAKE NEW PAPER: the company half is the builder, so it is
-             dressed with the refusal where the grant is missing. The
-             counterparty half is NOT — saving their own template is importing
-             their wording, not writing ours, and the rule names writing. */}
-      ${opt('tn-company','tpl',i18t('lib_grp_company'),
-            _npBlocked()?i18t('np_refused_ask'):i18t('lib_published_whole_team'),_npBlocked())}
-      ${opt('tn-cp','import','Counterparty paper','Their template, saved so the negotiation runs through HaTi.')}
-    </div>
-    <div style="display:flex;justify-content:flex-end;margin-top:18px"><button id="tn-close" class="ui-btn">${i18t('act_cancel')}</button></div>
-  </div>`,{label:i18t('lib_what_kind')});
+    <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0 0 var(--s-1)">${i18t('lib_src_title')}</h3>
+    <p style="margin:0 0 16px;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.55">${i18t('lib_src_lead')}</p>
+    ${TPL_SOURCES.map(row).join('')}
+    <div style="display:flex;justify-content:flex-end;margin-top:14px"><button id="tn-close" class="ui-btn">${i18t('act_cancel')}</button></div>
+  </div>`,{label:i18t('lib_src_title')});
   document.getElementById('tn-close')?.addEventListener('click',closeModal);
-  document.getElementById('tn-company')?.addEventListener('click',()=>{ closeModal(); tplLibCreateModal(); });
-  document.getElementById('tn-cp')?.addEventListener('click',()=>{ closeModal(); openCreateTemplateModal('paste'); });
+  document.querySelectorAll('[data-tpl-src]').forEach(b=>b.addEventListener('click',()=>{
+    const k=b.getAttribute('data-tpl-src'); closeModal();
+    if(k==='doc') return (companyOk&&typeof tplLibUploadModal==='function')?tplLibUploadModal():openCreateTemplateModal('upload');
+    if(k==='paste') return openCreateTemplateModal('paste');
+    if(k==='signed') return tplPickContract();
+    if(k==='hati') return tplPickBuiltin();
+    if(k==='blank') return companyOk?tplLibCreateModal():openCreateTemplateModal('paste');
+  }));
+}
+/* The two pickers the sources need. Both read populations that already exist
+   and press acts that already exist. */
+function tplPickBuiltin(){
+  const rows=Object.values(TEMPLATES).filter(t=>templateAllowedForRole(t.id,currentUser()?.role||'viewer'));
+  tplPickList(i18t('lib_src_hati'),i18t('lib_pick_hati_lead'),
+    rows.map(t=>({ id:t.id, name:t.name, sub:`${FOLDERS[t.folder]?.name||''}` })),
+    id=>tplMakeItOurs(id));
+}
+function tplPickContract(){
+  /* Newest first, and a contract with no wording is not offered — the act
+     behind this refuses it anyway, and a door that lands on a refusal looks
+     exactly like a broken one. */
+  const rows=(state.contracts||[]).filter(c=>c&&(c.redlineText||(c.upload&&c.upload.extractedText)))
+    .slice(0,40).map(c=>({ id:c.id, name:c.name||c.id, sub:`${c.id}${c.counterparty?' · '+c.counterparty:''}${c.status?' · '+c.status:''}` }));
+  if(!rows.length){ toast(i18t('lib_pick_none'),'warn'); return; }
+  tplPickList(i18t('lib_src_signed'),i18t('lib_pick_contract_lead'),rows,id=>{
+    const c=(state.contracts||[]).find(x=>x.id===id); if(!c) return;
+    if(typeof saveContractToLibrary==='function') saveContractToLibrary(c);
+    else saveContractAsTemplate(c);
+  });
+}
+function tplPickList(title,lead,rows,pick){
+  openModal(`<div style="padding:24px">
+    <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0 0 var(--s-1)">${_tplEsc(title)}</h3>
+    <p style="margin:0 0 14px;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.55">${_tplEsc(lead)}</p>
+    <div style="max-height:320px;overflow:auto">${rows.map(r=>`<button data-tpl-pick="${_tplEsc(r.id)}"
+      style="display:block;width:100%;text-align:left;padding:10px 12px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;color:inherit;cursor:pointer;margin-bottom:6px">
+      <span style="display:block;font-size:var(--t-body);font-weight:var(--w-strong)">${_tplEsc(r.name)}</span>
+      <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600)">${_tplEsc(r.sub)}</span></button>`).join('')}</div>
+    <div style="display:flex;justify-content:flex-end;margin-top:14px"><button id="tp-close" class="ui-btn">${i18t('act_cancel')}</button></div>
+  </div>`);
+  document.getElementById('tp-close')?.addEventListener('click',closeModal);
+  document.querySelectorAll('[data-tpl-pick]').forEach(b=>b.addEventListener('click',()=>{
+    const id=b.getAttribute('data-tpl-pick'); closeModal(); pick(id); }));
 }
 /* ==================================================== TEMPLATES OVERVIEW ====
    THE PAGE IS TWO TABS (owner-asked 25 Aug 2026, off the demo): "Templates
@@ -2170,8 +2224,11 @@ function renderTemplatesPage(){
             of the row's alignment rather than by moving the row. */}
       <h1 style="margin:0;align-self:flex-start;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${i18t('nav_templates')}</h1>
       <span style="flex:1"></span>
-      ${canManage?`<button id="tpl-convert" class="ui-btn ui-btn-secondary" style="font-size:var(--t-meta);padding:6px 13px">${i18t('lib_convert_document')}</button>
-      <button id="tpl-new" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:6px 14px"${
+      ${''/* ONE BUTTON. "Convert a document" was a sibling of "+ New template"
+             and is not a sibling act — it is one of five ways to answer the
+             same question, which the one door now asks. `lib_convert_document`
+             is STALE on this page and stays in both books, inert. */}
+      ${canManage?`<button id="tpl-new" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:6px 14px"${
         ((typeof newPaperBlocked==='function'&&newPaperBlocked())?` disabled title="${esc(i18t('np_refused'))+' '+esc(i18t('np_refused_ask'))}"`:'')
       }>${i18t('lib_new_template')}</button>`:''}
     </div>
@@ -2238,11 +2295,6 @@ function renderTemplatesPage(){
     _tplPage.stream=_tplPage.stream===v?null:v; renderTemplatesPage(); }));
   document.getElementById('tpl-search')?.addEventListener('input',e=>{ _tplPage.q=e.target.value; tplPagePaintRows(); });
   document.getElementById('tpl-new')?.addEventListener('click',tplNewMenu);
-  document.getElementById('tpl-convert')?.addEventListener('click',()=>{
-    const lib2=(typeof tplLibAll==='function')?tplLibAll():{canManage:false};
-    if(API_MODE()&&lib2.canManage&&typeof tplLibUploadModal==='function') tplLibUploadModal();
-    else openCreateTemplateModal('upload');
-  });
   /* Company templates come from the server cache; the first visit renders
      before it is warm, so refresh and repaint the rows when the list moves. */
   /* ---- A FAILED FETCH MUST NOT ASK FOR ANOTHER RENDER ----
