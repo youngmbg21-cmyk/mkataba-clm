@@ -27,10 +27,22 @@ const DEFAULT_CLAUSE_LIBRARY = [
     preferred:'Each party shall keep the other’s confidential information secret and use it only for this Agreement, for the term and three (3) years after.',
     fallback:'Confidentiality for the term and two (2) years after.',
     guidance:'Mutual, survives termination by 2–3 years.' },
-  { id:'cl-dp', category:'Data protection', name:'Data Protection Act 2019 compliance',
-    preferred:'Where personal data is processed, each party complies with the Data Protection Act, 2019 and applicable ODPC guidance, and only processes such data on documented instructions.',
-    fallback:'The parties comply with the Data Protection Act, 2019.',
-    guidance:'Required whenever personal data changes hands. Reference the Act and the Office of the Data Protection Commissioner (ODPC).' },
+  /* ---- THE MARKET SPEAKS THROUGH THIS ONE TOO (18 Sep 2026) ----
+     Its three sentences were hardcoded Kenyan while `cl-law` beside it has
+     always been a getter off the market pack, so a Swedish workspace judged
+     its paper against the Data Protection Act 2019 and the ODPC. Nobody had
+     noticed because nothing PRINTED this wording: it was guidance, read by a
+     lawyer who knew better. Upgrade 1 puts it in the drafted contract, where a
+     Kenyan statute in a Swedish agreement is a defect a customer signs.
+     GETTERS, NEVER LITERALS — an object literal freezes load-time language and
+     the market is switched while the page is open. */
+  { id:'cl-dp', category:'Data protection',
+    get name(){ return `${jxDataProtection()} compliance`; },
+    get preferred(){ const r=(jx().dataProtectionRegulator||'').trim();
+      return `Where personal data is processed, each party complies with ${jxDataProtection()}${r?` and applicable ${r} guidance`:''}, and only processes such data on documented instructions.`; },
+    get fallback(){ return `The parties comply with ${jxDataProtection()}.`; },
+    get guidance(){ const r=(jx().dataProtectionRegulator||'').trim();
+      return `Required whenever personal data changes hands. Reference ${jxDataProtection()}${r?` and the ${r}`:''}.`; } },
   { id:'cl-term', category:'Termination', name:'Termination on notice + cause',
     preferred:'Either party may terminate for material breach not remedied within thirty (30) days of notice, or for convenience on ninety (90) days’ written notice.',
     fallback:'Termination for uncured material breach on 30 days’ notice.',

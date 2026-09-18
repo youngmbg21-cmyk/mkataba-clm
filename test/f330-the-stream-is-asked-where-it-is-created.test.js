@@ -130,7 +130,15 @@ describe('f330 (2) — the button says what it does', () => {
     assert.equal((I18N.match(/lib_new_template:/g) || []).length, 2, 'one key, two books');
   });
   test('and it is still the one key the page draws', () => {
-    assert.match(strip(LIB), /id="tpl-new"[\s\S]{0,160}i18t\('lib_new_template'\)/,
+    /* RE-POINTED 18 Sep 2026: this allowed 160 characters between the id and
+       the key, and the new-paper grant put a `disabled title=` expression
+       between them. PIN THE REGION, NOT A BYTE COUNT — the region is the
+       button element, and it is read to its own closing tag. */
+    const src = strip(LIB);
+    const at = src.indexOf('id="tpl-new"');
+    assert.ok(at > 0, 'the button is drawn');
+    const el = src.slice(at, src.indexOf('</button>', at));
+    assert.match(el, /i18t\('lib_new_template'\)/,
       'the button reads the key rather than a literal');
   });
 });

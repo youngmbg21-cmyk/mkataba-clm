@@ -509,3 +509,172 @@ function applyContractEssentials(c, values){
   return true;
 }
 Object.assign(window,{CONTRACT_ESSENTIALS,essentialFields,openContractEssentials,applyContractEssentials});
+
+/* ============================================================
+   THE PAPER BESIDE THE QUESTIONS (the build plan's upgrade 2, 18 Sep 2026)
+   ============================================================
+   Both routes into a contract ended on the same screen — a two-column grid of
+   labelled boxes and a Create button — and only after the press did the
+   agreement appear. If a number went in wrong you found out in the contract
+   room.
+
+   IT IS A SMALL BUILD BECAUSE THE PARTS EXIST. Two of them, both already pure:
+   `applyTemplateValues` fills a built-in template's blanks onto a record, and
+   `fillTemplateBody` fills a saved template's {{placeholders}}. Each create
+   path calls one of them and then does the side effects — mint an id, stamp an
+   owner, push onto state, persist. The preview calls the SAME function and
+   stops before all of that, so what is drawn is what the press would make,
+   rather than a second renderer's opinion of it.
+
+   THE THROWAWAY CONTRACT NEVER REACHES ANYTHING. It has no id, it is not on
+   `state.contracts`, nothing persists it and nobody stamps it. The one thing
+   done to it is `docBody`, which reads.
+
+   AND THE LINK IS THE ONE BUILT FOR THE DOCUMENT TAB (17 Sep): a cursor in a
+   box lights the matching word on the paper. That machinery is scoped to
+   `#doc-canvas` / `#tplform-section`, which this dialog is neither of, so the
+   dialog gets its own three-line wiring over the SAME class — `is-fieldlit`,
+   the product's own — rather than a second visual language. */
+const FILL_PREVIEW_MIN_W = 1000;   /* under this the dialog keeps one column */
+/* Does this screen have room for two columns? MEASURED rather than assumed:
+   the boxes need their own width and the paper needs enough to be worth
+   reading, and below that a preview would squeeze the questions. */
+function fillPreviewFits(){
+  try{ return typeof window!=='undefined' && (window.innerWidth||0) >= FILL_PREVIEW_MIN_W; }
+  catch(_){ return false; }
+}
+/* THE CONTRACT THE PRESS WOULD MAKE, and nothing else about it.
+   kind 'builtin': {tid, vars, values} — the wizard's own three.
+   kind 'saved':   {t, values} — the saved-template fill screen's two. */
+function fillPreviewContract(kind, o){
+  o = o || {};
+  const base = { id:'', name:'', status:'Draft', fields:{}, metadata:{},
+    audit:[], signatures:[], comments:[], value:0, expiry:null, scan:null,
+    counterparty:'', _preview:true };
+  try{
+    if(kind === 'saved'){
+      const t = o.t; if(!t) return null;
+      const fs = templateFields(t);
+      const fmt = templateFormat(t);
+      const cpF = fs.find(x => x.maps === 'counterparty');
+      base.counterparty = cpF ? String((o.values||{})[cpF.key] || '') : '';
+      base.name = t.name + (base.counterparty ? ' \u2014 ' + base.counterparty : '');
+      base.party = String(o.party || '').trim() || undefined;
+      base.template = null; base.source = 'template'; base.valueType = 'estimated';
+      base.redlineText = fillTemplateBody(templateBody(t), o.values || {}, fmt);
+      base.format = fmt;
+      applyTemplateValues(base, fs, o.values || {});
+      return base;
+    }
+    const T = (typeof TEMPLATES !== 'undefined' && TEMPLATES) || {};
+    const t = T[o.tid]; if(!t) return null;
+    base.template = o.tid; base.folder = t.folder; base.valueType = t.valueType;
+    applyTemplateValues(base, o.vars || [], o.values || {});
+    base.name = (t.name || t.kind || '') + (base.counterparty ? ' \u2014 ' + base.counterparty : '');
+    if(t.valueType === 'none'){ base.value = 0; base.valueType = 'none'; }
+    return base;
+  }catch(_){ return null; }
+}
+/* The paper itself, through the product's ONE document renderer. A preview
+   that draws from anywhere else is the two-screens-disagreeing fault this
+   codebase pays for most. */
+function fillPreviewHtml(kind, o){
+  const c = fillPreviewContract(kind, o);
+  if(!c) return '';
+  try{ return (typeof docBody === 'function') ? docBody(c) : ''; }catch(_){ return ''; }
+}
+/* Repaint on a keystroke. Cheap by construction — docBody is a string build
+   with no round trip — but still coalesced to one paint per frame, because a
+   fast typist should not queue twelve of them. */
+let _fillPaintTimer = null;
+function fillPreviewPaint(kind, read){
+  const host = (typeof document !== 'undefined') && document.getElementById('tf-preview');
+  if(!host) return;
+  if(_fillPaintTimer){ try{ clearTimeout(_fillPaintTimer); }catch(_){} }
+  _fillPaintTimer = setTimeout(() => {
+    _fillPaintTimer = null;
+    const h = (typeof document !== 'undefined') && document.getElementById('tf-preview');
+    if(!h) return;
+    /* The box with the caret in it, remembered ACROSS the repaint: the paper
+       is rebuilt, so the lit word is a new element every time. */
+    const lit = (typeof document !== 'undefined' && document.activeElement)
+      ? fillPreviewKeyOf(document.activeElement) : '';
+    const o = read();
+    try{ h.innerHTML = fillPreviewHtml(kind, o); }catch(_){ h.innerHTML = ''; }
+    const cap = document.getElementById('tf-preview-left');
+    if(cap){ const n = fillPreviewLeft(o && o.values);
+      cap.textContent = n ? ' \u00b7 ' + i18tn('tf_preview_left', n, { n }) : ''; }
+    if(lit) fillPreviewLight(lit);
+  }, 0);
+}
+/* Which answer is this box? The dialog's own boxes are `tf-<key>` / `wz-<key>`
+   and the paper's blanks carry the product's own four attributes, so the two
+   sides are matched on the KEY rather than on a shape. */
+function fillPreviewKeyOf(el){
+  if(!el || !el.getAttribute) return '';
+  const id = String(el.id || '');
+  const m = /^(?:tf|wz)-(.+)$/.exec(id);
+  return m ? m[1] : '';
+}
+/* Light the word, and NEVER take the caret: the reader is typing. Uses the
+   product's own class so the dialog and the Document tab cannot drift about
+   what "this is the bit you are answering" looks like. */
+function fillPreviewLight(key){
+  if(typeof document === 'undefined') return false;
+  const host = document.getElementById('tf-preview');
+  if(!host) return false;
+  host.querySelectorAll('.is-fieldlit').forEach(el => el.classList.remove('is-fieldlit'));
+  const k = String(key || ''); if(!k) return false;
+  const q = (window.CSS && CSS.escape) ? CSS.escape(k) : k.replace(/["\\]/g, '\\$&');
+  const node = host.querySelector(`[data-field="${q}"]`)
+    || host.querySelector(`[data-sync="${q}"]`)
+    || host.querySelector(`[data-blankf="${q}"]`);
+  if(!node) return false;
+  node.classList.add('is-fieldlit');
+  /* IT SCROLLS THE PREVIEW'S OWN SCROLLER AND NOTHING ELSE — `nearest` so a
+     word already on screen does not move the page, and `auto` because a smooth
+     scroll on what is really a keystroke reads as the dialog wobbling. */
+  if(typeof node.scrollIntoView === 'function'){
+    try{ node.scrollIntoView({ block:'nearest', inline:'nearest', behavior:'auto' }); }catch(_){}
+  }
+  return true;
+}
+/* ONE WIRING FOR BOTH DOORS. `root` is the dialog, `read` gives the answers as
+   they stand, `kind` says which of the two papers to build. */
+function fillPreviewWire(root, kind, read){
+  if(!root || !root.addEventListener) return;
+  root.addEventListener('input', () => fillPreviewPaint(kind, read));
+  root.addEventListener('change', () => fillPreviewPaint(kind, read));
+  root.addEventListener('focusin', e => {
+    const k = fillPreviewKeyOf(e.target); if(k) fillPreviewLight(k);
+  });
+  fillPreviewPaint(kind, read);
+}
+/* The right-hand column: a caption that says what it is and how many answers
+   are still open, over the paper. Drawn by both doors, so neither can give it
+   different clothes. */
+/* THE COUNT IS LIVE OR IT IS NOT DRAWN. Written once at the draw it was a
+   number the very next keystroke contradicted, which is worse than silence —
+   so it is repainted by fillPreviewPaint off the same answers the paper is
+   built from, and there is one arithmetic for both. */
+function fillPreviewLeft(values){
+  const v = values || {};
+  return Object.keys(v).filter(k => !String(v[k] == null ? '' : v[k]).trim()).length;
+}
+function fillPreviewPaneHtml(n){
+  return `<div style="display:flex;flex-direction:column;gap:6px;min-width:0">
+    <span style="font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)">${
+      esc(i18t('tf_preview_cap'))}<span id="tf-preview-left">${n ? ' \u00b7 ' + esc(i18tn('tf_preview_left', n, { n })) : ''}</span></span>
+    ${''/* INERT, AND THAT IS NOT DECORATION. docBody draws a draft's blanks as
+           REAL inputs, so without this the preview is a second form: a reader
+           can type into it and the answer goes nowhere, because this contract
+           has no id and nothing persists it. A dead press is the fault this
+           codebase can only see on a painted page, and a screenshot is where
+           this one was seen. `inert` refuses it to the keyboard too, which
+           pointer-events alone does not. */}
+    <div id="tf-preview" class="doc-surface hati-doc" inert style="flex:1;min-height:0;max-height:52vh;overflow:auto;
+      background:var(--color-doc-warm);border:1px solid var(--color-doc-warm-line);border-radius:0;
+      padding:18px 22px;font-size:13px;pointer-events:none;user-select:text"></div></div>`;
+}
+Object.assign(window,{FILL_PREVIEW_MIN_W,fillPreviewFits,fillPreviewContract,fillPreviewHtml,fillPreviewLeft,
+  fillPreviewPaint,fillPreviewKeyOf,fillPreviewLight,fillPreviewWire,fillPreviewPaneHtml});

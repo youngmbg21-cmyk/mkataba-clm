@@ -149,8 +149,17 @@ function openTemplateFillModal(t, prefill){
     if(f.type==='select') return `<label style="display:block">${lbl}<select id="${id}" style="${st}">${(f.opts||[]).map(o=>`<option value="${_tplEsc(o).replace(/"/g,'&quot;')}" ${f.def===o?'selected':''}>${_tplEsc(o)}</option>`).join('')}</select></label>`;
     const it=f.type==='date'?'date':(f.type==='num'?'number':'text');
     return `<label style="display:block">${lbl}<input id="${id}" type="${it}" value="${String(f.def||'').replace(/"/g,'&quot;')}" placeholder="${_tplEsc(f.ph||'')}" style="${st}"/></label>`; };
+  /* ---- THE PAPER BESIDE THE QUESTIONS (upgrade 2, 18 Sep 2026) ----
+     The boxes do not change — same questions, same order, same required stars,
+     same three acts. They move into the left half of a wider frame and the
+     agreement they are going into draws in the right half, from the SAME
+     function that draws it after Create. Under FILL_PREVIEW_MIN_W the dialog
+     is byte-identical to what it was: a preview that squeezes the questions is
+     worse than no preview. */
+  const _pv = (typeof fillPreviewFits==='function') && fillPreviewFits();
   openModal(`<div style="padding:20px 22px">
     <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0 0 3px">${_tplEsc(t.name)}</h3>
+    <div id="tf-cols" style="display:grid;grid-template-columns:${_pv?'minmax(0,1fr) minmax(0,1fr)':'minmax(0,1fr)'};gap:var(--s-4);align-items:start">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s-3)">
       ${''/* OUR SIDE, ASKED HERE TOO. A customer's own template may carry a
              blank of its own mapped to `party`, in which case that one wins —
@@ -180,14 +189,24 @@ function openTemplateFillModal(t, prefill){
         <select id="tf-folder" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font:inherit;font-size:var(--t-body);outline:none">${
           (typeof folderOptionsHtml==='function') ? folderOptionsHtml(t.folder||null, false) : ''}</select></label>
     </div>
+    ${_pv?fillPreviewPaneHtml(fs.filter(f=>!String(f.def||'').trim()).length):''}
+    </div>
     <div id="tf-err" style="font-size:var(--t-label);color:var(--st-ruby-fg);min-height:15px;margin-top:var(--s-2)"></div>
     <div style="display:flex;align-items:center;gap:var(--s-2);margin-top:var(--s-2)">
       <button id="tf-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <span style="flex:1"></span>
       <button id="tf-skip" class="ui-btn" title="${esc(i18t('lib_create_now_fill_later'))}">${i18t('lib_skip_for_now')}</button>
       <button id="tf-create" class="ui-btn ui-btn-primary">${i18t('lib_create_draft')}</button>
-    </div></div>`, {maxWidth:'620px'});
+    </div></div>`, {maxWidth:_pv?'1040px':'620px'});
   if(typeof bindFolderSelect==='function') bindFolderSelect(document.getElementById('tf-folder'));
+  /* THE ANSWERS AS THEY STAND, read exactly as the Create press reads them, so
+     the preview cannot draw a contract the press would not make. */
+  if(_pv && typeof fillPreviewWire==='function'){
+    const readNow=()=>{ const values={};
+      for(const f of fs){ const el=document.getElementById('tf-'+f.key); if(el) values[f.key]=String(el.value||'').trim(); }
+      return { t, values, party:((document.getElementById('tf-party')||{}).value||'') }; };
+    fillPreviewWire(document.getElementById('tf-cols'), 'saved', readNow);
+  }
   const tfFolder=()=>((document.getElementById('tf-folder')||{}).value||'');
   document.getElementById('tf-cancel').addEventListener('click',closeModal);
   /* Same contract, blanks left blank — an unfilled placeholder is a designed
@@ -1493,13 +1512,19 @@ function tplNewMenu(){
      frame is the M rung (DLG_W in core.js) and the box states no width of its
      own; the tiles stack under about 430px. The tile's hover is one rule in
      index.html (.tn-tile) because an inline style cannot say :hover. */
-  const opt=(id,sym,label,sub)=>`<button id="${id}" class="tn-tile" style="display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-height:132px;text-align:left;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:14px 15px 15px;cursor:pointer;font:inherit;color:var(--color-text)">
+  const _npBlocked=()=>(typeof newPaperBlocked==='function') && newPaperBlocked();
+  const opt=(id,sym,label,sub,off)=>`<button id="${id}" class="tn-tile"${off?` disabled title="${esc(i18t('np_refused'))}" style="opacity:.55;cursor:not-allowed;`:' style="cursor:pointer;'}display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-height:132px;text-align:left;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:14px 15px 15px;font:inherit;color:var(--color-text)">
     <span aria-hidden="true" style="width:28px;height:28px;border:1.5px solid var(--accent-ink);border-radius:var(--radius);display:inline-grid;place-items:center;color:var(--accent-ink)"><svg width="16" height="16" viewBox="0 0 16 16"><use href="#i-${sym}"/></svg></span>
     <span style="display:block;font-size:var(--t-body);font-weight:var(--w-title);line-height:1.3">${label}</span><span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.45">${sub}</span></button>`;
   openModal(`<div style="padding:24px">
     <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0">${i18t('lib_what_kind')}</h3>
     <div class="tn-tiles" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:16px">
-      ${opt('tn-company','tpl',i18t('lib_grp_company'),i18t('lib_published_whole_team'))}
+      ${''/* WHO MAY MAKE NEW PAPER: the company half is the builder, so it is
+             dressed with the refusal where the grant is missing. The
+             counterparty half is NOT — saving their own template is importing
+             their wording, not writing ours, and the rule names writing. */}
+      ${opt('tn-company','tpl',i18t('lib_grp_company'),
+            _npBlocked()?i18t('np_refused_ask'):i18t('lib_published_whole_team'),_npBlocked())}
       ${opt('tn-cp','import','Counterparty paper','Their template, saved so the negotiation runs through HaTi.')}
     </div>
     <div style="display:flex;justify-content:flex-end;margin-top:18px"><button id="tn-close" class="ui-btn">${i18t('act_cancel')}</button></div>
@@ -1965,7 +1990,9 @@ function renderTemplatesPage(){
       <h1 style="margin:0;align-self:flex-start;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${i18t('nav_templates')}</h1>
       <span style="flex:1"></span>
       ${canManage?`<button id="tpl-convert" class="ui-btn ui-btn-secondary" style="font-size:var(--t-meta);padding:6px 13px">${i18t('lib_convert_document')}</button>
-      <button id="tpl-new" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:6px 14px">${i18t('lib_new_template')}</button>`:''}
+      <button id="tpl-new" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:6px 14px"${
+        ((typeof newPaperBlocked==='function'&&newPaperBlocked())?` disabled title="${esc(i18t('np_refused'))+' '+esc(i18t('np_refused_ask'))}"`:'')
+      }>${i18t('lib_new_template')}</button>`:''}
     </div>
     <div class="st-tabs" role="tablist" style="margin-bottom:14px">
       <button class="st-tab${tab==='overview'?' on':''}" data-tpl-tab="overview" role="tab" aria-selected="${tab==='overview'?'true':'false'}">${i18t('lib_tab_overview')}</button>

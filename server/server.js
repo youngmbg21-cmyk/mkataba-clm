@@ -278,12 +278,16 @@ const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role,
      a second place this rule is decided. */
   reviewChecked: u.review_checked == null ? null : !!u.review_checked,
   reviewerId: u.reviewer_id || null,
+  /* The stored answer, never the resolved one: `mayMakeNewPaper` on the
+     browser and `paperMaker` here both answer an admin true, and a server
+     that helpfully pre-resolved it would be a second place the rule lives. */
+  newPaper: !!u.new_paper,
   overseerId: u.overseer_id || null });
 /* The facts on that record that are ONE PERSON'S OWN and an admin's business,
    and nobody else's. Stripped from every colleague's copy at the bootstrap —
    see the note there. A new per-person setting belongs on this list the day it
    is added; f202 fails if one of these ever reaches a non-admin again. */
-const ADMIN_ONLY_USER_FIELDS = ['folderAccess', 'signCap', 'reviewChecked', 'reviewerId', 'overseerId', 'twoStep'];
+const ADMIN_ONLY_USER_FIELDS = ['folderAccess', 'signCap', 'reviewChecked', 'reviewerId', 'overseerId', 'twoStep', 'newPaper'];
 
 /* ---------- per-contract storage (scales to large portfolios) ----------
    Each contract is its own row with its own version. Lists return a light
@@ -827,6 +831,26 @@ addColumnIfMissing('users', 'prefs', 'TEXT');   // per-user notification opt-ins
    deploy keeps seeing exactly what it saw yesterday, until an admin turns it
    off for someone. */
 addColumnIfMissing('users', 'can_view_values', 'INTEGER NOT NULL DEFAULT 1');
+/* ---- WHO MAY MAKE NEW PAPER (Young ruled 18 Sep 2026) ----
+   The governance rule, as a per-person grant beside the four that already work
+   this way — which streams somebody may open, how much they may sign for,
+   whether their work is checked, whether they may see money. It is NOT a role:
+   HaTi has three roles and "Legal" is what the screen calls Editor, so a
+   role-shaped rule would currently change nothing, because Legal and Admin
+   between them are already everyone who can edit.
+
+   DEFAULT 0, which is the one place this differs from can_view_values above —
+   the owner's own words on the row are "Off by default". So this deploy DOES
+   change something: an Editor who could open the template builder yesterday
+   asks for the grant today. That is the point of the rule rather than a cost
+   of it, and every refusal carries the door that already exists (Requests).
+
+   WHAT IT GATES is the company-standard builder — minting a template, writing
+   a version's wording, and publishing one. NOT drafting a contract from an
+   approved template, NOT uploading received paper, NOT saving a counterparty's
+   own template (that is importing their wording, not writing ours), and NOT
+   the housekeeping a template needs afterwards (rename, re-file, archive). */
+addColumnIfMissing('users', 'new_paper', 'INTEGER NOT NULL DEFAULT 0');
 /* A member's JOB TITLE — "COO", "Finance Director" — which is a different
    thing from their `role` ("admin"/"legal"/"viewer"). `role` is a permission
    level: what they may do in the software. `title` is the capacity they sign
@@ -4062,6 +4086,24 @@ app.put('/api/settings/folder-access', auth, admin, (req, res) => {
 const templateManager = (req, res, next) => {
   if (req.user.role !== 'admin' && req.user.role !== 'legal')
     return res.status(403).json({ error: 'Admin or Editor access required' });
+  next();
+};
+/* ---- AND WHO MAY MAKE NEW PAPER WITH IT ----
+   THE SERVER IS THE WALL. The browser stands the doors down; this refuses the
+   request, because a rule enforced only in pixels holds until somebody sends
+   the request. It NARROWS templateManager rather than replacing it: you still
+   have to be Admin or Editor, and then you have to hold the grant.
+
+   An admin always holds it — a workspace that could lock its own owner out of
+   its own templates is a worse failure than the one this rule prevents. The
+   sentence names the door that exists rather than stopping at "no", which is
+   this codebase's rule for every refusal. */
+const mayMakeNewPaperRow = u => !!u && (u.role === 'admin' || Number(u.new_paper || 0) !== 0);
+const paperMaker = (req, res, next) => {
+  if (req.user.role !== 'admin' && req.user.role !== 'legal')
+    return res.status(403).json({ error: 'Admin or Editor access required' });
+  if (!mayMakeNewPaperRow(req.user))
+    return res.status(403).json({ error: 'You may draft from any approved template, but not write new paper. Ask an administrator, or send a request to the contracts team.' });
   next();
 };
 /* ---- WHICH FOLDERS MAY THIS PERSON SIGN IN ----
@@ -9328,12 +9370,15 @@ app.patch('/api/users/:id', auth, (req, res) => {
      never on yourself, because your own lock comes off with a code on the
      account page, not with admin rank. */
   const hasClear2 = b.clearTwoStep === true;
-  if (!hasRole && !hasValues && !hasTitle && !hasCap && !hasChecked && !hasReviewer && !hasOverseer && !hasClear2)
+  /* WHO MAY MAKE NEW PAPER is an admin's grant for the plainest reason of all:
+     somebody who could tick their own box is not governed by the rule. */
+  const hasPaper = b.newPaper !== undefined;
+  if (!hasRole && !hasValues && !hasTitle && !hasCap && !hasChecked && !hasReviewer && !hasOverseer && !hasClear2 && !hasPaper)
     return res.status(400).json({ error: 'Nothing to change' });
   const self = req.params.id === req.user.id;
   // Only a title may be set by a non-admin, and only on their own account.
   if (req.user.role !== 'admin'
-    && !(self && hasTitle && !hasRole && !hasValues && !hasCap && !hasChecked && !hasReviewer && !hasOverseer && !hasClear2))
+    && !(self && hasTitle && !hasRole && !hasValues && !hasCap && !hasChecked && !hasReviewer && !hasOverseer && !hasClear2 && !hasPaper))
     return res.status(403).json({ error: 'Admin access required' });
   if (userPrefs(req.user).mustChangePassword)
     return res.status(403).json({ error: 'Set your own password before making changes', mustChangePassword: true });
@@ -9400,6 +9445,18 @@ app.patch('/api/users/:id', auth, (req, res) => {
     if (role === 'admin' && !b.canViewValues)
       return res.status(400).json({ error: 'Admins always see contract values. Change the role first if this member should not.' });
     db.prepare('UPDATE users SET can_view_values=? WHERE id=?').run(b.canViewValues ? 1 : 0, req.params.id);
+  }
+  if (hasPaper) {
+    /* The same refusal shape the values grant uses, and for the same reason:
+       an admin holds this by rank, so a stored "no" on an admin row would be a
+       fact the product then ignores — two places saying different things about
+       one person. Change the role first if that is what was meant. */
+    const role = hasRole ? b.role : target.role;
+    if (role === 'admin' && !b.newPaper)
+      return res.status(400).json({ error: 'Admins may always write new paper. Change the role first if this member should not.' });
+    if (role === 'viewer' && b.newPaper)
+      return res.status(400).json({ error: 'A Viewer cannot write paper at all. Change the role first.' });
+    db.prepare('UPDATE users SET new_paper=? WHERE id=?').run(b.newPaper ? 1 : 0, req.params.id);
   }
   res.json({ ok: true, user: publicUser(db.prepare('SELECT * FROM users WHERE id=?').get(req.params.id)) });
 });
@@ -12889,7 +12946,7 @@ app.get('/api/templates', auth, (req, res) => {
   res.json({ templates: rows.map(tplListView), canManage: tplIsManager(req.user) });
 });
 
-app.post('/api/templates', auth, templateManager, passwordCurrent, (req, res) => {
+app.post('/api/templates', auth, paperMaker, passwordCurrent, (req, res) => {
   const b = req.body || {};
   const name = clean(b.name).slice(0, 160);
   if (!name) return res.status(400).json({ error: 'A template needs a name' });
@@ -12998,7 +13055,7 @@ const TPL_BLOCK_TYPES = ['heading', 'fixed_text', 'field_group', 'signature_bloc
 const TPL_CONFIDENCE = ['high', 'medium', 'low', 'manual'];
 /* Replace a DRAFT version's content wholesale. A published or superseded
    version is immutable — the 409 is the product behaving, not failing. */
-app.put('/api/templates/:id/versions/:vid', auth, templateManager, passwordCurrent, (req, res) => {
+app.put('/api/templates/:id/versions/:vid', auth, paperMaker, passwordCurrent, (req, res) => {
   const t = tplGet(req.params.id);
   if (!t) return res.status(404).json({ error: 'Template not found' });
   const v = tplVersion(req.params.vid);
@@ -13059,7 +13116,7 @@ app.put('/api/templates/:id/versions/:vid', auth, templateManager, passwordCurre
 /* Publish: validates, freezes the draft as the published version, and
    supersedes the previous published one. Contracts already created from the
    superseded version are copies and are not touched — by design and by test. */
-app.post('/api/templates/:id/versions/:vid/publish', auth, templateManager, passwordCurrent, (req, res) => {
+app.post('/api/templates/:id/versions/:vid/publish', auth, paperMaker, passwordCurrent, (req, res) => {
   const t = tplGet(req.params.id);
   if (!t) return res.status(404).json({ error: 'Template not found' });
   const v = tplVersion(req.params.vid);
@@ -13129,7 +13186,7 @@ app.post('/api/templates/:id/versions/:vid/publish', auth, templateManager, pass
 
 /* A new draft to edit next — seeded from the newest version so a manager
    iterates on what is live rather than starting blank. */
-app.post('/api/templates/:id/versions', auth, templateManager, passwordCurrent, (req, res) => {
+app.post('/api/templates/:id/versions', auth, paperMaker, passwordCurrent, (req, res) => {
   const t = tplGet(req.params.id);
   if (!t) return res.status(404).json({ error: 'Template not found' });
   const existing = tplVersionsOf(t.id);
@@ -13790,7 +13847,7 @@ function tplConvertClean(input) {
   return { blocks: reconciled, fields, problems };
 }
 
-app.post('/api/templates/upload', auth, templateManager, passwordCurrent, rlAiDeep, aiFeature('template_convert'), aiBudgetGuard, async (req, res) => {
+app.post('/api/templates/upload', auth, paperMaker, passwordCurrent, rlAiDeep, aiFeature('template_convert'), aiBudgetGuard, async (req, res) => {
   const b = req.body || {};
   const dataUrl = String(b.dataUrl || '');
   const m = /^data:([\w.+-]+\/[\w.+-]+);base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl);

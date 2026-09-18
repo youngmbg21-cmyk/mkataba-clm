@@ -15776,3 +15776,146 @@ tab's own groups, plus a new claim for the block; f148 SAME_IN_BOTH gained
 - test/chromium/overview-as-drawn-verify.js:145 still carries the one eslint
   error (no-self-compare, already logged 17 Sep). Untouched: `npm run lint` is
   1 error, 194 warnings, exactly as at the parent.
+## 18 Sep 2026 — WHO MAY MAKE NEW PAPER, AND THE BUILD PLAN'S UPGRADES 1, 2 AND 3
+
+Young: *"start from the latest main: Implement Who may make new paper per the
+attached image. Also implement upgrades 1, 2 and 3 for now and merge to main."*
+Started from eb6b709. Four things, each measured before it was built.
+
+### 1. WHO MAY MAKE NEW PAPER (the image: a fifth row on the person drawer)
+
+A per-person grant beside the four that already work this way. OFF BY DEFAULT,
+which is the owner's own word on the row and the one place it differs from its
+four neighbours — so an Editor who could open the template builder yesterday
+asks for the grant today. Said out loud to the owner rather than softened.
+
+- `mayMakeNewPaper(u)` (js/core.js, published) is the ONE reading: a viewer
+  never, an admin always, everybody else on an explicit `newPaper === true`.
+- Column `users.new_paper INTEGER NOT NULL DEFAULT 0`; `newPaper` joins
+  `ADMIN_ONLY_USER_FIELDS`, so it never reaches a colleague's copy. The RAW
+  fact travels; one predicate answers for admins on each host.
+- THE SERVER IS THE WALL: `paperMaker` NARROWS `templateManager` (still Admin
+  or Editor, and then the grant) on the FIVE routes that mint or write a
+  company standard — create, upload-as-template, new version, write a version,
+  publish. DELIBERATELY NOT GATED and asserted so: rename, re-file, archive,
+  delete, drafting a contract from an approved template, and saving a
+  counterparty's own template (that is importing their wording, not writing
+  ours — the owner's own note on the row promises it stays open).
+- PATCH /api/users/:id takes it as an ADMIN'S GRANT only; refuses a stored
+  "no" on an admin and a stored "yes" on a viewer.
+- ONE REFUSAL, ONE WAY FORWARD: the drawn doors go `disabled` with the reason
+  on the hover; `newPaperBlock()` toasts a 'warn' (the kind that carries an
+  action) whose action is Requests — the door that already exists.
+
+### 2. UPGRADE 1 — A REAL CONTRACT, NOT AN OUTLINE
+
+MEASURED first: all twelve built-in templates produced EXACTLY FOUR CLAUSES.
+They now produce eleven to thirteen.
+
+- **THE FAULT THAT COULD HAVE GONE QUIETLY**: ~30 hand-written risk findings
+  point at `c1`…`c4`, and those WERE the printed numbers. A clause's ADDRESS is
+  now separate from its POSITION — `clause(n,title,body,key)`, the key
+  defaulting to `'c'+n` — so the template's own four keep their addresses
+  wherever they land and NOT ONE FINDING had to be re-pointed.
+- The twelve builders return DESCRIPTORS; the assembler numbers the run. The
+  template's own lead three stay first, the shared clauses go next, and the
+  template's own last clause stays last (never Governing Law at 4 and
+  Termination at 8).
+- Four of the nine are READ FROM THE CLAUSE LIBRARY (`docLibWording`, each with
+  its own literal fallback because js/playbook.js is not on every stage), so a
+  workspace that edits its own standard sees it in tomorrow's paper and the
+  playbook pass comes back aligned by construction.
+- NOTHING IS SAID TWICE: `DOC_SHARED_SKIP` per template, and the term half is
+  read off `DOC_TERM_IN_CLAUSE` rather than written twice. The recital's
+  appended term sentence is GONE — every template carries a term clause now.
+- **A DEFECT FOUND ON THE WAY AND FIXED BECAUSE SHIPPING WITHOUT IT WOULD HAVE
+  BEEN WORSE**: `cl-dp` in DEFAULT_CLAUSE_LIBRARY was hardcoded Kenyan
+  ("the Data Protection Act, 2019", "ODPC") while `cl-law` beside it has always
+  been a getter. Nobody had noticed because nothing PRINTED it — it was
+  guidance a lawyer read. Upgrade 1 prints it, so a Swedish workspace would
+  have drafted Kenyan statute. Now three getters off the market pack; measured,
+  a Swedish contract cites the GDPR and the IMY.
+
+### 3. UPGRADE 2 — THE PAPER BESIDE THE QUESTIONS
+
+Both fill screens (the wizard's answer step and the saved-template fill) draw
+the agreement beside the boxes. ONE builder, two doors.
+
+- `fillPreviewContract` calls the SAME two pure functions the create path
+  calls (`applyTemplateValues`, `fillTemplateBody`) and stops before the side
+  effects; `fillPreviewHtml` renders through `docBody`. The throwaway has no
+  id, is not on state, and nothing persists it — greped and asserted.
+- The field link is the Document tab's own: a cursor in a box lights its word
+  on the paper, in the product's own `is-fieldlit` class, and never takes the
+  caret back.
+- Under `FILL_PREVIEW_MIN_W` (1000) the dialog is exactly what it was.
+- **TWO THINGS ONLY THE SCREENSHOT FOUND**, both fixed and both now asserted in
+  a browser: (a) docBody draws a draft's blanks as REAL inputs, so the preview
+  was a second form a reader could type into and lose the answer — it is
+  `inert` now; (b) the "N blanks left" count was written once at the draw and
+  the next keystroke contradicted it — it is live off the same answers.
+
+### 4. UPGRADE 3 — THE BUILDER HELPS WITH WORDING ALREADY THERE
+
+MEASURED before building: most of it was already here. `copilotPropose` is
+shown the section's own wording, the card draws it against what is there
+through redlineOps, and the four refinement chips already need a written
+section. WHAT WAS ACTUALLY MISSING was one guard and one sentence:
+
+- `if (lib && !txt)` offered your own standard wording ONLY to an EMPTY
+  section — the less useful half and the rarer one. Now `tbLibraryOffers`,
+  which is about the library rather than about emptiness, and is asked at the
+  DRAW and at the PRESS so the sign and the wall cannot disagree.
+- `tb_greet` asks what a section SHOULD say, and was put to sections that
+  already said something. `tb_greet_written` is the third opening.
+- NOT BUILT, and named: the plan drew a "Show me the difference" control. The
+  card already draws the difference by default, so it would be a second door
+  onto something already on the screen.
+
+### WHAT THE SIX QUESTIONS CHANGED
+
+- **Q6 (where the reader ends up)** is why the new-paper refusal carries the
+  Requests door rather than stopping at "no". Without it the grant would have
+  been a dead end on the one screen a person meets it.
+- **Q2 (the cheapest channel)** cut "Show me the difference" from upgrade 3 and
+  kept the preview's caption a caption rather than a band.
+- **Q5 (the one door)** is why `tbLibraryOffers` is asked in two places rather
+  than the chip and the act each having their own reading.
+- **Q3 (the contract's pixels)**: the fill preview is a DIALOG, not a screen
+  showing the agreement, so refusal 3 does not bite; the contract room's own
+  paper did not move.
+
+### TESTS
+
+- f331 (57 claims across 13 sections) — 49 red at the parent; the 8 that pass
+  are the named WALLS (the housekeeping routes, the counterparty template path,
+  the counterparty tile).
+- paper-beside-questions-verify — 28 checks on the REAL APP and the REAL
+  SERVER, all passing. Section 6 DRIVES the wall as an Editor: refused without
+  the grant, the refusal names Requests, self-service refused, an admin grants
+  and revokes it, renaming stays open and writing a version is refused.
+- Full node suite: 7,698 tests, 0 red. `npm run lint`: 1 error, 195 problems —
+  IDENTICAL to the parent, none of it mine.
+- Re-pointed in place, each with the ruling beside it: f306's written-section
+  greeting (reversed by upgrade 3); f131 and f245's cl-dp claims (they pinned
+  the SENTENCE where the claim in their own names is a RELATION — the preferred
+  wording IS the library's row, not a particular comma); f330's `{0,160}` byte
+  window round the new-template button (PIN THE REGION, NOT A BYTE COUNT — the
+  third time this file has paid for that lesson).
+
+### Noticed, not fixed
+
+- `test/chromium/overview-as-drawn-verify.js:145` has the repository's one
+  standing lint error (`no-self-compare`). It is on main already and is not
+  mine to fix.
+- `DEFAULT_CLAUSE_LIBRARY`'s other rows were checked for hardcoded market
+  nouns while cl-dp was fixed; the remaining five are neutral or already
+  getters. No sweep was made beyond what upgrade 1 prints.
+- The saved-template fill screen's preview is wired but was exercised only
+  through the wizard in the browser file; the saved-template half is covered by
+  f331's contract claims and the shared builder, not by a real press.
+- The role radio "Editor — edit &amp; sign" prints its ampersand entity as
+  literal text: `set_role_legal` carries `&amp;` in BOTH dictionaries and
+  `st_role_*` labels then go through `esc()`, so it is escaped twice. On main
+  already (seen on a screenshot of the person drawer while the new-paper row
+  was being checked). One key in both books, not mine to fix here.

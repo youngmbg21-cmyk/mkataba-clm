@@ -943,7 +943,12 @@ describe('f245 (12) — a rule that is not about this clause cannot replace it',
     /* The reported case, in one assertion: the approved Kenyan clause is what
        "our standard" serves; the model's GDPR sentence is a DRAFT and is
        labelled as one. */
-    assert.match(it.preferred, /Data Protection Act, 2019/,
+    /* RE-POINTED 18 Sep 2026, with f131's twin and for its reason: the claim
+       is that "our standard" IS the library's row, not that it contains a
+       particular comma. */
+    const lib = p.win.clauseLibrary().find(x => x.id === 'cl-dp');
+    assert.ok(lib && lib.preferred, 'the library has a data-protection standard');
+    assert.strictEqual(it.preferred, lib.preferred,
       'the preferred wording is the clause library\'s own');
     assert.ok(!/GDPR/.test(it.preferred), 'never the model\'s improvisation');
     assert.match(it.draft, /GDPR/, 'the model\'s wording is kept — under its own name');

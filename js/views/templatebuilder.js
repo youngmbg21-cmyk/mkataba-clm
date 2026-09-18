@@ -533,9 +533,21 @@ function tbContextText() {
 /* ---- YOUR OWN WORDING, AT NO COST ----
    Pressed from the library chip. No route is called and nothing is spent: the
    card is built from the workspace's own clause library and says so. */
+/* THE ONE READING of whether the library has anything to say about this
+   section: it has wording, and that wording is not already what the section
+   says. Asked at the DRAW (the chip stands down) and at the PRESS (the act
+   refuses), so the sign and the wall cannot disagree. Compared on words, not
+   bytes — trailing spaces and a line break are not a proposal. */
+function tbLibraryOffers(sec, lib) {
+  const l = lib || tbLibraryFor(sec && sec.head); if (!l) return false;
+  const fold = x => String(x || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  const w = fold(l.preferred); if (!w) return false;
+  return w !== fold(tbSectionText(sec));
+}
 function tbUseLibrary(k) {
   const sec = tbSectionAt(k); if (!sec) return;
   const lib = tbLibraryFor(sec.head); if (!lib) return;
+  if (!tbLibraryOffers(sec, lib)) { toast(i18t('tb_pb_lib_same'), 'warn'); return; }
   tbTurn(k, { who: 'ai', text: i18t('tb_pb_rests_lib', { name: lib.name }),
     card: { src: i18t('tb_pb_src_lib'), tone: 'lib', free: true, text: lib.preferred, before: tbSectionText(sec), rests: tbRestsLine(sec, lib) } });
   tbPaintRail();
@@ -1025,7 +1037,13 @@ function tbBuildLaneHtml() {
     let html = '';
     if (_tb.lastReceipt && _tb.lastReceipt.k === sec.k) html += tbReceiptHtml(_tb.lastReceipt.text);
     const th = tbThread(sec.k);
-    if (!th.length) html += tbAiHtml(esc(_tb.walk && !tbSectionText(sec) ? tbQuestionFor(sec) : i18t('tb_greet', { head: sec.head || i18t('tb_untitled') })));
+    /* THREE OPENINGS, NOT TWO. The walk question is for an empty section under
+       "walk me through it"; `tb_greet` asks what the section SHOULD say, which
+       is the wrong question to put to wording that already exists. A written
+       section is told what can be done TO it instead. */
+    if (!th.length) html += tbAiHtml(esc(
+      _tb.walk && !tbSectionText(sec) ? tbQuestionFor(sec)
+      : i18t(tbSectionText(sec) ? 'tb_greet_written' : 'tb_greet', { head: sec.head || i18t('tb_untitled') })));
     th.forEach((t, i) => { html += tbTurnHtml(t, i, sec); });
     if (_tb.busy === sec.k) html += tbAiHtml(i18t('tb_pb_thinking'));
     return html;
@@ -1087,7 +1105,22 @@ function tbChipsRowHtml() {
       const txt = tbSectionText(sec); const lib = tbLibraryFor(sec.head);
       const th = tbThread(sec.k); const last = th[th.length - 1];
       if (last && last.receipt) { const nx = tbNextEmpty(sec.k); if (nx) chips.push([`data-tb-next="${nx.k}"`, i18t('tb_next_sec', { n: tbSectionNo(nx), head: esc(nx.head) }), 'next']); }
-      if (lib && !txt) chips.push([`data-tb-lib="${sec.k}" title="${esc(i18t('tb_pb_no_read'))}"`, i18t('tb_pb_use_ours', { name: esc(lib.name) })]);
+      /* ---- YOUR OWN WORDING, ON A SECTION THAT IS ALREADY WRITTEN
+             (the build plan's upgrade 3, 18 Sep 2026) ----
+         The `!txt` guard was the whole of the gap: Copilot would fill an empty
+         section from the clause library and would not offer the same wording
+         over one somebody had drafted freehand, which is the more useful half
+         and the more common one. Everything the swap needs was already here —
+         tbUseLibrary passes the section's own text as `before`, tbMarkedHtml
+         draws the two against each other, and Apply is the one writer.
+         IT IS STILL NEVER ONE PRESS. On a written section the card arrives as
+         a marked-up proposal like every other, and the hover says so rather
+         than the label changing: one act, one word for it.
+         AND A VERB THAT CANNOT WORK IS NOT DRAWN — where the library's wording
+         is already what the section says, there is nothing to propose. */
+      if (lib && tbLibraryOffers(sec, lib))
+        chips.push([`data-tb-lib="${sec.k}" title="${esc(i18t(txt ? 'tb_pb_lib_over' : 'tb_pb_no_read'))}"`,
+          i18t('tb_pb_use_ours', { name: esc(lib.name) })]);
       if (txt) ['shorter', 'firmer', 'mutual', 'plain'].forEach(c => chips.push([`data-tb-chip="${c}" title="${i18t('tb_pb_one_read')}"`, i18t('tb_chip_' + c)]));
       if (_tb.walk && !txt && tbNextEmpty(sec.k)) chips.push(['data-tb-skip', i18t('tb_skip_sec')]);
     }
@@ -1764,7 +1797,7 @@ async function tbPaintBranding() {
    and tbCoverage over a block list it wrote itself, with no builder open. */
 Object.assign(window, { openTemplateBuilder, tbCardWording, TB_BLOCK_META, TB_PB_KEY, TB_ASK_MAX, TB_BLANK_TYPE, TB_RAIL_MIN, TB_CHIP_ASK,
   tbSplit, tbFitSplit, tbWireSplit, TB_SPLIT_KEY, TB_FMIN, TB_FMAX, TB_LEFT_MIN, TB_RIGHT_MIN, TB_GAP,
-  tbSections, tbSectionText, tbKindOf, tbLibraryFor, tbCoverage, tbPbKey, tbStandardFor, tbPrecedentFor,
+  tbSections, tbSectionText, tbKindOf, tbLibraryFor, tbLibraryOffers, tbCoverage, tbPbKey, tbStandardFor, tbPrecedentFor,
   tbFocus, tbSetTab, tbRailFits, tbNextEmpty, tbQuestionFor, tbChipsHtml, tbReadEditable, tbPaint, tbPaintRail, tbSend, tbAccept, tbOutlineAdd, tbTurn, tbSetWalk,
   /* The kept draft: the store, its one funnel and the one reading of what the
      strip says — published for the same reason as the rest of this line, so a

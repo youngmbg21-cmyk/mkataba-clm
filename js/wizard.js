@@ -277,10 +277,16 @@ function openWizard(preTid, prefill){
       const it=v.type==='date'?'date':(v.type==='num'?'number':'text');
       return `<label style="display:block;">${lbl}
         <input id="${id}" type="${it}" value="${String(v.def||'').replace(/"/g,'&quot;')}" placeholder="${v.ph||''}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none;"/></label>`; };
+    /* ---- THE PAPER BESIDE THE QUESTIONS (upgrade 2, 18 Sep 2026) ----
+       The wizard's answer step and the saved-template fill screen stay two
+       screens; this is ONE layout used by both, and one preview builder, so
+       neither can draw a different contract from the same answers. */
+    const _pv = (typeof fillPreviewFits==='function') && fillPreviewFits();
     openModal(`<div style="padding:22px var(--s-6);">
       <button id="wz-back" style="font-size:var(--t-label);color:var(--accent-ink-700);font-weight:var(--w-strong);font-family:var(--font-mono);background:none;border:0;cursor:pointer;margin-bottom:var(--s-2);padding:0;">← templates</button>
       <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;color:var(--color-text);margin:0 0 3px;">${t.kind}</h3>
       <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-4);line-height:1.5;">${t.blurb||''}</p>
+      <div id="wz-cols" style="display:grid;grid-template-columns:${_pv?'minmax(0,1fr) minmax(0,1fr)':'minmax(0,1fr)'};gap:var(--s-4);align-items:start">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s-3);">${vars.map(input).join('')}
         ${''/* ASKED HERE, WHERE YOU ARE ALREADY NAMING THEM, AND NOWHERE ELSE.
                The templates carry the counterparty's NAME; nothing carried the
@@ -292,12 +298,22 @@ function openWizard(preTid, prefill){
           <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono);letter-spacing:.02em;">${i18t('wz_their_email')}</span>
           <input id="wz-cpemail" type="email" placeholder="${(typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none;"/></label>
       </div>
+      ${_pv?fillPreviewPaneHtml(vars.filter(v=>!String(v.def||'').trim()).length):''}
+      </div>
       <div style="display:flex;align-items:center;gap:var(--s-2);margin-top:20px;">
         <button id="wz-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <span style="flex:1"></span>
         <button id="wz-skip" class="ui-btn" title="${i18t('wz_create_and_fill')}">${i18t('wz_skip_for_now')}</button>
         <button id="wz-create" class="ui-btn ui-btn-primary">${i18t('tl_create_draft')}</button>
-      </div></div>`);
+      </div></div>`, _pv?{maxWidth:'1040px'}:undefined);
+    /* The answers as they stand, read the way createFromWizard reads them. */
+    if(_pv && typeof fillPreviewWire==='function'){
+      const readNow=()=>{ const values={};
+        for(const f of vars){ const el=document.getElementById('wz-'+String(f.key).replace(/[:]/g,'_'));
+          if(el) values[f.key]=String(el.value||'').trim(); }
+        return { tid, vars, values }; };
+      fillPreviewWire(document.getElementById('wz-cols'), 'builtin', readNow);
+    }
     /* The stream selects, bound once the markup is in the page — the sentinel
        is a dead option until bindFolderSelect has seen the element. */
     if(typeof bindFolderSelect==='function')

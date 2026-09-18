@@ -170,7 +170,15 @@ describe('F131 — Fix 2b: whose wording is whose', () => {
     const { win, c } = await world();
     const it = win.rlPlaybookProposals(c, rev())[0];
     assert.ok(it, 'the verdict still proposes');
-    assert.match(it.preferred, /Data Protection Act, 2019/,
+    /* RE-POINTED 18 Sep 2026. This pinned the sentence — "Data Protection
+       Act, 2019" — and the claim in its own name is a RELATION: the preferred
+       wording IS the clause library's. cl-dp became a getter off the market
+       pack the same day (a Swedish workspace was being judged against a Kenyan
+       statute), the comma moved, and a claim about provenance failed over
+       punctuation. Pin the relation, not the words. */
+    const lib = win.clauseLibrary().find(x => x.id === 'cl-dp');
+    assert.ok(lib && lib.preferred, 'the library has a data-protection standard');
+    assert.strictEqual(it.preferred, lib.preferred,
       'our standard is the approved wording out of the clause library');
     assert.ok(!/GDPR/.test(it.preferred), 'and never what the model wrote');
   });
