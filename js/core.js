@@ -472,7 +472,8 @@ function contractPartiallySigned(c){
    keep working on Draft/Under Review/Signed/Declined exactly as before.
    Partially-signed outranks Expired: a contract missing a signature was
    never fully in force, and "Expired" would read as "it was". */
-const contractStage = c => contractPartiallySigned(c) ? 'Partially signed'
+const contractStage = c => contractOnHold(c) ? 'On hold'
+  : contractPartiallySigned(c) ? 'Partially signed'
   : contractExpired(c) ? 'Expired'
   : cpReadyToSign(c) ? 'Ready to sign' : (c&&c.status);
 /* ---- THEY HAVE SAID THEY ARE READY (owner-asked 23 Aug 2026) ----
@@ -505,8 +506,13 @@ function cpReadyToSign(c){
 const READY_META = _stMeta('status_cp_ready', 'Counterparty ready to sign', 'var(--st-green-dot)', 'var(--st-green-bg)', 'var(--st-green-fg)', 'var(--st-green-line)');
 const READY_META_SHORT = _stMeta('status_cp_ready_short', 'Ready to sign', 'var(--st-green-dot)', 'var(--st-green-bg)', 'var(--st-green-fg)', 'var(--st-green-line)');
 const EXPIRED_META = _stMeta('status_expired', 'Expired', 'var(--st-gray-dot)', 'var(--st-gray-bg)', 'var(--st-gray-fg)', 'var(--st-gray-line)');
+/* RUBY, and it is the one place a stage wears it: every other tone on this
+   ladder says "where this contract has got to" and this one says "stop". */
+const HOLD_META = _stMeta('status_on_hold', 'On hold', 'var(--st-ruby-dot)', 'var(--st-ruby-bg)', 'var(--st-ruby-fg)', 'var(--st-ruby-line)');
 const PARTIAL_META = _stMeta('status_partially_signed', 'Partially signed', 'var(--st-amber-dot)', 'var(--st-amber-bg)', 'var(--st-amber-fg)', 'var(--st-amber-line)');
-const contractStatusChip = c => contractPartiallySigned(c)
+const contractStatusChip = c => contractOnHold(c)
+  ? `<span class="badge" title="${i18t('hd_chip_title')}" style="background:${HOLD_META.bg};color:${HOLD_META.tx}">${HOLD_META.label}</span>`
+  : contractPartiallySigned(c)
   ? `<span class="badge" title="${typeof t==='function'?i18t('status_partially_signed_title'):"Sealed — awaiting the counterparty's signature. Copies go out when every party has signed."}" style="background:${PARTIAL_META.bg};color:${PARTIAL_META.tx}">${PARTIAL_META.label}</span>`
   : contractExpired(c)
   ? `<span class="badge" style="background:${EXPIRED_META.bg};color:${EXPIRED_META.tx}">${EXPIRED_META.label}</span>`
@@ -543,7 +549,8 @@ const statusChip = s => { const m=STATUS_META[s]||STATUS_META.Draft;
    file's own standing rule — so the branch is ONE function and each dress asks
    it. contractStatusChip keeps its own markup and its own SHORT word, which is
    a difference in length the two have always been allowed. */
-const contractStatusMeta = c => contractPartiallySigned(c) ? PARTIAL_META
+const contractStatusMeta = c => contractOnHold(c) ? HOLD_META
+  : contractPartiallySigned(c) ? PARTIAL_META
   : contractExpired(c) ? EXPIRED_META
   : cpReadyToSign(c) ? READY_META
   : (STATUS_META[c && c.status] || STATUS_META.Draft);
@@ -992,6 +999,39 @@ async function deleteContract(id){
    own Archived view are the ways back in. Editor-and-up, always audited,
    English records. */
 function isArchived(c){ return !!(c&&c.archived); }
+/* ---- A CONTRACT IN DISPUTE IS FROZEN, AND MORE VISIBLE (upgrade 8, 18 Sep
+   2026) ----
+   When a dispute starts the wording stops being a working document and becomes
+   evidence: nobody edits it, nobody redlines it, nothing automated moves it —
+   and everybody has to be able to FIND it. HaTi had one shelf, Archive, and it
+   does the opposite: it takes a contract off every live list, count and sweep.
+   A contract on hold has to be more visible, not less.
+
+   `hold` is a filing fact beside the status — exactly `archived`'s footing —
+   so it is deliberately NOT on EXECUTED_IMMUTABLE. That is the whole point:
+   the contracts this is asked of are mostly already signed. Absent on every
+   record on file, and no migration.
+
+   IT IS A DISPLAY OVERLAY, not a fourth status, on the same footing as the
+   three already there: the STORED status is untouched, so every filter, every
+   query and the server go on reading Draft / Under Review / Signed / Declined
+   exactly as they did. It outranks all three, because a held contract's stage
+   is not the interesting fact about it. */
+function contractOnHold(c){ return !!(c && c.hold && c.hold.at); }
+async function contractSetHold(c,on,why){
+  if(typeof canEdit==='function'&&!canEdit()){ toast(i18t('ar_editors_only'),'err'); return false; }
+  const text=String(why==null?'':why).trim().slice(0,HOLD_WHY_MAX);
+  if(on && !text){ toast(i18t('hd_needs_reason'),'warn'); return false; }
+  if(on) c.hold={ at:new Date().toISOString(), by:currentUser().name, why:text };
+  else delete c.hold;
+  logAudit(c,on?'Held':'Released',
+    on?`Put on hold for a dispute — the wording is frozen and it stays on every list. ${text}`
+      :'Released from hold — the wording can be worked on again');
+  persist(c);
+  toast(on?i18t('hd_held_toast'):i18t('hd_released_toast'),'ok');
+  return true;
+}
+const HOLD_WHY_MAX = 240;
 async function contractSetArchived(c,on){
   if(typeof canEdit==='function'&&!canEdit()){ toast(i18t('ar_editors_only'),'err'); return false; }
   if(on) c.archived={ at:new Date().toISOString(), by:currentUser().name };
@@ -3309,6 +3349,11 @@ const SHARE_PURPOSE_COPY={
      an object literal freezes load-time language (the getter trap). */
   negotiate:{ get label(){ return i18t('co_purpose_negotiate_label'); }, get title(){ return i18t('co_purpose_negotiate'); },
     get blurb(){ return i18t('co_purpose_negotiate_sub'); }, get line(){ return i18t('co_purpose_negotiate_line'); } },
+  /* THE FIFTH (upgrade 9, 18 Sep 2026). Getters like its four siblings — an
+     object literal here freezes load-time language, which is this file's own
+     named trap. */
+  advise:{ get label(){ return i18t('co_purpose_advise_label'); }, get title(){ return i18t('co_purpose_advise'); },
+    get blurb(){ return i18t('co_purpose_advise_sub'); }, get line(){ return i18t('co_purpose_advise_line'); } },
   sign:{ get label(){ return i18t('act_sign'); }, get title(){ return i18t('co_purpose_sign'); },
     get blurb(){ return i18t('co_purpose_sign_sub'); }, get line(){ return i18t('co_purpose_sign_line'); } },
   view:{ get label(){ return i18t('co_purpose_view'); }, get title(){ return i18t('co_purpose_view_sub'); },
@@ -3874,7 +3919,7 @@ function shareVersions(c, org){
 
    'view' and 'history' are both read-only passes, and both are enforced by the
    server rather than by the screen (shareIsReadOnly, server/server.js). */
-const SHARE_PURPOSE = p => (['sign','negotiate','view','history'].includes(p) ? p : null);
+const SHARE_PURPOSE = p => (['sign','negotiate','view','history','advise'].includes(p) ? p : null);
 function buildSharePayload(c, docHash, who, opts){
   const org=(who&&who.org)||FIRST_PARTY;
   /* ---- ONE NAMED CONTACT, AND IT IS THE LEAD ----
@@ -4201,12 +4246,40 @@ function buildSharePayload(c, docHash, who, opts){
       viewBody:(!c.redlineText && typeof window!=='undefined' && window.docBody)
         ? (()=>{ try{ return docBody(c)||undefined; }catch(_){ return undefined; } })()
         : undefined,
+      /* ---- AN ADVISER SEES THE CLAUSES THEY WERE ASKED ABOUT (upgrade 9) ----
+         The narrowing is done HERE, in the builder, and not on their page: a
+         payload is built by allow-list rather than copied, so what an adviser
+         is never sent is what they can never read. `adviseOn` is the list of
+         clause ids the sender picked; `adviseBody` is those clauses and
+         nothing else, through the product's own segmentation. The full wording
+         below is dropped for this purpose in the same breath. */
+      adviseOn:(opts&&Array.isArray(opts.adviseOn)&&opts.adviseOn.length)?opts.adviseOn.slice():undefined,
+      adviseBody:(opts&&opts.purpose==='advise'&&Array.isArray(opts.adviseOn)&&opts.adviseOn.length)
+        ? shareAdviceBody(c, opts.adviseOn) : undefined,
       /* Changes they asked for that were NOT adopted. A rejected change that
          simply disappears from the document reads as agreement — the reader
          has no way to tell "we said no" from "we missed it". */
       openPoints:(window.openPointsFor?openPointsFor(c):[]).length?openPointsFor(c):undefined,
       versions:shareVersions(c, org),
-      redlineText:c.redlineText||undefined, format:c.redlineText?docFormat(c.format):undefined } };
+      redlineText:(opts&&opts.purpose==='advise')?undefined:(c.redlineText||undefined),
+      format:(opts&&opts.purpose==='advise')?undefined:(c.redlineText?docFormat(c.format):undefined) } };
+}
+/* ---- THE CLAUSES AN ADVISER WAS ASKED ABOUT, AND NOTHING ELSE ----
+   Built through clauseSegment, the product's ONE splitter, so what the adviser
+   reads is the same clause the sender pointed at — and an id that no longer
+   resolves is simply absent rather than guessed at. Returns '' where nothing
+   resolves, which their page reads as "there is nothing here", not as the
+   whole contract. */
+function shareAdviceBody(c, ids){
+  if(typeof window==='undefined' || typeof window.clauseSegment!=='function') return '';
+  let body='';
+  try{ body = (window.docBody ? docBody(c) : '') || c.redlineText || ''; }catch(_){ body = c.redlineText||''; }
+  if(!body) return '';
+  let segs=[]; try{ segs=clauseSegment(body)||[]; }catch(_){ return ''; }
+  const want=new Set((ids||[]).map(String));
+  const keep=segs.filter(cl=>cl && want.has(String(cl.id)));
+  if(!keep.length) return '';
+  return keep.map(cl=>String(cl.html||cl.body||'')).join('');
 }
 /* ---- who we last shared this contract with ----
    Six rounds of a negotiation meant six trips through a blank share form,
@@ -7018,4 +7091,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{cpReadyToSign,READY_META,READY_META_SHORT,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{cpReadyToSign,READY_META,READY_META_SHORT,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});

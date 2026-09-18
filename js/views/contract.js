@@ -7818,7 +7818,20 @@ function roomHeadHtml(c,opts={}){
           <div class="mgroup">${i18t('ct_view')}</div>
           <button type="button" id="ws-focus" aria-pressed="false" title="${i18t('ct_hide_header')}">${icon('scan','w-3.5 h-3.5')}Focus mode<span class="mnote">${i18t('ct_esc_to_leave')}</span></button>
           ${may?`<hr>
-          <button type="button" id="ws-archive" title="${i18t(c.archived?'ar_restore_title':'ar_archive_title')}">${icon(c.archived?'history':'folder','w-3.5 h-3.5')}${c.archived?i18t('reg_restore'):i18t('reg_archive')}</button>`:''}
+          <button type="button" id="ws-archive" title="${i18t(c.archived?'ar_restore_title':'ar_archive_title')}">${icon(c.archived?'history':'folder','w-3.5 h-3.5')}${c.archived?i18t('reg_restore'):i18t('reg_archive')}</button>
+          ${''/* ---- AND THE HOLD, ON THE SAME MENU AS ARCHIVE (upgrade 8) ----
+                 The two are opposites and belong beside each other: one takes a
+                 contract off every list, the other freezes it and leaves it on
+                 all of them. Same act shape, same one repaint. */}
+          ${''/* ---- ASK AN OUTSIDE ADVISER (upgrade 9, 18 Sep 2026) ----
+                 Its own row rather than a fifth segment on the send dialog's
+                 purpose picker: that row asks what THIS ROUND is for and every
+                 answer on it goes to the counterparty. This is a different
+                 person being asked a different question, and the screen has to
+                 ask which clauses. */}
+          <button type="button" id="ws-advice" title="${i18t('asl_title')}">${icon('users','w-3.5 h-3.5')}${i18t('asl_menu_row')}</button>
+          ${(()=>{ const held=!!(window.contractOnHold&&contractOnHold(c));
+            return `<button type="button" id="ws-hold" title="${i18t(held?'hd_release_title':'hd_hold_title')}">${icon(held?'history':'shield','w-3.5 h-3.5')}${held?i18t('hd_release'):i18t('hd_hold')}</button>`; })()}`:''}
           ${(may&&(c.status==='Draft'||c.status==='Under Review'))?`<hr>
           <button type="button" id="ws-delete" class="danger" title="${i18t('ct_delete_draft')}">${icon('trash','w-3.5 h-3.5')}${i18t('ct_delete_this_draft')}</button>`:''}
           ${''/* ws-new keeps its id and its data-page-new: it is a real button
@@ -8017,6 +8030,23 @@ function wireRoomHead(c){
      the room so the menu's word and the sub-line's tag both turn over */
   document.getElementById('ws-archive')?.addEventListener('click',()=>{
     if(window.contractSetArchived) contractSetArchived(c,!c.archived).then(ok=>{ if(ok) renderWorkspace(); });
+  });
+  /* THE HOLD ASKS FOR ITS REASON. A freeze nobody can explain three months
+     later is the thing this feature exists to avoid, so putting one on costs a
+     sentence; releasing it does not. */
+  document.getElementById('ws-advice')?.addEventListener('click',()=>{
+    if(window.openAdviserLink) openAdviserLink(c);
+  });
+  document.getElementById('ws-hold')?.addEventListener('click',async()=>{
+    if(!window.contractSetHold) return;
+    const on=!(window.contractOnHold&&contractOnHold(c));
+    let why='';
+    if(on){
+      why=window.promptDialog ? await promptDialog({ title:i18t('hd_ask_title'), message:i18t('hd_ask_msg'),
+        placeholder:i18t('hd_ask_ph'), confirmLabel:i18t('hd_hold'), multiline:true }) : '';
+      if(why==null) return;
+    }
+    contractSetHold(c,on,why).then(ok=>{ if(ok) renderWorkspace(); });
   });
 }
 
@@ -11547,6 +11577,15 @@ function signBlockers(c){
   const out=[];
   if(!c) return out;
   const add=(key,label,short)=>out.push({ key, label, short });
+  /* ---- A CONTRACT IN DISPUTE IS NOT SIGNED (upgrade 8, 18 Sep 2026) ----
+     FIRST in the list, because it is the one blocker that is not about this
+     contract being ready — it is about it being evidence. The server refuses
+     the signature at both doors; this is the sentence that stops a reader
+     pressing into a refusal. */
+  if(window.contractOnHold && contractOnHold(c)){
+    add('hold', i18t('hd_blocks_signing',{why:(c.hold&&c.hold.why)||''}), i18t('hd_blocks_short'));
+    return out;
+  }
   /* ---- THE INTENT ROW IS GONE FROM THIS LIST (13 Sep 2026) ----
      "I intend to sign electronically" is asked IN THE SIGNATURE PAD now, at
      the moment of adoption — the general practice for e-signature consent —

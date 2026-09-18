@@ -58,6 +58,14 @@ function stageWorld(over = {}) {
        ABOVE the slice lifted below — so it is stubbed here alongside
        STATUS_META, returning the English label this file asserts on. */
     _stMeta: (key, en, dot, bg, tx, bd) => ({ label: en, dot, bg, tx, bd }),
+    /* THE FOURTH OVERLAY'S SIBLING (upgrade 8, 18 Sep 2026). The status
+       readings below are sliced out of core.js and run here, and they gained a
+       branch for a contract held while a dispute is dealt with — whose
+       predicate is declared further down that file, outside the slice. These
+       tests are about Expired and Executed, so the honest answer here is "not
+       on hold"; the hold's own claims are in f333. */
+    contractOnHold: () => false,
+
     STATUS_META: { 'Draft': { label: 'Drafting', bg: '#eceae6', tx: '#5d5d60' },
       'Under Review': { label: 'In Review', bg: '#fbf4e3', tx: '#7d5a14' },
       'Signed': { label: 'Executed', bg: '#e8f4ee', tx: '#1e6b4d' },
@@ -131,6 +139,14 @@ describe('F80 — the money', () => {
       daysUntil: iso => Math.ceil((new Date(iso + 'T00:00:00') - Date.now()) / 86400000),
       // declared above the slice lifted below — see the first harness
       _stMeta: (key, en, dot, bg, tx, bd) => ({ label: en, dot, bg, tx, bd }),
+    /* THE FOURTH OVERLAY'S SIBLING (upgrade 8, 18 Sep 2026). The status
+       readings below are sliced out of core.js and run here, and they gained a
+       branch for a contract held while a dispute is dealt with — whose
+       predicate is declared further down that file, outside the slice. These
+       tests are about Expired and Executed, so the honest answer here is "not
+       on hold"; the hold's own claims are in f333. */
+    contractOnHold: () => false,
+
     });
     const core = fs.readFileSync(path.join(__dirname, '..', 'js', 'core.js'), 'utf8');
     const from = core.indexOf('function contractExpired(c){');

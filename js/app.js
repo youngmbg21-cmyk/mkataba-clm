@@ -32,6 +32,7 @@ import './clauselock.js';   // one clause, one pair of hands (Young asked 10 Sep
 import './signature.js';
 import './wizard.js';
 import './draft.js';    // draft from a sentence: it picks from your own paper and mints nothing (W-1)
+import './adviserlink.js';   // send two clauses to an outside adviser: a fifth link purpose (upgrade 9)
 import './views/calendar.js';
 import './views/reports.js';
 import './views/weekly.js';       // the weekly review: five slots, three sizes, no AI

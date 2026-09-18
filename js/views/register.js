@@ -439,6 +439,12 @@ const REG_BAR_FILTERS = [
      It draws itself on the bar the moment it is narrowing, which is this
      catalogue's own safety property. */
   { k:'docs',     fixed:false, get label(){ return i18t('reg_docs'); } },
+  /* ---- ON HOLD (upgrade 8, 18 Sep 2026) ----
+     A held contract is deliberately still on every list, so this is not how you
+     find it — the ruby chip on its own row is. It is here so a lawyer can pull
+     the disputes together in one press, and it draws on its own the moment it
+     is narrowing, like every other optional filter. */
+  { k:'hold',     fixed:false, get label(){ return i18t('reg_f_hold'); } },
 ];
 /* Stage and stream are `fixed` — they are the two questions this register is
    always asked, and a bar with neither is not a filter bar. */
@@ -469,6 +475,7 @@ function regFilterActive(k, R){
   if(k==='signed')   return !!R.signed && R.signed!=='all';
   if(k==='payterms') return !!R.payterms && R.payterms!=='all';
   if(k==='docs')     return !!R.docs && R.docs!=='all';
+  if(k==='hold')     return !!R.hold && R.hold!=='all';
   return false;
 }
 /* Chosen, PLUS anything currently narrowing the list. */
@@ -738,7 +745,7 @@ function wireRegClear(){
   document.getElementById('reg-clear-filters')?.addEventListener('click',()=>{
     const R=regState();
     R.query=''; R.stage='all'; R.type='all'; R.view=null; R.renewal='all';
-    R.category='all'; R.signed='all'; R.payterms='all'; R.docs='all'; R.only=null; R.page=1;
+    R.category='all'; R.signed='all'; R.payterms='all'; R.docs='all'; R.hold='all'; R.only=null; R.page=1;
     const cs=document.getElementById('cmd-search'); if(cs) cs.value='';
     regRepaint();
   });
@@ -1033,6 +1040,10 @@ function regFiltered(){
      answer rather than a fold. Behind a typeof guard, the ES-module rule: on a
      stage without js/obligations.js this narrows nothing rather than emptying
      the register. */
+  if(R.hold&&R.hold!=='all'&&typeof contractOnHold==='function'){
+    const want=R.hold==='on';
+    rows=rows.filter(c=>contractOnHold(c)===want);
+  }
   if(R.docs&&R.docs!=='all'&&typeof contractDocuments==='function'){
     cs=cs.filter(c=>{
       const ds=contractDocuments(c)||[];
@@ -1531,7 +1542,7 @@ function wireRegRows(){
     else openWorkspace(id); // Export PDF / Decline & close are completed inside the workspace
   }));
   // empty-state actions
-  document.getElementById('reg-empty-clear')?.addEventListener('click',()=>{ const R=regState(); R.query=''; R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.category='all'; R.signed='all'; R.payterms='all'; R.docs='all'; R.only=null; R.page=1; const cs=document.getElementById('cmd-search'); if(cs) cs.value=''; regRepaint(); });
+  document.getElementById('reg-empty-clear')?.addEventListener('click',()=>{ const R=regState(); R.query=''; R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.category='all'; R.signed='all'; R.payterms='all'; R.docs='all'; R.hold='all'; R.only=null; R.page=1; const cs=document.getElementById('cmd-search'); if(cs) cs.value=''; regRepaint(); });
   document.getElementById('reg-empty-new')?.addEventListener('click',e=>{ e.stopPropagation(); const nb=document.getElementById('cmd-new'); if(window.openNewMenu){ openNewMenu(e.currentTarget); } else if(nb){ nb.click(); } });
 }
 /* Exports what the register is showing — every row the current filters, search
@@ -1630,6 +1641,8 @@ function renderRegister(opts){
      strand: every option this control can hold is always on its list. */
   /* FOUR STATES AND "NONE", read off obligationDocState's own answers so the
      control cannot offer a state the reading does not give. */
+  const holdActive=!!R.hold&&R.hold!=='all';
+  const holdOpts=[['all',i18t('reg_any')],['on',i18t('reg_f_hold_on')],['off',i18t('reg_f_hold_off')]];
   const docsActive=!!R.docs&&R.docs!=='all';
   const docsOpts=[['all',i18t('reg_any')],['lapsed',i18t('reg_docs_lapsed')],
                   ['missing',i18t('reg_docs_missing')],['soon',i18t('reg_docs_soon')],
@@ -2116,6 +2129,7 @@ function renderRegister(opts){
         ${(!neg&&BAR.includes('signed'))?selFilter('reg-signed',signedOpts,signedActive,i18t('reg_signed_title'),i18t('reg_signed')):''}
         ${BAR.includes('payterms')?selFilter('reg-payterms',ptOpts,ptActive,i18t('reg_payterms_title'),i18t('reg_payterms')):''}
         ${BAR.includes('docs')?selFilter('reg-docs',docsOpts,docsActive,i18t('reg_docs_title'),i18t('reg_docs')):''}
+        ${BAR.includes('hold')?selFilter('reg-hold',holdOpts,holdActive,i18t('reg_f_hold_title'),i18t('reg_f_hold')):''}
         ${''/* THE DOOR TO THE REST. A link rather than a button, because it
                opens a chooser rather than acting on the list — the same
                weight Fiori gives it. */}
@@ -2335,6 +2349,7 @@ function renderRegister(opts){
   document.getElementById('reg-signed')?.addEventListener('change',e=>{ R.signed=e.target.value; R.page=1; regRepaint(); });
   document.getElementById('reg-payterms')?.addEventListener('change',e=>{ R.payterms=e.target.value; R.page=1; regRepaint(); });
   document.getElementById('reg-docs')?.addEventListener('change',e=>{ R.docs=e.target.value; R.page=1; regRepaint(); });
+  document.getElementById('reg-hold')?.addEventListener('change',e=>{ R.hold=e.target.value; R.page=1; regRepaint(); });
   document.getElementById('reg-stage-sel')?.addEventListener('change',e=>{ R.stage=e.target.value; R.page=1; regRepaint(); });
   document.getElementById('reg-type-sel')?.addEventListener('change',e=>{ R.type=e.target.value; R.page=1; regRepaint(); });
   document.getElementById('reg-view-sel')?.addEventListener('change',e=>{ R.view=e.target.value||null; R.page=1; regRepaint(); });
