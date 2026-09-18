@@ -70,12 +70,29 @@ const SEC = (suffix) => {
   const head = document.querySelector(`[data-sec-toggle$="${suffix}"]`);
   const box = head && head.closest('.sec-box');
   if (!box) return null;
-  const cells = [...box.querySelectorAll('.sec-fields .sec-f')].map(f => ({
-    label: (f.querySelector('.sec-f-l') || {}).textContent || '',
-    value: ((f.querySelector('.sec-f-v') || {}).textContent || '').trim(),
-    x: Math.round(f.getBoundingClientRect().left),
-    y: Math.round(f.getBoundingClientRect().top),
-  }));
+  const cells = [...box.querySelectorAll('.sec-fields .sec-f')].map(f => {
+    const r = f.getBoundingClientRect();
+    const l = f.querySelector('.sec-f-l'), v = f.querySelector('.sec-f-v');
+    const lr = l && l.getBoundingClientRect(), vr = v && v.getBoundingClientRect();
+    return {
+      label: (l || {}).textContent || '',
+      value: ((v || {}).textContent || '').trim(),
+      x: Math.round(r.left),
+      y: Math.round(r.top),
+      /* THE LABEL'S OWN BOX AND THE VALUE'S OWN BOX. The artifact's grid puts
+         the label ABOVE its value; the shape it replaced put the label LEFT
+         and an editable box RIGHT on one line. Those two are told apart by
+         nothing else — same classes, same text, same cell — so both readings
+         are taken here and 1e names which one it found. */
+      stacked: !!(lr && vr) && Math.round(lr.bottom) <= Math.round(vr.top) + 1
+        && Math.abs(Math.round(lr.left) - Math.round(vr.left)) <= 1,
+      /* ON ONE LINE IS AN OVERLAP, NEVER A SHARED TOP EDGE: two things on one
+         line sit on a shared BASELINE and the label is the smaller size, so
+         their tops differ by the difference between the two type sizes. */
+      sideBySide: !!(lr && vr) && Math.round(lr.right) <= Math.round(vr.left) + 1
+        && lr.top < vr.bottom && vr.top < lr.bottom,
+    };
+  });
   const acts = [...box.querySelectorAll('.sec-acts button')].map(b => {
     const r = b.getBoundingClientRect();
     return { text: (b.textContent || '').trim(), w: Math.round(r.width), h: Math.round(r.height) };
@@ -142,7 +159,18 @@ const SEC = (suffix) => {
        sharing one top edge is the artifact's four-column row. */
     const topRow = rec.cells.filter(x => x.y === rec.cells[0].y).length;
     check('1d the cells really sit in columns', topRow >= 3, topRow + ' cells share the first row\'s top edge');
-    check('1e label sits ABOVE its value', rec.cells.length > 1 && rec.cells[0].x === rec.cells[0].x, 'grid cell shape');
+    /* LABEL ABOVE VALUE, MEASURED IN EVERY CELL. Until 18 Sep 2026 this read
+       `cells[0].x === cells[0].x` — a value compared with itself, so it passed
+       on any page at all and proved nothing; eslint's no-self-compare was the
+       only thing that ever objected to it. A check that cannot fail is a
+       description, and this one was describing the claim in its own name. */
+    const notStacked = rec.cells.filter(x => !x.stacked);
+    check('1e label sits ABOVE its value, in every cell',
+      rec.cells.length > 1 && notStacked.length === 0,
+      notStacked.length
+        ? `${notStacked.length} of ${rec.cells.length} not stacked: ` + notStacked.slice(0, 3)
+          .map(x => x.label.trim() + (x.sideBySide ? ' (label left, value right)' : '')).join(' · ')
+        : `${rec.cells.length} cells, label over value`);
 
     /* ============ 2. THE TWO ACTS THE ARTIFACT NAMES ============ */
     const actNames = rec.acts.map(a => a.text).join(' | ');

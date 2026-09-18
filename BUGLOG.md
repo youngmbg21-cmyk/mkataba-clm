@@ -15919,3 +15919,48 @@ section. WHAT WAS ACTUALLY MISSING was one guard and one sentence:
   `st_role_*` labels then go through `esc()`, so it is escaped twice. On main
   already (seen on a screenshot of the person drawer while the new-paper row
   was being checked). One key in both books, not mine to fix here.
+
+## 18 Sep 2026 — the one standing lint error, cleaned up
+
+Young: *"Clean up the one error you found."* The repository's one lint error,
+carried on main and reported in the previous run under "Noticed, not fixed".
+
+- `test/chromium/overview-as-drawn-verify.js:145` read
+  `rec.cells[0].x === rec.cells[0].x` — a value compared with itself — under the
+  name *"1e label sits ABOVE its value"*. It could not fail, so it passed on
+  any page at all and measured nothing; the claim in its own name was never
+  being checked. `no-self-compare` was the only thing that ever objected.
+- **THE PRODUCT WAS ALWAYS RIGHT AND ONLY THE CHECK WAS BROKEN**, so a run at
+  the parent proves nothing here — it is green either way. The `SEC` collector
+  now takes the label's own rect and the value's own rect and answers two
+  readings per cell: `stacked` (the artifact's grid — label's bottom at or
+  above the value's top, both starting at the same left edge) and `sideBySide`
+  (the Key terms shape the owner rejected — label's right at or before the
+  value's left, the two boxes overlapping vertically). 1e now measures EVERY
+  cell and, on failure, names which of the two shapes it found.
+- **ON ONE LINE IS AN OVERLAP, NEVER A SHARED TOP EDGE.** `sideBySide` first
+  demanded the two tops within 2px and answered FALSE on a row it was looking
+  straight at: two things on one line sit on a shared BASELINE, and the label is
+  the smaller type size, so their tops differ by the difference between the two
+  sizes. Caught by the counter-example below, not by reading the source.
+- **PROVED BY STAGING THE SHAPE IT REFUSES**, since the parent cannot prove it:
+  a one-off probe read the cells as built (27 cells, all stacked, none
+  side-by-side), then injected CSS forcing `.sec-f` to a flex row with an inline
+  label and read them again (27 cells, NONE stacked, side-by-side true). Green
+  as built, red on the shape it exists to refuse.
+- `npm run lint`: **0 errors**, 194 warnings (all unused locals, unchanged).
+  The repository has no standing lint error for the first time in this file's
+  history. Full node suite: 7,699 tests, 0 red.
+  `overview-as-drawn-verify`: 18/18, 1e reporting *"12 cells, label over value"*.
+
+### Noticed, not fixed
+
+- The verify file's 1d reads `rec.cells.filter(x => x.y === rec.cells[0].y)` —
+  the first cell's own top compared with itself among the rest. That one is not
+  a self-comparison (it counts the row's siblings) and lint does not object, but
+  it would answer 1 on a page with a single cell and still read as a pass at the
+  `>= 3` floor only by luck of the fixture. Left alone: it is outside this
+  request, and it is not currently wrong.
+- The role radio "Editor — edit &amp; sign" still prints its ampersand entity as
+  literal text (`set_role_legal` carries `&amp;` in both books and then goes
+  through `esc()`). Reported in the previous run, still on main, still not mine.
