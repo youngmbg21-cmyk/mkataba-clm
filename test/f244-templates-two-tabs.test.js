@@ -78,7 +78,15 @@ describe('f244 (1) — two tabs, and the table is still whole', () => {
     assert.ok(html.indexOf('data-tpl-tab="overview"') < html.indexOf('data-tpl-tab="list"'),
       'the overview is the first tab');
     assert.match(html, /Templates overview/);
-    assert.equal(s.tplPageTab(), 'overview', 'and it is the one that opens');
+    /* ---- AND THE LIBRARY IS THE ONE THAT OPENS (Young confirmed 18 Sep 2026)
+       ---- REVERSED IN PLACE. This read 'overview' because 25 Aug 2026 asked
+       for the overview to be the first tab, and it still IS the first tab —
+       the row order above is unchanged and still asserted. What reversed is
+       which tab a reader ARRIVES on. Measured on the running page: the
+       overview carries 44 pressable things and not one of them is a verb, by
+       its own design; landing on it is landing on the one screen in the
+       section that cannot do anything. */
+    assert.equal(s.tplPageTab(), 'list', 'but the LIBRARY is the one that opens');
     assert.deepEqual(s.TPL_PAGE_TABS, ['overview', 'list']);
   });
 
@@ -86,13 +94,18 @@ describe('f244 (1) — two tabs, and the table is still whole', () => {
      own rule. tplPagePaintRows fills #tpl-rows by id on every paint, so a tab
      that removed its markup would crash the fill, and every id a door or a
      test reaches for stays reachable. */
-  test('the table is hidden, never removed — #tpl-rows is filled on the first paint', () => {
+  test('the inactive tab is hidden, never removed — both sections stay in the DOM', () => {
     const s = stage(); s.renderTemplatesPage();
     const host = s.document.getElementById('tpl-rows');
-    assert.ok(host, '#tpl-rows exists while the overview is showing');
+    assert.ok(host, '#tpl-rows exists');
     assert.match(host.innerHTML, /Wanjiru Standard MSA/);
     const shell = s.document.getElementById('content').innerHTML;
-    assert.match(shell, /data-tpl-sec="list" hidden/, 'hidden, not gone');
+    /* RE-POINTED, NOT WEAKENED (18 Sep 2026). The claim is that the tab which
+       is NOT showing keeps its markup, so the fill-by-id cannot crash and
+       every id a door reaches for stays reachable. That claim is unchanged;
+       only which one is hidden has swapped, because the landing tab did. */
+    assert.match(shell, /data-tpl-sec="overview" hidden/, 'the overview is hidden, not gone');
+    assert.ok(/data-tpl-sec="list"(?! hidden)/.test(shell), 'and the library is the one showing');
     assert.match(shell, /id="tpl-search"/);
   });
 

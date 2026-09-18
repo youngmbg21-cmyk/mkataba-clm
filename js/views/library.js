@@ -1403,6 +1403,10 @@ function tplPageFiltered(rows){
     &&(!_tplPage.stream||r.stream===_tplPage.stream)
     &&(!q||`${r.name} ${r.sub} ${r.origin}`.toLowerCase().includes(q)));
 }
+/* Counted ONCE per render in renderTemplatesPage and read by the row builder —
+   the Insights panels' own rule, counting is not drawing. A repaint on a search
+   keystroke reuses it rather than walking every contract again. */
+let _tplAttn={};
 function tplPageRowHtml(r){
   const canManage=tplCanManage();
   const RULE='border-bottom:1px solid var(--color-divider)';
@@ -1415,9 +1419,14 @@ function tplPageRowHtml(r){
   const B='class="ui-btn" style="font-size:var(--t-meta);padding:var(--s-1) var(--s-3)"';
   const P='class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:var(--s-1) var(--s-3)"';
   let acts='';
+  /* ---- EDIT IS ONE PRESS, AND IT IS THE SAME WORD ON EVERY ROW (18 Sep 2026) ----
+     A draft's "Continue editing" and a live standard's "Edit" are the same act
+     through the same door (tplLibEdit): the only difference is that a live one
+     has its draft minted on the way. Both used to land on the detail page,
+     which is a filing card, three presses short of the wording. */
   if(r.kind==='company') acts=r.draft
-    ?`<button data-tpllib-open="${_tplEsc(r.id)}" ${B}>${i18t('lib_continue_editing')}</button>`
-    :`${canManage?`<button data-tpllib-use="${_tplEsc(r.id)}" ${P}>${i18t('lib_use')}</button>`:''}<button data-tpllib-open="${_tplEsc(r.id)}" ${B}>${i18t('act_open')}</button>`;
+    ?`<button data-tpllib-edit="${_tplEsc(r.id)}" ${P}>${i18t('lib_continue_editing')}</button><button data-tpllib-open="${_tplEsc(r.id)}" ${B}>${i18t('act_open')}</button>`
+    :`${canManage?`<button data-tpllib-use="${_tplEsc(r.id)}" ${P}>${i18t('lib_use')}</button>`:''}${canManage?`<button data-tpllib-edit="${_tplEsc(r.id)}" ${B}>${i18t('act_edit')}</button>`:''}<button data-tpllib-open="${_tplEsc(r.id)}" ${B}>${i18t('act_open')}</button>`;
   else if(r.kind==='cp') acts=`${canManage?`<button data-tpl-use="${_tplEsc(r.id)}" ${P}>${i18t('lib_use')}</button>`:''}<button data-tpl-prev="${_tplEsc(r.id)}" ${B}>${i18t('act_open')}</button>${canManage?`<button data-tpl-more="${_tplEsc(r.id)}" class="ui-btn" style="font-size:var(--t-meta);padding:var(--s-1) 9px" title="${i18t('lb_edit_blanks_bulk')}">⋯</button>`:''}`;
   else if(r.kind==='builtin') acts=`${canManage?`<button data-tpl-builtin="${_tplEsc(r.id)}" ${P}>${i18t('lib_use')}</button><button data-tpl-bulk-b="${_tplEsc(r.id)}" ${B}>${i18t('lib_bulk')}</button>`:''}`;
   else acts=r.imported
@@ -1433,6 +1442,13 @@ function tplPageRowHtml(r){
             ${r.draft?`<span style="flex:none;font-size:var(--t-figure);font-weight:var(--w-title);padding:1px 7px;border-radius:var(--radius);background:var(--st-amber-bg);color:var(--st-amber-fg)">Draft</span>`:''}
           </div>
           <div style="font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px">${_tplEsc(r.sub)}</div>
+          ${''/* ---- THE PROBLEM IS PRINTED ON THE THING THAT HAS IT (18 Sep 2026) ----
+                It was a name in a panel on the OTHER tab: you read it there,
+                then came here and found the row again. The reason is BORROWED
+                from tplOverviewData — counted once per render into _tplAttn,
+                never recomputed per row — so the two tabs cannot disagree
+                about which template is in trouble or why. */}
+          ${_tplAttn[r.kind+':'+r.id]?`<div style="font-size:var(--t-label);color:var(--st-ruby-fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px">${_tplEsc(_tplAttn[r.kind+':'+r.id])}</div>`:''}
         </div>
       </div></td>
     <td style="padding:10px var(--s-2);${RULE};font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap">${_tplEsc(r.origin)}</td>
@@ -1468,6 +1484,10 @@ function tplPagePaintRows(){
   // row verbs (rebound on every paint — the rows are rebuilt wholesale)
   host.querySelectorAll('[data-tpllib-use]').forEach(b=>b.addEventListener('click',()=>tplLibNewContract(b.getAttribute('data-tpllib-use'))));
   host.querySelectorAll('[data-tpllib-open]').forEach(b=>b.addEventListener('click',()=>openTemplateLibDetail(b.getAttribute('data-tpllib-open'))));
+  host.querySelectorAll('[data-tpllib-edit]').forEach(b=>b.addEventListener('click',()=>{
+    if(typeof tplLibEdit==='function') tplLibEdit(b.getAttribute('data-tpllib-edit'));
+    else openTemplateLibDetail(b.getAttribute('data-tpllib-edit'));
+  }));
   host.querySelectorAll('[data-tpl-use]').forEach(b=>b.addEventListener('click',()=>createFromCustomTemplate(b.getAttribute('data-tpl-use'))));
   host.querySelectorAll('[data-tpl-prev]').forEach(b=>b.addEventListener('click',()=>{ const t=customTemplates().find(x=>x.id===b.getAttribute('data-tpl-prev')); if(t) openTemplatePreview(t); }));
   host.querySelectorAll('[data-tpl-more]').forEach(b=>b.addEventListener('click',()=>tplRowMoreMenu(b.getAttribute('data-tpl-more'))));
@@ -1900,7 +1920,15 @@ function tplOverviewHtml(d){
    tab lands a reader somewhere unrelated a week later. */
 const TPL_PAGE_TABS=['overview','list'];
 let _tplPageTab=null;
-function tplPageTab(){ return TPL_PAGE_TABS.includes(_tplPageTab)?_tplPageTab:'overview'; }
+/* ---- THE LANDING IS THE LIBRARY (Young confirmed 18 Sep 2026) ----
+   THIS REVERSES 25 AUG 2026, which asked for "Templates overview" to be the
+   first tab. Both tabs stay and the overview keeps everything it reads; what
+   changes is which one you arrive on. MEASURED on the running page: the
+   overview carries 44 pressable things and not ONE of them is a verb — Use,
+   Open, Edit, blanks, bulk, versions and delete all live on the other tab, by
+   its own design ("the overview acts on nothing"). Landing a reader on the one
+   screen in the section that cannot do anything is the cost this reverses. */
+function tplPageTab(){ return TPL_PAGE_TABS.includes(_tplPageTab)?_tplPageTab:'list'; }
 /* A tab press is CLASS AND HIDDEN FLIPS, never a re-render: the table holds a
    search box the reader may be typing into, and both doors below (a card, the
    "see all") set that box before switching. */
@@ -1973,6 +2001,7 @@ function renderTemplatesPage(){
   const canManage=tplCanManage();
   const tab=tplPageTab();
   const ov=tplOverviewData();
+  _tplAttn=Object.fromEntries((ov.attention||[]).map(a=>[a.kind+':'+a.id,a.why]));
   const railIt=(key,label,n)=>`<button data-tpl-group="${key}" style="display:flex;align-items:center;gap:var(--s-2);width:100%;border:0;background:${_tplPage.group===key?'var(--color-accent-100)':'none'};color:${_tplPage.group===key?'var(--color-accent-800)':'var(--color-neutral-700)'};font:inherit;font-size:var(--t-body);font-weight:var(--w-strong);padding:7px 11px;border-radius:var(--radius);cursor:pointer;text-align:left">
     <span style="flex:1">${label}</span><span style="font-family:var(--font-mono);font-size:var(--t-label);color:${_tplPage.group===key?'var(--color-accent-700)':'var(--color-neutral-500)'}">${n}</span></button>`;
   const streamIt=f=>`<button data-tpl-stream="${f.id}" style="display:flex;align-items:center;gap:9px;width:100%;border:0;background:${_tplPage.stream===f.id?'var(--color-accent-100)':'none'};color:var(--color-neutral-700);font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);padding:6px 11px;border-radius:var(--radius);cursor:pointer;text-align:left">

@@ -528,6 +528,74 @@ async function tplLibCreate(id, essentials) {
   } catch (e) { toast(e.message, 'err'); }
 }
 
+/* ════ ONE PRESS FROM THE LIST INTO THE WORDING (Young ruled 18 Sep 2026) ═══
+   MEASURED on the running product before this existed: changing a clause in a
+   published standard took THREE presses across THREE screens — Open, then a
+   detail page whose six buttons never say "edit", then "New draft version",
+   then a re-drawn page whose only door into the actual work was the smallest
+   button on it, sitting inside a version-history row. Copilot was never
+   mentioned once on the way, and the word that WAS on the route — "new draft
+   version" — describes version control rather than the reader's job. Nobody
+   thinks "I need a new draft version"; they think "I want to change the
+   payment terms".
+
+   SO THE DRAFT IS MINTED IN THE SAME BREATH AS THE PRESS. This is the
+   amendment funnel's own pattern (see AN AMENDMENT IS WRITTEN HERE in
+   CLAUDE.md: "Create MINTS A DRAFT AND FILES IT IN THE SAME BREATH"), applied
+   to a template: the reader presses Edit, and the machinery that has to happen
+   first happens without being asked about. What they are NOT allowed to lose
+   is the fact that the live version is untouched, so the builder says which
+   version is still live in one line.
+
+   IT IS NOT A SECOND DOOR ONTO A NEW ACT. Everything here already existed and
+   was reachable, three screens down; this is one function that walks the same
+   three steps in one press. The server is unchanged and so are its guards:
+   POST /api/templates/:id/versions carries `paperMaker` exactly as it did.
+
+   THE 409 IS AN ANSWER, NOT A FAILURE. That route refuses a second open draft
+   and hands back the one that exists — which is precisely what this wants, so
+   a refusal is read rather than toasted. That is why the draft is looked for
+   in the detail first AND the refusal is honoured: two readers can press Edit
+   in the same second and both land in the same draft. */
+async function tplLibEdit(id) {
+  if (newPaperBlock()) return;
+  let d;
+  try { d = await api('templates/' + id); }
+  catch (e) { toast(e.message, 'err'); return; }
+  const t = d.template, versions = d.versions || [];
+  if (!d.canManage) { toast(i18t('tl_admin_legal_only'), 'err'); return; }
+  /* A shelved template takes no new wording. Said in words rather than drawn
+     as a dead button, because the row cannot know the status before it asks. */
+  if (t.status === 'archived') { toast(i18t('tl_edit_archived'), 'warn'); return; }
+  let draft = versions.find(v => v.status === 'draft');
+  const live = versions.find(v => v.status === 'published');
+  if (!draft) {
+    try {
+      const r = await api('templates/' + id + '/versions', 'POST');
+      draft = { id: r.versionId, versionNumber: r.versionNumber };
+    } catch (e) {
+      /* Somebody else opened a draft between the read above and this write.
+         The route refuses the second one and names the existing draft in its
+         body — but api() forwards only a fixed allow-list of error fields and
+         `versionId` is not on it, so reading e.versionId here would be a guard
+         that is ALWAYS FALSE and would look perfectly correct in the source.
+         So the refusal is treated as what it actually means — "there is one
+         already" — and we go and read it rather than widening a shared
+         function for one caller. */
+      try {
+        const again = await api('templates/' + id);
+        draft = (again.versions || []).find(v => v.status === 'draft');
+      } catch (_) { draft = null; }
+      if (!draft) { toast((e && e.message) || i18t('tl_edit_failed'), 'err'); return; }
+    }
+  }
+  /* THE READER IS TOLD WHAT THEY ARE IN, ONCE. A draft that arrived silently
+     is a draft somebody publishes by accident believing it was already live. */
+  if (live && typeof toast === 'function')
+    toast(i18t('tl_editing_draft', { n: draft.versionNumber || (live.versionNumber + 1), live: live.versionNumber }), 'ok');
+  openTemplateBuilder(id, draft.id);
+}
+
 /* ---------- create shell ---------- */
 /* ---- ONE LIST OF CATEGORIES FOR BOTH DIALOGS, AND "OTHER" APPEARS ONCE ----
    Owner-reported 13 Sep 2026: "other is in the dropdown twice." The create
@@ -1017,7 +1085,7 @@ Object.assign(window, { newPaperBlocked, newPaperBlockLine, newPaperBlock, tplLi
   tplLibAll: () => ({ list: _tplLib.list.slice(), canManage: _tplLib.canManage, loaded: _tplLib.loaded, failed: _tplLib.failed || false }),
   tplLibUploadModal, tplLibCreateModal,
   renderCompanyTemplatesSection, tplLibPublished, tplLibCount, tplLibRefresh,
-  openTemplateLibDetail, tplLibCanManage, tplLibCancelPending,
+  openTemplateLibDetail, tplLibEdit, tplLibCanManage, tplLibCancelPending,
   saveContractToLibrary, tplLibNewContract, renderTemplateFormSection, openTemplateConfirm,
   tplFormCommit, tplFormBlankClick,
   TPLLIB_CATEGORIES, TPLLIB_STATUS, templateCategories, tplCategoryName, tplCatSaved,
