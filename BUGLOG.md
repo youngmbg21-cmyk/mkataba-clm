@@ -16029,3 +16029,84 @@ scrolls away. Only the page that was asked about moved.
 f193 pins the scoping itself: the base rule must state no `position:sticky`,
 and the other two homes must still exist — if they ever go, the scoping can be
 revisited rather than discovered.
+
+## 18 September 2026 — every creation door draws the paper
+
+Young, over two screenshots: *"Image one shows that some drafted contracts come
+with the page on the right and image two shows some templates like ones that
+have been converted to standard templates do not. Make sure all drafted
+templates come with the page on the right but just for filling in the basic
+entry fields currently on the pop-ups."*
+
+### Measured before a line moved
+
+There are three doors onto a drafted contract, not two. The wizard and the
+saved-template fill screen gained the pane that morning; `openContractEssentials`
+did not, and TWO paths come through it — a PUBLISHED COMPANY STANDARD (image
+two's "Warehousing Logistics Agreement") and a saved template with no blanks.
+Driven in a browser at 1440px on the unmodified build: `#tf-preview` absent,
+one column, nothing drawn. It is not the window — the door has no pane at any
+width.
+
+### What was built
+
+- The pane is the SAME three names the other doors use (`fillPreviewFits` /
+  `fillPreviewPaneHtml` / `fillPreviewWire`), the same two-column shape, the
+  same 1040/620 widths and the same FILL_PREVIEW_MIN_W. One preview in the
+  product, not three.
+- **THE QUESTIONS DO NOT CHANGE BY A BOX.** The owner asked for the paper, not
+  for more to answer. CONTRACT_ESSENTIALS is still the one list of seven, and
+  two of the browser checks are CONTROLS that pass at the parent to prove it.
+- `kind:'essentials'` is a third KIND, not a third builder. The caller hands the
+  wording through `o.paper` — a string or a promise of one — because only the
+  caller knows where it comes from, so the dialog never learns what a template
+  is. The answers are applied through `applyContractEssentials`, which is what
+  the press itself calls: no second mapping to drift from the first.
+- The company standard's wording lives on the server, so the pane reads its
+  published version and renders it through `templateFormDocHtml` — the same
+  function `POST /contracts` calls, shared out of js/templateform.js.
+
+### The org defaults, and why the server answers them
+
+`{{org.company_name}}` resolves at creation. A browser twin of `tplOrgValues`
+would have drifted the first time the org profile grew a field, and a preview
+showing a blank where the contract says "Highland Corporate Ltd" is this
+codebase's most expensive fault class. So `GET /api/templates/:id/versions/:vid`
+gained an additive `values`, computed by the server's own two lines. MEASURED
+both ways: with no branding on file the route answers `{}` and the created
+contract's values are `{}`; with the org named, both answer
+`{"org_name":"Highland Corporate Ltd"}`. f104 pins them EQUAL rather than
+pinning either to a string.
+
+### Two things the first draft got wrong, caught by measuring
+
+- **The caption lied.** "N blanks left" counts empty ANSWERS, and on the other
+  two doors those answers ARE the document's blanks. Here the wording is already
+  complete and the questions are record facts, so the same arithmetic printed a
+  number about the FORM and attached it to the PAPER — it read "5 blanks left"
+  over a finished agreement. `fillPreviewCounts(kind)` is the one reading and it
+  is false for this door.
+- **The wording was held on the function** (`ceWirePreview._body`), so a second
+  dialog could have read the first one's paper. It is a closure per sitting now.
+
+### Proof
+
+- f331 — three claims, all red at the parent. f104 — the no-drift wall, red at
+  the parent (the route had no `values` at all).
+- paper-beside-questions-verify section 7, on the REAL app and the REAL server:
+  a company standard published through the API and opened through its own door,
+  a saved template with no blanks, a real keystroke, and 900px. 7 checks; 7a,
+  7b, 7e and 7f red at the parent, 7c and 7g green both sides as the named
+  controls.
+- The two doors that already had the pane were re-run unchanged (sections 1, 2
+  and 5 of the same file).
+
+### Noticed, not fixed
+
+- `GET /api/org/profile-values` still has no client caller. The preview reads
+  its org answers through the version route instead, which is why it needs one
+  fewer round trip and cannot drift; the profile route stays unused.
+- The `.ce-grid` two-up form keeps its own inline styling rather than the
+  page's field tokens, as it always has. Not touched: the owner's ask was the
+  paper, and restyling the questions is the opposite of "just for filling in the
+  basic entry fields currently on the pop-ups".

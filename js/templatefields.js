@@ -451,18 +451,37 @@ function openContractEssentials(opts){
         ''}</span>
       <input id="ce-${f.key}" type="${it}" value="${esc(f.def||'').replace(/"/g,'&quot;')}" placeholder="${esc(f.ph||'')}" style="${ST}"></label>`;
   };
+  /* ---- THE PAPER BESIDE THE QUESTIONS, ON THIS DOOR TOO (Young ruled 18 Sep
+     2026, off two screenshots: "Make sure all drafted templates come with the
+     page on the right but just for filling in the basic entry fields currently
+     on the pop-ups") ----
+     The wizard and the saved-template fill screen gained this on 18 Sep and
+     this door — the published company standard, and a saved template with no
+     blanks — did not, so the one creation screen that shows the LEAST about
+     what it is making showed nothing at all. The questions do not change by a
+     box: the owner asked for the paper, not for more to answer.
+     Same three names as the other two doors (fillPreviewPaneHtml / …Wire /
+     …Fits) and the same width rule, so there is one preview in the product and
+     not three. */
+  const _pv = (typeof fillPreviewFits==='function') && fillPreviewFits() && typeof o.paper === 'function';
   openModal(`<div style="padding:20px 22px">
     <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0 0 3px">${esc(o.title||'New contract')}</h3>
     <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 14px;line-height:1.55">${
       esc(o.blurb||'')} ${esc(i18t('tf_skip_later'))}</p>
-    <div class="ce-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s-3)">${fs.map(input).join('')}</div>
+    <div id="ce-cols" style="display:grid;grid-template-columns:${
+      _pv?'minmax(0,1fr) minmax(0,1fr)':'minmax(0,1fr)'};gap:var(--s-4);align-items:start">
+    <div class="ce-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s-3);align-content:start">${fs.map(input).join('')}</div>
+    ${_pv?fillPreviewPaneHtml(0):''}
+    </div>
     <div id="ce-err" style="font-size:var(--t-label);color:var(--st-ruby-fg);min-height:15px;margin-top:var(--s-2)"></div>
     <div style="display:flex;align-items:center;gap:var(--s-2);margin-top:var(--s-2)">
       <button id="ce-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <span style="flex:1"></span>
       <button id="ce-skip" class="ui-btn" title="${esc(i18t('lib_create_now_fill_later'))}">${i18t('wz_skip_for_now')}</button>
       <button id="ce-create" class="ui-btn ui-btn-primary">${esc(o.createLabel||'Create draft')}</button>
-    </div></div>`, { maxWidth:'620px' });
+    </div></div>`, { maxWidth:_pv?'1040px':'620px' });
+
+  if(_pv) ceWirePreview(fs, o);
 
   if(typeof bindFolderSelect==='function')
     fs.filter(f=>f.type==='stream').forEach(f=>{
@@ -496,6 +515,47 @@ function openContractEssentials(opts){
     if(o.onCreate) o.onCreate(values, values.cpemail||'');
   });
 }
+/* ---- THE PAPER THIS DOOR IS ABOUT TO CREATE ----
+   The wording is the CALLER's to supply, because only the caller knows where it
+   comes from: a saved template with no blanks holds it already, a published
+   company standard has to read its version off the server. `o.paper` answers a
+   string or a promise of one, so this function never learns what a template is.
+
+   A WAIT AND A FAILURE BOTH SAY SO. A pane that sits empty while a fetch is out
+   reads as a product that drew nothing, and one that stays empty after a
+   refusal reads as a contract with no wording — the silent-failure fault this
+   codebase names by name. Both get a sentence in the pane's own caption slot.
+
+   IT NEVER BLOCKS THE PRESS. Create and Skip do exactly what they did with no
+   preview at all; this only draws. */
+function ceWirePreview(fs, o){
+  const say = txt => {
+    const cap = document.getElementById('tf-preview-left');
+    if(cap) cap.textContent = txt ? ' \u00b7 ' + txt : '';
+  };
+  /* THE WORDING IS HELD IN THIS SITTING'S OWN CLOSURE, never on the function:
+     a second dialog opened after this one must not read the first one's paper. */
+  let held = '';
+  const readNow = () => {
+    const values = {};
+    for(const f of fs){ const el = document.getElementById('ce-'+f.key);
+      if(el) values[f.key] = String(el.value||'').trim(); }
+    return { body: held, format: o.format, name: o.title||'', values };
+  };
+  say(i18t('tf_preview_reading'));
+  let got;
+  try{ got = o.paper(); }catch(_){ got = null; }
+  Promise.resolve(got).then(body => {
+    held = String(body||'');
+    /* The dialog may already be gone — a reader who pressed Skip while the
+       version was in flight is not waiting for anything. */
+    if(!document.getElementById('tf-preview')) return;
+    if(!held){ say(i18t('tf_preview_none')); return; }
+    say('');
+    if(typeof fillPreviewWire==='function')
+      fillPreviewWire(document.getElementById('ce-cols'), 'essentials', readNow);
+  }).catch(() => { if(document.getElementById('tf-preview')) say(i18t('tf_preview_none')); });
+}
 /* Put the essentials onto an already-created contract, using the same mapping
    the template paths use. Returns true if anything was actually set. */
 function applyContractEssentials(c, values){
@@ -508,7 +568,7 @@ function applyContractEssentials(c, values){
   if(em) c.counterpartyEmail = em;
   return true;
 }
-Object.assign(window,{CONTRACT_ESSENTIALS,essentialFields,openContractEssentials,applyContractEssentials});
+Object.assign(window,{CONTRACT_ESSENTIALS,essentialFields,openContractEssentials,ceWirePreview,applyContractEssentials});
 
 /* ============================================================
    THE PAPER BESIDE THE QUESTIONS (the build plan's upgrade 2, 18 Sep 2026)
@@ -544,14 +604,35 @@ function fillPreviewFits(){
   catch(_){ return false; }
 }
 /* THE CONTRACT THE PRESS WOULD MAKE, and nothing else about it.
-   kind 'builtin': {tid, vars, values} — the wizard's own three.
-   kind 'saved':   {t, values} — the saved-template fill screen's two. */
+   kind 'builtin':    {tid, vars, values} — the wizard's own three.
+   kind 'saved':      {t, values} — the saved-template fill screen's two.
+   kind 'essentials': {body, format, name, values} — the third door (18 Sep
+     2026), where the WORDING is already complete and the questions are the
+     contract's own record facts. The caller hands the paper because only the
+     caller knows where it came from: a saved template with no blanks has it in
+     hand, a published company standard reads its version off the server. What
+     this function does with it is what every other kind does — build the
+     throwaway and let docBody draw it. */
 function fillPreviewContract(kind, o){
   o = o || {};
   const base = { id:'', name:'', status:'Draft', fields:{}, metadata:{},
     audit:[], signatures:[], comments:[], value:0, expiry:null, scan:null,
     counterparty:'', _preview:true };
   try{
+    if(kind === 'essentials'){
+      const body = String(o.body == null ? '' : o.body);
+      if(!body) return null;
+      base.name = String(o.name || '');
+      base.template = null; base.source = 'template';
+      base.redlineText = body;
+      base.format = (typeof docFormat === 'function') ? docFormat(o.format) : (o.format || 'text');
+      /* THE SAME MAPPING THE PRESS USES. applyContractEssentials is what the
+         create path calls on the real record, so party, counterparty, value
+         and the dates land here exactly where they land there — no second
+         mapping to drift from the first. */
+      if(typeof applyContractEssentials === 'function') applyContractEssentials(base, o.values || {});
+      return base;
+    }
     if(kind === 'saved'){
       const t = o.t; if(!t) return null;
       const fs = templateFields(t);
@@ -602,7 +683,7 @@ function fillPreviewPaint(kind, read){
     const o = read();
     try{ h.innerHTML = fillPreviewHtml(kind, o); }catch(_){ h.innerHTML = ''; }
     const cap = document.getElementById('tf-preview-left');
-    if(cap){ const n = fillPreviewLeft(o && o.values);
+    if(cap && fillPreviewCounts(kind)){ const n = fillPreviewLeft(o && o.values);
       cap.textContent = n ? ' \u00b7 ' + i18tn('tf_preview_left', n, { n }) : ''; }
     if(lit) fillPreviewLight(lit);
   }, 0);
@@ -657,6 +738,15 @@ function fillPreviewWire(root, kind, read){
    number the very next keystroke contradicted, which is worse than silence —
    so it is repainted by fillPreviewPaint off the same answers the paper is
    built from, and there is one arithmetic for both. */
+/* ---- AND THE COUNT IS ONLY DRAWN WHERE IT IS TRUE (18 Sep 2026) ----
+   "N blanks left" counts the answers that are still empty, and on two of the
+   three doors those answers ARE the document's own blanks. On the essentials
+   door they are not: the wording there is already complete and the questions
+   are the contract's record facts — counterparty, value, the dates — so the
+   same arithmetic would print a number about the form and attach it to the
+   paper. A count that is false is worse than no count, so this door's caption
+   says what the pane is and stops. */
+function fillPreviewCounts(kind){ return kind !== 'essentials'; }
 function fillPreviewLeft(values){
   const v = values || {};
   return Object.keys(v).filter(k => !String(v[k] == null ? '' : v[k]).trim()).length;
@@ -681,5 +771,5 @@ function fillPreviewPaneHtml(n){
       background:var(--color-doc-warm);border:1px solid var(--color-doc-warm-line);border-radius:0;
       padding:18px 22px;font-size:13px;user-select:text"></div></div>`;
 }
-Object.assign(window,{FILL_PREVIEW_MIN_W,fillPreviewFits,fillPreviewContract,fillPreviewHtml,fillPreviewLeft,
+Object.assign(window,{FILL_PREVIEW_MIN_W,fillPreviewFits,fillPreviewContract,fillPreviewHtml,fillPreviewLeft,fillPreviewCounts,
   fillPreviewPaint,fillPreviewKeyOf,fillPreviewLight,fillPreviewWire,fillPreviewPaneHtml});

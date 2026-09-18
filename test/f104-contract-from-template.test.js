@@ -95,6 +95,25 @@ describe('f104 — contract from template', () => {
     storedAfterCreate = JSON.stringify(await w.admin.json('/api/contracts/' + contractId));
   });
 
+  /* ---- THE PREVIEW AND THE PRESS READ ONE ANSWER (Young ruled 18 Sep 2026:
+     every creation door shows the paper beside its questions) ----
+     The company-standard door draws its pane from GET …/versions/:vid, and the
+     contract it is about to make comes from POST …/contracts. A {{org.…}}
+     default resolved differently by the two would put a blank on the preview
+     where the contract says "Highland Corporate Ltd" — the two-screens-
+     disagreeing fault. The route answers with the SAME two lines the create
+     route runs, so what is asserted is that the two are EQUAL rather than that
+     either one is a particular string. */
+  test('the version route hands back exactly the values a contract would be born with', async () => {
+    const v = await w.admin.json(`/api/templates/${tplId}/versions/${v1Id}`);
+    assert.ok(v.values && typeof v.values === 'object', 'the version says what a contract would already carry');
+    const c = await w.admin.json('/api/contracts/' + contractId);
+    assert.deepEqual(v.values, c.templateForm.values,
+      'the preview and the press resolve the org profile identically');
+    assert.equal(v.values.org_name, 'Highland Corporate Ltd', 'and it really is resolved, not the raw {{org.…}}');
+    assert.ok(!/\{\{/.test(JSON.stringify(v.values)), 'no {{syntax}} reaches a preview either');
+  });
+
   test('THE test: publishing v2 leaves the earlier contract byte-identical', async () => {
     const nv = await w.admin.json(`/api/templates/${tplId}/versions`, { method: 'POST' });
     await w.admin.json(`/api/templates/${tplId}/versions/${nv.versionId}`, { method: 'PUT', body: {

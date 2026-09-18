@@ -475,6 +475,25 @@ function tplLibNewContract(id, prefill) {
        The ROUTE keeps the last word: it scope-checks whatever arrives and falls
        back to the category's own folder when nothing does. */
     folder: (t && t.folder) || '',
+    /* THE PAPER FOR THE PANE (Young ruled 18 Sep 2026). This template's wording
+       lives on the server — the list view carries blocks for nothing — so the
+       pane reads the published version and renders it through
+       templateFormDocHtml, which is the SAME function POST /contracts calls,
+       shared out of js/templateform.js. The route hands back `values` resolved
+       by the server's own tplOrgValues, so a {{org.…}} default reads here
+       exactly as it will read on the contract. Null where the template has no
+       published version: the pane then says the wording could not be read
+       rather than drawing an empty sheet. */
+    format: 'rich',
+    paper: async () => {
+      const vid = t && t.publishedVersionId;
+      if (!vid || typeof templateFormDocHtml !== 'function') return '';
+      const v = await api(`templates/${id}/versions/${vid}`, 'GET', null, { quiet: true });
+      return templateFormDocHtml({ blocks: v.blocks || [], fields: (v.fields || []).map(f => ({
+        fieldKey: f.field_key, label: f.label, fieldType: f.field_type,
+        control: f.control, options: f.options, required: f.required,
+      })), values: v.values || {} });
+    },
     onCreate: values => tplLibCreate(id, values),
     onSkip: () => tplLibCreate(id, null),
   });

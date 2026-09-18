@@ -662,6 +662,65 @@ describe('f331 (13) — the link, and the room to draw it', () => {
     assert.match(markup, /user-select:text/, 'and its wording can still be selected and copied');
   });
 
+  /* ---- AND THE THIRD DOOR DRAWS IT TOO (Young ruled 18 Sep 2026, off two
+     screenshots: "Make sure all drafted templates come with the page on the
+     right but just for filling in the basic entry fields currently on the
+     pop-ups") ----
+     openContractEssentials is the door a PUBLISHED COMPANY STANDARD and a saved
+     template with no blanks come through, and it showed nothing at all — the
+     one creation screen that said least about what it was making. The pane is
+     the SAME three names the other two doors use, so the product has one
+     preview and not three, and the QUESTIONS do not change by a box. */
+  const TL = read('js/views/templatelib.js');
+  test('the essentials door draws the same pane, by the same names', () => {
+    const fn = /function openContractEssentials\(opts\)\{[\s\S]*?\n\}/.exec(TF);
+    assert.ok(fn, 'the door is still one function');
+    assert.match(fn[0], /fillPreviewFits\(\)/, 'it asks the shared width reading');
+    assert.match(fn[0], /fillPreviewPaneHtml\(/, 'and draws the shared pane');
+    assert.match(fn[0], /maxWidth:_pv\?'1040px':'620px'/, 'widening only where it fits');
+    assert.match(fn[0], /minmax\(0,1fr\) minmax\(0,1fr\)/, 'two columns, the other doors\' own shape');
+    /* THE QUESTIONS ARE UNTOUCHED — the owner asked for the paper, not for
+       more to answer. CONTRACT_ESSENTIALS is still the one list. */
+    const list = /const CONTRACT_ESSENTIALS = \[[\s\S]*?\n\];/.exec(TF);
+    assert.ok(list, 'the field list is still one declaration');
+    for (const k of ['party','counterparty','cpemail','value','effDate','expiry','folder'])
+      assert.ok(list[0].includes(`key:'${k}'`), 'the door still asks ' + k);
+  });
+
+  test('the paper is the caller\'s, and the wording is built by the shared reading', () => {
+    /* The dialog never learns what a template is: each caller hands the
+       wording, because only the caller knows where it comes from. */
+    const fn = /function ceWirePreview\(fs, o\)\{[\s\S]*?\n\}/.exec(TF);
+    assert.ok(fn, 'one wiring for the pane');
+    assert.match(fn[0], /o\.paper\(\)/, 'the caller supplies the paper');
+    assert.match(fn[0], /Promise\.resolve/, 'a caller that has to fetch it is allowed to');
+    assert.match(fn[0], /tf_preview_reading/, 'a wait says so');
+    assert.match(fn[0], /tf_preview_none/, 'and a refusal says so — never a silently empty sheet');
+    assert.match(fn[0], /fillPreviewWire\(document\.getElementById\('ce-cols'\), 'essentials'/,
+      'through the shared wiring, under its own kind');
+    /* The saved-template door builds it with the very call its own create path
+       makes; the company standard renders the server's own builder. */
+    assert.match(LIB, /paper: \(\) => fillTemplateBody\(templateBody\(t\), \{\}, templateFormat\(t\)\)/,
+      'a saved template with no blanks fills with nothing — that IS its wording');
+    assert.match(TL, /templateFormDocHtml\(\{ blocks:/,
+      'a company standard renders through the function POST \/contracts calls');
+    assert.match(TL, /values: v\.values \|\| \{\}/,
+      'and takes the server\'s own resolved defaults rather than guessing at them');
+  });
+
+  test('the throwaway is built the create path\'s way, and the false count is not drawn', () => {
+    const b = strip(TF).match(/function fillPreviewContract\(kind, o\)\{[\s\S]*?\n\}/)[0];
+    assert.match(b, /if\(kind === 'essentials'\)/, 'a third kind, not a third builder');
+    assert.match(b, /applyContractEssentials\(base, o\.values \|\| \{\}\)/,
+      'the same mapping the press uses — no second mapping to drift from the first');
+    assert.match(b, /_preview:true/, 'and it is still the throwaway nothing persists');
+    /* "N blanks left" counts empty ANSWERS, and on this door the answers are
+       record facts rather than the document's blanks. */
+    assert.match(TF, /function fillPreviewCounts\(kind\)\{ return kind !== 'essentials'; \}/,
+      'one reading of whether the count is true here');
+    assert.match(TF, /if\(cap && fillPreviewCounts\(kind\)\)/, 'asked before the caption is written');
+  });
+
   test('under the width it is byte-identical to what it was', () => {
     assert.match(TF, /const FILL_PREVIEW_MIN_W = 1000;/, 'one number');
     assert.match(TF, /window\.innerWidth\|\|0\) >= FILL_PREVIEW_MIN_W/, 'measured, not guessed');

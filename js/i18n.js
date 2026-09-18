@@ -5361,6 +5361,8 @@ const STRINGS = {
        screen cannot otherwise say, and counts what is still open, which is the
        one fact a drafter looking at half-filled paper wants. */
     tf_preview_cap: 'The agreement you are about to create',
+    tf_preview_reading: 'reading the template\u2026',
+    tf_preview_none: 'the wording could not be read \u2014 the draft is still created',
     tf_preview_left_one: '{n} blank left',
     tf_preview_left_other: '{n} blanks left',
     /* ---- WORDING THAT IS ALREADY THERE (upgrade 3, 18 Sep 2026) ----
@@ -12052,6 +12054,8 @@ const STRINGS = {
     tb_pb_one_read: 'en f\u00f6rfr\u00e5gan',
     tb_pb_no_read: 'ingen f\u00f6rfr\u00e5gan \u2014 den h\u00e4r finns i ert bibliotek',
     tf_preview_cap: 'Avtalet du h\u00e5ller p\u00e5 att skapa',
+    tf_preview_reading: 'l\u00e4ser mallen\u2026',
+    tf_preview_none: 'ordalydelsen kunde inte l\u00e4sas \u2014 utkastet skapas \u00e4nd\u00e5',
     tf_preview_left_one: '{n} lucka kvar',
     tf_preview_left_other: '{n} luckor kvar',
     tb_pb_lib_over: 'ingen f\u00f6rfr\u00e5gan \u2014 er egen lydelse, visad som en \u00e4ndring mot det som st\u00e5r',

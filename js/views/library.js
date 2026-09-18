@@ -60,6 +60,11 @@ function createFromCustomTemplate(tid, prefill){
     openContractEssentials({
       title: t.name, blurb: 'This template needs nothing filled into its wording.', values: prefill,
       folder: t.folder || '',
+      /* THE PAPER FOR THE PANE (18 Sep 2026). Built by the same call
+         buildFromCustomTemplate makes below — a template with no blanks fills
+         with nothing, so this IS the wording the press is about to create. */
+      format: templateFormat(t),
+      paper: () => fillTemplateBody(templateBody(t), {}, templateFormat(t)),
       onCreate: v => buildFromCustomTemplate(t, {}, { counterpartyEmail: v.cpemail||'', essentials: v }),
       onSkip: () => buildFromCustomTemplate(t, {}),
     });
