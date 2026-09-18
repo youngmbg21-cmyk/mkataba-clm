@@ -94,26 +94,55 @@ const check = (name, pass, detail) => {
     lit ? `${lit.key} → ${lit.n} lit` : '-');
   check('1f and the paper never takes the caret', lit && lit.caret === true, lit && String(lit.caret));
 
-  /* THE PREVIEW IS A PICTURE, NOT A SECOND FORM. docBody draws a draft's
-     blanks as real inputs, and a reader who typed into one would be typing
-     into a contract with no id that nothing persists. Found on a screenshot,
-     not in an assertion, which is why this claim exists. */
+  /* ---- THE PREVIEW IS NOT A SECOND FORM, AND IT SCROLLS ----
+     REVERSED IN PLACE 18 Sep 2026, and the claim is the same claim. docBody
+     draws a draft's blanks as real inputs, and a reader who typed into one
+     would be typing into a contract with no id that nothing persists. That was
+     first met by covering the column with `inert` and pointer-events:none, and
+     this check asserted the cover. The cover also stopped the reader SCROLLING
+     the column — Young, 18 Sep: "the page on the right needs to scroll" —
+     because a subtree the browser will not hit-test takes no wheel either.
+     MEASURED at that parent: 1,758px of agreement in a 320px box and a real
+     wheel moving it 0px.
+     So the check moved from the COVER to the two facts the cover was standing
+     in for, and both are driven rather than read: a real click and real
+     keystrokes change nothing, and a real wheel scrolls the paper. */
   const dead = await page.evaluate(() => {
     const el = document.getElementById('tf-preview');
     if (!el) return null;
-    const box = el.querySelector('input,select,textarea');
-    if (!box) return { inputs: 0 };
-    const was = box.value;
-    try { box.focus(); box.value = 'TYPED INTO THE PREVIEW'; } catch (_) {}
-    return { inputs: el.querySelectorAll('input,select,textarea').length,
-      inert: el.hasAttribute('inert'),
-      pe: getComputedStyle(el).pointerEvents,
-      tookCaret: document.activeElement === box,
-      reverted: (box.value = was, true) };
+    const boxes = el.querySelectorAll('input,select,textarea');
+    return { inputs: boxes.length,
+      live: Array.from(boxes).filter(b => !b.disabled && !b.readOnly).length,
+      inTabOrder: Array.from(boxes).filter(b => b.getAttribute('tabindex') !== '-1').length,
+      scrollH: el.scrollHeight, clientH: el.clientHeight };
   });
-  check('1g the preview is inert — its blanks are a picture, not a second form',
-    dead && dead.inert === true && dead.pe === 'none' && dead.tookCaret === false,
-    dead ? `${dead.inputs} blanks · inert=${dead.inert} · pointer-events=${dead.pe} · took caret=${dead.tookCaret}` : '-');
+  const box = await page.evaluate(() => {
+    const i = document.querySelector('#tf-preview input[type="text"]');
+    if (!i) return null; const r = i.getBoundingClientRect();
+    return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2), was: i.value };
+  });
+  if (box) { await page.mouse.click(box.x, box.y); await page.waitForTimeout(150);
+    await page.keyboard.type('TYPED INTO THE PREVIEW'); await page.waitForTimeout(250); }
+  const typed = await page.evaluate(() => {
+    const i = document.querySelector('#tf-preview input[type="text"]');
+    return i ? { value: i.value, tookCaret: document.activeElement === i } : null;
+  });
+  check('1g the preview takes no typing — its blanks are a picture, not a second form',
+    dead && dead.inputs > 0 && dead.live === 0 && dead.inTabOrder === 0
+      && typed && typed.value === (box ? box.was : null),
+    dead ? `${dead.inputs} blanks · live=${dead.live} · in tab order=${dead.inTabOrder} · after typing="${typed && typed.value}"` : '-');
+
+  await page.evaluate(() => { document.getElementById('tf-preview').scrollTop = 0; });
+  const mid = await page.evaluate(() => { const r = document.getElementById('tf-preview').getBoundingClientRect();
+    return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) }; });
+  await page.mouse.move(mid.x, mid.y);
+  await page.mouse.wheel(0, 500);
+  await page.waitForTimeout(400);
+  const rolled = await page.evaluate(() => document.getElementById('tf-preview').scrollTop);
+  check('1g2 and a real wheel over the paper scrolls the paper',
+    dead && dead.scrollH > dead.clientH && rolled > 0,
+    dead ? `${dead.scrollH}px of agreement in a ${dead.clientH}px box · wheel moved it ${rolled}px` : '-');
+  await page.evaluate(() => { document.getElementById('tf-preview').scrollTop = 0; });
 
   /* THE COUNT IS LIVE OR IT IS NOT DRAWN. */
   const cnt1 = await page.evaluate(() => (document.getElementById('tf-preview-left') || {}).textContent || '');

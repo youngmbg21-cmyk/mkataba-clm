@@ -2419,6 +2419,42 @@
      three pages. .st-tabs and .room-tabs are still two rules because the two
      rows sit in different containers; change one, change the other. */
   .st-tabs{ display:flex; gap:22px; border-bottom:1px solid var(--color-divider); }
+  /* ---- AND THE SETTINGS PAGE'S ROW STAYS WHILE THE PAGE SCROLLS (Young ruled
+     it 18 Sep 2026: "make that when you scroll, you do not lose the tabs. The
+     body scrolls up behind the tabs line") ----
+     MEASURED at 1440x620 on Platform settings: the row rests at y=84, and 600px
+     down it is at y=-516 and off the scroller entirely. Seventeen panels is
+     more than one screen by construction, so an admin reading the bottom of the
+     list had no way to another tab but scrolling all the way back.
+
+     SCOPED TO THIS PAGE, AND THAT IS THE WHOLE REASON IT IS A SECOND RULE.
+     .st-tabs has THREE homes — this page, the Templates page's two tabs and
+     Our standards' — because the row was deliberately made one control on
+     three pages. The owner asked about Team & Settings, and the Templates row
+     also carries an inline margin-bottom that the bleed's own shorthand would
+     have fought. So the base rule above is untouched and the pin is written
+     against .st-page, which is the settings page and nothing else.
+
+     STICKY, NOT A SECOND SCROLLER. The register pins its band and its column
+     head this way inside the scroller that really scrolls, and #content-scroll
+     is that scroller here: #content carries no rule at all, so nothing between
+     them clips. Putting this page on VIEW_OWNS_HEIGHT instead would build an
+     inner scroller and take the scrollbar gutter, keepScroll, openSettingsAt's
+     landing and settingsHoldHeights with it, to arrive at the same row in the
+     same place.
+
+     IT BLEEDS TO THE PAGE'S EDGES AND CARRIES THE PAGE'S OWN TOP PADDING —
+     .room-band's idiom, read from the tokens rather than typed. Two things
+     depend on it. The first painted glyph does not move by a pixel: the row
+     cancels --page-pad-t and puts it straight back inside, so "ONE HEADER TOP"
+     still measures what it measured. And a pinned row has to be opaque across
+     the WHOLE width or the body shows through the gutters beside it; the
+     background is the page ground, because that is what the row sits on.
+     top:0 is the scroller's own top, so the tabs keep that padding as air when
+     they are pinned. */
+  .st-page > .st-tabs{ position:sticky; top:0; z-index:3; background:var(--color-bg);
+    margin:calc(-1 * var(--page-pad-t)) calc(-1 * var(--page-pad-x)) 0;
+    padding:var(--page-pad-t) var(--page-pad-x) 0; }
   /* ---- A RESTING TAB IS DARK INK, NOT A CAPTION (owner-asked 23 Aug 2026) --
      "The font I have highlighted should also be the font used in the tab
      navigation panels within the administration tabs."

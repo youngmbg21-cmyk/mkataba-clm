@@ -665,16 +665,21 @@ function fillPreviewPaneHtml(n){
   return `<div style="display:flex;flex-direction:column;gap:6px;min-width:0">
     <span style="font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)">${
       esc(i18t('tf_preview_cap'))}<span id="tf-preview-left">${n ? ' \u00b7 ' + esc(i18tn('tf_preview_left', n, { n })) : ''}</span></span>
-    ${''/* INERT, AND THAT IS NOT DECORATION. docBody draws a draft's blanks as
-           REAL inputs, so without this the preview is a second form: a reader
-           can type into it and the answer goes nowhere, because this contract
-           has no id and nothing persists it. A dead press is the fault this
-           codebase can only see on a painted page, and a screenshot is where
-           this one was seen. `inert` refuses it to the keyboard too, which
-           pointer-events alone does not. */}
-    <div id="tf-preview" class="doc-surface hati-doc" inert style="flex:1;min-height:0;max-height:52vh;overflow:auto;
+    ${''/* IT SCROLLS, AND NOTHING IN IT IS TYPEABLE. Those were one problem.
+           docBody draws a draft's blanks as REAL inputs, so this column was
+           first made `inert` with pointer-events:none — which stopped the
+           reader scrolling it as well, because a subtree the browser will not
+           hit-test cannot take a wheel or a scrollbar drag either. MEASURED at
+           the parent: 1,758px of agreement in a 320px box and a real wheel
+           moving it 0px, which is what Young reported on 18 Sep 2026.
+           They are refused where they are DRAWN now — docBody gives a
+           preview's blanks `readonly tabindex="-1"`, which is not the same as
+           disabled and the difference is this whole screen (see the note
+           there). Nothing has to be covered, so the box keeps no pointer rule
+           of its own: it is a paper you read, select from and scroll. */}
+    <div id="tf-preview" class="doc-surface hati-doc" style="flex:1;min-height:0;max-height:52vh;overflow:auto;
       background:var(--color-doc-warm);border:1px solid var(--color-doc-warm-line);border-radius:0;
-      padding:18px 22px;font-size:13px;pointer-events:none;user-select:text"></div></div>`;
+      padding:18px 22px;font-size:13px;user-select:text"></div></div>`;
 }
 Object.assign(window,{FILL_PREVIEW_MIN_W,fillPreviewFits,fillPreviewContract,fillPreviewHtml,fillPreviewLeft,
   fillPreviewPaint,fillPreviewKeyOf,fillPreviewLight,fillPreviewWire,fillPreviewPaneHtml});

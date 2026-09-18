@@ -465,6 +465,95 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
       stBox && stBox.gap === roomBox.gap,
       { admin: stBox && stBox.gap, room: roomBox.gap });
 
+    /* ---- 6d-6g THE ROW STAYS WHILE THE PAGE SCROLLS (Young ruled it 18 Sep
+       2026: "for the team & settings page, make that when you scroll, you do
+       not lose the tabs. The body scrolls up behind the tabs line") ----
+       MEASURED at the parent, 1440x620 on Platform settings: the row rests at
+       y=84 and 600px down it is at y=-516, off the scroller entirely.
+
+       IT IS A BROWSER FILE FOR THE USUAL REASON. position:sticky dies in
+       silence inside an overflow:hidden ancestor and the declaration goes on
+       looking perfectly correct, so the source cannot answer whether the row
+       stayed. And a rect is not a painted pixel — 6e asks elementFromPoint
+       over the live tab's own word, which is the instrument the ladder's hover
+       card was clipped away behind. */
+    const SHORT = { width: 1440, height: 620 };
+    await page.setViewportSize(SHORT);
+    await pause(500);
+    await page.evaluate(() => window.settingsGoTab('platform'));
+    await pause(900);
+
+    const readRow = () => page.evaluate(() => {
+      const row = document.querySelector('.st-tabs'), sc = document.getElementById('content-scroll');
+      if (!row || !sc) return null;
+      const r = row.getBoundingClientRect(), s = sc.getBoundingClientRect();
+      const first = document.querySelector('.st-tab');
+      const live = document.querySelector('.st-tab.on') || first;
+      const lr = live.getBoundingClientRect();
+      const hit = document.elementFromPoint(Math.round(lr.left + lr.width / 2), Math.round(lr.top + lr.height / 2));
+      return { glyph: Math.round(first.getBoundingClientRect().top - s.top),
+        rowTop: Math.round(r.top - s.top), leftGap: Math.round(r.left - s.left),
+        bg: getComputedStyle(row).backgroundColor,
+        painted: !!(hit && hit.closest && hit.closest('.st-tab')),
+        scrollTop: sc.scrollTop, canScroll: sc.scrollHeight - sc.clientHeight };
+    });
+
+    const pinRest = await readRow();
+    await page.evaluate(() => { document.getElementById('content-scroll').scrollTop = 900; });
+    await pause(350);
+    const stScrolled = await readRow();
+    await page.screenshot({ path: path.join(OUT, '08b-settings-tabs-pinned.png') });
+
+    check('6d there is more settings than one screen, so the question is real',
+      pinRest && pinRest.canScroll > 300, pinRest && { overflow: pinRest.canScroll });
+    check('6e the tab row is still on screen after scrolling, and really painted',
+      stScrolled && stScrolled.rowTop === 0 && stScrolled.painted && stScrolled.scrollTop > 0,
+      stScrolled && { rowTop: stScrolled.rowTop, scrolledBy: stScrolled.scrollTop,
+        wordUnderThePointer: stScrolled.painted });
+    /* THE FIRST PAINTED GLYPH DOES NOT MOVE — "ONE HEADER TOP", and the row
+       pays for its own pinned air by cancelling the page's top padding and
+       putting it back inside itself. A RELATION against the token, never a
+       number typed here. */
+    const padT = await page.evaluate(() =>
+      parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--page-pad-t')) || 0);
+    check('6f and the first glyph sits where it always sat, pinned or not',
+      pinRest && stScrolled && pinRest.glyph === stScrolled.glyph
+        && Math.abs(pinRest.glyph - padT) <= 1,
+      { rest: pinRest && pinRest.glyph, scrolled: stScrolled && stScrolled.glyph, pageTopToken: padT });
+    /* A PINNED ROW HAS TO BE OPAQUE ACROSS THE WHOLE WIDTH or the body shows
+       through the gutters beside it. */
+    check('6f2 it is opaque and reaches the page\'s own left edge',
+      stScrolled && stScrolled.leftGap === 0 && !/rgba\(0, 0, 0, 0\)|transparent/.test(stScrolled.bg),
+      stScrolled && { leftGap: stScrolled.leftGap, background: stScrolled.bg });
+
+    /* AND A TAB PRESSED FROM THE BOTTOM LANDS AT THE TOP. Until the row was
+       pinned this came for free: reaching a tab meant being at the top already.
+       A press that NAVIGATES may land at the top, and this one is four
+       different pages of settings. */
+    /* DISPATCHED IN THE PAGE, NOT CLICKED. Playwright scrolls an element into
+       view before clicking it, which would put the scroller back near the top
+       by itself and make this check pass against a build that does nothing —
+       measured, it did. The press has to land while the reader is still at the
+       bottom, which is the whole case. */
+    const pressed = await page.evaluate(() => {
+      const sc = document.getElementById('content-scroll');
+      sc.scrollTop = 900;
+      const was = sc.scrollTop;
+      const tab = document.querySelector('[data-st-tab="people"]');
+      const onScreen = tab.getBoundingClientRect().top >= sc.getBoundingClientRect().top - 1;
+      tab.click();
+      return { was, onScreen };
+    });
+    await pause(800);
+    const landed = await readRow();
+    check('6g a tab pressed from the bottom of the list lands at the top',
+      pressed && pressed.was > 0 && pressed.onScreen && landed && landed.scrollTop === 0,
+      { pressedFrom: pressed && pressed.was, tabWasReachable: pressed && pressed.onScreen,
+        landedAt: landed && landed.scrollTop });
+
+    await page.setViewportSize({ width: 1500, height: 1000 });
+    await pause(500);
+
     /* ================= 7 · THE SIDEBAR'S DOORS ============================= */
     const nav = await page.evaluate(() => {
       const lum = c => {

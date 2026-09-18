@@ -581,16 +581,98 @@ describe('f193 — a named door lands at the top of what it opens', () => {
      drawer, which opens over any page including this one, is exactly the case
      that makes "already here" true. A door with a name on it is a navigation,
      and openSettingsAt is the one place that knows the difference. */
+  /* RE-POINTED IN PLACE 18 Sep 2026, and the claim is unchanged. The landing
+     used to be four lines written inside openSettingsAt and this file read
+     those bytes. Pinning the tab row (see .st-tabs in index.html) gave the
+     landing a second caller — a tab can now be pressed from the bottom of
+     seventeen panels — so the mechanism is one reading, stLandTop, with two
+     askers. What is asserted is the RELATION: the named door lands, the tab
+     press lands, and the landing itself is the twice-asked frame it always
+     was. */
   const SET_SRC = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'settings.js'), 'utf8');
   test('openSettingsAt puts the page back to the top after it renders', () => {
     const fn = /function openSettingsAt\(tab, panel\)\{[\s\S]*?\n\}/.exec(SET_SRC);
     assert.ok(fn, 'the one named door is still there');
+    assert.match(fn[0], /stLandTop\(\)/, 'it lands the reader at the top');
+    assert.ok(fn[0].indexOf('setView') < fn[0].indexOf('stLandTop'),
+      'after the render, never before it');
+  });
+  test('stLandTop is the one reading, and it asks the frame twice', () => {
+    const fn = /function stLandTop\(\)\{[\s\S]*?\n\}/.exec(SET_SRC);
+    assert.ok(fn, 'the landing is one named reading');
     assert.match(fn[0], /content-scroll/, 'it asks for the scroll container');
     assert.match(fn[0], /sc\.scrollTop=0/, 'and starts at the top');
     assert.match(fn[0], /requestAnimationFrame\(\(\)=>\{ sc\.scrollTop=0; \}\)/,
       'twice, because the rebuild\'s shorter intermediate paint clamps it');
-    assert.ok(fn[0].indexOf('setView') < fn[0].indexOf('scrollTop'),
+    assert.match(SET_SRC, /Object\.assign\(window,\{[\s\S]*?\bstLandTop\b/,
+      'published, because a name another module cannot reach is unreachable');
+  });
+  /* THE TAB PRESS LANDS TOO, AND THAT IS NEW. Until the row was pinned it came
+     for free: reaching a tab meant already being at the top of the page. Now it
+     can be pressed from anywhere, and a press that NAVIGATES may land at the
+     top — this one is four different pages of settings, and it already clears
+     the search for the same reason. */
+  test('a tab press lands at the top as well', () => {
+    const fn = /function settingsGoTab\(k\)\{[^}]*\}/.exec(SET_SRC);
+    assert.ok(fn, 'settingsGoTab is still one line');
+    assert.match(fn[0], /stLandTop\(\)/, 'it lands the reader at the top');
+    assert.ok(fn[0].indexOf('renderTeam') < fn[0].indexOf('stLandTop'),
       'after the render, never before it');
+  });
+});
+
+describe('f193 — the tab row does not scroll away', () => {
+  /* Young ruled it 18 Sep 2026: "for the team & settings page, make that when
+     you scroll, you do not lose the tabs. The body scrolls up behind the tabs
+     line."
+
+     MEASURED at the parent, 1440x620 on Platform settings: the row rests at
+     y=84 and 600px down it is at y=-516, off the scroller entirely. Seventeen
+     panels is more than one screen by construction.
+
+     The pixels are in white-band-and-tabs-verify; what is pinned here is that
+     the rule says the four things it has to say, and says them by reading the
+     page's own tokens rather than typing a number that has to agree with
+     another element's padding. */
+  const HTML = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const BASE = /\.st-tabs\{[^}]*\}/.exec(HTML);
+  const RULE = /\.st-page > \.st-tabs\{[^}]*\}/.exec(HTML);
+  /* THE ROW HAS THREE HOMES, AND ONLY ONE WAS ASKED ABOUT. .st-tabs was made
+     one control on three pages on purpose — this page, the Templates page's
+     two tabs and Our standards' — so a pin written on the base rule would
+     silently pin two pages nobody mentioned, and would have fought the
+     Templates row's own inline margin-bottom as well. The base rule is
+     untouched and the pin is a second rule scoped to .st-page. */
+  test('the pin is scoped to this page, so the other two rows are untouched', () => {
+    assert.ok(BASE, '.st-tabs still has its own base rule');
+    assert.ok(!/position:sticky/.test(BASE[0]),
+      'the base rule pins nothing — Templates and Our standards wear it too');
+    assert.ok(RULE, 'the pin is its own rule, scoped to the settings page');
+    const LIB = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'library.js'), 'utf8');
+    assert.ok((LIB.match(/class="st-tabs"/g) || []).length >= 2,
+      'the other two homes are still there — if they go, this scoping can be revisited');
+  });
+  test('the row is sticky at the top of the scroller, above the rows, opaque', () => {
+    assert.ok(RULE, '.st-page > .st-tabs still has a rule of its own');
+    assert.match(RULE[0], /position:sticky/, 'it stays');
+    assert.match(RULE[0], /top:0/, 'at the scroller\'s own top');
+    assert.match(RULE[0], /z-index:[1-9]/, 'above what passes behind it');
+    assert.match(RULE[0], /background:var\(--color-bg\)/,
+      'and opaque, in the ground it sits on — a pinned row that is not opaque shows the body through it');
+  });
+  test('it bleeds to the page edges and puts the page\'s own top padding back inside', () => {
+    assert.match(RULE[0], /margin:calc\(-1 \* var\(--page-pad-t\)\) calc\(-1 \* var\(--page-pad-x\)\) 0/,
+      'the view\'s own top and sides are cancelled, from the tokens, never typed');
+    assert.match(RULE[0], /padding:var\(--page-pad-t\) var\(--page-pad-x\) 0/,
+      'and put straight back inside, so the first painted glyph does not move');
+  });
+  test('nothing between the row and the scroller clips it', () => {
+    /* sticky dies silently inside an overflow:hidden ancestor, and the page
+       between them is #content (no rule at all) and .st-page. */
+    const page = /\.st-page\{[^}]*\}/.exec(HTML);
+    assert.ok(page, '.st-page still has a rule');
+    assert.ok(!/overflow/.test(page[0]), '.st-page states no overflow');
+    assert.ok(!/#content\{/.test(HTML), '#content carries no rule at all');
   });
 });
 
