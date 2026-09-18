@@ -4457,7 +4457,7 @@ function ktRouteEmailRowHtml(c){
    is stated as a browser-local thing. */
 function ktStreamRowHtml(c){
   const read=esc((window.streamLabel?streamLabel(c):'')||'—');
-  const may=(typeof isAdmin==='function')&&isAdmin()&&!PORTAL_MODE&&typeof visibleFolders==='function';
+  const may=(typeof mayReFile==='function')&&mayReFile()&&!PORTAL_MODE&&typeof visibleFolders==='function';
   if(!may) return ktRowHtml('stream', i18t('ct_value_stream'), read, '', false);
   const opts=visibleFolders().slice();
   /* The drawer it is ALREADY in stays on the list even where it is out of
@@ -4489,6 +4489,10 @@ function ktFactReads(c){
   return {
     noticeDays,
     monetary: isMonetary(c),
+    /* THE AGREEMENT'S OWN NAME. Minted once at creation and, until 18 Sep 2026,
+       never changeable — ten agreements off one standard were ten identical
+       lines in the register, the search, the alerts and every mail subject. */
+    name: c.name?esc(c.name):'',
     party: c.party?esc(c.party):'',
     counterparty: c.counterparty?esc(c.counterparty):'',
     cpEmail: c.counterpartyEmail?esc(c.counterpartyEmail):'',
@@ -4535,6 +4539,17 @@ function ktTermsRowsHtml(c,opts={}){
   const tmpl=c.template?((window.TEMPLATES&&TEMPLATES[c.template]&&TEMPLATES[c.template].name)||c.template)
     :(isUpload(c)?'Uploaded document':'');
   const rows=[
+    /* ---- THE AGREEMENT'S NAME (the fifth repair, 18 Sep 2026) ----
+       It is the first thing on the record because it is the first thing every
+       other screen shows. It writes on BLUR, not on every keystroke: a rename
+       is an act that moves what the register, the search, the alerts and every
+       mail subject say, so it is worth one audit line and not one per letter.
+       AN EMPTY BOX DOES NOT CLEAR IT — a nameless contract is unfindable
+       everywhere, so the row simply keeps the name it had. The server freezes
+       `name` on an executed record (EXECUTED_IMMUTABLE), which is why this row
+       stands down with the rest of the panel once the contract is signed. */
+    ['name', ktRowHtml('name', i18t('ov_f_name'), R.name||dash,
+      `<input data-kt="name" type="text" value="${(c.name||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ov_f_name_ph')}" style="${KIN}"/>`, ed, 'pencil')],
     /* ---- OUR PARTY, ABOVE THEIRS ----
        The two together are the sentence the paper opens with, so they read as a
        pair here. It is asked at drafting too, but this is the only place it can
@@ -4999,10 +5014,11 @@ function ktRecordFactsHtml(c,opts={}){
   /* LAST UPDATED prefers the trail's own stamp (the transport the light list
      carries) and falls back to the record's. No date is invented. */
   const updated=String((c&&c._lastAuditAt)||(c&&c.updatedAt)||(c&&c.updated_at)||'').slice(0,10);
-  const skip=opts.rowsAbove?new Set(['party','counterparty','cpEmail','stream','template','cpRouteEmail']):new Set();
+  const skip=opts.rowsAbove?new Set(['name','party','counterparty','cpEmail','stream','template','cpRouteEmail']):new Set();
   const rt=ktRouteEmailRead(c);
   return sectionFieldsHtml([
     ['reference', i18t('ov_f_reference'), esc(String((c&&c.id)||''))],
+    ['name', i18t('ov_f_name'), R.name],
     ['party', i18t('tf_our_party'), R.party||esc((window.FIRST_PARTY)||'')],
     ['counterparty', i18t('reg_col_counterparty'), R.counterparty],
     ['cpEmail', i18t('ov_f_email'), R.cpEmail],
@@ -5194,7 +5210,7 @@ function ktOverviewTermsHtml(c,opts={}){
      record's rows must still be reachable where the move is live, or an admin
      would lose the one door onto it — which is exactly what
      refile-a-contract-verify caught the hour this card was redrawn. */
-  const mayMove=(typeof isAdmin==='function')&&isAdmin()&&!PORTAL_MODE;
+  const mayMove=(typeof mayReFile==='function')&&mayReFile()&&!PORTAL_MODE;
   const dealEd=ed&&ovEditing(dealK), recEd=(ed||mayMove)&&ovEditing(recK);
   const editBtn=(k,on)=>ed?`<button type="button" class="ui-btn" style="font-size:var(--t-label);padding:5px 11px" data-ov-edit="${esc(k)}">${
     esc(on?i18t('ov_edit_done'):i18t('ov_edit_details'))}</button>`:'';
@@ -5234,7 +5250,7 @@ function ktOverviewTermsHtml(c,opts={}){
     summary: ktRecordSummary(c),
     body: (recEd
         ? `<div id="kt-rows-record">${ktTermsRowsHtml(c,
-            {editable:ed,only:['party','counterparty','cpEmail','cpRouteEmail','stream','template']})}</div>`
+            {editable:ed,only:['name','party','counterparty','cpEmail','cpRouteEmail','stream','template']})}</div>`
         : '<div id="kt-rows-record"></div>')
       + `<div id="kt-record-facts">${ktRecordFactsHtml(c,{rowsAbove:recEd})}</div>`,
     acts: editBtn(recK,recEd)+moveBtn });
@@ -9918,12 +9934,22 @@ function wireKeyTerms(c){
        deliberately type=text with inputmode=numeric (it carries thousand
        separators), so this test reaches the notice row and nothing else. */
     const key=inp.getAttribute('data-kt');
-    const evt=(inp.type==='checkbox'||inp.type==='date'||inp.type==='number')?'change':'input';
+    /* AND THE NAME WRITES ON BLUR TOO, for its own reason: a rename is an act
+       whose audit line should be one line, not one per keystroke. */
+    const evt=(inp.type==='checkbox'||inp.type==='date'||inp.type==='number'||key==='name')?'change':'input';
     inp.addEventListener(evt,()=>{
       /* Our entity on this agreement. Cleared back to empty means "the
          workspace", which is the fallback contractParty already makes, so
          nothing is stored to say it. */
-      if(key==='party') c.party=inp.value.trim()||undefined;
+      /* A NAME IS NEVER CLEARED. An empty box leaves the stored name alone —
+         a nameless contract is unfindable in every list that draws it — and
+         the row puts it back on the next paint. */
+      if(key==='name'){
+        const was=String(c.name||''), now=inp.value.trim();
+        if(now && now!==was){ c.name=now; logAudit(c,'Record',`Renamed from "${was}" to "${now}"`); }
+        else if(!now) inp.value=was;
+      }
+      else if(key==='party') c.party=inp.value.trim()||undefined;
       else if(key==='counterparty') c.counterparty=inp.value.trim();
       /* Their address. Stored as typed and never refused mid-keystroke — half
          an email is what every email looks like on the way in. It is only ever

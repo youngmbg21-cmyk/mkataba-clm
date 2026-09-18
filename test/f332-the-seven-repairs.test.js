@@ -232,3 +232,119 @@ describe('f332 (4) the blanks call is counted and its failures are spoken', () =
       'no rows simply adds nothing; only the call not coming back is reported');
   });
 });
+
+/* ------------------------------------------------------------------
+   R5 / R6 / R7 — THE THREE ABOUT A RECORD
+   ------------------------------------------------------------------ */
+describe('f332 (5) a contract can be renamed', () => {
+  const CT = read('js/views/contract.js');
+
+  test('5a the name is a row on the record, and the resting grid prints it', () => {
+    assert.match(CT, /\['name', ktRowHtml\('name', i18t\('ov_f_name'\)/,
+      'one builder, so the grid and the editable row cannot disagree');
+    assert.match(CT, /\['name', i18t\('ov_f_name'\), R\.name\]/);
+    assert.match(CT, /only:\['name','party','counterparty'/, 'first on the record');
+    assert.match(CT, /new Set\(\['name','party','counterparty'/,
+      'and the grid gives the field up where the editable row is drawn, so it is not printed twice');
+  });
+
+  test('5b it writes on blur, not on every keystroke, and writes one audit line', () => {
+    assert.match(CT, /\|\|key==='name'\)\?'change':'input'/,
+      'a rename is an act — one audit line, not one per letter');
+    assert.match(CT, /logAudit\(c,'Record',`Renamed from "\$\{was\}" to "\$\{now\}"`\)/);
+  });
+
+  test('5c an empty box never clears the name', () => {
+    assert.match(CT, /else if\(!now\) inp\.value=was;/,
+      'a nameless contract is unfindable in every list that draws it');
+  });
+
+  test('5d and the server still freezes it once executed', () => {
+    assert.match(read('server/server.js'), /'status', 'name', 'party', 'expiry', 'metadata',/,
+      'name is on EXECUTED_IMMUTABLE — this opens a door, it does not move a wall');
+  });
+
+  test('5e the label is in both books', () => {
+    const I = read('js/i18n.js');
+    assert.equal((I.match(/\n\s+ov_f_name:/g) || []).length, 2);
+  });
+});
+
+describe('f332 (6) which side of the money we are on is asked at creation', () => {
+  test('6a both creation lists ask it, and map it to the field paySide reads', () => {
+    for (const f of ['js/templates.js', 'js/templatefields.js']) {
+      const src = read(f);
+      assert.match(src, /key:'side'[\s\S]{0,200}type:'select'[\s\S]{0,60}maps:'category'/, f);
+      assert.match(src, /v:'customer'[\s\S]{0,120}v:'supplier'/, f + ' offers both sides');
+    }
+    assert.match(read('js/payterms.js'), /paySide = c => PAY_SIDES\[\(c && c\.metadata && c\.metadata\.category\)/,
+      'the same field the upload path fills — one reading, not two');
+  });
+
+  test('6b "neither" writes nothing at all', () => {
+    assert.match(read('js/templatefields.js'), /v:'', l:i18t\('tf_side_none'\)/);
+    assert.match(read('js/templatefields.js'), /if\(v==='' \|\| v==null\) continue;/,
+      'applyTemplateValues skips an empty answer, so no category is claimed');
+  });
+
+  test('6c an option may carry its own words, through one reading', () => {
+    const TF = read('js/templatefields.js');
+    assert.match(TF, /const fieldOpt = o =>/);
+    assert.match(TF, /Object\.assign\(window,\{[^\n]*fieldOpt/, 'published');
+    assert.match(TF, /\(f\.opts\|\|\[\]\)\.map\(fieldOpt\)/, 'the coercer asks it');
+    assert.match(TF, /f\.type==='select'\) return `<label/, 'the essentials form draws a select at all');
+    assert.match(read('js/wizard.js'), /fieldOpt\(o\)/, 'and so does the wizard, through the same reading');
+  });
+
+  test('6d the labels are in both books', () => {
+    const I = read('js/i18n.js');
+    for (const k of ['tf_our_side', 'tf_side_none', 'tf_side_customer', 'tf_side_supplier'])
+      assert.equal((I.match(new RegExp('\\n\\s+' + k + ':', 'g')) || []).length, 2, k);
+  });
+});
+
+describe('f332 (7) re-filing can be delegated, and is off by default', () => {
+  const SRV = read('server/server.js');
+
+  test('7a the grant is a column, an admin-only field, and one server reading', () => {
+    assert.match(SRV, /addColumnIfMissing\('users', 're_file', 'INTEGER NOT NULL DEFAULT 0'\)/,
+      'DEFAULT 0 — the deploy changes nothing for anyone');
+    assert.match(SRV, /'twoStep', 'newPaper', 'reFile'\]/, 'stripped from a colleague\'s copy');
+    assert.match(SRV, /const mayReFileRow = u => !!u && \(u\.role === 'admin' \|\| Number\(u\.re_file \|\| 0\) !== 0\)/);
+  });
+
+  test('7b the server is still the wall, and it asks the grant', () => {
+    assert.match(SRV, /if \(prev && !mayReFileRow\(req\.user\)\s*\n\s*&& String\(prev\.folder/,
+      'asked as a difference, exactly as before');
+  });
+
+  test('7c it is an admin\'s to give, never self-service, and refused on the two roles that answer for themselves', () => {
+    const i = SRV.indexOf('if (b.reFile !== undefined)');
+    assert.ok(i > 0);
+    const body = SRV.slice(i, i + 700);
+    assert.match(body, /role === 'admin' && !b\.reFile/, 'an admin may always re-file');
+    assert.match(body, /role === 'viewer' && b\.reFile/, 'a viewer may not edit at all');
+    assert.match(SRV, /UPDATE users SET re_file=\?/);
+  });
+
+  test('7d the browser has ONE reading and every door asks it', () => {
+    assert.match(read('js/core.js'), /const mayReFile = \(u\) =>[\s\S]{0,200}p\.role==='admin' \|\| p\.reFile===true/);
+    assert.match(read('js/core.js'), /mayMakeNewPaper,mayReFile,/, 'published');
+    const CT = read('js/views/contract.js');
+    assert.equal((CT.match(/mayReFile\(\)/g) || []).length, 2, 'the stream row and the Overview\'s act');
+  });
+
+  test('7e the person drawer carries the row, beside the other grant', () => {
+    const ST = read('js/views/settings.js');
+    assert.match(ST, /id="tm-refile"/);
+    assert.match(ST, /const stReFileOn=u=>/);
+    assert.match(ST, /if\(reFileChanged\) patch\.reFile=reFileTo;/);
+    assert.match(ST, /if\(patch\.reFile!==undefined\) body\.reFile=patch\.reFile;/);
+  });
+
+  test('7f the sentences are in both books', () => {
+    const I = read('js/i18n.js');
+    for (const k of ['st_refile_admin', 'st_refile_on', 'st_refile_off', 'st_refile_note'])
+      assert.equal((I.match(new RegExp('\\n\\s+' + k + ':', 'g')) || []).length, 2, k);
+  });
+});

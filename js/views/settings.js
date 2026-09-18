@@ -779,6 +779,9 @@ const stValuesOn=u=>u.role==='admin'||u.canViewValues!==false;
    settings.js runs on stages that do not load core. */
 const stNewPaperOn=u=>(typeof mayMakeNewPaper==='function')
   ? mayMakeNewPaper(u) : (u.role==='admin'||u.newPaper===true);
+/* The re-filing grant, read the same way and for the same reason. */
+const stReFileOn=u=>(typeof mayReFile==='function')
+  ? mayReFile(u) : (u.role==='admin'||u.reFile===true);
 /* WHAT IS MISSING, AS A LIST OF WORDS — the same list the drawer refuses with
    and the same list the chip counts. One reading, three readers. */
 function stPersonMissing(u){
@@ -1129,6 +1132,18 @@ function settingsPersonDrawer(idOrNew){
         <input id="tm-paper" type="checkbox" ${stNewPaperOn(u)?'checked':''}/>
         <span><span class="st-role-name">${esc(stNewPaperOn(u)?i18t('st_paper_on'):i18t('st_paper_off'))}</span>
         <span class="st-note">${esc(i18t('st_paper_note'))}</span></span>
+      </label>`):''}
+      ${/* ---- AND WHO MAY MOVE A CONTRACT TO ANOTHER VALUE STREAM ----
+             (the seventh repair, 18 Sep 2026.) The same shape, the same
+             refusals and the same two roles that answer for themselves. Off by
+             default, so the 14 Aug ruling stands until an admin gives it. */''}
+      ${(!isNew && isAdmin() && !isMe && API_MODE() && u.role!=='viewer')?(
+        u.role==='admin'
+        ? `<p class="st-note" style="margin-top:10px">${esc(i18t('st_refile_admin'))}</p>`
+        : `<label class="st-toggle" style="margin-top:10px">
+        <input id="tm-refile" type="checkbox" ${stReFileOn(u)?'checked':''}/>
+        <span><span class="st-role-name">${esc(stReFileOn(u)?i18t('st_refile_on'):i18t('st_refile_off'))}</span>
+        <span class="st-note">${esc(i18t('st_refile_note'))}</span></span>
       </label>`):''}`)}
 
     ${sec(3,i18t('st_sec_folders'),
@@ -1316,6 +1331,9 @@ async function settingsSavePerson(existing){
   const paperBox=document.getElementById('tm-paper');
   const paperTo = paperBox ? !!paperBox.checked : null;
   const paperChanged = paperTo!==null && paperTo!==stNewPaperOn(target);
+  const reFileBox=document.getElementById('tm-refile');
+  const reFileTo = reFileBox ? !!reFileBox.checked : null;
+  const reFileChanged = reFileTo!==null && reFileTo!==stReFileOn(target);
   if(valuesChanged && valuesTo===false){
     const ok=await confirmDialog({ title:`Hide contract values from ${target.name}?`,
       message:'They will stop seeing amounts on the register, on a contract, in exports, in the dashboard metrics and in anything they ask the Copilot. They keep their folder access and everything else. You can turn this back on at any time.',
@@ -1328,6 +1346,7 @@ async function settingsSavePerson(existing){
     if(roleChanged) patch.role=role;
     if(valuesChanged) patch.canViewValues=valuesTo;
     if(paperChanged) patch.newPaper=paperTo;
+    if(reFileChanged) patch.reFile=reFileTo;
     const capNow=(typeof signCapOf==='function')?signCapOf(target):{answered:false,limit:null};
     const capWas=capNow.answered?(capNow.limit==null?'none':capNow.limit):null;
     if(cap!==undefined && cap!==capWas) patch.signCap=cap;
@@ -1343,6 +1362,7 @@ async function settingsSavePerson(existing){
     if(patch.role!==undefined) body.role=patch.role;
     if(patch.canViewValues!==undefined) body.canViewValues=patch.canViewValues;
     if(patch.newPaper!==undefined) body.newPaper=patch.newPaper;
+    if(patch.reFile!==undefined) body.reFile=patch.reFile;
     if(patch.signCap!==undefined) body.signCap=patch.signCap;
     if(patch.reviewChecked!==undefined) body.reviewChecked=patch.reviewChecked;
     if(patch.reviewerId!==undefined) body.reviewerId=patch.reviewerId;
@@ -1355,6 +1375,7 @@ async function settingsSavePerson(existing){
     if(roleChanged) target.role=role;
     if(valuesChanged) target.canViewValues=valuesTo;
     if(paperChanged) target.newPaper=paperTo;
+    if(reFileChanged) target.reFile=reFileTo;
     if(patch.signCap!==undefined) target.signCap=patch.signCap;
     if(patch.reviewChecked!==undefined) target.reviewChecked=patch.reviewChecked;
     if(patch.reviewerId!==undefined) target.reviewerId=patch.reviewerId;

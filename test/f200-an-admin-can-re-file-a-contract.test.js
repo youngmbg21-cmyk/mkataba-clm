@@ -75,7 +75,7 @@ describe('f200 — a non-admin cannot move a contract', () => {
     full.folder = FOLDER_B;
     const r = await raw(W.unrestricted, full, baseVersion);
     assert.equal(r.status, 403, 'an Editor moving a contract is refused');
-    assert.match(r.json.error, /only an admin can move it/i, 'and told who can');
+    assert.match(r.json.error, /you may not move it/i, 'and told who can — re-pointed 18 Sep 2026 with the grant');
     assert.match(r.json.error, new RegExp(FOLDER_A), 'the refusal names the drawer it is in');
   });
 
@@ -169,7 +169,7 @@ describe('f200 — D-1: an executed contract is still filed somewhere', () => {
     full.folder = FOLDER_A;
     const r = await raw(W.unrestricted, full, baseVersion);
     assert.equal(r.status, 403);
-    assert.match(r.json.error, /only an admin can move it/i);
+    assert.match(r.json.error, /you may not move it/i);
   });
 });
 
@@ -211,8 +211,15 @@ describe('f200 — the creation case is not caught', () => {
     const src = read('server/server.js');
     const guard = src.slice(src.indexOf('WHICH DRAWER A CONTRACT IS FILED IN'));
     const body = guard.slice(0, guard.indexOf('A SIGNING STEP RESERVED'));
-    assert.match(body, /if \(prev && req\.user\.role !== 'admin'/,
+    /* RE-POINTED IN PLACE, 18 Sep 2026 — the wall now asks mayReFileRow, which
+       is admin-OR-granted and off by default, so the ruling this claim was
+       written for still holds on the day of the deploy. What the claim is
+       about is the SHAPE: no prev means no move. */
+    assert.match(body, /if \(prev && !mayReFileRow\(req\.user\)/,
       'no prev means no move — the same shape every difference-guard on this route uses');
+    const src2 = read('server/server.js');
+    assert.match(src2, /const mayReFileRow = u => !!u && \(u\.role === 'admin' \|\| Number\(u\.re_file \|\| 0\) !== 0\)/,
+      'and an absent grant is a no, so nothing is widened by deploying it');
   });
 });
 
@@ -260,8 +267,16 @@ describe('f200 — the control is built on what already exists', () => {
   const src = read('js/views/contract.js');
   const row = src.slice(src.indexOf('function ktStreamRowHtml'), src.indexOf('function ktTermsRowsHtml'));
 
-  test('the picker is drawn for an admin only', () => {
-    assert.match(row, /isAdmin\(\)/, 'and nobody else gets a control that would be refused');
+  /* ---- RE-POINTED IN PLACE, 18 Sep 2026 (the seventh repair) ----
+     This read `isAdmin()`, which was the whole of the 14 Aug ruling. That
+     ruling is NOT reversed: re-filing became a per-person grant in the shape
+     the product already uses five times over, OFF BY DEFAULT, so on the
+     morning of the deploy mayReFile answers exactly what isAdmin answered.
+     What the claim is really about is unchanged — nobody gets a control the
+     server would refuse — so it now names the reading the server's own wall
+     asks. */
+  test('the picker is drawn only for somebody the server would let through', () => {
+    assert.match(row, /mayReFile\(\)/, 'and nobody else gets a control that would be refused');
     assert.match(row, /!PORTAL_MODE/, 'never on the counterparty\'s page');
   });
 

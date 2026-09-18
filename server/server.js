@@ -282,12 +282,13 @@ const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role,
      browser and `paperMaker` here both answer an admin true, and a server
      that helpfully pre-resolved it would be a second place the rule lives. */
   newPaper: !!u.new_paper,
+  reFile: !!u.re_file,
   overseerId: u.overseer_id || null });
 /* The facts on that record that are ONE PERSON'S OWN and an admin's business,
    and nobody else's. Stripped from every colleague's copy at the bootstrap —
    see the note there. A new per-person setting belongs on this list the day it
    is added; f202 fails if one of these ever reaches a non-admin again. */
-const ADMIN_ONLY_USER_FIELDS = ['folderAccess', 'signCap', 'reviewChecked', 'reviewerId', 'overseerId', 'twoStep', 'newPaper'];
+const ADMIN_ONLY_USER_FIELDS = ['folderAccess', 'signCap', 'reviewChecked', 'reviewerId', 'overseerId', 'twoStep', 'newPaper', 'reFile'];
 
 /* ---------- per-contract storage (scales to large portfolios) ----------
    Each contract is its own row with its own version. Lists return a light
@@ -851,6 +852,7 @@ addColumnIfMissing('users', 'can_view_values', 'INTEGER NOT NULL DEFAULT 1');
    own template (that is importing their wording, not writing ours), and NOT
    the housekeeping a template needs afterwards (rename, re-file, archive). */
 addColumnIfMissing('users', 'new_paper', 'INTEGER NOT NULL DEFAULT 0');
+addColumnIfMissing('users', 're_file', 'INTEGER NOT NULL DEFAULT 0');
 /* A member's JOB TITLE — "COO", "Finance Director" — which is a different
    thing from their `role` ("admin"/"legal"/"viewer"). `role` is a permission
    level: what they may do in the software. `title` is the capacity they sign
@@ -3327,11 +3329,11 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
      the executed document mentions it — `folder` is deliberately absent from
      EXECUTED_IMMUTABLE, and a mis-filed executed contract is precisely the one
      you most want to be able to find. */
-  if (prev && req.user.role !== 'admin'
+  if (prev && !mayReFileRow(req.user)
       && String(prev.folder || '') !== String(c.folder || '')) {
     return res.status(403).json({
-      error: `${req.params.id} is filed under ${prev.folder || 'no value stream'} and only an admin can move it. `
-        + 'Ask an admin to re-file it.',
+      error: `${req.params.id} is filed under ${prev.folder || 'no value stream'} and you may not move it. `
+        + 'Ask an admin to re-file it, or to let you.',
       folderMove: { from: prev.folder || null, to: c.folder || null } });
   }
 
@@ -4099,6 +4101,15 @@ const templateManager = (req, res, next) => {
    sentence names the door that exists rather than stopping at "no", which is
    this codebase's rule for every refusal. */
 const mayMakeNewPaperRow = u => !!u && (u.role === 'admin' || Number(u.new_paper || 0) !== 0);
+/* ---- WHO MAY MOVE A CONTRACT TO ANOTHER VALUE STREAM (18 Sep 2026) ----
+   The seventh repair. Re-filing has been an admin's act since 14 Aug and the
+   wall below is what enforces it; people wait, and a mis-filed contract is
+   read by the wrong people, measured against the wrong rulebook and counted in
+   the wrong report while they do.
+   THE AUGUST RULING IS NOT REVERSED BY THIS DEPLOY. This is a per-person grant
+   in the shape the product already uses five times over, OFF BY DEFAULT: until
+   an admin turns it on for somebody, the answer is exactly what it was. */
+const mayReFileRow = u => !!u && (u.role === 'admin' || Number(u.re_file || 0) !== 0);
 const paperMaker = (req, res, next) => {
   if (req.user.role !== 'admin' && req.user.role !== 'legal')
     return res.status(403).json({ error: 'Admin or Editor access required' });
@@ -9452,6 +9463,16 @@ app.patch('/api/users/:id', auth, (req, res) => {
        fact the product then ignores — two places saying different things about
        one person. Change the role first if that is what was meant. */
     const role = hasRole ? b.role : target.role;
+    /* The re-filing grant, on the same terms as the one above it: an admin's
+       to give, never self-service, and meaningless on the two roles that
+       already answer for themselves. */
+    if (b.reFile !== undefined) {
+      if (role === 'admin' && !b.reFile)
+        return res.status(400).json({ error: 'An admin may always re-file a contract.' });
+      if (role === 'viewer' && b.reFile)
+        return res.status(400).json({ error: 'A viewer may not edit a contract, so it cannot be re-filed by them.' });
+      db.prepare('UPDATE users SET re_file=? WHERE id=?').run(b.reFile ? 1 : 0, req.params.id);
+    }
     if (role === 'admin' && !b.newPaper)
       return res.status(400).json({ error: 'Admins may always write new paper. Change the role first if this member should not.' });
     if (role === 'viewer' && b.newPaper)

@@ -172,10 +172,17 @@ describe('f330 (3) — converting a document files it', () => {
 });
 
 describe('f330 (4) — every creation door asks where it is filed', () => {
+  /* PIN THE REGION, NOT A BOUNDARY THAT HAPPENS TO HOLD. This read to the
+     first `];` in the file after the declaration — which was the list's own
+     terminator only while no field carried an inline array. The moment one did
+     (the side question's `opts`, 18 Sep 2026) the region stopped at that
+     field and the claim went red over a list that still said what it says.
+     The terminator at the START OF A LINE is the list's own. */
+  const listEnd = (src, at) => { const i = src.indexOf('\n];', at); return i < 0 ? src.length : i; };
   test('the built-in templates ask it, as their LAST question', () => {
     const src = strip(TPLS);
     const at = src.indexOf('const TEMPLATE_BASE_FIELDS');
-    const end = src.indexOf('];', at);
+    const end = listEnd(src, at);
     const list = src.slice(at, end);
     assert.match(list, /key:'folder'[\s\S]{0,140}type:'stream'[\s\S]{0,60}maps:'folder'/,
       'the field is declared and mapped');
@@ -197,7 +204,7 @@ describe('f330 (4) — every creation door asks where it is filed', () => {
   test('the essentials form asks the same question, for the two template doors', () => {
     const src = strip(TFLD);
     const at = src.indexOf('const CONTRACT_ESSENTIALS');
-    const list = src.slice(at, src.indexOf('];', at));
+    const list = src.slice(at, listEnd(src, at));
     assert.match(list, /key:'folder'[\s\S]{0,120}type:'stream'[\s\S]{0,40}maps:'folder'/);
   });
   test('and the caller’s stream reaches the box BY DESCRIPTOR, never by reference', () => {
