@@ -2427,13 +2427,17 @@
      more than one screen by construction, so an admin reading the bottom of the
      list had no way to another tab but scrolling all the way back.
 
-     SCOPED TO THIS PAGE, AND THAT IS THE WHOLE REASON IT IS A SECOND RULE.
-     .st-tabs has THREE homes — this page, the Templates page's two tabs and
-     Our standards' — because the row was deliberately made one control on
-     three pages. The owner asked about Team & Settings, and the Templates row
-     also carries an inline margin-bottom that the bleed's own shorthand would
-     have fought. So the base rule above is untouched and the pin is written
-     against .st-page, which is the settings page and nothing else.
+     THE PAGE OPTS IN WHERE IT DRAWS THE ROW, AND THAT IS THE WHOLE REASON IT
+     IS A SECOND RULE. .st-tabs has THREE homes — Team & Settings, Our
+     standards and the Templates page's two tabs — because the row was
+     deliberately made one control on three pages, and a pin on the base rule
+     would pin all three. It was keyed on the PAGE for one day (.st-page >
+     .st-tabs) and RE-KEYED ONTO THE ROW on 18 Sep 2026, when Young asked for
+     Our standards too: with two of the three wanting it, the honest place for
+     the decision is beside the markup that draws the row, not in a selector
+     here that has to grow a page name every time. The Templates row is NOT
+     opted in — it was not asked for, and it carries an inline margin-bottom
+     the bleed's shorthand would fight.
 
      STICKY, NOT A SECOND SCROLLER. The register pins its band and its column
      head this way inside the scroller that really scrolls, and #content-scroll
@@ -2452,7 +2456,7 @@
      background is the page ground, because that is what the row sits on.
      top:0 is the scroller's own top, so the tabs keep that padding as air when
      they are pinned. */
-  .st-page > .st-tabs{ position:sticky; top:0; z-index:3; background:var(--color-bg);
+  .st-tabs-pin{ position:sticky; top:0; z-index:3; background:var(--color-bg);
     margin:calc(-1 * var(--page-pad-t)) calc(-1 * var(--page-pad-x)) 0;
     padding:var(--page-pad-t) var(--page-pad-x) 0; }
   /* ---- A RESTING TAB IS DARK INK, NOT A CAPTION (owner-asked 23 Aug 2026) --

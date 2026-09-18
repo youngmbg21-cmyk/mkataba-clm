@@ -607,3 +607,37 @@ describe('F272 — the standards page', () => {
     });
   });
 });
+
+describe('f272 — the tab row stays while the page scrolls', () => {
+  /* Young ruled it 18 Sep 2026, off a screenshot of this page: "Similar to the
+     team and settings page, the page should scroll behind the tab line."
+
+     The rule lives in index.html as .st-tabs-pin and the OPT-IN is the class on
+     the row, because .st-tabs is one control on three pages and only the page
+     drawing it knows whether it wants it pinned. The pixels are in
+     standards-page-verify; what is pinned here is that this page opts in, that
+     a tab press lands at the top now it can be pressed from the bottom, and
+     that the reading is the settings page's own rather than a second one. */
+  const fs2 = require('fs'), path2 = require('path');
+  const LIB2 = fs2.readFileSync(path2.join(__dirname, '..', 'js', 'views', 'library.js'), 'utf8');
+  const ROW = /const tabRow=`<div class="[^"]*" role="tablist">\$\{PB_PAGE_TABS/.exec(LIB2);
+  test('the standards tab row opts in to the pin', () => {
+    assert.ok(ROW, 'the row is still built in one place');
+    assert.match(ROW[0], /class="st-tabs st-tabs-pin"/, 'and it carries the opt-in');
+    const RULE = /\.st-tabs-pin\{[^}]*\}/.exec(
+      fs2.readFileSync(path2.join(__dirname, '..', 'index.html'), 'utf8'));
+    assert.ok(RULE, 'the rule it opts in to exists');
+    assert.match(RULE[0], /position:sticky/, 'and it is what pins the row');
+  });
+  test('a tab press lands at the top, through the settings page\'s own reading', () => {
+    const h = /document\.querySelectorAll\('\[data-pb-tab\]'\)\.forEach\(b=>b\.addEventListener\('click'[\s\S]*?\}\)\);/.exec(LIB2);
+    assert.ok(h, 'the tab handler is still one binding');
+    assert.match(h[0], /if\(typeof stLandTop==='function'\) stLandTop\(\);/,
+      'one reading of "put the reader at the top", asked through window');
+    assert.ok(!/scrollTop\s*=\s*0/.test(h[0]),
+      'and not a second copy of it written here');
+    /* THE HANDLER STILL DOES NOT REBUILD THE PAGE — this page's own rule, and
+       a scroll is not a rebuild. */
+    assert.ok(!/renderPlaybookPage\(\)/.test(h[0]), 'a selection does not redraw the screen');
+  });
+});

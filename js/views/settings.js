@@ -3690,7 +3690,11 @@ function renderTeam(){
   if(typeof isAdmin==='function' && !isAdmin()){ renderMyAccountPage(); return; }
   const _heldHeights=settingsHeightsBefore();
   const tab=settingsTab();
-  const tabRow=`<div class="st-tabs" role="tablist">${ST_TABS.map(k=>
+  /* `st-tabs-pin` is the opt-in: this row stays at the top of the scroller
+     while the body passes behind it (index.html). The class is on the ROW
+     rather than on the page because .st-tabs is one control on three pages and
+     only the page that draws it knows whether it wants it pinned. */
+  const tabRow=`<div class="st-tabs st-tabs-pin" role="tablist">${ST_TABS.map(k=>
     `<button class="st-tab${k===tab?' on':''}" data-st-tab="${k}" role="tab" aria-selected="${k===tab?'true':'false'}">${esc(i18t('st_tab_'+k))}</button>`).join('')}</div>`;
   const body =
       tab==='people'   ? stPeopleHtml()

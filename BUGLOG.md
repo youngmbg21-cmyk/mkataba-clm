@@ -16110,3 +16110,55 @@ pinning either to a string.
   page's field tokens, as it always has. Not touched: the owner's ask was the
   paper, and restyling the questions is the opposite of "just for filling in the
   basic entry fields currently on the pop-ups".
+
+## 18 September 2026 — Our standards keeps its tab row too
+
+Young, over a screenshot of the page: *"Similar to the team and settings page,
+the page should scroll behind the tab line."*
+
+### The pin was keyed on the wrong thing, and this is what showed it
+
+Yesterday's pin was written `.st-page > .st-tabs` — keyed on the PAGE — with
+the reasoning that `.st-tabs` is one control on three pages and only Team &
+Settings had been asked for. That was right for one day. With a second page
+wanting it, keying on the page means the stylesheet grows a page name every
+time somebody asks, and the decision sits in a selector rather than beside the
+markup that draws the row.
+
+So the hook moved onto the ROW: `.st-tabs-pin`, and a page opts in with
+`class="st-tabs st-tabs-pin"`. Team & Settings and Our standards are opted in.
+**The Templates page is NOT** — it was not asked for, and its row carries an
+inline `margin-bottom:14px` that the bleed's own shorthand would fight.
+MEASURED on all three in one sitting at 1440x460: Settings and Our standards
+sticky at rowTop 0 with glyph 8 and left 0, opaque, the live tab's word really
+painted under the pointer; Templates `static`, glyph 48, left 16,
+margin-bottom 14 — byte for byte what it was.
+
+### And a tab press lands at the top
+
+The same consequence as Settings: until the row was pinned, reaching a tab
+meant already being at the top. `stLandTop` is the settings page's own reading
+and the standards handler asks it through `window` — that module is not on
+every stage — rather than writing a second copy. Its handler still does not
+rebuild the page, which is that page's own rule; a scroll is not a rebuild.
+
+### Proof
+
+- f193's opt-in claim RE-KEYED IN PLACE (the base rule must still pin nothing;
+  both pages must carry the class; the Templates row must still draw without
+  it). f272 gained the standards page's own two. All three red at the parent.
+- standards-page-verify section 7, on the real page at a SHORTENED window —
+  at 1000px tall this page fits and a pin nothing can scroll past proves
+  nothing. 7b/7c/7d/7e red at the parent (the row at -752 and the tab
+  unreachable from the bottom); 7a is the control that proves the stage bites.
+  7e dispatches the press IN THE PAGE, because Playwright scrolls an element
+  into view before clicking and would pass against a build that does nothing.
+
+### Noticed, not fixed
+
+- Section 5 of standards-page-verify leaves the clause editor open, and
+  `#modal-scrim` then covers the whole page — measured, the hit test answered
+  the scrim rather than a tab. Section 7 closes the dialog first rather than
+  changing section 5, which is not this task's to touch.
+- The Templates page's tab row still scrolls away. Not asked for; one line here
+  rather than a change nobody requested.
