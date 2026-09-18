@@ -16273,3 +16273,90 @@ seven when the re-filing question was moved onto it earlier the same day.
   to the document's title and drops the name. Repair 3 makes the NUMBERS agree;
   which of the two is the contract's real title is a separate question and was
   not touched.
+
+---
+
+## 18 Sep 2026 (later) — the five upgrades, built to the drawing
+
+Young, on the merged run: *"Upgrade number 4 is not working according to the
+artifact. It seems almost all the changes did not go to main or were not coded"*.
+
+**The code HAD reached main and upgrade 4 DID work when driven** — every name
+was verified against `origin/main` and the door was pressed end to end in a
+browser. What was true is the half under it: **each upgrade was built to its
+headline and not to its drawing.** Measured against the artifact's own panels:
+U4 offered one door of three, U5 read the type but still let the value stream
+outrank it, U6 printed a prose sentence where the drawing prints a receipt, U7
+was read-only where the drawing has two verbs, U9 was a dialog of its own where
+the drawing has a fifth segment on the send screen. U8 alone matched.
+
+### What was built
+
+- **U4** — the refusal now names the model's REASON and the NEAREST template
+  (`closestName`, a NAME the route resolves, never an id), draws TWO doors
+  (Send this as a request · Write a template from this, the second only where
+  `mayMakeNewPaper` says so), and says who has been answering requests and how
+  long they take. `intakeAnswerLine` REFUSES rather than averaging two requests
+  into a promise.
+- **U5** — the reordering, which is the whole build: the built-in supply line
+  asked the type and the value stream in ONE breath, so an uploaded software
+  licence filed under Procurement was judged by the supply standards. Four
+  passes now — the workspace's own books (unchanged, type OR stream), the
+  built-in TYPE patterns, the baseline for a type that was READ and matched
+  nothing, then the stream for a contract whose type nobody read. Both hosts,
+  pass for pass. And the Overview's reading row NAMES the book the review
+  stamped.
+- **U6** — the Approval gate's clean state is a RECEIPT: one line per rule that
+  was actually checked, read off the rules this workspace really has, through
+  `ruleMatches` — the same reading the gate asks. Keyed on the CONDITION TYPE,
+  never the rule's typed name. A workspace with no rules keeps the old
+  sentence: a receipt for nothing is the reassurance this replaced.
+- **U7** — Chase them and Mark done on the phone, through the desktop's own
+  funnel; required documents ride in on the same list with their own state
+  line in the desktop table's own tones. The amount now prints through
+  `obligationMoneyText` — it was drawing a bare `840000`.
+- **U9** — Adviser is the FIFTH SEGMENT on the send screen's purpose row and
+  the More-menu row is a PROXY onto it (the first build was a second door onto
+  one act). The screen asks which clauses, and says the link lives 14 days and
+  that no seat is used.
+
+### Two real defects found on the way
+
+- **An adviser's note reached the counterparty.** `GET /api/shares/:token`
+  served the whole message table to every link holder, and an adviser posts
+  through the same route. Now a third `side` value (`'adviser'`) and a filter
+  in `contractMessages` that DROPS those rows unless the caller says who is
+  asking. Reproduced at the parent by a driven test before the fix.
+- **The adviser picker could never offer a single clause.** It filtered on
+  `cl.id`; `clauseSegment` writes `clauseId`, and only once `negoStampContract`
+  has stamped the body. Measured: every seeded contract answered zero. The
+  handle is the stored id where there is one and the clause's POSITION where
+  there is not, with one reading and two callers.
+- **The Word channel would have carried the whole contract on an adviser
+  link** — refused in words, with the channel that works named.
+
+### Proof
+
+- f333: 17 claims red at the parent (22 lines including the describe
+  roll-ups), plus a DRIVEN wall test that reproduces the counterparty seeing
+  the adviser's note at the parent and not after.
+- f133: both new cases red at the parent (`'supply'` where `_default` is owed).
+- Browser: phone-verify's new obligations section 5 of 8 red at the parent
+  (the parent prints `840000`); signing-flow 8a–8d all 4 red; the adviser
+  section's gate red at the parent because the picker offered nothing.
+- Re-pointed in place with the ruling beside them: f17 (the reuse claim pinned
+  a line break, not the relation), f42 (the purpose row gained a fourth
+  segment), f133's mirror world (it was measuring the FALLBACK, not the real
+  pair), f333 (4)(7c)(7c4)(9e).
+
+### Noticed, not fixed
+
+- `phone-verify`'s "no edits on the paper — the selection menu still opens" and
+  `obligations-tab-verify`'s band heading are both red at the parent too,
+  measured in a worktree.
+- `js/views/register.js:1045` `'rows' is not defined` and
+  `overview-as-drawn-verify.js:145` `no-self-compare` are the three lint
+  errors, all pre-existing.
+- The adviser picker names an unheaded clause "Passage N" because that is the
+  only honest name it has; a headed contract reads "5. Payment Terms". Whether
+  an unheaded document should be offered at all is a separate question.

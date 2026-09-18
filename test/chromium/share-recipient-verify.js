@@ -372,6 +372,60 @@ const ROUTE = [
       !!mail && new RegExp(cid + '-negotiation-history\\.docx').test(String(mail.detail)) && /negotiation history/i.test(mail.subject) && !/mark it up/i.test(mail.body),
       JSON.stringify(mail));
 
+    /* ---- A FIFTH PURPOSE, BESIDE THE OTHER FOUR (upgrade 9, 18 Sep 2026) ----
+       The artifact's drawing is this screen, so this is measured on it. An
+       adviser link is the only purpose that NARROWS what travels, so it is the
+       only one that asks a second question — and the two facts under that
+       question are the ones a reader would otherwise have to guess. */
+    const advId = await page.evaluate(() => {
+      /* A contract whose wording really segments, so the picker has something
+         to offer — the refusal path is a different claim. */
+      for (const c of state.contracts) {
+        try { if ((window.adviserClauses(c) || []).length >= 2) return c.id; } catch (_) {}
+      }
+      return null;
+    });
+    check('a contract whose clauses can be named', !!advId, advId || 'none');
+    if (advId) {
+      await page.evaluate(id => openShareModal(getContract(id)), advId);
+      await page.waitForTimeout(2400);
+      const before = await page.evaluate(() => ({
+        segs: [...document.querySelectorAll('#share-purpose [data-share-purpose]')].map(b => b.getAttribute('data-share-purpose')),
+        hidden: (document.getElementById('share-advise') || {}).className || 'absent',
+      }));
+      check('Adviser sits beside the other purposes on the row',
+        before.segs.includes('advise') && before.segs.slice(0, 3).join(',') === 'sign,negotiate,view', before.segs.join(' · '));
+      check('and its question is put away until it is chosen', /hidden/.test(before.hidden), before.hidden);
+      await page.evaluate(() => document.querySelector('[data-share-purpose="advise"]').click());
+      await page.waitForTimeout(500);
+      const on = await page.evaluate(() => {
+        const adv = document.getElementById('share-advise');
+        const r = adv.getBoundingClientRect();
+        const box = adv.querySelector('.asl-cl');
+        const br = box ? box.getBoundingClientRect() : null;
+        return {
+          painted: r.width > 40 && r.height > 40,
+          clauses: adv.querySelectorAll('.asl-cl').length,
+          /* PAINTED, not merely present. */
+          tickable: !!br && br.width > 6 && br.height > 6,
+          text: adv.textContent.replace(/\s+/g, ' ').trim(),
+          say: (document.getElementById('share-purpose-say') || {}).textContent || '',
+          /* NOBODY IS BEING ASKED FOR A SIGNATURE ON THIS LINK. */
+          readiness: ((document.getElementById('share-readiness-wrap') || {}).className || '').includes('hidden'),
+          signers: ((document.getElementById('share-signers') || {}).className || '').includes('hidden'),
+        };
+      });
+      check('the question is drawn, and its clauses can be ticked',
+        on.painted && on.clauses >= 2 && on.tickable, on.clauses + ' clauses');
+      check('how long the link lives is on the screen', /14 days/.test(on.text), on.text.slice(0, 120));
+      check('and that no seat is used', /No seat is used/i.test(on.text));
+      check('the sentence promises what the link cannot do',
+        /note/i.test(on.say) && /sign/i.test(on.say), on.say.slice(0, 120));
+      check('the contract\'s signing checks stand down', on.readiness && on.signers,
+        'readiness ' + on.readiness + ' · signers ' + on.signers);
+      await page.screenshot({ path: path.join(OUT, '05-adviser-purpose.png') });
+    }
+
     check('no page errors on the desktop journey', errors.length === 0,
       errors.join(' | ') || 'clean');
 

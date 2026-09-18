@@ -770,6 +770,85 @@ function approvalPanelHtml(c){
    (the Signing tab's "Approval gate"). Without it this box nests inside that
    one and the reader gets two borders and two headings for one thing. */
 const esc1x=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+/* ---- THE RECEIPT, NOT THE REASSURANCE (upgrade 6, 18 Sep 2026) ----
+   The artifact's own words: "because each line is a rule that was actually
+   checked, it is a receipt rather than a reassurance." So this is not a
+   sentence saying nothing is owed — it is ONE LINE PER RULE, read off the
+   rules this workspace really has, in their own order, each saying what that
+   rule asked and what this contract answered.
+
+   IT BORROWS THE ONE READING. `ruleMatches` is what buildApprovalChain asks,
+   and it is asked here too: a rule is on this list precisely because that
+   function said no. A second copy of "does this rule bite" is how a card
+   comes to disagree with the gate twelve pixels above it.
+
+   THE LINE IS KEYED ON THE CONDITION TYPE, never on the rule's NAME — a name
+   is typed by an admin and can say anything, and `condLabel` is the settings
+   page's own printer for an editor, not a finding. A condition type this
+   product does not know prints the rule's name rather than a guess.
+
+   AND IT IS NOT PERMISSION TO SIGN. "Before you sign" still holds whatever it
+   holds; this card answers one question — whose sign-off is owed — and its
+   answer here is nobody's. */
+const APPROVAL_CLEAR_SAYS = {
+  value: (cond, c) => {
+    /* An NDA carries no money at all, which is a different and better answer
+       than "under the threshold". isMonetary is the ONE reading of that. */
+    if(typeof isMonetary==='function' && !isMonetary(c)) return i18t('ap_clr_no_money');
+    const amt=(typeof fmtMoneyShort==='function')?fmtMoneyShort(cond.value):String(cond.value);
+    return (cond.op==='<=') ? i18t('ap_clr_value_over',{amount:amt}) : i18t('ap_clr_value_under',{amount:amt});
+  },
+  folder: cond => i18t('ap_clr_not_stream',{name:((typeof FOLDERS!=='undefined'&&FOLDERS[cond.value])||{}).name||cond.value}),
+  kind: cond => i18t('ap_clr_not_kind',{value:cond.value}),
+  /* The market is the workspace's own, named — "foreign law" with no home
+     named is a fact a reader cannot check. */
+  foreignLaw: () => i18t('ap_clr_home_law',{law:(typeof jxAdjective==='function')?jxAdjective():''}),
+  deviation: () => i18t('ap_clr_no_departure'),
+};
+function approvalClearRows(c){
+  const rows=[];
+  let rules=[]; try{ rules=approvalRules()||[]; }catch(_){ rules=[]; }
+  for(const r of rules.slice().sort((a,b)=>(a.order||99)-(b.order||99))){
+    if(!r || !r.cond) continue;
+    let bit=false; try{ bit=ruleMatches(r,c); }catch(_){ bit=false; }
+    if(bit) continue;                       // it bit — the chain names it, not this card
+    const say=APPROVAL_CLEAR_SAYS[r.cond.type];
+    let line=''; try{ line=say?String(say(r.cond,c)||''):''; }catch(_){ line=''; }
+    rows.push({ k:String(r.cond.type||''), said: line || String(r.name||'') });
+  }
+  /* THE OVERSEER IS A RULE TOO, and its absence is the same kind of fact: no
+     colleague is set to oversee whoever raised this. Only said where the
+     product has somebody to have named. */
+  let ov=null; try{ ov=(typeof overseerFor==='function')?overseerFor(c):null; }catch(_){ ov=null; }
+  if(!ov) rows.push({ k:'overseer', said:i18t('ap_clr_no_overseer') });
+  /* AND THE READER'S OWN SIGNING LIMIT, which is checked in the same breath
+     and holds nothing here. Only where a limit was actually answered — an
+     unanswered cap is not a limit this contract is inside of. */
+  try{
+    const me=(typeof currentUser==='function')?currentUser():null;
+    if(me && me.role!=='admin' && typeof signCapEnforced==='function' && signCapEnforced()){
+      const cap=signCapOf(me);
+      if(cap.answered && cap.limit!=null && !(typeof signCapBlocker==='function' && signCapBlocker(c,me)))
+        rows.push({ k:'cap', said:i18t('ap_clr_in_cap',{
+          amount:(typeof fmtMoneyShort==='function')?fmtMoneyShort(cap.limit):String(cap.limit) }) });
+    }
+  }catch(_){}
+  return rows;
+}
+function approvalClearHtml(c){
+  const esc1c=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+  const rows=approvalClearRows(c);
+  /* A WORKSPACE WITH NO RULES AT ALL still gets the headline and the lead —
+     "nobody's sign-off is owed" is true — but no ticks, because there was
+     nothing to check and a receipt for nothing is the reassurance this was
+     built to replace. */
+  const list=rows.length?`<ul class="ap-clear-list" style="list-style:none;margin:6px 0 0;padding:0">${
+    rows.map(r=>`<li data-ap-clr="${esc1c(r.k)}" style="display:flex;gap:6px;align-items:flex-start;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5;margin-top:2px"><span aria-hidden="true" style="color:var(--st-green-fg)">\u2713</span><span>${
+      esc1c(r.said)}</span></li>`).join('')}</ul>`:'';
+  return `<div class="ap-clear" style="margin:0;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.5">${
+    esc1c(i18t('ap_none_needed'))}<span style="display:block;color:var(--color-neutral-500);font-size:var(--t-label);margin-top:3px">${
+    esc1c(i18t(rows.length?'ap_none_needed_checked':'ap_none_needed_why'))}</span>${list}</div>`;
+}
 function approvalChainHtml(c, opts){
   const bare=!!(opts&&opts.bare);
   const st=approvalState(c);
@@ -790,11 +869,7 @@ function approvalChainHtml(c, opts){
      sentence would be furniture. It names where the rules live, because an
      assurance a reader cannot check is worth less than the silence it
      replaced. */
-  if(!st.required) return (opts&&opts.clear)
-    ? `<p class="ap-clear" style="margin:0;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.5">${
-        esc1x(i18t('ap_none_needed'))}<span style="display:block;color:var(--color-neutral-500);font-size:var(--t-label);margin-top:3px">${
-        esc1x(i18t('ap_none_needed_why'))}</span></p>`
-    : '';
+  if(!st.required) return (opts&&opts.clear) ? approvalClearHtml(c) : '';
   const stepChip=s=>s.status==='approved'?'text-brand-600':s.status==='rejected'?'text-rose-600':s.status==='stale'?'text-gold-700':'text-ink/50';
   const esc1=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   const stepRight=s=>s.status==='approved'?`✓ ${esc1(s.by)}`
@@ -1039,7 +1114,7 @@ function wireApprovalPanel(c){
    "have they seen it" — it reads shares.first_opened_at, which is stamped once
    on the first real open and never re-counted. */
 
-Object.assign(window,{overseerCfg,saveOverseerCfg,overseerEnforced,overseerFor,OVERSEER_STEP_ID,approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,saveSignerPlan,approvalPanelHtml,approvalChainHtml,signerRouteHtml,wireApprovalPanel});
+Object.assign(window,{overseerCfg,saveOverseerCfg,overseerEnforced,overseerFor,OVERSEER_STEP_ID,approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,saveSignerPlan,approvalPanelHtml,approvalChainHtml,APPROVAL_CLEAR_SAYS,approvalClearRows,approvalClearHtml,signerRouteHtml,wireApprovalPanel});
 
 /* ============================================================
    HOW MUCH MAY THIS PERSON SIGN FOR

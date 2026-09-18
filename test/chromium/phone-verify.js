@@ -290,6 +290,71 @@ const PROBE = () => {
     }
   }
 
+  /* ---- THE PROMISES, IN YOUR POCKET (upgrade 7, 18 Sep 2026) ----
+     The artifact's drawing is a PHONE SCREEN, so this is measured on one: the
+     four bands the desktop draws, the amount in the contract's own currency,
+     and the two verbs that already exist. A source sweep cannot tell a verb
+     that is drawn from one that is painted behind something. */
+  {
+    const ctx = await browser.newContext({
+      viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
+    const page = await ctx.newPage();
+    page.on('pageerror', e => errors.push('obligations: ' + e.message));
+    await page.goto(h.base + '/', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(600);
+    await page.fill('#li-email', 'admin@example.co.ke');
+    await page.fill('#li-pass', 'adminpassword1');
+    await page.click('#li-go');
+    await page.waitForTimeout(2600);
+    const cid = await page.evaluate(() => (window.state.contracts.find(c => c.status !== 'Signed') || window.state.contracts[0]).id);
+    await page.evaluate(id => { window.state.activeId = id; window.mGo && window.mGo('contract'); }, cid);
+    await page.waitForTimeout(1500);
+    /* Staged on the record the phone is holding, so the readings are the
+       product's own and not a fixture the renderer never sees. */
+    await page.evaluate(() => {
+      const c = window.mContract();
+      c.obligations = [
+        { id: 'o1', desc: 'Q3 volume rebate claim', text: 'Q3 volume rebate claim',
+          due: '2026-08-31', party: 'theirs', amount: 840000 },
+        { id: 'o2', desc: 'Food handling licence — renewed copy', text: 'Food handling licence — renewed copy',
+          due: '2026-09-30', party: 'theirs', doc: { file: '', until: '2026-09-30' } },
+        { id: 'o3', desc: 'Quarterly stock reconciliation', text: 'Quarterly stock reconciliation',
+          due: '2026-12-01', party: 'ours' },
+      ];
+      window.mS().tab = 'oblig';
+      window.mRender();
+    });
+    await page.waitForTimeout(800);
+    const ob = await page.evaluate(() => ({
+      tab: [...document.querySelectorAll('.m-ctab')].map(t => t.textContent.trim()).find(t => /Obligation/i.test(t)) || '',
+      bands: [...document.querySelectorAll('#m-root .m-card > div:first-child')].map(d => d.textContent.trim()),
+      chase: document.querySelectorAll('[data-m-ob-chase]').length,
+      done: document.querySelectorAll('[data-m-ob-done]').length,
+      /* PAINTED, not merely present: a verb behind something is not a verb. */
+      chasePainted: (() => { const b = document.querySelector('[data-m-ob-chase]'); if (!b) return false;
+        const r = b.getBoundingClientRect();
+        const el = document.elementFromPoint(Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2));
+        return !!(r.width > 20 && r.height > 20 && el && b.contains(el)); })(),
+      money: (() => { const rows = [...document.querySelectorAll('.m-ob-row')];
+        const hit = rows.find(r => /rebate/i.test(r.textContent)); return hit ? hit.textContent : ''; })(),
+      doc: [...document.querySelectorAll('.m-ob-doc')].map(d => d.textContent.trim()),
+      wide: Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth),
+    }));
+    check('obligations: the tab carries the desktop tab\'s own count', /3/.test(ob.tab), ob.tab);
+    check('obligations: the bands are the desktop\'s four, and an empty one draws nothing',
+      ob.bands.length === 3 && /Overdue/i.test(ob.bands[0]), ob.bands.join(' | '));
+    check('obligations: Chase them is offered on theirs only', ob.chase === 2, ob.chase + ' of 3 rows');
+    check('obligations: Mark done is on every row', ob.done === 3, String(ob.done));
+    check('obligations: and the verb is really painted', ob.chasePainted);
+    /* A BARE 840000 BESIDE A PROMISE IS A NUMBER, NOT MONEY. */
+    check('obligations: the amount is in the contract\'s own currency',
+      /KES/.test(ob.money) && !/840000/.test(ob.money), ob.money.replace(/\s+/g, ' ').trim().slice(0, 90));
+    check('obligations: a required document says what it is good until',
+      ob.doc.length === 1 && /30/.test(ob.doc[0]), ob.doc.join(' | '));
+    check('obligations: nothing off the side', ob.wide <= 1, ob.wide + 'px');
+    await ctx.close();
+  }
+
   await browser.close();
   await h.stop();
 
