@@ -1233,6 +1233,45 @@ Tests: f326 (28 claims, 26 red at the parent; the folderAccess wall is the named
 
 Young, 17 Sep 2026: *"I do not see the feature implemented in HaTi."* It IS implemented. MEASURED in a browser: at rest `regNarrowed()` is false and `#reg-cohort-slot` is deliberately EMPTY; set any filter and the slot fills with `Do this to these N ▾` (143×30) whose menu is the artifact's four rows. The artifact's own words: *"It is not drawn at all while the table shows everything, because then it would be an offer to act on the whole book."* If it looks missing, nothing is narrowing the table.
 
+## WHO MAY MAKE NEW PAPER (Young ruled it 18 Sep 2026, over a render of the person drawer)
+
+A FIFTH PER-PERSON GRANT beside the four that already work this way. "New paper" is paper with no approved wording behind it: writing a company-standard template. Drafting from an approved template, uploading received paper, negotiating and signing are the everyday acts and stay open — the owner's own note on the row promises it.
+- **`mayMakeNewPaper(u)` (js/core.js, published) is the ONE reading**: a viewer never, an admin always (a workspace that could lock its owner out of its own templates is a worse failure), everybody else on an explicit `newPaper === true`. **OFF BY DEFAULT** — the one place it differs from its four neighbours, and it means the deploy DOES change something for Editors.
+- Column `users.new_paper` DEFAULT 0; `newPaper` joins `ADMIN_ONLY_USER_FIELDS`; the RAW fact travels and one predicate answers for admins on each host.
+- **THE SERVER IS THE WALL**: `paperMaker` NARROWS `templateManager` on the FIVE routes that mint or write a company standard (create · upload-as-template · new version · write a version · publish). NOT gated, and asserted so: rename, re-file, archive, delete, `POST /api/templates/:id/contracts`, and `/api/settings/templates` (a counterparty's own template is importing their wording, not writing ours).
+- PATCH /api/users/:id is an ADMIN'S GRANT only; refuses a stored "no" on an admin and a stored "yes" on a viewer.
+- **ONE REFUSAL, ONE WAY FORWARD**: `newPaperBlocked` / `newPaperBlockLine` / `newPaperBlock` (js/views/templatelib.js, published). Drawn doors GREY with the reason on the hover; the funnel toasts a 'warn' — the kind that carries an ACTION — onto Requests, the door that already exists.
+Tests: f331 (1)–(6), paper-beside-questions-verify 4 and **6 (the wall DRIVEN as an Editor, not read: refused, self-service refused, granted, revoked, rename still open, a new version refused)**.
+
+## A REAL CONTRACT, NOT AN OUTLINE (the build plan's upgrade 1, 18 Sep 2026)
+
+All twelve built-in templates produced EXACTLY FOUR CLAUSES. They produce eleven to thirteen now.
+- **AN ANCHOR IS AN IDENTITY, NOT A POSITION.** `clause(n,title,body,key)`, key defaulting to `'c'+n`; flags and `data-anchor` read the KEY. ~30 hand-written risk findings point at `c1`…`c4` and NOT ONE had to be re-pointed — the template's own four keep their addresses wherever they land. The flag sweep matches `^(c\d+|s-[a-z]+)$`.
+- The twelve builders return DESCRIPTORS (`{key,title,body}`); the assembler numbers the run. Own lead three first, the nine next, the template's OWN LAST CLAUSE STAYS LAST (never Governing Law at 4 and Termination at 8).
+- `DOC_SHARED_CLAUSES` is the nine; `SHARED_BODY` words them inside docBody (they need its market pack and its TERM reading). **Four are READ FROM THE CLAUSE LIBRARY** through `docLibWording(id, fallback)` — cl-term · cl-liab · cl-conf · cl-dp — each with its own literal fallback, because js/playbook.js is not on every stage.
+- **NOTHING IS SAID TWICE**: `DOC_SHARED_SKIP` per template, and `docSharedSkip(tk)` folds in `DOC_TERM_IN_CLAUSE` rather than writing the term list twice. The recital's appended term sentence is GONE.
+- **`cl-dp` IS A GETTER NOW** (js/playbook.js), like `cl-law` beside it: it was hardcoded Kenyan while nothing printed it, and upgrade 1 prints it. Measured: a Swedish workspace cites the GDPR and the IMY.
+Tests: f331 (8)–(11), paper-beside-questions-verify 3; f131 and f245's cl-dp claims re-pointed to the RELATION.
+
+## THE PAPER BESIDE THE QUESTIONS (the build plan's upgrade 2, 18 Sep 2026)
+
+Both fill screens draw the agreement beside the boxes. **ONE builder, two doors** (js/templatefields.js, all published).
+- `fillPreviewContract(kind,o)` calls the SAME two pure functions the create path calls (`applyTemplateValues`, `fillTemplateBody`) and stops before the side effects; `fillPreviewHtml` renders through `docBody`. The throwaway has no id, never reaches state and nothing persists it (f331 greps for `nextId(`, `persist(`, `contractArrived`…).
+- `fillPreviewWire(root, kind, read)` binds input/change/focusin once; `fillPreviewLight` uses the product's own `is-fieldlit` and **never takes the caret**; the repaint is coalesced and re-lights the box that had it.
+- **THE PREVIEW IS INERT** — docBody draws a draft's blanks as REAL inputs, so without it a reader types into a contract with no id. Found on a screenshot, not in an assertion.
+- **THE COUNT IS LIVE OR IT IS NOT DRAWN** (`fillPreviewLeft`, `#tf-preview-left`): written once at the draw, the next keystroke contradicted it.
+- `FILL_PREVIEW_MIN_W` 1000: under it both dialogs are exactly what they were.
+Tests: f331 (12)(13), paper-beside-questions-verify 1, 2 and 5.
+
+## THE BUILDER HELPS WITH WORDING ALREADY THERE (upgrade 3, 18 Sep 2026)
+
+MEASURED first: most of it was built. `copilotPropose` is shown the section's wording as `passage`, `tbMarkedHtml` draws it against what is there, the four refinement chips already need a written section. **WHAT WAS MISSING was one guard and one sentence.**
+- `if (lib && !txt)` offered your own standard wording ONLY to an EMPTY section. Now `tbLibraryOffers(sec, lib)` — a reading about the library, not about emptiness — asked at the DRAW (the chip stands down) and at the PRESS (`tbUseLibrary` refuses in words), so the sign and the wall cannot disagree.
+- The label stays one word for one act; the HOVER carries the difference (`tb_pb_lib_over`).
+- `tb_greet_written` is the third opening: `tb_greet` asks what a section SHOULD say, which is the wrong question to put to wording that exists.
+- NOT BUILT and named: "Show me the difference" — the card already draws it, so it would be a second door onto what is on the screen.
+Tests: f331 (7); f306's written-section greeting reversed in place.
+
 ## Line numbers drift
 
 Line numbers were verified 2026-08-03. Code moves — treat them as starting points, re-verify with grep, and UPDATE THIS MAP when the layout changes.

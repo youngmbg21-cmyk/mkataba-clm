@@ -256,7 +256,9 @@ function tplCompanySectionHtml() {
         <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${i18tn('tl_in_library',list.length,{n:list.length})}</span>
         <span style="flex:1"></span>
         ${canManage ? `<button id="tpllib-upload" class="ui-btn ui-btn-secondary" style="font-size:var(--t-meta);padding:5px var(--s-3)">${icon('upload', 'w-3.5 h-3.5')} Convert a document</button>
-        <button id="tpllib-new" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:5px var(--s-3)">${icon('plus', 'w-3.5 h-3.5')} ${i18t('lib_new_template_plain')}</button>` : ''}
+        <button id="tpllib-new" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:5px var(--s-3)"${
+          newPaperBlocked()?` disabled title="${esc(newPaperBlockLine())}"`:''
+        }>${icon('plus', 'w-3.5 h-3.5')} ${i18t('lib_new_template_plain')}</button>` : ''}
       </div>
       ${cards
         ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px">${cards}</div>`
@@ -444,6 +446,7 @@ function tplConfirmPaint() {
         blocks: s.blocks.map((b, i) => ({ orderIndex: i, blockType: b.blockType, content: b.content })),
         fields: s.fields.map((f, i) => ({ ...f, orderIndex: i, humanReviewed: true })),
       });
+      if(newPaperBlock()) return;
       openTemplateBuilder(s.tid, s.vid);
     } catch (e) { toast(e.message, 'err'); }
   });
@@ -570,7 +573,26 @@ function tplLibCatStreamRowHtml(idCat, idStream, category, folder) {
       </div>`;
 }
 
+/* ---- WHO MAY MAKE NEW PAPER — THE REFUSAL (Young ruled 18 Sep 2026) ----
+   ONE SENTENCE AND ONE WAY FORWARD, asked by every door that leads to the
+   company-standard builder. The pattern is negoMayStart's: the drawn doors go
+   `disabled` with the reason on the hover (HaTi knows before the press), and
+   the funnel refuses in a 'warn' toast for the doors it cannot dress — a
+   'warn' is the kind that carries an ACTION, which is what makes this a
+   refusal with a door rather than a dead end. The door is the one that already
+   exists: Requests takes the ask as its own record, grants nothing, and has a
+   promised date and a tracker. A second door onto asking would drift. */
+function newPaperBlocked(){ return !(typeof mayMakeNewPaper!=='function' || mayMakeNewPaper()); }
+function newPaperBlockLine(){ return i18t('np_refused')+' '+i18t('np_refused_ask'); }
+function newPaperBlock(){
+  if(!newPaperBlocked()) return false;
+  toast(newPaperBlockLine(),'warn',{ action:{ label:i18t('np_ask_team'),
+    onClick(){ if(typeof setView==='function') setView('intake'); } } });
+  return true;
+}
+
 function tplLibCreateModal() {
+  if(newPaperBlock()) return;
   openModal(`
     <div style="padding:24px">
       <h3 style="margin:0 0 var(--s-1);font-family:var(--font-heading);font-size:16px;font-weight:var(--w-title)">${i18t('tl_new_standard')}</h3>
@@ -627,6 +649,7 @@ function saveContractToLibrary(c) {
       closeModal();
       toast(`Draft template created — ${r.fieldsCreated} field${r.fieldsCreated === 1 ? '' : 's'} recognised`);
       setView('templates');
+      if(newPaperBlock()) return;
       openTemplateBuilder(r.templateId, r.versionId);
     } catch (e) { toast(e.message, 'err'); }
   });
@@ -722,6 +745,7 @@ async function openTemplateLibDetail(id) {
   document.querySelectorAll('[data-tpllib-build]').forEach(el =>
     el.addEventListener('click', () => {
       const vid = el.getAttribute('data-tpllib-build');
+      if(newPaperBlock()) return;
       if (window.openTemplateBuilder) openTemplateBuilder(t.id, vid);
       else toast(i18t('tl_builder_next_phase'), 'err');
     }));
@@ -967,7 +991,7 @@ function tplFormPopover(c, idx, anchor) {
   try { input?.focus(); } catch (_) {}
 }
 
-Object.assign(window, { tplLibCategoryOptions, tplLibCatStreamRowHtml,
+Object.assign(window, { newPaperBlocked, newPaperBlockLine, newPaperBlock, tplLibCategoryOptions, tplLibCatStreamRowHtml,
   /* The whole cached list, drafts included, for surfaces that render company
      templates as rows of their own (the Templates page's library table)
      rather than through renderCompanyTemplatesSection's card grid. */

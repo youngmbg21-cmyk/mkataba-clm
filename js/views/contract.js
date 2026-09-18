@@ -2791,6 +2791,79 @@ function docFillable(c){
    on clause numbers (c1…c4), and renumbering them to fix a sentence would put
    every finding on the wrong paragraph. */
 const DOC_TERM_IN_CLAUSE = { ND:1, EQ:1, DA:1, LE:1 };
+/* ============================================================
+   A REAL CONTRACT, NOT AN OUTLINE (the build plan's upgrade 1, 18 Sep 2026)
+   ============================================================
+   MEASURED before a line moved: every one of HaTi's twelve built-in templates
+   produced EXACTLY FOUR CLAUSES. A supply agreement worth thirty-six million
+   shillings said what was supplied, what it cost, when it could be rejected
+   and which law governed it, and then it stopped — no termination, no
+   liability cap, no confidentiality, no force majeure, no notices, no
+   assignment, no entire-agreement clause, and nothing about data protection in
+   a market whose own Act is cited in the playbook. Everything else in the
+   product is built on top of this paper: the playbook, the redline, the clause
+   ladder, the three-stage check before a signature. All of it was defending a
+   document a counterparty's lawyer would send back in five minutes.
+
+   FOUR OF THE NINE ARE ALREADY YOURS. termination, liability cap,
+   confidentiality and data protection are in the clause library the playbook
+   already judges against, so they are READ FROM IT rather than written again
+   here — a workspace that edits its own standard wording sees that wording in
+   the paper it drafts tomorrow, and the playbook pass on a fresh draft comes
+   back aligned by construction rather than by coincidence. The library is in
+   js/playbook.js, which is not on every stage, so each one carries its own
+   literal fallback: a placeholder that draws for a year is this codebase's
+   own most expensive silent failure.
+
+   THE OTHER FIVE ARE ORDINARY BOILERPLATE, written once and shared by all
+   twelve rather than twelve times.
+
+   NOTHING IS SAID TWICE. Where a template's own clauses already carry one of
+   these topics — CM/WH/FF/PS allocate liability, MK/PS/ND deal with
+   confidentiality, EQ/DA/ND/LE state the term — DOC_SHARED_SKIP drops it. The
+   skip sets are written out per template rather than guessed from the
+   headings, because a heading that merely MENTIONS a word is not the same as a
+   clause that governs it.
+
+   NO NEW BLANKS. Every figure here is the standard this workspace's own
+   playbook already holds, written in words and digits the way the rest of the
+   paper writes them. A blank is a question, and this change is about the paper
+   saying more, not about asking the drafter more. */
+const DOC_SHARED_CLAUSES = [
+  { key:'s-term',   lib:null,      title:'Term and Renewal' },
+  { key:'s-end',    lib:'cl-term', title:'Termination' },
+  { key:'s-liab',   lib:'cl-liab', title:'Limitation of Liability' },
+  { key:'s-conf',   lib:'cl-conf', title:'Confidentiality' },
+  { key:'s-dp',     lib:'cl-dp',   title:'Data Protection' },
+  { key:'s-fm',     lib:null,      title:'Force Majeure' },
+  { key:'s-notice', lib:null,      title:'Notices' },
+  { key:'s-assign', lib:null,      title:'Assignment' },
+  { key:'s-whole',  lib:null,      title:'Entire Agreement' },
+];
+/* WHICH OF THE NINE A TEMPLATE'S OWN CLAUSES ALREADY GOVERN. Read once, in
+   the assembler, and nowhere else. A template not named here takes all nine. */
+const DOC_SHARED_SKIP = {
+  CM:['s-liab'], WH:['s-liab'], FF:['s-liab'],
+  PS:['s-liab','s-conf'], MK:['s-conf'], ND:['s-conf'],
+  DA:['s-end'],
+};
+/* THE TERM HALF IS NOT WRITTEN HERE. DOC_TERM_IN_CLAUSE above already states
+   which templates' own clauses carry the term, and it is the same question —
+   two lists would drift the day a template gained a term clause. */
+const docSharedSkip = tk => new Set([...(DOC_SHARED_SKIP[tk]||[]),
+  ...(DOC_TERM_IN_CLAUSE[tk] ? ['s-term'] : [])]);
+/* The library's own wording, or the fallback where js/playbook.js is not on
+   this stage. ONE READING, asked by the assembler alone. */
+function docLibWording(id, fallback){
+  try{
+    const lib=(typeof clauseLibrary==='function')?clauseLibrary()
+      :(window.DEFAULT_CLAUSE_LIBRARY||null);
+    const row=(lib||[]).find(x=>x&&x.id===id);
+    const w=row&&String(row.preferred||'').trim();
+    if(w) return w;
+  }catch(_){ }
+  return fallback;
+}
 /* "3 years" where the two dates are exactly that apart, "5 days" otherwise —
    said in brackets after the dates so a reader can check the arithmetic
    without doing it. Calendar arithmetic, never 365 × n (see termAdd). */
@@ -2841,13 +2914,27 @@ function docBody(c){
   // (openFindings), map each to its clause anchor, keep the worst severity.
   const flags={};
   try{ (window.openFindings?openFindings(c):[]).forEach(x=>{ const a=x.anchor;
-    if(/^c\d+$/.test(a||'')){ const r=(window.SEV_RANK&&SEV_RANK[x.sev])||{high:3,med:2,low:1}[x.sev]||0;
+    /* `c1`…`c4` are the template's own clauses and `s-…` the shared ones —
+       every anchor a clause can carry, and nothing else (a finding on the
+       recital or on the whole document is not a clause flag). */
+    if(/^(c\d+|s-[a-z]+)$/.test(a||'')){ const r=(window.SEV_RANK&&SEV_RANK[x.sev])||{high:3,med:2,low:1}[x.sev]||0;
       if(!flags[a]||r>flags[a].r) flags[a]={r,sev:x.sev}; } }); }catch(e){}
   const FLAGPAL={ high:{tag:'High',bg:'var(--st-ruby-bg)',fg:'var(--st-ruby-fg)',box:'rgba(176,69,60,.05)',line:'rgba(176,69,60,.3)'},
     med:{tag:'Deviation',bg:'var(--st-amber-bg)',fg:'var(--st-amber-fg)',box:'rgba(184,134,43,.06)',line:'rgba(184,134,43,.4)'},
     low:{tag:'Check',bg:'var(--st-amber-bg)',fg:'var(--st-amber-fg)',box:'rgba(184,134,43,.06)',line:'rgba(184,134,43,.4)'} };
-  const clause=(n,title,body)=>{
-    const p=flags['c'+n]?FLAGPAL[flags['c'+n].sev]:null;
+  /* ---- AN ANCHOR IS AN IDENTITY, NOT A POSITION (18 Sep 2026) ----
+     This read `flags['c'+n]` and stamped `data-anchor="c${n}"`, so a clause's
+     address WAS its printed number. About thirty hand-written risk findings
+     point at `c1`…`c4`, and the moment the shared clauses below were inserted
+     between clause 3 and the template's own last one, every one of them would
+     have pointed at a different paragraph — silently, as slightly odd advice
+     rather than as an error, which is the worst kind of failure this codebase
+     knows. THE KEY IS NOW SEPARATE FROM THE NUMBER: the template's own four
+     clauses keep the keys c1…c4 wherever they end up in the run, so not one
+     finding had to be re-pointed and none can drift again. */
+  const clause=(n,title,body,key)=>{
+    const a=key||('c'+n);
+    const p=flags[a]?FLAGPAL[flags[a].sev]:null;
     const wrap=p?` style="background:${p.box};outline:1px solid ${p.line};border-radius:var(--radius);padding:6px 10px;margin-bottom:14px"`:'';
     const tag=p?`<span style="font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.06em;text-transform:uppercase;background:${p.bg};color:${p.fg};padding:1px 6px;border-radius:var(--radius);flex:none">${p.tag}</span>`:'';
     /* NO FIXED-SIZE UTILITY ON THE PAPER. These carried `text-[13.5px]` and
@@ -2859,7 +2946,7 @@ function docBody(c){
        small setting the clause TITLE (10.66px) drew smaller than the body it
        sat above. The body now inherits the sheet's own scaled size and the
        heading takes a RATIO of it, so both follow the reader. */
-    return `<div class="${p?'py-1':'mb-5 px-2 -mx-2 py-1'}" data-anchor="c${n}"${wrap}><div style="display:flex;align-items:baseline;gap:var(--s-2);margin-bottom:var(--s-1)"><h4 class="font-display font-600 text-brand-900" style="margin:0;font-size:1.05em">${n}. ${title}</h4>${tag}</div><p style="margin:0;color:var(--color-doc-text);line-height:var(--lh-doc)">${body}</p></div>`;
+    return `<div class="${p?'py-1':'mb-5 px-2 -mx-2 py-1'}" data-anchor="${a}"${wrap}><div style="display:flex;align-items:baseline;gap:var(--s-2);margin-bottom:var(--s-1)"><h4 class="font-display font-600 text-brand-900" style="margin:0;font-size:1.05em">${n}. ${title}</h4>${tag}</div><p style="margin:0;color:var(--color-doc-text);line-height:var(--lh-doc)">${body}</p></div>`;
   };
   const f=c.fields;
   const D=id=>fDate(id,f[id]);                    // date field
@@ -2905,110 +2992,150 @@ function docBody(c){
     RM:()=>({ title:'RAW MATERIAL SUPPLY AGREEMENT',
       recital:`This Raw Material Supply Agreement is made on ${D('effDate')} between <strong>${OURS}</strong> (the "Buyer") and ${CP} (the "Supplier") for the supply of ${T('material','e.g. refined sugar')} into the Buyer's production facilities in ${MKT}.`,
       clauses:[
-        clause(1,'Supply & Specification',`The Supplier shall supply an estimated ${N('volume',5000)} metric tonnes per annum meeting the agreed specification${SB?` and the applicable ${SB} standard`:''}, delivered DDP to the Buyer's plant.`),
-        clause(2,'Price & Contract Value',`The estimated annual contract value is ${CUR} ${VAL}, based on agreed per-tonne pricing reviewed quarterly against published commodity indices. Prices are exclusive of VAT and invoices fall due within ${N('payDays',30)} days of receipt.`),
-        clause(3,'Quality & Rejection',`Consignments failing specification${(FSR||SB)?` or ${[FSR,SB].filter(Boolean).join(' / ')} requirements`:' or the agreed quality requirements'} may be rejected within ${N('inspectDays',3)} days of delivery, with replacement at the Supplier's cost.`),
-        clause(4,'Governing Law',LAWARB),
+        {key:'c1', title:'Supply & Specification', body:`The Supplier shall supply an estimated ${N('volume',5000)} metric tonnes per annum meeting the agreed specification${SB?` and the applicable ${SB} standard`:''}, delivered DDP to the Buyer's plant.`},
+        {key:'c2', title:'Price & Contract Value', body:`The estimated annual contract value is ${CUR} ${VAL}, based on agreed per-tonne pricing reviewed quarterly against published commodity indices. Prices are exclusive of VAT and invoices fall due within ${N('payDays',30)} days of receipt.`},
+        {key:'c3', title:'Quality & Rejection', body:`Consignments failing specification${(FSR||SB)?` or ${[FSR,SB].filter(Boolean).join(' / ')} requirements`:' or the agreed quality requirements'} may be rejected within ${N('inspectDays',3)} days of delivery, with replacement at the Supplier's cost.`},
+        {key:'c4', title:'Governing Law', body:LAWARB},
       ]}),
     PK:()=>({ title:'PACKAGING SUPPLY AGREEMENT',
       recital:`This Packaging Supply Agreement is made on ${D('effDate')} between <strong>${OURS}</strong> (the "Buyer") and ${CP} (the "Supplier") for the supply of ${T('packType','e.g. PET bottles & preforms')} and related packaging materials.`,
       clauses:[
-        clause(1,'Scope of Supply',`The Supplier shall manufacture and supply packaging to the Buyer's approved artwork and specification, against a rolling forecast, to the Buyer's plants in ${MKT}.`),
-        clause(2,'Price & Contract Value',`The estimated annual contract value is ${CUR} ${VAL}, on agreed per-unit pricing, with invoices payable within ${N('payDays',30)} days of receipt. Any dedicated tooling is owned by the Buyer and listed in Annexure A.`),
-        clause(3,'Forecast, Lead Time & Stock',`The Buyer issues a ${N('forecastWeeks',8)}-week rolling forecast; the Supplier holds ${N('safetyDays',14)} days of safety stock and honours agreed lead times.`),
-        clause(4,'Intellectual Property & Governing Law',`All trademarks and artwork remain the Buyer's property. ${LAW}`),
+        {key:'c1', title:'Scope of Supply', body:`The Supplier shall manufacture and supply packaging to the Buyer's approved artwork and specification, against a rolling forecast, to the Buyer's plants in ${MKT}.`},
+        {key:'c2', title:'Price & Contract Value', body:`The estimated annual contract value is ${CUR} ${VAL}, on agreed per-unit pricing, with invoices payable within ${N('payDays',30)} days of receipt. Any dedicated tooling is owned by the Buyer and listed in Annexure A.`},
+        {key:'c3', title:'Forecast, Lead Time & Stock', body:`The Buyer issues a ${N('forecastWeeks',8)}-week rolling forecast; the Supplier holds ${N('safetyDays',14)} days of safety stock and honours agreed lead times.`},
+        {key:'c4', title:'Intellectual Property & Governing Law', body:`All trademarks and artwork remain the Buyer's property. ${LAW}`},
       ]}),
     CM:()=>({ title:'CONTRACT MANUFACTURING & CO-PACKING AGREEMENT',
       recital:`This Contract Manufacturing Agreement is made on ${D('effDate')} between <strong>${OURS}</strong> (the "Brand Owner") and ${CP} (the "Co-Packer") for the manufacture of ${T('product','e.g. powdered beverages')} to the Brand Owner's specification.`,
       clauses:[
-        clause(1,'Manufacturing Scope',`The Co-Packer shall manufacture, fill and pack the products to the Brand Owner's recipe and specification at its licensed facility. All formulations and recipes remain the exclusive property of the Brand Owner.`),
-        clause(2,'Tolling Fee & Contract Value',`The estimated annual contract value is ${CUR} ${VAL}, billed as a per-unit conversion (tolling) fee, reconciled monthly against actual output and payable within ${N('payDays',30)} days of invoice.`),
-        clause(3,'Quality, Food Safety & Licences',`The Co-Packer shall maintain FSSC 22000${SB?` / ${SB}`:''} certification and valid ${(FSR&&TAX)?`${FSR} and ${TAX}`:'food-safety and business'} licences, and permit the Brand Owner to audit on ${N('auditNotice',7)} days' notice.`),
-        clause(4,'Liability & Governing Law',`The Co-Packer is liable for defects arising from its process, including recall costs. ${LAW}`),
+        {key:'c1', title:'Manufacturing Scope', body:`The Co-Packer shall manufacture, fill and pack the products to the Brand Owner's recipe and specification at its licensed facility. All formulations and recipes remain the exclusive property of the Brand Owner.`},
+        {key:'c2', title:'Tolling Fee & Contract Value', body:`The estimated annual contract value is ${CUR} ${VAL}, billed as a per-unit conversion (tolling) fee, reconciled monthly against actual output and payable within ${N('payDays',30)} days of invoice.`},
+        {key:'c3', title:'Quality, Food Safety & Licences', body:`The Co-Packer shall maintain FSSC 22000${SB?` / ${SB}`:''} certification and valid ${(FSR&&TAX)?`${FSR} and ${TAX}`:'food-safety and business'} licences, and permit the Brand Owner to audit on ${N('auditNotice',7)} days' notice.`},
+        {key:'c4', title:'Liability & Governing Law', body:`The Co-Packer is liable for defects arising from its process, including recall costs. ${LAW}`},
       ]}),
     EQ:()=>({ title:'EQUIPMENT LEASE & MAINTENANCE AGREEMENT',
       recital:`This Equipment Lease is made on ${D('effDate')} between <strong>${OURS}</strong> (the "Lessee") and ${CP} (the "Lessor") for the lease of ${T('equipment','e.g. a PET filling line')} installed at the Lessee's plant.`,
       clauses:[
-        clause(1,'Equipment & Title',`The Lessor shall install and commission the equipment at the Lessee's premises. Title to the equipment remains with the Lessor at all times during the term.`),
-        clause(2,'Lease Charges',`The Lessee shall pay a monthly lease charge of ${CUR} ${VAL}, in advance, exclusive of VAT.`),
-        clause(3,'Maintenance & Uptime',`The Lessor guarantees ${N('uptime',95)}% availability with an on-site response within ${N('respHrs',24)} hours, and holds critical spares locally.`),
-        clause(4,'Term, Insurance & Governing Law',`The term ${TERM?TERMRUN:`is ${N('termYears',3)} years`}. The Lessee shall insure the equipment to full replacement value with the Lessor noted as loss payee. ${ADJ} law governs.`),
+        {key:'c1', title:'Equipment & Title', body:`The Lessor shall install and commission the equipment at the Lessee's premises. Title to the equipment remains with the Lessor at all times during the term.`},
+        {key:'c2', title:'Lease Charges', body:`The Lessee shall pay a monthly lease charge of ${CUR} ${VAL}, in advance, exclusive of VAT.`},
+        {key:'c3', title:'Maintenance & Uptime', body:`The Lessor guarantees ${N('uptime',95)}% availability with an on-site response within ${N('respHrs',24)} hours, and holds critical spares locally.`},
+        {key:'c4', title:'Term, Insurance & Governing Law', body:`The term ${TERM?TERMRUN:`is ${N('termYears',3)} years`}. The Lessee shall insure the equipment to full replacement value with the Lessor noted as loss payee. ${ADJ} law governs.`},
       ]}),
     WH:()=>({ title:'WAREHOUSING & COLD-CHAIN SERVICES AGREEMENT',
       recital:`This Warehousing Agreement is made on ${D('effDate')} between <strong>${OURS}</strong> (the "Client") and ${CP} (the "Provider") for third-party storage and handling at ${T('site',EG('site'))}.`,
       clauses:[
-        clause(1,'Storage & Handling',`The Provider shall store up to ${N('pallets',1200)} pallet positions, including ${T('tempRange','e.g. 2–8°C chilled')} temperature-controlled space, with inventory managed on the Client's WMS.`),
-        clause(2,'Service Charge',`The monthly service charge is ${CUR} ${VAL}, based on pallet positions and throughput, exclusive of VAT, and is payable within ${N('payDays',30)} days of invoice.`),
-        clause(3,'Stock Accuracy & Temperature SLA',`The Provider shall maintain not less than ${N('accuracy',99)}% stock accuracy and continuous temperature logging, reporting any excursion within ${N('excursionHrs',2)} hours.`),
-        clause(4,'Liability & Governing Law',`The Provider is liable for loss or damage to goods in its custody up to their stock value. ${LAW}`),
+        {key:'c1', title:'Storage & Handling', body:`The Provider shall store up to ${N('pallets',1200)} pallet positions, including ${T('tempRange','e.g. 2–8°C chilled')} temperature-controlled space, with inventory managed on the Client's WMS.`},
+        {key:'c2', title:'Service Charge', body:`The monthly service charge is ${CUR} ${VAL}, based on pallet positions and throughput, exclusive of VAT, and is payable within ${N('payDays',30)} days of invoice.`},
+        {key:'c3', title:'Stock Accuracy & Temperature SLA', body:`The Provider shall maintain not less than ${N('accuracy',99)}% stock accuracy and continuous temperature logging, reporting any excursion within ${N('excursionHrs',2)} hours.`},
+        {key:'c4', title:'Liability & Governing Law', body:`The Provider is liable for loss or damage to goods in its custody up to their stock value. ${LAW}`},
       ]}),
     FF:()=>({ title:'FREIGHT & DISTRIBUTION AGREEMENT',
       recital:`This Freight & Distribution Agreement is made on ${D('effDate')} between <strong>${OURS}</strong> (the "Principal") and ${CP} (the "Carrier") for the distribution of finished goods across ${T('region',EG('region'))}.`,
       clauses:[
-        clause(1,'Scope of Services',`The Carrier shall collect from the Principal's warehouse and deliver to the ${T('channel','e.g. distributors and modern trade')} within the agreed territory.`),
-        clause(2,'Rates & Contract Value',`The estimated annual contract value is ${CUR} ${VAL}, billed against agreed per-drop and per-kilometre rates and reconciled monthly, with invoices payable within ${N('payDays',30)} days.`),
-        clause(3,'Service Levels',`The Carrier commits to an on-time-in-full (OTIF) target of ${N('otif',98)}% with delivery within ${N('leadHrs',48)} hours of dispatch, per the KPI schedule in Annexure A.`),
-        clause(4,'Liability & Governing Law',`Liability for loss in transit is capped per consignment value. ${LAWARB}`),
+        {key:'c1', title:'Scope of Services', body:`The Carrier shall collect from the Principal's warehouse and deliver to the ${T('channel','e.g. distributors and modern trade')} within the agreed territory.`},
+        {key:'c2', title:'Rates & Contract Value', body:`The estimated annual contract value is ${CUR} ${VAL}, billed against agreed per-drop and per-kilometre rates and reconciled monthly, with invoices payable within ${N('payDays',30)} days.`},
+        {key:'c3', title:'Service Levels', body:`The Carrier commits to an on-time-in-full (OTIF) target of ${N('otif',98)}% with delivery within ${N('leadHrs',48)} hours of dispatch, per the KPI schedule in Annexure A.`},
+        {key:'c4', title:'Liability & Governing Law', body:`Liability for loss in transit is capped per consignment value. ${LAWARB}`},
       ]}),
     DA:()=>({ title:'DISTRIBUTOR AGREEMENT',
       recital:`This Distributor Agreement is made on ${D('effDate')} between <strong>${OURS}</strong> (the "Principal") and ${CP} (the "Distributor"), appointing the Distributor for the ${T('territory',EG('territory'))} territory.`,
       clauses:[
-        clause(1,'Appointment & Territory',`The Principal appoints the Distributor on a non-exclusive basis to distribute its products within the territory. The Distributor shall not actively sell outside the territory without written consent.`),
-        clause(2,'Targets & Contract Value',`The estimated annual purchase value is ${CUR} ${VAL}, against agreed volume targets and a ${N('margin',12)}% distributor margin.`),
-        clause(3,'Credit & Payment Terms',`A credit limit of ${N('creditDays',30)} days applies, secured by a bank guarantee. Title to goods passes on delivery.`),
-        clause(4,'Term, Termination & Governing Law',`The term ${TERM?TERMRUN:`is ${N('termYears',2)} years`}, terminable on ${N('noticeDays',90,'90')} days' written notice. ${ADJ} law governs.`),
+        {key:'c1', title:'Appointment & Territory', body:`The Principal appoints the Distributor on a non-exclusive basis to distribute its products within the territory. The Distributor shall not actively sell outside the territory without written consent.`},
+        {key:'c2', title:'Targets & Contract Value', body:`The estimated annual purchase value is ${CUR} ${VAL}, against agreed volume targets and a ${N('margin',12)}% distributor margin.`},
+        {key:'c3', title:'Credit & Payment Terms', body:`A credit limit of ${N('creditDays',30)} days applies, secured by a bank guarantee. Title to goods passes on delivery.`},
+        {key:'c4', title:'Term, Termination & Governing Law', body:`The term ${TERM?TERMRUN:`is ${N('termYears',2)} years`}, terminable on ${N('noticeDays',90,'90')} days' written notice. ${ADJ} law governs.`},
       ]}),
     RL:()=>({ title:'RETAIL LISTING & SUPPLY AGREEMENT',
       recital:`This Retail Listing & Supply Agreement is made on ${D('effDate')} between <strong>${OURS}</strong> (the "Supplier") and ${CP} (the "Retailer") for the listing and supply of the Supplier's products into the Retailer's stores.`,
       clauses:[
-        clause(1,'Listing & Range',`The Retailer shall list the agreed SKUs across ${N('stores',40)} stores in the ${T('channel','e.g. modern trade')} channel, with planogram and shelf space per the trading terms in Annexure A.`),
-        clause(2,'Trading Terms & Value',`The estimated annual supply value is ${CUR} ${VAL}, with a ${N('rebate',5)}% volume rebate and the agreed listing fees.`),
-        clause(3,'Payment & Returns',`Payment falls due within ${N('payDays',60)} days of invoice. Short-dated or damaged stock is handled per the returns schedule.`),
-        clause(4,'Compliance & Governing Law',`Products shall comply with ${SB?`${SB} labelling and Legal Metrology requirements`:'applicable labelling and weights-and-measures requirements'}. ${LAW}`),
+        {key:'c1', title:'Listing & Range', body:`The Retailer shall list the agreed SKUs across ${N('stores',40)} stores in the ${T('channel','e.g. modern trade')} channel, with planogram and shelf space per the trading terms in Annexure A.`},
+        {key:'c2', title:'Trading Terms & Value', body:`The estimated annual supply value is ${CUR} ${VAL}, with a ${N('rebate',5)}% volume rebate and the agreed listing fees.`},
+        {key:'c3', title:'Payment & Returns', body:`Payment falls due within ${N('payDays',60)} days of invoice. Short-dated or damaged stock is handled per the returns schedule.`},
+        {key:'c4', title:'Compliance & Governing Law', body:`Products shall comply with ${SB?`${SB} labelling and Legal Metrology requirements`:'applicable labelling and weights-and-measures requirements'}. ${LAW}`},
       ]}),
     MK:()=>({ title:'MARKETING & TRADE PROMOTION SERVICES AGREEMENT',
       recital:`This Marketing Services Agreement is made on ${D('effDate')} between <strong>${OURS}</strong> (the "Client") and ${CP} (the "Agency") for ${T('services','e.g. creative, media and activation')} services.`,
       clauses:[
-        clause(1,'Scope of Services',`The Agency shall provide the services in accordance with approved campaign briefs and the Client's annual marketing calendar.`),
-        clause(2,'Fees & Contract Value',`The annual retainer / working budget is ${CUR} ${VAL}, billed ${T('billing','e.g. monthly')} and payable within ${N('payDays',30)} days of invoice, exclusive of VAT and third-party pass-through costs.`),
-        clause(3,'Approvals & Media',`All spend and creative require the Client's prior written approval. Any media rebates or volume bonuses are passed back to the Client in full.`),
-        clause(4,'IP, Confidentiality & Governing Law',`All work product and campaign intellectual property vest in the Client upon payment. ${LAW}`),
+        {key:'c1', title:'Scope of Services', body:`The Agency shall provide the services in accordance with approved campaign briefs and the Client's annual marketing calendar.`},
+        {key:'c2', title:'Fees & Contract Value', body:`The annual retainer / working budget is ${CUR} ${VAL}, billed ${T('billing','e.g. monthly')} and payable within ${N('payDays',30)} days of invoice, exclusive of VAT and third-party pass-through costs.`},
+        {key:'c3', title:'Approvals & Media', body:`All spend and creative require the Client's prior written approval. Any media rebates or volume bonuses are passed back to the Client in full.`},
+        {key:'c4', title:'IP, Confidentiality & Governing Law', body:`All work product and campaign intellectual property vest in the Client upon payment. ${LAW}`},
       ]}),
     ND:()=>({ title:'MUTUAL NON-DISCLOSURE AGREEMENT',
       recital:`This Mutual Non-Disclosure Agreement is entered into on ${D('effDate')} between <strong>${OURS}</strong>, a company incorporated in ${INC}, and ${CP}, collectively the "Parties".`,
       clauses:[
-        clause(1,'Purpose',`The Parties wish to explore a potential business relationship and, in connection therewith, may disclose confidential and proprietary information. No monetary consideration passes under this Agreement; the mutual exchange of Confidential Information constitutes sufficient consideration.`),
-        clause(2,'Confidential Information',`"Confidential Information" means all non-public information disclosed by one Party to the other, including recipes, specifications, commercial terms, pricing and customer data.`),
-        clause(3,'Term',`This Agreement shall remain in force ${TERM?`from ${TERM.from} until ${TERM.to}${TERM.len?` (${TERM.len})`:''}`:`for ${N('termYears',3)} years from the effective date`}, unless terminated earlier by written notice to the other Party's registered office.`),
-        clause(4,'Governing Law',`This Agreement is governed by the laws of ${INC}, and the Parties submit to the exclusive jurisdiction of ${FORUM}.`),
+        {key:'c1', title:'Purpose', body:`The Parties wish to explore a potential business relationship and, in connection therewith, may disclose confidential and proprietary information. No monetary consideration passes under this Agreement; the mutual exchange of Confidential Information constitutes sufficient consideration.`},
+        {key:'c2', title:'Confidential Information', body:`"Confidential Information" means all non-public information disclosed by one Party to the other, including recipes, specifications, commercial terms, pricing and customer data.`},
+        {key:'c3', title:'Term', body:`This Agreement shall remain in force ${TERM?`from ${TERM.from} until ${TERM.to}${TERM.len?` (${TERM.len})`:''}`:`for ${N('termYears',3)} years from the effective date`}, unless terminated earlier by written notice to the other Party's registered office.`},
+        {key:'c4', title:'Governing Law', body:`This Agreement is governed by the laws of ${INC}, and the Parties submit to the exclusive jurisdiction of ${FORUM}.`},
       ]}),
     LE:()=>({ title:'COMMERCIAL PROPERTY LEASE AGREEMENT',
       recital:`This Lease is made on ${D('effDate')} between ${CP} (the "Landlord") and <strong>${OURS}</strong> (the "Tenant") in respect of commercial premises situated at ${T('premises',EG('premises'))}.`,
       clauses:[
-        clause(1,'Demised Premises',`The Landlord leases to the Tenant premises measuring ${N('sqm',420)} square metres, together with shared access to power, water and secure parking.`),
-        clause(2,'Rent',`The Tenant shall pay monthly rent of ${CUR} ${VAL}, in advance on or before the 5th day of each month, exclusive of VAT${TAX?` at the prevailing ${TAX} rate`:''}.`),
-        clause(3,'Term & Deposit',`The lease term ${TERM?TERMRUN:`is ${N('termYears',6)} years`}, secured by a deposit of ${M('deposit',0,`deposit ${CUR}`)} held against dilapidations and refundable per clause 7.`),
-        clause(4,'Governing Law',LEASELAW),
+        {key:'c1', title:'Demised Premises', body:`The Landlord leases to the Tenant premises measuring ${N('sqm',420)} square metres, together with shared access to power, water and secure parking.`},
+        {key:'c2', title:'Rent', body:`The Tenant shall pay monthly rent of ${CUR} ${VAL}, in advance on or before the 5th day of each month, exclusive of VAT${TAX?` at the prevailing ${TAX} rate`:''}.`},
+        {key:'c3', title:'Term & Deposit', body:`The lease term ${TERM?TERMRUN:`is ${N('termYears',6)} years`}, secured by a deposit of ${M('deposit',0,`deposit ${CUR}`)} held against dilapidations and refundable per clause 7.`},
+        {key:'c4', title:'Governing Law', body:LEASELAW},
       ]}),
     PS:()=>({ title:'PROFESSIONAL SERVICES AGREEMENT',
       recital:`This Professional Services Agreement is made on ${D('effDate')} between <strong>${OURS}</strong> (the "Client") and ${CP} (the "Adviser") for ${T('services','e.g. statutory audit / legal advisory')} services.`,
       clauses:[
-        clause(1,'Scope of Engagement',`The Adviser shall provide the professional services described in the engagement letter / Annexure A with reasonable skill and care.`),
-        clause(2,'Fees & Contract Value',`The fees for the engagement are ${CUR} ${VAL}, billed ${T('billing','e.g. on milestones')} and payable within ${N('payDays',30)} days of invoice, exclusive of VAT and disbursements.`),
-        clause(3,'Standard & Independence',`The services shall be performed to professional standards and, where regulated, in line with ${PROF?`${PROF} requirements and `:''}applicable independence rules.`),
-        clause(4,'Liability, Confidentiality & Governing Law',`The Adviser's liability is capped at the fees paid, save for negligence or wilful default. ${LAW}`),
+        {key:'c1', title:'Scope of Engagement', body:`The Adviser shall provide the professional services described in the engagement letter / Annexure A with reasonable skill and care.`},
+        {key:'c2', title:'Fees & Contract Value', body:`The fees for the engagement are ${CUR} ${VAL}, billed ${T('billing','e.g. on milestones')} and payable within ${N('payDays',30)} days of invoice, exclusive of VAT and disbursements.`},
+        {key:'c3', title:'Standard & Independence', body:`The services shall be performed to professional standards and, where regulated, in line with ${PROF?`${PROF} requirements and `:''}applicable independence rules.`},
+        {key:'c4', title:'Liability, Confidentiality & Governing Law', body:`The Adviser's liability is capped at the fees paid, save for negligence or wilful default. ${LAW}`},
       ]}),
   };
+  /* ---- THE NINE, WORDED (upgrade 1) ----
+     Built here rather than beside the list above because every one of them
+     needs this render's own market pack and its own TERM reading, and a second
+     copy of those would be a second place the market is named. */
+  const SHARED_BODY = {
+    's-term': `The term ${TERM?TERMRUN:`is three (3) years from the effective date`}, and renews automatically for successive periods of twelve (12) months unless either party gives ninety (90) days’ written notice before the end of the then-current term.`,
+    's-end': docLibWording('cl-term',
+      `Either party may terminate for material breach not remedied within thirty (30) days of notice, or for convenience on ninety (90) days’ written notice.`)
+      + ` Either party may terminate immediately on the other’s insolvency, winding-up or the appointment of a receiver. Termination does not affect rights or obligations accrued before it takes effect.`,
+    's-liab': docLibWording('cl-liab',
+      `Each party’s aggregate liability under this Agreement is capped at the total fees paid in the twelve (12) months preceding the claim, save for liability that cannot be limited at law.`)
+      + ` Neither party is liable for indirect or consequential loss, or for loss of profit, revenue or anticipated savings.`,
+    's-conf': docLibWording('cl-conf',
+      `Each party shall keep the other’s confidential information secret and use it only for this Agreement, for the term and three (3) years after.`),
+    's-dp': docLibWording('cl-dp',
+      `Where personal data is processed, each party complies with applicable data protection law and only processes such data on documented instructions.`),
+    's-fm': `Neither party is liable for failure to perform caused by an event beyond its reasonable control, provided it notifies the other promptly and uses reasonable endeavours to resume. Payment obligations already accrued are not suspended. Either party may terminate if the event continues for more than sixty (60) days.`,
+    's-notice': `Notices under this Agreement shall be in writing and sent to the address or e-mail address recorded for the receiving party, and are deemed received on delivery or, if sent by e-mail, on the next working day in ${MKT}.`,
+    's-assign': `Neither party may assign or transfer this Agreement without the other’s prior written consent, which shall not be unreasonably withheld, save to a member of its own group on written notice.`,
+    's-whole': `This Agreement is the entire agreement between the parties on its subject matter and replaces all earlier discussions and understandings. No variation is effective unless made in writing and signed by both parties.`,
+  };
   const built=(BUILD[c.template]||BUILD.ND)();
-  const title=built.title, clauses=built.clauses;
-  /* The eight templates that draft no term clause say it on the recital
-     instead — see DOC_TERM_IN_CLAUSE. Appended here rather than written into
-     eight recitals so there is one sentence to keep right, and so a template
-     added later inherits it without anyone remembering to. */
-  const tk=BUILD[c.template]?c.template:'ND';
-  const recital=(TERM && !DOC_TERM_IN_CLAUSE[tk])
-    ? `${built.recital} The term ${TERMRUN}.`
-    : built.recital;
+  /* ---- WHERE THE NINE GO, AND WHY IT IS NOT THE END ----
+     Every template's LAST own clause is its governing-law clause (four of them
+     carry a second topic beside it). Appending the shared nine after it would
+     put Governing Law at 4 and Termination at 8, which reads wrong on paper
+     that a counterparty's lawyer opens. So the template's own lead clauses
+     stay where they are, the nine go next, and the template's own last clause
+     stays last — the wording is added to, never re-ordered within itself.
+     THE NUMBER IS THE POSITION IN THE RUN; the anchor is not (see clause()). */
+  const _skip=docSharedSkip(BUILD[c.template]?c.template:'ND');
+  const own=built.clauses||[];
+  /* A DECLARED CLAUSE WITH NO WORDING IS NOT DRAWN. The list above and the
+     wording below are two statements, and a key added to one and not the
+     other would otherwise print the word "undefined" on a contract. */
+  const shared=DOC_SHARED_CLAUSES.filter(x=>!_skip.has(x.key) && SHARED_BODY[x.key])
+    .map(x=>({ key:x.key, title:x.title, body:SHARED_BODY[x.key] }));
+  const _all=[...own.slice(0,-1), ...shared, ...own.slice(-1)];
+  const title=built.title, clauses=_all.map((d,i)=>clause(i+1, d.title, d.body, d.key));
+  /* ---- THE TERM IS SAID ONCE, AND IT IS SAID IN A CLAUSE (upgrade 1) ----
+     The eight templates that drafted no term clause used to say it on the
+     recital instead, because a fifth clause would have renumbered the findings
+     (the note on DOC_TERM_IN_CLAUSE above is that decision). Those eight now
+     carry `s-term`, so the append would be the same fact printed twice, twelve
+     pixels apart — and the second printing of a fact is what the rulebook's
+     own band test refuses. DOC_TERM_IN_CLAUSE keeps its meaning exactly: it is
+     still the list of templates whose OWN clauses carry the term, and it is
+     what DOC_SHARED_SKIP is built from, so there is one statement of that
+     fact rather than two. */
+  const recital=built.recital;
   /* One head for every body this tab draws — see docPaperHeadHtml. The
      template's own `title` is kept as the fallback for a contract with no name
      of its own; the record's name is what the rest of the product calls this
@@ -11944,7 +12071,7 @@ function distributionPanelHtml(c){
 
 
 Object.assign(window,{paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,
-  wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,paintKtTriage,triageAndPaint,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
+  wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,paintKtTriage,triageAndPaint,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,DOC_SHARED_CLAUSES,DOC_SHARED_SKIP,docSharedSkip,docLibWording,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign

@@ -517,11 +517,24 @@ describe('f306 (11) — what the screen prints', () => {
     assert.ok(s.rail.includes('title="one read"'), 'so the send has a price on it');
   });
 
-  test('a section that already carries wording is greeted, not asked, and gets the four refinements', async () => {
+  /* REVERSED IN PLACE 18 Sep 2026 (the build plan's upgrade 3). This claimed
+     the thread opened on `tb_greet` — "Tell me what X should say" — which is
+     the wrong question to put to wording that already exists, and which was
+     the visible half of the real fault: the builder would fill an EMPTY
+     section from the clause library and would not offer the same wording over
+     one somebody had drafted freehand. The refinement chips are unchanged. */
+  test('a section that already carries wording is told what can be done TO it, and gets the four refinements', async () => {
     const s = await stage([['heading', 'Confidentiality'], ['field_group', 'Each party shall keep the other’s information secret.']]);
     assert.ok(!s.paper.includes('data-tb-ph='), 'no placeholder under a written section');
     for (const chip of ['Shorter', 'Firmer', 'Make it mutual', 'Plain English']) assert.ok(s.rail.includes(`>${chip}<`), chip);
-    assert.ok(s.rail.includes('Tell me what'), 'the thread opens with a greeting for the section');
+    assert.ok(!s.rail.includes('Tell me what'), 'it no longer asks what the section should say');
+    assert.ok(s.rail.includes('is written'), 'it says the section is written');
+    /* AND THE HALF THAT WAS MISSING: your own standard wording, offered over
+       wording that already exists. It lands as a marked-up card like every
+       other — Apply is still the only thing that writes. */
+    assert.ok(s.rail.includes('Use our '), "the library's own wording is offered");
+    assert.ok(s.rail.includes('shown as a change against what is there'),
+      'and the hover says it arrives as a change, so the label need not');
   });
 
   test('the playbook is a TAB on the rail: it names its book and offers a door per gap', async () => {
