@@ -545,6 +545,7 @@ describe('f331 (11) — and a Swedish workspace gets Swedish law', () => {
    layout, so this file proves the CONTRACT, not the pixels. */
 const TF = read('js/templatefields.js');
 const WIZ = read('js/wizard.js');
+const CT = read('js/views/contract.js');
 
 describe('f331 (12) — one preview builder, two doors', () => {
   test('it is built from the same two functions the create path uses', () => {
@@ -614,6 +615,51 @@ describe('f331 (13) — the link, and the room to draw it', () => {
     assert.match(b, /clearTimeout\(_fillPaintTimer\)/, 'one paint per frame, not twelve');
     assert.match(b, /if\(lit\) fillPreviewLight\(lit\)/,
       'the paper is rebuilt, so the lit word is a new element every time');
+  });
+
+  /* ---- THE PAPER IS READ, NOT FILLED IN, AND NOTHING COVERS IT (Young ruled
+     it 18 Sep 2026: "the page on the right needs to scroll") ----
+     The blanks in this column answer nothing — the contract has no id and
+     nothing persists it — so they were first covered with `inert` and
+     pointer-events:none. That also stopped the reader scrolling the column: a
+     subtree the browser will not hit-test takes no wheel and no scrollbar drag
+     either. MEASURED at the parent, 1,758px of agreement in a 320px box and a
+     real wheel moving it 0px.
+     It is answered where the box is DRAWN instead — and with `readonly` rather
+     than `disabled`, which is the whole screen: .field:disabled deliberately
+     dresses a locked blank as plain settled text (solid rule, body ink, no
+     wash), which is right on the counterparty's copy and wrong here, where the
+     blanks ARE what the reader is answering and the one under their caret is
+     lit. MEASURED both ways: readonly leaves the blank rgb(17,94,89) on
+     rgb(204,251,241) with a dashed rule, byte for byte what it was. */
+  test('the preview\'s blanks are readonly and out of the tab order, never disabled', () => {
+    /* THE REGION, NEVER A BYTE COUNT — this file has paid for that twice
+       already. `const dis=` appears exactly once in the file and is the end of
+       the reading; anchoring on the two statements means a longer note between
+       them costs no test edit. */
+    assert.equal((CT.match(/const dis=/g) || []).length, 1, 'one place decides it');
+    const fn = /const locked=c\.status==='Signed'[\s\S]*?const dis=[^\n]*\n/.exec(CT);
+    assert.ok(fn, 'docBody still decides once whether a blank is live');
+    assert.match(fn[0], /c\._preview===true\?'readonly tabindex="-1"'/,
+      'a preview\'s blanks are readonly and unreachable by Tab');
+    assert.ok(!/_preview[^\n]*\|\|/.test(fn[0]) && !/\|\|c\._preview/.test(fn[0]),
+      'and NOT folded into `locked` — that would dress them as settled text');
+    /* The flag is set in exactly one place and read in exactly one place, so
+       there is no chance of a live screen inheriting a preview's answer. */
+    assert.equal((TF.match(/_preview\s*:\s*true/g) || []).length, 1,
+      'fillPreviewContract is the only thing that sets it');
+    assert.equal((strip(CT).match(/\bc\._preview\b/g) || []).length, 1,
+      'docBody is the only thing that reads it');
+  });
+
+  test('nothing covers the preview column any more', () => {
+    const pane = /function fillPreviewPaneHtml\(n\)\{[\s\S]*?\n\}/.exec(TF);
+    assert.ok(pane, 'the pane is still one builder for both doors');
+    const markup = pane[0].replace(/\$\{''\/\*[\s\S]*?\*\/\}/g, '');
+    assert.ok(!/\binert\b/.test(markup), 'no inert attribute on the column');
+    assert.ok(!/pointer-events\s*:\s*none/.test(markup), 'and no pointer-events:none');
+    assert.match(markup, /overflow:auto/, 'it is still a scroller');
+    assert.match(markup, /user-select:text/, 'and its wording can still be selected and copied');
   });
 
   test('under the width it is byte-identical to what it was', () => {

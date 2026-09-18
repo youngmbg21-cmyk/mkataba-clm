@@ -2900,7 +2900,25 @@ function docBody(c){
      the two halves of one expression now agree. */
   const t=TEMPLATES[c.template]||TEMPLATES.ND;
   const locked=c.status==='Signed'||PORTAL_MODE||!canEdit();
-  const dis=locked?'disabled':'';
+  /* ---- A PREVIEW'S BLANKS ARE A MIRROR, NOT A SECOND FORM (Young reported it
+     18 Sep 2026: "the page on the right needs to scroll") ----
+     The fill screens draw this same paper beside the questions off a contract
+     that has no id and that nothing persists, so a box typed into there answers
+     nothing. That was met by covering the whole column with `inert` and
+     pointer-events:none — which stopped the reader SCROLLING it too, because a
+     subtree the browser will not hit-test takes no wheel and no scrollbar drag
+     either. MEASURED at the parent: 1,758px of agreement in a 320px box, a
+     scrollbar drawn, and a real wheel over it moving it 0px.
+
+     READONLY, NOT DISABLED, and the difference is the whole screen. MEASURED
+     both ways: .field:disabled deliberately dresses a locked blank as plain
+     settled text — solid rule, body ink, no wash — which is right on the
+     counterparty's copy and wrong here, where the blanks ARE what the reader is
+     answering and the one their caret is in is lit. `readonly` keeps every one
+     of .field's own clothes, refuses the typing, and still lets the term be
+     selected and copied. tabindex="-1" keeps six boxes that answer nothing out
+     of the tab order; the answer is the box on the left. */
+  const dis=locked?'disabled':(c._preview===true?'readonly tabindex="-1"':'');
   const fDate=(id,val)=>`<input ${dis} type="date" value="${val||''}" data-field="${id}" class="field field-date"/>`;
   const fText=(id,val,ph='')=>`<input ${dis} type="text" value="${val||''}" placeholder="${ph}" data-field="${id}" class="field"/>`;
   const fNum=(id,val,ph='')=>`<input ${dis} type="number" value="${val??''}" placeholder="${ph}" data-field="${id}" class="field field-num"/>`;

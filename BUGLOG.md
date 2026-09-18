@@ -15919,3 +15919,113 @@ section. WHAT WAS ACTUALLY MISSING was one guard and one sentence:
   `st_role_*` labels then go through `esc()`, so it is escaped twice. On main
   already (seen on a screenshot of the person drawer while the new-paper row
   was being checked). One key in both books, not mine to fix here.
+
+## 18 September 2026 — the two scrolls: the settings tabs stay, the fill preview moves
+
+Young, in two messages: *"for the team & settings page, make that when you
+scroll, you do not lose the tabs. The body scrolls up behind the tabs line."*
+Then, of the fill screen: *"add the following to the fix. The page on the right
+needs to scroll."* One change, two surfaces.
+
+### Measured at the parent before a line moved
+
+- SETTINGS, 1440x620, Platform settings: the tab row rests at y=84 and 600px
+  down it is at y=-516 and off the scroller entirely. Seventeen panels is more
+  than one screen by construction, so an admin reading the bottom of the list
+  had no way to another tab but scrolling all the way back to the top.
+- THE FILL PREVIEW: `pointer-events:none` and `inert`, 1,758px of agreement in
+  a 320px box, a scrollbar drawn — and a REAL wheel over it moving it **0px**.
+  A real click and real keystrokes wrote "TYPED INTO THE PREVIEW" into a
+  contract with no id at the same time, which is the fault the cover was for.
+
+### What was built
+
+- `.st-tabs` is `position:sticky; top:0; z-index:3; background:var(--color-bg)`
+  inside `#content-scroll`. NOT VIEW_OWNS_HEIGHT: an inner scroller would take
+  the scrollbar gutter, keepScroll, openSettingsAt's landing and
+  settingsHoldHeights with it to arrive at the same row in the same place. The
+  register pins its band and column head exactly this way, and `#content`
+  carries no CSS rule at all, so nothing between the row and the scroller
+  clips it — which is the one thing that kills sticky in silence.
+- It BLEEDS to the page's edges and puts the page's own top padding back
+  inside — .room-band's idiom, read from --page-pad-t / --page-pad-x rather
+  than typed. Measured at four widths, at rest and pinned: the first painted
+  glyph does not move by a pixel, so "ONE HEADER TOP" still measures what it
+  measured. A pinned row that is not opaque across the WHOLE width shows the
+  body through the gutters beside it.
+- `stLandTop()` is one reading with two callers. openSettingsAt's own four
+  lines moved into it unchanged; settingsGoTab gained it, because a tab can now
+  be pressed from the bottom of seventeen panels and a press that NAVIGATES may
+  land at the top.
+- THE PREVIEW IS ANSWERED WHERE THE BOX IS DRAWN. docBody's own `locked` line
+  reads `c._preview` (set in one place, read in one place) and gives those
+  blanks `readonly tabindex="-1"`. Nothing covers the column any more, so it is
+  an ordinary scrolling read.
+
+### readonly, never disabled — and the difference is the whole screen
+
+`disabled` was the first answer and it was wrong. `.field:disabled`
+deliberately dresses a locked blank as plain settled text — solid rule, body
+ink, no wash — which is right on the counterparty's copy and wrong here, where
+the blanks ARE what the reader is answering and the one under their caret is
+lit. MEASURED both ways against the parent: with `disabled` the blank read
+rgb(14,26,24) on transparent with a solid rule; with `readonly` it reads
+rgb(17,94,89) on rgb(204,251,241) with a dashed rule, byte for byte what it
+was. The paper's geometry is identical too: first ink 54, 1758x492.
+
+### Proof
+
+- f193 — the landing re-pointed IN PLACE to the reading rather than to the
+  bytes it used to be written in, plus the pinned row's four claims. Red at the
+  parent bar one named control ("nothing between the row and the scroller
+  clips it", which must be green both sides — it is what makes sticky safe).
+- f331 (12) extended with the preview's two contract claims. Both red at the
+  parent.
+- white-band-and-tabs-verify 6d-6g, on the real page: 4 of 5 red at the parent
+  (6d is the control that proves the stage bites). 6g DISPATCHES the press in
+  the page — clicked with Playwright it scrolls the tab into view first and
+  passes against a build that does nothing, which it did until it was changed.
+- paper-beside-questions-verify 1g REVERSED IN PLACE (it asserted the cover;
+  it asserts the two facts the cover stood in for now, both driven with a real
+  mouse and a real keyboard) and 1g2 added. Both red at the parent, 1g
+  reproducing the fault verbatim: 7 blanks, all live, all in the tab order, and
+  "Nandi Dairy Ltd" typed into a contract with no id.
+- Full node suite and `npm run lint` identical to the parent. Browser files
+  re-run green: settings-tabs 84/84, settings-holds-still 18/18,
+  paper-beside-questions 29/29, term-and-fields 30/30, newcontract 24/24,
+  nda-carries-no-money 21/21, keeps-your-place 11/11.
+
+### Noticed, not fixed
+
+- white-band-and-tabs-verify 5d and 5e fail IDENTICALLY at the parent: the
+  Contracts and Negotiations list titles compute lineHeight 20px against the
+  reference row's 19.6px. On main already, not mine.
+- The fill preview's scrollbar is an OVERLAY in headless Chromium — 0px of
+  layout width — so a scrollbar DRAG cannot be measured there and the wheel is
+  what 1g2 asserts. An instrument property, not a product fault; the owner's
+  own screenshot shows a real scrollbar.
+- On the phone the desktop shell is display:none and `renderTeam()` still
+  writes a whole settings page into it; the phone draws its own. Both changes
+  here are invisible there, which was checked rather than assumed. Whether that
+  hidden render is worth removing is somebody's call, not this task's.
+- `test/chromium/overview-as-drawn-verify.js:145` still carries the
+  repository's one standing lint error (`no-self-compare`). On main already.
+
+### Correction the same run — the row has three homes
+
+Rule 1 of the Bug Fix Rules, caught on the way past. `.st-tabs` was made ONE
+control on THREE pages on purpose — Team & Settings, the Templates page's two
+tabs and Our standards' — so the pin written on the base rule silently pinned
+two pages nobody had mentioned, and its bleed shorthand would have fought the
+Templates row's own inline `margin-bottom:14px` into the bargain.
+
+The base rule is back byte for byte and the pin is a second rule,
+`.st-page > .st-tabs`, which is the settings page and nothing else. MEASURED on
+all three pages in one sitting: Settings sticky, margin -8/-16, opaque, glyph
+at 8, top 0 after scrolling 900. Templates static, margin-bottom 14, glyph 48,
+left 16, scrolls away. Our standards static, all zeros, glyph 8, left 16,
+scrolls away. Only the page that was asked about moved.
+
+f193 pins the scoping itself: the base rule must state no `position:sticky`,
+and the other two homes must still exist — if they ever go, the scoping can be
+revisited rather than discovered.

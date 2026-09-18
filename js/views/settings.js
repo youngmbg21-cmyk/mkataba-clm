@@ -305,7 +305,14 @@ function settingsTab(){ return ST_TABS.includes(_stTab)?_stTab:'people'; }
 /* CHANGING TAB CLEARS THE SEARCH. The box searches every tab, so a query left
    standing would draw the same cross-tab result list under a tab the reader
    just chose — the tab press would look broken. */
-function settingsGoTab(k){ if(!ST_TABS.includes(k)) return; _stTab=k; _stQuery=''; renderTeam(); }
+/* AND IT LANDS AT THE TOP OF THE TAB IT OPENED. Until 18 Sep 2026 that came
+   for free: the row scrolled with the page, so reaching a tab meant already
+   being at the top. The row is pinned now (.st-page > .st-tabs, index.html —
+   scoped, because Templates and Our standards wear the base row too), so a
+   tab can be pressed from the bottom of seventeen panels — and a press that
+   NAVIGATES may land at the top, which this one does: it is four different
+   pages of settings and it already clears the search. */
+function settingsGoTab(k){ if(!ST_TABS.includes(k)) return; _stTab=k; _stQuery=''; renderTeam(); stLandTop(); }
 /* THE ONE NAMED DOOR IN. Everything that wants to land somewhere specific on
    this page goes through it, so there is one place that knows the page is
    admin-only and one place that knows how a tab and a panel are asked for. */
@@ -329,12 +336,18 @@ function openSettingsAt(tab, panel){
 
      Written here rather than in setView, because setView cannot tell a
      navigation from a repaint and this function can: everything that arrives
-     through it is a navigation. The frame is asked twice for the reason setView
-     asks twice — the rebuild's shorter intermediate paint clamps the scroll,
-     and the value has to be put back once the new frame has its height. */
+     through it is a navigation. */
+  stLandTop();
+}
+/* ONE READING OF "put the reader at the top of this page", with two callers:
+   the named door above and a tab press. The frame is asked twice for the reason
+   setView asks twice — the rebuild's shorter intermediate paint clamps the
+   scroll, and the value has to be put back once the new frame has its height. */
+function stLandTop(){
   const sc=(typeof document!=='undefined')&&document.getElementById('content-scroll');
-  if(sc){ sc.scrollTop=0;
-    if(typeof requestAnimationFrame==='function') requestAnimationFrame(()=>{ sc.scrollTop=0; }); }
+  if(!sc) return;
+  sc.scrollTop=0;
+  if(typeof requestAnimationFrame==='function') requestAnimationFrame(()=>{ sc.scrollTop=0; });
 }
 
 /* ---------------- THE DRAWER ----------------
@@ -4524,7 +4537,7 @@ async function loadSessions(){
    the shell calls; SET_PANELS and the readers beside it are what the tests read. */
 Object.assign(window,{renderTeam,stRepaintPanel,renderMyAccountPage,briefCadenceOf,BRIEF_EVERY_VALUES,renderPrecedentPanel,precedentAdopt,stdOpenPreferred,renderStandardsDraft,stdOpenClauseId,stdSetOpenClause,stdStanceChipHtml,stdFallbackChipHtml,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
   renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions,
-  openMyAccount,openSettingsAt,settingsGoTab,settingsTab,SET_PANELS,ST_TABS,SET_CLOSURES,ST_GROUPS,ST_ATTENTION_MAX,
+  openMyAccount,openSettingsAt,settingsGoTab,settingsTab,stLandTop,SET_PANELS,ST_TABS,SET_CLOSURES,ST_GROUPS,ST_ATTENTION_MAX,
   stDrawerOpen,stDrawerClose,stDrawerRefuse,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,
   settingsWriteFolderAccess,settingsExportBackup,stGoLive,stSampleContracts,stClearSamples,stRunIntegrity,
   stPersonMissing,stAccountBodyHtml,parseDirectoryCsv,openFolderAccessEditor,settingsMirrorDirectory,
