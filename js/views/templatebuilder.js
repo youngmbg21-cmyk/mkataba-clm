@@ -384,6 +384,23 @@ function tbWordingBlock(sec) {
   return sec.headIndex + 1;
 }
 
+/* ---- APPLY ANSWERS THE WHOLE SECTION, NOT ITS FIRST PARAGRAPH (18 Sep 2026) ----
+   REPORTED as the second of the seven repairs. The model is shown the section
+   through tbSectionText, which joins EVERY body block with a blank line
+   between — so it answers the whole section. Apply then wrote sec.body[0] and
+   left the rest standing, and a two-paragraph section came out as the new
+   wording followed by the old one.
+
+   The accepted text IS the section's wording, so the blocks it replaced go.
+   REMOVAL ONLY: tbAddBlock is still the one push into _tb.blocks, and the
+   three writers of block CONTENT are unchanged. Highest index first, or each
+   splice would move the ones still to come. */
+function tbDropExtraBody(sec, keep){
+  const extra = ((sec && sec.body) || []).filter(i => i !== keep).sort((a, b) => b - a);
+  for (const i of extra) _tb.blocks.splice(i, 1);
+  return extra.length;
+}
+
 /* ---- WHAT A FAILURE SAYS, ON THE SECTION BEING LOOKED AT ----
    No key, a ceiling, a provider refusal: each has its own sentence and each
    leaves the ordinary textarea one press away. Never a toast that flashes and
@@ -642,6 +659,7 @@ async function tbAccept(k, idx) {
   }
   const bi = tbWordingBlock(sec);
   _tb.blocks[bi].content = a.text;
+  tbDropExtraBody(sec, bi);
   tbTouch();
   a.applied = true;
   const receipt = i18t('tb_pb_applied', { n: tbSectionNo(sec), head: sec.head || i18t('tb_untitled') });
@@ -662,6 +680,12 @@ async function tbBlanksRun(k, text) {
   if (!String(text || '').trim() || !(typeof copilotAvailable === 'function' && copilotAvailable())) return;
   try {
     const d = await api('ai/blanks', 'POST', { text }, { quiet: true });
+    /* IT IS A READ LIKE THE OTHER TWO (a repair off the 18 Sep list). Every
+       Apply fires this second call; it is metered on the server, so leaving it
+       out of the count made the card's "read N" a number that did not match
+       the bill. Counted where the other two count it: after the answer is
+       back. */
+    _tb.reads++;
     const have = _tb.fields.map(f => f.fieldKey);
     const rows = (d.fields || [])
       .filter(f => f && f.find && String(text).includes(f.find) && !have.includes(f.key))
@@ -669,7 +693,17 @@ async function tbBlanksRun(k, text) {
                    type: TB_BLANK_TYPE[f.type] || 'short_text', opts: Array.isArray(f.opts) ? f.opts : [],
                    required: !!f.required, maps: String(f.maps || ''), find: String(f.find) }));
     if (rows.length) { _tb.proposed = (_tb.proposed || []).concat(rows); tbPaint(); }
-  } catch (_) { /* a blank nobody proposed is the ordinary case, not a failure to report */ }
+  } catch (e) {
+    /* AN EMPTY ANSWER IS ORDINARY; A REFUSAL IS A FACT (the same repair). A
+       blank nobody proposed is the ordinary case and is still silent — that is
+       the branch above, which simply adds no rows. This one is the call not
+       coming back at all: no key, the daily ceiling, a provider refusal. It
+       was swallowed whole, so a builder that had quietly stopped proposing
+       blanks looked identical to one with nothing to propose. tbSay gives each
+       its own sentence and it lands on the section being looked at. */
+    tbTurn(k, { who: 'ai', text: tbSay(e), tone: 'amber' });
+    tbPaintRail();
+  }
 }
 function tbKeepBlank(i) {
   const p = (_tb.proposed || [])[i]; if (!p) return;
@@ -937,10 +971,18 @@ function tbPaperHtml() {
     title();
     if (b.blockType === 'heading') {
       if (open) html += '</div>';
-      n++; const sec = bySec.get(i); const st = sec ? tbSecState(sec, cov) : '';
+      /* THE NUMBER THIS HEADING WILL PRINT AS, not its position in the list
+         (18 Sep 2026, the third repair). templateFormDocHtml promotes the
+         FIRST heading to the document's title, and a title carries no clause
+         number; the rest number from 1, and one already carrying its own
+         keeps it. Both readings are that renderer's, asked through window so
+         the paper and the published contract cannot drift. */
+      n++; const own = (typeof tplFormHeadingNumbered === 'function') && tplFormHeadingNumbered(b.content);
+      const clauseNo = (n === 1 || own) ? '' : String(n - 1) + '.';
+      const sec = bySec.get(i); const st = sec ? tbSecState(sec, cov) : '';
       html += `<div class="tb-sec${sec && sec.k === _tb.focus ? ' is-on' : ''}${st ? ' is-' + st : ''}${sec && !tbSectionText(sec) ? ' is-empty' : ''}" data-tb-sec="${b._k}">
         <div class="tb-row tb-row-h" data-tb-row="${i}"><span class="tb-dot"></span>${G(i, fits ? `<button type="button" data-tb-tag="${b._k}" title="${i18t('tb_ask_label')}">✦</button>` : '')}
-          <h3 class="tb-h"><span class="tb-n">${n}.</span><span class="tb-ed tb-hed" contenteditable="true" spellcheck="false" data-tb-content="${i}" data-tb-kind="heading" data-ph="${i18t('tb_ph_heading')}">${esc(b.content)}</span></h3></div>
+          <h3 class="tb-h">${clauseNo ? `<span class="tb-n">${clauseNo}</span>` : ''}<span class="tb-ed tb-hed" contenteditable="true" spellcheck="false" data-tb-content="${i}" data-tb-kind="heading" data-ph="${i18t('tb_ph_heading')}">${esc(b.content)}</span></h3></div>
         ${sec && !sec.body.length ? `<p class="tb-p tb-ph" data-tb-ph="${b._k}">${i18t('tb_ph_empty')}</p>` : ''}`;
       open = true; return;
     }
@@ -1797,7 +1839,7 @@ async function tbPaintBranding() {
    and tbCoverage over a block list it wrote itself, with no builder open. */
 Object.assign(window, { openTemplateBuilder, tbCardWording, TB_BLOCK_META, TB_PB_KEY, TB_ASK_MAX, TB_BLANK_TYPE, TB_RAIL_MIN, TB_CHIP_ASK,
   tbSplit, tbFitSplit, tbWireSplit, TB_SPLIT_KEY, TB_FMIN, TB_FMAX, TB_LEFT_MIN, TB_RIGHT_MIN, TB_GAP,
-  tbSections, tbSectionText, tbKindOf, tbLibraryFor, tbLibraryOffers, tbCoverage, tbPbKey, tbStandardFor, tbPrecedentFor,
+  tbSections, tbSectionText, tbDropExtraBody, tbKindOf, tbLibraryFor, tbLibraryOffers, tbCoverage, tbPbKey, tbStandardFor, tbPrecedentFor,
   tbFocus, tbSetTab, tbRailFits, tbNextEmpty, tbQuestionFor, tbChipsHtml, tbReadEditable, tbPaint, tbPaintRail, tbSend, tbAccept, tbOutlineAdd, tbTurn, tbSetWalk,
   /* The kept draft: the store, its one funnel and the one reading of what the
      strip says — published for the same reason as the rest of this line, so a

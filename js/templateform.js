@@ -45,6 +45,33 @@ function tplFormSubstitute(content, fields, values) {
   });
 }
 
+/* ---- THE CLAUSE NUMBER THE DOCUMENT PRINTS (18 Sep 2026) ----
+   REPORTED as the third of the seven repairs: *"the section numbers on the
+   paper are drawn by the screen, not stored in the template — so a contract
+   published from it has unnumbered headings."*  Storing the number in the
+   heading's own text was the other answer and is the worse one: re-opening the
+   builder would then draw its own number over the stored one, and a heading is
+   re-typed far more often than a template is published.
+
+   So the number is DERIVED, here, in the one renderer the server and the
+   browser share — and the builder's paper asks the same two readings, so what
+   an author sees while writing is what gets published.
+
+   THE FIRST HEADING IS THE DOCUMENT'S TITLE (the rule right below this, and
+   older than this note), and a title carries no clause number. The rest number
+   from 1.
+
+   A HEADING CARRYING ITS OWN NUMBER KEEPS IT, which is `clauseNameShown`'s own
+   rule: that punctuation is a QUOTATION of the drafter's. Conservative on
+   purpose — a bare leading year ("2019 Data Protection Act") is a TITLE, not a
+   number, so it is numbered like any other. */
+const tplFormHeadingNumbered = h => {
+  const t = String(h == null ? '' : h).trim();
+  if (/^(?:article|section|clause|schedule|annexe?|annexure|part|appendix)\s+[\dIVXLivxl]+\b/i.test(t)) return true;
+  const m = /^(\()?(\d+(?:\.\d+)*)(\))?\s*([.):\u2013\u2014-])?/.exec(t);
+  return !!m && (!!m[3] || !!m[4] || m[2].includes('.'));
+};
+
 /* blocks + values → the contract's rich HTML body. Fixed wording arrives
    escaped (template content is plain text with placeholders); paragraph
    breaks inside one block become separate <p>s. */
@@ -57,13 +84,14 @@ function templateFormDocHtml(form) {
   const paras = text => String(text || '').split(/\n{2,}/).map(p => p.trim()).filter(Boolean)
     .map(p => `<p>${tplFormSubstitute(TPLFORM_ESC(p), fields, values).replace(/\n/g, '<br>')}</p>`);
   const blocks = ((form && form.blocks) || []).slice().sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
-  let first = true;
+  let first = true; let clause = 0;
   for (const b of blocks) {
     if (b.blockType === 'branding') continue; // the header renders from org_branding, outside the body
     if (b.blockType === 'heading') {
       const h = tplFormSubstitute(TPLFORM_ESC(b.content), fields, values);
-      out.push(first ? `<h1>${h}</h1>` : `<h2>${h}</h2>`);
-      first = false;
+      if (first) { out.push(`<h1>${h}</h1>`); first = false; continue; }
+      clause++;
+      out.push(`<h2>${tplFormHeadingNumbered(b.content) ? '' : clause + '. '}${h}</h2>`);
       continue;
     }
     first = false;
@@ -151,7 +179,7 @@ function templateBrandingFooterHtml(c) {
 }
 
 if (typeof module !== 'undefined' && module.exports)
-  module.exports = { templateFormDocHtml, templateFormResolveDefaults, templateFormProblems, templateFormStripMarker };
+  module.exports = { templateFormDocHtml, templateFormResolveDefaults, templateFormProblems, templateFormStripMarker, tplFormHeadingNumbered };
 if (typeof window !== 'undefined')
-  Object.assign(window, { templateFormDocHtml, templateFormResolveDefaults, templateFormProblems,
+  Object.assign(window, { templateFormDocHtml, templateFormResolveDefaults, templateFormProblems, tplFormHeadingNumbered,
     templateFormStripMarker, templateBrandingHeaderHtml, templateBrandingFooterHtml });

@@ -135,3 +135,100 @@ describe('f332 (1) the standards check keeps accepted departures', () => {
       'a key in one book leaves a screen half-English');
   });
 });
+
+/* ------------------------------------------------------------------
+   R2 / R3 / R4 — THE THREE IN THE TEMPLATE BUILDER
+   ------------------------------------------------------------------ */
+describe('f332 (2) Apply answers the whole section', () => {
+  const TB = read('js/views/templatebuilder.js');
+
+  test('2a the remover exists, is published, and Apply calls it', () => {
+    assert.match(TB, /function tbDropExtraBody\(sec, keep\)/);
+    assert.match(TB, /tbSectionText, tbDropExtraBody,/, 'published');
+    const fn = TB.slice(TB.indexOf('async function tbAccept'));
+    const body = fn.slice(0, fn.indexOf('\n}\n'));
+    assert.match(body, /_tb\.blocks\[bi\]\.content = a\.text;\s*\n\s*tbDropExtraBody\(sec, bi\);/,
+      'the accepted text replaces the section, so the blocks it replaced go');
+  });
+
+  test('2b the model really is shown every block, which is why one was not enough', () => {
+    assert.match(TB, /const tbSectionText = \(sec, blocks\) =>[\s\S]{0,200}sec\.body\.map/,
+      'tbSectionText joins EVERY body block — Apply answered all of them and wrote one');
+  });
+
+  test('2c it removes highest index first', () => {
+    const fn = TB.slice(TB.indexOf('function tbDropExtraBody'));
+    const body = fn.slice(0, fn.indexOf('\n}\n'));
+    assert.match(body, /sort\(\(a, b\) => b - a\)/,
+      'lowest first would move every index still to come');
+    assert.ok(!/\.push\(/.test(body), 'removal only — tbAddBlock is the one push into _tb.blocks');
+  });
+
+  test('2d the three writers of block content are still three', () => {
+    const writes = TB.match(/_tb\.blocks\[[a-z]+\]\.content = [^;]+;/g) || [];
+    assert.equal(writes.length, 3, 'Apply, a kept blank, and typing');
+  });
+});
+
+describe('f332 (3) the number the document will print', () => {
+  const { templateFormDocHtml, tplFormHeadingNumbered } = require('../js/templateform.js');
+
+  test('3a the first heading is the title and carries no number', () => {
+    const html = templateFormDocHtml({ fields: [], values: {}, blocks: [
+      { orderIndex:0, blockType:'heading', content:'Supply Agreement' },
+      { orderIndex:1, blockType:'heading', content:'Definitions' },
+      { orderIndex:2, blockType:'heading', content:'Payment' } ] });
+    assert.match(html, /<h1>Supply Agreement<\/h1>/);
+    assert.match(html, /<h2>1\. Definitions<\/h2>/, 'the clauses number from 1, not from 2');
+    assert.match(html, /<h2>2\. Payment<\/h2>/);
+  });
+
+  test('3b a heading carrying its own number keeps it — the punctuation is a quotation', () => {
+    const html = templateFormDocHtml({ fields: [], values: {}, blocks: [
+      { orderIndex:0, blockType:'heading', content:'Supply Agreement' },
+      { orderIndex:1, blockType:'heading', content:'ARTICLE 2 — SCOPE' } ] });
+    assert.match(html, /<h2>ARTICLE 2 — SCOPE<\/h2>/);
+    assert.ok(!/1\. ARTICLE/.test(html));
+  });
+
+  test('3c a leading year is a title, not a number', () => {
+    assert.equal(tplFormHeadingNumbered('2019 Data Protection Act'), false);
+    assert.equal(tplFormHeadingNumbered('Payment terms'), false);
+    for (const h of ['1. Definitions', '1.1 Scope', '(3) Term', 'ARTICLE 4 TERM', 'Schedule 2'])
+      assert.equal(tplFormHeadingNumbered(h), true, h);
+  });
+
+  test('3d it is one reading, shared with the server and asked by the builder', () => {
+    const TF = read('js/templateform.js');
+    assert.match(TF, /module\.exports = \{[^}]*tplFormHeadingNumbered/s, 'the server requires this file');
+    assert.match(TF, /Object\.assign\(window, \{[^}]*tplFormHeadingNumbered/s);
+    const TB = read('js/views/templatebuilder.js');
+    assert.match(TB, /typeof tplFormHeadingNumbered === 'function'\) && tplFormHeadingNumbered\(b\.content\)/,
+      'the builder asks the renderer rather than keeping a second rule');
+    assert.match(TB, /const clauseNo = \(n === 1 \|\| own\) \? '' : String\(n - 1\) \+ '\.'/,
+      'and it draws the number the document will print, not the position in the list');
+  });
+});
+
+describe('f332 (4) the blanks call is counted and its failures are spoken', () => {
+  const TB = read('js/views/templatebuilder.js');
+  const body = () => { const i = TB.indexOf('async function tbBlanksRun');
+    return TB.slice(i, TB.indexOf('\nfunction tbKeepBlank')); };
+
+  test('4a it counts itself like the other two metered calls', () => {
+    assert.match(body(), /_tb\.reads\+\+/, 'it is metered on the server, so it belongs in "read N"');
+    assert.equal((TB.match(/_tb\.reads\+\+/g) || []).length, 3, 'outline, propose, blanks');
+  });
+
+  test('4b a refusal is said on the section, through the one sentence builder', () => {
+    assert.match(body(), /catch \(e\) \{[\s\S]{0,600}tbSay\(e\)/,
+      'no key, the daily ceiling and a provider refusal each have their own sentence');
+    assert.ok(!/catch \(_\) \{ \/\* a blank nobody proposed/.test(TB),
+      'the swallow is gone');
+  });
+
+  test('4c an empty answer is still silent — that is the ordinary case', () => {
+    assert.match(body(), /if \(rows\.length\)/,
+      'no rows simply adds nothing; only the call not coming back is reported');
+  });
+});
