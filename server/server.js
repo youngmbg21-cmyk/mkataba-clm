@@ -13042,12 +13042,25 @@ app.get('/api/templates/:id/versions/:vid', auth, (req, res) => {
   const v = tplVersion(req.params.vid);
   if (!v || v.template_id !== t.id) return res.status(404).json({ error: 'Version not found' });
   if (v.status === 'draft' && !tplIsManager(req.user)) return res.status(404).json({ error: 'Version not found' });
+  const vFields = tplFieldsOf(v.id);
   res.json({
     version: { id: v.id, versionNumber: v.version_number, status: v.status,
       publishedAt: v.published_at, publishedBy: v.published_by,
       changeNote: v.change_note || '', errorNote: v.error_note || '' },
     blocks: tplBlocksOf(v.id).map(bl => ({ id: bl.id, orderIndex: bl.order_index, blockType: bl.block_type, content: bl.content || '' })),
-    fields: tplFieldsOf(v.id),
+    fields: vFields,
+    /* ---- WHAT A CONTRACT MADE FROM THIS VERSION WOULD ALREADY CARRY ----
+       (Young ruled 18 Sep 2026: every creation door shows the paper beside its
+       questions.) The company-standard door draws its preview from this route,
+       and a preview that resolved {{org.…}} differently from the create route
+       would show a blank where the contract says "Highland Corporate Ltd" —
+       the two-screens-disagreeing fault. So the ANSWER is computed here, by
+       the same two lines POST /contracts runs, rather than by a browser twin
+       of tplOrgValues that would drift the first time the org profile grew a
+       field. Additive: an older reader that ignores it is unaffected. */
+    values: templateFormResolveDefaults(vFields.map(f => ({
+      fieldKey: f.field_key, defaultValue: f.default_value || '',
+    })), tplOrgValues()),
   });
 });
 

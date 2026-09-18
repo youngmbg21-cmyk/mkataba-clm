@@ -273,6 +273,119 @@ const check = (name, pass, detail) => {
   r = await ed.raw('/api/templates/' + made.id + '/versions', { method: 'POST', body: {} });
   check('6h but writing a new version is refused', st(r) === 403, st(r));
 
+  /* ============================================================
+     7  EVERY CREATION DOOR DRAWS THE PAPER
+     ============================================================
+     Young ruled it 18 Sep 2026 off two screenshots: the built-in wizard showed
+     the agreement beside its questions and the company-standard door showed
+     nothing. That door is openContractEssentials, which two paths come through
+     — a PUBLISHED COMPANY STANDARD, whose wording lives on the server, and a
+     saved template with NO blanks, whose wording the browser already holds.
+     Both are driven here, because whether a pane really painted is a question
+     only a rendered page answers, and because the company-standard half has a
+     fetch in it that a source read cannot see resolve. */
+  const tpl = await W.admin.json('/api/templates', { method: 'POST',
+    body: { name: 'Warehousing Logistics Agreement', description: 'A 3PL logistics contract.', category: 'procurement' } });
+  const tid = tpl.template.id;
+  const tdet = await W.admin.json('/api/templates/' + tid);
+  const tv = tdet.versions[0].id;
+  await W.admin.json(`/api/templates/${tid}/versions/${tv}`, { method: 'PUT', body: {
+    blocks: [
+      { orderIndex: 0, blockType: 'heading', content: 'Warehousing Logistics Agreement' },
+      { orderIndex: 1, blockType: 'fixed_text', content: 'This agreement is made between {{org_name}} (the "Client") and {{provider}} (the "Provider") for warehousing and distribution services.' },
+      { orderIndex: 2, blockType: 'heading', content: '1. Services' },
+      { orderIndex: 3, blockType: 'fixed_text', content: 'The Provider shall provide inbound receipt, storage, pick and pack, and outbound dispatch.' },
+    ],
+    fields: [
+      { fieldKey: 'org_name', label: 'Our company', fieldType: 'short_text', defaultValue: '{{org.company_name}}' },
+      { fieldKey: 'provider', label: 'Provider name', fieldType: 'short_text' },
+    ] } });
+  await W.admin.json(`/api/templates/${tid}/versions/${tv}/publish`, { method: 'POST', body: { changeNote: 'v1' } });
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.waitForTimeout(400);
+  await page.evaluate(async () => { if (typeof tplLibRefresh === 'function') { try { await tplLibRefresh(); } catch (_) {} } });
+  const found = await page.evaluate(id => {
+    if (typeof tplLibNewContract !== 'function') return false;
+    const list = (typeof tplLibPublished === 'function') ? tplLibPublished() : [];
+    if (!list.some(x => x.id === id)) return false;
+    tplLibNewContract(id); return true;
+  }, tid);
+  await page.waitForTimeout(1600);
+  const std = await page.evaluate(() => {
+    const p = document.getElementById('tf-preview');
+    const cols = document.getElementById('ce-cols');
+    /* READ OFF THE DIALOG, NOT OFF THE NEW WRAPPER — 7c's claim is that the
+       questions did not change, so it has to be answerable on a build that has
+       no #ce-cols at all. A control that can only pass after the change proves
+       nothing about what the change left alone. */
+    const boxes = [...document.querySelectorAll('#modal-root input, #modal-root select')].map(e => e.id).filter(Boolean);
+    return { pane: !!p, two: cols ? getComputedStyle(cols).gridTemplateColumns.split(' ').length === 2 : false,
+      words: p ? p.textContent.replace(/\s+/g, ' ').trim() : '', boxes,
+      caption: (document.getElementById('tf-preview-left') || {}).textContent || '' };
+  });
+  check('7a the company-standard door opens with the paper beside its questions',
+    found && std.pane && std.two, found ? `pane=${std.pane} · two columns=${std.two}` : 'the template was not on the list');
+  check('7b and the paper is this template\'s own wording, read off the server',
+    std.words.includes('Warehousing Logistics Agreement') && std.words.includes('inbound receipt'),
+    std.words.slice(0, 80));
+  /* THE QUESTIONS DID NOT CHANGE — the owner asked for the paper, not for more
+     to answer. The seven are CONTRACT_ESSENTIALS, exactly as before. */
+  check('7c the questions are the same seven basic entries',
+    ['ce-party','ce-counterparty','ce-cpemail','ce-value','ce-effDate','ce-expiry','ce-folder']
+      .every(id => std.boxes.includes(id)) && std.boxes.length === 7, std.boxes.join(','));
+  /* "N blanks left" counts empty ANSWERS; here the answers are record facts and
+     the wording is already complete, so a count would be a number about the
+     form printed on the paper. */
+  check('7d and no blanks-left count is printed, because it would not be true here',
+    !/\d/.test(std.caption), JSON.stringify(std.caption));
+
+  /* THE PAPER FOLLOWS THE ANSWERS, through the same mapping the press uses. */
+  const before7 = std.words.slice(0, 60);
+  await page.fill('#ce-counterparty', 'Nordic 3PL AB');
+  await page.waitForTimeout(500);
+  const after7 = await page.evaluate(() => {
+    const p = document.getElementById('tf-preview');
+    return { still: p ? p.textContent.replace(/\s+/g, ' ').trim().slice(0, 60) : '', pane: !!p };
+  });
+  check('7e typing an answer leaves the paper standing (it is not rebuilt away)',
+    after7.pane && after7.still === before7, after7.still.slice(0, 40));
+  await page.screenshot({ path: `${SHOTS}/paper-7-company-standard.png` });
+  await page.evaluate(() => { if (window.closeModal) closeModal(); });
+  await page.waitForTimeout(400);
+
+  /* THE OTHER PATH THROUGH THE SAME DOOR: a saved template with no blanks. */
+  await page.evaluate(() => {
+    state.settings = state.settings || {};
+    state.settings.customTemplates = [{ id: 'ct_noblank', name: 'Mutual NDA (no blanks)', folder: 'corp',
+      body: 'MUTUAL NON-DISCLOSURE AGREEMENT\n\nEach party shall keep the other\u2019s information confidential for three (3) years.', fields: [] }];
+  });
+  await page.evaluate(() => window.createFromCustomTemplate('ct_noblank'));
+  await page.waitForTimeout(1200);
+  const nb = await page.evaluate(() => {
+    const p = document.getElementById('tf-preview');
+    return { pane: !!p, words: p ? p.textContent.replace(/\s+/g, ' ').trim() : '' };
+  });
+  check('7f a saved template with no blanks draws its wording too',
+    nb.pane && nb.words.includes('MUTUAL NON-DISCLOSURE'), nb.words.slice(0, 60));
+  await page.evaluate(() => { if (window.closeModal) closeModal(); });
+  await page.waitForTimeout(300);
+
+  /* AND UNDER THE WIDTH IT IS WHAT IT WAS. */
+  await page.setViewportSize({ width: 900, height: 800 });
+  await page.waitForTimeout(400);
+  await page.evaluate(id => window.tplLibNewContract(id), tid);
+  await page.waitForTimeout(1200);
+  const narrow7 = await page.evaluate(() => {
+    const cols = document.getElementById('ce-cols');
+    return { pane: !!document.getElementById('tf-preview'),
+      one: cols ? getComputedStyle(cols).gridTemplateColumns.split(' ').length === 1 : 'no wrapper',
+      boxes: [...document.querySelectorAll('#modal-root input, #modal-root select')].map(e => e.id).filter(Boolean).length };
+  });
+  check('7g under 1000px the door is one column again, with the same questions',
+    narrow7.pane === false && narrow7.boxes === 7, JSON.stringify(narrow7));
+  await page.evaluate(() => { if (window.closeModal) closeModal(); });
+
   check('no page errors', errors.length === 0, errors.slice(0, 2).join(' | '));
 
   await browser.close();
