@@ -1171,18 +1171,66 @@ async function deleteTemplateGuarded(tid){
    else. Duplicating one renders it once, converts its fill-in inputs back into
    {{blanks}}, and hands over an ordinary editable template that carries the
    built-in's own field schema. The built-in itself is untouched. */
-function duplicateBuiltinTemplate(bid){
-  if(!tplCanManage()){ toast(i18t('lb_viewers_no_add'),'err'); return; }
-  const t=TEMPLATES[bid]; if(!t){ toast(i18t('lib_template_not_found'),'err'); return; }
-  const u=currentUser();
+/* ════ MAKE IT OURS — HaTi'S PAPER BECOMES YOUR OWN (Young asked 18 Sep 2026)
+   ═══════════════════════════════════════════════════════════════════════════
+   THIS REPLACES duplicateBuiltinTemplate, WHICH WAS WRONG THREE WAYS and had
+   no caller anywhere in the product, so twelve drafted agreements sat on the
+   list with no way to start from them. Wiring the old one up would have been
+   worse than leaving it: it filed the copy under COUNTERPARTY PAPER (labelling
+   your own standard as the other side's), it created the settings-blob kind of
+   template, which has NO draft state and no publish step — so there was no
+   "before it is published" to work in — and it opened the pop-up editor, which
+   has no Copilot. The owner's ask was precisely "edit it with Copilot before
+   it is published"; the old step could not do any of those three things.
+
+   THE RIGHT ROAD ALREADY EXISTS AND IS PROVEN: it is the one
+   `save a contract as a standard` takes — copy the wording into a NEW DRAFT
+   COMPANY STANDARD and open the builder, published nowhere. This walks it from
+   a built-in instead of from a signed contract.
+
+   NO NEW SERVER ROUTE, and no new permission. POST /api/templates mints the
+   template and its v1 draft; PUT …/versions/:vid writes the wording. Both
+   already carry `paperMaker`, so who may write new paper is unchanged.
+
+   THE BUILT-IN IS UNTOUCHED. It is rendered through a throwaway contract that
+   is never saved, never given an id and never reaches state — the same probe
+   the old function used, which was the one part of it that was right. */
+function tplBuiltinBlocks(html){
+  /* The server stores a block's content as a STRING (it String()s whatever
+     arrives), so blocks are plain text — exactly as tplTextBlocks and
+     tplRichBlocks do it for save-as-template. Sending an object here would
+     store the characters "[object Object]" and look fine until somebody read
+     the template. */
+  const holder=document.createElement('div');
+  holder.innerHTML=html;
+  const out=[];
+  const walk=el=>{
+    for(const node of Array.from(el.children||[])){
+      const tag=(node.tagName||'').toLowerCase();
+      const text=(node.textContent||'').replace(/\s+/g,' ').trim();
+      if(/^h[1-6]$/.test(tag)){ if(text) out.push({ blockType:'heading', content:text }); }
+      else if(tag==='p'||tag==='li'||tag==='blockquote'||tag==='pre'){
+        if(!text) continue;
+        /* A paragraph carrying a blank is a field_group; the builder's own
+           reading of what a drafter fills in. */
+        out.push({ blockType:/\{\{[^}]+\}\}/.test(text)?'field_group':'fixed_text', content:text });
+      }
+      else walk(node);
+    }
+  };
+  walk(holder);
+  return out;
+}
+/* The rendered built-in, with its fill-in boxes turned into the blanks they
+   stand for. Lifted from the retired function, which got this part right. */
+function tplBuiltinDraftBody(bid){
+  const t=TEMPLATES[bid]; if(!t) return null;
   const fields=templateFields(t).map(f=>({...f}));
-  // a throwaway contract, rendered exactly as the generator would render it
   const probe=migrateContract({ id:'TPL-PREVIEW', name:t.name, template:bid, counterparty:'',
     value:0, valueType:t.valueType, folder:t.folder, status:'Draft', fields:{} });
   const holder=document.createElement('div');
   holder.innerHTML=docBody(probe);
   holder.querySelectorAll('.seal-in,[data-anchor="sig"]').forEach(el=>el.remove());
-  // every fill-in input becomes the blank it stands for
   holder.querySelectorAll('input,textarea').forEach(inp=>{
     const key=inp.getAttribute('data-field')||inp.getAttribute('data-sync')||'';
     const known=fields.find(f=>f.key===key);
@@ -1192,21 +1240,38 @@ function duplicateBuiltinTemplate(bid){
       type:'text', maps:'', required:false, def:'', opts:[] });
     inp.replaceWith(span);
   });
-  const body=sanitizeRich(holder.innerHTML);
-  const text=richToText(body);
-  if(!text || text.length<40){ toast(i18t('lb_could_not_convert'),'err'); return; }
-  // keep only the blanks the rendered document actually uses
-  const used=bodyPlaceholders(body);
-  const keep=fields.filter(f=>used.includes(f.key));
-  const rec=saveTemplateRecord(`${t.name} (copy)`, t.folder, body, 'builtin:'+bid,
-    { format:RICH_FORMAT, fields:keep, body, chars:text.length,
-      version:1, versionAt:nowISO(), versionBy:u?.name||'—',
-      versionNote:`Duplicated from the HaTi built-in “${t.name}”`, versions:[] });
-  toast(`Copied “${t.name}” into Counterparty Templates — edit it freely, the built-in is unchanged`);
-  if(state.view==='templates') renderTemplatesPage();
-  updateSidebarCounts();
-  setTimeout(()=>openTemplateEditor(rec.id), 120);
-  return rec;
+  const html=holder.innerHTML;
+  const used=bodyPlaceholders(html);
+  return { name:t.name, folder:t.folder, html,
+    blocks:tplBuiltinBlocks(html),
+    fields:fields.filter(f=>used.includes(f.key)) };
+}
+async function tplMakeItOurs(bid){
+  if(typeof window.newPaperBlock==='function' && window.newPaperBlock()) return;
+  if(!tplCanManage()){ toast(i18t('lb_viewers_no_add'),'err'); return; }
+  if(!API_MODE()){ toast(i18t('tl_needs_server'),'warn'); return; }
+  const built=tplBuiltinDraftBody(bid);
+  if(!built||built.blocks.length<2){ toast(i18t('lb_could_not_convert'),'err'); return; }
+  try{
+    const d=await api('templates','POST',{ name:built.name, category:'other',
+      folder:built.folder||'', origin:'built_in_hati',
+      description:i18t('lib_ours_desc',{name:built.name}) });
+    const tid=d.template.id;
+    /* POST answers with the template only, so the draft it just minted is
+       read back rather than guessed at. */
+    const det=await api('templates/'+tid);
+    const draft=(det.versions||[]).find(v=>v.status==='draft');
+    if(!draft) throw new Error(i18t('tl_edit_failed'));
+    await api(`templates/${tid}/versions/${draft.id}`,'PUT',{
+      blocks:built.blocks.map((b,i)=>({ ...b, orderIndex:i })),
+      fields:built.fields.map((f,i)=>({ fieldKey:f.key, label:f.label||f.key, orderIndex:i,
+        fieldType:'short_text', control:'free', required:!!f.required })),
+    });
+    if(typeof tplLibRefresh==='function') await tplLibRefresh();
+    toast(i18t('lib_ours_made',{name:built.name}),'ok');
+    if(window.openTemplateBuilder) openTemplateBuilder(tid,draft.id);
+    else if(window.openTemplateLibDetail) openTemplateLibDetail(tid);
+  }catch(e){ toast((e&&e.message)||i18t('tl_edit_failed'),'err'); }
 }
 
 /* ============================================================ BULK CREATION
@@ -1328,7 +1393,9 @@ function openTemplatePreview(tpl){
    page stays the same height at 200 templates as at 12. Every verb the old
    card grid offered is still here — Use, Open, bulk creation, blanks,
    versions, delete — the rarer ones behind one … menu per row. */
-let _tplPage={ group:'all', stream:null, q:'', showAll:false };
+/* The pile a reader arrives on is what they can USE. 'all' put the whole
+   filing cabinet in front of somebody looking for one piece of paper. */
+let _tplPage={ group:'ready', stream:null, q:'', showAll:false };
 /* ONE NUMBER, BOTH TABS: how many templates either tab shows before it says
    how many more there are. Written twice, the overview would offer "see all
    12 more" over a list that had already shown eight of them. */
@@ -1397,9 +1464,35 @@ function tplPageRows(){
   rows.sort((a,b)=>(ORD[a.kind]-ORD[b.kind])||((b.used||0)-(a.used||0))||String(a.name).localeCompare(String(b.name)));
   return rows;
 }
+/* ════ THE RAIL IS WHAT YOU WANT TO DO (Young confirmed 18 Sep 2026) ═══════
+   The rail used to be HaTi's own filing cabinet — Company standard,
+   Counterparty paper, HaTi standard, Samples — which asks the reader to know
+   how this product files things before it will show them anything. The piles
+   above it are the questions somebody actually arrives with: what can I use,
+   what have we started and not finished, what is going wrong.
+
+   THE ORIGIN ROWS STAY, one group lower. They are a real second question
+   ("show me only their paper"), and the overview's own cards narrow by them
+   through tplGoBucket — deleting them would break four doors to gain nothing.
+   ONE KEY holds either kind, so tplGoBucket is untouched. */
+const TPL_PILES=['ready','writing','attention'];
+/* Ready = paper you can draft a contract from right now. Writing = your own
+   unfinished drafts. A sample is neither until it is imported, at which point
+   it IS a counterparty template and answers as one. */
+function tplRowPile(r){
+  if(!r) return 'all';
+  if(r.kind==='company') return r.draft?'writing':'ready';
+  if(r.kind==='sample') return 'sample';
+  return 'ready';
+}
+const tplRowWants=r=>!!(r&&_tplAttn[r.kind+':'+r.id]);
 function tplPageFiltered(rows){
   const q=_tplPage.q.trim().toLowerCase();
-  return rows.filter(r=>(_tplPage.group==='all'||r.kind===_tplPage.group)
+  const g=_tplPage.group;
+  const inGroup=r=>g==='all'||(g==='attention'?tplRowWants(r)
+    :TPL_PILES.includes(g)?tplRowPile(r)===g
+    :r.kind===g);
+  return rows.filter(r=>inGroup(r)
     &&(!_tplPage.stream||r.stream===_tplPage.stream)
     &&(!q||`${r.name} ${r.sub} ${r.origin}`.toLowerCase().includes(q)));
 }
@@ -1418,17 +1511,33 @@ function tplPageRowHtml(r){
     :`<span style="font-weight:var(--w-title);color:var(--accent-ink-700)">${_tplEsc(r.version)}</span>`;
   const B='class="ui-btn" style="font-size:var(--t-meta);padding:var(--s-1) var(--s-3)"';
   const P='class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:var(--s-1) var(--s-3)"';
+  /* ════ TWO VERBS AT REST, THE REST ON DEMAND (Young confirmed 18 Sep 2026)
+     ════ MEASURED: four kinds of template carried FIVE different sets of
+     buttons, so a reader had to know which kind they were looking at before
+     the page would tell them what they could do. Every row reads the same way
+     now — what you came for is the filled button, the second verb is Edit, and
+     the rarer acts live behind the dots.
+
+     THE SECOND AND THIRD ARE REVEALED ON HOVER, NEVER REMOVED. They stay in
+     the page so the keyboard reaches them (`:focus-within` shows them) and a
+     touch screen draws them always (`@media (hover:none)` in index.html).
+     Thirty-seven rows times three buttons is ninety-nine controls competing;
+     at rest this is thirty-seven.
+
+     EDIT IS ONE PRESS AND ONE WORD. A draft's "Continue editing" and a live
+     standard's "Edit" are the same act through the same door (tplLibEdit);
+     the only difference is that a live one has its draft minted on the way. */
   let acts='';
-  /* ---- EDIT IS ONE PRESS, AND IT IS THE SAME WORD ON EVERY ROW (18 Sep 2026) ----
-     A draft's "Continue editing" and a live standard's "Edit" are the same act
-     through the same door (tplLibEdit): the only difference is that a live one
-     has its draft minted on the way. Both used to land on the detail page,
-     which is a filing card, three presses short of the wording. */
+  const rest=inner=>inner?`<span class="tpl-rest">${inner}</span>`:'';
+  const dots=`<button data-tpl-dots="${_tplEsc(r.kind)}:${_tplEsc(r.id)}" class="ui-btn" style="font-size:var(--t-meta);padding:var(--s-1) 9px" aria-label="${_tplEsc(i18t('lib_more_for',{name:r.name}))}">⋯</button>`;
   if(r.kind==='company') acts=r.draft
-    ?`<button data-tpllib-edit="${_tplEsc(r.id)}" ${P}>${i18t('lib_continue_editing')}</button><button data-tpllib-open="${_tplEsc(r.id)}" ${B}>${i18t('act_open')}</button>`
-    :`${canManage?`<button data-tpllib-use="${_tplEsc(r.id)}" ${P}>${i18t('lib_use')}</button>`:''}${canManage?`<button data-tpllib-edit="${_tplEsc(r.id)}" ${B}>${i18t('act_edit')}</button>`:''}<button data-tpllib-open="${_tplEsc(r.id)}" ${B}>${i18t('act_open')}</button>`;
-  else if(r.kind==='cp') acts=`${canManage?`<button data-tpl-use="${_tplEsc(r.id)}" ${P}>${i18t('lib_use')}</button>`:''}<button data-tpl-prev="${_tplEsc(r.id)}" ${B}>${i18t('act_open')}</button>${canManage?`<button data-tpl-more="${_tplEsc(r.id)}" class="ui-btn" style="font-size:var(--t-meta);padding:var(--s-1) 9px" title="${i18t('lb_edit_blanks_bulk')}">⋯</button>`:''}`;
-  else if(r.kind==='builtin') acts=`${canManage?`<button data-tpl-builtin="${_tplEsc(r.id)}" ${P}>${i18t('lib_use')}</button><button data-tpl-bulk-b="${_tplEsc(r.id)}" ${B}>${i18t('lib_bulk')}</button>`:''}`;
+    ?`<button data-tpllib-edit="${_tplEsc(r.id)}" ${P}>${i18t('lib_continue_editing')}</button>${rest(dots)}`
+    :`${canManage?`<button data-tpllib-use="${_tplEsc(r.id)}" ${P}>${i18t('lib_use')}</button>`:''}${rest(
+        `${canManage?`<button data-tpllib-edit="${_tplEsc(r.id)}" ${B}>${i18t('act_edit')}</button>`:''}${dots}`)}`;
+  else if(r.kind==='cp') acts=`${canManage?`<button data-tpl-use="${_tplEsc(r.id)}" ${P}>${i18t('lib_use')}</button>`:''}${rest(
+      `<button data-tpl-prev="${_tplEsc(r.id)}" ${B}>${i18t('act_open')}</button>${canManage?dots:''}`)}`;
+  else if(r.kind==='builtin') acts=`${canManage?`<button data-tpl-builtin="${_tplEsc(r.id)}" ${P}>${i18t('lib_use')}</button>`:''}${rest(
+      `${canManage?`<button data-tpl-ours="${_tplEsc(r.id)}" ${B}>${i18t('lib_make_ours')}</button>`:''}${canManage?dots:''}`)}`;
   else acts=r.imported
     ?`<span class="badge" style="background:var(--st-green-bg);color:var(--st-green-fg)"><span class="dot" style="background:var(--st-green-dot)"></span>${i18t('lib_imported')}</span>`
     :(canManage?`<button data-sample-imp="${r.i}" ${B}>${i18t('lib_import_as_template')}</button>`:'');
@@ -1490,36 +1599,60 @@ function tplPagePaintRows(){
   }));
   host.querySelectorAll('[data-tpl-use]').forEach(b=>b.addEventListener('click',()=>createFromCustomTemplate(b.getAttribute('data-tpl-use'))));
   host.querySelectorAll('[data-tpl-prev]').forEach(b=>b.addEventListener('click',()=>{ const t=customTemplates().find(x=>x.id===b.getAttribute('data-tpl-prev')); if(t) openTemplatePreview(t); }));
-  host.querySelectorAll('[data-tpl-more]').forEach(b=>b.addEventListener('click',()=>tplRowMoreMenu(b.getAttribute('data-tpl-more'))));
+  host.querySelectorAll('[data-tpl-dots]').forEach(b=>b.addEventListener('click',()=>tplRowMoreMenu(b.getAttribute('data-tpl-dots'))));
+  host.querySelectorAll('[data-tpl-ours]').forEach(b=>b.addEventListener('click',()=>tplMakeItOurs(b.getAttribute('data-tpl-ours'))));
   host.querySelectorAll('[data-tpl-builtin]').forEach(b=>b.addEventListener('click',()=>openWizard(b.getAttribute('data-tpl-builtin'))));
-  host.querySelectorAll('[data-tpl-bulk-b]').forEach(b=>b.addEventListener('click',()=>{ const t=TEMPLATES[b.getAttribute('data-tpl-bulk-b')];
-    if(!t) return;
-    if(!templateAllowedForRole(t.id, currentUser()?.role||'viewer')){ toast(i18t('lb_not_open_to_role'),'err'); return; }
-    openBulkCreateModal(t); }));
   host.querySelectorAll('[data-sample-imp]').forEach(b=>b.addEventListener('click',()=>importHatiSample(Number(b.getAttribute('data-sample-imp')), b)));
   document.getElementById('tpl-showall')?.addEventListener('click',()=>{ _tplPage.showAll=true; tplPagePaintRows(); });
 }
 /* The rarer verbs on a counterparty template, one … away: everything the old
    card offered, none of it stealing a column from every row. */
-function tplRowMoreMenu(tid){
-  const t=customTemplates().find(x=>x.id===tid); if(!t) return;
+/* ════ ONE MENU, THE SAME ORDER ON EVERY KIND (18 Sep 2026) ════════════════
+   Only the other side's paper had a ⋯ before, so the rarer acts existed for
+   one kind of template and simply did not for the other three. The menu is
+   built once now, and a row is drawn ONLY where it can actually work — a
+   built-in has no version history of yours to show — but the order and the
+   words never move, so the dots are never a surprise.
+
+   A COMPANY STANDARD'S RARER ACTS LIVE ON ITS OWN PAGE, not in a second copy
+   of them here: versions, rename and the shelf are what that page is for, and
+   two places to archive a template is how two screens come to disagree. */
+function tplRowMoreMenu(ref){
+  const cut=String(ref||'').indexOf(':');
+  const kind=cut<0?'':String(ref).slice(0,cut), tid=cut<0?String(ref||''):String(ref).slice(cut+1);
+  const cp=kind==='cp'?customTemplates().find(x=>x.id===tid):null;
+  const lib=kind==='company'?(((typeof tplLibAll==='function')?tplLibAll():{list:[]}).list||[]).find(x=>x.id===tid):null;
+  const built=kind==='builtin'?TEMPLATES[tid]:null;
+  if(!cp&&!lib&&!built) return;
+  const name=(cp&&cp.name)||(lib&&lib.name)||(built&&built.name)||'';
   const item=(id,label,sub)=>`<button id="${id}" style="display:block;width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;padding:9px var(--s-3);border-radius:var(--radius)" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
     <span style="display:block;font-size:var(--t-body);font-weight:var(--w-strong)">${label}</span><span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600)">${sub}</span></button>`;
+  const rows=[];
+  if(lib) rows.push(item('tm-vers',i18t('lib_m_versions'),i18t('lib_m_versions_sub')));
+  if(cp) rows.push(item('tm-vers-cp',`${i18t('lib_m_versions')} (${templateVersions(cp).length+1})`,i18t('lib_m_versions_sub')));
+  if(cp) rows.push(item('tm-edit',i18t('lib_m_edit'),i18t('lib_m_edit_sub')));
+  if(cp) rows.push(item('tm-blanks',templateFields(cp).length?`${i18t('lib_m_blanks')} (${templateFields(cp).length})`:i18t('lib_m_blanks_add'),i18t('lib_m_blanks_sub')));
+  if(lib) rows.push(item('tm-meta',i18t('lib_m_rename'),i18t('lib_m_rename_sub')));
+  if(cp&&templateFields(cp).length) rows.push(item('tm-bulk',i18t('lib_m_bulk'),i18t('lib_m_bulk_sub')));
+  if(built) rows.push(item('tm-bulk-b',i18t('lib_m_bulk'),i18t('lib_m_bulk_sub')));
+  if(lib) rows.push(item('tm-shelf',i18t('lib_m_shelf'),i18t('lib_m_shelf_sub')));
+  if(cp) rows.push(item('tm-del',i18t('lib_m_delete'),i18t('lib_m_delete_sub')));
   openModal(`<div style="padding:var(--s-4) 14px;min-width:280px">
-    <div style="font-size:var(--t-body);font-weight:var(--w-title);padding:0 var(--s-3) var(--s-2)">${_tplEsc(t.name)}</div>
-    ${item('tm-edit','Edit the wording','Every save becomes a new version')}
-    ${item('tm-blanks',templateFields(t).length?`Blanks (${templateFields(t).length})`:'Add blanks','The guided fields a drafter completes')}
-    ${templateFields(t).length?item('tm-bulk','Create in bulk','Many contracts from one CSV of answers'):''}
-    ${item('tm-vers',`Version history (${templateVersions(t).length+1})`,'What changed, when, by whom')}
-    ${item('tm-del','Delete template','Usage is shown before anything is removed')}
+    <div style="font-size:var(--t-body);font-weight:var(--w-title);padding:0 var(--s-3) var(--s-2)">${_tplEsc(name)}</div>
+    ${rows.join('')}
     <div style="display:flex;justify-content:flex-end;padding:var(--s-2) var(--s-3) 0"><button id="tm-close" class="ui-btn" style="font-size:var(--t-meta)">${i18t('act_close')}</button></div>
   </div>`);
   document.getElementById('tm-close')?.addEventListener('click',closeModal);
   document.getElementById('tm-edit')?.addEventListener('click',()=>{ closeModal(); openTemplateEditor(tid); });
   document.getElementById('tm-blanks')?.addEventListener('click',()=>{ closeModal(); openBlanksEditor(tid); });
-  document.getElementById('tm-bulk')?.addEventListener('click',()=>{ closeModal(); openBulkCreateModal(t); });
-  document.getElementById('tm-vers')?.addEventListener('click',()=>{ closeModal(); openTemplateVersions(tid); });
+  document.getElementById('tm-bulk')?.addEventListener('click',()=>{ closeModal(); openBulkCreateModal(cp); });
+  document.getElementById('tm-bulk-b')?.addEventListener('click',()=>{ closeModal();
+    if(!templateAllowedForRole(built.id,currentUser()?.role||'viewer')){ toast(i18t('lb_not_open_to_role'),'err'); return; }
+    openBulkCreateModal(built); });
+  document.getElementById('tm-vers-cp')?.addEventListener('click',()=>{ closeModal(); openTemplateVersions(tid); });
   document.getElementById('tm-del')?.addEventListener('click',()=>{ closeModal(); deleteTemplateGuarded(tid); });
+  ['tm-vers','tm-meta','tm-shelf'].forEach(id=>document.getElementById(id)?.addEventListener('click',()=>{
+    closeModal(); openTemplateLibDetail(tid); }));
 }
 /* "+ New template" holds both kinds of paper a workspace creates — a company
    standard (published, versioned, permissioned) and a counterparty's own
@@ -1667,8 +1800,15 @@ function tplOverviewData(){
     if(c.scanned>=TPL_DEV_MIN&&c.rate!=null&&c.rate>=0.5)
       attention.push({ id:c.id, kind:c.kind, name:c.name, rank:0,
         why:i18t('lib_ov_why_deviates',{pct:Math.round(c.rate*100)}) });
-    else if(c.kind==='company'&&c.draft)
-      attention.push({ id:c.id, kind:c.kind, name:c.name, rank:1, why:i18t('lib_ov_why_draft') });
+    /* ---- A DRAFT IS WORK IN PROGRESS, NOT A FAULT (18 Sep 2026) ----
+       This used to raise a row for every unfinished draft, which made the
+       alarm list mostly somebody's own unfinished homework — measured on the
+       owner's workspace, 19 of 37 templates were "wanting attention" and the
+       reason on most of them was simply that nobody had published them yet.
+       Drafts have their own pile in the rail now ("Being written"), so this
+       list can mean what its name says: something is going wrong.
+       `lib_ov_why_draft` stays in both books, inert, for the same reason
+       retired sentences always do. */
     else if((c.kind==='company'||c.kind==='cp')&&!c.draft&&c.used===0)
       attention.push({ id:c.id, kind:c.kind, name:c.name, rank:2, why:i18t('lib_ov_why_unused') });
   }
@@ -2002,8 +2142,15 @@ function renderTemplatesPage(){
   const tab=tplPageTab();
   const ov=tplOverviewData();
   _tplAttn=Object.fromEntries((ov.attention||[]).map(a=>[a.kind+':'+a.id,a.why]));
-  const railIt=(key,label,n)=>`<button data-tpl-group="${key}" style="display:flex;align-items:center;gap:var(--s-2);width:100%;border:0;background:${_tplPage.group===key?'var(--color-accent-100)':'none'};color:${_tplPage.group===key?'var(--color-accent-800)':'var(--color-neutral-700)'};font:inherit;font-size:var(--t-body);font-weight:var(--w-strong);padding:7px 11px;border-radius:var(--radius);cursor:pointer;text-align:left">
-    <span style="flex:1">${label}</span><span style="font-family:var(--font-mono);font-size:var(--t-label);color:${_tplPage.group===key?'var(--color-accent-700)':'var(--color-neutral-500)'}">${n}</span></button>`;
+  /* Counted off the SAME rows the table draws, so a pile's number and its
+     list can never disagree. */
+  const pile={ ready:0, writing:0, attention:0 };
+  for(const r of rows){ const k=tplRowPile(r); if(k in pile) pile[k]++; if(tplRowWants(r)) pile.attention++; }
+  /* The count takes its own ink where the pile means something is owed —
+     amber for work started, ruby for something going wrong — and the plain
+     label shade everywhere else. A live pile keeps the accent, as it did. */
+  const railIt=(key,label,n,tone)=>`<button data-tpl-group="${key}" style="display:flex;align-items:center;gap:var(--s-2);width:100%;border:0;background:${_tplPage.group===key?'var(--color-accent-100)':'none'};color:${_tplPage.group===key?'var(--color-accent-800)':'var(--color-neutral-700)'};font:inherit;font-size:var(--t-body);font-weight:var(--w-strong);padding:7px 11px;border-radius:var(--radius);cursor:pointer;text-align:left">
+    <span style="flex:1">${label}</span><span style="font-family:var(--font-mono);font-size:var(--t-label);color:${_tplPage.group===key?'var(--color-accent-700)':(n&&tone)||'var(--color-neutral-500)'}">${n}</span></button>`;
   const streamIt=f=>`<button data-tpl-stream="${f.id}" style="display:flex;align-items:center;gap:9px;width:100%;border:0;background:${_tplPage.stream===f.id?'var(--color-accent-100)':'none'};color:var(--color-neutral-700);font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);padding:6px 11px;border-radius:var(--radius);cursor:pointer;text-align:left">
     <span style="flex:none;width:8px;height:14px;border-radius:var(--radius);background:${folderColor(f.id)}"></span><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(tplShortStream(f.name))}</span></button>`;
   const HEAD='font-family:var(--font-mono);font-size:var(--t-figure);letter-spacing:.12em;color:var(--color-neutral-500);text-transform:uppercase;padding:0 11px;margin:0 0 6px';
@@ -2038,8 +2185,12 @@ function renderTemplatesPage(){
     <section data-tpl-sec="list" ${tab==='list'?'':'hidden'}>
     <div class="tpl-cols" style="display:grid;gap:var(--s-4);align-items:start">
       <div>
-        <div style="${HEAD}">${i18t('lib_library')}</div>
+        <div style="${HEAD}">${i18t('lib_show_me')}</div>
+        ${railIt('ready',i18t('lib_pile_ready'),pile.ready)}
+        ${railIt('writing',i18t('lib_pile_writing'),pile.writing,'var(--st-amber-fg)')}
+        ${railIt('attention',i18t('lib_pile_attention'),pile.attention,'var(--st-ruby-fg)')}
         ${railIt('all',TPL_GROUP_LABEL.all,total)}
+        <div style="${HEAD};margin-top:var(--s-4)">${i18t('lib_where_from')}</div>
         ${railIt('company',TPL_GROUP_LABEL.company,counts.company||0)}
         ${railIt('cp',TPL_GROUP_LABEL.cp,counts.cp||0)}
         ${railIt('builtin',TPL_GROUP_LABEL.builtin,counts.builtin||0)}
@@ -2243,4 +2394,4 @@ function renderPlaybookPage(){
 
 Object.assign(window,{tplOvFit,HATI_SAMPLES,openBlanksEditor,_tplPreviewHtml,_tplSourceLabel,_richSelection,_richReplaceRange,
   templateVersionNo,templateVersions,templateUsage,templateUsageLabel,saveTemplateVersion,
-  openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,duplicateBuiltinTemplate,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplRowContracts,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});
+  openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,tplMakeItOurs,tplBuiltinDraftBody,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplRowContracts,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,tplRowPile,tplRowWants,TPL_PILES,tplRowMoreMenu,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});

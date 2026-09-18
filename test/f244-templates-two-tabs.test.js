@@ -329,13 +329,32 @@ describe('f244 (3) — a deviation rate counts only paper a playbook has read', 
 });
 
 describe('f244 (4) — what needs somebody, worst first', () => {
-  test('three rules and no more: deviating, then a draft, then own paper nothing came off', () => {
+  /* ---- TWO RULES NOW, NOT THREE (Young confirmed 18 Sep 2026) ----
+     RE-POINTED IN PLACE. A draft used to raise a row here, which made the
+     alarm list mostly somebody's own unfinished homework — measured on the
+     owner's own workspace, 19 of 37 templates "wanted attention" and the
+     reason on most of them was simply that nobody had published them yet.
+     Drafts have their own pile in the rail ("Being written"), so this list
+     can mean what its name says: something is going wrong. The other two
+     rules — deviating, and published-but-never-used — are untouched, and the
+     claims below still pin both. */
+  test('two rules and no more: deviating, then own paper nothing came off', () => {
     const d = stage().tplOverviewData();
-    assert.deepEqual(d.attention.map(a => a.id), ['tpl_1', 'tpl_2'],
+    assert.deepEqual(d.attention.map(a => a.id), ['tpl_1'],
       'ct1 has been drafted from once, so the unused rule does not reach it');
     assert.match(d.attention[0].why, /67% of the contracts checked did not follow/);
-    assert.equal(d.attention[1].id, 'tpl_2');
-    assert.match(d.attention[1].why, /Not published/);
+    assert.ok(!d.attention.some(a => a.id === 'tpl_2'),
+      'and tpl_2 is a DRAFT, which is work in progress rather than a fault');
+  });
+
+  /* The other half of the same ruling: a draft did not vanish, it moved. The
+     rail counts it in its own pile, off the one population the table draws. */
+  test('a draft is not a fault — it is counted in its own pile instead', () => {
+    const s = stage();
+    const draft = s.tplPageRows().find(r => r.id === 'tpl_2');
+    assert.ok(draft && draft.draft, 'tpl_2 is the draft in this stage');
+    assert.equal(s.tplRowPile(draft), 'writing', 'and its pile is Being written');
+    assert.equal(s.tplRowPile(s.tplPageRows().find(r => r.id === 'tpl_1')), 'ready');
   });
 
   test("a built-in nobody has used is not a finding — HaTi shipped it, nobody here chose it", () => {

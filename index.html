@@ -5294,6 +5294,23 @@
   .tpl-cols{grid-template-columns:196px 1fr;}
   @media (max-width:899px){ .tpl-cols{grid-template-columns:minmax(0,1fr);} }
 
+  /* ════ THE ROW'S SECOND AND THIRD VERBS ARE REVEALED, NEVER REMOVED ═══════
+     (Young confirmed 18 Sep 2026.) At rest a row shows what you came for and
+     nothing else; Edit and the dots appear when you point at it. They stay in
+     the DOM the whole time, so:
+       · `:focus-within` shows them the moment a keyboard tabs in — a control
+         revealed only by a pointer is a control a keyboard cannot reach, and
+         `display:none` would take them out of the tab order entirely, which
+         is why this is opacity and not display;
+       · `@media (hover:none)` draws them always, because a touch screen has
+         no hover and would otherwise never show the second verb at all.
+     Measured cost of not doing this: thirty-seven rows times three buttons is
+     ninety-nine controls competing on one screen. */
+  .tpl-rest{display:inline-flex;gap:6px;opacity:0;transition:opacity 120ms var(--ease-exit,ease);}
+  tr:hover .tpl-rest, tr:focus-within .tpl-rest{opacity:1;}
+  @media (hover:none){ .tpl-rest{opacity:1;} }
+  @media (prefers-reduced-motion:reduce){ .tpl-rest{transition:none;} }
+
   /* Templates overview (tab 1): the card wall beside its two panels. The
      cards fill whatever the wall is, so the grid is the same rule at every
      width and there is no card count to keep true by hand. */

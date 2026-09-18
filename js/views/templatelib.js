@@ -749,6 +749,30 @@ async function openTemplateLibDetail(id) {
   try { d = await api('templates/' + id); }
   catch (e) { toast(e.message, 'err'); return; }
   const t = d.template, versions = d.versions || [], canManage = !!d.canManage;
+  /* ════ THE PAGE LEADS WITH THE DOCUMENT (Young confirmed 18 Sep 2026) ══════
+     MEASURED on the running product: this screen offered SIX buttons and the
+     wording of the agreement was on none of them. "Open" opened a filing card
+     — a name, a description and a list of versions — which is why nobody could
+     find their way to the words. The object page stays (a template does need a
+     home for versions, usage and permissions) but the thing it is about now
+     leads it.
+
+     The version shown is the one that MATTERS: what the team is drafting from
+     today, and only a draft when nothing is live yet. Rendered through
+     templateFormDocHtml, the SAME function POST /contracts calls, so this
+     preview and the contract cannot disagree about what the template says.
+     A failure here is a missing preview, never a missing page. */
+  const showVer = versions.find(v => v.status === 'published') || versions.find(v => v.status === 'draft') || null;
+  let wording = null;
+  if (showVer && typeof templateFormDocHtml === 'function') {
+    try {
+      const v = await api(`templates/${t.id}/versions/${showVer.id}`, 'GET', null, { quiet: true });
+      wording = templateFormDocHtml({ blocks: v.blocks || [], fields: (v.fields || []).map(f => ({
+        fieldKey: f.field_key, label: f.label, fieldType: f.field_type,
+        control: f.control, options: f.options, required: f.required,
+      })), values: v.values || {} });
+    } catch (_) { wording = null; }
+  }
   const CARD = 'background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius)';
   const fmtAt = iso => iso ? fmtDT(iso) : '—';
   const st = TPLLIB_STATUS[t.status] || TPLLIB_STATUS.draft;
@@ -796,6 +820,19 @@ async function openTemplateLibDetail(id) {
       ${canManage && t.status === 'published' && !openDraft ? `<div style="margin-top:var(--s-3)"><button id="tpllib-newversion" class="ui-btn" style="font-size:var(--t-meta);padding:var(--s-1) 10px">${icon('plus', 'w-3 h-3')} New draft version</button></div>` : ''}
     </section>
     <section style="${CARD}">
+      <div style="display:flex;align-items:center;gap:10px;padding:var(--s-3) var(--s-4);border-bottom:1px solid var(--color-divider)">
+        <h4 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-card);margin:0;flex:1">${i18t('tl_the_wording')}</h4>
+        <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${showVer ? esc(i18t('tl_showing_v', { n: showVer.versionNumber })) : ''}</span>
+        ${canManage && t.status !== 'archived' ? `<button id="tpllib-edit-wording" class="ui-btn" style="font-size:var(--t-meta);padding:var(--s-1) 10px">${icon('pencil', 'w-3 h-3')} ${i18t('act_edit')}</button>` : ''}
+      </div>
+      ${wording
+        ? `<div style="padding:var(--s-4);max-height:420px;overflow:auto">
+             <div class="hati-doc" style="font-size:14px">${wording}</div>
+           </div>`
+        : `<div style="padding:22px var(--s-4);font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.6">${
+             showVer ? i18t('tl_wording_unreadable') : i18t('tl_wording_none')}</div>`}
+    </section>
+    <section style="${CARD}">
       <div style="padding:var(--s-3) var(--s-4);border-bottom:1px solid var(--color-divider)">
         <h4 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-card);margin:0">${i18t('tl_version_history')}</h4>
       </div>
@@ -806,6 +843,7 @@ async function openTemplateLibDetail(id) {
   document.getElementById('tpllib-back')?.addEventListener('click', () => setView('templates'));
   document.getElementById('tpllib-use')?.addEventListener('click', () => tplLibNewContract(t.id));
   document.getElementById('tpllib-edit-meta')?.addEventListener('click', () => tplLibMetaModal(t));
+  document.getElementById('tpllib-edit-wording')?.addEventListener('click', () => tplLibEdit(t.id));
   document.getElementById('tpllib-archive')?.addEventListener('click', async () => {
     try {
       await api('templates/' + t.id, 'PATCH', { status: 'archived' });
