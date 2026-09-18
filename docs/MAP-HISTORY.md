@@ -19911,3 +19911,173 @@ seven are red at the parent; 19a and 19g are named CONTROLS** — the paper real
 does draw its own numbers at the wall, and every other front-matter block is
 still drawn flat. Three claims in f314 (7) are the walls round it, two of them
 red at the parent.
+
+## THE MARK BESIDE THE WORD, AND THE STRIP IS A BAND (Young ruled 17 Sep 2026)
+
+Two rulings out of one review session. The canvas carried ten renders — three
+shapes for the Overview's arrival strip and six for the redline row — and Young
+picked one of each, then named the two colours he wanted kept.
+
+### What was asked
+
+Of the row, first: *"provide multiple renders of the redline cards showing
+elegant buttons for edit, send, review, ladder and discard. They should all be
+in one line and use best in class examples for the buttons. Start with what sap
+and apple would build then try other ideas as well but they should fit in
+within the page's ecosystem."* Then, of the one he chose: *"Redline row option C
+but color code the edit button to be the some color as today and discard to be
+in red."*
+
+Of the strip: *"The Hati read this contract card in the overview page should
+only have 3 lines as far as explanations after the header"*, which turned out to
+be about a different card from the one first rendered — *"i was talking about
+the card attached"* — and then, of the right one: *"Render this feature so that
+the card is always fixed at [providing] the header and only two lines below
+it."*
+
+### Half of the row's ask was already built
+
+MEASURED on main before anything moved: `.rl-card-face .rl-edit` and `.rl-send`
+already read `var(--accent-ink)`, and `[data-rl-retract]` already read
+`var(--st-ruby-fg)` — Young had ruled Discard out of the middle of the row and
+into ruby earlier the same day. The render he was looking at drew Discard GREY,
+because it was built against the branch before that commit. So "edit the colour
+it is today, discard in red" was a request to leave two rules alone, and it is
+asserted that way: f246 (12) pins both as WALLS and passes at the parent, said
+so in its own comment rather than counted as work.
+
+What actually shipped is the marks.
+
+### One table, one injection, and why it is not nine edits
+
+The face can draw thirteen different verbs — Accept, Reject, Counter, Edit,
+Send, Discard, Withdraw, Reopen, Change decision, Ask for a review, Send a copy,
+Cancel a review, Ladder — built at nine different places in
+`redlineChangeCardsHtml`, plus the ladder button inside `rlRowFaceVerbs` itself
+and the review's Cancel handed in by js/review.js as the tail. Marking them one
+at a time is the shape that produces a row half marked and half bare the first
+time somebody adds a verb, which is this file's oldest standing lesson about a
+control drawn by a shared builder.
+
+`RL_FACE_MARKS` is one ordered table and `rlFaceMark` is one injection, applied
+in `rlRowFaceVerbs` to the whole face — `out.filter(Boolean).map(rlFaceMark)` —
+AFTER the ordering and the relabelling, so nothing above it had to change.
+
+**KEYED ON THE DOOR.** Six of the thirteen wear `.rl-edit`, so the class cannot
+tell them apart, and every word goes through the dictionary, so the words cannot
+either. What each button IS, is its data attribute. The one exception is the
+locked door, which `rlLockedBtn` builds with no data attribute at all and which
+is matched by its class pair `rl-verb-ai is-locked` — which is why that entry is
+LAST in the table: `rl-edit` appears in several of the strings above it.
+
+**A FIRST PASS GOT THE NET WRONG, not the code.** The sweep in f246 (12)
+collected attribute NAMES and reported `data-rl-reopen` as an unmarked door. It
+is not a door: it rides on the same button as `data-nego-undo`, which the table
+already matches. An attribute is not a door; a button is. Re-pointed to collect
+the button MARKUP instead, which is also the stronger net.
+
+### No colour is named anywhere in the change
+
+Every symbol is stroked in `currentColor`, so a mark takes the ink of the verb
+it sits inside — Edit and Send the accent, Discard and Reject ruby, Accept
+green, Copilot's own door violet — and neither `rlFaceMark` nor the rule that
+dresses it knows any of those colours. Both are asserted to contain no hex, no
+`rgb(`, no `var(--`. That is what makes "the same colour as today" free rather
+than a second opinion about a verb's ink that could drift from the first.
+
+MEASURED on the real app, both row shapes: their live ask drew Accept
+`rgb(4,120,87)`, Reject `rgb(190,18,60)`, Counter `rgb(109,40,217)`, Ladder
+`rgb(17,94,89)`; our own draft drew Edit violet, Send teal, Review teal, Ladder
+teal, Discard `rgb(190,18,60)`. Every mark resolved to the same value as its
+button.
+
+### The locked door takes the mark too, and that is measured rather than tidy
+
+The first draft stood the locked door down — the monogram IS a mark, and two
+marks in one button is the width the lock exists not to spend. That reasoning is
+right about the monogram and wrong about the arithmetic: the mark widens a verb
+by about 21px, so a locked door without one draws 21px narrower than the free
+door beside it, and `redline-verify` 25m allows 24. Three pixels of headroom on
+a check that exists because that column moved 27px → 128px once already is not
+headroom. With the mark on both, the two differ by exactly the monogram, which
+is what 25m measures today. It is also the truer reading: the pencil is what the
+door IS, whoever is holding the clause, and the monogram says WHO — a second
+fact, not a substitute.
+
+### Three symbols, and six that were already there
+
+`i-edit`, `i-out`, `i-check`, `i-x`, `i-people` and `i-panel` were all in the
+shell's sprite and are reused by name. `i-bin`, `i-ladder` and `i-undo` are new,
+on the sprite's own terms: a 16 box, a hairline, `currentColor`, no fill. A mark
+is invented only where the set had none, which is what keeps that `<defs>` from
+growing a near-duplicate of something six lines above it.
+
+**AND THE HARNESS PAGES CARRY NO SPRITE.** `test/chromium/*.html` build their
+own script lists and none of them is index.html, so a `<use href="#i-edit">`
+there resolves to nothing and paints an empty box — no error, no warning, the
+standing lesson this codebase has paid for. The BOX is still reserved, so every
+geometry claim in redline-verify holds; that the marks really PAINT is measured
+on the real app instead, in type-and-symbols-verify, whose founding claim (item
+2 in its own header) is exactly this failure mode. `getBBox()` on the `<use>`
+reads the shadow tree and is non-zero only where the reference resolved.
+
+### The strip: the cause was not the long tile
+
+Young's screenshot showed five tiles — Brief written, Standards checked,
+Obligations found (21), Open fields filled in, Filed — with one of them ten
+lines deep and the other four tall and empty. The obvious reading is "cut the
+long one", and it is wrong: the tiles are a CSS grid, and a grid stretches every
+cell to the tallest. One long tile makes four tall empty ones, and the strip is
+a different height on every contract in the book. MEASURED on one record: 0, 1,
+3, 4 and 10 lines.
+
+So a clamp alone would not have done it. A clamp caps the tallest and leaves the
+strip free to SHRINK on a contract where nothing has anything to say, which is
+still "not fixed". What fixes it is RESERVING: `ktTriageStripHtml` draws the
+body element whether there is a detail or not, and the sheet gives it exactly
+two lines — `height:calc(1.4em * 2)`, written as a multiple of that rule's own
+`line-height` so the two cannot drift apart — with a 2-line clamp for the long
+one.
+
+MEASURED on a real page, driven: every tile 71px, every body 34px, the strip
+123px with a 264-character detail on it and 123px without. At the parent: every
+tile 172px, the strip 224px with the long detail and 123px without.
+
+### A cut is a fact
+
+The whole detail goes on the `title`, which is the obligations worklist's own
+idiom for exactly this shape of problem, and the count in the chip beside the
+heading already says how much there is — so nothing is hidden without being
+said, which is the standing rule about a cap. A tile with nothing to say carries
+no `title`: an empty tooltip is a promise of something behind a box with nothing
+behind it.
+
+### What was deliberately left alone
+
+Home draws the same five readings, from the same `triageTiles`, in its own
+folding row — under its OWN class names (`.hm-tri-tile`, `.hm-tri-th`,
+`.hm-tri-td`). So this rule cannot reach that card, and it was not extended to:
+Young asked about the Overview page's strip, that row is opened deliberately
+rather than arriving above the record, and the pre-signature check borrows
+`.kt-tri` by id without borrowing its tiles. Asserted rather than assumed, in
+f273 (10): one producer of `.kt-tri-td`, and `kt-tri-td` appears nowhere in
+js/views/home.js.
+
+### The tests
+
+f246 (12) is nine claims and **seven are red at the parent**; the two that pass
+are the colour walls and the counterparty control, both named as such in their
+own comments. f273 (10) is four claims and **three are red at the parent**; the
+fourth is the duplication wall. redline-verify's 29g is REVERSED IN PLACE — it
+read *"THE VERBS KEEP THEIR WORDS — not one symbol among them"* that morning,
+and the half that mattered survives as 29g: every verb keeps its WORD, no
+icon-only button. 29g2, 29j and 29k are new, two of them red at the parent.
+auto-triage-verify 14 is six checks, **four red at the parent**, and 14a is the
+two-state measurement — a page only ever seen with a long detail on it cannot
+say whether the height moves when there is none. type-and-symbols-verify gained
+a fourth section, **three of its six red at the parent**.
+
+Left red, and pre-existing at the parent: redline-verify 5 (a selection menu
+that draws where that check expects none), ladder-verify 5b (the key's swatches
+against the marks' colours), and the one lint error in
+test/chromium/overview-as-drawn-verify.js.

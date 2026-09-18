@@ -4589,7 +4589,28 @@ function ktTriageStripHtml(c){
       :(x.ok?((x.count!=null&&x.count>0)?String(x.count):'&#10003;'):'&mdash;');
     return `<div class="kt-tri-tile${x.working?' is-busy':''}"${x.working?' aria-busy="true"':''}>
       <div class="kt-tri-th"><span class="kt-tri-chip ${tone}">${mark}</span>${esc(i18t(x.headKey))}</div>
-      ${x.detail?`<div class="kt-tri-td">${esc(x.detail)}</div>`:''}
+      ${''/* ---- THE TILE IS ALWAYS A HEADING AND TWO LINES (Young ruled
+             17 Sep 2026, off the strip on a warehousing contract) ----
+             *"the card is always fixed at [providing] the header and only two
+             lines below it."*
+
+             THE CAUSE WAS NOT THE LONG TILE. Every tile grew to whatever it
+             had to say and the grid then stretched all five to the tallest,
+             so one obligations tile running ten lines made four tall EMPTY
+             ones and the strip was a different height on every contract —
+             measured at 0, 1, 3, 4 and 10 lines on one record.
+
+             SO THE BOX IS ALWAYS DRAWN, empty or not. Reserving the two lines
+             in the markup is what makes the height fixed; clamping alone
+             would only cap the tallest and still leave a strip that shrank
+             when nothing had anything to say. The sheet gives it exactly two
+             lines and cuts the rest.
+
+             AND A CUT IS NOT A SILENT TRIM. The whole detail goes on the
+             hover — the obligations worklist's own idiom for exactly this —
+             and the count in the chip beside the heading already says how
+             much there is, so nothing is hidden without being said. */}
+      <div class="kt-tri-td"${x.detail?` title="${esc(x.detail)}"`:''}>${esc(x.detail||'')}</div>
     </div>`; }).join('');
   const busy=(typeof triageBusy==='function')&&triageBusy(c);
   const read=(typeof triageReadAnything==='function')?triageReadAnything(c):true;

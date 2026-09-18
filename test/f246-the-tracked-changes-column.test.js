@@ -1586,3 +1586,171 @@ describe('f246 (11) — the picker is the sign, the writer is the wall', () => {
     }
   });
 });
+
+/* ================================================== 12 — THE MARK BESIDE THE
+   WORD (Young ruled 17 Sep 2026, off the "option C" render) ================
+   *"provide multiple renders of the redline cards showing elegant buttons for
+   edit, send, review, ladder and discard … the shell's own hairline symbols
+   beside each word"*, then, of the one chosen: *"color code the edit button to
+   be the some color as today and discard to be in red."*
+
+   THE COLOUR HALF IS ALREADY TRUE and is asserted here as a WALL rather than
+   built: Edit and Send have read --accent-ink and Discard --st-ruby-fg since
+   17 Sep, and the mark inherits whichever its verb has because it is stroked
+   in currentColor. So the change that shipped is the marks, and what these
+   claims mostly guard is that adding them moved no colour and no pixel.
+
+   WHY A TABLE AND ONE INJECTION. Six of these verbs wear .rl-edit, so the
+   class cannot tell them apart, and the words are translated, so they cannot
+   either — the DOOR is what each button is. Half a row marked and half bare is
+   the fault the shape exists to prevent, which is this file's own standing
+   lesson about a shared builder and the rule that must reach every home.
+
+   The computed half — that the marks PAINT, that the row is still one line
+   and the card no taller — is measured in type-and-symbols-verify and
+   redline-verify, and named there. A <use> pointing at nothing paints an empty
+   box with no error, so the sprite half below is a real net, not paperwork. */
+describe('f246 (12) — every verb on the face carries the shell\'s own mark', () => {
+  const HTML = read('index.html');
+  /* The table, read off the source: it is module scope in negotiation.js and
+     deliberately not published — nothing outside that file reads it, and a
+     name published for a test's convenience is a name f48 has to police. */
+  const marks = () => {
+    const i = NEG_CODE.indexOf('const RL_FACE_MARKS = [');
+    assert.ok(i > -1, 'the table is one named list');
+    const body = NEG_CODE.slice(i, NEG_CODE.indexOf('];', i));
+    return [...body.matchAll(/\[(\/[^/]+\/), '([a-z-]+)'\]/g)]
+      .map(m => ({ re: new RegExp(m[1].slice(1, -1)), sym: m[2] }));
+  };
+
+  test('the table is one list, and one function applies it to the whole face', () => {
+    assert.ok(marks().length >= 8, 'a mark for each kind of door');
+    const i = NEG_CODE.indexOf('function rlFaceMark');
+    assert.ok(i > -1, 'one injection, not a copy at each verb');
+    /* ONE CALLER, and it is the face itself, so a verb added tomorrow is
+       dressed by the same rule rather than by whoever remembers. */
+    assert.equal((NEG_CODE.match(/rlFaceMark/g) || []).length, 2,
+      'rlFaceMark is defined once and called once');
+    assert.match(NEG_CODE, /out\.filter\(Boolean\)\.map\(rlFaceMark\)/,
+      'and the caller is the face, after the ordering, so every kept verb goes through it');
+  });
+
+  test('every button the row can draw is in the table', () => {
+    /* THE SWEEP, and it is per BUTTON rather than per attribute. A first pass
+       collected attribute NAMES and reported data-rl-reopen bare — it rides on
+       the same button as data-nego-undo, which the table already matches. An
+       attribute is not a door; a button is. Collected from the card renderer's
+       own verb list rather than typed, so a verb added with no honest symbol
+       fails here instead of shipping a row half marked and half bare. */
+    const i = NEG_CODE.indexOf('function redlineChangeCardsHtml');
+    const body = NEG_CODE.slice(i, NEG_CODE.indexOf('\nfunction ', i + 10));
+    const buttons = [...body.matchAll(/verbs\.push\(([\s\S]{0,500}?)\);/g)].map(m => m[1]);
+    /* The two the loop above cannot see: the ladder button is built inside
+       rlRowFaceVerbs, and Cancel is handed in as the tail by js/review.js. */
+    buttons.push('data-rl-ladder=', read('js/review.js').match(/<button[^>]*data-rv-cancel=/)[0]);
+    assert.ok(buttons.length >= 10, `swept ${buttons.length} verbs`);
+    const table = marks();
+    const bare = buttons.filter(b => !table.some(t => t.re.test(b)))
+      .map(b => (b.match(/data-[a-z-]+=/) || ['?'])[0]);
+    assert.deepEqual(bare, [], 'no verb on this row is left without a mark');
+    /* AND THE LOCKED SHAPE, which carries no data attribute at all. */
+    assert.ok(table.some(t => t.re.test('<button type="button" class="rl-edit rl-verb-ai is-locked" disabled')),
+      'the locked door is matched by the class pair rlLockedBtn renders, which is all it carries');
+  });
+
+  test('and every symbol it names is really in the sprite', () => {
+    /* THE STANDING LESSON, and the reason this claim is worth its line: a
+       <use> pointing at a symbol that is not there paints an EMPTY BOX — no
+       error, no warning, a hole nobody notices. */
+    for (const { sym } of marks())
+      assert.ok(new RegExp(`id="i-${sym}"`).test(HTML), `#i-${sym} is defined in the sprite`);
+  });
+
+  test('the three new symbols are on the sprite\'s own terms', () => {
+    /* A 16 box, a hairline, currentColor, no fill — so each takes the ink of
+       the verb it lands in, which is what makes the colour half free. */
+    for (const sym of ['bin', 'ladder', 'undo']){
+      const i = HTML.indexOf(`<symbol id="i-${sym}"`);
+      assert.ok(i > -1, `#i-${sym} is new in the sprite`);
+      const s = HTML.slice(i, HTML.indexOf('</symbol>', i));
+      assert.match(s, /viewBox="0 0 16 16"/, `#i-${sym} is a 16 box`);
+      assert.match(s, /stroke="currentColor"/, `#i-${sym} takes its verb's ink`);
+      assert.match(s, /fill="none"/, `#i-${sym} is a hairline, not a solid`);
+    }
+  });
+
+  test('the injection names no colour, and neither does the rule that dresses it', () => {
+    /* THE WALL Young asked for by name. Edit keeps the colour it has today and
+       Discard is ruby — and neither is restated here, because the mark is
+       currentColor and inherits it. A hex, a token or an rgb() in either place
+       would be a second opinion about a verb's ink. */
+    const i = NEG_CODE.indexOf('function rlFaceMark');
+    const fn = NEG_CODE.slice(i, NEG_CODE.indexOf('\n}', i));
+    assert.ok(!/#[0-9a-f]{3,6}\b|rgb\(|var\(--|--st-|--accent/.test(fn),
+      'rlFaceMark names no colour');
+    const j = NCSS.indexOf('.rl-card-d .rl-card-face .rl-verb-i{');
+    assert.ok(j > -1, 'the mark has a rule');
+    const rule = NCSS.slice(j, NCSS.indexOf('}', j));
+    assert.ok(!/color|fill|stroke:/.test(rule), 'and it names no colour either');
+    assert.match(rule, /width:15px/, 'it is 15px');
+    /* AND THE ROW DOES NOT GROW. 15 inside the button's own 18px line-height,
+       so the taller of the two is still the text. Measured in redline-verify;
+       pinned here as the relation between the two numbers. */
+    const k = NCSS.indexOf('.redline-page .rl-card-d .rl-card-face button{');
+    const btn = NCSS.slice(k, NCSS.indexOf('}', k));
+    const lh = Number((btn.match(/line-height:(\d+)px/) || [])[1]);
+    assert.ok(lh >= 15, `the mark (15px) fits inside the verb's own line (${lh}px)`);
+  });
+
+  test('the colours it inherits are the ones Young named', () => {
+    /* Asserted as a wall, not built: these four rules are what the marks take
+       their ink from, so a change to any of them moves the mark with it. */
+    assert.match(NCSS, /\.rl-card-face \.rl-edit,[^{]*\.rl-send\{color:var\(--accent-ink\)\}/,
+      'Edit and Send keep the accent they have today');
+    assert.match(NCSS, /\.rl-card-face \[data-rl-retract\]\{color:var\(--st-ruby-fg\)\}/,
+      'and Discard is red');
+  });
+
+  test('a rendered face carries exactly one mark per verb, drawn from the sprite', async () => {
+    const p = await bench();
+    const faces = p.$$('#rl-changes .rl-card-d .rl-card-face');
+    assert.ok(faces.length, 'our seat draws faces');
+    let verbs = 0;
+    for (const f of faces)
+      for (const b of f.querySelectorAll('button')){
+        verbs++;
+        const svg = b.querySelectorAll('.rl-verb-i');
+        assert.equal(svg.length, 1, `"${b.textContent.trim()}" carries one mark`);
+        assert.ok(svg[0].querySelector('use'),
+          'and it is the shell\'s sprite, not a second copy of the path');
+        assert.equal(svg[0].compareDocumentPosition(b.lastChild) & 4, 4,
+          'the mark comes before the word');
+      }
+    assert.ok(verbs >= 4, `${verbs} verbs, every one marked`);
+  });
+
+  test('a locked door takes the mark too, so the shared verb column does not move', () => {
+    /* It is the SAME door — the pencil is what it is, whoever holds the clause
+       — and the monogram says WHO, which is a second fact rather than a
+       substitute. Left unmarked it would also draw 21px narrower than the free
+       door beside it, and redline-verify 25m exists because that column moved
+       once already. */
+    const i = NEG_CODE.indexOf('function rlFaceMark');
+    const fn = NEG_CODE.slice(i, NEG_CODE.indexOf('\n}', i));
+    assert.ok(!/is-locked/.test(fn), 'nothing in the injection stands the locked door down');
+    assert.ok(marks().some(m => m.re.test('rl-verb-ai is-locked')),
+      'and the table matches it by its class pair, which is all it carries');
+  });
+
+  test('their seat is untouched — no mark reaches the counterparty\'s column', async () => {
+    /* By construction: rlRowFaceVerbs is the owner branch's own, and their
+       cards never pass through it. Asserted on their real rendering, because
+       "by construction" is what this file has been wrong about before. */
+    const p = await bench();
+    const box = p.win.document.createElement('div');
+    box.innerHTML = p.win.redlinePanesHtml(p.c,
+      { side: 'counterparty', org: 'Nordkust Industri AB', hiddenIds: [] });
+    assert.ok(box.querySelector('.rl-card'), 'they still get a column of cards');
+    assert.equal(box.querySelector('.rl-verb-i'), null, 'and not one mark on it');
+  });
+});

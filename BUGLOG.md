@@ -15689,3 +15689,42 @@ clean.
   the template's own stream.
 - The bulk CSV import can now carry a `folder` column through the same field,
   which is additive and untested.
+
+## 17 Sep 2026 — the mark beside the word, and the strip is a band
+
+Young ruled two renders off the review canvas: the redline row's verbs take the
+shell's own hairline symbol beside each word ("option C", Edit keeping the
+colour it has and Discard in red), and the Overview's arrival strip is always
+its header and two lines.
+
+Built: RL_FACE_MARKS + rlFaceMark in js/views/negotiation.js (one table, one
+injection, applied to the whole face in rlRowFaceVerbs, keyed on each button's
+own door, naming no colour — the symbol is currentColor); three new sprite
+symbols (i-bin, i-ladder, i-undo) and six reused; .rl-verb-i dressed in
+negotiation-css.js at 15px inside the verb's own 18px line. The arrival strip's
+tile body is always drawn and the sheet reserves exactly two lines of it, with
+the whole detail on the hover. Measured: the strip went 224px to 123px and no
+longer changes height with its contents; the row's face is 18px before and
+after and still one line.
+
+Tests: f246 (12) — 7 of 9 red at the parent; f273 (10) — 3 of 4;
+redline-verify 29g REVERSED in place plus 29g2/29j/29k; auto-triage-verify 14 —
+4 of 6; type-and-symbols-verify section 4 — 3 of 6.
+
+### Noticed, not fixed
+
+- test/chromium/overview-as-drawn-verify.js:145 — one eslint error,
+  no-self-compare. Red at the parent; npm run lint is 1 error, 194 warnings.
+- test/chromium/redline-verify.js check 5 ("no clause carries a Copilot button
+  — and no menu follows a highlight") is red at the parent too: the highlight
+  now offers three verbs, which is the 11 Sep ruling, so the check describes a
+  page that no longer exists.
+- test/chromium/ladder-verify.js check 5b ("the key's swatches are the marks'
+  own colours") is red at the parent: the legend's third swatch resolves
+  transparent against a mark that is also transparent.
+- test/chromium/six-fixes-verify.js check 4a ("a refresh returns you to the
+  page you were on") is red at the parent: redline lands on workspace.
+- Home's own triage row (js/views/home.js, .hm-tri-tile / .hm-tri-td) draws
+  the same five readings and grows the same way. Deliberately left alone —
+  Young asked about the Overview strip, and that row is opened on purpose
+  rather than arriving above the record.

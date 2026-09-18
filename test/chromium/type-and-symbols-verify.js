@@ -277,6 +277,82 @@ const SHELL_ICONS = [
     check('and the register has rows in it', landed.rows > 0, String(landed.rows));
 
     await page.screenshot({ path: path.join(OUT, '04-register.png') });
+
+    /* ---- 4. THE REDLINE ROW'S MARKS (Young ruled 17 Sep 2026, "option C") ----
+       The row's verbs took the shell's own symbols beside their words. THIS IS
+       THE ONLY PLACE THAT CAN SAY THEY PAINT. f246 pins the table, the
+       injection and the rendered markup; redline-verify measures the geometry
+       — but the negotiate page's own harness, like every test/chromium/*.html,
+       builds its own script list and carries none of index.html's <defs>, so a
+       <use> there resolves to NOTHING and reserves a 15px hole with no error
+       and no warning. That is this file's founding claim (item 2 above) in a
+       second place, so it is asked here, on the real app, with getBBox. */
+    console.log('\n--- 4. the redline row wears the sprite ---');
+    const marks = await page.evaluate(() => {
+      /* A contract with one ask from each side, so BOTH shapes of the row are
+         measured: their live ask (Accept · Reject · Counter · Ladder) and our
+         own draft (Edit · Send · … · Discard). */
+      const c = { id: 'MK-902', name: 'Symbol bench', counterparty: 'Nordkust Industri AB',
+        status: 'Under Review', folder: 'proc', value: 1, valueType: 'estimated',
+        template: null, fields: {}, metadata: {}, obligations: [], audit: [], rounds: [],
+        versions: [], signatures: [], comments: [], owner: { id: 'u1', name: 'Young' },
+        _loaded: true,
+        body: '<h1>Bench</h1><h2>1. Payment</h2><p>Pay within thirty (30) days.</p>'
+            + '<h2>2. Notices</h2><p>Notices shall be given by hand.</p>',
+        changes: [
+          { id: 'CHG-001', clauseId: 'cl_2', changeType: 'modify', authorSide: 'counterparty',
+            status: 'pending', round: 1, summary: '30 to 45 days', by: 'Amina',
+            oldText: 'Pay within thirty (30) days.',
+            newText: 'Pay within forty-five (45) days.', at: new Date().toISOString() },
+          { id: 'CHG-002', clauseId: 'cl_4', changeType: 'modify', authorSide: 'owner',
+            status: 'pending', round: 1, summary: 'by hand to by courier', by: 'Young',
+            oldText: 'Notices shall be given by hand.',
+            newText: 'Notices shall be given by courier.', at: new Date().toISOString() }] };
+      state.contracts.unshift(c);
+      if (window.openRedlineWorkbench) openRedlineWorkbench(c.id);
+      return c.id;
+    });
+    await page.waitForTimeout(1600);
+    const rowMarks = await page.evaluate(() => {
+      const btns = [...document.querySelectorAll('#view-redline .rl-card-d .rl-card-face button')];
+      return btns.map(b => {
+        const i = b.querySelector('.rl-verb-i');
+        const u = i && i.querySelector('use');
+        let bb = null;
+        try { const g = u.getBBox(); bb = { w: g.width, h: g.height }; } catch (_) {}
+        const r = i ? i.getBoundingClientRect() : null;
+        return { word: (b.textContent || '').trim(),
+          href: u ? (u.getAttribute('href') || '') : null,
+          box: r ? { w: Math.round(r.width), h: Math.round(r.height) } : null,
+          bb, ink: getComputedStyle(b).color,
+          /* THE MARK TAKES THE VERB'S OWN INK, which is the whole reason it is
+             drawn in currentColor and the half Young asked for by name. */
+          markInk: i ? getComputedStyle(i).color : null };
+      });
+    });
+    check('the redline row is on screen with verbs on it', rowMarks.length >= 4,
+      `${rowMarks.length} verbs`);
+    const hollow = rowMarks.filter(m => !m.bb || m.bb.w < 2 || m.bb.h < 2);
+    check('every mark on the row resolves to a real symbol — not an empty box',
+      rowMarks.length > 0 && hollow.length === 0,
+      hollow.length ? hollow.map(d => `${d.word} -> ${d.href}`).join(', ')
+        : rowMarks.map(m => `${m.word} ${m.href} ${m.bb.w.toFixed(0)}x${m.bb.h.toFixed(0)}`).join(' · '));
+    check('and each one is painted at the size the sheet asks for',
+      rowMarks.every(m => m.box && m.box.w === 15 && m.box.h === 15),
+      rowMarks.map(m => m.box && m.box.w + 'x' + m.box.h).join(' · '));
+    check('the mark takes its verb\'s own ink, so no colour was moved to add it',
+      rowMarks.every(m => m.markInk === m.ink),
+      rowMarks.map(m => `${m.word} ${m.ink}`).join(' · '));
+    /* THE TWO Young NAMED, by their real inks rather than "different from each
+       other": Edit keeps the colour it has today and Discard is red. */
+    const edit = rowMarks.find(m => /^(Edit|Counter|Redigera|Motbud)/i.test(m.word));
+    const disc = rowMarks.find(m => /Discard|F.rkasta|Sl.ng/i.test(m.word));
+    check('Discard is red', !!disc && disc.ink === 'rgb(190, 18, 60)',
+      disc ? disc.ink : 'no Discard on these rows');
+    check('and the edit door keeps the ink it had before the marks',
+      !!edit && edit.ink !== 'rgb(190, 18, 60)', edit ? `${edit.word} ${edit.ink}` : 'no edit door');
+    await page.screenshot({ path: path.join(OUT, '05-redline-marks.png') });
+
     check('the page threw nothing', errors.length === 0, errors.join(' | '));
   } finally {
     await browser.close();

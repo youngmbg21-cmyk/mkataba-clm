@@ -203,6 +203,17 @@
        so each inherits the verb's own ink. -->
   <symbol id="i-check" viewBox="0 0 16 16"><path d="M3.2 8.4l3.1 3.1 6.5-6.9" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-x" viewBox="0 0 16 16"><path d="M4.2 4.2l7.6 7.6M11.8 4.2l-7.6 7.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></symbol>
+  <!-- ADDED 17 Sep 2026 for the redline row's verbs, which Young ruled should
+       each carry the shell's own hairline symbol beside the word ("option C").
+       THREE, AND ONLY THREE, because the other seven marks that row needs were
+       already here and are reused by name: edit, out, check, x, people, panel.
+       A mark is invented only where the set had none — which is the rule that
+       keeps this sprite from growing a near-duplicate of something above.
+       Same terms as the rest: a 16 box, a hairline, currentColor, no fill, so
+       each takes the ink of the verb it sits in. -->
+  <symbol id="i-bin" viewBox="0 0 16 16"><path d="M2.6 4.4h10.8M6.4 4.4V2.8h3.2v1.6" fill="none" stroke="currentColor"/><path d="M4 4.4l.8 8.8h6.4l.8-8.8" fill="none" stroke="currentColor" stroke-linejoin="round"/><path d="M6.8 6.9v4.3M9.2 6.9v4.3" fill="none" stroke="currentColor"/></symbol>
+  <symbol id="i-ladder" viewBox="0 0 16 16"><path d="M4.8 2.4v11.2M11.2 2.4v11.2M4.8 5.4h6.4M4.8 8h6.4M4.8 10.6h6.4" fill="none" stroke="currentColor"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 16 16"><path d="M2.8 6.4h6.6a3.5 3.5 0 0 1 0 7H5.8" fill="none" stroke="currentColor" stroke-linejoin="round"/><path d="M5.6 3.6 2.8 6.4l2.8 2.8" fill="none" stroke="currentColor" stroke-linejoin="round"/></symbol>
 </defs></svg>
 
 
@@ -4678,8 +4689,18 @@
     padding:8px 10px;min-width:0;background:var(--color-surface);}
   .kt-tri-th{display:flex;align-items:center;gap:6px;font-size:var(--t-label);
     font-weight:var(--w-title);}
+  /* ---- TWO LINES, RESERVED, ON EVERY TILE (Young ruled 17 Sep 2026) ----
+     The strip was as tall as its tallest tile, so one obligations tile of ten
+     lines made four tall empty ones and the card was a different height on
+     every contract. The HEIGHT is what fixes it — two lines are held whether
+     the tile has anything to say or not, which is why ktTriageStripHtml draws
+     the box even when it is empty. The clamp is what keeps a long one inside
+     them, with its whole text on the hover. Stated as a multiple of this
+     rule's own line-height so the two cannot drift apart. */
   .kt-tri-td{margin-top:3px;line-height:1.4;font-size:var(--t-label);
-    color:var(--color-neutral-600);}
+    color:var(--color-neutral-600);height:calc(1.4em * 2);
+    display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;
+    overflow:hidden;}
   /* THE BOX IS THE SAME BOX IN EVERY STATE. Measured 17 Sep 2026 while the
      spinner was being fitted: a chip holding a tick resolved 16px and one
      holding the 9px spinner resolved 11, so the row twitched by five pixels

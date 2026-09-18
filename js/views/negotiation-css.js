@@ -3011,6 +3011,23 @@ function redlineLayoutCss(){
     justify-content:flex-end;min-width:0}
   .redline-page .rl-card-d .rl-card-face button{border:0;background:none;padding:0;height:auto;min-height:0;
     font-size:var(--t-meta);font-weight:var(--w-title);line-height:18px;cursor:pointer;white-space:nowrap}
+  ${''/* ---- THE MARK BESIDE THE WORD (Young ruled 17 Sep 2026, "option C") ----
+         A button carrying a mark is a row of TWO things, so it says so:
+         inline-flex, centred, one gap. Asked with :has() rather than given to
+         every face button, so a verb the table has no honest symbol for is
+         left exactly as it is drawn today rather than growing a gap beside
+         nothing.
+         THE ROW DOES NOT GROW. The mark is 15px inside the button's own 18px
+         line-height, so the taller of the two is still the text — measured on
+         a real page, the face is 18px tall before and after, and the verbs
+         still sit on one line (redline-verify 29j and 29k).
+         NO COLOUR IS NAMED HERE, deliberately: the symbol is stroked in
+         currentColor, so each mark inherits its verb's own ink from the four
+         rules above. That is what keeps Edit the colour it is today and
+         Discard ruby without this rule knowing either. */}
+  .redline-page .rl-card-d .rl-card-face button:has(.rl-verb-i){display:inline-flex;
+    align-items:center;gap:6px}
+  .redline-page .rl-card-d .rl-card-face .rl-verb-i{flex:none;width:15px;height:15px}
   .redline-page .rl-card-d .rl-card-face button:hover{text-decoration:underline;background:none}
   .redline-page .rl-card-d .rl-card-face .rl-acc{color:var(--st-green-fg)}
   .redline-page .rl-card-d .rl-card-face .rl-rej{color:var(--st-ruby-fg)}

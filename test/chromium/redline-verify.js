@@ -2752,7 +2752,19 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       discardLast: verbs.length ? verbs[verbs.length - 1] === disc : null,
       discardInk: disc ? getComputedStyle(disc).color : null,
       otherInk: verbs.length > 1 ? getComputedStyle(verbs[0]).color : null,
-      symbols: verbs.filter(b => b.querySelector('svg')).length };
+      symbols: verbs.filter(b => b.querySelector('.rl-verb-i')).length,
+      nVerbs: verbs.length,
+      wordless: verbs.filter(b => !/\S/.test(b.textContent || '')).map(b => b.className),
+      /* ONE LINE: how many distinct tops the verbs sit at. The mark widens
+         each verb by about 21px, so this is the claim Young's own words rest
+         on — "they should all be in one line". */
+      faceRows: new Set(verbs.map(b => Math.round(b.getBoundingClientRect().top))).size,
+      faceH: (() => { const f = r.querySelector('.rl-card-face');
+        return f ? Math.round(f.getBoundingClientRect().height) : null; })(),
+      verbLine: verbs.length ? getComputedStyle(verbs[0]).lineHeight : null,
+      markBox: (() => { const i = r.querySelector('.rl-verb-i');
+        if (!i) return null; const b = i.getBoundingClientRect();
+        return { w: Math.round(b.width), h: Math.round(b.height) }; })() };
   });
   check('29a the row is drawn', row29.drawn === true, JSON.stringify(row29).slice(0, 140));
   check('29b it is ONE column — nothing is held back at the right',
@@ -2768,8 +2780,19 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('29f at the right wall — the same wall the clause name ends at',
     row29.drawn && Math.abs(row29.sideRight - row29.rowRight) <= 2,
     `verbs ${row29.sideRight} · name line ${row29.rowRight} · row box ${row29.rowBox}`);
-  check('29g THE VERBS KEEP THEIR WORDS — not one symbol among them',
-    row29.symbols === 0, row29.symbols + ' symbols');
+  /* ---- 29g REVERSED IN PLACE, later the same day (Young ruled 17 Sep 2026,
+         choosing the "option C" render) ----
+     This read "not one symbol among them", and the morning's row had none.
+     The render he then chose puts the shell's own hairline symbol BESIDE each
+     word — *"the mark and the word"* — so the claim flips. THE HALF THAT
+     MATTERED SURVIVES AND IS STILL ASSERTED: every verb keeps its WORD. An
+     icon-only row is what the old claim was really written against, and it is
+     still refused here. */
+  check('29g every verb keeps its WORD — no icon-only button',
+    row29.nVerbs > 0 && row29.wordless.length === 0,
+    row29.wordless.join(' | ') || `${row29.nVerbs} verbs, all worded`);
+  check('29g2 and each one carries exactly one mark beside it',
+    row29.symbols === row29.nVerbs, `${row29.symbols} marks on ${row29.nVerbs} verbs`);
   if (row29.discardLast === null){
     check('29h Discard is last on the row, and ruby', false, 'no Discard on this row');
   } else {
@@ -2783,6 +2806,25 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       row29.discardInk === 'rgb(190, 18, 60)' && row29.discardInk !== row29.otherInk,
       `discard ${row29.discardInk} · others ${row29.otherInk}`);
   }
+  /* ---- 29j THE MARKS COST THE ROW NOTHING ----
+     The verbs widen by about 21px each, so the two things worth measuring are
+     that they still fit on ONE line and that the row did not grow taller. The
+     mark is 15px inside the verb's own 18px line, so the taller of the two is
+     still the text — asserted as that RELATION rather than as a height, which
+     would need re-typing at every retune.
+     THE SYMBOLS DO NOT PAINT ON THIS PAGE, and that is a property of the
+     harness, not a fault: test/chromium/*.html build their own script lists
+     and none carries index.html's <defs> sprite, so <use> resolves to
+     nothing. The BOX is still reserved, which is what every number here is
+     about. That the marks really paint is measured on the real app, in
+     type-and-symbols-verify. */
+  check('29j the verbs still sit on ONE line, marks and all',
+    row29.faceRows === 1, `${row29.faceRows} line(s) for ${row29.nVerbs} verbs`);
+  check('29k and the row is no taller for them — the mark fits inside the verb\'s own line',
+    !!row29.markBox && row29.markBox.h > 0
+      && row29.markBox.h <= parseFloat(row29.verbLine || '0')
+      && row29.faceH === parseFloat(row29.verbLine || '0'),
+    `mark ${row29.markBox && row29.markBox.h}px · verb line ${row29.verbLine} · face ${row29.faceH}px`);
   await page.screenshot({ path: path.join(OUT, '29-three-line-row.png') });
 
 

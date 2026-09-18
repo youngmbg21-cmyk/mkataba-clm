@@ -6193,6 +6193,56 @@ function rlLockedBtn(sign, cls, label){
     title="${_nea(sign.title)}" aria-label="${_nea(sign.title)}"><b class="rl-lock-mono"
     aria-hidden="true">${_ne(sign.mono)}</b>${label ? ' ' + _ne(label) : ''}</button>`;
 }
+
+/* ---- THE MARK BESIDE THE WORD (Young ruled 17 Sep 2026, off the "option C"
+       render: *"the shell's own hairline symbols beside each word"*) ----
+   ONE TABLE AND ONE INJECTION, applied to the whole face in rlRowFaceVerbs,
+   so a verb added tomorrow is dressed by the same rule. Half a row marked and
+   half bare is the fault this shape exists to make impossible — the standing
+   lesson that a control drawn by a shared builder must be dressed by a rule
+   that reaches every home it is drawn in.
+
+   KEYED ON THE DOOR, never the class or the words. Six of these verbs wear
+   .rl-edit, so the class cannot tell them apart; the words are translated, so
+   they cannot either. The data attribute is what each button IS.
+
+   THE COLOURS DO NOT MOVE, which is the half Young asked for by name ("the
+   edit button the same colour as today, discard in red"): every symbol is
+   drawn in currentColor, so the mark takes its own verb's ink — Edit and Send
+   the accent, Discard and Reject ruby, Accept green, Copilot's own door
+   violet. Nothing in this change names a colour.
+
+   SIX OF THE NINE MARKS WERE ALREADY IN THE SPRITE and are reused by name;
+   bin, ladder and undo are new there. Order matters: the edit door is last
+   because a locked one carries no data attribute at all and is matched by its
+   class pair, which must not catch anything above it. */
+const RL_FACE_MARKS = [
+  [/data-nego-accept=/, 'check'],
+  [/data-nego-reject=/, 'x'],
+  [/data-rl-retract=/, 'bin'],
+  [/data-rl-send=|data-rl-sendcopy=/, 'out'],
+  [/data-rl-ladder=/, 'ladder'],
+  [/data-rl-ask-review=/, 'people'],
+  [/data-nego-undo=|data-nego-redecide=|data-nego-withdraw=|data-rv-cancel=/, 'undo'],
+  [/data-rl-cp-open=/, 'panel'],
+  [/data-rl-cp-editor-row=|data-rl-edit=|rl-verb-ai is-locked/, 'edit'],
+];
+/* A LOCKED DOOR TAKES THE MARK TOO, and that is measured rather than tidy.
+   It is the SAME door — the pencil is what it is, whoever is holding the
+   clause — and the monogram says WHO, which is a second fact and not a
+   substitute for the first. Leaving the mark off it would also make the
+   locked door 21px narrower than the free one beside it, and redline-verify
+   25m exists because that column moved once already: with the mark on both,
+   the two differ by exactly the monogram, which is what it measures today.
+   The symbol is written after the opening tag's first '>', which is safe
+   because every attribute above goes through _nea, and _nea escapes '>'. */
+function rlFaceMark(v){
+  if (!v) return v;
+  const hit = RL_FACE_MARKS.find(([re]) => re.test(v));
+  return hit ? v.replace('>', `><svg class="rl-verb-i" width="15" height="15"
+    viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"
+    aria-hidden="true" focusable="false"><use href="#i-${hit[1]}"/></svg>`) : v;
+}
 function rlClauseEditPillHtml(cl, opts = {}){
   const pill = opts.pill || null;
   if (!cl || opts.editable === false || (!opts.hasPanel && !pill)) return '';
@@ -16877,9 +16927,10 @@ function redlineChangeCardsHtml(c, opts = {}){
       out.push(`<button type="button" class="rl-edit" data-rl-ladder="${_nea(ch.clauseId)}"
         title="${_nea(i18t('ng_rung_open_title'))}">${_ne(i18t('ng_row_ladder'))}</button>`);
     if (discard) out.push(discard);
-    const kept = out.filter(Boolean);
-    /* IT WEARS BOTH CLASSES. `rl-card-face` is the artifact's bare-word
-       dressing; `rl-card-verbs` is the name the rest of the product and half
+    const kept = out.filter(Boolean).map(rlFaceMark);
+    /* IT WEARS BOTH CLASSES. `rl-card-face` is the artifact's own dressing for
+       this row (a bare word until 17 Sep 2026, a mark and a word since);
+       `rl-card-verbs` is the name the rest of the product and half
        the suite already use for "the verbs on this change", and the face IS
        that container now that there is no body holding a second one. One
        element, two names, so neither reading has to be taught the other. */

@@ -791,6 +791,93 @@ const SEED = t => {
       spin.doneH > 0 && spin.busyH === spin.doneH, { busy: spin.busyH, done: spin.doneH });
     check('13e · and the tile says it is busy to a screen reader', spin.busyTile === true, spin);
 
+    /* ======== 14 · THE STRIP IS THE HEADER AND TWO LINES, ALWAYS (Young
+       ruled 17 Sep 2026) ========
+       *"the card is always fixed at [providing] the header and only two lines
+       below it."*
+
+       WHY A BROWSER, AND ONLY A BROWSER. f273 pins the markup and the rule;
+       neither can answer this, because the fault was never in one tile. The
+       tiles are a grid, the grid stretches every cell to the tallest, and
+       "how tall did five cells end up" is a laid-out page's answer. On the
+       contract this was reported from they ran 0, 1, 3, 4 and TEN lines, so
+       four of the five were tall white boxes with a heading at the top.
+
+       DRIVEN, not staged in markup: a real detail long enough to overflow is
+       written onto the record and the product repaints itself. */
+    const fixed = await drive(id => {
+      const c = (state.contracts || []).find(x => x.id === id);
+      const keep = JSON.parse(JSON.stringify(c.triage.steps));
+      c.triage.seenAt = null;
+      c.triage.steps.oblig = { ok: true, found: [
+        { desc: 'Maintain secure, clean, weather-proof warehouse with adequate racking, security systems and material handling equipment' },
+        { desc: 'Receive, unload, inspect, tally and record all inbound shipments' },
+        { desc: 'Store Goods maintaining proper temperature, humidity and handling protocols' }] };
+      /* One tile with nothing to say, so the claim is not satisfied by a
+         fixture where every tile happens to be full — that is the case that
+         never broke. */
+      c.triage.steps.playbook = { ok: true, dev: 0, miss: 0, cats: [] };
+      if (typeof paintKtTriage === 'function') paintKtTriage(c);
+      const e = document.getElementById('kt-triage');
+      const out = e ? {
+        stripH: Math.round(e.getBoundingClientRect().height),
+        tiles: [...e.querySelectorAll('.kt-tri-tile')].map(t => {
+          const td = t.querySelector('.kt-tri-td');
+          return { h: Math.round(t.getBoundingClientRect().height),
+            tdH: td ? Math.round(td.getBoundingClientRect().height) : null,
+            drawn: !!td,
+            /* clipped: really cut, rather than merely short enough to fit */
+            cut: td ? td.scrollHeight > td.clientHeight + 1 : null,
+            hover: !!(td && td.getAttribute('title')),
+            words: td ? td.textContent.trim().length : 0 };
+        }) } : null;
+      /* AND THE SAME STRIP WITH NOTHING LONG IN IT. "Always fixed" is a claim
+         about TWO states, so both are measured in one sitting: a page that is
+         only ever seen with a long detail on it cannot say whether the height
+         moves when there is none. */
+      c.triage.steps.oblig = { ok: true, found: [{ desc: 'Pay each invoice.' }] };
+      if (typeof paintKtTriage === 'function') paintKtTriage(c);
+      const e2 = document.getElementById('kt-triage');
+      out.shortH = e2 ? Math.round(e2.getBoundingClientRect().height) : null;
+      c.triage.steps = keep;
+      if (typeof paintKtTriage === 'function') paintKtTriage(c);
+      return out;
+    }, drew.id, null);
+    const hs = fixed ? [...new Set(fixed.tiles.map(t => t.h))] : [];
+    const tds = fixed ? [...new Set(fixed.tiles.map(t => t.tdH))] : [];
+    /* THE CLAIM IS THE TWO STATES, not one tidy render. Every tile the same
+       height AND the strip the same height with a long detail on it as
+       without — which is what "always fixed" means, and the half that a
+       single measurement cannot see. At the parent this reads 224 against
+       123: the long tile took the whole strip with it. */
+    check('14a · every tile is the same height, and the strip does not move with its contents',
+      hs.length === 1 && hs[0] > 0 && !!fixed && fixed.stripH === fixed.shortH,
+      { heights: hs, withLong: fixed && fixed.stripH, withShort: fixed && fixed.shortH });
+    check('14b · and every tile reserves its two lines, empty ones included',
+      !!fixed && fixed.tiles.every(t => t.drawn) && tds.length === 1 && tds[0] >= 30 && tds[0] <= 38,
+      { bodies: tds, drawn: fixed && fixed.tiles.map(t => t.drawn) });
+    check('14c · the fixture really holds a tile with nothing to say',
+      !!fixed && fixed.tiles.some(t => t.words === 0),
+      fixed && fixed.tiles.map(t => t.words));
+    /* THE CAP IS A FACT, NEVER A SILENT TRIM: the one that is really cut says
+       so by carrying the whole of itself on the hover — and a tile with
+       nothing to say offers no empty tooltip. */
+    const long = fixed && fixed.tiles.find(t => t.cut);
+    check('14d · a detail too long to fit is cut, and carries the whole of itself on the hover',
+      !!long && long.hover === true, long);
+    /* THE CONTROL on the claim above: an empty tooltip is a promise of
+       something behind a box with nothing behind it. It passes at the parent
+       too, where no tile carries a hover at all — it guards this change
+       rather than proving it. */
+    check('14e · and a tile with nothing to say offers no hover',
+      !!fixed && fixed.tiles.filter(t => t.words === 0).every(t => t.hover === false),
+      fixed && fixed.tiles.map(t => ({ w: t.words, hover: t.hover })));
+    /* THE WHOLE POINT, as one number: the strip that ran ten lines deep is a
+       heading and two lines. Measured rather than asserted from the rule,
+       because a rule that loses a cascade fight looks perfectly correct. */
+    check('14f · so the whole strip is a band, not a page',
+      !!fixed && fixed.stripH > 0 && fixed.stripH < 150, fixed && fixed.stripH);
+
     check('9 · and the whole journey raised no page error',
       errors.length === 0, errors.slice(0, 4));
 

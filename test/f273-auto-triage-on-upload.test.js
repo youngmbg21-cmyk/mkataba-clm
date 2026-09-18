@@ -1004,3 +1004,113 @@ describe('F273 — auto-triage on upload', () => {
   });
 
 });
+
+/* ============================================= 10 · THE STRIP IS ALWAYS THE
+   HEADER AND TWO LINES (Young ruled 17 Sep 2026) ==========================
+   Off the strip on a warehousing contract, then in his own words:
+   *"the card is always fixed at [providing] the header and only two lines
+   below it."*
+
+   THE CAUSE WAS NOT THE LONG TILE. Every tile grew to whatever it had to say
+   and the grid then stretched all five to the tallest, so one obligations
+   tile running ten lines made four TALL EMPTY ones and the strip was a
+   different height on every contract. Measured on one record: 0, 1, 3, 4 and
+   10 lines.
+
+   SO THE BOX IS ALWAYS DRAWN, empty or not, and the sheet holds exactly two
+   lines of it. Reserving them in the markup is what makes the height fixed —
+   a clamp alone would cap the tallest and still let the strip shrink when
+   nothing had anything to say. The pixels are measured in auto-triage-verify;
+   what is pinned here is the markup and the rule that make them possible.
+
+   AND A CUT IS NOT A SILENT TRIM: the whole detail goes on the hover, which
+   is the obligations worklist's own idiom, and the count in the chip beside
+   the heading already says how much there is. */
+describe('f273 (10) · the strip is a heading and two lines, on every tile', () => {
+  const HTML = read('index.html');
+
+  test('the body is drawn on every tile, whether it has anything to say or not', () => {
+    const { win } = buildWorld({ triage: true, contractView: true });
+    win.FOLDERS = { proc: { name: 'Supply & Logistics' } };
+    const c = { id: 'MK-407', name: 'N', counterparty: 'Nordkust', status: 'Under Review',
+      source: 'upload', folder: 'proc', owner: { id: 'u1', name: 'Wanjiru Kamau' },
+      audit: [], obligations: [], comments: [],
+      upload: { name: 's.docx', extractedText: TEXT },
+      /* THE REAL SHAPE OF THE REPORT: one tile with a long detail, one with
+         none at all, one in between. That mix is what used to make the strip
+         four-fifths empty white. */
+      triage: { at: '2026-09-17T00:00:00.000Z', seenAt: null,
+        steps: { brief: { ok: true, line: 'A warehousing and logistics contract.' },
+          playbook: { ok: true, dev: 0, miss: 0, cats: [] },
+          oblig: { ok: true, found: [
+            { desc: 'Maintain secure, clean, weather-proof warehouse with adequate racking, security systems and material handling equipment' },
+            { desc: 'Receive, unload, inspect, tally and record all inbound shipments' },
+            { desc: 'Store Goods maintaining proper temperature, humidity and handling protocols' }] },
+          fill: { ok: true } } } };
+    win.state.contracts = [c];
+    const box = win.document.createElement('div');
+    box.innerHTML = win.ktTriageStripHtml(c);
+    const tiles = [...box.querySelectorAll('.kt-tri-tile')];
+    assert.ok(tiles.length >= 4, `${tiles.length} tiles`);
+    for (const t of tiles){
+      assert.ok(t.querySelector('.kt-tri-th'), 'every tile has its heading');
+      assert.ok(t.querySelector('.kt-tri-td'),
+        `"${t.textContent.trim().slice(0, 24)}" reserves its two lines even with nothing to say`);
+    }
+    /* AND AT LEAST ONE REALLY HAS NOTHING — otherwise the claim above is
+       satisfied by a fixture where every tile happens to be full, which is the
+       case that never broke. */
+    assert.ok(tiles.some(t => !t.querySelector('.kt-tri-td').textContent.trim()),
+      'the fixture carries a tile with nothing to say');
+  });
+
+  test('a cut line is not a silent trim — the whole of it is on the hover', () => {
+    const { win } = buildWorld({ triage: true, contractView: true });
+    win.FOLDERS = { proc: { name: 'Supply & Logistics' } };
+    const LONG = 'Maintain secure, clean, weather-proof warehouse with adequate racking, '
+      + 'security systems and material handling equipment';
+    const c = { id: 'MK-407', name: 'N', counterparty: 'Nordkust', status: 'Under Review',
+      source: 'upload', folder: 'proc', owner: { id: 'u1', name: 'Wanjiru Kamau' },
+      audit: [], obligations: [], comments: [],
+      upload: { name: 's.docx', extractedText: TEXT },
+      triage: { at: '2026-09-17T00:00:00.000Z', seenAt: null,
+        steps: { playbook: { ok: true, dev: 0, miss: 0, cats: [] },
+          oblig: { ok: true, found: [{ desc: LONG }] } } } };
+    win.state.contracts = [c];
+    const box = win.document.createElement('div');
+    box.innerHTML = win.ktTriageStripHtml(c);
+    const tds = [...box.querySelectorAll('.kt-tri-td')];
+    const full = tds.find(t => t.textContent.includes('weather-proof'));
+    assert.ok(full, 'the obligations tile prints what was found');
+    assert.equal(full.getAttribute('title'), full.textContent,
+      'and the whole of it is on the hover, so nothing is cut without being said');
+    /* A TILE WITH NOTHING TO SAY CARRIES NO HOVER — an empty tooltip is a
+       promise of something behind a box that has nothing behind it. */
+    const empty = tds.find(t => !t.textContent.trim());
+    if (empty) assert.equal(empty.getAttribute('title'), null,
+      'and a tile with nothing to say offers no hover');
+  });
+
+  test('the sheet holds exactly two lines, and says so in its own line-height', () => {
+    const i = HTML.indexOf('.kt-tri-td{');
+    assert.ok(i > -1, 'the tile body has a rule');
+    const rule = HTML.slice(i, HTML.indexOf('}', i));
+    assert.match(rule, /line-height:1\.4/, 'the rule states its own line');
+    assert.match(rule, /height:calc\(1\.4em \* 2\)/,
+      'and reserves exactly two of them — stated as a multiple of it, so the two cannot drift');
+    assert.match(rule, /-webkit-line-clamp:2/, 'a longer detail stops at the second line');
+    assert.match(rule, /overflow:hidden/, 'and does not spill');
+  });
+
+  test('nothing else draws this class, so the strip is the only thing it can change', () => {
+    /* THE DUPLICATION WARNING, asked rather than assumed. Home draws the same
+       five readings from the same triageTiles — under its OWN class names
+       (.hm-tri-td), deliberately — so this rule cannot reach that card, and
+       the pre-signature check borrows the strip's shell by id without
+       borrowing its tiles. Both are left exactly as they are. */
+    assert.equal((CONTRACT.match(/class="kt-tri-td"/g) || []).length, 1,
+      'one producer of the tile body');
+    assert.ok(/class="hm-tri-td"/.test(HOME), 'Home draws its own, under its own name');
+    assert.ok(!/kt-tri-td/.test(HOME), 'and never this one');
+  });
+});
