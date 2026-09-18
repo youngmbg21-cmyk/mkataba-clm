@@ -110,7 +110,13 @@ const check = (name, pass, detail) => {
          our own entity on the agreement) is the same kind of fact and prints
          the same way: in the recital and in the paper's "Between A and B". The
          check straight after this one proves it, so the exemption is not a hole. */
-      const ESSENTIAL = new Set(['party', 'counterparty', 'value', 'effDate', 'expiry']);
+      /* `folder` joined them on 18 Sep 2026 and is the purest one of the set:
+         it is WHERE HATI FILES THE CONTRACT, not a fact the agreement states,
+         so there is nothing on the paper for it to print into and there never
+         should be. It is asked at every creation door by the owner's word —
+         see TEMPLATE_BASE_FIELDS — and it prints in the register, the filters
+         and the Overview's own value-stream row. */
+      const ESSENTIAL = new Set(['party', 'counterparty', 'value', 'effDate', 'expiry', 'folder']);
       const out = [];
       Object.keys(window.TEMPLATES).forEach(id => {
         const c = { id: 'X', template: id, status: 'Draft', fields: {}, counterparty: 'Acme Ltd',
@@ -256,6 +262,54 @@ const check = (name, pass, detail) => {
       return { drawn: /data-field="termYears"/.test(window.docBody(c)), expiry: c.expiry };
     });
     check('with both dates on record the blank is not drawn at all', !kept.drawn);
+
+    /* ================= 4 · EVERY CREATION DOOR ASKS WHERE IT IS FILED ======
+       (Young ruled 18 Sep 2026: "All created contracts should have a door to
+       being categorized by value stream.") DRIVEN on the real wizard, because
+       the whole fault was that the question was never ASKED: the stream came
+       silently off the template. The select is read off the painted dialog, a
+       different stream is picked with a real change event, and the contract is
+       read back off state — a picker nobody wired would still draw. */
+    const wiz = await page.evaluate(async () => {
+      const out = { opened: false };
+      if (typeof openWizard !== 'function') return out;
+      openWizard();
+      await new Promise(r => setTimeout(r, 350));
+      const card = document.querySelector('[data-wz-tid="ND"]');
+      if (!card) return out;
+      card.click();
+      await new Promise(r => setTimeout(r, 350));
+      const sel = document.getElementById('wz-folder');
+      if (!sel) return out;
+      out.opened = true;
+      out.options = [...sel.options].map(o => o.value);
+      out.starts = sel.value;
+      out.label = (sel.closest('label') || {}).textContent || '';
+      /* Pick a stream the template is NOT filed under, the way a reader does. */
+      const other = [...sel.options].map(o => o.value)
+        .find(v => v && v !== '__new__' && v !== sel.value);
+      out.picked = other || null;
+      if (other) { sel.value = other; sel.dispatchEvent(new Event('change', { bubbles: true })); }
+      const cp = document.getElementById('wz-counterparty');
+      if (cp) cp.value = 'Stream Test Ltd';
+      const go = document.getElementById('wz-create');
+      if (go) go.click();
+      await new Promise(r => setTimeout(r, 400));
+      const c = state.contracts.find(x => x && x.counterparty === 'Stream Test Ltd');
+      out.landed = c ? c.folder : null;
+      return out;
+    });
+    check('4a the wizard asks which value stream, on the template door itself',
+      wiz.opened === true && (wiz.options || []).length > 1,
+      { opened: wiz.opened, n: (wiz.options || []).length });
+    check('4b it offers the product\u2019s own list, create door and all',
+      (wiz.options || []).includes('__new__'), (wiz.options || []).join(','));
+    check('4c the template\u2019s own filing is the answer already in the box',
+      !!wiz.starts && wiz.starts !== '__new__', wiz.starts);
+    check('4d THE REPORTED GAP: the stream the reader picked is where it lands',
+      !!wiz.picked && wiz.landed === wiz.picked, `picked ${wiz.picked} · landed ${wiz.landed}`);
+    check('4e and the box is named in plain words', /stream/i.test(wiz.label || ''),
+      String(wiz.label || '').replace(/\s+/g, ' ').trim().slice(0, 30));
 
     check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {

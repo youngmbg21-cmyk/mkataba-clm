@@ -277,13 +277,23 @@ function tplLibUploadModal() {
       <h3 style="margin:0 0 var(--s-1);font-family:var(--font-heading);font-size:16px;font-weight:var(--w-title)">${i18t('tl_convert_doc')}</h3>
       <p style="margin:0 0 14px;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.5">${i18t('tl_convert_line')}</p>
       <input type="file" id="tpllib-up-file" accept=".docx,.pdf" style="display:block;margin-bottom:var(--s-3);font-size:var(--t-meta)">
-      <label style="display:block;margin-bottom:var(--s-4)"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tl_template_name')} <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">${i18t('tl_defaults_filename')}</span></span>
+      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tl_template_name')} <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">${i18t('tl_defaults_filename')}</span></span>
         <input id="tpllib-up-name" style="${INP}" maxlength="160"></label>
-      <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
+      ${''/* ---- A CONVERTED DOCUMENT IS FILED LIKE ANY OTHER TEMPLATE (Young
+             ruled 18 Sep 2026: "there should have an option to categorize it
+             into a Value Stream") ----
+             The SAME builder the "New standard template" dialog draws, so the
+             two screens cannot ask the question differently or offer different
+             streams — that drift is what tplLibCatStreamRowHtml exists to
+             prevent. Both answers stay optional: a converted document nobody
+             has filed yet says so, which is the picker's own empty row. */}
+      ${tplLibCatStreamRowHtml('tpllib-up-cat', 'tpllib-up-stream', 'other', '')}
+      <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:var(--s-4)">
         <button class="ui-btn" onclick="closeModal()">${i18t('act_cancel')}</button>
         <button id="tpllib-up-go" class="ui-btn ui-btn-primary">${i18t('tl_upload_convert')}</button>
       </div>
     </div>`);
+  tplLibWireCatStream('tpllib-up-cat', 'tpllib-up-stream');
   document.getElementById('tpllib-up-go')?.addEventListener('click', () => {
     const file = document.getElementById('tpllib-up-file').files?.[0];
     if (!file) { toast(i18t('tl_choose_file_first'), 'err'); return; }
@@ -301,6 +311,8 @@ function tplLibUploadModal() {
         const d = await api('templates/upload', 'POST', {
           dataUrl: String(r.result), fileName: file.name,
           name: document.getElementById('tpllib-up-name').value.trim(),
+          category: tplLibPick('tpllib-up-cat', 'other'),
+          folder: tplLibPick('tpllib-up-stream', '') || null,
         });
         closeModal();
         if (d.notice) toast(d.notice, 'err');
@@ -456,6 +468,10 @@ function tplLibNewContract(id, prefill) {
     title: (t && t.name) || 'New contract',
     blurb: (t && t.description) ? String(t.description) : 'From your company standard template.',
     values: prefill,
+    /* The template's own stream is the answer already in the box (18 Sep 2026).
+       The ROUTE keeps the last word: it scope-checks whatever arrives and falls
+       back to the category's own folder when nothing does. */
+    folder: (t && t.folder) || '',
     onCreate: values => tplLibCreate(id, values),
     onSkip: () => tplLibCreate(id, null),
   });
@@ -468,6 +484,9 @@ async function tplLibCreate(id, essentials) {
       value: essentials.value || '',
       effDate: essentials.effDate || '',
       expiry: essentials.expiry || '',
+      /* WHERE IT IS FILED. The route has always taken b.folder and checked it
+         against the reader's own streams; nothing was sending it. */
+      folder: essentials.folder || '',
     } : {});
     if (r.uid) window.uid = r.uid; // keep the client's MK-counter in step with the server's
     const c = typeof migrateContract === 'function' ? migrateContract(r.contract) : r.contract;

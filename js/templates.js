@@ -289,6 +289,20 @@ const TEMPLATE_BASE_FIELDS = [
   { key:'value',        get label(){ return `Contract value (${jxCurrency()})`; }, type:'num', maps:'value', required:false, def:'', ph:'0' },
   { key:'effDate',      label:'Start date', type:'date', maps:'effDate', required:false, def:'' },
   { key:'expiry',       label:'End / expiry date', type:'date', maps:'expiry', required:false, def:'' },
+  /* ---- WHERE THIS ONE IS FILED, ASKED WHERE IT IS CREATED (Young ruled
+     18 Sep 2026: "All created contracts should have a door to being categorized
+     by value stream") ----
+     The stream was taken SILENTLY from the template every time, and a template
+     serves more than one part of a business — so a supply agreement drafted by
+     procurement landed wherever the template happened to be filed and only an
+     admin could move it afterwards. It is the last field on purpose: it is
+     filing, not a term of the agreement, and it is never required — left as it
+     opens it keeps exactly the answer it had before this question existed.
+     `type:'stream'` is drawn by folderOptionsHtml and bound by
+     bindFolderSelect, the product's OWN pair, so "+ New value stream" works
+     here as it does in the upload dialog. The def is written per template by
+     builtinTemplateFields. */
+  { key:'folder', get label(){ return i18t('tl_stream'); }, type:'stream', maps:'folder', required:false, def:'' },
 ];
 /* ---- WHAT A TEMPLATE MAY ASK FOR ----------------------------------------
    ONE RULE, AND IT IS THE WHOLE SECTION: A TEMPLATE ASKS ONLY FOR FACTS ITS
@@ -491,6 +505,12 @@ function builtinTemplateFields(tid){
   const out=TEMPLATE_BASE_FIELDS
     .filter(f=>!(f.key==='value' && t.valueType==='none'))
     .map(_tplCloneField);
+  /* THE TEMPLATE'S OWN STREAM IS THE ANSWER ALREADY IN THE BOX, so a reader who
+     does not touch it creates exactly what this door created before the
+     question existed. Written after the descriptor clone, never on the shared
+     list, which would freeze one template's filing onto all twelve. */
+  const fld=out.find(f=>f.key==='folder');
+  if(fld) fld.def = (FOLDERS[t.folder] ? t.folder : 'corp');
   const prim=(typeof TEMPLATE_PRIMARY!=='undefined') ? TEMPLATE_PRIMARY[tid] : null;
   if(prim && prim.field) out.push({ key:prim.field, label:prim.label, type:'text', maps:'', required:false, def:prim.def||'', ph:prim.ph||'' });
   const pay=TEMPLATE_PAY[tid];

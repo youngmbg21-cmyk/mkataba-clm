@@ -664,161 +664,40 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
   check('23a2 R0 among them — the row the owner named first',
     await page.evaluate(() => !!document.querySelector('#rl-cp [data-rl-rung-peek][data-rung="0"]')),
     'R0 carries the door');
-  /* ---- GUARDED, so a build WITHOUT the feature reports rather than times out
-     ---- Against the parent there are no rung doors at all, and every press
-     below would throw on an empty list — taking the file down with one stack
-     instead of naming the ten things that are missing. */
+  /* ---- REVERSED IN PLACE 18 Sep 2026 (Young: "Remove the hovering feature in
+     the ladder card for now") ----
+     Nine checks drove the card: pointing, the grace crossing, where it opened,
+     whether it was really painted, Escape and the tab stop. They are replaced
+     by ONE that proves the card does not appear, because that is now the
+     product's behaviour and a check for a thing that should not happen is the
+     only honest form of it. Everything they were about is KEPT in the source
+     and dormant (f329 pins that), and the row's own press — the larger door,
+     which is what the card was a shortcut to — is section 24 below. 23a and
+     23a2 stand unchanged: the rows still carry the address and the tab stop. */
   if (!rows23.length){
-    for (const [n, what] of [['23b', 'pointing at a rung draws the card'],
-      ['23c', 'it hangs off the LEFT of the panel'], ['23d', 'it keeps the square corner'],
-      ['23e', "it carries the rung's own wording"], ['23f', 'the contract does not move'],
-      ['23e2', 'and it is really painted'], ['23g', 'pointing away closes it'], ['23h', 'a press goes to the clause'],
-      ['23i', "the card's ways on are reachable with a mouse"], ['23j', 'Escape closes it'],
-      ['23k', 'tabbing to a rung opens it'],
-      ['24a', 'the row says its press is a door'], ['24b', 'a press lights that clause'],
-      ['24c', 'Enter does the same'], ['24d', 'Read as it stood draws the earlier wording'],
-      ['24e', 'the row being read is outlined in RED, under the pointer'],
-      ['24f', 'the chip on the clause is red'], ['24g', 'both ways back are red'],
-      ['24h', 'the clause on the paper is outlined in red'],
-      ['24i', 'Back to now puts it all back'],
-      ['24j', 'the contract does not move by a pixel']])
-      check(n + ' ' + what, false, 'no rung door on this build');
+    check('23b a point draws no card — the hover feature is dormant', false, 'no rung door on this build');
+    check('23f the contract does not move by a pixel', false, 'no rung door on this build');
   } else {
-  /* A REAL HOVER, ON THE FIRST RUNG, because the panel's body scrolls and the last one can sit
-     below its fold — a probe that cannot see its target proves nothing. R0's
-     own door is asserted by its attribute in 23a2. */
-  await rows23[0].hover(); await pause(300);
+  await rows23[0].hover(); await pause(420);
   const peek = await page.evaluate(() => {
     const el = document.getElementById('rl-peek');
-    if (!el) return { drawn: false };
-    const r = el.getBoundingClientRect();
-    const paper = document.querySelector('.rl-doc .rl-clause');
-    const pr = paper ? paper.getBoundingClientRect() : null;
-    const cs = getComputedStyle(el);
-    return { drawn: r.width > 4 && r.height > 4, right: Math.round(r.right),
-      left: Math.round(r.left), radius: cs.borderRadius,
-      paperLeft: pr ? Math.round(pr.left) : null,
-      panelLeft: Math.round(document.getElementById('rl-cp').getBoundingClientRect().left),
-      words: (el.querySelector('.rl-peek-body') || {}).textContent
-        ? el.querySelector('.rl-peek-body').textContent.replace(/\s+/g, ' ').trim().slice(0, 90) : '' };
+    return { up: !!el, open: !!(window.rlPeekOpenId && window.rlPeekOpenId()),
+      /* The builder is kept whole and simply answers no — the thing that makes
+         this a REMOVAL for now rather than a deletion. */
+      kept: typeof window.rlRungPeekHtml === 'function',
+      says: typeof window.rlPeekShow === 'function' ? window.rlPeekShow('x', 'y', {}) : null };
   });
-  check('23b pointing at a rung draws the card', peek.drawn === true, JSON.stringify(peek).slice(0, 200));
-  check('23c it hangs off the LEFT of the panel, over the grey, not over the panel',
-    peek.drawn && peek.right <= peek.panelLeft + 2, `card right ${peek.right} · panel left ${peek.panelLeft}`);
-  check('23d it keeps the contract\'s square corner', peek.radius === '0px', peek.radius);
-  check('23e it carries the rung\'s own WORDING, not a summary',
-    (peek.words || '').length > 30, peek.words);
-  /* ---- AND IT IS REALLY PAINTED (added 18 Sep 2026, after it was not) ----
-     Every check above reads a RECT, and a rect is not a painted pixel: the
-     card was written into #rl-cp, which is overflow:hidden, and hangs outside
-     it by design — so it was addressed, positioned, sized, and clipped away
-     entirely. elementFromPoint is the instrument that can tell the two apart,
-     and it answered the paper's own paragraph across every part of the card.
-     Read at four points across its width because a partial clip is the shape
-     this fault takes when it comes back. */
-  const painted = await page.evaluate(() => {
-    const el = document.getElementById('rl-peek');
-    if (!el) return null;
-    const r = el.getBoundingClientRect();
-    return [0.05, 0.3, 0.6, 0.95].map(f => {
-      const hit = document.elementFromPoint(Math.round(r.left + r.width * f), Math.round(r.top + 20));
-      return hit && hit.closest && hit.closest('#rl-peek') ? 'card' : (hit ? (hit.className || hit.tagName) : 'none');
-    });
-  });
-  check('23e2 AND IT IS REALLY PAINTED: the card answers the pointer across its whole width',
-    !!painted && painted.every(x => x === 'card'), (painted || []).join(' · '));
+  check('23b pointing at a rung draws NO card, and the builder is kept whole',
+    peek.up === false && peek.open === false && peek.kept === true && peek.says === false,
+    JSON.stringify(peek));
   const inkAfter = await page.evaluate(() => {
     const w = document.querySelector('.rl-doc .rl-clause');
     return w ? Math.round(w.getBoundingClientRect().left) : null;
   });
   check('23f THE CONTRACT DOES NOT MOVE BY A PIXEL',
     inkBefore !== null && inkBefore === inkAfter, `before ${inkBefore} · after ${inkAfter}`);
-  /* POINTING AWAY CLOSES IT — the loose state. */
-  await page.mouse.move(peek.paperLeft || 80, 300); await pause(500);
-  const gone = await page.evaluate(() => !document.getElementById('rl-peek'));
-  check('23g pointing away closes it', gone === true, String(gone));
-  /* ---- AND IT OPENS BESIDE THE RUNG (Young reported it 17 Sep 2026: "When I
-     put my mouse on the R1 card I do not see the updated clause") ----
-     The card was drawing correctly and nobody could see it: `top` was a fixed
-     inset from the panel, so rungs at y=217, 343, 513 and 640 ALL opened a
-     card at y=84 — up to 550px above the pointer. Driven on every rung that
-     has a box, because the fault only shows on the ones further down. */
-  const near23 = await (async () => {
-    const out = [];
-    const boxes = await page.evaluate(() =>
-      [...document.querySelectorAll('#rl-cp [data-rl-rung-peek]')]
-        .map((r, i) => ({ i, top: Math.round(r.getBoundingClientRect().top),
-          h: Math.round(r.getBoundingClientRect().height) })).filter(x => x.h > 0));
-    for (const b of boxes){
-      await rows23[b.i].hover(); await pause(280);
-      const got = await page.evaluate(() => {
-        const el = document.getElementById('rl-peek');
-        if (!el) return null;
-        const r = el.getBoundingClientRect();
-        const p = document.getElementById('rl-cp').getBoundingClientRect();
-        return { y: Math.round(r.top), bottom: Math.round(r.bottom),
-          panelTop: Math.round(p.top), panelBottom: Math.round(p.bottom) };
-      });
-      out.push({ row: b.top, card: got });
-    }
-    return out;
-  })();
-  check('23g2 it opens BESIDE the rung, not at the top of the panel',
-    near23.length > 1 && near23.every(x => x.card && Math.abs(x.card.y - x.row) <= 24),
-    near23.map(x => `row ${x.row}→card ${x.card ? x.card.y : 'none'}`).join(' · '));
-  check('23g3 and a rung near the foot cannot push it off the bottom',
-    near23.every(x => x.card && x.card.bottom <= x.card.panelBottom + 2
-      && x.card.y >= x.card.panelTop - 2),
-    near23.map(x => x.card ? `${x.card.y}..${x.card.bottom} in ${x.card.panelTop}..${x.card.panelBottom}` : 'none').join(' · '));
-  await page.mouse.move(40, 300); await pause(400);
-  /* ---- REVERSED IN PLACE 18 Sep 2026 (Young: "when I click on the card it
-     should take me to that clause in the contract") ----
-     These two pinned the card on a press and read its verbs off the pinned
-     card. The press belongs to the CLAUSE now, and the card is purely what the
-     pointer is for — so 23h measures that pointing away still takes it, and
-     23i measures that the verbs are reachable the way they actually are, by
-     moving onto the card. The old reasoning ("its two verbs must be pressable
-     with a mouse") is still the thing being proved; only the mechanism moved
-     from a pin to the grace crossing. */
-  await rows23[0].hover(); await pause(320);
-  await rows23[0].click(); await pause(400);
-  await page.mouse.move(40, 300); await pause(500);
-  const loose = await page.evaluate(() => ({ up: !!document.getElementById('rl-peek'),
-    pinned: 'pinned' in (window.rlPeekOpenId() || {}) }));
-  check('23h a press does NOT pin it: pointing away still takes the card',
-    loose.up === false && loose.pinned === false, JSON.stringify(loose));
-  /* THE CARD HOLDS WHILE THE POINTER IS ON IT, which is what makes its verbs
-     pressable — driven, because only a real mouse crossing proves the grace. */
-  await rows23[0].hover(); await pause(320);
-  const cardBox = await page.evaluate(() => { const el = document.getElementById('rl-peek');
-    if (!el) return null; const r = el.getBoundingClientRect();
-    return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + 12) }; });
-  if (cardBox) await page.mouse.move(cardBox.x, cardBox.y);
-  await pause(500);
-  const onCard = await page.evaluate(() => { const el = document.getElementById('rl-peek');
-    return { up: !!el, acts: el ? [...el.querySelectorAll('.rl-peek-acts button')].map(b => b.textContent.trim()) : [] }; });
-  check('23i the card holds under the pointer, so its ways on are pressable',
-    onCard.up === true && onCard.acts.length >= 1, JSON.stringify(onCard));
-  /* AND ESCAPE CLOSES IT — the half a hover can never answer. */
-  await page.keyboard.press('Escape'); await pause(300);
-  check('23j Escape closes it',
-    await page.evaluate(() => !document.getElementById('rl-peek')), 'closed');
-  /* THE KEYBOARD GETS THE SAME CARD: the rung is a real tab stop. */
-  /* THE FOCUS HAS TO MOVE, and the first draft of this check did not make it:
-     the press in 23h left the caret ON that rung, so .focus() on it fired no
-     focusin at all and the card was reported missing. It is also the right
-     product behaviour — Escape means "I have read it", and a card that came
-     straight back while the focus had not moved would defeat the key that
-     closed it. So this leaves the row first, the way a reader does. */
-  await page.evaluate(() => { document.activeElement && document.activeElement.blur(); });
-  await pause(150);
-  await page.evaluate(() => { const r = document.querySelector('#rl-cp [data-rl-rung-peek]'); r && r.focus(); });
-  await pause(300);
-  check('23k tabbing to a rung opens it too — a hover alone would not exist on a touch screen',
-    await page.evaluate(() => !!document.getElementById('rl-peek')), 'drawn on focus');
+  await page.mouse.move(40, 300); await pause(200);
   }
-
-  await page.evaluate(() => { try{ rlPeekHide(); }catch(_){} });
 
   /* ============================================================
      24 · THE LADDER JOURNEY (Young ruled 18 Sep 2026)

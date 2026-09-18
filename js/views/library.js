@@ -59,6 +59,7 @@ function createFromCustomTemplate(tid, prefill){
   if(typeof openContractEssentials==='function'){
     openContractEssentials({
       title: t.name, blurb: 'This template needs nothing filled into its wording.', values: prefill,
+      folder: t.folder || '',
       onCreate: v => buildFromCustomTemplate(t, {}, { counterpartyEmail: v.cpemail||'', essentials: v }),
       onSkip: () => buildFromCustomTemplate(t, {}),
     });
@@ -82,7 +83,12 @@ function buildFromCustomTemplate(t, values, opts){
        question existed. */
     party:String((opts&&opts.party)||'').trim()||undefined,
     counterpartyEmail:cpEmail||undefined, value:0, status:'Draft',
-    template:null, source:'template', folder:FOLDERS[t.folder]?t.folder:'corp', valueType:'estimated',
+    /* The reader's own answer where the door asked for one, else the
+       template's filing, else Other — the order this door has always had with
+       one rung added on top (18 Sep 2026). */
+    template:null, source:'template',
+    folder:(opts&&FOLDERS[opts.folder]) ? opts.folder : (FOLDERS[t.folder]?t.folder:'corp'),
+    valueType:'estimated',
     lastAction:todayStr(), hash:null, signedAt:null, signatory:u?.name||'Authorized signatory',
     compliance:{iprs:false,pki:false},
     comments:[{author:'System',role:'Automation',side:'internal',
@@ -164,6 +170,15 @@ function openTemplateFillModal(t, prefill){
       <label style="display:block">
         <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${i18t('lib_their_email')}</span>
         <input id="tf-cpemail" type="email" placeholder="${(typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font:inherit;font-size:var(--t-body);outline:none"/></label>
+      ${''/* WHERE IT IS FILED (Young ruled 18 Sep 2026). Hand-written beside
+             the other two record facts for the same reason they are: a saved
+             template carries its own blanks and none of them is this, so this
+             is the only place the stream can be named on this door. The
+             template's own filing is the answer already in the box. */}
+      <label style="display:block">
+        <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${i18t('tl_stream')}</span>
+        <select id="tf-folder" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font:inherit;font-size:var(--t-body);outline:none">${
+          (typeof folderOptionsHtml==='function') ? folderOptionsHtml(t.folder||null, false) : ''}</select></label>
     </div>
     <div id="tf-err" style="font-size:var(--t-label);color:var(--st-ruby-fg);min-height:15px;margin-top:var(--s-2)"></div>
     <div style="display:flex;align-items:center;gap:var(--s-2);margin-top:var(--s-2)">
@@ -172,10 +187,12 @@ function openTemplateFillModal(t, prefill){
       <button id="tf-skip" class="ui-btn" title="${esc(i18t('lib_create_now_fill_later'))}">${i18t('lib_skip_for_now')}</button>
       <button id="tf-create" class="ui-btn ui-btn-primary">${i18t('lib_create_draft')}</button>
     </div></div>`, {maxWidth:'620px'});
+  if(typeof bindFolderSelect==='function') bindFolderSelect(document.getElementById('tf-folder'));
+  const tfFolder=()=>((document.getElementById('tf-folder')||{}).value||'');
   document.getElementById('tf-cancel').addEventListener('click',closeModal);
   /* Same contract, blanks left blank — an unfilled placeholder is a designed
      state in the document, not a broken one. */
-  document.getElementById('tf-skip').addEventListener('click',()=>{ closeModal(); buildFromCustomTemplate(t, {}); });
+  document.getElementById('tf-skip').addEventListener('click',()=>{ const fo=tfFolder(); closeModal(); buildFromCustomTemplate(t, {}, { folder:fo }); });
   document.getElementById('tf-create').addEventListener('click',()=>{
     const values={}, errs=[];
     for(const f of fs){ const el=document.getElementById('tf-'+f.key); const raw=el?el.value.trim():'';
@@ -185,7 +202,8 @@ function openTemplateFillModal(t, prefill){
       errs.push(`"${cpEmail.trim()}" is not an email address — leave it blank if you do not have it yet.`);
     if(errs.length){ document.getElementById('tf-err').textContent=errs[0]; return; }
     const party=((document.getElementById('tf-party')||{}).value||'').trim();
-    closeModal(); buildFromCustomTemplate(t, values, { counterpartyEmail:cpEmail.trim(), party });
+    const folder=tfFolder();
+    closeModal(); buildFromCustomTemplate(t, values, { counterpartyEmail:cpEmail.trim(), party, folder });
   });
 }
 

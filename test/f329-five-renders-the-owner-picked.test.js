@@ -356,15 +356,22 @@ describe('f329 (5) — a ladder rung shows its whole clause', () => {
     const fn = realBody(strip(NEGO), 'function rlRungPeekHtml(');
     assert.match(fn, /ng_peek_none/, 'a rung with no wording says so');
   });
-  test('HOVER ALONE IS NOT ENOUGH: a point, a tab, a press and Escape', () => {
+  /* ---- REVERSED IN PLACE 18 Sep 2026 (Young: "Remove the hovering feature in
+     the ladder card for now") ----
+     This pinned the four doors that opened the card. Three of them are gone.
+     The card, its builder and its rules are kept WHOLE and dormant, which is
+     what "for now" means and what the claims below still pin; the row stays a
+     tab stop because its PRESS is still a door onto the clause. */
+  test('THE HOVER CARD IS DORMANT: no door opens it, and the row is still a tab stop', () => {
     const src = strip(NEGO);
-    const m = src.slice(src.indexOf("document._rlPeekWired = true"));
-    assert.ok(m, 'the listeners are armed');
-    assert.match(m.slice(0, 2600), /addEventListener\('mouseover'/, 'pointing');
-    assert.match(m.slice(0, 2600), /addEventListener\('focusin'/, 'tabbing');
-    assert.match(m.slice(0, 2600), /ev\.key === 'Escape'/, 'and Escape closes it');
+    assert.ok(!/_rlPeekWired/.test(src), 'the listener block is gone, not guarded');
+    assert.ok(!/addEventListener\('mouseover'/.test(src), 'nothing answers a point');
+    assert.ok(!/addEventListener\('mouseout'/.test(src), 'nor a point away');
+    const show = realBody(src, 'function rlPeekShow(');
+    assert.match(show, /^[\s\S]{0,1400}?return false;/, 'and the builder answers no before it draws');
+    assert.match(src, /function rlRungPeekHtml\(/, 'the card itself is KEPT, whole');
     assert.match(src, /data-rl-rung-peek="\$\{_nea\(id\)\}" data-rung="\$\{_nea\(r\.id\)\}" tabindex="0"/,
-      'every move rung is reachable by keyboard');
+      'every move rung is still reachable by keyboard');
     assert.match(src, /data-rl-rung-peek="\$\{_nea\(id\)\}" data-rung="0" tabindex="0"/,
       'and R0, which is the row the owner named first');
   });
@@ -512,9 +519,9 @@ describe('the ladder journey: pressing a rung goes to its clause', () => {
   });
   test('EVERY ACT HAS A KEY BESIDE ITS CLICK: Enter and Space reach the same door', () => {
     const src = strip(NEGO);
-    const m = src.slice(src.indexOf('document._rlPeekWired = true'));
-    assert.match(m.slice(0, 3400), /ev\.key !== 'Enter' && ev\.key !== ' '/, 'both keys');
-    assert.match(m.slice(0, 3400), /rlLadderGoClause\(row\.getAttribute\('data-rl-rung-peek'\), row\)/,
+    const m = src.slice(src.indexOf('document._rlRungKeysWired = true'));
+    assert.match(m.slice(0, 1200), /ev\.key !== 'Enter' && ev\.key !== ' '/, 'both keys');
+    assert.match(m.slice(0, 1200), /rlLadderGoClause\(row\.getAttribute\('data-rl-rung-peek'\), row\)/,
       'and they press the one reading');
   });
   test('the row says what its press does, in both books', () => {

@@ -5553,7 +5553,11 @@ function redlineLayoutCss(){
   .redline-page .rl-ladder-foot{margin-top:10px}
   .redline-page .rl-rung-base .rl-rung-what{color:var(--color-neutral-600)}
 
-  ${''/* ---- THE RUNG'S WHOLE CLAUSE, OVER THE GREY (Young ruled 17 Sep 2026)
+  ${''/* ---- THE RUNG'S WHOLE CLAUSE, OVER THE GREY (Young ruled 17 Sep 2026;
+         THE CARD IS DORMANT since 18 Sep — "Remove the hovering feature in the
+         ladder card for now" — so every .rl-peek rule below has no element to
+         dress until the listeners are armed again in negotiation.js. The row's
+         own cursor and wash STAY: the press is still a door onto the clause.)
          ----
          right:100% inside #rl-cp puts its right edge on the seam between the
          cards column and the paper's track, and it grows LEFTWARD into the

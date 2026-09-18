@@ -263,6 +263,14 @@ function openWizard(preTid, prefill){
       return `<span style="font-weight:var(--w-body);color:var(--color-neutral-500);text-transform:none;letter-spacing:0"> → ${m}</span>`; };
     const input=v=>{ const id='wz-'+String(v.key).replace(/[:]/g,'_');
       const lbl=`<span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono);letter-spacing:.02em;">${v.label}${v.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}${mapNote(v)}</span>`;
+      /* ---- A VALUE STREAM IS DRAWN BY THE PRODUCT'S OWN LIST (18 Sep 2026)
+         ---- folderOptionsHtml carries the "+ New value stream" sentinel and
+         bindFolderSelect answers it, so this door offers what every other
+         filing door offers and none of them can drift. Bound after the modal
+         is in the page, below. */
+      if(v.type==='stream') return `<label style="display:block;">${lbl}
+        <select id="${id}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font-size:var(--t-body);color:var(--color-text);outline:none;">${
+          (typeof folderOptionsHtml==='function') ? folderOptionsHtml(v.def||null, false) : ''}</select></label>`;
       if(v.type==='select') return `<label style="display:block;">${lbl}
         <select id="${id}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font-size:var(--t-body);color:var(--color-text);outline:none;">
           ${(v.opts||[]).map(o=>`<option value="${String(o).replace(/"/g,'&quot;')}" ${v.def===o?'selected':''}>${o}</option>`).join('')}</select></label>`;
@@ -290,6 +298,13 @@ function openWizard(preTid, prefill){
         <button id="wz-skip" class="ui-btn" title="${i18t('wz_create_and_fill')}">${i18t('wz_skip_for_now')}</button>
         <button id="wz-create" class="ui-btn ui-btn-primary">${i18t('tl_create_draft')}</button>
       </div></div>`);
+    /* The stream selects, bound once the markup is in the page — the sentinel
+       is a dead option until bindFolderSelect has seen the element. */
+    if(typeof bindFolderSelect==='function')
+      vars.filter(v=>v.type==='stream').forEach(v=>{
+        const el=document.getElementById('wz-'+String(v.key).replace(/[:]/g,'_'));
+        if(el) bindFolderSelect(el);
+      });
     document.getElementById('wz-back').addEventListener('click',()=>{ tid=null; renderStep(); });
     document.getElementById('wz-cancel').addEventListener('click',closeModal);
     document.getElementById('wz-create').addEventListener('click',()=>createFromWizard(tid, vars));

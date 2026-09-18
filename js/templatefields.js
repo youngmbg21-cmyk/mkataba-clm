@@ -397,6 +397,13 @@ const CONTRACT_ESSENTIALS = [
     ph:'0', hint:'if known' },
   { key:'effDate',      label:'Start date',   type:'date', maps:'effDate' },
   { key:'expiry',       label:'End date', type:'date', maps:'expiry' },
+  /* ---- WHERE THIS ONE IS FILED (Young ruled 18 Sep 2026) ----
+     The same question, in the same words, as the wizard's own last field and
+     the upload dialog's picker — see TEMPLATE_BASE_FIELDS in js/templates.js
+     for why it is asked at all. Never required: left alone it answers exactly
+     what the template answered before this question existed, because the
+     caller puts that in the box. */
+  { key:'folder', get label(){ return i18t('tl_stream'); }, type:'stream', maps:'folder' },
 ];
 /* The value label carries the workspace's own currency, so a Kenyan workspace
    asks for KES and a Swedish one for SEK rather than both being told "value". */
@@ -415,11 +422,29 @@ function essentialFields(){
 function openContractEssentials(opts){
   const o = opts || {};
   const esc = s => String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
-  const fs = (o.values && typeof draftApplyPrefill==='function')
+  const fs0 = (o.values && typeof draftApplyPrefill==='function')
     ? draftApplyPrefill(essentialFields(), o.values) : essentialFields();
+  /* ---- THE CALLER'S OWN STREAM GOES IN THE BOX, BY DESCRIPTOR ----
+     essentialFields() returns the SHARED entries by reference for every field
+     but `value`, so writing a default straight onto one would freeze one
+     template's filing onto the next contract created from any other. The
+     getter trap, in its filing costume. Copied the way builtinTemplateFields
+     copies, so the label getter survives a language change. */
+  const fs = fs0.map(f => {
+    if (f.key !== 'folder' || o.folder == null) return f;
+    const cl = Object.defineProperties({}, Object.getOwnPropertyDescriptors(f));
+    cl.def = String(o.folder || '');
+    return cl;
+  });
   const ST = 'width:100%;min-height:36px;border:1px solid var(--color-divider);'
     + 'background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font:inherit;font-size:var(--t-body);outline:none;color:inherit';
   const input = f => {
+    /* A value stream is the product's own list, with its "+ New value stream"
+       sentinel — see the wizard for the pair. */
+    if (f.type==='stream') return `<label style="display:block">
+      <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${esc(f.label)}</span>
+      <select id="ce-${f.key}" style="${ST}">${
+        (typeof folderOptionsHtml==='function') ? folderOptionsHtml(f.def||null, false) : ''}</select></label>`;
     const it = f.type==='date' ? 'date' : (f.type==='num' ? 'number' : (f.type==='email' ? 'email' : 'text'));
     return `<label style="display:block">
       <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${esc(f.label)}${
@@ -439,6 +464,10 @@ function openContractEssentials(opts){
       <button id="ce-create" class="ui-btn ui-btn-primary">${esc(o.createLabel||'Create draft')}</button>
     </div></div>`, { maxWidth:'620px' });
 
+  if(typeof bindFolderSelect==='function')
+    fs.filter(f=>f.type==='stream').forEach(f=>{
+      const el=document.getElementById('ce-'+f.key); if(el) bindFolderSelect(el);
+    });
   document.getElementById('ce-cancel').addEventListener('click', closeModal);
   document.getElementById('ce-skip').addEventListener('click', ()=>{ closeModal(); if(o.onSkip) o.onSkip(); });
   document.getElementById('ce-create').addEventListener('click', ()=>{

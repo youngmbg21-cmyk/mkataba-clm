@@ -579,6 +579,46 @@ const BOX = sel => {
     check('8j · and so is the category, which could not be created at all before',
       onServer.cats.includes('Distribution'), onServer);
 
+    /* ===== 9 · THE BUTTON'S WORDS, AND A CONVERTED DOCUMENT IS FILED
+       (Young ruled 18 Sep 2026) =====
+       *"Highlighted button should be named '+ Build new template'. As for the
+       converting a document option, there should have an option to categorize
+       it into a Value Stream."* Both read off the PAINTED page, and the second
+       one is driven: the dialog is opened with a real press and its pickers are
+       read off the DOM, because a select nobody wired is a dead option and that
+       is exactly the drift these two dialogs have had before. */
+    await page.evaluate(() => { const b = document.querySelector('[data-tpl-tab="list"]'); if (b) b.click(); });
+    await pause(700);
+    const words = await page.evaluate(() => {
+      const n = document.getElementById('tpl-new'), c = document.getElementById('tpl-convert');
+      return { newBtn: n ? n.textContent.trim() : null, conv: c ? c.textContent.trim() : null };
+    });
+    check('9a · the button says what it does: Build new template',
+      words.newBtn === '+ Build new template', words);
+    check('9b · and Convert a document is still beside it', /Convert a document/.test(words.conv || ''), words);
+
+    await page.evaluate(() => { const b = document.getElementById('tpl-convert'); if (b) b.click(); });
+    await pause(700);
+    await page.screenshot({ path: path.join(OUT, '09-convert-a-document.png') });
+    const conv = await page.evaluate(() => {
+      const opts = id => [...(document.getElementById(id) || { options: [] }).options]
+        .map(o => ({ v: o.value, t: o.textContent.trim() }));
+      const lab = document.querySelector('#tpllib-up-stream')
+        ? (document.querySelector('#tpllib-up-stream').closest('label') || {}).textContent : '';
+      return { cat: opts('tpllib-up-cat'), stream: opts('tpllib-up-stream'),
+        label: String(lab || '').replace(/\s+/g, ' ').trim().slice(0, 40),
+        file: !!document.getElementById('tpllib-up-file') };
+    });
+    check('9c · THE REPORTED GAP: converting a document now asks for a value stream',
+      conv.stream.length > 1, { n: conv.stream.length, label: conv.label });
+    check('9d · and a category, the same pair the other dialog asks',
+      conv.cat.length > 1, conv.cat.length);
+    check('9e · the stream picker is WIRED — its create door is there, so it is not a dead list',
+      conv.stream.some(o => o.v === '__new__'), conv.stream.map(o => o.v).join(','));
+    check('9f · and the file box is still the first thing on the dialog', conv.file === true, conv.file);
+    await page.evaluate(() => { try { closeModal(); } catch (_) {} });
+    await pause(300);
+
     check('6a · the page threw nothing', errors.length === 0, errors.slice(0, 3));
   } catch (e) {
     check('harness', false, String(e && e.message || e));

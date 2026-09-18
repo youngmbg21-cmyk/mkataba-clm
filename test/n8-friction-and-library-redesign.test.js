@@ -145,7 +145,10 @@ describe('N8 (3) — the templates library page', () => {
     assert.match(rows, /data-tpl-use="ct1"/); assert.match(rows, /data-tpl-prev="ct1"/);
     assert.match(rows, /data-tpl-more="ct1"/, 'edit/blanks/bulk/versions/delete live behind ⋯');
     assert.match(rows, /data-tpl-builtin="ND"/); assert.match(rows, /data-tpl-bulk-b="ND"/);
-    assert.match(shell, /Convert a document/); assert.match(shell, /New template/);
+    /* RE-POINTED 18 Sep 2026: the owner renamed the second button to
+       "+ Build new template". The claim is the same — both doors are on the
+       page — and the words are the owner's to set. */
+    assert.match(shell, /Convert a document/); assert.match(shell, /Build new template/);
   });
 });
 

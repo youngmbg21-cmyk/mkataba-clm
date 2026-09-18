@@ -5997,7 +5997,7 @@ const STRINGS = {
     lib_col_version: 'Version',
     lib_col_used: 'Used',
     lib_more_kinds: '{n} more · {kinds}',
-    lib_new_template: '+ New template',
+    lib_new_template: '+ Build new template',
     lib_new_template_plain: 'New template',
     /* ---- Our standards: the clause row that opens, and the two readings
        that propose a standard (ideas 20 and 21, owner-approved 9 Sep 2026) ---- */
@@ -12605,7 +12605,7 @@ const STRINGS = {
     lib_col_version: 'Version',
     lib_col_used: 'Använd',
     lib_more_kinds: '{n} till · {kinds}',
-    lib_new_template: '+ Ny mall',
+    lib_new_template: '+ Bygg ny mall',
     lib_new_template_plain: 'Ny mall',
     std_ask_for: 'Det vi begär',
     std_go_down_to: 'Så långt vi kan gå',

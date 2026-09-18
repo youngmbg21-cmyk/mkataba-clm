@@ -15605,3 +15605,87 @@ round-two-comments 46/46, keeps-your-place 11/11.
   `nego-redesign-verify 1` breadcrumb group fail identically at the parent.
 - `overview-as-drawn-verify.js:145` still carries the repo's one lint error.
 - The 27 pre-existing red browser files in the whole-file sweep are unchanged.
+
+## 2026-09-18 (2) — THE HOVER CARD GOES AWAY, THE BUTTON IS RENAMED, AND THE VALUE STREAM IS ASKED WHERE THE CONTRACT IS MADE
+
+Young, three asks in one message: *"Remove the hovering feature in the ladder
+card for now then: ... Highlighted button should be named '+ Build new
+template'. As for the converting a document option, there should have an option
+to categorize it into a Value Stream. All created contracts should have a door
+to being categorized by value stream."*
+
+### 1 · The ladder hover card is dormant
+
+The mouseover, mouseout, focusin and Escape doors are DELETED rather than
+guarded — a listener on every mouse movement over the page, answering nothing,
+is a cost with no reader. `rlPeekShow` returns false before it looks anything
+up. **"For now" is not "delete it"**: `rlRungPeekHtml`, the `.rl-peek` rules and
+`ng_peek_esc` / `ng_peek_none` are kept whole, and the block in negotiation.js
+says where the listeners go back. **The PRESS survives** — the row still takes
+the reader to that clause on the paper, with Enter and Space beside it, and the
+row keeps its pointer cursor and its title.
+
+### 2 · "+ New template" is "+ Build new template"
+
+One key, both books (`+ Bygg ny mall` in Swedish).
+
+### 3 · Where a contract is filed is asked where it is created
+
+MEASURED FIRST, and it was true of one door out of six: **the upload asked
+which value stream and nothing else did.** The wizard, the company-standard
+door, the saved-template door and bulk creation all took the stream SILENTLY
+off the template — and a template serves more than one part of a business, so a
+supply agreement drafted by procurement landed wherever that template happened
+to be filed. Moving it afterwards is an admin's act by the owner's own 14 Aug
+ruling, so for everybody else there was no door at all.
+
+- **"Convert a document"** draws the SAME category-and-stream row the "new
+  standard template" dialog draws, wired by the same function, so neither can
+  grow a dead option. `POST /api/templates/upload` files the row with
+  `tplFolderOf` and `TPL_CATEGORIES` — the readings the other route already
+  used.
+- **A `folder` field joins `TEMPLATE_BASE_FIELDS`** (the wizard and bulk) **and
+  `CONTRACT_ESSENTIALS`** (the company-standard and saved-template doors), last
+  on both lists and never required: it is filing, not a term of the agreement.
+  `type:'stream'` draws `folderOptionsHtml` and binds `bindFolderSelect`, the
+  product's own pair, so "+ New value stream" works here as it does everywhere.
+- **THE ANSWER ALREADY IN THE BOX IS THE TEMPLATE'S OWN**, so a reader who does
+  not touch it creates exactly what that door created before. Written BY
+  DESCRIPTOR onto a clone in both places — the shared field lists are returned
+  by reference, and a default written straight onto one would freeze one
+  template's filing onto every other. The getter trap in its filing costume.
+- **The saved-template fill form** gained a stream box beside its party and
+  email boxes, for the same reason those two are hand-written: a saved
+  template's own blanks never carry it.
+- **THE WALLS ARE UNCHANGED.** `applyTemplateValues` still refuses a folder that
+  is not on the map; `POST /api/templates/:id/contracts` still scope-checks
+  whatever arrives; re-filing a saved contract is still an admin's act.
+
+### Asked, not assumed
+
+"All created contracts should have a door" could also mean the Overview's
+value-stream row should open to non-admins after creation. That would reverse
+the owner's own 14 Aug ruling and needs a server guard widened, so it was NOT
+done — the question is in the summary instead.
+
+### Tests
+
+f330 (19 claims, 15 red at the parent; the other four are named controls) ·
+templates-tabs-verify 9 (six checks driven on the real page, four red) ·
+term-and-fields-verify 4 (five checks driving the real wizard, all five red —
+`4d` picks a stream and reads the contract back) · ladder-verify 23 reversed in
+place (nine hover checks replaced by one that proves no card appears, red at the
+parent). Full node suite 7,609/7,609. clause-door 125/125, settings-tabs 84/84,
+auto-triage 58/58, blanks-panel 30/30, dialog-balance 18/18, signers-and-party
+49/49, refile-a-contract 26/26, nda-carries-no-money 21/21, draft-from-a-sentence
+clean.
+
+### Noticed, not fixed
+
+- `ladder-verify 5b` and `overview-as-drawn-verify.js:145`'s lint error are
+  unchanged from the parent.
+- `createFromTemplate` (js/app.js) mints with no dialog at all and is reached
+  only from the Requests lanes, so it has no reader to ask; it still files into
+  the template's own stream.
+- The bulk CSV import can now carry a `folder` column through the same field,
+  which is additive and untested.

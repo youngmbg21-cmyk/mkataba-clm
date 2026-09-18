@@ -153,11 +153,17 @@ describe('f326 — the filing lists are the company\'s', () => {
       assert.match(TPL_CODE, /sel\.value==='__new__'/,
         'and bindFolderSelect is still the one thing that answers it');
     });
-    test('both dialogs are wired from ONE function, so neither has a dead option', () => {
+    /* RE-POINTED 18 Sep 2026: a THIRD dialog draws the row — "Convert a
+       document", which Young ruled must offer a value stream like the others.
+       The claim is unchanged and stronger: every dialog that draws the row is
+       wired from the one function, so none of them can grow a dead option. */
+    test('every dialog is wired from ONE function, so none has a dead option', () => {
       const wires = (LIB_CODE.match(/tplLibWireCatStream\(/g) || []).length;
-      assert.equal(wires, 3, 'the definition and exactly two callers');
+      assert.equal(wires, 4, 'the definition and exactly three callers');
       assert.match(LIB_CODE, /tplLibWireCatStream\('tpllib-cat', 'tpllib-stream'\)/);
       assert.match(LIB_CODE, /tplLibWireCatStream\('tpllib-m-cat', 'tpllib-m-stream'\)/);
+      assert.match(LIB_CODE, /tplLibWireCatStream\('tpllib-up-cat', 'tpllib-up-stream'\)/,
+        'the convert-a-document dialog too');
     });
     test('a sentinel never reaches the route', () => {
       const w = stage({});

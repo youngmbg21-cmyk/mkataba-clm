@@ -13877,9 +13877,15 @@ app.post('/api/templates/upload', auth, templateManager, passwordCurrent, rlAiDe
   const tid = 'tpl_' + rid(8);
   let vid;
   txn(() => {
-    db.prepare(`INSERT INTO templates (id,org_id,name,description,category,status,origin,source_contract_id,created_by,created_at,updated_at,source_type,page_count)
-      VALUES (?,?,?,?,?,'draft','upload',NULL,?,?,?,?,?)`)
-      .run(tid, WORKSPACE_ID, name, `Converted from ${fileName} (original stored: ${fileId})`, TPL_CATEGORIES.includes(b.category) ? b.category : 'other', req.user.name, now(), now(),
+    /* ---- IT IS FILED WHERE THE CONVERTER WAS TOLD TO FILE IT (Young ruled
+       18 Sep 2026) ---- The dialog asks for a category and a value stream in
+       the same row the "new standard template" dialog uses, so this route reads
+       them with the SAME readings that route does: TPL_CATEGORIES for the one
+       and tplFolderOf for the other. Absent stays absent — a converted document
+       nobody has filed is honestly unfiled. */
+    db.prepare(`INSERT INTO templates (id,org_id,name,description,category,folder,status,origin,source_contract_id,created_by,created_at,updated_at,source_type,page_count)
+      VALUES (?,?,?,?,?,?,'draft','upload',NULL,?,?,?,?,?)`)
+      .run(tid, WORKSPACE_ID, name, `Converted from ${fileName} (original stored: ${fileId})`, TPL_CATEGORIES.includes(b.category) ? b.category : 'other', tplFolderOf(b.folder), req.user.name, now(), now(),
         sourceType, isPdf ? pdf.pageCount : null);
     const v = tplNewVersion(tid, 1);
     vid = v.id;

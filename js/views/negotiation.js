@@ -7174,6 +7174,15 @@ function rlRungPeekHtml(c, clauseId, rungId){
    without a second positioning context to keep in step: #rl-cp is already the
    cards column's own box, so `right:100%` is the seam between them. */
 function rlPeekShow(clauseId, rungId, opts){
+  /* ---- DORMANT (Young ruled 18 Sep 2026: "Remove the hovering feature in the
+     ladder card for now") ----
+     The card is not drawn. Everything below is kept whole, and so are its
+     stylesheet rules and its two words, because "for now" is not "delete it":
+     the reader's way to a rung's wording is the PRESS, which takes them to the
+     clause on the paper itself, and that is the larger door. Bringing it back
+     is arming the listeners again — see the note above the rung rows. */
+  return false;
+  /* eslint-disable no-unreachable */
   const c = rlLadderContract();
   if (!c) return false;
   /* NEVER IN A CLEAN READING and never on their seat — the pencil's own two
@@ -7264,6 +7273,7 @@ function rlPeekShow(clauseId, rungId, opts){
     card.addEventListener('mouseleave', () => rlPeekLater());
   }
   return true;
+  /* eslint-enable no-unreachable */
 }
 function rlPeekHide(){
   clearTimeout(_rlPeekTimer); _rlPeekTimer = null;
@@ -18607,59 +18617,26 @@ if (typeof document !== 'undefined' && !document._rlNotesWired){
     if (window.openNotesPanel) openNotesPanel(cid, id);
   });
 }
-/* ---- THE RUNG'S WORDING ANSWERS A POINT, A TAB, A PRESS AND ESCAPE ----
-   (Young ruled 17 Sep 2026.) Delegated on document and armed at MODULE LOAD,
-   for the reason every listener in this file is: the panel that hosts the card
-   is painted into its mount partway through a render, so anything bound in the
-   head block above that paint would be live-looking and dead. Bound once.
+/* ---- THE RUNG'S ROW IS A DOOR, AND ITS KEYS ARE BESIDE ITS PRESS ----
+   Delegated on document and armed at MODULE LOAD, for the reason every listener
+   in this file is: the panel that hosts the rows is painted into its mount
+   partway through a render, so anything bound in the head block above that
+   paint would be live-looking and dead. Bound once.
 
-   POINTING OPENS IT AND POINTING AWAY CLOSES IT, and that is the whole of the
-   card's own state since 18 Sep 2026: the press belongs to the CLAUSE now, not
-   to this card. Crossing from the row onto the card is what keeps it up long
-   enough for its verbs to be pressed. */
-if (typeof document !== 'undefined' && !document._rlPeekWired){
-  document._rlPeekWired = true;
+   ---- THE HOVER CARD IS DORMANT (Young ruled 18 Sep 2026: "Remove the hovering
+   feature in the ladder card for now") ----
+   The mouseover, mouseout, focusin and Escape doors that opened it are GONE
+   rather than guarded: a listener on every mouse movement over the page,
+   answering nothing, is a cost with no reader. rlRungPeekHtml, rlPeekShow,
+   rlPeekHide, rlPeekLater and the .rl-peek rules are kept whole and dormant,
+   and this is where they are armed again if the owner wants the card back.
+   What SURVIVES is the press — the row takes the reader to that clause on the
+   paper — so Enter and Space stay, because every act has a key beside its
+   click and this one still has an act. */
+if (typeof document !== 'undefined' && !document._rlRungKeysWired){
+  document._rlRungKeysWired = true;
   const rowOf = t => (t && t.closest) ? t.closest('[data-rl-rung-peek]') : null;
-  const addr = row => [row.getAttribute('data-rl-rung-peek'), row.getAttribute('data-rung')];
-  document.addEventListener('mouseover', ev => {
-    const row = rowOf(ev.target);
-    if (!row){ return; }
-    const [cid, rid] = addr(row);
-    /* ALREADY SHOWING THIS ONE: keep it, and cancel any close in flight —
-       mouseover fires again for every child the pointer crosses inside the
-       row, and rebuilding the card under the reader on each one would flicker.
-       IT ASKS THE PAGE, NOT ONLY THE FLAG: the panel repaints on its own (a
-       filing, a decision, the twelve-second probe) and takes the card with it,
-       which would otherwise leave the flag saying "shown" over nothing and no
-       hover able to bring it back. */
-    if (_rlPeek && _rlPeek.clauseId === String(cid) && _rlPeek.rungId === String(rid)
-      && document.getElementById('rl-peek')){
-      clearTimeout(_rlPeekTimer); _rlPeekTimer = null; return;
-    }
-    rlPeekShow(cid, rid, { row });
-  });
-  document.addEventListener('mouseout', ev => {
-    const row = rowOf(ev.target);
-    if (!row) return;
-    /* Moving WITHIN the row is not leaving it. */
-    if (ev.relatedTarget && rowOf(ev.relatedTarget) === row) return;
-    rlPeekLater();
-  });
-  /* THE KEYBOARD GETS THE SAME CARD. focusin, because focus does not bubble
-     and the rows are rewritten on every paint of the panel. */
-  document.addEventListener('focusin', ev => {
-    const row = rowOf(ev.target);
-    if (!row){ if (_rlPeek && !document.getElementById('rl-peek')?.contains(ev.target)) rlPeekLater(); return; }
-    const [cid, rid] = addr(row);
-    rlPeekShow(cid, rid, { row });
-  });
   document.addEventListener('keydown', ev => {
-    if (ev.key === 'Escape' && _rlPeek){ ev.stopPropagation(); rlPeekHide(); return; }
-    /* ---- EVERY ACT HAS A KEY BESIDE ITS CLICK ----
-       The row is a tab stop that now DOES something, so Enter and Space reach
-       the same door the mouse does. A press on a verb inside the row is still
-       that verb: a button answers its own keys and this stands down for one,
-       the way the mouse branch does. */
     if (ev.key !== 'Enter' && ev.key !== ' ') return;
     const row = rowOf(ev.target);
     if (!row || (ev.target.closest && ev.target.closest('button,a,input,select,textarea'))) return;
