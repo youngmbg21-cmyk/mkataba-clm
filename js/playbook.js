@@ -86,7 +86,15 @@ const DEFAULT_PLAYBOOK = {
 };
 // Map a contract kind/folder to a playbook key.
 function playbookKeyFor(c){
-  const k=(cKind(c)||'').toLowerCase(), f=c.folder;
+  /* THE TYPE THE RECORD ALREADY HOLDS (upgrade 5, 18 Sep 2026). This read
+     cKind, which answers the literal "External Document" for every uploaded
+     contract — so an upload matched no rule here and fell through to its value
+     stream below, and uploaded paper is precisely the paper that most needs
+     judging properly, because somebody else wrote it. contractTypeRead prefers
+     the curated template kind and falls back to the extraction. The server's
+     copilotPlaybookKey mirrors this line for line; f133 runs both over the
+     same contracts and requires the same key. */
+  const k=((typeof contractTypeRead==='function'?contractTypeRead(c):cKind(c))||'').toLowerCase(), f=c.folder;
   // user-defined types with custom match keywords win first (so a type added in
   // the editor actually applies to matching contracts)
   try{ const pb=playbook();

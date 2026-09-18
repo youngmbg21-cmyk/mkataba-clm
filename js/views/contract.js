@@ -4493,6 +4493,9 @@ function ktFactReads(c){
        never changeable — ten agreements off one standard were ten identical
        lines in the register, the search, the alerts and every mail subject. */
     name: c.name?esc(c.name):'',
+    /* The reading the standards check matches on, printed where a reader can
+       see it — one reading, two consumers. */
+    contractType: (()=>{ try{ return esc((window.contractTypeRead?contractTypeRead(c):'')||''); }catch(_){ return ''; } })(),
     party: c.party?esc(c.party):'',
     counterparty: c.counterparty?esc(c.counterparty):'',
     cpEmail: c.counterpartyEmail?esc(c.counterpartyEmail):'',
@@ -5019,6 +5022,13 @@ function ktRecordFactsHtml(c,opts={}){
   return sectionFieldsHtml([
     ['reference', i18t('ov_f_reference'), esc(String((c&&c.id)||''))],
     ['name', i18t('ov_f_name'), R.name],
+    /* ---- WHAT KIND OF PAPER THIS IS (upgrade 5, 18 Sep 2026) ----
+       The record printed twelve filing facts and not this one, so a reader
+       could not see the thing that decides which rulebook judged the contract
+       — and on an uploaded document that was the likeliest thing to be wrong.
+       Borrowed, never computed: contractTypeRead is the same reading the
+       playbook lookup asks. */
+    ['contractType', i18t('ov_f_type'), R.contractType],
     ['party', i18t('tf_our_party'), R.party||esc((window.FIRST_PARTY)||'')],
     ['counterparty', i18t('reg_col_counterparty'), R.counterparty],
     ['cpEmail', i18t('ov_f_email'), R.cpEmail],
@@ -10899,7 +10909,9 @@ function renderSignSide(c){
   const may=canEdit()&&!closed;
   const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius);padding:13px 15px';
   const H='margin:0;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading)';
-  const chain=window.approvalChainHtml?approvalChainHtml(c,{bare:true}):'';
+  /* `clear` asks for the card's other state — "nothing is in the way" — and
+     only while the contract is still open. See approvalChainHtml. */
+  const chain=window.approvalChainHtml?approvalChainHtml(c,{bare:true,clear:!closed}):'';
   const route=window.signerRouteHtml?signerRouteHtml(c,{bare:true}):'';
   host.innerHTML=`
     ${''/* ---- ONE LINE ABOVE BOTH CARDS ----

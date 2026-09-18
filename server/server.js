@@ -7086,6 +7086,16 @@ function copilotContractKind(c) {
   if (c && c.source === 'upload') return 'External Document';
   return COPILOT_TEMPLATE_KIND[c && c.template] || 'Contract';
 }
+/* The browser's contractTypeRead (js/core.js), line for line — see the note
+   there for why the extracted type answers where the curated one says nothing.
+   f133 runs both rules over the same contracts and requires the same key. */
+const COPILOT_KIND_SAYS_NOTHING = /^(external document|contract)$/i;
+function copilotContractType(c) {
+  const k = String(copilotContractKind(c) || '').trim();
+  if (k && !COPILOT_KIND_SAYS_NOTHING.test(k)) return k;
+  const t = String(((c && c.metadata) || {}).contractType || '').trim();
+  return t || k;
+}
 /* ---- THE CONTRACT'S OWN WORDING, THE WAY runPlaybookReview READS IT ----
    The stored body is the senior of the two (it is what the product renders and
    what a change is filed against); an upload's extracted text answers only
@@ -7101,7 +7111,7 @@ function copilotContractWording(c) {
 function copilotPlaybookKey(pb, c) {
   /* THE TYPE, NEVER THE TITLE — see above. The browser's own line is
      `const k=(cKind(c)||'').toLowerCase()`. */
-  const k = copilotContractKind(c).toLowerCase();
+  const k = copilotContractType(c).toLowerCase();
   const f = c.folder || '';
   for (const key in pb) {
     const p = pb[key];

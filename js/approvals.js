@@ -769,10 +769,32 @@ function approvalPanelHtml(c){
 /* opts.bare — drawn INSIDE a host card that supplies its own frame and title
    (the Signing tab's "Approval gate"). Without it this box nests inside that
    one and the reader gets two borders and two headings for one thing. */
+const esc1x=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
 function approvalChainHtml(c, opts){
   const bare=!!(opts&&opts.bare);
   const st=approvalState(c);
-  if(!st.required) return '';
+  /* ---- SAY OUT LOUD WHEN NOTHING IS IN THE WAY (upgrade 6, 18 Sep 2026) ----
+     HaTi already works out whether a contract needs anybody's sign-off: the
+     value, the value stream, the kind of paper, foreign law, whether the
+     wording departs from the standards, and the reader's own signing limit.
+     When one of those bit, this card appeared and named who has to approve.
+     When NONE of them bit, the card was not drawn at all — so the person
+     holding an ordinary contract that genuinely needs no sign-off was never
+     told that, and sent it to legal anyway to be safe. That is the delay the
+     whole playbook exists to remove, put back by silence.
+
+     ONE MORE BRANCH ON THIS CARD, not a new band: the same card, in its other
+     state, one line. It is OPT-IN (`opts.clear`) so every older caller is
+     byte-identical, and the Signing tab asks for it only while the contract is
+     still open — on a sealed record there is nothing left to decide and the
+     sentence would be furniture. It names where the rules live, because an
+     assurance a reader cannot check is worth less than the silence it
+     replaced. */
+  if(!st.required) return (opts&&opts.clear)
+    ? `<p class="ap-clear" style="margin:0;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.5">${
+        esc1x(i18t('ap_none_needed'))}<span style="display:block;color:var(--color-neutral-500);font-size:var(--t-label);margin-top:3px">${
+        esc1x(i18t('ap_none_needed_why'))}</span></p>`
+    : '';
   const stepChip=s=>s.status==='approved'?'text-brand-600':s.status==='rejected'?'text-rose-600':s.status==='stale'?'text-gold-700':'text-ink/50';
   const esc1=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   const stepRight=s=>s.status==='approved'?`✓ ${esc1(s.by)}`
