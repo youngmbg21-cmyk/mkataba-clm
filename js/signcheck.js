@@ -307,6 +307,11 @@ function signCheckMayAccept(c, v, user){
 /* An escalated finding accepted by somebody who was not allowed to: the
    record shows an acceptance and the wall must still hold. Asked of the
    stamped acceptance, never of who is looking. */
+/* THE WORDING MOVED UNDER THE ACCEPTANCE. Separate from "who accepted it" on
+   purpose: that is a question about the person and this one is about the
+   paper, and the two need different sentences. pbCarryDecisions sets the flag
+   when it carries a stamp onto a departure whose quote has changed. */
+function signCheckAcceptStale(v){ const a = v && v.accepted; return !!(a && a.staleQuote); }
 function signCheckAcceptedProperly(v){
   const a = v && v.accepted;
   if (!a || !a.at) return false;
@@ -382,12 +387,15 @@ function signCheckRows(c, r){
   s.findings.forEach(f => {
     const v = c.playbook && Array.isArray(c.playbook.verdicts) ? c.playbook.verdicts[f.i] : null;
     const properly = signCheckAcceptedProperly(v);
+    const stale = signCheckAcceptStale(v);
     rows.push({ kind: 'standard', key: 'std:' + f.i, i: f.i, category: f.category, status: f.status,
       position: f.position, quote: f.quote, escalate: f.escalate,
       escalation: v && v.escalation ? v.escalation : null,
-      accepted: f.accepted, settled: !!f.accepted && properly,
+      accepted: f.accepted, settled: !!f.accepted && properly && !stale,
       /* accepted, but by somebody who may not: shown as open, said in words */
-      badAccept: !!f.accepted && !properly });
+      badAccept: !!f.accepted && !properly,
+      /* accepted, by the right person, against wording that has since moved */
+      staleAccept: !!f.accepted && properly && stale });
   });
   /* Never read is its own row: `unread` null is "nothing has ever read this
      wording for promises", which is not "fine" — an absence, stated. */
@@ -500,7 +508,7 @@ function signCheckWillRun(r){
 
 if (typeof window !== 'undefined') Object.assign(window, {
   SIGN_ACCEPT_MAX, SIGN_RECORD_ROWS, SIGN_CHECK_GATES, SIGN_CHECK_GATE_DEFAULT, SIGN_RISK_SEV,
-  signCheckGate, signCheckApplies, signCheckBlocker, signCheckMayAccept, signCheckAcceptedProperly,
+  signCheckGate, signCheckApplies, signCheckBlocker, signCheckMayAccept, signCheckAcceptedProperly, signCheckAcceptStale,
   signCheckRowHolds, signCheckRows, signCheckHolding, signReadiness, signCheckWillRun,
   signCheck, signCheckReady, signCheckTableClear, signCheckWaiting,
   signCheckBrief, signCheckBriefAt, SIGN_STAGES, SIGN_STAGE_OF, signStageOf,

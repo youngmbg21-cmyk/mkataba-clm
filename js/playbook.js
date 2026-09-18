@@ -477,13 +477,72 @@ function playbookStale(c){
   if(!now) return null;
   return String(r.wordingHash) !== now;
 }
+/* ---- A RE-RUN DOES NOT THROW AWAY WHAT SOMEBODY DECIDED (18 Sep 2026) ----
+   REPORTED as the first of the seven repairs. HaTi tells you to re-run the
+   standards check after every round of redlines, and every re-run built a
+   fresh `c.playbook` and dropped the lot: the reason a colleague wrote when
+   they accepted a departure, who they were, and the escalation they answered.
+   The risk scan has always defended its dismissed findings — it keeps them in
+   `c.scan.dismissed`, a sibling of the findings rather than a field on one —
+   and this is the same defence, written for verdicts, which carry their
+   decision ON the verdict and so cannot use that trick.
+
+   THE PAIRING IS THE CATEGORY, IN ORDER. A category is not unique: the supply
+   playbook carries "Liability cap" as a position AND as a range, so a map
+   keyed on the category alone would hand both decisions to the first one. A
+   queue per category, shifted in the order the verdicts are built, gives the
+   first "Liability cap" the first one's decision, which is what a person
+   reading the two rows would expect.
+
+   AN ACCEPTANCE ANSWERS AN OPEN DEPARTURE, so it is carried onto `deviation`
+   and `missing` and nowhere else: where the wording was actually fixed there
+   is nothing left to accept, and keeping the stamp would let it resurface
+   against a later departure nobody agreed to.
+
+   AND IT SAYS WHEN THE WORDING MOVED UNDER IT. `signCheckAccept` records the
+   quote it was answering, so a re-run can tell "the same departure, still
+   there" from "they reworded it and it is still wrong". The second keeps the
+   stamp — the reason and the name are a record and are never thrown away —
+   and marks it `staleQuote`, which stops it SETTLING the row. Signing on an
+   acceptance of wording that has since changed is the exact failure this
+   check exists to prevent. An acceptance with no quote on it (one made before
+   this was written) is carried as it stands: an absence is not a claim. */
+function pbCarryDecisions(prev, next){
+  if(!next || !Array.isArray(next.verdicts)) return next;
+  const old = (prev && Array.isArray(prev.verdicts)) ? prev.verdicts : [];
+  if(!old.length) return next;
+  const queues = new Map();
+  for(const v of old){
+    if(!v || (!v.accepted && !v.escalation)) continue;
+    const k = String(v.category||'');
+    if(!queues.has(k)) queues.set(k, []);
+    queues.get(k).push(v);
+  }
+  if(!queues.size) return next;
+  const norm = x => String(x==null?'':x).replace(/\s+/g,' ').trim().toLowerCase();
+  next.verdicts = next.verdicts.map(v=>{
+    if(!v) return v;
+    const q = queues.get(String(v.category||''));
+    const was = (q && q.length) ? q.shift() : null;
+    if(!was) return v;
+    if(v.status!=='deviation' && v.status!=='missing') return v;
+    const out = { ...v };
+    if(was.escalation) out.escalation = was.escalation;
+    if(was.accepted){
+      const on = norm(was.accepted.quote);
+      out.accepted = (on && on !== norm(v.quote)) ? { ...was.accepted, staleQuote:true } : was.accepted;
+    }
+    return out;
+  });
+  return next;
+}
 async function runPlaybookReview(c,opts={}){
   const text = playbookText(c);
   if(!text || text.length<PB_TEXT_MIN){
     if(opts.quiet) return { error:i18t('pb_no_readable_clause') };
     toast(i18t('pb_no_readable_clause'),'err'); return null; }
   const stamp = r => (r && !r.error)
-    ? { ...r, wordingHash:playbookHashOf(text), checkedAt:new Date().toISOString() } : r;
+    ? { ...pbCarryDecisions(c && c.playbook, r), wordingHash:playbookHashOf(text), checkedAt:new Date().toISOString() } : r;
   if(API_MODE() && state.aiConfigured){
     try{ const pb=resolvePlaybook(playbookKeyFor(c));
       // The whole wording goes. A standards check reading only the front of an
@@ -1100,4 +1159,4 @@ function openClausePicker(c, opts){
   document.querySelectorAll('[data-cl-ins]').forEach(b=>b.addEventListener('click',()=>{ const cl=clauseById(b.getAttribute('data-cl-ins')); closeModal(); if(onPick) onPick(cl); }));
 }
 
-Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,PB_TEXT_MIN,playbookText,PB_RANGE_READERS,pbRangeRead,PB_QUOTE_MIN,PB_QUOTE_LEAD,pbClauseBlocks,pbQuoteBlock,pbSwapBlock,pbPositionFigure,pbFitWording,pbFitInto,pbUnquotedLoss,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,playbookStale,playbookHashOf,deviationSummary,renderPlaybookSection,pbProposedClauses,applyClauseRedline,pbShowInsert,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});
+Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,pbCarryDecisions,PB_TEXT_MIN,playbookText,PB_RANGE_READERS,pbRangeRead,PB_QUOTE_MIN,PB_QUOTE_LEAD,pbClauseBlocks,pbQuoteBlock,pbSwapBlock,pbPositionFigure,pbFitWording,pbFitInto,pbUnquotedLoss,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,playbookStale,playbookHashOf,deviationSummary,renderPlaybookSection,pbProposedClauses,applyClauseRedline,pbShowInsert,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});

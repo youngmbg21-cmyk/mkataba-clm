@@ -10407,7 +10407,10 @@ async function signCheckAccept(c,i,after){
   /* WHO, BY ID AND ROLE: an escalated acceptance is only good from the person
      it was escalated to or an admin, and the server checks the stamp, not
      the caller. */
-  v.accepted={ by:(me&&me.name)||'', byId:me?String(me.id):'', role:(me&&me.role)||'', at:new Date().toISOString(), why:text };
+  /* THE WORDING IT ANSWERED, so a later re-run can tell "the same departure,
+     still there" from "they reworded it" — pbCarryDecisions reads this. */
+  v.accepted={ by:(me&&me.name)||'', byId:me?String(me.id):'', role:(me&&me.role)||'', at:new Date().toISOString(),
+    why:text, quote:String(v.quote||'') };
   logAudit(c,'Playbook',`Deviation accepted on "${v.category||'a standard'}"${v.escalate?' (escalated)':''} — ${text}`);
   persist(c);
   toast(i18t('sc_accepted_toast'),'ok');
@@ -10601,6 +10604,7 @@ function signCheckCardHtml(c){
         } else {
           why=r.status==='missing'?i18t('sc_missing_w',{pos:r.position||''}):i18t('sc_deviation_w',{pos:r.position||''});
           if(r.badAccept) why+=' '+i18t('sc_bad_accept',{who:(r.accepted&&r.accepted.by)||i18t('sc_somebody')});
+          if(r.staleAccept) why+=' '+i18t('sc_stale_accept',{who:(r.accepted&&r.accepted.by)||i18t('sc_somebody'),why:(r.accepted&&r.accepted.why)||''});
           if(r.escalation&&r.escalation.to) why+=' '+i18t('sc_asked_line',{who:r.escalation.to.name||'',when:day(r.escalation.at)});
           /* ASK A COLLEAGUE LEADS EVERY ESCALATED ROW — for an admin too,
              who may decide it alone but may also hand it to the person who
