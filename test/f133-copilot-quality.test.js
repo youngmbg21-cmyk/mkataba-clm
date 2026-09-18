@@ -304,6 +304,18 @@ describe('F-B configured — the review the product already knows how to do, fro
     const { win } = buildWorld({ standards: true });
     win.cKind = c => (c && c.source === 'upload') ? 'External Document'
       : (KIND[c && c.template] || 'Contract');
+    /* THE TYPE READING IS STAGED TOO (upgrade 5, 18 Sep 2026). playbookKeyFor
+       asks contractTypeRead and CKIND_SAYS_NOTHING, which live in js/core.js
+       and are not on this world; both carry a fallback so the page still
+       answers, but a mirror test measuring the FALLBACK is measuring the wrong
+       thing. These two lines are core.js's own, verbatim. */
+    win.CKIND_SAYS_NOTHING = /^(external document|contract)$/i;
+    win.contractTypeRead = c => {
+      const k = String((c ? win.cKind(c) : '') || '').trim();
+      if (k && !win.CKIND_SAYS_NOTHING.test(k)) return k;
+      const t = String(((c && c.metadata) || {}).contractType || '').trim();
+      return t || k;
+    };
     const pb = win.playbook();
 
     const cases = [
@@ -325,6 +337,17 @@ describe('F-B configured — the review the product already knows how to do, fro
           name: 'Office Lease 2026' } },
       { why: 'a contract with a custom match keyword',
         c: { id: 'F', template: null, folder: 'corp', name: 'Anything at all' } },
+      /* THE SHAPE UPGRADE 5 REORDERED: an upload filed in 'proc' whose type
+         WAS read off the wording and matches no book. Both hosts must take the
+         baseline rather than the stream's supply standards. */
+      { why: 'an upload in proc whose extracted type matches no book',
+        c: { id: 'G', source: 'upload', template: null, folder: 'proc',
+          name: 'Cloudspan WMS Licence', metadata: { contractType: 'Software Licence & Support' } } },
+      /* And the other half of the same ruling: an upload in proc whose type
+         nobody read still falls to its stream, exactly as it did before. */
+      { why: 'an upload in proc that nobody has read a type for',
+        c: { id: 'H', source: 'upload', template: null, folder: 'proc',
+          name: 'Something received' } },
     ];
     /* The custom-keyword branch, which both rules ask FIRST: a type added in
        the editor has to apply on both hosts or the two disagree on exactly the
@@ -336,6 +359,10 @@ describe('F-B configured — the review the product already knows how to do, fro
       const theirs = srvKey(pb, t.c);
       assert.equal(theirs, mine,
         `${t.why}: the panel reads "${mine}" and Copilot reads "${theirs}"`);
+      if (t.c.id === 'G') assert.equal(mine, '_default',
+        'a type that WAS read and matches no book takes the baseline, never the value stream it happens to be filed in');
+      if (t.c.id === 'H') assert.equal(mine, 'supply',
+        'a contract whose type nobody read still falls to its value stream, exactly as it did');
     }
   });
 });

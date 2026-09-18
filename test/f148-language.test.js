@@ -47,6 +47,8 @@ const SAME_IN_BOTH = new Set([
   'nav_administration',   // identical spelling in Swedish
   'int_fr_read',          // 'Copilot' — the product's own name, on the graph node's fact row (A-1)
   'tb_copilot',           // 'Copilot' — the product's own name, on the template builder's rail (13 Sep 2026)
+  'ap_clr_value_under',   // 'Under {amount}' — 'under' is the same preposition in
+                          // Swedish; its pair ap_clr_value_over is not (18 Sep 2026)
   'st_grp_copilot',       // 'Copilot' — the product's own name again, now as a
                           // group heading on the settings list (18 Sep 2026)
   'ng_blanks_these',      // '{names}.' — a slot and a full stop, and the field

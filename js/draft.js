@@ -149,7 +149,7 @@ async function draftRead(cands){
   try{
     const r=await api('ai/draft','POST',{ sentence, candidates:cands.map(c=>({ id:c.id, name:c.name, blurb:c.blurb, fields:c.fields })) });
     const pick=cands.find(c=>c.id===(r&&r.templateId));
-    if(!pick){ draftNothingFits(out, sentence); return; }
+    if(!pick){ draftNothingFits(out, sentence, String((r&&r.why)||''), String((r&&r.closestName)||'')); return; }
     /* Keys the chosen template does not ask for are dropped HERE as well as
        at the route: two halves of one wall, so neither host has to trust the
        other about what this template's questions are. */
@@ -164,24 +164,78 @@ async function draftRead(cands){
     draftSay(out, (e&&e.message)?String(e.message):i18t('dr_failed'));
   }finally{ btn.disabled=false; btn.textContent=was; }
 }
-/* ---- "NOTHING FITS" IS AN ANSWER, AND IT HAS A NEXT STEP (upgrade 4) ----
-   The sentence is unchanged and still leads. What is new is the door under it:
-   the reader has already written what they need, so Requests opens with those
-   very words in its box rather than asking for them a second time. It is the
-   product's OWN ask form — openIntakeForm, the one every other door opens —
-   never a second copy, and Requests is open to every role, so this is drawn
-   for whoever is standing here. The picker in the footer stays: looking for
-   yourself is still the other answer. */
-function draftNothingFits(out, sentence){
+/* ---- "NOTHING FITS" IS AN ANSWER, AND IT HAS TWO DOORS (upgrade 4) ----
+   Built to the drawing, 18 Sep 2026. The refusal itself is unchanged and still
+   leads, and it still mints nothing. What is added under it:
+
+   THE REASON THE MODEL GAVE, where it gave one. The route already returns
+   `why` beside the pick, and on a no-pick it is the one thing that tells a
+   reader whether to rephrase or to stop trying — "nothing fits" alone cannot.
+   Printed as the model's words, escaped, and simply absent where it said
+   nothing: an absence is stated, never invented.
+
+   SEND THIS AS A REQUEST. Requests already takes the ask as its own record and
+   grants nothing by taking it, and the reader has already written what they
+   need — so the form opens with those very words in it, through
+   openIntakeForm, the door every other caller opens. Under it, what actually
+   happens next: who has been picking requests up and how long they usually
+   take, both read off the record by intakeAnswerLine, which REFUSES rather
+   than averages two requests into a promise. The list is fetched quietly
+   first, because this dialog is reachable without ever having opened Requests.
+
+   WRITE A TEMPLATE FROM THIS, and only where this reader may make new paper —
+   mayMakeNewPaper, the product's ONE reading of that grant, which is off by
+   default, so for most people this door is simply not drawn and Requests is
+   the whole answer. It presses the Templates page's own create door; nothing
+   is minted by this dialog. */
+async function draftNothingFits(out, sentence, why, closest){
   draftSay(out, i18t('dr_nothing_fits'));
-  if(typeof openIntakeForm!=='function') return;
   const p=out.querySelector('#dr-note'); if(!p) return;
-  const b=document.createElement('button');
-  b.type='button'; b.id='dr-ask-team'; b.className='ui-btn';
-  b.style.cssText='margin-top:10px;font-size:var(--t-meta);padding:5px 11px';
-  b.textContent=i18t('dr_ask_team');
-  b.addEventListener('click',()=>{ closeModal(); openIntakeForm({ need:String(sentence||'') }); });
-  p.insertAdjacentElement('afterend', b);
+  const esc=s2=>String(s2==null?'':s2).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+  const said=String(why||'').trim(), near=String(closest||'').trim();
+  if(said||near){
+    const q=document.createElement('p');
+    q.id='dr-why';
+    q.style.cssText='margin:7px 0 0;font-size:var(--t-meta);color:var(--color-neutral-700);line-height:1.55';
+    /* THE NEAREST IS NAMED AND NOT OFFERED — it is a span, never a press. */
+    q.textContent=(near?i18t('dr_closest_is',{name:near})+' ':'')+said;
+    p.insertAdjacentElement('afterend', q);
+  }
+  const row=document.createElement('div');
+  row.id='dr-doors';
+  row.style.cssText='display:flex;gap:9px;flex-wrap:wrap;margin-top:11px';
+  (out.querySelector('#dr-why')||p).insertAdjacentElement('afterend', row);
+
+  if(typeof openIntakeForm==='function'){
+    const b=document.createElement('button');
+    b.type='button'; b.id='dr-ask-team'; b.className='ui-btn';
+    b.style.cssText='font-size:var(--t-meta);padding:5px 11px';
+    b.textContent=i18t('dr_send_as_request');
+    b.addEventListener('click',()=>{ closeModal(); openIntakeForm({ need:String(sentence||'') }); });
+    row.appendChild(b);
+  }
+  /* THE SECOND DOOR IS NOT FOR MOST PEOPLE, and that is the governance rule
+     working rather than a gap: writing new paper is the grant that is off by
+     default. Drawn only where pressing it would do something. */
+  if(typeof mayMakeNewPaper==='function' && mayMakeNewPaper() && typeof tplLibCreateModal==='function'){
+    const t=document.createElement('button');
+    t.type='button'; t.id='dr-write-template'; t.className='ui-btn';
+    t.style.cssText='font-size:var(--t-meta);padding:5px 11px';
+    t.textContent=i18t('dr_write_template');
+    t.addEventListener('click',()=>{ closeModal(); tplLibCreateModal(); });
+    row.appendChild(t);
+  }
+  /* WHAT HAPPENS NEXT, where the record can say. Quietly loaded and quietly
+     skipped: a refusal must never fail over a second fetch. */
+  if(typeof intakeAnswerLine!=='function') return;
+  try{ if(typeof loadIntake==='function') await loadIntake(); }catch(_){}
+  let line=null; try{ line=intakeAnswerLine(); }catch(_){ line=null; }
+  if(!line || !document.getElementById('dr-doors')) return;
+  const n=document.createElement('p');
+  n.id='dr-answers';
+  n.style.cssText='margin:7px 0 0;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5';
+  n.textContent=line;
+  row.insertAdjacentElement('afterend', n);
 }
 function draftSay(out, msg){
   const esc=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));

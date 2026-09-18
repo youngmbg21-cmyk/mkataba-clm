@@ -4960,7 +4960,16 @@ app.post('/api/ai/draft', auth, editor, rlAiLight, aiFeature('draft'), aiBudgetG
       type: 'object',
       properties: {
         templateId: { type: 'string', description: 'The id of the ONE template that fits best, copied exactly from the candidate list. Leave EMPTY if none of them is a reasonable fit — an honest "nothing here matches" is a better answer than a template the person then has to undo.' },
-        why: { type: 'string', description: 'One sentence, plain English, for the person who typed the request: why this template fits what they asked for. Address them directly. Empty when templateId is empty.' },
+        /* ---- THE REASON IS ANSWERED IN BOTH CASES (upgrade 4, 18 Sep 2026) ----
+           It used to read "Empty when templateId is empty", and the prompt told
+           the model to say nothing else when nothing fitted — so the one answer
+           a reader needs in order to know whether to rephrase or to stop
+           trying was the one answer the route refused to carry. */
+        why: { type: 'string', description: 'One sentence, plain English, for the person who typed the request. When you picked a template: why it fits what they asked for. When you picked NONE: what none of these templates covers, so they know whether to say it differently or to ask for new paper. Address them directly.' },
+        /* NAMED, NEVER PICKED. Naming the nearest is how a refusal explains
+           itself; picking it is the thing the prompt below still forbids, and
+           the browser prints this and offers nothing on it. */
+        closest: { type: 'string', description: 'Only when templateId is empty: the id of the NEAREST template, copied exactly from the candidate list, so the person can be told what it is and what it does not cover. Empty when you picked one, and empty when nothing is even close.' },
         fields: { type: 'array', maxItems: DRAFT_FIELDS_MAX, description: 'The chosen template\'s questions that the sentence answers. Leave a question OUT entirely rather than guessing at it.', items: { type: 'object', properties: {
           key: { type: 'string', description: 'The field key, copied exactly from the chosen template\'s own field list.' },
           value: { type: 'string', description: 'The answer, as the person would type it into that box. A date is yyyy-mm-dd. A number is digits only, with no currency symbol, no thousands separator and no unit. Everything else is plain text.' },
@@ -4969,7 +4978,7 @@ app.post('/api/ai/draft', auth, editor, rlAiLight, aiFeature('draft'), aiBudgetG
       required: ['templateId', 'why', 'fields'],
     },
   };
-  const prompt = `You help somebody start a contract in their own contract system.\n\nToday's date: ${today}\n\nWhat they typed:\n"""\n${said}\n"""\n\nThe templates this workspace has, each with the questions it asks (JSON):\n${JSON.stringify(cands)}\n\nDo two things with the draft_from_sentence tool.\n\nFIRST, pick the ONE template that fits what they described, by the kind of agreement it is. Return its id exactly as written above. If none of them is a reasonable fit, return an empty templateId and say nothing else — do not stretch to the nearest one.\n\nSECOND, answer that template's own questions from their sentence, by key. Rules that matter more than filling boxes:\n- ONLY what they actually said, or what plainly follows from it. "Two-year agreement starting 1 March 2027" gives you both dates; "a two-year agreement" gives you neither, because you do not know when it starts.\n- LEAVE A QUESTION OUT rather than guess. An empty box a person fills in is right; a plausible wrong figure they do not notice is the one thing you must not produce.\n- Never invent a counterparty, a value, a date or a term that is not in what they typed.\n- Answer only the CHOSEN template's keys. Ignore every other template's fields.`;
+  const prompt = `You help somebody start a contract in their own contract system.\n\nToday's date: ${today}\n\nWhat they typed:\n"""\n${said}\n"""\n\nThe templates this workspace has, each with the questions it asks (JSON):\n${JSON.stringify(cands)}\n\nDo two things with the draft_from_sentence tool.\n\nFIRST, pick the ONE template that fits what they described, by the kind of agreement it is. Return its id exactly as written above. If none of them is a reasonable fit, return an empty templateId — do not stretch to the nearest one. Then, and only then, NAME the nearest in \`closest\` and use \`why\` to say in one sentence what it does not cover. Naming it is not picking it: it is how the person is told why they got nothing, and nothing in this system will draft from it.\n\nSECOND, answer that template's own questions from their sentence, by key. Rules that matter more than filling boxes:\n- ONLY what they actually said, or what plainly follows from it. "Two-year agreement starting 1 March 2027" gives you both dates; "a two-year agreement" gives you neither, because you do not know when it starts.\n- LEAVE A QUESTION OUT rather than guess. An empty box a person fills in is right; a plausible wrong figure they do not notice is the one thing you must not produce.\n- Never invent a counterparty, a value, a date or a term that is not in what they typed.\n- Answer only the CHOSEN template's keys. Ignore every other template's fields.`;
   try {
     const resp = await anthropicMessages(key, 'fast', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'draft_from_sentence' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'draft', who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
@@ -4981,7 +4990,18 @@ app.post('/api/ai/draft', auth, editor, rlAiLight, aiFeature('draft'), aiBudgetG
        half that holds when the browser is not ours. */
     const byId = new Map(cands.map(c => [c.id, c]));
     const chosen = byId.get(String(out.templateId || '')) || null;
-    if (!chosen) return res.json({ templateId: '', why: '', fields: [], ...aiNotice(req, resp) });
+    if (!chosen) {
+      /* ---- A REFUSAL CARRIES ITS REASON (upgrade 4, 18 Sep 2026) ----
+         This answered a bare empty object, so the screen could say only
+         "nothing fits" — true, and useless. The reason and the nearest
+         template now travel. The nearest is RESOLVED AGAINST THE CANDIDATE
+         LIST and sent as a NAME, never an id: an id the browser could act on
+         would be a pick by the back door, and the prompt forbids the pick. */
+      const near = byId.get(String(out.closest || '')) || null;
+      return res.json({ templateId: '', closestName: near ? String(near.name || '') : '',
+        why: typeof out.why === 'string' ? String(out.why).slice(0, 400) : '',
+        fields: [], ...aiNotice(req, resp) });
+    }
     /* AND A KEY MUST BE ONE THAT TEMPLATE ASKS FOR. The screen applies the same
        rule; a route that returned a stray key would leave the two disagreeing
        about what was read. */
@@ -7161,10 +7181,15 @@ function copilotContractWording(c) {
   return String((c && c.upload && c.upload.extractedText) || '').trim();
 }
 function copilotPlaybookKey(pb, c) {
-  /* THE TYPE, NEVER THE TITLE — see above. The browser's own line is
-     `const k=(cKind(c)||'').toLowerCase()`. */
+  /* THE TYPE DECIDES, AND ONLY THEN THE VALUE STREAM (upgrade 5, 18 Sep 2026).
+     Four passes, mirroring js/playbook.js's playbookKeyFor pass for pass — the
+     workspace's own books by their match words (type OR stream, unchanged),
+     then the built-in TYPE patterns, then the baseline for a type that was
+     read and matched nothing, then the stream for a contract whose type nobody
+     read. f133 runs both over the same contracts and requires the same key. */
   const k = copilotContractType(c).toLowerCase();
   const f = c.folder || '';
+  const said = !!k && !COPILOT_KIND_SAYS_NOTHING.test(k);
   for (const key in pb) {
     const p = pb[key];
     if (key === '_default' || !p || !Array.isArray(p.match) || !p.match.length) continue;
@@ -7173,7 +7198,9 @@ function copilotPlaybookKey(pb, c) {
   if (/nda|non-disclosure/.test(k)) return 'nda';
   if (/lease/.test(k)) return 'lease';
   if (/professional|marketing|services|advisory|agency/.test(k)) return 'services';
-  if (/supply|packaging|raw material|manufactur|co-pack|distribut|warehous|freight|logistics|retail/.test(k) || f === 'proc' || f === 'sales' || f === 'dist' || f === 'mfg') return 'supply';
+  if (/supply|packaging|raw material|manufactur|co-pack|distribut|warehous|freight|logistics|retail/.test(k)) return 'supply';
+  if (said) return '_default';
+  if (f === 'proc' || f === 'sales' || f === 'dist' || f === 'mfg') return 'supply';
   return '_default';
 }
 // Mirror of resolvePlaybook (js/playbook.js): extends-aware merge, tolerant of
@@ -10667,7 +10694,7 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
        snapshot: an answer written by the owner has to appear on the reader's
        page without waiting for the link to be reshared, or a reply is as slow
        as the formal round it replaces. */
-    messages: s.contract_id ? contractMessages(s.contract_id) : [],
+    messages: s.contract_id ? contractMessages(s.contract_id, shareIsAdvice(s) ? { adviserToken: s.token } : undefined) : [],
     prior: s.durable ? priorCopyOfDurable(s) : priorCopySeenBy(s),
     superseded: s.durable ? shareRetiredBySigning(s) : shareSuperseded(s),
     /* THE DEAL IS DONE, read live rather than from the payload snapshot. The
@@ -10845,11 +10872,29 @@ function msgMeta(raw) {
   return Object.keys(out).length ? out : null;
 }
 const msgMetaRead = s => { if (!s) return null; try { return msgMeta(JSON.parse(s)); } catch (_) { return null; } };
-function contractMessages(contractId) {
+/* ---- NOTHING AN ADVISER WRITES IS EVER VISIBLE TO THE COUNTERPARTY ----
+   (upgrade 9, 18 Sep 2026, and it is the promise printed on the link's own
+   sentence.) An adviser posts through the same share-message route the
+   counterparty uses, so their note landed in one table that GET
+   /api/shares/:token served whole — to every link holder, the counterparty
+   included. THE SERVER IS THE WALL, so the filter is here rather than on a
+   page: an adviser row is DROPPED unless the caller says who is asking.
+     · no opts            — the counterparty's own link: adviser rows dropped.
+     · { adviser:true }   — a signed-in colleague: they asked the question.
+     · { adviserToken:t } — that adviser's own link: their own notes only.
+   The row keeps `side:'adviser'`, which is a third value and not a flag on
+   'counterparty', because every query that counts what the OTHER SIDE said
+   (`WHERE m.side = 'counterparty'`) must not count an adviser as them. */
+const MSG_SIDE_ADVISER = 'adviser';
+function contractMessages(contractId, opts) {
+  const o = opts || {};
   return db.prepare(
-    `SELECT id, side, author, topic, topic_label AS topicLabel, body, at, meta
+    `SELECT id, side, token, author, topic, topic_label AS topicLabel, body, at, meta
        FROM share_messages WHERE contract_id=? ORDER BY id ASC LIMIT 500`).all(contractId)
-    .map(m => ({ ...m, meta: msgMetaRead(m.meta) }));
+    .filter(m => m.side !== MSG_SIDE_ADVISER ? true
+      : (o.adviser === true ? true
+        : (o.adviserToken ? String(m.token || '') === String(o.adviserToken) : false)))
+    .map(m => { const { token, ...rest } = m; return { ...rest, meta: msgMetaRead(m.meta) }; });
 }
 function addMessage({ contractId, token, side, author, topic, topicLabel, body, meta }) {
   const at = now();
@@ -10892,10 +10937,16 @@ app.post('/api/shares/:token/messages', rlShare, (req, res) => {
   const b = req.body || {};
   const author = String(b.author || s.recipient_name || '').trim();
   if (!msgValid(b) || !author) return res.status(400).json({ error: 'A name and a message are required' });
-  const m = addMessage({ contractId: s.contract_id, token: s.token, side: 'counterparty',
+  /* AN ADVISER IS NOT THE COUNTERPARTY. The side is what walls their notes
+     off (see contractMessages) and what keeps every "the other side spoke
+     last" count honest. `advise` is the ONE reading of which link this is. */
+  const adviser = shareIsAdvice(s);
+  const m = addMessage({ contractId: s.contract_id, token: s.token,
+    side: adviser ? MSG_SIDE_ADVISER : 'counterparty',
     author, topic: b.topic, topicLabel: b.topicLabel, body: b.body.trim(), meta: b.meta });
   notifyMessage(s, m);
-  res.json({ ok: true, message: m, messages: contractMessages(s.contract_id) });
+  res.json({ ok: true, message: m,
+    messages: contractMessages(s.contract_id, adviser ? { adviserToken: s.token } : undefined) });
 });
 
 /* Every point where the counterparty spoke last, across the whole portfolio.
@@ -10932,7 +10983,7 @@ app.get('/api/messages/waiting', auth, (req, res) => {
 
 app.get('/api/contracts/:id/messages', auth, (req, res) => {
   if (!idInScope(folderScopeFor(req.user), req.params.id)) return res.status(404).json({ error: 'Contract not found' });
-  res.json({ messages: contractMessages(req.params.id) });
+  res.json({ messages: contractMessages(req.params.id, { adviser: true }) });
 });
 
 /* The owner's half. A question that can only be asked in one direction is not a
@@ -10953,7 +11004,7 @@ app.post('/api/contracts/:id/messages', auth, editor, async (req, res) => {
     author: viaWord ? wordAuthor : req.user.name,
     topic: b.topic, topicLabel: b.topicLabel, body: b.body.trim(), meta: b.meta });
   const sent = await notifyCounterpartyMessage(req.params.id, m);
-  res.json({ ok: true, message: m, messages: contractMessages(req.params.id),
+  res.json({ ok: true, message: m, messages: contractMessages(req.params.id, { adviser: true }),
     emailSent: sent.sent, emailConfigured: EMAIL_ON(), to: sent.to || null });
 });
 /* Done, from our seat: the same scope and the same gate as posting. */
@@ -10962,7 +11013,7 @@ app.patch('/api/contracts/:id/messages/:mid', auth, editor, (req, res) => {
   const b = req.body || {};
   const m = setMessageDone(req.params.id, req.params.mid, b.done !== false, req.user.name);
   if (!m) return res.status(404).json({ error: 'Message not found' });
-  res.json({ ok: true, message: m, messages: contractMessages(req.params.id) });
+  res.json({ ok: true, message: m, messages: contractMessages(req.params.id, { adviser: true }) });
 });
 /* Done, from theirs: the same checks as their post, on the same link. */
 app.patch('/api/shares/:token/messages/:mid', rlShare, (req, res) => {
@@ -10975,7 +11026,7 @@ app.patch('/api/shares/:token/messages/:mid', rlShare, (req, res) => {
   const by = String(b.author || s.recipient_name || 'Counterparty').trim();
   const m = setMessageDone(s.contract_id, req.params.mid, b.done !== false, by);
   if (!m) return res.status(404).json({ error: 'Message not found' });
-  res.json({ ok: true, message: m, messages: contractMessages(s.contract_id) });
+  res.json({ ok: true, message: m, messages: contractMessages(s.contract_id, shareIsAdvice(s) ? { adviserToken: s.token } : undefined) });
 });
 
 /* ---------- A DISCUSSION MESSAGE IS NOT AN EMAIL ----------

@@ -338,6 +338,57 @@ const check = (name, pass, detail) => {
         `label "${b7.label}" · will run ${n7}`);
     }
 
+    /* ---- 8 · SAY OUT LOUD WHEN NOTHING IS IN THE WAY (upgrade 6) ----
+       18 Sep 2026, and it is a RECEIPT: one line per rule that was actually
+       checked, not a sentence saying nothing is owed. Measured on the rendered
+       Signing tab, because the whole fault was a card that was never DRAWN. */
+    const st8 = await page.evaluate(async () => {
+      const c = state.contracts.find(x => x.status !== 'Signed') || state.contracts[0];
+      if (!c) return { error: 'no contract' };
+      /* Rules that genuinely do not bite this contract — a high value, a stream
+         it is not in, a kind it is not, foreign law and departures. That is the
+         real "nothing is in the way" shape, not an empty rule list. */
+      state.settings = { ...(state.settings || {}), approvalRules: [
+        { id: 'r1', name: 'Value high', order: 1, cond: { type: 'value', op: '>=', value: 999000000 }, approver: { kind: 'role', role: 'admin' } },
+        { id: 'r2', name: 'Legal stream', order: 2, cond: { type: 'folder', value: 'legal' }, approver: { kind: 'role', role: 'legal' } },
+        { id: 'r3', name: 'Leases', order: 3, cond: { type: 'kind', value: 'lease' }, approver: { kind: 'role', role: 'admin' } },
+        { id: 'r4', name: 'Foreign law', order: 4, cond: { type: 'foreignLaw' }, approver: { kind: 'role', role: 'legal' } },
+        { id: 'r5', name: 'Departures', order: 5, cond: { type: 'deviation' }, approver: { kind: 'role', role: 'legal' } } ] };
+      openWorkspace(c.id); roomGoTab(c, 'sign');
+      await new Promise(r => setTimeout(r, 1100));
+      return { id: c.id, required: approvalState(c).required };
+    });
+    if (st8.error || st8.required) {
+      check('8 the stage drew a contract nothing is owed on', false, st8.error || 'a rule still bites');
+    } else {
+      const r8 = await page.evaluate(() => {
+        const el = document.querySelector('.ap-clear');
+        if (!el) return { none: true };
+        const rows = [...el.querySelectorAll('.ap-clear-list li')];
+        const rc = el.getBoundingClientRect();
+        const mid = rows[0] ? rows[0].getBoundingClientRect() : null;
+        return {
+          keys: [...el.querySelectorAll('[data-ap-clr]')].map(x => x.getAttribute('data-ap-clr')),
+          rows: rows.map(li => li.textContent.replace(/\s+/g, ' ').trim()),
+          lead: el.textContent.replace(/\s+/g, ' ').trim().slice(0, 140),
+          /* PAINTED, not merely present. */
+          painted: rc.width > 40 && rc.height > 20 && !!mid && mid.width > 20,
+          /* IT IS NOT PERMISSION TO SIGN: the button is still held. */
+          signBtn: (document.getElementById('sign-btn') || {}).textContent || '',
+        };
+      });
+      check('8a the card is drawn where NOTHING is owed', !r8.none && r8.painted, r8.lead);
+      check('8b one line per rule that was actually checked',
+        (r8.keys || []).length >= 5 && ['value', 'folder', 'kind', 'foreignLaw', 'deviation'].every(k => (r8.keys || []).includes(k)),
+        (r8.keys || []).join(' · '));
+      /* EACH LINE IS A FINDING, not a rule name an admin typed. */
+      check('8c and each line is the reader\'s own fact',
+        (r8.rows || []).some(t => /money|Under|KES/i.test(t)) && (r8.rows || []).some(t => /market/i.test(t)),
+        (r8.rows || []).join(' | ').slice(0, 150));
+      check('8d it says these were checked, not merely that nothing is needed',
+        /actually checked/i.test(r8.lead || ''), r8.lead);
+    }
+
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } finally {
     await browser.close();
