@@ -202,16 +202,55 @@ describe('f193 — half (a): nothing the old page carried was left behind', () =
     }
   });
 
-  test('the tab a row sits on is the tab that draws it', () => {
+  /* RE-POINTED 18 Sep 2026 (owner-approved, off the "HaTi — Design Direction"
+     canvas). This read every [data-st-panel] under #st-tabbody and demanded the
+     tab's own panels in SET_PANELS order — which WAS the whole page, until the
+     list grew GROUPS and an ATTENTION BLOCK. Order inside a flat list is not
+     the thing worth holding; the SET is. And the block crosses tabs on
+     purpose: the panel that stops mail leaving the building lives on Build &
+     launch, and an admin standing on Platform settings had no way to learn
+     that from this screen. So the old claim is asked of the tab's own GROUPS,
+     where it still bites, and the block answers for itself underneath. */
+  test('the tab a row sits on is the tab whose groups draw it', () => {
     const { sb, win } = stage();
     for (const tab of ['platform', 'build']) {
       sb.settingsGoTab(tab);
-      const drawn = [...win.document.querySelectorAll('#st-tabbody [data-st-panel]')]
+      const drawn = [...win.document.querySelectorAll('#st-list .st-grp [data-st-panel]')]
         .map(b => b.getAttribute('data-st-panel'));
       const expected = Object.keys(sb.SET_PANELS)
         .filter(k => sb.SET_PANELS[k].tab === tab && (!sb.SET_PANELS[k].show || sb.SET_PANELS[k].show()));
-      assert.deepEqual(Array.from(drawn), expected, `${tab} draws its own rows and nobody else's`);
+      assert.deepEqual(drawn.slice().sort(), expected.slice().sort(),
+        `${tab}'s groups draw its own panels and nobody else's`);
+      /* THE COUNT MATTERS AS MUCH AS THE SET: a panel that landed in two
+         groups would pass a set compare and be drawn twice on screen. */
+      assert.equal(drawn.length, expected.length, `${tab} draws each of its panels exactly once`);
+      /* AND EVERY GROUP THAT DRAWS AT ALL IS NAMED — a headless box of rows is
+         the flat list again, wearing a gap. */
+      for (const sec of win.document.querySelectorAll('#st-list .st-grp'))
+        assert.ok((sec.querySelector('.st-grp-h')?.textContent || '').trim().length,
+          `every group on ${tab} carries a heading`);
     }
+  });
+
+  test('the attention block is the one place the list crosses tabs', () => {
+    const { sb, win } = stage();
+    sb.settingsGoTab('platform');
+    const att = [...win.document.querySelectorAll('#st-att [data-st-panel]')]
+      .map(b => b.getAttribute('data-st-panel'));
+    /* Nothing owed on this fixture is a fine answer, and the block is then not
+       drawn at all — which is itself the rule (no band over an empty list). */
+    if (!att.length) {
+      assert.equal(win.document.querySelectorAll('#st-att').length, 0,
+        'an empty attention block is not drawn');
+      return;
+    }
+    for (const k of att) {
+      const p = sb.SET_PANELS[k], st = p.state();
+      assert.ok(st.dot === 'warn' || (p.mandatory && st.dot !== 'ok'),
+        `${k} is in the block because it really wants a decision`);
+    }
+    assert.ok(att.length <= sb.ST_ATTENTION_MAX,
+      'the block counts the rest rather than growing into the wall it replaced');
   });
 });
 

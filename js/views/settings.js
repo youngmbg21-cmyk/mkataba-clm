@@ -302,7 +302,10 @@ let _stTab='people';
    like the negotiation door's _rlDoorAsked. */
 let _stWantPanel=null;
 function settingsTab(){ return ST_TABS.includes(_stTab)?_stTab:'people'; }
-function settingsGoTab(k){ if(!ST_TABS.includes(k)) return; _stTab=k; renderTeam(); }
+/* CHANGING TAB CLEARS THE SEARCH. The box searches every tab, so a query left
+   standing would draw the same cross-tab result list under a tab the reader
+   just chose — the tab press would look broken. */
+function settingsGoTab(k){ if(!ST_TABS.includes(k)) return; _stTab=k; _stQuery=''; renderTeam(); }
 /* THE ONE NAMED DOOR IN. Everything that wants to land somewhere specific on
    this page goes through it, so there is one place that knows the page is
    admin-only and one place that knows how a tab and a panel are asked for. */
@@ -401,8 +404,22 @@ function stDrawerPaint(d){
   const head=(typeof reviewDialogHeadHtml==='function')
     ? reviewDialogHeadHtml(glyph, d.title, d.sub||'')
     : `<h2 class="rvd-title" id="st-drawer-title">${esc(d.title)}</h2>${d.sub?`<p class="rvd-sub">${esc(d.sub)}</p>`:''}`;
+  /* ---- THE DRAWER SAYS WHERE YOU ARE ---- (owner-approved 18 Sep 2026)
+     Every one of the two dozen panels opens this same drawer, and it opened
+     with a title and nothing else: no way of telling which part of the product
+     the panel governs, and no sense that setting a workspace up is a path
+     rather than two dozen round trips through one list. The group's name and
+     the position in it are both readings this page already has. Additive: the
+     person drawer and the account drawer pass no place and are byte-identical. */
+  const place=d.place;
+  const crumb=place
+    ? `<div class="st-dcrumb">
+         <span class="st-dcrumb-g">${esc(i18t('st_grp_'+place.group))}</span>
+         <span class="st-dcrumb-sep" aria-hidden="true">›</span>
+         <span class="st-dcrumb-n">${esc(i18t('st_panel_pos',{n:place.n,total:place.total}))}</span>
+       </div>` : '';
   document.getElementById('st-dhead').innerHTML=
-    `${head}<button class="st-dx" data-st-dclose title="${esc(i18t('st_close_drawer'))}" aria-label="${esc(i18t('st_close_drawer'))}">✕</button>`;
+    `${crumb}${head}<button class="st-dx" data-st-dclose title="${esc(i18t('st_close_drawer'))}" aria-label="${esc(i18t('st_close_drawer'))}">✕</button>`;
   const ttl=el.querySelector('.rvd-title'); if(ttl && !ttl.id) ttl.id='st-drawer-title';
   document.getElementById('st-dbody').innerHTML=d.body||'';
   /* THE REFUSAL SITS IN THE FOOT, NOT AT THE TOP OF THE BODY, and that is a
@@ -412,9 +429,22 @@ function stDrawerPaint(d){
      rebuilt to stop (settings-holds-still-verify). In the foot it is pinned, so
      it cannot be scrolled away from either, and the control the reader just
      pressed does not move under their hand. */
+  /* ---- AND IT OFFERS THE NEXT DOOR ---- (owner-approved 18 Sep 2026)
+     The panel after this one in the same group, so an admin working through a
+     group does not close, hunt and open four times. It carries data-st-panel,
+     which is the door every row already presses, so there is ONE way a panel
+     is opened and this cannot drift from the list.
+     NOT DRAWN ON A PANEL THAT SAVES ON A PRESS. Twenty-three of the two dozen
+     write as the reader changes them and their foot is a Done; exactly one
+     holds typed edits until Save, and a link that quietly threw those away
+     because it sat beside the button is not a convenience. */
+  const nextKey=(d.foot!=='save' && place && place.next && SET_PANELS[place.next]) ? place.next : '';
+  const nextBtn=nextKey
+    ? `<button class="st-dnext" data-st-panel="${nextKey}">${esc(i18t('st_next',{name:SET_PANELS[nextKey].title()}))}</button>`
+    : '';
   document.getElementById('st-dfoot').innerHTML =
     `<div id="st-drawer-refusal" class="st-refusal" hidden></div>
-     <div class="st-dfoot-acts">${d.foot==='save'
+     <div class="st-dfoot-acts">${nextBtn}${d.foot==='save'
       ? `<button class="ui-btn" data-st-dclose>${i18t('act_cancel')}</button>
          <button class="ui-btn ui-btn-primary" id="st-dsave">${i18t('st_save_close')}</button>`
       : `<button class="ui-btn ui-btn-primary" data-st-dclose>${i18t('st_done')}</button>`}</div>`;
@@ -461,31 +491,208 @@ function stDrawerOpen(key){
   const p=SET_PANELS[key]; if(!p) return;
   _stOpen=key;
   stDrawerPaint({ title:p.title(), sub:p.sub?p.sub():'', foot:p.foot||'done', glyph:p.glyph,
-    body:p.body(), wire:p.wire, save:p.save });
+    body:p.body(), wire:p.wire, save:p.save, place:stPanelPlace(key) });
 }
 
-/* ---------------- ROWS ----------------
-   A row states what the setting IS right now. Status dot, name, one line of
-   current state, whether it has to be answered, and a chip. */
+/* ---------------- ROWS, GROUPS, SEARCH ----------------
+   A row states what the setting IS right now: a status dot, the name, one line
+   of current state, a chip, and — only where it is still owed — that it is
+   required.
+
+   SEVENTEEN EQUAL ROWS READ AS NONE (owner-approved 18 Sep 2026 off the
+   "HaTi — Design Direction" canvas). This tab drew every platform panel at one
+   height in one box, each ending in the same chevron and the same
+   Mandatory / Optional tag, with no search and no order, so an admin looking
+   for "who may sign" had no way in but reading all seventeen. Three answers,
+   none of them a new screen: the panels are GROUPED under names, ONE BOX
+   searches every panel on every tab, and the TAG gives way to the dot and the
+   state line.
+
+   THE TAG WAS ANSWERING THE WRONG QUESTION. Mandatory / Optional is a fact
+   about the SETTING; the dot and the state line are facts about THIS
+   WORKSPACE, which is what an admin came here to learn. So the tag is not
+   deleted, it is NARROWED: "Required" prints on a mandatory panel nobody has
+   answered and nowhere else, which is the only time that fact is worth a
+   reader's attention. st_optional is left INERT in both books rather than
+   removed, the way this codebase retires a sentence. */
 const ST_DOT={ ok:'var(--st-green-dot)', warn:'var(--st-amber-dot)', off:'var(--color-neutral-400)' };
-function stRowHtml(key){
+/* THE ORDER HERE IS THE ORDER ON SCREEN and the keys are STABLE ENGLISH, so a
+   rename in either dictionary cannot move a panel. Panels inside a group keep
+   SET_PANELS' own order. `sub` marks the two groups whose name does not say
+   enough alone; the other five stay silent on purpose, because a caption under
+   every heading is the wall of words this page already had. */
+const ST_GROUPS=[
+  { key:'agreement', tab:'platform', sub:true },
+  { key:'standards', tab:'platform' },
+  { key:'intake',    tab:'platform', sub:true },
+  { key:'copilot',   tab:'platform' },
+  { key:'house',     tab:'platform' },
+  { key:'launch',    tab:'build' },
+  { key:'plumbing',  tab:'build' }
+];
+/* How many rows the attention block draws before it counts instead. A block
+   that can grow to seventeen is the wall it was built to replace. */
+const ST_ATTENTION_MAX=4;
+let _stQuery='';
+
+/* EVERY PANEL THAT IS DRAWN AT ALL. show() is the panel's own answer and is
+   asked HERE, once, so the groups, the search and the attention block cannot
+   disagree about which panels exist. A null tab means every tab. */
+function stPanelKeys(tab){
+  return Object.keys(SET_PANELS).filter(k=>{
+    const p=SET_PANELS[k];
+    if(tab && p.tab!==tab) return false;
+    return !p.show || p.show();
+  });
+}
+function stGroupsFor(tab){ return ST_GROUPS.filter(g=>g.tab===tab); }
+/* NOTHING IS EVER DROPPED. A panel added tomorrow with no group, or with one
+   that is not on its own tab, lands in the LAST group of its tab rather than
+   vanishing off the page — the fault f170 exists to catch on the contract
+   room's tabs, in this page's costume. */
+function stGroupKeyOf(key, tab){
+  const p=SET_PANELS[key]; if(!p) return '';
+  const gs=stGroupsFor(tab||p.tab); if(!gs.length) return '';
+  return gs.some(g=>g.key===p.group) ? p.group : gs[gs.length-1].key;
+}
+function stPanelsInGroup(tab, gkey){
+  return stPanelKeys(tab).filter(k=>stGroupKeyOf(k,tab)===gkey);
+}
+/* WHERE A PANEL SITS IN ITS GROUP. The drawer prints it, so setting the
+   workspace up reads as a path rather than as seventeen round trips. */
+function stPanelPlace(key){
+  const p=SET_PANELS[key]; if(!p||!p.tab) return null;
+  const gkey=stGroupKeyOf(key); if(!gkey) return null;
+  const keys=stPanelsInGroup(p.tab,gkey);
+  const i=keys.indexOf(key); if(i<0) return null;
+  return { group:gkey, n:i+1, total:keys.length, next:keys[i+1]||null };
+}
+/* A PANEL'S OWN READING, ASKED SAFELY. The attention block and the search ask
+   panels on tabs that are not open, whose server-filled data may not have
+   landed; a throw there would blank the whole page, so it is caught and the
+   panel simply is not counted. The row builder below is deliberately NOT
+   guarded — that is today's behaviour on the open tab and not this change's
+   business. READING MUST NOT WRITE: every state() in SET_PANELS is a reader. */
+function stStateOf(key){
+  const p=SET_PANELS[key]; if(!p||!p.state) return null;
+  try{ return p.state()||null; }catch(e){ return null; }
+}
+/* WHAT WANTS A DECISION, ACROSS EVERY TAB — a panel asking for something (its
+   own reading says 'warn'), or one that must be answered and has not been. It
+   reads every tab on purpose: the panel that stops mail leaving the building
+   lives under Build & launch, and an admin standing on Platform settings had
+   no way of learning that from this screen. */
+function stAttentionKeys(){
+  return stPanelKeys(null).filter(k=>{
+    const st=stStateOf(k); if(!st) return false;
+    if(st.dot==='warn') return true;
+    return !!SET_PANELS[k].mandatory && st.dot!=='ok';
+  });
+}
+/* ONE BOX OVER ALL OF THEM, every tab included, because not knowing which tab
+   a setting lives on is the whole reason somebody is searching. Every word
+   typed must appear in the panel's name, its one-line description, its group,
+   its tab or its current state. That state line can carry markup (several
+   panels join already-escaped parts), so tags come out before it is matched —
+   otherwise typing "span" would find half the page. */
+function stSearchHits(q){
+  const words=String(q||'').toLowerCase().split(/\s+/).filter(Boolean);
+  if(!words.length) return [];
+  return stPanelKeys(null).filter(k=>{
+    const p=SET_PANELS[k];
+    let hay=[p.title(), p.sub?p.sub():'', i18t('st_tab_'+p.tab), i18t('st_grp_'+stGroupKeyOf(k))].join(' ');
+    const st=stStateOf(k);
+    if(st && st.text) hay+=' '+String(st.text).replace(/<[^>]*>/g,' ');
+    hay=hay.toLowerCase();
+    return words.every(w=>hay.indexOf(w)>=0);
+  });
+}
+function stRowHtml(key, opts){
   const p=SET_PANELS[key]; if(!p) return '';
   const st=p.state?p.state():{dot:'off',text:''};
   const chip=p.chip?p.chip():'';
+  /* NOT ESCAPED, AND NEVER HAS BEEN: several panels build this line out of
+     already-escaped parts joined with ' · '. */
+  const stateLine=st.text||'';
+  const need=!!p.mandatory && st.dot!=='ok';
+  const where=(opts&&opts.where)
+    ? `<span class="st-row-where">${esc(i18t('st_tab_'+p.tab))}</span>` : '';
   return `<button class="st-row" data-st-panel="${key}">
     <span class="st-dot" style="background:${ST_DOT[st.dot]||ST_DOT.off}"></span>
     <span class="st-row-main">
       <span class="st-row-name">${esc(p.title())}</span>
-      <span class="st-row-state">${st.text||''}</span>
+      <span class="st-row-state">${stateLine}</span>
     </span>
+    ${where}
     ${chip?`<span class="st-row-chip">${chip}</span>`:''}
-    <span class="st-row-tag"${p.mandatory?' data-req="1"':''}>${p.mandatory?i18t('st_mandatory'):i18t('st_optional')}</span>
+    ${need?`<span class="st-row-tag" data-req="1">${esc(i18t('st_required'))}</span>`:''}
     <span class="st-row-go" aria-hidden="true">›</span>
   </button>`;
 }
+function stGroupHtml(tab, g){
+  const keys=stPanelsInGroup(tab,g.key);
+  if(!keys.length) return '';
+  const sub=g.sub?`<span class="st-grp-sub">${esc(i18t('st_grp_'+g.key+'_sub'))}</span>`:'';
+  return `<section class="st-grp">
+    <h3 class="st-grp-h">${esc(i18t('st_grp_'+g.key))}${sub}</h3>
+    <div class="st-rows">${keys.map(k=>stRowHtml(k)).join('')}</div>
+  </section>`;
+}
+/* IT DRAWS NOTHING WHEN THERE IS NOTHING. An amber heading that is always
+   there stops being read, and a block naming no work owed is the band this
+   codebase refuses on sight. Every row is a door to the panel that settles it,
+   which is the second half of the test a strip has to pass. */
+function stAttentionHtml(){
+  const keys=stAttentionKeys();
+  if(!keys.length) return '';
+  const shown=keys.slice(0,ST_ATTENTION_MAX), rest=keys.length-shown.length;
+  return `<section class="st-att" id="st-att">
+    <h3 class="st-att-h"><span class="st-dot" style="background:${ST_DOT.warn}"></span>${esc(i18t('st_attention'))}</h3>
+    <div class="st-rows">${shown.map(k=>stRowHtml(k,{where:true})).join('')}</div>
+    ${rest>0?`<p class="st-att-more">${esc(i18t('st_attention_more',{n:rest}))}</p>`:''}
+  </section>`;
+}
+function stLegendHtml(){
+  return `<div class="st-legend">
+    <span><i class="st-dot" style="background:${ST_DOT.ok}"></i>${esc(i18t('st_legend_ok'))}</span>
+    <span><i class="st-dot" style="background:${ST_DOT.off}"></i>${esc(i18t('st_legend_off'))}</span>
+    <span><i class="st-dot" style="background:${ST_DOT.warn}"></i>${esc(i18t('st_legend_warn'))}</span>
+  </div>`;
+}
+/* THE LIST, WHICHEVER WAY THE READER IS LOOKING AT IT — a search result across
+   every tab, or this tab's own groups under the attention block. */
+function stListHtml(tab){
+  const q=_stQuery.trim();
+  if(q){
+    const hits=stSearchHits(q);
+    if(!hits.length) return `<p class="st-none">${esc(i18t('st_search_none',{q:q}))}</p>`;
+    return `<p class="st-found">${esc(i18tn('st_search_found',hits.length,{n:hits.length}))}</p>
+      <div class="st-rows">${hits.map(k=>stRowHtml(k,{where:true})).join('')}</div>`;
+  }
+  return stAttentionHtml()+stGroupsFor(tab).map(g=>stGroupHtml(tab,g)).join('')+stLegendHtml();
+}
 function stRowsHtml(tab){
-  const keys=Object.keys(SET_PANELS).filter(k=>SET_PANELS[k].tab===tab && (!SET_PANELS[k].show || SET_PANELS[k].show()));
-  return `<div class="st-rows">${keys.map(stRowHtml).join('')}</div>`;
+  const n=stPanelKeys(null).length;
+  return `<div class="st-search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+      <label class="sr-only" for="st-q">${esc(i18t('st_search_label'))}</label>
+      <input id="st-q" type="search" autocomplete="off" spellcheck="false" placeholder="${esc(i18t('st_search_ph',{n:n}))}" value="${esc(_stQuery)}">
+    </div>
+    <div id="st-list">${stListHtml(tab)}</div>`;
+}
+/* THE PAGE HOLDS STILL. Only the list is rebuilt — never renderTeam(), which
+   empties seven server-filled panels and would take the caret out of the box
+   on every keystroke. Bound once per element, because the box survives a list
+   repaint and a rebound listener would fire twice per key. */
+function stPaintList(){
+  const host=document.getElementById('st-list');
+  if(host) host.innerHTML=stListHtml(settingsTab());
+}
+function stWireList(){
+  const box=document.getElementById('st-q');
+  if(!box || box.dataset.stQBound) return;
+  box.dataset.stQBound='1';
+  box.addEventListener('input',()=>{ _stQuery=box.value||''; stPaintList(); });
 }
 /* ONE ROW, REPAINTED WHERE IT STANDS. A row states what the setting IS right
    now, so a panel that has just written something has to refresh the row behind
@@ -503,11 +710,36 @@ function stRepaintPanel(key){
   host.innerHTML=p.body();
   if(typeof p.wire==='function') p.wire();
 }
+/* EVERY INSTANCE OF THE ROW, not the first one. Since the attention block a
+   panel can be drawn TWICE — once at the top and once in its own group — and
+   querySelector answers in document order, so repainting only the first left
+   the group's copy showing what the setting used to be. The attention copy
+   names its tab and the group copy does not, so each is rebuilt in its own
+   shape, read off where it actually sits. */
 function stRepaintRow(key){
-  const el=document.querySelector(`.st-row[data-st-panel="${key}"]`);
-  if(!el || !SET_PANELS[key]) return;
-  const d=document.createElement('div'); d.innerHTML=stRowHtml(key);
-  const next=d.firstElementChild; if(next) el.replaceWith(next);
+  if(!SET_PANELS[key]) return;
+  const rows=[...document.querySelectorAll(`.st-row[data-st-panel="${key}"]`)];
+  if(!rows.length) return;
+  rows.forEach(el=>{
+    const where=!!el.closest('.st-att') || !!el.closest('#st-list > .st-rows');
+    const d=document.createElement('div'); d.innerHTML=stRowHtml(key,{where});
+    const next=d.firstElementChild; if(next) el.replaceWith(next);
+  });
+  stSyncAttention();
+}
+/* A ROW THAT HAS BEEN SETTLED LEAVES THE BLOCK. Without this the heading goes
+   on saying a panel wants a decision while the row under it draws a green dot
+   saying it does not — one screen disagreeing with itself, which is this
+   codebase's most expensive fault class. Only rows are taken OUT, never added,
+   so nothing appears under the reader's hand; the full membership is worked
+   out again on the next paint of the page. */
+function stSyncAttention(){
+  const host=document.getElementById('st-att'); if(!host) return;
+  const keep=new Set(stAttentionKeys());
+  [...host.querySelectorAll('.st-row[data-st-panel]')].forEach(el=>{
+    if(!keep.has(el.getAttribute('data-st-panel'))) el.remove();
+  });
+  if(!host.querySelector('.st-row')) host.remove();
 }
 
 /* ============================================================
@@ -1547,7 +1779,7 @@ const SET_PANELS={
      step's own fields (PUT /api/org/branding); they are STATED here and edited
      where they have always been edited, rather than given a second writer. */
   company:{
-    tab:'platform', mandatory:true,
+    tab:'platform', group:'standards', mandatory:true,
     title:()=>i18t('st_p_company'),
     sub:()=>i18t('st_p_company_sub'),
     state(){
@@ -1764,7 +1996,7 @@ const SET_PANELS={
      removal is refused while the folder still holds contracts, because the
      contracts would be filed under an id no picker offers. */
   folders:{
-    tab:'platform', mandatory:false,
+    tab:'platform', group:'standards', mandatory:false,
     title:()=>i18t('st_p_folders'),
     sub:()=>i18t('st_p_folders_sub'),
     state(){ const n=Object.keys(FOLDERS).length;
@@ -1805,7 +2037,7 @@ const SET_PANELS={
   },
 
   approvals:{
-    tab:'platform', mandatory:true,
+    tab:'platform', group:'agreement', mandatory:true,
     title:()=>i18t('st_p_approvals'),
     sub:()=>i18t('st_p_approvals_sub'),
     state(){ const rules=(typeof approvalRules==='function'?approvalRules():[]).slice().sort((a,b)=>(a.order||99)-(b.order||99));
@@ -1871,7 +2103,7 @@ const SET_PANELS={
      to nothing is forbidden here, so the row says which of those is true and
      points at the one control that changes it. */
   copilot:{
-    tab:'platform', mandatory:false,
+    tab:'platform', group:'copilot', mandatory:false,
     title:()=>i18t('st_p_copilot'),
     sub:()=>i18t('st_p_copilot_sub'),
     state(){ const on=(typeof copilotAvailable==='function')&&copilotAvailable();
@@ -1884,7 +2116,7 @@ const SET_PANELS={
   },
 
   review:{
-    tab:'platform', mandatory:false,
+    tab:'platform', group:'agreement', mandatory:false,
     title:()=>i18t('st_p_review'),
     sub:()=>i18t('rv_set_sub'),
     state(){ const c=(window.reviewGateCfg?reviewGateCfg():{on:false});
@@ -1900,7 +2132,7 @@ const SET_PANELS={
      something leaves or is signed — and a reader looking for one will be
      looking in the same place for the other. */
   signcheck:{
-    tab:'platform', mandatory:false,
+    tab:'platform', group:'agreement', mandatory:false,
     title:()=>i18t('sc_set_title'),
     sub:()=>i18t('sc_set_sub'),
     state(){ const g=(window.signCheckGate?signCheckGate():'off');
@@ -1910,7 +2142,7 @@ const SET_PANELS={
   },
 
   desk:{
-    tab:'platform', mandatory:false,
+    tab:'platform', group:'agreement', mandatory:false,
     title:()=>i18t('st_p_desk'),
     sub:()=>i18t('dk_set_sub'),
     state(){ const c=(window.deskCfg?deskCfg():{on:false});
@@ -1936,7 +2168,7 @@ const SET_PANELS={
      a workspace that has not set this up should not tell a caller that the
      feature exists. */
   mailroom:{
-    tab:'platform', mandatory:false,
+    tab:'platform', group:'intake', mandatory:false,
     title:()=>i18t('st_p_mailroom'),
     sub:()=>i18t('set_mailroom_sub'),
     state(){
@@ -2013,7 +2245,7 @@ const SET_PANELS={
      signature — the named signers, the approval chain, the pre-signature
      check, the signing cap — is untouched and still asked. */
   lanes:{
-    tab:'platform', mandatory:false,
+    tab:'platform', group:'intake', mandatory:false,
     title:()=>i18t('st_p_lanes'),
     sub:()=>i18t('set_lanes_sub'),
     state(){
@@ -2093,7 +2325,7 @@ const SET_PANELS={
   },
 
   renewals:{
-    tab:'platform', mandatory:false,
+    tab:'platform', group:'intake', mandatory:false,
     title:()=>i18t('st_p_renewals'),
     sub:()=>i18t('set_renewal_sub'),
     state(){ return { dot:'ok', text:[90,60,30].map(d=>i18t('set_days_out',{n:d})).join(' · ') }; },
@@ -2119,7 +2351,7 @@ const SET_PANELS={
      pair of numbers is not an access map, so the H-3 reasoning that gives
      folderAccess and signFolders.by their own atomic routes does not apply. */
   paydays:{
-    tab:'platform', mandatory:false,
+    tab:'platform', group:'standards', mandatory:false,
     title:()=>i18t('st_p_paydays'),
     sub:()=>i18t('set_paydays_sub'),
     state(){
@@ -2179,7 +2411,7 @@ const SET_PANELS={
   },
 
   workshape:{
-    tab:'platform', mandatory:false,
+    tab:'platform', group:'house', mandatory:false,
     title:()=>i18t('st_p_workshape'),
     sub:()=>i18t('set_workshape_sub'),
     state(){ const cfg=(typeof wsCfg==='function')?wsCfg():{shapes:[],word:''};
@@ -2244,7 +2476,7 @@ const SET_PANELS={
      it — "is this contact doing anything?" — so each row now says how many
      contracts name them. */
   directory:{
-    tab:'platform', mandatory:false,
+    tab:'platform', group:'house', mandatory:false,
     title:()=>i18t('st_p_directory'),
     sub:()=>i18t('st_p_directory_sub'),
     state(){ const n=(((state.settings||{}).directory)||[]).length;
@@ -2259,7 +2491,7 @@ const SET_PANELS={
   },
 
   design:{
-    tab:'platform', mandatory:false,
+    tab:'platform', group:'standards', mandatory:false,
     title:()=>i18t('st_p_design'),
     sub:()=>i18t('set_design_sub'),
     state(){ const ob=(typeof window!=='undefined'&&window.ORG_BRANDING)||null;
@@ -2286,7 +2518,7 @@ const SET_PANELS={
   },
 
   report:{
-    tab:'platform', mandatory:false, show:stApiOnly,
+    tab:'platform', group:'house', mandatory:false, show:stApiOnly,
     title:()=>i18t('st_p_report'),
     sub:()=>i18t('set_monthly_report_sub'),
     state(){ return { dot:'off', text:i18t('set_monthly_report_sub') }; },
@@ -2311,7 +2543,7 @@ const SET_PANELS={
      proves a delivery came from here, and a secret a screen can re-read is
      one anybody with the screen can take. */
   webhooks:{
-    tab:'platform', mandatory:false, show:stApiOnly,
+    tab:'platform', group:'intake', mandatory:false, show:stApiOnly,
     title:()=>i18t('st_p_hooks'),
     sub:()=>i18t('st_hooks_sub'),
     state(){
@@ -2342,7 +2574,7 @@ const SET_PANELS={
   },
 
   backup:{
-    tab:'platform', mandatory:false,
+    tab:'platform', group:'house', mandatory:false,
     title:()=>i18t('st_p_backup'),
     sub:()=>API_MODE()?i18t('set_backup_server'):i18t('set_backup_local'),
     state(){ const at=stLastBackup(); return { dot:at?'ok':'off', text:at?`${i18t('set_export_backup')} · ${fmtDT(at)}`:i18t('st_not_set') }; },
@@ -2360,7 +2592,7 @@ const SET_PANELS={
      TAB 3 — BUILD & LAUNCH
      ============================================================ */
   golive:{
-    tab:'build', mandatory:true,
+    tab:'build', group:'launch', mandatory:true,
     title:()=>i18t('st_b_golive'),
     sub:()=>i18t('st_b_golive_sub'),
     state(){ const l=stGoLive(); const done=l.filter(r=>r.ok).length;
@@ -2385,7 +2617,7 @@ const SET_PANELS={
   },
 
   engine:{
-    tab:'build', mandatory:false,
+    tab:'build', group:'plumbing', mandatory:false,
     title:()=>i18t('st_b_engine'),
     sub:()=>i18t('st_b_engine_sub'),
     state(){ const on=(typeof copilotAvailable==='function')&&copilotAvailable();
@@ -2397,7 +2629,7 @@ const SET_PANELS={
   },
 
   mail:{
-    tab:'build', mandatory:true, show:stApiOnly,
+    tab:'build', group:'plumbing', mandatory:true, show:stApiOnly,
     title:()=>i18t('st_b_mail'),
     sub:()=>i18t('st_b_mail_sub'),
     /* THREE STATES, NOT TWO. This row said "Email configured" off emailOff()
@@ -2420,7 +2652,7 @@ const SET_PANELS={
   },
 
   pilot:{
-    tab:'build', mandatory:false, show:stApiOnly,
+    tab:'build', group:'plumbing', mandatory:false, show:stApiOnly,
     title:()=>i18t('st_b_pilot'),
     sub:()=>i18t('set_activation_sub'),
     state(){ return { dot:'off', text:i18t('set_activation_sub') }; },
@@ -2437,7 +2669,7 @@ const SET_PANELS={
      for this: each removal goes through the per-contract delete the product
      already has and already guards. */
   samples:{
-    tab:'build', mandatory:false,
+    tab:'build', group:'launch', mandatory:false,
     title:()=>i18t('set_demo_samples'),
     sub:()=>i18t('set_demo_samples_sub'),
     state(){ const n=stSampleContracts().length;
@@ -2461,7 +2693,7 @@ const SET_PANELS={
      "verified" taken over a weak digest is worth less than the sentence
      explaining why. */
   integrity:{
-    tab:'build', mandatory:false,
+    tab:'build', group:'launch', mandatory:false,
     title:()=>i18t('set_integrity_title'),
     sub:()=>i18t('set_integrity_sub'),
     state(){ const r=_stIntegrity;
@@ -2475,7 +2707,7 @@ const SET_PANELS={
   },
 
   env:{
-    tab:'build', mandatory:false,
+    tab:'build', group:'plumbing', mandatory:false,
     title:()=>i18t('st_b_env'),
     sub:()=>i18t('st_b_env_sub'),
     state(){ return { dot:'ok', text:`${i18t('st_b_env_mode')}: ${API_MODE()?'Server · SQLite':'Local · browser'}` }; },
@@ -3429,6 +3661,10 @@ function renderTeam(){
   </div>`;
   settingsHoldHeights(_heldHeights);
   stWireDrawerOnce();
+  /* The search box is drawn by stRowsHtml, so it exists only on the two tabs
+     that list panels; stWireList is a no-op on the other two and binds once
+     per element, never once per render. */
+  stWireList();
   if(tab==='you') stAccountWire();
   /* A door may have asked for one panel. Consumed on arrival, exactly once, so
      a later repaint does not re-open something the reader closed. */
@@ -4258,7 +4494,7 @@ async function loadSessions(){
    the shell calls; SET_PANELS and the readers beside it are what the tests read. */
 Object.assign(window,{renderTeam,stRepaintPanel,renderMyAccountPage,briefCadenceOf,BRIEF_EVERY_VALUES,renderPrecedentPanel,precedentAdopt,stdOpenPreferred,renderStandardsDraft,stdOpenClauseId,stdSetOpenClause,stdStanceChipHtml,stdFallbackChipHtml,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
   renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions,
-  openMyAccount,openSettingsAt,settingsGoTab,settingsTab,SET_PANELS,ST_TABS,SET_CLOSURES,
+  openMyAccount,openSettingsAt,settingsGoTab,settingsTab,SET_PANELS,ST_TABS,SET_CLOSURES,ST_GROUPS,ST_ATTENTION_MAX,
   stDrawerOpen,stDrawerClose,stDrawerRefuse,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,
   settingsWriteFolderAccess,settingsExportBackup,stGoLive,stSampleContracts,stClearSamples,stRunIntegrity,
   stPersonMissing,stAccountBodyHtml,parseDirectoryCsv,openFolderAccessEditor,settingsMirrorDirectory,
