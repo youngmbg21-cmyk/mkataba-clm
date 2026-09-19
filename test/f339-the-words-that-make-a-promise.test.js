@@ -28,7 +28,8 @@
  * PAINT and are driven in five-screenshots-verify. What is pinned here is the
  * machinery and the walls.
  *
- * MEASURED AT THE PARENT (8cc14ca): 41 of 46 claims RED. The five that pass
+ * MEASURED AT THE PARENT (33536a7 for the 19 Sep evening additions;
+ * 8cc14ca for the rest): 41 of the original 46 claims RED. The five that pass
  * are the named CONTROLS and WALLS — the corpus fixture, the figures pass this
  * one runs beside, the "no band" sweep that was already true and has to stay
  * true with a switch in that row, and the two walls that say what the route is
@@ -334,24 +335,92 @@ describe('f339 (4) — the caption slot is the trigger', () => {
       'and still exactly one head row');
   });
 
-  test('the clothes are the caption\'s own register', () => {
+  /* ---- REVERSED IN PLACE, 19 Sep 2026 (Young ruled it) ----
+     This asked the switch to opt OUT of the head's label treatment: the label
+     SIZE, no letter-spacing, no capitals. *"Make Highlight obligations to be
+     in Capital letters but Not [bold]."* It opts out of ONE declaration now —
+     the weight — and takes the rest of the row, so the switch is the same
+     label as PLAIN ENGLISH beside it in body weight. The quiet-press half
+     (no fill, no edge) is unchanged and still asserted. */
+  test('the clothes are the row\'s own label treatment, in body weight', () => {
     const r = ruleFor(HTML, '.doc-read-duty{').replace(/\s+/g, ' ');
     const em = ruleFor(HTML, '.doc-read-head em{').replace(/\s+/g, ' ');
-    for (const d of ['margin-left:auto', 'font-size:var(--t-label)',
-                     'font-weight:var(--w-body)', 'letter-spacing:0', 'text-transform:none'])
-      assert.ok(r.includes(d), 'the switch keeps the caption\'s ' + d);
+    assert.ok(r.includes('margin-left:auto'), 'it still takes the caption\'s slot');
+    assert.ok(r.includes('font:inherit'),
+      'and the row\'s own font, which is what makes the rest a RELATION');
+    assert.ok(r.includes('font-weight:var(--w-body)'),
+      'the ONE opt-out the owner kept');
+    for (const d of ['font-size:var(--t-label)', 'letter-spacing:0'])
+      assert.ok(!r.includes(d), 'no longer opts out of the row\'s ' + d);
+    assert.ok(!/text-transform:none/.test(r), 'and not out of its capitals');
     assert.ok(em.includes('margin-left:auto'),
       'CONTROL — and that is the slot it took, stated by the rule it replaced');
     assert.ok(/background:none/.test(r) && /border:0/.test(r),
       'a quiet press, never a filled control beside a contract');
   });
 
+  test('INHERITANCE IS NOT A CASCADE CONTEST — the capitals are NAMED', () => {
+    /* `button,select{text-transform:none}` is in the compiled Tailwind
+       preflight and beats inheritance, so the head's uppercase never reached
+       this button. `inherit` rather than the word, so the switch and the label
+       cannot drift. The third costume of this fault in this codebase. */
+    const r = ruleFor(HTML, '.doc-read-duty{').replace(/\s+/g, ' ');
+    assert.ok(r.includes('text-transform:inherit'),
+      'named, and named as a relation');
+    assert.match(HTML, /button,select\{text-transform:none\}/,
+      'CONTROL — because that is what was beating it');
+  });
+
+  test('the box is a SQUARE with a check in it, not a ring', () => {
+    const t = ruleFor(HTML, '.doc-read-duty .dr-tick{').replace(/\s+/g, ' ');
+    assert.ok(t, 'the tick-box has a rule');
+    assert.ok(t.includes('border-radius:var(--radius)'),
+      'the platform\'s own corner, which is what square means here');
+    assert.ok(!/border-radius:50%/.test(t), 'never a circle again');
+    assert.ok(/width:12px/.test(t) && /height:12px/.test(t), 'and it is square');
+    assert.ok(!HTML.includes('.doc-read-duty .dr-ring'),
+      '`.dr-ring` is gone from this switch, not left drawing beside it');
+    assert.match(CONTRACT, /class="dr-tick"[^>]*><svg[^>]*><use href="#i-check"\/><\/svg>/,
+      'and the mark is the product\'s OWN check symbol');
+  });
+
+  test('the check is in the markup at BOTH states, so a press moves nothing', () => {
+    const t = ruleFor(HTML, '.doc-read-duty .dr-tick{').replace(/\s+/g, ' ');
+    const on = ruleFor(HTML, '.doc-read-duty[aria-pressed="true"] .dr-tick{').replace(/\s+/g, ' ');
+    assert.ok(t.includes('color:transparent'), 'invisible at rest');
+    assert.ok(on.includes('color:#2A1B04'), 'and inked when pressed');
+    /* ONE LITERAL, BORROWED: #hdr-notify-dot is the one other place this
+       product puts ink on --st-amber-dot, and that token is the same colour in
+       both themes, so a theme-aware token above it would be the wrong answer. */
+    assert.match(HTML, /background:var\(--st-amber-dot\);\s*\n?\s*color:#2A1B04/,
+      'CONTROL — the same pair #hdr-notify-dot states');
+    const body = fnBody(CONTRACT, 'docReadPaint');
+    assert.equal((body.match(/#i-check/g) || []).length, 1,
+      'one symbol, drawn once, whatever the state');
+  });
+
   test('the state is not colour alone', () => {
     const on = ruleFor(HTML, '.doc-read-duty[aria-pressed="true"]{').replace(/\s+/g, ' ');
-    const ring = ruleFor(HTML, '.doc-read-duty[aria-pressed="true"] .dr-ring{').replace(/\s+/g, ' ');
-    assert.ok(ring.includes('background:var(--st-amber-dot)'), 'the ring fills');
+    const tick = ruleFor(HTML, '.doc-read-duty[aria-pressed="true"] .dr-tick{').replace(/\s+/g, ' ');
+    assert.ok(tick.includes('background:var(--st-amber-dot)'), 'the box fills');
     assert.ok(!/font-weight/.test(on),
       'and the weight never moves — a heavier word would shuffle the row under the reader\'s hand');
+  });
+
+  test('the two sheets start at one height, off ONE token', () => {
+    /* Young, 19 Sep 2026: "the top edge of the contract pages do not start
+       from the same point." MEASURED at the parent against the grid's own top:
+       the cream sheet at 4 and this card at 0. The 4 is #doc-scroll's own
+       padding-top, so the card reads that token rather than a literal, and it
+       is the CARD that came down to the paper — refusal 3 by construction. */
+    const at = CONTRACT.indexOf('<div id="doc-read"');
+    assert.ok(at > 0, 'the card is mounted there');
+    const tag = CONTRACT.slice(at, at + 220);
+    assert.match(tag, /inset:var\(--s-1\) 0 0/,
+      'the same token #doc-scroll pads with, never a literal 4');
+    assert.ok(!/inset:0/.test(tag), 'and no longer flush with the grid');
+    assert.match(CONTRACT, /padding:var\(--s-1\) 2px var\(--s-6\)/,
+      'CONTROL — which is the padding it is matching');
   });
 });
 

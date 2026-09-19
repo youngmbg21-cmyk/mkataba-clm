@@ -173,7 +173,18 @@ const drive = async (page, fn, arg, fallback) => {
         size: cs.fontSize, weight: cs.fontWeight, spacing: cs.letterSpacing,
         transform: cs.textTransform, bg: cs.backgroundColor, border: cs.borderTopWidth,
         lblSize: ls ? ls.fontSize : null,
+        /* the label beside it, so "the row's own register" is a RELATION */
+        lblWeight: ls ? ls.fontWeight : null, lblSpacing: ls ? ls.letterSpacing : null,
+        lblTransform: ls ? ls.textTransform : null,
         hit: !!mid && !!mid.closest && !!mid.closest('[data-doc-read-duty]'),
+        ring: !!btn.querySelector('.dr-ring'),
+        tick: (() => { const t = btn.querySelector('.dr-tick'); if (!t) return null;
+          const ts = getComputedStyle(t), tr = t.getBoundingClientRect();
+          const sv = t.querySelector('svg'); const u = sv && sv.querySelector('use');
+          return { w: Math.round(tr.width), h: Math.round(tr.height),
+            radius: ts.borderTopLeftRadius, bg: ts.backgroundColor, ink: ts.color,
+            edge: ts.borderTopColor, svg: !!sv,
+            href: u ? (u.getAttribute('href') || '') : null }; })(),
       };
     }, undefined, { err: 'blocked' });
 
@@ -182,11 +193,32 @@ const drive = async (page, fn, arg, fallback) => {
     check('1b it sits at the right of the caption row, on the caption\'s own line',
       !sw.err && sw.gapRight >= 0 && sw.gapRight <= 6 && sw.sameRow === true,
       sw.err || `${sw.gapRight}px from the right, same row ${sw.sameRow}`);
-    check('1c it wears the caption\'s register, not a button\'s',
-      !sw.err && sw.weight === '400' && sw.spacing === 'normal'
-        && sw.transform === 'none' && /rgba\(0, 0, 0, 0\)|transparent/.test(sw.bg)
-        && sw.border === '0px',
-      sw.err || `${sw.size}/${sw.weight} ${sw.spacing} ${sw.transform} bg=${sw.bg} border=${sw.border}`);
+    /* ---- REVERSED IN PLACE, 19 Sep 2026 (Young ruled it) ----
+       This asked for the switch to opt OUT of the head's label treatment — no
+       capitals, no letter-spacing, the label size. *"Make Highlight
+       obligations to be in Capital letters but Not [bold]."* So it opts out of
+       ONE declaration now, the weight, and takes the rest of the row. What the
+       claim asserts is therefore a RELATION against the label beside it, never
+       three typed numbers: same size, same spacing, same case, and the WEIGHT
+       is the one thing that differs. The quiet-press half is unchanged. */
+    check('1c it wears the row\'s own label treatment, in body weight',
+      !sw.err && sw.transform === 'uppercase' && sw.transform === sw.lblTransform
+        && sw.size === sw.lblSize && sw.spacing === sw.lblSpacing
+        && sw.weight === '400' && sw.lblWeight !== sw.weight
+        && /rgba\(0, 0, 0, 0\)|transparent/.test(sw.bg) && sw.border === '0px',
+      sw.err || `switch ${sw.size}/${sw.weight} ${sw.spacing} ${sw.transform}`
+        + ` · label ${sw.lblSize}/${sw.lblWeight} ${sw.lblSpacing} ${sw.lblTransform}`
+        + ` · bg=${sw.bg} border=${sw.border}`);
+    check('1c2 the box is a SQUARE with the product\'s own check in it',
+      !sw.err && !!sw.tick && !sw.ring && sw.tick.w === sw.tick.h
+        && sw.tick.radius === '2px' && sw.tick.svg === true
+        && /#i-check$/.test(String(sw.tick.href)),
+      sw.err || (sw.tick ? `${sw.tick.w}x${sw.tick.h} r=${sw.tick.radius} use=${sw.tick.href}`
+        : 'no .dr-tick') + (sw.ring ? ' · a .dr-ring is still drawn' : ''));
+    check('1c3 and the check is INVISIBLE until it is pressed',
+      !sw.err && !!sw.tick && sw.tick.ink === 'rgba(0, 0, 0, 0)'
+        && /rgba\(0, 0, 0, 0\)|transparent/.test(sw.tick.bg),
+      sw.err || (sw.tick ? `ink ${sw.tick.ink} on ${sw.tick.bg}` : 'no .dr-tick'));
     check('1d "a reading, not the contract" is the hover on the label',
       !sw.err && /a reading, not the contract|en förklaring/.test(String(sw.lblTitle || '')),
       sw.err || String(sw.lblTitle));
@@ -249,10 +281,16 @@ const drive = async (page, fn, arg, fallback) => {
             Math.round(r.y + r.height / 2)); return !!m && !!m.closest && (!!m.closest('.dr-duty') || !!m.closest('.dr-duty-p')); })() };
       };
       const btn = document.querySelector('[data-doc-read-duty]');
-      const ring = btn && btn.querySelector('.dr-ring');
+      const tick = btn && btn.querySelector('.dr-tick');
+      const ts = tick ? getComputedStyle(tick) : null;
+      const sv = tick && tick.querySelector('svg');
+      const sr = sv ? sv.getBoundingClientRect() : null;
       return { reading: rd.map(shot), paper: pp.map(shot),
         pressed: btn ? btn.getAttribute('aria-pressed') : null,
-        ringBg: ring ? getComputedStyle(ring).backgroundColor : null,
+        tickBg: ts ? ts.backgroundColor : null,
+        tickInk: ts ? ts.color : null,
+        /* A RECT IS NOT A PAINTED PIXEL — the check has to be drawn, not sized. */
+        tickSvg: sr ? { w: Math.round(sr.width), h: Math.round(sr.height) } : null,
         btnColour: btn ? getComputedStyle(btn).color : null };
     }, undefined, { reading: [], paper: [] });
 
@@ -274,9 +312,16 @@ const drive = async (page, fn, arg, fallback) => {
     check('4f both columns wear the SAME amber',
       lit.paper.length > 0 && lit.reading.length > 0 && lit.paper[0].bg === lit.reading[0].bg,
       `${(lit.paper[0] || {}).bg} vs ${(lit.reading[0] || {}).bg}`);
-    check('4g the switch says it is on, and the ring fills',
-      lit.pressed === 'true' && /rgb/.test(String(lit.ringBg)) && lit.ringBg !== 'rgba(0, 0, 0, 0)',
-      `${lit.pressed} · ring ${lit.ringBg} · ink ${lit.btnColour}`);
+    /* RE-POINTED with 1c: the ring became a tick-box, so the signal that is
+       not a colour is the CHECK appearing, not a disc filling. */
+    check('4g the switch says it is on, the box fills and the check appears',
+      lit.pressed === 'true' && /rgb/.test(String(lit.tickBg))
+        && lit.tickBg !== 'rgba(0, 0, 0, 0)'
+        && !!lit.tickInk && lit.tickInk !== 'rgba(0, 0, 0, 0)'
+        && !!lit.tickSvg && lit.tickSvg.w > 0 && lit.tickSvg.h > 0,
+      `${lit.pressed} · box ${lit.tickBg} · check ${lit.tickInk}`
+        + ` ${lit.tickSvg ? lit.tickSvg.w + 'x' + lit.tickSvg.h : 'not drawn'}`
+        + ` · word ${lit.btnColour}`);
     await page.screenshot({ path: path.join(OUT, '02-marks-on.png') });
 
     /* ═══════════ 5 · AND THE CONTRACT HAS NOT MOVED ═══════════ */
@@ -395,6 +440,68 @@ const drive = async (page, fn, arg, fallback) => {
       backOn.paper >= 1 && back.paper === 0,
       `${backOn.paper} were on → ${back.paper} left behind`);
 
+    /* ═══════════ 9c · THE TWO SHEETS START AT ONE HEIGHT ═══════════
+       Young reported it 19 Sep 2026, ringing the gap across both columns:
+       *"the top edge of the contract pages do not start from the same point.
+       They should be the same distance between top the edge and the
+       contracts."* MEASURED against the grid's own top, which is the one
+       origin both columns share. */
+    await drive(page, () => { const b = document.querySelector('[data-doc-read="1"]'); if (b) b.click(); }, undefined, null);
+    await pause(1100);
+    const edges = await drive(page, () => {
+      const g = document.getElementById('doc-grid');
+      const sheet = document.querySelector('#doc-zoom .blueprint');
+      const card = document.getElementById('doc-read');
+      if (!g || !sheet || !card) return { err: 'not drawn' };
+      const gt = g.getBoundingClientRect().top;
+      const top = el => Math.round(el.getBoundingClientRect().top - gt);
+      const notes = Array.from(document.querySelectorAll('.doc-read-note'))
+        .map(n => Math.round(n.getBoundingClientRect().top - gt));
+      /* THE PAIRING IS THE COLUMN'S WHOLE PROMISE, so the control measures a
+         note against ITS OWN clause, found by the heading they share — not
+         against whatever block happens to be first on the sheet, which is the
+         front matter and has a MIRROR beside it, not a note. */
+      /* LETTERS ONLY: the note prints its number in its own <span> so its
+         textContent reads "7.Payment" where the sheet reads "7. Payment", and
+         a whitespace fold alone would pair nothing. */
+      const fold = t => String(t || '').toLowerCase().replace(/[^a-z]+/g, '');
+      const heads = Array.from(sheet.querySelectorAll('h1,h2,h3,h4,strong'));
+      const pairs = [];
+      for (const n of document.querySelectorAll('.doc-read-note')) {
+        const h = n.querySelector('h3,h4');
+        if (!h) continue;
+        const want = fold(h.textContent);
+        const on = heads.find(x => fold(x.textContent) === want);
+        if (on) pairs.push({ note: top(n), clause: top(on), head: want.slice(0, 30) });
+      }
+      return { sheet: top(sheet), card: top(card), notes, pairs,
+        pad: getComputedStyle(document.getElementById('doc-scroll')).paddingTop,
+        inline: card.getAttribute('style') || '' };
+    }, undefined, { err: 'blocked' });
+    check('9c the cream sheet and the reading card start at the same height',
+      !edges.err && edges.sheet === edges.card,
+      edges.err || `sheet ${edges.sheet} · card ${edges.card}`);
+    check('9c2 and it is the paper the card matched, not the other way round',
+      !edges.err && edges.sheet > 0 && edges.pad === `${edges.sheet}px`,
+      edges.err || `sheet at ${edges.sheet}, #doc-scroll padding-top ${edges.pad}`);
+    check('9c3 it reads the SAME TOKEN that padding reads, never a literal',
+      !edges.err && /inset:\s*var\(--s-1\)/.test(edges.inline),
+      edges.err || String(edges.inline).slice(0, 90));
+    /* LEVEL, OR STEPPED DOWN — never above. That is the column's own rule:
+       an entry sits level with its clause and steps DOWN rather than
+       overlapping where the reading above it ran past its own clause. So the
+       control is that no reading has risen above the clause it explains and
+       the FIRST one, which nothing can push, is exact. A card moved down by
+       four pixels with the notes left where they were would break both. */
+    check('9c4 CONTROL — every reading is still level with its clause, or below it',
+      !edges.err && edges.pairs.length >= 3
+        && edges.pairs.every(p => p.note >= p.clause - 2)
+        && Math.abs(edges.pairs[0].note - edges.pairs[0].clause) <= 2,
+      edges.err || (edges.pairs.length
+        ? edges.pairs.map(p => `${p.head}: note ${p.note} / clause ${p.clause}`).join(' | ')
+        : 'no note paired to a clause'));
+    await page.screenshot({ path: path.join(OUT, '05-level-tops.png') });
+
     /* ═══════════ 10 · AND IT READS IN THE DARK ═══════════
        The mark sits on the contract's own paper and inherits the paper's ink,
        so the wash has to work over whichever ground the theme paints. The dark
@@ -420,6 +527,22 @@ const drive = async (page, fn, arg, fallback) => {
     check('10b and it takes the paper\'s own ink, never a second one',
       !dark.err && dark.ink === dark.paperInk,
       dark.err || `${dark.ink} vs ${dark.paperInk}`);
+    /* THE TICK-BOX TOO: its fill is --st-amber-dot, the one token that is the
+       SAME colour in both themes, and its check is a literal chosen for that
+       reason — so it has to read here without a dark answer of its own. */
+    const darkTick = await drive(page, () => {
+      const t = document.querySelector('[data-doc-read-duty] .dr-tick');
+      if (!t) return { err: 'not drawn' };
+      const cs = getComputedStyle(t), r = t.getBoundingClientRect();
+      const hit = document.elementFromPoint(Math.round(r.x + r.width / 2),
+        Math.round(r.y + r.height / 2));
+      return { bg: cs.backgroundColor, ink: cs.color,
+        hit: !!hit && !!hit.closest && !!hit.closest('.dr-tick') };
+    }, undefined, { err: 'blocked' });
+    check('10c the tick-box reads in the dark too, with no second answer',
+      !darkTick.err && darkTick.bg === 'rgb(245, 158, 11)'
+        && darkTick.ink === 'rgb(42, 27, 4)' && darkTick.hit === true,
+      darkTick.err || `${darkTick.bg} / ${darkTick.ink} · hit ${darkTick.hit}`);
     await page.screenshot({ path: path.join(OUT, '04-dark.png') });
     await drive(page, () => { setDark(false); }, undefined, null);
 

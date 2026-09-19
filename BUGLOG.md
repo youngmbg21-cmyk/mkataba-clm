@@ -16786,3 +16786,73 @@ Started from the latest main (8cc14ca), which had moved since the morning.
   itself (`rec.cells[0].x === rec.cells[0].x`) and is still the ONE
   `npm run lint` error in the tree. Pre-existing at 8cc14ca, and reported on
   the morning of 19 Sep as well.
+
+## 19 Sep 2026 (night) — CAPITALS, A TICK-BOX, AND TWO SHEETS AT ONE HEIGHT
+
+Young, off a screenshot of the Document tab: *"Make Highlight obligations to
+be in Capital letters but Not [bold]. And instead of having a Circle to
+[select], make it a Square and [select] with a checkmark."* Then, ringing the
+gap across both columns: *"the top edge of the contract pages do not start
+from the same point. They should be the same distance between top the edge and
+the contracts."*
+
+Started from the latest main (33536a7).
+
+### What was built
+
+- The switch opts out of ONE of the head row's four declarations now (the
+  weight) instead of all four, so it is the same label as PLAIN ENGLISH beside
+  it in body weight. A relation, not three typed numbers.
+- `.dr-tick` replaces `.dr-ring`: 12px square at `--radius`, holding the
+  product's own `#i-check`, transparent at rest and inked when pressed. The
+  symbol is in the markup at both states, so a press moves nothing.
+- `#doc-read` reads `inset:var(--s-1) 0 0` instead of `inset:0`, which is the
+  same token `#doc-scroll` pads with. Measured against the grid's own top:
+  sheet 4, card 0 before; 4 and 4 after.
+
+### What was found on the way
+
+- THE CAPITALS DID NOT INHERIT. The compiled Tailwind preflight sets
+  `text-transform` to none on every BUTTON, and inheritance loses to any
+  matching declaration, so the head's uppercase never reached the switch. The
+  source read perfectly and the browser drew sentence case. Third costume of
+  that fault in this tree. Named with `inherit`, not the word, so the switch
+  and the label cannot drift.
+- A NOTE THAT QUOTES A RULE MAY NOT SIT INSIDE THE BRACES. Written inside the
+  declaration block, its closing brace cut the rule in half for every net that
+  slices one rule out of the sheet — measured, f339 read the rule as four
+  declarations instead of eleven. It also put `--dr-face` inside
+  `.doc-read-head`'s region and failed f277 (18), whose sweep reads CODE.
+  That sweep strips comments now; the note moved above the braces.
+- THE CARD COMES DOWN TO THE PAPER, NOT THE OTHER WAY. Refusal 3 is then
+  satisfied by construction rather than by measurement, and the readings do
+  not move at all: docReadPaint measures each note against the CLIP's top, so
+  a clip 4px lower yields tops 4px smaller and the same screen position.
+  Verified — the pairing is unchanged.
+- The first control written for that pairing asserted every reading is within
+  2px of its clause. It is not: an entry sits level with its clause and STEPS
+  DOWN where the reading above it ran past its own clause, which is the
+  column's own documented rule. The control asserts no reading has risen ABOVE
+  its clause and the first one, which nothing can push, is exact.
+
+### Tests
+
+- f339 — six claims re-pointed and added, all six red at the parent; 50/50 here.
+- duty-marks-verify — 41 checks, 7 red at the parent. It prints
+  `switch 12px/400 normal none` against the label's `11px/700 0.99px
+  uppercase`, `no .dr-tick · a .dr-ring is still drawn`, and `sheet 4 · card 0`.
+- f277 (18)'s caption sweep re-pointed in place and still a WALL at the parent.
+
+### Noticed, not fixed
+
+- `test/chromium/overview-as-drawn-verify.js:145` still compares a value to
+  itself and is still the ONE `npm run lint` error in the tree. Pre-existing at
+  33536a7, and reported twice on 19 Sep already.
+
+### Touched outside the request, and put back
+
+- The probe for the two sheet tops was written to `test/chromium/_edge.js`,
+  which is a TRACKED file from 6117c50 holding a glyph-quality measurement.
+  It was overwritten and then deleted. Restored from HEAD, byte for byte;
+  nothing else in that file changed. A scratch probe belongs in the scratchpad
+  and is run from inside the repo by copying it in under a name nothing owns.

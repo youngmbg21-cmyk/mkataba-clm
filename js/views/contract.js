@@ -8584,7 +8584,24 @@ function renderWorkspace(){
              able to fall out of step with the track's width. It is empty and
              hidden until somebody presses Plain English; docReadPaint fills it,
              and wireDocCanvas puts it back after every re-render of the sheet. */}
-      <div id="doc-read" hidden style="grid-column:2;grid-row:1;position:absolute;inset:0;overflow:hidden"></div>
+      ${''/* ---- THE TWO SHEETS START AT ONE HEIGHT (Young reported it 19 Sep
+           2026, ringing the gap: "the top edge of the contract pages do not
+           start from the same point. They should be the same distance between
+           top the edge and the contracts.") ----
+           MEASURED against the grid's own top: the cream sheet's edge at 4 and
+           this card's at 0. The 4 is #doc-scroll's own `padding-top:var(--s-1)`
+           — the air the paper has always had above it — and this card is
+           absolutely positioned on the grid and knew nothing about it.
+           THE CARD COMES DOWN TO THE PAPER, NEVER THE PAPER UP TO THE CARD:
+           refusal 3 is satisfied by construction rather than by measurement,
+           the contract does not move by a pixel, and matching the paper is
+           this column's whole job — it already measures its size, its face and
+           every note's top off the sheet.
+           AND IT READS THE SAME TOKEN THE PADDING READS, never a literal 4, so
+           the two cannot drift. The readings do not move with it: docReadPaint
+           measures each note against the CLIP's own top, so a clip 4px lower
+           yields tops 4px smaller and the same screen position. */}
+    <div id="doc-read" hidden style="grid-column:2;grid-row:1;position:absolute;inset:var(--s-1) 0 0;overflow:hidden"></div>
 
       <!-- Divider: drag right to widen the contract (default → +25%), never narrower. Double-click resets. -->
       <div id="doc-resizer" title="${i18t('ct_drag_width')}" style="position:absolute;top:0;bottom:0;left:0;width:14px;z-index:6;cursor:col-resize;display:flex;align-items:center;justify-content:center;touch-action:none" onmouseover="this.firstElementChild.style.background='var(--color-accent)'" onmouseout="if(!this.dataset.drag)this.firstElementChild.style.background='var(--color-neutral-300)'">
@@ -9675,7 +9692,7 @@ function docReadPaint(c){
            at all, which is this product's rule for a verb that cannot work. */}
     <div class="doc-read-head"><span class="doc-read-lbl" title="${esc(i18t('ct_read_cap'))}">${
       esc(i18t('ct_read_plain'))}</span>${dutyN?`<button type="button" class="doc-read-duty" data-doc-read-duty
-      aria-pressed="${dutyOn}" title="${esc(i18t('ct_duty_title'))}"><span class="dr-ring" aria-hidden="true"></span>${
+      aria-pressed="${dutyOn}" title="${esc(i18t('ct_duty_title'))}"><span class="dr-tick" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="#i-check"/></svg></span>${
       esc(i18tn('ct_duty_switch',dutyN,{n:dutyN}))}</button>`:''}${
       moved?`<span class="doc-read-moved">${esc(i18tn('ct_read_moved',moved,{n:moved}))} <button type="button" class="ui-btn-plain" data-doc-read-again>${esc(i18t('ct_read_again'))}</button></span>`:''}</div>
     <div class="doc-read-clip"><div id="doc-read-inner">${front.map((f,i)=>
