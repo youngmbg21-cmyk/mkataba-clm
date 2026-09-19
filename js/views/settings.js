@@ -782,6 +782,11 @@ const stNewPaperOn=u=>(typeof mayMakeNewPaper==='function')
 /* The re-filing grant, read the same way and for the same reason. */
 const stReFileOn=u=>(typeof mayReFile==='function')
   ? mayReFile(u) : (u.role==='admin'||u.reFile===true);
+/* THE EIGHTH GRANT'S READING, asked through the one predicate exactly as its
+   two neighbours are, with the same literal fallback for a stage that has not
+   loaded js/core.js. */
+const stHoldOn=u=>(typeof mayHoldContract==='function')
+  ? mayHoldContract(u) : (u.role==='admin'||u.holdContracts===true);
 /* WHAT IS MISSING, AS A LIST OF WORDS — the same list the drawer refuses with
    and the same list the chip counts. One reading, three readers. */
 function stPersonMissing(u){
@@ -1144,6 +1149,20 @@ function settingsPersonDrawer(idOrNew){
         <input id="tm-refile" type="checkbox" ${stReFileOn(u)?'checked':''}/>
         <span><span class="st-role-name">${esc(stReFileOn(u)?i18t('st_refile_on'):i18t('st_refile_off'))}</span>
         <span class="st-note">${esc(i18t('st_refile_note'))}</span></span>
+      </label>`):''}
+      ${/* ---- AND WHO MAY FREEZE A CONTRACT FOR A DISPUTE (19 Sep 2026) ----
+             The eighth grant and the third in this block. The owner asked for
+             "Legal/Admin only" and was shown that HaTi's `legal` role IS the
+             Editor — so that rule would have changed nothing — and chose the
+             tick instead: a dispute is handled by one or two NAMED people. Off
+             by default, so the deploy NARROWS the act. */''}
+      ${(!isNew && isAdmin() && !isMe && API_MODE() && u.role!=='viewer')?(
+        u.role==='admin'
+        ? `<p class="st-note" style="margin-top:10px">${esc(i18t('st_hold_admin'))}</p>`
+        : `<label class="st-toggle" style="margin-top:10px">
+        <input id="tm-hold" type="checkbox" ${stHoldOn(u)?'checked':''}/>
+        <span><span class="st-role-name">${esc(stHoldOn(u)?i18t('st_hold_on'):i18t('st_hold_off'))}</span>
+        <span class="st-note">${esc(i18t('st_hold_note'))}</span></span>
       </label>`):''}`)}
 
     ${sec(3,i18t('st_sec_folders'),
@@ -1334,6 +1353,9 @@ async function settingsSavePerson(existing){
   const reFileBox=document.getElementById('tm-refile');
   const reFileTo = reFileBox ? !!reFileBox.checked : null;
   const reFileChanged = reFileTo!==null && reFileTo!==stReFileOn(target);
+  const holdBox=document.getElementById('tm-hold');
+  const holdTo = holdBox ? !!holdBox.checked : null;
+  const holdChanged = holdTo!==null && holdTo!==stHoldOn(target);
   if(valuesChanged && valuesTo===false){
     const ok=await confirmDialog({ title:`Hide contract values from ${target.name}?`,
       message:'They will stop seeing amounts on the register, on a contract, in exports, in the dashboard metrics and in anything they ask the Copilot. They keep their folder access and everything else. You can turn this back on at any time.',
@@ -1347,6 +1369,7 @@ async function settingsSavePerson(existing){
     if(valuesChanged) patch.canViewValues=valuesTo;
     if(paperChanged) patch.newPaper=paperTo;
     if(reFileChanged) patch.reFile=reFileTo;
+    if(holdChanged) patch.holdContracts=holdTo;
     const capNow=(typeof signCapOf==='function')?signCapOf(target):{answered:false,limit:null};
     const capWas=capNow.answered?(capNow.limit==null?'none':capNow.limit):null;
     if(cap!==undefined && cap!==capWas) patch.signCap=cap;
@@ -1363,6 +1386,7 @@ async function settingsSavePerson(existing){
     if(patch.canViewValues!==undefined) body.canViewValues=patch.canViewValues;
     if(patch.newPaper!==undefined) body.newPaper=patch.newPaper;
     if(patch.reFile!==undefined) body.reFile=patch.reFile;
+    if(patch.holdContracts!==undefined) body.holdContracts=patch.holdContracts;
     if(patch.signCap!==undefined) body.signCap=patch.signCap;
     if(patch.reviewChecked!==undefined) body.reviewChecked=patch.reviewChecked;
     if(patch.reviewerId!==undefined) body.reviewerId=patch.reviewerId;
@@ -1376,6 +1400,7 @@ async function settingsSavePerson(existing){
     if(valuesChanged) target.canViewValues=valuesTo;
     if(paperChanged) target.newPaper=paperTo;
     if(reFileChanged) target.reFile=reFileTo;
+    if(holdChanged) target.holdContracts=holdTo;
     if(patch.signCap!==undefined) target.signCap=patch.signCap;
     if(patch.reviewChecked!==undefined) target.reviewChecked=patch.reviewChecked;
     if(patch.reviewerId!==undefined) target.reviewerId=patch.reviewerId;

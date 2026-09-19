@@ -316,7 +316,13 @@ describe('f332 (7) re-filing can be delegated, and is off by default', () => {
   test('7a the grant is a column, an admin-only field, and one server reading', () => {
     assert.match(SRV, /addColumnIfMissing\('users', 're_file', 'INTEGER NOT NULL DEFAULT 0'\)/,
       'DEFAULT 0 — the deploy changes nothing for anyone');
-    assert.match(SRV, /'twoStep', 'newPaper', 'reFile'\]/, 'stripped from a colleague\'s copy');
+    /* RE-POINTED IN PLACE (19 Sep 2026): this pinned the END of the list —
+       `'reFile']` — which held only while re-filing was the last grant added.
+       The eighth grant (holdContracts) appended after it and this went red
+       without anything being wrong. PIN THE RELATION, NOT A BOUNDARY THAT
+       HAPPENS TO HOLD: what matters is that `reFile` is ON that list. */
+    assert.match(SRV, /ADMIN_ONLY_USER_FIELDS = \[[^\]]*'reFile'[^\]]*\]/,
+      'stripped from a colleague\'s copy');
     assert.match(SRV, /const mayReFileRow = u => !!u && \(u\.role === 'admin' \|\| Number\(u\.re_file \|\| 0\) !== 0\)/);
   });
 

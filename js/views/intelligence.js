@@ -1687,7 +1687,17 @@ function renderIntel(){
          it is trimmed with a "…" or not shown. Friction has no caption. -->
     <header style="flex:none;display:flex;align-items:center;gap:0 14px;padding:0 var(--s-4);background:var(--color-surface);border-bottom:1px solid var(--color-divider)">
       ${tabsHtml}
-      ${intel.tab==='map'?`<span class="ig-hd-sub" style="font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;min-width:0">${state.contracts.length.toLocaleString(jxLocale())} contracts · ask the panel to read, summarise, quote or flag risky clauses</span>`:''}
+      ${''/* ════ THE MAP'S CAPTION IS GONE (Young ruled it 19 Sep 2026) ════
+             "Remove this highlighted wording." It was a page explaining itself
+             under its own title, which is the one thing this product's own
+             standing rule forbids everywhere else — and it was hard-coded
+             English, so it read the same in Svenska. The panel beside it says
+             what it can do; the map shows the contracts.
+             WHAT GOES WITH IT, said out loud: the total count was on that line
+             and nowhere else on the screen (the legend counts each cluster,
+             not the book). The owner was offered the count on its own and took
+             the whole line. `.ig-hd-sub`'s under-899px rule in index.html goes
+             with it. */}
       <span style="flex:1"></span>
       ${intel.tab==='friction'?frictionControls:''}
       ${intel.tab==='map'?`<label style="display:flex;align-items:center;gap:var(--s-2);font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);flex:none">Group by

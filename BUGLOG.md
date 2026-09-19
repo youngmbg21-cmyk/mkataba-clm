@@ -16465,3 +16465,76 @@ Noticed, not fixed:
   harness throws on an undefined read. None of them is this work's.
 - npm run lint: 3 errors, unchanged before and after (js/views/register.js
   twice, test/chromium/overview-as-drawn-verify.js once).
+## 19 Sep 2026 — THIRTEEN REPORTS OFF A MORNING OF SCREENSHOTS
+
+Young sent thirteen reports across a morning, each with a screenshot. Every one
+was measured against the live product before a line moved. Four were INVISIBLE
+IN THE SOURCE and only a rendered page could show them.
+
+1. **The On hold filter had no options in it.** Every other filter on that bar
+   ends with the step that turns its pairs into `<option>` markup; this one was
+   pasted in without it, so the raw array was interpolated as bare text, the
+   browser discarded it, and the control drew with ZERO options — minimum
+   width, unswitchable. Nothing errored: an empty select is legal markup.
+   **AND A SECOND FAULT UNDER THE SAME REPORT**: the filter block narrowed a
+   `rows` that exists nowhere in that function, so every press threw a
+   ReferenceError inside a READING and nothing was narrowed. THE LINT SWEEP HAD
+   IT ALL ALONG — the only two errors in js/ — and they were read as
+   pre-existing noise. js/ is at 0 errors for the first time.
+2. **The send screen flashed a second heading.** The step-2 head was written
+   VISIBLE and folded by the wiring, which runs after three awaits. The kind
+   step eight lines above already carries the note: "a step drawn open and then
+   folded by the wiring is exactly the flash the owner saw." Same fault, second
+   costume. MEASURED at the parent: 90px on the opening frame, 0 after.
+3. The Contract Graph's caption removed — a page explaining itself under its
+   own title, and hard-coded English at that.
+4. Review vs Playbook off the More menu; Prepare redlines STAYS by the owner's
+   word. Said out loud: the pick-which-proposals window went with it.
+5. The Internal / Counterparty switch takes the Contract View switch's accent
+   outline and ink. The clause panel's History and notes switch moves with it —
+   they share one rule on purpose and f236 pins the pair.
+6. **"Fill it in" errored every time.** Written when that tab drew every term
+   as a live box; the Overview (17 Sep) rests as a read-only grid with The
+   record SHUT, and a shut section draws no body at all. THREE further faults
+   found only by driving it: roomGoTab is a no-op when already on the tab, so
+   nothing repainted; a Key terms row shows its read-out at rest and opens its
+   control only on a press; and the row you came FROM repaints the panel 120ms
+   later and took the caret straight back out. Fixed with the panel's own
+   _ktFolderBusy idiom. It honours the field it is handed now, too — every row
+   used to land on the counterparty box.
+7. A finger scrolls the Plain English column. The 15 Sep fix forwarded the
+   WHEEL; a touchscreen fires none, and the layer is a clip whose scroller is
+   its SIBLING, so a drag moved nothing, silently.
+8. Put on hold is on the Contracts row menu, the reason prints on the row, and
+   it is the EIGHTH per-person grant. The owner asked for "Legal/Admin only",
+   was shown that HaTi's legal role IS the Editor (so that rule would have
+   changed nothing), and chose the tick.
+9. Fifteen words on the Before-you-sign rows, whole sentence on the hover.
+   There was no cap at all — the negotiation row ran to 35 words and grew with
+   the clause list. The standards row's double full stop went too.
+10. "Key terms" renamed to Overview in seven sentences, both books. The phone
+    keeps its own tab word, deliberately.
+11. One mark, one meaning: scan was doing Focus mode AND the risk scan. The
+    whole reading family moved to a new readpaper mark together — a badge that
+    no longer matches the button that produced it is the fault this change
+    exists to remove. Focus mode is a button on both heads now, and the menu
+    row stays (the owner's choice), one handler answering both.
+12. Plain English marks its figures (the brief's own deterministic pass, no
+    model, no spend) and ambers a clause the playbook disagrees with or the
+    scan flagged. Red and green deliberately absent, owner-ruled.
+13. The templates pop-up gets a head rule and its category and stream chips —
+    and a menu that would offer ONE row now just runs it.
+
+Tests: f335 (67 claims, 53 red at the parent), thirteen-screenshots-verify (20
+checks in a real browser, 13 red). f311 and f176 re-pointed in place — f311's
+"hands the contract, NOT the field name" was a deliberate narrowing from 13 Sep
+and it was wrong; the screenshot is the proof.
+
+### Noticed, not fixed
+- applyWsFocus relabels the More-menu row with hard-coded English ("Exit focus
+  mode" / "Focus mode") rather than through the dictionary, so that one row is
+  English in Svenska.
+- wsNextAction's guide sentences are hard-coded English throughout and the
+  phone's action bar prints them.
+- The templates page's other dialogs (convert, create, save-as, details) still
+  draw a plain head with no rule; only the row menu was in scope.

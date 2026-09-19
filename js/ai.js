@@ -355,7 +355,7 @@ function renderScanSection(c){
   let body;
   if(scanUI.running){
     body = `<div class="flex items-center gap-2.5 rounded-lg bg-brand-50 border border-brand-100 px-3 py-2.5 text-xs text-brand-700">
-      <span class="scan-pulse text-brand-500">${icon('scan','w-4 h-4')}</span>
+      <span class="scan-pulse text-brand-500">${icon('readpaper','w-4 h-4')}</span>
       <span>Checking clauses against ${jxAdjective()} practice rules\u2026</span></div>`;
   } else if(!c.scan){
     /* ---- NOTHING TO SHOW UNTIL SOMETHING HAS BEEN RUN ----
@@ -413,7 +413,7 @@ function renderScanSection(c){
   host.innerHTML = `
     <div class="px-5 py-4">
       <div class="flex items-center gap-2 mb-3">
-        <span class="text-gold-500">${icon('scan')}</span>
+        <span class="text-gold-500">${icon('readpaper')}</span>
         <h3 class="text-sm font-display font-600 text-brand-900">${aiOn?'Copilot Contract Scan':'Contract Scan'}</h3>
         <span title="${aiOn?'A Claude key is configured — checks run with Copilot-assisted interpretation.':'No Copilot key — checks run on built-in rules. Add a key in Team & Settings for Copilot-assisted review.'}" class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${aiOn?'bg-emerald-50 text-emerald-700 border-emerald-200':'bg-brand-50 text-brand-800/60 border-brand-200'}">${aiOn?'✦ Claude':'Rule-based'}</span>
         ${(!scanUI.running && c.scan) ? `<span class="ml-auto inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-medium ${open.length?SEV_META[worst].chip:'bg-brand-50 text-brand-700 border-brand-200'}">${open.length?i18tn('scan_open',open.length,{n:open.length}):i18t('scan_all_clear')}</span>` : ''}

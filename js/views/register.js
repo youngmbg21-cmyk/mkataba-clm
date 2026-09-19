@@ -230,7 +230,7 @@ function folderRowsHtml(cs){
   const sel=state.folderSel||{};
   return cs.slice(0,shown).map((c,i)=>{
     const o=(window.openFindings?openFindings(c):[])||[];
-    const scan=o.length?`<span class="badge" style="margin-left:6px;background:var(--st-ruby-bg);color:var(--st-ruby-fg)" title="${i18t('reg_open_findings')}">${icon('scan','w-2.5 h-2.5')}${o.length}</span>`:'';
+    const scan=o.length?`<span class="badge" style="margin-left:6px;background:var(--st-ruby-bg);color:var(--st-ruby-fg)" title="${i18t('reg_open_findings')}">${icon('readpaper','w-2.5 h-2.5')}${o.length}</span>`:'';
     return `
     <tr data-open="${c.id}" style="cursor:pointer;animation-delay:${Math.min(i,14)*22}ms">
       <td style="padding-left:var(--s-3)" onclick="event.stopPropagation()"><input type="checkbox" data-fsel="${c.id}" ${sel[c.id]?'checked':''} style="accent-color:var(--color-accent)"></td>
@@ -1040,9 +1040,19 @@ function regFiltered(){
      answer rather than a fold. Behind a typeof guard, the ES-module rule: on a
      stage without js/obligations.js this narrows nothing rather than emptying
      the register. */
+  /* ════ AND THE FILTER FILTERS (Young reported it 19 Sep 2026) ═══════════
+     "The on hold filter has a bug." TWO FAULTS UNDER ONE REPORT, and this is
+     the second: the list this function narrows is `cs`, and this block was
+     written against a `rows` that exists nowhere in it. Every press threw a
+     ReferenceError inside regFiltered, which is a READING — so nothing was
+     narrowed and the page went on drawing the whole book.
+     THE LINT SWEEP HAD IT ALL ALONG (`'rows' is not defined`, the only two
+     errors in js/) and it was read as pre-existing noise. It is the one check
+     that asks "is every name being called a name that exists", and it was
+     right. Driving the control is what turned two warnings into a defect. */
   if(R.hold&&R.hold!=='all'&&typeof contractOnHold==='function'){
     const want=R.hold==='on';
-    rows=rows.filter(c=>contractOnHold(c)===want);
+    cs=cs.filter(c=>contractOnHold(c)===want);
   }
   if(R.docs&&R.docs!=='all'&&typeof contractDocuments==='function'){
     cs=cs.filter(c=>{
@@ -1150,6 +1160,23 @@ const REG_ROW_ACTIONS=[
      level as re-filing between streams, and audited the same way */
   {k:'archive', ic:'folder',  get label(){ return i18t('reg_archive'); }, when:c=>!c.archived&&(typeof canEdit!=='function'||canEdit())},
   {k:'restore', ic:'history', get label(){ return i18t('reg_restore'); }, when:c=>!!c.archived&&(typeof canEdit!=='function'||canEdit())},
+  /* ════ AND THE HOLD, BESIDE ARCHIVE (Young reported it 19 Sep 2026) ═══════
+     "Image 2 shows there is still no option for putting a hold or freezing a
+     contract like it shows in the artifact image." He is right and the
+     drawing is unambiguous: the act belongs on THIS menu — the row you are
+     looking at when you hear about a dispute. It was built on the contract's
+     own ⋯ instead, which means opening the contract first.
+     THE TWO ARE OPPOSITES AND BELONG BESIDE EACH OTHER: one takes a contract
+     off every list, the other freezes it and leaves it on all of them.
+     Same act shape as Archive, and NOT a second door — `contractSetHold` is
+     the one act, pressed from here and from the contract's own menu, exactly
+     as `contractSetArchived` already is.
+     DRAWN ONLY WHERE IT WOULD WORK, which is this catalogue's own rule: the
+     per-person grant decides, the server's mayHoldRow is the wall. */
+  {k:'hold',    ic:'shield',  get label(){ return i18t('hd_hold'); },
+   when:c=>!contractOnHold(c)&&(typeof mayHoldContract!=='function'||mayHoldContract())},
+  {k:'release', ic:'history', get label(){ return i18t('hd_release'); },
+   when:c=>!!contractOnHold(c)&&(typeof mayHoldContract!=='function'||mayHoldContract())},
   // permanent delete — only offered while a contract is still a draft or in review
   {k:'delete', ic:'trash',     get label(){ return i18t('reg_delete_permanently'); }, ruby:true, when:c=>c.status==='Draft'||c.status==='Under Review'},
 ];
@@ -1527,6 +1554,19 @@ function wireRegRows(){
     else if(act==='archive'||act==='restore'){
       if(window.contractSetArchived) contractSetArchived(c,act==='archive').then(ok=>{ if(ok) regRepaint(); });
     }
+    /* THE REASON IS COMPULSORY, so the press asks for it before anything is
+       written — `contractSetHold` refuses an empty one, and a dialog is the
+       only honest way to collect it. Releasing needs none. Both go through the
+       one act; nothing here writes to the record. */
+    else if(act==='hold'||act==='release'){
+      if(!window.contractSetHold) return;
+      if(act==='release'){ contractSetHold(c,false,'').then(ok=>{ if(ok) regRepaint(); }); return; }
+      if(!window.promptDialog) return;
+      Promise.resolve(promptDialog({ title:i18t('hd_ask_title'), message:i18t('hd_ask_msg'),
+        placeholder:i18t('hd_ask_ph'), confirmLabel:i18t('hd_hold'), multiline:true }))
+        .then(why=>{ if(why==null) return;
+          contractSetHold(c,true,why).then(ok=>{ if(ok) regRepaint(); }); });
+    }
     else if(act==='delete') deleteContract(id).then(ok=>{ if(ok){
       /* The reader was three pages down when they pressed Delete; the row goes,
          the place stays. renderRegister() rebuilds the whole view and hard-resets
@@ -1639,10 +1679,21 @@ function renderRegister(opts){
      ladder typed out here — the graph lens already borrows them for the same
      reason. A fixed ladder, so unlike the Signed years there is nothing to
      strand: every option this control can hold is always on its list. */
-  /* FOUR STATES AND "NONE", read off obligationDocState's own answers so the
-     control cannot offer a state the reading does not give. */
   const holdActive=!!R.hold&&R.hold!=='all';
-  const holdOpts=[['all',i18t('reg_any')],['on',i18t('reg_f_hold_on')],['off',i18t('reg_f_hold_off')]];
+  /* ════ AND IT HAS TO BE OPTIONS, NOT A LIST (Young reported it 19 Sep 2026)
+     "The on hold filter has a bug and also pops up as a tiny drop down filter
+     with no width." ONE FAULT, BOTH HALVES. Every other filter on this bar
+     ends with the .map that turns its pairs into <option> markup; this one was
+     pasted in without it, so the raw array was interpolated into the <select>
+     as bare text, the browser discarded it, and the control drew with ZERO
+     options — which renders at its minimum width and can never be switched on.
+     Nothing errors: an empty select is legal markup. */
+  const holdOpts=[['all',i18t('reg_any')],['on',i18t('reg_f_hold_on')],['off',i18t('reg_f_hold_off')]]
+    .map(([k,l])=>`<option value="${k}" ${(R.hold||'all')===k?'selected':''}>${esc(String(l))}</option>`).join('');
+  /* FOUR STATES AND "NONE", read off obligationDocState's own answers so the
+     control cannot offer a state the reading does not give. (Moved back over
+     the code it describes: the hold pair was pasted in BETWEEN this note and
+     its own lines, which is how that pair came to lose its .map unnoticed.) */
   const docsActive=!!R.docs&&R.docs!=='all';
   const docsOpts=[['all',i18t('reg_any')],['lapsed',i18t('reg_docs_lapsed')],
                   ['missing',i18t('reg_docs_missing')],['soon',i18t('reg_docs_soon')],
@@ -2092,6 +2143,12 @@ function renderRegister(opts){
       .reg-f-l{font-size:var(--t-label);color:var(--color-neutral-600);margin-bottom:3px;white-space:nowrap}
       .reg-stg{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;font-weight:var(--w-body);vertical-align:middle}
       .reg-stg i{width:8px;height:8px;border-radius:50%;flex:none;background:currentColor}
+      /* THE REASON, IN THE ROW'S OWN SECONDARY INK (19 Sep 2026). It rides the
+         stage rather than taking a column, so it costs the table no width; the
+         cell already ellipsises, and holdWhyShort cuts it with the whole
+         reason on the hover. Not amber, not ruby: the stage word beside it is
+         already ruby and saying "stop" twice in one cell is shouting. */
+      .reg-stg-why{color:var(--color-neutral-600);font-weight:var(--w-body);min-width:0;overflow:hidden;text-overflow:ellipsis}
       .reg-th-sort:hover{color:var(--accent-ink-700)!important}
       .reg-th-sort:hover .reg-sort-idle{color:var(--accent-ink-700)}
       .reg-th-sort.active{color:var(--accent-ink)!important}

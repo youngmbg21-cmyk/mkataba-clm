@@ -1690,33 +1690,77 @@ function tplRowMoreMenu(ref){
   const sym=n=>`<svg class="tpl-m-i" viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><use href="#i-${n}"/></svg>`;
   const item=(id,ic,label,sub,n,danger)=>`<button id="${id}" type="button" title="${_tplEsc(sub||'')}"${danger?' style="color:var(--st-ruby-fg)"':''} class="tpl-m-row">
     ${sym(ic)}<b>${label}</b>${n==null?'':`<i>${n}</i>`}</button>`;
-  const rows=[];
-  if(lib) rows.push(item('tm-vers','clock',i18t('lib_m_versions'),i18t('lib_m_versions_sub')));
-  if(cp) rows.push(item('tm-vers-cp','clock',i18t('lib_m_versions'),i18t('lib_m_versions_sub'),templateVersions(cp).length+1));
-  if(cp) rows.push(item('tm-edit','edit',i18t('lib_m_edit'),i18t('lib_m_edit_sub')));
-  if(cp) rows.push(item('tm-blanks','file',templateFields(cp).length?i18t('lib_m_blanks'):i18t('lib_m_blanks_add'),i18t('lib_m_blanks_sub'),templateFields(cp).length||null));
-  if(lib) rows.push(item('tm-meta','edit',i18t('lib_m_rename'),i18t('lib_m_rename_sub')));
-  if(cp&&templateFields(cp).length) rows.push(item('tm-bulk','grid',i18t('lib_m_bulk'),i18t('lib_m_bulk_sub')));
-  if(built) rows.push(item('tm-bulk-b','grid',i18t('lib_m_bulk'),i18t('lib_m_bulk_sub')));
-  if(lib) rows.push(item('tm-shelf','import',i18t('lib_m_shelf'),i18t('lib_m_shelf_sub')));
+  /* ---- EVERY ROW'S ACT IS NAMED ONCE (19 Sep 2026) ----
+     The listeners below used to be the only statement of what a row does, so
+     the single-row shortcut further down would have needed a second copy of
+     each — and two statements of one act is how they drift. `ACT` names them,
+     the wiring presses them, and the shortcut runs the same function. */
+  const ACT={
+    'tm-vers':   ()=>{ closeModal(); openTemplateLibDetail(tid); },
+    'tm-meta':   ()=>{ closeModal(); openTemplateLibDetail(tid); },
+    'tm-shelf':  ()=>{ closeModal(); openTemplateLibDetail(tid); },
+    'tm-vers-cp':()=>{ closeModal(); openTemplateVersions(tid); },
+    'tm-edit':   ()=>{ closeModal(); openTemplateEditor(tid); },
+    'tm-blanks': ()=>{ closeModal(); openBlanksEditor(tid); },
+    'tm-bulk':   ()=>{ closeModal(); openBulkCreateModal(cp); },
+    'tm-bulk-b': ()=>{ closeModal();
+      if(!templateAllowedForRole(built.id,currentUser()?.role||'viewer')){ toast(i18t('lb_not_open_to_role'),'err'); return; }
+      openBulkCreateModal(built); },
+    'tm-del':    ()=>{ closeModal(); deleteTemplateGuarded(tid); },
+  };
+  const rows=[]; const ids=[];
+  const push=(id,html)=>{ rows.push(html); ids.push(id); };
+  if(lib) push('tm-vers',item('tm-vers','clock',i18t('lib_m_versions'),i18t('lib_m_versions_sub')));
+  if(cp) push('tm-vers-cp',item('tm-vers-cp','clock',i18t('lib_m_versions'),i18t('lib_m_versions_sub'),templateVersions(cp).length+1));
+  if(cp) push('tm-edit',item('tm-edit','edit',i18t('lib_m_edit'),i18t('lib_m_edit_sub')));
+  if(cp) push('tm-blanks',item('tm-blanks','file',templateFields(cp).length?i18t('lib_m_blanks'):i18t('lib_m_blanks_add'),i18t('lib_m_blanks_sub'),templateFields(cp).length||null));
+  if(lib) push('tm-meta',item('tm-meta','edit',i18t('lib_m_rename'),i18t('lib_m_rename_sub')));
+  if(cp&&templateFields(cp).length) push('tm-bulk',item('tm-bulk','grid',i18t('lib_m_bulk'),i18t('lib_m_bulk_sub')));
+  if(built) push('tm-bulk-b',item('tm-bulk-b','grid',i18t('lib_m_bulk'),i18t('lib_m_bulk_sub')));
+  if(lib) push('tm-shelf',item('tm-shelf','import',i18t('lib_m_shelf'),i18t('lib_m_shelf_sub')));
   const sep=`<div class="tpl-m-sep"></div>`;
-  if(cp) rows.push(sep+item('tm-del','bin',i18t('lib_m_delete'),i18t('lib_m_delete_sub'),null,1));
+  if(cp) push('tm-del',sep+item('tm-del','bin',i18t('lib_m_delete'),i18t('lib_m_delete_sub'),null,1));
+  const only=(rows.length===1)?ACT[ids[0]]:null;
+  /* ════ A POP-UP WITH ONE ROW IN IT IS A BUTTON WEARING A COSTUME ════════
+     (Young reported it 19 Sep 2026, off a built-in template's menu.) Every
+     other row here is drawn only where it can work — a built-in has no version
+     history of yours, no wording of yours to edit, no blanks and nothing to
+     delete — so on that kind exactly ONE survives, and the reader pays two
+     presses and a dialog to reach a single act.
+     So where the menu would offer one thing, it offers it. No dialog, no
+     Close, no second click: the row's own handler is run directly. The menu is
+     unchanged for every kind that really has a choice to make. */
+  if(rows.length===1 && only){ only(); return; }
+  /* ════ AND IT WEARS THE HOUSE STYLE (the same report) ═══════════════════
+     "Pop ups in the templates page are very bland. Add colouring or lines
+     inside them." The heading was a line of text over a list, on a white
+     ground, with nothing separating the two — while the send screen, the
+     Before-you-sign card and the settings drawers all give a dialog head a
+     rule under it and its subject a chip. This page never got that pass.
+     NOTHING NEW IS INVENTED: an accent rule under the head (the product's own
+     2px accent rule, the register's and the room's), and the template's
+     category and value stream as the SAME chips its card on the page behind
+     already wears — so the pop-up and the page it came from agree. */
+  const t=cp||lib||built||{};
+  const fold=(t.folder&&typeof FOLDERS!=='undefined')?FOLDERS[t.folder]:null;
+  let catName=''; try{ catName=(typeof tplCategoryName==='function')?tplCategoryName(t.category):''; }catch(_){}
+  /* THE STREAM CARRIES ITS OWN COLOUR — FOLDERS' `color` is this product's one
+     source of truth for it, the same value the card's edge stripe, the map and
+     the reports all read. The category is a filing fact and takes the neutral
+     steel tone, because giving it a colour of its own would put two competing
+     accents on one line. */
+  const chips=(catName?`<span class="tpl-m-chip">${_tplEsc(catName)}</span>`:'')
+    +(fold?`<span class="tpl-m-chip is-stream" style="--tpl-m-dot:${fold.color}">${_tplEsc(fold.name)}</span>`:'');
   openModal(`<div style="padding:var(--s-3) var(--s-2) var(--s-2)">
-    <div style="font-size:var(--t-body);font-weight:var(--w-title);padding:0 10px var(--s-2)">${_tplEsc(name)}</div>
+    <div class="tpl-m-head">
+      <div class="tpl-m-name">${_tplEsc(name)}</div>
+      ${chips?`<div class="tpl-m-chips">${chips}</div>`:''}
+    </div>
     <div class="tpl-m-list">${rows.join('')}</div>
     <div style="display:flex;justify-content:flex-end;padding:var(--s-2) 10px 0"><button id="tm-close" class="ui-btn" style="font-size:var(--t-meta)">${i18t('act_close')}</button></div>
   </div>`,{maxWidth:DLG_W.s});
   document.getElementById('tm-close')?.addEventListener('click',closeModal);
-  document.getElementById('tm-edit')?.addEventListener('click',()=>{ closeModal(); openTemplateEditor(tid); });
-  document.getElementById('tm-blanks')?.addEventListener('click',()=>{ closeModal(); openBlanksEditor(tid); });
-  document.getElementById('tm-bulk')?.addEventListener('click',()=>{ closeModal(); openBulkCreateModal(cp); });
-  document.getElementById('tm-bulk-b')?.addEventListener('click',()=>{ closeModal();
-    if(!templateAllowedForRole(built.id,currentUser()?.role||'viewer')){ toast(i18t('lb_not_open_to_role'),'err'); return; }
-    openBulkCreateModal(built); });
-  document.getElementById('tm-vers-cp')?.addEventListener('click',()=>{ closeModal(); openTemplateVersions(tid); });
-  document.getElementById('tm-del')?.addEventListener('click',()=>{ closeModal(); deleteTemplateGuarded(tid); });
-  ['tm-vers','tm-meta','tm-shelf'].forEach(id=>document.getElementById(id)?.addEventListener('click',()=>{
-    closeModal(); openTemplateLibDetail(tid); }));
+  ids.forEach(id=>document.getElementById(id)?.addEventListener('click',ACT[id]));
 }
 /* ════ ONE BUTTON, ONE QUESTION, FIVE ANSWERS (Young confirmed 18 Sep 2026) ══
    The page carried TWO buttons at the top — "Convert a document" and

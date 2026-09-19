@@ -9398,13 +9398,34 @@ function renderRedline(){
             data-rv-phase="${_nea(st.phase)}"${deadAttrs || ` title="${_nea(i18t('rv_head_title'))}"`}>&#128100;<span class="rl-word"> ${_ne(label)}</span></button>`;
         })() : ''}
   `;
-  /* The playbook pass's row, for the head's More menu — see the note where it
-     used to sit on the strip. Built here because this page owns its rules. */
   const mayMenu = !_rvPosture && (typeof canEdit !== 'function' || canEdit());
-  const menuRow = (mayMenu
-    ? `<button type="button" data-rl-pbreview${preview ? ' disabled aria-disabled="true" data-rl-dead="1"' : ''}
-        title="${_nea(preview ? i18t('ng_preview_dead') : i18t('ng_review_every_clause'))}"
-      ><span aria-hidden="true">&#10022;</span>${i18t('ng_review_vs_playbook')}</button>` : '')
+  /* ════ REVIEW VS PLAYBOOK IS OFF THIS MENU (Young ruled it 19 Sep 2026) ═══
+     "Delete these highlighted options from the more button." He named two; he
+     then ruled on the second (Prepare redlines STAYS — see the note on its own
+     row below, and the reason it has two doors).
+
+     THE READING KEEPS ITS DOOR TWELVE PIXELS AWAY: the shield in
+     `roomChecksHtml` runs the same `runPlaybookReview` and opens the same
+     verdicts panel. Two doors onto one reading, side by side, is exactly what
+     the one-door rule exists to stop.
+
+     WHAT DOES GO WITH IT, SAID OUT LOUD RATHER THAN ABSORBED: this row was the
+     only drawn `data-rl-pbreview`, so `rlOpenPlaybookReview` — the window that
+     runs the pass and then lets you TICK WHICH proposals to file — is now
+     unreachable. The act is not lost: `Prepare redlines`, two rows below and
+     staying by the owner's word, runs the same pipeline
+     (`runPlaybookReview` → `rlPlaybookProposals` → `rlFilePlaybookProposal`)
+     and files them after one confirm. What is lost is the choosing. Pointing
+     the shield at this window instead of the plain run would give it back
+     without a second door; the owner has been told and has not asked for it.
+     The handler and the two null-safe readers stay wired for that day.
+
+     `ng_review_vs_playbook` is STALE ON THE FACE, inert in both books — and it
+     carried its own &#10022; on top of the one this button drew, which is why
+     the row read "✦ ✦ Review vs Playbook" in the owner's screenshot. Retired
+     by not being called; f310 (2) is the sweep that fails on a call coming
+     back. */
+  const menuRow = ''
   /* ---- AND THE MEMO'S ROW, BESIDE IT (owner-asked 9 Sep 2026) ----
      menuRow is interpolated raw by roomHeadHtml, so a page that owns two rows
      passes two buttons. Same place for the same reason the playbook pass is

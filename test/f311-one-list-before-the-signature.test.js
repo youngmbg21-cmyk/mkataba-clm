@@ -244,7 +244,15 @@ describe('f311 (3) — every row is a door, and the button is the list', () => {
     const m = /function renderSignSide\(c\)\{[\s\S]*?\n\}/.exec(strip(CONTRACT));
     for (const d of ['data-sc-escalate', 'data-sc-take', 'data-sc-risk-read', 'data-sc-risk-dismiss', 'data-sc-signers', 'data-sc-fold'])
       assert.match(m[0], new RegExp(d), d);
-    assert.match(m[0], /focusKeyTerms\(c\)/, 'Fix on Key terms hands the contract, not the field name');
+    /* ---- REVERSED IN PLACE (Young reported it 19 Sep 2026) ----
+       This pinned "hands the contract, NOT the field name", a deliberate
+       narrowing from 13 Sep. It was wrong, and the screenshot is the proof:
+       every one of these rows landed on the counterparty box, so "Value is
+       blank" put the caret in the wrong field. The field rides the attribute
+       and always did. What the claim really guards is that the CONTRACT is
+       still the first argument — which it is — so it is pinned that way. */
+    assert.match(m[0], /focusKeyTerms\(c,\s*b\.getAttribute\('data-sc-fix'\)\)/,
+      'Fix on Key terms hands the contract FIRST and the field it was drawn for');
   });
 });
 

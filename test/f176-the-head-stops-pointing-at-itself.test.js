@@ -131,7 +131,11 @@ describe('F176 — the intent-to-sign step speaks without a button', () => {
        missing the day another door opens onto it. */
     assert.match(SRC, /kind==='terms'\)\{ focusKeyTerms\(c\); return; \}/,
       'the dispatch still answers for the kind wsNextAction still emits');
-    assert.match(SRC, /function focusKeyTerms\(c\)\{/, 'and the act is still there');
+    /* RE-POINTED IN PLACE (19 Sep 2026): the act gained an optional second
+       argument — the field to land on — so the signature is `(c, field)`. What
+       this claim is really holding is that the FUNCTION still exists and still
+       takes the contract first, which is what the dispatch above hands it. */
+    assert.match(SRC, /function focusKeyTerms\(c(,\s*\w+)?\)\{/, 'and the act is still there');
     assert.match(SRC, /focusKeyTerms,/, 'and still published');
   });
 

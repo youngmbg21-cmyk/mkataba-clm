@@ -551,7 +551,7 @@ function openMetaReview(meta, onConfirm, opts={}){
         <h3 class="font-serif font-600 text-lg text-ink">${i18t('me_review_extracted')}</h3>${pos}</div>
       <p class="text-xs text-ink/60 mb-4">${src}. <span class="text-amber font-600">${i18t('me_low_confidence')}</span> ${i18t('me_fields_highlighted')}</p>
       ${opts.ocrNotice?`<div style="display:flex;align-items:flex-start;gap:var(--s-2);border:1px solid var(--st-amber-line);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:var(--radius);padding:var(--s-2) 11px;font-size:var(--t-meta);line-height:1.55;margin:-8px 0 14px">
-        <span style="flex:none;margin-top:1px">${icon('scan','w-3.5 h-3.5')}</span>
+        <span style="flex:none;margin-top:1px">${icon('readpaper','w-3.5 h-3.5')}</span>
         <span>${String(opts.ocrNotice).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))} Every field below is capped at <b>medium</b> confidence until you confirm it.</span></div>`:''}
       <div class="grid grid-cols-2 gap-3" style="max-height:min(52vh,460px);overflow-y:auto;padding-right:var(--s-1)">${META_FIELDS.map(field).join('')}</div>
       <div class="flex justify-end gap-2 mt-5">
