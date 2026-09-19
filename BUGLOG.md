@@ -16705,3 +16705,84 @@ build all four."*
   run did not touch: 1f (a resting tab compared against Our standards), 7c
   (the wall's headings against the rail's captions), and 8a–8c plus the
   harness crash in the category/value-stream dialog section.
+
+## 19 Sep 2026 (evening) — THE WORDS THAT MAKE A PROMISE
+
+Young, of the amber shipped that afternoon: *"It is only highlighting a
+verticle line on the clause and i was asking to highlight only the absolute
+action guiding key words that make a clause an obligation."* Then, over a
+render of the two readings: *"Let's go with option 2 ... In the plain english
+contract has an area that says a reading not a contract. Turn that area to a
+trigger for turning on the amber highlighting."* And yes to all four decisions
+the render put to him.
+
+Started from the latest main (8cc14ca), which had moved since the morning.
+
+### What was wrong
+
+- The morning's amber was a fact about the CLAUSE — a gutter bar, the same
+  mark a playbook departure and a risk finding wear. The ask was about the
+  WORDS. Wrong twice over: once the words are lit, one colour would be saying
+  two things twelve pixels apart on one screen.
+
+### What was built
+
+- `DOC_DUTY_RE` — a duty MODAL followed by an ACTION VERB, borrowing
+  `heuristicObligations`' own five families and narrowing from the SENTENCE
+  that reader finds to the VERB PHRASE inside it. `will` and `may` absent by
+  name. "shall be governed", "shall be deemed", "shall survive", "shall have
+  the right to" all mark nothing.
+- `DOC_DUTY_STATE` — the two verbs `not` may not precede. MEASURED on the 50
+  real agreements in test/cuad: of the eight negated phrases the pass finds,
+  six are genuine negative covenants and the two commonest are LIMITATIONS —
+  "shall not be liable" (23 hits) and "shall not be responsible" (5). Lighting
+  those as promises would tell a reader the supplier has undertaken something
+  the clause says they have not. Rate on that corpus: 10.2% of sentences, 135
+  distinct phrases.
+- The caption slot is the switch: `.doc-read-duty` takes the `<em>`'s exact
+  place and register, "a reading, not the contract" moves to the `title` on
+  the label, the count is on the face, at zero nothing is drawn, off at rest,
+  remembered in this browser under its own `hati.v1` key.
+- Both columns light: the reading's own span, and spans painted into TEXT
+  NODES on the drafter's page (`signSpotsPaint`'s precedent and lifetime).
+  Never crosses an element boundary, never writes into a box the reader types
+  in, `textContent` and never `innerHTML`, taken off again on the way out.
+- The obligations source is gone from `docReadFlags`; `ct_read_watch_oblig` is
+  STALE, inert in both books.
+
+### What was found on the way
+
+- The figures pass (`briefMark`) escapes AND marks, so the duty pass runs over
+  HTML. Two walls rather than one: no pattern contains a digit, bracket or
+  angle bracket (a letters-and-spaces pattern stops dead at a `<`), and the
+  replacer refuses any match carrying `<`, `>` or `&`. Driven both ways.
+- The browser stage first drew 2 blocks instead of ten: `docBodyHtml` lifts a
+  TEXT body through `docRichFromText`, so markup stored without `format:'rich'`
+  arrives as one escaped block. Found by probing, not by reading.
+- Six claims in the new browser file would have passed on a page where nothing
+  was marked ("nothing moved", "the limitation is never lit"). All six are
+  GATED on the marks having gone on — the vacuous green this codebase has been
+  caught by four times.
+- MEASURED on HaTi's own seeded template paper (MK-A2, 13 clauses): only TWO
+  duty phrases, "shall supply" and "shall keep". The built-in templates are
+  largely written in the passive and descriptive voice ("invoices fall due
+  within 30 days", "may be rejected"), so the count on the switch will be small
+  on our own paper and much larger on received paper. Honest either way, and
+  worth the owner knowing.
+
+### Tests
+
+- f339 — 46 claims, 41 red at the parent (8cc14ca). The five that pass are
+  named controls and walls.
+- duty-marks-verify — 34 checks in a real browser, both themes, 26 red at the
+  parent; the parent prints the switch `not drawn` and `0 marks` in both
+  columns.
+- Re-pointed IN PLACE: f337 section 5 (three claims reversed, the ruling
+  written beside them) and five-screenshots-verify 5b-5f (named controls now).
+
+### Noticed, not fixed
+
+- `test/chromium/overview-as-drawn-verify.js:145` still compares a value to
+  itself (`rec.cells[0].x === rec.cells[0].x`) and is still the ONE
+  `npm run lint` error in the tree. Pre-existing at 8cc14ca, and reported on
+  the morning of 19 Sep as well.

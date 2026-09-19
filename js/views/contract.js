@@ -9242,6 +9242,207 @@ function docReadMark(text){
   try{ if(typeof briefMark==='function') return briefMark(t); }catch(_){}
   return esc(t);
 }
+/* ================================================================
+   THE WORDS THAT MAKE A PROMISE (Young ruled 19 Sep 2026)
+   ================================================================
+   *"I was asking to highlight only the absolute action guiding key words that
+   make a clause an obligation."*
+
+   The amber added earlier that day was a BAR down the whole clause — the same
+   mark a playbook departure and a risk finding wear. That is a fact about the
+   CLAUSE. What was asked for is a fact about the WORDS: the two or three that
+   turn a sentence into a duty, lit where they sit.
+
+   NO MODEL DECIDES WHICH, and that is the whole safety of it. HaTi already has
+   a deterministic duty reader — `heuristicObligations` in js/obligations.js is
+   what finds a contract's promises when there is no Copilot key — and it names
+   five families: payment, notice, reporting, delivery, insurance. This pass
+   borrows that vocabulary and narrows it from the SENTENCE it finds to the
+   VERB PHRASE inside it, which is what the owner pointed at.
+
+   IT REFUSES FAR MORE THAN IT ACCEPTS, on purpose. A duty is a DUTY MODAL
+   immediately followed by an ACTION VERB from a named list — so "shall pay",
+   "must notify", "shall not disclose" all mark, and "shall be governed by",
+   "shall be deemed", "shall survive", "shall have the right to" all mark
+   NOTHING. `will` is deliberately not a modal here: it is one of the commonest
+   words in an agreement and most of its uses create no duty at all. A right is
+   not a duty and `may` is absent for the same reason. Where the list does not
+   recognise a verb the page simply says nothing, which is this product's rule
+   everywhere: an absence is stated, never guessed.
+
+   THE WALL: no pattern here contains a digit, a bracket or an angle bracket,
+   and the replacer refuses any match carrying `<`, `>` or `&`. That matters
+   because this runs over text the FIGURES pass has already marked up — it is
+   handed escaped HTML with `<b class="br-fig">` in it — so a match that could
+   straddle a tag would emit crossing tags. It cannot: a letters-and-spaces
+   pattern stops dead at a `<`, and the guard is the second wall behind that.
+
+   AND THE TWO PASSES DO NOT OVERLAP. Figures — money, periods, percentages,
+   dates — are already bold in the accent; duty words are the verbs beside
+   them. "shall pay within thirty (30) days" reads as one amber phrase and one
+   bold figure, never the same fact printed twice in two sets of clothes. */
+const DOC_DUTY_HEAD = [
+  'is required to','are required to','is obliged to','are obliged to',
+  'undertakes to','undertake to','agrees to','agree to',
+  'is to','are to','has to','have to','shall','must',
+];
+const DOC_DUTY_VERB = [
+  'carry out','take out',
+  'reimburse','indemnify','distribute','dispatch','complete','maintain',
+  'disclose','transfer','rectify','replace','procure','provide','furnish',
+  'observe','solicit','appoint','account','perform','arrange','refund',
+  'deliver','remedy','submit','supply','notify','inform','report','comply',
+  'obtain','permit','return','settle','insure','defend','repair','remit',
+  'invoice','renew','repay','assign','grant','issue','ensure',
+  'file','send','ship','keep','hold','give','pay',
+];
+/* ---- "NOT" TURNS A DUTY INTO A CARVE-OUT ON EXACTLY TWO VERBS ----
+   MEASURED on the 50 real agreements already committed for the extraction
+   scorecard: of the eight negated phrases this pass finds, six are genuine
+   negative covenants — "shall not disclose", "shall not assign", "shall not
+   permit" are duties NOT to do a thing and belong in amber. The other two are
+   the opposite of a promise and they are the two commonest of the eight:
+   "shall not be liable" (23 hits) and "shall not be responsible" (5) are
+   LIMITATIONS, and lighting them as obligations would tell a reader the
+   supplier has promised something where the clause says they have not.
+   The difference is that `be liable` and `be responsible` are STATE verbs, not
+   actions — so they live on their own list and that list refuses `not`. */
+const DOC_DUTY_STATE = ['be responsible','be liable'];
+/* i18n: CONTRACT TEXT IS NEVER TRANSLATED, so this pass reads English drafting
+   and nothing else. A Swedish contract marks nothing here rather than marking
+   the wrong words, and the switch's count says zero, which is honest. */
+const DOC_DUTY_ADV = '(?:promptly\\s+|immediately\\s+|forthwith\\s+|duly\\s+|at\\sonce\\s+)?';
+const DOC_DUTY_RE = new RegExp(
+  '\\b(?:' + DOC_DUTY_HEAD.join('|') + ')'
+  + '\\s+(?:not\\s+)?' + DOC_DUTY_ADV
+  + '(?:' + DOC_DUTY_VERB.join('|') + ')\\b'
+  + '|\\b(?:' + DOC_DUTY_HEAD.join('|') + ')'
+  + '\\s+' + DOC_DUTY_ADV
+  + '(?:' + DOC_DUTY_STATE.join('|') + ')\\b'
+  + '|\\b(?:is|are)\\sresponsible\\sfor\\b', 'gi');
+/* The store is DOC_READ_KEY's own shape, one rung along: the reader's choice,
+   remembered in this browser exactly as the text size and the switch itself
+   are (Young's ruling of 19 Sep 2026). OFF AT REST — his ruling too — so the
+   first thing a reader meets is the reading, and the marks are asked for. */
+const DOC_DUTY_KEY='hati.v1.docDutyMarks';
+function docDutyOn(){
+  try{ return localStorage.getItem(DOC_DUTY_KEY)==='1'; }catch(_){ return false; }
+}
+function docDutySet(v){
+  try{ localStorage.setItem(DOC_DUTY_KEY, v?'1':'0'); }catch(_){}
+}
+/* Handed the figures pass's output — escaped text carrying <b class="br-fig">
+   and nothing else — and hands back the same with the duty phrases wrapped.
+   A match carrying markup is left exactly as it was: see THE WALL above. */
+function docDutyMark(html){
+  const s=String(html==null?'':html);
+  DOC_DUTY_RE.lastIndex=0;
+  return s.replace(DOC_DUTY_RE, m =>
+    /[<>&]/.test(m) ? m : `<span class="dr-duty">${m}</span>`);
+}
+/* HOW MANY CLAUSES CARRY A PROMISE — the number on the switch, so the reader
+   knows what pressing it will do before they press it.
+   ASKED OF BOTH COLUMNS, because the press lights both: a clause counts where
+   its WORDING carries a duty phrase or its READING does. A reading is a
+   translation, not a transcript — "shall pay" on the paper may come back as
+   "must pay" beside it, and either is the clause making a promise. Counting
+   one column would have printed a number the other column contradicts.
+   It spends nothing and writes nothing. */
+function docDutyCount(texts){
+  let n=0;
+  for(const t of (texts||[])){
+    const s=String(t||'');
+    if(!s) continue;
+    DOC_DUTY_RE.lastIndex=0;
+    if(DOC_DUTY_RE.test(s)) n++;
+  }
+  return n;
+}
+/* ---- AND THE SAME WORDS LIGHT ON THE PAPER (the render Young approved) ----
+   The point of two columns is the pairing, so a promise lit in the reading and
+   left dark in the wording it explains is half a feature.
+
+   PAINTED AFTER THE CANVAS, NEVER BAKED INTO IT — `signSpotsPaint` is the
+   precedent beside this one and the note over it is the reason: a mark written
+   into docBody would travel, would be exported, and would reach the record.
+   This writes SPANS INTO TEXT NODES on the painted page and takes them off
+   again on the way out, so the stored wording does not move by a byte and
+   every reading of the sheet — docReadSheet walks this very page — still sees
+   the same characters in the same order.
+
+   IT NEVER CROSSES AN ELEMENT BOUNDARY: a match is found inside ONE text node
+   or it is not found, which is `redlineHangHtml`'s own rule for the same
+   reason. And the span's text is set with `textContent`, never innerHTML, so
+   nothing on the paper can introduce markup of its own.
+
+   The cap is a guard against pathological input, not a product limit: no real
+   agreement comes near it. */
+const DOC_DUTY_PAPER_MAX=1200;
+const DOC_DUTY_PAPER_CLASS='dr-duty-p';
+const DOC_DUTY_PAPER_SKIP='input,textarea,select,button,script,style,.sig-spot,.dr-n,[contenteditable="true"]';
+function docDutyPaperClear(root){
+  const host=root||document.getElementById('doc-canvas');
+  if(!host||!host.querySelectorAll) return;
+  for(const m of host.querySelectorAll('span.'+DOC_DUTY_PAPER_CLASS)){
+    const p=m.parentNode; if(!p) continue;
+    while(m.firstChild) p.insertBefore(m.firstChild,m);
+    p.removeChild(m);
+    try{ p.normalize(); }catch(_){}
+  }
+}
+/* IT TAKES NO CONTRACT, deliberately: it reads the page that is PAINTED,
+   which is what makes it right on a canvas built from any of docBody's four
+   branches. A parameter never read is the guard that is always false in its
+   quietest costume. */
+function docDutyPaperPaint(on){
+  const host=document.getElementById('doc-canvas');
+  if(!host) return 0;
+  docDutyPaperClear(host);
+  if(!on) return 0;
+  /* Collected first and mutated after: replacing a text node under a live
+     TreeWalker is what makes a walk skip half the page. */
+  const nodes=[];
+  try{
+    const w=document.createTreeWalker(host,NodeFilter.SHOW_TEXT,{acceptNode(n){
+      const t=n&&n.data;
+      if(!t||t.length<4) return NodeFilter.FILTER_REJECT;
+      const p=n.parentElement;
+      if(!p||(p.closest&&p.closest(DOC_DUTY_PAPER_SKIP))) return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }});
+    let n; while((n=w.nextNode())) nodes.push(n);
+  }catch(_){ return 0; }
+  let marks=0;
+  for(const node of nodes){
+    if(marks>=DOC_DUTY_PAPER_MAX) break;
+    const txt=node.data;
+    DOC_DUTY_RE.lastIndex=0;
+    const hits=[]; let m;
+    while((m=DOC_DUTY_RE.exec(txt))){
+      /* The standard guard on a /g walk: a pattern that could ever match the
+         empty string would spin here for ever. This one cannot — every branch
+         needs a modal AND a verb — but the lists above are edited by hand and
+         an emptied one would hang the page rather than draw nothing. */
+      if(m.index===DOC_DUTY_RE.lastIndex){ DOC_DUTY_RE.lastIndex++; continue; }
+      hits.push([m.index,m.index+m[0].length]);
+      if(hits.length+marks>=DOC_DUTY_PAPER_MAX) break;
+    }
+    if(!hits.length) continue;
+    const frag=document.createDocumentFragment();
+    let at=0;
+    for(const [s,e] of hits){
+      if(s>at) frag.appendChild(document.createTextNode(txt.slice(at,s)));
+      const sp=document.createElement('span');
+      sp.className=DOC_DUTY_PAPER_CLASS;
+      sp.textContent=txt.slice(s,e);
+      frag.appendChild(sp); marks++;
+      at=e;
+    }
+    if(at<txt.length) frag.appendChild(document.createTextNode(txt.slice(at)));
+    if(node.parentNode) node.parentNode.replaceChild(frag,node);
+  }
+  return marks;
+}
 /* ---- AND AMBER RESTS ON SOMETHING CHECKABLE ----
    The owner asked for red, amber and green and was shown the fork: a model
    deciding, or facts HaTi already holds. He took the facts — so a clause is
@@ -9258,12 +9459,13 @@ function docReadFlags(c){
   const out=new Map();
   if(!c) return out;
   /* EVERY REASON, NOT THE FIRST ONE (19 Sep 2026). This used to return on a
-     clause it had already marked, which was harmless while there were two
-     sources and silently lossy the moment there were three: a clause carrying
-     an obligation AND a playbook departure would have said only whichever was
-     read first, and the hover is the ONLY place a reader is told why the bar
-     is there. A cut is a fact, never a silent trim — so the reasons collect
-     and the title states all of them, one per line. */
+     clause it had already marked, so a clause your playbook disagrees with
+     AND the risk scan has flagged said only whichever was read first — and the
+     hover is the ONLY place a reader is told why the bar is there. A cut is a
+     fact, never a silent trim, so the reasons collect and the title states all
+     of them, one per line. It stays on two sources for the reason written
+     under them: the collect is what makes a third safe to add, not a promise
+     that there is one. */
   /* ---- KEYED ON THE CLAUSE'S OWN HEADING, WHICH IS WHAT BOTH SIDES HOLD ----
      This was keyed on `clauseId` and NOTHING WAS EVER MARKED. `docReadSheet`
      walks the PAINTED PAGE and its rows carry no clause id at all, and
@@ -9305,34 +9507,25 @@ function docReadFlags(c){
       add(find(f.quote||f.text,f.category), i18t('ct_read_watch_scan'));
     }
   }catch(_){}
-  /* ---- AND A PROMISE SOMEBODY MADE IS THE THIRD FACT (Young asked 19 Sep
-     2026: "Plain English contract should highlight obligations in Amber") ----
-     An obligation is the strongest fact of the three: it is not a judgement
-     about the clause at all, it is a duty this workspace has already RECORDED
-     off it, with an owner and a date, and it is already shown on four other
-     screens. So it earns the same amber the other two wear, and the hover says
-     which of the three — or all of them — put the bar there.
-     IT IS PLACED BY THE OBLIGATION'S OWN QUOTE, through the same
-     `rlPbFindClause` that refuses rather than guesses. An obligation somebody
-     typed into the form by hand carries no quote and therefore marks nothing:
-     an absence is stated by drawing no bar, never guessed at by reaching for
-     the description, which is a summary in the reader's own words and would
-     land on whichever clause happened to share a word with it.
-     A COMPLETED DUTY IS NOT A WATCH: `obState` is the product's own reading of
-     where an obligation stands, borrowed rather than re-derived, and a done
-     one draws nothing. READING MUST NOT WRITE — `c.obligations` is read raw
-     and every hop is guarded, because this runs on a Document tab that may
-     carry neither js/obligations.js nor js/playbook.js. */
-  try{
-    const obs=Array.isArray(c.obligations)?c.obligations:[];
-    for(const o of obs){
-      if(!o||!o.quote) continue;
-      let st='open';
-      try{ if(typeof obState==='function') st=obState(o); }catch(_){}
-      if(st==='done') continue;
-      add(find(o.quote,''), i18t('ct_read_watch_oblig'));
-    }
-  }catch(_){}
+  /* ---- AND A PROMISE IS NOT ONE OF THEM (Young ruled 19 Sep 2026, later
+     the same day) ----
+     An obligation WAS the third source here for a few hours. It came off the
+     same ask — *"Plain English contract should highlight obligations in
+     Amber"* — and it was the wrong answer to it twice over.
+
+     It was a fact about the CLAUSE where the ask was about the WORDS, which is
+     what `docDutyMark` above does instead. And once those words are lit, one
+     colour would be saying two things on one screen: a bar down the gutter
+     meaning "a duty was recorded off this clause" and amber on the wording
+     twelve pixels away meaning "these words create a duty". A reader cannot be
+     asked to hold both.
+
+     SO THE BAR KEEPS THE TWO IT WAS BUILT FOR — your playbook disagreed, or
+     the risk scan flagged it — and both of those are judgements about the
+     clause as a whole, which is exactly what a gutter rule says. The promise
+     is on the words. `ct_read_watch_oblig` is STALE, inert in both books: a
+     key retired by not being called, never deleted, so a screen cannot come
+     back half-English. */
   return out;
 }
 function docReadPaint(c){
@@ -9348,7 +9541,10 @@ function docReadPaint(c){
      never rebuilt. visibility also takes them out of the way of the pointer. */
   const right=document.getElementById('doc-right');
   if(right) right.style.visibility=on?'hidden':'';
-  if(!on){ layer.innerHTML=''; return; }
+  /* THE MARKS COME OFF THE PAPER ON THE WAY OUT, always and first. The reader
+     may be leaving for the Signing tab, the Key terms tab or another contract,
+     and a mark left behind would be a mark on wording nobody asked about. */
+  if(!on){ docDutyPaperPaint(false); layer.innerHTML=''; return; }
   const canvas=document.getElementById('doc-canvas');
   /* THE SIZE AND THE FACE ARE BOTH MEASURED OFF THE PAPER, never computed from
      a token here. The reader's A⁻/A⁺ choice is written as --doc-scale on the
@@ -9422,6 +9618,17 @@ function docReadPaint(c){
       if(!moved) moved=1;
     }
   }catch(_){ moved=0; }
+  /* ---- THE SWITCH'S TWO FACTS, READ ONCE PER PAINT ----
+     How many of the clauses on screen carry a promise, and whether the reader
+     has asked for them to be lit. Counted off the paired READINGS — the very
+     entries the marks land in — so the number on the switch and the number of
+     lit entries are the same arithmetic and cannot drift. */
+  const dutyN=docDutyCount(pairs.map(p=>{
+    let paper='';
+    try{ paper=(p.el&&p.el.textContent)||''; }catch(_){}
+    return String((p.it&&p.it.plain)||'')+' \n '+paper;
+  }));
+  const dutyOn=dutyN?docDutyOn():false;
   layer.innerHTML=`
     ${''/* ---- THE CAPTION SAYS WHEN THIS WAS READ (Young ruled 15 Sep 2026) ----
            *"after completing a negotiation and you want to reread the contract
@@ -9447,7 +9654,29 @@ function docReadPaint(c){
            AND IT NEVER RE-READS BY ITSELF. A full contract is a real cost the
            reader has not asked for, and they may be back for thirty seconds to
            check a date. Told, then their choice. */}
-    <div class="doc-read-head">${esc(i18t('ct_read_plain'))}<em>${esc(i18t('ct_read_cap'))}</em>${
+    ${''/* ---- AND THE CAPTION SLOT IS THE SWITCH (Young ruled 19 Sep 2026,
+           off the render: *"turn that area to a trigger for turning on the
+           amber highlighting"*) ----
+
+           THE CHEAPEST CHANNEL, AND IT COSTS THE CONTRACT NOTHING. The slot is
+           already drawn, already at the right of this head, already in the
+           quiet register a caption wears — so the switch takes the place of a
+           sentence rather than adding a row, and the paper beside it does not
+           move by a pixel.
+
+           "a reading, not the contract" IS NOT DELETED. It is a reassurance
+           rather than a working fact, so it steps down one rung to the hover on
+           the PLAIN ENGLISH label it was always about (the owner's own ruling).
+           A reader who wants it is twelve pixels away from it.
+
+           THE COUNT IS ON THE FACE because a press whose effect you cannot
+           predict is a press nobody makes. It says how many clauses carry a
+           promise before you ask for the marks; at zero the switch is not drawn
+           at all, which is this product's rule for a verb that cannot work. */}
+    <div class="doc-read-head"><span class="doc-read-lbl" title="${esc(i18t('ct_read_cap'))}">${
+      esc(i18t('ct_read_plain'))}</span>${dutyN?`<button type="button" class="doc-read-duty" data-doc-read-duty
+      aria-pressed="${dutyOn}" title="${esc(i18t('ct_duty_title'))}"><span class="dr-ring" aria-hidden="true"></span>${
+      esc(i18tn('ct_duty_switch',dutyN,{n:dutyN}))}</button>`:''}${
       moved?`<span class="doc-read-moved">${esc(i18tn('ct_read_moved',moved,{n:moved}))} <button type="button" class="ui-btn-plain" data-doc-read-again>${esc(i18t('ct_read_again'))}</button></span>`:''}</div>
     <div class="doc-read-clip"><div id="doc-read-inner">${front.map((f,i)=>
       `<div class="doc-read-mirror" data-doc-read-front="${i}"${
@@ -9521,12 +9750,15 @@ function docReadPaint(c){
          pass for money, periods, percentages and dates, running over ALREADY
          ESCAPED text. No model decides what is emphasised, so nothing can be
          talked up, and it costs nothing: the reading on file is unchanged.
-         THE AMBER is `docReadFlags` — a clause your playbook disagrees with,
-         one the risk scan flagged, or one a live obligation was recorded off
-         (Young added the third on 19 Sep 2026). All three are facts HaTi
-         already holds and already shows elsewhere, all three are resolved
-         through `rlPbFindClause`, which REFUSES rather than guesses, and the
-         hover names every one of them that applies to this clause.
+         THE AMBER BAR is `docReadFlags` — a clause your playbook disagrees
+         with, or one the risk scan flagged. Both are facts HaTi already holds
+         and already shows elsewhere, both are resolved through
+         `rlPbFindClause`, which REFUSES rather than guesses, and the hover
+         names every one of them that applies to this clause.
+         THE AMBER ON THE WORDS is `docDutyMark`, and it is a different claim
+         in the same colour on purpose: the bar is about the CLAUSE, the words
+         are the two or three that make it a promise. It is drawn only while
+         the reader has asked for it.
          RED AND GREEN ARE DELIBERATELY ABSENT and the owner ruled on it: a
          colour saying "this is bad for you" with nothing behind it is Copilot
          giving a legal opinion on its own authority, which is the one thing
@@ -9536,7 +9768,8 @@ function docReadPaint(c){
       return `<div class="doc-read-note${sec?' dr-sec':''}${shape}${flag?' dr-watch':''}" data-doc-read-note="${n}"${
           flag?` title="${esc(flag.why)}"`:''}${hsize?` style="--dr-hsize:${hsize}"`:''}>`
         +(head?`<${sec?'h3':'h4'} class="${sec?'dr-s':'dr-h'}">${numHtml}${esc(head)}</${sec?'h3':'h4'}>`:'')
-        +(body?`<p${lead?' class="dr-lead"':''}>${lead?numHtml:''}${docReadMark(body)}</p>`:'')
+        +(body?`<p${lead?' class="dr-lead"':''}>${lead?numHtml:''}${
+            dutyOn?docDutyMark(docReadMark(body)):docReadMark(body)}</p>`:'')
         +`</div>`;
     }).join('')}
       ${over?`<div class="doc-read-over">${esc(i18tn('ct_read_over',over,{n:over}))}</div>`:''}
@@ -9551,7 +9784,19 @@ function docReadPaint(c){
   if(!layer.dataset.docReadAgain){
     layer.dataset.docReadAgain='1';
     layer.addEventListener('click',async e=>{
-      const b=e.target&&e.target.closest&&e.target.closest('[data-doc-read-again]');
+      const t=e.target;
+      /* ---- THE SWITCH RIDES THE LAYER'S ONE LISTENER (19 Sep 2026) ----
+         The head is rebuilt with every paint, so a listener bound to the
+         button itself dies on the first press. Armed once on the layer, and
+         the contract read at press time is the one painted LAST — never the
+         one this listener happened to be armed on. */
+      const d=t&&t.closest&&t.closest('[data-doc-read-duty]');
+      if(d){
+        docDutySet(!docDutyOn());
+        docReadPaint(layer._docReadC||c);
+        return;
+      }
+      const b=t&&t.closest&&t.closest('[data-doc-read-again]');
       if(!b||b.disabled) return;
       /* The contract painted LAST, not the one this listener was armed on. */
       const cc=layer._docReadC||c;
@@ -9560,6 +9805,14 @@ function docReadPaint(c){
       finally{ b.disabled=false; }
     });
   }
+  /* ---- AND THE SAME WORDS ON THE PAPER (the render Young approved) ----
+     Painted before the placing below and it may not disturb it: the mark is a
+     wash and an underline and states no padding, margin or weight, so the
+     wording does not move by a pixel and every rect measured after this is the
+     rect that would have been measured without it. That is a REQUIREMENT, not
+     an observation — duty-marks-verify measures the paper with the marks
+     off and on and requires the two to be identical. */
+  docDutyPaperPaint(dutyOn);
   const inner=document.getElementById('doc-read-inner');
   const sc=document.getElementById('doc-scroll');
   const clip=layer.querySelector('.doc-read-clip');
@@ -12522,7 +12775,7 @@ function distributionPanelHtml(c){
 
 
 Object.assign(window,{paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,
-  wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,paintKtTriage,triageAndPaint,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,DOC_SHARED_CLAUSES,DOC_SHARED_SKIP,docSharedSkip,docLibWording,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,KT_FIELD_HOME,KT_FOCUS_TRIES,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,docReadMark,docReadFlags,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
+  wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,paintKtTriage,triageAndPaint,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,DOC_SHARED_CLAUSES,DOC_SHARED_SKIP,docSharedSkip,docLibWording,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,KT_FIELD_HOME,KT_FOCUS_TRIES,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,docReadMark,docReadFlags,DOC_DUTY_HEAD,DOC_DUTY_VERB,DOC_DUTY_STATE,DOC_DUTY_RE,DOC_DUTY_KEY,docDutyOn,docDutySet,docDutyMark,docDutyCount,DOC_DUTY_PAPER_MAX,DOC_DUTY_PAPER_CLASS,DOC_DUTY_PAPER_SKIP,docDutyPaperClear,docDutyPaperPaint,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign

@@ -270,34 +270,49 @@ describe('f337 (4) — the head\'s Focus button is live on both pages', () => {
 /* ══════════════════════════════════════════════════════════════════════════
    5 — PLAIN ENGLISH MARKS OBLIGATIONS IN AMBER
    ══════════════════════════════════════════════════════════════════════════ */
-describe('f337 (5) — a recorded promise is the third amber fact', () => {
-  test('obligations join the reading', () => {
-    const body = fnBody(CONTRACT, 'docReadFlags');
-    assert.match(body, /c\.obligations/, 'the contract\'s own obligations');
-    assert.match(body, /ct_read_watch_oblig/, 'with their own sentence on the hover');
+describe('f337 (5) — a recorded promise is NOT an amber fact (REVERSED)', () => {
+  /* ---- REVERSED IN PLACE, 19 Sep 2026 evening, by the owner ----
+     These three claims asked that an obligation put a BAR on its clause, off
+     *"Plain English contract should highlight obligations in Amber"*. Shown
+     the two readings of that sentence side by side, Young chose the other:
+     *"I was asking to highlight only the absolute action guiding key words
+     that make a clause an obligation."*
+
+     So this was the wrong answer twice over — a fact about the CLAUSE where
+     the ask was about the WORDS, and, once the words are lit, one colour
+     saying two things twelve pixels apart. The bar keeps its two judgements;
+     the promise is on the wording, pinned in f339 and driven in
+     duty-marks-verify.
+
+     THE MACHINERY UNDER THEM IS NOT REVERSED and the claims below it still
+     hold: the heading key, the collect, the walls. Only the third source
+     goes. */
+  test('an obligation is no longer one of the bar\'s sources', () => {
+    /* STRIPPED: the gravestone over this reading names the retired key, and a
+       name quoted in its own gravestone reads as live to a raw sweep. */
+    const body = strip(fnBody(CONTRACT, 'docReadFlags'));
+    assert.ok(!/c\.obligations/.test(body), 'it does not read them at all');
+    assert.ok(!/ct_read_watch_oblig/.test(body), 'nor draw their sentence');
   });
-  test('it is placed by the obligation\'s OWN QUOTE, through the reading that refuses', () => {
-    /* rlPbFindClause is the ONE reading of which clause a quote belongs to and
-       it refuses below RL_PB_MATCH_MIN rather than guessing. */
+  test('the bar keeps the two judgements it was built for', () => {
+    /* rlPbFindClause is still the ONE reading of which clause a quote belongs
+       to, and still refuses below RL_PB_MATCH_MIN rather than guessing. */
     const body = fnBody(CONTRACT, 'docReadFlags');
-    assert.match(body, /if\(!o\|\|!o\.quote\) continue/,
-      'an obligation typed in by hand carries no quote and marks nothing');
-    assert.match(body, /add\(find\(o\.quote/, 'and the quote goes through find');
+    assert.match(body, /ct_read_watch_pb/, 'your playbook disagreed');
+    assert.match(body, /ct_read_watch_scan/, 'the risk scan flagged it');
     assert.match(body, /rlPbFindClause\(c,q,cat\)/,
-      'CONTROL — which is the same door the other two facts use');
+      'CONTROL — through the door that refuses rather than guesses');
   });
   test('THE DESCRIPTION IS NEVER REACHED FOR', () => {
-    /* WALL. `desc` is a summary in the reader's own words and would land on
-       whichever clause happened to share a word with it. An absence is stated
-       by drawing no bar, never guessed. */
+    /* WALL, and it outlives the source it was written for: a summary in the
+       reader's own words would land on whichever clause shared a word with it. */
     const body = fnBody(CONTRACT, 'docReadFlags');
     assert.ok(!/o\.desc/.test(body), 'no fallback onto the description');
   });
-  test('a completed duty is not a watch, and the state is BORROWED', () => {
+  test('and the obligations reading is not asked at all any more', () => {
     const body = fnBody(CONTRACT, 'docReadFlags');
-    assert.match(body, /obState\(o\)/, 'the product\'s own reading of where it stands');
-    assert.match(body, /if\(st==='done'\) continue/, 'and a done one draws nothing');
-    assert.ok(!/o\.status==='done'/.test(body), 're-derived nowhere');
+    assert.ok(!/obState\(o\)/.test(body), 'no state to read where there is no source');
+    assert.ok(!/o\.status==='done'/.test(body), 're-derived nowhere, then or now');
   });
   test('IT IS KEYED ON THE HEADING, BECAUSE THE PAGE HOLDS NO CLAUSE ID', () => {
     /* MEASURED in a browser: keyed on `clauseId`, NOTHING was ever marked.
@@ -331,9 +346,12 @@ describe('f337 (5) — a recorded promise is the third amber fact', () => {
     for (const bad of ['negoInit', 'persist(', 'changes.push', 'api(', 'fetch(', 'obligationMarkDone'])
       assert.ok(!body.includes(bad), 'the flag reading never writes or spends: ' + bad);
   });
-  test('the sentence is in BOTH books', () => {
+  test('the sentence is STALE, not deleted, and still in BOTH books', () => {
+    /* A key is retired by not being called. Deleted from one book and not the
+       other, a screen comes back half-English. */
     assert.strictEqual((I18N.match(/\bct_read_watch_oblig:/g) || []).length, 2,
-      'a key in one book only leaves a screen half-English');
+      'still English and Swedish');
+    assert.ok(!/ct_read_watch_oblig/.test(strip(CONTRACT)), 'and called from nowhere');
   });
   test('AMBER, and still only amber', () => {
     /* WALL. The owner ruled on red and green the day before and nothing here
