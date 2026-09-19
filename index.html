@@ -3014,21 +3014,60 @@
   .doc-read-head em{ margin-left:auto; font-style:normal; font-weight:var(--w-body);
     letter-spacing:0; text-transform:none; font-size:var(--t-label);
     color:var(--color-neutral-600); }
-  .doc-read-duty{ margin-left:auto; font:inherit; font-size:var(--t-label);
-    font-weight:var(--w-body); letter-spacing:0; text-transform:none;
+  /* ---- CAPITALS, NOT BOLD, AND A TICK-BOX (Young ruled 19 Sep 2026) ----
+     *"Make Highlight obligations to be in Capital letters but Not [bold]. And
+     instead of having a Circle to [select], make it a Square and [select] with
+     a checkmark."*
+
+     THE CAPITALS ARE THE ROW'S OWN, NOT THREE NEW NUMBERS. This head already
+     states the product's label treatment — `--t-micro`, uppercase, `.09em` —
+     and the switch was opting OUT of all four of its declarations. It opts out
+     of exactly ONE now, the weight, which is the half the owner kept. So the
+     switch is the same label as PLAIN ENGLISH beside it in body weight: a
+     RELATION, and it follows that row the next time the row is retuned. The
+     `<em>` above keeps its own four because it is STALE and nothing draws it.
+     THE TICK-BOX IS THE PLATFORM'S OWN CORNER — `--radius`, the 2px every
+     control in this product carries, which is what "square" means here — and
+     the product's own check symbol. The symbol is in the markup at BOTH
+     states, transparent at rest and inked when pressed, so a press changes no
+     box, loads nothing and moves nothing in the row.
+     THE INK ON THE FILL IS A LITERAL ON PURPOSE: `#2A1B04` is
+     `#hdr-notify-dot`'s own, the one other place this product puts ink on
+     `--st-amber-dot`, borrowed so the two cannot drift into two answers. That
+     token is the SAME colour in both themes, so a theme-aware token above it
+     would be the wrong kind of answer. */
+  /* ---- AND THE CAPITALS HAVE TO BE NAMED, BECAUSE INHERITANCE LOSES ----
+     The compiled Tailwind preflight sets text-transform to none on every
+     button, and INHERITANCE IS NOT A CASCADE CONTEST: any matching
+     declaration beats it, so the head's uppercase never reached this button
+     and it drew in sentence case while the source read perfectly. The third
+     time this codebase has paid for that; --dr-face on the edition's headings
+     was the last. `text-transform:inherit` rather than the word `uppercase`,
+     for the edition's own reason: it says *whatever this row is set in*, so
+     the switch and the label beside it cannot drift. The letter-spacing
+     genuinely inherits — nothing overrides it — and is left to, so it follows
+     the row too. Do not "tidy" that line away.
+     THIS NOTE STAYS OUTSIDE THE BRACES on purpose: a comment written inside a
+     declaration block that quotes a rule of its own carries a closing brace,
+     and every net in this tree that slices one rule out of this sheet stops
+     dead at it. Measured — it cut this rule in half. */
+  .doc-read-duty{ margin-left:auto; font:inherit;
+    font-weight:var(--w-body); text-transform:inherit;
     color:var(--color-neutral-600); background:none; border:0; padding:2px 0;
     cursor:pointer; display:inline-flex; align-items:center; gap:6px;
     border-radius:var(--radius); }
   .doc-read-duty:hover{ color:var(--color-text); }
-  .doc-read-duty .dr-ring{ width:9px; height:9px; border-radius:50%;
-    border:1px solid var(--color-neutral-400); background:transparent; flex:none; }
-  /* COLOUR AND THE RING, NEVER THE WEIGHT: a heavier word would widen the
+  .doc-read-duty .dr-tick{ width:12px; height:12px; border-radius:var(--radius);
+    border:1px solid var(--color-neutral-400); background:transparent; flex:none;
+    display:grid; place-items:center; color:transparent; }
+  .doc-read-duty .dr-tick svg{ width:10px; height:10px; display:block; }
+  /* COLOUR AND THE TICK, NEVER THE WEIGHT: a heavier word would widen the
      switch on every press and shuffle the row under the reader's hand. The
-     ring's fill is the signal that is not a colour, and aria-pressed is the
-     one a screen reader hears. */
+     tick is the signal that is not a colour, and aria-pressed is the one a
+     screen reader hears. */
   .doc-read-duty[aria-pressed="true"]{ color:var(--st-amber-fg); }
-  .doc-read-duty[aria-pressed="true"] .dr-ring{ background:var(--st-amber-dot);
-    border-color:var(--st-amber-dot); }
+  .doc-read-duty[aria-pressed="true"] .dr-tick{ background:var(--st-amber-dot);
+    border-color:var(--st-amber-dot); color:#2A1B04; }
   /* ---- AND THE MARK ITSELF, IN BOTH COLUMNS ----
      ONE RULE FOR TWO HOMES, because the clothes follow the builder: the
      reading's own span and the one painted onto the paper are the same claim

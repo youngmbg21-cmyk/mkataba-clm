@@ -1666,7 +1666,12 @@ describe('f277 (18) the edition is set in the paper’s own face', () => {
      product's own face. This holds by construction: --dr-face is read by
      .doc-read-note and by nothing else. */
   test('the column’s own caption keeps the product’s face', () => {
-    const css = _f277rd('index.html');
+    /* RE-POINTED 19 Sep 2026: COMMENTS ARE PROSE AND THIS SWEEP READS CODE.
+       A note written between these two rules that names --dr-face — to say
+       where the measured face DOES belong — read as a declaration and failed
+       this claim. The reading is about what the caption is SET in; strip the
+       prose first, exactly as every other sweep in this tree does. */
+    const css = _f277rd('index.html').replace(/\/\*[\s\S]*?\*\//g, ' ');
     const reads = (css.match(/var\(--dr-face/g) || []).length;
     assert.equal(reads, 1, '--dr-face is read in exactly one rule');
     const at = css.indexOf('.doc-read-head{');
