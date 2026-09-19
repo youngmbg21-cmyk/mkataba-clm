@@ -70,29 +70,30 @@ function stage(over = {}) {
 const card = (d, id) => d.cards.find(c => c.id === id);
 
 describe('f244 (1) — two tabs, and the table is still whole', () => {
-  test('the row names both tabs, the overview leads, and it is where a reader lands', () => {
+  test('the row names both tabs, and the table is where a reader lands', () => {
     const s = stage(); s.renderTemplatesPage();
     const html = s.document.getElementById('content').innerHTML;
-    assert.match(html, /data-tpl-tab="overview"/);
+    /* —— RE-POINTED TWICE IN PLACE. On 19 Sep a THIRD tab joined the row
+       ("The book"); LATER THE SAME DAY the owner said *"delete the templates
+       overview page"* and it went, because the book's glance already opens
+       with the overview's own headline. THE CLAIM THIS TEST WAS WRITTEN FOR
+       IS UNCHANGED: the row names more than one tab, the tabs sit in a fixed
+       order, and the TABLE is both last and where a reader arrives. What
+       moved is which tab leads. */
+    assert.match(html, /data-tpl-tab="book"/);
     assert.match(html, /data-tpl-tab="list"/);
-    assert.ok(html.indexOf('data-tpl-tab="overview"') < html.indexOf('data-tpl-tab="list"'),
-      'the overview is the first tab');
-    assert.match(html, /Templates overview/);
+    assert.ok(html.indexOf('data-tpl-tab="book"') < html.indexOf('data-tpl-tab="list"'),
+      'the book is the first tab');
+    assert.ok(!html.includes('data-tpl-tab="overview"'), 'and the overview is gone');
+    assert.ok(!html.includes('Templates overview'), 'in the markup and in the words');
     /* ---- AND THE LIBRARY IS THE ONE THAT OPENS (Young confirmed 18 Sep 2026)
        ---- REVERSED IN PLACE. This read 'overview' because 25 Aug 2026 asked
-       for the overview to be the first tab, and it still IS the first tab —
-       the row order above is unchanged and still asserted. What reversed is
-       which tab a reader ARRIVES on. Measured on the running page: the
-       overview carries 44 pressable things and not one of them is a verb, by
-       its own design; landing on it is landing on the one screen in the
+       for the overview to be the first tab. Measured on the running page: the
+       overview carried 44 pressable things and not one of them was a verb, by
+       its own design; landing on it was landing on the one screen in the
        section that cannot do anything. */
-    assert.equal(s.tplPageTab(), 'list', 'but the LIBRARY is the one that opens');
-    /* —— RE-POINTED 19 Sep 2026: a THIRD tab joined the row, "The book", and
-       the claim is unchanged in what it asserts — the overview still leads,
-       the list is still where a reader arrives, and the list is still last.
-       What the row holds between them is f335's to pin. */
-    assert.deepEqual(s.TPL_PAGE_TABS, ['overview', 'book', 'list']);
-    assert.equal(s.TPL_PAGE_TABS[0], 'overview', 'the overview still leads');
+    assert.equal(s.tplPageTab(), 'list', 'the LIBRARY is the one that opens');
+    assert.deepEqual(s.TPL_PAGE_TABS, ['book', 'list']);
     assert.equal(s.TPL_PAGE_TABS[s.TPL_PAGE_TABS.length - 1], 'list', 'and the table is still last');
   });
 
@@ -106,11 +107,12 @@ describe('f244 (1) — two tabs, and the table is still whole', () => {
     assert.ok(host, '#tpl-rows exists');
     assert.match(host.innerHTML, /Wanjiru Standard MSA/);
     const shell = s.document.getElementById('content').innerHTML;
-    /* RE-POINTED, NOT WEAKENED (18 Sep 2026). The claim is that the tab which
-       is NOT showing keeps its markup, so the fill-by-id cannot crash and
-       every id a door reaches for stays reachable. That claim is unchanged;
-       only which one is hidden has swapped, because the landing tab did. */
-    assert.match(shell, /data-tpl-sec="overview" hidden/, 'the overview is hidden, not gone');
+    /* RE-POINTED, NOT WEAKENED (18 Sep 2026, again 19 Sep). The claim is that
+       the tab which is NOT showing keeps its markup, so the fill-by-id cannot
+       crash and every id a door reaches for stays reachable. That claim is
+       unchanged; what swapped is which tab is hidden (the landing moved) and
+       then which tabs exist at all (the overview went). */
+    assert.match(shell, /data-tpl-sec="book" hidden/, 'the book is hidden, not gone');
     assert.ok(/data-tpl-sec="list"(?! hidden)/.test(shell), 'and the library is the one showing');
     assert.match(shell, /id="tpl-search"/);
   });
@@ -487,27 +489,26 @@ describe('f244 (7) — the two tabs work together', () => {
        by name. Two doors because they do different things, never because they
        drifted — and the "see all" foot went with the cap it belonged to, since
        the wall withholds nothing to see. */
-    /* —— RE-POINTED AGAIN 19 Sep 2026. The claim is unchanged — every door on
-       this tab is ONE act with ONE selector — but the tab draws the health
-       reading now, whose rows are templates and so carry the NAME door,
-       `data-tpl-ov-card`, exactly as the two panels always did. The bucket
-       door belongs to the category wall and moves with it; it is asserted on
-       the wall's own markup below so the rule is not lost. */
+    /* —— RE-POINTED TWICE ON 19 Sep 2026. It followed the card wall from the
+       overview tab onto the health reading in the morning, and onto THE BOOK
+       in the afternoon when the owner deleted the overview tab. The claim has
+       never moved: every door on the tab that draws the wall is ONE of two
+       acts and each carries ONE selector. The book draws BOTH — the cards are
+       CATEGORIES (`data-tpl-ov-bucket`) and the two panels name single
+       TEMPLATES (`data-tpl-ov-card`) — which is what "one of two" means. */
     const s = stage(); s.renderTemplatesPage();
     const html = s.document.getElementById('content').innerHTML;
-    /* —— RE-POINTED 19 Sep 2026: the book's section is written between the
-       overview's and the list's, so a slice that ran from one to the other
-       swallowed it and counted ITS bucket doors as the overview's. Cut at the
-       book instead — PIN THE REGION, NOT A BOUNDARY THAT HAPPENS TO HOLD. */
-    const ovEnd = html.indexOf('data-tpl-sec="book"');
-    const ov = html.slice(html.indexOf('data-tpl-sec="overview"'),
-      ovEnd > 0 ? ovEnd : html.indexOf('data-tpl-sec="list"'));
-    assert.ok((ov.match(/data-tpl-ov-card=/g) || []).length >= 1,
-      'a template row is a door, and it is the name door');
-    assert.ok(!/data-tpl-ov-bucket=/.test(ov),
-      'and the category door is not on this tab, because the category wall is not');
+    /* PIN THE REGION: cut at the section that really follows, never at a
+       boundary that happens to hold. */
+    const bk = html.slice(html.indexOf('data-tpl-sec="book"'),
+      html.indexOf('data-tpl-sec="list"'));
+    assert.ok(bk.length > 200, 'the book section was really found');
+    assert.ok((bk.match(/data-tpl-ov-bucket=/g) || []).length >= 5,
+      'a card per library, and it is the category door');
+    assert.ok((bk.match(/data-tpl-ov-card=/g) || []).length >= 1,
+      'a panel row is a door, and it is the name door');
     assert.ok((wall(s).match(/data-tpl-ov-bucket=/g) || []).length >= 5,
-      'the wall still carries a card per library — it is built, it is just not drawn here');
+      'the wall is still built whole — one builder, and the book draws its cards');
     assert.ok(!/id="tpl-ov-all"/.test(html), 'no see-all, because nothing is held back');
   });
 
@@ -525,7 +526,10 @@ describe('f244 (7) — the two tabs work together', () => {
   test('"see all" opens the table whole', () => {
     const s = stage(); s.renderTemplatesPage();
     s.tplGoList('Naivas Supply Terms');
-    s.tplPageSetTab('overview');
+    /* RE-POINTED 19 Sep 2026: this stepped away to the overview tab and the
+       overview tab is gone. The book is the other tab, and what the check is
+       about is that coming BACK opens the table whole. */
+    s.tplPageSetTab('book');
     // the door the button is wired to, exercised through the same functions
     s.tplGoList('');
     assert.equal(s.document.getElementById('tpl-search').value, '');
@@ -533,15 +537,19 @@ describe('f244 (7) — the two tabs work together', () => {
   });
 
   /* NO VERB IS DUPLICATED. Use, Open, blanks, bulk, versions and delete stay
-     on the table, so a template is acted on in one place and the overview
-     cannot come to disagree with it about what a press does. */
-  test('the overview acts on nothing', () => {
+     on the table, so a template is acted on in one place and the other tab
+     cannot come to disagree with it about what a press does.
+     RE-POINTED 19 Sep 2026 to the book — the tab that draws the wall now, and
+     the one this claim was always about. A slice at a name that is no longer
+     in the markup starts at -1 and passes on nothing. */
+  test('the book acts on nothing', () => {
     const s = stage(); s.renderTemplatesPage();
     const html = s.document.getElementById('content').innerHTML;
-    const ov = html.slice(html.indexOf('data-tpl-sec="overview"'), html.indexOf('data-tpl-sec="list"'));
+    const bk = html.slice(html.indexOf('data-tpl-sec="book"'), html.indexOf('data-tpl-sec="list"'));
+    assert.ok(bk.length > 200, 'the book section was really found');
     for (const v of ['data-tpllib-use', 'data-tpllib-open', 'data-tpl-use', 'data-tpl-prev',
       'data-tpl-more', 'data-tpl-builtin', 'data-tpl-bulk-b', 'data-sample-imp'])
-      assert.ok(!ov.includes(v), `${v} belongs to the table, not to the overview`);
+      assert.ok(!bk.includes(v), `${v} belongs to the table, not to the book`);
   });
 });
 

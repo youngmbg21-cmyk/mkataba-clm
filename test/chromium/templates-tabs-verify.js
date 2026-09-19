@@ -5,6 +5,12 @@
    what is currently in the platform and that will be called Templates. The
    connect the two to function together."
 
+   RE-POINTED 19 Sep 2026, TWICE IN ONE DAY. "The book" joined the row in the
+   morning and *"delete the templates overview page"* took the overview out of
+   it in the afternoon. THE TABS ARE TWO AGAIN and the first one is the book,
+   which draws the card wall this file has always measured — so nearly every
+   press here moved one name and no claim moved at all.
+
    WHY A BROWSER FILE. f244 pins the arithmetic and the words; every claim here
    is a PRESS or a GEOMETRY, and this codebase's most expensive lesson is that
    a rule losing a cascade fight looks perfectly correct in the source. Three
@@ -113,26 +119,32 @@ const BOX = sel => {
         const r = e.getBoundingClientRect();
         return { hidden: e.hidden, w: Math.round(r.width), h: Math.round(r.height) };
       };
-      return { t, ov: secBox('overview'), list: secBox('list'),
+      return { t, ov: secBox('overview'), bk: secBox('book'), list: secBox('list'),
         subs: document.querySelectorAll('#content .st-tabsub').length,
         title: (document.querySelector('#content h1') || {}).textContent };
     });
-    /* —— RE-POINTED 19 Sep 2026: a THIRD tab joined the row, "The book". The
-       claim is unchanged — the overview leads, the table is last, every tab
-       is named — and only the count moved. */
-    check('1a · three tabs, overview first, table last, all named',
-      tabs.t.length === 3 && tabs.t[0].k === 'overview'
+    /* —— RE-POINTED TWICE, 19 Sep 2026. A third tab joined the row in the
+       morning and the overview left it in the afternoon; and 18 Sep had
+       already moved the LANDING onto the table while this block still opened
+       on the first tab. Every claim is what it was — the row is named, it has
+       a fixed order, the table is last, the tab not showing is gone in PIXELS
+       rather than merely missing an attribute, and the live tab is the bold
+       one. What moved is which tab is which. */
+    check('1a · two tabs, the book first, table last, all named',
+      tabs.t.length === 2 && tabs.t[0].k === 'book'
       && tabs.t[tabs.t.length - 1].k === 'list'
-      && /overview/i.test(tabs.t[0].txt) && tabs.t.every(x => x.txt.trim().length > 0),
+      && tabs.t.every(x => x.txt.trim().length > 0)
+      && !tabs.t.some(x => x.k === 'overview'),
       tabs.t.map(x => x.k + ':' + x.txt));
-    check('1b · the overview is the tab a reader lands on, and it is drawn',
-      tabs.t[0].on && tabs.t[0].sel === 'true' && tabs.ov && !tabs.ov.hidden && tabs.ov.h > 200,
-      { ov: tabs.ov });
-    check('1c · and the table has really left the screen, not merely lost an attribute',
-      tabs.list && tabs.list.hidden === true && tabs.list.h === 0 && tabs.list.w === 0,
-      { list: tabs.list });
+    check('1b · the overview tab is gone, in the row and in the page',
+      tabs.ov === null && tabs.bk !== null, { overview: tabs.ov, book: tabs.bk });
+    check('1c · and the book has really left the screen, not merely lost an attribute',
+      tabs.bk && tabs.bk.hidden === true && tabs.bk.h === 0 && tabs.bk.w === 0,
+      { book: tabs.bk });
+    check('1c2 · the table is the tab a reader lands on, and it is drawn',
+      tabs.list && !tabs.list.hidden && tabs.list.h > 200, { list: tabs.list });
     check('1d · the live tab is bold and the resting one is not',
-      Number(tabs.t[0].weight) >= 700 && Number(tabs.t[1].weight) < 700,
+      Number(tabs.t[1].weight) >= 700 && Number(tabs.t[0].weight) < 700,
       tabs.t.map(x => x.k + ':' + x.weight));
     check('1e · no sentence under the title or under the tabs',
       tabs.subs === 0, { subtitles: tabs.subs, title: tabs.title });
@@ -168,12 +180,13 @@ const BOX = sel => {
        stream. Everything this section was really pinning survives: the cards
        are real pixels, they carry both figures and the sentence that qualifies
        them, and nothing has come off says so in its own words. */
-    /* ════ RE-POINTED IN PLACE, 19 Sep 2026 — THE WALL IS BUILT, IT IS NO
-       ════ LONGER WHAT THE FIRST TAB DRAWS ════════════════════════
-       Young: *"You also have not implemented how the paper is doing tab which
-       was part of my request."* That tab draws tplHealthHtml now; the category
-       wall is still built, still exported, and one line from returning as a
-       third tab.
+    /* ════ RE-POINTED IN PLACE, 19 Sep 2026 — THE WALL IS BUILT, AND THE BOOK
+       ════ IS WHAT DRAWS ITS CARDS ══════════════════════════════
+       In the morning the first tab drew tplHealthHtml; that tab is gone (the
+       owner: *"delete the templates overview page"*), and `tplOverviewHtml`
+       is kept whole and unreferenced. THE BOOK draws the same cards through
+       the same builder, tplOvCardHtml — so what this probe measures is what a
+       reader really sees, one builder away.
 
        SO THE WALL IS MOUNTED AND MEASURED. Not read out of the page — read
        out of the page it would be a source test wearing a browser's clothes,
@@ -273,15 +286,15 @@ const BOX = sel => {
     const flipped = await page.evaluate(() => {
       const b = sel => { const e = document.querySelector(sel); const r = e.getBoundingClientRect();
         return { hidden: e.hidden, h: Math.round(r.height) }; };
-      return { ov: b('[data-tpl-sec="overview"]'), list: b('[data-tpl-sec="list"]'),
+      return { ov: b('[data-tpl-sec="book"]'), list: b('[data-tpl-sec="list"]'),
         rows: document.querySelectorAll('#tpl-rows tr').length };
     });
-    check('4a · pressing Templates puts the table on screen and takes the overview off',
+    check('4a · pressing Templates puts the table on screen and takes the book off',
       flipped.list.h > 200 && !flipped.list.hidden && flipped.ov.h === 0 && flipped.ov.hidden
       && flipped.rows > 1, flipped);
     await page.screenshot({ path: path.join(OUT, '02-list.png'), fullPage: true });
 
-    await page.click('[data-tpl-tab="overview"]');
+    await page.click('[data-tpl-tab="book"]');
     await pause(400);
     /* RE-POINTED: the wall's cards narrow the table by the RAIL now, not by
        the search box — the search box is what a NAME needs, and these are
@@ -336,8 +349,8 @@ const BOX = sel => {
        cards for the demo's type ladder and its colour relations. It is beside
        the page at left:-4000px, so it covers nothing a reader presses and no
        claim about the tab itself can pick it up — every one of those names
-       `[data-tpl-sec="overview"]`, which the probe is not inside. */
-    await page.click('[data-tpl-tab="overview"]');
+       `[data-tpl-sec="book"]`, which the probe is not inside. */
+    await page.click('[data-tpl-tab="book"]');
     await pause(400);
     /* THERE IS NO "SEE ALL" ANY MORE, and its absence is the claim: the wall
        withholds nothing, so a door onto "the rest" would open onto nothing. */
@@ -364,7 +377,7 @@ const BOX = sel => {
        "the rate at 67% is not the colour of the rate at 0%", never a typed
        rgb — so a palette pass costs no edit here. What is pinned as a number
        is the type ladder, because that is exactly what the ask was about. */
-    await page.click('[data-tpl-tab="overview"]');
+    await page.click('[data-tpl-tab="book"]');
     await pause(500);
     const dm = await page.evaluate(() => {
       const px = e => { const s = getComputedStyle(e);
@@ -479,7 +492,7 @@ const BOX = sel => {
     const widths = [];
     for (const w of [1500, 1280, 1024]) {
       await ctx.pages()[0].setViewportSize({ width: w, height: 900 });
-      await page.evaluate(() => { document.querySelector('[data-tpl-tab="overview"]').click(); });
+      await page.evaluate(() => { document.querySelector('[data-tpl-tab="book"]').click(); });
       await pause(500);
       widths.push(await page.evaluate(() => ({
         w: window.innerWidth,
@@ -618,19 +631,27 @@ const BOX = sel => {
     check('9i · and the fold repaints the book, not the page',
       !!folded && folded.sameSection && folded.sameList, folded);
 
-    /* THE OVERVIEW WAS LEFT ALONE. The day-before ruling stands. */
-    await page.click('[data-tpl-tab="overview"]');
-    await pause(500);
-    const ovStill = await page.evaluate(() => {
-      const s = document.querySelector('[data-tpl-sec="overview"]');
-      const bk2 = document.querySelector('[data-tpl-sec="book"]');
-      return { rows: s.querySelectorAll('.tpl-h-row').length,
-        txt: s.textContent.replace(/\s+/g, ' ').trim().slice(0, 60),
-        bookHidden: bk2 ? bk2.hidden : null };
-    });
-    check('9j · the overview is still the health reading, untouched',
-      /comes back changed/.test(ovStill.txt) && ovStill.rows >= 3 && ovStill.bookHidden,
-      ovStill);
+    /* REVERSED IN PLACE, the same day it was written. This read *"THE OVERVIEW
+       WAS LEFT ALONE. The day-before ruling stands."* and hours later the
+       owner said *"delete the templates overview page"*. The reading it drew
+       is KEPT WHOLE AND UNREFERENCED (tplHealthData / tplHealthHtml, the way
+       tplOverviewHtml beside it is kept), so what this claim asks now is that
+       the tab is gone from the PAGE and the reading is still on the shelf —
+       one press from coming back. */
+    const ovGone = await page.evaluate(() => ({
+      sec: !!document.querySelector('[data-tpl-sec="overview"]'),
+      tab: !!document.querySelector('[data-tpl-tab="overview"]'),
+      rows: document.querySelectorAll('.tpl-h-row').length,
+      builtHtml: typeof tplHealthHtml === 'function' && typeof tplHealthData === 'function',
+      builtWall: typeof tplOverviewHtml === 'function',
+      shelved: (() => { try { return /comes back changed/i
+        .test(tplHealthHtml(tplHealthData()).replace(/<[^>]+>/g, ' ')); }
+        catch (_) { return false; } })(),
+    }));
+    check('9j · the overview tab is gone from the page — no section, no tab, no rows',
+      !ovGone.sec && !ovGone.tab && ovGone.rows === 0, ovGone);
+    check('9j2 · and BOTH retired readings are still built, one line from coming back',
+      ovGone.builtHtml && ovGone.builtWall && ovGone.shelved, ovGone);
 
     await page.screenshot({ path: path.join(OUT, '05-book.png'), fullPage: true });
 

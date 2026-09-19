@@ -382,10 +382,22 @@ describe('f334 (6) — a press that filters may not move the reader', () => {
       'an inline colour computed at build time is why a filter had to rebuild the page');
   });
 
-  test('and the sheet carries the rail’s two states', () => {
+  /* RE-POINTED IN PLACE 19 Sep 2026 (Young: *"the highlight is so faint you
+     can barely notice it. shade should be darker and the words in white when
+     selected"*). The lit row was the pale mint --color-accent-100 on white;
+     the mint is the HOVER now and the lit row is --accent-fill with white
+     ink. The CLAIM is unchanged — the sheet carries the rail's states — and
+     what moved is which shade is which. */
+  test('and the sheet carries the rail’s three states', () => {
     assert.match(HTML, /\.tpl-rail\{/);
-    assert.match(HTML, /\.tpl-rail\.on\{background:var\(--color-accent-100\)/);
-    assert.match(HTML, /\.tpl-rail\.on \.tpl-rail-n\{/);
+    assert.match(HTML, /\.tpl-rail:hover\{background:var\(--color-accent-100\)/,
+      'the pale mint is the hover');
+    assert.match(HTML, /\.tpl-rail\.on,\.tpl-rail\.on:hover\{background:var\(--accent-fill\);color:#fff/,
+      'and the lit row is the filled accent with white words');
+    assert.match(HTML, /\.tpl-rail\.on \.tpl-rail-n\{color:#fff/,
+      'the count goes white with the label, or it reads as a different state');
+    assert.ok(!/\.tpl-rail-s\.on\{color:var\(--color-neutral-700\)/.test(HTML),
+      'the stream rows had a rule putting the ink back to black — it had to go');
   });
 
   test('the search box was already right and is left exactly as it was', () => {
@@ -395,16 +407,32 @@ describe('f334 (6) — a press that filters may not move the reader', () => {
 });
 
 /* ═════════════ 7 · HOW THE PAPER IS DOING ══════════════════════════════ */
-describe('f334 (7) — the first tab answers how the paper is doing', () => {
-  test('the tab draws the health reading, not the category wall', () => {
+describe('f334 (7) — how the paper is doing, and where it went', () => {
+  /* RE-POINTED IN PLACE 19 Sep 2026 (Young: *"delete the templates overview
+     page"*, option (a) of three). THIS CLAIM IS REVERSED: the tab it pinned
+     is gone, because the book's glance already opens with this card's own
+     headline and two tabs leading with one number is the fault this product
+     keeps paying for. The reading itself is NOT gone — see the claim under
+     this one — and the rest of f334 (7) stands unchanged, because what it
+     pins is that the reading READS and never measures. */
+  test('the overview tab is gone, and nothing draws the health card', () => {
     const body = fnBody(SRC, 'renderTemplatesPage');
-    assert.match(body, /data-tpl-sec="overview"[^>]*>\$\{tplHealthHtml\(tplHealthData\(\)\)\}/);
-    assert.ok(!/data-tpl-sec="overview"[^>]*>\$\{tplOverviewHtml\(ov\)\}/.test(body));
+    assert.ok(!/data-tpl-sec="overview"/.test(body), 'no section');
+    assert.ok(!/data-tpl-tab="overview"/.test(body), 'and no tab button');
+    assert.ok(!/tplHealthHtml\(/.test(body), 'nothing on this page calls it');
   });
 
-  test('and the wall is still built, so it is one line from coming back', () => {
-    assert.match(SRC, /function tplOverviewHtml\(/, 'kept whole, never deleted');
+  test('but BOTH readings are still built, so either is one line from coming back', () => {
+    assert.match(SRC, /function tplHealthData\(/, 'the health reading, kept whole');
+    assert.match(SRC, /function tplHealthHtml\(/);
+    assert.match(SRC, /tplHealthData,tplHealthHtml,/, 'and still published');
+    assert.match(SRC, /function tplOverviewHtml\(/, 'the card wall, kept whole');
     assert.match(SRC, /tplOverviewHtml,/, 'and still published');
+  });
+
+  test('and the source SAYS why an unreferenced reading was kept', () => {
+    assert.match(SRC, /AND IT HAS NO CALLER SINCE 19 SEP 2026/,
+      'a reading deleted outright is a reading somebody rebuilds from scratch');
   });
 
   test('IT READS AND NEVER MEASURES — no route, no model, no spend', () => {

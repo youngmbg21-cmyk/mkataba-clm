@@ -2033,6 +2033,21 @@ function tplOverviewData(){
    *"You also have not implemented how the paper is doing tab which was part of
    my request."*
 
+   ── AND IT HAS NO CALLER SINCE 19 SEP 2026 (Young: *"delete the templates
+   overview page"*, option (a) of three). The tab went because the book's own
+   glance already opens with this card's headline — *Came back changed* — and
+   two tabs leading with one number is the fault this product keeps paying
+   for. The four readings under that headline went with it, and the one the
+   owner was told he was losing by name is *the clause they argue about most*,
+   which nothing else in the product says.
+
+   IT IS KEPT WHOLE AND UNREFERENCED, the way tplOverviewHtml beside it is
+   kept: every reading deleted outright in this codebase is a reading somebody
+   rebuilds from scratch a month later, worse. Two lines put it back — a tab
+   button and a section — and `lib_tab_overview` is STALE ON THE FACE but
+   live in both books for exactly that. Nothing here reads a route, so an
+   unreferenced reading costs nothing but the lines it is written on.
+
    WHAT WAS THERE WAS A CATALOGUE. The wall counted what the workspace OWNS —
    one card per bucket, "All templates · Used 4 · Deviation rate —" — which
    answers "what have we got", a question the table beside it already answers
@@ -2485,11 +2500,12 @@ function tplOverviewHtml(d){
 /* THE TAB IS PER SITTING, IN MEMORY — the Settings page's own rule: a stored
    tab lands a reader somewhere unrelated a week later. */
 /* THE BOOK JOINS THE ROW (Young ruled it 19 Sep 2026, off "The Template Book"
-   artifact). Three tabs, three questions: the overview answers HOW THE PAPER
-   IS DOING, the book answers WHAT HAVE WE GOT, the list is the list. The
-   landing is unchanged — 18 Sep's ruling stands and a reader still arrives on
-   the list. */
-const TPL_PAGE_TABS=['overview','book','list'];
+   artifact), AND THE OVERVIEW LEAVES IT THE SAME DAY (Young: *"delete the
+   templates overview page"*). TWO TABS, TWO QUESTIONS: the book answers WHAT
+   HAVE WE GOT, the list is the list. The landing is unchanged — 18 Sep's
+   ruling stands, `tplPageTab`'s fallback is still 'list', and a reader still
+   arrives on the table where the verbs are. */
+const TPL_PAGE_TABS=['book','list'];
 let _tplPageTab=null;
 /* ---- THE LANDING IS THE LIBRARY (Young confirmed 18 Sep 2026) ----
    THIS REVERSES 25 AUG 2026, which asked for "Templates overview" to be the
@@ -2618,21 +2634,20 @@ function renderTemplatesPage(){
       }>${i18t('lib_new_template')}</button>`:''}
     </div>
     <div class="st-tabs" role="tablist" style="margin-bottom:14px">
-      <button class="st-tab${tab==='overview'?' on':''}" data-tpl-tab="overview" role="tab" aria-selected="${tab==='overview'?'true':'false'}">${i18t('lib_tab_overview')}</button>
+      ${''/* "Templates overview" was HERE and is gone (19 Sep 2026). See the
+             note on tplHealthData: the card it drew is kept, unreferenced. */}
       <button class="st-tab${tab==='book'?' on':''}" data-tpl-tab="book" role="tab" aria-selected="${tab==='book'?'true':'false'}">${i18t('lib_tab_book')}</button>
       <button class="st-tab${tab==='list'?' on':''}" data-tpl-tab="list" role="tab" aria-selected="${tab==='list'?'true':'false'}">${i18t('nav_templates')}</button>
     </div>
 
-    ${''/* THE FIRST TAB IS THE HEALTH READING NOW (19 Sep 2026). tplOverviewHtml
-           is the card wall it replaces: still built, still exported, still
-           the thing tplOvRoll and the bucket doors were written for, and one
-           line from coming back if the owner wants it as a third tab. What it
-           is NOT is the answer to "how is the paper doing". */}
-    <section data-tpl-sec="overview" ${tab==='overview'?'':'hidden'}>${tplHealthHtml(tplHealthData())}</section>
+    ${''/* TWO SECTIONS, NOT THREE. The health card (tplHealthHtml) and the
+           card wall (tplOverviewHtml) are both still built and both have no
+           caller — see the note above tplHealthData for why neither was
+           deleted. */}
 
-    ${''/* THE BOOK. One reading, drawn twice on this page and never counted
-           twice: `ov` is tplOverviewData's answer, already taken above for
-           the attention list the table's rows print. */}
+    ${''/* THE BOOK. ONE READING: `ov` is tplOverviewData's answer, already
+           taken above for the attention list the table's rows print, and
+           read here rather than asked for a second time. */}
     <section data-tpl-sec="book" ${tab==='book'?'':'hidden'}>${tplBookHtml(ov)}</section>
 
     <section data-tpl-sec="list" ${tab==='list'?'':'hidden'}>
