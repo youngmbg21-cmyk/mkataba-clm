@@ -48,7 +48,21 @@ const ICONS = {
   hash:'<path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/>',
   x:'<path d="M18 6 6 18M6 6l12 12"/>',
   alert:'<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/>',
+  /* ---- ONE MARK, ONE MEANING (Young ruled it 19 Sep 2026) ----------------
+     "Focus mode button and Copilot risk scan symbols look almost exactly the
+     same. Change the Copilot risk scan into a different symbol across the
+     platform." They looked the same because they WERE the same: this one glyph
+     was doing both jobs, drawn from one place.
+     `scan` — the viewfinder — KEEPS FOCUS MODE, where four corners round a
+     subject is the natural sign for "give me just this".
+     `readpaper` is the reading family's own mark: a page with a magnifier over
+     it, which is what every one of those presses actually does. It is not only
+     the risk scan button — the findings badge on a Contracts row, the playbook
+     Run button, the machine-read line on a scanned upload and Copilot's own
+     working pulse all move with it, because a badge that no longer matches the
+     button that produced it is the fault this change exists to remove. */
   scan:'<path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/>',
+  readpaper:'<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h5"/><path d="M14 3v5h5"/><circle cx="16.5" cy="15.5" r="3.5"/><path d="m21.5 20.5-2.5-2.5"/>',
   chevD:'<path d="m6 9 6 6 6-6"/>',
   target:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
   trend:'<path d="M22 7 13.5 15.5 8.5 10.5 2 17"/><path d="M16 7h6v6"/>',
@@ -94,7 +108,7 @@ function contractRow(c, {showFolder=false}={}){
     </span>
     ${(()=>{ const o=openFindings(c); if(!o.length) return '';
       const sm=SEV_META[worstSevOf(o)];
-      return `<span class="hidden md:inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${sm.chip}" title="Open scan findings">${icon('scan','w-2.5 h-2.5')}${o.length}</span>`; })()}
+      return `<span class="hidden md:inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${sm.chip}" title="Open scan findings">${icon('readpaper','w-2.5 h-2.5')}${o.length}</span>`; })()}
     <span class="hidden sm:block text-xs font-mono whitespace-nowrap" style="color:${isMonetary(c)?'var(--color-text)':'var(--color-neutral-500)'}" ${!isMonetary(c)?'title="Non-monetary agreement"':''}>${!isMonetary(c)?'n/m':(c.value?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):'—')}</span>
     <span class="shrink-0">${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</span>
     <span class="transition shrink-0" style="color:var(--color-neutral-400)">${icon('chevR')}</span>

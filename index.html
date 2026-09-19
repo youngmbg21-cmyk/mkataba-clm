@@ -2050,6 +2050,13 @@
      so "bigger" is spent on the mark rather than on the chrome. */
   .room-checks{ display:flex; align-items:center; gap:6px; flex:none; }
   .room-acts-lead > .room-checks{ order:4; }
+  /* AND FOCUS MODE LAST, on both heads (19 Sep 2026). One rule, two pages: on
+     the workbench it follows the three checks at 4; on the contract head,
+     where the checks are not drawn, 5 simply follows the default 0 and it
+     lands after Draft new agreement — which is exactly what was asked. It
+     wears .room-check so it is the checks' own square, at the row's own rung,
+     and the row does not grow by a pixel. */
+  .room-acts-lead > .room-focus{ order:5; }
   .room-check{ width:var(--ctl-h,28px); height:var(--ctl-h,28px); display:grid; place-items:center; padding:0;
     border:1px solid var(--btn-edge,var(--color-accent-600)); border-radius:var(--radius);
     background:transparent; cursor:pointer; color:var(--accent-ink); }
@@ -3051,6 +3058,21 @@
   /* The clause's own number, and it is the PAPER'S — read off the sheet, never
      asked of the model — which is what lets it be printed as a citation. */
   .doc-read-note .dr-n{ color:var(--accent-ink); font-variant-numeric:tabular-nums; }
+  /* ---- WHAT TO LOOK AT TWICE (19 Sep 2026) ----
+     THE FIGURE is the brief's own treatment, restated here because the brief's
+     rules are scoped to #brief-section and this layer is a sibling of the
+     paper — the clothes follow the builder, and this is a fourth home for that
+     markup. Accent, never amber: a figure is a FACT worth finding, not a
+     warning, and amber on every number would leave nothing for the warning.
+     THE AMBER is a left rule and nothing else — no fill, no badge, no band.
+     The entry is beside a contract and the contract may not move, so the mark
+     is drawn in the gutter the entry already has. It says WHY on the hover;
+     the clause it is about is twelve pixels away, which is the whole point of
+     a column that tracks the paper. */
+  .doc-read-note .br-fig{ font-weight:var(--w-title); color:var(--accent-ink);
+    background:color-mix(in srgb,var(--color-accent) 12%,transparent);
+    border-radius:var(--radius); padding:0 3px; }
+  .doc-read-note.dr-watch{ box-shadow:inset 3px 0 0 0 var(--st-amber-dot); padding-left:10px; }
   /* ---- AND IT NEVER TOUCHES THE NAME (Young reported it 10 Sep 2026) ----
      The separator printed beside it is the PAPER'S OWN and may be absent — a
      heading set "4 Independent Contractor" carries none — so the gap is stated
@@ -5280,7 +5302,6 @@
      strip that would make the strip grow and the tabs' rule sit at an odd
      height, so between 900 and 1199 the sentence is trimmed with an ellipsis
      instead, and below 899 it still goes entirely. */
-  @media (max-width:899px){ .ig-hd-sub{display:none!important;} }
 
   /* Design step — two rails around the preview (was 268px … 292px, 560px of
      rail before any content). The right rail goes first, then the left. */
@@ -5334,6 +5355,22 @@
   .tpl-m-row i{margin-left:auto;font-style:normal;font-family:var(--font-mono);
     font-size:var(--t-label);color:var(--color-neutral-600);font-variant-numeric:tabular-nums;}
   .tpl-m-sep{height:1px;background:var(--color-divider);margin:5px 10px;}
+  /* ---- THE HEAD IS A HEAD (19 Sep 2026) ----
+     A 2px accent rule under the name, which is the mark this product already
+     puts under a column head and a section title; and the template's own
+     category and value stream beside it, so the pop-up says what it is about
+     rather than only naming it. The stream's dot is FOLDERS' own colour,
+     written on the element as a token so no rule here has to know the palette.
+     A RULE, NOT A FILL: the frame is 400px and a filled head at that width
+     reads as a banner. */
+  .tpl-m-head{padding:0 10px var(--s-2);margin-bottom:var(--s-2);
+    border-bottom:2px solid var(--color-accent);}
+  .tpl-m-name{font-size:var(--t-body);font-weight:var(--w-title);color:var(--color-text);}
+  .tpl-m-head .tpl-m-chip{display:inline-flex;align-items:center;gap:5px;margin:5px 6px 0 0;
+    font-size:var(--t-label);color:var(--color-neutral-700);
+    background:var(--st-steel-bg);border-radius:var(--radius);padding:1px 7px;}
+  .tpl-m-head .tpl-m-chip.is-stream::before{content:"";width:7px;height:7px;border-radius:50%;
+    background:var(--tpl-m-dot,var(--color-neutral-400));flex:none;}
 
   /* ════ THE RAIL'S LIT ROW IS A CLASS (19 Sep 2026) ══════════════════
      It was three inline colours computed when the markup was built, which is
