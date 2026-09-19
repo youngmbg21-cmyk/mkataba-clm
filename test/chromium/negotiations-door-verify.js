@@ -599,13 +599,27 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        working area past its own ceiling, so a bare "left <= 24" would be
        measuring the design rather than the fault. Equal gutters plus a bound
        catches the void exactly and cannot be satisfied by an empty track. */
-    check('10 IN FOCUS THE GRID IS CENTRED — no void on either side of the contract',
-      Math.abs(focusGeo.left - focusGeo.right) <= 24 && focusGeo.left <= 160,
+    /* ---- REVERSED IN PLACE, 19 Sep 2026, OWNER-RULED ----
+       "When in negotiation page make it mimic the document page when on focus
+       mode." Focus no longer hides the sidebar or the top strip, so the shell
+       keeps the columns it has at rest and the zero-width first track went
+       with the rule that needed it.
+
+       THE VOID CANNOT COME BACK, and that is why these three claims retire
+       rather than move: it was caused by COLLAPSING the template while the
+       shell's main column stayed pinned to grid-column:2, and nothing
+       collapses it any more. The first track is the sidebar's own real width,
+       which is the state the last check below has always asserted — so what
+       was the "leaving focus" claim is now true in focus as well, and it is
+       asked in both postures.
+
+       The geometry that replaced them is the mimic itself, measured against
+       the Document tab on both pages: test/chromium/focus-mimics-document-verify.js. */
+    check('10 IN FOCUS THE SHELL KEEPS ITS OWN COLUMNS — the sidebar is not collapsed',
+      !/^0px /.test(focusGeo.cols) && focusGeo.left > 60,
       `grid left ${focusGeo.left}px · right ${focusGeo.right}px · shell ${focusGeo.cols}`);
-    check('10 and ends at the other wall — the width was not handed to an empty track',
+    check('10 and the contract still reaches the other wall — no width handed to an empty track',
       focusGeo.right <= 160, `gap right ${focusGeo.right}px`);
-    check('10 the shell\'s first track is exactly zero, not a share of the window',
-      /^0px /.test(focusGeo.cols), focusGeo.cols);
     await page.screenshot({ path: path.join(OUT, '10-focus-at-the-wall.png') });
     await page.evaluate(() => rlSetFocus(false));
     await page.waitForTimeout(500);
@@ -613,8 +627,9 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       const g = document.querySelector('.redline-page .rl-grid').getBoundingClientRect();
       return { left: Math.round(g.left) };
     });
-    check('10 leaving focus brings the sidebar and the old geometry back',
-      backGeo.left > 60, `grid left ${backGeo.left}px`);
+    check('10 leaving focus leaves that geometry exactly where it was',
+      backGeo.left > 60 && backGeo.left === focusGeo.left,
+      `grid left ${backGeo.left}px in focus ${focusGeo.left}px`);
 
     /* ---- 11 · ONE SEARCH BOX, AND IT IS THE SHELL'S ----
        REVERSED IN PLACE 31 Aug 2026 (M-5), owner-reported off a screenshot with
