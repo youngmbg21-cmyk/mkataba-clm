@@ -2056,8 +2056,17 @@ function intelFrictionHtml(){
   const slowHero=(sl&&st.counterparties.length>1)?hero(sl.avgRounds.toFixed(1),'var(--color-text)',
     `rounds per deal with <b>${igEsc(sl.name)}</b>, against ${st.avgRounds.toFixed(1)} across the book — the slowest counterparty you negotiate with${sl.acceptUs!=null?`, and they accept <b>${pct(sl.acceptUs)}%</b> of what you ask`:''}.
      ${f&&f.counterparty===sl.name?'':`<br><button data-igf-cp="${igEsc(sl.name)}" style="${LINK}">Filter the page to ${igEsc(sl.name)} →</button>`}`):'';
-  const mini=(n,t)=>`<div style="min-width:0"><div style="font-size:var(--t-section);font-weight:var(--w-title);font-variant-numeric:tabular-nums;letter-spacing:-.01em">${n}</div><div style="font-size:var(--t-label);color:var(--color-neutral-600);font-weight:var(--w-strong);line-height:1.35">${t}</div></div>`;
-  const minis=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:9px 18px;padding-top:10px">
+  /* ---- THE FOUR FIGURES ARE KPI CARDS (Young ruled it 19 Sep 2026: "make
+     the highlighted KPIs to be KPI cards") ----
+     Same four readings, same four labels, same order — only the dress moved,
+     and it moved into a stylesheet rather than into more inline style, because
+     the whole point of the ask is that these look like the product's own KPI
+     cards and a second set of literals here could not follow .hm-tile the next
+     time it is retuned. The LABEL LEADS now, which is the tile's own order;
+     the reason for the edge colour and for these not being buttons is written
+     beside .igf-kpis in index.html. */
+  const mini=(n,t)=>`<div class="igf-kpi"><span class="igf-kpi-t">${t}</span><span class="igf-kpi-n">${n}</span></div>`;
+  const minis=`<div class="igf-kpis">
     ${st.medianDays!=null?mini(st.medianDays<1?'&lt;1 day':Math.round(st.medianDays)+' days','median to signature'):''}
     ${st.medianDecisionMs!=null?mini(hrs(st.medianDecisionMs),'median decision time'):''}
     ${(st.oursAcceptShare!=null||st.theirsAcceptShare!=null)?mini(`${st.oursAcceptShare!=null?pct(st.oursAcceptShare)+'%':'—'} / ${st.theirsAcceptShare!=null?pct(st.theirsAcceptShare)+'%':'—'}`,'our asks / their asks accepted'):''}

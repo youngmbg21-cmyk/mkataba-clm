@@ -5293,6 +5293,35 @@
      already share the room sensibly and nothing here moves. */
   @media (min-width:1500px){ .igf-split{grid-template-columns:minmax(0,78ch) minmax(0,1fr);} }
   @media (max-width:1099px){ .igf-split{grid-template-columns:minmax(0,1fr);} }
+  /* ---- THE FOUR FIGURES ARE KPI CARDS (Young ruled it 19 Sep 2026) ----
+     "Make the highlighted KPIs to be KPI cards." They were four label-under-
+     figure pairs in a bare 2×2 grid at the foot of the brief's prose column —
+     the only figures on the page with no container of their own, reading as a
+     footnote to the three sentences above them rather than as the four numbers
+     the page is about.
+     THEY WEAR .hm-tile's DRESS, which is what "KPI card" means in this
+     product: pure white surface, a divider hairline, the platform's 2px
+     corner, a 3px tone edge on top, and the label above the figure.
+     ONE EDGE COLOUR, AND THE ACCENT IS THE ONE. Home cycles four tones BY
+     POSITION, which is decoration there and would be a claim here: ruby is
+     this product's word for "this is against you", and landing it on "our
+     asks / their asks accepted" because that reading happens to be third would
+     be a verdict with nothing behind it. HaTi holds no target for any of these
+     four, so it cannot say whether a given value is good — so none of them
+     gets a verdict colour.
+     AND THEY ARE NOT BUTTONS. Home's rule is that a card opens the list that
+     would change its number; none of these four has a list, so a card that
+     looked pressable would be a dead press. */
+  .igf-kpis{ display:grid; gap:var(--s-2);
+    grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr)); margin-top:var(--s-3); }
+  .igf-kpi{ background:var(--color-surface); border:1px solid var(--color-divider);
+    border-top:3px solid var(--color-accent-600); border-radius:var(--radius);
+    padding:var(--s-3) 13px; min-width:0; }
+  .igf-kpi .igf-kpi-t{ display:block; font-size:var(--t-label); font-weight:var(--w-strong);
+    color:var(--color-neutral-600); line-height:1.35; }
+  .igf-kpi .igf-kpi-n{ display:block; margin-top:5px; font-size:var(--t-section);
+    font-weight:var(--w-title); letter-spacing:-.01em; font-variant-numeric:tabular-nums;
+    color:var(--color-text); line-height:1.2; }
   /* The Insights caption is a whole sentence. Given a second line it stays
      whole; below 900 there is no line to give it, and a sentence cut off
      mid-word says less than no sentence — the tab beside it already names the

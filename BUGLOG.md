@@ -16538,3 +16538,93 @@ and it was wrong; the screenshot is the proof.
   phone's action bar prints them.
 - The templates page's other dialogs (convert, create, save-as, details) still
   draw a plain head with no rule; only the row menu was in scope.
+
+## 19 Sep 2026 (afternoon) — five off four screenshots
+
+Young: "Image 1, make the highlighted KPIs to be KPI cards. Image 2, delete this
+card. Image 3, shading should fill the whole shaded button. Image 4, focus mode
+button in the editor page is not working. Finally, Plain English contract should
+highlight obligations in Amber."
+
+Every one measured against the live product before a line moved.
+
+DEFECTS FOUND AND FIXED
+
+1. The Negotiation friction brief's four figures (median to signature, median
+   decision time, our/their asks accepted, signed within round 1) were bare
+   label-under-figure pairs in a 2x2 grid — the only figures in Insights with no
+   container of their own. Now KPI cards wearing .hm-tile's own dress, defined as
+   a rule rather than as more inline style so they follow the tile when it is
+   retuned. ONE edge colour (the accent): Home cycles four tones by POSITION,
+   which is decoration there and would be a verdict here, and HaTi holds no
+   target for any of these four readings. Not buttons — none of them has a list
+   behind it, and a card that looks pressable and is not is a dead press.
+
+2. "Biggest by contracted value" deleted from Insights - Portfolio on the
+   owner's word. WHAT WAS LOST is stated beside the hole in the source: the
+   ranking of the top counterparties by contracted value, with their contract
+   count, category and open-findings count. WHAT SURVIVES: the counterparty
+   filter every row of it pressed is on every dot of the risk map above it, one
+   handler, both homes; and it was never in PF_PANEL_DATA, so Copilot loses
+   nothing. Its five sentences are stale on the face, inert in both books.
+
+3. THE SEAT SWITCH'S FILL DID NOT REACH THE EDGE. Measured at the parent: a 3px
+   gap above AND below the lit half inside the box, a 2px radius inside a square
+   corner, and overflow:visible so the corners showed page. Answered with
+   .doc-read-seg's OWN mechanism — the box clips, the segment takes the box's
+   height — rather than a second set of numbers, so the two switches cannot
+   drift. THE CAUSE WAS ONE RUNG UP: the control row's type-rung rule stated
+   height:20px at five classes and outranked everything. That declaration is
+   deleted; it was the answer from the days when the lit half was a small pill
+   in a box, and the rule it lived in is about type size and weight. Fixed at
+   the cause, never by out-weighting it. The clause panel's History | + notes
+   moves with it, as it must.
+
+4. FOCUS MODE WAS DEAD ON THE NEGOTIATE PAGE. The head button added this morning
+   is drawn by roomHeadHtml for BOTH shells; the contract room answers its
+   attribute in wireWsFocus; the negotiate page wired only the MENU ROW's id. It
+   drew, it was hit-testable, and pressing it left the head standing at 146px.
+   Yesterday's browser check passed because it pressed the button in the contract
+   room, where it has always worked. One act now answers both door names on this
+   page, and the button's face is painted by whichever page owns it — scoped to
+   the mounted redline page, because two painters on one element is drift.
+
+5. THE PLAIN ENGLISH AMBER HAD NEVER MARKED A SINGLE CLAUSE. Adding obligations
+   as the third fact is what found it: the flag map was keyed on a clause id the
+   PAINTED page does not carry, while the reading that answers it mints one on
+   the fly for any body never stamped — so the two sides compared an id that
+   does not exist against one that changes per call. Nothing errored, nothing
+   logged, the source read correctly. Re-keyed onto the clause's own heading
+   through the same normaliser this column already pairs its readings with; an
+   empty heading is refused rather than collapsed into one shared key. The map
+   also carries EVERY reason for a clause now, not the first — the hover is the
+   only place a reader is told why the bar is there, and with three sources a
+   first-one-wins map is a silent trim.
+
+   Obligations are placed by the obligation's OWN QUOTE. One typed in by hand
+   carries no quote and marks nothing; the description is never reached for. A
+   completed duty draws nothing, read through the product's own obState.
+
+TESTS
+  · test/f337-five-off-four-screenshots.test.js — 31 claims, 22 red at the
+    parent (ae0c041); the nine that pass are named CONTROLS and WALLS.
+  · test/chromium/five-screenshots-verify.js — 29 checks in a real browser,
+    17 red at the parent, each reproducing the report in the owner's own words.
+  · Re-pointed in place: f335's add guard (the half it pinned was the bug) and
+    f277's control-row slice (PIN THE REGION, NOT A BYTE COUNT — paid again).
+  · Full node suite green: 7,974 tests, 0 failures. js/ and server/ at 0 lint
+    errors.
+
+NOTICED, NOT FIXED
+  · test/chromium/overview-as-drawn-verify.js:145 carries the project's one
+    remaining lint error ("Comparing to itself is potentially pointless"). It is
+    in a test file, not product code, and it is there at the parent too.
+  · test/chromium/nego-redesign-verify.js is 9 checks red, identically at the
+    parent — the head's reference arrow, the playbook-pass menu row and the
+    three check symbols. Pre-existing, left red.
+  · test/chromium/control-row-folds-verify.js is 1 red at the parent and here
+    ("the labels are still in the text at the deepest fold").
+  · test/chromium/plain-english-verify.js is 1 red at the parent and here.
+  · The friction brief draws a card only for a reading the book supports. On a
+    workspace with no signed negotiations only two of the four ever appear —
+    correct behaviour, but it means the row can look lopsided.

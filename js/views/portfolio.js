@@ -264,37 +264,20 @@ function pfRiskMap(){
   return pfCard(i18t('pf_risk_map'), i18t('pf_risk_map_hint'), body, foot);
 }
 
-/* --------------------------------------- 4. BIGGEST BY CONTRACTED VALUE ---- */
-function pfBiggest(){
-  const rs=pfRows('cp'), F=pfState();
-  const per=new Map();
-  rs.forEach(c=>{ const k=(c.counterparty||'').trim()||i18t('pf_no_counterparty');
-    const e=per.get(k)||{v:0,n:0,find:0,cat:pfCategoryOf(c)};
-    e.v+=pfWeight(c); e.n++; e.find+=pfFindingsOf(c).length; per.set(k,e); });
-  const keys=[...per.keys()].sort((a,b)=>per.get(b).v-per.get(a).v).slice(0,PF_MAX_ROWS);
-  if(!keys.length) return pfCard(i18t('pf_biggest'),'',
-    `<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:10px 0">${i18t('pf_nothing_here')}</div>`,'');
-  const max=per.get(keys[0]).v||1;
-  const th='text-align:left;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);padding:5px var(--s-2);border-bottom:1px solid var(--color-divider);white-space:nowrap';
-  const td='padding:7px var(--s-2);border-bottom:1px solid var(--color-divider);vertical-align:middle';
-  const rows=keys.map(k=>{
-    const e=per.get(k), sel=F.cp===k;
-    return `<tr data-pf-cp="${pfEsc(k)}" style="cursor:pointer;${sel?'background:color-mix(in srgb,var(--color-accent) 10%,transparent)':''}">
-      <td style="${td};font-weight:var(--w-strong)">${pfEsc(k)}
-        <div style="font-size:var(--t-label);color:var(--color-neutral-600);font-weight:var(--w-body)">${pfEsc(pfCatLabel(e.cat))}${e.n>1?' · '+pfN(e.n,'contracts'):''}</div></td>
-      <td style="${td};width:30%"><span style="display:block;height:7px;border-radius:var(--radius);background:var(--accent-solid,var(--color-accent));width:${Math.max(2,Math.round(e.v/max*100))}%"></span></td>
-      <td style="${td};text-align:right;font-weight:var(--w-title);font-variant-numeric:tabular-nums;white-space:nowrap">${pfMoneyOk()?pfEsc(pfMoney(e.v)):e.n}</td>
-      <td style="${td};text-align:right;white-space:nowrap">${e.find
-        ? `<span style="font-size:var(--t-label);font-weight:var(--w-title);padding:1px 7px;border-radius:var(--radius);background:var(--st-amber-bg);color:var(--st-amber-fg)">${e.find}</span>`
-        : `<span style="font-size:var(--t-label);color:var(--color-neutral-500)">—</span>`}</td></tr>`;
-  }).join('');
-  return pfCard(i18t('pf_biggest'),'',
-    `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:var(--t-meta)">
-      <thead><tr><th style="${th}">${i18t('pf_counterparty')}</th><th style="${th};width:30%">${pfMoneyOk()?i18t('pf_value'):i18t('pf_contracts')}</th>
-      <th style="${th};text-align:right">${pfMoneyOk()?jxCurrency():'#'}</th><th style="${th};text-align:right">${i18t('pf_findings')}</th></tr></thead>
-      <tbody>${rows}</tbody></table></div>`,
-    `${i18t('pf_largest')} ${keys.length} ${i18t('pf_of')} ${per.size} ${i18t('pf_in_focus')}. ${i18t('pf_click_a_row')}`);
-}
+/* ---- 4. BIGGEST BY CONTRACTED VALUE IS GONE (Young ruled it 19 Sep 2026) ----
+   "Delete this card." It ranked the top counterparties by contracted value
+   with a bar each, their contract count, their category and a count of their
+   open findings, and every row was a door that filtered the whole page to that
+   counterparty.
+   WHAT IS LOST, said out loud because deleting a surface is as much a change
+   as adding one: that ranking. Nothing else — the counterparty FILTER it fed
+   is also on every dot of the risk map above it (`data-pf-cp`, one handler,
+   both homes), so the door survives the card; the panel was never in
+   PF_PANEL_DATA, so Copilot could not read it and loses nothing; and the money
+   it summed is still counted on the figures row and in Where value sits.
+   `pf_biggest`, `pf_largest`, `pf_in_focus`, `pf_click_a_row` and
+   `pf_no_counterparty` are STALE ON THE FACE — inert in both books, never
+   deleted, which is how this product retires a sentence. */
 
 /* ------------------------------------------- 5. WHAT THIS SLICE SAYS ------- */
 /* Sentences, computed. Not a model's summary — every one of these is arithmetic
@@ -484,7 +467,6 @@ function portfolioFrameHtml(){
     ${row([renewal])}
     <div class="pf-grid pf-6-6">${pfRiskMap()}${pfWhereValueSits()}</div>
     ${row(tail)}
-    <div class="pf-grid">${pfBiggest()}</div>
     <div class="pf-grid pf-6-6">${pfReadout()}${pfFindings()}</div>
     <div style="margin-top:2px;padding:9px 13px;border-radius:var(--radius);background:var(--color-neutral-100);font-size:var(--t-label);line-height:1.55;color:var(--color-neutral-600)">
       ${i18t('pf_honesty_note')}
@@ -612,7 +594,7 @@ function pfMarkFinding(findingId){
 }
 
 Object.assign(window,{PF_SOON_DAYS,PF_MAX_ROWS,PF_FINDINGS_PAGE,pfState,pfOpenContract,pfMarkFinding,pfFindingsFoot,pfLive,pfRows,pfSum,pfWeight,pfN,pfMoneyOk,
-  pfPct,pfShare,pfCategoryOf,pfCatLabel,pfFindingsOf,pfRounds,pfSentences,pfFigures,pfWhereValueSits,pfRiskMap,pfBiggest,
+  pfPct,pfShare,pfCategoryOf,pfCatLabel,pfFindingsOf,pfRounds,pfSentences,pfFigures,pfWhereValueSits,pfRiskMap,
   pfReadout,pfFindings,portfolioFrameHtml,wirePortfolioFrame});
 
 /* ============================================================================

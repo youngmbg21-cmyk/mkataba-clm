@@ -1768,7 +1768,17 @@ function redlineLayoutCss(){
   .redline-page .rl-head .rl-type-step button,
   .redline-page .rl-head .rl-type-step .rl-type-out{font-size:var(--t-body);font-weight:var(--w-body)}
   .redline-page .rl-head .rl-segwrap:not(.rl-readwrap){height:var(--ctl-h)}
-  .redline-page .rl-head .rl-segwrap:not(.rl-readwrap) .rl-seg{height:20px;
+  ${''/* THE HEIGHT CAME OUT OF THIS RULE ON 19 Sep 2026, and it is the cause
+         rather than a dodge. This rule is about the ROW'S RUNG — one type size
+         and one weight across every control the head draws — and 20px was the
+         answer from the days when the lit half was a small pill floating in a
+         box. Young ruled that the shading fills the whole shaded half, so the
+         segment takes the BOX's height now (see the seat switch's own rule
+         further down), and a 20 stated here at five classes simply outranked
+         it and left 3px of page showing above and below the fill. MEASURED:
+         gap 3 top / 3 bottom before, 0 and 0 after. Fixed by taking the stale
+         declaration out, never by out-weighting it. */}
+  .redline-page .rl-head .rl-segwrap:not(.rl-readwrap) .rl-seg{
     font-size:var(--t-body);font-weight:var(--w-body)}
   .redline-page .rl-head .rl-segwrap:not(.rl-readwrap) .rl-seg.on{font-weight:var(--w-title)}
   .redline-page .rl-head .rl-livelist{font-size:var(--t-body);font-weight:var(--w-body)}
@@ -5325,12 +5335,29 @@ function redlineLayoutCss(){
          the two share this rule because they had already drifted apart once by
          being written twice (owner-asked 25 Aug 2026), and f236 pins the pair.
          Both were offered; the owner took "both move together". */}
+  ${''/* ---- AND THE SHADING FILLS THE WHOLE SHADED HALF (Young ruled it
+         19 Sep 2026) ----------------------------------------------------
+         "Shading should fill the whole shaded button." MEASURED: the box was
+         28px tall with a 26px segment inside it and no clip, so the lit half
+         drew as a rounded pill floating in a square box with a hairline of
+         page showing along its top, bottom and corners. TWO CAUSES, both
+         inherited from the base .rl-segwrap it was widened out of: the
+         segment states its own height rather than taking the box's, and the
+         base .rl-seg carries a border radius for the grey pill-in-a-trough
+         control this one stopped being.
+         (No backticks in this file — see f236. CSS never needs one, and a
+         balanced pair inside this template literal is EVALUATED.)
+         THE ANSWER IS .doc-read-seg's OWN, not a second set of numbers — the
+         switch it was told to resemble clips at the box and lets its buttons
+         take the full height, which is why its fill has always reached the
+         edge. Copying the mechanism rather than the measurement is what keeps
+         the two from drifting the next time either is retuned. */}
   .redline-page .rl-actions .rl-segwrap,
   .redline-page .rl-cp-head .rl-segwrap{height:28px;padding:0;gap:0;background:var(--color-surface);
-    border:1px solid var(--accent-ink);align-self:center}
+    border:1px solid var(--accent-ink);align-self:center;overflow:hidden}
   .redline-page .rl-actions .rl-segwrap .rl-seg,
-  .redline-page .rl-cp-head .rl-segwrap .rl-seg{height:26px;padding:0 var(--s-3);font-size:var(--t-meta);
-    box-shadow:none;background:none;color:var(--accent-ink)}
+  .redline-page .rl-cp-head .rl-segwrap .rl-seg{height:100%;padding:0 var(--s-3);font-size:var(--t-meta);
+    box-shadow:none;background:none;color:var(--accent-ink);border-radius:0}
   .redline-page .rl-actions .rl-segwrap .rl-seg.on,
   .redline-page .rl-cp-head .rl-segwrap .rl-seg.on{background:var(--color-accent-700);color:#fff;
     font-weight:var(--w-title);box-shadow:none}

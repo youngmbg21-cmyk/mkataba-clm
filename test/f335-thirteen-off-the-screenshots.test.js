@@ -426,10 +426,22 @@ describe('f335 (12) — bold from facts, amber from the record', () => {
     assert.match(body, /rlPbFindClause\(c,q,cat\)/,
       'placed through the ONE reading that refuses rather than guesses');
   });
+  /* RE-POINTED IN PLACE 19 Sep 2026, and this file's own standing lesson is
+     what it cost. The claim is about BEHAVIOUR — a finding rlPbFindClause
+     could not place adds nothing — and it was pinned as the exact one-line
+     shape the guard was written in on the day, `if(!cl||!cl.clauseId`.
+     AND THE HALF IT PINNED WAS THE BUG. Measured in a browser the next day:
+     that clause id was never going to match anything, because docReadSheet
+     walks the PAINTED page and its rows carry no id at all — so the amber this
+     claim was written to protect had never marked a single clause. The keying
+     moved onto the clause's own heading, which both sides really hold, and the
+     claim is pinned as the two REFUSALS it is actually about. */
   test('an unplaceable finding marks NOTHING rather than the wrong paragraph', () => {
     const body = fnBody(CONTRACT, 'docReadFlags');
-    assert.match(body, /const add=\(cl,why\)=>\{ if\(!cl\|\|!cl\.clauseId/,
+    assert.match(body, /const add\s*=\s*\(cl,\s*why\)\s*=>\s*\{[\s\S]{0,60}?if\(!cl\|\|!why\) return;/,
       'a null clause adds no flag');
+    assert.match(body, /if\(!k\) return;/,
+      'and a clause it cannot key adds none either, rather than sharing one');
   });
   test('RED AND GREEN ARE ABSENT, and that is the ruling', () => {
     const at = HTML.indexOf('.doc-read-note.dr-watch');

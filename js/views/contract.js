@@ -9257,7 +9257,38 @@ function docReadMark(text){
 function docReadFlags(c){
   const out=new Map();
   if(!c) return out;
-  const add=(cl,why)=>{ if(!cl||!cl.clauseId||out.has(cl.clauseId)) return; out.set(cl.clauseId,{why}); };
+  /* EVERY REASON, NOT THE FIRST ONE (19 Sep 2026). This used to return on a
+     clause it had already marked, which was harmless while there were two
+     sources and silently lossy the moment there were three: a clause carrying
+     an obligation AND a playbook departure would have said only whichever was
+     read first, and the hover is the ONLY place a reader is told why the bar
+     is there. A cut is a fact, never a silent trim — so the reasons collect
+     and the title states all of them, one per line. */
+  /* ---- KEYED ON THE CLAUSE'S OWN HEADING, WHICH IS WHAT BOTH SIDES HOLD ----
+     This was keyed on `clauseId` and NOTHING WAS EVER MARKED. `docReadSheet`
+     walks the PAINTED PAGE and its rows carry no clause id at all, and
+     `rlPbFindClause` answers off `clauseSegment`, which MINTS an id on the fly
+     for any body that has never been stamped — so the two sides were comparing
+     an id the page does not have against one that changes per call. Nothing
+     errored, nothing logged, the source read correctly: the guard that is
+     always false, in its fourth costume.
+     THE HEADING IS THE PAIRING THIS COLUMN ALREADY USES — `docReadAnchors`
+     checks every reading against "the heading's own words" through
+     `_docReadNorm`, and that is the same reading used here so the two cannot
+     drift. It works on stamped and unstamped paper alike, which an id does not.
+     AN EMPTY HEADING IS REFUSED rather than collapsed into one key: every
+     headingless clause would share it, and a bar beside the wrong clause is
+     worse than no bar. Two clauses genuinely sharing a heading would both be
+     marked — a mark too many, never a mark in the wrong place. */
+  const add=(cl,why)=>{
+    if(!cl||!why) return;
+    const k=_docReadNorm(cl.headingText);
+    if(!k) return;
+    const e=out.get(k);
+    if(!e){ out.set(k,{why, whys:[why]}); return; }
+    if(e.whys.indexOf(why)>=0) return;
+    e.whys.push(why); e.why=e.whys.join('\n');
+  };
   const find=(q,cat)=>{ if(!q||typeof rlPbFindClause!=='function') return null;
     try{ return rlPbFindClause(c,q,cat); }catch(_){ return null; } };
   try{
@@ -9272,6 +9303,34 @@ function docReadFlags(c){
     for(const f of fs){
       if(!f) continue;
       add(find(f.quote||f.text,f.category), i18t('ct_read_watch_scan'));
+    }
+  }catch(_){}
+  /* ---- AND A PROMISE SOMEBODY MADE IS THE THIRD FACT (Young asked 19 Sep
+     2026: "Plain English contract should highlight obligations in Amber") ----
+     An obligation is the strongest fact of the three: it is not a judgement
+     about the clause at all, it is a duty this workspace has already RECORDED
+     off it, with an owner and a date, and it is already shown on four other
+     screens. So it earns the same amber the other two wear, and the hover says
+     which of the three — or all of them — put the bar there.
+     IT IS PLACED BY THE OBLIGATION'S OWN QUOTE, through the same
+     `rlPbFindClause` that refuses rather than guesses. An obligation somebody
+     typed into the form by hand carries no quote and therefore marks nothing:
+     an absence is stated by drawing no bar, never guessed at by reaching for
+     the description, which is a summary in the reader's own words and would
+     land on whichever clause happened to share a word with it.
+     A COMPLETED DUTY IS NOT A WATCH: `obState` is the product's own reading of
+     where an obligation stands, borrowed rather than re-derived, and a done
+     one draws nothing. READING MUST NOT WRITE — `c.obligations` is read raw
+     and every hop is guarded, because this runs on a Document tab that may
+     carry neither js/obligations.js nor js/playbook.js. */
+  try{
+    const obs=Array.isArray(c.obligations)?c.obligations:[];
+    for(const o of obs){
+      if(!o||!o.quote) continue;
+      let st='open';
+      try{ if(typeof obState==='function') st=obState(o); }catch(_){}
+      if(st==='done') continue;
+      add(find(o.quote,''), i18t('ct_read_watch_oblig'));
     }
   }catch(_){}
   return out;
@@ -9463,14 +9522,17 @@ function docReadPaint(c){
          ESCAPED text. No model decides what is emphasised, so nothing can be
          talked up, and it costs nothing: the reading on file is unchanged.
          THE AMBER is `docReadFlags` — a clause your playbook disagrees with,
-         or one the risk scan flagged. Facts HaTi already holds, resolved
-         through `rlPbFindClause`, which REFUSES rather than guesses.
+         one the risk scan flagged, or one a live obligation was recorded off
+         (Young added the third on 19 Sep 2026). All three are facts HaTi
+         already holds and already shows elsewhere, all three are resolved
+         through `rlPbFindClause`, which REFUSES rather than guesses, and the
+         hover names every one of them that applies to this clause.
          RED AND GREEN ARE DELIBERATELY ABSENT and the owner ruled on it: a
          colour saying "this is bad for you" with nothing behind it is Copilot
          giving a legal opinion on its own authority, which is the one thing
          this product's Copilot never does; and in HaTi green and red are
          already the redline's own grammar for added and struck. */
-      const flag=p.row&&p.row.clauseId?flags.get(p.row.clauseId):null;
+      const flag=(p.row&&p.row.heading)?flags.get(_docReadNorm(p.row.heading)):null;
       return `<div class="doc-read-note${sec?' dr-sec':''}${shape}${flag?' dr-watch':''}" data-doc-read-note="${n}"${
           flag?` title="${esc(flag.why)}"`:''}${hsize?` style="--dr-hsize:${hsize}"`:''}>`
         +(head?`<${sec?'h3':'h4'} class="${sec?'dr-s':'dr-h'}">${numHtml}${esc(head)}</${sec?'h3':'h4'}>`:'')

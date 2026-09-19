@@ -7775,14 +7775,24 @@ function rlSetFocus(on){
    under focus, so its face has to say which of the two it currently is. */
 function rlPaintFocusBtn(){
   if (typeof document === 'undefined') return;
-  document.querySelectorAll('[data-rl-focus]').forEach(b => {
+  const face = b => {
     b.classList.toggle('on', _rlFocus);
     b.setAttribute('aria-pressed', _rlFocus ? 'true' : 'false');
     b.setAttribute('aria-label', _rlFocus ? 'Exit focus mode' : 'Enter focus mode');
     b.title = _rlFocus
       ? 'Exit focus mode — bring the header back'
       : 'Focus mode — hide the header and give the space to the document and the changes';
-  });
+  };
+  document.querySelectorAll('[data-rl-focus]').forEach(face);
+  /* THE HEAD'S BUTTON IS PAINTED BY WHICHEVER PAGE OWNS IT, and the scope is
+     what keeps that true. `data-ws-focus` is drawn on BOTH shells by
+     roomHeadHtml, and in the contract room applyWsFocus is its painter — two
+     painters on one element is drift, which is the fault this file has paid
+     for elsewhere. So this one only reaches a button drawn INSIDE a mounted
+     redline page; in the room there is no such page around the head and this
+     loop finds nothing. */
+  const page = rlFocusPage();
+  if (page && page.querySelectorAll) page.querySelectorAll('[data-ws-focus]').forEach(face);
 }
 function rlResetFocus(){ _rlFocus = false; }
 /* Esc is the second exit, wired once onto the document and guarded twice: the
@@ -9815,7 +9825,20 @@ function renderRedline(){
   /* Focus in, focus out — ONE button, toggling. A class flip, not a repaint —
      see rlSetFocus. The paint call lines the fresh button's face up with the
      mode the page came back in. */
-  host.querySelectorAll('[data-rl-focus]').forEach(el =>
+  /* ---- AND THE HEAD'S OWN BUTTON IS THE SECOND DOOR (Young reported it dead
+     19 Sep 2026) --------------------------------------------------------
+     The head button added on 19 Sep carries `data-ws-focus`, because
+     roomHeadHtml draws it for BOTH shells and the contract room answers that
+     attribute in wireWsFocus. This page never calls wireWsFocus — it has its
+     own focus mode, `rl-focus` on the page plus `rl-focused` on the body — and
+     the only thing it wired was `#ws-focus`, which is the MENU ROW's id and
+     not an attribute the button carries. So the button drew, looked live, and
+     did nothing on this page alone. f295's lesson in a third costume: a door
+     drawn by a shared builder must be answered by every page that draws it.
+     ONE ACT ANSWERS BOTH NAMES here, exactly as wireWsFocus answers both in
+     the room — the attribute names the DOOR, and each page decides what focus
+     mode means on it. */
+  host.querySelectorAll('[data-rl-focus],[data-ws-focus]').forEach(el =>
     el.addEventListener('click', () => rlSetFocus(!rlFocusOn())));
   host.querySelectorAll('[data-rl-focus-exit]').forEach(el =>
     el.addEventListener('click', () => rlSetFocus(false)));

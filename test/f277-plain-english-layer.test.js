@@ -848,10 +848,19 @@ describe('f277 (11) the control row reads as one row with the acts above it', ()
     assert.ok(/font-weight:var\(--w-title\)/.test(css));
   });
 
+  /* RE-POINTED IN PLACE 19 Sep 2026 — PIN THE REGION, NOT A BYTE COUNT, which
+     is this codebase's most-repeated lesson and was paid again here. The window
+     was 900 characters forward from the first rule, so a note written INSIDE
+     the group (the seat switch's height came out of it when Young ruled that
+     the shading fills the whole shaded half) pushed the last two rules past the
+     budget and this went red on a group that still says every word it said.
+     The region is now bounded by its own first and last rule. */
   test('the negotiation control row takes the same rung, scoped to its own group', () => {
     const at = NEGO_CSS.indexOf('.redline-page .rl-head .rl-type-step{');
     assert.ok(at > 0, 'the block exists');
-    const css = NEGO_CSS.slice(at, at + 900);
+    const tail = NEGO_CSS.indexOf('.rl-head .rl-needs{', at);
+    assert.ok(tail > at, 'and it still ends with the needs chip');
+    const css = NEGO_CSS.slice(at, tail + 120);
     assert.ok(/\.rl-head \.rl-type-step\{height:var\(--ctl-h\)/.test(css));
     assert.ok(/\.rl-head \.rl-segwrap:not\(\.rl-readwrap\)\{height:var\(--ctl-h\)\}/.test(css));
     assert.ok(/\.rl-head \.rl-livelist\{font-size:var\(--t-body\);font-weight:var\(--w-body\)\}/.test(css));
