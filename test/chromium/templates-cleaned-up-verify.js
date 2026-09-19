@@ -211,11 +211,45 @@ const SEED = () => {
     await page.evaluate(() => { try { closeModal(); } catch (e) {} });
     await pause(400);
 
-    /* ============ 4 · THE FIRST TAB ANSWERS HOW THE PAPER IS DOING ======== */
-    await page.evaluate(() => tplPageSetTab('overview'));
-    await pause(700);
+    /* ============ 4 · HOW THE PAPER IS DOING, AND WHERE IT WENT ==========
+       ════ RE-POINTED IN PLACE, 19 Sep 2026 ═══════════════════════════════
+       This section drove the FIRST TAB, and hours after it was written the
+       owner said *"delete the templates overview page"* (option (a) of the
+       three he was offered): the book's own glance already opens with this
+       card's headline, *Came back changed*, and two tabs leading with one
+       number is the fault this product keeps paying for.
+
+       EVERY MEASUREMENT THE SECTION EXISTS FOR SURVIVES, because the reading
+       does: tplHealthData / tplHealthHtml are kept whole and unreferenced,
+       the way tplOverviewHtml beside them is kept. So the card is MOUNTED
+       off-screen at a real width and measured there — the bars are still
+       compared down a column, the segments still have to fill them, and the
+       words still have to lead with the right figure. It is torn down again
+       before section 5 measures the page as a reader has it.
+
+       WHAT REALLY MOVED is the pair of DOOR claims. Those doors are drawn by
+       the two panels, and the panels are on THE BOOK now — so 4f and 4g are
+       measured there, on the page, with a real press. */
+    const gone = await page.evaluate(() => ({
+      sec: !!document.querySelector('[data-tpl-sec="overview"]'),
+      tab: !!document.querySelector('[data-tpl-tab="overview"]'),
+      rows: document.querySelectorAll('.tpl-h-row').length,
+      built: typeof tplHealthHtml === 'function' && typeof tplHealthData === 'function',
+    }));
+    check('4a · the tab is gone from the page, and the reading is on the shelf',
+      !gone.sec && !gone.tab && gone.rows === 0 && gone.built, gone);
+
     const health = await page.evaluate(() => {
-      const sec = document.querySelector('[data-tpl-sec="overview"]');
+      const host = document.createElement('div');
+      host.id = 'tpl-health-probe';
+      /* BESIDE the page, never over it — templates-tabs-verify's own probe
+         and its own reason: at left:0 it covers the tab row and Playwright's
+         clicks time out against it. Off-screen still reports real widths,
+         which is all this section asks. */
+      host.style.cssText = 'position:absolute;left:-4000px;top:0;width:1218px';
+      host.innerHTML = tplHealthHtml(tplHealthData());
+      document.body.appendChild(host);
+      const sec = host;
       const bars = [...sec.querySelectorAll('.tpl-h-row')].map(r => {
         const seg = [...r.querySelectorAll('i')].map(i => Math.round(i.getBoundingClientRect().width));
         const tr = r.querySelector('div[style*="height:7px"]');
@@ -230,7 +264,7 @@ const SEED = () => {
         h: Math.round(sec.getBoundingClientRect().height),
       };
     });
-    check('4a · the tab is drawn and is not the category wall',
+    check('4a2 · the shelved reading still draws, and is not the category wall',
       health.h > 200 && health.buckets === 0 && health.rows >= 3,
       { h: health.h, buckets: health.buckets, rows: health.rows });
     check('4b · it leads with how much of our paper comes back changed',
@@ -246,13 +280,25 @@ const SEED = () => {
     check('4e · and a bar’s segments fill it — nothing is dropped off the end',
       health.bars.every(b => Math.abs(b.seg.reduce((n, x) => n + x, 0) - b.w) <= 2),
       health.bars.slice(0, 3));
-    check('4f · every row is a door onto the table',
-      health.doors >= 3, { doors: health.doors });
+    await page.evaluate(() => { const h = document.getElementById('tpl-health-probe'); if (h) h.remove(); });
+
+    /* THE NAME DOOR IS ON THE BOOK NOW — the two panels moved there with the
+       card wall, and there the handler renderTemplatesPage bound really fires.
+       A press on the probe above would reach nothing: it is markup mounted
+       after the wiring ran. */
+    await page.evaluate(() => tplPageSetTab('book'));
+    await pause(700);
+    const bk = await page.evaluate(() => ({
+      doors: document.querySelectorAll('[data-tpl-sec="book"] [data-tpl-ov-card]').length,
+      h: Math.round(document.querySelector('[data-tpl-sec="book"]').getBoundingClientRect().height),
+    }));
+    check('4f · the book draws the name door, and it is drawn in real pixels',
+      bk.doors >= 1 && bk.h > 200, bk);
     await page.screenshot({ path: path.join(OUT, '03-health.png'), fullPage: true });
 
     /* pressing one lands on the table, narrowed */
     const landed = await page.evaluate(async () => {
-      const b = document.querySelector('[data-tpl-sec="overview"] [data-tpl-ov-card]');
+      const b = document.querySelector('[data-tpl-sec="book"] [data-tpl-ov-card]');
       const name = b.getAttribute('data-tpl-ov-name');
       b.click();
       await new Promise(r => setTimeout(r, 400));
