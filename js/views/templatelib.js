@@ -557,6 +557,102 @@ async function tplLibCreate(id, essentials) {
    a refusal is read rather than toasted. That is why the draft is looked for
    in the detail first AND the refusal is honoured: two readers can press Edit
    in the same second and both land in the same draft. */
+/* ════ A TEMPLATE'S WORDING IS A CONTRACT, SO IT SITS ON PAPER ═════════
+   (Young ruled it 19 Sep 2026.) *"The page needs to look like it is on a paper
+   contract not just across the screen."*
+
+   MEASURED on this very block before it moved: `background: transparent`,
+   `box-shadow: none`, **1194px wide** — the whole page, edge to edge — inside
+   a box clipped to 420px with a scrollbar. Every other screen in HaTi that
+   shows an agreement gives it a sheet; this one gave it nothing, so it read as
+   interface rather than as paper.
+
+   NOTHING NEW IS INVENTED HERE. This is the Document tab's own sheet, value
+   for value (`--color-doc-warm` ground, `--color-doc-warm-line` edge,
+   `--shadow-paper`, `--doc-sheet-max` wide, centred, square-cornered because
+   THE CONTRACT STAYS SQUARE), wrapped round the design step's own
+   `<article class="doc-surface"><div class="hati-doc">` pairing.
+
+   THAT PAIRING IS THE WHOLE REASON THE FACE ARRIVES. The five design rules in
+   index.html read `[data-doc-body]` as an ANCESTOR and name
+   `:is(.doc-surface,.rl-paper)` — not `.hati-doc` — so a bare `.hati-doc`
+   under the hook gets the sheet and not the typeface. The other answer was to
+   widen those 34 selectors (the 11 Sep precedent for `.rl-paper`); this one is
+   narrower and already proven on the design step's preview, and because the
+   two classes sit on DIFFERENT elements neither can win a size-and-leading tie
+   against the other on source order.
+
+   THE DESIGN IS THE WORKSPACE'S, NOT A CONTRACT'S. `resolveDocBranding(null)`
+   answers with the org default — which is exactly what a contract drafted from
+   this template will wear, so the preview shows the face the paper will really
+   print in. Read through `window` in a try, because branding.js is not on
+   every stage this page renders in.
+
+   NO CLIP. The 420px box was what made a contract read as a widget; the sheet
+   is as long as the wording and the page scrolls, as a page does.
+
+   AND IT COSTS THE WORDING 35 PIXELS, WHICH REFUSAL 3 REFUSES. Measured from
+   the top of the window to the first line of the agreement, on the same
+   template, before and after: **300 → 335**. That is the sheet's own 34px top
+   padding, and it is what MAKES it a sheet — a page of paper whose first line
+   sits against the edge is not paper. The owner asked for this screen by name
+   (*"the page needs to look like it is on a paper contract"*), so the refusal
+   is spent on their ruling rather than argued, and the number is recorded here
+   so the next person deciding whether to spend more of it knows what has
+   already gone. It is NOT paid for out of the grey around the sheet: that grey
+   is the page ground, not spare chrome. */
+function tplLibSheetHtml(wording) {
+  let b = null;
+  try { b = window.resolveDocBranding ? resolveDocBranding(null) : null; } catch (_) { b = null; }
+  const paperAttr = (() => { try { return window.docDesignPaperAttr ? docDesignPaperAttr(b) : ''; } catch (_) { return ''; } })();
+  const paperStyle = (() => { try { return window.docDesignPaperStyle ? docDesignPaperStyle(b) : ''; } catch (_) { return ''; } })();
+  return `<div class="blueprint"${paperAttr} style="background:var(--color-doc-warm);border-color:var(--color-doc-warm-line);box-shadow:var(--shadow-paper);padding:34px var(--s-10) 44px;max-width:var(--doc-sheet-max,860px);margin:0 auto;border-radius:0;${paperStyle}">
+    <article class="doc-surface" style="background:transparent"><div class="hati-doc">${wording}</div></article>
+  </div>`;
+}
+
+/* ---- ONE WRITER FOR RESTORE, TWO DOORS ONTO IT (19 Sep 2026) ----
+   The detail page has always had a Restore button; the refusal above now has
+   one too, and both press this. `after` is what the caller wants to happen
+   once the record has moved — the detail page repaints itself, the refusal
+   goes on into the builder — so the ACT is shared and only the landing
+   differs. Returns whether it worked, so a caller never walks on into a door
+   the server refused. */
+async function tplLibRestore(t, after) {
+  try {
+    await api('templates/' + t.id, 'PATCH', { status: 'restore' });
+    toast(i18t('tl_restored', { name: t.name }), 'ok');
+    if (typeof after === 'function') await after();
+    return true;
+  } catch (e) { toast((e && e.message) || i18t('tl_restore_failed'), 'err'); return false; }
+}
+
+/* The archived refusal itself. Drawn rather than toasted, because it asks a
+   question and a toast cannot be answered. */
+function tplLibArchivedAsk(t) {
+  const esc2 = v => String(v == null ? '' : v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  openModal(`<div style="padding:var(--s-4)">
+    <h3 style="margin:0 0 var(--s-2);font-family:var(--font-heading);font-size:var(--t-card);font-weight:var(--w-strong)">${esc2(i18t('tl_arch_title', { name: t.name }))}</h3>
+    <p style="margin:0 0 var(--s-4);font-size:var(--t-meta);color:var(--color-neutral-700);line-height:1.6">${i18t('tl_arch_says')}</p>
+    <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;justify-content:flex-end">
+      <button id="tl-arch-no" class="ui-btn" style="font-size:var(--t-meta)">${i18t('tl_arch_leave')}</button>
+      <button id="tl-arch-only" class="ui-btn" style="font-size:var(--t-meta)">${i18t('tl_arch_restore')}</button>
+      <button id="tl-arch-go" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta)">${i18t('tl_arch_restore_edit')}</button>
+    </div>
+  </div>`, { maxWidth: DLG_W.m });
+  document.getElementById('tl-arch-no')?.addEventListener('click', closeModal);
+  document.getElementById('tl-arch-only')?.addEventListener('click', async () => {
+    closeModal();
+    await tplLibRestore(t, () => { if (typeof renderTemplatesPage === 'function') renderTemplatesPage(); });
+  });
+  document.getElementById('tl-arch-go')?.addEventListener('click', async () => {
+    closeModal();
+    /* The record has to have moved before Edit is pressed again, or the wall
+       above refuses it a second time — so the re-press is the `after`. */
+    await tplLibRestore(t, () => tplLibEdit(t.id));
+  });
+}
+
 async function tplLibEdit(id) {
   if (newPaperBlock()) return;
   let d;
@@ -564,9 +660,32 @@ async function tplLibEdit(id) {
   catch (e) { toast(e.message, 'err'); return; }
   const t = d.template, versions = d.versions || [];
   if (!d.canManage) { toast(i18t('tl_admin_legal_only'), 'err'); return; }
-  /* A shelved template takes no new wording. Said in words rather than drawn
-     as a dead button, because the row cannot know the status before it asks. */
-  if (t.status === 'archived') { toast(i18t('tl_edit_archived'), 'warn'); return; }
+  /* ════ A REFUSAL CARRIES ITS WAY FORWARD (Young ruled it 19 Sep 2026) ═════
+     *"I do not understand what the pop up error means."* The message was
+     `tl_edit_archived`: *"This template is on the shelf. Restore it before
+     changing the wording."* Three faults, and the third is the one that
+     matters. **"On the shelf" is OUR word** — nothing on that screen says
+     shelf, the product's own word is Archived, and the row the reader pressed
+     says neither. It **never named the template**, and Edit can be pressed on
+     any of forty. And it **told the reader to press Restore without giving
+     them one**: there is no Restore button on that screen, so the sentence was
+     an instruction to go and look for a door — breaking this codebase's own
+     standing rule that a refusal's way forward sits on the same screen as the
+     refusal.
+
+     NO DATE IS PRINTED, because `templates` carries no `archived_at` column.
+     Reading `updated_at` and calling it the archive date would be a guess in a
+     fact's clothes, and would read as a lie the first time somebody renames an
+     archived template. **An absence is stated, never guessed** — so the
+     dialog names the template and says what archiving means instead.
+
+     TWO ACTS, BECAUSE THEY ARE TWO DIFFERENT INTENTIONS. "Restore and edit"
+     is what somebody pressing Edit meant; "Just restore it" is for somebody
+     who wanted the template usable again and nothing more. Both go through
+     `tplLibRestore`, the ONE writer, so a second door cannot drift from the
+     first. `tl_edit_archived` is STALE ON THE FACE and stays inert in both
+     books. */
+  if (t.status === 'archived') { tplLibArchivedAsk(t); return; }
   let draft = versions.find(v => v.status === 'draft');
   const live = versions.find(v => v.status === 'published');
   if (!draft) {
@@ -826,9 +945,7 @@ async function openTemplateLibDetail(id) {
         ${canManage && t.status !== 'archived' ? `<button id="tpllib-edit-wording" class="ui-btn" style="font-size:var(--t-meta);padding:var(--s-1) 10px">${icon('pencil', 'w-3 h-3')} ${i18t('act_edit')}</button>` : ''}
       </div>
       ${wording
-        ? `<div style="padding:var(--s-4);max-height:420px;overflow:auto">
-             <div class="hati-doc" style="font-size:14px">${wording}</div>
-           </div>`
+        ? `<div style="padding:var(--s-4);background:var(--color-bg)">${tplLibSheetHtml(wording)}</div>`
         : `<div style="padding:22px var(--s-4);font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.6">${
              showVer ? i18t('tl_wording_unreadable') : i18t('tl_wording_none')}</div>`}
     </section>
@@ -851,10 +968,11 @@ async function openTemplateLibDetail(id) {
       openTemplateLibDetail(t.id);
     } catch (e) { toast(e.message, 'err'); }
   });
-  document.getElementById('tpllib-restore')?.addEventListener('click', async () => {
-    try { await api('templates/' + t.id, 'PATCH', { status: 'restore' }); toast(`“${t.name}” restored`); openTemplateLibDetail(t.id); }
-    catch (e) { toast(e.message, 'err'); }
-  });
+  /* The second of the two doors onto tplLibRestore. It used to write the
+     PATCH itself with an English toast built inline — so this page and the
+     archived refusal would have said different things about the same act. */
+  document.getElementById('tpllib-restore')?.addEventListener('click', () =>
+    tplLibRestore(t, () => openTemplateLibDetail(t.id)));
   document.getElementById('tpllib-delete')?.addEventListener('click', async () => {
     const ok = typeof confirmDialog === 'function'
       ? await confirmDialog({ title: `Delete “${t.name}”?`, message: 'It has never spawned a contract, so nothing cites it. This cannot be undone.', confirmLabel: 'Delete template', danger: true })
@@ -1124,6 +1242,7 @@ Object.assign(window, { newPaperBlocked, newPaperBlockLine, newPaperBlock, tplLi
   tplLibUploadModal, tplLibCreateModal,
   renderCompanyTemplatesSection, tplLibPublished, tplLibCount, tplLibRefresh,
   openTemplateLibDetail, tplLibEdit, tplLibCanManage, tplLibCancelPending,
+  tplLibSheetHtml, tplLibRestore, tplLibArchivedAsk,
   saveContractToLibrary, tplLibNewContract, renderTemplateFormSection, openTemplateConfirm,
   tplFormCommit, tplFormBlankClick,
   TPLLIB_CATEGORIES, TPLLIB_STATUS, templateCategories, tplCategoryName, tplCatSaved,

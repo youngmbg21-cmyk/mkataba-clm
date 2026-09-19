@@ -5294,22 +5294,88 @@
   .tpl-cols{grid-template-columns:196px 1fr;}
   @media (max-width:899px){ .tpl-cols{grid-template-columns:minmax(0,1fr);} }
 
-  /* ════ THE ROW'S SECOND AND THIRD VERBS ARE REVEALED, NEVER REMOVED ═══════
-     (Young confirmed 18 Sep 2026.) At rest a row shows what you came for and
-     nothing else; Edit and the dots appear when you point at it. They stay in
-     the DOM the whole time, so:
-       · `:focus-within` shows them the moment a keyboard tabs in — a control
-         revealed only by a pointer is a control a keyboard cannot reach, and
-         `display:none` would take them out of the tab order entirely, which
-         is why this is opacity and not display;
-       · `@media (hover:none)` draws them always, because a touch screen has
-         no hover and would otherwise never show the second verb at all.
-     Measured cost of not doing this: thirty-seven rows times three buttons is
-     ninety-nine controls competing on one screen. */
-  .tpl-rest{display:inline-flex;gap:6px;opacity:0;transition:opacity 120ms var(--ease-exit,ease);}
-  tr:hover .tpl-rest, tr:focus-within .tpl-rest{opacity:1;}
-  @media (hover:none){ .tpl-rest{opacity:1;} }
-  @media (prefers-reduced-motion:reduce){ .tpl-rest{transition:none;} }
+  /* ════ THE VERBS START FROM ONE LINE (Young ruled it 19 Sep 2026) ═════════
+     *"The buttons have to align on a straight align across all the tabs in
+     templates."* MEASURED on the real table, where each row's FIRST button
+     began: saved templates x=1236, HaTi's own twelve x=1195, samples x=1316 —
+     **three left edges, 121px apart**, down one column.
+
+     THE CAUSE IS THAT THEY WERE PUSHED FROM THE RIGHT. With the cell
+     right-aligned, a row's first verb begins wherever the verbs BEHIND it
+     happen to end, so it moves with the length of the second word ("Make it
+     ours" is 99px, "Open" is 58) and with how many verbs the kind has at all.
+     Every kind drew a different set, so no two kinds could ever line up.
+
+     So the cell packs from its own LEFT edge and the row keeps whatever space
+     is left over, which is a fixed line at every width because the column is a
+     percentage of the table. A row with fewer verbs leaves the tail empty
+     rather than sliding everything across. `.tpl-rest` (the hover reveal this
+     replaces) is STALE — see the note in tplPageRowHtml. */
+  .tpl-acts{display:flex;gap:6px;align-items:center;justify-content:flex-start;}
+
+  /* ════ THE ⋯ MENU'S OWN ROWS (Young ruled it 19 Sep 2026) ═══════════════
+     See tplRowMoreMenu for why. A row is a real control: a symbol, one verb,
+     and a count in its own slot at the right. The hover was written inline as
+     two `onmouseover`/`onmouseout` attributes writing `style.background` —
+     which meant a keyboard tabbing through the menu lit nothing at all.
+     `:focus-visible` shares the rule here, so the keyboard sees what the
+     pointer sees. */
+  .tpl-m-list{display:flex;flex-direction:column;}
+  .tpl-m-row{display:flex;align-items:center;gap:11px;width:100%;text-align:left;
+    border:0;background:none;font:inherit;font-size:var(--t-body);cursor:pointer;
+    padding:8px 10px;border-radius:var(--radius);color:var(--color-text);}
+  .tpl-m-row:hover,.tpl-m-row:focus-visible{background:var(--color-accent-100);outline:none;}
+  /* The symbol's colour lives here, never inline on the <svg> — an inline
+     declaration can only be beaten by !important, and a cascade fight is
+     fixed by SCOPE in this codebase. */
+  .tpl-m-i{flex:none;color:var(--color-neutral-600);}
+  .tpl-m-row:hover .tpl-m-i,.tpl-m-row:focus-visible .tpl-m-i{color:var(--accent-ink);}
+  .tpl-m-row b{font-weight:var(--w-strong);}
+  .tpl-m-row i{margin-left:auto;font-style:normal;font-family:var(--font-mono);
+    font-size:var(--t-label);color:var(--color-neutral-600);font-variant-numeric:tabular-nums;}
+  .tpl-m-sep{height:1px;background:var(--color-divider);margin:5px 10px;}
+
+  /* ════ THE RAIL'S LIT ROW IS A CLASS (19 Sep 2026) ══════════════════
+     It was three inline colours computed when the markup was built, which is
+     why pressing a filter rebuilt the whole page to restyle one button. As a
+     class, `tplPageRefilter` flips it and touches nothing else — so the
+     reader keeps their scroll place. `--tpl-rail-n` is the tone a count takes
+     while its pile is NOT the live one (amber for work started, ruby for
+     something going wrong); the live row's accent overrides it. */
+  .tpl-rail{display:flex;align-items:center;gap:var(--s-2);width:100%;border:0;background:none;
+    color:var(--color-neutral-700);font:inherit;font-size:var(--t-body);font-weight:var(--w-strong);
+    padding:7px 11px;border-radius:var(--radius);cursor:pointer;text-align:left;}
+  .tpl-rail-s{gap:9px;font-size:var(--t-meta);padding:6px 11px;}
+  .tpl-rail.on{background:var(--color-accent-100);color:var(--color-accent-800);}
+  .tpl-rail-s.on{color:var(--color-neutral-700);}
+  .tpl-rail-n{font-family:var(--font-mono);font-size:var(--t-label);
+    color:var(--tpl-rail-n,var(--color-neutral-500));font-variant-numeric:tabular-nums;}
+  .tpl-rail.on .tpl-rail-n{color:var(--color-accent-700);}
+
+  /* ════ HOW THE PAPER IS DOING — the first tab's rows (19 Sep 2026) ═══════
+     Three tracks: the name, the bar and the verdict. The bar gets a fixed
+     width rather than a fraction because it is a MEASURE — two bars the
+     reader compares down a column have to be the same length, or the longer
+     row's bar reads as the bigger number. The verdict reserves one width for
+     the same reason the obligations worklist reserves one for its verbs. */
+  .tpl-h-row{display:grid;grid-template-columns:minmax(0,1fr) 190px 132px;gap:var(--s-3);
+    align-items:center;width:100%;text-align:left;border:0;background:none;font:inherit;
+    padding:9px 14px;border-top:1px solid var(--color-divider);cursor:pointer;color:var(--color-text);}
+  .tpl-h-row:first-of-type{border-top:0;}
+  .tpl-h-row:hover,.tpl-h-row:focus-visible{background:var(--color-accent-100);outline:none;}
+  .tpl-h-flat{cursor:default;}
+  .tpl-h-flat:hover{background:none;}
+  .tpl-h-nm{min-width:0;}
+  .tpl-h-nm b{display:block;font-size:var(--t-meta);font-weight:var(--w-strong);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tpl-h-nm small{display:block;font-size:var(--t-label);color:var(--color-neutral-600);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tpl-h-v{text-align:right;font-family:var(--font-mono);font-size:var(--t-label);
+    white-space:nowrap;font-variant-numeric:tabular-nums;}
+  @media (max-width:720px){
+    .tpl-h-row{grid-template-columns:minmax(0,1fr) 108px;}
+    .tpl-h-row > span:nth-child(2){display:none;}
+  }
 
   /* Templates overview (tab 1): the card wall beside its two panels. The
      cards fill whatever the wall is, so the grid is the same rule at every

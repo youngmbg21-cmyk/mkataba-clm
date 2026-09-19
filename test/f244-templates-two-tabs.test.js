@@ -250,6 +250,21 @@ describe('f244 (2b) — the cards ARE the categories (owner-asked 29 Aug 2026)',
   });
 });
 
+/* ════ RE-POINTED IN PLACE, 19 Sep 2026 — THE WALL IS STILL BUILT, IT IS
+   ════ NO LONGER WHAT THE FIRST TAB DRAWS ═══════════════════════════
+   Young: *"You also have not implemented how the paper is doing tab which was
+   part of my request."* The overview section now draws tplHealthHtml — how
+   much of our paper comes back changed — and tplOverviewHtml, the category
+   wall, is still built, still exported and one line from returning as a third
+   tab if the owner wants it.
+
+   So every claim below is UNCHANGED IN WHAT IT ASSERTS. What moved is where it
+   reads the markup: `wall()` asks the builder for its own html instead of
+   pulling it out of a rendered page, which is what these were always about —
+   the card's own wording, not the page's layout. Not one sentence is dropped;
+   a claim deleted here is a rule nobody is holding. */
+const wall = s => s.tplOverviewHtml(s.tplOverviewData());
+
 describe('f244 (3) — a deviation rate counts only paper a playbook has read', () => {
   test('the denominator is what was checked, and what was not is stated', () => {
     const c = card(stage().tplOverviewData(), 'tpl_1');
@@ -269,16 +284,14 @@ describe('f244 (3) — a deviation rate counts only paper a playbook has read', 
      everywhere else, and is a page the reader can go and look at) and gives
      "not checked" something to be. */
   test('the card says what the rate was worked out from, in words', () => {
-    const s = stage(); s.renderTemplatesPage();
-    const html = s.document.getElementById('content').innerHTML;
+    const html = wall(stage());
     assert.match(html, /2 of the 3 contracts checked did not follow Our standards\./);
     assert.match(html, /1 more has not been checked\./);
     assert.ok(!/off-standard/.test(html), 'and it stops speaking in jargon');
   });
 
   test('the two labels explain themselves on their own hover', () => {
-    const s = stage(); s.renderTemplatesPage();
-    const html = s.document.getElementById('content').innerHTML;
+    const html = wall(stage());
     assert.match(html, /title="How many contracts have been drafted from this template\."/);
     assert.match(html, /Only contracts that have actually been checked are counted\./);
   });
@@ -295,8 +308,7 @@ describe('f244 (3) — a deviation rate counts only paper a playbook has read', 
     assert.equal(card(d, 'ND').used, 0, 'nothing has come off it');
     assert.equal(card(d, 'ct1').used, 1, 'one contract, and nobody has checked it');
     assert.equal(card(d, 'ct1').rate, null);
-    s.renderTemplatesPage();
-    const html = s.document.getElementById('content').innerHTML;
+    const html = wall(s);
     assert.match(html, /Nothing has been drafted from these yet\./);
     assert.match(html, /Nothing drafted from these has been checked against Our standards yet\./);
     assert.ok(!/from this template have been checked/.test(html),
@@ -311,8 +323,7 @@ describe('f244 (3) — a deviation rate counts only paper a playbook has read', 
       { id: 'MK-8', name: 'Q', templateId: 'tpl_1', playbook: { verdicts: [{ status: 'ok' }] }, audit: raised(4) },
     ], settings: { customTemplates: [] }, view: 'templates' } });
     assert.equal(card(s.tplOverviewData(), 'tpl_1').off, 0);
-    s.renderTemplatesPage();
-    const html = s.document.getElementById('content').innerHTML;
+    const html = wall(s);
     assert.match(html, /All 2 contracts checked follow Our standards\./);
     assert.ok(!/0 of the 2 contracts checked did not follow/.test(html));
   });
@@ -322,8 +333,7 @@ describe('f244 (3) — a deviation rate counts only paper a playbook has read', 
     const d = s.tplOverviewData();
     assert.equal(d.checked, 3);
     assert.equal(d.unchecked, 2, 'MK-4 and MK-5');
-    s.renderTemplatesPage();
-    assert.match(s.document.getElementById('content').innerHTML,
+    assert.match(wall(s),
       /A deviation rate counts only contracts that have been checked against Our standards — 3 checked so far, 2 not\./);
   });
 });
@@ -396,9 +406,7 @@ describe('f244 (5) — most used, in a window that is one named number', () => {
   test('a quiet quarter says so rather than drawing an empty panel', () => {
     const s = stage({ state: { contracts: [], settings: { customTemplates: [] }, view: 'templates' } });
     assert.deepEqual(s.tplOverviewData().mostUsed, []);
-    s.renderTemplatesPage();
-    assert.match(s.document.getElementById('content').innerHTML,
-      /No contract has been drafted from a template in the last 90 days\./);
+    assert.match(wall(s), /No contract has been drafted from a template in the last 90 days\./);
   });
 
   test('the window is one constant, printed into the heading rather than typed twice', () => {
@@ -412,15 +420,41 @@ describe('f244 (6) — counting is not drawing', () => {
   /* The Insights panels' rule. tplOverviewData counts and returns plain data;
      tplOverviewHtml draws that data and computes nothing, so what is on screen
      and what a future reader of this data would get cannot come apart. */
+  /* —— RE-POINTED 19 Sep 2026: this sliced from tplOverviewHtml's opening to
+     `const TPL_PAGE_TABS=`, which was its end only because nothing had been
+     written between them. tplHealthData and tplHealthHtml now have, so the
+     region stopped being the function it names. It reads to the NEXT
+     top-level `function ` instead — PIN THE REGION, NOT A BOUNDARY THAT
+     HAPPENS TO HOLD, which this file has now paid for once. */
+  const fnBody = name => {
+    const at = SRC.indexOf('function ' + name + '(');
+    const end = SRC.indexOf('\nfunction ', at + 1);
+    return SRC.slice(at, end < 0 ? SRC.length : end);
+  };
+
   test('the renderer reads no book of its own', () => {
-    const body = SRC.slice(SRC.indexOf('function tplOverviewHtml('), SRC.indexOf('const TPL_PAGE_TABS='));
+    const body = fnBody('tplOverviewHtml');
     for (const name of ['tplPageRows(', 'templateUsage(', 'builtinUsageRows(', 'deviationSummary(', 'repRaisedAt(', 'state.contracts'])
       assert.ok(!body.includes(name), `tplOverviewHtml must not reach for ${name}`);
   });
 
   test('and the counter draws nothing', () => {
-    const body = SRC.slice(SRC.indexOf('function tplOverviewData('), SRC.indexOf('function tplOverviewHtml('));
-    assert.ok(!/innerHTML|<div|<span|<button/.test(body));
+    assert.ok(!/innerHTML|<div|<span|<button/.test(fnBody('tplOverviewData')));
+  });
+
+  /* —— AND THE SAME RULE ON THE READING THAT REPLACED THE WALL (19 Sep 2026).
+     tplHealthData counts and tplHealthHtml draws; neither may do the other's
+     job, or what is on screen and what a later reader of this data would get
+     come apart. */
+  test('the health reading counts and draws nothing', () => {
+    assert.ok(!/innerHTML|<div |<span |<button /.test(fnBody('tplHealthData')),
+      'tplHealthData must not draw');
+  });
+
+  test('and the health renderer works nothing out', () => {
+    const body = fnBody('tplHealthHtml');
+    for (const name of ['tplPageRows(', 'templateUsage(', 'builtinUsageRows(', 'deviationSummary(', 'state.contracts'])
+      assert.ok(!body.includes(name), `tplHealthHtml must not reach for ${name}`);
   });
 
   /* ONE READING PER KIND, each borrowed from the function that already owned
@@ -447,13 +481,21 @@ describe('f244 (7) — the two tabs work together', () => {
        by name. Two doors because they do different things, never because they
        drifted — and the "see all" foot went with the cap it belonged to, since
        the wall withholds nothing to see. */
+    /* —— RE-POINTED AGAIN 19 Sep 2026. The claim is unchanged — every door on
+       this tab is ONE act with ONE selector — but the tab draws the health
+       reading now, whose rows are templates and so carry the NAME door,
+       `data-tpl-ov-card`, exactly as the two panels always did. The bucket
+       door belongs to the category wall and moves with it; it is asserted on
+       the wall's own markup below so the rule is not lost. */
     const s = stage(); s.renderTemplatesPage();
     const html = s.document.getElementById('content').innerHTML;
     const ov = html.slice(html.indexOf('data-tpl-sec="overview"'), html.indexOf('data-tpl-sec="list"'));
-    assert.ok((ov.match(/data-tpl-ov-bucket=/g) || []).length >= 5,
-      'a card per library at least');
     assert.ok((ov.match(/data-tpl-ov-card=/g) || []).length >= 1,
-      'and the panels keep the name door');
+      'a template row is a door, and it is the name door');
+    assert.ok(!/data-tpl-ov-bucket=/.test(ov),
+      'and the category door is not on this tab, because the category wall is not');
+    assert.ok((wall(s).match(/data-tpl-ov-bucket=/g) || []).length >= 5,
+      'the wall still carries a card per library — it is built, it is just not drawn here');
     assert.ok(!/id="tpl-ov-all"/.test(html), 'no see-all, because nothing is held back');
   });
 

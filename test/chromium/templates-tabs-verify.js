@@ -164,9 +164,33 @@ const BOX = sel => {
        stream. Everything this section was really pinning survives: the cards
        are real pixels, they carry both figures and the sentence that qualifies
        them, and nothing has come off says so in its own words. */
+    /* ════ RE-POINTED IN PLACE, 19 Sep 2026 — THE WALL IS BUILT, IT IS NO
+       ════ LONGER WHAT THE FIRST TAB DRAWS ════════════════════════
+       Young: *"You also have not implemented how the paper is doing tab which
+       was part of my request."* That tab draws tplHealthHtml now; the category
+       wall is still built, still exported, and one line from returning as a
+       third tab.
+
+       SO THE WALL IS MOUNTED AND MEASURED. Not read out of the page — read
+       out of the page it would be a source test wearing a browser's clothes,
+       and sections 2a and 2d are the only two places in this suite that ask
+       whether a card is real pixels and whether the grid is more than one
+       column, which is exactly what a source test cannot answer. It is torn
+       down again below so section 4 measures the page as a reader has it.
+
+       templates-cleaned-up-verify measures the tab's own content. */
     const cards = await page.evaluate(() => {
-      const wall = document.querySelector('.tpl-ov-cards');
-      const cs = [...document.querySelectorAll('.tpl-ov-cards [data-tpl-ov-bucket]')].map(e => {
+      const host = document.createElement('div');
+      host.id = 'tpl-wall-probe';
+      /* BESIDE the page, never over it: at left:0;top:0 inside the overview
+         section the probe covered the tab row and Playwright's own clicks
+         timed out against it. Off-screen still reports real width, height and
+         grid columns — which is all sections 2 and 3 ask of it. */
+      host.style.cssText = 'position:absolute;left:-4000px;top:0;width:1218px';
+      host.innerHTML = tplOverviewHtml(tplOverviewData());
+      document.body.appendChild(host);
+      const wall = document.querySelector('#tpl-wall-probe .tpl-ov-cards');
+      const cs = [...document.querySelectorAll('#tpl-wall-probe .tpl-ov-cards [data-tpl-ov-bucket]')].map(e => {
         const r = e.getBoundingClientRect();
         return { key: e.getAttribute('data-tpl-ov-bucket'),
           name: (e.querySelector('.tpl-ov-name') || {}).textContent,
@@ -217,10 +241,14 @@ const BOX = sel => {
         rail: cards.rail });
 
     /* ================= 3 · THE TWO PANELS =================================== */
+    /* The two panels ride the same mounted wall — re-pointed with it, for the
+       same reason, and the probe is torn down afterwards so section 4 sees the
+       page exactly as a reader has it. */
     const panels = await page.evaluate(() => {
-      const txt = document.querySelector('[data-tpl-sec="overview"]').textContent.replace(/\s+/g, ' ');
-      const bars = [...document.querySelectorAll('[data-tpl-sec="overview"] .tpl-ov + *')].length;
-      const wide = [...document.querySelectorAll('[data-tpl-sec="overview"] [data-tpl-ov-card]')]
+      const probe = document.getElementById('tpl-wall-probe');
+      const txt = probe.textContent.replace(/\s+/g, ' ');
+      const bars = [...probe.querySelectorAll('.tpl-ov + *')].length;
+      const wide = [...probe.querySelectorAll('[data-tpl-ov-card]')]
         .map(e => Math.round(e.getBoundingClientRect().width));
       return { txt, bars, wide };
     });
@@ -233,6 +261,9 @@ const BOX = sel => {
       /counts only contracts that have been checked against Our standards/.test(panels.txt));
 
     /* ================= 4 · THE TWO TABS WORK TOGETHER ======================= */
+    /* The probe STAYS up through 4a–4d, because the category journey below
+       presses a wall card and the wall is what the probe is. It comes down
+       after 4d, before the claims that are about the tab itself. */
     await page.click('[data-tpl-tab="list"]');
     await pause(500);
     const flipped = await page.evaluate(() => {
@@ -252,8 +283,15 @@ const BOX = sel => {
        the search box — the search box is what a NAME needs, and these are
        categories. The way back is the rail's own "All templates". */
     const target = await page.evaluate(() =>
-      document.querySelector('.tpl-ov-cards [data-tpl-ov-bucket]').getAttribute('data-tpl-ov-bucket'));
-    await page.click('.tpl-ov-cards [data-tpl-ov-bucket]');
+      document.querySelector('#tpl-wall-probe .tpl-ov-cards [data-tpl-ov-bucket]').getAttribute('data-tpl-ov-bucket'));
+    /* THE ACT THE CARD FRONTS, pressed by name. The probe is markup: its
+       handlers are bound by renderTemplatesPage, which ran before it existed,
+       so a click on it reaches nothing. What this section is for is the
+       JOURNEY — does pressing a category land the reader on the table showing
+       that category's paper, with the narrowing in plain sight — and that is
+       what tplGoBucket does. That a card presses tplGoBucket is a wiring
+       claim and lives in f244, where it can be read rather than driven. */
+    await page.evaluate(t => tplGoBucket(t), target);
     await pause(600);
     const landed = await page.evaluate(() => ({
       tab: document.querySelector('[data-tpl-tab="list"]').classList.contains('on'),
@@ -267,9 +305,14 @@ const BOX = sel => {
        visible and a way back. What moved is which control carries it: a
        CATEGORY narrows by the table's own rail, and the rail lights the row it
        is narrowed to, which is the same property the filled search box had. */
+    /* RE-POINTED 19 Sep 2026: which rail row is lit is a CLASS now, not three
+       inline colours computed when the markup was built. It HAD to become one
+       — an inline colour decided at build time is precisely why pressing a
+       filter had to rebuild the whole page to restyle one button, which is
+       the fault Young reported as "clunky". Same claim, read where the answer
+       moved to. */
     const railLit = await page.evaluate(() => {
-      const lit = [...document.querySelectorAll('[data-tpl-group],[data-tpl-stream]')]
-        .filter(b => /accent/.test(b.getAttribute('style') || ''));
+      const lit = [...document.querySelectorAll('[data-tpl-group].on,[data-tpl-stream].on')];
       return lit.map(b => b.getAttribute('data-tpl-group') || 'stream:' + b.getAttribute('data-tpl-stream'));
     });
     check('4b · a card lands on the table, showing that category\u2019s own paper',
@@ -285,6 +328,11 @@ const BOX = sel => {
     const cleared = await page.evaluate(() => document.querySelectorAll('#tpl-rows tr').length);
     check('4d · and All templates really does widen it again', cleared > 2, cleared);
 
+    /* THE PROBE STAYS UP for the rest of the run: section 6 reads the same
+       cards for the demo's type ladder and its colour relations. It is beside
+       the page at left:-4000px, so it covers nothing a reader presses and no
+       claim about the tab itself can pick it up — every one of those names
+       `[data-tpl-sec="overview"]`, which the probe is not inside. */
     await page.click('[data-tpl-tab="overview"]');
     await pause(400);
     /* THERE IS NO "SEE ALL" ANY MORE, and its absence is the claim: the wall
@@ -318,7 +366,7 @@ const BOX = sel => {
       const px = e => { const s = getComputedStyle(e);
         return { size: s.fontSize, weight: s.fontWeight, color: s.color,
           tt: s.textTransform, ls: s.letterSpacing, bg: s.backgroundColor }; };
-      return [...document.querySelectorAll('.tpl-ov-cards [data-tpl-ov-bucket]')].map(c => {
+      return [...document.querySelectorAll('#tpl-wall-probe .tpl-ov-cards [data-tpl-ov-bucket]')].map(c => {
         const cr = c.getBoundingClientRect();
         const bar = c.firstElementChild, br = bar.getBoundingClientRect();
         const count = c.querySelector('.tpl-ov-count');

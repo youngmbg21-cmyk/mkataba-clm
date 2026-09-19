@@ -1511,33 +1511,33 @@ function tplPageRowHtml(r){
     :`<span style="font-weight:var(--w-title);color:var(--accent-ink-700)">${_tplEsc(r.version)}</span>`;
   const B='class="ui-btn" style="font-size:var(--t-meta);padding:var(--s-1) var(--s-3)"';
   const P='class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:var(--s-1) var(--s-3)"';
-  /* ════ TWO VERBS AT REST, THE REST ON DEMAND (Young confirmed 18 Sep 2026)
-     ════ MEASURED: four kinds of template carried FIVE different sets of
-     buttons, so a reader had to know which kind they were looking at before
-     the page would tell them what they could do. Every row reads the same way
-     now — what you came for is the filled button, the second verb is Edit, and
-     the rarer acts live behind the dots.
+  /* ════ EVERY VERB IS VISIBLE AT REST (Young ruled it 19 Sep 2026) ══════════
+     *"I do not want to have to hover over a contract in order to see the other
+     choices I have as far as buttons."*
 
-     THE SECOND AND THIRD ARE REVEALED ON HOVER, NEVER REMOVED. They stay in
-     the page so the keyboard reaches them (`:focus-within` shows them) and a
-     touch screen draws them always (`@media (hover:none)` in index.html).
-     Thirty-seven rows times three buttons is ninety-nine controls competing;
-     at rest this is thirty-seven.
+     THIS REVERSES 18 SEP'S "TWO VERBS AT REST, THE REST ON DEMAND" and the
+     reasoning is kept beside it because it is the half that was wrong. That
+     rule quietened the page by making the second and third verbs fade in on
+     hover — thirty-seven rows times three buttons is ninety-nine controls —
+     and traded away the thing a table is for: **a button you cannot see is a
+     button you do not know exists**, and finding out cost a sweep of the mouse
+     down the page. The page is quietened the other way instead: the rarer acts
+     live behind the dots (see tplRowMoreMenu) and ONE verb per row is filled,
+     so the row is scanned by weight rather than by count.
+
+     `.tpl-rest` is STALE — its rule is gone from index.html and nothing here
+     emits it.
 
      EDIT IS ONE PRESS AND ONE WORD. A draft's "Continue editing" and a live
      standard's "Edit" are the same act through the same door (tplLibEdit);
      the only difference is that a live one has its draft minted on the way. */
   let acts='';
-  const rest=inner=>inner?`<span class="tpl-rest">${inner}</span>`:'';
   const dots=`<button data-tpl-dots="${_tplEsc(r.kind)}:${_tplEsc(r.id)}" class="ui-btn" style="font-size:var(--t-meta);padding:var(--s-1) 9px" aria-label="${_tplEsc(i18t('lib_more_for',{name:r.name}))}">⋯</button>`;
   if(r.kind==='company') acts=r.draft
-    ?`<button data-tpllib-edit="${_tplEsc(r.id)}" ${P}>${i18t('lib_continue_editing')}</button>${rest(dots)}`
-    :`${canManage?`<button data-tpllib-use="${_tplEsc(r.id)}" ${P}>${i18t('lib_use')}</button>`:''}${rest(
-        `${canManage?`<button data-tpllib-edit="${_tplEsc(r.id)}" ${B}>${i18t('act_edit')}</button>`:''}${dots}`)}`;
-  else if(r.kind==='cp') acts=`${canManage?`<button data-tpl-use="${_tplEsc(r.id)}" ${P}>${i18t('lib_use')}</button>`:''}${rest(
-      `<button data-tpl-prev="${_tplEsc(r.id)}" ${B}>${i18t('act_open')}</button>${canManage?dots:''}`)}`;
-  else if(r.kind==='builtin') acts=`${canManage?`<button data-tpl-builtin="${_tplEsc(r.id)}" ${P}>${i18t('lib_use')}</button>`:''}${rest(
-      `${canManage?`<button data-tpl-ours="${_tplEsc(r.id)}" ${B}>${i18t('lib_make_ours')}</button>`:''}${canManage?dots:''}`)}`;
+    ?`<button data-tpllib-edit="${_tplEsc(r.id)}" ${P}>${i18t('lib_continue_editing')}</button>${dots}`
+    :`${canManage?`<button data-tpllib-use="${_tplEsc(r.id)}" ${P}>${i18t('lib_use')}</button>`:''}${canManage?`<button data-tpllib-edit="${_tplEsc(r.id)}" ${B}>${i18t('act_edit')}</button>`:''}${dots}`;
+  else if(r.kind==='cp') acts=`${canManage?`<button data-tpl-use="${_tplEsc(r.id)}" ${P}>${i18t('lib_use')}</button>`:''}<button data-tpl-prev="${_tplEsc(r.id)}" ${B}>${i18t('act_open')}</button>${canManage?dots:''}`;
+  else if(r.kind==='builtin') acts=`${canManage?`<button data-tpl-builtin="${_tplEsc(r.id)}" ${P}>${i18t('lib_use')}</button>`:''}${canManage?`<button data-tpl-ours="${_tplEsc(r.id)}" ${B}>${i18t('lib_make_ours')}</button>`:''}${canManage?dots:''}`;
   else acts=r.imported
     ?`<span class="badge" style="background:var(--st-green-bg);color:var(--st-green-fg)"><span class="dot" style="background:var(--st-green-dot)"></span>${i18t('lib_imported')}</span>`
     :(canManage?`<button data-sample-imp="${r.i}" ${B}>${i18t('lib_import_as_template')}</button>`:'');
@@ -1563,8 +1563,45 @@ function tplPageRowHtml(r){
     <td style="padding:10px var(--s-2);${RULE};font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap">${_tplEsc(r.origin)}</td>
     <td style="padding:10px var(--s-2);${RULE};font-size:var(--t-meta);font-variant-numeric:tabular-nums">${version}</td>
     <td style="padding:10px var(--s-2);${RULE};font-size:var(--t-meta);font-variant-numeric:tabular-nums;color:var(--color-neutral-700)">${r.used==null?'—':r.used}</td>
-    <td style="padding:10px 14px 10px var(--s-2);${RULE};text-align:right;white-space:nowrap"><div style="display:inline-flex;gap:6px">${acts}</div></td>
+    <td style="padding:10px 14px 10px var(--s-2);${RULE};white-space:nowrap"><div class="tpl-acts">${acts}</div></td>
   </tr>`;
+}
+/* ════ A FILTER REPAINTS THE ROWS, NOT THE PAGE (Young ruled it 19 Sep 2026)
+   *"When I click across the different options it seems like it is clunky and
+   there are delays in navigation."*
+
+   MEASURED on one press of one rail row: the table the reader was looking at
+   is **a different node** afterwards, and so are the rail, the counts, the
+   search box and the whole OTHER TAB — invisible, behind `hidden`, and rebuilt
+   anyway. The work itself is 4–10ms; what it costs is the page: a text
+   selection, a focused control and the identity of every row go with it.
+
+   AND A CORRECTION TO THIS NOTE'S FIRST DRAFT, because it claimed more than
+   it had measured. It read "scroll 420 before, 0 after — the reader is thrown
+   to the top". Driven properly across four presses, before and after, the
+   scroll lands on the same number BOTH WAYS: the browser clamps it to
+   whatever the new page can hold, and the handler's own `showAll=false`
+   (untouched here, it predates this) is what makes the page shorter. One
+   configuration happened to clamp to zero and the note generalised from it.
+   The rebuild is the real fault and is what this fixes; the clamp is the
+   same either way and is not claimed.
+
+   This is THE CONTRACTS PAGE'S OWN RULE, which Templates never got: *a press
+   that NAVIGATES may land at the top; a press that FILTERS, PAGES, SORTS or
+   TOGGLES may not rebuild what the reader is looking at.*
+
+   THE COUNTS ARE NOT REPAINTED, and that is not an omission. Every rail figure
+   is a total over the whole book — `pile.ready` counts every ready template,
+   not the filtered ones — so a filter cannot move one. If a rail count ever
+   becomes a reading of the FILTERED set, it joins this funnel.
+
+   ONE FUNNEL, so a third filter added later cannot go back to rebuilding. */
+function tplPageRefilter(){
+  const lit=(sel,attr,val)=>document.querySelectorAll(sel).forEach(b=>
+    b.classList.toggle('on',b.getAttribute(attr)===val));
+  lit('[data-tpl-group]','data-tpl-group',_tplPage.group);
+  lit('[data-tpl-stream]','data-tpl-stream',_tplPage.stream);
+  tplPagePaintRows();
 }
 function tplPagePaintRows(){
   const host=document.getElementById('tpl-rows'); if(!host) return;
@@ -1574,7 +1611,12 @@ function tplPagePaintRows(){
   const CAP=TPL_PAGE_CAP;
   const shown=(_tplPage.showAll||searching)?rows:rows.slice(0,CAP);
   const hidden=rows.length-shown.length;
-  const th=t=>`<th style="font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);text-align:left;padding:7px var(--s-2);border-bottom:1px solid var(--color-divider)">${t}</th>`;
+  /* ---- THE HEAD OF A COUNT COLUMN SITS OVER ITS DIGITS (19 Sep 2026) ----
+     Version and Used are counts and their cells already state
+     `tabular-nums`; the heads did not, so the column read ragged even when
+     every number under it was right. `num` is passed by the two count
+     columns and by nothing else — a label over words stays a label. */
+  const th=(t,num)=>`<th style="font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);text-align:left;padding:7px var(--s-2);border-bottom:1px solid var(--color-divider)${num?';font-variant-numeric:tabular-nums':''}">${t}</th>`;
   const hiddenKinds=hidden>0?Object.entries(rows.slice(CAP).reduce((m,r)=>{m[r.kind]=(m[r.kind]||0)+1;return m;},{}))
     /* Keyed on the KIND, not on the label's words — comparing the label to
        "Samples" stops being true the moment the label can be translated. */
@@ -1583,7 +1625,7 @@ function tplPagePaintRows(){
   if(count) count.textContent=i18tn('lib_count',rows.length,{n:rows.length});
   host.innerHTML=rows.length?`
     <div class="table-scroll"><table style="border-collapse:collapse;width:100%">
-      <tr>${th(i18t('lib_col_template'))}${th(i18t('lib_col_origin'))}${th(i18t('lib_col_version'))}${th(i18t('lib_col_used'))}<th style="border-bottom:1px solid var(--color-divider)"></th></tr>
+      <tr>${th(i18t('lib_col_template'))}${th(i18t('lib_col_origin'))}${th(i18t('lib_col_version'),1)}${th(i18t('lib_col_used'),1)}<th style="border-bottom:1px solid var(--color-divider)"></th></tr>
       ${shown.map(tplPageRowHtml).join('')}
     </table></div>
     ${hidden>0?`<div style="display:flex;align-items:center;padding:11px 14px;font-size:var(--t-meta);color:var(--color-neutral-600)">
@@ -1625,23 +1667,45 @@ function tplRowMoreMenu(ref){
   const built=kind==='builtin'?TEMPLATES[tid]:null;
   if(!cp&&!lib&&!built) return;
   const name=(cp&&cp.name)||(lib&&lib.name)||(built&&built.name)||'';
-  const item=(id,label,sub)=>`<button id="${id}" style="display:block;width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;padding:9px var(--s-3);border-radius:var(--radius)" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
-    <span style="display:block;font-size:var(--t-body);font-weight:var(--w-strong)">${label}</span><span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600)">${sub}</span></button>`;
+  /* ════ A MENU LOOKS LIKE A MENU (Young ruled it 19 Sep 2026) ═════════════
+     *"This pop up does not look like they are buttons or selections it looks
+     like a written paper."* MEASURED on the real menu: every row drew
+     `border: 0px none` on a transparent ground, 54px tall, in a 490px-wide
+     frame — a bold line with a full sentence under it, nine times over. Set
+     nine of those in a column and the eye reads PROSE, because nothing about
+     them is shaped like a control.
+
+     THREE THINGS CARRY IT NOW and none is new to the product: a SYMBOL from
+     the shell's own sprite, ONE short verb, and a count where there is one.
+     The sentences are not deleted — they move to `title`, which is where a
+     menu's explanation belongs: there when you want it, silent when you do
+     not. The destructive row sits under a divider in ruby.
+
+     THE COUNT RIDES THE ROW, NOT THE VERB (`lib_m_versions (4)` was the verb
+     and its count welded into one translated string). `<i>` is the count's
+     own slot, so a row with none is the same shape as a row with one.
+
+     WIDTH IS PART OF IT: `DLG_W.s` (400) rather than the 490 measured, because
+     a menu as wide as a paragraph reads as a paragraph. */
+  const sym=n=>`<svg class="tpl-m-i" viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><use href="#i-${n}"/></svg>`;
+  const item=(id,ic,label,sub,n,danger)=>`<button id="${id}" type="button" title="${_tplEsc(sub||'')}"${danger?' style="color:var(--st-ruby-fg)"':''} class="tpl-m-row">
+    ${sym(ic)}<b>${label}</b>${n==null?'':`<i>${n}</i>`}</button>`;
   const rows=[];
-  if(lib) rows.push(item('tm-vers',i18t('lib_m_versions'),i18t('lib_m_versions_sub')));
-  if(cp) rows.push(item('tm-vers-cp',`${i18t('lib_m_versions')} (${templateVersions(cp).length+1})`,i18t('lib_m_versions_sub')));
-  if(cp) rows.push(item('tm-edit',i18t('lib_m_edit'),i18t('lib_m_edit_sub')));
-  if(cp) rows.push(item('tm-blanks',templateFields(cp).length?`${i18t('lib_m_blanks')} (${templateFields(cp).length})`:i18t('lib_m_blanks_add'),i18t('lib_m_blanks_sub')));
-  if(lib) rows.push(item('tm-meta',i18t('lib_m_rename'),i18t('lib_m_rename_sub')));
-  if(cp&&templateFields(cp).length) rows.push(item('tm-bulk',i18t('lib_m_bulk'),i18t('lib_m_bulk_sub')));
-  if(built) rows.push(item('tm-bulk-b',i18t('lib_m_bulk'),i18t('lib_m_bulk_sub')));
-  if(lib) rows.push(item('tm-shelf',i18t('lib_m_shelf'),i18t('lib_m_shelf_sub')));
-  if(cp) rows.push(item('tm-del',i18t('lib_m_delete'),i18t('lib_m_delete_sub')));
-  openModal(`<div style="padding:var(--s-4) 14px;min-width:280px">
-    <div style="font-size:var(--t-body);font-weight:var(--w-title);padding:0 var(--s-3) var(--s-2)">${_tplEsc(name)}</div>
-    ${rows.join('')}
-    <div style="display:flex;justify-content:flex-end;padding:var(--s-2) var(--s-3) 0"><button id="tm-close" class="ui-btn" style="font-size:var(--t-meta)">${i18t('act_close')}</button></div>
-  </div>`);
+  if(lib) rows.push(item('tm-vers','clock',i18t('lib_m_versions'),i18t('lib_m_versions_sub')));
+  if(cp) rows.push(item('tm-vers-cp','clock',i18t('lib_m_versions'),i18t('lib_m_versions_sub'),templateVersions(cp).length+1));
+  if(cp) rows.push(item('tm-edit','edit',i18t('lib_m_edit'),i18t('lib_m_edit_sub')));
+  if(cp) rows.push(item('tm-blanks','file',templateFields(cp).length?i18t('lib_m_blanks'):i18t('lib_m_blanks_add'),i18t('lib_m_blanks_sub'),templateFields(cp).length||null));
+  if(lib) rows.push(item('tm-meta','edit',i18t('lib_m_rename'),i18t('lib_m_rename_sub')));
+  if(cp&&templateFields(cp).length) rows.push(item('tm-bulk','grid',i18t('lib_m_bulk'),i18t('lib_m_bulk_sub')));
+  if(built) rows.push(item('tm-bulk-b','grid',i18t('lib_m_bulk'),i18t('lib_m_bulk_sub')));
+  if(lib) rows.push(item('tm-shelf','import',i18t('lib_m_shelf'),i18t('lib_m_shelf_sub')));
+  const sep=`<div class="tpl-m-sep"></div>`;
+  if(cp) rows.push(sep+item('tm-del','bin',i18t('lib_m_delete'),i18t('lib_m_delete_sub'),null,1));
+  openModal(`<div style="padding:var(--s-3) var(--s-2) var(--s-2)">
+    <div style="font-size:var(--t-body);font-weight:var(--w-title);padding:0 10px var(--s-2)">${_tplEsc(name)}</div>
+    <div class="tpl-m-list">${rows.join('')}</div>
+    <div style="display:flex;justify-content:flex-end;padding:var(--s-2) 10px 0"><button id="tm-close" class="ui-btn" style="font-size:var(--t-meta)">${i18t('act_close')}</button></div>
+  </div>`,{maxWidth:DLG_W.s});
   document.getElementById('tm-close')?.addEventListener('click',closeModal);
   document.getElementById('tm-edit')?.addEventListener('click',()=>{ closeModal(); openTemplateEditor(tid); });
   document.getElementById('tm-blanks')?.addEventListener('click',()=>{ closeModal(); openBlanksEditor(tid); });
@@ -1919,6 +1983,197 @@ function tplOverviewData(){
        answers whether that is the whole book, and a rate measured over half a
        portfolio must say so rather than read as the portfolio's. */
     complete:(typeof templateUsage==='function')?templateUsage('__none__').complete:true };
+}
+
+/* ════ HOW THE PAPER IS DOING (Young ruled it 19 Sep 2026) ═════════════
+   *"You also have not implemented how the paper is doing tab which was part of
+   my request."*
+
+   WHAT WAS THERE WAS A CATALOGUE. The wall counted what the workspace OWNS —
+   one card per bucket, "All templates · Used 4 · Deviation rate —" — which
+   answers "what have we got", a question the table beside it already answers
+   better. It never said whether any of it WORKS.
+
+   THE QUESTION HAS ONE HONEST ANSWER: **when we send our own paper out, how
+   much of it comes back changed?** Every figure below is already on the
+   record — a contract checked against Our standards records whether it
+   followed them — so this READS and never measures: no route, no model, no
+   spend, nothing written. COUNTING IS NOT DRAWING: everything is worked out
+   here and tplHealthHtml draws it and computes nothing.
+
+   THREE REFUSALS, each deliberate and each the reason a dashboard stays
+   trustworthy:
+
+     · **NO SCORE.** Not a rating out of ten, not a letter grade. A number a
+       lawyer cannot re-derive from their own contracts is worse than a count
+       they can press, and the moment it disagrees with their instinct they
+       stop believing the whole page.
+     · **NOTHING IS HIDDEN FOR THIN EVIDENCE.** A template with two contracts
+       is SHOWN and says it has two, rather than being dropped for failing a
+       floor — an absence a reader has to notice is worse than a stated one.
+       `TPL_DEV_MIN` still governs what counts as an ALARM (it is the
+       attention list's own floor), never what is drawn.
+     · **NEVER-CHECKED IS NEVER COUNTED AS CLEAN.** It is its own grey band
+       and its own tile. This is `fxMissing`'s rule applied to standards: what
+       was left out is counted and SAID. Folding unread paper into the good
+       half is how a dashboard starts lying, and it would flatter every
+       template on the page. */
+const TPL_HEALTH_ROWS = 8;
+function tplHealthData(){
+  const ov = tplOverviewData();
+  /* OUR PAPER IS PAPER WE HAVE SENT. A sample has never left the building and
+     a template nothing was drafted from cannot have come back at all, so
+     neither is evidence either way — they are not counted, and the templates
+     with nothing drafted from them are named in their own count so the
+     absence is stated rather than silently dropped. */
+  const live = ov.cards.filter(c => c.kind !== 'sample');
+  const sent = live.filter(c => (c.used || 0) > 0);
+  const idle = live.length - sent.length;
+  /* ---- THE LIGHT LIST, ON THIS PAGE (found by driving it, 19 Sep 2026) ----
+     `used` is the SERVER's count and `scanned + unscanned` is what this
+     browser is actually holding, and in server mode those are different
+     numbers: a template can read 38 drafted with none of the 38 loaded. A row
+     built off `used` alone then drew an empty track and said "0 drafted, not
+     checked", which is a sentence about the working set dressed as a fact
+     about the book.
+
+     So a row is only REPORTED ON where something is readable, and the rest
+     are counted into `offBook` and SAID rather than dropped — the fxMissing
+     rule again. tplOverviewData already carries `complete` for exactly this
+     reason; this is the same honesty one level up. */
+  const seenOf = c => c.scanned + c.unscanned;
+  const readable = sent.filter(c => seenOf(c) > 0);
+  const offBook = sent.length - readable.length;
+  let checked = 0, changed = 0, unchecked = 0;
+  for (const c of readable) { checked += c.scanned; changed += c.off; unchecked += c.unscanned; }
+  /* WORST FIRST, AND "WORST" IS THE COUNT, NOT THE RATE. One contract out of
+     one is a 100% rate and one argument; nine out of forty is 22% and nine.
+     The rate rides each row so a reader can see both. */
+  const rows = readable.slice().sort((a, b) =>
+    (b.off - a.off) || ((b.rate || 0) - (a.rate || 0)) || String(a.name).localeCompare(String(b.name)));
+  const top = rows.filter(r => r.off > 0);
+  /* HOW FEW TEMPLATES ACCOUNT FOR HALF THE ARGUMENT. Walked rather than
+     assumed: take them worst-first until their share passes half. Zero
+     changes means zero templates, not "all of them". */
+  let acc = 0, few = 0;
+  for (const r of top) { if (acc * 2 >= changed) break; acc += r.off; few++; }
+  const clean = readable.filter(c => c.scanned > 0 && c.off === 0);
+  /* THE CLAUSE THEY ARGUE ABOUT MOST. A verdict carries its own `category`
+     (see the playbook's positions), so this is a tally of what the standards
+     check itself already decided — nothing is re-read and no wording is
+     looked at. Counted per CONTRACT, so one contract arguing a category twice
+     is one argument about it. */
+  const byClause = new Map();
+  const seenTpl = new Map();
+  for (const r of ov.cards) {
+    if (r.kind === 'sample') continue;
+    let cs = [];
+    try { cs = tplRowContracts(r) || []; } catch (_) { cs = []; }
+    for (const c of cs) {
+      const vs = c && c.playbook && Array.isArray(c.playbook.verdicts) ? c.playbook.verdicts : null;
+      if (!vs) continue;
+      const hit = new Set();
+      for (const v of vs) {
+        if (!v || (v.status !== 'deviation' && v.status !== 'missing')) continue;
+        const k = String(v.category || '').trim(); if (!k) continue;
+        hit.add(k);
+      }
+      for (const k of hit) {
+        byClause.set(k, (byClause.get(k) || 0) + 1);
+        if (!seenTpl.has(k)) seenTpl.set(k, new Set());
+        seenTpl.get(k).add(r.kind + ':' + r.id);
+      }
+    }
+  }
+  const clauses = [...byClause.entries()]
+    .map(([name, n]) => ({ name, n, tpls: (seenTpl.get(name) || new Set()).size }))
+    .sort((a, b) => b.n - a.n || String(a.name).localeCompare(String(b.name)))
+    .slice(0, TPL_HEALTH_ROWS);
+  return {
+    checked, changed, unchecked, idle,
+    rate: checked ? changed / checked : null,
+    few, fewShare: changed ? acc / changed : null,
+    clean: clean.length,
+    rows: rows.slice(0, TPL_HEALTH_ROWS),
+    more: Math.max(0, rows.length - TPL_HEALTH_ROWS),
+    clauses,
+    sent: sent.length, readable: readable.length, offBook,
+    complete: ov.complete !== false,
+  };
+}
+
+/* Draws what tplHealthData worked out, and works out nothing itself. */
+function tplHealthHtml(d){
+  const CARD = 'background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);box-shadow:var(--shadow-sm)';
+  const pct = v => v == null ? '—' : Math.round(v * 100) + '%';
+  const tile = (tone, fig, figTone, cap, sub) => `<div style="${CARD};padding:13px 15px;border-top:3px solid ${tone}">
+    <div style="font-size:26px;font-weight:var(--w-title);letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums${figTone ? ';color:' + figTone : ''}">${fig}</div>
+    <div style="font-size:var(--t-label);color:var(--color-neutral-600);margin-top:3px">${cap}</div>
+    <div style="font-size:var(--t-figure);color:var(--color-neutral-500);margin-top:6px;font-family:var(--font-mono)">${sub}</div></div>`;
+  /* THE HEADLINE TAKES ITS INK FROM THE ATTENTION LIST'S OWN THRESHOLD, so a
+     ruby figure here and a row in Needs attention can never mean different
+     things. Nothing checked at all is not a good score — it is no score, and
+     it draws in the plain shade with the reason under it. */
+  const headTone = d.rate == null ? 'var(--color-divider)'
+    : d.rate >= 0.5 ? 'var(--st-ruby-dot)' : d.rate > 0 ? 'var(--st-amber-dot)' : 'var(--st-green-dot)';
+  const headInk = d.rate == null ? null
+    : d.rate >= 0.5 ? 'var(--st-ruby-fg)' : d.rate > 0 ? null : 'var(--st-green-fg)';
+  const tiles = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:var(--s-3)">
+    ${tile(headTone, pct(d.rate), headInk, i18t('lib_h_rate_cap'),
+        d.checked ? i18tn('lib_h_rate_sub', d.checked, { n: d.changed, of: d.checked }) : i18t('lib_h_rate_none'))}
+    ${tile('var(--st-amber-dot)', d.few, null, i18tn('lib_h_few_cap', d.few, {}),
+        d.fewShare == null ? i18t('lib_h_few_none') : i18t('lib_h_few_sub', { pct: Math.round(d.fewShare * 100) }))}
+    ${tile('var(--st-green-dot)', d.clean, d.clean ? 'var(--st-green-fg)' : null, i18tn('lib_h_clean_cap', d.clean, {}), i18t('lib_h_clean_sub'))}
+    ${tile('var(--color-divider)', d.unchecked, null, i18t('lib_h_unread_cap'), i18t('lib_h_unread_sub'))}
+  </div>`;
+  /* THE TRACK IS THE ROW'S OWN POPULATION, in three parts that always sum to
+     it: came back changed, accepted as written, never checked. A zero part
+     draws nothing rather than a hairline nobody can see. */
+  const track = r => {
+    const total = r.scanned + r.unscanned;
+    const w = n => total ? (n / total * 100) : 0;
+    const seg = (n, col) => n > 0 ? `<i style="display:block;height:100%;width:${w(n)}%;background:${col}"></i>` : '';
+    return `<div style="height:7px;background:var(--color-neutral-200);border-radius:4px;overflow:hidden;display:flex">
+      ${seg(r.off, 'var(--st-ruby-dot)')}${seg(r.scanned - r.off, 'var(--st-green-dot)')}${seg(r.unscanned, 'var(--color-neutral-300)')}</div>`;
+  };
+  const verdict = r => r.scanned === 0
+    ? `<span style="color:var(--color-neutral-500)">${i18tn('lib_h_v_unread', r.unscanned, { n: r.unscanned })}</span>`
+    : r.off === 0
+      ? `<span style="color:var(--st-green-fg)">${i18t('lib_h_v_clean', { n: r.scanned })}</span>`
+      : `<span style="color:${r.rate >= 0.5 ? 'var(--st-ruby-fg)' : 'var(--color-text)'};font-weight:${r.rate >= 0.5 ? 'var(--w-strong)' : 'var(--w-body)'}">${i18t('lib_h_v_changed', { n: r.off, of: r.scanned })}</span>`;
+  const row = r => `<button data-tpl-ov-card="1" data-tpl-ov-name="${_tplEsc(r.name)}" class="tpl-h-row">
+    <span class="tpl-h-nm"><b>${_tplEsc(r.name)}</b><small>${_tplEsc(r.origin)}${r.version ? ' · ' + _tplEsc(r.version) : ''}</small></span>
+    <span>${track(r)}</span>
+    <span class="tpl-h-v">${verdict(r)}</span></button>`;
+  const HEAD = `display:flex;align-items:baseline;gap:var(--s-2);padding:10px 14px;border-bottom:1px solid var(--color-divider)`;
+  const arg = d.rows.length ? `<div style="${CARD};overflow:hidden">
+    <div style="${HEAD}"><b style="font-size:var(--t-card);font-weight:var(--w-strong)">${i18t('lib_h_where')}</b>
+      <span style="margin-left:auto;font-size:var(--t-label);color:var(--color-neutral-500);font-family:var(--font-mono)">${i18t('lib_h_worst_first')}</span></div>
+    ${d.rows.map(row).join('')}
+    <div style="display:flex;gap:var(--s-4);flex-wrap:wrap;padding:9px 14px;border-top:1px solid var(--color-divider);font-size:var(--t-figure);color:var(--color-neutral-600);font-family:var(--font-mono)">
+      <span><i style="display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;background:var(--st-ruby-dot)"></i>${i18t('lib_h_lg_changed')}</span>
+      <span><i style="display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;background:var(--st-green-dot)"></i>${i18t('lib_h_lg_kept')}</span>
+      <span><i style="display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;background:var(--color-neutral-300)"></i>${i18t('lib_h_lg_unread')}</span>
+      ${d.more ? `<span style="margin-left:auto">${i18t('lib_h_more', { n: d.more })}</span>` : ''}
+    </div></div>` : `<div style="${CARD};padding:24px 14px;text-align:center;font-size:var(--t-meta);color:var(--color-neutral-600)">${i18t('lib_h_nothing_sent')}</div>`;
+  const clauses = d.clauses.length ? `<div style="${CARD};overflow:hidden">
+    <div style="${HEAD}"><b style="font-size:var(--t-card);font-weight:var(--w-strong)">${i18t('lib_h_clauses')}</b>
+      <span style="margin-left:auto;font-size:var(--t-label);color:var(--color-neutral-500);font-family:var(--font-mono)">${i18t('lib_h_clauses_sub')}</span></div>
+    ${d.clauses.map(c => `<div class="tpl-h-row tpl-h-flat">
+      <span class="tpl-h-nm"><b>${_tplEsc(c.name)}</b><small>${i18tn('lib_h_cl_tpls', c.tpls, { n: c.tpls })}</small></span>
+      <span></span>
+      <span class="tpl-h-v"><span style="color:var(--color-text)">${i18tn('lib_h_cl_times', c.n, { n: c.n })}</span></span></div>`).join('')}
+  </div>` : '';
+  /* TWO ABSENCES, TWO SENTENCES. Nothing drafted from it is a fact about the
+     template; nothing of its paper loaded here is a fact about this browser.
+     Reading one as the other is how a working set starts reporting as a book. */
+  const lines = [
+    d.idle ? i18tn('lib_h_idle', d.idle, { n: d.idle }) : '',
+    d.offBook ? i18tn('lib_h_offbook', d.offBook, { n: d.offBook }) : '',
+  ].filter(Boolean);
+  const note = lines.length
+    ? `<p style="margin:0;font-size:var(--t-label);color:var(--color-neutral-600)">${lines.join(' ')}</p>` : '';
+  return `<div style="display:grid;gap:var(--s-4)">${tiles}${arg}${clauses}${note}</div>`;
 }
 
 function tplOverviewHtml(d){
@@ -2212,9 +2467,17 @@ function renderTemplatesPage(){
   /* The count takes its own ink where the pile means something is owed —
      amber for work started, ruby for something going wrong — and the plain
      label shade everywhere else. A live pile keeps the accent, as it did. */
-  const railIt=(key,label,n,tone)=>`<button data-tpl-group="${key}" style="display:flex;align-items:center;gap:var(--s-2);width:100%;border:0;background:${_tplPage.group===key?'var(--color-accent-100)':'none'};color:${_tplPage.group===key?'var(--color-accent-800)':'var(--color-neutral-700)'};font:inherit;font-size:var(--t-body);font-weight:var(--w-strong);padding:7px 11px;border-radius:var(--radius);cursor:pointer;text-align:left">
-    <span style="flex:1">${label}</span><span style="font-family:var(--font-mono);font-size:var(--t-label);color:${_tplPage.group===key?'var(--color-accent-700)':(n&&tone)||'var(--color-neutral-500)'}">${n}</span></button>`;
-  const streamIt=f=>`<button data-tpl-stream="${f.id}" style="display:flex;align-items:center;gap:9px;width:100%;border:0;background:${_tplPage.stream===f.id?'var(--color-accent-100)':'none'};color:var(--color-neutral-700);font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);padding:6px 11px;border-radius:var(--radius);cursor:pointer;text-align:left">
+  /* ════ WHICH ROW IS LIT IS A CLASS, NEVER AN INLINE COLOUR (19 Sep 2026)
+     It was three inline declarations computed at BUILD time from
+     `_tplPage.group`, which is why pressing a filter had to rebuild the whole
+     page to restyle one button — see tplPageRefilter. As a class the lit
+     state is a flip, and `.on` can then be moved by a painter that touches
+     nothing else. The tone a count takes when its pile is NOT live is still
+     the caller's (amber for work started, ruby for something wrong), so it
+     rides as a custom property the class can override. */
+  const railIt=(key,label,n,tone)=>`<button data-tpl-group="${key}" class="tpl-rail${_tplPage.group===key?' on':''}"${tone&&n?` style="--tpl-rail-n:${tone}"`:''}>
+    <span style="flex:1">${label}</span><span class="tpl-rail-n">${n}</span></button>`;
+  const streamIt=f=>`<button data-tpl-stream="${f.id}" class="tpl-rail tpl-rail-s${_tplPage.stream===f.id?' on':''}">
     <span style="flex:none;width:8px;height:14px;border-radius:var(--radius);background:${folderColor(f.id)}"></span><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(tplShortStream(f.name))}</span></button>`;
   const HEAD='font-family:var(--font-mono);font-size:var(--t-figure);letter-spacing:.12em;color:var(--color-neutral-500);text-transform:uppercase;padding:0 11px;margin:0 0 6px';
   /* NO SENTENCE UNDER THE TITLE and none under the tabs (owner-asked 25 Aug
@@ -2246,7 +2509,12 @@ function renderTemplatesPage(){
       <button class="st-tab${tab==='list'?' on':''}" data-tpl-tab="list" role="tab" aria-selected="${tab==='list'?'true':'false'}">${i18t('nav_templates')}</button>
     </div>
 
-    <section data-tpl-sec="overview" ${tab==='overview'?'':'hidden'}>${tplOverviewHtml(ov)}</section>
+    ${''/* THE FIRST TAB IS THE HEALTH READING NOW (19 Sep 2026). tplOverviewHtml
+           is the card wall it replaces: still built, still exported, still
+           the thing tplOvRoll and the bucket doors were written for, and one
+           line from coming back if the owner wants it as a third tab. What it
+           is NOT is the answer to "how is the paper doing". */}
+    <section data-tpl-sec="overview" ${tab==='overview'?'':'hidden'}>${tplHealthHtml(tplHealthData())}</section>
 
     <section data-tpl-sec="list" ${tab==='list'?'':'hidden'}>
     <div class="tpl-cols" style="display:grid;gap:var(--s-4);align-items:start">
@@ -2298,10 +2566,10 @@ function renderTemplatesPage(){
     tplPagePaintRows();
   });
   document.querySelectorAll('[data-tpl-group]').forEach(b=>b.addEventListener('click',()=>{
-    _tplPage.group=b.getAttribute('data-tpl-group'); _tplPage.showAll=false; renderTemplatesPage(); }));
+    _tplPage.group=b.getAttribute('data-tpl-group'); _tplPage.showAll=false; tplPageRefilter(); }));
   document.querySelectorAll('[data-tpl-stream]').forEach(b=>b.addEventListener('click',()=>{
     const v=b.getAttribute('data-tpl-stream');
-    _tplPage.stream=_tplPage.stream===v?null:v; renderTemplatesPage(); }));
+    _tplPage.stream=_tplPage.stream===v?null:v; tplPageRefilter(); }));
   document.getElementById('tpl-search')?.addEventListener('input',e=>{ _tplPage.q=e.target.value; tplPagePaintRows(); });
   document.getElementById('tpl-new')?.addEventListener('click',tplNewMenu);
   /* Company templates come from the server cache; the first visit renders
@@ -2455,4 +2723,4 @@ function renderPlaybookPage(){
 
 Object.assign(window,{tplOvFit,HATI_SAMPLES,openBlanksEditor,_tplPreviewHtml,_tplSourceLabel,_richSelection,_richReplaceRange,
   templateVersionNo,templateVersions,templateUsage,templateUsageLabel,saveTemplateVersion,
-  openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,tplMakeItOurs,tplBuiltinDraftBody,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplRowContracts,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,tplRowPile,tplRowWants,TPL_PILES,tplRowMoreMenu,tplPageRowHtml,tplPageFiltered,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});
+  openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,tplMakeItOurs,tplBuiltinDraftBody,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplHealthData,tplHealthHtml,TPL_HEALTH_ROWS,tplPageRefilter,tplRowContracts,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,tplRowPile,tplRowWants,TPL_PILES,tplRowMoreMenu,tplPageRowHtml,tplPageFiltered,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});

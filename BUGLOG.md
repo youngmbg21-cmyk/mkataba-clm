@@ -16360,3 +16360,60 @@ the drawing has a fifth segment on the send screen. U8 alone matched.
 - The adviser picker names an unheaded clause "Passage N" because that is the
   only honest name it has; a headed contract reads "5. Payment Terms". Whether
   an unheaded document should be offered at all is a separate question.
+
+## 19 Sep 2026 — THE TEMPLATES PAGE, CLEANED UP (Young's eight reports)
+
+Eight faults reported off five screenshots of the section that shipped the day
+before. All eight built. Each was MEASURED on a real page first, and the
+numbers are recorded beside the code and in f334 / templates-cleaned-up-verify.
+
+Found and fixed on the way, beyond the eight:
+
+- THE HEALTH READING WAS REPORTING ON PAPER IT COULD NOT SEE. `used` is the
+  SERVER's count and `scanned + unscanned` is the working set this browser
+  holds; in server mode they differ. A row built off `used` alone drew an empty
+  track and said "0 drafted, not checked" — a sentence about the working set
+  dressed as a fact about the book. Rows are now built only where something is
+  readable, and the rest are counted into `offBook` and SAID (the fxMissing
+  rule). Found by driving the page, not by reading it.
+- TWO CAPTIONS UNDER A FIGURE THAT CAN BE 1 printed "1 templates causing most
+  of it". `lib_h_few_cap` and `lib_h_clean_cap` are plural keys now.
+- A CORRECTION TO MY OWN MEASUREMENT. The first note on the filter fix claimed
+  "scroll 420 before, 0 after — the reader is thrown to the top". Driven across
+  four presses on both builds, the scroll lands on the SAME number either way:
+  the browser clamps it to what the new page can hold, and the handler's own
+  `showAll=false` is what shortens the page. One configuration happened to
+  clamp to zero and the note generalised from it. The rebuild is the real fault
+  and is what was fixed; the clamp is not claimed. Corrected in the source, in
+  f334 and in the browser file.
+
+Noticed, not fixed:
+
+- `npm run lint` reports 3 errors and 196 warnings, identical before and after
+  this work: js/views/register.js:1045 twice ('rows' is not defined, no-undef)
+  and test/chromium/overview-as-drawn-verify.js:145 (no-self-compare). All
+  three pre-date this session.
+- test/chromium/templates-tabs-verify.js fails 1b, 1c, 1d and 1f at the parent
+  as well as here — they pin the overview as the tab a reader LANDS on, which
+  the 18 Sep ruling reversed. The claims want re-pointing to that ruling; not
+  touched, because it is a different ruling from these eight.
+- Same file, 7c: the wall's headings are "Library"/"Value stream" and the
+  rail's are now "Show me"/"Where it came from"/"Value stream", so the claim
+  that they are read through one key each has been false since 18 Sep. Fails
+  at the parent identically.
+- Same file, 8a/8b/8c and its harness: pre-existing, identical at the parent.
+- test/chromium/paper-beside-questions-verify.js is 34/36 at the parent and
+  34/36 here — 7c and 7g, both pre-existing.
+- PORTAL_MODE is a BOOLEAN read as a function at six older call sites behind a
+  `side` guard (carried over from an earlier note; still true).
+
+### Refusal 3, spent on the owner's own ruling (19 Sep 2026)
+
+MEASURED from the top of the window to the first line of the agreement, on the
+same template, before and after: 300 → 335. The 35px is the contract sheet's
+own top padding, and it is what makes it a sheet. The owner asked for this
+screen by name ("the page needs to look like it is on a paper contract"), so
+the refusal is spent on their ruling rather than argued. Recorded beside
+tplLibSheetHtml so the next person spending more of it knows what has gone.
+Not paid for out of the grey around the sheet: that grey is the page ground,
+not spare chrome.
