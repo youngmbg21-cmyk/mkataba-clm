@@ -112,7 +112,13 @@ describe('f321 (2) a contract the wording does not settle is in NO exposure row'
   });
 });
 
-describe('f321 (3) the last row is the honest one', () => {
+/* RE-POINTED IN PLACE 19 Sep 2026: this was "the LAST ROW" and it is a LINE
+   beneath the table now (Young: *"very bland and does not highlight where
+   your eyes should focus on"* — a statement about HaTi's own coverage was
+   ranked among the exposures and competing with them for the eye). NOTHING
+   THIS SECTION ASSERTS HAS MOVED: `d.unread` is the same reading over the
+   same rule, and f338 (5) pins where it is drawn. */
+describe('f321 (3) the coverage reading is the honest one', () => {
   test('3a it counts what copilotRead says has not been read', () => {
     const w = world(book());
     const d = w.exposureData();
@@ -126,10 +132,10 @@ describe('f321 (3) the last row is the honest one', () => {
     const cs2 = book(); cs2.find(c=>c.id==='N1')._hasBrief = true;
     assert.equal(world(cs2).exposureData().unread.n, 0);
   });
-  test('3c a contract can be in an exposure row AND in the last row', () => {
+  test('3c a contract can be in an exposure row AND in the coverage reading', () => {
     const d = world(book()).exposureData();
     assert.ok(rowOf(d,'liability').ids.includes('N1'));
-    assert.ok(d.unread.ids.includes('N1'), 'the last row is not a sixth exposure, it is what we cannot say');
+    assert.ok(d.unread.ids.includes('N1'), 'it is not a sixth exposure, it is what we cannot say');
   });
 });
 

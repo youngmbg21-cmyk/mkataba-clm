@@ -2408,9 +2408,43 @@ function exposureData(){
     return { k:kind.k, title:kind.title, sub:kind.sub, n:hits.length,
       ids:hits.map(c=>c.id), value:m.sum, left:m.left, worst };
   });
+  /* ════ WORST FIRST (Young ruled it 19 Sep 2026) ═════════════════
+     *"Exposure page is very bland and does not highlight where your eyes
+     should focus on."* MEASURED off the owner's own screenshot: six rows in
+     one weight and one ink, THREE OF THEM READING ZERO, taking exactly as
+     much of the page as the two that are not. A table where nothing is
+     emphasised emphasises nothing.
+
+     THE RANK IS THE ROW'S OWN FIGURE and nothing else — by what it is WORTH
+     where the reader is shown money, by how MANY where they are not. That is
+     the same pair of readings `worst` already picks a contract by, so the
+     page cannot rank one way and name a worst contract the other. A zero row
+     sinks by construction rather than being hidden. Ties keep the kinds' own
+     order, because Array#sort is stable and these five are written in the
+     order a lawyer would list them.
+
+     IT IS WORKED OUT HERE, never in the renderer — this page's own rule, so
+     a figure can never differ between what is counted and what is drawn. */
+  rows.sort((a,b)=> (money ? ((b.value||0)-(a.value||0)) || (b.n-a.n) : (b.n-a.n)));
+  /* THE LEADING ROW IS THE FIRST ONE THAT IS NOT EMPTY, and there may be
+     none: a book with no uncapped anything leads with nothing, and a bar over
+     a zero would be an alarm about an absence. */
+  const lead = (rows[0] && rows[0].n) ? rows[0].k : null;
+
   const unread = live.filter(c=>!_expRead(c));
   const um = money ? _expMoney(unread) : { sum:null, left:0 };
-  return { rows, live:live.length, money,
+  /* WHAT WAS LEFT OUT OF THE FIGURES, once, for the whole page. A row already
+     carries its own `left` for its own hover; this is the SET of contracts no
+     figure above could include, so the line under the table counts contracts
+     and not appearances. fxMissing's rule: what is left out is counted and
+     SAID. */
+  let fxLeft = 0;
+  if(money && typeof fxHome==='function'){
+    const seen=new Set();
+    for(const r of rows) for(const id of r.ids) seen.add(id);
+    for(const c of live) if(seen.has(c.id)){ const h=fxHome(c); if(h&&h.missing) fxLeft++; }
+  }
+  return { rows, live:live.length, money, lead, fxLeft,
     unread:{ n:unread.length, ids:unread.map(c=>c.id), value:um.sum, left:um.left } };
 }
 /* THE RENDERER COMPUTES NOTHING — the page's own rule, so a figure can never
@@ -2420,23 +2454,69 @@ function exposureHtml(){
   const e = igEsc;
   const money = n => { if(n==null) return ''; try{ return (typeof fmtMoneyShort==='function')?fmtMoneyShort(n):Number(n).toLocaleString(jxLocale()); }catch(_){ return String(n); } };
   const L='font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);font-weight:var(--w-title);text-align:left;padding:0 0 7px';
-  const row = (r, last) => `
+  /* ════ THE LEADING ROW CARRIES THE WEIGHT (Young, 19 Sep 2026) ════════
+     A 3px bar in the margin and the one figure drawn at the leading rung.
+     ONE TONE, AND IT IS RUBY — this product's own word for "this is against
+     you" (the friction brief's KPI cards say so in their own note). The work
+     order asked for ruby above a threshold and amber below it; THERE IS NO
+     SUCH THRESHOLD IN THIS PRODUCT, and inventing one here is the score
+     coming back through a side door, which this page exists to refuse. Said
+     out loud rather than quietly softened.
+
+     THE BAR IS RESERVED ON EVERY ROW, transparent where it does not draw —
+     the arrival strip's own lesson: a bar that appears only on one row would
+     shift that row's words 14px right of the rest. */
+  const BAR = k => `border-left:3px solid ${d.lead===k?'var(--st-ruby-fg)':'transparent'}`;
+  const row = r => {
+    const dead = !r.n;                       /* a zero row stands down */
+    const lead = d.lead === r.k;
+    /* A ZERO ROW IS NOT HIDDEN. "No contract in the book has an uncapped
+       indemnity" is a fact worth reading, and hiding it would make the page
+       look like a list of everything that is wrong. It steps BACK instead:
+       the label shade, and no verb, because See all over nothing opens
+       nothing (which is what it already did). */
+    const ink = dead ? 'var(--color-neutral-500)' : 'var(--color-text)';
+    return `
     <tr style="border-top:1px solid var(--rule-faint)">
-      <td style="padding:13px 0">
-        <div style="font-size:var(--t-body);font-weight:var(--w-strong);color:${last?'var(--accent-ink)':'var(--color-text)'}">${e(r.title)}</div>
+      <td style="padding:13px 0 13px 11px;${BAR(r.k)}">
+        <div style="font-size:var(--t-body);font-weight:var(--w-strong);color:${ink}">${e(r.title)}</div>
         <div style="font-size:var(--t-meta);color:var(--color-neutral-600);margin-top:2px">${e(r.sub)}</div>
       </td>
-      <td style="padding:13px var(--s-3);text-align:right;font-size:var(--t-body);white-space:nowrap">${r.n}</td>
-      <td style="padding:13px var(--s-3);text-align:right;font-size:var(--t-body);font-weight:var(--w-strong);white-space:nowrap">${d.money?e(money(r.value)):''}${
-        (d.money&&r.left)?`<span title="${e(i18t('int_exp_left_out',{n:r.left}))}" style="color:var(--st-amber-fg);font-weight:var(--w-body)"> *</span>`:''}</td>
+      <td style="padding:13px var(--s-3);text-align:right;font-size:var(--t-body);white-space:nowrap;color:${ink}">${r.n}</td>
+      <td data-exp-fig="${e(r.k)}" style="padding:13px var(--s-3);text-align:right;font-size:${
+        lead?'var(--t-section)':'var(--t-body)'};font-weight:var(--w-strong);white-space:nowrap;line-height:var(--lh-tight);color:${ink}">${d.money?e(money(r.value)):''}${
+        (d.money&&r.left)?`<span title="${e(i18t('int_exp_left_out',{n:r.left}))}" style="color:var(--st-amber-fg);font-weight:var(--w-body);font-size:var(--t-body)"> *</span>`:''}</td>
       <td style="padding:13px var(--s-3);font-size:var(--t-body);color:var(--color-neutral-700)">${
         r.worst ? e(r.worst.who || r.worst.name || r.worst.id) : '&mdash;'}</td>
       <td style="padding:13px 0;text-align:right;white-space:nowrap">${
         r.n ? `<button data-exp-go="${e(r.k)}" style="border:0;background:none;font:inherit;font-size:var(--t-body);color:var(--accent-ink);cursor:pointer;padding:0">${
-          e(last?i18t('int_exp_read_them'):i18t('int_exp_see_all'))}</button>` : ''}</td>
+          e(i18t('int_exp_see_all'))}</button>` : ''}</td>
     </tr>`;
-  const unreadRow = { k:'unread', title:i18t('int_exp_unread'), sub:i18t('int_exp_unread_sub'),
-    n:d.unread.n, value:d.unread.value, left:d.unread.left, worst:null };
+  };
+  /* ════ THE UNREAD ROW IS NOT AN EXPOSURE ══════════════════════
+     *Not read closely enough to say* is a statement about HaTi's OWN
+     coverage, never about the contracts — the reading above says so in its
+     own words ("it is the last row instead, which is the honest one") and
+     then drew it as a sixth exposure anyway, ranked among them and competing
+     with them for the eye. It is a line beneath the table now, with its one
+     door. The DATA is byte-identical: `d.unread` is unchanged and the door
+     still carries `data-exp-go="unread"`, so the wire needs no branch. */
+  const u = d.unread;
+  const coverage = `
+    <p style="margin:var(--s-3) 0 0;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:var(--t-meta);line-height:1.6">
+      <span style="color:var(--color-text);font-weight:var(--w-strong)">${e(i18t('int_exp_unread'))}</span>
+      <span style="color:var(--color-neutral-600)">${e(i18t('int_exp_unread_sub'))}</span>
+      <span style="color:var(--color-text);font-weight:var(--w-strong);white-space:nowrap">${u.n}${
+        (d.money&&u.value!=null)?' · '+e(money(u.value)):''}${
+        (d.money&&u.left)?`<span title="${e(i18t('int_exp_left_out',{n:u.left}))}" style="color:var(--st-amber-fg);font-weight:var(--w-body)"> *</span>`:''}</span>${
+      u.n ? `<button data-exp-go="unread" style="border:0;background:none;font:inherit;font-size:var(--t-meta);color:var(--accent-ink);cursor:pointer;padding:0">${
+        e(i18t('int_exp_read_them'))}</button>` : ''}
+    </p>`;
+  /* THE ASTERISK EARNS A WORD. It keeps its hover, and the page says once how
+     many contracts no figure above could carry. */
+  const fxLine = d.fxLeft ? `
+    <p style="margin:6px 0 0;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.6"><span style="color:var(--st-amber-fg)">*</span> ${
+      e(i18tn('int_exp_fx_line', d.fxLeft, { n:d.fxLeft }))}</p>` : '';
   return `
   <section style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);padding:20px var(--s-6) var(--s-4)">
     <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:var(--s-3)">
@@ -2445,14 +2525,15 @@ function exposureHtml(){
     </div>
     <table style="width:100%;border-collapse:collapse">
       <thead><tr>
-        <th style="${L}">${e(i18t('int_exp_col_kind'))}</th>
+        <th style="${L};padding-left:14px">${e(i18t('int_exp_col_kind'))}</th>
         <th style="${L};text-align:right;padding-right:var(--s-3)">${e(i18t('int_exp_col_n'))}</th>
         <th style="${L};text-align:right;padding-right:var(--s-3)">${d.money?e(i18t('int_exp_col_value')):''}</th>
         <th style="${L};padding-left:var(--s-3)">${e(i18t('int_exp_col_worst'))}</th>
         <th style="${L}"></th>
       </tr></thead>
-      <tbody>${d.rows.map(r=>row(r,false)).join('')}${row(unreadRow,true)}</tbody>
+      <tbody>${d.rows.map(row).join('')}</tbody>
     </table>
+    ${coverage}${fxLine}
     <p style="margin:var(--s-3) 0 0;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.6">${e(i18t('int_exp_foot'))}</p>
   </section>`;
 }

@@ -16628,3 +16628,80 @@ NOTICED, NOT FIXED
   · The friction brief draws a card only for a reading the book supports. On a
     workspace with no signed negotiations only two of the four ever appear —
     correct behaviour, but it means the row can look lopsided.
+
+## RUN — FOUR OFF FOUR SCREENSHOTS (19 Sep 2026)
+
+Young, off four screenshots: *"The highlighted selections are selected
+categories but the highlight is so faint you can barely notice it. shade
+should be darker and the words in white when selected. delete the templates
+overview page. insights should come after obligations. Exposure page is very
+bland and does not highlight where your eyes should focus on."* Written up as
+WORKORDER-four-off-the-screenshots.md first; the owner answered *"Option a,
+build all four."*
+
+### Defects found and fixed
+
+1. **THE LIT FILTER ROW WAS A CASCADE FIGHT, NOT A MISSING RULE.** MEASURED in
+   a browser: the lit row drew rgb(204,251,241) — pale mint on white — and its
+   label drew the same near-black as every resting row above it. Both rules
+   existed and both looked correct in the source: `.tpl-rail.on` set the
+   background, and `.tpl-rail-s.on` (the value-stream rows' own) set
+   `color:var(--color-neutral-700)` at the SAME (0,2,0) weight and LATER in
+   the sheet, so it won and put the ink straight back. The mint is the HOVER
+   now, the lit row is `--accent-fill` with white words (hover restated so it
+   cannot undo it), the count goes white with its label, and
+   `.tpl-rail-s.on`'s colour rule is deleted. MEASURED 5.47:1.
+
+2. **THE TEMPLATES OVERVIEW TAB IS GONE** (option (a) of the three the owner
+   was offered). Its headline is the first line of the book's own glance and
+   two tabs leading with one number is the fault this product keeps paying
+   for. `tplHealthData` / `tplHealthHtml` are KEPT WHOLE AND UNREFERENCED, the
+   way `tplOverviewHtml` beside them already was. What is lost is named in the
+   summary: the per-template ranking, and *the clause they argue about most*,
+   which nothing else in the product says.
+
+3. **INSIGHTS MOVED AFTER OBLIGATIONS** — markup order and nothing else. Every
+   door keeps its `data-view`, `#nav-intel-new` travels inside the block, and
+   the four svg colour rules are keyed on the ATTRIBUTE rather than on a
+   position, so they follow it.
+
+4. **THE EXPOSURE PAGE SAYS WHERE TO LOOK.** Worst first (by value, by count
+   where money is hidden); a zero row takes the label shade and draws no verb
+   and is NEVER hidden; the leading row takes a 3px ruby bar reserved
+   transparent on every other row and the page's one figure at the leading
+   rung; the unread row left the table for a coverage line beneath it and kept
+   its door; the asterisk gained a sentence counting CONTRACTS as a set. An
+   ordering-and-weight pass — f338 (7) is the wall that says the arithmetic
+   did not move.
+
+### Defects found in the checks themselves, while driving them
+
+- A first run of the new browser file signed in with the wrong password and
+  spent 30 seconds timing out against a tab inside a display:none shell. It
+  waits for the shell now rather than for a timer.
+- Three checks in that file were bad instruments and were reporting the
+  product wrongly: a "darker than the page" claim read `#content`, which is
+  transparent and answers null; a contrast claim used raw brightness rather
+  than the sRGB curve; and a "no score on this page" claim read
+  `document.body`, matched the word "scores" inside a source comment about CSS
+  specificity, and reported the product as carrying a rating. All three are
+  measured properly now — the host is `#ig-exp-body`, the ground is walked up
+  to, and the contrast is WCAG's.
+- The nav-order claim measured a door that was display:none. The Insights door
+  is EARNED off `state.serverStats.total` — the SERVER's count — so rows
+  pushed into the browser's own list never open it. The stage uses the
+  product's own "Show everything" switch instead.
+- Two claims in f338 were simply wrong about the product and were corrected to
+  what it really does (a 400 row ranks above a 10 row; a door onto nothing is
+  not drawn).
+
+### Noticed, not fixed
+
+- `test/chromium/overview-as-drawn-verify.js:145` compares a value to itself
+  (`rec.cells[0].x === rec.cells[0].x`) and is the ONE `npm run lint` error in
+  the tree. Pre-existing at 84f72415; the claim it means to make ("the label
+  sits above its value") is not the one it makes.
+- `templates-tabs-verify` has five pre-existing failures at 84f72415 that this
+  run did not touch: 1f (a resting tab compared against Our standards), 7c
+  (the wall's headings against the rail's captions), and 8a–8c plus the
+  harness crash in the category/value-stream dialog section.

@@ -88,36 +88,53 @@ function stage(over = {}) {
 }
 const book = s => s.tplBookHtml(s.tplOverviewData());
 
-/* ═══════════ 1 · A THIRD TAB, AND THE OTHER TWO ARE UNTOUCHED ═════════ */
-describe('f336 (1) — the book is a third tab, never a replacement', () => {
-  test('three tabs, the book between the overview and the list', () => {
+/* ═══════════════ 1 · THE BOOK, AND THE LIST BESIDE IT ════════════════ */
+/* RE-POINTED IN PLACE, the same day it was written (Young: *"delete the
+   templates overview page"*, option (a) of three). This section pinned THREE
+   tabs — overview, book, list — and the overview went within hours, because
+   its headline (*Came back changed*) is the first line of the book's own
+   glance, and two tabs leading with one number is the fault this product
+   keeps paying for.
+
+   WHAT THE SECTION PINS IS UNCHANGED and is the reason it was written: the
+   book is a tab BESIDE the list, never a replacement for it, and the landing
+   is still the list. What moved is how many tabs sit beside it. */
+describe('f336 (1) — the book is a tab beside the list, never a replacement', () => {
+  test('two tabs, the book and the list', () => {
     const s = stage();
-    assert.deepEqual(s.TPL_PAGE_TABS, ['overview', 'book', 'list']);
+    assert.deepEqual(s.TPL_PAGE_TABS, ['book', 'list']);
   });
 
-  test('the overview still draws the health reading — the day-before ruling stands', () => {
-    /* The owner asked for "how the paper is doing" on 19 Sep and it is there.
-       Adding beside it is reversible; taking it away is not. */
+  test('the overview tab is gone, and the health card has no caller', () => {
     const body = fnBody('renderTemplatesPage');
-    assert.match(body, /data-tpl-sec="overview"[^>]*>\$\{tplHealthHtml\(tplHealthData\(\)\)\}/);
-    assert.match(body, /data-tpl-sec="book"[^>]*>\$\{tplBookHtml\(ov\)\}/);
+    assert.ok(!/data-tpl-sec="overview"/.test(body));
+    assert.ok(!/tplHealthHtml\(/.test(body));
+    assert.match(body, /data-tpl-sec="book"[^>]*>\$\{tplBookHtml\(ov\)\}/,
+      'the book is what survives, and it is what the owner asked for by name');
+  });
+
+  test('and both retired readings are still built — neither was deleted', () => {
+    const s = stage();
+    assert.equal(typeof s.tplHealthHtml, 'function', 'the health card');
+    assert.equal(typeof s.tplHealthData, 'function');
+    assert.equal(typeof s.tplOverviewHtml, 'function', 'and the card wall before it');
   });
 
   test('and the landing is unchanged — a reader still arrives on the list', () => {
     assert.equal(stage().tplPageTab(), 'list');
   });
 
-  test('all three sections are in the DOM, and only the live one is drawn', () => {
+  test('both sections are in the DOM, and only the live one is drawn', () => {
     const s = stage(); s.renderTemplatesPage();
     const html = s.document.getElementById('content').innerHTML;
-    for (const k of ['overview', 'book', 'list'])
+    for (const k of ['book', 'list'])
       assert.ok(html.includes(`data-tpl-sec="${k}"`), `${k} must stay in the DOM`);
-    /* the list is the live tab, so the other two carry `hidden` */
-    assert.match(html, /data-tpl-sec="overview" hidden/);
+    assert.ok(!html.includes('data-tpl-sec="overview"'), 'and the third one is not');
+    /* the list is the live tab, so the book carries `hidden` */
     assert.match(html, /data-tpl-sec="book" hidden/);
   });
 
-  test('ONE READING, drawn twice and never counted twice', () => {
+  test('ONE READING, taken once and never counted twice', () => {
     const body = fnBody('renderTemplatesPage');
     assert.match(body, /const ov=tplOverviewData\(\);/);
     assert.equal((body.match(/tplOverviewData\(\)/g) || []).length, 1,

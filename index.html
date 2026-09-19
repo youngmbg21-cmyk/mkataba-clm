@@ -5412,11 +5412,30 @@
     color:var(--color-neutral-700);font:inherit;font-size:var(--t-body);font-weight:var(--w-strong);
     padding:7px 11px;border-radius:var(--radius);cursor:pointer;text-align:left;}
   .tpl-rail-s{gap:9px;font-size:var(--t-meta);padding:6px 11px;}
-  .tpl-rail.on{background:var(--color-accent-100);color:var(--color-accent-800);}
-  .tpl-rail-s.on{color:var(--color-neutral-700);}
+  /* ════ A SELECTED ROW IS DARK, WITH WHITE WORDS (Young ruled it 19 Sep 2026)
+     *"The highlighted selections are selected categories but the highlight is
+     so faint you can barely notice it. shade should be darker and the words in
+     white when selected."* MEASURED: the selected row drew `rgb(204,251,241)`
+     — `--color-accent-100`, a pale mint — against a WHITE column, under
+     accent-800 text at the same weight as every unselected row. Nothing but
+     the wash told the two apart, and a wash that pale on white tells you
+     nothing.
+
+     THE WELL BECOMES THE HOVER, WHICH IS WHAT IT IS FOR. `--color-accent-100`
+     stays in the file and moves one state down: pointing at a row and having
+     selected one were the same colour, so the page could not say which of the
+     two it was showing you.
+
+     AND THE STREAM ROW'S OVERRIDE GOES. `.tpl-rail-s.on` put the ink back to
+     neutral, so a selected value stream drew a mint bar with BLACK words —
+     fainter still than the row above it, and the second thing the owner's
+     screenshot rings. One class pair, one answer. */
+  .tpl-rail:hover{background:var(--color-accent-100);}
+  .tpl-rail.on,.tpl-rail.on:hover{background:var(--accent-fill);color:#fff;}
   .tpl-rail-n{font-family:var(--font-mono);font-size:var(--t-label);
     color:var(--tpl-rail-n,var(--color-neutral-500));font-variant-numeric:tabular-nums;}
-  .tpl-rail.on .tpl-rail-n{color:var(--color-accent-700);}
+  /* The count goes white too, held back so the label still leads. */
+  .tpl-rail.on .tpl-rail-n{color:#fff;opacity:.82;}
 
   /* ════ HOW THE PAPER IS DOING — the first tab's rows (19 Sep 2026) ═══════
      Three tracks: the name, the bar and the verdict. The bar gets a fixed
@@ -6973,12 +6992,6 @@
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-cal"/></svg>
             <span style="flex:1;" data-i18n="nav_calendar">Calendar</span><span class="nav-count" data-count="calendar"></span>
           </button>
-          <button data-view="intel" class="nav-item" title="Insights — how your portfolio is behaving" data-i18n-title="nav_insights_title">
-            <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-insight"/></svg>
-            <span style="flex:1;" data-i18n="nav_insights">Insights</span><span id="nav-intel-new" class="nav-count" data-tone="teal" hidden
-              title="Newly unlocked — your portfolio is big enough for Insights to say something" data-i18n-title="nav_insights_new_title" data-i18n="nav_new_badge">New</span>
-          </button>
           <button data-view="templates" class="nav-item" title="Templates — the paper you draft from: company standards, counterparty paper and HaTi's own" data-i18n-title="nav_templates_title">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-tpl"/></svg>
@@ -6995,6 +7008,26 @@
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-check"/></svg>
             <span style="flex:1;" data-i18n="nav_obligations">Obligations</span><span class="nav-count" data-count="obligations"></span>
+          </button>
+          <!-- INSIGHTS SITS AFTER OBLIGATIONS (owner-asked 19 Sep 2026, off a
+               screenshot of this column). It used to sit between the Calendar
+               and Templates, which put a page you READ in the middle of the
+               run of pages you WORK IN. The everyday group now reads as the
+               day does — what is on the book, what falls due, what is owed —
+               and then what all of that adds up to.
+
+               THIS IS MARKUP ORDER AND NOTHING ELSE. No handler, no route, no
+               state and no count moved: every door still carries its own
+               data-view, the "New" badge travels inside this block, and the
+               four svg colour rules are keyed on [data-view="intel"] rather
+               than on position, so they follow it here. The keyboard order is
+               the markup order, so tabbing the column now reads in this
+               order too. -->
+          <button data-view="intel" class="nav-item" title="Insights — how your portfolio is behaving" data-i18n-title="nav_insights_title">
+            <span class="nav-rail"></span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-insight"/></svg>
+            <span style="flex:1;" data-i18n="nav_insights">Insights</span><span id="nav-intel-new" class="nav-count" data-tone="teal" hidden
+              title="Newly unlocked — your portfolio is big enough for Insights to say something" data-i18n-title="nav_insights_new_title" data-i18n="nav_new_badge">New</span>
           </button>
           <!-- THE INTAKE FRONT DOOR (W2-2), MOVED UNDER TEMPLATES (owner-asked
                19 Aug 2026, off a screenshot with the row ringed: "move requests
