@@ -542,7 +542,7 @@ const BOX = sel => {
        Young ruled it 19 Sep 2026 off "The Template Book" artifact. Every
        claim here is a PRESS or a GEOMETRY: whether a section really folds,
        whether a shut one still answers, and whether the overview beside it
-       was left alone. f335 pins the machinery. */
+       was left alone. f336 pins the machinery. */
     /* A PROBE THAT THROWS PROVES NOTHING. Run against a build with no book
        tab, page.click waits thirty seconds for a locator that will never
        exist and then ends the whole file — so the section it is here to

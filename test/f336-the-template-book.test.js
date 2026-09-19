@@ -1,4 +1,4 @@
-/* f335 — THE TEMPLATE BOOK (Young ruled it 19 Sep 2026, off the artifact of
+/* f336 — THE TEMPLATE BOOK (Young ruled it 19 Sep 2026, off the artifact of
  * that name).
  *
  * The Templates page answered two questions in one tab and neither well. The
@@ -89,7 +89,7 @@ function stage(over = {}) {
 const book = s => s.tplBookHtml(s.tplOverviewData());
 
 /* ═══════════ 1 · A THIRD TAB, AND THE OTHER TWO ARE UNTOUCHED ═════════ */
-describe('f335 (1) — the book is a third tab, never a replacement', () => {
+describe('f336 (1) — the book is a third tab, never a replacement', () => {
   test('three tabs, the book between the overview and the list', () => {
     const s = stage();
     assert.deepEqual(s.TPL_PAGE_TABS, ['overview', 'book', 'list']);
@@ -126,7 +126,7 @@ describe('f335 (1) — the book is a third tab, never a replacement', () => {
 });
 
 /* ═══════════ 2 · ONE CARD BUILDER, TWO SCREENS ═══════════════════════ */
-describe('f335 (2) — the clothes follow the builder', () => {
+describe('f336 (2) — the clothes follow the builder', () => {
   test('the card has exactly one definition', () => {
     assert.equal((SRC.match(/function tplOvCardHtml\(/g) || []).length, 1);
     assert.ok(!/const cardHtml\s*=/.test(SRC),
@@ -166,7 +166,7 @@ describe('f335 (2) — the clothes follow the builder', () => {
 });
 
 /* ═══════════ 3 · THE GLANCE ══════════════════════════════════════════ */
-describe('f335 (3) — the glance, and the caveat under what it qualifies', () => {
+describe('f336 (3) — the glance, and the caveat under what it qualifies', () => {
   test('three figures, each a label over a value', () => {
     const html = book(stage());
     assert.equal((html.match(/class="tpl-gl"/g) || []).length, 3);
@@ -202,7 +202,7 @@ describe('f335 (3) — the glance, and the caveat under what it qualifies', () =
 });
 
 /* ═══════════ 4 · THE SECTION GRAMMAR, BORROWED NOT REBUILT ═══════════ */
-describe('f335 (4) — HaTi’s own section grammar, on the owner’s word', () => {
+describe('f336 (4) — HaTi’s own section grammar, on the owner’s word', () => {
   test('the book composes itself out of sectionHtml', () => {
     const body = fnBody('tplBookHtml');
     assert.equal((body.match(/sectionHtml\(\{/g) || []).length, 3,
@@ -270,7 +270,7 @@ describe('f335 (4) — HaTi’s own section grammar, on the owner’s word', () 
 });
 
 /* ═══════════ 5 · WHAT WAS DELIBERATELY NOT BUILT ═════════════════════ */
-describe('f335 (5) — three absences, each written down', () => {
+describe('f336 (5) — three absences, each written down', () => {
   test('NO DRAWER on pressing a card — a second door onto an act that has one', () => {
     const body = noComments(fnBody('tplBookHtml') + fnBody('tplOvCardHtml'));
     for (const name of ['openSidePanel', 'drawer', 'openModal'])
@@ -299,7 +299,7 @@ describe('f335 (5) — three absences, each written down', () => {
 });
 
 /* ═══════════ 6 · COUNTING IS NOT DRAWING, AND THE WORDS ═════════════ */
-describe('f335 (6) — the book reads and works nothing out', () => {
+describe('f336 (6) — the book reads and works nothing out', () => {
   test('it borrows every figure and computes no population of its own', () => {
     const body = noComments(fnBody('tplBookHtml'));
     for (const name of ['tplPageRows(', 'templateUsage(', 'builtinUsageRows(', 'deviationSummary(', 'state.contracts'])
