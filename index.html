@@ -3001,9 +3001,46 @@
   .doc-read-moved{flex-basis:100%;color:var(--st-amber-fg);font-weight:var(--w-body);
     text-transform:none;letter-spacing:0;}
   .doc-read-moved button{font-size:inherit;}
+  /* ---- THE CAPTION SLOT IS THE SWITCH (Young ruled 19 Sep 2026) ----
+     The <em> that carried "a reading, not the contract" is STALE — that
+     sentence is the hover on the label now — and the switch takes its exact
+     place and its exact register: pushed right by margin-left:auto, the label
+     size, body weight, no letter-spacing, no upper case. A quiet press, not a
+     button: this row is furniture about the reading, and a filled control here
+     would read as an alarm beside a contract.
+     THE RING IS THE STATE. Hollow at rest, amber when the marks are on — the
+     same amber the marks themselves wear, so the switch and the page say one
+     thing. The word goes with it, so the state is never colour alone. */
   .doc-read-head em{ margin-left:auto; font-style:normal; font-weight:var(--w-body);
     letter-spacing:0; text-transform:none; font-size:var(--t-label);
     color:var(--color-neutral-600); }
+  .doc-read-duty{ margin-left:auto; font:inherit; font-size:var(--t-label);
+    font-weight:var(--w-body); letter-spacing:0; text-transform:none;
+    color:var(--color-neutral-600); background:none; border:0; padding:2px 0;
+    cursor:pointer; display:inline-flex; align-items:center; gap:6px;
+    border-radius:var(--radius); }
+  .doc-read-duty:hover{ color:var(--color-text); }
+  .doc-read-duty .dr-ring{ width:9px; height:9px; border-radius:50%;
+    border:1px solid var(--color-neutral-400); background:transparent; flex:none; }
+  /* COLOUR AND THE RING, NEVER THE WEIGHT: a heavier word would widen the
+     switch on every press and shuffle the row under the reader's hand. The
+     ring's fill is the signal that is not a colour, and aria-pressed is the
+     one a screen reader hears. */
+  .doc-read-duty[aria-pressed="true"]{ color:var(--st-amber-fg); }
+  .doc-read-duty[aria-pressed="true"] .dr-ring{ background:var(--st-amber-dot);
+    border-color:var(--st-amber-dot); }
+  /* ---- AND THE MARK ITSELF, IN BOTH COLUMNS ----
+     ONE RULE FOR TWO HOMES, because the clothes follow the builder: the
+     reading's own span and the one painted onto the paper are the same claim
+     and must not drift into two ambers.
+     IT COSTS NO LAYOUT, AND THAT IS A REQUIREMENT. The paper half is written
+     into the drafter's own text nodes, so a padding, a margin or a heavier
+     weight here would move the wording — a wash and an underline move nothing.
+     Measured both ways in duty-marks-verify. */
+  .doc-read-note .dr-duty, #doc-canvas .dr-duty-p{
+    background:var(--st-amber-bg);
+    box-shadow:inset 0 -2px 0 0 var(--st-amber-dot);
+    border-radius:1px; }
   .doc-read-clip{ position:relative; flex:1; min-height:0; overflow:hidden; }
   #doc-read-inner{ position:absolute; left:0; right:0; top:0; will-change:transform; }
   .doc-read-note,.doc-read-mirror{ position:absolute; left:0; right:0; padding-right:4px;

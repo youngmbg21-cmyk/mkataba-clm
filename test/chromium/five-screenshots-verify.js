@@ -13,7 +13,9 @@
        page shows it, which is exactly the hole yesterday's 11c left: it drove
        the contract room, where the button has always worked;
      · obligations in amber — a bar drawn by an inset box-shadow is invisible
-       in the markup either way.
+       in the markup either way. REVERSED the same evening: the bar is not
+       what was asked for, the WORDS are (duty-marks-verify). What 5b–5f ask
+       now is that a promise puts no bar on a clause.
 
    MEASURED AT THE PARENT (ae0c041): 17 of 29 RED, and each reproduces the
    report in the owner's own words —
@@ -23,9 +25,9 @@
        radius inside a square corner, and the box `overflow:visible`;
      · the negotiate page's Focus button was hit-testable and pressing it left
        the head standing at 146px — page false, body false;
-     · the promise placed on NOTHING (0 flags) and no bar drawn, which is the
-       amber of 18 Sep as well: it was keyed on a clause id the painted page
-       does not carry, so it had never marked anything.
+     · 5b–5f were the obligations bar and are REVERSED in place, so they pass
+       at the parent for the wrong reason and pass here for the right one —
+       they are named controls now, not claims about this change.
    The twelve that pass are CONTROLS: that the friction brief draws off a real
    negotiation, that the Portfolio tab and its counterparty door are there,
    that the Contract-View switch this one is matched TO already fills its box,
@@ -345,10 +347,18 @@ const drive = async (page, fn, arg, fallback) => {
       return { placed: flags.size, ids: [...flags.keys()],
         whys: [...flags.values()].map(v => String(v.why || '').slice(0, 60)) };
     }, quote, { placed: -1, ids: [], whys: [] });
-    check('5b the promise is placed on a clause by its own quote', put.placed >= 1,
-      `${put.placed} · ${(put.whys || []).join(' | ')}`);
-    check('5c and the sentence says it is a promise',
-      (put.whys || []).some(w => /promise|åtagande/i.test(w)), (put.whys || []).join(' | '));
+    /* ---- REVERSED IN PLACE, 19 Sep 2026 evening (Young ruled it) ----
+       This asked that an obligation put a BAR on its clause. That was the
+       wrong answer to *"highlight obligations in Amber"* twice over: it is a
+       fact about the CLAUSE where the ask was about the WORDS, and once the
+       words are lit one colour would be saying two things on one screen. So
+       the bar keeps its two judgements — your playbook disagreed, the risk
+       scan flagged it — and the promise is on the wording, driven in
+       duty-marks-verify. What is asked here is the REVERSAL. */
+    check('5b an obligation no longer puts a bar on its clause', put.placed === 0,
+      `${put.placed} placed · ${(put.whys || []).join(' | ')}`);
+    check('5c and no sentence about a promise is left on the bar',
+      !(put.whys || []).some(w => /promise|åtagande/i.test(w)), (put.whys || []).join(' | '));
 
     /* NOW THE PAINT. The edition is asked for, and the entry facing that
        clause must carry the amber bar — which is an inset box-shadow and is
@@ -382,14 +392,15 @@ const drive = async (page, fn, arg, fallback) => {
 
     check('5d CONTROL — the plain English edition really painted', amber.notes >= 3,
       `${amber.notes} entries`);
-    check('5e the clause carrying the promise is marked', amber.watch >= 1,
+    /* REVERSED with 5b: the obligation was the only thing on this stage that
+       could have marked a clause, so the bar must now be absent. The bar
+       ITSELF is not retired and is still driven by its own two sources in
+       plain-english-verify — what is pinned here is that a promise is not one
+       of them. */
+    check('5e no clause is barred by a promise alone', amber.watch === 0,
       `${amber.watch} marked`);
-    /* AMBER, and it is a PAINTED bar — the inset shadow the rule draws. */
-    check('5f the mark is the amber bar, painted',
-      (amber.shot || []).some(s => /inset/.test(s.shadow) && /rgb/.test(s.shadow) && s.w > 0),
-      (amber.shot || []).map(s => s.shadow).join(' | ').slice(0, 120));
-    check('5g and the hover says why it is there',
-      (amber.shot || []).some(s => /promise|Obligations/i.test(s.title)),
+    check('5f and nothing on the page says the bar is about an obligation',
+      !(amber.shot || []).some(s => /promise|Obligations/i.test(s.title)),
       (amber.shot || []).map(s => s.title).join(' | ').slice(0, 140));
     await page.screenshot({ path: path.join(OUT, '05-plain-english-amber.png') });
 

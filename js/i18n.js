@@ -1651,7 +1651,15 @@ const STRINGS = {
     ct_read_plain_title: 'A short plain-English reading of each clause, beside the wording it explains',
     ct_read_watch_pb: 'Your playbook disagrees with this clause ({what}). Open the standards check to see how.',
     ct_read_watch_scan: 'The risk scan raised a finding on this clause that is still open.',
+    /* STALE ON THE FACE since 19 Sep 2026 — see the note over docReadFlags.
+       A key is retired by not being called, never by being deleted, or a
+       screen comes back half-English. */
     ct_read_watch_oblig: 'A promise is recorded off this clause. Open the Obligations tab to see who owes it and when.',
+    /* The switch in the Plain English caption slot. The count is CLAUSES that
+       carry a promise, which is what lights when it is pressed. */
+    ct_duty_switch_one: 'Highlight obligations · {n}',
+    ct_duty_switch_other: 'Highlight obligations · {n}',
+    ct_duty_title: 'Light the words that make each clause a promise, in the contract and in the reading beside it',
     ct_read_reading: 'Reading…',
     ct_read_group: 'How this contract is shown',
     ct_read_cap: 'a reading, not the contract',
@@ -9017,7 +9025,11 @@ const STRINGS = {
     ct_read_plain_title: 'En kort förklaring av varje klausul på vanlig svenska, bredvid texten den gäller',
     ct_read_watch_pb: 'Er förhandlingsguide avviker från den här klausulen ({what}). Öppna standardkontrollen för att se hur.',
     ct_read_watch_scan: 'Riskgenomgången tog upp något i den här klausulen som fortfarande är öppet.',
+    /* INAKTIV sedan 19 sep 2026 — se noten över docReadFlags. */
     ct_read_watch_oblig: 'Ett åtagande är antecknat från den här klausulen. Öppna fliken Åtaganden för att se vem som ska göra vad och när.',
+    ct_duty_switch_one: 'Markera åtaganden · {n}',
+    ct_duty_switch_other: 'Markera åtaganden · {n}',
+    ct_duty_title: 'Lys upp orden som gör varje klausul till ett löfte, i avtalet och i förklaringen bredvid',
     ct_read_reading: 'Läser…',
     ct_read_group: 'Så visas avtalet',
     ct_read_cap: 'en förklaring, inte avtalet',
