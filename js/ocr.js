@@ -292,7 +292,7 @@ function ocrBannerHtml(u){
   const line=ocrProvenanceLine(u);
   if(!line) return '';
   return `<div style="display:flex;align-items:flex-start;gap:var(--s-2);border:1px solid var(--st-amber-line);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:var(--radius);padding:var(--s-2) 11px;font-size:var(--t-meta);line-height:1.55;margin-bottom:var(--s-3)">
-    <span style="flex:none;margin-top:1px">${icon('scan','w-3.5 h-3.5')}</span><span>${_ocrEsc(line)}</span></div>`;
+    <span style="flex:none;margin-top:1px">${icon('readpaper','w-3.5 h-3.5')}</span><span>${_ocrEsc(line)}</span></div>`;
 }
 
 Object.assign(window,{OCR_TEXT_FLOOR,OCR_SOURCES,OCR_TIER_LABEL,ocrIsImage,ocrNeeded,ocrDocument,

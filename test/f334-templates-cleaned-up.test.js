@@ -182,7 +182,15 @@ describe('f334 (2) — the dots menu is a list of controls', () => {
 
   test('the destructive row sits under a divider, and in ruby', () => {
     const body = fnBody(SRC, 'tplRowMoreMenu');
-    assert.match(body, /rows\.push\(sep\+item\('tm-del'/, 'a divider before it, every time it is drawn');
+    /* RE-POINTED IN PLACE (19 Sep 2026): the rows go through a `push(id, html)`
+       helper now, so each one's ACT can be named once and a menu that would
+       offer a single row can run it without a dialog. The divider is exactly
+       where it was — what moved is how the row is appended, which this claim
+       never meant to pin. So it pins the RELATION: `sep` immediately precedes
+       the delete row's markup, however that row is pushed. */
+    assert.match(body, /sep\+item\('tm-del'/, 'a divider before it, every time it is drawn');
+    assert.ok(!/item\('tm-del'[\s\S]{0,40}\)\)?;\s*$/m.test(body.replace(/sep\+item\('tm-del'/, 'X')),
+      'and nothing else pushes a delete row without one');
     assert.match(body, /danger\?' style="color:var\(--st-ruby-fg\)"':''/);
   });
 

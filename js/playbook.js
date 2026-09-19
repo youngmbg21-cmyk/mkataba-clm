@@ -838,7 +838,7 @@ function renderPlaybookSection(c){
         </div>`).join('')}
       </div>`:''}
       ${editable?`<div style="margin-top:10px">
-        <button id="pb-run" class="ui-btn" style="font-size:var(--t-meta);padding:5px 11px;display:inline-flex;align-items:center;gap:6px">${icon('scan','w-3 h-3')} ${r?'Re-run':'Run'} playbook review</button>
+        <button id="pb-run" class="ui-btn" style="font-size:var(--t-meta);padding:5px 11px;display:inline-flex;align-items:center;gap:6px">${icon('readpaper','w-3 h-3')} ${r?'Re-run':'Run'} playbook review</button>
       </div>`:''}
     </div>`;
   /* Expand/collapse is a repaint of this card only — the same shape the Scan

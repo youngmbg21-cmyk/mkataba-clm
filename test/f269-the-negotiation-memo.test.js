@@ -329,15 +329,26 @@ describe('f269 (9) it spends nothing and changes nothing', () => {
 describe('f269 (10) the door', () => {
   test('the memo’s row is in the page’s own menuRow, beside the playbook pass', () => {
     assert.match(NEG, /data-rl-memo/);
-    /* Sliced FORWARD from the declaration by a fixed budget rather than to a
-       landmark: `host.innerHTML` appears earlier in this file, so slicing to
-       its first index came back EMPTY and the matches below passed against an
-       empty string. A slice that can silently be empty is a test that cannot
-       fail. */
+    /* PIN THE REGION, NOT A BYTE COUNT (re-pointed 19 Sep 2026). This sliced
+       2200 characters FORWARD from the declaration — chosen because
+       `host.innerHTML` appears earlier in the file and slicing to its first
+       index came back empty, which is the failure the note here used to
+       describe. A budget is the same fault wearing the other shoe: a comment
+       written into that block pushed `data-rl-memo` past 2200 and the claim
+       went red with nothing wrong. So it slices to the real boundary — the
+       FIRST `host.innerHTML` that comes AFTER the declaration — and it asserts
+       the region is neither empty nor the whole file. */
     const at = NEG.indexOf('const mayMenu');
     assert.ok(at > 0, 'menuRow is not built where this file expects');
-    const row = NEG.slice(at, at + 2200);
-    assert.match(row, /data-rl-pbreview/, 'the playbook row left the same string');
+    const end = NEG.indexOf('host.innerHTML', at);
+    assert.ok(end > at && end - at < 12000, 'the menuRow block has a real end');
+    const row = NEG.slice(at, end);
+    /* REVIEW VS PLAYBOOK LEFT THIS MENU on the owner's ruling of 19 Sep 2026 —
+       the shield in roomChecksHtml runs the same pass twelve pixels away, and
+       two doors onto one reading is what the one-door rule exists to stop. The
+       memo's row is what this claim is about and it is untouched; what it can
+       still say about its old neighbour is that the menu leads with nothing. */
+    assert.match(row, /const menuRow = ''/, 'the playbook row is retired, not replaced');
     assert.match(row, /data-rl-memo/);
     /* Dead in preview like its neighbour — the counterparty draws its own
        header and never this one. */

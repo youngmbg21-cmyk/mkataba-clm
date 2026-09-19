@@ -283,12 +283,13 @@ const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role,
      that helpfully pre-resolved it would be a second place the rule lives. */
   newPaper: !!u.new_paper,
   reFile: !!u.re_file,
+  holdContracts: !!u.hold_contracts,
   overseerId: u.overseer_id || null });
 /* The facts on that record that are ONE PERSON'S OWN and an admin's business,
    and nobody else's. Stripped from every colleague's copy at the bootstrap —
    see the note there. A new per-person setting belongs on this list the day it
    is added; f202 fails if one of these ever reaches a non-admin again. */
-const ADMIN_ONLY_USER_FIELDS = ['folderAccess', 'signCap', 'reviewChecked', 'reviewerId', 'overseerId', 'twoStep', 'newPaper', 'reFile'];
+const ADMIN_ONLY_USER_FIELDS = ['folderAccess', 'signCap', 'reviewChecked', 'reviewerId', 'overseerId', 'twoStep', 'newPaper', 'reFile', 'holdContracts'];
 
 /* ---------- per-contract storage (scales to large portfolios) ----------
    Each contract is its own row with its own version. Lists return a light
@@ -878,6 +879,7 @@ addColumnIfMissing('users', 'can_view_values', 'INTEGER NOT NULL DEFAULT 1');
    the housekeeping a template needs afterwards (rename, re-file, archive). */
 addColumnIfMissing('users', 'new_paper', 'INTEGER NOT NULL DEFAULT 0');
 addColumnIfMissing('users', 're_file', 'INTEGER NOT NULL DEFAULT 0');
+addColumnIfMissing('users', 'hold_contracts', 'INTEGER NOT NULL DEFAULT 0');
 /* A member's JOB TITLE — "COO", "Finance Director" — which is a different
    thing from their `role` ("admin"/"legal"/"viewer"). `role` is a permission
    level: what they may do in the software. `title` is the capacity they sign
@@ -3332,6 +3334,28 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
      every list, count and sweep — which is the point of it not being Archive.
      `hold` is absent from EXECUTED_IMMUTABLE for the same reason: the contracts
      this is asked of are mostly already signed. */
+  /* ---- AND WHO MAY SET OR LIFT IT IS ASKED AS A DIFFERENCE (19 Sep 2026) ----
+     The three refusals below say what a HELD contract refuses. This says who
+     may put one on hold in the first place, and who may take it off — the
+     owner's ruling that a freeze is not an everyday editor's act.
+     A DIFFERENCE, like every guard on this route: a save that carries the hold
+     it arrived with passes untouched, so an editor can still work a contract
+     that is not held and can still save one whose hold nobody is changing.
+     BOTH DIRECTIONS, on purpose: letting anyone LIFT a freeze would make
+     setting one worth nothing. */
+  {
+    const was = !!(prev && prev.hold && prev.hold.at);
+    const now = !!(c && c.hold && c.hold.at);
+    if (was !== now && !mayHoldRow(req.user)) {
+      return res.status(403).json({
+        error: now
+          ? 'Putting a contract on hold is a permission an admin grants person by person. '
+            + 'Ask an admin to tick it for you, or ask them to put this one on hold.'
+          : 'Releasing a hold is a permission an admin grants person by person. '
+            + 'Ask an admin to tick it for you, or ask them to release this one.',
+        holdDenied: true });
+    }
+  }
   if (prev && prev.hold && prev.hold.at && c.hold && c.hold.at) {
     const HELD_FROZEN = SIGNED_WORDING_FROZEN.concat(['changes', 'negotiation', 'signatures', 'execution']);
     const moved = HELD_FROZEN.filter(k => stable(prev[k]) !== stable(c[k]));
@@ -4162,6 +4186,13 @@ const mayMakeNewPaperRow = u => !!u && (u.role === 'admin' || Number(u.new_paper
    in the shape the product already uses five times over, OFF BY DEFAULT: until
    an admin turns it on for somebody, the answer is exactly what it was. */
 const mayReFileRow = u => !!u && (u.role === 'admin' || Number(u.re_file || 0) !== 0);
+/* WHO MAY FREEZE A CONTRACT FOR A DISPUTE (Young ruled it 19 Sep 2026). The
+   eighth per-person grant, read off the STORED row exactly as its two
+   neighbours are — the browser's mayHoldContract only decides whether a door
+   is drawn, and this is the wall. An admin always holds it so a workspace can
+   never lock itself out of releasing what it froze. */
+const mayHoldRow = u => !!u && u.role !== 'viewer'
+  && (u.role === 'admin' || Number(u.hold_contracts || 0) !== 0);
 const paperMaker = (req, res, next) => {
   if (req.user.role !== 'admin' && req.user.role !== 'legal')
     return res.status(403).json({ error: 'Admin or Editor access required' });
@@ -9555,6 +9586,13 @@ app.patch('/api/users/:id', auth, (req, res) => {
     /* The re-filing grant, on the same terms as the one above it: an admin's
        to give, never self-service, and meaningless on the two roles that
        already answer for themselves. */
+    if (b.holdContracts !== undefined) {
+      if (role === 'admin' && !b.holdContracts)
+        return res.status(400).json({ error: 'An admin can always put a contract on hold — the tick cannot be removed from them.' });
+      if (role === 'viewer' && b.holdContracts)
+        return res.status(400).json({ error: 'A viewer cannot change a contract at all, so they cannot put one on hold.' });
+      db.prepare('UPDATE users SET hold_contracts=? WHERE id=?').run(b.holdContracts ? 1 : 0, req.params.id);
+    }
     if (b.reFile !== undefined) {
       if (role === 'admin' && !b.reFile)
         return res.status(400).json({ error: 'An admin may always re-file a contract.' });

@@ -5307,12 +5307,30 @@ function redlineLayoutCss(){
          control — a two-state switch whose live half fills — and the two had
          already drifted apart once by being written twice. One rule, two
          homes; f236 pins the pair so it cannot happen again. */}
+  ${''/* ════ IT WEARS THE CONTRACT VIEW SWITCH'S CLOTHES (Young ruled it
+         19 Sep 2026) ════════════════════════════════════════════════════════
+         "The internal / external button should resemble how the contract /
+         plain english button design looks like including the outline."
+         MEASURED, the two were already the same control in every way but two:
+         same height, same corner, same filled live half, same
+         only-the-lit-half-is-bold. What differed was the BOX's edge
+         (--color-divider, a grey hairline, against .doc-read-seg's
+         --accent-ink) and the RESTING word (--color-neutral-500 against that
+         same accent ink). One read as a control; the other read as a label
+         with a shadow behind it.
+         --accent-ink is the one accent token with a night answer, which is why
+         .doc-read-seg uses it and why copying the value would have been the
+         wrong move — the token carries the dark theme with it.
+         AND THE CLAUSE PANEL'S History | + notes MOVES WITH IT, deliberately:
+         the two share this rule because they had already drifted apart once by
+         being written twice (owner-asked 25 Aug 2026), and f236 pins the pair.
+         Both were offered; the owner took "both move together". */}
   .redline-page .rl-actions .rl-segwrap,
   .redline-page .rl-cp-head .rl-segwrap{height:28px;padding:0;gap:0;background:var(--color-surface);
-    border:1px solid var(--color-divider);align-self:center}
+    border:1px solid var(--accent-ink);align-self:center}
   .redline-page .rl-actions .rl-segwrap .rl-seg,
   .redline-page .rl-cp-head .rl-segwrap .rl-seg{height:26px;padding:0 var(--s-3);font-size:var(--t-meta);
-    box-shadow:none;background:none;color:var(--color-neutral-500)}
+    box-shadow:none;background:none;color:var(--accent-ink)}
   .redline-page .rl-actions .rl-segwrap .rl-seg.on,
   .redline-page .rl-cp-head .rl-segwrap .rl-seg.on{background:var(--color-accent-700);color:#fff;
     font-weight:var(--w-title);box-shadow:none}

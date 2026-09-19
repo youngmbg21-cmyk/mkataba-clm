@@ -1590,7 +1590,7 @@ function uploadConfirmHtml(ext, meta){
         <h2 class="font-display font-700 text-brand-900">${i18t('ct_check_what_read')}</h2></div>
       ${intro?`<p class="text-xs text-brand-800/70 mb-3" style="line-height:1.55">${intro}</p>`:''}
       ${ext&&isOcrText(ext.textSource)?`<div style="display:flex;align-items:flex-start;gap:var(--s-2);border:1px solid var(--st-amber-line);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:var(--radius);padding:var(--s-2) 11px;font-size:var(--t-meta);line-height:1.55;margin:0 0 var(--s-3)">
-        <span style="flex:none;margin-top:1px">${icon('scan','w-3.5 h-3.5')}</span>
+        <span style="flex:none;margin-top:1px">${icon('readpaper','w-3.5 h-3.5')}</span>
         <span>${esc2(ocrProvenanceLine(ext.upload))} ${i18t('ct_capped_at')} <b>${i18t('ct_medium')}</b> ${i18t('ct_confidence_until')}</span></div>`:''}
       <div class="grid sm:grid-cols-2 gap-2 mb-3 up-grid">
         ${fld('up-name','Contract name',{value:suggestedName, ph:'e.g. Supply Agreement — Acme', read:nameFromDoc, sub:(ext&&!nameFromDoc)?'from the file name — rename it to what it is':''})}
@@ -3730,22 +3730,120 @@ function wireActionBar(c){
     });
   }
 }
-/* Put the cursor where the terms can actually be typed — the Key terms TAB,
-   not a panel behind a sub-tab on the right: the Document tab is a clean read
-   and carries no fields of its own.
+/* Put the cursor where the terms can actually be typed — the Overview TAB, not
+   a panel behind a sub-tab on the right: the Document tab is a clean read and
+   carries no fields of its own.
 
-   THE HEAD NO LONGER PRESSES THIS (9 Sep 2026 — the rung carries noButton), so
-   the dispatch branch above is the only caller and nothing on screen reaches
-   it. Kept, published and wired exactly as the three other noButton kinds are:
-   it is what the machinery would run, and deleting the act because one door
-   closed is how a capability goes missing when the next door opens. */
-function focusKeyTerms(c){
+   ════ IT HAS TO OPEN THE BOX, NOT JUST LOOK FOR ONE (Young reported it 19 Sep
+   2026, off a screenshot of the red toast) ═══════════════════════════════════
+   "Counterparty is blank on Key terms" → Fill it in → "This document has no
+   editable key terms", every time.
+
+   TWO THINGS HAD DRIFTED APART. This act was written when that tab drew every
+   term as a live box, so `[data-kt=…]` was always in the page. On 17 Sep 2026
+   the tab became THE OVERVIEW: both sections rest as a read-only grid, The
+   record is SHUT at rest, and `sectionHtml` draws no body at all for a shut
+   section — so the element is not merely hidden, it does not exist. The note
+   that used to sit here said "nothing on screen reaches it", which was true
+   the day it was written and stopped being true when the readiness list grew a
+   row that presses it.
+
+   SO THE PRESS SETS THE POSTURE, THEN PAINTS, THEN LOOKS. Open the section,
+   turn its rows on, and only then hunt the box — the same three steps, in the
+   same order, that `data-ov-move-stream` already takes (the proven pattern, a
+   few hundred lines below). Posture first, so ONE render does it.
+
+   AND IT HONOURS THE FIELD IT IS HANDED. Both callers already pass one —
+   `r.field` on a record mismatch, `r.kind` on a blank — and this threw it away,
+   so "Value is blank" put the caret in the counterparty box. `KT_FIELD_HOME`
+   is the one map: the reading's name → the box's own `data-kt` name → which
+   section holds it. An unknown field still opens The record and says nothing
+   false. f311's claim is unchanged — the CONTRACT is still the first argument;
+   the field is additive and optional. */
+/* Bounded, not a guess: about a second and a half in all. */
+const KT_FOCUS_TRIES = 12;
+const KT_FIELD_HOME = {
+  value:         { kt:'value',        sec:'deal'   },
+  effectiveDate: { kt:'effDate',      sec:'deal'   },
+  effDate:       { kt:'effDate',      sec:'deal'   },
+  expiryDate:    { kt:'expiry',       sec:'deal'   },
+  expiry:        { kt:'expiry',       sec:'deal'   },
+  notice:        { kt:'notice',       sec:'deal'   },
+  name:          { kt:'name',         sec:'record' },
+  party:         { kt:'party',        sec:'record' },
+  counterparty:  { kt:'counterparty', sec:'record' },
+  cpEmail:       { kt:'cpEmail',      sec:'record' },
+  cpRouteEmail:  { kt:'cpRouteEmail', sec:'record' },
+  stream:        { kt:'stream',       sec:'record' },
+  template:      { kt:'template',     sec:'record' },
+};
+function focusKeyTerms(c, field){
+  const home = KT_FIELD_HOME[String(field||'')] || KT_FIELD_HOME.counterparty;
+  const key = OV_KEY(c, home.sec);
+  /* Posture BEFORE the tab change: both are plain in-memory reads that the
+     next paint obeys, so the reader sees one render rather than a grid that
+     flips into boxes under their eyes. */
+  try{ if(window.sectionSetOpen) sectionSetOpen(key, true); }catch(_){}
+  try{ ovSetEditing(key, true); }catch(_){}
   roomGoTab(c,'terms');
-  setTimeout(()=>{
-    const panel=document.querySelector('[data-kt="counterparty"]');
-    if(!panel){ toast(i18t('ct_no_editable_terms'),'err'); return; }
-    panel.focus(); panel.select&&panel.select();
-  },250);
+  /* AND THE POSTURE HAS TO BE PAINTED, THEN WAITED FOR. Measured in a browser,
+     twice:
+       · setting the two flags is not enough — `roomGoTab` is a NO-OP when the
+         reader is already on this tab, so nothing redrew and the box stayed
+         absent. `renderKeyTerms` is the painter the stream row's own handler
+         calls for exactly this reason, a few hundred lines from here;
+       · and a single timeout is a guess. The tab switch and this paint race,
+         and at 250ms the box existed in the markup but measured 0x0 because
+         its pane had not been shown yet — so the caret landed nowhere.
+     SO IT WAITS FOR THE THING IT NEEDS, bounded, rather than for a number:
+     paint, then look for a box that is really PAINTED, a few frames at a time.
+     It gives up after KT_FOCUS_TRIES and SPEAKS — a viewer, or a signed
+     contract, genuinely has no editable box and is owed the sentence. */
+  let tries=0;
+  _ktLanding=true;
+  const done=()=>{ _ktLanding=false; };
+  const land=()=>{
+    /* PAINTED ONCE, NOT ONCE A TURN. Repainting on every try was this loop
+       fighting itself: the render rebuilds the panel, which shuts the row the
+       previous turn had just opened, so the caret could never settle. The one
+       paint puts the posture on screen; after that the loop only presses and
+       focuses, which is what absorbs the blur repaint the row we came FROM
+       schedules 120ms behind us. */
+    if(!tries){ try{ renderKeyTerms(c); }catch(_){} }
+    /* AND THE ROW OPENS ON A PRESS. Measured: with the section open and its
+       rows on, the box was still 0x0 with no offsetParent — because a Key
+       terms row shows its READ-OUT at rest and its control only once the row
+       is pressed. `Move to another stream` records this exact measurement a
+       few hundred lines below and solves it the same way: PRESS THE ROW, the
+       way a reader would, through wireKtRows' own handler, rather than
+       reaching past it to reveal a hidden field. */
+    const row=document.querySelector(`[data-kt-row="${home.kt}"]`);
+    const opener=row&&row.querySelector(`[data-kt-edit="${home.kt}"]`);
+    if(opener&&!row.classList.contains('is-open')) opener.click();
+    const panel=document.querySelector(`[data-kt="${home.kt}"]`);
+    const r=panel&&panel.getBoundingClientRect&&panel.getBoundingClientRect();
+    if(panel&&r&&r.width>0&&r.height>0){
+      if(panel.scrollIntoView) panel.scrollIntoView({block:'center'});
+      panel.focus(); panel.select&&panel.select();
+      /* IT SETTLES ON THE CARET, NOT ON THE BOX. Measured: pressing this a
+         SECOND time — a reader fixing the counterparty and then the value —
+         landed nowhere, because leaving the first box fires wireKtRows' own
+         blur handler, which repaints the whole panel 120ms later and throws
+         away the row this had just opened. That repaint is right and stays;
+         what was wrong is giving up the moment the box appeared. So the loop
+         runs on until the caret is really IN it, which absorbs the repaint on
+         the next turn, and stops the moment it is. */
+      /* The panel is held while this runs, so one landing is the landing. */
+      setTimeout(done,240);
+      return;
+    }
+    if(++tries<KT_FOCUS_TRIES){ setTimeout(land,120); return; }
+    done();
+    /* A viewer, or a signed contract, genuinely has no editable box — and only
+       then is the sentence owed. Never where the box was simply slow. */
+    if(!panel) toast(i18t('ct_no_editable_terms'),'err');
+  };
+  setTimeout(land,120);
 }
 
 /* ---- Document workspace right-panel: two tabs (Screening | Signing) --------
@@ -4641,7 +4739,16 @@ function wireKtRows(c){
       /* Late enough for a click on the checkbox beside it to land first — and
          never while a confirm is open over the top of the panel, or the repaint
          throws away the row the reader is being asked about. */
-      setTimeout(()=>{ if(!_ktFolderBusy && !r.contains(document.activeElement)) renderKeyTerms(c); },120);
+      /* AND NOT WHILE THE PRODUCT ITSELF IS MOVING THE CARET (19 Sep 2026).
+         This repaint is right when a READER clicks away — the read-out beside
+         the field has to agree with what was just typed. It is wrong when
+         `focusKeyTerms` is landing on another row of this same panel: it fired
+         120ms behind the landing and took the caret straight back out again,
+         which is what "Fill it in" looked like on a second press. Traced frame
+         by frame; the first frame was always correct.
+         `_ktLanding` is `_ktFolderBusy`'s own idiom — one flag, one guard, and
+         the panel holds still until the act that owns it is finished. */
+      setTimeout(()=>{ if(!_ktFolderBusy && !_ktLanding && !r.contains(document.activeElement)) renderKeyTerms(c); },120);
     }));
   });
 }
@@ -4662,6 +4769,8 @@ function wireKtRows(c){
    closes itself on blur, and pressing a button in the confirm blurs the select
    that opened it. */
 let _ktFolderBusy=false;
+/* Held while focusKeyTerms is landing — see the blur guard above. */
+let _ktLanding=false;
 function wireKtFolder(c){
   const sel=document.querySelector('[data-kt-folder]'); if(!sel) return;
   /* BOUND ONCE PER ELEMENT — bindFolderSelect's own idiom, and needed for the
@@ -7213,11 +7322,26 @@ function applyWsFocus(){
     b.innerHTML=`${icon('scan','w-3.5 h-3.5')}${_wsFocus?'Exit focus mode':'Focus mode'}<span class="mnote">${i18t('ct_esc_to_leave')}</span>`;
     b.title=_wsFocus?i18t('ct_exit_focus'):i18t('ct_focus_mode');
   }
+  /* THE SECOND DOOR IS THE SAME DOOR (19 Sep 2026): the head's own button says
+     what it is with the same two words the row says, so the pair can never
+     disagree about which state the page is in. A square control has no room
+     for the words, so they go where a square control's words go — the hover
+     and the label a screen reader reads. */
+  document.querySelectorAll('[data-ws-focus]').forEach(el=>{
+    el.setAttribute('aria-pressed',_wsFocus?'true':'false');
+    const t=_wsFocus?i18t('ct_exit_focus'):i18t('ct_focus_mode');
+    el.title=t; el.setAttribute('aria-label',t);
+  });
   wsFocusChip();
 }
 function wireWsFocus(c){
   if(_wsFocusFor!==c.id){ _wsFocus=false; _wsFocusFor=c.id; }
   document.getElementById('ws-focus')?.addEventListener('click',()=>{ _wsFocus=!_wsFocus; applyWsFocus(); });
+  /* ONE HANDLER ANSWERS BOTH DOORS — the lesson f295 wrote down when Prepare
+     redlines gained its second button: querySelectorAll, never querySelector,
+     or the door drawn second is live-looking and dead. */
+  document.querySelectorAll('[data-ws-focus]').forEach(el=>
+    el.addEventListener('click',()=>{ _wsFocus=!_wsFocus; applyWsFocus(); }));
   /* Bound ONCE on the document, not per paint: this page rebuilds itself on
      every save, and a listener per paint is a leak. */
   if(!_wsFocusKeyWired){
@@ -7290,7 +7414,7 @@ function roomChecksHtml(c){
   const may=(typeof canEdit!=='function'||canEdit());
   const rows=[['oblig','calendar','ob_obligations'],
               ['playbook','shield','ct_playbook_review'],
-              ['risk','scan','ct_copilot_risk_scan']];
+              ['risk','readpaper','ct_copilot_risk_scan']];
   return `<div class="room-checks">${rows.map(([kind,ic,key])=>{
     let v=null; try{ v=checkVerdict(c,kind); }catch(_){}
     const editable=may&&(kind==='oblig'||c.status!=='Signed');
@@ -7840,7 +7964,8 @@ function roomHeadHtml(c,opts={}){
                  person being asked a different question, and the screen has to
                  ask which clauses. */}
           <button type="button" id="ws-advice" title="${i18t('asl_title')}">${icon('users','w-3.5 h-3.5')}${i18t('asl_menu_row')}</button>
-          ${(()=>{ const held=!!(window.contractOnHold&&contractOnHold(c));
+          ${(()=>{ if(typeof mayHoldContract==='function'&&!mayHoldContract()) return '';
+            const held=!!(window.contractOnHold&&contractOnHold(c));
             return `<button type="button" id="ws-hold" title="${i18t(held?'hd_release_title':'hd_hold_title')}">${icon(held?'history':'shield','w-3.5 h-3.5')}${held?i18t('hd_release'):i18t('hd_hold')}</button>`; })()}`:''}
           ${(may&&(c.status==='Draft'||c.status==='Under Review'))?`<hr>
           <button type="button" id="ws-delete" class="danger" title="${i18t('ct_delete_draft')}">${icon('trash','w-3.5 h-3.5')}${i18t('ct_delete_this_draft')}</button>`:''}
@@ -7883,6 +8008,26 @@ function roomHeadHtml(c,opts={}){
              page is byte-identical. The ORDER rule that pushes More last on a
              lead row names #ws-more alone, so these follow it. */}
       ${backC?roomChecksHtml(c):''}
+      ${''/* ---- AND FOCUS MODE, LAST ON BOTH HEADS (Young asked 19 Sep 2026) ----
+             "Add the focus mode button as the last far right button in both
+             the document page after Draft new agreement button and after
+             Copilot risk scan in the editor page."
+             It was one row in the ⋯ menu — three presses from wanting the
+             chrome out of the way to having it — while the act it performs is
+             the most spatial thing on the page.
+             TWO DOORS, ONE ACT, ONE HANDLER, which is the shape the owner
+             approved for `Prepare redlines` and the only shape that is safe:
+             the menu row keeps its id and its listener, and this button carries
+             `data-ws-focus` which the SAME listener answers. The owner was
+             offered "take the row out" and kept it: that is where people have
+             learned to find it.
+             `order:5` puts it after the checks on a lead row and after Draft
+             new agreement on the contract's own, which is exactly what was
+             asked — one rule, both pages, because on the contract head the
+             checks are not drawn and 5 simply follows 0. */}
+      ${(!opts.preview&&!PORTAL_MODE)?`<button type="button" class="room-check room-focus" data-ws-focus
+        title="${esc(i18t('ct_focus_mode'))}" aria-label="${esc(i18t('ct_focus_mode'))}" aria-pressed="false"
+        >${icon('scan','w-4 h-4')}</button>`:''}
     </div>
     ${''/* ---- FOUR FACTS, EACH WITH ITS OWN LABEL (owner-asked 22 Aug 2026) ----
            The line above used to open with "MK-B2 · Sales & Route-to-Market ·
@@ -9084,6 +9229,53 @@ function docReadSync(){
   const sc=document.getElementById('doc-scroll'), inner=document.getElementById('doc-read-inner');
   if(sc&&inner) inner.style.transform='translateY('+(-sc.scrollTop)+'px)';
 }
+/* ---- THE FIGURES ARE MARKED, AND NO MODEL DECIDES WHICH (19 Sep 2026) ----
+   The contract brief has done exactly this since 19 Aug 2026 and the note
+   beside it says why it is safe: it marks FACTS, not opinions — money, a
+   notice period, a percentage, a date — over already-escaped text, so a match
+   can never introduce markup of its own and nothing can be talked up.
+   BORROWED, NEVER COPIED. `briefMark` lives in js/ai.js and reaches here
+   through window; the literal fallback is the escape alone, which is what this
+   column drew before, so a stage without that module is byte-identical. */
+function docReadMark(text){
+  const t=String(text==null?'':text);
+  try{ if(typeof briefMark==='function') return briefMark(t); }catch(_){}
+  return esc(t);
+}
+/* ---- AND AMBER RESTS ON SOMETHING CHECKABLE ----
+   The owner asked for red, amber and green and was shown the fork: a model
+   deciding, or facts HaTi already holds. He took the facts — so a clause is
+   marked here only where THIS workspace's own playbook disagreed with it, or
+   the risk scan raised a finding still open on it. Both are already on the
+   record, both are already shown elsewhere, and both can be pressed through to.
+   `rlPbFindClause` is the ONE reading of which clause a finding belongs to and
+   it REFUSES rather than guesses (RL_PB_MATCH_MIN), so an unplaceable finding
+   marks nothing rather than marking the wrong paragraph.
+   READING MUST NOT WRITE: it reads `c.playbook` and `openFindings` and nothing
+   else, and every hop is guarded — this runs on a Document tab that may carry
+   neither module. */
+function docReadFlags(c){
+  const out=new Map();
+  if(!c) return out;
+  const add=(cl,why)=>{ if(!cl||!cl.clauseId||out.has(cl.clauseId)) return; out.set(cl.clauseId,{why}); };
+  const find=(q,cat)=>{ if(!q||typeof rlPbFindClause!=='function') return null;
+    try{ return rlPbFindClause(c,q,cat); }catch(_){ return null; } };
+  try{
+    const vs=(c.playbook&&Array.isArray(c.playbook.verdicts))?c.playbook.verdicts:[];
+    for(const v of vs){
+      if(!v||v.status==='aligned') continue;
+      add(find(v.quote,v.category), i18t('ct_read_watch_pb',{what:String(v.category||'').trim()}));
+    }
+  }catch(_){}
+  try{
+    const fs=(typeof openFindings==='function')?openFindings(c):[];
+    for(const f of fs){
+      if(!f) continue;
+      add(find(f.quote||f.text,f.category), i18t('ct_read_watch_scan'));
+    }
+  }catch(_){}
+  return out;
+}
 function docReadPaint(c){
   const layer=document.getElementById('doc-read');
   if(!layer) return;
@@ -9136,6 +9328,10 @@ function docReadPaint(c){
     else layer.style.removeProperty('--dr-face');
   }catch(_){}
   const pairs=docReadAnchors(c, docReadItems(c));
+  /* ONCE PER PAINT, never per entry: `rlPbFindClause` walks every clause for
+     every quote, so asking it inside the map would be O(clauses x findings) on
+     every repaint of a 200-clause contract. */
+  const flags=docReadFlags(c);
   const over=Number((c._readings&&c._readings.over)||0);
   /* THE EDITION IS DRAWN AS A DOCUMENT, not as a stack of notes: the clause's
      own number, then a heading of its own, then the reading — at the size the
@@ -9257,9 +9453,28 @@ function docReadPaint(c){
         const fs=face&&getComputedStyle(face).fontSize;
         if(fs&&parseFloat(fs)>0) hsize=fs;
       }catch(_){}
-      return `<div class="doc-read-note${sec?' dr-sec':''}${shape}" data-doc-read-note="${n}"${hsize?` style="--dr-hsize:${hsize}"`:''}>`
+      /* ---- WHAT TO LOOK AT TWICE, AND IT IS NOT AN OPINION (Young asked
+         19 Sep 2026: "copilot should add bold letters plus highlight red,
+         green, amber on the words or sentences a user needs to pay attention
+         to") ----
+         TWO HALVES, AND THEY COME FROM DIFFERENT PLACES ON PURPOSE.
+         THE BOLD is `docReadMark` — the contract brief's own deterministic
+         pass for money, periods, percentages and dates, running over ALREADY
+         ESCAPED text. No model decides what is emphasised, so nothing can be
+         talked up, and it costs nothing: the reading on file is unchanged.
+         THE AMBER is `docReadFlags` — a clause your playbook disagrees with,
+         or one the risk scan flagged. Facts HaTi already holds, resolved
+         through `rlPbFindClause`, which REFUSES rather than guesses.
+         RED AND GREEN ARE DELIBERATELY ABSENT and the owner ruled on it: a
+         colour saying "this is bad for you" with nothing behind it is Copilot
+         giving a legal opinion on its own authority, which is the one thing
+         this product's Copilot never does; and in HaTi green and red are
+         already the redline's own grammar for added and struck. */
+      const flag=p.row&&p.row.clauseId?flags.get(p.row.clauseId):null;
+      return `<div class="doc-read-note${sec?' dr-sec':''}${shape}${flag?' dr-watch':''}" data-doc-read-note="${n}"${
+          flag?` title="${esc(flag.why)}"`:''}${hsize?` style="--dr-hsize:${hsize}"`:''}>`
         +(head?`<${sec?'h3':'h4'} class="${sec?'dr-s':'dr-h'}">${numHtml}${esc(head)}</${sec?'h3':'h4'}>`:'')
-        +(body?`<p${lead?' class="dr-lead"':''}>${lead?numHtml:''}${esc(body)}</p>`:'')
+        +(body?`<p${lead?' class="dr-lead"':''}>${lead?numHtml:''}${docReadMark(body)}</p>`:'')
         +`</div>`;
     }).join('')}
       ${over?`<div class="doc-read-over">${esc(i18tn('ct_read_over',over,{n:over}))}</div>`:''}
@@ -9362,6 +9577,38 @@ function docReadPaint(c){
       s.scrollTop=was+e.deltaY*step;
       if(s.scrollTop!==was) e.preventDefault();
     },{passive:false});
+    /* ════ AND A FINGER IS NOT A WHEEL (Young reported it 19 Sep 2026) ══════
+       "While on an iPad, I am unable to scroll on the plain english side with
+       touch screen."
+       THE WHEEL FIX ABOVE WAS RIGHT AND HALF THE JOB. A touchscreen fires no
+       wheel event at all, and because this layer is a CLIP — the whole reason
+       the two columns cannot drift — the browser has no scroller under the
+       finger to pan instead: the paper's scroller is this layer's SIBLING in
+       the grid, never its ancestor. So a drag here moved nothing, silently.
+       THE SAME ONE SURFACE MOVES, by the same arithmetic: remember where the
+       finger landed, and on each move push the paper by the distance it
+       travelled. The press is swallowed only where the paper ACTUALLY moved,
+       so reaching the end of the contract hands the gesture back to the page
+       rather than trapping it — the wheel's own rule, kept.
+       `touch-action:pan-y` on the layer tells the browser we intend the
+       vertical drag, so it stops waiting to decide and the first pixel counts;
+       a pinch (two fingers) is left alone. */
+    let _ty=null;
+    layer.addEventListener('touchstart',e=>{
+      _ty=(e.touches&&e.touches.length===1)?e.touches[0].clientY:null;
+    },{passive:true});
+    layer.addEventListener('touchmove',e=>{
+      if(_ty==null||!e.touches||e.touches.length!==1) return;
+      const s=document.getElementById('doc-scroll');
+      if(!s) return;
+      const y=e.touches[0].clientY, was=s.scrollTop;
+      s.scrollTop=was+(_ty-y);
+      _ty=y;
+      if(s.scrollTop!==was) e.preventDefault();
+    },{passive:false});
+    layer.addEventListener('touchend',()=>{ _ty=null; },{passive:true});
+    layer.addEventListener('touchcancel',()=>{ _ty=null; },{passive:true});
+    layer.style.touchAction='pan-y';
   }
   /* The paper changes height when the reader changes its type size, and the
      notes have to follow it. One observer, armed once on the canvas. */
@@ -10612,6 +10859,18 @@ function signCheckStamp(c){
 
 /* ---- THE ROW'S OWN WORDS ----
    One title per kind, read by the card, the button's hover and the head. */
+/* THE ONE CUT, so every row on this card is cut the same way and a row added
+   tomorrow inherits it. Words, not characters: a character count cuts mid-word
+   and reads as a fault. An ellipsis is appended only where something was
+   actually dropped, so a short sentence is byte-identical to what it was. */
+const SIGN_WHY_WORDS = 15;
+function signWhyShort(t){
+  const s = String(t == null ? '' : t).trim().replace(/\s+/g, ' ');
+  if (!s) return '';
+  const w = s.split(' ');
+  if (w.length <= SIGN_WHY_WORDS) return s;
+  return w.slice(0, SIGN_WHY_WORDS).join(' ').replace(/[,;:.]$/, '') + '\u2026';
+}
 function signRowTitle(c,r){
   const t=k=>i18t(k);
   switch(r.kind){
@@ -10678,7 +10937,12 @@ function signCheckCardHtml(c){
         if(r.settled){
           why=i18t('sc_accepted_by',{who:r.accepted.by||i18t('sc_somebody'),when:day(r.accepted.at),why:r.accepted.why||''});
         } else {
-          why=r.status==='missing'?i18t('sc_missing_w',{pos:r.position||''}):i18t('sc_deviation_w',{pos:r.position||''});
+          /* "Your standard is Swedish law & forum required.. This contract does
+             not cover it." — the playbook's own position already ends in a
+             full stop and the sentence around it adds another. The RECORD is
+             not touched; only what is printed. (Young's screenshot, 19 Sep.) */
+          const pos=String(r.position||'').trim().replace(/[.\u3002]+$/,'');
+          why=r.status==='missing'?i18t('sc_missing_w',{pos}):i18t('sc_deviation_w',{pos});
           if(r.badAccept) why+=' '+i18t('sc_bad_accept',{who:(r.accepted&&r.accepted.by)||i18t('sc_somebody')});
           if(r.staleAccept) why+=' '+i18t('sc_stale_accept',{who:(r.accepted&&r.accepted.by)||i18t('sc_somebody'),why:(r.accepted&&r.accepted.why)||''});
           if(r.escalation&&r.escalation.to) why+=' '+i18t('sc_asked_line',{who:r.escalation.to.name||'',when:day(r.escalation.at)});
@@ -10741,9 +11005,22 @@ function signCheckCardHtml(c){
        its verbs stand down, because pressing one would spend money on wording
        that is about to move. */
     if(r.waiting){ why=i18t('sc_wait_nego'); acts=[]; }
+    /* ════ FIFTEEN WORDS ON THE FACE (Young ruled it 19 Sep 2026) ═══════════
+       "Let's put a cap of how many words can be there to describe the issue,
+       maybe 15 words max, so that we do not have a long card that is with so
+       much to read especially for long contracts with many clauses."
+       THERE WAS NO CAP AT ALL. Measured on his own screenshot, the negotiation
+       row ran to THIRTY-FIVE words, and it grows with the clause list — so the
+       card got longer exactly as the work got harder, which is backwards.
+       A CUT IS A FACT, NEVER A SILENT TRIM: the whole sentence is the row's own
+       hover, which is the treatment the obligations worklist and the arrival
+       tiles already take, and any count inside the sentence ("and 5 more") is
+       written before the cut so it survives it. */
+    const whyFull = why;
+    why = signWhyShort(why);
     return `<div class="sc-find${r.settled?' is-done':''}${r.holds?' is-hold':''}${r.waiting?' is-wait':''}" data-sc-row="${esc(r.key)}">
       <div class="sc-find-t">${r.waiting?'<span class="sc-mark is-wait">&#9675;</span>':mark}<span>${esc(signRowTitle(c,r))}</span>${r.escalate?` <span class="sc-esc">${esc(i18t('sc_escalate'))}</span>`:''}</div>
-      ${why?`<div class="sc-find-w">${esc(why)}</div>`:''}
+      ${why?`<div class="sc-find-w"${whyFull!==why?` title="${esc(whyFull)}"`:''}>${esc(why)}</div>`:''}
       ${acts.length?`<div class="sc-find-a">${acts.join('')}</div>`:''}
     </div>`;
   };
@@ -11009,8 +11286,11 @@ function renderSignSide(c){
     ()=>signCheckOpenClause(c,Number(b.getAttribute('data-sc-clause')))));
   host.querySelector('[data-sc-oblig]')?.addEventListener('click',()=>{
     if(window.runFindObligations) Promise.resolve(runFindObligations(c,{})).then(scAgain,scAgain); });
+  /* THE FIELD RIDES THE ATTRIBUTE and always did — `r.field` on a record
+     mismatch, `r.kind` on a blank. It was read nowhere until 19 Sep 2026, so
+     every one of these rows landed on the counterparty box. */
   host.querySelectorAll('[data-sc-fix]').forEach(b=>b.addEventListener('click',()=>{
-    if(window.focusKeyTerms) focusKeyTerms(c); }));
+    if(window.focusKeyTerms) focusKeyTerms(c, b.getAttribute('data-sc-fix')); }));
   /* ---- THE READINESS ROWS' OWN DOORS (13 Sep 2026) ---- every one a press
      on something that already exists. */
   host.querySelectorAll('[data-sc-escalate]').forEach(b=>b.addEventListener('click',
@@ -12180,7 +12460,7 @@ function distributionPanelHtml(c){
 
 
 Object.assign(window,{paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,
-  wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,paintKtTriage,triageAndPaint,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,DOC_SHARED_CLAUSES,DOC_SHARED_SKIP,docSharedSkip,docLibWording,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
+  wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,paintKtTriage,triageAndPaint,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,DOC_SHARED_CLAUSES,DOC_SHARED_SKIP,docSharedSkip,docLibWording,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,KT_FIELD_HOME,KT_FOCUS_TRIES,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,docReadMark,docReadFlags,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign
@@ -12199,7 +12479,7 @@ Object.assign(window,{paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,
      the recovery from a zero-width measurement — the whole point of that fix —
      never ran on a plain tab swap. It only appeared to work because the routes
      I walked it on re-rendered the workspace, which measures on the way in. */
-  layoutDocResizer,renderSignButton,renderSignSide,roomFactsHtml,signBlockHtml,signReadinessCardHtml,signRowTitle,signLandOnList,signCheckEscalate,signCheckTake,signRiskDismiss,signConsentStamp,signHeadLabel,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
+  layoutDocResizer,renderSignButton,renderSignSide,roomFactsHtml,signBlockHtml,signReadinessCardHtml,signRowTitle,signWhyShort,SIGN_WHY_WORDS,signLandOnList,signCheckEscalate,signCheckTake,signRiskDismiss,signConsentStamp,signHeadLabel,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,reviewReturnedRound,docWorkingTextNoteHtml,docNothingWrittenHtml,docHasNoWording,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
   ROOM_TABS,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomCurrentTab,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,ktDayDot,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,openCheckPanel,roomHeadHtml,wireRoomHead,
   DOC_SEL_ACTIONS,wireDocCopilotSel,docAiRead,docSelKill,

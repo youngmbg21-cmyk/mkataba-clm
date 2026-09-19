@@ -563,12 +563,36 @@ const contractStatusTextHtml = c => {
    the only carrier (the standing rule). The SHORT word, for the reason the chip
    states one line up: a register column cannot afford five of them, and the
    title carries the whole sentence on hover. */
+/* ---- AND A HOLD SAYS WHAT IT IS FOR (Young reported it 19 Sep 2026) ----
+   The drawing says "On hold · dispute"; the row said "On hold". The reason is
+   COMPULSORY at the press, stored, and on the audit trail — and no screen
+   printed it, so the one fact that tells a reader whether this hold is theirs
+   to care about was invisible.
+   IT IS THE ROW'S DRESS ONLY. The chip keeps the general sentence it already
+   carries, because a card or a panel has the room to say it properly; a table
+   cell has room for a word, which is this file's own standing rule. Cut to
+   HOLD_WHY_ROW characters with the WHOLE reason on the cell's hover — a cut is
+   a fact, never a silent trim. */
+const HOLD_WHY_ROW = 22;
+/* Its own escaper, as every other builder in this file carries one: `esc` is
+   js/components.js's and reaches here only through window, which is not a
+   guarantee on every stage this file is loaded on. */
+const _holdEsc = s => String(s == null ? '' : s)
+  .replace(/[&<>"']/g, ch => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[ch]));
+const holdWhyShort = c => {
+  const w = String((c && c.hold && c.hold.why) || '').trim().replace(/\s+/g, ' ');
+  if (!w) return '';
+  return w.length > HOLD_WHY_ROW ? w.slice(0, HOLD_WHY_ROW - 1).trimEnd() + '\u2026' : w;
+};
 const contractStatusDotHtml = c => {
   const m = contractStatusMeta(c);
   const short = (m === READY_META) ? READY_META_SHORT : m;
-  const full = (m === READY_META) ? m.label : '';
-  return `<span class="reg-stg" style="color:${m.tx}"${full?` title="${full}"`:''}`
-    + `><i style="background:${m.dot}"></i>${short.label}</span>`;
+  const why = (m === HOLD_META) ? holdWhyShort(c) : '';
+  const full = (m === READY_META) ? m.label
+    : (m === HOLD_META && (c && c.hold && c.hold.why)) ? String(c.hold.why) : '';
+  return `<span class="reg-stg" style="color:${m.tx}"${full?` title="${_holdEsc(full)}"`:''}`
+    + `><i style="background:${m.dot}"></i>${short.label}${
+      why?` <span class="reg-stg-why">\u00b7 ${_holdEsc(why)}</span>`:''}</span>`;
 };
 
 // ---- Share dispatch traffic lights ----
@@ -1019,7 +1043,10 @@ function isArchived(c){ return !!(c&&c.archived); }
    is not the interesting fact about it. */
 function contractOnHold(c){ return !!(c && c.hold && c.hold.at); }
 async function contractSetHold(c,on,why){
-  if(typeof canEdit==='function'&&!canEdit()){ toast(i18t('ar_editors_only'),'err'); return false; }
+  /* THE GRANT, NOT canEdit (19 Sep 2026): freezing a contract is no longer an
+     everyday editor's act. The server's mayHoldRow is the wall; this refuses
+     early and in words so nobody presses a button that will bounce. */
+  if(typeof mayHoldContract==='function'&&!mayHoldContract()){ toast(i18t('hd_not_yours'),'err'); return false; }
   const text=String(why==null?'':why).trim().slice(0,HOLD_WHY_MAX);
   if(on && !text){ toast(i18t('hd_needs_reason'),'warn'); return false; }
   if(on) c.hold={ at:new Date().toISOString(), by:currentUser().name, why:text };
@@ -1497,6 +1524,24 @@ const mayMakeNewPaper = (u) => { const p=(u===undefined)?currentUser():u;
    own mayReFileRow — this reading only decides whether a door is drawn. */
 const mayReFile = (u) => { const p=(u===undefined)?currentUser():u;
   return !!p && p.role!=='viewer' && (p.role==='admin' || p.reFile===true); };
+/* ---- WHO MAY FREEZE A CONTRACT FOR A DISPUTE (Young ruled it 19 Sep 2026) ----
+   The EIGHTH per-person grant, and the third in this family, built to the same
+   shape for the same reasons.
+
+   THE OWNER ASKED FOR "Legal/Admin only" AND WAS TOLD WHAT THAT MEANS HERE:
+   HaTi has three roles and the one stored as `legal` is LABELLED Editor
+   (ROLE_LABEL, below) — so "Legal and Admin" is literally everybody who is not
+   a viewer, which is what the hold already allowed. Offered admins-only or a
+   per-person tick, the owner took the tick: a dispute is handled by one or two
+   NAMED people, and whether they happen to be Admin or Editor is not the
+   question. Job titles are not a permission model.
+
+   OFF BY DEFAULT, so the deploy narrows the act rather than widening it; an
+   admin always holds it, so a workspace can never lock itself out of releasing
+   a contract it froze; a viewer never does. The wall is the server's own
+   `mayHoldRow` — this reading only decides whether a door is drawn. */
+const mayHoldContract = (u) => { const p=(u===undefined)?currentUser():u;
+  return !!p && p.role!=='viewer' && (p.role==='admin' || p.holdContracts===true); };
 /* ---- TWO NAMES FOR A ROLE, AND THEY ARE NOT INTERCHANGEABLE ----
    ROLE_LABEL is the RECORD's word. It is stamped into approval records, audit
    lines and comment attributions, all of which are history: what somebody's
@@ -5049,7 +5094,19 @@ async function openShareModal(c, opts={}){
              The blurbs said "a secure review link, no account needed" on every
              channel — true of two of the four and wrong about a Word file — and
              the line under the channel row says it per channel now. */}
-      <div id="share-step2-head">
+      ${''/* HIDDEN IN THE MARKUP, NOT BY THE WIRING (Young reported it 19 Sep
+             2026: "when I click share, this pops up and the highlighted area
+             appears then disappears immediately"). The SAME fault the kind
+             step above records eight lines up, in a second costume — and the
+             note there names it: "a step drawn open and then folded by the
+             wiring is exactly the flash the owner saw."
+             MEASURED: this head is drawn by the opening paint, THREE awaits
+             then run (the full record, the document hash, the share list), and
+             only after the fill does step(1) fold it. So on any real
+             connection it is on screen for the whole wait, twice.
+             `step` still owns it — a return to the two-screen shape reveals it
+             exactly as before; it simply no longer starts life visible. */}
+      <div id="share-step2-head" class="hidden">
       <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="display:inline-flex;color:var(--color-accent);">${icon('share')}</span>
         <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;color:var(--color-text);margin:0;">${i18t('co_share_with_cp')}</h2></div>
       ${''/* Two blurbs, one shown. A history link promises none of this — there
@@ -7180,4 +7237,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{cpReadyToSign,READY_META,READY_META_SHORT,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{cpReadyToSign,READY_META,READY_META_SHORT,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});
