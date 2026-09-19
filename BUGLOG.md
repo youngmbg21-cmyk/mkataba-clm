@@ -16856,3 +16856,112 @@ Started from the latest main (33536a7).
   It was overwritten and then deleted. Restored from HEAD, byte for byte;
   nothing else in that file changed. A scratch probe belongs in the scratchpad
   and is run from inside the repo by copying it in under a name nothing owns.
+
+---
+
+## 2026-09-19 (night) — FOCUS MODE ON THE NEGOTIATE PAGE MIMICS THE DOCUMENT PAGE
+
+Young, over a render of the two side by side: *"When in negotiation page make
+it mimic the document page when on focus mode."* Two earlier readings were put
+to the owner and withdrawn before this one; the render was corrected once, on
+the owner's report that it had drawn the surviving row on grey.
+
+### Measured before anything moved
+
+In a real browser, entering focus on the negotiate page:
+
+    dark bar   44 -> 0
+    side rail 240 -> 0
+    head card 146 -> 0
+    CONTROL ROW 44 -> 0     <- the fault
+
+and on the Document tab the same press leaves bar 44, rail 240, tab row 39 and
+drops only the head card. One button, two meanings — the fault class this
+rulebook names as the most expensive one here.
+
+The row is what carries Redlined / As agreed / With changes, the Deal board,
+the text size, the Internal/Counterparty seat and All negotiations. Every one
+of them was unreachable from inside the mode a reader had entered in order to
+read.
+
+The owner also reported, off the first render, that the surviving row had been
+drawn on the grey page ground. MEASURED: it is not — `.rl-tabrow` already
+carries `background:var(--color-surface)`, and on the Document tab the tab row
+sits inside `.room-band`, white and full width. The render was wrong; the
+product was right. Pinned now so tidying cannot undo it.
+
+### What was built
+
+- The head card still stands down, and so does this page's own strip
+  (`#rl-banner`) — the room hides `#ws-strips` in the same breath as its head,
+  so that is mimicry, not an exception.
+- The control row no longer stands down.
+- `body.rl-focused`'s three rules are retired: `#side-nav`, `#top-header` and
+  the zero-width first `#app-shell` track. The 16 Aug void they answered cannot
+  return, because nothing collapses the template any more. The class itself
+  stays set as the mode's marker.
+- The row keeps the page's own gap above it —
+  `padding-top:var(--page-pad-t)` with the height restated as
+  `calc(var(--rl-tabrow-h) + var(--page-pad-t))`. Everything is border-box, so
+  padding alone would come out of the row's 44 and squash every control in it.
+  `--rl-tabrow-h` is the row's height said ONCE; two rules that must agree
+  about one number is a token.
+- The counterparty's seat is the wall. Their page mounts the same
+  `.redline-page` and takes `.rl-focus` with it, so the tight focus padding is
+  re-scoped to `body.pw-focused`; their shell really does stand down and their
+  `#rl-banner` exception stands. Verified unchanged against the parent
+  (62/63, the same single pre-existing failure).
+- `renderNegotiationsList` clears the mode before it paints. NEW THE DAY THE
+  ROW SURVIVED: All negotiations is on that row, and it paints the list without
+  going through `setView`, which is where app.js's reset lives. Put in the one
+  function every path to the list arrives at, not at the four call sites.
+
+### The six questions
+
+Q3 REFUSES this and was said before building: focus used to hand the paper the
+whole window, and this takes the bar, the rail and the row back off it. The
+owner ruled it twice and approved the render. Nothing else changed what was
+built.
+
+### Tests
+
+- `f94` — F94-M, seven claims, SIX RED AT THE PARENT. The seventh (the row
+  paints white) is a named CONTROL. The file's old "stands the whole page down"
+  claim is reversed in half, in place, with the reasoning kept.
+- `f94`'s stylesheet helpers were rewritten. `css.includes('.redline-page.rl-focus .rl-tabrow')`
+  now passes whether the row is hidden or shown, because that selector is still
+  in the sheet for the padding. They read the DECLARATION instead, and strip
+  comments first — a rule's selector capture runs back to the previous brace,
+  so an explanatory comment above it was being read as part of the selector.
+- `test/chromium/focus-mimics-document-verify.js` — NEW, 24 checks in the real
+  app, 13 RED AT THE PARENT, printing
+  `negotiate bar 0 rail 0 row 0 head 0 · document bar 44 rail 240 row 40 head 0`.
+  It exists because the ruling is about the SHELL, which no harness page
+  carries. Three claims were found passing at the parent for the wrong reason
+  (a hidden row still measures 0 and still computes white) and are gated on the
+  row actually standing.
+- `negotiations-door-verify` section 10 reversed in place: the zero-width
+  first track it asserted is what this ruling retires.
+- Full suite: 8,069 tests, 1,589 suites, 0 failures. `npm run lint` unchanged.
+
+### Noticed, not fixed
+
+- `test/chromium/overview-as-drawn-verify.js:145` still carries the repo's one
+  lint error (a self-compare). Unchanged, pre-existing.
+- `control-row-folds-verify` "the labels are still in the text at the deepest
+  fold" is red at the parent too (26/27).
+- `nego-redesign-verify` is 53/61 at the parent and on this branch — eight
+  pre-existing failures (the breadcrumb, the playbook pass row, the three check
+  symbols).
+- `negotiations-door-verify` "the room shows four tabs" x2 — the room has five
+  tabs and has since Obligations was added; red at the parent.
+- `redline-verify` 239/240, `paper-grows-verify` 49/51,
+  `white-band-and-tabs-verify` 41/43, `room-order-and-notices-verify` 27/29,
+  `flat-rows-and-alerts-verify` 34/37, `counterparty-reading-and-more-verify`
+  62/63 — every one identical at the parent, none touched by this change.
+- `.rl-tabrow` states a height while `.rl-tabrow-wrap` lets it wrap to two
+  lines, so a wrapped row overflows its stated height. Pre-existing, untouched.
+
+### Touched outside the request
+
+Nothing.

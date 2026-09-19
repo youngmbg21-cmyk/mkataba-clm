@@ -7742,14 +7742,23 @@ function rlSetFocus(on){
      needs a frame to lay the new shell out before clientHeight means anything,
      which is what the rAF is for; the timeout is for the stages that have no
      rAF. Leaving focus re-measures for the same reason, in reverse. */
-  /* ---- AND THE WIDTH IS A STALE MEASUREMENT FOR EXACTLY THE SAME REASON ----
-     The note above is about the height, and it was right about the height and
-     silent about the other axis. Focus mode hides the sidebar, hides the top
-     strip and drops the page's padding — every one of which makes the GRID
-     WIDER — while rlLayoutResizer has written the columns in PIXELS for the
-     narrow shell. So the queue and the contract keep their old widths, the
-     whole gain falls into the cards (the only `1fr` track), and the drag handle
-     stays drawn at a boundary that has moved.
+  /* ---- AND THE WIDTH WAS A STALE MEASUREMENT FOR EXACTLY THE SAME REASON ----
+     PAST TENSE SINCE 19 SEP 2026, and the call stays. Focus mode no longer
+     hides the sidebar, the top strip or the page's padding on our seat (see
+     the stylesheet's "it mimics the document page now"), so the grid does not
+     change width when the mode goes on and there is nothing stale to correct.
+     What DOES still change is the height — the head card goes — and a
+     re-measured height moves the scrollbar, which moves the width by its own
+     gutter; so the resizer is re-run beside syncViewHeight rather than
+     dropped, and the reasoning below is kept because it is what the
+     counterparty's seat, which still stands its header down, is living on.
+
+     It read: focus mode hides the sidebar, hides the top strip and drops the
+     page's padding — every one of which makes the GRID WIDER — while
+     rlLayoutResizer has written the columns in PIXELS for the narrow shell. So
+     the queue and the contract keep their old widths, the whole gain falls
+     into the cards (the only `1fr` track), and the drag handle stays drawn at
+     a boundary that has moved.
 
      Nothing looks wrong until you touch the handle. The first pointer move
      calls rlLayoutResizer, which finally measures the focus-mode width and
@@ -9082,6 +9091,21 @@ function negoListHeadHtml(shown){
 function renderNegotiationsList(host){
   const el = host || document.getElementById('content');
   if (!el) return;
+  /* ---- THE LIST IS NOT A BENCH, SO IT IS NEVER IN FOCUS (19 Sep 2026) ----
+     New the day focus mode stopped hiding the control row: "All negotiations"
+     is ON that row, so a reader in focus can now press it — and it does not go
+     through setView (this page paints the list into its own host), so the
+     reset app.js runs when the reader ARRIVES on this view never fires. Focus
+     would stay on over a table it means nothing about: a head stood down, an
+     Exit focus chip floating over a list, and the button's face claiming a
+     mode the next bench would not actually be in.
+
+     HERE because this is the ONE function that paints the list — the door, the
+     fall-through when a named contract has nothing on it, the stale-page
+     branch and the sealed-record branch all arrive at it, so a fifth path
+     inherits the reset rather than forgetting it. Before the innerHTML below,
+     so rlSetFocus still finds the page it is taking the class off. */
+  if (typeof rlFocusOn === 'function' && rlFocusOn()) rlSetFocus(false);
   const live = negoLiveList();
   /* ---- AN EMPTY GROUP IS INFORMATION; THREE OVER NOTHING IS NOT ----
      With no live negotiation anywhere, this is not a table that filtered to

@@ -1209,7 +1209,16 @@ function redlineLayoutCss(){
            MEASURED on a real page at the reader's own type size, Done is the
            widest at 74px; 78 is that plus the slack a track that is exactly
            its content needs on the next rounding. */}
-    --rl-pill-reserve:78px}
+    --rl-pill-reserve:78px;
+    ${''/* ---- THE CONTROL ROW'S OWN HEIGHT, SAID ONCE (19 Sep 2026) ----
+           It was the number 44 typed into .rl-tabrow and nowhere else, which
+           was fine while nothing else needed to know it. Focus mode does now:
+           it gives that row the page's own top padding (see .rl-focus below)
+           and has to state the resulting height, or the padding comes out of
+           the row's 44 and every control in it is squashed by 16px. Two places
+           that must agree about one number is a token, not a second literal —
+           PIN THE RELATION, NOT THE NUMBER. */}
+    --rl-tabrow-h:44px}
   /* ---- THE HEADER IS A BAND, NOT A CARD ----
      It used to be drawn as a panel — surface fill, a 1px border, a radius and a
      card shadow — sitting inside a page that already has its own frame and
@@ -1267,7 +1276,7 @@ function redlineLayoutCss(){
      full-width, zero-height element sitting exactly between the two lines,
      which makes it the honest place for that rule. */
   .redline-page .rl-tabrow{flex-wrap:wrap;background:var(--color-surface);margin:0;padding:0 var(--s-6);
-    height:44px;gap:var(--s-3);align-items:stretch;box-shadow:inset 0 -1px var(--color-divider);
+    height:var(--rl-tabrow-h);gap:var(--s-3);align-items:stretch;box-shadow:inset 0 -1px var(--color-divider);
     border-bottom:0}
   /* ---- BUT BEFORE IT WRAPS, IT TIGHTENS ----
      Reported off two laptops side by side (Young, 10 Aug 2026): on a ThinkPad
@@ -1846,10 +1855,52 @@ function redlineLayoutCss(){
      panes take the window. body.rl-focused is set by rlSetFocus, because the
      sidebar and the strip live outside this page and cannot be reached from a
      selector rooted in it. */
+  ${''/* ---- AND IT MIMICS THE DOCUMENT PAGE NOW (Young ruled 19 Sep 2026) ----
+         "When in negotiation page make it mimic the document page when on
+         focus mode." Shown a render of the two side by side and approved.
+
+         THIS REVERSES THE PARAGRAPH ABOVE, which is kept because its reasoning
+         is what makes the reversal safe: it says the mode was "taken further
+         than before, because you asked for the WHOLE page". Taken that far it
+         took the READING CONTROLS with the chrome — MEASURED in a real browser
+         at the parent, entering focus on this page put the top bar, the side
+         rail, the head card AND the control row all at 0 height. So a reader in
+         focus could not reach As agreed, With changes, the Deal board, the
+         text size, the Internal/Counterparty seat or All negotiations without
+         first leaving the mode they had entered to read in.
+
+         The contract room has answered this question since it was built, and
+         answers it differently: applyWsFocus hides #ws-head and #ws-strips and
+         NOTHING ELSE, so the tab row stays on its white band at the top of the
+         page with the paper under it. Two screens meaning two different things
+         by one button is this codebase's most expensive fault class, so this
+         page takes the room's answer: the HEAD CARD goes, the CONTROL ROW
+         stays, and the shell is left alone.
+
+         WHAT STAYS HIDDEN, and why it is not an exception: #rl-banner is this
+         page's strip, and the room hides #ws-strips in the very same breath as
+         its head. Mimicking means both.
+
+         THE COST IS THE CONTRACT'S OWN PIXELS and the owner was shown it:
+         focus used to hand the paper the whole window. Refusal 3 of the six
+         questions refuses that, the owner ruled it twice and approved the
+         render, so it is built. */}
   .redline-page.rl-focus .room-head,
-  .redline-page.rl-focus .rl-tabrow,
-  .redline-page.rl-focus .rl-head,
   .redline-page.rl-focus #rl-banner{display:none}
+  ${''/* ---- THE ROW KEEPS THE PAGE'S OWN GAP ABOVE IT ----
+         MEASURED on the real Document tab in focus: its band is 56px — the
+         room's --page-pad-t plus the 40px row — so the white starts under the
+         dark bar and the row sits a page-padding down inside it. This page
+         carries that padding INSIDE #ws-head (padding:var(--page-pad-t) 24px 0),
+         so hiding the head takes the gap with it and the row would butt
+         against the dark bar.
+
+         The height is restated for the padding's sake: everything here is
+         border-box, so padding-top alone would come out of the row's own
+         height and squash the controls the row aligns to its full height. Both
+         halves read the same two tokens, so neither can drift. */}
+  .redline-page.rl-focus .rl-tabrow{padding-top:var(--page-pad-t);
+    height:calc(var(--rl-tabrow-h) + var(--page-pad-t))}
   /* ---- EXCEPT ON THEIR PAGE, WHERE #rl-banner IS THE WALL LINE ----
      (15 Aug 2026, when focus mode reached the counterparty's seat.) On the
      owner's bench that banner is furniture and standing it down is the point.
@@ -1859,22 +1910,45 @@ function redlineLayoutCss(){
      not take a promise off the screen while the reader is deciding. Same
      exception, same reason, as the notice stack's — the wall line never folds. */
   body.pw-focused .redline-page.rl-focus #rl-banner{display:block}
-  .redline-page.rl-focus{padding:var(--s-2) 10px 10px}
-  body.rl-focused #side-nav,
-  body.rl-focused #top-header{display:none!important}
-  ${''/* TWO COLUMNS, THE FIRST ONE ZERO — never one column (owner-reported
-     16 Aug 2026, a screenshot of ~900px of dead white left of the contract in
-     focus mode; reproduced with two sent receipts in the column). The shell's
-     main column is PINNED to grid-column:2 in index.html — deliberately, so
-     the floating sidebar below 1500 cannot overlap it. Collapse the template
-     to ONE column and that pin pushes the content into an IMPLICIT auto-sized
-     column 2, leaving the explicit 1fr column EMPTY on the left. The void's
-     size then follows the content's own natural width, which is why a column
-     of full cards (whose paragraphs measure wide) hid the fault and a column
-     of one-line receipts exposed it. A zero first track keeps the pin
-     honest: column 2 is the real 1fr and takes the whole window. */}
-  body.rl-focused #app-shell{grid-template-columns:0px minmax(0,1fr)!important;
-    grid-template-rows:minmax(0,1fr)!important}
+  ${''/* ---- THEIR PAGE KEEPS THE TIGHT PADDING; OURS GIVES IT BACK ----
+         The counterparty's seat mounts this same .redline-page and takes
+         .rl-focus with it, so an unscoped rule here is a change to THEIR page,
+         which nobody asked for. Their shell really does stand down (their
+         header is hidden by body.pw-focused, see portalWorkbenchStyle), so the
+         tight padding is still right there and wrong here: on our seat the
+         shell stays, and a page that keeps its chrome keeps its own margins. */}
+  body.pw-focused .redline-page.rl-focus{padding:var(--s-2) 10px 10px}
+  ${''/* ---- THE SHELL STAYS (19 Sep 2026) ----
+         body.rl-focused used to hide #side-nav and #top-header and collapse
+         #app-shell's first track to 0px. All three are gone with the ruling
+         above: the Document tab's focus mode never touched the shell, and
+         mimicking it means leaving the sidebar and the dark bar exactly where
+         they are. The void the grid rule answered cannot come back, because
+         nothing hides the sidebar any more — the explicit first track is the
+         sidebar's own, as it is at rest.
+
+         THE CLASS ITSELF STAYS SET. It is no longer read by any rule on our
+         seat, and it is still the page's honest marker that focus is on: it is
+         what setView clears on the way out, what the counterparty's pw-focused
+         is told apart from, and what a check asks when it wants to know the
+         mode really engaged. A marker with no rule on it is cheap; a mode with
+         no marker is not. */}
+  ${''/* ---- AND THE ZERO-WIDTH FIRST TRACK IS RETIRED WITH THEM ----
+     It read: body.rl-focused #app-shell{grid-template-columns:0px
+     minmax(0,1fr)!important;grid-template-rows:minmax(0,1fr)!important}.
+     Owner-reported 16 Aug 2026 — ~900px of dead white LEFT of the contract in
+     focus mode — and the cause is worth keeping written down, because it is
+     the trap anyone collapsing this grid will fall into again: the shell's
+     main column is PINNED to grid-column:2 in index.html, deliberately, so the
+     floating sidebar below 1500 cannot overlap it. Collapse the template to
+     ONE column and that pin pushes the content into an IMPLICIT auto-sized
+     column 2 and leaves the explicit 1fr column EMPTY on the left; the void's
+     width then follows the content's own natural width, which is why a column
+     of full cards hid it and a column of one-line receipts exposed it.
+
+     It can no longer fire: nothing hides the sidebar any more, so the first
+     track is the sidebar's own real width and the pin is honest by
+     construction. The rule went with the two above it, in one ruling. */}
   /* The way out. The button that turned it on is inside the strip that has just
      stood down — a control that hides itself cannot be pressed again — so the
      chip is the exit, and Esc still works beside it. */
