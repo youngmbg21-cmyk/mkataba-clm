@@ -177,8 +177,15 @@ describe('the sign — the window renders no verbs', () => {
       'the bulk verbs are not ours to have, in either view');
     assert.ok(t.doc.getElementById('nego-send') || t.$('[data-redline-proxy]'),
       'but our own send is back');
-    assert.ok(t.$('[data-rl-pbreview]'), 'the playbook pass is back');
-    assert.ok(!t.$('[data-rl-pbreview]').hasAttribute('disabled'),
+    /* RE-POINTED IN PLACE (19 Sep 2026): Review vs Playbook left the More menu
+       on the owner's ruling — the shield in roomChecksHtml runs the same pass
+       twelve pixels away, and two doors onto one reading is what the one-door
+       rule exists to stop — so `[data-rl-pbreview]` is drawn nowhere on this
+       page any more. WHAT THIS CLAIM IS ABOUT IS THE FLIP, not that row: the
+       verb it walks is the MEMO's, which sits in the same menuRow, is gated by
+       the same `mayMenu`, and is dead in the preview for the same reason. */
+    assert.ok(t.$('[data-rl-memo]'), 'the page\'s own menu row is back');
+    assert.ok(!t.$('[data-rl-memo]').hasAttribute('disabled'),
       'and alive again — the dead face belongs to the preview only');
     assert.ok(!t.$('[data-rl-dead]'), 'nothing on our own chair wears the preview marker');
     /* RE-POINTED TWICE. On 2 Sep the owner's ruling put every verb behind the
@@ -244,7 +251,11 @@ describe('the row — same controls, same places, dead in the window', () => {
   test('every control the internal view draws is drawn in the window too', async () => {
     const t = await page();
     const seen = sel => !!t.$(sel);
-    const internal = ['[data-rl-pbreview]', '[data-rl-review]', '.rl-tabrow [data-redline-proxy]']
+    /* `[data-rl-pbreview]` was on this list and is drawn nowhere now (19 Sep
+       2026 — see the note on the flip above). The memo's row takes its place:
+       same menuRow, same gate, same dead face in the preview, which is the
+       property this sweep is measuring. */
+    const internal = ['[data-rl-memo]', '[data-rl-review]', '.rl-tabrow [data-redline-proxy]']
       .filter(seen);
     assert.ok(internal.length >= 2, 'the internal view draws them to begin with');
     t.view('counterparty');
