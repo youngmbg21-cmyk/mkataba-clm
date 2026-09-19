@@ -322,7 +322,14 @@ describe('F17 — the round refreshes the link they already hold', () => {
     assert.match(dlg, /recipientEmail/, 'the typed address is the match');
     /* AND THE SAME KIND OF LINK (Young, 13 Sep 2026): a history payload written
        onto a standing contract link left the counterparty opening the contract. */
-    assert.match(dlg, /payloadObj\.purpose!=='history' && email/, 'the record always gets its own link — a history link takes no refresh, and a contract link must not become one');
+    /* RE-POINTED IN PLACE, 18 Sep 2026: the adviser purpose joined the same
+       exclusion and the condition now wraps, so a claim pinned to the line
+       break broke on a change that never touched the rule. PIN THE RELATION —
+       the purposes that may never be refreshed onto somebody else's standing
+       link — not the whitespace between them. */
+    for (const p of ['sign', 'history', 'advise'])
+      assert.match(dlg, new RegExp("payloadObj\\.purpose!=='" + p + "'"),
+        p + ' always gets its own link: refreshing a standing contract link with it would change what the holder can do');
   });
 });
 

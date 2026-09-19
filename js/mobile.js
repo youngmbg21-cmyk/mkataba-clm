@@ -393,6 +393,14 @@ const M_CSS = `
   .m-ctab-n{ margin-left:5px; font-size:var(--t-label); font-variant-numeric:tabular-nums;
     color:var(--color-neutral-600); }
   .m-ctab-n.is-late{ color:var(--st-amber-fg); font-weight:var(--w-title); }
+  /* The two obligation verbs. The register's own plain-word treatment — no
+     box, no fill, the accent's own ink — with a 44px tap target reserved by
+     padding rather than by height, so the row does not grow when a band has
+     nothing to act on. */
+  .m-ob-act{ background:none; border:0; padding:8px 0; margin:0; font:inherit;
+    font-size:var(--t-card); font-weight:var(--w-strong); color:var(--accent-ink);
+    line-height:1.2; cursor:pointer; min-height:28px; }
+  .m-ob-act + .m-ob-act{ margin-left:4px; }
   .m-notice{
     display:flex; align-items:center; gap:9px; margin-bottom:var(--s-3);
     border:1px solid var(--color-divider); border-radius:var(--radius); padding:11px 13px;
@@ -1202,6 +1210,32 @@ function mWire(){
   /* A row on More that opens a REAL phone screen rather than a handoff. */
   root.querySelectorAll('[data-m-go]').forEach(b=>b.addEventListener('click',()=>{
     mGo(b.getAttribute('data-m-go'));
+  }));
+  /* ---- THE TWO OBLIGATION VERBS (upgrade 7, 18 Sep 2026) ----
+     Through the desktop's own funnel and no second one: obligationChase asks
+     its own confirm and its own guards (a viewer, one of ours, one already
+     done), and Mark done takes the contract room tab's own branch — the
+     completion dialog when completing, the bare verb when reopening. Every
+     name is asked through `window`, because the phone is staged without
+     js/obligations.js and a missing verb must leave the row rather than throw
+     the whole shell. The repaint is the product's own: obligationSurfacesChanged
+     repaints every obligation surface, and mRender puts this one back. */
+  root.querySelectorAll('[data-m-ob-chase]').forEach(b=>b.addEventListener('click',async ()=>{
+    const c = (typeof mContract==='function') ? mContract() : null;
+    if(!c || typeof window.obligationChase!=='function') return;
+    await obligationChase(c.id, b.getAttribute('data-m-ob-chase'));
+    mRender();
+  }));
+  root.querySelectorAll('[data-m-ob-done]').forEach(b=>b.addEventListener('click',()=>{
+    const c = (typeof mContract==='function') ? mContract() : null;
+    if(!c) return;
+    const i = Number(b.getAttribute('data-m-ob-done'));
+    const o = (c.obligations||[])[i];
+    if(!o) return;
+    if(o.status!=='done' && typeof window.openObligationDone==='function'){ openObligationDone(c, i); return; }
+    if(typeof window.toggleObligation!=='function') return;
+    toggleObligation(c, i, { from:'phone obligations tab' });
+    mRender();
   }));
   /* The review notice's clear. Session-only and shared with the desk — see
      reviewClearBanner. A refresh brings it back, which is the point. */

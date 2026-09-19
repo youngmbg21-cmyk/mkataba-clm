@@ -3423,6 +3423,43 @@ function shareKindStepHtml(c, sel, o={}){
       </div>
     </div>`;
 }
+/* ---- WHICH CLAUSES MAY THEY SEE, AND WHAT IT COSTS (upgrade 9) ----
+   18 Sep 2026, built to the drawing. The adviser purpose is the only one that
+   asks a second question, because it is the only one that NARROWS what
+   travels: every other link sends the whole agreement.
+
+   IT IS DRAWN ALWAYS AND SHOWN BY THE PAINTER, the way #share-signers is —
+   built once and toggled, never rebuilt, because the note box above it may
+   already carry words the sender typed.
+
+   TWO FACTS UNDER IT, both of which a reader would otherwise have to guess:
+   how long the link lives, and that nobody is paying for a seat. Neither is a
+   band; they are the two lines the drawing puts there, in the label size, and
+   neither is a control.
+
+   CLAUSES ARE READ THROUGH adviserClauses — clauseSegment, the product's ONE
+   splitter — and the whole list is offered rather than a picker of its own:
+   "+ Add a clause" in the drawing is this list, which is what a reader ticks
+   from. Where the module is absent (this file is on stages that carry no
+   clause model) the block draws its refusal rather than an empty box. */
+const ADVISE_LINK_DAYS = 14;
+function shareAdviseBlockHtml(c, purposeSel){
+  const on = purposeSel === 'advise';
+  let cls = [];
+  try{ cls = (typeof adviserClauses === 'function') ? adviserClauses(c) : []; }catch(_){ cls = []; }
+  const rows = cls.length
+    ? cls.map((cl,i)=>(typeof adviserClauseRowHtml==='function')?adviserClauseRowHtml(cl,i):'').join('')
+    : `<p style="margin:6px 0 0;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5">${
+        esc(i18t('asl_no_clauses'))}</p>`;
+  return `<div id="share-advise"${on?'':' class="hidden"'} style="margin:0 0 14px">
+    <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:2px;font-family:var(--font-mono);letter-spacing:.02em">${
+      esc(i18t('asl_which_clauses'))}</span>
+    <div id="share-advise-clauses" style="max-height:168px;overflow:auto">${rows}</div>
+    <p style="margin:8px 0 0;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5">${
+      esc(i18t('asl_expires_in',{days:ADVISE_LINK_DAYS}))}<span style="display:block">${
+      esc(i18t('asl_no_seat'))}</span></p>
+  </div>`;
+}
 function sharePurposePickerHtml(c, sel, o={}){
   /* ---- ON ONE SCREEN THE PICKER IS A ROW ---- (owner-approved 13 Sep 2026)
      The three cards were right when this was a screen of its own: each carries
@@ -3445,7 +3482,13 @@ function sharePurposePickerHtml(c, sel, o={}){
     const m=SHARE_PURPOSE_COPY[sel]||SHARE_PURPOSE_COPY.negotiate;
     return `<div id="share-purpose" style="margin:0 0 14px">
       <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:6px;font-family:var(--font-mono);letter-spacing:.02em">${i18t('co_what_round_for')}</span>
-      <div style="display:flex;gap:6px">${seg('sign')}${seg('negotiate')}${seg('view')}</div>
+      ${''/* ---- THE FIFTH PURPOSE SITS BESIDE THE OTHER FOUR (upgrade 9) ----
+           18 Sep 2026, built to the drawing. A first pass gave the adviser link
+           its own door on the More menu, reasoning that every answer on this
+           row goes to the COUNTERPARTY. That was a second door onto one act —
+           "make a link for somebody" — and two doors drift. It is a segment
+           here, and the More-menu row is a PROXY that presses this one. */}
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${seg('sign')}${seg('negotiate')}${seg('view')}${seg('advise')}</div>
       <div id="share-purpose-say" data-compact="1" style="margin-top:5px;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600)">${esc(m.line)}</div>
     </div>`;
   }
@@ -3478,7 +3521,7 @@ function sharePurposePickerHtml(c, sel, o={}){
          with no third door on the screen to take instead. That is the
          duplication rule walked again: a control that exists on one shell and
          not the other. It is last because it is the rarest of the three. */}
-    <div style="display:flex;gap:var(--s-2);flex-wrap:wrap">${btn('sign')}${btn('negotiate')}${btn('view')}</div>
+    <div style="display:flex;gap:var(--s-2);flex-wrap:wrap">${btn('sign')}${btn('negotiate')}${btn('view')}${btn('advise')}</div>
   </div>`;
 }
 
@@ -3542,7 +3585,8 @@ function shareSummaryStepHtml(c, opts={}){
   const hist = opts.purposeSel==='history';
   const one = !!opts.oneScreen;
   const purposeBlock = `<div id="share-purpose-wrap"${hist?' class="hidden"':''}>${
-        sharePurposePickerHtml(c, opts.purposeSel||defaultSharePurpose(c), { compact:one })}</div>`;
+        sharePurposePickerHtml(c, opts.purposeSel||defaultSharePurpose(c), { compact:one })
+      }${shareAdviseBlockHtml(c, opts.purposeSel)}</div>`;
   return `
     <div id="share-step-1"${opts.hiddenStart?' class="hidden"':''}>
       ${''/* ---- THE ORDER ON ONE SCREEN IS THE OWNER'S DRAWING ---- (the pop-up
@@ -4276,10 +4320,18 @@ function shareAdviceBody(c, ids){
   try{ body = (window.docBody ? docBody(c) : '') || c.redlineText || ''; }catch(_){ body = c.redlineText||''; }
   if(!body) return '';
   let segs=[]; try{ segs=clauseSegment(body)||[]; }catch(_){ return ''; }
+  /* THE SAME HANDLE THE PICKER OFFERED — the stored id where a clause has one,
+     its position where it does not (see adviserClauseKey). Asked through
+     `window` with the rule written out as the fallback, because js/core.js
+     draws on stages that carry no adviser module. */
+  const key=(cl,i)=>(typeof window.adviserClauseKey==='function')
+    ? window.adviserClauseKey(cl,i) : ((cl&&(cl.clauseId||cl.id)) ? String(cl.clauseId||cl.id) : ('#'+i));
   const want=new Set((ids||[]).map(String));
-  const keep=segs.filter(cl=>cl && want.has(String(cl.id)));
+  const keep=segs.filter((cl,i)=>cl && want.has(String(key(cl,i))));
   if(!keep.length) return '';
-  return keep.map(cl=>String(cl.html||cl.body||'')).join('');
+  /* A CLAUSE IS ITS HEADING AND ITS BODY. Taking `html` alone returned '' on
+     every clause clauseSegment builds — it emits headingHtml and bodyHtml. */
+  return keep.map(cl=>String(cl.headingHtml||'')+String(cl.bodyHtml||cl.html||cl.body||'')).join('');
 }
 /* ---- who we last shared this contract with ----
    Six rounds of a negotiation meant six trips through a blank share form,
@@ -5136,7 +5188,12 @@ async function openShareModal(c, opts={}){
   /* purposeSel was settled before the first paint and may have MOVED since —
      the reader can answer the first question while the fetches are in flight.
      The payload is built from where it has got to, not from the default. */
-  const payloadObj=buildSharePayload(c, docHash, null, { purpose:purposeSel });
+  /* `let`, because the Adviser purpose REBUILDS it at send time: the clauses
+     an adviser may see are picked after this line runs, and the narrowing is
+     in the payload (see buildSharePayload) rather than bolted on here — a
+     second copy of "drop the full wording" is how one of them comes to be
+     forgotten. Every closure below reads the binding, not a captured copy. */
+  let payloadObj=buildSharePayload(c, docHash, null, { purpose:purposeSel });
   // Who this went to last time. Fetched before the dialog is built so the
   // fields open already filled rather than filling themselves a moment later
   // under the user's cursor.
@@ -5303,6 +5360,14 @@ async function openShareModal(c, opts={}){
        anything. Shown and hidden rather than built and thrown away, for the
        reason the branches above give. */
     document.getElementById('share-signers')?.classList.toggle('hidden', purposeSel!=='sign');
+    /* WHICH CLAUSES belongs to the Adviser purpose alone, for the same reason
+       and by the same mechanism — shown and hidden, never rebuilt. */
+    document.getElementById('share-advise')?.classList.toggle('hidden', purposeSel!=='advise');
+    /* AND AN ADVISER LINK IS NOT A SIGNING LINK: the signing card and the
+       contract's own readiness ticks are about a signature nobody is being
+       asked for here. `setKind` already stands the readiness panel down on the
+       record; this is the same rule for the same reason. */
+    document.getElementById('share-readiness-wrap')?.classList.toggle('hidden', purposeSel==='advise');
   };
   /* The row this link is for, or null for the free-typed recipient. Held here
      rather than read off the DOM at send time, so a repaint cannot lose it. */
@@ -5624,6 +5689,13 @@ async function openShareModal(c, opts={}){
          got by pressing Export. A writer that is not loaded, or wording the
          writer refuses, is a refusal HERE — before a share row exists — rather
          than a share with an empty envelope. */
+      /* ---- AND THE WORD CHANNEL CANNOT CARRY AN ADVISER'S ASK ----
+         (upgrade 9, 18 Sep 2026.) That channel attaches the WHOLE contract as
+         a .docx, which is exactly what this purpose exists not to send: the
+         narrowing lives in the payload a link serves, and a file walks around
+         it. Refused in words on the same screen, with the channel that works
+         named — never a silent send of more than the sender chose. */
+      if(ch==='word' && payloadObj.purpose==='advise'){ toast(i18t('asl_no_word'),'err'); return false; }
       let wordFile=null;
       if(ch==='word'){
         /* ---- THE FILE IS WHAT THE SENDER CHOSE (Young reported it 13 Sep 2026:
@@ -5652,7 +5724,24 @@ async function openShareModal(c, opts={}){
          server refuses to refresh at all (refuseIfViewOnly on the PUT), so
          there is nothing of its own kind to reuse either. The server refuses
          the other direction too — see PUT /api/shares/:token/payload. */
-      const reuse=(wantDurable && payloadObj.purpose!=='sign' && payloadObj.purpose!=='history' && email)
+      /* ---- AND THE ADVISER'S PAYLOAD IS BUILT HERE ---- (upgrade 9)
+         The clauses are chosen after the payload was first built, and the
+         narrowing lives in buildSharePayload, so this asks for a fresh one
+         rather than editing the old one down. Nothing to send is a refusal in
+         words: an adviser link carrying no clauses would open on an empty
+         page, which reads as a product fault rather than as a choice. */
+      if(payloadObj.purpose==='advise'){
+        const ids=Array.from(document.querySelectorAll('#share-advise .asl-cl:checked')).map(b=>b.value).filter(Boolean);
+        if(!ids.length){ toast(i18t('asl_pick_a_clause'),'err'); return false; }
+        payloadObj=buildSharePayload(c, docHash, null, { purpose:'advise', adviseOn:ids });
+        payloadObj.purposeChosen='advise';
+      }
+      /* ADVISE IS NOT REUSED EITHER. Putting an advice payload onto a standing
+         NEGOTIATE link would change what the person already holding that link
+         can do, without them or the sender being told — the same reason sign
+         and history are excluded. */
+      const reuse=(wantDurable && payloadObj.purpose!=='sign' && payloadObj.purpose!=='history'
+        && payloadObj.purpose!=='advise' && email)
         ? standingShares(priorShares).find(s=>
             String(s.recipientEmail||'').trim().toLowerCase()===String(email).trim().toLowerCase())
         : null;
@@ -7091,4 +7180,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{cpReadyToSign,READY_META,READY_META_SHORT,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{cpReadyToSign,READY_META,READY_META_SHORT,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});

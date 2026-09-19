@@ -85,11 +85,21 @@ function mContractHeadHtml(c){
    which is why it had to be written at all — a fix in a shared function
    reaches both shells and a desktop renderer does not.
 
-   READ-ONLY, DELIBERATELY. The desktop's every verb presses toggleObligation,
-   which writes; marking a promise done with a thumb on a train is a press
-   nobody meant to make. The phone shows the state and the contract room is
-   where it is changed — the same posture the phone takes to the negotiation.
-   Each reading is guarded: this file is staged without js/obligations.js. */
+   TWO VERBS, AND THEY ARE THE DESKTOP'S OWN. Chase them and Mark done press
+   obligationChase and the openObligationDone/toggleObligation pair the
+   contract room's own tab presses — the same funnel, the same guards, the
+   same audit line, the same repaint. The phone files no negotiation CHANGE of
+   its own and that rule is untouched; an obligation is not a change to the
+   wording, and "the rebate claim is seventeen days late" is exactly the fact
+   somebody away from a desk has to be able to act on.
+   A VERB THAT CANNOT WORK IS NOT DRAWN: the chase refuses an obligation that
+   is ours or already done, so it is offered only where it would really go out.
+   THE REQUIRED DOCUMENTS RIDE IN ON THE SAME LIST — a document obligation IS
+   an ordinary obligation carrying a `doc` shape, so it was already in this
+   list; what it gains here is its own state line, in the desktop table's own
+   tones. Each reading is guarded: this file is staged without
+   js/obligations.js. */
+const M_OB_DOC_TONE = { lapsed:'ruby', missing:'ruby', soon:'amber', held:'' };
 const M_OB_BANDS = ['overdue','waiting','month','later','done'];
 const mObligList = c => ((c && c.obligations) || []);
 function mObligCountHtml(c){
@@ -100,25 +110,52 @@ function mObligCountHtml(c){
      sidebar counts' before it. A count that is always coloured is not read. */
   return `<span class="m-ctab-n${st.overdue?' is-late':''}">${st.open}</span>`;
 }
-function mObligRowHtml(o, c){
+function mObligRowHtml(o, c, i){
   const esc=mEsc;
   const band = (typeof obligationBand==='function') ? obligationBand(o, c) : 'later';
   const due = (typeof obligationDue==='function') ? obligationDue(o) : (o&&o.due);
   const theirs = (typeof obligationIsTheirs==='function') ? obligationIsTheirs(o) : false;
   const who = (typeof obligationOwner==='function') ? (obligationOwner(o, c)||'') : '';
-  const amt = (typeof obligationAmount==='function') ? obligationAmount(o, c) : null;
+  /* THE FIGURE IS PRINTED BY THE PRODUCT'S OWN PRINTER, in the contract's own
+     currency — a bare 840000 beside a promise is not money, it is a number. */
+  const amt = (typeof obligationAmount==='function') ? obligationAmount(o) : null;
   const money = (typeof obligationMoneyVisible==='function') ? obligationMoneyVisible() : false;
-  const when = due
-    ? new Date(String(due)+'T00:00:00').toLocaleDateString(langLocale(),{day:'2-digit',month:'short',year:'numeric'})
-    : i18t('ob_no_date');
+  const amtText = (amt!=null && typeof obligationMoneyText==='function') ? obligationMoneyText(amt, c) : (amt==null?'':String(amt));
+  const day = iso => iso
+    ? new Date(String(iso)+'T00:00:00').toLocaleDateString(langLocale(),{day:'2-digit',month:'short',year:'numeric'})
+    : '';
+  const when = day(due) || i18t('ob_no_date');
   const tone = band==='overdue' ? 'var(--st-ruby-fg)' : band==='waiting' ? 'var(--color-neutral-500)' : 'var(--color-neutral-600)';
+  /* ---- THE DOCUMENT LINE, where this promise is a piece of paper ---- */
+  let docLine='';
+  if(o && o.doc && typeof obligationDocState==='function'){
+    let st=''; try{ st=obligationDocState(o)||''; }catch(_){ st=''; }
+    const until=(typeof obligationDocUntil==='function')?obligationDocUntil(o):'';
+    const file=(typeof obligationDocFile==='function')?obligationDocFile(o):'';
+    const dtone=M_OB_DOC_TONE[st];
+    const good = until
+      ? (st==='lapsed' ? i18t('ov_doc_lapsed',{date:day(until)}) : i18t('m_ob_doc_good',{date:day(until)}))
+      : i18t(st==='missing'?'ov_doc_never':'ov_doc_unsaid');
+    docLine=`<div class="m-ob-doc" data-m-ob-doc="${esc(st)}" style="margin-top:2px;font-size:var(--t-meta);line-height:1.45;color:${
+      dtone?`var(--st-${dtone}-fg)`:'var(--color-neutral-600)'}">${esc(good)}${file?' \u00b7 '+esc(file):''}</div>`;
+  }
+  /* ---- THE TWO VERBS, the desktop's own ---- */
+  const may = (typeof canEdit!=='function') || canEdit();
+  const done = o && o.status==='done';
+  const acts=[];
+  if(may && theirs && !done && typeof obligationChase==='function')
+    acts.push(`<button type="button" class="m-ob-act" data-m-ob-chase="${esc(String((o&&o.id)||''))}">${esc(i18t('ov_doc_chase'))}</button>`);
+  if(may)
+    acts.push(`<button type="button" class="m-ob-act" data-m-ob-done="${i}">${esc(i18t(done?'ob_reopen':'ob_mark_done'))}</button>`);
+  const row = acts.length
+    ? `<div class="m-ob-acts" style="display:flex;gap:10px;margin-top:6px">${acts.join('')}</div>` : '';
   return `<div class="m-ob-row" style="padding:10px 0;border-top:1px solid var(--color-divider)">
     <div style="font-size:var(--t-card);line-height:1.45">${esc(String((o&&o.text)||(o&&o.description)||'').trim()||i18t('ob_no_wording'))}</div>
     <div style="display:flex;align-items:baseline;gap:8px;margin-top:3px;font-size:var(--t-meta);color:${tone}">
       <span>${esc(when)}</span>
-      <span style="color:var(--color-neutral-500)">${theirs?esc(i18t('ob_side_theirs')):esc(i18t('ob_side_ours'))}${who?' · '+esc(who):''}</span>
-      ${(money&&amt)?`<span style="margin-left:auto;font-family:var(--font-mono)">${esc(String(amt))}</span>`:''}
-    </div></div>`;
+      <span style="color:var(--color-neutral-500)">${theirs?esc(i18t('ob_side_theirs')):esc(i18t('ob_side_ours'))}${who?' \u00b7 '+esc(who):''}</span>
+      ${(money&&amt!=null)?`<span style="margin-left:auto;font-family:var(--font-mono)">${esc(amtText)}</span>`:''}
+    </div>${docLine}${row}</div>`;
 }
 function mObligHtml(c){
   const list = mObligList(c);
@@ -132,7 +169,7 @@ function mObligHtml(c){
     html += `<div class="m-card" style="margin:var(--s-4) var(--s-4) 0;padding:12px 14px">
       <div style="font-size:var(--t-label);font-weight:var(--w-strong);letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-600)">${
         mEsc(i18t('ob_band_'+k))} · ${rows.length}</div>
-      ${rows.map(o=>mObligRowHtml(o, c)).join('')}</div>`;
+      ${rows.map(o=>mObligRowHtml(o, c, list.indexOf(o))).join('')}</div>`;
   }
   return html + '<div style="height:var(--s-4)"></div>';
 }

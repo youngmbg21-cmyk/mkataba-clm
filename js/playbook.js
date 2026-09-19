@@ -86,26 +86,59 @@ const DEFAULT_PLAYBOOK = {
 };
 // Map a contract kind/folder to a playbook key.
 function playbookKeyFor(c){
-  /* THE TYPE THE RECORD ALREADY HOLDS (upgrade 5, 18 Sep 2026). This read
-     cKind, which answers the literal "External Document" for every uploaded
-     contract — so an upload matched no rule here and fell through to its value
-     stream below, and uploaded paper is precisely the paper that most needs
-     judging properly, because somebody else wrote it. contractTypeRead prefers
-     the curated template kind and falls back to the extraction. The server's
-     copilotPlaybookKey mirrors this line for line; f133 runs both over the
-     same contracts and requires the same key. */
+  /* ---- THE TYPE DECIDES, AND ONLY THEN THE VALUE STREAM (upgrade 5) ----
+     18 Sep 2026, and the reordering IS the build. The BUILT-IN supply line
+     asked both questions in ONE breath -- `/supply|.../.test(k) || f ===
+     'proc'` -- so whichever matched first won, and for an uploaded document,
+     where the type has to be extracted and the stream is just where somebody
+     filed it, the stream won constantly: a software licence filed under
+     Procurement came back judged against your SUPPLY standards, and that
+     answer looked exactly like a right one.
+     Four passes now, in this order and no other:
+       1. THE WORKSPACE'S OWN BOOKS, by their match words, against the type OR
+          the value stream -- UNCHANGED, and deliberately so. A custom book is
+          a rule this workspace wrote down; one naming a stream means that
+          stream. "The custom types, which already win first and still do."
+       2. THE BUILT-IN TYPE PATTERNS. All twelve built-in templates match
+          here on their kind alone, so the stream half of the old line was
+          pure redundancy for drafted contracts and nothing about those
+          contracts changes.
+       3. A TYPE THAT WAS READ AND MATCHED NOTHING TAKES THE BASELINE. This is
+          the reordering. An honestly generic book beats a confidently wrong
+          one, and the Overview's reading row NAMES the book now, so a reader
+          sees "checked against the baseline" rather than silently getting
+          supply standards.
+       4. THE BUILT-IN STREAM FALLBACK, for a contract whose type nobody read
+          -- cKind saying "External Document" or the bare "Contract", with no
+          extraction on the record. Those behave exactly as they did.
+     The server's copilotPlaybookKey mirrors this pass for pass; f133 runs both
+     over the same contracts and requires the same key. */
   const k=((typeof contractTypeRead==='function'?contractTypeRead(c):cKind(c))||'').toLowerCase(), f=c.folder;
-  // user-defined types with custom match keywords win first (so a type added in
-  // the editor actually applies to matching contracts)
+  /* "DID ANYBODY READ A TYPE" is the SAME question core.js asks, asked of the
+     answer rather than re-derived: contractTypeRead hands back the placeholder
+     itself when there is no extraction to prefer. The literal beside it is a
+     FALLBACK for a stage without js/core.js, written the way docLibWording
+     carries its own fallback wording — and it has to be one, because an
+     ABSENT constant read as "a type was read" would take the value-stream
+     fallback away from every upload on such a stage, which is the loud
+     direction. f133 stages the real pair and pins the two hosts equal. */
+  const SAYS_NOTHING=(typeof CKIND_SAYS_NOTHING!=='undefined')?CKIND_SAYS_NOTHING:/^(external document|contract)$/i;
+  const said=!!k && !SAYS_NOTHING.test(k);
+  // 1. user-defined books with custom match keywords win first, as they always did
   try{ const pb=playbook();
     for(const key in pb){ const p=pb[key];
       if(key==='_default'||!p||!Array.isArray(p.match)||!p.match.length) continue;
       if(p.match.some(w=>{ w=String(w||'').toLowerCase().trim(); return w && (k.includes(w)||f===w); })) return key; }
   }catch(_){}
+  // 2. the built-in patterns, asked of the TYPE alone
   if(/nda|non-disclosure/.test(k)) return 'nda';
   if(/lease/.test(k)) return 'lease';
   if(/professional|marketing|services|advisory|agency/.test(k)) return 'services';
-  if(/supply|packaging|raw material|manufactur|co-pack|distribut|warehous|freight|logistics|retail/.test(k)||f==='proc'||f==='sales'||f==='dist'||f==='mfg') return 'supply';
+  if(/supply|packaging|raw material|manufactur|co-pack|distribut|warehous|freight|logistics|retail/.test(k)) return 'supply';
+  // 3. a type that was read and matched nothing takes the baseline
+  if(said) return '_default';
+  // 4. the value stream, for a contract whose type nobody read
+  if(f==='proc'||f==='sales'||f==='dist'||f==='mfg') return 'supply';
   return '_default';
 }
 

@@ -198,6 +198,27 @@ function intakePastDue(list){
 /* WHERE THE PERSON WHO ASKED GOES TO FIND OUT. The server minted the token;
    this only builds the address. Null where there is none — a link that cannot
    work is not drawn. */
+/* ---- WHO ANSWERS, AND HOW LONG IT USUALLY TAKES (upgrade 4, 18 Sep 2026) ----
+   The refusal on "describe what you need" offers Requests, and an offer that
+   cannot say what happens next is the dead end it replaced. BOTH HALVES ARE
+   FACTS OFF THE RECORD, never a promise: the names are the people who have
+   actually picked requests up, and the figure is intakeMedianDays, which
+   REFUSES below IK_MEDIAN_MIN rather than average two requests into a claim.
+   Either half may be absent and the sentence simply leaves it out; null where
+   it can say nothing at all, which is the honest answer on day one. */
+function intakeAnswerLine(){
+  const list=(_intake&&Array.isArray(_intake.list))?_intake.list:[];
+  if(!list.length) return null;
+  const names=[];
+  for(const r of list){ const n=r&&r.assignee&&String(r.assignee.name||'').trim();
+    if(n && !names.includes(n)) names.push(n); }
+  const days=intakeMedianDays(list);
+  const who=names.length?names.slice(0,2).join(' & '):'';
+  if(who && days!=null) return i18t('ik_answers_who_when',{who,days});
+  if(who) return i18t('ik_answers_who',{who});
+  if(days!=null) return i18t('ik_answers_when',{days});
+  return null;
+}
 function intakeTrackUrl(r){
   if(!r || !r.trackToken) return null;
   try{ return location.origin + '/track/' + encodeURIComponent(r.trackToken); }
@@ -357,14 +378,42 @@ function openIntakeForm(pre){
     if(!g('ik-title')||!g('ik-need')){ if(err) err.textContent=i18t('ik_need_both'); return; }
     const btn=document.getElementById('ik-send'); if(btn) btn.disabled=true;
     try{
-      await api('intake','POST',{ title:g('ik-title'), need:g('ik-need'),
+      const made=await api('intake','POST',{ title:g('ik-title'), need:g('ik-need'),
         counterparty:g('ik-cp'), folder:g('ik-folder') });
       closeModal();
       await loadIntake();
-      toast(i18t('ik_sent'),'ok');
+      /* ---- AND IT HANDS BACK THE TRACKER (upgrade 4) ----
+         The asker can follow it without a seat and without asking anybody. The
+         link is the record's own (intakeTrackUrl); where the server did not
+         mint a token the toast is exactly what it always was. */
+      const id=(made&&(made.id||(made.request&&made.request.id)))||null;
+      const row=id?((_intake.list||[]).find(r=>String(r.id)===String(id))||null):null;
+      const url=row?intakeTrackUrl(row):null;
+      if(url && window.openIntakeTracker) openIntakeTracker(url);
+      else toast(i18t('ik_sent'),'ok');
       if(state.view==='intake') renderIntake();
       if(window.updateSidebarCounts) updateSidebarCounts();
     }catch(e){ if(err) err.textContent=(e&&e.message)||i18t('ik_failed'); if(btn) btn.disabled=false; }
+  });
+}
+
+/* The link back, as a receipt rather than a page: one line, the link itself,
+   and Copy. Nothing else happened, so nothing else is said. */
+function openIntakeTracker(url){
+  const e=s=>String(s==null?'':s).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+  openModal(`<div style="padding:24px">
+    <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:17px;margin:0 0 6px">${i18t('ik_sent')}</h3>
+    <p style="margin:0 0 12px;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.5">${i18t('ik_track_lead')}</p>
+    <input id="ik-track-url" readonly value="${e(url)}" style="${window.HATI_FLD};font-family:var(--font-mono);font-size:var(--t-label)"/>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px">
+      <button id="ik-track-copy" class="ui-btn">${i18t('ik_track_copy')}</button>
+      <button id="ik-track-done" class="ui-btn ui-btn-primary">${i18t('act_done')}</button>
+    </div></div>`,{ maxWidth:(window.DLG_W&&DLG_W.m)||'520px' });
+  document.getElementById('ik-track-done')?.addEventListener('click',closeModal);
+  document.getElementById('ik-track-copy')?.addEventListener('click',()=>{
+    const el=document.getElementById('ik-track-url'); if(!el) return;
+    el.select(); try{ navigator.clipboard.writeText(el.value); }catch(_){ try{ document.execCommand('copy'); }catch(__){} }
+    toast(i18t('ik_track_copied'),'ok');
   });
 }
 
@@ -629,5 +678,5 @@ Object.assign(window,{INTAKE_STATUS,IK_LIVE,IK_ROADS,IK_TONE,IK_MEDIAN_MIN,IK_ST
   intakeMedianDays,intakePromise,intakePastDue,intakeTrackUrl,intakeLanes,intakeLaneFor,
   intakeRunLanes,ikClockHtml,ikFactHtml,intakePick,intakePromiseAsk,intakeTrackCopy,intakePatch,
   intakeMine,intakeQueue,intakeCount,loadIntake,
-  openIntakeForm,intakeDraft,intakeSetStatus,renderIntake,ikRowHtml,intakeSuggestTemplate,
+  openIntakeForm,intakeAnswerLine,openIntakeTracker,intakeDraft,intakeSetStatus,renderIntake,ikRowHtml,intakeSuggestTemplate,
   _intakeState:_intake});

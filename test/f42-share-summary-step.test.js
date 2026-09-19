@@ -195,7 +195,13 @@ describe('Share is two steps, and the summary travels', () => {
     const m = await openShare(c);
     const picks = Array.from(m.root.querySelectorAll('#share-purpose [data-share-purpose]'))
       .map(b => b.getAttribute('data-share-purpose'));
-    assert.deepEqual(picks, ['sign', 'negotiate', 'view']);
+    /* RE-POINTED IN PLACE, 18 Sep 2026: Adviser is the FIFTH purpose and sits
+       beside the other four on this row (upgrade 9). The ruling this claim
+       exists for is unchanged and is what is asserted — the purpose is a row
+       you can SEE and change, above the recipient, never guessed — and the
+       three that were here are still here, in their order. */
+    assert.deepEqual(picks.slice(0, 3), ['sign', 'negotiate', 'view']);
+    assert.ok(picks.includes('advise'), 'and the adviser purpose is on the same row, not a door of its own');
     assert.ok(m.$('#share-step-1').contains(m.$('#share-purpose')),
       'and it is above the recipient, not behind a press');
   });

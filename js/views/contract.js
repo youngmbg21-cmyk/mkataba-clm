@@ -5084,8 +5084,18 @@ function ktReadingsRowsHtml(c){
   const pb=(c&&c.playbook&&Array.isArray(c.playbook.verdicts))?c.playbook.verdicts:null;
   const dev=pb?pb.filter(v=>v&&v.status&&v.status!=='aligned').length:0;
   let pbStale=null; try{ pbStale=window.playbookStale?playbookStale(c):null; }catch(_){ pbStale=null; }
+  /* AND IT NAMES THE BOOK IT USED (upgrade 5, 18 Sep 2026). A count of
+     departures with no book behind it reads the same whether the right
+     standards were applied or the wrong ones: "3 departures" against the
+     supply book and against the default book are different facts wearing one
+     sentence, and this is the row a reader checks after an upload was judged
+     oddly. The name is the one the review STAMPED (`label`, written by both
+     branches of runPlaybookReview), never re-resolved here -- re-asking
+     resolvePlaybook would print today's book beside yesterday's verdicts.
+     A review on file with no label says nothing rather than guessing one. */
+  const pbBook=(c&&c.playbook&&String(c.playbook.label||'').trim())||'';
   rows.push({ k:'playbook', name:i18t('ov_r_playbook'),
-    said: pb?i18tn('ov_r_departures',dev,{n:dev}):i18t('ov_r_none'),
+    said: pb?(i18tn('ov_r_departures',dev,{n:dev})+(pbBook?' · '+pbBook:'')):i18t('ov_r_none'),
     when: (c&&c.playbook&&(c.playbook.checkedAt||c.playbook.at))||'',
     state: pb?(pbStale===true?'stale':'yes'):'no', tab:'docs' });
   /* 3. OBLIGATIONS FOUND -- the contract's own list, and the day a reading was
