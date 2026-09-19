@@ -2176,152 +2176,93 @@ function tplHealthHtml(d){
   return `<div style="display:grid;gap:var(--s-4)">${tiles}${arg}${clauses}${note}</div>`;
 }
 
-function tplOverviewHtml(d){
-  /* ---- THE CARD IS THE DEMO'S CARD (owner-asked 25 Aug 2026, off a picture
-     of one) ----
-     A 3px tone bar ACROSS THE TOP rather than a stripe down the left; the
-     state as a small uppercase badge at the top right; the name, then
-     category · version · date; a hairline; then the two figures under quiet
-     sentence-case labels; then one line qualifying them.
+/* ════ ONE CARD BUILDER, TWO SCREENS (19 Sep 2026) ════════════════════
+   These were closures inside tplOverviewHtml. The book (tplBookHtml) draws
+   the same buckets in a different arrangement, and a second copy of this
+   markup is exactly how two screens come to disagree about what a bucket's
+   figures are — THE CLOTHES FOLLOW THE BUILDER. Lifted whole, not rewritten:
+   every declaration and every note below is the wall's own. */
+const TPL_OV_CARD='background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);box-shadow:var(--shadow-sm)';
+const TPL_OV_HEAD='font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)';
+const TPL_OV_LBL='font-size:var(--t-label);font-weight:var(--w-body);color:var(--color-neutral-600);line-height:1.45';
+const TPL_OV_FIG='font-size:var(--t-card);font-weight:var(--w-title);font-variant-numeric:tabular-nums;line-height:1.3;margin-top:1px';
 
-     WHAT THE COLOUR SAYS, and each carrier answers ONE question. The BAR is
-     what kind of paper this is and what state it is in — company paper green
-     when published and amber while it is a draft, everything else the value
-     stream's own colour, which is exactly what the left stripe carried before
-     it moved. The RATE'S INK is how the paper is doing, and its ruby is the
-     SAME threshold that puts a template in Needs attention, so a red figure
-     and a row in that panel can never mean different things. The count beside
-     it stays the primary ink: it is a fact about volume, not a verdict. */
-  const CARD='background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);box-shadow:var(--shadow-sm)';
-  const day=v=>{ const t=Date.parse(v||''); return isNaN(t)?null:new Date(t).toLocaleDateString(langLocale(),{day:'numeric',month:'short',year:'numeric'}); };
-  /* THE TONE BAR — the left stripe's own reading, moved to the demo's place. */
-  const topTone=c=>c.kind==='company'
-    ?(c.draft?'var(--st-amber-dot)':'var(--st-green-dot)')
-    :(c.stream?folderColor(c.stream):'var(--color-neutral-300)');
-  const badge=c=>{
-    const chip=(w,bg,fg)=>`<span class="tpl-ov-badge" style="background:${bg};color:${fg}">${_tplEsc(w)}</span>`;
-    if(c.kind==='company') return c.draft
-      ? chip(i18t('lib_ov_draft'),'var(--st-amber-bg)','var(--st-amber-fg)')
-      : chip(i18t('tl_published'),'var(--st-green-bg)','var(--st-green-fg)');
-    if(c.kind==='sample'&&c.imported) return chip(i18t('lib_imported'),'var(--st-green-bg)','var(--st-green-fg)');
-    return chip(c.origin,'var(--color-neutral-100)','var(--color-neutral-600)');
-  };
-  const dated=c=>{
-    const s2=day(c.at); if(!s2) return null;
-    return c.atKind==='added'?i18t('lib_ov_added',{d:s2}):i18t('lib_ov_last_used',{d:s2});
-  };
-  const note=c=>{
-    /* NOTHING DRAFTED IS A DIFFERENT FACT FROM NOTHING CHECKED, and reading
-       the first as the second puts a checking gap on a template that has
-       simply never been used. */
-    if(c.rate==null) return (c.used===0||(c.used==null&&c.unscanned===0))
-      ? i18t('lib_ov_why_unused') : i18t('lib_ov_not_checked');
-    /* "0 of the 3 contracts checked did not follow Our standards" is accurate
-       and reads like a near miss. Paper that all came back clean is good news
-       and says so. */
-    const first=c.off===0
-      ? i18tn('lib_ov_all_clear',c.scanned,{n:c.scanned})
-      : i18tn('lib_ov_off_standard',c.scanned,{off:c.off,n:c.scanned});
-    return c.unscanned>0?`${first} ${i18tn('lib_ov_unchecked',c.unscanned,{n:c.unscanned})}`:first;
-  };
-  /* ---- THE CATEGORY CARD'S OWN THREE SENTENCES ----
-     The reading is the single card's, unchanged — nothing drafted is a
-     different fact from nothing checked, and the rate's sample is stated
-     rather than trimmed — but the WORDS may not be, because the single card
-     says "this template" and this card stands for a library or a value stream.
+/* RUBY IS THE ATTENTION RULE'S OWN THRESHOLD — a red figure on the card and
+   a row in Needs attention are the same finding, or the page argues with
+   itself. Amber is a rate worth noticing that has not earned the alarm;
+   green is the demo's own answer for a low one. */
+function tplOvRateInk(c){
+  if(c.rate==null) return 'var(--color-neutral-400)';
+  if(c.scanned>=TPL_DEV_MIN&&c.rate>=0.5) return 'var(--st-ruby-fg)';
+  if(c.rate>=0.25) return 'var(--st-amber-fg)';
+  return 'var(--st-green-fg)';
+}
+function bucketStreamName(b){
+  return tplShortStream((typeof FOLDERS==='object'&&FOLDERS&&FOLDERS[b.id]||{}).name)||b.id;
+}
+function tplOvBucketLabel(b){
+  return b.sec==='stream' ? bucketStreamName(b) : (TPL_GROUP_LABEL[b.key]||b.key);
+}
+/* AND A BUCKET WITH NOTHING IN IT SAYS THAT rather than "nothing has been
+   drafted from it", which is a checking gap reported on paper that does not
+   exist. */
+function tplOvBucketNote(b){
+  if(b.templates===0) return i18t('lib_ov_bucket_empty');
+  if(b.rate==null) return b.used===0
+    ? i18t('lib_ov_bucket_unused') : i18t('lib_ov_bucket_not_checked');
+  const first=b.off===0
+    ? i18tn('lib_ov_all_clear',b.scanned,{n:b.scanned})
+    : i18tn('lib_ov_off_standard',b.scanned,{off:b.off,n:b.scanned});
+  return b.unscanned>0?`${first} ${i18tn('lib_ov_unchecked',b.unscanned,{n:b.unscanned})}`:first;
+}
 
-     AND A BUCKET WITH NOTHING IN IT SAYS THAT rather than "nothing has been
-     drafted from it", which is a checking gap reported on paper that does not
-     exist. */
-  const bucketNote=b=>{
-    if(b.templates===0) return i18t('lib_ov_bucket_empty');
-    if(b.rate==null) return b.used===0
-      ? i18t('lib_ov_bucket_unused') : i18t('lib_ov_bucket_not_checked');
-    const first=b.off===0
-      ? i18tn('lib_ov_all_clear',b.scanned,{n:b.scanned})
-      : i18tn('lib_ov_off_standard',b.scanned,{off:b.off,n:b.scanned});
-    return b.unscanned>0?`${first} ${i18tn('lib_ov_unchecked',b.unscanned,{n:b.unscanned})}`:first;
-  };
-  /* RUBY IS THE ATTENTION RULE'S OWN THRESHOLD — a red figure on the card and
-     a row in Needs attention are the same finding, or the page argues with
-     itself. Amber is a rate worth noticing that has not earned the alarm;
-     green is the demo's own answer for a low one. */
-  const rateInk=c=>{
-    if(c.rate==null) return 'var(--color-neutral-400)';
-    if(c.scanned>=TPL_DEV_MIN&&c.rate>=0.5) return 'var(--st-ruby-fg)';
-    if(c.rate>=0.25) return 'var(--st-amber-fg)';
-    return 'var(--st-green-fg)';
-  };
-  /* The two panels' own signposts stay small uppercase caps: a caption OVER a
-     list is a signpost, and the demo's sentence-case labels are labels ON a
-     figure. Different jobs, different dress. */
-  const HEAD='font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)';
-  /* ---- THE CARD CAME DOWN A RUNG (owner-asked 25 Aug 2026, off a screenshot
-     with the two figures ringed: "all the fonts need to be reduced by one size
-     and the ones highlighted (numbers) should be reduced by 2 sizes") ----
-     One step down this product's own ladder (10, 11, 12, 13, 14, 15, 17, 19,
-     22): name 15 to 14, every piece of small text 13 to 12, and the two
-     figures TWO steps, 19 to 15. THE BADGE IS THE ONE THING THAT DID NOT MOVE
-     and it is said out loud: 10px is the ladder's floor, and a smaller one
-     would be the only sub-10px type anywhere in this product. */
-  const LBL='font-size:var(--t-label);font-weight:var(--w-body);color:var(--color-neutral-600);line-height:1.45';
-  const FIG='font-size:var(--t-card);font-weight:var(--w-title);font-variant-numeric:tabular-nums;line-height:1.3;margin-top:1px';
-  /* ---- THE CARD IS A CATEGORY NOW (owner-asked 29 Aug 2026) ----
-     Same skeleton as the template card it replaces — the 3px tone bar, the
-     name, a hairline, the two figures under quiet sentence-case labels, the
-     line that qualifies them — with the bucket's own facts in it.
+/* ---- THE CARD IS A CATEGORY (owner-asked 29 Aug 2026) ----
+   The 3px tone bar, the name with its count at the right, a hairline, the two
+   figures under quiet labels, the line that qualifies them.
 
-     THE COUNT SITS AT THE RIGHT OF THE NAME, which is the shape the owner's
-     own picture draws: "Company standard  26". It FLOATS for the reason the
-     badge before it floated — in a flex row it takes a column and every line
-     of a long stream name is short.
+   THE TONE BAR IS THE STREAM'S OWN COLOUR and a library card carries none:
+   only the value streams wear a swatch there, which is the owner's own
+   picture. A bar that said nothing on five cards would be a mark for a fact
+   the section heading already carries.
 
-     THE TONE BAR IS THE STREAM'S OWN COLOUR and a library card carries none,
-     which is again the picture: only the value streams wear a swatch there. A
-     bar that said nothing on five cards would be a mark for a fact the section
-     heading already carries.
-
-     THERE IS NO META LINE. The section above the card says whether this is a
-     library or a value stream, and the count is on the name's own line, so a
-     third line would be one of those facts printed twice. */
-  const bucketLabel=b=>b.sec==='stream'
-    ? (tplShortStream((typeof FOLDERS==='object'&&FOLDERS&&FOLDERS[b.id]||{}).name)||b.id)
-    : (TPL_GROUP_LABEL[b.key]||b.key);
-  const cardHtml=b=>`<button class="tpl-ov-card" data-tpl-ov-bucket="${_tplEsc(b.key)}"
+   THERE IS NO META LINE. The section above the card says whether this is a
+   library or a value stream, and the count is on the name's own line, so a
+   third line would be one of those facts printed twice. */
+function tplOvCardHtml(b){
+  return `<button class="tpl-ov-card" data-tpl-ov-bucket="${_tplEsc(b.key)}"
       title="${_tplEsc(i18t('lib_ov_open_in_list'))}"
-      style="${CARD};display:flex;flex-direction:column;align-items:stretch;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;padding:0;overflow:hidden"
+      style="${TPL_OV_CARD};display:flex;flex-direction:column;align-items:stretch;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;padding:0;overflow:hidden"
       onmouseover="this.style.borderColor='var(--accent-solid)'" onmouseout="this.style.borderColor='var(--color-divider)'">
       <span style="display:block;height:3px;background:${b.tone||'transparent'}"></span>
       <span style="display:block;padding:13px 14px 0">
-        <span class="tpl-ov-count" style="float:right;margin-left:10px;${FIG};color:var(--color-neutral-500)"
+        <span class="tpl-ov-count" style="float:right;margin-left:10px;${TPL_OV_FIG};color:var(--color-neutral-500)"
           title="${_tplEsc(i18tn('lib_ov_head',b.templates,{n:b.templates}))}">${b.templates}</span>
-        <span class="tpl-ov-name" style="display:block;font-size:var(--t-body);font-weight:var(--w-title);color:var(--color-text)">${_tplEsc(bucketLabel(b))}</span>
+        <span class="tpl-ov-name" style="display:block;font-size:var(--t-body);font-weight:var(--w-title);color:var(--color-text)">${_tplEsc(tplOvBucketLabel(b))}</span>
       </span>
       <span style="display:flex;gap:18px;margin:11px 14px 0;padding-top:11px;border-top:1px solid var(--color-divider);clear:both">
         <span style="flex:1;min-width:0">
-          <span style="display:block;${LBL}" title="${i18t('lib_ov_used_title')}">${i18t('lib_ov_used')}</span>
-          <span style="display:block;${FIG};color:var(--color-text)">${b.used}</span>
+          <span style="display:block;${TPL_OV_LBL}" title="${i18t('lib_ov_used_title')}">${i18t('lib_ov_used')}</span>
+          <span style="display:block;${TPL_OV_FIG};color:var(--color-text)">${b.used}</span>
         </span>
         <span style="flex:1;min-width:0">
-          ${''/* A LABEL THAT NEEDS EXPLAINING SAYS SO ON ITS OWN HOVER.
-                "Deviation rate" is the product's word and the figure under it
-                is worked out from a SAMPLE, which is the half a reader cannot
-                see; the line at the foot of the card states the sample and
-                this states the metric. */}
-          <span style="display:block;${LBL}" title="${i18t('lib_ov_dev_rate_title')}">${i18t('lib_ov_dev_rate')}</span>
-          <span style="display:block;${FIG};color:${rateInk(b)}">${b.rate==null?'—':Math.round(b.rate*100)+'%'}</span>
+          ${''/* A LABEL THAT NEEDS EXPLAINING SAYS SO ON ITS OWN HOVER. */}
+          <span style="display:block;${TPL_OV_LBL}" title="${i18t('lib_ov_dev_rate_title')}">${i18t('lib_ov_dev_rate')}</span>
+          <span style="display:block;${TPL_OV_FIG};color:${tplOvRateInk(b)}">${b.rate==null?'—':Math.round(b.rate*100)+'%'}</span>
         </span>
       </span>
-      <span class="tpl-ov-note" style="display:block;padding:9px 14px 13px;${LBL}">${_tplEsc(bucketNote(b))}</span>
+      <span class="tpl-ov-note" style="display:block;padding:9px 14px 13px;${TPL_OV_LBL}">${_tplEsc(tplOvBucketNote(b))}</span>
     </button>`;
-  const attRow=a=>`<button data-tpl-ov-card="${_tplEsc(a.id)}" data-tpl-ov-name="${_tplEsc(a.name)}"
+}
+function tplOvAttRowHtml(a){
+  return `<button data-tpl-ov-card="${_tplEsc(a.id)}" data-tpl-ov-name="${_tplEsc(a.name)}"
     style="display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--color-divider);background:none;cursor:pointer;font:inherit;color:inherit;padding:var(--s-2) 2px"
     onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
     <span style="display:block;font-size:var(--t-meta);font-weight:var(--w-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(a.name)}</span>
     <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.45">${_tplEsc(a.why)}</span></button>`;
-  const barRow=c=>{
-    const w=d.peak?Math.max(6,Math.round(c.recent/d.peak*100)):0;
-    return `<button data-tpl-ov-card="${_tplEsc(c.id)}" data-tpl-ov-name="${_tplEsc(c.name)}"
+}
+function tplOvBarRowHtml(c, peak){
+  const w=peak?Math.max(6,Math.round(c.recent/peak*100)):0;
+  return `<button data-tpl-ov-card="${_tplEsc(c.id)}" data-tpl-ov-name="${_tplEsc(c.name)}"
       style="display:block;width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;color:inherit;padding:6px 2px">
       <span style="display:flex;align-items:baseline;gap:var(--s-2)">
         <span style="flex:1;min-width:0;font-size:var(--t-meta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(c.name)}</span>
@@ -2329,7 +2270,141 @@ function tplOverviewHtml(d){
       </span>
       <span style="display:block;height:6px;margin-top:var(--s-1);background:var(--color-neutral-100)">
         <span style="display:block;height:6px;width:${w}%;background:var(--accent-solid)"></span></span></button>`;
-  };
+}
+/* THE TWO PANELS, built once. The wall stacks them in its right-hand column
+   and the book lays them side by side; what they SAY is the same reading. */
+function tplOvPanelsHtml(d){
+  const EMPTY='font-size:var(--t-meta);line-height:1.6;color:var(--color-neutral-600);margin:0';
+  return `<div class="tpl-ov-panels" style="display:grid;gap:var(--s-3)">
+    <section id="tpl-ov-attention" style="${TPL_OV_CARD};padding:14px">
+      <div style="${TPL_OV_HEAD};margin-bottom:var(--s-2)">${i18t('lib_ov_attention')}</div>
+      ${d.attentionShown.length?d.attentionShown.map(tplOvAttRowHtml).join(''):`<p style="${EMPTY}">${i18t('lib_ov_attention_none')}</p>`}
+      ${d.attentionMore>0?`<p style="${EMPTY};margin-top:var(--s-2)">${i18tn('lib_ov_more',d.attentionMore,{n:d.attentionMore})}</p>`:''}
+    </section>
+    <section id="tpl-ov-mostused" style="${TPL_OV_CARD};padding:14px">
+      <div style="${TPL_OV_HEAD};margin-bottom:var(--s-2)">${i18t('lib_ov_most_used',{n:d.days})}</div>
+      ${d.mostUsed.length?d.mostUsed.map(c=>tplOvBarRowHtml(c,d.peak)).join(''):`<p style="${EMPTY}">${i18t('lib_ov_most_used_none',{n:d.days})}</p>`}
+    </section>
+  </div>`;
+}
+
+/* ════ THE BOOK — the card wall, in HaTi's own grammar (Young ruled it
+   ════ 19 Sep 2026, off "The Template Book" artifact) ═══════════════════
+   The overview tab answers *how is the paper doing*. This answers the other
+   question the old wall was always really answering — **what have we got** —
+   and it answers it in the product's own section grammar rather than as
+   eleven cards in one undifferentiated run.
+
+   THE GRAMMAR IS js/section.js AND NOT A SECOND COPY OF IT. CLAUDE.md says
+   that grammar is the contract room's first tab and nothing else, and that a
+   second screen takes it ONLY on the owner's word. This is that word. What
+   comes with it is the whole rule set: name the group, a shut group still
+   answers, open what is acted on.
+
+   THREE THINGS FROM THE ARTIFACT WERE NOT BUILT, and each is a question this
+   codebase already has an answer to:
+     · A BADGE ON EACH LIBRARY CARD saying "Ours" / "Theirs" / "Built in". The
+       section above the card already says which library this is and the card
+       is already named "Company standard" — the badge is that fact a third
+       time, twelve pixels away.
+     · A DRAWER ON PRESSING A CARD, showing the figures and then a door onto
+       the list. Every figure in it is already ON the card, and the door is
+       the card's own. A second door onto an act that has one is the refusal
+       this product paid for most often.
+     · A META LINE under the name. The 29 Aug note on the card says why there
+       is none and it is still true.
+
+   COUNTING IS NOT DRAWING: every figure here is tplOverviewData's, read and
+   never recomputed. */
+const TPL_BOOK_SECS = ['library', 'stream', 'wants'];
+function tplBookHtml(d){
+  /* THE GLANCE — three figures, no card and no band.
+     These are facts about the page the reader is already on, so the cheapest
+     channel that carries them is the page itself: a label over a value, HaTi's
+     own shape, with an em-dash where there is nothing to say.
+
+     AND THE CAVEAT SITS UNDER THE FIGURE IT QUALIFIES. The old wall printed it
+     as a line at the foot of the whole page, where it explained a number the
+     reader had stopped looking at. It is not a band and must not become one:
+     a strip across the page is an alarm, and this is a footnote. */
+  const pct = v => v == null ? '—' : Math.round(v * 100) + '%';
+  const rate = d.checked ? (d.cards.reduce((n, c) => n + c.off, 0) / d.checked) : null;
+  const ink = rate == null ? 'var(--color-neutral-400)'
+    : (d.checked >= TPL_DEV_MIN && rate >= 0.5) ? 'var(--st-ruby-fg)'
+    : rate >= 0.25 ? 'var(--st-amber-fg)' : 'var(--st-green-fg)';
+  const fig = (label, value, unit, tone, note) => `<div class="tpl-gl">
+    <p class="tpl-gl-l">${label}</p>
+    <p class="tpl-gl-v"${tone ? ` style="color:${tone}"` : ''}>${value}${
+      unit ? `<small>${unit}</small>` : ''}</p>${
+      note ? `<p class="tpl-gl-n">${note}</p>` : ''}</div>`;
+  const glance = `<div class="tpl-glance">
+    ${fig(i18t('lib_bk_have'), d.total, i18tn('lib_bk_u_tpl', d.total), null, '')}
+    ${fig(i18t('lib_bk_drafted'), d.cards.reduce((n, c) => n + (c.used || 0), 0),
+       i18t('lib_bk_u_contracts'), null, '')}
+    ${fig(i18t('lib_bk_changed'), pct(rate), rate == null ? '' : '', ink,
+       d.checked ? i18t('lib_bk_over', { checked: d.checked, open: d.unchecked })
+                 : i18t('lib_bk_over_none'))}
+  </div>`;
+
+  /* The wall's own cards, cut by section. One builder, two callers — the
+     buckets already carry which section they belong to. */
+  const wall = sec => `<div class="tpl-ov-cards" style="display:grid;gap:var(--s-3)">${
+    d.buckets.filter(b => b.sec === sec).map(tplOvCardHtml).join('')}</div>`;
+
+  const secs = [];
+  /* RULE 1 · NAME THE GROUP. RULE 3 · OPEN WHAT IS ACTED ON, reference opens
+     shut — the library is what a reader came for and the streams are the
+     same templates cut a second way, so the second one rests closed. */
+  secs.push(sectionHtml({
+    key: 'tpl.book.library', title: i18t('lib_bk_library'), flat: true,
+    summary: i18t('lib_bk_library_sum', { n: TPL_OV_LIBS.length, t: d.total }),
+    body: wall('library'),
+  }));
+  /* RULE 2 · A SHUT GROUP STILL ANSWERS. The head names the worst stream and
+     its figure, so a reader who never opens it has still been told. */
+  /* A SHUT SECTION'S SUMMARY MAY ONLY NAME A WORST WHERE THE SAMPLE EARNS IT.
+     `TPL_DEV_MIN` is the attention list's own floor, and without it a stream
+     with ONE contract checked and that one changed is announced on the head
+     as the worst in the book at 100% — a headline over a sample of one.
+     Below the floor the head counts the streams and says nothing else. */
+  const streams = d.buckets.filter(b =>
+    b.sec === 'stream' && b.rate != null && b.scanned >= TPL_DEV_MIN);
+  const worst = streams.slice().sort((a, b) => b.rate - a.rate)[0];
+  secs.push(sectionHtml({
+    key: 'tpl.book.stream', title: i18t('lib_bk_streams'), flat: true, open: false,
+    summary: worst
+      ? i18t('lib_bk_streams_sum', { n: d.buckets.filter(b => b.sec === 'stream').length,
+          name: bucketStreamName(worst), pct: Math.round(worst.rate * 100) })
+      : i18tn('lib_bk_streams_plain', d.buckets.filter(b => b.sec === 'stream').length,
+          { n: d.buckets.filter(b => b.sec === 'stream').length }),
+    body: wall('stream'),
+  }));
+  secs.push(sectionHtml({
+    key: 'tpl.book.wants', title: i18t('lib_bk_wants'), flat: true,
+    summary: i18tn('lib_bk_wants_sum', d.attention.length, { n: d.attention.length }),
+    body: tplOvPanelsHtml(d),
+  }));
+  return `<div class="tpl-book">${glance}${secs.join('')}</div>`;
+}
+
+/* A SECTION PRESS REPAINTS THE BOOK AND NOTHING ELSE — yesterday's lesson in
+   its own costume: a press that FOLDS may not rebuild the page the reader is
+   looking at. The section element itself survives, because sectionWire's one
+   listener is bound to it and rebuilding it would take the listener with it. */
+function tplBookRepaint(){
+  const host=document.querySelector('[data-tpl-sec="book"]');
+  if(!host) return;
+  host.innerHTML=tplBookHtml(tplOverviewData());
+}
+
+function tplOverviewHtml(d){
+  /* ---- THE CARD, THE ROWS AND THE PANELS ARE LIFTED (19 Sep 2026) ----
+     Everything this function used to build inline now lives above it at
+     module scope, because the book tab draws the same buckets and two copies
+     of that markup is how two screens come to disagree. The arrangement below
+     is this wall's own and is unchanged: the two rail captions, one grid so
+     every card is one width, and the two panels in a right-hand column. */
+  const HEAD=TPL_OV_HEAD;
   /* ---- TWO SECTIONS, THE RAIL'S OWN ----
      Library first, then Value stream, under the rail's own two captions and
      read through the same keys, so the wall and the rail cannot come to call a
@@ -2347,9 +2422,8 @@ function tplOverviewHtml(d){
   const buckets=Array.isArray(d.buckets)?d.buckets:[];
   const wall=SECTIONS.map(([sec,key])=>{
     const own=buckets.filter(b=>b.sec===sec);
-    return own.length ? bandHtml(key)+own.map(cardHtml).join('') : '';
+    return own.length ? bandHtml(key)+own.map(tplOvCardHtml).join('') : '';
   }).join('');
-  const EMPTY='font-size:var(--t-meta);line-height:1.6;color:var(--color-neutral-600);margin:0';
   return `
   <div class="tpl-ov" style="display:grid;gap:var(--s-4);align-items:start">
     <div>
@@ -2360,23 +2434,18 @@ function tplOverviewHtml(d){
       </div>
       <div class="tpl-ov-cards" id="tpl-ov-cards" style="display:grid;gap:var(--s-3)">${wall}</div>
     </div>
-    <div style="display:flex;flex-direction:column;gap:var(--s-4)">
-      <section id="tpl-ov-attention" style="${CARD};padding:14px">
-        <div style="${HEAD};margin-bottom:var(--s-2)">${i18t('lib_ov_attention')}</div>
-        ${d.attentionShown.length?d.attentionShown.map(attRow).join(''):`<p style="${EMPTY}">${i18t('lib_ov_attention_none')}</p>`}
-        ${d.attentionMore>0?`<p style="${EMPTY};margin-top:var(--s-2)">${i18tn('lib_ov_more',d.attentionMore,{n:d.attentionMore})}</p>`:''}
-      </section>
-      <section id="tpl-ov-mostused" style="${CARD};padding:14px">
-        <div style="${HEAD};margin-bottom:var(--s-2)">${i18t('lib_ov_most_used',{n:d.days})}</div>
-        ${d.mostUsed.length?d.mostUsed.map(barRow).join(''):`<p style="${EMPTY}">${i18t('lib_ov_most_used_none',{n:d.days})}</p>`}
-      </section>
-    </div>
+    ${tplOvPanelsHtml(d)}
   </div>`;
 }
 
 /* THE TAB IS PER SITTING, IN MEMORY — the Settings page's own rule: a stored
    tab lands a reader somewhere unrelated a week later. */
-const TPL_PAGE_TABS=['overview','list'];
+/* THE BOOK JOINS THE ROW (Young ruled it 19 Sep 2026, off "The Template Book"
+   artifact). Three tabs, three questions: the overview answers HOW THE PAPER
+   IS DOING, the book answers WHAT HAVE WE GOT, the list is the list. The
+   landing is unchanged — 18 Sep's ruling stands and a reader still arrives on
+   the list. */
+const TPL_PAGE_TABS=['overview','book','list'];
 let _tplPageTab=null;
 /* ---- THE LANDING IS THE LIBRARY (Young confirmed 18 Sep 2026) ----
    THIS REVERSES 25 AUG 2026, which asked for "Templates overview" to be the
@@ -2506,6 +2575,7 @@ function renderTemplatesPage(){
     </div>
     <div class="st-tabs" role="tablist" style="margin-bottom:14px">
       <button class="st-tab${tab==='overview'?' on':''}" data-tpl-tab="overview" role="tab" aria-selected="${tab==='overview'?'true':'false'}">${i18t('lib_tab_overview')}</button>
+      <button class="st-tab${tab==='book'?' on':''}" data-tpl-tab="book" role="tab" aria-selected="${tab==='book'?'true':'false'}">${i18t('lib_tab_book')}</button>
       <button class="st-tab${tab==='list'?' on':''}" data-tpl-tab="list" role="tab" aria-selected="${tab==='list'?'true':'false'}">${i18t('nav_templates')}</button>
     </div>
 
@@ -2515,6 +2585,11 @@ function renderTemplatesPage(){
            line from coming back if the owner wants it as a third tab. What it
            is NOT is the answer to "how is the paper doing". */}
     <section data-tpl-sec="overview" ${tab==='overview'?'':'hidden'}>${tplHealthHtml(tplHealthData())}</section>
+
+    ${''/* THE BOOK. One reading, drawn twice on this page and never counted
+           twice: `ov` is tplOverviewData's answer, already taken above for
+           the attention list the table's rows print. */}
+    <section data-tpl-sec="book" ${tab==='book'?'':'hidden'}>${tplBookHtml(ov)}</section>
 
     <section data-tpl-sec="list" ${tab==='list'?'':'hidden'}>
     <div class="tpl-cols" style="display:grid;gap:var(--s-4);align-items:start">
@@ -2549,6 +2624,10 @@ function renderTemplatesPage(){
   </div>`;
   tplPagePaintRows();
   tplOvFit();
+  /* THE SECTION GRAMMAR'S ONE LISTENER, bound to the book's own host so a
+     press on a section head repaints THIS page and nothing else. The grammar
+     does not guess at a painter; the caller hands it one. */
+  sectionWire(document.querySelector('[data-tpl-sec="book"]'), tplBookRepaint);
   document.querySelectorAll('[data-tpl-tab]').forEach(b=>b.addEventListener('click',()=>tplPageSetTab(b.getAttribute('data-tpl-tab'))));
   /* Every door on the overview lands on the same one: the table, narrowed to
      the template that was pressed. A card, an attention row and a bar are
@@ -2723,4 +2802,4 @@ function renderPlaybookPage(){
 
 Object.assign(window,{tplOvFit,HATI_SAMPLES,openBlanksEditor,_tplPreviewHtml,_tplSourceLabel,_richSelection,_richReplaceRange,
   templateVersionNo,templateVersions,templateUsage,templateUsageLabel,saveTemplateVersion,
-  openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,tplMakeItOurs,tplBuiltinDraftBody,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplHealthData,tplHealthHtml,TPL_HEALTH_ROWS,tplPageRefilter,tplRowContracts,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,tplRowPile,tplRowWants,TPL_PILES,tplRowMoreMenu,tplPageRowHtml,tplPageFiltered,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});
+  openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,tplMakeItOurs,tplBuiltinDraftBody,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplHealthData,tplHealthHtml,TPL_HEALTH_ROWS,tplPageRefilter,tplRowContracts,tplBookHtml,tplBookRepaint,TPL_BOOK_SECS,tplOvCardHtml,tplOvPanelsHtml,tplOvRateInk,bucketStreamName,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,tplRowPile,tplRowWants,TPL_PILES,tplRowMoreMenu,tplPageRowHtml,tplPageFiltered,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});

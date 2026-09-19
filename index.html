@@ -5382,6 +5382,42 @@
      width and there is no card count to keep true by hand. */
   .tpl-ov{grid-template-columns:minmax(0,1fr) 300px;}
   .tpl-ov-cards{grid-template-columns:repeat(auto-fill,minmax(248px,1fr));}
+
+  /* ════ THE BOOK'S GLANCE (Young ruled it 19 Sep 2026) ══════════════════
+     Three figures, no card and no fill. These are facts about the page the
+     reader is already on, so the cheapest channel that carries them is the
+     page itself — a label over a value, this product's own shape.
+
+     AND THE CAVEAT IS NOT A BAND. It sits under the figure it qualifies,
+     because a strip across the page is an alarm and this is a footnote; the
+     old wall printed it at the foot of everything, where it explained a
+     number the reader had stopped looking at. */
+  .tpl-glance{
+    display:grid; gap:20px 34px; align-items:start;
+    grid-template-columns:repeat(auto-fit,minmax(150px,max-content));
+    padding:2px 0 14px; margin-bottom:var(--s-4);
+    border-bottom:1px solid var(--color-divider);
+  }
+  .tpl-gl-l{
+    font-size:var(--t-micro); font-weight:var(--w-title); letter-spacing:.09em;
+    text-transform:uppercase; color:var(--color-neutral-600); margin:0 0 5px;
+  }
+  .tpl-gl-v{
+    font-size:26px; font-weight:var(--w-title); line-height:1;
+    letter-spacing:-.02em; font-variant-numeric:tabular-nums; margin:0;
+  }
+  .tpl-gl-v small{
+    font-size:var(--t-body); font-weight:var(--w-body); letter-spacing:0;
+    color:var(--color-neutral-600); margin-left:5px;
+  }
+  .tpl-gl-n{
+    font-size:var(--t-label); color:var(--color-neutral-600);
+    line-height:1.5; margin:6px 0 0; max-width:36ch;
+  }
+  /* The book's sections are FLAT — the cards inside them carry their own
+     edges, and a card wall inside a second card is two frames for one thing. */
+  .tpl-book .sec-box.is-flat > .sec-head{ padding-left:0; padding-right:0; }
+  .tpl-book .tpl-ov-panels{ grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); }
   /* THE NAME IS WHAT THE CARD IS SCANNED FOR, so it takes the card's whole
      width and wraps rather than ellipsising after eighteen characters — the
      badge moved down to the meta line to give it that width. Two lines, then

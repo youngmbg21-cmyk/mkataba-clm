@@ -87,7 +87,13 @@ describe('f244 (1) — two tabs, and the table is still whole', () => {
        its own design; landing on it is landing on the one screen in the
        section that cannot do anything. */
     assert.equal(s.tplPageTab(), 'list', 'but the LIBRARY is the one that opens');
-    assert.deepEqual(s.TPL_PAGE_TABS, ['overview', 'list']);
+    /* —— RE-POINTED 19 Sep 2026: a THIRD tab joined the row, "The book", and
+       the claim is unchanged in what it asserts — the overview still leads,
+       the list is still where a reader arrives, and the list is still last.
+       What the row holds between them is f335's to pin. */
+    assert.deepEqual(s.TPL_PAGE_TABS, ['overview', 'book', 'list']);
+    assert.equal(s.TPL_PAGE_TABS[0], 'overview', 'the overview still leads');
+    assert.equal(s.TPL_PAGE_TABS[s.TPL_PAGE_TABS.length - 1], 'list', 'and the table is still last');
   });
 
   /* THE TABLE STAYS IN THE DOM while the overview is up — the Settings page's
@@ -489,7 +495,13 @@ describe('f244 (7) — the two tabs work together', () => {
        the wall's own markup below so the rule is not lost. */
     const s = stage(); s.renderTemplatesPage();
     const html = s.document.getElementById('content').innerHTML;
-    const ov = html.slice(html.indexOf('data-tpl-sec="overview"'), html.indexOf('data-tpl-sec="list"'));
+    /* —— RE-POINTED 19 Sep 2026: the book's section is written between the
+       overview's and the list's, so a slice that ran from one to the other
+       swallowed it and counted ITS bucket doors as the overview's. Cut at the
+       book instead — PIN THE REGION, NOT A BOUNDARY THAT HAPPENS TO HOLD. */
+    const ovEnd = html.indexOf('data-tpl-sec="book"');
+    const ov = html.slice(html.indexOf('data-tpl-sec="overview"'),
+      ovEnd > 0 ? ovEnd : html.indexOf('data-tpl-sec="list"'));
     assert.ok((ov.match(/data-tpl-ov-card=/g) || []).length >= 1,
       'a template row is a door, and it is the name door');
     assert.ok(!/data-tpl-ov-bucket=/.test(ov),

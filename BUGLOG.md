@@ -16417,3 +16417,51 @@ the refusal is spent on their ruling rather than argued. Recorded beside
 tplLibSheetHtml so the next person spending more of it knows what has gone.
 Not paid for out of the grey around the sheet: that grey is the page ground,
 not spare chrome.
+
+## 19 Sep 2026 — THE TEMPLATE BOOK, the third tab
+
+Young approved "The Template Book" artifact — the old card wall in HaTi's own
+design language — and said implement. Built as a THIRD tab rather than a
+replacement: the owner asked for "how the paper is doing" the day before and it
+is still the first tab. Adding beside it is reversible; taking it away is not.
+
+What was built: a glance of three borrowed figures with the caveat under the
+rate it qualifies (never a band); three named sections through js/section.js,
+the product's own grammar, with By value stream resting shut so its head has to
+answer; the card, the rows and the two panels LIFTED out of tplOverviewHtml so
+the wall and the book draw one card and cannot disagree.
+
+Three things in the artifact were deliberately NOT built, each pinned as an
+absence in f335 (5):
+
+- a badge on each library card saying Ours / Theirs / Built in — the section
+  above already says which library, and the card is already named "Company
+  standard"; the badge is that fact a third time twelve pixels away;
+- a drawer on pressing a card — every figure in it is already ON the card and
+  the door is the card's own, so it is a second door onto an act that has one;
+- a meta line under the name — the 29 Aug note says why there is none and it
+  is still true.
+
+Found on the way:
+
+- THE SHUT SECTION'S HEAD NAMED A WORST OVER A SAMPLE OF ONE. It picked the
+  highest rate among the streams with any rate at all, so a stream with one
+  contract checked and that one changed was announced as worst in the book at
+  100%. It now needs TPL_DEV_MIN, the attention list's own floor.
+- THE BROWSER FILE KILLED ITS OWN RUN AT THE PARENT. page.click on a tab that
+  does not exist waits thirty seconds and ends the file, so section 9 reported
+  nothing and neither did section 8 after it. The tab's presence is its own
+  claim now and the rest stands down — a probe that throws proves nothing.
+- test/dom.js loads js/section.js for every stage by construction, so naming
+  it again in a loadViews list declares `_secOpen` twice and the whole stage
+  throws. Noted here because the error names the token, not the cause.
+
+Noticed, not fixed:
+
+- templates-tabs-verify still fails 1b, 1c, 1d, 1f, 7c, 8a, 8b, 8c and its
+  harness — all identical at the parent. 1b/1c/1d/1f pin the overview as the
+  tab a reader LANDS on, which the 18 Sep ruling reversed; 7c pins wall
+  headings against rail captions that were renamed the same day; section 8's
+  harness throws on an undefined read. None of them is this work's.
+- npm run lint: 3 errors, unchanged before and after (js/views/register.js
+  twice, test/chromium/overview-as-drawn-verify.js once).

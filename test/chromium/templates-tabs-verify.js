@@ -117,9 +117,13 @@ const BOX = sel => {
         subs: document.querySelectorAll('#content .st-tabsub').length,
         title: (document.querySelector('#content h1') || {}).textContent };
     });
-    check('1a · two tabs, overview first, both named',
-      tabs.t.length === 2 && tabs.t[0].k === 'overview' && tabs.t[1].k === 'list'
-      && /overview/i.test(tabs.t[0].txt) && tabs.t[1].txt.length > 0,
+    /* —— RE-POINTED 19 Sep 2026: a THIRD tab joined the row, "The book". The
+       claim is unchanged — the overview leads, the table is last, every tab
+       is named — and only the count moved. */
+    check('1a · three tabs, overview first, table last, all named',
+      tabs.t.length === 3 && tabs.t[0].k === 'overview'
+      && tabs.t[tabs.t.length - 1].k === 'list'
+      && /overview/i.test(tabs.t[0].txt) && tabs.t.every(x => x.txt.trim().length > 0),
       tabs.t.map(x => x.k + ':' + x.txt));
     check('1b · the overview is the tab a reader lands on, and it is drawn',
       tabs.t[0].on && tabs.t[0].sel === 'true' && tabs.ov && !tabs.ov.hidden && tabs.ov.h > 200,
@@ -533,6 +537,102 @@ const BOX = sel => {
     check('7e · and every card sits under one of them',
       !!segs && segs.cards === segs.out.reduce((n, g) => n + g.cards, 0),
       segs && `${segs.cards} cards, ${segs.out.reduce((n, g) => n + g.cards, 0)} under headings`);
+
+    /* ================= 9 · THE BOOK, THE THIRD TAB ========================
+       Young ruled it 19 Sep 2026 off "The Template Book" artifact. Every
+       claim here is a PRESS or a GEOMETRY: whether a section really folds,
+       whether a shut one still answers, and whether the overview beside it
+       was left alone. f335 pins the machinery. */
+    /* A PROBE THAT THROWS PROVES NOTHING. Run against a build with no book
+       tab, page.click waits thirty seconds for a locator that will never
+       exist and then ends the whole file — so the section it is here to
+       measure reports nothing, and neither does anything written after it.
+       The tab's presence is its own claim, and the rest stands down. */
+    const hasBook = await page.$('[data-tpl-tab="book"]');
+    check('9 · there is a book tab to press', !!hasBook);
+    if (hasBook) { await page.click('[data-tpl-tab="book"]'); await pause(700); }
+    const bk = !hasBook ? null : await page.evaluate(() => {
+      const sec = document.querySelector('[data-tpl-sec="book"]');
+      if (!sec) return null;
+      const r = sec.getBoundingClientRect();
+      const secs = [...sec.querySelectorAll('.sec-box')].map(x => {
+        const head = x.querySelector('.sec-head');
+        const sum = x.querySelector('.sec-sum');
+        return {
+          title: (x.querySelector('.sec-t') || {}).textContent || '',
+          open: head ? head.getAttribute('aria-expanded') : null,
+          sum: (sum ? sum.textContent : '').trim(),
+          cards: x.querySelectorAll('[data-tpl-ov-bucket]').length,
+          h: Math.round(x.getBoundingClientRect().height),
+        };
+      });
+      const gl = [...sec.querySelectorAll('.tpl-gl')].map(g => ({
+        label: (g.querySelector('.tpl-gl-l') || {}).textContent || '',
+        note: (g.querySelector('.tpl-gl-n') || {}).textContent || '',
+        w: Math.round(g.getBoundingClientRect().width),
+      }));
+      return { h: Math.round(r.height), hidden: sec.hidden, secs, gl,
+        panels: sec.querySelectorAll('.tpl-ov-panels section').length };
+    });
+    check('9a · the book is a real tab and it draws', !!bk && !bk.hidden && bk.h > 300,
+      bk && { h: bk.h, hidden: bk.hidden });
+    check('9b · three named sections, in the artifact’s order',
+      !!bk && bk.secs.length === 3, bk && bk.secs.map(x => x.title));
+    check('9c · the library rests OPEN and carries its cards',
+      !!bk && bk.secs[0].open === 'true' && bk.secs[0].cards >= 4,
+      bk && bk.secs[0]);
+    check('9d · the streams rest SHUT, and the shut head still answers',
+      !!bk && bk.secs[1].open === 'false' && bk.secs[1].cards === 0 && bk.secs[1].sum.length > 6,
+      bk && bk.secs[1]);
+    check('9e · the glance is three figures and the caveat rides the rate alone',
+      !!bk && bk.gl.length === 3 && bk.gl.filter(g => g.note.trim()).length === 1,
+      bk && bk.gl.map(g => g.label.trim() + (g.note.trim() ? ' [note]' : '')));
+    /* NO NEW BANDS: a footnote is bounded to a reading width, a band is not. */
+    check('9f · and the caveat is a footnote, not a strip across the page',
+      !!bk && (bk.gl.find(g => g.note.trim()) || { w: 9999 }).w < 520,
+      bk && (bk.gl.find(g => g.note.trim()) || {}).w);
+    check('9g · both panels are drawn', !!bk && bk.panels === 2, bk && bk.panels);
+
+    /* THE FOLD IS A PRESS, and it must repaint the book rather than the page */
+    const folded = !hasBook ? null : await page.evaluate(async () => {
+      const sec = document.querySelector('[data-tpl-sec="book"]');
+      const node = sec;
+      const h = [...sec.querySelectorAll('[data-sec-toggle]')]
+        .find(x => x.getAttribute('aria-expanded') === 'false');
+      if (!h) return null;
+      const list = document.querySelector('[data-tpl-sec="list"]');
+      h.click();
+      await new Promise(r => setTimeout(r, 320));
+      const again = document.querySelector('[data-tpl-sec="book"]');
+      const now = [...again.querySelectorAll('.sec-box')].map(x => {
+        const head = x.querySelector('.sec-head');
+        return { open: head ? head.getAttribute('aria-expanded') : null,
+          cards: x.querySelectorAll('[data-tpl-ov-bucket]').length };
+      });
+      return { now, sameSection: node === again,
+        sameList: list === document.querySelector('[data-tpl-sec="list"]') };
+    });
+    check('9h · pressing the shut head opens it and its cards arrive',
+      !!folded && folded.now[1].open === 'true' && folded.now[1].cards >= 4,
+      folded && folded.now);
+    check('9i · and the fold repaints the book, not the page',
+      !!folded && folded.sameSection && folded.sameList, folded);
+
+    /* THE OVERVIEW WAS LEFT ALONE. The day-before ruling stands. */
+    await page.click('[data-tpl-tab="overview"]');
+    await pause(500);
+    const ovStill = await page.evaluate(() => {
+      const s = document.querySelector('[data-tpl-sec="overview"]');
+      const bk2 = document.querySelector('[data-tpl-sec="book"]');
+      return { rows: s.querySelectorAll('.tpl-h-row').length,
+        txt: s.textContent.replace(/\s+/g, ' ').trim().slice(0, 60),
+        bookHidden: bk2 ? bk2.hidden : null };
+    });
+    check('9j · the overview is still the health reading, untouched',
+      /comes back changed/.test(ovStill.txt) && ovStill.rows >= 3 && ovStill.bookHidden,
+      ovStill);
+
+    await page.screenshot({ path: path.join(OUT, '05-book.png'), fullPage: true });
 
     /* ===== 8 · CREATING A CATEGORY AND A VALUE STREAM (Young, 17 Sep 2026) =====
        *"it is not clear how you create category and value stream but also how
