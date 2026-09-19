@@ -220,18 +220,33 @@ describe('f331 (5) — every door refuses the same way', () => {
       'the Templates page button');
     assert.match(LIB, /newPaperBlocked\(\)\)\?` disabled title="\$\{esc\(i18t\('np_refused'\)\)/,
       'the Templates table button');
-    assert.match(LIB, /cursor:not-allowed/, 'and the refused tile says so');
-    assert.match(LIB, /cursor:pointer;'\}display:flex/, 'while a live tile still looks pressable');
+    /* RE-POINTED 18 Sep 2026: the two-tile "What kind of template?" dialog is
+       gone and the source sheet stands where it stood. THE CLAIM IS THE SAME —
+       a refused door is drawn dead, with the reason on it, and a live one
+       still looks pressable — so it is asked of the sheet that exists. */
+    assert.match(LIB, /not-allowed/, 'and the refused source says so');
+    assert.match(LIB, /cursor:\$\{off\?'not-allowed':'pointer'\}/, 'while a live source still looks pressable');
+    assert.match(LIB, /\$\{off\?` disabled title="\$\{_tplEsc\(why\)\}"`:''\}/,
+      'and it carries the reason rather than going quiet');
   });
 
-  test('the counterparty tile is NOT refused', () => {
-    /* A WALL. The rule names writing our own paper; saving theirs is
-       importing. If this ever starts refusing, the owner's own note on the
-       row — "uploads received paper" — has stopped being true. */
-    const at = LIB.indexOf("opt('tn-cp'");
-    assert.ok(at > 0, 'the tile is drawn');
-    const call = LIB.slice(at, LIB.indexOf('\n', at));
-    assert.ok(!/_npBlocked/.test(call), 'and it carries no refusal');
+  test('importing their paper is NOT refused', () => {
+    /* A WALL, RE-POINTED IN PLACE. The rule names writing OUR OWN paper;
+       taking theirs is importing. It used to be asked of the two-tile
+       dialog's counterparty tile; the sheet that replaced it answers the same
+       question with a NAMED LIST, which is stronger — the gate is one array
+       and anything not in it is open by construction.
+
+       If `paste` or `signed` ever appears on that list, the owner's own note
+       on the permission row — that uploading received paper stays open — has
+       stopped being true. */
+    const m = LIB.match(/const NEW_PAPER=\[([^\]]*)\]/);
+    assert.ok(m, 'the gate is one named list');
+    const gated = m[1].split(',').map(x => x.trim().replace(/'/g, ''));
+    assert.deepEqual(gated.slice().sort(), ['blank', 'doc', 'hati'],
+      'only the three doors that mint a company standard');
+    assert.ok(!gated.includes('paste'), 'pasting their wording is importing, not writing');
+    assert.ok(!gated.includes('signed'), 'save-as-template carries templateManager, not paperMaker');
   });
 });
 

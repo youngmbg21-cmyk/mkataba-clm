@@ -1680,12 +1680,21 @@ function tplNewMenu(){
   const lib=(typeof tplLibAll==='function')?tplLibAll():{canManage:false};
   const companyOk=API_MODE()&&lib.canManage;
   const npBlocked=(typeof newPaperBlocked==='function')&&newPaperBlocked();
+  /* ---- ONLY THE DOORS THAT WRITE OUR OWN PAPER ARE GATED ----
+     The first draft of this refused a source whenever `!companyOk`, which
+     OVER-REFUSED: pasting or converting the other side's wording is importing,
+     not writing, and openCreateTemplateModal takes it whatever the new-paper
+     grant says. The rule names writing our own paper, so it is asked of the
+     three doors that mint a company standard — blank, one of HaTi's, and a
+     converted document — and of nothing else. `signed` is not here either:
+     save-as-template carries templateManager, not paperMaker.
+     Found by f331 (5), which exists to hold exactly this line. */
+  const NEW_PAPER=['blank','hati','doc'];
   const row=(sc)=>{
-    /* A source is drawn DEAD where its door cannot work from here, with the
-       reason on it — never hidden, or the reader wonders what they are not
-       being shown. */
-    const off=(sc.k==='blank'||sc.k==='hati'||sc.k==='doc')&&(!companyOk||npBlocked);
-    const why=off?(npBlocked?i18t('np_refused_ask'):i18t('tl_needs_server')):'';
+    /* A source is drawn DEAD where its door cannot work, with the reason on
+       it — never hidden, or the reader wonders what they are not being shown. */
+    const off=NEW_PAPER.includes(sc.k)&&npBlocked;
+    const why=off?i18t('np_refused_ask'):'';
     return `<button data-tpl-src="${sc.k}" class="tn-tile"${off?` disabled title="${_tplEsc(why)}"`:''}
       style="display:flex;gap:12px;width:100%;text-align:left;padding:13px 14px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;color:var(--color-text);cursor:${off?'not-allowed':'pointer'};opacity:${off?'.55':'1'};margin-bottom:8px">
       <span style="flex:none;width:30px;height:30px;border-radius:var(--radius);display:grid;place-items:center;background:var(--st-steel-bg);color:var(--st-steel-fg)">${icon(sc.ic,'w-4 h-4')}</span>
@@ -2446,4 +2455,4 @@ function renderPlaybookPage(){
 
 Object.assign(window,{tplOvFit,HATI_SAMPLES,openBlanksEditor,_tplPreviewHtml,_tplSourceLabel,_richSelection,_richReplaceRange,
   templateVersionNo,templateVersions,templateUsage,templateUsageLabel,saveTemplateVersion,
-  openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,tplMakeItOurs,tplBuiltinDraftBody,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplRowContracts,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,tplRowPile,tplRowWants,TPL_PILES,tplRowMoreMenu,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});
+  openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,tplMakeItOurs,tplBuiltinDraftBody,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplRowContracts,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,tplRowPile,tplRowWants,TPL_PILES,tplRowMoreMenu,tplPageRowHtml,tplPageFiltered,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});

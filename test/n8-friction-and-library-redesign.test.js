@@ -125,17 +125,39 @@ describe('N8 (3) — the templates library page', () => {
   /* The rows render into #tpl-rows (repainted on search without losing the
      shell); the stand-in document keeps that host as its own node, so the
      rows are asserted there — same convention as f103's section host. */
-  test('company paper leads the table; a draft says Draft and offers Continue editing', () => {
+  test('company paper leads the table, and the pile a reader arrives on is what they can use', () => {
     const s = libraryStage(); s.renderTemplatesPage();
     const html = s.document.getElementById('tpl-rows').innerHTML;
     const first = html.indexOf('Wanjiru Standard MSA');
     assert.ok(first > -1 && first < html.indexOf('Naivas Supply Terms'), 'company before counterparty');
     assert.ok(html.indexOf('Naivas Supply Terms') < html.indexOf('Professional Services'), 'counterparty before built-ins');
     assert.match(html, />v4</, 'the published version is printed');
-    assert.match(html, />Draft</);
-    assert.match(html, /Continue editing/);
-    assert.match(html, /data-tpllib-use="tpl_1"/, 'Use on the published one');
+    assert.match(html, /data-tpllib-use="tpl_1"/, 'Draft a contract on the published one');
     assert.ok(!html.includes('data-tpllib-use="tpl_2"'), 'never on a draft');
+    /* ---- RE-POINTED 18 Sep 2026 ---- The rail is piles now and the one a
+       reader arrives on is Ready to use, so an unfinished draft is not on the
+       first screen. It is not hidden: the rail names it, counts it in amber
+       and it is one press away. The claim below is the other half of the same
+       ruling and is asserted where it is now true. */
+    assert.ok(!html.includes('Continue editing'), 'a draft is not in the Ready to use pile');
+  });
+
+  test('and on its own pile a draft says Draft and offers Continue editing', () => {
+    const s = libraryStage(); s.renderTemplatesPage();
+    /* The rail draws the pile as a real door, with its own count. The stub
+       document does not answer attribute selectors, so the door is asserted in
+       the markup and the ROW is asserted off the builder it presses — which is
+       the reading the pile uses, not a second copy of it. */
+    const shell = s.document.getElementById('content').innerHTML;
+    assert.match(shell, /data-tpl-group="writing"/, 'the pile is a real door in the rail');
+    assert.match(shell, /Being written/, 'and it says what it holds');
+    const draft = s.tplPageRows().find(r => r.id === 'tpl_2');
+    assert.ok(draft && draft.draft, 'tpl_2 is the draft in this stage');
+    assert.equal(s.tplRowPile(draft), 'writing', 'and it lands in that pile');
+    const html = s.tplPageRowHtml(draft);
+    assert.match(html, />Draft</, 'the row says what it is');
+    assert.match(html, /Continue editing/, 'and offers the one thing there is to do');
+    assert.match(html, /data-tpllib-edit="tpl_2"/, 'straight into the builder, not the filing card');
   });
 
   test('every old verb is still reachable — the rare ones one ⋯ away', () => {
@@ -143,12 +165,23 @@ describe('N8 (3) — the templates library page', () => {
     const rows = s.document.getElementById('tpl-rows').innerHTML;
     const shell = s.document.getElementById('content').innerHTML;
     assert.match(rows, /data-tpl-use="ct1"/); assert.match(rows, /data-tpl-prev="ct1"/);
-    assert.match(rows, /data-tpl-more="ct1"/, 'edit/blanks/bulk/versions/delete live behind ⋯');
-    assert.match(rows, /data-tpl-builtin="ND"/); assert.match(rows, /data-tpl-bulk-b="ND"/);
-    /* RE-POINTED 18 Sep 2026: the owner renamed the second button to
-       "+ Build new template". The claim is the same — both doors are on the
-       page — and the words are the owner's to set. */
-    assert.match(shell, /Convert a document/); assert.match(shell, /Build new template/);
+    /* ---- RE-POINTED 18 Sep 2026: the ⋯ is now ONE menu for every kind ----
+       It used to exist for the other side's paper alone and carry its id bare;
+       it is keyed `kind:id` now so one builder can serve all four kinds, and
+       the claim — the rare verbs live one ⋯ away — is unchanged. */
+    assert.match(rows, /data-tpl-dots="cp:ct1"/, 'edit/blanks/bulk/versions/delete live behind ⋯');
+    assert.match(rows, /data-tpl-builtin="ND"/);
+    /* Bulk moved INTO that menu rather than taking a column on every built-in
+       row, so the row no longer draws its own door to it. */
+    assert.ok(!rows.includes('data-tpl-bulk-b='), 'and bulk is in the menu, not on the row');
+    assert.match(rows, /data-tpl-ours="ND"/, 'a built-in can finally be made ours');
+    /* ---- AND THE TWO TOP BUTTONS ARE ONE ----
+       "Convert a document" was a sibling of "+ Build new template" and is not
+       a sibling act: it is one of five answers to "where do the words come
+       from", which the one door asks. The BUTTON's own words are still the
+       owner's and still drawn. */
+    assert.match(shell, /Build new template/);
+    assert.ok(!shell.includes('id="tpl-convert"'), 'one door, not two');
   });
 });
 

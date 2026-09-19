@@ -102,7 +102,18 @@ describe('f312 (2) — no dialog states a second width on its inner box', () => 
 /* ---- the two dialogs the owner photographed, rendered ---- */
 const capture = () => { const c = { html: null, opts: null }; c.open = (html, opts) => { c.html = html; c.opts = opts || {}; }; return c; };
 
-describe('f312 (3) — “What kind of template?” is two equals, side by side', () => {
+describe('f312 (3) — the source sheet fills its frame, and asks one question', () => {
+  /* ---- RE-POINTED 18 Sep 2026, and the dialog it pinned is GONE ----
+     This asked of "What kind of template?" — two tiles, our paper or theirs —
+     which is a question nobody can answer before they have seen a word of the
+     document. One button now asks the only thing a person knows at that
+     moment: WHERE THE WORDS COME FROM, with five answers, and the kind is
+     settled by the answer.
+
+     WHAT THIS TEST IS FOR IS UNCHANGED and is still f312's own rule: a dialog
+     states its width ONCE, on the frame, and the box inside states none. That
+     is the fault f312 exists for — a 380px box in a 512px frame with the blank
+     down one side — and it holds for whatever dialog lives here. */
   const stage = () => {
     const cap = capture();
     const w = loadViews(['js/views/library.js'], {
@@ -113,24 +124,27 @@ describe('f312 (3) — “What kind of template?” is two equals, side by side'
     w.tplNewMenu();
     return cap;
   };
-  test('two tiles, one grid, no width on the box', () => {
+  test('five sources, one shape each, and no width on the box', () => {
     const cap = stage();
     assert.ok(cap.html, 'the dialog opened');
-    assert.equal((cap.html.match(/class="tn-tile"/g) || []).length, 2, 'two tiles');
-    assert.match(cap.html, /grid-template-columns:repeat\(auto-fit,minmax\(200px,1fr\)\)/, 'side by side, stacking narrow');
+    assert.equal((cap.html.match(/data-tpl-src="/g) || []).length, 5, 'five answers to one question');
     assert.ok(!/max-width/.test(cap.html), 'the frame states the width; the box states none');
     assert.match(cap.html, /^<div style="padding:24px">/, '24 on every side');
   });
-  test('each tile carries a mark, its name and its one line; Cancel is the foot’s only control', () => {
+  test('each source carries a mark, its name and its one line; Cancel is the foot’s only control', () => {
     const cap = stage();
-    assert.equal((cap.html.match(/<use href="#i-/g) || []).length, 2, 'a symbol per tile, from the shell’s own sprite');
-    assert.match(cap.html, /Company standard/); assert.match(cap.html, /Counterparty paper/);
+    /* A MARK PER SOURCE, pinned as the mark and not as the mechanism: the old
+       tiles hand-wrote `<use href="#i-…">` at the sprite, these call the
+       product's own icon() helper, and the stage stubs that to a bare <svg>.
+       Counting the svg holds for either. */
+    assert.equal((cap.html.match(/<svg/g) || []).length, 5, 'a mark per source');
+    assert.match(cap.html, /A document I have/); assert.match(cap.html, /blank page/);
     assert.equal((cap.html.match(/class="ui-btn"/g) || []).length, 1, 'Cancel alone in the foot');
     assert.ok(!/ui-btn-primary/.test(cap.html), 'a question has no filled verb');
   });
   test('the dialog says its name to a screen reader', () => {
     const cap = stage();
-    assert.equal(cap.opts.label, 'What kind of template?');
+    assert.equal(cap.opts.label, 'Where do the words come from?');
   });
 });
 
