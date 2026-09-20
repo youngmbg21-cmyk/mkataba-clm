@@ -2050,6 +2050,10 @@
      so "bigger" is spent on the mark rather than on the chrome. */
   .room-checks{ display:flex; align-items:center; gap:6px; flex:none; }
   .room-acts-lead > .room-checks{ order:4; }
+  /* THE CHAT DOOR IS THE FIRST THING IN THAT GROUP, so "next to the More
+     button" is true by construction: .room-checks is order 4, More is 3, and
+     roomChecksHtml writes the chat door first inside it. Nothing needed a new
+     order number, and the focus button stays last at 5. */
   /* AND FOCUS MODE LAST, on both heads (19 Sep 2026). One rule, two pages: on
      the workbench it follows the three checks at 4; on the contract head,
      where the checks are not drawn, 5 simply follows the default 0 and it
@@ -2066,6 +2070,26 @@
   .room-check:disabled{ opacity:.4; cursor:default; }
   .room-check:disabled:hover{ background:transparent; }
   .room-check:focus-visible{ outline:2px solid var(--color-accent-600); outline-offset:-2px; }
+  /* ---- THE COUNT ON THE CORNER (Young ruled 20 Sep 2026) ----
+     ONE treatment for all three buttons, because they are one group and drawn
+     by one builder — the chat door wears .room-check for exactly this reason.
+     The square is 28px and the button is `position:relative` already.
+     AMBER IS SOMETHING OPEN, RUBY IS SOMETHING LATE OR HIGH, which is the
+     tone pair the rest of the product already uses; the ring is the button's
+     own ground so the mark reads as sitting ON the button rather than beside
+     it. Never drawn at zero — roomCheckBadge answers '' and the chat dot
+     carries `hidden`, which is the bell's rule. */
+  .room-check{ position:relative; }
+  .room-badge{
+    position:absolute; top:-5px; right:-5px; min-width:15px; height:15px;
+    padding:0 3px; border-radius:9999px; display:grid; place-items:center;
+    font-size:10px; font-weight:700; line-height:1; font-variant-numeric:tabular-nums;
+    background:var(--st-amber-bg); color:var(--st-amber-fg);
+    border:1.5px solid var(--color-surface); pointer-events:none;
+  }
+  .room-badge.is-bad{ background:var(--st-ruby-bg); color:var(--st-ruby-fg); }
+  .room-badge[hidden]{ display:none; }
+  .room-check:disabled .room-badge{ opacity:.45; }
   /* Folded, the band has no content, so it keeps ONE rule rather than two —
      a 1px-tall box with a line top and bottom reads as a mistake. */
   .room-facts.is-folded{ padding-top:0; padding-bottom:0; margin-top:6px;
@@ -4904,6 +4928,29 @@
     padding:8px 10px;min-width:0;background:var(--color-surface);}
   .kt-tri-th{display:flex;align-items:center;gap:6px;font-size:var(--t-label);
     font-weight:var(--w-title);}
+  /* ---- A TILE THAT OPENS SOMETHING (Young ruled 20 Sep 2026) ----
+     A real <button>, so it has to be told to look like the <div> beside it:
+     a button carries the browser's own font, alignment, padding and border,
+     and a tile that quietly changed typeface when it gained a door would be
+     two tiles pretending to be one row. Everything here is a RESTATEMENT of
+     the base rule's own values, never a second opinion about them — the base
+     rule still sets the border, radius, padding and ground.
+     THE WHOLE TILE IS THE TARGET and the arrow is only the sign. The hover
+     and the focus ring are the ones .room-check already uses, so a door in
+     this strip and a door on the acts row answer a pointer the same way. */
+  .kt-tri-tile.is-door{
+    font:inherit; color:inherit; text-align:left; width:100%; display:block;
+    cursor:pointer; border-color:var(--color-accent-600);
+  }
+  .kt-tri-tile.is-door:hover{ background:var(--nav-well); }
+  .kt-tri-tile.is-door:focus-visible{
+    outline:2px solid var(--color-accent-600); outline-offset:-2px;
+  }
+  /* The heading's words take the room and the arrow pins right, so the mark
+     sits at the tile's wall on every tile rather than wherever the words end.
+     `min-width:0` is what lets a long head elide instead of pushing it off. */
+  .kt-tri-hw{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .kt-tri-go{ margin-left:auto; color:var(--accent-ink); font-weight:var(--w-strong); }
   /* ---- TWO LINES, RESERVED, ON EVERY TILE (Young ruled 17 Sep 2026) ----
      The strip was as tall as its tallest tile, so one obligations tile of ten
      lines made four tall empty ones and the card was a different height on
@@ -4931,6 +4978,14 @@
   .kt-tri-chip.is-ok{background:var(--st-green-bg);color:var(--st-green-fg);}
   .kt-tri-chip.is-warn{background:var(--st-amber-bg);color:var(--st-amber-fg);}
   .kt-tri-chip.is-no{background:var(--st-ruby-bg);color:var(--st-ruby-fg);}
+  /* ---- NOTHING TO DO IS NOT AN OUTCOME (Young reported it 20 Sep 2026) ----
+     The fill reading has a third answer its neighbours do not have: it looked,
+     and there was nothing to look at. Green would be a claim ("filled them in"
+     — the sentence being retired) and ruby an accusation. STEEL is the tone
+     this product already uses for "nothing is wrong and nothing is owed", the
+     same one the pre-signature check borrows for a reading waiting to be
+     ticked. */
+  .kt-tri-chip.is-none{background:var(--st-steel-bg);color:var(--st-steel-fg);}
   /* STILL READING: neutral, because nothing has been found and nothing has
      failed — a tone here would be the strip claiming an outcome it does not
      have. The tile's own words carry it ("Writing the brief…").
@@ -5655,8 +5710,30 @@
      the screenshot carries, and wants confirming on the reporter's own iPad.
      And the native picker is untouched: appearance only changes how the box
      is drawn, so a tap still opens the wheel. */
-  .field-grid input[type="date"]{ -webkit-appearance:none; appearance:none; }
-  .field-grid input[type="date"]::-webkit-date-and-time-value{ text-align:left; }
+  /* ---- A DATE BOX IS AN ORDINARY BOX (Young reported it 20 Sep 2026, twice) ----
+     MEASURED off the second screenshot: every other box on the form ended at
+     the same place and End date ran 46px past it, far enough to slide 18px
+     under the Value stream box beside it, with its text CENTRED while every
+     other box read from the left.
+     Safari draws its own date control and sizes it for itself. The four
+     declarations below are what stop it: `appearance:none` makes it an
+     ordinary box, the BOX METRICS are restated rather than inherited from a
+     shorthand the control may ignore, the value's own pseudo-element is told
+     where its text sits, and the picker glyph is pinned to the right wall like
+     a select's chevron rather than being left to push the text about.
+     CHROMIUM NEEDS NONE OF THEM AND IS UNCHANGED BY ALL OF THEM, which is why
+     this could not be reproduced here and wants one look on the reporter's own
+     iPad. Reasoned from the two numbers the screenshot carries, and said out
+     loud rather than called proved. */
+  .field-grid input[type="date"]{
+    -webkit-appearance:none; appearance:none;
+    box-sizing:border-box; width:100%; max-width:100%; min-width:0;
+  }
+  .field-grid input[type="date"]::-webkit-date-and-time-value{
+    text-align:left; margin:0; min-height:1em;
+  }
+  .field-grid input[type="date"]::-webkit-calendar-picker-indicator{ margin-left:auto; }
+  .field-grid input[type="date"]::-webkit-inner-spin-button{ display:none; }
 
   /* Settings & Rules — members beside the settings stack (was 1.5fr 1fr) */
   .tm-cols{grid-template-columns:1.5fr 1fr;}
@@ -6998,15 +7075,17 @@
          IT IS DEAD WHERE THERE IS NO CONTRACT TO READ, with the reason on its
          hover — the product's own rule, grey where it can know before the
          press, never a live control that does nothing. paintChatDoor answers
-         for it on every view change. -->
-    <button id="hdr-chat" class="hdr-icon-btn" title="Chat — every note on this contract" data-i18n-title="ng_chat_title">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-chat"/></svg>
-      <!-- Somebody named you in a note on this contract and you have not read
-           it. Starts hidden and counts nothing: an always-on mark is one people
-           learn to ignore, which is exactly what happened to the bell's own
-           hard-coded dot. -->
-      <span id="hdr-chat-dot" hidden></span>
-    </button>
+         for it on every view change.
+
+         ---- AND ON 20 SEP 2026 IT LEFT THIS BAR ----
+         Young: "move the Chat Symbol from the top bar and one to be next to
+         the more button." It is drawn by roomChatDoorHtml inside the
+         contract's own acts row now, keeping its id, its dot's id, its title
+         key and paintChatDoor. NOT COPIED — moved: two doors onto one act is
+         the drift this product keeps removing, and the whole reason the button
+         reads better down there is that roomHeadHtml is drawn by exactly the
+         two pages that show ONE contract, where the shell bar sat live on
+         every page pointing at whatever was opened last. -->
 
     <!-- THE BELL OPENS ALERTS: the things actually waiting on this person. The
          count is real and `hidden` at zero — nothing marks an alert as merely

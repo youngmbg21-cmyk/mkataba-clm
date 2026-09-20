@@ -9459,7 +9459,31 @@ function renderRedline(){
      the row read "✦ ✦ Review vs Playbook" in the owner's screenshot. Retired
      by not being called; f310 (2) is the sweep that fails on a call coming
      back. */
-  const menuRow = ''
+  /* ---- AND ON 20 SEP 2026 IT CAME BACK (Young: "Delete the Playbook Review
+     Symbol button") ---- The note above ends "Pointing the shield at this
+     window instead of the plain run would give it back without a second door;
+     the owner has been told and has not asked for it." He has now asked for
+     the opposite half — the SHIELD goes — which leaves the page no door onto
+     the reading at all unless this row returns. So it returns, and it is the
+     RICHER of the two doors: `rlOpenPlaybookReview` runs the pass and then
+     lets you tick WHICH proposals to file, which is exactly what that note
+     recorded as lost. What went is the duplication, not the reading.
+
+     ITS HANDLER NEVER LEFT (`[data-rl-pbreview]`, wired in this file since the
+     row was built) and neither did rlOpenPlaybookReview, so this is markup
+     coming back to a door that is still standing.
+
+     THE GLYPH IS IN THE MARKUP, NOT IN THE WORD. `ng_review_vs_playbook`
+     carried its own &#10022; and this row drew one too, which is why the owner's
+     19 Sep screenshot read "✦ ✦ Review vs Playbook". The key is a plain
+     sentence in both books now and the glyph is written here, exactly as the
+     three rows below it write theirs — one row shape, one place to change it.
+
+     THE SAME GATE AND THE SAME DEAD-IN-PREVIEW STATE as its neighbours. */
+  const menuRow = (mayMenu
+    ? `<button type="button" data-rl-pbreview${preview ? ' disabled aria-disabled="true" data-rl-dead="1"' : ''}
+        title="${_nea(preview ? i18t('ng_preview_dead') : i18t('ng_review_vs_playbook_title'))}"
+      ><span aria-hidden="true">&#10022;</span>${i18t('ng_review_vs_playbook')}</button>` : '')
   /* ---- AND THE MEMO'S ROW, BESIDE IT (owner-asked 9 Sep 2026) ----
      menuRow is interpolated raw by roomHeadHtml, so a page that owns two rows
      passes two buttons. Same place for the same reason the playbook pass is

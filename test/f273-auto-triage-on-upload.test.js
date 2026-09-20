@@ -557,8 +557,16 @@ describe('F273 — auto-triage on upload', () => {
         'the press is bound where the markup was just written');
     });
     test('acknowledging is an ACT, and it is Home\'s own stamp', () => {
-      const b = CONTRACT.slice(CONTRACT.indexOf('function paintKtTriage'),
-        CONTRACT.indexOf('function paintKtTriage') + 900);
+      /* ---- PIN THE REGION, NOT A BYTE COUNT ---- (re-pointed 20 Sep 2026)
+         This sliced 900 characters off the front of paintKtTriage, and the
+         claim went red the moment that function grew — the two arrow doors
+         Young asked for pushed `triageAck` past the window while the thing
+         being asserted was still perfectly true. The rulebook names this
+         lesson twice already (f213's own slice, f277's painter claim); it is
+         paid a third time here. The function's OWN boundary is the region. */
+      const at = CONTRACT.indexOf('function paintKtTriage');
+      const b = CONTRACT.slice(at, CONTRACT.indexOf('\nfunction ', at + 10));
+      assert.ok(b.length > 100 && b.length < 6000, 'the region is the function, and it is found');
       assert.match(b, /triageAck\(c\)/,
         'one fact, one state — dismissing it in either place dismisses it in both');
     });

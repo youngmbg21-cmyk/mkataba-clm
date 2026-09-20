@@ -319,10 +319,21 @@ describe('f266 (6) — somebody named you, and the door says so', () => {
   test('reading Chat clears it, and the mark is hidden at zero', () => {
     assert.match(NEG, /negoMarkChatSeen\(c, opts\);/, 'after the paint, never before');
     assert.match(APP, /dot\.hidden=!n;/);
-    assert.match(HTML, /id="hdr-chat-dot" hidden/, 'it starts hidden, not lit');
-    assert.match(HTML, /#top-header #hdr-chat-dot\{[^}]*--st-amber-dot/,
+    /* ---- RE-POINTED 20 SEP 2026: THE DOOR MOVED, THE RULES DID NOT ----
+       The chat door left the shell bar for the contract's own acts row, so the
+       dot is written by roomChatDoorHtml and dressed by `.room-badge` — the
+       ONE badge treatment the two checks beside it also wear, which is why the
+       colour claim is asked of that rule now. Both halves are the same two
+       claims: it starts hidden, and its colour is the product's own amber. */
+    const CONTRACT = read('js/views/contract.js');
+    assert.match(CONTRACT, /id="hdr-chat-dot" class="room-badge" hidden/,
+      'it starts hidden, not lit');
+    const badge = (HTML.match(/\n\s*\.room-badge\{[^}]*\}/) || [''])[0];
+    assert.match(badge, /--st-amber-bg/,
       'amber is what this product uses for work waiting on you — a second '
       + 'colour here would be a second vocabulary for one fact');
+    assert.match(HTML, /\.room-badge\[hidden\]\{\s*display:none/,
+      'and hidden really hides it, whatever a display rule above says');
   });
 });
 

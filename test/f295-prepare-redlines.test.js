@@ -64,8 +64,21 @@ const draftsOf = (win, c) => (c.changes || []).filter(x => x.status === 'pending
 
 describe('f295 — the one door and its gate', () => {
   test('the row is in the More menu beside the playbook pass and the memo, through opts.menuRow, on the same gate', () => {
+    /* ---- PIN THE REGION, NOT A BYTE COUNT (re-pointed 20 Sep 2026) ----
+       This sliced 4,800 characters off `const mayMenu` and went red the moment
+       the menu grew — the playbook row coming back pushed rlPrepareRowHtml
+       past the window while every claim below was still true. The lesson this
+       rulebook names three times; the block's own end is the region.
+
+       ---- AND IT IS READ AS CODE ----
+       The neighbours claim below matched `data-rl-pbreview` against the raw
+       source, so between 19 and 20 September — while that row was RETIRED —
+       it went on passing against the NOTE that explained the retirement.
+       Comments are prose; a claim about what is built reads the code. */
     const i = VIEW.indexOf("const mayMenu = !_rvPosture"); assert.ok(i > 0);
-    const row = VIEW.slice(i, i + 4800);
+    const end = VIEW.indexOf('host.innerHTML', i);
+    assert.ok(end > i && end - i < 14000, 'the menuRow block has a real end');
+    const row = VIEW.slice(i, end).replace(/\/\*[\s\S]*?\*\//g, ' ');
     assert.ok(/rlPrepareRowHtml\(c, preview\)/.test(row), 'the row exists, built beside its neighbours');
     assert.ok(/mayMenu && !\(window\.negoExecuted && negoExecuted\(c\)\) \? rlPrepareRowHtml\(c, preview\)/.test(row), 'same gate as its neighbours, and NOT DRAWN on an executed contract');
     assert.ok(/data-rl-memo/.test(row) && /data-rl-pbreview/.test(row), 'beside the memo and the playbook pass');

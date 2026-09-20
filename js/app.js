@@ -2788,10 +2788,24 @@ function wireShell(){
   document.getElementById('hdr-notify')?.addEventListener('click',()=>openPanel('alerts'));
   /* CHAT IS THE CONTRACT'S CONVERSATION, so it opens the notes face with no
      change named — openNotesPanel is the one door onto that face and this is
-     the press arriving there, never a second way of putting the panel up. */
-  document.getElementById('hdr-chat')?.addEventListener('click',()=>{
-    const id=chatContractId(); if(id) openNotesPanel(id);
-  });
+     the press arriving there, never a second way of putting the panel up.
+
+     ---- DELEGATED SINCE 20 SEP 2026, because the button MOVED ----
+     The door left the shell bar for the contract's own acts row (roomChecksHtml
+     → roomChatDoorHtml, Young's ruling). That head is REBUILT on every render,
+     so a listener bound once to the element found at boot would be attached to
+     a node thrown away by the first repaint — live-looking and dead, which is
+     the fault f295 wrote down after the same thing happened to Prepare
+     redlines. One listener on the document, resolving the button at press
+     time; `_hdrChatWired` keeps it to one however often wireShell runs. */
+  if(!document._hdrChatWired){
+    document._hdrChatWired=true;
+    document.addEventListener('click',e=>{
+      const b=e.target&&e.target.closest&&e.target.closest('#hdr-chat');
+      if(!b||b.disabled) return;
+      const id=chatContractId(); if(id) openNotesPanel(id);
+    },false);
+  }
   try{ paintChatDoor(); }catch(_){}
   /* A layer needs a way out that is not the button that opened it — the reader
      who pressed a header icon should not have to find that icon again. Scrim,

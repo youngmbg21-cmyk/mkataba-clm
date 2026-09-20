@@ -112,7 +112,20 @@ const TRIAGE_HEADS = {
   brief:    { ok: 'tri_t_brief',  no: 'tri_t_brief_no',  ing: 'tri_t_brief_ing' },
   playbook: { ok: 'tri_t_std',    no: 'tri_t_std_no',    ing: 'tri_t_std_ing' },
   oblig:    { ok: 'tri_t_oblig',  no: 'tri_t_oblig_no',  ing: 'tri_t_oblig_ing' },
-  fill:     { ok: 'tri_t_fill',   no: 'tri_t_fill_no',   ing: 'tri_t_fill_ing' },
+  /* `none` IS THE FOURTH HEAD AND ONLY THE FILL TILE HAS ONE (Young reported
+     it 20 Sep 2026). Every other reading either ran or did not; this one has a
+     third outcome — it looked and there was nothing to look at — and reporting
+     that as `ok` is how the tile came to read "Open fields filled in" over a
+     contract with placeholders still open. A head per outcome, so a caller
+     cannot draw a tick over an absence again. */
+  fill:     { ok: 'tri_t_fill',   no: 'tri_t_fill_no',   ing: 'tri_t_fill_ing',
+              /* TWO HEADS FOR THE TWO KINDS OF NOTHING, because one of them is
+                 not nothing: a company-standard contract with fields still
+                 open has them on its own right-hand panel, and a head reading
+                 "No open fields to fill" over a body saying "fills in from its
+                 own panel" is a tile contradicting itself twelve pixels apart.
+                 `none` is the honest emptiness; `form` is the pointer. */
+              none: 'tri_t_fill_none', form: 'tri_t_fill_panel' },
   filed:    { ok: 'tri_t_filed',  no: 'tri_t_filed',     ing: 'tri_t_filed' },
 };
 /* IS IT STILL READING? `_triaging` is set for the life of the run and deleted
@@ -139,10 +152,14 @@ function triageTiles(c){
      `working` before they look at `ok`, and the detail and the count are
      suppressed while it is true. So a re-run over a contract that already
      carries a brief reads as working, not as done. */
-  const add = (key, detail, count, live) => {
+  const add = (key, detail, count, live, none) => {
     const st = s[key];
     const working = key !== 'filed' && !st && triageBusy(c);
     const ok = key === 'filed' ? true : (live ? !!live.ok : !!(st && st.ok));
+    /* NOTHING TO DO IS NOT THE SAME AS DONE. Only ever true where the step
+       really ran and really filled nothing, so a failure still reads as a
+       failure and a tile mid-flight still reads as working. */
+    const nothing = !working && ok && !!none;
     /* THE CAP RIDES THE READING IT HAPPENED TO, so a tile reading a live
        store has to say whether the cap belongs to what it is looking at —
        otherwise a brief somebody wrote later wears the old run's warning,
@@ -150,9 +167,17 @@ function triageTiles(c){
     const cut = ok && (live ? live.cut : (st || {}).cut)
       ? ((typeof i18t === 'function') ? i18t('tri_cut') : '') : '';
     const d = working ? '' : [detail || '', cut].filter(Boolean).join(' — ');
-    out.push({ key, ok, working,
-      headKey: TRIAGE_HEADS[key][working ? 'ing' : (ok ? 'ok' : 'no')],
-      detail: d, count: (working || count == null) ? null : count });
+    const heads = TRIAGE_HEADS[key];
+    out.push({ key, ok, working, none: nothing ? none : null,
+      /* A STEEL TILE, NOT A GREEN ONE AND NOT A RUBY ONE. Nothing is wrong and
+         nothing was achieved; `ok:false` here would read as an accusation and
+         the tick read as a claim. The strip's own tone table branches on this. */
+      headKey: (nothing && (heads[none] || heads.none)) ? (heads[none] || heads.none)
+        : heads[working ? 'ing' : (ok ? 'ok' : 'no')],
+      detail: d,
+      /* NO COUNT ON A TILE THAT FILLED NOTHING: zero is drawn as a tick by the
+         strip's own mark rule, which is the sentence being retired. */
+      count: (working || nothing || count == null) ? null : count });
   };
 
   /* ---- THE TILE ASKS THE BRIEF, NOT A NOTE ABOUT IT (owner-reported
@@ -233,13 +258,27 @@ function triageTiles(c){
      third of what you need. */
   const fl = s.fill || {};
   const names = Array.isArray(fl.filled) ? fl.filled : [];
+  /* ---- THE TILE SAYS WHAT HAPPENED, NOT WHAT IT ATTEMPTED ---- (20 Sep 2026)
+     `none` is recorded by the run (see runFillBlanks) and read LIVE where the
+     step is older than that and carries none — the brief's own remedy, for the
+     brief's own reason: a note written once cannot be repaired, and a reading
+     asked of the record answers correctly for every contract on file with no
+     migration. Absent on both sides, the tile behaves exactly as it did. */
+  let fillNone = (fl.ok && !names.length) ? (fl.none || null) : null;
+  if (fl.ok && !names.length && !fl.none && !fl.left && typeof contractBlanksNone === 'function'){
+    try{ fillNone = contractBlanksNone(c); }catch(_){ fillNone = null; }
+  }
+  const NONE_WHY = { form: 'tri_fill_form', upload: 'tri_fill_upload',
+                     nego: 'tri_fill_nego', none: 'tri_fill_nothing' };
   add('fill',
-    fl.ok
+    fillNone
+      ? ((typeof i18t === 'function') ? i18t(NONE_WHY[fillNone] || NONE_WHY.none) : '')
+      : fl.ok
       ? [names.slice(0, 3).join(' · '),
          fl.left ? ((typeof i18tn === 'function') ? i18tn('tri_fill_left', fl.left, { n: fl.left }) : '') : '']
         .filter(Boolean).join(' — ')
       : (fl.why || ''),
-    fl.ok ? names.length : null);
+    fl.ok ? names.length : null, null, fillNone);
 
   /* FILED reports facts already on the record — the stream somebody picked on
      the upload screen and the owner HaTi stamps at creation. It proposes
@@ -458,7 +497,14 @@ async function triageRun(c, opts = {}){
           ? { ok: false, why: f.error }
           /* THE NAMES ONLY. See the tile's own note: a value printed where it
              cannot be corrected is the copy that reads as decided. */
-          : { ok: true, filled: (f.filled || []).map(x => x.label || x.key), left: (f.left || []).length };
+          /* AND THE REASON THERE WAS NOTHING, recorded at the moment it was
+             true. A note is durable and the contract is not — a record that
+             gains a blank tomorrow must not keep yesterday's "nothing to
+             fill" — so the tile reads this note FIRST and falls back to the
+             live reading, which is the brief's own shape. */
+          : { ok: true, filled: (f.filled || []).map(x => x.label || x.key), left: (f.left || []).length,
+              none: ((f.filled || []).length || (f.left || []).length) ? null
+                : (typeof contractBlanksNone === 'function' ? contractBlanksNone(c) : null) };
       }
     }catch(e){ t.steps.fill = { ok: false, why: String(e && e.message || e) }; }
     paint();

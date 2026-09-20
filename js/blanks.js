@@ -74,6 +74,56 @@ function contractHasBlanks(c){
   return !!(typeof TEMPLATES!=='undefined' && TEMPLATES[c.template]);
 }
 
+/* ════════ WHY A CONTRACT HAS NO BLANKS TO FILL ════════
+   (Young reported it 20 Sep 2026: "make sure the Field actually Field the
+   contracts correctly.")
+
+   MEASURED: the arrival tile read "Open fields filled in &#10003;" with nothing
+   under it, on a contract with placeholders still open. Nothing was filled —
+   zero boxes. `contractHasBlanks` is false for FOUR kinds of contract, so
+   `contractBlanksOpen` answered `[]`, `fillBlanksFromRecord` answered
+   `{filled:[],left:[]}`, and the step recorded `ok:true` with an empty list.
+   The tick meant "I found no boxes to fill" and the words said "I filled them
+   in", and those are not the same sentence.
+
+   THE REMEDY IS THE REASON, NOT A FOURTH BOOLEAN. A tile that knows only
+   whether there were blanks can still only say two things; what a reader needs
+   is WHY there were none, because "this is in negotiation" and "every box is
+   already answered" are opposite pieces of news. One reading, four answers,
+   and null where there really is something to fill.
+
+   IT DECIDES NOTHING AND WRITES NOTHING. `contractHasBlanks` is still the one
+   gate on whether the blanks PANEL draws — widening this could never make two
+   panels draw on one contract, which is the trap paintContractForm exists to
+   avoid. */
+const BLANK_NONE_REASONS = ['form', 'upload', 'nego', 'none'];
+function contractBlanksNone(c){
+  if(!c) return 'none';
+  /* A COMPANY-STANDARD CONTRACT IS NOT "NOTHING TO FILL" — it declares its own
+     field list and draws its own right-hand panel, and `tplFormOpenCount` is
+     how that panel already counts what is still open. Asking it here is the
+     whole of item 7: the tile stops reporting silence on the one kind of
+     contract that could always answer. Through `window` because js/blanks.js
+     loads on stages js/views/contract.js does not. */
+  if(c.templateForm){
+    let open = null;
+    try{ open = (typeof tplFormOpenCount === 'function') ? tplFormOpenCount(c) : null; }catch(_){ open = null; }
+    /* BOTH ANSWERS ARE REASONS, and neither is a tick. A company-standard
+       contract with fields STILL OPEN is not "filled in" — it is filled from
+       its own right-hand panel, which is what `tri_fill_form` says. Returning
+       null here (the first build did) left the tile falling through to the
+       `ok` branch with an empty list, which draws the very tick this whole
+       reading exists to retire. Found by driving the page. */
+    if(open == null) return 'form';
+    return open > 0 ? 'form' : 'none';
+  }
+  try{ if(typeof isUpload === 'function' && isUpload(c)) return 'upload'; }catch(_){ }
+  if(c.redlineText) return 'nego';
+  if(!contractHasBlanks(c)) return 'none';
+  /* It looked, and every blank is answered. The honest "none". */
+  return contractBlanksOpen(c).length ? null : 'none';
+}
+
 /* A blank's LABEL. The declared field list answers where it declares the key
    — that label is translated, carries the workspace's own currency and is
    what the wizard asked in the first place, so the panel and the wizard use
@@ -293,5 +343,6 @@ function blanksAskPayload(c, left){
 if(typeof window !== 'undefined') Object.assign(window, {
   BLANK_USUAL_MIN, BLANK_MAX, BLANK_NEVER_FILLED,
   contractHasBlanks, contractBlanks, contractBlanksOpen, blankLabel,
+  BLANK_NONE_REASONS, contractBlanksNone,
   contractBlankSet, contractBlankUsual, fillBlanksFromRecord, blanksAskPayload,
 });

@@ -658,7 +658,14 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       const acts = document.querySelector('#view-redline #ws-head .room-acts');
       const one = document.querySelector('#view-redline .room-check');
       const share = document.querySelector('#view-redline #ws-share');
-      const btns = [...document.querySelectorAll('#view-redline .room-check')];
+    /* ---- THE CHECKS ARE THE BUTTONS THAT CARRY A KIND ---- (re-pointed
+       20 Sep 2026) `.room-check` is the group's CLOTHES and three other
+       controls wear it now: Focus mode joined on 19 Sep and the chat door on
+       20 Sep, both deliberately. Read by class, this list had a trailing
+       empty in it from the day Focus arrived — which is why the order claim
+       below was already red at the parent, measuring a control it was never
+       about. The attribute is what names a check. */
+      const btns = [...document.querySelectorAll('#view-redline [data-room-check]')];
       return { wrap: box(wrap), facets: box(document.querySelector('#view-redline .room-facets')),
         facts: box(document.querySelector('#view-redline .room-facts')),
         head: box(document.querySelector('#view-redline #ws-head')),
@@ -669,6 +676,12 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
         /* SYMBOLS ONLY — the owner's ruling. A button carrying a word here
            would be the strip this page just lost, in new clothes. */
         wordless: btns.every(b => (b.textContent || '').trim() === ''),
+        /* The button's own text, with the count taken off — a badge is a
+           figure about the check, never a name for it. */
+        wordlessLabel: btns.every(b => {
+          const t = (b.textContent || '').trim();
+          const n = (b.querySelector('.room-badge') || {}).textContent || '';
+          return t.replace(n.trim(), '').trim() === ''; }),
         painted: btns.every(b => { const r = b.getBoundingClientRect();
           return r.width > 0 && r.height > 0 && g(b).visibility !== 'hidden'; }),
         more: box(more), acts: box(acts), share: box(share),
@@ -698,16 +711,24 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
         gapToMore: (more && wrap) ? Math.round(wrap.getBoundingClientRect().left - more.getBoundingClientRect().right) : null,
         gapShareMore: (share && more) ? Math.round(more.getBoundingClientRect().left - share.getBoundingClientRect().right) : null };
     });
-    check('13 three symbols, one per check, in the order they are worked in',
-      checks.n === 3 && checks.kinds.join(',') === 'oblig,playbook,risk',
+    /* ---- TWO SYMBOLS SINCE 20 SEP 2026 ---- Young: "Delete the Playbook
+       Review Symbol button." The reading keeps its door in the More menu, one
+       row away, which section 1b measures. */
+    check('13 two symbols, one per check, in the order they are worked in',
+      checks.n === 2 && checks.kinds.join(',') === 'oblig,risk',
       checks.kinds.join(','));
     check('13 they are drawn as visible pixels', !!checks.wrap && checks.painted);
     check('13 the mark sits in the middle of its box, across and down',
-      checks.gaps.length === 3 && checks.gaps.every(g => g && Math.abs(g.l - g.r) <= 0.6 && Math.abs(g.t - g.b) <= 0.6),
+      checks.gaps.length === 2 && checks.gaps.every(g => g && Math.abs(g.l - g.r) <= 0.6 && Math.abs(g.t - g.b) <= 0.6),
       JSON.stringify(checks.gaps));
+    /* ---- A COUNT IS NOT A WORD (re-pointed 20 Sep 2026) ----
+       Young asked for a number on these buttons, so `textContent` is no longer
+       empty where a check has something to report. What the ruling banned is a
+       LABEL — a word beside the symbol — and that is what is measured: the
+       button's own text, with the badge taken off. */
     check('13 symbols only — the name lives on the hover, per the ruling',
-      checks.wordless && checks.titled && checks.labelled,
-      JSON.stringify({ wordless: checks.wordless, titled: checks.titled }));
+      checks.wordlessLabel && checks.titled && checks.labelled,
+      JSON.stringify({ label: checks.wordlessLabel, titled: checks.titled }));
     /* THEY SHARE THE FACTS' LINE AND SIT AT ITS RIGHT WALL. `.room-facts` was a
        plain block when this shipped, so its two children stacked and the
        `margin-left:auto` had nothing to push against — MEASURED, the symbols

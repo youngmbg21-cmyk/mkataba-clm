@@ -1845,7 +1845,12 @@ const STRINGS = {
     ngl_locked_title: 'This page only ever shows live negotiations. It is what the page is, not a filter — the filters beside it narrow within it.',
     ngl_sort_note: 'sorts within each group',
     ngl_no_paging: 'one page — every group whole',
-    ng_review_vs_playbook: '&#10022; Review vs Playbook',
+    /* THE GLYPH LEFT THIS KEY ON 20 SEP 2026. It carried its own &#10022; and
+       the row drew one too, so the menu read "✦ ✦ Review vs Playbook". The
+       mark is written in the markup beside its three sibling rows now — one
+       row shape, one place to change it. */
+    ng_review_vs_playbook: 'Review vs Playbook',
+    ng_review_vs_playbook_title: 'Check the whole contract against the playbook, then choose which changes to file',
     ng_exit_focus: 'Exit focus &middot; Esc',
     ng_no_clause_structure: 'This contract has no clause structure yet.',
     ng_high_risk: 'HIGH RISK',
@@ -4132,6 +4137,11 @@ const STRINGS = {
     kind_missing: "Missing",
     kind_ambiguity: "Ambiguity",
     scan_scanned: "Scanned {when}",
+    /* A REFUSAL CARRIES ITS WAY FORWARD ON THE SAME SCREEN (20 Sep 2026).
+       "Go to the wording" answered a press with nothing whenever no contract
+       was on screen — the panel opened from the Contracts list. It says which
+       press to make instead. */
+    sc_goto_no_doc: 'Open the contract first — this takes you to the wording on the Document or Negotiate page.',
     scan_rescan: "Re-scan",
     scan_all_clear: "All clear",
     scan_open_one: "{n} open",
@@ -6344,6 +6354,23 @@ const STRINGS = {
        written — the values are in the boxes, in a form the reader can correct. */
     tri_t_fill: 'Open fields filled in',
     tri_t_fill_no: 'Open fields not filled in',
+    /* ---- WHAT THE TICK USED TO CLAIM ---- (Young reported it 20 Sep 2026)
+       The head said "filled in" whenever the reading returned without an
+       error, including the commonest case of all: it looked and there was
+       nothing to look at. One head per outcome, and four sentences saying
+       WHICH kind of nothing — "in negotiation" and "every box answered" are
+       opposite pieces of news and read identically as a green tick. */
+    tri_t_fill_none: 'No open fields to fill',
+    tri_t_fill_panel: 'Open fields are on the panel',
+    tri_fill_form: 'This contract fills in from its own panel on the right.',
+    tri_fill_upload: 'This is an uploaded document — HaTi cannot read its blanks yet.',
+    tri_fill_nego: 'This contract is in negotiation — the wording is the negotiation\u2019s now.',
+    tri_fill_nothing: 'Every field on this contract is already answered.',
+    /* The two arrows on the arrival strip. A title, not a line on the tile:
+       the arrow is the sign and the words would be the second line this strip
+       reserves for what was FOUND. */
+    tri_go_brief: 'Read the contract brief',
+    tri_go_oblig: 'Open the obligations',
     tri_t_fill_ing: 'Filling in the open fields\u2026',
     tri_fill_left_one: '{n} still open',
     tri_fill_left_other: '{n} still open',
@@ -9217,7 +9244,8 @@ const STRINGS = {
     ngl_locked_title: 'Den här sidan visar bara pågående förhandlingar. Det är vad sidan är, inte ett filter — filtren bredvid avgränsar inom den.',
     ngl_sort_note: 'sorterar inom varje grupp',
     ngl_no_paging: 'en sida — varje grupp hel',
-    ng_review_vs_playbook: '&#10022; Granska mot förhandlingsguiden',
+    ng_review_vs_playbook: 'Granska mot förhandlingsguiden',
+    ng_review_vs_playbook_title: 'Granska hela avtalet mot förhandlingsguiden och välj sedan vilka ändringar som ska registreras',
     ng_exit_focus: 'Lämna fokusläge &middot; Esc',
     ng_no_clause_structure: 'Avtalet har ingen klausulstruktur ännu.',
     ng_high_risk: 'HÖG RISK',
@@ -11151,6 +11179,7 @@ const STRINGS = {
     kind_missing: "Saknas",
     kind_ambiguity: "Otydlighet",
     scan_scanned: "Granskat {when}",
+    sc_goto_no_doc: 'Öppna avtalet först \u2014 detta tar dig till lydelsen på Dokument- eller Förhandlingssidan.',
     scan_rescan: "Granska igen",
     scan_all_clear: "Allt klart",
     scan_open_one: "{n} öppen",
@@ -13193,6 +13222,14 @@ const STRINGS = {
     tri_t_oblig_ing: 'Söker åtaganden\u2026',
     tri_t_fill: 'Tomma fält ifyllda',
     tri_t_fill_no: 'Tomma fält inte ifyllda',
+    tri_t_fill_none: 'Inga tomma fält att fylla i',
+    tri_t_fill_panel: 'Tomma fält finns i panelen',
+    tri_fill_form: 'Det här avtalet fylls i från sin egen panel till höger.',
+    tri_fill_upload: 'Det här är ett uppladdat dokument \u2014 HaTi kan ännu inte läsa dess tomma fält.',
+    tri_fill_nego: 'Det här avtalet förhandlas \u2014 ordalydelsen tillhör förhandlingen nu.',
+    tri_fill_nothing: 'Varje fält i det här avtalet är redan besvarat.',
+    tri_go_brief: 'Läs avtalssammanfattningen',
+    tri_go_oblig: 'Öppna åtagandena',
     tri_t_fill_ing: 'Fyller i tomma fält\u2026',
     tri_fill_left_one: '{n} kvar',
     tri_fill_left_other: '{n} kvar',

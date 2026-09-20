@@ -60,6 +60,15 @@ const VIEW = read('js/views/negotiation.js');
 const CE = read('js/views/clauseeditor.js');
 const APP = read('js/app.js');
 const HTML = read('index.html');
+const CONTRACT = read('js/views/contract.js');
+/* The function's OWN boundary, never a byte count — the lesson this rulebook
+   names three times. Everything in this file is written at the top level. */
+const fnBody = (src, name) => {
+  const at = src.indexOf(`function ${name}(`);
+  if (at < 0) return '';
+  const end = src.indexOf('\nfunction ', at + 10);
+  return src.slice(at, end < 0 ? src.length : end);
+};
 
 const BODY =
   '<h1>Supply Agreement</h1><p>Between Mkataba Holdings Ltd and Saw Sawa Ltd</p>'
@@ -636,21 +645,48 @@ describe('f264 (8) — Chat is the whole contract’s conversation', () => {
    9 — THE DOOR IN THE SHELL BAR
    ============================================================ */
 describe('f264 (9) — the door, and where it is dead', () => {
-  test('it sits between Copilot and the bell, as asked', () => {
-    const ai = HTML.indexOf('id="cmd-ai"');
-    const chat = HTML.indexOf('id="hdr-chat"');
-    const bell = HTML.indexOf('id="hdr-notify"');
-    assert.ok(ai > -1 && chat > -1 && bell > -1, 'all three are drawn');
-    assert.ok(ai < chat && chat < bell,
-      'the owner ringed the gap between copilot and alerts');
+  /* ════════ REVERSED IN PLACE, 20 SEP 2026 ════════
+     *"move the Chat Symbol from the top bar and one to be next to the more
+     button."* The door left the shell bar for the contract's own acts row. The
+     2 Sep placement claim is kept as its mirror — MOVED, never copied, because
+     two doors onto one act is what these claims were really holding still. */
+  test('it is NOT in the shell bar any more — it moved, it was not copied', () => {
+    const bar = HTML.slice(HTML.indexOf('id="cmd-ai"'), HTML.indexOf('id="hdr-notify"'));
+    assert.ok(!/id="hdr-chat"/.test(bar),
+      'the gap between Copilot and the bell no longer holds it');
+    assert.equal((HTML.match(/id="hdr-chat"/g) || []).length, 0,
+      'and index.html draws it nowhere — one door, and the room builds it');
   });
 
-  test('its symbol is one the sprite actually carries', () => {
-    const btn = HTML.match(/<button id="hdr-chat"[\s\S]*?<\/button>/)[0];
-    const sym = btn.match(/href="#(i-[a-z-]+)"/)[1];
-    assert.match(HTML, new RegExp(`<symbol id="${sym}"`),
-      'a <use> pointing at a symbol that does not exist renders an EMPTY BOX — '
-      + 'no error, no warning, a button with a hole in it');
+  test('it is drawn in the contract\'s own acts row, beside More', () => {
+    const b = fnBody(CONTRACT, 'roomChatDoorHtml');
+    assert.match(b, /id="hdr-chat"/, 'the same id, so paintChatDoor still answers for it');
+    assert.match(b, /id="hdr-chat-dot"/, 'and the same dot');
+    assert.match(b, /class="room-check room-chat"/,
+      'it wears the checks group\'s own clothes — THE CLOTHES FOLLOW THE BUILDER');
+    assert.match(fnBody(CONTRACT, 'roomChecksHtml'), /roomChatDoorHtml\(\)/,
+      'and roomChecksHtml writes it FIRST, which is what puts it next to More');
+  });
+
+  test('its symbol is one the icon family actually carries', () => {
+    /* The sprite lesson, in the ICONS map's own costume: `icon()` states a
+       24-box viewBox and a key that is not in the map renders an EMPTY SVG —
+       no error, no warning, a button with a hole in it. It drew #i-chat from
+       the sprite while it was in the shell bar; in the acts row it must be a
+       path in components.js like the two checks beside it. */
+    const b = fnBody(CONTRACT, 'roomChatDoorHtml');
+    const name = (b.match(/icon\('([a-z]+)'/) || [])[1];
+    assert.ok(name, 'it draws through icon()');
+    assert.match(read('js/components.js'), new RegExp(`\\n\\s*${name}:'`),
+      'and that key is in the ICONS map');
+  });
+
+  test('the press is delegated, because that head is rebuilt every render', () => {
+    /* Bound once to the element found at boot, the listener would be attached
+       to a node the first repaint throws away — live-looking and dead, which
+       is the fault f295 wrote down. */
+    assert.match(APP, /_hdrChatWired/, 'one listener, kept to one');
+    assert.match(APP, /closest\('#hdr-chat'\)/, 'resolving the button at press time');
   });
 
   test('which contract it opens is named once', () => {
@@ -661,9 +697,19 @@ describe('f264 (9) — the door, and where it is dead', () => {
   });
 
   test('it presses the one door onto the notes face', () => {
-    assert.match(APP, /getElementById\('hdr-chat'\)\?\.addEventListener\('click',\(\)=>\{\s*\n\s*const id=chatContractId\(\); if\(id\) openNotesPanel\(id\);/,
+    /* RE-POINTED 20 SEP 2026: the press is delegated now (the button moved into
+       a head that is rebuilt every render), so the shape changed and the CLAIM
+       did not — openNotesPanel is still the one door, still reached with the
+       contract and no change named. Pinned as the relation, not the old lines. */
+    const at = APP.indexOf("closest('#hdr-chat')");
+    assert.ok(at > -1, 'the delegated handler is there');
+    const near = APP.slice(at, at + 260);
+    assert.match(near, /chatContractId\(\)/, 'it asks which contract, once');
+    assert.match(near, /openNotesPanel\(id\)/,
       'openNotesPanel is the one door onto that face; this is the press '
       + 'arriving there, never a second way of putting the panel up');
+    assert.equal((APP.match(/openNotesPanel\(id\)/g) || []).length, 1,
+      'and exactly one press arrives there');
   });
 
   test('the change is optional, and a contract is not', () => {

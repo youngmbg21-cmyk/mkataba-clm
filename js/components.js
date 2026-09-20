@@ -33,6 +33,13 @@ const ICONS = {
   list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
   columns:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18"/>',
   calendar:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  /* THE CHAT DOOR CAME INTO THIS FAMILY ON 20 SEP 2026, when Young moved it
+     out of the shell bar and into the contract's own acts row beside the two
+     checks. It had been drawing the 16x16 sprite `#i-chat`; in here it has to
+     be a 24-box path like its neighbours, because `icon()` states that viewBox
+     and a missing key renders an EMPTY SVG — a box with nothing in it, which
+     is the sprite fault in this map's own costume. */
+  chat:'<path d="M4 5h16v11h-9l-4.5 4v-4H4z"/>',
   msg:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
   send:'<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
   lock:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',

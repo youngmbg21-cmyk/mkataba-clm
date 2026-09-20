@@ -120,17 +120,42 @@ describe('f335 (3) — the Contract Graph caption is gone', () => {
   });
 });
 
-describe('f335 (4) — Review vs Playbook is off the More menu', () => {
-  test('the row is not built', () => {
-    assert.ok(!/i18t\('ng_review_vs_playbook'\)/.test(strip(NEGO)),
-      'the label is retired by not being called');
-    assert.match(NEGO, /const menuRow = ''/, 'menuRow leads with nothing');
+/* ════════ REVERSED IN PLACE, 20 SEP 2026 ════════
+   This suite pinned the 19 Sep ruling: the More-menu row came off BECAUSE the
+   shield ran the same pass twelve pixels away. Young has now ruled the other
+   half — *"Delete the Playbook Review Symbol button"* — and with the shield
+   gone that row is the only door onto the reading, so it comes back.
+
+   THE OLD CLAIMS ARE KEPT AS THEIR OWN MIRROR IMAGES rather than deleted,
+   because what they were really holding still is the ONE-DOOR RULE: exactly
+   one of the two may be drawn at a time. Written this way the suite fails
+   whichever way that is broken — a shield drawn beside the row, or neither
+   drawn at all — which is what the pair was worth in the first place. */
+describe('f335 (4) — one door onto the playbook read, never two and never none', () => {
+  test('the More-menu row is built again', () => {
+    assert.ok(/i18t\('ng_review_vs_playbook'\)/.test(strip(NEGO)),
+      'the label is called again — the row is the door now');
+    assert.match(strip(NEGO), /data-rl-pbreview/, 'and it carries the handler that never left');
+    assert.ok(!/const menuRow = ''/.test(NEGO), 'menuRow no longer leads with nothing');
   });
-  test('but the reading keeps its door — the shield runs the same pass', () => {
-    assert.match(CONTRACT, /\['playbook','shield','ct_playbook_review'\]/,
-      'the shield is still one of the three checks');
+  test('and the shield is gone from the checks, so there are not two', () => {
+    assert.ok(!/\['playbook','shield','ct_playbook_review'\]/.test(CONTRACT),
+      'the shield row is off roomChecksHtml');
+    assert.match(fnBody(CONTRACT, 'roomChecksHtml'), /\['risk','readpaper','ct_copilot_risk_scan'\]/,
+      'the risk check stays');
+    assert.ok(!/\['playbook'/.test(fnBody(CONTRACT, 'roomChecksHtml')),
+      'and nothing drawn carries the playbook kind');
+  });
+  test('wireRoomChecks keeps its playbook branch for the day a shield returns', () => {
     assert.match(fnBody(CONTRACT, 'wireRoomChecks'), /runPlaybookReview\(c\)/,
-      'and it still runs the playbook pass');
+      'the act is still reachable by kind — said out loud rather than deleted');
+  });
+  test('the label carries no glyph of its own — the markup writes it', () => {
+    /* It drew "✦ ✦ Review vs Playbook" because the key carried one and the row
+       carried one. The mark belongs beside its three sibling rows, in markup. */
+    const EN = read('js/i18n.js');
+    assert.ok(!/ng_review_vs_playbook: '&#10022;/.test(EN),
+      'no glyph baked into either book');
   });
   test("and Prepare redlines STAYS — the owner ruled on it by name", () => {
     assert.match(strip(NEGO), /rlPrepareRowHtml\(c, preview\)/,

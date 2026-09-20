@@ -299,11 +299,29 @@ describe('f340 (5) the company standards are loaded before they are offered', ()
    in the browser these checks run in — the claims below pin the rules, and
    the screen itself wants confirming on the reporter's own iPad. */
 describe('f340 (6) the date boxes match the rest of the form', () => {
+  /* ---- WIDENED 20 SEP 2026, because the first pair was not enough ----
+     Young reported the overlap a SECOND time off an iPad. The two declarations
+     below were on main and the boxes still ran past their column, so the box's
+     metrics are STATED rather than left to a shorthand the control may ignore,
+     and the picker glyph is pinned to the right wall instead of being left to
+     shove the text about. Asked as a RELATION — which properties the rule
+     carries — never as the rule's exact bytes, which is what made these two
+     claims go red on a change that only added to them. */
+  const dateRule = (HTML.match(/\.field-grid input\[type="date"\]\{[\s\S]*?\}/) || [''])[0];
   test('6a the box is sized by us, not by the browser', () => {
-    assert.match(HTML, /\.field-grid input\[type="date"\]\{ -webkit-appearance:none; appearance:none; \}/);
+    assert.match(dateRule, /appearance:none/, 'it is an ordinary box, not a native control');
+    assert.match(dateRule, /box-sizing:border-box/, 'its padding is inside its width');
+    assert.match(dateRule, /width:100%/, 'it fills its track');
+    assert.match(dateRule, /min-width:0/,
+      'and may shrink to it — without this the browser\'s own minimum wins '
+      + 'and the two-column grid overflows, which is the reported fault');
   });
   test('6b and its text sits where every other field\'s text sits', () => {
-    assert.match(HTML, /\.field-grid input\[type="date"\]::-webkit-date-and-time-value\{ text-align:left; \}/);
+    assert.match(HTML, /::-webkit-date-and-time-value\{[\s\S]*?text-align:left/,
+      'left, like every other box on the form');
+    assert.match(HTML, /::-webkit-calendar-picker-indicator\{[\s\S]*?margin-left:auto/,
+      'and the picker pins right, like a select\'s chevron, rather than '
+      + 'pushing the value around');
   });
   test('6c and it is scoped to the three creation forms, nowhere else', () => {
     const rules = HTML.match(/input\[type="date"\]/g) || [];

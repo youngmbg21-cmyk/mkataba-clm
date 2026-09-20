@@ -344,11 +344,16 @@ describe('f269 (10) the door', () => {
     assert.ok(end > at && end - at < 12000, 'the menuRow block has a real end');
     const row = NEG.slice(at, end);
     /* REVIEW VS PLAYBOOK LEFT THIS MENU on the owner's ruling of 19 Sep 2026 —
-       the shield in roomChecksHtml runs the same pass twelve pixels away, and
-       two doors onto one reading is what the one-door rule exists to stop. The
-       memo's row is what this claim is about and it is untouched; what it can
-       still say about its old neighbour is that the menu leads with nothing. */
-    assert.match(row, /const menuRow = ''/, 'the playbook row is retired, not replaced');
+       the shield in roomChecksHtml ran the same pass twelve pixels away, and
+       two doors onto one reading is what the one-door rule exists to stop.
+       ---- AND CAME BACK ON 20 SEP 2026, when the shield went ----
+       Young ruled the other half ("Delete the Playbook Review Symbol button"),
+       which would have left the page no door onto the reading at all. So this
+       claim is reversed in place: the memo's row is still what it is about,
+       and what it says about its neighbour is that the pass leads the menu. */
+    assert.match(row, /data-rl-pbreview/, 'the playbook row leads the menu again');
+    assert.ok(row.indexOf('data-rl-pbreview') < row.indexOf('data-rl-memo'),
+      'and the memo follows it, as it always did');
     assert.match(row, /data-rl-memo/);
     /* Dead in preview like its neighbour — the counterparty draws its own
        header and never this one. */

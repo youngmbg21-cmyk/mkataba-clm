@@ -17347,3 +17347,42 @@ called fixed.
 ### Touched outside the request
 
 Nothing.
+
+## 20 Sep 2026 — seven off four screenshots (Young)
+
+Built items 1–8 of the agreed list. Seven asks across four screenshots; three of
+the faults were invisible in the source and only appeared when the control was
+pressed.
+
+Fixed:
+- "Go to the wording" did nothing on the Negotiate page. Every walk named the
+  Document tab's canvas; the buttons that open that panel are drawn on the other
+  page. One reading (scanCanvas) now answers for both, the anchor fallback is
+  asked inside it, and no canvas at all says so. Measured: returned false and
+  moved 0px at the parent; moves 1076px now.
+- The playbook shield is off the negotiate head; the More-menu row is back, and
+  it is the richer door (it lets you choose which proposals to file). The glyph
+  left the label — the key and the markup each drew one.
+- The chat door moved out of the shell bar into the contract's own acts row,
+  beside More. Same id, same painter, same panel; the press is delegated,
+  because that head is rebuilt on every render.
+- Chat, obligations and the risk scan carry a count on the corner of the button,
+  silent at zero, amber open and ruby late-or-high. checkVerdict now carries the
+  figure so there is one arithmetic.
+- The brief and obligations arrival tiles carry an arrow and are doors onto the
+  cards that own those readings. The strip's height is unchanged.
+- The fill tile no longer draws a tick over zero work; it says WHY there was
+  nothing to fill, and a company-standard contract is read by the count its own
+  panel already makes.
+- The date boxes state their own metrics, text left, picker pinned right.
+
+Noticed, not fixed:
+- npm run lint reports one pre-existing error in
+  test/chromium/overview-as-drawn-verify.js (no-self-compare). Untouched.
+- nego-redesign-verify section 1 (five breadcrumb/arrow claims) is red at the
+  parent as well as here — the crumb's back arrow is not painted on that page.
+  Pre-existing, not part of this order.
+- The `#top-header #hdr-chat-dot` rules in index.html now match nothing, the
+  button having moved. Left in place rather than swept on the way past.
+- PORTAL_MODE is a boolean and six older sites call it as a function behind a
+  side guard (recorded 14 Sep, still true).

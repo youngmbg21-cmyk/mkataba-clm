@@ -4851,17 +4851,63 @@ function ktTriageStripHtml(c){
      checked · Obligations not read" for the minute the readings take, with
      nothing under them because a step that has not run has no reason to give.
      Its own quiet mark, no count, no tone — nothing to act on yet. */
+  /* ---- TWO TILES ARE DOORS, AND THE MARK IS AN ARROW ---- (Young ruled
+     20 Sep 2026: "the brief Witten and obligations should have Doors to the
+     respective cards", then "simply add an arrow after the Header".)
+
+     THIS REVERSES THIS STRIP'S OWN "NO ACTS ON IT, DELIBERATELY" (9 Sep) FOR
+     TWO TILES, and the reasoning there is kept above because it is what keeps
+     this narrow. That note argued everything named here is an inch away — in
+     practice the brief is below the fold and the obligations are on another
+     tab. So these are not new acts: each one opens the card that already owns
+     that reading, which is the one-door rule held rather than broken.
+
+     THE ARROW IS THE PRODUCT'S OWN MARK, not a new one: the Checks card has
+     drawn `Run &rarr;` on a row that opens something since the day it was
+     built. No verb, no second line, no extra words — the POP-UP DIET applied
+     to a tile.
+
+     AND IT COSTS NO HEIGHT. It rides the heading, so the two reserved detail
+     lines and this strip's fixed height (17 Sep, measured) are untouched.
+
+     DRAWN ONLY WHERE THE TARGET EXISTS. An arrow on a tile whose card is not
+     on the page is an arrow that leads nowhere, which is the dead press this
+     whole day of work is about. A tile with no door is byte-identical.
+
+     THE OTHER THREE ARE LEFT ALONE. Young circled Standards and Filed and
+     named these two; Standards would open the playbook panel and Filed the
+     value stream row, one line each, on his word. */
+  const doorFor = x =>
+    (x.key==='brief'  && x.ok) ? 'brief' :
+    (x.key==='oblig'  && x.ok) ? 'oblig' : '';
   const tiles=triageTiles(c).map(x=>{
-    const tone=x.working?'is-busy':(x.ok?((x.count!=null&&x.count>0)?'is-warn':'is-ok'):'is-no');
+    const door=x.working?'':doorFor(x);
+    /* NOTHING-TO-DO IS ASKED BEFORE `ok`, so a reading that looked and found
+       no boxes can never draw the tick that made the tile read as a claim.
+       Busy still wins over both, as it always has. */
+    const tone=x.working?'is-busy':(x.none?'is-none':(x.ok?((x.count!=null&&x.count>0)?'is-warn':'is-ok'):'is-no'));
     /* A READING IN FLIGHT TURNS (Young ruled 17 Sep 2026) — the strip repaints
        only when a step LANDS, so a static mark left the page looking stuck for
        most of a minute. The product's own spinner, not a second one; its
        reduced-motion answer comes with it. See .kt-tri-chip.is-busy. */
     const mark=x.working?'<span class="ob-spin" aria-hidden="true"></span>'
-      :(x.ok?((x.count!=null&&x.count>0)?String(x.count):'&#10003;'):'&mdash;');
+      :(x.none?'&mdash;':(x.ok?((x.count!=null&&x.count>0)?String(x.count):'&#10003;'):'&mdash;'));
+    const head=`<div class="kt-tri-th"><span class="kt-tri-chip ${tone}">${mark}</span><span class="kt-tri-hw">${
+      esc(i18t(x.headKey))}</span>${door?'<span class="kt-tri-go" aria-hidden="true">&rarr;</span>':''}</div>`;
+    /* ONE PRODUCER OF THE TILE BODY, whichever shape the tile takes. The two
+       reserved lines and the whole-detail hover are stated here and nowhere
+       else — see the note below, and f273 (10), which counts this class. */
+    const body=`<div class="kt-tri-td"${x.detail?` title="${esc(x.detail)}"`:''}>${esc(x.detail||'')}</div>`;
+    /* THE WHOLE TILE IS THE PRESS, never an arrow-sized target: the arrow is
+       the SIGN that the tile opens something, and a 9px hit area would be a
+       worse control than the one that was there. A real <button> so the
+       keyboard reaches it and the focus ring is the product's own. */
+    if(door) return `<button type="button" class="kt-tri-tile is-door" data-kt-tri-go="${door}"
+      title="${esc(i18t(door==='brief'?'tri_go_brief':'tri_go_oblig'))}">
+      ${head}${body}
+    </button>`;
     return `<div class="kt-tri-tile${x.working?' is-busy':''}"${x.working?' aria-busy="true"':''}>
-      <div class="kt-tri-th"><span class="kt-tri-chip ${tone}">${mark}</span>${esc(i18t(x.headKey))}</div>
-      ${''/* ---- THE TILE IS ALWAYS A HEADING AND TWO LINES (Young ruled
+      ${head}${''/* ---- THE TILE IS ALWAYS A HEADING AND TWO LINES (Young ruled
              17 Sep 2026, off the strip on a warehousing contract) ----
              *"the card is always fixed at [providing] the header and only two
              lines below it."*
@@ -4881,8 +4927,15 @@ function ktTriageStripHtml(c){
              AND A CUT IS NOT A SILENT TRIM. The whole detail goes on the
              hover — the obligations worklist's own idiom for exactly this —
              and the count in the chip beside the heading already says how
-             much there is, so nothing is hidden without being said. */}
-      <div class="kt-tri-td"${x.detail?` title="${esc(x.detail)}"`:''}>${esc(x.detail||'')}</div>
+             much there is, so nothing is hidden without being said.
+
+             ---- AND IT IS BUILT ONCE (20 Sep 2026) ----
+             `body` is declared beside `head` above, because a tile that is a
+             door is a <button> and a tile that is not is a <div>: two shapes,
+             one body. Written out in both branches it would be two builders of
+             one thing — the duplication warning in its smallest costume, and
+             the thing f273 (10) counts by name. */}
+      ${body}
     </div>`; }).join('');
   const busy=(typeof triageBusy==='function')&&triageBusy(c);
   const read=(typeof triageReadAnything==='function')?triageReadAnything(c):true;
@@ -4953,6 +5006,17 @@ function renderKeyTerms(c){
 function paintKtTriage(c){
   const slot=document.getElementById('kt-triage-slot'); if(!slot) return;
   slot.innerHTML=ktTriageStripHtml(c);
+  /* The two doors, armed where the strip was just painted — this function is
+     the one that knows it landed. Bound per paint on the freshly written
+     nodes, so there is nothing to keep in step; the strip is replaced whole. */
+  slot.querySelectorAll('[data-kt-tri-go]').forEach(btn=>btn.addEventListener('click',()=>{
+    const go=btn.getAttribute('data-kt-tri-go');
+    if(go==='oblig'){ if(window.roomGoTab) roomGoTab(c,'oblig'); return; }
+    /* The brief's card is on this very tab, so this is a scroll rather than a
+       navigation — and it lands rather than travels. */
+    const card=document.getElementById('brief-card');
+    if(card) card.scrollIntoView({behavior:'smooth',block:'center'});
+  }));
   const b=document.getElementById('kt-tri-done'); if(!b) return;
   b.addEventListener('click',()=>{
     /* AN ACT, never a render: the strip goes because somebody pressed it. */
@@ -6282,9 +6346,12 @@ function checkVerdict(c,kind){
   if(kind==='risk'){
     if(!c.scan) return null;
     const open=(typeof openFindings==='function')?openFindings(c):[];
-    if(!open.length) return {tone:'ok',get label(){ return i18t('ct_all_clear'); }};
+    if(!open.length) return {tone:'ok',n:0,get label(){ return i18t('ct_all_clear'); }};
     const high=open.filter(x=>x.sev==='high').length;
-    return {tone:high?'bad':'warn',label:high?`${high} high · ${open.length} open`:`${open.length} open`};
+    /* The badge counts what is OPEN and takes its tone from whether any of
+       them is high — the same pair the label states. */
+    return {tone:high?'bad':'warn',n:open.length,
+      label:high?`${high} high · ${open.length} open`:`${open.length} open`};
   }
   /* 'brief' (WO-2). Green once written — a brief is a reading, not a verdict,
      so it never colours amber or ruby; the label says when it was written and
@@ -6331,9 +6398,14 @@ function checkVerdict(c,kind){
   const st=obs.map(o=>(window.obState?obState(o):(o.status==='done'?'done':'open')));
   const over=st.filter(x=>x==='overdue').length;
   const open=st.filter(x=>x==='open').length;
-  if(over) return {tone:'bad',label:`${over} overdue · ${obs.length} tracked`};
-  if(open) return {tone:'warn',label:`${open} open · ${obs.length} tracked`};
-  return {tone:'ok',label:`${obs.length} tracked`};
+  /* ---- `n` IS THE NUMBER THE LABEL LEADS WITH ---- (20 Sep 2026)
+     The button's badge needs a FIGURE and this already has one; the label is a
+     sentence for a human and is translated, so reading the number back out of
+     it would be a second arithmetic that could disagree with this one. Added
+     here, once, and every caller that only wants the label is untouched. */
+  if(over) return {tone:'bad',n:over,label:`${over} overdue · ${obs.length} tracked`};
+  if(open) return {tone:'warn',n:open,label:`${open} open · ${obs.length} tracked`};
+  return {tone:'ok',n:0,label:`${obs.length} tracked`};
 }
 /* How many required form fields are still empty — 0 when this contract has no
    form at all, which is the common case (a plain template or an uploaded
@@ -7409,21 +7481,104 @@ let _wsFactsFolded=null;
    NOT DRAWN ON THE CONTRACT ROOM'S OWN HEAD: that page carries the Checks card
    on its Document tab, and two doors onto one act on one page is the
    duplication this product keeps removing. */
+/* ---- THE NUMBER LIVES ON THE BUTTON (Young ruled 20 Sep 2026) ----
+   *"there should be an alert that Pops up on the chat, obligations and Copilot
+   Scan Buttons alerting on the numbers or anything to bring attention to the
+   Buttons."*
+
+   NOT ONE FIGURE HERE IS NEW. checkVerdict already knows how many obligations
+   are overdue and how many findings are open; negoMentionsWaiting already
+   counts the notes that name you, and paintChatDoor has printed it since
+   2 Sep. All three were on the HOVER — you had to point at a square to learn
+   there was anything behind it.
+
+   THIS IS A COUNT ON A CONTROL, WHICH IS RUNG TWO, NOT A BAND. The cheapest
+   channel that carries the fact: the thing it is about is the button, and the
+   button is already on the screen. NO NEW BANDS is not engaged.
+
+   SILENT AT ZERO, which is the bell's own rule and the reason the bell's old
+   hard-coded dot stopped being read: a mark that is always there is one people
+   learn to ignore. The teal `has-run` tint stays, so "ran and found nothing"
+   and "never run" still look different with no mark on either.
+
+   THE TONE IS THE CHECK'S OWN VERDICT, never a second opinion: ruby where
+   checkVerdict says `bad` (overdue, or a high finding), amber for everything
+   else it counts. The whole sentence stays on the hover — a cut is not a
+   silent trim, and two digits is the most a 28px box can carry. */
+const ROOM_BADGE_MAX = 9;
+function roomCheckBadge(n, tone){
+  const v = Number(n) || 0;
+  if(v <= 0) return '';
+  const w = v > ROOM_BADGE_MAX ? (ROOM_BADGE_MAX + '+') : String(v);
+  return `<span class="room-badge${tone === 'bad' ? ' is-bad' : ''}" aria-hidden="true">${esc(w)}</span>`;
+}
+/* ---- AND THE CHAT DOOR CAME DOWN HERE WITH THEM (Young ruled 20 Sep 2026) ----
+   *"move the Chat Symbol from the top bar and one to be next to the more
+   button."*
+
+   IT IS THE SAME BUTTON, MOVED — same id, same `paintChatDoor`, same panel. A
+   copy in the shell bar would be a second door onto one act, which is the
+   drift this rulebook opens by warning about.
+
+   AND MOVING IT NARROWS IT HONESTLY. In the shell bar the door read
+   `chatContractId()`, which falls back to `state.activeId` — so on the
+   Contracts list it sat live, pointing at whichever contract was open last.
+   roomHeadHtml is drawn by exactly the two pages that show ONE contract (the
+   room and the workbench), which is the same pair `aiScreenContractId` names,
+   so here the door exists precisely where it means something.
+
+   THE PHONE IS UNTOUCHED: it hides the desktop shell below 768px and draws its
+   own head, so nothing there gained or lost a control.
+
+   IT WEARS `.room-check` because it is now one of that group, and that is what
+   gives it the badge, the square and the row's own rung — THE CLOTHES FOLLOW
+   THE BUILDER. Its state is painted, never built: the count and the dead state
+   move under a head that is built once per render, so paintChatDoor answers
+   for both and wireRoomHead calls it after the paint. */
+function roomChatDoorHtml(){
+  if(PORTAL_MODE) return '';
+  return `<button type="button" id="hdr-chat" class="room-check room-chat"
+      title="${esc(i18t('ng_chat_title'))}"
+    >${icon('chat','w-4 h-4')}<span id="hdr-chat-dot" class="room-badge" hidden></span></button>`;
+}
 function roomChecksHtml(c){
   if(typeof checkVerdict!=='function') return '';
   const may=(typeof canEdit!=='function'||canEdit());
+  /* ---- THE SHIELD IS GONE (Young ruled 20 Sep 2026) ----
+     *"Delete the Playbook Review Symbol button."* Two rows where there were
+     three.
+
+     WHAT WENT WITH IT WAS PUT BACK IN THE SAME BREATH. On 19 Sep the More
+     menu's "Review vs playbook" row came off *because* this shield ran the
+     same pass twelve pixels away; with the shield gone that would have left
+     the page no door onto the reading at all. The row is drawn again by
+     js/views/negotiation.js — and it is the RICHER door of the two, the window
+     that runs the pass and then lets you tick which proposals to file, which
+     is what that note said had been lost.
+
+     wireRoomChecks KEEPS ITS `playbook` BRANCH: nothing drawn carries that
+     kind today, and it is three lines that make a returning shield work with
+     no other change. Said out loud rather than quietly deleted. */
   const rows=[['oblig','calendar','ob_obligations'],
-              ['playbook','shield','ct_playbook_review'],
               ['risk','readpaper','ct_copilot_risk_scan']];
-  return `<div class="room-checks">${rows.map(([kind,ic,key])=>{
+  return `<div class="room-checks">${roomChatDoorHtml()}${rows.map(([kind,ic,key])=>{
     let v=null; try{ v=checkVerdict(c,kind); }catch(_){}
     const editable=may&&(kind==='oblig'||c.status!=='Signed');
     const dead=!v&&!editable;
     const name=i18t(key);
     const tip=v?`${name} · ${v.label}`:(editable?`${name} · ${i18t('ct_run_check')}`:name);
+    /* The count is drawn only where the check HAS run — before that there is
+       nothing counted, and a mark would be a claim about a reading nobody has
+       paid for. */
+    /* THE VERDICT ALREADY KNOWS. A second count here — the first build wrote
+       one — could disagree with the sentence on the hover, and did: it called
+       obState with two arguments where it takes one, so two overdue
+       obligations drew an amber 2 beside a ruby label saying "2 overdue".
+       Found by driving the page, not by reading it. */
+    const badge=(v&&v.n)?roomCheckBadge(v.n,v.tone):'';
     return `<button type="button" class="room-check${v?' has-run':''}" data-room-check="${kind}"
       ${dead?'disabled aria-disabled="true"':''} title="${esc(tip)}" aria-label="${esc(tip)}"
-      >${icon(ic,'w-4 h-4')}</button>`;
+      >${icon(ic,'w-4 h-4')}${badge}</button>`;
   }).join('')}</div>`;
 }
 /* Bound ONCE on the document, not per paint: this head is rebuilt on every
@@ -8069,6 +8224,14 @@ function roomHeadHtml(c,opts={}){
    ids, so wireWorkspaceActions binds them without knowing they moved. */
 function wireRoomHead(c){
   wireRoomChecks();
+  /* ---- THE CHAT DOOR'S STATE IS PAINTED, NOT BUILT ---- (20 Sep 2026)
+     It moved into this head from the shell bar, and its count and its dead
+     state both move underneath a head that is built once per render. This is
+     the room's own rule for exactly that — a thing that changes underneath
+     needs a paint, and it is called where the head has just landed rather than
+     hoped for from updateAlertBadge, which runs on the view change BEFORE this
+     markup is in the DOM. Guarded: js/app.js is not on every stage. */
+  try{ if(window.paintChatDoor) paintChatDoor(); }catch(_){}
   /* ---- FOLDING THE FACT ROW ----
      Per SITTING and in memory, like every other posture in this product (the
      notice stack's fold, the clause panel, the queue overlay). Deliberately not

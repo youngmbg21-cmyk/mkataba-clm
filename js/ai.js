@@ -270,6 +270,35 @@ function runScan(c){
    Lifted out of renderScanSection's handler so the readiness card on the
    Signing tab can press the same door ("Read it") — the Signing tab draws the
    same canvas, so the same walk lands on the same words. */
+/* ════════ WHICH CONTRACT PAGE IS IN FRONT OF THE READER ════════
+   (Young reported it 20 Sep 2026: "go to wording is not working.")
+
+   MEASURED: the press works on the Document tab and does NOTHING on the
+   Negotiate page, which is where the screenshot was taken. Every walk below
+   read `#doc-canvas` by name, and `#doc-canvas` is drawn by ONE surface — the
+   Document tab's article (see renderWorkspace). The Negotiate page mounts its
+   own sheet, `#rl-doc`, and the three check buttons that open this panel are
+   drawn on THAT head (roomChecksHtml is called on `backC`, the workbench's own
+   flag). So on the page the button is most likely to be pressed from, the
+   quote walk found no root, every anchor fallback answered null, scanGoTo
+   returned false — and nothing was said. The fourth costume of the guard that
+   is always false: nothing errors, nothing logs, the source looks correct.
+
+   ONE READING, THREE ASKERS. clearQuoteMarks, scrollToQuote and scanGoTo each
+   named the element themselves; now they ask this, so a fourth canvas is one
+   line here and none anywhere else.
+
+   ORDER IS NOT PREFERENCE, IT IS PRESENCE: only one contract surface is
+   mounted at a time, so the first that exists is the one on screen. The clause
+   editor's `#ce-doc` is deliberately absent — that page is ONE clause, this
+   panel is not reachable from it, and landing a whole-document walk there
+   would scroll to wording the reader cannot see. */
+function scanCanvas(){
+  if(typeof document==='undefined') return null;
+  return document.getElementById('doc-canvas')
+      || document.getElementById('rl-doc')
+      || null;
+}
 function scanGoTo(c, id, anchorHint){
   clearQuoteMarks();
   const f=((c&&c.scan&&c.scan.findings)||[]).find(x=>String(x.id)===String(id));
@@ -282,15 +311,37 @@ function scanGoTo(c, id, anchorHint){
   /* Anchors go stale — a drafted contract that has been edited renders as one
      working-text block, and an uploaded one never had clause anchors at all.
      Walk down to whatever the document does offer rather than leaving a
-     button that answers a click with nothing. */
-  const el=document.querySelector(`#doc-canvas [data-anchor="${anchor}"]`)
-    || document.querySelector('#doc-canvas [data-anchor="redline"]')
-    || document.querySelector('#doc-canvas [data-anchor="doc"]')
-    || document.getElementById('doc-canvas');
-  if(!el) return false;
+     button that answers a click with nothing.
+
+     THE ROOT IS RESOLVED ONCE AND EVERY STEP IS ASKED INSIDE IT. Written as
+     four `#doc-canvas …` selectors this walk could only ever answer on one of
+     the two pages that draw this panel. `.rl-clause` is the Negotiate page's
+     own limb — that sheet carries no `[data-anchor]`, so without it the walk
+     there would always fall through to the whole sheet. */
+  const root=scanCanvas();
+  /* A REFUSAL CARRIES ITS WAY FORWARD ON THE SAME SCREEN. With no contract on
+     screen at all — the panel opened from the Contracts list — this returned
+     false in silence, which is the very fault being fixed one rung down. */
+  if(!root){
+    if(typeof toast==='function') toast(i18t('sc_goto_no_doc'),'warn');
+    return false;
+  }
+  const el=root.querySelector(`[data-anchor="${anchor}"]`)
+    || root.querySelector('[data-anchor="redline"]')
+    || root.querySelector('[data-anchor="doc"]')
+    || (anchor&&anchor!=='doc' ? root.querySelector(`.rl-clause[data-clause-id="${anchor}"]`) : null)
+    || root;
   el.scrollIntoView({behavior:'smooth',block:'center'});
-  const pane=document.getElementById('doc-scroll');
-  const small=!pane || el.getBoundingClientRect().height <= pane.clientHeight*0.6;
+  /* THE PANE IS THE ONE THIS CANVAS SCROLLS IN, asked of the element rather
+     than named: `#doc-scroll` is the Document tab's and the Negotiate page
+     scrolls in `.nego-scroll`, so naming one meant `pane` was null there —
+     and a null pane made `small` true unconditionally, which would flash the
+     WHOLE sheet whenever the walk fell through to the root. A flash that
+     covers the page says nothing. */
+  const pane=el.closest('#doc-scroll, .nego-scroll')
+    || root.closest('#doc-scroll, .nego-scroll')
+    || document.getElementById('doc-scroll');
+  const small=!!pane && el.getBoundingClientRect().height <= pane.clientHeight*0.6;
   if(small){ el.classList.remove('anchor-flash'); void el.offsetWidth; el.classList.add('anchor-flash'); }
   return true;
 }
@@ -466,15 +517,18 @@ function quoteNorm(s){
     .replace(/\s+/g,' ').toLowerCase();
 }
 function clearQuoteMarks(){
-  for(const mark of document.querySelectorAll('#doc-canvas span.anchor-flash')){
+  /* THE SAME ROOT THE MARKS WERE PUT INTO. Named `#doc-canvas` here too, so on
+     the Negotiate page a mark left by an earlier press was never taken off. */
+  const root=scanCanvas(); if(!root) return;
+  for(const mark of root.querySelectorAll('span.anchor-flash')){
     const p=mark.parentNode; if(!p) continue;
     while(mark.firstChild) p.insertBefore(mark.firstChild,mark);
     p.removeChild(mark); p.normalize();
   }
-  for(const el of document.querySelectorAll('#doc-canvas .anchor-flash')) el.classList.remove('anchor-flash');
+  for(const el of root.querySelectorAll('.anchor-flash')) el.classList.remove('anchor-flash');
 }
 function scrollToQuote(quote){
-  const root=document.getElementById('doc-canvas');
+  const root=scanCanvas();
   const needle=quoteNorm(quote).trim();
   if(!root||needle.length<12) return false;
 
@@ -4480,4 +4534,4 @@ Object.assign(window,{scanGoTo,
   aiKeepStructuralTags,aiStructureOf,aiSplitItems,aiRestoreEmphasis,aiPreserveTypography,aiDropRestatedHeading,
   aiParseProposal,copilotPropose,copilotProposeTemplate,AI_TEMPLATE_RULE,aiProposalCardHtml,aiOpenProposal,aiActiveProposal,
   aiProposalApply,aiProposalDecline,aiProposalToggleEdit,aiWireProposals,aiRefineProposal,aiStepBackIfSummoned,
-  AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,aiPortfolioFigures,aiPortfolioSays,aiWholeBookAsk,aiDegrade,AI_CHAT_STEPS,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,AI_DEPENDENTS_TOOL_DESC,AI_COUNTERPARTY_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,AI_WORKLIST_MIN,AI_WORKLIST_LABEL_MAX,aiWorklistHtml,aiCompareTable,aiChatMessages,aiChatContext, aiPageContext, aiPageSays, aiGraphSays, aiScreenContractId,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,runContractBrief,runFillBlanks,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});
+  AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,aiPortfolioFigures,aiPortfolioSays,aiWholeBookAsk,aiDegrade,AI_CHAT_STEPS,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,AI_DEPENDENTS_TOOL_DESC,AI_COUNTERPARTY_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,AI_WORKLIST_MIN,AI_WORKLIST_LABEL_MAX,aiWorklistHtml,aiCompareTable,aiChatMessages,aiChatContext, aiPageContext, aiPageSays, aiGraphSays, aiScreenContractId,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,runContractBrief,runFillBlanks,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scanCanvas,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});
