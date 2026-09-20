@@ -170,6 +170,12 @@ const TRIAGE = 'js/triage.js';
    step is one of the readings; js/templates.js goes under it for the same
    reason builtinTemplateFields does. */
 const BLANKS = 'js/blanks.js';
+/* The blanks in a document somebody SENT us (it rides the same `blanks`
+   option). Its own file for the reason js/blanks.js's own note gives, and it
+   loads AFTER that one because contractHasBlanks asks uploadBlanksLive through
+   `window` — the order js/app.js uses too. It reads the STORED wording rather
+   than the page, so a stage with no contract view still answers. */
+const UPLOAD_BLANKS = 'js/uploadblanks.js';
 /* The overnight desk (buildWorld({desk:true})). A READING with no view, on the
    shelf js/precedent.js and js/payterms.js sit on — but it reads three of the
    product's own predicates through `typeof` (renewalWindow, obligationIsTheirs,
@@ -436,7 +442,7 @@ function buildWorld(opts = {}) {
      when it is absent, which is the order js/app.js uses too. */
   if (opts.templates) files.unshift(TEMPLATES_FILE);
   if (opts.templateFields) files.push(TEMPLATE_FIELDS_FILE);
-  if (opts.blanks) files.push(BLANKS);
+  if (opts.blanks) files.push(BLANKS, UPLOAD_BLANKS);
   if (opts.family) files.push(FAMILY);
   if (opts.obligations) files.push(OBLIGATIONS);
   if (opts.intakeView) files.push(INTAKE_VIEW);
@@ -564,7 +570,7 @@ function buildWorld(opts = {}) {
     /* The fill step is one of the readings, so the module it presses rides the
        same option — a stage without it would exercise triage's own `typeof`
        fallback and prove nothing about the product. */
-    if (!opts.blanks) files.push(BLANKS);
+    if (!opts.blanks) files.push(BLANKS, UPLOAD_BLANKS);
     files.push(TRIAGE);
   }
   if (opts.desk) {

@@ -2323,7 +2323,7 @@ function uploadDocBody(c){
        there is no text to lay out, so a frame is the honest rendering. */
     : (isDocx&&!c.redlineText&&(u.extractedText||'').length>40)
     ? `<div style="font-size:var(--t-label);color:var(--color-neutral-600);margin:0 0 14px">${i18t('ct_reading_view')}</div>
-       ${documentTextHtml(u.extractedText,{size:null,lh:'1.85'})}`
+       <div data-upwording>${documentTextHtml(u.extractedText,{size:null,lh:'1.85'})}</div>`
     /* ---- A CONTRACT ON SCREEN IS NOT A FILE THAT CANNOT BE PREVIEWED ----
        This chain ends in a dashed card saying the file cannot be shown and to
        download the original, which was right while a .docx's only rendering
@@ -2510,7 +2510,13 @@ function uploadDocBody(c){
     ${((isDocx||isPdf) && !(window.uploadWordingEdited ? uploadWordingEdited(c)
         : ((c.changes||[]).length || (c.versions||[]).length)))
       ? `<div style="font-size:var(--t-label);color:var(--color-neutral-600);margin:0 0 14px">${i18t('ct_reading_view')}</div>` : ''}
-    <div class="mb-4" data-anchor="redline" style="color:var(--color-doc-text)">${
+    ${''/* `data-upwording` NAMES THE AGREEMENT INSIDE THIS TAB, and nothing else
+         on it. The placeholder marks are painted into text nodes, and the two
+         things on this page ruled with underscores that are NOT blanks in the
+         wording — the signature foot and the seal card — sit outside this
+         container. The attribute is what keeps the walk off them; see
+         uploadBlanksPaint. It is inert on every other surface. */}
+    <div class="mb-4" data-anchor="redline" data-upwording style="color:var(--color-doc-text)">${
       docBodyHtml(c,{size:'13px',lh:'1.7'})}</div>`:''}
     ${preview}
     ${signatureBlock(c)}`;
@@ -6482,8 +6488,15 @@ function renderBlankFormSection(c){
   if(!host) return;
   /* NOT DRAWN AT ALL once the paper stops being fillable. docFillable is the
      one reading of that and this asks it rather than keeping a second copy:
-     the panel and the page have to agree about when typing is over. */
-  if(!(typeof contractHasBlanks === 'function' && contractHasBlanks(c)) || !docFillable(c)){
+     the panel and the page have to agree about when typing is over.
+
+     TWO READINGS, NEVER TWO PANELS (item 9, 20 Sep 2026). `docFillable`
+     refuses every upload by name and `uploadBlanksLive` refuses everything
+     that is not an upload, so the pair can never both answer true for one
+     contract — which is what makes an `||` safe here rather than a second
+     door onto one act. Asserted as a wall. */
+  const up = !!(typeof uploadBlanksLive === 'function' && uploadBlanksLive(c));
+  if(!(typeof contractHasBlanks === 'function' && contractHasBlanks(c)) || !(docFillable(c) || up)){
     host.innerHTML = ''; return;
   }
   const groups = blankFormSectionsOf(c);
@@ -6495,8 +6508,14 @@ function renderBlankFormSection(c){
     ? TEMPLATES[c.template].name : '';
   host.innerHTML = `
     <div style="display:flex;align-items:center;gap:var(--s-2);padding:11px 14px;border-bottom:1px solid var(--color-divider)">
-      <h6 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-meta);margin:0;flex:1">${esc(i18t('bf_title'))}
-        ${tname?`<span style="font-weight:var(--w-body);color:var(--color-neutral-500)">${esc(i18t('bf_from',{name:tname}))}</span>`:''}</h6>
+      ${''/* THE HEADING SAYS WHICH KIND OF BLANK THESE ARE, and the one fact
+             about the machinery a reader needs — that an answer to somebody
+             else's placeholder is a working note and is not written into their
+             document — rides the hover. THE POP-UP DIET's own rung: a sentence
+             explaining how a thing works belongs on the control, not on the
+             page. NOT A BAND. */}
+      <h6 title="${up?esc(i18t('bf_upload_note')):''}" style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-meta);margin:0;flex:1">${esc(i18t(up?'bf_title_upload':'bf_title'))}
+        ${(!up&&tname)?`<span style="font-weight:var(--w-body);color:var(--color-neutral-500)">${esc(i18t('bf_from',{name:tname}))}</span>`:''}</h6>
       <span data-blankf-count style="font-size:var(--t-label);color:${open?'var(--st-amber-fg)':'var(--st-green-fg)'};font-weight:var(--w-strong)">${filled}/${all}</span>
     </div>
     <div style="padding:10px 14px;display:flex;flex-direction:column;gap:10px">
@@ -6505,12 +6524,16 @@ function renderBlankFormSection(c){
              them is the one that reads as decided. DRAFT FROM A SENTENCE's own
              ruling, and its own reason. */}
       ${blankFormFilledLineHtml(c)}
-      ${groups.map(g => `
+      ${(() => { let n = 0; return groups.map(g => `
         ${g.name?`<div style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-top:2px">${esc(g.name)}</div>`:''}
-        ${g.blanks.map(b => `<label style="display:block">
-          <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:3px">${esc(b.label)}</span>
+        ${g.blanks.map(b => { n++; return `<label style="display:block">
+          ${''/* A RULED LINE WITH NO WORDS IN FRONT OF IT HAS NO NAME, so it is
+                 numbered rather than left blank — a box with no label is a box
+                 nobody can answer. The placeholder as the document prints it is
+                 the box's own placeholder, which is what says which one it is. */}
+          <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:3px">${esc(b.label || i18t('bf_blank_n', { n }))}</span>
           ${blankFormInputHtml(b)}
-        </label>`).join('')}`).join('')}
+        </label>`; }).join('')}`).join(''); })()}
     </div>`;
   wireBlankForm(c);
 }
@@ -6551,6 +6574,11 @@ function wireBlankForm(c){
       } else {
         if(window.contractBlankSet) contractBlankSet(c, key, el.value);
         if(paper) paper.value = el.value;
+        /* AN UPLOAD'S PLACEHOLDER IS A SPAN, NOT A BOX, so the paper is put in
+           step by the file that painted it — every span carrying this key,
+           because a named placeholder repeated through a document is ONE
+           question. No repaint: the box is under the reader's hand. */
+        try{ if(window.uploadBlankPaint) uploadBlankPaint(key, el.value); }catch(_){ }
       }
       paintBlankFormCount(c);
     });
@@ -6666,7 +6694,11 @@ function contractFieldPeer(key, where){
     const i = fields.findIndex(f => f && String(f.fieldKey) === k);
     return i < 0 ? null : host.querySelector(`[data-tplf="${i}"]`);
   }
-  return host.querySelector(`[data-field="${q}"],[data-sync="${q}"],[data-field-key="${q}"]`);
+  /* AND THE FIFTH SHAPE, an uploaded document's placeholder (item 9): it is a
+     SPAN, painted onto the canvas, so it answers the panel-to-paper half of
+     this link and not the other one — a span takes no cursor, which is why
+     contractFieldKeyOf is deliberately left as it is. */
+  return host.querySelector(`[data-field="${q}"],[data-sync="${q}"],[data-field-key="${q}"],[data-upblank="${q}"]`);
 }
 
 /* ONE LIGHT AT A TIME, ON EITHER SIDE. The class is removed from everything
@@ -10338,6 +10370,12 @@ function wireDocCanvas(c){
      is painted BESIDE the canvas rather than inside docBody, so it dies with
      every re-render and has to be put back here (idea 7). */
   docReadPaint(c);
+  /* AND THE PLACEHOLDERS IN A DOCUMENT SOMEBODY SENT US (item 9, 20 Sep 2026).
+     Third on this funnel and for the third time the same reason: a mark built
+     into docBody would TRAVEL — to the counterparty's page, the PDF and the
+     phone — and an upload is the other side's paper. Painted here it dies with
+     every re-render and cannot be serialised by anything. */
+  try{ if(window.uploadBlanksPaint) uploadBlanksPaint(c); }catch(_){ }
 }
 
 /* ============================================================

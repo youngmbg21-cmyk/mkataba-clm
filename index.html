@@ -3104,6 +3104,24 @@
     background:var(--st-amber-bg);
     box-shadow:inset 0 -2px 0 0 var(--st-amber-dot);
     border-radius:1px; }
+  /* ---- A BLANK IN A DOCUMENT SOMEBODY SENT US (item 9, 20 Sep 2026) ----
+     IT COSTS THE CONTRACT NO LAYOUT, and that is a requirement, not a
+     preference: the span is written into the drafter's own text nodes, so a
+     padding, a margin, a border or a heavier weight here would move their
+     wording on the page. A wash and an underline move nothing. Measured both
+     ways with the marks off and on.
+     TWO STATES, TWO MEANINGS. Unanswered is amber and dashed — the product's
+     own word for "this is owed". Answered is the accent with a solid rule
+     under it, because what is printed there is OURS and a reader has to be
+     able to tell it from the words the file arrived with. Neither is green or
+     ruby: those are the redline's own grammar and nothing has been proposed. */
+  #doc-canvas span.up-blank{
+    background:var(--st-amber-bg);
+    box-shadow:inset 0 -2px 0 0 var(--st-amber-dot);
+    border-radius:1px; }
+  #doc-canvas span.up-blank.is-filled{
+    background:transparent; color:var(--accent-ink);
+    box-shadow:inset 0 -1px 0 0 var(--accent-ink); }
   .doc-read-clip{ position:relative; flex:1; min-height:0; overflow:hidden; }
   #doc-read-inner{ position:absolute; left:0; right:0; top:0; will-change:transform; }
   .doc-read-note,.doc-read-mirror{ position:absolute; left:0; right:0; padding-right:4px;

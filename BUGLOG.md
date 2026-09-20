@@ -17386,3 +17386,56 @@ Noticed, not fixed:
   button having moved. Left in place rather than swept on the way past.
 - PORTAL_MODE is a boolean and six older sites call it as a function behind a
   side guard (recorded 14 Sep, still true).
+
+## 20 Sep 2026 — item 9: the blanks in a document somebody sent us
+
+Young: *"build it"* — the ninth item off the four screenshots, whose own
+sentence was: make uploaded contracts' blanks fillable too.
+
+MEASURED before a line moved. `contractHasBlanks` refused every upload BY
+NAME, so a received document carrying `[Insert Company Name]` twice and two
+ruled lines answered `[]`: no right-hand panel, no count, and the arrival tile
+reporting "nothing to fill" on the one kind of contract whose blanks nobody in
+this workspace wrote. The only way to answer a placeholder in received paper
+was to negotiate a change to it.
+
+Built: `js/uploadblanks.js` (the reading — no route, no store, no new field),
+widened `contractHasBlanks` / `contractBlanks` / `contractBlanksNone` in
+js/blanks.js, the panel's gate and heading in js/views/contract.js, the mark
+painted on `wireDocCanvas`, `data-upwording` naming the agreement in
+`uploadDocBody`, `[data-upblank]` on `contractFieldPeer`'s paper selector, the
+`.up-blank` rule in index.html, three keys in both books.
+
+Four refusals are the design: the wording is never rewritten; the marks are
+PAINTED on the canvas rather than built into docBody, so nothing travels;
+`kind:'upload'` keeps these blanks out of `fillBlanksFromRecord` because we do
+not know whose side a placeholder in a document we did not draft is naming;
+and it all stops the moment `uploadWordingEdited` says the wording is ours.
+
+Found while driving it (would not have shown up in the source):
+- the first browser check said HaTi must not mark the ruled line under a
+  "Signature" heading in the RECEIVED wording. The product was right and the
+  check was wrong: that line is the drafter's own and IS a blank. The scope
+  claim was re-pointed to HaTi's OWN furniture (the file strip, the signature
+  block, the seal card), which sits outside `[data-upwording]`, and given a
+  gate — a file name carrying a bracket — so it bites.
+- the first paint re-minted its own keys from the painted page, which could
+  drift from the read if a renderer ever split a text node differently. It
+  takes the keys from `uploadBlankSeq` now and draws NOTHING where the two
+  walks disagree by one character.
+- two claims in the first f342 draft, and seven in the browser file, passed
+  against the parent because an empty reading satisfies them. All gated.
+
+### Noticed, not fixed
+- `plain-english-verify` 10c is red ("the walk reads it clause for clause,
+  each with the paper's own number", 13 rows). Verified red at the parent
+  commit in a worktree — pre-existing, not this work.
+- `signing-on-paper-verify` is 20/22: "4a the mark lands on the paper" fails
+  and the journey then times out on a click intercepted by `#sig-pad`.
+  Verified identical at the parent commit — pre-existing.
+- `js/blanks.js`'s own note still lists "the three shapes a drafted contract
+  comes in"; there are four now. Prose only, left as found.
+- `upLead` reads the words in front of a ruled line from the same text node
+  only, falling back to the line before. A placeholder whose label sits in a
+  neighbouring element (a bold lead-in, a table cell) is numbered instead of
+  named. Honest, and narrower than guessing.

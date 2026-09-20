@@ -69,7 +69,22 @@ const BLANK_MAX = 40;
 function contractHasBlanks(c){
   if(!c) return false;
   if(c.templateForm) return false;                        // the library form's own
-  try{ if(typeof isUpload==='function' && isUpload(c)) return false; }catch(_){ }
+  /* ---- AND A FOURTH SHAPE SINCE 20 SEP 2026: A DOCUMENT SOMEBODY SENT US ----
+     (Young: "build it", item 9.) An upload's blanks are WORDS rather than
+     boxes — `[Insert Company Name]`, `________` — and this line used to refuse
+     every one of them, so the panel never drew on the one kind of contract
+     whose blanks nobody in this workspace wrote. js/uploadblanks.js is the
+     reading; `uploadBlanksLive` is its gate and carries all four walls
+     (an upload, not sealed, an editor, and nobody has edited the wording).
+     Asked BEFORE `redlineText`, deliberately: a structured upload stores its
+     wording, so the line below would still refuse it.
+
+     IT IS ASKED THROUGH `window`, so a stage without that file answers
+     exactly what every test written before it asserts. */
+  try{
+    if(typeof isUpload==='function' && isUpload(c))
+      return !!(typeof uploadBlanksLive==='function' && uploadBlanksLive(c));
+  }catch(_){ return false; }
   if(c.redlineText) return false;                         // stored wording — see above
   return !!(typeof TEMPLATES!=='undefined' && TEMPLATES[c.template]);
 }
@@ -117,7 +132,18 @@ function contractBlanksNone(c){
     if(open == null) return 'form';
     return open > 0 ? 'form' : 'none';
   }
-  try{ if(typeof isUpload === 'function' && isUpload(c)) return 'upload'; }catch(_){ }
+  /* AN UPLOAD IS NO LONGER ALWAYS A REASON. Since item 9 its placeholders are
+     readable, so the honest answer is the same one every other contract gets:
+     null where something is still open, 'none' where it looked and found
+     nothing. `upload` survives for the uploads this cannot reach — a sealed
+     record, a Viewer, one the workspace has already redlined — because there
+     the wording really is not ours to fill in. */
+  try{
+    if(typeof isUpload === 'function' && isUpload(c)){
+      if(!contractHasBlanks(c)) return 'upload';
+      return contractBlanksOpen(c).length ? null : 'none';
+    }
+  }catch(_){ return 'upload'; }
   if(c.redlineText) return 'nego';
   if(!contractHasBlanks(c)) return 'none';
   /* It looked, and every blank is answered. The honest "none". */
@@ -157,6 +183,15 @@ function blankLabel(key, declared){
    the page does with it too. */
 function contractBlanks(c){
   if(!contractHasBlanks(c)) return [];
+  /* AN UPLOAD'S BLANKS ARE IN ITS OWN WORDING and are read there — off the
+     stored text rather than off this tab, so the answer is the same at
+     creation, in Node and on a page the reader is looking at. Same shape, so
+     the panel, the count and the arrival tile below need no branch of their
+     own; the `kind` is what tells them apart where it matters. */
+  try{
+    if(typeof isUpload === 'function' && isUpload(c) && typeof uploadBlanksRead === 'function')
+      return uploadBlanksRead(c);
+  }catch(_){ return []; }
   if(typeof document === 'undefined' || typeof docBody !== 'function') return [];
   let host;
   try{
@@ -289,6 +324,11 @@ const BLANK_NEVER_FILLED = ['counterparty', 'value', 'termYears'];
 
 function fillBlanksFromRecord(c, opts){
   const o = opts || {};
+  /* `kind === 'field'` IS ALSO WHAT KEEPS AN UPLOAD'S PLACEHOLDERS OUT OF
+     THIS, and that is a decision rather than a side effect: we did not draft
+     the document, so we do not know whose side `[Company Name]` names in it,
+     and a reading that answered it with OUR entity would be this product
+     inventing a fact and then reporting it. A person types those. */
   const open = contractBlanksOpen(c).filter(b => b.kind === 'field' && !BLANK_NEVER_FILLED.includes(b.key));
   if(!open.length) return { filled: [], left: [] };
   let br = null;

@@ -49,6 +49,7 @@ import './ladder.js';       // every move on one clause, across every round (14 
 import './redlineplan.js';   // the co-pilot's first pass over their round (W3-1)
 import './standards.js';     // the Standards page's own readings (ideas 20 & 21)
 import './blanks.js';     // the open blanks of a drafted contract: one reading, read off the paper (17 Sep 2026)
+import './uploadblanks.js'; // the blanks in a document somebody SENT us: placeholders read off their wording (20 Sep 2026)
 import './triage.js';       // auto-triage on upload: it presses the product's own four readings
 import './notice.js';    // the notice desk: a letter drafted from the record, never from a model (S6, 16 Sep 2026)
 import './desknight.js';    // the overnight desk: three kinds of prepared work, read off the record (idea 19)

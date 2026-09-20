@@ -6380,6 +6380,13 @@ const STRINGS = {
     /* The right-hand panel a built-in template's contract now gets, so every
        contract can be filled from the column and not only on the paper. */
     bf_title: 'Contract form',
+    /* ---- AND THE BLANKS IN A DOCUMENT SOMEBODY SENT US (item 9, 20 Sep 2026) ----
+       Its own heading because they are not the same thing: a contract form is
+       our own drafting with our own boxes in it, and these are placeholders in
+       the other side's paper. The note is a hover, never a line on the page. */
+    bf_title_upload: 'Blanks in this document',
+    bf_upload_note: 'Your answers are kept on this record. The document they sent is not changed.',
+    bf_blank_n: 'Blank {n}',
     bf_from: 'from \u201c{name}\u201d',
     bf_copilot_filled: 'Copilot filled in: {fields}. Correct anything it got wrong.',
     tri_kt_head: 'HaTi read this contract',
@@ -13236,6 +13243,9 @@ const STRINGS = {
     fb_not_available: 'Att fylla i tomma fält är inte tillgängligt här',
     fb_failed: 'Copilot kunde inte fylla i de tomma fälten.',
     bf_title: 'Avtalsformulär',
+    bf_title_upload: 'Tomma fält i dokumentet',
+    bf_upload_note: 'Dina svar sparas på det här avtalet. Dokumentet de skickade ändras inte.',
+    bf_blank_n: 'Tomt fält {n}',
     bf_from: 'från \u201d{name}\u201d',
     bf_copilot_filled: 'Copilot fyllde i: {fields}. Rätta det som blivit fel.',
     tri_kt_head: 'HaTi har läst avtalet',
