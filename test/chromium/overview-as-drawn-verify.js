@@ -210,6 +210,41 @@ const SEC = (suffix) => {
     check('6b each carries the date it was made', cop && cop.readDates === 5, cop && cop.readDates + ' date cells');
     check('6c and a door into it where there is one', cop && cop.readDoors >= 4, cop && cop.readDoors + ' doors');
 
+    /* ═══ 8 · THE NAME OF A FIELD IS NOT BOLD; ITS ANSWER IS ═══
+       (Young ruled 20 Sep 2026: "the names of the fields are currently in bold
+       grey letters. They should not be in bold letters. The answered fields
+       should stay in black bold letters.") Measured as PAINTED WEIGHTS — the
+       source reads a token either way. */
+    const ty = await page.evaluate(() => {
+      const head = document.querySelector('[data-sec-toggle$="deal"]');
+      const box = head && head.closest('.sec-box');
+      if (!box) return null;
+      const f = box.querySelector('.sec-fields .sec-f');
+      const answered = [...box.querySelectorAll('.sec-f-v')].find(v => !v.classList.contains('is-none'));
+      const empty = box.querySelector('.sec-f-v.is-none');
+      const g = el => el ? getComputedStyle(el) : null;
+      const l = g(f && f.querySelector('.sec-f-l')), a = g(answered), e = g(empty);
+      return { label: l && l.fontWeight, labelCase: l && l.textTransform, labelInk: l && l.color,
+        answered: a && a.fontWeight, answeredInk: a && a.color,
+        empty: e && e.fontWeight, bodyInk: getComputedStyle(document.body).color,
+        answeredText: answered ? (answered.textContent || '').trim() : null };
+    });
+    check('8a GATE — the deal grid is painted with a label and an answered value',
+      !!(ty && ty.label && ty.answered && ty.answeredText && ty.answeredText !== '—'),
+      ty ? JSON.stringify(ty) : 'no section');
+    check('8b the field NAME is not bold', !!ty && Number(ty.label) <= 400,
+      ty ? 'label weight ' + ty.label : 'not measured');
+    check('8c CONTROL — and it keeps the product\'s own label treatment otherwise',
+      !!ty && ty.labelCase === 'uppercase', ty ? String(ty.labelCase) : 'not measured');
+    check('8d CONTROL — an ANSWERED field stays bold', !!ty && Number(ty.answered) >= 600,
+      ty ? 'value weight ' + ty.answered : 'not measured');
+    check('8e CONTROL — and stays in the page\'s own ink, not the label\'s grey',
+      !!ty && ty.answeredInk === ty.bodyInk && ty.answeredInk !== ty.labelInk,
+      ty ? (ty.answeredInk + ' against body ' + ty.bodyInk + ' / label ' + ty.labelInk) : 'not measured');
+    check('8f CONTROL — an em-dash is still the light one',
+      !!ty && (ty.empty == null || Number(ty.empty) <= 400),
+      ty ? 'empty weight ' + ty.empty : 'not measured');
+
     check('7 no page errors anywhere in the journey', errors.length === 0, errors.join(' | '));
     await ctx.close();
   } finally {

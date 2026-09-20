@@ -316,7 +316,21 @@ describe('f341 (5) — two arrival tiles open the card that owns their reading',
     const b = fnBody(CONTRACT_CODE, 'paintKtTriage');
     assert.match(b, /\[data-kt-tri-go\]/, 'this is the function that knows it landed');
     assert.match(b, /roomGoTab\(c,'oblig'\)/, 'obligations go to the tab that owns them');
-    assert.match(b, /getElementById\('brief-card'\)/, 'and the brief is on this very tab');
+    /* REVERSED IN PLACE 20 Sep 2026 (Young: "Brief Witten is supposed to pull
+       the brief side Panel but it does not"). It scrolled to `#brief-card`,
+       which is the card ABOUT the brief rather than the brief itself — the
+       reader landed beside a heading and still had to find its Open button,
+       which is precisely what the tile's arrow promises to have done. */
+    assert.match(b, /openCheckPanel\(c,'brief'\)/, 'the brief tile opens the brief panel');
+    assert.ok(!/getElementById\('brief-card'\)/.test(b), 'and no longer merely scrolls to its card');
+  });
+
+  test('TWO DOORS, ONE ACT — the tile and the card\'s Open button make the same call', () => {
+    const tile = fnBody(CONTRACT_CODE, 'paintKtTriage');
+    const card = fnBody(CONTRACT_CODE, 'wireKtBriefCard') || CONTRACT_CODE;
+    assert.match(tile, /openCheckPanel\(c,'brief'\)/);
+    assert.match(card, /openCheckPanel\(c,'brief'\)/,
+      'the card\'s own Open button is the act the tile borrows');
   });
 
   test('a door tile is dressed so it does not become a second kind of tile', () => {

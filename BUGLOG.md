@@ -17490,3 +17490,28 @@ TWO REAL DEFECTS FOUND BY DRIVING IT, both invisible in the source:
 - an unnamed field whose prompt is Word's stock string falls back to the words
   in front of it, which on "…Enter buyer name of ▯" reads poorly. Honest, and
   narrower than guessing.
+
+## 20 Sep 2026 — the brief tile, and the weight of a field's name
+
+Two reports while the Word-field work was landing.
+
+1. "Brief Witten is supposed to pull the brief side Panel but it does not."
+   MEASURED: the tile scrolled to #brief-card, which is the card ABOUT the
+   brief rather than the brief itself — the reader arrived beside a heading and
+   still had to find the Open button on it. That button already calls
+   openCheckPanel(c,'brief'), so the tile now makes the same call: two doors,
+   one act, and the panel's 500px width and its filling stay where they were.
+   Driven at the parent it prints "panel false · drawn false · 0px".
+
+2. "the names of the fields are currently in bold grey letters. They should not
+   be in bold letters. The answered fields should stay in black bold letters."
+   .sec-f-l gives up its weight alone and keeps the micro size, the uppercase
+   and the .09em. The value rules were already right and are pinned as walls
+   rather than changed. Measured as painted weights: label 700 -> 400,
+   answered value 600 in rgb(14,26,24), em-dash 400 grey.
+
+### Noticed, not fixed
+- .ov-reads th (the "What Copilot read" table head) keeps 700. It is a table
+  head rather than a field name and every other table in the product sets its
+  head that way; swept with the labels it would have made this page's tables
+  differ from the register's. Said out loud rather than absorbed.

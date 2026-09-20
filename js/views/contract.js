@@ -5025,10 +5025,21 @@ function paintKtTriage(c){
   slot.querySelectorAll('[data-kt-tri-go]').forEach(btn=>btn.addEventListener('click',()=>{
     const go=btn.getAttribute('data-kt-tri-go');
     if(go==='oblig'){ if(window.roomGoTab) roomGoTab(c,'oblig'); return; }
-    /* The brief's card is on this very tab, so this is a scroll rather than a
-       navigation — and it lands rather than travels. */
-    const card=document.getElementById('brief-card');
-    if(card) card.scrollIntoView({behavior:'smooth',block:'center'});
+    /* ---- THE BRIEF TILE PULLS THE BRIEF PANEL (Young reported it 20 Sep
+       2026: "Brief Witten is supposed to pull the brief side Panel but it does
+       not") ----
+       It scrolled to `#brief-card` instead, which is the card ABOUT the brief
+       rather than the brief itself: the reader arrived beside a heading and
+       still had to find the Open button on it. That is what the tile's arrow
+       promises to have done for them.
+
+       TWO DOORS, ONE ACT: this is the very call the card's own Open button
+       makes (`data-kt-brief="open"`), so the tile and the button cannot drift
+       about what "open the brief" means — and the panel, its width and its
+       filling all stay openCheckPanel's. The door is drawn only where the
+       brief was WRITTEN (doorFor asks `x.ok`), so it can never open on
+       nothing. */
+    openCheckPanel(c,'brief');
   }));
   const b=document.getElementById('kt-tri-done'); if(!b) return;
   b.addEventListener('click',()=>{

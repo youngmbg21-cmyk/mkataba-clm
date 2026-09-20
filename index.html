@@ -3521,7 +3521,15 @@
   .sec-fields{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr));
     gap:12px 24px; padding:12px 16px 14px; }
   .sec-f{ min-width:0; }
-  .sec-f-l{ display:block; font-size:var(--t-micro); font-weight:var(--w-title);
+  /* THE NAME OF A FIELD IS NOT BOLD; ITS ANSWER IS (Young ruled 20 Sep 2026:
+     "the names of the fields are currently in bold grey letters. They should
+     not be in bold letters. The answered fields should stay in black bold
+     letters"). The label keeps the product's own label treatment otherwise —
+     the micro size, the uppercase and the .09em — and gives up only the
+     weight, so what carries the eye down the card is the ANSWER. The value
+     rules below are untouched: an answered field is already --w-strong in the
+     page's own ink, and an em-dash is already light and grey. */
+  .sec-f-l{ display:block; font-size:var(--t-micro); font-weight:var(--w-body);
     letter-spacing:.09em; text-transform:uppercase; color:var(--color-neutral-600);
     margin-bottom:1px; }
   .sec-f-v{ display:flex; align-items:baseline; gap:6px; min-width:0;

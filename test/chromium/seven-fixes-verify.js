@@ -328,6 +328,29 @@ const SEED = async () => {
     check('5f pressing the obligations tile lands on the obligations tab',
       pressed.pressed && pressed.tab === 'oblig', `tab now ${pressed.tab}`);
 
+    /* AND THE BRIEF TILE PULLS THE BRIEF PANEL (Young reported it 20 Sep 2026:
+       "Brief Witten is supposed to pull the brief side Panel but it does not").
+       It scrolled to the card ABOUT the brief instead, so a reader landed
+       beside a heading and still had to find its Open button. Measured as a
+       PAINTED PANEL, never as a scroll position. */
+    const briefPressed = await drive(page, async () => {
+      const b = document.querySelector('[data-kt-tri-go="brief"]');
+      if (!b) return { pressed: false };
+      b.click();
+      await new Promise(r => setTimeout(r, 900));
+      const panel = document.getElementById('brief-section');
+      const host = panel && panel.closest('[class*="panel"],aside,[role="dialog"]');
+      const r = (host || panel) ? (host || panel).getBoundingClientRect() : null;
+      return { pressed: true, there: !!panel,
+        drawn: !!(r && r.width > 2 && r.height > 2), w: r ? Math.round(r.width) : 0 };
+    }, undefined, { pressed: false });
+    check('5g the brief tile was there to press', briefPressed.pressed,
+      briefPressed.pressed ? 'yes' : 'no brief door');
+    check('5h pressing it PULLS THE BRIEF PANEL, not a scroll to its card',
+      briefPressed.pressed && briefPressed.there && briefPressed.drawn,
+      briefPressed.pressed ? ('panel ' + briefPressed.there + ' · drawn ' + briefPressed.drawn
+        + ' · ' + briefPressed.w + 'px') : 'not driven');
+
     /* ═══════════ 6 · THE FILL TILE TELLS THE TRUTH ═══════════
        The stage IS the fault: a contract in negotiation, where the reading
        deliberately does not look, and the tile used to draw a green tick. */
