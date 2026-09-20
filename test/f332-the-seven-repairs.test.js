@@ -298,7 +298,21 @@ describe('f332 (6) which side of the money we are on is asked at creation', () =
     const TF = read('js/templatefields.js');
     assert.match(TF, /const fieldOpt = o =>/);
     assert.match(TF, /Object\.assign\(window,\{[^\n]*fieldOpt/, 'published');
-    assert.match(TF, /\(f\.opts\|\|\[\]\)\.map\(fieldOpt\)/, 'the coercer asks it');
+    /* ---- RE-POINTED 20 SEP 2026 ---- the coercer used to hold this shape
+       inline; it and the validator both ask `fieldOptHit` now, which is the
+       one reading of WHICH option an answer names. Pinned as the relation —
+       two askers, one reading — rather than as either one's body. */
+    assert.match(TF, /function fieldOptHit\(f, raw\)/, 'one reading of which option is named');
+    assert.match(TF, /if\(f\.type==='select'\)\{ const hit=fieldOptHit\(f, v\);/, 'the coercer asks it');
+    assert.match(TF, /if\(opts\.length && !fieldOptHit\(f, v\)\)/, 'and so does the validator');
+    /* THE DEFECT: `(f.opts||[]).map(String)` made every pair "[object Object]",
+       so a correctly answered select refused every answer and named the
+       options as objects. It must not come back. */
+    /* COMMENTS ARE PROSE. The note beside the fix quotes the defect verbatim,
+       so a sweep that reads the file whole finds the very shape it is banning.
+       This file's own standing lesson, paid again. */
+    assert.doesNotMatch(TF.replace(/\/\*[\s\S]*?\*\//g, ' '), /\(f\.opts\|\|\[\]\)\.map\(String\)/,
+      'an option is never stringified whole');
     assert.match(TF, /f\.type==='select'\) return `<label/, 'the essentials form draws a select at all');
     assert.match(read('js/wizard.js'), /fieldOpt\(o\)/, 'and so does the wizard, through the same reading');
   });

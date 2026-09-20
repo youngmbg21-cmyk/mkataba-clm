@@ -120,8 +120,17 @@ describe('f336 (1) — the book is a tab beside the list, never a replacement', 
     assert.equal(typeof s.tplOverviewHtml, 'function', 'and the card wall before it');
   });
 
-  test('and the landing is unchanged — a reader still arrives on the list', () => {
-    assert.equal(stage().tplPageTab(), 'list');
+  /* ---- REVERSED IN PLACE, 20 Sep 2026 ----
+     Young: "when you Navigate to the templates page, you should First Land in
+     the first tab which in this case its The Book". It read: the landing is
+     unchanged — a reader still arrives on the list. The 18 Sep argument that
+     set that was about the OVERVIEW tab, which this very file's ruling
+     deleted a day later; the book that replaced it carries doors, because
+     every card presses tplGoBucket onto the narrowed table. */
+  test('and the landing is the FIRST tab — which is the book this file added', () => {
+    const s = stage();
+    assert.equal(s.tplPageTab(), s.TPL_PAGE_TABS[0], 'the relation, not the word');
+    assert.equal(s.tplPageTab(), 'book');
   });
 
   test('both sections are in the DOM, and only the live one is drawn', () => {
@@ -130,8 +139,17 @@ describe('f336 (1) — the book is a tab beside the list, never a replacement', 
     for (const k of ['book', 'list'])
       assert.ok(html.includes(`data-tpl-sec="${k}"`), `${k} must stay in the DOM`);
     assert.ok(!html.includes('data-tpl-sec="overview"'), 'and the third one is not');
-    /* the list is the live tab, so the book carries `hidden` */
-    assert.match(html, /data-tpl-sec="book" hidden/);
+    /* ---- WHICH ONE CARRIES `hidden` IS THE LANDING, AND IT MOVED (20 Sep
+       2026) ---- It read: the list is the live tab, so the book carries
+       `hidden`. The book is the landing now, so the LIST is the folded one.
+       Asked as the RELATION — the live tab is drawn, the other is hidden —
+       so this claim cannot drift from tplPageTab() again. */
+    const live = s.tplPageTab(), other = s.TPL_PAGE_TABS.find(k => k !== live);
+    assert.ok(!new RegExp(`data-tpl-sec="${live}" hidden`).test(html),
+      'the tab you land on is drawn');
+    assert.match(html, new RegExp(`data-tpl-sec="${other}" hidden`),
+      'and the other one is in the DOM, folded');
+    assert.equal(live, 'book', 'which on this row means the book is drawn');
   });
 
   test('ONE READING, taken once and never counted twice', () => {

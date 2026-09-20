@@ -246,7 +246,13 @@ describe('f310 (2) — the other twenty-five: the retired sentences are not draw
     both('dk_ho_sub', 'The new lead takes every decision from here; you stay on as a contributor.');
     both('dk_tell_them_sub', 'Otherwise they would simply see a new name.');
     both('rv_entry_desk_sub', 'Colleagues who redline alongside you.');
-    both('dr_lead', 'Copilot picks the template that fits and fills in what you say. Nothing is created until you press Create.');
+    /* ---- RE-POINTED 20 SEP 2026 ---- the ruling that company standards are
+       looked at FIRST is a fact about what happens next, which is exactly the
+       one line the diet keeps. What the diet would have refused — that you
+       may ask for another shelf in your own words — went to the box's hover
+       instead, where a reader deciding what to type will meet it. */
+    both('dr_lead', 'Copilot looks at your company standards first, picks the template that fits and fills in what you say. Nothing is created until you press Create.');
+    both('dr_shelf_hint');
     both('ng_memo_send_privacy', 'Nothing is written to the contract.');
     both('ob_tick_to_add', 'Tick the ones to add. Nothing is saved until you confirm.');
     both('ct_paper_sig_line', 'Recorded as executed outside HaTi — no electronic signature is taken.');
