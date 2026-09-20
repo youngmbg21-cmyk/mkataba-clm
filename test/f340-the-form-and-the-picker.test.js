@@ -224,3 +224,91 @@ describe('f340 (4) the picker shows your own paper, and has a way out', () => {
         'the picker presses doors that already exist');
   });
 });
+
+/* ════════════════════════════════════════════════════════════════
+   5 · THE SHELF IS LOADED BEFORE IT IS OFFERED, AND AN EMPTY ONE SAYS SO
+   ════════════════════════════════════════════════════════════════
+   Young, 20 Sep 2026: *"when i try to draft an agreement by describing what
+   i want, it still Pulls from hati templates and not Company Standard."*
+
+   MEASURED FIRST, and the measurement did NOT confirm the obvious theory:
+   one fetch of /api/templates lands at boot, so on a settled page the shelf
+   IS warm and the ranking does prefer a standard. Two real things were
+   nevertheless wrong, and they are what is fixed here — the second is far
+   more likely to be what the report is about.
+
+   ONE: the list was read when the dialog OPENED, one tick after a fetch
+   nobody awaited. Narrow, but real on a slow connection, and reading it at
+   the press costs nothing.
+
+   TWO, AND THE LIKELY ONE: with no company standard published there is
+   nothing to prefer, and the card said only "A HaTi template" — leaving a
+   reader unable to tell a standard that was PASSED OVER from a shelf that
+   was EMPTY. Those are different faults and the screen was silent on both. */
+describe('f340 (5) the company standards are loaded before they are offered', () => {
+  test('5a one shared flight, and the latch is a boolean raised first', () => {
+    const TL = CODE('js/views/templatelib.js');
+    assert.match(TL, /function tplLibReady\(\)/);
+    assert.match(TL, /let _tplLibWarming = false, _tplLibWarmDone = null;/,
+      'A LATCH MAY NOT BE ITS OWN PROMISE — the flag exists before the promise');
+    assert.match(TL, /if \(_tplLibWarming\) return _tplLibWarmDone;/, 'one flight, shared');
+    assert.match(TL, /_tplLibWarming = true;[\s\S]{0,200}_tplLibWarming = false;/,
+      'and it comes down, so a failed load may be asked again');
+    assert.match(TL, /tplLibRefresh, tplLibReady,/, 'published — two files read it');
+  });
+
+  test('5b the draft door reads the list at the PRESS, once the shelf is loaded', () => {
+    assert.match(DRAFT_CODE, /async function draftRead\(given\)/);
+    assert.match(DRAFT_CODE, /if\(!given && typeof tplLibReady==='function'\) await tplLibReady\(\);/);
+    assert.match(DRAFT_CODE, /const cands=given\|\|draftCandidates\(\);/);
+    assert.match(DRAFT_CODE, /addEventListener\('click',\(\)=>draftRead\(\)\)/,
+      'the door names no list, so it is read fresh');
+  });
+
+  test('5c and the picker re-draws when they land — but never over a typed answer', () => {
+    assert.match(WZ_CODE, /tplLibReady\(\)\.then\(\(\)=>\{ if\(!tid && tplLibPublished\(\)\.length!==before\) renderStep\(\); \}\)/);
+  });
+
+  test('5d AN EMPTY SHELF IS A FACT, read off the list and never guessed', () => {
+    const sb = fields();   // js/draft.js is not on that stage; read the source
+    assert.ok(sb, 'stage');
+    assert.match(DRAFT_CODE, /function draftNoStandards\(cands\)\{[\s\S]{0,160}c\.kind === 'lib'/);
+    assert.match(DRAFT_CODE, /pick\.kind!=='lib'&&draftNoStandards\(all\)/,
+      'said only where the pick is not a standard AND there was none to be');
+    assert.match(DRAFT_CODE, /draftOffer\(pick, prefill, String\(\(r&&r\.why\)\|\|''\), cands\)/,
+      'the card is handed the list it was chosen from');
+    assert.equal((I18N.match(/\bdr_no_standards:/g) || []).length, 2, 'both books');
+  });
+
+  test('5e CONTROL — the ranking itself is untouched', () => {
+    assert.match(DRAFT_CODE, /draftBucketRank\(a\.c\.kind\)-draftBucketRank\(b\.c\.kind\)/);
+  });
+});
+
+/* ════════════════════════════════════════════════════════════════
+   6 · A DATE FIELD IS AN ORDINARY BOX
+   ════════════════════════════════════════════════════════════════
+   Young, 20 Sep 2026, on an iPad: *"Start Date and end Date Field still seem
+   not be lining up or to be the same size as the Rest."* MEASURED off the
+   screenshot: every other box 477px, both date boxes about 520, and the date
+   text centred where every other field's text sits left.
+
+   WEBKIT GIVES input[type=date] ITS OWN INTRINSIC WIDTH AND ITS OWN INNER
+   ALIGNMENT, and neither `width:100%` nor the `max-width` added on 20 Sep
+   reaches either. CHROMIUM NEEDS NEITHER RULE, so this cannot be reproduced
+   in the browser these checks run in — the claims below pin the rules, and
+   the screen itself wants confirming on the reporter's own iPad. */
+describe('f340 (6) the date boxes match the rest of the form', () => {
+  test('6a the box is sized by us, not by the browser', () => {
+    assert.match(HTML, /\.field-grid input\[type="date"\]\{ -webkit-appearance:none; appearance:none; \}/);
+  });
+  test('6b and its text sits where every other field\'s text sits', () => {
+    assert.match(HTML, /\.field-grid input\[type="date"\]::-webkit-date-and-time-value\{ text-align:left; \}/);
+  });
+  test('6c and it is scoped to the three creation forms, nowhere else', () => {
+    const rules = HTML.match(/input\[type="date"\]/g) || [];
+    assert.ok(rules.length >= 2, 'both rules are there');
+    assert.doesNotMatch(HTML.replace(/\/\*[\s\S]*?\*\//g, ' '), /(?<!\.field-grid )input\[type="date"\]/,
+      'no unscoped date rule reaches the rest of the product');
+  });
+});

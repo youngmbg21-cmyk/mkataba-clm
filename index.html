@@ -5640,6 +5640,24 @@
   .field-grid > *{min-width:0;}
   .field-grid input, .field-grid select{max-width:100%; min-width:0;}
 
+  /* ---- AND A DATE FIELD IS SIZED AND ALIGNED BY SAFARI, NOT BY US
+     (Young reported it 20 Sep 2026, on an iPad: "Start Date and end Date
+     Field still seem not be lining up or to be the same size as the Rest") ----
+     MEASURED off the report: every other box 477px wide, both date boxes
+     about 520, and the date text CENTRED where every other field's text sits
+     left. WebKit gives input[type=date] its own intrinsic width and its own
+     inner alignment, and NEITHER `width:100%` NOR `max-width` reaches
+     either — `appearance:none` is what makes it an ordinary box, and
+     ::-webkit-date-and-time-value is what puts its text where the rest of
+     the form's text is.
+     TWO THINGS TO KNOW. Chromium needs neither and is unchanged by both, so
+     this could not be reproduced here — it is reasoned from the two numbers
+     the screenshot carries, and wants confirming on the reporter's own iPad.
+     And the native picker is untouched: appearance only changes how the box
+     is drawn, so a tap still opens the wheel. */
+  .field-grid input[type="date"]{ -webkit-appearance:none; appearance:none; }
+  .field-grid input[type="date"]::-webkit-date-and-time-value{ text-align:left; }
+
   /* Settings & Rules — members beside the settings stack (was 1.5fr 1fr) */
   .tm-cols{grid-template-columns:1.5fr 1fr;}
   @media (max-width:1099px){ .tm-cols{grid-template-columns:minmax(0,1fr);} }
