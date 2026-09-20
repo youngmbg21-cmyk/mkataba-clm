@@ -182,6 +182,22 @@ function openWizard(preTid, prefill){
           <span style="font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-neutral-500);flex:none;">${n}</span></span>
           <span style="display:block;margin-top:5px;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.4;">${esc2(fDesc(k))}</span></button>`;
       };
+      /* ---- YOUR OWN PAPER IS ON THE FRONT SCREEN (Young ruled it 20 Sep
+         2026, reviewing this pop-up) ----
+         The note above `lib` says company standards "stay pinned on top —
+         the whole point of publishing one is that it becomes the team's
+         one-click default". MEASURED, they were not drawn on this screen at
+         all: `lib` and `mine` reached only `rows`, which feeds the stream
+         folders and the search box, so the only paper a reader could SEE was
+         the four HaTi built-ins under FOR YOU. To reach your own company
+         standard you had to know which value stream it was filed in, or know
+         its name well enough to type it — on the screen whose whole job is to
+         show you what you have.
+         ONE SECTION, NOT TWO. Standards first, then saved templates, in one
+         group under one eyebrow: this screen already carries FOR YOU, a line
+         of business, a search box and six folders, and the ask was to make it
+         LESS confusing. Drawn only when there is something in it. */
+      const ours=[...rows.filter(r=>r.pick==='lib'), ...rows.filter(r=>r.pick==='mine')];
       const inStream=wzStream&&byStream.has(wzStream)?byStream.get(wzStream):null;
       openModal(`<div style="padding:22px var(--s-6);">
         ${inStream?`<button id="wz-streams-back" style="font-size:var(--t-label);color:var(--accent-ink-700);font-weight:var(--w-strong);font-family:var(--font-mono);background:none;border:0;cursor:pointer;margin-bottom:var(--s-2);padding:0;">← ${i18t('wz_all_streams')}</button>`:''}
@@ -189,6 +205,10 @@ function openWizard(preTid, prefill){
         <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 14px;line-height:1.5;">${inStream?i18tn('wz_n_in_stream',inStream.length,{n:inStream.length}):i18t('wz_pick_stream')}</p>
         <div id="wz-pick" class="scroll-thin" style="max-height:62vh;overflow-y:auto;">
           ${inStream?`<div style="${GRID}">${inStream.map(rowCard).join('')}</div>`:`
+          ${ours.length?`<div style="margin-bottom:14px">
+            <span style="${EYE}">${i18t('wz_your_own_paper')}</span>
+            <div style="${GRID}">${ours.map(rowCard).join('')}</div>
+          </div>`:''}
           ${curated?`<div style="margin-bottom:14px">
             <span style="${EYE}">${i18t('wz_for_you')}${industry?` · ${INDUSTRY_LABEL[industry]}`:''}</span>
             <div style="${GRID}">${forYou.map(card).join('')}</div>
@@ -207,7 +227,19 @@ function openWizard(preTid, prefill){
           <div id="wz-hits" style="${GRID};margin-bottom:10px"></div>
           <span style="${EYE}">${i18t('wz_streams_head')}</span>
           <div style="${GRID}">${order.map(streamCard).join('')}</div>`}
+        </div>
+        ${''/* ---- AND A VISIBLE WAY OUT (Young, same review) ----
+               MEASURED: this dialog drew no Cancel and no ✕. Escape and the
+               scrim closed it, both of which a reader has to already know.
+               Every other dialog on the way to a contract — the essentials,
+               both fill screens, draft from a sentence — offers Cancel in
+               this exact place, so this is the shape they all share rather
+               than a new control. */}
+        <div style="display:flex;align-items:center;gap:var(--s-2);margin-top:var(--s-4)">
+          <button id="wz-pick-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+          <span style="flex:1"></span>
         </div></div>`);
+      document.getElementById('wz-pick-cancel')?.addEventListener('click', closeModal);
       /* One delegated listener: the search box re-renders cards into #wz-hits,
          and per-card wiring would quietly miss whichever render came second. */
       const pick=document.getElementById('wz-pick');
@@ -215,10 +247,17 @@ function openWizard(preTid, prefill){
       pick.addEventListener('click',e=>{
         const st=e.target.closest('[data-wz-stream]');
         if(st){ wzStream=st.getAttribute('data-wz-stream'); renderStep(); return; }
+        /* THE PREFILL REACHES ALL THREE DOORS. `openWizard(preTid, prefill)`
+           carries what was read out of a reader's own sentence, and these two
+           branches dropped it on the floor: pick a company standard or a
+           saved template from this screen and every answer Copilot had
+           already read was silently lost. Both doors have always taken it —
+           draft.js hands it to them directly — so this is the picker
+           catching up with them. */
         const lb=e.target.closest('[data-wz-lib]');
-        if(lb){ closeModal(); if(window.tplLibNewContract) tplLibNewContract(lb.getAttribute('data-wz-lib')); return; }
+        if(lb){ closeModal(); if(window.tplLibNewContract) tplLibNewContract(lb.getAttribute('data-wz-lib'), prefill); return; }
         const mn=e.target.closest('[data-wz-mine]');
-        if(mn){ closeModal(); if(window.createFromCustomTemplate) createFromCustomTemplate(mn.getAttribute('data-wz-mine')); return; }
+        if(mn){ closeModal(); if(window.createFromCustomTemplate) createFromCustomTemplate(mn.getAttribute('data-wz-mine'), prefill); return; }
         const b=e.target.closest('[data-wz-tid]');
         if(b){ tid=b.getAttribute('data-wz-tid'); renderStep(); }
       });
@@ -288,7 +327,7 @@ function openWizard(preTid, prefill){
       <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;color:var(--color-text);margin:0 0 3px;">${t.kind}</h3>
       <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-4);line-height:1.5;">${t.blurb||''}</p>
       <div id="wz-cols" style="display:grid;grid-template-columns:${_pv?'minmax(0,1fr) minmax(0,1fr)':'minmax(0,1fr)'};gap:var(--s-4);align-items:start">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s-3);">${vars.map(input).join('')}
+      <div class="field-grid" style="${(typeof FIELD_GRID_CSS==='string'?FIELD_GRID_CSS:'display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--s-3)')};">${vars.map(input).join('')}
         ${''/* ASKED HERE, WHERE YOU ARE ALREADY NAMING THEM, AND NOWHERE ELSE.
                The templates carry the counterparty's NAME; nothing carried the
                address, so it was collected later — by a strip in the

@@ -5619,6 +5619,27 @@
      grid on the page follows. */
   @media (max-width:639px){ .ce-grid{grid-template-columns:minmax(0,1fr)!important;} }
 
+  /* ---- AND A FIELD MAY NOT GROW PAST ITS COLUMN (Young reported it 20 Sep
+     2026, of the End date and Value stream boxes overlapping) ----
+     The track is capped at its share inline (minmax(0,1fr) — see
+     FIELD_GRID_CSS); this is the half that cannot be written inline, because
+     it is about the grid's CHILDREN. A grid item is floored at its own
+     min-content, and a date input's min-content is the BROWSER'S: measured,
+     Chromium asks 151px and never blows out, Safari — where the report came
+     from, drawing "20. Sep 2026" with a stepper — asks far more than the
+     226px share. Without this the label kept the item wide and the form ran
+     under the contract preview beside it.
+     THE CONTROL'S OWN CAP IS THE THIRD NET, and it is the one that matches
+     the screenshot: every box in a track is the same width, yet the End date
+     box was drawn wider than the two above it — a replaced element painting
+     past the label it sits in. Safari sizes a date field to its parts and
+     does not always give that up for `width:100%`; `max-width` caps what is
+     painted and `min-width:0` clears the intrinsic floor that would otherwise
+     outrank it. All three doors that ask these questions wear this class, so
+     they cannot drift. */
+  .field-grid > *{min-width:0;}
+  .field-grid input, .field-grid select{max-width:100%; min-width:0;}
+
   /* Settings & Rules — members beside the settings stack (was 1.5fr 1fr) */
   .tm-cols{grid-template-columns:1.5fr 1fr;}
   @media (max-width:1099px){ .tm-cols{grid-template-columns:minmax(0,1fr);} }

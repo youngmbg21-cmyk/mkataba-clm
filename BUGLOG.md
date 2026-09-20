@@ -17078,3 +17078,153 @@ already narrowed).
 ### Touched outside the request
 
 Nothing.
+
+---
+
+## 2026-09-20 · Four off two screenshots and a pop-up
+
+*"Image 1, the entry field for the end Date and value stream are overlapping.
+Image 2, even through I have answered which side we are on, i still get an
+error when i try to create draft. On a different issue, when i try to generate
+an agreement by discribing what i need, the pull should generate from the
+company Standard contracts … Also review the the pop up in image 3 and
+[ensure] it has no bugs plus it works easily without adding any confusion in
+how to navigate and use."*
+
+### An answered select was refused, in three places
+
+MEASURED FIRST. `validateField({side}, 'customer')` returned, byte for byte,
+the owner's toast:
+
+    Which side are we on? must be one of: [object Object], [object Object],
+    [object Object] (got "customer")
+
+The select branch read `(f.opts||[]).map(String)`. An option has been a
+`{v,l}` pair since 18 September; `String({v,l})` is `"[object Object]"`, which
+matches nothing — so a correctly answered select refused EVERY answer, and the
+refusal named the options as objects.
+
+THE NOTE BESIDE `fieldOpt` SAYS IT IS "asked by the coercer and by both field
+renderers". The validator is the FOURTH reader and was never added to that
+list. `fieldOptHit(f, raw)` is one reading of which option an answer names,
+asked by the validator and the coercer, so the wall and the coercion cannot
+disagree. The label is accepted as well as the stored value — a pasted or bulk
+answer carries the sentence a person read, and refusing that while the coercer
+would have resolved it is the same drift pointing the other way. The refusal
+prints the LABELS.
+
+THE SAME FAULT WAS IN TWO MORE PLACES, both on the draft-from-a-sentence path:
+`js/draft.js` sent the model `opts.map(String)` and the route sent
+`one_of: …map(o => String(o))`. So "Which side are we on?" could not be
+answered from a sentence at all. Both send `{value, means}` now.
+
+### The overlapping boxes
+
+`1fr` is `minmax(auto, 1fr)`, and `auto` FLOORS a track at its content's
+min-content width — and a date input's min-content is the browser's, not ours.
+MEASURED: Chromium wants 151px and never blows out at any width these dialogs
+can reach. Safari, which is where the report came from (it draws "20. Sep
+2026" with a stepper), wants far more than the 226px share. The track grew,
+the two-column grid overflowed its own container, and the form painted over
+the contract preview beside it.
+
+`FIELD_GRID_CSS` is one declaration — `minmax(0,1fr)` — read by all three
+doors that ask these questions, with the literal as the fallback for a stage
+that has not loaded that file. The other half cannot be written inline because
+it is about the grid's CHILDREN: `.field-grid > *{min-width:0}` lets the item
+shrink to its track, and `.field-grid input,.field-grid select{max-width:100%;
+min-width:0}` stops the control painting past its own box. Either half alone
+still overflows.
+
+I COULD NOT REPRODUCE IT IN CHROMIUM and said so rather than pretending
+otherwise. The browser file stages the CONDITION instead — a control that
+wants more room than its column — with structural selectors that bite on both
+builds, and nothing in the product's own markup is touched to do it. At the
+parent that prints 203px of form painted past its grid and 187px over the
+contract; here it prints 0.
+
+### Company standards are looked at first
+
+`DRAFT_BUCKETS` is one ordered list — company standard, saved template, HaTi's
+own — and the rank is a fact off the record, never a judgement the model
+makes. The route is told the rule through `DRAFT_BUCKET_WORD`, an allow-list,
+so a caller cannot invent a fourth shelf and talk the prompt into a rule that
+is not there.
+
+IT IS A PREFERENCE AND NOT A WALL, because the owner named both escapes: *Pick
+one myself* was always on that screen, and a sentence that names a shelf wins.
+Only an explicit ask counts — the prompt says so, so a preference is never
+read into the kind of agreement somebody described.
+
+A COMPANY STANDARD USED TO TRAVEL WITH `fields: []`, which made it the least
+described paper on the list: a model asked to fill boxes had nothing to fill
+and every reason to pick something else. It carries `essentialFields()` now —
+the questions its own door asks.
+
+### The template picker
+
+Three faults, all found by driving it.
+
+- THE COMPANY STANDARDS WERE NOT ON THE SCREEN AT ALL. The note above `lib`
+  says they "stay pinned on top — the whole point of publishing one is that it
+  becomes the team's one-click default". They reached only `rows`, which feeds
+  the stream folders and the search box, so the only paper a reader could SEE
+  was the four HaTi built-ins. To reach your own standard you had to know its
+  value stream or its name.
+- NO CANCEL AND NO ✕. Escape and the scrim closed it, both of which a reader
+  has to already know. Every other dialog on the way to a contract offers
+  Cancel in that exact place.
+- THE PREFILL WAS DROPPED BY TWO OF ITS THREE DOORS. `openWizard(preTid,
+  prefill)` carries what Copilot read out of a sentence; pick a company
+  standard or a saved template from that screen and every answer was silently
+  lost. Both doors have always taken it.
+
+One section, not two: that screen already carries a curated row, a line of
+business, a search box and six folders, and the ask was to make it LESS
+confusing.
+
+### Tests
+
+- `f340` — NEW, 23 claims, **21 RED AT THE PARENT**. The two that pass are
+  named CONTROLS.
+- `test/chromium/form-and-picker-verify.js` — NEW, 18 checks, **12 RED AT THE
+  PARENT**, where it prints `203px past, 187px over the preview` and the
+  owner's toast byte for byte. The six that pass there are all named CONTROLS.
+- `f332` (6c) re-pointed in place to the relation — two askers, one reading —
+  and given a sweep for the defect's own shape. That sweep first failed on my
+  own comment quoting the defect: COMMENTS ARE PROSE, and a net that reads
+  code strips them. This file's standing lesson, paid again.
+- `f270`'s candidate order reversed in place and asked as the relation to
+  `DRAFT_BUCKETS`. It also needed a realm-safe compare — an array built inside
+  the vm sandbox fails `deepStrictEqual` on its prototype.
+- `f310` re-pointed in place. It pins `dr_lead` by name, and it was right to
+  catch my three-sentence lead: the ruling (standards first) is what happens
+  next and belongs on the line; the machinery (you may name a shelf) went to
+  the ask box's own hover, which is the diet's own answer.
+- Full suite: 8,100 tests, 1,594 suites, 0 failures. `npm run lint` back to
+  the repo's one pre-existing error.
+- `paper-beside-questions-verify` 34/36, `dialog-balance-verify` and
+  `term-and-fields-verify` 29/30 — every one byte-identical at the parent.
+  `templates-tabs-verify` 52/57 here against 51/57 at the parent, same five
+  pre-existing failures.
+
+### Noticed, not fixed
+
+- `test/chromium/overview-as-drawn-verify.js:145` still carries the repo's one
+  lint error — a check comparing a value to itself, which can never fail.
+  Confirmed present at unmodified main.
+- The picker draws its curated "For you" cards with one builder and every
+  other card with another, so those two sets of cards are dressed differently
+  (one lifts on hover, the other does not). Pre-existing, untouched.
+- `openWizard(preTid)` honours a pre-chosen id only for the built-ins; a
+  company standard or saved template id silently shows the picker instead. No
+  caller hits it today.
+- `@media (max-width:639px)` stacks the essentials grid to one column but not
+  the wizard's or the saved-template fill's. Pre-existing, untouched.
+- The `.ce-grid` class means two unrelated things — the contract essentials
+  form and the clause editor's main grid — so a rule written for one reaches
+  the other. The new rules are keyed on `.field-grid` to stay clear of it.
+
+### Touched outside the request
+
+Nothing.

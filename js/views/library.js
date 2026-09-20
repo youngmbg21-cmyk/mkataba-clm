@@ -165,7 +165,7 @@ function openTemplateFillModal(t, prefill){
   openModal(`<div style="padding:20px 22px">
     <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0 0 3px">${_tplEsc(t.name)}</h3>
     <div id="tf-cols" style="display:grid;grid-template-columns:${_pv?'minmax(0,1fr) minmax(0,1fr)':'minmax(0,1fr)'};gap:var(--s-4);align-items:start">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s-3)">
+    <div class="field-grid" style="${(typeof FIELD_GRID_CSS==='string'?FIELD_GRID_CSS:'display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--s-3)')}">
       ${''/* OUR SIDE, ASKED HERE TOO. A customer's own template may carry a
              blank of its own mapped to `party`, in which case that one wins —
              this answer is set on the record first and applyTemplateValues

@@ -3939,7 +3939,17 @@ const STRINGS = {
        itself is translated, because it carries refusals and every fill screen
        around it is translated too. */
     dr_title: 'Describe what you need',
-    dr_lead: 'Copilot picks the template that fits and fills in what you say. Nothing is created until you press Create.',
+    /* ---- IT SAYS WHERE IT LOOKS FIRST (Young ruled it 20 Sep 2026) ----
+       One sentence on the lead this dialog already had, never a band: a
+       reader who does not know the company standards are preferred cannot
+       know that naming another shelf is a thing they may do. */
+    dr_lead: 'Copilot looks at your company standards first, picks the template that fits and fills in what you say. Nothing is created until you press Create.',
+    /* WHERE THE READER IS TYPING, not a third sentence on the lead — the
+       pop-up diet's own rule: a hint arrives when it is needed. */
+    dr_shelf_hint: 'Ask for one of HaTi\u2019s or a saved template in your own words if you would rather not use a company standard.',
+    dr_from_lib: 'Your company standard',
+    dr_from_mine: 'A saved template',
+    dr_from_builtin: 'A HaTi template',
     dr_ph: 'Two-year supply agreement with Nandi Dairy, 45-day payment, 90 days\u2019 notice',
     dr_example: 'The more you say, the more arrives filled in \u2014 who it is with, how long it runs, when it starts, what it is worth.',
     dr_read_it: 'Read it',
@@ -5476,6 +5486,7 @@ const STRINGS = {
     tl_add_field: 'Add field',
     tl_create_draft: 'Create draft',
     tl_from_template_v: '· from “{name}” v',
+    wz_your_own_paper: 'Your own paper',
     wz_for_you: 'For you',
     wz_all_templates_n: 'All templates ({n})',
     wz_nothing_matches_q: 'Nothing matches “{q}” — open All templates below, or create your own under Templates.',
@@ -10956,7 +10967,11 @@ const STRINGS = {
     wz_search_all: 'Sök i alla mallar — leverans, hyra, sekretess…',
     wz_create_and_fill: 'Skapa utkastet nu och fyll i dessa på avtalssidan',
     dr_title: 'Beskriv vad du behöver',
-    dr_lead: 'Copilot väljer mallen som passar och fyller i det du säger. Ingenting skapas förrän du trycker Skapa.',
+    dr_lead: 'Copilot tittar först på era företagsstandarder, väljer mallen som passar och fyller i det du säger. Ingenting skapas förrän du trycker Skapa.',
+    dr_shelf_hint: 'Be om en av HaTi\u2019s eller en sparad mall med egna ord om du hellre vill undvika en företagsstandard.',
+    dr_from_lib: 'Er företagsstandard',
+    dr_from_mine: 'En sparad mall',
+    dr_from_builtin: 'En HaTi-mall',
     dr_ph: 'Tvåårigt leveransavtal med Nandi Dairy, 45 dagars betalning, 90 dagars uppsägning',
     dr_example: 'Ju mer du säger, desto mer kommer ifyllt \u2014 med vem, hur länge det löper, när det börjar, vad det är värt.',
     dr_read_it: 'Läs den',
@@ -12384,6 +12399,7 @@ const STRINGS = {
     tl_add_field: 'Lägg till fält',
     tl_create_draft: 'Skapa utkast',
     tl_from_template_v: '· från ”{name}” v',
+    wz_your_own_paper: 'Ert eget underlag',
     wz_for_you: 'För dig',
     wz_all_templates_n: 'Alla mallar ({n})',
     wz_nothing_matches_q: 'Inget matchar ”{q}” — öppna Alla mallar nedan, eller skapa en egen under Mallar.',

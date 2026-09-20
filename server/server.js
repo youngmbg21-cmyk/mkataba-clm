@@ -4960,6 +4960,10 @@ app.post('/api/ai/template', auth, rlAiLight, aiFeature('template'), aiBudgetGua
 const DRAFT_SENTENCE_MAX = 2000;
 const DRAFT_CANDIDATES_MAX = 40;
 const DRAFT_FIELDS_MAX = 16;
+/* The three shelves a template can come off, in the order the prompt below
+   ranks them. Mirrors DRAFT_BUCKETS in js/draft.js — the browser sorts the
+   list and this names it, and f270 pins the two as one set. */
+const DRAFT_BUCKET_WORD = { lib:'company standard', mine:'saved template', builtin:'HaTi template' };
 app.post('/api/ai/draft', auth, editor, rlAiLight, aiFeature('draft'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
@@ -4978,9 +4982,22 @@ app.post('/api/ai/draft', auth, editor, rlAiLight, aiFeature('draft'), aiBudgetG
       id: String(c.id).slice(0, 120),
       name: String(c.name).slice(0, 160),
       about: String(c.blurb || '').slice(0, 300),
+      /* ---- WHICH SHELF THIS PAPER IS ON (Young ruled it 20 Sep 2026) ----
+         An ALLOW-LIST of the three buckets the browser knows about, so a
+         caller cannot invent a fourth and talk the prompt into a rule that is
+         not there. Anything else is simply absent, and an absent bucket is
+         ranked last by the prompt below. */
+      ...(DRAFT_BUCKET_WORD[String(c.kind || '')] ? { from: DRAFT_BUCKET_WORD[String(c.kind || '')] } : {}),
       fields: (Array.isArray(c.fields) ? c.fields : []).filter(f => f && f.key).slice(0, DRAFT_FIELDS_MAX)
         .map(f => ({ key: String(f.key).slice(0, 40), asks: String(f.label || f.key).slice(0, 80),
-          type: String(f.type || 'text').slice(0, 12), ...(Array.isArray(f.opts) && f.opts.length ? { one_of: f.opts.slice(0, 20).map(o => String(o).slice(0, 60)) } : {}) })),
+          type: String(f.type || 'text').slice(0, 12),
+          /* An option is a {v,l} pair. `String(o)` made every one of them
+             "[object Object]", so a select the sentence answered could not be
+             answered. BOTH halves travel: the model reads the words and
+             answers with the value the box stores. */
+          ...(Array.isArray(f.opts) && f.opts.length ? { one_of: f.opts.slice(0, 20).map(o => (o && typeof o === 'object')
+            ? { value: String(o.v == null ? '' : o.v).slice(0, 60), means: String(o.l == null ? o.v : o.l).slice(0, 80) }
+            : { value: String(o).slice(0, 60), means: String(o).slice(0, 80) }) } : {}) })),
     }));
   if (!cands.length) return res.status(400).json({ error: 'candidates are required' });
   const today = new Date().toISOString().slice(0, 10);
@@ -5009,7 +5026,7 @@ app.post('/api/ai/draft', auth, editor, rlAiLight, aiFeature('draft'), aiBudgetG
       required: ['templateId', 'why', 'fields'],
     },
   };
-  const prompt = `You help somebody start a contract in their own contract system.\n\nToday's date: ${today}\n\nWhat they typed:\n"""\n${said}\n"""\n\nThe templates this workspace has, each with the questions it asks (JSON):\n${JSON.stringify(cands)}\n\nDo two things with the draft_from_sentence tool.\n\nFIRST, pick the ONE template that fits what they described, by the kind of agreement it is. Return its id exactly as written above. If none of them is a reasonable fit, return an empty templateId — do not stretch to the nearest one. Then, and only then, NAME the nearest in \`closest\` and use \`why\` to say in one sentence what it does not cover. Naming it is not picking it: it is how the person is told why they got nothing, and nothing in this system will draft from it.\n\nSECOND, answer that template's own questions from their sentence, by key. Rules that matter more than filling boxes:\n- ONLY what they actually said, or what plainly follows from it. "Two-year agreement starting 1 March 2027" gives you both dates; "a two-year agreement" gives you neither, because you do not know when it starts.\n- LEAVE A QUESTION OUT rather than guess. An empty box a person fills in is right; a plausible wrong figure they do not notice is the one thing you must not produce.\n- Never invent a counterparty, a value, a date or a term that is not in what they typed.\n- Answer only the CHOSEN template's keys. Ignore every other template's fields.`;
+  const prompt = `You help somebody start a contract in their own contract system.\n\nToday's date: ${today}\n\nWhat they typed:\n"""\n${said}\n"""\n\nThe templates this workspace has, each with the questions it asks (JSON):\n${JSON.stringify(cands)}\n\nDo two things with the draft_from_sentence tool.\n\nFIRST, pick the ONE template that fits what they described, by the kind of agreement it is. Return its id exactly as written above.\n\nWHICH SHELF TO TAKE IT OFF, when more than one fits. Each template says where it came from in \`from\`:\n- "company standard" is paper this company has approved and published. PREFER IT. If a company standard covers the kind of agreement they described, pick that one even where a saved or HaTi template looks like a closer match on wording — approved paper is the point of having it.\n- "saved template" is paper somebody in this workspace saved. Take one only when no company standard covers what they asked for.\n- "HaTi template" is the paper this product ships. Take one only when neither of the others covers it.\n- A template with no \`from\` is ranked last.\nTHEY CAN OVERRIDE THIS BY SAYING SO. If their sentence asks for a particular shelf — "use the HaTi template", "one of our saved ones", "not the company standard" — that wins over the order above, and \`why\` says you did as they asked. Only an explicit ask counts; do not read a preference into the kind of agreement they named.\nWhen you take something other than a company standard while one exists, \`why\` says in its one sentence why the standard did not cover it. If none of them is a reasonable fit, return an empty templateId — do not stretch to the nearest one. Then, and only then, NAME the nearest in \`closest\` and use \`why\` to say in one sentence what it does not cover. Naming it is not picking it: it is how the person is told why they got nothing, and nothing in this system will draft from it.\n\nSECOND, answer that template's own questions from their sentence, by key. Rules that matter more than filling boxes:\n- ONLY what they actually said, or what plainly follows from it. "Two-year agreement starting 1 March 2027" gives you both dates; "a two-year agreement" gives you neither, because you do not know when it starts.\n- LEAVE A QUESTION OUT rather than guess. An empty box a person fills in is right; a plausible wrong figure they do not notice is the one thing you must not produce.\n- Never invent a counterparty, a value, a date or a term that is not in what they typed.\n- Answer only the CHOSEN template's keys. Ignore every other template's fields.`;
   try {
     const resp = await anthropicMessages(key, 'fast', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'draft_from_sentence' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'draft', who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });

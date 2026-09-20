@@ -163,9 +163,21 @@ function validateField(f, raw){
     if(n<0) return `${f.label} cannot be negative`; return null; }
   if(f.type==='date'){ const iso=normaliseDateInput(v);
     if(!iso) return `${f.label} must be a date like 2026-12-31 or 31/12/2026 (got “${v}”)`; return null; }
-  if(f.type==='select'){ const opts=(f.opts||[]).map(String);
-    if(opts.length && !opts.some(o=>o.toLowerCase()===v.toLowerCase()))
-      return `${f.label} must be one of: ${opts.join(', ')} (got “${v}”)`; return null; }
+  /* ---- AN OPTION IS A {v,l} PAIR HERE TOO (Young reported it 20 Sep 2026) ----
+     This branch read `(f.opts||[]).map(String)`, which turns a pair into the
+     string "[object Object]". It matched nothing, so a correctly answered
+     select refused every answer, and the refusal named the options as objects:
+       Which side are we on? must be one of: [object Object], [object Object],
+       [object Object] (got "customer")
+     The note beside `fieldOpt` says it is "asked by the coercer and by both
+     field renderers" — THE VALIDATOR IS THE FOURTH READER and was never added
+     to that list. It asks `fieldOptHit` now, which the coercer asks as well,
+     so the wall and the coercion cannot disagree about what an answer names.
+     The refusal prints the LABELS, because the labels are what the reader saw
+     in the dropdown; the stored value is a word they were never shown. */
+  if(f.type==='select'){ const opts=(f.opts||[]).map(fieldOpt);
+    if(opts.length && !fieldOptHit(f, v))
+      return `${f.label} must be one of: ${opts.map(o=>o.l).join(', ')} (got “${v}”)`; return null; }
   return null;
 }
 /* Accept the date formats a Kenyan spreadsheet actually contains. */
@@ -191,12 +203,24 @@ function normaliseDateInput(v){
 const fieldOpt = o => (o && typeof o === 'object') ? { v:String(o.v), l:String(o.l==null?o.v:o.l) }
                                                    : { v:String(o), l:String(o) };
 
+/* WHICH OPTION DOES THIS ANSWER NAME — the ONE reading, asked by the validator
+   and by the coercer, so a value the wall lets through is a value the coercion
+   resolves. THE LABEL COUNTS AS WELL AS THE STORED VALUE: a bulk row or a
+   pasted answer carries the sentence a person read, and refusing that while
+   the coercer would happily have resolved it is the same drift pointing the
+   other way. Null where nothing is named — the caller decides what that is. */
+function fieldOptHit(f, raw){
+  const v = String(raw==null?'':raw).trim().toLowerCase();
+  return ((f && f.opts) || []).map(fieldOpt)
+    .find(o => o.v.toLowerCase()===v || o.l.toLowerCase()===v) || null;
+}
+
 function coerceField(f, raw){
   const v=String(raw==null?'':raw).trim();
   if(!v) return '';
   if(f.type==='num') return Number(v.replace(/[, ]/g,''));
   if(f.type==='date') return normaliseDateInput(v)||'';
-  if(f.type==='select'){ const hit=(f.opts||[]).map(fieldOpt).find(o=>o.v.toLowerCase()===v.toLowerCase()); return hit?hit.v:v; }
+  if(f.type==='select'){ const hit=fieldOptHit(f, v); return hit?hit.v:v; }
   return v;
 }
 
@@ -445,6 +469,7 @@ function essentialFields(){
    read out of the reader's own words (js/draft.js) — moved onto each field's
    default, so the form draws exactly as it always did with some boxes already
    filled and every one of them still editable. */
+const FIELD_GRID_CSS = 'display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--s-3)';
 function openContractEssentials(opts){
   const o = opts || {};
   const esc = s => String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
@@ -462,6 +487,24 @@ function openContractEssentials(opts){
     cl.def = String(o.folder || '');
     return cl;
   });
+  /* ---- A FIELD COLUMN MAY NOT GROW PAST ITS SHARE (Young reported it
+     20 Sep 2026: the End date and Value stream boxes overlapping) ----
+     `1fr` is `minmax(auto, 1fr)`, and `auto` FLOORS a track at its content's
+     min-content width. A date input's min-content is the BROWSER'S, not ours:
+     measured, Chromium wants 151px and never blows out, while Safari — which
+     is where the report came from, drawing "20. Sep 2026" with a stepper — is
+     far wider than the 226px share. The track grew, the two-column grid
+     overflowed its own container, and the boxes ran under the contract
+     preview beside them.
+     `minmax(0,1fr)` caps the track at its share. THE CLASS IS THE OTHER HALF
+     AND CANNOT BE WRITTEN INLINE: a grid ITEM is floored at its own
+     min-content too, so `.field-grid > *{min-width:0}` in HaTi's own sheet is
+     what lets the label shrink to the track. Either half alone still overflows
+     in a browser whose date control is wide.
+     THREE DOORS ASK THIS QUESTION IN THIS SHAPE — this one, the wizard's
+     answer step and the saved-template fill — so the declaration is stated
+     ONCE here and read through `window` by the other two, with the literal as
+     the fallback for a stage that has not loaded this file. */
   const ST = 'width:100%;min-height:36px;border:1px solid var(--color-divider);'
     + 'background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font:inherit;font-size:var(--t-body);outline:none;color:inherit';
   const input = f => {
@@ -502,7 +545,7 @@ function openContractEssentials(opts){
       esc(o.blurb||'')} ${esc(i18t('tf_skip_later'))}</p>
     <div id="ce-cols" style="display:grid;grid-template-columns:${
       _pv?'minmax(0,1fr) minmax(0,1fr)':'minmax(0,1fr)'};gap:var(--s-4);align-items:start">
-    <div class="ce-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s-3);align-content:start">${fs.map(input).join('')}</div>
+    <div class="ce-grid field-grid" style="${FIELD_GRID_CSS};align-content:start">${fs.map(input).join('')}</div>
     ${_pv?fillPreviewPaneHtml(0):''}
     </div>
     <div id="ce-err" style="font-size:var(--t-label);color:var(--st-ruby-fg);min-height:15px;margin-top:var(--s-2)"></div>
@@ -600,7 +643,7 @@ function applyContractEssentials(c, values){
   if(em) c.counterpartyEmail = em;
   return true;
 }
-Object.assign(window,{CONTRACT_ESSENTIALS,essentialFields,fieldOpt,openContractEssentials,ceWirePreview,applyContractEssentials});
+Object.assign(window,{CONTRACT_ESSENTIALS,essentialFields,fieldOpt,fieldOptHit,FIELD_GRID_CSS,openContractEssentials,ceWirePreview,applyContractEssentials});
 
 /* ============================================================
    THE PAPER BESIDE THE QUESTIONS (the build plan's upgrade 2, 18 Sep 2026)

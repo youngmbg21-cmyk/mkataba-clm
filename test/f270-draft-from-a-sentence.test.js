@@ -175,15 +175,24 @@ describe('f270 (2) it offers your own paper and nothing else', () => {
   const MINE = [{ id: 'ct_1', name: 'Our services agreement', description: 'saved', fields: F }];
   const LIB = [{ id: 'lib_1', name: 'Company standard NDA', description: 'published' }];
 
-  test('the three groups the ordinary picker reads, and their kinds', () => {
+  /* ---- THE ORDER IS THE COMPANY'S STANDARDS FIRST (Young ruled it 20 Sep
+     2026) ---- REVERSED IN PLACE. It read ['builtin','mine','lib'], which was
+     the order this file happened to build the list in and nothing more; the
+     ruling makes it a RANKING, so it is asked as the relation to
+     DRAFT_BUCKETS rather than as three typed words. */
+  test('the three groups the ordinary picker reads, ranked standards first', () => {
     const w = load({ builtins: BUILTIN, mine: MINE, lib: LIB });
     const c = plain(w.draftCandidates());
-    assert.deepEqual(c.map(x => x.kind), ['builtin', 'mine', 'lib']);
-    assert.deepEqual(c.map(x => x.id), ['RM', 'ct_1', 'lib_1']);
-    assert.equal(c[0].name, 'Raw Material Supply');
-    assert.equal(c[0].fields.length, F.length);
-    assert.equal(c[0].fields[0].key, 'counterparty');
-    assert.equal(c[0].fields[0].required, true);
+    /* Joined, because DRAFT_BUCKETS is built inside the sandbox's own realm
+       and deepStrictEqual compares prototypes as well as contents. */
+    assert.equal(c.map(x => x.kind).join(','), [...w.DRAFT_BUCKETS].map(b => b.kind).join(','));
+    assert.deepEqual(c.map(x => x.kind), ['lib', 'mine', 'builtin']);
+    assert.deepEqual(c.map(x => x.id), ['lib_1', 'ct_1', 'RM']);
+    const rm = c.find(x => x.id === 'RM');
+    assert.equal(rm.name, 'Raw Material Supply');
+    assert.equal(rm.fields.length, F.length);
+    assert.equal(rm.fields[0].key, 'counterparty');
+    assert.equal(rm.fields[0].required, true);
   });
 
   /* A stage carrying only the built-ins is a real one — every one of these is

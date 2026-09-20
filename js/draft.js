@@ -43,12 +43,45 @@
    model: id, what it is called, what it is for, and the questions it asks.
    Read through `typeof`, so a stage carrying only the built-ins offers only
    those rather than throwing. */
+/* ---- THE COMPANY'S OWN STANDARD IS LOOKED AT FIRST (Young ruled it
+   20 Sep 2026) ----
+   *"the pull should generate from the company Standard contracts. If there is
+   no relevant contract then you can manually select from the other options or
+   describe that you want the contract from HaTi contracts or other buckets."*
+
+   THREE BUCKETS, IN ONE ORDER, and the order is a FACT off the record rather
+   than a judgement the model makes: paper this workspace has approved and
+   published outranks paper somebody saved, which outranks the paper HaTi
+   ships. `DRAFT_BUCKETS` is the one statement of it — the list this file
+   builds in, the word the offer card prints, and the ranking the route is
+   told — so a fourth bucket is a line added here and nowhere else.
+
+   IT IS A PREFERENCE AND NOT A WALL, because the owner named both escapes:
+   *Pick one myself* is on the same screen and always was, and a sentence that
+   names a bucket ("use the HaTi template") is honoured — see the route. */
+const DRAFT_BUCKETS = [
+  { kind:'lib',     rank:1, en:'company standard', get label(){ return i18t('dr_from_lib'); } },
+  { kind:'mine',    rank:2, en:'saved template',   get label(){ return i18t('dr_from_mine'); } },
+  { kind:'builtin', rank:3, en:'HaTi template',    get label(){ return i18t('dr_from_builtin'); } },
+];
+const draftBucket = kind => DRAFT_BUCKETS.find(b => b.kind === kind) || null;
+const draftBucketLabel = kind => { const b = draftBucket(kind); return b ? b.label : ''; };
+const draftBucketRank = kind => { const b = draftBucket(kind); return b ? b.rank : 99; };
+
 function draftCandidates(){
   const out=[];
   const push=(kind,id,name,blurb,fields)=>{ const k=String(id||''); if(!k||!name) return;
     out.push({ kind, id:k, name:String(name), blurb:String(blurb||''),
       fields:(fields||[]).filter(f=>f&&f.key).map(f=>({ key:String(f.key), label:String(f.label||f.key),
-        type:String(f.type||'text'), required:!!f.required, ...(Array.isArray(f.opts)&&f.opts.length?{opts:f.opts.map(String)}:{}) })) }); };
+        /* AN OPTION IS A {v,l} PAIR HERE TOO. `f.opts.map(String)` sent the
+           model "[object Object]" three times over for "Which side are we
+           on?", so it could not answer that question at all. Asked through
+           `fieldOpt`, the product's ONE reading of an option, and BOTH halves
+           travel: the model matches on the words a person reads and answers
+           with the value the box stores. */
+        type:String(f.type||'text'), required:!!f.required,
+        ...(Array.isArray(f.opts)&&f.opts.length?{opts:f.opts.map(o=>(typeof fieldOpt==='function')
+          ? fieldOpt(o) : { v:String(o), l:String(o) })}:{}) })) }); };
   /* The built-in papers, gated by the same role rule the picker uses. */
   if(typeof myCreatableTemplates==='function')
     for(const t of myCreatableTemplates()) push('builtin', t.id, t.kind||t.name, t.blurb, (typeof templateFields==='function')?templateFields(t):[]);
@@ -57,9 +90,20 @@ function draftCandidates(){
   const mayEdit = (typeof canEdit!=='function') || canEdit();
   if(mayEdit && typeof customTemplates==='function')
     for(const t of customTemplates()) push('mine', t.id, t.name, t.description||t.blurb, (typeof templateFields==='function')?templateFields(t):[]);
+  /* ---- A COMPANY STANDARD ASKS THE ESSENTIALS, AND IT USED TO ARRIVE WITH
+     NO QUESTIONS AT ALL ---- an empty `fields` made the standards the least
+     described paper on the list, so a model asked to fill boxes had nothing
+     to fill and every reason to pick something else. Its questions are the
+     ones its own door asks — `openContractEssentials` — so those are what
+     travel, from `essentialFields()`, the same reading that draws them. */
   if(mayEdit && typeof tplLibPublished==='function')
-    for(const t of tplLibPublished()) push('lib', t.id, t.name, t.description, []);
-  return out;
+    for(const t of tplLibPublished()) push('lib', t.id, t.name, t.description,
+      (typeof essentialFields==='function') ? essentialFields() : []);
+  /* Standards first, saved next, HaTi's own last — stable within a bucket, so
+     the picker's own order survives inside each one. */
+  return out.map((c,i)=>({c,i}))
+    .sort((a,b)=> (draftBucketRank(a.c.kind)-draftBucketRank(b.c.kind)) || (a.i-b.i))
+    .map(x=>x.c);
 }
 
 /* THE WALL, ON THIS SIDE. A value may only reach a box the chosen template
@@ -117,7 +161,10 @@ function openDraftFromSentence(){
   openModal(`<div style="padding:20px 22px">
     <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0 0 3px">${i18t('dr_title')}</h3>
     <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3);line-height:1.55">${i18t('dr_lead')}</p>
-    <textarea id="dr-say" rows="3" maxlength="${DRAFT_SENTENCE_MAX}" placeholder="${esc(i18t('dr_ph'))}" style="${TA}"></textarea>
+    ${''/* THE SHELF HINT RIDES THE BOX, not a third sentence on the lead: the
+           pop-up diet's own answer for machinery, and this is the one control
+           where knowing you may name a shelf changes what you type. */}
+    <textarea id="dr-say" rows="3" maxlength="${DRAFT_SENTENCE_MAX}" placeholder="${esc(i18t('dr_ph'))}" title="${esc(i18t('dr_shelf_hint'))}" style="${TA}"></textarea>
     ${ready?'':`<p id="dr-nokey" style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:10px 0 0;line-height:1.55">${i18t('dr_no_ai')}</p>`}
     <div id="dr-out" style="margin-top:12px"></div>
     <div style="display:flex;align-items:center;gap:var(--s-2);margin-top:var(--s-4)">
@@ -147,7 +194,7 @@ async function draftRead(cands){
   const was=btn.textContent;
   btn.disabled=true; btn.textContent=i18t('ct_working'); out.innerHTML='';
   try{
-    const r=await api('ai/draft','POST',{ sentence, candidates:cands.map(c=>({ id:c.id, name:c.name, blurb:c.blurb, fields:c.fields })) });
+    const r=await api('ai/draft','POST',{ sentence, candidates:cands.map(c=>({ id:c.id, name:c.name, blurb:c.blurb, fields:c.fields, kind:c.kind })) });
     const pick=cands.find(c=>c.id===(r&&r.templateId));
     if(!pick){ draftNothingFits(out, sentence, String((r&&r.why)||''), String((r&&r.closestName)||'')); return; }
     /* Keys the chosen template does not ask for are dropped HERE as well as
@@ -249,6 +296,12 @@ function draftOffer(pick, prefill, why){
   out.innerHTML=`<div id="dr-found" style="border:1px solid var(--color-divider);border-radius:var(--radius);padding:12px 14px;background:var(--color-surface)">
     <span style="display:block;font-family:var(--font-mono);font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:5px">${i18t('dr_suggests')}</span>
     <span id="dr-name" style="display:block;font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text)">${esc(pick.name)}</span>
+    ${''/* WHICH SHELF IT CAME OFF. A fact read off the record, not the model's
+           word for it, and it belongs beside the name because the whole point
+           of the ruling is that the reader can see whether they were given
+           the company's own paper. One line on a card that already exists —
+           never a band. */}
+    ${draftBucketLabel(pick.kind)?`<span id="dr-from" style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px">${esc(draftBucketLabel(pick.kind))}</span>`:''}
     ${why?`<p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:5px 0 0;line-height:1.55">${esc(why)}</p>`:''}
     ${''/* NAMED, NOT VALUED. The values are one press away in boxes that can be
            corrected; printed here as well they would be the same fact twice,
@@ -271,4 +324,4 @@ function draftHandOff(pick, prefill){
   if(typeof tplLibNewContract==='function') tplLibNewContract(pick.id, prefill);
 }
 
-Object.assign(window,{draftCandidates,draftApplyPrefill,draftPrefillFor,draftFilledLabels,draftAiReady,openDraftFromSentence,draftRead,draftOffer,draftNothingFits,draftHandOff,DRAFT_SENTENCE_MAX});
+Object.assign(window,{DRAFT_BUCKETS,draftBucket,draftBucketLabel,draftBucketRank,draftCandidates,draftApplyPrefill,draftPrefillFor,draftFilledLabels,draftAiReady,openDraftFromSentence,draftRead,draftOffer,draftNothingFits,draftHandOff,DRAFT_SENTENCE_MAX});
