@@ -68,6 +68,17 @@ const draftBucket = kind => DRAFT_BUCKETS.find(b => b.kind === kind) || null;
 const draftBucketLabel = kind => { const b = draftBucket(kind); return b ? b.label : ''; };
 const draftBucketRank = kind => { const b = draftBucket(kind); return b ? b.rank : 99; };
 
+/* ---- WHY YOU DID NOT GET YOUR OWN STANDARD (Young reported it 20 Sep 2026:
+   *"it still Pulls from hati templates and not Company Standard"*) ----
+   The ranking prefers a company standard and SAYS which shelf it took, but
+   it never said the one thing a reader in this position actually needs: was
+   my standard passed over, or was there none to pass over? Those are
+   different faults and the card was silent on both. A FACT OFF THE RECORD,
+   never a guess and never the model's word, drawn only where it is true. */
+function draftNoStandards(cands){
+  return !(cands||[]).some(c => c && c.kind === 'lib');
+}
+
 function draftCandidates(){
   const out=[];
   const push=(kind,id,name,blurb,fields)=>{ const k=String(id||''); if(!k||!name) return;
@@ -180,13 +191,23 @@ function openDraftFromSentence(){
      rule that a refusal carries its remedy. It is the door that already
      exists, opened with nothing chosen, not a second copy of it. */
   document.getElementById('dr-pick').addEventListener('click',()=>{ closeModal(); if(typeof openWizard==='function') openWizard(); });
+  /* Warmed on the way in so the press usually waits for nothing. */
+  if(typeof tplLibReady==='function') tplLibReady();
   const read=document.getElementById('dr-read');
-  if(read) read.addEventListener('click',()=>draftRead(cands));
+  if(read) read.addEventListener('click',()=>draftRead());
   if(say && read) say.addEventListener('keydown',e=>{ if(e.key==='Enter' && (e.metaKey||e.ctrlKey)) read.click(); });
 }
 
 /* One press, one call, one spend. */
-async function draftRead(cands){
+/* ---- THE CANDIDATES ARE READ AT THE PRESS (Young reported it 20 Sep 2026:
+   *"it still Pulls from hati templates and not Company Standard"*) ----
+   They were read when the dialog OPENED, one tick after a company-standard
+   fetch that nobody awaited — so a reader who typed quickly asked over a
+   list with no standards on it at all, and the ranking had nothing to
+   prefer. The list is read here instead, once the shelf is known to be
+   loaded; `tplLibReady` is one shared flight, so this waits for the warm
+   already going rather than starting a second one. */
+async function draftRead(given){
   const say=document.getElementById('dr-say'), btn=document.getElementById('dr-read'), out=document.getElementById('dr-out');
   if(!say||!btn||!out) return;
   const sentence=String(say.value||'').trim();
@@ -194,6 +215,11 @@ async function draftRead(cands){
   const was=btn.textContent;
   btn.disabled=true; btn.textContent=i18t('ct_working'); out.innerHTML='';
   try{
+    /* A CALLER MAY NAME THE LIST; otherwise it is read HERE, at the press.
+       The door passes nothing, deliberately — see the note above. */
+    if(!given && typeof tplLibReady==='function') await tplLibReady();
+    const cands=given||draftCandidates();
+    if(!cands.length){ draftSay(out, i18t('wz_no_templates_role')); return; }
     const r=await api('ai/draft','POST',{ sentence, candidates:cands.map(c=>({ id:c.id, name:c.name, blurb:c.blurb, fields:c.fields, kind:c.kind })) });
     const pick=cands.find(c=>c.id===(r&&r.templateId));
     if(!pick){ draftNothingFits(out, sentence, String((r&&r.why)||''), String((r&&r.closestName)||'')); return; }
@@ -204,7 +230,7 @@ async function draftRead(cands){
     const prefill={};
     for(const f of (Array.isArray(r.fields)?r.fields:[]))
       if(f && keys.has(f.key) && String(f.value||'').trim()) prefill[f.key]=String(f.value).trim();
-    draftOffer(pick, prefill, String((r&&r.why)||''));
+    draftOffer(pick, prefill, String((r&&r.why)||''), cands);
   }catch(e){
     /* A refusal SAYS which — no key, a provider that said no, a rate limit —
        where the reader is looking, and leaves the sentence they typed alone. */
@@ -289,7 +315,7 @@ function draftSay(out, msg){
   out.innerHTML=`<p id="dr-note" style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0;line-height:1.55">${esc(msg)}</p>`;
 }
 /* What it found, and the one press that takes it. */
-function draftOffer(pick, prefill, why){
+function draftOffer(pick, prefill, why, all){
   const out=document.getElementById('dr-out'); if(!out) return;
   const esc=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   const filled=draftFilledLabels(pick.fields, prefill);
@@ -301,7 +327,12 @@ function draftOffer(pick, prefill, why){
            of the ruling is that the reader can see whether they were given
            the company's own paper. One line on a card that already exists —
            never a band. */}
-    ${draftBucketLabel(pick.kind)?`<span id="dr-from" style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px">${esc(draftBucketLabel(pick.kind))}</span>`:''}
+    ${''/* AND WHERE IT IS NOT ONE, WHY NOT. An absence is stated, never left
+           to be inferred from a shelf name: with no standard on the list
+           there was none to prefer, and with one there the model's own `why`
+           below says what it did not cover. */}
+    ${draftBucketLabel(pick.kind)?`<span id="dr-from" style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px">${
+      esc(draftBucketLabel(pick.kind))}${pick.kind!=='lib'&&draftNoStandards(all)?` · ${esc(i18t('dr_no_standards'))}`:''}</span>`:''}
     ${why?`<p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:5px 0 0;line-height:1.55">${esc(why)}</p>`:''}
     ${''/* NAMED, NOT VALUED. The values are one press away in boxes that can be
            corrected; printed here as well they would be the same fact twice,
@@ -324,4 +355,4 @@ function draftHandOff(pick, prefill){
   if(typeof tplLibNewContract==='function') tplLibNewContract(pick.id, prefill);
 }
 
-Object.assign(window,{DRAFT_BUCKETS,draftBucket,draftBucketLabel,draftBucketRank,draftCandidates,draftApplyPrefill,draftPrefillFor,draftFilledLabels,draftAiReady,openDraftFromSentence,draftRead,draftOffer,draftNothingFits,draftHandOff,DRAFT_SENTENCE_MAX});
+Object.assign(window,{DRAFT_BUCKETS,draftNoStandards,draftBucket,draftBucketLabel,draftBucketRank,draftCandidates,draftApplyPrefill,draftPrefillFor,draftFilledLabels,draftAiReady,openDraftFromSentence,draftRead,draftOffer,draftNothingFits,draftHandOff,DRAFT_SENTENCE_MAX});

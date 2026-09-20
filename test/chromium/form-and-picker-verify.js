@@ -192,6 +192,69 @@ const MEASURE = () => {
     }, undefined, { err: 'blocked' });
     check('4f and pressing it closes the picker', closes.gone === true, JSON.stringify(closes));
 
+    /* ═══════ 5 · THE LINE OF BUSINESS REALLY TUNES THE ROW ═══════
+       Young, 20 Sep 2026: "does it work? It does not seem to be doing
+       anything". It worked on a NEW workspace and could not work on a used
+       one — usage filled all four seats first. Staged as the owner's own
+       case: five built-ins already drafted from. */
+    const usedFive = await drive(page, () => {
+      try { closeModal(); } catch (_) {}
+      const mk = (tid, n) => { for (let i = 0; i < n; i++)
+        state.contracts.push({ id: 'lob' + tid + i, template: tid, name: 'x', status: 'Draft' }); };
+      mk('ND', 9); mk('RM', 7); mk('PK', 5); mk('MK', 3); mk('CM', 2);
+      const n = id => (typeof builtinUsageCount === 'function') ? builtinUsageCount(id) : 0;
+      return { used: ['ND', 'RM', 'PK', 'MK', 'CM'].filter(id => n(id) > 0).length };
+    }, undefined, { used: 0 });
+    check('5a CONTROL — this workspace has drafted from four or more templates',
+      usedFive.used >= 4, `${usedFive.used} templates used — below four the old order never bit`);
+
+    /* THE PAINTED ROW, read off the screen: the eyebrow's words and the card
+       names a reader actually sees. */
+    const lobRead = async lob => {
+      await drive(page, k => { try { closeModal(); } catch (_) {}
+        state.settings = state.settings || {}; state.settings.industry = k; openWizard(); }, lob, null);
+      await pause(900);
+      return drive(page, () => {
+        const pick = document.getElementById('wz-pick');
+        if (!pick) return { err: 'picker not drawn' };
+        const eye = [...pick.querySelectorAll('span')]
+          .find(s => getComputedStyle(s).textTransform === 'uppercase' && /for you/i.test(s.textContent));
+        const seen = el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+        return { eyebrow: eye ? eye.textContent.replace(/\s+/g, ' ').trim() : '',
+          /* The button's OWN text: its first nested span is the icon's
+             wrapper and carries no words. */
+          cards: [...pick.querySelectorAll('[data-wz-tid]')].filter(seen)
+            .map(c => c.textContent.replace(/\s+/g, ' ').trim().slice(0, 60)) };
+      }, undefined, { err: 'blocked' });
+    };
+    const rows = {};
+    for (const lob of ['services', 'manufacturing', 'distribution', 'retail']) rows[lob] = await lobRead(lob);
+    await page.screenshot({ path: path.join(OUT, '05-line-of-business.png') });
+
+    const drawn = Object.values(rows).filter(r => !r.err && r.cards.length === 4);
+    check('5b CONTROL — every line of business drew a row of four',
+      drawn.length === 4, drawn.map(r => r.cards.length).join('/') || 'nothing drew');
+    const sets = drawn.map(r => r.cards.join(' · '));
+    check('5c THE REPORTED FAULT: switching it changes the cards',
+      new Set(sets).size === 4, sets.join('   |   ') || 'blocked');
+    /* A CONTROL, and it passes at the parent BECAUSE of the fault: the old
+       heading named the setting whatever the cards were. 5e is the claim
+       that the name is TRUE. */
+    check('5d CONTROL — the heading still names a line of business at all',
+      drawn.length === 4 && drawn.every(r => /·/.test(r.eyebrow)),
+      drawn.map(r => r.eyebrow).join(' | '));
+    /* THE HEADING'S CLAIM IS CHECKED AGAINST THE CARDS, never taken on
+       trust: on the parent it named retail over four cards with no retail
+       paper on them. */
+    const retail = rows.retail || {};
+    check('5e retail really puts retail paper on the row',
+      !retail.err && /retail/i.test(retail.eyebrow || '')
+        && (retail.cards || []).some(n => /Retail Listing|Distributor/i.test(n)),
+      `${retail.eyebrow} → ${(retail.cards || []).join(' · ')}`);
+    check('5f and what this workspace actually drafts still leads',
+      !retail.err && /NDA|Raw Material/i.test((retail.cards || [])[0] || ''),
+      (retail.cards || [])[0] || 'blocked');
+
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');
   } catch (e) {
     check('the run finished', false, String((e && e.message) || e));

@@ -3947,6 +3947,7 @@ const STRINGS = {
     /* WHERE THE READER IS TYPING, not a third sentence on the lead — the
        pop-up diet's own rule: a hint arrives when it is needed. */
     dr_shelf_hint: 'Ask for one of HaTi\u2019s or a saved template in your own words if you would rather not use a company standard.',
+    dr_no_standards: 'you have no company standards published yet',
     dr_from_lib: 'Your company standard',
     dr_from_mine: 'A saved template',
     dr_from_builtin: 'A HaTi template',
@@ -10969,6 +10970,7 @@ const STRINGS = {
     dr_title: 'Beskriv vad du behöver',
     dr_lead: 'Copilot tittar först på era företagsstandarder, väljer mallen som passar och fyller i det du säger. Ingenting skapas förrän du trycker Skapa.',
     dr_shelf_hint: 'Be om en av HaTi\u2019s eller en sparad mall med egna ord om du hellre vill undvika en företagsstandard.',
+    dr_no_standards: 'ni har inga företagsstandarder publicerade ännu',
     dr_from_lib: 'Er företagsstandard',
     dr_from_mine: 'En sparad mall',
     dr_from_builtin: 'En HaTi-mall',

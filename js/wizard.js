@@ -72,16 +72,51 @@ function workspaceIndustry(){ const v=state.settings&&state.settings.industry; r
    length. The seeded portfolio is excluded exactly as before. */
 function builtinUsageRows(tid){ return (state.contracts||[]).filter(c=>c.template===tid && !c.seeded); }
 function builtinUsageCount(tid){ return builtinUsageRows(tid).length; }
-function forYouTemplates(tmpls){
-  const byId={}; tmpls.forEach(t=>{ byId[t.id]=t; });
+/* ---- THE LINE OF BUSINESS KEEPS SEATS (Young reported it 20 Sep 2026:
+   *"What is the purpose of the line of business filter and does it work? It
+   does not seem to be doing anything"*) ----
+
+   IT WORKED ON A NEW WORKSPACE AND COULD NOT WORK ON A USED ONE. The order
+   was usage, then the line of business, then the starters, capped at four —
+   so the moment a workspace had drafted from four built-ins, usage filled
+   every seat and the line of business was never reached. MEASURED on the
+   owner's own case (five templates used): all four cards identical under all
+   four lines of business, while the heading above them named one.
+
+   THE CONTROL SAYS "tunes this list", SO IT TUNES THE LIST. Usage still
+   leads — what you actually draft is the better signal — but it may take at
+   most `FOR_YOU_MAX - FOR_YOU_LOB_MIN` seats while a line of business is
+   named, and it takes back whatever the line of business leaves. Where NO
+   line of business is set the old order is byte-identical: usage takes all
+   four, exactly as before. */
+const FOR_YOU_MAX = 4;
+const FOR_YOU_LOB_MIN = 2;
+
+/* ONE READING, so the row and the heading above it cannot disagree about
+   which cards these are or why. `forYouTemplates` is the list alone, kept
+   under its old name so no caller changed. */
+function forYouPick(tmpls){
+  const list=tmpls||[];
+  const byId={}; list.forEach(t=>{ byId[t.id]=t; });
   const picked=[];
-  const take=id=>{ if(byId[id] && !picked.includes(id)) picked.push(id); };
-  tmpls.map(t=>({ id:t.id, n:builtinUsageCount(t.id) })).filter(x=>x.n>0)
-    .sort((a,b)=>b.n-a.n).forEach(x=>take(x.id));
-  (INDUSTRY_TEMPLATES[workspaceIndustry()]||[]).forEach(take);
+  const take=id=>{ if(byId[id] && !picked.includes(id) && picked.length<FOR_YOU_MAX) picked.push(id); };
+  const used=list.map(t=>({ id:t.id, n:builtinUsageCount(t.id) })).filter(x=>x.n>0)
+    .sort((a,b)=>b.n-a.n).map(x=>x.id);
+  const lob=workspaceIndustry();
+  const lobIds=INDUSTRY_TEMPLATES[lob]||[];
+  used.slice(0, lobIds.length ? Math.max(0, FOR_YOU_MAX-FOR_YOU_LOB_MIN) : FOR_YOU_MAX).forEach(take);
+  lobIds.forEach(take);
+  /* Whatever the line of business left — a list of four that only had one
+     card this role may create must not cost the row a seat. */
+  used.forEach(take);
   TEMPLATE_STARTERS.forEach(take);
-  return picked.slice(0,4).map(id=>byId[id]);
+  /* TRUE BY MEASUREMENT, NEVER BY PROVENANCE: a card usage picked that this
+     line of business also wants IS one of its own, and the heading may say
+     so. It says nothing where not one of the four is on that list. */
+  return { list:picked.map(id=>byId[id]), lob, lobIds,
+    lobShown: !!lob && picked.some(id=>lobIds.includes(id)) };
 }
+function forYouTemplates(tmpls){ return forYouPick(tmpls).list; }
 
 /* ---- guided creation wizard ---- */
 /* `prefill` is an optional {fieldKey: value} map — what "draft from a
@@ -108,7 +143,8 @@ function openWizard(preTid, prefill){
             <span style="display:block;margin-top:5px;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.4;">${t.blurb||''}</span></button>`;
       const GRID='display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:var(--s-2);';
       const EYE='display:block;font-family:var(--font-mono);font-size:var(--t-micro);letter-spacing:.09em;color:var(--color-neutral-500);text-transform:uppercase;margin:0 0 6px;';
-      const forYou=forYouTemplates(tmpls);
+      const fy=forYouPick(tmpls);
+      const forYou=fy.list;
       const curated=forYou.length>0;
       /* Company standard templates stay pinned on top — the whole point of
          publishing one is that it becomes the team's one-click default. */
@@ -210,7 +246,10 @@ function openWizard(preTid, prefill){
             <div style="${GRID}">${ours.map(rowCard).join('')}</div>
           </div>`:''}
           ${curated?`<div style="margin-bottom:14px">
-            <span style="${EYE}">${i18t('wz_for_you')}${industry?` · ${INDUSTRY_LABEL[industry]}`:''}</span>
+            ${''/* The heading names the line of business only where one of these
+                   four really is on its list — it read `industry` before, so
+                   it went on claiming a reason that had chosen nothing. */}
+            <span style="${EYE}">${i18t('wz_for_you')}${fy.lobShown?` · ${INDUSTRY_LABEL[fy.lob]}`:''}</span>
             <div style="${GRID}">${forYou.map(card).join('')}</div>
           </div>`:''}
           ${admin?`<label style="display:flex;align-items:center;gap:var(--s-2);margin:0 0 var(--s-3);font-size:var(--t-label);color:var(--color-neutral-600)">${i18t('wz_line_of_business')}
@@ -372,6 +411,17 @@ function openWizard(preTid, prefill){
     document.getElementById('wz-skip').addEventListener('click',()=>createFromWizard(tid, vars, {skip:true}));
   };
   renderStep();
+  /* ---- THE SAME RACE AS THE DRAFT DIALOG (Young, 20 Sep 2026) ----
+     The company standards are fetched when the "+ Draft new agreement" menu
+     opens and that fetch is not awaited, so this screen could draw its
+     "Your own paper" section before they arrived. Re-draw the PICK step when
+     they land — never the answer step, which a reader may already be typing
+     in, which is what `!tid` asks. */
+  if(typeof tplLibReady==='function' && typeof tplLibPublished==='function'){
+    const before=tplLibPublished().length;
+    tplLibReady().then(()=>{ if(!tid && tplLibPublished().length!==before) renderStep(); })
+      .catch(()=>{});
+  }
 }
 function createFromWizard(tid, vars, opts){
   const t=TEMPLATES[tid], u=currentUser();
@@ -451,4 +501,4 @@ function createFromWizard(tid, vars, opts){
   setView('workspace'); renderSideFolders&&renderSideFolders();
 }
 
-Object.assign(window,{TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard});
+Object.assign(window,{TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard});

@@ -17228,3 +17228,122 @@ confusing.
 ### Touched outside the request
 
 Nothing.
+
+---
+
+## 2026-09-20 (later) · The line of business, the shelf, and the date boxes
+
+Three reports, each measured before a line moved.
+
+### The line of business filter did nothing on a used workspace
+
+*"What is the purpose of the line of business filter and does it work? It
+does not seem to be doing anything."* Then: *"simply fix the pop up to make
+sense for its purpose."*
+
+IT WORKED ON A NEW WORKSPACE AND COULD NOT WORK ON A USED ONE. `forYouTemplates`
+picked usage → line of business → starters, capped at four, so the moment a
+workspace had drafted from four built-ins usage filled every seat and the
+dropdown was never reached. MEASURED on the owner's own case — five templates
+used — all four cards identical under all four lines of business:
+
+    services       Raw Material · NDA · Packaging · Marketing
+    manufacturing  Raw Material · NDA · Packaging · Marketing
+    distribution   Raw Material · NDA · Packaging · Marketing
+    retail         Raw Material · NDA · Packaging · Marketing
+
+Which is the screenshot, exactly. And the heading above them said
+"FOR YOU · RETAIL & CONSUMER TRADE" while not one of the four was retail
+paper — a screen naming a reason that had chosen nothing, which is worse
+than an inert control because it looks like it worked.
+
+THE CONTROL SAYS "tunes this list", SO IT TUNES THE LIST. `FOR_YOU_MAX` 4 and
+`FOR_YOU_LOB_MIN` 2: usage still leads — what you actually draft is the
+better signal — but takes at most two seats while a line of business is
+named, then the line of business fills, then usage takes back whatever it
+left, then the starters. Where NO line of business is set the old order is
+byte-identical. Both of those are named CONTROLS.
+
+ONE READING: `forYouPick` returns `{list, lob, lobIds, lobShown}` and
+`forYouTemplates` is `forYouPick().list` under its old name, so no caller
+changed. The heading reads `lobShown` — is at least one of the four ON that
+line of business's list — rather than the stored setting. TRUE BY
+MEASUREMENT, NEVER BY PROVENANCE: a card usage picked that retail also wants
+IS retail paper and the heading may say so.
+
+### "It still pulls from HaTi templates and not Company Standard"
+
+MEASURED FIRST, AND THE MEASUREMENT REFUSED THE OBVIOUS THEORY. `tplLibRefresh()`
+is fired when the "+ Draft new agreement" menu opens and is NOT awaited,
+while both doors under it read `tplLibPublished()` synchronously — which
+reads exactly like a race. Driven in a browser with a real published
+standard: one fetch of /api/templates lands at boot, the shelf is warm on a
+settled page, and the ranking really does put the standard first. The race
+is real and narrow — a slow connection and a fast reader — and it is NOT
+what this report is about.
+
+Closed it anyway, because it costs nothing: `tplLibReady()` is one shared
+flight with the latch a boolean raised before the promise exists (the 16 Sep
+lesson), lowered on a failure so a failed load may be asked again.
+`draftRead(given)` reads the list at the press; the picker re-draws when the
+standards land, never over a typed answer.
+
+THE LIKELY FAULT IS THE SILENCE, AND IT IS THE ONE FIXED. With no company
+standard published there is nothing to prefer, and the card said only
+"A HaTi template" — leaving a reader unable to tell a standard that was
+PASSED OVER from a shelf that was EMPTY. Those are different faults and the
+screen answered neither. `draftNoStandards` is a fact off the list handed to
+the route, and `dr_no_standards` rides the line that already names the shelf,
+only where the pick is not a standard and there was none to be.
+
+I could not reach the deployed site through the proxy to see which build the
+report was made against, and said so rather than guessing.
+
+### The date boxes on an iPad
+
+MEASURED off the screenshot: every other box 477px wide, both date boxes
+about 520, and the date text CENTRED where every other field's text sits
+left. WebKit gives input[type=date] its own intrinsic width and its own inner
+alignment, and NEITHER `width:100%` NOR the `max-width` added earlier the
+same day reaches either. `appearance:none` is what makes it an ordinary box;
+`::-webkit-date-and-time-value{text-align:left}` is what puts its text where
+the rest of the form's text is. Scoped to `.field-grid`, so it reaches the
+three creation forms and nothing else. The native picker is untouched —
+appearance changes only how the box is drawn.
+
+CHROMIUM NEEDS NEITHER RULE AND IS UNCHANGED BY BOTH, so this could not be
+reproduced here. It is reasoned from the two numbers the screenshot carries
+and wants confirming on the reporter's own iPad. Said out loud rather than
+called fixed.
+
+### Tests
+
+- `n6` (4) — ten claims, SIX RED AT THE PARENT. 4c, 4e, 4f and 4j are named
+  CONTROLS and pass on both sides by design.
+- `test/chromium/form-and-picker-verify.js` section 5 — six checks DRIVEN in
+  a real browser, **2 RED AT THE PARENT**, where it prints the same four
+  cards four times over and the heading naming retail above them. 5d passes
+  at the parent BECAUSE of the fault — the old heading named the setting
+  whatever the cards were — so it is labelled a CONTROL and 5e is the claim
+  that the name is true, checked against the cards rather than taken on
+  trust.
+- `f340` (5) and (6) — eight claims, SEVEN RED AT THE PARENT. Section 6 pins
+  the RULES; a browser that does not need them cannot measure them.
+- Two realm traps paid again: an array built inside the vm sandbox fails
+  `deepStrictEqual` on its prototype, twice, in two different files.
+- Full suite: 8,118 tests, 1,597 suites, 0 failures. `npm run lint` at the
+  repo's one pre-existing error.
+
+### Noticed, not fixed
+
+- `INDUSTRY_LABEL` in js/wizard.js is hardcoded English and is drawn on
+  screen — the line-of-business words never reach the Swedish book.
+  Pre-existing.
+- `test/chromium/overview-as-drawn-verify.js:145` still carries the repo's
+  one lint error, a self-compare that can never fail. Confirmed at main.
+- `paper-beside-questions-verify` 34/36 — the same two pre-existing failures,
+  identical at the parent.
+
+### Touched outside the request
+
+Nothing.

@@ -180,6 +180,33 @@ async function tplLibRefresh() {
   }
 }
 
+/* ---- THE STANDARDS HAVE TO BE ON THE PAGE BEFORE THEY CAN BE OFFERED
+   (Young reported it 20 Sep 2026: *"when i try to draft an agreement by
+   describing what i want, it still Pulls from hati templates and not Company
+   Standard"*) ----
+   `tplLibRefresh()` is fired when the "+ Draft new agreement" menu opens and
+   is NOT awaited, and both doors under that menu read `tplLibPublished()`
+   SYNCHRONOUSLY. A reader who pressed straight through therefore asked with
+   an EMPTY company-standard shelf — the ranking working perfectly over a list
+   the standards had never reached, and HaTi's own paper the only thing left
+   to offer. A race with nobody else in it, and it favours whoever is slow.
+   ONE FLIGHT, SHARED, so three doors asking at once cost one fetch.
+   THE LATCH IS A BOOLEAN RAISED BEFORE THE PROMISE EXISTS — see A LATCH MAY
+   NOT BE ITS OWN PROMISE — and it comes down on a failure, because a load
+   that failed must be allowed to be asked again. */
+let _tplLibWarming = false, _tplLibWarmDone = null;
+function tplLibReady() {
+  if (typeof API_MODE !== 'function' || !API_MODE()) return Promise.resolve(false);
+  if (_tplLib.loaded) return Promise.resolve(true);
+  if (_tplLibWarming) return _tplLibWarmDone;
+  _tplLibWarming = true;
+  _tplLibWarmDone = tplLibRefresh().catch(() => null).then(() => {
+    _tplLibWarming = false;
+    return !!_tplLib.loaded;
+  });
+  return _tplLibWarmDone;
+}
+
 async function renderCompanyTemplatesSection() {
   const host = document.getElementById('tpl-company-section');
   if (!host) return;
@@ -1240,7 +1267,7 @@ Object.assign(window, { newPaperBlocked, newPaperBlockLine, newPaperBlock, tplLi
      rather than through renderCompanyTemplatesSection's card grid. */
   tplLibAll: () => ({ list: _tplLib.list.slice(), canManage: _tplLib.canManage, loaded: _tplLib.loaded, failed: _tplLib.failed || false }),
   tplLibUploadModal, tplLibCreateModal,
-  renderCompanyTemplatesSection, tplLibPublished, tplLibCount, tplLibRefresh,
+  renderCompanyTemplatesSection, tplLibPublished, tplLibCount, tplLibRefresh, tplLibReady,
   openTemplateLibDetail, tplLibEdit, tplLibCanManage, tplLibCancelPending,
   tplLibSheetHtml, tplLibRestore, tplLibArchivedAsk,
   saveContractToLibrary, tplLibNewContract, renderTemplateFormSection, openTemplateConfirm,
