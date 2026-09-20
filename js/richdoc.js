@@ -99,6 +99,18 @@ const RICH_TOC_TAIL_CLASS = 'hati-toc-n';
    blank on OUR template form, routed by data-field-key" — one class with two
    meanings is the drift this file names twice. See DOCX_WFIELD_CLASS. */
 const RICH_WFIELD_CLASS = 'hati-wfield';
+/* THE THIRD, AND IT IS THE SAME BLANK ONCE IT HAS BEEN ANSWERED (Young
+   reported it 20 Sep 2026: "whenever I click on any entry field, whether
+   filled in or not, it should take me to the section in the contract").
+   `tplFormSlot` printed an answered field as PLAIN TEXT, so the paper kept a
+   key for an empty blank and nothing at all for a filled one — the panel could
+   point at half its own boxes and was silent on the rest.
+   IT IS ITS OWN CLASS RATHER THAN A SECOND ONE ON hati-field, because
+   richSpanClassOk admits EXACTLY ONE class by design, and because hati-field
+   is DRESSED as a gap (a grey box, a pointer, a hover) and an answered term
+   reads as part of its sentence. It carries no rule of its own, so the
+   contract is painted exactly as it was; what it carries is the key. */
+const RICH_FIELD_DONE_CLASS = 'hati-field-done';
 /* ONE reading of "may a BLOCK carry this class", asked by the attribute pass
    and by nothing else. Per name, and unknown names are dropped rather than the
    attribute: a paragraph carrying `hati-tight nonsense` keeps the half this
@@ -147,7 +159,7 @@ const RICH_MARK_CLASSES = new Set([].concat(
    and anything wanting two is two nested spans — which keeps this test total
    rather than a parser. */
 const richSpanClassOk = v => v === RICH_FIELD_CLASS || v === RICH_TOC_TAIL_CLASS
-  || v === RICH_WFIELD_CLASS || RICH_MARK_CLASSES.has(v);
+  || v === RICH_WFIELD_CLASS || v === RICH_FIELD_DONE_CLASS || RICH_MARK_CLASSES.has(v);
 /* The one data attribute a hati-field span may carry: which template-form
    field the blank belongs to, so a click on the document can route to the
    right input. Admitted under the same reasoning as data-clause-id — the
@@ -290,8 +302,10 @@ function _stripAttrs(el){
       continue;
     }
     if(el.tagName==='SPAN' && name===RICH_FIELD_KEY_ATTR){
-      // only on the hati-field span, and only a machine-safe field key
-      if(String(el.getAttribute('class')||'').trim()!==RICH_FIELD_CLASS
+      /* only on a field span — the blank, or the same blank once answered —
+         and only a machine-safe field key */
+      const cls=String(el.getAttribute('class')||'').trim();
+      if((cls!==RICH_FIELD_CLASS && cls!==RICH_FIELD_DONE_CLASS)
         || !RICH_FIELD_KEY_RE.test(String(attr.value||''))) el.removeAttribute(attr.name);
       continue;
     }
@@ -1337,7 +1351,7 @@ Object.assign(window,{RICH_TAGS,
   RICH_CLAUSE_ATTR,RICH_CLAUSE_ID_RE,
   RICH_FORMAT,TEXT_FORMAT,RICH_PLACEHOLDER_RE,
   sanitizeRich,docFormat,isRich,renderDocHtml,richToText,docContentText,
-  RICH_SHAPE_CLASSES,RICH_TOC_TAIL_CLASS,RICH_WFIELD_CLASS,RICH_WFIELD_NAME_ATTR,richBlockClass,
+  RICH_SHAPE_CLASSES,RICH_TOC_TAIL_CLASS,RICH_WFIELD_CLASS,RICH_WFIELD_NAME_ATTR,RICH_FIELD_DONE_CLASS,richBlockClass,
   canonicalRich,canonicalDocString,richFromTextEdit,markPlaceholders,unmarkPlaceholders,fillRichBody,richPlaceholders,textToRich,
   /* the clause editor's painter reads the projection off the live box through this (14 Sep 2026) */
   _lineUnits});

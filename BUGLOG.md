@@ -17515,3 +17515,45 @@ Two reports while the Word-field work was landing.
   head rather than a field name and every other table in the product sets its
   head that way; swept with the labels it would have made this page's tables
   differ from the register's. Said out loud rather than absorbed.
+
+## 20 Sep 2026 — an answered field is still a field
+
+Young: "In the document page I previously asked that in the contract form,
+whenever I click on any entry field, whether filled in or not, it should take
+me to the section in the contract and maybe highlight the section in the
+contract. That is not currently happening."
+
+MEASURED by driving three shapes of contract rather than reading the source.
+The machinery built on 17 Sep was intact and working for a drafted contract
+(every box lit its word; the paper scrolled 0 -> 68 -> 95 -> 204). The fault is
+on a COMPANY-STANDARD contract, and it is exactly the half Young named:
+tplFormSlot printed an ANSWERED field as plain escaped text, so the paper
+carried a key for every empty blank and nothing at all for a filled one. The
+link then pointed at half the form's boxes and was silent on the rest — silent,
+because a key nothing matches is not an error anywhere in that machinery.
+At the parent the check prints "company:MISSING · provider:found" and
+"scrolled to 0 · lit false".
+
+Built: hati-field-done, its own span class carrying the key and no rule of its
+own. Not a second class on hati-field (the sanitiser admits exactly one by
+design) and not hati-field itself (that class is a grey gap with a pointer, a
+hover and click-to-type — three screens' behaviour changed to fix a fourth).
+The print sweep still turns only .hati-field into a ruled line, so an answered
+term prints its value. js/templateform.js is required by the server too, so
+both hosts write the same markup from one function.
+
+Two probe faults of my own, both worth recording: the first fixture wrote raw
+{{company}} instead of the product's own rendering, and the second left
+format:'rich' off, so the whole body rendered escaped as plain text and every
+reading was measuring the fixture. And the probe sliced 240 characters looking
+for a span that sat further down — PIN THE REGION, NOT A BYTE COUNT, in my own
+instrument this time.
+
+### Noticed, not fixed
+- readOnlyDocHtml replaces an input with a plain span and drops data-field, so
+  a built-in template's paper loses its keys past Draft. Moot today:
+  renderBlankFormSection draws no boxes there either (measured: panel drawn,
+  0 boxes), so there is nothing to click.
+- paper-beside-questions-verify is 34/36 (7c, 7g). Identical at main.
+- templates-tabs-verify fails 8c on this branch and 8b AND 8c at main, so it is
+  already red and this branch is not worse.

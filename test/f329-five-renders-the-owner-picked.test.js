@@ -301,6 +301,60 @@ describe('f329 (4) — a cursor in a field lights that spot on the paper, and ba
     assert.ok(!canvas.includes('.focus('),
       'moving focus out from under a reader mid-word is the opposite of the point');
   });
+  /* ---- AND AN ANSWERED FIELD IS STILL A FIELD (Young reported it 20 Sep
+     2026: "whenever I click on any entry field, whether filled in or not, it
+     should take me to the section in the contract ... That is not currently
+     happening") ----
+     MEASURED on a company-standard contract: the paper carried a key for every
+     EMPTY blank and NOTHING at all for an answered one, because tplFormSlot
+     printed a filled field as plain escaped text. So the link pointed at half
+     the form's boxes and was silent on the rest — silent, because a key
+     nothing matches is not an error anywhere in this machinery. */
+  test('a FILLED field still carries its key on the paper', () => {
+    const fn = realBody(strip(read('js/templateform.js')), 'function tplFormSlot(');
+    assert.ok(fn, 'tplFormSlot exists');
+    assert.match(fn, /hati-field-done/, 'an answered term keeps a span with its key');
+    assert.ok(!/if \(v\) return TPLFORM_ESC\(v\);/.test(fn),
+      'it may no longer print an answered field as bare text');
+    /* THE KEY IS THE WHOLE POINT: a span with no key answers nothing. */
+    assert.match(fn, /const key = field && \/\^\[a-z\]/, 'the key is read before either branch');
+  });
+  test('and it is NOT dressed as a blank', () => {
+    /* hati-field is a GREY GAP with a pointer and a hover; an answered term
+       reads as part of its sentence. Two classes on one span is refused by the
+       sanitiser by design, so this is its own class carrying no rule. */
+    const fn = realBody(strip(read('js/templateform.js')), 'function tplFormSlot(');
+    /* GATED: with no answered-field class at all, "it is not dressed as a
+       blank" and "it carries no rule" are true of a build that emits nothing. */
+    assert.match(fn, /hati-field-done/, 'STAGE: an answered field carries no class yet');
+    assert.ok(!/class="hati-field"[^>]*>\$\{TPLFORM_ESC\(v\)/.test(fn),
+      'an answered term must not take the blank\'s own dressing');
+    assert.ok(!/\.hati-field-done\s*\{/.test(read('index.html')),
+      'and the class carries no rule, so the contract is painted exactly as it was');
+  });
+  test('the sanitiser admits the key on EITHER field span, and on nothing else', () => {
+    const RICH = strip(read('js/richdoc.js'));
+    assert.match(RICH, /RICH_FIELD_DONE_CLASS\s*=\s*'hati-field-done'/);
+    assert.match(RICH, /richSpanClassOk[\s\S]{0,200}RICH_FIELD_DONE_CLASS/,
+      'the class survives storage');
+    assert.match(RICH, /cls!==RICH_FIELD_CLASS && cls!==RICH_FIELD_DONE_CLASS/,
+      'and the key is admitted on both, never on a third span');
+  });
+  test('CONTROL — the print sweep still turns only UNFILLED blanks into a ruled line', () => {
+    /* portal.js replaces every `.hati-field` with an underscore run for print.
+       An answered term must print its VALUE, which is why it is not that
+       class — asserted here because the two live in different files. */
+    const PORTAL = strip(read('js/views/portal.js'));
+    assert.match(PORTAL, /querySelectorAll\('\.hati-field'\)/, 'the sweep exists');
+    assert.ok(!/querySelectorAll\('\.hati-field-done'\)/.test(PORTAL),
+      'an answered term would print as a blank line');
+    /* And a CSS selector cannot reach it either: `.hati-field` does not match
+       `.hati-field-done`, which is the whole reason the name is a separate
+       class rather than a modifier on the same one. */
+    assert.ok(!'hati-field-done'.split(' ').includes('hati-field'),
+      'the two are different class names, not one with a suffix');
+  });
+
   test('two delegated listeners, bound once each', () => {
     const fn = realBody(strip(CONTRACT), 'function wireFieldLink(');
     assert.match(fn, /panel\._fieldLinkWired/, 'once on the panel');

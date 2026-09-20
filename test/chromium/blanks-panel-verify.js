@@ -137,7 +137,29 @@ const CONTRACT = (id, over) => Object.assign({
         { fieldKey: 'provider', label: 'Provider Name', fieldType: 'text', required: true }],
       values: {} },
   });
-  for (const c of [built, lib])
+  /* ---- A COMPANY STANDARD WITH ONE FIELD ANSWERED AND ONE NOT (Young
+     reported it 20 Sep 2026: "whenever I click on any entry field, whether
+     filled in or not, it should take me to the section in the contract") ----
+     Its wording is built by templateFormDocHtml, the SAME function POST
+     /contracts calls, so what is measured here is the paper the product really
+     writes rather than a hand-typed stand-in. `format:'rich'` because that is
+     what a real one carries — without it the whole body renders escaped as
+     plain text and every claim below would be measuring the fixture. */
+  const TF = require('../../js/templateform.js');
+  const form2 = {
+    templateId: 'T2', templateName: 'Services', versionNumber: 1,
+    fields: [{ fieldKey: 'company', label: 'Company Name', fieldType: 'text', required: true },
+      { fieldKey: 'provider', label: 'Provider Name', fieldType: 'text', required: true }],
+    values: { company: 'Highland Corporate Ltd' },
+    blocks: [{ blockType: 'heading', content: 'Services Agreement', orderIndex: 0 },
+      { blockType: 'fixed_text', content: 'Recitals. ' + 'Padding sentence. '.repeat(120), orderIndex: 1 },
+      { blockType: 'heading', content: 'Parties', orderIndex: 2 },
+      { blockType: 'field_group', content: 'Between {{company}} and {{provider}}.', orderIndex: 3 }],
+  };
+  const filled = CONTRACT('MK-BF3', { name: 'Services Agreement', template: null,
+    status: 'Under Review', format: 'rich', templateForm: form2,
+    redlineText: TF.templateFormDocHtml(form2) });
+  for (const c of [built, lib, filled])
     await W.admin.json('/api/contracts/' + c.id, { method: 'PUT', body: { contract: c, baseVersion: 0 } });
 
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
@@ -374,6 +396,65 @@ const CONTRACT = (id, over) => Object.assign({
     const sealed = await page.evaluate(PANEL);
     check('7a out of Draft the panel is not drawn', !sealed.drawn || sealed.boxes.length === 0,
       sealed.boxes.length + ' boxes');
+
+    /* ═══ 10 · AN ANSWERED FIELD IS STILL A FIELD ═══
+       MEASURED at the parent: the paper carried a key for the EMPTY blank and
+       nothing at all for the answered one, so the link pointed at half the
+       form's boxes and was silent on the rest. */
+    await openRoom(page, filled.id);
+    const cs = await page.evaluate(() => {
+      const panel = document.getElementById('tplform-section');
+      const canvas = document.getElementById('doc-canvas');
+      const boxes = panel ? [...panel.querySelectorAll('[data-tplf]')] : [];
+      const c = getContract(state.activeId);
+      const out = boxes.map(b => {
+        const key = window.contractFieldKeyOf ? contractFieldKeyOf(b, c) : '';
+        return { key, peer: !!(key && window.contractFieldPeer && contractFieldPeer(key, 'paper')) };
+      });
+      const done = canvas ? canvas.querySelector('span.hati-field-done[data-field-key]') : null;
+      const blank = canvas ? canvas.querySelector('span.hati-field[data-field-key]') : null;
+      const near = done && done.parentElement ? done.parentElement : null;
+      const g = el => el ? getComputedStyle(el) : null;
+      const dg = g(done), pg = g(near);
+      return { boxes: out,
+        keyed: canvas ? canvas.querySelectorAll('[data-field-key]').length : 0,
+        doneText: done ? (done.textContent || '').trim() : null,
+        blankText: blank ? (blank.textContent || '').trim() : null,
+        /* THE ANSWERED TERM IS PAINTED AS PART OF ITS SENTENCE, never as a gap. */
+        sameInk: !!(dg && pg && dg.color === pg.color),
+        noBox: !!(dg && (dg.backgroundColor === 'rgba(0, 0, 0, 0)' || dg.backgroundColor === 'transparent')),
+        blankBoxed: !!(g(blank) && g(blank).backgroundColor !== 'rgba(0, 0, 0, 0)') };
+    });
+    check('10a GATE — the form draws a box for each field',
+      cs.boxes.length === 2, cs.boxes.map(b => b.key).join(',') || 'none');
+    check('10b the ANSWERED field has its word on the paper',
+      cs.doneText === 'Highland Corporate Ltd', String(cs.doneText));
+    check('10c CONTROL — and the unanswered one still has its blank',
+      cs.blankText === 'Provider Name', String(cs.blankText));
+    check('10d EVERY box finds its word, filled in or not',
+      cs.boxes.length === 2 && cs.boxes.every(b => b.peer),
+      cs.boxes.map(b => b.key + ':' + (b.peer ? 'found' : 'MISSING')).join(' · '));
+    check('10e an answered term is painted as part of its sentence, not as a gap',
+      cs.sameInk && cs.noBox && cs.blankBoxed,
+      `answered same ink ${cs.sameInk} · no box ${cs.noBox} · blank still boxed ${cs.blankBoxed}`);
+    /* AND THE PRESS REALLY MOVES THE PAPER — the field paragraph is far down. */
+    const jump = await page.evaluate(async () => {
+      const s = document.getElementById('doc-scroll');
+      const b = document.querySelector('#tplform-section [data-tplf]');
+      if (!s || !b) return null;
+      s.scrollTop = 0;
+      b.focus();
+      await new Promise(r => setTimeout(r, 400));
+      const el = document.querySelector('#doc-canvas .is-fieldlit');
+      const sr = s.getBoundingClientRect(), er = el ? el.getBoundingClientRect() : null;
+      return { top: s.scrollTop, range: s.scrollHeight - s.clientHeight, lit: !!el,
+        inView: !!(er && er.top >= sr.top - 2 && er.bottom <= sr.bottom + 2) };
+    });
+    check('10f GATE — the paper is long enough to have somewhere to scroll',
+      !!jump && jump.range > 100, jump ? 'range ' + jump.range : 'not measured');
+    check('10g pressing the ANSWERED field takes the paper to its word',
+      !!jump && jump.lit && jump.top > 0 && jump.inView,
+      jump ? `scrolled to ${jump.top} · lit ${jump.lit} · in view ${jump.inView}` : 'not measured');
 
     check('8 no page errors anywhere in the journey', errors.length === 0, errors.join(' | '));
     await ctx.close();

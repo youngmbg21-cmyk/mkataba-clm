@@ -45,12 +45,31 @@ describe('f106 — renderer and helper hygiene (no server)', () => {
     assert.ok(html.includes('hati-field'), 'the orphan still shows as a visible blank');
   });
 
-  test('a live blank carries its field key for click-to-fill; a filled value carries nothing', () => {
+  /* REVERSED IN PLACE 20 Sep 2026 (Young: "whenever I click on any entry
+     field, whether filled in or not, it should take me to the section in the
+     contract ... That is not currently happening").
+     The old claim — "a filled value carries nothing" — is kept here because it
+     was HALF right, and the half that was right is what makes this safe: a
+     filled term stops being a BLANK. It loses the grey box, the pointer, the
+     hover and the click-to-type, all of which hang off `.hati-field`. What it
+     must not lose is its KEY, because that is the only thing on the paper that
+     says which question this sentence answers — and without it the form's own
+     cursor-follows-you link pointed at half its boxes and was silent on the
+     rest. */
+  test('EITHER WAY the paper knows which field a term answers', () => {
     const empty = templateFormDocHtml(form);
     assert.ok(empty.includes('data-field-key="client_name"'), 'the blank knows which field it is');
+    assert.ok(/class="hati-field"[^>]*data-field-key="client_name"/.test(empty)
+      || /data-field-key="client_name"[^>]*class="hati-field"/.test(empty)
+      || empty.includes('class="hati-field" data-field-key="client_name"'),
+      'and it is drawn as a blank');
     const filled = templateFormDocHtml({ ...form, values: { client_name: 'Wanjiru Catering Ltd' } });
     assert.ok(filled.includes('Wanjiru Catering Ltd'));
-    assert.ok(!filled.includes('data-field-key="client_name"'), 'filled values are plain document text');
+    assert.ok(filled.includes('data-field-key="client_name"'),
+      'an answered term still says which question it answers');
+    assert.ok(filled.includes('hati-field-done'), 'under its own class');
+    assert.ok(!/class="hati-field"[^>]*Wanjiru/.test(filled),
+      'and NEVER dressed as a blank — that class is a grey gap with a pointer on it');
   });
 
   test('templateFormStripMarker removes every occurrence and leaves a visible blank', () => {
@@ -172,6 +191,12 @@ describe('f106 — repair on open (render sandbox)', () => {
     sandbox.tplFormCommit(c, 0, 'Wanjiru Catering Ltd');
     assert.equal(c.templateForm.values.client_name, 'Wanjiru Catering Ltd');
     assert.ok(c.redlineText.includes('Wanjiru Catering Ltd'));
-    assert.ok(!c.redlineText.includes('data-field-key'), 'a filled blank stops being a blank');
+    /* REVERSED IN PLACE 20 Sep 2026 — see the note above the EITHER WAY claim.
+       A filled blank stops being a BLANK (it gives up hati-field and every bit
+       of dressing that hangs off it) and keeps its KEY, which is what the
+       form's cursor-follows-you link points at. */
+    assert.ok(!/class="hati-field"[^>]*Wanjiru/.test(c.redlineText),
+      'a filled blank stops being a blank');
+    assert.ok(c.redlineText.includes('hati-field-done'), 'and keeps its key under its own class');
   });
 });

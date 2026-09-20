@@ -22,8 +22,23 @@ const TPLFORM_ESC = s => String(s == null ? '' : s)
    — visible as a blank to both parties, gone the moment a value lands. */
 function tplFormSlot(field, value) {
   const v = value == null ? '' : String(value).trim();
-  if (v) return TPLFORM_ESC(v);
   const key = field && /^[a-z][a-z0-9_]{0,63}$/.test(String(field.fieldKey || '')) ? ` data-field-key="${field.fieldKey}"` : '';
+  /* ---- AN ANSWERED TERM STILL KNOWS WHICH QUESTION IT ANSWERS (Young
+     reported it 20 Sep 2026: "whenever I click on any entry field, whether
+     filled in or not, it should take me to the section in the contract ... That
+     is not currently happening") ----
+     This printed a filled field as PLAIN ESCAPED TEXT, so the paper carried a
+     key for every EMPTY blank and nothing at all for an answered one. The
+     form's own cursor-follows-you link then pointed at half its boxes and was
+     silent on the rest — and silent is how it read, because a key nothing
+     matches is not an error anywhere in that machinery.
+
+     `hati-field-done` CARRIES NO RULE, so the term is painted exactly as it
+     was: part of its sentence, never a grey gap. And it is deliberately NOT
+     `hati-field`, which would give an answered term the blank's own dressing,
+     its pointer, its hover AND its click-to-type — three screens' behaviour
+     changed to fix a fourth. What it carries is the key, and nothing else. */
+  if (v) return key ? `<span class="hati-field-done"${key}>${TPLFORM_ESC(v)}</span>` : TPLFORM_ESC(v);
   return `<span class="hati-field"${key}>${TPLFORM_ESC((field && field.label) || 'to be completed')}</span>`;
 }
 
