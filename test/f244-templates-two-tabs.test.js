@@ -70,7 +70,7 @@ function stage(over = {}) {
 const card = (d, id) => d.cards.find(c => c.id === id);
 
 describe('f244 (1) — two tabs, and the table is still whole', () => {
-  test('the row names both tabs, and the table is where a reader lands', () => {
+  test('the row names both tabs, and the first of them is where a reader lands', () => {
     const s = stage(); s.renderTemplatesPage();
     const html = s.document.getElementById('content').innerHTML;
     /* —— RE-POINTED TWICE IN PLACE. On 19 Sep a THIRD tab joined the row
@@ -78,23 +78,33 @@ describe('f244 (1) — two tabs, and the table is still whole', () => {
        overview page"* and it went, because the book's glance already opens
        with the overview's own headline. THE CLAIM THIS TEST WAS WRITTEN FOR
        IS UNCHANGED: the row names more than one tab, the tabs sit in a fixed
-       order, and the TABLE is both last and where a reader arrives. What
-       moved is which tab leads. */
+       order, and the TABLE is still last. What moved is which tab leads — and
+       on 20 Sep, which one a reader arrives on. */
     assert.match(html, /data-tpl-tab="book"/);
     assert.match(html, /data-tpl-tab="list"/);
     assert.ok(html.indexOf('data-tpl-tab="book"') < html.indexOf('data-tpl-tab="list"'),
       'the book is the first tab');
     assert.ok(!html.includes('data-tpl-tab="overview"'), 'and the overview is gone');
     assert.ok(!html.includes('Templates overview'), 'in the markup and in the words');
-    /* ---- AND THE LIBRARY IS THE ONE THAT OPENS (Young confirmed 18 Sep 2026)
-       ---- REVERSED IN PLACE. This read 'overview' because 25 Aug 2026 asked
-       for the overview to be the first tab. Measured on the running page: the
-       overview carried 44 pressable things and not one of them was a verb, by
-       its own design; landing on it was landing on the one screen in the
-       section that cannot do anything. */
-    assert.equal(s.tplPageTab(), 'list', 'the LIBRARY is the one that opens');
+    /* ---- AND THE FIRST TAB IS THE ONE THAT OPENS (Young ruled 20 Sep 2026:
+       "you should First Land in the first tab which in this case its The
+       Book") ---- REVERSED IN PLACE, for the second time, and the reasoning of
+       each reversal is kept because it is what makes the next one safe.
+
+       It read 'overview' until 18 Sep, because 25 Aug asked for the overview
+       to be the first tab; 18 Sep moved it to 'list' on a measurement — the
+       overview carried 44 pressable things and not ONE of them was a verb, by
+       its own design, so landing there was landing on the screen that cannot
+       act. THAT SCREEN IS GONE: the overview tab was deleted on 19 Sep and the
+       BOOK took its place, and the book's cards are doors — each presses
+       tplGoBucket onto the table already narrowed.
+
+       PINNED AS THE RELATION, never the word: the ruling is "the first tab",
+       so the claim is TPL_PAGE_TABS[0] and reordering the row moves both. */
     assert.deepEqual(s.TPL_PAGE_TABS, ['book', 'list']);
-    assert.equal(s.TPL_PAGE_TABS[s.TPL_PAGE_TABS.length - 1], 'list', 'and the table is still last');
+    assert.equal(s.tplPageTab(), s.TPL_PAGE_TABS[0], 'the FIRST tab is the one that opens');
+    assert.equal(s.tplPageTab(), 'book', 'and on this row that is the book');
+    assert.equal(s.TPL_PAGE_TABS[s.TPL_PAGE_TABS.length - 1], 'list', 'the table is still last');
   });
 
   /* THE TABLE STAYS IN THE DOM while the overview is up — the Settings page's
@@ -107,13 +117,19 @@ describe('f244 (1) — two tabs, and the table is still whole', () => {
     assert.ok(host, '#tpl-rows exists');
     assert.match(host.innerHTML, /Wanjiru Standard MSA/);
     const shell = s.document.getElementById('content').innerHTML;
-    /* RE-POINTED, NOT WEAKENED (18 Sep 2026, again 19 Sep). The claim is that
-       the tab which is NOT showing keeps its markup, so the fill-by-id cannot
-       crash and every id a door reaches for stays reachable. That claim is
-       unchanged; what swapped is which tab is hidden (the landing moved) and
-       then which tabs exist at all (the overview went). */
-    assert.match(shell, /data-tpl-sec="book" hidden/, 'the book is hidden, not gone');
-    assert.ok(/data-tpl-sec="list"(?! hidden)/.test(shell), 'and the library is the one showing');
+    /* RE-POINTED, NOT WEAKENED (18 Sep 2026, again 19 Sep, again 20 Sep). The
+       claim is that the tab which is NOT showing keeps its markup, so the
+       fill-by-id cannot crash and every id a door reaches for stays reachable.
+       THAT claim has never changed; what keeps swapping is which tab is hidden
+       (the landing has now moved twice) and which tabs exist at all (the
+       overview went). So it is asked of tplPageTab() rather than of a tab
+       named here, and the fourth ruling on the landing will not touch it. */
+    const live = s.tplPageTab(), other = s.TPL_PAGE_TABS.find(k => k !== live);
+    assert.match(shell, new RegExp(`data-tpl-sec="${other}" hidden`),
+      'the tab you did not land on is hidden, not gone');
+    assert.ok(new RegExp(`data-tpl-sec="${live}"(?! hidden)`).test(shell),
+      'and the one you landed on is showing');
+    assert.equal(live, 'book', 'which since 20 Sep 2026 means the book');
     assert.match(shell, /id="tpl-search"/);
   });
 

@@ -2502,20 +2502,35 @@ function tplOverviewHtml(d){
 /* THE BOOK JOINS THE ROW (Young ruled it 19 Sep 2026, off "The Template Book"
    artifact), AND THE OVERVIEW LEAVES IT THE SAME DAY (Young: *"delete the
    templates overview page"*). TWO TABS, TWO QUESTIONS: the book answers WHAT
-   HAVE WE GOT, the list is the list. The landing is unchanged — 18 Sep's
-   ruling stands, `tplPageTab`'s fallback is still 'list', and a reader still
-   arrives on the table where the verbs are. */
+   HAVE WE GOT, the list is the list. */
 const TPL_PAGE_TABS=['book','list'];
 let _tplPageTab=null;
-/* ---- THE LANDING IS THE LIBRARY (Young confirmed 18 Sep 2026) ----
-   THIS REVERSES 25 AUG 2026, which asked for "Templates overview" to be the
-   first tab. Both tabs stay and the overview keeps everything it reads; what
-   changes is which one you arrive on. MEASURED on the running page: the
-   overview carries 44 pressable things and not ONE of them is a verb — Use,
-   Open, Edit, blanks, bulk, versions and delete all live on the other tab, by
-   its own design ("the overview acts on nothing"). Landing a reader on the one
-   screen in the section that cannot do anything is the cost this reverses. */
-function tplPageTab(){ return TPL_PAGE_TABS.includes(_tplPageTab)?_tplPageTab:'list'; }
+/* ---- THE LANDING IS THE FIRST TAB, WHICH IS THE BOOK (Young ruled it
+   20 Sep 2026: *"when you Navigate to the templates page, you should First
+   Land in the first tab which in this case its The Book"*) ----
+
+   THIS REVERSES 18 SEP 2026, whose reasoning is kept below because it is what
+   makes the reversal safe rather than a swing back: it says the overview
+   "carries 44 pressable things and not ONE of them is a verb", and landing a
+   reader on a screen that cannot act is the cost. THE SCREEN THAT ARGUMENT WAS
+   ABOUT NO LONGER EXISTS — the overview tab was deleted on 19 Sep and the BOOK
+   replaced it, and the book's cards are doors: each one presses `tplGoBucket`,
+   which lands on the table already narrowed to that bucket. The tab a reader
+   arrives on now answers "what have we got" AND carries the way to the verbs.
+
+   IT READS `TPL_PAGE_TABS[0]`, NEVER THE WORD 'book'. The owner's ruling is
+   "the first tab", so the fallback is the list's own first entry — reorder the
+   row and the landing follows it, with no second place to remember.
+
+   It read: THE LANDING IS THE LIBRARY (Young confirmed 18 Sep 2026). THIS
+   REVERSES 25 AUG 2026, which asked for "Templates overview" to be the first
+   tab. Both tabs stay and the overview keeps everything it reads; what changes
+   is which one you arrive on. MEASURED on the running page: the overview
+   carries 44 pressable things and not ONE of them is a verb — Use, Open, Edit,
+   blanks, bulk, versions and delete all live on the other tab, by its own
+   design ("the overview acts on nothing"). Landing a reader on the one screen
+   in the section that cannot do anything is the cost this reverses. */
+function tplPageTab(){ return TPL_PAGE_TABS.includes(_tplPageTab)?_tplPageTab:TPL_PAGE_TABS[0]; }
 /* A tab press is CLASS AND HIDDEN FLIPS, never a re-render: the table holds a
    search box the reader may be typing into, and both doors below (a card, the
    "see all") set that box before switching. */

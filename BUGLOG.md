@@ -16965,3 +16965,116 @@ built.
 ### Touched outside the request
 
 Nothing.
+
+---
+
+## 2026-09-20 · No brace reaches the page, and the Templates page lands on the book
+
+Two asks in one message. *"In hati where copilot generates information like in
+the attached copilots read and in the chatbot i see this sign {} being
+generated. Fix this bug to Remote it from Outputs."* and *"when you Navigate to
+the templates page, you should First Land in the first tab which in this case
+its The Book."*
+
+### The defect (braces)
+
+REPRODUCED AGAINST THE REAL RENDERER BEFORE A LINE MOVED. Three shapes, all of
+them the model garbling its own emphasis markers:
+
+- **Doubled braces** — `{{+78%}}`, `{+78%}}`, `{{+78%}`. The old pattern
+  `\{([+\-!~])([^{}<>]{1,400}?)\}` matched the INNER pair and left the outer
+  braces standing on the page. That is the `{ 78% }` in the owner's screenshot.
+- **Bold inside a marker** — `{+**78%**}`. THIS IS WHAT THE PROMPT ASKS FOR:
+  one rule bolds every figure, another wraps the verdict in a marker, so a
+  marker round a figure carries bold BY INSTRUCTION. `mdParse` turns it into
+  `<strong>`, the old body class `[^{}<>]` refused the `<`, and `{+` and `}`
+  reached the page. The most common of the three, and the one that made the
+  report look garbled rather than merely untidy.
+- **A doubled pair with no tone character** — `{{2.0 rounds per deal}}`.
+
+### The fix
+
+THE RENDERER IS THE WALL, NOT THE PROMPT. `AI_TONE_RULES` is already written
+as duties with a worked example, because asking nicely came back with no
+markers at all; tightening its wording again is one more thing a model may
+ignore on any given answer, and the reader would still see the braces.
+
+Four patterns in js/aimd.js, all published:
+
+- `AI_TONE_RE` — both braces optional on each side, so all four counts fold to
+  one span. Its body admits only NAMED inline tags (`AI_TONE_INLINE`): a BLOCK
+  tag would mean the marker ran across a paragraph boundary, and a span
+  wrapping `</p><p>` is broken nesting.
+- `AI_TONE_LOOSE_RE` — a doubled pair with no tone character is unwrapped to
+  its words and given NO colour. Which verdict was meant is not knowable, and
+  picking one is the product asserting one nobody wrote.
+- `AI_TONE_ORPHAN_RE` — the last net. Anything that HAD a closer is already a
+  span by now, so a `{` still sitting in front of a tone character is a marker
+  the model never finished. Prose does not write `{!`.
+- `AI_TONE_SPLIT_RE` — run on the RAW text inside `aiRichText`, because a
+  marker whose body crosses a blank line is cut in two by `mdParse` and its
+  closer is stranded in the next paragraph.
+
+THE WALL: `{{counterparty}}` keeps its braces. That is this product's own
+template-blank syntax — `AI_TEMPLATE_RULE` asks the model for
+`{{lower_snake_case}}` — and a reader who asks Copilot how to mark a blank
+must get the braces back. The loose unwrap is therefore guarded on the body
+containing a SPACE: emphasis is a phrase, a blank is one word.
+
+TWO SURFACES, ONE READING, MEASURED BY GREP: `aiToneHtml` has no caller
+outside js/aimd.js, and `aiRichText` has exactly two — the chat bubble
+(`aiFmt`) and Copilot's read on the Insights dock (`igFmtRich`). Those are the
+two screens the owner named, and there is no third.
+
+### The landing
+
+`tplPageTab`'s fallback is the only line that moved: `'list'` became
+`TPL_PAGE_TABS[0]`. It reads the list's own first entry rather than the word
+`'book'`, so reordering the row moves the landing with it and there is no
+second place to remember.
+
+THIS REVERSES 18 SEP 2026, and that reasoning is kept whole in the code
+because it is what makes the reversal safe: it measured the overview at 44
+pressable things with not one verb among them, and landing a reader on a
+screen that cannot act was the cost. The screen that argument was about no
+longer exists — the overview went on 19 Sep and the BOOK replaced it, and the
+book's cards are doors (each presses `tplGoBucket`, landing on the table
+already narrowed).
+
+### Tests
+
+- `f53` — a new describe, eight claims: all four brace counts, bold inside a
+  marker, a doubled pair with no tone character, THE WALL (a template blank
+  keeps its braces), an unfinished marker, a marker across a blank line, a tone
+  span never wrapping a block tag, and ordinary prose untouched.
+- `test/chromium/no-braces-in-copilot-verify.js` — NEW, 14 checks, **4 RED AT
+  THE PARENT**, where it prints `{sign within round 1}`, `under 1 day}`,
+  `{2 hours`, `{-21% of deals}` and `{{2.0 rounds per deal}}` — the owner's
+  screenshot, reproduced. It drives BOTH named screens with one scripted answer
+  so neither can be fixed and the other left behind, and reads the PAINTED
+  text.
+- The bold claim in that file was found passing at the parent for the wrong
+  reason: bold anywhere on the page proves nothing, since `mdParse` still bolds
+  the headings. It is asked as `.ai-tone strong` now — bold INSIDE a marker —
+  and is red at the parent on both surfaces.
+- The colour claims are GATES, not decoration: "no braces" would otherwise be
+  satisfied by a fix that simply stopped marking anything.
+- `f244`, `f336`, `f338` and `templates-tabs-verify` re-pointed IN PLACE for
+  the landing, each asked as the RELATION (`tplPageTab() === TPL_PAGE_TABS[0]`,
+  and which tab is live derived from the page's own `.on`) rather than the
+  word, so the next reorder costs no edits.
+- `templates-tabs-verify` 52/57 on this branch; the parent is 51/57 with the
+  same five pre-existing failures.
+- Full suite: 8,077 tests, 1,590 suites, 0 failures.
+
+### Noticed, not fixed
+
+- `test/chromium/overview-as-drawn-verify.js:145` still carries the repo's one
+  lint error — `rec.cells[0].x === rec.cells[0].x`, a check that compares a
+  value to itself and can never fail. Confirmed present at unmodified main.
+- `templates-tabs-verify` 7c, 8a, 8b, 8c and its harness check are red on this
+  branch and red at the parent, untouched by this change.
+
+### Touched outside the request
+
+Nothing.

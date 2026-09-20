@@ -123,13 +123,21 @@ const BOX = sel => {
         subs: document.querySelectorAll('#content .st-tabsub').length,
         title: (document.querySelector('#content h1') || {}).textContent };
     });
-    /* —— RE-POINTED TWICE, 19 Sep 2026. A third tab joined the row in the
-       morning and the overview left it in the afternoon; and 18 Sep had
-       already moved the LANDING onto the table while this block still opened
-       on the first tab. Every claim is what it was — the row is named, it has
-       a fixed order, the table is last, the tab not showing is gone in PIXELS
-       rather than merely missing an attribute, and the live tab is the bold
-       one. What moved is which tab is which. */
+    /* —— RE-POINTED THREE TIMES, and the claims never changed once. A third
+       tab joined the row on 19 Sep and the overview left it the same
+       afternoon; 18 Sep moved the LANDING onto the table; 20 SEP MOVED IT BACK
+       TO THE FIRST TAB, which is now the book (Young: "you should First Land
+       in the first tab which in this case its The Book").
+
+       Every claim is what it always was — the row is named, it has a fixed
+       order, the table is last, the tab NOT showing is gone in PIXELS rather
+       than merely missing an attribute, and the live tab is the bold one. What
+       keeps moving is which tab is which, so the three that care are asked of
+       the page's OWN answer (`live` / `rest`) rather than of a tab named here,
+       and a fourth ruling on the landing will not touch them. */
+    const live = tabs.t.find(x => x.on) || tabs.t[0];
+    const rest = tabs.t.find(x => x !== live);
+    const box = k => (k === 'book' ? tabs.bk : tabs.list);
     check('1a · two tabs, the book first, table last, all named',
       tabs.t.length === 2 && tabs.t[0].k === 'book'
       && tabs.t[tabs.t.length - 1].k === 'list'
@@ -138,14 +146,17 @@ const BOX = sel => {
       tabs.t.map(x => x.k + ':' + x.txt));
     check('1b · the overview tab is gone, in the row and in the page',
       tabs.ov === null && tabs.bk !== null, { overview: tabs.ov, book: tabs.bk });
-    check('1c · and the book has really left the screen, not merely lost an attribute',
-      tabs.bk && tabs.bk.hidden === true && tabs.bk.h === 0 && tabs.bk.w === 0,
-      { book: tabs.bk });
-    check('1c2 · the table is the tab a reader lands on, and it is drawn',
-      tabs.list && !tabs.list.hidden && tabs.list.h > 200, { list: tabs.list });
+    check('1c · and the resting tab has really left the screen, not merely lost an attribute',
+      box(rest.k) && box(rest.k).hidden === true
+      && box(rest.k).h === 0 && box(rest.k).w === 0,
+      { resting: rest.k, box: box(rest.k) });
+    check('1c2 · the FIRST tab is the one a reader lands on, and it is drawn',
+      live.k === tabs.t[0].k && live.k === 'book'
+      && box(live.k) && !box(live.k).hidden && box(live.k).h > 200,
+      { landed: live.k, box: box(live.k) });
     check('1d · the live tab is bold and the resting one is not',
-      Number(tabs.t[1].weight) >= 700 && Number(tabs.t[0].weight) < 700,
-      tabs.t.map(x => x.k + ':' + x.weight));
+      Number(live.weight) >= 700 && Number(rest.weight) < 700,
+      tabs.t.map(x => x.k + ':' + x.weight + (x.on ? ' (live)' : '')));
     check('1e · no sentence under the title or under the tabs',
       tabs.subs === 0, { subtitles: tabs.subs, title: tabs.title });
 

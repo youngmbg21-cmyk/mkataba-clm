@@ -101,8 +101,15 @@ describe('f338 (2) — option (a): the tab goes, the reading is kept', () => {
   test('2d and the source SAYS why an unreferenced reading was kept', () => {
     assert.match(LIB, /AND IT HAS NO CALLER SINCE 19 SEP 2026/);
   });
-  test('2e the landing is unchanged — a reader still arrives on the table', () => {
-    assert.match(LIB, /function tplPageTab\(\)\{ return TPL_PAGE_TABS\.includes\(_tplPageTab\)\?_tplPageTab:'list'; \}/);
+  /* ---- REVERSED IN PLACE, 20 Sep 2026 (Young: "you should First Land in the
+     first tab which in this case its The Book") ----
+     It read: the landing is unchanged — a reader still arrives on the table,
+     and it pinned the LITERAL 'list' in the source. The fallback is the list's
+     own first entry now, so the claim is that RELATION: reorder the tab row
+     and the landing follows, with no second place to remember. */
+  test('2e the landing is the first tab, read off the list itself', () => {
+    assert.match(LIB, /function tplPageTab\(\)\{ return TPL_PAGE_TABS\.includes\(_tplPageTab\)\?_tplPageTab:TPL_PAGE_TABS\[0\]; \}/);
+    assert.ok(!/_tplPageTab:'list'/.test(LIB), "and it names no tab by word");
   });
   /* A KEY IS RETIRED BY NOT CALLING IT, never by taking it out of one book:
      a key removed from one dictionary and not the other leaves a screen

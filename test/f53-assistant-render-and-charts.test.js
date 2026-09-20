@@ -101,6 +101,93 @@ describe('markdown renders as markdown', () => {
   });
 });
 
+/* ---- NO BRACE REACHES THE PAGE (Young reported it 20 Sep 2026) ----
+   "In hati where copilot generates information like in the attached copilots
+   read and in the chatbot i see this sign {} being generated."
+
+   THE MARKERS ARE THE PRODUCT'S OWN SYNTAX AND THE READER MUST NEVER SEE
+   THEM. Every shape below was reproduced against the real renderer before a
+   line of the fix was written, and each one is a way the model garbles the
+   convention it was handed — which is not a fault it will stop having, so the
+   RENDERER is the wall rather than the prompt. */
+describe('the tone markers never leave their braces on the page', () => {
+  const w = W();
+  /* The one reading both surfaces use: the chat panel's aiFmt and the Insights
+     dock's igFmtRich each end at aiRichText. Asked through it, so a second
+     surface cannot be fixed and the first left behind. */
+  const seen = src => w.aiRichText(src).replace(/<[^>]+>/g, '');
+
+  test('DOUBLED BRACES fold to one span — all four counts', () => {
+    /* MEASURED at the parent: {{+78%}} matched the INNER pair and left the
+       outer ones standing, which is the "{ 78% }" in the owner's screenshot;
+       an unbalanced pair left exactly one brace behind, which is the bare "}"
+       beside three other figures on the same report. */
+    for (const src of ['{+78%}', '{{+78%}}', '{{+78%}', '{+78%}}']){
+      const html = w.aiRichText('getting ' + src + ' through');
+      assert.match(html, /class="ai-tone ai-tone-pos">78%</, src + ' still colours');
+      assert.ok(!/[{}]/.test(seen('getting ' + src + ' through')),
+        src + ' left a brace on the page');
+    }
+  });
+
+  test('A BOLD FIGURE INSIDE A MARKER is what the prompt ASKS FOR, and it colours', () => {
+    /* AI_TONE_RULES rule 1: bold every figure. Rule 2: wrap the verdict in a
+       marker. A marker round a figure therefore carries bold BY INSTRUCTION,
+       and the old body class [^{}<>] refused the "<" that mdParse produced. */
+    const html = w.aiRichText('adds {-**0.6 extra rounds**} when contested');
+    assert.match(html, /class="ai-tone ai-tone-neg"><strong>0\.6 extra rounds<\/strong><\/span>/);
+    assert.ok(!/[{}]/.test(seen('adds {-**0.6 extra rounds**} when contested')));
+  });
+
+  test('A DOUBLED BRACE WITH NO TONE CHARACTER is unwrapped, and given no colour', () => {
+    /* The owner's report carried "{{2.0 rounds per deal}}" rendered literally.
+       Which tone was meant is not knowable, so the words are kept and NOTHING
+       is coloured — picking one would be the product asserting a verdict
+       nobody wrote. */
+    const src = 'they take {{2.0 rounds per deal}} over 2 deals';
+    assert.equal(seen(src), 'they take 2.0 rounds per deal over 2 deals');
+    assert.ok(!/ai-tone/.test(w.aiRichText(src)), 'no colour is invented');
+  });
+
+  test('THE WALL: a template blank keeps its braces', () => {
+    /* {{lower_snake_case}} is this product's own syntax — AI_TEMPLATE_RULE
+       asks the model for {{counterparty}}, one identifier by instruction — and
+       a reader who asks Copilot how to mark a blank must get the braces back.
+       The guard is that a blank is ONE WORD and emphasis is a PHRASE. */
+    assert.match(seen('write it as {{counterparty}} in the section'), /\{\{counterparty\}\}/);
+    assert.match(seen('use {{notice_days}} there'), /\{\{notice_days\}\}/);
+  });
+
+  test('AN UNFINISHED MARKER loses its syntax and keeps its words', () => {
+    assert.equal(seen('a deadlock at {!three deals still open'),
+      'a deadlock at three deals still open');
+  });
+
+  test('A MARKER ACROSS A BLANK LINE leaves neither brace', () => {
+    /* mdParse puts a paragraph boundary through it and no span may wrap that,
+       so the opener would be swept and the closer stranded in the NEXT
+       paragraph — a "}" on the page. Taken off on the raw text instead. */
+    const html = w.aiRichText('open {+one\n\ntwo} close');
+    assert.ok(!/[{}]/.test(html.replace(/<[^>]+>/g, '')), 'got: ' + html);
+    assert.ok(!/<span class="ai-tone[^"]*">[^<]*<\/p>/.test(html),
+      'and no span is wrapped round a paragraph boundary');
+  });
+
+  test('A TONE SPAN NEVER WRAPS A BLOCK TAG', () => {
+    /* The body was widened to admit the inline markup mdParse makes, and it is
+       a NAMED list rather than <[^<>]*> for exactly this reason. */
+    const html = w.aiRichText('first {+good}\n\nsecond {-bad}');
+    assert.equal((html.match(/class="ai-tone/g) || []).length, 2, 'both colour');
+    assert.ok(!/<span class="ai-tone[^"]*">(?:(?!<\/span>)[\s\S])*<p\b/.test(html));
+  });
+
+  test('ORDINARY PROSE IS UNTOUCHED', () => {
+    const src = 'nothing to mark here at all, and no figure either';
+    assert.equal(seen(src), src);
+    assert.ok(!/ai-tone/.test(w.aiRichText(src)));
+  });
+});
+
 describe('charts are built from state, never from the reply', () => {
   function seeded(){
     const w = W();
