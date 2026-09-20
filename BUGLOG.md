@@ -16965,3 +16965,57 @@ built.
 ### Touched outside the request
 
 Nothing.
+
+## 20 Sep 2026 — EIGHT COLOUR SCHEMES, AS AN INTERACTIVE REVIEW
+
+Owner asked for "a realistic artifact of different color schemes for HaTi to make
+it modern and slick", interactive enough to review every page, with the scheme
+itself as the thing you choose. Built as a standalone page, `HaTi-Colour-Schemes.html`,
+in the same shelf as `HaTi-Next-Fifteen-product-review.html`. **NO PRODUCT CODE WAS
+TOUCHED** — not one byte of index.html or js/.
+
+Eight schemes: Teal and Navy exactly as they run today (so "current" means current),
+then Graphite, Indigo, Cobalt, Aubergine, Ink and Pine. Each one sets what
+`:root[data-brand="navy"]` sets and nothing else — the ten-step accent ramp and its
+`-rgb` twins, the nav's own deeper ramp, the companion hue, the hero's two stops, and
+where the scheme retunes the ground, `--color-bg` / `--surface-2` / `--color-divider`
+and the two reading inks. The page writes the paste-ready block itself.
+
+**THE FOUR STATUS TONES ARE FIXED ACROSS ALL EIGHT AND THE PAGE SAYS SO.** Green is
+accepted, ruby refused, amber the other side; `--st-steel-*` follows the accent
+because it always has. That is the navy block's own rule, applied to seven more.
+
+**THE ACCENT HUE SPACE IS NARROWER THAN IT LOOKS, and that is why there is no green
+or amber scheme here.** An accent at 140–160° reads as `--st-green` and one at 30–50°
+as `--st-amber`, twelve pixels from a redline mark that means something. Teal at 174°
+is as close as this product can safely go, which is presumably how it got there.
+
+Eight screens, each drawn from the real thing rather than invented: Home (the four
+chosen tiles, the four fixed, Prepared for you, Needs your decision), Contracts (the
+fixed nine-column table), Negotiate (the paper with a layered redline, the ruby margin
+bar, the eight bands and the verbs with their 17 Sep hairline marks), Overview (the
+section grammar, the renewal card leading, What Copilot read), Insights → Exposure,
+Obligations, Templates → The book, and Team & Settings. Radius 2 on the platform and
+0 on the paper; IBM Plex Sans; the two reading inks; 44px bar over the 240px column.
+
+### Measured, not asserted
+
+Eleven contrast pairs per scheme, computed with the WCAG formula and re-computed live
+in the page so a failure would print rather than be claimed away. All eight clear AA on
+all eleven, in both themes. The instrument agrees with this codebase's own recorded
+figures to the second decimal — accent-400 on the dark panel in navy measures 4.71:1
+here and index.html's own note says 4.71:1.
+
+### Noticed, not fixed
+
+- **The teal running today is the weakest of the eight on its primary fill.** White on
+  `--accent-fill` (accent-700 #0f766e) is 5.47:1; the seven others sit between 6.70
+  (Cobalt) and 11.30 (Navy). It passes AA and index.html records the 5.47 deliberately,
+  so this is a fact, not a defect — but if a scheme is ever chosen on numbers, this is
+  the number.
+- `--color-neutral-400` is still the one step in the ramp that fails AA as text in both
+  themes, as its own note records. Every scheme here inherits that.
+
+### Touched outside the request
+
+Nothing. One new file; no product code, no tests, no tokens moved.
