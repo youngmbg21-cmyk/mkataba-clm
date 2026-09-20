@@ -17439,3 +17439,54 @@ Found while driving it (would not have shown up in the source):
   only, falling back to the line before. A placeholder whose label sits in a
   neighbouring element (a bold lead-in, a table cell) is numbered instead of
   named. Honest, and narrower than guessing.
+
+## 20 Sep 2026 — item 9's third shape: a Word fill-in field
+
+Young: *"Merge all to main then Build the last item."* Everything on the branch
+was fast-forwarded to main first. The last item is item 9's third shape: the
+approved artifact promised HaTi would read "brackets, underscores, a shaded
+Word field", and the overnight build delivered the first two.
+
+MEASURED before a line moved, on a real .docx written the way Word writes one:
+a FORMTEXT field and a content control both arrive as ordinary sentence text —
+"This Agreement is made with Enter buyer name of Click or tap here to enter
+text.." — because both readers keep the field's result and drop everything that
+says it is a field. The blanks reader found none, and the prompt read as if it
+were the contract's own wording.
+
+Built: the mark in docxRunsHtml (one span, no value of its own, the drafter's
+own name as data-wfield in RICH_FIELD_KEY_RE's shape), its class admitted to
+richSpanClassOk, report.fields on docxHasStructure, and a fourth shape in
+js/uploadblanks.js through one shared per-node reading.
+
+Only an UNANSWERED field is a blank and Word says which: w:showingPlcHdr on a
+control, an empty-or-still-default result on a FORMTEXT. A tick box and a
+dropdown are not gaps for wording. A field somebody filled in is their wording
+and is untouched.
+
+TWO REAL DEFECTS FOUND BY DRIVING IT, both invisible in the source:
+- sanitizeRich's empty-block sweep removed the field span AND its characters.
+  Word pads an empty box with non-breaking spaces, which do not survive
+  .trim(), so the gap vanished AND the stored body stopped projecting the plain
+  reader's text ("the fee is ." against "the fee is      ."). That second half
+  is the phantom-change fault the 30 Aug audit names.
+- the source-indentation sweep then took the padding on its own, for the same
+  reason. Both exempted exactly as <pre> already is.
+- a third was my test's fault, not the code's: a case asserting that
+  data-wfield="a\"b" is refused was passing for the wrong reason (the HTML
+  parser ends the value at the quote), so it was replaced with values that can
+  actually arrive.
+
+### Noticed, not fixed
+- richToText collapses a run of non-breaking spaces, so the STORED body's
+  projection differs from the plain reader's on any nbsp-padded document.
+  MEASURED identical at main with no field span involved — pre-existing, and
+  fixing it would ripple into every diff, fingerprint and comparison in the
+  product. The wall this work does hold is pinned instead: the two READERS
+  agree byte for byte, and marking a field moves the projection by nothing.
+- a content control nested inside another reads as the outer one's content
+  (one lazy match rather than a parser). Rare in contract drafting; said out
+  loud in the code.
+- an unnamed field whose prompt is Word's stock string falls back to the words
+  in front of it, which on "…Enter buyer name of ▯" reads poorly. Honest, and
+  narrower than guessing.

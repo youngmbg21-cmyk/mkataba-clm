@@ -1161,7 +1161,14 @@ async function extractWordText(dataUrl){
    is nothing to store and the guesswork stays — which is the fallback it
    should always have been. */
 function docxHasStructure(rep){
-  return !!(rep && (rep.headings || rep.numbered || rep.tables));
+  /* `fields` joined the three on 20 Sep 2026 (item 9's third shape). A Word
+     document drafted to be filled in is ordinarily plain paragraphs with grey
+     fill-in boxes in them — no headings, no numbering, no tables — so without
+     this line the one kind of file whose blanks HaTi can now read stores no
+     body at all and the reading never reaches it. It is structure by this
+     function's own test: with the fields marked the document no longer reads
+     exactly as the scraper read it. */
+  return !!(rep && (rep.headings || rep.numbered || rep.tables || rep.fields));
 }
 const trackedNote=t=>(t&&(t.ins||t.del))
   ? `The file carried ${t.ins+t.del} tracked change${t.ins+t.del===1?'':'s'} (Word markup) — read with all changes accepted`

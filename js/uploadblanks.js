@@ -100,6 +100,36 @@ const UP_KEY_MAX = 48;
    control that ends up inside one. */
 const UP_SKIP_SEL = 'input,textarea,select,button,script,style,.hati-toc,.sig-spot,[contenteditable="true"]';
 const UP_MARK_CLASS = 'up-blank';
+/* ---- THE FOURTH SHAPE: A WORD FILL-IN FIELD (20 Sep 2026) ----
+   The grey shaded box a drafter leaves for an answer. It is not a pattern in
+   the text — `Enter buyer name` is indistinguishable from wording — so the
+   FILE is what states it, and js/docx.js marks it on the way in (see
+   DOCX_WFIELD_CLASS). Read through `window` so the reader and the writer of
+   this class cannot drift; the literal is the fallback for a stage that has
+   not loaded js/richdoc.js. */
+const upFieldClass = () => (typeof RICH_WFIELD_CLASS === 'string' && RICH_WFIELD_CLASS) || 'hati-wfield';
+const upFieldSel = () => 'span.' + upFieldClass();
+/* The painter's own spans are told from the paper's by this, because the two
+   are cleared in opposite ways: one is unwrapped, the other is the drafter's
+   own element and only gives up what the paint put on it. */
+const UP_MADE_ATTR = 'data-upmade';
+/* The drafter's own name for the gap, where the file carried one — see
+   RICH_WFIELD_NAME_ATTR. Read through `window` for the same reason the class
+   is. */
+const upFieldNameAttr = () => (typeof RICH_WFIELD_NAME_ATTR === 'string' && RICH_WFIELD_NAME_ATTR) || 'data-wfield';
+/* WORD'S OWN PROMPTS ARE UI CHROME, NOT NAMES. A content control with no alias
+   shows one of these, so taken as a name every gap in a real Word form would
+   be labelled identically and share ONE key — one box answering all of them.
+   Folded and compared whole, never by substring: a clause that happens to
+   contain these words is not a prompt. */
+const UP_WORD_STOCK = new Set([
+  'click or tap here to enter text.', 'click here to enter text.',
+  'click or tap here to enter text', 'click here to enter text',
+  'choose an item.', 'choose an item', 'select an item.', 'select an item',
+  'click or tap to enter a date.', 'click here to enter a date.',
+  'enter text here', 'type here', 'text',
+]);
+const upStockPrompt = t => UP_WORD_STOCK.has(String(t == null ? '' : t).replace(/[\s\u00a0]+/g, ' ').trim().toLowerCase());
 
 /* Words folded into a key. Lowercase, one underscore per run of anything
    else, bounded — so `[Insert Company Name]` and `[insert company name]` are
@@ -188,6 +218,34 @@ function upHits(text){
   return clean;
 }
 
+/* ---- WHAT ONE RUN ASKS ----
+   THE ONE READING both walks use, so the read and the paint can never disagree
+   about what a run carries. A field is ONE hit covering the whole run: the
+   file has already said where it begins and ends, and re-deciding that from
+   its characters is the guess this shape exists to avoid.
+
+   A field whose prompt carries LETTERS is named by it, exactly as a bracket
+   is. One that carries none — Word pads an empty box with spaces — has no
+   name of its own and takes a ruled line's rule instead, keyed on the words in
+   front of it. Two existing branches, no third key space. */
+function upNodeHits(node){
+  if(!node) return [];
+  const t = String(node.text == null ? '' : node.text);
+  if(!node.field) return upHits(t);
+  /* A field with NO characters at all is still a gap where the file named it:
+     the name is what makes it answerable, and a span the drafter put there is
+     never noise. With neither text nor name there is nothing to key it on. */
+  if(!t && !String(node.name || '')) return [];
+  /* THREE ANSWERS IN ORDER OF CERTAINTY: the name the drafter gave the gap,
+     then the prompt they wrote in it, then nothing — and nothing falls to the
+     ruled line's own rule, the words in front of it. Word's stock prompt is
+     not a name and is refused at the second rung. */
+  const name = String(node.name || '')
+    || (UP_HAS_LETTER_RE.test(t) && !upStockPrompt(t) ? t.trim() : '');
+  return [{ s: 0, e: t.length, raw: t, name,
+    kind: name ? 'named' : 'rule', field: true }];
+}
+
 /* ---- THE KEY ----
    A NAMED placeholder is keyed on its NAME, so every `[Company Name]` in a
    twelve-page document is one question answered once — which is the whole
@@ -226,7 +284,7 @@ function upKeyMint(hit, lead, state){
 function upWalk(nodes, onHit){
   const state = { keys: new Set(), skipped: new Set(), seq: [], rules: 0 };
   for(const node of nodes || []){
-    const hits = upHits(node.text);
+    const hits = upNodeHits(node);
     if(!hits.length) continue;
     for(const h of hits){
       const lead = h.kind === 'rule'
@@ -264,10 +322,23 @@ function upNodesFrom(html, rich){
     return lines.map((t, i) => ({ text: t, lead: i ? lines[i - 1] : '', head: '' }));
   }
   if(typeof document === 'undefined'){
-    /* NO DOM. Split on tags rather than stripping them, so a placeholder
-       cannot be assembled across two elements that never touched. */
-    return src.split(/<[^>]*>/).map(t => ({ text: upEntities(t), lead: '', head: '' }))
-      .filter(r => r.text && r.text.trim());
+    /* NO DOM — unreachable in the product (every stage that loads this file
+       carries one) and kept honest anyway: a field is cut out FIRST as its own
+       unit, then what is left is split on tags rather than stripped, so a
+       placeholder cannot be assembled across two elements that never touched. */
+    const out = [];
+    const re = new RegExp('<span class="' + upFieldClass() + '"([^>]*)>([\\s\\S]*?)<\\/span>', 'g');
+    let at = 0, m;
+    const plain = chunk => { for(const t of String(chunk).split(/<[^>]*>/)){
+      const v = upEntities(t); if(v && v.trim()) out.push({ text: v, lead: '', head: '' }); } };
+    while((m = re.exec(src))){
+      plain(src.slice(at, m.index));
+      out.push({ text: upEntities(String(m[2]).replace(/<[^>]*>/g, '')), lead: '', head: '', field: true,
+        name: (String(m[1]).match(new RegExp(upFieldNameAttr() + '="([^"]*)"')) || [])[1] || '' });
+      at = m.index + m[0].length;
+    }
+    plain(src.slice(at));
+    return out;
   }
   let host;
   try{ host = document.createElement('div'); host.innerHTML = src; }catch(_){ return []; }
@@ -292,21 +363,36 @@ function upNodesOf(root){
   if(!root || typeof document === 'undefined') return [];
   const out = [];
   let head = '';
+  const FIELD = upFieldSel();
   try{
     const w = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, {
       acceptNode(n){
         if(n.nodeType === 1){
           if(n.closest && n.closest(UP_SKIP_SEL)) return NodeFilter.FILTER_REJECT;
+          if(n.matches && n.matches(FIELD)) return NodeFilter.FILTER_ACCEPT;
           return /^h[1-6]$/i.test(n.tagName) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
         }
         const p = n.parentElement;
         if(!p || (p.closest && p.closest(UP_SKIP_SEL))) return NodeFilter.FILTER_REJECT;
+        /* A FIELD'S OWN WORDS ARE THE FIELD'S UNIT, never a run of their own:
+           read both and the same gap is offered twice and painted twice. The
+           element is accepted above and this drops what is under it. */
+        if(p.closest && p.closest(FIELD)) return NodeFilter.FILTER_REJECT;
         return (n.data && n.data.length >= 3) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
       }
     });
     let n, prev = '';
     while((n = w.nextNode())){
-      if(n.nodeType === 1){ head = (n.textContent || '').replace(/\s+/g, ' ').trim(); continue; }
+      if(n.nodeType === 1){
+        if(n.matches && n.matches(FIELD)){
+          const t = n.textContent || '';
+          out.push({ text: t, lead: prev, head, node: n, field: true,
+            name: (n.getAttribute && n.getAttribute(upFieldNameAttr())) || '' });
+          prev = t;
+          continue;
+        }
+        head = (n.textContent || '').replace(/\s+/g, ' ').trim(); continue;
+      }
       out.push({ text: n.data, lead: prev, head, node: n });
       prev = n.data;
     }
@@ -434,11 +520,23 @@ function uploadBlanksClear(root){
   if(!host || !host.querySelectorAll) return;
   for(const m of host.querySelectorAll('span.' + UP_MARK_CLASS)){
     const p = m.parentNode; if(!p) continue;
+    const raw = m.getAttribute('data-upraw');
+    /* TWO KINDS OF SPAN, CLEARED IN OPPOSITE WAYS. One the painter MADE, which
+       goes away whole; one the PAPER OWNS — a Word fill-in field the file
+       itself stated — which is the drafter's own element and only ever gives
+       up what the paint put on it. Unwrapping that one would delete a fact the
+       document carries. */
+    if(!m.hasAttribute(UP_MADE_ATTR)){
+      m.classList.remove(UP_MARK_CLASS, 'is-filled');
+      m.removeAttribute('data-upblank');
+      m.removeAttribute('data-upraw');
+      if(raw != null && (m.textContent || '') !== raw) m.textContent = raw;
+      continue;
+    }
     /* PUT THE PLACEHOLDER BACK, NOT THE ANSWER. The span may be printing what
        somebody typed, and unwrapping that would write their working note into
        the other side's paper on the page — which is the one thing this file
        exists not to do. The characters it was made from ride on the element. */
-    const raw = m.getAttribute('data-upraw');
     p.insertBefore(document.createTextNode(raw == null ? (m.textContent || '') : raw), m);
     p.removeChild(m);
     try{ p.normalize(); }catch(_){ }
@@ -460,20 +558,36 @@ function uploadBlanksPaint(c){
      records the same lesson. */
   const found = [];
   for(const node of upNodesOf(host)){
-    for(const h of upHits(node.text)) found.push({ node: node.node, hit: h });
+    for(const h of upNodeHits(node)) found.push({ node: node.node, hit: h, field: !!node.field });
   }
   if(found.length !== seq.length) return 0;            // the wall — see above
   for(let i = 0; i < found.length; i++) if(found[i].hit.raw !== seq[i].raw) return 0;
   const fields = (c && c.fields) || {};
   const jobs = new Map();
+  let marks = 0;
   for(let i = 0; i < found.length; i++){
-    const { node, hit } = found[i];
+    const { node, hit, field } = found[i];
     if(!node || !node.parentNode) return 0;
+    /* A FIELD IS MARKED IN PLACE. The paper already carries an element for it,
+       with its own identity and possibly its own bold or italic inside, so the
+       paint hangs on that rather than splicing its characters — which is also
+       what makes the clear above able to give it back untouched. */
+    if(field){
+      const key = seq[i].key;
+      if(!node.hasAttribute('data-upraw')) node.setAttribute('data-upraw', node.textContent || '');
+      const raw = node.getAttribute('data-upraw') || '';
+      const v = String(fields[key] == null ? '' : fields[key]).trim();
+      node.setAttribute('data-upblank', key);
+      node.classList.add(UP_MARK_CLASS);
+      node.classList.toggle('is-filled', !!v);
+      if((node.textContent || '') !== (v || raw)) node.textContent = v || raw;
+      marks++;
+      continue;
+    }
     let list = jobs.get(node);
     if(!list){ list = []; jobs.set(node, list); }
     list.push({ key: seq[i].key, hit });
   }
-  let marks = 0;
   for(const [textNode, list] of jobs){
     if(!textNode.parentNode) continue;
     const txt = textNode.data;
@@ -486,6 +600,7 @@ function uploadBlanksPaint(c){
       sp.className = UP_MARK_CLASS;
       sp.setAttribute('data-upblank', key);
       sp.setAttribute('data-upraw', hit.raw);
+      sp.setAttribute(UP_MADE_ATTR, '1');      // this one is ours to unwrap
       const v = String(fields[key] == null ? '' : fields[key]).trim();
       if(v) sp.classList.add('is-filled');
       /* NEVER innerHTML. The words being printed are the other side's, or the
@@ -515,6 +630,8 @@ function uploadBlankPaint(key, value){
   let n = 0;
   for(const sp of canvas.querySelectorAll(`span.${UP_MARK_CLASS}[data-upblank="${q}"]`)){
     const raw = sp.getAttribute('data-upraw') || '';
+    /* Both kinds answer here — the painter's own span and the paper's own
+       field — because both carry the key and both print the answer. */
     sp.textContent = v || raw;
     sp.classList.toggle('is-filled', !!v);
     n++;
@@ -524,8 +641,9 @@ function uploadBlankPaint(key, value){
 
 if(typeof window !== 'undefined') Object.assign(window, {
   UP_BRACKET_RE, UP_BRACE_RE, UP_RULE_RE, UP_MARKER_RE,
-  UP_BLANK_MAX, UP_KEY_MAX, UP_LEAD_WORDS, UP_SKIP_SEL, UP_MARK_CLASS,
-  upFold, upLabel, upLead, upHits, upKeyMint, upWalk, upNodesFrom, upNodesOf, upEntities,
+  UP_BLANK_MAX, UP_KEY_MAX, UP_LEAD_WORDS, UP_SKIP_SEL, UP_MARK_CLASS, UP_MADE_ATTR,
+  upFieldClass, upFieldSel, upFieldNameAttr, UP_WORD_STOCK, upStockPrompt,
+  upFold, upLabel, upLead, upHits, upNodeHits, upKeyMint, upWalk, upNodesFrom, upNodesOf, upEntities,
   uploadBlanksLive, uploadWordingSource, uploadBlanksRead, uploadBlanksOver, uploadBlankSeq,
   uploadBlanksClear, uploadBlanksPaint, uploadBlankPaint,
 });

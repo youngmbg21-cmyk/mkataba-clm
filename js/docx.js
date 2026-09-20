@@ -503,10 +503,99 @@ function docxHeadingStyles(xml){
    The same reading the scraper does, plus bold/italic/underline. It returns
    HTML and the PLAIN text side by side, because the plain text has to stay the
    contract every other feature in the product reads. */
+/* ---- A FILL-IN FIELD IS A BLANK, AND ONLY THE FILE KNOWS (item 9's third
+   shape, Young ruled 20 Sep 2026) ----
+   A Word contract drafted to be completed carries its gaps as FIELDS — the
+   grey shaded boxes — not as brackets or ruled lines. MEASURED before a line
+   moved: both readers keep the field's RESULT text and drop everything that
+   says it is a field, so `Enter buyer name` and `Click or tap here to enter
+   text.` arrived as ordinary wording. Nothing downstream could tell a gap from
+   a sentence, and the blanks reader found none.
+
+   THE TEXT DOES NOT MOVE BY A CHARACTER. Only `html` is wrapped; `text` is
+   built from the same runs and is untouched, so the plain reader and this one
+   still project the same string — the wall f257 states and the one the Word
+   round trip rests on (two readings of one document filed a phantom change on
+   every table cell once).
+
+   IT CARRIES NO VALUE OF ITS OWN: the span's own text IS the prompt, exactly
+   as RICH_TOC_TAIL_CLASS carries a contents row's page number. So no attribute
+   is admitted to the record and nothing open-ended is stored.
+
+   ONLY AN UNANSWERED FIELD IS A BLANK, and Word says which: a content control
+   states `w:showingPlcHdr` while it shows its placeholder, and a FORMTEXT
+   whose result is empty or still its own default has not been filled in. A
+   field somebody ANSWERED is their wording and is left exactly as it was —
+   which is why this needs no guess and no model. */
+const DOCX_WFIELD_CLASS = 'hati-wfield';
+/* Word writes an empty form field as its default text, as nothing, or as a run
+   of the non-breaking spaces it pads the grey box with. */
+const _dxFieldBlank = t => !String(t == null ? '' : t).replace(/[\s\u00a0]+/g, '');
+const _dxFold = t => String(t == null ? '' : t).replace(/[\s\u00a0]+/g, ' ').trim().toLowerCase();
+/* THE DRAFTER'S OWN NAME FOR THE GAP, folded to exactly the shape richdoc's
+   RICH_FIELD_KEY_RE admits — a form field's `w:name`, a content control's
+   `w:alias`. Word writes `BuyerName`, `Buyer_Name`, `Registered Address`; all
+   three read as `buyer_name` / `registered_address`. Anything that folds to
+   nothing, or that will not fit the shape, is simply not carried: the span
+   still marks the gap and the prompt still labels it. */
+function _dxFieldName(raw){
+  const t = String(raw == null ? '' : raw)
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 64)
+    .replace(/_+$/, '');
+  return /^[a-z][a-z0-9_]{0,63}$/.test(t) ? t : '';
+}
+
+/* Where a content control that is SHOWING ITS PLACEHOLDER keeps its content,
+   as character ranges into this paragraph. A control that has been answered is
+   not listed, so its wording is never marked.
+   A control nested inside another reads as the outer one's content — rare in
+   contract drafting, and the honest cost of one lazy match rather than a
+   parser. */
+function docxPlaceholderRanges(para){
+  const out = [];
+  const re = /<w:sdt\b[\s\S]*?<\/w:sdt>/g;
+  let m;
+  while((m = re.exec(para))){
+    const whole = m[0];
+    const pr = (whole.match(/<w:sdtPr\b[\s\S]*?<\/w:sdtPr>/) || [''])[0];
+    if(!/<w:showingPlcHdr\b/.test(pr)) continue;
+    const a = whole.indexOf('<w:sdtContent');
+    const b = whole.lastIndexOf('</w:sdtContent>');
+    if(a < 0 || b < 0 || b <= a) continue;
+    const alias = (pr.match(/<w:alias\b[^>]*w:val="([^"]*)"/) || [])[1]
+      || (pr.match(/<w:tag\b[^>]*w:val="([^"]*)"/) || [])[1] || '';
+    out.push([m.index + a, m.index + b, _dxFieldName(alias)]);
+  }
+  return out;
+}
+
 function docxRunsHtml(para, opts){
   const rich = !!(opts && opts.rich);
   let html = '', text = '';
   const esc = t => String(t).replace(/[&<>]/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[ch]));
+  /* The field pass writes into `html` alone and counts what it marked, so a
+     caller that wants none of it is byte-identical to what it was. */
+  const marks = [];                       // [start, end, name] into `html`, closed in order
+  const holes = rich ? docxPlaceholderRanges(para) : [];
+  let hole = null, holeAt = -1, holeName = '';  // the control we are inside, where it began, its name
+  let fld = null;                         // the FORMTEXT field we are inside
+  let fields = 0;
+  const openMark = () => { if(holeAt < 0) holeAt = html.length; };
+  /* A FORMTEXT is a blank while its result is empty or still the default it
+     was drafted with. Anything else is an answer somebody typed, which is
+     their wording and is left exactly as it arrived. */
+  const closeField = () => {
+    if(!fld) return;
+    const open = _dxFieldBlank(fld.text) || _dxFold(fld.text) === _dxFold(fld.def);
+    if(fld.at >= 0 && open && html.length > fld.at) marks.push([fld.at, html.length, fld.name]);
+    fld = null;
+  };
+  const closeMark = () => {
+    if(holeAt < 0) return;
+    if(html.length > holeAt) marks.push([holeAt, html.length, holeName]);
+    holeAt = -1; holeName = '';
+  };
   /* Runs in order; a w:tab is a tab and a w:br is a line break, exactly as the
      scraper reads them, so the text projection cannot drift. */
   const re = /<w:r\b[^>]*>([\s\S]*?)<\/w:r>|<w:tab\s*\/>|<w:(?:br|cr)\s*\/>/g;
@@ -519,6 +608,30 @@ function docxRunsHtml(para, opts){
       continue;
     }
     const r = m[1];
+    /* THE FIELD PASS RUNS BEFORE THE RUN'S OWN TEXT and writes nothing into
+       `text`. A begin/separate/end run carries no wording, so it falls through
+       the empty-run guard below exactly as it always did. A mark always begins
+       and ends BETWEEN runs, so the span it becomes can never cross a bold or
+       italic wrapper — redlineHangHtml's own rule, holding by construction. */
+    if(rich){
+      const inHole = holes.find(([a, b]) => m.index >= a && m.index < b);
+      if(hole && !inHole){ closeMark(); hole = false; }
+      else if(inHole && !hole){ hole = true; holeName = inHole[2] || ''; openMark(); }
+      const fc = r.match(/<w:fldChar\b[^>]*w:fldCharType="(begin|separate|end)"/);
+      if(fc){
+        if(fc[1] === 'begin'){
+          const ff = (r.match(/<w:ffData\b[\s\S]*?<\/w:ffData>/) || [''])[0];
+          const def = (ff.match(/<w:textInput\b[\s\S]*?<w:default\b[^>]*w:val="([^"]*)"/) || [])[1];
+          /* A TEXT input only. A checkbox or a dropdown is an answer somebody
+             picks in Word, not a gap for wording, and marking one would put a
+             box in the panel that no typing could fill. */
+          const nm = (ff.match(/<w:name\b[^>]*w:val="([^"]*)"/) || [])[1] || '';
+          fld = /<w:textInput\b/.test(ff)
+            ? { def: def == null ? '' : def, at: -1, text: '', name: _dxFieldName(nm) } : null;
+        } else if(fc[1] === 'separate' && fld){ fld.at = html.length; }
+        else if(fc[1] === 'end' && fld){ closeField(); }
+      }
+    }
     const pr = (r.match(/<w:rPr\b[^>]*>[\s\S]*?<\/w:rPr>/) || [''])[0];
     const on = tag => new RegExp('<w:' + tag + '\\b(?![^>]*w:val="(?:0|false|none)")').test(pr);
     let t = '';
@@ -537,8 +650,28 @@ function docxRunsHtml(para, opts){
       if(on('b')) h = '<strong>' + h + '</strong>';
     }
     html += h;
+    if(fld && fld.at >= 0) fld.text += t;
   }
-  return { html, text };
+  if(rich){
+    if(hole) closeMark();
+    closeField();
+    /* Overlapping marks are dropped rather than nested — a control inside a
+       form field is one gap, not two, and two spans over one run of characters
+       is a shape neither reader could answer for. Spliced from the END so an
+       earlier mark's own indices are still true when it is reached. */
+    marks.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    const take = [];
+    for(const mk of marks) if(!take.length || mk[0] >= take[take.length - 1][1]) take.push(mk);
+    fields = take.length;
+    for(let i = take.length - 1; i >= 0; i--){
+      const [a, b, nm] = take[i];
+      if(a < 0 || b > html.length || b <= a) continue;
+      html = html.slice(0, a) + '<span class="' + DOCX_WFIELD_CLASS + '"'
+           + (nm ? ' data-wfield="' + nm + '"' : '') + '>'
+           + html.slice(a, b) + '</span>' + html.slice(b);
+    }
+  }
+  return { html, text, fields };
 }
 
 /* ---- WHAT THE FILE SAYS ABOUT A PARAGRAPH'S SHAPE (Young asked 10 Sep 2026)
@@ -657,7 +790,13 @@ function docxXmlToRich(xml, parts){
   const subtitleStyles = /^subtitle$/i;
   const hasTitle = new RegExp('<w:pStyle\\b[^>]*w:val="Title"', 'i').test(body);
   const shift = hasTitle ? 1 : 0;
-  const report = { headings: 0, numbered: 0, unnumbered: 0, tables: 0, styled: !!Object.keys(heads).length };
+  /* `fields` counts the fill-in fields the file states — see DOCX_WFIELD_CLASS.
+     It joins the report because docxHasStructure asks it: a Word FORM is
+     ordinarily plain paragraphs with grey boxes in them, so without this a
+     document made entirely of blanks carries "no structure worth storing",
+     stores no body, and the one kind of file this reading exists for never
+     reaches it. */
+  const report = { headings: 0, numbered: 0, unnumbered: 0, tables: 0, fields: 0, styled: !!Object.keys(heads).length };
   /* Read ONCE, from the whole document, before a block is emitted: a ladder is
      a property of the file rather than of any one paragraph. */
   const step = docxIndentStep(body);
@@ -695,6 +834,7 @@ function docxXmlToRich(xml, parts){
        answer, not a failure, so it must not be counted as one. */
     if(numId === '0') numId = undefined;
     const runs = docxRunsHtml(blk, { rich: true });
+    report.fields += runs.fields || 0;
     /* ---- THE SHAPE THE FILE STATED ---- */
     const shape = [];
     const level = docxIndentLevel(pr, step);
@@ -790,6 +930,7 @@ function docxTableHtml(tbl, report){
       const span = Number((tc.match(/<w:gridSpan\b[^>]*w:val="(\d+)"/) || [])[1] || 1);
       const paras = tc.match(/<w:p\b[^>]*>[\s\S]*?<\/w:p>/g) || [];
       const parts = paras.map(pp => docxRunsHtml(pp, { rich: true }));
+      if(report) for(const pt of parts) report.fields += pt.fields || 0;
       /* ONE LINE PER CELL, IN THE MARKUP AND IN THE TEXT ALIKE. A <br> inside
          a cell makes richToText flush a line, so a cell holding two paragraphs
          split its ROW across lines and glued the tail of that cell to the next

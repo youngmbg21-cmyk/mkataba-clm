@@ -24,7 +24,8 @@
    appear takes the file down with a stack rather than reporting which claims
    are new.
 
-   29 checks, 26 of them red against the commit before this work. The three
+   39 checks, 29 of them red against the commit before this work (section 8 is
+   item 9's third shape, added 20 Sep 2026 — 10 checks, all 10 red there). The three
    that pass are a named GATE and two named CONTROLS. Every claim an empty
    page would satisfy is gated, because "nothing is marked here" is true of a
    build that marks nothing anywhere.
@@ -152,11 +153,26 @@ const CONTRACT = (id, over) => Object.assign({
   const h = await startHati();
   const W = await seedWorkspace(h);
   const up = CONTRACT('MK-UB1');
+  /* A WORD FORM: the gaps are FIELDS the file stated, not patterns in the text
+     (item 9's third shape, 20 Sep 2026). `Enter buyer name` is ordinary
+     wording to look at — only the span says it is a gap. */
+  const NB = '\u00a0\u00a0\u00a0\u00a0\u00a0';
+  const FORM_WORDING = [
+    '<h1>SERVICES AGREEMENT</h1>',
+    '<h4>1. Parties</h4>',
+    '<p>This Agreement is made with <span class="hati-wfield" data-wfield="buyer_name">Enter buyer name</span>',
+    ' of <span class="hati-wfield" data-wfield="registered_address">Click or tap here to enter text.</span>.</p>',
+    '<h4>2. Fee</h4>',
+    '<p>The Seller is Acme Trading Ltd and the fee is ',
+    '<span class="hati-wfield" data-wfield="fee">' + NB + '</span>.</p>',
+  ].join('');
+  const form = CONTRACT('MK-UB3', { name: 'Services Agreement (Word form)', redlineText: FORM_WORDING });
+
   /* THE CONTROL CONTRACT: the same document, already redlined once. Past that
      line the wording is the workspace's and nothing here may draw. */
   const edited = CONTRACT('MK-UB2', { name: 'Distribution Agreement (edited)',
     changes: [{ id: 'CHG-001', type: 'modify', clauseId: 'cl_1', status: 'pending' }] });
-  for (const c of [up, edited])
+  for (const c of [up, form, edited])
     await W.admin.json('/api/contracts/' + c.id, { method: 'PUT', body: { contract: c, baseVersion: 0 } });
 
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
@@ -295,6 +311,63 @@ const CONTRACT = (id, over) => Object.assign({
       drew ? (e.boxKeys.join(', ') || 'none') : 'GATE: the unedited twin drew none either');
     check('6c CONTROL — the wording is still on the page', e.canvas,
       e.canvas ? 'canvas drawn' : 'nothing drawn at all');
+
+    /* ============ 8. A WORD FILL-IN FIELD IS A BLANK ============ */
+    await openRoom(page, form.id);
+    const f = await page.evaluate(SEEN);
+    check('8a the file\'s own gaps are marked on the page',
+      f.markKeys.join(',') === 'up_buyer_name,up_registered_address,up_fee',
+      f.markKeys.join(',') || 'none');
+    check('8b and they are PAINTED, not merely in the markup',
+      f.markKeys.length > 0 && f.markDrawn === f.markKeys.length,
+      f.markDrawn + ' of ' + f.markKeys.length);
+    check('8c AN ANSWERED FIELD IS THEIR WORDING — "Acme Trading Ltd" gets no box',
+      f.boxKeys.length > 0 && !f.boxKeys.some(k => /acme|seller/i.test(k || '')),
+      f.boxKeys.join(', '));
+    check('8d the panel lists them under the drafter\'s own names',
+      /Buyer name/.test(f.boxLabels.join(' | ')) && /Registered address/.test(f.boxLabels.join(' | '))
+      && /Fee/.test(f.boxLabels.join(' | ')), f.boxLabels.join(' | '));
+    check('8e an EMPTY box is still a gap', f.boxKeys.includes('up_fee'), f.boxKeys.join(', '));
+    const droveF = await typeInto(page, '#tplform-section [data-blankf="up_buyer_name"]',
+      'Highland Corporate Ltd', 'change');
+    const afterF = droveF ? await page.evaluate(() => {
+      const c = getContract(state.activeId);
+      const sp = document.querySelector('#doc-canvas span[data-upblank="up_buyer_name"]');
+      return { text: sp ? (sp.textContent || '').trim() : null,
+        stillField: !!(sp && sp.classList.contains('hati-wfield')),
+        filled: !!(sp && sp.classList.contains('is-filled')),
+        stored: c.redlineText, record: (c.fields || {}).up_buyer_name };
+    }) : null;
+    check('8f typing in the panel answers the word on the page',
+      !!afterF && afterF.text === 'Highland Corporate Ltd', afterF ? String(afterF.text) : 'not driven');
+    check('8g THE PAPER\'S OWN SPAN IS NEVER UNWRAPPED — it is still the file\'s field',
+      !!afterF && afterF.stillField && afterF.filled,
+      afterF ? ('field ' + afterF.stillField + ' · filled ' + afterF.filled) : 'not driven');
+    check('8h and the received document is not rewritten',
+      !!afterF && afterF.stored === FORM_WORDING && /Enter buyer name/.test(afterF.stored),
+      afterF ? (afterF.stored === FORM_WORDING ? 'byte-identical' : 'THE WORDING MOVED') : 'not driven');
+    const offF = await page.evaluate(() => {
+      if(typeof uploadBlanksClear !== 'function') return { missing: true };
+      const c = getContract(state.activeId);
+      const w = document.querySelector('#doc-canvas [data-upwording]');
+      const shot = () => w ? [...w.querySelectorAll('p,h1,h4')].map(el => {
+        const r = el.getBoundingClientRect(); return [Math.round(r.top), Math.round(r.height)].join(':');
+      }) : [];
+      uploadBlanksClear(document.getElementById('doc-canvas'));
+      const off = shot();
+      const kept = w ? w.querySelectorAll('span.hati-wfield').length : 0;
+      uploadBlanksPaint(c);
+      return { off, on: shot(), kept, missing: false };
+    });
+    check('8i clearing the marks LEAVES the file\'s own fields standing',
+      !offF.missing && offF.kept === 3, offF.missing ? 'painter absent' : (offF.kept + ' fields'));
+    check('8j and the wording measures the same with the marks off and on',
+      /* GATED on the marks really being on, or a page with none satisfies it. */
+      !offF.missing && offF.kept === 3 && f.markKeys.length === 3
+      && offF.off.length > 3 && offF.off.join(' ') === offF.on.join(' '),
+      offF.missing ? 'painter absent'
+        : offF.off.length + ' blocks · off ' + offF.off.slice(0, 3).join(' ')
+          + ' · on ' + offF.on.slice(0, 3).join(' '));
 
     check('7a CONTROL — no page error anywhere in the run', errors.length === 0, errors.join(' | ') || 'none');
   } finally {

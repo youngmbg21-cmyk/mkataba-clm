@@ -45,7 +45,7 @@ const RICH_TAGS = new Set(['P','BR','H1','H2','H3','H4','STRONG','EM','U','S',
    markup is a smaller allowlist than it looks. */
 const RICH_CLAUSE_ATTR = 'data-clause-id';
 const RICH_CLAUSE_ID_RE = /^cl_[a-z0-9]{4,24}$/;
-const RICH_ATTRS = { OL:new Set(['start','type']), SPAN:new Set(['class','data-field-key']),
+const RICH_ATTRS = { OL:new Set(['start','type']), SPAN:new Set(['class','data-field-key','data-wfield']),
   H1:new Set([RICH_CLAUSE_ATTR]), H2:new Set([RICH_CLAUSE_ATTR]),
   H3:new Set([RICH_CLAUSE_ATTR]), H4:new Set([RICH_CLAUSE_ATTR]),
   P:new Set([RICH_CLAUSE_ATTR,'class']) };
@@ -89,6 +89,16 @@ const RICH_SHAPE_CLASSES = new Set(['hati-lv-1','hati-lv-2','hati-lv-3',
    span's own text — and it exists because CSS cannot right-align the tail of a
    text node without an element to hang it on. */
 const RICH_TOC_TAIL_CLASS = 'hati-toc-n';
+/* The second span class that is a SHAPE rather than a mark, and it is here for
+   the same reason as the one above: a Word fill-in field — the grey shaded box
+   a drafter leaves for an answer — is a FACT ABOUT THE FILE that its own text
+   cannot carry, and `Enter buyer name` is indistinguishable from wording once
+   the file has been read. It carries no value of its own: the prompt IS the
+   span's own text, so nothing open-ended is admitted to the record and no
+   attribute joins RICH_FIELD_KEY_ATTR. It is NOT hati-field, which means "a
+   blank on OUR template form, routed by data-field-key" — one class with two
+   meanings is the drift this file names twice. See DOCX_WFIELD_CLASS. */
+const RICH_WFIELD_CLASS = 'hati-wfield';
 /* ONE reading of "may a BLOCK carry this class", asked by the attribute pass
    and by nothing else. Per name, and unknown names are dropped rather than the
    attribute: a paragraph carrying `hati-tight nonsense` keeps the half this
@@ -137,7 +147,7 @@ const RICH_MARK_CLASSES = new Set([].concat(
    and anything wanting two is two nested spans — which keeps this test total
    rather than a parser. */
 const richSpanClassOk = v => v === RICH_FIELD_CLASS || v === RICH_TOC_TAIL_CLASS
-  || RICH_MARK_CLASSES.has(v);
+  || v === RICH_WFIELD_CLASS || RICH_MARK_CLASSES.has(v);
 /* The one data attribute a hati-field span may carry: which template-form
    field the blank belongs to, so a click on the document can route to the
    right input. Admitted under the same reasoning as data-clause-id — the
@@ -146,6 +156,15 @@ const richSpanClassOk = v => v === RICH_FIELD_CLASS || v === RICH_TOC_TAIL_CLASS
    field keys take, never interpreted as markup or a selector. */
 const RICH_FIELD_KEY_ATTR = 'data-field-key';
 const RICH_FIELD_KEY_RE = /^[a-z][a-z0-9_]{0,63}$/;
+/* And the one a hati-wfield span may carry: THE DRAFTER'S OWN NAME for the gap
+   — a form field's `w:name`, a content control's `w:alias`. Admitted under the
+   same reasoning as the line above and exactly as narrowly: only on that span,
+   only in the same machine-safe shape, never interpreted as markup or a
+   selector. It is here because Word's own stock prompt ("Click or tap here to
+   enter text.") is UI chrome rather than a name, so on a real Word form the
+   span's text alone would label every gap identically. The NAME is the only
+   thing in the file that tells them apart. */
+const RICH_WFIELD_NAME_ATTR = 'data-wfield';
 /* Removed with their contents — these carry no document meaning and every one
    of them is a way to execute or fetch something. */
 const RICH_DROP = new Set(['SCRIPT','STYLE','IFRAME','OBJECT','EMBED','NOSCRIPT',
@@ -276,6 +295,12 @@ function _stripAttrs(el){
         || !RICH_FIELD_KEY_RE.test(String(attr.value||''))) el.removeAttribute(attr.name);
       continue;
     }
+    if(el.tagName==='SPAN' && name===RICH_WFIELD_NAME_ATTR){
+      // only on the hati-wfield span, and only the same machine-safe shape
+      if(String(el.getAttribute('class')||'').trim()!==RICH_WFIELD_CLASS
+        || !RICH_FIELD_KEY_RE.test(String(attr.value||''))) el.removeAttribute(attr.name);
+      continue;
+    }
     if(name===RICH_CLAUSE_ATTR){
       // only the opaque shape this repo issues; anything else is dropped
       if(!RICH_CLAUSE_ID_RE.test(String(attr.value||''))) el.removeAttribute(attr.name);
@@ -367,6 +392,16 @@ function _normaliseStructure(root){
   // empty blocks that carry no text and no <br> add nothing but noise
   root.querySelectorAll('p,h1,h2,h3,h4,blockquote,li,span,strong,em,u,s').forEach(el=>{
     if(el.querySelector('br,table,ul,ol,pre')) return;
+    /* A WORD FILL-IN FIELD IS NEVER NOISE, however empty it looks. Word pads an
+       unanswered box with non-breaking spaces, which do not survive `.trim()`,
+       so this pass removed the span AND ITS CHARACTERS — MEASURED on a real
+       form: the gap the reader was meant to answer disappeared, and the stored
+       body stopped projecting the same text as the plain reader ("the fee is ."
+       against "the fee is      ."). That second half is the fault the Word
+       round trip files a phantom change on, and it is why this exemption is a
+       wall rather than a nicety. */
+    if(el.tagName==='SPAN'
+      && String(el.getAttribute('class')||'').trim()===RICH_WFIELD_CLASS) return;
     if(!(el.textContent||'').trim()) el.remove();
   });
   // source indentation between blocks is not document content — drop it, so
@@ -377,6 +412,12 @@ function _normaliseStructure(root){
   while((t=w.nextNode())){
     if((t.nodeValue||'').trim()) continue;
     if(t.parentElement && t.parentElement.closest('pre')) continue;   // whitespace IS content in <pre>
+    /* AND INSIDE A WORD FILL-IN FIELD, for the same reason: Word pads an
+       unanswered box with non-breaking spaces and those characters are what
+       the file says. Dropped, the stored body stops projecting the plain
+       reader's text and the Word round trip files a phantom change on the
+       clause — MEASURED on a real form before this line existed. */
+    if(t.parentElement && t.parentElement.closest('span.' + RICH_WFIELD_CLASS)) continue;
     const prev=t.previousSibling, next=t.nextSibling;
     const bnd=n=>!n || (n.nodeType===1 && RICH_BLOCKS.has(n.tagName));
     if(bnd(prev)||bnd(next)) junk.push(t);
@@ -1296,7 +1337,7 @@ Object.assign(window,{RICH_TAGS,
   RICH_CLAUSE_ATTR,RICH_CLAUSE_ID_RE,
   RICH_FORMAT,TEXT_FORMAT,RICH_PLACEHOLDER_RE,
   sanitizeRich,docFormat,isRich,renderDocHtml,richToText,docContentText,
-  RICH_SHAPE_CLASSES,RICH_TOC_TAIL_CLASS,richBlockClass,
+  RICH_SHAPE_CLASSES,RICH_TOC_TAIL_CLASS,RICH_WFIELD_CLASS,RICH_WFIELD_NAME_ATTR,richBlockClass,
   canonicalRich,canonicalDocString,richFromTextEdit,markPlaceholders,unmarkPlaceholders,fillRichBody,richPlaceholders,textToRich,
   /* the clause editor's painter reads the projection off the live box through this (14 Sep 2026) */
   _lineUnits});
