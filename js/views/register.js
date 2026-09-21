@@ -346,10 +346,18 @@ const REG_SORTS=[
   {k:'move',get label(){ return i18t('reg_sort_move'); }},
   {k:'owner',get label(){ return i18t('reg_sort_owner'); }},
 ];
+/* ---- THREE EXPIRY WINDOWS WERE ONE QUESTION ASKED THREE TIMES (Young ruled
+   21 Sep 2026: "remove expiring in 30 and 60 days") ----
+   90 stays, because it is the renewal window this product actually holds
+   (RENEWAL_WINDOW_DAYS), and the two inside it were the same cut drawn twice
+   more. THE FILTERS THEMSELVES STAY IN regFiltered, deliberately: the optional
+   Home tiles `expiring30` and `expiring60` are doors onto exactly those two
+   cuts, and taking the branches out would leave a tile that narrows nothing.
+   Off the row, nothing is lit when one of them is in force and the Clear
+   control says the list is narrowed, so the row never claims a cut it is not
+   showing. */
 const REG_VIEWS=[
   {k:'expiring90', get label(){ return i18t('reg_exp_90'); }},
-  {k:'expiring60', get label(){ return i18t('reg_exp_60'); }},
-  {k:'expiring30', get label(){ return i18t('reg_exp_30'); }},
   {k:'expired',    get label(){ return i18t('reg_term_ended'); }},
   {k:'autosoon',   get label(){ return i18t('reg_auto_renew'); }},
   {k:'overdueob',  get label(){ return i18t('reg_overdue_obligations'); }},
@@ -701,8 +709,13 @@ function regWireColResize(){
 const REG_DENSITY = {
   comfortable:{ h:44, padX:16, line:20 },
   compact:    { h:36, padX:12, line:20 },   /* today's row — the default */
-  condensed:  { h:30, padX:8,  line:18 },
 };
+/* ---- CONDENSED IS GONE (Young ruled 21 Sep 2026: "Delete condensed") ----
+   It was the one rung that took the kind and the round off the title (see
+   the row builder below), so it drew a DIFFERENT row rather than the same row
+   closer together. An unknown stored value already falls back to compact, so
+   a browser that remembers 'condensed' needs no migration and reads compact.
+   `reg_density_condensed` is STALE and inert in both books. */
 const REG_DENSITY_KEY = 'hati.v1.regDensity';
 /* ABSENT MEANS COMPACT — the historic behaviour — so there is no migration
    and an unknown stored value falls back rather than drawing a broken row. */
@@ -1530,12 +1543,17 @@ function regRowsHtml(cs){
        column can never sit under the wrong heading. THE TITLE IS TWO LINES
        AGAIN — the kind and the round under the name, as the reference draws
        it; this REVERSES 24 Aug's "one line per contract" on the owner's later
-       drawing, and the condensed density keeps the one line (there is no room
-       for a second at 30px, and the kind still rides the hover). THE STREAM'S
-       COLOUR BAR moved from beside the title to the stream's own cell. */
+       drawing. THE STREAM'S COLOUR BAR moved from beside the title to the
+       stream's own cell.
+
+       THE SECOND LINE IS UNCONDITIONAL SINCE 21 SEP 2026. It used to stand
+       down on the condensed density, which is the density the owner deleted;
+       with that rung gone the old `regDensity()!=='condensed'` would be A
+       GUARD THAT IS ALWAYS TRUE, which is the same fault class as one that is
+       always false — it reads like a live rule and nothing can ever exercise
+       it. */
     const round=(c.negotiation&&typeof c.negotiation.round==='number'&&c.negotiation.round>0)?c.negotiation.round:null;
-    const twoLine=regDensity()!=='condensed';
-    const sub=twoLine?`<span class="reg-sub">${esc(cKind(c))}${round?` · ${esc(i18t('ct_round_n',{n:round}))}`:''}</span>`:'';
+    const sub=`<span class="reg-sub">${esc(cKind(c))}${round?` · ${esc(i18t('ct_round_n',{n:round}))}`:''}</span>`;
     const mv=regMoveWord(c);
     const CELL={};
     CELL.mk=`<td class="reg-mk">${c.id}</td>`;
@@ -1795,7 +1813,38 @@ function renderRegister(opts){
      shape: "▽ Stage"); its value shows once it narrows, or on the Sort chip,
      which always has one to say (`show`). This is what keeps the bar ONE LINE
      — the owner's standing ruling — at a laptop width. */
-  const selFilter=(id,opts,active,title,label,show)=>`<label class="reg-f reg-chip${active?' on':''}${show?' reg-chip-show':''}" title="${esc(title)}">${icon('filter','w-3 h-3')}<span class="reg-f-l">${esc(label||title)}</span><select id="${id}" title="${title}" style="${selStyle};max-width:180px">${opts}</select></label>`;
+  /* ════ THE WHOLE CHIP IS THE CONTROL (Young reported it 21 Sep 2026:
+     *"the highlighted filters do not work properly and have not been pipped
+     properly as they do not work at all"*) ════
+     MEASURED in a browser: the chip drew 93x30 and the <select> inside it drew
+     22x28 in rgba(0,0,0,0) — an invisible sliver against the right wall — and
+     the centre of the chip hit-tested to SPAN.reg-f-l. A press on a <label>
+     does not open a native select's menu, so four of the five filters on this
+     bar could only be opened by finding an unmarked 22px strip. The fault was a
+     rule that shrank a resting chip's select to 22px so the chip would read as
+     a word rather than a dropdown; it hid the control along with the value.
+
+     THE SELECT COVERS THE CHIP AND IS INVISIBLE, and the WORD carries what is
+     chosen. One reading — `selChosen` — so the face and the control can never
+     disagree about what is in force, which is what the old rule made possible.
+     Same id, same options, same change handler: nothing about the wiring moved.
+
+     IT NO LONGER CARRIES `selStyle`. That inline block is a whole dropdown's
+     dress — border, chevron, padding, its own font — and the old chip rules had
+     to shout `!important` at every one of them to take it back off, which is
+     how a rule shrinking the control to 22px came to look reasonable. An
+     invisible overlay needs none of it, so the chip's own stylesheet wins by
+     being the only thing talking. */
+  const selChosen=o=>{ const m=/<option[^>]*\bselected\b[^>]*>([\s\S]*?)<\/option>/i.exec(String(o||''));
+    return m?m[1].replace(/<[^>]*>/g,'').trim():''; };
+  const selFilter=(id,opts,active,title,label,show)=>{
+    const word=esc(label||title), pick=esc(selChosen(opts));
+    /* The value is printed beside the word where it is NARROWING (the accent
+       state) and where the caller asks for it always (Sort). At rest the chip
+       is the word alone — the reference's own shape. */
+    const face=((active||show)&&pick)?`${word} <b>${pick}</b>`:word;
+    return `<label class="reg-f reg-chip${active?' on':''}${show?' reg-chip-show':''}" title="${esc(title)}">${icon('filter','w-3 h-3')}<span class="reg-f-l">${face}</span><select id="${id}" class="reg-chip-sel" title="${esc(title)}">${opts}</select></label>`;
+  };
   const stageOpts=REG_STAGES.map(s=>`<option value="${s.k}" ${R.stage===s.k?'selected':''}>${s.label}</option>`).join('');
   const typeOpts=regTypes().map(t=>`<option value="${t.k}" ${R.type===t.k?'selected':''}>${t.label}</option>`).join('');
   /* ---- RENEWAL IS BACK, AND IT IS OFF THE BAR BY DEFAULT ----
@@ -1935,8 +1984,15 @@ function renderRegister(opts){
   /* These two already carried a visible label, inline to the left of the
      control. They take the same stacked label as the three above so the bar
      reads as one row of filters rather than two conventions. */
-  const categorySel=`<label class="reg-f reg-chip${catActive?' on':''}" title="${esc(i18t('me_category'))}">${icon('filter','w-3 h-3')}<span class="reg-f-l">${esc(i18t('me_category'))}</span>
-    <select id="reg-category" style="${selStyle}">${catOpts.map(([k,l])=>`<option value="${k}" ${(R.category||'all')===k?'selected':''}>${l}</option>`).join('')}</select></label>`;
+  /* ---- AND IT GOES THROUGH selFilter LIKE THE OTHER SEVEN (21 Sep 2026) ----
+     It was a hand-written second copy of the chip's markup, and that is exactly
+     what THE CLOTHES FOLLOW THE BUILDER warns about: the day the chip's control
+     was made reachable end to end, seven chips were fixed and this one was not —
+     MEASURED, a press on the left third of this chip still landed on a span and
+     opened nothing. One builder, or they drift again. */
+  const categorySel=selFilter('reg-category',
+    catOpts.map(([k,l])=>`<option value="${k}" ${(R.category||'all')===k?'selected':''}>${esc(String(l))}</option>`).join(''),
+    catActive, i18t('me_category'));
   /* ---- NO RENEWAL FILTER (owner-asked 24 Aug 2026, twice: "delete ... the
      filter i have highlighted", and again for the Negotiations seat) ----
      THE CONTROL GOES AND THE READING STAYS. regFiltered still knows how to
@@ -2382,7 +2438,7 @@ function renderRegister(opts){
                store, same repaint. Table · Board is never drawn on the
                Negotiations seat — see regMode. */}
         ${neg?'':regSegHtml('data-reg-mode',[['table',i18t('reg_mode_table')],['board',i18t('reg_mode_board')]],regMode(),i18t('reg_mode_title'))}
-        ${regMode()==='board'?'':regSegHtml('data-reg-density',['comfortable','compact','condensed'].map(k=>[k,i18t('reg_density_'+k)]),regDensity(),i18t('reg_density_title'))}
+        ${regMode()==='board'?'':regSegHtml('data-reg-density',Object.keys(REG_DENSITY).map(k=>[k,i18t('reg_density_'+k)]),regDensity(),i18t('reg_density_title'))}
         ${''/* ---- AND NO NOTE UNDER THE SORT (M-5) ----
                Owner-reported in the same breath: *"remove the 'sorts within
                each group' writing."* It said that sorting on this page runs

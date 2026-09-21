@@ -509,6 +509,37 @@ const CAL_LADDER = [
   { k:'d180', max:180, get label(){ return i18t('cal_lad_180'); }, tone:'var(--color-accent-700)' },
   { k:'d365', max:365, get label(){ return i18t('cal_lad_365'); }, tone:'var(--color-accent-700)' },
 ];
+/* ---- WHAT THE DECISION COLUMN SAYS (Young ruled 21 Sep 2026: the Horizon
+   "needs to resemble what is in the artifact") ----
+   The artifact draws a third column at the right reading "Renegotiate · decided
+   2 Sep", "Decision open · notice by 1 Oct", "Let it end · decided" or, faint,
+   "No decision yet". EVERY WORD OF IT IS BORROWED: `renewalDecisionOf` is the
+   one predicate every nag on this product asks, and its answer already carries
+   the word and the day; `renewalDecisionDate` is the notice deadline the rest
+   of this page already draws as the ▾ nip. NOTHING IS COMPUTED HERE and
+   nothing is guessed — an agreement outside its notice window has no decision
+   to make yet and says so by saying nothing.
+
+   READING MUST NOT WRITE: both functions read `c.renewalDecision` and the
+   record raw, and are the same pair calHorizonRows asks one line above. */
+function calHorizonDecision(r){
+  const c=r.c;
+  const d=(typeof renewalDecisionOf==='function')?renewalDecisionOf(c):null;
+  if(d){
+    const word=i18t('rn_ans_'+d.answer)||d.answer;
+    /* THE DAY IS PRINTED BY THE READING THIS PAGE ALREADY PRINTS DAYS WITH —
+       `regDotDate`, the same one the bar's own date note uses eight lines
+       above. A raw ISO string is what a screen shows when it reaches for a
+       formatter that is not on the stage. */
+    const day=String(d.at||'').slice(0,10);
+    const when=day?(window.regDotDate?regDotDate(day):day):'';
+    return { k:'is-done', text: when? i18t('cal_hz_dec_done',{answer:word,date:when}) : word };
+  }
+  /* A DEADLINE IS AN OPEN QUESTION, and only where there is one: past it, or
+     with no notice period recorded, the row has nothing honest to put here. */
+  if(r.notice) return { k:'is-open', text:i18t('cal_hz_dec_open',{date:window.regDotDate?regDotDate(r.notice):r.notice}) };
+  return { k:'is-none', text:i18t('cal_hz_dec_none') };
+}
 function calHorizonHtml(){
   const rows=calHorizonRows();
   const t=new Date();
@@ -542,6 +573,7 @@ function calHorizonHtml(){
     const inside = end > .55;
     const nip = r.notice ? `<i class="cal-hz-nip" style="left:${(calHorizonPos(r.notice)*100).toFixed(2)}%"
       title="${_esc(i18t('cal_hz_notice',{d:window.regDotDate?regDotDate(r.notice):r.notice}))}">&#9662;</i>` : '';
+    const dec = calHorizonDecision(r);
     return `<div class="cal-hz-row" data-sel="${_esc(r.c.id)}" role="button" tabindex="0">
       <div class="cal-hz-lab">
         <span class="n">${_esc(r.c.name)}</span>
@@ -553,6 +585,7 @@ function calHorizonHtml(){
         ${nip}
         <span class="cal-hz-note ${inside?'in':'out'}" style="left:${(end*100).toFixed(2)}%">${note}${beyond?' ·&nbsp;'+_esc(i18t('cal_hz_beyond')):''}</span>
       </div>
+      <div class="cal-hz-dec ${dec.k}">${_esc(dec.text)}</div>
     </div>`;
   }).join('') : `<div class="cal-empty">
       <div class="cal-empty-t">${_esc(i18t('cal_hz_none'))}</div>
@@ -561,7 +594,7 @@ function calHorizonHtml(){
     <div class="cal-cardbar"><span class="cal-hz-t">${_esc(i18t('cal_hz_title'))}</span>
       <span class="cal-hz-h">${_esc(i18t('cal_hz_head'))}</span></div>
     <div class="cal-hz scroll-thin">
-      <div class="cal-hz-ruler"><span class="cal-hz-col">${_esc(i18t('cal_hz_agreement'))}</span><div class="cal-hz-months">${heads.join('')}</div></div>
+      <div class="cal-hz-ruler"><span class="cal-hz-col">${_esc(i18t('cal_hz_agreement'))}</span><div class="cal-hz-months">${heads.join('')}</div><span class="cal-hz-col cal-hz-col-dec">${_esc(i18t('cal_hz_decision'))}</span></div>
       <div class="cal-hz-rows">${body}</div>
     </div>
     <div class="cal-ladder">${bands}</div>
@@ -810,13 +843,21 @@ function calStyleCss(){ return `
     font-variant-numeric:tabular-nums;color:var(--color-neutral-500)}
   .cal-bar .views a.on .c{color:var(--accent-ink)}
   html.dark .cal-bar .views a.on,html.dark .cal-bar .views a.on .c{color:var(--color-accent-300)}
-  .cal-seg{display:inline-flex;align-items:center;border:1px solid var(--color-divider);height:28px;
-    flex:none;align-self:center}
+  ${''/* ---- THE SHADED HALF COVERS ITS WHOLE BUTTON (Young ruled 21 Sep
+         2026: "the shared area needs to cover the entire button") ----
+         MEASURED: the group stood 28px and its lit half 16.8px, with 5.6px of
+         page showing above and below the fill — `align-items:center` sized
+         each half to its own line box instead of to the group. THE BOX CLIPS
+         AND THE HALVES STRETCH, which is `.doc-read-seg`'s own mechanism and
+         the answer the seat switch took on 19 Sep 2026; never a second set of
+         heights, which would have to be kept in step with this one for ever. */}
+  .cal-seg{display:inline-flex;align-items:stretch;border:1px solid var(--color-divider);height:28px;
+    border-radius:var(--radius);overflow:hidden;flex:none;align-self:center}
   ${''/* The view switch's halves are anchors (the seg builder's own markup,
          so the keyboard door and the handler are unchanged); the scope
          switch's are spans. ONE rule dresses both, or the two segments
          standing beside each other would not match. */}
-  .cal-seg span,.cal-seg a,.cal-seg button{display:flex;align-items:center;padding:0 var(--s-3);font-size:var(--t-meta);
+  .cal-seg span,.cal-seg a,.cal-seg button{display:flex;align-items:center;height:100%;padding:0 var(--s-3);font-size:var(--t-meta);
     color:var(--color-neutral-600);cursor:pointer;border:0;background:none;font-family:inherit}
   /* accent-700, not the lighter step: white on accent-600 measures 3.74:1 and
      this is 13px. The darker step reads in both workspace accents. */
@@ -867,13 +908,13 @@ function calStyleCss(){ return `
   .cal-hz-h{font-size:var(--t-label);color:var(--color-neutral-600)}
   .cal-hz-col{padding:7px var(--s-3);font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.06em;
     text-transform:uppercase;color:var(--color-neutral-500)}
-  .cal-hz-ruler{display:grid;grid-template-columns:300px minmax(0,1fr);position:sticky;top:0;z-index:2;
+  .cal-hz-ruler{display:grid;grid-template-columns:300px minmax(0,1fr) 150px;position:sticky;top:0;z-index:2;
     background:var(--color-surface);box-shadow:inset 0 -1px var(--color-divider)}
   .cal-hz-months{display:grid;grid-template-columns:repeat(12,minmax(0,1fr))}
   .cal-hz-months span{padding:7px 6px;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.06em;
     text-transform:uppercase;color:var(--color-neutral-500);border-left:1px solid var(--rule);
     white-space:nowrap;overflow:hidden}
-  .cal-hz-row{display:grid;grid-template-columns:300px minmax(0,1fr);align-items:center;
+  .cal-hz-row{display:grid;grid-template-columns:300px minmax(0,1fr) 150px;align-items:center;
     box-shadow:inset 0 -1px var(--rule);cursor:pointer}
   .cal-hz-row:hover{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
   .cal-hz-row:focus-visible{outline:2px solid var(--accent-solid);outline-offset:-2px}
@@ -903,6 +944,17 @@ function calStyleCss(){ return `
          left-aligned note would run off the ruler. Both sit on white. */}
   .cal-hz-note.in{transform:translateX(calc(-100% - 4px))}
   .cal-hz-note.out{transform:translateX(4px)}
+  /* ---- THE DECISION COLUMN (21 Sep 2026) ----
+     Right-aligned, the artifact's own place for it. An OPEN question carries
+     amber and the strong weight because it is the only state on this column
+     that is work; a decision already taken is a fact and reads quietly; a row
+     with nothing to say reads faintest of the three, which is this product's
+     own treatment for an absence. */
+  .cal-hz-dec{padding:7px var(--s-3);text-align:right;font-size:var(--t-label);
+    color:var(--color-neutral-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cal-hz-dec.is-open{color:var(--st-amber-fg);font-weight:var(--w-strong)}
+  .cal-hz-dec.is-none{color:var(--color-neutral-400)}
+  .cal-hz-col-dec{text-align:right}
   ${''/* The ladder: five bands under the ruler, each keeping its own tone on a
          top edge rather than as a fill, so five cards do not read as five
          alarms. */}

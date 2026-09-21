@@ -5032,7 +5032,8 @@
      indistinguishable from its neighbours, and open it is the only one that
      carries what it found. Written HERE beside .hm-row rather than inside the
      page, because it IS one of these rows and two places would drift. */
-  .hm-row.is-tri,.hm-row.is-desk{display:block;cursor:default;}
+  .hm-row.is-tri{display:block;cursor:default;}
+  .hm-row.is-desk{cursor:default;}
   .hm-row.is-tri:hover,.hm-row.is-desk:hover{background:none;}
   .hm-row.is-tri-ok{border-left-color:var(--color-accent-600);}
   .hm-row.is-tri-ok .hm-rtag{color:var(--accent-ink);}
@@ -5280,6 +5281,21 @@
   .hm-tri-chip.is-warn{background:var(--st-amber-bg);color:var(--st-amber-fg);}
   .hm-tri-chip.is-no{background:var(--st-ruby-bg);color:var(--st-ruby-fg);}
   .hm-tri-acts,.hm-desk-acts{display:flex;gap:var(--s-2);margin-top:10px;flex-wrap:wrap;}
+  /* ---- PREPARED FOR YOU KEEPS ITS VERBS IN A COLUMN AT THE RIGHT (Young
+     ruled 21 Sep 2026, ringing exactly that column) ----
+     The reference draws every desk row as text · verbs on ONE line, and the
+     Needs-your-decision rows twelve pixels below already read that way (their
+     verb is `.hm-rverb` at the right wall). This row alone stacked its verbs
+     underneath, so two lists of the same shape scanned differently and each
+     prepared item cost a whole extra line.
+
+     SCOPED TO `.is-desk` ALONE: the auto-triage row shares these class names
+     and is a different surface with a fold of its own, so it keeps the stack
+     it was designed with. AND IT WRAPS — at a narrow card the verbs drop back
+     under the text rather than squeezing the sentence they belong to. */
+  .hm-row.is-desk{display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap;}
+  .hm-row.is-desk .hm-desk-head{flex:1 1 320px;min-width:0;}
+  .hm-row.is-desk .hm-desk-acts{flex:none;margin-top:0;margin-left:auto;justify-content:flex-end;}
   .hm-tri-b{display:inline-flex;align-items:center;justify-content:center;
     min-height:var(--ctl-h);padding:0 12px;font:inherit;font-size:var(--t-body);
     font-weight:var(--w-strong);border-radius:var(--radius);cursor:pointer;
@@ -7364,13 +7380,29 @@
   .reg-views-end{margin-left:auto;flex:none;align-self:center;padding-bottom:6px;}
   .reg-vtab-act{border:0;background:none;font:inherit;font-size:var(--t-body);font-weight:var(--w-label);color:var(--color-neutral-600);cursor:pointer;padding:4px 8px;border-radius:var(--radius);white-space:nowrap;}
   .reg-vtab-act:hover{color:var(--color-text);background:var(--surface-2);}
-  .reg-filterbar .reg-chip{flex-direction:row;align-items:center;gap:5px;height:var(--ctl-h);padding:0 6px 0 10px;border:1px solid var(--rule-strong);border-radius:999px;background:var(--color-surface);color:var(--color-neutral-700);font-size:var(--t-label);font-weight:var(--w-label);white-space:nowrap;cursor:pointer;}
-  .reg-filterbar .reg-chip>svg{flex:none;color:var(--color-neutral-500);}
-  .reg-filterbar .reg-chip .reg-f-l{margin:0;color:inherit;font-size:var(--t-label);}
-  .reg-filterbar .reg-chip select{border:0!important;background-color:transparent!important;padding:0 18px 0 2px!important;font-size:var(--t-label)!important;color:var(--color-text);max-width:118px;height:100%;background-position:right 2px center!important;text-overflow:ellipsis;}
-  .reg-filterbar .reg-chip:not(.on):not(.reg-chip-show) select{width:22px;min-width:22px;padding:0!important;color:transparent!important;text-overflow:clip;}
+  /* THE CHIP IS THE HIT AREA, END TO END (Young, 21 Sep 2026 — the filters
+     "do not work at all"). The select is an invisible overlay across the whole
+     chip, so every pixel of the word opens the menu; the chip's own text says
+     what is chosen. Nothing here shouts !important: the builder stopped putting
+     a dropdown's inline dress on the control, so this sheet is the only thing
+     talking about it. */
+  .reg-filterbar .reg-chip{position:relative;flex-direction:row;align-items:center;gap:5px;height:var(--ctl-h);padding:0 11px 0 10px;border:1px solid var(--rule-strong);border-radius:999px;background:var(--color-surface);color:var(--color-neutral-700);font-size:var(--t-label);font-weight:var(--w-label);white-space:nowrap;cursor:pointer;}
+  /* NOTHING DECORATIVE TAKES THE PRESS. The funnel mark, the word and the
+     caret all sit over the control, and a press on any of them has to reach
+     it — MEASURED, a press on the caret landed on the <label>, which opens
+     nothing at all. The control keeps its own pointer-events. */
+  .reg-filterbar .reg-chip>svg{flex:none;color:var(--color-neutral-500);pointer-events:none;}
+  .reg-filterbar .reg-chip .reg-f-l{margin:0;color:inherit;font-size:var(--t-label);max-width:210px;overflow:hidden;text-overflow:ellipsis;pointer-events:none;}
+  .reg-filterbar .reg-chip .reg-f-l b{font-weight:var(--w-strong);color:var(--color-text);}
+  /* A CARET SAYS IT OPENS SOMETHING. Drawn by the sheet rather than the
+     builder, so a chip cannot end up with two of them. */
+  .reg-filterbar .reg-chip:not(.reg-chip-btn)::after{content:'';flex:none;width:0;height:0;margin-left:1px;
+    border-left:3.5px solid transparent;border-right:3.5px solid transparent;border-top:4px solid currentColor;opacity:.55;pointer-events:none;}
+  .reg-filterbar .reg-chip-sel{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;border:0;
+    background:none;font:inherit;color:transparent;opacity:0;cursor:pointer;appearance:none;-webkit-appearance:none;}
+  .reg-filterbar .reg-chip:focus-within{border-color:var(--color-accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--color-accent) 25%,transparent);}
   .reg-filterbar .reg-chip.on{border-color:var(--color-accent);color:var(--accent-ink);font-weight:var(--w-strong);background:color-mix(in srgb,var(--color-accent) 8%,transparent);}
-  .reg-filterbar .reg-chip.on select{color:var(--accent-ink);font-weight:var(--w-strong);}
+  .reg-filterbar .reg-chip.on .reg-f-l b{color:var(--accent-ink);}
   .reg-filterbar .reg-chip:hover{border-color:var(--color-accent);}
   .reg-filterbar .reg-chip-btn{font:inherit;font-size:var(--t-label);font-weight:var(--w-label);color:var(--accent-ink);padding:0 12px;align-self:auto;}
   .reg-table td.reg-cell-title{line-height:1.3;padding-top:3px;padding-bottom:3px;}

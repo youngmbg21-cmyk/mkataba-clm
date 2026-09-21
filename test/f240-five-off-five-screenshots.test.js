@@ -309,13 +309,26 @@ describe('f240 (5) — the rows read at one size and one weight', () => {
   test('THE ROW IS TWO LINES AGAIN — the kind under the title, the stream a column (REVERSED IN PLACE 21 Sep 2026)', () => {
     /* The owner-approved reference frame draws the kind and the round under
        the title, which reverses 24 Aug's "one line per contract". The old
-       .reg-kind class stays retired: the second line is .reg-sub, drawn on the
-       two densities with room for it and NOT on condensed, where the kind
-       still rides the hover. */
+       .reg-kind class stays retired: the second line is .reg-sub.
+
+       THE CONDENSED HALF IS REVERSED IN PLACE (21 Sep 2026: "Delete
+       condensed"). This used to pin `regDensity()!=='condensed'` — the second
+       line stood down on the 30px rung. With that rung deleted the same
+       expression would be A GUARD THAT IS ALWAYS TRUE, so the claim is now
+       that the line is UNCONDITIONAL and that no density answers 'condensed'
+       to be guarded against. Asked as a RELATION to REG_DENSITY, never as the
+       word, so the day a third rung is added this still means what it says. */
     assert.ok(!/\.reg-kind\{/.test(css), '.reg-kind is retired');
     assert.ok(!/reg-kind/.test(rowsFn), 'and no row draws one');
     assert.match(rowsFn, /class="reg-sub"/, 'the second line is .reg-sub');
-    assert.match(rowsFn, /regDensity\(\)!=='condensed'/, 'and condensed keeps the one line');
+    assert.ok(!/regDensity\(\)\s*[!=]==\s*'condensed'/.test(strip(rowsFn)),
+      'and no row branches on a density that no longer exists');
+    {
+      const dens = /const REG_DENSITY = \{([\s\S]*?)\n\};/.exec(REG);
+      assert.ok(dens, 'REG_DENSITY is readable');
+      assert.ok(!/\bcondensed\s*:/.test(dens[1]), 'condensed is off the ladder');
+      assert.match(dens[1], /\bcomfortable\s*:/); assert.match(dens[1], /\bcompact\s*:/);
+    }
     assert.match(rowsFn, /title="\$\{esc\(regTitleOf\(c\)\)\} · \$\{esc\(cKind\(c\)\)\}"/,
       'the kind is still said on the title’s own hover');
     /* RE-POINTED 10 Sep 2026, not weakened: this pinned the folder lookup as a

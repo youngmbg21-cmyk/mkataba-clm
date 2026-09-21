@@ -2677,6 +2677,21 @@ function dragDialog(panel, opts = {}){
    none, which is the M rung). No dialog states a second width on its inner
    box — f312 reads every openModal call and fails on one. */
 const DLG_W = Object.freeze({ s: '400px', m: '520px', l: '640px', xl: '760px' });
+  /* ---- A BIT OF COLOUR ON THE FRAME (Young ruled 21 Sep 2026: "add a bit of
+     color on pop ups that are completely bland") ----
+     A 3px accent rule across the top of the dialog, and NOTHING ELSE. It is
+     this product's own idiom for exactly this — the redlines column head, the
+     KPI tile's tone edge, the arrival strip's leading row and the template
+     menu's head all carry one — so the pop-up now reads as part of the same
+     product rather than as a white box the page happened to grow.
+
+     IT IS A BACKGROUND, NOT AN ELEMENT: no markup, no layout, nothing inside
+     any of the fifty-odd dialogs moves by a pixel, and it clips to the card
+     corner by itself. It is written INTO the inline style because that is the
+     only place that beats it — the frame states its own `background` shorthand
+     here, and a stylesheet rule would lose to it while looking correct.
+     `--dlg-topbar` is the one declaration, so all three frames say it once. */
+  const DLG_TOPBAR = t => `background:linear-gradient(${t},${t}) top left/100% 3px no-repeat, var(--color-surface);`;
 function openModal(html, opts={}){
   const root=document.getElementById('modal-root');
   const maxw=opts.maxWidth||DLG_W.m;
@@ -2693,7 +2708,7 @@ function openModal(html, opts={}){
            frame changes — every dialog still builds its own head, body and
            foot, and DLG_W is still the width ladder. */}
     <div id="modal-scrim" style="position:absolute;inset:0;background:color-mix(in srgb,var(--color-text) 35%,transparent);"></div>
-    <div class="modal-in scroll-thin" role="dialog" aria-modal="true"${opts.label?` aria-label="${String(opts.label).replace(/"/g,'&quot;')}"`:''} tabindex="-1" style="position:relative;width:100%;max-width:${maxw};${sized}background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius-lg);">${html}</div>
+    <div class="modal-in scroll-thin" role="dialog" aria-modal="true"${opts.label?` aria-label="${String(opts.label).replace(/"/g,'&quot;')}"`:''} tabindex="-1" style="position:relative;width:100%;max-width:${maxw};${sized}${DLG_TOPBAR('var(--accent-fill)')}border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius-lg);">${html}</div>
   </div>`;
   /* ---- THE TWO QUIET WAYS OUT ASK THE SAME QUESTION THE ✕ DOES ----
      Both of these called closeModal() straight, so a modal that had put its own
@@ -2836,7 +2851,7 @@ function confirmDialog(opts={}){
     const btnBg=danger?'var(--danger)':'var(--accent-fill)';
     ov.innerHTML=`
       <div style="position:absolute;inset:0;background:color-mix(in srgb,var(--color-text) 35%,transparent)"></div>
-      <div class="modal-in" role="alertdialog" aria-modal="true" style="position:relative;width:100%;max-width:30rem;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius-lg);padding:22px var(--s-6)">
+      <div class="modal-in" role="alertdialog" aria-modal="true" style="position:relative;width:100%;max-width:30rem;${DLG_TOPBAR(danger?'var(--danger)':'var(--accent-fill)')}border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius-lg);padding:22px var(--s-6)">
         <div style="display:flex;align-items:flex-start;gap:var(--s-3);margin-bottom:${message?'6px':'14px'}">
           <span style="width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:var(--radius);background:${danger?'var(--red-tint,rgba(176,69,60,.1))':'var(--st-steel-bg)'};color:${danger?'var(--danger)':'var(--accent-ink-700)'}">${icon(danger?'alert':'shield','w-4 h-4')}</span>
           <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0;line-height:1.3;padding-top:5px">${esc(title)}</h3>
@@ -2908,7 +2923,7 @@ function promptDialog(opts={}){
     ov.style.cssText='position:fixed;inset:0;z-index:92;display:grid;place-items:center;padding:var(--s-4)';
     ov.innerHTML=`
       <div style="position:absolute;inset:0;background:color-mix(in srgb,var(--color-text) 35%,transparent)"></div>
-      <div class="modal-in" role="dialog" aria-modal="true" style="position:relative;width:100%;max-width:30rem;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius-lg);padding:22px var(--s-6)">
+      <div class="modal-in" role="dialog" aria-modal="true" style="position:relative;width:100%;max-width:30rem;${DLG_TOPBAR('var(--accent-fill)')}border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius-lg);padding:22px var(--s-6)">
         <div style="display:flex;align-items:flex-start;gap:var(--s-3);margin-bottom:${message?'6px':'12px'}">
           <span style="width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:var(--radius);background:var(--st-steel-bg);color:var(--st-steel-fg)">${icon('pencil','w-4 h-4')}</span>
           <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0;line-height:1.3;padding-top:5px">${esc(title)}</h3>

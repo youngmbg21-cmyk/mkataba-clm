@@ -17876,3 +17876,105 @@ The seven flaky lines were restored by hand. The check reads 34/40 here and
   top-left corner is a white notch against the band. The owner's highlight
   covered the bar alone, so the rail was left exactly as it is; colouring its
   head to match is one rule if that is wanted.
+
+## 21 Sep 2026 — FIVE OFF FIVE IMAGES (Young: "You have not applied my requests to Hati in the previous prompts")
+
+Measured every one of the five in a real browser before a line moved, because
+the report was that they had not been built at all. Three had not; one had been
+built and was unreachable; one was built and drawn in the wrong place.
+
+### 1 · Home's "Prepared for you" — the verbs were UNDER the row, not beside it
+MEASURED at the parent: the row stood 93px with `display:block` and its verbs
+stacked underneath. The reference draws every desk row as text · verbs on ONE
+line, and the Needs-your-decision rows twelve pixels below already read that
+way. Now 53px, verbs at the right wall, and it wraps at a narrow card rather
+than squeezing the sentence. SCOPED to `.is-desk` alone: the auto-triage row
+shares these class names, is a different surface with a fold of its own, and
+keeps the stack it was designed with.
+Found on the way: the English button said Discard where the Swedish has always
+said "Lagg undan" — put away — and the confirm's own message says in both
+books that nothing is deleted. Only the English word claimed otherwise, and it
+was the word on the button. Both books now agree.
+
+### 2 · Contracts — and the filters really were dead
+- The "Expiring <= 60 days" and "Expiring <= 30 days" tabs are off the row. 90
+  stays; it is the renewal window this product actually holds. THE FILTERS
+  THEMSELVES STAY in regFiltered, because the optional Home tiles are doors
+  onto exactly those two cuts and removing the branches would leave a tile
+  that narrows nothing. Nothing is lit when one is in force and Clear says
+  the list is narrowed.
+- Condensed is deleted. It was the one rung that took the kind and the round
+  off the title, so it drew a DIFFERENT row rather than the same row closer
+  together. An unknown stored value already falls back to compact, so a
+  browser that remembers it needs no migration — driven and proved.
+- THE FILTERS: MEASURED at the parent, a chip drew 93x30 and its select
+  22x28 in rgba(0,0,0,0) — an invisible sliver against the right wall — and
+  the centre of the chip hit-tested to the label span. A press on a <label>
+  does not open a native select's menu, so four of the five filters could
+  only be opened by finding an unmarked 22px strip. The cause was a rule that
+  shrank a resting chip's control so the chip would read as a word; it hid
+  the control along with the value. The select now covers the chip and is
+  invisible, and the WORD carries what is chosen — ONE reading, so the face
+  and the control cannot disagree. Nothing shouts !important any more: the
+  builder stopped inlining a whole dropdown's dress, which is what the old
+  rules had to shout at, and which is how a 22px control came to look
+  reasonable.
+- AND THE CATEGORY CHIP WAS A SECOND COPY OF THE MARKUP. Seven chips were
+  fixed and that one was not — measured, a press on its left third still
+  landed on a span. It goes through the one builder now. THE CLOTHES FOLLOW
+  THE BUILDER, paid again.
+- Nothing decorative takes the press: the funnel mark, the word and the
+  caret all sit over the control, and a press on the caret was landing on
+  the <label>, which opens nothing at all.
+
+### 3 · The Horizon gained the artifact's Decision column
+Agreement, twelve months, then Decision — right-aligned, 150px, the artifact's
+own track. Three states, every word borrowed: renewalDecisionOf is the one
+predicate every nag on this product asks and its answer already carries the
+word and the day; the deadline is the nip this page already draws. Nothing is
+computed and nothing is guessed — an agreement with no deadline says nothing
+rather than inventing one. An open question is amber at the strong weight
+because it is the only state here that is WORK.
+Found on the way: fmtDDay is not published, so the first draft printed a raw
+ISO day. It prints through regDotDate — the reading this page already prints
+days with, eight lines above.
+
+### 4 · The lit half fills its button
+MEASURED: the calendar's segments stood 28px with a 16.8px fill and 5.6px of
+page showing above and below — align-items:center sized each half to its own
+line box instead of to the group. THE BOX CLIPS AND THE HALVES STRETCH, which
+is .doc-read-seg's own mechanism and the answer the seat switch took on
+19 Sep; never a second set of heights.
+THE SWEEP WAS REAL: sixteen segmented controls measured across six pages, in
+the shell bar, the register, the calendar, the negotiate page and the reading
+switch. The calendar's two were the only ones leaking; every other family was
+already flush inside its own 1px border. Said out loud rather than claimed.
+
+### 5 · A bit of colour on the frame
+A 3px accent rule across the top of every dialog, and nothing else. It is this
+product's own idiom — the redlines column head, the KPI tile's tone edge, the
+arrival strip's leading row and the template menu's head all carry one. It is
+a BACKGROUND, not an element: no markup, no layout, nothing inside any of the
+fifty-odd dialogs moves by a pixel, and it clips to the card corner by itself.
+A dangerous question wears the danger tone instead. ONE declaration, three
+frames. It is written into the inline style because that is the only place
+that beats it — the frame states its own background shorthand there, and a
+stylesheet rule would lose to it while looking correct.
+
+### The checks
+f346 (17 claims, 16 red at the parent; the one that passes is the named
+control — the two expiry FILTERS had to stay). five-images-verify (27 checks
+driven in a real browser, 21 red at the parent, which prints the report back:
+reg-stage-sel 22/93, hits path,SPAN,SPAN,SELECT, the desk row at 93px with
+sameLine:false, the calendar segment leaking 4.6/4.6, no Decision column and
+no top rule). Re-pointed in place with the reason beside each: f240 (5) and
+f274's shared-layout claim, row-density-verify's whole condensed section (it
+DRIVES the rung, so every claim now drives compact and the ladder's own length
+is a claim), contracts-page-verify 12d/12f — they read the ink off the
+CONTROL, which is now invisible by design, and the ink a reader sees is on the
+chip's face.
+npm test 8,298 tests, 0 failed. Lint 0 errors.
+
+### Noticed, not fixed (proved red at the parent 55c470f in a worktree)
+- calendar-redesign-verify 7 and 8 (three claims) and its Share-dialog timeout.
+- INDUSTRY_LABEL in js/wizard.js is hardcoded English and is drawn on screen.

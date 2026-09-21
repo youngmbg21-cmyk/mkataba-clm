@@ -401,10 +401,20 @@ const check = (name, ok, detail) => {
        together. */
     const READ_EDGES = () => {
       /* THE FILTER IS A CHIP (second pass, 21 Sep 2026): the edge is the
-         pill's, the ink and the weight are the control's own. */
-      const g = e => { if (!e) return null; const s = getComputedStyle(e);
-        const chip = e.closest && e.closest('.reg-chip'); const cs = chip ? getComputedStyle(chip) : s;
-        return { bc: cs.borderTopColor, fg: s.color, fw: cs.fontWeight, r: cs.borderTopLeftRadius }; };
+         pill's, the ink and the weight are the control's own.
+
+         RE-POINTED IN PLACE 21 Sep 2026 — THE INK IS READ OFF THE FACE, NOT
+         OFF THE CONTROL. The <select> became an invisible overlay across the
+         whole chip that day, because a press on the word used to open nothing;
+         what a READER sees is the chip's own `.reg-f-l`. Asking the control
+         for its colour now answers rgba(0,0,0,0) — true, and about a box
+         nobody can see. The claim was always "the active filter says so in
+         ink", and the face is where that ink is. */
+      const g = e => { if (!e) return null;
+        const chip = e.closest && e.closest('.reg-chip'); const cs = getComputedStyle(chip || e);
+        const face = chip && chip.querySelector('.reg-f-l');
+        const fs = getComputedStyle(face || chip || e);
+        return { bc: cs.borderTopColor, fg: fs.color, fw: cs.fontWeight, r: cs.borderTopLeftRadius }; };
       const btn = [...document.querySelectorAll('.ui-btn')]
         .filter(b => b.getBoundingClientRect().width > 0)
         .find(b => !b.classList.contains('ui-btn-primary'));

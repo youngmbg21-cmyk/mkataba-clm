@@ -20225,3 +20225,156 @@ So the baseline was NOT written from the fresh sweep. My own difference was comp
 **WHAT WAS NOT TOUCHED, and it is visible.** The rail head stays white while the bar beside it is coloured, so the shell's top-left corner is a white notch against the band. The owner's highlight covered the bar alone and the rail is a different region — the reference's own white column — so it was left exactly as it is. Colouring its head to match is one rule if that is what is wanted.
 
 **Tests.** home-page-verify's claim 1 is REVERSED IN PLACE and is a RELATION now: it resolves `--nav-bg` live in the page and requires the bar to equal it, rather than naming a colour, which is what stops a later palette pass moving one and not the other. contrast-verify 31/33 (the two calendar readings red at the parent too), theme-tokens 34/40, nav-floats 67/67, laptops 21/21, keyboard-reach 40/40, white-band-and-tabs 45/45, pages-read-alike 54/54, seven-fixes 36/36, focus-mimics-document 24/24, alerts-and-activity 21/21, brand-survives-refresh 14/14.
+
+## FIVE OFF FIVE IMAGES (Young ruled 21 Sep 2026: "You have not applied my requests")
+
+The message opened *"You have not applied my requests to Hati in the previous
+prompts"*, which made MEASURING FIRST the whole job: a report that nothing was
+built is exactly the report you cannot act on by reading source. Driven in a
+real browser at the unmodified parent, the five split three ways — three had
+genuinely never been built, one had been built and was UNREACHABLE, and one was
+built and drawn in the wrong place.
+
+### The filters "do not work at all", and they really did not
+
+This is the one worth keeping. The markup was perfect: a `<label class="reg-f
+reg-chip">`, a funnel mark, the word, and a `<select>` carrying every option
+with the right one `selected`. Nothing errored. Read as source it is a working
+control.
+
+MEASURED, the chip drew 93x30 and the select inside it drew **22x28 in
+`rgba(0,0,0,0)`** — an invisible sliver hard against the right wall — and
+`elementFromPoint` at the centre of the chip answered `SPAN.reg-f-l`. **A click
+on a `<label>` does not open a native select's menu**; it focuses the control
+and stops. So four of the five filters on that bar could be opened only by a
+reader who happened to press an unmarked 22-pixel strip.
+
+The cause was one rule, and a reasonable-looking one:
+
+```
+.reg-filterbar .reg-chip:not(.on):not(.reg-chip-show) select{width:22px;...;color:transparent!important}
+```
+
+It exists so a RESTING chip reads as a word — "Stage" — rather than as a
+dropdown showing "All". That is a good intention, and it hid the control along
+with the value. The four `!important`s around it are the tell: the builder was
+putting `selStyle` on the select — a whole dropdown's inline dress, border,
+chevron, padding and font — and every chip rule had to shout that back off.
+Once a stylesheet is arguing with an inline style, a rule that shrinks the
+control to 22px stops looking like a defect and starts looking like the next
+step in the argument.
+
+The fix removes the argument rather than winning it. `selStyle` comes off the
+chip's control; the select becomes an invisible overlay across the WHOLE chip
+(`position:absolute;inset:0;opacity:0`); and the chip's own word carries what
+is chosen, through `selChosen` — ONE reading, so the face and the control can
+never disagree about what is in force, which is precisely what the old rule
+made possible. Not one `!important` survives in that block.
+
+Two things were found by driving it rather than reading it:
+
+- **The caret took the press.** A `::after` on the label hit-tests as the
+  label, so the one point on the chip where a reader would most expect a
+  dropdown to open was the one point that opened nothing. The funnel mark, the
+  word and the caret are all `pointer-events:none` now — nothing decorative
+  sits between a reader and a control.
+- **The Category chip was a second copy of the markup.** Seven chips were fixed
+  and it was not, and a press on its left third still landed on a span. It goes
+  through `selFilter` now. THE CLOTHES FOLLOW THE BUILDER, paid again, in its
+  cheapest possible costume: the one chip that was hand-written is the one chip
+  the fix could not reach.
+
+### Two expiry windows, and a density
+
+"Expiring <= 60 days" and "Expiring <= 30 days" are off the quick-filter row.
+90 stays because it is `RENEWAL_WINDOW_DAYS` — the window this product actually
+holds — and the two inside it were one question asked three times. THE FILTERS
+STAY in `regFiltered`: the optional Home tiles `expiring30` and `expiring60`
+are doors onto exactly those cuts, and taking the branches out would have left
+two tiles that narrow nothing. With one in force no tab is lit (`All` is lit
+only when `R.view` is empty) and the Clear control says the list is narrowed,
+so the row never claims a cut it is not showing.
+
+Condensed is deleted. It was never "the same row closer together": at 30px
+there is no room for a second line, so it was the one rung that took the kind
+and the round OFF the title and drew a different row. With the rung gone,
+`regDensity()!=='condensed'` would be a guard that is always true — the same
+fault class as one that is always false, and for the same reason: it reads like
+a live rule and nothing can ever exercise it. The segment now offers
+`Object.keys(REG_DENSITY)` rather than a typed list, so a deleted rung cannot
+come back as a dead button. A browser that remembers 'condensed' reads compact,
+which needed no migration and is DRIVEN in row-density-verify rather than
+asserted.
+
+### The Horizon's Decision column
+
+The artifact draws `260px | 12 months | 150px` with a right-hand column reading
+"Renegotiate · decided 2 Sep", "Decision open · notice by 1 Oct", "Let it end ·
+decided", or a faint "No decision yet". HaTi drew the first two tracks and not
+the third.
+
+`calHorizonDecision(r)` borrows every word of it. `renewalDecisionOf` is the one
+predicate every nag on this product asks, and its answer already carries the
+word and the day; the deadline is `renewalDecisionDate`, which this page already
+draws as the notice nip two lines above. Nothing is computed here and nothing is
+guessed: an agreement with no recorded notice period has no open question to
+show, and says nothing rather than inventing one. An open question is the only
+state on that column that is WORK, so it alone takes amber and the strong
+weight; a decision already taken is a fact and reads quietly; the absence reads
+faintest, which is this product's own treatment for an absence.
+
+One thing the browser caught: `fmtDDay` is not published, so the first draft
+printed `2026-09-21` into the column. It prints through `regDotDate` — the
+reading this page already prints days with, eight lines above. A raw ISO string
+on a screen is what a page shows when it reaches for a formatter that is not on
+the stage.
+
+### The shaded half, and the sweep
+
+MEASURED: `.cal-seg` stood 28px and its lit half 16.8px, with 5.6px of page
+showing above and below the fill. `align-items:center` on the group sized each
+half to its own line box instead of to the group. The answer is the one the
+seat switch took on 19 Sep 2026 — the box clips and the halves stretch — not a
+second set of heights, which would have to be kept in step with the group's for
+ever.
+
+The owner asked for it "anywhere this is not the rule", so it was swept rather
+than assumed: sixteen segmented controls measured across six pages — the shell
+bar's two, the register's Table/Board and density, the calendar's view, scope
+and window, the negotiate page's reading tabs and seat switch. The calendar's
+were the only ones leaking; every other family was already flush inside its own
+1px border. That is said out loud rather than claimed, and the browser file
+sweeps all sixteen so the next one to drift is caught.
+
+### A bit of colour
+
+The reference's own modal is a plain white card, so this goes further than the
+artifact on the owner's explicit word. A 3px rule across the top of the frame,
+and nothing else: it is this product's existing idiom in four other places (the
+redlines column head, the KPI tile's tone edge, the arrival strip's leading row,
+the template menu's head), it says nothing, and a dangerous question wears
+`--danger` instead so the colour carries a meaning rather than decoration.
+
+It is a BACKGROUND rather than an element, which is what keeps the promise that
+nothing inside fifty-odd dialogs moves: no markup, no layout, and it clips to
+the card corner by itself. It is written INTO the inline style, which is the one
+place it could go — the frame states its own `background` shorthand there, and a
+stylesheet rule would have lost to it while reading perfectly correctly in the
+source. `DLG_TOPBAR` is one declaration and all three frames say it once.
+
+### Home's prepared row
+
+MEASURED at the parent: 93px, `display:block`, verbs stacked underneath. The
+reference draws every desk row as text then verbs on ONE line, and the
+Needs-your-decision rows twelve pixels below already read that way, so two lists
+of the same shape scanned differently and each prepared item cost a whole extra
+line. Now 53px with the verbs at the right wall, and it WRAPS — at a narrow card
+they drop back under the sentence rather than squeezing it. Scoped to `.is-desk`
+alone: the auto-triage row shares these class names, is a different surface with
+a fold of its own, and keeps the stack it was designed with.
+
+Found on the way and fixed because it is the same button: the English book said
+**Discard** where the Swedish has said "Lagg undan" — put away — since the desk
+was built, and the confirm's own message says in BOTH books that nothing is
+deleted. Only the English word claimed otherwise, and it was the word on the
+button. The reference says "Put away" for the same reason.

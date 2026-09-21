@@ -487,6 +487,10 @@ const STRINGS = {
     cal_v_horizon: 'Horizon',
     cal_hz_title: 'Twelve-month expiry horizon',
     cal_hz_agreement: 'Agreement',
+    cal_hz_decision: 'Decision',
+    cal_hz_dec_done: '{answer} · decided {date}',
+    cal_hz_dec_open: 'Decision open · notice by {date}',
+    cal_hz_dec_none: 'No decision yet',
     cal_hz_head: 'Bar length is time remaining · ▾ marks the notice deadline, not the expiry',
     cal_hz_notice: 'Notice deadline {d}',
     cal_hz_beyond: 'beyond a year',
@@ -6518,11 +6522,17 @@ const STRINGS = {
        inert in both books: the day the desk grows a way to the rest, this is
        what it says. */
     desk_showing: 'showing {n} of {total}',
-    desk_discard: 'Discard',
-    desk_discard_all: 'Discard all',
-    desk_discard_q: 'Discard everything prepared?',
+    /* ---- "PUT AWAY", NOT "DISCARD" (21 Sep 2026) ----
+       The Swedish book has said "Lägg undan" — put away — since the desk was
+       built, and the confirm's own message says in both books that nothing is
+       deleted. Only the English word claimed otherwise, and it is the word on
+       the button. The reference's desk rows say "Put away" for the same
+       reason. */
+    desk_discard: 'Put away',
+    desk_discard_all: 'Put all away',
+    desk_discard_q: 'Put everything prepared away?',
     desk_discard_msg: 'Everything prepared comes off this list. Nothing is deleted — the renewal stays on Needs your decision and the Calendar, the late promise stays on the Obligations list, and what HaTi read stays on the contract.',
-    desk_discard_go: 'Discard all',
+    desk_discard_go: 'Put all away',
     /* A late promise, with the message ready to go. */
     desk_chase_t: 'Chase ready — {who}',
     /* THE TAG CARRIES THE URGENCY AND THE META CARRIES THE FACTS, so neither
@@ -8080,6 +8090,10 @@ const STRINGS = {
     cal_v_horizon: 'Horisont',
     cal_hz_title: 'Utgångshorisont, tolv månader',
     cal_hz_agreement: 'Avtal',
+    cal_hz_decision: 'Beslut',
+    cal_hz_dec_done: '{answer} · beslutat {date}',
+    cal_hz_dec_open: 'Beslut öppet · uppsägning senast {date}',
+    cal_hz_dec_none: 'Inget beslut ännu',
     cal_hz_head: 'Stapelns längd är återstående tid · ▾ markerar uppsägningsfristen, inte utgången',
     cal_hz_notice: 'Uppsägningsfrist {d}',
     cal_hz_beyond: 'bortom ett år',

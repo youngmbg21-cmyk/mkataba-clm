@@ -355,9 +355,20 @@ describe('F274 — the overnight desk', () => {
           n + ' must leave js/desknight.js by name');
     });
 
-    test('the row borrows the act row rather than declaring a second one', () => {
-      assert.match(CSS, /\.hm-row\.is-tri,\.hm-row\.is-desk\{/, 'one rule, two wearers');
-      assert.match(CSS, /\.hm-tri-acts,\.hm-desk-acts\{/);
+    /* REVERSED IN HALF, 21 Sep 2026 (Young ringed the verb column on Home):
+       the desk row's verbs moved to a COLUMN AT THE RIGHT, which is how the
+       reference draws every desk row and how the decisions list twelve pixels
+       below already reads. So the two rows no longer share their LAYOUT — the
+       auto-triage row keeps the stack it was designed with, and `.is-desk` has
+       a scoped rule of its own. What they still share, and what this claim is
+       really about, is the BUTTON: one `.hm-tri-b` dressing, two wearers. */
+    test('the verbs are one dressing, and the desk row puts them at the right', () => {
+      assert.match(CSS, /\.hm-tri-acts,\.hm-desk-acts\{/, 'one act-row rule, two wearers');
+      assert.match(CSS, /\.hm-row\.is-desk\{[^}]*display:flex/, 'the desk row is a row');
+      assert.match(CSS, /\.hm-row\.is-desk \.hm-desk-acts\{[^}]*margin-left:auto/,
+        'and its verbs sit at the right wall');
+      assert.match(CSS, /\.hm-row\.is-tri\{[^}]*display:block/,
+        'while the auto-triage row keeps its stack');
     });
   });
 
