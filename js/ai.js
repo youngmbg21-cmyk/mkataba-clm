@@ -1598,7 +1598,7 @@ function aiInsightsBrief(panels, tab){
 const AI_PAGE_NAMES = {
   dashboard: 'Home', register: 'Contracts', folder: 'Contracts',
   redline: 'Negotiations', workspace: 'a contract', intel: 'Insights',
-  obligations: 'Obligations', calendar: 'Calendar', templates: 'Templates',
+  obligations: 'Obligations', approvals: 'Approvals & signing', calendar: 'Calendar', templates: 'Templates',
   playbook: 'Our standards', pipeline: 'Approvals', intake: 'Requests',
   directory: 'People', team: 'Settings & rules', reports: 'Reports',
   migration: 'Import contracts', advice: 'Advice desk',

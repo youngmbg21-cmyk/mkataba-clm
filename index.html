@@ -7126,6 +7126,28 @@
   .m-ctab{color:var(--color-neutral-600);}
   .m-ctab.on{color:var(--color-text);}
 
+  /* ═══ APPROVALS & SIGNING (20 Sep 2026, step 10) — the reference's table:
+     mono refs, name over counterparty, a micro uppercase head, the late
+     count in ruby, the verb at the right wall; the card at the card corner. */
+  .ap-page{display:flex;flex-direction:column;gap:var(--s-3);padding:0 var(--page-pad-x) var(--s-4);}
+  .ap-page .st-tabs{margin-bottom:0;}
+  .ap-card{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;}
+  .ap-table{width:100%;border-collapse:collapse;font-size:var(--t-body);}
+  .ap-table th{text-align:left;font-size:var(--t-micro);letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);font-weight:var(--w-title);padding:10px 14px;border-bottom:1px solid var(--color-divider);white-space:nowrap;}
+  .ap-table td{padding:8px 14px;border-bottom:1px solid var(--color-divider);vertical-align:middle;}
+  .ap-table tr:last-child td{border-bottom:0;}
+  .ap-table tbody tr{cursor:pointer;}
+  .ap-table tbody tr:hover td{background:var(--surface-2);}
+  .ap-table .r{text-align:right;}
+  .ap-table .mono{font-family:var(--font-mono);font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;}
+  .ap-table td.late{color:var(--st-ruby-fg);font-weight:var(--w-strong);}
+  .ap-name{display:block;font-weight:var(--w-label);color:var(--color-text);}
+  .ap-sub{display:block;font-size:var(--t-meta);color:var(--color-neutral-500);}
+  .ap-n{font-family:var(--font-mono);font-size:var(--t-figure);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:var(--radius);padding:1px 6px;margin-left:4px;font-weight:var(--w-strong);}
+  .ap-empty{padding:28px 14px;text-align:center;color:var(--color-neutral-500);font-size:var(--t-body);}
+  .ap-foot{display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);padding:6px 14px;border-top:1px solid var(--color-divider);font-size:var(--t-label);color:var(--color-neutral-600);}
+  .ap-go{min-height:26px;padding:0 10px;font-size:var(--t-meta);}
+
   /* The column. 224 wide, grouped, a 32px row with a 4px corner; the live
      door is a tint of the accent with the accent's ink, which is what the
      reference draws — the 3px left rule of 24 Aug goes with the dark bar. */
@@ -7391,6 +7413,16 @@
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-nego"/></svg>
             <span style="flex:1;" data-i18n="nav_negotiations">Negotiations</span><span class="nav-count" data-count="negotiations"></span>
+          </button>
+          <!-- APPROVALS & SIGNING (the redesign order's step 10, 20 Sep 2026):
+               a door onto what waits on this reader's yes and on their
+               signature — two readings Home already makes, drawn as a page.
+               Its count is the rows on that page. Every verb there opens the
+               contract's Signing tab, where the gate and the Sign button live. -->
+          <button data-view="approvals" class="nav-item" title="Approvals &amp; signing — what waits on your yes, and what waits on your signature" data-i18n-title="nav_approvals_title">
+            <span class="nav-rail"></span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-check"/></svg>
+            <span style="flex:1;" data-i18n="nav_approvals">Approvals &amp; signing</span><span class="nav-count" data-count="approvals"></span>
           </button>
           <!-- THE OBLIGATIONS WORKLIST (J-2.3, owner-asked 29 Aug 2026).
                In the EVERYDAY group, beside the Calendar, because it answers the

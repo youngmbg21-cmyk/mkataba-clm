@@ -197,6 +197,24 @@ function openKpiCustomizer(anchor){
 
    A contract signed or declined since is not waiting on anybody and drops out.
    Newest signal first: the point of the list is what just landed. */
+/* ---- WHAT WAITS ON THIS READER'S SIGNATURE ----
+   Lifted out of renderDashboard on 20 Sep 2026 (the redesign order's step 10)
+   because the Approvals & signing page draws the same rows: the contracts
+   where the next signer is this member and signReadiness still counts
+   something to settle. Reads nextSigner and signReadiness — never a second
+   arithmetic — and writes nothing. */
+function hmMySignings(cs){
+  const meNow=(typeof currentUser==='function')?currentUser():null;
+  return (meNow&&window.nextSigner&&window.signReadiness)?(cs||[]).filter(c=>c.status!=='Signed'&&c.status!=='Declined'&&!c.archived).map(c=>{
+    let ns=null; try{ ns=nextSigner(c); }catch(_){ ns=null; }
+    if(!ns||ns.party==='counterparty'||ns.signed) return null;
+    const mine=(ns.memberId&&String(ns.memberId)===String(meNow.id))
+      || (!!ns.email&&!!meNow.email&&String(ns.email).toLowerCase()===String(meNow.email).toLowerCase());
+    if(!mine) return null;
+    let n=0; try{ n=signReadiness(c,{ light:!!(c._light&&!c._loaded) }).n; }catch(_){ n=0; }
+    return n?{ c, n }:null;
+  }).filter(Boolean):[];
+}
 function readyToSignItems(cs){
   return (cs||[])
     .filter(c=>c && c.status!=='Signed' && c.status!=='Declined'
@@ -1055,16 +1073,9 @@ function renderDashboard(){
      nowhere on the page. */
   const deskIds=(typeof deskCids==='function')?deskCids(deskRows):new Set();
 
-  const meNow=(typeof currentUser==='function')?currentUser():null;
-  const mySignings=(meNow&&window.nextSigner&&window.signReadiness)?cs.filter(c=>c.status!=='Signed'&&c.status!=='Declined'&&!c.archived).map(c=>{
-    let ns=null; try{ ns=nextSigner(c); }catch(_){ ns=null; }
-    if(!ns||ns.party==='counterparty'||ns.signed) return null;
-    const mine=(ns.memberId&&String(ns.memberId)===String(meNow.id))
-      || (!!ns.email&&!!meNow.email&&String(ns.email).toLowerCase()===String(meNow.email).toLowerCase());
-    if(!mine) return null;
-    let n=0; try{ n=signReadiness(c,{ light:!!(c._light&&!c._loaded) }).n; }catch(_){ n=0; }
-    return n?{ c, n }:null;
-  }).filter(Boolean):[];
+  /* ONE READING, TWO SURFACES (20 Sep 2026): the Approvals & signing page
+     draws the same list, so the arithmetic lives in hmMySignings below. */
+  const mySignings=hmMySignings(cs);
   const decisionItems=[
     /* ---- AUTO-TRIAGE'S CARD IS NOT ON HOME (owner-ruled 9 Sep 2026) ----
        *"delete the 4 cards from the home page and simply land in the key terms
@@ -1799,5 +1810,5 @@ if(typeof window!=='undefined' && typeof ResizeObserver==='function'){
   else arm();
 }
 
-Object.assign(window,{renderDashboard,hmFitDecisions,HM_DD_MIN,hmDashSlices,copilotRead,copilotCoverage,gsSteps,gettingStartedHtml,gsIsSeed,
+Object.assign(window,{renderDashboard,hmFitDecisions,HM_DD_MIN,hmDashSlices,hmMySignings,copilotRead,copilotCoverage,gsSteps,gettingStartedHtml,gsIsSeed,
   KPI_META,currentKpiSel,setKpiSel,kpiCatalogOrder,DEFAULT_KPI_SEL,KPI_MAX,kpiAtMax,readyToSignItems});
