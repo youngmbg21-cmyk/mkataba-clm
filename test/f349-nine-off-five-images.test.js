@@ -192,7 +192,14 @@ test('F349 (6) — an unaddressed draft is not "the smallest change"', async t =
 test('F349 (7) — on a clause we already have, a stand-alone clause never leads', async t => {
   const lead = /lead: fit \? fit\.text :[\s\S]*?risk:/.exec(NEG)[0];
   await t.test('(7a) an EDIT with no fit has no lead at all', () => {
-    assert.match(lead, /landing === 'edit' \? null/);
+    assert.match(lead, /\(landing === 'edit' && asked\) \? null/);
+  });
+  await t.test('(7a2) [wall] but only where the fitted reading could be asked', () => {
+    /* "Nothing fits" over a reading nobody made is a guess — this codebase's
+       own rule in reverse. A stage without js/playbook.js keeps the lead it
+       always had; in the product that module is always loaded. */
+    assert.match(NEG, /const asked = !!window\.pbFitWording;/);
+    assert.match(NEG, /const fit = \(landing === 'edit' && asked\)/);
   });
   await t.test('(7b) [control] an ADD is byte-identical — the library\'s wording whole', () => {
     assert.match(lead, /\(preferred \|\| fallback \|\| draft\)/);

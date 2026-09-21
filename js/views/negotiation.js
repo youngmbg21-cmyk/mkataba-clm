@@ -13693,7 +13693,8 @@ function rlPlaybookProposals(c, rev){
        honest answer and better than a paste. The three named wordings are
        untouched and all three keep their own slot and their own name — the 26
        Aug ruling stands; what moves is which one LEADS, and only on an edit. */
-    const fit = (landing === 'edit' && window.pbFitWording)
+    const asked = !!window.pbFitWording;
+    const fit = (landing === 'edit' && asked)
       ? pbFitWording(cl, v, preferred, draft) : null;
     out.push({ v, clauseId: cl ? cl.clauseId : null,
       clauseLabel: cl && window.negoClauseLabel ? negoClauseLabel(cl) : '',
@@ -13720,9 +13721,17 @@ function rlPlaybookProposals(c, rev){
          explicit presses that ask how much of the clause they would replace.
          An ADD landing is untouched — there the library's wording whole is
          exactly what belongs, which is the other half of the owner's rule. */
-      lead: fit ? fit.text : (landing === 'edit' ? null : (preferred || fallback || draft)),
+      /* AND THE REFUSAL IS ONLY HONEST WHERE THE QUESTION WAS ASKED. A stage
+         without js/playbook.js cannot work out a smallest change at all, and
+         "nothing fits" over a reading nobody made is a guess — this file's
+         own rule, in reverse. `asked` is the reading having been available;
+         where it was not, the lead is what it always was. In the product
+         js/playbook.js is always loaded, so this is the harness pages' branch
+         and nothing else. */
+      lead: fit ? fit.text : ((landing === 'edit' && asked) ? null : (preferred || fallback || draft)),
       leadKind: fit ? fit.kind
-        : (landing === 'edit' ? null : (preferred ? 'standard' : (fallback ? 'fallback' : 'draft'))),
+        : ((landing === 'edit' && asked) ? null
+          : (preferred ? 'standard' : (fallback ? 'fallback' : 'draft'))),
       risk: v.escalate ? 'high' : 'medium' });
   }
   return out;
