@@ -4431,6 +4431,14 @@ app.get('/api/ai/config', auth, (req, res) => {
   res.json({
     configured: !!k,
     source: getSetting('aiKey') ? 'settings' : (process.env.ANTHROPIC_API_KEY ? 'env' : null),
+    /* WHETHER THE SERVER'S OWN ENVIRONMENT HOLDS A KEY, as a boolean and never
+       the key (owner-reported 21 Sep 2026). `source` above already says so
+       whenever nothing is stored in settings; what it cannot say is that a
+       server key is waiting UNDERNEATH a stored one. Removing the stored key
+       is a different act in the two cases -- Copilot keeps working in one and
+       falls back to the built-in interpreter in the other -- and the confirm
+       that asks for that press has to name the real cost. */
+    envKey: !!process.env.ANTHROPIC_API_KEY,
     hint: k ? ('••••' + k.slice(-4)) : '',
     // resolved model per tier — never the key
     models: { fast: aiModelForTier('fast'), deep: aiModelForTier('deep') },

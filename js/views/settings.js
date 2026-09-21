@@ -3232,6 +3232,44 @@ function stAcceptanceHtml(){
     ${before}
   </div>`;
 }
+/* ---- A VERB THAT CANNOT WORK IS GREYED, WITH THE REASON (owner-reported
+   21 Sep 2026: "I can save but i cannot delete") ----
+   MEASURED against a real server before a line moved: Remove key was never
+   broken. It clears the key stored in this workspace exactly as it always
+   did -- with a key ALSO set in the server's environment the read afterwards
+   answers {configured:true, source:'env'}, which is correct. What was missing
+   is that the SCREEN said nothing: the status line reads "Configured" before
+   and after, so the only visible difference is four masked characters and a
+   parenthetical, and once the key comes from the environment the press is a
+   no-op that still shows a confirm and a toast. That is a dead button wearing
+   a live one's clothes -- this codebase's own named fault class.
+
+   THE APP CANNOT DELETE THE SERVER'S OWN KEY and must never pretend to: that
+   one is removed where the environment is edited (on Render, the service's
+   Environment settings). So the button says so instead.
+
+   ONE READING, asked at every paint, so the sign and the wall cannot
+   disagree. `undefined` is "not known yet" and is NOT "there is nothing to
+   remove" -- a failed read must not claim an absence. */
+function stKeyRemovable(source){
+  if(source==='settings') return { can:true, why:'' };
+  if(source==='env') return { can:false, why:i18t('set_key_env_locked') };
+  if(source===undefined) return { can:false, why:i18t('set_checking') };
+  return { can:false, why:i18t('set_key_none_to_remove') };
+}
+/* ONE PAINTER, two homes (the local-mode panel and the server one), for the
+   reason every shared control in this product has one: a rule written twice
+   is a rule that drifts. The button carries inline styles, so the greying is
+   written on the element rather than in a sheet that would lose to them. */
+function stPaintKeyClear(source){
+  const b=document.getElementById('ai-key-clear'); if(!b) return;
+  const r=stKeyRemovable(source);
+  b.disabled=!r.can;
+  b.style.opacity=r.can?'':'.5';
+  b.style.cursor=r.can?'pointer':'default';
+  b.title=r.why;
+  b.setAttribute('aria-disabled', r.can?'false':'true');
+}
 function stEngineBodyHtml(){
   if(!API_MODE()){
     return `<div id="ai-cfg-status" style="font-size:var(--t-label);color:var(--color-neutral-700);margin-bottom:var(--s-2)">${i18t('set_checking')}</div>
@@ -3240,7 +3278,7 @@ function stEngineBodyHtml(){
           <input id="ai-key" type="password" placeholder="sk-ant-…" style="${window.RV_FLD||ST_INPUT}"/></label>
         <button id="ai-key-save" style="${ST_BTN}">${i18t('set_save_key')}</button>
       </div>
-      <button id="ai-key-clear" style="margin-top:6px;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--st-ruby-dot);background:none;border:0;cursor:pointer;padding:0">${i18t('set_remove_key')}</button>
+      <button id="ai-key-clear" disabled aria-disabled="true" style="margin-top:6px;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--st-ruby-dot);background:none;border:0;cursor:default;opacity:.5;padding:0">${i18t('set_remove_key')}</button>
       <p class="st-note" style="margin-top:var(--s-3)">${i18t('set_local_mode_note')}</p>
       ${''/* THE ACCEPTANCE READING IS DRAWN HERE TOO, and that is the one-builder
              rule rather than a convenience: it counts the book in the browser and
@@ -3257,7 +3295,7 @@ function stEngineBodyHtml(){
         <input id="ai-key" type="password" placeholder="sk-ant-…" style="${window.RV_FLD||ST_INPUT}"/></label>
       <button id="ai-key-save" style="${ST_BTN}">${i18t('set_save_key')}</button>
     </div>
-    <button id="ai-key-clear" style="margin-top:6px;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--st-ruby-dot);background:none;border:0;cursor:pointer;padding:0">${i18t('set_remove_key')}</button>
+    <button id="ai-key-clear" disabled aria-disabled="true" style="margin-top:6px;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--st-ruby-dot);background:none;border:0;cursor:default;opacity:.5;padding:0">${i18t('set_remove_key')}</button>
 
     <div class="st-sec st-sec-top">
       <div style="font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text)">${i18t('set_spend_today')}</div>
@@ -3409,7 +3447,12 @@ function stWireEngine(){
        field is present and remembered; Copilot still uses the built-in
        interpreter. */
     const st=document.getElementById('ai-cfg-status');
-    const refresh=()=>{ if(!st) return; const k=lsGet('hati.v1.aikey');
+    const refresh=()=>{ const k=lsGet('hati.v1.aikey');
+      /* Painted BEFORE the early return: the status line and the verb are two
+         readings of one fact, and a panel drawn without its status element
+         must still not offer a press that would do nothing. */
+      stPaintKeyClear(k?'settings':null);
+      if(!st) return;
       st.innerHTML=k?`<span style="color:var(--st-green-fg);font-weight:var(--w-strong)">● Configured</span> · key ••••${String(k).slice(-4)} stored in this browser — Copilot is live.`
                     :`<span style="color:var(--st-amber-fg);font-weight:var(--w-strong)">● Not configured</span> — Copilot and Copilot features use the built-in interpreter.`; };
     refresh();
@@ -3422,13 +3465,21 @@ function stWireEngine(){
       toast(i18t('set_t_key_saved',{last4:key.slice(-4)})); refresh(); refreshAiIndicators();
     });
     document.getElementById('ai-key-clear')?.addEventListener('click',async()=>{
-      if(!await confirmDialog({title:'Remove the stored Copilot key?', message:'HaTi Copilot and Copilot features will fall back to the built-in interpreter.', confirmLabel:'Remove key', danger:true})) return;
+      if(!await confirmDialog({title:'Remove the stored Copilot key?', message:i18t('set_key_remove_msg'), confirmLabel:'Remove key', danger:true})) return;
       localStorage.removeItem('hati.v1.aikey'); toast(i18t('set_key_removed')); refresh(); refreshAiIndicators();
     });
     return;
   }
+  /* Does the SERVER's own environment hold a key, underneath whatever this
+     workspace has stored? Only the read knows, and it decides which of two
+     true sentences the confirm shows. Per sitting, never persisted. */
+  let _aiEnvKey=false;
   const refreshAiCfg=async()=>{ const el=document.getElementById('ai-cfg-status'); if(!el) return;
     try{ const c=await api('ai/config'); state.aiConfigured=!!c.configured;
+      /* The read is the only thing that knows WHERE the key lives, so it is
+         what paints the verb and what the confirm's cost is taken from. */
+      stPaintKeyClear(c.source);
+      _aiEnvKey=!!c.envKey;
       const fast=c.tiers?.fast?.model||c.models?.fast||c.model||'', deep=c.tiers?.deep?.model||c.models?.deep||'';
       el.innerHTML=c.configured
         ?`<span class="text-brand-600">${i18t('set_configured')}</span> · ${i18t('set_key')} ${c.hint}${c.source==='env'?i18t('set_key_from_env'):''}`
@@ -3499,7 +3550,7 @@ function stWireEngine(){
       if(rp&&document.activeElement!==rp) rp.checked=lim.renewalPrep!==false;
       renderAllowancePanel(c.allowance||{});
       renderRateTable(c.rates||{}, c.ratesMeta||{});
-    }catch(e){ el.textContent='Could not read Copilot config.'; } };
+    }catch(e){ el.textContent='Could not read Copilot config.'; stPaintKeyClear(undefined); } };
   refreshAiCfg();
   /* ---- THE COPILOT ENGINE PANEL'S FOUR SAVES SAY 'SAVED' ----
      Every refusal here goes into the drawer's foot and every SUCCESS was a
@@ -3526,7 +3577,9 @@ function stWireEngine(){
     catch(e){ stDrawerRefuse(e.message); }
   });
   document.getElementById('ai-key-clear')?.addEventListener('click',async()=>{
-    if(!await confirmDialog({title:'Remove the stored Copilot key?', message:'Copilot features will fall back to the built-in interpreter until a new key is added.', confirmLabel:'Remove key', danger:true})) return;
+    if(!await confirmDialog({title:'Remove the stored Copilot key?',
+        message:_aiEnvKey?i18t('set_key_remove_to_env'):i18t('set_key_remove_msg'),
+        confirmLabel:'Remove key', danger:true})) return;
     try{ await api('ai/config','PUT',{ clear:true }); toast(i18t('set_key_removed'),'ok'); refreshAiCfg(); }catch(e){ stDrawerRefuse(e.message); }
   });
   document.getElementById('ai-limits-save')?.addEventListener('click',async()=>{
@@ -4593,4 +4646,5 @@ Object.assign(window,{renderTeam,stRepaintPanel,renderMyAccountPage,briefCadence
   stPersonMissing,stAccountBodyHtml,parseDirectoryCsv,openFolderAccessEditor,settingsMirrorDirectory,
   stSigningSectionHtml,stSigningRead,stPaintLadder,stReviewSectionHtml,stReviewRead,stSignFolderHtml,stSignFolderRead,
   stOverseerSectionHtml,stOverseerRead,
-  settingsMarketFactsHtml,settingsPaintShapeBoxes,settingsHeightsBefore,settingsHoldHeights});
+  settingsMarketFactsHtml,settingsPaintShapeBoxes,settingsHeightsBefore,settingsHoldHeights,
+  stKeyRemovable,stPaintKeyClear});

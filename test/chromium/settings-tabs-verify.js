@@ -655,6 +655,47 @@ const signIn = async (page, base, email, pass) => {
     }));
     check('the avatar opens Your account, with the job title and the sessions on it',
       acct.open && acct.title2 && acct.sessions.length > 0, `"${acct.title}" · sessions "${acct.sessions.slice(0, 40)}"`);
+    /* ---- THE REMOVE KEY VERB SAYS WHAT IT CAN DO (f350, 21 Sep 2026) ----
+       Owner-reported: "I can save but i cannot delete". The press was never
+       broken; the screen was silent about it. A node test can read `disabled`
+       off the markup, but only a browser can say the reader is actually
+       looking at a control that is visibly stood down — and this harness's
+       server always carries ANTHROPIC_API_KEY, so the panel opens in exactly
+       the state the owner reported. Asserted BOTH WAYS: the same button is
+       measured live once a key is stored in the workspace. */
+    const p4 = page;
+    await p4.evaluate(() => { settingsGoTab('build'); stDrawerOpen('engine'); });
+    await p4.waitForTimeout(1600);
+    const keyState = () => p4.evaluate(() => {
+      const b = document.getElementById('ai-key-clear');
+      if (!b) return { there: false };
+      const cs = getComputedStyle(b);
+      return { there: true, disabled: !!b.disabled, title: b.title || '',
+        opacity: Number(cs.opacity), cursor: cs.cursor,
+        line: (document.getElementById('ai-cfg-status') || {}).textContent || '' };
+    });
+    const envState = await keyState();
+    check('the engine panel opens on the server\'s own key', /server env/i.test(envState.line),
+      envState.line);
+    check('and Remove key is stood down — the app cannot delete the server\'s key',
+      envState.there && envState.disabled, JSON.stringify(envState));
+    check('it is visibly greyed, not merely inert',
+      envState.opacity > 0 && envState.opacity < 1 && envState.cursor !== 'pointer',
+      `opacity ${envState.opacity} · cursor ${envState.cursor}`);
+    check('and the reason is on it, naming where the key really lives',
+      /server/i.test(envState.title), envState.title || '(nothing)');
+
+    /* BOTH WAYS: store a key in the workspace and the same button comes alive. */
+    await p4.evaluate(async () => {
+      document.getElementById('ai-key').value = 'sk-ant-stored-in-the-workspace';
+      document.getElementById('ai-key-save').click();
+    });
+    await p4.waitForTimeout(1600);
+    const storedState = await keyState();
+    check('CONTROL — with a key stored in the workspace, Remove key is live again',
+      storedState.there && !storedState.disabled, JSON.stringify(storedState));
+
+
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
     await ctx.close();
 

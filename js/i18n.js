@@ -6754,6 +6754,14 @@ const STRINGS = {
     set_configured: '● Configured',
     set_not_configured: '● Not configured',
     set_key_from_env: ' (from server env)',
+    /* THE VERB SAYS WHAT IT CAN DO (21 Sep 2026). Two refusals and two
+       costs: a key set in the server’s environment is not this app’s to
+       delete, and removing a stored key means two different things
+       depending on whether one is waiting underneath it. */
+    set_key_env_locked: 'This key is set on the server, so it cannot be removed here — remove it where the server’s environment variables are kept.',
+    set_key_none_to_remove: 'There is no stored key to remove.',
+    set_key_remove_msg: 'Copilot features will fall back to the built-in interpreter until a new key is added.',
+    set_key_remove_to_env: 'Copilot keeps working on the key set on the server.',
     set_falls_back: ' — Copilot features fall back to the built-in interpreter.',
     set_today_of_one: 'Today: <b>{spent}</b> of <b>{budget}</b> · {n} request',
     set_today_of_other: 'Today: <b>{spent}</b> of <b>{budget}</b> · {n} requests',
@@ -13708,6 +13716,10 @@ const STRINGS = {
     set_configured: '● Konfigurerad',
     set_not_configured: '● Inte konfigurerad',
     set_key_from_env: ' (från serverns miljövariabler)',
+    set_key_env_locked: 'Den här nyckeln är satt på servern och kan inte tas bort här — ta bort den där serverns miljövariabler hanteras.',
+    set_key_none_to_remove: 'Det finns ingen sparad nyckel att ta bort.',
+    set_key_remove_msg: 'Copilots funktioner faller tillbaka på den inbyggda tolken tills en ny nyckel läggs till.',
+    set_key_remove_to_env: 'Copilot fortsätter att fungera med nyckeln som är satt på servern.',
     set_falls_back: ' — Copilots funktioner faller tillbaka på den inbyggda tolken.',
     set_today_of_one: 'I dag: <b>{spent}</b> av <b>{budget}</b> · {n} anrop',
     set_today_of_other: 'I dag: <b>{spent}</b> av <b>{budget}</b> · {n} anrop',

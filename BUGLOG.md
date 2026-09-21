@@ -18274,3 +18274,36 @@ mouse alike, and it is the product's own vocabulary (the layout dividers are
 built on it). Chromium is unchanged by the swap and the driven checks still
 pass, so this is reasoned rather than reproduced here and wants one look on
 the iPad.
+
+## 2026-09-21 — "I can save but i cannot delete" (the Copilot key)
+
+Owner-reported after moving the Anthropic key onto the server's environment.
+
+MEASURED FIRST, against a real server: the press was never broken. With a key
+stored in the workspace, Remove key clears it and the read afterwards answers
+{configured:true, source:'env'}. The fault was that the screen said nothing —
+"Configured" before and after, four masked characters different — and that with
+the key in the environment the press is a no-op still drawn in full colour.
+
+Fixed:
+- stKeyRemovable / stPaintKeyClear — one reading, one painter, asked at every
+  paint by BOTH homes of that control (the local-mode panel and the server one).
+- The verb greys with the reason: a key set on the server cannot be removed here
+  (it is removed where the environment is edited); no key at all has nothing to
+  remove; a read that has not landed is "not known yet", NOT an absence.
+- GET /api/ai/config gains `envKey` (a boolean fact, never the key), so the
+  confirm names the real cost: with a server key underneath, removing the stored
+  one does not fall back to the built-in interpreter.
+- Four keys added to BOTH books.
+
+Tests: f350 (22 claims, 11 red at the parent, four named CONTROLS);
+settings-tabs-verify gains 4 checks, 3 red at the parent.
+Full suite 8,314 pass / 0 fail. Lint 0 errors.
+
+### Noticed, not fixed
+- The confirm's title and confirm label on that dialog are hardcoded English
+  literals (as are several others in js/views/settings.js). Only the MESSAGE was
+  moved into both books, because only the message changed.
+- The Copilot key panel's key box is a password input the browser autofills, so
+  it shows dots even when nothing is stored in the workspace; pressing Save key
+  with an autofilled value would store it. Not touched — outside this request.
