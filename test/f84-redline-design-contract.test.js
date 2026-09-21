@@ -318,12 +318,13 @@ describe('F84 — the Tracked Changes head is a caption and a count', () => {
     /* RE-POINTED 27 Aug 2026 — it is headed "Redlines (N)" now (owner-asked).
        The claim is untouched: the column heads itself, out of the dictionary
        rather than off a string typed here, so a rewording costs no edit. */
-    assert.ok(head.textContent.includes(p.win.i18t('ng_redlines_head_n', { n: 1 }).replace(/\s*\(\d+\)\s*$/, '')),
+    assert.ok(head.textContent.includes(p.win.i18t('ng_redlines_head_n', { n: 1 }).replace(/\s*\(?\d+\)?\s*$/, '')),
       'what it is');
     /* RE-POINTED 26 Aug 2026 — the WHOSE ASKS filter is retired ("delete the
        whose ask feature"), so the count it carried is back on the head's own
        title. THE CLAIM IS UNCHANGED: how much is in it, said exactly once. */
-    assert.match(p.$('.rl-idx-title').textContent, /\(\d+\)/,
+    /* A plain count since 21 Sep 2026 (the artifact's "Redlines 6"). */
+    assert.match(p.$('.rl-idx-title').textContent, /\d+\s*$/,
       'and how much is in it — carried by the title, said once');
     assert.equal(p.$('#rl-cardfilter'), null, 'and by nothing else');
     /* REVERSED IN PLACE 26 Aug 2026 (owner-asked, ringing the row: "delete

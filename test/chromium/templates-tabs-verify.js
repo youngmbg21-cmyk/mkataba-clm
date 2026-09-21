@@ -245,7 +245,7 @@ const BOX = sel => {
        highlighted area means"). It has to name the sample, name the standards
        the reader can go and look at, and give "not checked" an object. */
     check('2b · a card carries both figures and the sentence that qualifies them',
-      cards.cards.some(c => /Used/.test(c.txt) && /Deviation rate/.test(c.txt))
+      cards.cards.some(c => /Used/.test(c.txt) && /Deviation/.test(c.txt)) /* the label is 'Deviation' since 21 Sep 2026 — the artifact's own word */
       && cards.cards.some(c => /(\d+ of the \d+ contracts checked did not follow Our standards|Nothing drafted from these has been checked)/.test(c.txt))
       && !cards.cards.some(c => /off-standard/.test(c.txt)),
       cards.cards[0]);
@@ -258,7 +258,7 @@ const BOX = sel => {
        the count on each is the number the table's own rail prints. */
     check('2e · the five library cards are the rail\u2019s five, in its order',
       JSON.stringify(cards.cards.filter(c => !/^stream:/.test(c.key)).map(c => c.key))
-        === JSON.stringify(['all', 'company', 'cp', 'builtin', 'sample']),
+        === JSON.stringify(['company', 'cp', 'builtin', 'sample', 'all']) /* All templates LAST since 21 Sep 2026 — the artifact's row */,
       cards.cards.map(c => c.key));
     check('2f · every value stream has a card too',
       cards.cards.filter(c => /^stream:/.test(c.key)).length >= 3,
@@ -313,7 +313,7 @@ const BOX = sel => {
        the search box — the search box is what a NAME needs, and these are
        categories. The way back is the rail's own "All templates". */
     const target = await page.evaluate(() =>
-      document.querySelector('#tpl-wall-probe .tpl-ov-cards [data-tpl-ov-bucket]').getAttribute('data-tpl-ov-bucket'));
+      (document.querySelector('#tpl-wall-probe .tpl-ov-cards [data-tpl-ov-bucket="all"]') || document.querySelector('#tpl-wall-probe .tpl-ov-cards [data-tpl-ov-bucket]')).getAttribute('data-tpl-ov-bucket')); /* All templates is last since 21 Sep 2026; it is the card with rows behind it on a fresh workspace */
     /* THE ACT THE CARD FRONTS, pressed by name. The probe is markup: its
        handlers are bound by renderTemplatesPage, which ran before it existed,
        so a click on it reaches nothing. What this section is for is the
@@ -404,7 +404,7 @@ const BOX = sel => {
         const name = c.querySelector('.tpl-ov-name');
         const nr = name.getBoundingClientRect();
         const labs = [...c.querySelectorAll('span')]
-          .filter(e => e.children.length === 0 && /^(Used|Deviation rate)$/.test(e.textContent.trim()));
+          .filter(e => e.children.length === 0 && /^(Used|Deviation)$/.test(e.textContent.trim()));
         const figs = labs.map(l => l.nextElementSibling).filter(Boolean);
         return {
           key: c.getAttribute('data-tpl-ov-bucket'),

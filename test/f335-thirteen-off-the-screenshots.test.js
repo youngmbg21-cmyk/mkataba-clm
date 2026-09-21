@@ -403,21 +403,25 @@ describe('f335 (11) — one mark, one meaning', () => {
     assert.match(read('js/ai.js'), /icon\('readpaper'/, "Copilot's own pulse");
   });
   test('`scan` keeps Focus mode and NOTHING ELSE', () => {
-    const files = ['js/views/contract.js', 'js/views/portal.js', 'js/views/register.js',
+    const files = ['js/views/contract.js', 'js/views/negotiation.js', 'js/views/portal.js', 'js/views/register.js',
       'js/playbook.js', 'js/ocr.js', 'js/metadata.js', 'js/ai.js', 'js/components.js'];
     const hits = [];
     for (const f of files)
       for (const m of read(f).matchAll(/icon\('scan'/g)) hits.push(f);
     /* FIVE since 21 Sep 2026, and every one is Focus mode: the ⋯ row, the
-       repaint that relabels it, the head's square, the Document tab's control
-       row door (a proxy onto the square), and the counterparty page's row. */
+       repaint that relabels it, the Document tab's control-row door, the
+       negotiate page's control-row door, and the counterparty page's row. No
+       head draws a square any more (the owner deleted it the same day). */
     assert.equal(hits.length, 5,
       'exactly the five Focus-mode callers, not ' + hits.length + ': ' + hits.join(', '));
-    assert.equal(hits.filter(f => f === 'js/views/contract.js').length, 4);
+    assert.equal(hits.filter(f => f === 'js/views/contract.js').length, 3);
+    assert.equal(hits.filter(f => f === 'js/views/negotiation.js').length, 1);
     assert.equal(hits.filter(f => f === 'js/views/portal.js').length, 1);
   });
   test('Focus mode is a button on both heads, last in the row', () => {
-    assert.match(CONTRACT, /class="room-check room-focus" data-ws-focus/, 'the button is drawn');
+    /* The square left both heads on 21 Sep 2026; the door is on the negotiate
+       page's control row (and the Document tab's) carrying the same attribute. */
+    assert.match(read('js/views/negotiation.js'), /class="ui-btn rl-focus-door" data-ws-focus/, 'the button is drawn');
     assert.match(HTML, /\.room-acts-lead > \.room-focus\{ order:5; \}/,
       'after the checks on a lead row, after Draft new agreement on the other');
   });

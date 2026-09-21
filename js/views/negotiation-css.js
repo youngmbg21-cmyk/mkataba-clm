@@ -3501,6 +3501,9 @@ function redlineLayoutCss(){
          rows that earned it: the name elides ~34px earlier, and only where
          there is something to count. flex:none, so the NAME is what gives. */}
   .redline-page .rl-card-metarow{display:flex;align-items:center;gap:var(--s-2);min-width:0}
+  .redline-page .rl-card-id{margin-left:auto;flex:none;font-family:var(--font-mono);font-size:var(--t-label);font-weight:var(--w-body);color:var(--color-neutral-500)}
+  .redline-page .rl-head .rl-focus-door{width:var(--ctl-h);min-width:var(--ctl-h);padding:0;justify-content:center;flex:none}
+  .redline-page .rl-head .rl-focus-door[aria-pressed="true"]{background:var(--nav-well)}
   .redline-page .rl-card-metarow > .rl-card-meta{flex:1 1 auto;min-width:0}
   ${''/* ---- THE ROW IS TITLE · VERBS OVER ONE FULL-WIDTH LINE (the artifact's row, 14 Sep 2026) ----
          The head becomes display:contents so its two lines are grid children in their own right: the

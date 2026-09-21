@@ -9702,6 +9702,14 @@ function renderRedline(){
                    like every other word here — by CSS, so textContent never
                    changes and the suite still reads "15px". */}
             ${window.rlTypeStepHtml ? rlTypeStepHtml() : ''}
+            ${''/* FOCUS MODE SITS RIGHT OF THE TEXT-SIZE STEPPER (Young ruled 21
+                   Sep 2026: "bring the focus mode button to be on the right of
+                   the font adjuster like in the document page"). It carries
+                   data-ws-focus, so the ONE handler this page binds for the
+                   More menu's row answers it and rlPaintFocusBtn paints its
+                   state; the head's square is gone on both heads. */}
+            <button type="button" class="ui-btn rl-focus-door" data-ws-focus aria-pressed="false"
+              title="${_nea(i18t('ct_focus_mode'))}" aria-label="${_nea(i18t('ct_focus_mode'))}">${window.icon ? icon('scan','w-3.5 h-3.5') : ''}</button>
             ${''/* A PREVIEW OF WHAT THE OTHER SIDE WILL SEE is a question about
                    the round, and the round is not the reviewer's job. It also
                    mounts a whole second surface for somebody whose task is one
@@ -17019,6 +17027,12 @@ function redlineChangeCardsHtml(c, opts = {}){
          mistake that cannot be taken back. */
       out.push(relabel(door, i18t('act_edit')), take(/data-rl-send=/));
       discard = relabel(take(/data-rl-retract=/), i18t('ng_discard'));
+      /* THE REVIEW ASK IS OFF THE FACE (Young ruled 21 Sep 2026: the row is
+         Edit · Send · Ladder · Discard, as the artifact draws it). The act is
+         not lost: the head's Internal review button is the door onto the
+         same chooser, on every card's own page. Taken here so the sweep
+         below does not put it back. */
+      take(/data-rl-ask-review=/);
     }
     for (const v of list) if (!seen.has(v)) out.push(v);
     if (tail) out.push(tail);
@@ -17039,7 +17053,6 @@ function redlineChangeCardsHtml(c, opts = {}){
     if (!ch.clauseId || typeof window.ladderRungs !== 'function' || ch.changeType === 'insertClause')
       return sum ? `<div class="rl-card-sum">${_ne(sum)}</div>` : '';
     const track = (typeof ladderTrack === 'function') ? ladderTrack(c, String(ch.clauseId), side) : null;
-    if (track) return `<div class="rl-card-sum rl-card-track">${rlLadderTrackHtml(track)}</div>`;
     const rungs = ladderRungs(c, String(ch.clauseId));
     const r = rungs.find(x => x.id === ch.id);
     if (!r) return sum ? `<div class="rl-card-sum">${_ne(sum)}</div>` : '';
@@ -17048,6 +17061,15 @@ function redlineChangeCardsHtml(c, opts = {}){
     const under = ladderUnder(rungs, r);
     const lead = `R${r.n} · ${i18t(mine(r) ? 'ng_rung_yours' : 'ng_rung_theirs')}${
       under ? ` ${i18t('ng_rung_on_word', { who: i18t(mine(under) ? 'ng_base_your' : 'ng_base_their'), n: under.n })}` : ''}`;
+    /* A CLAUSE ARGUED IN A NUMBER says the last two figures in the same
+       sentence — "R3 · yours on their R2 · 24 → 18 months" — the artifact's
+       row (Young, 21 Sep 2026); the chip track (rlLadderTrackHtml) is the
+       ladder panel's own now. */
+    if (track && Array.isArray(track.rows) && track.rows.length >= 2){
+      const [a, b] = track.rows.slice(-2);
+      const figs = `${_ne(String(a.n))} → ${_ne(String(b.n))}${track.unit ? ' ' + _ne(track.unit) : ''}`;
+      return `<div class="rl-card-sum" title="${_nea(sum)}">${_ne(lead)} · ${figs}</div>`;
+    }
     return `<div class="rl-card-sum" title="${_nea(sum)}">${_ne(lead)}${sum ? ` · ${_ne(sum)}` : ''}</div>`;
   };
   const bandHead = ch => {
@@ -17915,6 +17937,9 @@ function redlineChangeCardsHtml(c, opts = {}){
                 something to give it up for. The count is flex:none so the name
                 is what elides, never the number. */}
           <div class="rl-card-metarow"><div class="rl-card-meta"${dTip ? ` title="${_nea(dTip)}"` : ''}>${meta}</div>${
+            ''/* THE REFERENCE AT THE RIGHT (the artifact's row, Young 21 Sep 2026):
+                  quiet, in the data face; the clause still leads. */}${
+            who ? `<span class="rl-card-id">${_ne(ch.id)}</span>` : ''}${
             rlCardNotesCountHtml(c, ch, opts, side)}</div>
           ${sub}
         </div>
@@ -19222,7 +19247,7 @@ function redlinePanesHtml(c, opts = {}){
                      STALE — the keys are left inert in both dictionaries. */}
               <span class="rl-idx-title">${
                 _ne(i18t('ng_redlines_head_n', { n: changeTotal }))
-                  .replace(/\s*(\(\d+\))\s*$/, ' <i>$1</i>')}</span>
+                  .replace(/\s*\(?(\d+)\)?\s*$/, ' <i>$1</i>')}</span>
               <span class="rl-idx-sp"></span>
               ${''/* ---- SEND ALL, AT THE OPPOSITE END OF THE COLUMN'S NAME
                      (owner-asked 26 Aug 2026, ringing this exact slot) ----

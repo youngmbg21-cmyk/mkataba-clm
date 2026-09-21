@@ -220,7 +220,7 @@ const check = (name, ok, detail) => {
     await page.evaluate((id) => roomGoTab(getContract(id), 'docs'), cid);
     await page.waitForTimeout(1000);
     const focus = await page.evaluate(async () => {
-      const b = document.querySelector('#view-redline .room-focus[data-ws-focus], [data-ws-focus-door]') /* the room's door is on the Document tab's control row since 21 Sep 2026 */;
+      const b = document.querySelector('#view-redline [data-ws-focus], [data-ws-focus-door]') /* the room's door is on the Document tab's control row since 21 Sep 2026 */;
       if (!b) return { err: 'not drawn' };
       const r = b.getBoundingClientRect();
       const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
@@ -243,7 +243,7 @@ const check = (name, ok, detail) => {
 
     /* THE CONTRACT DOES NOT MOVE. Refusal 3, measured rather than assumed: the
        button wears .room-check, which is sized to the row's own rung. */
-    await page.evaluate(() => { document.querySelector('#view-redline .room-focus[data-ws-focus], [data-ws-focus-door]') /* the room's door is on the Document tab's control row since 21 Sep 2026 */.click(); });
+    await page.evaluate(() => { document.querySelector('#view-redline [data-ws-focus], [data-ws-focus-door]') /* the room's door is on the Document tab's control row since 21 Sep 2026 */.click(); });
     await page.waitForTimeout(400);
     const ink = await page.evaluate(() => {
       const head = document.getElementById('ws-head');

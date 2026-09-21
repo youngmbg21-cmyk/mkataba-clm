@@ -7790,9 +7790,10 @@ function roomFactsHtml(c,opts={}){
            stop trusting. Up in the acts row they are outside it by
            construction, and the fact row folds to nothing but its own Collapse
            press, which is the space the owner asked Collapse to give back. */}
-    <div class="room-snap"><button type="button" id="ws-facts-toggle" aria-expanded="true"
-      title="${esc(i18t('ct_collapse_facts_title'))}"><span class="room-snap-word">${
-      esc(i18t('ct_collapse'))}</span></button></div>
+    ${''/* THE COLLAPSE CONTROL IS GONE (Young ruled 21 Sep 2026: "delete the
+           collapse button"). The fold it drove (#ws-facts is-folded,
+           _wsFactsFolded) is left in place and unreachable from the head;
+           .room-snap and #ws-facts-toggle are STALE. */}
   </div>`;
 }
 /* ---- THE TITLE IS THE AGREEMENT, NOT THE AGREEMENT PLUS THE COMPANY ----
@@ -8306,9 +8307,10 @@ function roomHeadHtml(c,opts={}){
              door (wsTabRowEndHtml) and it presses the SAME toggle
              (wsFocusToggle); the ⋯ menu's row stays on every tab. The square
              stays on the NEGOTIATE page's head, where it is the only one. */}
-      ${(backC&&!opts.preview&&!PORTAL_MODE)?`<button type="button" class="room-check room-focus" data-ws-focus
-        title="${esc(i18t('ct_focus_mode'))}" aria-label="${esc(i18t('ct_focus_mode'))}" aria-pressed="false"
-        >${icon('scan','w-4 h-4')}</button>`:''}
+      ${''/* AND NOT ON THE NEGOTIATE PAGE'S HEAD EITHER (Young, 21 Sep 2026,
+             the same day): its door is on the control row right of the
+             text-size stepper (js/views/negotiation.js), carrying the same
+             data-ws-focus. No head draws a focus square now. */}
     </div>
     ${''/* ---- FOUR FACTS, EACH WITH ITS OWN LABEL (owner-asked 22 Aug 2026) ----
            The line above used to open with "MK-B2 · Sales & Route-to-Market ·

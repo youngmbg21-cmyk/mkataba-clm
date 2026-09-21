@@ -17698,3 +17698,26 @@ control-row door.
 ### Noticed, not fixed
 - On the room's other tabs (Overview, Signing, Obligations, History) Focus
   mode is now one door, the ⋯ row — the owner's ruling deleted the square.
+
+## 21 Sep 2026 — four off three screenshots (negotiate head, redline rows, Templates)
+
+Young: the Focus button to the right of the font stepper on the negotiate
+page; Templates exactly as the artifact; the redline rows exactly as the
+artifact and the image; the long line under the facts row and the Collapse
+button gone. Built: the negotiate control row's Focus door (one handler,
+no square on any head); Collapse deleted and the facts row's two lines gone;
+"Redlines N", "Send all · N not sent", "Close round", the CHG id at each
+row's right, the stacked clause's sentence, Edit · Send · Ladder · Discard
+on a draft (the review ask is reached from the head's Internal review);
+the Templates line under the title, All templates last in one row of five,
+"Deviation", a Stream head, no stripe. Re-pointed in place: f84, f244,
+f334, f335, f337, five-screenshots, focus-mimics-document,
+thirteen-screenshots, room-head-fold (its control is gone — one claim).
+
+### Noticed, not fixed
+- The redline column's colour key and progress bar are not in the artifact's
+  crop and were KEPT (the owner's 15 Sep word on the key); the Templates
+  table's verbs stay visible at rest (the owner's 19 Sep word). Both wait on
+  his ruling.
+- The fold behind the deleted Collapse control (_wsFactsFolded, #ws-facts
+  is-folded) is dead code now.

@@ -433,7 +433,8 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
     const r4 = rowFor(o.c4), r5 = rowFor(o.c5);
     const verbs = r => r ? [...r.querySelectorAll('.rl-card-face button')].map(b => b.textContent.trim()) : null;
     return { rows: rows.length, v4: verbs(r4), v5: verbs(r5),
-      track4: r4 && r4.querySelector('.rl-card-track') ? r4.querySelector('.rl-card-track').textContent.replace(/\s+/g, ' ').trim() : null,
+      /* RE-POINTED 21 Sep 2026: the argued figure is a SENTENCE on the row now (the artifact's 'R3 · yours on their R2 · 24 → 18 months'); the chip track is the ladder panel's own. */
+      track4: r4 && r4.querySelector('.rl-card-sum') ? r4.querySelector('.rl-card-sum').textContent.replace(/\s+/g, ' ').trim() : null,
       bands: [...document.querySelectorAll('#rl-changes .rl-band span:first-child')].map(b => b.textContent.trim()),
       awaitingInk: (() => { const b = document.querySelector('#rl-changes .rl-band[data-rl-band="awaiting"]'); return b ? getComputedStyle(b).color : null; })(),
       amberTok: (() => { const res = v => { const p = document.createElement('span'); p.style.color = v; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return c; }; return res('var(--st-amber-fg)'); })() };
@@ -468,7 +469,7 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
   check('18c2 Discard is ruby, and the verb beside it is not',
     !!d18.discard && /rgb\(190, 18, 60\)|rgb\(1[6-9][0-9], [0-9]+, [0-9]+\)/.test(d18.discard)
     && d18.discard !== d18.send, d18.discard + ' vs send ' + d18.send);
-  check('18d the argued figure is a track under the row', !!col18.track4 && /R0 12/.test(col18.track4) && /R3 18/.test(col18.track4), col18.track4);
+  check('18d the argued figure is said on the row — the last two rungs as a sentence', !!col18.track4 && /R3/.test(col18.track4) && /6\s*→\s*18/.test(col18.track4) /* their R2 (6) → your R3 (18): the last two rungs */, col18.track4);
   check('18e the piles carry the artifact\'s names', col18.bands.some(b => /not yet sent/i.test(b)) && col18.bands.some(b => /Awaiting you/i.test(b)), col18.bands.join(' · '));
   /* RE-POINTED 21 Sep 2026: amber is --st-amber-fg, RESOLVED — the redesign moved
      the hex, and the claim is the tone, not a number. */

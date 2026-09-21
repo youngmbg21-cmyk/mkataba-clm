@@ -179,10 +179,11 @@ describe('f244 (2b) — the cards ARE the categories (owner-asked 29 Aug 2026)',
      as the TEMPLATE cards grouped under headings; the owner's picture is the
      table's rail, and what it asks for is a card per BUCKET. */
   test('the libraries are the rail\u2019s five, in the rail\u2019s own order', () => {
-    assert.match(SRC, /const TPL_OV_LIBS=\['all','company','cp','builtin','sample'\]/);
+    /* ALL TEMPLATES LAST since 21 Sep 2026 — the artifact's own row. */
+    assert.match(SRC, /const TPL_OV_LIBS=\['company','cp','builtin','sample','all'\]/);
     const s = stage();
     const libs = s.tplOverviewData().buckets.filter(b => b.sec === 'library').map(b => b.key);
-    assert.deepEqual(libs, ['all', 'company', 'cp', 'builtin', 'sample']);
+    assert.deepEqual(libs, ['company', 'cp', 'builtin', 'sample', 'all']);
   });
 
   test('and every value stream the workspace lists gets one, empty or not', () => {

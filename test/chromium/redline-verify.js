@@ -657,7 +657,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   });
   check('14a the column names itself and carries the total',
     idxHead.title && idxHead.title.w > 0
-      && new RegExp(`\\(${idxHead.cards}\\)`).test(idxHead.title.text),
+      && new RegExp(String.raw`\b${idxHead.cards}\s*$`).test(idxHead.title.text) /* a plain count since 21 Sep 2026 */,
     idxHead.title && `${idxHead.title.text} · ${idxHead.cards} cards`);
   check('14a and the old name is gone',
     idxHead.title && !/change index/i.test(idxHead.title.text));

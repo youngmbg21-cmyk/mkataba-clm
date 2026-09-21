@@ -1544,7 +1544,9 @@ function tplPageRowHtml(r){
   return `<tr>
     <td style="padding:10px var(--s-2) 10px 14px;${RULE}">
       <div style="display:flex;gap:11px;align-items:flex-start">
-        <span style="flex:none;width:4px;height:30px;border-radius:var(--radius);background:${stripe};margin-top:2px"></span>
+        ${''/* NO STRIPE beside the name (the artifact's row, 21 Sep 2026): the
+               Stream column carries the colour. `stripe` is still computed
+               for the draft/company tone and used by nothing here. */}
         <div style="min-width:0">
           <div style="display:flex;align-items:center;gap:var(--s-2);min-width:0">
             <span style="font-size:var(--t-body);font-weight:var(--w-title);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(r.name)}</span>
@@ -1632,7 +1634,7 @@ function tplPagePaintRows(){
   if(count) count.textContent=i18tn('lib_count',rows.length,{n:rows.length});
   host.innerHTML=rows.length?`
     <div class="table-scroll"><table style="border-collapse:collapse;width:100%">
-      <tr>${th(i18t('lib_col_template'))}${th(i18t('lib_col_origin'))}${th(i18t('lib_col_version'),1)}${th(i18t('reg_value_stream'))}${th(i18t('lib_col_used'),1)}<th style="border-bottom:1px solid var(--color-divider)"></th></tr>
+      <tr>${th(i18t('lib_col_template'))}${th(i18t('lib_col_origin'))}${th(i18t('lib_col_version'),1)}${th(i18t('lib_col_stream'))}${th(i18t('lib_col_used'),1)}<th style="border-bottom:1px solid var(--color-divider)"></th></tr>
       ${shown.map(tplPageRowHtml).join('')}
     </table></div>
     ${hidden>0?`<div style="display:flex;align-items:center;padding:11px 14px;font-size:var(--t-meta);color:var(--color-neutral-600)">
@@ -1933,7 +1935,9 @@ function tplRowContracts(r){
    THE LABEL IS READ AT DRAW TIME, never stored: TPL_GROUP_LABEL is a getter
    table for exactly this reason, and a stream's name comes off FOLDERS the same
    way, so a language change moves both. */
-const TPL_OV_LIBS=['all','company','cp','builtin','sample'];
+/* ALL TEMPLATES LAST (the artifact's row, Young 21 Sep 2026: "Templates
+   needs to reflect exactly what is in the artifact"). */
+const TPL_OV_LIBS=['company','cp','builtin','sample','all'];
 /* ONE ROLL-UP, and every bucket is measured the same way. The honesty rules are
    the template card's own, unchanged: the deviation rate's denominator is what
    a playbook has actually READ, and what it has not is stated rather than
@@ -2433,7 +2437,7 @@ function tplBookHtml(d){
 
   /* The wall's own cards, cut by section. One builder, two callers — the
      buckets already carry which section they belong to. */
-  const wall = sec => `<div class="tpl-ov-cards" style="display:grid;gap:var(--s-3)">${
+  const wall = sec => `<div class="tpl-ov-cards tpl-ov-cards-${sec}" style="display:grid;gap:var(--s-3)">${
     d.buckets.filter(b => b.sec === sec).map(tplOvCardHtml).join('')}</div>`;
 
   const secs = [];
@@ -2664,7 +2668,11 @@ function renderTemplatesPage(){
             MEASURED, and it is exactly the spread the owner reported on
             25 Aug. Home answers this the same way, by taking one element out
             of the row's alignment rather than by moving the row. */}
-      <h1 style="margin:0;align-self:flex-start;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${i18t('nav_templates')}</h1>
+      <div style="min-width:0;align-self:flex-start"><h1 style="margin:0;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${i18t('nav_templates')}</h1>
+      ${''/* THE ARTIFACT'S OWN LINE under the title (Young, 21 Sep 2026: "exactly
+             what is in the artifact") — this REVERSES the 25 Aug "no sentence
+             under the title" for this page on the owner's later word. */}
+      <p class="page-facts" style="margin-top:3px">${i18t('lib_templates_sub')}</p></div>
       <span style="flex:1"></span>
       ${''/* ONE BUTTON. "Convert a document" was a sibling of "+ New template"
              and is not a sibling act — it is one of five ways to answer the

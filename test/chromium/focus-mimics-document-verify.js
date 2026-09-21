@@ -141,7 +141,7 @@ const SHOT = (rowSel) => {
 
     /* ═══════════ 2 · FOCUS KEEPS THE ROW AND THE SHELL ═══════════ */
     const on = await drive(page, async sel => {
-      const b = document.querySelector('#view-redline .room-focus[data-ws-focus]');
+      const b = document.querySelector('#view-redline [data-ws-focus]') /* the control-row door since 21 Sep 2026 */;
       if (!b) return { err: 'no Focus button on the negotiate page' };
       b.click();
       await new Promise(r => setTimeout(r, 500));

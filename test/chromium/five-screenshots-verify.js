@@ -254,7 +254,7 @@ const drive = async (page, fn, arg, fallback) => {
     await drive(page, id => openRedlineWorkbench(id), cid, null);
     await pause(2200);
     const nf = await drive(page, async () => {
-      const b = document.querySelector('#view-redline .room-focus[data-ws-focus]');
+      const b = document.querySelector('#view-redline [data-ws-focus]') /* the control-row door since 21 Sep 2026 */;
       if (!b) return { err: 'no Focus button on the negotiate page' };
       const r = b.getBoundingClientRect();
       /* A RECT IS NOT A PAINTED PIXEL — the lesson the ladder's hover card

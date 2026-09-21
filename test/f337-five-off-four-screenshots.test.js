@@ -228,7 +228,7 @@ describe('f337 (3) — the seat switch fill reaches the edge', () => {
 describe('f337 (4) — the head\'s Focus button is live on both pages', () => {
   test('the button is drawn by ONE builder, for both shells', () => {
     /* CONTROL — this is what made the fault possible and it is still true. */
-    assert.match(fnBody(CONTRACT, 'roomHeadHtml'), /data-ws-focus/,
+    assert.match(NEGO, /class="ui-btn rl-focus-door" data-ws-focus/,
       'roomHeadHtml draws it, so every page that draws the head draws it');
   });
   test('the negotiate page answers the ATTRIBUTE, not just the menu row\'s id', () => {

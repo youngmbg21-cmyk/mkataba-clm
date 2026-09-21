@@ -122,6 +122,13 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
      (await page.evaluate(() => document.querySelectorAll(
        '#ws-facts .room-facets a,#ws-facts .room-facets button,#ws-facts .room-facets [tabindex]').length)) === 0);
   /* FOLDED BY THE PRESS, because that is the only way it folds now. */
+  /* THE COLLAPSE CONTROL WAS DELETED BY THE OWNER'S WORD (21 Sep 2026: "delete
+     the collapse button"), so the fold this file drives has no door. What it
+     measured of the head otherwise is not this file's, so it stops here with
+     the head still drawn and the control absent as the one claim. */
+  const foldDoor = await page.evaluate(() => !!document.getElementById('ws-facts-toggle'));
+  ok('the Collapse control is gone from the head (owner-ruled 21 Sep 2026)', !foldDoor);
+  if (!foldDoor){ console.log(`\n${pass}/${pass + fail} checks passed`); await b.close(); await h.stop(); process.exit(fail ? 1 : 0); }
   await page.click('#ws-facts-toggle');
   await page.waitForTimeout(250);
   ok('and the region really is display:none when folded', await page.evaluate(() => {

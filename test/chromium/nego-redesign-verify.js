@@ -270,7 +270,7 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       return { bg: rcs.backgroundColor, h: Math.round(row.getBoundingClientRect().height),
         rule: rcs.boxShadow, segs, count: n && n.textContent.trim(),
         allCount: (() => { const f = document.querySelector('.rl-idx-title');
-          return f ? ((f.textContent.match(/\((\d+)\)/) || [])[1] || null) : null; })() };
+          return f ? ((f.textContent.match(/(\d+)\s*$/) || [])[1] || null) : null; })() }; /* a plain count since 21 Sep 2026 */
     });
     check('2 the control bar is a white band 44px tall',
       tabs.bg === 'rgb(255, 255, 255)' && tabs.h === 44, `${tabs.bg} ${tabs.h}px`);
