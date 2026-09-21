@@ -6043,6 +6043,93 @@ function redlineLayoutCss(){
   .redline-page .rl-prog .rl-idx-bar{margin:0 0 6px;height:6px;border-radius:3px;
     background:var(--color-neutral-100)}
 
+  ${''/* ================================================================
+         THE ARTIFACT'S CLAUSE PANEL (Young, 21 Sep 2026: "make the ladder
+         panel match the artifact too")
+         ----------------------------------------------------------------
+         The reference's .cp-panel / .cp-h / .cp-sec / .ladder / .scale, at
+         the same weight as the rules they beat, winning by order. The panel
+         is FLUSH like the column (no card, no corner, a hairline on its
+         left); the shared head keeps its label (the test that asks which
+         panel this is reads it), the ✕ and the type stepper, and goes quiet;
+         each clause's own head row is name · "N rungs" chip · Edit with
+         Copilot (.rl-cp-clhead, the door in the ladder posture only); every
+         section is 12/16 over a hairline under a micro-caps label; a rung is
+         a bordered row with its figure in mono at the right and the two
+         moves the paper shows washed in the accent; the scale is a 2px line
+         with 14px dots and mono labels under them. THE POSTURE IS UNCHANGED:
+         the chip's panel is still the ladder and its tail (15 Sep), the
+         pencil's the whole clause. */}
+  .redline-page .rl-col.rl-cp,.redline-page #rl-cp{border:0;border-left:1px solid var(--color-divider);
+    border-radius:0;box-shadow:none;background:var(--color-surface)}
+  .redline-page .rl-cp-head{padding:8px 16px 0;border-bottom:0;gap:8px}
+  .redline-page .rl-cp-label{font-size:var(--t-micro);letter-spacing:.08em;font-weight:var(--w-strong);
+    color:var(--color-neutral-500)}
+  .redline-page .rl-cp-body{padding:0}
+  .redline-page .rl-cp-clhead{display:flex;align-items:center;gap:8px;min-width:0;
+    padding:4px 16px 12px;border-bottom:1px solid var(--color-divider)}
+  .redline-page .rl-cp-clhead .rl-cp-clname{margin:0;font-size:var(--t-card);min-width:0;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .redline-page .rl-cp-rungs{display:inline-flex;align-items:center;gap:4px;flex:none;
+    font-size:var(--t-micro);font-weight:var(--w-label);color:var(--color-neutral-600);
+    border:1px solid var(--rule-strong);border-radius:10px;padding:0 7px;height:18px;
+    background:var(--color-surface);white-space:nowrap}
+  .redline-page .rl-cp-rungs svg{width:11px;height:11px;flex:none}
+  .redline-page .ui-btn.rl-cp-hd-edit{margin-left:auto;flex:none;height:22px;min-height:0;padding:0 7px;
+    font-size:var(--t-micro);font-weight:var(--w-strong);gap:4px}
+  .redline-page .rl-cp:not(.is-ladder) .rl-cp-hd-edit{display:none}
+  .redline-page .rl-cp-sec{margin:0;padding:12px 16px;border-bottom:1px solid var(--color-divider)}
+  .redline-page .rl-cp-h{margin:0 0 8px;font-size:var(--t-micro);letter-spacing:.08em;
+    color:var(--color-neutral-500)}
+  .redline-page .rl-cp-src ol.rl-ladder,
+  .redline-page ol.rl-ladder{display:flex;flex-direction:column;gap:6px;margin:0}
+  .redline-page .rl-rung-row{padding:6px 8px;border:1px solid var(--color-divider);
+    border-radius:var(--radius)}
+  .redline-page .rl-rung-row:last-child{border-bottom:1px solid var(--color-divider)}
+  .redline-page .rl-rung-row::before,.redline-page .rl-rung-row::after{display:none}
+  .redline-page .rl-rung-row.rl-rung-win{background:var(--color-accent-100);
+    border-color:var(--color-accent-300);margin-inline:0;padding-inline:8px}
+  .redline-page .rl-rung-n{font-family:var(--font-mono);font-size:var(--t-micro);font-weight:var(--w-strong);
+    color:var(--color-neutral-500);min-width:24px}
+  .redline-page .rl-rung-fig{flex:none;font-family:var(--font-mono);font-size:var(--t-micro);
+    font-weight:var(--w-strong);color:var(--color-text)}
+  .redline-page .rl-rung-who{font-size:var(--t-label)}
+  .redline-page .rl-rung-when{margin-left:auto}
+  .redline-page .rl-rung-when + .rl-rung-fig{margin-left:0}
+  .redline-page .rl-scale{margin:10px 4px 4px;padding:0}
+  .redline-page .rl-sc-line{height:28px;border-bottom:0;margin:0}
+  .redline-page .rl-sc-line::before{content:'';position:absolute;left:0;right:0;top:12px;height:2px;
+    background:var(--rule-strong)}
+  .redline-page .rl-sc-tick,.redline-page .rl-sc-zone{display:none}
+  .redline-page .rl-sc-mark,.redline-page .rl-sc-mark.rl-sc-below{top:24px;bottom:auto;background:none;
+    padding:0;font-family:var(--font-mono);font-size:10px;font-weight:var(--w-label);
+    color:var(--color-neutral-500);line-height:1.2}
+  .redline-page .rl-sc-mark::after,.redline-page .rl-sc-mark.rl-sc-below::after{bottom:auto;top:-18px;
+    width:14px;height:14px;box-sizing:border-box;border:2px solid var(--color-neutral-500);
+    background:var(--color-surface)}
+  .redline-page .rl-sc-them::after{border-color:var(--st-amber-dot);background:var(--st-amber-dot)}
+  .redline-page .rl-sc-you::after{border-color:var(--color-accent-600);background:var(--color-accent-600)}
+  .redline-page .rl-sc-grey::after{border-color:var(--color-neutral-500);background:var(--color-surface)}
+  .redline-page .rl-sc-std::after{border-color:var(--color-accent-600);background:var(--color-surface)}
+  .redline-page .rl-sc-fb::after{border-color:var(--color-accent-600);background:var(--color-accent-600)}
+  .redline-page .rl-sc-note{margin:14px 0 0}
+  ${''/* THREE LABEL ROWS UNDER ONE LINE. The reference's demo has three
+         distinct figures; a real clause has five readings that often
+         COINCIDE (a standard equal to its fallback, our figure equal to
+         theirs), and two words at one x print over each other. So the
+         standard and their figure sit on row one, the fallback and ours on
+         row two, the agreed R0 on row three — a dot at the same value is the
+         same value, and stays where it is. */}
+  .redline-page .rl-sc-mark.rl-sc-fb,.redline-page .rl-sc-mark.rl-sc-you{top:38px}
+  .redline-page .rl-sc-mark.rl-sc-fb::after,.redline-page .rl-sc-mark.rl-sc-you::after{top:-32px}
+  .redline-page .rl-sc-mark.rl-sc-below{top:52px}
+  .redline-page .rl-sc-mark.rl-sc-below::after{top:-46px}
+  .redline-page .rl-fig-sec .rl-scale{margin-bottom:38px}
+  .redline-page .rl-pbook{display:flex;flex-wrap:wrap;column-gap:16px;row-gap:6px;font-size:var(--t-label)}
+  .redline-page .rl-pbook > span:not(.rl-pb-prec){color:var(--color-neutral-500);margin-right:-11px}
+  .redline-page .rl-figrow{margin-top:10px}
+  .redline-page .rl-figrow input[type=number]{width:90px}
+
   `;
   document.head.appendChild(s);
 }

@@ -273,8 +273,11 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      order; what follows the ladder is named, so a section wandering in
      ahead of it would still fail. */
   ck('2f the panel\'s sections are there, in order, the ladder after History and its tail after the ladder',
+     /* RE-POINTED 21 Sep 2026: the playbook's head names its topic after a
+        middle dot ("Your playbook · Payment terms", the reference's own); the
+        stem is what is matched. */
      !!open && (() => { const h = open.heads.filter(x => x !== 'Change this clause')
-       .map(x => x.replace(/\s*\(\d+\)\s*$/, ''));
+       .map(x => x.replace(/\s*\(\d+\)\s*$/, '').replace(/\s*·.*$/, ''));
        const head = h.slice(0, 4).join('|'), tail = h.slice(4);
        return head === 'As it stands|On the table|History|The ladder'
          && tail.every(x => ['Your playbook', 'The figure', 'Notes'].includes(x)); })(),
@@ -909,7 +912,8 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('8e their page holds NOTHING before they touch anything', !cpBefore.band,
      `${cpBefore.arrived} asks already on the payload`);
   ck('8f …and after one edit it holds exactly ONE, not the whole round',
-     /\b1$/.test(String(cpAfter.n||'').trim()) && cpAfter.cards === cpBefore.arrived + 1,
+     /* RE-POINTED 21 Sep 2026: the act reads "Send all · 1 not sent". */
+     /(^|\D)1(\D|$)/.test(String(cpAfter.n||'').trim()) && cpAfter.cards === cpBefore.arrived + 1,
      `act "${cpAfter.n}", cards ${cpBefore.arrived} → ${cpAfter.cards}`);
   await p.evaluate(()=>rlCpSetShown(document,null)); await pause(300);
 
@@ -965,8 +969,13 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('9c the acts sit between "As it stands" and "On the table"',
      look.actsUnderStands && look.actsAboveTable,
      `under ${look.actsUnderStands}, above ${look.actsAboveTable}`);
-  ck('9d the section headings and the change id are the page\'s own text colour',
-     look.head === look.body && look.id === look.body,
+  /* RE-POINTED 21 Sep 2026 (the reference's .cp-sec h4): a section heading is
+     a micro-caps LABEL in the label shade now, like every other section label
+     in the product; the change id keeps the page's own ink — it is the one
+     signpost a reader scans for. The 16 Aug "black" ruling on the headings is
+     REVERSED by the artifact; the id half of it stands. */
+  ck('9d the change id is the page\'s own text colour, and the section heading a label in the label shade',
+     look.id === look.body && look.head !== look.body,
      `head ${look.head}, id ${look.id}, body ${look.body}`);
   ck('9e …and the captions under them are NOT — only the signposts were lifted',
      look.note !== look.body && look.meta !== look.body,

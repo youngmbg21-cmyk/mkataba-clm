@@ -17733,3 +17733,11 @@ Noticed, not fixed:
 - The Deal board tab on the control row is drawn bold at rest; the reference's `.rtabs button` is 500 with only the lit one strong. Not in this request.
 - The counterparty preview's control row names the parties swapped (colours relative to the reader) while their own page's column key still says "You / The other side" — two wordings of one key on two pages; the reference has no counterparty page to compare against.
 - `tplOverviewHtml` (no caller) still draws its panels as two inner cards with inline styles; only the book took the bare shape.
+
+## 21 Sep 2026 — the clause panel to the reference (branch claude/youthful-hopper-nr3jmm)
+
+Noticed, not fixed:
+- clause-editor-verify 4b/4c pinned the chips never wrapping — reversed in place today (the second pass made them wrap on purpose); standard-paper-verify 4/5 and clause-editor-verify 33h are red at the parent and untouched.
+- The 16 Aug ruling that the panel's section headings are "black so they are not missed" is reversed by the artifact's micro-caps labels; the change id keeps the page's ink. Said in CLAUDE.md, not re-argued.
+- Where every figure on the scale coincides (the staged contract), five dots sit on one x; only the last drawn is visible. A real clause rarely does this; nothing hides the fact, but nothing says "five readings here" either.
+- The artifact's Ladder press shows As it stands and On the table above the ladder; HaTi's ladder posture (15 Sep) does not. Left as the owner ruled on 15 Sep; wants the owner's word if the artifact is meant to reverse it.

@@ -35,6 +35,8 @@ const { STRINGS, I18N_DEFAULT, LANGUAGES } = i18n;
 /* Words that are legitimately identical in both languages, so an equal-to-
    English value is a real translation rather than a forgotten one. */
 const SAME_IN_BOTH = new Set([
+  /* 'std' is the same abbreviation in both languages on the figure scale (21 Sep 2026) */
+  'ng_fig_std',
   /* home_clm_title was here for one day and is REVERSED IN PLACE (owner-asked
      20 Aug 2026, off a screenshot of the Swedish banner): the page's own title
      is read by the reader, so it follows the reader's language like every

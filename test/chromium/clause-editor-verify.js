@@ -550,15 +550,23 @@ const dismissNote = async pg => {
       const r = document.createRange(); r.selectNodeContents(b);
       return r.getClientRects().length > 1;
     }).length;
-    return { n: bs.length, rows: tops.length, wraps,
+    /* every chip inside the rail's own box, none clipped past its edge */
+    const bx = box.getBoundingClientRect();
+    const inside = bs.every(b => { const r = b.getBoundingClientRect(); return r.right <= bx.right + 1 && r.left >= bx.left - 1; });
+    return { n: bs.length, rows: tops.length, wraps, inside,
       overflowX: getComputedStyle(box).overflowX, wrap: getComputedStyle(box).flexWrap };
   });
   ck('4a the chips are there', !!chips && chips.n >= 3, chips && `${chips.n} chips`);
-  ck('4b THEY NEVER TAKE MORE THAN ONE LINE',
-     !!chips && chips.rows === 1 && chips.wraps === 0 && chips.wrap === 'nowrap',
-     chips && `${chips.rows} row(s), ${chips.wraps} wrapped`);
-  ck('4c and a chip past the edge scrolls rather than wrapping',
-     !!chips && /auto|scroll/.test(chips.overflowX), chips && chips.overflowX);
+  /* REVERSED IN PLACE 21 Sep 2026 (the reference's rail, the second pass):
+     the chips WRAP onto as many lines as they need, each chip's own words
+     still on one line, and nothing is left past the rail's edge to scroll
+     for. The one-line rule of 31 Aug is kept above because its reasoning —
+     a row of short questions is scanned, not read — is what the wrap keeps. */
+  ck('4b THE CHIPS WRAP, AND EACH CHIP\'S OWN WORDS STAY ON ONE LINE',
+     !!chips && chips.wrap === 'wrap' && chips.wraps === 0,
+     chips && `${chips.rows} row(s), ${chips.wraps} wrapped, ${chips.wrap}`);
+  ck('4c and every chip sits inside the rail — none is clipped past its edge',
+     !!chips && chips.inside === true, chips && `inside ${chips.inside}`);
 
   /* ---- 5. THE ASK BOX IS A REAL BOX THAT WRAPS AND GROWS ---- */
   const ask0 = await p.evaluate(() => {

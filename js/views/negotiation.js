@@ -6422,6 +6422,36 @@ function rlHangRichHtml(html){
    the canvas, and the panel is only a consumer. A caller with no sink — the
    Word export renders this same canvas — gets no panel bodies and, by the same
    flag, no Edit pill: a door is drawn only where the room behind it exists. */
+/* The "N rungs" chip on the panel's head row — the reference's .ladder-chip.
+   It reads the ladder RAW (ladderRungs never initialises) and draws nothing
+   where there is no ladder to count. */
+function rlCpRungsChipHtml(c, cl){
+  if (!cl || !cl.clauseId || typeof window.ladderRungs !== 'function') return '';
+  let n = 0;
+  try{ n = ladderRungs(c, String(cl.clauseId)).length; }catch(_){ n = 0; }
+  if (!n) return '';
+  return `<span class="rl-cp-rungs"><svg aria-hidden="true"><use href="#i-ladder"></use></svg>${
+    _ne(i18tn('ng_cp_rungs', n, { n }))}</span>`;
+}
+/* The head row's door onto the clause editor — the reference's "Edit with
+   Copilot". The SAME door the ladder's rows draw (data-rl-cp-editor-row, the
+   top rung as the change), so one handler answers it; a held clause wears the
+   lock sign through rlLockedBtn, as every other door does. Drawn for our seat
+   where the editor takes the clause; the sheet shows it in the ladder posture
+   only (see .rl-cp-hd-edit). */
+function rlCpHeadDoorHtml(c, cl, side, opts = {}){
+  const id = String((cl && cl.clauseId) || '');
+  if (!id || side === 'counterparty' || opts.preview || opts.editable === false) return '';
+  if (typeof rlEditorTakesIt !== 'function' || !rlEditorTakesIt(side, opts)) return '';
+  const sign = (typeof rlLockSign === 'function') ? rlLockSign(c, id) : null;
+  if (sign) return rlLockedBtn(sign, 'ui-btn rl-cp-hd-edit', i18t('ng_cp_copilot'));
+  let top = null;
+  try{ top = (typeof window.ladderTop === 'function' && typeof window.ladderRungs === 'function')
+    ? ladderTop(ladderRungs(c, id)) : null; }catch(_){ top = null; }
+  return `<button type="button" class="ui-btn rl-cp-hd-edit" data-rl-cp-editor-row="${_nea(id)}"
+    data-rl-cp-editor-change="${_nea(top ? top.id : '')}" title="${_nea(i18t('ng_cp_copilot_title'))}">${
+    window.icon ? icon('edit', 'w-3 h-3') : ''}${_ne(i18t('ng_cp_copilot'))}</button>`;
+}
 function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
   const editable = opts.editable !== false;
   const id = _ne(cl.clauseId);
@@ -6565,8 +6595,18 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
            is named here in the reader's own language. `cl.title` is the RECORD's
            word (English, stamped into clauseLabel) and is deliberately not what
            a screen prints. */}
+    ${''/* ---- THE CLAUSE'S OWN HEAD ROW (the reference's .cp-h, 21 Sep 2026)
+           ---- the name, a "N rungs" chip and Edit with Copilot on one line.
+           The name keeps its class and its place FIRST in the row (the front
+           matter's rename swaps the element by that class; f250 reads the
+           markup). The door is drawn only in the LADDER posture (by CSS) — in
+           the full posture the acts section's own Copilot button is the one
+           door, and two doors on one panel is the refusal this file names. */}
+    <div class="rl-cp-clhead">
     <p class="rl-cp-clname">${cl.front ? _ne(i18t('ng_front_matter'))
       : _ne(_neClause(String(cl.headingText || cl.title || '').trim()) || i18t('ng_cp_stands'))}</p>
+    ${rlCpRungsChipHtml(c, cl)}${rlCpHeadDoorHtml(c, cl, side, opts)}
+    </div>
     <section class="rl-cp-sec">
       <h5 class="rl-cp-h">${i18t(isNew ? 'ng_cp_proposed' : 'ng_cp_stands')}</h5>
       <p class="rl-cp-note">${i18t(isNew ? 'ng_cp_proposed_note' : 'ng_cp_stands_note')}</p>
@@ -7031,7 +7071,9 @@ function rlLadderSectionHtml(c, cl, side, opts = {}){
           r.author ? ` · ${_ne(r.author)}` : ''}</span>
         ${tag ? `<span class="rl-rung-tag">${_ne(tag)}</span>` : ''}
         <span class="rl-rung-when">${_ne(i18t('ng_rung_round', { n: r.round }))}${
-          r.at ? ` · ${_ne(negoWhen(r.at))}` : ''}${unsent ? ` · ${_ne(i18t('ng_rung_not_sent'))}` : ''}</span></div>
+          r.at ? ` · ${_ne(negoWhen(r.at))}` : ''}${unsent ? ` · ${_ne(i18t('ng_rung_not_sent'))}` : ''}</span>${
+          (() => { const f = track && track.rows ? track.rows.find(x => String(x.lab) === String(r.n)) : null;
+            return f && f.n != null ? `<span class="rl-rung-fig">${_ne(String(f.n))}</span>` : ''; })()}</div>
       ${what ? `<div class="rl-rung-what">${_ne(what)}</div>` : ''}
       ${under ? `<div class="rl-rung-on">${_ne(i18t('ng_rung_stands_on', { n: under.n }))}</div>` : ''}
       ${parked ? (() => { const o = rungs.find(x => x.id === r.ch.counteredBy);
@@ -7046,7 +7088,8 @@ function rlLadderSectionHtml(c, cl, side, opts = {}){
     data-rl-rung-peek="${_nea(id)}" data-rung="0" tabindex="0"
     title="${_nea(i18t('ng_rung_go_title'))}">
     <div class="rl-rung-who"><span class="rl-rung-n">R0</span>
-      <span>${_ne(i18t('ng_rung_agreed'))}</span></div>
+      <span>${_ne(i18t('ng_rung_agreed'))}</span>${
+      baseFig != null ? `<span class="rl-rung-fig">${_ne(String(baseFig))}</span>` : ''}</div>
     ${baseFig != null ? `<div class="rl-rung-what">${_ne(String(baseFig))} ${_ne(track.unit || '')}</div>`
       : base ? `<div class="rl-rung-what">${_ne(base.length > 120 ? base.slice(0, 119) + '…' : base)}</div>` : ''}
   </li>`;
@@ -7475,7 +7518,7 @@ function rlPlaybookSecHtml(c, clauseId, side){
     }catch(_){ prec = ''; }
   }
   return `<section class="rl-cp-sec rl-pb-sec">
-    <h5 class="rl-cp-h">${_ne(i18t('ng_pb_sec'))}</h5>
+    <h5 class="rl-cp-h">${_ne(i18t('ng_pb_sec'))}${topic && topic.category ? ` · ${_ne(String(topic.category))}` : ''}</h5>
     <div class="rl-pbook">
       <span>${_ne(i18t('ng_pb_std'))}</span><b>${std}</b>
       <span>${_ne(i18t('ng_pb_fb'))}</span><b>${fbCell}</b>
@@ -7501,14 +7544,19 @@ function rlScaleHtml(row){
   const hi = Math.max(step, Math.ceil(raw / step) * step);
   const pct = n => Math.max(0, Math.min(100, (n / hi) * 100));
   const unit = row.unit || '';
-  const zone = (fbN != null && stdN != null)
-    ? `<span class="rl-sc-zone" style="left:${Math.min(pct(fbN), pct(stdN))}%;width:${Math.abs(pct(stdN) - pct(fbN))}%"></span>` : '';
+  /* THE STANDARD AND THE FALLBACK ARE DOTS ON THE LINE (the reference's
+     .scale, 21 Sep 2026: "30 std" hollow, "45 fallback" filled, "60 theirs"
+     amber) — the green ZONE between them and the sentence that explained it
+     are gone: the two dots say the same span, and a caption about a shape no
+     longer drawn is a sentence about nothing. .rl-sc-zone / ng_fig_zone are
+     STALE; the key stays in both books, inert. */
+  const zone = '';
   const mark = (n, cls, key) => n == null ? '' : `<span class="rl-sc-mark rl-sc-${cls}" style="left:${pct(n)}%">${_ne(i18t(key, { n }))}</span>`;
   const ticks = [0, hi / 2, hi].map(v => `<span class="rl-sc-tick" style="left:${pct(v)}%">${_ne(String(v))}</span>`).join('');
   return `<div class="rl-scale"><div class="rl-sc-line">${zone}${
+    mark(stdN, 'std', 'ng_fig_std')}${mark(fbN, 'fb', 'ng_fig_fb')}${
     mark(row.theirFig, 'them', 'ng_fig_theirs')}${mark(row.ourFig, 'you', 'ng_fig_yours')}${
-    base != null ? `<span class="rl-sc-mark rl-sc-grey rl-sc-below" style="left:${pct(base)}%">${_ne(i18t('ng_fig_agreed', { n: base }))}</span>` : ''}${ticks}</div></div>
-    <p class="rl-sc-note">${_ne(i18t('ng_fig_zone'))}${unit ? ` ${_ne(unit)}.` : ''}</p>`;
+    base != null ? `<span class="rl-sc-mark rl-sc-grey rl-sc-below" style="left:${pct(base)}%">${_ne(i18t('ng_fig_agreed', { n: base }))}</span>` : ''}${ticks}</div></div>`;
 }
 /* THE FIGURE section: the scale, a number box and one press that writes the
    figure into the wording. `opts.act` names the door: 'panel' opens the
