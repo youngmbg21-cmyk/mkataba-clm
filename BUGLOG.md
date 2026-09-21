@@ -18396,3 +18396,19 @@ Young: "in Door B, you should be able to add multiple people to send the documen
 One send, one round, several links: everything that happens once still happens once, and each person ticked gets a link of their own with its own audit line. The list offered is the contract's own people, so a round goes to the people the agreement has always been with rather than to an address typed again.
 
 Not built, and said to the owner: a purpose per row. That would put a signing link and an advise link in one press, and he has not ruled on it - the whole send has one purpose, chosen once.
+
+## 21 Sep 2026 — the audit run: what is slow, and what does not make sense
+
+Young: "audit the entire hati to find any performance bugs first and second, review any flaws in process flows in hati."
+
+Both are reports, not fixes. docs/PERFORMANCE-AUDIT.md and docs/PROCESS-FLOW-REVIEW.md.
+
+Measured, not reasoned from the source: a real browser against a real server at 100, 400, 1,200 and 3,000 contracts. Every page gets slower as the SQUARE of the book, and 99.5% of one Home render's work is a single reading walking the whole contract list once per contract.
+
+Found while measuring:
+- Patching a name on window does not reach callers in the same file - the files are ES modules and a module-level const is not a global. Two instruments returned zeros before this was noticed; the finding that stood up was measured by recording stack frames instead.
+- Node's dot reporter loses its summary when the output is redirected to a file.
+
+Noticed, not fixed:
+- counterparty-leads-verify 4b pinned the brief as the FIRST button before signing; the owner's later ruling reverses it. Reversed in place, with the old reasoning kept - the only red file on this tree that was green at the parent, and it was a claim, not a defect.
+- The browser set is 39 of 129 red on this tree and the same 39 at the parent.
