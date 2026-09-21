@@ -120,11 +120,14 @@ describe('f350 (2) — a dropped connection is retried; a refusal is not', () =>
     assert.ok(i > 0 && w.length > 200, 'the region is readable');
     assert.match(w, /AbortSignal\.timeout\(AI_HTTP_TIMEOUT_MS\)/, 'the wait is bounded');
     assert.match(w, /catch \(e\) \{ threw = e; \}/, 'a throw is caught rather than propagated');
-    assert.match(w, /if \(threw \|\| \(r && r\.status >= 500\)\)/,
-      'no answer at all, or the provider failing, is what is retried');
-    /* A 4xx IS AN ANSWER and must not be retried: a bad key, a refusal and a
-       rate limit each have their own sentence already. */
-    assert.ok(!/status >= 400/.test(w), 'a refusal is never retried');
+    assert.match(w, /if \(threw\) \{/, 'no answer at all is what is retried');
+    /* ANY HTTP STATUS IS AN ANSWER and must not be retried: a bad key, a
+       refusal, a rate limit and a 500 each have their own sentence already,
+       and f133 and f230 pin a provider error mapping to 502. A first pass
+       retried a 5xx too and that was wider than the measurement — what was
+       reported was "could not be reached", which is the throw. */
+    assert.ok(!/status >= 4\d\d/.test(w) && !/status >= 5\d\d/.test(w),
+      'a status is an answer, and no status is retried');
     /* ONE RETRY, not a loop: two attempts and no more. */
     assert.equal((w.match(/await send\(chosen\)/g) || []).length, 2, 'exactly two attempts');
   });
@@ -230,7 +233,14 @@ describe('f350 (5) — the pop-up has a ground, and every dropdown is HaTi’s o
   });
 
   test('the section heading is not cramped against the cards above it', () => {
-    assert.match(HTML, /\.na-sec \+ \.na-sec\{ margin-top:12px/, 'a section stands clear of the one above');
+    /* MEASURED AGAINST THE CARD GAP, never a typed number: the cards sit 12px
+       apart, so a section boundary of 12 was exactly as tight as the gap
+       INSIDE a section — the owner's complaint, unfixed. It has to be more. */
+    const secGap = /\.na-sec \+ \.na-sec\{ margin-top:(\d+)px/.exec(HTML);
+    const cardGap = /\.na-doors\{[^}]*gap:(\d+)px/.exec(HTML);
+    assert.ok(secGap && cardGap, 'both gaps are readable');
+    assert.ok(+secGap[1] > +cardGap[1],
+      `a section stands clear of the one above: ${secGap[1]}px against ${cardGap[1]}px between cards`);
     assert.match(HTML, /\.na-sec-h\{[^}]*min-height:var\(--field-h,32px\)/, 'the row reserves the form’s own rung');
     assert.match(HTML, /\.na-lob select\{ height:var\(--field-h,32px\)/,
       'and its one control is the size of the controls beside it');

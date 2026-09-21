@@ -4414,10 +4414,17 @@ async function anthropicMessages(key, tier, payload, meter = {}) {
      REJECTED MODEL — into the route's catch and onto the tile. One dropped
      connection, one lost brief, no second attempt.
 
-     THE LINE IS BETWEEN AN ANSWER AND NO ANSWER. A 4xx is the provider
-     answering: a bad key, a refusal, a rate limit, and each of those has its
-     own sentence already (aiDegrade names four kinds). A THROW or a 5xx is not
-     an answer at all, and those are retried — ONCE, after a short pause.
+     THE LINE IS BETWEEN AN ANSWER AND NO ANSWER, AND IT IS DRAWN NARROWLY.
+     Any HTTP STATUS is the provider answering — a bad key, a refusal, a rate
+     limit, a 500 — and every one of those already has its own sentence
+     (aiDegrade names four kinds) and its own mapping on the routes. Only a
+     THROW is no answer at all, and only a throw is retried, ONCE, after a
+     short pause.
+     A FIRST PASS ALSO RETRIED A 5xx AND THAT WAS WIDER THAN THE MEASUREMENT:
+     what the owner reported was "could not be reached", which is the throw;
+     a 5xx is the provider saying something, f133 and f230 map it to 502, and
+     retrying it would have changed a behaviour nobody reported while hiding
+     a provider that is genuinely down behind a second attempt.
      SPEND CANNOT DOUBLE: it is booked off the usage on a RESPONSE, so an
      attempt that never came back books nothing.
      ONE PLACE, EVERY CALL. Every metered reading in this file goes through
@@ -4428,8 +4435,8 @@ async function anthropicMessages(key, tier, payload, meter = {}) {
   let r, threw = null;
   try { r = await send(chosen); }
   catch (e) { threw = e; }
-  if (threw || (r && r.status >= 500)) {
-    console.warn(`[ai] ${threw ? 'no answer' : 'HTTP ' + r.status} from Anthropic on "${chosen}" (${meter.feature || 'other'}); one retry.`);
+  if (threw) {
+    console.warn(`[ai] no answer from Anthropic on "${chosen}" (${meter.feature || 'other'}); one retry.`);
     await new Promise(res => setTimeout(res, AI_RETRY_PAUSE_MS));
     threw = null;
     try { r = await send(chosen); }
