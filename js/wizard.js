@@ -340,7 +340,7 @@ function openWizard(preTid, prefill){
       if(!m || String(m).trim().toLowerCase()===String(v.label||'').trim().toLowerCase()) return '';
       return `<span style="font-weight:var(--w-body);color:var(--color-neutral-500);text-transform:none;letter-spacing:0"> → ${m}</span>`; };
     const input=v=>{ const id='wz-'+String(v.key).replace(/[:]/g,'_');
-      const lbl=`<span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono);letter-spacing:.02em;">${v.label}${v.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}${mapNote(v)}</span>`;
+      const lbl=`<span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em;">${v.label}${v.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}${mapNote(v)}</span>`;
       /* ---- A VALUE STREAM IS DRAWN BY THE PRODUCT'S OWN LIST (18 Sep 2026)
          ---- folderOptionsHtml carries the "+ New value stream" sentinel and
          bindFolderSelect answers it, so this door offers what every other
@@ -374,7 +374,7 @@ function openWizard(preTid, prefill){
                Send. Three times for one fact, in one sitting. Once it is on the
                contract the strip never appears and the send goes straight out. */}
         <label style="display:block;">
-          <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono);letter-spacing:.02em;">${i18t('wz_their_email')}</span>
+          <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em;">${i18t('wz_their_email')}</span>
           <input id="wz-cpemail" type="email" placeholder="${(typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none;"/></label>
       </div>
       ${_pv?fillPreviewPaneHtml(vars.filter(v=>!String(v.def||'').trim()).length):''}

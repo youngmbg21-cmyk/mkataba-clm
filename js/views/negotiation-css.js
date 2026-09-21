@@ -2783,7 +2783,7 @@ function redlineLayoutCss(){
   .redline-page .rl-askrv-bd{flex:1;min-width:0;padding-left:calc(9px * var(--doc-scale,1))}
   .redline-page .rl-askrv-who{display:block;font-size:calc(11px * var(--doc-scale,1));
     color:var(--color-neutral-600);margin-bottom:calc(4px * var(--doc-scale,1))}
-  .redline-page .rl-askrv-who b{color:var(--color-neutral-700);font-family:var(--font-mono);letter-spacing:.02em}
+  .redline-page .rl-askrv-who b{color:var(--color-neutral-700);font-family:var(--font-heading);letter-spacing:.02em}
   .redline-page .rl-askrv-wd{font-size:calc(13px * var(--doc-scale,1));line-height:1.6}
   .redline-page .rl-askrv-why{display:block;margin-top:calc(5px * var(--doc-scale,1));
     font-size:calc(12px * var(--doc-scale,1));color:var(--st-ruby-fg);font-style:italic}

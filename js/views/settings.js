@@ -4220,7 +4220,7 @@ function renderPlaybookView(){
     <div style="margin-bottom:${baseline?'12px':'8px'};border:1px solid ${baseline?'var(--color-accent-300)':'var(--color-divider)'};border-left:3px solid ${baseline?'var(--color-accent)':'var(--color-divider)'};border-radius:var(--radius);background:${baseline?'var(--color-accent-100)':'var(--color-surface)'};padding:${baseline?'11px 13px':'10px 12px'}">
       <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:${baseline?'2px':'6px'}">
         <span style="font-size:var(--t-meta);font-weight:${baseline?700:600};color:${baseline?'var(--color-accent-900)':'var(--color-text)'}">${PB_ESC(label)}</span>
-        ${baseline?`<span style="font-size:var(--t-figure);font-family:var(--font-mono);letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-title);color:#fff;background:var(--color-accent);border-radius:var(--radius);padding:2px var(--s-2)">${i18t('set_applies_all')}</span>`:''}
+        ${baseline?`<span style="font-size:var(--t-figure);font-family:var(--font-heading);letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-title);color:#fff;background:var(--color-accent);border-radius:var(--radius);padding:2px var(--s-2)">${i18t('set_applies_all')}</span>`:''}
         ${canEditPb?`<span style="margin-left:auto;display:flex;gap:10px;font-size:var(--t-label);font-weight:var(--w-strong)">
           <button data-pb-edit="${key}" style="background:none;border:0;cursor:pointer;color:var(--accent-ink-700)">${i18t('set_edit_lower')}</button>
           ${removable?`<button data-pb-del="${key}" style="background:none;border:0;cursor:pointer;color:var(--st-ruby-dot)">${i18t('set_remove_lower')}</button>`:''}

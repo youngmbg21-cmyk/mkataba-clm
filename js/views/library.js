@@ -2009,8 +2009,19 @@ function tplOverviewData(){
      which is exactly how the table's own stream filter behaves, and the two
      agreeing is the property that matters. */
   const bucket=(sec,key,id,tone,own)=>({ sec, key, id, tone, ...tplOvRoll(own) });
+  /* A LIBRARY CARD WEARS ITS SHELF'S COLOUR (Young asked it of the artifact,
+     20 Sep 2026: "Add color to the top of ... your Library cards in the
+     templates tab", and the redesign order builds to that artifact). The
+     stream cards have always carried the stream's own colour on the same 3px
+     bar; the shelves take the product's own tones — the accent for the
+     company's paper, amber for the other side's, steel for HaTi's, the
+     Marketing stream's violet for the samples, the page ink for the whole
+     shelf — read from tokens where a token exists. Reverses the 29 Aug "none
+     on a library card" on the owner's later word. */
+  const LIB_TONE={ company:'var(--accent-solid)', cp:'var(--st-amber-dot)', builtin:'var(--st-steel-dot)',
+    sample:(typeof FOLDERS==='object'&&FOLDERS&&FOLDERS.mktg&&FOLDERS.mktg.color)||'var(--color-neutral-500)', all:'var(--color-text)' };
   const buckets=[
-    ...TPL_OV_LIBS.map(k=>bucket('library', k, k, null,
+    ...TPL_OV_LIBS.map(k=>bucket('library', k, k, LIB_TONE[k]||null,
       k==='all' ? cards : cards.filter(c=>c.kind===k))),
     ...(typeof FOLDERS==='object' && FOLDERS ? Object.values(FOLDERS) : [])
       .map(f=>bucket('stream', 'stream:'+f.id, f.id,
@@ -2241,7 +2252,7 @@ function tplHealthHtml(d){
    markup is exactly how two screens come to disagree about what a bucket's
    figures are — THE CLOTHES FOLLOW THE BUILDER. Lifted whole, not rewritten:
    every declaration and every note below is the wall's own. */
-const TPL_OV_CARD='background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);box-shadow:var(--shadow-sm)';
+const TPL_OV_CARD='background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg,var(--radius));box-shadow:var(--shadow-sm)';
 const TPL_OV_HEAD='font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)';
 const TPL_OV_LBL='font-size:var(--t-label);font-weight:var(--w-body);color:var(--color-neutral-600);line-height:1.45';
 const TPL_OV_FIG='font-size:var(--t-card);font-weight:var(--w-title);font-variant-numeric:tabular-nums;line-height:1.3;margin-top:1px';

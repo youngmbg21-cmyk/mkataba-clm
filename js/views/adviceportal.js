@@ -70,7 +70,7 @@ const advicePortalShell = inner => `
 function renderAdviceIntake(){
   const root=document.getElementById('share-root');
   const inputStyle='width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none';
-  const field=(id,label,ph,type='text')=>`<label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono);letter-spacing:.02em">${label}</span><input id="${id}" type="${type}" placeholder="${ph}" style="${inputStyle}"/></label>`;
+  const field=(id,label,ph,type='text')=>`<label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em">${label}</span><input id="${id}" type="${type}" placeholder="${ph}" style="${inputStyle}"/></label>`;
   const svcCard=s=>{
     const r=adviceRateFor(s.id);
     return `
@@ -103,7 +103,7 @@ function renderAdviceIntake(){
         ${field('ap-email','Work email *','you@company.co.ke','email')}
         ${field('ap-company','Company','e.g. Tamu Beverages Ltd')}
         ${field('ap-contract','Contract concerned','e.g. Distribution Agreement — Coast Region')}
-        <label style="display:block;margin-bottom:var(--s-3)"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono);letter-spacing:.02em">${i18t('apo_describe')}</span>
+        <label style="display:block;margin-bottom:var(--s-3)"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em">${i18t('apo_describe')}</span>
           <textarea id="ap-desc" rows="4" placeholder="${esc(i18t('po_ph_advice_example'))}" style="${inputStyle}min-height:0"></textarea></label>
         <label style="display:flex;align-items:flex-start;gap:9px;font-size:var(--t-meta);color:var(--color-neutral-700);margin-bottom:14px;line-height:1.45"><input id="ap-priority" type="checkbox" style="width:15px;height:15px;accent-color:var(--color-accent);margin-top:1px"/><span><strong>${i18t('apo_priority')}</strong> ${i18t('apo_priority_note')}</span></label>
         <button id="ap-go" class="ui-btn ui-btn-primary" style="width:100%;padding:10px;font-size:var(--t-body)">${icon('send','w-4 h-4')} Submit request</button>

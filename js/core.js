@@ -1720,9 +1720,9 @@ function renderAuth(mode){
   <div style="min-height:100vh;display:grid;place-items:center;background:var(--color-bg);padding:var(--s-10) var(--s-4);">
     <div style="width:100%;max-width:420px;">
       <div style="display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:20px;">
-        <div style="width:36px;height:36px;background:var(--color-accent-800);color:#fff;display:grid;place-items:center;font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-section);letter-spacing:.02em;border-radius:var(--radius);">HT</div>
+        <div style="width:36px;height:36px;background:var(--color-accent-800);color:#fff;display:grid;place-items:center;font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);letter-spacing:.02em;border-radius:var(--radius);">HT</div>
         <div style="line-height:1.15;">
-          <div style="font-family:var(--font-mono);font-weight:var(--w-strong);font-size:20px;letter-spacing:.01em;color:var(--color-text);">HaTi</div>
+          <div style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:20px;letter-spacing:.01em;color:var(--color-text);">HaTi</div>
           <div style="font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);">${i18t('co_clm')}</div>
         </div>
       </div>
@@ -1732,9 +1732,11 @@ function renderAuth(mode){
   </div>`;
   const input=(id,label,type='text',ph='')=>`
     <label style="display:block;margin-bottom:14px;">
-      <span style="display:block;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:5px;font-family:var(--font-mono);letter-spacing:.02em;">${label}</span>
+      <span style="display:block;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:5px;font-family:var(--font-heading);letter-spacing:.02em;">${label}</span>
       <input id="${id}" type="${type}" placeholder="${ph}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none;"/></label>`;
-  const H1='font-family:var(--font-mono);font-weight:var(--w-strong);font-size:22px;letter-spacing:-0.01em;color:var(--color-text);margin:0;';
+  /* 20 Sep 2026: the heading face — --font-mono is JetBrains Mono now and is
+     for DATA (ids, dates, counts, money), never a title or a caption. */
+  const H1='font-family:var(--font-heading);font-weight:var(--w-strong);font-size:22px;letter-spacing:-0.01em;color:var(--color-text);margin:0;';
   const SUB='font-size:var(--t-meta);color:var(--color-neutral-700);margin:var(--s-1) 0 18px;line-height:1.5;';
   const PBTN='width:100%;padding:9px;font-size:var(--t-body);margin-top:2px;';
   /* min-height is WCAG 2.5.8 (target size, AA): measured at 366x17px, this is
@@ -1757,7 +1759,7 @@ function renderAuth(mode){
            were always the default market's, and a Swedish pilot had to switch
            afterwards and re-read everything it had just been shown. */''}
       <label style="display:block;margin-bottom:14px;">
-        <span style="display:block;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:5px;font-family:var(--font-mono);letter-spacing:.02em;">${i18t('co_where_you_operate')}</span>
+        <span style="display:block;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:5px;font-family:var(--font-heading);letter-spacing:.02em;">${i18t('co_where_you_operate')}</span>
         <select id="su-market" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none;">
           ${jxList().map(p=>`<option value="${p.id}"${p.id===jxId()?' selected':''}>${p.name}</option>`).join('')}
         </select>
@@ -3497,7 +3499,7 @@ function shareAdviseBlockHtml(c, purposeSel){
     : `<p style="margin:6px 0 0;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5">${
         esc(i18t('asl_no_clauses'))}</p>`;
   return `<div id="share-advise"${on?'':' class="hidden"'} style="margin:0 0 14px">
-    <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:2px;font-family:var(--font-mono);letter-spacing:.02em">${
+    <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:2px;font-family:var(--font-heading);letter-spacing:.02em">${
       esc(i18t('asl_which_clauses'))}</span>
     <div id="share-advise-clauses" style="max-height:168px;overflow:auto">${rows}</div>
     <p style="margin:8px 0 0;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5">${
@@ -3526,7 +3528,7 @@ function sharePurposePickerHtml(c, sel, o={}){
         color:${on?'#fff':'var(--color-neutral-700)'};border-radius:var(--radius)">${m.label}</button>`; };
     const m=SHARE_PURPOSE_COPY[sel]||SHARE_PURPOSE_COPY.negotiate;
     return `<div id="share-purpose" style="margin:0 0 14px">
-      <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:6px;font-family:var(--font-mono);letter-spacing:.02em">${i18t('co_what_round_for')}</span>
+      <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:6px;font-family:var(--font-heading);letter-spacing:.02em">${i18t('co_what_round_for')}</span>
       ${''/* ---- THE FIFTH PURPOSE SITS BESIDE THE OTHER FOUR (upgrade 9) ----
            18 Sep 2026, built to the drawing. A first pass gave the adviser link
            its own door on the More menu, reasoning that every answer on this
@@ -3551,7 +3553,7 @@ function sharePurposePickerHtml(c, sel, o={}){
       <span style="display:block;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600)">${m.blurb}</span>
     </button>`; };
   return `<div id="share-purpose" style="margin:0 0 14px">
-    <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:6px;font-family:var(--font-mono);letter-spacing:.02em">${i18t('co_what_link_for')}</span>
+    <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:6px;font-family:var(--font-heading);letter-spacing:.02em">${i18t('co_what_link_for')}</span>
     ${''/* Sign leads: most sends are "here it is, sign it" (Young, 02 Aug
          2026). The default SELECTION still follows the contract's reality —
          defaultSharePurpose keeps Negotiate preselected while changes are
@@ -3586,7 +3588,7 @@ function sharePurposePickerHtml(c, sel, o={}){
    it sits under the recipient, on the two-screen shape where it always was.
    The id stays `sh-summary` so every reader of it is unchanged. */
 function shareNoteBoxHtml(c, hist){
-  return `<label style="display:block"><span id="sh-summary-label" style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono);letter-spacing:.02em;">${
+  return `<label style="display:block"><span id="sh-summary-label" style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em;">${
         hist?i18t('co_note_with_record')
             :i18t('co_note_to', { who:esc(c.counterparty||i18t('co_them')) })}</span>
         <textarea id="sh-summary" rows="3" style="${HATI_FLD}" placeholder="${
