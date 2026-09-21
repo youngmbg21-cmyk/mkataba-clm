@@ -1644,7 +1644,10 @@ function renderIntel(){
      press, not metadata about one. The FRICTION SEGMENTS below take the same
      ink for the same reason — they are the same control at 13px, and leaving
      them faded would put the fault back one row down. */
-  const tabBtn=(k,label)=>`<button data-ig-tab="${k}" style="${UNDERTAB};border-bottom:2px solid ${intel.tab===k?'var(--accent-solid,var(--color-accent))':'transparent'};font-size:var(--t-body);font-weight:${intel.tab===k?700:400};color:${intel.tab===k?'var(--accent-ink,var(--color-accent))':'var(--color-text)'}">${label}</button>`;
+  /* 20 Sep 2026 (the redesign order, design only): the same values every tab
+     row wears now — secondary ink at label weight resting, the page ink at
+     strong weight live, over the accent rule; `.on` marks the live one. */
+  const tabBtn=(k,label)=>`<button data-ig-tab="${k}" class="${intel.tab===k?'on':''}" style="${UNDERTAB};border-bottom:2px solid ${intel.tab===k?'var(--accent-solid,var(--color-accent))':'transparent'};font-size:var(--t-body);font-weight:${intel.tab===k?'var(--w-strong)':'var(--w-label)'};color:${intel.tab===k?'var(--color-text)':'var(--color-neutral-600)'}">${label}</button>`;
   const tabsHtml=`<div style="${TABROW};gap:20px">${IG_TABS.map(k=>tabBtn(k,i18t(IG_TAB_LABEL[k]))).join('')}</div>`;
   /* The friction levers live IN the header strip (the approved comp): the
      period toggle and the counterparty select sit beside the tabs, so the
@@ -1654,7 +1657,7 @@ function renderIntel(){
      it is done by clicking a name in the report itself (data-igf-cp), and Clear
      below still lifts it — so the strip carries one lever, not two. */
   const ffOn=days=>days==null?!(ff&&ff.days):(ff&&ff.days)===days;
-  const ffSeg=(days,label)=>`<button data-igf-days="${days==null?'':days}" style="${UNDERTAB};border-bottom:2px solid ${ffOn(days)?'var(--accent-solid,var(--color-accent))':'transparent'};font-size:var(--t-meta);font-weight:${ffOn(days)?700:400};color:${ffOn(days)?'var(--accent-ink,var(--color-accent))':'var(--color-text)'}">${label}</button>`;
+  const ffSeg=(days,label)=>`<button data-igf-days="${days==null?'':days}" class="${ffOn(days)?'on':''}" style="${UNDERTAB};border-bottom:2px solid ${ffOn(days)?'var(--accent-solid,var(--color-accent))':'transparent'};font-size:var(--t-meta);font-weight:${ffOn(days)?'var(--w-strong)':'var(--w-label)'};color:${ffOn(days)?'var(--color-text)':'var(--color-neutral-600)'}">${label}</button>`;
   const frictionControls=`
       <div style="${TABROW};gap:var(--s-4)">${ffSeg(null,i18t('int_all_time'))}${ffSeg(90,i18t('int_last_90'))}</div>
       ${ff&&(ff.counterparty||ff.days||ff.clause)?`<button id="ig-friction-clear" style="border:0;background:none;cursor:pointer;font:inherit;font-size:var(--t-label);font-weight:var(--w-title);color:var(--color-accent);flex:none">✕ Clear</button>`:''}`;

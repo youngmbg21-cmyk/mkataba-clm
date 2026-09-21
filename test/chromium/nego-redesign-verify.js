@@ -197,9 +197,14 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       const btns = [...document.querySelectorAll('#view-redline #ws-head .room-acts button')]
         .filter(b => b.offsetParent !== null && !b.closest('.room-menu')
                      && !b.classList.contains('room-check'));
+      /* FILLED means a tint. Since 20 Sep 2026 (the redesign order) every
+         secondary button wears the reference's white face — the page SURFACE
+         — so that colour is flat, not a fill. */
+      const surface = (() => { const e = document.createElement('i'); e.style.background = 'var(--color-surface)';
+        document.body.appendChild(e); const v = getComputedStyle(e).backgroundColor; e.remove(); return v; })();
       const filled = btns.filter(b => {
         const bg = getComputedStyle(b).backgroundColor;
-        return bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent';
+        return bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent' && bg !== surface;
       });
       return { n: btns.length, filled: filled.map(b => b.textContent.replace(/\s+/g, ' ').trim()),
         onRow: btns.map(b => b.textContent.replace(/\s+/g, ' ').trim().slice(0, 20)),
@@ -265,16 +270,23 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     });
     check('2 the control bar is a white band 44px tall',
       tabs.bg === 'rgb(255, 255, 255)' && tabs.h === 44, `${tabs.bg} ${tabs.h}px`);
-    check('2 the three readings are tabs at 14px, full height of the bar',
-      tabs.segs.length === 3 && tabs.segs.every(s => s.size === '14px' && s.h >= 40),
-      tabs.segs.map(s => `${s.t} ${s.size}/${s.h}px`).join(', '));
+    /* THE SIZE IS THE BODY RUNG, resolved from the token rather than typed
+       (re-pointed 20 Sep 2026, when the redesign order moved --t-body to
+       13px and this line went red for the wrong reason). */
+    const bodyPx = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--t-body').trim());
+    check('2 the three readings are tabs at the body rung, full height of the bar',
+      tabs.segs.length === 3 && tabs.segs.every(s => s.size === bodyPx && s.h >= 40),
+      tabs.segs.map(s => `${s.t} ${s.size}/${s.h}px`).join(', ') + ` (body ${bodyPx})`);
     /* THE MARK IS THE UNDERLINE, and the pill it replaced is gone: a raised
        white chip on a grey tray was the OLD control, and both at once would be
        two marks for one fact. */
     const live = tabs.segs.find(s => s.on);
+    /* BOLD is the strong rung (600 since the redesign order — the reference's
+       own live-tab weight), read off the token, never typed. */
+    const strongW = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--w-strong').trim());
     check('2 the live one is bold and carries a 2px underline',
-      live && live.weight === '700' && /inset/.test(live.shadow) && /-2px/.test(live.shadow),
-      live && `${live.weight} ${live.shadow}`);
+      live && live.weight === strongW && /inset/.test(live.shadow) && /-2px/.test(live.shadow),
+      live && `${live.weight} (strong ${strongW}) ${live.shadow}`);
     check('2 and the resting ones are flat — no chip, no tray',
       tabs.segs.filter(s => !s.on).every(s => s.bg === 'rgba(0, 0, 0, 0)' && s.shadow === 'none'),
       tabs.segs.filter(s => !s.on).map(s => s.bg).join(', '));
@@ -317,9 +329,12 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       `${ctrls.backBorder} on ${ctrls.backBg}`);
     /* ONE BOX — the two presses are kept (they are the control, and the
        Document tab draws the same builder) and read as a single 28px box. */
+    /* ONE BOX at the control rung (--ctl-h, 30 since the redesign order),
+       resolved rather than typed. */
+    const ctlH = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--ctl-h').trim());
     check('3 the text size is ONE bordered box, with both presses inside it',
-      ctrls.stepH === '28px' && parseFloat(ctrls.stepBorder) >= 1 && ctrls.stepButtons === 2,
-      `${ctrls.stepH} border ${ctrls.stepBorder}, ${ctrls.stepButtons} presses, readout "${ctrls.readout}"`);
+      ctrls.stepH === ctlH && parseFloat(ctrls.stepBorder) >= 1 && ctrls.stepButtons === 2,
+      `${ctrls.stepH} (ctl ${ctlH}) border ${ctrls.stepBorder}, ${ctrls.stepButtons} presses, readout "${ctrls.readout}"`);
     check('3 and the way back ends the row',
       ctrls.order[ctrls.order.length - 1] === 'rl-livelist', ctrls.order.join(' › '));
 

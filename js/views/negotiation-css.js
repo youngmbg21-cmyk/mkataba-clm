@@ -5078,14 +5078,17 @@ function redlineLayoutCss(){
     display:inline-flex;align-items:center;gap:6px;line-height:1.3}
   .redline-page #ws-head .room-name-id:hover{color:var(--accent-ink)}
   .redline-page #ws-head .room-name-id i{font-style:normal;color:var(--color-neutral-400)}
-  .redline-page #ws-head .room-name h1{font-size:var(--t-card);font-weight:var(--w-strong);letter-spacing:0;min-width:0;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  ${''/* 20 Sep 2026 (the redesign order): the title takes the page rung on BOTH
+         heads — the room's rule moved to --t-page and pages-read-alike 2 asks
+         that the two agree, so this one follows it by the same token. */}
+  .redline-page #ws-head .room-name h1{font-size:var(--t-page);font-weight:var(--w-strong);letter-spacing:-.01em;min-width:0;
+    line-height:var(--lh-tight);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   ${''/* The title line is a BUTTON on this card and plain text on the room's,
          and a button's own line box came out 2px shorter — the last two pixels
          between two cards the owner asked to be one size. It takes the h1's
          line-height, so the row matches by construction rather than by a nudge;
          the door itself is untouched. */}
-  .redline-page #ws-head .room-name h1 .room-title-back{font-size:var(--t-card);font-weight:var(--w-strong);
+  .redline-page #ws-head .room-name h1 .room-title-back{font-size:var(--t-page);font-weight:var(--w-strong);
     line-height:inherit}
   .redline-page #ws-head .room-stat{font-size:var(--t-body);font-weight:var(--w-title)}
   .redline-page #ws-head .room-round{font-size:var(--t-card);font-weight:var(--w-body);color:var(--color-neutral-600);
@@ -5330,15 +5333,20 @@ function redlineLayoutCss(){
 
   .rl-segwrap.rl-readwrap{background:none;border:0;padding:0;height:auto;gap:2px;
     align-items:stretch}
-  .rl-readwrap .rl-seg{height:auto;padding:0 14px;font-size:var(--t-body);font-weight:var(--w-body);
-    color:var(--color-text);display:flex;align-items:center;gap:7px;box-shadow:none;background:none}
-  .rl-readwrap .rl-seg:hover{color:var(--accent-ink)}
-  .rl-readwrap .rl-seg.on{font-weight:var(--w-title);color:var(--accent-ink);
+  ${''/* 20 Sep 2026 (the redesign order): a resting tab is the secondary ink at
+         label weight and the live one the page ink at strong weight over the
+         accent rule — the reference's own .tabs button / .tabs button.on rules,
+         and the same values the room's tabs and the settings tabs wear, so
+         pages-read-alike 3 measures one control on every page. */}
+  .rl-readwrap .rl-seg{height:auto;padding:0 14px;font-size:var(--t-body);font-weight:var(--w-label);
+    color:var(--color-neutral-600);display:flex;align-items:center;gap:7px;box-shadow:none;background:none}
+  .rl-readwrap .rl-seg:hover{color:var(--color-text)}
+  .rl-readwrap .rl-seg.on{font-weight:var(--w-strong);color:var(--color-text);
     background:none;box-shadow:inset 0 -2px var(--accent-solid)}
   html.dark .rl-readwrap .rl-seg.on{background:none}
   .rl-readwrap .rl-seg-n{font-family:var(--font-mono);font-size:var(--t-label);font-weight:var(--w-body);
     font-variant-numeric:tabular-nums;color:var(--color-neutral-500)}
-  .rl-readwrap .rl-seg.on .rl-seg-n{color:var(--accent-ink)}
+  .rl-readwrap .rl-seg.on .rl-seg-n{color:var(--color-text)}
 
   /* ---- 3 · THE RIGHT-HAND CONTROLS QUIETEN DOWN ----
      One box for the text size, a teal-filled seat switch, and a plain link back

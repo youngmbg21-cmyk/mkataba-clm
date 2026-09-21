@@ -92,7 +92,9 @@ const TYPE = ['fontFamily', 'fontSize', 'fontWeight', 'color', 'letterSpacing',
    rides in an object rather than as a second parameter. */
 const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e => {
   const s = getComputedStyle(e);
-  const o = { _txt: e.textContent.trim().slice(0, 24) };
+  /* _on: the LIVE tab, read off its own class — since 20 Sep 2026 the live
+     weight is 600 (the reference's), so "not 700" no longer tells them apart */
+  const o = { _txt: e.textContent.trim().slice(0, 24), _on: e.classList.contains('on') || e.getAttribute('aria-selected') === 'true' };
   props.forEach(p => { o[p] = s[p]; });
   return o;
 });
@@ -308,8 +310,12 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
       };
     });
 
-    check('4a all three section headings really drew',
-      homeLine.heads.length === 3 && homeLine.heads.every(Boolean),
+    /* TWO OR THREE since 20 Sep 2026 (DECIDE 2 of the redesign order): the
+       Portfolio row went into the picker, and Prepared for you is drawn only
+       while something is prepared. My work leads and Needs your decision
+       closes; every heading that is drawn is painted. */
+    check('4a every section heading really drew — My work first, Needs your decision last',
+      homeLine.heads.length >= 2 && homeLine.heads.length <= 3 && homeLine.heads.every(Boolean),
       homeLine.heads.map(h => h && h.txt));
     check('4b each heading carries its rule on the same line',
       homeLine.workRule, homeLine.workRule);
@@ -326,7 +332,7 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
     await pause(2600);
     await page.screenshot({ path: path.join(OUT, '04-insights.png') });
     const igTabs = await page.evaluate(READ_TYPE, { sel: '[data-ig-tab]', props: TYPE });
-    const igRest = igTabs.filter(t => t.fontWeight !== '700');
+    const igRest = igTabs.filter(t => !t._on);
     check('5a the Insights tabs rest on the same ink as the reference',
       igRest.length > 0 && igRest.every(t => sameAsRef(t).ok),
       igRest.map(t => `${t._txt}: ${sameAsRef(t).why || 'match'}`));
@@ -341,7 +347,7 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
     await pause(1800);
     await page.screenshot({ path: path.join(OUT, '04b-friction.png') });
     const ffSegs = await page.evaluate(READ_TYPE, { sel: '[data-igf-days]', props: TYPE });
-    const ffRest = ffSegs.filter(t => t.fontWeight !== '700');
+    const ffRest = ffSegs.filter(t => !t._on);
     check('5b the friction segments beside them really drew', ffRest.length > 0,
       { found: ffSegs.length, resting: ffRest.length });
     check('5b and they rest on that same ink (colour only — they are 13px by design)',
@@ -352,7 +358,7 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
     await pause(2600);
     await page.screenshot({ path: path.join(OUT, '05-settings.png') });
     const stTabs = await page.evaluate(READ_TYPE, { sel: '.st-tab', props: TYPE });
-    const stRest = stTabs.filter(t => t.fontWeight !== '700');
+    const stRest = stTabs.filter(t => !t._on);
     check('5c and the Settings & Rules tabs',
       stRest.length > 0 && stRest.every(t => sameAsRef(t).ok),
       stRest.map(t => `${t._txt}: ${sameAsRef(t).why || 'match'}`));
@@ -586,17 +592,30 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
        is the primary ink rather than white — and "deeper" cannot be a darker
        green when the ground is white, so it is a filled well plus a 3px rule
        in the accent. Both halves are still asserted; only the ground moved. */
-    check('7a every door reads at full strength against its own ground',
-      nav.items.length > 2 && nav.items.every(i => i.ink === nav.textInk),
-      nav.items.map(i => `${i.txt}:${i.ink}`).slice(0, 6) + ` (ink ${nav.textInk})`);
+    /* RE-POINTED 20 Sep 2026 (DECIDE 4 of the redesign order): the reference
+       draws a resting door in the SECONDARY ink at label weight (`.nav a{color:
+       var(--ink-2);font-weight:500}`) and the live one in the accent's ink on
+       a tint of the accent. "As strongly as possible" was the white column's
+       answer to a dark one; the claim now is that every resting door wears
+       exactly the reference's ink, resolved from the token. */
+    const doorInk = await page.evaluate(() => { const d = document.createElement('i'); d.style.color = 'var(--color-neutral-600)';
+      document.body.appendChild(d); const c = getComputedStyle(d).color; d.remove(); return c; });
+    check('7a every resting door reads in the reference\'s own secondary ink',
+      nav.items.length > 2 && nav.items.filter(i => !i.active).every(i => i.ink === doorInk),
+      nav.items.filter(i => !i.active).map(i => `${i.txt}:${i.ink}`).slice(0, 6) + ` (door ink ${doorInk})`);
     check('7b a door IS live, or 7c proves nothing', live.length === 1,
       live.map(i => i.txt));
     check('7c THE LIVE DOOR IS MARKED BY ITS OWN GROUND, never by a veil over the panel',
       live.length === 1 && live[0].bgLum != null && live[0].bgLum !== nav.panelLum,
       { panel: nav.panel, live: live[0] && live[0].bg });
-    check('7d and by a rule in the accent, which is what survives the dark theme',
-      live.length === 1 && live[0].edge && live[0].edgeW === '3px',
-      { edge: live[0] && live[0].edge, width: live[0] && live[0].edgeW });
+    /* RE-POINTED 20 Sep 2026: the 3px rule went with the dark bar; the live
+       door is the accent's ink on the accent's tint, which is what survives
+       the dark theme (--accent-ink has a night answer). */
+    const accentInk = await page.evaluate(() => { const d = document.createElement('i'); d.style.color = 'var(--accent-ink)';
+      document.body.appendChild(d); const c = getComputedStyle(d).color; d.remove(); return c; });
+    check('7d and in the accent\'s own ink, which is what survives the dark theme',
+      live.length === 1 && live[0].ink === accentInk,
+      { ink: live[0] && live[0].ink, accentInk });
 
     /* ================= 8 · THE STRIP IS GONE AND THE CARDS MOVED UP ======== */
     await page.evaluate(id => openWorkspace(id), cid);

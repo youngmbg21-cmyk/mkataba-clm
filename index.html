@@ -7090,6 +7090,42 @@
   .reg-board-wrap .board-cols{flex:1;min-height:0;}
   .reg-board-wrap .pipe-col{min-height:200px;}
 
+  /* ═══ THE CONTRACT ROOM'S HEAD CARD (20 Sep 2026, step 4 of the redesign
+     order) — ONE builder, roomHeadHtml, dresses both heads, so every rule
+     here reaches the negotiate page too. The title takes the reference's
+     page rung; the facts' labels are the reference's micro uppercase; a
+     resting tab is quiet and the live one is the page ink over the accent
+     rule. EVERY BUTTON STAYS. REFUSAL 3 IS MEASURED, NOT ASSUMED: the title
+     grew 14 → 20px, so the facts row gives 2px above and 2px below and the
+     crumb its 2px, and the first line of the wording sits where it sat
+     (ink.js: 293.4 at the parent). */
+  .room-head h1{font-size:var(--t-page);letter-spacing:-.01em;line-height:var(--lh-tight);}
+  .room-head .room-sub,.room-headsub{color:var(--color-neutral-500);}
+  .room-crumb{margin-bottom:0;}
+  .room-facts{padding-top:8px;padding-bottom:8px;}
+  .room-facet .l{font-size:var(--t-micro);text-transform:uppercase;letter-spacing:.08em;
+    font-weight:var(--w-title);color:var(--color-neutral-500);}
+  .room-facet .v{font-size:var(--t-body);}
+  .room-tab{color:var(--color-neutral-600);font-weight:var(--w-label);}
+  .room-tab:hover{color:var(--color-text);}
+  .room-tab.on{color:var(--color-text);font-weight:var(--w-strong);}
+
+  /* ═══ A TAB IS ONE CONTROL ON EVERY PAGE (20 Sep 2026) ═══ the reference's
+     `.tabs button{color:var(--ink-2);font-weight:500}` and
+     `.tabs button.on{color:var(--ink);border-color:var(--accent);font-weight:600}`.
+     The room's tabs, the settings tabs and the negotiate page's reading tabs
+     (whose own rule in negotiation-css.js is edited to the same values,
+     because that sheet is injected after this one) all read alike, which is
+     what pages-read-alike 3 and white-band 5 measure. Reverses the 22 Aug
+     "a resting tab is dark ink" on the owner's later word. */
+  .st-tab{color:var(--color-neutral-600);font-weight:var(--w-label);}
+  .st-tab:hover{color:var(--color-text);}
+  .st-tab.on{color:var(--color-text);font-weight:var(--w-strong);}
+  .room-facet .l{font-weight:var(--w-label);}
+
+  .m-ctab{color:var(--color-neutral-600);}
+  .m-ctab.on{color:var(--color-text);}
+
   /* The column. 224 wide, grouped, a 32px row with a 4px corner; the live
      door is a tint of the accent with the accent's ink, which is what the
      reference draws — the 3px left rule of 24 Aug goes with the dark bar. */
@@ -7115,7 +7151,7 @@
   #side-nav .nav-item.active{background:color-mix(in srgb,var(--accent-solid) 12%,transparent);color:var(--accent-ink);
     border-left:0;font-weight:var(--w-strong);}
   #side-nav .nav-item.active .nav-lbl{font-weight:var(--w-strong);}
-  #side-nav .nav-count{font-family:var(--font-mono);font-size:var(--t-micro);color:var(--color-neutral-400);font-weight:var(--w-body);}
+  #side-nav .nav-count{font-family:var(--font-mono);font-size:var(--t-micro);color:var(--color-neutral-500);font-weight:var(--w-body);}
   #side-nav .nav-count[data-tone="amber"]{background:none;padding:0;color:var(--st-amber-fg);font-weight:var(--w-strong);}
   #side-nav #nav-intel-new{font-family:var(--font-body);}
   #app-shell.rail #side-nav .nav-item{width:40px;padding:0;justify-content:center;}
