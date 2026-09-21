@@ -950,9 +950,13 @@ describe('f184 — the negotiation card is the contract workspace\'s', () => {
   });
   test('the quiet line sits in the title block on both, which is what makes one height', () => {
     const id = CT.slice(CT.indexOf('<div class="room-id">'), CT.indexOf('<div class="room-acts'));
-    assert.match(id, /\$\{backC \? roomHeadSubHtml\(c\) : ''\}/, 'the workbench\'s is inside .room-id');
-    assert.match(id, /class="room-sub"/, 'beside the room\'s own');
-    assert.equal((CT.match(/roomHeadSubHtml\(c\)/g) || []).length, 2, 'one builder, one call site');
+    /* RE-POINTED IN PLACE (the redesign's second pass, 21 Sep 2026): ONE
+       builder now draws the quiet line for BOTH heads, from one call inside
+       .room-id — the workbench's copy and the room's own .room-sub block were
+       two shapes of one line and the reference draws one. */
+    assert.match(id, /\$\{roomHeadSubHtml\(c,\{needs:!backC\}\)\}/, 'one call inside .room-id, for both heads');
+    assert.match(CT.slice(CT.indexOf('function roomHeadSubHtml')), /class="room-sub room-headsub"/, 'and it wears .room-sub');
+    assert.equal((CT.match(/roomHeadSubHtml\(c/g) || []).length, 2, 'the definition and one call site');
   });
   test('the card is spaced like the room\'s, by the room\'s own tokens', () => {
     /* NOT sliced to the first closing brace: this file returns its CSS from a

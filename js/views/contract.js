@@ -4166,7 +4166,27 @@ function wsTabRowEndHtml(c){
   const door=`<button type="button" id="ws-to-nego" class="ui-btn${needs?' ws-to-nego-due':''}"
     style="flex:none;font-size:var(--t-body)"${may.ok?'':' disabled'}
     title="${esc(may.ok?i18t('ct_open_negotiate_title'):why)}"${may.ok?'':` aria-label="${esc(label+' — '+why)}"`}>${label}</button>`;
-  return docReadSwitchHtml(c)+step+door;
+  /* ---- EXPORT AND FOCUS ARE ON THE CONTROL ROW (the redesign's second pass,
+     21 Sep 2026; the reference frame draws both between the stepper and the
+     negotiation door). TWO DOORS, ONE ACT, ONE HANDLER: neither is a second
+     implementation. Export is a small menu whose rows PRESS the ⋯ menu's own
+     rows by id (ws-pdf, ws-word, ws-pdf-record — the handlers and every test
+     stay where they were); Focus presses the head's own square, which carries
+     data-ws-focus and the one handler. While this row draws the Focus door
+     the head's square stands down on this tab (wsPaintTabRowEnd), so the
+     act is not offered twice forty pixels apart; on every other tab the head's
+     square is what it was. */
+  const record=!!(window.printIsHatiExecuted&&printIsHatiExecuted(c));
+  const exp=`<details class="ws-export" data-ws-export>
+    <summary class="ui-btn" title="${esc(i18t('ct_export'))}">${icon('copy','w-3.5 h-3.5')}${i18t('ct_export')}</summary>
+    <div class="ws-export-menu" role="menu">
+      <button type="button" role="menuitem" data-ws-export-go="ws-pdf">${icon('printer','w-3.5 h-3.5')}PDF<span class="mnote">${esc(i18t('ct_clean_copy'))}</span></button>
+      <button type="button" role="menuitem" data-ws-export-go="ws-word">${icon('file','w-3.5 h-3.5')}Word<span class="mnote">${esc(i18t('ct_redline_word'))}</span></button>
+      ${record?`<button type="button" role="menuitem" data-ws-export-go="ws-pdf-record">${icon('shield','w-3.5 h-3.5')}Record<span class="mnote">sealed + audit</span></button>`:''}
+    </div></details>`;
+  const focus=(PORTAL_MODE)?'':`<button type="button" class="ui-btn ws-focus-door" data-ws-focus-door
+    title="${esc(i18t('ct_focus_mode'))}" aria-label="${esc(i18t('ct_focus_mode'))}" aria-pressed="false">${icon('scan','w-3.5 h-3.5')}</button>`;
+  return docReadSwitchHtml(c)+step+focus+exp+door;
 }
 /* ---- THE ROOM'S OWN FLOATING NOTICES ----
    The two strips that used to band the top of the contract, in the SAME stack
@@ -4268,7 +4288,21 @@ function wsPaintTabRowEnd(c){
      a handler bound in each stacks one per tab change. This slot's own note
      three functions up is the reason it exists. */
   end.querySelector('#ws-walk')?.addEventListener('click',()=>{ if(window.signWalkGo) signWalkGo(c); });
-  wireDocRead(c,end);
+  /* The control row's Export rows press the ⋯ menu's own buttons; its Focus
+     door presses the head's square (see wsTabRowEndHtml). The head's square
+     stands down while this row carries the door, and comes back the moment
+     the row stops drawing it (another tab). */
+  end.querySelectorAll('[data-ws-export-go]').forEach(b=>b.addEventListener('click',()=>{
+    const d=b.closest('details'); if(d) d.open=false;
+    document.getElementById(b.getAttribute('data-ws-export-go'))?.click();
+  }));
+  const fd=end.querySelector('[data-ws-focus-door]');
+  if(fd) fd.addEventListener('click',()=>{ document.querySelector('.room-head [data-ws-focus]')?.click(); });
+  document.querySelectorAll('.room-head .room-focus').forEach(b=>{ b.hidden=!!fd; });
+  if(!document._wsExportWired){
+    document._wsExportWired=true;
+    document.addEventListener('click',e=>{ document.querySelectorAll('details[data-ws-export][open]').forEach(d=>{ if(!d.contains(e.target)) d.open=false; }); });
+  }
 }
 function applyWsTabs(c){
   const keys=ROOM_TABS.map(t=>t[0]);
@@ -6534,7 +6568,7 @@ function renderBlankFormSection(c){
              page. NOT A BAND. */}
       <h6 title="${up?esc(i18t('bf_upload_note')):''}" style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-meta);margin:0;flex:1">${esc(i18t(up?'bf_title_upload':'bf_title'))}
         ${(!up&&tname)?`<span style="font-weight:var(--w-body);color:var(--color-neutral-500)">${esc(i18t('bf_from',{name:tname}))}</span>`:''}</h6>
-      <span data-blankf-count style="font-size:var(--t-label);color:${open?'var(--st-amber-fg)':'var(--st-green-fg)'};font-weight:var(--w-strong)">${filled}/${all}</span>
+      <span data-blankf-count style="font-size:var(--t-label);color:${open?'var(--color-neutral-600)':'var(--st-green-fg)'};font-weight:var(--w-body)">${esc(i18t('bf_count_of',{filled,all}))}</span>
     </div>
     <div style="padding:10px 14px;display:flex;flex-direction:column;gap:10px">
       ${''/* WHAT COPILOT FILLED IS NAMED, NEVER VALUED — the values are in the
@@ -6819,13 +6853,20 @@ function checksRowsHtml(c){
        WAITING" — a reading already made that nobody has ticked yet. Without it
        a held list fell through to GREEN, which is the row saying this contract
        is clear when the work has not been looked at. */
-    const tone=v&&v.tone==='bad'?'background:var(--st-ruby-bg);color:var(--st-ruby-fg)'
-      :v&&v.tone==='warn'?'background:var(--st-amber-bg);color:var(--st-amber-fg)'
-      :v&&v.tone==='steel'?'background:var(--st-steel-bg);color:var(--st-steel-fg)'
-      :'background:var(--st-green-bg);color:var(--st-green-fg)';
-    return `<div class="check-row"><span class="ci">${icon(ic,'w-3.5 h-3.5')}</span><span class="cn">${name}</span>
-      <button class="cg" data-check="${kind}" title="${esc(v?i18t('ct_see_found'):i18t('ct_run_check'))}">${
-        v?`<span class="pill-x" style="${tone}">${v.label}</span>`:'Run &rarr;'}</button></div>`;
+    /* THE ROW IS THE REFERENCE'S (the redesign's second pass, 21 Sep 2026): a
+       state mark, the name over what was found, and ONE verb at the right. The
+       verdict's label moved from a coloured pill in the verb's own slot to the
+       sub-line — the same words, the same four tones, now on the mark — and
+       the verb says what the press does: Open where there is something to
+       read, the reading's own count where a held list waits to be ticked, and
+       Run where nothing has been run. `.cn`, `.cg` and data-check keep their
+       names; the browser files that read the row read them. */
+    const state=!v?'is-none':v.tone==='bad'?'is-bad':v.tone==='warn'?'is-warn':v.tone==='steel'?'is-steel':'is-ok';
+    const mark=!v?'·':v.tone==='ok'?'✓':v.tone==='steel'?'·':'!';
+    const verb=!v?'Run &rarr;':v.held?esc(v.label):i18t('act_open');
+    return `<div class="check-row ${state}"><span class="ci" aria-hidden="true">${mark}</span>
+      <span class="ct"><span class="cn">${name}</span><span class="cs">${v?esc(v.label):i18t('ct_check_not_run')}</span></span>
+      <button class="cg" data-check="${kind}" title="${esc(v?i18t('ct_see_found'):i18t('ct_run_check'))}">${verb}</button></div>`;
   };
   /* ---- OBLIGATIONS IS A CHECK ROW AGAIN, AND IT LEADS (owner-asked, 14 Aug 2026) ----
      This REVERSES the removal of 10 Aug 2026, and the reason that removal was
@@ -6874,7 +6915,7 @@ function renderChecksCard(c){
 function checksNoteHtml(c){
   const n=tplFormOpenCount(c);
   return n
-    ? `Fill the contract form above first — ${n} required field${n===1?'':'s'} still empty. A check reads the wording as it stands.`
+    ? `Fill the contract form first — ${n} required field${n===1?'':'s'} still empty.`
     : i18t('ct_run_before_sending');
 }
 /* The findings, over the page. The panel hosts the SAME element id the column
@@ -7449,7 +7490,7 @@ function applyWsFocus(){
      disagree about which state the page is in. A square control has no room
      for the words, so they go where a square control's words go — the hover
      and the label a screen reader reads. */
-  document.querySelectorAll('[data-ws-focus]').forEach(el=>{
+  document.querySelectorAll('[data-ws-focus],[data-ws-focus-door]').forEach(el=>{
     el.setAttribute('aria-pressed',_wsFocus?'true':'false');
     const t=_wsFocus?i18t('ct_exit_focus'):i18t('ct_focus_mode');
     el.title=t; el.setAttribute('aria-label',t);
@@ -7695,12 +7736,32 @@ function roomFactsHtml(c,opts={}){
      the colour each of them wears. */
   const move=(window.negoMovePillHtml&&c.negotiation)?negoMovePillHtml(c):'';
   const F=(typeof window!=='undefined'&&window.FOLDERS)||{};
+  /* ---- SIX FACTS (the reference's drawing, second pass 21 Sep 2026) ----
+     Counterparty · Value · Term (the date, then how many days are left) ·
+     Round · Whose move · Copilot. The value stream left the row for the
+     quiet line above (roomHeadSubHtml), where the reference prints it with
+     its colour. ROUND and WHOSE MOVE draw only where a negotiation exists;
+     COPILOT borrows copilotRead (has anything read this contract), then
+     deviationSummary and openFindings for what is left to look at — every
+     figure a reading the product already makes, none of its own. */
+  const daysLeft=(()=>{ if(!expIso) return null; const d=Math.round((new Date(expIso+'T00:00:00')-Date.now())/864e5); return Number.isFinite(d)&&d>0?d:null; })();
+  const termCell=term+(daysLeft?` <span class="room-facet-sub">&middot; ${esc(i18t('ct_fact_days',{n:daysLeft}))}</span>`:'');
+  const round=(c.negotiation&&window.negoRound)?esc(String(negoRound(c))):'';
+  const copilot=(()=>{
+    let read=false; try{ read=!!(window.copilotRead&&copilotRead(c)); }catch(_){}
+    if(!read) return `<span class="room-facet-dot is-unread"></span>${esc(i18t('int_fact_unread'))}`;
+    let n=0;
+    try{ if(typeof deviationSummary==='function'){ const s=deviationSummary(c); n+=(s.dev||0)+(s.miss||0); } }catch(_){}
+    try{ if(typeof openFindings==='function'&&c.scan){ n+=openFindings(c).filter(x=>x.sev==='high').length; } }catch(_){}
+    return `<span class="room-facet-dot ${n?'is-look':'is-ok'}"></span>${esc(n?i18t('ct_copilot_read_n',{n}):i18t('ct_copilot_read_clear'))}`;
+  })();
   const facets=[
     [i18t('reg_col_counterparty'), c.counterparty?esc(c.counterparty):dash],
     [i18t('reg_col_value'), money],
-    [i18t('ct_term_label'), term],
-    move ? [i18t('ngl_col_move'), move]
-         : [i18t('ct_value_stream'), F[c.folder]?esc(F[c.folder].name):dash],
+    [i18t('ct_term_label'), termCell],
+    ...(round?[[i18t('ct_fact_round'), round]]:[]),
+    ...(move?[[i18t('ngl_col_move'), move]]:[]),
+    [i18t('ct_fact_copilot'), copilot],
   ];
   return `<div class="room-facts" id="ws-facts">
     <div class="room-facets">${facets.map(([l,v])=>
@@ -7764,14 +7825,28 @@ function roomHeadTitle(c){
    Round 3 of negotiation". Every part is BORROWED (c.counterparty, cKind,
    negoRound) and each is dropped when absent rather than drawn as an em-dash:
    this is a sentence, not a facts row, and the facts row is directly below it. */
-function roomHeadSubHtml(c){
+/* ---- THE SECOND PASS (21 Sep 2026): ONE QUIET LINE, THE REFERENCE'S OWN ----
+   The reference prints the same line under both heads — "MK-2041 · Raw
+   material supply · ▎Procurement · Owner David Kiptoo · updated yesterday" —
+   so both heads draw THIS builder now and the two cannot drift. The
+   counterparty left it (it is the first fact in the row below) and the round
+   left it (it is a fact of its own now); the reference id LEADS, because the
+   crumb that used to say it lives in the top bar (shellCrumbAdopt) and the
+   head has to name its own record. The room keeps its "N need you" slot on
+   this line (opts.needs), painted by wsPaintRoundNeeds as before. */
+function roomHeadSubHtml(c, opts = {}){
+  const F=(typeof window!=='undefined'&&window.FOLDERS)||{};
   const bits = [];
-  if (c && c.counterparty) bits.push(esc(c.counterparty));
+  if (c && c.id) bits.push(`<span class="room-sub-id">${esc(c.id)}</span>`);
   const kind = (typeof cKind === 'function') ? cKind(c) : '';
   if (kind) bits.push(esc(kind));
-  if (c && c.negotiation && typeof window !== 'undefined' && window.negoRound)
-    bits.push(esc(i18t('ct_round_n_of_neg', { n: negoRound(c) })));
-  return bits.length ? `<div class="room-headsub">${bits.join(' &middot; ')}</div>` : '';
+  if (c && F[c.folder]) bits.push(`<span class="room-sub-stream"><i style="background:${esc(F[c.folder].color||'var(--color-neutral-400)')}"></i>${esc(F[c.folder].name)}</span>`);
+  if (c && c.archived) bits.push(esc(i18t('ct_archived_tag')));
+  const owner = (typeof contractOwnerName === 'function') ? contractOwnerName(c) : '';
+  if (owner) bits.push(`${esc(i18t('ov_f_owner'))} ${esc(owner)}`);
+  if (c && c.lastAction) bits.push(esc(i18t('ct_updated_on', { when: c.lastAction })));
+  const needs = opts.needs ? `<span id="ws-round-needs-slot">${negoRoundNeedsHtml(c)}</span>` : '';
+  return `<div class="room-sub room-headsub">${bits.join(' &middot; ')}${needs}</div>`;
 }
 function roomHeadHtml(c,opts={}){
   const _wr=state.wsReturn||{};
@@ -7819,7 +7894,12 @@ function roomHeadHtml(c,opts={}){
       /* A next action may have no button of its own — see wsNextAction's
          intent-to-sign branch. It still answers the status line; it just does
          not earn the head's lead slot. */
-      : (na && !na.noButton) ? `<button id="ws-next-action" data-na="${na.kind}" class="ui-btn ui-btn-lg">${icon(na.ic,'w-3.5 h-3.5')} ${na.label}</button>`
+      /* ---- SEND TO COUNTERPARTY IS THE HEAD'S FILLED ACT AGAIN (second pass,
+         21 Sep 2026, the owner's go on the reference's drawing — reverses the
+         22 Aug flat head for exactly one act): the reference fills the send
+         and nothing else on the row. Only that kind; every other next act
+         keeps its outline, so a page still carries at most one filled act. */
+      : (na && !na.noButton) ? `<button id="ws-next-action" data-na="${na.kind}" class="ui-btn ui-btn-lg${na.kind==='share'?' ui-btn-primary':''}">${icon(na.ic,'w-3.5 h-3.5')} ${na.label}</button>`
       : '';
   }
   /* ---- DRAFT NEW AGREEMENT SITS AFTER THE CONTRACT'S OWN NEXT ACT ----
@@ -7925,6 +8005,7 @@ function roomHeadHtml(c,opts={}){
            breath the sign arrives. */}
     <nav class="room-crumb" aria-label="Breadcrumb">
       <button id="ws-back" type="button" class="room-crumb-back"${backC ? ' data-back="contract"' : ''}
+        data-crumb="${esc(backC?c.id:((_wr.view==='folder'&&_wr.folderId&&F[_wr.folderId])?F[_wr.folderId].name:i18t('ct_back_register')))}"
         title="${esc(backTitle)}" aria-label="${esc(backTitle)}"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><use href="#i-left"/></svg></button>
       <i aria-hidden="true">/</i><span class="room-crumb-here">${esc(c.id)}</span>
     </nav>
@@ -8039,31 +8120,14 @@ function roomHeadHtml(c,opts={}){
              SAME ROW, inside .room-id where the acts can sit beside the pair —
              which is what makes the two cards one height. Drawn from here and
              nowhere else. */}
-      ${backC ? roomHeadSubHtml(c) : ''}
-      ${backC?'':`<div class="room-sub">${F[c.folder]?esc(F[c.folder].name):''}${
-        c.archived?' · '+i18t('ct_archived_tag'):''}${
-        (c.negotiation&&window.negoRound)?' · '+i18t('ct_round_n',{n:negoRound(c)}):''}${
-        ''/* What the Negotiate tab's amber count used to say, now that the tab
-              is gone — see negoRoundNeedsHtml. Not drawn on the workbench: that
-              page IS the negotiation, and a line telling a reader three changes
-              need them, sitting above the column those three changes are in, is
-              the number said twice.
-
-              A SLOT, not inline text, and repainted rather than built once —
-              the same lesson #ws-tabrow-end learned. This head is built by
-              renderWorkspace and by nothing else, so a count baked into the
-              string describes the contract as it stood the moment the room was
-              opened: file a change, cross to Key terms, and the line still says
-              the negotiation is quiet. See wsPaintRoundNeeds. The separator
-              lives INSIDE the slot so it leaves with the count. */}${
-        `<span id="ws-round-needs-slot">${opts.backToContract?'':negoRoundNeedsHtml(c)}</span>`}${
-        ''/* `typeof`, not window: fmtMoney is a top-level const in
-              js/jurisdiction.js and a const is a LEXICAL binding, not a
-              property of window — the trap THE MAP records against currentUser
-              and friends. A bare call from a stage that has not loaded that
-              file is a ReferenceError that takes the whole head down. */}${
-        (typeof fmtMoney==='function'&&Number(c.value)>0)?' · '+esc(window.fmtMoneyOf?fmtMoneyOf(c):fmtMoney(c.value)):''}${
-        c.lastAction?' · '+i18t('ct_updated_on',{when:esc(c.lastAction)}):''}</div>`}
+      ${roomHeadSubHtml(c,{needs:!backC})}
+      ${''/* ---- THE OLD ROOM LINE IS HISTORY (second pass, 21 Sep 2026): stream ·
+             round · value · updated became the reference's id · kind · stream ·
+             owner · updated, drawn by roomHeadSubHtml for both heads. The notes
+             above it stand. */}
+      ${''/* The slot for the round's "N need you" is INSIDE roomHeadSubHtml now
+             (opts.needs), still painted by wsPaintRoundNeeds; fmtMoney left the
+             line for the facts row, where the value already was. */}
     </div>
     <div class="room-acts${opts.primaryFirst?' room-acts-lead':''}">
       ${''/* ---- THE DESK, AND IT COSTS THE PAGE ONE CONTROL ----
@@ -8348,7 +8412,12 @@ function wireRoomHead(c){
      what state.view happens to say — the workbench and the contract page share
      this wiring, and reading the view here would make the arrow's meaning a
      property of the app's mode instead of a property of the page it is on. */
-  const back=document.getElementById('ws-back');
+  /* THE HEAD'S OWN BUTTON, NEVER THE ONE ALREADY IN THE BAR (second pass, 21
+     Sep 2026). After the first adoption the bar holds a #ws-back too, and it
+     comes FIRST in document order — so getElementById answered the old one on
+     every repaint, the head's fresh button was never adopted and the crumb row
+     stayed drawn under the bar. Measured on the negotiate page. */
+  const back=document.querySelector('.room-head #ws-back')||document.getElementById('ws-back');
   const goBack=()=>{
     if(back&&back.getAttribute('data-back')==='contract'){
       if(window.roomGoTab) roomGoTab(c,'docs');
@@ -8373,6 +8442,10 @@ function wireRoomHead(c){
   };
   back?.addEventListener('click',goBack);
   document.getElementById('ws-back-title')?.addEventListener('click',goBack);
+  /* THE BAR TAKES THE CRUMB (second pass, 21 Sep 2026) — after the handler is
+     on the element, so the element carries it into the bar. See
+     shellCrumbAdopt in js/app.js; a stage with no bar leaves the head as is. */
+  try{ if(window.shellCrumbAdopt) shellCrumbAdopt(c, back); }catch(_){}
   /* The round line's "N need you" is wired where it is PAINTED — in
      wsPaintRoundNeeds, which applyWsTabs calls on arrival and on every tab
      change after it. Wiring it here as well would put a second handler on the
@@ -8698,8 +8771,10 @@ function renderWorkspace(){
                  the contracts already made from it. */}
           ${templateProvenanceHtml(c)}
           <section id="checks-card" style="${CARD};padding:13px 15px">
-            <h6 style="margin:0;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading)">${i18t('ct_checks')}</h6>
-            <p data-checks-note style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:var(--s-1) 0 2px;line-height:1.5">${checksNoteHtml(c)}</p>
+            <div style="display:flex;align-items:baseline;gap:var(--s-2);flex-wrap:wrap;margin-bottom:4px">
+              <h6 style="margin:0;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading)">${i18t('ct_checks')}</h6>
+              <p data-checks-note style="font-size:var(--t-label);color:var(--color-neutral-600);margin:0;line-height:1.5">${checksNoteHtml(c)}</p>
+            </div>
             <div data-checks-rows>${checksRowsHtml(c)}</div>
           </section>
           ${''/* THE RESULTS CARDS HAVE LEFT THIS COLUMN. They open over the

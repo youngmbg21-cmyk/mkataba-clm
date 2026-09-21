@@ -2096,6 +2096,13 @@ function renderSideUser(){
   setTxt('side-avatar', initials);
   setTxt('side-name', u.name||org);
   setTxt('side-role', `${roleName(u.role)||i18t('role_member')} · ${org}`);
+  /* THE RAIL'S FOOT SAYS WHO IS SIGNED IN (the reference's own foot, second
+     pass 21 Sep 2026): the same three facts, printed where the reference
+     prints them. The avatar in the bar stays the door onto Your account; this
+     block is a statement, not a second door. */
+  setTxt('rail-user-av', initials);
+  setTxt('rail-user-name', u.name||org);
+  setTxt('rail-user-role', `${org} · ${roleName(u.role)||i18t('role_member')}`);
   const online=(getUsers()||[]).length||1;
   // Show the storage backend AND whether the Copilot brain is live, so an entered key
   // is visibly reflected (green ✦ = Claude answering; grey = keyword fallback).

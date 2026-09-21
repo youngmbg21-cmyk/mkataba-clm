@@ -2996,6 +2996,23 @@
   #ws-tabrow-end .rl-type-step{ height:var(--ctl-h); padding:0 3px; }
   #ws-tabrow-end .rl-type-step button,
   #ws-tabrow-end .rl-type-step .rl-type-out{ font-size:var(--t-body); font-weight:var(--w-body); }
+  /* THE CONTROL ROW'S EXPORT MENU AND FOCUS DOOR (second pass, 21 Sep 2026).
+     A <details> so the row needs no script to open it; its rows press the ⋯
+     menu's own buttons (wsPaintTabRowEnd). The focus door is a square in the
+     row's own rung. */
+  #ws-tabrow-end .ws-export{ position:relative; flex:none; }
+  #ws-tabrow-end .ws-export>summary{ list-style:none; display:inline-flex; align-items:center; gap:6px; cursor:pointer; }
+  #ws-tabrow-end .ws-export>summary::-webkit-details-marker{ display:none; }
+  #ws-tabrow-end .ws-export-menu{ position:absolute; right:0; top:calc(100% + 4px); z-index:30; min-width:200px;
+    padding:4px; background:var(--color-surface); border:1px solid var(--rule-strong); border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-lg, 0 8px 24px rgb(0 0 0/.12)); display:flex; flex-direction:column; }
+  #ws-tabrow-end .ws-export-menu button{ display:flex; align-items:center; gap:8px; width:100%; text-align:left;
+    padding:7px 10px; border:0; background:none; border-radius:var(--radius); font:inherit; font-size:var(--t-body);
+    color:var(--color-text); cursor:pointer; }
+  #ws-tabrow-end .ws-export-menu button:hover{ background:var(--nav-well); }
+  #ws-tabrow-end .ws-export-menu .mnote{ margin-left:auto; font-size:var(--t-label); color:var(--color-neutral-600); }
+  #ws-tabrow-end .ws-focus-door{ width:var(--ctl-h); padding:0; justify-content:center; }
+  #ws-tabrow-end .ws-focus-door[aria-pressed="true"]{ background:var(--nav-well); }
 
   /* ---- THE PLAIN-ENGLISH SWITCH (idea 7) ----
      Contract View first and lit at rest, Plain English second — Young's own
@@ -4089,14 +4106,24 @@
   /* The Checks card's rows — an icon, a name, and the verb. Replaces two
      full-height cards that each carried a paragraph and a filled button
      before anything had been run. */
-  .check-row{ display:flex; align-items:center; gap:10px; padding:var(--s-2) 0;
+  /* The reference's row (second pass, 21 Sep 2026): an 18px state mark, the
+     name over the sub-line that says what was found, the verb at the right.
+     The four tones are on the MARK now — the sub-line reads in the quiet ink
+     whatever the state, so a card with three rows is not three coloured pills. */
+  .check-row{ display:flex; align-items:flex-start; gap:10px; padding:10px 0;
     border-top:1px solid var(--color-divider); font-size:var(--t-body); }
-  .check-row .ci{ flex:none; width:26px; height:26px; border-radius:var(--radius); display:grid;
-    place-items:center; background:var(--st-steel-bg); color:var(--st-steel-fg); }
-  html.dark .check-row .ci{ background:rgb(var(--color-accent-500-rgb)/.16); color:var(--color-accent-300); }
-  .check-row .cn{ flex:1; min-width:0; font-weight:var(--w-strong); }
-  .check-row .cg{ flex:none; border:0; background:none; cursor:pointer; font:inherit;
-    font-size:var(--t-meta); font-weight:var(--w-title); color:var(--accent-ink); padding:2px 0; }
+  .check-row .ci{ flex:none; width:18px; height:18px; margin-top:1px; border-radius:50%; display:grid;
+    place-items:center; font-size:10px; line-height:1; font-weight:var(--w-strong);
+    border:1px solid var(--rule-strong); background:var(--color-surface); color:var(--color-neutral-500); }
+  .check-row.is-ok .ci{ border-color:var(--st-green-fg); background:var(--st-green-bg); color:var(--st-green-fg); }
+  .check-row.is-warn .ci{ border-color:var(--st-amber-fg); background:var(--st-amber-bg); color:var(--st-amber-fg); }
+  .check-row.is-bad .ci{ border-color:var(--st-ruby-fg); background:var(--st-ruby-bg); color:var(--st-ruby-fg); }
+  .check-row.is-steel .ci{ border-color:var(--st-steel-fg); background:var(--st-steel-bg); color:var(--st-steel-fg); }
+  .check-row .ct{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .check-row .cn{ font-weight:var(--w-strong); line-height:1.35; }
+  .check-row .cs{ font-size:var(--t-label); color:var(--color-neutral-600); line-height:1.45; }
+  .check-row .cg{ flex:none; border:0; background:none; cursor:pointer; font:inherit; margin-top:1px;
+    font-size:var(--t-label); font-weight:var(--w-title); color:var(--accent-ink); padding:0; }
   .check-row .cg:hover{ text-decoration:underline; }
 
   /* ---- DARK IS A BLACK THEME, INCLUDING ITS TWO BIGGEST SURFACES ----
@@ -4664,7 +4691,17 @@
   .hm-page{display:flex;flex-direction:column;gap:0;padding:var(--page-pad);box-sizing:border-box;}
   .hm-page>*{flex:none;}
 
-  .hm-greet{display:flex;align-items:baseline;gap:var(--s-3);margin-bottom:var(--s-1);}
+  .hm-greet{display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-2);}
+  /* The greeting stacks over its date line (second pass, 21 Sep 2026); the two
+     acts sit at the row's right. The h1 keeps its stated leading. */
+  .hm-greet-l{display:flex;flex-direction:column;gap:3px;min-width:0;align-self:flex-start;}
+  .hm-greet .ui-btn{align-self:center;}
+  .hm-sec-sub{font-size:var(--t-label);color:var(--color-neutral-600);flex:none;margin-right:auto;}
+  .hm-sec .hm-sec-sub+.hm-rule{display:none;}
+  .hm-big .hm-s{margin:0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;align-self:baseline;}
+  .hm-rverb{flex:none;display:inline-flex;align-items:center;height:26px;padding:0 10px;border:1px solid var(--rule-strong);border-radius:var(--radius);
+    background:var(--color-surface);font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;}
+  .hm-row:hover .hm-rverb{border-color:var(--color-accent);color:var(--accent-ink);}
   /* ---- THE BUTTON DOES NOT ANCHOR THE ROW'S BASELINE (25 Aug 2026) ----
      This row is baseline-aligned so the greeting and the date read off one
      line, and #hero-draft is a 28px control sitting in it. A control's own
@@ -4701,12 +4738,16 @@
      drawer, the approvals queue) and the register's empty state wear it too.
      One act, one button — scope this and the other two silently lose their
      dress, which is a fault this product has already paid for twice. */
+  /* FILLED SINCE THE SECOND PASS (21 Sep 2026): the reference draws New
+     agreement as the one filled act on Home AND on Contracts, which REVERSES
+     24 Aug's "the one act is white" on the owner's later drawing. One class,
+     both pages, so they cannot disagree. */
   .hm-primary{flex:none;white-space:nowrap;height:var(--ctl-h);display:inline-flex;
-    align-items:center;gap:7px;padding:0 var(--s-3);background:var(--color-surface);
-    border:1px solid var(--accent-ink);color:var(--accent-ink);
+    align-items:center;gap:7px;padding:0 var(--s-3);background:var(--accent-fill);
+    border:1px solid var(--accent-fill);color:#fff;
     font:inherit;font-family:var(--font-body);font-size:var(--t-meta);font-weight:var(--w-strong);
     cursor:pointer;border-radius:var(--radius);}
-  .hm-primary:hover{background:var(--nav-well);}
+  .hm-primary:hover{background:var(--accent-ink);border-color:var(--accent-ink);}
 
   /* A SECTION HEADING IS A WORD, A RULE AND — where there is one — its own
      act at the far end. Customize sits on My work's line because that is the
@@ -4867,7 +4908,7 @@
      "counts", so this reads the ladder rather than inventing a number: 38.4px
      against the 37 the face needs. `.hm-m` below carried the identical value
      for the identical reason and moves with it — one fault, two places. */
-  .hm-n{font-size:32px;font-weight:var(--w-title);line-height:var(--lh-tight);color:var(--color-text);
+  .hm-n{font-size:26px;font-weight:var(--w-title);line-height:var(--lh-tight);color:var(--color-text);
     font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   /* ---- THE UNIT TAKES ITS NUMERAL'S INK (the black ink, 24 Aug 2026) ----
      "13 agreements", "8 docs", "74 %" — the figure and its unit are one
@@ -7086,6 +7127,37 @@
   .reg-vtab:hover{color:var(--color-text);background:var(--surface-2);}
   .reg-vtab.on{color:var(--color-text);font-weight:var(--w-strong);border-bottom-color:var(--accent-solid);}
   .reg-vtab:focus-visible{outline:2px solid var(--accent-solid);outline-offset:-2px;}
+  /* The second pass (21 Sep 2026): counts on the tabs, saved views as tabs
+     with a way to forget them, Save view at the row's end, the filters as
+     chips, the two-line title cell, the owner's initials, the facts line. */
+  .st-tab .st-tab-n{margin-left:6px;font-family:var(--font-mono);font-size:var(--t-micro);font-weight:var(--w-body);color:var(--color-neutral-600);background:var(--surface-2);border-radius:var(--radius);padding:1px 5px;line-height:1.3;}
+  .st-tab.on .st-tab-n{color:var(--accent-ink);background:color-mix(in srgb,var(--color-accent) 12%,transparent);}
+  .tpl-origin{display:inline-block;font-size:var(--t-label);font-weight:var(--w-label);padding:2px 8px;border-radius:var(--radius);background:var(--surface-2);color:var(--color-neutral-700);white-space:nowrap;}
+  .tpl-origin.is-company{background:var(--st-green-bg);color:var(--st-green-fg);}
+  .tpl-origin.is-cp{background:var(--st-amber-bg);color:var(--st-amber-fg);}
+  .reg-vtab .n{font-family:var(--font-mono);font-size:var(--t-micro);font-weight:var(--w-body);color:var(--color-neutral-600);background:var(--surface-2);border-radius:var(--radius);padding:1px 5px;line-height:1.3;}
+  .reg-vtab.on .n{color:var(--accent-ink);background:color-mix(in srgb,var(--color-accent) 12%,transparent);}
+  .reg-vtab-saved{padding:0 4px 0 12px;gap:2px;}
+  .reg-vtab-saved>button{border:0;background:none;font:inherit;color:inherit;cursor:pointer;padding:0;}
+  .reg-vtab-saved>button.x{color:var(--color-neutral-500);font-size:var(--t-body);padding:0 6px;border-radius:var(--radius);}
+  .reg-vtab-saved>button.x:hover{color:var(--st-ruby-fg);background:var(--st-ruby-bg);}
+  .reg-views-end{margin-left:auto;flex:none;align-self:center;padding-bottom:6px;}
+  .reg-vtab-act{border:0;background:none;font:inherit;font-size:var(--t-body);font-weight:var(--w-label);color:var(--color-neutral-600);cursor:pointer;padding:4px 8px;border-radius:var(--radius);white-space:nowrap;}
+  .reg-vtab-act:hover{color:var(--color-text);background:var(--surface-2);}
+  .reg-filterbar .reg-chip{flex-direction:row;align-items:center;gap:5px;height:var(--ctl-h);padding:0 6px 0 10px;border:1px solid var(--rule-strong);border-radius:999px;background:var(--color-surface);color:var(--color-neutral-700);font-size:var(--t-label);font-weight:var(--w-label);white-space:nowrap;cursor:pointer;}
+  .reg-filterbar .reg-chip>svg{flex:none;color:var(--color-neutral-500);}
+  .reg-filterbar .reg-chip .reg-f-l{margin:0;color:inherit;font-size:var(--t-label);}
+  .reg-filterbar .reg-chip select{border:0!important;background-color:transparent!important;padding:0 18px 0 2px!important;font-size:var(--t-label)!important;color:var(--color-text);max-width:118px;height:100%;background-position:right 2px center!important;text-overflow:ellipsis;}
+  .reg-filterbar .reg-chip.on{border-color:var(--color-accent);color:var(--accent-ink);background:color-mix(in srgb,var(--color-accent) 8%,transparent);}
+  .reg-filterbar .reg-chip.on select{color:var(--accent-ink);font-weight:var(--w-strong);}
+  .reg-filterbar .reg-chip:hover{border-color:var(--color-accent);}
+  .reg-filterbar .reg-chip-btn{font:inherit;font-size:var(--t-label);font-weight:var(--w-label);color:var(--accent-ink);padding:0 12px;align-self:auto;}
+  .reg-table td.reg-cell-title{line-height:1.3;padding-top:3px;padding-bottom:3px;}
+  .reg-table .reg-sub{display:block;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .reg-own{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:color-mix(in srgb,var(--color-accent) 12%,transparent);color:var(--accent-ink);font-family:var(--font-mono);font-size:10px;font-weight:var(--w-strong);letter-spacing:.02em;}
+  .reg-dash{color:var(--color-neutral-400);}
+  .page-facts{font-size:var(--t-body);color:var(--color-neutral-600);margin-top:3px;line-height:1.4;}
+  .page-facts:empty{display:none;}
   .reg-seg{display:inline-flex;align-items:stretch;height:var(--ctl-h);border:1px solid var(--color-divider);border-radius:var(--radius);overflow:hidden;background:var(--color-surface);align-self:flex-end;flex:none;}
   .reg-seg button{border:0;background:transparent;font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);color:var(--color-neutral-600);padding:0 10px;cursor:pointer;white-space:nowrap;}
   .reg-seg button + button{border-left:1px solid var(--color-divider);}
@@ -7162,6 +7234,49 @@
      untouched). Written at one class and later in source; a card that clips
      inside a parent (.st-att .st-rows at 0) keeps its own answer. */
   .blueprint.bp-round,.sec-box,.hm-tile,.hm-rows,.obw-card,.kt-tri,.st-rows,.dir-card,.igf-kpi,.q-card,.pipe-col,.cal-card,.ik-card{border-radius:var(--radius-lg);}
+
+  /* ---- THE SECOND PASS (21 Sep 2026): the crumb in the bar, the foot ----
+     The bar's #shell-title becomes a crumb row on the two pages that show one
+     contract (shellCrumbAdopt, js/app.js). #ws-back is ADOPTED into it and
+     re-dressed as a word: the id-weighted rules below outrank the circle it
+     wears in the head (.room-crumb .room-crumb-back, two classes). */
+  #top-header #shell-title.is-crumb{display:flex;align-items:center;gap:8px;font-weight:var(--w-body);overflow:hidden;}
+  #shell-title .crumb-sep{font-style:normal;color:var(--color-neutral-400);flex:none;}
+  #shell-title .crumb-door,#shell-title .room-crumb-back.in-crumb{appearance:none;-webkit-appearance:none;background:none;border:0;padding:0;margin:0;
+    font:inherit;font-size:var(--t-body);font-weight:var(--w-body);color:var(--color-neutral-600);cursor:pointer;
+    width:auto;height:auto;border-radius:0;display:inline-flex;align-items:center;gap:0;white-space:nowrap;flex:none;}
+  #shell-title .room-crumb-back.in-crumb svg{display:none;}
+  #shell-title .room-crumb-back.in-crumb::before{content:none;}
+  #shell-title .crumb-door:hover,#shell-title .room-crumb-back.in-crumb:hover{color:var(--color-text);text-decoration:underline;background:none;}
+  #shell-title .crumb-here{font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+  #shell-title .crumb-here.crumb-layer{font-weight:var(--w-strong);}
+  /* The head's own crumb row stands down once the bar has taken its button;
+     where nothing took it (a stage with no bar) the row is drawn as before. */
+  .room-head .room-crumb:not(:has(.room-crumb-back)){display:none;}
+  /* The head's quiet line and its six facts (second pass): the reference id
+     and every figure in the data face, the stream with its colour bar, and
+     the Copilot fact's dot — grey unread, amber with something to look at,
+     green clear. Furniture, so none of it follows the reader's text size. */
+  .room-head .room-sub-id{font-family:var(--font-mono);font-size:var(--t-label);color:var(--color-neutral-600);}
+  .room-head .room-sub-stream{display:inline-flex;align-items:center;gap:5px;}
+  .room-head .room-sub-stream i{display:inline-block;width:3px;height:11px;border-radius:1px;flex:none;}
+  .room-head .room-facet .v{font-family:var(--font-mono);font-size:var(--t-body);}
+  .room-head .room-facet-sub{font-family:var(--font-mono);font-weight:var(--w-body);color:var(--color-neutral-600);}
+  .room-head .room-facet-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px;background:var(--st-gray-dot);}
+  .room-head .room-facet-dot.is-look{background:var(--st-amber-dot);}
+  .room-head .room-facet-dot.is-ok{background:var(--st-green-dot);}
+  /* The rail's foot: the person. */
+  #side-nav .rail-user{flex:none;display:flex;align-items:center;gap:10px;padding:12px 14px;border-top:1px solid var(--color-divider);min-width:0;}
+  #side-nav .rail-user-av{flex:none;width:30px;height:30px;border-radius:50%;background:var(--color-accent-100);color:var(--accent-ink);
+    display:inline-grid;place-items:center;font-size:var(--t-label);font-weight:var(--w-strong);letter-spacing:.02em;}
+  html.dark #side-nav .rail-user-av{background:color-mix(in srgb,var(--accent-solid) 22%,transparent);}
+  #side-nav .rail-user-txt{display:flex;flex-direction:column;min-width:0;line-height:1.35;}
+  #side-nav .rail-user-name{font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #side-nav .rail-user-role{font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.3;}
+  #app-shell.rail #side-nav .rail-user{justify-content:center;padding:10px 0;}
+  #app-shell.rail #side-nav .rail-user-txt{display:none;}
+  #app-shell.rail #side-nav.open .rail-user{justify-content:flex-start;padding:12px 14px;}
+  #app-shell.rail #side-nav.open .rail-user-txt{display:flex;}
 
   /* The column. 224 wide, grouped, a 32px row with a 4px corner; the live
      door is a tint of the accent with the accent's ink, which is what the
@@ -7632,6 +7747,13 @@
         </button>
       </div>
       </div>
+    </div>
+    <!-- THE FOOT NAMES THE PERSON (the reference, second pass 21 Sep 2026):
+         avatar, name, company · role — renderSideUser fills the three. Not a
+         button: the avatar in the bar is the door onto Your account. -->
+    <div class="rail-user" id="rail-user">
+      <span class="rail-user-av" id="rail-user-av" aria-hidden="true"></span>
+      <span class="rail-user-txt"><span class="rail-user-name" id="rail-user-name"></span><span class="rail-user-role" id="rail-user-role"></span></span>
     </div>
   </aside>
 

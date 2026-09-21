@@ -224,7 +224,10 @@ const PAGE_ACTIONS = {
      changes on a repaint with no view change, so the header cannot be the one
      deciding. It is FIRST, so it sits left of Draft new agreement exactly as
      the design draws it. */
-  register: ['cohort', 'new'],
+  /* UPLOAD SITS BESIDE NEW AGREEMENT (the redesign's second pass, 21 Sep 2026 —
+     the reference frame draws both). It is the SAME door the + menu's own
+     "Upload a received contract" row presses: openUploadModal, one dialog. */
+  register: ['cohort', 'upload', 'new'],
   folder:   ['export', 'new'],
   workspace:['export'],
   pipeline: ['new'],
@@ -242,6 +245,8 @@ function pageActionHtml(kind){
      agrees today: .hm-primary is unscoped and this is its second home.
      `pg_new_contract` is STALE as a label and left inert in the dictionary. */
   if(kind==='cohort') return `<span id="reg-cohort-slot"></span>`;
+  if(kind==='upload') return `<button data-page-upload class="ui-btn" title="${esc(i18t('m_upload_received'))}">${
+    icon('upload','w-3.5 h-3.5')} ${i18t('reg_upload')}</button>`;
   if(kind==='new') return `<button data-page-new class="hm-primary">${
     icon('plus','w-3.5 h-3.5',2)} ${i18t('home_draft_new')}</button>`;
   return '';
@@ -341,7 +346,63 @@ function shellTitleFor(view){
 }
 function paintShellTitle(view){
   const el=document.getElementById('shell-title'); if(!el) return;
+  /* A CRUMB ALREADY IN THE BAR FOR THIS PAGE IS KEPT (second pass, 21 Sep
+     2026). setView paints the title AFTER the view rendered — and on the two
+     pages that adopt #ws-back into the bar the render had already put the
+     crumb there, so writing the page's name over it threw the adopted button
+     away (measured: the negotiate page read "Contract Workspace" and the
+     head's crumb row was gone with it). Any other view still repaints. */
+  if((view==='redline'||view==='workspace')&&el.classList.contains('is-crumb')&&el.querySelector('#ws-back')) return;
+  el.classList.remove('is-crumb');
   el.textContent=shellTitleFor(view);
+}
+/* ═══ THE CRUMB LIVES IN THE TOP BAR (the reference's own drawing, 21 Sep
+   2026 — the second pass of the redesign) ═══
+   The reference draws "Contracts / MK-2041 · Raw Milk Collection" in the light
+   bar where the page name sits, and its head card starts with the title. So
+   the crumb row LEAVES the head and the bar carries it — and #ws-back, the
+   ONE way back with its one handler in wireRoomHead, is not replaced but
+   ADOPTED: the live element is moved into the bar with its listener on it
+   (a listener bound on the element travels with the element). Its word is a
+   span inside it, so its textContent is what a reader sees. The head's own
+   crumb row hides itself when the button has gone (index.html:
+   .room-crumb:not(:has(.room-crumb-back))), and on a stage with no #shell-title
+   (the browser harnesses) nothing moves and the head keeps its crumb.
+   THREE SHAPES: the room says Contracts (or the stream drawer it came from)
+   then the contract; the negotiate page says Negotiations (the list, a door of
+   its own) then the contract, which IS #ws-back there because that page's way
+   back lands on the room; the clause editor appends its clause as a third
+   crumb (shellCrumbLayer) and takes it off again on close. */
+function shellCrumbAdopt(c, backBtn){
+  const el=document.getElementById('shell-title'); if(!el||!c) return false;
+  const wb=!!(backBtn&&backBtn.getAttribute('data-back')==='contract');
+  const who=`${c.id} · ${(window.roomHeadTitle?roomHeadTitle(c):c.name)||''}`;
+  const sep=()=>{ const i=document.createElement('i'); i.className='crumb-sep'; i.setAttribute('aria-hidden','true'); i.textContent='/'; return i; };
+  const plain=t=>{ const s=document.createElement('span'); s.className='crumb-here'; s.textContent=t; s.title=t; return s; };
+  const word=(btn,t)=>{ let w=btn.querySelector('.crumb-word'); if(!w){ w=document.createElement('span'); w.className='crumb-word'; btn.appendChild(w); } w.textContent=t; btn.classList.add('in-crumb'); return btn; };
+  el.innerHTML='';
+  if(wb){
+    const list=document.createElement('button'); list.type='button'; list.className='crumb-door';
+    list.textContent=i18t('nav_negotiations'); list.title=i18t('ng_live_list');
+    list.addEventListener('click',()=>{ if(window.openNegotiations) openNegotiations({list:true}); else setView('redline'); });
+    el.appendChild(list); el.appendChild(sep());
+    el.appendChild(backBtn?word(backBtn,who):plain(who));
+  } else {
+    if(backBtn){ el.appendChild(word(backBtn,backBtn.getAttribute('data-crumb')||i18t('ct_back_register'))); el.appendChild(sep()); }
+    el.appendChild(plain(who));
+  }
+  el.classList.add('is-crumb');
+  return true;
+}
+/* A full-window layer over the page (the clause editor) says its own name as
+   a third crumb; null takes it off. Never rebuilds the crumbs beneath it. */
+function shellCrumbLayer(label){
+  const el=document.getElementById('shell-title'); if(!el) return;
+  el.querySelectorAll('.crumb-layer,.crumb-layer-sep').forEach(n=>n.remove());
+  if(!label||!el.classList.contains('is-crumb')) return;
+  const i=document.createElement('i'); i.className='crumb-sep crumb-layer-sep'; i.setAttribute('aria-hidden','true'); i.textContent='/';
+  const s=document.createElement('span'); s.className='crumb-here crumb-layer'; s.textContent=label; s.title=label;
+  el.appendChild(i); el.appendChild(s);
 }
 function renderPageHeader(view){
   paintShellTitle(view);
@@ -436,9 +497,19 @@ function renderPageHeader(view){
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap">
       <div style="min-width:0">
         <h1 style="margin:0;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${esc(t)}</h1>
+        ${''/* A FACTS LINE, NOT A SUBTITLE (second pass, 21 Sep 2026): the
+               Contracts page prints its count and its money here — the
+               Calendar's counts and Home's date line are the precedent, a
+               sentence explaining the page is not. An EMPTY slot the register
+               paints (regPaintHeadFacts), because the number changes on a
+               repaint with no view change. */}
+        ${view==='register'?'<div id="reg-head-facts" class="page-facts"></div>':''}
       </div>
       ${acts?`<div style="display:flex;align-items:center;gap:var(--s-2);flex:none">${acts}</div>`:''}
     </div>`;
+  /* The header is painted AFTER the view, so the register's first paint found
+     no slot; ask the register to fill it now that the slot exists. */
+  if(view==='register'&&typeof window.regPaintHeadFacts==='function'){ try{ regPaintHeadFacts(); }catch(_){} }
   syncViewHeight();
 }
 /* The full-height views size themselves against this rather than a constant,
@@ -2752,6 +2823,8 @@ function wireShell(){
   document.addEventListener('click',e=>{
     const exp=e.target.closest?.('[data-page-export]');
     if(exp){ exportWorkingSetCsv(); return; }
+    const up=e.target.closest?.('[data-page-upload]');
+    if(up){ if(window.openUploadModal) openUploadModal(); return; }
     const nb=e.target.closest?.('[data-page-new]');
     if(nb){
       e.stopPropagation();
@@ -3027,5 +3100,5 @@ if (typeof window !== 'undefined' && window.addEventListener){
 }
 
 Object.assign(window,{printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,notesPanelShowing,
-  buildAlerts,alertCount,updateAlertBadge,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,brandNow,darkNow,setBrand,setDark,toggleDark,applyAppearance,paintAppearance,brandPickerVisible,BRANDS,shellTitleFor,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
+  buildAlerts,alertCount,updateAlertBadge,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,brandNow,darkNow,setBrand,setDark,toggleDark,applyAppearance,paintAppearance,brandPickerVisible,BRANDS,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
 Object.assign(window,{BP});

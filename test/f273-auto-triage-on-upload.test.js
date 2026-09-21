@@ -767,8 +767,13 @@ describe('F273 — auto-triage on upload', () => {
         + 'indistinguishable from findings already on the record');
     });
     test('and the steel tone is drawn, not left to fall through to green', () => {
-      assert.match(CONTRACT, /v&&v\.tone==='steel'\?'background:var\(--st-steel-bg\)/,
+      /* RE-POINTED IN PLACE (21 Sep 2026, the redesign's second pass): the
+         tone is a CLASS on the row now and the sheet paints the mark — the
+         same four tones, on the state mark rather than a pill. */
+      assert.match(CONTRACT, /v\.tone==='steel'\?'is-steel'/,
         'without it the row says this contract is clear when nobody has looked');
+      const HTML = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'index.html'), 'utf8');
+      assert.match(HTML, /\.check-row\.is-steel \.ci\{[^}]*--st-steel-bg/, 'and the sheet paints steel on the mark');
     });
     test('its words are in both books, with both plural forms', () => {
       for (const k of ['ob_proposed_n_one', 'ob_proposed_n_other'])

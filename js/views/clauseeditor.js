@@ -748,17 +748,13 @@ function clauseEditorCss(){
     background:var(--color-surface); color:var(--accent-ink); border:1px solid var(--color-divider)}
   .ce-rule .av button:hover{border-color:var(--accent-solid)}
 
-  /* the ready-made questions are ONE line, always: they run across in a single
-     row that scrolls sideways rather than wrapping to a second, and each chip
-     keeps its own words on one line too. A mask rather than a colour, so the
-     fade is the same in both themes and a chip running past the edge reads as
-     "there is more" rather than as clipped. */
-  .ce-chips{flex:none; display:flex; gap:7px; flex-wrap:nowrap; overflow-x:auto;
-    padding:0 14px 9px; background:var(--color-surface); scrollbar-width:thin;
-    -webkit-mask-image:linear-gradient(to right, #000 calc(100% - 34px), transparent);
-    mask-image:linear-gradient(to right, #000 calc(100% - 34px), transparent)}
-  .ce-chips::-webkit-scrollbar{height:5px}
-  .ce-chips::-webkit-scrollbar-thumb{background:var(--color-neutral-200)}
+  /* THE CHIPS WRAP (the redesign's second pass, 21 Sep 2026 — the reference
+     frame draws them on two rows). They used to run on ONE line that scrolled
+     sideways under a fade mask, so the third and fourth question were off the
+     edge of a 340px rail and reachable only by a horizontal scroll nobody
+     makes. Each chip still keeps its own words on one line. */
+  .ce-chips{flex:none; display:flex; gap:6px; flex-wrap:wrap;
+    padding:0 14px 9px; background:var(--color-surface)}
   .ce-chips:empty{padding:0}
   .ce-chips button{flex:none; height:25px; padding:0 9px; font:inherit; font-size:var(--t-label);
     white-space:nowrap; background:var(--color-surface); color:var(--color-neutral-600);
@@ -2083,6 +2079,8 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
      contract it can be twenty clauses down. Bringing it into view is the whole
      difference between arriving at the clause and arriving at the contract. */
   ceScrollToClause(placeAt);
+  /* the bar's third crumb names this clause (second pass, 21 Sep 2026) */
+  try{ if (window.shellCrumbLayer) shellCrumbLayer(i18t('ce_crumb_edit', { clause: ceClauseLabel(ceClause()) || _ceClauseId })); }catch(_){}
   /* AN ASK TO TYPE THAT THE CLAUSE REFUSES IS SAID, NOT SWALLOWED (13 Sep
      2026): a click into a clause the other side wants removed arrives here
      with typing asked for, opens showing the strike-through, and says why. */
@@ -2101,6 +2099,7 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
 }
 
 function rlCloseClauseEditor(opts = {}){
+  try{ if (window.shellCrumbLayer) shellCrumbLayer(null); }catch(_){}
   /* LETTING GO IS THE FIRST THING THE CLOSE DOES, and only ever our own lock —
      clauseLockRelease refuses somebody else's, which is what stops a browser
      that lost a race taking a clause off the colleague who won it. Before the

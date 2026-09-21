@@ -7549,6 +7549,13 @@ function rlBoardPaintTitle(){
   const el = (typeof document !== 'undefined') ? document.getElementById('shell-title') : null;
   if (!el) return;
   if (_rlBoardOpen) el.textContent = i18t('ng_board');
+  /* THE CRUMB, NOT THE PAGE NAME, once a contract is on the bench (second pass,
+     21 Sep 2026): this paint runs AFTER wireRoomHead adopted #ws-back into
+     the bar, and writing textContent over it threw the button away. Re-adopt;
+     the plain name is the fallback for the list and for a stage with no bar. */
+  else if (typeof window.shellCrumbAdopt === 'function' && window.getContract && typeof redlineHeldId === 'function' && redlineHeldId()
+    && (document.querySelector('.room-head #ws-back') || document.getElementById('ws-back'))
+    && shellCrumbAdopt(getContract(redlineHeldId()), document.querySelector('.room-head #ws-back') || document.getElementById('ws-back'))) { /* crumb painted */ }
   else if (typeof window.shellTitleFor === 'function') el.textContent = shellTitleFor('redline');
 }
 function rlBoardPageHtml(c){
