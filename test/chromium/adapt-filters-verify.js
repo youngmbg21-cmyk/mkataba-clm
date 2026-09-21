@@ -40,7 +40,7 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   const onBar = () => page.evaluate(() => ({
     stage:    !!document.getElementById('reg-stage-sel'),
     type:     !!document.getElementById('reg-type-sel'),
-    view:     !!document.getElementById('reg-view-sel'),
+    view:     !!document.querySelector('.reg-views'),   /* the quick filters are a tab row since 20 Sep 2026 */
     category: !!document.getElementById('reg-category'),
     renewal:  !!document.getElementById('reg-renewal'),
   }));

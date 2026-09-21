@@ -79,10 +79,15 @@ const answerNaming = ids => [{ type: 'tool_use', id: 'tu_wl', name: 'deliver_ans
   await page.evaluate(() => window.setView('register'));
   await page.waitForTimeout(1200);
   const bar = await page.evaluate(() => {
+    /* RE-POINTED 20 Sep 2026 (the redesign order): the quick filters are a TAB
+       ROW (.reg-views, named by aria-label) above the bar, and its resting
+       option is the All tab. Same key, same reading. */
     const labels = Array.from(document.querySelectorAll('.reg-f-l')).map(l => l.textContent.trim());
-    const sel = document.getElementById('reg-view-sel');
-    return { labels, first: sel ? (sel.options[0] || {}).text : null,
-      tip: sel ? (sel.getAttribute('title') || (sel.closest('label') || {}).title || '') : '',
+    const tabs = document.querySelector('.reg-views');
+    if (tabs) labels.push(tabs.getAttribute('aria-label') || '');
+    const sel = tabs;
+    return { labels, first: sel ? ((sel.querySelector('[data-reg-view]') || {}).textContent || '').trim() : null,
+      tip: sel ? (sel.getAttribute('title') || '') : '',
       rows: new Set(Array.from(document.querySelectorAll('.reg-f'))
         .map(l => Math.round(l.getBoundingClientRect().top))).size };
   });

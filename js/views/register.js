@@ -704,6 +704,17 @@ function regDensityVars(k){
 }
 
 function regScope(){ return REG_SCOPE; }
+/* ═══ TABLE OR BOARD (20 Sep 2026, the redesign order's step 3) ══════════
+   The board is today's My Queue — pipeBoardHtml in js/views/queue.js, the
+   same cards with every fact they carried — drawn INSIDE the Contracts page
+   over the FILTERED list, so the tabs, the chips and the search narrow both
+   shapes alike. Per sitting and in memory: a stored shape would put two
+   people's screens in disagreement about what "Contracts" shows. Never on
+   the Negotiations seat, which groups by whose move and has no columns of
+   stage to lay out. My Queue stays routable on its own (renderPipeline). */
+let _regMode='table';
+function regMode(){ return (regScope()==='negotiations')?'table':(_regMode==='board'?'board':'table'); }
+function regSetMode(k){ _regMode=(k==='board')?'board':'table'; }
 /* ---- IS ANYTHING THE READER CHOSE NARROWING THIS LIST? ----
    ONE READING, because it was written THREE times and all three disagreed:
    the empty state's copy left out signed and payterms, the filter bar's left
@@ -949,9 +960,30 @@ function regPager(cs){
   return `<div style="display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap">${btn('‹ Prev',p-1,p<=1,false)}${nums.join('')}${btn('Next ›',p+1,p>=n,false)}</div>`;
 }
 // footer text: "Showing 1–40 of 55 · page 1 of 2 · aggregate KES …"
-function regFooterText(cs){
-  const n=regPageCount(cs), p=regCurPage(cs);
-  const size=regPageSize();
+/* ═══ THE VIEW TABS ARE THE QUICK FILTERS (20 Sep 2026, the redesign order) ═══
+   "All" plus REG_VIEWS, drawn as a tab row above the filter bar in place of
+   the Quick filters dropdown. SAME KEY — R.view — same reading (regFiltered
+   asks nothing new), same place in `Adapt filters` (the row is drawn while
+   'view' is on the bar, so the chooser still puts it away). No counts on the
+   tabs: in server mode the browser holds one page of the book, and a count
+   over that page would be a number about the wrong population. */
+function regViewTabsHtml(R){
+  const tab=(k,label)=>{ const on=(R.view||'')===(k||'');
+    return `<button type="button" role="tab" class="reg-vtab${on?' on':''}" data-reg-view="${k}" aria-selected="${on?'true':'false'}">${esc(label)}</button>`; };
+  return `<div class="reg-views" role="tablist" aria-label="${esc(i18t('reg_quick_filters'))}" title="${esc(i18t('reg_quick_filters_title'))}">${
+    tab('',i18t('reg_tab_all'))}${REG_VIEWS.map(v=>tab(v.k,v.label)).join('')}</div>`;
+}
+/* A SEGMENTED CONTROL, one builder for the two the bar draws (Table · Board,
+   and the three row densities). Every option is a real button carrying the
+   value; the live one is aria-pressed. */
+function regSegHtml(attr, opts, live, title){
+  return `<span class="reg-seg" role="group" ${title?`title="${esc(title)}"`:''}>${opts.map(([k,l])=>
+    `<button type="button" ${attr}="${k}" aria-pressed="${live===k?'true':'false'}" class="${live===k?'on':''}">${esc(l)}</button>`).join('')}</span>`;
+}
+function regFooterText(cs, opts){
+  const board=!!(opts&&opts.all);
+  const n=board?1:regPageCount(cs), p=board?1:regCurPage(cs);
+  const size=board?Math.max(1,cs.length):regPageSize();
   const start=cs.length?(p-1)*size+1:0, end=Math.min(cs.length,p*size);
   /* WHAT THE FOOTER IS COUNTING AGAINST. On Contracts it is the whole book —
      "of 145". On Negotiations that number would be a lie about a page that
@@ -970,7 +1002,7 @@ function regFooterText(cs){
      never pages and groups by something else entirely. */
   const neg=regScope()==='negotiations';
   const flatBtn=neg?'':` · <button type="button" id="reg-flat" style="border:0;background:none;font:inherit;font-size:inherit;color:var(--accent-ink-700);text-decoration:underline;cursor:pointer;padding:0">${R.flat?i18t('reg_group_amendments'):i18t('reg_show_flat')}</button>`;
-  const pageNote=neg?'':` · ${i18t('reg_page_of',{p,n})}`;
+  const pageNote=(neg||board)?'':` · ${i18t('reg_page_of',{p,n})}`;
   return `${i18t('reg_showing',{start:B(start.toLocaleString(jxLocale())),end:B(end.toLocaleString(jxLocale())),n:B(cs.length.toLocaleString(jxLocale()))})}${totalNote}${neg?'':famNote}${pageNote}${(typeof canViewValues==='function'&&!canViewValues())?'':` · ${i18t('reg_aggregate')} ${B(fmtMoneyShort(regAggregate(cs)))}`}${flatBtn}`;
 }
 // pinned-footer pager wiring — jump page + scroll the table body back to top
@@ -1664,8 +1696,6 @@ function renderRegister(opts){
   const selFilter=(id,opts,active,title,label)=>`<label class="reg-f"><span class="reg-f-l">${esc(label||title)}</span><select id="${id}" title="${title}" style="${selStyle};max-width:180px${active?';border-color:var(--color-accent);color:var(--accent-ink);font-weight:var(--w-strong)':''}">${opts}</select></label>`;
   const stageOpts=REG_STAGES.map(s=>`<option value="${s.k}" ${R.stage===s.k?'selected':''}>${s.label}</option>`).join('');
   const typeOpts=regTypes().map(t=>`<option value="${t.k}" ${R.type===t.k?'selected':''}>${t.label}</option>`).join('');
-  const viewOpts=`<option value="" ${R.view?'':'selected'}>${i18t('reg_quick_filters')}</option>`
-    +REG_VIEWS.map(v=>`<option value="${v.k}" ${R.view===v.k?'selected':''}>${v.label}</option>`).join('');
   /* ---- RENEWAL IS BACK, AND IT IS OFF THE BAR BY DEFAULT ----
      Recovered unchanged from before WO-15 removed it, except that it now goes
      through selFilter like the other six rather than carrying its own copy of
@@ -1709,8 +1739,6 @@ function renderRegister(opts){
       .map(([k,l])=>`<option value="${k}" ${cur===k?'selected':''}>${esc(String(l))}</option>`).join('');
   })();
   const BAR=regBarShown(R);
-  const densityOpts=['comfortable','compact','condensed']
-    .map(k=>`<option value="${k}" ${regDensity()===k?'selected':''}>${esc(i18t('reg_density_'+k))}</option>`).join('');
   /* THE CHIP IS THE NARROWING AND THE WAY OUT OF IT, in one object — see
      regShowOnly. It leads the bar because it is the widest statement on it:
      every dropdown beside it narrows within this set. */
@@ -2158,6 +2186,7 @@ function renderRegister(opts){
              white ground, with the table's card below it on the page grey. */}
       <div class="reg-band">
       ${headHtml}
+      ${BAR.includes('view')?regViewTabsHtml(R):''}
       <!-- THE ONE FILTER BAR: stage · stream · quick filter · category · renewal ·
            clear,
            then sort, full-text search (server mode) and the export — a single
@@ -2177,7 +2206,6 @@ function renderRegister(opts){
         ${BAR.includes('type')?selFilter('reg-type-sel',typeOpts,R.type!=='all',i18t('reg_value_stream')):''}
         ${''/* The long sentence is the TOOLTIP, not the label — used as a label it
                     ran to 460px and pushed the whole bar off the row. */}
-        ${BAR.includes('view')?selFilter('reg-view-sel',viewOpts,!!R.view,i18t('reg_quick_filters_title'),i18t('reg_quick_filters')):''}
         ${BAR.includes('category')?categorySel:''}
         ${BAR.includes('renewal')?selFilter('reg-renewal',renewalOpts,renewalActive,i18t('reg_renewal')):''}
         ${''/* NEVER ON THE NEGOTIATIONS SEAT: that page holds live negotiations,
@@ -2218,8 +2246,17 @@ function renderRegister(opts){
                claim the book had been filtered when it has not.
                It goes through selFilter — the same builder as the other six —
                because one builder is what stops them drifting apart. */}
-        ${selFilter('reg-density',densityOpts,false,i18t('reg_density_title'),i18t('reg_density'))}
         ${selFilter('reg-sort',sortOpts,false,i18t('reg_sort'))}
+        ${''/* ---- TABLE · BOARD, THEN THE THREE DENSITIES, AS SEGMENTS (20 Sep
+               2026, the redesign order) ----
+               The density was a labelled dropdown through selFilter; the
+               reference draws both of these as segmented controls at the
+               row's right, and a segment says every option at once where a
+               dropdown says one. Same three densities (regSetDensity), same
+               store, same repaint. Table · Board is never drawn on the
+               Negotiations seat — see regMode. */}
+        ${neg?'':regSegHtml('data-reg-mode',[['table',i18t('reg_mode_table')],['board',i18t('reg_mode_board')]],regMode(),i18t('reg_mode_title'))}
+        ${regMode()==='board'?'':regSegHtml('data-reg-density',['comfortable','compact','condensed'].map(k=>[k,i18t('reg_density_'+k)]),regDensity(),i18t('reg_density_title'))}
         ${''/* ---- AND NO NOTE UNDER THE SORT (M-5) ----
                Owner-reported in the same breath: *"remove the 'sorts within
                each group' writing."* It said that sorting on this page runs
@@ -2232,6 +2269,16 @@ function renderRegister(opts){
       </div>
       </div>
 
+      ${regMode()==='board'?`
+      <section class="blueprint bp-round reg-board-wrap" style="background:var(--color-surface);box-shadow:var(--shadow-sm);flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden">
+        <div id="reg-scroll" style="flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;padding:var(--s-3)">
+          ${(typeof pipeBoardHtml==='function')?pipeBoardHtml(cs):''}
+        </div>
+        <div style="flex:none;border-top:1px solid var(--color-divider);display:flex;align-items:center;justify-content:space-between;gap:10px var(--s-4);flex-wrap:wrap;padding:5px var(--s-3);font-size:var(--t-label);color:var(--color-neutral-600)">
+          <span id="reg-showing" role="status" aria-live="polite" aria-atomic="true">${regFooterText(cs,{all:true})}</span>
+          ${''/* no legend down here: the board draws its own above the columns */}
+        </div>
+      </section>`:`
       <section class="blueprint bp-round" style="background:var(--color-surface);box-shadow:var(--shadow-sm);flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden">
 
         <div id="reg-scroll" style="flex:1;min-height:0;overflow:auto">
@@ -2315,7 +2362,7 @@ function renderRegister(opts){
           ${folderLegendHtml({style:'font-size:var(--t-label)'})}
           <span>${neg?esc(i18t('ngl_no_paging')):i18t('reg_per_page',{n:REG_PAGE})}</span>
         </div>
-      </section>
+      </section>`}
     </div>
   </div>`;
 
@@ -2385,9 +2432,16 @@ function renderRegister(opts){
 
   /* A DENSITY CHANGE IS A REPAINT, NOT A NAVIGATION: the page, the filters and
      the reader's place are all untouched — only the rows' rhythm moves. */
-  document.getElementById('reg-density')?.addEventListener('change',e=>{
-    if(regSetDensity(e.target.value)) regRepaint();
-  });
+  document.querySelectorAll('[data-reg-density]').forEach(b=>b.addEventListener('click',()=>{
+    if(regSetDensity(b.getAttribute('data-reg-density'))) regRepaint();
+  }));
+  /* A SHAPE CHANGE IS A REPAINT, NOT A NAVIGATION, like the density: filters
+     and place untouched. In board mode the queue's own wiring arms the cards
+     (a press opens the workspace) and the per-column "N more" doors. */
+  document.querySelectorAll('[data-reg-mode]').forEach(b=>b.addEventListener('click',()=>{
+    regSetMode(b.getAttribute('data-reg-mode')); regRepaint();
+  }));
+  if(regMode()==='board'&&typeof wirePipeline==='function') wirePipeline();
   document.getElementById('reg-sort')?.addEventListener('change',e=>{ R.sort=e.target.value; R.dir=REG_SORT_DEFDIR[R.sort]||-1; R.page=1; regRepaint(); });
   // Column-header sorting: click a header to sort by it; click the active header
   // again to flip ascending/descending. First click uses the column's natural
@@ -2409,7 +2463,7 @@ function renderRegister(opts){
   document.getElementById('reg-hold')?.addEventListener('change',e=>{ R.hold=e.target.value; R.page=1; regRepaint(); });
   document.getElementById('reg-stage-sel')?.addEventListener('change',e=>{ R.stage=e.target.value; R.page=1; regRepaint(); });
   document.getElementById('reg-type-sel')?.addEventListener('change',e=>{ R.type=e.target.value; R.page=1; regRepaint(); });
-  document.getElementById('reg-view-sel')?.addEventListener('change',e=>{ R.view=e.target.value||null; R.page=1; regRepaint(); });
+  document.querySelectorAll('[data-reg-view]').forEach(b=>b.addEventListener('click',()=>{ R.view=b.getAttribute('data-reg-view')||null; R.page=1; regRepaint(); }));
   document.getElementById('reg-only-clear')?.addEventListener('click',()=>{ R.only=null; R.page=1; regRepaint(); });
   wireRegClear();
 
@@ -2491,5 +2545,5 @@ Object.assign(window,{regSignedOn,regSignedYear,regSignedYears,regSignedCell,
   REG_COL_KEYS,REG_COL_KEYS_NEGO,REG_COL_W,REG_COL_W_NEGO,REG_COL_MIN_PX,
   regColWidths,regColSetWidths,regColReset,regColDefaults,regColTrade,regColApply,regWireColResize,
   REG_CMP,REG_SORT_DEFDIR,regBlanksLast,regStreamName,regRefParts,regNarrowed,regClearHtml,regPaintClear,
-  REG_BAR_FILTERS,REG_BAR_DEFAULT,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,negoMoveSay,regShowOnly,regPaintCohort,renderRegister,renderRegisterBody,wireRegRows,
+  REG_BAR_FILTERS,REG_BAR_DEFAULT,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regMode,regSetMode,regViewTabsHtml,regSegHtml,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,negoMoveSay,regShowOnly,regPaintCohort,renderRegister,renderRegisterBody,wireRegRows,
   regScope,regSetScope,regRepaint,regPageSize,regFitBandOffset,NEGO_BANDS,NEGO_BAND_DOT,negoGroupByMove,negoBandCounts,negoMovePillHtml,negoBandRowHtml});

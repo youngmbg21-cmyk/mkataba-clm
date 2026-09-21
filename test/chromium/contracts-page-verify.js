@@ -176,8 +176,12 @@ const check = (name, ok, detail) => {
         oneRow: new Set(ls.map(l => Math.round(l.getBoundingClientRect().top))).size,
       };
     });
+    /* FOUR labelled controls since 20 Sep 2026 (the redesign order): the quick
+       filters became a tab row above the bar and the density a segmented
+       control, neither of which is a .reg-f. The claim — every labelled filter
+       really shows its label — is unchanged. */
     check('5a every filter carries a visible label',
-      filters.n >= 5 && filters.labelled === filters.n, `${filters.labelled}/${filters.n}`);
+      filters.n >= 4 && filters.labelled === filters.n, `${filters.labelled}/${filters.n}`);
     /* The fault this guards: the quick-filter dropdown's own sentence — 57
        characters — used as a LABEL, which ran to 460px and pushed the bar off
        its row. The sentence is the tooltip now. (That control read "Saved
@@ -488,8 +492,9 @@ const check = (name, ok, detail) => {
        the list is what moved, which is why this is re-pointed rather than
        weakened — a control removed must leave the rest agreeing. */
     const six = await page.evaluate(() => {
-      const ids = ['reg-stage-sel', 'reg-type-sel',
-        'reg-view-sel', 'reg-category', 'reg-sort'];
+      /* FOUR SINCE 20 Sep 2026 (the redesign order): the quick filters are a
+         tab row above the bar (.reg-views), not a labelled select on it. */
+      const ids = ['reg-stage-sel', 'reg-type-sel', 'reg-category', 'reg-sort'];
       return ids.map(id => {
         const e = document.getElementById(id);
         if (!e) return { id, absent: true };
@@ -502,8 +507,9 @@ const check = (name, ok, detail) => {
           size: g ? g.fontSize : null, color: g ? g.color : null };
       });
     });
-    check('13a all five controls are present', six.every(f => !f.absent),
-      six.filter(f => f.absent).map(f => f.id).join(',') || 'all five');
+    check('13a all four controls are present, and the quick filters are a tab row',
+      six.every(f => !f.absent) && (await page.evaluate(() => document.querySelectorAll('.reg-views [data-reg-view]').length >= 2)),
+      six.filter(f => f.absent).map(f => f.id).join(',') || 'all four + tabs');
     check('13a2 and the search box is not among them any more',
       !six.some(f => f.id === 'reg-search')
         && !(await page.evaluate(() => !!document.getElementById('reg-search'))),

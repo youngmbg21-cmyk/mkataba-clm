@@ -7065,6 +7065,31 @@
   .ui-btn-primary:hover{background:var(--accent-solid-hover);}
   .ui-btn:disabled,.ui-btn[aria-disabled="true"]{color:var(--color-neutral-400);background:var(--color-surface);}
 
+  /* ═══ THE CONTRACTS PAGE (20 Sep 2026, step 3 of the redesign order) ═══
+     The quick filters as a tab row, two segmented controls at the bar's right
+     (Table · Board, and the three densities) and the reference's column head
+     — a micro uppercase label in the secondary ink. The 24 Aug ruling "table
+     headers are not uppercase" is REVERSED here on the owner's later word: the
+     approved reference draws every table head this way. Everything else on
+     the page is the register's own. */
+  .reg-views{display:flex;align-items:flex-end;gap:2px;border-bottom:1px solid var(--color-divider);margin:2px 0 0;min-width:0;overflow-x:auto;scrollbar-width:none;}
+  .reg-views::-webkit-scrollbar{display:none;}
+  .reg-vtab{flex:none;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 12px;margin-bottom:-1px;border:0;border-bottom:2px solid transparent;
+    background:transparent;font:inherit;font-size:var(--t-body);font-weight:var(--w-label);color:var(--color-neutral-600);cursor:pointer;white-space:nowrap;border-radius:var(--radius) var(--radius) 0 0;}
+  .reg-vtab:hover{color:var(--color-text);background:var(--surface-2);}
+  .reg-vtab.on{color:var(--color-text);font-weight:var(--w-strong);border-bottom-color:var(--accent-solid);}
+  .reg-vtab:focus-visible{outline:2px solid var(--accent-solid);outline-offset:-2px;}
+  .reg-seg{display:inline-flex;align-items:stretch;height:var(--ctl-h);border:1px solid var(--color-divider);border-radius:var(--radius);overflow:hidden;background:var(--color-surface);align-self:flex-end;flex:none;}
+  .reg-seg button{border:0;background:transparent;font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);color:var(--color-neutral-600);padding:0 10px;cursor:pointer;white-space:nowrap;}
+  .reg-seg button + button{border-left:1px solid var(--color-divider);}
+  .reg-seg button:hover{background:var(--surface-2);color:var(--color-text);}
+  .reg-seg button.on,.reg-seg button[aria-pressed="true"]{background:var(--accent-fill);color:#fff;font-weight:var(--w-strong);}
+  .reg-seg button:focus-visible{outline:2px solid var(--accent-solid);outline-offset:-2px;}
+  .reg-table th{font-size:var(--t-micro);letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);font-weight:var(--w-title);}
+  .reg-table th.reg-th-sort.active{color:var(--accent-ink);}
+  .reg-board-wrap .board-cols{flex:1;min-height:0;}
+  .reg-board-wrap .pipe-col{min-height:200px;}
+
   /* The column. 224 wide, grouped, a 32px row with a 4px corner; the live
      door is a tint of the accent with the accent's ink, which is what the
      reference draws — the 3px left rule of 24 Aug goes with the dark bar. */

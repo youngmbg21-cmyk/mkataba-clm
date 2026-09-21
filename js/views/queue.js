@@ -47,8 +47,15 @@ function pipeColumnInner(col, list){
   const empty=list.length?'':`<div style="border:1px dashed var(--color-divider);border-radius:var(--radius);padding:22px 10px;text-align:center;font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('queue_nothing_here')}</div>`;
   return shown.map(pipeCard).join('')+empty+more;
 }
-function renderPipeline(){
-  const cs=state.contracts;
+/* ---- THE BOARD IS A BUILDER, AND THE CONTRACTS PAGE DRAWS IT (20 Sep 2026,
+   the redesign order's step 3: "table or board — the board is today's My
+   Queue, keep every card fact") ----
+   pipeBoardHtml(cs) is the legend and the four columns over WHATEVER LIST it
+   is handed; renderPipeline (the routable My Queue page) hands it the whole
+   book exactly as before, and the register's Board mode hands it regFiltered()
+   so the same filters narrow both shapes. pipeCard is untouched: every fact a
+   card carried yesterday it carries today. */
+function pipeBoardHtml(cs){
   const valOf=arr=>arr.reduce((s,c)=>s+(window.fxHomeValue?fxHomeValue(c):Number(c.value||0)),0);
   const groups=PIPE_COLS.map(col=>{ const list=cs.filter(c=>c.status===col.k); return {col, list, val:valOf(list)}; });
 
@@ -65,16 +72,19 @@ function renderPipeline(){
         ${pipeColumnInner(g.col, g.list)}
       </div>
     </div>`).join('');
-
-  document.getElementById('content').innerHTML=`
-  <div class="view-enter" style="height:var(--view-h);box-sizing:border-box;padding:var(--page-pad-t) var(--page-pad-x) var(--s-4);display:flex;flex-direction:column">
+  return `
     <style>
       .q-card{transition:border-color var(--dur-1) ease,box-shadow var(--dur-1) ease}
       /* keep the category stripe (border-left) on hover — only the other three sides + shadow react */
       .q-card:hover{border-top-color:var(--color-accent)!important;border-right-color:var(--color-accent)!important;border-bottom-color:var(--color-accent)!important;box-shadow:var(--shadow-md)!important}
     </style>
     <div style="flex:none;margin-bottom:10px">${folderLegendHtml()}</div>
-    <div class="board-cols board-4" style="flex:1;min-height:0;display:grid;gap:var(--s-3)">${columnsHtml}</div>
+    <div class="board-cols board-4" style="flex:1;min-height:0;display:grid;gap:var(--s-3)">${columnsHtml}</div>`;
+}
+function renderPipeline(){
+  document.getElementById('content').innerHTML=`
+  <div class="view-enter" style="height:var(--view-h);box-sizing:border-box;padding:var(--page-pad-t) var(--page-pad-x) var(--s-4);display:flex;flex-direction:column">
+    ${pipeBoardHtml(state.contracts)}
   </div>`;
 
   wirePipeline();
@@ -94,4 +104,4 @@ function wirePipeline(){
   document.querySelectorAll('[data-pipe-more]').forEach(el=>el.addEventListener('click',()=>{ regState().stage=el.getAttribute('data-pipe-more'); regState().type='all'; regState().sel={}; setView('register'); }));
 }
 
-Object.assign(window,{PIPE_CAP,PIPE_COLS,pipeCard,pipeColumnInner,pipeColReset,renderPipeline,wirePipeline});
+Object.assign(window,{PIPE_CAP,PIPE_COLS,pipeCard,pipeColumnInner,pipeBoardHtml,pipeColReset,renderPipeline,wirePipeline});

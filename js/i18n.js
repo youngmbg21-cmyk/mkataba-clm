@@ -386,6 +386,10 @@ const STRINGS = {
        any mention. THE FILTER'S OWN KEY IS STILL 'view' and must stay: it
        is what R.view and the stored bar preference are written under. */
     reg_quick_filters: 'Quick filters',
+    reg_tab_all: 'All',
+    reg_mode_table: 'Table',
+    reg_mode_board: 'Board',
+    reg_mode_title: 'Table or board — the same contracts, laid out as rows or as cards by stage',
     reg_no_fulltext: 'No full-text matches.',
     reg_nothing_selected: 'Nothing selected',
     reg_nothing_to_export: 'Nothing to export',
@@ -7885,6 +7889,10 @@ const STRINGS = {
     reg_only_fallback: 'Ett valt urval',
     reg_clear_all_filters: 'Rensa alla filter',
     reg_quick_filters: 'Snabbfilter',
+    reg_tab_all: 'Alla',
+    reg_mode_table: 'Tabell',
+    reg_mode_board: 'Tavla',
+    reg_mode_title: 'Tabell eller tavla — samma avtal, som rader eller som kort per steg',
     reg_no_fulltext: 'Inga träffar i fritextsökningen.',
     reg_nothing_selected: 'Inget valt',
     reg_nothing_to_export: 'Inget att exportera',

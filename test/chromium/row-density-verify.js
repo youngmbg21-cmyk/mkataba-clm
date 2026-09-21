@@ -44,18 +44,27 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   const bodyH = () => page.evaluate(() => { const tb = document.querySelector('.reg-table tbody');
                                             return tb ? Math.round(tb.getBoundingClientRect().height) : 0; });
   const rows  = () => page.evaluate(() => document.querySelectorAll('.reg-table tbody tr[data-row]').length);
-  const set   = async v => { await page.selectOption('#reg-density', v); await page.waitForTimeout(450); };
+  /* RE-POINTED 20 Sep 2026 (the redesign order): the density is a SEGMENTED
+     CONTROL — three real buttons carrying data-reg-density, the live one
+     aria-pressed — in place of the labelled dropdown. Same three rungs, same
+     store (regSetDensity), same repaint; only the control's shape moved, so
+     every claim below is asked of the segments instead of the select. */
+  const live  = () => page.evaluate(() => { const b = document.querySelector('button[data-reg-density][aria-pressed="true"]');
+                                            return b ? b.getAttribute('data-reg-density') : null; });
+  const set   = async v => { await page.click(`button[data-reg-density="${v}"]`); await page.waitForTimeout(450); };
 
   console.log('\n1 · the control');
-  ok('drawn', await page.evaluate(() => !!document.getElementById('reg-density')));
-  ok('offers exactly three', (await page.evaluate(() => document.querySelectorAll('#reg-density option').length)) === 3);
-  ok('defaults to compact, so nobody\'s book moves on the day it ships',
-     (await page.evaluate(() => document.getElementById('reg-density').value)) === 'compact');
+  ok('drawn', await page.evaluate(() => !!document.querySelector('button[data-reg-density]')));
+  ok('offers exactly three', (await page.evaluate(() => document.querySelectorAll('button[data-reg-density]').length)) === 3);
+  ok('defaults to compact, so nobody\'s book moves on the day it ships', (await live()) === 'compact');
   /* IT IS A VIEW SETTING, NOT A FILTER: it sits after the spacer with Sort and
-     must never wear the accent, which on this bar means "narrowing your list". */
+     the RESTING segments never wear the accent ink, which on this bar means
+     "narrowing your list" (the pressed segment is the control's own state). */
   ok('does not claim to be narrowing the list', await page.evaluate(() => {
-    const cs = getComputedStyle(document.getElementById('reg-density'));
-    return cs.fontWeight !== '600' && cs.fontWeight !== '700';
+    const accent = (() => { const e = document.createElement('i'); e.style.color = 'var(--accent-ink)'; document.body.appendChild(e);
+      const c = getComputedStyle(e).color; e.remove(); return c; })();
+    return [...document.querySelectorAll('button[data-reg-density][aria-pressed="false"]')]
+      .every(b => { const cs = getComputedStyle(b); return cs.color !== accent && cs.fontWeight !== '600' && cs.fontWeight !== '700'; });
   }));
 
   console.log('\n2 · the three rungs');
@@ -80,7 +89,7 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   await page.waitForTimeout(1600);
   await page.evaluate(() => setView('register'));
   await page.waitForTimeout(900);
-  ok('survives a reload', (await page.evaluate(() => document.getElementById('reg-density').value)) === 'condensed');
+  ok('survives a reload', (await live()) === 'condensed');
   ok('and the rows really are condensed', (await rowH()) === 30, (await rowH()) + 'px');
 
   console.log('\n5 · one renderer, both pages');
