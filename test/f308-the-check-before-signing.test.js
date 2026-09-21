@@ -58,6 +58,11 @@ function bench(over = {}, ready = true){
      tests that are ABOUT the brief take it away or age it themselves. */
   if (!Object.prototype.hasOwnProperty.call(over, '_brief'))
     c._brief = { v: 1, at: new Date(Date.now() + 60000).toISOString(), by: 'Bench', truncated: false, data: {} };
+  /* AND IT HAS BEEN READ (21 Sep 2026). Reading the brief became the last
+     thing before a signature and it HOLDS, so a bench contract heading for
+     signature has read it — the same reasoning as the brief above. f353 drives
+     that row on its own; nothing here is about it. */
+  try{ if(win.briefMarkRead && c._brief) win.briefMarkRead(c, win.currentUser && win.currentUser()); }catch(_){}
   win.state = Object.assign({}, win.state, { contracts: [c], activeId: c.id, settings: win.state && win.state.settings || {} });
   win.getContract = id => (id === c.id ? c : null);
   win.canViewValues = () => true;

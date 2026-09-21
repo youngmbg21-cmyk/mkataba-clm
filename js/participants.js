@@ -360,7 +360,50 @@ function participantsWire(root, carrier, opts){
   });
 }
 
+/* ---- EVERYONE ELSE WHO SHOULD GET THIS ROUND (Young ruled 21 Sep 2026) ----
+   *"in Door B, you should be able to add multiple people to send the document
+   to."* The list is the contract's OWN people — participantSendRows, the other
+   side's, in the role menu's order — so a round goes to the people this
+   agreement has always been with rather than to an address typed again.
+
+   THE PRIMARY RECIPIENT IS NOT ON IT: the box above already names them, and a
+   tick beside their own address would be the same person twice. Matched by
+   ADDRESS, folded, because that is what a link is bound to.
+
+   ONE PURPOSE FOR THE WHOLE SEND. Which purpose each person's role would
+   prefer is on the row as a word, so a signer ticked on a negotiate round can
+   be seen to be getting a negotiate link — but the send has one purpose,
+   chosen once, above. A purpose per row is a different feature and the owner
+   has not ruled on it. */
+function shareMoreRowsHtml(c, purposeSel, primaryEmail){
+  if(purposeSel==='history') return '';
+  let rows=[]; try{ rows=(window.participantSendRows?participantSendRows(c):[])||[]; }catch(_){ rows=[]; }
+  const mine=String(primaryEmail||'').trim().toLowerCase();
+  rows=rows.filter(r=>r.email && r.email.toLowerCase()!==mine);
+  if(!rows.length) return '';
+  const LBL2='font-size:var(--t-label);color:var(--color-neutral-600)';
+  const list=rows.map(r=>`<label class="sh-more-r">
+      <input type="checkbox" data-sh-more="${_ptEsc(r.email)}" data-sh-more-name="${_ptEsc(r.name)}"/>
+      <span class="sh-more-n">${_ptEsc(r.name||r.email)}</span>
+      <span class="sh-more-e">${_ptEsc(r.email)}</span>
+      <span class="sh-more-w">${_ptEsc(participantRoleLabel(r.role))}</span>
+    </label>`).join('');
+  return `<div class="sh-more-box">
+    <div style="${LBL2};margin-bottom:6px">${_ptEsc(i18t('co_more_head'))}</div>
+    ${list}
+    <div style="${LBL2};margin-top:6px">${_ptEsc(i18t('co_more_note'))}</div>
+  </div>`;
+}
+/* Who was ticked, read at the PRESS — a listener bound once must not close
+   over the rows this paint happened to draw. */
+function shareMoreChosen(){
+  return [...document.querySelectorAll('[data-sh-more]:checked')].map(b=>({
+    email: b.getAttribute('data-sh-more')||'', name: b.getAttribute('data-sh-more-name')||'' }))
+    .filter(x=>/.+@.+\..+/.test(x.email));
+}
+
 if (typeof window !== 'undefined') Object.assign(window, {
+  shareMoreRowsHtml, shareMoreChosen,
   participantsPanelHtml, participantRowHtml, participantsWire, participantRoleOptions,
   participantAccessOptions, participantReachedWord, PT_IN,
   PARTY_SIDES, PARTY_ROLES, PARTY_ROLE_OF, PARTY_ACCESS, PARTY_ACCESS_OF, PARTY_ACCESS_DEFAULT,

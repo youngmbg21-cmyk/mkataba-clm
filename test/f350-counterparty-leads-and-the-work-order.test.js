@@ -152,24 +152,37 @@ describe('f350 (2) — a dropped connection is retried; a refusal is not', () =>
   });
 });
 
-describe('f350 (3) — the brief is the first button before signing', () => {
-  test('it is drawn in every state, and it is the card head’s own slot', () => {
-    const i = CT.indexOf('const runCtl=brief');
-    const w = CT.slice(i, i + 900);
-    assert.ok(i > 0, 'the control is built');
+describe('f350 (3) — the brief is the LAST button before signing', () => {
+  /* ---- REVERSED IN PLACE, 21 Sep 2026 ----
+     This file pinned the brief as the FIRST button on the card, in the head's
+     own slot, which is what the owner asked for on 17 Sep. He reversed it the
+     same week: *"write brief should be the last button clicked … It should not
+     be the first button in the signing page but last and mandatory."* Every
+     other claim below — drawn in every state, two acts and never absent, the
+     secondary button, the Overview card's own attribute, a sprite symbol that
+     exists — is untouched and is the half that still governs. */
+  const briefCtl = () => {
+    const i = CT.indexOf("id=\"sc-brief\"");
+    return i > 0 ? CT.slice(Math.max(0, i - 400), i + 500) : '';
+  };
+  test('it is drawn in every state, and it is the LAST stage\'s own act', () => {
+    const w = briefCtl();
+    assert.ok(w, 'the control is built');
     assert.match(w, /id="sc-brief"/);
     /* DRAWN WHATEVER THE BRIEF'S STATE: the only thing that branches is WHICH
        act it carries, never whether it is there. */
     assert.match(w, /data-kt-brief="\$\{briefStands\?'open':'run'\}"/,
       'one button, two acts, never absent');
-    /* THE CARD HEAD'S OWN SLOT: it is written into the head row, which is
-       emitted before `sc-finds` and therefore before every stage. */
+    /* THE LAST STAGE'S OWN ACT, and `sign` is last in SIGN_STAGES. */
+    assert.match(w, /st==='sign'/, 'it belongs to the last stage');
+    const SC = read('js/signcheck.js');
+    const stages = /const SIGN_STAGES = \[([^\]]*)\];/.exec(SC);
+    assert.ok(stages && /'sign'\s*\]?\s*$/.test(stages[1].trim()), 'which is last: ' + stages[1]);
+    /* AND THE CARD HEAD DRAWS NO CONTROL AT ALL: it carried this one and
+       nothing else. */
     const head = /<div class="kt-tri-head">([\s\S]*?)<\/div>/.exec(CT.slice(CT.indexOf('id="sign-check"')));
     assert.ok(head, 'the card head is readable');
-    assert.match(head[1], /\$\{runCtl\}/, 'and it sits in the card head, before every stage');
-    const body = CT.indexOf('sc-finds', CT.indexOf('id="sign-check"'));
-    assert.ok(body > CT.indexOf('${runCtl}', CT.indexOf('id="sign-check"')),
-      'the head is written before the stages');
+    assert.ok(!/<button/.test(head[1]), 'nothing is pressable in the head any more');
   });
 
   test('TWO DOORS, ONE ACT: it carries the Overview card’s own attribute', () => {
@@ -184,7 +197,7 @@ describe('f350 (3) — the brief is the first button before signing', () => {
   });
 
   test('it is the secondary button, never the filled one, and it says what it costs', () => {
-    const w = CT.slice(CT.indexOf('const runCtl=brief'), CT.indexOf('const runCtl=brief') + 900);
+    const w = briefCtl();
     assert.match(w, /class="sc-stage-act sc-brief"/, "the Run control's own clothes");
     assert.ok(!/ui-btn-primary/.test(w), 'one filled button per screen, and here that is Sign');
     assert.match(w, /sc_brief_title/, 'the cost rides the hover');

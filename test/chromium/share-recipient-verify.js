@@ -426,6 +426,48 @@ const ROUTE = [
       await page.screenshot({ path: path.join(OUT, '05-adviser-purpose.png') });
     }
 
+    /* ═══ THE SEND TAKES SEVERAL PEOPLE (Young ruled 21 Sep 2026) ═══
+       *"you should be able to add multiple people to send the document to."*
+       Measured on the REAL screen, because whether the ticks are painted and
+       whether the person already in the box is left off it are questions about
+       a rendered dialog. */
+    await page.evaluate(() => {
+      const c = window.getContract(window.state.activeId);
+      /* Guarded so this file still RUNS on a build without the list — a bench
+         that throws proves nothing about the checks under it. */
+      if (!window.participantAdd) return;
+      window.participantAdd(c, { name: 'Mara Kessler', email: 'mara@nordwind.de', role: 'negotiate' });
+      window.participantAdd(c, { name: 'Dr Vogt', email: 'vogt@legal.de', role: 'advise' });
+      window.persist(c);
+    });
+    await page.evaluate(() => { if (window.closeModal) closeModal(); });
+    await page.waitForTimeout(300);
+    await page.evaluate(() => openShareModal(window.getContract(window.state.activeId)));
+    await page.waitForTimeout(1200);
+    const more = await page.evaluate(() => {
+      const box = document.querySelector('.sh-more-box');
+      if (!box) return { drawn: false };
+      const r = box.getBoundingClientRect();
+      const ticks = [...box.querySelectorAll('[data-sh-more]')];
+      const first = ticks[0] ? ticks[0].getBoundingClientRect() : null;
+      return { drawn: r.width > 40 && r.height > 10, n: ticks.length,
+        tickable: !!first && first.width > 6 && first.height > 6,
+        who: ticks.map(t => t.getAttribute('data-sh-more')),
+        primary: (document.getElementById('sh-email') || {}).value || '',
+        /* The note is the LAST line of the box; slicing the whole box to 90
+           characters cut it off and the claim read the row list instead. */
+        note: ((box.lastElementChild || {}).textContent || '').replace(/\s+/g, ' ').trim() };
+    });
+    check('the send screen offers the contract\'s own people', more.drawn,
+      more.drawn ? more.n + ' offered: ' + (more.who || []).join(', ') : 'not drawn');
+    check('and each one is a real tick, painted', !!more.tickable,
+      more.tickable ? 'tickable' : 'no tick');
+    check('the person already in the box is not offered to themselves',
+      !!more.who && !more.who.some(e => e.toLowerCase() === String(more.primary).toLowerCase()),
+      'box: ' + more.primary + ' \u00b7 offered: ' + (more.who || []).join(', '));
+    check('it says each of them gets their own link',
+      /own link/i.test(more.note || ''), more.note || 'no note');
+
     check('no page errors on the desktop journey', errors.length === 0,
       errors.join(' | ') || 'clean');
 

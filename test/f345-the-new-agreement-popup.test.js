@@ -94,8 +94,14 @@ describe('f345 (3) the card is the existing door\'s own form, and this file mint
     assert.match(NA, /api=wizardFormMount\(hostOpts, id, prefill\)/);
     assert.match(NA, /api=\(typeof tplLibNewContract==='function'\)\?tplLibNewContract\(id, prefill, hostOpts\):null/);
     assert.match(NA, /api=\(typeof createFromCustomTemplate==='function'\)\?createFromCustomTemplate\(id, prefill, hostOpts\):null/);
-    assert.match(NA, /getElementById\('na-create'\)\?\.addEventListener\('click', \(\)=>\{ if\(api\) api\.create\(\)/);
-    assert.match(NA, /getElementById\('na-skip'\)\?\.addEventListener\('click', \(\)=>\{ if\(api\) api\.skip\(\)/);
+    /* RE-POINTED IN PLACE 21 Sep 2026: both presses go through one wrapper
+       now (goCreate), which marks the people named on this screen as claimed
+       before handing over — a hold spent by a creation must not be dropped by
+       the screen's own teardown. The CLAIM is unchanged: the foot presses the
+       chosen door's own act and this file mints nothing itself. */
+    assert.match(NA, /getElementById\('na-create'\)\?\.addEventListener\('click', goCreate\(\(\)=>api\.create\(\)\)\)/);
+    assert.match(NA, /getElementById\('na-skip'\)\?\.addEventListener\('click', goCreate\(\(\)=>api\.skip\(\)\)\)/);
+    assert.match(NA, /const goCreate=fn=>\(\)=>\{ if\(!api\)/, 'and the wrapper still refuses without a door');
   });
   test('each host form returns { create, skip, count } and keeps its own validation', () => {
     const ce = region(TF, 'openContractEssentials');

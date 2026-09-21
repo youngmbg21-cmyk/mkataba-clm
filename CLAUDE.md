@@ -1666,6 +1666,16 @@ Tests: f353 (22 claims, **16 red at the parent**; six are named CONTROLS), signi
 - The namespace is `ppl_`, not `pt_`: payment terms owns `pt_` and fourteen keys collided.
 Tests: f354 (32 claims, **27 red at the parent**; five are named WALLS). A missing module READS AS EMPTY there so the file still runs and reports a claim at a time. overview-as-drawn-verify section 11 (5 checks, **all 5 red**) and new-agreement-verify section 8 (6 checks, **4 red**; 8e and 8f are CONTROLS).
 
+## THE SEND SCREEN TAKES SEVERAL PEOPLE (Young ruled 21 Sep 2026)
+
+*"in Door B, you should be able to add multiple people to send the document to."*
+- **ONE SEND, ONE ROUND, SEVERAL LINKS.** Everything that happens once still happens once in `doSend` — the round, the handover, leaving Draft, the version capture — and `shareSendExtras` then posts one share per ticked person, AFTER the primary and only inside the branch that landed (a round nobody received is not one to copy to three more people). It advances nothing, hands nothing over and touches no stage; f355 greps it for all five.
+- **THE LIST IS THE CONTRACT'S OWN PEOPLE** (`shareMoreRowsHtml` over `participantSendRows`): the other side's, in the role menu's order, each saying which role they have. The primary recipient is NOT offered to themselves (matched by ADDRESS, folded, because that is what a link binds to). Never on the `history` kind — that one travels to a colleague.
+- **ONE AUDIT LINE PER ADDRESS**, because a link is a fact about one address; a refusal is COUNTED and SAID and cannot undo a round that has gone.
+- **ONE PURPOSE FOR THE WHOLE SEND.** A purpose per row would mean a signing link and an advise link in one press; it is a different feature and the owner has not ruled on it. Pinned as an absence.
+- **THE TWO BUILDERS LIVE IN js/participants.js**, not js/core.js: they are about the people, not the dialog, and that is what makes them drivable on a stage with no core.
+Tests: f355 (14 claims, **13 red at the parent**; the one that passes is a named WALL), share-recipient-verify's own section (4 checks, **all 4 red at the parent**, which prints `not drawn`). The bench is guarded so the file still runs on a build without the list.
+
 ## Line numbers drift
 
 Line numbers were verified 2026-08-03. Code moves — treat them as starting points, re-verify with grep, and UPDATE THIS MAP when the layout changes.

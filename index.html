@@ -3617,6 +3617,16 @@
      Overview draw the same rows, so a rule here reaches both. The sentence
      under a row says what the role fills in; it is part of the row, which is
      why it is a track of the row's own grid rather than a line beside it. */
+  /* Also send it to — the contract's own people, each with a tick. */
+  .sh-more-box{ margin-top:10px; padding:10px 12px; background:var(--color-bg);
+    border:1px solid var(--color-divider); border-radius:var(--radius); }
+  .sh-more-r{ display:flex; align-items:baseline; gap:8px; padding:3px 0;
+    font-size:var(--t-meta); cursor:pointer; }
+  .sh-more-n{ font-weight:var(--w-label); }
+  .sh-more-e{ color:var(--color-neutral-600); min-width:0; overflow:hidden;
+    text-overflow:ellipsis; white-space:nowrap; }
+  .sh-more-w{ margin-left:auto; font-size:var(--t-label); color:var(--color-neutral-500);
+    white-space:nowrap; }
   .na-people{ margin-top:14px; padding-top:12px; border-top:1px solid var(--color-divider); }
   .na-people > summary{ cursor:pointer; font-size:var(--t-label); font-weight:var(--w-label);
     color:var(--color-text); list-style:none; }

@@ -47,6 +47,9 @@ const SAME_IN_BOTH = new Set([
   'act_ok',               // 'OK' is 'OK' — the one dialog button that needs
                           // no translating in either language
   'nav_administration',   // identical spelling in Swedish
+  /* 'Person' is the same word in both languages — the head of the people
+     list's own first column, and its plural's singular form (21 Sep 2026). */
+  'ppl_name', 'ppl_n_one',
   'int_fr_read',          // 'Copilot' — the product's own name, on the graph node's fact row (A-1)
   'tb_copilot',           // 'Copilot' — the product's own name, on the template builder's rail (13 Sep 2026)
   'ap_clr_value_under',   // 'Under {amount}' — 'under' is the same preposition in

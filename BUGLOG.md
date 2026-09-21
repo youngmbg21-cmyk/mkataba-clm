@@ -18388,3 +18388,11 @@ Found while building:
 - Fourteen new keys collided with payment terms' own pt_ namespace; renamed to ppl_.
 
 Not built, and said to the owner: a role that names an approval step or a desk seat is RECORDED and printed, but does not yet feed the approval chain or claim a desk seat - both are rule-based today. The signing roles do fill the signing order's editor when it is empty.
+
+## 21 Sep 2026 — the send screen takes several people
+
+Young: "in Door B, you should be able to add multiple people to send the document to."
+
+One send, one round, several links: everything that happens once still happens once, and each person ticked gets a link of their own with its own audit line. The list offered is the contract's own people, so a round goes to the people the agreement has always been with rather than to an address typed again.
+
+Not built, and said to the owner: a purpose per row. That would put a signing link and an advise link in one press, and he has not ruled on it - the whole send has one purpose, chosen once.

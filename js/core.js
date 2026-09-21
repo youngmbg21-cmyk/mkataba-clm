@@ -3799,6 +3799,31 @@ function sharePurposePickerHtml(c, sel, o={}){
    they travelled — two boxes for one sentence. This is the box; on one screen
    it sits under the recipient, on the two-screen shape where it always was.
    The id stays `sh-summary` so every reader of it is unchanged. */
+/* THE EXTRA LINKS. One POST per person, the product's own route, each with
+   its own audit line. It never advances a round, never hands over, never
+   touches the contract's stage: doSend has done all of that once, which is the
+   whole point. A failure is counted and reported rather than thrown, so one
+   bad address cannot undo a round that has already gone. */
+async function shareSendExtras(c, o){
+  const extra=(typeof shareMoreChosen==='function')?shareMoreChosen():[];
+  if(!extra.length) return { sent:0, failed:0 };
+  let sent=0, failed=0;
+  for(const p of extra){
+    try{
+      await api('shares','POST',{ payload:o.payloadObj, channel:o.ch, message:o.msg,
+        recipient:{ name:p.name, email:p.email, phone:'' },
+        expiryDays:o.expiryDays, durable:o.durable, purpose:o.payloadObj.purpose });
+      logAudit(c,'Shared',`Sent to ${p.name||p.email} to ${p.email} via ${o.ch}${
+        o.purposeSel==='sign'?' (signing link)':''}`);
+      sent++;
+    }catch(_){ failed++; }
+  }
+  if(sent) persist(c);
+  /* A CAP OR A FAILURE IS A FACT, NEVER A SILENT TRIM. */
+  if(failed) toast(i18tn('co_more_failed',failed,{n:failed}),'warn');
+  else if(sent) toast(i18tn('co_more_sent',sent,{n:sent}),'ok');
+  return { sent, failed };
+}
 function shareNoteBoxHtml(c, hist){
   return `<label style="display:block"><span id="sh-summary-label" style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em;">${
         hist?i18t('co_note_with_record')
@@ -5351,6 +5376,16 @@ async function openShareModal(c, opts={}){
           <label id="sh-email-wrap"><span style="${LBL}">${i18t('co_email_req')}</span><input id="sh-email" type="email" data-prefill-src="${attr(pre.source||'')}" value="${attr(pre.email)}" placeholder="them@company.co.ke" style="${FLD}"/></label>
           <label id="sh-phone-wrap" class="hidden"><span style="${LBL}">${i18t('co_whatsapp_number')}</span><input id="sh-phone" type="tel" value="${attr(pre.phone)}" placeholder="+254 7…" style="${FLD}"/></label>
         </div>
+        ${''/* ---- AND EVERYONE ELSE WHO SHOULD GET IT (Young ruled 21 Sep
+               2026: *"in Door B, you should be able to add multiple people to
+               send the document to"*) ----
+               The people already named on this contract, each with a tick.
+               ONE SEND, ONE ROUND, SEVERAL LINKS: everything that happens once
+               — the round, the handover, leaving Draft — happens once, and
+               each person named here gets a link of their own addressed to
+               them. Drawn only where somebody has been named, and never on the
+               record kind, which travels to a colleague. */}
+        <div id="sh-more">${(typeof shareMoreRowsHtml==='function')?shareMoreRowsHtml(c, purposeSel, pre.email):''}</div>
         <div style="margin-top:10px">${shareNoteBoxHtml(c, purposeSel==='history')}</div>
         ${''/* ---- A BOX MUST SAY WHERE WHAT YOU TYPE IN IT GOES (13 Aug 2026),
                and since the diet it says so ONLY where the answer is nowhere:
@@ -6162,6 +6197,16 @@ async function openShareModal(c, opts={}){
       logAudit(c,'Shared',`${reuse?`Published to ${rcptLabel}'s existing link`:`Sent to ${rcptLabel}`}${addr} via ${ch==='link'?'link':ch}${purposeSel==='sign'?' (signing link)':''}${msg?' with a message':''}`);
       persist(c); renderAuditSection(c);
       refreshShareOverview(); renderSharesSection(c);
+      /* ---- AND EVERYONE ELSE WHO WAS TICKED (Young ruled 21 Sep 2026) ----
+         ONE SEND, ONE ROUND, SEVERAL LINKS. Everything above happens ONCE —
+         the round, the handover, leaving Draft, the version capture — and each
+         extra person gets a link of their own, addressed to them, with the
+         same payload and the same purpose. AFTER the primary and only if it
+         landed: a round nobody received is not a round to copy to three more
+         people. Each writes its own audit line, because a link is a fact about
+         one address; a refusal is COUNTED and SAID, never swallowed. */
+      await shareSendExtras(c, { ch, msg, payloadObj, purposeSel,
+        expiryDays:Number(fval('sh-exp'))||14, durable:wantDurable });
       if(typeof opts.onSent==='function')
         try{ opts.onSent({ channel:ch, recipient:rcptLabel, link:r.link||null,
           emailSent:!!r.emailSent, emailConfigured:!!r.emailConfigured }); }catch(e){}
@@ -7451,4 +7496,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{cpReadyToSign,READY_META,READY_META_SHORT,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{cpReadyToSign,READY_META,READY_META_SHORT,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});
