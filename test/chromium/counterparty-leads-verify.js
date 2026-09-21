@@ -225,7 +225,7 @@ const check = (name, ok, detail) => {
     await page.evaluate(() => { document.querySelectorAll('.hati-selmenu').forEach(x => x.remove());
       const m = document.getElementById('modal-root'); if (m) m.innerHTML = ''; });
 
-    /* ============ 4 · THE BRIEF IS THE FIRST BUTTON BEFORE SIGNING ======== */
+    /* ============ 4 · THE BRIEF IS THE LAST BUTTON BEFORE SIGNING ========= */
     const id = await page.evaluate(() => (state.contracts || [])[0] && state.contracts[0].id);
     await page.evaluate(i => openWorkspace(i), id);
     await page.waitForTimeout(800);
@@ -249,8 +249,15 @@ const check = (name, ok, detail) => {
         mark: !!sym, markW: Math.round(b.querySelector('svg').getBoundingClientRect().width) };
     });
     check('4a the brief carries a button of its own on Before you sign', B.drawn, JSON.stringify(B));
-    check('4b it is the FIRST button on the card, before every stage',
-      B.drawn && B.beforeRun && B.beforeStages, `y ${B.y} · before run ${B.beforeRun} · before stages ${B.beforeStages}`);
+    /* REVERSED IN PLACE 21 Sep 2026, on Young's word: "write brief should be the
+       LAST button clicked ... not the first button in the signing page but last
+       and mandatory". The old claim (first on the card, before every stage) is
+       kept here because its reasoning is what makes this safe: the brief is a
+       press that SPENDS, so it must be somewhere a reader arrives at on purpose.
+       First, it was the thing you met before you had read anything; last, it is
+       the thing you meet once everything else is settled — and it HOLDS. */
+    check('4b it is the LAST button on the card, after every stage',
+      B.drawn && !B.beforeRun && !B.beforeStages, `y ${B.y} · before run ${B.beforeRun} · before stages ${B.beforeStages}`);
     check('4c it presses the act the Overview card owns, never a second one',
       B.drawn && /^(run|open)$/.test(B.act || ''), B.act);
     check('4d it is the secondary button, never the filled one',
