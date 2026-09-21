@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <!-- Fonts are pre-fetched and injected as deterministic @font-face by the hyperframes compiler
+         (from the font-family names used below); no runtime Google Fonts request. -->
+    <script src="assets/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      :root {
+        --teal-900:#062825; --teal-800:#093733; --teal-700:#0B4A45; --teal-600:#0E5F58;
+        --teal-500:#2E8C82; --teal-400:#5EC2B3; --mint-100:#E1F0ED; --mint-50:#F0F7F5;
+        --ink:#1B2A28; --ink-2:#5F6D6B; --paper:#FFFDF9; --grey:#F4F6F5;
+        --amber-fg:#A24E07; --amber-bg:#FBE5D2; --ruby:#B0241F;
+        --sans:"IBM Plex Sans", system-ui, -apple-system, sans-serif;
+        --mono:"IBM Plex Mono", ui-monospace, monospace;
+        --serif:"Source Serif 4", Georgia, "Times New Roman", serif;
+        --script:"Great Vibes", cursive;
+      }
+      html, body { width:1920px; height:1080px; overflow:hidden; background:#062825; }
+      #root { width:100%; height:100%; position:relative; font-family:var(--sans); color:var(--ink); }
+      .clip { position:absolute; inset:0; opacity:0; }
+      .fill { position:absolute; inset:0; }
+
+      /* ---- shared bits ---- */
+      .kicker { font-family:var(--mono); font-weight:600; letter-spacing:.18em; text-transform:uppercase; font-size:20px; }
+      .headline { font-weight:600; letter-spacing:-.02em; line-height:1.05; }
+      .sub { color:var(--ink-2); font-weight:400; }
+
+      /* ===== S1 : paper + redline ===== */
+      #s1 { background: radial-gradient(120% 120% at 50% 0%, #0B4A45 0%, #093733 55%, #062825 100%); }
+      #s1 .paper {
+        position:absolute; left:510px; top:210px; width:900px; height:520px; background:var(--paper);
+        border-radius:0; box-shadow:0 40px 90px rgba(0,0,0,.45), 0 2px 0 rgba(0,0,0,.05);
+        padding:64px 72px; color:var(--ink); font-family:var(--serif);
+      }
+      #s1 .p-tag { font-family:var(--mono); font-size:15px; letter-spacing:.16em; text-transform:uppercase; color:var(--teal-600); }
+      #s1 .p-h { font-family:var(--serif); font-weight:600; font-size:40px; margin-top:14px; }
+      #s1 .p-body { font-family:var(--serif); font-size:30px; line-height:1.7; margin-top:26px; color:#22322F; }
+      #s1 .strike-wrap { position:relative; display:inline-block; color:var(--ruby); }
+      #s1 .strike-line { position:absolute; left:-2px; top:52%; height:3px; width:calc(100% + 4px); background:var(--ruby); transform:scaleX(0); transform-origin:left center; }
+      #s1 .ins { color:var(--teal-600); border-bottom:3px solid var(--teal-500); font-weight:600; display:inline-block; }
+      #s1 .p-line2 { margin-top:10px; color:#4A5654; font-size:26px; }
+      #s1 .hook { position:absolute; left:0; right:0; bottom:110px; text-align:center; color:#EAF6F3; }
+      #s1 .hook .headline { font-size:56px; }
+
+      /* ===== S2 : copilot brief ===== */
+      #s2 { background:var(--grey); }
+      #s2 .rail { position:absolute; left:0; top:0; bottom:0; width:96px; background:var(--teal-800); }
+      #s2 .rail .dot { position:absolute; left:34px; width:28px; height:28px; border-radius:50%; background:var(--teal-400); }
+      #s2 .head { position:absolute; left:190px; top:150px; }
+      #s2 .head .kicker { color:var(--teal-600); }
+      #s2 .head .headline { font-size:60px; margin-top:16px; }
+      #s2 .head .sub { font-size:34px; margin-top:10px; }
+      #s2 .card {
+        position:absolute; left:190px; top:430px; width:1120px; background:#fff; border-radius:12px;
+        box-shadow:0 24px 60px rgba(9,55,51,.12); border:1px solid #E4EAE8; padding:40px 44px;
+      }
+      #s2 .c-top { display:flex; align-items:center; gap:16px; }
+      #s2 .c-top .bdot { width:14px; height:14px; border-radius:50%; background:var(--teal-600); }
+      #s2 .c-top .clbl { font-family:var(--mono); font-size:17px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-2); }
+      #s2 .c-title { font-size:38px; font-weight:600; margin-top:20px; color:var(--ink); }
+      #s2 .flags { display:flex; gap:18px; margin-top:34px; }
+      #s2 .flag {
+        font-family:var(--sans); font-weight:600; font-size:26px; color:var(--amber-fg);
+        background:var(--amber-bg); border:1px solid #F1C9A6; border-radius:999px; padding:14px 26px;
+        display:flex; align-items:center; gap:12px; opacity:0;
+      }
+      #s2 .flag .tri { width:0; height:0; border-left:9px solid transparent; border-right:9px solid transparent; border-bottom:15px solid var(--amber-fg); }
+
+      /* ===== S3 : negotiate ===== */
+      #s3 { background:var(--grey); }
+      #s3 .head { position:absolute; left:190px; top:150px; }
+      #s3 .head .kicker { color:var(--teal-600); }
+      #s3 .head .headline { font-size:60px; margin-top:16px; }
+      #s3 .head .sub { font-size:34px; margin-top:10px; }
+      #s3 .card {
+        position:absolute; left:190px; top:410px; width:1180px; background:#fff; border-radius:12px;
+        box-shadow:0 24px 60px rgba(9,55,51,.12); border:1px solid #E4EAE8; padding:40px 44px; overflow:hidden;
+      }
+      #s3 .accent { position:absolute; left:0; top:0; bottom:0; width:6px; background:var(--ruby); }
+      #s3 .accent2 { position:absolute; left:0; top:0; bottom:0; width:6px; background:var(--teal-600); opacity:0; }
+      #s3 .c-lbl { font-family:var(--mono); font-size:17px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-2); }
+      #s3 .clause { font-family:var(--serif); font-size:32px; line-height:1.6; margin-top:22px; color:#22322F; max-width:760px; }
+      #s3 .del { color:var(--ruby); text-decoration:line-through; }
+      #s3 .ins { color:var(--teal-600); border-bottom:3px solid var(--teal-500); font-weight:600; }
+      #s3 .btns { position:absolute; right:44px; top:120px; display:flex; flex-direction:column; gap:18px; align-items:stretch; width:280px; }
+      #s3 .btn { border-radius:10px; font-weight:600; font-size:28px; padding:20px 0; text-align:center; }
+      #s3 .btn-accept { background:var(--teal-600); color:#fff; }
+      #s3 .btn-counter { background:#fff; color:var(--ink); border:1.5px solid #CBD5D2; }
+      #s3 .badge {
+        position:absolute; right:44px; top:120px; width:280px; text-align:center; padding:20px 0; border-radius:10px;
+        background:var(--teal-600); color:#fff; font-weight:600; font-size:26px; opacity:0;
+      }
+      #s3 .cursor { position:absolute; width:30px; height:30px; opacity:0; }
+      #s3 .cursor svg { display:block; }
+
+      /* ===== S4 : portfolio graph ===== */
+      #s4 { background: radial-gradient(120% 120% at 50% 30%, #0B4A45 0%, #093733 60%, #062825 100%); color:#EAF6F3; }
+      #s4 .head { position:absolute; left:0; right:0; top:120px; text-align:center; }
+      #s4 .head .kicker { color:var(--teal-400); }
+      #s4 .head .headline { font-size:58px; margin-top:14px; color:#EAF6F3; }
+      #s4 .head .sub { font-size:32px; margin-top:8px; color:#AFD8D1; }
+      #s4 .stage { position:absolute; inset:0; }
+      #s4 .ring { position:absolute; width:230px; height:230px; border-radius:50%; border:1.5px dashed rgba(94,194,179,.4); opacity:0; }
+      #s4 .hublbl { position:absolute; font-family:var(--mono); font-size:22px; letter-spacing:.12em; text-transform:uppercase; color:var(--teal-400); opacity:0; transform:translate(-50%,0); }
+      #s4 .node { position:absolute; width:26px; height:26px; border-radius:50%; background:var(--teal-400); box-shadow:0 0 0 6px rgba(94,194,179,.16); opacity:0; }
+      #s4 .ask {
+        position:absolute; left:50%; bottom:150px; transform:translateX(-50%); opacity:0;
+        font-family:var(--mono); font-size:26px; color:#Dff1ee; background:rgba(255,255,255,.08);
+        border:1px solid rgba(94,194,179,.5); border-radius:999px; padding:16px 30px;
+      }
+      #s4 .ask .car { color:var(--teal-400); }
+
+      /* ===== S5 : sign + seal ===== */
+      #s5 { background: radial-gradient(120% 120% at 50% 0%, #0B4A45 0%, #093733 60%, #062825 100%); }
+      #s5 .paper {
+        position:absolute; left:560px; top:250px; width:800px; height:440px; background:var(--paper);
+        border-radius:0; box-shadow:0 40px 90px rgba(0,0,0,.45); padding:56px 64px; color:var(--ink); font-family:var(--serif);
+      }
+      #s5 .s-tag { font-family:var(--mono); font-size:15px; letter-spacing:.16em; text-transform:uppercase; color:var(--teal-600); }
+      #s5 .s-h { font-family:var(--serif); font-weight:600; font-size:34px; margin-top:12px; }
+      #s5 .sigrow { position:absolute; left:64px; bottom:150px; }
+      #s5 .sig-label { font-family:var(--mono); font-size:15px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-2); }
+      #s5 .sig-wrap { height:96px; width:0; overflow:hidden; }
+      #s5 .sig { font-family:var(--script); font-size:82px; line-height:96px; color:#12332F; white-space:nowrap; }
+      #s5 .sig-rule { width:360px; height:2px; background:#B9C4C1; margin-top:2px; }
+      #s5 .seal {
+        position:absolute; left:1150px; top:470px; width:300px; background:var(--teal-700); color:#EAF6F3;
+        border-radius:0; padding:26px 28px; box-shadow:0 24px 60px rgba(0,0,0,.4); opacity:0;
+      }
+      #s5 .seal .lockrow { display:flex; align-items:center; gap:14px; }
+      #s5 .seal .lock { width:26px; height:26px; }
+      #s5 .seal .st { font-family:var(--mono); font-weight:600; letter-spacing:.14em; font-size:20px; }
+      #s5 .seal .hash { font-family:var(--mono); font-size:22px; margin-top:16px; color:#BFE6DF; letter-spacing:.04em; }
+      #s5 .seal .sealed { font-family:var(--mono); font-size:18px; margin-top:12px; color:var(--teal-400); letter-spacing:.14em; text-transform:uppercase; }
+      #s5 .cap { position:absolute; left:0; right:0; bottom:96px; text-align:center; color:#EAF6F3; }
+      #s5 .cap .headline { font-size:52px; }
+
+      /* ===== S6 : outro ===== */
+      #s6 { background: radial-gradient(120% 120% at 50% 40%, #0B4A45 0%, #093733 58%, #062825 100%); }
+      #s6 .wrap { position:absolute; left:0; right:0; top:360px; text-align:center; color:#F1FAF8; }
+      #s6 .mark { font-weight:700; font-size:150px; letter-spacing:-.02em; }
+      #s6 .uline { height:8px; width:0; background:var(--teal-400); margin:18px auto 0; }
+      #s6 .tag { font-family:var(--mono); font-size:26px; letter-spacing:.28em; text-transform:uppercase; color:#AFD8D1; margin-top:34px; opacity:0; }
+      #s6 .close { font-size:38px; color:#Dff1ee; margin-top:26px; opacity:0; font-weight:400; }
+      #s6 .chip { display:inline-block; margin-top:30px; font-family:var(--mono); font-size:20px; letter-spacing:.14em; text-transform:uppercase;
+        color:var(--teal-400); border:1px solid rgba(94,194,179,.5); border-radius:999px; padding:12px 24px; opacity:0; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="21" data-width="1920" data-height="1080">
+
+      <!-- S1 -->
+      <section id="s1" class="clip" data-start="0" data-duration="3.6" data-track-index="0">
+        <div class="paper" id="s1paper">
+          <div class="p-tag">Distributor Agreement · Clause</div>
+          <div class="p-h">4. Payment Terms</div>
+          <div class="p-body">
+            Payment shall be due within
+            <span class="strike-wrap">sixty (60)<span class="strike-line" id="s1strike"></span></span>
+            <span class="ins" id="s1ins">thirty (30)</span> days
+          </div>
+          <div class="p-line2">of the date of the applicable invoice.</div>
+        </div>
+        <div class="hook" id="s1hook"><div class="headline">Every contract. Every clause. Handled.</div></div>
+      </section>
+
+      <!-- S2 -->
+      <section id="s2" class="clip" data-start="3.3" data-duration="4.0" data-track-index="1">
+        <div class="rail"><div class="dot" id="s2dot" style="top:150px"></div></div>
+        <div class="head">
+          <div class="kicker" id="s2k">HaTi Copilot</div>
+          <div class="headline" id="s2h">Copilot read all 30 contracts.</div>
+          <div class="sub" id="s2s">Here's exactly what needs you.</div>
+        </div>
+        <div class="card" id="s2card">
+          <div class="c-top"><span class="bdot"></span><span class="clbl">Copilot brief</span></div>
+          <div class="c-title" id="s2ct">Distributor Agreement — Naivas</div>
+          <div class="flags">
+            <div class="flag" id="s2f1"><span class="tri"></span>Foreign governing law</div>
+            <div class="flag" id="s2f2"><span class="tri"></span>Auto-renewal</div>
+            <div class="flag" id="s2f3"><span class="tri"></span>Stamp duty</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- S3 -->
+      <section id="s3" class="clip" data-start="7.0" data-duration="4.0" data-track-index="2">
+        <div class="head">
+          <div class="kicker" id="s3k">Negotiate</div>
+          <div class="headline" id="s3h">Redline, counter, agree.</div>
+          <div class="sub" id="s3s">Every round on the record.</div>
+        </div>
+        <div class="card" id="s3card">
+          <div class="accent"></div>
+          <div class="accent2" id="s3accent2"></div>
+          <div class="c-lbl">Change · CHG-014 · Clause 9 Liability</div>
+          <div class="clause" id="s3clause">
+            Liability shall be capped at
+            <span class="del" id="s3del">100%</span>
+            <span class="ins" id="s3ins">150%</span>
+            of fees paid in the prior 12 months.
+          </div>
+          <div class="btns" id="s3btns">
+            <div class="btn btn-accept">Accept</div>
+            <div class="btn btn-counter">Counter</div>
+          </div>
+          <div class="badge" id="s3badge">Accepted · Round 2</div>
+          <div class="cursor" id="s3cursor">
+            <svg width="30" height="30" viewBox="0 0 24 24"><path d="M4 2 L4 20 L9 15 L12 22 L15 21 L12 14 L19 14 Z" fill="#0B4A45" stroke="#fff" stroke-width="1.2"/></svg>
+          </div>
+        </div>
+      </section>
+
+      <!-- S4 -->
+      <section id="s4" class="clip" data-start="10.7" data-duration="4.0" data-track-index="3">
+        <div class="head">
+          <div class="kicker" id="s4k">Portfolio Intelligence</div>
+          <div class="headline" id="s4h">See the whole book.</div>
+          <div class="sub" id="s4s">Ask it anything.</div>
+        </div>
+        <div class="stage" id="s4stage">
+          <div class="ring" id="s4r1"></div>
+          <div class="ring" id="s4r2"></div>
+          <div class="ring" id="s4r3"></div>
+          <div class="hublbl" id="s4l1">Procurement</div>
+          <div class="hublbl" id="s4l2">Distribution</div>
+          <div class="hublbl" id="s4l3">Corporate</div>
+        </div>
+        <div class="ask" id="s4ask"><span class="car">&gt;</span> group by counterparty</div>
+      </section>
+
+      <!-- S5 -->
+      <section id="s5" class="clip" data-start="14.4" data-duration="4.0" data-track-index="4">
+        <div class="paper" id="s5paper">
+          <div class="s-tag">Executed copy · Frozen at signature</div>
+          <div class="s-h">Distribution &amp; Supply Agreement</div>
+          <div class="sigrow">
+            <div class="sig-label">Signed for the Company</div>
+            <div class="sig-wrap" id="s5sigwrap"><div class="sig">J. Kamau</div></div>
+            <div class="sig-rule"></div>
+          </div>
+        </div>
+        <div class="seal" id="s5seal">
+          <div class="lockrow">
+            <svg class="lock" viewBox="0 0 24 24" fill="none"><rect x="4.5" y="10.5" width="15" height="10.5" rx="1.5" fill="#5EC2B3"/><path d="M7.5 10.5 V7.5 a4.5 4.5 0 0 1 9 0 V10.5" stroke="#5EC2B3" stroke-width="2" fill="none"/></svg>
+            <span class="st">SHA-256</span>
+          </div>
+          <div class="hash" id="s5hash">9f2a·4e1b·…·c714</div>
+          <div class="sealed">Sealed</div>
+        </div>
+        <div class="cap" id="s5cap"><div class="headline">Signed. Sealed with SHA-256.</div></div>
+      </section>
+
+      <!-- S6 -->
+      <section id="s6" class="clip" data-start="18.1" data-duration="2.9" data-track-index="5">
+        <div class="wrap">
+          <div class="mark" id="s6mark">HaTi</div>
+          <div class="uline" id="s6ul"></div>
+          <div class="tag" id="s6tag">Contract Lifecycle Management</div>
+          <div class="close" id="s6close">The whole lifecycle, in one place.</div>
+          <div><span class="chip" id="s6chip">Built for Kenya</span></div>
+        </div>
+      </section>
+
+      <!-- audio -->
+      <audio id="bed" src="assets/music/bed.mp3" data-start="0" data-duration="21" data-volume="0.6" data-track-index="6"></audio>
+      <audio id="sfxclick" src="assets/click.ogg" data-start="9.0" data-duration="0.5" data-volume="0.5" data-track-index="7"></audio>
+      <audio id="sfxseal" src="assets/seal.ogg" data-start="16.55" data-duration="0.49" data-volume="0.6" data-track-index="8"></audio>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+
+      // ---------- scene fades (opacity managed by GSAP; CSS default is 0) ----------
+      function scene(id, tin, tout){
+        tl.to(id, { opacity:1, duration:0.35, ease:"power2.out" }, tin);
+        if (tout != null) tl.to(id, { opacity:0, duration:0.3, ease:"power2.in" }, tout);
+      }
+      scene("#s1", 0.0, 3.3);
+      scene("#s2", 3.3, 7.0);
+      scene("#s3", 7.0, 10.7);
+      scene("#s4", 10.7, 14.4);
+      scene("#s5", 14.4, 18.1);
+      scene("#s6", 18.1, null);
+
+      // ================= S1 : paper + redline =================
+      gsap.set("#s1paper", { opacity:0, y:46, scale:0.985 });
+      gsap.set("#s1ins", { opacity:0, x:-14 });
+      gsap.set("#s1hook", { opacity:0, y:20 });
+      tl.to("#s1paper", { opacity:1, y:0, scale:1, duration:0.7, ease:"power3.out" }, 0.15);
+      tl.to("#s1strike", { scaleX:1, duration:0.4, ease:"power2.inOut" }, 1.05); // beat-locked
+      tl.to("#s1ins", { opacity:1, x:0, duration:0.45, ease:"power2.out" }, 1.5);
+      tl.to("#s1hook", { opacity:1, y:0, duration:0.6, ease:"power3.out" }, 2.05);
+
+      // ================= S2 : copilot brief =================
+      gsap.set(["#s2k","#s2h","#s2s"], { opacity:0, y:22 });
+      gsap.set("#s2card", { opacity:0, y:34 });
+      gsap.set("#s2ct", { opacity:0, y:14 });
+      gsap.set(["#s2f1","#s2f2","#s2f3"], { opacity:0, y:16, scale:0.9 });
+      tl.to("#s2k", { opacity:1, y:0, duration:0.4 }, 3.5);
+      tl.to("#s2h", { opacity:1, y:0, duration:0.5, ease:"power3.out" }, 3.65);
+      tl.to("#s2card", { opacity:1, y:0, duration:0.5, ease:"power3.out" }, 3.9);
+      tl.to("#s2ct", { opacity:1, y:0, duration:0.4 }, 4.15);
+      tl.to("#s2f1", { opacity:1, y:0, scale:1, duration:0.32, ease:"back.out(1.6)" }, 4.55); // beat-locked
+      tl.to("#s2f2", { opacity:1, y:0, scale:1, duration:0.32, ease:"back.out(1.6)" }, 4.95);
+      tl.to("#s2f3", { opacity:1, y:0, scale:1, duration:0.32, ease:"back.out(1.6)" }, 5.35);
+      tl.to("#s2s", { opacity:1, y:0, duration:0.5 }, 5.75);
+
+      // ================= S3 : negotiate =================
+      gsap.set(["#s3k","#s3h","#s3s"], { opacity:0, y:22 });
+      gsap.set("#s3card", { opacity:0, y:34 });
+      gsap.set("#s3ins", { opacity:0, x:-10 });
+      gsap.set("#s3btns", { opacity:0, y:12 });
+      gsap.set("#s3cursor", { opacity:0, x:120, y:120 });
+      tl.to("#s3k", { opacity:1, y:0, duration:0.4 }, 7.2);
+      tl.to("#s3h", { opacity:1, y:0, duration:0.5, ease:"power3.out" }, 7.32);
+      tl.to("#s3card", { opacity:1, y:0, duration:0.5, ease:"power3.out" }, 7.55);
+      tl.to("#s3ins", { opacity:1, x:0, duration:0.4 }, 8.0);
+      tl.to("#s3btns", { opacity:1, y:0, duration:0.4 }, 8.2);
+      // cursor moves to Accept, presses
+      tl.to("#s3cursor", { opacity:1, duration:0.2 }, 8.5);
+      tl.to("#s3cursor", { x:815, y:78, duration:0.5, ease:"power2.inOut" }, 8.55);
+      tl.to("#s3cursor", { scale:0.86, duration:0.1, ease:"power1.in" }, 9.0); // press (click sfx)
+      tl.to("#s3cursor", { scale:1, duration:0.14, ease:"power1.out" }, 9.1);
+      // accept -> teal + badge; buttons fade to badge
+      tl.to("#s3btns", { opacity:0, duration:0.25 }, 9.12);
+      tl.to("#s3accent2", { opacity:1, duration:0.3 }, 9.12);
+      tl.fromTo("#s3badge", { opacity:0, y:10, scale:0.94 }, { opacity:1, y:0, scale:1, duration:0.4, ease:"back.out(1.7)" }, 9.2);
+      tl.to("#s3cursor", { opacity:0, duration:0.3 }, 9.5);
+      tl.to("#s3s", { opacity:1, y:0, duration:0.5 }, 9.8);
+
+      // ================= S4 : portfolio graph =================
+      gsap.set(["#s4k","#s4h","#s4s"], { opacity:0, y:22 });
+      tl.to("#s4k", { opacity:1, y:0, duration:0.4 }, 10.9);
+      tl.to("#s4h", { opacity:1, y:0, duration:0.5, ease:"power3.out" }, 11.02);
+      tl.to("#s4s", { opacity:1, y:0, duration:0.45 }, 11.2);
+
+      // hubs
+      var hubs = [ {x:620,y:600}, {x:960,y:660}, {x:1320,y:560} ];
+      var rings = ["#s4r1","#s4r2","#s4r3"], labels=["#s4l1","#s4l2","#s4l3"];
+      for (var h=0; h<3; h++){
+        gsap.set(rings[h], { left:(hubs[h].x-115)+"px", top:(hubs[h].y-115)+"px" });
+        gsap.set(labels[h], { left:hubs[h].x+"px", top:(hubs[h].y+135)+"px" });
+      }
+      // 12 nodes, 4 per hub; fixed offsets (deterministic)
+      var offs = [ [-64,-40],[58,-58],[-48,58],[70,44] ];
+      var stage = document.getElementById("s4stage");
+      var nodeIds = [];
+      for (var c=0; c<3; c++){
+        for (var k=0; k<4; k++){
+          var ex = hubs[c].x + offs[k][0] - 13;
+          var ey = hubs[c].y + offs[k][1] - 13;
+          var n = document.createElement("div");
+          n.className = "node";
+          n.id = "n"+c+k;
+          n.style.left = ex+"px"; n.style.top = ey+"px";
+          stage.appendChild(n);
+          // start bunched near center cloud (940,500) -> delta from home
+          var dx = (940 - (hubs[c].x + offs[k][0])) + (k*9 - 14);
+          var dy = (500 - (hubs[c].y + offs[k][1])) + (c*8 - 8);
+          gsap.set("#"+n.id, { x:dx, y:dy, opacity:0, scale:0.6 });
+          nodeIds.push({ id:"#"+n.id, t: 11.35 + (c*0.06) + (k*0.05) });
+        }
+      }
+      // appear scattered, then converge
+      nodeIds.forEach(function(o){
+        tl.to(o.id, { opacity:1, scale:1, duration:0.3, ease:"power2.out" }, o.t);
+        tl.to(o.id, { x:0, y:0, duration:0.85, ease:"power3.inOut" }, 11.95 + (o.t-11.35));
+      });
+      // rings + labels settle in
+      tl.to(rings, { opacity:1, duration:0.5, ease:"power2.out" }, 12.7);
+      tl.to(labels, { opacity:1, duration:0.5, ease:"power2.out" }, 12.95);
+      // ask box
+      gsap.set("#s4ask", { y:16 });
+      tl.to("#s4ask", { opacity:1, y:0, duration:0.5, ease:"power3.out" }, 13.35); // beat-locked
+
+      // ================= S5 : sign + seal =================
+      gsap.set("#s5paper", { opacity:0, y:34, scale:0.99 });
+      gsap.set("#s5cap", { opacity:0, y:18 });
+      tl.to("#s5paper", { opacity:1, y:0, scale:1, duration:0.55, ease:"power3.out" }, 14.55);
+      // signature reveal via width
+      tl.to("#s5sigwrap", { width:392, duration:0.85, ease:"power2.inOut" }, 15.35);
+      // seal drop + lock (seal sfx at 16.55)
+      gsap.set("#s5seal", { y:-40, scale:0.92 });
+      tl.to("#s5seal", { opacity:1, y:0, scale:1, duration:0.5, ease:"back.out(1.6)" }, 16.55); // beat-locked
+      gsap.set("#s5hash", { opacity:0 });
+      tl.to("#s5hash", { opacity:1, duration:0.4 }, 16.95);
+      tl.to("#s5cap", { opacity:1, y:0, duration:0.55, ease:"power3.out" }, 17.5);
+
+      // ================= S6 : outro =================
+      gsap.set("#s6mark", { opacity:0, y:34, scale:0.96 });
+      tl.to("#s6mark", { opacity:1, y:0, scale:1, duration:0.6, ease:"power3.out" }, 18.25);
+      tl.to("#s6ul", { width:250, duration:0.5, ease:"power2.out" }, 18.8);
+      tl.to("#s6tag", { opacity:1, duration:0.5 }, 19.15);
+      tl.to("#s6close", { opacity:1, duration:0.5 }, 19.55);
+      tl.fromTo("#s6chip", { opacity:0, y:12 }, { opacity:1, y:0, duration:0.45, ease:"back.out(1.6)" }, 19.95);
+
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>
