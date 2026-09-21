@@ -3592,6 +3592,26 @@
   .sec-f-c{ font-style:normal; font-family:var(--font-code); font-size:var(--t-label);
     font-weight:var(--w-body); color:var(--accent-ink); border:1px solid var(--color-accent-200);
     background:var(--color-accent-50); border-radius:var(--radius); padding:0 5px; flex:none; }
+  /* ---- THE LINE UNDER A FIELD, RESERVED WHETHER OR NOT IT SAYS ANYTHING ----
+     (Young ruled 21 Sep 2026: the fields a signature is waiting on are marked
+     on the Overview.) RESERVING IS WHAT FIXES THE HEIGHT: these cells are a
+     grid and a grid stretches every cell in a row to the tallest, so a line
+     that only appeared on the marked ones would move the page under the
+     reader's hand the moment a check ran. Drawn only where a caller passes a
+     note at all, so every other screen sharing this builder is untouched. */
+  .sec-f-n{ display:block; margin-top:2px; min-height:calc(var(--t-label) * 1.5);
+    font-size:var(--t-label); line-height:1.5; color:var(--color-neutral-500);
+    background:none; border:0; padding:0; text-align:left; font-family:inherit; }
+  button.sec-f-n{ cursor:pointer; }
+  .sec-f-n.is-hold{ color:var(--st-amber-fg); font-weight:var(--w-label); }
+  button.sec-f-n.is-hold:hover{ text-decoration:underline; }
+  /* THE CELL ITSELF SAYS SO, and it is asked with :has() so the mark stays one
+     attribute on the line rather than a class the field builder would have to
+     learn. AMBER HAS TO MEAN WORK: a field nobody is waiting on stays quiet. */
+  .sec-f:has(.sec-f-n.is-hold){ background:var(--st-amber-bg);
+    border-left:3px solid var(--st-amber-dot); border-radius:var(--radius);
+    margin:-4px -6px; padding:4px 6px; }
+  .sec-f:has(.sec-f-n.is-hold) .sec-f-l{ color:var(--st-amber-fg); }
   .sec-acts{ display:flex; gap:8px; flex-wrap:wrap; padding:0 16px 13px; }
   .sec-foot{ margin:0; padding:0 16px 13px; font-size:var(--t-label);
     color:var(--color-neutral-600); }

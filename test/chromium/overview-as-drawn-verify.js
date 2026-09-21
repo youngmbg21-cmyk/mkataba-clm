@@ -303,6 +303,79 @@ const SEC = (suffix) => {
     await page.click('[data-ov-edit$=".deal"]');
     await page.waitForTimeout(600);
 
+    /* ═══ 10 · BEFORE SIGNING, THE CARD MARKS WHAT IS HOLDING IT ═══
+       (Young ruled 21 Sep 2026.) Measured on a REAL page: whether a cell is
+       painted amber, and whether the grid moves when a mark clears, are
+       questions only a laid-out page can answer. */
+    const cellAt = async (label) => page.evaluate((lab) => {
+      const f = [...document.querySelectorAll('#kt-deal-facts .sec-f')]
+        .find(x => ((x.querySelector('.sec-f-l') || {}).textContent || '').trim().toLowerCase() === lab);
+      if (!f) return null;
+      const cs = getComputedStyle(f), r = f.getBoundingClientRect();
+      const n = f.querySelector('.sec-f-n');
+      return { bg: cs.backgroundColor, left: cs.borderLeftWidth, top: Math.round(r.top),
+        note: n ? (n.textContent || '').trim() : null, door: !!f.querySelector('[data-ov-fix]'),
+        tag: n ? n.tagName : '' };
+    }, label);
+    /* PUT THE CONTRACT INTO THE SIGNING PHASE WITH ONE THING OWED. */
+    await page.evaluate(() => {
+      const c = window.getContract(window.state.activeId);
+      c.status = 'Under Review'; c.valueType = 'estimated'; c.value = 0;
+      window.renderKeyTerms(c);
+    });
+    await page.waitForTimeout(600);
+    const marked = await cellAt('contract value');
+    check('10a the field holding the signature is marked, as painted pixels',
+      !!marked && marked.left !== '0px' && marked.bg !== 'rgba(0, 0, 0, 0)',
+      marked ? 'bg ' + marked.bg + ' · left rule ' + marked.left : 'no value cell');
+    check('10b and it says so in words, on a real button',
+      !!marked && !!marked.note && marked.tag === 'BUTTON' && marked.door,
+      marked ? JSON.stringify({ note: marked.note, tag: marked.tag, door: marked.door }) : 'none');
+    const headChip = await page.evaluate(() => {
+      const h = document.querySelector('[data-sec-toggle$=".deal"]');
+      const chip = h && h.querySelector('.sec-chip');
+      return chip ? (chip.textContent || '').trim() : '';
+    });
+    check('10c the head counts the same thing', /\d/.test(headChip), headChip || 'no chip');
+    /* NOTHING MOVES WHEN A MARK APPEARS OR CLEARS, and it is asked as the
+       relation that makes that true rather than as two page measurements: a
+       marked line and an unmarked one measure the same height, IN THE SAME
+       RENDER, so no cell in a row can be taller for carrying a mark. (Two
+       renders would also be measuring the value's own text — an em-dash in
+       the body face against a figure in the mono one, which really is two
+       pixels and is nothing to do with the mark.) */
+    const lineHeights = await page.evaluate(() => {
+      const ns = [...document.querySelectorAll('#kt-deal-facts .sec-f-n')];
+      const hold = ns.find(n => n.classList.contains('is-hold'));
+      const plain = ns.find(n => !n.classList.contains('is-hold'));
+      if (!hold || !plain) return null;
+      return { hold: Math.round(hold.getBoundingClientRect().height),
+        plain: Math.round(plain.getBoundingClientRect().height), n: ns.length };
+    });
+    check('10e a marked line and an empty one are the same height',
+      !!lineHeights && lineHeights.hold === lineHeights.plain && lineHeights.hold > 0,
+      lineHeights ? 'marked ' + lineHeights.hold + 'px · empty ' + lineHeights.plain
+        + 'px over ' + lineHeights.n + ' cells' : 'no lines drawn');
+    await page.evaluate(() => {
+      const c = window.getContract(window.state.activeId);
+      c.value = 4200000;
+      window.renderKeyTerms(c);
+    });
+    await page.waitForTimeout(600);
+    const cleared = await cellAt('contract value');
+    check('10d CONTROL — answering it clears the mark', !!cleared && cleared.left === '0px',
+      cleared ? 'left rule ' + cleared.left + ' · note "' + (cleared.note || '') + '"' : 'gone');
+    /* AND A DRAFT DRAWS NO LINE AT ALL — the card a reader sees every day. */
+    await page.evaluate(() => {
+      const c = window.getContract(window.state.activeId);
+      c.status = 'Draft'; window.renderKeyTerms(c);
+    });
+    await page.waitForTimeout(600);
+    const asDraft = await page.evaluate(() =>
+      document.querySelectorAll('#kt-deal-facts .sec-f-n').length);
+    check('10f CONTROL — a draft keeps its old shape to the byte', asDraft === 0,
+      asDraft + ' reserved lines');
+
     /* ============ 6. WHAT COPILOT READ IS ONE TABLE OF FIVE ============ */
     await openSec(page, '.copilot');
     const cop = await page.evaluate(SEC, '.copilot');

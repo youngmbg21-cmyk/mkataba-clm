@@ -5060,6 +5060,16 @@ function renderKeyTerms(c){
     ovSetEditing(k, !ovEditing(k));
     renderKeyTerms(c);
   }));
+  /* ---- PRESSING A MARKED FIELD IS THE SAME ACT AS `Fix on Overview` ----
+     focusKeyTerms is the one door: it opens the right section, turns its rows
+     on and lands the caret in the box. TWO PLACES, ONE ACT — the signing list
+     presses it and so does this, so they cannot drift about where a field
+     lives. The contract is read at PRESS time, never closed over. */
+  host.querySelectorAll('[data-ov-fix]').forEach(b=>b.addEventListener('click',()=>{
+    const f=b.getAttribute('data-ov-fix');
+    const live=(window.getContract&&getContract(c.id))||c;
+    if(window.focusKeyTerms) focusKeyTerms(live,f);
+  }));
   host.querySelectorAll('[data-ov-move-stream]').forEach(b=>b.addEventListener('click',()=>{
     const k=b.getAttribute('data-ov-move-stream');
     ovSetEditing(k, true);
@@ -5273,7 +5283,32 @@ function ovMetaBoxHtml(c,k){
    reading, two shapes. Returns sectionFieldsHtml's own [label, value, cite,
    tone] triple, so the resting grid is byte-identical to what it drew before
    for every field that has not moved. */
-function ktFieldCell(c,k,edit){
+/* ---- THE CHECK'S OWN SPELLING, AND THE OVERVIEW'S ----
+   signCheckRecord names the two dates `effectiveDate` and `expiryDate`; the
+   Overview's cells are `effDate` and `expiry`, and both spellings are already
+   in KT_FIELD_HOME for the same reason. One alias table, asked in one place. */
+const OV_MARK_ALIAS = { effDate:'effectiveDate', expiry:'expiryDate' };
+function ovFieldMarkOf(marks,k){
+  if(!marks||!marks.fields) return null;
+  return marks.fields[k] || marks.fields[OV_MARK_ALIAS[k]] || null;
+}
+/* THE LINE UNDER A CELL. A HOLD IS A DOOR — pressing it is the same act as
+   pressing `Fix on Overview` from the signing list (focusKeyTerms), so there
+   is one way in reachable from two places rather than two that drift. A note
+   is a sentence, not a door: the record disagreeing with the paper is
+   something to see, and what to do about it is the signing list's own row.
+   AN EMPTY NOTE STILL DRAWS ITS LINE — see .sec-f-n. */
+function ovFieldNoteHtml(mark,k){
+  if(!mark) return '';
+  if(mark.holds){
+    const why=mark.why||i18t('ov_needed_to_sign');
+    return `<button type="button" class="sec-f-n is-hold" data-ov-fix="${esc(k)}" title="${
+      esc(why)}">${esc(i18t('ov_needed_to_sign'))}</button>`;
+  }
+  const say=mark.paper?i18t('ov_paper_says',{what:mark.paper}):i18t('ov_paper_differs');
+  return `<span class="sec-f-n" title="${esc(say)}">${esc(i18t('ov_paper_differs'))}</span>`;
+}
+function ktFieldCell(c,k,edit,marks){
   const m=(c&&c.metadata)||{};
   const R=ktFactReads(c);
   const opt=v=>{ const t=String(v==null?'':v).trim();
@@ -5282,7 +5317,9 @@ function ktFieldCell(c,k,edit){
   const num=v=>{ const n=Number(v); return isFinite(n)&&n>0?String(n):''; };
   const mono=x=>`<span style="font-family:var(--font-mono)">${x}</span>`;
   const box=()=>ovMetaBoxHtml(c,k);
-  switch(k){
+  /* THE MARK IS ADDED TO WHATEVER THE CELL WAS GOING TO DRAW, once, at the end
+     — so no branch below can forget it and no branch has to know about it. */
+  const cell=(()=>{ switch(k){
     case 'value': {
       const read=R.monetary?(R.money?mono(R.money):''):esc(i18t('ct_non_monetary'));
       if(!edit) return [i18t('ov_f_value'), read];
@@ -5319,13 +5356,30 @@ function ktFieldCell(c,k,edit){
       if(edit) return [ovMetaLabel(k), box()];
       return [ovMetaLabel(k), f.type==='select'?opt(m[k]):(f.type==='num'?num(m[k]):txt(m[k]))];
     }
-  }
+  } })();
+  if(!cell) return null;
+  if(!marks) return cell;
+  const mark=ovFieldMarkOf(marks,k);
+  return [cell[0], cell[1], cell[2]||'', (mark&&mark.holds)?'amber':(cell[3]||''),
+    ovFieldNoteHtml(mark,k)];
 }
 function ktDealFactsHtml(c,opts={}){
   const edit=!!opts.edit;
+  /* ASKED ONCE PER CARD, not once per cell: signReadiness walks the blockers,
+     the check's rows and the scan's findings, and this grid draws sixteen of
+     them. In the edit posture the marks stand down — the boxes ARE the way to
+     answer them, and an amber wash round a field somebody is typing in is
+     shouting about the work they are doing. */
+  const marks=edit?null:(opts.marks!==undefined?opts.marks:ovSignMarks(c));
   return sectionFieldsHtml(OV_DEAL_FIELDS
-    .map(k=>ktFieldCell(c,k,edit&&!OV_DERIVED_FIELDS.has(k)))
+    .map(k=>ktFieldCell(c,k,edit&&!OV_DERIVED_FIELDS.has(k),marks))
     .filter(Boolean));
+}
+/* The marks for this contract, or null where nothing is waiting. js/signcheck.js
+   is not on every stage, so it is asked through window with a guard. */
+function ovSignMarks(c){
+  try{ if(!window.signFieldMarks) return null;
+    const m=signFieldMarks(c); return (m&&m.live)?m:null; }catch(_){ return null; }
 }
 /* WHICH OF THE OCCASIONAL TERMS THIS CONTRACT ACTUALLY RECORDS. The one
    reading behind the card, its count and whether it is drawn at all, so the
@@ -5345,6 +5399,9 @@ function ktAlsoFactsHtml(c,opts={}){
      of em-dashes. In the deal's edit posture every one of them is a box, which
      is the only way a rebate can be typed onto a contract that has none. */
   const keys=edit?OV_ALSO_FIELDS:ktAlsoRecorded(c);
+  /* No field on this group is ever on the check's own list, so it takes no
+     marks and no reserved line — a card that only exists when it has something
+     to say does not need room for a sentence it cannot carry. */
   return sectionFieldsHtml(keys.map(k=>ktFieldCell(c,k,edit)).filter(Boolean));
 }
 /* WHAT HaTi FILES THIS AS -- the artifact's twelve, in its own order:
@@ -5385,6 +5442,7 @@ function ktDayDot(iso){
 }
 
 function ktRecordFactsHtml(c,opts={}){
+  const marks=opts.rowsAbove?null:(opts.marks!==undefined?opts.marks:ovSignMarks(c));
   const dot=iso=>esc(ktDayDot(iso));   // one printer — see ktDayDot
   const R=ktFactReads(c);
   const owner=(window.contractOwnerName?contractOwnerName(c):'')||'';
@@ -5432,7 +5490,17 @@ function ktRecordFactsHtml(c,opts={}){
     ['signed', i18t('reg_col_signed'), dot(signed)],
     ['filedby', i18t('ov_f_filedby'), esc(filed)],
     ['updated', i18t('ov_f_updated'), dot(updated)],
-  ].filter(r=>!skip.has(r[0])).map(r=>r.slice(1)));
+  ].filter(r=>!skip.has(r[0])).map(r=>{
+    /* THE MARK IS ADDED HERE TOO, and it is the same reading The deal asks.
+       The counterparty is the one filing fact a signature waits on, so the
+       record cannot be the card that stays silent about it. A row the marks
+       do not name keeps the markup it had — no note, no reserved line, so
+       nothing on this card moved. */
+    const mark=marks?ovFieldMarkOf(marks,r[0]):null;
+    const cell=r.slice(1);
+    return mark?[cell[0],cell[1],cell[2]||'',mark.holds?'amber':(cell[3]||''),
+      ovFieldNoteHtml(mark,r[0])]:cell;
+  }));
 }
 /* ---- WHAT COPILOT READ: EVERY READING IN ONE TABLE ----
    The artifact's own words: "the brief and what it says, the playbook pass and
@@ -5667,12 +5735,24 @@ function ktOverviewTermsHtml(c,opts={}){
      appears and disappears would be a door that is sometimes there. */
   const also=dealEd?'':ktAlsoFactsHtml(c);
   const alsoN=dealEd?0:ktAlsoRecorded(c).length;
+  /* ---- WHAT THE SIGNATURE IS WAITING ON, COUNTED ONCE (21 Sep 2026) ----
+     ONE reading for the marks on the cells and for the count on the head, so
+     the card and its own heading can never disagree. It rides the CHIP the
+     head already draws rather than a new line: a shut section still answers,
+     which is the section grammar's own rule, and the alternative was a band
+     across the top of the page. */
+  const marks=ed?ovSignMarks(c):null;
+  const inSec=(sec)=>{ if(!marks) return 0; let n=0;
+    for(const f in marks.fields){ const h=KT_FIELD_HOME[f];
+      if(h&&h.sec===sec&&marks.fields[f].holds) n++; } return n; };
+  const dealHold=inSec('deal'), recHold=inSec('record');
+  const holdChip=n=>n?{ text:i18tn('ov_hold_n',n,{n}), tone:'amber' }:null;
   const deal=sectionHtml({
     key:dealK, title:i18t('ov_deal'), open:true,
-    chip: ed?null:{ text:i18t('ct_confirmed'), tone:'green' },
+    chip: ed?holdChip(dealHold):{ text:i18t('ct_confirmed'), tone:'green' },
     summary: ktDealSummary(c),
     body: '<div id="kt-rows"></div>'
-      + `<div id="kt-deal-facts">${ktDealFactsHtml(c,{edit:dealEd})}</div>`
+      + `<div id="kt-deal-facts">${ktDealFactsHtml(c,{edit:dealEd,marks})}</div>`
       + (dealEd
         ? `<p class="sec-foot" style="margin-top:var(--s-3)">${esc(i18t('ov_also_edit_lead'))}</p>`
           + `<div id="kt-also-facts">${ktAlsoFactsHtml(c,{edit:true})}</div>`
@@ -5690,12 +5770,13 @@ function ktOverviewTermsHtml(c,opts={}){
     esc(i18t('ov_move_stream'))}</button>`:'';
   const record=sectionHtml({
     key:recK, title:i18t('ov_record'), open:false,
+    chip: holdChip(recHold),
     summary: ktRecordSummary(c),
     body: (recEd
         ? `<div id="kt-rows-record">${ktTermsRowsHtml(c,
             {editable:ed,only:['name','party','counterparty','cpEmail','cpRouteEmail','stream','template']})}</div>`
         : '<div id="kt-rows-record"></div>')
-      + `<div id="kt-record-facts">${ktRecordFactsHtml(c,{rowsAbove:recEd})}</div>`,
+      + `<div id="kt-record-facts">${ktRecordFactsHtml(c,{rowsAbove:recEd,marks})}</div>`,
     acts: editBtn(recK,recEd)+moveBtn });
   return deal+alsoSec+record;
 }
@@ -13439,6 +13520,7 @@ Object.assign(window,{paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,
   wireKtRows,ktTermsRowsHtml,ktReadValue,ktIsEmptyRead,renderKeyTerms,
   ktDealFactsHtml,ktAlsoFactsHtml,ktAlsoRecorded,ktFieldCell,ktOverviewTermsHtml,
   OV_DEAL_FIELDS,OV_ALSO_FIELDS,OV_KT_FIELDS,OV_DERIVED_FIELDS,ovMetaBoxHtml,ovMetaField,ovMetaLabel,
+  OV_MARK_ALIAS,ovFieldMarkOf,ovFieldNoteHtml,ovSignMarks,
 
   ktFitSplit,ktWireSplit,ktStacked,KT_LEFT_MIN,KT_RIGHT_MIN,KT_SPLIT_KEY,
   /* And layoutDocResizer, for the same reason and with worse consequences: the

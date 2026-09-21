@@ -506,7 +506,59 @@ function signCheckWillRun(r){
   return out;
 }
 
+/* ============================================================
+   THE FIELDS THAT ARE HOLDING THE SIGNATURE (Young ruled 21 Sep 2026)
+   ============================================================
+   *"before signing, critical fields in the overview page have to be
+   highlighted before signing so that user can go back and fill them in."*
+
+   CRITICAL IS NOT A NEW LIST, and that is the whole design. A field is marked
+   only because signReadiness is ALREADY holding on it, so the mark on the
+   Overview and the row on the Signing tab read one thing — they cannot end up
+   printing different numbers twelve pixels apart, which is the fault this
+   product keeps paying for. Nothing here decides what matters; it translates
+   rows that already exist into the field each one is about.
+
+   NOT WHILE THE CONTRACT IS A DRAFT. A draft is a form being filled in, and an
+   amber "needed to sign" against every blank of a brand-new agreement is an
+   alarm about work nobody has started — the band rule in a new costume. The
+   line is the product's own: a contract leaves Draft on its first send, and
+   from then on those blanks really are owed.
+
+   TWO MARKS, ONE OF THEM QUIET. `holds` is work that stops the signature;
+   `noted` is the record disagreeing with the paper, which the gate may not be
+   holding on but a signer should still see beside the figure. */
+const SIGN_FIELD_OF = { counterparty: 'counterparty', value: 'value' };
+function signFieldMarks(c){
+  /* `live` is "this contract is in the phase where a field can be marked",
+     which is not the same question as "is anything marked right now". The
+     Overview reserves its one line per cell off `live` and nothing else, so
+     within the whole signing phase a mark appearing or clearing moves no
+     pixel; a draft and a sealed record draw no lines at all and are exactly
+     as they were. */
+  const out = { fields: Object.create(null), holds: 0, noted: 0, n: 0, live: false };
+  if (!c || !signCheckReady(c)) return out;
+  if (String((c && c.status) || '') === 'Draft') return out;
+  out.live = true;
+  let rows = [];
+  try{ rows = signReadiness(c).open || []; }catch(_){ rows = []; }
+  rows.forEach(row => {
+    const f = row.kind === 'record' ? row.field : SIGN_FIELD_OF[row.kind];
+    if (!f) return;
+    const mark = { field: f, kind: row.kind, holds: !!row.holds,
+      paper: row.kind === 'record' ? _scStr(row.paper) : '',
+      why: _scStr(row.label || row.short || '') };
+    const cur = out.fields[f];
+    /* A HOLD OUTRANKS A NOTE on the same field: one cell, one mark, and it is
+       the more serious of the two. */
+    if (!cur || (mark.holds && !cur.holds)) out.fields[f] = mark;
+  });
+  for (const k in out.fields){ out.n++; if (out.fields[k].holds) out.holds++; else out.noted++; }
+  return out;
+}
+
 if (typeof window !== 'undefined') Object.assign(window, {
+  SIGN_FIELD_OF, signFieldMarks,
   SIGN_ACCEPT_MAX, SIGN_RECORD_ROWS, SIGN_CHECK_GATES, SIGN_CHECK_GATE_DEFAULT, SIGN_RISK_SEV,
   signCheckGate, signCheckApplies, signCheckBlocker, signCheckMayAccept, signCheckAcceptedProperly, signCheckAcceptStale,
   signCheckRowHolds, signCheckRows, signCheckHolding, signReadiness, signCheckWillRun,

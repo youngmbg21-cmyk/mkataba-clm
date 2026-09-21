@@ -18357,3 +18357,11 @@ Defects found and fixed in this run:
 Noticed, not fixed:
 - SIX metadata fields that already existed are NOT in the extraction tool schema on /api/ai/extract - volumeRebate, rebateTiers, rejectionWindowDays, exclusivity, indemnityCapped, terminateForConvenience. Copilot is never asked for them, so they can only ever be filled by hand in the metadata review dialog. Three of the six are on the exposure register's own rows. (The three added today ARE in the schema.)
 - INDUSTRY_LABEL in js/wizard.js is hardcoded English and is drawn on screen - a pre-existing i18n gap.
+
+## 21 Sep 2026 — before signing, the Overview marks the fields that hold it
+
+Young: "before signing, critical fields in the overview page have to be highlighted before signing so that user can go back and fill them in."
+
+Built as a translation of the list that already exists (signReadiness), never a second judgement: a field is marked only because Before you sign is already holding on it, so the mark and the row cannot print different numbers on one screen. A draft is not marked at all. The reserved line is keyed on the signing PHASE, not on whether anything is marked, so a mark appearing or clearing moves no pixel.
+
+Measured on a real page: the marked cell paints amber with a 3px rule, the marked line and an empty one are both 18px, and a draft draws no line at all.
