@@ -17557,3 +17557,53 @@ instrument this time.
 - paper-beside-questions-verify is 34/36 (7c, 7g). Identical at main.
 - templates-tabs-verify fails 8c on this branch and 8b AND 8c at main, so it is
   already red and this branch is not worse.
+
+## 20–21 Sep 2026 — THE REDESIGN ORDER (overnight run, branch claude/youthful-hopper-nr3jmm, not merged)
+
+Young: "Implement this prompt but do not merge to main" — the OVERNIGHT RUN
+that brings the owner-approved artifact (prototype/hati-redesign-reference.html)
+into HaTi without losing a feature. Phase 0 wrote docs/FEATURE-INVENTORY.md
+(1,219 numbered items, 358 nested) and Phase 2 wrote docs/REDESIGN-AUDIT.md
+(every item OK / FIXED / MISSING — none missing, eleven FIXED and named).
+
+Where the order overrode CLAUDE.md, said out loud: the 2px corner (now 4px
+controls / 8px cards, the paper still 0), the 44px dark bar and 240 rail (48px
+light bar, 224 white rail in three groups), the 14px flat base (13px, 20px page
+title), "table headers are not uppercase" (they are, on Contracts and on the
+new page), "a resting tab is dark ink" (secondary ink at label weight, one
+control on every page), "none on a library card" (a shelf colour on the 3px
+bar), --font-mono as the platform face (JetBrains Mono, for DATA only), the
+Sep 19 flat nav order (Insights sits in Company, Requests in Library), and
+the colour census re-recorded once in the tokens commit.
+
+MEASURED: the first line of the wording on MK-A2's Document tab sat 293.4px
+below the top of the window at the parent and sits at 292.0 now; the negotiate
+page 308.8 before and after.
+
+Test re-points, all in place with the old reasoning kept: f238 (inks by byte,
+--accent-fill by computed contrast, the openModal region), f175 (the hairline
+edge), f95 (the card corner), f338 (3) and four-off-the-screenshots (the
+grouped rail), home-page-verify 3/4, type-and-symbols, pages-read-alike 5/7,
+flat-rows 3b, nego-redesign 1b/2/3, white-band 3b/4a/5c/7a/7d, row-density,
+answer-worklist, adapt-filters, contracts-page 5a/13a, f3 (the lifecycle tile
+chosen through the picker), f255 (the Work group, allowlist membership), and
+six browser files that typed old rgb values now resolve the token on the page.
+overview-as-drawn-verify 1e compared a value with itself (the one standing
+lint error) and asks a geometry now.
+
+### Noticed, not fixed
+- Red at the parent and left as found: flat-rows-and-alerts 2d/2e/2f (the
+  three-way cut retired), nego-redesign-verify 1/1c (the crumb claims),
+  white-band 5d/5e (on KNOWN_RED), dialog-balance-verify 1a/1d/1e/1g.
+- The inventory names the friction page's Clear as #igf-friction-clear; the
+  control is #ig-friction-clear and is drawn only while a cut is on.
+- About 140 readers of --font-mono were not audited one by one; the fourteen
+  caption idioms, the login title and one settings chip moved to the heading
+  face; a label still set in the mono face is a one-line fix where it is met.
+- The Insights tabs and friction segments are dressed by inline styles in
+  js/views/intelligence.js (edited to the shared values), not by the sheet.
+- The reference draws a filled "Send to counterparty" on the contract head and
+  a breadcrumb in the top bar; both were left as HaTi's own standing rulings
+  (a flat head row; the page name in the bar) and are named in the summary.
+- The contract room's own head carries no chat or check squares (they are the
+  negotiate page's), exactly as before the run; the inventory's preface says so.

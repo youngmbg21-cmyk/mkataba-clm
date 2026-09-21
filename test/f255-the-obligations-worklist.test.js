@@ -182,15 +182,22 @@ describe('f255 (3) — the door, and where a row lands', () => {
        door every role presses, and the exact mistake the Requests door made
        and had corrected. Anchored on the section's own markup rather than on
        the word, which appears in half a dozen comments above it. */
+    /* Since 20 Sep 2026 (DECIDE 4 of the redesign order) the everyday group
+       is WORK — Home · Contracts · Negotiations · Approvals · Obligations ·
+       Calendar — and the toggled fold is the Company group. Same claim: the
+       door sits in the everyday group, before the fold. */
     const i = HTML.indexOf('data-view="obligations"');
+    const work = HTML.indexOf('data-section="work"');
     const admin = HTML.indexOf('data-section-toggle="settings"');
-    assert.ok(i > 0 && admin > 0 && i < admin, 'in the everyday group');
+    assert.ok(i > 0 && work > 0 && admin > 0 && work < i && i < admin, 'in the everyday group');
   });
 
   test('the view is registered everywhere a view has to be', () => {
     assert.match(APP, /view==='obligations'\) renderObligationsList\(\)/, 'it draws');
     assert.match(APP, /case 'obligations': return \[i18t\('nav_obligations'\)/, 'it is named');
-    assert.match(CORE, /'intake','obligations','folder'/,
+    /* the allowlist gained 'approvals' beside it on 20 Sep 2026; the claim is
+       membership, so it is asked of the list rather than of its neighbours */
+    assert.match(CORE, /setView\(\[[^\]]*'obligations'[^\]]*\]\.includes\(state\.view\)/,
       'and a reader who was on it when they closed the tab comes back to it');
   });
 

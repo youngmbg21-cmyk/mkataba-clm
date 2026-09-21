@@ -491,7 +491,11 @@ describe('f238 — the design system has its other half', () => {
 
   test('a modal says it is a dialog and keeps the keyboard inside it', () => {
     const core = JS('js/core.js');
-    const open = core.slice(core.indexOf('function openModal'), core.indexOf('function openModal') + 3000);
+    /* THE FUNCTION'S OWN REGION, not 3,000 bytes from its head: a note added to
+       the frame on 20 Sep 2026 pushed the trap past the byte count while the
+       trap was exactly where it had always been. */
+    const o0 = core.indexOf('function openModal');
+    const open = core.slice(o0, core.indexOf('\nfunction ', o0 + 20));
     assert.match(open, /role="dialog"/, 'it has the role');
     assert.match(open, /aria-modal="true"/, 'and announces itself as modal');
     /* RE-POINTED 25 Aug 2026 — the trap was EXTRACTED, not removed. It was

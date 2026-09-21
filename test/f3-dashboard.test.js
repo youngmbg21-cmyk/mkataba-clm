@@ -71,7 +71,10 @@ describe('F3 — the dashboard only ever contains scoped contracts', () => {
     // contract list is what the panels key off.
     const page = await W.restricted.json('/api/contracts?limit=200');
     const overview = await W.restricted.json('/api/shares/overview');
-    const html = renderWith(page.rows, { shareOverview: overview });
+    /* Contract lifecycle is a tile a reader CHOOSES since 20 Sep 2026 (DECIDE 2
+       of the redesign order: the fixed Portfolio row joined the picker), so it
+       is asked for the way a person would — through the picker's own store. */
+    const html = renderWith(page.rows, { shareOverview: overview, kpis: ['approvals', 'negotiations', 'lifecycle', 'avgcycle'] });
     assert.deepEqual(mentionsFolderB(html), []);
     assert.ok(html.includes('kpi-grid'));   // caption retired with the SAP treatment
     /* REVERSED IN PLACE 24 Aug 2026. The claim is unchanged — every panel on
@@ -139,7 +142,8 @@ describe('F3 — money KPIs are absent, not greyed out, without the right', () =
      and never a money figure, so a reader without the right cannot read the
      book's value off the stage bars. */
   test('the lifecycle blocks show counts, never money', () => {
-    const without = renderWith(sample(), { money: false });
+    /* chosen through the picker — see the scoped-list test above (DECIDE 2) */
+    const without = renderWith(sample(), { money: false, kpis: ['approvals', 'negotiations', 'lifecycle', 'avgcycle'] });
     assert.ok(without.includes('hm-stg'), 'the tile draws its three stage blocks');
     const tile = without.slice(without.indexOf('hm-life'));
     assert.ok(!/KES/.test(tile), 'a stage block must not print a money figure');
