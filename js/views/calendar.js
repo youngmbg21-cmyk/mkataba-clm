@@ -981,7 +981,13 @@ function calStyleCss(){ return `
          picture stops, not the agreement". The flag is the row builder's own
          beyond flag, which the note beside it already reads — one reading, two
          readers, so the shape and the words cannot disagree. */}
-  .cal-hz-bar{position:absolute;left:0;top:9px;height:14px;opacity:.9;border-radius:999px}
+  ${''/* THE BAR IS THE ARTIFACT'S WEIGHT (Young, 21 Sep 2026: "the bars
+         should be slightly thinner like in the artifact"). MEASURED: the
+         artifact draws 8px and HaTi drew 14. The TOP moves with it so the
+         bar's centre line does not — 9 + 14/2 and 12 + 8/2 are both 16, which
+         is where the expiry tick and the notice nip are already placed, so
+         nothing else on the row had to be re-measured. */}
+  .cal-hz-bar{position:absolute;left:0;top:12px;height:8px;opacity:.9;border-radius:999px}
   .cal-hz-bar.is-beyond{border-radius:999px 0 0 999px}
   .cal-hz-end{position:absolute;top:6px;width:2px;height:20px;background:var(--color-text);
     transform:translateX(-1px)}

@@ -1899,6 +1899,7 @@ const STRINGS = {
     ng_file_fallback: 'File fallback',
     ng_file_preferred: 'File preferred',
     ng_file_draft: 'File Copilot\'s draft',
+    ng_pb_nofit: 'No smaller change fits this clause. The wordings below replace the whole of it — you will be asked before anything is filed.',
     ng_pb_unplaced: 'Our standard is in this contract somewhere, but HaTi could not tell which clause holds it \u2014 so it is not offering to change one. The quoted wording above is where to look.',
     /* ---- ADDING A STANDARD THAT IS ALREADY THERE (owner-asked 10 Sep 2026) ----
        The sentence NAMES what it found and says WHERE, because "already on the
@@ -2434,6 +2435,8 @@ const STRINGS = {
     ce_use_standard: 'Use our standard',
     ce_use_fallback: 'Use our fallback',
     ce_use_draft: 'Use Copilot\'s draft',
+    ce_pv_more: 'Show the whole wording',
+    ce_pv_less: 'Show less',
     ce_use_fit: 'Use the smallest change',
     /* WHAT A PRESS COSTS. Three shapes, because the honest sentence differs:
        everything goes, some of it goes, or nothing of yours goes and wording
@@ -6477,6 +6480,7 @@ const STRINGS = {
        reserves for what was FOUND. */
     tri_go_brief: 'Read the contract brief',
     tri_go_oblig: 'Open the obligations',
+    tri_go_playbook: 'Open the playbook review',
     tri_t_fill_ing: 'Filling in the open fields\u2026',
     tri_fill_left_one: '{n} still open',
     tri_fill_left_other: '{n} still open',
@@ -9426,6 +9430,7 @@ const STRINGS = {
     ng_file_fallback: 'Arkivera reservposition',
     ng_file_preferred: 'Arkivera föredragen',
     ng_file_draft: 'Arkivera Copilots utkast',
+    ng_pb_nofit: 'Ingen mindre ändring passar den här klausulen. Lydelserna nedan ersätter hela den — du får en fråga innan något arkiveras.',
     ng_pb_unplaced: 'Vår standard finns någonstans i avtalet, men HaTi kunde inte avgöra vilken klausul som bär den \u2014 så den erbjuder sig inte att ändra någon. Den citerade formuleringen ovan är var du ska leta.',
     ng_dup_clause_title: 'Klausulen finns redan här',
     ng_dup_clause_table: '\u201d{name}\u201d ligger redan på bordet som en föreslagen klausul.',
@@ -9863,6 +9868,8 @@ const STRINGS = {
     ce_use_standard: 'Använd vår standard',
     ce_use_fallback: 'Använd vår reservposition',
     ce_use_draft: 'Använd Copilots utkast',
+    ce_pv_more: 'Visa hela lydelsen',
+    ce_pv_less: 'Visa mindre',
     ce_use_fit: 'Använd den minsta ändringen',
     ce_cost_all_one: 'Ersätter det enda ordet du har \u2014 behåller inget.',
     ce_cost_all_other: 'Ersätter alla {total} orden \u2014 behåller inget.',
@@ -13460,6 +13467,7 @@ const STRINGS = {
     tri_fill_nothing: 'Varje fält i det här avtalet är redan besvarat.',
     tri_go_brief: 'Läs avtalssammanfattningen',
     tri_go_oblig: 'Öppna åtagandena',
+    tri_go_playbook: 'Öppna genomgången mot spelboken',
     tri_t_fill_ing: 'Fyller i tomma fält\u2026',
     tri_fill_left_one: '{n} kvar',
     tri_fill_left_other: '{n} kvar',

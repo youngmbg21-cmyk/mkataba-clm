@@ -734,14 +734,32 @@ function clauseEditorCss(){
          can never leave the reader guessing which one it drew. */}
   .ce-rule .pvk{display:block; margin-top:var(--s-2); font-size:var(--t-figure); font-weight:var(--w-title);
     letter-spacing:.09em; text-transform:uppercase; color:var(--color-neutral-600)}
+  ${''/* ---- AND THE BOX OPENS (Young, 21 Sep 2026: "I should be able to
+         expand the window to read better") ----
+         A proposed clause is the one thing on this rail a reader has to read
+         in full before pressing anything, and it was shown through a 120px
+         window with its own scrollbar. The cap stays as the RESTING shape —
+         four cards each running the length of a clause is a rail nobody can
+         scan — and the press drops it. The control is drawn only where there
+         is really more to see, measured after the paint (ceScanFitPv), so a
+         two-line preview grows no dead button. */}
   .ce-rule .pv{display:block; margin-top:4px; padding:var(--s-2) 10px; background:var(--color-surface);
     border:1px solid var(--color-divider); font-size:var(--t-meta); line-height:1.65;
     max-height:120px; overflow:auto}
+  .ce-rule .pv.is-open{max-height:none; overflow:visible}
+  .ce-rule .pv-more{display:none; margin-top:5px; padding:0; border:0; background:none; font:inherit;
+    font-size:var(--t-label); font-weight:var(--w-strong); color:var(--accent-ink); cursor:pointer}
+  .ce-rule .pv-more.is-live{display:inline-block}
+  .ce-rule .pv-more:hover{text-decoration:underline}
   ${''/* WHAT THE PRESS COSTS. Quiet on purpose — see ceCostLine. Tabular figures
          so a column of these lines up rather than dancing. */}
   .ce-rule .cost{display:block; margin-top:7px; font-size:var(--t-label); line-height:1.45;
     color:var(--color-neutral-600); font-variant-numeric:tabular-nums}
   .ce-rule .cost b{font-weight:var(--w-strong); color:var(--color-text)}
+  ${''/* The card's own sentence where no adjustment could be worked out — a
+         fact about this clause, in the quiet ink, never a band. */}
+  .ce-rule .nofit{display:block; margin-top:var(--s-2); font-size:var(--t-label); line-height:1.5;
+    color:var(--color-neutral-600)}
   .ce-rule .filed{font-size:var(--t-label); font-weight:var(--w-strong); color:var(--st-green-fg)}
   .ce-rule .av{display:flex; gap:var(--s-2); margin-top:9px; flex-wrap:wrap}
   .ce-rule .av button{height:26px; padding:0 11px; font:inherit; font-size:var(--t-label); font-weight:var(--w-strong);
@@ -3897,10 +3915,34 @@ function ceRenderTabs(){
   if (chips) chips.style.display = _ceTab === 'chat' ? '' : 'none';
   if (scope) scope.style.display = _ceTab === 'chat' ? '' : 'none';
 }
+/* ---- A CONTROL DRAWN ONLY WHERE THERE IS REALLY MORE TO SEE (21 Sep 2026) ----
+   Asked of the BROWSER after the paint, never of the character count: whether
+   a preview overflows its 120px window depends on the rail's width, the
+   reader's own text size and where the wording wraps, and a guess at it draws
+   a dead button on a short card and none on a long one. The product's own
+   idiom — rowsThatFit and ptFitTable ask the same question the same way. A
+   class flip, never a repaint. */
+function ceScanFitPv(lane){
+  if (!lane) return;
+  lane.querySelectorAll('.ce-rule .pv').forEach(pv => {
+    const btn = pv.parentNode && pv.parentNode.querySelector('.pv-more');
+    if (!btn) return;
+    if (pv.scrollHeight > pv.clientHeight + 2) btn.classList.add('is-live');
+  });
+}
+/* The press: the box gives up its cap and the word turns round. Per sitting
+   and in the DOM alone — nothing about which previews a reader opened is worth
+   storing, and a rescan draws fresh cards anyway. */
+function ceScanPvToggle(i){
+  const btn = _ceQ(`[data-ce-pv="${i}"]`); if (!btn) return;
+  const pv = btn.parentNode && btn.parentNode.querySelector('.pv'); if (!pv) return;
+  const open = pv.classList.toggle('is-open');
+  btn.textContent = _cet(open ? 'ce_pv_less' : 'ce_pv_more');
+}
 function ceRenderLane(){
   if (!clauseEditorOpen()) return;
   const lane = _ceQ('#ce-lane'); if (!lane) return;
-  if (_ceTab === 'scan'){ lane.innerHTML = ceScanHtml(); lane.scrollTop = 0; return; }
+  if (_ceTab === 'scan'){ lane.innerHTML = ceScanHtml(); lane.scrollTop = 0; ceScanFitPv(lane); return; }
   if (_ceTab === 'ladder'){ lane.innerHTML = ceLadderLaneHtml(); lane.scrollTop = 0; return; }
   if (_ceTab === 'figure'){
     lane.innerHTML = ceFigureLaneHtml(); lane.scrollTop = 0;
@@ -4359,7 +4401,13 @@ function ceScanCardHtml(it, i, group){
     <div class="n"><span>${_cee(v.category || _cet('ce_rule'))}</span></div>
     <span class="l">${_cee(line)}</span>
     ${v.quote ? `<span class="r">${_cee(_cet('ce_scan_quote', { quote: String(v.quote).slice(0, 220) }))}</span>` : ''}
-    ${preview ? `<span class="pvk">${_cee(ceWordingLabel(it.leadKind))}</span><span class="pv">${preview}</span>` : ''}
+    ${''/* NO LEAD IS AN ANSWER on a clause we already have — see the lead's
+           own note in rlPlaybookProposals. The named wordings are still
+           offered below; what is not drawn is a picture of a whole-clause
+           replacement under the words "the smallest change". */}
+    ${preview ? `<span class="pvk">${_cee(ceWordingLabel(it.leadKind))}</span><span class="pv">${preview}</span>
+      <button type="button" class="pv-more" data-ce-pv="${i}">${_cet('ce_pv_more')}</button>`
+      : (group === 'here' ? `<span class="nofit">${_cee(_cet('ng_pb_nofit'))}</span>` : '')}
     ${cost ? `<span class="cost">${_cee(cost)}</span>` : ''}
     <div class="av">${filed
       ? `<span class="filed">${_cee(_cet('ce_scan_added_row'))}</span>`
@@ -5582,6 +5630,11 @@ function ceWirePage(page){
       const card = ceCardAt(parts[0] + ':' + parts[1]);
       if (card){ card.vote = card.vote === parts[2] ? '' : parts[2]; ceRenderLane(); }
       return; }
+
+    /* The preview's own opener — a class flip on the card it sits in, never a
+       repaint, so a rail the reader has scrolled stays where it is. */
+    const pvm = hit('[data-ce-pv]');
+    if (pvm){ ev.preventDefault(); ceScanPvToggle(pvm.getAttribute('data-ce-pv')); return; }
 
     const scan = hit('[data-ce-scan]');
     if (scan){ ev.preventDefault();

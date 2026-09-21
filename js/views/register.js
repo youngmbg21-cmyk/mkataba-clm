@@ -2691,6 +2691,13 @@ function renderRegister(opts){
   regPaintHeadFacts();
   document.getElementById('reg-only-clear')?.addEventListener('click',()=>{ R.only=null; R.page=1; regRepaint(); });
   wireRegClear();
+  /* ---- THE FILTER CHIPS DROP HaTi's OWN LIST (Young ruled 21 Sep 2026) ----
+     One delegated press on the bar rather than one per chip, so a repaint that
+     rebuilds the chips cannot leave a listener behind; the helper binds once
+     per element by its own dataset flag. The `<select>`s are untouched — see
+     selectMenuWire for what this does and does not take over. */
+  const fbar=document.querySelector('.reg-filterbar');
+  if(fbar && window.selectMenuWire) selectMenuWire(fbar,'select');
 
   regWireColResize();
   regFitBandOffset();

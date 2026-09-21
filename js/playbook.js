@@ -458,6 +458,23 @@ function pbFitWording(cl,v,preferred,draft){
     const into=body?pbFitInto(body,v&&v.quote,draft):null;
     if(into) return { kind:'draft', text:into.text, preview:String(draft),
       html:into.html, block:into.block, blocks:n };
+    /* ---- AN UNADDRESSED DRAFT IS THE SMALLEST CHANGE ONLY WHERE THERE IS
+       NOTHING ELSE IN THE CLAUSE TO LOSE (Young ruled it 21 Sep 2026) ----
+       *"this avoids the current build where hati deletes an entire clause in
+       its subclauses only to add a company standard which does not address
+       other clauses that were deleted automatically."*
+       MEASURED on the owner's own screen: "Replaces all 69 words — keeps
+       none", drawn under the heading COPILOT'S DRAFT. pbFitInto found no
+       address, so the model's whole-clause rewrite fell through as `fit` and
+       the batch — which files the fitted wording unattended — filed it.
+       IT ASKS THE WALL'S OWN READING, so the preview, the lead and the wall
+       cannot disagree about what would be lost: pbUnquotedLoss counts the
+       blocks the finding never named that would not survive, and answers 0 on
+       a one-block clause, where a rewrite takes nothing away that nobody
+       asked about. Above zero there is no smallest change, and NOTHING is the
+       honest answer — the named wordings are still on the card for a person
+       to press, and that press still asks. */
+    if(pbUnquotedLoss(body,v&&v.quote,draft)>0) return null;
     return { kind:'draft', text:String(draft), preview:String(draft), html:null, block:-1, blocks:n };
   }
   return null;

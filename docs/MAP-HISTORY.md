@@ -20559,3 +20559,150 @@ where the artifact draws none; with a rounded cap the tick now stands a little
 clear of the fill at the top and bottom of the bar. That one is kept on
 purpose: a pill end is vague about which day it means, and the tick is what
 makes the expiry exact.
+
+## NINE OFF FIVE IMAGES (21 Sep 2026)
+
+Nine reports in one message, over five screenshots. The pattern worth keeping
+is not any one of them: it is that four were invisible in the source and only
+showed up when the control was driven, and that three of the nine were repairs
+to fixes made four days earlier that had each reached one surface of three.
+
+### Reserving one line does not fix a card's height
+
+The New agreement cards were given a reserved description slot on 21 Sep,
+with a note in this file explaining why: a grid stretches every cell in a row
+to the tallest, so a clamp alone caps the long one and still lets an empty one
+shrink. That reasoning was right and the fix was half of one. Measured, the
+cards drew 103px and 121px — and the slot that varied was the NAME. A company
+standard called "Procurement Value Stream Agreement" wraps to two lines at a
+253px card; "NDA" does not.
+
+So the rule generalises: a card whose height must not vary has to reserve
+every line it draws, not the one that was long the day somebody looked. Name,
+sentence and foot each take one line now, and the whole of each rides the
+card's own hover through one builder rather than being assembled at the
+button, where it would be free to drift from what the face shows.
+
+The sentence went from two reserved lines to one, which is the second half of
+the owner's sentence — "and not big either". The artifact's own card of this
+kind is about eighty pixels and carries a one-line description. HaTi's measure
+86 now, against 121.
+
+One thing found on the way is worth more than the fix. The first version of
+the claim passed against the wrong rule: there were two `.na-door b` rules,
+mine later in the sheet winning by source order, and the check's regex matched
+the first. Two rules about one element is a fault this file has recorded
+before, and here it also quietly broke the instrument. They are one rule.
+
+### A head and a count are two different facts
+
+"The open fields does not tell you how many fields are still open." It could
+not. The tile's head said "Open fields are on the panel" and its chip drew a
+steel dash, because the reading that produces that head — `none`, meaning the
+step filled nothing — also forced the count to null. The total was at the end
+of a detail line the sheet then cut to two lines.
+
+The two were conflated because they arrived together. "Nothing was FILLED" is
+what `none` says and it is true; "nineteen are still OPEN" is a different
+sentence about the same tile and there was nowhere for it to go. Now only a
+reading in flight suppresses a count, and the strip asks the number before its
+three old states in both the mark and the tone, so the chip and the ink cannot
+disagree about one tile.
+
+The concern the old rule protected — that a tile which filled nothing must not
+draw a tick — is still protected, and by the strip rather than by the count: a
+`none` tile with no number is still a steel dash. That is why the claim was
+reversed in place rather than deleted, with the old reasoning kept beside it.
+
+The detail lost its "— N more" tail in the same breath. A chip reading 19 over
+a line reading "— 16 more" is two numbers about one thing twelve pixels apart,
+and a reader has to work out which is which before either means anything.
+
+### The one place every proposal passes through was not one
+
+Four days earlier a reading was built to take a clause's own name off a
+suggestion that repeated it, and the note in this file called `pbFitWording`
+"the one place every proposal passes through". The owner reported it again:
+"This is still not working."
+
+It was working. It reached one surface of three. `pbFitWording` produces the
+FITTED wording, and `it.draft` — the raw string the model returned — is what
+both "Use Copilot's draft" presses actually file, in the clause editor's scan
+rail and in the Playbook review window alike. The cleaner never saw it.
+
+The lesson is about how to establish that something is the one door. "Every
+proposal passes through here" was asserted from the shape of the code rather
+than measured against the presses, and the presses were reading a different
+field. It is cleaned where the draft is READ now — in `rlPlaybookProposals`,
+which really is what the rail, the review window and the batch all share —
+and on a located clause only, since an add has no name to repeat.
+
+At the unmodified parent the check prints `Limitation of Liability. Each
+Part`, which is the report byte for byte.
+
+### A missing clause is added whole; a present one is adjusted
+
+This is the owner's own rule, stated plainly: "if a clause is missing like
+data protection, then a new clause from the playbook can be added where there
+is no nuance and just adding the totality of it. But if there is a clause and
+it does not truly meet the standards you want, then add the copilot version
+which adjusts or redlines a clause."
+
+Two separate holes were letting a whole-clause paste through.
+
+The first was inside the fitted reading. Where no address could be found for
+the model's draft, `pbFitWording` handed back the draft whole and called it
+the smallest change — and the Prepare redlines batch files the fitted wording
+unattended. On a six-part clause that is the owner's own screenshot: "Replaces
+all 69 words — keeps none." It refuses now, and it refuses by asking
+`pbUnquotedLoss`, the wall's own reading, so the preview, the lead and the
+filing door cannot come to three different answers about what would be lost.
+In practice that is a seatbelt rather than a common path — an address is found
+by the same quote that locates the clause — and it is written down as one.
+
+The second was in the presentation and is the common case. A rule-based review
+writes no redline at all, so there is nothing to fit; `lead` then fell back to
+`preferred || fallback || draft`, and the library's stand-alone clause was
+drawn as the proposal. On a clause the contract already has, that picture is
+six rules struck out to move one. There is no falling back now: on an edit
+landing the lead is nothing, both card surfaces say so in a sentence, and the
+three named wordings stay as explicit presses that ask how much of the clause
+they would replace. An add landing is byte-identical, which is the other half
+of the owner's rule.
+
+### A dropdown that wears HaTi's own corners
+
+The list a native `<select>` drops is the operating system's: a square-cornered
+pane in the system's font with a system-blue bar across the live row. No
+stylesheet reaches inside it. So the only way to make it HaTi's is to draw it.
+
+What makes that safe is that the `<select>` is not replaced. It is still in the
+markup, still the value, still the id, still what every handler reads; what is
+intercepted is the POINTER, which is the thing that summons the system pane. A
+press on a row writes the value back and fires the select's own `change`, so
+nothing downstream learns a menu was involved.
+
+The keyboard is deliberately left alone. Arrow keys, Home, End and type-ahead
+on a focused select all still work because it is still a select. Rebuilding
+those in a div is how a control loses behaviour nobody noticed it had — and
+what would be lost is not the arrow keys but the behaviour nobody has thought
+of yet.
+
+It mounts on the body at fixed position rather than inside the filter bar,
+because that bar sits in a sticky band that clips. The ladder's hover card
+paid for exactly that on 18 September: it measured perfectly and was painted
+nowhere, and the check that passed on it was reading a rect.
+
+The scope is one bar, said out loud. Every other `<select>` in the product
+still drops the system's own list, and the helper takes any root, so a second
+surface is one line the day somebody asks for it.
+
+### The bars, the box and the tile's door
+
+Three small ones. The Horizon bars went to the artifact's eight pixels, with
+the top moved so the centre line did not — the expiry tick and the notice nip
+are already placed against it. The scan rail's proposed wording, which is the
+one thing on that rail a reader must read in full, keeps its 120px cap as a
+resting shape and gives it up on a press, with the control drawn only where
+the box really overflows, measured after the paint. And the standards tile
+gained the door the 20 September note had left waiting on the owner's word.

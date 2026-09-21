@@ -13649,6 +13649,24 @@ function rlPlaybookProposals(c, rev){
     let fallback = String((libCl && libCl.fallback) || '').trim();
     if (fallback && fallback === preferred) fallback = '';
     let draft = String((v && v.redline) || '').trim();
+    /* ---- THE CLAUSE'S OWN NAME COMES OFF HERE, WHERE THE DRAFT IS READ
+       (Young reported it a second time, 21 Sep 2026: "This is still not
+       working") ----
+       It was taken off inside pbFitWording, and the 21 Sep note called that
+       "the one place every proposal passes through". MEASURED: it is not.
+       `it.draft` is this raw string, and BOTH "Use Copilot's draft" presses —
+       the clause editor's scan rail and the Playbook review window — file
+       `it.draft`, never the fitted one. So the reading was right and the
+       wording it cleaned reached one surface of three.
+       THIS IS THE ONE PRODUCER. rlPlaybookProposals is what the rail, the
+       review window and the Prepare redlines batch all read, so cleaning it
+       at the source is what makes "one place" true. pbFitWording keeps its own
+       call for its other caller; running the cleaner twice changes nothing,
+       because the heading is gone after the first. Only on a LOCATED clause:
+       an add has no clause to repeat the name of. */
+    if (draft && cl && window.pbDropRepeatedHeading){
+      try{ draft = String(pbDropRepeatedHeading(draft, cl) || '').trim(); }catch(_){}
+    }
     if (draft && (draft === preferred || draft === fallback)) draft = '';
     if (!preferred && !fallback && !draft) continue;   // review-only verdict — nothing proposable
     /* ---- WHERE THIS PROPOSAL MAY LAND, and there are THREE answers ----
@@ -13687,8 +13705,24 @@ function rlPlaybookProposals(c, rev){
       /* `lead` is the whole clause as it would read, never the one block that
          moved: the preview is a redline AGAINST oldText, so handing it a
          fragment would draw the very wholesale replacement this prevents. */
-      lead: fit ? fit.text : (preferred || fallback || draft),
-      leadKind: fit ? fit.kind : (preferred ? 'standard' : (fallback ? 'fallback' : 'draft')),
+      /* ---- AND ON A CLAUSE WE ALREADY HAVE, THERE IS NO FALLING BACK TO A
+         STAND-ALONE CLAUSE (Young ruled it again 21 Sep 2026) ----
+         *"if a clause is missing like data protection, then a new clause from
+         the playbook can be added ... But if there is a clause and it does not
+         truly meet the standards you want, then add the copilot version which
+         adjusts or redlines a clause."*
+         The 15 Sep build made the fitted wording LEAD and left the library's
+         own clause as the fallback behind it — so on a clause where nothing
+         could be fitted the preview went straight back to the paste that
+         deletes six sub-clauses, and the reader was shown it as the proposal.
+         THE ABSENCE IS THE ANSWER on an edit: no adjustment could be worked
+         out, said in words, with the three named wordings still offered as
+         explicit presses that ask how much of the clause they would replace.
+         An ADD landing is untouched — there the library's wording whole is
+         exactly what belongs, which is the other half of the owner's rule. */
+      lead: fit ? fit.text : (landing === 'edit' ? null : (preferred || fallback || draft)),
+      leadKind: fit ? fit.kind
+        : (landing === 'edit' ? null : (preferred ? 'standard' : (fallback ? 'fallback' : 'draft'))),
       risk: v.escalate ? 'high' : 'medium' });
   }
   return out;
@@ -14113,10 +14147,18 @@ async function rlOpenPlaybookReview(c, again){
     ${''/* THE PREVIEW NAMES WHOSE WORDING IT IS, and it draws `lead` — the same
            order the buttons run in — so the picture and the first press can
            never describe different wording. */}
-    <div style="margin-top:var(--s-2);font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)">${_ne(rlPbWordingLabel(it.leadKind))}</div>
+    ${''/* ---- AND WHERE THERE IS NO LEAD, THE CARD SAYS SO (21 Sep 2026) ----
+           On a clause the contract already has, `lead` is the SMALLEST CHANGE
+           or it is nothing. Drawing the library's stand-alone clause here
+           instead is exactly the picture the owner reported twice: a whole
+           clause struck out to move one rule. A sentence, then the three
+           named presses below, each of which asks. */}
+    ${!it.lead
+      ? `<div style="margin-top:9px;font-size:var(--t-meta);line-height:1.5;color:var(--color-neutral-600)">${i18t('ng_pb_nofit')}</div>`
+      : `<div style="margin-top:var(--s-2);font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)">${_ne(rlPbWordingLabel(it.leadKind))}</div>
     ${it.oldText && window.redlineStructuredHtml
       ? `<div style="margin-top:4px;font-size:var(--t-meta);line-height:1.7;border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-2) 10px;max-height:150px;overflow:auto">${redlineStructuredHtml(it.oldText, it.lead)}</div>`
-      : `<div style="margin-top:4px;font-size:var(--t-meta);line-height:1.6;border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-2) 10px;max-height:150px;overflow:auto">${_ne(it.lead)}</div>`}
+      : `<div style="margin-top:4px;font-size:var(--t-meta);line-height:1.6;border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-2) 10px;max-height:150px;overflow:auto">${_ne(it.lead)}</div>`}`}
     ${''/* A BUTTON IS DRAWN ONLY WHERE ITS WORDING EXISTS. The preferred one
            used to draw unconditionally, so a position the clause library has
            no entry for offered a press that files nothing. */}

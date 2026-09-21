@@ -403,11 +403,22 @@ describe('f341 (6) — why there were no blanks, not merely whether', () => {
     }
   });
 
-  test('nothing-to-do is asked BEFORE ok, so the tick cannot come back', () => {
+  /* RE-POINTED IN PLACE 21 Sep 2026 (Young: "the open fields does not tell
+     you how many fields are still open"). The rule was that `none` is asked
+     before `ok`, and it still is — what moved above BOTH of them is the
+     COUNT, because a tile that filled nothing and has nineteen fields open is
+     not a steel dash, it is a nineteen. The half this claim exists to hold is
+     untouched: a `none` tile with NO number is still steel and still a dash,
+     which is what stops the tick coming back. */
+  test('nothing-to-do is asked before ok, so the tick cannot come back', () => {
     const b = fnBody(CONTRACT_CODE, 'ktTriageStripHtml');
-    assert.match(b, /x\.working\?'is-busy':\(x\.none\?'is-none'/,
+    assert.match(b, /\(x\.none\?'is-none':\(x\.ok\?'is-ok'/,
       'steel, not green — nothing is wrong and nothing was achieved');
-    assert.match(b, /x\.none\?'&mdash;':\(x\.ok\?/, 'and a dash, never a tick');
+    assert.match(b, /\(x\.none\?'&mdash;':\(x\.ok\?'&#10003;'/, 'and a dash, never a tick');
+    /* AND THE NUMBER OUTRANKS BOTH, in the mark and in the tone alike, so the
+       two cannot come to different answers about one tile. */
+    assert.match(b, /const tone=x\.working\?'is-busy'\s*\n?\s*:\(\(x\.count!=null&&x\.count>0\)\?'is-warn'/);
+    assert.match(b, /const mark=x\.working\?[^\n]*\n\s*:\(\(x\.count!=null&&x\.count>0\)\?String\(x\.count\)/);
     assert.match(HTML, /\.kt-tri-chip\.is-none\{[\s\S]*?--st-steel-bg/,
       'the tone this product already uses for "nothing is owed"');
   });
@@ -418,10 +429,20 @@ describe('f341 (6) — why there were no blanks, not merely whether', () => {
       'only ever true where the step really ran and really filled nothing');
   });
 
-  test('no count on a tile that filled nothing', () => {
+  /* REVERSED IN PLACE 21 Sep 2026. The old rule — "no count on a tile that
+     filled nothing" — read the head and the number as one fact, and they are
+     two: "nothing was FILLED" is what `none` says, and "nineteen are still
+     OPEN" is a different sentence about the same tile. Forcing the count to
+     null hid the one number on this strip worth reading, which is what Young
+     reported. The concern under the old claim still holds and is held by the
+     STRIP: a `none` tile with no number is a steel dash, never a tick — see
+     the claim above. */
+  test('only a reading in flight suppresses a count', () => {
     const b = TRIAGE_CODE.slice(TRIAGE_CODE.indexOf('const add = ('));
-    assert.match(b, /count: \(working \|\| nothing \|\| count == null\) \? null : count/,
-      'zero is drawn as a tick by the strip’s own mark rule — the sentence being retired');
+    assert.match(b, /count: \(working \|\| count == null\) \? null : count/);
+    /* AND THE FILL TILE COUNTS WHAT ITS OWN HEAD IS ABOUT: where the head
+       says the fields are open, the number is how many are open. */
+    assert.match(TRIAGE_CODE, /\(fillNone === 'form' && openNames\.length\) \? openNames\.length/);
   });
 
   test('the run records the reason, and the tile falls back to a live reading', () => {

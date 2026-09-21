@@ -435,6 +435,120 @@ const VERDICTS = [
       '7f while the part the playbook DID object to carries our position', after7.floor);
   }
   await page.screenshot({ path: path.join(OUT, '08-address.png') });
+
+  /* ============================================================
+     8 · THE NAME, THE REFUSAL AND THE BOX (Young ruled 21 Sep 2026)
+     ------------------------------------------------------------
+     Three claims on the SAME six-part clause, so no second stage can drift
+     from the one the report came from.
+       · "This is still not working" — the clause's own name is still on the
+         draft. It was taken off inside pbFitWording, and BOTH "Use Copilot's
+         draft" presses file `it.draft`, which never went through it.
+       · "if there is a clause and it does not truly meet the standards ...
+         add the copilot version which adjusts" — where nothing can be
+         adjusted, the card must not fall back to a paste.
+       · "I should ne able to expand the window to read better."
+     ============================================================ */
+  const st8 = await page.evaluate(async id => {
+    const c = getContract(id);
+    const cl = negoClauseList(c).find(x => /LIMITATION OF LIABILITY/i.test(x.headingText || ''));
+    if (!cl) return { error: 'no clause' };
+    const quote = 'or SEK 40,000,000, whichever is the lower';
+    const body = String(cl.bodyHtml || '');
+    /* (a) A DRAFT THAT OPENS WITH THE CLAUSE'S OWN NAME. */
+    c.playbook = { key: 'x', label: 'test', source: 'ai', verdicts: [
+      { category: 'Liability cap', status: 'deviates', quote,
+        position: 'Liability capped at the fees paid in the last twelve (12) months',
+        redline: 'Limitation of Liability. Each Party\'s total aggregate liability arising in any '
+          + 'Contract Year shall not exceed the net invoice value of Products purchased in the '
+          + 'twelve (12) months immediately preceding the claim.', escalate: false } ] };
+    const a = (window.rlPlaybookProposals ? rlPlaybookProposals(c, c.playbook) : [])
+      .find(x => x && x.clauseId === cl.clauseId);
+    /* (b) LOCATED, AND NOTHING TO ADJUST IT WITH. The finding quotes the
+       clause properly, but Copilot proposed NO wording — the ordinary case
+       rather than an edge one: a rule-based review writes no redline at all,
+       and there is no figure here to write in either. So `fit` is null, and
+       this is exactly the shape that used to fall back to the clause
+       library's stand-alone wording and draw it as the proposal — a whole
+       six-part clause struck out to move one rule. */
+    c.playbook = { key: 'x', label: 'test', source: 'ai', verdicts: [
+      { category: 'Liability cap', status: 'deviates', quote,
+        position: 'Our standard liability wording', redline: '', escalate: false } ] };
+    const b = (window.rlPlaybookProposals ? rlPlaybookProposals(c, c.playbook) : [])
+      .find(x => x && x.clauseId === cl.clauseId);
+    return { error: null,
+      draftHead: a ? String(a.draft || '').slice(0, 34) : null,
+      fitHead: (a && a.fit) ? String(a.fit.preview || '').slice(0, 34) : null,
+      /* A PROBE THAT SAYS "not staged" IS NOT A PROBE THAT SAYS "wrong". */
+      bLanding: b ? b.landing : 'NOT LOCATED',
+      noFitLead: b ? (b.lead === null) : null, noFitKind: b ? (b.leadKind === null) : null,
+      noFitHasPreferredOrDraft: b ? !!(b.preferred || b.draft) : null,
+      bodyLen: body.length };
+  }, ID);
+  check(!st8.error && !!st8.draftHead,
+    '8- the control: the same six-part clause, with a draft that opens with its own name',
+    JSON.stringify(st8));
+  /* THE REPORT, off the field BOTH presses file. */
+  check(!!st8.draftHead && !/^Limitation of Liability/i.test(st8.draftHead),
+    '8a the clause\'s own name is off the draft every press files', st8.draftHead);
+  check(!!st8.fitHead && !/^Limitation of Liability/i.test(st8.fitHead),
+    '8a2 and off the fitted preview beside it', st8.fitHead);
+  check(st8.noFitLead === true && st8.noFitKind === true,
+    '8b where nothing can be adjusted there is no lead at all', JSON.stringify(st8));
+  check(st8.noFitHasPreferredOrDraft === true,
+    '8b2 [control] and it is not for want of a wording — one is still offered as a press',
+    st8.noFitHasPreferredOrDraft);
+
+  /* (c) THE BOX OPENS. Measured on the painted card, both ways. */
+  await page.evaluate(id => {
+    const c = getContract(id);
+    const cl = negoClauseList(c).find(x => /LIMITATION OF LIABILITY/i.test(x.headingText || ''));
+    const quote = 'or SEK 40,000,000, whichever is the lower';
+    c.playbook = { key: 'x', label: 'test', source: 'ai', verdicts: [
+      { category: 'Liability cap', status: 'deviates', quote,
+        position: 'Liability capped at the fees paid in the last twelve (12) months',
+        redline: 'Each Party\'s total aggregate liability arising in any Contract Year shall not '
+          + 'exceed the net invoice value of Products purchased in the twelve (12) months '
+          + 'immediately preceding the claim, this cap being in any event not less than that value, '
+          + 'and for the avoidance of doubt the cap shall be calculated exclusive of value added tax '
+          + 'and of any sums already paid or credited by way of rebate, discount or set-off.',
+        escalate: false } ] };
+    if (window.rlCloseClauseEditor) rlCloseClauseEditor();
+    rlOpenClauseEditor(c, cl.clauseId, {});
+  }, ID);
+  await pause(900);
+  await page.click('#clause-editor [data-ce-tab="scan"]').catch(() => {});
+  await pause(700);
+  const pv0 = await page.evaluate(() => {
+    const pv = document.querySelector('#clause-editor .ce-rule .pv');
+    const b = document.querySelector('#clause-editor .ce-rule .pv-more');
+    if (!pv) return { none: true };
+    const r = pv.getBoundingClientRect(), bs = b ? getComputedStyle(b) : null;
+    return { none: false, h: Math.round(r.height), full: pv.scrollHeight,
+      live: !!(b && b.classList.contains('is-live')), shown: bs ? bs.display !== 'none' : false,
+      word: b ? b.textContent.trim() : null };
+  });
+  check(!pv0.none && pv0.full > pv0.h + 2,
+    '8c- the control: the preview really is taller than its window',
+    JSON.stringify(pv0));
+  check(!pv0.none && pv0.live && pv0.shown,
+    '8c the card offers a way to open it, and only because it measured one',
+    JSON.stringify(pv0));
+  const pv1 = await page.evaluate(async () => {
+    const b = document.querySelector('#clause-editor .ce-rule .pv-more');
+    if (!b) return { none: true };
+    b.click(); await new Promise(r => setTimeout(r, 400));
+    const pv = document.querySelector('#clause-editor .ce-rule .pv');
+    return { none: false, h: Math.round(pv.getBoundingClientRect().height),
+      word: b.textContent.trim(), cut: pv.scrollHeight > pv.clientHeight + 2 };
+  });
+  check(!pv1.none && pv1.h > pv0.h && !pv1.cut,
+    '8d and pressing it shows the whole wording', `${pv0.h}px → ${pv1.h}px`);
+  check(!pv1.none && pv1.word && pv1.word !== pv0.word,
+    '8e the word turns round, so the press is its own way back',
+    `${pv0.word} → ${pv1.word}`);
+  await page.screenshot({ path: path.join(OUT, '09-open-preview.png') });
+
   await page.evaluate(() => { if (typeof rlCloseClauseEditor === 'function') rlCloseClauseEditor(); });
   await pause(500);
   await page.evaluate(() => { const b = document.getElementById('cf-ok'); b && b.click(); });

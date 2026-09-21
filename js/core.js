@@ -2676,6 +2676,129 @@ function dragDialog(panel, opts = {}){
    THE LADDER: four rungs, and a dialog picks one by passing opts.maxWidth (or
    none, which is the M rung). No dialog states a second width on its inner
    box — f312 reads every openModal call and fails on one. */
+/* ============================================================================
+   A DROPDOWN THAT WEARS HaTi'S OWN CORNERS (Young ruled 21 Sep 2026)
+   ----------------------------------------------------------------------------
+   *"the drop downs look clunky and do not match the soft corners of Hati.
+   Fix them."*
+
+   THE LIST A NATIVE `<select>` DROPS IS THE OPERATING SYSTEM'S, not ours: a
+   square-cornered pane in the system's own font with a system-blue bar across
+   the live row, and no stylesheet can reach inside it. So the only way to make
+   it HaTi's is to draw it ourselves.
+
+   THE `<select>` STAYS, AND IT IS STILL THE TRUTH. This does not replace the
+   control — it intercepts the POINTER, which is what summons the system pane,
+   and draws this list instead; a press writes the value back to the select and
+   fires its own `change`, so every handler in the product reads exactly what it
+   read before. Nothing about the value, the options, the id or the wiring
+   moved.
+
+   AND THE KEYBOARD IS LEFT ALONE, deliberately. Arrow keys, Home, End and
+   type-ahead on a focused select all still work, because the select is still a
+   select; rebuilding those in a div is how a control loses behaviour nobody
+   noticed it had. What this adds is a mouse press that lands somewhere HaTi
+   drew.
+
+   IT IS MOUNTED ON `document.body` at `position:fixed` and placed against the
+   control's own measured box — the filter bar sits inside a sticky band that
+   clips, and a menu drawn inside it would be cut off at the band's edge, which
+   is the fault the ladder's hover card paid for on 18 Sep.
+
+   SCOPE, SAID OUT LOUD: armed on the Contracts filter bar, which is where the
+   report came from. `selectMenuWire` takes any root and any selector, so a
+   second surface is one line — but every other `<select>` in the product still
+   drops the system's own list until somebody asks. */
+let _selMenuEl = null, _selMenuFor = null, _selMenuBound = false;
+function selectMenuClose(){
+  if (_selMenuEl && _selMenuEl.parentNode) _selMenuEl.parentNode.removeChild(_selMenuEl);
+  _selMenuEl = null; _selMenuFor = null;
+}
+function selectMenuShowing(){ return !!_selMenuEl; }
+/* The box the menu hangs from: the control the reader can SEE. On the filter
+   chips the select is an invisible overlay exactly the chip's size, so either
+   answers the same rectangle — but a select drawn plainly elsewhere would
+   place it against itself, which is still right. */
+function _selMenuAnchor(sel){
+  const lab = sel && sel.closest ? sel.closest('label,.reg-chip') : null;
+  return (lab || sel).getBoundingClientRect();
+}
+function selectMenuOpen(sel){
+  if (!sel || !sel.options || !sel.options.length) return false;
+  const same = _selMenuFor === sel;
+  selectMenuClose();
+  if (same) return false;                       /* the press that opens it closes it */
+  const esc = x => String(x == null ? '' : x).replace(/[&<>"]/g, ch =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+  const box = document.createElement('div');
+  box.className = 'hati-selmenu';
+  box.setAttribute('role', 'listbox');
+  box.innerHTML = [...sel.options].map((o, i) =>
+    `<button type="button" role="option" aria-selected="${o.selected ? 'true' : 'false'}"
+      class="hati-selmenu-row${o.selected ? ' on' : ''}"${o.disabled ? ' disabled' : ''}
+      data-sm="${i}">${esc(o.textContent)}</button>`).join('');
+  document.body.appendChild(box);
+  const r = _selMenuAnchor(sel);
+  /* Placed under the control, and flipped above it where there is no room —
+     measured against the window rather than assumed. */
+  const mh = box.offsetHeight, mw = box.offsetWidth;
+  const below = window.innerHeight - r.bottom;
+  box.style.top = (below < mh + 8 && r.top > mh + 8) ? (r.top - mh - 4) + 'px' : (r.bottom + 4) + 'px';
+  box.style.left = Math.max(8, Math.min(r.left, window.innerWidth - mw - 8)) + 'px';
+  box.style.minWidth = Math.round(r.width) + 'px';
+  _selMenuEl = box; _selMenuFor = sel;
+  box.addEventListener('mousedown', ev => ev.preventDefault());
+  box.addEventListener('click', ev => {
+    const b = ev.target && ev.target.closest ? ev.target.closest('[data-sm]') : null;
+    if (!b) return;
+    const i = Number(b.getAttribute('data-sm'));
+    selectMenuClose();
+    if (!(i >= 0) || !sel.options[i] || sel.options[i].disabled) return;
+    /* THE SELECT IS WHAT CHANGES, and its own event is what the product hears:
+       nothing downstream learns that a menu was involved. */
+    if (sel.selectedIndex !== i){
+      sel.selectedIndex = i;
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  });
+  const lit = box.querySelector('.hati-selmenu-row.on');
+  if (lit && lit.scrollIntoView) { try{ lit.scrollIntoView({ block: 'nearest' }); }catch(_){} }
+  return true;
+}
+/* ONE LISTENER FOR THE WHOLE DOCUMENT, armed once: closing is a question about
+   the page, not about any one menu, and a pair per menu is how a listener
+   outlives what it was watching. */
+function _selMenuArmDoc(){
+  if (_selMenuBound || typeof document === 'undefined') return;
+  _selMenuBound = true;
+  document.addEventListener('mousedown', ev => {
+    if (!_selMenuEl) return;
+    if (_selMenuEl.contains(ev.target)) return;
+    /* A press on the control the menu belongs to is its own toggle and is
+       answered there; anything else simply shuts it. */
+    if (_selMenuFor && ev.target && ev.target.closest
+      && ev.target.closest('label,.reg-chip') === _selMenuAnchorEl(_selMenuFor)) return;
+    selectMenuClose();
+  }, true);
+  document.addEventListener('keydown', ev => { if (_selMenuEl && ev.key === 'Escape') selectMenuClose(); }, true);
+  window.addEventListener('resize', selectMenuClose);
+  window.addEventListener('scroll', selectMenuClose, true);
+}
+function _selMenuAnchorEl(sel){ return (sel && sel.closest) ? sel.closest('label,.reg-chip') : null; }
+/* Arm a root. Bound once per element, the register's own idiom, so a repaint
+   that reuses the bar cannot stack listeners on it. */
+function selectMenuWire(root, selector){
+  if (!root || root.dataset && root.dataset.selMenuBound === '1') return;
+  if (root.dataset) root.dataset.selMenuBound = '1';
+  _selMenuArmDoc();
+  root.addEventListener('mousedown', ev => {
+    const sel = ev.target && ev.target.closest ? ev.target.closest(selector) : null;
+    if (!sel || sel.disabled) return;
+    ev.preventDefault();                        /* the system pane never opens */
+    sel.focus();
+    selectMenuOpen(sel);
+  });
+}
 const DLG_W = Object.freeze({ s: '400px', m: '520px', l: '640px', xl: '760px' });
   /* ---- A BIT OF COLOUR ON THE FRAME (Young ruled 21 Sep 2026: "add a bit of
      color on pop ups that are completely bland") ----
@@ -7266,4 +7389,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{cpReadyToSign,READY_META,READY_META_SHORT,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{cpReadyToSign,READY_META,READY_META_SHORT,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});

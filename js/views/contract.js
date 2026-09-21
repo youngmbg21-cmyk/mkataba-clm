@@ -4927,21 +4927,38 @@ function ktTriageStripHtml(c){
      THE OTHER THREE ARE LEFT ALONE. Young circled Standards and Filed and
      named these two; Standards would open the playbook panel and Filed the
      value stream row, one line each, on his word. */
+  /* ---- AND STANDARDS IS THE THIRD DOOR (Young, 21 Sep 2026: "the standard
+     check does not have a door to the panel for playbook review") ----
+     The 20 Sep note above ends "Standards would open the playbook panel ... on
+     his word"; this is that word. It is the same shape as the brief's: the
+     tile presses openCheckPanel, which is the very call the Checks card's own
+     playbook row makes, so the two cannot drift about what "open the playbook
+     review" means. Drawn only where the review really ran (`x.ok`), so it can
+     never open on nothing. */
   const doorFor = x =>
-    (x.key==='brief'  && x.ok) ? 'brief' :
-    (x.key==='oblig'  && x.ok) ? 'oblig' : '';
+    (x.key==='brief'    && x.ok) ? 'brief' :
+    (x.key==='oblig'    && x.ok) ? 'oblig' :
+    (x.key==='playbook' && x.ok) ? 'playbook' : '';
   const tiles=triageTiles(c).map(x=>{
     const door=x.working?'':doorFor(x);
     /* NOTHING-TO-DO IS ASKED BEFORE `ok`, so a reading that looked and found
        no boxes can never draw the tick that made the tile read as a claim.
        Busy still wins over both, as it always has. */
-    const tone=x.working?'is-busy':(x.none?'is-none':(x.ok?((x.count!=null&&x.count>0)?'is-warn':'is-ok'):'is-no'));
+    /* ---- THE NUMBER IS ASKED FIRST, WHATEVER STATE THE TILE IS IN (21 Sep
+       2026) ---- A tile that filled nothing and has nineteen fields still open
+       is not a steel dash; it is a nineteen. So the count decides the mark and
+       the tone wherever there is one, and the three old states answer for a
+       tile that carries none — which is every tile that carried none before,
+       so nothing else moved. */
+    const tone=x.working?'is-busy'
+      :((x.count!=null&&x.count>0)?'is-warn':(x.none?'is-none':(x.ok?'is-ok':'is-no')));
     /* A READING IN FLIGHT TURNS (Young ruled 17 Sep 2026) — the strip repaints
        only when a step LANDS, so a static mark left the page looking stuck for
        most of a minute. The product's own spinner, not a second one; its
        reduced-motion answer comes with it. See .kt-tri-chip.is-busy. */
     const mark=x.working?'<span class="ob-spin" aria-hidden="true"></span>'
-      :(x.none?'&mdash;':(x.ok?((x.count!=null&&x.count>0)?String(x.count):'&#10003;'):'&mdash;'));
+      :((x.count!=null&&x.count>0)?String(x.count)
+        :(x.none?'&mdash;':(x.ok?'&#10003;':'&mdash;')));
     const head=`<div class="kt-tri-th"><span class="kt-tri-chip ${tone}">${mark}</span><span class="kt-tri-hw">${
       esc(i18t(x.headKey))}</span>${door?'<span class="kt-tri-go" aria-hidden="true">&rarr;</span>':''}</div>`;
     /* ONE PRODUCER OF THE TILE BODY, whichever shape the tile takes. The two
@@ -4957,7 +4974,7 @@ function ktTriageStripHtml(c){
        worse control than the one that was there. A real <button> so the
        keyboard reaches it and the focus ring is the product's own. */
     if(door) return `<button type="button" class="kt-tri-tile is-door" data-kt-tri-go="${door}"
-      title="${esc(i18t(door==='brief'?'tri_go_brief':'tri_go_oblig'))}">
+      title="${esc(i18t(door==='brief'?'tri_go_brief':door==='playbook'?'tri_go_playbook':'tri_go_oblig'))}">
       ${head}${body}
     </button>`;
     return `<div class="kt-tri-tile${x.working?' is-busy':''}"${x.working?' aria-busy="true"':''}>
@@ -5066,6 +5083,9 @@ function paintKtTriage(c){
   slot.querySelectorAll('[data-kt-tri-go]').forEach(btn=>btn.addEventListener('click',()=>{
     const go=btn.getAttribute('data-kt-tri-go');
     if(go==='oblig'){ if(window.roomGoTab) roomGoTab(c,'oblig'); return; }
+    /* Standards opens the playbook review in the same panel, by the same one
+       act — see doorFor. */
+    if(go==='playbook'){ openCheckPanel(c,'playbook'); return; }
     /* ---- THE BRIEF TILE PULLS THE BRIEF PANEL (Young reported it 20 Sep
        2026: "Brief Witten is supposed to pull the brief side Panel but it does
        not") ----
@@ -11961,10 +11981,28 @@ function renderSignSide(c){
   /* The brief's own row reads it alone rather than pressing the whole stage:
      a reader who wants the summary re-written should not be made to pay for
      the playbook and the obligations as well. */
+  /* ---- AND THE NEW BRIEF IS PUT IN FRONT OF THE READER (Young ruled 21 Sep
+     2026: "You need to see the new brief again especially if there have been
+     redlines") ----
+     The press already re-wrote it; what it did not do was SHOW it, so the row
+     quietly settled and the one reason to press it — reading the summary of
+     the wording that is about to be signed — was left to the reader to go and
+     find. openCheckPanel is the one act, the same call the Overview's brief
+     tile and the Checks card's Open button make, so three doors cannot drift
+     about what "open the brief" means.
+     ONLY WHERE ONE WAS WRITTEN. A refused reading opens nothing: a panel over
+     an empty brief is a worse answer than the row's own refusal, which is
+     still on the screen behind it. */
   host.querySelector('[data-sc-brief]')?.addEventListener('click',async b=>{
     const el=b&&b.currentTarget; if(el) el.disabled=true;
-    try{ if(window.runContractBrief) await runContractBrief(c,{force:!!c._brief}); }
+    let ok=false;
+    /* `runContractBrief` answers with the BRIEF it wrote, or null. Asked of
+       the return and never of `c._brief`, which still holds the OLD one after
+       a refusal — opening on that would show the stale summary this press
+       exists to replace. */
+    try{ if(window.runContractBrief) ok=!!(await runContractBrief(c,{force:!!c._brief})); }
     finally{ if(el) el.disabled=false; scAgain(); }
+    if(ok) openCheckPanel(c,'brief');
   });
   host.querySelectorAll('[data-sc-accept]').forEach(b=>b.addEventListener('click',
     ()=>signCheckAccept(c,Number(b.getAttribute('data-sc-accept')),scAgain)));

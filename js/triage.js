@@ -181,9 +181,20 @@ function triageTiles(c){
          goes where this product already puts machinery: the tile's own title.
          Absent on every record on file, and absent on every tile that ran. */
       hint: (!working && !ok && st && st.whyRaw && st.whyRaw !== (st.why || '')) ? st.whyRaw : '',
-      /* NO COUNT ON A TILE THAT FILLED NOTHING: zero is drawn as a tick by the
-         strip's own mark rule, which is the sentence being retired. */
-      count: (working || nothing || count == null) ? null : count });
+      /* ---- A NOTHING-TO-DO TILE MAY STILL CARRY A NUMBER (Young reported it
+         21 Sep 2026: "the open fields does not tell you how many fields are
+         still open") ----
+         It could not: `nothing` forced the count to null, so the one tile that
+         had a number worth reading drew a steel dash and buried its total at
+         the end of a two-line detail the sheet then cut. The tile is NOT a
+         tick — the 20 Sep ruling stands and is what `none` is for — but the
+         head and the COUNT are two different facts, and only the head was
+         ever about "nothing was filled".
+         ONLY `working` SUPPRESSES A COUNT NOW. Every other tile passes null
+         on this path already (a `none` state means the step filled nothing),
+         so the fill tile's open count is the whole of what this lets through
+         — and the strip's own mark and tone rules read the number first. */
+      count: (working || count == null) ? null : count });
   };
 
   /* ---- THE TILE ASKS THE BRIEF, NOT A NOTE ABOUT IT (owner-reported
@@ -289,10 +300,12 @@ function triageTiles(c){
   const openNames = (fillNone === 'form' && typeof contractOpenFieldNames === 'function')
     ? (()=>{ try{ return contractOpenFieldNames(c); }catch(_){ return []; } })() : [];
   add('fill',
+    /* THE COUNT MOVED TO THE CHIP, so the detail names and does not tally.
+       "— 16 more" beside a chip reading 19 is two numbers about one thing on
+       one tile, and a reader has to work out which is which. The chip says how
+       many there are; these say which ones you would meet first. */
     (fillNone === 'form' && openNames.length)
-      ? [openNames.slice(0, 3).join(' · '),
-         (typeof i18tn === 'function') ? i18tn('tri_fill_left', openNames.length, { n: openNames.length }) : '']
-        .filter(Boolean).join(' — ')
+      ? openNames.slice(0, 3).join(' · ')
     : fillNone
       ? ((typeof i18t === 'function') ? i18t(NONE_WHY[fillNone] || NONE_WHY.none) : '')
       : fl.ok
@@ -300,7 +313,11 @@ function triageTiles(c){
          fl.left ? ((typeof i18tn === 'function') ? i18tn('tri_fill_left', fl.left, { n: fl.left }) : '') : '']
         .filter(Boolean).join(' — ')
       : (fl.why || ''),
-    fl.ok ? names.length : null, null, fillNone);
+    /* WHAT THE NUMBER IS ABOUT FOLLOWS WHAT THE TILE SAYS: where the head
+       reads "open fields are on the panel" the number is how many are OPEN;
+       everywhere else it is how many were filled, as it always was. */
+    (fillNone === 'form' && openNames.length) ? openNames.length
+      : (fl.ok ? names.length : null), null, fillNone);
 
   /* FILED reports facts already on the record — the stream somebody picked on
      the upload screen and the owner HaTi stamps at creation. It proposes

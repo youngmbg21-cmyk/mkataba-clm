@@ -93,10 +93,19 @@ test('F347 — the second five images', async t => {
     assert.match(SRV, /origin,source_contract_id/, 'origin is still stored');
   });
 
-  await t.test('(2c) the sentence slot is always drawn, and reserves two lines', () => {
+  /* RE-POINTED IN PLACE 21 Sep 2026 (Young: "still not the same size. Make
+     them the same and not big either"). The RULE — the slot is always drawn
+     and reserves a fixed number of lines — is exactly what this claim is
+     about and is untouched; what moved is how many, from two to ONE, because
+     "not big" is measured against the artifact's own ~80px card. And the
+     reserve is no longer the sentence's alone: the name and the foot take one
+     line each too, which is what actually made the cards equal — see
+     f349 (1). Asked as the RELATION so a retune does not break it. */
+  await t.test('(2c) the sentence slot is always drawn, and reserves its lines', () => {
     assert.match(WIZ, /<span class="na-about">/, 'always drawn — reserving is what fixes the height');
-    assert.match(CSS, /\.na-door \.na-about\{[^}]*-webkit-line-clamp:2/);
-    assert.match(CSS, /\.na-door \.na-about\{[^}]*height:calc\(1\.4em \* 2\)/);
+    const r = /\.na-door \.na-about\{[^}]*\}/.exec(CSS)[0];
+    assert.match(r, /height:1\.4em/);
+    assert.match(r, /line-height:1\.4/);
   });
 
   await t.test('(2d) the describe box is a textarea and keeps everything it had', () => {
@@ -146,11 +155,18 @@ test('F347 — the second five images', async t => {
     assert.match(CTR, /function tplFormOpenCount\(c\)\{ return tplFormOpenFields\(c\)\.length; \}/);
   });
 
+  /* RE-POINTED IN PLACE 21 Sep 2026. The claim — the tile NAMES the open
+     fields rather than describing the screen — stands and is asked below.
+     What went is the "— N more" tail: the total moved onto the CHIP, and two
+     numbers about one thing on one tile is what Young reported reading as
+     nothing at all. The tail survives on the FILLED branch, where the chip
+     counts what was filled and the tail says what was left — two real facts. */
   await t.test('(3d) and the tile names them rather than describing the screen', () => {
     assert.match(TRI, /const openNames = \(fillNone === 'form'/);
     assert.match(TRI, /contractOpenFieldNames\(c\)/);
-    assert.match(TRI, /i18tn\('tri_fill_left', openNames\.length/,
-      'the same shape the filled branch beside it uses');
+    assert.match(TRI, /\(fillNone === 'form' && openNames\.length\)\s*\n?\s*\? openNames\.slice\(0, 3\)/,
+      'the first few, by name');
+    assert.match(TRI, /i18tn\('tri_fill_left', fl\.left/, 'and the filled branch keeps its own tail');
   });
 
   /* ═══════ 4. WHAT COPILOT READ ═══════ */

@@ -638,6 +638,19 @@ function naCardHint(r){
   const sub = String((r && r.sub) || '').trim();
   return NA_PROVENANCE.test(sub) ? sub : '';
 }
+/* ---- THE WHOLE OF EVERY CUT LINE, ON ONE HOVER (Young, 21 Sep 2026) ----
+   Each of the card's three lines is reserved at ONE line now so every card
+   measures the same, so each of them can be cut. A cut is not a silent trim:
+   the name, the sentence and the provenance all ride the card's own title,
+   which is where this product puts what a face has no room for. Written once
+   here rather than assembled at the button, so the two cannot drift. */
+function naCardTitle(r){
+  const sub = String((r && r.sub) || '').trim();
+  const shown = naCardSub(r);
+  return [String((r && r.name) || '').trim(),
+    /* the sentence the face carries, and the raw one where it was refused */
+    shown, (sub && sub !== shown) ? sub : ''].filter(Boolean).join('\n');
+}
 function openNewAgreement(o){
   o=o||{};
   if(typeof canEdit==='function' && !canEdit()){ toast(i18t('wz_viewers_no_create'),'err'); return; }
@@ -667,7 +680,7 @@ function openNewAgreement(o){
      so a clamp alone would cap the long one and still let a card with nothing
      to say shrink. RESERVING IS WHAT FIXES THE HEIGHT — the arrival strip's
      own lesson, 17 Sep 2026. */
-  const door=r=>{ const sub=naCardSub(r), hint=naCardHint(r);
+  const door=r=>{ const sub=naCardSub(r), hint=naCardTitle(r);
     return `<button type="button" class="na-door${sel&&sel.kind===r.kind&&sel.id===r.id?' on':''}" data-wz-${r.kind}="${esc(r.id)}"${hint?` title="${esc(hint)}"`:''}>
       <b>${esc(r.name)}</b><span class="na-about">${esc(sub)}</span><span class="na-go">${esc(r.go)}${r.stream?` · ${esc(r.stream)}`:''}</span></button>`; };
   const chip=r=>`<button type="button" class="na-chip${sel&&sel.kind===r.kind&&sel.id===r.id?' on':''}" data-wz-tid="${esc(r.id)}" title="${esc(naCardSub(r)||r.sub)}">${esc(r.name)}</button>`;
@@ -819,4 +832,4 @@ function naPickFromDraft(pick, prefill){
   return true;
 }
 
-Object.assign(window,{TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naHit,naCardSub,naCardHint,NA_PAPER_MIN_W});
+Object.assign(window,{TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naHit,naCardSub,naCardHint,naCardTitle,NA_PAPER_MIN_W});

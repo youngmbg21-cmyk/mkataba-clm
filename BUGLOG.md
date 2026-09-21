@@ -18151,3 +18151,115 @@ Lint 0 errors.
   fill at the top and bottom of the bar. Kept — it marks the exact expiry day,
   which a rounded cap makes vaguer — and raised with the owner rather than
   changed unasked.
+
+## 2026-09-21 — NINE OFF FIVE IMAGES (Young)
+
+Nine reports in one message. Every one measured in a real browser before a
+line moved; four of the nine were invisible in the source.
+
+### 1 · The New agreement cards were two heights
+MEASURED: 103px against 121px. The DESCRIPTION slot was reserved on 21 Sep and
+doing its job; what differed was the NAME — a long one wrapped to two lines,
+and a grid stretches every cell in a row to the tallest. So reserving one line
+of a card does not fix its height: every line has to be reserved. Name, sentence
+and foot now take one line each, the whole of each rides the card's own hover
+(`naCardTitle`), and the sentence dropped from two reserved lines to one
+because "not big either" is measured against the artifact's own ~80px card.
+MEASURED after: six cards, all 86px.
+
+TWO `.na-door b` RULES were folded into one. A second rule about one element,
+winning by source order, is the fault this codebase records; it was also what
+made the first version of the claim pass against the wrong rule.
+
+### 2 · The open-fields tile drew a dash
+A `none` state forced the count to null, so the one tile with a number worth
+reading printed "—" and buried its total at the end of a detail the sheet then
+cut to two lines. The head and the count are two different facts: "nothing was
+FILLED" is what `none` says, "nineteen are OPEN" is a different sentence. Only
+a reading in flight suppresses a count now, the strip asks the number before
+its three old states, and the "— N more" tail came off the open branch because
+two numbers about one thing on one tile is what made it unreadable.
+
+### 3 · The standards tile had no door
+It presses `openCheckPanel(c,'playbook')` — the Checks card's own act, so the
+two cannot drift. The 20 Sep note ended "on his word"; this is that word.
+
+### 4 · The re-written brief was not shown
+The Before-you-sign row already re-wrote the brief; it did not open it, so the
+one reason to press it was left to the reader to go and find. It opens the
+panel now, and only where a brief was really written — `c._brief` still holds
+the OLD one after a refusal.
+
+### 5 · Copilot was still repeating the clause name
+The 21 Sep fix put the cleaner inside `pbFitWording` and called that "the one
+place every proposal passes through". MEASURED: it is not. `it.draft` is the
+raw model string and BOTH "Use Copilot's draft" presses file that, never the
+fitted one. So the reading was right and reached one surface of three. It is
+cleaned where the draft is READ (`rlPlaybookProposals`), which is the one
+producer the rail, the review window and the batch all share.
+REPRODUCED at the parent: `draftHead: "Limitation of Liability. Each Part"`.
+
+### 6+7 · A missing clause is added whole; a present one is adjusted
+Two holes under one report. `pbFitWording` fell back to the raw draft where no
+address read, so a whole-clause rewrite counted as "the smallest change" and
+the batch filed it — the owner's own "Replaces all 69 words — keeps none". And
+where nothing could be fitted at all (a rule-based review writes no redline),
+`lead` fell back to the library's stand-alone clause and drew it as the
+proposal. Now: an unaddressed draft that would lose unquoted blocks is refused
+(asking the WALL's own `pbUnquotedLoss`, one reading two readers), and on an
+EDIT landing there is no falling back — the card says no smaller change fits
+and offers the three named wordings as presses that ask. An ADD landing is
+untouched: there the library's wording whole is exactly what belongs.
+
+### 8 · The Copilot draft could not be read
+A 120px window with its own scrollbar over the one thing on that rail a reader
+must read in full. The cap stays as the resting shape and a press drops it;
+the control is drawn only where the box really overflows, measured after the
+paint — the product's own `rowsThatFit` idiom, never a character count.
+
+### 9 · The dropdowns were the operating system's
+The list a native `<select>` drops is the OS's own — square corners, its font,
+a system-blue bar — and no stylesheet reaches inside it. The `<select>` stays
+and is still the truth: the POINTER is intercepted and HaTi's list drawn
+instead; a press writes the value back and fires the select's own `change`, so
+nothing downstream learns a menu was involved. The KEYBOARD is left alone
+deliberately (arrows, Home, End, type-ahead all still work) — rebuilding those
+in a div is how a control loses behaviour nobody noticed it had. Mounted on the
+body at `position:fixed`, so the sticky filter band cannot clip it.
+SCOPE, said out loud: armed on the Contracts filter bar, where the report came
+from. `selectMenuWire` takes any root, so a second surface is one line — every
+other `<select>` still drops the system's list until somebody asks.
+
+### 10 · The Horizon bars were too thick
+8px, the artifact's own. The top moved with the height so the bar's centre line
+did not, which is where the expiry tick and the notice nip already sit.
+
+### The checks
+f349 (44 claims, 36 red at the parent; the 8 that pass are named walls and
+controls), nine-off-five-images-verify (24 checks, 18 red at the parent, which
+prints the report back: `heights: 121 · 103`, `18/36/18/36/18/18`, the dash,
+no arrow, no panel, no menu and `14px`), prepare-redlines-verify section 8
+(9 checks, 5 red).
+Re-pointed in place with the reason beside each: f319's brief-press claim (it
+pinned the whole statement including its `await`, so putting the answer in a
+variable broke a claim about something else), f341's tone/mark claim and its
+count claim (REVERSED — the old rule read the head and the number as one fact),
+f347 (2c) and (3d).
+Lint 0 errors. Full suite 8,385 tests, 0 failed.
+
+### Noticed, not fixed
+- `pbFitWording`'s new refusal of an unaddressed destructive draft is a
+  SEATBELT rather than a common path: an address is found by the same quote
+  that locates the clause, so in practice a located finding almost always
+  yields one. It costs nothing and it is the wall's own reading.
+- The screenshot of the New agreement cards still showed
+  `Converted from X.docx (original stored: f_...)`. Measured in a real
+  browser after the merge, `naCardSub` refuses that shape correctly — the
+  screenshot predates the deploy.
+
+### Also re-pointed, owed with the previous change and missed
+signed-and-columns-verify's four day claims read `30.06.2027` — the shape
+`regDotDate` printed before the owner asked for the artifact's own. The claims
+are unchanged (a signed contract prints a real day, an unsigned one an
+em-dash, the head sorts by it, the filter agrees with the column); they ask a
+PATTERN now rather than one spelling, so a retune moves them. 31/31.

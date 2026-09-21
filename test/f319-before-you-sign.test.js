@@ -281,7 +281,13 @@ describe('f319 (4c) THE BRIEF JOINS THE CHECK', () => {
 
   test('the row has its own press, so the summary can be rewritten alone', () => {
     assert.match(CT, /data-sc-brief="1"/, 'a reader after the summary should not pay for the playbook too');
-    assert.match(CT, /if\(window\.runContractBrief\) await runContractBrief\(c,\{force:!!c\._brief\}\);/, 'wired');
+    /* RE-POINTED IN PLACE 21 Sep 2026. The claim is the PRESS and what it
+       spends — one reading, forced where a brief is already on file — and it
+       pinned the whole statement including its `await`, so putting the answer
+       in a variable (to open the panel on it, Young's own ask) broke a claim
+       about something else entirely. Asked of the call now. */
+    assert.match(CT, /runContractBrief\(c,\{force:!!c\._brief\}\)/, 'wired, and forced');
+    assert.match(CT, /window\.runContractBrief/, 'through window — the ES-module rule');
   });
 
   test('the words are in both books', () => {

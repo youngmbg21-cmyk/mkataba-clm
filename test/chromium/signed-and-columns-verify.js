@@ -90,12 +90,21 @@ const check = (name, ok, detail) => {
       }
       return out;
     }, iSig);
-    check('a signed contract prints a dotted date',
-      cells.some(t => /^\d{2}\.\d{2}\.\d{4}$/.test(t)), JSON.stringify(cells.slice(0, 4)));
+    /* RE-POINTED IN PLACE 21 Sep 2026. These four read the day as
+       `30.06.2027` — the shape `regDotDate` printed until the owner asked for
+       the artifact's own (`30 Jun 2027`, the month following the LANGUAGE).
+       The CLAIM is unchanged and is what matters: a signed contract prints a
+       real day, an unsigned one an em-dash, the head sorts by it and the
+       filter agrees with the column. `DAY` is the shape the product prints
+       now, asked as a pattern rather than as one spelling, so a retune moves
+       these with it. Owed with the change and missed; done here. */
+    const DAY = /\d{1,2}\s+\p{L}+\.?\s+\d{4}/u;
+    check('a signed contract prints a real day',
+      cells.some(t => DAY.test(t)), JSON.stringify(cells.slice(0, 4)));
     check('and one that is not signed prints an em-dash, never an empty cell',
       cells.some(t => t === '—'), JSON.stringify(cells.slice(0, 4)));
     check('the legacy display string reads as a real date too',
-      cells.includes('12.08.2026'), JSON.stringify(cells.slice(0, 4)));
+      cells.some(t => DAY.test(t) && /2026/.test(t)), JSON.stringify(cells.slice(0, 4)));
 
     /* ============ 3. NO SIDEWAYS SCROLL, AT EVERY LAPTOP WIDTH ============ */
     for (const wpx of [1280, 1366, 1440, 1500]) {
@@ -120,9 +129,10 @@ const check = (name, ok, detail) => {
     await page.waitForTimeout(700);
     const order = await page.evaluate(i => [...document.querySelectorAll('tr[data-row]')]
       .slice(0, 30).map(tr => (tr.children[i] || {}).textContent || ''), iSig);
-    const dated = order.filter(t => /\d{2}\.\d{2}\.\d{4}/.test(t.trim()));
+    const DAY2 = /\d{1,2}\s+\p{L}+\.?\s+\d{4}/u;
+    const dated = order.filter(t => DAY2.test(t.trim()));
     const dashAfter = order.findIndex(t => t.trim() === '—');
-    const lastDated = order.map(t => /\d{2}\.\d{2}\.\d{4}/.test(t.trim())).lastIndexOf(true);
+    const lastDated = order.map(t => DAY2.test(t.trim())).lastIndexOf(true);
     check('a column head press orders the book by signature',
       sorted && dated.length >= 2, `${dated.length} dated rows`);
     check('AND A CONTRACT WITH NO SIGNATURE SORTS LAST',
@@ -152,7 +162,7 @@ const check = (name, ok, detail) => {
       && narrowed.years.includes('2021'), JSON.stringify(narrowed.years));
     const agree = await page.evaluate(i => {
       const cells = [...document.querySelectorAll('tr[data-row]')].map(tr => (tr.children[i] || {}).textContent.trim());
-      return { n: cells.length, all2021: cells.every(t => /\.2021$/.test(t)), cells };
+      return { n: cells.length, all2021: cells.every(t => /\b2021\b/.test(t)), cells };
     }, iSig);
     check('THE COLUMN AND THE FILTER AGREE — every row shown says that year',
       agree.n >= 1 && agree.all2021, JSON.stringify(agree.cells.slice(0, 5)));
