@@ -1560,8 +1560,15 @@ function tplPageRowHtml(r){
           ${_tplAttn[r.kind+':'+r.id]?`<div style="font-size:var(--t-label);color:var(--st-ruby-fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px">${_tplEsc(_tplAttn[r.kind+':'+r.id])}</div>`:''}
         </div>
       </div></td>
-    <td style="padding:10px var(--s-2);${RULE};font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap">${_tplEsc(r.origin)}</td>
+    ${''/* ORIGIN IS A CHIP, AND THE STREAM HAS ITS OWN COLUMN (second pass,
+           21 Sep 2026 — the reference frame). The chip's tone is the kind's
+           own (LIB_TONE's family: company green, counterparty amber, HaTi
+           grey); the stream cell carries the colour bar the name used to. */}
+    <td style="padding:10px var(--s-2);${RULE};white-space:nowrap"><span class="tpl-origin is-${_tplEsc(r.kind)}">${_tplEsc(r.origin)}</span></td>
     <td style="padding:10px var(--s-2);${RULE};font-size:var(--t-meta);font-variant-numeric:tabular-nums">${version}</td>
+    <td style="padding:10px var(--s-2);${RULE};font-size:var(--t-meta);color:var(--color-neutral-700);white-space:nowrap">${r.stream&&FOLDERS[r.stream]
+      ?`<span style="display:inline-flex;align-items:center;gap:6px"><span style="flex:none;width:3px;height:12px;background:${folderColor(r.stream)}"></span>${_tplEsc(tplShortStream(FOLDERS[r.stream].name))}</span>`
+      :'<span style="color:var(--color-neutral-400)">—</span>'}</td>
     <td style="padding:10px var(--s-2);${RULE};font-size:var(--t-meta);font-variant-numeric:tabular-nums;color:var(--color-neutral-700)">${r.used==null?'—':r.used}</td>
     <td style="padding:10px 14px 10px var(--s-2);${RULE};white-space:nowrap"><div class="tpl-acts">${acts}</div></td>
   </tr>`;
@@ -1625,7 +1632,7 @@ function tplPagePaintRows(){
   if(count) count.textContent=i18tn('lib_count',rows.length,{n:rows.length});
   host.innerHTML=rows.length?`
     <div class="table-scroll"><table style="border-collapse:collapse;width:100%">
-      <tr>${th(i18t('lib_col_template'))}${th(i18t('lib_col_origin'))}${th(i18t('lib_col_version'),1)}${th(i18t('lib_col_used'),1)}<th style="border-bottom:1px solid var(--color-divider)"></th></tr>
+      <tr>${th(i18t('lib_col_template'))}${th(i18t('lib_col_origin'))}${th(i18t('lib_col_version'),1)}${th(i18t('reg_value_stream'))}${th(i18t('lib_col_used'),1)}<th style="border-bottom:1px solid var(--color-divider)"></th></tr>
       ${shown.map(tplPageRowHtml).join('')}
     </table></div>
     ${hidden>0?`<div style="display:flex;align-items:center;padding:11px 14px;font-size:var(--t-meta);color:var(--color-neutral-600)">
@@ -1784,6 +1791,14 @@ const TPL_SOURCES = [
   { k:'hati',   ic:'copy',   get t(){ return i18t('lib_src_hati'); },   get d(){ return i18t('lib_src_hati_sub'); } },
   { k:'blank',  ic:'plus',   get t(){ return i18t('lib_src_blank'); },  get d(){ return i18t('lib_src_blank_sub'); } },
 ];
+/* ONE ACT, TWO DOORS (second pass, 21 Sep 2026): the chooser's "a document"
+   row and the page head's Convert a document both press THIS, so the head's
+   button is a proxy and not a second implementation. */
+function tplConvertDoor(){
+  const lib=(typeof tplLibAll==='function')?tplLibAll():{canManage:false};
+  const companyOk=API_MODE()&&lib.canManage;
+  return (companyOk&&typeof tplLibUploadModal==='function')?tplLibUploadModal():openCreateTemplateModal('upload');
+}
 function tplNewMenu(){
   const lib=(typeof tplLibAll==='function')?tplLibAll():{canManage:false};
   const companyOk=API_MODE()&&lib.canManage;
@@ -1820,7 +1835,7 @@ function tplNewMenu(){
   document.getElementById('tn-close')?.addEventListener('click',closeModal);
   document.querySelectorAll('[data-tpl-src]').forEach(b=>b.addEventListener('click',()=>{
     const k=b.getAttribute('data-tpl-src'); closeModal();
-    if(k==='doc') return (companyOk&&typeof tplLibUploadModal==='function')?tplLibUploadModal():openCreateTemplateModal('upload');
+    if(k==='doc') return tplConvertDoor();
     if(k==='paste') return openCreateTemplateModal('paste');
     if(k==='signed') return tplPickContract();
     if(k==='hati') return tplPickBuiltin();
@@ -2655,6 +2670,13 @@ function renderTemplatesPage(){
              and is not a sibling act — it is one of five ways to answer the
              same question, which the one door now asks. `lib_convert_document`
              is STALE on this page and stays in both books, inert. */}
+      ${''/* CONVERT A DOCUMENT IS BACK BESIDE THE ONE DOOR (second pass, 21 Sep
+             2026 — the reference draws both). It is a PROXY onto the chooser's
+             own "a document" row (tplConvertDoor), gated exactly as that row
+             is, so the two cannot drift. `lib_convert_document` is LIVE again. */}
+      ${canManage?`<button id="tpl-convert" class="ui-btn" style="font-size:var(--t-meta);padding:6px 14px"${
+        ((typeof newPaperBlocked==='function'&&newPaperBlocked())?` disabled title="${esc(i18t('np_refused'))+' '+esc(i18t('np_refused_ask'))}"`:'')
+      }>${icon('upload','w-3.5 h-3.5')} ${i18t('lib_convert_document')}</button>`:''}
       ${canManage?`<button id="tpl-new" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:6px 14px"${
         ((typeof newPaperBlocked==='function'&&newPaperBlocked())?` disabled title="${esc(i18t('np_refused'))+' '+esc(i18t('np_refused_ask'))}"`:'')
       }>${i18t('lib_new_template')}</button>`:''}
@@ -2663,7 +2685,7 @@ function renderTemplatesPage(){
       ${''/* "Templates overview" was HERE and is gone (19 Sep 2026). See the
              note on tplHealthData: the card it drew is kept, unreferenced. */}
       <button class="st-tab${tab==='book'?' on':''}" data-tpl-tab="book" role="tab" aria-selected="${tab==='book'?'true':'false'}">${i18t('lib_tab_book')}</button>
-      <button class="st-tab${tab==='list'?' on':''}" data-tpl-tab="list" role="tab" aria-selected="${tab==='list'?'true':'false'}">${i18t('nav_templates')}</button>
+      <button class="st-tab${tab==='list'?' on':''}" data-tpl-tab="list" role="tab" aria-selected="${tab==='list'?'true':'false'}">${i18t('nav_templates')}<span class="st-tab-n">${pile.ready}</span></button>
     </div>
 
     ${''/* TWO SECTIONS, NOT THREE. The health card (tplHealthHtml) and the
@@ -2736,6 +2758,7 @@ function renderTemplatesPage(){
     _tplPage.stream=_tplPage.stream===v?null:v; tplPageRefilter(); }));
   document.getElementById('tpl-search')?.addEventListener('input',e=>{ _tplPage.q=e.target.value; tplPagePaintRows(); });
   document.getElementById('tpl-new')?.addEventListener('click',tplNewMenu);
+  document.getElementById('tpl-convert')?.addEventListener('click',tplConvertDoor);
   /* Company templates come from the server cache; the first visit renders
      before it is warm, so refresh and repaint the rows when the list moves. */
   /* ---- A FAILED FETCH MUST NOT ASK FOR ANOTHER RENDER ----

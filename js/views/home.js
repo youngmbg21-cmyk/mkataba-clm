@@ -1107,6 +1107,7 @@ function renderDashboard(){
       txt:i18t('rv_home_title')+' — <strong style="font-weight:var(--w-strong)">'+esc(x.c.name)+'</strong>',
       meta:`${esc(i18t('rv_home_from',{who:x.rv.by}))} · ${esc(i18tn('rv_home_sub',x.st.total,{n:x.st.total}))}`,
       tag:x.rv.due?esc(String(x.rv.due)):esc(i18t('rv_home_open')),
+      verb:i18t('home_verb_review'),
     })),
     /* ---- SOMEBODY IS ASKING TO JOIN A NEGOTIATION YOU LEAD ----
        Not a new inbox. A request to join is exactly the shape of everything
@@ -1122,12 +1123,14 @@ function renderDashboard(){
         +' — <strong style="font-weight:var(--w-strong)">'+esc(x.c.name)+'</strong>',
       meta:esc(i18tn('dk_stale_sub',x.stale.n,{n:x.stale.n,who:x.stale.lead.name})),
       tag:esc(i18t('dk_stale_tag',{n:x.stale.days})),
+      verb:i18t('act_open'),
     })),
     ...myJoinAsks.map(x=>({
       cid:x.c.id, urgent:false, ic:'users',
       txt:i18t('dk_join_card',{who:esc(x.req.name)})+' — <strong style="font-weight:var(--w-strong)">'+esc(x.c.name)+'</strong>',
       meta:x.req.why?`“${esc(x.req.why)}”`:esc(x.c.counterparty||i18t('home_no_counterparty')),
       tag:esc(i18t('dk_ask_tag')),
+      verb:i18t('home_verb_answer'),
     })),
     /* ---- YOUR SIGNATURE, AND WHAT STANDS BEFORE IT (13 Sep 2026) ----
        A contract whose next signature is this reader's, with something still
@@ -1141,18 +1144,21 @@ function renderDashboard(){
       txt:i18t('home_sign_row',{n:x.n,name:`<strong style="font-weight:var(--w-strong)">${esc(x.c.name)}</strong>`}),
       meta:esc(x.c.counterparty||i18t('home_no_counterparty')),
       tag:esc(i18t('home_sign_tag')),
+      verb:i18t('home_verb_sign'),
     })),
     ...decisions.filter(x=>!deskIds.has(x.c.id)).map(x=>({
       cid:x.c.id, urgent:x.d<=30, ic:'calendar',
       txt:i18t('home_renew_or_exit',{name:`<strong style="font-weight:var(--w-strong)">${esc(x.c.name)}</strong>`}),
       meta:i18t('home_decide_by',{who:esc(x.c.counterparty||i18t('home_no_counterparty')),when:fmtDDay(x.dd)}),
       tag:x.d===0?i18t('home_today'):i18t('home_in_days',{n:x.d}),
+      verb:i18t('home_verb_decide'),
     })),
     ...waitingLongest.map(x=>({
       cid:x.c.id, urgent:x.idle>=30, ic:'clock',
       txt:i18t('home_waiting_on_review',{name:`<strong style="font-weight:var(--w-strong)">${esc(x.c.name)}</strong>`}),
       meta:`${esc(x.c.counterparty||i18t('home_no_counterparty'))} · ${esc(x.c.id)}`,
       tag:i18t('home_idle_days',{n:x.idle}),
+      verb:i18t('act_open'),
     })),
   ];
   const decisionRows=decisionItems.slice(0,8).map(it=>{
@@ -1307,8 +1313,12 @@ function renderDashboard(){
              loose they would take two of the three rows between them and put
              the figure where the foot belongs. */}
       ${dead?'':hmArrow}
-      <span class="hm-head"><span class="hm-t">${o.t}</span><span class="hm-s">${o.s||''}</span></span>
-      <span class="hm-big"><span class="hm-n"${o.ink&&!dead?` style="color:${o.ink}"`:''}>${o.n}</span>${o.u?`<span class="hm-u">${o.u}</span>`:''}</span>
+      ${''/* THE DETAIL SITS BESIDE THE FIGURE (second pass, 21 Sep 2026 — the
+             reference draws "6  3 approvals · 3 negotiation moves" on one
+             line). Same three regions, same subgrid; the .hm-s span moved
+             from the head region into the figure's. */}
+      <span class="hm-head"><span class="hm-t">${o.t}</span></span>
+      <span class="hm-big"><span class="hm-n"${o.ink&&!dead?` style="color:${o.ink}"`:''}>${o.n}</span>${o.u?`<span class="hm-u">${o.u}</span>`:''}<span class="hm-s">${o.s||''}</span></span>
       <span class="hm-foot${o.fc?' '+o.fc:''}">${o.f||''}</span>
     </button>`;
   };
@@ -1406,15 +1416,21 @@ function renderDashboard(){
         <button type="button" class="hm-row ${it.urgent?'is-neg':'is-crit'}" data-sel="${esc(it.cid)}">
           <span class="hm-rb"><span class="hm-rt">${it.txt}</span><span class="hm-rm">${it.meta}</span></span>
           <span class="hm-rtag">${esc(it.tag)}</span>
+          ${''/* THE VERB IS A WORD ON THE ROW (second pass, 21 Sep 2026): the
+                 reference draws Approve · Decide · Sign · Review at the right.
+                 It is a SPAN dressed as a button, because the row IS the
+                 button — one press, one door, the row's own. */}
+          ${it.verb?`<span class="hm-rverb">${esc(it.verb)}</span>`:''}
           <svg class="hm-rchev" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><use href="#i-right"/></svg>
         </button>`).join('')}</div>`
     : `<div class="hm-empty">${i18t('home_nothing_to_decide')}</div>`;
   /* DRAWN ONLY WHERE IT SHOWS SOMETHING NEW — at four or fewer, pressing it
      would open the list already on screen. */
-  const ddLink=ddAll.length>ddShown.length
+  const ddLink=(ddAll.length?`<span class="hm-sec-sub">${esc(i18tn('home_dd_items',ddAll.length,{n:ddAll.length}))} · ${esc(i18t('home_dd_sorted'))}</span>`:'')
+    + (ddAll.length>ddShown.length
     ? `<button type="button" class="hm-cz" data-hm-go="needsyou">${i18t('home_see_all',{n:ddAll.length})}
          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><use href="#i-right"/></svg></button>`
-    : '';
+    : '');
 
   const hour=new Date().getHours();
   const greetKey=hour<12?'home_greet_morning':hour<17?'home_greet_afternoon':'home_greet_evening';
@@ -1474,20 +1490,24 @@ function renderDashboard(){
   <div class="view-enter hm-page">
     ${firstRunBanner}
 
+    ${''/* THE HEAD IS THE REFERENCE'S (the redesign's second pass, 21 Sep
+           2026): the greeting over its own line, and the two acts at the right —
+           Choose tiles (the SAME #kpi-customize, moved up from the My work
+           section head) beside the filled New agreement. */}
     <div class="hm-greet">
-      <h1>${i18t(greetKey)}, ${esc(firstName)}</h1>
-      <span class="hm-greet-sub">${todayLine}</span>
+      <span class="hm-greet-l"><h1>${i18t(greetKey)}, ${esc(firstName)}</h1>
+      <span class="hm-greet-sub">${todayLine}</span></span>
       <span style="flex:1 1 auto"></span>
+      <button id="kpi-customize" class="ui-btn" title="${i18t('home_choose_metrics')}">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+        ${i18t('home_choose_tiles')}
+      </button>
       <button id="hero-draft" class="hm-primary">
         ${icon('plus','w-3.5 h-3.5',2)} ${i18t('home_draft_new')}
       </button>
     </div>
 
-    ${hmSec(i18t('home_my_work'),`
-      <button id="kpi-customize" class="hm-cz" title="${i18t('home_choose_metrics')}">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
-        ${i18t('home_customize_metrics')}
-      </button>`)}
+    ${hmSec(i18t('home_my_work'),'')}
     <div id="kpi-grid" class="hm-tiles is-work" data-kpi-cols="${kpiCols}">${workTiles}</div>
     ${''/* A KEYBOARD AFFORDANCE NOBODY IS TOLD ABOUT IS ONE NOBODY USES. Drawn
          for a screen reader only, because the cards already SAY "drag to
