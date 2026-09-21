@@ -50,7 +50,13 @@ const KPI_ALL_ORDER=['approvals','negotiations','obligations','owed','payterms',
    the last ninety days took. The Portfolio row below is the shape of the book.
    Nothing left the catalogue: all twelve are still one press away under
    Customize, and a reader who wants the old four puts them straight back. */
-const DEFAULT_KPI_SEL=['approvals','negotiations','expiring90','avgcycle'];
+/* THE REFERENCE'S OWN FOUR (Young ruled 21 Sep 2026): waiting on you, live
+   negotiations, expiring in 90 days, value under management. `avgcycle` keeps
+   its place in the catalogue and one press puts it back; a reader who has
+   already chosen four is untouched, because this is only what an unanswered
+   workspace opens on. A money tile is dropped for a reader who may not see
+   values by currentKpiSel's own filter. */
+const DEFAULT_KPI_SEL=['approvals','negotiations','expiring90','active_value'];
 /* ---- FOUR, AND FOUR IS THE WHOLE RIBBON (owner-asked, 13 Aug 2026) ----
    "For the 4 main KPI cards, make it so that you cannot have more than 4."
 
@@ -1276,10 +1282,24 @@ function renderDashboard(){
      empty list is a press that makes the reader think they did something
      wrong. hmTile does that from the number itself, so it can never be
      forgotten on a tile added later. */
-  const hmSec=(title,extra)=>`
-    <div class="hm-sec">
-      <h2>${esc(title)}</h2><span class="hm-rule"></span>${extra||''}
+  /* ---- A SECTION HEAD, AND THE CARD HEAD IT BECOMES (Young ruled 21 Sep
+     2026: Home must look exactly like the artifact) ----
+     The reference draws Prepared for you and Needs your decision as CARDS: a
+     head of title · quiet sub · acts at the right, a hairline, then the rows.
+     This is the SAME builder with the rule dropped, because the card's own
+     border is that rule — one head, two shapes, so the two sections and the
+     My work label can never drift apart. `card` is opt-in, so My work is
+     byte-identical to what it was. */
+  const hmSec=(title,extra,card)=>`
+    <div class="hm-sec${card?' is-cardh':''}">
+      <h2>${esc(title)}</h2>${card?'':'<span class="hm-rule"></span>'}${extra||''}
     </div>`;
+  /* THE CARD IS THE WIDTH OF THE FOUR TILES ABOVE IT — the owner's own words,
+     and it holds by construction: both are block children of .hm-page, so
+     neither carries a width of its own. The reference caps its stack at
+     1100px and its tiles at the page measure, which is the gap the owner
+     ringed; HaTi takes the tiles' width for both. */
+  const hmCard=(head,body)=>`<section class="hm-card">${head}${body}</section>`;
   const hmArrow=`<svg class="hm-go" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><use href="#i-right"/></svg>`;
   /* A tile is a <button> whichever it is, so the row never changes shape; a
      dead one is DISABLED rather than merely unpainted, so the browser itself
@@ -1414,6 +1434,11 @@ function renderDashboard(){
   const ddRows=ddShown.length
     ? `<div class="hm-rows" id="hm-dd-rows">${ddShown.map(it=>it.kind==='triage'?triageRowHtml(it):`
         <button type="button" class="hm-row ${it.urgent?'is-neg':'is-crit'}" data-sel="${esc(it.cid)}">
+          ${''/* THE TONE IS A DOT, NOT A LEFT RULE (21 Sep 2026): the
+                 reference draws an 8px circle at the head of every decision
+                 row. The tone classes are unchanged — the dot reads its
+                 colour off them — so which row is alarming has not moved. */}
+          <span class="hm-rdot" aria-hidden="true"></span>
           <span class="hm-rb"><span class="hm-rt">${it.txt}</span><span class="hm-rm">${it.meta}</span></span>
           <span class="hm-rtag">${esc(it.tag)}</span>
           ${''/* THE VERB IS A WORD ON THE ROW (second pass, 21 Sep 2026): the
@@ -1481,10 +1506,10 @@ function renderDashboard(){
   /* NOTHING PREPARED DRAWS NOTHING AT ALL — no heading, no empty state. An
      empty section that says so every morning is the furniture this rulebook
      keeps warning about, and the list below already has its own empty state. */
-  const deskSection=deskRows.length?`
-    ${hmSec(i18t('desk_sec'),`<span class="hm-desk-sub">${deskSub}</span>
-      <button type="button" class="hm-cz" data-desk-act="discard-all">${esc(i18t('desk_discard_all'))}</button>`)}
-    <div class="hm-rows" id="hm-desk-rows">${deskRows.map(deskRowHtml).join('')}</div>`:'';
+  const deskSection=deskRows.length?hmCard(
+    hmSec(i18t('desk_sec'),`<span class="hm-desk-sub">${deskSub}</span>
+      <button type="button" class="hm-cz" data-desk-act="discard-all">${esc(i18t('desk_discard_all'))}</button>`,true),
+    `<div class="hm-rows" id="hm-desk-rows">${deskRows.map(deskRowHtml).join('')}</div>`):'';
 
   document.getElementById('content').innerHTML=`
   <div class="view-enter hm-page">
@@ -1507,7 +1532,11 @@ function renderDashboard(){
       </button>
     </div>
 
-    ${hmSec(i18t('home_my_work'),'')}
+    ${''/* NO LABEL OVER THE TILES (Young ruled 21 Sep 2026: Home must look
+           exactly like the artifact). The reference draws the four straight
+           under the greeting: they are self-labelled, the reader chose them,
+           and the row above already carries the act that changes them.
+           `home_my_work` is STALE ON THE FACE and inert in both books. */}
     <div id="kpi-grid" class="hm-tiles is-work" data-kpi-cols="${kpiCols}">${workTiles}</div>
     ${''/* A KEYBOARD AFFORDANCE NOBODY IS TOLD ABOUT IS ONE NOBODY USES. Drawn
          for a screen reader only, because the cards already SAY "drag to
@@ -1517,8 +1546,7 @@ function renderDashboard(){
 
     ${deskSection}
 
-    ${hmSec(i18t('home_needs_decision'),ddLink)}
-    ${ddRows}
+    ${hmCard(hmSec(i18t('home_needs_decision'),ddLink,true), ddRows)}
   </div>`;
 
   // ---- wiring ----

@@ -129,7 +129,11 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
        an exact match is the only check that means anything. */
     const notWhite = await page.evaluate(() => {
       const bad = [];
-      ['#side-nav', '.hm-tile', '.hm-rows'].forEach(sel =>
+      /* RE-POINTED IN PLACE 21 Sep 2026: the rows are inside .hm-card now (the
+         reference's own card), so the card is the white surface and the list
+         inside it paints nothing of its own. The claim is unchanged — every
+         white surface on this page is exactly #ffffff. */
+      ['#side-nav', '.hm-tile', '.hm-card'].forEach(sel =>
         document.querySelectorAll(sel).forEach(e => {
           const bg = getComputedStyle(e).backgroundColor;
           if (bg !== 'rgb(255, 255, 255)') bad.push(sel + ' → ' + bg);
@@ -156,8 +160,15 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       banner: document.querySelectorAll('.hm-banner').length,
       ring: document.querySelectorAll('.hm-pipe-card, #hm-segs, #hm-ring-row').length,
     }));
-    check('3 My work leads and Needs your decision closes, with no Portfolio row between',
-      shape.sections[0] === shape.myWork && shape.sections[shape.sections.length - 1] === shape.decide
+    /* RE-POINTED IN PLACE 21 Sep 2026 (Young: Home must look exactly like the
+       artifact): the reference draws NO label over the four tiles — they are
+       self-labelled and the row above carries the act that changes them — so
+       "My work" is stale on the face and the first head on the page is now the
+       first CARD's. The claim that matters is unchanged and is the one below:
+       the page ends on Needs your decision, with no Portfolio row between. */
+    check('3 the tiles lead unlabelled and Needs your decision closes, with no Portfolio row between',
+      !shape.sections.includes(shape.myWork)
+        && shape.sections[shape.sections.length - 1] === shape.decide
         && !shape.sections.includes(shape.portfolio) && shape.sections.length <= 3,
       shape.sections.join(' · '));
     check('3 four tiles you choose, and no fixed row',

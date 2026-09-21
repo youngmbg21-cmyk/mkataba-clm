@@ -394,9 +394,20 @@ describe('F274 — the overnight desk', () => {
     });
 
     /* AN EMPTY SECTION THAT SAYS SO EVERY MORNING IS FURNITURE. */
+    /* RE-POINTED IN PLACE 21 Sep 2026 (Young: the four pages must look exactly
+       like the artifact) ---- the claim is that an empty desk draws NOTHING —
+       no heading, no empty state — and it was pinned by the character that
+       happened to follow the ternary's `?`. The section is a card now, built
+       by hmCard(...) rather than by a template literal opening right there, so
+       a backtick stopped being the right thing to look for. The two halves of
+       the claim are the CONDITION and the EMPTY ELSE. */
     test('nothing prepared draws no heading and no empty state', () => {
-      assert.match(HOME_CODE, /const deskSection=deskRows\.length\?`/);
-      assert.match(HOME_CODE, /<\/div>`:'';/);
+      const i = HOME_CODE.indexOf('const deskSection=');
+      assert.ok(i >= 0, 'the section is built in one place');
+      const expr = HOME_CODE.slice(i, HOME_CODE.indexOf('\n\n', i));
+      assert.match(expr, /const deskSection=deskRows\.length\?/,
+        'it is drawn only where something was prepared');
+      assert.match(expr, /:'';/, 'and where nothing was, the section is the empty string');
     });
 
     /* NOT ONE OF THE ACTS IS A SECOND WAY OF DOING ANYTHING. */

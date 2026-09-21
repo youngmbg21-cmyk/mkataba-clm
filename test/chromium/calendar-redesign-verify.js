@@ -138,8 +138,15 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
         legend: [...document.querySelectorAll('.cal-legend span')].map(s => s.textContent.trim()),
         dow: [...document.querySelectorAll('.cal-grid .cal-dow span')].map(s => s.textContent.trim()) };
     });
-    check('1 the head is one band and the bar sits under it',
-      shape.head && shape.head.on && shape.bar && shape.bar.on && shape.bar.y > shape.head.y,
+    /* ---- RE-POINTED IN PLACE 21 Sep 2026 (Young: the calendar must look
+       exactly like the artifact) ---- the reference draws ONE head: the title
+       over its own sub-line on the left, and every control on the right. The
+       tab row under it is gone, so .cal-bar is stale and the claim that a bar
+       sits under the head cannot be asked. What it was really pinning — one
+       white band carrying the page's controls, with no second head above it —
+       is what is asked here and in the three claims below. */
+    check('1 the head is one band, and there is no second control row under it',
+      shape.head && shape.head.on && !(shape.bar && shape.bar.on),
       { head: shape.head, bar: shape.bar });
     check('1 and the shell draws no second head above it',
       shape.pageHead.trim() === '', shape.pageHead.slice(0, 60));
@@ -161,20 +168,34 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
           y: Math.round(el.getBoundingClientRect().y),
           bottom: Math.round(el.getBoundingClientRect().bottom) }; };
       const h = document.querySelector('.cal-head'), b = document.querySelector('.cal-bar');
-      return h && b ? { head: edge(h), bar: edge(b) } : null;
+      const a = document.querySelector('.cal-head .cal-acts');
+      if (!h) return null;
+      return { head: edge(h), bar: b ? edge(b) : null,
+        acts: document.querySelectorAll('.cal-head .cal-acts > *').length,
+        actsY: a ? Math.round(a.getBoundingClientRect().y) : null,
+        /* the acts start inside the head's own box, never on a row below it */
+        sameLine: !!a && a.getBoundingClientRect().bottom <= h.getBoundingClientRect().bottom + 1 };
     });
-    check('1 the head draws no rule between itself and the tabs',
-      band && band.head.sh === 'none' && band.head.bb === '0px',
-      band && { shadow: band.head.sh, border: band.head.bb });
-    check('1 and the tab row still closes the band with one',
-      band && band.bar.sh !== 'none', band && band.bar.sh);
-    check('1 both halves are the same white, and they touch',
-      band && band.head.bg === band.bar.bg && band.head.bottom === band.bar.y,
-      band && { head: band.head.bg, bar: band.bar.bg, gap: band && band.bar.y - band.head.bottom });
+    /* ONE BAND, SO THERE IS ONE RULE AND IT IS THE BAND'S OWN. The 24 Aug
+       report was a line drawn ACROSS the middle of a two-row band; with one
+       row there is no middle to rule. The band is still white and still the
+       only thing between the shell bar and the month. */
+    check('1 the head is white and carries the page\'s controls',
+      band && band.head.bg === 'rgb(255, 255, 255)' && band.acts >= 2,
+      band && { bg: band.head.bg, acts: band.acts });
+    check('1 and the controls sit on the head\'s own line, not under it',
+      band && band.sameLine, band && { headTop: band.head.y, acts: band.actsY });
     check('1 the scope is two options, not two states', shape.scope.length === 2, shape.scope);
-    check('1 the month grid and a panel beside it',
-      shape.grid && shape.panel && shape.panel.w >= 300 && shape.grid.w > shape.panel.w,
-      { grid: shape.grid && shape.grid.w, panel: shape.panel && shape.panel.w });
+    /* RE-POINTED IN PLACE 21 Sep 2026: the reference stacks them — the month
+       across the whole page, the key under it, Next 14 days as a card below
+       that. The panel was a 304px column beside the grid, which made the
+       month's own cells the narrowest thing on the page. Both still draw, and
+       now they measure the SAME width, which is the stack. */
+    check('1 the month grid runs the page, with the panel stacked under it',
+      shape.grid && shape.panel && shape.panel.w === shape.grid.w
+        && shape.panel.y > shape.grid.y,
+      { grid: shape.grid && shape.grid.w, panel: shape.panel && shape.panel.w,
+        gridY: shape.grid && shape.grid.y, panelY: shape.panel && shape.panel.y });
     check('1 the week starts on Monday', shape.dow[0] && /^M/i.test(shape.dow[0]), shape.dow);
     check('1 four tones in the legend', shape.legend.length === 4, shape.legend);
 

@@ -530,8 +530,15 @@ const REG_COL_KEYS_NEGO = ['mk','name','counterparty','stream','value','expiry',
    own wants appreciably less, and the point saved goes to the title, which is
    what people scan. Both still sum to 100, which is what makes each table
    exactly its pane at every width. */
-const REG_COL_W         = [6,17,13,11,11,7,9,8,10,5,3];
-const REG_COL_W_NEGO    = [6,17,13,11,9,10,11,23];
+/* ---- EXPIRY TOOK A POINT WHEN THE ROW TOOK ITS RUNG BACK (21 Sep 2026) ----
+   MEASURED: at 13px the dotted date plus the day count reads
+   "30.06.2027 · 28…" — the one thing that column exists to say, cut off. The
+   point is paid for by Signed (a bare date, no suffix) on this seat and by
+   Move on the Negotiations seat, which is that table's slack column; the six
+   columns both seats share are still cut identically, and both still sum
+   to 100. */
+const REG_COL_W         = [6,17,13,11,11,7,9,7,11,5,3];
+const REG_COL_W_NEGO    = [6,17,13,11,9,11,11,22];
 /* A column may not be dragged to nothing. A PIXEL floor rather than a percent
    one, because 4% is 51px on a laptop and 77px on a wide monitor — the same
    reasoning that made the divider's own limits pixels. Converted against the
@@ -1429,11 +1436,16 @@ function negoMovePillHtml(c){
 function negoBandRowHtml(band, n){
   /* EIGHT, not nine: a band only ever draws on the Negotiations seat, which
      is the seat that has no Signed column. */
+  /* ---- THE COUNT IS PART OF THE HEADING (21 Sep 2026, Young: the four pages
+     must look exactly like the artifact) ---- the reference writes
+     "WAITING ON YOU · 3" as one line; HaTi boxed the number in a pill beside
+     it, which is a second shape for a fact the words are already carrying.
+     Same reading, same element, same class, no box. */
   return `<tr class="ngl-band" role="presentation"><td role="presentation" colspan="8">
     <div class="ngl-band-in" role="heading" aria-level="3">
       <span class="ngl-band-dot" style="background:${NEGO_BAND_DOT[band.tone]}" aria-hidden="true"></span>
       <span class="ngl-band-k">${esc(band.label)}</span>
-      <span class="ngl-band-n">${n}</span>
+      <span class="ngl-band-n">· ${n}</span>
     </div></td></tr>`;
 }
 function regRowsHtml(cs){
@@ -1535,12 +1547,12 @@ function regRowsHtml(cs){
     CELL.stream=`<td style="color:var(--color-neutral-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(regStreamName(c))}"><span style="display:inline-flex;align-items:center;gap:7px;min-width:0;max-width:100%"><span class="reg-tick" style="background:${folderColor(c)}"></span><span style="min-width:0;overflow:hidden;text-overflow:ellipsis">${esc(regStreamName(c)||'—')}</span></span></td>`;
     CELL.value=`<td style="text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:var(--w-body);white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}">${val}</td>`;
     CELL.signed=`<td style="white-space:nowrap">${regSignedCell(c)}</td>`;
-    CELL.expiry=`<td style="white-space:nowrap;font-variant-numeric:tabular-nums"><span style="font-weight:var(--w-body);color:${renDateColor}">${renDate}</span>${renIn?` <span style="font-size:var(--t-meta);font-weight:var(--w-body);color:${renColor}">· ${renIn}</span>`:''}</td>`;
+    CELL.expiry=`<td style="white-space:nowrap;font-variant-numeric:tabular-nums"><span style="font-weight:var(--w-body);color:${renDateColor}">${renDate}</span>${renIn?` <span style="font-size:var(--t-body);font-weight:var(--w-body);color:${renColor}">· ${renIn}</span>`:''}</td>`;
     /* Built only on the seat that draws it: the Negotiations seat has no ⋯
        column, and actBtns asks readings (contractOnHold) that a stage drawing
        only that seat need not carry — f184 caught the unconditional build. */
     CELL.acts=neg?'':`<td class="reg-cell-menu" style="position:relative;text-align:right;white-space:nowrap" onclick="event.stopPropagation()">
-        <button data-menu="${c.id}" style="border:0;background:none;cursor:pointer;padding:0 var(--s-1);line-height:var(--row-line-1);color:var(--color-neutral-600);font-size:var(--t-meta);letter-spacing:1px;vertical-align:middle" title="${i18t('reg_more_actions')}">⋯</button>
+        <button data-menu="${c.id}" style="border:0;background:none;cursor:pointer;padding:0 var(--s-1);line-height:var(--row-line-1);color:var(--color-neutral-600);font-size:var(--t-body);letter-spacing:1px;vertical-align:middle" title="${i18t('reg_more_actions')}">⋯</button>
         <div data-menu-pop="${c.id}" style="display:none;position:absolute;right:8px;top:34px;z-index:30;width:180px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:var(--radius);padding:var(--s-1);flex-direction:column;text-align:left">${actBtns(c)}</div>
       </td>`;
     CELL.name=`<td class="reg-cell-title" style="max-width:300px${c._famChild?';padding-left:30px':''}">
@@ -1557,7 +1569,7 @@ function regRowsHtml(cs){
               relation and the parent, which is what the old second line said
               in full width. */}
         <span style="display:flex;align-items:center;gap:9px;min-width:0">
-        <span class="reg-title" style="min-width:0;flex:1;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(regTitleOf(c))} · ${esc(cKind(c))}">${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:var(--t-meta);font-weight:var(--w-body)" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc(c.parentId)}">↳ </span>`:''}${regTitleOf(c)}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:var(--w-body);font-size:var(--t-meta);font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
+        <span class="reg-title" style="min-width:0;flex:1;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(regTitleOf(c))} · ${esc(cKind(c))}">${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:var(--t-body);font-weight:var(--w-body)" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc(c.parentId)}">↳ </span>`:''}${regTitleOf(c)}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:var(--w-body);font-size:var(--t-body);font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
         </span>${sub}
       </td>`;
     return band + `
@@ -2010,8 +2022,18 @@ function renderRegister(opts){
          rule cannot reach them. The document kind stays SMALLER than the row,
          which is that check's other half.
          DIVERGES FROM THE DESIGN REFERENCE, whose type scale puts table row
-         text at 14px. Recorded as the owner's ruling. */
-      .reg-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:var(--t-meta)}
+         text at 14px. Recorded as the owner's ruling.
+         ---- AND THE RUNG WAS LOST IN THE TOKEN RE-RAMP (Young ruled 21 Sep
+         2026: "contracts need to look exactly like the artifact") ----
+         That ruling was 14 to THIRTEEN, written as the meta token, which was
+         13px on the day. The redesign's ladder made that token 12, so the row
+         quietly went one rung further than anybody ruled and MEASURED 12px
+         against the reference's 13. It reads the body token now, which is the
+         reference's own body rung and the owner's own number, and cannot
+         drift again. NO BACKTICK MAY BE WRITTEN IN THIS BLOCK — it is emitted
+         from a template literal and a balanced pair evaluates what is
+         between them. */
+      .reg-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:var(--t-body)}
       .reg-table thead th{position:sticky;top:0;z-index:3}
       /* ---- THE GRIP (owner-asked 31 Aug 2026) ----
          It hangs on the head's RIGHT EDGE and overhangs it by 3px, so the
@@ -2055,8 +2077,19 @@ function renderRegister(opts){
          languages, nothing to keep in step.
          DIVERGES FROM THE DESIGN REFERENCE, which states uppercase column
          headers twice — in its type scale and again in its letter-spacing
-         rule. The owner has seen both and ruled. Recorded, not drift. */
-      .reg-table th{text-align:left;font-size:var(--t-label);font-weight:var(--w-title);
+         rule. The owner has seen both and ruled. Recorded, not drift.
+         ---- REVERSED BY THE REDESIGN, AND SAID OUT LOUD HERE (21 Sep 2026)
+         ---- the redesign wrote a second rule for this same head in HaTi's own sheet
+         that states uppercase and .06em, at the same weight and later in the
+         page, so the capitals came back in August and this note went on
+         describing a screen that no longer existed. The owner has now ruled
+         for the artifact, which is uppercase. ONE RULE STATES IT — the
+         two halves are folded together here, so no reader has to work out
+         which sheet won. The size is the reference's own micro rung; the
+         ink stays HaTi's secondary rather than the reference's third,
+         because the owner asked for less faint grey, not more. */
+      .reg-table th{text-align:left;font-size:var(--t-micro);font-weight:var(--w-title);
+        text-transform:uppercase;letter-spacing:.06em;
         color:var(--color-neutral-500);padding:var(--s-2) var(--pad-row-x);
         border-bottom:1px solid var(--color-divider);white-space:nowrap;
         background:var(--color-surface)}
@@ -2115,13 +2148,17 @@ function renderRegister(opts){
          pixels of height. It is the one place in a row where a size difference
          is carrying something. */
       .reg-table{--reg-row-h:36px}   /* the fallback; regDensityVars overrides it per render */
-      .reg-mk{font-family:var(--font-mono);font-size:var(--t-meta);font-weight:var(--w-body);
+      .reg-mk{font-family:var(--font-mono);font-size:var(--t-body);font-weight:var(--w-body);
         color:var(--accent-ink-700);white-space:nowrap;font-variant-numeric:tabular-nums}
       /* The status chip, flattened HERE and not at .badge — that class dresses
          every card, list and panel in the product, and this is a decision about
          a table row. The wash and the ink are untouched. */
-      .reg-table .badge{font-size:var(--t-meta);font-weight:var(--w-body)}
-      .reg-title{font-weight:var(--w-body);color:var(--color-text);line-height:var(--row-line-1)}
+      .reg-table .badge{font-size:var(--t-body);font-weight:var(--w-body)}
+      /* THE CONTRACT'S NAME IS THE ROW'S SUBJECT (21 Sep 2026): the
+         reference's own title cell is 13/500, one step up from the cells
+         beside it, so the eye runs down the names. The 23 Aug one-size,
+         one-weight ruling was about SIZE — every cell is still 13px. */
+      .reg-title{font-weight:var(--w-label);color:var(--color-text);line-height:var(--row-line-1)}
       /* ---- THE ROW IS ONE LINE AND 36px (owner-ruled 24 Aug 2026) ----
          The cell padding is what sets it: 8px above and below a 20px line box
          is 36, which is the design's own --row-h. It was 4px above and below

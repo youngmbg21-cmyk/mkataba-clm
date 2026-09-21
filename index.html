@@ -649,7 +649,8 @@
     --t-page:20px;      /* the h1 of a view */
     --t-section:16px;   /* drawer head, dialog title */
     --t-card:14px;      /* card title, contract room title */
-    --t-body:13px;      /* body copy and table cell — the redesign's root (20 Sep 2026) */
+    --t-md:14px;
+  --t-body:13px;      /* body copy and table cell — the redesign's root (20 Sep 2026) */
     --t-meta:12px;      /* secondary metadata, a sub-line */
     --t-label:12px;     /* field label, table header */
     --t-micro:11px;     /* UPPERCASE micro label ONLY — never a sentence */
@@ -2192,7 +2193,9 @@
   /* NO RADIUS AT ALL, not even the platform's (26 Aug 2026): this is a bare
      coloured WORD — no fill, no border, no padding — and there is no box to
      round. f184 asserts the absence rather than a literal 0. */
-  .ngl-w{ flex:none; font-size:var(--t-meta); font-weight:var(--w-body); white-space:nowrap;
+  /* THE WHOSE-MOVE WORD READS AT THE ROW'S OWN SIZE (21 Sep 2026) — it is a
+     cell like every other, and f240 (5) sweeps for exactly this. */
+  .ngl-w{ flex:none; font-size:var(--t-body); font-weight:var(--w-body); white-space:nowrap;
     background:none; border:0; padding:0; }
   .ngl-w-you{ color:var(--st-amber-fg); }
   .ngl-w-them{ color:var(--st-gray-fg); }
@@ -2226,9 +2229,13 @@
   .ngl-band-dot{ width:8px; height:8px; border-radius:50%; flex:none; }
   .ngl-band-k{ font-size:var(--t-micro); font-weight:var(--w-title); letter-spacing:.09em; text-transform:uppercase;
     color:var(--color-neutral-600); }
-  .ngl-band-n{ font-family:var(--font-mono); font-size:var(--t-label); font-weight:var(--w-title);
-    color:var(--color-neutral-600); background:var(--color-surface);
-    border:1px solid var(--color-divider); border-radius:var(--radius); padding:0 7px; }
+  /* NO BOX (21 Sep 2026). The reference writes the count into the heading —
+     "WAITING ON YOU · 3" — and a pill round it is a second shape for a fact
+     the words already carry. It keeps the heading's own ink and caps so the
+     line reads as one thing, and the mono numerals so a column of bands
+     lines up. */
+  .ngl-band-n{ font-family:var(--font-mono); font-size:var(--t-micro); font-weight:var(--w-title);
+    letter-spacing:.09em; color:var(--color-neutral-600); }
   /* ---- ITS TITLE STARTS WHERE EVERY OTHER PAGE'S DOES (owner-asked 25 Aug
      2026: "the distance between the edge at the top and the header should be
      the same across all pages") ----
@@ -2247,9 +2254,20 @@
      that says which of the two pages this wrapper is drawing. */
   .ngl-head-table h2{ margin:0; display:flex; align-items:baseline; gap:9px; flex-wrap:wrap; }
   .ngl-head-table p{ margin:2px 0 0; }
+  /* THE PILL IS STALE (21 Sep 2026) and is kept whole: the head draws the
+     count as a sub-line now, and putting the pill back is taking the scoped
+     rule below away. */
   .ngl-live{ font-family:var(--font-mono); font-size:var(--t-meta); font-weight:var(--w-title);
     color:var(--st-steel-fg); background:var(--st-steel-bg);
     border:1px solid var(--st-steel-line); border-radius:var(--radius); padding:1px 9px; }
+  /* ---- THE COUNT IS THE PAGE'S OWN FACTS LINE ---- the element keeps the
+     class four tests reach it by, so nothing moved for them; the dress is
+     written HERE, at this page's own scope, rather than by taking the rule
+     above away, because .page-facts and .ngl-live both score (0,1,0) and
+     which one won would be decided by source order. By SCOPE, never
+     !important. */
+  .ngl-head-table .ngl-live{ font-family:inherit; font-size:var(--t-body); font-weight:var(--w-body);
+    color:var(--color-neutral-600); background:none; border:0; border-radius:0; padding:0; }
   .ngl-empty h3{ margin:0 0 6px; font-size:16px; font-weight:var(--w-title); }
   .ngl-empty p{ margin:0 0 var(--s-4); font-size:var(--t-body); color:var(--color-neutral-600);
     max-width:46ch; margin-inline:auto; line-height:1.6; }
@@ -4784,6 +4802,20 @@
     line-height:1.25;color:var(--color-text);}
   .hm-rule{flex:1 1 auto;height:1px;background:var(--color-divider);}
 
+  /* ---- PREPARED FOR YOU AND NEEDS YOUR DECISION ARE CARDS (Young ruled
+     21 Sep 2026) ---- the reference's own .card / .card-h / .list, read off
+     prototype/hati-redesign-reference.html: a 8px card, a head of 12px 16px
+     over a hairline with the title at 14/600 and its sub quiet beside it,
+     then the rows flush inside. THE CARD CARRIES NO WIDTH, so it measures
+     exactly the four tiles above it — the owner's own ask. */
+  .hm-card{background:var(--color-surface);border:1px solid var(--color-divider);
+    border-radius:var(--radius-lg);margin-top:12px;overflow:hidden;}
+  .hm-card .hm-sec{margin:0;padding:12px 16px;border-bottom:1px solid var(--color-divider);
+    gap:10px;flex-wrap:wrap;}
+  .hm-card .hm-sec h2{font-size:var(--t-md);}
+  .hm-card .hm-sec .hm-sec-sub,.hm-card .hm-sec .hm-desk-sub{margin-right:auto;}
+  .hm-card .hm-rows{background:none;border:0;}
+
   /* ---- ONE CARD, ONE HEIGHT, NO RESERVED HOLES (owner-asked 26 Aug 2026:
      "The top cards and the bottom cards have to be the same size as far as
      height and remove empty spaces which makes the card look empty. Create a
@@ -4886,7 +4918,11 @@
      a door — and the unit joins the numeral in it. Without this the unit would
      have gone primary with the rule above and left a black "docs" beside a
      grey nought, which is the one state this grey exists to mark. */
-  .hm-tile.is-dead .hm-n,.hm-tile.is-dead .hm-u{color:var(--color-neutral-400);}
+  /* A ZERO IS QUIET, NEVER FAINT (Young, 21 Sep 2026: "a lot of faint grey
+     that makes reading a bit hard"). MEASURED: three of the four tiles drew
+     their 26px figure in --color-neutral-400, the one grey this rulebook
+     already records as failing AA as text. The secondary ink is 7:1. */
+  .hm-tile.is-dead .hm-n,.hm-tile.is-dead .hm-u{color:var(--color-neutral-500);}
   .hm-tile.is-life{cursor:default;}
   .hm-tile.is-life:hover{background:var(--color-surface);}
   /* THE HEADER IS ONE REGION holding two lines. It carries no height of its
@@ -4894,8 +4930,12 @@
      floor so a card with nothing to say there still leaves the line rather
      than pulling its figure up out of line with its neighbours'. */
   .hm-head{display:block;min-width:0;}
-  .hm-t{display:block;font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);padding-right:18px;}
-  .hm-s{display:block;font-size:var(--t-label);color:var(--color-neutral-500);margin-top:1px;}
+  /* THE LABEL IS QUIET AND THE FIGURE IS LOUD (Young ruled 21 Sep 2026, the
+     reference's own relationship): .kpi .l reads 12/500 in the secondary ink,
+     so the eye lands on the number. It was 13/600 in the page ink, which made
+     every tile shout its own caption. */
+  .hm-t{display:block;font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-500);padding-right:18px;}
+  .hm-s{display:block;font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-500);margin-top:1px;}
   .hm-tile .hm-s{min-height:1.35em;}
   /* THE FIGURE SITS IN THE MIDDLE OF ITS OWN REGION. --hm-r2 is the tallest
      thing any card puts there (the lifecycle bar), so an ordinary numeral has
@@ -4929,7 +4969,10 @@
      numeral in the primary one. The design gives both the same ink. Matched to
      .hm-n rather than given a colour of its own, so the two cannot drift. */
   .hm-u{font-size:var(--t-body);color:var(--color-text);font-weight:var(--w-body);}
-  .hm-foot{align-self:end;margin-top:7px;padding-top:7px;border-top:1px solid var(--color-divider);
+  /* NO HAIRLINE ABOVE THE TILE'S LAST LINE (21 Sep 2026): the reference's
+     .kpi .d is a quiet line at the foot with nothing drawn over it. The gap
+     is kept, so the tile's height does not move. */
+  .hm-foot{align-self:end;margin-top:7px;padding-top:7px;
     font-size:var(--t-label);color:var(--color-neutral-500);line-height:1.35;}
   .hm-foot.crit{color:var(--st-amber-fg);}
   /* THE TWO-LINE RESERVATION IS GONE (owner-asked 26 Aug 2026). It held
@@ -4965,15 +5008,15 @@
   /* NEEDS YOUR DECISION — full-width rows, the tone on a 3px left rule. */
   .hm-rows{background:var(--color-surface);border:1px solid var(--color-divider);}
   .hm-row{display:flex;align-items:center;gap:var(--s-3);min-height:44px;width:100%;
-    border:0;border-left:3px solid var(--color-neutral-400);
-    border-bottom:1px solid var(--color-divider);
+    border:0;border-bottom:1px solid var(--color-divider);
     padding:9px 14px;background:none;color:inherit;font:inherit;font-family:var(--font-body);
     text-align:left;cursor:pointer;}
   .hm-row:last-child{border-bottom:0;}
   .hm-row:hover{background:var(--nav-well);}
   .hm-row:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:-2px;}
-  .hm-row.is-crit{border-left-color:var(--st-amber-dot);}
-  .hm-row.is-neg{border-left-color:var(--st-ruby-dot);}
+  .hm-rdot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--color-neutral-400);}
+  .hm-row.is-crit .hm-rdot{background:var(--st-amber-dot);}
+  .hm-row.is-neg .hm-rdot{background:var(--st-ruby-dot);}
   .hm-rb{flex:1 1 auto;min-width:0;}
   .hm-rt{display:block;font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -7290,7 +7333,10 @@
   .reg-seg button:hover{background:var(--surface-2);color:var(--color-text);}
   .reg-seg button.on,.reg-seg button[aria-pressed="true"]{background:var(--accent-fill);color:#fff;font-weight:var(--w-strong);}
   .reg-seg button:focus-visible{outline:2px solid var(--accent-solid);outline-offset:-2px;}
-  .reg-table th{font-size:var(--t-micro);letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);font-weight:var(--w-title);}
+  /* THE HEAD'S OWN RULE LIVES IN js/views/register.js (21 Sep 2026) — it
+     was stated twice, at one weight, in two sheets, and which one won
+     depended on the order they were injected. What survives here is the one
+     thing that is about THIS sheet's tokens. */
   .reg-table th.reg-th-sort.active{color:var(--accent-ink);}
   .reg-board-wrap .board-cols{flex:1;min-height:0;}
   .reg-board-wrap .pipe-col{min-height:200px;}

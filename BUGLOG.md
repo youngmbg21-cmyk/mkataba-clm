@@ -17756,3 +17756,68 @@ Noticed, not fixed (each proved red at the parent bf5fefb in a worktree):
 - paper-beside-questions-verify 7c/7g — the essentials are eight questions now (party, side and stream joined on 17–18 Sep); the claim still says seven.
 - The + button reads "Draft new agreement" where the artifact says "New agreement" — one key (`home_draft_new`), pinned by f240's hint sentence; the owner's call.
 - The company standards are drawn in the server's own list order (newest first); the artifact lists them oldest first.
+
+## 21 Sep 2026 — the four everyday pages to the reference, and the grey that was too faint (Young: "The home page in HaTi, contracts, negotiations and calendar need to look exactly like the artifact … pay attention to the relationship between grey fonts and black fonts … a lot of faint grey that makes reading a bit hard … the prepared for you card and the needs your attention card have the same width as the space utilized by the combination of the top 4 cards")
+
+MEASURED FIRST: the four pages rendered against the reference at 1440, a
+computed-style compare of the matched elements, and a census of every element
+on each page that PAINTS its own visible text, with its colour.
+
+Home: the two lower sections are cards now, measured at exactly the tiles'
+own width and left edge (1334 at 80, both). THE ARTIFACT ITSELF DOES NOT DO
+THIS — its two cards are capped at 1100 while its KPI row fills the page,
+which is the mismatch the owner asked to fix; HaTi's carry no width of their
+own and take the tiles'. The row's left tone bar became the reference's dot.
+"My work" as a heading is gone (the tiles name themselves). The fourth
+default tile is Active value, not Average cycle time.
+
+Contracts and Negotiations: the row had quietly gone 14 to 13 to 12 when the
+redesign re-ramped --t-meta; the owner's own ruling was 13 and it is 13 again,
+and so are the four inline sizes and two classes that had been left at 12.
+Two `.reg-table th` rules at equal weight in two sheets, where the winner was
+decided by injection order, folded into one. The Negotiations head is a
+sub-line ("2 live · 2 waiting on you") like every other page's, not a boxed
+chip, and the second half BORROWS negoBandCounts — the band under the table's
+own arithmetic — so the two can never disagree. The band count is part of its
+heading ("WAITING ON YOU · 2"), not a pill beside it.
+
+Calendar: the month stepper moved into the page's sub-line, so "September
+2026" is said once and the grid card begins with the weekday row exactly as
+the reference's does. The agenda window is the reference's segment of four
+numerals; one value still answers the heading, the lit half, the reading and
+the empty state.
+
+THE GREY: HaTi was ALREADY one step darker than the reference everywhere the
+reference uses ink-3 (th, the row sub-line, the card-head sub, the tile
+detail), and those were left darker — the owner asked for less faint grey,
+not more. What was actually faint was found by the census: three of the four
+Home tile figures drew 26px in neutral-400, and the agenda date's month did
+too. After: the only neutral-400 left on these four pages is the idle sort
+arrow, the em-dash that means the agreement says nothing, and an adjacent
+month's day number — furniture and absences, never a fact.
+
+Tests: home-page 53/53, white-band-and-tabs 45/45, calendar-day 23/23,
+kpi-four 19/19, row-density 16/16, laptops 21/21, pages-read-alike 54/54,
+signed-and-columns 31/31, flat-rows 36/39, contracts-page 99/100,
+negotiations-door 77/79. Re-pointed in place with the reason beside each:
+home-page 2/3, white-band-and-tabs 4a-4d and 5d/5e, calendar-redesign 1,
+flat-rows 5b/5c, f184 (three claims), f261 (2).
+
+### Noticed, not fixed (each proved red at the parent 6ef4117 in a worktree)
+- calendar-redesign 7 and 8 fail and the file then dies on a 30s timeout
+  waiting for #cal-share-note: the calendar's Share dialog never draws that
+  box. A real defect on a screen outside this request.
+- flat-rows 2d/2e/2f look for the tracked-changes column's three-way cut,
+  which was retired 25 Aug 2026.
+- negotiations-door's two claims say "four tabs" and list five; the room grew
+  its Obligations tab on 29 Aug 2026.
+- contracts-page 13g: a sorted column is dressed the same as a filtered one.
+- The value-stream cell elides on the two list pages ("Sales & Route-to…").
+  The reference's stream names are one word and HaTi's are four; the whole
+  name is on the hover. Taking the width off the contract title would cost
+  the column the owner is reading.
+- Not built, and each would invent something: the reference's KPI sparklines
+  (a trend HaTi does not hold), a search box on the Contracts page (the shell
+  bar's already narrows it — one door), the reference's own quick-filter tab
+  set and its Round / Open asks / Last move / Owner columns on Negotiations
+  (HaTi's own carry different facts).

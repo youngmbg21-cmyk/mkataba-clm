@@ -9167,8 +9167,28 @@ function negoListHeadHtml(shown){
      see. With a filter on, a band reading 1 under a door reading 3 is a
      contradiction, and this line is the page resolving it — which is why it
      draws only when there is a contradiction to resolve. */
+  /* ---- THE COUNT IS A SUB-LINE, NOT A CHIP (21 Sep 2026, Young: the four
+     pages must look exactly like the artifact) ---- the reference draws
+     "5 live · 3 waiting on you" as a quiet line under the page name, which is
+     also what every other HaTi page head does (Contracts: "4 agreements · KES
+     247M on paper"). HaTi boxed "2 live" beside the title, so this was the one
+     page whose head was a different shape from all the others.
+     THE SECOND HALF IS BORROWED, NEVER RE-COUNTED: negoGroupByMove stamps
+     _ngBand and negoBandCounts reads it, which is the very arithmetic the
+     amber band under the table prints — so the head and the band cannot say
+     different numbers. Read through window; a stage without the register
+     draws no Negotiations page, and there the head simply says the live
+     count. */
+  let waiting = null;
+  try {
+    if (typeof window.negoGroupByMove === 'function' && typeof window.negoBandCounts === 'function')
+      waiting = window.negoBandCounts(window.negoGroupByMove(negoLiveList().slice())).you;
+  } catch (_) { waiting = null; }
+  const facts = [_ne(i18tn('ngl_n_live', live, { n: live }))];
+  if (waiting) facts.push(_ne(i18tn('ngl_n_waiting', waiting, { n: waiting })));
   return `<header class="ngl-head ngl-head-table">
-    <h2>${i18t('ng_door_title')} <span class="ngl-live">${_ne(i18tn('ngl_n_live', live, { n: live }))}</span></h2>
+    <h2>${i18t('ng_door_title')}</h2>
+    <div class="ngl-live page-facts">${facts.join(' · ')}</div>
     ${filtered ? `<p>${_ne(i18t('ngl_sub_filtered', { n, live }))}</p>` : ''}
   </header>`;
 }

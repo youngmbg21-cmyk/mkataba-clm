@@ -233,7 +233,14 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
     b.win.openRedlineWorkbench('MK-1');
     assert.equal(b.$('.redline-page .rl-livelist-n').textContent.trim(), '2');
     b.$('[data-rl-live-list]').dispatchEvent(new b.win.Event('click'));
-    assert.equal(b.$('.ngl-live').textContent.trim(), '2 live');
+    /* RE-POINTED IN PLACE 21 Sep 2026 (Young: the four pages must look exactly
+       like the artifact) ---- the head's count is a SUB-LINE now, the shape
+       every other HaTi page head uses, so it can carry a second fact beside
+       the live count. The claim is unchanged and is about the NUMBER: the
+       heading says this page's own 2, never the book's 145. It LEADS with it,
+       which is the relation that was being pinned by matching the whole
+       string. */
+    assert.match(b.$('.ngl-live').textContent.trim(), /^2 live\b/);
   });
 
   test('pressing it lands on the LIST, not back on the negotiation it was pressed from', () => {
@@ -521,7 +528,12 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
     assert.equal(bands.length, 3, 'one per group, always — an empty group is information');
     const k = bands.map(r => r.querySelector('.ngl-band-k').textContent.trim());
     assert.deepEqual(k.join('|'), 'Waiting on you|With the other side|Nothing outstanding');
-    const n = bands.map(r => Number(r.querySelector('.ngl-band-n').textContent.trim()));
+    /* RE-POINTED IN PLACE 21 Sep 2026 (Young: the four pages must look exactly
+       like the artifact) ---- the reference writes the count INTO the heading,
+       "WAITING ON YOU · 3", so the element carries a separator beside the
+       digits. The claim is and always was about the NUMBER; reading the whole
+       string as one was pinning the punctuation with it. */
+    const n = bands.map(r => Number((r.querySelector('.ngl-band-n').textContent.match(/\d+/) || [NaN])[0]));
     assert.deepEqual(n.join(','), '2,1,1');
     /* And each count matches what is actually underneath it. */
     const rows = b.$$('#reg-tbody tr');
@@ -589,7 +601,11 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
     theirAsk(b.byId('MK-1'), 'CHG-1');
     theirAsk(b.byId('MK-2'), 'CHG-2');
     b.win.openNegotiations();
-    assert.match(b.$('.ngl-live').textContent, /^2 live$/);
+    /* RE-POINTED IN PLACE 21 Sep 2026 — see the note on the same claim above.
+       The number is what this test is for; the line it leads may carry the
+       waiting count beside it. */
+    assert.match(b.$('.ngl-live').textContent, /^2 live\b/);
+    assert.doesNotMatch(b.$('.ngl-live').textContent, /\b145\b/);
   });
 
   test('the empty page says what to do rather than being an empty table', () => {

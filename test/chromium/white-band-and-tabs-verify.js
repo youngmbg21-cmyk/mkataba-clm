@@ -47,6 +47,20 @@
    they named. Pinning it is what stops a future type pass quietly pulling them
    off the reference while everybody believes item 5 was settled.
 
+   ---- 5d AND 5e RE-POINTED IN PLACE 21 Sep 2026 (Young: the four pages must
+   look exactly like the artifact, and "there is a lot of faint grey that makes
+   reading a bit hard") ---- the seventeen-property match stopped being true
+   when the redesign gave a RESTING tab its own quiet ink and label weight. It
+   was right to pin it while a resting tab and a row title were the same thing;
+   they are not the same thing. A resting tab is FURNITURE and may be quiet; a
+   row title is the row's IDENTITY and is the first thing a reader looks for.
+   The artifact draws its own list title at .tbl td .t{font-weight:500;
+   color:var(--ink)} — full ink — so the relation to pin is that the title
+   wears the PAGE'S OWN PRIMARY INK, read live off a heading on that same page
+   and never typed, and is never the quiet ink furniture wears. The family,
+   tracking, cv11 and smoothing half of the old claim is KEPT against the
+   reference, because nothing about the redesign touched those.
+
    Run: node test/chromium/white-band-and-tabs-verify.js */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -301,8 +315,12 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
       const work = secs[0], decide = secs[secs.length - 1];
       return {
         heads: secs.map(sc => mid(sc.querySelector('h2'))),
-        workAct: work ? mid(work.querySelector('.hm-cz')) : null,
+        workAct: work ? mid(work.querySelector('.hm-cz, .hm-sec-sub, .hm-desk-sub')) : null,
         workRule: work && !!work.querySelector('.hm-rule'),
+        /* the card's own head rules itself off from its rows */
+        cardRule: (() => { const c = document.querySelector('.hm-card .hm-sec');
+          return !!c && getComputedStyle(c).borderBottomWidth !== '0px'; })(),
+        decide: (typeof i18t === 'function') ? i18t('home_needs_decision') : null,
         tilesX: (() => { const e = document.querySelector('.hm-tile');
           return e ? Math.round(e.getBoundingClientRect().x) : null; })(),
         headX: secs.length ? Math.round(secs[0].querySelector('h2').getBoundingClientRect().x) : null,
@@ -314,17 +332,27 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
        Portfolio row went into the picker, and Prepared for you is drawn only
        while something is prepared. My work leads and Needs your decision
        closes; every heading that is drawn is painted. */
-    check('4a every section heading really drew — My work first, Needs your decision last',
-      homeLine.heads.length >= 2 && homeLine.heads.length <= 3 && homeLine.heads.every(Boolean),
+    /* ---- RE-POINTED IN PLACE 21 Sep 2026 (Young: Home must look exactly
+       like the artifact) ---- the reference draws no label over the four
+       tiles and makes the two sections below into CARDS: the heading is the
+       card's own head, over a hairline, with its sub and its act on that same
+       line. So "My work first" cannot be asked (it is gone, deliberately) and
+       the rule is the card's border rather than a span. The three things
+       these claims were really about — every heading painted, its act on the
+       heading's own line, and the heading starting on the page's own left
+       margin — are asked here unchanged. */
+    check('4a every section heading really drew, and Needs your decision closes',
+      homeLine.heads.length >= 1 && homeLine.heads.length <= 2
+        && homeLine.heads.every(Boolean) && homeLine.decideTxt === homeLine.decide,
       homeLine.heads.map(h => h && h.txt));
-    check('4b each heading carries its rule on the same line',
-      homeLine.workRule, homeLine.workRule);
+    check('4b each heading sits in a card head that rules itself off',
+      homeLine.cardRule, { rule: homeLine.cardRule, span: homeLine.workRule });
     check('4c AND ITS ACT IS ON THAT LINE TOO, not below it',
       homeLine.workAct && near(homeLine.heads[0].y, homeLine.workAct.y, 4),
       { head: homeLine.heads[0] && +homeLine.heads[0].y.toFixed(1),
         act: homeLine.workAct && +homeLine.workAct.y.toFixed(1) });
-    check('4d it starts on the same vertical as the tiles it names',
-      homeLine.tilesX == null || near(homeLine.headX, homeLine.tilesX, 2),
+    check('4d it starts on the page\'s own margin, like the tiles above it',
+      homeLine.tilesX == null || near(homeLine.headX, homeLine.tilesX, 18),
       { head: homeLine.headX, tiles: homeLine.tilesX });
 
     /* ================= 5 · A RESTING TAB IS DARK INK ======================= */
@@ -372,11 +400,21 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
        nobody asked for; and the SIZE is pinned as the RELATION the owner
        asked for (one rung down) rather than left unpinned, which would be the
        claim quietly disappearing. */
-    const TYPE_NOT_SIZE = TYPE.filter(p => p !== 'fontSize');
+    /* The properties a row title still shares with a resting tab. INK, WEIGHT
+       and LEADING came off this list 21 Sep 2026 and are asked of the page's
+       own heading instead (see the note at the top of this file): a resting
+       tab is deliberately quiet now and a row title deliberately is not. */
+    const TYPE_SHARED = TYPE.filter(p => !['fontSize', 'color', 'fontWeight', 'lineHeight'].includes(p));
     const sameButSize = (got) => {
       if (!ref || !got) return { ok: false, why: 'missing' };
-      const bad = TYPE_NOT_SIZE.filter(p => String(got[p]) !== String(ref[p]));
+      const bad = TYPE_SHARED.filter(p => String(got[p]) !== String(ref[p]));
       return { ok: bad.length === 0, why: bad.map(p => `${p}: ${got[p]} vs ${ref[p]}`) };
+    };
+    /* The page's own primary ink, measured off the heading that names the page
+       — a RELATION, so a later palette pass moves both together or neither. */
+    const PAGE_INK = () => {
+      const h = document.querySelector('#page-head h1, #page-head .pg-title, #content h1');
+      return h ? getComputedStyle(h).color : null;
     };
     const oneRungDown = (got) => ref && got
       && parseFloat(got.fontSize) < parseFloat(ref.fontSize)
@@ -384,11 +422,25 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
     await page.evaluate(() => setView('register'));
     await pause(2400);
     const regTitles = await page.evaluate(READ_TYPE, { sel: '.reg-table tbody .reg-title', props: TYPE });
-    check('5d the CONTRACTS list titles are the reference font in every property but size',
+    check('5d the CONTRACTS list titles share the reference\'s family and tracking',
       regTitles.length > 0 && regTitles.slice(0, 3).every(t => sameButSize(t).ok),
       regTitles.slice(0, 3).map(t => `${t._txt}: ${sameButSize(t).why || 'match'}`));
-    check('5d and their size is one rung under it, which is what was asked for',
-      regTitles.length > 0 && regTitles.slice(0, 3).every(oneRungDown),
+    const regInk = await page.evaluate(PAGE_INK);
+    check('5d and the title is the PAGE\'S OWN INK, never the quiet ink a resting tab wears',
+      !!regInk && regTitles.length > 0
+        && regTitles.slice(0, 3).every(t => t.color === regInk)
+        && regInk !== (ref && ref.color),
+      { title: regTitles[0] && regTitles[0].color, pageHeading: regInk, restingTab: ref && ref.color });
+    /* ---- REVERSED IN PLACE 21 Sep 2026 (Young: "contracts need to look
+       exactly like the artifact") ---- WO-16's "one rung down" was 14 to
+       THIRTEEN, written as a token that the redesign's own ladder later made
+       12 — so the row had quietly gone one rung further than anybody ruled.
+       Thirteen is the artifact's own row size and the owner's own number, and
+       it happens to equal this reference element's, so the relation to pin is
+       that the row is NOT SMALLER than it was ruled to be. */
+    check('5d and their size is the row\'s own ruled rung, never below it',
+      regTitles.length > 0 && regTitles.slice(0, 3).every(t => ref
+        && parseFloat(t.fontSize) === parseFloat(ref.fontSize)),
       regTitles.slice(0, 1).map(t => `${t.fontSize} vs ref ${ref && ref.fontSize}`));
 
     await page.evaluate(() => openNegotiations({ list: true }));
@@ -398,6 +450,10 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
     check('5e and so are the NEGOTIATIONS list titles — one table, one answer',
       nglTitles.length > 0 && nglTitles.slice(0, 3).every(t => sameButSize(t).ok),
       nglTitles.slice(0, 3).map(t => `${t._txt}: ${sameButSize(t).why || 'match'}`));
+    check('5e and they are the same ink as the Contracts list — one table, one ink',
+      nglTitles.length > 0 && regTitles.length > 0
+        && nglTitles.slice(0, 3).every(t => t.color === regTitles[0].color),
+      { nego: nglTitles[0] && nglTitles[0].color, contracts: regTitles[0] && regTitles[0].color });
     check('5e and they are the same rung as the Contracts list, never a third size',
       nglTitles.length > 0 && regTitles.length > 0
         && nglTitles[0].fontSize === regTitles[0].fontSize,

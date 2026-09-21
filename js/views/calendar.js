@@ -437,20 +437,26 @@ function calLegendHtml(){
    stepper out on the page's control bar, and the key along the card's foot,
    which put the thing that explains the colours as far from them as the card
    allows.
-   ONE HOME, NOT TWO — the stepper is drawn here for EVERY view rather than
-   here for Month and out there for the others, because a control with two
-   homes is how the two come to disagree. The ids are unchanged, so every
-   handler and every test still reaches exactly what it reached before. */
-function calCardBarHtml(y, m){
-  return `<div class="cal-cardbar">
-    <span class="cal-sel">
+   ONE HOME, NOT TWO — the stepper is drawn in exactly one place, because a
+   control with two homes is how the two come to disagree. The ids are
+   unchanged, so every handler and every test still reaches exactly what it
+   reached before.
+
+   ---- IT MOVED INTO THE PAGE HEAD 21 Sep 2026 (Young: the calendar must look
+   exactly like the artifact) ---- the reference's grid card begins with the
+   weekday row and carries no bar of its own; the month it is showing is named
+   in the page's own sub-line. HaTi drew BOTH, so "September 2026" was printed
+   twice, sixty pixels apart, which is the one fact printed twice this product
+   has a standing rule against. The arrows cannot simply go — they are the only
+   way to change month — so the sub-line's month becomes the control it was
+   already sitting beside: prev, the month (which is Today), next. The word
+   only the arrows carried is on their titles as it always was. */
+function calMonthStepHtml(y, m){
+  return `<span class="cal-sel">
       <button id="cal-prev" title="${_esc(i18t('cal_prev_month'))}" aria-label="${_esc(i18t('cal_prev_month'))}">&lsaquo;</button>
       <button id="cal-today" class="cal-sel-now">${_esc(calMonthName(y,m))}</button>
       <button id="cal-next" title="${_esc(i18t('cal_next_month'))}" aria-label="${_esc(i18t('cal_next_month'))}">&rsaquo;</button>
-    </span>
-    <span class="g"></span>
-    ${calLegendHtml()}
-  </div>`;
+    </span>`;
 }
 
 
@@ -603,10 +609,25 @@ function calPanelHtml(evs){
            the control is labelled, it names the live cut, and it prints that
            cut's own count, so a narrowed list states its own narrowing by
            being set to it. */}
+    ${''/* ---- REVERSED IN PLACE 21 Sep 2026 (Young: the calendar must look
+           exactly like the artifact) ---- the objection above is still true and
+           the owner has looked at the drawing and asked for it anyway: the
+           reference draws a HEADING and a segment of four numbers. What the
+           select cost was a press — open it, find the row, pick it — where a
+           segment is one press on the number you want, and a window a reader
+           changes four times in a sitting is the wrong place to charge two.
+           ONE VALUE STILL ANSWERS EVERYTHING: calAgendaDays() is read by the
+           heading, the segment's lit half, the reading and the empty state, so
+           the two halves cannot say different numbers. The id cal-days is KEPT
+           on the row, so every handler and every test reaches what it reached
+           before. */}
     <div class="cal-panel-head">
-      <select id="cal-days" class="cal-days" aria-label="${_esc(i18t('cal_window_title'))}" title="${_esc(i18t('cal_window_title'))}">${
-        CAL_AGENDA_WINDOWS.map(n=>`<option value="${n}"${n===win?' selected':''}>${_esc(i18t('cal_next_30',{n}))}</option>`).join('')}</select>
-      <span class="g"></span><span class="cal-cnt">${up.length}</span></div>
+      <h5>${_esc(i18t('cal_next_30',{n:win}))}</h5>
+      <span class="cal-cnt">${up.length}</span>
+      <span class="g"></span>
+      <span class="cal-seg cal-seg-days" id="cal-days" role="group" aria-label="${_esc(i18t('cal_window_title'))}">${
+        CAL_AGENDA_WINDOWS.map(n=>`<button type="button" data-cal-days="${n}" class="${n===win?'on':''}"${
+          n===win?' aria-current="true"':''} title="${_esc(i18t('cal_next_30',{n}))}">${n}</button>`).join('')}</span></div>
     ${''/* A CAP IS A FACT, NEVER A SILENT TRIM — and below the cap it says
            nothing, because a caveat that is always there is one nobody reads. */}
     ${up.length>CAL_AGENDA_ROWS?`<div class="cal-panel-cap">${_esc(i18t('cal_showing_of',{shown:CAL_AGENDA_ROWS,total:up.length}))}</div>`:''}
@@ -637,7 +658,16 @@ function renderCalendar(){
 
   let main='';
   if(view==='month'){
-    main=`<section class="cal-card cal-grid">${calCardBarHtml(y,m)}${calMonthGridHtml(y,m,byDay,{id:'cal-grid'})}</section>`;
+    /* ---- THE GRID IS THE WIDTH OF THE PAGE, AND THE KEY READS UNDER IT
+       (Young ruled 21 Sep 2026: the calendar must look exactly like the
+       artifact) ---- the reference draws the month across the whole page, a
+       one-line key beneath it, and Next 14 days as a card of its own below
+       that. The agenda was a 304px column beside the grid, which is why the
+       month's own cells were the narrowest thing on the page. The key leaves
+       the card's own bar with it: a legend inside a card head is furniture
+       about the card, and under the grid it is furniture about the month. */
+    main=`<section class="cal-card cal-grid">${calMonthGridHtml(y,m,byDay,{id:'cal-grid'})}</section>
+      ${calLegendHtml()}`;
   } else {
     main=calHorizonHtml();
   }
@@ -651,12 +681,27 @@ function renderCalendar(){
              answering to two names is one name too many for a reader trying to
              say where they were. The render draws "Calendar" and so does the
              sidebar. */}
-      <span class="ttl">${_esc(i18t('nav_calendar'))}</span>
-      ${decisions?`<span class="cal-stat crit">${_esc(i18tn('cal_decisions_week',decisions,{n:decisions}))}</span>`
-        :`<span class="cal-stat neu">${_esc(i18t('cal_no_decisions_week'))}</span>`}
-      <span class="cal-when">${_esc(view==='month'?calMonthName(y,m):i18t('cal_three_months',{from:calMonthName(y,m),to:calMonthName(p.months[2].y,p.months[2].m)}))}</span>
+      ${''/* THE TITLE SITS OVER ITS OWN SUB-LINE (21 Sep 2026) — the
+             reference's page head, and every other page in HaTi. The two
+             facts are unchanged and in the same order; they were beside the
+             title on one row, which made the head read as a sentence rather
+             than a heading. */}
+      <span class="cal-head-l">
+        <span class="ttl">${_esc(i18t('nav_calendar'))}</span>
+        <span class="cal-head-sub">${view==='month'?calMonthStepHtml(y,m)
+          :_esc(i18t('cal_three_months',{from:calMonthName(y,m),to:calMonthName(p.months[2].y,p.months[2].m)}))}${
+          decisions?` · <span class="cal-stat crit">${_esc(i18tn('cal_decisions_week',decisions,{n:decisions}))}</span>`
+            :` · <span class="cal-stat neu">${_esc(i18t('cal_no_decisions_week'))}</span>`}</span>
+      </span>
       <span class="g"></span>
       <div class="cal-acts">
+        ${''/* THE VIEW SWITCH IS A SEGMENT IN THE ACTS ROW (21 Sep 2026) —
+               the reference's own place for it. It was a tab row of its own
+               under the head, which made the page carry two control rows
+               before the month began. Same ids, same attributes, same
+               handler; only the shape and the place moved. */}
+        <span class="cal-seg cal-seg-view">${seg('month',i18t('cal_v_month'),view==='month'?inPeriod:null)}${seg('horizon',i18t('cal_v_horizon'),null)}</span>
+        <span class="cal-seg">${scopeSeg('all',i18t('cal_all_dates'))}${scopeSeg('mine',i18t('cal_mine'))}</span>
         <button class="ui-btn ui-btn-lg" id="cal-export" title="${_esc(i18t('cal_export_title'))}">${icon('download','w-3.5 h-3.5')} ${_esc(i18t('cal_export'))}</button>
         <button class="ui-btn ui-btn-lg" id="cal-share" title="${_esc(i18t('cal_share_title'))}">${icon('share','w-3.5 h-3.5')} ${_esc(i18t('cal_share'))}</button>
         <button class="ui-btn ui-btn-lg ui-btn-plain" id="cal-more" aria-haspopup="true" aria-expanded="false">${_esc(i18t('ct_more'))} <span aria-hidden="true">▾</span></button>
@@ -666,20 +711,12 @@ function renderCalendar(){
         </div>
       </div>
     </div>
-    <div class="cal-bar">
-      <div class="views">
-        ${seg('month',i18t('cal_v_month'),view==='month'?inPeriod:null)}
-        ${seg('horizon',i18t('cal_v_horizon'),null)}
-      </div>
-      <span class="g"></span>
-      <span class="cal-seg">${scopeSeg('all',i18t('cal_all_dates'))}${scopeSeg('mine',i18t('cal_mine'))}</span>
-    </div>
     <div class="cal-body">
       ${''/* ---- THE AGENDA IS THE MONTH'S COMPANION, NOT THE PAGE'S ----
              The design pairs "Next 14 days" with the month grid alone (its
              Month tab is the only one drawn as 1fr 304px), and Horizon wants
              every pixel it can get for its twelve months. */}
-      <div class="cal-split${view==='month'?'':' is-wide'}">${main}${view==='month'?calPanelHtml(evs):''}</div>
+      <div class="cal-stack${view==='month'?'':' is-wide'}">${main}${view==='month'?calPanelHtml(evs):''}</div>
     </div>
   </div>`;
 
@@ -706,8 +743,23 @@ function calStyleCss(){ return `
      own head rather than the shared one, so it has to be told. The BOTTOM stays
      shallower than the top on purpose — this is a head, not a card, and the
      shared header is 16-top / 0-bottom for the same reason. */
-  .cal-head{flex:none;background:var(--color-surface);padding:var(--page-pad-t) var(--s-6) 10px;display:flex;align-items:center;
+  .cal-head{flex:none;background:var(--color-surface);padding:var(--page-pad-t) var(--s-6) 10px;display:flex;align-items:flex-start;
     gap:var(--s-3);flex-wrap:nowrap;min-width:0}
+  .cal-head-l{display:flex;flex-direction:column;min-width:0}
+  .cal-head-sub{font-size:var(--t-body);color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis}
+  ${''/* THE MONTH IN THE SUB-LINE IS THE STEPPER (21 Sep 2026). It reads as
+         part of the sentence it is in — the sub-line's own ink and size, so
+         nothing new is announced — and it is a control, so it takes the
+         pointer and darkens on hover exactly as it did in the card bar. The
+         VERTICAL padding is taken back to zero here and here only: a button
+         with its own padding inside a one-line sub-head grows that line, and
+         the page head's top is measured (ONE HEADER TOP). Scoped, never
+         !important. */}
+  .cal-head-sub .cal-sel{align-self:auto;vertical-align:baseline}
+  .cal-head-sub .cal-sel button{font-size:inherit;color:inherit;padding:0 4px;line-height:inherit}
+  .cal-head-sub .cal-sel .cal-sel-now{font-weight:var(--w-body)}
+  .cal-head .cal-acts{align-self:center}
   /* 20/700, the size Home sets and every other page head now carries
      (owner-asked 25 Aug 2026). This band is the calendar's own head rather
      than the shared one, so it has to be told; it read 15/600. */
@@ -742,6 +794,11 @@ function calStyleCss(){ return `
     cursor:pointer;color:var(--color-text)}
   .cal-menu button:hover{background:color-mix(in srgb,var(--color-text) 6%,transparent)}
   /* ---- THE CONTROL BAR ---- */
+  ${''/* THE VIEW SWITCH MOVED INTO THE ACTS ROW (21 Sep 2026) and wears the
+         scope switch's own clothes, so the two segments beside each other are
+         one control shape. .cal-bar is STALE — the row is gone; the rules
+         below are kept whole because putting the row back is two lines. */}
+  .cal-seg-view a{display:inline-flex;align-items:center;gap:6px}
   .cal-bar{flex:none;background:var(--color-surface);padding:0 var(--s-6);height:44px;display:flex;
     align-items:stretch;gap:var(--s-3);box-shadow:inset 0 -1px var(--color-divider);min-width:0}
   .cal-bar .g{flex:1;min-width:0}
@@ -755,18 +812,31 @@ function calStyleCss(){ return `
   html.dark .cal-bar .views a.on,html.dark .cal-bar .views a.on .c{color:var(--color-accent-300)}
   .cal-seg{display:inline-flex;align-items:center;border:1px solid var(--color-divider);height:28px;
     flex:none;align-self:center}
-  .cal-seg span{display:flex;align-items:center;padding:0 var(--s-3);font-size:var(--t-meta);color:var(--color-neutral-600);cursor:pointer}
+  ${''/* The view switch's halves are anchors (the seg builder's own markup,
+         so the keyboard door and the handler are unchanged); the scope
+         switch's are spans. ONE rule dresses both, or the two segments
+         standing beside each other would not match. */}
+  .cal-seg span,.cal-seg a,.cal-seg button{display:flex;align-items:center;padding:0 var(--s-3);font-size:var(--t-meta);
+    color:var(--color-neutral-600);cursor:pointer;border:0;background:none;font-family:inherit}
   /* accent-700, not the lighter step: white on accent-600 measures 3.74:1 and
      this is 13px. The darker step reads in both workspace accents. */
-  .cal-seg span.on{background:var(--color-accent-700);color:#fff;font-weight:var(--w-title)}
+  .cal-seg span.on,.cal-seg a.on,.cal-seg button.on{background:var(--color-accent-700);color:#fff;font-weight:var(--w-title)}
+  .cal-seg a .c{font-size:var(--t-micro);font-variant-numeric:tabular-nums;opacity:.85}
   .cal-sel{display:inline-flex;align-items:center;gap:2px;flex:none;align-self:center}
   .cal-sel button{border:0;background:none;font:inherit;font-size:var(--t-body);color:var(--color-text);
     cursor:pointer;padding:var(--s-1) var(--s-2);line-height:1.2}
   .cal-sel button:hover{color:var(--accent-ink)}
   .cal-sel-now{white-space:nowrap;font-variant-numeric:tabular-nums}
   /* ---- THE PAGE MEASURE, SHARED WITH THE BANDS ABOVE ---- */
-  .cal-body{flex:1;min-height:0;padding:var(--s-4) var(--s-6) 20px;display:flex;min-width:0}
-  .cal-split{flex:1;min-height:0;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:var(--s-4)}
+  .cal-body{flex:1;min-height:0;padding:var(--s-4) var(--s-6) 20px;display:flex;min-width:0;overflow:auto}
+  ${''/* ---- THE STACK (21 Sep 2026) ---- the reference's own column: the
+         month across the page, the key under it, Next 14 days as a card
+         below. The grid keeps a floor rather than a share of the height, so
+         a month never squeezes to nothing when the agenda under it is long;
+         the body scrolls, which is what makes the card below reachable. */}
+  .cal-stack{flex:1;min-width:0;display:flex;flex-direction:column;gap:var(--s-3)}
+  .cal-stack > .cal-grid{flex:1 1 auto;min-height:440px}
+  .cal-stack > .cal-panel{flex:none}
   .cal-card{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);
     display:flex;flex-direction:column;min-height:0;min-width:0;overflow:hidden}
   /* ---- THE MONTH ----
@@ -842,7 +912,7 @@ function calStyleCss(){ return `
   .cal-lad-k{font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .cal-lad-n{font-size:var(--t-page);font-weight:var(--w-title);line-height:1.2;font-variant-numeric:tabular-nums}
   .cal-lad-v{font-size:var(--t-label);color:var(--color-neutral-600);font-variant-numeric:tabular-nums}
-  .cal-split.is-wide{grid-template-columns:minmax(0,1fr)}
+  .cal-stack.is-wide{gap:0}
   .cal-cardbar{flex:none;display:flex;align-items:center;gap:10px;padding:9px var(--s-3);
     box-shadow:inset 0 -1px var(--color-divider)}
   .cal-cardbar .g{flex:1}
@@ -894,10 +964,18 @@ function calStyleCss(){ return `
      being a title. It is the field line rather than the accent at rest: this
      narrows a list and the product's own convention is that an accent border
      means a filter is ON, which at the default fortnight it is not. */
-  .cal-days{font-family:var(--font-heading);font-size:var(--t-body);font-weight:var(--w-title);
+  ${''/* .cal-days IS THE SEGMENT NOW (21 Sep 2026) and keeps its id, so every
+         handler and test reaches what it reached before. The rules below are
+         the select's and are STALE — kept whole, because they are what goes
+         back if the heading ever becomes the control again. */}
+  .cal-days:not(.cal-seg){font-family:var(--font-heading);font-size:var(--t-body);font-weight:var(--w-title);
     color:var(--color-text);background:var(--color-surface);border:1px solid var(--field-line);
     border-radius:var(--radius);padding:3px 8px;cursor:pointer;max-width:100%}
-  .cal-days:hover{border-color:var(--accent-ink)}
+  .cal-days:not(.cal-seg):hover{border-color:var(--accent-ink)}
+  /* Four numerals and nothing else, so the group is narrow enough to sit in a
+     card head beside its own heading. */
+  .cal-seg-days{height:24px}
+  .cal-seg-days button{padding:0 9px;font-variant-numeric:tabular-nums}
   /* The cap, stated only while it bites. */
   .cal-panel-cap{flex:none;padding:7px 14px;font-size:var(--t-label);
     color:var(--color-neutral-600);background:var(--nav-well);
@@ -911,7 +989,10 @@ function calStyleCss(){ return `
   .cal-upn .dt{width:44px;flex:none;display:flex;flex-direction:column;line-height:1.15;
     font-variant-numeric:tabular-nums}
   .cal-upn .dt b{font-size:var(--t-label);font-weight:var(--w-title);color:var(--color-text)}
-  .cal-upn .dt i{font-size:var(--t-label);font-style:normal;color:var(--color-neutral-400)}
+  ${''/* neutral-500, not 400 (Young 21 Sep 2026: "a lot of faint grey that
+         makes reading a bit hard"). The month is half the date — a fact the
+         reader is here to read — and the faintest step is for an absence. */}
+  .cal-upn .dt i{font-size:var(--t-label);font-style:normal;color:var(--color-neutral-500)}
   .cal-upn .g{flex:1;min-width:0;border:0;background:none;font:inherit;text-align:left;cursor:pointer;
     color:inherit;padding:0}
   .cal-upn .n2{display:block;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -948,12 +1029,12 @@ function calStyleCss(){ return `
            so no other view can inherit the exception. */}
     #content-scroll.view-fixed{scrollbar-gutter:stable}
     .cal-body{padding:var(--s-3) var(--s-4) 18px}
-    .cal-head,.cal-bar{padding-left:var(--s-4);padding-right:var(--s-4)}
-    .cal-split{grid-template-columns:minmax(0,1fr);height:auto}
+    .cal-head{padding-left:var(--s-4);padding-right:var(--s-4)}
+    .cal-stack > .cal-grid{min-height:340px}
     .cal-card{min-height:380px}
   }
   @media print{
-    .cal-head .cal-acts,.cal-bar,.cal-panel{display:none!important}
+    .cal-head .cal-acts,.cal-panel{display:none!important}
     .cal-page{height:auto}
     .cal-card{border-color:#bbb}
   }
@@ -988,7 +1069,10 @@ function wireCalendar(evs, byDay, p){
     el.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); fn(); } }); };
   document.querySelectorAll('[data-cal-view]').forEach(el=>press(el,()=>calSetView(el.getAttribute('data-cal-view'))));
   document.querySelectorAll('[data-cal-scope]').forEach(el=>press(el,()=>calSetScope(el.getAttribute('data-cal-scope'))));
-  document.getElementById('cal-days')?.addEventListener('change',e=>calSetAgendaDays(e.target.value));
+  /* A REAL BUTTON, so it answers a press and a key by itself — press() above
+     is for the spans the two segments beside it are made of. */
+  document.querySelectorAll('[data-cal-days]').forEach(el=>el.addEventListener('click',
+    ()=>calSetAgendaDays(el.getAttribute('data-cal-days'))));
 
   /* THE DAY CELL. One contract opens; several go to the register narrowed to
      exactly those. Keyboard too: the cell carries role="button" and a tab

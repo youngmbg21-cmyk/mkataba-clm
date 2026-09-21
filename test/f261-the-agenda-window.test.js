@@ -71,19 +71,28 @@ describe('f261 (1) — four windows, and one value answers for all three', () =>
 });
 
 describe('f261 (2) — the heading IS the control', () => {
-  test('there is no title beside it', () => {
-    /* A heading reading "Next 14 days" twelve pixels from a control set to 14
-       days is one fact printed twice, and the second printing is the one that
-       reads as furniture. */
+  /* ---- REVERSED IN PLACE 21 Sep 2026 (Young: the calendar must look exactly
+     like the artifact) ---- the objection this section was built on is still
+     written in the code beside the markup: a heading reading "Next 14 days"
+     twelve pixels from a control set to 14 days is one fact printed twice.
+     The owner has looked at the reference, which draws a HEADING and a segment
+     of four numerals, and asked for it — the select cost a press this window
+     is changed too often to charge. WHAT THE SECTION IS REALLY FOR SURVIVES
+     WHOLE and is the part that has actually caught a defect: ONE VALUE answers
+     the heading, the live cut and the empty state, so the panel can never
+     again be headed 30 over a list of 60. */
+  test('the heading and the control read the SAME value', () => {
     const head = CAL.slice(CAL.indexOf('<div class="cal-panel-head">'), CAL.indexOf('id="cal-agenda"'));
-    assert.match(head, /<select id="cal-days"/);
-    assert.ok(!/<h5>/.test(head), 'the h5 the control replaced is gone');
-    assert.match(head, /CAL_AGENDA_WINDOWS\.map\(n=>`<option value="\$\{n\}"\$\{n===win\?' selected':''\}>/,
-      'and it is set to the live cut, so a narrowed list states its own narrowing');
+    assert.match(head, /<h5>\$\{_esc\(i18t\('cal_next_30',\{n:win\}\)\)\}<\/h5>/,
+      'the heading names the live window, never the default');
+    assert.match(head, /id="cal-days"/, 'the id is kept, so every handler and test reaches what it did');
+    assert.match(head, /CAL_AGENDA_WINDOWS\.map\(n=>`<button type="button" data-cal-days="\$\{n\}" class="\$\{n===win\?'on':''\}"/,
+      'and the segment lights the same live cut, so the two halves cannot disagree');
+    assert.ok(!/<select id="cal-days"/.test(head), 'the select it replaced is gone');
   });
 
   test('it is wired beside the scope switch', () => {
-    assert.match(CAL_CODE, /getElementById\('cal-days'\)\?\.addEventListener\('change',e=>calSetAgendaDays\(e\.target\.value\)\)/);
+    assert.match(CAL_CODE, /querySelectorAll\('\[data-cal-days\]'\)\.forEach\(el=>el\.addEventListener\('click',\s*\(\)=>calSetAgendaDays\(el\.getAttribute\('data-cal-days'\)\)\)\)/);
   });
 
   test('per sitting, in memory, like the tab and the scope', () => {

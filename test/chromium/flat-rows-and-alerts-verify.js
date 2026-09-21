@@ -371,16 +371,45 @@ const SEED_UNSENT = async () => {
       check(`5-${label}a the table draws rows`, rows.n > 0, { rows: rows.n });
 
       /* THE DOCUMENT KIND IS THE ONE DELIBERATE EXCEPTION (owner-chosen, having
-         been shown it at the row's size). Everything else is one size. */
-      const body = rows.cells.filter(c => !/reg-kind/.test(c.cls));
+         been shown it at the row's size). Everything else is one size.
+         ---- RE-POINTED IN PLACE 21 Sep 2026 (Young: the four pages must look
+         exactly like the artifact) ---- the exception is unchanged and only
+         its CLASS moved: the kind went back onto a second line of the title
+         cell as .reg-sub when the redesign put "kind · Round N" back, so the
+         name reg-kind had stopped matching the element this check exists to
+         excuse. Pinning the NAME rather than the thing is what let a row grow
+         a second size and still report one. */
+      const KIND = /reg-kind|reg-sub/;
+      const body = rows.cells.filter(c => !KIND.test(c.cls));
       const sizes = [...new Set(body.map(c => c.size))];
       check(`5-${label}b every cell but the document kind is ONE size`,
         sizes.length === 1, { sizes, offenders: body.filter(c => c.size !== sizes[0])
           .slice(0, 4).map(c => [c.txt, c.size, c.cls]) });
 
-      const bold = body.filter(c => Number(c.weight) > 400);
-      check(`5-${label}c and none of them is bold`, bold.length === 0,
-        bold.slice(0, 5).map(c => [c.txt, c.weight, c.cls]));
+      /* ---- REVERSED IN PLACE 21 Sep 2026 (Young: "pay attention to the
+         relationship between grey fonts and black fonts in the artifact and
+         apply them accordingly") ---- "one weight, none of them bold" was the
+         24 Aug flattening, and it is not what the reference draws: its row
+         title is .tbl td .t{font-weight:500;color:var(--ink)} over a sub-line
+         at 400 in the quiet ink. That PAIR is the relationship the owner asked
+         for — the thing the row is called, then everything else about it — and
+         a row where the name reads the same as the date is the complaint that
+         started this. So the claim becomes the relationship it always meant:
+         AT MOST TWO weights on a row, the title carrying the heavier one, and
+         nothing on the row heavier than the column heading above it, which is
+         what stops a row shouting. */
+      const weights = [...new Set(body.map(c => Number(c.weight)))].sort((a, b) => a - b);
+      const titles = body.filter(c => /reg-title/.test(c.cls));
+      const others = body.filter(c => !/reg-title/.test(c.cls));
+      check(`5-${label}c the row carries at most two weights, and the title has the heavier`,
+        weights.length <= 2 && titles.length > 0
+          && others.every(c => Number(c.weight) <= Math.min(...titles.map(t => Number(t.weight)))),
+        { weights, title: titles.slice(0, 1).map(c => [c.txt, c.weight]),
+          heavyOthers: others.filter(c => Number(c.weight) > 400).slice(0, 4).map(c => [c.txt, c.weight, c.cls]) });
+      check(`5-${label}c2 and nothing on a row is heavier than the column heading`,
+        rows.th.length > 0 && body.every(c => Number(c.weight) <= Math.min(...rows.th.map(t => Number(t.w)))),
+        { rowMax: Math.max(...body.map(c => Number(c.weight))),
+          headMin: rows.th.length ? Math.min(...rows.th.map(t => Number(t.w))) : null });
 
       const kind = rows.cells.filter(c => /reg-kind/.test(c.cls));
       check(`5-${label}d the document kind stays SMALLER than the row`,
