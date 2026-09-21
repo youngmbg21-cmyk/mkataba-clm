@@ -75,9 +75,12 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       return { bar: box('#top-header'), nav: box('#side-nav'),
         title: (document.getElementById('shell-title') || {}).textContent || '' };
     });
-    check('1 the bar is 44px and carries the dark ground',
-      shell.bar.h === 44 && shell.bar.ink === 'rgb(255, 255, 255)',
-      `${shell.bar.h}px · ${shell.bar.bg}`);
+    /* RE-POINTED 20 Sep 2026 (the redesign, DECIDE 4): the dark 44px bar is
+       gone. The bar is 48px, LIGHT — the surface token, with the primary ink on
+       it — and the brand ground moved onto the mark at the top of the column. */
+    check('1 the bar is 48px and carries the light ground',
+      shell.bar.h === 48 && shell.bar.bg === 'rgb(255, 255, 255)' && shell.bar.ink !== 'rgb(255, 255, 255)',
+      `${shell.bar.h}px · ${shell.bar.bg} · ink ${shell.bar.ink}`);
     /* REVISED 25 Aug 2026. This ran at 1440 and asserted the column rests OPEN
        at 240. That was true while the float line sat at 1280, which put 1440
        above it — and the owner reported the shove back on a ThinkPad, so the
@@ -136,23 +139,31 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     check('2 every white surface is exactly #ffffff, not a shade of one',
       notWhite.length === 0, notWhite.slice(0, 3).join(' | ') || 'all pure');
 
-    /* ================= 3. THE THREE SECTIONS AND THEIR TILES ============= */
+    /* ================= 3. THE SECTIONS AND THEIR TILES ==================
+       DECIDE 2 of the 20 Sep 2026 redesign order (the owner's own artifact of
+       the Home page, built without the Portfolio row): the page is My work →
+       Prepared for you (only while something IS prepared) → Needs your
+       decision. The four fixed Portfolio tiles did not vanish — they joined
+       the picker, and section 4 below proves the picker offers them. The old
+       claims ("three sections", "four fixed") are REVERSED IN PLACE; their
+       reasoning about one row height and the retired ring stands. */
     const shape = await page.evaluate(() => ({
       sections: [...document.querySelectorAll('.hm-sec h2')].map(e => e.textContent.trim()),
+      myWork: i18t('home_my_work'), portfolio: i18t('home_portfolio_sec'), decide: i18t('home_needs_decision'),
       work: document.querySelectorAll('.hm-tile.is-work').length,
       port: document.querySelectorAll('.hm-tile.is-port').length,
       workH: [...document.querySelectorAll('.hm-tile.is-work')].map(e => Math.round(e.getBoundingClientRect().height)),
-      portH: [...document.querySelectorAll('.hm-tile.is-port')].map(e => Math.round(e.getBoundingClientRect().height)),
       banner: document.querySelectorAll('.hm-banner').length,
       ring: document.querySelectorAll('.hm-pipe-card, #hm-segs, #hm-ring-row').length,
     }));
-    check('3 three sections, in the design\'s order',
-      shape.sections.length === 3, shape.sections.join(' · '));
-    check('3 four tiles you choose and four that are fixed',
-      shape.work === 4 && shape.port === 4, `${shape.work} + ${shape.port}`);
-    check('3 and each row is one height, not four',
-      new Set(shape.workH).size === 1 && new Set(shape.portH).size === 1,
-      `work ${shape.workH.join('/')} · portfolio ${shape.portH.join('/')}`);
+    check('3 My work leads and Needs your decision closes, with no Portfolio row between',
+      shape.sections[0] === shape.myWork && shape.sections[shape.sections.length - 1] === shape.decide
+        && !shape.sections.includes(shape.portfolio) && shape.sections.length <= 3,
+      shape.sections.join(' · '));
+    check('3 four tiles you choose, and no fixed row',
+      shape.work === 4 && shape.port === 0, `${shape.work} + ${shape.port}`);
+    check('3 and the row is one height, not four',
+      new Set(shape.workH).size === 1, `work ${shape.workH.join('/')}`);
     /* The two things the design replaced, proved ABSENT as pixels rather than
        merely unreferenced — a retired class that still draws is not retired. */
     check('3 the hero banner and the pipeline ring are gone',
@@ -162,9 +173,28 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     /* A footnote that wraps to two lines pushes its own figure up, and then
        four figures in a row sit on four different lines. */
     const tops = await page.evaluate(() =>
-      [...document.querySelectorAll('.hm-tile.is-port .hm-n')].map(e => Math.round(e.getBoundingClientRect().top)));
-    check('4 the Portfolio figures share one baseline',
+      [...document.querySelectorAll('.hm-tile.is-work .hm-n')].map(e => Math.round(e.getBoundingClientRect().top)));
+    check('4 the My work figures share one baseline',
       Math.max(...tops) - Math.min(...tops) <= 1, tops.join(' / '));
+    /* THE PORTFOLIO READINGS ARE IN THE PICKER. The row went; the four
+       readings it carried (lifecycle, under management, import queue, Copilot
+       coverage) are offered as tiles a reader may choose, so nothing a person
+       could read on this page yesterday is unreachable today. Asked of the
+       painted popover, off the catalogue's own ids. */
+    const offered = await page.evaluate(() => {
+      const btn = document.getElementById('kpi-customize');
+      if (!btn) return { open: false, ids: [] };
+      btn.click();
+      const pop = document.getElementById('kpi-cust-pop');
+      const ids = pop ? [...pop.querySelectorAll('[data-kpi-toggle]')].map(e => e.getAttribute('data-kpi-toggle')) : [];
+      const visible = !!pop && pop.getBoundingClientRect().height > 40;
+      if (btn && pop) btn.click();
+      return { open: visible, ids };
+    });
+    const want = ['lifecycle', 'compliance', 'importq', 'coverage'];
+    check('4 the picker offers the four Portfolio readings as tiles',
+      offered.open && want.every(id => offered.ids.includes(id)),
+      offered.open ? `offers ${offered.ids.length}: missing ${want.filter(id => !offered.ids.includes(id)).join(',') || 'none'}` : 'picker did not open');
 
     /* ================= 5. EVERY TILE IS A DOOR, AND A ZERO IS NOT ======== */
     const doors = await page.evaluate(() => {

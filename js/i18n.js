@@ -4892,6 +4892,9 @@ const STRINGS = {
     /* S7: "owed to us", never "receivable" — HaTi reads agreements, not a
        ledger, so this is what the paper says is coming. */
     kpi_owed: 'Money owed to us',
+    kpi_lifecycle: 'Contract lifecycle',
+    kpi_importq: 'Import queue',
+    kpi_coverage: 'Copilot coverage',
     home_owed_of_one: 'from {n} promise on their side',
     home_owed_of_other: 'from {n} promises on their side',
     home_owed_none: 'Nothing with a figure on it is outstanding',
@@ -11846,6 +11849,9 @@ const STRINGS = {
     pt_method: 'Villkoren läses av varje avtals eget underlag — det Copilot hittade och en människa bekräftade — och mäts mot normen som redan finns i er spelbok. Avtal där inga pengar passerar utelämnas helt.',
     kpi_payterms: 'Betalningsvillkor över norm',
     kpi_owed: 'Pengar vi har att fordra',
+    kpi_lifecycle: 'Avtalets livscykel',
+    kpi_importq: 'Importkö',
+    kpi_coverage: 'Copilot-täckning',
     home_owed_of_one: 'från {n} löfte på deras sida',
     home_owed_of_other: 'från {n} löften på deras sida',
     home_owed_none: 'Inget med en siffra på är utestående',

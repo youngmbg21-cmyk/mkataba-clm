@@ -24,14 +24,20 @@ const KPI_EN={
   /* S7, 16 Sep 2026. "Owed to us" and not "receivable": HaTi reads agreements,
      not a ledger, so this is what the PAPER says is coming, not what a bank
      statement says has arrived. The tile's own sub-line says so. */
-  owed:'Money owed to us' };
+  owed:'Money owed to us',
+  /* THE PORTFOLIO ROW'S OWN FOUR JOINED THE PICKER (the redesign, DECIDE 2,
+     20 Sep 2026): Home reads tiles → Prepared for you → Needs your decision,
+     and nothing that was on the page is gone — the lifecycle, import-queue and
+     coverage tiles are chosen here like every other, beside Compliance, which
+     was in the catalogue already. */
+  lifecycle:'Contract lifecycle', importq:'Import queue', coverage:'Copilot coverage' };
 /* Falls back to the English WORD, never the dictionary key — a tile reading
    `kpi_avgcycle` looks like broken software, one reading "Avg turnaround time"
    on a Swedish screen looks only untranslated. */
 const KPI_META=Object.keys(KPI_EN)
   .reduce((o,k)=>(Object.defineProperty(o,k,{enumerable:true,
     get(){ return typeof t==='function' ? i18t('kpi_'+k) : KPI_EN[k]; }}),o),{});
-const KPI_ALL_ORDER=['approvals','negotiations','obligations','owed','payterms','expiring90','avgcycle','under_mgmt','active_value','compliance','awaiting','expiring30','expiring60','expired','highrisk'];
+const KPI_ALL_ORDER=['approvals','negotiations','obligations','owed','payterms','expiring90','avgcycle','under_mgmt','active_value','compliance','lifecycle','importq','coverage','awaiting','expiring30','expiring60','expired','highrisk'];
 /* ---- THE DEFAULT FOUR ARE "WHAT NEEDS ME TODAY" (owner-ruled 24 Aug 2026) ----
    They were Active contracts · Avg turnaround · Pending approvals · Compliance
    rating, and two of those were saying what the row beneath them already says:
@@ -597,6 +603,12 @@ function hmDashSlices(){
        term ended — the one day it most needed somebody to look at it. */
     expired:     {label:KPI_META.expired,      val:Number(lapsed.length).toLocaleString(jxLocale()),    delta:money?i18t('home_no_longer_active',{v:fmtMoneyShort(valOf(lapsed))}):(lapsed.length?i18t('home_longest_ago',{n:Math.abs(dU(effectiveExpiry(lapsed[0])||''))}):i18t('home_none')), sub:i18t('home_past_end_date',{n:lapsed.length}), grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'expiry',view:'expired'}},
     highrisk:    {label:KPI_META.highrisk,     val:Number(highRisk.length).toLocaleString(jxLocale()),  delta:i18t('home_on_executed',{n:onExecuted}), get sub(){ return i18t('home_risk_60'); }, grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'risk'}},
+    /* THE THREE FROM THE PORTFOLIO ROW (DECIDE 2). Same readings, same doors as
+       the fixed tiles they replace: the lifecycle tile keeps its composite
+       face (lifeTile, drawn in its place by workTiles) and its stage doors. */
+    lifecycle:   {label:KPI_META.lifecycle,    val:Number(live.length).toLocaleString(jxLocale()),      delta:i18t('home_agreements_docs',{n:countAll,d:agreementsIn(cs).length}), sub:i18tn('home_live_by_stage',live.length,{n:live.length}), grad:G.steel, ic:'building', go:{stage:'all'}},
+    importq:     {label:KPI_META.importq,      val:Number(importQ).toLocaleString(jxLocale()),          delta:importQ?i18t('home_import_waiting',{n:importQ}):i18t('home_import_none'), sub:i18t('home_back_catalogue'), grad:importQ?G.amber:G.steel, ic:'import', go:{nav:'migration'}},
+    coverage:    {label:KPI_META.coverage,     val:Number(cov.unread).toLocaleString(jxLocale()),       delta:cov.total?[i18t('home_understood',{read:cov.read,total:cov.total}),cov.stale?i18t('home_changed_since',{n:cov.stale}):''].filter(Boolean).join(' · '):i18t('home_copilot_nothing_live'), sub:i18t('home_copilot_coverage_sub'), grad:cov.stale?G.ruby:G.steel, ic:'spark', go:{copilot:'unread'}},
     avgcycle:    {label:KPI_META.avgcycle,     val:avgCycle,                                          delta:cycles.length?i18t('home_signed_sampled',{n:cycles.length}):'—', get sub(){ return i18t('home_draft_to_signed'); }, grad:G.green, ic:'clock',    go:{stage:'Signed'}},
     /* ROUNDS IN FLIGHT. The count is negoLiveList's, which is the same reading
        the sidebar's Negotiations door and that page's own heading print — one
@@ -952,6 +964,7 @@ function renderDashboard(){
       <span style="font-size:var(--t-label);color:var(--color-neutral-500);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${k.sub||''}</span>
     </button>`; };
   const kpiHtml=kpiSel.map(kpiCard).join('');
+  let workTiles='';
 
 
   /* The dashboard no longer carries Decisions due, Obligations, the renewal
@@ -1286,8 +1299,13 @@ function renderDashboard(){
 
   /* MY WORK — the four the reader chooses. Same ids and the same drag-to-
      reorder as before; only the dress and the door are new. */
-  const workTiles=kpiSel.map((id,i)=>{
+  const buildWorkTiles=()=>kpiSel.map((id,i)=>{
     const k=KPI_CATALOG[id];
+    /* The lifecycle tile is the one composite face in the catalogue: a stage
+       bar beside the money, each stage its own door. It is built below
+       (lifeTile) and dropped into the chosen slot with the reorder attributes
+       every other tile carries, so it drags and Alt+Arrows like the rest. */
+    if(id==='lifecycle') return lifeTile(i);
     return hmTile({ t:esc(k.label), s:esc(k.sub||''), n:esc(String(k.val)), u:'',
       f:esc(String(k.delta||'')), fc:'', edge:HM_ROW_TONES[i%4], ink:HM_ROW_INKS[i%4], go:'kpi:'+id,
       /* aria-describedby names the sr-only sentence under the row that tells a
@@ -1320,8 +1338,9 @@ function renderDashboard(){
         <span class="hm-sl">${esc(LIFE_WORD[i]||st.title)}</span>
       </button></span>`;
   }).join('');
-  const lifeTile=`
-    <div class="hm-tile is-port is-life" style="border-top-color:var(--color-accent-600)">
+  const lifeTile=(i)=>`
+    <div class="hm-tile is-work is-life" style="border-top-color:${HM_ROW_TONES[(i|0)%4]}"
+      data-kpi-id="lifecycle" draggable="true" aria-describedby="kpi-reorder-hint" tabindex="0">
       <span class="hm-head"><span class="hm-t">${i18t('home_lifecycle')}</span><span class="hm-s">${i18tn('home_live_by_stage',live.length,{n:live.length})}</span></span>
       ${''/* THE WIDE CARD FILLS THE SAME THREE REGIONS, which is the test of
              whether the skeleton is right: its figure region holds a stage bar
@@ -1342,22 +1361,12 @@ function renderDashboard(){
       <span class="hm-foot">${i18t('home_agreements_docs',{n:countAll,d:agreementsIn(cs).length})}</span>
     </div>`;
 
-  const portTiles=lifeTile
-    + hmTile({ t:esc(KPI_META.compliance), s:i18t('home_playbook_conformance'),
-        n:compliancePct+'<span class="hm-u">%</span>', u:'',
-        f:i18t('home_clean_of_live',{clean,live:live.length}),
-        fc:compliancePct>=90?'':'crit', edge:HM_ROW_TONES[1], ink:HM_ROW_INKS[1],
-        go:'fails', tall:true, dead:false })
-    + hmTile({ t:i18t('home_import_queue'), s:i18t('home_back_catalogue'),
-        n:Number(importQ).toLocaleString(jxLocale()), u:i18t('home_docs'),
-        f:importQ?i18t('home_import_waiting',{n:importQ}):i18t('home_import_none'),
-        fc:'', edge:HM_ROW_TONES[2], ink:HM_ROW_INKS[2], go:'nav:migration', tall:true })
-    + hmTile({ t:i18t('home_copilot_coverage'), s:i18t('home_copilot_coverage_sub'),
-        n:Number(cov.unread).toLocaleString(jxLocale()), u:i18t('home_still_to_read'),
-        f:cov.total?[i18t('home_understood',{read:cov.read,total:cov.total}),
-                     cov.stale?i18t('home_changed_since',{n:cov.stale}):''].filter(Boolean).join(' · ')
-                  :i18t('home_copilot_nothing_live'),
-        fc:cov.stale?'crit':'', edge:HM_ROW_TONES[3], ink:HM_ROW_INKS[3], go:'copilot:unread', tall:true });
+  /* ---- THE PORTFOLIO ROW IS NOT DRAWN AS A ROW ANY MORE (the redesign,
+     DECIDE 2, 20 Sep 2026) ---- Its four tiles are in the picker: Compliance
+     was always there, and lifecycle / importq / coverage joined it above. A
+     reader who wants the old row ticks them under Customize. `home_portfolio_sec`
+     is STALE on the face and inert in both books. */
+  workTiles=buildWorkTiles();
 
   /* NEEDS YOUR DECISION — four rows, then a link that carries the count. It is
      not drawn at or below four, because pressing it would open the list you
@@ -1469,9 +1478,6 @@ function renderDashboard(){
          reorder" in the customizer's foot for everybody else and a second
          visible sentence under the row is furniture. */}
     <span id="kpi-reorder-hint" class="sr-only">${i18t('home_reorder_keys')}</span>
-
-    ${hmSec(i18t('home_portfolio_sec'))}
-    <div class="hm-tiles is-port">${portTiles}</div>
 
     ${deskSection}
 
