@@ -2892,7 +2892,7 @@ function redlineLayoutCss(){
      it, so the three columns read as one set of objects (Young, 10 Aug 2026).
      The spine survives the reshape at 3px on the left — it is the fastest fact
      on the card and the radius does not soften it. */
-  .redline-page .rl-card{border:1px solid #e8ecf1;border-radius:var(--radius);padding:var(--s-3) 14px 14px;
+  .redline-page .rl-card{border:1px solid #e8ecf1;border-radius:var(--radius-lg);padding:var(--s-3) 14px 14px;
     margin-bottom:11px;background:var(--color-surface);cursor:pointer;
     box-shadow:0 1px 2px rgba(38,55,74,.06),0 4px 14px rgba(38,55,74,.06);
     transition:box-shadow var(--dur-2) ease,border-color var(--dur-2) ease;
@@ -4877,14 +4877,14 @@ function redlineLayoutCss(){
      2026) — which is also what finally lets the warm paper read as paper,
      since a cream sheet on a white card is just a slightly grubby card. */
   .redline-page .rl-col{background:var(--color-surface);border:1px solid var(--color-divider);
-    border-radius:var(--radius);box-shadow:0 1px 2px rgba(15,23,42,.05);min-height:0;overflow:hidden;
+    border-radius:var(--radius-lg);box-shadow:0 1px 2px rgba(15,23,42,.05);min-height:0;overflow:hidden;
     display:flex;flex-direction:column}
   ${''/* The clause panel wears .rl-col too, and this .rl-col rule sits LATER
      in the sheet than .rl-cp's own border-radius:var(--radius) at equal specificity — so
      order handed the panel the column's 14px corners. Written at three
      classes so the square corner wins on specificity, not on position
      (owner-asked 16 Aug 2026: square, both seats). */}
-  .redline-page .rl-col.rl-cp{border-radius:var(--radius)}
+  .redline-page .rl-col.rl-cp{border-radius:var(--radius-lg)}
   ${''/* ---- THE CHANGE COLUMN IS ONE WHITE CARD AGAIN (owner-reported 22 Aug
          2026, off the mock-up's own rail: "tracked changes should be a large
          white card that looks like the image with change cards laid over the

@@ -27,7 +27,7 @@ function adviceCard(r){
   const fee=q.rate?`${fmtMoneyShort(q.rate*q.hoursMin)}–${fmtMoneyShort(q.rate*q.hoursMax)}`:'—';
   const ini=(r.assignee||'').split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
   return `
-    <div data-adv-card="${r.id}" ${drag?'draggable="true"':''} class="q-card" style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:11px var(--s-3);cursor:${drag?'grab':'pointer'};display:flex;flex-direction:column;gap:5px">
+    <div data-adv-card="${r.id}" ${drag?'draggable="true"':''} class="q-card" style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:11px var(--s-3);cursor:${drag?'grab':'pointer'};display:flex;flex-direction:column;gap:5px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
         <span style="font-family:var(--font-mono);font-size:var(--t-label);color:var(--color-neutral-600)">${r.id}</span>
         <span style="display:flex;align-items:center;gap:var(--s-1);flex:none">

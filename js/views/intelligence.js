@@ -2152,7 +2152,7 @@ function intelFrictionHtml(){
      readable measure, and the bars and the counterparty table take the extra
      room, which is where it is useful. */
   return `<div>
-    <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);box-shadow:var(--shadow-sm);overflow:hidden">
+    <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden">
       ${intelFrictionCopilotHtml(st)}
       <div class="igf-split" style="display:grid">${left}${right}</div>
     </div>

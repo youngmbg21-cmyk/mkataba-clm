@@ -2174,7 +2174,7 @@ function tplHealthData(){
 
 /* Draws what tplHealthData worked out, and works out nothing itself. */
 function tplHealthHtml(d){
-  const CARD = 'background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);box-shadow:var(--shadow-sm)';
+  const CARD = 'background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm)';
   const pct = v => v == null ? '—' : Math.round(v * 100) + '%';
   const tile = (tone, fig, figTone, cap, sub) => `<div style="${CARD};padding:13px 15px;border-top:3px solid ${tone}">
     <div style="font-size:26px;font-weight:var(--w-title);letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums${figTone ? ';color:' + figTone : ''}">${fig}</div>
@@ -2696,7 +2696,7 @@ function renderTemplatesPage(){
              under Administration, and a governance screen with two homes is
              the fault WO N1 removed — so the rail no longer carries it. -->
       </div>
-      <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);box-shadow:var(--shadow-sm);overflow:hidden">
+      <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden">
         <div style="display:flex;align-items:center;gap:var(--s-3);padding:var(--s-3) 14px;border-bottom:1px solid var(--color-divider)">
           <input id="tpl-search" type="search" placeholder="${i18t('lb_search_templates')}" autocomplete="off" value="${_tplEsc(_tplPage.q)}"
             style="flex:none;width:min(320px,50%);border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:7px var(--s-3);font:inherit;font-size:var(--t-meta);color:inherit;outline:none"/>
@@ -2770,7 +2770,7 @@ const PB_TAB_SUB={clauses:'lib_clause_library_sub',playbook:'lib_playbook_sub',d
 let _pbPageTab=null;
 function pbPageTab(){ return PB_PAGE_TABS.includes(_pbPageTab)?_pbPageTab:'clauses'; }
 function renderPlaybookPage(){
-  const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius)';
+  const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius-lg)';
   const canEditLib=isAdmin()||currentUser()?.role==='legal';
 
   // portfolio deviations (from the existing playbook review results)

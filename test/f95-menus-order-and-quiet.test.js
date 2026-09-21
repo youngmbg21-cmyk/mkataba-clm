@@ -496,11 +496,14 @@ describe('F95 — the negotiate objects are one set of objects', () => {
       'the doc column clips square — a radius here rounds the sheet\'s corners');
     assert.equal(radius('.redline-page .rl-paper'), '0',
       'the paper is square: a contract on screen reads as a document');
-    /* THE FURNITURE, all reading the one token. */
+    /* THE FURNITURE, all reading one token — the CARD one since 20 Sep 2026
+       (DECIDE 3 of the redesign order: --radius for controls, --radius-lg for
+       the surfaces that hold content). The claim is unchanged: the column and
+       the cards read a token by name, never a family of literals of their own. */
     for (const sel of ['.redline-page .rl-col', '.redline-page .rl-col.rl-cp',
                        '.redline-page .rl-card'])
-      assert.equal(radius(sel), 'var(--radius)',
-        `${sel} shares the platform's one corner, never a family of its own`);
+      assert.equal(radius(sel), 'var(--radius-lg)',
+        `${sel} shares the platform's card corner, never a family of its own`);
   });
 
   test('the Document tab\'s own cards were brought with them', () => {
@@ -511,7 +514,7 @@ describe('F95 — the negotiate objects are one set of objects', () => {
        the same token is a stronger way of being the same than sharing a
        literal that happens to match. */
     const ct = src('js/views/contract.js');
-    assert.match(ct, /const CARD='background:var\(--color-surface\)[^']*border-radius:var\(--radius\)/,
+    assert.match(ct, /const CARD='background:var\(--color-surface\)[^']*border-radius:var\(--radius-lg\)/,
       'the Doc page rail is the same card as the Negotiate column');
   });
 

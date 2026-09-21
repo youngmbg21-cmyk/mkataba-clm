@@ -2680,8 +2680,13 @@ function openModal(html, opts={}){
     : `max-height:88vh;overflow-y:auto;`;
   root.innerHTML=`
   <div style="position:fixed;inset:0;z-index:70;display:grid;place-items:center;padding:var(--s-4)">
-    <div id="modal-scrim" style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 50%,transparent);"></div>
-    <div class="modal-in scroll-thin" role="dialog" aria-modal="true"${opts.label?` aria-label="${String(opts.label).replace(/"/g,'&quot;')}"`:''} tabindex="-1" style="position:relative;width:100%;max-width:${maxw};${sized}background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);">${html}</div>
+    ${''/* THE FRAME IS THE REFERENCE'S (20 Sep 2026, step 11 of the redesign
+           order): a scrim that is the page ink at 35%, the card corner
+           (--radius-lg, DECIDE 3) and the deep shadow. Nothing inside the
+           frame changes — every dialog still builds its own head, body and
+           foot, and DLG_W is still the width ladder. */}
+    <div id="modal-scrim" style="position:absolute;inset:0;background:color-mix(in srgb,var(--color-text) 35%,transparent);"></div>
+    <div class="modal-in scroll-thin" role="dialog" aria-modal="true"${opts.label?` aria-label="${String(opts.label).replace(/"/g,'&quot;')}"`:''} tabindex="-1" style="position:relative;width:100%;max-width:${maxw};${sized}background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius-lg);">${html}</div>
   </div>`;
   /* ---- THE TWO QUIET WAYS OUT ASK THE SAME QUESTION THE ✕ DOES ----
      Both of these called closeModal() straight, so a modal that had put its own
@@ -2823,8 +2828,8 @@ function confirmDialog(opts={}){
     // one rung that clears it in both workspaces and both themes.
     const btnBg=danger?'var(--danger)':'var(--accent-fill)';
     ov.innerHTML=`
-      <div style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 50%,transparent)"></div>
-      <div class="modal-in" role="alertdialog" aria-modal="true" style="position:relative;width:100%;max-width:30rem;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);padding:22px var(--s-6)">
+      <div style="position:absolute;inset:0;background:color-mix(in srgb,var(--color-text) 35%,transparent)"></div>
+      <div class="modal-in" role="alertdialog" aria-modal="true" style="position:relative;width:100%;max-width:30rem;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius-lg);padding:22px var(--s-6)">
         <div style="display:flex;align-items:flex-start;gap:var(--s-3);margin-bottom:${message?'6px':'14px'}">
           <span style="width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:var(--radius);background:${danger?'var(--red-tint,rgba(176,69,60,.1))':'var(--st-steel-bg)'};color:${danger?'var(--danger)':'var(--accent-ink-700)'}">${icon(danger?'alert':'shield','w-4 h-4')}</span>
           <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0;line-height:1.3;padding-top:5px">${esc(title)}</h3>
@@ -2895,8 +2900,8 @@ function promptDialog(opts={}){
     ov.setAttribute('data-top-overlay','1');   /* see confirmDialog above */
     ov.style.cssText='position:fixed;inset:0;z-index:92;display:grid;place-items:center;padding:var(--s-4)';
     ov.innerHTML=`
-      <div style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 50%,transparent)"></div>
-      <div class="modal-in" role="dialog" aria-modal="true" style="position:relative;width:100%;max-width:30rem;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);padding:22px var(--s-6)">
+      <div style="position:absolute;inset:0;background:color-mix(in srgb,var(--color-text) 35%,transparent)"></div>
+      <div class="modal-in" role="dialog" aria-modal="true" style="position:relative;width:100%;max-width:30rem;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius-lg);padding:22px var(--s-6)">
         <div style="display:flex;align-items:flex-start;gap:var(--s-3);margin-bottom:${message?'6px':'12px'}">
           <span style="width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:var(--radius);background:var(--st-steel-bg);color:var(--st-steel-fg)">${icon('pencil','w-4 h-4')}</span>
           <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0;line-height:1.3;padding-top:5px">${esc(title)}</h3>

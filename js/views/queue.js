@@ -28,7 +28,7 @@ function pipeCard(c){
   const stream = streamLabel(c);
   const val = !isMonetary(c) ? 'n/m' : (c.value ? (window.fmtMoneyShortOf ? fmtMoneyShortOf(c) : (window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value))) : '—');
   return `
-    <div data-card="${c.id}" class="q-card" style="background:var(--color-surface);border:1px solid var(--color-divider);border-left:4px solid ${folderColor(c)};border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:11px var(--s-3);cursor:pointer;display:flex;flex-direction:column;gap:5px">
+    <div data-card="${c.id}" class="q-card" style="background:var(--color-surface);border:1px solid var(--color-divider);border-left:4px solid ${folderColor(c)};border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:11px var(--s-3);cursor:pointer;display:flex;flex-direction:column;gap:5px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
         <span style="font-family:var(--font-mono);font-size:var(--t-label);color:var(--color-neutral-600)">${c.id}</span>
         <span style="background:${rp.bg};color:${rp.fg};font-size:var(--t-label);font-weight:var(--w-strong);letter-spacing:.03em;padding:2px var(--s-2);border-radius:var(--radius);font-variant-numeric:tabular-nums;flex:none">R ${r}</span>

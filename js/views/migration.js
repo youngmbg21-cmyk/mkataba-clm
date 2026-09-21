@@ -1028,7 +1028,7 @@ function renderMigration(){
   const folderOpts=folderOptionsHtml(M.defaults.folder||'auto', true);
   const statusOpts=[['Signed','Executed — signed outside HaTi'],['Under Review','In Review'],['Draft','Drafting']]
     .map(([v,l])=>`<option value="${v}" ${M.defaults.status===v?'selected':''}>${l}</option>`).join('');
-  const kpi=(n,label,color)=>`<div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow-sm)">
+  const kpi=(n,label,color)=>`<div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:18px 20px;box-shadow:var(--shadow-sm)">
       <div style="font-family:var(--font-mono);font-size:24px;font-weight:var(--w-title);color:${color||'var(--color-text)'};line-height:1;font-variant-numeric:tabular-nums">${n}</div>
       <div style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-top:6px">${label}</div></div>`;
   const selStyle='font:inherit;font-size:var(--t-meta);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:5px 7px;color:inherit;cursor:pointer';
@@ -1065,7 +1065,7 @@ function renderMigration(){
 
       ${canEdit()?`
       <!-- intake -->
-      <section class="blueprint" style="background:var(--color-surface);box-shadow:var(--shadow-sm);padding:20px;border-radius:var(--radius)">
+      <section class="blueprint" style="background:var(--color-surface);box-shadow:var(--shadow-sm);padding:20px;border-radius:var(--radius-lg)">
         <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-1)">
           <span style="display:inline-flex;color:var(--color-accent)">${icon('upload')}</span>
           <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-card);margin:0">${i18t('mig_bulk_import')}</h3>

@@ -5649,7 +5649,7 @@ function paintOverviewDocs(c){
 }
 function renderKeyTermsSide(c){
   const host=document.getElementById('kt-side'); if(!host) return;
-  const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius);padding:13px 15px';
+  const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius-lg);padding:13px 15px';
   /* THE RENEWAL CARD LEADS, AND ONLY WHEN THERE IS A DECISION TO MAKE (W2-4).
      renewalCardHtml returns '' outside the 90-day window, so on most contracts
      this column is exactly what it was; inside the window the question of the
@@ -8455,7 +8455,7 @@ function renderWorkspace(){
      12px and a hairline lift, matching the change cards and the queue on the
      Negotiate tab: the two tabs are one room and their objects should be the
      same objects (Young, 10 Aug 2026). */
-  const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:0 1px 2px rgba(15,23,42,.05);border-radius:var(--radius)';
+  const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:0 1px 2px rgba(15,23,42,.05);border-radius:var(--radius-lg)';
   const H6='margin:0;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600);text-transform:uppercase;letter-spacing:.09em';
   const KROW='display:flex;justify-content:space-between;gap:var(--s-2);padding:var(--s-1) 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);font-size:var(--t-meta)';
   const KKEY='color:var(--color-neutral-600);flex:none';
@@ -11775,7 +11775,7 @@ function renderSignSide(c){
      the node tests without the negotiation module on the floor. */
   const closed=c.status==='Signed'||!!(window.negoExecuted&&negoExecuted(c));
   const may=canEdit()&&!closed;
-  const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius);padding:13px 15px';
+  const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius-lg);padding:13px 15px';
   const H='margin:0;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading)';
   /* `clear` asks for the card's other state — "nothing is in the way" — and
      only while the contract is still open. See approvalChainHtml. */

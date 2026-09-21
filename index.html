@@ -7148,6 +7148,14 @@
   .ap-foot{display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);padding:6px 14px;border-top:1px solid var(--color-divider);font-size:var(--t-label);color:var(--color-neutral-600);}
   .ap-go{min-height:26px;padding:0 10px;font-size:var(--t-meta);}
 
+  /* ═══ A CARD WEARS THE CARD CORNER (DECIDE 3 of the redesign order, 20 Sep
+     2026): --radius (4px) is for CONTROLS and --radius-lg (8px) for the
+     surfaces that hold content — the reference's own pair. The contract
+     paper, its marks and the seal keep their literal 0 (the 26 Aug ruling,
+     untouched). Written at one class and later in source; a card that clips
+     inside a parent (.st-att .st-rows at 0) keeps its own answer. */
+  .blueprint.bp-round,.sec-box,.hm-tile,.hm-rows,.obw-card,.kt-tri,.st-rows,.dir-card,.igf-kpi,.q-card,.pipe-col,.cal-card,.ik-card{border-radius:var(--radius-lg);}
+
   /* The column. 224 wide, grouped, a 32px row with a 4px corner; the live
      door is a tint of the accent with the accent's ink, which is what the
      reference draws — the 3px left rule of 24 Aug goes with the dark bar. */
