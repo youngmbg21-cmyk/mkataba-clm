@@ -56,7 +56,7 @@ const SHELL_ICONS = [
   ['.cmd-search',                'i-search'],
   ['#cmd-ai',                    'i-spark'],
   ['#hdr-notify',                'i-bell'],
-  ['#cmd-panel',                 'i-panel'],
+  ['#cmd-panel',                 'i-clock'],   /* DECIDE 2, 20 Sep 2026: Recent activity is behind the clock */
   ['#side-logout',               'i-out'],
   ['[data-view="dashboard"]',    'i-home'],
   ['[data-view="register"]',     'i-folder'],
@@ -139,14 +139,28 @@ const SHELL_ICONS = [
       Math.abs(face.widthFace - face.widthFallback) > 1,
       `IBM Plex Sans ${face.widthFace.toFixed(1)}px vs Arial ${face.widthFallback.toFixed(1)}px`);
 
-    /* THE FIGURE FACE IS THE PLATFORM FACE. --font-mono is used ~160 times for
-       ids, dates, counts and money — data, not code — and the columns line up
-       on tabular-nums rather than on a typewriter face. If that token ever
-       drifts back to a monospace the money columns change width overnight. */
-    const mono = await page.evaluate(() => getComputedStyle(document.documentElement)
-      .getPropertyValue('--font-mono').trim());
-    check('the figure token follows the platform face',
-      /^'?IBM Plex Sans'?/.test(mono), mono);
+    /* THE FIGURE FACE WAS THE PLATFORM FACE from 22 Aug to 20 Sep 2026:
+       --font-mono is used ~160 times for ids, dates, counts and money, and the
+       columns lined up on tabular-nums rather than on a typewriter face.
+       REVERSED IN PLACE 20 Sep 2026 (the redesign order, DECIDE 1 of its
+       tokens step): the owner-approved reference sets every figure in
+       JetBrains Mono, self-hosted in fonts/ under the SAME token name, so the
+       ~160 readers moved together and the money columns changed width ONCE,
+       on purpose. The claim now is that the token names that face AND that
+       the face genuinely loaded — a name with no file behind it would fall
+       back to the system's own monospace in silence. */
+    const mono = await page.evaluate(() => {
+      const v = getComputedStyle(document.documentElement).getPropertyValue('--font-mono').trim();
+      const probe = t => { const s = document.createElement('span'); s.textContent = 'MK-2041 · KES 571.8M · 30.06.2027';
+        s.style.cssText = 'position:absolute;visibility:hidden;font-size:40px;font-family:' + t; document.body.appendChild(s);
+        const w = s.getBoundingClientRect().width; s.remove(); return w; };
+      return { v, wFace: probe("'JetBrains Mono'"), wFallback: probe('monospace'), loaded: document.fonts.check("12px 'JetBrains Mono'") };
+    });
+    check('the figure token names the reference\'s own face',
+      /^'?JetBrains Mono'?/.test(mono.v), mono.v);
+    check('and that face genuinely loaded from fonts/, not a silent fallback',
+      mono.loaded && Math.abs(mono.wFace - mono.wFallback) > 1,
+      `loaded ${mono.loaded} · JetBrains Mono ${mono.wFace.toFixed(1)}px vs monospace ${mono.wFallback.toFixed(1)}px`);
 
     /* ---- 2. EVERY SHELL SYMBOL RESOLVES TO PAINTED PIXELS ---- */
     console.log('\n--- 2. every symbol in the shell resolves ---');
@@ -160,7 +174,8 @@ const SHELL_ICONS = [
        perfectly correct. Open it the way a reader does, then measure. */
     await page.evaluate(() => {
       const t = document.querySelector('[data-section-toggle="settings"]');
-      if (t) t.click();
+      /* Since 20 Sep 2026 the group starts OPEN; pressing it would shut it. */
+      if (t && t.getAttribute('aria-expanded') !== 'true') t.click();
     });
     await page.waitForTimeout(400);
 
@@ -247,6 +262,18 @@ const SHELL_ICONS = [
        and pressing a stage really goes there rather than merely carrying an
        attribute. */
     console.log('\n--- 3. the lifecycle tile, and its three doors ---');
+    /* SINCE 20 Sep 2026 (DECIDE 2 of the redesign order) the Portfolio row is
+       gone and the lifecycle tile is one a reader CHOOSES in the picker, so it
+       is staged the way a reader would put it on the page — through the
+       product's own setKpiSel — and the default four are put back after the
+       register has been reached, so the later Home measurements in this file
+       see the page as it ships. */
+    await page.evaluate(() => {
+      const cur = (window.currentKpiSel && currentKpiSel()) || [];
+      if (!cur.includes('lifecycle')) setKpiSel([...cur.slice(0, 3), 'lifecycle']);
+      renderDashboard();
+    });
+    await page.waitForTimeout(400);
     const head = await page.evaluate(() => {
       const tile = document.querySelector('.hm-tile.is-life');
       if (!tile) return { err: 'no lifecycle tile' };
@@ -275,6 +302,7 @@ const SHELL_ICONS = [
     }));
     check('pressing a stage still opens the register', landed.view === 'register', landed.view);
     check('and the register has rows in it', landed.rows > 0, String(landed.rows));
+    await page.evaluate(() => { if (window.DEFAULT_KPI_SEL) setKpiSel(DEFAULT_KPI_SEL.slice()); });
 
     await page.screenshot({ path: path.join(OUT, '04-register.png') });
 
@@ -347,10 +375,17 @@ const SHELL_ICONS = [
        other": Edit keeps the colour it has today and Discard is red. */
     const edit = rowMarks.find(m => /^(Edit|Counter|Redigera|Motbud)/i.test(m.word));
     const disc = rowMarks.find(m => /Discard|F.rkasta|Sl.ng/i.test(m.word));
-    check('Discard is red', !!disc && disc.ink === 'rgb(190, 18, 60)',
-      disc ? disc.ink : 'no Discard on these rows');
+    /* THE RED IS THE TOKEN'S, NOT A NUMBER TYPED HERE (re-pointed 20 Sep 2026
+       when the redesign order moved the ruby from #BE123C to the reference's
+       #B3261E and this line went red for the wrong reason): --st-ruby-fg is
+       resolved in the page and Discard has to wear exactly that. */
+    const ruby = await page.evaluate(() => { const e = document.createElement('i');
+      e.style.color = 'var(--st-ruby-fg)'; document.body.appendChild(e);
+      const c = getComputedStyle(e).color; e.remove(); return c; });
+    check('Discard is red — the ruby token\'s own ink', !!disc && disc.ink === ruby,
+      disc ? `${disc.ink} vs --st-ruby-fg ${ruby}` : 'no Discard on these rows');
     check('and the edit door keeps the ink it had before the marks',
-      !!edit && edit.ink !== 'rgb(190, 18, 60)', edit ? `${edit.word} ${edit.ink}` : 'no edit door');
+      !!edit && edit.ink !== ruby, edit ? `${edit.word} ${edit.ink}` : 'no edit door');
     await page.screenshot({ path: path.join(OUT, '05-redline-marks.png') });
 
     check('the page threw nothing', errors.length === 0, errors.join(' | '));

@@ -5178,7 +5178,13 @@ function redlineLayoutCss(){
            inline-flex is what keeps every other button in this row on one
            baseline. Fixed by SCOPE, never !important. */}
     justify-content:center;align-items:center}
-  .redline-page{--rl-btn-line:color-mix(in srgb,var(--accent-solid) 45%,transparent)}
+  ${''/* 20 Sep 2026 (the redesign order): the line is --btn-edge, the button's own
+         token — the reference draws one neutral hairline on every secondary
+         button, and pages-read-alike 7 asks that both heads settle on the SAME
+         outline. The 45% accent mix it was is what --btn-edge itself was
+         until that day, so this is the same relation, kept by reading the
+         token instead of restating its old value. */}
+  .redline-page{--rl-btn-line:var(--btn-edge)}
   ${''/* ---- THE CHANGE INDEX (owner-approved render, 24 Aug 2026) ---- */}
   ${''/* ONE LEFT EDGE DOWN THE WHOLE COLUMN. The index block insetted itself
          12px while the pile headings and the rows sit at 16, so the column's

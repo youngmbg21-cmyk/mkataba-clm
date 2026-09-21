@@ -343,6 +343,11 @@ function paintShellTitle(view){
 }
 function renderPageHeader(view){
   paintShellTitle(view);
+  /* THE RAIL SAYS WHOSE WORKSPACE THIS IS (the redesign, 20 Sep 2026): the
+     brand mark at the top of the column carries the company's name in the
+     quiet ink beside it. FIRST_PARTY is the WORKSPACE (js/core.js), read
+     through window because it is a property there, not a module const. */
+  try{ const rw=document.getElementById('rail-ws'); if(rw) rw.textContent=String(window.FIRST_PARTY||''); }catch(e){}
   /* BEFORE the early return below, because that return fires for exactly the
      views this matters most to — the ones that draw their own head band. */
   paintScrollGutter(view);

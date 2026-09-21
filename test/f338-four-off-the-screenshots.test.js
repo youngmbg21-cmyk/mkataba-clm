@@ -122,15 +122,28 @@ describe('f338 (2) — option (a): the tab goes, the reading is kept', () => {
 
 /* ═════════════ 3 · INSIGHTS COMES AFTER OBLIGATIONS ════════════════════ */
 describe('f338 (3) — markup order, and nothing else', () => {
-  const nav = HTML.slice(HTML.indexOf('data-view="dashboard"'), HTML.indexOf('data-view="directory"'));
+  /* RE-POINTED 20 Sep 2026 (DECIDE 4 of the redesign order): the rail is
+     THREE GROUPS now — Work (Home · Contracts · Negotiations · Obligations ·
+     Calendar), Library (Templates · Our standards · Requests · People) and
+     Company (Insights · Advice desk · Import · Team & settings), the
+     owner-approved reference's own. Insights still sits after Obligations,
+     which was the 19 Sep ask; "before Requests" and "Templates leads
+     Obligations" were facts about the flat list and are reversed by the
+     groups: Requests is Library and Insights is Company; Work leads Library.
+     The slice runs to the end of the column, not to People, because Insights
+     is drawn after People now. */
+  const nav = HTML.slice(HTML.indexOf('data-section="work"'), HTML.indexOf('id="side-copilot"'));
   const at = v => nav.indexOf('data-view="' + v + '"');
-  test('3a Insights sits after Obligations and before Requests', () => {
+  const grp = v => { const i = at(v); const h = nav.lastIndexOf('data-section="', i); return nav.slice(h + 14, nav.indexOf('"', h + 14)); };
+  test('3a Insights sits after Obligations, in the Company group; Requests is Library', () => {
     assert.ok(at('obligations') > 0 && at('intel') > at('obligations'),
       'Insights leads Obligations in the markup');
-    assert.ok(at('intake') > at('intel'), 'and Requests still follows it');
+    assert.equal(grp('intel'), 'settings', 'Insights is a Company door');
+    assert.equal(grp('intake'), 'library', 'Requests is a Library door');
   });
-  test('3b Templates still leads Obligations — the everyday run is unbroken', () => {
-    assert.ok(at('templates') > 0 && at('templates') < at('obligations'));
+  test('3b Work leads Library — Obligations (Work) is drawn before Templates (Library)', () => {
+    assert.ok(at('obligations') > 0 && at('obligations') < at('templates'));
+    assert.equal(grp('obligations'), 'work'); assert.equal(grp('templates'), 'library');
   });
   /* THE BADGE TRAVELS INSIDE THE BLOCK. `#nav-intel-new` is markup inside the
      Insights button, so moving the button moves it — asserted rather than

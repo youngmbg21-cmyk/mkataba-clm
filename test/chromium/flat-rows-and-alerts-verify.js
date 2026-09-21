@@ -303,8 +303,14 @@ const SEED_UNSENT = async () => {
     check('3a the row carries no send of its own any more',
       Array.isArray(acts) && !acts.some(b => /publish|send/i.test(b.text)),
       Array.isArray(acts) ? acts.map(b => b.text) : acts);
+    /* FILLED means a tint. RE-POINTED 20 Sep 2026 (the redesign order): every
+       secondary button wears the reference's white face — the page SURFACE —
+       with a hairline, so "not transparent" would call the whole row filled.
+       The claim is unchanged: no act on the row leads by a fill. */
+    const surfaceBg = await page.evaluate(() => { const e = document.createElement('i'); e.style.background = 'var(--color-surface)';
+      document.body.appendChild(e); const v = getComputedStyle(e).backgroundColor; e.remove(); return v; });
     check('3b and nothing on it is filled — the row leads by position',
-      Array.isArray(acts) && acts.every(b => b.bg === 'rgba(0, 0, 0, 0)'),
+      Array.isArray(acts) && acts.every(b => b.bg === 'rgba(0, 0, 0, 0)' || b.bg === surfaceBg),
       Array.isArray(acts) ? acts.map(b => [b.text, b.bg]) : acts);
     check('3c nothing else in the row is either',
       Array.isArray(acts) && acts.every(b => Number(b.weight) <= 400),

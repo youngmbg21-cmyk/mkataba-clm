@@ -67,7 +67,10 @@ const check = (name, pass, detail) => {
      with no brand at all. #top-header is the element that carries --nav-bg. */
   const look = () => page.evaluate(() => {
     const root = document.documentElement;
-    const bar = document.getElementById('top-header');
+    /* RE-POINTED 20 Sep 2026 (the redesign): the bar is light in both brands
+       now, so it carries no brand at all. The MARK at the top of the column is
+       filled with --accent-solid, which is what navy repaints. */
+    const bar = document.querySelector('#side-nav .rail-mark') || document.getElementById('top-header');
     return {
       brand: root.getAttribute('data-brand'),
       dark: root.classList.contains('dark'),

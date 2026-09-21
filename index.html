@@ -1598,7 +1598,7 @@
      on specificity and makes the band a translucent white panel instead, which
      is why it needed nothing when the dark theme changed grounds — 10% white
      rides whatever is under it. Left as the light-rail fallback it was. */
-  .rail-head{flex:none;display:flex;align-items:center;gap:var(--s-2);height:44px;padding:0 var(--s-3);
+  .rail-head{flex:none;display:flex;align-items:center;gap:var(--s-2);height:var(--shell-head-h,48px);padding:0 var(--s-3);
     background:linear-gradient(135deg,var(--nav-deep),var(--color-accent-800) 70%);color:#fff;}
   .rail-head-label{font-family:var(--font-heading);font-size:var(--t-micro);font-weight:var(--w-title);
     letter-spacing:.09em;text-transform:uppercase;color:rgba(255,255,255,.72);min-width:0;
@@ -4467,7 +4467,7 @@
      scaling reports exactly 1536, so the boundary itself caught it). */
   @media (max-width:1440px){
     #side-nav{
-      position:fixed; top:var(--shell-head-h,64px); left:0; bottom:0; z-index:55;
+      position:fixed; top:0; left:0; bottom:0; z-index:55;
       width:64px; transition:width var(--dur-3) var(--ease);
     }
     /* Open, it is the FULL sidebar — labels, counts and all: the rail's
@@ -6370,7 +6370,7 @@
      to the top one. Nothing that reads it (the hero's gradient, the phone)
      needs to know. --nav-well is new and belongs to the WHITE column: the
      ground a hovered or live door sits on. */
-  :root{ --shell-head-h:44px; --nav-w:240px; --nav-well:#EFF3F3; }
+  :root{ --shell-head-h:48px; --nav-w:224px; --nav-well:#EEF2F0; }
   #panel-scrim{
     position:fixed;left:0;right:0;bottom:0;top:var(--shell-head-h,64px);z-index:45;
     background:color-mix(in srgb,#020617 45%,transparent);
@@ -7010,6 +7010,104 @@
         executed copy (docBodyDesignCss in server/server.js), and a rule nested
         inside a media query would be lifted out of its wrapper. -- */
   .doc-surface [data-doc-contents]{break-inside:avoid;}
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     THE REDESIGN LAYER — THE SHELL (20 Sep 2026, the owner's overnight order:
+     "bring the beauty of the HTML to HaTi, never HaTi down to the HTML")
+     ═══════════════════════════════════════════════════════════════════════
+     Written at the END of HaTi's sheet on purpose: every rule here is at the
+     specificity of the rule it re-dresses and LATER in source, so it wins by
+     order and nothing shouts. Nothing structural: the same ids, the same
+     handlers, the same doors — the reference's clothes on HaTi's body.
+     DECIDE 4 of the order: the dark 44px bar is gone. One white column runs
+     floor to ceiling with the mark at its top; the bar is 48px, light, in the
+     page column, and keeps every control it had — search, language, brand
+     swatches, light/dark, Copilot, alerts, activity, avatar, sign-out. */
+  #top-header .hdr-icon-btn{width:30px;height:30px;color:var(--color-neutral-500);}
+  #top-header .hdr-icon-btn:hover{background:var(--surface-2);color:var(--color-text);}
+  #top-header .sh-div{background:var(--color-divider);}
+  #top-header #shell-title{font-weight:var(--w-strong);color:var(--color-text);font-size:var(--t-body);}
+  #top-header #brand-block{display:none;}
+  @media (max-width:899px){ #top-header #brand-block{display:flex;} }
+  #top-header .cmd-search{height:30px;background:var(--surface-2);border:1px solid var(--color-divider);color:var(--color-neutral-500);border-radius:var(--radius);}
+  #top-header .cmd-search:hover{border-color:var(--rule-strong);}
+  #top-header .cmd-search:focus-within{border-color:var(--accent-solid);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent-solid) 18%,transparent);background:var(--color-surface);}
+  #top-header .cmd-search input{color:var(--color-text);}
+  #top-header .cmd-search input::placeholder{color:var(--color-neutral-400);}
+  #top-header #cmd-k-hint{border-color:var(--rule-strong);color:var(--color-neutral-500);background:var(--color-surface);}
+  #top-header #cmd-k-hint:hover{background:var(--surface-2);}
+  #top-header .sh-grp{border-color:var(--color-divider);border-radius:var(--radius);overflow:hidden;height:30px;}
+  #top-header .sh-grp > *{height:28px;color:var(--color-neutral-600);}
+  #top-header .sh-grp > *:focus-visible{outline:2px solid var(--accent-solid);}
+  #top-header .sh-grp button:hover{background:var(--surface-2);}
+  #top-header .sh-grp button[aria-pressed="true"]{background:var(--surface-2);color:var(--color-text);font-weight:var(--w-strong);box-shadow:none;}
+  #top-header .sh-sw[aria-pressed="true"] i{box-shadow:inset 0 0 0 2px var(--color-surface),inset 0 0 0 4px var(--accent-solid);}
+  #top-header #side-avatar{width:28px;height:28px;border:1px solid var(--color-divider);background:var(--color-accent-100);color:var(--accent-ink);}
+  html.dark #top-header #side-avatar{background:color-mix(in srgb,var(--accent-solid) 22%,transparent);}
+  #top-header #rail-avatar:hover #side-avatar{background:var(--color-accent-200);}
+  html.dark #top-header #rail-avatar:hover #side-avatar{background:color-mix(in srgb,var(--accent-solid) 34%,transparent);}
+
+  /* THE SECONDARY BUTTON IS THE REFERENCE'S: a white face, the design's own
+     hairline, the page ink at label weight (`.btn{border:1px solid
+     var(--line-2);background:var(--surface);color:var(--ink);font-weight:500}`
+     in prototype/hati-redesign-reference.html). Written at .ui-btn's own
+     (0,1,0) and later in source, so it wins by ORDER and every more specific
+     dressing a page already gives its buttons still wins over it. The plain
+     button (no edge) keeps the accent ink: it is the reference's `.btn.ghost`.
+     The 17 Aug lesson stands as written — "flat is not grey" was about a grey
+     FACE; this face is the surface white on the page grey. */
+  .ui-btn{color:var(--color-text);background:var(--color-surface);font-weight:var(--w-label);}
+  .ui-btn:hover{background:var(--surface-2);}
+  .ui-btn:not(.ui-btn-primary):hover{border-color:var(--color-neutral-400);}
+  .ui-btn-plain{color:var(--accent-ink);background:transparent;}
+  .ui-btn-plain:hover{background:color-mix(in srgb,var(--accent-solid) 10%,transparent);border-color:transparent;}
+  .ui-btn-primary{color:#fff;background:var(--accent-fill);font-weight:var(--w-label);}
+  .ui-btn-primary:hover{background:var(--accent-solid-hover);}
+  .ui-btn:disabled,.ui-btn[aria-disabled="true"]{color:var(--color-neutral-400);background:var(--color-surface);}
+
+  /* The column. 224 wide, grouped, a 32px row with a 4px corner; the live
+     door is a tint of the accent with the accent's ink, which is what the
+     reference draws — the 3px left rule of 24 Aug goes with the dark bar. */
+  #side-nav .rail-head{height:var(--shell-head-h,48px);padding:0 10px 0 14px;gap:10px;}
+  .rail-mark{flex:none;width:24px;height:24px;border-radius:6px;background:var(--accent-solid);color:#fff;
+    display:grid;place-items:center;font-family:var(--font-heading);font-weight:var(--w-title);font-size:var(--t-label);letter-spacing:.02em;}
+  #side-nav .rail-head-label{font-family:var(--font-heading);font-size:var(--t-card);font-weight:var(--w-strong);
+    color:var(--color-text);text-transform:none;letter-spacing:-.01em;flex:none;}
+  #side-nav .rail-ws{flex:1 1 auto;min-width:0;font-size:var(--t-label);color:var(--color-neutral-400);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right;}
+  #side-nav .rail-toggle{flex:none;margin-left:0;width:24px;height:24px;}
+  #app-shell.rail #side-nav .rail-head{justify-content:center;padding:0;gap:6px;}
+  #app-shell.rail #side-nav .rail-head-label,#app-shell.rail #side-nav .rail-ws{display:none;}
+  #side-nav #nav{padding:10px 8px 8px;gap:1px;}
+  #side-nav .nav-section-head,#side-nav .nav-section-head.static{padding:14px 10px 4px;font-size:var(--t-micro);
+    letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-400);font-weight:var(--w-strong);}
+  #side-nav .nav-section:first-child .nav-section-head{padding-top:2px;}
+  #side-nav .nav-item{min-height:32px;padding:0 10px;border:0;border-radius:var(--radius);gap:10px;
+    color:var(--color-neutral-600);font-weight:var(--w-label);font-size:var(--t-body);}
+  #side-nav .nav-item .nav-rail{display:none;}
+  #side-nav .nav-item svg{opacity:1;}
+  #side-nav .nav-item:hover{background:var(--surface-2);color:var(--color-text);}
+  #side-nav .nav-item.active{background:color-mix(in srgb,var(--accent-solid) 12%,transparent);color:var(--accent-ink);
+    border-left:0;font-weight:var(--w-strong);}
+  #side-nav .nav-item.active .nav-lbl{font-weight:var(--w-strong);}
+  #side-nav .nav-count{font-family:var(--font-mono);font-size:var(--t-micro);color:var(--color-neutral-400);font-weight:var(--w-body);}
+  #side-nav .nav-count[data-tone="amber"]{background:none;padding:0;color:var(--st-amber-fg);font-weight:var(--w-strong);}
+  #side-nav #nav-intel-new{font-family:var(--font-body);}
+  #app-shell.rail #side-nav .nav-item{width:40px;padding:0;justify-content:center;}
+  /* Collapsed to the 64px rail the group words cannot fit and "ADM" was a
+     stub for one fold; with three groups it would read three times. A group
+     is a hairline there — the doors keep their titles for the hover. */
+  #app-shell.rail #side-nav .nav-section-head{font-size:0;padding:0;margin:6px 10px;height:0;
+    border-top:1px solid var(--color-divider);justify-content:center;}
+  #app-shell.rail #side-nav .nav-section-head::before{content:none;}
+  #app-shell.rail #side-nav .nav-section:first-child .nav-section-head{border-top:0;margin:0;}
+  /* The Copilot door at the foot keeps its place and its keyboard hint, in the
+     column's own quiet clothes: one filled act per screen, and it is never this one. */
+  #side-nav .copilot-wrap{padding:8px 8px;}
+  #side-nav #side-copilot{background:transparent;border:1px solid var(--color-divider);color:var(--accent-ink);
+    font-weight:var(--w-label);min-height:32px;}
+  #side-nav #side-copilot:hover{background:var(--surface-2);border-color:var(--rule-strong);}
+  #side-nav .foot-handle{color:var(--color-neutral-500);}
 </style>
 
 
@@ -7020,7 +7118,7 @@
 
 <!-- startApp() shows this with style.display='grid' (js/core.js), so the shell
      stays a grid: a 64px header row spanning both columns, then sidebar + main. -->
-<div id="app-shell" style="display:none;position:fixed;inset:0;grid-template-columns:var(--nav-w,240px) minmax(0,1fr);grid-template-rows:var(--shell-head-h,44px) minmax(0,1fr);background:var(--color-bg);">
+<div id="app-shell" style="display:none;position:fixed;inset:0;grid-template-columns:var(--nav-w,224px) minmax(0,1fr);grid-template-rows:var(--shell-head-h,48px) minmax(0,1fr);background:var(--color-bg);">
 
   <!-- ================= SHELL BAR (44px, spans both columns) =================
        THE DARK GROUND MOVED UP HERE FROM THE LEFT EDGE (owner-ruled 24 Aug
@@ -7036,13 +7134,13 @@
        the fact a reader actually needs and which nothing in the shell stated
        before. The profile's name-and-role text went the same way — the avatar
        carries the initials and names the person on its hover. -->
-  <header id="top-header" style="grid-column:1/-1;display:flex;align-items:center;gap:var(--s-2);padding:0 var(--s-2) 0 var(--s-3);background:var(--nav-bg);color:#fff;min-width:0;">
+  <header id="top-header" style="grid-column:2;grid-row:1;display:flex;align-items:center;gap:var(--s-2);padding:0 var(--s-3) 0 20px;background:var(--color-surface);color:var(--color-text);border-bottom:1px solid var(--color-divider);min-width:0;">
 
     <button id="nav-toggle" class="hdr-icon-btn" title="Menu" data-i18n-title="sh_menu" aria-label="Open navigation" data-i18n-aria="sh_open_nav" aria-expanded="false" style="display:none;flex:none;">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><use href="#i-grid"/></svg>
     </button>
 
-    <div id="brand-block" style="display:flex;align-items:center;gap:var(--s-2);flex:none;">
+    <div id="brand-block" style="align-items:center;gap:var(--s-2);flex:none;">
       <span id="brand-wordmark" style="font-family:var(--font-heading);font-weight:var(--w-title);font-size:var(--t-body);letter-spacing:-.01em;">HaTi</span>
     </div>
     <span class="sh-div" aria-hidden="true"></span>
@@ -7126,8 +7224,12 @@
       <span id="hdr-notify-dot" hidden></span>
     </button>
 
+    <!-- DECIDE 2 of the 20 Sep 2026 redesign order: Recent activity left the
+         Home page and is reached from this button, so the button wears the
+         CLOCK — the reference's own mark for "what happened" — not the panel
+         glyph, which said nothing about time. Same id, same handler. -->
     <button id="cmd-panel" class="hdr-icon-btn" title="Activity — everything happening across the workspace" data-i18n-title="sh_toggle_panel">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-panel"/></svg>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-clock"/></svg>
     </button>
 
     <!-- regional profile badge — renderSideUser() (js/core.js) fills these.
@@ -7147,7 +7249,7 @@
   </header>
 
   <!-- ============= SIDEBAR (--nav-w, or 64px as the rail) ============= -->
-  <aside id="side-nav" style="display:flex;flex-direction:column;background:var(--color-surface);border-right:1px solid var(--color-divider);min-height:0;">
+  <aside id="side-nav" style="grid-column:1;grid-row:1/-1;display:flex;flex-direction:column;background:var(--color-surface);border-right:1px solid var(--color-divider);min-height:0;">
 
     <!-- ---- THE COLLAPSE CONTROL, ON THE THING IT COLLAPSES ----
          It lived beside the Activity panel toggle in the top header, which put
@@ -7155,8 +7257,17 @@
          as the fifth small grey square in a row of small grey squares. It could
          not be found by somebody looking straight at it, twice.
          A control belongs on the thing it acts on. -->
+    <!-- ---- THE BRAND IS ON THE RAIL, NOT THE BAR (the redesign, 20 Sep 2026) ----
+         The reference draws one white column that runs floor to ceiling with the
+         mark at its top, and a light bar in the page column beside it. The
+         wordmark that used to sit on the dark bar (#brand-block) stays in the
+         header's markup, hidden above 899px, because the phone shell hides this
+         column and still needs a name in the bar. "Menu" survives as the
+         toggle's own title (sh_menu). -->
     <div class="rail-head">
-      <span class="rail-head-label" data-i18n="sh_menu">Menu</span>
+      <span class="rail-mark" aria-hidden="true">Ha</span>
+      <span class="rail-head-label">HaTi</span>
+      <span class="rail-ws" id="rail-ws"></span>
       <button id="cmd-rail" class="rail-toggle" title="Show the sidebar labels" data-i18n-title="sh_rail_show" aria-pressed="true">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path class="rail-chev" d="M9.5 6 15.5 12l-6 6"/></svg>
       </button>
@@ -7179,7 +7290,15 @@
            keeps the fold (its header stays a button with
            data-section-toggle), because its items are reached rarely and by
            choice. -->
+      <!-- ---- THREE NAMED GROUPS (the redesign, 20 Sep 2026) ----
+           Work · Library · Company, the reference's own grouping. Every door
+           keeps its data-view, its title, its count and its handler; only the
+           ORDER and the labels over them are new. Library gathers the paper
+           (Templates, Our standards, Requests, People); Company gathers the
+           pages about the workspace itself, which is where ADMINISTRATION's
+           doors went. The fold stays on that last group and starts OPEN. -->
       <div class="nav-section open" data-section="work">
+        <div class="nav-section-head static" data-i18n="nav_grp_work">Work</div>
         <div class="nav-section-body">
           <button data-view="dashboard" class="nav-item active" title="Home" data-i18n-title="nav_home_title">
             <span class="nav-rail"></span>
@@ -7212,16 +7331,6 @@
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-nego"/></svg>
             <span style="flex:1;" data-i18n="nav_negotiations">Negotiations</span><span class="nav-count" data-count="negotiations"></span>
           </button>
-          <button data-view="calendar" class="nav-item" title="Calendar" data-i18n-title="nav_calendar_title">
-            <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-cal"/></svg>
-            <span style="flex:1;" data-i18n="nav_calendar">Calendar</span><span class="nav-count" data-count="calendar"></span>
-          </button>
-          <button data-view="templates" class="nav-item" title="Templates — the paper you draft from: company standards, counterparty paper and HaTi's own" data-i18n-title="nav_templates_title">
-            <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-tpl"/></svg>
-            <span style="flex:1;" data-i18n="nav_templates">Templates</span><span class="nav-count" data-count="templates"></span>
-          </button>
           <!-- THE OBLIGATIONS WORKLIST (J-2.3, owner-asked 29 Aug 2026).
                In the EVERYDAY group, beside the Calendar, because it answers the
                question the calendar cannot: the calendar says what falls in
@@ -7234,25 +7343,28 @@
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-check"/></svg>
             <span style="flex:1;" data-i18n="nav_obligations">Obligations</span><span class="nav-count" data-count="obligations"></span>
           </button>
-          <!-- INSIGHTS SITS AFTER OBLIGATIONS (owner-asked 19 Sep 2026, off a
-               screenshot of this column). It used to sit between the Calendar
-               and Templates, which put a page you READ in the middle of the
-               run of pages you WORK IN. The everyday group now reads as the
-               day does — what is on the book, what falls due, what is owed —
-               and then what all of that adds up to.
-
-               THIS IS MARKUP ORDER AND NOTHING ELSE. No handler, no route, no
-               state and no count moved: every door still carries its own
-               data-view, the "New" badge travels inside this block, and the
-               four svg colour rules are keyed on [data-view="intel"] rather
-               than on position, so they follow it here. The keyboard order is
-               the markup order, so tabbing the column now reads in this
-               order too. -->
-          <button data-view="intel" class="nav-item" title="Insights — how your portfolio is behaving" data-i18n-title="nav_insights_title">
+          <button data-view="calendar" class="nav-item" title="Calendar" data-i18n-title="nav_calendar_title">
             <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-insight"/></svg>
-            <span style="flex:1;" data-i18n="nav_insights">Insights</span><span id="nav-intel-new" class="nav-count" data-tone="teal" hidden
-              title="Newly unlocked — your portfolio is big enough for Insights to say something" data-i18n-title="nav_insights_new_title" data-i18n="nav_new_badge">New</span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-cal"/></svg>
+            <span style="flex:1;" data-i18n="nav_calendar">Calendar</span><span class="nav-count" data-count="calendar"></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="nav-section open" data-section="library">
+        <div class="nav-section-head static" data-i18n="nav_grp_library">Library</div>
+        <div class="nav-section-body">
+          <button data-view="templates" class="nav-item" title="Templates — the paper you draft from: company standards, counterparty paper and HaTi's own" data-i18n-title="nav_templates_title">
+            <span class="nav-rail"></span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-tpl"/></svg>
+            <span style="flex:1;" data-i18n="nav_templates">Templates</span><span class="nav-count" data-count="templates"></span>
+          </button>
+          <!-- Our standards moved up here from ADMINISTRATION on 20 Sep 2026: it
+               is the paper's own rulebook and sits beside the paper. Same door. -->
+          <button data-view="playbook" class="nav-item" title="Our standards — the clause library and negotiation playbook every review checks against" data-i18n-title="nav_our_standards_title">
+            <span class="nav-rail"></span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-shield"/></svg>
+            <span style="flex:1;" data-i18n="nav_our_standards">Our standards</span>
           </button>
           <!-- THE INTAKE FRONT DOOR (W2-2), MOVED UNDER TEMPLATES (owner-asked
                19 Aug 2026, off a screenshot with the row ringed: "move requests
@@ -7284,9 +7396,30 @@
         </div>
       </div>
 
-      <div class="nav-section" data-section="settings">
-        <button class="nav-section-head" data-section-toggle="settings" aria-expanded="false"><span data-i18n="nav_administration">Administration</span><span class="nav-plus"></span></button>
+      <div class="nav-section open" data-section="settings">
+        <button class="nav-section-head" data-section-toggle="settings" aria-expanded="true"><span data-i18n="nav_grp_company">Company</span><span class="nav-plus"></span></button>
         <div class="nav-section-body">
+          <!-- INSIGHTS SITS AFTER OBLIGATIONS (owner-asked 19 Sep 2026, off a
+               screenshot of this column). It used to sit between the Calendar
+               and Templates, which put a page you READ in the middle of the
+               run of pages you WORK IN. The everyday group now reads as the
+               day does — what is on the book, what falls due, what is owed —
+               and then what all of that adds up to.
+
+               THIS IS MARKUP ORDER AND NOTHING ELSE. No handler, no route, no
+               state and no count moved: every door still carries its own
+               data-view, the "New" badge travels inside this block, and the
+               four svg colour rules are keyed on [data-view="intel"] rather
+               than on position, so they follow it here. The keyboard order is
+               the markup order, so tabbing the column now reads in this
+               order too. -->
+          <button data-view="intel" class="nav-item" title="Insights — how your portfolio is behaving" data-i18n-title="nav_insights_title">
+            <span class="nav-rail"></span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-insight"/></svg>
+            <span style="flex:1;" data-i18n="nav_insights">Insights</span><span id="nav-intel-new" class="nav-count" data-tone="teal" hidden
+              title="Newly unlocked — your portfolio is big enough for Insights to say something" data-i18n-title="nav_insights_new_title" data-i18n="nav_new_badge">New</span>
+          </button>
+
           <!-- ITS OWN SYMBOL (owner-reported 19 Aug 2026, off a screenshot with
                both rows ringed: "we need a differentiation in the symbols").
                This drew the IDENTICAL people mark that People wears two rows
@@ -7295,20 +7428,6 @@
                with one picture. Sliders: the mark every product uses for
                settings, and nothing else in this menu wears it. People keeps
                the people. -->
-          <button data-view="team" class="nav-item" title="Team" data-i18n-title="nav_team_title">
-            <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-cog"/></svg>
-            <span style="flex:1;" data-i18n="nav_settings_rules">Settings &amp; Rules</span><span class="nav-count" data-count="team"></span>
-          </button>
-          <!-- Our standards — the clause library and the negotiation playbook
-               every review is checked against. Governance, not drafting, so it
-               sits with the other Administration doors rather than under
-               Templates. -->
-          <button data-view="playbook" class="nav-item" title="Our standards — the clause library and negotiation playbook every review checks against" data-i18n-title="nav_our_standards_title">
-            <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-shield"/></svg>
-            <span style="flex:1;" data-i18n="nav_our_standards">Our standards</span>
-          </button>
           <!-- Advice Desk is the one operational desk left in the fold: the
                Queue and Reports doors were retired as premature for this
                stage — both views stay routable (a saved link still opens
@@ -7336,6 +7455,11 @@
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-import"/></svg>
             <span style="flex:1;" data-i18n="nav_import">Import contracts</span><span class="nav-count" data-count="migration"
               title="Imported contracts still waiting on a human review pass" data-i18n-title="nav_import_count_title"></span>
+          </button>
+          <button data-view="team" class="nav-item" title="Team" data-i18n-title="nav_team_title">
+            <span class="nav-rail"></span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-cog"/></svg>
+            <span style="flex:1;" data-i18n="nav_settings_rules">Settings &amp; Rules</span><span class="nav-count" data-count="team"></span>
           </button>
         </div>
       </div>

@@ -229,14 +229,19 @@ const SEED = () => {
     check('3 · the Insights door is drawn at all — the stage earned it',
       nav.tops[iIn] > 0 && nav.disp[iIn] !== 'none',
       { top: nav.tops[iIn], display: nav.disp[iIn] });
-    check('3a · Insights is painted after Obligations, and before Requests',
-      iOb >= 0 && iIn === iOb + 1 && iRq === iIn + 1, nav.order.join(' · '));
-    check('3b · and Templates still leads Obligations — the everyday run is unbroken',
-      iTp >= 0 && iTp < iOb, nav.order.join(' · '));
+    /* RE-POINTED 20 Sep 2026 (DECIDE 4 of the redesign order): the rail is
+       three groups — Work, Library, Company — so Insights (Company) is painted
+       after Obligations (Work) as the 19 Sep ask wanted, but Requests
+       (Library) now sits between them and Obligations leads Templates. The
+       painted order is still the claim, read off the pixels. */
+    check('3a · Insights is painted after Obligations, with Requests (Library) between them',
+      iOb >= 0 && iIn > iOb && iRq > iOb && iRq < iIn, nav.order.join(' · '));
+    check('3b · and Work leads Library — Obligations is painted before Templates',
+      iTp >= 0 && iOb < iTp, nav.order.join(' · '));
     check('3c · painted top-to-bottom in that order, never merely in the source',
-      nav.tops[iTp] < nav.tops[iOb] && nav.tops[iOb] < nav.tops[iIn]
-      && nav.tops[iIn] < nav.tops[iRq],
-      [iTp, iOb, iIn, iRq].map(i => nav.order[i] + '@' + nav.tops[i]));
+      nav.tops[iOb] < nav.tops[iTp] && nav.tops[iTp] < nav.tops[iRq]
+      && nav.tops[iRq] < nav.tops[iIn],
+      [iOb, iTp, iRq, iIn].map(i => nav.order[i] + '@' + nav.tops[i]));
     check('3d · the keyboard walks it in the same order it is painted',
       await page.evaluate(async () => {
         const items = [...document.querySelectorAll('#side-nav .nav-item[data-view]')];
