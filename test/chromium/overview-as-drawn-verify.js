@@ -75,6 +75,9 @@ const SEC = (suffix) => {
     value: ((f.querySelector('.sec-f-v') || {}).textContent || '').trim(),
     x: Math.round(f.getBoundingClientRect().left),
     y: Math.round(f.getBoundingClientRect().top),
+    /* the label's and the value's own tops, so 1e can ask "above" as pixels */
+    ly: f.querySelector('.sec-f-l') ? Math.round(f.querySelector('.sec-f-l').getBoundingClientRect().top) : null,
+    vy: f.querySelector('.sec-f-v') ? Math.round(f.querySelector('.sec-f-v').getBoundingClientRect().top) : null,
   }));
   const acts = [...box.querySelectorAll('.sec-acts button')].map(b => {
     const r = b.getBoundingClientRect();
@@ -142,7 +145,13 @@ const SEC = (suffix) => {
        sharing one top edge is the artifact's four-column row. */
     const topRow = rec.cells.filter(x => x.y === rec.cells[0].y).length;
     check('1d the cells really sit in columns', topRow >= 3, topRow + ' cells share the first row\'s top edge');
-    check('1e label sits ABOVE its value', rec.cells.length > 1 && rec.cells[0].x === rec.cells[0].x, 'grid cell shape');
+    /* 1e compared a cell's x with itself (no-self-compare, the one standing
+       lint error in the suite until 20 Sep 2026) and so proved nothing. The
+       claim is a GEOMETRY: in every cell the label's top edge is above the
+       value's. */
+    const stacked = rec.cells.filter(c => c.ly != null && c.vy != null);
+    check('1e label sits ABOVE its value', stacked.length > 1 && stacked.every(c => c.ly < c.vy),
+      stacked.length ? stacked.slice(0, 3).map(c => `${c.label.trim()} ${c.ly}<${c.vy}`).join(' · ') : 'no cells measured');
 
     /* ============ 2. THE TWO ACTS THE ARTIFACT NAMES ============ */
     const actNames = rec.acts.map(a => a.text).join(' | ');

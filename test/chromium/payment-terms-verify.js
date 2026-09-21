@@ -204,6 +204,10 @@ const EXTRA = [
         }).length,
         marks: Array.from(plot.querySelectorAll('[data-pt-n]')).map(el => ({
           text: el.textContent.trim(), ink: getComputedStyle(el).color })),
+        /* the ruby token resolved on this page, in this theme — 4j asks for
+           it by name rather than by a number typed into the test (20 Sep 2026) */
+        ruby: (() => { const e = document.createElement('i'); e.style.color = 'var(--st-ruby-fg)';
+          plot.appendChild(e); const c = getComputedStyle(e).color; e.remove(); return c; })(),
         plotBox: { x: Math.round(plot.getBoundingClientRect().left), w: Math.round(plot.getBoundingClientRect().width) },
       };
     });
@@ -245,7 +249,7 @@ const EXTRA = [
       chart && chart.caps.map((c, i) => `cap ${c.mid} vs line ${chart.lines[i] && chart.lines[i].x}`).join(' · '));
     /* A BAND PAST THE LINE IS MARKED, AND NEVER IN A SIDE'S OWN COLOUR — amber
        is already the money-going-out side on this chart. */
-    const rubyMarks = chart ? chart.marks.filter(m => /rgb\(190, 18, 60\)|rgb\(251, 113, 133\)/.test(m.ink)) : [];
+    const rubyMarks = chart ? chart.marks.filter(m => m.ink === chart.ruby) : [];
     check('4j a band past its side\'s line is marked, in neither side colour',
       rubyMarks.length > 0 && rubyMarks.every(m => Number(m.text) > 0),
       chart && chart.marks.map(m => `${m.text}:${m.ink}`).join(' '));

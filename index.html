@@ -122,6 +122,7 @@
      breaks GDPR. A silent fallback to a system face is the exact drift this
      redesign removes. -->
 <link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="fonts/jetbrains-mono.css">
 </head>
 <body>
 <!-- Inter throughout — the product's own chrome and the contract paper alike.
@@ -232,7 +233,7 @@
        exactly). #f8fafc is slate-50 — a BLUE near-white, the last of the blue
        family left behind by the ink retune. The design's page is #F4F6F6, a
        neutral grey, and it is what every white panel sits on. */
-    --color-bg:#EDF1F2;
+    --color-bg:#F4F6F5;
     --color-surface:#ffffff;
     /* ---- TWO SURFACES BETWEEN THE PAGE AND WHITE ---- (25 Aug 2026)
        The audit's "boxes separated by borders instead of shade" complaint has
@@ -247,7 +248,7 @@
        DEFINED HERE AND ADOPTED DELIBERATELY, never swept: every adoption
        changes a colour on screen, so each one is a decision somebody has to
        look at. */
-    --surface-2:#F7F9F9;
+    --surface-2:#EEF2F0;
     --surface-3:#ffffff;
     /* THE COPILOT'S CONVERSATION AREA IS ITS OWN SURFACE. It was --color-bg,
        which is the PAGE's background — so the panel's feed was painted the
@@ -256,7 +257,7 @@
        apart from the page it floats over and apart from the white cards and
        the panel's own header and footer, so the conversation reads as a
        surface rather than as a hole. */
-    --color-chat-bg:#eef2f7;
+    --color-chat-bg:#EEF2F0;
     /* ---- THE INK IS THE DESIGN'S, NOT SLATE (owner-asked 22 Aug 2026: "the
        colors of the fonts") ----
        Every text colour was a blue-leaning slate (#1e293b and the slate-400..900
@@ -282,7 +283,7 @@
        BOTH themes, re-measured with the WCAG formula rather than carried over:
        light 8.21->9.30 (doc muted), 5.40->6.31 (label), 2.71->2.96 (quiet);
        dark, on the panel, 14.35->15.39, 11.43->11.53, 6.52->7.79, 3.26->4.29. */
-    --color-text:#0E1A18;
+    --color-text:#141F1D;
     /* The one-word accent IS step 600 of the ramp — the two were the same
        colour typed twice, which is how a theme moves one and forgets the other. */
     --color-accent:var(--color-accent-600);
@@ -290,9 +291,9 @@
        --line:#DFE4E3 for a rule inside one. HaTi has a single divider and it
        was the blue #e2e8f0; it takes the design's stronger of the two, because
        this token draws card edges as well as inner rules. */
-    --color-divider:#DFE4E3;
+    --color-divider:#E2E7E5;
 
-    --color-neutral-100:#f1f5f9; --color-neutral-200:#e2e8f0; --color-neutral-300:#cbd5e1;
+    --color-neutral-100:#EEF2F0; --color-neutral-200:#E2E7E5; --color-neutral-300:#CBD3D0;
     /* FOUR SHADES CARRY ALL READING TEXT, and this ramp is how (22 Aug 2026,
        from the design's own typography note, owner-reported twice as "still
        not meeting the dark sharp fonts"). The note is explicit: #1B2A28
@@ -320,12 +321,12 @@
        against 39 text uses, so it is the one step in this ramp that is not a
        type token, and the rulebook's "re-hueing the neutrals is safe" argument
        does not cover it. */
-    --color-neutral-400:#8A9997; --color-neutral-500:#54635F; --color-neutral-600:#54635F;
-    --color-neutral-700:#0E1A18; --color-neutral-800:#0E1A18; --color-neutral-900:#0E1A18;
+    --color-neutral-400:#6B7876; --color-neutral-500:#5A6866; --color-neutral-600:#5A6866;
+    --color-neutral-700:#141F1D; --color-neutral-800:#141F1D; --color-neutral-900:#141F1D;
 
-    --color-accent-100:#ccfbf1; --color-accent-200:#99f6e4; --color-accent-300:#5eead4;
-    --color-accent-400:#2dd4bf; --color-accent-500:#14b8a6; --color-accent-600:#0d9488;
-    --color-accent-700:#0f766e; --color-accent-800:#115e59; --color-accent-900:#134e4a;
+    --color-accent-100:#E1F0ED; --color-accent-200:#C2E1DB; --color-accent-300:#9CCFC6;
+    --color-accent-400:#5EC2B3; --color-accent-500:#2E8C82; --color-accent-600:#0E5F58;
+    --color-accent-700:#0B4A45; --color-accent-800:#093733; --color-accent-900:#062825;
     /* ---- THE SAME RAMP, AS CHANNELS ----
        Tailwind compiles `bg-brand-600` to `rgb(var(--color-accent-600-rgb)/var(--tw-bg-opacity))`
        so that `/60` opacity modifiers work. A hex cannot go inside that; the
@@ -333,12 +334,12 @@
        what makes 493 utility classes follow the theme instead of ignoring it.
        They are the SAME colours as the hex ramp above — change both together,
        or the platform will disagree with itself about what its colour is. */
-    --color-accent-50:#f0fdfa;
-    --color-accent-50-rgb:240 253 250;   --color-accent-100-rgb:204 251 241;
-    --color-accent-200-rgb:153 246 228;  --color-accent-300-rgb:94 234 212;
-    --color-accent-400-rgb:45 212 191;   --color-accent-500-rgb:20 184 166;
-    --color-accent-600-rgb:13 148 136;   --color-accent-700-rgb:15 118 110;
-    --color-accent-800-rgb:17 94 89;     --color-accent-900-rgb:19 78 74;
+    --color-accent-50:#F0F7F5;
+    --color-accent-50-rgb:240 247 245;   --color-accent-100-rgb:225 240 237;
+    --color-accent-200-rgb:194 225 219;  --color-accent-300-rgb:156 207 198;
+    --color-accent-400-rgb:94 194 179;   --color-accent-500-rgb:46 140 130;
+    --color-accent-600-rgb:14 95 88;     --color-accent-700-rgb:11 74 69;
+    --color-accent-800-rgb:9 55 51;      --color-accent-900-rgb:6 40 37;
 
     /* solid brand fills that must NOT flip with the theme (nav active, primary
        buttons, the Copilot header) — always teal, always white-on-top */
@@ -431,11 +432,11 @@
        `font-variant-numeric:tabular-nums`, which is what the money and count
        columns already ask for, so they line up without borrowing a typewriter
        face to do it. */
-    --font-mono:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
+    --font-mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
     /* True monospace, kept for the two things that are genuinely code: a
        SHA-256 fingerprint and a keyboard chip. Courier New by the owner's own
        spec — the two deliberate exceptions to the platform face. */
-    --font-code:'Courier New',Courier,monospace;
+    --font-code:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 
     /* The DOCUMENT faces. These apply to contract text only — the pane you
        read a contract in, the counterparty portal, the template preview and
@@ -477,7 +478,7 @@
     /* The paper takes the same two, and the muted step is the design's OWN
        second ink (--ink2, #3B4A48) rather than a shade invented for it: the
        design uses that value for exactly this — prose inside a panel. */
-    --color-doc-text:#0E1A18;
+    --color-doc-text:#1C1A16;
     --color-doc-muted:#3B4A48;         /* secondary document copy only */
     --color-doc-rule:#c9ccd1;
     /* The sheet itself. Views must paint the paper with this token — never a
@@ -498,7 +499,7 @@
        redline sheet is #FDFCF6 against HaTi's #FDFCF9, three units apart in
        one channel. Matched exactly, and its rule takes the design's warm
        border from the same drawing. */
-    --color-doc-warm:#FDFCF6; --color-doc-warm-line:#EFE2C2;
+    --color-doc-warm:#FFFDF9; --color-doc-warm-line:#ECE6D8;
     /* The lift under the sheet. Softer and longer than --shadow-md: a page
        resting on a desk, not a card floating over one. */
     --shadow-paper:0 1px 2px rgba(38,55,74,.05), 0 18px 44px -22px rgba(38,55,74,.28);
@@ -623,7 +624,7 @@
        `padding:6px var(--s-3)` computed to 30.8px against .ui-btn-lg's fixed 28,
        under a comment claiming the large one was the larger. */
     --pad-ctl-x:var(--s-3);
-    --ctl-h-sm:24px; --ctl-h:28px; --ctl-h-lg:32px;
+    --ctl-h-sm:26px; --ctl-h:30px; --ctl-h-lg:32px;
     /* A PLATFORM CONSTANT, NOT A SPACING VALUE — deliberately off the ladder
        and exempt from any sweep. 44px is the phone touch minimum. */
     --ctl-h-touch:44px;
@@ -643,12 +644,12 @@
        The design's ladder is 10,11,12,13,14,15,17,19,22,30,34,42; 16 and 18 are
        the two it deliberately skips. Each rung here carries the ROLE it serves,
        because a size with no role is a size the next author re-picks. */
-    --t-display:30px;   /* hero only */
-    --t-page:19px;      /* the h1 of a view */
-    --t-section:17px;   /* drawer head, dialog title */
-    --t-card:15px;      /* card title, contract room title */
-    --t-body:14px;      /* body copy and table cell — the design's root */
-    --t-meta:13px;      /* secondary metadata, a sub-line */
+    --t-display:26px;   /* hero only */
+    --t-page:20px;      /* the h1 of a view */
+    --t-section:16px;   /* drawer head, dialog title */
+    --t-card:14px;      /* card title, contract room title */
+    --t-body:13px;      /* body copy and table cell — the redesign's root (20 Sep 2026) */
+    --t-meta:12px;      /* secondary metadata, a sub-line */
     --t-label:12px;     /* field label, table header */
     --t-micro:11px;     /* UPPERCASE micro label ONLY — never a sentence */
     --t-figure:10px;    /* a count in a chip. The floor. */
@@ -657,7 +658,7 @@
        which is the whole reason .font-medium was pinned to 400 and the pin's
        own comment called it "one edit to undo when somebody wants Medium on
        purpose". See the .font-medium rule below. */
-    --w-body:400; --w-label:500; --w-strong:600; --w-title:700;
+    --w-body:400; --w-label:500; --w-strong:600; --w-title:600;
 
     /* LEADING — the largest gap this audit found: 78.2% of the product's 2,300
        font-size declarations carried none, and the only base leading in the
@@ -681,8 +682,8 @@
        structural hairline colours across the product, three of them the same
        rule asked at 6%, 7% and 8%. */
     --rule:var(--color-divider);
-    --rule-strong:#C6CFCD;   /* where one REGION ends: head band, tab baseline */
-    --rule-faint:#ECEFEE;    /* repeated rules inside one dense table */
+    --rule-strong:#CBD3D0;   /* where one REGION ends: head band, tab baseline */
+    --rule-faint:#EEF2F0;    /* repeated rules inside one dense table */
     --field-line:#8A9795;    /* WCAG 1.4.11 wants 3:1 on a control's boundary */
     --border-w:1px; --border-w-strong:2px;
 
@@ -742,11 +743,11 @@
 
        True circles use border-radius:50% (or .rounded-full) and are not this
        token: a circle is not a corner. */
-    --radius:2px; --radius-sm:2px; --radius-md:2px; --radius-lg:2px;
+    --radius:4px; --radius-sm:4px; --radius-md:6px; --radius-lg:8px;
 
-    --shadow-sm:0 1px 2px rgba(15,23,42,.05), 0 10px 26px -12px rgba(15,23,42,.18);
-    --shadow-md:0 4px 10px rgba(15,23,42,.07), 0 18px 40px -14px rgba(15,23,42,.25);
-    --shadow-lg:0 12px 32px color-mix(in srgb,#0f172a 22%,transparent);
+    --shadow-sm:0 1px 2px rgba(10,40,36,.06), 0 1px 3px rgba(10,40,36,.04);
+    --shadow-md:0 8px 24px rgba(10,40,36,.10), 0 2px 6px rgba(10,40,36,.06);
+    --shadow-lg:0 24px 64px rgba(10,40,36,.18), 0 4px 12px rgba(10,40,36,.08);
 
     /* Elevation aliases. --sh1..4 and --ring had ZERO consumers and are gone;
        --shadow-sm/md/lg are the ladder and are used 109 times between them. */
@@ -783,7 +784,7 @@
        apart) disagreeing on padding, size, height and leading, and a fourth
        (RV_FLD) carrying a comment saying it was a deliberate copy that must be
        kept in step — which had already drifted 2px from what it quoted. */
-    --field-h:36px; --field-size:var(--t-body); --field-lh:20px;
+    --field-h:32px; --field-size:var(--t-body); --field-lh:18px;
     /* DERIVED, never typed, so it cannot drift from --field-h: the remainder
        after the line box and the two borders. */
     --field-pad-y:calc((var(--field-h) - var(--field-lh) - 2px) / 2);
@@ -806,20 +807,20 @@
     --ease-exit:cubic-bezier(.4,0,1,1);
 
     /* danger / destructive-action tone (used by confirmDialog, delete, decline) */
-    --danger:#dc2626; --danger-hover:#b91c1c; --red-tint:rgba(220,38,38,.1);
+    --danger:#B3261E; --danger-hover:#8F1E18; --red-tint:rgba(179,38,30,.1);
 
     /* status palette (wash bg / fg / dot / line for bordered callouts) */
-    --st-gray-bg:#f1f5f9;  --st-gray-fg:#475569;  --st-gray-dot:#94a3b8;  --st-gray-line:#cbd5e1;
-    --st-amber-bg:#fef3c7; --st-amber-fg:#b45309; --st-amber-dot:#f59e0b; --st-amber-line:#e0c48a;
-    --st-green-bg:#d1fae5; --st-green-fg:#047857; --st-green-dot:#10b981; --st-green-line:#a8cbb8;
-    --st-ruby-bg:#ffe4e6;  --st-ruby-fg:#be123c;  --st-ruby-dot:#f43f5e;  --st-ruby-line:#e6c9c1;
-    --st-steel-bg:var(--color-accent-100); --st-steel-fg:var(--color-accent-800); --st-steel-dot:var(--color-accent-500); --st-steel-line:var(--color-accent-200);
+    --st-gray-bg:#EEF2F0;  --st-gray-fg:#5A6866;  --st-gray-dot:#8C9895;  --st-gray-line:#CBD3D0;
+    --st-amber-bg:#FBEEDB; --st-amber-fg:#B0560A; --st-amber-dot:#E8A317; --st-amber-line:#EBCB8E;
+    --st-green-bg:#DFF2E7; --st-green-fg:#1E7D4E; --st-green-dot:#2E9E63; --st-green-line:#A9D6BC;
+    --st-ruby-bg:#FBE5E3;  --st-ruby-fg:#B3261E;  --st-ruby-dot:#D9453B;  --st-ruby-line:#ECBAB5;
+    --st-steel-bg:#E6ECF6; --st-steel-fg:#48639A; --st-steel-dot:#6F86BF; --st-steel-line:#BFCBE6;
 
     /* tone tiles (icon tiles: tile-bg / tile-fg) */
-    --tile-steel-bg:var(--color-accent-100);   --tile-steel-fg:var(--color-accent-800);
-    --tile-emerald-bg:#d1fae5; --tile-emerald-fg:#047857;
-    --tile-amber-bg:#fef3c7;   --tile-amber-fg:#b45309;
-    --tile-ruby-bg:#ffe4e6;    --tile-ruby-fg:#be123c;
+    --tile-steel-bg:#E6ECF6;   --tile-steel-fg:#48639A;
+    --tile-emerald-bg:#DFF2E7; --tile-emerald-fg:#1E7D4E;
+    --tile-amber-bg:#FBEEDB;   --tile-amber-fg:#B0560A;
+    --tile-ruby-bg:#FBE5E3;    --tile-ruby-fg:#B3261E;
 
     /* tone gradients (hero stat cards only) */
     --grad-steel:linear-gradient(135deg,var(--color-accent-500),var(--brand-cyan-600));
@@ -839,28 +840,28 @@
      automatically.
      ============================================================ */
   html.dark{
-    --color-bg:#020617;
-    --color-surface:#0f172a;
+    --color-bg:#0E1312;
+    --color-surface:#151B1A;
     /* UP from the panel at night: on a dark ground the nearer layer is the
        lighter one, which is the opposite of daylight and is why these are two
        tokens rather than one with an alpha. */
-    --surface-2:#182234;
-    --surface-3:#1e293b;
+    --surface-2:#1B2221;
+    --surface-3:#212A28;
     /* Dark had the same fault and worse: page and feed were both #020617, the
        darkest tone in the theme, so the panel simply merged with the page.
        Lifted BETWEEN the page and the panel's surface — raised enough to read
        as a layer without becoming a light patch in a dark room. */
-    --color-chat-bg:#0a1122;
-    --color-text:#EAF1EF;
-    --color-divider:#1e293b;
+    --color-chat-bg:#111716;
+    --color-text:#E6ECEA;
+    --color-divider:#26302E;
 
-    --color-doc-text:#e2e8f0;
-    --color-doc-muted:#94a3b8;
-    --color-doc-rule:#334155;
-    --color-doc-surface:#0f172a;
+    --color-doc-text:#E8E6DF;
+    --color-doc-muted:#A0ACA9;
+    --color-doc-rule:#36423F;
+    --color-doc-surface:#151B1A;
     /* No cream in the dark: warm paper on a dark page is a stain. The sheet is
        the surface it always was, and the hairline is the divider. */
-    --color-doc-warm:#0f172a; --color-doc-warm-line:#1e293b;
+    --color-doc-warm:#1B1F1D; --color-doc-warm-line:#2C3230;
     /* The drafter's own marks against dark paper. The inks lift, the washes
        become translucent so the light ink on top of them still reads. */
     --mk-ink-blue:#93c5fd;  --mk-ink-violet:#c4b5fd; --mk-ink-plum:#f0abfc;
@@ -869,26 +870,26 @@
     --mk-hl-violet:rgba(167,139,250,.30); --mk-hl-grey:rgba(148,163,184,.30);
     --shadow-paper:0 1px 2px rgba(0,0,0,.4), 0 18px 44px -22px rgba(0,0,0,.6);
 
-    --color-neutral-100:#1e293b; --color-neutral-200:#334155; --color-neutral-300:#475569;
+    --color-neutral-100:#1B2221; --color-neutral-200:#26302E; --color-neutral-300:#36423F;
     /* The design's dark ramp, step for step (tokens.css html.dark): ink
        #EAF1EF, ink2 #C6D4D0, ink3 #9FB0AC, ink4 #6F817C. */
-    --color-neutral-400:#6F817C; --color-neutral-500:#9FB0AC; --color-neutral-600:#9FB0AC;
-    --color-neutral-700:#C6D4D0; --color-neutral-800:#EAF1EF; --color-neutral-900:#F0F4F3;
+    --color-neutral-400:#8B9895; --color-neutral-500:#A0ACA9; --color-neutral-600:#A0ACA9;
+    --color-neutral-700:#E6ECEA; --color-neutral-800:#E6ECEA; --color-neutral-900:#F2F6F5;
 
     --shadow-sm:0 1px 2px rgba(0,0,0,.4), 0 10px 26px -12px rgba(0,0,0,.55);
     --shadow-md:0 4px 10px rgba(0,0,0,.45), 0 18px 40px -14px rgba(0,0,0,.6);
     --shadow-lg:0 12px 32px rgba(0,0,0,.6);
 
-    --st-gray-bg:rgba(148,163,184,.14);  --st-gray-fg:#94a3b8;  --st-gray-dot:#64748b;  --st-gray-line:rgba(148,163,184,.3);
-    --st-amber-bg:rgba(245,158,11,.15);  --st-amber-fg:#fbbf24; --st-amber-dot:#f59e0b; --st-amber-line:rgba(245,158,11,.35);
-    --st-green-bg:rgba(16,185,129,.15);  --st-green-fg:#34d399; --st-green-dot:#10b981; --st-green-line:rgba(16,185,129,.35);
-    --st-ruby-bg:rgba(244,63,94,.15);    --st-ruby-fg:#fb7185;  --st-ruby-dot:#f43f5e;  --st-ruby-line:rgba(244,63,94,.35);
-    --st-steel-bg:rgb(var(--color-accent-500-rgb)/.15);  --st-steel-fg:var(--color-accent-300); --st-steel-dot:var(--color-accent-500); --st-steel-line:rgb(var(--color-accent-500-rgb)/.35);
+    --st-gray-bg:rgba(160,172,169,.14);  --st-gray-fg:#A0ACA9;  --st-gray-dot:#6D7A77;  --st-gray-line:rgba(160,172,169,.3);
+    --st-amber-bg:#3A2A0F;  --st-amber-fg:#EBAD46; --st-amber-dot:#E8A317; --st-amber-line:rgba(232,163,23,.35);
+    --st-green-bg:#153224;  --st-green-fg:#5CC48E; --st-green-dot:#2E9E63; --st-green-line:rgba(46,158,99,.35);
+    --st-ruby-bg:#3F1C19;    --st-ruby-fg:#F0857B;  --st-ruby-dot:#D9453B;  --st-ruby-line:rgba(217,69,59,.35);
+    --st-steel-bg:#1D2637;  --st-steel-fg:#8FA8DE; --st-steel-dot:#6F86BF; --st-steel-line:rgba(111,134,191,.35);
 
-    --tile-steel-bg:rgb(var(--color-accent-500-rgb)/.16);  --tile-steel-fg:var(--color-accent-300);
-    --tile-emerald-bg:rgba(16,185,129,.16);--tile-emerald-fg:#34d399;
-    --tile-amber-bg:rgba(245,158,11,.16);  --tile-amber-fg:#fbbf24;
-    --tile-ruby-bg:rgba(244,63,94,.16);    --tile-ruby-fg:#fb7185;
+    --tile-steel-bg:#1D2637;  --tile-steel-fg:#8FA8DE;
+    --tile-emerald-bg:#153224;--tile-emerald-fg:#5CC48E;
+    --tile-amber-bg:#3A2A0F;  --tile-amber-fg:#EBAD46;
+    --tile-ruby-bg:#3F1C19;    --tile-ruby-fg:#F0857B;
   }
 
   *,*::before,*::after{box-sizing:border-box;}
@@ -1303,7 +1304,7 @@
      and a grey button is the thing this product has been told three times reads
      as furniture. Recorded as a divergence from the reference, which draws both
      on --field-line. */
-  :root{ --btn-edge:color-mix(in srgb,var(--accent-solid) 45%,transparent); }
+  :root{ --btn-edge:var(--rule-strong); }
   /* ---- SAID TO A SCREEN READER, DRAWN FOR NOBODY ---- (25 Aug 2026)
      A keyboard affordance nobody is told about is one nobody uses, and some
      of those sentences have no visible home — the KPI row's Alt+Arrow reorder
@@ -1403,12 +1404,16 @@
   /* The one filled act. Its glow came off with the tint above — a filled
      accent face is already the strongest thing on any of these pages, and the
      14px halo was what made two of them side by side read as equals. */
-  /* WHITE ON accent-600 MEASURES 3.74:1 — under the 4.5 AA floor, on 114
-     elements. accent-700 gives 5.47:1 in teal and 11.30:1 in navy, so ONE
-     value serves both workspaces and there is no dark override to keep in
-     step. --accent-solid itself is UNCHANGED: it is the nav's active fill and
-     is documented as a brand fill that must not flip with the theme. */
-  .ui-btn-primary{background:var(--color-accent-700);color:#fff;border-color:var(--accent-ink-700);}
+  /* WHITE ON accent-600 MEASURED 3.74:1 on the old ramp — under the 4.5 AA
+     floor, on 114 elements — so this read accent-700 by name. THE RAMP MOVED
+     ON 20 Sep 2026 (the redesign order): accent-600 is the reference's own
+     teal, #0E5F58, and white on it measures 7.5:1 (8.8:1 on navy's #24488f).
+     The fill therefore reads --accent-fill, the ONE token for white-on-accent,
+     and f238 computes the contrast of whichever rung that token resolves to
+     rather than pinning the rung's name — the claim is AA, not a number.
+     --accent-solid itself is UNCHANGED: it is the nav's active fill and is
+     documented as a brand fill that must not flip with the theme. */
+  .ui-btn-primary{background:var(--accent-fill);color:#fff;border-color:var(--accent-fill);}
   .ui-btn-primary:hover{background:var(--accent-solid-hover);}
   /* Secondary action beside a primary. It now resolves to the same face as the
      base class, which is the point — the base IS the outlined level since 22
@@ -1755,8 +1760,8 @@
      --accent-solid ITSELF IS DELIBERATELY UNTOUCHED: it is the nav's fill and
      a brand colour this rulebook records as one that must not flip. This is a
      second token for a second job, not a redefinition of the first. */
-  :root{ --accent-fill:var(--color-accent-700); }
-  :root{ --accent-ink:var(--color-accent-800); --accent-ink-700:var(--color-accent-700); }
+  :root{ --accent-fill:var(--color-accent-600); } /* 20 Sep 2026: accent-600 is the reference's #0E5F58 — 7.5:1 under white; see .ui-btn-primary */
+  :root{ --accent-ink:var(--color-accent-700); --accent-ink-700:var(--color-accent-700); }
   html.dark{ --accent-ink:var(--color-accent-400); --accent-ink-700:var(--color-accent-400); }
 
   /* ═══ THREE MORE TOKENS THAT CARRY INK OR A RULE AND HAD NO DARK ANSWER ══
@@ -1769,11 +1774,11 @@
      them; they are given answers now so adopting them in Phase C cannot
      quietly paint two near-white lines across every dense table at night. */
   html.dark{
-    --danger:#f87171;        /* 7.02:1 on the panel */
-    --danger-hover:#fca5a5;
-    --red-tint:rgba(248,113,113,.14);
-    --rule-strong:#2b3a4f;   /* a division you can see, not a highlight */
-    --rule-faint:#16202f;
+    --danger:#F0857B;        /* 6.9:1 on the panel */
+    --danger-hover:#F6A59D;
+    --red-tint:rgba(240,133,123,.14);
+    --rule-strong:#36423F;   /* a division you can see, not a highlight */
+    --rule-faint:#1B2221;
   }
 
   /* ============ THE CONTRACT ROOM ============
@@ -4108,9 +4113,9 @@
        drew a near-white block behind near-white text — the one row you are
        standing on was the one row you could not read. The classic fault: a
        colour whose only definition works in one theme. */
-    --nav-well:#1a2536;
-    --nav-bg:#0b1220; --nav-line:#1e293b; --nav-deep:#131f33;
-    --nav-ink:#94a3b8; --nav-ink-strong:#f1f5f9;
+    --nav-well:#1B2221;
+    --nav-bg:#0B1514; --nav-line:#26302E; --nav-deep:#12211F;
+    --nav-ink:#A0ACA9; --nav-ink-strong:#F2F6F5;
     --brand-hero-deep:#060c18;
     --brand-hero:linear-gradient(120deg,var(--brand-hero-deep) 0%,#0d1a2b 55%,
       color-mix(in srgb,var(--color-accent-600) 34%,#0d1a2b) 100%);

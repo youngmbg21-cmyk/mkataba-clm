@@ -50,7 +50,10 @@ const check = (name, pass, detail) => {
    THE FLAT FACE IS NOT A GREY ONE, and that half is asserted too: this product
    has learned three separate times that a neutral-grey control reads as
    furniture. */
-const INK = 'rgb(17, 94, 89)';
+/* RE-POINTED 20 Sep 2026: this typed the accent-800 of the old ramp. The
+   claim is "the button carries --accent-ink", so the token is resolved in the
+   page (inkOf) and compared as a relation, never as a number typed here. */
+let INK = null;
 const SURFACE_WHITE = 'rgb(255, 255, 255)';
 const TRANSPARENT = 'rgba(0, 0, 0, 0)';
 const GREY = /rgb\(2[0-9]\d, 2[0-9]\d, 2[0-9]\d\)/;
@@ -110,6 +113,8 @@ const READ = () => {
     await page.goto(`${h.base}/#share=t:${token}`, { waitUntil: 'networkidle' });
     await page.waitForTimeout(900);
 
+    INK = await page.evaluate(() => { const e = document.createElement('i'); e.style.color = 'var(--accent-ink)';
+      document.body.appendChild(e); const c = getComputedStyle(e).color; e.remove(); return c; });
     const m = await page.evaluate(READ);
     const seen = m['pt-hist'] || m['pt-compare'];
     check(`${purpose}: the reading buttons are on the page`, !!seen,

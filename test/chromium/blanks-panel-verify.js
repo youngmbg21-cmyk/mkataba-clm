@@ -297,7 +297,7 @@ const CONTRACT = (id, over) => Object.assign({
         const cs = onPaper[0] ? getComputedStyle(onPaper[0]) : null;
         return { n: all.length, paper: onPaper.length,
           tag: onPaper[0] ? onPaper[0].tagName + '.' + onPaper[0].className : null,
-          outline: cs ? cs.outlineWidth : null, ostyle: cs ? cs.outlineStyle : null,
+          outline: cs ? cs.outlineWidth : null, ostyle: cs ? cs.outlineStyle : null, greenBg: (() => { const e = document.createElement('i'); e.style.background = 'var(--st-green-bg)'; document.body.appendChild(e); const c = getComputedStyle(e).backgroundColor; e.remove(); return c; })(),
           ocolor: cs ? cs.outlineColor : null, bg: cs ? cs.backgroundColor : null,
           ink: q ? { top: q.offsetTop,
             w: Math.round(document.getElementById('doc-canvas').getBoundingClientRect().width) } : null };
@@ -312,8 +312,11 @@ const CONTRACT = (id, over) => Object.assign({
          `none` while the source read `2px solid`. A class is not a pixel. */
       check('9a2 the ring is PAINTED, not just the class applied',
         lit.ostyle === 'solid' && lit.outline === '2px', `${lit.outline} ${lit.ostyle} ${lit.ocolor}`);
+      /* THE GREEN IS THE TOKEN'S (re-pointed 20 Sep 2026 when the redesign
+         order moved --st-green-bg to the reference's #DFF2E7): resolved on the
+         page and compared as a relation, never a number typed here. */
       check('9a3 and the wash is the product\'s own "this just arrived" green',
-        lit.bg === 'rgb(209, 250, 229)', lit.bg);
+        lit.bg === lit.greenBg, `${lit.bg} vs --st-green-bg ${lit.greenBg}`);
       check('9b exactly one word is lit — a reader tabbing down leaves no trail',
         lit.n === 1, 'lit ' + lit.n);
       check('9c THE CONTRACT DOES NOT RE-FLOW BY A PIXEL',

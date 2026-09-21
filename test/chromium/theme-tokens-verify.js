@@ -203,9 +203,12 @@ const CENSUS = () => {
      Driven through setTheme, which is the control a person presses — poking the
      variables directly would prove the stylesheet works and leave the feature
      untested. */
-  const GREENS = ['rgb(13, 148, 136)', 'rgb(15, 118, 110)', 'rgb(17, 94, 89)',
-                  'rgb(20, 184, 166)', 'rgb(19, 78, 74)', 'rgb(204, 251, 241)',
-                  'rgb(11, 61, 58)'];
+  /* RE-POINTED 20 Sep 2026 to the redesign order's teal ramp (accent 500–900
+     and 100 of the reference): a list of the OLD greens would pass on navy
+     for the wrong reason, because nothing draws them any more. */
+  const GREENS = ['rgb(46, 140, 130)', 'rgb(14, 95, 88)', 'rgb(11, 74, 69)',
+                  'rgb(9, 55, 51)', 'rgb(6, 40, 37)', 'rgb(225, 240, 237)',
+                  'rgb(94, 194, 179)'];
   /* Skipped while recording: a baseline is taken from the code BEFORE a change,
      which is a build that may not have setTheme yet — and a save run that
      crashes half way leaves no baseline at all, which is how the last one was

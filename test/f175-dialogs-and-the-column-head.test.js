@@ -166,8 +166,15 @@ describe('f175 · every dialog in the feature wears the same head', () => {
        and contracts-page-verify measures the filters' own edge instead. */
     assert.match(btn[1], /border:1px solid var\(--btn-edge\)/,
       'the edge comes from the button\'s own token');
-    assert.match(INDEX, /--btn-edge:\s*color-mix\(in srgb,var\(--accent-solid\) 45%,transparent\)/,
-      'and that token is an ACCENT mix, never a neutral one — the 17 Aug lesson');
+    /* REVERSED IN PLACE 20 Sep 2026 (the redesign order): the owner-approved
+       reference draws a secondary button as a white face with the design's own
+       neutral hairline (`.btn{border:1px solid var(--line-2)}`), so the token
+       reads --rule-strong now. The 17 Aug lesson ("flat is not grey") was about
+       a grey FACE reading as furniture; this face is the surface white and the
+       word inside it is the page ink, which is the reference's own button. The
+       accent-mix claim is kept here as the thing that was reversed. */
+    assert.match(INDEX, /--btn-edge:\s*var\(--rule-strong\)/,
+      'the button edge is the design\'s own hairline token, read by name');
     /* And it is the BUTTON'S alone now: a filter reading it again would be the
        reversal quietly undone. */
     const REG = fs.readFileSync(path.join(__dirname, '..', 'js/views/register.js'), 'utf8');

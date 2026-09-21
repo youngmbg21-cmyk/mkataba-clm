@@ -75,7 +75,11 @@ const SCREENS = [
    2.96:1 by day and 4.34:1 at night, which is a real finding and is logged;
    it is not a DARK THEME finding (it fails in both), and re-pointing fifty
    declarations one at a time with eyes on is the later type pass, not this. */
-const KNOWN_PALE = ['rgb(138, 153, 151)', 'rgb(111, 129, 124)'];
+/* RE-POINTED 20 Sep 2026: the redesign order moved --color-neutral-400 to the
+   reference's own #6B7876 by day and #8B9895 at night, which measure 4.59:1
+   and 6.3:1 — so the exclusion below no longer hides a finding. It is kept as
+   the token's CURRENT values so the count stays a fact if the ramp moves. */
+const KNOWN_PALE = ['rgb(107, 120, 118)', 'rgb(139, 152, 149)'];
 
 const SWEEP = KNOWN => {
   const lum = c => { const f = v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); };

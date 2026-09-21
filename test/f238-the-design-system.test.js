@@ -170,14 +170,20 @@ describe('f238 — the design system has its other half', () => {
     const root = SHEET.slice(r0, d0);
     const dark = SHEET.slice(d0);
     const has = (src, decl) => src.includes(decl);
-    for (const decl of ['--color-text:#0E1A18', '--color-neutral-600:#54635F',
-                        '--color-neutral-500:#54635F', '--color-neutral-400:#8A9997',
-                        '--color-neutral-700:#0E1A18', '--color-doc-text:#0E1A18',
+    /* RE-PINNED 20 Sep 2026 to the redesign order's own palette (the
+       owner-approved artifact, prototype/hati-redesign-reference.html): ink
+       #141F1D, secondary #5A6866, tertiary #6B7876, the paper's own ink
+       #1C1A16; at night #E6ECEA / #A0ACA9 / #8B9895. The claim is unchanged —
+       the four inks are the design's literal values and a well-meant retune
+       may not drift off them — only the design they are read from moved. */
+    for (const decl of ['--color-text:#141F1D', '--color-neutral-600:#5A6866',
+                        '--color-neutral-500:#5A6866', '--color-neutral-400:#6B7876',
+                        '--color-neutral-700:#141F1D', '--color-doc-text:#1C1A16',
                         '--color-doc-muted:#3B4A48'])
       assert.ok(has(root, decl), `light theme is missing ${decl}`);
-    for (const decl of ['--color-text:#EAF1EF', '--color-neutral-600:#9FB0AC',
-                        '--color-neutral-500:#9FB0AC', '--color-neutral-400:#6F817C',
-                        '--color-neutral-700:#C6D4D0'])
+    for (const decl of ['--color-text:#E6ECEA', '--color-neutral-600:#A0ACA9',
+                        '--color-neutral-500:#A0ACA9', '--color-neutral-400:#8B9895',
+                        '--color-neutral-700:#E6ECEA'])
       assert.ok(has(dark, decl), `dark theme is missing ${decl}`);
     /* AND NOTHING KEPT THE OLD ONES. A stray literal is how one screen comes
        to read a shade lighter than the rest of the product; the standalone
@@ -212,8 +218,11 @@ describe('f238 — the design system has its other half', () => {
     const prim = [...SHEET.matchAll(/\.ui-btn-primary\{([^}]*)\}/g)]
       .map(m => m[1]).find(b => /background:/.test(b));
     assert.ok(prim, '.ui-btn-primary carries a fill');
-    assert.match(prim, /background:var\(--color-accent-700\)/,
-      'accent-700 (5.47:1 teal / 11.30:1 navy), not accent-600 (3.74:1)');
+    /* RE-POINTED 20 Sep 2026: it read accent-700 by name while accent-600 was
+       3.74:1; the ramp moved and the fill reads --accent-fill, the ONE token
+       for white-on-accent, whose contrast the test above computes. */
+    assert.match(prim, /background:var\(--accent-fill\)/,
+      'the filled act reads --accent-fill, the one token judged for AA above');
     /* AND --accent-solid IS UNTOUCHED: it is the nav's active fill and this
        codebase records it as a brand fill that must not flip with the theme. */
     assert.match(SHEET, /--accent-solid:var\(--color-accent-600\)/,
@@ -253,11 +262,29 @@ describe('f238 — the design system has its other half', () => {
       '--accent-ink-700 is accent-700 by day, so nothing moved in light mode');
   });
 
-  test('--accent-fill is the token for white-on-accent, and it is not 3.74:1', () => {
-    /* White on accent-600 measures 3.74:1 — under AA for anything that is not
-       large text. Every surface that puts white on the accent reads this. */
-    assert.match(SHEET, /--accent-fill:var\(--color-accent-700\)/,
-      '--accent-fill is the rung that clears AA, in both workspaces');
+  test('--accent-fill is the token for white-on-accent, and it clears AA in both brands', () => {
+    /* White on the OLD accent-600 measured 3.74:1 — under AA for anything that
+       is not large text — so this once pinned the token to accent-700 by name.
+       RE-POINTED 20 Sep 2026: the ramp moved to the reference's own teal and
+       accent-600 is #0E5F58 (7.5:1 under white; navy's #24488f is 8.8:1). The
+       claim was always AA, never a rung's name, so it is COMPUTED now: resolve
+       the rung the token names in each brand and measure white against it. */
+    const rung = /--accent-fill:var\(--color-accent-(\d+)\)/.exec(SHEET);
+    assert.ok(rung, '--accent-fill names a rung of the accent ramp');
+    const lum = hex => {
+      const c = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255)
+        .map(v => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+      return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+    };
+    const r0 = SHEET.indexOf(':root{');
+    const n0 = SHEET.indexOf(':root[data-brand="navy"]{');
+    for (const [name, block] of [['teal', SHEET.slice(r0, SHEET.indexOf('html.dark{', r0))],
+                                 ['navy', SHEET.slice(n0, SHEET.indexOf('}', n0))]]) {
+      const m = new RegExp('--color-accent-' + rung[1] + ':(#[0-9a-fA-F]{6})').exec(block);
+      assert.ok(m, name + ' declares the rung --accent-fill names');
+      const ratio = 1.05 / (lum(m[1]) + 0.05);
+      assert.ok(ratio >= 4.5, `${name}: white on ${m[1]} is ${ratio.toFixed(2)}:1, under AA`);
+    }
   });
 
   test('danger and the two rules answer differently at night', () => {

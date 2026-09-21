@@ -2751,6 +2751,10 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       metaTop: rm ? Math.round(rm.top) : null, sumTop: ru ? Math.round(ru.top) : null,
       discardLast: verbs.length ? verbs[verbs.length - 1] === disc : null,
       discardInk: disc ? getComputedStyle(disc).color : null,
+      /* the ruby token, resolved on this page — the claim below is "wears
+         --st-ruby-fg", never a number typed into the test (20 Sep 2026) */
+      rubyInk: (() => { const e = document.createElement('i'); e.style.color = 'var(--st-ruby-fg)';
+        document.body.appendChild(e); const c = getComputedStyle(e).color; e.remove(); return c; })(),
       otherInk: verbs.length > 1 ? getComputedStyle(verbs[0]).color : null,
       symbols: verbs.filter(b => b.querySelector('.rl-verb-i')).length,
       nVerbs: verbs.length,
@@ -2803,8 +2807,8 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
        every verb is a bare word reads as unavailable; ruby reads as careful,
        and it is the ink this column already spends on Reject. */
     check('29i and ruby, because it is the only press that throws work away',
-      row29.discardInk === 'rgb(190, 18, 60)' && row29.discardInk !== row29.otherInk,
-      `discard ${row29.discardInk} · others ${row29.otherInk}`);
+      row29.discardInk === row29.rubyInk && row29.discardInk !== row29.otherInk,
+      `discard ${row29.discardInk} · ruby token ${row29.rubyInk} · others ${row29.otherInk}`);
   }
   /* ---- 29j THE MARKS COST THE ROW NOTHING ----
      The verbs widen by about 21px each, so the two things worth measuring are
