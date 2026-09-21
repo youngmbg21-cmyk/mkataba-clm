@@ -5306,10 +5306,23 @@ app.post('/api/ai/extract', auth, rlAiLight, aiFeature('extract'), aiBudgetGuard
           description: 'Is OUR liability limited? "capped" if there is a stated ceiling on liability. "uncapped" if the contract says liability is unlimited or excludes a cap. "unclear" if the document does not settle it.' },
         priceReview: { type: 'string', enum: ['nochange', 'ceiling', 'indexed', 'open', 'unclear'],
           description: 'How the price may move during the term. "nochange" = fixed for the term. "ceiling" = rises allowed but capped at a stated figure. "indexed" = tied to an index such as CPI. "open" = the other side may change the price with no stated limit. "unclear" if the document does not settle it.' },
+        /* ---- THE THREE NEARLY EVERY AGREEMENT HAS (21 Sep 2026) ----
+           Two are free text because the paper's own words are the useful
+           answer: a confidentiality obligation is "five years from disclosure"
+           on one contract and "perpetual for trade secrets" on the next, and a
+           dispute clause names a forum AND an institution. Turning either into
+           a number or a closed list would be the product deciding something
+           the drafter already said plainly. Assignment IS a closed list, and
+           it is the one of the three a reader wants to count. */
+        confidentiality: { type: 'string', description: 'How long confidentiality lasts and what it covers, in the contract\'s own terms, e.g. "5 years from disclosure", "Perpetual for trade secrets, 3 years otherwise". Empty if the contract has no confidentiality obligation.' },
+        disputes: { type: 'string', description: 'Where and how a dispute is settled, e.g. "SCC arbitration, Stockholm", "Courts of Kenya", "Mediation then ICC arbitration, London". Empty if the contract does not say. This is not the same as governingLaw, which is the law that applies; a contract often names one country\'s law and another country\'s forum.' },
+        assignment: { type: 'string', enum: ['consent', 'free', 'prohibited', 'unclear'],
+          description: 'May a party hand this agreement to somebody else? "consent" = only with the other side\'s agreement (the commonest). "free" = either side may assign without asking. "prohibited" = assignment is not allowed at all. "unclear" if the document does not settle it. A clause that lets a party assign to a group company but not otherwise is "consent".' },
         confidence: { type: 'object', properties: {
           counterparty: conf, contractType: conf, category: conf, effectiveDate: conf, expiryDate: conf, value: conf,
           renewalType: conf, noticePeriodDays: conf, governingLaw: conf, paymentTerms: conf,
           retentionPct: conf, retentionReleaseDays: conf, warrantyMonths: conf, liabilityCapped: conf, priceReview: conf,
+          confidentiality: conf, disputes: conf, assignment: conf,
         }, description: 'Per-field confidence.' },
         // Source spans turn the confirm step from a leap of faith into a
         // glance: the review screen shows the phrase each value came from,
@@ -5318,6 +5331,7 @@ app.post('/api/ai/extract', auth, rlAiLight, aiFeature('extract'), aiBudgetGuard
           counterparty: span, contractType: span, category: span, effectiveDate: span, expiryDate: span, value: span,
           currency: span, renewalType: span, noticePeriodDays: span, governingLaw: span, paymentTerms: span,
           retentionPct: span, retentionReleaseDays: span, warrantyMonths: span, liabilityCapped: span, priceReview: span,
+          confidentiality: span, disputes: span, assignment: span,
         }, description: 'For each field you filled in, the short verbatim phrase it came from.' },
       },
       required: ['confidence'],
@@ -5332,7 +5346,7 @@ app.post('/api/ai/extract', auth, rlAiLight, aiFeature('extract'), aiBudgetGuard
     : '';
   const prompt = `Extract metadata from this contract. Today is ${today}. Use ONLY what the text supports; leave a field empty (or 0) rather than guessing, and mark uncertain fields low confidence.
 
-Silence is an answer. If the contract holds nothing back, retentionPct is 0 — not a guess at what is usual. If it states no warranty period, warrantyMonths is 0. If it does not settle whether liability is capped, liabilityCapped is "unclear". A wrong number here is worse than no number, because someone will chase money that was never held.
+Silence is an answer. If the contract holds nothing back, retentionPct is 0 — not a guess at what is usual. If it states no warranty period, warrantyMonths is 0. If it does not settle whether liability is capped, liabilityCapped is "unclear". If there is no confidentiality clause at all, confidentiality is empty — an agreement really can have none, and "standard confidentiality applies" is not something the document said. A wrong number here is worse than no number, because someone will chase money that was never held.
 
 The document may contain markers like "[... 12,000 characters omitted ...]". Those mark text that was deliberately elided to fit — do NOT infer anything from a gap, and do not treat the sections either side of one as adjacent.
 

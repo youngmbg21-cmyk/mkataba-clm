@@ -51,6 +51,27 @@ const META_FIELDS = [
      be making silently on a page a lawyer reads as fact. */
   { k:'indemnityCapped',     get label(){ return i18t('me_indemnity_cap'); },     type:'select', opts:['capped','uncapped','none','unclear'] },
   { k:'terminateForConvenience', get label(){ return i18t('me_terminate_conv'); }, type:'select', opts:['yes','no','unclear'] },
+  /* ---- THE THREE NEARLY EVERY AGREEMENT HAS, AND NOTHING RECORDED
+     (Young ruled 21 Sep 2026: "the fields there should be ones that are found
+     in most contracts no matter the type of contract" — and, of the three,
+     "take all three") ----
+     Confidentiality, how a dispute is settled and whether the agreement can be
+     handed to somebody else are in an NDA, a lease, a licence, an employment
+     contract and a supply agreement alike. None of the three was anywhere in
+     HaTi, so the Overview's own deal card could only ever have been shaped by
+     the terms that ARE recorded — which is why it read like a supply contract.
+
+     TWO ARE TEXT AND ONE IS A LIST, and that is a judgement about each:
+     confidentiality is "five years from disclosure" on one paper and
+     "perpetual for trade secrets" on the next, and disputes is a forum AND an
+     institution ("SCC arbitration, Stockholm"), so both are typed as the paper
+     writes them — volumeRebate's own reasoning. Assignment really is a short
+     closed list, and it is written exactly parallel to liabilityCapped beside
+     it, with `unclear` as the honest answer where the wording does not settle
+     it. */
+  { k:'confidentiality',  get label(){ return i18t('me_confidentiality'); }, type:'text' },
+  { k:'disputes',         get label(){ return i18t('me_disputes'); },        type:'text' },
+  { k:'assignment',       get label(){ return i18t('me_assignment'); },      type:'select', opts:['consent','free','prohibited','unclear'] },
 ];
 /* One table for every select option in META_FIELDS. GETTERS, not literals: an
    object literal of translated strings freezes whatever language was current
@@ -86,7 +107,23 @@ const META_OPT_LABEL = {
   get none(){ return i18t('mo_none_stated'); },
   get yes(){ return i18t('mo_yes'); },
   get no(){ return i18t('mo_no'); },
+  /* assignment's three. `free` cannot collide with any other field's option —
+     this table is keyed by VALUE across every field in META_FIELDS, which is
+     why the price option is 'nochange' and not 'fixed'. */
+  get consent(){ return i18t('mo_assign_consent'); },
+  get free(){ return i18t('mo_assign_free'); },
+  get prohibited(){ return i18t('mo_assign_prohibited'); },
 };
+/* ---- THE RECORD KEEPS ENGLISH (21 Sep 2026) ----
+   An audit line naming a field has to read the same a year later in whatever
+   language the reader has since chosen, so it cannot use META_FIELDS' labels,
+   which are translated getters. A SECOND TABLE OF ENGLISH NAMES WAS THE OTHER
+   ANSWER AND IS THE WORSE ONE: two lists to keep in step, and the day they
+   drift the trail names a field that no longer exists. The key IS the English
+   name — `paymentTerms` — so it is simply spaced out, which cannot drift from
+   the field set because it is derived from it. */
+const metaEnName = k => String(k == null ? '' : k)
+  .replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase();
 const metaOptLabel = v => { const s=String(v==null?'':v);
   return (s in META_OPT_LABEL) ? META_OPT_LABEL[s] : s; };
 /* Kept because other modules read it directly. The values it holds are the
@@ -653,4 +690,4 @@ async function runMetaBackfill(opts={}){
   next();
 }
 
-Object.assign(window,{META_FIELDS,RENEWAL_LABEL,termAdd,metaReadTerm,metaCheckTerm,TERM_TOLERANCE_DAYS,META_OPT_LABEL,metaOptLabel,unitDays,heuristicExtract,buildExtractionPayload,thoroughChunks,mergeThorough,THOROUGH_CHUNK,EXTRACT_TERMS,aiExtractMetadata,extractMetadata,openMetaReview,runMetaBackfill});
+Object.assign(window,{META_FIELDS,RENEWAL_LABEL,metaEnName,termAdd,metaReadTerm,metaCheckTerm,TERM_TOLERANCE_DAYS,META_OPT_LABEL,metaOptLabel,unitDays,heuristicExtract,buildExtractionPayload,thoroughChunks,mergeThorough,THOROUGH_CHUNK,EXTRACT_TERMS,aiExtractMetadata,extractMetadata,openMetaReview,runMetaBackfill});

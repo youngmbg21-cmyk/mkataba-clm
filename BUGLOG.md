@@ -18344,3 +18344,16 @@ Noticed, not fixed:
 
 - **Two lint errors of my own, found by running the check rather than by reading.** The bounded fetch added to the one metered Copilot call names `AbortSignal`, which is node's own global beside `AbortController` — but only `AbortController` was declared to the checker, so the server read as two undefined names. Declared it, with the reason written beside it. Lint is back at 0 errors. The guard round it (`typeof AbortSignal !== 'undefined'`) was always correct; nothing at runtime was wrong.
 - **Two full-suite runs redirected to a file came back with every dot and no summary at all**, exit 0 both times. Read through a pipe instead, the same suite printed its tally normally: 8,404 tests, 8,404 pass, 0 fail. Noticed, not fixed — a reporter writing to a file loses its last lines, and a bare exit code is the thing to trust there.
+
+## 21 Sep 2026 — the deal card is every contract's, and every field can be typed
+
+Young: "the deal card in the overview page is very sales dimensional ... Also then you try to edit the details, you should be able to edit all fields." Built to the artifact he approved, on his three answers ("narrow only, only where something is recorded, take all three").
+
+Defects found and fixed in this run:
+- The deal card drew five supply-only terms on every contract; on an NDA or a lease it was five em-dashes.
+- Edit these details opened four boxes against fifteen values, so a term Copilot read wrong could not be corrected by hand anywhere in the product.
+- A new named section on the Overview pane fell through sectionWire's repaint router to the wrong painter: its fold flipped, the head said "1 term" and no field was drawn. Found by driving a real page, not by reading.
+
+Noticed, not fixed:
+- SIX metadata fields that already existed are NOT in the extraction tool schema on /api/ai/extract - volumeRebate, rebateTiers, rejectionWindowDays, exclusivity, indemnityCapped, terminateForConvenience. Copilot is never asked for them, so they can only ever be filled by hand in the metadata review dialog. Three of the six are on the exposure register's own rows. (The three added today ARE in the schema.)
+- INDUSTRY_LABEL in js/wizard.js is hardcoded English and is drawn on screen - a pre-existing i18n gap.

@@ -49,7 +49,12 @@ describe('f325 (1) one reading behind both shapes', () => {
   test('ktFactReads exists and is what both the grid and the rows ask', () => {
     const R = fnBody(CONTRACT, 'ktFactReads');
     assert.ok(R, 'the shared reading is there');
-    for (const fn of ['ktTermsRowsHtml', 'ktDealFactsHtml', 'ktRecordFactsHtml']) {
+    /* RE-POINTED IN PLACE 21 Sep 2026, when the deal grid became one cell
+       builder over two field lists: the reading is asked in ktFieldCell, which
+       is where a cell's value is now decided, rather than in the function that
+       merely maps the list over it. The CLAIM is unchanged — every shape that
+       prints a term reads it through one function. */
+    for (const fn of ['ktTermsRowsHtml', 'ktFieldCell', 'ktRecordFactsHtml']) {
       const b = fnBody(CONTRACT, fn);
       assert.ok(b, fn + ' is there');
       assert.ok(/ktFactReads\(c\)/.test(b), fn + ' reads through it');
@@ -66,12 +71,23 @@ describe('f325 (1) one reading behind both shapes', () => {
 
 describe('f325 (2) the artifact\'s twelve, on each section', () => {
   test('The deal carries the four the owner saw drawn as rows', () => {
-    const b = fnBody(CONTRACT, 'ktDealFactsHtml');
+    /* RE-POINTED IN PLACE 21 Sep 2026. The four typed facts are cells in
+       ktFieldCell, which decides what each one draws; WHICH fields the card
+       carries is OV_DEAL_FIELDS, one ordered list. The five supply-only terms
+       moved to OV_ALSO_FIELDS by the owner's own ruling that day — they are
+       still on the page, drawn where the contract records them, which is what
+       the second half now asks. */
+    const b = fnBody(CONTRACT, 'ktFieldCell');
     for (const k of ['ov_f_value', 'ov_f_effective', 'ov_f_expiry', 'me_notice_days'])
       assert.ok(b.includes(k), k + ' is a cell on The deal');
-    for (const k of ['paymentTerms', 'volumeRebate', 'rebateTiers', 'priceReview',
-      'rejectionWindowDays', 'liabilityCapped', 'exclusivity', 'governingLaw'])
-      assert.ok(b.includes(k), k + ' is a cell on The deal');
+    const deal = /const OV_DEAL_FIELDS = \[[\s\S]*?\];/.exec(CONTRACT);
+    const also = /const OV_ALSO_FIELDS = \[[\s\S]*?\];/.exec(CONTRACT);
+    assert.ok(deal && also, 'both lists are there');
+    for (const k of ['paymentTerms', 'liabilityCapped', 'governingLaw'])
+      assert.ok(deal[0].includes(k), k + ' is on every contract');
+    for (const k of ['volumeRebate', 'rebateTiers', 'priceReview',
+      'rejectionWindowDays', 'exclusivity'])
+      assert.ok(also[0].includes(k), k + ' is drawn where it is recorded');
   });
   test('The record carries the artifact\'s twelve filing attributes', () => {
     const b = fnBody(CONTRACT, 'ktRecordFactsHtml');
@@ -84,15 +100,22 @@ describe('f325 (2) the artifact\'s twelve, on each section', () => {
     /* HaTi records the WORDING a term was read from, never its number; a
        derived citation shown to a lawyer is a number the product invented.
        The artifact asks for one and the owner ruled it out by name. */
-    const both = fnBody(CONTRACT, 'ktDealFactsHtml') + fnBody(CONTRACT, 'ktRecordFactsHtml');
+    const both = fnBody(CONTRACT, 'ktFieldCell') + fnBody(CONTRACT, 'ktRecordFactsHtml');
     assert.ok(!/cl\.\s|clauseNo|clauseNumber/.test(both), 'no clause citation is derived');
   });
   test('a grid whose rows are drawn above gives the fields up', () => {
-    for (const fn of ['ktDealFactsHtml', 'ktRecordFactsHtml']) {
-      const b = fnBody(CONTRACT, fn);
-      assert.ok(/opts\.rowsAbove/.test(b), fn + ' knows when the rows carry them');
-      assert.ok(/skip\.has\(r\[0\]\)/.test(b), fn + ' filters by key, never by position');
-    }
+    /* THE RECORD still draws its editable rows above the grid and takes those
+       fields out of it — one fact, one place on the screen. THE DEAL no longer
+       has rows above it at all: on 21 Sep 2026 its edit posture became a box
+       IN the cell's own place in the same grid, so there is nothing to give up
+       and nothing to filter. The claim under both is the same one, which is
+       why the deal's half is asked as the shape that replaced it. */
+    const rec = fnBody(CONTRACT, 'ktRecordFactsHtml');
+    assert.ok(/opts\.rowsAbove/.test(rec), 'the record knows when the rows carry them');
+    assert.ok(/skip\.has\(r\[0\]\)/.test(rec), 'and filters by key, never by position');
+    const deal = fnBody(CONTRACT, 'ktDealFactsHtml');
+    assert.ok(/opts\.edit/.test(deal), 'the deal takes a posture instead');
+    assert.ok(!/opts\.rowsAbove/.test(deal), 'and no longer has rows above it to duck');
   });
 });
 

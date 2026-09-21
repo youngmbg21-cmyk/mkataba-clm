@@ -88,7 +88,10 @@ const SEC = (suffix) => {
     labels: cells.map(c => c.label),
     acts,
     /* THE THING THE OWNER OBJECTED TO: an editable box inside the section. */
-    boxes: box.querySelectorAll('[data-kt] , input[data-kt], select[data-kt]').length,
+    /* RE-POINTED 21 Sep 2026: every field on the card can be typed now, and
+       the nineteen that are ordinary metadata carry [data-ktm]. Counting only
+       [data-kt] would report five boxes on a card showing twenty-four. */
+    boxes: box.querySelectorAll('[data-kt], [data-ktm]').length,
     rows: box.querySelectorAll('[data-kt-row]').length,
     readRows: box.querySelectorAll('.ov-reads tbody tr').length,
     readDates: box.querySelectorAll('.ov-reads .ov-r-w').length,
@@ -188,10 +191,18 @@ const SEC = (suffix) => {
     const dealEd = await page.evaluate(SEC, '.deal');
     check('4a Edit these details brings the editable rows back', dealEd.boxes > 0,
       dealEd.boxes + ' boxes, ' + dealEd.rows + ' rows');
-    /* NO FACT PRINTED TWICE: the grid gives up exactly what the rows took. */
-    const dupes = dealWant.filter(w => dealEd.labels.some(l => l.trim().toLowerCase() === w.toLowerCase()));
-    check('4b and the grid gives up the fields the rows now carry', dupes.length === 0,
-      dupes.length ? 'said twice: ' + dupes.join(', ') : 'none repeated');
+    /* NO FACT PRINTED TWICE — REVERSED IN PLACE 21 Sep 2026.
+       It used to ask that the grid GIVE UP the four fields the editable rows
+       carried above it, which was right while the edit posture was a second
+       shape stacked on the first. It is one shape now: the box is drawn in the
+       cell's own place, so the four labels are still there and SHOULD be. The
+       claim underneath is unchanged and is asked directly — no label on the
+       section appears twice — which is strictly the stronger question. */
+    const seen = {}, twice = [];
+    dealEd.labels.forEach(l => { const k = l.trim().toLowerCase(); if (!k) return;
+      if (seen[k]) { if (twice.indexOf(l.trim()) < 0) twice.push(l.trim()); } seen[k] = 1; });
+    check('4b and no fact on it is printed twice', twice.length === 0,
+      twice.length ? 'said twice: ' + twice.join(', ') : dealEd.labels.length + ' cells, none repeated');
     await page.click('[data-ov-edit$=".deal"]');
     await page.waitForTimeout(800);
     const dealBack = await page.evaluate(SEC, '.deal');
@@ -210,6 +221,87 @@ const SEC = (suffix) => {
     });
     check('5a it opens the record and lands on the real stream picker', picker.ok, picker.why);
     }
+
+    /* ═══ 9 · THE DEAL CARD IS EVERY CONTRACT'S (Young ruled 21 Sep 2026) ═══
+       *"the deal card in the overview page is very sales dimensional. The
+       fields there should be ones that are found in most contracts no matter
+       the type of contract."* Then: *"only where something is recorded."*
+       Measured on a REAL page, because whether a card is drawn at all is a
+       question about painted pixels — a `return ''` and a card of em-dashes
+       read identically in the markup a node check can see. */
+    await openSec(page, '.deal');
+    const SUPPLY = ['Volume rebate', 'Rebate tiers', 'Price review', 'Rejection window', 'Exclusivity'];
+    const dealNow = await page.evaluate(SEC, '.deal');
+    const stray = SUPPLY.filter(w => dealNow.labels.some(l => l.trim().toLowerCase() === w.toLowerCase()));
+    check('9a no supply-only term is drawn on every contract', stray.length === 0,
+      stray.length ? 'still on the card: ' + stray.join(', ') : dealNow.labels.length + ' cells, none of the five');
+    const UNIVERSAL = ['Confidentiality', 'Disputes', 'Assignment'];
+    const gone = UNIVERSAL.filter(w => !dealNow.labels.some(l => l.trim().toLowerCase() === w.toLowerCase()));
+    check('9b and the three nearly every agreement has are', gone.length === 0,
+      gone.length ? 'missing: ' + gone.join(', ') : UNIVERSAL.join(' · '));
+    /* NOTHING RECORDED, NO CARD — asked as painted pixels, because a
+       `return ''` and a card full of em-dashes read the same in markup.
+       The card is OPENED before its fields are counted: a shut section draws
+       no body at all, so counting it shut would report zero either way. */
+    /* THE PRESS AND THE MEASUREMENT ARE TWO TRIPS. Opening a section repaints
+       the whole pane, so anything measured in the same breath is measured on a
+       node that has already been thrown away — which reported nought fields on
+       a card whose own head said one. */
+    const alsoOpen = async () => {
+      await page.evaluate(() => {
+        const h = [...document.querySelectorAll('[data-sec-toggle]')]
+          .find(x => /\.also$/.test(x.getAttribute('data-sec-toggle') || ''));
+        if (h && h.getAttribute('aria-expanded') !== 'true') h.click();
+      });
+      await page.waitForTimeout(400);
+      return page.evaluate(() => {
+        const h = [...document.querySelectorAll('[data-sec-toggle]')]
+          .find(x => /\.also$/.test(x.getAttribute('data-sec-toggle') || ''));
+        if (!h) return { drawn: false, w: 0, fields: 0, dashes: 0, head: '' };
+        const box = h.closest('.sec-box'), r = box.getBoundingClientRect();
+        return { drawn: r.width > 2 && r.height > 2, w: Math.round(r.width),
+          fields: box.querySelectorAll('.sec-fields .sec-f').length,
+          dashes: box.querySelectorAll('.sec-f-v.is-none').length,
+          head: (h.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 60) };
+      });
+    };
+    const alsoAt = alsoOpen;
+    /* THE GATE: empty the eight through the product's own painter first, so
+       "not drawn" is a measurement and not an accident of the seed. */
+    const ALSO_KEYS = ['volumeRebate', 'rebateTiers', 'priceReview', 'rejectionWindowDays',
+      'exclusivity', 'retentionPct', 'retentionReleaseDays', 'warrantyMonths'];
+    await page.evaluate((keys) => {
+      const c = window.getContract(window.state.activeId);
+      c.metadata = c.metadata || {};
+      keys.forEach(k => { delete c.metadata[k]; });
+      window.renderKeyTerms(c);
+    }, ALSO_KEYS);
+    await page.waitForTimeout(500);
+    const before = await alsoAt();
+    check('9c GATE/CONTROL — with nothing recorded there is no card at all', !before.drawn,
+      before.drawn ? 'drawn ' + before.w + 'px wide, ' + before.fields + ' fields' : 'not drawn');
+    /* RECORD ONE, through the same painter. */
+    await page.evaluate(() => {
+      const c = window.getContract(window.state.activeId);
+      c.metadata = c.metadata || {}; c.metadata.exclusivity = 'exclusive';
+      window.renderKeyTerms(c);
+    });
+    await page.waitForTimeout(500);
+    const after = await alsoAt();
+    check('9d record one and the card appears', after.drawn, after.drawn ? after.head : 'still not drawn');
+    check('9e holding only the one that is answered', after.fields === 1,
+      after.fields + ' field' + (after.fields === 1 ? '' : 's'));
+    check('9f and it can never be a row of em-dashes', after.drawn && after.dashes === 0,
+      after.dashes + ' unanswered fields drawn');
+    /* EVERY FIELD CAN BE TYPED — counted against the card's own cells. */
+    await page.click('[data-ov-edit$=".deal"]');
+    await page.waitForTimeout(800);
+    const ed = await page.evaluate(SEC, '.deal');
+    /* One cell is DERIVED from the two dates beside it and is never a box. */
+    check('9g every field on the card is a box bar the one worked out for you',
+      ed.boxes >= ed.cells.length - 1, ed.boxes + ' boxes against ' + ed.cells.length + ' cells');
+    await page.click('[data-ov-edit$=".deal"]');
+    await page.waitForTimeout(600);
 
     /* ============ 6. WHAT COPILOT READ IS ONE TABLE OF FIVE ============ */
     await openSec(page, '.copilot');

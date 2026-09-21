@@ -5197,54 +5197,155 @@ function ovSetEditing(key, on){ if(key) _ovEdit[key] = !!on; return !!on; }
    em-dash, which is sectionFieldHtml's own doing. The labels are borrowed
    from META_FIELDS and the closed lists from metaOptLabel, so a fact is
    called the same thing here as in the metadata review. */
-function ktDealFactsHtml(c,opts={}){
+/* ---- THE TERMS NEARLY EVERY AGREEMENT HAS (Young ruled 21 Sep 2026) ----
+   *"the deal card in the overview page is very sales dimensional. The fields
+   there should be ones that are found in most contracts no matter the type of
+   contract."* MEASURED before a line moved: of the fifteen fields this grid
+   drew, FIVE — the volume rebate, its tier ladder, the price review, the
+   rejection window and exclusivity — exist only in a supply or distribution
+   agreement. On an NDA, a lease, an employment contract or a licence the card
+   was five em-dashes and a guess about what HaTi is for.
+
+   SO THE GRID IS TWO GROUPS, AND THE RULE FOR THE SECOND IS THE OWNER'S OWN
+   ("only where something is recorded"): the fixed list below is drawn on every
+   contract, and OV_ALSO_FIELDS is drawn ONLY where something in it has an
+   answer. Nothing is guessed about the kind of contract to decide what to
+   print — a card headed "Terms for a supply agreement" on a record whose type
+   HaTi read wrong is worse than no card, and it is a guess this product does
+   not have to make when the record already says.
+
+   WHAT AN EMPTY TERM DOES, also his ruling: a field in the fixed list still
+   prints its em-dash, because "nobody has answered this" is worth knowing; a
+   field in the second group is simply absent until it is answered, so that
+   group can never draw a row of dashes.
+
+   THE ORDER IS THE ARTIFACT'S: what it is, what it is worth, when it runs,
+   how it ends, and what it exposes. */
+const OV_DEAL_FIELDS = ['contractType','value','paymentTerms','effDate','expiry','term',
+  'renewalType','notice','terminateForConvenience','governingLaw','disputes',
+  'liabilityCapped','indemnityCapped','confidentiality','assignment','category'];
+const OV_ALSO_FIELDS = ['volumeRebate','rebateTiers','priceReview','rejectionWindowDays',
+  'exclusivity','retentionPct','retentionReleaseDays','warrantyMonths'];
+/* WHICH KEYS HAVE A HOME OF THEIR OWN. These four are not metadata rows: they
+   are written by wireKeyTerms' [data-kt] handler, which carries logic no
+   generic box could (the value strips its own thousand separators, the notice
+   period writes the paper's own blank as well as the record, an empty notice
+   DELETES rather than storing a zero). Everything else on both lists is an
+   ordinary c.metadata field and is drawn from META_FIELDS, so a field added
+   there is labelled, typed and editable here without a second list to keep in
+   step. `term` is DERIVED from the two dates and is never a box. */
+const OV_KT_FIELDS = new Set(['value','effDate','expiry','notice']);
+const OV_DERIVED_FIELDS = new Set(['term']);
+/* ---- ONE CELL BUILDER, TWO POSTURES (Young ruled 21 Sep 2026) ----
+   *"then you try to edit the details, you should be able to edit all fields."*
+   MEASURED: `Edit these details` opened FOUR boxes against fifteen values
+   shown, so when Copilot read the payment terms or the liability cap wrong
+   there was nowhere to put it right.
+
+   THE GRID DOES NOT CHANGE SHAPE. A box is drawn in the value's own place in
+   the same four-column grid, which is what the artifact draws and what keeps
+   the page from jumping when the act is pressed. TYPING OVER A READING IS
+   ALLOWED AND IT WINS: the answer goes onto the record with a confidence of
+   'high', so every later reader treats it as read from the record rather than
+   from the paper, and the trail says who changed it. */
+function ovMetaField(k){ return (window.META_FIELDS||[]).find(x=>x.k===k)||null; }
+function ovMetaLabel(k){ const f=ovMetaField(k); return (f&&f.label)||k; }
+const OV_IN='min-width:0;width:100%;box-sizing:border-box;border:1px solid var(--color-accent);background:var(--color-bg);border-radius:var(--radius);padding:3px 6px;font:inherit;font-size:var(--t-meta);outline:none';
+function ovMetaBoxHtml(c,k){
+  const f=ovMetaField(k); if(!f) return '';
   const m=(c&&c.metadata)||{};
-  const lbl=k=>{ const f=(window.META_FIELDS||[]).find(x=>x.k===k); return (f&&f.label)||k; };
-  const opt=v=>{ const s=String(v==null?'':v).trim();
-    return s?((window.metaOptLabel?metaOptLabel(s):s)||s):''; };
-  const txt=v=>{ const s=String(v==null?'':v).trim(); return s?esc(s):''; };
+  const raw=m[k]==null?'':m[k];
+  const a=`data-ktm="${esc(k)}"`;
+  if(f.type==='select'){
+    /* AN EMPTY OPTION LEADS, because clearing a term is an answer — and it is
+       the one a reader needs when Copilot filled a field in on a contract that
+       never had it. metaOptLabel names every option, so the box and the
+       read-out beside it cannot spell one differently. */
+    const opts=['',...(f.opts||[])].map(o=>`<option value="${esc(o)}"${
+      String(raw)===o?' selected':''}>${esc(o?((window.metaOptLabel?metaOptLabel(o):o)||o):i18t('ct_not_set'))}</option>`).join('');
+    return `<select ${a} style="${OV_IN}">${opts}</select>`;
+  }
+  if(f.type==='num')
+    return `<input ${a} type="number" min="0" step="1" value="${esc(Number(raw)>0?String(Number(raw)):'')}" style="${OV_IN};font-family:var(--font-mono)"/>`;
+  return `<input ${a} type="text" value="${String(raw).replace(/"/g,'&quot;')}" style="${OV_IN}"/>`;
+}
+/* Every value on both groups comes off ktFactReads or c.metadata — one
+   reading, two shapes. Returns sectionFieldsHtml's own [label, value, cite,
+   tone] triple, so the resting grid is byte-identical to what it drew before
+   for every field that has not moved. */
+function ktFieldCell(c,k,edit){
+  const m=(c&&c.metadata)||{};
+  const R=ktFactReads(c);
+  const opt=v=>{ const t=String(v==null?'':v).trim();
+    return t?esc((window.metaOptLabel?metaOptLabel(t):t)||t):''; };
+  const txt=v=>{ const t=String(v==null?'':v).trim(); return t?esc(t):''; };
   const num=v=>{ const n=Number(v); return isFinite(n)&&n>0?String(n):''; };
   const mono=x=>`<span style="font-family:var(--font-mono)">${x}</span>`;
-  /* THE TERM IS THE ROOM HEAD'S OWN READING. docTermSpan refuses a term
-     that runs backwards and refuses to invent an end date, and the fact
-     row above already prints what it answers — so the two cannot say
-     different things about the same agreement. */
-  const term=(()=>{ try{ const t=window.docTermSpan?docTermSpan(c):null;
-      if(t&&t.from&&t.to) return esc(`${t.from} – ${t.to}`); }catch(_){}
-    return ''; })();
-  /* THE ORDER IS THE ARTIFACT'S OWN TWELVE, and the first four are the
-     record's rather than the wording's: contract value, effective date,
-     expiry and notice period are typed by a person, the rest are read out of
-     the paper. They are in ONE grid because the artifact draws one grid --
-     "value, payment terms, rebate, tiers, price review, rejection window,
-     liability cap, exclusivity, dates, notice period, governing law" -- and a
-     reader looking for the expiry should not have to know which half of the
-     product wrote it down. Term, renewal and category follow the twelve: the
-     artifact counts twenty terms shown, so more is the design, not less.
-     EVERY VALUE COMES OFF ktFactReads, which the editable rows also ask. */
-  const R=ktFactReads(c);
-  /* WHEN THE EDITABLE ROWS ARE DRAWN ABOVE, the four they carry come out of
-     the grid: one fact, one place on the screen. At rest there are no rows and
-     the grid is the whole of it, which is the artifact's picture. */
-  const skip=opts.rowsAbove?new Set(['value','effDate','expiry','notice']):new Set();
-  return sectionFieldsHtml([
-    ['value', i18t('ov_f_value'), R.monetary?(R.money?mono(R.money):''):esc(i18t('ct_non_monetary'))],
-    ['paymentTerms', lbl('paymentTerms'), txt(m.paymentTerms)],
-    ['volumeRebate', lbl('volumeRebate'), txt(m.volumeRebate)],
-    ['rebateTiers', lbl('rebateTiers'), txt(m.rebateTiers)],
-    ['priceReview', lbl('priceReview'), esc(opt(m.priceReview))],
-    ['rejectionWindowDays', lbl('rejectionWindowDays'), num(m.rejectionWindowDays)],
-    ['liabilityCapped', lbl('liabilityCapped'), esc(opt(m.liabilityCapped)),'',
-      (m.liabilityCapped==='uncapped')?'amber':''],
-    ['exclusivity', lbl('exclusivity'), esc(opt(m.exclusivity))],
-    ['effDate', i18t('ov_f_effective'), R.effDate],
-    ['expiry', i18t('ov_f_expiry'), R.expiry],
-    ['notice', i18t('me_notice_days'), R.notice?mono(R.notice):''],
-    ['governingLaw', lbl('governingLaw'), txt(m.governingLaw)],
-    ['term', i18t('ct_term_label'), term],
-    ['renewalType', lbl('renewalType'), esc(opt(m.renewalType))],
-    ['category', lbl('category'), esc(opt(m.category))],
-  ].filter(r=>!skip.has(r[0])).map(r=>r.slice(1)));
+  const box=()=>ovMetaBoxHtml(c,k);
+  switch(k){
+    case 'value': {
+      const read=R.monetary?(R.money?mono(R.money):''):esc(i18t('ct_non_monetary'));
+      if(!edit) return [i18t('ov_f_value'), read];
+      return [i18t('ov_f_value'),
+        `<span style="display:flex;flex-direction:column;gap:3px">
+           <input data-kt="value" type="text" inputmode="numeric" value="${isMonetary(c)&&c.value?Number(c.value).toLocaleString(jxLocale()):''}" placeholder="0" ${isMonetary(c)?'':'disabled'} style="${OV_IN};font-family:var(--font-mono)"/>
+           <label style="display:flex;align-items:center;gap:5px;font-size:var(--t-label);color:var(--color-neutral-600)">
+             <input data-kt="nonmonetary" type="checkbox" ${!isMonetary(c)?'checked':''} style="width:13px;height:13px;accent-color:var(--color-accent)"/>${esc(i18t('ct_non_monetary'))}</label>
+         </span>`];
+    }
+    case 'effDate': return [i18t('ov_f_effective'), edit
+      ? `<input data-kt="effDate" type="date" value="${(c.fields&&c.fields.effDate)||''}" style="${OV_IN}"/>` : R.effDate];
+    case 'expiry': return [i18t('ov_f_expiry'), edit
+      ? `<input data-kt="expiry" type="date" value="${c.expiry||''}" style="${OV_IN}"/>` : R.expiry];
+    case 'notice': return [i18t('me_notice_days'), edit
+      ? `<input data-kt="notice" type="number" min="0" max="3650" step="1" value="${R.noticeDays>0?R.noticeDays:''}" placeholder="0" style="${OV_IN};font-family:var(--font-mono)"/>`
+      : (R.notice?mono(R.notice):'')];
+    /* THE TERM IS THE ROOM HEAD'S OWN READING. docTermSpan refuses a term that
+       runs backwards and refuses to invent an end date, and it is arithmetic on
+       the two dates beside it — so it stays a reading in both postures rather
+       than becoming a third place the same fact can be typed. */
+    case 'term': {
+      let t=''; try{ const sp=window.docTermSpan?docTermSpan(c):null;
+        if(sp&&sp.from&&sp.to) t=esc(`${sp.from} – ${sp.to}`); }catch(_){}
+      return [i18t('ct_term_label'), t];
+    }
+    case 'contractType': return [i18t('ov_f_type'), edit?box():(R.contractType||txt(m.contractType))];
+    case 'liabilityCapped': return [ovMetaLabel(k), edit?box():opt(m.liabilityCapped), '',
+      (!edit&&m.liabilityCapped==='uncapped')?'amber':''];
+    case 'indemnityCapped': return [ovMetaLabel(k), edit?box():opt(m.indemnityCapped), '',
+      (!edit&&m.indemnityCapped==='uncapped')?'amber':''];
+    default: {
+      const f=ovMetaField(k); if(!f) return null;
+      if(edit) return [ovMetaLabel(k), box()];
+      return [ovMetaLabel(k), f.type==='select'?opt(m[k]):(f.type==='num'?num(m[k]):txt(m[k]))];
+    }
+  }
+}
+function ktDealFactsHtml(c,opts={}){
+  const edit=!!opts.edit;
+  return sectionFieldsHtml(OV_DEAL_FIELDS
+    .map(k=>ktFieldCell(c,k,edit&&!OV_DERIVED_FIELDS.has(k)))
+    .filter(Boolean));
+}
+/* WHICH OF THE OCCASIONAL TERMS THIS CONTRACT ACTUALLY RECORDS. The one
+   reading behind the card, its count and whether it is drawn at all, so the
+   three cannot disagree. A number field answers only above zero, exactly as
+   every other reader in the product treats 0 — "none stated". */
+function ktAlsoRecorded(c){
+  const m=(c&&c.metadata)||{};
+  return OV_ALSO_FIELDS.filter(k=>{
+    const f=ovMetaField(k); const v=m[k];
+    if(f&&f.type==='num') return Number(v)>0;
+    return String(v==null?'':v).trim()!=='';
+  });
+}
+function ktAlsoFactsHtml(c,opts={}){
+  const edit=!!opts.edit;
+  /* AT REST ONLY THE ANSWERED ONES ARE DRAWN — that group may never be a row
+     of em-dashes. In the deal's edit posture every one of them is a box, which
+     is the only way a rebate can be typed onto a contract that has none. */
+  const keys=edit?OV_ALSO_FIELDS:ktAlsoRecorded(c);
+  return sectionFieldsHtml(keys.map(k=>ktFieldCell(c,k,edit)).filter(Boolean));
 }
 /* WHAT HaTi FILES THIS AS -- the artifact's twelve, in its own order:
    reference, our party, counterparty, their email, value stream, template,
@@ -5557,15 +5658,30 @@ function ktOverviewTermsHtml(c,opts={}){
      away the only place they can be answered.
      THE POSTURE IS PER SITTING AND IN MEMORY, like the fold above it -- a
      stored one would leave a colleague's screen in edit mode. */
+  /* ---- THE OCCASIONAL TERMS ARE REACHED THROUGH THE DEAL'S OWN ACT ----
+     At rest they are a card of their own, drawn only where one of them is
+     answered (the owner's rule). But a card that is not drawn is a card
+     nobody can type into, so the one door onto them is `Edit these details`
+     on The deal: press it and every field, fixed and occasional, is a box in
+     one list. One act, one posture, one place — a second Edit on a card that
+     appears and disappears would be a door that is sometimes there. */
+  const also=dealEd?'':ktAlsoFactsHtml(c);
+  const alsoN=dealEd?0:ktAlsoRecorded(c).length;
   const deal=sectionHtml({
     key:dealK, title:i18t('ov_deal'), open:true,
     chip: ed?null:{ text:i18t('ct_confirmed'), tone:'green' },
     summary: ktDealSummary(c),
-    body: (dealEd
-        ? `<div id="kt-rows">${ktTermsRowsHtml(c,{editable:ed,only:['value','effDate','expiry','notice']})}</div>`
-        : '<div id="kt-rows"></div>')
-      + `<div id="kt-deal-facts">${ktDealFactsHtml(c,{rowsAbove:dealEd})}</div>`,
+    body: '<div id="kt-rows"></div>'
+      + `<div id="kt-deal-facts">${ktDealFactsHtml(c,{edit:dealEd})}</div>`
+      + (dealEd
+        ? `<p class="sec-foot" style="margin-top:var(--s-3)">${esc(i18t('ov_also_edit_lead'))}</p>`
+          + `<div id="kt-also-facts">${ktAlsoFactsHtml(c,{edit:true})}</div>`
+        : ''),
     acts: editBtn(dealK,dealEd)+fill, foot: i18t('ov_deal_foot') });
+  const alsoSec=also?sectionHtml({
+    key:OV_KEY(c,'also'), title:i18t('ov_also'), open:false,
+    summary: i18tn('ov_also_n', alsoN, {n:alsoN}),
+    body: `<div id="kt-also-facts">${also}</div>` }):'';
   /* MOVE TO ANOTHER STREAM IS NOT A SECOND DOOR. The stream picker is
      ktStreamRowHtml's, with its admin guard, its 'Re-filed' audit line and its
      own repaint; this button opens the rows that hold it and puts the reader
@@ -5581,7 +5697,7 @@ function ktOverviewTermsHtml(c,opts={}){
         : '<div id="kt-rows-record"></div>')
       + `<div id="kt-record-facts">${ktRecordFactsHtml(c,{rowsAbove:recEd})}</div>`,
     acts: editBtn(recK,recEd)+moveBtn });
-  return deal+record;
+  return deal+alsoSec+record;
 }
 
 /* ---- RISK: A READ OF THE CHECKS YOU HAVE RUN, NOT A NEW NUMBER ----
@@ -5846,8 +5962,14 @@ function renderKeyTermsSide(c){
       { desc:'', due:'', recurring:'none', assignee:'', quote:'', amount:'', party:'theirs', doc:{} });
   });
   const pane=document.querySelector('[data-ws-pane="terms"]');
+  /* ---- A SECTION THIS PANE DRAWS MUST BE NAMED HERE OR ITS FOLD IS DEAD ----
+     The two painters own different hosts: renderKeyTerms writes #kt-ov-terms
+     and renderKeyTermsSide writes the column beside it. A key that falls
+     through to the wrong one flips the fold and repaints somewhere else, so
+     the head says "open" and nothing appears. MEASURED the hour `also` was
+     added: its own card reported "1 term" and drew no field at all. */
   if(pane&&window.sectionWire) sectionWire(pane,key=>{
-    if(/\.(deal|record)$/.test(key)) renderKeyTerms(c); else renderKeyTermsSide(c); });
+    if(/\.(deal|record|also)$/.test(key)) renderKeyTerms(c); else renderKeyTermsSide(c); });
   /* #kt-readdoc's wiring went with the button — see readTermsHtml. */
 }
 
@@ -11061,6 +11183,43 @@ function wireKeyTerms(c){
      whose answers then race to write the same fields.
      ktWireSplit and wireKtFolder immediately around this already carry
      dataset.ktSplitBound / dataset.ktFolderBound for exactly this reason. */
+  /* ---- EVERY OTHER TERM ON THE OVERVIEW IS AN ORDINARY METADATA FIELD ----
+     (Young ruled 21 Sep 2026: "you should be able to edit all fields".)
+     ONE HANDLER FOR ALL NINETEEN, driven by META_FIELDS' own type, so a field
+     added there is editable here without a second list to keep in step — and
+     so the box, its label and the read-out beside it cannot spell the same
+     option differently.
+
+     TYPING OVER A READING WINS, AND SAYS SO. The answer is stamped
+     confidence 'high', which is what every later reader (the standards check,
+     the exposure register, the renewal clock) treats as read from the record
+     rather than guessed off the paper. An EMPTY BOX CLEARS the field rather
+     than storing '' or 0 — a stored zero would say "no retention" in a field
+     somebody had deliberately emptied, which is the notice period's own rule
+     one screen up.
+
+     IT WRITES ON `change` FOR EVERYTHING BUT TEXT, for the reason the notice
+     period states: a number box driven by `input` stores 9 on the way to 90.
+     Nothing here repaints the panel, so the caret stays where the reader put
+     it; the grid is rebuilt only when the Edit act itself is pressed. */
+  document.querySelectorAll('[data-ktm]').forEach(inp=>{
+    const key=inp.getAttribute('data-ktm');
+    const f=(window.META_FIELDS||[]).find(x=>x.k===key); if(!f) return;
+    const evt=(f.type==='text')?'input':'change';
+    inp.addEventListener(evt,()=>{
+      c.metadata=c.metadata||{}; c.metadata.confidence=c.metadata.confidence||{};
+      const raw=String(inp.value==null?'':inp.value).trim();
+      const n=f.type==='num'?Math.round(Number(raw)):null;
+      const clear=raw==='' || (f.type==='num' && !(n>0));
+      if(clear){ delete c.metadata[key]; delete c.metadata.confidence[key]; }
+      else { c.metadata[key]=f.type==='num'?n:raw; c.metadata.confidence[key]='high'; }
+      c.lastAction=todayStr();
+      /* THE RECORD KEEPS ENGLISH — metaEnName derives the name from the key
+         itself, so the trail cannot name a field the product no longer has. */
+      logAudit(c,'Edited',`Updated ${(window.metaEnName?metaEnName(key):key)}`);
+      persist(c); renderAuditSection(c);
+    });
+  });
   const fill=document.getElementById('kt-fill');
   if(fill && !fill.dataset.ktFillBound){
     fill.dataset.ktFillBound='1';
@@ -13278,6 +13437,9 @@ Object.assign(window,{paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,
      Caught by driving the real page. ktTermsRowsHtml and renderKeyTerms go
      with it: the same guard-and-miss is waiting for both. */
   wireKtRows,ktTermsRowsHtml,ktReadValue,ktIsEmptyRead,renderKeyTerms,
+  ktDealFactsHtml,ktAlsoFactsHtml,ktAlsoRecorded,ktFieldCell,ktOverviewTermsHtml,
+  OV_DEAL_FIELDS,OV_ALSO_FIELDS,OV_KT_FIELDS,OV_DERIVED_FIELDS,ovMetaBoxHtml,ovMetaField,ovMetaLabel,
+
   ktFitSplit,ktWireSplit,ktStacked,KT_LEFT_MIN,KT_RIGHT_MIN,KT_SPLIT_KEY,
   /* And layoutDocResizer, for the same reason and with worse consequences: the
      line that re-measures the Document pane the moment its tab is shown is
