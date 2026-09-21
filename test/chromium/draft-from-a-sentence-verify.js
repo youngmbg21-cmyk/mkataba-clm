@@ -78,51 +78,43 @@ async function press(page, sel, what){
   await page.click('#li-go');
   await page.waitForTimeout(2400);
 
-  /* ============ 1. THE MENU — A FOURTH ROW, NOT A REPLACEMENT ============ */
+  /* ============ 1. THE + BUTTON — ONE SCREEN, EVERY DOOR ON IT ============
+     RE-POINTED 21 Sep 2026: the four-row menu is retired for the New agreement
+     pop-up (Young: "you have not implemented pop ups like this"). What this
+     section pinned survives: "Draft from a template" is still the first thing
+     a reader meets — the paper is on the screen — and the sentence box is an
+     OPTION beside it, never the default: nothing is asked of Copilot until
+     the reader types and presses Find. */
   await page.evaluate(() => window.setView('register'));
   await page.waitForTimeout(900);
   await page.evaluate(() => window.openNewMenu(document.querySelector('[data-page-new]')));
-  await page.waitForTimeout(400);
+  await page.waitForTimeout(700);
 
   const menu = await page.evaluate(() => {
-    const rows = Array.from(document.querySelectorAll('#new-menu .new-menu-item'));
-    return { n: rows.length, ids: rows.map(b => b.id),
-      titles: rows.map(b => (b.querySelector('span:last-child span') || {}).textContent || '') };
+    const root = document.getElementById('na-root');
+    return { popup: !!root, menuOpen: !document.getElementById('new-menu').classList.contains('hidden'),
+      pick: !!document.getElementById('wz-pick'), say: !!document.getElementById('dr-say'),
+      doors: document.querySelectorAll('[data-wz-tid],[data-wz-lib],[data-wz-mine]').length,
+      upload: !!document.getElementById('na-upload'), imp: !!document.getElementById('na-import'),
+      offer: !!document.getElementById('dr-found') };
   });
-  check(menu.n === 4, '1a the menu holds four ways in', `${menu.n}: ${menu.ids.join(', ')}`);
-  check(menu.ids[0] === 'menu-wizard',
-    '1b "Draft from a template" is still the first row', menu.ids.join(', '));
-  check(menu.ids[1] === 'menu-describe',
-    '1c the new row reads directly under it', menu.ids.join(', '));
-  check(await visible(page, '#menu-describe'), '1d and it is visible pixels, not markup behind something');
+  check(menu.popup && !menu.menuOpen, '1a the + button opens the pop-up, not a menu', JSON.stringify(menu));
+  check(menu.pick && menu.doors >= 4, '1b the template picker is ON the screen — the first thing a reader meets', `${menu.doors} doors`);
+  check(menu.say, '1c the sentence box reads beside it');
+  check(await visible(page, '#dr-say'), '1d and it is visible pixels, not markup behind something');
+  check(menu.upload && menu.imp, '1e upload and import keep their doors on the same screen');
   await page.screenshot({ path: path.join(OUT, 'menu.png') });
 
-  /* The owner's own condition, driven rather than read: the first row still
-     opens the ordinary picker and nothing else. */
-  await press(page, '#menu-wizard', '1e the first row');
-  await page.waitForTimeout(700);
-  const picker = await page.evaluate(() => ({
-    pick: !!document.getElementById('wz-pick'), say: !!document.getElementById('dr-say') }));
-  check(picker.pick && !picker.say,
-    '1e pressing it opens the template picker, unchanged', JSON.stringify(picker));
-  await page.evaluate(() => window.closeModal && window.closeModal());
-  await page.waitForTimeout(300);
-
-  /* ============ 2. THE SENTENCE SCREEN ============ */
-  await page.evaluate(() => window.openNewMenu(document.querySelector('[data-page-new]')));
-  await page.waitForTimeout(300);
-  const opened = await press(page, '#menu-describe', '2 the new row');
-  await page.waitForTimeout(700);
-
+  /* ============ 2. THE SENTENCE BOX ============ */
   const screen = await page.evaluate(() => ({
     say: !!document.getElementById('dr-say'),
-    read: !!document.getElementById('dr-read'),
-    pick: !!document.getElementById('dr-pick'),
+    read: !!document.getElementById('dr-read') && !document.getElementById('dr-read').disabled,
+    pick: !!document.getElementById('wz-pick'),
     offer: !!document.getElementById('dr-found'),
   }));
   check(screen.say, '2a a sentence box, not a menu');
-  check(screen.read, '2b with a key on the server, the read button is drawn');
-  check(screen.pick, '2c the ordinary picker is one press away on the same screen');
+  check(screen.read, '2b with a key on the server, the read button is drawn live');
+  check(screen.pick, '2c the ordinary picker is on the same screen');
   check(!screen.offer, '2d and nothing is recommended before anything is asked');
   check(await visible(page, '#dr-say'), '2e the box is on screen');
   await page.screenshot({ path: path.join(OUT, 'sentence.png') });
@@ -143,7 +135,7 @@ async function press(page, sel, what){
     fields: [{ key: 'counterparty', value: 'Nandi Dairy' },
              { key: 'payDays', value: '45' },
              { key: 'governingLaw', value: 'Kenya' }] }));
-  if (opened && screen.say) await page.fill('#dr-say', "Two-year supply agreement with Nandi Dairy, 45-day payment, 90 days' notice");
+  if (screen.say) await page.fill('#dr-say', "Two-year supply agreement with Nandi Dairy, 45-day payment, 90 days' notice");
   await press(page, '#dr-read', '3 read it');
   await page.waitForTimeout(3500);
 
@@ -174,13 +166,16 @@ async function press(page, sel, what){
   const fill = await page.evaluate(() => {
     const v = id => { const el = document.getElementById(id); return el ? el.value : null; };
     return { cp: v('wz-counterparty'), pay: v('wz-payDays'), val: v('wz-value'),
-      create: !!document.getElementById('wz-create'),
+      /* The pop-up's card hosts the template's own form and presses its
+         Create from the foot (21 Sep 2026). */
+      create: !!(document.getElementById('wz-create') || document.getElementById('na-create')),
       say: !!document.getElementById('dr-say'),
+      lit: !!document.querySelector('[data-wz-tid="RM"].on'),
       /* A key the template does not declare must have reached no box at all. */
       stray: !!document.getElementById('wz-governingLaw') };
   });
-  check(fill.create, '4a it lands in the template fill screen that already exists');
-  check(!fill.say, '4b and the sentence screen closes behind it');
+  check(fill.create, '4a it lands in the template fill form that already exists');
+  check(fill.say && fill.lit, '4b on the same screen — the chosen paper lights and the box stays', JSON.stringify({ say: fill.say, lit: fill.lit }));
   check(fill.cp === 'Nandi Dairy', '4c the counterparty arrives filled in', String(fill.cp));
   check(fill.pay === '45', '4d and so does the payment window it read', String(fill.pay));
   check(fill.val === '', '4e what the sentence did not say arrives blank', String(fill.val));
@@ -195,7 +190,7 @@ async function press(page, sel, what){
 
   /* ============ 5. AND IT CREATES AN ORDINARY CONTRACT ============ */
   const before = await page.evaluate(() => (window.state.contracts || []).length);
-  await press(page, '#wz-create', '5 create the draft');
+  await press(page, (await page.$('#wz-create')) ? '#wz-create' : '#na-create', '5 create the draft');
   await page.waitForTimeout(2000);
   const made = await page.evaluate(() => {
     const c = (window.state.contracts || [])[0] || null;
@@ -229,7 +224,8 @@ async function press(page, sel, what){
   const none = await page.evaluate(() => ({
     note: (document.getElementById('dr-note') || {}).textContent || '',
     offer: !!document.getElementById('dr-found'),
-    pick: !!document.getElementById('dr-pick'),
+    /* The way forward is the picker itself, on the same screen (21 Sep 2026). */
+    pick: !!document.getElementById('wz-pick') && document.querySelectorAll('[data-wz-tid]').length > 0,
     n: (window.state.contracts || []).length }));
   check(!none.offer && /fit|match/i.test(none.note),
     '6a it says nothing fits rather than stretching to the nearest', none.note.slice(0, 90));
@@ -237,13 +233,18 @@ async function press(page, sel, what){
   check(none.n === had, '6c and nothing was created', `${had} → ${none.n}`);
   await page.screenshot({ path: path.join(OUT, 'nothing-fits.png') });
 
-  /* ============ 7. THE WAY BACK ============ */
-  await press(page, '#dr-pick', '7 pick a template myself');
-  await page.waitForTimeout(700);
-  const back = await page.evaluate(() => ({
-    pick: !!document.getElementById('wz-pick'), say: !!document.getElementById('dr-say') }));
-  check(back.pick && !back.say,
-    '7a "pick a template myself" opens the ordinary picker', JSON.stringify(back));
+  /* ============ 7. THE WAY BACK IS A DOOR ON THE SAME SCREEN ============
+     RE-POINTED 21 Sep 2026: there is no "pick a template myself" press any
+     more because the picker never left the screen — pressing a chip after a
+     refusal lights it and its questions arrive in the card. */
+  const back = await page.evaluate(async () => {
+    const chip = document.querySelector('[data-wz-tid="ND"]'); if (!chip) return { chip: false };
+    chip.click(); await new Promise(r => setTimeout(r, 400));
+    return { chip: true, on: chip.classList.contains('on'), name: (document.getElementById('na-card-name') || {}).textContent || '',
+      boxes: document.querySelectorAll('#na-form input,#na-form select').length, say: !!document.getElementById('dr-say') };
+  });
+  check(back.chip && back.on && /NDA|Non-Disclosure/i.test(back.name) && back.boxes > 0 && back.say,
+    '7a picking a template after a refusal lights it and draws its questions, with the box still there', JSON.stringify(back));
 
   console.log('');
   console.log(failures ? `${failures} check(s) FAILED` : 'all checks passed');

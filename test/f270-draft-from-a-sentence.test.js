@@ -400,9 +400,12 @@ describe('f270 (7) it is an option, never the default', () => {
     });
 
   test('every door carries the prefill through', () => {
+    /* RE-POINTED 21 Sep 2026: the two doors below gained a third argument, the
+       host — the New agreement pop-up mounts their questions in its own card
+       and takes the acts back. The prefill is still the second argument. */
     assert.match(SRC('js/wizard.js'), /function openWizard\(preTid, prefill\)/);
-    assert.match(SRC('js/views/library.js'), /function createFromCustomTemplate\(tid, prefill\)/);
-    assert.match(SRC('js/views/templatelib.js'), /function tplLibNewContract\(id, prefill\)/);
+    assert.match(SRC('js/views/library.js'), /function createFromCustomTemplate\(tid, prefill, ho\)/);
+    assert.match(SRC('js/views/templatelib.js'), /function tplLibNewContract\(id, prefill, ho\)/);
   });
 });
 

@@ -505,7 +505,7 @@ function openContractEssentials(opts){
      answer step and the saved-template fill — so the declaration is stated
      ONCE here and read through `window` by the other two, with the literal as
      the fallback for a stage that has not loaded this file. */
-  const ST = 'width:100%;min-height:36px;border:1px solid var(--color-divider);'
+  const ST = 'width:100%;min-height:var(--field-h,36px);border:1px solid var(--color-divider);'
     + 'background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font:inherit;font-size:var(--t-body);outline:none;color:inherit';
   const input = f => {
     /* A value stream is the product's own list, with its "+ New value stream"
@@ -539,32 +539,22 @@ function openContractEssentials(opts){
      …Fits) and the same width rule, so there is one preview in the product and
      not three. */
   const _pv = (typeof fillPreviewFits==='function') && fillPreviewFits() && typeof o.paper === 'function';
-  openModal(`<div style="padding:20px 22px">
-    <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0 0 3px">${esc(o.title||'New contract')}</h3>
-    <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 14px;line-height:1.55">${
-      esc(o.blurb||'')} ${esc(i18t('tf_skip_later'))}</p>
-    <div id="ce-cols" style="display:grid;grid-template-columns:${
-      _pv?'minmax(0,1fr) minmax(0,1fr)':'minmax(0,1fr)'};gap:var(--s-4);align-items:start">
-    <div class="ce-grid field-grid" style="${FIELD_GRID_CSS};align-content:start">${fs.map(input).join('')}</div>
-    ${_pv?fillPreviewPaneHtml(0):''}
-    </div>
-    <div id="ce-err" style="font-size:var(--t-label);color:var(--st-ruby-fg);min-height:15px;margin-top:var(--s-2)"></div>
-    <div style="display:flex;align-items:center;gap:var(--s-2);margin-top:var(--s-2)">
-      <button id="ce-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-      <span style="flex:1"></span>
-      <button id="ce-skip" class="ui-btn" title="${esc(i18t('lib_create_now_fill_later'))}">${i18t('wz_skip_for_now')}</button>
-      <button id="ce-create" class="ui-btn ui-btn-primary">${esc(o.createLabel||'Create draft')}</button>
-    </div></div>`, { maxWidth:_pv?'1040px':'620px' });
-
-  if(_pv) ceWirePreview(fs, o);
-
-  if(typeof bindFolderSelect==='function')
-    fs.filter(f=>f.type==='stream').forEach(f=>{
-      const el=document.getElementById('ce-'+f.key); if(el) bindFolderSelect(el);
-    });
-  document.getElementById('ce-cancel').addEventListener('click', closeModal);
-  document.getElementById('ce-skip').addEventListener('click', ()=>{ closeModal(); if(o.onSkip) o.onSkip(); });
-  document.getElementById('ce-create').addEventListener('click', ()=>{
+  /* ---- THE QUESTIONS, THE CHECK AND THE PRESS ARE ONE SET, WHICHEVER
+     FRAME THEY ARE DRAWN IN (the New agreement pop-up, 21 Sep 2026) ----
+     The pop-up hosts these boxes in its own right-hand card, so the grid, the
+     validation and the two acts are built ONCE here and either mounted into a
+     caller's element (`o.host`) or into this door's own dialog. A second copy
+     of the form would be the one that drifts. */
+  const gridHtml = `<div class="ce-grid field-grid" style="${FIELD_GRID_CSS};align-content:start">${fs.map(input).join('')}</div>`;
+  const errHtml = `<div id="ce-err" style="font-size:var(--t-label);color:var(--st-ruby-fg);min-height:15px;margin-top:var(--s-2)"></div>`;
+  const wire = () => {
+    if(typeof bindFolderSelect==='function')
+      fs.filter(f=>f.type==='stream').forEach(f=>{
+        const el=document.getElementById('ce-'+f.key); if(el) bindFolderSelect(el);
+      });
+  };
+  const skip = () => { closeModal(); if(o.onSkip) o.onSkip(); };
+  const create = () => {
     const values = {}, errs = [];
     for(const f of fs){
       const el = document.getElementById('ce-'+f.key);
@@ -585,10 +575,47 @@ function openContractEssentials(opts){
     if((values.counterparty||'').length > 120)
       errs.push('The counterparty name is longer than 120 characters — use the registered name.');
     const err = document.getElementById('ce-err');
-    if(errs.length){ if(err) err.textContent = errs.length===1?errs[0]:`${errs.length} things need fixing: ${errs.join(' · ')}`; return; }
+    if(errs.length){ if(err) err.textContent = errs.length===1?errs[0]:`${errs.length} things need fixing: ${errs.join(' · ')}`; return false; }
     closeModal();
     if(o.onCreate) o.onCreate(values, values.cpemail||'');
-  });
+    return true;
+  };
+  if(o.host){
+    o.host.innerHTML = gridHtml + errHtml;
+    wire();
+    /* The paper beside the questions, where the host has a column for it:
+       the pane is drawn into `o.paperHost` and the link is wired on
+       `o.root`, the element that holds both. */
+    if(o.paperHost && typeof o.paper==='function' && typeof fillPreviewPaneHtml==='function'){
+      o.paperHost.innerHTML = fillPreviewPaneHtml(0);
+      ceWirePreview(fs, o, o.root || o.host);
+    }
+    return { create, skip, count: fs.length };
+  }
+  openModal(`<div style="padding:20px 22px">
+    <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0 0 3px">${esc(o.title||'New contract')}</h3>
+    <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 14px;line-height:1.55">${
+      esc(o.blurb||'')} ${esc(i18t('tf_skip_later'))}</p>
+    <div id="ce-cols" style="display:grid;grid-template-columns:${
+      _pv?'minmax(0,1fr) minmax(0,1fr)':'minmax(0,1fr)'};gap:var(--s-4);align-items:start">
+    ${gridHtml}
+    ${_pv?fillPreviewPaneHtml(0):''}
+    </div>
+    ${errHtml}
+    <div style="display:flex;align-items:center;gap:var(--s-2);margin-top:var(--s-2)">
+      <button id="ce-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      <span style="flex:1"></span>
+      <button id="ce-skip" class="ui-btn" title="${esc(i18t('lib_create_now_fill_later'))}">${i18t('wz_skip_for_now')}</button>
+      <button id="ce-create" class="ui-btn ui-btn-primary">${esc(o.createLabel||'Create draft')}</button>
+    </div></div>`, { maxWidth:_pv?'1040px':'620px' });
+
+  if(_pv) ceWirePreview(fs, o);
+
+  wire();
+  document.getElementById('ce-cancel').addEventListener('click', closeModal);
+  document.getElementById('ce-skip').addEventListener('click', skip);
+  document.getElementById('ce-create').addEventListener('click', create);
+  return { create, skip, count: fs.length };
 }
 /* ---- THE PAPER THIS DOOR IS ABOUT TO CREATE ----
    The wording is the CALLER's to supply, because only the caller knows where it
@@ -603,7 +630,7 @@ function openContractEssentials(opts){
 
    IT NEVER BLOCKS THE PRESS. Create and Skip do exactly what they did with no
    preview at all; this only draws. */
-function ceWirePreview(fs, o){
+function ceWirePreview(fs, o, root){
   const say = txt => {
     const cap = document.getElementById('tf-preview-left');
     if(cap) cap.textContent = txt ? ' \u00b7 ' + txt : '';
@@ -628,7 +655,7 @@ function ceWirePreview(fs, o){
     if(!held){ say(i18t('tf_preview_none')); return; }
     say('');
     if(typeof fillPreviewWire==='function')
-      fillPreviewWire(document.getElementById('ce-cols'), 'essentials', readNow);
+      fillPreviewWire(root || document.getElementById('ce-cols'), 'essentials', readNow);
   }).catch(() => { if(document.getElementById('tf-preview')) say(i18t('tf_preview_none')); });
 }
 /* Put the essentials onto an already-created contract, using the same mapping

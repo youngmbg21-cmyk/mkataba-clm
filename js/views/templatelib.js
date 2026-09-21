@@ -491,10 +491,13 @@ function tplConfirmPaint() {
 /* `prefill` is an optional {key: value} map — see openWizard. A company
    standard is filled server-side, so what a sentence can answer here is the
    contract's own essentials; they arrive in the same boxes, still editable. */
-function tplLibNewContract(id, prefill) {
-  if (typeof openContractEssentials !== 'function') return tplLibCreate(id, null);
+function tplLibNewContract(id, prefill, ho) {
+  /* `ho` — a host (the New agreement pop-up, 21 Sep 2026): the essentials
+     are mounted into its card and the acts handed back, never a dialog of
+     their own. A host on a stage with no essentials form creates nothing. */
+  if (typeof openContractEssentials !== 'function') return (ho && ho.host) ? null : tplLibCreate(id, null);
   const t = (_tplLib.list || []).find(x => x.id === id) || null;
-  openContractEssentials({
+  return openContractEssentials({ ...(ho || {}),
     title: (t && t.name) || 'New contract',
     blurb: (t && t.description) ? String(t.description) : 'From your company standard template.',
     values: prefill,

@@ -705,13 +705,16 @@ describe('f331 (13) — the link, and the room to draw it', () => {
   test('the paper is the caller\'s, and the wording is built by the shared reading', () => {
     /* The dialog never learns what a template is: each caller hands the
        wording, because only the caller knows where it comes from. */
-    const fn = /function ceWirePreview\(fs, o\)\{[\s\S]*?\n\}/.exec(TF);
+    /* RE-POINTED 21 Sep 2026: the wiring takes the ROOT it listens on as a
+       third argument, because the New agreement pop-up hosts these boxes in
+       its own body; a caller that passes none gets #ce-cols as before. */
+    const fn = /function ceWirePreview\(fs, o, root\)\{[\s\S]*?\n\}/.exec(TF);
     assert.ok(fn, 'one wiring for the pane');
     assert.match(fn[0], /o\.paper\(\)/, 'the caller supplies the paper');
     assert.match(fn[0], /Promise\.resolve/, 'a caller that has to fetch it is allowed to');
     assert.match(fn[0], /tf_preview_reading/, 'a wait says so');
     assert.match(fn[0], /tf_preview_none/, 'and a refusal says so — never a silently empty sheet');
-    assert.match(fn[0], /fillPreviewWire\(document\.getElementById\('ce-cols'\), 'essentials'/,
+    assert.match(fn[0], /fillPreviewWire\(root \|\| document\.getElementById\('ce-cols'\), 'essentials'/,
       'through the shared wiring, under its own kind');
     /* The saved-template door builds it with the very call its own create path
        makes; the company standard renders the server's own builder. */

@@ -131,6 +131,16 @@ function openWizard(preTid, prefill){
   const tmpls=myCreatableTemplates();
   if(!tmpls.length){ toast(i18t('wz_no_templates_role'),'err'); return; }
   let tid=preTid&&tmpls.some(t=>t.id===preTid)?preTid:null;
+  /* ---- NO TEMPLATE NAMED MEANS THE NEW AGREEMENT POP-UP (Young, 21 Sep
+     2026: "you have not implemented pop ups like this") ----
+     The picker this function used to draw — streams first, a search box, FOR
+     YOU, your own paper — is the LEFT HALF of that pop-up now, and two
+     pickers onto one act is the drift this codebase pays for most. The
+     branch below is kept whole and DORMANT (the Templates overview's own
+     precedent: a reading deleted outright is one somebody rebuilds worse),
+     and openWizard(tid) — the Templates page's "Use this", the draft
+     hand-off — still draws the answer step exactly as it did. */
+  if(!tid && typeof openNewAgreement==='function') return openNewAgreement({ prefill });
   /* Which stream folder is open, per sitting and in memory: a browse position
      is not a setting, and landing somebody back inside a folder a week later is
      not what they asked for. */
@@ -330,32 +340,9 @@ function openWizard(preTid, prefill){
     const t=TEMPLATES[tid];
     const vars=(prefill && typeof draftApplyPrefill==='function')
       ? draftApplyPrefill(templateVars(tid), prefill) : templateVars(tid);
-    /* THE ARROW SAYS WHERE THE ANSWER IS FILED, and says nothing when the two
-       names are the same word. "Counterparty * → Counterparty" has always been
-       noise; adding "Our party → Our party" beside it made a pattern of it.
-       Compared case-insensitively, because the map labels are translated and
-       the two languages capitalise differently. */
-    const mapNote=v=>{ if(!v.maps) return '';
-      const m=tplMapLabel(v.maps);
-      if(!m || String(m).trim().toLowerCase()===String(v.label||'').trim().toLowerCase()) return '';
-      return `<span style="font-weight:var(--w-body);color:var(--color-neutral-500);text-transform:none;letter-spacing:0"> → ${m}</span>`; };
-    const input=v=>{ const id='wz-'+String(v.key).replace(/[:]/g,'_');
-      const lbl=`<span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em;">${v.label}${v.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}${mapNote(v)}</span>`;
-      /* ---- A VALUE STREAM IS DRAWN BY THE PRODUCT'S OWN LIST (18 Sep 2026)
-         ---- folderOptionsHtml carries the "+ New value stream" sentinel and
-         bindFolderSelect answers it, so this door offers what every other
-         filing door offers and none of them can drift. Bound after the modal
-         is in the page, below. */
-      if(v.type==='stream') return `<label style="display:block;">${lbl}
-        <select id="${id}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font-size:var(--t-body);color:var(--color-text);outline:none;">${
-          (typeof folderOptionsHtml==='function') ? folderOptionsHtml(v.def||null, false) : ''}</select></label>`;
-      if(v.type==='select') return `<label style="display:block;">${lbl}
-        <select id="${id}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font-size:var(--t-body);color:var(--color-text);outline:none;">
-          ${(v.opts||[]).map(o=>(typeof fieldOpt==='function')?fieldOpt(o):{v:String(o),l:String(o)}).map(o=>
-            `<option value="${String(o.v).replace(/"/g,'&quot;')}" ${String(v.def||'')===o.v?'selected':''}>${o.l}</option>`).join('')}</select></label>`;
-      const it=v.type==='date'?'date':(v.type==='num'?'number':'text');
-      return `<label style="display:block;">${lbl}
-        <input id="${id}" type="${it}" value="${String(v.def||'').replace(/"/g,'&quot;')}" placeholder="${v.ph||''}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none;"/></label>`; };
+    /* The boxes are drawn by wzFieldHtml, ONE renderer this step shares with
+       the New agreement pop-up's right-hand card (21 Sep 2026). */
+    const input=wzFieldHtml;
     /* ---- THE PAPER BESIDE THE QUESTIONS (upgrade 2, 18 Sep 2026) ----
        The wizard's answer step and the saved-template fill screen stay two
        screens; this is ONE layout used by both, and one preview builder, so
@@ -367,15 +354,7 @@ function openWizard(preTid, prefill){
       <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-4);line-height:1.5;">${t.blurb||''}</p>
       <div id="wz-cols" style="display:grid;grid-template-columns:${_pv?'minmax(0,1fr) minmax(0,1fr)':'minmax(0,1fr)'};gap:var(--s-4);align-items:start">
       <div class="field-grid" style="${(typeof FIELD_GRID_CSS==='string'?FIELD_GRID_CSS:'display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--s-3)')};">${vars.map(input).join('')}
-        ${''/* ASKED HERE, WHERE YOU ARE ALREADY NAMING THEM, AND NOWHERE ELSE.
-               The templates carry the counterparty's NAME; nothing carried the
-               address, so it was collected later — by a strip in the
-               negotiation room, and again by the share dialog when you pressed
-               Send. Three times for one fact, in one sitting. Once it is on the
-               contract the strip never appears and the send goes straight out. */}
-        <label style="display:block;">
-          <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em;">${i18t('wz_their_email')}</span>
-          <input id="wz-cpemail" type="email" placeholder="${(typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none;"/></label>
+        ${wzEmailHtml()}
       </div>
       ${_pv?fillPreviewPaneHtml(vars.filter(v=>!String(v.def||'').trim()).length):''}
       </div>
@@ -400,7 +379,9 @@ function openWizard(preTid, prefill){
         const el=document.getElementById('wz-'+String(v.key).replace(/[:]/g,'_'));
         if(el) bindFolderSelect(el);
       });
-    document.getElementById('wz-back').addEventListener('click',()=>{ tid=null; renderStep(); });
+    /* THE WAY BACK IS THE POP-UP (21 Sep 2026), with this template still
+       lit — the picker branch above is dormant, see openWizard's head. */
+    document.getElementById('wz-back').addEventListener('click',()=>{ closeModal(); openNewAgreement({ pick:{ kind:'tid', id:tid }, prefill }); });
     document.getElementById('wz-cancel').addEventListener('click',closeModal);
     document.getElementById('wz-create').addEventListener('click',()=>createFromWizard(tid, vars));
     /* SKIP CREATES THE SAME DRAFT, UNFILLED. The blanks it leaves are already
@@ -501,4 +482,297 @@ function createFromWizard(tid, vars, opts){
   setView('workspace'); renderSideFolders&&renderSideFolders();
 }
 
-Object.assign(window,{TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard});
+
+/* ---- ONE RENDERER FOR A TEMPLATE'S QUESTION BOX ----
+   Lifted out of the answer step on 21 Sep 2026 so the New agreement pop-up's
+   card and the answer step draw the same box from the same code. The arrow
+   says where the answer is filed, and says nothing when the two names are the
+   same word ("Counterparty * → Counterparty" has always been noise). */
+function wzMapNote(v){
+  if(!v.maps) return '';
+  const m=(typeof tplMapLabel==='function')?tplMapLabel(v.maps):'';
+  if(!m || String(m).trim().toLowerCase()===String(v.label||'').trim().toLowerCase()) return '';
+  return `<span style="font-weight:var(--w-body);color:var(--color-neutral-500);text-transform:none;letter-spacing:0"> → ${m}</span>`;
+}
+const WZ_ST='width:100%;min-height:var(--field-h,36px);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none;';
+function wzFieldHtml(v){
+  const id='wz-'+String(v.key).replace(/[:]/g,'_');
+  const lbl=`<span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em;">${v.label}${v.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}${wzMapNote(v)}</span>`;
+  /* A value stream is drawn by the product's own list (18 Sep 2026):
+     folderOptionsHtml carries the "+ New value stream" sentinel and
+     bindFolderSelect answers it — bound by the caller once the markup is in
+     the page. */
+  if(v.type==='stream') return `<label style="display:block;">${lbl}
+    <select id="${id}" style="${WZ_ST}">${(typeof folderOptionsHtml==='function') ? folderOptionsHtml(v.def||null, false) : ''}</select></label>`;
+  if(v.type==='select') return `<label style="display:block;">${lbl}
+    <select id="${id}" style="${WZ_ST}">
+      ${(v.opts||[]).map(o=>(typeof fieldOpt==='function')?fieldOpt(o):{v:String(o),l:String(o)}).map(o=>
+        `<option value="${String(o.v).replace(/"/g,'&quot;')}" ${String(v.def||'')===o.v?'selected':''}>${o.l}</option>`).join('')}</select></label>`;
+  const it=v.type==='date'?'date':(v.type==='num'?'number':'text');
+  return `<label style="display:block;">${lbl}
+    <input id="${id}" type="${it}" value="${String(v.def||'').replace(/"/g,'&quot;')}" placeholder="${v.ph||''}" style="${WZ_ST}"/></label>`;
+}
+/* ASKED HERE, WHERE YOU ARE ALREADY NAMING THEM, AND NOWHERE ELSE. The
+   templates carry the counterparty's NAME; nothing carried the address, so it
+   was collected later — by a strip in the negotiation room, and again by the
+   share dialog when you pressed Send. Three times for one fact, in one
+   sitting. Once it is on the contract the strip never appears and the send
+   goes straight out. */
+function wzEmailHtml(){
+  return `<label style="display:block;">
+    <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em;">${i18t('wz_their_email')}</span>
+    <input id="wz-cpemail" type="email" placeholder="${(typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'}" style="${WZ_ST}"/></label>`;
+}
+/* THE ANSWER STEP, MOUNTED IN SOMEBODY ELSE'S FRAME. The New agreement
+   pop-up hosts a built-in template's questions in its right-hand card; the
+   boxes, the folder binding, the paper beside them and the two acts are the
+   answer step's own — createFromWizard reads the same ids back, validates the
+   same way and writes the same audit line. Returns the two acts the host's
+   foot presses, and how many boxes were drawn (the card's sub-line). */
+function wizardFormMount(o, tid, prefill){
+  const t=TEMPLATES[tid]; if(!t || !o || !o.host) return null;
+  const vars=(prefill && typeof draftApplyPrefill==='function')
+    ? draftApplyPrefill(templateVars(tid), prefill) : templateVars(tid);
+  o.host.innerHTML=`<div class="field-grid" style="${(typeof FIELD_GRID_CSS==='string'?FIELD_GRID_CSS:'display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--s-3)')};">${vars.map(wzFieldHtml).join('')}${wzEmailHtml()}</div>`;
+  if(typeof bindFolderSelect==='function')
+    vars.filter(v=>v.type==='stream').forEach(v=>{
+      const el=document.getElementById('wz-'+String(v.key).replace(/[:]/g,'_'));
+      if(el) bindFolderSelect(el);
+    });
+  if(o.paperHost && typeof fillPreviewPaneHtml==='function' && typeof fillPreviewWire==='function'){
+    o.paperHost.innerHTML=fillPreviewPaneHtml(vars.filter(v=>!String(v.def||'').trim()).length);
+    const readNow=()=>{ const values={};
+      for(const f of vars){ const el=document.getElementById('wz-'+String(f.key).replace(/[:]/g,'_'));
+        if(el) values[f.key]=String(el.value||'').trim(); }
+      return { tid, vars, values }; };
+    fillPreviewWire(o.root||o.host, 'builtin', readNow);
+  }
+  return { create:()=>createFromWizard(tid, vars), skip:()=>createFromWizard(tid, vars, {skip:true}), count:vars.length+1, vars };
+}
+
+/* ============================================================
+   NEW AGREEMENT — ONE POP-UP, EVERY DOOR (Young, 21 Sep 2026: "you have not
+   implemented pop ups like this", over the artifact's own New agreement
+   pop-up; built to prototype/hati-redesign-reference.html, `kind==='draft'`)
+   ============================================================
+   What the + New agreement button opened before this was a four-row MENU —
+   template, sentence, upload, import — and behind the first row a picker,
+   and behind the picker a form: three screens to reach one Create button. The
+   artifact draws ONE screen: the paper you already have on the left (your
+   company standards as doors, HaTi's as chips), a sentence box above them for
+   Copilot, and the chosen template's own questions in a card on the right,
+   with Create in the foot.
+
+   NOTHING A PERSON COULD PRESS DISAPPEARED — the redesign's one rule:
+   · the four menu rows: template → the doors and chips; describe → the box;
+     upload and import → the quiet pair at the foot of the left pane (Upload
+     also sits beside New agreement on Contracts; Import is a rail door);
+   · the picker's search → the sentence box FILTERS the lists by word as you
+     type, over name, description and value stream (so "sales" still finds
+     everything filed in Sales — the stream folders' browse, by another
+     route); Find asks Copilot the same words;
+   · the admin's line-of-business setting → the select on the HaTi row;
+   · FOR YOU's order → the chips are ordered by forYouPick, its own reading.
+
+   IT MINTS NOTHING OF ITS OWN. The right-hand card is the existing door's
+   own form mounted in this frame: wizardFormMount for a built-in,
+   tplLibNewContract for a company standard, createFromCustomTemplate for a
+   saved template, each returning the acts its own dialog would have bound to
+   its own buttons. Create and Skip here press exactly those, so validation,
+   creation, the audit line and Copilot's arrival read are untouched (f270's
+   rule). The draft-from-a-sentence hand-off lands here through
+   naPickFromDraft instead of opening a second dialog.
+
+   THE PAPER BESIDE THE QUESTIONS (18 Sep 2026) is kept: on a window at or
+   past NA_PAPER_MIN_W the frame widens by a third column between the doors
+   and the card, and the card's own note — the artifact's — says so. Under
+   it the pop-up is the artifact's two columns. THE LINE IS 1600 because the
+   artifact was drawn at 1440 with no paper and its note promises one "on a
+   wide screen": the owner's own laptops (1440, 1536) get the pop-up exactly
+   as drawn, a desktop monitor gets the paper. One number, said out loud. */
+const NA_PAPER_MIN_W = 1600;
+function naUsageCount(kind, id){
+  try{
+    if(kind==='tid') return builtinUsageCount(id);
+    return (typeof templateUsage==='function') ? (templateUsage(id).count||0) : 0;
+  }catch(_){ return 0; }
+}
+/* The word filter: every word of three letters or more, any one of which in
+   the name, the description or the stream's name is a hit. A sentence meant
+   for Copilot ("a two-year NDA with a Swedish packaging supplier") narrows the
+   lists to the NDA and the packaging paper rather than to nothing. */
+function naHit(r, q){
+  const words=String(q||'').toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(w=>w.length>=3);
+  if(!words.length) return true;
+  const hay=`${r.name} ${r.sub} ${r.stream}`.toLowerCase();
+  return words.some(w=>hay.includes(w));
+}
+function naHasWords(q){ return String(q||'').toLowerCase().split(/[^\p{L}\p{N}]+/u).some(w=>w.length>=3); }
+function openNewAgreement(o){
+  o=o||{};
+  if(typeof canEdit==='function' && !canEdit()){ toast(i18t('wz_viewers_no_create'),'err'); return; }
+  const esc=x=>String(x==null?'':x).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+  const tmpls=(typeof myCreatableTemplates==='function')?myCreatableTemplates():[];
+  const mayEdit=(typeof canEdit!=='function')||canEdit();
+  const libOf=()=>(mayEdit && typeof tplLibPublished==='function')?tplLibPublished():[];
+  const mineOf=()=>(mayEdit && typeof customTemplates==='function')?customTemplates():[];
+  if(!tmpls.length && !libOf().length && !mineOf().length){ toast(i18t('wz_no_templates_role'),'err'); return; }
+  const ready=(typeof draftAiReady==='function')&&draftAiReady();
+  const wide=(typeof window!=='undefined') && (window.innerWidth||0)>=NA_PAPER_MIN_W
+    && ((typeof fillPreviewFits!=='function') || fillPreviewFits());
+  const admin=(typeof isAdmin==='function')&&isAdmin();
+  const sName=k=>(k&&typeof FOLDERS==='object'&&FOLDERS[k]&&FOLDERS[k].name)||'';
+  const verOf=t=>'v'+((typeof templateVersionNo==='function')?templateVersionNo(t):1);
+  const rows=()=>[
+    ...libOf().map(t=>({ kind:'lib', id:t.id, name:t.name, sub:t.description||'', stream:sName(t.folder),
+      go:i18t('na_go',{ v:'v'+(t.publishedVersion||1), n:naUsageCount('lib',t.id) }) })),
+    ...mineOf().map(t=>({ kind:'mine', id:t.id, name:t.name, sub:t.description||t.blurb||'', stream:sName(t.folder),
+      go:i18t('na_go',{ v:verOf(t), n:naUsageCount('mine',t.id) }) })),
+    ...forYouPick(tmpls).list.concat(tmpls.filter(t=>!forYouPick(tmpls).list.includes(t)))
+      .map(t=>({ kind:'tid', id:t.id, name:t.kind, sub:t.blurb||'', stream:sName(t.folder) })),
+  ];
+  let sel=null, api=null;
+  const door=r=>`<button type="button" class="na-door${sel&&sel.kind===r.kind&&sel.id===r.id?' on':''}" data-wz-${r.kind}="${esc(r.id)}">
+      <b>${esc(r.name)}</b>${r.sub?`<span>${esc(r.sub)}</span>`:''}<span class="na-go">${esc(r.go)}${r.stream?` · ${esc(r.stream)}`:''}</span></button>`;
+  const chip=r=>`<button type="button" class="na-chip${sel&&sel.kind===r.kind&&sel.id===r.id?' on':''}" data-wz-tid="${esc(r.id)}" title="${esc(r.sub)}">${esc(r.name)}</button>`;
+  const industry=()=>(typeof workspaceIndustry==='function')?workspaceIndustry():'';
+  const lobHtml=()=>admin&&typeof INDUSTRY_TEMPLATES==='object'?`<label class="na-lob">${i18t('wz_line_of_business')}
+        <select id="wz-industry"><option value="">${i18t('wz_not_set')}</option>${
+          Object.keys(INDUSTRY_TEMPLATES).map(k=>`<option value="${k}" ${industry()===k?'selected':''}>${esc(INDUSTRY_LABEL[k])}</option>`).join('')}</select></label>`:'';
+  const listsHtml=q=>{
+    const all=rows(), hits=all.filter(r=>naHit(r,q));
+    const none=naHasWords(q)&&!hits.length;
+    const show=none?all:hits;
+    const sec=(kind,title,draw,cls)=>{ const rs=show.filter(r=>r.kind===kind); if(!rs.length) return '';
+      return `<div class="na-sec"><div class="na-sec-h"><span class="na-sec-label">${title}</span>${kind==='tid'?lobHtml():''}</div><div class="${cls}">${rs.map(draw).join('')}</div></div>`; };
+    return `${none?`<p class="na-none">${i18t(ready?'na_no_match_find':'na_no_match')}</p>`:''}
+      ${sec('lib', i18t('na_company'), door, 'na-doors')}
+      ${sec('mine', i18t('na_saved'), door, 'na-doors')}
+      ${sec('tid', i18t('na_hati'), chip, 'na-chips')}`;
+  };
+  openModal(`<div id="na-root" class="na-root">
+    <div class="na-head"><div><h3>${i18t('na_title')}</h3><div class="na-sub">${i18t('na_sub')}</div></div>
+      <button type="button" id="na-x" class="na-x" aria-label="${esc(i18t('act_cancel'))}" title="${esc(i18t('act_cancel'))}">${icon('x','w-4 h-4')}</button></div>
+    <div id="na-body" class="na-body${wide?' na-wide':''}">
+      <div id="wz-pick" class="na-left">
+        <div class="na-field"><label for="dr-say">${i18t('na_describe')}</label>
+          <div class="na-row"><input id="dr-say" class="na-inp" type="text" maxlength="${(typeof DRAFT_SENTENCE_MAX==='number')?DRAFT_SENTENCE_MAX:2000}" placeholder="${esc(i18t('dr_ph'))}" autocomplete="off"/>
+            <button type="button" id="dr-read" class="ui-btn"${ready?'':` disabled title="${esc(i18t('dr_no_ai'))}"`}>${icon('sparkle','w-3.5 h-3.5')} ${i18t('na_find')}</button></div>
+          <span class="na-hint">${ready?i18t('na_find_hint'):i18t('dr_no_ai')}</span></div>
+        <div id="dr-out"></div>
+        <div id="na-lists">${listsHtml('')}</div>
+        ${''/* THE OTHER TWO WAYS IN, kept: a received document is not drafted
+               from a template, and neither is a back-catalogue. */}
+        <div class="na-more"><span>${i18t('na_received')}</span>
+          <button type="button" id="na-upload" class="ui-btn-plain">${i18t('na_upload')}</button>
+          <span aria-hidden="true">·</span>
+          <button type="button" id="na-import" class="ui-btn-plain">${i18t('na_import')}</button></div>
+      </div>
+      ${wide?`<div id="na-paper" class="na-paper"></div>`:''}
+      <div class="na-card" id="na-card">
+        <div class="na-card-h"><h3 id="na-card-name"></h3><span class="na-card-sub" id="na-card-sub"></span></div>
+        <div class="na-card-b"><div id="na-form"></div>
+          <div class="na-note">${i18t(wide?'na_note_wide':'na_note')}</div></div>
+      </div>
+    </div>
+    <div class="na-foot">
+      <button type="button" id="wz-pick-cancel" class="ui-btn-plain">${i18t('act_cancel')}</button>
+      <span class="na-grow"></span>
+      <button type="button" id="na-skip" class="ui-btn" title="${esc(i18t('lib_create_now_fill_later'))}">${i18t('na_skip')}</button>
+      <button type="button" id="na-create" class="ui-btn ui-btn-primary">${i18t('tl_create_draft')}</button>
+    </div></div>`, { maxWidth: wide?'1240px':'960px', label: i18t('na_title') });
+  /* A STAGE WITHOUT REAL ELEMENTS (a sandbox that only records the markup)
+     stops here: the markup is the whole of what it can read. */
+  const root=document.getElementById('na-root');
+  if(!root || typeof root.querySelector!=='function') return;
+  const lists=()=>document.getElementById('na-lists');
+  const paintLists=()=>{ const l=lists(); if(!l) return;
+    const q=(document.getElementById('dr-say')||{}).value||'';
+    l.innerHTML=listsHtml(q);
+    document.getElementById('wz-industry')?.addEventListener('change',e=>{
+      state.settings=state.settings||{};
+      state.settings.industry=e.target.value||undefined;
+      if(typeof saveSettings==='function') saveSettings();
+      paintLists();
+    });
+  };
+  const light=()=>{ root.querySelectorAll('.na-door.on,.na-chip.on').forEach(b=>b.classList.remove('on'));
+    if(sel){ const b=root.querySelector(`[data-wz-${sel.kind}="${String(sel.id).replace(/["\\]/g,'\\$&')}"]`); if(b) b.classList.add('on'); } };
+  /* THE CARD IS THE CHOSEN DOOR'S OWN FORM. Every branch returns the acts the
+     foot presses; the head prints the version where there is one and how
+     many boxes were drawn. */
+  /* THE CARD'S LABELS ARE THE ARTIFACT'S FIELD LABELS — 12px, label weight,
+     the quiet ink — and carry no "→ where it is filed" arrow (the pop-up diet
+     of 13 Sep names those arrows stale; here the box is 380px wide and the
+     arrow made every label two lines). The three host forms draw their
+     labels through HATI_LBL-style inline declarations, which is the product's
+     rule for a field label, so the card RE-DRESSES them after the mount
+     rather than growing a fourth label renderer: one renderer per door, one
+     dress per frame. The arrow's words survive on the label's hover. */
+  const dress=host=>{
+    host.querySelectorAll('label > span:first-child').forEach(sp=>{
+      const arrow=sp.querySelector('span'); const star=sp.querySelector('span[style*="ruby"]');
+      if(arrow && arrow!==star){ const t=arrow.textContent.replace(/^\s*→\s*/,'').trim(); if(t && !sp.title) sp.title=t; arrow.remove(); }
+      sp.style.cssText='display:block;font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600);margin-bottom:4px;font-family:var(--font-body);letter-spacing:0;text-transform:none';
+    });
+  };
+  const pick=(kind,id,prefill)=>{
+    const host=document.getElementById('na-form'); if(!host) return;
+    const hostOpts={ host, paperHost:document.getElementById('na-paper'), root:document.getElementById('na-body') };
+    sel={kind,id}; api=null; let name='', ver='';
+    if(kind==='tid'){ api=wizardFormMount(hostOpts, id, prefill); const t=TEMPLATES[id]; name=t?t.kind:id; }
+    else if(kind==='lib'){ const t=libOf().find(x=>x.id===id); name=t?t.name:id; ver='v'+((t&&t.publishedVersion)||1);
+      api=(typeof tplLibNewContract==='function')?tplLibNewContract(id, prefill, hostOpts):null; }
+    else { const t=mineOf().find(x=>x.id===id); name=t?t.name:id; ver=t?verOf(t):'';
+      api=(typeof createFromCustomTemplate==='function')?createFromCustomTemplate(id, prefill, hostOpts):null; }
+    const n=api?api.count:0;
+    dress(host);
+    const nm=document.getElementById('na-card-name'), sb=document.getElementById('na-card-sub');
+    if(nm) nm.textContent=name;
+    if(sb) sb.textContent=`${ver?ver+' · ':''}${i18tn('na_questions', n, {n})}`;
+    light();
+  };
+  root._naPick=pick;
+  root.querySelector('#wz-pick')?.addEventListener('click',e=>{
+    const b=e.target.closest('[data-wz-lib],[data-wz-mine],[data-wz-tid]'); if(!b||!root.contains(b)) return;
+    if(b.hasAttribute('data-wz-lib')) pick('lib', b.getAttribute('data-wz-lib'), o.prefill);
+    else if(b.hasAttribute('data-wz-mine')) pick('mine', b.getAttribute('data-wz-mine'), o.prefill);
+    else pick('tid', b.getAttribute('data-wz-tid'), o.prefill);
+  });
+  document.getElementById('wz-pick-cancel')?.addEventListener('click', closeModal);
+  document.getElementById('na-x')?.addEventListener('click', closeModal);
+  document.getElementById('na-create')?.addEventListener('click', ()=>{ if(api) api.create(); else toast(i18t('na_pick_first'),'err'); });
+  document.getElementById('na-skip')?.addEventListener('click', ()=>{ if(api) api.skip(); else toast(i18t('na_pick_first'),'err'); });
+  document.getElementById('na-upload')?.addEventListener('click', ()=>{ closeModal(); if(typeof openUploadModal==='function') openUploadModal(); });
+  document.getElementById('na-import')?.addEventListener('click', ()=>{ closeModal(); if(typeof setView==='function') setView('migration'); });
+  const say=document.getElementById('dr-say'), read=document.getElementById('dr-read');
+  let _t=null;
+  say?.addEventListener('input',()=>{ clearTimeout(_t); _t=setTimeout(paintLists, 120); });
+  say?.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); if(read&&!read.disabled) read.click(); } });
+  if(read && ready) read.addEventListener('click',()=>{ if(typeof draftRead==='function') draftRead(); });
+  paintLists();
+  /* THE CARD IS NEVER EMPTY: the first door is lit on arrival, exactly as the
+     artifact draws it, or the one the caller named. */
+  const first=rows()[0];
+  const want=o.pick&&rows().find(r=>r.kind===o.pick.kind&&String(r.id)===String(o.pick.id));
+  if(want) pick(want.kind, want.id, o.prefill); else if(first) pick(first.kind, first.id, o.prefill);
+  if(o.say && say) say.focus();
+  /* The company standards may still be in flight (the same race the draft
+     dialog closes): repaint the LISTS when they land, never the card. */
+  if(typeof tplLibReady==='function' && typeof tplLibPublished==='function'){
+    const before=libOf().length;
+    tplLibReady().then(()=>{ if(document.getElementById('na-root')===root && libOf().length!==before) paintLists(); }).catch(()=>{});
+  }
+}
+/* The draft-from-a-sentence hand-off lands in the open pop-up: the chosen
+   paper lights and its questions arrive pre-filled in the card. Answers false
+   where no pop-up is open, and draftHandOff then opens the door itself. */
+function naPickFromDraft(pick, prefill){
+  const root=document.getElementById('na-root');
+  if(!root || typeof root._naPick!=='function' || !pick) return false;
+  const kind=pick.kind==='builtin'?'tid':pick.kind;
+  root._naPick(kind, pick.id, prefill);
+  return true;
+}
+
+Object.assign(window,{TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naHit,NA_PAPER_MIN_W});

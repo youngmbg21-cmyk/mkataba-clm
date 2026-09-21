@@ -44,20 +44,20 @@ const HATI_SAMPLES=[
 /* `prefill` is an optional {fieldKey: value} map — see openWizard. It reaches
    BOTH branches below, because a saved template with no blanks still asks the
    contract essentials and those are answers too. */
-function createFromCustomTemplate(tid, prefill){
+function createFromCustomTemplate(tid, prefill, ho){
   if(!canEdit()){ toast(i18t('lib_viewers_no_create'),'err'); return; }
   const t=customTemplates().find(x=>x.id===tid);
   if(!t){ toast(i18t('lib_template_not_found'),'err'); return; }
   // A template with blanks goes through the same guided fill as the built-ins,
   // so the contract arrives with structured data rather than raw text.
   const fs=templateFields(t);
-  if(fs.length){ openTemplateFillModal(t, prefill); return; }
+  if(fs.length) return openTemplateFillModal(t, prefill, ho);
   /* A template with NO blanks used to create silently — same gap the company
      standard path had. The wording needs nothing filled in, but the contract
      record underneath it still does, so the essentials are asked here too.
      Skip creates exactly what pressing Use created before. */
   if(typeof openContractEssentials==='function'){
-    openContractEssentials({
+    return openContractEssentials({ ...(ho||{}),
       title: t.name, blurb: 'This template needs nothing filled into its wording.', values: prefill,
       folder: t.folder || '',
       /* THE PAPER FOR THE PANE (18 Sep 2026). Built by the same call
@@ -68,8 +68,8 @@ function createFromCustomTemplate(tid, prefill){
       onCreate: v => buildFromCustomTemplate(t, {}, { counterpartyEmail: v.cpemail||'', essentials: v }),
       onSkip: () => buildFromCustomTemplate(t, {}),
     });
-    return;
   }
+  if(ho && ho.host) return null;
   buildFromCustomTemplate(t, {});
 }
 /* The actual creation, shared by the guided fill and the no-blanks path. */
@@ -138,7 +138,11 @@ function buildFromCustomTemplate(t, values, opts){
   return c;
 }
 /* Guided fill for a custom template — the same shape as the built-in wizard. */
-function openTemplateFillModal(t, prefill){
+function openTemplateFillModal(t, prefill, ho){
+  /* `ho` — a host (the New agreement pop-up, 21 Sep 2026): {host, paperHost,
+     root}. The boxes, the check and the two acts are built ONCE below and
+     either mounted into ho.host or into this door's own dialog. */
+  ho=ho||null;
   const fs=(prefill && typeof draftApplyPrefill==='function')
     ? draftApplyPrefill(templateFields(t), prefill) : templateFields(t);
   const inp=f=>{ const id='tf-'+f.key;
@@ -150,7 +154,7 @@ function openTemplateFillModal(t, prefill){
     const _mapNote='';
     const _mapTitle=(_map && _map.trim().toLowerCase()!==String(f.label||'').trim().toLowerCase()) ? ` title="${_tplEsc(_map).replace(/"/g,'&quot;')}"` : '';
     const lbl=`<span${_mapTitle} style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${_tplEsc(f.label)}${f.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}${_mapNote}</span>`;
-    const st='width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font:inherit;font-size:var(--t-body);outline:none';
+    const st='width:100%;min-height:var(--field-h,36px);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font:inherit;font-size:var(--t-body);outline:none';
     if(f.type==='select') return `<label style="display:block">${lbl}<select id="${id}" style="${st}">${(f.opts||[]).map(o=>`<option value="${_tplEsc(o).replace(/"/g,'&quot;')}" ${f.def===o?'selected':''}>${_tplEsc(o)}</option>`).join('')}</select></label>`;
     const it=f.type==='date'?'date':(f.type==='num'?'number':'text');
     return `<label style="display:block">${lbl}<input id="${id}" type="${it}" value="${String(f.def||'').replace(/"/g,'&quot;')}" placeholder="${_tplEsc(f.ph||'')}" style="${st}"/></label>`; };
@@ -162,9 +166,7 @@ function openTemplateFillModal(t, prefill){
      is byte-identical to what it was: a preview that squeezes the questions is
      worse than no preview. */
   const _pv = (typeof fillPreviewFits==='function') && fillPreviewFits();
-  openModal(`<div style="padding:20px 22px">
-    <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0 0 3px">${_tplEsc(t.name)}</h3>
-    <div id="tf-cols" style="display:grid;grid-template-columns:${_pv?'minmax(0,1fr) minmax(0,1fr)':'minmax(0,1fr)'};gap:var(--s-4);align-items:start">
+  const fieldsHtml=`
     <div class="field-grid" style="${(typeof FIELD_GRID_CSS==='string'?FIELD_GRID_CSS:'display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--s-3)')}">
       ${''/* OUR SIDE, ASKED HERE TOO. A customer's own template may carry a
              blank of its own mapped to `party`, in which case that one wins —
@@ -174,7 +176,7 @@ function openTemplateFillModal(t, prefill){
              made from a saved template goes on naming the workspace. */}
       <label style="display:block">
         <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${i18t('tf_our_party')}</span>
-        <input id="tf-party" type="text" value="${_tplEsc((typeof FIRST_PARTY!=='undefined'&&FIRST_PARTY)||'').replace(/"/g,'&quot;')}" placeholder="${_tplEsc(i18t('tf_our_party_ph'))}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font:inherit;font-size:var(--t-body);outline:none"/></label>
+        <input id="tf-party" type="text" value="${_tplEsc((typeof FIRST_PARTY!=='undefined'&&FIRST_PARTY)||'').replace(/"/g,'&quot;')}" placeholder="${_tplEsc(i18t('tf_our_party_ph'))}" style="width:100%;min-height:var(--field-h,36px);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font:inherit;font-size:var(--t-body);outline:none"/></label>
       ${fs.map(inp).join('')}
       ${''/* THE SAME QUESTION THE BUILT-IN TEMPLATES ASK, because this is the
              same act. Saved templates create contracts through their own fill
@@ -183,7 +185,7 @@ function openTemplateFillModal(t, prefill){
              the negotiation room, and again by the share dialog. */}
       <label style="display:block">
         <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${i18t('lib_their_email')}</span>
-        <input id="tf-cpemail" type="email" placeholder="${(typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font:inherit;font-size:var(--t-body);outline:none"/></label>
+        <input id="tf-cpemail" type="email" placeholder="${(typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'}" style="width:100%;min-height:var(--field-h,36px);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font:inherit;font-size:var(--t-body);outline:none"/></label>
       ${''/* WHERE IT IS FILED (Young ruled 18 Sep 2026). Hand-written beside
              the other two record facts for the same reason they are: a saved
              template carries its own blanks and none of them is this, so this
@@ -191,12 +193,45 @@ function openTemplateFillModal(t, prefill){
              template's own filing is the answer already in the box. */}
       <label style="display:block">
         <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${i18t('tl_stream')}</span>
-        <select id="tf-folder" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font:inherit;font-size:var(--t-body);outline:none">${
+        <select id="tf-folder" style="width:100%;min-height:var(--field-h,36px);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font:inherit;font-size:var(--t-body);outline:none">${
           (typeof folderOptionsHtml==='function') ? folderOptionsHtml(t.folder||null, false) : ''}</select></label>
-    </div>
+    </div>`;
+  const errHtml=`<div id="tf-err" style="font-size:var(--t-label);color:var(--st-ruby-fg);min-height:15px;margin-top:var(--s-2)"></div>`;
+  const tfFolder=()=>((document.getElementById('tf-folder')||{}).value||'');
+  const readNow=()=>{ const values={};
+    for(const f of fs){ const el=document.getElementById('tf-'+f.key); if(el) values[f.key]=String(el.value||'').trim(); }
+    return { t, values, party:((document.getElementById('tf-party')||{}).value||'') }; };
+  const skip=()=>{ const fo=tfFolder(); closeModal(); buildFromCustomTemplate(t, {}, { folder:fo }); };
+  const create=()=>{
+    const values={}, errs=[];
+    for(const f of fs){ const el=document.getElementById('tf-'+f.key); const raw=el?el.value.trim():'';
+      const e=validateField(f, raw); if(e) errs.push(e); else values[f.key]=raw; }
+    const cpEmail=(document.getElementById('tf-cpemail')||{}).value||'';
+    if(cpEmail.trim() && !/.+@.+\..+/.test(cpEmail.trim()))
+      errs.push(`"${cpEmail.trim()}" is not an email address — leave it blank if you do not have it yet.`);
+    if(errs.length){ const er=document.getElementById('tf-err'); if(er) er.textContent=errs[0]; return false; }
+    const party=((document.getElementById('tf-party')||{}).value||'').trim();
+    const folder=tfFolder();
+    closeModal(); buildFromCustomTemplate(t, values, { counterpartyEmail:cpEmail.trim(), party, folder });
+    return true;
+  };
+  const count=fs.length+3;
+  if(ho && ho.host){
+    ho.host.innerHTML=fieldsHtml+errHtml;
+    if(typeof bindFolderSelect==='function') bindFolderSelect(document.getElementById('tf-folder'));
+    if(ho.paperHost && typeof fillPreviewPaneHtml==='function' && typeof fillPreviewWire==='function'){
+      ho.paperHost.innerHTML=fillPreviewPaneHtml(fs.filter(f=>!String(f.def||'').trim()).length);
+      fillPreviewWire(ho.root||ho.host, 'saved', readNow);
+    }
+    return { create, skip, count };
+  }
+  openModal(`<div style="padding:20px 22px">
+    <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0 0 3px">${_tplEsc(t.name)}</h3>
+    <div id="tf-cols" style="display:grid;grid-template-columns:${_pv?'minmax(0,1fr) minmax(0,1fr)':'minmax(0,1fr)'};gap:var(--s-4);align-items:start">
+    ${fieldsHtml}
     ${_pv?fillPreviewPaneHtml(fs.filter(f=>!String(f.def||'').trim()).length):''}
     </div>
-    <div id="tf-err" style="font-size:var(--t-label);color:var(--st-ruby-fg);min-height:15px;margin-top:var(--s-2)"></div>
+    ${errHtml}
     <div style="display:flex;align-items:center;gap:var(--s-2);margin-top:var(--s-2)">
       <button id="tf-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <span style="flex:1"></span>
@@ -206,29 +241,11 @@ function openTemplateFillModal(t, prefill){
   if(typeof bindFolderSelect==='function') bindFolderSelect(document.getElementById('tf-folder'));
   /* THE ANSWERS AS THEY STAND, read exactly as the Create press reads them, so
      the preview cannot draw a contract the press would not make. */
-  if(_pv && typeof fillPreviewWire==='function'){
-    const readNow=()=>{ const values={};
-      for(const f of fs){ const el=document.getElementById('tf-'+f.key); if(el) values[f.key]=String(el.value||'').trim(); }
-      return { t, values, party:((document.getElementById('tf-party')||{}).value||'') }; };
-    fillPreviewWire(document.getElementById('tf-cols'), 'saved', readNow);
-  }
-  const tfFolder=()=>((document.getElementById('tf-folder')||{}).value||'');
+  if(_pv && typeof fillPreviewWire==='function') fillPreviewWire(document.getElementById('tf-cols'), 'saved', readNow);
   document.getElementById('tf-cancel').addEventListener('click',closeModal);
-  /* Same contract, blanks left blank — an unfilled placeholder is a designed
-     state in the document, not a broken one. */
-  document.getElementById('tf-skip').addEventListener('click',()=>{ const fo=tfFolder(); closeModal(); buildFromCustomTemplate(t, {}, { folder:fo }); });
-  document.getElementById('tf-create').addEventListener('click',()=>{
-    const values={}, errs=[];
-    for(const f of fs){ const el=document.getElementById('tf-'+f.key); const raw=el?el.value.trim():'';
-      const e=validateField(f, raw); if(e) errs.push(e); else values[f.key]=raw; }
-    const cpEmail=(document.getElementById('tf-cpemail')||{}).value||'';
-    if(cpEmail.trim() && !/.+@.+\..+/.test(cpEmail.trim()))
-      errs.push(`"${cpEmail.trim()}" is not an email address — leave it blank if you do not have it yet.`);
-    if(errs.length){ document.getElementById('tf-err').textContent=errs[0]; return; }
-    const party=((document.getElementById('tf-party')||{}).value||'').trim();
-    const folder=tfFolder();
-    closeModal(); buildFromCustomTemplate(t, values, { counterpartyEmail:cpEmail.trim(), party, folder });
-  });
+  document.getElementById('tf-skip').addEventListener('click',skip);
+  document.getElementById('tf-create').addEventListener('click',create);
+  return { create, skip, count };
 }
 
 function saveTemplateRecord(name, folder, text, source, extra){

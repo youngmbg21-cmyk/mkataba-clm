@@ -162,6 +162,13 @@ const draftAiReady = () => !!(typeof API_MODE==='function' && API_MODE() && type
 
 function openDraftFromSentence(){
   if(typeof canEdit==='function' && !canEdit()){ toast(i18t('wz_viewers_no_create'),'err'); return; }
+  /* ---- THE SENTENCE BOX LIVES ON THE NEW AGREEMENT POP-UP (Young, 21 Sep
+     2026) ---- the artifact draws "Or describe what you need" ABOVE the
+     paper you already have, on one screen, with the caret put in it here.
+     The dialog below is kept whole and DORMANT (the Templates overview's own
+     precedent) for a stage that does not carry the pop-up; draftRead,
+     draftOffer and draftNothingFits read the same ids on either screen. */
+  if(typeof openNewAgreement==='function') return openNewAgreement({ say:true });
   const cands=draftCandidates();
   if(!cands.length){ toast(i18t('wz_no_templates_role'),'err'); return; }
   /* Quotes as well, because one of these lands in an ATTRIBUTE. */
@@ -349,6 +356,11 @@ function draftOffer(pick, prefill, why, all){
    each opened pre-filled. Nothing is created here — every one of these ends
    at the same Create button a person reaches by hand. */
 function draftHandOff(pick, prefill){
+  /* THE POP-UP IS THE PICKER NOW (21 Sep 2026): where the New agreement
+     pop-up is open the chosen paper lights on its own screen and its
+     questions arrive pre-filled in the card; nothing closes and nothing
+     opens. Answers false where it is not, and the three doors below stand. */
+  if(typeof naPickFromDraft==='function' && naPickFromDraft(pick, prefill)) return;
   closeModal();
   if(pick.kind==='builtin'){ if(typeof openWizard==='function') openWizard(pick.id, prefill); return; }
   if(pick.kind==='mine'){ if(typeof createFromCustomTemplate==='function') createFromCustomTemplate(pick.id, prefill); return; }

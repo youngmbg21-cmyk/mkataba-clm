@@ -17741,3 +17741,18 @@ Noticed, not fixed:
 - The 16 Aug ruling that the panel's section headings are "black so they are not missed" is reversed by the artifact's micro-caps labels; the change id keeps the page's ink. Said in CLAUDE.md, not re-argued.
 - Where every figure on the scale coincides (the staged contract), five dots sit on one x; only the last drawn is visible. A real clause rarely does this; nothing hides the fact, but nothing says "five readings here" either.
 - The artifact's Ladder press shows As it stands and On the table above the ladder; HaTi's ladder posture (15 Sep) does not. Left as the owner ruled on 15 Sep; wants the owner's word if the artifact is meant to reverse it.
+
+## 21 Sep 2026 — the New agreement pop-up (Young: "you have not implemented pop ups like this")
+
+Built the artifact's New agreement dialog as ONE screen behind every + New agreement button: the sentence box over the paper you have (company standards as doors, saved templates, HaTi's as chips), the chosen template's own questions in a card on the right, Cancel · Skip the questions · Create draft in the foot. The three creation doors gained a host mode and hand their acts back; the pop-up mints nothing. f345 (16 claims), new-agreement-verify (20 checks, driven). Re-pointed in place: N6 (2), f270 (7), f331 (13), form-and-picker-verify 4d/5, term-and-fields-verify 4, draft-from-a-sentence-verify 1/2/4/5/6/7.
+
+Defects found on the way:
+- The card's labels drew in the form's bold heading register with a "→ where it is filed" arrow, two lines each in a 380px card — re-dressed after the mount.
+- n6's sandbox carries no `CSS.escape`; the lit door is found with a hand-written escape.
+
+Noticed, not fixed (each proved red at the parent bf5fefb in a worktree):
+- term-and-fields-verify "every question a template asks has somewhere on its own page to print" — every built-in's `side` question has no home on its paper (since the side question joined the two creation doors on 18 Sep).
+- signers-and-party-verify "the picker offers a read-only link, not only Sign and Negotiate" — the claim expects three purposes and the send screen carries four since Adviser joined it on 18 Sep.
+- paper-beside-questions-verify 7c/7g — the essentials are eight questions now (party, side and stream joined on 17–18 Sep); the claim still says seven.
+- The + button reads "Draft new agreement" where the artifact says "New agreement" — one key (`home_draft_new`), pinned by f240's hint sentence; the owner's call.
+- The company standards are drawn in the server's own list order (newest first); the artifact lists them oldest first.

@@ -170,6 +170,7 @@ const MEASURE = () => {
         ownTop: own.length ? Math.round(own[0].getBoundingClientRect().y) : null,
         forYouTop: forYou.length ? Math.round(forYou[0].getBoundingClientRect().y) : null,
         cancel: !!(cancel && seen(cancel)), cancelText: cancel ? cancel.textContent.trim() : '',
+        say: !!document.getElementById('dr-say'),
         streams: root.querySelectorAll('[data-wz-stream]').length };
     }, undefined, { err: 'blocked' });
     await page.screenshot({ path: path.join(OUT, '04-picker.png') });
@@ -179,9 +180,12 @@ const MEASURE = () => {
     check('4c and it leads, above the paper HaTi ships',
       picker.ownTop != null && picker.forYouTop != null && picker.ownTop < picker.forYouTop,
       `own at y=${picker.ownTop}, HaTi's at y=${picker.forYouTop}`);
-    check('4d CONTROL — the streams and FOR YOU are still there',
-      picker.streams >= 3 && picker.forYouVisible >= 3,
-      `${picker.streams} streams, ${picker.forYouVisible} HaTi cards`);
+    /* RE-POINTED 21 Sep 2026: the picker is the New agreement pop-up now, and
+       the stream FOLDERS are the sentence box's word filter (a stream's name
+       is searched) — so the control asks for FOR YOU's chips and the box. */
+    check('4d CONTROL — the sentence box and FOR YOU are still there',
+      picker.forYouVisible >= 3 && picker.say === true,
+      `${picker.forYouVisible} HaTi cards, box ${picker.say}`);
     check('4e there is a visible way out',
       picker.cancel === true, picker.cancel ? picker.cancelText : 'no Cancel drawn');
 
@@ -208,8 +212,12 @@ const MEASURE = () => {
     check('5a CONTROL — this workspace has drafted from four or more templates',
       usedFive.used >= 4, `${usedFive.used} templates used — below four the old order never bit`);
 
-    /* THE PAINTED ROW, read off the screen: the eyebrow's words and the card
-       names a reader actually sees. */
+    /* THE PAINTED ROW, read off the screen. RE-POINTED 21 Sep 2026: on the
+       New agreement pop-up the HaTi chips carry FOR YOU's order (the first
+       four are its row) and there is NO eyebrow naming the line of business —
+       the artifact draws none, so the heading whose truth 5d/5e measured has
+       nothing left to claim. `cards` is the first four chips; `eyebrow` is
+       kept as '' so the claims below read as what they now are. */
     const lobRead = async lob => {
       await drive(page, k => { try { closeModal(); } catch (_) {}
         state.settings = state.settings || {}; state.settings.industry = k; openWizard(); }, lob, null);
@@ -223,7 +231,7 @@ const MEASURE = () => {
         return { eyebrow: eye ? eye.textContent.replace(/\s+/g, ' ').trim() : '',
           /* The button's OWN text: its first nested span is the icon's
              wrapper and carries no words. */
-          cards: [...pick.querySelectorAll('[data-wz-tid]')].filter(seen)
+          cards: [...pick.querySelectorAll('[data-wz-tid]')].filter(seen).slice(0, 4)
             .map(c => c.textContent.replace(/\s+/g, ' ').trim().slice(0, 60)) };
       }, undefined, { err: 'blocked' });
     };
@@ -240,16 +248,15 @@ const MEASURE = () => {
     /* A CONTROL, and it passes at the parent BECAUSE of the fault: the old
        heading named the setting whatever the cards were. 5e is the claim
        that the name is TRUE. */
-    check('5d CONTROL — the heading still names a line of business at all',
-      drawn.length === 4 && drawn.every(r => /·/.test(r.eyebrow)),
-      drawn.map(r => r.eyebrow).join(' | '));
+    check('5d CONTROL — no heading claims a line of business the row does not carry (none is drawn)',
+      drawn.length === 4 && drawn.every(r => r.eyebrow === ''),
+      drawn.map(r => r.eyebrow || '(none)').join(' | '));
     /* THE HEADING'S CLAIM IS CHECKED AGAINST THE CARDS, never taken on
        trust: on the parent it named retail over four cards with no retail
        paper on them. */
     const retail = rows.retail || {};
     check('5e retail really puts retail paper on the row',
-      !retail.err && /retail/i.test(retail.eyebrow || '')
-        && (retail.cards || []).some(n => /Retail Listing|Distributor/i.test(n)),
+      !retail.err && (retail.cards || []).some(n => /Retail Listing|Distributor/i.test(n)),
       `${retail.eyebrow} → ${(retail.cards || []).join(' · ')}`);
     check('5f and what this workspace actually drafts still leads',
       !retail.err && /NDA|Raw Material/i.test((retail.cards || [])[0] || ''),

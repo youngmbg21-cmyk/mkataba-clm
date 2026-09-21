@@ -1102,6 +1102,14 @@ function renderNewMenu(){
    trigger — a caller that only unhides it inherits wherever the previous
    opener left it (which for a first open is the viewport's far left). */
 function openNewMenu(anchor){
+  /* ---- THE + BUTTON OPENS THE NEW AGREEMENT POP-UP (Young, 21 Sep 2026:
+     "you have not implemented pop ups like this") ----
+     One screen instead of a menu, a picker and a form: the paper you have on
+     the left, the chosen template's questions on the right, Create in the
+     foot — see openNewAgreement in js/wizard.js, where the four rows of this
+     menu are accounted for one by one. The menu below is kept whole for a
+     stage without that file, and renderNewMenu with it. */
+  if(window.openNewAgreement){ openNewAgreement(); return; }
   const nm=document.getElementById('new-menu'); if(!nm) return;
   renderNewMenu();
   const el=(anchor&&anchor.getBoundingClientRect)?anchor:document.querySelector('[data-page-new]');
@@ -2828,6 +2836,8 @@ function wireShell(){
     const nb=e.target.closest?.('[data-page-new]');
     if(nb){
       e.stopPropagation();
+      /* The pop-up, not the menu — see openNewMenu. */
+      if(window.openNewAgreement){ openNewAgreement(); return; }
       if(nm.classList.contains('hidden')){
         renderNewMenu();
         // Anchored under its trigger and clamped to the viewport, because the

@@ -77,18 +77,24 @@ describe('N6 (2) — the doorway itself', () => {
   /* ---- CLAIMS UPDATED IN PLACE, 15 Aug 2026 (OI-11) ----
      The flat grid and its "All templates (12)" fold are gone: the picker opens
      on the VALUE STREAMS now, and you reach a template by choosing a stream.
-     Reported with three templates called "Momo Beach" on one screen and nothing
-     to browse by. What N6 was really pinning survives and is asserted below —
-     For you still leads, search is still in the doorway and still looks across
-     everything, and a company standard is still reachable in one press from the
-     front screen. */
-  test('the picker leads with For you, then search, then the streams', () => {
+     ---- AND AGAIN, 21 Sep 2026 (the New agreement pop-up) ----
+     openWizard() with no template named opens the artifact's own pop-up: the
+     sentence box (which also FILTERS the lists by word, name, description and
+     stream — the browse-by-stream route, by another door), the company
+     standards as doors, HaTi's paper as chips in FOR YOU's own order, and the
+     chosen template's questions in a card. What N6 was really pinning survives
+     and is asserted below against that screen. The streams screen is kept
+     whole and dormant in js/wizard.js. */
+  test('the doorway leads with the sentence box, then your own paper, then HaTi\'s in For you\'s order', () => {
     const { sb, modals } = stage();
     sb.openWizard();
     const html = modals[0];
-    assert.match(html, /For you/);
-    assert.match(html, /id="wz-search"/);
-    assert.match(html, /data-wz-stream=/, 'the streams are the browse step');
+    assert.match(html, /id="wz-pick"/, 'the picker pane');
+    assert.match(html, /id="dr-say"/, 'the sentence box is the search route');
+    const say = html.indexOf('id="dr-say"'), chips = html.indexOf('data-wz-tid=');
+    assert.ok(say > 0 && chips > say, 'the box sits above the paper');
+    const first = /data-wz-tid="([A-Z]+)"/.exec(html)[1];
+    assert.equal(first, sb.forYouPick(tmpls()).list[0].id, 'the chips open in For you\'s own order');
     assert.ok(!/All templates \(/.test(html), 'and the flat fold is gone');
   });
 
@@ -96,19 +102,18 @@ describe('N6 (2) — the doorway itself', () => {
     const { sb, modals } = stage({ tplLibPublished: () =>
       [{ id: 'L1', name: 'Wanjiru Standard MSA', publishedVersion: 3, folder: 'corp' }] });
     sb.openWizard();
-    /* On the streams screen it is COUNTED rather than listed; searching for it
-       finds it without leaving that screen, which is the route the flat grid
-       used to serve. */
-    assert.match(modals[0], /data-wz-stream="corp"/, 'its stream is on the front screen');
-    assert.match(modals[0], /id="wz-search"/, 'and the name route is still there');
+    assert.match(modals[0], /data-wz-lib="L1"/, 'a door of its own on the front screen');
+    assert.match(modals[0], /Wanjiru Standard MSA/);
+    assert.match(modals[0], /v3 · used 0×[^<]*Corporate &amp; Compliance/, 'its version, its use and its stream on the door');
   });
 
-  test('a standard with no stream on it lands in Other, not nowhere', () => {
+  test('a standard with no stream on it still has a door, and no stream is guessed for it', () => {
     const { sb, modals } = stage({ tplLibPublished: () =>
       [{ id: 'L2', name: 'Account Opening Form', publishedVersion: 1 }] });
     sb.openWizard();
-    assert.match(modals[0], /data-wz-stream="__wz_other__"/,
-      'the unfiled have a home rather than a guessed stream');
+    assert.match(modals[0], /data-wz-lib="L2"/, 'the unfiled have a door rather than nowhere');
+    const door = /<button[^>]*data-wz-lib="L2"[\s\S]*?<\/button>/.exec(modals[0])[0];
+    assert.ok(!/Procurement|Sales|Corporate/.test(door), 'and no stream word is invented for it');
   });
 
   test('the line-of-business question is asked in the doorway, admins only', () => {

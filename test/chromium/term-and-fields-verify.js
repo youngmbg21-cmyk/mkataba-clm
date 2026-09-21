@@ -223,7 +223,7 @@ const check = (name, pass, detail) => {
       const set = (id, v) => { const e = document.getElementById(id);
         if (e) { e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); } };
       set('wz-counterparty', 'Sofia Alegra Ten'); set('wz-effDate', '2026-08-09');
-      document.getElementById('wz-create').click();
+      (document.getElementById('wz-create') || document.getElementById('na-create')).click(); /* the pop-up's foot, 21 Sep 2026 */
     });
     await page.waitForTimeout(1800);
     const filled = await page.evaluate(() => state.activeId);
@@ -292,7 +292,8 @@ const check = (name, pass, detail) => {
       if (other) { sel.value = other; sel.dispatchEvent(new Event('change', { bubbles: true })); }
       const cp = document.getElementById('wz-counterparty');
       if (cp) cp.value = 'Stream Test Ltd';
-      const go = document.getElementById('wz-create');
+      /* The pop-up's foot presses the same act (21 Sep 2026). */
+      const go = document.getElementById('wz-create') || document.getElementById('na-create');
       if (go) go.click();
       await new Promise(r => setTimeout(r, 400));
       const c = state.contracts.find(x => x && x.counterparty === 'Stream Test Ltd');
