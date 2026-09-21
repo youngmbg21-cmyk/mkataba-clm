@@ -77,10 +77,26 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     });
     /* RE-POINTED 20 Sep 2026 (the redesign, DECIDE 4): the dark 44px bar is
        gone. The bar is 48px, LIGHT — the surface token, with the primary ink on
-       it — and the brand ground moved onto the mark at the top of the column. */
-    check('1 the bar is 48px and carries the light ground',
-      shell.bar.h === 48 && shell.bar.bg === 'rgb(255, 255, 255)' && shell.bar.ink !== 'rgb(255, 255, 255)',
-      `${shell.bar.h}px · ${shell.bar.bg} · ink ${shell.bar.ink}`);
+       it — and the brand ground moved onto the mark at the top of the column.
+       ---- REVERSED IN PLACE 21 Sep 2026 (Young: "make it the color of the
+       color mode the user chooses, Green on blue") ---- the height and the
+       white COLUMN half of DECIDE 4 stand; the bar's own white half does not.
+       AND THE CLAIM IS NOW A RELATION, never a colour: the bar is painted in
+       --nav-bg, the workspace's own brand ground, so it FOLLOWS the brand
+       rather than naming one — asserted by resolving that token live and
+       requiring the bar to equal it, which is what stops a later palette pass
+       moving one and not the other. The ink is white over it. */
+    const barGround = await page.evaluate(() => {
+      const probe = document.createElement('span');
+      probe.style.cssText = 'position:absolute;left:-9999px;background:var(--nav-bg)';
+      document.body.appendChild(probe);
+      const bg = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+      return bg;
+    });
+    check('1 the bar is 48px and carries the WORKSPACE\'S OWN brand ground',
+      shell.bar.h === 48 && shell.bar.bg === barGround && shell.bar.ink === 'rgb(255, 255, 255)',
+      `${shell.bar.h}px · bar ${shell.bar.bg} · --nav-bg ${barGround} · ink ${shell.bar.ink}`);
     /* REVISED 25 Aug 2026. This ran at 1440 and asserted the column rests OPEN
        at 240. That was true while the float line sat at 1280, which put 1440
        above it — and the owner reported the shove back on a ThinkPad, so the

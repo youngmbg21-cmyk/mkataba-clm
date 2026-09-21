@@ -7238,30 +7238,82 @@
      DECIDE 4 of the order: the dark 44px bar is gone. One white column runs
      floor to ceiling with the mark at its top; the bar is 48px, light, in the
      page column, and keeps every control it had — search, language, brand
-     swatches, light/dark, Copilot, alerts, activity, avatar, sign-out. */
-  #top-header .hdr-icon-btn{width:30px;height:30px;color:var(--color-neutral-500);}
-  #top-header .hdr-icon-btn:hover{background:var(--surface-2);color:var(--color-text);}
-  #top-header .sh-div{background:var(--color-divider);}
-  #top-header #shell-title{font-weight:var(--w-strong);color:var(--color-text);font-size:var(--t-body);}
+     swatches, light/dark, Copilot, alerts, activity, avatar, sign-out.
+
+     ---- AND THE BAR IS THE WORKSPACE'S COLOUR AGAIN (Young ruled 21 Sep 2026)
+     ---- "make it the color of the color mode the user chooses, Green on blue.
+     Adjust the rest of the features to fit in without disappearing in the
+     background." So DECIDE 4's white half is REVERSED and its other half
+     stands: the rail still runs floor to ceiling in white with the mark at its
+     top, the bar is still 48px in the page column, and it still keeps every
+     control it had — only its GROUND and its INK moved. The geometry below is
+     the redesign's own (30px controls, 28px avatar, the 4px corner); what
+     changed is every colour, and none of them is a literal.
+
+     FIVE TOKENS, DECLARED ON THE BAR AND READ BY EVERY RULE UNDER IT, because
+     "adjust the rest so they do not disappear" is a ladder rather than a list:
+     a control that carries a word takes --bar-ink, one that is furniture takes
+     --bar-ink-2, an edge takes --bar-line, an inset well --bar-well and a
+     hover --bar-hover. A sixth colour on this bar would be a sixth decision
+     nobody made. They are WHITE AT AN ALPHA over the brand ground, so the
+     green workspace, the navy one and the dark theme each compose their own
+     and no rule here names a colour twice. MEASURED on both brands: the quiet
+     ink composes to about 9.8:1 and the strong ink is white. */
+  #top-header{
+    --bar-ink:#fff;
+    --bar-ink-2:rgba(255,255,255,.82);
+    --bar-line:rgba(255,255,255,.22);
+    --bar-well:rgba(255,255,255,.10);
+    --bar-hover:rgba(255,255,255,.15);
+  }
+  #top-header .hdr-icon-btn{width:30px;height:30px;color:var(--bar-ink-2);border-radius:var(--radius);}
+  #top-header .hdr-icon-btn:hover{background:var(--bar-hover);color:var(--bar-ink);}
+  #top-header .sh-div{background:var(--bar-line);}
+  #top-header #shell-title{font-weight:var(--w-strong);color:var(--bar-ink);font-size:var(--t-body);}
+  #top-header #brand-block,#top-header #brand-wordmark{color:var(--bar-ink);}
   #top-header #brand-block{display:none;}
   @media (max-width:899px){ #top-header #brand-block{display:flex;} }
-  #top-header .cmd-search{height:30px;background:var(--surface-2);border:1px solid var(--color-divider);color:var(--color-neutral-500);border-radius:var(--radius);}
-  #top-header .cmd-search:hover{border-color:var(--rule-strong);}
-  #top-header .cmd-search:focus-within{border-color:var(--accent-solid);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent-solid) 18%,transparent);background:var(--color-surface);}
-  #top-header .cmd-search input{color:var(--color-text);}
-  #top-header .cmd-search input::placeholder{color:var(--color-neutral-400);}
-  #top-header #cmd-k-hint{border-color:var(--rule-strong);color:var(--color-neutral-500);background:var(--color-surface);}
-  #top-header #cmd-k-hint:hover{background:var(--surface-2);}
-  #top-header .sh-grp{border-color:var(--color-divider);border-radius:var(--radius);overflow:hidden;height:30px;}
-  #top-header .sh-grp > *{height:28px;color:var(--color-neutral-600);}
-  #top-header .sh-grp > *:focus-visible{outline:2px solid var(--accent-solid);}
-  #top-header .sh-grp button:hover{background:var(--surface-2);}
-  #top-header .sh-grp button[aria-pressed="true"]{background:var(--surface-2);color:var(--color-text);font-weight:var(--w-strong);box-shadow:none;}
-  #top-header .sh-sw[aria-pressed="true"] i{box-shadow:inset 0 0 0 2px var(--color-surface),inset 0 0 0 4px var(--accent-solid);}
-  #top-header #side-avatar{width:28px;height:28px;border:1px solid var(--color-divider);background:var(--color-accent-100);color:var(--accent-ink);}
-  html.dark #top-header #side-avatar{background:color-mix(in srgb,var(--accent-solid) 22%,transparent);}
-  #top-header #rail-avatar:hover #side-avatar{background:var(--color-accent-200);}
-  html.dark #top-header #rail-avatar:hover #side-avatar{background:color-mix(in srgb,var(--accent-solid) 34%,transparent);}
+  #top-header .cmd-search{height:30px;background:var(--bar-well);border:1px solid var(--bar-line);color:var(--bar-ink-2);border-radius:var(--radius);}
+  #top-header .cmd-search:hover{border-color:rgba(255,255,255,.4);}
+  /* The focus ring is WHITE here, not the accent: the accent ramp is the
+     ground this bar is painted in, so an accent ring on it is a ring nobody
+     can see — the one rule this reversal could not simply re-token. */
+  #top-header .cmd-search:focus-within{border-color:rgba(255,255,255,.6);box-shadow:0 0 0 2px rgba(255,255,255,.22);background:rgba(255,255,255,.16);}
+  #top-header .cmd-search input{color:var(--bar-ink);}
+  #top-header .cmd-search input::placeholder{color:var(--bar-ink-2);}
+  #top-header #cmd-k-hint{border-color:var(--bar-line);color:var(--bar-ink-2);background:var(--bar-well);}
+  #top-header #cmd-k-hint:hover{background:var(--bar-hover);color:var(--bar-ink);}
+  #top-header .sh-grp{border-color:var(--bar-line);border-radius:var(--radius);overflow:hidden;height:30px;}
+  #top-header .sh-grp > *{height:28px;color:var(--bar-ink-2);}
+  #top-header .sh-grp > *:focus-visible{outline:2px solid #fff;outline-offset:-2px;}
+  #top-header .sh-grp button:hover{background:var(--bar-hover);color:var(--bar-ink);}
+  #top-header .sh-grp button[aria-pressed="true"]{background:rgba(255,255,255,.2);color:var(--bar-ink);font-weight:var(--w-strong);box-shadow:none;}
+  /* The language switch carries its own class and its own pressed fill (an
+     accent one), which on this ground would be the bar's colour on the bar. It
+     reads the group's answer here and nowhere else — the same control still
+     sits in the nav drawer under 900px on a white ground and is untouched. */
+  #top-header .lang-btn{color:var(--bar-ink-2);}
+  #top-header .lang-btn:hover{color:var(--bar-ink);}
+  #top-header .lang-btn[aria-pressed="true"]{background:rgba(255,255,255,.2);color:var(--bar-ink);box-shadow:none;}
+  #top-header .lang-btn:focus-visible{outline:2px solid #fff;outline-offset:-2px;}
+  /* The lit swatch's ring is drawn in the GROUND it sits on, so it reads as a
+     gap round the colour rather than as a second colour beside it. */
+  #top-header .sh-sw[aria-pressed="true"] i{box-shadow:inset 0 0 0 2px var(--nav-bg),inset 0 0 0 4px rgba(255,255,255,.92);}
+  #top-header #side-avatar{width:28px;height:28px;border:1px solid var(--bar-line);background:var(--bar-well);color:var(--bar-ink);}
+  html.dark #top-header #side-avatar{background:var(--bar-well);}
+  #top-header #rail-avatar:hover #side-avatar{background:var(--bar-hover);}
+  html.dark #top-header #rail-avatar:hover #side-avatar{background:var(--bar-hover);}
+  #top-header #rail-avatar:focus-visible,#top-header .hdr-icon-btn:focus-visible{outline:2px solid #fff;outline-offset:-2px;}
+  /* THE CRUMB IS IN THIS BAR, so it takes this bar's ink. Its three parts keep
+     the relation they had on white — the separator quietest, the door quiet,
+     where you are strong — written at the bar's own scope so the rules above
+     (which the head's own crumb also reads) are left exactly as they are. */
+  #top-header #shell-title .crumb-sep{color:rgba(255,255,255,.55);}
+  #top-header #shell-title .crumb-door,
+  #top-header #shell-title .room-crumb-back.in-crumb{color:var(--bar-ink-2);}
+  #top-header #shell-title .crumb-door:hover,
+  #top-header #shell-title .room-crumb-back.in-crumb:hover{color:var(--bar-ink);}
+  #top-header #shell-title .crumb-here{color:var(--bar-ink);}
 
   /* THE SECONDARY BUTTON IS THE REFERENCE'S: a white face, the design's own
      hairline, the page ink at label weight (`.btn{border:1px solid
@@ -7519,7 +7571,17 @@
        the fact a reader actually needs and which nothing in the shell stated
        before. The profile's name-and-role text went the same way — the avatar
        carries the initials and names the person on its hover. -->
-  <header id="top-header" style="grid-column:2;grid-row:1;display:flex;align-items:center;gap:var(--s-2);padding:0 var(--s-3) 0 20px;background:var(--color-surface);color:var(--color-text);border-bottom:1px solid var(--color-divider);min-width:0;">
+  <!-- ---- THE BAR WEARS THE WORKSPACE'S OWN COLOUR (Young ruled 21 Sep 2026:
+       "make it the color of the color mode the user chooses, Green on blue")
+       ---- and the token it reads is --nav-bg, which is exactly what this bar
+       wore before the redesign made it white: the deep brand ground, #093733
+       on the green workspace and #0F2648 on the navy one, with its own darker
+       answer under the dark theme. ONE TOKEN, so a workspace that switches
+       brand switches this bar with it and nothing here names a colour.
+       The ground is stated HERE, on the element, because an inline style is
+       what the rest of this bar's geometry is stated in and a stylesheet rule
+       could not have reached past it. -->
+  <header id="top-header" style="grid-column:2;grid-row:1;display:flex;align-items:center;gap:var(--s-2);padding:0 var(--s-3) 0 20px;background:var(--nav-bg);color:var(--bar-ink);border-bottom:1px solid var(--nav-line);min-width:0;">
 
     <button id="nav-toggle" class="hdr-icon-btn" title="Menu" data-i18n-title="sh_menu" aria-label="Open navigation" data-i18n-aria="sh_open_nav" aria-expanded="false" style="display:none;flex:none;">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><use href="#i-grid"/></svg>

@@ -87,8 +87,22 @@ const SWEEP = KNOWN => {
   const parse = s => { const m = String(s).match(/rgba?\(([^)]+)\)/); if (!m) return null;
     const n = m[1].split(/[,\s\/]+/).filter(Boolean).map(Number);
     return [n[0], n[1], n[2], n.length > 3 ? n[3] : 1]; };
-  const over = (fg, bg) => { const a = fg[3];
-    return [fg[0] * a + bg[0] * (1 - a), fg[1] * a + bg[1] * (1 - a), fg[2] * a + bg[2] * (1 - a), 1]; };
+  /* ---- THE INSTRUMENT WAS WRONG ABOUT TWO TRANSLUCENT LAYERS (21 Sep 2026)
+     ---- this forced the RESULT's alpha to 1, so compositing 10% white over
+     10% white answered OPAQUE WHITE and the walk below stopped there. It never
+     bit while nothing in the app stacked two translucent layers of one colour;
+     the shell bar's well inside its own search box is exactly that, and the
+     probe reported the ⌘K chip as white-on-white at 1:1 on a bar that
+     measures 5.4:1. Source-over composites the ALPHA too — aOut = aFg +
+     aBg(1−aFg) — and divides the colour back out by it. Over an opaque
+     ground (aBg = 1) this is the identical arithmetic to what was here, so
+     every reading this file has ever taken is unchanged. */
+  const over = (fg, bg) => { const a = fg[3], ba = bg[3] === undefined ? 1 : bg[3];
+    const o = a + ba * (1 - a);
+    if (o <= 0) return [0, 0, 0, 0];
+    return [(fg[0] * a + bg[0] * ba * (1 - a)) / o,
+            (fg[1] * a + bg[1] * ba * (1 - a)) / o,
+            (fg[2] * a + bg[2] * ba * (1 - a)) / o, o]; };
   const ratio = (a, b) => { const x = lum(a), y = lum(b);
     return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
   /* Composite upward. An element with a translucent background sits on

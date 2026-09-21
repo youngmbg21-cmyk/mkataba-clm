@@ -17821,3 +17821,58 @@ flat-rows 5b/5c, f184 (three claims), f261 (2).
   bar's already narrows it — one door), the reference's own quick-filter tab
   set and its Round / Open asks / Last move / Owner columns on Negotiations
   (HaTi's own carry different facts).
+
+## 21 Sep 2026 — the shell bar wears the workspace's colour (Young: "The top highlighted bar, make it the color of the color mode the user chooses, Green on blue. Adjust the rest of the features to fit in without disappearing in the background")
+
+The redesign's DECIDE 4 had made this bar white. It is the brand ground again —
+--nav-bg, the exact token it wore before that, so green is #093733, navy is
+#0F2648 and the dark theme has its own. Nothing here names a colour: change
+the workspace's brand and the bar changes with it.
+
+The second half of the ask is the work. FIVE TOKENS declared on the bar and
+read by every rule under it: --bar-ink for a control that carries a word,
+--bar-ink-2 for furniture, --bar-line for an edge, --bar-well for an inset and
+--bar-hover. They are white at an alpha over the brand ground, so each brand
+and the dark theme compose their own. Measured on a real page, every control
+in the bar is re-inked: the page title, the crumb and its separator, the
+search box and its placeholder, the Cmd-K chip, the language pair, the two
+brand swatches and their lit ring, the theme word, Copilot, alerts, activity,
+the avatar disc, sign-out, the divider, the menu toggle and the wordmark that
+comes back under 900px. The focus ring is white here and not the accent — the
+accent ramp IS this ground, so an accent ring on it is a ring nobody sees.
+
+Measured after: at 1600, 1440, 1200, 1024, 900, 880 and 768 nothing in the bar
+paints a dark ink on the dark ground, and below 768 the phone shell hides the
+bar entirely. contrast-verify is 31/33, the same two screens as the parent.
+
+### Found on the way, and fixed because it is the net for this change
+contrast-verify's compositor forced the RESULT's alpha to 1, so 10% white over
+10% white composed to OPAQUE WHITE and the upward walk stopped there. It
+reported the Cmd-K chip as white-on-white at 1:1 on a bar that measures
+5.55:1. Source-over composites the alpha too; over an opaque ground the
+arithmetic is identical to what was there, so no reading this file has ever
+taken moves. It never bit before because nothing in the app stacked two
+translucent layers of one colour.
+
+### The colour census
+THE CENSUS IS NOT REPRODUCIBLE, and that was measured rather than assumed:
+re-recording it at the unmodified parent differs from the committed baseline
+on SIX screens — calendar, templates and negotiate in both themes — over seven
+values painted by `.ngl-empty`'s shadow, `#cal-open-reg` and `#rail-user-av`,
+none of them in this bar. So the baseline was NOT re-recorded from a fresh
+sweep. My own difference was computed as my census against the PARENT'S
+census taken in the same conditions, and only that was applied to the
+committed file: nine values arrive or leave, every one of them the bar's.
+The seven flaky lines were restored by hand. The check reads 34/40 here and
+34/40 at the parent, the same six screens.
+
+### Noticed, not fixed (each proved red at the parent c25b2bc in a worktree)
+- theme-tokens-verify's six flaky screens, above.
+- contrast-verify: the calendar's lit view segment draws its count at 1.73:1
+  in light and 4.31:1 in dark.
+- type-and-symbols-verify: nine symbols painted 13x13 where the sheet asks for
+  another size.
+- The rail head stays white while the bar beside it is coloured, so the shell's
+  top-left corner is a white notch against the band. The owner's highlight
+  covered the bar alone, so the rail was left exactly as it is; colouring its
+  head to match is one rule if that is wanted.
