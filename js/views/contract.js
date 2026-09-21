@@ -11850,6 +11850,7 @@ function signRowTitle(c,r){
   switch(r.kind){
     case 'standard': return r.category||t('sc_a_standard');
     case 'brief': return t(r.never?'sc_brief_never':(r.truncated?'sc_brief_cut':'sc_brief_stale'));
+    case 'brief-read': return t(r.settled?'sc_brief_read_done':'sc_brief_read');
     case 'standards-read': return t(r.stale?'sc_std_stale':'sc_std_unread');
     case 'obligations': return t(r.never?'sc_ob_unread':'sc_ob_head');
     case 'record': return i18t('sc_rec_head',{field:t('sc_f_'+r.field)});
@@ -11932,6 +11933,17 @@ function signCheckCardHtml(c){
       case 'brief':
         why=i18t(r.never?'sc_brief_never_w':(r.truncated?'sc_brief_cut_w':'sc_brief_stale_w'));
         acts.push(`<button type="button" data-sc-brief="1">${esc(i18t('sc_brief_btn'))}</button>`); break;
+      /* ---- THE LAST THING BEFORE THE SIGNATURE (Young ruled 21 Sep 2026) ----
+         The brief stands and is current; what is owed is having read it. The
+         verb is the OVERVIEW CARD'S OWN — `data-kt-brief="open"`, which
+         wireKtBriefCard binds wherever it appears — so this row and that card
+         cannot drift about what opening a brief means, and the panel that
+         opens is the same panel with the same "I have read this" in its foot. */
+      case 'brief-read':
+        if(r.settled) why=i18t('sc_brief_read_by',{who:(r.read&&r.read.by)||i18t('sc_somebody'),when:day(r.read&&r.read.at)});
+        else { why=i18t('sc_brief_read_w');
+          acts.push(`<button type="button" data-kt-brief="open">${esc(i18t('br_open'))}</button>`); }
+        break;
       case 'standards-read':
         why=i18t('sc_std_read_w'); acts.push(`<button type="button" data-sc-run="1">${esc(i18t('sc_run'))}</button>`); break;
       case 'obligations':
@@ -12030,11 +12042,23 @@ function signCheckCardHtml(c){
        readings" is a button describing nothing. NOT FILLED: one filled button
        per screen, and on this screen that is Sign. */
     const willN=(window.signCheckWillRun&&rc&&rc.ready)?signCheckWillRun(rc).n:0;
+    /* THE BRIEF IS THE LAST STAGE'S OWN ACT, drawn in EVERY state — *Write the
+       brief* where there is none or the wording has moved under it, *Open the
+       brief* where one stands. A press in the second state SPENDS NOTHING; it
+       opens the panel, because charging for a brief already written and
+       already current would be a toll on reading. */
+    const briefStands=!!(rc&&rc.ready&&window.signCheckBriefStands&&signCheckBriefStands(c,rc.brief));
     const act=(st==='read'&&rc&&rc.ready)
       ? `<button type="button" class="sc-stage-act" id="sc-run" data-sc-run="1"${busy||rc.waiting?' disabled':''}
           title="${esc(i18t(rc.waiting?'sc_wait_nego':'sc_run_title'))}"><svg class="sc-run-i" width="14" height="14"
           viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-search"/></svg>${
           esc(busy?i18t('sc_running'):(willN?i18tn('sc_run_n',willN,{n:willN}):i18t('sc_run')))}</button>`
+      : (st==='sign'&&rc&&rc.ready)
+      ? `<button type="button" class="sc-stage-act sc-brief" id="sc-brief"
+          data-kt-brief="${briefStands?'open':'run'}"${busy||rc.waiting?' disabled':''}
+          title="${esc(i18t(rc.waiting?'sc_wait_nego':(briefStands?'br_open':'sc_brief_title')))}"><svg class="sc-run-i"
+          width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-file"/></svg>${
+          esc(i18t(briefStands?'br_open':'br_write'))}</button>`
       : '';
     return `<div class="sc-stage" data-sc-stage="${esc(st)}">
       <div class="sc-stage-h"><span class="sc-stage-t">${esc(i18t('sc_stage_'+st))}</span>${act}</div>
@@ -12088,23 +12112,18 @@ function signCheckCardHtml(c){
      THE HOLD IS NOT WIDENED to a brief that is current and merely unread —
      that would re-spend on every signature of an already-briefed contract, and
      it is the one half of this the owner has not ruled on. Said out loud. */
-  const brief=(rc&&rc.ready&&rc.brief)?rc.brief:null;
-  const briefStands=!!(brief&&!brief.none&&brief.stale===false&&!brief.truncated);
-  const runCtl=brief
-    ? `<button type="button" class="sc-stage-act sc-brief" id="sc-brief"
-        data-kt-brief="${briefStands?'open':'run'}"${busy||rc.waiting?' disabled':''}
-        title="${esc(i18t(rc.waiting?'sc_wait_nego':(briefStands?'br_open':'sc_brief_title')))}"><svg class="sc-run-i"
-        width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-file"/></svg>${
-        esc(i18t(briefStands?'br_open':'br_write'))}</button>`
-    /* THE MARK IS A SPRITE SYMBOL THAT EXISTS. `readpaper` is a key in the
-       ICONS map, which is a DIFFERENT mechanism — written as `#i-readpaper`
-       here it would resolve to nothing and `<use>` paints an empty box in
-       silence, which is this file's own recorded fault. `#i-file` is the
-       sprite's paper, beside the Run control's own magnifier. */
-    : '';
+  /* ---- AND ON THE SAME DAY IT LEFT THE HEAD (Young ruled 21 Sep 2026) ----
+     *"write brief should be the last button clicked … It should not be the
+     first button in the signing page but last and mandatory."* Everything
+     above is why the control exists and is kept; what changed is WHERE it is
+     and what it costs to skip. It is the `sign` stage's own act now — first
+     button on the card became last thing before the signature — and reading
+     it HOLDS, which is what "mandatory" means here. #sc-brief keeps its id on
+     that button, so every wiring and every test reaching for it is untouched.
+     THE HEAD DRAWS NO CONTROL: it carried this one and nothing else. */
   return `<section id="sign-check" class="kt-tri sc-ready${busy?' is-busy':''}">
     <div class="kt-tri-head">
-      <span class="kt-tri-t">${esc(i18t(busy?'sc_head_busy':'sc_ready_head'))}${counts?` <span class="sc-counts">${esc(counts)}</span>`:''}</span>${runCtl}
+      <span class="kt-tri-t">${esc(i18t(busy?'sc_head_busy':'sc_ready_head'))}${counts?` <span class="sc-counts">${esc(counts)}</span>`:''}</span>
     </div>
     ${openRows||settledRows?`<div class="sc-finds">${openRows}${settledRows}</div>`
       :`<div class="sc-find-w sc-clear">${esc(i18t('sc_head_clear'))}</div>`}

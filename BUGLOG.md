@@ -18365,3 +18365,13 @@ Young: "before signing, critical fields in the overview page have to be highligh
 Built as a translation of the list that already exists (signReadiness), never a second judgement: a field is marked only because Before you sign is already holding on it, so the mark and the row cannot print different numbers on one screen. A draft is not marked at all. The reserved line is keyed on the signing PHASE, not on whether anything is marked, so a mark appearing or clearing moves no pixel.
 
 Measured on a real page: the marked cell paints amber with a 3px rule, the marked line and an empty one are both 18px, and a draft draws no line at all.
+
+## 21 Sep 2026 — the brief is the last step before signing, and it is not optional
+
+Young: "write brief should be the last button clicked ... It should not be the first button in the signing page but last and mandatory." Then: "follow the gate, every signature."
+
+This reverses the same morning's ruling that made the brief the first button on the card.
+
+Found while building:
+- Asking "is the brief current" as stale === false meant the new rule never applied to a contract nobody had proposed wording on - staleness answers "we do not know" there, and on that contract the brief IS current. Fixed by asking stale !== true, with the read key itself as the guard against trapping a signature.
+- The card's button and the row disagreed about whether a brief stands, so the card offered to WRITE a brief that was already on the screen. One reading, two askers.

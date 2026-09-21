@@ -233,6 +233,71 @@ function signCheckBrief(c){
   return { none: false, stale, at, by: String(b.by || ''), truncated: !!b.truncated };
 }
 
+/* ============================================================
+   READING THE BRIEF IS THE LAST STEP, AND IT IS EACH SIGNER'S OWN
+   ============================================================
+   (Young ruled 21 Sep 2026.) *"…to verify that a user reads a brief of
+   everything that has been updated before they sign."*
+
+   WHAT IT PROVES, SAID PLAINLY: that this person opened the brief and pressed
+   the button. HaTi cannot know they read it, and the trail says "read the
+   brief", never "understood the contract".
+
+   IT LAPSES WHEN EITHER HALF MOVES, and the key is made of two facts the
+   record can answer exactly — WHEN THIS BRIEF WAS WRITTEN and WHEN WORDING
+   WAS LAST PROPOSED. A brief read on Monday means nothing after Tuesday's
+   redline, and nothing after the brief itself is rewritten. NO SECOND HASHER:
+   the brief's own inputHash is the SERVER's over the text it sent, and a
+   browser twin that drifted would call every reading stale for ever — the
+   trap signCheckBriefAt is already kept out of.
+
+   EACH SIGNER'S OWN: one person reading it does not answer for the next. */
+function briefReadKey(c){
+  const b = (c && c._brief) || null;
+  const made = b && b.at ? String(b.at) : '';
+  if (!made) return '';
+  return made + '|' + String(signCheckBriefAt(c) || 0);
+}
+function briefReadWho(user){
+  const u = user || _scCall('currentUser') || null;
+  return u && (u.id || u.email || u.name) ? String(u.id || u.email || u.name) : '';
+}
+function briefReadOf(c, user){
+  const who = briefReadWho(user); if (!who) return null;
+  const all = (c && c.briefRead) || null;
+  const row = all && all[who];
+  return (row && row.at) ? row : null;
+}
+/* TRUE only where this signer's stamp was made against exactly this brief and
+   this wording. An unknown key (no brief on the record we can see) answers
+   FALSE and draws no row — see signCheckRows. */
+function briefReadBy(c, user){
+  const key = briefReadKey(c); if (!key) return false;
+  const row = briefReadOf(c, user);
+  return !!(row && String(row.key || '') === key);
+}
+/* THE ONE WRITER. It stamps who, when and against what; it never back-dates
+   and never writes for somebody else. */
+/* ---- DOES A BRIEF STAND FOR THIS WORDING — ONE READING, TWO ASKERS ----
+   The row below asks it to decide whether a reading is owed; the card's own
+   button asks it to decide whether pressing says *Open* or *Write*. Written
+   twice they drift, and the drift is visible: a button offering to write a
+   brief that is already on the screen. */
+function signCheckBriefStands(c, brief){
+  const b = brief || signCheckBrief(c);
+  if (!b || b.none !== false || b.unknown === true || b.truncated) return false;
+  if (b.stale === true) return false;
+  return !!briefReadKey(c);
+}
+function briefMarkRead(c, user){
+  const who = briefReadWho(user); const key = briefReadKey(c);
+  if (!c || !who || !key) return null;
+  const u = user || _scCall('currentUser') || null;
+  c.briefRead = c.briefRead || {};
+  c.briefRead[who] = { at: new Date().toISOString(), by: (u && u.name) || '', key };
+  return c.briefRead[who];
+}
+
 /* ---- THE ONE READING, AND THE ONLY THING THE CARD IS ALLOWED TO ASK ---- */
 function signCheck(c){
   if (!c) return null;
@@ -342,6 +407,12 @@ function signCheckRowHolds(row, gate){
      already holding for the same reason, and one fact holding a signature
      twice reads as two problems. */
   if (row.waiting) return false;
+  /* READING THE BRIEF IS MANDATORY (Young, 21 Sep 2026) and it follows the
+     gate like everything else here — on `off`, nothing holds, which is what
+     off means. It is not a reading the check RUNS, so it does not wait on
+     `current`: the question is whether THIS signer has opened the brief that
+     stands for THIS wording. */
+  if (row.kind === 'brief-read') return true;
   if (row.kind === 'brief' || row.kind === 'standards-read' || row.kind === 'obligations') return !row.current;
   return row.kind === 'standard' && !!row.escalate;      /* advise */
 }
@@ -361,13 +432,27 @@ function signCheckRowHolds(row, gate){
    A kind missing from this map lands in stage 1, which is the honest default:
    an unrecognised blocker is something about the paper until somebody says
    otherwise, and it draws at the top where it will be seen. */
-const SIGN_STAGES = ['paper', 'read', 'people'];
+/* ---- AND A FOURTH, WHICH IS THE LAST THING BEFORE THE SIGNATURE ----
+   (Young ruled 21 Sep 2026: *"write brief should be the last button clicked
+   to verify that a user reads a brief of everything that has been updated
+   before they sign. It should not be the first button in the signing page but
+   last and mandatory."*) THIS REVERSES 21 Sep's own "THE BRIEF IS THE FIRST
+   BUTTON ON THIS CARD", written that morning; the reasoning there is kept
+   where it stands because it is why the control exists at all.
+
+   A FOURTH STAGE RATHER THAN A REORDER. Putting `read` after `people` would
+   move the standards, the obligations, the record and the risk rows too, and
+   the note above is a ruling about where THOSE sit. Only the brief was asked
+   about, so only the brief moves — and the stage above keeps saying what it
+   has always said. */
+const SIGN_STAGES = ['paper', 'read', 'people', 'sign'];
 const SIGN_STAGE_OF = {
   negotiation: 'paper', fields: 'paper', placeholders: 'paper', docs: 'paper',
-  brief: 'read', 'standards-read': 'read', standard: 'read', obligations: 'read',
+  'standards-read': 'read', standard: 'read', obligations: 'read',
   record: 'read', risk: 'read',
   approval: 'people', turn: 'people', signers: 'people', spots: 'people',
   cap: 'people', folder: 'people',
+  brief: 'sign', 'brief-read': 'sign',
 };
 const signStageOf = kind => SIGN_STAGE_OF[String(kind || '')] || 'paper';
 function signCheckRows(c, r){
@@ -381,6 +466,27 @@ function signCheckRows(c, r){
     rows.push({ kind: 'brief', key: 'brief', never: !!rd.brief.none,
       stale: rd.brief.stale === true, truncated: !!rd.brief.truncated,
       at: rd.brief.at, settled: false, escalate: false });
+  /* AND WHERE ONE STANDS FOR THIS WORDING, THE LAST THING BEFORE SIGNING IS
+     HAVING READ IT. Drawn only where the brief is really there and really
+     current — a brief that is missing, stale or cut short already has its own
+     row directly above, and two rows about one brief would read as two
+     problems. */
+  /* `stale !== true` AND NOT `=== false`: a contract nobody has ever proposed
+     wording on has no dated change to compare the brief with, so staleness
+     answers "we do not know" — and on that contract the brief IS current.
+     Asking `=== false` there would have meant the one rule the owner called
+     mandatory never applied to a contract that went straight to signature.
+     THE GUARD AGAINST TRAPPING ONE IS THE KEY ITSELF: a brief with no date of
+     its own cannot be stamped against, so it asks for nothing. */
+  else if (signCheckBriefStands(c, rd.brief)){
+    /* READ, AND IT FOLDS AWAY LIKE EVERY OTHER SETTLED ROW rather than
+       vanishing: a stage with nothing in it draws nothing, so without this the
+       one thing the signer was asked to do would leave no trace on the card
+       they did it on. */
+    const done = briefReadOf(c);
+    rows.push({ kind: 'brief-read', key: 'brief-read', at: rd.brief.at,
+      read: briefReadBy(c) ? done : null, settled: briefReadBy(c), escalate: false });
+  }
   const s = rd.standards;
   if (s.unread === true || s.stale === true)
     rows.push({ kind: 'standards-read', key: 'standards-read', stale: s.stale === true, settled: false, escalate: false });
@@ -559,6 +665,7 @@ function signFieldMarks(c){
 
 if (typeof window !== 'undefined') Object.assign(window, {
   SIGN_FIELD_OF, signFieldMarks,
+  briefReadKey, briefReadOf, briefReadBy, briefMarkRead, briefReadWho, signCheckBriefStands,
   SIGN_ACCEPT_MAX, SIGN_RECORD_ROWS, SIGN_CHECK_GATES, SIGN_CHECK_GATE_DEFAULT, SIGN_RISK_SEV,
   signCheckGate, signCheckApplies, signCheckBlocker, signCheckMayAccept, signCheckAcceptedProperly, signCheckAcceptStale,
   signCheckRowHolds, signCheckRows, signCheckHolding, signReadiness, signCheckWillRun,
