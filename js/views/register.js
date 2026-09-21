@@ -1779,7 +1779,11 @@ function renderRegister(opts){
      REVERSES 24 Aug's "a label above every filter" on the owner's later
      drawing; the word and the box are still one <label>, the ids are
      untouched, and a narrowing filter lights the whole chip. */
-  const selFilter=(id,opts,active,title,label)=>`<label class="reg-f reg-chip${active?' on':''}" title="${esc(title)}">${icon('filter','w-3 h-3')}<span class="reg-f-l">${esc(label||title)}</span><select id="${id}" title="${title}" style="${selStyle};max-width:180px">${opts}</select></label>`;
+  /* AT REST THE CHIP SAYS ITS NAME AND NOTHING ELSE (the reference's own
+     shape: "▽ Stage"); its value shows once it narrows, or on the Sort chip,
+     which always has one to say (`show`). This is what keeps the bar ONE LINE
+     — the owner's standing ruling — at a laptop width. */
+  const selFilter=(id,opts,active,title,label,show)=>`<label class="reg-f reg-chip${active?' on':''}${show?' reg-chip-show':''}" title="${esc(title)}">${icon('filter','w-3 h-3')}<span class="reg-f-l">${esc(label||title)}</span><select id="${id}" title="${title}" style="${selStyle};max-width:180px">${opts}</select></label>`;
   const stageOpts=REG_STAGES.map(s=>`<option value="${s.k}" ${R.stage===s.k?'selected':''}>${s.label}</option>`).join('');
   const typeOpts=regTypes().map(t=>`<option value="${t.k}" ${R.type===t.k?'selected':''}>${t.label}</option>`).join('');
   /* ---- RENEWAL IS BACK, AND IT IS OFF THE BAR BY DEFAULT ----
@@ -2331,7 +2335,7 @@ function renderRegister(opts){
                claim the book had been filtered when it has not.
                It goes through selFilter — the same builder as the other six —
                because one builder is what stops them drifting apart. */}
-        ${selFilter('reg-sort',sortOpts,false,i18t('reg_sort'))}
+        ${selFilter('reg-sort',sortOpts,false,i18t('reg_sort'),undefined,true)}
         ${''/* ---- TABLE · BOARD, THEN THE THREE DENSITIES, AS SEGMENTS (20 Sep
                2026, the redesign order) ----
                The density was a labelled dropdown through selFilter; the

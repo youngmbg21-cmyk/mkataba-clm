@@ -17646,3 +17646,40 @@ after the fixes: 8,264 tests in 1,615 suites, 8,264 passed, 0 failed (5m26s).
   trees.
 - Six pre-existing calls of PORTAL_MODE as a function (noted 14 Sep) still
   stand.
+
+## 21 Sep 2026 — the redesign's second pass: the pages built to the drawing
+
+The owner: "So you have only changed the styling but kept the old shell",
+then "Go ahead" on the list offered. Built on the branch, never merged:
+the crumb in the top bar (the head's own back button adopted, a third
+crumb in the editor); one head sub-line and six facts, the send filled;
+the Document tab's control row with Export and Focus, the Checks rows as
+drawn, "Fill in · N of M"; the rail foot; the editor's chips wrap;
+Contracts — the facts line, Upload beside New agreement, counts on the
+tabs, saved views, filter chips, the two-line title, Stage/Move/Own in the
+reference's order, the board card; Home — the head's two acts, the detail
+beside the figure, a verb on every decision row; Templates — Convert a
+document as a proxy, the tab count, Origin chips, a Value stream column.
+First ink: Document 292.0 → 271.9, negotiate 308.8 → 288.7.
+
+Defects found on the way, all this pass's own and fixed: the bar's older
+#ws-back answered getElementById on every repaint; setView's title paint
+wrote over the adopted crumb; the facts line was empty on the first paint;
+the slot rewrite dropped wireDocRead (the Plain English press made no call);
+actBtns ran on the Negotiations seat; the move/owner sort entries landed in
+FOLDER_SORTS; the filled act measured 2.5:1 on the dark page; the bar wrapped
+to two lines at a laptop width (resting chips say their name only now).
+
+### Noticed, not fixed
+- Red at the parent and left as found (35 files): the same list as the
+  Phase 2 entry above, less the eight that went green this pass (clause-door,
+  contrast, duty-marks, laptops, nego-redesign, obligations-report,
+  ready-to-sign, theme-tokens); keeps-your-place, reopen-a-refusal,
+  six-fixes 4a, templates-tabs 7c/8a–8c and negotiations-door's four-tab
+  claims are among them.
+- The Templates subtitle the reference draws was not built (a page
+  explaining itself — the owner's twice-made ruling); the negotiate page's
+  party legend and "Send all · N not sent" wording were not built (the
+  column says it).
+- INDUSTRY_LABEL (js/wizard.js) is still hardcoded English on screen.
+- Six pre-existing calls of PORTAL_MODE as a function still stand.
