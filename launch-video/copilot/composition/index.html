@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <!-- Fonts pre-fetched + injected as deterministic @font-face by the hyperframes compiler. -->
+    <script src="assets/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      :root {
+        --teal-800:#093733; --teal-700:#0B4A45; --teal-600:#0E5F58; --teal-500:#2E8C82; --teal-400:#5EC2B3;
+        --mint-100:#E1F0ED; --mint-50:#F0F7F5;
+        --vio-800:#5b21b6; --vio-700:#6d28d9; --vio-600:#7c3aed; --vio-500:#8b5cf6; --vio-400:#a78bfa; --vio-300:#c4b5fd; --vio-100:#ede9fe;
+        --ink:#1B2A28; --ink-2:#5F6D6B; --paper:#FFFDF9; --grey:#F4F6F5;
+        --amber-fg:#A24E07; --amber-bg:#FBE5D2; --ruby:#B0241F;
+        --sans:"IBM Plex Sans", system-ui, -apple-system, sans-serif;
+        --mono:"IBM Plex Mono", ui-monospace, monospace;
+        --serif:"Source Serif 4", Georgia, "Times New Roman", serif;
+      }
+      html, body { width:1920px; height:1080px; overflow:hidden; background:#071f2e; }
+      #root { width:100%; height:100%; position:relative; font-family:var(--sans); color:var(--ink); }
+      .clip { position:absolute; inset:0; opacity:0; }
+      .kicker { font-family:var(--mono); font-weight:600; letter-spacing:.18em; text-transform:uppercase; font-size:20px; }
+      .headline { font-weight:600; letter-spacing:-.02em; line-height:1.06; }
+      .sub { color:var(--ink-2); font-weight:400; }
+      .spark svg { display:block; width:100%; height:100%; }
+      .card-lbl { font-family:var(--mono); font-size:17px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-2); }
+
+      /* ===== S1 hook ===== */
+      #s1 { background: radial-gradient(120% 120% at 50% 34%, #0F3B4A 0%, #093733 55%, #061f2b 100%); }
+      #s1 .core { position:absolute; left:50%; top:300px; transform:translateX(-50%); text-align:center; color:#EAF6F3; }
+      #s1 .spark { width:132px; height:132px; margin:0 auto 40px; }
+      #s1 .ring { position:absolute; left:50%; top:300px; width:132px; height:132px; border-radius:50%; border:2px solid var(--vio-400); transform:translate(-50%,0); opacity:0; }
+      #s1 .headline { font-size:78px; }
+      #s1 .sub { font-size:36px; margin-top:18px; color:#AED7D0; }
+
+      /* ===== S2 brief ===== */
+      #s2 { background:var(--grey); }
+      #s2 .head { position:absolute; left:200px; top:150px; }
+      #s2 .head .kicker { color:var(--vio-700); display:flex; align-items:center; gap:14px; }
+      #s2 .head .kicker .spark { width:26px; height:26px; }
+      #s2 .head .headline { font-size:58px; margin-top:18px; }
+      #s2 .card { position:absolute; left:200px; top:400px; width:1180px; background:#fff; border-radius:14px; box-shadow:0 26px 64px rgba(60,20,120,.12); border:1px solid #E7E2F3; overflow:hidden; }
+      #s2 .card .top { height:8px; background:linear-gradient(90deg,var(--vio-600),var(--vio-400)); }
+      #s2 .card .pad { padding:36px 44px 44px; }
+      #s2 .c-title { font-size:36px; font-weight:600; margin-top:8px; }
+      #s2 .c-sub { font-family:var(--mono); font-size:18px; color:var(--ink-2); margin-top:6px; letter-spacing:.04em; }
+      #s2 .line { font-family:var(--serif); font-size:27px; line-height:1.55; color:#33423F; margin-top:24px; max-width:1000px; }
+      #s2 .flags { display:flex; gap:16px; margin-top:30px; flex-wrap:wrap; }
+      #s2 .flag { font-weight:600; font-size:24px; color:var(--amber-fg); background:var(--amber-bg); border:1px solid #F1C9A6; border-radius:999px; padding:13px 24px; display:flex; align-items:center; gap:11px; opacity:0; }
+      #s2 .flag .tri { width:0; height:0; border-left:8px solid transparent; border-right:8px solid transparent; border-bottom:14px solid var(--amber-fg); }
+
+      /* ===== S3 plain english ===== */
+      #s3 { background:var(--grey); }
+      #s3 .head { position:absolute; left:0; right:0; top:120px; text-align:center; }
+      #s3 .head .headline { font-size:56px; }
+      #s3 .cols { position:absolute; left:200px; right:200px; top:300px; display:flex; gap:40px; align-items:stretch; }
+      #s3 .col { flex:1; border-radius:14px; padding:40px 44px; }
+      #s3 .legal { background:var(--paper); border:1px solid #E7E2D8; box-shadow:0 20px 50px rgba(0,0,0,.08); }
+      #s3 .legal .l { font-family:var(--serif); font-size:29px; line-height:1.62; color:#2A342F; }
+      #s3 .plain { background:#fff; border:1px solid #E7E2F3; box-shadow:0 20px 50px rgba(60,20,120,.10); position:relative; opacity:0; }
+      #s3 .tag { font-family:var(--mono); font-size:16px; letter-spacing:.14em; text-transform:uppercase; }
+      #s3 .tag.gray { color:var(--ink-2); }
+      #s3 .tag.vio { color:var(--vio-700); display:flex; align-items:center; gap:10px; }
+      #s3 .tag.vio .spark { width:22px; height:22px; }
+      #s3 .plain .p { font-family:var(--sans); font-size:32px; line-height:1.5; color:var(--ink); margin-top:20px; font-weight:500; }
+      #s3 .legal .l { margin-top:20px; }
+      #s3 .arrow { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:64px; height:64px; background:var(--vio-600); border-radius:50%; display:flex; align-items:center; justify-content:center; opacity:0; box-shadow:0 10px 30px rgba(109,40,217,.4); z-index:3; }
+      #s3 .arrow svg { width:30px; height:30px; }
+
+      /* ===== S4 playbook + precedent redline ===== */
+      #s4 { background:var(--grey); }
+      #s4 .head { position:absolute; left:200px; top:150px; max-width:1500px; }
+      #s4 .head .kicker { color:var(--vio-700); display:flex; align-items:center; gap:14px; }
+      #s4 .head .kicker .spark { width:26px; height:26px; }
+      #s4 .head .headline { font-size:52px; margin-top:16px; }
+      #s4 .card { position:absolute; left:200px; top:410px; width:1320px; background:#fff; border-radius:14px; box-shadow:0 26px 64px rgba(0,0,0,.10); border:1px solid #E4EAE8; padding:44px 48px; }
+      #s4 .clause { font-family:var(--serif); font-size:34px; line-height:1.5; color:#2A342F; }
+      #s4 .del { color:var(--ruby); text-decoration:line-through; }
+      #s4 .ins { color:var(--teal-600); border-bottom:3px solid var(--teal-500); font-weight:600; opacity:0; }
+      #s4 .verdict { display:inline-flex; align-items:center; gap:12px; margin-top:30px; background:var(--vio-100); border:1px solid var(--vio-300); color:var(--vio-800); font-weight:600; font-size:25px; border-radius:999px; padding:14px 26px; opacity:0; }
+      #s4 .verdict .spark { width:22px; height:22px; }
+      #s4 .prec { font-family:var(--mono); font-size:23px; color:var(--ink-2); margin-top:26px; opacity:0; }
+      #s4 .prec b { color:var(--vio-700); font-weight:600; }
+
+      /* ===== S5 ask ===== */
+      #s5 { background: radial-gradient(120% 120% at 50% 20%, #0F3B4A 0%, #093733 60%, #061f2b 100%); color:#EAF6F3; }
+      #s5 .head { position:absolute; left:0; right:0; top:120px; text-align:center; }
+      #s5 .head .headline { font-size:54px; color:#EAF6F3; }
+      #s5 .ask { position:absolute; left:50%; top:280px; transform:translateX(-50%); display:flex; align-items:center; gap:16px;
+        background:rgba(255,255,255,.07); border:1.5px solid var(--vio-400); border-radius:999px; padding:20px 34px; }
+      #s5 .ask .car { color:var(--vio-400); font-family:var(--mono); font-size:30px; }
+      #s5 .ask .qwrap { overflow:hidden; white-space:nowrap; width:0; }
+      #s5 .ask .q { font-family:var(--mono); font-size:30px; color:#E6F2EF; white-space:nowrap; }
+      #s5 .stage { position:absolute; inset:0; }
+      #s5 .node { position:absolute; width:30px; height:30px; border-radius:50%; background:var(--vio-400); box-shadow:0 0 0 7px rgba(167,139,250,.16); opacity:0; }
+      #s5 .node.hit { background:#fff; box-shadow:0 0 0 9px rgba(196,181,253,.5); }
+      #s5 .count { position:absolute; left:50%; bottom:150px; transform:translateX(-50%); font-family:var(--mono); font-size:26px; color:var(--vio-300); opacity:0; }
+
+      /* ===== S6 honest ===== */
+      #s6 { background:var(--grey); }
+      #s6 .wrap { position:absolute; left:0; right:0; top:200px; text-align:center; }
+      #s6 .k { font-family:var(--mono); font-size:22px; letter-spacing:.18em; text-transform:uppercase; color:var(--vio-700); }
+      #s6 .rows { margin-top:40px; display:flex; flex-direction:column; gap:24px; align-items:center; }
+      #s6 .row { display:flex; align-items:center; gap:18px; font-size:40px; font-weight:600; color:var(--ink); opacity:0; }
+      #s6 .row .tick { width:38px; height:38px; border-radius:50%; background:var(--vio-600); display:flex; align-items:center; justify-content:center; }
+      #s6 .row .tick svg { width:20px; height:20px; }
+      #s6 .foot { margin-top:52px; font-family:var(--mono); font-size:24px; color:var(--ink-2); letter-spacing:.03em; opacity:0; }
+      #s6 .foot b { color:var(--vio-700); font-weight:600; }
+
+      /* ===== S7 outro ===== */
+      #s7 { background: radial-gradient(120% 120% at 50% 42%, #0F3B4A 0%, #093733 58%, #061f2b 100%); }
+      #s7 .wrap { position:absolute; left:0; right:0; top:360px; text-align:center; color:#F1FAF8; }
+      #s7 .spark { width:110px; height:110px; margin:0 auto 34px; }
+      #s7 .mark { font-weight:700; font-size:104px; letter-spacing:-.02em; }
+      #s7 .mark .cop { color:var(--vio-400); }
+      #s7 .tag { font-family:var(--mono); font-size:26px; letter-spacing:.22em; text-transform:uppercase; color:#AED7D0; margin-top:28px; opacity:0; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="23.4" data-width="1920" data-height="1080">
+
+      <!-- reusable spark defs -->
+      <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+        <path id="sparkPath" d="M50 2 C54 34 66 46 98 50 C66 54 54 66 50 98 C46 66 34 54 2 50 C34 46 46 34 50 2 Z"/>
+        <path id="checkPath" d="M4 12 L9.5 18 L20 5" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      </defs></svg>
+
+      <!-- S1 -->
+      <section id="s1" class="clip" data-start="0" data-duration="3.7" data-track-index="0">
+        <div class="ring" id="s1ring"></div>
+        <div class="core">
+          <div class="spark" id="s1spark"><svg viewBox="0 0 100 100"><use href="#sparkPath" fill="#a78bfa"/></svg></div>
+          <div class="headline" id="s1h">Copilot reads every contract.</div>
+          <div class="sub" id="s1s">All of them. In minutes, not weeks.</div>
+        </div>
+      </section>
+
+      <!-- S2 -->
+      <section id="s2" class="clip" data-start="3.4" data-duration="4.1" data-track-index="1">
+        <div class="head">
+          <div class="kicker"><span class="spark"><svg viewBox="0 0 100 100"><use href="#sparkPath" fill="#6d28d9"/></svg></span>HaTi Copilot</div>
+          <div class="headline" id="s2h">It briefs you — and flags the watch-outs.</div>
+        </div>
+        <div class="card" id="s2card">
+          <div class="top"></div>
+          <div class="pad">
+            <div class="card-lbl">Copilot brief</div>
+            <div class="c-title" id="s2t">Distributor Agreement — Naivas</div>
+            <div class="c-sub" id="s2sub">KES 48M · 24-month term · renews automatically</div>
+            <div class="line" id="s2line">A three-year exclusive supply deal. Renews on its own unless cancelled, and caps nothing if things go wrong.</div>
+            <div class="flags">
+              <div class="flag" id="s2f1"><span class="tri"></span>Auto-renews in 90 days</div>
+              <div class="flag" id="s2f2"><span class="tri"></span>Liability uncapped</div>
+              <div class="flag" id="s2f3"><span class="tri"></span>English governing law</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- S3 -->
+      <section id="s3" class="clip" data-start="7.2" data-duration="4.1" data-track-index="2">
+        <div class="head"><div class="headline" id="s3h">Turns dense legalese into plain English.</div></div>
+        <div class="cols">
+          <div class="col legal" id="s3legal">
+            <div class="tag gray">The contract says</div>
+            <div class="l">"The Supplier shall indemnify, defend and hold harmless the Company from and against any and all losses, claims and expenses arising out of the Supplier's breach."</div>
+          </div>
+          <div class="col plain" id="s3plain">
+            <div class="tag vio"><span class="spark"><svg viewBox="0 0 100 100"><use href="#sparkPath" fill="#6d28d9"/></svg></span>Copilot, in plain English</div>
+            <div class="p">If the supplier breaks the deal, they cover our losses and our legal costs.</div>
+          </div>
+          <div class="arrow" id="s3arrow"><svg viewBox="0 0 24 24"><path d="M4 12 H19 M13 6 L20 12 L13 18" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+      </section>
+
+      <!-- S4 -->
+      <section id="s4" class="clip" data-start="11.0" data-duration="4.3" data-track-index="3">
+        <div class="head">
+          <div class="kicker"><span class="spark"><svg viewBox="0 0 100 100"><use href="#sparkPath" fill="#6d28d9"/></svg></span>Playbook check</div>
+          <div class="headline" id="s4h">Checks every clause against your playbook —<br/>and redlines only what's off.</div>
+        </div>
+        <div class="card" id="s4card">
+          <div class="card-lbl">Clause 4 · Payment terms</div>
+          <div class="clause" style="margin-top:18px;">Payment shall be due within <span class="del">sixty (60)</span> <span class="ins" id="s4ins">thirty (30)</span> days of invoice.</div>
+          <div class="verdict" id="s4verdict"><span class="spark"><svg viewBox="0 0 100 100"><use href="#sparkPath" fill="#6d28d9"/></svg></span>Off your playbook — your standard is 30 days</div>
+          <div class="prec" id="s4prec">Your last 6 supplier deals settled at <b>30 days</b>. Copilot proposed the smallest change.</div>
+        </div>
+      </section>
+
+      <!-- S5 -->
+      <section id="s5" class="clip" data-start="15.0" data-duration="3.9" data-track-index="4">
+        <div class="head"><div class="headline" id="s5h">Ask your whole book. Get an answer, not a search.</div></div>
+        <div class="ask" id="s5ask">
+          <span class="car">&gt;</span>
+          <span class="qwrap" id="s5qwrap"><span class="q">which contracts auto-renew before year-end?</span></span>
+        </div>
+        <div class="stage" id="s5stage"></div>
+        <div class="count" id="s5count">3 contracts renew before 31 Dec</div>
+      </section>
+
+      <!-- S6 -->
+      <section id="s6" class="clip" data-start="18.6" data-duration="2.9" data-track-index="5">
+        <div class="wrap">
+          <div class="k" id="s6k">Honest by design</div>
+          <div class="rows">
+            <div class="row" id="s6r1"><span class="tick"><svg viewBox="0 0 24 24"><use href="#checkPath"/></svg></span>Shows its work</div>
+            <div class="row" id="s6r2"><span class="tick"><svg viewBox="0 0 24 24"><use href="#checkPath"/></svg></span>Flags what it's unsure of</div>
+            <div class="row" id="s6r3"><span class="tick"><svg viewBox="0 0 24 24"><use href="#checkPath"/></svg></span>Never invents a number</div>
+          </div>
+          <div class="foot" id="s6foot">Powered by <b>Claude</b> · your key never leaves your server</div>
+        </div>
+      </section>
+
+      <!-- S7 -->
+      <section id="s7" class="clip" data-start="21.2" data-duration="2.2" data-track-index="6">
+        <div class="wrap">
+          <div class="spark" id="s7spark"><svg viewBox="0 0 100 100"><use href="#sparkPath" fill="#a78bfa"/></svg></div>
+          <div class="mark" id="s7mark">HaTi <span class="cop">Copilot</span></div>
+          <div class="tag" id="s7tag">The AI that reads every contract</div>
+        </div>
+      </section>
+
+      <!-- audio -->
+      <audio id="bed" src="assets/music/bed.mp3" data-start="0" data-duration="23.4" data-volume="0.6" data-track-index="7"></audio>
+      <audio id="ping1" src="assets/ping.ogg" data-start="9.05" data-duration="0.12" data-volume="0.5" data-track-index="8"></audio>
+      <audio id="ping2" src="assets/ping.ogg" data-start="13.2" data-duration="0.12" data-volume="0.5" data-track-index="9"></audio>
+      <audio id="clk" src="assets/click.ogg" data-start="16.35" data-duration="0.5" data-volume="0.45" data-track-index="10"></audio>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+
+      function scene(id, tin, tout){
+        tl.to(id, { opacity:1, duration:0.35, ease:"power2.out" }, tin);
+        if (tout != null) tl.to(id, { opacity:0, duration:0.3, ease:"power2.in" }, tout);
+      }
+      scene("#s1", 0.0, 3.4);
+      scene("#s2", 3.4, 7.2);
+      scene("#s3", 7.2, 11.0);
+      scene("#s4", 11.0, 15.0);
+      scene("#s5", 15.0, 18.6);
+      scene("#s6", 18.6, 21.2);
+      scene("#s7", 21.2, null);
+
+      // ---- S1 ----
+      gsap.set("#s1spark", { opacity:0, scale:0.4, rotation:-40 });
+      gsap.set(["#s1h","#s1s"], { opacity:0, y:24 });
+      gsap.set("#s1ring", { opacity:0, scale:0.6 });
+      tl.to("#s1spark", { opacity:1, scale:1, rotation:0, duration:0.7, ease:"back.out(1.7)" }, 0.15);
+      tl.to("#s1ring", { opacity:0.5, scale:1.9, duration:1.1, ease:"power2.out" }, 0.3);
+      tl.to("#s1ring", { opacity:0, duration:0.5 }, 1.2);
+      tl.to("#s1h", { opacity:1, y:0, duration:0.6, ease:"power3.out" }, 0.8);
+      tl.to("#s1s", { opacity:1, y:0, duration:0.55, ease:"power3.out" }, 1.2);
+
+      // ---- S2 ----
+      gsap.set("#s2h", { opacity:0, y:22 });
+      gsap.set("#s2card", { opacity:0, y:34 });
+      gsap.set(["#s2t","#s2sub","#s2line"], { opacity:0, y:14 });
+      gsap.set(["#s2f1","#s2f2","#s2f3"], { opacity:0, y:16, scale:0.9 });
+      tl.to("#s2h", { opacity:1, y:0, duration:0.5, ease:"power3.out" }, 3.6);
+      tl.to("#s2card", { opacity:1, y:0, duration:0.5, ease:"power3.out" }, 3.85);
+      tl.to("#s2t", { opacity:1, y:0, duration:0.4 }, 4.15);
+      tl.to("#s2sub", { opacity:1, y:0, duration:0.4 }, 4.35);
+      tl.to("#s2line", { opacity:1, y:0, duration:0.45 }, 4.6);
+      tl.to("#s2f1", { opacity:1, y:0, scale:1, duration:0.32, ease:"back.out(1.6)" }, 5.3);
+      tl.to("#s2f2", { opacity:1, y:0, scale:1, duration:0.32, ease:"back.out(1.6)" }, 5.7);
+      tl.to("#s2f3", { opacity:1, y:0, scale:1, duration:0.32, ease:"back.out(1.6)" }, 6.1);
+
+      // ---- S3 ----
+      gsap.set("#s3h", { opacity:0, y:22 });
+      gsap.set("#s3legal", { opacity:0, x:-24 });
+      gsap.set("#s3plain", { opacity:0, x:24 });
+      gsap.set("#s3arrow", { opacity:0, scale:0.5 });
+      tl.to("#s3h", { opacity:1, y:0, duration:0.5, ease:"power3.out" }, 7.4);
+      tl.to("#s3legal", { opacity:1, x:0, duration:0.55, ease:"power3.out" }, 7.7);
+      tl.to("#s3arrow", { opacity:1, scale:1, duration:0.4, ease:"back.out(1.7)" }, 8.6); // ping1 @9.05 ~ reveal
+      tl.to("#s3plain", { opacity:1, x:0, duration:0.6, ease:"power3.out" }, 8.95);
+
+      // ---- S4 ----
+      gsap.set("#s4h", { opacity:0, y:22 });
+      gsap.set("#s4card", { opacity:0, y:32 });
+      gsap.set("#s4ins", { opacity:0, x:-10 });
+      gsap.set("#s4verdict", { opacity:0, y:12, scale:0.94 });
+      gsap.set("#s4prec", { opacity:0, y:10 });
+      tl.to("#s4h", { opacity:1, y:0, duration:0.5, ease:"power3.out" }, 11.2);
+      tl.to("#s4card", { opacity:1, y:0, duration:0.5, ease:"power3.out" }, 11.45);
+      tl.to("#s4verdict", { opacity:1, y:0, scale:1, duration:0.4, ease:"back.out(1.6)" }, 12.2);
+      tl.to("#s4ins", { opacity:1, x:0, duration:0.4 }, 13.2); // ping2 @13.2
+      tl.to("#s4prec", { opacity:1, y:0, duration:0.45 }, 13.7);
+
+      // ---- S5 ----
+      gsap.set("#s5h", { opacity:0, y:22 });
+      gsap.set("#s5ask", { opacity:0, y:18 });
+      gsap.set("#s5count", { opacity:0, y:12 });
+      tl.to("#s5h", { opacity:1, y:0, duration:0.5, ease:"power3.out" }, 15.2);
+      tl.to("#s5ask", { opacity:1, y:0, duration:0.4 }, 15.5);
+      tl.to("#s5qwrap", { width:780, duration:0.9, ease:"none" }, 15.7); // typing
+      // nodes: 10 positions, 3 "hits"
+      var pos = [ [560,560],[720,470],[900,600],[1050,500],[1180,620],[760,700],[980,760],[1240,720],[640,640],[1120,470] ];
+      var hits = { 3:1, 4:1, 7:1 };
+      var stage = document.getElementById("s5stage");
+      for (var i=0;i<pos.length;i++){
+        var n=document.createElement("div");
+        n.className="node"+(hits[i]?" hit":"");
+        n.id="sn"+i;
+        n.style.left=pos[i][0]+"px"; n.style.top=pos[i][1]+"px";
+        stage.appendChild(n);
+        gsap.set("#"+n.id, { opacity:0, scale:0.5 });
+        tl.to("#"+n.id, { opacity:1, scale:1, duration:0.3, ease:"power2.out" }, 15.55 + i*0.03);
+      }
+      // on ask resolve: hits pop, others dim
+      tl.to(".hit", { scale:1.5, duration:0.4, ease:"back.out(2)" }, 16.7);
+      tl.to("#s5stage .node:not(.hit)", { opacity:0.28, duration:0.4 }, 16.7);
+      tl.to("#s5count", { opacity:1, y:0, duration:0.45, ease:"power3.out" }, 16.95);
+
+      // ---- S6 ----
+      gsap.set("#s6k", { opacity:0, y:16 });
+      gsap.set(["#s6r1","#s6r2","#s6r3"], { opacity:0, x:-24 });
+      gsap.set("#s6foot", { opacity:0, y:12 });
+      tl.to("#s6k", { opacity:1, y:0, duration:0.4 }, 18.8);
+      tl.to("#s6r1", { opacity:1, x:0, duration:0.4, ease:"power3.out" }, 19.1);
+      tl.to("#s6r2", { opacity:1, x:0, duration:0.4, ease:"power3.out" }, 19.45);
+      tl.to("#s6r3", { opacity:1, x:0, duration:0.4, ease:"power3.out" }, 19.8);
+      tl.to("#s6foot", { opacity:1, y:0, duration:0.5 }, 20.25);
+
+      // ---- S7 ----
+      gsap.set("#s7spark", { opacity:0, scale:0.4, rotation:-40 });
+      gsap.set("#s7mark", { opacity:0, y:26 });
+      gsap.set("#s7tag", { opacity:0 });
+      tl.to("#s7spark", { opacity:1, scale:1, rotation:0, duration:0.6, ease:"back.out(1.7)" }, 21.35);
+      tl.to("#s7mark", { opacity:1, y:0, duration:0.55, ease:"power3.out" }, 21.6);
+      tl.to("#s7tag", { opacity:1, duration:0.5 }, 22.1);
+
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>
