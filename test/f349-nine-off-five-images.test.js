@@ -285,8 +285,26 @@ test('F349 (9) — the filter chips drop HaTi\'s own list', async t => {
     assert.match(strip(fn), /addEventListener\('pointerdown'/);
     assert.ok(!/addEventListener\('mousedown'/.test(strip(fn)));
   });
-  await t.test('(9g) armed on the filter bar, delegated on the bar itself', () => {
-    assert.match(strip(REG), /selectMenuWire\(fbar,'select'\)/);
+  /* ---- RE-POINTED IN PLACE 21 Sep 2026: THE BAR IS NO LONGER ITS OWN ROOT ----
+     This pinned the ONE call that existed the day the menu was built, on the
+     Contracts filter bar. The owner then asked for HaTi's list everywhere
+     ("make all drop downs in the platform similar to the ones in the contract
+     and negotiation pages"), so the wire is armed ONCE on the document's body
+     and is delegated — the bar is covered by that, and a second root over the
+     same control would answer one press twice and open the menu twice.
+     The claim that survives is the one this was making: the bar's chips really
+     do drop HaTi's list. It is asked as the RELATION — the bar is inside the
+     swept root and its selects are not among the ones that stay native —
+     rather than as the name of a call that has moved. */
+  await t.test('(9g) the filter bar is covered by the platform-wide sweep', () => {
+    assert.ok(!/selectMenuWire\(fbar/.test(strip(REG)), 'the bar is not a second root');
+    assert.match(strip(CORE), /function selectMenuSweep\(root\)\{/, 'there is one sweep');
+    assert.match(strip(CORE), /try\{ selectMenuSweep\(\); \}catch\(_\)\{\}/, 'armed once, at the start');
+    /* A filter chip's select carries none of the attributes that stay native,
+       so the swept selector reaches it. */
+    assert.match(strip(REG), /class="reg-chip-sel"/, "and the chip's control is an ordinary select");
+    assert.ok(!/reg-chip-sel[^>]*multiple/.test(REG) && !/reg-chip-sel[^>]*\bsize=/.test(REG)
+      && !/reg-chip-sel[^>]*data-native/.test(REG), 'carrying nothing that opts out');
   });
   await t.test('(9h) [relation] the menu wears the platform\'s card corner, not a number', () => {
     const r = /\.hati-selmenu\{[^}]*\}/.exec(CSS)[0];

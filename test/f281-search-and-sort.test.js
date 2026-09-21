@@ -222,10 +222,23 @@ describe('f281 (5) — every column that can be ordered has a head that orders i
     for (const k of ['ref', 'name', 'party', 'stream', 'value', 'signed', 'expiry', 'stage'])
       assert.ok(win.REG_CMP[k], k + ' has a comparator');
     /* Drawn, not merely defined: a comparator with no head is a sort nobody
-       can reach from the table. */
-    const head = REG.slice(REG.indexOf("sortableTh('name'") - 600, REG.indexOf('ngl_col_move') + 80);
-    for (const k of ['ref', 'name', 'party', 'stream', 'value', 'expiry', 'stage'])
+       can reach from the table.
+       ---- RE-POINTED IN PLACE 21 Sep 2026, TWICE OVER ----
+       (1) THE SLICE WAS AN ANCHOR AND A BYTE COUNT — 600 characters back from
+       `sortableTh('name'` — and that anchor stopped existing the day the
+       counterparty took the lead and the title column went. It reads the head's
+       own `.map(k=>{ … })` region now, by its boundaries. PIN THE REGION.
+       (2) `name` LEFT THE LIST OF HEADS and stays in the list of comparators:
+       it is a sort with no column of its own, which `risk` has been since the
+       dropdown was built, and the dropdown is where both are offered. */
+    const hStart = REG.indexOf("if(k==='mk') return sortableTh('ref'");
+    const head = REG.slice(hStart, REG.indexOf('ngl_col_move', hStart) + 80);
+    assert.ok(hStart > 0 && head.length > 200, 'the head region is readable');
+    for (const k of ['ref', 'party', 'stream', 'value', 'expiry', 'stage'])
       assert.ok(head.includes(`sortableTh('${k}'`), k + "'s head sorts");
+    assert.ok(!head.includes("sortableTh('name'"), 'and the title is a sort without a column');
+    assert.ok(win.REG_SORTS.some(s => s.k === 'name'), 'still offered in the dropdown');
+    assert.ok(head.includes("sortableTh('kind'"), "the Negotiations seat's Type column sorts");
   });
 
   test('and the last column deliberately does not', () => {

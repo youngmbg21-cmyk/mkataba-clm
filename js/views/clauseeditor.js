@@ -622,11 +622,36 @@ function clauseEditorCss(){
      label takes the workspace accent here rather than a violet of its own.
      That is a decision about THIS page: the clause panel's own Copilot button
      keeps the violet it has always worn. */
-  .ce-ah{flex:none; display:flex; align-items:center; gap:18px; padding:0 14px;
+  .ce-ah{flex:none; display:flex; align-items:center; gap:18px; padding:0 14px; flex-wrap:nowrap;
     border-bottom:1px solid var(--color-divider)}
+  /* THE RAIL'S OWN LABEL DOES NOT WRAP EITHER. Two words at 50px wrapped to
+     two lines and the head stood at 58px while the tabs beside it had already
+     been made to hold still — the same squeeze, one element along. Between
+     the label and the tabs there is exactly ONE thing on this row that may
+     give, and it is the clause name, which elides and keeps the whole of
+     itself on its hover. */
   .ce-ah .sp{display:inline-flex; align-items:center; gap:7px; font-size:var(--t-meta); font-weight:var(--w-title);
-    color:var(--accent-ink); padding:var(--s-3) 0}
-  .ce-tabs{display:flex; gap:18px; margin-left:auto}
+    color:var(--accent-ink); padding:var(--s-3) 0; flex:none; white-space:nowrap}
+  /* The clause the rail is about: the page's own ink at the title weight, so
+     it reads as the SUBJECT beside Copilot's accent label rather than as a
+     second heading. It takes the row's slack and gives it all back to the tabs
+     when it has to (min-width:0 is what lets it shrink below its text). */
+  /* IT MAY NOT GROW THE ROW, and MEASURED it did: 44px → 61px, because a
+     plain span takes the row's own line-height where .sp beside it is an
+     inline-flex that makes its own line box. It carries NO vertical padding
+     and centres itself, so the head's height stays whatever .sp and the tabs
+     make it and this name is a passenger — the rule that keeps chrome off a
+     full-window page's paper. */
+  .ce-ah-cl{min-width:0; flex:0 1 auto; align-self:center; overflow:hidden; text-overflow:ellipsis;
+    white-space:nowrap; line-height:var(--lh-tight);
+    font-size:var(--t-meta); font-weight:var(--w-title); color:var(--color-text)}
+  /* THE TABS KEEP THEIR WIDTH AND THE NAME GIVES WAY. Without flex:none the
+     name took 132px off the row, the four tabs wrapped to two lines and the
+     head grew 44px → 61px — a label pushing CONTROLS onto a second line,
+     which is the wrong way round. The tabs are controls and hold their
+     natural width; the name is a label and elides, with the whole of it on
+     its hover. MEASURED back to 44px. */
+  .ce-tabs{display:flex; gap:18px; margin-left:auto; flex:none}
   .ce-tabs button{background:none; border:0; padding:var(--s-3) 1px; font:inherit; font-size:var(--t-meta);
     color:var(--color-text); border-bottom:2px solid transparent}
   .ce-tabs button.is-on{font-weight:var(--w-title); color:var(--accent-ink);
@@ -1561,6 +1586,24 @@ function clauseEditorHtml(){
       <aside class="ce-rail">
         <div class="ce-ah">
           <span class="sp">&#10022; ${_cet('ce_copilot')}</span>
+          ${''/* ---- THE RAIL NAMES THE CLAUSE IT IS WORKING ON (Young ruled it
+                 21 Sep 2026: "it is not clear which clause copilot is working
+                 on") ----
+                 MEASURED on the owner's own screen: the rail was discussing
+                 Quality & Rejection while the paper beside it showed Governing
+                 Law, and the only other place the clause is named is the shell
+                 crumb — a different colour, in a different bar, forty pixels
+                 up and out of the eye's path once a reader is deep in a
+                 conversation about wording.
+                 THROUGH `ceClauseLabel`, the one presenting reading this page
+                 already has (it goes through clauseNameShown), so the rail
+                 cannot spell a clause differently from the column, the paper
+                 or the crumb. READ AT THE BUILD, which is enough because
+                 ceGoClause closes and re-opens the page — the name cannot go
+                 stale under a reader who moves to another clause.
+                 IT ELIDES RATHER THAN WRAPS: this row also carries three tabs
+                 and a count, and the whole name is on the hover. */}
+          <span class="ce-ah-cl" title="${_ceea(ceClauseLabel(ceClause()) || _cet('ce_this_clause'))}">${_ceea(ceClauseLabel(ceClause()) || _cet('ce_this_clause'))}</span>
           <span class="ce-tabs" id="ce-tabs" role="group"
             aria-label="${_ceea(_cet('ce_tabs_group'))}">
             <button type="button" data-ce-tab="chat">${_cet('ce_tab_chat')}</button>

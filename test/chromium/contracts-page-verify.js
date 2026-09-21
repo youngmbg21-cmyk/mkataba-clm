@@ -76,10 +76,15 @@ const check = (name, ok, detail) => {
       rows.all.every(x => Math.abs(x - rows.h) < 1), JSON.stringify(rows.all));
 
     /* THE DOCUMENT TYPE IS GONE AS PIXELS — and its fact is still said. */
+    /* RE-POINTED IN PLACE 21 Sep 2026: the hover moved with the fact. It read
+       the TITLE SPAN's own `title`, and the title span is the counterparty now
+       — the whole identity cell carries the hover, because it is the cell that
+       holds both lines. The claim is unchanged: the kind is still SAID. */
     const kind = await page.evaluate(() => {
       const t = document.querySelector('tr[data-row] .reg-title');
+      const td = document.querySelector('tr[data-row] td.reg-cell-title');
       return { kindEls: document.querySelectorAll('.reg-kind').length,
-        title: t ? t.getAttribute('title') : null,
+        title: td ? td.getAttribute('title') : null,
         lineH: t ? +t.getBoundingClientRect().height.toFixed(1) : null };
     });
     check('1c no row draws a document-type line', kind.kindEls === 0, `${kind.kindEls} found`);
@@ -865,8 +870,14 @@ const check = (name, ok, detail) => {
        so. MEASURED before the fix: four rows, type "lease", four rows. */
     await page.evaluate(() => setView('register'));
     await page.waitForTimeout(700);
+    /* RE-POINTED IN PLACE 21 Sep 2026: it took the first word of `.reg-title`,
+       which is the COUNTERPARTY now — and a seeded book where every row shares
+       one counterparty gives a query that narrows nothing, which is a fault in
+       the instrument and not in the search. The term comes off the row's own
+       sub-line (the contract's name) and the match is judged against the same
+       line, so the two halves ask about one thing. */
     const term = await page.evaluate(() => {
-      const t = document.querySelector('tr[data-row] .reg-title');
+      const t = document.querySelector('tr[data-row] .reg-sub');
       return t ? (t.textContent.trim().split(/\s+/)[0] || '') : '';
     });
     const searched = await page.evaluate(async (q) => {
@@ -875,7 +886,7 @@ const check = (name, ok, detail) => {
       box.focus(); box.value = q;
       box.dispatchEvent(new Event('input', { bubbles: true }));
       await new Promise(r => setTimeout(r, 500));
-      const rows = [...document.querySelectorAll('tr[data-row] .reg-title')].map(e => e.textContent.trim());
+      const rows = [...document.querySelectorAll('tr[data-row] .reg-sub')].map(e => e.textContent.trim());
       return { before, after: rows.length, rows,
         clear: !!document.getElementById('reg-clear-filters') };
     }, term);
@@ -960,11 +971,24 @@ const check = (name, ok, detail) => {
       const cmpNat = (a, b) => { const A = nat(a), B = nat(b);
         return A[0] < B[0] ? -1 : A[0] > B[0] ? 1 : A[1] - B[1]; };
       const cmpTxt = (a, b) => a.localeCompare(b);
+      /* RE-POINTED IN PLACE 21 Sep 2026, TWICE OVER.
+         (1) THE COLUMN WAS PINNED BY ITS INDEX — party 2, stream 3 — and both
+         moved the day the title column went. The index is derived from
+         REG_COL_KEYS now, which is the one list the head and the row are both
+         emitted from, so a column that moves again takes this with it.
+         (2) A CELL MAY BE TWO LINES: the identity cell holds the counterparty
+         over the contract's name, and textContent runs them together. Where a
+         cell has a leading line, that line is what the column is ordered by
+         and what is read back. */
+      const idx = k => (window.REG_COL_KEYS || []).indexOf(k);
       const cell = i => [...document.querySelectorAll('tr[data-row]')]
-        .map(r => r.children[i].textContent.trim()).filter(x => x && x !== '—');
+        .map(r => { const td = r.children[i]; if (!td) return '';
+          const lead = td.querySelector('.reg-title');
+          return (lead || td).textContent.trim(); })
+        .filter(x => x && x !== '—');
       const ordered = (xs, cmp, sign) => xs.every((_, i) => i === 0 || sign * cmp(xs[i - 1], xs[i]) <= 0);
       const out = {};
-      for (const [key, i, cmp] of [['ref', 0, cmpNat], ['party', 2, cmpTxt], ['stream', 3, cmpTxt]]){
+      for (const [key, i, cmp] of [['ref', idx('mk'), cmpNat], ['party', idx('counterparty'), cmpTxt], ['stream', idx('stream'), cmpTxt]]){
         const head = () => document.querySelector(`[data-reg-sort="${key}"]`);
         if (!head()){ out[key] = { err: 'no head sorts ' + key, n: 0 }; continue; }
         head().click();

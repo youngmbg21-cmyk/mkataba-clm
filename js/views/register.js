@@ -363,6 +363,9 @@ const REG_SORTS=[
      every column sorts except the last, the page's own rule. */
   {k:'move',get label(){ return i18t('reg_sort_move'); }},
   {k:'owner',get label(){ return i18t('reg_sort_owner'); }},
+  /* The Negotiations seat's Type column sorts, so its key is offered here too
+     — the dropdown and the heads are ONE list. */
+  {k:'kind',get label(){ return i18t('reg_sort_kind'); }},
 ];
 /* ---- THREE EXPIRY WINDOWS WERE ONE QUESTION ASKED THREE TIMES (Young ruled
    21 Sep 2026: "remove expiring in 30 and 60 days") ----
@@ -540,31 +543,53 @@ function regBarShown(R){
    share are still cut identically (contracts-page-verify 11d pairs by KEY).
    The row builder emits its cells in the seat's own key order, so a column
    moved here moves on every row. */
-const REG_COL_KEYS      = ['mk','name','counterparty','stream','stage','move','value','signed','expiry','owner','acts'];
-const REG_COL_KEYS_NEGO = ['mk','name','counterparty','stream','value','expiry','stage','move'];
-/* THE SIX COLUMNS BOTH SEATS SHARE ARE CUT IDENTICALLY, AND THE TITLE IS THE
-   COLUMN WITH THE GIVE — the register's own rule since the two lists became one
-   renderer, and the reason a reader moving between Contracts and Negotiations
-   sees the same columns in the same places. A FIRST PASS PAID FOR THE NINTH
-   COLUMN OUT OF FIVE OF THEM (counterparty, stream and expiry each losing a
-   point or two) and the two pages stopped lining up; contracts-page-verify 11d
-   is the net and reported it as 201/228, 174/201, 121/174, 161/148.
-   So Signed is paid for by the TITLE alone: 23 → 15, and mk · counterparty ·
-   stream · value · expiry · status are byte-identical to the Negotiations row.
-   EIGHT POINTS RATHER THAN NINE, measured against the Expiry column beside it:
-   that one carries the same dotted date PLUS " · 30 d" in 13%, so a date on its
-   own wants appreciably less, and the point saved goes to the title, which is
-   what people scan. Both still sum to 100, which is what makes each table
-   exactly its pane at every width. */
-/* ---- EXPIRY TOOK A POINT WHEN THE ROW TOOK ITS RUNG BACK (21 Sep 2026) ----
-   MEASURED: at 13px the dotted date plus the day count reads
-   "30.06.2027 · 28…" — the one thing that column exists to say, cut off. The
-   point is paid for by Signed (a bare date, no suffix) on this seat and by
-   Move on the Negotiations seat, which is that table's slack column; the six
-   columns both seats share are still cut identically, and both still sum
-   to 100. */
-const REG_COL_W         = [6,17,13,11,11,7,9,7,11,5,3];
-const REG_COL_W_NEGO    = [6,17,13,11,9,11,11,22];
+const REG_COL_KEYS      = ['mk','counterparty','stream','stage','move','value','signed','expiry','owner','acts'];
+const REG_COL_KEYS_NEGO = ['mk','counterparty','kind','stream','value','expiry','stage','move'];
+/* THE SIX COLUMNS BOTH SEATS SHARE ARE CUT IDENTICALLY, AND THE COUNTERPARTY
+   IS THE COLUMN WITH THE GIVE — the register's own rule since the two lists
+   became one renderer, and the reason a reader moving between Contracts and
+   Negotiations sees the same columns in the same places. A FIRST PASS ONCE
+   PAID FOR A NEW COLUMN OUT OF FIVE OF THEM and the two pages stopped lining
+   up; contracts-page-verify 11d is the net and reported it as 201/228,
+   174/201, 121/174, 161/148. So a new column is paid for by the GIVE COLUMN
+   alone, and mk · counterparty · stream · value · expiry · status stay
+   byte-identical across the two seats.
+
+   THE GIVE MOVED WITH THE FACT (21 Sep 2026). It was the title's, because the
+   title was what people scanned; the counterparty leads now, carries the title
+   under it, and takes the two shares folded together — 26, where party and
+   title were 13 and 17. THE FOUR POINTS THAT DID NOT FOLD went where they were
+   measured short: value stream 11 → 13 ("Procurement & Raw Materials" was
+   cut) and expiry 11 → 13 (at 13px the dotted date plus its day count read
+   "30 Jun 2027 · 28…", which is the one thing that column exists to say).
+   Both lists still sum to 100, which is what makes each table exactly its pane
+   at every width. */
+/* ---- THE COUNTERPARTY LEADS, AND THE TITLE SITS UNDER IT (Young ruled it
+   21 Sep 2026, off two renders he approved) ----
+   *"the contract title column is deleted, the title of the contract goes below
+   the name of the counterparty ... the name of the counter party is on black
+   bold letters and the name of the contract is smaller and in grey"*, and of
+   the Negotiations seat: *"do not delete any column but once again put the
+   name of the contract below the counter party name and bring the words
+   currently below the contract names as a new column on the right of the
+   counterparty name."*
+
+   SO THE TWO SEATS ANSWER THE SAME ASK DIFFERENTLY, ON PURPOSE. Contracts
+   loses a column (ten, was eleven) because he asked for the width back.
+   Negotiations keeps its count (eight) because the words that were the title's
+   second line — the kind of paper and the round — become a column of their
+   own there: A ROUND IS WHAT THAT PAGE IS ABOUT, and it is the one page where
+   that number is worth a column of its own. On Contracts those same words ride
+   the cell's own hover, where the kind already rode since 24 Aug.
+
+   `.reg-title` AND `.reg-sub` KEEP THEIR NAMES AND THEIR DRESS, and that is
+   what makes this small: they were never "the contract's name" and "the kind"
+   — they are the row's IDENTITY LINE and its sub-line, which is exactly the
+   re-pointing white-band-and-tabs 5d/5e already took on 21 Sep. The leading
+   line is the page ink at the label weight and the second is a size down in
+   the quiet grey, unchanged; only WHICH FACT each one carries has moved. */
+const REG_COL_W         = [6,26,13,11,7,9,7,13,5,3];
+const REG_COL_W_NEGO    = [6,26,14,13,9,13,11,8];
 /* A column may not be dragged to nothing. A PIXEL floor rather than a percent
    one, because 4% is 51px on a laptop and 77px on a wide monitor — the same
    reasoning that made the divider's own limits pixels. Converted against the
@@ -992,10 +1017,19 @@ const REG_CMP={
     const A=regStreamName(a), B=regStreamName(b);
     const e=regBlanksLast(A,B); if(e!==null) return e;
     return A.localeCompare(B); },
+  /* The Negotiations seat's own column (21 Sep 2026). It orders by the KIND
+     and then by the round inside it, which is what the cell prints: a reader
+     sorting this column is grouping the paper, not ranking the rounds. */
+  kind:(a,b)=>{
+    const A=String(cKind(a)||''), B=String(cKind(b)||'');
+    const e=regBlanksLast(A,B); if(e!==null) return e;
+    if(A!==B) return A.localeCompare(B);
+    const rd=c=>(c.negotiation&&typeof c.negotiation.round==='number')?c.negotiation.round:0;
+    return rd(a)-rd(b); },
 };
 // direction applied on a column's FIRST header click (1 = ascending, -1 = descending)
 const REG_SORT_DEFDIR={ updated:-1, value:-1, risk:-1, name:1, expiry:1, stage:1, signed:-1,
-  ref:1, party:1, stream:1, move:1, owner:1 };
+  ref:1, party:1, stream:1, move:1, owner:1, kind:1 };
 /* ---- THIS LIST DOES NOT PAGE, AND THAT IS THE ANSWER TO THE BAND BREAK ----
    Contracts pages at 40 because a register holds every agreement a company has
    ever had. Live negotiations are the handful being argued over right now — a
@@ -1571,7 +1605,11 @@ function regRowsHtml(cs){
        always false — it reads like a live rule and nothing can ever exercise
        it. */
     const round=(c.negotiation&&typeof c.negotiation.round==='number'&&c.negotiation.round>0)?c.negotiation.round:null;
-    const sub=`<span class="reg-sub">${esc(cKind(c))}${round?` · ${esc(i18t('ct_round_n',{n:round}))}`:''}</span>`;
+    /* ONE READING OF THE TWO WORDS, whichever shape carries them: a column on
+       the Negotiations seat, the identity cell's hover on Contracts. Written
+       once so the two seats can never spell them differently. */
+    const kindRound=`${cKind(c)}${round?` · ${i18t('ct_round_n',{n:round})}`:''}`;
+    const cpName=c.counterparty||'—';
     const mv=regMoveWord(c);
     const CELL={};
     CELL.mk=`<td class="reg-mk">${c.id}</td>`;
@@ -1579,7 +1617,26 @@ function regRowsHtml(cs){
     CELL.move=neg ? `<td style="text-align:right;white-space:nowrap">${negoMovePillHtml(c)}</td>`
       : `<td style="white-space:nowrap">${mv?negoMovePillHtml(c):'<span class="reg-dash">—</span>'}</td>`;
     CELL.owner=`<td style="white-space:nowrap">${regOwnerCell(c)}</td>`;
-    CELL.counterparty=`<td style="color:var(--color-neutral-700);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.counterparty||'—')}</td>`;
+    /* ---- THE ROW'S IDENTITY IS TWO LINES, AND THE COUNTERPARTY LEADS ----
+          ONE CELL, BOTH SEATS, so the two pages cannot disagree about what a
+          row calls itself. The family indent, the ↳ arrow and the +N toggle
+          came here WITH the title — they are marks about which row this is,
+          and leaving them on a column that no longer exists would have taken a
+          real control (`data-fam-toggle`) off the page.
+          THE HOVER CARRIES WHAT THE CELL CANNOT: the counterparty, the whole
+          title, the kind and the round, in that order — which is what keeps
+          contracts-page-verify 1e true on the seat that draws no kind
+          column. */
+    CELL.counterparty=`<td class="reg-cell-title" style="${c._famChild?'padding-left:30px':''}" title="${esc(cpName)} · ${esc(regTitleOf(c))} · ${esc(kindRound)}">
+        <span style="display:flex;align-items:center;gap:9px;min-width:0">
+        <span class="reg-title" style="min-width:0;flex:1;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:var(--t-body);font-weight:var(--w-body)" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc(c.parentId)}">↳ </span>`:''}${esc(cpName)}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:var(--w-body);font-size:var(--t-body);font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
+        </span><span class="reg-sub">${esc(regTitleOf(c))}</span>
+      </td>`;
+    /* THE KIND AND THE ROUND ARE A COLUMN ON THE NEGOTIATIONS SEAT ALONE,
+          built only where it is drawn (the `acts` column's own rule): a round
+          is what that page is about. On Contracts the same words are on the
+          cell's hover above. */
+    CELL.kind=neg?`<td class="reg-typecell">${esc(kindRound)}</td>`:'';
     CELL.stream=`<td style="color:var(--color-neutral-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(regStreamName(c))}"><span style="display:inline-flex;align-items:center;gap:7px;min-width:0;max-width:100%"><span class="reg-tick" style="background:${folderColor(c)}"></span><span style="min-width:0;overflow:hidden;text-overflow:ellipsis">${esc(regStreamName(c)||'—')}</span></span></td>`;
     CELL.value=`<td style="text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:var(--w-body);white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}">${val}</td>`;
     CELL.signed=`<td style="white-space:nowrap">${regSignedCell(c)}</td>`;
@@ -1591,23 +1648,13 @@ function regRowsHtml(cs){
         <button data-menu="${c.id}" style="border:0;background:none;cursor:pointer;padding:0 var(--s-1);line-height:var(--row-line-1);color:var(--color-neutral-600);font-size:var(--t-body);letter-spacing:1px;vertical-align:middle" title="${i18t('reg_more_actions')}">⋯</button>
         <div data-menu-pop="${c.id}" style="display:none;position:absolute;right:8px;top:34px;z-index:30;width:180px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:var(--radius);padding:var(--s-1);flex-direction:column;text-align:left">${actBtns(c)}</div>
       </td>`;
-    CELL.name=`<td class="reg-cell-title" style="max-width:300px${c._famChild?';padding-left:30px':''}">
-        ${''/* ---- ONE LINE PER CONTRACT (owner-ruled 24 Aug 2026) ----
-              The document KIND used to sit on a quiet second line under the
-              title, and that second line was the whole of this row's height:
-              the owner chose to drop it and take the design's 36px row, which
-              turns about 17 contracts on a laptop into about 24. THE FACT IS
-              NOT LOST — the kind rides the title's own hover, and the VALUE
-              STREAM it used to sit beside is now a column of its own rather
-              than a colour with a legend at the foot of the page.
-              A CHILD ROW IS THE SAME ONE LINE: the indent and the arrow say it
-              is filed under the row above, and the arrow's hover names the
-              relation and the parent, which is what the old second line said
-              in full width. */}
-        <span style="display:flex;align-items:center;gap:9px;min-width:0">
-        <span class="reg-title" style="min-width:0;flex:1;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(regTitleOf(c))} · ${esc(cKind(c))}">${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:var(--t-body);font-weight:var(--w-body)" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc(c.parentId)}">↳ </span>`:''}${regTitleOf(c)}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:var(--w-body);font-size:var(--t-body);font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
-        </span>${sub}
-      </td>`;
+    /* ---- THE `name` COLUMN IS GONE FROM BOTH SEATS (21 Sep 2026) ----
+          Everything it drew is in CELL.counterparty above: the title on the
+          second line, the family indent, the arrow and the toggle. DELETED
+          RATHER THAN STUBBED — nothing outside this function ever read it,
+          and a builder with no key in REG_COL_KEYS is a builder nothing can
+          call. `reg_col_title` stays LIVE: it is the sort dropdown's own
+          label, and sorting by title is still offered there. */
     return band + `
     <tr data-row="${c.id}"${neg?' data-nego-row="1"':''} tabindex="${i===0?0:-1}"
       style="cursor:pointer;animation-delay:${Math.min(i,14)*22}ms">${(neg?REG_COL_KEYS_NEGO:REG_COL_KEYS).map(k=>CELL[k]||'').join('')}
@@ -2537,8 +2584,13 @@ function renderRegister(opts){
                        cannot disagree about which column is which. */}
                 ${(neg?REG_COL_KEYS_NEGO:REG_COL_KEYS).map(k=>{
                   if(k==='mk') return sortableTh('ref','MK');
-                  if(k==='name') return sortableTh('name',i18t('reg_col_title'));
                   if(k==='counterparty') return sortableTh('party',i18t('reg_col_counterparty'));
+                  /* The head names the LEADING line, and the press sorts by
+                         it: the counterparty is what a reader scans down this
+                         column. Sorting by title is still offered — in the
+                         sort dropdown, which has carried a sort with no column
+                         of its own (`risk`) since it was built. */
+                  if(k==='kind') return sortableTh('kind',i18t('reg_col_type_round'));
                   if(k==='stream') return sortableTh('stream',i18t('reg_value_stream'));
                   if(k==='value') return sortableTh('value',i18t('reg_col_value'),'text-align:right');
                   if(k==='signed') return sortableTh('signed',i18t('reg_col_signed'));
@@ -2696,8 +2748,10 @@ function renderRegister(opts){
      rebuilds the chips cannot leave a listener behind; the helper binds once
      per element by its own dataset flag. The `<select>`s are untouched — see
      selectMenuWire for what this does and does not take over. */
-  const fbar=document.querySelector('.reg-filterbar');
-  if(fbar && window.selectMenuWire) selectMenuWire(fbar,'select');
+  /* ---- THE FILTER BAR'S OWN CALL IS RETIRED (21 Sep 2026) ----
+     The sweep is on the document's body now and is DELEGATED, so this bar is
+     already covered — and a second root over the same control would answer one
+     press twice and open the menu twice. ONE ROOT, ONE LISTENER. */
 
   regWireColResize();
   regFitBandOffset();

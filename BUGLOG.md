@@ -18307,3 +18307,40 @@ Full suite 8,314 pass / 0 fail. Lint 0 errors.
 - The Copilot key panel's key box is a password input the browser autofills, so
   it shows dots even when nothing is stored in the workspace; pressing Save key
   with an autofilled value would store it. Not touched — outside this request.
+## 21 Sep 2026 — the counterparty leads, and the work order's four
+
+Built: the two tables to the renders Young approved (Contracts loses the title
+column, Negotiations keeps its count and gains Type · Round, the counterparty
+leads both), then WORKORDER-five-off-five-images.md — the brief that fails to
+run, the mandatory brief button before signing, the Copilot rail naming its
+clause, and the New agreement pop-up's ground plus HaTi's own dropdown list
+swept across the platform.
+
+Defects found and fixed on the way:
+- `anthropicMessages` had NO request timeout and retried only a REJECTED MODEL,
+  so a dropped connection lost the call outright — measured as the cause of the
+  brief failing while three other Copilot calls in the same run came back.
+- A failed arrival-read tile said "Try again in a moment" and offered no press.
+- The Copilot rail's clause name grew the head 44px to 61px: it took width, the
+  tabs wrapped, then the label wrapped. Fixed at the cause (flex:none on both).
+- Four slices in f273 pinned `function triageAndPaint(c){` — a SIGNATURE, not a
+  region — and an added options argument broke all four at once.
+- contracts-page-verify pinned the party and stream columns by INDEX; both moved.
+- f281 sliced the head region 600 characters back from `sortableTh('name'`.
+- `reg-kindcell` would have tripped f240's substring net for the retired
+  `.reg-kind`; renamed `reg-typecell` before it was committed.
+
+Noticed, not fixed:
+- flat-rows-and-alerts-verify 2d/2e/2f fail at the parent too (a caption and a
+  filter the check expects in one head, and three cuts it expects to find).
+- flat-rows-and-alerts-verify's "one size per cell" exception does not cover
+  `.reg-day`, so the dotted date's 12px reads as an offender at the parent and
+  still does.
+- The pop-up's `.na-door` cards could not be measured in the browser file: the
+  seeded workspace publishes no company standard, so that section is not drawn.
+- `INDUSTRY_LABEL` in js/wizard.js is still hardcoded English on screen.
+
+### Addendum — the same run, 21 Sep 2026 (the counterparty leads / the work order's four)
+
+- **Two lint errors of my own, found by running the check rather than by reading.** The bounded fetch added to the one metered Copilot call names `AbortSignal`, which is node's own global beside `AbortController` — but only `AbortController` was declared to the checker, so the server read as two undefined names. Declared it, with the reason written beside it. Lint is back at 0 errors. The guard round it (`typeof AbortSignal !== 'undefined'`) was always correct; nothing at runtime was wrong.
+- **Two full-suite runs redirected to a file came back with every dot and no summary at all**, exit 0 both times. Read through a pipe instead, the same suite printed its tally normally: 8,404 tests, 8,404 pass, 0 fail. Noticed, not fixed — a reporter writing to a file loses its last lines, and a bare exit code is the thing to trust there.

@@ -310,7 +310,17 @@ describe('f258 (5) — the columns are draggable, like a spreadsheet', () => {
        equal compares prototypes across realms. */
     const onlyC = Array.from(win.REG_COL_KEYS).filter(k => !win.REG_COL_KEYS_NEGO.includes(k));
     assert.deepEqual(onlyC, ['signed', 'owner', 'acts'], 'Signed, Own and ⋯ are Contracts\' own');
-    assert.deepEqual(Array.from(win.REG_COL_KEYS_NEGO).filter(k => !win.REG_COL_KEYS.includes(k)), [], 'and Negotiations has nothing of its own');
+    /* ---- REVERSED IN PLACE (Young ruled it 21 Sep 2026) ----
+       It read: Negotiations has NOTHING of its own. That held while both seats
+       drew the same facts in a different order, and the owner has now ruled
+       otherwise by name — *"do not delete any column but ... bring the words
+       currently below the contract names as a new column"* — so the kind and
+       the round are a column on the Negotiations seat alone. A ROUND IS WHAT
+       THAT PAGE IS ABOUT; on Contracts the same two words ride the identity
+       cell's own hover. The claim is now EXACTLY WHICH key is that seat's own,
+       so a second one cannot arrive unnoticed. */
+    assert.deepEqual(Array.from(win.REG_COL_KEYS_NEGO).filter(k => !win.REG_COL_KEYS.includes(k)), ['kind'],
+      'the kind column is the Negotiations seat\'s own, and the only one');
     assert.ok(win.REG_COL_KEYS.includes('signed'));
     assert.ok(!win.REG_COL_KEYS_NEGO.includes('signed'));
   });

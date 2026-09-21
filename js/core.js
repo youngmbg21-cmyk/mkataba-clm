@@ -1951,6 +1951,10 @@ function renderMustChangePassword(){
   });
 }
 function startApp(){
+  /* Armed once, on the body, before anything is painted: the wire is
+     delegated, so every select the product ever draws is covered by this one
+     call — see selectMenuSweep for what deliberately stays native. */
+  try{ selectMenuSweep(); }catch(_){}
   if(REMOTE && REMOTE.me && REMOTE.me.prefs && REMOTE.me.prefs.mustChangePassword){
     renderMustChangePassword(); return;
   }
@@ -2800,10 +2804,62 @@ function selectMenuWire(root, selector){
   root.addEventListener('pointerdown', ev => {
     const sel = ev.target && ev.target.closest ? ev.target.closest(selector) : null;
     if (!sel || sel.disabled) return;
+    /* ASKED AT THE PRESS, NOT AT THE BINDING: a window can be resized under a
+       page that is already armed, and the honest answer is the one true when
+       the reader presses. */
+    if (selectMenuStandsDown()) return;
     ev.preventDefault();                        /* the system pane never opens */
     sel.focus();
     selectMenuOpen(sel);
   });
+}
+/* ---- EVERY DROPDOWN IN THE PLATFORM DRAWS HaTi'S OWN LIST (Young ruled it
+   21 Sep 2026: "make all drop downs in the platform similar to the ones in the
+   contract and negotiation pages") ----
+   The list a native <select> drops is the operating system's and no stylesheet
+   reaches inside it, which is why the Contracts filter bar got this on 20 Sep
+   and why its note ended "every other <select> still drops the system's list
+   until somebody asks". This is that ask.
+
+   ONE LISTENER ON THE BODY, NOT A LIST OF PAGES. The wire is DELEGATED, so a
+   root that is the document's own body catches every select that exists now
+   and every one painted later — in a view, in a dialog, in a drawer — with
+   nothing to keep in step and no page that can be forgotten. A per-page sweep
+   would be a list, and a list is a thing that drifts.
+
+   WHAT STAYS NATIVE IS NAMED HERE, and each one for its own reason:
+     [multiple] / [size]  a LIST BOX is not a dropdown; it shows its options in
+                          place and a floating menu would be a second idea of
+                          the same control.
+     [data-native]        the escape hatch, for a control that later turns out
+                          to want the system's own pane. Nothing carries it
+                          today; it exists so that the answer to one awkward
+                          select is one attribute rather than a branch here.
+   AND TWO WHOLE SURFACES STAND DOWN, asked at the press rather than at the
+   binding because both can change under one page:
+     THE COUNTERPARTY'S SEAT (PORTAL_MODE) — their page is not ours to restyle
+       on this pass, and it is the one surface a stranger meets.
+     A PHONE (under BP.sm) — there the system's picker is a full-height wheel
+       built for a thumb, and a floating list is strictly worse.
+
+   THE <select> REMAINS THE RECORD. The menu writes the value back onto it and
+   fires its own `change`, so nothing downstream learns a menu was involved;
+   and THE KEYBOARD IS LEFT ALONE — arrows, Home, End and type-ahead are the
+   browser's, because rebuilding those in a div is how a control loses
+   behaviour nobody noticed it had. */
+const SELECT_MENU_SEL = 'select:not([multiple]):not([size]):not([data-native])';
+function selectMenuSweep(root){
+  const host = root || (typeof document !== 'undefined' ? document.body : null);
+  if (!host) return;
+  selectMenuWire(host, SELECT_MENU_SEL);
+}
+function selectMenuStandsDown(){
+  try { if (typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE) return true; } catch (_) {}
+  try {
+    const sm = (typeof BP === 'object' && BP && BP.sm) ? BP.sm : 768;
+    if (typeof window !== 'undefined' && window.innerWidth < sm) return true;
+  } catch (_) {}
+  return false;
 }
 const DLG_W = Object.freeze({ s: '400px', m: '520px', l: '640px', xl: '760px' });
   /* ---- A BIT OF COLOUR ON THE FRAME (Young ruled 21 Sep 2026: "add a bit of
@@ -7395,4 +7451,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{cpReadyToSign,READY_META,READY_META_SHORT,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{cpReadyToSign,READY_META,READY_META_SHORT,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});

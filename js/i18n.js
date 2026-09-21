@@ -3019,6 +3019,9 @@ const STRINGS = {
     sc_run_n_one: 'Run 1 reading',
     sc_run_n_other: 'Run {n} readings',
     sc_running: 'Running…',
+    /* The Before-you-sign card's own first button (21 Sep 2026). It says what
+       the press costs, where this product puts machinery: the hover. */
+    sc_brief_title: 'Copilot reads the whole agreement and writes the brief — this spends on your Copilot budget',
     sc_run_title: 'Read this wording against your playbook and your obligations list',
     sc_run_msg: 'HaTi will {what}. Nothing is sent, nothing is filed and nothing is signed.',
     sc_run_ok: 'Run it',
@@ -6866,6 +6869,11 @@ const STRINGS = {
 
     // ---- the register: columns, filters and row actions ----
     reg_col_title: 'Contract title',
+    /* The Negotiations seat's own column (21 Sep 2026): the kind of paper and
+       the round, which were the title's second line until the counterparty
+       took the lead. The head names both, because the cell prints both. */
+    reg_col_type_round: 'Type · Round',
+    reg_sort_kind: 'Type',
     reg_col_expiry: 'Expiry date',
     reg_col_signed: 'Signed',
     reg_col_drag: 'Drag to resize this column · double-click to reset',
@@ -10341,6 +10349,7 @@ const STRINGS = {
     sc_run_n_one: 'Kör 1 genomläsning',
     sc_run_n_other: 'Kör {n} genomläsningar',
     sc_running: 'Kör…',
+    sc_brief_title: 'Copilot läser hela avtalet och skriver sammanfattningen — det kostar av er Copilot-budget',
     sc_run_title: 'Läs den här ordalydelsen mot er spelbok och er lista över åtaganden',
     sc_run_msg: 'HaTi kommer att {what}. Inget skickas, inget registreras och inget signeras.',
     sc_run_ok: 'Kör',
@@ -13824,6 +13833,8 @@ const STRINGS = {
 
     // ---- the register: columns, filters and row actions ----
     reg_col_title: 'Avtalsnamn',
+    reg_col_type_round: 'Typ · Runda',
+    reg_sort_kind: 'Typ',
     reg_col_expiry: 'Utgångsdatum',
     reg_col_signed: 'Undertecknat',
     reg_col_drag: 'Dra för att ändra kolumnbredden · dubbelklicka för att återställa',
