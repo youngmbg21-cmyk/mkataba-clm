@@ -379,7 +379,13 @@ const SEED_UNSENT = async () => {
          name reg-kind had stopped matching the element this check exists to
          excuse. Pinning the NAME rather than the thing is what let a row grow
          a second size and still report one. */
-      const KIND = /reg-kind|reg-sub/;
+      /* ---- THE EXCEPTION IS THE KIND, WHEREVER IT IS DRAWN (re-pointed in
+         place 21 Sep 2026) ---- it was matched by CLASS NAME, and the class
+         moved: the kind and the round are a column of their own on the
+         Negotiations seat now (`reg-typecell`), and the sub-line beside the
+         counterparty carries the contract's name. Both read at the sub-line's
+         own size, which is what this exception has always been about. */
+      const KIND = /reg-kind|reg-sub|reg-typecell/;
       const body = rows.cells.filter(c => !KIND.test(c.cls));
       const sizes = [...new Set(body.map(c => c.size))];
       check(`5-${label}b every cell but the document kind is ONE size`,

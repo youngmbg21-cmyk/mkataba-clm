@@ -673,7 +673,14 @@ describe('F273 — auto-triage on upload', () => {
          triageAndPaint with the rest of the block. The claim is unchanged —
          all three repaints are called bare — and is now asked of both doors at
          once, because both call this one launcher. */
-      const i = CONTRACT.indexOf('function triageAndPaint(c){');
+      /* ---- RE-POINTED IN PLACE 21 Sep 2026: BY NAME, NOT BY PARAMETER LIST ----
+         All four of these slices were anchored on the exact text
+         `function triageAndPaint(c){`, so the day that function took an
+         options argument every one of them measured an empty region and
+         passed or failed on nothing. The same lesson f178 and f255 are
+         already carrying: pin the REGION, never a signature that happens
+         to hold today. */
+      const i = CONTRACT.indexOf('function triageAndPaint(');
       const w = CONTRACT.slice(i, CONTRACT.indexOf('\n}\n', i));
       for (const f of ['renderChecksCard', 'renderKeyTerms', 'renderKeyTermsSide'])
         assert.ok(!new RegExp('window\\.' + f).test(w),
@@ -811,7 +818,7 @@ describe('F273 — auto-triage on upload', () => {
        claim it always was — not awaited, its own catch — asked of the one
        launcher both doors now call, BY NAME rather than by its old call site. */
     test('the run is started after the contract is on screen, and not awaited', () => {
-      const i = CONTRACT.indexOf('function triageAndPaint(c){');
+      const i = CONTRACT.indexOf('function triageAndPaint(');
       const w = CONTRACT.slice(i, CONTRACT.indexOf('\n}\n', i));
       assert.ok(i > 0 && w.length > 0, 'the block is where it says it is');
       assert.ok(!/await\s+triageRun/.test(w),
@@ -834,7 +841,7 @@ describe('F273 — auto-triage on upload', () => {
        records why a byte count is the wrong instrument; this one still carried
        one and would have gone red on the next comment written here. */
     test('the save is waited for, and the readings still are not', () => {
-      const i2 = CONTRACT.indexOf('function triageAndPaint(c){');
+      const i2 = CONTRACT.indexOf('function triageAndPaint(');
       const w = CONTRACT.slice(i2, CONTRACT.indexOf('\n}\n', i2));
       assert.match(w, /API_MODE\(\) && window\.flushSaves\) \? flushSaves\(\)/,
         'the pending save is flushed rather than left on its 400ms timer');
@@ -947,7 +954,7 @@ describe('F273 — auto-triage on upload', () => {
         'the launcher the funnel reaches for is on the export list');
     });
     test('nothing is read — or paid for — twice', () => {
-      const i = CONTRACT.indexOf('function triageAndPaint(c){');
+      const i = CONTRACT.indexOf('function triageAndPaint(');
       const w = CONTRACT.slice(i, CONTRACT.indexOf('\n}\n', i));
       /* ---- ONCE PER WORDING, WHICH REPLACED ONCE EVER (17 Sep 2026) ----
          Read at creation and never again, a template contract would be

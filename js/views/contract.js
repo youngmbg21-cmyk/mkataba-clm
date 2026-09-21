@@ -1952,8 +1952,12 @@ async function submitUpload(){
    upload already read on arrival is not read again when it is sent, and a
    reading that FAILED is not silently retried and paid for twice — the card
    offers "Run it again" and that press is a person's. */
-function triageAndPaint(c){
+function triageAndPaint(c, opts){
   if(!c || !window.triageRun) return;
+  /* `again` is a PERSON asking, and it is the only thing that lifts the guard
+     below. Absent on every older caller, so every door that already existed
+     behaves exactly as it did. */
+  const again = !!(opts && opts.again);
   /* ---- ONCE PER WORDING, WHICH REPLACES ONCE EVER (17 Sep 2026) ----
      The note above still holds — triageRun has no memory and the question must
      be asked HERE, in the one place every door passes through — but the
@@ -1963,7 +1967,7 @@ function triageAndPaint(c){
      once the blanks are filled. triageNeedsRead is that question and its own
      note carries the three answers; a stage without it keeps exactly the old
      behaviour, which is why the fallback is the guard it replaces. */
-  if(window.triageNeedsRead ? !triageNeedsRead(c) : (window.triageOf && triageOf(c))) return;
+  if(!again && (window.triageNeedsRead ? !triageNeedsRead(c) : (window.triageOf && triageOf(c)))) return;
   /* ---- BUT THE RECORD HAS TO EXIST ON THE SERVER BEFORE IT CAN BE READ ----
      persist() in API mode is DEBOUNCED by 400ms and returns nothing to wait
      on, so a reading started here fires before the contract has been created
@@ -4935,7 +4939,18 @@ function ktTriageStripHtml(c){
      playbook row makes, so the two cannot drift about what "open the playbook
      review" means. Drawn only where the review really ran (`x.ok`), so it can
      never open on nothing. */
+  /* ---- A READING THAT FAILED CARRIES THE PRESS THAT RUNS IT AGAIN (Young
+     reported it 21 Sep 2026: "the highlighted briefing card has a bug because
+     it fails to run all the time") ----
+     The tile said "Copilot could not be reached just now. Try again in a
+     moment" and offered NO WAY TO TRY AGAIN — a refusal has to carry its way
+     forward on the same screen, which is this product's own rule and the one
+     thing that sentence was breaking. ASKED FIRST, because on a tile that
+     failed there is nothing else worth pressing. `filed` never fails (it is a
+     fact about the record, not a reading), and a tile mid-flight draws no
+     door at all, so neither can reach this. */
   const doorFor = x =>
+    (!x.working && !x.ok && !x.none && x.key!=='filed') ? 'retry' :
     (x.key==='brief'    && x.ok) ? 'brief' :
     (x.key==='oblig'    && x.ok) ? 'oblig' :
     (x.key==='playbook' && x.ok) ? 'playbook' : '';
@@ -5082,6 +5097,13 @@ function paintKtTriage(c){
      nodes, so there is nothing to keep in step; the strip is replaced whole. */
   slot.querySelectorAll('[data-kt-tri-go]').forEach(btn=>btn.addEventListener('click',()=>{
     const go=btn.getAttribute('data-kt-tri-go');
+    /* THE WHOLE ARRIVAL READ, NOT THE ONE STEP. The steps are not independent
+       — the brief is written over wording the other readings have already
+       looked at — and triageRun is the ONE order they run in. A press here is
+       a person asking, so it passes `again` and the once-per-wording guard
+       stands aside: that guard exists to stop a FAILURE being retried silently
+       and paid for on every send, which is not what this is. */
+    if(go==='retry'){ if(window.triageAndPaint) triageAndPaint(c,{again:true}); return; }
     if(go==='oblig'){ if(window.roomGoTab) roomGoTab(c,'oblig'); return; }
     /* Standards opens the playbook review in the same panel, by the same one
        act — see doorFor. */
@@ -5700,7 +5722,12 @@ function ktBriefCardHtml(c,CARD,opts){
    Read the brief and Write it again — and a bare querySelector here would wire
    the first and leave the second a dead press, which is the fault this file
    keeps recording. */
-function wireKtBriefCard(c){
+function wireKtBriefCard(c,opts){
+  /* `after` is additive and absent on every older caller: a second surface
+     drawing this act (the Before-you-sign card) needs its own repaint, and
+     the Overview's two repaints below are no-ops where their elements are not
+     on screen. */
+  const after=opts&&typeof opts.after==='function'?opts.after:null;
   const list=[...document.querySelectorAll('[data-kt-brief]')]; if(!list.length) return;
   list.forEach(b=>b.addEventListener('click',async()=>{
     if(b.getAttribute('data-kt-brief')==='open') return openCheckPanel(c,'brief');
@@ -5722,6 +5749,7 @@ function wireKtBriefCard(c){
          it. Both halves, or the reader still has to leave the page to see the
          two agree. */
       try{ paintKtTriage(c); }catch(_){}
+      try{ if(after) after(); }catch(_){}
       if(r) openCheckPanel(c,'brief');
     }catch(e){ b.disabled=false; b.textContent=word; }
   }));
@@ -11784,7 +11812,56 @@ function signCheckCardHtml(c){
      it does by where it is, and it is beside the three rows it answers.
      #sc-run KEEPS ITS ID on that button, so every wiring and every test that
      reaches for it is untouched. */
-  const runCtl='';
+  /* ---- THE BRIEF IS THE FIRST BUTTON ON THIS CARD (Young ruled it 21 Sep
+     2026) ----
+     *"I need a button similar to the run readings button where it is mandatory
+     to run or else you cannot sign. It should be the first button before going
+     through the rest of the field ... and once you run it, the brief appears
+     from the side panel."*
+
+     WHY IT WAS NOT REACHABLE BEFORE. The brief was folded into "Run N
+     readings" with the other two, and counted only where it was missing,
+     stale or cut short — so on the owner's own screen that button said RUN 2
+     and the brief was not one of the two. A reader who wanted to read the
+     brief before signing had nothing to press at all.
+
+     IT IS DRAWN IN EVERY STATE, which is the whole of the ask: *Write the
+     brief* where there is none or the wording has moved under it, *Open the
+     brief* where one already stands for this version. A press in the second
+     state SPENDS NOTHING — it opens the panel — because charging for a brief
+     that is already written and already current would be a toll on reading.
+
+     IT IS THE CARD HEAD'S OWN SLOT, which is why this adds no band: that slot
+     was built for a control on this card and emptied on 15 Sep when the Run
+     control moved down onto the readings it answers. First button, before
+     every stage, by construction rather than by a margin.
+
+     TWO DOORS, ONE ACT, BY CONSTRUCTION: it carries `data-kt-brief`, the very
+     attribute the Overview card's own buttons carry, and wireKtBriefCard binds
+     every one of them on the page — so this button and that card cannot drift
+     about what writing or opening a brief means, and the panel that opens is
+     the same panel.
+
+     AND IT STILL HOLDS THE SIGNATURE: the `brief` row is in signReadiness and
+     holds under every gate but `off` while the brief is missing, stale or cut
+     short. What this button adds is the PRESS; the hold was already the rule.
+     THE HOLD IS NOT WIDENED to a brief that is current and merely unread —
+     that would re-spend on every signature of an already-briefed contract, and
+     it is the one half of this the owner has not ruled on. Said out loud. */
+  const brief=(rc&&rc.ready&&rc.brief)?rc.brief:null;
+  const briefStands=!!(brief&&!brief.none&&brief.stale===false&&!brief.truncated);
+  const runCtl=brief
+    ? `<button type="button" class="sc-stage-act sc-brief" id="sc-brief"
+        data-kt-brief="${briefStands?'open':'run'}"${busy||rc.waiting?' disabled':''}
+        title="${esc(i18t(rc.waiting?'sc_wait_nego':(briefStands?'br_open':'sc_brief_title')))}"><svg class="sc-run-i"
+        width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-file"/></svg>${
+        esc(i18t(briefStands?'br_open':'br_write'))}</button>`
+    /* THE MARK IS A SPRITE SYMBOL THAT EXISTS. `readpaper` is a key in the
+       ICONS map, which is a DIFFERENT mechanism — written as `#i-readpaper`
+       here it would resolve to nothing and `<use>` paints an empty box in
+       silence, which is this file's own recorded fault. `#i-file` is the
+       sprite's paper, beside the Run control's own magnifier. */
+    : '';
   return `<section id="sign-check" class="kt-tri sc-ready${busy?' is-busy':''}">
     <div class="kt-tri-head">
       <span class="kt-tri-t">${esc(i18t(busy?'sc_head_busy':'sc_ready_head'))}${counts?` <span class="sc-counts">${esc(counts)}</span>`:''}</span>${runCtl}
@@ -11977,6 +12054,11 @@ function renderSignSide(c){
      gate is on and something is. */
   const scAgain=()=>{ renderSignSide(c); if(window.renderSignButton) renderSignButton(c); };
   host.querySelector('#sc-run')?.addEventListener('click',()=>runSignCheck(c,{ after:scAgain }));
+  /* The brief button is wired by the function that owns that act, not by a
+     second copy of it here — it answers `data-kt-brief` wherever it is drawn.
+     `after` repaints THIS card, because a brief that lands settles a row on
+     it and the list must say so without the reader leaving the tab. */
+  try{ wireKtBriefCard(c,{ after:scAgain }); }catch(_){}
   host.querySelectorAll('[data-sc-run]').forEach(b=>b.addEventListener('click',()=>runSignCheck(c,{ after:scAgain })));
   /* The brief's own row reads it alone rather than pressing the whole stage:
      a reader who wants the summary re-written should not be made to pay for

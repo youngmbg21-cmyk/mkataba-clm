@@ -329,8 +329,16 @@ describe('f240 (5) — the rows read at one size and one weight', () => {
       assert.ok(!/\bcondensed\s*:/.test(dens[1]), 'condensed is off the ladder');
       assert.match(dens[1], /\bcomfortable\s*:/); assert.match(dens[1], /\bcompact\s*:/);
     }
-    assert.match(rowsFn, /title="\$\{esc\(regTitleOf\(c\)\)\} · \$\{esc\(cKind\(c\)\)\}"/,
-      'the kind is still said on the title’s own hover');
+    /* ---- RE-POINTED IN PLACE 21 Sep 2026: THE HOVER MOVED WITH THE FACT ----
+       It pinned the exact hover of a TITLE column that no longer exists. The
+       claim that survives is the one it was always making: the kind is still
+       SAID, on the identity cell's own hover, beside the counterparty and the
+       whole title. Asked as a relation to `kindRound` — the one reading both
+       seats spell those two words through — rather than as a literal, so the
+       day the wording moves again this still means what it says. */
+    assert.match(rowsFn, /const kindRound=`\$\{cKind\(c\)\}/, 'the kind and round are one reading');
+    assert.match(rowsFn, /CELL\.counterparty=`<td[^\n]*title="[^"]*\$\{esc\(kindRound\)\}"/,
+      'and it is still said, on the identity cell’s own hover');
     /* RE-POINTED 10 Sep 2026, not weakened: this pinned the folder lookup as a
        LITERAL where the claim is that the stream has a column of its own. The
        cell and that column's own sort now share one reading (regStreamName),

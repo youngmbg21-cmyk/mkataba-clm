@@ -4368,6 +4368,12 @@ const isModelRejection = (status, text) => {
      allowance    — true when the call draws on the onboarding allowance
    Spend is recorded from the token usage Anthropic returns on the response, so
    a failed call costs nothing and books nothing. */
+/* How long one call may hold a connection before HaTi stops waiting, and how
+   long it pauses before its one retry. Both settable, because the right number
+   is the provider's and not ours; the defaults are measured against the
+   longest call this product makes rather than the average one. */
+const AI_HTTP_TIMEOUT_MS = Number(process.env.AI_HTTP_TIMEOUT_MS || 120000);
+const AI_RETRY_PAUSE_MS  = Number(process.env.AI_RETRY_PAUSE_MS  || 1200);
 async function anthropicMessages(key, tier, payload, meter = {}) {
   const t = tier === 'deep' ? 'deep' : 'fast';
   // meter.model pins a specific model for callers whose behaviour is tuned to
@@ -4384,8 +4390,52 @@ async function anthropicMessages(key, tier, payload, meter = {}) {
     method: 'POST',
     headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
     body: JSON.stringify({ ...payload, model }),
+    /* A STALLED CONNECTION IS NOT AN ANSWER, AND IT MUST NOT BE A HANG.
+       Node's fetch carries no timeout of its own, so a connection that opens
+       and then goes quiet waits on the operating system. Generous on purpose:
+       a deep call over a long contract really does take a minute. */
+    signal: (typeof AbortSignal !== 'undefined' && AbortSignal.timeout)
+      ? AbortSignal.timeout(AI_HTTP_TIMEOUT_MS) : undefined,
   });
-  const r = await send(chosen);
+  /* ---- A DROPPED CONNECTION IS RETRIED; A REFUSAL IS NOT (Young reported it
+     21 Sep 2026: "the highlighted briefing card has a bug because it fails to
+     run all the time") ----
+     MEASURED FROM HIS OWN SCREENSHOT, which is what narrowed this: the brief
+     tile said "Copilot could not be reached" while the standards pass, the
+     obligations scan and the field reading — three calls made in the same
+     breath, on the same key, the same budget and the same connection — all
+     came back. So it was never the key, the daily cap or the provider being
+     down. What is specific to the brief is that it is THE LONGEST CALL THIS
+     PRODUCT MAKES (the deep tier, 4,000 tokens out, up to AI_DOC_CHARS in),
+     and the longer a connection is held the likelier it is to be dropped.
+
+     AND NOTHING RETRIED IT. `fetch` THROWS on a dropped connection, and that
+     throw went straight past the retry below — which only ever answered a
+     REJECTED MODEL — into the route's catch and onto the tile. One dropped
+     connection, one lost brief, no second attempt.
+
+     THE LINE IS BETWEEN AN ANSWER AND NO ANSWER. A 4xx is the provider
+     answering: a bad key, a refusal, a rate limit, and each of those has its
+     own sentence already (aiDegrade names four kinds). A THROW or a 5xx is not
+     an answer at all, and those are retried — ONCE, after a short pause.
+     SPEND CANNOT DOUBLE: it is booked off the usage on a RESPONSE, so an
+     attempt that never came back books nothing.
+     ONE PLACE, EVERY CALL. Every metered reading in this file goes through
+     this function, so the brief's fix is the obligations scan's, the renewal
+     adviser's and the playbook pass's too — the four-call-sites lesson this
+     codebase has paid for twice. The STREAMING twin is deliberately left
+     alone: there a stall is visible to a reader who can ask again. */
+  let r, threw = null;
+  try { r = await send(chosen); }
+  catch (e) { threw = e; }
+  if (threw || (r && r.status >= 500)) {
+    console.warn(`[ai] ${threw ? 'no answer' : 'HTTP ' + r.status} from Anthropic on "${chosen}" (${meter.feature || 'other'}); one retry.`);
+    await new Promise(res => setTimeout(res, AI_RETRY_PAUSE_MS));
+    threw = null;
+    try { r = await send(chosen); }
+    catch (e) { threw = e; }
+    if (threw) throw threw;
+  }
   if (!r.ok) {
     const text = await r.text();
     if (chosen !== def && isModelRejection(r.status, text)) {
