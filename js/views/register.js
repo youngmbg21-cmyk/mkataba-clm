@@ -341,6 +341,10 @@ const REG_SORTS=[
   {k:'stream',get label(){ return i18t('reg_sort_stream'); }},
   {k:'stage',get label(){ return i18t('reg_sort_stage'); }},
   {k:'signed',get label(){ return i18t('reg_sort_signed'); }},
+  /* THE TWO COLUMNS THE REFERENCE ADDED (second pass, 21 Sep 2026) sort too —
+     every column sorts except the last, the page's own rule. */
+  {k:'move',get label(){ return i18t('reg_sort_move'); }},
+  {k:'owner',get label(){ return i18t('reg_sort_owner'); }},
 ];
 const REG_VIEWS=[
   {k:'expiring90', get label(){ return i18t('reg_exp_90'); }},
@@ -502,7 +506,15 @@ function regBarShown(R){
 
    THE LAST COLUMN CARRIES NO GRIP — it has nothing to its right to trade with,
    and a control whose only outcome is a refusal is furniture. */
-const REG_COL_KEYS      = ['mk','name','counterparty','stream','value','signed','expiry','stage','acts'];
+/* ---- THE REFERENCE'S ORDER ON CONTRACTS (second pass, 21 Sep 2026) ----
+   Stage moves up beside the stream, and two columns join it: MOVE (whose move,
+   the Negotiations seat's own one-word reading, an em-dash where no
+   negotiation has started) and OWN (the owner's initials, the name on the
+   hover). The Negotiations seat keeps its own order; the SIX columns both
+   share are still cut identically (contracts-page-verify 11d pairs by KEY).
+   The row builder emits its cells in the seat's own key order, so a column
+   moved here moves on every row. */
+const REG_COL_KEYS      = ['mk','name','counterparty','stream','stage','move','value','signed','expiry','owner','acts'];
 const REG_COL_KEYS_NEGO = ['mk','name','counterparty','stream','value','expiry','stage','move'];
 /* THE SIX COLUMNS BOTH SEATS SHARE ARE CUT IDENTICALLY, AND THE TITLE IS THE
    COLUMN WITH THE GIVE — the register's own rule since the two lists became one
@@ -518,8 +530,8 @@ const REG_COL_KEYS_NEGO = ['mk','name','counterparty','stream','value','expiry',
    own wants appreciably less, and the point saved goes to the title, which is
    what people scan. Both still sum to 100, which is what makes each table
    exactly its pane at every width. */
-const REG_COL_W         = [8,15,17,15,10,8,13,11,3];
-const REG_COL_W_NEGO    = [8,17,17,15,10,13,11,9];
+const REG_COL_W         = [6,17,13,11,11,7,9,8,10,5,3];
+const REG_COL_W_NEGO    = [6,17,13,11,9,10,11,23];
 /* A column may not be dragged to nothing. A PIXEL floor rather than a percent
    one, because 4% is 51px on a laptop and 77px on a wide monitor — the same
    reasoning that made the divider's own limits pixels. Converted against the
@@ -912,6 +924,18 @@ const REG_CMP={
     const A=regSignedOn(a), B=regSignedOn(b);
     const e=regBlanksLast(A,B); if(e!==null) return e;
     return A<B?-1:A>B?1:0; },
+  /* Whose move: mine, then theirs, then nothing to do; a contract with no
+     negotiation sorts last both ways. READING MUST NOT WRITE — regMoveWord
+     asks negoMoveSay only where a negotiation already exists. */
+  move:(a,b)=>{
+    const rank=c=>{ const m=regMoveWord(c); return m?({mine:'1',theirs:'2'}[m.k]||'3'):''; };
+    const A=rank(a), B=rank(b);
+    const e=regBlanksLast(A,B); if(e!==null) return e;
+    return A<B?-1:A>B?1:0; },
+  owner:(a,b)=>{
+    const A=(window.contractOwnerName&&contractOwnerName(a))||'', B=(window.contractOwnerName&&contractOwnerName(b))||'';
+    const e=regBlanksLast(A,B); if(e!==null) return e;
+    return A.localeCompare(B); },
   /* ---- THE FOUR COLUMNS THAT COULD NOT BE ORDERED (owner-asked 10 Sep 2026:
      "I should be able to sort on each column like in the signed column") ----
      Reference, counterparty and value stream. The ninth column is deliberately
@@ -933,7 +957,7 @@ const REG_CMP={
 };
 // direction applied on a column's FIRST header click (1 = ascending, -1 = descending)
 const REG_SORT_DEFDIR={ updated:-1, value:-1, risk:-1, name:1, expiry:1, stage:1, signed:-1,
-  ref:1, party:1, stream:1 };
+  ref:1, party:1, stream:1, move:1, owner:1 };
 /* ---- THIS LIST DOES NOT PAGE, AND THAT IS THE ANSWER TO THE BAND BREAK ----
    Contracts pages at 40 because a register holds every agreement a company has
    ever had. Live negotiations are the handful being argued over right now — a
@@ -967,11 +991,95 @@ function regPager(cs){
    'view' is on the bar, so the chooser still puts it away). No counts on the
    tabs: in server mode the browser holds one page of the book, and a count
    over that page would be a number about the wrong population. */
+/* ---- THE TABS COUNT, WHERE THE COUNT IS TRUE (second pass, 21 Sep 2026) ----
+   Each tab says how many rows pressing it would show — the SAME reading the
+   press runs (regFiltered with only the view swapped), never a second tally.
+   Only where the loaded list is the whole book: on a paged server list the
+   browser holds a slice, and a count over a slice is a number about the
+   slice wearing the book's name. Null means "do not print one". */
+function regViewCount(k){
+  const R=regState();
+  const whole=!(typeof API_MODE==='function'&&API_MODE()) || !(state.serverStats&&state.serverStats.total!=null)
+    || Number(state.serverStats.total)<=state.contracts.length;
+  if(!whole) return null;
+  const was=R.view; R.view=k||null;
+  let n=0; try{ n=regFiltered().length; }catch(_){ n=null; } finally{ R.view=was; }
+  return n;
+}
+/* ---- SAVED VIEWS (the reference's "Save view", 21 Sep 2026) ----
+   A saved view is the bar's filters and sort, kept in THIS BROWSER under one
+   key, drawn as a tab after the built-in ones. It never travels: the KPI
+   tile selection's own precedent. A saved tab is lit when the bar currently
+   matches it — no second state to fall out of step. */
+const REG_SAVED_KEY='hati.v1.regSavedViews';
+const REG_SAVED_FIELDS=['stage','type','view','category','renewal','signed','payterms','docs','hold','sort','dir'];
+function regSavedViews(){
+  try{ const v=JSON.parse(localStorage.getItem(REG_SAVED_KEY)||'[]'); return Array.isArray(v)?v.filter(x=>x&&x.name&&x.set):[]; }
+  catch(_){ return []; }
+}
+function regSavedSnapshot(R){ const o={}; REG_SAVED_FIELDS.forEach(k=>{ o[k]=R[k]==null?null:R[k]; }); return o; }
+function regSavedMatches(v,R){ const now=regSavedSnapshot(R); return REG_SAVED_FIELDS.every(k=>String(now[k]==null?'all':now[k])===String(v.set[k]==null?'all':v.set[k])); }
+function regSaveView(name){
+  const n=String(name||'').trim().slice(0,40); if(!n) return false;
+  const list=regSavedViews().filter(v=>v.name!==n);
+  list.push({ name:n, set:regSavedSnapshot(regState()) });
+  try{ localStorage.setItem(REG_SAVED_KEY, JSON.stringify(list.slice(-12))); }catch(_){ return false; }
+  return true;
+}
+function regForgetView(name){
+  try{ localStorage.setItem(REG_SAVED_KEY, JSON.stringify(regSavedViews().filter(v=>v.name!==name))); }catch(_){}
+}
+function regApplySaved(name){
+  const v=regSavedViews().find(x=>x.name===name); if(!v) return false;
+  const R=regState(); REG_SAVED_FIELDS.forEach(k=>{ R[k]=v.set[k]==null?(k==='view'?null:(k==='dir'?R.dir:(k==='sort'?R.sort:'all'))):v.set[k]; });
+  R.page=1; return true;
+}
 function regViewTabsHtml(R){
+  const neg=regScope()==='negotiations';
+  const count=k=>{ const n=regViewCount(k); return n==null?'':`<span class="n">${n}</span>`; };
   const tab=(k,label)=>{ const on=(R.view||'')===(k||'');
-    return `<button type="button" role="tab" class="reg-vtab${on?' on':''}" data-reg-view="${k}" aria-selected="${on?'true':'false'}">${esc(label)}</button>`; };
+    return `<button type="button" role="tab" class="reg-vtab${on?' on':''}" data-reg-view="${k}" aria-selected="${on?'true':'false'}">${esc(label)}${count(k)}</button>`; };
+  const saved=neg?'':regSavedViews().map(v=>{ const on=regSavedMatches(v,R);
+    return `<span class="reg-vtab reg-vtab-saved${on?' on':''}" role="tab" aria-selected="${on?'true':'false'}"><button type="button" data-reg-saved="${esc(v.name)}" title="${esc(i18t('reg_saved_view_title'))}">${esc(v.name)}</button><button type="button" class="x" data-reg-saved-x="${esc(v.name)}" title="${esc(i18t('reg_forget_view_title'))}" aria-label="${esc(i18t('reg_forget_view_title'))}">×</button></span>`; }).join('');
+  const save=neg?'':`<span class="reg-views-end"><button type="button" id="reg-save-view" class="reg-vtab-act" title="${esc(i18t('reg_save_view_msg'))}">${esc(i18t('reg_save_view'))}</button></span>`;
   return `<div class="reg-views" role="tablist" aria-label="${esc(i18t('reg_quick_filters'))}" title="${esc(i18t('reg_quick_filters_title'))}">${
-    tab('',i18t('reg_tab_all'))}${REG_VIEWS.map(v=>tab(v.k,v.label)).join('')}</div>`;
+    tab('',i18t('reg_tab_all'))}${REG_VIEWS.map(v=>tab(v.k,v.label)).join('')}${saved}${save}</div>`;
+}
+/* The facts line under the page name: the whole book's count and what is on
+   paper, converted through fxHome with what has no rate LEFT OUT and said.
+   Money only where the reader may see it. Contracts seat only — the
+   Negotiations page has its own head. */
+function regHeadFactsHtml(){
+  const book=state.contracts.filter(c=>!c.archived&&c.status!=='Declined'&&!c.parentId);
+  const n=(state.serverStats&&state.serverStats.total!=null&&Number(state.serverStats.total)>state.contracts.length)
+    ? Number(state.serverStats.total) : book.length;
+  const parts=[i18tn('reg_agreements',n,{n:n.toLocaleString(jxLocale())})];
+  if(typeof canViewValues!=='function'||canViewValues()){
+    const v=regAggregate(book);
+    const miss=(window.fxMissing?fxMissing(book):[]);
+    parts.push(i18t('reg_on_paper',{v:fmtMoneyShort(v)}));
+    if(miss&&miss.length) parts.push(i18t('reg_fx_left_out',{n:miss.length}));
+  }
+  return parts.map(esc).join(' · ');
+}
+function regPaintHeadFacts(){
+  const el=document.getElementById('reg-head-facts'); if(!el) return;
+  el.innerHTML=regScope()==='negotiations'?'':regHeadFactsHtml();
+}
+/* Whose move, for the Contracts row — null where no negotiation has started.
+   READING MUST NOT WRITE: negoMoveSay runs negWhoseMove, which is safe over
+   c.changes, but this asks the raw record first so a page of a hundred
+   contracts never initialises one. */
+function regMoveWord(c){
+  const started=!!(c&&c.negotiation&&Array.isArray(c.changes));
+  if(!started) return null;
+  try{ return negoMoveSay(c); }catch(_){ return null; }
+}
+function regOwnerCell(c){
+  const name=(window.contractOwnerName&&contractOwnerName(c))||'';
+  if(!name) return '<span class="reg-dash">—</span>';
+  const ini=name.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+  return `<span class="reg-own" title="${esc(name)}">${esc(ini)}</span>`;
 }
 /* A SEGMENTED CONTROL, one builder for the two the bar draws (Table · Board,
    and the three row densities). Every option is a real button carrying the
@@ -1347,7 +1455,7 @@ function regRowsHtml(cs){
     /* THIS SHAPE IS NOW THE PRODUCT'S — it was the one screen that had a
        designed empty state, and emptyStateHtml is it, extracted so the other
        six can be it too. Read through window: this is a module. */
-    return `<tr><td colspan="${neg?8:9}" style="padding:var(--s-12) var(--s-3);text-align:center">${
+    return `<tr><td colspan="${(neg?REG_COL_KEYS_NEGO:REG_COL_KEYS).length}" style="padding:var(--s-12) var(--s-3);text-align:center">${
       typeof window.emptyStateHtml==='function'
         ? window.emptyStateHtml({ icon:'list', title:line, sub, action:btn })
         : `<div style="max-width:340px;margin:0 auto"><div style="font-size:var(--t-card);font-weight:var(--w-strong)">${line}</div>`
@@ -1405,11 +1513,37 @@ function regRowsHtml(cs){
     /* The band header for the group this row opens, drawn once, ahead of it. */
     let band='';
     if(neg && c._ngBand!==lastBand){ band=bandsBefore(c._ngBand); lastBand=c._ngBand; }
-    return band + `
-    <tr data-row="${c.id}"${neg?' data-nego-row="1"':''} tabindex="${i===0?0:-1}"
-      style="cursor:pointer;animation-delay:${Math.min(i,14)*22}ms">
-      <td class="reg-mk">${c.id}</td>
-      <td style="max-width:300px${c._famChild?';padding-left:30px':''}">
+    /* ---- THE CELLS ARE BUILT BY KEY AND EMITTED IN THE SEAT'S ORDER (second
+       pass, 21 Sep 2026) ---- the head does the same off the same list, so a
+       column can never sit under the wrong heading. THE TITLE IS TWO LINES
+       AGAIN — the kind and the round under the name, as the reference draws
+       it; this REVERSES 24 Aug's "one line per contract" on the owner's later
+       drawing, and the condensed density keeps the one line (there is no room
+       for a second at 30px, and the kind still rides the hover). THE STREAM'S
+       COLOUR BAR moved from beside the title to the stream's own cell. */
+    const round=(c.negotiation&&typeof c.negotiation.round==='number'&&c.negotiation.round>0)?c.negotiation.round:null;
+    const twoLine=regDensity()!=='condensed';
+    const sub=twoLine?`<span class="reg-sub">${esc(cKind(c))}${round?` · ${esc(i18t('ct_round_n',{n:round}))}`:''}</span>`:'';
+    const mv=regMoveWord(c);
+    const CELL={};
+    CELL.mk=`<td class="reg-mk">${c.id}</td>`;
+    CELL.stage=`<td style="white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:6px">${window.questionDot?questionDot(c.id):''}${window.contractStatusDotHtml?contractStatusDotHtml(c):(window.contractStatusChip?contractStatusChip(c):statusChip(c.status))}</span></td>`;
+    CELL.move=neg ? `<td style="text-align:right;white-space:nowrap">${negoMovePillHtml(c)}</td>`
+      : `<td style="white-space:nowrap">${mv?negoMovePillHtml(c):'<span class="reg-dash">—</span>'}</td>`;
+    CELL.owner=`<td style="white-space:nowrap">${regOwnerCell(c)}</td>`;
+    CELL.counterparty=`<td style="color:var(--color-neutral-700);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.counterparty||'—')}</td>`;
+    CELL.stream=`<td style="color:var(--color-neutral-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(regStreamName(c))}"><span style="display:inline-flex;align-items:center;gap:7px;min-width:0;max-width:100%"><span class="reg-tick" style="background:${folderColor(c)}"></span><span style="min-width:0;overflow:hidden;text-overflow:ellipsis">${esc(regStreamName(c)||'—')}</span></span></td>`;
+    CELL.value=`<td style="text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:var(--w-body);white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}">${val}</td>`;
+    CELL.signed=`<td style="white-space:nowrap">${regSignedCell(c)}</td>`;
+    CELL.expiry=`<td style="white-space:nowrap;font-variant-numeric:tabular-nums"><span style="font-weight:var(--w-body);color:${renDateColor}">${renDate}</span>${renIn?` <span style="font-size:var(--t-meta);font-weight:var(--w-body);color:${renColor}">· ${renIn}</span>`:''}</td>`;
+    /* Built only on the seat that draws it: the Negotiations seat has no ⋯
+       column, and actBtns asks readings (contractOnHold) that a stage drawing
+       only that seat need not carry — f184 caught the unconditional build. */
+    CELL.acts=neg?'':`<td class="reg-cell-menu" style="position:relative;text-align:right;white-space:nowrap" onclick="event.stopPropagation()">
+        <button data-menu="${c.id}" style="border:0;background:none;cursor:pointer;padding:0 var(--s-1);line-height:var(--row-line-1);color:var(--color-neutral-600);font-size:var(--t-meta);letter-spacing:1px;vertical-align:middle" title="${i18t('reg_more_actions')}">⋯</button>
+        <div data-menu-pop="${c.id}" style="display:none;position:absolute;right:8px;top:34px;z-index:30;width:180px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:var(--radius);padding:var(--s-1);flex-direction:column;text-align:left">${actBtns(c)}</div>
+      </td>`;
+    CELL.name=`<td class="reg-cell-title" style="max-width:300px${c._famChild?';padding-left:30px':''}">
         ${''/* ---- ONE LINE PER CONTRACT (owner-ruled 24 Aug 2026) ----
               The document KIND used to sit on a quiet second line under the
               title, and that second line was the whole of this row's height:
@@ -1423,67 +1557,14 @@ function regRowsHtml(cs){
               relation and the parent, which is what the old second line said
               in full width. */}
         <span style="display:flex;align-items:center;gap:9px;min-width:0">
-        <span class="reg-tick" style="background:${folderColor(c)}"></span>
         <span class="reg-title" style="min-width:0;flex:1;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(regTitleOf(c))} · ${esc(cKind(c))}">${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:var(--t-meta);font-weight:var(--w-body)" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc(c.parentId)}">↳ </span>`:''}${regTitleOf(c)}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:var(--w-body);font-size:var(--t-meta);font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
-        </span>
-      </td>
-      <td style="color:var(--color-neutral-700);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.counterparty||'—')}</td>
-      ${''/* ---- THE STREAM IS A WORD NOW, NOT ONLY A COLOUR ----
-             The 3px tick beside the title stays — it is the fastest thing on
-             the row — but it was the ONLY carrier, explained by a legend at the
-             very bottom of the page, and this file's own standing rule is that
-             colour is never the only carrier. The column it takes is the one
-             the LINK column gave up: that column answered "what happened to the
-             link you sent them", which is a fact about one contract rather than
-             something you scan a register for, and it drew an em-dash on every
-             row of an ordinary workspace. It is on the contract's own page. */}
-      ${''/* ONE READING, SHARED WITH THE COLUMN'S OWN SORT — see
-             regStreamName. A comparator that ordered by the folder id would
-             put this column in a sequence the reader cannot see. */}
-      <td style="color:var(--color-neutral-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(regStreamName(c))}">${esc(regStreamName(c)||'—')}</td>
-      <td style="text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:var(--w-body);white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}">${val}</td>
-      ${''/* The mockup's expiry cell: the date, then "· in Nd" in the urgency
-            colour — red inside 30 days, amber to 90 — carrying its weight. */}
-      ${neg?'':`<td style="white-space:nowrap">${regSignedCell(c)}</td>`}
-      <td style="white-space:nowrap;font-variant-numeric:tabular-nums"><span style="font-weight:var(--w-body);color:${renDateColor}">${renDate}</span>${renIn?` <span style="font-size:var(--t-meta);font-weight:var(--w-body);color:${renColor}">· ${renIn}</span>`:''}</td>
-      ${''/* ---- THE STAGE IS A DOT AND A WORD (owner-approved render, 24 Aug
-             2026) ---- It was a filled chip, and five of them running down the
-             middle of the page read as five buttons. The dot is the shape a
-             scanned column needs and the word beside it is what keeps the
-             colour from being the only carrier; contractStatusDotHtml shares
-             its branch with the chip and the head's sentence, so no two of the
-             three can disagree about which stage this is. THE QUESTION PILL
-             STAYS beside it — an unanswered question IS about where the
-             contract stands. */}
-      <td style="white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:6px">${window.questionDot?questionDot(c.id):''}${window.contractStatusDotHtml?contractStatusDotHtml(c):(window.contractStatusChip?contractStatusChip(c):statusChip(c.status))}</span></td>
-      ${''/* ---- THE LAST COLUMN IS A STATE, NOT AN ACTION ----
-             On Contracts it is the row's own verb plus the ⋯ menu. On
-             Negotiations it is whose move it is, and the ⋯ IS GONE with the
-             verb: every row on this page does exactly one thing — it opens the
-             negotiation — and a menu whose first line reads "Open workspace"
-             and lands somewhere else is a trap laid on the one page where the
-             destination is not in doubt. Every one of those verbs is a press
-             away on Contracts, where the row press already means "open the
-             contract". */}
-      ${''/* ---- THE ROW'S VERB IS THE ROW (owner-approved render, 24 Aug 2026)
-             ---- The last column used to carry a text verb — "Review terms",
-             "View contract" — beside the ⋯. Pressing the row already opens the
-             contract, so that verb was mostly restating the stage two columns
-             along. The ⋯ STAYS and keeps every act it had: it is the only way
-             to archive, export or delete from this page, and its own first row
-             ("Open workspace") is what the verb did.
-             regPrimaryAction — the reading that chose the verb's WORD per
-             status — now has NO caller. It is left exported rather than
-             deleted, on this file's own convention for a builder whose feature
-             has gone: a third caller must not be able to bring the column back
-             through a door nobody remembered, and f240 pins that the row draws
-             no verb. */}
-      ${neg ? `<td style="text-align:right;white-space:nowrap">${negoMovePillHtml(c)}</td>` : `
-      <td class="reg-cell-menu" style="position:relative;text-align:right;white-space:nowrap" onclick="event.stopPropagation()">
-        <button data-menu="${c.id}" style="border:0;background:none;cursor:pointer;padding:0 var(--s-1);line-height:var(--row-line-1);color:var(--color-neutral-600);font-size:var(--t-meta);letter-spacing:1px;vertical-align:middle" title="${i18t('reg_more_actions')}">⋯</button>
-        <div data-menu-pop="${c.id}" style="display:none;position:absolute;right:8px;top:34px;z-index:30;width:180px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:var(--radius);padding:var(--s-1);flex-direction:column;text-align:left">${actBtns(c)}</div>
-      </td>`}
-    </tr>`;}).join('')
+        </span>${sub}
+      </td>`;
+    return band + `
+    <tr data-row="${c.id}"${neg?' data-nego-row="1"':''} tabindex="${i===0?0:-1}"
+      style="cursor:pointer;animation-delay:${Math.min(i,14)*22}ms">${(neg?REG_COL_KEYS_NEGO:REG_COL_KEYS).map(k=>CELL[k]||'').join('')}
+    </tr>`;
+  }).join('')
     /* Any band with no rows under it still gets its header and its zero — and
        the trailing ones are only reachable here, after the last row. */
     + bandsAfter();
@@ -1693,7 +1774,12 @@ function renderRegister(opts){
      dark answer and measures 9.59:1; the button beside it has read it since
      23 Aug and this control simply never did. The BORDER is fine either way
      (4.77:1) and is untouched. */
-  const selFilter=(id,opts,active,title,label)=>`<label class="reg-f"><span class="reg-f-l">${esc(label||title)}</span><select id="${id}" title="${title}" style="${selStyle};max-width:180px${active?';border-color:var(--color-accent);color:var(--accent-ink);font-weight:var(--w-strong)':''}">${opts}</select></label>`;
+  /* A FILTER IS A CHIP (second pass, 21 Sep 2026 — the reference frame). The
+     label sits INSIDE the pill beside the control rather than above it, which
+     REVERSES 24 Aug's "a label above every filter" on the owner's later
+     drawing; the word and the box are still one <label>, the ids are
+     untouched, and a narrowing filter lights the whole chip. */
+  const selFilter=(id,opts,active,title,label)=>`<label class="reg-f reg-chip${active?' on':''}" title="${esc(title)}">${icon('filter','w-3 h-3')}<span class="reg-f-l">${esc(label||title)}</span><select id="${id}" title="${title}" style="${selStyle};max-width:180px">${opts}</select></label>`;
   const stageOpts=REG_STAGES.map(s=>`<option value="${s.k}" ${R.stage===s.k?'selected':''}>${s.label}</option>`).join('');
   const typeOpts=regTypes().map(t=>`<option value="${t.k}" ${R.type===t.k?'selected':''}>${t.label}</option>`).join('');
   /* ---- RENEWAL IS BACK, AND IT IS OFF THE BAR BY DEFAULT ----
@@ -1833,8 +1919,8 @@ function renderRegister(opts){
   /* These two already carried a visible label, inline to the left of the
      control. They take the same stacked label as the three above so the bar
      reads as one row of filters rather than two conventions. */
-  const categorySel=`<label class="reg-f"><span class="reg-f-l">${esc(i18t('me_category'))}</span>
-    <select id="reg-category" style="${selStyle}${catActive?';border-color:var(--color-accent);color:var(--accent-ink);font-weight:var(--w-strong)':''}">${catOpts.map(([k,l])=>`<option value="${k}" ${(R.category||'all')===k?'selected':''}>${l}</option>`).join('')}</select></label>`;
+  const categorySel=`<label class="reg-f reg-chip${catActive?' on':''}" title="${esc(i18t('me_category'))}">${icon('filter','w-3 h-3')}<span class="reg-f-l">${esc(i18t('me_category'))}</span>
+    <select id="reg-category" style="${selStyle}">${catOpts.map(([k,l])=>`<option value="${k}" ${(R.category||'all')===k?'selected':''}>${l}</option>`).join('')}</select></label>`;
   /* ---- NO RENEWAL FILTER (owner-asked 24 Aug 2026, twice: "delete ... the
      filter i have highlighted", and again for the Negotiations seat) ----
      THE CONTROL GOES AND THE READING STAYS. regFiltered still knows how to
@@ -2202,8 +2288,8 @@ function renderRegister(opts){
                not. The second half is the safety property — a hidden control
                quietly shortening the book is the exact fault WO-15's removal
                note was guarding against. */}
-        ${BAR.includes('stage')?selFilter('reg-stage-sel',stageOpts,R.stage!=='all',i18t('reg_lifecycle_stage')):''}
-        ${BAR.includes('type')?selFilter('reg-type-sel',typeOpts,R.type!=='all',i18t('reg_value_stream')):''}
+        ${BAR.includes('stage')?selFilter('reg-stage-sel',stageOpts,R.stage!=='all',i18t('reg_lifecycle_stage'),i18t('reg_chip_stage')):''}
+        ${BAR.includes('type')?selFilter('reg-type-sel',typeOpts,R.type!=='all',i18t('reg_value_stream'),i18t('reg_chip_stream')):''}
         ${''/* The long sentence is the TOOLTIP, not the label — used as a label it
                     ran to 460px and pushed the whole bar off the row. */}
         ${BAR.includes('category')?categorySel:''}
@@ -2218,8 +2304,7 @@ function renderRegister(opts){
         ${''/* THE DOOR TO THE REST. A link rather than a button, because it
                opens a chooser rather than acting on the list — the same
                weight Fiori gives it. */}
-        <button id="reg-adapt" type="button" title="${esc(i18t('reg_adapt_title'))}"
-          style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink);background:none;border:0;cursor:pointer;padding:2px var(--s-1);align-self:flex-end;margin-bottom:7px">${esc(i18t('reg_adapt'))}</button>
+        <button id="reg-adapt" type="button" class="reg-chip reg-chip-btn" title="${esc(i18t('reg_adapt_title'))}">+ ${esc(i18t('reg_adapt'))}</button>
         <span id="reg-clear-slot">${regClearHtml()}</span>
         <span style="flex:1;min-width:8px"></span>
         ${''/* ---- SORT IS STACKED LIKE THE OTHER FIVE (owner-asked 25 Aug 2026:
@@ -2332,15 +2417,23 @@ function renderRegister(opts){
                        heading at all, so there is nothing to press; on
                        Negotiations it is whose move, which is the very thing
                        the bands above it already group by. */}
-                ${sortableTh('ref','MK')}
-                ${sortableTh('name',i18t('reg_col_title'))}
-                ${sortableTh('party',i18t('reg_col_counterparty'))}
-                ${sortableTh('stream',i18t('reg_value_stream'))}
-                ${sortableTh('value',i18t('reg_col_value'),'text-align:right')}
-                ${neg?'':sortableTh('signed',i18t('reg_col_signed'))}
-                ${sortableTh('expiry',i18t('reg_col_expiry'))}
-                ${sortableTh('stage',i18t('reg_col_status'))}
-                ${(()=>{ const i=_colN; return `<th style="text-align:right;${colAt()}">${neg?i18t('ngl_col_move'):''}${gripFor(i)}</th>`; })()}
+                ${''/* THE HEAD IS EMITTED IN THE SEAT'S OWN KEY ORDER (second
+                       pass, 21 Sep 2026), exactly as the row is, so the two
+                       cannot disagree about which column is which. */}
+                ${(neg?REG_COL_KEYS_NEGO:REG_COL_KEYS).map(k=>{
+                  if(k==='mk') return sortableTh('ref','MK');
+                  if(k==='name') return sortableTh('name',i18t('reg_col_title'));
+                  if(k==='counterparty') return sortableTh('party',i18t('reg_col_counterparty'));
+                  if(k==='stream') return sortableTh('stream',i18t('reg_value_stream'));
+                  if(k==='value') return sortableTh('value',i18t('reg_col_value'),'text-align:right');
+                  if(k==='signed') return sortableTh('signed',i18t('reg_col_signed'));
+                  if(k==='expiry') return sortableTh('expiry',i18t('reg_col_expiry'));
+                  if(k==='stage') return sortableTh('stage',i18t('reg_col_status'));
+                  if(k==='move') return neg ? (()=>{ const i=_colN; return `<th style="text-align:right;${colAt()}">${i18t('ngl_col_move')}${gripFor(i)}</th>`; })()
+                    : sortableTh('move',i18t('reg_col_move'));
+                  if(k==='owner') return sortableTh('owner',i18t('reg_col_owner'));
+                  return (()=>{ const i=_colN; return `<th style="text-align:right;${colAt()}">${gripFor(i)}</th>`; })();
+                }).join('')}
               </tr>
             </thead>
             <tbody id="reg-tbody">${regRowsHtml(cs)}</tbody>
@@ -2469,6 +2562,18 @@ function renderRegister(opts){
   document.getElementById('reg-stage-sel')?.addEventListener('change',e=>{ R.stage=e.target.value; R.page=1; regRepaint(); });
   document.getElementById('reg-type-sel')?.addEventListener('change',e=>{ R.type=e.target.value; R.page=1; regRepaint(); });
   document.querySelectorAll('button[data-reg-view]').forEach(b=>b.addEventListener('click',()=>{ R.view=b.getAttribute('data-reg-view')||null; R.page=1; regRepaint(); }));
+  document.querySelectorAll('button[data-reg-saved]').forEach(b=>b.addEventListener('click',()=>{ if(regApplySaved(b.getAttribute('data-reg-saved'))) regRepaint(); }));
+  document.querySelectorAll('button[data-reg-saved-x]').forEach(b=>b.addEventListener('click',async e=>{ e.stopPropagation();
+    const name=b.getAttribute('data-reg-saved-x');
+    const ok=window.confirmDialog?await confirmDialog({title:i18t('reg_forget_view_title'),message:i18t('reg_forget_view',{name}),confirmLabel:i18t('reg_forget_view_go')}):confirm(i18t('reg_forget_view',{name}));
+    if(!ok) return; regForgetView(name); regRepaint(); }));
+  document.getElementById('reg-save-view')?.addEventListener('click',async()=>{
+    const name=window.promptDialog?await promptDialog({title:i18t('reg_save_view_ask'),message:i18t('reg_save_view_msg'),placeholder:i18t('reg_save_view_ph'),confirmLabel:i18t('reg_save_view')}):prompt(i18t('reg_save_view_ask'));
+    if(name==null||!String(name).trim()) return;
+    if(regSaveView(name)){ if(window.toast) toast(i18t('reg_view_saved',{name:String(name).trim()}),'ok'); regRepaint(); }
+    else if(window.toast) toast(i18t('reg_view_not_saved'),'warn');
+  });
+  regPaintHeadFacts();
   document.getElementById('reg-only-clear')?.addEventListener('click',()=>{ R.only=null; R.page=1; regRepaint(); });
   wireRegClear();
 
@@ -2550,5 +2655,5 @@ Object.assign(window,{regSignedOn,regSignedYear,regSignedYears,regSignedCell,
   REG_COL_KEYS,REG_COL_KEYS_NEGO,REG_COL_W,REG_COL_W_NEGO,REG_COL_MIN_PX,
   regColWidths,regColSetWidths,regColReset,regColDefaults,regColTrade,regColApply,regWireColResize,
   REG_CMP,REG_SORT_DEFDIR,regBlanksLast,regStreamName,regRefParts,regNarrowed,regClearHtml,regPaintClear,
-  REG_BAR_FILTERS,REG_BAR_DEFAULT,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regMode,regSetMode,regViewTabsHtml,regSegHtml,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,negoMoveSay,regShowOnly,regPaintCohort,renderRegister,renderRegisterBody,wireRegRows,
+  REG_BAR_FILTERS,REG_BAR_DEFAULT,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,regViewCount,REG_SAVED_KEY,REG_SAVED_FIELDS,regSavedViews,regSaveView,regForgetView,regApplySaved,regSavedMatches,regHeadFactsHtml,regPaintHeadFacts,regMoveWord,regOwnerCell,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regMode,regSetMode,regViewTabsHtml,regSegHtml,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,negoMoveSay,regShowOnly,regPaintCohort,renderRegister,renderRegisterBody,wireRegRows,
   regScope,regSetScope,regRepaint,regPageSize,regFitBandOffset,NEGO_BANDS,NEGO_BAND_DOT,negoGroupByMove,negoBandCounts,negoMovePillHtml,negoBandRowHtml});

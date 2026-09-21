@@ -238,7 +238,10 @@ describe('f240 (5) — the rows read at one size and one weight', () => {
      menu's own buttons, and neither is a row: a first draft of this sweep took
      the whole function and reported a 15px empty-state heading and a 13px menu
      item as faults. A sweep is only as good as its idea of what it is over. */
-  const rowsFn = (() => { const s = strip(REG); const i = s.indexOf('<tr data-row=');
+  /* PIN THE REGION (re-pointed 21 Sep 2026, the redesign's second pass): the
+     cells are built BY KEY above the <tr> now and emitted in the seat's order,
+     so the row's region runs from the first cell's building to the row's end. */
+  const rowsFn = (() => { const s = strip(REG); const i = s.indexOf('const round=(c.negotiation');
     return s.slice(i, s.indexOf('</tr>', i)); })();
   const css = strip(REG).match(/\.reg-table\{[\s\S]*?\.reg-th-sort\.active/)[0];
 
@@ -303,11 +306,18 @@ describe('f240 (5) — the rows read at one size and one weight', () => {
      took it. THE FACT IS NOT LOST and that is what this now pins: the kind
      rides the title's hover, and the VALUE STREAM it used to sit beside is a
      column of its own rather than a colour with a legend at the foot. */
-  test('THE ROW IS ONE LINE — the kind rides the hover, the stream is a column', () => {
-    assert.ok(!/\.reg-kind\{/.test(css), '.reg-kind is retired with the second line');
+  test('THE ROW IS TWO LINES AGAIN — the kind under the title, the stream a column (REVERSED IN PLACE 21 Sep 2026)', () => {
+    /* The owner-approved reference frame draws the kind and the round under
+       the title, which reverses 24 Aug's "one line per contract". The old
+       .reg-kind class stays retired: the second line is .reg-sub, drawn on the
+       two densities with room for it and NOT on condensed, where the kind
+       still rides the hover. */
+    assert.ok(!/\.reg-kind\{/.test(css), '.reg-kind is retired');
     assert.ok(!/reg-kind/.test(rowsFn), 'and no row draws one');
+    assert.match(rowsFn, /class="reg-sub"/, 'the second line is .reg-sub');
+    assert.match(rowsFn, /regDensity\(\)!=='condensed'/, 'and condensed keeps the one line');
     assert.match(rowsFn, /title="\$\{esc\(regTitleOf\(c\)\)\} · \$\{esc\(cKind\(c\)\)\}"/,
-      'the kind is still said — on the title’s own hover');
+      'the kind is still said on the title’s own hover');
     /* RE-POINTED 10 Sep 2026, not weakened: this pinned the folder lookup as a
        LITERAL where the claim is that the stream has a column of its own. The
        cell and that column's own sort now share one reading (regStreamName),

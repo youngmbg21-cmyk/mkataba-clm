@@ -266,8 +266,15 @@ describe('f258 (4) — the column, the sort and the filter', () => {
   });
 
   test('the Negotiations seat draws no Signed column and no Signed filter', () => {
-    assert.match(REG, /\$\{neg\?'':sortableTh\('signed'/);
-    assert.match(REG, /\$\{neg\?'':`<td style="white-space:nowrap">\$\{regSignedCell\(c\)\}<\/td>`\}/);
+    /* RE-POINTED IN PLACE (21 Sep 2026): the head and the row are emitted BY
+       KEY in the seat's own order, so "no Signed column on Negotiations" is
+       the seat's key list not naming it, with one head branch and one cell
+       that only that key reaches. */
+    assert.ok(!win.REG_COL_KEYS_NEGO.includes('signed'), 'the Negotiations seat names no signed column');
+    assert.ok(win.REG_COL_KEYS.includes('signed'), 'and Contracts does');
+    assert.match(REG, /if\(k==='signed'\) return sortableTh\('signed'/, 'one head branch, reached by the key alone');
+    assert.match(REG, /CELL\.signed=`<td style="white-space:nowrap">\$\{regSignedCell\(c\)\}<\/td>`/, 'one cell');
+    assert.match(REG, /\(neg\?REG_COL_KEYS_NEGO:REG_COL_KEYS\)\.map\(k=>CELL\[k\]\|\|''\)/, 'emitted by the seat\'s keys');
     assert.match(REG, /\$\{\(!neg&&BAR\.includes\('signed'\)\)\?selFilter\('reg-signed'/);
   });
 
@@ -295,8 +302,15 @@ describe('f258 (5) — the columns are draggable, like a spreadsheet', () => {
     assert.equal(win.REG_COL_W_NEGO.reduce((a, b) => a + b, 0), 100);
     assert.equal(win.REG_COL_W.length, win.REG_COL_KEYS.length, 'one width per column');
     assert.equal(win.REG_COL_W_NEGO.length, win.REG_COL_KEYS_NEGO.length);
-    assert.equal(win.REG_COL_KEYS.length - win.REG_COL_KEYS_NEGO.length, 1,
-      'Contracts has exactly one column Negotiations has not — Signed');
+    /* RE-POINTED IN PLACE (21 Sep 2026): Contracts carries three columns the
+       Negotiations seat does not — Signed, the owner's initials and the ⋯ —
+       and Negotiations carries nothing Contracts lacks (its whose-move column
+       is on both). The SET is the claim, never a count. */
+    /* Array.from: the lists live in the stage's own realm, and a strict deep
+       equal compares prototypes across realms. */
+    const onlyC = Array.from(win.REG_COL_KEYS).filter(k => !win.REG_COL_KEYS_NEGO.includes(k));
+    assert.deepEqual(onlyC, ['signed', 'owner', 'acts'], 'Signed, Own and ⋯ are Contracts\' own');
+    assert.deepEqual(Array.from(win.REG_COL_KEYS_NEGO).filter(k => !win.REG_COL_KEYS.includes(k)), [], 'and Negotiations has nothing of its own');
     assert.ok(win.REG_COL_KEYS.includes('signed'));
     assert.ok(!win.REG_COL_KEYS_NEGO.includes('signed'));
   });

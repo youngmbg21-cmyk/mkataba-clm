@@ -232,11 +232,20 @@ describe('f281 (5) — every column that can be ordered has a head that orders i
     /* On Contracts it holds the row's ⋯ and carries no heading, so there is
        nothing to press and nothing to order; on Negotiations it is whose move,
        which is the very thing the bands above already group by. */
-    const from = REG.indexOf("sortableTh('stage'");
-    const last = REG.slice(REG.indexOf('}', from) + 1, REG.indexOf('</tr>', from));
-    assert.ok(last.includes('ngl_col_move'), 'the slice really is the last column');
-    assert.ok(!last.includes('sortableTh('), 'and it carries no sort');
-    assert.ok(!last.includes('data-reg-sort'), 'nor a head that claims one');
+    /* RE-POINTED IN PLACE (the redesign's second pass, 21 Sep 2026): the head
+       is emitted in the seat's own key order by ONE map, so "the last column"
+       is the map's fall-through branch (the ⋯ cell) and, on Negotiations, the
+       'move' branch that draws the plain "Whose move" head. Both carry no
+       sort; every named column between them does. */
+    const from = REG.indexOf("if(k==='move') return neg ?");
+    assert.ok(from > 0, 'the head is one map over the seat\'s keys');
+    const moveHead = REG.slice(from, REG.indexOf('\n', from));
+    assert.ok(moveHead.includes('ngl_col_move'), 'the Negotiations seat keeps its plain whose-move head');
+    assert.ok(!moveHead.slice(0, moveHead.indexOf(': sortableTh')).includes('data-reg-sort'), 'and that head claims no sort');
+    const acts = REG.slice(REG.indexOf("return (()=>{ const i=_colN; return `<th style=\"text-align:right;", from));
+    const actsLine = acts.slice(0, acts.indexOf('\n'));
+    assert.ok(!actsLine.includes('sortableTh(') && !actsLine.includes('data-reg-sort'), 'the ⋯ column carries no sort');
+    assert.equal(win.REG_COL_KEYS[win.REG_COL_KEYS.length - 1], 'acts', 'and it is the last column on Contracts');
   });
 
   test('every sort has a default direction and a place in the dropdown', () => {

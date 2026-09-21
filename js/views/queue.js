@@ -27,16 +27,20 @@ function pipeCard(c){
   const rp = riskPal(r);
   const stream = streamLabel(c);
   const val = !isMonetary(c) ? 'n/m' : (c.value ? (window.fmtMoneyShortOf ? fmtMoneyShortOf(c) : (window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value))) : '—');
+  /* THE CARD IS THE REFERENCE'S (second pass, 21 Sep 2026): reference and risk
+     on the first line, the COUNTERPARTY in bold, the title under it, and the
+     stream — with its colour bar, which came off the card's left edge — beside
+     the value in the foot. Every fact the card carried it still carries. */
   return `
-    <div data-card="${c.id}" class="q-card" style="background:var(--color-surface);border:1px solid var(--color-divider);border-left:4px solid ${folderColor(c)};border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:11px var(--s-3);cursor:pointer;display:flex;flex-direction:column;gap:5px">
+    <div data-card="${c.id}" class="q-card" style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:10px var(--s-3);cursor:pointer;display:flex;flex-direction:column;gap:4px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
         <span style="font-family:var(--font-mono);font-size:var(--t-label);color:var(--color-neutral-600)">${c.id}</span>
-        <span style="background:${rp.bg};color:${rp.fg};font-size:var(--t-label);font-weight:var(--w-strong);letter-spacing:.03em;padding:2px var(--s-2);border-radius:var(--radius);font-variant-numeric:tabular-nums;flex:none">R ${r}</span>
+        <span style="background:${rp.bg};color:${rp.fg};font-size:var(--t-label);font-weight:var(--w-strong);letter-spacing:.03em;padding:1px var(--s-2);border-radius:var(--radius);font-variant-numeric:tabular-nums;flex:none">R ${r}</span>
       </div>
-      <div style="font-size:var(--t-body);font-weight:var(--w-body);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cPrimary(c)}</div>
+      <div style="font-size:var(--t-body);font-weight:var(--w-strong);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cPrimary(c)}</div>
       <div style="font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cSecondary(c)}</div>
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;border-top:1px solid color-mix(in srgb,var(--color-text) 8%,transparent);padding-top:5px;margin-top:1px">
-        <span style="font-size:var(--t-label);color:var(--color-neutral-600);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${stream}</span>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;padding-top:4px;margin-top:1px">
+        <span style="display:inline-flex;align-items:center;gap:6px;font-size:var(--t-label);color:var(--color-neutral-600);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="flex:none;width:3px;height:12px;background:${folderColor(c)}"></span>${stream}</span>
         <span style="font-size:var(--t-label);font-weight:var(--w-body);font-variant-numeric:tabular-nums;white-space:nowrap;flex:none;color:${isMonetary(c)?'var(--color-text)':'var(--color-neutral-500)'}">${val}</span>
       </div>
     </div>`;
