@@ -17758,3 +17758,18 @@ Noticed, not fixed:
 - The force-directed graph's `layoutGraph`/`makeIntelGraph` place every node by simulation, so
   position on that view carries no fact. Not a defect against any stated rule — recorded because
   the Atlas prototype exists to reverse it and the owner has not yet ruled.
+
+## 21 Sep 2026 — The Contract Atlas, as node graphs (branch claude/dazzling-bardeen-e66z8l)
+
+Young: "i wanted to stay in the nodes type of analytics". The first three concepts left the
+node-link idiom behind; these three keep it. Added `prototype/contract-graph-nodes.html`
+(The Dial, The Lattice, The Cabinet). `prototype/contract-atlas.html` kept as it is — the
+earlier three readings are still worth having and nothing referenced them.
+
+Noticed, not fixed:
+- A square-root scale over days crushes the near term, which is the half a contract manager
+  lives in. The prototype's dial uses log(1+d/30) instead. `layoutGraph` and the Horizon view
+  are unaffected; recorded in case a time scale is ever wanted in the product.
+- An absolutely-positioned SVG overlay drawn before cards that carry `z-index:1` paints behind
+  them with no error and no warning — only the parts crossing a gap are ever seen. Same costume
+  as the always-false guard.

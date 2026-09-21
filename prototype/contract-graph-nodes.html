@@ -1,0 +1,947 @@
+<title>The Contract Atlas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#F4F6F5; --surface:#FFFFFF; --surface-2:#EEF2F0; --surface-3:#E6ECEA;
+  --line:#E2E7E5; --line-2:#CBD3D0;
+  --ink:#141F1D; --ink-2:#5A6866; --ink-3:#6B7876; --ink-inv:#FFFFFF;
+  --accent:#0E5F58; --accent-ink:#0B4A45; --accent-soft:#E1F0ED; --accent-line:#9CCFC6; --accent-400:#5EC2B3;
+  --amber:#A24E07; --amber-soft:#FBEEDB; --amber-dot:#E8A317;
+  --ruby:#B3261E; --ruby-soft:#FBE5E3; --ruby-dot:#D9453B;
+  --good:#1A6F45; --good-soft:#DFF2E7; --good-dot:#2E9E63;
+  --steel:#48639A; --steel-soft:#E6ECF6;
+  --paper:#FFFDF9; --paper-line:#E6DFCE; --paper-ink:#1C1A16;
+  --scaffold:#0B1E1C; --scaffold-ink:#C9D9D5; --scaffold-line:#1D3734;
+  --shadow-1:0 1px 2px rgba(10,40,36,.06),0 1px 3px rgba(10,40,36,.04);
+  --shadow-2:0 8px 24px rgba(10,40,36,.10),0 2px 6px rgba(10,40,36,.06);
+  --shadow-3:0 24px 64px rgba(10,40,36,.18),0 4px 12px rgba(10,40,36,.08);
+  --sans:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --r:4px; --r-lg:8px;
+  --t-micro:11px; --t-label:12px; --t-body:13px; --t-md:14px; --t-title:16px; --t-h:20px; --t-figure:26px;
+  --ctl-h:30px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --bg:#0E1312; --surface:#151B1A; --surface-2:#1B2221; --surface-3:#212A28;
+  --line:#26302E; --line-2:#36423F;
+  --ink:#E6ECEA; --ink-2:#A0ACA9; --ink-3:#8B9895; --ink-inv:#0E1312;
+  --accent:#5EC2B3; --accent-ink:#8ADACF; --accent-soft:#12302C; --accent-line:#1F5A52; --accent-400:#5EC2B3;
+  --amber:#EBAD46; --amber-soft:#3A2A0F; --amber-dot:#E8A317;
+  --ruby:#F0857B; --ruby-soft:#3F1C19; --ruby-dot:#D9453B;
+  --good:#5CC48E; --good-soft:#153224; --good-dot:#2E9E63;
+  --steel:#8FA8DE; --steel-soft:#1D2637;
+  --paper:#1B1F1D; --paper-line:#2C3230; --paper-ink:#E8E6DF;
+  --scaffold:#070D0C; --scaffold-ink:#9FB4B0; --scaffold-line:#1A2624;
+  --shadow-1:0 1px 2px rgba(0,0,0,.4); --shadow-2:0 8px 24px rgba(0,0,0,.5); --shadow-3:0 24px 64px rgba(0,0,0,.6);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0E1312; --surface:#151B1A; --surface-2:#1B2221; --surface-3:#212A28;
+  --line:#26302E; --line-2:#36423F;
+  --ink:#E6ECEA; --ink-2:#A0ACA9; --ink-3:#8B9895; --ink-inv:#0E1312;
+  --accent:#5EC2B3; --accent-ink:#8ADACF; --accent-soft:#12302C; --accent-line:#1F5A52; --accent-400:#5EC2B3;
+  --amber:#EBAD46; --amber-soft:#3A2A0F; --amber-dot:#E8A317;
+  --ruby:#F0857B; --ruby-soft:#3F1C19; --ruby-dot:#D9453B;
+  --good:#5CC48E; --good-soft:#153224; --good-dot:#2E9E63;
+  --steel:#8FA8DE; --steel-soft:#1D2637;
+  --paper:#1B1F1D; --paper-line:#2C3230; --paper-ink:#E8E6DF;
+  --scaffold:#070D0C; --scaffold-ink:#9FB4B0; --scaffold-line:#1A2624;
+  --shadow-1:0 1px 2px rgba(0,0,0,.4); --shadow-2:0 8px 24px rgba(0,0,0,.5); --shadow-3:0 24px 64px rgba(0,0,0,.6);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 var(--t-body)/1.55 var(--sans);-webkit-font-smoothing:antialiased;}
+button{font:inherit;color:inherit;cursor:pointer}
+h1,h2,h3,h4{margin:0;font-weight:600;text-wrap:balance}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.lbl{font-size:var(--t-micro);font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-2)}
+
+/* ---------- prototype scaffolding (not part of the product page) ---------- */
+.scaf{background:var(--scaffold);color:var(--scaffold-ink);padding-block:18px 16px;border-bottom:1px solid var(--scaffold-line)}
+.wrap{max-width:1360px;margin:0 auto;padding-inline:16px}
+.scaf h1{color:#fff;font-size:var(--t-h);letter-spacing:-.01em}
+.scaf .tagline{font-size:var(--t-body);max-width:74ch;margin-top:6px;color:var(--scaffold-ink)}
+.scaf-note{font-size:var(--t-micro);letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:#6E8D88}
+.pick{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.pick button{background:transparent;border:1px solid var(--scaffold-line);color:var(--scaffold-ink);border-radius:var(--r);
+  padding:9px 13px;text-align:left;min-width:190px;flex:1 1 190px;transition:border-color .14s,background .14s}
+.pick button:hover{border-color:#2E5B56;background:#0F2724}
+.pick button[aria-pressed="true"]{background:#10322E;border-color:var(--accent-400);color:#fff}
+.pick b{display:block;font-size:var(--t-md);font-weight:600}
+.pick span{display:block;font-size:var(--t-micro);color:#7FA09B;margin-top:2px}
+.pick button[aria-pressed="true"] span{color:#A8CFC8}
+.pick i{font-style:normal;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:#4E706B;display:block}
+
+/* ---------- the mocked product page ---------- */
+.screen{max-width:1360px;margin:20px auto 0;padding-inline:16px}
+.app{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--shadow-2)}
+.appbar{height:44px;display:flex;align-items:center;gap:10px;padding-inline:14px;border-bottom:1px solid var(--line);background:var(--surface)}
+.appbar .crumb{font-size:var(--t-label);color:var(--ink-2)}
+.appbar .crumb b{color:var(--ink);font-weight:600}
+.appbar .spacer{flex:1}
+.dot-s{width:7px;height:7px;border-radius:50%;background:var(--accent);display:inline-block}
+.page{padding:16px}
+.phead{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:12px}
+.phead h2{font-size:var(--t-h);letter-spacing:-.01em}
+.phead .sub{font-size:var(--t-label);color:var(--ink-2);margin-top:3px}
+.phead .facts{margin-left:auto;display:flex;gap:18px;flex-wrap:wrap}
+.fact .lbl{display:block}
+.fact .v{font-family:var(--mono);font-size:var(--t-md);font-weight:600;font-variant-numeric:tabular-nums}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:14px;overflow-x:auto}
+.tabs button{background:none;border:0;padding:9px 12px;font-size:var(--t-body);font-weight:500;color:var(--ink-3);
+  border-bottom:2px solid transparent;white-space:nowrap;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{color:var(--ink);font-weight:600;border-bottom-color:var(--accent)}
+.tabs button:hover{color:var(--ink)}
+
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 296px;gap:16px;align-items:start}
+@media (max-width:1040px){ .layout{grid-template-columns:minmax(0,1fr)} }
+
+.ctl{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.ctl .grow{flex:1;min-width:120px}
+.btn{height:var(--ctl-h);display:inline-flex;align-items:center;gap:6px;padding:0 11px;background:var(--surface);
+  border:1px solid var(--line-2);border-radius:var(--r);font-size:var(--t-label);font-weight:500;color:var(--ink)}
+.btn:hover{background:var(--surface-2)}
+.btn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:var(--r);overflow:hidden;height:var(--ctl-h)}
+.seg button{background:var(--surface);border:0;padding:0 11px;font-size:var(--t-label);color:var(--ink-2);font-weight:500}
+.seg button+button{border-left:1px solid var(--line-2)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff;font-weight:600}
+.note{font-size:var(--t-micro);color:var(--ink-3);line-height:1.5}
+.note b{color:var(--ink-2);font-weight:600}
+
+.canvas{border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);padding:6px;position:relative}
+svg{display:block;width:100%;height:auto;overflow:visible}
+.ax{font-size:10px;font-family:var(--mono);fill:var(--ink-3)}
+.axl{font-size:10px;font-weight:700;letter-spacing:.09em;fill:var(--ink-3)}
+.grid-l{stroke:var(--line);stroke-width:1}
+.grid-d{stroke:var(--line);stroke-width:1;stroke-dasharray:2 4}
+
+/* the page mark: HaTi draws paper, not circles */
+.pm{cursor:pointer}
+.pm .sheet{fill:var(--paper);stroke:var(--paper-line);stroke-width:1}
+.pm .marg{stroke-width:0}
+.pm .ruby{fill:var(--ruby-dot)}
+.pm:hover .sheet,.pm.sel .sheet{stroke:var(--accent);stroke-width:1.5}
+.pm.dim{opacity:.26}
+.pm.lit .sheet{fill:var(--accent-soft)}
+.lead{stroke:var(--amber-dot);stroke-width:1.5;stroke-linecap:round;opacity:.85}
+.scrub{stroke:var(--accent);stroke-width:1.5}
+.scrub-h{fill:var(--accent)}
+
+.legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:9px;font-size:var(--t-micro);color:var(--ink-2)}
+.legend i{font-style:normal;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.legend i[style*='flex-basis']{white-space:normal}
+.key{width:11px;height:13px;background:var(--paper);border:1px solid var(--paper-line);border-left:3px solid var(--accent);display:inline-block;vertical-align:-2px}
+
+.rail{border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);overflow:hidden;position:sticky;top:12px}
+.rail-h{padding:11px 13px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+.rail-h .lbl{display:block;margin-bottom:2px}
+.rail-h b{font-size:var(--t-md);font-weight:600;display:block;line-height:1.35}
+.rail-b{padding:12px 13px}
+.rail-sec+.rail-sec{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:3px 0;font-size:var(--t-label)}
+.kv span{color:var(--ink-3)}
+.kv b{font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:2px 7px;border-radius:var(--r);font-size:var(--t-micro);font-weight:600}
+.c-amber{background:var(--amber-soft);color:var(--amber)}
+.c-ruby{background:var(--ruby-soft);color:var(--ruby)}
+.c-good{background:var(--good-soft);color:var(--good)}
+.c-steel{background:var(--steel-soft);color:var(--steel)}
+.c-gray{background:var(--surface-2);color:var(--ink-2)}
+.door{display:block;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);
+  padding:9px 13px;font-size:var(--t-label);color:var(--accent);font-weight:600}
+.door:hover{background:var(--accent-soft)}
+.door em{font-style:normal;float:right;color:var(--ink-3);font-weight:400}
+.empty{font-size:var(--t-label);color:var(--ink-3);line-height:1.6}
+</style>
+<style>
+/* =====================================================================
+   THE THREE NODE MAPS — one grammar
+   A node is a SHEET OF PAPER: square corners, cream, a value-stream
+   margin bar, and the redline's own ruby margin rule where the wording
+   leaves the standard. A hub is not a sheet: it wears the brand's deep
+   teal in upper case, exactly as the graph's hubs do today.
+   ===================================================================== */
+.ring{fill:none;stroke:var(--line);stroke-width:1;stroke-dasharray:2 5}
+.ring.solid{stroke-dasharray:none;stroke:var(--line-2)}
+.spoke{stroke:var(--line);stroke-width:1}
+.rlab{font-size:9.5px;font-family:var(--mono);fill:var(--ink-3)}
+.slab{font-size:10px;font-weight:700;letter-spacing:.08em;fill:var(--ink-3)}
+.hubn rect{fill:var(--accent-ink);stroke:var(--accent-400);stroke-width:1.5}
+.hubn text{font-size:11px;font-weight:700;letter-spacing:.06em;fill:#fff}
+.hubn .hsub{font-size:9.5px;font-weight:400;letter-spacing:0;fill:var(--accent-400);font-family:var(--mono)}
+
+/* the three link kinds, each a fact off the record */
+.lk{fill:none;stroke-linecap:round}
+.lk-family{stroke:var(--accent);stroke-width:1.6}
+.lk-chain{stroke:var(--amber);stroke-width:1.6;stroke-dasharray:5 4}
+.lk-party{stroke:var(--line-2);stroke-width:1.2;stroke-dasharray:1 4}
+.lk.dim{opacity:.13}
+.lk.hi{stroke-width:2.6}
+.arrowh{fill:var(--accent)}
+.arrowh-chain{fill:var(--amber)}
+
+/* the paper node, drawn in SVG */
+.nd{cursor:pointer}
+.nd .sheet{fill:var(--paper);stroke:var(--paper-line);stroke-width:1}
+.nd .nm{font-size:10.5px;font-weight:600;fill:var(--ink)}
+.nd .sb{font-size:9px;font-family:var(--mono);fill:var(--ink-3)}
+.nd:hover .sheet,.nd.sel .sheet{stroke:var(--accent);stroke-width:1.6}
+.nd.sel .sheet{fill:var(--accent-soft)}
+.nd.dim{opacity:.22}
+.nd:focus{outline:none}
+.nd:focus-visible .sheet{stroke:var(--accent);stroke-width:2.4}
+
+/* THE LATTICE */
+.tierlab{font-size:10px;font-weight:700;letter-spacing:.08em;fill:var(--ink-3)}
+.tierbg{fill:var(--surface-2);opacity:.5}
+.elbow{fill:none;stroke-linejoin:round}
+
+/* THE CABINET — drawers in HTML, links drawn over them */
+.cab{position:relative}
+/* THE LINKS GO OVER THE DRAWERS. Without a z-index above the cards the arcs
+   paint behind them and only the bits crossing a gap are ever seen. */
+.cab-links{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:visible;width:100%;height:100%}
+.drawers{display:grid;grid-template-columns:repeat(auto-fill,minmax(216px,1fr));gap:12px;align-items:start}
+.drawer{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);overflow:hidden;position:relative;z-index:1}
+.dr-h{background:var(--accent-ink);color:#fff;padding:7px 9px;display:flex;align-items:baseline;gap:7px}
+.dr-h .n{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;line-height:1.3;flex:1;min-width:0;overflow-wrap:break-word}
+.dr-h .c{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--accent-400);flex:none}
+.dr-m{padding:4px 9px;font-family:var(--mono);font-size:10px;color:var(--ink-3);border-bottom:1px solid var(--line);background:var(--surface-2)}
+.dr-b{padding:7px;display:grid;gap:5px}
+.pnode{display:grid;grid-template-columns:3px 1fr;gap:0;background:var(--paper);border:1px solid var(--paper-line);
+  border-radius:0;padding:0;text-align:left;position:relative;overflow:visible}
+.pnode:hover,.pnode.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.pnode.sel{background:var(--accent-soft)}
+.pnode.dim{opacity:.28}
+.pnode .bar{grid-row:1/-1}
+.pnode .in{padding:5px 7px 5px 6px;min-width:0}
+.pnode .t{display:block;font-size:10.5px;font-weight:600;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pnode .s{display:block;font-family:var(--mono);font-size:9px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pnode .rb{position:absolute;left:-5px;top:4px;bottom:4px;width:2.5px;background:var(--ruby-dot)}
+.pnode .lt{position:absolute;right:3px;top:3px;width:5px;height:5px;border-radius:50%;background:var(--ruby-dot)}
+.dr-more{font-size:10px;color:var(--ink-3);padding:1px 2px}
+select.sel-ctl{height:var(--ctl-h);border:1px solid var(--line-2);border-radius:var(--r);background:var(--surface);
+  color:var(--ink);font:500 var(--t-label)/1 var(--sans);padding:0 8px}
+</style>
+
+<div class="scaf">
+  <div class="wrap">
+    <div class="scaf-note">HaTi prototype &middot; not the live page</div>
+    <h1>The Contract Atlas</h1>
+    <p class="tagline">Three ways to draw the contract graph as <b>nodes and links</b> &mdash; but as HaTi's own nodes,
+      on HaTi's own links, laid out so that where a node sits is a fact you can read off it. Same capability as the
+      graph you have; none of the borrowed look. Sample data throughout &mdash; the seeded demo book.</p>
+    <div class="pick" role="group" aria-label="Choose a map">
+      <button type="button" data-view="dial" aria-pressed="true"><i>MAP 01</i><b>The Dial</b><span>Rings are time, sectors are value streams</span></button>
+      <button type="button" data-view="lattice" aria-pressed="false"><i>MAP 02</i><b>The Lattice</b><span>What stands on what</span></button>
+      <button type="button" data-view="cabinet" aria-pressed="false"><i>MAP 03</i><b>The Cabinet</b><span>Filed any way you ask, links drawn across</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="screen">
+  <div class="app">
+    <div class="appbar">
+      <span class="dot-s"></span>
+      <span class="crumb">Insights / <b id="crumb">The Dial</b></span>
+      <span class="spacer"></span>
+      <span class="lbl" id="bookline"></span>
+    </div>
+    <div class="page">
+      <div class="phead">
+        <div>
+          <h2 id="ptitle">The Dial</h2>
+          <div class="sub" id="psub"></div>
+        </div>
+        <div class="facts" id="pfacts"></div>
+      </div>
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" aria-selected="false">Portfolio</button>
+        <button type="button" role="tab" aria-selected="false">Negotiation friction</button>
+        <button type="button" role="tab" aria-selected="false">Obligations</button>
+        <button type="button" role="tab" aria-selected="false">Payment terms</button>
+        <button type="button" role="tab" aria-selected="false">Exposure</button>
+        <button type="button" role="tab" aria-selected="true" id="tab-atlas">Contract graph</button>
+      </div>
+      <div class="layout">
+        <div>
+          <div class="ctl" id="ctl"></div>
+          <div id="stage"></div>
+          <div class="legend" id="legend"></div>
+        </div>
+        <aside class="rail" id="rail"></aside>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="notes">
+  <h3>Still a node graph &mdash; just not a borrowed one</h3>
+  <p>You were right to want to stay with nodes. The problem was never the shape; it was that the shape you have is the
+    one a physics library hands you for free. A force-directed graph lets a simulation decide where every node lands,
+    so two contracts sitting next to each other means nothing at all, and it ends up looking like every other
+    open-source network diagram on the internet. All three maps below keep nodes and links. What changes is
+    <b>what a node looks like</b>, <b>what a link is allowed to mean</b>, and <b>who decides where a node goes</b>.</p>
+  <div class="grid">
+    <div class="card">
+      <span class="lbl">Every node</span>
+      <h4>A sheet of paper, not a bubble</h4>
+      <p>Square corners, cream stock, a coloured margin bar for the value stream, the same ruby margin rule your
+        redline uses where the wording leaves your standard, and a dot when a promise is late. A network library
+        draws circles. HaTi draws documents. That alone makes a screenshot unmistakable.</p>
+    </div>
+    <div class="card">
+      <span class="lbl">Every link</span>
+      <h4>Three kinds, each a fact on the record</h4>
+      <p>Solid green is family &mdash; an amendment hanging off its master. Amber dashed is the payment chain &mdash;
+        this one cannot happen until that one does. Faint dotted is the same counterparty. Nothing else is ever drawn,
+        so a line on this graph is always something you could look up.</p>
+    </div>
+    <div class="card">
+      <span class="lbl">Every position</span>
+      <h4>Placed by a fact, never by physics</h4>
+      <p>On The Dial, distance from the middle is time and the sector is the value stream. On The Lattice, the column
+        is how far down a chain you are. In The Cabinet, the drawer is the grouping you asked for. Move a node and
+        you would be telling a lie, so nothing drifts.</p>
+    </div>
+  </div>
+
+  <h3 style="margin-top:28px">The three, and what each is for</h3>
+  <ol class="ol">
+    <li><b>The Dial</b> &mdash; the whole book on one face. Rings are the day each agreement next forces a decision;
+      the six sectors are your value streams. The real links arc across the middle. Click any sheet and the dial
+      <b>re-centres on it</b>, showing just that agreement and everything tied to it. Closest to the graph you have
+      today, and the one that shows the most at once.</li>
+    <li><b>The Lattice</b> &mdash; what stands on what. Columns are dependency depth, so a master agreement is on the
+      left and everything hanging off it steps to the right. Right-angle connectors, like a wiring diagram, not
+      springs. This is the answer to &ldquo;if this one goes, what goes with it?&rdquo; &mdash; and it makes a four-deep
+      supply chain visible in a way a hairball never could.</li>
+    <li><b>The Cabinet</b> &mdash; your book filed the way you ask. Every grouping the graph has today, but the group is
+      a <b>drawn drawer</b> with its contracts filed neatly inside, instead of an invisible gravity well. Links arc
+      between drawers. This is the safest one to ship: nothing is lost, the picture just stops being a blob.</li>
+  </ol>
+
+  <h3 style="margin-top:28px">What stays the same</h3>
+  <p>Grouping, filtering, hover-to-focus, click-to-explain, the Copilot box that can re-cut the graph, and the detail
+    rail &mdash; all of it still applies, and the rail still answers the one genuinely useful question the current
+    graph asks: <b>what else moves if this ends</b>. Every figure on these maps is already read somewhere in HaTi:
+    the notice period and renewal window from the renewal card, value converted the way the dashboard converts it,
+    the family and payment-chain links from the record itself, late promises from the obligations worklist. The maps
+    borrow; they do not compute, and nothing here invents a score. In this prototype the doors in the rail are drawn
+    but inert.</p>
+</div>
+
+<script>
+/* =======================================================================
+   THE CONTRACT ATLAS — three node maps. Prototype.
+   Sample data is the seeded demo book. Every reading below already exists
+   somewhere in HaTi; these maps borrow and draw, they do not compute.
+   ======================================================================= */
+const TODAY = new Date('2026-09-21T00:00:00');
+const HOME = 'KES';
+const STREAMS = {
+  proc: { name:'Procurement & Raw Materials', short:'Procurement',  color:'#2E9F80' },
+  mfg:  { name:'Manufacturing & Production',  short:'Manufacturing',color:'#B45309' },
+  dist: { name:'Warehousing & Distribution',  short:'Distribution', color:'#0369A1' },
+  sales:{ name:'Sales & Route-to-Market',     short:'Sales',        color:'#E8A317' },
+  mktg: { name:'Marketing & Brand',           short:'Marketing',    color:'#7C3AED' },
+  corp: { name:'Corporate & Compliance',      short:'Corporate',    color:'#2E9E63' }
+};
+const STD = [
+  { k:'pay', n:'Payment terms' }, { k:'cap', n:'Liability cap' }, { k:'indem', n:'Indemnity' },
+  { k:'tfc', n:'Exit rights' }, { k:'excl', n:'Exclusive rights' }, { k:'notice', n:'Renewal notice' },
+  { k:'law', n:'Governing law' }, { k:'price', n:'Price review' }
+];
+/* id, name, counterparty, value, currency, status, stream, side, expiry, notice days,
+   playbook marks (s at standard / a against you / b better / n not recorded / u not read),
+   late promises, read by Copilot, hangs off (family), waits on (payment chain) */
+const C = [
+ ['MK-001','Refined Sugar Supply — Confectionery Line','Kabras Sugar (West Kenya Ltd)',48000000,'KES','Signed','proc','supplier','2027-07-31',90,'sssssssb',0,1,null,null],
+ ['MK-002','Raw Milk Collection — Rift Valley Co-ops','Nandi Dairy Co-operative Union',36000000,'KES','Signed','proc','supplier','2026-12-31',60,'sassnssn',0,1,null,null],
+ ['MK-003','Crude Edible Oil Supply','Wilmar East Africa Ltd',95000000,'KES','Under Review','proc','supplier','2027-03-31',90,'aaasasna',0,1,null,null],
+ ['MK-004','PET Bottle & Preform Supply','Nampak Kenya Ltd',22000000,'KES','Under Review','proc','supplier','2027-01-31',60,'sassssss',0,1,null,null],
+ ['MK-005','Corrugated Carton Supply','Statpack Industries Ltd',14500000,'KES','Draft','proc','supplier',null,null,'uuuuuuuu',0,0,null,null],
+ ['MK-006','Co-Packing — Powdered Beverages','Kevian Kenya Ltd',60000000,'KES','Signed','mfg','supplier','2027-12-31',90,'sasssssn',0,1,null,'MK-003'],
+ ['MK-007','Contract Manufacturing — Bar Soap','Orbit Products Africa Ltd',40000000,'KES','Under Review','mfg','supplier','2026-10-31',30,'aasaasns',2,1,null,null],
+ ['MK-008','Tolling Agreement — Detergent Powder','Kapa Oil Refineries Ltd',33000000,'KES','Under Review','mfg','supplier','2027-06-30',60,'ssasssss',0,1,null,null],
+ ['MK-009','Filling Line Lease & Maintenance','Krones East Africa Ltd',8400000,'KES','Signed','mfg','supplier','2029-06-30',180,'ssssssan',0,1,null,null],
+ ['MK-010','Forklift Fleet Lease — Plant','CFAO Equipment Kenya',3600000,'KES','Draft','mfg','supplier',null,null,'uuuuuuuu',0,0,null,null],
+ ['MK-011','Central Warehouse & 3PL — Industrial Area','Siginon Group',18000000,'KES','Signed','dist','supplier','2028-06-30',120,'ssssssss',1,1,null,null],
+ ['MK-012','Cold-Chain Storage — Dairy & Chilled','Africa Logistics Properties',12600000,'KES','Under Review','dist','supplier','2027-12-31',90,'sanssssn',0,1,null,null],
+ ['MK-013','Primary Distribution — Nairobi to Coast','Sendy Ltd',9800000,'KES','Signed','dist','supplier','2026-11-30',30,'ssssssbs',1,1,null,'MK-011'],
+ ['MK-014','Cross-Border Freight — EAC Markets','Lori Systems',15200000,'KES','Under Review','dist','supplier','2027-02-28',60,'saansssn',0,1,null,null],
+ ['MK-015','Last-Mile Distribution — Western Region','Wasoko',6400000,'KES','Draft','dist','supplier',null,null,'uuuuuuuu',0,0,null,'MK-013'],
+ ['MK-016','Regional Distributor — Nyanza','Ramogi Distributors Ltd',52000000,'KES','Signed','sales','customer','2027-06-30',90,'bsssssss',0,1,null,null],
+ ['MK-017','Regional Distributor — Mt. Kenya','Muranga Distributors Ltd',44000000,'KES','Under Review','sales','customer','2026-12-15',60,'asssasss',0,1,null,null],
+ ['MK-018','Modern Trade Listing & Supply','Naivas Supermarkets',85000000,'KES','Signed','sales','customer','2027-06-30',120,'aasnasss',0,1,null,'MK-006'],
+ ['MK-019','Retail Supply — Modern Trade','Carrefour Kenya',78000000,'KES','Under Review','sales','customer','2027-03-31',90,'aaanasns',3,1,null,'MK-006'],
+ ['MK-020','E-commerce Distribution Agreement','Copia Global',12000000,'KES','Draft','sales','customer',null,null,'uuuuuuuu',0,0,null,null],
+ ['MK-021','Creative & Brand Agency Retainer','Scanad Kenya',24000000,'KES','Signed','mktg','supplier','2027-06-30',60,'ssssssss',0,1,null,null],
+ ['MK-022','Media Buying — TV & Radio','Royal Media Services',30000000,'KES','Under Review','mktg','supplier','2027-06-30',90,'sassnsss',0,1,null,'MK-021'],
+ ['MK-023','Trade Activation & Field Marketing','Ogilvy Kenya',9600000,'KES','Under Review','mktg','supplier','2026-10-15',30,'sansssss',1,1,null,null],
+ ['MK-024','Digital & Influencer Campaign','Aleph Group',5400000,'KES','Draft','mktg','supplier',null,null,'uuuuuuuu',0,0,null,null],
+ ['MK-025','Mutual NDA — New Product Development','Givaudan East Africa',0,'KES','Signed','corp',null,'2027-07-31',null,'nsssssss',0,1,null,null],
+ ['MK-026','Head Office Lease — Westlands','Britam Properties',42000000,'KES','Signed','corp','supplier','2030-06-30',180,'ssasnsss',0,1,null,null],
+ ['MK-027','External Audit Engagement — FY2026','PwC Kenya',7200000,'KES','Under Review','corp','supplier','2027-01-31',null,'ssssssss',0,1,null,null],
+ ['MK-028','Legal Retainer — Commercial & Regulatory','Bowmans (Coulson Harney LLP)',6000000,'KES','Signed','corp','supplier','2027-06-30',60,'ssssssss',0,1,null,null],
+ ['MK-029','Vendor NDA — ERP Implementation','SAP East Africa',0,'KES','Under Review','corp',null,null,null,'nsssssns',0,1,null,null],
+ ['MK-030','Flavour House Supply','Symrise AG',640000,'USD','Signed','proc','supplier','2027-09-30',90,'ssssssan',0,1,null,null],
+ ['MK-031','Enzyme & Culture Supply','Novonesis A/S',410000,'EUR','Under Review','proc','supplier','2027-04-30',60,'sassssan',0,1,null,null],
+ ['MK-032','Amendment 1 — Rebate Schedule','Naivas Supermarkets',0,'KES','Signed','sales','customer','2027-06-30',120,'assnasss',0,1,'MK-018',null],
+ ['MK-033','In-Store Space & Gondola Ends','Naivas Supermarkets',11000000,'KES','Signed','mktg','supplier','2027-06-30',60,'sassssss',0,1,null,null],
+ ['MK-034','Amendment 2 — Volume Rebate Tiers','Naivas Supermarkets',0,'KES','Signed','sales','customer','2027-06-30',120,'assnasss',0,1,'MK-018',null],
+ ['MK-035','Warehouse Lease — Mombasa','Siginon Group',9400000,'KES','Signed','dist','supplier','2028-03-31',90,'ssssssss',0,1,null,null],
+ ['MK-036','Packaging Film Supply','Nampak Kenya Ltd',7800000,'KES','Under Review','proc','supplier','2027-05-31',60,'sasssssn',0,1,null,null],
+ ['MK-037','Amendment 1 — Price Review Clause','Wilmar East Africa Ltd',0,'KES','Under Review','proc','supplier','2027-03-31',90,'nsssssna',0,1,'MK-003',null],
+ ['MK-038','Amendment 1 — Rate Card 2027','Siginon Group',0,'KES','Signed','dist','supplier','2028-06-30',120,'ssssssss',0,1,'MK-011',null]
+].map(r=>({ id:r[0], name:r[1], cp:r[2], value:r[3], cur:r[4], status:r[5], stream:r[6], side:r[7],
+  expiry:r[8], notice:r[9], marks:r[10], late:r[11], read:!!r[12], parent:r[13], waits:r[14] }));
+
+/* ---- borrowed readings -------------------------------------------------- */
+const RATE = { KES:1 };                       /* no rate on file for USD or EUR */
+const hasRate = c => Object.prototype.hasOwnProperty.call(RATE, c.cur);
+const homeValue = c => hasRate(c) ? c.value * RATE[c.cur] : null;
+const monetary = c => c.value > 0;
+const daysTo = iso => iso ? Math.round((new Date(iso+'T00:00:00') - TODAY)/86400000) : null;
+/* THE DATE THAT BITES: the last day notice can still be served, not the expiry. */
+function forceOf(c){
+  if(!c.expiry) return { at:null, days:null, kind:'none' };
+  const exp = daysTo(c.expiry);
+  if(c.notice == null) return { at:c.expiry, days:exp, kind:'expiry', expDays:exp };
+  const d = new Date(c.expiry+'T00:00:00'); d.setDate(d.getDate() - c.notice);
+  const at = d.toISOString().slice(0,10);
+  return { at, days:daysTo(at), kind:'notice', expDays:exp };
+}
+const offCount = c => c.marks.split('').filter(m=>m==='a').length;
+const unreadCount = c => c.marks.split('').filter(m=>m==='u').length;
+const fmtM = n => n==null ? '—' : (Math.abs(n)>=1e6 ? (n/1e6).toFixed(n>=1e8?0:1).replace(/\.0$/,'')+'M'
+  : Math.abs(n)>=1e3 ? Math.round(n/1e3)+'k' : String(Math.round(n)));
+const money = n => n==null ? 'no rate on file' : HOME+' '+fmtM(n);
+const dayWord = d => d==null ? 'no date recorded' : d<0 ? Math.abs(d)+' days ago' : d===0 ? 'today' : 'in '+d+' days';
+const dateWord = iso => iso ? new Date(iso+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
+const esc = s => String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const byId = id => C.find(c=>c.id===id);
+const STATUS_DOT = { 'Draft':'#6D7A77', 'Under Review':'#E8A317', 'Signed':'#2E9E63', 'Declined':'#D9453B' };
+
+/* ---- THE THREE LINK KINDS, and nothing else ----------------------------
+   family  a child agreement hanging off its master (c.parent)
+   chain   this one cannot happen until that one does (c.waits)
+   party   the same counterparty. LINKED IN A RUN, NEVER EVERY PAIR: four
+           agreements with one customer are three lines, not six, and the
+           run says the same thing. The product draws these through the
+           party's own hub for the same reason.                            */
+function allLinks(){
+  const out = [];
+  C.forEach(c=>{ if(c.parent && byId(c.parent)) out.push({ from:c.id, to:c.parent, kind:'family' }); });
+  C.forEach(c=>{ if(c.waits  && byId(c.waits))  out.push({ from:c.id, to:c.waits,  kind:'chain'  }); });
+  const g = {}; C.forEach(c=>{ (g[c.cp] || (g[c.cp] = [])).push(c.id); });
+  Object.values(g).forEach(ids=>{ for(let i=1;i<ids.length;i++) out.push({ from:ids[i-1], to:ids[i], kind:'party' }); });
+  return out;
+}
+const LINKS = allLinks();
+const LINK_WORD = { family:'is an amendment of', chain:'waits on', party:'same counterparty as' };
+const linkedTo = id => LINKS.filter(l=>l.from===id || l.to===id).map(l=>({ other:l.from===id?l.to:l.from, kind:l.kind }));
+/* WHAT ELSE MOVES IF THIS ENDS — direct only, never a transitive walk. */
+const dependents = c => LINKS.filter(l=>l.to===c.id).map(l=>({ c:byId(l.from), kind:LINK_WORD[l.kind] }));
+
+const state = { view:'dial', sel:null, centre:null, group:'stream', hover:null };
+const $ = s => document.querySelector(s);
+const NODE_TITLE = c => c.name + ' — ' + c.cp;
+</script>
+<style>
+.ndhover{position:absolute;z-index:20;pointer-events:none;width:232px;background:var(--surface);
+  border:1px solid var(--line-2);border-radius:var(--r);box-shadow:var(--shadow-2);padding:9px 10px}
+.ndhover .t{font-size:var(--t-label);font-weight:600;line-height:1.35}
+.ndhover .c{font-size:var(--t-micro);color:var(--ink-3);margin-bottom:5px}
+.ndhover .r{display:flex;justify-content:space-between;gap:8px;font-size:var(--t-micro);padding:1px 0}
+.ndhover .r span{color:var(--ink-3)}
+.ndhover .r b{font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+</style>
+<script>
+/* ---- one hover card for all three maps (the product's own igHoverShow) ---- */
+function hoverShow(c, el, host){
+  let h = document.getElementById('nd-hover');
+  if(!h){ h = document.createElement('div'); h.id = 'nd-hover'; h.className = 'ndhover'; host.appendChild(h); }
+  const f = forceOf(c), off = offCount(c), n = linkedTo(c.id).length;
+  const row = (k,v,tone) => '<div class="r"><span>'+k+'</span><b'+(tone?' style="color:var(--'+tone+')"':'')+'>'+v+'</b></div>';
+  h.innerHTML = '<div class="t">'+esc(c.name)+'</div><div class="c">'+esc(c.id+' · '+c.cp)+'</div>'+
+    row('On paper', monetary(c) ? (hasRate(c)?money(homeValue(c)):c.cur+' '+fmtM(c.value)+' · no rate') : 'no money passes') +
+    row(f.kind==='notice'?'Last day to act':'Ends', f.days==null?'no date recorded':dateWord(f.at), f.days!=null&&f.days<90?'amber':'') +
+    (off ? row('Against your standard', off+' terms', 'ruby') : (unreadCount(c)?row('Standards','not read closely','ink-3'):row('Against your standard','none','good'))) +
+    (c.late ? row('Late promises', c.late, 'ruby') : '') +
+    row('Linked to', n ? n+(n===1?' agreement':' agreements') : 'nothing on file');
+  const r = el.getBoundingClientRect(), hr = host.getBoundingClientRect();
+  h.hidden = false;
+  h.style.left = Math.max(6, Math.min(hr.width - 238, r.right - hr.left + 10)) + 'px';
+  h.style.top  = Math.max(6, Math.min(hr.height - h.offsetHeight - 6, r.top - hr.top - 8)) + 'px';
+}
+function hoverHide(){ const h = document.getElementById('nd-hover'); if(h) h.hidden = true; }
+
+/* ---- the shared parts of an SVG map ------------------------------------- */
+const MARKERS =
+  ['family','chain','party'].map(k=>'<marker id="ah-'+k+'" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5.5" '+
+   'markerHeight="5.5" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 Z" fill="'+
+   (k==='family'?'var(--accent)':k==='chain'?'var(--amber)':'var(--line-2)')+'"/></marker>').join('');
+
+/* THE NODE IS A SHEET OF PAPER. Square corners, cream stock, a value-stream
+   margin bar, the redline's own ruby margin rule where the wording leaves the
+   standard, a status dot, and a ruby dot where a promise is late. */
+function sheet(c, x, y, w, h, o){
+  o = o || {};
+  const dim = o.dim ? ' dim' : '', sel = o.sel ? ' sel' : '';
+  let s = '<g class="nd'+dim+sel+'" data-id="'+c.id+'" tabindex="0" role="button" aria-label="'+esc(NODE_TITLE(c))+'">';
+  if(offCount(c)) s += '<rect x="'+(x-5)+'" y="'+(y+2)+'" width="2.5" height="'+(h-4)+'" fill="var(--ruby-dot)"/>';
+  s += '<rect class="sheet" x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'"/>';
+  s += '<rect x="'+x+'" y="'+y+'" width="3" height="'+h+'" fill="'+STREAMS[c.stream].color+'"/>';
+  if(o.label){
+    const iw = w - 13;
+    s += '<text class="nm" x="'+(x+9)+'" y="'+(y+15)+'">'+esc(o.label.length>Math.floor(iw/5.7)?o.label.slice(0,Math.floor(iw/5.7)-1)+'…':o.label)+'</text>';
+    if(o.sub) s += '<text class="sb" x="'+(x+9)+'" y="'+(y+27)+'">'+esc(o.sub)+'</text>';
+  }
+  s += '<circle cx="'+(x+w-5)+'" cy="'+(y+5)+'" r="2.4" fill="'+(STATUS_DOT[c.status]||'#6D7A77')+'"/>';
+  if(c.late) s += '<circle cx="'+(x+w-5)+'" cy="'+(y+h-5)+'" r="2.6" fill="var(--ruby-dot)"/>';
+  return s + '</g>';
+}
+function wireNodes(host){
+  host.querySelectorAll('.nd,.pnode').forEach(el=>{
+    const c = byId(el.dataset.id); if(!c) return;
+    const go = ()=>{ state.sel = (state.sel===c.id ? null : c.id); render(); };
+    el.addEventListener('click', go);
+    el.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); go(); } });
+    el.addEventListener('pointerenter', ()=>hoverShow(c, el, host));
+    el.addEventListener('pointerleave', hoverHide);
+    el.addEventListener('focus', ()=>hoverShow(c, el, host));
+    el.addEventListener('blur', hoverHide);
+  });
+}
+
+/* =======================================================================
+   MAP 01 — THE DIAL
+   Distance from the middle is TIME: the day this agreement next forces a
+   decision. The six sectors are the value streams. The record's own links
+   arc across the face. Click a sheet and the dial re-centres on it.
+   ======================================================================= */
+const DCX=490, DCY=330, RPASS=86, R0=112, R1=248, RPARK=272, RIM=298;
+/* A SQUARE-ROOT SCALE CRUSHES THE NEAR TERM, which is the half a contract
+   manager lives in: Now, 30d, 90d and 6m all landed within 30 pixels of one
+   another. This one spreads the first quarter and compresses the years. */
+const LOGK = Math.log(1 + 1460/30);
+const drOf = d => d==null ? RPARK : (d<0 ? RPASS : R0 + Math.log(1 + Math.min(d,1460)/30)/LOGK*(R1-R0));
+const SK = Object.keys(STREAMS);
+const TAU = Math.PI*2, SECT = TAU/SK.length, A0 = -Math.PI/2;
+const sectCentre = i => A0 + SECT*i + SECT/2;
+const P = (r,a) => [Math.round((DCX + Math.cos(a)*r)*10)/10, Math.round((DCY + Math.sin(a)*r)*10)/10];
+const DRINGS = [[0,'Now'],[30,'30d'],[90,'90d'],[180,'6m'],[365,'1y'],[730,'2y'],[1460,'4y']];
+
+function dialPlace(list){
+  const out = list.map(c=>{ const f = forceOf(c), si = Math.max(0, SK.indexOf(c.stream));
+    return { c, f, si, r:drOf(f.days), a:sectCentre(si) }; });
+  SK.forEach((k,si)=>{
+    const placed = [];
+    out.filter(p=>p.si===si).sort((a,b)=>a.r-b.r).forEach(p=>{
+      const step = 0.058, lim = SECT/2 - 0.16;
+      const clash = (a,r) => placed.some(q=>Math.abs(q.r-r)<23 && Math.abs(q.a-a)*((q.r+r)/2)<20);
+      let done = false;
+      for(let n=0; n<24 && !done; n++){
+        const off = n===0 ? 0 : (n%2 ? 1 : -1) * Math.ceil(n/2) * step;
+        if(Math.abs(off) > lim) continue;
+        if(!clash(sectCentre(si)+off, p.r)){ p.a = sectCentre(si)+off; done = true; }
+      }
+      if(!done){ p.r += 24; p.a = sectCentre(si); }        /* still crowded: step out one ring */
+      placed.push(p);
+    });
+  });
+  return out;
+}
+
+function renderDial(){
+  const centre = state.centre ? byId(state.centre) : null;
+  const near = centre ? new Set(linkedTo(centre.id).map(x=>x.other)) : null;
+  const list = centre ? C.filter(c=>near.has(c.id)) : C.slice();
+  const pts = dialPlace(list);
+  const pos = {}; pts.forEach(p=>{ pos[p.c.id] = P(p.r, p.a); });
+  if(centre) pos[centre.id] = [DCX, DCY];
+  const shown = new Set(Object.keys(pos));
+  const links = LINKS.filter(l=>shown.has(l.from) && shown.has(l.to));
+
+  const g = ['<svg viewBox="76 0 828 660" role="img" aria-label="The contract book on a dial: rings are time, sectors are value streams"><defs>'+MARKERS+'</defs>'];
+  DRINGS.forEach(([d,lab])=>{ const r = drOf(d);
+    g.push('<circle class="ring'+(d===0?' solid':'')+'" cx="'+DCX+'" cy="'+DCY+'" r="'+r+'"/>'); });
+  g.push('<circle class="ring" cx="'+DCX+'" cy="'+DCY+'" r="'+RPASS+'" stroke="var(--ruby-dot)" opacity=".5"/>');
+  g.push('<circle class="ring" cx="'+DCX+'" cy="'+DCY+'" r="'+RPARK+'"/>');
+  SK.forEach((k,i)=>{ const a = A0 + SECT*i;
+    const p1 = P(RPASS-6, a), p2 = P(RIM-16, a);
+    g.push('<line class="spoke" x1="'+p1[0]+'" y1="'+p1[1]+'" x2="'+p2[0]+'" y2="'+p2[1]+'"/>');
+    const lp = P(RIM, sectCentre(i)), cs = Math.cos(sectCentre(i));
+    g.push('<text class="slab" x="'+lp[0]+'" y="'+(lp[1]+4)+'" text-anchor="'+(cs>0.3?'start':cs<-0.3?'end':'middle')+'" fill="'+STREAMS[k].color+'">'+
+      STREAMS[k].short.toUpperCase()+'</text>'); });
+  /* ring labels sit on the sector boundary that runs straight up, where no sheet is placed */
+  DRINGS.concat([[null,'no date']]).forEach(([d,lab])=>{ const r = d===null ? RPARK : drOf(d);
+    g.push('<rect x="'+(DCX-15)+'" y="'+(DCY-r-6)+'" width="30" height="11" fill="var(--surface)"/>');
+    g.push('<text class="rlab" x="'+DCX+'" y="'+(DCY-r+2)+'" text-anchor="middle">'+lab+'</text>'); });
+  g.push('<rect x="'+(DCX-15)+'" y="'+(DCY-RPASS-6)+'" width="30" height="11" fill="var(--surface)"/>');
+  g.push('<text class="rlab" x="'+DCX+'" y="'+(DCY-RPASS+2)+'" text-anchor="middle" fill="var(--ruby)">passed</text>');
+
+  links.forEach(l=>{
+    const a = pos[l.from], b = pos[l.to];
+    const mid = [(a[0]+b[0])/2, (a[1]+b[1])/2];
+    const pull = (centre && (l.from===centre.id || l.to===centre.id)) ? 0 : 0.42;
+    const cx = mid[0] + (DCX-mid[0])*pull, cy = mid[1] + (DCY-mid[1])*pull;
+    const on = state.sel && (l.from===state.sel || l.to===state.sel);
+    g.push('<path class="lk lk-'+l.kind+(state.sel? (on?' hi':' dim') : '')+'" marker-end="url(#ah-'+l.kind+')" d="M'+
+      a[0]+','+a[1]+' Q'+cx+','+cy+' '+b[0]+','+b[1]+'"/>');
+  });
+
+  const lit = state.sel ? new Set([state.sel, ...linkedTo(state.sel).map(x=>x.other)]) : null;
+  pts.forEach(p=>{ const [x,y] = pos[p.c.id];
+    g.push(sheet(p.c, x-9, y-11, 18, 23, { dim: lit && !lit.has(p.c.id), sel: state.sel===p.c.id })); });
+  /* THE DIAL IS FOR SHAPE AND PRESSURE; identity comes on the hover and on the
+     pick. Printing 38 names would bury the very thing the map is for, so the
+     reference is drawn for the sheet you picked and everything it touches. */
+  if(lit) pts.filter(p=>lit.has(p.c.id)).forEach(p=>{ const [x,y] = pos[p.c.id], right = x >= DCX;
+    g.push('<text class="sb" x="'+(right?x+14:x-14)+'" y="'+(y+3.5)+'" text-anchor="'+(right?'start':'end')+
+      '" fill="var(--ink)" font-weight="600">'+esc(p.c.id)+'</text>'); });
+
+  if(centre){
+    g.push(sheet(centre, DCX-84, DCY-22, 168, 44, { label:centre.name, sub:centre.id+' · '+centre.cp, sel:true }));
+  } else {
+    g.push('<g class="hubn"><rect x="'+(DCX-66)+'" y="'+(DCY-20)+'" width="132" height="40" rx="4"/>'+
+      '<text x="'+DCX+'" y="'+(DCY-2)+'" text-anchor="middle">YOUR BOOK</text>'+
+      '<text class="hsub" x="'+DCX+'" y="'+(DCY+12)+'" text-anchor="middle">'+C.length+' agreements</text></g>');
+  }
+  g.push('</svg>');
+
+  $('#stage').innerHTML = '<div class="canvas" style="position:relative">'+g.join('')+'</div>';
+  $('#ctl').innerHTML =
+    '<span class="lbl">Centred on</span>'+
+    '<span class="chip c-steel">'+(centre ? esc(centre.id+' · '+centre.name) : 'Your whole book')+'</span>'+
+    (centre ? '<button type="button" class="btn" id="d-all">Show the whole book</button>' : '')+
+    '<span class="grow"></span>'+
+    '<span class="note">Click a sheet to select it. Re-centre from the panel on the right.</span>';
+  $('#legend').innerHTML = dialLegend(links);
+  wireNodes($('#stage .canvas'));
+  const all = document.getElementById('d-all');
+  if(all) all.addEventListener('click', ()=>{ state.centre = null; state.sel = null; render(); });
+}
+function dialLegend(links){
+  const n = k => links.filter(l=>l.kind===k).length;
+  return '<i><span class="key"></span> one agreement</i>'+
+    '<i><svg width="22" height="8" aria-hidden="true"><line class="lk lk-family" x1="1" y1="4" x2="21" y2="4"/></svg> amendment of ('+n('family')+')</i>'+
+    '<i><svg width="22" height="8" aria-hidden="true"><line class="lk lk-chain" x1="1" y1="4" x2="21" y2="4"/></svg> waits on ('+n('chain')+')</i>'+
+    '<i><svg width="22" height="8" aria-hidden="true"><line class="lk lk-party" x1="1" y1="4" x2="21" y2="4"/></svg> same counterparty ('+n('party')+')</i>'+
+    '<i><span style="width:3px;height:12px;background:var(--ruby-dot);display:inline-block;vertical-align:-2px"></span> off your standard</i>'+
+    '<i style="flex-basis:100%;color:var(--ink-3)">Ring is the day it next forces a decision &mdash; the last day notice can be served, not the expiry. '+
+    'Sector is the value stream. Sheets with no date recorded sit on the outer ring, named rather than dropped. '+
+    'Counterparty links are drawn as a run, never every pair. '+
+    'Pick a sheet to put the reference on it and on everything it touches.</i>';
+}
+</script>
+<script>
+/* =======================================================================
+   MAP 02 — THE LATTICE
+   What stands on what. The column is how far down a chain an agreement
+   sits, so a master is on the left and everything hanging off it steps to
+   the right. Right-angle connectors, like a wiring diagram. Only the two
+   HIERARCHY links build the tiers; the same-counterparty tie is drawn as
+   a quiet dotted curve because it is not a dependency.
+   ======================================================================= */
+const LW=176, LH=42, LCOL=214, LROW=56, LPAD=54;
+const TIER = ['NOTHING ABOVE IT','ONE STEP DOWN','TWO STEPS DOWN','THREE STEPS DOWN','FOUR STEPS DOWN'];
+
+function latticeModel(){
+  const hier = LINKS.filter(l=>l.kind!=='party');
+  const parentOf = {}; hier.forEach(l=>{ if(!parentOf[l.from]) parentOf[l.from] = l.to; });
+  const inGraph = new Set(); hier.forEach(l=>{ inGraph.add(l.from); inGraph.add(l.to); });
+  const depth = id => { let d=0, cur=id, guard=0; while(parentOf[cur] && guard++<12){ cur = parentOf[cur]; d++; } return d; };
+  const root = {}; [...inGraph].forEach(id=>{ root[id] = id; });
+  const find = x => root[x]===x ? x : (root[x] = find(root[x]));
+  hier.forEach(l=>{ const a = find(l.from), b = find(l.to); if(a!==b) root[a] = b; });
+  const cl = {}; [...inGraph].forEach(id=>{ const r = find(id); (cl[r] || (cl[r] = [])).push(id); });
+  const kids = {}; [...inGraph].forEach(id=>{ const p = parentOf[id]; if(p) (kids[p] || (kids[p] = [])).push(id); });
+  const clusters = Object.values(cl).map(ids=>{
+    let row = 0; const rowOf = {};
+    const walk = id => { const ks = (kids[id]||[]).slice().sort();
+      if(!ks.length){ rowOf[id] = row++; return rowOf[id]; }
+      const rs = ks.map(walk); rowOf[id] = (rs[0] + rs[rs.length-1]) / 2; return rowOf[id]; };
+    ids.filter(id=>!parentOf[id]).sort().forEach(walk);
+    ids.forEach(id=>{ if(rowOf[id] == null) rowOf[id] = row++; });
+    const rootId = ids.filter(id=>!parentOf[id]).sort()[0] || ids[0];
+    return { ids, rowOf, rows:Math.max(1, row), rootId, maxDepth:Math.max(...ids.map(depth)) };
+  }).sort((a,b)=>b.ids.length - a.ids.length);
+  return { hier, parentOf, depth, clusters, alone:C.filter(c=>!inGraph.has(c.id)) };
+}
+
+function renderLattice(){
+  const M = latticeModel();
+  const pos = {};
+  let y = 58, maxCols = 1;
+  M.clusters.forEach(cl=>{ cl.y0 = y; maxCols = Math.max(maxCols, cl.maxDepth + 1);
+    cl.ids.forEach(id=>{ pos[id] = [LPAD + M.depth(id)*LCOL, y + cl.rowOf[id]*LROW]; });
+    y += cl.rows*LROW + 34; });
+  const aloneTop = y + 6;
+  const perRow = 10, aloneRows = Math.ceil(M.alone.length / perRow);
+  const H = aloneTop + 34 + aloneRows*28 + 16;
+  const W = Math.max(980, LPAD + maxCols*LCOL + 40);
+
+  const g = ['<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Contracts arranged by what depends on what"><defs>'+MARKERS+'</defs>'];
+  for(let d=0; d<maxCols; d++)
+    g.push('<text class="tierlab" x="'+(LPAD + d*LCOL)+'" y="22">'+(TIER[d]||('STEP '+d))+'</text>');
+  M.clusters.forEach(cl=>{
+    g.push('<rect class="tierbg" x="'+(LPAD-14)+'" y="'+(cl.y0-20)+'" width="'+(cl.maxDepth*LCOL + LW + 28)+'" height="'+(cl.rows*LROW + 8)+'" rx="4"/>');
+    g.push('<text class="slab" x="'+(LPAD-10)+'" y="'+(cl.y0-8)+'">'+esc(byId(cl.rootId).cp.toUpperCase())+' &mdash; AND WHAT FOLLOWS</text>');
+  });
+
+  const lit = state.sel ? new Set([state.sel, ...linkedTo(state.sel).map(x=>x.other)]) : null;
+  M.hier.forEach(l=>{
+    const a = pos[l.from], b = pos[l.to]; if(!a || !b) return;
+    const cx = a[0], cy = a[1] + LH/2, px = b[0] + LW, py = b[1] + LH/2, mx = cx - 17;
+    const on = state.sel && (l.from===state.sel || l.to===state.sel);
+    g.push('<path class="lk elbow lk-'+l.kind+(state.sel ? (on?' hi':' dim') : '')+'" marker-end="url(#ah-'+l.kind+')" d="M'+
+      cx+','+cy+' H'+mx+' V'+py+' H'+(px+6)+'"/>');
+  });
+  LINKS.filter(l=>l.kind==='party' && pos[l.from] && pos[l.to]).forEach(l=>{
+    const a = pos[l.from], b = pos[l.to];
+    const x1 = a[0]+LW/2, y1 = a[1]+LH, x2 = b[0]+LW/2, y2 = b[1]+LH;
+    const on = state.sel && (l.from===state.sel || l.to===state.sel);
+    g.push('<path class="lk lk-party'+(state.sel ? (on?' hi':' dim') : '')+'" d="M'+x1+','+y1+' Q'+
+      ((x1+x2)/2)+','+(Math.max(y1,y2)+26)+' '+x2+','+y2+'"/>');
+  });
+  Object.keys(pos).forEach(id=>{ const c = byId(id), [x,yy] = pos[id];
+    g.push(sheet(c, x, yy, LW, LH, { label:c.name, sub:c.id+' · '+(monetary(c) ? (hasRate(c)?money(homeValue(c)):c.cur+' '+fmtM(c.value)) : 'no money passes'),
+      dim: lit && !lit.has(id), sel: state.sel===id })); });
+
+  /* THE ONES THAT STAND ALONE ARE SHOWN, NOT DROPPED. */
+  g.push('<line class="grid-l" x1="'+(LPAD-14)+'" y1="'+aloneTop+'" x2="'+(W-40)+'" y2="'+aloneTop+'"/>');
+  g.push('<text class="slab" x="'+(LPAD-14)+'" y="'+(aloneTop+18)+'">STANDS ALONE &mdash; '+M.alone.length+
+    ' AGREEMENTS WITH NOTHING ABOVE OR BELOW THEM</text>');
+  M.alone.forEach((c,i)=>{ const col = i % perRow, rw = Math.floor(i / perRow);
+    g.push(sheet(c, LPAD - 14 + col*92, aloneTop + 30 + rw*28, 84, 22,
+      { label:c.id, dim: lit && !lit.has(c.id), sel: state.sel===c.id })); });
+  g.push('</svg>');
+
+  $('#stage').innerHTML = '<div class="canvas" style="position:relative;overflow-x:auto">'+g.join('')+'</div>';
+  $('#ctl').innerHTML = '<span class="chip c-gray">'+M.clusters.length+' families and chains</span>'+
+    '<span class="chip c-gray">'+(C.length - M.alone.length)+' in a family or chain</span>'+
+    '<span class="chip c-gray">'+M.alone.length+' stand alone</span>'+
+    '<span class="grow"></span><span class="note">Click a sheet to light everything it touches.</span>';
+  $('#legend').innerHTML =
+    '<i><svg width="22" height="8" aria-hidden="true"><line class="lk lk-family" x1="1" y1="4" x2="21" y2="4"/></svg> is an amendment of</i>'+
+    '<i><svg width="22" height="8" aria-hidden="true"><line class="lk lk-chain" x1="1" y1="4" x2="21" y2="4"/></svg> cannot happen until</i>'+
+    '<i><svg width="22" height="8" aria-hidden="true"><line class="lk lk-party" x1="1" y1="4" x2="21" y2="4"/></svg> same counterparty</i>'+
+    '<i style="flex-basis:100%;color:var(--ink-3)">Only the first two build the columns, because only they are dependencies. '+
+    'The arrow points at what the agreement stands on.</i>';
+  wireNodes($('#stage .canvas'));
+}
+</script>
+<script>
+/* =======================================================================
+   MAP 03 — THE CABINET
+   Every grouping the graph has today, but a group is a DRAWN DRAWER with
+   its contracts filed inside, instead of an invisible gravity well. The
+   record's own links arc between drawers.
+   ======================================================================= */
+const GROUPS = [
+  { k:'stream', n:'Value stream' }, { k:'cp', n:'Counterparty' }, { k:'status', n:'Status' },
+  { k:'force',  n:'When it next forces a decision' }, { k:'off', n:'Against your standard' }
+];
+const FORCE_ORDER = ['Passed','Within 30 days','31–90 days','3–12 months','Beyond a year','No date recorded'];
+const OFF_ORDER   = ['Three terms or more','One or two terms','None against you','Not read closely enough'];
+const STATUS_ORDER= ['Under Review','Signed','Draft','Declined'];
+function groupOf(c, k){
+  if(k==='stream') return STREAMS[c.stream].short;
+  if(k==='cp') return c.cp;
+  if(k==='status') return c.status;
+  if(k==='off') return unreadCount(c) ? OFF_ORDER[3] : offCount(c)>=3 ? OFF_ORDER[0] : offCount(c) ? OFF_ORDER[1] : OFF_ORDER[2];
+  const d = forceOf(c).days;
+  if(d == null) return FORCE_ORDER[5];
+  if(d < 0) return FORCE_ORDER[0];
+  if(d <= 30) return FORCE_ORDER[1];
+  if(d <= 90) return FORCE_ORDER[2];
+  if(d <= 365) return FORCE_ORDER[3];
+  return FORCE_ORDER[4];
+}
+const CAB_CAP = 8;
+
+function renderCabinet(){
+  const k = state.group;
+  const map = {};
+  C.forEach(c=>{ (map[groupOf(c,k)] || (map[groupOf(c,k)] = [])).push(c); });
+  let names = Object.keys(map);
+  const order = k==='stream' ? Object.values(STREAMS).map(s=>s.short)
+              : k==='force'  ? FORCE_ORDER : k==='off' ? OFF_ORDER : k==='status' ? STATUS_ORDER : null;
+  names = order ? names.sort((a,b)=>order.indexOf(a) - order.indexOf(b))
+                : names.sort((a,b)=>map[b].length - map[a].length || a.localeCompare(b));
+  const lit = state.sel ? new Set([state.sel, ...linkedTo(state.sel).map(x=>x.other)]) : null;
+
+  const drawer = name => {
+    const tied = id => LINKS.some(l=>l.from===id || l.to===id);
+    const rows = map[name].slice().sort((a,b)=>
+      (tied(b.id)?1:0)-(tied(a.id)?1:0) || (offCount(b)-offCount(a)) || ((homeValue(b)||0)-(homeValue(a)||0)));
+    const val = rows.reduce((s,c)=>s + (hasRate(c) && monetary(c) ? homeValue(c) : 0), 0);
+    const noRate = rows.filter(c=>monetary(c) && !hasRate(c)).length;
+    const late = rows.reduce((s,c)=>s + c.late, 0);
+    const show = rows.slice(0, CAB_CAP);
+    return '<section class="drawer"><div class="dr-h"><span class="n">'+esc(name)+'</span><span class="c">'+rows.length+'</span></div>'+
+      '<div class="dr-m">'+(val ? money(val)+' on paper' : 'no money passes')+
+        (noRate ? ' · '+noRate+' no rate' : '')+(late ? ' · '+late+' late' : '')+'</div>'+
+      '<div class="dr-b">'+ show.map(c=>
+        '<button type="button" class="pnode'+(lit && !lit.has(c.id) ? ' dim' : '')+(state.sel===c.id ? ' sel' : '')+
+        '" data-id="'+c.id+'" title="'+esc(NODE_TITLE(c))+'">'+
+        (offCount(c) ? '<span class="rb"></span>' : '')+
+        '<span class="bar" style="background:'+STREAMS[c.stream].color+'"></span>'+
+        '<span class="in"><span class="t">'+esc(c.name)+'</span><span class="s">'+esc(c.id)+' · '+
+          (monetary(c) ? (hasRate(c) ? fmtM(homeValue(c)) : c.cur+' '+fmtM(c.value)) : 'no money')+'</span></span>'+
+        (c.late ? '<span class="lt"></span>' : '')+'</button>').join('')+
+      (rows.length > CAB_CAP ? '<span class="dr-more">'+(rows.length-CAB_CAP)+' more filed here</span>' : '')+
+      '</div></section>';
+  };
+
+  $('#stage').innerHTML = '<div class="cab" id="cab"><svg class="cab-links" id="cab-links" aria-hidden="true"><defs>'+MARKERS+'</defs></svg>'+
+    '<div class="drawers">'+names.map(drawer).join('')+'</div></div>';
+  $('#ctl').innerHTML = '<span class="lbl">File by</span>'+
+    '<select class="sel-ctl" id="cab-group" aria-label="Group the drawers by">'+
+      GROUPS.map(g=>'<option value="'+g.k+'"'+(g.k===k?' selected':'')+'>'+g.n+'</option>').join('')+'</select>'+
+    '<span class="chip c-gray">'+names.length+' drawers</span><span class="grow"></span>'+
+    '<span class="note">Links are drawn wherever both ends are on screen.</span>';
+  $('#legend').innerHTML =
+    '<i><svg width="22" height="8" aria-hidden="true"><line class="lk lk-family" x1="1" y1="4" x2="21" y2="4"/></svg> amendment of</i>'+
+    '<i><svg width="22" height="8" aria-hidden="true"><line class="lk lk-chain" x1="1" y1="4" x2="21" y2="4"/></svg> waits on</i>'+
+    '<i><svg width="22" height="8" aria-hidden="true"><line class="lk lk-party" x1="1" y1="4" x2="21" y2="4"/></svg> same counterparty</i>'+
+    '<i style="flex-basis:100%;color:var(--ink-3)">A drawer shows its first '+CAB_CAP+
+    ' and says how many more it holds, and a sheet carrying a link is never the one rolled up. '+
+    'Filed by counterparty, the counterparty link is not drawn: the drawer already says it.</i>';
+  $('#cab-group').addEventListener('change', e=>{ state.group = e.target.value; render(); });
+  wireNodes($('#cab'));
+  requestAnimationFrame(cabLinks);
+}
+/* The drawers lay themselves out; the links are measured off what was drawn
+   and arc over the top, so no line is ever hidden behind a card. */
+function cabLinks(){
+  const host = document.getElementById('cab'), svg = document.getElementById('cab-links');
+  if(!host || !svg) return;
+  const hr = host.getBoundingClientRect();
+  svg.setAttribute('viewBox', '0 0 '+Math.round(hr.width)+' '+Math.round(hr.height));
+  const at = id => { const el = host.querySelector('.pnode[data-id="'+id+'"]'); if(!el) return null;
+    const r = el.getBoundingClientRect();
+    return { el, dr:el.closest('.drawer'), cx:r.left - hr.left + r.width/2, t:r.top - hr.top,
+             l:r.left - hr.left, my:r.top - hr.top + r.height/2 }; };
+  /* Filed BY counterparty, the same-counterparty tie is the drawer itself, so
+     drawing it would be that one fact printed twice. Under every other filing
+     it is news and it is drawn. A link inside one drawer is drawn too, bowed
+     out to the left where there is nothing to cover. */
+  const skipParty = state.group === 'cp';
+  const out = [];
+  LINKS.forEach(l=>{
+    if(skipParty && l.kind==='party') return;
+    const a = at(l.from), b = at(l.to); if(!a || !b) return;
+    const on = state.sel && (l.from===state.sel || l.to===state.sel);
+    const cls = 'lk lk-'+l.kind+(state.sel ? (on?' hi':' dim') : '');
+    const op = state.sel ? (on?1:0.14) : 0.62;
+    const d = a.dr === b.dr
+      ? 'M'+a.l+','+a.my+' Q'+(Math.min(a.l,b.l)-22)+','+((a.my+b.my)/2)+' '+b.l+','+b.my
+      : 'M'+a.cx+','+a.t+' Q'+((a.cx+b.cx)/2)+','+(Math.min(a.t,b.t) - Math.min(120, 30 + Math.abs(a.cx-b.cx)*0.28))+' '+b.cx+','+b.t;
+    out.push('<path class="'+cls+'" opacity="'+op+'" marker-end="url(#ah-'+l.kind+')" d="'+d+'"/>');
+  });
+  svg.innerHTML = '<defs>'+MARKERS+'</defs>' + out.join('');
+}
+window.addEventListener('resize', ()=>{ if(state.view==='cabinet') cabLinks(); });
+
+/* =======================================================================
+   THE DETAIL RAIL — the one thing worth keeping from the old graph
+   ======================================================================= */
+function railContract(c){
+  const f = forceOf(c), deps = dependents(c), ties = linkedTo(c.id), off = offCount(c);
+  const kv = (k,v,cls) => '<div class="kv"><span>'+k+'</span><b'+(cls?' style="color:var(--'+cls+')"':'')+'>'+v+'</b></div>';
+  let h = '<div class="rail-h"><span class="lbl">'+esc(c.id)+'</span><b>'+esc(c.name)+'</b></div><div class="rail-b">';
+  h += '<div class="rail-sec">'+kv('Counterparty', esc(c.cp)) + kv('Value stream', STREAMS[c.stream].short) +
+    kv('On paper', monetary(c) ? (hasRate(c) ? money(homeValue(c)) : c.cur+' '+fmtM(c.value)+' · no rate') : 'No money passes',
+       monetary(c)&&!hasRate(c) ? 'amber':'') + kv('Status', c.status) + '</div>';
+  h += '<div class="rail-sec"><span class="lbl">The clock</span>';
+  h += f.kind==='none'
+    ? '<div class="empty" style="margin-top:5px">No expiry recorded. It sits on the outer ring, named rather than dropped.</div>'
+    : kv(f.kind==='notice' ? 'Last day to serve notice' : 'Ends', dateWord(f.at), f.days!=null && f.days<90 ? 'amber':'') +
+      kv('That is', dayWord(f.days), f.days!=null && f.days<0 ? 'ruby':'') +
+      (f.kind==='notice' ? kv('Then it ends', dateWord(c.expiry)) : '');
+  h += '</div><div class="rail-sec"><span class="lbl">Against your standard</span>';
+  h += off ? kv('Terms against you', off+' of '+STD.length, 'ruby')
+     : unreadCount(c) ? '<div class="empty" style="margin-top:5px">Not read closely enough to say.</div>'
+     : kv('Terms against you','none','good');
+  if(c.late) h += kv('Late promises', c.late, 'ruby');
+  h += '</div><div class="rail-sec"><span class="lbl">What it is tied to</span>';
+  h += ties.length
+    ? ties.map(t=>'<div class="kv"><span>'+LINK_WORD[t.kind]+'</span><b style="max-width:148px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+
+        esc(byId(t.other).id+' · '+byId(t.other).cp)+'</b></div>').join('')
+    : '<div class="empty" style="margin-top:5px">Nothing on the record ties this to another agreement.</div>';
+  h += '</div><div class="rail-sec"><span class="lbl">If this ends</span>';
+  h += deps.length
+    ? '<div class="empty" style="margin-top:5px">'+deps.length+' other '+(deps.length===1?'agreement moves':'agreements move')+' with it.</div>'+
+      deps.map(d=>'<div class="kv"><span>'+esc(d.c.id)+'</span><b style="max-width:148px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+
+        esc(d.c.name)+'</b></div>').join('')
+    : '<div class="empty" style="margin-top:5px">Nothing on file depends on this one.</div>';
+  h += '</div></div>';
+  if(state.view==='dial') h += '<button type="button" class="door" id="r-centre">Centre the dial on this<em>'+ties.length+' tied</em></button>';
+  h += '<button type="button" class="door">Open the contract<em>Overview</em></button>';
+  h += '<button type="button" class="door">Open the negotiation<em>Redlines</em></button>';
+  return h;
+}
+function railEmpty(){
+  const t = {
+    dial:['Pick a sheet','Every sheet is one agreement. How far it sits from the middle is the day it next forces a decision; the sector is its value stream. Pick one and the lines it touches light up.'],
+    lattice:['Pick a sheet','The column is how far down a chain an agreement sits. Arrows point at what it stands on. Pick one to light its whole family.'],
+    cabinet:['Pick a sheet','Each drawer is one group. Change what the drawers are with the control above. A link that crosses drawers arcs over the top; one inside a drawer bows out to its left.']
+  }[state.view];
+  return '<div class="rail-h"><span class="lbl">Detail</span><b>'+t[0]+'</b></div><div class="rail-b"><div class="empty">'+t[1]+'</div></div>';
+}
+</script>
+<script>
+/* ======================= the page ======================= */
+const META = {
+  dial:    { t:'The Dial',    s:'The whole book on one face. Rings are time, sectors are value streams, links arc across the middle.' },
+  lattice: { t:'The Lattice', s:'What stands on what. Columns are dependency depth, so a master sits left and everything hanging off it steps right.' },
+  cabinet: { t:'The Cabinet', s:'Your book filed the way you ask. Every group is a drawer, and the record’s own links arc between them.' }
+};
+function facts(){
+  if(state.view==='lattice'){
+    const M = latticeModel();
+    return [['Families and chains', M.clusters.length], ['In a family or chain', C.length - M.alone.length], ['Deepest chain', Math.max(...M.clusters.map(c=>c.maxDepth)) + 1]];
+  }
+  if(state.view==='cabinet'){
+    const map = {}; C.forEach(c=>{ (map[groupOf(c,state.group)] || (map[groupOf(c,state.group)] = [])).push(c); });
+    return [['Drawers', Object.keys(map).length], ['Agreements', C.length], ['Links drawn', LINKS.filter(l=>state.group!=='cp'||l.kind!=='party').length]];
+  }
+  const f = C.map(forceOf);
+  return [['Within 90 days', f.filter(x=>x.days!=null && x.days>=0 && x.days<=90).length],
+          ['Links on the record', LINKS.length],
+          ['No date recorded', f.filter(x=>x.days==null).length]];
+}
+function render(){
+  document.querySelectorAll('.pick button').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.view===state.view)));
+  $('#crumb').textContent = META[state.view].t;
+  $('#ptitle').textContent = META[state.view].t;
+  $('#psub').textContent = META[state.view].s;
+  $('#bookline').textContent = C.length + ' live contracts · sample data';
+  $('#pfacts').innerHTML = facts().map(([k,v])=>'<div class="fact"><span class="lbl">'+k+'</span><span class="v">'+v+'</span></div>').join('');
+  hoverHide();
+  if(state.view==='dial') renderDial();
+  else if(state.view==='lattice') renderLattice();
+  else renderCabinet();
+  $('#rail').innerHTML = state.sel ? railContract(byId(state.sel)) : railEmpty();
+  const ct = document.getElementById('r-centre');
+  if(ct) ct.addEventListener('click', ()=>{ state.centre = state.sel; render(); });
+  $('#rail').querySelectorAll('.door:not(#r-centre)').forEach(d=>d.addEventListener('click',()=>{
+    d.querySelector('em').textContent = 'inert in this prototype'; }));
+}
+document.querySelectorAll('.pick button').forEach(b=>b.addEventListener('click',()=>{
+  state.view = b.dataset.view; state.centre = null; render();
+  document.querySelector('.screen').scrollIntoView({ behavior:'smooth', block:'start' });
+}));
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{
+  if(b.id !== 'tab-atlas') return;
+  document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-selected', String(x===b)));
+}));
+render();
+</script>
