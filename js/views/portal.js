@@ -325,10 +325,17 @@ function portalVerbStyle(){
        pt-more and pt-bell — every button that wears this class — because a row
        where three lose the tint and one keeps it is the report coming straight
        back. */
-    .ui-btn.pt-verb{color:var(--accent-ink);background:transparent;
-      border-color:color-mix(in srgb,var(--accent-solid) 45%,transparent);}
-    .ui-btn.pt-verb:hover{background:color-mix(in srgb,var(--accent-solid) 10%,transparent);
+    .ui-btn.pt-verb{color:var(--color-text);background:var(--color-surface);
+      border-color:var(--btn-edge);}
+    .ui-btn.pt-verb:hover{background:color-mix(in srgb,var(--accent-solid) 8%,var(--color-surface));
       border-color:var(--accent-solid);}
+    /* SINCE THE REDESIGN (21 Sep 2026) THE ROW WEARS ONE FACE: every .ui-btn is
+       the white face with the hairline edge and the page ink, so the reading
+       controls, the bell, More and the deal verbs beside them are one set of
+       controls again. The note above is kept because its RELATION still
+       holds — nothing here is louder than the acts — only the clothes moved
+       with the rest of the product; counterparty-reading-and-more-verify 1c
+       measures the row as a relation against the deal verbs. */
     .ui-btn.pt-verb svg{flex:none;}`;
   document.head.appendChild(el);
 }

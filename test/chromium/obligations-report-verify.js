@@ -137,6 +137,7 @@ const apart = (a, b) => { const x = rgb(a), y = rgb(b);
       live: (document.querySelector('[data-ig-tab="obligations"]') || {}).style
         ? getComputedStyle(document.querySelector('[data-ig-tab="obligations"]')).fontWeight : null,
       tab: window.intel && intel.tab,
+      strong: getComputedStyle(document.documentElement).getPropertyValue('--w-strong').trim(),
     }));
     /* THE EXACT FAULT THE FIRST BUILD SHIPPED: the press registered, intel.tab
        moved, and renderIntel's own whitelist sent the page back to the frame.
@@ -145,7 +146,10 @@ const apart = (a, b) => { const x = rgb(a), y = rgb(b);
     check('1d · pressing it draws the report', landed.body, JSON.stringify(landed));
     check('1e · and the other two surfaces have left the screen',
       !landed.friction && !landed.frame);
-    check('1f · the live tab is bold', String(landed.live) === '700', landed.live);
+    /* RE-POINTED 21 Sep 2026: a live tab is at the product's STRONG rung, which
+       the redesign made 600 (--w-strong); read off the root, never typed. */
+    check('1f · the live tab is bold', Number(landed.live) >= Number(landed.strong) && Number(landed.strong) >= 600,
+      `${landed.live} (strong rung ${landed.strong})`);
 
     /* ---- 2 · the page says what it counted ---- */
     const d = await page.evaluate(() => intelObligationsData());

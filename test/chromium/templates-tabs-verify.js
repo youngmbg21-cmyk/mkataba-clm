@@ -154,8 +154,10 @@ const BOX = sel => {
       live.k === tabs.t[0].k && live.k === 'book'
       && box(live.k) && !box(live.k).hidden && box(live.k).h > 200,
       { landed: live.k, box: box(live.k) });
+    /* RE-POINTED 21 Sep 2026: the redesign's strong rung is 600, so "bold" is
+       the RELATION — the live tab is heavier than the resting one. */
     check('1d · the live tab is bold and the resting one is not',
-      Number(live.weight) >= 700 && Number(rest.weight) < 700,
+      Number(live.weight) > Number(rest.weight),
       tabs.t.map(x => x.k + ':' + x.weight + (x.on ? ' (live)' : '')));
     check('1e · no sentence under the title or under the tabs',
       tabs.subs === 0, { subtitles: tabs.subs, title: tabs.title });
@@ -427,6 +429,12 @@ const BOX = sel => {
     const attTxt = await page.evaluate(() =>
       document.getElementById('tpl-ov-attention').textContent.replace(/\s+/g, ' '));
 
+    /* THE LADDER IS READ OFF THE ROOT (21 Sep 2026, the redesign): the card's
+       type is --t-body / --t-card at --w-title, and those moved (14→13, 15→14,
+       700→600). The 25 Aug ask was "one size down", and it still holds as the
+       RELATION — figures one rung above the name — which is what these pin now. */
+    const tok = await page.evaluate(() => { const r = getComputedStyle(document.documentElement);
+      const g = k => r.getPropertyValue(k).trim(); return { card: g('--t-card'), body: g('--t-body'), title: g('--w-title') }; });
     check('6a · every card wears a 3px bar across its whole top, first in the card',
       dm.length > 0 && dm.every(c => c.bar.h === 3 && c.bar.top <= 1 && c.bar.w === c.bar.cw),
       dm.map(c => c.bar));
@@ -434,24 +442,27 @@ const BOX = sel => {
        STREAMS wear a swatch there. A library card carries none, because a bar
        that said nothing on five cards would be a mark for a fact the section
        heading above already carries. */
-    check('6a2 · a stream card wears its stream\u2019s colour and a library card wears none',
+    /* RE-POINTED 21 Sep 2026 (the redesign, LIB_TONE): a library card wears its
+       SHELF's colour now — the reference draws every card with a coloured bar —
+       so the claim is that no card is bare and a stream card is its stream's. */
+    check('6a2 · a stream card wears its stream\u2019s colour and a library card its shelf\u2019s',
       dm.filter(c => /^stream:/.test(c.key)).every(c => c.bar.bg !== 'rgba(0, 0, 0, 0)')
-      && dm.filter(c => !/^stream:/.test(c.key)).every(c => c.bar.bg === 'rgba(0, 0, 0, 0)'),
+      && dm.filter(c => !/^stream:/.test(c.key)).every(c => c.bar.bg !== 'rgba(0, 0, 0, 0)'),
       dm.map(c => c.key + ':' + c.bar.bg));
     /* RE-POINTED: the top-right slot carried the template's STATE as a badge;
        on a category card it carries that category's COUNT, which is the shape
        the owner's picture draws ("Company standard  26"). */
     check('6b · the count sits at the card\u2019s top right, on the name\u2019s own line',
       dm.every(c => c.count && /^\d+$/.test(c.count.txt)
-        && c.count.size === '15px' && c.count.weight === '700'
+        && c.count.size === tok.card && c.count.weight === tok.title
         && c.count.right <= 16 && c.count.aboveName),
       dm[0] && dm[0].count);
     /* THE LADDER, ONE RUNG LOWER (owner-asked 25 Aug 2026: "all the fonts need
        to be reduced by one size and the ones highlighted (numbers) should be
        reduced by 2 sizes"). These are pinned as NUMBERS rather than as
        relations, deliberately: the ask was about the sizes themselves. */
-    check('6c · the name is the card\'s one piece of primary type — 14px/700',
-      dm.every(c => c.nm.size === '14px' && c.nm.weight === '700'), dm[0] && dm[0].nm);
+    check('6c · the name is the card\'s one piece of primary type — --t-body at --w-title',
+      dm.every(c => c.nm.size === tok.body && c.nm.weight === tok.title), dm[0] && { nm: dm[0].nm, tok });
     /* RE-POINTED: there is no meta line under the name any more — the section
        above says whether this is a library or a value stream and the count is
        on the name's own line, so a third line would print one of those twice. */
@@ -463,8 +474,8 @@ const BOX = sel => {
       dm.every(c => c.labels.length === 2 && c.labels.every(l => l.tt === 'none'))
       && /NEEDS ATTENTION|Needs attention/.test(attTxt),
       dm[0] && dm[0].labels.map(l => l.txt + ':' + l.tt));
-    check('6f · both figures are 15px/700 — two rungs — and the count is the primary ink',
-      dm.every(c => c.figs.length === 2 && c.figs.every(f => f.size === '15px' && f.weight === '700'))
+    check('6f · both figures are --t-card at --w-title — one rung above the name — and the count is the primary ink',
+      dm.every(c => c.figs.length === 2 && c.figs.every(f => f.size === tok.card && f.weight === tok.title))
       && dm.every(c => c.figs[0].color === c.nm.color),
       dm[0] && dm[0].figs);
 

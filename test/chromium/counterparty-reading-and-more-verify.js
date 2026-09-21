@@ -188,17 +188,24 @@ const PAPER = `(() => {
         .map(b => { const c = getComputedStyle(b);
           return { t: (b.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 18),
             bg: c.backgroundColor, bd: c.borderTopColor, bw: c.borderTopWidth }; });
-      return { verbs: read('.pw-id-verb'), deal: read('#pt-nego-foot button') };
+      const res = v => { const p = document.createElement('span'); p.style.color = v; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return c; };
+      return { verbs: read('.pw-id-verb'), deal: read('#pt-nego-foot button'), edge: res('var(--btn-edge)') };
     });
-    const flat = b => b.bg === 'rgba(0, 0, 0, 0)' || /,\s*0\)$/.test(b.bg);
-    check('1c the reading buttons and the bell carry no fill',
-      dress.verbs.length >= 3 && dress.verbs.every(flat),
+    /* RE-POINTED 21 Sep 2026 (the redesign): every .ui-btn is the white face
+       with the hairline edge now, product-wide, so "no fill" stopped being the
+       relation. What the owner asked for — the reading controls must not be
+       LOUDER than the deal verbs beside them — is measured as exactly that:
+       one face across the row, the same face the deal verbs wear, and still
+       an edge, drawn in the product's own button-edge token. */
+    const one = (a, b) => a.bg === b.bg && a.bd === b.bd && a.bw === b.bw;
+    check('1c the reading buttons and the bell wear one face, none louder than another',
+      dress.verbs.length >= 3 && dress.verbs.every(b => one(b, dress.verbs[0])),
       JSON.stringify(dress.verbs));
-    check('1c so they resemble the deal verbs beside them, as asked',
-      dress.deal.length >= 1 && dress.deal.every(flat), JSON.stringify(dress.deal));
-    check('1c but they are still plainly buttons — accent outline, never grey',
-      dress.verbs.every(b => parseFloat(b.bw) > 0 && !/rgb\(2\d\d, 2\d\d, 2\d\d\)/.test(b.bd)),
-      JSON.stringify(dress.verbs.map(b => `${b.t}:${b.bd}`)));
+    check('1c and it is the face the deal verbs beside them wear, as asked',
+      dress.deal.length >= 1 && dress.deal.some(d => one(d, dress.verbs[0])), JSON.stringify(dress.deal));
+    check('1c but they are still plainly buttons — an edge, in the product\'s own button-edge token',
+      dress.verbs.every(b => parseFloat(b.bw) > 0 && b.bd === dress.edge),
+      JSON.stringify(dress.verbs.map(b => `${b.t}:${b.bd}`)) + ' edge ' + dress.edge);
 
     /* ---- 2 & 3. PRESSING ONE CHANGES THE PAPER ----
        The claim that matters. Their document renderer has always honoured the

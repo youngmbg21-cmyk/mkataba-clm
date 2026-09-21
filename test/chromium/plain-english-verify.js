@@ -233,8 +233,11 @@ const withKeys = (entries, heads) => entries.map(e => ({ ...e, key: 'R' + e.i, h
       '1j and every word in it reads at the same size',
       `head ${uniq(rung.head, 'size').join('/')} · slot ${uniq(rung.text, 'size').join('/')}`);
     check(rung.seg.length === 2 && rung.seg.some(x => !x.on) && rung.head.length > 0
-      && rung.seg.filter(x => !x.on).every(x => x.w === rung.head[0].w),
-      '1k the resting half is not bold, exactly like the acts above',
+      && rung.seg.filter(x => !x.on).every(x => Number(x.w) <= Number(rung.head[0].w)),
+      /* RE-POINTED 21 Sep 2026: the acts are .ui-btn at the redesign's label
+         weight (500); the resting half is no heavier than them, and 1l keeps
+         the other half of the ruling — only the lit half is heavier. */
+      '1k the resting half is not bold — no heavier than the acts above',
       `resting ${rung.seg.filter(x => !x.on).map(x => x.w).join('/')} · acts ${rung.head[0] && rung.head[0].w}`);
     check(rung.seg.length === 2 && rung.seg.some(x => x.on) && rung.head.length > 0
       && rung.seg.filter(x => x.on).every(x => Number(x.w) > Number(rung.head[0].w)),

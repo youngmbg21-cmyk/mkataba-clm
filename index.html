@@ -809,17 +809,24 @@
     /* danger / destructive-action tone (used by confirmDialog, delete, decline) */
     --danger:#B3261E; --danger-hover:#8F1E18; --red-tint:rgba(179,38,30,.1);
 
-    /* status palette (wash bg / fg / dot / line for bordered callouts) */
+    /* status palette (wash bg / fg / dot / line for bordered callouts).
+       THE AMBER AND GREEN INKS ARE ONE STEP DARKER THAN THE REFERENCE DREW THEM
+       (21 Sep 2026): the reference paired #B0560A on #FBEEDB and #1E7D4E on
+       #DFF2E7, and both MEASURE 4.39:1 on their own wash — under the 4.5 the
+       product holds itself to for 13px text (contrast-verify measures the
+       composited pair, and "Your turn — propose changes" tripped it). #A24E07
+       and #1A6F45 are the nearest steps that clear it (5.06 and 5.29) and are
+       still the reference's hues. The washes, dots and lines are untouched. */
     --st-gray-bg:#EEF2F0;  --st-gray-fg:#5A6866;  --st-gray-dot:#8C9895;  --st-gray-line:#CBD3D0;
-    --st-amber-bg:#FBEEDB; --st-amber-fg:#B0560A; --st-amber-dot:#E8A317; --st-amber-line:#EBCB8E;
-    --st-green-bg:#DFF2E7; --st-green-fg:#1E7D4E; --st-green-dot:#2E9E63; --st-green-line:#A9D6BC;
+    --st-amber-bg:#FBEEDB; --st-amber-fg:#A24E07; --st-amber-dot:#E8A317; --st-amber-line:#EBCB8E;
+    --st-green-bg:#DFF2E7; --st-green-fg:#1A6F45; --st-green-dot:#2E9E63; --st-green-line:#A9D6BC;
     --st-ruby-bg:#FBE5E3;  --st-ruby-fg:#B3261E;  --st-ruby-dot:#D9453B;  --st-ruby-line:#ECBAB5;
     --st-steel-bg:#E6ECF6; --st-steel-fg:#48639A; --st-steel-dot:#6F86BF; --st-steel-line:#BFCBE6;
 
     /* tone tiles (icon tiles: tile-bg / tile-fg) */
     --tile-steel-bg:#E6ECF6;   --tile-steel-fg:#48639A;
-    --tile-emerald-bg:#DFF2E7; --tile-emerald-fg:#1E7D4E;
-    --tile-amber-bg:#FBEEDB;   --tile-amber-fg:#B0560A;
+    --tile-emerald-bg:#DFF2E7; --tile-emerald-fg:#1A6F45;
+    --tile-amber-bg:#FBEEDB;   --tile-amber-fg:#A24E07;
     --tile-ruby-bg:#FBE5E3;    --tile-ruby-fg:#B3261E;
 
     /* tone gradients (hero stat cards only) */

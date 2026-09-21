@@ -970,7 +970,12 @@ function renderDashboard(){
      it a stronger signal rather than a weaker one. */
   const HM_ROW_TONES=['var(--color-accent-600)','var(--st-amber-dot)',
     'var(--st-ruby-dot)','var(--st-green-dot)'];
-  const HM_ROW_INKS =['var(--color-accent-700)','var(--st-amber-fg)',
+  /* THE FIRST INK HAS A NIGHT ANSWER (21 Sep 2026): it read accent-700 by
+     name, which the redesign's ramp made #0B4A45 — 1.73:1 on the dark
+     ground, measured by contrast-verify on the Home figure. --accent-ink-700
+     is accent-700 by day and accent-400 at night, the pair the design system
+     already keeps for exactly this; the other three inks have their own. */
+  const HM_ROW_INKS =['var(--accent-ink-700)','var(--st-amber-fg)',
     'var(--st-ruby-fg)','var(--st-green-fg)'];
   const kpiCard=id=>{ const k=KPI_CATALOG[id], t=TONE_OF(k.grad); return `
     <button data-kpi-id="${id}" draggable="true" class="hati-stat" style="position:relative;display:flex;flex-direction:column;gap:7px;align-items:stretch;border:1px solid var(--color-divider);border-top:3px solid ${TONE_EDGE[t]};border-radius:var(--radius);background:var(--color-surface);padding:var(--s-3) 14px;font:inherit;color:inherit;cursor:grab;text-align:left;box-shadow:none;transition:transform var(--dur-2) var(--ease),opacity var(--dur-1);" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">

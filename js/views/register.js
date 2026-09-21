@@ -2432,13 +2432,18 @@ function renderRegister(opts){
 
   /* A DENSITY CHANGE IS A REPAINT, NOT A NAVIGATION: the page, the filters and
      the reader's place are all untouched — only the rows' rhythm moves. */
-  document.querySelectorAll('[data-reg-density]').forEach(b=>b.addEventListener('click',()=>{
+  /* BUTTON, BY TAG — the table itself carries data-reg-density (its density
+     mode, read by the row rules), so a bare attribute selector bound this
+     listener on the TABLE too and every row press repainted the register over
+     the page the row had just opened (the negotiate page drew, then the list
+     came back over it — negotiations-door-verify caught it, 21 Sep 2026). */
+  document.querySelectorAll('button[data-reg-density]').forEach(b=>b.addEventListener('click',()=>{
     if(regSetDensity(b.getAttribute('data-reg-density'))) regRepaint();
   }));
   /* A SHAPE CHANGE IS A REPAINT, NOT A NAVIGATION, like the density: filters
      and place untouched. In board mode the queue's own wiring arms the cards
      (a press opens the workspace) and the per-column "N more" doors. */
-  document.querySelectorAll('[data-reg-mode]').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('button[data-reg-mode]').forEach(b=>b.addEventListener('click',()=>{
     regSetMode(b.getAttribute('data-reg-mode')); regRepaint();
   }));
   if(regMode()==='board'&&typeof wirePipeline==='function') wirePipeline();
@@ -2463,7 +2468,7 @@ function renderRegister(opts){
   document.getElementById('reg-hold')?.addEventListener('change',e=>{ R.hold=e.target.value; R.page=1; regRepaint(); });
   document.getElementById('reg-stage-sel')?.addEventListener('change',e=>{ R.stage=e.target.value; R.page=1; regRepaint(); });
   document.getElementById('reg-type-sel')?.addEventListener('change',e=>{ R.type=e.target.value; R.page=1; regRepaint(); });
-  document.querySelectorAll('[data-reg-view]').forEach(b=>b.addEventListener('click',()=>{ R.view=b.getAttribute('data-reg-view')||null; R.page=1; regRepaint(); }));
+  document.querySelectorAll('button[data-reg-view]').forEach(b=>b.addEventListener('click',()=>{ R.view=b.getAttribute('data-reg-view')||null; R.page=1; regRepaint(); }));
   document.getElementById('reg-only-clear')?.addEventListener('click',()=>{ R.only=null; R.page=1; regRepaint(); });
   wireRegClear();
 

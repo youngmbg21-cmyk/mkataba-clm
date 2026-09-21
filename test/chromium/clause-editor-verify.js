@@ -3079,6 +3079,7 @@ const dismissNote = async pg => {
       sep: sep ? box(sep) : null,
       icon: svg ? box(svg) : null,
       face: btn ? getComputedStyle(btn).fontSize : '',
+      card: getComputedStyle(document.documentElement).getPropertyValue('--t-card').trim(),
       docScale: btn ? getComputedStyle(btn).getPropertyValue('--doc-scale') : 'x',
       n: document.querySelectorAll('#clause-editor .rb-btn').length,
     };
@@ -3093,8 +3094,10 @@ const dismissNote = async pg => {
      bar.icon && bar.icon.w === 18, JSON.stringify(bar.icon));
   ck('26f and it kept its ratio rather than being stretched to a square',
      bar.icon && bar.icon.h > 0 && bar.icon.h <= 18, JSON.stringify(bar.icon));
-  ck('26g the face is 15px — the ladder rung nearest 13 × 1.2, never a fraction',
-     bar.face === '15px', bar.face);
+  /* RE-POINTED 21 Sep 2026: the face is --t-card (15 when this was written, 14
+     since the redesign's ladder moved) — read off the root, never a fraction. */
+  ck('26g the face is the card rung — --t-card, never a fraction',
+     bar.face === bar.card && /^\d+px$/.test(bar.face), bar.face + ' (--t-card ' + bar.card + ')');
 
   /* A NESTED BULLET, FILED, AND THEN READ BACK OFF THE PAPER. Typed into the
      box as the markup a browser's own indent produces, so what is measured is

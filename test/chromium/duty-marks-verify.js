@@ -178,6 +178,10 @@ const drive = async (page, fn, arg, fallback) => {
         lblTransform: ls ? ls.textTransform : null,
         hit: !!mid && !!mid.closest && !!mid.closest('[data-doc-read-duty]'),
         ring: !!btn.querySelector('.dr-ring'),
+        /* the platform corner, RESOLVED off the root rather than typed (1c2) */
+        radiusTok: getComputedStyle(document.documentElement).getPropertyValue('--radius').trim(),
+        /* the tick's fill token, resolved by DAY — 10c reads it again at night */
+        amberTok: (() => { const res = v => { const p = document.createElement('span'); p.style.color = v; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return c; }; return res('var(--st-amber-dot)'); })(),
         tick: (() => { const t = btn.querySelector('.dr-tick'); if (!t) return null;
           const ts = getComputedStyle(t), tr = t.getBoundingClientRect();
           const sv = t.querySelector('svg'); const u = sv && sv.querySelector('use');
@@ -209,11 +213,14 @@ const drive = async (page, fn, arg, fallback) => {
       sw.err || `switch ${sw.size}/${sw.weight} ${sw.spacing} ${sw.transform}`
         + ` · label ${sw.lblSize}/${sw.lblWeight} ${sw.lblSpacing} ${sw.lblTransform}`
         + ` · bg=${sw.bg} border=${sw.border}`);
+    /* RE-POINTED 21 Sep 2026 (the redesign): "square" here means the PLATFORM's
+       corner, which is --radius — 2px when this was written, 4px since DECIDE 3.
+       Resolved off the root, so the next retune is a decision and not a test edit. */
     check('1c2 the box is a SQUARE with the product\'s own check in it',
       !sw.err && !!sw.tick && !sw.ring && sw.tick.w === sw.tick.h
-        && sw.tick.radius === '2px' && sw.tick.svg === true
+        && sw.tick.radius === sw.radiusTok && sw.tick.svg === true
         && /#i-check$/.test(String(sw.tick.href)),
-      sw.err || (sw.tick ? `${sw.tick.w}x${sw.tick.h} r=${sw.tick.radius} use=${sw.tick.href}`
+      sw.err || (sw.tick ? `${sw.tick.w}x${sw.tick.h} r=${sw.tick.radius} (--radius ${sw.radiusTok}) use=${sw.tick.href}`
         : 'no .dr-tick') + (sw.ring ? ' · a .dr-ring is still drawn' : ''));
     check('1c3 and the check is INVISIBLE until it is pressed',
       !sw.err && !!sw.tick && sw.tick.ink === 'rgba(0, 0, 0, 0)'
@@ -536,13 +543,19 @@ const drive = async (page, fn, arg, fallback) => {
       const cs = getComputedStyle(t), r = t.getBoundingClientRect();
       const hit = document.elementFromPoint(Math.round(r.x + r.width / 2),
         Math.round(r.y + r.height / 2));
-      return { bg: cs.backgroundColor, ink: cs.color,
+      const res = v => { const p = document.createElement('span'); p.style.color = v; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return c; };
+      return { bg: cs.backgroundColor, ink: cs.color, tok: res('var(--st-amber-dot)'),
         hit: !!hit && !!hit.closest && !!hit.closest('.dr-tick') };
     }, undefined, { err: 'blocked' });
+    /* RE-POINTED 21 Sep 2026: "no second answer" is measured as exactly that —
+       the pressed fill is --st-amber-dot as resolved at NIGHT, and that is the
+       same colour the token resolved to by DAY (read in section 1). The token
+       moved hex with the redesign; the claim never named a number. The ink
+       stays the literal, for the reason the note above gives. */
     check('10c the tick-box reads in the dark too, with no second answer',
-      !darkTick.err && darkTick.bg === 'rgb(245, 158, 11)'
+      !darkTick.err && darkTick.bg === darkTick.tok && darkTick.tok === sw.amberTok
         && darkTick.ink === 'rgb(42, 27, 4)' && darkTick.hit === true,
-      darkTick.err || `${darkTick.bg} / ${darkTick.ink} · hit ${darkTick.hit}`);
+      darkTick.err || `${darkTick.bg} (token by night ${darkTick.tok}, by day ${sw.amberTok}) / ${darkTick.ink} · hit ${darkTick.hit}`);
     await page.screenshot({ path: path.join(OUT, '04-dark.png') });
     await drive(page, () => { setDark(false); }, undefined, null);
 

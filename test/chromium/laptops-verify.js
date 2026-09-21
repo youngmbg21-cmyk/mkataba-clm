@@ -173,10 +173,13 @@ const PROBE = () => {
         reachable: !last || Math.round(last.getBoundingClientRect().bottom)
           <= Math.round(sc.getBoundingClientRect().top) + sc.scrollHeight + 2,
         tiles: document.querySelectorAll('.hm-tile').length,
+        kpiMax: window.KPI_MAX,
       };
     });
     check(`${L.name}: the dashboard never scrolls sideways and nothing is cut off`,
-      fill && !fill.sideways && fill.reachable && fill.tiles === 8,
+      /* RE-POINTED 21 Sep 2026 (DECIDE 2): the Portfolio row joined the picker,
+         so the page draws KPI_MAX tiles, not eight. */
+      fill && !fill.sideways && fill.reachable && fill.tiles === fill.kpiMax,
       fill ? `sideways ${fill.sideways} · reachable ${fill.reachable} · ${fill.tiles} tiles` : 'no page');
     /* And the change list has room for a change. */
     await page.evaluate(() => window.openWorkspace(window.state.contracts[0].id));

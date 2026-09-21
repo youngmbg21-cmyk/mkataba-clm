@@ -92,8 +92,12 @@ for (let i = 1; i <= 12; i++)
       return out;
     });
     const heights = [...new Set(cards.map(c => c.h))];
+    /* RE-POINTED 21 Sep 2026 (DECIDE 2): the Portfolio row's four tiles joined
+       the picker, so Home draws the KPI_MAX tiles the reader chose and no second
+       row. The claim — every tile one height — is unchanged. */
+    const kpiMax = await page.evaluate(() => window.KPI_MAX);
     check('3a every card on Home is the same height, top row and bottom',
-      heights.length === 1 && cards.length === 8,
+      heights.length === 1 && cards.length === kpiMax,
       `${cards.length} cards, heights: ${heights.join(', ')}`);
     check('3b the spacer that became the hole is gone from every card',
       cards.every(c => !c.spacer), `spacer found on ${cards.filter(c => c.spacer).length}`);

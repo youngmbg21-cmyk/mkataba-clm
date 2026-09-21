@@ -930,6 +930,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     return {
       insPanel: insP && { fw: insP.fontWeight, bb: parseFloat(insP.borderBottomWidth),
         td: insP.textDecorationLine, col: insP.color },
+      inks: (() => { const res = v => { const p = document.createElement('span'); p.style.color = v; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return c; }; return { amber: res('var(--st-amber-fg)'), green: res('var(--st-green-fg)') }; })(),
       insDoc: insDoc && { fw: insDoc.fontWeight, bb: parseFloat(insDoc.borderBottomWidth),
         td: insDoc.textDecorationLine },
       actsUnderStands: !!(stands && acts) && acts.top >= stands.bottom,
@@ -944,8 +945,10 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      line says what. Still no bold and no rule. The staged ask is theirs. */
   ck('9a the panel\'s additions wear the author\'s colour, underlined — no bold, no rule',
      !!look.insPanel && look.insPanel.fw === '400' && look.insPanel.bb === 0
-     && look.insPanel.td === 'underline' && /rgb\(180, 83, 9\)|rgb\(4, 120, 87\)/.test(look.insPanel.col),
-     JSON.stringify(look.insPanel));
+     /* RE-POINTED 21 Sep 2026: the author's colour is the amber or the green
+        TOKEN, resolved — the redesign moved both hexes. */
+     && look.insPanel.td === 'underline' && [look.inks.amber, look.inks.green].includes(look.insPanel.col),
+     JSON.stringify(look.insPanel) + ' inks ' + JSON.stringify(look.inks));
   /* ---- 9b REVERSED IN PLACE, 16 Aug 2026 ---- this proved the paper KEPT the
      bold-and-underlined convention while only the panel went plain. The owner
      reported it a second time, pointing at the paper, so the rule moved to the

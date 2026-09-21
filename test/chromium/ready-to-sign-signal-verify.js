@@ -56,8 +56,10 @@ const check = (name, pass, detail) => {
    the header bell, which is an icon with a count badge — so the badge is what
    carries the tone and the DOT tokens are what it wears. Same two facts, read
    off the surface that states them now. */
-const GREEN_BG = 'rgb(16, 185, 129)';    /* --st-green-dot */
-const AMBER_BG = 'rgb(245, 158, 11)';    /* --st-amber-dot */
+/* RE-POINTED 21 Sep 2026: both dots are RESOLVED off the page once it is up —
+   the redesign moved the hexes and the claim never named a number. */
+let GREEN_BG = null;    /* --st-green-dot */
+let AMBER_BG = null;    /* --st-amber-dot */
 
 (async () => {
   const h = await startHati();
@@ -169,6 +171,8 @@ const AMBER_BG = 'rgb(245, 158, 11)';    /* --st-amber-dot */
        THE COLOUR IS READ OFF THE DOT rather than the button: the header bell is
        an icon with a count badge, so the badge is what carries the tone, while
        the blink plays on the button around it. */
+    ({ GREEN_BG, AMBER_BG } = await page.evaluate(() => { const res = v => { const p = document.createElement('span'); p.style.color = v; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return c; };
+      return { GREEN_BG: res('var(--st-green-dot)'), AMBER_BG: res('var(--st-amber-dot)') }; }));
     let bell = await page.evaluate(() => {
       const b = document.getElementById('hdr-notify');
       if (!b) return null;

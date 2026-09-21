@@ -435,7 +435,8 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
     return { rows: rows.length, v4: verbs(r4), v5: verbs(r5),
       track4: r4 && r4.querySelector('.rl-card-track') ? r4.querySelector('.rl-card-track').textContent.replace(/\s+/g, ' ').trim() : null,
       bands: [...document.querySelectorAll('#rl-changes .rl-band span:first-child')].map(b => b.textContent.trim()),
-      awaitingInk: (() => { const b = document.querySelector('#rl-changes .rl-band[data-rl-band="awaiting"]'); return b ? getComputedStyle(b).color : null; })() };
+      awaitingInk: (() => { const b = document.querySelector('#rl-changes .rl-band[data-rl-band="awaiting"]'); return b ? getComputedStyle(b).color : null; })(),
+      amberTok: (() => { const res = v => { const p = document.createElement('span'); p.style.color = v; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return c; }; return res('var(--st-amber-fg)'); })() };
   }, { c4: staged.c4, c5: staged.c5 });
   check('18a one row per argument — the parked asks fold under the counter', col18.rows === 2, 'rows ' + col18.rows);
   check('18b their live ask offers Accept · Reject · Counter · Ladder on its face', !!col18.v5 && /Accept/.test(col18.v5[0]) && /Reject/.test(col18.v5[1]) && /Counter/.test(col18.v5[2]) && col18.v5.some(v => /Ladder/.test(v)), JSON.stringify(col18.v5));
@@ -469,7 +470,9 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
     && d18.discard !== d18.send, d18.discard + ' vs send ' + d18.send);
   check('18d the argued figure is a track under the row', !!col18.track4 && /R0 12/.test(col18.track4) && /R3 18/.test(col18.track4), col18.track4);
   check('18e the piles carry the artifact\'s names', col18.bands.some(b => /not yet sent/i.test(b)) && col18.bands.some(b => /Awaiting you/i.test(b)), col18.bands.join(' · '));
-  check('18f the pile that needs the reader is amber', !!col18.awaitingInk && col18.awaitingInk !== 'rgb(0, 0, 0)' && /rgb\(180, 83, 9\)|rgb\(251, 191, 36\)/.test(col18.awaitingInk), col18.awaitingInk);
+  /* RE-POINTED 21 Sep 2026: amber is --st-amber-fg, RESOLVED — the redesign moved
+     the hex, and the claim is the tone, not a number. */
+  check('18f the pile that needs the reader is amber', !!col18.awaitingInk && col18.awaitingInk !== 'rgb(0, 0, 0)' && col18.awaitingInk === col18.amberTok, col18.awaitingInk + ' (amber ' + col18.amberTok + ')');
   /* THE PANEL COVERS THE COLUMN while it is open, so it is shut first and
      the press is dispatched in the page, as this file's other presses are. */
   await page.evaluate(id => { rlCpSetShown(document, null); const b = document.querySelector(`#rl-changes .rl-card-face [data-rl-ladder="${CSS.escape(id)}"]`); b && b.click(); }, staged.c4); await pause(400);
