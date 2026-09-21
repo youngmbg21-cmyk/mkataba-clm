@@ -3612,6 +3612,43 @@
     border-left:3px solid var(--st-amber-dot); border-radius:var(--radius);
     margin:-4px -6px; padding:4px 6px; }
   .sec-f:has(.sec-f-n.is-hold) .sec-f-l{ color:var(--st-amber-fg); }
+  /* ---- WHO IS ON THIS CONTRACT (Young ruled 21 Sep 2026) ----
+     One set of clothes for both doors — the drafting screen and the
+     Overview draw the same rows, so a rule here reaches both. The sentence
+     under a row says what the role fills in; it is part of the row, which is
+     why it is a track of the row's own grid rather than a line beside it. */
+  .na-people{ margin-top:14px; padding-top:12px; border-top:1px solid var(--color-divider); }
+  .na-people > summary{ cursor:pointer; font-size:var(--t-label); font-weight:var(--w-label);
+    color:var(--color-text); list-style:none; }
+  .na-people > summary::-webkit-details-marker{ display:none; }
+  .na-people > summary::before{ content:'\203A'; display:inline-block; width:12px;
+    color:var(--color-neutral-500); transition:transform var(--dur-1) ease; }
+  .na-people[open] > summary::before{ transform:rotate(90deg); }
+  .na-people-n{ color:var(--color-neutral-500); font-weight:var(--w-body); }
+  .na-people-s{ margin:6px 0 10px; font-size:var(--t-label); color:var(--color-neutral-600); }
+  .pt-list{ display:flex; flex-direction:column; gap:6px; }
+  .pt-row{ display:grid; gap:4px 8px; align-items:center;
+    grid-template-columns:minmax(0,1.1fr) minmax(0,1.3fr) minmax(0,1fr) minmax(0,1fr) 26px; }
+  .pt-list.has-reached .pt-row{ grid-template-columns:minmax(0,1.1fr) minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr) auto 26px; }
+  .pt-row .pt-c{ min-width:0; }
+  .pt-head{ font-size:var(--t-micro); font-weight:var(--w-body); letter-spacing:.09em;
+    text-transform:uppercase; color:var(--color-neutral-600); }
+  .pt-says{ grid-column:1/-1; font-size:var(--t-label); line-height:1.4;
+    color:var(--color-neutral-500); }
+  .pt-warn{ color:var(--st-amber-fg); }
+  .pt-row.is-blocked{ background:var(--st-amber-bg); border-left:3px solid var(--st-amber-dot);
+    border-radius:var(--radius); margin:0 -6px; padding:4px 6px; }
+  .pt-reached{ font-size:var(--t-label); color:var(--color-neutral-600); white-space:nowrap; }
+  .pt-x button{ width:26px; height:26px; display:grid; place-items:center; cursor:pointer;
+    background:var(--color-surface); border:1px solid var(--rule-strong,#CBD3D0);
+    border-radius:var(--radius); color:var(--color-neutral-600); font-size:15px; line-height:1; }
+  .pt-x button:hover{ color:var(--danger); }
+  .pt-none{ margin:0; font-size:var(--t-meta); color:var(--color-neutral-500); }
+  .pt-acts{ display:flex; gap:8px; padding-top:2px; }
+  @media (max-width:760px){
+    .pt-row, .pt-list.has-reached .pt-row{ grid-template-columns:minmax(0,1fr) 26px; }
+    .pt-head{ display:none; }
+  }
   .sec-acts{ display:flex; gap:8px; flex-wrap:wrap; padding:0 16px 13px; }
   .sec-foot{ margin:0; padding:0 16px 13px; font-size:var(--t-label);
     color:var(--color-neutral-600); }

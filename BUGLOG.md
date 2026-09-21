@@ -18375,3 +18375,16 @@ This reverses the same morning's ruling that made the brief the first button on 
 Found while building:
 - Asking "is the brief current" as stale === false meant the new rule never applied to a contract nobody had proposed wording on - staleness answers "we do not know" there, and on that contract the brief IS current. Fixed by asking stale !== true, with the read key itself as the guard against trapping a signature.
 - The card's button and the row disagreed about whether a brief stands, so the card offered to WRITE a brief that was already on the screen. One reading, two askers.
+
+## 21 Sep 2026 — who is on this contract: the people, their roles and what each may see
+
+Young: "before you create the draft you should have the option to add the other participants ... Should you choose to skip this, there should be another door in the contract page." And: "narrow only."
+
+Built as a record, not a second permissions system: naming somebody cannot widen what HaTi already lets them open, and the row says so where it cannot reach them.
+
+Found while building:
+- Filtering blank rows out of the reading made "Add someone" do nothing at all - the row was minted and then hidden by the reading that drew it.
+- Hanging the "drop what was held" on Cancel and the close button left people held after an Escape, for the next contract minted anywhere in the product to claim. The screen's own disappearance is the one signal every way out shares.
+- Fourteen new keys collided with payment terms' own pt_ namespace; renamed to ppl_.
+
+Not built, and said to the owner: a role that names an approval step or a desk seat is RECORDED and printed, but does not yet feed the approval chain or claim a desk seat - both are rule-based today. The signing roles do fill the signing order's editor when it is empty.

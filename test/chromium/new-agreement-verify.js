@@ -133,6 +133,50 @@ const READ = () => {
     check('7b and the paper is drawn, with wording in it', !m.err && m.paper && m.paperText > 40, m.err || `paper ${m.paper}, ${m.paperText} chars`);
     await page.evaluate(() => closeModal());
 
+    /* ═══ 8 · WHO ELSE IS ON THIS AGREEMENT (Young ruled 21 Sep 2026) ═══
+       *"before you create the draft you should have the option to add the
+       other participants."* SHUT BY DEFAULT — it is an offer, not a question
+       — and nothing it collects is written anywhere until a record exists. */
+    await page.evaluate(() => openNewAgreement()); await pause(600);
+    const ppl = await page.evaluate(() => {
+      const d = document.getElementById('na-people');
+      if (!d) return null;
+      const r = d.getBoundingClientRect();
+      return { open: d.hasAttribute('open'), w: Math.round(r.width),
+        sum: ((d.querySelector('summary') || {}).textContent || '').trim().slice(0, 50) };
+    });
+    check('8a the drafting screen offers it', !!ppl && ppl.w > 2,
+      ppl ? ppl.sum : 'not drawn');
+    check('8b shut at rest — it is an offer, not a question', !!ppl && !ppl.open,
+      ppl ? (ppl.open ? 'open' : 'shut') : 'not drawn');
+    const held = await page.evaluate(() => {
+      const d = document.getElementById('na-people');
+      if (d) d.setAttribute('open', '');
+      const b = document.querySelector('#na-people-list [data-pt-add]');
+      if (!b) return { ok: false, why: 'no Add' };
+      b.click();
+      return { ok: true };
+    });
+    await page.waitForTimeout(400);
+    const after8 = await page.evaluate(() => ({
+      rows: document.querySelectorAll('#na-people-list [data-pt-row]').length,
+      held: (window.participantsHeld ? window.participantsHeld() : []).length,
+      roles: !!document.querySelector('#na-people-list [data-pt-f="role"]'),
+      access: !!document.querySelector('#na-people-list [data-pt-f="access"]'),
+      reached: document.querySelectorAll('#na-people-list .pt-reached').length,
+    }));
+    check('8c Add someone adds a row with a role and an access level',
+      held.ok && after8.rows === 1 && after8.roles && after8.access,
+      held.why || JSON.stringify(after8));
+    check('8d and it is HELD, not written — there is no record yet',
+      after8.held === 1, after8.held + ' held');
+    check('8e CONTROL — nothing has reached anybody, so no column claims it',
+      after8.reached === 0, after8.reached + ' reached cells');
+    await page.evaluate(() => closeModal()); await pause(300);
+    check('8f CONTROL — and leaving drops them, nobody was named on anything',
+      await page.evaluate(() => (window.participantsHeld ? window.participantsHeld() : []).length === 0),
+      'held after cancel');
+
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');
   } catch (e) { check('the run finished', false, String((e && e.message) || e)); }
   finally { await browser.close(); if (h.stop) h.stop(); }

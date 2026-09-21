@@ -636,7 +636,17 @@ function openSignerPlanEditor(c, opts){
      the one way forward. A greyed-out form invites the reader to work out which
      control is the one that still does something. */
   if(signingLocked(c)){ openSigningLockedNotice(c, opts); return; }
+  /* ---- THE ANSWER ALREADY IN THE BOX (Young ruled 21 Sep 2026) ----
+     Where somebody has named the people on this contract, an EMPTY plan opens
+     on them rather than on nothing — the same idiom a template's own filing
+     uses on the stream picker. A PLAN THAT EXISTS IS NEVER TOUCHED: somebody
+     arranged it, and an order is a decision. saveSignerPlan below stays the
+     one authority on naming signers; this only fills the form. */
   const plan=(c.signerPlan||[]).slice();
+  if(!plan.length && typeof participantSignerRows==='function'){
+    try{ participantSignerRows(c).forEach(r=>plan.push({ ...r,
+      id:'sg_'+Math.random().toString(36).slice(2,7), order:plan.length+1, signed:false })); }catch(_){}
+  }
   /* ---- IT OPENS ON THE QUESTION IT IS ASKING ----
      "It should ask for the owners and the counterparties that will sign."
      An empty editor asked for neither: it showed one link reading "Add signer"

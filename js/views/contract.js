@@ -5065,6 +5065,22 @@ function renderKeyTerms(c){
      on and lands the caret in the box. TWO PLACES, ONE ACT — the signing list
      presses it and so does this, so they cannot drift about where a field
      lives. The contract is read at PRESS time, never closed over. */
+  /* ---- THE PEOPLE LIST, WIRED WHERE IT IS PAINTED ----
+     participantsWire binds once per element and this host is rewritten on
+     every repaint, so a listener armed anywhere else would be holding a node
+     that is no longer on the page. Every change persists and redraws THIS
+     pane alone — a role changes the sentence under its own row. */
+  const peopleHost=host.querySelector('#kt-people');
+  if(peopleHost && window.participantsWire) participantsWire(peopleHost,c,{
+    onChange:()=>{ c.lastAction=todayStr(); persist(c); },
+    onRemove:(row)=>{ logAudit(c,'Record',`Took ${row.name||row.email||'somebody'} off the contract`); },
+    repaint:()=>renderKeyTerms(c) });
+  /* ONE DOOR ONTO NAMING SIGNERS, AND IT IS THE EDITOR THAT ALREADY OWNS IT.
+     saveSignerPlan stays the one authority; this opens its editor, which now
+     opens on the rows this list can fill where the plan is still empty. */
+  host.querySelector('[data-ov-signers]')?.addEventListener('click',()=>{
+    if(window.openSignerPlanEditor) openSignerPlanEditor(c,{ onDone:()=>renderKeyTerms(c) });
+  });
   host.querySelectorAll('[data-ov-fix]').forEach(b=>b.addEventListener('click',()=>{
     const f=b.getAttribute('data-ov-fix');
     const live=(window.getContract&&getContract(c.id))||c;
@@ -5778,7 +5794,27 @@ function ktOverviewTermsHtml(c,opts={}){
         : '<div id="kt-rows-record"></div>')
       + `<div id="kt-record-facts">${ktRecordFactsHtml(c,{rowsAbove:recEd,marks})}</div>`,
     acts: editBtn(recK,recEd)+moveBtn });
-  return deal+alsoSec+record;
+  /* ---- THE SECOND DOOR ONTO WHO IS ON THIS CONTRACT (Young ruled 21 Sep
+     2026: *"should you choose to skip this, there should be another door in
+     the contract page"*) ----
+     It is the SAME list and the SAME builder as the drafting screen, so the
+     two cannot disagree about what a role means, and it carries one column
+     the drafting screen does not: what has actually reached each person. That
+     column is borrowed — the signing plan and the share cache — and says "not
+     known yet" rather than claiming nothing was sent on a page that has not
+     asked. The one act is the signing order's own editor, drawn only where
+     somebody here has a signing role. */
+  const people=(typeof participantsPanelHtml==='function')?participantsPanelHtml(c,{
+    editable:ed, reached:true }):'';
+  const ppl=(typeof participantsOf==='function')?participantsOf(c):[];
+  const anySigner=(typeof participantSignerRows==='function')&&participantSignerRows(c).length>0;
+  const peopleSec=people?sectionHtml({
+    key:OV_KEY(c,'people'), title:i18t('ppl_title'), open:false,
+    summary: ppl.length?i18tn('ppl_n',ppl.length,{n:ppl.length}):i18t('ppl_none'),
+    body:`<div id="kt-people">${people}</div>`,
+    acts: (ed&&anySigner)?`<button type="button" class="ui-btn" style="font-size:var(--t-label);padding:5px 11px" data-ov-signers="1">${
+      esc(i18t('ppl_open_signers'))}</button>`:'' }):'';
+  return deal+alsoSec+record+peopleSec;
 }
 
 /* ---- RISK: A READ OF THE CHECKS YOU HAVE RUN, NOT A NEW NUMBER ----
@@ -6050,7 +6086,7 @@ function renderKeyTermsSide(c){
      the head says "open" and nothing appears. MEASURED the hour `also` was
      added: its own card reported "1 term" and drew no field at all. */
   if(pane&&window.sectionWire) sectionWire(pane,key=>{
-    if(/\.(deal|record|also)$/.test(key)) renderKeyTerms(c); else renderKeyTermsSide(c); });
+    if(/\.(deal|record|also|people)$/.test(key)) renderKeyTerms(c); else renderKeyTermsSide(c); });
   /* #kt-readdoc's wiring went with the button — see readTermsHtml. */
 }
 

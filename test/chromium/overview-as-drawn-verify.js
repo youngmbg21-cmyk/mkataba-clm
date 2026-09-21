@@ -376,6 +376,62 @@ const SEC = (suffix) => {
     check('10f CONTROL — a draft keeps its old shape to the byte', asDraft === 0,
       asDraft + ' reserved lines');
 
+    /* ═══ 11 · WHO IS ON THIS CONTRACT — THE SECOND DOOR ═══
+       (Young ruled 21 Sep 2026: *"should you choose to skip this, there
+       should be another door in the contract page."*) Driven, because whether
+       a row can be added and whether it says what the role fills in are
+       questions about a rendered, wired panel. */
+    await page.evaluate(() => {
+      const c = window.getContract(window.state.activeId);
+      c.status = 'Under Review'; c.participants = [];
+      window.renderKeyTerms(c);
+    });
+    await page.waitForTimeout(500);
+    const pplHead = await page.evaluate(() => {
+      const h = [...document.querySelectorAll('[data-sec-toggle]')]
+        .find(x => /\.people$/.test(x.getAttribute('data-sec-toggle') || ''));
+      if (!h) return null;
+      if (h.getAttribute('aria-expanded') !== 'true') h.click();
+      return (h.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 60);
+    });
+    await page.waitForTimeout(400);
+    check('11a the contract page has its own door onto the list', !!pplHead,
+      pplHead || 'no section');
+    const added = await page.evaluate(() => {
+      const b = document.querySelector('#kt-people [data-pt-add]');
+      if (!b) return { ok: false, why: 'no Add' };
+      b.click();
+      return { ok: true };
+    });
+    await page.waitForTimeout(500);
+    const row = await page.evaluate(() => {
+      const r = document.querySelector('#kt-people [data-pt-row]');
+      if (!r) return null;
+      const sel = r.querySelector('[data-pt-f="role"]');
+      if (sel){ sel.value = 'cpsign'; sel.dispatchEvent(new Event('change', { bubbles: true })); }
+      return { ok: true };
+    });
+    await page.waitForTimeout(500);
+    const said = await page.evaluate(() => {
+      const r = document.querySelector('#kt-people [data-pt-row]');
+      if (!r) return null;
+      const sel = r.querySelector('[data-pt-f="role"]');
+      return { role: sel ? sel.value : '',
+        says: ((r.querySelector('.pt-says') || {}).textContent || '').trim(),
+        reached: ((r.querySelector('.pt-reached') || {}).textContent || '').trim(),
+        access: !!r.querySelector('[data-pt-f="access"]'),
+        stored: (window.getContract(window.state.activeId).participants || []).length };
+    });
+    check('11b Add someone really adds a row', added.ok && !!said,
+      added.why || (said ? 'one row' : 'no row'));
+    check('11c the row says what that role fills in', !!said && said.says.length > 8,
+      said ? said.role + ' \u2192 ' + said.says : 'nothing');
+    check('11d and what has reached them, which is nothing yet', !!said && !!said.reached,
+      said ? said.reached : 'no column');
+    check('11e access is on the row, and the record holds it',
+      !!said && said.access && said.stored === 1,
+      said ? 'access box ' + said.access + ' \u00b7 ' + said.stored + ' on the record' : 'none');
+
     /* ============ 6. WHAT COPILOT READ IS ONE TABLE OF FIVE ============ */
     await openSec(page, '.copilot');
     const cop = await page.evaluate(SEC, '.copilot');
