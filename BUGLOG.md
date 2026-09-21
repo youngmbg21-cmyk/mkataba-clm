@@ -17741,3 +17741,20 @@ Noticed, not fixed:
 - The 16 Aug ruling that the panel's section headings are "black so they are not missed" is reversed by the artifact's micro-caps labels; the change id keeps the page's ink. Said in CLAUDE.md, not re-argued.
 - Where every figure on the scale coincides (the staged contract), five dots sit on one x; only the last drawn is visible. A real clause rarely does this; nothing hides the fact, but nothing says "five readings here" either.
 - The artifact's Ladder press shows As it stands and On the table above the ladder; HaTi's ladder posture (15 Sep) does not. Left as the owner ruled on 15 Sep; wants the owner's word if the artifact is meant to reverse it.
+
+## 21 Sep 2026 — The Contract Atlas prototype (branch claude/dazzling-bardeen-e66z8l)
+
+Added `prototype/contract-atlas.html`: three reimagined readings of the Insights contract graph
+(The Horizon, The Flow, The Grain), self-contained, sample data, no product file touched.
+
+Noticed, not fixed:
+- FOLDERS' stream palette carries two near-collisions at a glance: `proc` #2E9F80 and `corp`
+  var(--st-green-dot) are both green, `mfg` #B45309 and `sales` var(--st-amber-dot) are both in the
+  orange/gold family. Legible where the name sits beside the swatch (the register, the legends);
+  ambiguous where the colour is the only carrier, which is what a map does.
+- White ink is unreadable on `sales` var(--st-amber-dot) wherever a stream colour is used as a
+  filled background (measured ~2.0:1). The prototype measures the ink off the fill rather than
+  assuming white; no product surface fills with a stream colour today, so nothing is broken yet.
+- The force-directed graph's `layoutGraph`/`makeIntelGraph` place every node by simulation, so
+  position on that view carries no fact. Not a defect against any stated rule — recorded because
+  the Atlas prototype exists to reverse it and the owner has not yet ruled.

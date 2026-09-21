@@ -1,0 +1,964 @@
+<title>The Contract Atlas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#F4F6F5; --surface:#FFFFFF; --surface-2:#EEF2F0; --surface-3:#E6ECEA;
+  --line:#E2E7E5; --line-2:#CBD3D0;
+  --ink:#141F1D; --ink-2:#5A6866; --ink-3:#6B7876; --ink-inv:#FFFFFF;
+  --accent:#0E5F58; --accent-ink:#0B4A45; --accent-soft:#E1F0ED; --accent-line:#9CCFC6; --accent-400:#5EC2B3;
+  --amber:#A24E07; --amber-soft:#FBEEDB; --amber-dot:#E8A317;
+  --ruby:#B3261E; --ruby-soft:#FBE5E3; --ruby-dot:#D9453B;
+  --good:#1A6F45; --good-soft:#DFF2E7; --good-dot:#2E9E63;
+  --steel:#48639A; --steel-soft:#E6ECF6;
+  --paper:#FFFDF9; --paper-line:#E6DFCE; --paper-ink:#1C1A16;
+  --scaffold:#0B1E1C; --scaffold-ink:#C9D9D5; --scaffold-line:#1D3734;
+  --shadow-1:0 1px 2px rgba(10,40,36,.06),0 1px 3px rgba(10,40,36,.04);
+  --shadow-2:0 8px 24px rgba(10,40,36,.10),0 2px 6px rgba(10,40,36,.06);
+  --shadow-3:0 24px 64px rgba(10,40,36,.18),0 4px 12px rgba(10,40,36,.08);
+  --sans:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --r:4px; --r-lg:8px;
+  --t-micro:11px; --t-label:12px; --t-body:13px; --t-md:14px; --t-title:16px; --t-h:20px; --t-figure:26px;
+  --ctl-h:30px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --bg:#0E1312; --surface:#151B1A; --surface-2:#1B2221; --surface-3:#212A28;
+  --line:#26302E; --line-2:#36423F;
+  --ink:#E6ECEA; --ink-2:#A0ACA9; --ink-3:#8B9895; --ink-inv:#0E1312;
+  --accent:#5EC2B3; --accent-ink:#8ADACF; --accent-soft:#12302C; --accent-line:#1F5A52; --accent-400:#5EC2B3;
+  --amber:#EBAD46; --amber-soft:#3A2A0F; --amber-dot:#E8A317;
+  --ruby:#F0857B; --ruby-soft:#3F1C19; --ruby-dot:#D9453B;
+  --good:#5CC48E; --good-soft:#153224; --good-dot:#2E9E63;
+  --steel:#8FA8DE; --steel-soft:#1D2637;
+  --paper:#1B1F1D; --paper-line:#2C3230; --paper-ink:#E8E6DF;
+  --scaffold:#070D0C; --scaffold-ink:#9FB4B0; --scaffold-line:#1A2624;
+  --shadow-1:0 1px 2px rgba(0,0,0,.4); --shadow-2:0 8px 24px rgba(0,0,0,.5); --shadow-3:0 24px 64px rgba(0,0,0,.6);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0E1312; --surface:#151B1A; --surface-2:#1B2221; --surface-3:#212A28;
+  --line:#26302E; --line-2:#36423F;
+  --ink:#E6ECEA; --ink-2:#A0ACA9; --ink-3:#8B9895; --ink-inv:#0E1312;
+  --accent:#5EC2B3; --accent-ink:#8ADACF; --accent-soft:#12302C; --accent-line:#1F5A52; --accent-400:#5EC2B3;
+  --amber:#EBAD46; --amber-soft:#3A2A0F; --amber-dot:#E8A317;
+  --ruby:#F0857B; --ruby-soft:#3F1C19; --ruby-dot:#D9453B;
+  --good:#5CC48E; --good-soft:#153224; --good-dot:#2E9E63;
+  --steel:#8FA8DE; --steel-soft:#1D2637;
+  --paper:#1B1F1D; --paper-line:#2C3230; --paper-ink:#E8E6DF;
+  --scaffold:#070D0C; --scaffold-ink:#9FB4B0; --scaffold-line:#1A2624;
+  --shadow-1:0 1px 2px rgba(0,0,0,.4); --shadow-2:0 8px 24px rgba(0,0,0,.5); --shadow-3:0 24px 64px rgba(0,0,0,.6);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 var(--t-body)/1.55 var(--sans);-webkit-font-smoothing:antialiased;}
+button{font:inherit;color:inherit;cursor:pointer}
+h1,h2,h3,h4{margin:0;font-weight:600;text-wrap:balance}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.lbl{font-size:var(--t-micro);font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-2)}
+
+/* ---------- prototype scaffolding (not part of the product page) ---------- */
+.scaf{background:var(--scaffold);color:var(--scaffold-ink);padding-block:18px 16px;border-bottom:1px solid var(--scaffold-line)}
+.wrap{max-width:1360px;margin:0 auto;padding-inline:16px}
+.scaf h1{color:#fff;font-size:var(--t-h);letter-spacing:-.01em}
+.scaf .tagline{font-size:var(--t-body);max-width:74ch;margin-top:6px;color:var(--scaffold-ink)}
+.scaf-note{font-size:var(--t-micro);letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:#6E8D88}
+.pick{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.pick button{background:transparent;border:1px solid var(--scaffold-line);color:var(--scaffold-ink);border-radius:var(--r);
+  padding:9px 13px;text-align:left;min-width:190px;flex:1 1 190px;transition:border-color .14s,background .14s}
+.pick button:hover{border-color:#2E5B56;background:#0F2724}
+.pick button[aria-pressed="true"]{background:#10322E;border-color:var(--accent-400);color:#fff}
+.pick b{display:block;font-size:var(--t-md);font-weight:600}
+.pick span{display:block;font-size:var(--t-micro);color:#7FA09B;margin-top:2px}
+.pick button[aria-pressed="true"] span{color:#A8CFC8}
+.pick i{font-style:normal;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:#4E706B;display:block}
+
+/* ---------- the mocked product page ---------- */
+.screen{max-width:1360px;margin:20px auto 0;padding-inline:16px}
+.app{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--shadow-2)}
+.appbar{height:44px;display:flex;align-items:center;gap:10px;padding-inline:14px;border-bottom:1px solid var(--line);background:var(--surface)}
+.appbar .crumb{font-size:var(--t-label);color:var(--ink-2)}
+.appbar .crumb b{color:var(--ink);font-weight:600}
+.appbar .spacer{flex:1}
+.dot-s{width:7px;height:7px;border-radius:50%;background:var(--accent);display:inline-block}
+.page{padding:16px}
+.phead{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:12px}
+.phead h2{font-size:var(--t-h);letter-spacing:-.01em}
+.phead .sub{font-size:var(--t-label);color:var(--ink-2);margin-top:3px}
+.phead .facts{margin-left:auto;display:flex;gap:18px;flex-wrap:wrap}
+.fact .lbl{display:block}
+.fact .v{font-family:var(--mono);font-size:var(--t-md);font-weight:600;font-variant-numeric:tabular-nums}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:14px;overflow-x:auto}
+.tabs button{background:none;border:0;padding:9px 12px;font-size:var(--t-body);font-weight:500;color:var(--ink-3);
+  border-bottom:2px solid transparent;white-space:nowrap;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{color:var(--ink);font-weight:600;border-bottom-color:var(--accent)}
+.tabs button:hover{color:var(--ink)}
+
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 296px;gap:16px;align-items:start}
+@media (max-width:1040px){ .layout{grid-template-columns:minmax(0,1fr)} }
+
+.ctl{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.ctl .grow{flex:1;min-width:120px}
+.btn{height:var(--ctl-h);display:inline-flex;align-items:center;gap:6px;padding:0 11px;background:var(--surface);
+  border:1px solid var(--line-2);border-radius:var(--r);font-size:var(--t-label);font-weight:500;color:var(--ink)}
+.btn:hover{background:var(--surface-2)}
+.btn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:var(--r);overflow:hidden;height:var(--ctl-h)}
+.seg button{background:var(--surface);border:0;padding:0 11px;font-size:var(--t-label);color:var(--ink-2);font-weight:500}
+.seg button+button{border-left:1px solid var(--line-2)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff;font-weight:600}
+.note{font-size:var(--t-micro);color:var(--ink-3);line-height:1.5}
+.note b{color:var(--ink-2);font-weight:600}
+
+.canvas{border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);padding:6px;position:relative}
+svg{display:block;width:100%;height:auto;overflow:visible}
+.ax{font-size:10px;font-family:var(--mono);fill:var(--ink-3)}
+.axl{font-size:10px;font-weight:700;letter-spacing:.09em;fill:var(--ink-3)}
+.grid-l{stroke:var(--line);stroke-width:1}
+.grid-d{stroke:var(--line);stroke-width:1;stroke-dasharray:2 4}
+
+/* the page mark: HaTi draws paper, not circles */
+.pm{cursor:pointer}
+.pm .sheet{fill:var(--paper);stroke:var(--paper-line);stroke-width:1}
+.pm .marg{stroke-width:0}
+.pm .ruby{fill:var(--ruby-dot)}
+.pm:hover .sheet,.pm.sel .sheet{stroke:var(--accent);stroke-width:1.5}
+.pm.dim{opacity:.26}
+.pm.lit .sheet{fill:var(--accent-soft)}
+.lead{stroke:var(--amber-dot);stroke-width:1.5;stroke-linecap:round;opacity:.85}
+.scrub{stroke:var(--accent);stroke-width:1.5}
+.scrub-h{fill:var(--accent)}
+
+.legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:9px;font-size:var(--t-micro);color:var(--ink-2)}
+.legend i{font-style:normal;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.legend i[style*='flex-basis']{white-space:normal}
+.key{width:11px;height:13px;background:var(--paper);border:1px solid var(--paper-line);border-left:3px solid var(--accent);display:inline-block;vertical-align:-2px}
+
+.rail{border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);overflow:hidden;position:sticky;top:12px}
+.rail-h{padding:11px 13px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+.rail-h .lbl{display:block;margin-bottom:2px}
+.rail-h b{font-size:var(--t-md);font-weight:600;display:block;line-height:1.35}
+.rail-b{padding:12px 13px}
+.rail-sec+.rail-sec{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:3px 0;font-size:var(--t-label)}
+.kv span{color:var(--ink-3)}
+.kv b{font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:2px 7px;border-radius:var(--r);font-size:var(--t-micro);font-weight:600}
+.c-amber{background:var(--amber-soft);color:var(--amber)}
+.c-ruby{background:var(--ruby-soft);color:var(--ruby)}
+.c-good{background:var(--good-soft);color:var(--good)}
+.c-steel{background:var(--steel-soft);color:var(--steel)}
+.c-gray{background:var(--surface-2);color:var(--ink-2)}
+.door{display:block;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);
+  padding:9px 13px;font-size:var(--t-label);color:var(--accent);font-weight:600}
+.door:hover{background:var(--accent-soft)}
+.door em{font-style:normal;float:right;color:var(--ink-3);font-weight:400}
+.empty{font-size:var(--t-label);color:var(--ink-3);line-height:1.6}
+</style>
+<style>
+/* ---------- The Grain: your playbook across your book ---------- */
+.grain-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface)}
+table.grain{border-collapse:separate;border-spacing:0;width:100%;min-width:900px;table-layout:fixed}
+table.grain th,table.grain td{padding:0;text-align:left}
+table.grain thead th{position:sticky;top:0;background:var(--surface);z-index:2;border-bottom:1px solid var(--line-2);
+  vertical-align:bottom;padding:10px 6px 8px}
+table.grain thead th.rowh{padding-left:12px;width:27%}
+table.grain thead th.mkc{width:8.4%}
+table.grain thead th.offc{width:5.8%}
+.colh{writing-mode:horizontal-tb}
+.colh .n{display:block;font-size:10px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;color:var(--ink-2);line-height:1.25;overflow-wrap:break-word}
+.colh .std{display:block;font-family:var(--mono);font-size:9.5px;color:var(--ink-3);margin-top:3px;line-height:1.3;overflow-wrap:break-word}
+.colh .off{display:block;font-family:var(--mono);font-size:11px;font-weight:600;margin-top:4px;color:var(--ruby)}
+.colh .off.zero{color:var(--ink-3);font-weight:400}
+table.grain tbody tr{border-bottom:1px solid var(--line)}
+table.grain tbody td{border-bottom:1px solid var(--line);height:38px}
+table.grain tbody tr:hover td{background:var(--surface-2)}
+table.grain tbody tr.sel td{background:var(--accent-soft)}
+.rowname{display:flex;align-items:center;gap:9px;padding:0 6px 0 12px;min-width:0}
+.rowname .pmini{width:12px;height:15px;background:var(--paper);border:1px solid var(--paper-line);border-left-width:3px;
+  border-left-style:solid;flex:none;border-radius:0}
+.rowname .txt{min-width:0}
+.rowname .nm{display:block;font-size:var(--t-label);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rowname .cp{display:block;font-size:10px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cell{width:100%;height:38px;background:none;border:0;display:grid;place-items:center;padding:0}
+.mk{width:15px;height:15px;border-radius:2px;display:block}
+/* AT STANDARD IS QUIET, NOT GREEN: green already means better than standard,
+   and one colour carries one meaning. A calm field is what makes the ruby
+   read from across the room. */
+.mk-std{background:var(--surface-3);border:1px solid var(--line-2)}
+.mk-against{background:var(--ruby-dot)}
+.mk-better{background:var(--good-dot)}
+.mk-none{background:transparent;border:1px dashed var(--line-2)}
+.mk-unread{background:repeating-linear-gradient(135deg,transparent 0 3px,var(--line) 3px 4px);border:1px solid var(--line)}
+.cell:hover .mk{outline:2px solid var(--accent);outline-offset:2px}
+.offn{font-family:var(--mono);font-size:11px;font-weight:600;padding-right:12px;text-align:right;color:var(--ruby)}
+.offn.zero{color:var(--ink-3);font-weight:400}
+
+/* ---------- The Flow ---------- */
+.rib{fill-opacity:.42;stroke:none}
+.rib.hi{fill-opacity:.85}
+.rib.dim{fill-opacity:.12}
+.fnode{cursor:pointer}
+.fnode rect{stroke:var(--line-2);stroke-width:1}
+.flab{font-size:11px;fill:var(--ink);font-weight:500}
+.fval{font-size:10px;fill:var(--ink-3);font-family:var(--mono)}
+.fhead{font-size:10px;font-weight:700;letter-spacing:.09em;fill:var(--ink-3)}
+
+/* ---------- plain-English notes under the page ---------- */
+.notes{max-width:1360px;margin:28px auto 56px;padding-inline:16px}
+.notes h3{font-size:var(--t-title);margin-bottom:4px}
+.notes .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:15px}
+.card h4{font-size:var(--t-md);margin-bottom:6px}
+.card p{margin:0 0 8px;font-size:var(--t-body);color:var(--ink-2);line-height:1.6}
+.card p:last-child{margin-bottom:0}
+.card .lbl{display:block;margin-bottom:7px;color:var(--accent)}
+.notes>p{font-size:var(--t-body);color:var(--ink-2);max-width:78ch;line-height:1.65}
+.ol{counter-reset:s;list-style:none;padding:0;margin:14px 0 0;display:grid;gap:10px}
+.ol li{position:relative;padding-left:30px;font-size:var(--t-body);color:var(--ink-2);line-height:1.6}
+.ol li::before{counter-increment:s;content:counter(s);position:absolute;left:0;top:1px;width:20px;height:20px;border-radius:50%;
+  background:var(--accent-soft);color:var(--accent-ink);font:600 11px/20px var(--mono);text-align:center}
+.ol li b{color:var(--ink)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="scaf">
+  <div class="wrap">
+    <div class="scaf-note">HaTi prototype &middot; not the live page</div>
+    <h1>The Contract Atlas</h1>
+    <p class="tagline">Three maps of one book, replacing the force-directed graph on Insights. An atlas, not a network:
+      every map answers a different question, and in every one of them <b>where a contract sits on the screen means
+      something</b>. Sample data throughout &mdash; the seeded demo book.</p>
+    <div class="pick" role="group" aria-label="Choose a map">
+      <button type="button" data-view="horizon" aria-pressed="true"><i>MAP 01</i><b>The Horizon</b><span>What bites next, and what it costs</span></button>
+      <button type="button" data-view="flow" aria-pressed="false"><i>MAP 02</i><b>The Flow</b><span>Who pays whom, on paper</span></button>
+      <button type="button" data-view="grain" aria-pressed="false"><i>MAP 03</i><b>The Grain</b><span>Where your paper leaves your standard</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="screen">
+  <div class="app">
+    <div class="appbar">
+      <span class="dot-s"></span>
+      <span class="crumb">Insights / <b id="crumb">The Horizon</b></span>
+      <span class="spacer"></span>
+      <span class="lbl" id="bookline">31 live contracts</span>
+    </div>
+    <div class="page">
+      <div class="phead">
+        <div>
+          <h2 id="ptitle">The Horizon</h2>
+          <div class="sub" id="psub">Every agreement placed by when it next forces a decision, and by what it is worth.</div>
+        </div>
+        <div class="facts" id="pfacts"></div>
+      </div>
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" aria-selected="false">Portfolio</button>
+        <button type="button" role="tab" aria-selected="false">Negotiation friction</button>
+        <button type="button" role="tab" aria-selected="false">Obligations</button>
+        <button type="button" role="tab" aria-selected="false">Payment terms</button>
+        <button type="button" role="tab" aria-selected="false">Exposure</button>
+        <button type="button" role="tab" aria-selected="true" id="tab-atlas">Atlas</button>
+      </div>
+      <div class="layout">
+        <div>
+          <div class="ctl" id="ctl"></div>
+          <div id="stage"></div>
+          <div class="legend" id="legend"></div>
+        </div>
+        <aside class="rail" id="rail"></aside>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="notes">
+  <h3>Why this is not the graph you have now</h3>
+  <p>The Insights tab today draws a force-directed network: bubbles connected by lines, arranged by a physics
+    simulation. It is the shape every open-source graph library gives you out of the box, and that is exactly the
+    problem &mdash; it is recognisable as someone else&rsquo;s. It is also weak information design, because the
+    simulation decides where each bubble lands. Two contracts sitting next to each other means nothing at all.</p>
+  <div class="grid">
+    <div class="card">
+      <span class="lbl">The one rule</span>
+      <h4>Position has to mean something</h4>
+      <p>In all three maps, where an agreement sits on the screen is a fact you can read off it. Left is sooner.
+        Higher is bigger. A thicker ribbon is more money. Nothing is decided by a physics engine.</p>
+    </div>
+    <div class="card">
+      <span class="lbl">The signature</span>
+      <h4>HaTi draws paper, not bubbles</h4>
+      <p>Every agreement on every map is a small sheet: square corners, cream paper, a coloured margin bar for its
+        value stream, and the same ruby margin rule the redline uses where the wording leaves your standard. Nobody
+        else&rsquo;s chart looks like this, because nobody else&rsquo;s product is about documents.</p>
+    </div>
+    <div class="card">
+      <span class="lbl">The honesty</span>
+      <h4>Absences are said out loud</h4>
+      <p>Contracts with no expiry recorded get their own column rather than being quietly dropped. Money with no
+        exchange rate on file is counted and named, never guessed. Nothing here invents a risk score.</p>
+    </div>
+  </div>
+
+  <h3 style="margin-top:28px">What each map is for</h3>
+  <ol class="ol">
+    <li><b>The Horizon</b> answers &ldquo;what bites next, and what does it cost me?&rdquo; It places every agreement
+      by the day it next forces a decision and by what it is worth. The sharp idea: the date that matters is not the
+      expiry, it is the <b>last day you can still serve notice</b>. The amber whisker after each sheet is the window
+      between those two dates &mdash; the time you actually have. Drag the line to look ahead to any date.</li>
+    <li><b>The Flow</b> answers &ldquo;who pays whom, and where am I concentrated?&rdquo; Customers on the left, your
+      value streams down the middle, suppliers on the right, ribbon width by value on paper. It makes one thing
+      obvious in a second: on this book, money comes in on one stream and goes out on five.</li>
+    <li><b>The Grain</b> answers &ldquo;where does my paper leave my own standard?&rdquo; Your playbook across the
+      top, your agreements down the side, one mark per cell. Read a column to find a term you keep conceding; read a
+      row to find the contract you would regret. No competitor can copy this one &mdash; it needs your playbook.</li>
+  </ol>
+
+  <h3 style="margin-top:28px">How it would work in HaTi</h3>
+  <p>The Atlas replaces the Contract graph tab. Nothing new is stored and no new figure is calculated: every number
+    on these three maps is already read somewhere in HaTi &mdash; the renewal window and notice period from the
+    renewal card, value converted the way the dashboard converts it, the customer-or-supplier side from the payment
+    terms page, the standards marks from the playbook review, late promises from the obligations worklist. The maps
+    borrow; they do not compute. Picking any sheet opens the same detail rail, which keeps the one genuinely useful
+    thing the old graph had: <b>what else moves if this agreement ends</b>. Every door in that rail goes to a screen
+    that already exists. In this prototype the doors are drawn but inert.</p>
+</div>
+
+<script>
+/* =======================================================================
+   THE CONTRACT ATLAS — prototype
+   Sample data is the seeded demo book. Every reading below already exists
+   somewhere in HaTi; this page borrows and draws, it does not compute.
+   ======================================================================= */
+const TODAY = new Date('2026-09-21T00:00:00');
+const HOME = 'KES';
+
+const STREAMS = {
+  proc: { name:'Procurement & Raw Materials', short:'Procurement',  color:'#2E9F80' },
+  mfg:  { name:'Manufacturing & Production',  short:'Manufacturing',color:'#B45309' },
+  dist: { name:'Warehousing & Distribution',  short:'Distribution', color:'#0369A1' },
+  sales:{ name:'Sales & Route-to-Market',     short:'Sales',        color:'#C07B08' },
+  mktg: { name:'Marketing & Brand',           short:'Marketing',    color:'#7C3AED' },
+  corp: { name:'Corporate & Compliance',      short:'Corporate',    color:'#2E9E63' }
+};
+
+/* Your playbook's positions — the columns of The Grain. */
+const STD = [
+  { k:'pay',   n:'Payment terms', std:'Net 45 or better' },
+  { k:'cap',   n:'Liability cap', std:'12 months of fees' },
+  { k:'indem', n:'Indemnity',     std:'Mutual, capped' },
+  { k:'tfc',   n:'Exit rights',   std:'90 days, either way' },
+  { k:'excl',  n:'Exclusive rights', std:'None granted' },
+  { k:'notice',n:'Renewal notice',std:'60 days or more' },
+  { k:'law',   n:'Governing law', std:'Kenya' },
+  { k:'price', n:'Price review',  std:'Annual, capped' }
+];
+const MK = { s:'At your standard', a:'Against you', b:'Better than standard', n:'Not recorded', u:'Not read closely enough' };
+
+/* name, counterparty, value, currency, status, stream, side, expiry, notice days,
+   playbook marks (one letter per column of STD), late promises, read, parent, waits on */
+const C = [
+ ['MK-001','Refined Sugar Supply — Confectionery Line','Kabras Sugar (West Kenya Ltd)',48000000,'KES','Signed','proc','supplier','2027-07-31',90,'sssssssb',0,1,null,null],
+ ['MK-002','Raw Milk Collection — Rift Valley Co-ops','Nandi Dairy Co-operative Union',36000000,'KES','Signed','proc','supplier','2026-12-31',60,'sassnssn',0,1,null,null],
+ ['MK-003','Crude Edible Oil Supply','Wilmar East Africa Ltd',95000000,'KES','Under Review','proc','supplier','2027-03-31',90,'aaasasna',0,1,null,null],
+ ['MK-004','PET Bottle & Preform Supply','Nampak Kenya Ltd',22000000,'KES','Under Review','proc','supplier','2027-01-31',60,'sassssss',0,1,null,null],
+ ['MK-005','Corrugated Carton Supply','Statpack Industries Ltd',14500000,'KES','Draft','proc','supplier',null,null,'uuuuuuuu',0,0,null,null],
+ ['MK-006','Co-Packing — Powdered Beverages','Kevian Kenya Ltd',60000000,'KES','Signed','mfg','supplier','2027-12-31',90,'sasssssn',0,1,null,'MK-003'],
+ ['MK-007','Contract Manufacturing — Bar Soap','Orbit Products Africa Ltd',40000000,'KES','Under Review','mfg','supplier','2026-10-31',30,'aasaasns',2,1,null,null],
+ ['MK-008','Tolling Agreement — Detergent Powder','Kapa Oil Refineries Ltd',33000000,'KES','Under Review','mfg','supplier','2027-06-30',60,'ssasssss',0,1,null,null],
+ ['MK-009','Filling Line Lease & Maintenance','Krones East Africa Ltd',8400000,'KES','Signed','mfg','supplier','2029-06-30',180,'ssssssan',0,1,null,null],
+ ['MK-010','Forklift Fleet Lease — Plant','CFAO Equipment Kenya',3600000,'KES','Draft','mfg','supplier',null,null,'uuuuuuuu',0,0,null,null],
+ ['MK-011','Central Warehouse & 3PL — Industrial Area','Siginon Group',18000000,'KES','Signed','dist','supplier','2028-06-30',120,'ssssssss',1,1,null,null],
+ ['MK-012','Cold-Chain Storage — Dairy & Chilled','Africa Logistics Properties',12600000,'KES','Under Review','dist','supplier','2027-12-31',90,'sanssssn',0,1,null,null],
+ ['MK-013','Primary Distribution — Nairobi to Coast','Sendy Ltd',9800000,'KES','Signed','dist','supplier','2026-11-30',30,'ssssssbs',1,1,null,null],
+ ['MK-014','Cross-Border Freight — EAC Markets','Lori Systems',15200000,'KES','Under Review','dist','supplier','2027-02-28',60,'saansssn',0,1,null,null],
+ ['MK-015','Last-Mile Distribution — Western Region','Wasoko',6400000,'KES','Draft','dist','supplier',null,null,'uuuuuuuu',0,0,null,null],
+ ['MK-016','Regional Distributor — Nyanza','Ramogi Distributors Ltd',52000000,'KES','Signed','sales','customer','2027-06-30',90,'bsssssss',0,1,null,null],
+ ['MK-017','Regional Distributor — Mt. Kenya','Muranga Distributors Ltd',44000000,'KES','Under Review','sales','customer','2026-12-15',60,'asssasss',0,1,null,null],
+ ['MK-018','Modern Trade Listing & Supply','Naivas Supermarkets',85000000,'KES','Signed','sales','customer','2027-06-30',120,'aasnasss',0,1,null,null],
+ ['MK-019','Retail Supply — Modern Trade','Carrefour Kenya',78000000,'KES','Under Review','sales','customer','2027-03-31',90,'aaanasns',3,1,null,null],
+ ['MK-020','E-commerce Distribution Agreement','Copia Global',12000000,'KES','Draft','sales','customer',null,null,'uuuuuuuu',0,0,null,null],
+ ['MK-021','Creative & Brand Agency Retainer','Scanad Kenya',24000000,'KES','Signed','mktg','supplier','2027-06-30',60,'ssssssss',0,1,null,null],
+ ['MK-022','Media Buying — TV & Radio','Royal Media Services',30000000,'KES','Under Review','mktg','supplier','2027-06-30',90,'sassnsss',0,1,null,null],
+ ['MK-023','Trade Activation & Field Marketing','Ogilvy Kenya',9600000,'KES','Under Review','mktg','supplier','2026-10-15',30,'sansssss',1,1,null,null],
+ ['MK-024','Digital & Influencer Campaign','Aleph Group',5400000,'KES','Draft','mktg','supplier',null,null,'uuuuuuuu',0,0,null,null],
+ ['MK-025','Mutual NDA — New Product Development','Givaudan East Africa',0,'KES','Signed','corp',null,'2027-07-31',null,'nsssssss',0,1,null,null],
+ ['MK-026','Head Office Lease — Westlands','Britam Properties',42000000,'KES','Signed','corp','supplier','2030-06-30',180,'ssasnsss',0,1,null,null],
+ ['MK-027','External Audit Engagement — FY2026','PwC Kenya',7200000,'KES','Under Review','corp','supplier','2027-01-31',null,'ssssssss',0,1,null,null],
+ ['MK-028','Legal Retainer — Commercial & Regulatory','Bowmans (Coulson Harney LLP)',6000000,'KES','Signed','corp','supplier','2027-06-30',60,'ssssssss',0,1,null,null],
+ ['MK-029','Vendor NDA — ERP Implementation','SAP East Africa',0,'KES','Under Review','corp',null,null,null,'nsssssns',0,1,null,null],
+ ['MK-030','Flavour House Supply','Symrise AG',640000,'USD','Signed','proc','supplier','2027-09-30',90,'ssssssan',0,1,null,null],
+ ['MK-031','Enzyme & Culture Supply','Novonesis A/S',410000,'EUR','Under Review','proc','supplier','2027-04-30',60,'sassssan',0,1,null,null],
+ ['MK-032','Amendment 1 — Rebate Schedule','Naivas Supermarkets',0,'KES','Signed','sales','customer','2027-06-30',120,'assnasss',0,1,'MK-018',null],
+ ['MK-033','In-Store Space & Gondola Ends','Naivas Supermarkets',11000000,'KES','Signed','mktg','supplier','2027-06-30',60,'sassssss',0,1,null,null]
+].map(r=>({ id:r[0], name:r[1], cp:r[2], value:r[3], cur:r[4], status:r[5], stream:r[6], side:r[7],
+  expiry:r[8], notice:r[9], marks:r[10], late:r[11], read:!!r[12], parent:r[13], waits:r[14] }));
+
+/* ---- borrowed readings -------------------------------------------------- */
+const RATE = { KES:1 };                       /* no rate on file for USD or EUR */
+const hasRate = c => Object.prototype.hasOwnProperty.call(RATE, c.cur);
+const homeValue = c => hasRate(c) ? c.value * RATE[c.cur] : null;
+const monetary = c => c.value > 0;
+const daysTo = iso => iso ? Math.round((new Date(iso+'T00:00:00') - TODAY)/86400000) : null;
+/* THE DATE THAT BITES: the last day notice can still be served, not the expiry. */
+function forceOf(c){
+  if(!c.expiry) return { at:null, days:null, kind:'none' };
+  const exp = daysTo(c.expiry);
+  if(c.notice == null) return { at:c.expiry, days:exp, kind:'expiry', expDays:exp };
+  const d = new Date(c.expiry+'T00:00:00'); d.setDate(d.getDate() - c.notice);
+  const at = d.toISOString().slice(0,10);
+  return { at, days:daysTo(at), kind:'notice', expDays:exp };
+}
+const offCount = c => c.marks.split('').filter(m=>m==='a').length;
+const unreadCount = c => c.marks.split('').filter(m=>m==='u').length;
+
+const fmtM = n => n==null ? '—' : (Math.abs(n)>=1e6 ? (n/1e6).toFixed(n>=1e8?0:1).replace(/\.0$/,'')+'M'
+  : Math.abs(n)>=1e3 ? Math.round(n/1e3)+'k' : String(Math.round(n)));
+const money = n => n==null ? 'no rate on file' : HOME+' '+fmtM(n);
+const dayWord = d => d==null ? 'no date recorded' : d<0 ? Math.abs(d)+' days ago' : d===0 ? 'today' : 'in '+d+' days';
+const dateWord = iso => iso ? new Date(iso+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
+const esc = s => String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const byId = id => C.find(c=>c.id===id);
+
+/* WHAT ELSE MOVES IF THIS ENDS — family, payment chain, same counterparty.
+   Direct only. A link is a fact off the record or it is not drawn. */
+function dependents(c){
+  const out = [];
+  C.forEach(x=>{ if(x.id===c.id) return;
+    if(x.parent===c.id) out.push({c:x, kind:'amendment'});
+    else if(x.waits===c.id) out.push({c:x, kind:'waits on it'});
+    else if(x.cp===c.cp) out.push({c:x, kind:'same counterparty'}); });
+  return out;
+}
+
+const state = { view:'horizon', sel:null, scrub:90, flowSel:null, grainSel:null, sort:'off' };
+const $ = s => document.querySelector(s);
+</script>
+<script>
+/* =======================================================================
+   MAP 01 — THE HORIZON
+   x = days until this agreement next forces a decision (the notice
+   deadline where there is a notice period, the expiry where there is not)
+   y = what it is worth, in home currency, on a log scale
+   ======================================================================= */
+const HX0=136, HX1=854, HDMAX=1460, HPARK=918;
+const HY0=390, HY1=34, HVMIN=3e6, HVMAX=1.2e8;
+const HBAND_RATE=412, HBAND_NONE=436;
+const L10=Math.log10;
+const hxDays = d => HX0 + Math.sqrt(Math.min(Math.max(d,0),HDMAX)/HDMAX)*(HX1-HX0);
+const hxOf = d => d==null ? HPARK : (d<0 ? HX0 - Math.min(1,-d/150)*46 : hxDays(d));
+const hyOf = v => HY0 - (L10(Math.max(HVMIN,Math.min(HVMAX,v)))-L10(HVMIN))/(L10(HVMAX)-L10(HVMIN))*(HY0-HY1);
+const HTICKS=[0,30,90,180,365,730,1460];
+const HTICKL={0:'Now',30:'30d',90:'90d',180:'6m',365:'1y',730:'2y',1460:'4y'};
+const HVT=[5e6,10e6,25e6,50e6,100e6];
+
+let hStreams = new Set(Object.keys(STREAMS));
+
+function horizonPlaced(){
+  const out = C.map(c=>{
+    const f = forceOf(c), hv = homeValue(c);
+    const y = !monetary(c) ? HBAND_NONE : (hv==null ? HBAND_RATE : hyOf(hv));
+    return { c, f, hv, x:hxOf(f.days), y, y0:y, band:!monetary(c)||hv==null };
+  });
+  const placed=[];
+  out.sort((a,b)=>a.x-b.x || b.y-a.y).forEach(p=>{
+    let n=0;
+    while(placed.some(q=>Math.abs(q.x-p.x)<15 && Math.abs(q.y-p.y)<19) && n<14){
+      n++; p.y = p.y0 + (n%2 ? 1 : -1) * Math.ceil(n/2) * 19;
+    }
+    placed.push(p);
+  });
+  return out;
+}
+
+function renderHorizon(){
+  const pts = horizonPlaced().filter(p=>hStreams.has(p.c.stream));
+  const cut = state.scrub, cutX = hxOf(cut);
+  const inCut = pts.filter(p=>p.f.days!=null && p.f.days>=0 && p.f.days<=cut);
+  const cutVal = inCut.reduce((s,p)=>s+(p.hv||0),0);
+  const cutDate = new Date(TODAY); cutDate.setDate(cutDate.getDate()+cut);
+
+  const g=[];
+  g.push('<svg viewBox="0 0 980 486" role="img" aria-label="Contracts placed by when they next force a decision and by value">');
+  /* vertical grid */
+  HTICKS.forEach(t=>{ const x=hxDays(t);
+    g.push('<line class="'+(t===0?'grid-l':'grid-d')+'" x1="'+x+'" y1="26" x2="'+x+'" y2="'+HY0+'"/>');
+    g.push('<text class="ax" x="'+x+'" y="462" text-anchor="middle">'+HTICKL[t]+'</text>'); });
+  /* horizontal grid */
+  HVT.forEach(v=>{ const y=hyOf(v);
+    g.push('<line class="grid-d" x1="'+HX0+'" y1="'+y+'" x2="'+HX1+'" y2="'+y+'"/>');
+    g.push('<text class="ax" x="'+(HX0-12)+'" y="'+(y+3)+'" text-anchor="end">'+fmtM(v)+'</text>'); });
+  /* the two named absences — their own ground, never folded into a neighbour */
+  [[HBAND_RATE,'No rate on file'],[HBAND_NONE,'No money passes']].forEach(([y,t])=>{
+    g.push('<line class="grid-d" x1="'+HX0+'" y1="'+y+'" x2="'+HX1+'" y2="'+y+'"/>');
+    g.push('<text class="ax" x="'+(HX0+6)+'" y="'+(y-5)+'">'+t+'</text>'); });
+  /* the passed gutter and the park column */
+  g.push('<rect x="'+(HX0-50)+'" y="26" width="50" height="'+(HBAND_NONE+14-26)+'" fill="var(--ruby-soft)" opacity=".55"/>');
+  g.push('<text class="axl" x="'+(HX0-50)+'" y="20" fill="var(--ruby)">PASSED</text>');
+  g.push('<rect x="'+(HPARK-42)+'" y="26" width="92" height="'+(HBAND_NONE+14-26)+'" fill="var(--surface-2)"/>');
+  g.push('<text class="axl" x="'+(HPARK+46)+'" y="20" text-anchor="end">NO DATE RECORDED</text>');
+  g.push('<text class="axl" x="'+(HX0-50)+'" y="478">LAST DAY TO ACT &rarr;</text>');
+  g.push('<text class="axl" x="20" y="212" text-anchor="middle" transform="rotate(-90 20 212)">ON PAPER &uarr;</text>');
+
+  /* the look-ahead line */
+  g.push('<line class="scrub" x1="'+cutX+'" y1="26" x2="'+cutX+'" y2="'+(HBAND_NONE+14)+'"/>');
+  g.push('<rect class="scrub-h" x="'+(cutX-16)+'" y="14" width="32" height="13" rx="2"/>');
+  g.push('<text x="'+cutX+'" y="24" text-anchor="middle" font-size="9" font-family="var(--mono)" fill="#fff" font-weight="600">'+cut+'d</text>');
+  g.push('<rect id="h-drag" x="'+(cutX-12)+'" y="10" width="24" height="'+(HBAND_NONE+18)+'" fill="transparent" style="cursor:ew-resize"/>');
+
+  /* the sheets */
+  pts.forEach(p=>{
+    const c=p.c, lit = p.f.days!=null && p.f.days>=0 && p.f.days<=cut, off = offCount(c);
+    const dim = state.sel && state.sel!==c.id;
+    const x=p.x, y=p.y, w=13, h=17;
+    let s='<g class="pm'+(lit?' lit':'')+(dim?' dim':'')+(state.sel===c.id?' sel':'')+'" data-id="'+c.id+'" tabindex="0" role="button" aria-label="'+esc(c.name)+'">';
+    /* the amber window: from the last day notice can be served to the day it ends */
+    if(p.f.kind==='notice' && p.f.expDays!=null && p.f.expDays>p.f.days){
+      const ex = Math.max(x+w/2+2, hxOf(p.f.expDays));
+      s+='<line class="lead" x1="'+(x+w/2)+'" y1="'+y+'" x2="'+ex+'" y2="'+y+'"/>';
+      s+='<line class="lead" x1="'+ex+'" y1="'+(y-3.5)+'" x2="'+ex+'" y2="'+(y+3.5)+'"/>'; }
+    if(off) s+='<rect class="ruby" x="'+(x-w/2-5)+'" y="'+(y-6)+'" width="2.5" height="12"/>';
+    s+='<rect class="sheet" x="'+(x-w/2)+'" y="'+(y-h/2)+'" width="'+w+'" height="'+h+'"/>';
+    s+='<rect class="marg" x="'+(x-w/2)+'" y="'+(y-h/2)+'" width="3" height="'+h+'" fill="'+STREAMS[c.stream].color+'"/>';
+    if(c.late) s+='<circle cx="'+(x+w/2-1)+'" cy="'+(y-h/2+1)+'" r="2.6" fill="var(--ruby-dot)"/>';
+    s+='<title>'+esc(c.name)+' — '+esc(c.cp)+'</title></g>';
+    g.push(s);
+  });
+  g.push('</svg>');
+
+  $('#stage').innerHTML = '<div class="canvas">'+g.join('')+'</div>';
+  $('#ctl').innerHTML =
+    '<span class="lbl">Look ahead to</span>'+
+    '<input id="h-range" class="grow" type="range" min="0" max="1460" step="5" value="'+cut+'" aria-label="Look ahead this many days">'+
+    '<span class="mono" style="font-size:var(--t-label);font-weight:600">'+dateWord(cutDate.toISOString().slice(0,10))+'</span>'+
+    '<span class="chip c-amber">'+inCut.length+' force a decision</span>'+
+    '<span class="chip c-gray">'+money(cutVal)+' on paper</span>'+
+    '<span style="flex-basis:100%;height:0"></span>'+
+    Object.entries(STREAMS).map(([k,s])=>'<button type="button" class="btn" data-stream="'+k+'" aria-pressed="'+hStreams.has(k)+'">'+
+      '<span style="width:9px;height:11px;background:'+s.color+';display:inline-block"></span>'+s.short+'</button>').join('');
+  $('#legend').innerHTML =
+    '<i><span class="key"></span> one agreement</i>'+
+    '<i><svg width="26" height="9" aria-hidden="true"><line class="lead" x1="1" y1="4.5" x2="24" y2="4.5"/><line class="lead" x1="24" y1="1" x2="24" y2="8"/></svg> the notice window, up to the end date</i>'+
+    '<i><span style="width:3px;height:12px;background:var(--ruby-dot);display:inline-block;vertical-align:-2px"></span> off your standard</i>'+
+    '<i><span style="width:6px;height:6px;border-radius:50%;background:var(--ruby-dot);display:inline-block"></span> a promise is late</i>'+
+    '<i style="flex-basis:100%;color:var(--ink-3)">Colour of the margin bar is the value stream. Where two sheets would sit on top of each other, the later one is nudged a few pixels up or down.</i>';
+
+  $('#stage').querySelectorAll('.pm').forEach(el=>{
+    const pick = ()=>{ state.sel = el.dataset.id; render(); };
+    el.addEventListener('click', pick);
+    el.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); pick(); } });
+  });
+  $('#h-range').addEventListener('input', e=>{ state.scrub = +e.target.value; render(); });
+  Object.keys(STREAMS).forEach(k=>{
+    $('#ctl').querySelector('[data-stream="'+k+'"]').addEventListener('click',()=>{
+      if(hStreams.has(k)) hStreams.delete(k); else hStreams.add(k);
+      if(!hStreams.size) hStreams = new Set(Object.keys(STREAMS));
+      render();
+    });
+  });
+  const svg = $('#stage svg'), drag = $('#h-drag');
+  if(drag) drag.addEventListener('pointerdown', e=>{
+    e.preventDefault();
+    const move = ev=>{
+      const r = svg.getBoundingClientRect();
+      const px = (ev.clientX - r.left) / r.width * 980;
+      const f = Math.min(1, Math.max(0, (px - HX0) / (HX1 - HX0)));
+      state.scrub = Math.round(f*f*HDMAX/5)*5; render();
+    };
+    const up = ()=>{ window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up); };
+    window.addEventListener('pointermove',move); window.addEventListener('pointerup',up);
+  });
+}
+</script>
+<script>
+/* =======================================================================
+   MAP 02 — THE FLOW
+   Customers who pay us on the left, your value streams down the middle,
+   suppliers you pay on the right. Ribbon width is value ON PAPER. The side
+   is the payment terms page's own reading, never assumed.
+   ======================================================================= */
+const FX0=190, FX1=232, FSX0=430, FSX1=560, FRX0=760, FRX1=802;
+/* White is unreadable on the lighter stream fills, so the ink is MEASURED
+   off the fill rather than assumed. The product's own stream colours are
+   used exactly as they are. */
+const inkOn = hex => { const n=parseInt(hex.slice(1),16), f=v=>Math.pow(v/255,2.2);
+  return (0.2126*f(n>>16&255)+0.7152*f(n>>8&255)+0.0722*f(n&255)) > 0.30 ? '#1C1A16' : '#FFFFFF'; };
+const FTOP=52, FBOT=452, FCAP=9;
+
+function flowModel(){
+  const ok = c => monetary(c) && hasRate(c) && c.side;
+  const noRate = C.filter(c=>monetary(c) && !hasRate(c));
+  const noMoney = C.filter(c=>!monetary(c));
+  const unsided = C.filter(c=>monetary(c) && hasRate(c) && !c.side);
+  const group = side => {
+    const m = {};
+    C.filter(c=>ok(c) && c.side===side).forEach(c=>{
+      (m[c.cp] || (m[c.cp] = { cp:c.cp, total:0, items:[] }));
+      m[c.cp].total += homeValue(c); m[c.cp].items.push(c);
+    });
+    let rows = Object.values(m).sort((a,b)=>b.total-a.total);
+    if(rows.length > FCAP){
+      const keep = rows.slice(0, FCAP-1), rest = rows.slice(FCAP-1);
+      keep.push({ cp:rest.length+' more '+(side==='customer'?'customers':'suppliers'), lump:rest.length,
+        total:rest.reduce((s,r)=>s+r.total,0), items:rest.flatMap(r=>r.items) });
+      rows = keep;
+    }
+    return rows;
+  };
+  const cust = group('customer'), sup = group('supplier');
+  const streams = Object.keys(STREAMS).map(k=>{
+    const mine = C.filter(c=>ok(c) && c.stream===k);
+    return { k, name:STREAMS[k].short, color:STREAMS[k].color,
+      in: mine.filter(c=>c.side==='customer').reduce((s,c)=>s+homeValue(c),0),
+      out: mine.filter(c=>c.side==='supplier').reduce((s,c)=>s+homeValue(c),0),
+      late: C.filter(c=>c.stream===k).reduce((s,c)=>s+c.late,0),
+      n: C.filter(c=>c.stream===k).length };
+  }).filter(s=>s.in+s.out > 0);
+  return { cust, sup, streams, noRate, noMoney, unsided,
+    totalIn: streams.reduce((s,x)=>s+x.in,0), totalOut: streams.reduce((s,x)=>s+x.out,0) };
+}
+
+const ribbon = (x1,y1,x2,y2,w) => { const c=(x2-x1)*0.5;
+  return 'M'+x1+','+y1+' C'+(x1+c)+','+y1+' '+(x2-c)+','+y2+' '+x2+','+y2+
+         ' L'+x2+','+(y2+w)+' C'+(x2-c)+','+(y2+w)+' '+(x1+c)+','+(y1+w)+' '+x1+','+(y1+w)+' Z'; };
+
+function renderFlow(){
+  const M = flowModel();
+  const both = M.totalIn + M.totalOut;
+  const gapS = 13, gapP = 9;
+  const k = (FBOT - FTOP - gapS*(M.streams.length-1)) / both;
+  const hOf = v => Math.max(3, v*k);
+
+  /* stream blocks down the middle, in time-free order: the book's own order */
+  let y = FTOP;
+  M.streams.forEach(s=>{ s.h = Math.max(16, hOf(s.in+s.out)); s.y = y; y += s.h + gapS; s.inY = s.y; s.outY = s.y; });
+  const colH = (rows, gap) => rows.reduce((t,r)=>t+Math.max(3,hOf(r.total)),0) + gap*(rows.length-1);
+  const seat = (rows, gap) => { let yy = FTOP + Math.max(0, ((FBOT-FTOP) - colH(rows,gap))/2);
+    rows.forEach(r=>{ r.h = Math.max(3, hOf(r.total)); r.y = yy; r.cur = yy; yy += r.h + gap; }); };
+  seat(M.cust, gapP); seat(M.sup, gapP);
+  /* A NODE STAYS WHERE ITS VALUE PUTS IT; its NAME is pushed clear, with a
+     leader line where the two part company. Two small counterparties would
+     otherwise print their names on top of each other. */
+  const seatLabels = rows => { const LH = 25;
+    rows.forEach(r=>{ r.ly = r.y + r.h/2; });
+    for(let i=1;i<rows.length;i++) if(rows[i].ly - rows[i-1].ly < LH) rows[i].ly = rows[i-1].ly + LH;
+    const over = rows.length ? rows[rows.length-1].ly - (FBOT-6) : 0;
+    if(over > 0){ rows.forEach(r=>{ r.ly -= over; });
+      for(let i=rows.length-2;i>=0;i--) if(rows[i+1].ly - rows[i].ly < LH) rows[i].ly = rows[i+1].ly - LH; }
+  };
+  seatLabels(M.cust); seatLabels(M.sup);
+
+  const g = [];
+  g.push('<svg viewBox="0 0 980 486" role="img" aria-label="Money flowing between counterparties and value streams, on paper">');
+  g.push('<text class="fhead" x="'+(FX0-9)+'" y="34" text-anchor="end">THEY PAY US</text>');
+  g.push('<text class="fhead" x="'+FSX0+'" y="34">VALUE STREAMS</text>');
+  g.push('<text class="fhead" x="'+(FRX1+9)+'" y="34">WE PAY THEM</text>');
+
+  const byStream = k2 => M.streams.find(s=>s.k===k2);
+  const ribs = [];
+  M.cust.forEach(r=>{ const order = {};
+    r.items.forEach(c=>{ (order[c.stream] = (order[c.stream]||0) + homeValue(c)); });
+    Object.entries(order).sort((a,b)=>b[1]-a[1]).forEach(([sk,v])=>{ const s = byStream(sk); if(!s) return;
+      const w = Math.max(1.5, hOf(v));
+      ribs.push({ d:ribbon(FX1, r.cur, FSX0, s.inY, w), color:STREAMS[sk].color, party:r.cp, stream:sk });
+      r.cur += w; s.inY += w; }); });
+  M.sup.forEach(r=>{ const order = {};
+    r.items.forEach(c=>{ (order[c.stream] = (order[c.stream]||0) + homeValue(c)); });
+    Object.entries(order).sort((a,b)=>b[1]-a[1]).forEach(([sk,v])=>{ const s = byStream(sk); if(!s) return;
+      const w = Math.max(1.5, hOf(v));
+      ribs.push({ d:ribbon(FSX1, s.outY, FRX0, r.cur, w), color:STREAMS[sk].color, party:r.cp, stream:sk });
+      r.cur += w; s.outY += w; }); });
+
+  const sel = state.flowSel;
+  ribs.forEach(rb=>{ const hit = !sel || sel===rb.party || sel===rb.stream;
+    g.push('<path class="rib'+(sel && hit ? ' hi' : (sel ? ' dim' : ''))+'" d="'+rb.d+'" fill="'+rb.color+'"/>'); });
+
+  const node = (x,w,r,anchor,side) => {
+    const on = sel===r.cp, dim = sel && !on;
+    let s = '<g class="fnode" data-party="'+esc(r.cp)+'" tabindex="0" role="button" opacity="'+(dim?0.4:1)+'">';
+    s += '<rect x="'+x+'" y="'+r.y+'" width="'+w+'" height="'+r.h+'" fill="'+(on?'var(--accent-soft)':'var(--paper)')+'"/>';
+    s += '<rect x="'+(side==='l'?x:x+w-3)+'" y="'+r.y+'" width="3" height="'+r.h+'" fill="'+(r.lump?'var(--line-2)':'var(--accent)')+'"/>';
+    const ty = r.ly, lx = anchor==='end' ? x-9 : x+w+9;
+    if(Math.abs(ty - (r.y + r.h/2)) > 2)
+      s += '<path d="M'+(anchor==='end'?x-2:x+w+2)+','+(r.y+r.h/2)+' L'+lx+','+ty+'" stroke="var(--line-2)" stroke-width="1" fill="none"/>';
+    s += '<text class="flab" x="'+lx+'" y="'+(ty-1)+'" text-anchor="'+anchor+'">'+esc(r.cp.length>24?r.cp.slice(0,23)+'…':r.cp)+'</text>';
+    s += '<text class="fval" x="'+lx+'" y="'+(ty+11)+'" text-anchor="'+anchor+'">'+money(r.total)+'</text>';
+    s += '<title>'+esc(r.cp)+' — '+money(r.total)+' on paper</title></g>';
+    return s;
+  };
+  M.cust.forEach(r=>g.push(node(FX0, FX1-FX0, r, 'end', 'l')));
+  M.sup.forEach(r=>g.push(node(FRX0, FRX1-FRX0, r, 'start', 'r')));
+
+  M.streams.forEach(s=>{
+    const on = sel===s.k, dim = sel && !on;
+    g.push('<g class="fnode" data-stream="'+s.k+'" tabindex="0" role="button" opacity="'+(dim?0.45:1)+'">');
+    g.push('<rect x="'+FSX0+'" y="'+s.y+'" width="'+(FSX1-FSX0)+'" height="'+s.h+'" fill="'+s.color+'" fill-opacity="'+(on?0.95:0.82)+'" stroke="none"/>');
+    if(s.late) g.push('<rect x="'+(FSX0-7)+'" y="'+s.y+'" width="3" height="'+s.h+'" fill="var(--ruby-dot)"/>');
+    const ink = inkOn(s.color);
+    if(s.h >= 15) g.push('<text class="flab" x="'+(FSX0+10)+'" y="'+(s.y + (s.h>=38?16:s.h/2+4))+'" fill="'+ink+'" font-weight="600">'+s.name+'</text>');
+    if(s.h >= 38) g.push('<text class="fval" x="'+(FSX0+10)+'" y="'+(s.y+30)+'" fill="'+ink+'" opacity=".85">'+
+      (s.in?'in '+fmtM(s.in)+'  ':'')+(s.out?'out '+fmtM(s.out):'')+'</text>');
+    g.push('<title>'+s.name+' — '+s.n+' contracts</title></g>');
+  });
+  g.push('</svg>');
+
+  const net = M.totalIn - M.totalOut;
+  $('#stage').innerHTML = '<div class="canvas">'+g.join('')+'</div>';
+  $('#ctl').innerHTML =
+    '<span class="chip c-good">In '+money(M.totalIn)+'</span>'+
+    '<span class="chip c-amber">Out '+money(M.totalOut)+'</span>'+
+    '<span class="chip '+(net<0?'c-ruby':'c-good')+'">Net '+(net<0?'−':'+')+fmtM(Math.abs(net))+' on paper</span>'+
+    '<span class="grow"></span>'+
+    (sel ? '<button type="button" class="btn" id="f-clear">Clear selection</button>' : '<span class="note">Pick a counterparty or a stream to follow its money.</span>');
+  $('#legend').innerHTML =
+    '<i style="color:var(--ink-2)"><b>On paper.</b> HaTi reads agreements, not your bank.</i>'+
+    '<i><span style="width:3px;height:12px;background:var(--ruby-dot);display:inline-block;vertical-align:-2px"></span> a promise on this stream is late</i>'+
+    '<i style="color:var(--ink-3)">Left out: '+M.noRate.length+' with no exchange rate on file ('+
+      [...new Set(M.noRate.map(c=>c.cur))].join(', ')+'), '+M.noMoney.length+' where no money passes'+
+      (M.unsided.length?', '+M.unsided.length+' whose side could not be read':'')+
+      '. Counted, never summed. Suppliers past the top '+(FCAP-1)+' are shown as one row.</i>';
+
+  $('#stage').querySelectorAll('[data-party],[data-stream]').forEach(el=>{
+    const key = el.dataset.party || el.dataset.stream;
+    const go = ()=>{ state.flowSel = (state.flowSel===key ? null : key); state.sel=null; render(); };
+    el.addEventListener('click', go);
+    el.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); go(); } });
+  });
+  const cl = document.getElementById('f-clear');
+  if(cl) cl.addEventListener('click', ()=>{ state.flowSel=null; render(); });
+}
+</script>
+<script>
+/* =======================================================================
+   MAP 03 — THE GRAIN
+   Your playbook across the top, your book down the side, one mark per
+   cell. Read a column to find the term you keep conceding; read a row to
+   find the agreement you would regret. Nothing here is a score.
+   ======================================================================= */
+const CELLTEXT = {
+  pay:   {s:'Net 45 days',           a:'Net 90 days',                        b:'Net 30 days'},
+  cap:   {s:'12 months of fees',     a:'Uncapped',                           b:'6 months of fees'},
+  indem: {s:'Mutual, capped',        a:'One way, in their favour',           b:'Mutual, capped at fees'},
+  tfc:   {s:'90 days, either side',  a:'Their right only',                   b:'30 days, either side'},
+  excl:  {s:'None granted',          a:'Exclusive in their territory',       b:'None granted, both ways'},
+  notice:{s:'60 days',               a:'30 days',                            b:'120 days'},
+  law:   {s:'Kenya',                 a:'England & Wales',                    b:'Kenya, Nairobi courts'},
+  price: {s:'Annual, capped at CPI', a:'They may raise on 30 days notice',   b:'Fixed for the term'}
+};
+const cellText = (col,code) => code==='n' ? 'Not recorded'
+  : code==='u' ? 'Not read closely enough to say' : (CELLTEXT[col]||{})[code] || '—';
+
+function renderGrain(){
+  const rows = C.slice().sort((a,b)=>
+    state.sort==='off'    ? offCount(b)-offCount(a) || (homeValue(b)||0)-(homeValue(a)||0)
+  : state.sort==='value'  ? (homeValue(b)||0)-(homeValue(a)||0)
+  : a.stream.localeCompare(b.stream) || a.name.localeCompare(b.name));
+  const colOff = STD.map((s,i)=>C.filter(c=>c.marks[i]==='a').length);
+  const unread = C.filter(c=>unreadCount(c)>0);
+
+  let h = '<div class="grain-wrap"><table class="grain"><thead><tr>';
+  h += '<th class="rowh"><span class="lbl">Agreement</span></th>';
+  STD.forEach((s,i)=>{ h += '<th class="mkc"><div class="colh"><span class="n">'+s.n+'</span><span class="std">'+esc(s.std)+'</span>'+
+    '<span class="off'+(colOff[i]?'':' zero')+'">'+(colOff[i]?colOff[i]+' off':'0 off')+'</span></div></th>'; });
+  h += '<th class="offc" style="padding-right:12px;text-align:right"><div class="colh"><span class="n">Off</span></div></th></tr></thead><tbody>';
+  rows.forEach(c=>{
+    const n = offCount(c), sel = state.grainSel && state.grainSel.id===c.id;
+    h += '<tr'+(sel?' class="sel"':'')+'>';
+    h += '<td><div class="rowname"><span class="pmini" style="border-left-color:'+STREAMS[c.stream].color+'"></span>'+
+      '<span class="txt" title="'+esc(c.name+' \u2014 '+c.cp)+'"><span class="nm">'+esc(c.name)+'</span><span class="cp">'+esc(c.id+' · '+c.cp)+'</span></span></div></td>';
+    STD.forEach((s,i)=>{ const code = c.marks[i];
+      const cls = { s:'mk-std', a:'mk-against', b:'mk-better', n:'mk-none', u:'mk-unread' }[code];
+      h += '<td><button type="button" class="cell" data-id="'+c.id+'" data-col="'+i+'" '+
+        'aria-label="'+esc(s.n+': '+MK[code])+'" title="'+esc(s.n+' — '+cellText(s.k,code))+'">'+
+        '<span class="mk '+cls+'"></span></button></td>'; });
+    h += '<td class="offn'+(n?'':' zero')+'">'+n+'</td></tr>';
+  });
+  h += '</tbody></table></div>';
+
+  $('#stage').innerHTML = h;
+  $('#ctl').innerHTML =
+    '<span class="lbl">Order by</span>'+
+    '<div class="seg" role="group">'+
+      ['off','value','stream'].map(k=>'<button type="button" data-sort="'+k+'" aria-pressed="'+(state.sort===k)+'">'+
+        ({off:'Most off standard',value:'Value',stream:'Value stream'})[k]+'</button>').join('')+
+    '</div><span class="grow"></span>'+
+    '<span class="chip c-ruby">'+colOff.reduce((a,b)=>a+b,0)+' terms against you</span>'+
+    '<span class="chip c-gray">'+C.length+' agreements &times; '+STD.length+' terms</span>';
+  $('#legend').innerHTML =
+    '<i><span class="mk mk-std" style="width:12px;height:12px"></span> at your standard</i>'+
+    '<i><span class="mk mk-against" style="width:12px;height:12px"></span> against you</i>'+
+    '<i><span class="mk mk-better" style="width:12px;height:12px"></span> better than your standard</i>'+
+    '<i><span class="mk mk-none" style="width:12px;height:12px"></span> not recorded</i>'+
+    '<i><span class="mk mk-unread" style="width:12px;height:12px"></span> not read closely enough</i>'+
+    '<i style="color:var(--ink-3)">'+unread.length+' agreements have not been read closely enough to say. They are listed and not counted.</i>';
+
+  $('#stage').querySelectorAll('.cell').forEach(el=>el.addEventListener('click',()=>{
+    state.grainSel = { id:el.dataset.id, col:+el.dataset.col }; state.sel = el.dataset.id; render(); }));
+  $('#ctl').querySelectorAll('[data-sort]').forEach(el=>el.addEventListener('click',()=>{
+    state.sort = el.dataset.sort; render(); }));
+}
+
+/* =======================================================================
+   THE DETAIL RAIL — one rail, whatever is picked. It keeps the one thing
+   worth keeping from the old graph: what else moves if this ends.
+   ======================================================================= */
+function railContract(c){
+  const f = forceOf(c), deps = dependents(c), off = offCount(c);
+  const kv = (k,v,cls) => '<div class="kv"><span>'+k+'</span><b'+(cls?' style="color:var(--'+cls+')"':'')+'>'+v+'</b></div>';
+  let h = '<div class="rail-h"><span class="lbl">'+esc(c.id)+'</span><b>'+esc(c.name)+'</b></div><div class="rail-b">';
+  h += '<div class="rail-sec">';
+  h += kv('Counterparty', esc(c.cp));
+  h += kv('Value stream', STREAMS[c.stream].short);
+  h += kv('On paper', monetary(c) ? (hasRate(c) ? money(homeValue(c)) : c.cur+' '+fmtM(c.value)+' · no rate') : 'No money passes',
+        monetary(c)&&!hasRate(c) ? 'amber' : '');
+  h += kv('Status', c.status);
+  h += '</div><div class="rail-sec"><span class="lbl">The clock</span>';
+  if(f.kind==='none') h += '<div class="empty" style="margin-top:5px">No expiry recorded. It is on the map in its own column, not folded in with the rest.</div>';
+  else {
+    h += kv(f.kind==='notice' ? 'Last day to serve notice' : 'Ends', dateWord(f.at), f.days!=null && f.days<60 ? 'amber' : '');
+    h += kv('That is', dayWord(f.days), f.days!=null && f.days<0 ? 'ruby' : '');
+    if(f.kind==='notice'){ h += kv('Notice period', c.notice+' days'); h += kv('Then it ends', dateWord(c.expiry)); }
+  }
+  h += '</div><div class="rail-sec"><span class="lbl">Against your standard</span>';
+  h += off ? kv('Terms against you', off+' of '+STD.length, 'ruby')
+           : (unreadCount(c) ? '<div class="empty" style="margin-top:5px">Not read closely enough to say.</div>'
+                             : kv('Terms against you', 'none', 'good'));
+  if(c.late) h += kv('Late promises', c.late, 'ruby');
+  h += '</div><div class="rail-sec"><span class="lbl">If this ends</span>';
+  h += deps.length
+    ? '<div class="empty" style="margin-top:5px">'+deps.length+' other '+(deps.length===1?'agreement moves':'agreements move')+' with it.</div>'+
+      deps.map(d=>'<div class="kv"><span>'+esc(d.c.id)+' · '+d.kind+'</span><b style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(d.c.name)+'</b></div>').join('')
+    : '<div class="empty" style="margin-top:5px">Nothing on file depends on this one.</div>';
+  h += '</div></div>';
+  h += '<button type="button" class="door">Open the contract<em>Overview</em></button>';
+  h += '<button type="button" class="door">Open the negotiation<em>Redlines</em></button>';
+  if(off) h += '<button type="button" class="door">Ask for a change<em>'+off+' terms</em></button>';
+  return h;
+}
+
+function railCell(){
+  const c = byId(state.grainSel.id), s = STD[state.grainSel.col], code = c.marks[state.grainSel.col];
+  const tone = { s:'c-good', a:'c-ruby', b:'c-good', n:'c-gray', u:'c-steel' }[code];
+  let h = '<div class="rail-h"><span class="lbl">'+esc(s.n)+'</span><b>'+esc(c.name)+'</b></div><div class="rail-b">';
+  h += '<div class="rail-sec"><span class="chip '+tone+'">'+MK[code]+'</span>';
+  h += '<div class="kv" style="margin-top:9px"><span>Your standard</span><b>'+esc(s.std)+'</b></div>';
+  h += '<div class="kv"><span>This agreement</span><b>'+esc(cellText(s.k,code))+'</b></div>';
+  h += '<div class="kv"><span>Counterparty</span><b>'+esc(c.cp)+'</b></div></div>';
+  const alike = C.filter(x=>x.marks[state.grainSel.col]==='a' && x.stream===c.stream && x.id!==c.id);
+  h += '<div class="rail-sec"><span class="lbl">Elsewhere in this stream</span><div class="empty" style="margin-top:5px">'+
+    (alike.length ? alike.length+' other '+STREAMS[c.stream].short.toLowerCase()+' '+(alike.length===1?'agreement is':'agreements are')+' off on this same term.'
+                  : 'No other agreement in this stream is off on this term.')+'</div></div></div>';
+  h += '<button type="button" class="door">Open the clause<em>'+esc(c.id)+'</em></button>';
+  if(alike.length) h += '<button type="button" class="door">Do this to these '+(alike.length+1)+'<em>Cohort</em></button>';
+  h += '<button type="button" class="door">Back to the agreement<em>Overview</em></button>';
+  return h;
+}
+
+function railFlow(){
+  const M = flowModel(), key = state.flowSel;
+  const s = M.streams.find(x=>x.k===key);
+  if(s){
+    const mine = C.filter(c=>c.stream===s.k);
+    let h = '<div class="rail-h"><span class="lbl">Value stream</span><b>'+STREAMS[s.k].name+'</b></div><div class="rail-b"><div class="rail-sec">';
+    h += '<div class="kv"><span>Agreements</span><b>'+mine.length+'</b></div>';
+    h += '<div class="kv"><span>Money in</span><b>'+(s.in?money(s.in):'none')+'</b></div>';
+    h += '<div class="kv"><span>Money out</span><b>'+(s.out?money(s.out):'none')+'</b></div>';
+    h += '<div class="kv"><span>Net, on paper</span><b style="color:var(--'+(s.in-s.out<0?'ruby':'good')+')">'+
+      (s.in-s.out<0?'−':'+')+fmtM(Math.abs(s.in-s.out))+'</b></div>';
+    if(s.late) h += '<div class="kv"><span>Late promises</span><b style="color:var(--ruby)">'+s.late+'</b></div>';
+    h += '</div><div class="rail-sec"><span class="lbl">Largest</span>'+
+      mine.filter(c=>hasRate(c)&&monetary(c)).sort((a,b)=>homeValue(b)-homeValue(a)).slice(0,5)
+        .map(c=>'<div class="kv"><span style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(c.cp)+'</span><b>'+money(homeValue(c))+'</b></div>').join('')+
+      '</div></div><button type="button" class="door">See these in Contracts<em>'+mine.length+' rows</em></button>';
+    return h;
+  }
+  const mine = C.filter(c=>c.cp===key);
+  if(!mine.length) return railEmpty();
+  const asCust = mine.filter(c=>c.side==='customer'), asSup = mine.filter(c=>c.side==='supplier');
+  let h = '<div class="rail-h"><span class="lbl">Counterparty</span><b>'+esc(key)+'</b></div><div class="rail-b"><div class="rail-sec">';
+  h += '<div class="kv"><span>Agreements</span><b>'+mine.length+'</b></div>';
+  if(asCust.length) h += '<div class="kv"><span>They pay us</span><b>'+money(asCust.reduce((s2,c)=>s2+(homeValue(c)||0),0))+'</b></div>';
+  if(asSup.length)  h += '<div class="kv"><span>We pay them</span><b>'+money(asSup.reduce((s2,c)=>s2+(homeValue(c)||0),0))+'</b></div>';
+  h += '<div class="kv"><span>Terms against you</span><b style="color:var(--'+(mine.reduce((s2,c)=>s2+offCount(c),0)?'ruby':'good')+')">'+
+    mine.reduce((s2,c)=>s2+offCount(c),0)+'</b></div></div>';
+  if(asCust.length && asSup.length) h += '<div class="rail-sec"><span class="lbl">Worth knowing</span><div class="empty" style="margin-top:5px">'+
+    esc(key)+' sits on both sides of this book — they buy from you and they bill you. Two teams may be negotiating with them at once.</div></div>';
+  h += '<div class="rail-sec"><span class="lbl">The agreements</span>'+
+    mine.map(c=>'<div class="kv"><span>'+esc(c.id)+'</span><b style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(c.name)+'</b></div>').join('')+
+    '</div></div><button type="button" class="door">See these in Contracts<em>'+mine.length+' rows</em></button>';
+  return h;
+}
+
+function railEmpty(){
+  const t = {
+    horizon:['Pick a sheet','Every sheet is one agreement. Its place on the map is the day it next forces a decision and what it is worth. Drag the line to look ahead to any date.'],
+    flow:['Follow the money','Pick a counterparty or a value stream. Ribbon width is value on paper, and the ribbons for whatever you pick stay lit while the rest fade.'],
+    grain:['Pick a mark','Every mark is one term of one agreement, judged against your own playbook. Read down a column to find the term you keep conceding.']
+  }[state.view];
+  return '<div class="rail-h"><span class="lbl">Detail</span><b>'+t[0]+'</b></div><div class="rail-b"><div class="empty">'+t[1]+'</div></div>';
+}
+</script>
+<script>
+/* ======================= the page ======================= */
+const META = {
+  horizon:{ t:'The Horizon', s:'Every agreement placed by the day it next forces a decision, and by what it is worth.' },
+  flow:   { t:'The Flow',    s:'Who pays whom, through which value stream, on paper.' },
+  grain:  { t:'The Grain',   s:'Your playbook across the top, your book down the side, one mark per term.' }
+};
+
+function facts(){
+  if(state.view==='horizon'){
+    const f = C.map(forceOf);
+    return [['Within 90 days', f.filter(x=>x.days!=null && x.days>=0 && x.days<=90).length],
+            ['Already passed', f.filter(x=>x.days!=null && x.days<0).length],
+            ['No date recorded', f.filter(x=>x.days==null).length]];
+  }
+  if(state.view==='flow'){
+    const M = flowModel();
+    return [['Counterparties', new Set(C.map(c=>c.cp)).size],
+            ['Streams carrying money', M.streams.length],
+            ['Left out', M.noRate.length + M.noMoney.length]];
+  }
+  return [['Terms against you', C.reduce((s,c)=>s+offCount(c),0)],
+          ['Clean agreements', C.filter(c=>offCount(c)===0 && unreadCount(c)===0).length],
+          ['Not read closely', C.filter(c=>unreadCount(c)>0).length]];
+}
+
+function render(){
+  document.querySelectorAll('.pick button').forEach(b=>
+    b.setAttribute('aria-pressed', String(b.dataset.view===state.view)));
+  $('#crumb').textContent = META[state.view].t;
+  $('#ptitle').textContent = META[state.view].t;
+  $('#psub').textContent = META[state.view].s;
+  $('#bookline').textContent = C.length+' live contracts · sample data';
+  $('#pfacts').innerHTML = facts().map(([k,v])=>
+    '<div class="fact"><span class="lbl">'+k+'</span><span class="v">'+v+'</span></div>').join('');
+
+  if(state.view==='horizon') renderHorizon();
+  else if(state.view==='flow') renderFlow();
+  else renderGrain();
+
+  $('#rail').innerHTML =
+      state.view==='grain' && state.grainSel ? railCell()
+    : state.view==='flow'  && state.flowSel  ? railFlow()
+    : state.sel && state.view!=='flow'       ? railContract(byId(state.sel))
+    : railEmpty();
+  $('#rail').querySelectorAll('.door').forEach(d=>d.addEventListener('click',()=>{
+    d.insertAdjacentHTML('afterend','');
+    d.querySelector('em').textContent = 'inert in this prototype';
+  }));
+}
+
+document.querySelectorAll('.pick button').forEach(b=>b.addEventListener('click',()=>{
+  state.view = b.dataset.view; state.grainSel = null; state.flowSel = null; render();
+  document.querySelector('.screen').scrollIntoView({ behavior:'smooth', block:'start' });
+}));
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{
+  if(b.id !== 'tab-atlas') return;
+  document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-selected', String(x===b)));
+}));
+render();
+</script>
