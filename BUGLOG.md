@@ -18307,3 +18307,8 @@ Noticed, not fixed:
 - The pop-up's `.na-door` cards could not be measured in the browser file: the
   seeded workspace publishes no company standard, so that section is not drawn.
 - `INDUSTRY_LABEL` in js/wizard.js is still hardcoded English on screen.
+
+### Addendum — the same run, 21 Sep 2026 (the counterparty leads / the work order's four)
+
+- **Two lint errors of my own, found by running the check rather than by reading.** The bounded fetch added to the one metered Copilot call names `AbortSignal`, which is node's own global beside `AbortController` — but only `AbortController` was declared to the checker, so the server read as two undefined names. Declared it, with the reason written beside it. Lint is back at 0 errors. The guard round it (`typeof AbortSignal !== 'undefined'`) was always correct; nothing at runtime was wrong.
+- **Two full-suite runs redirected to a file came back with every dot and no summary at all**, exit 0 both times. Read through a pipe instead, the same suite printed its tally normally: 8,404 tests, 8,404 pass, 0 fail. Noticed, not fixed — a reporter writing to a file loses its last lines, and a bare exit code is the thing to trust there.

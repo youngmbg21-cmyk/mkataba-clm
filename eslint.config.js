@@ -278,7 +278,11 @@ module.exports = [
         setTimeout: 'readonly', clearTimeout: 'readonly',
         setInterval: 'readonly', clearInterval: 'readonly', setImmediate: 'readonly',
         URL: 'readonly', URLSearchParams: 'readonly', TextEncoder: 'readonly',
-        TextDecoder: 'readonly', AbortController: 'readonly', fetch: 'readonly',
+        TextDecoder: 'readonly', AbortController: 'readonly',
+        /* AbortSignal is node's own global beside AbortController (it is what
+           carries AbortSignal.timeout); without it the server's own bounded
+           fetch reads as two undefined names. */
+        AbortSignal: 'readonly', fetch: 'readonly',
         structuredClone: 'readonly', queueMicrotask: 'readonly', performance: 'readonly',
       },
     },
