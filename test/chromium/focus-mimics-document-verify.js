@@ -222,7 +222,7 @@ const SHOT = (rowSel) => {
     await drive(page, () => { try { roomGoTab('docs'); } catch (_) {} }, undefined, null);
     await pause(1400);
     const docOn = await drive(page, async () => {
-      const b = document.querySelector('.room-focus[data-ws-focus]');
+      const b = document.querySelector('#view-redline .room-focus[data-ws-focus], [data-ws-focus-door]') /* the room's door is on the Document tab's control row since 21 Sep 2026 */;
       if (!b) return { err: 'no Focus button in the contract room' };
       b.click();
       await new Promise(r => setTimeout(r, 500));

@@ -17683,3 +17683,18 @@ to two lines at a laptop width (resting chips say their name only now).
   column says it).
 - INDUSTRY_LABEL (js/wizard.js) is still hardcoded English on screen.
 - Six pre-existing calls of PORTAL_MODE as a function still stand.
+
+## 21 Sep 2026 — two more off the Document tab render
+
+Young: "Focus mode button is built in twice … delete the one next to draft
+new agreement. Also, the symbol of obligations and approvals look the same."
+The contract room's head draws no Focus square now (the negotiate page keeps
+its own); the Document tab's control-row door and the ⋯ row both press
+wsFocusToggle, one function. Obligations wears a new flag symbol (#i-flag)
+in the rail; Approvals keeps the check. thirteen-screenshots 11 and the
+three browser files that pressed the room's square are re-pointed to the
+control-row door.
+
+### Noticed, not fixed
+- On the room's other tabs (Overview, Signing, Obligations, History) Focus
+  mode is now one door, the ⋯ row — the owner's ruling deleted the square.

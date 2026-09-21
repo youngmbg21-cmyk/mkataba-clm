@@ -306,7 +306,7 @@ const drive = async (page, fn, arg, fallback) => {
     await drive(page, id => { openWorkspace(id); }, cid, null);
     await pause(1500);
     const room = await drive(page, async () => {
-      const b = document.querySelector('.room-focus[data-ws-focus]');
+      const b = document.querySelector('#view-redline .room-focus[data-ws-focus], [data-ws-focus-door]') /* the room's door is on the Document tab's control row since 21 Sep 2026 */;
       if (!b) return { err: 'not drawn' };
       b.click();
       await new Promise(r => setTimeout(r, 300));

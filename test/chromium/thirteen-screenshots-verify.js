@@ -214,8 +214,13 @@ const check = (name, ok, detail) => {
     /* ═══════ 11. FOCUS MODE IS A BUTTON, AND BOTH DOORS ARE LIVE ═══════
        f295's lesson driven: a door bound with querySelector rather than
        querySelectorAll is live-looking and dead. */
+    /* THE ROOM'S DOOR IS ON THE DOCUMENT TAB'S CONTROL ROW since 21 Sep 2026
+       (Young: 'delete the one next to draft new agreement'); the head's square
+       is the negotiate page's own. So this goes to the Document tab first. */
+    await page.evaluate((id) => roomGoTab(getContract(id), 'docs'), cid);
+    await page.waitForTimeout(1000);
     const focus = await page.evaluate(async () => {
-      const b = document.querySelector('.room-focus[data-ws-focus]');
+      const b = document.querySelector('#view-redline .room-focus[data-ws-focus], [data-ws-focus-door]') /* the room's door is on the Document tab's control row since 21 Sep 2026 */;
       if (!b) return { err: 'not drawn' };
       const r = b.getBoundingClientRect();
       const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
@@ -229,7 +234,7 @@ const check = (name, ok, detail) => {
         menuSays: menu ? menu.getAttribute('aria-pressed') : null,
         btnSays: b.getAttribute('aria-pressed') };
     });
-    check('11a the head draws a Focus mode button', !focus.err, focus.err || `${focus.w}x${focus.h}`);
+    check('11a the Document tab draws a Focus mode door', !focus.err, focus.err || `${focus.w}x${focus.h}`);
     check('11b it is PAINTED — nothing sits over it', focus.inside === true, String(focus.inside));
     check('11c and pressing it really hides the head', focus.on === true, String(focus.on));
     check('11d both doors say the same state', focus.menuSays === focus.btnSays,
@@ -238,7 +243,7 @@ const check = (name, ok, detail) => {
 
     /* THE CONTRACT DOES NOT MOVE. Refusal 3, measured rather than assumed: the
        button wears .room-check, which is sized to the row's own rung. */
-    await page.evaluate(() => { document.querySelector('.room-focus[data-ws-focus]').click(); });
+    await page.evaluate(() => { document.querySelector('#view-redline .room-focus[data-ws-focus], [data-ws-focus-door]') /* the room's door is on the Document tab's control row since 21 Sep 2026 */.click(); });
     await page.waitForTimeout(400);
     const ink = await page.evaluate(() => {
       const head = document.getElementById('ws-head');

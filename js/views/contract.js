@@ -4184,7 +4184,7 @@ function wsTabRowEndHtml(c){
       <button type="button" role="menuitem" data-ws-export-go="ws-word">${icon('file','w-3.5 h-3.5')}Word<span class="mnote">${esc(i18t('ct_redline_word'))}</span></button>
       ${record?`<button type="button" role="menuitem" data-ws-export-go="ws-pdf-record">${icon('shield','w-3.5 h-3.5')}Record<span class="mnote">sealed + audit</span></button>`:''}
     </div></details>`;
-  const focus=(PORTAL_MODE)?'':`<button type="button" class="ui-btn ws-focus-door" data-ws-focus-door
+  const focus=(PORTAL_MODE)?'':`<button type="button" class="ui-btn ws-focus-door" data-ws-focus-door aria-pressed="${_wsFocus?'true':'false'}"
     title="${esc(i18t('ct_focus_mode'))}" aria-label="${esc(i18t('ct_focus_mode'))}" aria-pressed="false">${icon('scan','w-3.5 h-3.5')}</button>`;
   return docReadSwitchHtml(c)+step+focus+exp+door;
 }
@@ -4297,8 +4297,7 @@ function wsPaintTabRowEnd(c){
     document.getElementById(b.getAttribute('data-ws-export-go'))?.click();
   }));
   const fd=end.querySelector('[data-ws-focus-door]');
-  if(fd) fd.addEventListener('click',()=>{ document.querySelector('.room-head [data-ws-focus]')?.click(); });
-  document.querySelectorAll('.room-head .room-focus').forEach(b=>{ b.hidden=!!fd; });
+  if(fd) fd.addEventListener('click',wsFocusToggle);
   if(!document._wsExportWired){
     document._wsExportWired=true;
     document.addEventListener('click',e=>{ document.querySelectorAll('details[data-ws-export][open]').forEach(d=>{ if(!d.contains(e.target)) d.open=false; }); });
@@ -7501,14 +7500,17 @@ function applyWsFocus(){
   });
   wsFocusChip();
 }
+/* ONE TOGGLE FOR EVERY DOOR — the ⋯ row, the negotiate head's square and the
+   Document tab's control-row door all press this. */
+function wsFocusToggle(){ _wsFocus=!_wsFocus; applyWsFocus(); }
 function wireWsFocus(c){
   if(_wsFocusFor!==c.id){ _wsFocus=false; _wsFocusFor=c.id; }
-  document.getElementById('ws-focus')?.addEventListener('click',()=>{ _wsFocus=!_wsFocus; applyWsFocus(); });
+  document.getElementById('ws-focus')?.addEventListener('click',wsFocusToggle);
   /* ONE HANDLER ANSWERS BOTH DOORS — the lesson f295 wrote down when Prepare
      redlines gained its second button: querySelectorAll, never querySelector,
      or the door drawn second is live-looking and dead. */
   document.querySelectorAll('[data-ws-focus]').forEach(el=>
-    el.addEventListener('click',()=>{ _wsFocus=!_wsFocus; applyWsFocus(); }));
+    el.addEventListener('click',wsFocusToggle));
   /* Bound ONCE on the document, not per paint: this page rebuilds itself on
      every save, and a listener per paint is a leak. */
   if(!_wsFocusKeyWired){
@@ -8298,7 +8300,13 @@ function roomHeadHtml(c,opts={}){
              new agreement on the contract's own, which is exactly what was
              asked — one rule, both pages, because on the contract head the
              checks are not drawn and 5 simply follows 0. */}
-      ${(!opts.preview&&!PORTAL_MODE)?`<button type="button" class="room-check room-focus" data-ws-focus
+      ${''/* ---- NOT ON THE CONTRACT ROOM'S HEAD (Young ruled 21 Sep 2026:
+             "Focus mode button is built in twice … delete the one next to
+             draft new agreement"). The Document tab's control row carries the
+             door (wsTabRowEndHtml) and it presses the SAME toggle
+             (wsFocusToggle); the ⋯ menu's row stays on every tab. The square
+             stays on the NEGOTIATE page's head, where it is the only one. */}
+      ${(backC&&!opts.preview&&!PORTAL_MODE)?`<button type="button" class="room-check room-focus" data-ws-focus
         title="${esc(i18t('ct_focus_mode'))}" aria-label="${esc(i18t('ct_focus_mode'))}" aria-pressed="false"
         >${icon('scan','w-4 h-4')}</button>`:''}
     </div>
