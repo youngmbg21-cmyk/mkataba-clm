@@ -17607,3 +17607,42 @@ lint error) and asks a geometry now.
   (a flat head row; the page name in the bar) and are named in the summary.
 - The contract room's own head carries no chat or check squares (they are the
   negotiate page's), exactly as before the run; the inventory's preface says so.
+
+## 21 Sep 2026 — the redesign, Phase 2 part two: the browser set against the parent
+
+The whole browser set (123 files) was run on the branch and again in a
+worktree at the unmodified parent: 42 red here, 37 there, and every difference
+was this run's. Fixed in the product: the density segments' click wiring
+matched the TABLE (it carries data-reg-density as its mode), so every row
+press repainted the register over the page it had just opened — bound by tag
+now, the mode and view segments with it; the reference's green and amber inks
+measured 4.39:1 on their own wash and are one step darker (#1A6F45, #A24E07);
+the Home figure's first ink read accent-700 by name and drew at 1.73:1 in the
+dark — it reads --accent-ink-700; the counterparty's reading verbs wore the old
+accent outline beside a hairline More and wear the row's one face. Twelve
+checks that typed a number where the claim was a token were re-pointed to the
+token resolved off the page. The colour census was re-recorded a second time,
+audited as a set difference (the redesign's own moves, nothing else); it was
+red at the parent too, on twelve of twenty screens. Lint 0 errors. Full suite
+after the fixes: 8,264 tests in 1,615 suites, 8,264 passed, 0 failed (5m26s).
+
+### Noticed, not fixed
+- Red at the parent in the same check, left as found (36 files): competing-
+  redlines, calendar-redesign 7/8, counterparty-reading 6, clause-editor 33h,
+  dialog-balance 1a/1d/1e/1g + harness, flat-rows 2d/2e/2f, keeps-your-place,
+  ladder 5b, metadata-carried, nego-redesign 1/1c, laptops (the crumb hides
+  7px on the negotiate page), negotiation-memo 7f, notes-two-rooms (the chat
+  door under the drawer's head), obligations-tab, negotiations-door (five
+  room tabs), paper-beside 7c/7g, paper-grows 5d/6, standard-paper 4/5,
+  settled-ask-reopen, payment-terms 1a/1c, portal-header-verbs, portfolio-
+  frame, phone, redline 5, selection 2–6, reopen-a-refusal, renewal-decision
+  6b, plain-english 10c, room-order-and-notices, signers-and-party, signing-
+  on-paper 4a, term-and-fields, six-fixes 4a, templates-tabs 7c/8a–8c +
+  harness, tracked-changes-scroll 2, upload-structure 2a/2b. Each is a claim
+  a later ruling (11–20 Sep) overtook and nobody re-pointed; none names a
+  control the redesign moved.
+- The negotiate page's crumb button hides 7px of its own content at every
+  laptop width (laptops-verify) — pre-existing, the rule is identical on both
+  trees.
+- Six pre-existing calls of PORTAL_MODE as a function (noted 14 Sep) still
+  stand.
