@@ -156,6 +156,52 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
       `ruler ${hz && hz.ruler0} → ${after.ruler} · first row now ${after.row}`);
     await page.screenshot({ path: path.join(OUT, '03-horizon-scrolled.png') });
 
+    /* ════ 4. THE BAR'S OWN ENDS ════
+       Young, 21 Sep 2026: "These bars are not the same. They do not have round
+       endings in the end." Only a painted page can answer this — the source
+       reads a token either way, and a radius that loses a cascade fight looks
+       perfectly correct in the file. Asked as a RELATION to the bar's own
+       height (a pill), never as a number: the artifact's 4px is half of its
+       own 8px bar and HaTi's bar is 14px. */
+    await page.evaluate(() => {
+      const c = JSON.parse(JSON.stringify(state.contracts[0]));
+      const d = new Date(Date.now() + 900 * 864e5).toISOString().slice(0, 10);
+      c.id = 'HZ-FAR'; c.name = 'Runs past the ruler';
+      c.expiry = d; c.metadata = Object.assign({}, c.metadata, { expiryDate: d });
+      state.contracts = state.contracts.concat([c]);
+      setView('calendar');
+    });
+    await page.waitForTimeout(1200);
+    await page.click('[data-cal-view="horizon"]').catch(() => {});
+    await page.waitForTimeout(1400);
+    const bars = await page.evaluate(() => {
+      const all = [...document.querySelectorAll('.cal-hz-bar')];
+      const read = el => {
+        if (!el) return null;
+        const cs = getComputedStyle(el), r = el.getBoundingClientRect();
+        return { h: Math.round(r.height), w: Math.round(r.width),
+          tl: cs.borderTopLeftRadius, bl: cs.borderBottomLeftRadius,
+          tr: cs.borderTopRightRadius, br: cs.borderBottomRightRadius };
+      };
+      const beyond = all.find(b => b.classList.contains('is-beyond'));
+      const plain = all.find(b => !b.classList.contains('is-beyond') && b.getBoundingClientRect().width > 30);
+      return { n: all.length, plain: read(plain), beyond: read(beyond) };
+    });
+    /* A PAINTED radius is a pill when it is at least half the box's height:
+       the browser resolves 999px down to what the box can take. */
+    const pill = (v, h) => v != null && parseFloat(v) >= h / 2 - 0.5;
+    ok('4-stage both shapes of bar are on the page',
+      !!bars && !!bars.plain && !!bars.beyond, bars && JSON.stringify({ n: bars.n }));
+    ok('4 a bar that ends on the ruler is a pill at BOTH ends',
+      !!bars && !!bars.plain && pill(bars.plain.tl, bars.plain.h) && pill(bars.plain.bl, bars.plain.h)
+        && pill(bars.plain.tr, bars.plain.h) && pill(bars.plain.br, bars.plain.h),
+      bars && JSON.stringify(bars.plain));
+    ok('4b a bar running past the ruler is round at the left and CUT at the right',
+      !!bars && !!bars.beyond && pill(bars.beyond.tl, bars.beyond.h) && pill(bars.beyond.bl, bars.beyond.h)
+        && parseFloat(bars.beyond.tr) === 0 && parseFloat(bars.beyond.br) === 0,
+      bars && JSON.stringify(bars.beyond));
+    await page.screenshot({ path: path.join(OUT, '04-horizon-bars.png'), fullPage: true });
+
     ok('no page errors', errors.length === 0, errors.slice(0, 2).join(' | '));
   } finally {
     await browser.close();

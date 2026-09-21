@@ -158,3 +158,47 @@ test('F348 — the name, the tag, the choices and the horizon', async t => {
     assert.match(CAL, /class="cal-lad-v"/, 'the money sub-line is kept');
   });
 });
+
+/* ── (5) THE BAR IS A PILL, AND A CUT RIGHT END MEANS IT RUNS PAST THE RULER ──
+   Young, 21 Sep 2026, over two renders side by side: "These bars are not the
+   same. They do not have round endings in the end."
+
+   THE RELATION, NEVER THE NUMBER. The artifact writes 4px on an 8px-tall bar,
+   which is a FULL PILL; HaTi's bar is 14px, so copying the 4 would copy the
+   wrong thing and draw a shallow corner. 999px is this product's own way of
+   saying "as round as this box can be" — the same idiom .rounded-full uses —
+   and it goes on following the bar if the bar's height is ever retuned.
+
+   AND THE RIGHT END SQUARES WHERE THE AGREEMENT OUTLASTS THE TWELVE MONTHS on
+   the ruler, which is the artifact's rule too ('4px 0 0 4px' on an over-run).
+   A pill says "it ends here". A cut end says "this is where the PICTURE stops,
+   not the agreement". The flag is the row builder's own `beyond` — the very
+   reading the note beside the bar already prints, so the shape and the words
+   cannot come to disagree about whether a row runs past the year. */
+test('F348 (5) — the horizon bar\'s own ends', async t => {
+  await t.test('(5a) a bar is a pill', () => {
+    const r = /\.cal-hz-bar\{[^}]*\}/.exec(CAL);
+    assert.ok(r, '.cal-hz-bar still has a rule');
+    assert.match(r[0], /border-radius:999px/);
+  });
+
+  await t.test('(5b) and the right end is cut where the row runs past the ruler', () => {
+    assert.match(CAL, /\.cal-hz-bar\.is-beyond\{border-radius:999px 0 0 999px\}/);
+  });
+
+  await t.test('(5c) the flag is the row\'s own `beyond`, not a second reading', () => {
+    /* ONE READING, TWO READERS: the same const decides the shape and the
+       "beyond a year" words under it. */
+    assert.match(CAL, /const end=calHorizonPos\(r\.exp\), beyond=r\.days>365;/);
+    assert.match(CAL, /class="cal-hz-bar\$\{beyond\?' is-beyond':''\}"/);
+    assert.match(CAL, /\$\{beyond\?' ·&nbsp;'\+_esc\(i18t\('cal_hz_beyond'\)\)/);
+  });
+
+  await t.test('(5d) [wall] no length of bar is given a square end by accident', () => {
+    /* The only rule that takes the radius away names the over-run by class.
+       A second one would put the owner's report straight back. */
+    const hits = (CAL.match(/\.cal-hz-bar[^{]*\{[^}]*border-radius[^}]*\}/g) || []);
+    assert.equal(hits.length, 2, 'exactly two rules speak about this bar\'s corners');
+    assert.ok(hits.some(h => /\.is-beyond/.test(h)));
+  });
+});

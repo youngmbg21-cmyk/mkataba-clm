@@ -18105,3 +18105,49 @@ Lint 0 errors.
 - The artifact's table sets the reference, the stream, the value, the stage and
   the move at 12px where HaTi draws 13; only the two date columns were in the
   owner's red box, so only those moved.
+
+## 2026-09-21 — THE HORIZON BAR'S OWN ENDS (Young, over two renders side by side)
+
+*"These bars are not the same. They do not have round endings in the end."*
+
+MEASURED in a real browser first: every corner of `.cal-hz-bar` computed
+`0px` — the rule named no radius at all — where the artifact's own bar carries
+`border-radius:4px` on an 8px-tall bar, which is a full pill.
+
+### What changed
+`.cal-hz-bar` is a pill, and a bar whose agreement outlasts the twelve months
+on the ruler is cut square at the right.
+
+PIN THE RELATION, NOT THE NUMBER. Copying the artifact's `4px` would copy the
+wrong thing: HaTi's bar is 14px tall, so 4px there is a shallow corner rather
+than the shape the owner is pointing at. `999px` is this product's own way of
+saying "as round as this box can be" (`.rounded-full`'s rule) and it follows
+the bar if the bar's height is ever retuned. Measured: `999px` resolves to a
+full cap at 14px, and at 8px it would resolve to the artifact's own 4.
+
+THE CUT RIGHT END IS THE ARTIFACT'S RULE TOO — it writes `4px 0 0 4px` on an
+over-run. A pill says "it ends here"; a cut end says "this is where the
+PICTURE stops, not the agreement". The flag is the row builder's own `beyond`,
+the very reading the note under the bar already prints, so the shape and the
+words cannot come to disagree about whether a row runs past the year. No
+second reading, no new field, no route.
+
+### The checks
+f348 (5) — four claims, all four red at the parent.
+name-tag-horizon-verify section 4 — three checks in a real browser, all three
+red at the parent, which prints the report back verbatim:
+`{"h":14,"w":144,"tl":"0px","bl":"0px","tr":"0px","br":"0px"}` on an ordinary
+bar and `null` for the over-run shape, because at the parent there was no such
+shape to find. Asked as a RELATION (a painted radius of at least half the box's
+height is a pill), never as a number.
+Lint 0 errors.
+
+### Noticed, not fixed
+- `calHorizonPos` has no floor, so a contract expiring today draws a bar of
+  zero width — invisible, with only the date note under it. The artifact floors
+  its bar at 1.5% of the ruler for exactly this. Outside a report about ends.
+- HaTi draws a 2px dark tick (`.cal-hz-end`) at the bar's end and the artifact
+  draws none; with a rounded cap the tick now stands a little clear of the
+  fill at the top and bottom of the bar. Kept — it marks the exact expiry day,
+  which a rounded cap makes vaguer — and raised with the owner rather than
+  changed unasked.

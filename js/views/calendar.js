@@ -588,7 +588,7 @@ function calHorizonHtml(){
           ].filter(Boolean).join(' · ')}</span>
       </div>
       <div class="cal-hz-track">
-        <span class="cal-hz-bar" style="width:${(end*100).toFixed(2)}%;background:${tone}"></span>
+        <span class="cal-hz-bar${beyond?' is-beyond':''}" style="width:${(end*100).toFixed(2)}%;background:${tone}"></span>
         <span class="cal-hz-end" style="left:${(end*100).toFixed(2)}%"></span>
         ${nip}
         <span class="cal-hz-note ${inside?'in':'out'}" style="left:${(end*100).toFixed(2)}%">${note}${beyond?' ·&nbsp;'+_esc(i18t('cal_hz_beyond')):''}</span>
@@ -966,7 +966,23 @@ function calStyleCss(){ return `
          one rule, no branch, and no bar length can make it disappear. */}
   .cal-hz-track{position:relative;height:56px;
     background:repeating-linear-gradient(to right,var(--rule) 0 1px,transparent 1px calc(100%/12))}
-  .cal-hz-bar{position:absolute;left:0;top:9px;height:14px;opacity:.9}
+  ${''/* ---- THE BAR IS A PILL, AND A SQUARE RIGHT END MEANS "IT RUNS PAST
+         HERE" (Young reported it 21 Sep 2026: "These bars are not the same.
+         They do not have round endings in the end") ----
+         The artifact's own bar is 8px tall with a 4px radius, which is half
+         its height — a full pill. PIN THE RELATION, NOT THE NUMBER: HaTi's
+         bar is 14px, so a literal 4px here would be a shallow corner rather
+         than the shape the owner is pointing at. 999px is this product's own
+         way of saying "as round as this box can be" (.rounded-full's rule),
+         and it follows the bar if the bar is ever retuned.
+         THE RIGHT END SQUARES WHERE THE AGREEMENT RUNS BEYOND THE RULER, and
+         that is the artifact's rule too (it writes '4px 0 0 4px' on an over-
+         run). A pill says "it ends here"; a cut end says "this is where the
+         picture stops, not the agreement". The flag is the row builder's own
+         beyond flag, which the note beside it already reads — one reading, two
+         readers, so the shape and the words cannot disagree. */}
+  .cal-hz-bar{position:absolute;left:0;top:9px;height:14px;opacity:.9;border-radius:999px}
+  .cal-hz-bar.is-beyond{border-radius:999px 0 0 999px}
   .cal-hz-end{position:absolute;top:6px;width:2px;height:20px;background:var(--color-text);
     transform:translateX(-1px)}
   .cal-hz-nip{position:absolute;top:-2px;font-style:normal;font-size:var(--t-micro);color:var(--st-amber-fg);

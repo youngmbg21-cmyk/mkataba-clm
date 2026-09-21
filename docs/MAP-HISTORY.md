@@ -20513,3 +20513,49 @@ that the CARD was not bounded, so at a height where it grows past the viewport
 the PAGE scrolls instead and a sticky header travels with its rows. Sticky is
 relative to the nearest SCROLLING ancestor; giving the table that job is the
 whole of it.
+
+### The bars' own ends
+
+The horizon went back to the owner as a render and came back with one more
+sentence: *"These bars are not the same. They do not have round endings in the
+end."*
+
+Measured first, because a report about a shape is exactly the kind that can
+turn out to be an instrument fault. It was not. Every corner of `.cal-hz-bar`
+computed `0px` in a real page, and the rule in the source named no radius at
+all — it never had one. The artifact's own bar carries `border-radius:4px`.
+
+The interesting part is what NOT to copy. Four pixels on the artifact's bar is
+half of its 8px height, which is a full pill; HaTi's bar is 14px tall, so
+writing `4px` here would have reproduced the artifact's NUMBER and lost its
+SHAPE — a shallow rounded corner, which is not what the owner drew a box
+around. This file has paid for that mistake in enough other costumes to know
+it: pin the relation, not the number. `999px` is this product's own way of
+saying "as round as this box can be" — the rule `.rounded-full` already uses,
+and the one the filter chips wear — and the browser resolves it down to
+whatever the box can take. Measured, that is a full cap at 14px, and it would
+be the artifact's own 4 at 8px. If the bar's height is ever retuned the shape
+follows it with nothing to remember.
+
+The second half is the end that is NOT round, and that is the artifact's rule
+too: it writes `4px 0 0 4px` where the agreement outlasts the twelve months on
+the ruler. The reasoning is worth keeping because it is a piece of grammar
+rather than a decoration. A pill says *it ends here*. A cut end says *this is
+where the picture stops, not the agreement* — the bar has been clipped by the
+ruler, and the row is telling you so with its shape before you read the note.
+
+What decides it is the row builder's own `beyond`, the const that already
+governs the "beyond a year" words printed under the bar. One reading, two
+readers: the shape and the sentence cannot come to disagree about whether a
+row runs past the year, which is the whole reason it was not given a second
+test of its own.
+
+Two things were found on the way and deliberately left, both named to the
+owner rather than changed under a report about ends. `calHorizonPos` has no
+floor, so a contract expiring today draws a bar of zero width — invisible, with
+only its date note under it; the artifact floors its own bar at 1.5% of the
+ruler for exactly that case. And HaTi draws a 2px dark tick at the bar's end
+where the artifact draws none; with a rounded cap the tick now stands a little
+clear of the fill at the top and bottom of the bar. That one is kept on
+purpose: a pill end is vague about which day it means, and the tick is what
+makes the expiry exact.
