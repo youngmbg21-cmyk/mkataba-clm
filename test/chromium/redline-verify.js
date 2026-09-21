@@ -705,8 +705,10 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
              fill: probe(root.getPropertyValue('--accent-fill').trim()),
              amber: probe(root.getPropertyValue('--st-amber-fg').trim()) };
   });
-  check('14a both acts are filled with the workspace accent',
-    roundActs.send && roundActs.send === roundActs.close && roundActs.send === roundActs.fill,
+  /* RE-POINTED 21 Sep 2026 (the reference's head): Send all is the filled
+     act and Close round is a QUIET word beside it — no fill of its own. */
+  check('14a Send all is filled with the workspace accent and Close round is quiet',
+    roundActs.send && roundActs.send === roundActs.fill && roundActs.close === 'rgba(0, 0, 0, 0)',
     `send ${roundActs.send} · close ${roundActs.close} · --accent-fill ${roundActs.fill}`);
   check('14a and neither is the amber this page keeps for work owed',
     roundActs.send !== roundActs.amber && roundActs.close !== roundActs.amber,
@@ -2766,6 +2768,8 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       faceH: (() => { const f = r.querySelector('.rl-card-face');
         return f ? Math.round(f.getBoundingClientRect().height) : null; })(),
       verbLine: verbs.length ? getComputedStyle(verbs[0]).lineHeight : null,
+      /* the verb's own BOX (21 Sep 2026: the reference's .verb is 24px tall) */
+      verbH: verbs.length ? Math.round(verbs[0].getBoundingClientRect().height) : null,
       markBox: (() => { const i = r.querySelector('.rl-verb-i');
         if (!i) return null; const b = i.getBoundingClientRect();
         return { w: Math.round(b.width), h: Math.round(b.height) }; })() };
@@ -2824,11 +2828,13 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
      type-and-symbols-verify. */
   check('29j the verbs still sit on ONE line, marks and all',
     row29.faceRows === 1, `${row29.faceRows} line(s) for ${row29.nVerbs} verbs`);
-  check('29k and the row is no taller for them — the mark fits inside the verb\'s own line',
+  /* RE-POINTED 21 Sep 2026: the verb is the reference's 24px button now, so
+     the mark fits inside the verb's own BOX and the face is that one box tall. */
+  check('29k and the row is no taller for them — the mark fits inside the verb\'s own box',
     !!row29.markBox && row29.markBox.h > 0
-      && row29.markBox.h <= parseFloat(row29.verbLine || '0')
-      && row29.faceH === parseFloat(row29.verbLine || '0'),
-    `mark ${row29.markBox && row29.markBox.h}px · verb line ${row29.verbLine} · face ${row29.faceH}px`);
+      && row29.markBox.h <= (row29.verbH || 0)
+      && row29.faceH === row29.verbH,
+    `mark ${row29.markBox && row29.markBox.h}px · verb ${row29.verbH}px · face ${row29.faceH}px`);
   await page.screenshot({ path: path.join(OUT, '29-three-line-row.png') });
 
 

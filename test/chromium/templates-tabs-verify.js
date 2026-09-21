@@ -398,26 +398,29 @@ const BOX = sel => {
           tt: s.textTransform, ls: s.letterSpacing, bg: s.backgroundColor }; };
       return [...document.querySelectorAll('#tpl-wall-probe .tpl-ov-cards [data-tpl-ov-bucket]')].map(c => {
         const cr = c.getBoundingClientRect();
-        const bar = c.firstElementChild, br = bar.getBoundingClientRect();
+        /* 21 Sep 2026: the bar is the card's own TOP EDGE (the reference's
+           .tcard border-top), measured off the card itself. */
+        const ccs = getComputedStyle(c);
         const count = c.querySelector('.tpl-ov-count');
         const bd = count ? count.getBoundingClientRect() : null;
         const name = c.querySelector('.tpl-ov-name');
         const nr = name.getBoundingClientRect();
-        const labs = [...c.querySelectorAll('span')]
-          .filter(e => e.children.length === 0 && /^(Used|Deviation)$/.test(e.textContent.trim()));
-        const figs = labs.map(l => l.nextElementSibling).filter(Boolean);
+        /* the label is the span's own text; the figure is the <b> inside it */
+        const labs = [...c.querySelectorAll('.tpl-tcard-m > span')]
+          .filter(e => /^(Used|Deviation)$/.test((e.firstChild && e.firstChild.textContent || '').trim()));
+        const figs = labs.map(l => l.querySelector('b')).filter(Boolean);
         return {
           key: c.getAttribute('data-tpl-ov-bucket'),
           name: name.textContent.trim(),
           /* Measured against the card's INNER width: the bar sits inside the
              card's 1px border, which is where the demo's own draws. */
-          bar: { h: Math.round(br.height), w: Math.round(br.width), cw: c.clientWidth,
-            top: Math.round(br.top - cr.top), bg: getComputedStyle(bar).backgroundColor },
+          bar: { h: Math.round(parseFloat(ccs.borderTopWidth)), w: Math.round(cr.width), cw: Math.round(cr.width),
+            top: 0, bg: ccs.borderTopColor },
           count: count ? Object.assign(px(count), { txt: count.textContent.trim(),
             right: Math.round(cr.right - bd.right), aboveName: bd.top <= nr.top + 2 }) : null,
           nm: px(name),
           note: px(c.querySelector('.tpl-ov-note')),
-          labels: labs.map(e => Object.assign(px(e), { txt: e.textContent.trim() })),
+          labels: labs.map(e => Object.assign(px(e), { txt: (e.firstChild && e.firstChild.textContent || '').trim() })),
           figs: figs.map(e => Object.assign(px(e), { txt: e.textContent.trim() })),
         };
       });
@@ -453,8 +456,10 @@ const BOX = sel => {
        on a category card it carries that category's COUNT, which is the shape
        the owner's picture draws ("Company standard  26"). */
     check('6b · the count sits at the card\u2019s top right, on the name\u2019s own line',
+      /* RE-POINTED 21 Sep 2026: the count is the reference's mono figure —
+         meta size, label weight, the secondary ink — on the name's own line. */
       dm.every(c => c.count && /^\d+$/.test(c.count.txt)
-        && c.count.size === tok.card && c.count.weight === tok.title
+        && c.count.size === '12px' && c.count.weight === '500'
         && c.count.right <= 16 && c.count.aboveName),
       dm[0] && dm[0].count);
     /* THE LADDER, ONE RUNG LOWER (owner-asked 25 Aug 2026: "all the fonts need
@@ -466,16 +471,20 @@ const BOX = sel => {
     /* RE-POINTED: there is no meta line under the name any more — the section
        above says whether this is a library or a value stream and the count is
        on the name's own line, so a third line would print one of those twice. */
-    check('6d · the small text is one size and one ink — 12px regular, secondary',
-      dm.every(c => [c.note, ...c.labels].every(x =>
-        x.size === '12px' && x.weight === '400' && x.color === c.note.color)),
+    /* RE-POINTED 21 Sep 2026: the labels are 12px regular; the note is the
+       reference's micro line (11px) — both in a secondary ink, never the name's. */
+    check('6d · the small text is regular and secondary — labels 12px, the note micro',
+      dm.every(c => c.labels.every(x => x.size === '12px' && x.weight === '400' && x.color !== c.nm.color)
+        && c.note.size === '11px' && c.note.weight === '400' && c.note.color !== c.nm.color),
       dm[0] && { note: dm[0].note, label: dm[0].labels[0] });
     check('6e · the labels are sentence case, not the uppercase caps the panels use',
       dm.every(c => c.labels.length === 2 && c.labels.every(l => l.tt === 'none'))
       && /NEEDS ATTENTION|Needs attention/.test(attTxt),
       dm[0] && dm[0].labels.map(l => l.txt + ':' + l.tt));
-    check('6f · both figures are --t-card at --w-title — one rung above the name — and the count is the primary ink',
-      dm.every(c => c.figs.length === 2 && c.figs.every(f => f.size === tok.card && f.weight === tok.title))
+    check('6f · both figures are --t-body at --w-title, in mono — and the first is the primary ink',
+      /* RE-POINTED 21 Sep 2026: the figure is the reference's mono at BODY
+         size and strong weight — the same rung as the name, told apart by face. */
+      dm.every(c => c.figs.length === 2 && c.figs.every(f => f.size === tok.body && f.weight === tok.title))
       && dm.every(c => c.figs[0].color === c.nm.color),
       dm[0] && dm[0].figs);
 
@@ -607,7 +616,8 @@ const BOX = sel => {
         w: Math.round(g.getBoundingClientRect().width),
       }));
       return { h: Math.round(r.height), hidden: sec.hidden, secs, gl,
-        panels: sec.querySelectorAll('.tpl-ov-panels section').length };
+        /* 21 Sep 2026: the book's panels are the two named columns, not inner cards */
+        panels: sec.querySelectorAll('#tpl-ov-attention, #tpl-ov-mostused').length };
     });
     check('9a · the book is a real tab and it draws', !!bk && !bk.hidden && bk.h > 300,
       bk && { h: bk.h, hidden: bk.hidden });

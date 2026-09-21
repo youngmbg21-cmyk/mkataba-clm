@@ -285,7 +285,8 @@ describe('f173 · the column head is a caption and a count', () => {
        and it is simply narrower now — the number is said ONCE, and the head's
        own title is where. */
     assert.ok(p.$('.rl-idx-title'), 'the index names itself');
-    assert.match(p.$('.rl-idx-title').textContent, /\(\d+\)/,
+    /* RE-POINTED 21 Sep 2026: the count is the title's own <i> — "Redlines 5". */
+    assert.match((p.$('.rl-idx-title i') || {}).textContent || '', /^\s*\d+\s*$/,
       'and carries the count');
     assert.equal(p.$('#rl-cardfilter'), null, 'the retired filter says none');
     assert.equal(p.$('.rl-idx-n'), null, 'and no separate span says it either');

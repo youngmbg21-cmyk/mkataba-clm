@@ -7088,6 +7088,35 @@ function rlMarkLegendHtml(side){
     item('them', me === 'counterparty' ? 'ng_legend_them_cp' : 'ng_legend_them')}${
     item('base', 'ng_legend_plain')}</p>`;
 }
+/* ---- THE KEY, ON THE CONTROL ROW, NAMING THE PARTIES (Young, 21 Sep 2026:
+   the reference draws it beside the readings as "▭ Nandi Dairy ▭ Highland")
+   ---- Same two swatches, same classes, same colours as the column's key —
+   the colours are RELATIVE TO THE READER, so in the counterparty preview the
+   names swap and the swatches do not. The third line of the old key (plain
+   text = the last wording exchanged) rides the hover: a fact the reader
+   needs once, not on every paint. rlMarkLegendHtml is untouched and still
+   draws the column's key on THEIR page. */
+function rlCtlLegendHtml(c, rowSide){
+  const cp = (c && c.counterparty) ? String(c.counterparty) : i18t('ng_legend_them');
+  const ours = (typeof window.contractParty === 'function' && contractParty(c))
+    || (typeof window.FIRST_PARTY === 'string' && FIRST_PARTY) || i18t('ng_legend_you');
+  const usName = rowSide === 'counterparty' ? cp : ours;
+  const themName = rowSide === 'counterparty' ? ours : cp;
+  return `<span class="rl-ctl-legend" title="${_nea(i18t('ng_legend_plain'))}"><span><i class="rl-lg rl-lg-them"></i>${
+    _ne(themName)}</span><span><i class="rl-lg rl-lg-us"></i>${_ne(usName)}</span></span>`;
+}
+/* ---- THE PROGRESS PILE, AT THE FOOT OF THE COLUMN (the reference's last
+   pile: a heading, the bar, "N of M decided · Round R") ---- The bar and the
+   sentence are the head's own, moved; negoProgress is the one arithmetic and
+   the round is read RAW off c.negotiation (READING MUST NOT WRITE). Drawn on
+   our page only, where there is something to measure. */
+function rlProgressPileHtml(c, p, side){
+  if (!p || !p.total || window.PORTAL_MODE || side === 'counterparty') return '';
+  const round = c && c.negotiation && c.negotiation.round;
+  return `<div class="rl-prog"><div class="rl-band rl-prog-h"><span>${_ne(i18t('ng_progress_head'))}</span></div>
+    <div class="rl-prog-b"><div class="rl-idx-bar" role="img" aria-label="${_nea(i18t('ng_n_of_m_decided',{done:p.done,total:p.total}))}"><i style="width:${p.pct}%"></i></div>${
+      _ne(i18t('ng_n_of_m_decided',{done:p.done,total:p.total}))}${round ? ' · ' + _ne(i18t('ng_round_n',{n:round})) : ''}</div></div>`;
+}
 function rlLadderTrackHtml(track){
   if (!track || !Array.isArray(track.rows) || track.rows.length < 2) return '';
   const cell = r => `<span class="rl-tr-n rl-tr-${_ne(r.who)}">R${r.lab} ${_ne(String(r.n))}</span>`;
@@ -9657,6 +9686,7 @@ function renderRedline(){
         ${(rowSide !== 'counterparty' && !preview)
           ? `<button type="button" class="rl-seg rl-boardseg${_rlBoardOpen ? ' on' : ''}" data-rl-board aria-pressed="${_rlBoardOpen ? 'true' : 'false'}"
               title="${_nea(i18t('ng_board_title'))}">${_ne(i18t('ng_board'))}</button>` : ''}
+        ${rlCtlLegendHtml(c, rowSide)}
         <span class="rl-tabrow-gap"></span>
         <section class="rl-head">
           <div class="rl-head-id">
@@ -17027,12 +17057,14 @@ function redlineChangeCardsHtml(c, opts = {}){
          mistake that cannot be taken back. */
       out.push(relabel(door, i18t('act_edit')), take(/data-rl-send=/));
       discard = relabel(take(/data-rl-retract=/), i18t('ng_discard'));
-      /* THE REVIEW ASK IS OFF THE FACE (Young ruled 21 Sep 2026: the row is
-         Edit · Send · Ladder · Discard, as the artifact draws it). The act is
-         not lost: the head's Internal review button is the door onto the
-         same chooser, on every card's own page. Taken here so the sweep
-         below does not put it back. */
-      take(/data-rl-ask-review=/);
+      /* THE REVIEW ASK STAYS ON THE FACE (reversed the same day, 21 Sep 2026).
+         It was taken off here for the artifact's four-verb row, and that was
+         this pass's own reading, not the owner's word: the artifact has no
+         review feature and says nothing about it. A held change's way forward
+         is to ask its holder again, and that is a press ON THAT ROW (f161);
+         the head's Internal review button asks over every card. Nothing a
+         person could press disappears — THE ONE RULE. It rides the sweep
+         below as a quiet verb, before Ladder. */
     }
     for (const v of list) if (!seen.has(v)) out.push(v);
     if (tail) out.push(tail);
@@ -19277,8 +19309,11 @@ function redlinePanesHtml(c, opts = {}){
                    control on the screen says, and takes no pixel off the
                    contract — the sheet is in the other column. Drawn only
                    where there is something to be a key TO. */}
-            ${p.total ? rlMarkLegendHtml(side) : ''}
-            ${p.total ? `<div class="rl-idx-bar" role="img"
+            ${''/* ON OUR PAGE THE KEY IS ON THE CONTROL ROW AND THE BAR AT THE
+                   COLUMN'S FOOT since 21 Sep 2026 (the reference's placement —
+                   see rlCtlLegendHtml and .rl-prog). Their page keeps both here. */}
+            ${p.total && window.PORTAL_MODE ? rlMarkLegendHtml(side) : ''}
+            ${p.total && window.PORTAL_MODE ? `<div class="rl-idx-bar" role="img"
               aria-label="${_nea(i18t('ng_n_of_m_decided',{done:p.done,total:p.total}))}"><i
               style="width:${p.pct}%"></i></div>
             ${''/* ---- THE "N OF M DECIDED" ROW IS DELETED (owner-asked
@@ -19424,7 +19459,7 @@ function redlinePanesHtml(c, opts = {}){
           ${''/* cpPanel: this mount renders the clause panel a few lines below,
                  so the rows may draw their Open door onto it. A caller that
                  renders cards with no panel (none today) draws no door. */}
-          <div class="nego-index-scroll rl-cards" id="nego-cards">${negoLinkedBarHtml()}<div id="rl-changes">${redlineChangeCardsHtml(c, { ...opts, cpPanel: true })}</div></div>
+          <div class="nego-index-scroll rl-cards" id="nego-cards">${negoLinkedBarHtml()}<div id="rl-changes">${redlineChangeCardsHtml(c, { ...opts, cpPanel: true })}</div>${rlProgressPileHtml(c, p, side)}</div>
         </div>
       </aside>
       <!-- THE CLAUSE PANEL, on the other wall and on the same mechanism as the

@@ -808,6 +808,9 @@ describe('f246 (6) — the counterparty\'s column is untouched', () => {
     box.innerHTML = p.win.redlinePanesHtml(p.c,
       { side: 'counterparty', org: 'Nordkust Industri AB', hiddenIds: [] });
     assert.equal(box.querySelector('.rl-band'), null, 'no bands on their seat');
+    /* 21 Sep 2026: the progress pile at OUR column's foot is our seat's own —
+       their column draws neither it nor any band. */
+    assert.equal(box.querySelector('.rl-prog'), null, 'no progress pile on their seat');
     assert.equal(box.querySelector('.rl-card-d'), null, 'and not the owner\'s card shape');
     assert.ok(box.querySelector('.rl-card'), 'they still get a column of cards');
   });

@@ -3524,13 +3524,16 @@
      not the section can be shut, so a page of sections has an even
      rhythm; the chevron is the only thing that says "this opens".
      ============================================================ */
+  /* THE SECTION IS THE REFERENCE'S CARD (21 Sep 2026, prototype .sec/.sec-h/
+     .sec-b): an 8px corner, no shadow, 11px/16px head, 14px/16px/16px body,
+     12px between sections. One rule, every page that draws a section. */
   .sec-box{ background:var(--color-surface); border:1px solid var(--color-divider);
-    box-shadow:var(--shadow-sm); border-radius:var(--radius); margin-bottom:10px; min-width:0; }
+    box-shadow:none; border-radius:var(--radius-lg); margin-bottom:12px; min-width:0; }
   .sec-box.has-accent{ border-left-width:3px; border-left-style:solid; }
   .sec-box.is-flat{ background:none; border:0; box-shadow:none; margin-bottom:0; }
-  .sec-head{ display:flex; align-items:center; gap:12px; padding:10px 16px; min-width:0; }
+  .sec-head{ display:flex; align-items:center; gap:10px; padding:11px 16px; min-width:0; }
   .sec-head[data-sec-toggle]{ cursor:pointer; }
-  .sec-head.is-open{ border-bottom:1px solid var(--rule-faint); }
+  .sec-head.is-open{ border-bottom:1px solid var(--color-divider); }
   .sec-head:focus-visible{ outline:2px solid var(--color-accent); outline-offset:-2px; }
   .sec-t{ margin:0; font-size:var(--t-card); font-weight:var(--w-strong);
     font-family:var(--font-heading); flex:none; }
@@ -3574,7 +3577,7 @@
   .sec-acts{ display:flex; gap:8px; flex-wrap:wrap; padding:0 16px 13px; }
   .sec-foot{ margin:0; padding:0 16px 13px; font-size:var(--t-label);
     color:var(--color-neutral-600); }
-  .sec-body{ padding:12px 16px 14px; }
+  .sec-body{ padding:14px 16px 16px; }
   .sec-body > :first-child{ margin-top:0; }
   .sec-body > :last-child{ margin-bottom:0; }
   /* RULE 5: a row of controls becomes one sentence. */
@@ -5628,10 +5631,12 @@
      reader keeps their scroll place. `--tpl-rail-n` is the tone a count takes
      while its pile is NOT the live one (amber for work started, ruby for
      something going wrong); the live row's accent overrides it. */
-  .tpl-rail{display:flex;align-items:center;gap:var(--s-2);width:100%;border:0;background:none;
-    color:var(--color-neutral-700);font:inherit;font-size:var(--t-body);font-weight:var(--w-strong);
-    padding:7px 11px;border-radius:var(--radius);cursor:pointer;text-align:left;}
-  .tpl-rail-s{gap:9px;font-size:var(--t-meta);padding:6px 11px;}
+  /* THE ROW IS THE REFERENCE'S (.tpl-rail button, 21 Sep 2026): 30px, label
+     weight, the label shade; the lit row keeps its fill and goes strong. */
+  .tpl-rail{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;
+    color:var(--color-neutral-600);font:inherit;font-size:var(--t-body);font-weight:var(--w-label);
+    height:30px;padding:0 10px;border-radius:var(--radius);cursor:pointer;text-align:left;}
+  .tpl-rail-s{gap:8px;font-size:var(--t-body);padding:0 10px;}
   /* ════ A SELECTED ROW IS DARK, WITH WHITE WORDS (Young ruled it 19 Sep 2026)
      *"The highlighted selections are selected categories but the highlight is
      so faint you can barely notice it. shade should be darker and the words in
@@ -5650,9 +5655,9 @@
      neutral, so a selected value stream drew a mint bar with BLACK words —
      fainter still than the row above it, and the second thing the owner's
      screenshot rings. One class pair, one answer. */
-  .tpl-rail:hover{background:var(--color-accent-100);}
-  .tpl-rail.on,.tpl-rail.on:hover{background:var(--accent-fill);color:#fff;}
-  .tpl-rail-n{font-family:var(--font-mono);font-size:var(--t-label);
+  .tpl-rail:hover{background:var(--color-neutral-100);color:var(--color-text);}
+  .tpl-rail.on,.tpl-rail.on:hover{background:var(--accent-fill);color:#fff;font-weight:var(--w-strong);}
+  .tpl-rail-n{font-family:var(--font-mono);font-size:var(--t-micro);
     color:var(--tpl-rail-n,var(--color-neutral-500));font-variant-numeric:tabular-nums;}
   /* The count goes white too, held back so the label still leads. */
   .tpl-rail.on .tpl-rail-n{color:#fff;opacity:.82;}
@@ -5700,22 +5705,24 @@
      old wall printed it at the foot of everything, where it explained a
      number the reader had stopped looking at. */
   .tpl-glance{
-    display:grid; gap:20px 34px; align-items:start;
+    display:grid; gap:20px 40px; align-items:start;
     grid-template-columns:repeat(auto-fit,minmax(150px,max-content));
-    padding:2px 0 14px; margin-bottom:var(--s-4);
-    border-bottom:1px solid var(--color-divider);
+    padding:4px 0 18px; margin-bottom:0;
+    /* NO RULE UNDER IT (the reference's .glance, 21 Sep 2026): the first
+       section's own card edge is the line. */
   }
   .tpl-gl-l{
     font-size:var(--t-micro); font-weight:var(--w-title); letter-spacing:.09em;
     text-transform:uppercase; color:var(--color-neutral-600); margin:0 0 5px;
   }
+  /* THE FIGURE IS DATA, so it is mono (the reference's .glance .g .v). */
   .tpl-gl-v{
-    font-size:26px; font-weight:var(--w-title); line-height:1;
-    letter-spacing:-.02em; font-variant-numeric:tabular-nums; margin:0;
+    font-family:var(--font-mono); font-size:24px; font-weight:var(--w-strong); line-height:1.2;
+    letter-spacing:0; font-variant-numeric:tabular-nums; margin:0;
   }
   .tpl-gl-v small{
-    font-size:var(--t-body); font-weight:var(--w-body); letter-spacing:0;
-    color:var(--color-neutral-600); margin-left:5px;
+    font-family:var(--font-body); font-size:var(--t-label); font-weight:var(--w-body); letter-spacing:0;
+    color:var(--color-neutral-600); margin-left:6px;
   }
   .tpl-gl-n{
     font-size:var(--t-label); color:var(--color-neutral-600);
@@ -5723,8 +5730,64 @@
   }
   /* The book's sections are FLAT — the cards inside them carry their own
      edges, and a card wall inside a second card is two frames for one thing. */
+  /* THE BOOK'S SECTIONS ARE CARDS SINCE 21 Sep 2026 (the reference draws
+     them bordered; "flat" was the 19 Sep reading and is reversed). The
+     is-flat rule below is kept for any section still drawn flat. */
   .tpl-book .sec-box.is-flat > .sec-head{ padding-left:0; padding-right:0; }
   .tpl-book .tpl-ov-panels{ grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); }
+  /* ---- THE REFERENCE'S TEMPLATE CARD (.tcard): a 3px top bar in the
+     shelf's tone, name and mono count on one line, Used / Deviation as
+     label-over-mono-figure, the note in micro. No hairline inside. ---- */
+  .tpl-ov-cards{ gap:10px; }
+  .tpl-tcard{ background:var(--color-surface); border:1px solid var(--color-divider);
+    border-top:3px solid var(--rule-strong); border-radius:var(--radius-lg); padding:12px 14px;
+    text-align:left; display:flex; flex-direction:column; gap:8px; width:100%;
+    font:inherit; color:inherit; cursor:pointer; overflow:hidden; }
+  .tpl-tcard:hover{ border-left-color:var(--color-neutral-500); border-right-color:var(--color-neutral-500);
+    border-bottom-color:var(--color-neutral-500); }
+  .tpl-tcard-h{ display:flex; align-items:center; gap:8px; min-width:0; }
+  .tpl-tcard .tpl-ov-name{ min-height:0; line-height:1.3; font-size:var(--t-body); font-weight:var(--w-strong);
+    color:var(--color-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tpl-tcard .tpl-ov-count{ margin-left:auto; flex:none; font-family:var(--font-mono);
+    font-size:var(--t-meta); font-weight:var(--w-label); color:var(--color-neutral-500); }
+  .tpl-tcard-m{ display:flex; gap:16px; font-size:var(--t-label); color:var(--color-neutral-600); }
+  .tpl-tcard-m b{ display:block; font-family:var(--font-mono); font-size:var(--t-body);
+    font-weight:var(--w-strong); color:var(--color-text); }
+  .tpl-tcard .tpl-ov-note{ font-size:var(--t-micro); color:var(--color-neutral-500); line-height:1.45; }
+  /* ---- WHAT WANTS SOMEBODY, in the book: two columns inside ONE card, no
+     inner cards (the reference's grid2 with .sec-label heads). ---- */
+  .tpl-wants{ display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
+  @media (max-width:900px){ .tpl-wants{ grid-template-columns:1fr; } }
+  .tpl-sec-label{ font-size:var(--t-micro); letter-spacing:.09em; text-transform:uppercase;
+    color:var(--color-neutral-500); font-weight:var(--w-strong); margin-bottom:8px; }
+  .tpl-li{ display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:12px; align-items:center;
+    padding:8px 0; border-bottom:1px solid var(--color-divider); }
+  .tpl-li:last-child{ border-bottom:0; }
+  .tpl-dot{ width:8px; height:8px; border-radius:50%; background:var(--color-neutral-500); flex:none; }
+  .tpl-dot.is-amber{ background:var(--st-amber-dot); }
+  .tpl-li-t{ display:block; font-size:var(--t-body); font-weight:var(--w-label); color:var(--color-text);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tpl-li-s{ display:block; font-size:var(--t-label); color:var(--color-neutral-600); margin-top:1px; }
+  .ui-btn.tpl-btn-xs{ height:22px; min-height:0; padding:0 7px; font-size:var(--t-micro); font-weight:var(--w-strong); }
+  .tpl-bar{ display:block; width:100%; border:0; background:none; text-align:left; font:inherit;
+    color:inherit; cursor:pointer; padding:0; margin-bottom:6px; font-size:var(--t-label); }
+  .tpl-bar-r{ display:flex; align-items:center; gap:8px; margin-bottom:3px; min-width:0; }
+  .tpl-bar-r > span:first-child{ min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tpl-bar-n{ margin-left:auto; flex:none; font-family:var(--font-mono); }
+  .tpl-bar-t{ display:block; height:4px; background:var(--color-neutral-100); border-radius:2px; }
+  .tpl-bar-t > span{ display:block; height:4px; background:var(--accent-solid); border-radius:2px; }
+  .tpl-empty{ font-size:var(--t-label); color:var(--color-neutral-500); margin:0; }
+  /* ---- THE LIST'S SEARCH, the reference's .search: 30px, grey well. ---- */
+  .tpl-search{ display:flex; align-items:center; gap:8px; height:30px; width:260px; max-width:50%;
+    padding:0 10px; border:1px solid var(--color-divider); border-radius:var(--radius);
+    background:var(--color-neutral-100); color:var(--color-neutral-500); flex:none; }
+  .tpl-search:hover{ border-color:var(--rule-strong); }
+  .tpl-search svg{ width:14px; height:14px; flex:none; }
+  .tpl-search input{ flex:1; min-width:0; border:0; background:transparent; outline:none; font:inherit;
+    font-size:var(--t-body); color:var(--color-text); padding:0; }
+  .tpl-railcol{ display:flex; flex-direction:column; gap:2px; }
+  .tpl-railcol .tpl-sec-label{ padding:0 10px; margin:0 0 6px; }
+  .tpl-railcol .tpl-sec-label + .tpl-sec-label, .tpl-railcol .tpl-rail + .tpl-sec-label{ margin-top:16px; }
   /* THE NAME IS WHAT THE CARD IS SCANNED FOR, so it takes the card's whole
      width and wraps rather than ellipsising after eighteen characters — the
      badge moved down to the meta line to give it that width. Two lines, then

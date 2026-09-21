@@ -295,7 +295,8 @@ describe('f175 · the Tracked Changes head is a rule, not a box', () => {
        claim has never changed: the number is said once. The head's own title
        is the once. */
     assert.equal(p.$('#rl-cardfilter'), null, 'the filter is gone with its count');
-    assert.match(p.$('.rl-idx-title').textContent, /\(1\)/,
+    /* RE-POINTED 21 Sep 2026: the count is the title's own <i>, no brackets. */
+    assert.equal((p.$('.rl-idx-title i') || {}).textContent.trim(), '1',
       'and the head\'s own title carries it instead');
     /* RE-POINTED 25 Aug 2026 — PIN THE RELATION, NOT THE LITERAL. This asked
        for the ramp step by name; the accent-as-text sweep moved every such
@@ -392,7 +393,8 @@ describe('f175 · the Tracked Changes head is a rule, not a box', () => {
     r.win.renderRedline();
     assert.equal(r.win.document.querySelector('#rl-cardfilter'), null,
       'the retired control draws nowhere, empty book or not');
-    assert.match(r.win.document.querySelector('.rl-idx-title').textContent, /\(\d+\)/,
+    /* RE-POINTED 21 Sep 2026: the count is the title's own <i>. */
+    assert.match((r.win.document.querySelector('.rl-idx-title i')||{textContent:''}).textContent, /^\s*\d+\s*$/,
       'and the head carries the count, whole book, on its own');
   });
 });

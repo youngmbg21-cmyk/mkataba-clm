@@ -56,7 +56,9 @@ describe('f338 (1) — the lit filter row, and the rule that used to undo it', (
       'one declaration, and hover may not undo it');
   });
   test('1b the pale mint is DEMOTED to hover — it is what the fault was', () => {
-    assert.match(HTML, /\.tpl-rail:hover\{background:var\(--color-accent-100\)/);
+    /* RE-POINTED 21 Sep 2026: the hover is the reference's grey well; what the
+       claim pins is that the hover and the lit row are two colours. */
+    assert.match(HTML, /\.tpl-rail:hover\{background:var\(--color-neutral-100\)/);
     assert.ok(!/\.tpl-rail\.on\{background:var\(--color-accent-100\)/.test(HTML),
       'rgb(204,251,241) on white is the shade the owner could barely notice');
   });

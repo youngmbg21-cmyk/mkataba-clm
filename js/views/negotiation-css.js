@@ -5920,6 +5920,129 @@ function redlineLayoutCss(){
   .db-gap-w{color:var(--color-neutral-500);font-size:var(--t-label)}
   .db-foot{font-size:var(--t-label);color:var(--color-neutral-600);margin:12px 0 0;line-height:1.6}
 
+  ${''/* ================================================================
+         THE ARTIFACT'S COLUMN — THE ROWS AND THEIR VERBS (Young, 21 Sep 2026:
+         "REDLine card especially the action buttons do not look like the
+         artifact. The image shows how future state should look like")
+         ----------------------------------------------------------------
+         Every number below is the reference's own (prototype/
+         hati-redesign-reference.html: .nego-col, .nego-col-h, .pile-h, .rl,
+         .verb, .btn.sm), not a reading of a screenshot. Written LAST in the
+         sheet at the same weight as the rules it beats, so it wins by order
+         — no !important. Scoped to OUR seat's row (.rl-card-d) and this
+         page's own column; the counterparty's boxed card and the contract
+         tab keep the shapes further up.
+
+         THE COLUMN IS NOT A CARD ANY MORE: a hairline on its left, white,
+         flush with the paper's top. The head is one line — the name, the
+         count in mono, Send all filled and Close round a quiet word — over
+         the accent rule the reference draws under it.
+         A PILE HEADING IS A LABEL, NOT A STRIP: no fill, no edges, micro
+         caps, the count in mono at the wall; AWAITING YOU alone is amber
+         (the reference's .pile-h.hot), count included.
+         A ROW IS THREE LINES at 10px/16px: the clause at body size and
+         strong weight with its CHG id in 10px mono at the right; the
+         argument at label size; then the verbs LEFT-ALIGNED as small
+         buttons — 24px tall, 12px strong, 6px of side padding, a 13px mark,
+         a 4px radius and a soft wash on hover — where they were bare words
+         at the right wall. Accept, Counter, Edit, Send are the accent;
+         Reject and Discard ruby; Ladder and Withdraw quiet.
+         THE LEGEND MOVED TO THE CONTROL ROW (rlCtlLegendHtml) and THE
+         PROGRESS BAR TO THE COLUMN'S FOOT (.rl-prog) — both drawn where
+         the reference draws them, neither deleted. The counterparty's own
+         page keeps both in the head, byte for byte. */}
+  ${''/* The card is the ASIDE (#rl-side wears .rl-col), not the pane inside it
+         — measured; the pane's own rule was answering nothing. */}
+  .redline-page #rl-side.rl-col,.redline-page #rl-changes-col{border:0;border-radius:0;
+    box-shadow:none;background:var(--color-surface)}
+  .redline-page #rl-side.rl-col{border-left:1px solid var(--color-divider)}
+  ${''/* AND THE WORKING AREA'S OWN FRAME GOES WITH IT: #rl-grid drew a 1px
+         edge and a 4px corner round BOTH columns, which is what kept the
+         column looking boxed after the aside's card was off. The reference's
+         .nego-grid draws no frame — the paper sits on the page ground and
+         the column's own left hairline is the only line. */}
+  .redline-page #rl-grid.nego-work{border:0;border-radius:0}
+  .redline-page .rl-side{padding:0}
+  .redline-page .rl-idx{padding:12px var(--s-4);border-bottom:2px solid var(--accent-solid)}
+  .redline-page .rl-idx-top{align-items:center;gap:8px;border-bottom:0;margin-bottom:0}
+  .redline-page .rl-idx-title{font-size:var(--t-card);font-weight:var(--w-strong);
+    border-bottom:0;padding-bottom:0;margin-bottom:0;line-height:1.3}
+  .redline-page .rl-idx-title i{font-family:var(--font-mono);font-size:var(--t-meta);
+    font-weight:var(--w-label);color:var(--color-neutral-500);margin-left:2px}
+  .redline-page .rl-idx-top .rl-unsent-go,
+  .redline-page .rl-idx-top .rl-close-go{margin-bottom:0;height:26px;padding:0 9px;
+    font-size:var(--t-label);font-weight:var(--w-label);border-radius:var(--radius)}
+  .redline-page .rl-close-go{background:transparent;color:var(--color-neutral-600)}
+  .redline-page .rl-close-go:hover:not(:disabled){background:var(--color-neutral-100);
+    color:var(--color-text);filter:none}
+  .redline-page .rl-close-go:disabled{opacity:.5}
+  .redline-page .rl-band,.redline-page .rl-band:first-child{background:none;border:0;
+    padding:12px var(--s-4) 4px;font-size:var(--t-micro);letter-spacing:.08em;
+    color:var(--color-neutral-500)}
+  .redline-page .rl-band b{font-family:var(--font-mono);letter-spacing:0;
+    font-weight:var(--w-label);color:inherit}
+  .redline-page .rl-band[data-rl-band="awaiting"],
+  .redline-page .rl-band[data-rl-band="awaiting"] b{color:var(--st-amber-fg)}
+  .redline-page .rl-card-d,.redline-page .rl-card-d:first-child,
+  .redline-page .rl-band + .rl-card-d{padding:10px var(--s-4);gap:4px;border-radius:0;
+    border-top:0;border-bottom:1px solid var(--color-divider)}
+  .redline-page .rl-card-d:hover{background:var(--color-neutral-100)}
+  .redline-page .rl-card-d .rl-card-meta{font-size:var(--t-body);font-weight:var(--w-strong);
+    line-height:18px}
+  .redline-page .rl-card-d .rl-card-id{font-family:var(--font-mono);font-size:var(--t-figure);
+    font-weight:var(--w-label);color:var(--color-neutral-500);letter-spacing:0;
+    background:none;border:0;padding:0}
+  .redline-page .rl-card-d .rl-card-sum{font-size:var(--t-label);line-height:17px;margin-top:0}
+  .redline-page .rl-card-d .rl-card-side,
+  .redline-page .rl-card-d > .rl-card-side{justify-content:flex-start;gap:2px;margin-top:2px}
+  .redline-page .rl-card-d .rl-card-face{justify-content:flex-start;gap:2px}
+  .redline-page .rl-card-d .rl-card-face button,
+  .redline-page .rl-card-d .rl-card-face button:has(.rl-verb-i){display:inline-flex;
+    align-items:center;gap:4px;height:24px;padding:0 6px;border-radius:var(--radius);
+    font-size:var(--t-label);font-weight:var(--w-strong);line-height:1}
+  ${''/* THE INK IS STATED ON THE PLAIN SELECTOR ONLY — (0,3,1) — so the four
+         rules below at (0,4,0) still win for Reject, Discard, Ladder and
+         Withdraw, and the locked door keeps its label shade. Written on the
+         :has() variant it scored (0,4,1) and painted every verb the accent
+         (redline-verify 11 caught it). */}
+  .redline-page .rl-card-d .rl-card-face button{color:var(--accent-ink)}
+  .redline-page .rl-card-d .rl-card-face button:hover{text-decoration:none;
+    background:var(--color-accent-100)}
+  .redline-page .rl-card-d .rl-card-face .rl-verb-i{width:13px;height:13px}
+  .redline-page .rl-card-d .rl-card-face .rl-acc{color:var(--accent-ink)}
+  .redline-page .rl-card-d .rl-card-face .rl-rej,
+  .redline-page .rl-card-d .rl-card-face [data-rl-retract]{color:var(--st-ruby-fg)}
+  .redline-page .rl-card-d .rl-card-face .rl-rej:hover,
+  .redline-page .rl-card-d .rl-card-face [data-rl-retract]:hover{background:var(--st-ruby-bg)}
+  .redline-page .rl-card-d .rl-card-face [data-rl-ladder],
+  .redline-page .rl-card-d .rl-card-face [data-rl-ask-review],
+  .redline-page .rl-card-d .rl-card-face [data-nego-withdraw]{color:var(--color-neutral-600)}
+  .redline-page .rl-card-d .rl-card-face [data-rl-ladder]:hover,
+  .redline-page .rl-card-d .rl-card-face [data-rl-ask-review]:hover,
+  .redline-page .rl-card-d .rl-card-face [data-nego-withdraw]:hover{background:var(--color-neutral-100);
+    color:var(--color-text)}
+  ${''/* The reference's .rl.quiet: a settled or refused row keeps its size and
+         drops its ink. rl-card-quiet is already stamped by the row builder. */}
+  .redline-page .rl-card-d.rl-card-quiet .rl-card-meta,
+  .redline-page .rl-card-d.rl-card-quiet .rl-card-sum{color:var(--color-neutral-500)}
+  ${''/* THE KEY ON THE CONTROL ROW, beside the readings, naming the two
+         parties (the reference's own placement). The plain-text key rides
+         the hover. Folds on the row's last two rungs like every other word. */}
+  .redline-page .rl-ctl-legend{display:inline-flex;align-items:center;gap:12px;margin-left:6px;
+    font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;flex:none}
+  .redline-page .rl-ctl-legend span{display:inline-flex;align-items:center;gap:4px}
+  ${''/* It folds on the LITE rung — before any word does — so a row that
+         fits with the legend gone keeps its words (nego-redesign 12, 1280). */}
+  .redline-page .rl-tabrow-lite .rl-ctl-legend,
+  .redline-page .rl-tabrow-half .rl-ctl-legend,
+  .redline-page .rl-tabrow-tight .rl-ctl-legend{display:none}
+  ${''/* THE PROGRESS PILE, at the foot of the piles (the reference's last
+         .pile): a heading, the bar, one sentence. */}
+  .redline-page .rl-prog{padding:0 0 16px}
+  .redline-page .rl-prog-b{padding:4px var(--s-4) 0;font-size:var(--t-label);color:var(--color-neutral-600)}
+  .redline-page .rl-prog .rl-idx-bar{margin:0 0 6px;height:6px;border-radius:3px;
+    background:var(--color-neutral-100)}
+
   `;
   document.head.appendChild(s);
 }

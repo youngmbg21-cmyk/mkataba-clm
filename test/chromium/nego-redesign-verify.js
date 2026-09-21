@@ -394,7 +394,13 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       const cs = sel => { const el = document.querySelector('#view-redline ' + sel);
         return el ? getComputedStyle(el) : null; };
       const pane = cs('.nego-pane.index');
+      const aside = cs('#rl-side');
       return { paneBg: pane && pane.backgroundColor, paneBorder: pane && pane.borderTopWidth,
+        asideTop: aside && aside.borderTopWidth, asideRadius: aside && aside.borderTopLeftRadius,
+        headRule: cs('.rl-idx') && cs('.rl-idx').borderBottomWidth,
+        headRuleColor: cs('.rl-idx') && cs('.rl-idx').borderBottomColor,
+        cardMetaWt: cs('.rl-card-d:not(.rl-card-quiet) .rl-card-meta') && cs('.rl-card-d:not(.rl-card-quiet) .rl-card-meta').fontWeight,
+        cardWordingWt: cs('.rl-card-d:not(.rl-card-quiet) .rl-card-sum') && cs('.rl-card-d:not(.rl-card-quiet) .rl-card-sum').fontWeight,
         cap: cs('.rl-idx-title') && cs('.rl-idx-title').fontSize,
         capRule: cs('.rl-idx-title') && cs('.rl-idx-title').borderBottomWidth,
         capRuleColor: cs('.rl-idx-title') && cs('.rl-idx-title').borderBottomColor,
@@ -443,9 +449,11 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        distinction is weight and ink, and a rule that lost a cascade fight
        looks perfectly correct in the stylesheet. .rl-card-diff is stale and
        its absence is still asserted. */
-    check('5 both lines read at one size, and weight and ink separate them',
-      col.cardWording === col.cardMeta
-      && parseFloat(col.cardMetaW) > parseFloat(col.cardWordingW)
+    /* RE-POINTED 21 Sep 2026 (the reference's .rl .t / .rl .a): the clause is
+       body size at strong weight, the argument one rung down at body weight. */
+    check('5 the clause leads at body size and strong weight, the argument one rung down',
+      parseFloat(col.cardMeta) > parseFloat(col.cardWording)
+      && parseFloat(col.cardMetaWt) > parseFloat(col.cardWordingWt)
       && col.cardMetaC !== col.cardWordingC
       && !col.oldPreview,
       `${col.cardMeta} ${col.cardMetaW} ${col.cardMetaC} / ${col.cardWording} ${col.cardWordingW} ${col.cardWordingC}`);
@@ -470,23 +478,28 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        claim protects is untouched — the column still names itself
        unmistakably, by the 2px accent rule that its own comment calls "the
        whole of what marks this as the column's name". */
+    /* RE-POINTED 21 Sep 2026: the 2px accent rule is the HEAD's own bottom
+       edge now (the reference's .nego-col-h), under the whole row. */
     check('5 the index names itself, by its rule rather than its size',
-      parseFloat(col.capRule) >= 2 && !/^rgba\(0, 0, 0, 0\)$/.test(col.capRuleColor || ''),
-      `rule ${col.capRule} ${col.capRuleColor} · cap ${col.cap}`);
+      parseFloat(col.headRule) >= 2 && !/^rgba\(0, 0, 0, 0\)$/.test(col.headRuleColor || ''),
+      `rule ${col.headRule} ${col.headRuleColor} · cap ${col.cap}`);
     check('5 and the whose-asks filter is gone from the head',
       !col.filter, String(col.filter));
     /* AND THE VERBS ARE BARE WORDS ON THIS COLUMN, so there is no button box
        left to have a height: what carries them is the line they sit on. The
        30px box was the bordered button the reference does not draw. */
-    check('5 the verbs sit on the row\'s own line, with no box of their own',
-      parseFloat(col.verb) > 0 && parseFloat(col.verb) <= 22, col.verb);
+    /* RE-POINTED 21 Sep 2026: the verb is the reference's 24px button. */
+    check('5 the verbs sit on the row\'s own line, at the reference\'s own height',
+      parseFloat(col.verb) > 0 && parseFloat(col.verb) <= 24, col.verb);
     /* THE OWNER'S OWN DECISION, KEPT AGAINST THE MOCK-UP. The render boxes this
        column in white; at the 300px the divider allows, a box round a column of
        boxes reads as clutter — so the pane stays transparent. Asserted so a
        later pass cannot quietly take it. */
-    check('5 and the column is STILL NOT A CARD — no ground, no border',
-      col.paneBg === 'rgba(0, 0, 0, 0)' && parseFloat(col.paneBorder) === 0,
-      `${col.paneBg} border ${col.paneBorder}`);
+    /* RE-POINTED 21 Sep 2026 (the reference's .nego-col): white, flush, a
+       hairline on its left only — no top edge and no corner. */
+    check('5 and the column is STILL NOT A CARD — no top edge, no corner',
+      parseFloat(col.paneBorder) === 0 && parseFloat(col.asideTop) === 0 && parseFloat(col.asideRadius) === 0,
+      `${col.paneBg} border ${col.paneBorder} · aside top ${col.asideTop} radius ${col.asideRadius}`);
     /* ---- REVERSED IN PLACE 23 Aug 2026, owner-chose render B1 ----
        This asserted the hairline box round a resting count, on the grounds that
        Render B's markers were a measured contrast decision older than the

@@ -308,8 +308,9 @@ describe('F93 (2) — the origin filter is gone, and nothing hides a card', () =
   test('the count above the cards counts the cards', async () => {
     const p = await page({ myChange: true });
     assert.equal(p.$('.rl-idx-n'), null, 'no separate count span');
-    assert.equal(
-      (p.$('.rl-idx-title').textContent.match(/\((\d+)\)/) || [])[1],
+    /* RE-POINTED 21 Sep 2026 (the reference's head): the count is the
+       title's own <i>, mono, no brackets — "Redlines 5". */
+    assert.equal(p.$('.rl-idx-title i').textContent.trim(),
       String(p.cardIds().length), 'the head\'s own title carries it');
   });
 });
@@ -431,11 +432,13 @@ describe('F93 (5) — the counterparty link gets the same column, seat-flipped',
     /* RE-POINTED 25 Aug 2026 with the head's own title — asked of the
        dictionary, never typed, so a rewording costs no test edit. RE-POINTED
        again 27 Aug 2026 when that title became "Redlines (N)". */
+    /* RE-POINTED 21 Sep 2026: the key reads "Redlines {n}" with no brackets;
+       the words are what is asked for, the count is the title's own <i>. */
     assert.ok(head.textContent.includes(
-      p.win.i18t('ng_redlines_head_n', { n: 1 }).replace(/\s*\(\d+\)\s*$/, '')));
+      p.win.i18t('ng_redlines_head_n', { n: 1 }).replace(/\s*\(?\d+\)?\s*$/, '')));
     /* RE-POINTED 26 Aug 2026 with the filter's retirement: the count is on the
        head's own title, on their seat as on ours — one builder, one answer. */
-    assert.match(box.querySelector('.rl-idx-title').textContent, /\(\d+\)/,
+    assert.match(box.querySelector('.rl-idx-title i').textContent, /^\s*\d+\s*$/,
       'the title carries the count on their seat too');
     assert.equal(box.querySelector('#rl-cardfilter'), null, 'and no whose-asks filter there');
     assert.equal(box.querySelector('#rl-card-filter'), null, 'and no filter dropdown on their seat either');

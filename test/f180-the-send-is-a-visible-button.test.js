@@ -161,7 +161,8 @@ describe('F180 — the counterparty\'s deal verbs are visible before any decisio
       'the header no longer draws a second batch send over the change column');
     const send = v.$('.rl-unsent-go');
     assertVisible(send, 'the Send button');
-    assert.match(send.textContent, /Send all 1|Send 1/,
+    /* RE-POINTED 21 Sep 2026: "Send all · 1 not sent" (ng_unsent_send). */
+    assert.match(send.textContent, /Send all · 1|Send all 1|Send 1/,
       'the button says what the press will do');
     assert.equal(send.getAttribute('data-redline-proxy'), 'nego-send-decisions',
       'and it is a PROXY onto the one postbox — never a second transport');

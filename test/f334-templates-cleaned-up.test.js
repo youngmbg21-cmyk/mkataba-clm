@@ -390,7 +390,8 @@ describe('f334 (6) — a press that filters may not move the reader', () => {
      what moved is which shade is which. */
   test('and the sheet carries the rail’s three states', () => {
     assert.match(HTML, /\.tpl-rail\{/);
-    assert.match(HTML, /\.tpl-rail:hover\{background:var\(--color-accent-100\)/,
+    /* RE-POINTED 21 Sep 2026: the hover is the reference's grey well. */
+    assert.match(HTML, /\.tpl-rail:hover\{background:var\(--color-neutral-100\)/,
       'the pale mint is the hover');
     assert.match(HTML, /\.tpl-rail\.on,\.tpl-rail\.on:hover\{background:var\(--accent-fill\);color:#fff/,
       'and the lit row is the filled accent with white words');

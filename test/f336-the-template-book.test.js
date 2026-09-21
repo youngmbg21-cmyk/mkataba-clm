@@ -179,9 +179,12 @@ describe('f336 (2) — the clothes follow the builder', () => {
   test('the two panels are one builder too', () => {
     assert.equal((SRC.match(/function tplOvPanelsHtml\(/g) || []).length, 1);
     assert.match(fnBody('tplOverviewHtml'), /tplOvPanelsHtml\(d\)/);
-    assert.match(fnBody('tplBookHtml'), /tplOvPanelsHtml\(d\)/);
-    assert.equal((SRC.match(/id="tpl-ov-attention"/g) || []).length, 1);
-    assert.equal((SRC.match(/id="tpl-ov-mostused"/g) || []).length, 1);
+    /* The book asks the same builder for its BARE shape (21 Sep 2026). */
+    assert.match(fnBody('tplBookHtml'), /tplOvPanelsHtml\(d, \{ bare: true \}\)/);
+    /* The two shapes share ONE name each (TPL_OV_IDS), stated once. */
+    assert.equal((SRC.match(/'tpl-ov-attention'/g) || []).length, 1);
+    assert.equal((SRC.match(/'tpl-ov-mostused'/g) || []).length, 1);
+    assert.equal((SRC.match(/id="tpl-ov-attention"/g) || []).length, 0);
   });
 
   test('and the rate’s ink is the attention rule’s own threshold, in one place', () => {

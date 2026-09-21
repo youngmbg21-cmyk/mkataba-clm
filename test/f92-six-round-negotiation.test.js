@@ -385,7 +385,8 @@ describe('F92 — the six-round negotiation, end to end', () => {
        number is still said, in one place, beside the thing it is about. */
     /* CLAIM REVERSED IN PLACE, 26 Aug 2026: the strip went, the act stayed. */
     assert.ok(!t.$('.rl-unsent'), 'the strip is gone');
-    assert.match(t.$('.rl-unsent-go').textContent, /Send all 1/,
+    /* RE-POINTED 21 Sep 2026: "Send all · 1 not sent" (ng_unsent_send). */
+    assert.match(t.$('.rl-unsent-go').textContent, /Send all · 1|Send all 1/,
       'the column still counts what is being held back, on the act itself');
     /* The internal note is still ours and still internal — checked on the
        RECORD here, because by this round the change it hangs off has been

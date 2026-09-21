@@ -17721,3 +17721,15 @@ thirteen-screenshots, room-head-fold (its control is gone — one claim).
   his ruling.
 - The fold behind the deleted Collapse control (_wsFactsFolded, #ws-facts
   is-folded) is dead code now.
+
+## 21 Sep 2026 — the redline column and the Templates page to the reference's numbers (branch claude/youthful-hopper-nr3jmm)
+
+Defects found and fixed on the way:
+- The working area's own frame (`#nego-root .nego-work` border + radius) kept the change column looking boxed after its card was off — found by walking the ancestors in a browser, invisible in the sheet.
+- `sectionHtml` returns no body inset; the book's first render put its cards flush against the section's edge. The bodies wrap in `.sec-body` now, as the Overview's do.
+- f93 (2)(5) and f37 had gone red at the previous commit (the "Redlines N" / "Send all · N not sent" wording) and were not re-run then. Re-pointed in place.
+
+Noticed, not fixed:
+- The Deal board tab on the control row is drawn bold at rest; the reference's `.rtabs button` is 500 with only the lit one strong. Not in this request.
+- The counterparty preview's control row names the parties swapped (colours relative to the reader) while their own page's column key still says "You / The other side" — two wordings of one key on two pages; the reference has no counterparty page to compare against.
+- `tplOverviewHtml` (no caller) still draws its panels as two inner cards with inline styles; only the book took the bare shape.

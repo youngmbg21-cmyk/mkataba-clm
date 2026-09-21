@@ -178,24 +178,27 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
 
   /* 5 · the legend */
   const leg = await page.evaluate(() => {
-    const p = document.querySelector('.rl-legend');
+    /* 21 Sep 2026: the key is on the CONTROL ROW, naming the parties. */
+    const p = document.querySelector('.rl-ctl-legend');
     if (!p) return null;
     const sw = Array.from(p.querySelectorAll('.rl-lg')).map(i => getComputedStyle(i).backgroundColor);
     return { text: p.textContent.replace(/\s+/g, ' ').trim(), sw, seen: p.getBoundingClientRect().height > 0 };
   });
-  check('5a the column head carries the key', !!leg && leg.seen && leg.sw.length === 3, leg && leg.text);
+  check('5a the control row carries the key', !!leg && leg.seen && leg.sw.length === 2, leg && leg.text);
   const marks = await page.evaluate(() => {
     /* NOT a nested mark: `ins.rl-them > del.rl-us` is transparent by design so
        the two layers do not paint over each other. The key is about the
        TOP-LEVEL colour. */
-    const us = Array.from(document.querySelectorAll('#rl-doc ins.rl-us, #rl-doc del.rl-us'))
+    /* the swatch is the ADDED run's wash (a struck run is transparent by the
+       15 Sep "fill means arriving" rule) */
+    const us = Array.from(document.querySelectorAll('#rl-doc ins.rl-us'))
       .find(el => !el.parentElement.closest('ins,del'));
-    const them = Array.from(document.querySelectorAll('#rl-doc ins.rl-them, #rl-doc del.rl-them'))
+    const them = Array.from(document.querySelectorAll('#rl-doc ins.rl-them'))
       .find(el => !el.parentElement.closest('ins,del'));
     return { us: us ? getComputedStyle(us).backgroundColor : null, them: them ? getComputedStyle(them).backgroundColor : null };
   });
   check('5b the key\'s swatches are the marks\' own colours', !!leg && !!marks.us && !!marks.them
-    && leg.sw[0] === marks.us && leg.sw[1] === marks.them, JSON.stringify({ leg: leg && leg.sw, marks }));
+    && leg.sw[1] === marks.us && leg.sw[0] === marks.them, JSON.stringify({ leg: leg && leg.sw, marks }));
 
   /* 6 · the deal board, both doors */
   const doors = await page.evaluate(() => document.querySelectorAll('[data-rl-board]').length);
@@ -390,7 +393,7 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
     const bare = marks.filter(el => !/\brl-(us|them)\b/.test(el.className)).length;
     const insUs = document.querySelector('#rl-doc ins.rl-us'), insThem = document.querySelector('#rl-doc ins.rl-them');
     const lone = document.querySelector(`#rl-doc .rl-clause[data-clause="${CSS.escape(cid)}"] ins.rl-them`);
-    const leg = document.querySelector('.rl-legend .rl-lg-them');
+    const leg = document.querySelector('.rl-ctl-legend .rl-lg-them');
     return { n: marks.length, bare,
       usUnderlined: insUs ? /underline/.test(getComputedStyle(insUs).textDecorationLine) : null,
       themUnderlined: insThem ? /underline/.test(getComputedStyle(insThem).textDecorationLine) : null,

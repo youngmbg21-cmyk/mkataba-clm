@@ -530,7 +530,8 @@ describe('Erik can answer the changes Wanjiru proposed', () => {
        unsent band on the change column, and the header's own #pt-nego-send
        stands down there so the reader is never offered two send buttons with
        two different counts. The signing screen still draws #pt-nego-send. */
-    assert.match(v.$('.rl-unsent-go').textContent, /Send all 1|Send 1/);
+    /* RE-POINTED 21 Sep 2026: the button says "Send all · 1 not sent". */
+    assert.match(v.$('.rl-unsent-go').textContent, /Send all · 1|Send all 1|Send 1/);
     /* ---- AND BOTH HALVES MOVED ONTO THE ACT, 13 Sep 2026 ---- The wall line
        was printing the count the Send button above it already carried, which is
        a count printed twice; it keeps the one thing only it says. BOTH HALVES

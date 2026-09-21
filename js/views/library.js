@@ -1509,8 +1509,12 @@ function tplPageRowHtml(r){
   const version=r.version==null?`<span style="color:var(--color-neutral-400)">—</span>`
     :r.mono?`<span style="font-family:var(--font-mono);font-size:var(--t-label);color:var(--color-neutral-500)">${_tplEsc(r.version)}</span>`
     :`<span style="font-weight:var(--w-title);color:var(--accent-ink-700)">${_tplEsc(r.version)}</span>`;
-  const B='class="ui-btn" style="font-size:var(--t-meta);padding:var(--s-1) var(--s-3)"';
-  const P='class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:var(--s-1) var(--s-3)"';
+  /* THE VERBS ARE THE REFERENCE'S .btn.xs (22px, micro, strong) so the row
+     holds its 40px. STILL DRAWN AT REST — the reference fades them in on
+     hover and the owner ruled against that by name on 19 Sep; the size is
+     the artifact's, the visibility is the owner's. */
+  const B='class="ui-btn tpl-btn-xs"';
+  const P='class="ui-btn ui-btn-primary tpl-btn-xs"';
   /* ════ EVERY VERB IS VISIBLE AT REST (Young ruled it 19 Sep 2026) ══════════
      *"I do not want to have to hover over a contract in order to see the other
      choices I have as far as buttons."*
@@ -1532,7 +1536,7 @@ function tplPageRowHtml(r){
      standard's "Edit" are the same act through the same door (tplLibEdit);
      the only difference is that a live one has its draft minted on the way. */
   let acts='';
-  const dots=`<button data-tpl-dots="${_tplEsc(r.kind)}:${_tplEsc(r.id)}" class="ui-btn" style="font-size:var(--t-meta);padding:var(--s-1) 9px" aria-label="${_tplEsc(i18t('lib_more_for',{name:r.name}))}">⋯</button>`;
+  const dots=`<button data-tpl-dots="${_tplEsc(r.kind)}:${_tplEsc(r.id)}" class="ui-btn tpl-btn-xs" aria-label="${_tplEsc(i18t('lib_more_for',{name:r.name}))}">⋯</button>`;
   if(r.kind==='company') acts=r.draft
     ?`<button data-tpllib-edit="${_tplEsc(r.id)}" ${P}>${i18t('lib_continue_editing')}</button>${dots}`
     :`${canManage?`<button data-tpllib-use="${_tplEsc(r.id)}" ${P}>${i18t('lib_use')}</button>`:''}${canManage?`<button data-tpllib-edit="${_tplEsc(r.id)}" ${B}>${i18t('act_edit')}</button>`:''}${dots}`;
@@ -1542,17 +1546,17 @@ function tplPageRowHtml(r){
     ?`<span class="badge" style="background:var(--st-green-bg);color:var(--st-green-fg)"><span class="dot" style="background:var(--st-green-dot)"></span>${i18t('lib_imported')}</span>`
     :(canManage?`<button data-sample-imp="${r.i}" ${B}>${i18t('lib_import_as_template')}</button>`:'');
   return `<tr>
-    <td style="padding:10px var(--s-2) 10px 14px;${RULE}">
+    <td style="padding:0 12px 0 14px;height:40px;${RULE}">
       <div style="display:flex;gap:11px;align-items:flex-start">
         ${''/* NO STRIPE beside the name (the artifact's row, 21 Sep 2026): the
                Stream column carries the colour. `stripe` is still computed
                for the draft/company tone and used by nothing here. */}
         <div style="min-width:0">
           <div style="display:flex;align-items:center;gap:var(--s-2);min-width:0">
-            <span style="font-size:var(--t-body);font-weight:var(--w-title);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(r.name)}</span>
+            <span style="font-size:var(--t-body);font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(r.name)}</span>
             ${r.draft?`<span style="flex:none;font-size:var(--t-figure);font-weight:var(--w-title);padding:1px 7px;border-radius:var(--radius);background:var(--st-amber-bg);color:var(--st-amber-fg)">Draft</span>`:''}
           </div>
-          <div style="font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px">${_tplEsc(r.sub)}</div>
+          <div style="font-size:var(--t-label);color:var(--color-neutral-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px">${_tplEsc(r.sub)}</div>
           ${''/* ---- THE PROBLEM IS PRINTED ON THE THING THAT HAS IT (18 Sep 2026) ----
                 It was a name in a panel on the OTHER tab: you read it there,
                 then came here and found the row again. The reason is BORROWED
@@ -1566,13 +1570,13 @@ function tplPageRowHtml(r){
            21 Sep 2026 — the reference frame). The chip's tone is the kind's
            own (LIB_TONE's family: company green, counterparty amber, HaTi
            grey); the stream cell carries the colour bar the name used to. */}
-    <td style="padding:10px var(--s-2);${RULE};white-space:nowrap"><span class="tpl-origin is-${_tplEsc(r.kind)}">${_tplEsc(r.origin)}</span></td>
-    <td style="padding:10px var(--s-2);${RULE};font-size:var(--t-meta);font-variant-numeric:tabular-nums">${version}</td>
-    <td style="padding:10px var(--s-2);${RULE};font-size:var(--t-meta);color:var(--color-neutral-700);white-space:nowrap">${r.stream&&FOLDERS[r.stream]
+    <td style="padding:0 12px;${RULE};white-space:nowrap"><span class="tpl-origin is-${_tplEsc(r.kind)}">${_tplEsc(r.origin)}</span></td>
+    <td style="padding:0 12px;${RULE};font-size:var(--t-meta);font-variant-numeric:tabular-nums">${version}</td>
+    <td style="padding:0 12px;${RULE};font-size:var(--t-meta);color:var(--color-neutral-700);white-space:nowrap">${r.stream&&FOLDERS[r.stream]
       ?`<span style="display:inline-flex;align-items:center;gap:6px"><span style="flex:none;width:3px;height:12px;background:${folderColor(r.stream)}"></span>${_tplEsc(tplShortStream(FOLDERS[r.stream].name))}</span>`
       :'<span style="color:var(--color-neutral-400)">—</span>'}</td>
-    <td style="padding:10px var(--s-2);${RULE};font-size:var(--t-meta);font-variant-numeric:tabular-nums;color:var(--color-neutral-700)">${r.used==null?'—':r.used}</td>
-    <td style="padding:10px 14px 10px var(--s-2);${RULE};white-space:nowrap"><div class="tpl-acts">${acts}</div></td>
+    <td style="padding:0 12px;${RULE};font-family:var(--font-mono);font-size:var(--t-meta);font-weight:var(--w-strong);font-variant-numeric:tabular-nums;color:var(--color-text)">${r.used==null?'—':r.used}</td>
+    <td style="padding:0 14px 0 12px;${RULE};white-space:nowrap"><div class="tpl-acts">${acts}</div></td>
   </tr>`;
 }
 /* ════ A FILTER REPAINTS THE ROWS, NOT THE PAGE (Young ruled it 19 Sep 2026)
@@ -1625,7 +1629,7 @@ function tplPagePaintRows(){
      `tabular-nums`; the heads did not, so the column read ragged even when
      every number under it was right. `num` is passed by the two count
      columns and by nothing else — a label over words stays a label. */
-  const th=(t,num)=>`<th style="font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);text-align:left;padding:7px var(--s-2);border-bottom:1px solid var(--color-divider)${num?';font-variant-numeric:tabular-nums':''}">${t}</th>`;
+  const th=(t,num)=>`<th style="font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);text-align:left;padding:0 12px;height:34px;border-bottom:1px solid var(--color-divider);white-space:nowrap${num?';font-variant-numeric:tabular-nums':''}">${t}</th>`;
   const hiddenKinds=hidden>0?Object.entries(rows.slice(CAP).reduce((m,r)=>{m[r.kind]=(m[r.kind]||0)+1;return m;},{}))
     /* Keyed on the KIND, not on the label's words — comparing the label to
        "Samples" stops being true the moment the label can be translated. */
@@ -2317,29 +2321,26 @@ function tplOvBucketNote(b){
    THERE IS NO META LINE. The section above the card says whether this is a
    library or a value stream, and the count is on the name's own line, so a
    third line would be one of those facts printed twice. */
+/* ---- AND IT IS THE REFERENCE'S CARD SINCE 21 Sep 2026 (Young: "templates
+   page does not look like the artifact"): the tone bar is the card's own top
+   edge, the name and its mono count share one line, NO HAIRLINE inside, the
+   two figures are label-over-mono-figure side by side, the note is micro.
+   The classes the tests read (.tpl-ov-card, .tpl-ov-name, .tpl-ov-count,
+   .tpl-ov-note) are unchanged; the dress is in index.html under .tpl-tcard.
+   A library card with no tone takes the strong rule, as the reference does. */
 function tplOvCardHtml(b){
-  return `<button class="tpl-ov-card" data-tpl-ov-bucket="${_tplEsc(b.key)}"
-      title="${_tplEsc(i18t('lib_ov_open_in_list'))}"
-      style="${TPL_OV_CARD};display:flex;flex-direction:column;align-items:stretch;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;padding:0;overflow:hidden"
-      onmouseover="this.style.borderColor='var(--accent-solid)'" onmouseout="this.style.borderColor='var(--color-divider)'">
-      <span style="display:block;height:3px;background:${b.tone||'transparent'}"></span>
-      <span style="display:block;padding:13px 14px 0">
-        <span class="tpl-ov-count" style="float:right;margin-left:10px;${TPL_OV_FIG};color:var(--color-neutral-500)"
-          title="${_tplEsc(i18tn('lib_ov_head',b.templates,{n:b.templates}))}">${b.templates}</span>
-        <span class="tpl-ov-name" style="display:block;font-size:var(--t-body);font-weight:var(--w-title);color:var(--color-text)">${_tplEsc(tplOvBucketLabel(b))}</span>
+  return `<button class="tpl-ov-card tpl-tcard" data-tpl-ov-bucket="${_tplEsc(b.key)}"
+      title="${_tplEsc(i18t('lib_ov_open_in_list'))}" style="border-top-color:${b.tone||'var(--rule-strong)'}">
+      <span class="tpl-tcard-h">
+        <span class="tpl-ov-name">${_tplEsc(tplOvBucketLabel(b))}</span>
+        <span class="tpl-ov-count" title="${_tplEsc(i18tn('lib_ov_head',b.templates,{n:b.templates}))}">${b.templates}</span>
       </span>
-      <span style="display:flex;gap:18px;margin:11px 14px 0;padding-top:11px;border-top:1px solid var(--color-divider);clear:both">
-        <span style="flex:1;min-width:0">
-          <span style="display:block;${TPL_OV_LBL}" title="${i18t('lib_ov_used_title')}">${i18t('lib_ov_used')}</span>
-          <span style="display:block;${TPL_OV_FIG};color:var(--color-text)">${b.used}</span>
-        </span>
-        <span style="flex:1;min-width:0">
-          ${''/* A LABEL THAT NEEDS EXPLAINING SAYS SO ON ITS OWN HOVER. */}
-          <span style="display:block;${TPL_OV_LBL}" title="${i18t('lib_ov_dev_rate_title')}">${i18t('lib_ov_dev_rate')}</span>
-          <span style="display:block;${TPL_OV_FIG};color:${tplOvRateInk(b)}">${b.rate==null?'—':Math.round(b.rate*100)+'%'}</span>
-        </span>
+      <span class="tpl-tcard-m">
+        <span title="${i18t('lib_ov_used_title')}">${i18t('lib_ov_used')}<b>${b.used}</b></span>
+        ${''/* A LABEL THAT NEEDS EXPLAINING SAYS SO ON ITS OWN HOVER. */}
+        <span title="${i18t('lib_ov_dev_rate_title')}">${i18t('lib_ov_dev_rate')}<b style="color:${tplOvRateInk(b)}">${b.rate==null?'—':Math.round(b.rate*100)+'%'}</b></span>
       </span>
-      <span class="tpl-ov-note" style="display:block;padding:9px 14px 13px;${TPL_OV_LBL}">${_tplEsc(tplOvBucketNote(b))}</span>
+      <span class="tpl-ov-note">${_tplEsc(tplOvBucketNote(b))}</span>
     </button>`;
 }
 function tplOvAttRowHtml(a){
@@ -2362,15 +2363,40 @@ function tplOvBarRowHtml(c, peak){
 }
 /* THE TWO PANELS, built once. The wall stacks them in its right-hand column
    and the book lays them side by side; what they SAY is the same reading. */
-function tplOvPanelsHtml(d){
+/* ONE NAME FOR EACH PANEL, whichever shape draws it — the ids the tests and
+   the page's own doors reach for. */
+const TPL_OV_IDS = { att: 'tpl-ov-attention', used: 'tpl-ov-mostused' };
+function tplOvPanelsHtml(d, o){
   const EMPTY='font-size:var(--t-meta);line-height:1.6;color:var(--color-neutral-600);margin:0';
+  /* THE BOOK'S SHAPE (21 Sep 2026, the reference): the two readings are two
+     COLUMNS inside the section's one card — micro heads, hairline rows with
+     the dot and an Open button, four-pixel bars — and no inner cards. The
+     wall's own shape below is untouched (it has no caller). */
+  if(o&&o.bare) return `<div class="tpl-ov-panels tpl-wants">
+    <div id="${TPL_OV_IDS.att}">
+      <div class="tpl-sec-label">${i18t('lib_ov_attention')}</div>
+      ${d.attentionShown.length?`<div class="tpl-list">${d.attentionShown.map(a=>`<div class="tpl-li">
+        <span class="tpl-dot${a.rank===0?' is-amber':''}"></span>
+        <span style="min-width:0"><span class="tpl-li-t">${_tplEsc(a.name)}</span><span class="tpl-li-s">${_tplEsc(a.why)}</span></span>
+        <button class="ui-btn tpl-btn-xs" data-tpl-ov-card="${_tplEsc(a.id)}" data-tpl-ov-name="${_tplEsc(a.name)}">${i18t('act_open')}</button>
+      </div>`).join('')}</div>`:`<p class="tpl-empty">${i18t('lib_ov_attention_none')}</p>`}
+      ${d.attentionMore>0?`<p class="tpl-empty" style="margin-top:var(--s-2)">${i18tn('lib_ov_more',d.attentionMore,{n:d.attentionMore})}</p>`:''}
+    </div>
+    <div id="${TPL_OV_IDS.used}">
+      <div class="tpl-sec-label">${i18t('lib_ov_most_used',{n:d.days})}</div>
+      ${d.mostUsed.length?d.mostUsed.map(c=>`<button class="tpl-bar" data-tpl-ov-card="${_tplEsc(c.id)}" data-tpl-ov-name="${_tplEsc(c.name)}">
+        <span class="tpl-bar-r"><span>${_tplEsc(c.name)}</span><span class="tpl-bar-n">${c.recent}</span></span>
+        <span class="tpl-bar-t"><span style="width:${d.peak?Math.max(6,Math.round(c.recent/d.peak*100)):0}%"></span></span>
+      </button>`).join(''):`<p class="tpl-empty">${i18t('lib_ov_most_used_none',{n:d.days})}</p>`}
+    </div>
+  </div>`;
   return `<div class="tpl-ov-panels" style="display:grid;gap:var(--s-3)">
-    <section id="tpl-ov-attention" style="${TPL_OV_CARD};padding:14px">
+    <section id="${TPL_OV_IDS.att}" style="${TPL_OV_CARD};padding:14px">
       <div style="${TPL_OV_HEAD};margin-bottom:var(--s-2)">${i18t('lib_ov_attention')}</div>
       ${d.attentionShown.length?d.attentionShown.map(tplOvAttRowHtml).join(''):`<p style="${EMPTY}">${i18t('lib_ov_attention_none')}</p>`}
       ${d.attentionMore>0?`<p style="${EMPTY};margin-top:var(--s-2)">${i18tn('lib_ov_more',d.attentionMore,{n:d.attentionMore})}</p>`:''}
     </section>
-    <section id="tpl-ov-mostused" style="${TPL_OV_CARD};padding:14px">
+    <section id="${TPL_OV_IDS.used}" style="${TPL_OV_CARD};padding:14px">
       <div style="${TPL_OV_HEAD};margin-bottom:var(--s-2)">${i18t('lib_ov_most_used',{n:d.days})}</div>
       ${d.mostUsed.length?d.mostUsed.map(c=>tplOvBarRowHtml(c,d.peak)).join(''):`<p style="${EMPTY}">${i18t('lib_ov_most_used_none',{n:d.days})}</p>`}
     </section>
@@ -2437,15 +2463,17 @@ function tplBookHtml(d){
 
   /* The wall's own cards, cut by section. One builder, two callers — the
      buckets already carry which section they belong to. */
-  const wall = sec => `<div class="tpl-ov-cards tpl-ov-cards-${sec}" style="display:grid;gap:var(--s-3)">${
-    d.buckets.filter(b => b.sec === sec).map(tplOvCardHtml).join('')}</div>`;
+  /* Inside the grammar's own body inset (.sec-body) — the builder leaves
+     the wrapping to its caller, as the Overview's callers do. */
+  const wall = sec => `<div class="sec-body"><div class="tpl-ov-cards tpl-ov-cards-${sec}" style="display:grid;gap:var(--s-3)">${
+    d.buckets.filter(b => b.sec === sec).map(tplOvCardHtml).join('')}</div></div>`;
 
   const secs = [];
   /* RULE 1 · NAME THE GROUP. RULE 3 · OPEN WHAT IS ACTED ON, reference opens
      shut — the library is what a reader came for and the streams are the
      same templates cut a second way, so the second one rests closed. */
   secs.push(sectionHtml({
-    key: 'tpl.book.library', title: i18t('lib_bk_library'), flat: true,
+    key: 'tpl.book.library', title: i18t('lib_bk_library'),
     summary: i18t('lib_bk_library_sum', { n: TPL_OV_LIBS.length, t: d.total }),
     body: wall('library'),
   }));
@@ -2460,7 +2488,7 @@ function tplBookHtml(d){
     b.sec === 'stream' && b.rate != null && b.scanned >= TPL_DEV_MIN);
   const worst = streams.slice().sort((a, b) => b.rate - a.rate)[0];
   secs.push(sectionHtml({
-    key: 'tpl.book.stream', title: i18t('lib_bk_streams'), flat: true, open: false,
+    key: 'tpl.book.stream', title: i18t('lib_bk_streams'), open: false,
     summary: worst
       ? i18t('lib_bk_streams_sum', { n: d.buckets.filter(b => b.sec === 'stream').length,
           name: bucketStreamName(worst), pct: Math.round(worst.rate * 100) })
@@ -2469,9 +2497,9 @@ function tplBookHtml(d){
     body: wall('stream'),
   }));
   secs.push(sectionHtml({
-    key: 'tpl.book.wants', title: i18t('lib_bk_wants'), flat: true,
+    key: 'tpl.book.wants', title: i18t('lib_bk_wants'),
     summary: i18tn('lib_bk_wants_sum', d.attention.length, { n: d.attention.length }),
-    body: tplOvPanelsHtml(d),
+    body: `<div class="sec-body">${tplOvPanelsHtml(d, { bare: true })}</div>`,
   }));
   return `<div class="tpl-book">${glance}${secs.join('')}</div>`;
 }
@@ -2652,8 +2680,10 @@ function renderTemplatesPage(){
   const railIt=(key,label,n,tone)=>`<button data-tpl-group="${key}" class="tpl-rail${_tplPage.group===key?' on':''}"${tone&&n?` style="--tpl-rail-n:${tone}"`:''}>
     <span style="flex:1">${label}</span><span class="tpl-rail-n">${n}</span></button>`;
   const streamIt=f=>`<button data-tpl-stream="${f.id}" class="tpl-rail tpl-rail-s${_tplPage.stream===f.id?' on':''}">
-    <span style="flex:none;width:8px;height:14px;border-radius:var(--radius);background:${folderColor(f.id)}"></span><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(tplShortStream(f.name))}</span></button>`;
-  const HEAD='font-family:var(--font-mono);font-size:var(--t-figure);letter-spacing:.12em;color:var(--color-neutral-500);text-transform:uppercase;padding:0 11px;margin:0 0 6px';
+    <span style="flex:none;width:3px;height:12px;background:${folderColor(f.id)}"></span><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(tplShortStream(f.name))}</span></button>`;
+  /* THE RAIL'S HEADS ARE THE REFERENCE'S .sec-label (21 Sep 2026): the
+     product's micro caps, not mono. Dressed by .tpl-railcol .tpl-sec-label. */
+  const HEAD='';
   /* NO SENTENCE UNDER THE TITLE and none under the tabs (owner-asked 25 Aug
      2026, "remove these explanations below the headers in all pages where the
      explanation is there"). This page owns its own header, so the sweep that
@@ -2708,29 +2738,28 @@ function renderTemplatesPage(){
 
     <section data-tpl-sec="list" ${tab==='list'?'':'hidden'}>
     <div class="tpl-cols" style="display:grid;gap:var(--s-4);align-items:start">
-      <div>
-        <div style="${HEAD}">${i18t('lib_show_me')}</div>
+      <div class="tpl-railcol">
+        <div class="tpl-sec-label" style="${HEAD}">${i18t('lib_show_me')}</div>
         ${railIt('ready',i18t('lib_pile_ready'),pile.ready)}
         ${railIt('writing',i18t('lib_pile_writing'),pile.writing,'var(--st-amber-fg)')}
         ${railIt('attention',i18t('lib_pile_attention'),pile.attention,'var(--st-ruby-fg)')}
         ${railIt('all',TPL_GROUP_LABEL.all,total)}
-        <div style="${HEAD};margin-top:var(--s-4)">${i18t('lib_where_from')}</div>
+        <div class="tpl-sec-label" style="${HEAD}">${i18t('lib_where_from')}</div>
         ${railIt('company',TPL_GROUP_LABEL.company,counts.company||0)}
         ${railIt('cp',TPL_GROUP_LABEL.cp,counts.cp||0)}
         ${railIt('builtin',TPL_GROUP_LABEL.builtin,counts.builtin||0)}
         ${railIt('sample',TPL_GROUP_LABEL.sample,counts.sample||0)}
-        <div style="${HEAD};margin-top:var(--s-4)">${i18t('lib_value_stream')}</div>
+        <div class="tpl-sec-label" style="${HEAD}">${i18t('lib_value_stream')}</div>
         ${Object.values(FOLDERS).map(streamIt).join('')}
         <!-- Our standards used to hang off this rail, because the clause
              library and playbook had no door of their own. They have one now,
              under Administration, and a governance screen with two homes is
              the fault WO N1 removed — so the rail no longer carries it. -->
       </div>
-      <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden">
-        <div style="display:flex;align-items:center;gap:var(--s-3);padding:var(--s-3) 14px;border-bottom:1px solid var(--color-divider)">
-          <input id="tpl-search" type="search" placeholder="${i18t('lb_search_templates')}" autocomplete="off" value="${_tplEsc(_tplPage.q)}"
-            style="flex:none;width:min(320px,50%);border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:7px var(--s-3);font:inherit;font-size:var(--t-meta);color:inherit;outline:none"/>
-          <span id="tpl-count" style="font-size:var(--t-label);color:var(--color-neutral-500)"></span>
+      <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);overflow:hidden">
+        <div style="display:flex;align-items:center;gap:var(--s-3);padding:10px 14px;border-bottom:1px solid var(--color-divider)">
+          <label class="tpl-search">${icon('search','w-3.5 h-3.5')}<input id="tpl-search" type="search" placeholder="${i18t('lb_search_templates')}" autocomplete="off" value="${_tplEsc(_tplPage.q)}"/></label>
+          <span id="tpl-count" style="font-size:var(--t-label);color:var(--color-neutral-600);margin-left:4px"></span>
         </div>
         <div id="tpl-rows" style="overflow-x:auto"></div>
       </div>
