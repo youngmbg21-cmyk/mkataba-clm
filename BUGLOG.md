@@ -17978,3 +17978,130 @@ npm test 8,298 tests, 0 failed. Lint 0 errors.
 ### Noticed, not fixed (proved red at the parent 55c470f in a worktree)
 - calendar-redesign-verify 7 and 8 (three claims) and its Share-dialog timeout.
 - INDUSTRY_LABEL in js/wizard.js is hardcoded English and is drawn on screen.
+
+## 21 Sep 2026 — THE SECOND FIVE IMAGES, then the name, the tag and the horizon
+
+Two batches, measured against prototype/hati-redesign-reference.html rendered
+side by side with HaTi before a line moved.
+
+### 1 · The table's dates, like for like with the artifact
+MEASURED, cell by cell: the artifact prints `30 Jun 2027` in the figure face at
+the label size in a quiet ink, in BOTH date columns. HaTi printed `30.06.2027`
+in the body face at body size in the page's own ink, so two columns of data
+read as prose in a row of figures. `regDotDate` is the ONE printer both columns
+already went through, so both moved together. The month follows the reader's
+LANGUAGE (measured: `30 Jun 2027` in English, `30 juni 2027` in Swedish), never
+a hand-written English name and never the number locale.
+FOUND ON THE WAY AND FIXED because it is the same function: a day it could not
+read printed `NaN.NaN.NaN`. The same NaN was reported on 13 Sep and again on
+17 Sep at two of four call sites; this is the one printer now, so the guard
+belongs in it.
+Insights moved to directly after Home, markup order and nothing else — which
+REVERSES 19 Sep's "Insights after Obligations", whose reasoning is kept.
+Comfortable is "Cozy", the artifact's own word and the shorter one.
+
+### 2 · The New agreement cards said a filename and a file hash
+MEASURED: every converted company standard read *"Converted from
+Sales_Distribution_Agreement.docx (original stored: f_d5bf1d72535657e62e6f)"*.
+That is PROVENANCE, written into the one column every card, picker and list
+prints as the thing's DESCRIPTION. Four cards of file hashes.
+TWO HALVES, AND THE ROUTE'S IS THE REAL FIX: POST /api/templates/upload stops
+writing it (where a document came from is `origin` and `source_type`, both
+already stored one line down, and templateProvenanceHtml is what draws it), and
+`naCardSub` refuses the shape for every row already on file. The fallback is
+the category as a short sentence — a FACT off the record, never a summary HaTi
+invented of a document nobody has described. The provenance rides the hover.
+The cards are one height because the sentence slot is ALWAYS drawn and reserves
+two lines: a grid stretches every cell to the tallest, so a clamp alone would
+cap the long one and still let an empty card shrink.
+The describe box is a textarea and wraps; same id, same cap, Enter still
+presses Find and Shift+Enter is a newline.
+
+### 3 · "Copilot request failed: fetch failed"
+A transport error written for a developer was the sentence a non-developer was
+shown, and it says nothing about whether the key is missing, the budget is
+spent or the provider is down — three problems with three different fixes.
+`triageWhy` is ONE reading with the four kinds the server's error already
+carries (aiDegrade has named them since 12 Sep), worded for a tile; the
+technical sentence rides the hover. EVERY step asks it: four catches printed a
+raw message and only one was reported, and a fix at one of four call sites is
+waiting for the next one.
+"Open fields are on the panel — This contract fills in from its own panel on
+the right" was a fact about the SCREEN, told to a reader looking at that panel.
+It names the first few and counts the rest now, the same shape the filled
+branch beside it uses. `contractOpenFieldNames` is one reading of both kinds of
+contract, and `tplFormOpenCount` is derived from the list rather than written
+a second time.
+
+### 4 · What Copilot read
+MEASURED at the parent: `1 departure` GREEN, `1 still open` GREEN, `0 found`
+GREEN — the tone answered "did this reading run", so good news was painted over
+every finding that wants you. It answers the RESULT now: quiet where nothing
+has been read, green where the reading is clear, amber where something wants
+you, ruby where a finding is serious, each row working out its own beside the
+figure it is about. Bold, no rules across the card, and the Open links are
+outlined buttons.
+
+### 5 · The negotiate head
+The inset rule under the fact row is gone — it said nothing the card does not
+(a white band on a grey page parts itself, and the control row below carries
+its own rule), and it was the last thing making the two heads differ, which is
+the opposite of the 12 Sep ruling. The Term read `1096 days to 10.09.2029 ·
+1084 days`: two numbers four characters apart, the second one clipped on the
+owner's own screen.
+
+### THE SECOND BATCH
+
+**A clause's name is not part of its wording.** MEASURED: the heading read
+*3. Stock Accuracy & Temperature SLA* and the wording proposed under it began
+with the same seven words, marked up as an insertion the counterparty is being
+asked to accept. THE PROMPT IS NOT THE WALL — it already asks for the clause's
+own wording — so `pbDropRepeatedHeading` sits at the top of `pbFitWording`,
+which is the one reading every proposal goes through. It REFUSES rather than
+guesses: the whole heading has to match, folded free of its number and case,
+and words have to be left after the cut. A one-word heading is never cut. The
+prompt gained the sentence anyway, since it should not be asking for the fault.
+
+**The prepared rows carry their kind.** Notice · Read · Memo · Chase at the
+left, in the reference's own shape, taking the ROW's tone rather than a second
+table, so the tag and the row can never disagree about how pressing it is.
+
+**A hidden control was making its own choices invisible — and that was MINE,
+from this morning.** `color:transparent` hid the closed chip and was inherited
+by the `<option>`s in the native popup, so the menu drew a column of blank rows
+with only the highlighted one legible. `opacity:0` hides the box and the box
+only; the options carry the page's ink and surface explicitly.
+
+**The Horizon is the artifact's.** The five bands LEAD (they were under a table
+that scrolls, where a reader never reaches them); the caption bar is gone (the
+page explaining itself under its own title, and the ▾'s hover still names the
+notice date); the months read as a ruler in the figure face rather than twelve
+uppercase column heads with a box each; the agreement line is who · reference ·
+value. AND THE TABLE IS THE SCROLLER, which is what makes sticky really stick:
+sticky is relative to the nearest SCROLLING ancestor, so while the page
+scrolled instead, the header travelled with the rows. Measured: the ruler holds
+at 227 while the table moves 260px under it. Said out loud: in a seeded browser
+the ruler already held, so what this fixes is the height at which the card
+would otherwise grow past the viewport.
+
+### The checks
+f347 (16 claims, 16 red at the parent), f348 (10 claims, 9 red; the one that
+passes is a named control), five-images-two-verify (26 checks, 23 red at the
+parent, which prints the report back: `30.06.2027` identical in both
+languages, `NaN.NaN.NaN`, the describe box an INPUT at 32px, every found-column
+cell one green, `30.06.2027 · 281 days`, and the head's `inset` shadow),
+name-tag-horizon-verify (15 checks, 8 red; two are named controls).
+Re-pointed in place with the reason beside each: f184's head claim (it pinned
+the row gap and the inset rule in ONE expression, so deleting the rule took the
+gap's claim with it), f338 (3a)(3f) — the rail order, reversed in place and
+naming what it reverses.
+Lint 0 errors.
+
+### Noticed, not fixed
+- `openFindings` reads `c.scan.dismissed.includes(...)` with no guard, so a
+  hand-built scan without that field throws inside the room's own render and
+  the tab row never draws. Found building a fixture; the product always writes
+  the field.
+- The artifact's table sets the reference, the stream, the value, the stage and
+  the move at 12px where HaTi draws 13; only the two date columns were in the
+  owner's red box, so only those moved.

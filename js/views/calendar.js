@@ -577,7 +577,15 @@ function calHorizonHtml(){
     return `<div class="cal-hz-row" data-sel="${_esc(r.c.id)}" role="button" tabindex="0">
       <div class="cal-hz-lab">
         <span class="n">${_esc(r.c.name)}</span>
-        <span class="m">${_esc(r.c.id)}${r.c.counterparty?' · '+_esc(r.c.counterparty):''}</span>
+        ${''/* THE ARTIFACT'S OWN ORDER — who it is with, then the reference,
+               then what it is worth. The counterparty leads because that is
+               what a reader scanning a wall of expiry dates is looking for,
+               and the money only where they may see it (the product's own
+               rule, borrowed rather than re-asked). */}
+        <span class="m">${[r.c.counterparty?_esc(r.c.counterparty):'', _esc(r.c.id),
+          ((typeof canViewValues!=='function'||canViewValues())&&Number(r.c.value)>0)
+            ? _esc(window.fmtMoneyShortOf?fmtMoneyShortOf(r.c):fmtMoneyShort(r.c.value)) : ''
+          ].filter(Boolean).join(' · ')}</span>
       </div>
       <div class="cal-hz-track">
         <span class="cal-hz-bar" style="width:${(end*100).toFixed(2)}%;background:${tone}"></span>
@@ -590,14 +598,30 @@ function calHorizonHtml(){
   }).join('') : `<div class="cal-empty">
       <div class="cal-empty-t">${_esc(i18t('cal_hz_none'))}</div>
       <div class="cal-empty-s">${_esc(i18t('cal_hz_none_sub'))}</div></div>`;
-  return `<section class="cal-card cal-grid">
-    <div class="cal-cardbar"><span class="cal-hz-t">${_esc(i18t('cal_hz_title'))}</span>
-      <span class="cal-hz-h">${_esc(i18t('cal_hz_head'))}</span></div>
+  /* ---- BUILT TO THE ARTIFACT (Young ruled 21 Sep 2026: "image 4 shows the
+     calendar i want ... image 5 shows what is currently in hati and do not
+     want") ----
+     THREE THINGS MOVED, and each was measured against
+     prototype/hati-redesign-reference.html before it did:
+       · THE LADDER LEADS. The reference puts the five bands across the top,
+         which is the shape of the question — how much is closing, then which
+         agreements — and HaTi had them under a table that scrolls, where a
+         reader never reaches them.
+       · THE CAPTION BAR IS GONE. "Twelve-month expiry horizon · Bar length is
+         time remaining" is the page explaining itself under its own title, and
+         the page's sub-line already says it. The ▾'s own hover still names the
+         notice date, so nothing that was explained is unexplained.
+         `cal_hz_title` and `cal_hz_head` are STALE, inert in both books.
+       · THE ROWS SCROLL UNDER THE RULER, which is the owner's own words for
+         it. The ruler was already sticky and the CARD was not the scroller —
+         the whole page moved instead, so the header went with it. The table
+         has its own scroller now and the card is the height it is given. */
+  return `<section class="cal-card cal-grid cal-hz-card">
+    <div class="cal-ladder">${bands}</div>
     <div class="cal-hz scroll-thin">
       <div class="cal-hz-ruler"><span class="cal-hz-col">${_esc(i18t('cal_hz_agreement'))}</span><div class="cal-hz-months">${heads.join('')}</div><span class="cal-hz-col cal-hz-col-dec">${_esc(i18t('cal_hz_decision'))}</span></div>
       <div class="cal-hz-rows">${body}</div>
     </div>
-    <div class="cal-ladder">${bands}</div>
   </section>`;
 }
 
@@ -903,7 +927,11 @@ function calStyleCss(){ return `
   ${''/* ---- THE HORIZON ---- The ruler's gridlines are drawn by the TRACK's own
          background, not by twelve elements per row: one gradient, repeated,
          so a row costs one box however many months it spans. */}
-  .cal-hz{flex:1;min-height:0;overflow:auto}
+  ${''/* THE TABLE IS THE SCROLLER, which is what makes the ruler's sticky
+         really stick: sticky is relative to the nearest SCROLLING ancestor, so
+         while the page scrolled instead the header travelled with the rows. */}
+  .cal-hz-card{flex:1 1 auto;min-height:0}
+  .cal-hz{flex:1 1 auto;min-height:0;overflow:auto}
   .cal-hz-t{font-size:var(--t-body);font-weight:var(--w-title);color:var(--color-text)}
   .cal-hz-h{font-size:var(--t-label);color:var(--color-neutral-600)}
   .cal-hz-col{padding:7px var(--s-3);font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.06em;
@@ -911,8 +939,13 @@ function calStyleCss(){ return `
   .cal-hz-ruler{display:grid;grid-template-columns:300px minmax(0,1fr) 150px;position:sticky;top:0;z-index:2;
     background:var(--color-surface);box-shadow:inset 0 -1px var(--color-divider)}
   .cal-hz-months{display:grid;grid-template-columns:repeat(12,minmax(0,1fr))}
-  .cal-hz-months span{padding:7px 6px;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.06em;
-    text-transform:uppercase;color:var(--color-neutral-500);border-left:1px solid var(--rule);
+  ${''/* THE MONTHS READ AS A RULER, NOT AS TWELVE COLUMN HEADS (21 Sep 2026).
+         The reference sets them in the figure face, mixed case, quiet, with no
+         box around each one — the gridlines in the track below already say
+         where a month begins, and drawing the boundary twice made the head a
+         grid of twelve cells. */}
+  .cal-hz-months span{padding:7px 6px;font-family:var(--font-mono);font-size:var(--t-micro);
+    font-weight:var(--w-body);color:var(--color-neutral-500);
     white-space:nowrap;overflow:hidden}
   .cal-hz-row{display:grid;grid-template-columns:300px minmax(0,1fr) 150px;align-items:center;
     box-shadow:inset 0 -1px var(--rule);cursor:pointer}
@@ -958,9 +991,14 @@ function calStyleCss(){ return `
   ${''/* The ladder: five bands under the ruler, each keeping its own tone on a
          top edge rather than as a fill, so five cards do not read as five
          alarms. */}
-  .cal-ladder{flex:none;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1px;
-    background:var(--color-divider);box-shadow:inset 0 1px var(--color-divider)}
-  .cal-lad{background:var(--color-surface);padding:9px var(--s-3);border-top:3px solid}
+  ${''/* THE LADDER LEADS, AND IT IS FIVE CARDS RATHER THAN FIVE CELLS OF ONE
+         BAND — the reference's own shape, each with its tone on the top edge.
+         It sits above the table now, so the rule that used to part it from the
+         rows above is gone with the position. */}
+  .cal-ladder{flex:none;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:var(--s-2);
+    padding:var(--s-3) var(--s-3) 0;background:none;box-shadow:none}
+  .cal-lad{background:var(--color-surface);padding:9px var(--s-3);border:1px solid var(--color-divider);
+    border-top-width:3px;border-radius:var(--radius)}
   .cal-lad-k{font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .cal-lad-n{font-size:var(--t-page);font-weight:var(--w-title);line-height:1.2;font-variant-numeric:tabular-nums}
   .cal-lad-v{font-size:var(--t-label);color:var(--color-neutral-600);font-variant-numeric:tabular-nums}

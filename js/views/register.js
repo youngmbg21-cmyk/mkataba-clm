@@ -149,9 +149,27 @@ function renderFolder(){
    2026: "25.08.2026 · 7 d") ---- one fixed shape on every table that prints
    a term end. Digits, not month words, so the months-follow-the-language
    rule has nothing to translate here and both languages read one format. */
+/* ---- ONE DAY PRINTER, AND IT IS THE ARTIFACT'S SHAPE (Young ruled 21 Sep
+   2026: "ensure the dates match ... like for like") ----
+   MEASURED side by side against prototype/hati-redesign-reference.html: the
+   artifact prints `30 Jun 2027` in the figure face and HaTi printed
+   `30.06.2027` in the body face. Both of the register's date columns already
+   went through this ONE function, so both move together and no screen can end
+   up with two spellings of a day.
+
+   THE MONTH FOLLOWS THE LANGUAGE, never jxLocale and never a hand-written
+   English name: `langLocale()` carries the person's language with the
+   workspace's region, so a Swedish reader gets a Swedish month out of the same
+   call. The artifact hard-codes en-GB because it is a drawing, not a product.
+
+   AND IT REFUSES RATHER THAN PRINTING NaN. A DAY IS A DAY (f328, 17 Sep): the
+   same NaN was reported twice because four call sites printed a day and only
+   one was guarded. This is the one printer now, so the guard belongs here. */
 function regDotDate(iso){
-  const d=new Date(iso+'T00:00:00');
-  return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;
+  const d=new Date(String(iso||'')+'T00:00:00');
+  if(isNaN(d.getTime())) return String(iso||'');
+  const loc=(typeof langLocale==='function')?langLocale():'en-GB';
+  return d.toLocaleDateString(loc,{day:'2-digit',month:'short',year:'numeric'});
 }
 /* ---- WHEN A CONTRACT WAS SIGNED, ON THE PAGE YOU SCAN (J-5.1) ----
    Owner-asked 31 Aug 2026: *"If I am in 2029 and i want to find a contract
@@ -201,8 +219,8 @@ function regSignedYears(){
 function regSignedCell(c){
   const d=regSignedOn(c);
   return d
-    ? `<span style="font-variant-numeric:tabular-nums;color:var(--color-neutral-700)">${regDotDate(d)}</span>`
-    : `<span style="color:var(--color-neutral-600)">—</span>`;
+    ? `<span class="reg-day">${regDotDate(d)}</span>`
+    : `<span class="reg-dash">—</span>`;
 }
 function folderExpiryCell(c){
   // the family-aware term: a master agreement shows the date its latest
@@ -1518,7 +1536,7 @@ function regRowsHtml(cs){
   return pageRows.map((c,i)=>{
     const eff=effectiveExpiry(c);
     const din=eff?daysUntil(eff):null;
-    const renDate=eff?regDotDate(eff):'—';   // the mockup's "25.08.2026" shape
+    const renDate=eff?regDotDate(eff):'—';   // the artifact's "30 Jun 2027" shape
     const renIn=din==null?'':(din<0?i18t('reg_days_over',{n:Math.abs(din)}):i18t('reg_in_days',{n:din}));
     // urgency colour: red under 30 days (and overdue), gold under 90, else neutral
     const renUrgent=din!=null&&din<30, renSoon=din!=null&&din>=30&&din<=90;
@@ -1565,7 +1583,7 @@ function regRowsHtml(cs){
     CELL.stream=`<td style="color:var(--color-neutral-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(regStreamName(c))}"><span style="display:inline-flex;align-items:center;gap:7px;min-width:0;max-width:100%"><span class="reg-tick" style="background:${folderColor(c)}"></span><span style="min-width:0;overflow:hidden;text-overflow:ellipsis">${esc(regStreamName(c)||'—')}</span></span></td>`;
     CELL.value=`<td style="text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:var(--w-body);white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}">${val}</td>`;
     CELL.signed=`<td style="white-space:nowrap">${regSignedCell(c)}</td>`;
-    CELL.expiry=`<td style="white-space:nowrap;font-variant-numeric:tabular-nums"><span style="font-weight:var(--w-body);color:${renDateColor}">${renDate}</span>${renIn?` <span style="font-size:var(--t-body);font-weight:var(--w-body);color:${renColor}">· ${renIn}</span>`:''}</td>`;
+    CELL.expiry=`<td style="white-space:nowrap"><span class="reg-day" style="color:${renDateColor}">${renDate}</span>${renIn?` <span class="reg-day" style="color:${renColor}">· ${renIn}</span>`:''}</td>`;
     /* Built only on the seat that draws it: the Negotiations seat has no ⋯
        column, and actBtns asks readings (contractOnHold) that a stage drawing
        only that seat need not carry — f184 caught the unconditional build. */

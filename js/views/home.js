@@ -910,7 +910,23 @@ function deskRowHtml(it){
      a dead selector is a mention the next reader has to rule out; which
      contract a row is about is on its own buttons, and the row is not pressable
      — every door it has is one of the verbs. */
+  /* ---- THE KIND, AS A TAG AT THE LEFT (Young ruled 21 Sep 2026: "the card in
+     hati does not include the highlighted features") ----
+     The reference draws every desk row with its kind first — Notice · Read ·
+     Memo — so three rows about three different KINDS of work can be told apart
+     without reading the sentence. HaTi drew none, so the only difference
+     between the rows was their wording.
+
+     ITS TONE IS THE ROW'S OWN, never a second table: `tone` is already worked
+     out above from urgency, so the tag and the row can never disagree about
+     how pressing this is. A kind with no word is drawn as nothing rather than
+     as a blank chip. */
+  const KIND_WORD={ chase:'desk_kind_chase', notice:'desk_kind_notice',
+                    deviations:'desk_kind_read', renewal:'desk_kind_memo' };
+  const kw=KIND_WORD[it.kind]||KIND_WORD.renewal;
+  const tagChip=kw?`<span class="hm-dk-tag ${tone}">${esc(i18t(kw))}</span>`:'';
   return `<div class="hm-row is-desk ${tone}">
+      ${tagChip}
       <div class="hm-desk-head">
         <span class="hm-rb"><span class="hm-rt">${txt}</span><span class="hm-rm">${meta}</span></span>
         <span class="hm-rtag">${esc(tag)}</span>

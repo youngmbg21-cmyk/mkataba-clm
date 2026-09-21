@@ -20378,3 +20378,138 @@ Found on the way and fixed because it is the same button: the English book said
 was built, and the confirm's own message says in BOTH books that nothing is
 deleted. Only the English word claimed otherwise, and it was the word on the
 button. The reference says "Put away" for the same reason.
+
+## THE SECOND FIVE IMAGES, AND THE NAME, THE TAG AND THE HORIZON (21 Sep 2026)
+
+Two batches on one day, both asking HaTi to match an artifact that is checked
+into this repository. That is worth saying plainly, because it changes the
+method: the reference is not a screenshot to be eyeballed, it is a page that
+renders, so every one of these differences was MEASURED by loading
+`prototype/hati-redesign-reference.html` in a browser beside HaTi and reading
+the computed styles off both.
+
+### The dates, and what "like for like" turned out to mean
+
+Read side by side, the artifact's Contracts table has a rule that HaTi did not
+have: PROSE at 13px and DATA at 12px in the figure face. The title and the
+counterparty are prose; the reference, the value and the two dates are data.
+HaTi drew everything at 13px in the body face, so two columns of dates read as
+sentences in a row of figures.
+
+The owner's red box covered the two date columns and the two segments, so only
+those moved, and the rest of the difference is named in BUGLOG rather than
+quietly fixed. What moved was the ONE printer both columns already shared,
+which is the whole reason this was a small change: `regDotDate` had two callers
+in the register, two in the calendar, one in the contract room and one on the
+Insights obligations table, and moving it moved all of them into one shape.
+
+Two things came with it that were not asked for and are defensible anyway. The
+month goes through `langLocale()`, because this codebase's standing rule is
+that a month follows the person's LANGUAGE and the artifact hard-codes en-GB
+because it is a drawing rather than a product — measured, a Swedish reader now
+gets `30 juni 2027` out of the same call. And the function refuses rather than
+printing `NaN.NaN.NaN`, which was reported on 13 September, fixed at one of
+four call sites, and reported again on 17 September from another. There is one
+printer now, so the guard belongs in it and nowhere else.
+
+### A filename is not a description
+
+The New agreement dialog read four file hashes back to the reader. The cause
+was one line in `POST /api/templates/upload`, which wrote
+`Converted from X.docx (original stored: f_…)` into the `description` column —
+the one field every card, picker and list prints as the thing's description.
+
+The interesting part is that fixing the route is not enough and fixing the
+browser is not enough either. Rows already on file carry the string, so the
+browser needs a reading that refuses the shape; and leaving the route as it was
+would mean every future conversion needing that refusal for ever. So both, and
+the route's is the one that matters: where a document came from is `origin` and
+`source_type`, both stored one line below, and `templateProvenanceHtml` is what
+draws them. An undescribed template is honestly undescribed.
+
+The fallback is the category, worded as a short sentence. That is a FACT off
+the record. The alternative — asking a model to summarise a document nobody has
+described — would put an invented sentence on a card that a person then drafts
+a contract from, and this product's rule is that an absence is stated rather
+than guessed.
+
+### "Copilot request failed: fetch failed"
+
+The owner's report was "Hati is not writing contracts briefs". The tile was
+telling the truth; it was telling it in the wrong language. Four catches in
+js/triage.js printed `String(e.message)` straight onto a tile, so a transport
+error written for a developer was the sentence a non-developer was shown — and
+it says nothing about whether the key is missing, the budget is spent or the
+provider is down, which are three problems with three different fixes.
+
+The vocabulary already existed. `aiDegrade` has named those four kinds in the
+chat since 12 September, and the server's error already carries `kind`. So this
+is the same four, worded for a tile rather than for a bubble, behind ONE
+reading that every step asks. The technical sentence is not lost — it rides the
+tile's hover, which is where this product puts machinery.
+
+### Good news painted over a finding
+
+`OV_READ_TONE` was keyed on `state`, which answered "did this reading run". So
+on a contract that had been read, `1 departure`, `1 still open` and `0 found`
+all drew GREEN. That is worse than no colour at all: it is the product saying
+"clear" over the two rows that are work.
+
+It answers the RESULT now, in this product's own vocabulary — quiet where
+nothing has been read, green where the reading is clear, amber where something
+wants you, ruby where a finding is serious — and each row works its own out
+beside the figure it is about, so the tone and the sentence cannot disagree.
+
+### A clause's name, twice
+
+The redline proposed under the heading *3. Stock Accuracy & Temperature SLA*
+began *"3.  Stock Accuracy & Temperature SLA.  The Provider shall maintain…"* —
+the same seven words, twelve pixels apart, the second copy marked up as an
+insertion the counterparty is being asked to accept.
+
+The prompt already asks for the clause's own wording. Tightening it further
+would be one more sentence a model may ignore on any given answer, and the
+reader would still be looking at the duplicate. So the wall is at
+`pbFitWording`, which is the one reading every proposal goes through.
+
+It refuses rather than guesses, and each refusal has a reason. The WHOLE
+heading has to match, folded free of its number, its punctuation and its case —
+a clause whose first sentence happens to begin with a word from its heading is
+untouched. A one-word heading like "Term" is never cut, because a one-word
+heading is too likely to be a real opening word. Words have to be left after
+the cut, so a proposal that is only the heading is handed back whole for the
+funnel's own empty-insert guard to answer. Measured on the owner's own case and
+on seven others.
+
+### The one I broke myself
+
+The filter chips were made reachable that morning by hiding the `<select>` with
+`opacity:0` AND `color:transparent`. The second of those is inherited by the
+`<option>`s in the NATIVE popup, which is painted by the browser outside the
+element — so the menu opened onto a column of blank rows with only the
+highlighted one legible. A control that opens onto nothing.
+
+`opacity:0` alone hides the box, and the options now state their own ink and
+surface so neither can inherit from a control that is deliberately invisible.
+Worth recording because the fault is a general one: anything you hide by
+colouring it away will hand that colour to whatever it owns.
+
+### The Horizon, and what "scroll under" needed
+
+Three things moved, each measured against the reference first. The five bands
+LEAD, because they were under a table that scrolls and a reader never reached
+them. The caption bar is gone — "Twelve-month expiry horizon · Bar length is
+time remaining" is the page explaining itself under its own title, which this
+rulebook has ruled against twice, and the page's sub-line already says it. The
+months read as a ruler in the figure face rather than as twelve uppercase
+column heads with a box each, because the gridlines in the track below already
+say where a month begins and drawing the boundary twice made the head a grid.
+
+The owner's own words for the last part were "make sure the contracts and dates
+scroll under the first line that has Agreement and the months". The ruler was
+already `position:sticky; top:0`, and measured in a seeded browser it already
+held — which is said out loud rather than claimed as a fix. What was wrong is
+that the CARD was not bounded, so at a height where it grows past the viewport
+the PAGE scrolls instead and a sticky header travels with its rows. Sticky is
+relative to the nearest SCROLLING ancestor; giving the table that job is the
+whole of it.

@@ -374,7 +374,63 @@ function pbFitInto(bodyHtml,quote,words){
   return { text, html, block:at, blocks:blocks.length };
 }
 
+/* ---- A CLAUSE'S NAME IS NOT PART OF ITS WORDING (Young reported it 21 Sep
+   2026: "Copilot added the name of the clause when the name of the clause was
+   already there. Ensure copilot does not duplicate information") ----
+   MEASURED on the owner's own screen: the heading read *3. Stock Accuracy &
+   Temperature SLA* and the wording proposed under it began *"3.  Stock
+   Accuracy & Temperature SLA.  The Provider shall maintain..."* — the same
+   seven words, printed twice, twelve pixels apart, with the second copy marked
+   up as an insertion the counterparty is being asked to accept.
+
+   THE PROMPT IS NOT THE WALL. AI_REDLINE_RULE already asks for the clause's own
+   wording and a model may still open with the heading it can see; a tighter
+   sentence is one more thing that can be ignored on any given answer, and the
+   reader would still be looking at it. This is the wall, at the one reading
+   every proposal goes through.
+
+   IT REFUSES RATHER THAN GUESSES. It cuts only where the opening really is
+   this clause's OWN name — folded free of its number, its punctuation and its
+   case — and only where words are left after the cut. A clause whose first
+   sentence happens to begin with a word from its heading is untouched, because
+   the whole heading has to match. `headingText` is what the record holds;
+   `headingHtml` is read only when there is no text, through the product's own
+   richToText. */
+function pbClauseHeadWords(cl){
+  let h = String((cl && cl.headingText) || '').trim();
+  if(!h && cl && cl.headingHtml && typeof window!=='undefined' && window.richToText){
+    try{ h = String(richToText(cl.headingHtml)||'').trim(); }catch(_){ h=''; }
+  }
+  /* The drafter's own numbering is not part of the name — "3. Stock Accuracy"
+     and "Stock Accuracy" are one heading. */
+  return h.replace(/^\s*\(?[0-9]+(?:\.[0-9]+)*\)?[.)]?\s*/, '').trim();
+}
+const _pbHeadFold = t => String(t||'').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim();
+function pbDropRepeatedHeading(text, cl){
+  const src = String(text==null?'':text);
+  const head = pbClauseHeadWords(cl);
+  const hf = _pbHeadFold(head);
+  if(!src.trim() || hf.split(' ').filter(Boolean).length < 2) return src;
+  /* THE DRAFTER'S OWN NUMBER COMES OFF FIRST, or the first full stop in
+     "3.  Stock Accuracy" would end the opening after the digit. Then the
+     opening is the run up to the first sentence end or line break, which is
+     the most a repeated heading can be. */
+  const after = src.replace(/^[\s\u00a0]*\(?[0-9]+(?:\.[0-9]+)*\)?[.)]?[\s\u00a0]*/, '');
+  /* THE SEPARATORS A DRAFTER REALLY USES between a heading and its wording:
+     a full stop, a dash, a colon or a middle dot. Widening the stop set is
+     safe because the part before it still has to fold to the WHOLE heading. */
+  const m = /^([^.\n\r\u2013\u2014:\u00b7]{1,140})[.\u2013\u2014:\u00b7]?[\s\u00a0]*/.exec(after);
+  if(!m) return src;
+  if(_pbHeadFold(m[1]) !== hf) return src;
+  const rest = after.slice(m[0].length).replace(/^[\s\u00a0.]+/, '');
+  /* NOTHING LEFT IS NOT AN ANSWER: a proposal that is ONLY the heading is
+     handed back untouched, so the funnel's own no-op and empty-insert guards
+     answer for it rather than this reading inventing a refusal. */
+  return /\p{L}/u.test(rest) ? rest : src;
+}
 function pbFitWording(cl,v,preferred,draft){
+  /* THE WALL, AT THE TOP, so both branches and both callers inherit it. */
+  if(draft) draft = pbDropRepeatedHeading(draft, cl);
   const body=cl&&cl.bodyHtml;
   const blocks=pbClauseBlocks(body);
   const n=blocks?blocks.length:0;
@@ -1200,4 +1256,4 @@ function openClausePicker(c, opts){
   document.querySelectorAll('[data-cl-ins]').forEach(b=>b.addEventListener('click',()=>{ const cl=clauseById(b.getAttribute('data-cl-ins')); closeModal(); if(onPick) onPick(cl); }));
 }
 
-Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,pbCarryDecisions,PB_TEXT_MIN,playbookText,PB_RANGE_READERS,pbRangeRead,PB_QUOTE_MIN,PB_QUOTE_LEAD,pbClauseBlocks,pbQuoteBlock,pbSwapBlock,pbPositionFigure,pbFitWording,pbFitInto,pbUnquotedLoss,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,playbookStale,playbookHashOf,deviationSummary,renderPlaybookSection,pbProposedClauses,applyClauseRedline,pbShowInsert,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});
+Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,pbCarryDecisions,PB_TEXT_MIN,playbookText,PB_RANGE_READERS,pbRangeRead,PB_QUOTE_MIN,PB_QUOTE_LEAD,pbClauseBlocks,pbQuoteBlock,pbSwapBlock,pbPositionFigure,pbFitWording,pbFitInto,pbUnquotedLoss,pbClauseHeadWords,pbDropRepeatedHeading,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,playbookStale,playbookHashOf,deviationSummary,renderPlaybookSection,pbProposedClauses,applyClauseRedline,pbShowInsert,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});

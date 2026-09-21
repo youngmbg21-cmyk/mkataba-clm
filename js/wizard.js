@@ -608,6 +608,36 @@ function naHit(r, q){
   return words.some(w=>hay.includes(w));
 }
 function naHasWords(q){ return String(q||'').toLowerCase().split(/[^\p{L}\p{N}]+/u).some(w=>w.length>=3); }
+/* ---- WHAT A CARD SAYS UNDER ITS NAME (Young ruled 21 Sep 2026: "the
+   highlighted cards have nonsensical words in them") ----
+   MEASURED on the owner's own screen: every converted company standard read
+   *"Converted from Sales_Distribution_Agreement.docx (original stored:
+   f_d5bf1d72535657e62e6f)"*. That is PROVENANCE — a filename and a storage id
+   — written into the `description` column, which is the one field every card,
+   picker and list prints as the thing's description. Four cards of file hashes.
+
+   TWO HALVES, and the route's is the real fix: POST /api/templates/upload
+   stops writing provenance into a description field (it is `origin`,
+   `source_type` and templateProvenanceHtml's job, and always was), and this
+   reading refuses the shape for every row already on file. NOTHING IS LOST —
+   the provenance rides the card's own hover, where machinery belongs.
+
+   THE FALLBACK IS A FACT, NEVER A GUESS: the category, worded as the short
+   sentence the owner asked for. HaTi does not invent a summary of a document
+   nobody has described. */
+const NA_PROVENANCE = /^\s*Converted from\b.*\(original stored:/i;
+function naCardSub(r){
+  const sub = String((r && r.sub) || '').trim();
+  if (sub && !NA_PROVENANCE.test(sub)) return sub;
+  const cat = (r && r.cat) || '';
+  const word = (typeof tplCategoryName==='function' && cat) ? tplCategoryName(cat) : '';
+  return word ? i18t('na_card_about', { kind: word }) : '';
+}
+/* The machinery a reader does not need on the face, but that must not vanish. */
+function naCardHint(r){
+  const sub = String((r && r.sub) || '').trim();
+  return NA_PROVENANCE.test(sub) ? sub : '';
+}
 function openNewAgreement(o){
   o=o||{};
   if(typeof canEdit==='function' && !canEdit()){ toast(i18t('wz_viewers_no_create'),'err'); return; }
@@ -624,17 +654,23 @@ function openNewAgreement(o){
   const sName=k=>(k&&typeof FOLDERS==='object'&&FOLDERS[k]&&FOLDERS[k].name)||'';
   const verOf=t=>'v'+((typeof templateVersionNo==='function')?templateVersionNo(t):1);
   const rows=()=>[
-    ...libOf().map(t=>({ kind:'lib', id:t.id, name:t.name, sub:t.description||'', stream:sName(t.folder),
+    ...libOf().map(t=>({ kind:'lib', id:t.id, name:t.name, sub:t.description||'', stream:sName(t.folder), cat:t.category,
       go:i18t('na_go',{ v:'v'+(t.publishedVersion||1), n:naUsageCount('lib',t.id) }) })),
-    ...mineOf().map(t=>({ kind:'mine', id:t.id, name:t.name, sub:t.description||t.blurb||'', stream:sName(t.folder),
+    ...mineOf().map(t=>({ kind:'mine', id:t.id, name:t.name, sub:t.description||t.blurb||'', stream:sName(t.folder), cat:t.category,
       go:i18t('na_go',{ v:verOf(t), n:naUsageCount('mine',t.id) }) })),
     ...forYouPick(tmpls).list.concat(tmpls.filter(t=>!forYouPick(tmpls).list.includes(t)))
-      .map(t=>({ kind:'tid', id:t.id, name:t.kind, sub:t.blurb||'', stream:sName(t.folder) })),
+      .map(t=>({ kind:'tid', id:t.id, name:t.kind, sub:t.blurb||'', stream:sName(t.folder), cat:t.category })),
   ];
   let sel=null, api=null;
-  const door=r=>`<button type="button" class="na-door${sel&&sel.kind===r.kind&&sel.id===r.id?' on':''}" data-wz-${r.kind}="${esc(r.id)}">
-      <b>${esc(r.name)}</b>${r.sub?`<span>${esc(r.sub)}</span>`:''}<span class="na-go">${esc(r.go)}${r.stream?` · ${esc(r.stream)}`:''}</span></button>`;
-  const chip=r=>`<button type="button" class="na-chip${sel&&sel.kind===r.kind&&sel.id===r.id?' on':''}" data-wz-tid="${esc(r.id)}" title="${esc(r.sub)}">${esc(r.name)}</button>`;
+  /* THE SENTENCE SLOT IS ALWAYS DRAWN, which is what makes the cards one
+     height: they are a grid, and a grid stretches every cell to the tallest,
+     so a clamp alone would cap the long one and still let a card with nothing
+     to say shrink. RESERVING IS WHAT FIXES THE HEIGHT — the arrival strip's
+     own lesson, 17 Sep 2026. */
+  const door=r=>{ const sub=naCardSub(r), hint=naCardHint(r);
+    return `<button type="button" class="na-door${sel&&sel.kind===r.kind&&sel.id===r.id?' on':''}" data-wz-${r.kind}="${esc(r.id)}"${hint?` title="${esc(hint)}"`:''}>
+      <b>${esc(r.name)}</b><span class="na-about">${esc(sub)}</span><span class="na-go">${esc(r.go)}${r.stream?` · ${esc(r.stream)}`:''}</span></button>`; };
+  const chip=r=>`<button type="button" class="na-chip${sel&&sel.kind===r.kind&&sel.id===r.id?' on':''}" data-wz-tid="${esc(r.id)}" title="${esc(naCardSub(r)||r.sub)}">${esc(r.name)}</button>`;
   const industry=()=>(typeof workspaceIndustry==='function')?workspaceIndustry():'';
   const lobHtml=()=>admin&&typeof INDUSTRY_TEMPLATES==='object'?`<label class="na-lob">${i18t('wz_line_of_business')}
         <select id="wz-industry"><option value="">${i18t('wz_not_set')}</option>${
@@ -656,7 +692,13 @@ function openNewAgreement(o){
     <div id="na-body" class="na-body${wide?' na-wide':''}">
       <div id="wz-pick" class="na-left">
         <div class="na-field"><label for="dr-say">${i18t('na_describe')}</label>
-          <div class="na-row"><input id="dr-say" class="na-inp" type="text" maxlength="${(typeof DRAFT_SENTENCE_MAX==='number')?DRAFT_SENTENCE_MAX:2000}" placeholder="${esc(i18t('dr_ph'))}" autocomplete="off"/>
+          <div class="na-row">${''/* A TEXTAREA, BECAUSE THE ASK IS A SENTENCE (Young ruled 21 Sep 2026:
+             "Describe what you need area should be able to wrap text"). A
+             single-line input scrolls sideways and shows a reader the last
+             eight words of what they typed. It keeps its id, its cap, its
+             placeholder and its Enter (Enter presses Find; Shift+Enter is a
+             newline), so nothing that reads #dr-say changed. */}
+            <textarea id="dr-say" class="na-inp na-say" rows="2" maxlength="${(typeof DRAFT_SENTENCE_MAX==='number')?DRAFT_SENTENCE_MAX:2000}" placeholder="${esc(i18t('dr_ph'))}" autocomplete="off"></textarea>
             <button type="button" id="dr-read" class="ui-btn"${ready?'':` disabled title="${esc(i18t('dr_no_ai'))}"`}>${icon('sparkle','w-3.5 h-3.5')} ${i18t('na_find')}</button></div>
           <span class="na-hint">${ready?i18t('na_find_hint'):i18t('dr_no_ai')}</span></div>
         <div id="dr-out"></div>
@@ -748,7 +790,9 @@ function openNewAgreement(o){
   const say=document.getElementById('dr-say'), read=document.getElementById('dr-read');
   let _t=null;
   say?.addEventListener('input',()=>{ clearTimeout(_t); _t=setTimeout(paintLists, 120); });
-  say?.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); if(read&&!read.disabled) read.click(); } });
+  /* ENTER STILL PRESSES FIND, and Shift+Enter is a newline — the box wraps
+     now, so a reader who wants a second line has a way to ask for one. */
+  say?.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); if(read&&!read.disabled) read.click(); } });
   if(read && ready) read.addEventListener('click',()=>{ if(typeof draftRead==='function') draftRead(); });
   paintLists();
   /* THE CARD IS NEVER EMPTY: the first door is lit on arrival, exactly as the
@@ -775,4 +819,4 @@ function naPickFromDraft(pick, prefill){
   return true;
 }
 
-Object.assign(window,{TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naHit,NA_PAPER_MIN_W});
+Object.assign(window,{TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naHit,naCardSub,naCardHint,NA_PAPER_MIN_W});

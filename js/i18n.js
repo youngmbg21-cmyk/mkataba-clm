@@ -5526,8 +5526,11 @@ const STRINGS = {
     reg_days_ago: '{n}d ago',
     reg_from_id: 'from {id}',
     reg_density: 'Rows',
-    reg_density_title: 'How tall each row is. Comfortable is easiest to read one at a time; condensed fits the most on screen.',
-    reg_density_comfortable: 'Comfortable',
+    reg_density_title: 'How tall each row is. Cozy is easiest to read one at a time; compact fits more on screen.',
+    /* "COZY", THE ARTIFACT'S OWN WORD (Young ruled 21 Sep 2026, ringing that
+       segment). It is also the shorter word, and MEASURED that segment was
+       the widest control on the row because of the longer one. */
+    reg_density_comfortable: 'Cozy',
     reg_density_compact: 'Compact',
     reg_density_condensed: 'Condensed',
     reg_sort: 'Sort',
@@ -5582,6 +5585,7 @@ const STRINGS = {
     na_describe: 'Or describe what you need',
     na_find: 'Find',
     na_find_hint: 'Copilot looks at your company standards first, then HaTi\u2019s. Say \u201cfrom HaTi\u2019s\u201d to skip yours.',
+    na_card_about: '{kind} paper you can draft from',
     na_company: 'Company standards',
     na_saved: 'Saved templates',
     na_hati: 'HaTi standard',
@@ -6456,6 +6460,14 @@ const STRINGS = {
        opposite pieces of news and read identically as a green tick. */
     tri_t_fill_none: 'No open fields to fill',
     tri_t_fill_panel: 'Open fields are on the panel',
+    /* ---- WHY A READING DID NOT HAPPEN, worded for a tile (21 Sep 2026).
+       The four kinds the server's error already carries, said the way a
+       reader can act on them; the technical sentence rides the hover. */
+    tri_why_nokey: 'Copilot has no API key yet — an admin adds one in Team & settings.',
+    tri_why_ratelimit: 'Copilot hit its rate limit. Try again in a few minutes.',
+    tri_why_spend: 'The daily Copilot budget is used up. An admin can raise it.',
+    tri_why_provider: 'Copilot returned an error. Try again in a moment.',
+    tri_why_offline: 'Copilot could not be reached just now. Try again in a moment.',
     tri_fill_form: 'This contract fills in from its own panel on the right.',
     tri_fill_upload: 'This is an uploaded document — HaTi cannot read its blanks yet.',
     tri_fill_nego: 'This contract is in negotiation — the wording is the negotiation\u2019s now.',
@@ -6528,6 +6540,10 @@ const STRINGS = {
        deleted. Only the English word claimed otherwise, and it is the word on
        the button. The reference's desk rows say "Put away" for the same
        reason. */
+    desk_kind_notice: 'Notice',
+    desk_kind_read: 'Read',
+    desk_kind_memo: 'Memo',
+    desk_kind_chase: 'Chase',
     desk_discard: 'Put away',
     desk_discard_all: 'Put all away',
     desk_discard_q: 'Put everything prepared away?',
@@ -12629,6 +12645,7 @@ const STRINGS = {
     na_describe: 'Eller beskriv vad du beh\u00f6ver',
     na_find: 'Hitta',
     na_find_hint: 'Copilot tittar f\u00f6rst p\u00e5 era f\u00f6retagsstandarder, sedan HaTis. Skriv \u201dfr\u00e5n HaTis\u201d f\u00f6r att hoppa \u00f6ver era.',
+    na_card_about: '{kind}-underlag att utgå från',
     na_company: 'F\u00f6retagsstandarder',
     na_saved: 'Sparade mallar',
     na_hati: 'HaTi-standard',
@@ -13432,6 +13449,11 @@ const STRINGS = {
     tri_t_fill_no: 'Tomma fält inte ifyllda',
     tri_t_fill_none: 'Inga tomma fält att fylla i',
     tri_t_fill_panel: 'Tomma fält finns i panelen',
+    tri_why_nokey: 'Copilot har ingen API-nyckel ännu — en administratör lägger till en under Team och inställningar.',
+    tri_why_ratelimit: 'Copilot nådde sin hastighetsgräns. Försök igen om några minuter.',
+    tri_why_spend: 'Den dagliga Copilot-budgeten är slut. En administratör kan höja den.',
+    tri_why_provider: 'Copilot svarade med ett fel. Försök igen om en stund.',
+    tri_why_offline: 'Copilot kunde inte nås just nu. Försök igen om en stund.',
     tri_fill_form: 'Det här avtalet fylls i från sin egen panel till höger.',
     tri_fill_upload: 'Det här är ett uppladdat dokument \u2014 HaTi kan ännu inte läsa dess tomma fält.',
     tri_fill_nego: 'Det här avtalet förhandlas \u2014 ordalydelsen tillhör förhandlingen nu.',
@@ -13481,6 +13503,10 @@ const STRINGS = {
     desk_sub_other: '{n} saker · inget har skickats eller sparats',
     /* STALE — see the English book. */
     desk_showing: 'visar {n} av {total}',
+    desk_kind_notice: 'Uppsägning',
+    desk_kind_read: 'Läst',
+    desk_kind_memo: 'PM',
+    desk_kind_chase: 'Påminnelse',
     desk_discard: 'Lägg undan',
     desk_discard_all: 'Lägg undan alla',
     desk_discard_q: 'Lägga undan allt som förberetts?',

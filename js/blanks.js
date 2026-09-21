@@ -236,6 +236,31 @@ function contractBlanks(c){
    30) is NOT open: the page states a figure and the reader has it. */
 const contractBlanksOpen = c => contractBlanks(c).filter(b => !String(b.value||'').trim());
 
+/* ---- WHICH FIELDS ARE STILL OPEN, BY NAME (Young reported it 21 Sep 2026:
+   "the open fields is not sharing anything meaningful") ----
+   The arrival tile read *"Open fields are on the panel — This contract fills
+   in from its own panel on the right."* Both halves are true and neither is a
+   FACT about this contract: it names no field, gives no count, and tells a
+   reader who is looking at the panel that the panel exists.
+
+   ONE READING, BOTH KINDS OF CONTRACT: a company standard declares its field
+   list (`tplFormOpenFields`, asked through window because js/blanks.js loads
+   on stages js/views/contract.js does not), and everything else has its blanks
+   IN THE PAPER, which is contractBlanksOpen's own answer. It NAMES, never
+   counts on its own — the caller takes the length — so the tile can print the
+   first few and say how many are left, which is exactly the shape the filled
+   branch beside it already uses. */
+function contractOpenFieldNames(c){
+  if(!c) return [];
+  if(c.templateForm){
+    let fs=[];
+    try{ fs=(typeof tplFormOpenFields==='function')?tplFormOpenFields(c):[]; }catch(_){ fs=[]; }
+    return fs.map(f=>String((f&&(f.label||f.fieldKey))||'').trim()).filter(Boolean);
+  }
+  try{ return contractBlanksOpen(c).map(b=>String((b&&b.label)||'').trim()).filter(Boolean); }
+  catch(_){ return []; }
+}
+
 /* ---- THE ONE WRITER ----
    The paper's own `[data-field]` handler calls this, and so does the panel,
    so the two are two DOORS onto one ACT. Written the other way — a panel with
@@ -383,6 +408,6 @@ function blanksAskPayload(c, left){
 if(typeof window !== 'undefined') Object.assign(window, {
   BLANK_USUAL_MIN, BLANK_MAX, BLANK_NEVER_FILLED,
   contractHasBlanks, contractBlanks, contractBlanksOpen, blankLabel,
-  BLANK_NONE_REASONS, contractBlanksNone,
+  BLANK_NONE_REASONS, contractBlanksNone, contractOpenFieldNames,
   contractBlankSet, contractBlankUsual, fillBlanksFromRecord, blanksAskPayload,
 });

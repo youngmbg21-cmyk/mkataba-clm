@@ -175,6 +175,12 @@ function triageTiles(c){
       headKey: (nothing && (heads[none] || heads.none)) ? (heads[none] || heads.none)
         : heads[working ? 'ing' : (ok ? 'ok' : 'no')],
       detail: d,
+      /* ---- THE TECHNICAL SENTENCE RIDES THE HOVER (21 Sep 2026) ----
+         `whyRaw` is what the server or the transport really said. It is a fact
+         an admin needs and not one a reader should be shown on the face, so it
+         goes where this product already puts machinery: the tile's own title.
+         Absent on every record on file, and absent on every tile that ran. */
+      hint: (!working && !ok && st && st.whyRaw && st.whyRaw !== (st.why || '')) ? st.whyRaw : '',
       /* NO COUNT ON A TILE THAT FILLED NOTHING: zero is drawn as a tick by the
          strip's own mark rule, which is the sentence being retired. */
       count: (working || nothing || count == null) ? null : count });
@@ -270,8 +276,24 @@ function triageTiles(c){
   }
   const NONE_WHY = { form: 'tri_fill_form', upload: 'tri_fill_upload',
                      nego: 'tri_fill_nego', none: 'tri_fill_nothing' };
+  /* ---- "OPEN FIELDS ARE ON THE PANEL" HAS TO SAY WHICH (Young reported it
+     21 Sep 2026: "the open fields is not sharing anything meaningful") ----
+     The `form` reason said *"This contract fills in from its own panel on the
+     right"* — true, and a fact about the SCREEN rather than about this
+     contract, told to a reader who is looking at that panel. It names the
+     first few and counts the rest now, which is the SAME SHAPE the filled
+     branch two lines below already uses, so the two halves of this tile read
+     alike. Every name is borrowed (contractOpenFieldNames); nothing here
+     counts twice. The old sentence survives as the answer where the names
+     cannot be read, which is the honest fallback rather than a guess. */
+  const openNames = (fillNone === 'form' && typeof contractOpenFieldNames === 'function')
+    ? (()=>{ try{ return contractOpenFieldNames(c); }catch(_){ return []; } })() : [];
   add('fill',
-    fillNone
+    (fillNone === 'form' && openNames.length)
+      ? [openNames.slice(0, 3).join(' · '),
+         (typeof i18tn === 'function') ? i18tn('tri_fill_left', openNames.length, { n: openNames.length }) : '']
+        .filter(Boolean).join(' — ')
+    : fillNone
       ? ((typeof i18t === 'function') ? i18t(NONE_WHY[fillNone] || NONE_WHY.none) : '')
       : fl.ok
       ? [names.slice(0, 3).join(' · '),
@@ -286,6 +308,43 @@ function triageTiles(c){
   add('filed', triageFiledLine(c));
   return out;
 }
+
+/* ---- WHY A READING DID NOT HAPPEN, IN WORDS A READER CAN ACT ON (Young
+   reported it 21 Sep 2026: "Hati is not writing contracts briefs") ----
+   MEASURED on the owner's own screen: *"The brief could not be written.
+   Copilot request failed: fetch failed."* Every catch in this file printed
+   `String(e.message)` straight onto the tile, so a transport error written for
+   a developer was the sentence a non-developer was shown, and it says nothing
+   about whether the key is missing, the budget is spent or the provider is
+   down — three different problems with three different fixes.
+
+   THE VOCABULARY IS ALREADY THIS PRODUCT'S. The server's error carries its
+   KIND (noKey · rateLimit · spendCap · provider) and aiDegrade has named those
+   four in the chat since 12 Sep 2026. This is the same four, worded for a tile
+   rather than for a bubble.
+
+   ONE READING, EVERY STEP. Four catches printed a raw message and only one was
+   reported; a fix at one of four call sites is waiting for the next one (the
+   ktDayDot lesson, 17 Sep). Every step asks this.
+
+   THE TECHNICAL SENTENCE IS NOT LOST — it rides the tile's own hover, which is
+   where machinery belongs. */
+function triageWhy(e){
+  const T = k => (typeof i18t === 'function') ? i18t(k) : '';
+  const raw = String((e && (e.message || e.error)) || e || '').trim();
+  const kind = (e && e.kind) || '';
+  const say =
+    (kind === 'noKey'     || /needsKey|no api key|\b401\b/i.test(raw)) ? T('tri_why_nokey') :
+    (kind === 'rateLimit' || /\b429\b|rate limit/i.test(raw))          ? T('tri_why_ratelimit') :
+    (kind === 'spendCap'  || /spend|budget/i.test(raw))                 ? T('tri_why_spend') :
+    (kind === 'provider')                                               ? T('tri_why_provider') :
+    (/fetch failed|network|ENOTFOUND|ECONN|timeout|abort/i.test(raw))   ? T('tri_why_offline') :
+    raw ? raw : T('tri_why_offline');
+  return { say, raw };
+}
+/* What a step records when it could not run. `whyRaw` is additive and absent
+   on every record on file, so an older note reads exactly as it did. */
+function triageFail(e){ const w = triageWhy(e); return { ok: false, why: w.say, whyRaw: w.raw }; }
 
 function triageFiledLine(c){
   const f = (typeof FOLDERS === 'object' && FOLDERS && c && FOLDERS[c.folder]) ? FOLDERS[c.folder].name : '';
@@ -388,7 +447,7 @@ async function triageRun(c, opts = {}){
         const n = (typeof openFindings === 'function') ? openFindings(c).length : 0;
         t.steps.risk = { ok: true, open: n };
       }
-    }catch(e){ t.steps.risk = { ok: false, why: String(e && e.message || e) }; }
+    }catch(e){ t.steps.risk = triageFail(e); }
     paint();
 
     /* 2 — THE BRIEF. Quiet: its refusal is printed on the card, not toasted. */
@@ -402,7 +461,7 @@ async function triageRun(c, opts = {}){
       const o = { quiet: true };
       const r = (typeof runContractBrief === 'function')
         ? await runContractBrief(c, o) : { error: triageAbsent() };
-      if (r && r.error) t.steps.brief = { ok: false, why: r.error };
+      if (r && r.error) t.steps.brief = triageFail(r.error);
       /* ---- A READING THAT WAS NOT KEPT IS NOT RECORDED AS DONE ----
          (owner-reported 10 Sep 2026: "contract brief in the top highlight says
          brief written but as you can see on the bottom highlighted area on the
@@ -435,7 +494,7 @@ async function triageRun(c, opts = {}){
         cut: o.notice || (r.truncated
           ? ((typeof i18t === 'function') ? i18t('tri_cut') : '') : '') };
       else t.steps.brief = { ok: false, why: (typeof i18t === 'function') ? i18t('tri_no_answer') : '' };
-    }catch(e){ t.steps.brief = { ok: false, why: String(e && e.message || e) }; }
+    }catch(e){ t.steps.brief = triageFail(e); }
     paint();
 
     /* 3 — OUR STANDARDS. Stored on c.playbook exactly as the Checks card's own
@@ -445,7 +504,7 @@ async function triageRun(c, opts = {}){
       const o = { quiet: true };
       const r = (typeof runPlaybookReview === 'function')
         ? await runPlaybookReview(c, o) : { error: triageAbsent() };
-      if (r && r.error) t.steps.playbook = { ok: false, why: r.error };
+      if (r && r.error) t.steps.playbook = triageFail(r.error);
       else if (r && r.verdicts){
         c.playbook = r;
         const sum = (typeof deviationSummary === 'function') ? deviationSummary(c) : { dev: 0, miss: 0 };
@@ -456,7 +515,7 @@ async function triageRun(c, opts = {}){
         if (typeof logAudit === 'function')
           logAudit(c, 'Playbook', `Reviewed against ${r.label} — ${sum.dev} deviation(s), ${sum.miss} missing`);
       } else t.steps.playbook = { ok: false, why: (typeof i18t === 'function') ? i18t('tri_no_answer') : '' };
-    }catch(e){ t.steps.playbook = { ok: false, why: String(e && e.message || e) }; }
+    }catch(e){ t.steps.playbook = triageFail(e); }
     paint();
 
     /* 4 — OBLIGATIONS. PROPOSED AND HELD. runFindObligations is deliberately
@@ -467,7 +526,7 @@ async function triageRun(c, opts = {}){
       const o = { quiet: true };
       if (typeof extractObligations !== 'function') o.error = triageAbsent();
       const found = o.error ? [] : (await extractObligations(c, o) || []);
-      if (o.error) t.steps.oblig = { ok: false, why: o.error };
+      if (o.error) t.steps.oblig = triageFail(o.error);
       else{
         t.steps.oblig = { ok: true, found, cut: o.notice || '' };
         /* THE CONTRACT REMEMBERS IT WAS READ, by the same stamp the manual
@@ -483,7 +542,7 @@ async function triageRun(c, opts = {}){
           if (txt && txt.length >= floor) obligationsReadStamp(c, txt);
         }
       }
-    }catch(e){ t.steps.oblig = { ok: false, why: String(e && e.message || e) }; }
+    }catch(e){ t.steps.oblig = triageFail(e); }
 
     /* 5 — FILL THE OPEN BLANKS. Last, because it is the one reading that
        CHANGES the paper — see TRIAGE_STEPS. The record answers first and for
@@ -506,7 +565,7 @@ async function triageRun(c, opts = {}){
               none: ((f.filled || []).length || (f.left || []).length) ? null
                 : (typeof contractBlanksNone === 'function' ? contractBlanksNone(c) : null) };
       }
-    }catch(e){ t.steps.fill = { ok: false, why: String(e && e.message || e) }; }
+    }catch(e){ t.steps.fill = triageFail(e); }
     paint();
 
     /* THE ONE AUDIT LINE, and it says what was read rather than what was
@@ -684,5 +743,6 @@ function triageAck(c){
 Object.assign(window, { TRIAGE_STEPS, TRIAGE_HEADS, triageBusy, triageAbsent, triageNoText, triageApplies, triageOf, triageSeen, triageCards,
   triageWordingHash, triageNeedsRead, contractArrived,
   triageTiles, triageFiledLine, triageLine, triageReadAnything, triageRun, triageBriefLine,
+  triageWhy, triageFail,
   triageHeldObligations,
   triageAck });

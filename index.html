@@ -3610,14 +3610,31 @@
      head weight and hairline, so a table inside a section reads like every
      other table in the product. */
   .ov-reads{ width:100%; border-collapse:collapse; margin:0 0 4px; table-layout:fixed; }
+  /* ---- NO LINES RUNNING ACROSS THE CARD (Young ruled 21 Sep 2026) ----
+     Five rows with a rule under each, inside a card that already has its own
+     edge, drew six horizontals across one small table. The rows are spaced
+     instead: the micro-caps head says where the data starts, which is how the
+     obligations worklist and the section grammar already separate a head from
+     its body. */
   .ov-reads th{ text-align:left; font-size:var(--t-micro); font-weight:var(--w-title);
     letter-spacing:.09em; text-transform:uppercase; color:var(--color-neutral-600);
-    padding:0 16px 6px; border-bottom:1px solid var(--color-divider); }
-  .ov-reads td{ font-size:var(--t-meta); padding:7px 16px; border-bottom:1px solid var(--color-divider-soft,var(--color-divider)); vertical-align:baseline; }
-  .ov-reads tr:last-child td{ border-bottom:0; }
+    padding:0 16px 8px; }
+  .ov-reads td{ font-size:var(--t-meta); padding:6px 16px; vertical-align:baseline; }
   .ov-reads .ov-r-n{ font-weight:var(--w-title); width:26%; }
+  /* ---- WHAT IT FOUND IS BOLD, AND ITS COLOUR IS THE RESULT (Young, same
+     ruling) ---- The tone used to answer "did this reading run", so every row
+     that had run read GREEN — including "0 found" and "2 still open", which is
+     good news drawn over a finding that wants you. It answers the RESULT now:
+     quiet where nothing has been read, green where the reading is complete and
+     clear, amber where something wants you, ruby where a finding is serious.
+     See OV_READ_TONE and ktReadingsRowsHtml, which decide it per row. */
+  .ov-reads .ov-r-s{ font-weight:var(--w-strong); }
   .ov-reads .ov-r-w{ width:20%; color:var(--color-neutral-600); white-space:nowrap; }
   .ov-reads .ov-r-d{ width:14%; text-align:right; }
+  /* A DOOR IS A BUTTON (Young, same ruling): the Open column was five bare
+     accent words in a row and read as a list rather than as five separate
+     presses. `.ui-btn` is the product's own outlined control. */
+  .ov-reads .ov-r-d .ui-btn{ height:24px; padding:0 10px; font-size:var(--t-label); }
   .ov-reads td,.ov-reads th{ overflow:hidden; text-overflow:ellipsis; }
   @media (max-width:900px){ .ov-reads .ov-r-w{ display:none; } .ov-reads th:nth-child(3){ display:none; } }
   @media (max-width:1180px){ .sec-fields{ grid-template-columns:repeat(3,minmax(0,1fr)); } }
@@ -5294,6 +5311,14 @@
      it was designed with. AND IT WRAPS — at a narrow card the verbs drop back
      under the text rather than squeezing the sentence they belong to. */
   .hm-row.is-desk{display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap;}
+  /* THE KIND'S TAG, at the left of the row, in the reference's own shape: a
+     micro-caps chip that takes the ROW's tone rather than a table of its own,
+     so it can never say something the row's dot does not. */
+  .hm-dk-tag{flex:none;display:inline-flex;align-items:center;height:18px;padding:0 6px;
+    border-radius:var(--radius);font-size:var(--t-micro);font-weight:var(--w-strong);
+    letter-spacing:.02em;background:var(--st-steel-bg);color:var(--color-neutral-700);}
+  .hm-dk-tag.is-crit{background:var(--st-amber-bg);color:var(--st-amber-fg);}
+  .hm-dk-tag.is-neg{background:var(--st-ruby-bg);color:var(--st-ruby-fg);}
   .hm-row.is-desk .hm-desk-head{flex:1 1 320px;min-width:0;}
   .hm-row.is-desk .hm-desk-acts{flex:none;margin-top:0;margin-left:auto;justify-content:flex-end;}
   .hm-tri-b{display:inline-flex;align-items:center;justify-content:center;
@@ -5846,6 +5871,13 @@
   .na-field > label{ font-size:var(--t-label); color:var(--color-neutral-600); font-weight:var(--w-label); }
   .na-row{ display:flex; gap:6px; align-items:center; }
   .na-inp{ flex:1; min-width:0; height:var(--field-h,32px); padding:0 10px; border:1px solid var(--rule-strong); border-radius:var(--radius); background:var(--color-surface); font:inherit; font-size:var(--t-body); color:var(--color-text); outline:none; }
+  /* IT WRAPS (Young, 21 Sep 2026). A textarea carries its own height from
+     `rows`, so the field-h above is taken back off; the row stops centring so
+     the Find button sits at the box's top line rather than half way down a
+     growing box, and nothing is resizable by a corner grip a reader would
+     drag over the cards below. */
+  .na-inp.na-say{ height:auto; min-height:calc(var(--field-h,32px) * 1.6); padding:7px 10px; line-height:1.45; resize:none; overflow:auto; }
+  .na-row:has(.na-say){ align-items:flex-start; }
   .na-inp:focus{ border-color:var(--color-accent-300); }
   .na-hint{ font-size:var(--t-micro); color:var(--color-neutral-500); }
   .na-sec{ display:flex; flex-direction:column; gap:8px; }
@@ -5859,6 +5891,14 @@
   .na-door.on{ border-color:var(--color-accent); box-shadow:inset 0 0 0 1px var(--color-accent); }
   .na-door b{ font-size:var(--t-body); font-weight:var(--w-title); color:var(--color-text); }
   .na-door span{ font-size:var(--t-label); color:var(--color-neutral-600); }
+  /* ONE HEIGHT FOR EVERY CARD (Young, 21 Sep 2026: "they should all be the
+     same size"). The slot is ALWAYS drawn and reserves exactly two lines —
+     reserving is what fixes the height, because a grid stretches every cell to
+     the tallest and a clamp alone would cap the long one while still letting
+     an empty card shrink. A longer sentence is cut with the whole of it on the
+     card's own hover, which is this product's idiom for a cut. */
+  .na-door .na-about{ display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+    overflow:hidden; height:calc(1.4em * 2); line-height:1.4; }
   .na-door .na-go{ margin-top:auto; padding-top:4px; font-size:var(--t-label); color:var(--accent-ink); font-weight:var(--w-title); }
   .na-chips{ display:flex; gap:6px; flex-wrap:wrap; }
   .na-chip{ display:inline-flex; align-items:center; gap:6px; height:26px; padding:0 9px; border:1px dashed var(--rule-strong); border-radius:13px; font:inherit; font-size:var(--t-label); color:var(--color-neutral-600); background:var(--color-surface); cursor:pointer; }
@@ -7386,6 +7426,15 @@
      what is chosen. Nothing here shouts !important: the builder stopped putting
      a dropdown's inline dress on the control, so this sheet is the only thing
      talking about it. */
+  /* ---- A DAY IS DATA, SO IT WEARS THE FIGURE FACE (Young ruled 21 Sep 2026:
+     the dates "like for like" with the artifact) ---- MEASURED side by side:
+     the artifact draws both date columns in the figure face at the label size
+     and the quiet ink, and HaTi drew them in the body face at body size in the
+     page's own ink, so the two columns read as prose in a row of figures.
+     `font-mono` marks DATA in this codebase — ids, counts, timestamps — which
+     is exactly what a date is. ONE class, both columns, so they cannot drift. */
+  .reg-table .reg-day{font-family:var(--font-mono);font-size:var(--t-label);font-weight:var(--w-body);
+    font-variant-numeric:tabular-nums;color:var(--color-neutral-600);}
   .reg-filterbar .reg-chip{position:relative;flex-direction:row;align-items:center;gap:5px;height:var(--ctl-h);padding:0 11px 0 10px;border:1px solid var(--rule-strong);border-radius:999px;background:var(--color-surface);color:var(--color-neutral-700);font-size:var(--t-label);font-weight:var(--w-label);white-space:nowrap;cursor:pointer;}
   /* NOTHING DECORATIVE TAKES THE PRESS. The funnel mark, the word and the
      caret all sit over the control, and a press on any of them has to reach
@@ -7398,8 +7447,21 @@
      builder, so a chip cannot end up with two of them. */
   .reg-filterbar .reg-chip:not(.reg-chip-btn)::after{content:'';flex:none;width:0;height:0;margin-left:1px;
     border-left:3.5px solid transparent;border-right:3.5px solid transparent;border-top:4px solid currentColor;opacity:.55;pointer-events:none;}
+  /* ---- THE CONTROL IS INVISIBLE; ITS CHOICES ARE NOT (Young reported it
+     21 Sep 2026: "i need to see the choices in the dropdowns as currently they
+     are white and blending in to the background") ----
+     `color:transparent` here to hide the closed control was inherited by the
+     <option>s in the NATIVE popup, so the menu drew a column of blank rows
+     with only the highlighted one legible — a control that opens onto nothing.
+     `opacity:0` alone hides the box (and the box only: a popup is painted by
+     the browser outside this element), and the options are given the page's
+     own ink and surface explicitly so neither can inherit from the hidden
+     control. A popup's own frame is the platform's to draw. */
   .reg-filterbar .reg-chip-sel{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;border:0;
-    background:none;font:inherit;color:transparent;opacity:0;cursor:pointer;appearance:none;-webkit-appearance:none;}
+    background:none;font:inherit;opacity:0;cursor:pointer;appearance:none;-webkit-appearance:none;
+    border-radius:999px;}
+  .reg-filterbar .reg-chip-sel option{color:var(--color-text);background:var(--color-surface);
+    font-size:var(--t-body);}
   .reg-filterbar .reg-chip:focus-within{border-color:var(--color-accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--color-accent) 25%,transparent);}
   .reg-filterbar .reg-chip.on{border-color:var(--color-accent);color:var(--accent-ink);font-weight:var(--w-strong);background:color-mix(in srgb,var(--color-accent) 8%,transparent);}
   .reg-filterbar .reg-chip.on .reg-f-l b{color:var(--accent-ink);}
@@ -7791,6 +7853,29 @@
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-home"/></svg>
             <span style="flex:1;" data-i18n="nav_home">Home</span>
           </button>
+          <!-- INSIGHTS SITS DIRECTLY AFTER HOME (Young ruled 21 Sep 2026).
+               THIS REVERSES 19 Sep's "Insights sits after Obligations", whose
+               reasoning is kept because it is what makes this safe rather than
+               a swing back: that ruling moved a page you READ out of the middle
+               of the run of pages you WORK IN, and it is still out of the
+               middle — it now LEADS them. Home says what is on your desk this
+               morning and Insights says what the whole book is doing, so the
+               two questions a reader asks before doing anything sit together
+               at the top of the column.
+
+               THIS IS MARKUP ORDER AND NOTHING ELSE, exactly as it was then.
+               No handler, no route, no state and no count moved: every door
+               still carries its own data-view, the "New" badge travels inside
+               this block, and the four svg colour rules are keyed on
+               [data-view="intel"] rather than on position, so they follow it
+               here. The keyboard order is the markup order, so tabbing the
+               column reads in this order too. -->
+          <button data-view="intel" class="nav-item" title="Insights — how your portfolio is behaving" data-i18n-title="nav_insights_title">
+            <span class="nav-rail"></span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-insight"/></svg>
+            <span style="flex:1;" data-i18n="nav_insights">Insights</span><span id="nav-intel-new" class="nav-count" data-tone="teal" hidden
+              title="Newly unlocked — your portfolio is big enough for Insights to say something" data-i18n-title="nav_insights_new_title" data-i18n="nav_new_badge">New</span>
+          </button>
           <button data-view="register" class="nav-item" title="Contracts — every contract lives here; open one for its document, negotiation and signing" data-i18n-title="nav_contracts_title">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-folder"/></svg>
@@ -7888,26 +7973,6 @@
       <div class="nav-section open" data-section="settings">
         <button class="nav-section-head" data-section-toggle="settings" aria-expanded="true"><span data-i18n="nav_grp_company">Company</span><span class="nav-plus"></span></button>
         <div class="nav-section-body">
-          <!-- INSIGHTS SITS AFTER OBLIGATIONS (owner-asked 19 Sep 2026, off a
-               screenshot of this column). It used to sit between the Calendar
-               and Templates, which put a page you READ in the middle of the
-               run of pages you WORK IN. The everyday group now reads as the
-               day does — what is on the book, what falls due, what is owed —
-               and then what all of that adds up to.
-
-               THIS IS MARKUP ORDER AND NOTHING ELSE. No handler, no route, no
-               state and no count moved: every door still carries its own
-               data-view, the "New" badge travels inside this block, and the
-               four svg colour rules are keyed on [data-view="intel"] rather
-               than on position, so they follow it here. The keyboard order is
-               the markup order, so tabbing the column now reads in this
-               order too. -->
-          <button data-view="intel" class="nav-item" title="Insights — how your portfolio is behaving" data-i18n-title="nav_insights_title">
-            <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-insight"/></svg>
-            <span style="flex:1;" data-i18n="nav_insights">Insights</span><span id="nav-intel-new" class="nav-count" data-tone="teal" hidden
-              title="Newly unlocked — your portfolio is big enough for Insights to say something" data-i18n-title="nav_insights_new_title" data-i18n="nav_new_badge">New</span>
-          </button>
 
           <!-- ITS OWN SYMBOL (owner-reported 19 Aug 2026, off a screenshot with
                both rows ringed: "we need a differentiation in the symbols").

@@ -5034,7 +5034,16 @@ function redlineLayoutCss(){
            line and had no rows to space; with the crumb and the quiet line it
            has three, and zero here left the card 14px shorter than the room's
            — the last of the difference between them. */}
-    flex:none;flex-wrap:wrap;box-shadow:inset 0 -1px var(--color-divider);gap:6px var(--s-3);
+    ${''/* ---- NO LINE ACROSS THE CARD (Young ruled 21 Sep 2026: "first remove
+           the line going across the card") ----
+           A 1px inset rule ran the full width of the head, just under the fact
+           row, and it said nothing the card does not already say: the head is
+           a WHITE band and the page under it is grey, so the surfaces part
+           themselves, and the control row twelve pixels below carries its own
+           rule already. MEASURED, the contract room's own band draws no such
+           line — so this rule was also the last thing making the two heads
+           differ, which is the opposite of what the 12 Sep ruling asked for. */}
+    flex:none;flex-wrap:wrap;gap:6px var(--s-3);
     align-items:center}
   .redline-page #ws-head .room-facts{flex-basis:100%}
   ${''/* ---- THE COMPANY, THE KIND AND THE ROUND, UNDER THE TITLE ----

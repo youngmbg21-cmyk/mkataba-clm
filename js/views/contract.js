@@ -4947,7 +4947,11 @@ function ktTriageStripHtml(c){
     /* ONE PRODUCER OF THE TILE BODY, whichever shape the tile takes. The two
        reserved lines and the whole-detail hover are stated here and nowhere
        else — see the note below, and f273 (10), which counts this class. */
-    const body=`<div class="kt-tri-td"${x.detail?` title="${esc(x.detail)}"`:''}>${esc(x.detail||'')}</div>`;
+    /* The hover carries the whole detail (the cut's own idiom) and, where a
+       reading FAILED, the technical sentence behind the plain one — see
+       triageWhy. Nothing technical reaches the face. */
+    const hov=[x.detail||'', x.hint||''].filter(Boolean).join(' · ');
+    const body=`<div class="kt-tri-td"${hov?` title="${esc(hov)}"`:''}>${esc(x.detail||'')}</div>`;
     /* THE WHOLE TILE IS THE PRESS, never an arrow-sized target: the arrow is
        the SIGN that the tile opens something, and a 9px hit area would be a
        worse control than the one that was there. A real <button> so the
@@ -5299,7 +5303,21 @@ function ktRecordFactsHtml(c,opts={}){
    is inferred from silence -- an absent date is an absent date.
    THE BRIEF'S OWN CARD STILL DRAWS BELOW: this is the row that says whether it
    exists, not a replacement for what it says. */
-const OV_READ_TONE={ yes:'green', no:'', stale:'amber' };
+/* ---- THE COLOUR IS THE RESULT, NOT WHETHER THE READING RAN (Young ruled
+   21 Sep 2026: "color code them depending on the output or results") ----
+   It used to be keyed on `state`, which answered "did this reading run", so
+   MEASURED on the owner's own screen every row that had run drew GREEN —
+   `0 found` and `2 still open` among them. Good news painted over a finding
+   that wants you is worse than no colour at all.
+
+   FOUR TONES, AND EACH MEANS ONE THING, the product's own vocabulary:
+     · '' (quiet)  — nothing has been read, so there is nothing to say;
+     · green       — read, and nothing is outstanding;
+     · amber       — read, and something wants you;
+     · ruby        — read, and what it found is serious.
+   Each row works out its own, beside the figure it is about, so the tone and
+   the sentence can never disagree. */
+const OV_READ_TONE={ yes:'green', no:'', stale:'amber', look:'amber', bad:'ruby' };
 function ktReadingsRowsHtml(c){
   /* The one printer, and its whole story is beside it — see ktDayDot. The scan
      stamps `on` beside `at` now, so it has a day to give. */
@@ -5309,9 +5327,12 @@ function ktReadingsRowsHtml(c){
      boolean first: the memo itself rides only the single contract's GET, and a
      reading built on _brief alone is right locally and empty in production. */
   const hasBrief=!!(c&&(c._hasBrief||c._brief));
+  const briefPart=!!(c&&c._brief&&c._brief.truncated);
   rows.push({ k:'brief', name:i18t('ov_r_brief'),
-    said: hasBrief?(c._brief&&c._brief.truncated?i18t('ov_r_brief_part'):i18t('ov_r_brief_yes')):i18t('ov_r_none'),
-    when: (c&&c._brief&&c._brief.at)||'', state:hasBrief?'yes':'no', tab:'' });
+    said: hasBrief?(briefPart?i18t('ov_r_brief_part'):i18t('ov_r_brief_yes')):i18t('ov_r_none'),
+    /* A brief that came back CUT SHORT is a reading that wants you: the cap
+       is a fact and the reader is being offered a rewrite. */
+    when: (c&&c._brief&&c._brief.at)||'', state:hasBrief?(briefPart?'look':'yes'):'no', tab:'' });
   /* 2. THE PLAYBOOK PASS, and its departures counted the way the playbook's
      own summary counts them. `playbookStale` has THREE answers and the third
      is "we do not know" -- printed as nothing rather than as a warning. */
@@ -5331,7 +5352,9 @@ function ktReadingsRowsHtml(c){
   rows.push({ k:'playbook', name:i18t('ov_r_playbook'),
     said: pb?(i18tn('ov_r_departures',dev,{n:dev})+(pbBook?' · '+pbBook:'')):i18t('ov_r_none'),
     when: (c&&c.playbook&&(c.playbook.checkedAt||c.playbook.at))||'',
-    state: pb?(pbStale===true?'stale':'yes'):'no', tab:'docs' });
+    /* DEPARTURES ARE WORK. A pass that found none is clear; a pass that found
+       three is three things somebody has to answer, and it read green. */
+    state: pb?(pbStale===true?'stale':(dev?'look':'yes')):'no', tab:'docs' });
   /* 3. OBLIGATIONS FOUND -- the contract's own list, and the day a reading was
      stamped on it. A list somebody typed by hand is still the list; what the
      date answers is when anything last READ the wording for them. */
@@ -5339,15 +5362,23 @@ function ktReadingsRowsHtml(c){
   const obRead=(c&&c.obligationsReadAt)||'';
   rows.push({ k:'oblig', name:i18t('ov_r_oblig'),
     said: obRead?i18tn('ov_r_oblig_n',obs.length,{n:obs.length}):i18t('ov_r_none'),
+    /* THE READING IS THE FACT HERE, not the count: a contract with nothing
+       owed is as honest an answer as one with twenty, and whether a promise is
+       LATE is the Obligations tab's own colour rather than this row's. */
     when: obRead, state: obRead?'yes':'no', tab:'oblig' });
   /* 4. THE RISK SCAN -- run or not, and what is still open on it. */
-  let open=0; try{ open=((window.openFindings?openFindings(c):[])||[]).length; }catch(_){ open=0; }
+  let open=0, high=0;
+  try{ const f=((window.openFindings?openFindings(c):[])||[]);
+    open=f.length; high=f.filter(x=>x&&x.sev==='high').length; }catch(_){ open=0; high=0; }
   rows.push({ k:'scan', name:i18t('ov_r_scan'),
     said: (c&&c.scan)?i18tn('ov_r_open_n',open,{n:open}):i18t('ov_r_none'),
     /* `on` IS THE DAY AND `at` IS THE SENTENCE — see runScan and `dot` above.
        An older scan carries no `on` and the cell is an em-dash, which is the
        honest answer for a day nobody recorded. */
-    when: (c&&c.scan&&c.scan.on)||'', state:(c&&c.scan)?'yes':'no', tab:'docs' });
+    /* A HIGH finding still open is the one result on this table that is
+       serious, and it is the row's own reading — the room head asks the same
+       question the same way. */
+    when: (c&&c.scan&&c.scan.on)||'', state:(c&&c.scan)?(high?'bad':(open?'look':'yes')):'no', tab:'docs' });
   /* 5. THE PLAIN-ENGLISH EDITION -- docReadHeld is the ONE reading of "is
      there an edition to show", which the switch and the painter both ask. */
   /* ASKED BARE. docReadHeld is declared in THIS file, so `window.docReadHeld`
@@ -5363,7 +5394,7 @@ function ktReadingsRowsHtml(c){
     <td class="ov-r-n">${esc(r.name)}</td>
     <td class="ov-r-s"${OV_READ_TONE[r.state]?` style="color:var(--st-${OV_READ_TONE[r.state]}-fg)"`:''}>${esc(r.said)}</td>
     <td class="ov-r-w">${dot(r.when)||'&mdash;'}</td>
-    <td class="ov-r-d">${r.tab?`<button type="button" class="ui-btn-plain" style="font-size:var(--t-label)" data-ov-read-go="${
+    <td class="ov-r-d">${r.tab?`<button type="button" class="ui-btn" data-ov-read-go="${
       esc(r.tab)}">${esc(i18t('ov_r_open'))}</button>`:''}</td></tr>`;
   return `<table class="ov-reads"><thead><tr>
       <th>${esc(i18t('ov_r_th_what'))}</th><th>${esc(i18t('ov_r_th_found'))}</th>
@@ -6473,13 +6504,19 @@ function checkVerdict(c,kind){
    document arrives complete). The Checks card reads it to say why running a
    check now would be reading a document that is not finished. Counted the same
    way renderTemplateFormSection counts it, from the same record. */
-function tplFormOpenCount(c){
+/* WHICH FIELDS ARE STILL OPEN, and the count derived from that one list
+   (21 Sep 2026). The count was the only reading, so anything that wanted to
+   NAME them had to write the filter a second time — and a second copy of a
+   filter is two readings that drift. `tplFormOpenCount` keeps its name and
+   every caller it had. */
+function tplFormOpenFields(c){
   const form=c&&c.templateForm;
-  if(!form||!Array.isArray(form.fields)) return 0;
+  if(!form||!Array.isArray(form.fields)) return [];
   const values=form.values||{};
   return form.fields.filter(f=>f&&f.required&&f.fieldType!=='signature_name_title'
-    && String(values[f.fieldKey]||'').trim()==='').length;
+    && String(values[f.fieldKey]||'').trim()==='');
 }
+function tplFormOpenCount(c){ return tplFormOpenFields(c).length; }
 /* ============================================================
    THE OPEN BLANKS, FILLABLE FROM THE COLUMN (Young ruled 17 Sep 2026)
    ============================================================
@@ -7750,8 +7787,17 @@ function roomFactsHtml(c,opts={}){
      COPILOT borrows copilotRead (has anything read this contract), then
      deviationSummary and openFindings for what is left to look at — every
      figure a reading the product already makes, none of its own. */
-  const daysLeft=(()=>{ if(!expIso) return null; const d=Math.round((new Date(expIso+'T00:00:00')-Date.now())/864e5); return Number.isFinite(d)&&d>0?d:null; })();
-  const termCell=term+(daysLeft?` <span class="room-facet-sub">&middot; ${esc(i18t('ct_fact_days',{n:daysLeft}))}</span>`:'');
+  /* ---- THE TERM SAYS ITS LENGTH ONCE (Young ruled 21 Sep 2026: "remove the
+     number of days that appears in the Term") ----
+     It read `1096 days to 10.09.2029 · 1084 days` — the span's own length and
+     then the days remaining, two numbers within four characters of each other
+     that a reader has to tell apart, and MEASURED on the owner's screen the
+     second one was clipped by the facet beside it anyway. The span's reading
+     is the one that answers "how long is this agreement", which is what a TERM
+     is; how many days are left is the Calendar's and the renewal card's
+     question and both answer it with a deadline beside it. `ct_fact_days` is
+     STALE on this row and stays live elsewhere. */
+  const termCell=term;
   const round=(c.negotiation&&window.negoRound)?esc(String(negoRound(c))):'';
   const copilot=(()=>{
     let read=false; try{ read=!!(window.copilotRead&&copilotRead(c)); }catch(_){}
@@ -13121,7 +13167,7 @@ Object.assign(window,{paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,
      I walked it on re-rendered the workspace, which measures on the way in. */
   layoutDocResizer,renderSignButton,renderSignSide,roomFactsHtml,signBlockHtml,signReadinessCardHtml,signRowTitle,signWhyShort,SIGN_WHY_WORDS,signLandOnList,signCheckEscalate,signCheckTake,signRiskDismiss,signConsentStamp,signHeadLabel,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,reviewReturnedRound,docWorkingTextNoteHtml,docNothingWrittenHtml,docHasNoWording,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
-  ROOM_TABS,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomCurrentTab,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,ktDayDot,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,openCheckPanel,roomHeadHtml,wireRoomHead,
+  ROOM_TABS,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomCurrentTab,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,ktDayDot,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,tplFormOpenFields,openCheckPanel,roomHeadHtml,wireRoomHead,
   DOC_SEL_ACTIONS,wireDocCopilotSel,docAiRead,docSelKill,
   /* idea 7 — the plain-English layer. Published because a name read through
      window from another module, or from a test stage, is silence when it is

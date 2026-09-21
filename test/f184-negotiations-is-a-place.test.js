@@ -983,8 +983,21 @@ describe('f184 — the negotiation card is the contract workspace\'s', () => {
        the first draft of THIS note broke the test file itself. */
     assert.match(NCSS, /\.redline-page #ws-head\{background:var\(--color-surface\);padding:var\(--page-pad-t\) 24px 0/,
       'the top is the room\'s own — the calc() that used to compensate for a one-line head put the first glyph 4px high');
-    assert.match(NCSS, /box-shadow:inset 0 -1px var\(--color-divider\);gap:6px var\(--s-3\)/,
-      'and the row gap is the room\'s 6px, not zero');
+    /* REVERSED IN HALF, 21 Sep 2026 (Young: "first remove the line going
+       across the card"). This pinned the row gap and the head's own inset rule
+       in one expression, so deleting the rule took the gap's claim with it.
+       The GAP is the claim — it is what makes this card measure the room's —
+       and the LINE is now an absence to hold, because the room's own band
+       never drew one and that rule was the last thing making the two heads
+       differ. */
+    assert.match(NCSS, /\.redline-page #ws-head\{[\s\S]*?gap:6px var\(--s-3\)/,
+      'the row gap is the room\'s 6px, not zero');
+    {
+      const rule = /\.redline-page #ws-head\{[\s\S]*?\n    align-items:center\}/.exec(NCSS);
+      assert.ok(rule, 'the head rule is readable');
+      assert.ok(!/box-shadow:inset 0 -1px/.test(rule[0].replace(/\/\*[\s\S]*?\*\//g, '')),
+        'and no line runs across the card');
+    }
     assert.match(NCSS, /\.redline-page #ws-head \.room-headsub\{[^}]*margin:3px 0 0/,
       'the quiet line takes .room-sub\'s own 3px');
   });

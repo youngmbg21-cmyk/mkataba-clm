@@ -137,10 +137,18 @@ describe('f338 (3) — markup order, and nothing else', () => {
   const nav = HTML.slice(HTML.indexOf('data-section="work"'), HTML.indexOf('id="side-copilot"'));
   const at = v => nav.indexOf('data-view="' + v + '"');
   const grp = v => { const i = at(v); const h = nav.lastIndexOf('data-section="', i); return nav.slice(h + 14, nav.indexOf('"', h + 14)); };
-  test('3a Insights sits after Obligations, in the Company group; Requests is Library', () => {
-    assert.ok(at('obligations') > 0 && at('intel') > at('obligations'),
-      'Insights leads Obligations in the markup');
-    assert.equal(grp('intel'), 'settings', 'Insights is a Company door');
+  /* ---- REVERSED IN PLACE, 21 Sep 2026 (Young: "Insights tab should be after
+     home page") ---- 19 Sep moved a page you READ out of the middle of the run
+     of pages you WORK IN, and it is still out of the middle: it now LEADS
+     them, beside the other question a reader asks before doing anything. The
+     reasoning above is kept because it is what makes this safe rather than a
+     swing back, and what has NOT changed is what those claims were really
+     about — the move is markup order and nothing else. */
+  test('3a Insights sits directly after Home; Requests is Library', () => {
+    assert.ok(at('dashboard') > 0 && at('intel') > at('dashboard'),
+      'Home leads Insights in the markup');
+    assert.ok(at('register') > at('intel'), 'and Insights leads Contracts');
+    assert.equal(grp('intel'), 'work', 'Insights is an everyday door now');
     assert.equal(grp('intake'), 'library', 'Requests is a Library door');
   });
   test('3b Work leads Library — Obligations (Work) is drawn before Templates (Library)', () => {
@@ -170,7 +178,10 @@ describe('f338 (3) — markup order, and nothing else', () => {
       'a rule keyed on place would dress whatever moved into it');
   });
   test('3f and the move is recorded where the markup is', () => {
-    assert.match(HTML, /INSIGHTS SITS AFTER OBLIGATIONS \(owner-asked 19 Sep 2026/);
+    assert.match(HTML, /INSIGHTS SITS DIRECTLY AFTER HOME \(Young ruled 21 Sep 2026/);
+    /* THE REVERSAL NAMES WHAT IT REVERSES, or the next reader repeats the
+       argument from scratch. */
+    assert.match(HTML, /REVERSES 19 Sep's "Insights sits after Obligations"/);
     assert.match(HTML, /THIS IS MARKUP ORDER AND NOTHING ELSE/);
   });
 });
