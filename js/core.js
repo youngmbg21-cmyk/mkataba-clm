@@ -2747,7 +2747,7 @@ function selectMenuOpen(sel){
   box.style.left = Math.max(8, Math.min(r.left, window.innerWidth - mw - 8)) + 'px';
   box.style.minWidth = Math.round(r.width) + 'px';
   _selMenuEl = box; _selMenuFor = sel;
-  box.addEventListener('mousedown', ev => ev.preventDefault());
+  box.addEventListener('pointerdown', ev => ev.preventDefault());
   box.addEventListener('click', ev => {
     const b = ev.target && ev.target.closest ? ev.target.closest('[data-sm]') : null;
     if (!b) return;
@@ -2771,7 +2771,7 @@ function selectMenuOpen(sel){
 function _selMenuArmDoc(){
   if (_selMenuBound || typeof document === 'undefined') return;
   _selMenuBound = true;
-  document.addEventListener('mousedown', ev => {
+  document.addEventListener('pointerdown', ev => {
     if (!_selMenuEl) return;
     if (_selMenuEl.contains(ev.target)) return;
     /* A press on the control the menu belongs to is its own toggle and is
@@ -2791,7 +2791,13 @@ function selectMenuWire(root, selector){
   if (!root || root.dataset && root.dataset.selMenuBound === '1') return;
   if (root.dataset) root.dataset.selMenuBound = '1';
   _selMenuArmDoc();
-  root.addEventListener('mousedown', ev => {
+  /* POINTERDOWN, NOT MOUSEDOWN, and that is about the owner's iPad. A touch
+     synthesises a mouse event only AFTER the browser has decided what the tap
+     does, so preventing the mouse one can leave the system picker already on
+     its way up and the reader looking at two menus. The pointer event is the
+     one that fires first for a finger, a pen and a mouse alike, and it is the
+     product's own vocabulary — the layout dividers are built on it. */
+  root.addEventListener('pointerdown', ev => {
     const sel = ev.target && ev.target.closest ? ev.target.closest(selector) : null;
     if (!sel || sel.disabled) return;
     ev.preventDefault();                        /* the system pane never opens */

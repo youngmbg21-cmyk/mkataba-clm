@@ -278,6 +278,12 @@ test('F349 (9) — the filter chips drop HaTi\'s own list', async t => {
     const fn = /function selectMenuWire\(root, selector\)\{[\s\S]*?\n\}/.exec(CORE)[0];
     assert.match(fn, /dataset\.selMenuBound/);
     assert.match(strip(fn), /ev\.preventDefault\(\)/);
+    /* POINTERDOWN, because a touch synthesises a mouse event only AFTER the
+       browser has decided what the tap does — preventing the mouse one can
+       leave the system picker already on its way up. The product's own
+       vocabulary: the layout dividers are built on pointer events. */
+    assert.match(strip(fn), /addEventListener\('pointerdown'/);
+    assert.ok(!/addEventListener\('mousedown'/.test(strip(fn)));
   });
   await t.test('(9g) armed on the filter bar, delegated on the bar itself', () => {
     assert.match(strip(REG), /selectMenuWire\(fbar,'select'\)/);

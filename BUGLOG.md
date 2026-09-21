@@ -18263,3 +18263,14 @@ signed-and-columns-verify's four day claims read `30.06.2027` — the shape
 are unchanged (a signed contract prints a real day, an unsigned one an
 em-dash, the head sorts by it, the filter agrees with the column); they ask a
 PATTERN now rather than one spelling, so a retune moves them. 31/31.
+
+### And a finger, not only a mouse
+The menu was armed on `mousedown`. A touch synthesises a mouse event only
+AFTER the browser has decided what the tap does, so preventing the mouse one
+can leave the system picker already on its way up and the reader looking at
+two menus — on the reporter's own iPad, which is where two of the last three
+reports came from. `pointerdown` is what fires first for a finger, a pen and a
+mouse alike, and it is the product's own vocabulary (the layout dividers are
+built on it). Chromium is unchanged by the swap and the driven checks still
+pass, so this is reasoned rather than reproduced here and wants one look on
+the iPad.
