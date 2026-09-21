@@ -408,11 +408,12 @@ describe('f335 (11) — one mark, one meaning', () => {
     const hits = [];
     for (const f of files)
       for (const m of read(f).matchAll(/icon\('scan'/g)) hits.push(f);
-    /* FOUR, and every one is Focus mode: the ⋯ row, the repaint that relabels
-       it, the head's new button, and the counterparty page's own row. */
-    assert.equal(hits.length, 4,
-      'exactly the four Focus-mode callers, not ' + hits.length + ': ' + hits.join(', '));
-    assert.equal(hits.filter(f => f === 'js/views/contract.js').length, 3);
+    /* FIVE since 21 Sep 2026, and every one is Focus mode: the ⋯ row, the
+       repaint that relabels it, the head's square, the Document tab's control
+       row door (a proxy onto the square), and the counterparty page's row. */
+    assert.equal(hits.length, 5,
+      'exactly the five Focus-mode callers, not ' + hits.length + ': ' + hits.join(', '));
+    assert.equal(hits.filter(f => f === 'js/views/contract.js').length, 4);
     assert.equal(hits.filter(f => f === 'js/views/portal.js').length, 1);
   });
   test('Focus mode is a button on both heads, last in the row', () => {
@@ -427,8 +428,10 @@ describe('f335 (11) — one mark, one meaning', () => {
     assert.match(CONTRACT, /id="ws-focus"/, 'and the menu row stays — the owner kept it');
   });
   test('and both doors say the same state', () => {
+    /* The Document tab's own door (data-ws-focus-door) is painted by the
+       same line since 21 Sep 2026. */
     assert.match(fnBody(CONTRACT, 'applyWsFocus'),
-      /querySelectorAll\('\[data-ws-focus\]'\)[\s\S]{0,260}aria-pressed/,
+      /querySelectorAll\('\[data-ws-focus\](,\[data-ws-focus-door\])?'\)[\s\S]{0,260}aria-pressed/,
       'the pair can never disagree about which state the page is in');
   });
 });

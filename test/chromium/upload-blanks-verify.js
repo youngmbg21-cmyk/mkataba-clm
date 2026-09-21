@@ -235,8 +235,9 @@ const CONTRACT = (id, over) => Object.assign({
     check('3e one box per question', s.boxKeys.length >= 4, s.boxKeys.join(', '));
     check('3f a ruled line is labelled by the words in front of it',
       s.boxLabels.some(l => /Delivery address/i.test(l)), s.boxLabels.join(' | '));
+    /* RE-POINTED (21 Sep 2026): the counter reads "N of M" now. */
     check('3g the counter agrees with the page',
-      /^\d+\/\d+$/.test(s.count) && Number(s.count.split('/')[1]) === s.boxKeys.length, s.count);
+      /^\d+ \S+ \d+$/.test(s.count) && Number(s.count.split(/\s+/)[2]) === s.boxKeys.length, s.count);
 
     /* ============ 4. TYPING IN THE PANEL CHANGES THE PAGE ============ */
     const drove = await typeInto(page, '#tplform-section [data-blankf="up_insert_company_name"]',

@@ -371,8 +371,11 @@ const VISIBLE = `(el) => {
       renderChecksCard(c);
     }, cid);
     await page.waitForTimeout(400);
-    const verdict = await page.evaluate(() =>
-      (document.querySelector('[data-check="oblig"]') || {}).textContent.trim());
+    /* RE-POINTED (21 Sep 2026): the verdict is the row's sub-line (.cs) and the
+       button is one verb; the row is found off its own data-check. */
+    const verdict = await page.evaluate(() => { const b = document.querySelector('[data-check="oblig"]');
+      const row = b && b.closest('.check-row'); const cs = row && row.querySelector('.cs');
+      return ((cs || b || {}).textContent || '').trim(); });
     check('once anything is tracked the row says how many', /2 tracked/.test(verdict), verdict);
 
     await page.click('[data-check="oblig"]');

@@ -188,8 +188,9 @@ const CONTRACT = (id, over) => Object.assign({
     check('2c and the record\'s own two, so the column can answer them too',
       p.keys.includes('counterparty') && p.keys.includes('value'), p.keys.join(', '));
     check('2d grouped by the clause each sits in', p.heads.length >= 2, p.heads.join(' | '));
-    check('2e the counter agrees with the page', /^\d+\/\d+$/.test(p.count)
-      && Number(p.count.split('/')[1]) === p.boxes.length, p.count);
+    /* RE-POINTED (21 Sep 2026): the counter reads "N of M" now. */
+    check('2e the counter agrees with the page', /^\d+ \S+ \d+$/.test(p.count)
+      && Number(p.count.split(/\s+/)[2]) === p.boxes.length, p.count);
 
     /* ============ 3. TWO DOORS, ONE ACT — PANEL TO PAPER ============ */
     const drove = await typeInto(page, '#tplform-section [data-blankf="forecastWeeks"]', '11', 'change');

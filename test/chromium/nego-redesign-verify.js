@@ -108,8 +108,10 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
         padX: cs && cs.paddingLeft, padXR: cs && cs.paddingRight,
         bandX: getComputedStyle(document.documentElement).getPropertyValue('--band-pad-x').trim(),
         rule: cs && cs.boxShadow,
-        crumb: !!document.querySelector('#view-redline .room-crumb'),
-        back: s('#view-redline #ws-back'),
+        /* THE CRUMB LIVES IN THE BAR (second pass, 21 Sep 2026): the head's
+           crumb row is drawn empty and hidden; #ws-back is in #shell-title. */
+        crumb: (() => { const c = document.querySelector('#view-redline .room-crumb'); return !!(c && getComputedStyle(c).display !== 'none'); })(),
+        back: s('#shell-title #ws-back') || s('#view-redline #ws-back'),
         title: s('#view-redline #ws-back-title'),
         facts: !!document.querySelector('#view-redline #ws-head .room-facts'),
         sub: !!document.querySelector('#view-redline #ws-head .room-headsub'),
@@ -159,10 +161,15 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        that does not exist paints an EMPTY BOX in silence — no error, no
        warning, an arrow-shaped hole in the one control that leaves this page.
        So the arrow is measured by its own painted getBBox. */
+    /* REVERSED IN PLACE (21 Sep 2026, the redesign's second pass): the way
+       back is the bar's crumb — "Negotiations / MK-… · name" — a plain word
+       as the reference draws it, with NO underline and NO arrow. What stands
+       of the 1 Sep ask is the half that mattered: it is a real, pressable
+       control that names the reference. */
     const door = await page.evaluate(() => {
-      const b = document.querySelector('#view-redline #ws-back');
+      const b = document.querySelector('#shell-title #ws-back');
       if (!b) return { none: true };
-      const id = b.querySelector('.rn-id'), arrow = b.querySelector('.rn-arrow');
+      const id = b.querySelector('.crumb-word'), arrow = null;
       let box = null;
       try { box = arrow && arrow.getBBox ? arrow.getBBox() : null; } catch (_){}
       const ir = id && id.getBoundingClientRect();
@@ -177,13 +184,10 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
         dotLine: dot ? getComputedStyle(dot).textDecorationLine : null,
         btnLine: getComputedStyle(b).textDecorationLine };
     });
-    check('1c the reference is UNDERLINED', !door.none && /underline/.test(door.line || ''),
+    check('1c the reference is a plain word in the bar, not underlined', !door.none && !/underline/.test(door.line || '') && /MK-/.test(door.text || ''),
       `${(door.text || '').trim()} — ${door.line}`);
-    check('1c an ARROW is drawn before it, and its symbol really resolves',
-      !door.none && door.painted && door.before,
-      door.none ? 'no door' : `painted ${door.painted}, before ${door.before}`);
-    check('1c the arrow sits on the reference\'s own line, not on its baseline',
-      !door.none && door.onLine === true);
+    check('1c and no arrow is drawn before it — the bar\'s crumb is the reference\'s own shape',
+      !door.none && !door.painted, door.none ? 'no door' : `painted ${door.painted}`);
     /* THE UNDERLINE IS ON THE REFERENCE ALONE. The middot is punctuation
        between the reference and the title, and a line running under it would
        say the separator is part of the link. */

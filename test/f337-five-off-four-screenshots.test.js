@@ -262,7 +262,7 @@ describe('f337 (4) — the head\'s Focus button is live on both pages', () => {
     const body = fnBody(NEGO, 'rlPaintFocusBtn');
     assert.match(body, /rlFocusPage\(\)/, 'scoped to the mounted page');
     assert.match(body, /page\.querySelectorAll\('\[data-ws-focus\]'\)/, 'and to that button');
-    assert.match(fnBody(CONTRACT, 'applyWsFocus'), /querySelectorAll\('\[data-ws-focus\]'\)/,
+    assert.match(fnBody(CONTRACT, 'applyWsFocus'), /querySelectorAll\('\[data-ws-focus\](,\[data-ws-focus-door\])?'\)/,
       'CONTROL — the room keeps its own painter');
   });
 });

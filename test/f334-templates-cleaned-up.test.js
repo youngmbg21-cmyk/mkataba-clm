@@ -608,7 +608,10 @@ describe('f334 (8) — one button weight, and the figures line up', () => {
   test('the head of a count column sits over its digits', () => {
     const body = fnBody(SRC, 'tplPagePaintRows');
     assert.match(body, /const th=\(t,num\)=>/, 'the head builder knows which columns are counts');
-    assert.match(body, /\$\{th\(i18t\('lib_col_version'\),1\)\}\$\{th\(i18t\('lib_col_used'\),1\)\}/,
+    /* A Value stream column sits between them since 21 Sep 2026 (the
+       redesign's second pass) and is a label over WORDS, so it takes no
+       tabular flag — which is exactly the claim. */
+    assert.match(body, /\$\{th\(i18t\('lib_col_version'\),1\)\}\$\{th\(i18t\('reg_value_stream'\)\)\}\$\{th\(i18t\('lib_col_used'\),1\)\}/,
       'Version and Used, and nothing else — a label over words stays a label');
     assert.match(body, /num\?';font-variant-numeric:tabular-nums':''/);
   });

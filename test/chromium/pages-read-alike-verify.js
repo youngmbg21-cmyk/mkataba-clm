@@ -126,10 +126,14 @@ const SEED = async () => {
          its band and the workbench in its own padding, so those two boxes are
          not the same box. */
       const fb = document.querySelector('#ws-head .room-facts');
-      const cr = document.querySelector('#ws-head .room-crumb');
+      /* THE CRUMB LIVES IN THE BAR (second pass, 21 Sep 2026): #ws-back is
+         adopted into #shell-title on both pages; the head's own crumb row
+         is empty and hidden. */
+      const cr = document.querySelector('#shell-title.is-crumb') || document.querySelector('#ws-head .room-crumb');
       /* A <use> at a missing symbol paints an EMPTY BOX in silence, so the
          sign is measured by its own painted getBBox, never by its markup. */
       const bk = cr && cr.querySelector('#ws-back');
+      const bword = bk && bk.querySelector('.crumb-word');
       let bbox = null;
       try { const sv = bk && bk.querySelector('svg'); bbox = sv && sv.getBBox ? sv.getBBox() : null; } catch (_){}
       return { h1: h1 && { fs: g(h1).fontSize, fw: g(h1).fontWeight },
@@ -139,7 +143,7 @@ const SEED = async () => {
         crumbTop: cr ? Math.round(cr.getBoundingClientRect().top * 10) / 10 : null,
         crumb: cr ? cr.textContent.trim().replace(/\s+/g, ' ') : null,
         backLabel: bk && bk.getAttribute('aria-label'),
-        backPainted: !!(bbox && bbox.width > 0 && bbox.height > 0),
+        backPainted: !!(bbox && bbox.width > 0 && bbox.height > 0) || !!(bword && bword.getBoundingClientRect().width > 0),
         tabs: tabs.length };
     });
 
@@ -156,10 +160,11 @@ const SEED = async () => {
       const acts = document.querySelector('#view-redline #ws-head .room-acts');
       const hr = head && head.getBoundingClientRect(), ar = acts && acts.getBoundingClientRect();
       const fb = document.querySelector('#view-redline #ws-head .room-facts');
-      const cr = document.querySelector('#view-redline #ws-head .room-crumb');
+      const cr = document.querySelector('#shell-title.is-crumb') || document.querySelector('#view-redline #ws-head .room-crumb');
       /* A <use> at a missing symbol paints an EMPTY BOX in silence, so the
          sign is measured by its own painted getBBox, never by its markup. */
       const bk = cr && cr.querySelector('#ws-back');
+      const bword = bk && bk.querySelector('.crumb-word');
       let bbox = null;
       try { const sv = bk && bk.querySelector('svg'); bbox = sv && sv.getBBox ? sv.getBBox() : null; } catch (_){}
       const nm = document.querySelector('#view-redline #ws-head .room-name');
@@ -172,7 +177,7 @@ const SEED = async () => {
         crumbTop: cr ? Math.round(cr.getBoundingClientRect().top * 10) / 10 : null,
         crumb: cr ? cr.textContent.trim().replace(/\s+/g, ' ') : null,
         backLabel: bk && bk.getAttribute('aria-label'),
-        backPainted: !!(bbox && bbox.width > 0 && bbox.height > 0),
+        backPainted: !!(bbox && bbox.width > 0 && bbox.height > 0) || !!(bword && bword.getBoundingClientRect().width > 0),
         /* The acts share the TITLE's line — the question the old "one line"
            check was really asking, now that there is a crumb above it. */
         actsOnTitle: (ar && nr) ? Math.abs(ar.top - nr.top) < 14 : null,
@@ -218,7 +223,10 @@ const SEED = async () => {
       !!(nego.backLabel || '').trim() && !!(room.backLabel || '').trim()
         && nego.backLabel !== room.backLabel,
       `negotiate "${nego.backLabel}" · room "${room.backLabel}"`);
-    check('1 and it says it as a sign, not as ink',
+    /* RE-POINTED (21 Sep 2026): in the bar the way back is the crumb's own
+       WORD (Contracts / MK-… on the room, Negotiations / MK-… on the workbench),
+       which is how the reference draws it; the claim is that it is painted. */
+    check('1 and it is painted in the bar',
       nego.backPainted === true && room.backPainted === true
         && !(nego.crumb || '').trim().toLowerCase().includes('workspace'),
       `painted nego ${nego.backPainted} · room ${room.backPainted} · crumb "${room.crumb}"`);

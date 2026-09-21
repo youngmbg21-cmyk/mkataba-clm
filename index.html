@@ -617,7 +617,7 @@
        7px of margin, so 31. They add to a 146px card against the 141 and 176
        that were typed here before. Change one and both rows follow — that is
        the whole point of their being tokens. See .hm-tiles. */
-    --hm-r1:37px; --hm-r2:50px; --hm-r3:31px;
+    --hm-r1:20px; --hm-r2:44px; --hm-r3:31px; /* r1 is ONE line since the second pass (21 Sep 2026): the detail sits beside the figure */
 
     /* CONTROLS — the VERTICAL comes from a height rung, never from padding.
        That is what stops a control inventing a half-rung box: .ui-btn's
@@ -4748,6 +4748,12 @@
     font:inherit;font-family:var(--font-body);font-size:var(--t-meta);font-weight:var(--w-strong);
     cursor:pointer;border-radius:var(--radius);}
   .hm-primary:hover{background:var(--accent-ink);border-color:var(--accent-ink);}
+  /* AT NIGHT THE FILL STEPS UP A RUNG: accent-600 on the dark page measures
+     2.5:1 and a filled act has no edge of its own to stand on; halfway to
+     accent-500 the same teal measures over 3:1 against the page and keeps the
+     white label over 4.5:1 (accent-500 itself drops the label to 4.05). */
+  html.dark .hm-primary{background:color-mix(in srgb,var(--color-accent-600),var(--color-accent-500));border-color:color-mix(in srgb,var(--color-accent-600),var(--color-accent-500));}
+  html.dark .hm-primary:hover{background:var(--color-accent-400);border-color:var(--color-accent-400);color:var(--color-neutral-900);}
 
   /* A SECTION HEADING IS A WORD, A RULE AND — where there is one — its own
      act at the far end. Customize sits on My work's line because that is the
@@ -7148,7 +7154,7 @@
   .reg-filterbar .reg-chip>svg{flex:none;color:var(--color-neutral-500);}
   .reg-filterbar .reg-chip .reg-f-l{margin:0;color:inherit;font-size:var(--t-label);}
   .reg-filterbar .reg-chip select{border:0!important;background-color:transparent!important;padding:0 18px 0 2px!important;font-size:var(--t-label)!important;color:var(--color-text);max-width:118px;height:100%;background-position:right 2px center!important;text-overflow:ellipsis;}
-  .reg-filterbar .reg-chip.on{border-color:var(--color-accent);color:var(--accent-ink);background:color-mix(in srgb,var(--color-accent) 8%,transparent);}
+  .reg-filterbar .reg-chip.on{border-color:var(--color-accent);color:var(--accent-ink);font-weight:var(--w-strong);background:color-mix(in srgb,var(--color-accent) 8%,transparent);}
   .reg-filterbar .reg-chip.on select{color:var(--accent-ink);font-weight:var(--w-strong);}
   .reg-filterbar .reg-chip:hover{border-color:var(--color-accent);}
   .reg-filterbar .reg-chip-btn{font:inherit;font-size:var(--t-label);font-weight:var(--w-label);color:var(--accent-ink);padding:0 12px;align-self:auto;}

@@ -132,7 +132,9 @@ describe('F252 — a page fills the reader\'s own screen', () => {
     /* Home is unchanged and is where this rule still bites: its decisions list
        fits rows to the screen, and its see-all reads the WHOLE list rather
        than the fitted one, so the count cannot follow the window. */
-    assert.match(HOME, /const ddLink=ddAll\.length>ddShown\.length/,
+    /* RE-POINTED (21 Sep 2026): the link shares its line with the section's
+       count sub-line now; the see-all half is unchanged. */
+    assert.match(HOME, /\(ddAll\.length>ddShown\.length\s*\?/,
       "Home's see-all draws only where it shows something new");
     assert.match(HOME, /const ddShown=ddAll\.slice\(0, Math\.max\(HM_DD_MIN, _hmDdFit\|0\)\)/,
       'and the fit caps the drawing, never the reading');

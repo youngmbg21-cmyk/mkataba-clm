@@ -68,7 +68,10 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   }));
 
   console.log('\n2 · the three rungs');
-  ok('compact 36px',     (await rowH()) === 36, (await rowH()) + 'px');
+  /* RE-POINTED (21 Sep 2026, the redesign's second pass): the title is two
+     lines on compact, so the row stands ABOVE its 36px floor and under
+     comfortable's 44; condensed keeps the one line and its exact 30. */
+  ok('compact stands on its 36px floor', (await rowH()) >= 36 && (await rowH()) < 44, (await rowH()) + 'px');
   await set('comfortable'); ok('comfortable 44px', (await rowH()) === 44, (await rowH()) + 'px');
   await set('condensed');   ok('condensed 30px',   (await rowH()) === 30, (await rowH()) + 'px');
   ok('padding travels with the height', (await page.evaluate(() =>

@@ -155,7 +155,8 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     const inside = await page.evaluate(seen => ({
       view: state.view,
       tabs: document.querySelectorAll('#view-redline #ws-tabs .room-tab').length,
-      back: eval(seen)('#view-redline #ws-back'),
+      /* THE CRUMB LIVES IN THE BAR (21 Sep 2026): #ws-back is adopted into #shell-title. */
+      back: eval(seen)('#shell-title #ws-back') || eval(seen)('#view-redline #ws-back'),
       title: eval(seen)('#view-redline #ws-back-title'),
       navOn: [...document.querySelectorAll('#nav .nav-item.active')].map(b => b.getAttribute('data-view')),
     }), SEEN);
@@ -178,7 +179,7 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       count.text === '1' && count.tone === 'amber', `${count.text} / ${count.tone}`);
 
     /* ---- 7. OUT, AND IT LANDS ON DOCUMENT ---- */
-    await page.click('#view-redline #ws-back');
+    await page.click('#ws-back');
     await page.waitForTimeout(1500);
     const out = await page.evaluate(() => ({ view: state.view, tab: roomCurrentTab(),
       tabs: [...document.querySelectorAll('#ws-tabs .room-tab')].map(b => b.textContent.trim()) }));

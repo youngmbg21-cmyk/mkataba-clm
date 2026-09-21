@@ -173,7 +173,8 @@ describe('F216 — the client\'s rules, pinned at the source', () => {
     assert.match(act, /still searchable/, 'and the record says what filing means');
     const ct = read('js/views/contract.js');
     assert.match(ct, /id="ws-archive"/, 'the room\'s ⋯ carries the same act');
-    assert.match(ct, /c\.archived\?' · '\+i18t\('ct_archived_tag'\):''/, 'and the room\'s sub-line says so');
+    /* The one sub-line builder for both heads says it since 21 Sep 2026. */
+    assert.match(ct, /if \(c && c\.archived\) bits\.push\(esc\(i18t\('ct_archived_tag'\)\)\);/, 'and the room\'s sub-line says so');
   });
 
   test('the palette tags an archived row instead of hiding it', () => {

@@ -138,7 +138,11 @@ const check = (name, pass, detail) => {
       const above = fr ? [...canvas.children].filter(el => el.getBoundingClientRect().bottom <= fr.top + 1)
         .map(el => el.innerText.replace(/\s+/g, ' ').trim().slice(0, 60)) : null;
       const sheet = canvas.querySelector('.hati-doc') || canvas;
-      return { caption: /external document|externt dokument/i.test(t),
+      /* RE-POINTED (21 Sep 2026): the head's one sub-line prints the record's
+         KIND — "External document" — for every contract, which is a fact
+         about the record and not the block C-7 removed. The block was ON THE
+         CANVAS, so the canvas is what is read. */
+      return { caption: /external document|externt dokument/i.test(canvas.innerText),
         strip: /Download original/i.test(t) && /Re-read document/i.test(t),
         reading: /Text read out of the Word file/.test(t),
         above, wordingPx: first ? getComputedStyle(first).fontSize : null,

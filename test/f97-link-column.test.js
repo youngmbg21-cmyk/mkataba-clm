@@ -159,7 +159,10 @@ describe('F97 — one builder, so the two tables cannot disagree', () => {
          expression. Nine on Contracts (MK · title · counterparty · stream ·
          value · SIGNED · expiry · status · ⋯), eight on Negotiations, whose
          last column is the whose-move sentence and which draws no Signed. */
-      assert.ok(v === '8' || v === '9' || v === '${neg?8:9}',
+      /* Since 21 Sep 2026 the table's own key list is the count (eleven on
+         Contracts, eight on Negotiations), so the expression that reads it is
+         the seat's own answer. */
+      assert.ok(v === '8' || v === '${(neg?REG_COL_KEYS_NEGO:REG_COL_KEYS).length}',
         `a full-width row spans ${v}, which is not a count either table draws`);
     }
     /* THE BAND ROW IS THE NEGOTIATIONS SEAT'S OWN and stays at eight — it only
@@ -167,7 +170,8 @@ describe('F97 — one builder, so the two tables cannot disagree', () => {
     const band = reg.slice(reg.indexOf('function negoBandRowHtml'));
     assert.match(band.slice(0, band.indexOf('\n}')), /colspan="8"/);
     /* And the register's own empty row follows the seat rather than a number. */
-    assert.match(reg, /colspan="\$\{neg\?8:9\}"/);
+    /* The seat's own key list is the count since 21 Sep 2026. */
+    assert.match(reg, /colspan="\$\{\(neg\?REG_COL_KEYS_NEGO:REG_COL_KEYS\)\.length\}"/);
   });
 });
 

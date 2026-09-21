@@ -393,7 +393,11 @@ describe('F89 (1) — the head is not a band at all: it rides on the tab row', (
        in smaller type, and the buttons never wrapping). THE CLAIM IS
        UNCHANGED: the round is a fact about the contract, stated once, in the
        head — not a tag on the tab row. */
-    assert.match(p.$('.room-headsub').textContent, /Round \d/,
+    /* RE-POINTED 21 Sep 2026 (the redesign's second pass): the round is one
+       of the SIX FACTS on the head's fact row now, under its own label. THE
+       CLAIM IS UNCHANGED — stated once, in the head, not on the tab row. */
+    const roundFacet = p.$$('.room-facet').find(f => /Round|Runda/i.test(f.textContent));
+    assert.ok(roundFacet && /\d/.test(roundFacet.querySelector('.v') ? roundFacet.querySelector('.v').textContent : roundFacet.textContent),
       'the round reads with the contract\'s other facts instead');
     /* The page's TITLE moved up into the Doc page's shell — same name, same
        status chip, same back arrow on both tabs — and the head now carries

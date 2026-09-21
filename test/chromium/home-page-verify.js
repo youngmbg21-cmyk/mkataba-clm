@@ -293,8 +293,10 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     });
     check('8 the one act on the page stays legible at night',
       ratio(dark.ink, dark.bg) >= 4.5, `ink ${ratio(dark.ink, dark.bg)}:1`);
-    check('8 and its outline stays visible',
-      ratio(dark.edge, dark.bg) >= 3, `edge ${ratio(dark.edge, dark.bg)}:1`);
+    /* REVERSED IN PLACE (21 Sep 2026): the act is FILLED now, so its edge is
+       its fill and the claim is the fill against the page. */
+    check('8 and its fill stands off the page',
+      ratio(dark.bg, dark.page) >= 3, `fill ${ratio(dark.bg, dark.page)}:1`);
     check('8 the tiles take the dark surface, not the light one',
       dark.tile !== 'rgb(255, 255, 255)' && dark.tile !== dark.page, dark.tile);
     await page.screenshot({ path: path.join(OUT, '04-dark.png') });

@@ -84,7 +84,11 @@ const check = (name, ok, detail) => {
       JSON.stringify(hold.labels));
     /* A CONTROL THE READER CAN HIT. Measured at the parent it came back under
        30px wide; the other filters on that bar sit near 180. */
-    check('1c and it has a real width', hold.w > 90, `${hold.w}px`);
+    /* RE-POINTED (21 Sep 2026): the control is a chip and its select sits
+       inside the pill, so the width a reader can hit is the chip's. */
+    const holdChip = await page.evaluate(() => { const e = document.getElementById('reg-hold'); const c = e && e.closest('.reg-chip');
+      return c ? +c.getBoundingClientRect().width.toFixed(1) : (e ? +e.getBoundingClientRect().width.toFixed(1) : 0); });
+    check('1c and it has a real width', holdChip > 90, `${holdChip}px (select ${hold.w}px)`);
     await page.screenshot({ path: path.join(OUT, '01-hold-filter.png') });
 
     /* IT NARROWS. A control that draws and does nothing is the same fault in

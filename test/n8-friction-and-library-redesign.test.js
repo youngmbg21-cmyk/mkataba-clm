@@ -181,7 +181,15 @@ describe('N8 (3) — the templates library page', () => {
        from", which the one door asks. The BUTTON's own words are still the
        owner's and still drawn. */
     assert.match(shell, /Build new template/);
-    assert.ok(!shell.includes('id="tpl-convert"'), 'one door, not two');
+    /* REVERSED IN PLACE (21 Sep 2026, the redesign's second pass): the
+       owner-approved reference draws Convert a document beside Build new
+       template, and it is back as a PROXY — the head's button and the
+       chooser's own "a document" row press ONE function, so the two doors
+       are one act and cannot drift. */
+    assert.ok(shell.includes('id="tpl-convert"'), 'Convert a document is drawn beside the one door');
+    const LIB = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js', 'views', 'library.js'), 'utf8');
+    assert.match(LIB, /getElementById\('tpl-convert'\)\?\.addEventListener\('click',tplConvertDoor\)/, 'the head presses the one act');
+    assert.match(LIB, /if\(k==='doc'\) return tplConvertDoor\(\);/, 'and so does the chooser\'s own row');
   });
 });
 

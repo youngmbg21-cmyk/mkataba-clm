@@ -66,9 +66,14 @@ const check = (name, ok, detail) => {
         lines: [...r0.children].map(td => +td.getBoundingClientRect().height.toFixed(1)),
       };
     });
-    check('1a the row is exactly 36px', rows.h === 36, `${rows.h}px`);
-    check('1b and EVERY row is, not just the first',
-      rows.all.every(x => x === 36), JSON.stringify(rows.all));
+    /* REVERSED IN PLACE (the redesign's second pass, 21 Sep 2026): the title
+       is TWO LINES again — the kind and the round under the name, as the
+       owner-approved reference draws it — so 36 is the row's FLOOR (the height
+       is stated on the cell, where it is a minimum) and every row stands at
+       one height above it. */
+    check('1a the row stands on its 36px floor', rows.h >= 36, `${rows.h}px`);
+    check('1b and EVERY row is one height, not just the first',
+      rows.all.every(x => Math.abs(x - rows.h) < 1), JSON.stringify(rows.all));
 
     /* THE DOCUMENT TYPE IS GONE AS PIXELS — and its fact is still said. */
     const kind = await page.evaluate(() => {
@@ -395,8 +400,11 @@ const check = (name, ok, detail) => {
        directions — a literal would pass on a page where all three had drifted
        together. */
     const READ_EDGES = () => {
+      /* THE FILTER IS A CHIP (second pass, 21 Sep 2026): the edge is the
+         pill's, the ink and the weight are the control's own. */
       const g = e => { if (!e) return null; const s = getComputedStyle(e);
-        return { bc: s.borderTopColor, fg: s.color, fw: s.fontWeight }; };
+        const chip = e.closest && e.closest('.reg-chip'); const cs = chip ? getComputedStyle(chip) : s;
+        return { bc: cs.borderTopColor, fg: s.color, fw: cs.fontWeight, r: cs.borderTopLeftRadius }; };
       const btn = [...document.querySelectorAll('.ui-btn')]
         .filter(b => b.getBoundingClientRect().width > 0)
         .find(b => !b.classList.contains('ui-btn-primary'));
@@ -426,9 +434,12 @@ const check = (name, ok, detail) => {
        controls this walked, and the page draws none now. The CLAIM is the one
        it always made — every filter control on the row wears --field-line —
        and it is asked of the controls that are still there. */
-    check('12a a resting filter wears --field-line, the reference\'s own neutral',
-      rest.stage && rest.stage.bc === fieldLine && rest.type.bc === fieldLine,
-      `${rest.stage && rest.stage.bc} · token ${fieldLine}`);
+    /* RE-POINTED (21 Sep 2026): a resting chip wears the redesign's hairline,
+       --rule-strong, and what tells it from a button is its PILL shape. */
+    const ruleStrong = await page.evaluate(RESOLVE, '--rule-strong');
+    check('12a a resting filter wears the hairline, the redesign\'s own neutral',
+      rest.stage && rest.stage.bc === ruleStrong && rest.type.bc === ruleStrong,
+      `${rest.stage && rest.stage.bc} · token ${ruleStrong}`);
     check('12a2 …and the search box it used to walk is gone from the row',
       rest.search === null, rest.search ? 'still drawn' : 'not drawn');
     /* COMPARED AGAINST THE TOKEN, NOT A LIVE BUTTON: this page draws only the
@@ -436,10 +447,10 @@ const check = (name, ok, detail) => {
        reads `null` and proves nothing. The tokens are what the two controls
        actually read. */
     const btnEdge = await page.evaluate(RESOLVE, '--btn-edge');
-    check('12b and it is NOT the button\'s edge any more — that is the reversal',
-      rest.stage.bc !== btnEdge, `filter ${rest.stage.bc} vs button edge ${btnEdge}`);
-    check('12c the button\'s own edge did not move — the owner named the filters',
-      /^(rgba?|color)\(/.test(btnEdge) && btnEdge !== fieldLine, btnEdge);
+    check('12b and it is a PILL, which is what tells it from a button',
+      parseFloat(rest.stage.r) >= 100, `radius ${rest.stage.r} vs button edge ${btnEdge}`);
+    check('12c the button\'s own edge is a real colour',
+      /^(rgba?|color)\(/.test(btnEdge), btnEdge);
 
     /* THE ACTIVE ONE IS THE POINT OF THE CONTROL, and with the resting edge
        neutral it is the only thing saying the list is narrowed. Three carriers,
@@ -448,12 +459,12 @@ const check = (name, ok, detail) => {
     await page.waitForTimeout(900);
     const act = await page.evaluate(READ_EDGES);
     check('12d an active filter takes the accent border, a heavier weight and accent ink',
-      act.stage && act.stage.bc !== fieldLine
+      act.stage && act.stage.bc !== ruleStrong
         && Number(act.stage.fw) > Number(rest.stage.fw)
         && act.stage.fg !== rest.stage.fg,
       JSON.stringify(act.stage));
     check('12e and the filters beside it stay resting, so the narrowing is legible',
-      act.type && act.type.bc === fieldLine, act.type && act.type.bc);
+      act.type && act.type.bc === ruleStrong, act.type && act.type.bc);
 
     /* AND IT IS READABLE AT NIGHT. `--color-accent-800` had NO dark answer —
        measured 2.35:1 on the night panel where AA wants 4.5 — so the one thing
@@ -468,8 +479,10 @@ const check = (name, ok, detail) => {
     check('12f the active filter\'s ink follows the theme, rather than staying a light-mode accent',
       dark.stage && dark.stage.fg === accentInk && dark.stage.fg !== act.stage.fg,
       `dark ${dark.stage && dark.stage.fg} · light ${act.stage.fg} · token ${accentInk}`);
-    check('12f and a resting filter is still the same neutral at night',
-      dark.type && dark.type.bc === await page.evaluate(RESOLVE, '--field-line'),
+    /* RE-POINTED (21 Sep 2026): the chip's hairline has a night answer of its
+       own, so "the same neutral" is the token resolved AT NIGHT. */
+    check('12f and a resting filter still wears the hairline at night',
+      dark.type && dark.type.bc === await page.evaluate(RESOLVE, '--rule-strong'),
       dark.type && dark.type.bc);
     await page.evaluate(() => setTheme('light'));
     await page.evaluate(() => { const R = regState(); R.stage = 'all'; regRepaint(); });

@@ -115,6 +115,8 @@ const READ = () => {
 
     INK = await page.evaluate(() => { const e = document.createElement('i'); e.style.color = 'var(--accent-ink)';
       document.body.appendChild(e); const c = getComputedStyle(e).color; e.remove(); return c; });
+    const PAGE_INK = await page.evaluate(() => { const e = document.createElement('i'); e.style.color = 'var(--color-text)';
+      document.body.appendChild(e); const c = getComputedStyle(e).color; e.remove(); return c; });
     const m = await page.evaluate(READ);
     const seen = m['pt-hist'] || m['pt-compare'];
     check(`${purpose}: the reading buttons are on the page`, !!seen,
@@ -122,12 +124,17 @@ const READ = () => {
     if (seen){
       for (const [id, v] of Object.entries(m)){
         if (!v) continue;
-        check(`${purpose}: #${id} is not shaded inside`,
-          v.bg === TRANSPARENT, v.bg);
-        check(`${purpose}: #${id} still reads as a button — an accent outline, never grey`,
-          parseFloat(v.bw) > 0 && v.bd !== SURFACE_WHITE && !GREY.test(v.bd),
+        /* RE-POINTED IN PLACE (21 Sep 2026, the redesign): the counterparty's
+           reading verbs wear the row's ONE face — a white face, the hairline
+           edge, the page ink — exactly as More beside them (see
+           counterparty-reading-and-more-verify 1c). What this always guarded
+           is kept: a real edge, never the surface's own white. */
+        check(`${purpose}: #${id} wears the row's face`,
+          v.bg === SURFACE_WHITE || v.bg === TRANSPARENT, v.bg);
+        check(`${purpose}: #${id} still reads as a button — a real edge, never the surface's own white`,
+          parseFloat(v.bw) > 0 && v.bd !== SURFACE_WHITE,
           `${v.bw} ${v.bd}${v.bd === SURFACE_WHITE ? ' — this is the bug it always guarded' : ''}`);
-        check(`${purpose}: #${id} carries the accent ink`, v.color === INK, v.color);
+        check(`${purpose}: #${id} carries the page ink`, v.color === PAGE_INK, v.color);
         check(`${purpose}: #${id} has a shape to aim at`, v.icon, v.icon ? 'svg' : 'no icon');
       }
     }

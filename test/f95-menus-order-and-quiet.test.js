@@ -197,7 +197,8 @@ describe('F95 — the contract is filled in before it is checked', () => {
     const { win } = buildWorld({ contractView: true, negotiationView: true });
     const c = contract({ templateForm: form() });
     assert.equal(win.tplFormOpenCount(c), 3, 'the optional field is not counted');
-    assert.match(win.checksNoteHtml(c), /Fill the contract form above first/);
+    /* Shortened on 21 Sep 2026: the note sits beside the card's title now. */
+    assert.match(win.checksNoteHtml(c), /Fill the contract form first/);
     assert.match(win.checksNoteHtml(c), /3 required fields still empty/);
   });
 

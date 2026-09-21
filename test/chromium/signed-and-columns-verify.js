@@ -70,7 +70,10 @@ const check = (name, ok, detail) => {
         widths: th.map(t => Math.round(t.getBoundingClientRect().width)),
         tableW: Math.round(document.querySelector('.reg-table').getBoundingClientRect().width) };
     });
-    check('the Contracts head draws nine columns', head.n === 9, JSON.stringify(head.text));
+    /* RE-POINTED (21 Sep 2026): eleven since Move and Own joined — asked as
+       the relation to the seat's own key list, never a count. */
+    const nKeys = await page.evaluate(() => REG_COL_KEYS.length);
+    check('the Contracts head draws one column per key', head.n === nKeys, JSON.stringify(head.text));
     const iSig = head.text.findIndex(t => /^Signed$/i.test(t));
     const iExp = head.text.findIndex(t => /Expiry/i.test(t));
     check('Signed is drawn, and immediately before Expiry',

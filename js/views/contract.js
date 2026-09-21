@@ -4303,6 +4303,10 @@ function wsPaintTabRowEnd(c){
     document._wsExportWired=true;
     document.addEventListener('click',e=>{ document.querySelectorAll('details[data-ws-export][open]').forEach(d=>{ if(!d.contains(e.target)) d.open=false; }); });
   }
+  /* THE SWITCH'S OWN WIRING — the one call this slot's rewrite dropped on
+     21 Sep 2026, which left the Plain English press dead for one run
+     (duty-marks-verify 0b caught it: a press, no call, no reading). */
+  wireDocRead(c,end);
 }
 function applyWsTabs(c){
   const keys=ROOM_TABS.map(t=>t[0]);
