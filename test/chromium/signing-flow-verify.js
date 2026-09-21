@@ -54,6 +54,17 @@ const check = (name, pass, detail) => {
          signature carries one; without it every count here would be one higher
          and would be counting a row this file is not about. */
       c._brief = { v: 1, at: new Date(Date.now() + 60000).toISOString(), by: 'Stage', truncated: false, data: {} };
+      /* AND IT HAS BEEN READ (21 Sep 2026). Reading the brief is the last
+         thing before a signature and it HOLDS, so a contract staged at the
+         moment of signature has been read — exactly as it carries a brief at
+         all, and for the same reason: every count in this file would
+         otherwise be one higher and counting a row it is not about. Stamped
+         through the product's own writer, never by hand, so it is stamped
+         against the same key the card reads. Section 9 below is where the
+         row itself is measured. */
+      /* Guarded so this file still RUNS against a build without the writer —
+         a bench that throws proves nothing about the checks under it. */
+      if (window.briefMarkRead) briefMarkRead(c);
       const hash = playbookHashOf(playbookText(c));
       c.playbook = { label: 'Default', wordingHash: hash, verdicts: [
         { category: 'Governing law', status: 'deviation', escalate: true, position: 'Kenyan law', quote: '' },
@@ -388,6 +399,66 @@ const check = (name, pass, detail) => {
       check('8d it says these were checked, not merely that nothing is needed',
         /actually checked/i.test(r8.lead || ''), r8.lead);
     }
+
+    /* ═══ 9 · THE BRIEF IS THE LAST THING BEFORE THE SIGNATURE ═══
+       (Young ruled 21 Sep 2026: *"write brief should be the last button
+       clicked … It should not be the first button in the signing page but
+       last and mandatory."*) Measured on a REAL page: which stage is last,
+       and whether the press really settles the row, are questions about a
+       rendered card. The brief is staged on the record — no model is asked
+       for one; what is under test is the card, not the writing. */
+    await page.evaluate(() => {
+      const c = window.getContract(window.state.activeId);
+      c._brief = { at: new Date().toISOString(), by: 'Copilot',
+        data: { overview: 'A supply agreement with Nordwind.' } };
+      /* A FRESH BRIEF IS AN UNREAD ONE: the stamp made at the top of this file
+         was against the brief it replaces, so nothing has to be cleared by
+         hand — but the record is emptied anyway, so this section measures the
+         row rather than the lapse (which f353 drives on its own). */
+      c.briefRead = {};
+      if (window.renderSignSide) window.renderSignSide(c);
+    });
+    await page.waitForTimeout(600);
+    const st = await page.evaluate(() => {
+      const stages = [...document.querySelectorAll('#sign-check .sc-stage')]
+        .map(x => x.getAttribute('data-sc-stage'));
+      const sign = document.querySelector('#sign-check .sc-stage[data-sc-stage="sign"]');
+      const btn = document.getElementById('sc-brief');
+      const row = document.querySelector('#sign-check [data-sc-row="brief-read"]');
+      return { stages, last: stages[stages.length - 1],
+        head: sign ? (sign.querySelector('.sc-stage-t') || {}).textContent : '',
+        btn: btn ? (btn.textContent || '').trim() : '', inSign: !!(sign && sign.contains(btn)),
+        holds: !!(row && row.classList.contains('is-hold')),
+        headBtns: document.querySelectorAll('#sign-check .kt-tri-head button').length };
+    });
+    check('9a the brief\'s stage is the LAST one on the card',
+      st.last === 'sign', 'stages: ' + (st.stages || []).join(' \u2192 '));
+    check('9b and the control is on it, not in the card head',
+      st.inSign && st.headBtns === 0,
+      'in the sign stage: ' + st.inSign + ' \u00b7 buttons in head: ' + st.headBtns);
+    /* PIN THE RELATION, NOT THE WORD: the button says whatever br_open says,
+       in whatever language the reader has chosen. */
+    const openWord = await page.evaluate(() => window.i18t('br_open'));
+    check('9c it offers to open the one that stands, not to write another',
+      st.btn === openWord, st.btn + ' \u00b7 expected ' + openWord);
+    check('9d and until it is read, the row holds', st.holds,
+      st.holds ? 'holding' : 'not holding');
+    /* READ IT, THROUGH THE PRODUCT'S OWN WRITER. */
+    await page.evaluate(() => {
+      const c = window.getContract(window.state.activeId);
+      if (window.briefMarkRead) window.briefMarkRead(c);
+      if (window.renderSignSide) window.renderSignSide(c);
+    });
+    await page.waitForTimeout(600);
+    const wasRead = await page.evaluate(() => {
+      const row = document.querySelector('#sign-check [data-sc-row="brief-read"]');
+      const fold = document.querySelector('#sign-check .sc-fold');
+      return { holds: !!(row && row.classList.contains('is-hold')),
+        onCard: !!row || /read/i.test((fold && fold.textContent) || '') };
+    });
+    check('9e CONTROL — reading it stops it holding', !wasRead.holds, wasRead.holds ? 'still holding' : 'settled');
+    check('9f and it does not simply vanish from the card', wasRead.onCard,
+      wasRead.onCard ? 'folded under the settled count' : 'gone');
 
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } finally {

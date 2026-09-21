@@ -161,6 +161,19 @@ const STANDARDS = 'js/standards.js';
    files those readings live in — a stage without them would exercise this
    module's `typeof` fallbacks and prove nothing about the product. The
    obligations model goes under the playbook, which is js/app.js's order. */
+/* js/metadata.js — META_FIELDS and the option-label table (buildWorld({metadata:true})).
+   Opt-in and loaded last: it declares no dependency of its own (its labels are
+   getters, resolved at call time through i18t) and publishes only its own
+   names, so a world that asks for it is byte-identical bar those names. The
+   Overview's own field cells read META_FIELDS through window, so a stage
+   without it draws the four fields that have a home of their own and nothing
+   else — which is right, and is why this is not simply in MODULES. */
+/* js/participants.js — who is on this contract (buildWorld({participants:true})).
+   A pure model plus a pure builder: no route, no server field, and every
+   reading it borrows is asked through window with a guard, so a world that
+   loads it and names nobody is byte-identical. */
+const PARTICIPANTS = 'js/participants.js';
+const METADATA = 'js/metadata.js';
 const TRIAGE = 'js/triage.js';
 /* The open blanks of a drafted contract (buildWorld({blanks:true})). A reading
    with no view, no route and no store, on the shelf js/precedent.js sits on —
@@ -426,6 +439,8 @@ function buildWorld(opts = {}) {
   const files = [...MODULES];
   if (opts.negotiationView) files.push(...NEGOTIATION_VIEW);
   if (opts.contractView) files.push(CONTRACT_VIEW);
+  if (opts.metadata && !files.includes(METADATA)) files.push(METADATA);
+  if (opts.participants && !files.includes(PARTICIPANTS)) files.push(PARTICIPANTS);
   if (opts.ocr) files.push(OCR);
   if (opts.playbook) files.push(PLAYBOOK);
   /* The ladder brings precedent under it — it borrows PRECEDENT_TOPICS for

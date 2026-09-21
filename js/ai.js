@@ -4195,6 +4195,27 @@ function renderBriefSection(c){
          directly under it. A LINE rather than a band: it says something the
          panel does not already say, and the act that answers it is already on
          the same screen. */
+      /* WHAT MOVED — a list of facts off the record, so it is set like the
+         facts table rather than like a warning: no tint, no left rule, and
+         the side is a word in its own ink. */
+      #brief-section .br-mvs{margin-top:0}
+      #brief-section .br-mv{display:grid;grid-template-columns:minmax(0,1fr) auto;
+        gap:2px 10px;padding:8px var(--s-3);background:var(--color-bg);
+        border:1px solid var(--color-divider);border-radius:var(--radius)}
+      #brief-section .br-mv-c{font-size:var(--t-meta);font-weight:var(--w-title);color:var(--color-text)}
+      #brief-section .br-mv-s{grid-column:1;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600)}
+      #brief-section .br-mv-w{grid-row:1;grid-column:2;font-size:var(--t-label);
+        font-weight:var(--w-label);white-space:nowrap}
+      #brief-section .br-mv-them{color:var(--st-amber-fg)}
+      #brief-section .br-mv-us{color:var(--accent-ink)}
+      #brief-section .br-mv-note{margin:6px 0 0;font-size:var(--t-label);color:var(--color-neutral-500)}
+      /* THE PRESS THAT RECORDS THE READING. One filled button, and it is the
+         only act on this panel that writes anything. */
+      #brief-section .br-read{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+        margin-top:var(--s-4);padding-top:var(--s-3);border-top:1px solid var(--color-divider)}
+      #brief-section .br-read-n{flex:1 1 140px;font-size:var(--t-label);color:var(--color-neutral-600)}
+      #brief-section .br-read-done{margin:var(--s-4) 0 0;padding-top:var(--s-3);
+        border-top:1px solid var(--color-divider);font-size:var(--t-label);color:var(--st-green-fg)}
       #brief-section .br-cut{margin:var(--s-4) 0 0;padding:8px 11px;font-size:var(--t-label);
         line-height:1.55;color:var(--st-amber-fg);background:var(--st-amber-bg);
         border-left:3px solid var(--st-amber-dot);border-radius:var(--radius)}
@@ -4204,16 +4225,96 @@ function renderBriefSection(c){
     ${wl?head(i18t('br_watchouts'),'watch')+`<ul class="br-list">${wl}</ul>`:''}
     ${ul?head(i18t('br_unusual'),'odd')+`<ul class="br-list">${ul}</ul>`:''}
     ${b.truncated?`<p class="br-cut">${_aiEsc(i18t('br_partial'))} — ${_aiEsc(i18t('br_partial_sub'))}</p>`:''}
+    ${briefMovedHtml(c)}
+    ${briefReadFootHtml(c)}
     <div style="display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:10px;border-top:1px solid var(--color-divider)">
       <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${i18t('br_written',{date:when,name:_aiEsc(b.by||'Copilot')})}</span>
       ${mayRemake?`<button class="ui-btn" data-brief-remake style="margin-left:auto;font-size:var(--t-label);padding:var(--s-1) 10px">${i18t('br_rewrite')}</button>`:''}
     </div>`;
+  /* ---- SAYING YOU HAVE READ IT (Young ruled 21 Sep 2026) ----
+     The one writer is briefMarkRead; this presses it, saves and repaints the
+     one card that reports it. It records that the brief was OPENED and the
+     button pressed — never that it was understood — and the words on the
+     screen say exactly that. */
+  host.querySelector('[data-brief-read]')?.addEventListener('click',async ev=>{
+    const btn=ev.currentTarget; btn.disabled=true;
+    try{
+      if(window.briefMarkRead) briefMarkRead(c);
+      if(window.logAudit) logAudit(c,'Record','Read the brief before signing');
+      if(window.persist) persist(c);
+      renderBriefSection(c);
+      /* THE SIGNING COLUMN IS THE CARD THAT REPORTS IT, and renderSignSide is
+         its own painter — the same one every verb on that card calls when it
+         settles a row. renderSignButton with it, because the button's label
+         counts what is still holding. */
+      if(window.renderSignSide) renderSignSide(c);
+      if(window.renderSignButton) renderSignButton(c);
+    }catch(_){ btn.disabled=false; }
+  });
   host.querySelector('[data-brief-remake]')?.addEventListener('click',async ev=>{
     const btn=ev.currentTarget; btn.disabled=true; btn.textContent=i18t('ct_working');
     const r=await runContractBrief(c,{force:true});
     if(r){ renderBriefSection(c); if(window.renderChecksCard) renderChecksCard(c); }
     else{ btn.disabled=false; btn.textContent=i18t('br_rewrite'); }
   });
+}
+
+/* ---- WHAT MOVED WHILE YOU NEGOTIATED (Young ruled 21 Sep 2026) ----
+   A signer wants to know what SHIFTED since they last looked, not only what
+   the contract says. NOTHING HERE IS WRITTEN BY A MODEL and nothing is spent:
+   negoMemo is the deterministic reading this product already has — it reads
+   c.changes and c.negotiation.rounds RAW and never initialises a negotiation
+   — and its `agreed` list is exactly the changes that moved the wording.
+   Asked through window with a guard: js/views/negotiation.js is not on every
+   stage, and a brief without these lines is better than no brief. */
+const BRIEF_MOVED_MAX = 8;
+function briefMoved(c){
+  let m = null;
+  try{ m = (typeof window.negoMemo === 'function') ? window.negoMemo(c) : null; }catch(_){ m = null; }
+  if (!m || !Array.isArray(m.agreed) || !m.agreed.length) return null;
+  const rows = m.agreed.slice(0, BRIEF_MOVED_MAX).map(r => ({
+    clause: String(r.clause || ''), said: String(r.said || ''), side: r.side }));
+  /* A CAP IS A FACT, NEVER A SILENT TRIM — the true count is the memo's own. */
+  const total = (m.counts && m.counts.agreed) || m.agreed.length;
+  return { rows, total, over: Math.max(0, total - rows.length) };
+}
+function briefMovedHtml(c){
+  const mv = briefMoved(c); if (!mv) return '';
+  const rows = mv.rows.map(r => `<li class="br-mv">
+      <span class="br-mv-c">${_aiEsc(r.clause)}</span>
+      <span class="br-mv-s">${_aiEsc(r.said || i18t('br_moved_nosay'))}</span>
+      <span class="br-mv-w br-mv-${r.side === 'them' ? 'them' : 'us'}">${
+        _aiEsc(i18t(r.side === 'them' ? 'br_moved_theirs' : 'br_moved_ours'))}</span>
+    </li>`).join('');
+  return `<h6 class="br-head br-head-odd"><span class="br-dot"></span>${_aiEsc(i18t('br_moved_head'))}</h6>
+    <ul class="br-list br-mvs">${rows}</ul>
+    <p class="br-mv-note">${_aiEsc(mv.over ? i18t('br_moved_more', { n: mv.over }) : i18t('br_moved_note'))}</p>`;
+}
+/* ---- AND THE PRESS THAT RECORDS IT ----
+   Drawn only where the brief really stands for this wording: a brief that is
+   missing, stale or cut short has its own row on the signing card and
+   pressing "I have read this" over it would record a reading of something
+   about to be rewritten. Once recorded it becomes a SENTENCE, not a second
+   press — the record carries who and when. */
+function briefReadFootHtml(c){
+  if (typeof window.briefReadKey !== 'function') return '';
+  const b = (c && c._brief) || null;
+  if (!b || b.truncated) return '';
+  /* The signing card's own condition, said the same way: a brief KNOWN to be
+     stale is about to be rewritten and is not one to confirm having read; a
+     contract with no dated change to compare against has a current brief. */
+  let stale = null;
+  try{ stale = window.signCheckBrief ? signCheckBrief(c).stale : null; }catch(_){ stale = null; }
+  if (stale === true) return '';
+  if (!briefReadKey(c)) return '';
+  const done = window.briefReadBy && briefReadBy(c) ? (window.briefReadOf ? briefReadOf(c) : null) : null;
+  if (done) return `<p class="br-read-done">${_aiEsc(i18t('br_read_done', {
+    who: done.by || '', when: String(done.at || '').slice(0, 10) }))}</p>`;
+  return `<div class="br-read">
+      <span class="br-read-n">${_aiEsc(i18t('br_read_note'))}</span>
+      <button type="button" class="ui-btn ui-btn-primary" data-brief-read="1">${
+        _aiEsc(i18t('br_mark_read'))}</button>
+    </div>`;
 }
 
 /* ====================== THE RENEWAL ADVISER (W2-4, gap-map) ================
@@ -4534,4 +4635,4 @@ Object.assign(window,{scanGoTo,
   aiKeepStructuralTags,aiStructureOf,aiSplitItems,aiRestoreEmphasis,aiPreserveTypography,aiDropRestatedHeading,
   aiParseProposal,copilotPropose,copilotProposeTemplate,AI_TEMPLATE_RULE,aiProposalCardHtml,aiOpenProposal,aiActiveProposal,
   aiProposalApply,aiProposalDecline,aiProposalToggleEdit,aiWireProposals,aiRefineProposal,aiStepBackIfSummoned,
-  AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,aiPortfolioFigures,aiPortfolioSays,aiWholeBookAsk,aiDegrade,AI_CHAT_STEPS,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,AI_DEPENDENTS_TOOL_DESC,AI_COUNTERPARTY_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,AI_WORKLIST_MIN,AI_WORKLIST_LABEL_MAX,aiWorklistHtml,aiCompareTable,aiChatMessages,aiChatContext, aiPageContext, aiPageSays, aiGraphSays, aiScreenContractId,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,runContractBrief,runFillBlanks,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scanCanvas,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});
+  AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,aiPortfolioFigures,aiPortfolioSays,aiWholeBookAsk,aiDegrade,AI_CHAT_STEPS,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,AI_DEPENDENTS_TOOL_DESC,AI_COUNTERPARTY_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,AI_WORKLIST_MIN,AI_WORKLIST_LABEL_MAX,aiWorklistHtml,aiCompareTable,aiChatMessages,aiChatContext, aiPageContext, aiPageSays, aiGraphSays, aiScreenContractId,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,briefMoved,briefMovedHtml,briefReadFootHtml,BRIEF_MOVED_MAX,runContractBrief,runFillBlanks,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scanCanvas,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});

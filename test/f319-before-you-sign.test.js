@@ -182,7 +182,12 @@ describe('f319 (4a) READING A CONTRACT DOES NOT NEED TO KNOW WHO SIGNS IT', () =
 
 describe('f319 (4b) THREE STAGES, IN THE ORDER A PERSON ASKS THEM', () => {
   test('one map says which stage a row belongs to, and an unknown kind is not lost', () => {
-    assert.match(SC, /const SIGN_STAGES = \['paper', 'read', 'people'\];/, 'three, named');
+    /* RE-POINTED IN PLACE 21 Sep 2026: a FOURTH stage joined, `sign`, and it
+       holds the brief alone (Young: the brief is the last thing pressed before
+       a signature). The three this file was written about did not move and are
+       still in this order, which is the claim; the count is not. */
+    assert.match(SC, /const SIGN_STAGES = \['paper', 'read', 'people'(, 'sign')?\];/,
+      'the three are named, in the order a person asks them');
     assert.match(SC, /SIGN_STAGE_OF\[String\(kind \|\| ''\)\] \|\| 'paper'/,
       'an unrecognised blocker is something about the paper and draws at the top');
     for (const k of ['negotiation', 'brief', 'standards-read', 'obligations', 'approval', 'signers'])
@@ -201,7 +206,11 @@ describe('f319 (4b) THREE STAGES, IN THE ORDER A PERSON ASKS THEM', () => {
     rd.rows.forEach(r => assert.ok(w.SIGN_STAGES.includes(r.stage), `${r.kind} → ${r.stage}`));
     const byKind = k => (rd.rows.find(r => r.kind === k) || {}).stage;
     assert.equal(byKind('negotiation'), 'paper', 'the wording comes first');
-    assert.equal(byKind('brief'), 'read', 'then who has read it');
+    /* The brief moved to the last stage on 21 Sep 2026 and takes the whole of
+       it; the standards read is what answers "who has read this version" on
+       the stage this claim was written for. */
+    assert.equal(byKind('standards-read'), 'read', 'then who has read it');
+    assert.equal(byKind('brief'), 'sign', 'and the brief is the last thing before signing');
     assert.equal(byKind('signers'), 'people', 'then the people');
   });
 

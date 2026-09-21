@@ -680,6 +680,14 @@ function triageNeedsRead(c){
    own contract appears. */
 function contractArrived(c, opts){
   const o = opts || {};
+  /* ---- WHO WAS NAMED WHILE THE PAPER WAS BEING CHOSEN (21 Sep 2026) ----
+     The drafting screen collects people before the record exists, so they are
+     held in memory and claimed HERE — the one funnel every creation site
+     already registers with. BEFORE THE GUARDS BELOW, deliberately: a contract
+     that is too empty to be worth reading is still a contract somebody just
+     named three colleagues on. A bulk import claims nothing: nobody stood at
+     that screen. */
+  if (c && !o.bulk){ try{ if (typeof participantsClaim === 'function') participantsClaim(c); }catch(_){} }
   if (!c || o.bulk) return false;
   if (typeof triageAndPaint !== 'function') return false;
   if (!triageApplies(c)) return false;

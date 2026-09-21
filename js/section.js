@@ -70,20 +70,28 @@ function sectionChevronHtml(open){
    record says nothing. `cite` is the small mono pill that says where a
    value was read from — a clause number on a contract, a date on a
    reading. `tone` is a status colour for the value (ruby for lapsed). */
-function sectionFieldHtml(label, value, cite, tone){
+/* ---- AND AN OPTIONAL LINE UNDER THE VALUE (21 Sep 2026) ----
+   `note` is markup the CALLER builds, because only it knows whether the line
+   is a sentence or a door. Passing '' still draws the element: a caller that
+   marks some of its fields passes an empty note on the rest, so every cell
+   reserves the same line and the grid cannot jump when a mark appears. A
+   caller that passes nothing at all gets exactly the markup it got before,
+   which is why the five screens that share this builder did not move. */
+function sectionFieldHtml(label, value, cite, tone, note){
   const blank = value == null || value === '';
   const v = blank ? '&mdash;' : (typeof value === 'string' ? value : String(value));
   return `<div class="sec-f">
     <span class="sec-f-l">${_secEsc(label)}</span>
     <span class="sec-f-v${blank ? ' is-none' : ''}"${tone ? ` style="color:var(--st-${tone}-fg)"` : ''}>${v}${
-      cite ? `<i class="sec-f-c">${_secEsc(cite)}</i>` : ''}</span>
+      cite ? `<i class="sec-f-c">${_secEsc(cite)}</i>` : ''}</span>${
+    note == null ? '' : (note || '<span class="sec-f-n"></span>')}
   </div>`;
 }
 /* A grid of them. Four to a row on a wide screen, one on a phone — the
    caller never states a column count. */
 function sectionFieldsHtml(fields){
   const rows = (fields || []).filter(Boolean).map(f => Array.isArray(f)
-    ? sectionFieldHtml(f[0], f[1], f[2], f[3]) : String(f)).join('');
+    ? sectionFieldHtml(f[0], f[1], f[2], f[3], f[4]) : String(f)).join('');
   return rows ? `<div class="sec-fields">${rows}</div>` : '';
 }
 

@@ -58,10 +58,16 @@ describe('F178 — Key terms stops offering the playbook review', () => {
        the builder gained an opts argument and this net went quietly null). A
        net a signature can silence says nothing about the behaviour it was
        written for — the f255 lesson, paid again. */
-    const FACTS = /function ktDealFactsHtml\s*\([^)]*\)\s*\{[\s\S]*?\n\}/.exec(CONTRACT);
-    assert.ok(FACTS, 'the fields that replaced it are there');
+    /* RE-POINTED IN PLACE 21 Sep 2026: PIN THE REGION, NOT A BOUNDARY THAT
+       HAPPENS TO HOLD. This sliced ktDealFactsHtml to its first line starting
+       with `}` and read the three field names out of it — true while that
+       function listed its own fields, and quietly null the moment the list
+       moved one declaration up. The fields are OV_DEAL_FIELDS now, which is
+       the ONE statement of what the card carries. */
+    const FIELDS = /const OV_DEAL_FIELDS = \[[\s\S]*?\];/.exec(CONTRACT);
+    assert.ok(FIELDS, 'the fields that replaced it are there');
     for (const k of ['governingLaw', 'liabilityCapped', 'paymentTerms'])
-      assert.ok(FACTS[0].includes(k), k + ' is a field on the page now');
+      assert.ok(FIELDS[0].includes(k), k + ' is a field on the page now');
   });
 });
 

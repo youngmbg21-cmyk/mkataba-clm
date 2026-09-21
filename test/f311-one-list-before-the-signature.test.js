@@ -53,6 +53,13 @@ function bench(over = {}, who = ME){
      for signature carries one; the tests about the brief take it away. */
   if (!Object.prototype.hasOwnProperty.call(over, '_brief'))
     c._brief = { v: 1, at: new Date(Date.now() + 60000).toISOString(), by: 'Bench', truncated: false, data: {} };
+  /* AND IT HAS BEEN READ (21 Sep 2026). Reading the brief is the last thing
+     before a signature and it HOLDS, so a bench contract heading for signature
+     has read it — exactly as it carries a brief at all, and for the same
+     reason: every count in this file would otherwise be one higher and be
+     counting a row it is not about. f353 drives that row on its own. Stamped
+     through the product's own writer, against the same key the card reads. */
+  try{ if(win.briefMarkRead && c._brief) win.briefMarkRead(c, who); }catch(_){}
   win.state = Object.assign({}, win.state, { contracts: [c], activeId: c.id, settings: {} });
   win.getContract = id => (id === c.id ? c : null);
   win.canViewValues = () => true;
@@ -236,9 +243,17 @@ describe('f311 (3) — every row is a door, and the button is the list', () => {
     withBook(win, c, [dev({ accepted: { by: 'W', byId: 'x', role: 'legal', at: '2026-09-01T00:00:00.000Z', why: 'ok' } }), esc()]);
     const rd = win.signReadiness(c);
     assert.equal(rd.rows[0].escalate, true, 'the escalation leads');
-    assert.equal(rd.settled.length, 1);
+    /* RE-POINTED IN PLACE 21 Sep 2026: reading the brief became the last thing
+       before a signature, and a bench contract has read it — so the settled
+       pile is the accepted deviation AND that reading. What the claim is about
+       is that settled work FOLDS under a count, which is asked as the relation
+       between the two rather than as the number 1. */
+    const settledN = rd.settled.length;
+    assert.ok(rd.settled.some(r => r.kind === 'standard'), 'the accepted deviation settled');
+    assert.ok(rd.settled.some(r => r.kind === 'brief-read'), 'and so did the reading');
     const html = win.signCheckCardHtml(c);
-    assert.match(html, /data-sc-fold="1"/); assert.match(html, /1 settled/);
+    assert.match(html, /data-sc-fold="1"/);
+    assert.ok(html.includes(settledN + ' settled'), settledN + ' settled is on the fold');
   });
   test('the card and the acts are wired in the one paint of the column', () => {
     const m = /function renderSignSide\(c\)\{[\s\S]*?\n\}/.exec(strip(CONTRACT));

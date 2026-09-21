@@ -727,7 +727,19 @@ function openNewAgreement(o){
       <div class="na-card" id="na-card">
         <div class="na-card-h"><h3 id="na-card-name"></h3><span class="na-card-sub" id="na-card-sub"></span></div>
         <div class="na-card-b"><div id="na-form"></div>
-          <div class="na-note">${i18t(wide?'na_note_wide':'na_note')}</div></div>
+          <div class="na-note">${i18t(wide?'na_note_wide':'na_note')}</div>
+          ${/* ---- WHO ELSE IS ON THIS AGREEMENT (Young ruled 21 Sep 2026) ----
+               SHUT BY DEFAULT and under the questions, because it is an offer
+               and not a question: a draft is made without it every day. The
+               rows are the Overview's own builder, so the two doors cannot
+               disagree about what a role means, and nobody is emailed by
+               anything on this screen — an invitation goes with the first
+               send, which is the door that has always carried a link. */''}
+          <details id="na-people" class="na-people">
+            <summary>${i18t('ppl_title')}<span class="na-people-n" id="na-people-n"></span></summary>
+            <p class="na-people-s">${i18t('ppl_sub')}</p>
+            <div id="na-people-list"></div>
+          </details></div>
       </div>
     </div>
     <div class="na-foot">
@@ -794,10 +806,55 @@ function openNewAgreement(o){
     else if(b.hasAttribute('data-wz-mine')) pick('mine', b.getAttribute('data-wz-mine'), o.prefill);
     else pick('tid', b.getAttribute('data-wz-tid'), o.prefill);
   });
-  document.getElementById('wz-pick-cancel')?.addEventListener('click', closeModal);
-  document.getElementById('na-x')?.addEventListener('click', closeModal);
-  document.getElementById('na-create')?.addEventListener('click', ()=>{ if(api) api.create(); else toast(i18t('na_pick_first'),'err'); });
-  document.getElementById('na-skip')?.addEventListener('click', ()=>{ if(api) api.skip(); else toast(i18t('na_pick_first'),'err'); });
+  /* THE LIST IS HELD, NEVER WRITTEN HERE: there is no record yet. It rides
+     participantsHold and is claimed by contractArrived, the one funnel every
+     creation site already registers with — so all three creators on this
+     screen get it without any of them learning about it. Cancelling drops it,
+     which is why both ways out call participantsDrop. */
+  const scratch={ participants:[], folder:'' };
+  const peopleHost=document.getElementById('na-people-list');
+  const paintPeople=()=>{
+    if(!peopleHost||typeof participantsPanelHtml!=='function') return;
+    peopleHost.innerHTML=participantsPanelHtml(scratch,{ editable:true, reach:false });
+    const n=document.getElementById('na-people-n');
+    if(n) n.textContent=scratch.participants.length?' \u00b7 '+i18tn('ppl_n',scratch.participants.length,{n:scratch.participants.length}):'';
+    if(typeof participantsHold==='function') participantsHold(scratch.participants);
+  };
+  if(peopleHost&&typeof participantsWire==='function'){
+    participantsWire(peopleHost,scratch,{ reach:false, repaint:paintPeople,
+      onChange:()=>{ if(typeof participantsHold==='function') participantsHold(scratch.participants); } });
+    paintPeople();
+  }
+  /* ---- THE HOLD BELONGS TO THIS SCREEN, SO IT GOES WHEN THE SCREEN DOES ----
+     Cancel and the ✕ are two of five ways out — Escape and the scrim call
+     closeModal directly, and Create tears the screen down itself — so hanging
+     the drop off the two buttons would leave people held after an Escape, and
+     the next contract minted anywhere in the product would claim them. The
+     screen's own disappearance is the one signal every way out shares.
+     THE CREATE PATH IS EXEMPT: it closes the screen and mints a record in the
+     same breath, and the claim has to win that race, so it is spent by hand
+     before the observer can fire. */
+  let _naClaimed=false;
+  const dropHeld=()=>{ if(!_naClaimed && typeof participantsDrop==='function') participantsDrop(); };
+  try{
+    const mr=document.getElementById('modal-root');
+    if(mr && typeof MutationObserver==='function'){
+      const ob=new MutationObserver(()=>{
+        if(document.getElementById('na-root')) return;
+        ob.disconnect(); dropHeld();
+      });
+      ob.observe(mr,{childList:true,subtree:true});
+    }
+  }catch(_){}
+  const leave=()=>{ dropHeld(); closeModal(); };
+  document.getElementById('wz-pick-cancel')?.addEventListener('click', leave);
+  document.getElementById('na-x')?.addEventListener('click', leave);
+  /* CREATING IS THE ONE WAY OUT THAT KEEPS THEM: the record is minted in the
+     same breath and contractArrived claims them off the hold. */
+  const goCreate=fn=>()=>{ if(!api){ toast(i18t('na_pick_first'),'err'); return; }
+    _naClaimed=true; fn(); };
+  document.getElementById('na-create')?.addEventListener('click', goCreate(()=>api.create()));
+  document.getElementById('na-skip')?.addEventListener('click', goCreate(()=>api.skip()));
   document.getElementById('na-upload')?.addEventListener('click', ()=>{ closeModal(); if(typeof openUploadModal==='function') openUploadModal(); });
   document.getElementById('na-import')?.addEventListener('click', ()=>{ closeModal(); if(typeof setView==='function') setView('migration'); });
   const say=document.getElementById('dr-say'), read=document.getElementById('dr-read');
