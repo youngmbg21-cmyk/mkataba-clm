@@ -560,12 +560,63 @@ function onShellResize(){
   });
 }
 if(typeof addEventListener==='function') addEventListener('resize', onShellResize);
+/* ============================================================
+   ONE COUNT PER PAINT, NOT FOUR (21 Sep 2026, the performance audit's
+   second finding)
+
+   The rail, Home's tiles and the phone's bottom bar each walked the whole
+   book for the same figures, and one navigation asked negoNeedsYouTotal
+   FOUR times. Measured at 3,000 contracts: updateAlertBadge 684 ms,
+   approvalsDoorCount 361, obligationSurfacesChanged 1,102 — three passes
+   where one would do, on every change of page.
+
+   navCounts() is that one reading. Every figure is BORROWED from the
+   function that already owns it, so no door can print a number its own
+   page disagrees with; what changes is only how often it is asked.
+
+   THE MEMO LIVES FOR ONE TURN AND NO LONGER. It is dropped on a microtask,
+   so every caller inside one synchronous paint shares one answer and
+   nothing that happens afterwards can be answered from it. A stamp
+   somebody had to raise would be faster still and would print a stale
+   number on a door the first time a writer forgot — and a door reading 3
+   over a list of 5 is this codebase's most expensive kind of fault. */
+let _navCounts = null, _navBusy = false;
+function navCountsClear(){ _navCounts = null; }
+function navCounts(){
+  if(_navCounts) return _navCounts;
+  /* RE-ENTRANCY IS THE TRAP HERE, and the first build fell straight into it:
+     navCounts asked approvalsDoorCount, which draws its rows through
+     hmDashSlices, which asks navCounts — and because the memo was only
+     written at the END, every level recomputed. Measured: 1,132 full walks of
+     the book for one paint of Home, against 3 before. So this reading holds
+     ONLY figures that cannot call back into a screen, and the flag below is
+     the wall against a future one that can. */
+  if(_navBusy) return { pipeline:0, migration:0, negotiations:0 };
+  _navBusy = true;
+  try{
+    const cs = (typeof state!=='undefined' && state && Array.isArray(state.contracts)) ? state.contracts : [];
+    /* ONE walk for the two flag counts that used to take one each. */
+    let pipeline = 0, migration = 0;
+    for(let i=0;i<cs.length;i++){
+      const c = cs[i]; if(!c) continue;
+      if(c.status === 'Under Review') pipeline++;
+      if(c.migration && c.migration.needsReview) migration++;
+    }
+    let negotiations = 0;
+    try{ if(window.negoNeedsYouTotal) negotiations = negoNeedsYouTotal(); }catch(_){ negotiations = 0; }
+    _navCounts = { pipeline, migration, negotiations };
+  } finally { _navBusy = false; }
+  try{ Promise.resolve().then(navCountsClear); }catch(_){ navCountsClear(); }
+  return _navCounts;
+}
+
 function updateSidebarCounts(){
   const cs=state.contracts;
+  const nc=navCounts();
   const total=(state.serverStats&&state.serverStats.total!=null)?state.serverStats.total:cs.length;
   const counts={
     register: total,
-    pipeline: cs.filter(c=>c.status==='Under Review').length,
+    pipeline: nc.pipeline,
     advice: (state.advice||[]).filter(r=>ADVICE_ACTIVE.includes(r.status)).length,
     intake: (typeof intakeCount==='function')?intakeCount():0,
     /* WHAT IS LATE, across the book — the same reading the worklist's own head
@@ -579,14 +630,14 @@ function updateSidebarCounts(){
        simply left out every obligation whose date a person had typed. */
     calendar: (window.allObligations?allObligations().filter(o=>{ const due=window.obligationDue?obligationDue(o):(o.due||'').slice(0,10);
       const d=(due&&window.daysUntil)?daysUntil(due):null; return d!=null&&!isNaN(d)&&d>=0&&d<=60; }).length:0),
-    migration: cs.filter(c=>c.migration&&c.migration.needsReview).length,
+    migration: nc.migration,
     /* WHAT IS WAITING ON YOU, NOT HOW MANY NEGOTIATIONS THERE ARE. This door
        sits above every agreement, so a per-contract number on it would be
        counting the wrong book — and a count of running negotiations would say
        "3" to somebody who owes nothing on any of them. Same arithmetic as the
        round line, the Document tab's button and the workbench's own toolbar:
        one function, four surfaces, no way for them to disagree. */
-    negotiations: (window.negoNeedsYouTotal?(()=>{ try{ return negoNeedsYouTotal(); }catch(_){ return 0; } })():0),
+    negotiations: nc.negotiations,
     templates: Object.keys(TEMPLATES).length + (window.customTemplates?customTemplates().length:0)
       + (window.tplLibCount?tplLibCount():0),
   };
@@ -3114,6 +3165,6 @@ if (typeof window !== 'undefined' && window.addEventListener){
   window.addEventListener('afterprint', clearPrintRoot);
 }
 
-Object.assign(window,{printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,notesPanelShowing,
+Object.assign(window,{printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,notesPanelShowing,
   buildAlerts,alertCount,updateAlertBadge,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,brandNow,darkNow,setBrand,setDark,toggleDark,applyAppearance,paintAppearance,brandPickerVisible,BRANDS,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
 Object.assign(window,{BP});

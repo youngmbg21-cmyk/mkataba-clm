@@ -442,7 +442,14 @@ async function extractObligations(c,opts={}){
    reader navigated anywhere. The Calendar itself, if it is the open screen, has
    the same problem for the same reason. */
 function obligationSurfacesChanged(){
+  /* ONE LOOK-UP, NOT TWO (21 Sep 2026, the performance audit's third item).
+     This function asked getContract(state.activeId) twice, and getContract
+     searches the whole book — so ticking one obligation off walked 3,000
+     contracts twice before any surface was even asked whether it was on
+     screen. Every painter below already returns on a missing element, so
+     what was left to fix is the work done BEFORE them. */
   if(window.updateSidebarCounts) updateSidebarCounts();
+  const here = (window.state && window.getContract) ? getContract(state.activeId) : null;
   if(window.state && state.view==='calendar' && window.renderCalendar) renderCalendar();
   /* AND THE DASHBOARD, now that it counts them too. Same reasoning as the
      calendar above: its numbers are computed during a render, and ticking an
@@ -453,18 +460,15 @@ function obligationSurfacesChanged(){
      one count, many surfaces, refreshed from ONE place rather than from each of
      the four callers that can change an obligation. renderChecksCard returns
      immediately where there is no card, so this is a no-op everywhere else. */
-  if(window.renderChecksCard && window.state && window.getContract){
-    const c=getContract(state.activeId);
-    if(c) renderChecksCard(c);
-  }
+  if(window.renderChecksCard && here) renderChecksCard(here);
   /* AND THE ROOM'S OWN TAB, which carries the outstanding count and the amber
      that says something is overdue (J-2.1). A new surface joins this funnel or
      it goes stale the first time somebody ticks something off somewhere else —
      which is the whole reason this function exists. Both are no-ops off the
      contract room. */
-  if(window.state && window.getContract){
-    const c=getContract(state.activeId);
-    if(c){
+  if(here){
+    {
+      const c = here;
       if(window.wsPaintTabCounts) wsPaintTabCounts(c);
       if(window.roomPaintObligations) roomPaintObligations(c);
       /* AND THE OVERVIEW'S `Documents they must hold` (S8, 16 Sep 2026), which

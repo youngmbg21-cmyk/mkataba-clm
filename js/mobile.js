@@ -837,7 +837,10 @@ function mTabsHtml(){
   const n = mApprovalItems().length;
   /* Guarded: the phone's tests evaluate this file without the negotiation view
      loaded, and a bar that throws takes every screen with it. */
-  const nn = (window.negoNeedsYouTotal ? (()=>{ try{ return negoNeedsYouTotal(); }catch(_){ return 0; } })() : 0);
+  const nn = (()=>{ try{
+    if(window.navCounts) return navCounts().negotiations;       /* one count per paint */
+    return window.negoNeedsYouTotal ? negoNeedsYouTotal() : 0;
+  }catch(_){ return 0; } })();
   return `
     <div class="m-tabs">
       <button class="m-tab${on('home')}" data-m-tab="home">

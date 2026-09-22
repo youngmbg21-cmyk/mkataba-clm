@@ -584,7 +584,12 @@ function hmDashSlices(){
      no figure on this page is worked out twice. Each is guarded, because this
      module renders on stages that do not load every other one. */
   const negoLive=(()=>{ try{ return window.negoLiveList?negoLiveList():[]; }catch(e){ return []; } })();
+  /* THROUGH navCounts, the one count per paint: the rail, this tile and the
+     phone's bar all asked negoNeedsYouTotal for themselves, so one navigation
+     walked the whole book four times for one figure. Still the same reading —
+     navCounts borrows it — so the tile and the door cannot disagree. */
   const negoNeedsMe=(()=>{ try{
+    if(window.navCounts) return navCounts().negotiations;
     return window.negoNeedsYouTotal?negoNeedsYouTotal():0; }catch(e){ return 0; } })();
   /* THE IMPORT QUEUE is the migration worklist — documents read out of the
      back catalogue and still waiting for a person. Counted off the same flag

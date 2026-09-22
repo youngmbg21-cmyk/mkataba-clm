@@ -2802,9 +2802,18 @@ app.get('/api/contracts', auth, (req, res) => {
      business riding a list; what the tile needs is whether one exists. ONE
      query for the whole page rather than one per row — the N+1 this file
      already refuses on the spend ledger. */
-  if (rows.length) {
-    const have = new Set(db.prepare('SELECT contract_id FROM briefs').all().map(x => x.contract_id));
-    rows.forEach(c => { if (have.has(c.id)) c._hasBrief = true; });
+  /* FOR THIS PAGE'S OWN IDS, NOT THE WHOLE TABLE (21 Sep 2026, the
+     performance audit's fourth item). Both reads below were correct and both
+     grew with the BOOK while the page they decorate stayed at one page —
+     and the renewal one parsed the JSON of every row in the workspace to
+     find the handful on screen. The list is already bounded by `limit`, so
+     the placeholder list is bounded with it. */
+  const pageIds = rows.map(c => String(c.id));
+  const inList = n => '(' + new Array(n).fill('?').join(',') + ')';
+  if (pageIds.length) {
+    const have = new Set(db.prepare('SELECT contract_id FROM briefs WHERE contract_id IN ' + inList(pageIds.length))
+      .all(...pageIds).map(x => String(x.contract_id)));
+    rows.forEach(c => { if (have.has(String(c.id))) c._hasBrief = true; });
   }
   /* ---- AND WHETHER A RENEWAL NOTE IS WAITING (9 Sep 2026) ----
      The overnight desk on the home page says a renewal note is ready — and it
@@ -2820,12 +2829,12 @@ app.get('/api/contracts', auth, (req, res) => {
      because a note that was waiting for you and one you asked for are different
      facts. ONE query for the whole page — only contracts carrying advice are in
      that table at all, so it is a short read however long the register is. */
-  if (rows.length) {
+  if (pageIds.length) {
     const adv = new Map();
-    for (const r of db.prepare('SELECT contract_id, json FROM renewal_advice').all()) {
-      try { const a = JSON.parse(r.json); if (a && a.data) adv.set(r.contract_id, a.overnight ? 'night' : 'you'); } catch (_) {}
+    for (const r of db.prepare('SELECT contract_id, json FROM renewal_advice WHERE contract_id IN ' + inList(pageIds.length)).all(...pageIds)) {
+      try { const a = JSON.parse(r.json); if (a && a.data) adv.set(String(r.contract_id), a.overnight ? 'night' : 'you'); } catch (_) {}
     }
-    rows.forEach(c => { const v = adv.get(c.id); if (v) c._renewalPrep = v; });
+    rows.forEach(c => { const v = adv.get(String(c.id)); if (v) c._renewalPrep = v; });
   }
   res.json({ total, offset, limit, rows });
 });
