@@ -227,6 +227,21 @@ const check = (name, pass, detail) => {
     check('4f and it takes grey, never paper', xr.overlap === false, 'overlap:' + xr.overlap);
     check('4g the panel names the clause it is about', !!(xr.head || '').trim(), xr.head);
     check('4h it says what is known, borrowed', xr.secs.length >= 2, JSON.stringify(xr.secs));
+    /* THE CARD IS THE EDITION'S OWN, asked as a RELATION rather than as a
+       colour: both layers are read live and required to resolve to the same
+       card, so a later palette pass moving one moves both or this goes red. */
+    const cards = await page.evaluate(() => {
+      const of = id => { const e = document.getElementById(id); if (!e) return null;
+        const c = getComputedStyle(e);
+        return [c.backgroundColor, c.borderTopWidth, c.borderTopColor,
+          c.borderTopLeftRadius, c.boxShadow, c.paddingRight, c.paddingBottom].join(' | '); };
+      return { xray: of('doc-xray'), read: of('doc-read') };
+    });
+    check('4i2 the panel is on the same white card as Plain English',
+      !!cards.xray && cards.xray === cards.read, cards.xray + '  vs  ' + cards.read);
+    check('4i3 and that card is a real surface, not the page ground',
+      /rgb\(255, 255, 255\)|rgb\(21, 27, 26\)/.test(cards.xray || ''), cards.xray);
+
     check('4i NO EXPLAINER BAND over the paper (the owner’s exclusion)',
       pressedXray && xr.bands === 0,
       (pressedXray ? '' : 'X-ray was never up · ') + 'found ' + xr.bands);

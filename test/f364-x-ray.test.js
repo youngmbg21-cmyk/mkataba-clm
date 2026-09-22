@@ -198,6 +198,22 @@ describe('f364 (5) the spine takes grey, never paper', () => {
     assert.equal(m[1], 'position:relative;overflow:hidden;display:flex;flex-direction:column;min-height:0',
       'relative with no offsets changes no layout at all');
   });
+  test('the panel is the edition’s OWN card, by one rule and not a copy', () => {
+    /* Young, 22 Sep 2026: "the right hand side of the card should be on a
+       white card just like plain English". That card is the 10 Sep ruling
+       ("let the plain english also sit in a white card and not the grey
+       background") and it is now ONE selector covering both layers — a
+       second copy of those five declarations is a second thing to keep in
+       step. THE CLOTHES FOLLOW THE BUILDER. */
+    assert.ok(/#doc-read,#doc-xray\{[^}]*background:var\(--color-surface\)/.test(INDEX),
+      'one rule dresses both layers');
+    /* NOT PRECEDED BY A COMMA: `#doc-read,#doc-xray{` CONTAINS `#doc-xray{`,
+       so the plain negative tripped on the shared rule it exists to allow. */
+    assert.ok(!/(?<![,\w-])#doc-xray\{[^}]*background:var\(--color-surface\)/.test(INDEX),
+      'and X-ray has no card rule of its OWN to drift with');
+    assert.ok(/#doc-read\[hidden\],#doc-xray\[hidden\]\{ display:none; \}/.test(INDEX),
+      'and both are hidden the same way, or the card outlives its content');
+  });
   test('the panel is a sibling of the edition’s layer, at the same inset', () => {
     const r = CODE.match(/<div id="doc-read"[^>]*style="([^"]+)"/);
     const x = CODE.match(/<div id="doc-xray"[^>]*style="([^"]+)"/);

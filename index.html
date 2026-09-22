@@ -3065,10 +3065,16 @@
      "Let the plain english also sit in a white card and not the grey
      background"). A facing page beside the contract's cream one, which is also
      what makes the edition read as a document in its own right. */
-  #doc-read{ display:flex; flex-direction:column; padding:0 var(--s-3) var(--s-3);
+  /* ---- AND X-RAY'S PANEL IS THE SAME CARD (Young ruled 22 Sep 2026: "the
+     right hand side of the card should be on a white card just like plain
+     English"). ONE RULE, TWO LAYERS, deliberately: the switch draws both into
+     the same slot, and a second copy of these five declarations is a second
+     thing to keep in step the next time either is retuned. THE CLOTHES FOLLOW
+     THE BUILDER. */
+  #doc-read,#doc-xray{ display:flex; flex-direction:column; padding:0 var(--s-3) var(--s-3);
     background:var(--color-surface); border:1px solid var(--color-divider);
     border-radius:var(--radius); box-shadow:0 1px 2px rgba(15,23,42,.04); }
-  #doc-read[hidden]{ display:none; }
+  #doc-read[hidden],#doc-xray[hidden]{ display:none; }
   .doc-read-head{ flex:none; display:flex; align-items:center; gap:7px; flex-wrap:wrap;
     padding:11px 0 8px; border-bottom:1px solid var(--color-divider);
     font-size:var(--t-micro); font-weight:var(--w-title); letter-spacing:.09em;
@@ -5212,9 +5218,11 @@
   .doc-xr-dot{display:none;}
   /* The panel wears the reading column's own clothes: one card, its own
      scroller, the cards beneath it covered rather than rebuilt. */
-  .doc-xr-panel{height:100%;overflow-y:auto;padding:0 2px 0 0;
+  .doc-xr-panel{flex:1 1 auto;min-height:0;overflow-y:auto;padding-right:2px;
     display:flex;flex-direction:column;gap:0;}
-  .doc-xr-head{padding-bottom:10px;border-bottom:1px solid var(--color-divider);}
+  /* The card gives no top padding (the edition's caption row carries its own),
+     so this head carries the same 11px and the two columns start level. */
+  .doc-xr-head{padding:11px 0 10px;border-bottom:1px solid var(--color-divider);}
   .doc-xr-head h4{margin:0;font-size:var(--t-card);font-weight:var(--w-title);
     letter-spacing:-.01em;line-height:1.25;}
   .doc-xr-n{display:block;margin-top:4px;font-family:var(--font-mono);

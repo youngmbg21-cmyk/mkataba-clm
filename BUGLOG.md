@@ -18683,3 +18683,31 @@ NOTICED, NOT FIXED
   where it was, and only a toast says why. Pre-existing behaviour of that
   position, not X-ray's.
 - The Runway is not built on the phone, which draws mNeedsYou instead.
+
+### 22 Sep 2026 (later) — X-RAY'S PANEL SITS ON THE EDITION'S OWN CARD
+
+Young, over a render: *"In X-ray page, the right hand side of the card should be
+on a white card just like plain English paper in on a white card."* It was
+sitting on the page ground.
+
+THIS IS THE 10 SEP 2026 RULING REACHING ITS SECOND LAYER — *"let the plain
+english also sit in a white card and not the grey background"* — so the answer
+is the SAME rule rather than a second copy of it: `#doc-read,#doc-xray` now
+carry the five declarations between them, and f364 pins both the shared
+selector and the absence of a private one. The browser file asks it as a
+RELATION: both layers resolved live and required to be equal, so a later
+palette pass moving one moves both or the check goes red.
+
+The card gives no top padding (the edition's caption row carries its own), so
+.doc-xr-head carries the same 11px and the two columns start level.
+
+MEASURED after: the card resolves identically to the edition's on every one of
+background, border width, border colour, radius, shadow and padding; and the
+contract still does not move by a pixel (ink 266.5 / sheet 43 / width 735,
+before, during and after). theme-tokens-verify 28/40 and contrast-verify 30/33
+on this branch AND at the parent — the colour census has not moved.
+
+A FAULT IN MY OWN INSTRUMENT: the new claim "X-ray has no card rule of its own"
+was written as a plain negative on `#doc-xray{`, which is a SUBSTRING of
+`#doc-read,#doc-xray{` — so it tripped on the very rule it exists to allow. A
+negative lookbehind for the comma.
