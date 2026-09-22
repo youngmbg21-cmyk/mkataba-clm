@@ -332,9 +332,15 @@ describe('f354 (7) the drafting screen and the Overview draw one list', () => {
 
   test('the new section is named in the Overview’s repaint router', () => {
     /* A section this pane draws must be named there or its fold flips and the
-       wrong host repaints — measured once already, the week this was built. */
-    assert.ok(/\\\.\(deal\|record\|also\|people\)\$/.test(CONTRACT),
-      'people is on the router');
+       wrong host repaints — measured once already, the week this was built.
+       RE-POINTED IN PLACE, 22 Sep 2026: this pinned the alternation VERBATIM,
+       so adding a fifth section broke a claim about `people`. The claim is
+       that `people` is ON that list, whatever else joins it. */
+    const m = CONTRACT.match(/test\(key\)\) renderKeyTerms/);
+    const line = m ? CONTRACT.slice(CONTRACT.lastIndexOf('if(', m.index), m.index) : '';
+    const keys = (line.match(/\(([a-z|]+)\)\$/) || [])[1] || '';
+    assert.ok(keys.split('|').includes('people'),
+      'people is on the router — the router reads: ' + (keys || 'NOT FOUND'));
   });
 
   test('and every name is published', () => {

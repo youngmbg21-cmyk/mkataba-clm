@@ -135,30 +135,15 @@ const SEC = (suffix) => {
     await openSec(page, '.record');
     let rec = await page.evaluate(SEC, '.record');
     check('1a The record is drawn at all', !!rec, rec ? rec.cells.length + ' cells' : 'section missing');
-    /* RE-POINTED IN PLACE, 22 Sep 2026 (the multi-party build). The claim is
-       that the card carries the artifact's filing attributes; it USED to ask
-       that each one be a label in the grid, which described the layout rather
-       than the fact. Counterparty and Their email are said by the PARTIES
-       BLOCK at the top of this card now, which gives the name, the role, the
-       contact and what that party may do -- strictly more than the two grid
-       cells said, and the grid drops them so nothing is printed twice. So the
-       nine filing facts are asked of the grid and those two are asked of the
-       card, as painted text. */
-    const WANT = ['Reference', 'Value stream',
+    /* REVERSED IN PLACE, 22 Sep 2026. For one day the parties block sat at the
+       top of this card and the grid gave up Counterparty and Their email so
+       nothing was printed twice. The block has its own named section now, so
+       the card keeps the ruled twelve. */
+    const WANT = ['Reference', 'Counterparty', 'Their email', 'Value stream',
       'Template', 'Owner', 'Status', 'Raised', 'Signed', 'Filed by', 'Last updated'];
     const missing = WANT.filter(w => !rec.labels.some(l => l.trim().toLowerCase() === w.toLowerCase()));
     check('1b it carries the artifact\'s filing attributes', missing.length === 0,
       missing.length ? 'missing ' + missing.join(', ') : rec.labels.length + ' cells: ' + rec.labels.join(' · '));
-    /* AND THE TWO THE PARTIES BLOCK TOOK ARE STILL ON THE CARD -- measured as
-       painted text on that block, never as source. A fact moved is a fact
-       that can go missing. */
-    const pyFacts = await page.evaluate(() => {
-      const b = document.querySelector('#kt-parties');
-      return b ? (b.innerText || '') : '';
-    });
-    check('1b2 and the parties block carries the counterparty and its address',
-      pyFacts.includes(c.counterparty) && pyFacts.includes(c.counterpartyEmail),
-      pyFacts ? pyFacts.replace(/\s+/g, ' ').slice(0, 140) : 'no parties block');
     /* THE FAULT THE OWNER REPORTED, stated as a measurement: not one editable
        box on the resting card. */
     check('1c and NOT ONE editable box at rest', rec.boxes === 0 && rec.rows === 0,
@@ -493,6 +478,65 @@ const SEC = (suffix) => {
     check('8f CONTROL — an em-dash is still the light one',
       !!ty && (ty.empty == null || Number(ty.empty) <= 400),
       ty ? 'empty weight ' + ty.empty : 'not measured');
+
+    /* ===== 12. WHO THE AGREEMENT IS BETWEEN IS ON THE PAGE AT REST =====
+       Young, 22 September 2026: *"i do not see the changes in the overview
+       page"*. The parties block was built at the top of The record, which
+       OPENS SHUT — and a shut section draws no body at all, so the block was
+       not hidden, it was not in the document. MEASURED at the parent:
+       `#kt-parties` absent, 0 rows.
+
+       EVERY CLAIM HERE IS PAINTED PIXELS ON A PAGE NOBODY HAS CLICKED — and
+       THE PAGE MUST BE RELOADED FIRST. The fold is per sitting and in memory,
+       so by this point in the file The record is already open from section 1
+       and the block is drawn whatever the placement is. MEASURED: the first
+       draft of 12a PASSED at the parent for exactly that reason. A reload
+       drops the remembered folds; the session cookie keeps us signed in. */
+    await page.goto(h.base + '/', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1600);
+    await page.evaluate(x => { state.activeId = x; state.selId = x; setView('workspace'); }, c.id);
+    await page.waitForTimeout(1400);
+    await page.click('#ws-tabs [data-ws-tab="terms"]');
+    await page.waitForTimeout(1200);
+    const py = await page.evaluate(() => {
+      const box = document.querySelector('[data-sec-toggle$=".parties"]');
+      const sec = box && box.closest('.sec-box');
+      const blk = document.querySelector('#kt-parties');
+      const r = blk ? blk.getBoundingClientRect() : null;
+      const order = [...document.querySelectorAll('[data-sec-toggle]')]
+        .map(h => String(h.getAttribute('data-sec-toggle')).split('.').pop());
+      return {
+        drawn: !!blk,
+        /* PAINTED, not merely present: a rect is not a painted pixel. */
+        painted: !!(blk && getComputedStyle(blk).display !== 'none' && r.height > 0 && r.width > 0),
+        open: box ? box.getAttribute('aria-expanded') : null,
+        rows: blk ? blk.querySelectorAll('.py-row').length : 0,
+        text: sec ? (sec.innerText || '').replace(/\s+/g, ' ') : '',
+        add: !!document.querySelector('.sec-acts [data-py-add]'),
+        /* NULL IS NOT ZERO: with no section there is nothing to count, and
+           reporting 0 would make 12f pass on a page that has no parties at
+           all. It says -1 so the claim can refuse it. */
+        heads: sec ? sec.querySelectorAll('.py-head').length : -1,
+        order,
+      };
+    });
+    check('12a the parties are drawn on the page nobody has clicked',
+      py.drawn && py.painted, py.drawn ? ('painted ' + py.painted) : 'no #kt-parties at all');
+    check('12b and the section they are in is OPEN at rest', py.open === 'true',
+      'aria-expanded ' + py.open);
+    check('12c one row per party, ours included', py.rows === 2,
+      py.rows + ' rows');
+    check('12d each names its party and what it may do',
+      py.text.includes(c.counterparty) && /NEGOTIATES AND SIGNS|OURS/i.test(py.text),
+      py.text.slice(0, 160));
+    check('12e the one door onto naming another party is on it',
+      py.add, py.add ? 'in the section acts' : 'no + Add a party');
+    check('12f the name is said ONCE — the section carries it, not the block',
+      py.heads === 0, py.heads < 0 ? 'no parties section at all' : (py.heads + ' block heads inside it'));
+    /* IT SITS ABOVE THE RECORD, which is where the artifact drew it. */
+    check('12g it reads above The record',
+      py.order.indexOf('parties') > -1 && py.order.indexOf('parties') < py.order.indexOf('record'),
+      py.order.join(' \u00b7 '));
 
     check('7 no page errors anywhere in the journey', errors.length === 0, errors.join(' | '));
     await ctx.close();

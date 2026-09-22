@@ -18492,3 +18492,27 @@ Noticed, not fixed:
 - CLAUDE.md's redesign section lists Insights in the Company rail group; the code has it in Work, where the 21 Sep ruling put it. The MAP is one ruling behind on that line.
 
 Gates: 8,651 tests, 0 failed. Lint 0 errors. overview-as-drawn 43/43; contracts-page, signing-flow, redline and share-recipient all green.
+
+## 22 Sep 2026 — the parties were not on the page
+
+Young, looking at an ordinary two-party contract's Overview: "i do not see the changes in the overview page."
+
+MEASURED in a real browser at the merge commit before a line moved, and the report is right and worse than it reads: the parties block was built at the top of The record — which is the artifact's own drawing — and **The record opens SHUT, and a shut sectionHtml draws no body at all**. So `#kt-parties` was not hidden, it was NOT IN THE DOCUMENT: 0 rows, and the only sign of the whole build on that page was the small `+1` beside the counterparty.
+
+THE RENDER I PUBLISHED WAS NOT TRUE. It drew that card open, which is why the build looked right in the artifact and was invisible in the product. The render is corrected and republished.
+
+Parties is its own named section now, OPEN, directly above The record; the stack reads deal · also · parties · record · people. The section carries the name, the count, the lock word and + Add a party, and the block is drawn `bare` (#family-section's own idiom) so none of it is said twice. sectionWire's router names `parties`, or the fold is dead — this page has paid for that twice.
+
+It is the ONE control in this build not gated on partiesMulti, said out loud: "who is this agreement between" is not a multi-party question, and a two-party contract is what the owner was looking at. So every Overview gains a card.
+
+Reversed in place, one day old: the record card gives its Counterparty and Their email cells back (the ruled twelve are whole again), and the note that says the record and the paper disagree about the name goes back to that cell where ovFieldMarkOf already puts it. `.py-item` is gone. Less code, not more.
+
+Found while building:
+- MY OWN BROWSER CHECK MEASURED THE FAULT AWAY. Section 12 ran after section 1, which opens The record; the fold is per sitting and in memory, so by then the block was drawn whatever the placement was, and my first draft of 12a PASSED at the merge commit. The claim reloads the page first now. I had written the warning in the comment above it and then done it anyway.
+- AND A NULL COUNTED AS ZERO: with no parties section, querySelectorAll on a null box reported 0 heads and "the name is said once" passed on a page with no parties on it at all. It reports -1 now.
+- f354's router claim pinned the alternation VERBATIM, so adding a fifth section broke a claim about `people`. Re-pointed in place to its own relation — is `people` on that list, whatever else joins it. Green on both trees.
+
+Noticed, not fixed:
+- templates-tabs-verify section 8 fails identically on this tree, on the multi-party merge and on the commit before it (8a/8b/8c and a harness failure). Not caused by anything in this run.
+
+Gates: 8,659 tests, 0 failed. Lint 0 errors. overview-as-drawn 49/49 (its new section 12 is 7 checks, all 7 red at the merge commit, printing "no #kt-parties at all"); amendment-journey, auto-triage, refile-a-contract, share-recipient and blanks-panel all green.

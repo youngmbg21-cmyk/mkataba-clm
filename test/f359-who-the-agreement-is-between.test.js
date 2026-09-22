@@ -548,3 +548,91 @@ describe('f359 (10) — the walls', () => {
     assert.ok(/srvStoredContract/.test(blk), 'the record answers, not the request');
   });
 });
+
+/* ============================================================
+   (10) THE PARTIES ARE THEIR OWN NAMED SECTION, AND IT IS OPEN
+   ============================================================
+   Young, 22 September 2026: *"i do not see the changes in the overview
+   page"*. Built at the top of The record, which opens SHUT — and a shut
+   `sectionHtml` draws no body at all, which this codebase already records
+   under THIRTEEN OFF A MORNING. So nothing of the feature reached the page.
+
+   These pin the PLACEMENT. Whether the reader can actually see it is a
+   question about painted pixels and is asked in overview-as-drawn-verify 12;
+   nothing here can answer that, which is why both exist. */
+describe('f359 (10) the parties are a section of their own', () => {
+  /* THE REGION, not a byte count: the stack is built in one function and the
+     order it returns is the order on screen. */
+  const stack = () => {
+    const at = CONTRACT.indexOf('function ktOverviewTermsHtml');
+    return at < 0 ? '' : CONTRACT.slice(at, CONTRACT.indexOf('\n}', at) + 2);
+  };
+
+  test('it is in the stack, above The record', () => {
+    const b = stack();
+    assert.ok(/return deal\+alsoSec\+parties\+record\+peopleSec/.test(b),
+      'the parties read between the deal and the record: ' + (b.match(/return deal[^;]*/) || [''])[0]);
+  });
+
+  test('and it opens OPEN — the fault was a section that draws no body', () => {
+    const b = stack();
+    const sec = b.slice(b.indexOf('const parties='), b.indexOf('const record='));
+    assert.ok(/key:pyK/.test(sec) && /open:true/.test(sec),
+      'the section is keyed and open: ' + sec.slice(0, 200));
+  });
+
+  /* THE FOLD DIES IF THE ROUTER DOES NOT NAME IT — this page has paid for
+     that twice (`also` reported "1 term" and drew nothing). */
+  test('the repaint router names it, or its fold is dead', () => {
+    assert.ok(/\(deal\|record\|also\|parties\|people\)\$/.test(CONTRACT),
+      'sectionWire routes .parties to renderKeyTerms');
+  });
+
+  test('the block is drawn BARE, so the name is said once', () => {
+    const b = stack();
+    assert.ok(/ktPartiesBlockHtml\(c,\{mayEdit:ed,bare:true\}\)/.test(b),
+      'the section carries the head');
+    /* and bare really drops it */
+    const f = CONTRACT.slice(CONTRACT.indexOf('function ktPartiesBlockHtml'),
+      CONTRACT.indexOf('function ktPartiesBlockHtml') + 2200);
+    assert.ok(/const head = bare \? ''/.test(f), 'bare emits no py-head');
+  });
+
+  test('+ Add a party is the section’s own act, and only one exists', () => {
+    const b = stack();
+    assert.ok(/data-py-add="1"/.test(b), 'the section draws it');
+    /* the block draws it only when NOT bare, so the page never has two */
+    const f = CONTRACT.slice(CONTRACT.indexOf('function ktPartiesBlockHtml'),
+      CONTRACT.indexOf('function ktPartiesBlockHtml') + 2200);
+    assert.ok(/const add = \(mayEdit && !bare\)/.test(f), 'the bare block draws none');
+  });
+
+  /* REVERSED IN PLACE. For one day the grid gave up these two because the
+     block sat on that card; with the block elsewhere the ruled twelve are
+     whole again, and the note about a disagreeing name goes back to the cell
+     ovFieldMarkOf already marks. */
+  test('The record keeps its counterparty and their email', () => {
+    const f = CONTRACT.slice(CONTRACT.indexOf('function ktRecordFactsHtml'),
+      CONTRACT.indexOf('function ktRecordFactsHtml') + 1400);
+    assert.ok(/:new Set\(\)/.test(f), 'nothing is skipped at rest: ' + (f.match(/const skip=[^;]*/) || [''])[0]);
+    assert.ok(!/ktPartiesBlockHtml/.test(f), 'and the record does not draw the block');
+  });
+
+  test('a shut section still answers — the summary names every party', () => {
+    const b = stack();
+    const sec = b.slice(b.indexOf('const parties='), b.indexOf('const record='));
+    assert.ok(/summary: pyList\.map\(p=>p\.name\)/.test(sec),
+      'the fold gives the names back');
+  });
+
+  /* THE ONE THING THAT IS NOT MULTI-PARTY-ONLY, said out loud. Every other
+     control this build adds is drawn only where `partiesMulti`; this section
+     is drawn on every contract, because "who is this between" is not a
+     multi-party question and it is what the owner went looking for. */
+  test('it is drawn on an ordinary two-party contract too', () => {
+    const w = world();
+    const html = w.ktPartiesBlockHtml(plainContract(), { mayEdit: true, bare: true });
+    assert.ok(/py-row/.test(html), 'two rows on a plain record: ' + html.slice(0, 120));
+    assert.ok(!/py-head/.test(html), 'and no head of its own');
+  });
+});

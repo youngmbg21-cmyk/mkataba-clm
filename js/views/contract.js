@@ -5532,17 +5532,10 @@ function ktPartyRowHtml(c, p, opts){
   const attr = (may && !ours)
     ? ` type="button" data-py-edit="${esc(p.id)}" title="${esc(i18t('py_edit'))}"`
     : '';
-  /* ---- THE NOTE IS A SIBLING, NEVER A CHILD ----
-     A hold draws a real <button> (ovFieldNoteHtml's own rule) and this row is
-     itself a <button> where editing is live; a button inside a button is not
-     markup a browser will press. So the pair lives in one wrapper, which is
-     also what keeps ONE shape for every row -- an editable row and a read-only
-     one are drawn by the same two lines. */
-  return `<div class="py-item">
-      <${tag} class="py-row${(may&&!ours)?' is-door':''}"${attr}>
+  return `<${tag} class="py-row${(may&&!ours)?' is-door':''}"${attr}>
       <span class="py-nm">${esc(p.name || '—')}${sub?`<i class="py-sub">${esc(sub)}</i>`:''}</span>
       <span class="py-ct">${esc(ct)}</span>${chip}
-    </${tag}>${opts.note||''}</div>`;
+    </${tag}>`;
 }
 
 function ktPartiesBlockHtml(c, opts={}){
@@ -5557,36 +5550,27 @@ function ktPartiesBlockHtml(c, opts={}){
      them. `signingLocked` reads BOTH stores and is the one reading. */
   const locked = (typeof signingLocked === 'function') ? !!signingLocked(c) : false;
   const mayEdit = !!opts.mayEdit && !locked && !PORTAL_MODE;
-  const beyond = !!opts.beyondFirst;
-  /* In the edit posture the first outside party is the editable row above, so
-     the block says the rest. Ours is dropped with it — the record's own party
-     row is that fact's home. */
-  const shown = beyond ? rows.filter(p => p.side !== PARTY_SIDE_OURS).slice(1) : rows;
-  const add = mayEdit
+  /* ---- BARE MEANS THE SECTION AROUND IT IS SAYING THE NAME ----
+     `#family-section` and `#brief-card` are drawn this way for the same
+     reason: a named section carrying a block that names itself says the name
+     twice, which is the section grammar's own fault. Bare drops the head —
+     the count, the lock word and `+ Add a party` are the SECTION's chip and
+     acts — and leaves the rows exactly as they were. */
+  const bare = !!opts.bare;
+  const shown = rows;
+  const add = (mayEdit && !bare)
     ? `<button type="button" class="py-add" data-py-add="1">${esc(i18t('py_add'))}</button>` : '';
-  if(!shown.length && !add) return '';
+  if(!shown.length) return '';
   const n = rows.filter(p => p.side !== PARTY_SIDE_OURS).length + 1;
-  /* ---- THE NOTE FOLLOWS THE FACT ----
-     At rest this block draws the counterparty's name, so the line that says
-     the record and the paper disagree about it comes with it -- it is the
-     same reading (ovFieldMarkOf) and the same builder (ovFieldNoteHtml) the
-     grid asks, so the two cards can never say different things about one
-     field. It hangs on the FIRST outside party, because `c.counterparty` is
-     that party's name and no other.
-     AND IT RESERVES ITS LINE FOR THE WHOLE SIGNING PHASE, on `marks` alone:
-     within that phase a mark arriving or clearing moves no pixel. */
-  const mark = opts.marks ? ovFieldMarkOf(opts.marks, 'counterparty') : null;
-  let noted = false;
-  const noteFor = p => {
-    if(!opts.marks || p.side === PARTY_SIDE_OURS || noted) return '';
-    noted = true;
-    return ovFieldNoteHtml(mark, 'counterparty') || '<span class="sec-f-n"></span>';
-  };
-  return `<div class="py-block" id="kt-parties">
-      <div class="py-head"><span class="py-h">${esc(i18t('py_parties'))}${
-        beyond ? '' : ` <i class="py-n">${n}</i>`}</span>${add}${
-        locked ? `<span class="py-lock" title="${esc(i18t('py_locked'))}">${esc(i18t('py_locked'))}</span>` : ''}</div>
-      <div class="py-rows">${shown.map(p => ktPartyRowHtml(c, p, { mayEdit, note: noteFor(p) })).join('')}</div>
+  /* THE NOTE THAT SAYS THE RECORD AND THE PAPER DISAGREE ABOUT THE NAME stays
+     on The record's own counterparty cell, where ovFieldMarkOf already puts
+     it. It was carried here for one day, while this block sat inside that
+     card; with the block in a section of its own the cell draws it again and
+     this builder needs to know nothing about marks. */
+  const head = bare ? '' : `<div class="py-head"><span class="py-h">${esc(i18t('py_parties'))} <i class="py-n">${n}</i></span>${add}${
+        locked ? `<span class="py-lock" title="${esc(i18t('py_locked'))}">${esc(i18t('py_locked'))}</span>` : ''}</div>`;
+  return `<div class="py-block${bare?' is-bare':''}" id="kt-parties">${head}
+      <div class="py-rows">${shown.map(p => ktPartyRowHtml(c, p, { mayEdit })).join('')}</div>
     </div>`;
 }
 
@@ -5674,7 +5658,10 @@ function openPartyEditor(c, id){
    into, bound once per element — the Overview repaints its own hosts and a
    listener bound at boot would be live-looking and dead. */
 function wireKtParties(c){
-  const host=document.getElementById('kt-record-facts');
+  /* THE STACK, not the record card: the parties are their own section now and
+     both doors (the section's `+ Add a party` and a row's own press) are
+     inside it. Bound once per element, as every delegated door here is. */
+  const host=document.getElementById('kt-ov-terms')||document.getElementById('kt-record-facts');
   if(!host || host.dataset.pyBound==='1') return;
   host.dataset.pyBound='1';
   host.addEventListener('click',e=>{
@@ -5700,14 +5687,10 @@ function ktRecordFactsHtml(c,opts={}){
   /* LAST UPDATED prefers the trail's own stamp (the transport the light list
      carries) and falls back to the record's. No date is invented. */
   const updated=String((c&&c._lastAuditAt)||(c&&c.updatedAt)||(c&&c.updated_at)||'').slice(0,10);
-  /* AT REST THE PARTIES BLOCK SAYS THESE TWO, so the grid does not. In the
-     edit posture ktTermsRowsHtml draws them above and the grid already
-     skipped them, which is why only the resting set grew. */
   const skip=opts.rowsAbove?new Set(['name','party','counterparty','cpEmail','stream','template','cpRouteEmail'])
-    :new Set(['counterparty','cpEmail']);
+    :new Set();
   const rt=ktRouteEmailRead(c);
-  const parties=ktPartiesBlockHtml(c,{mayEdit:!!opts.mayEdit,beyondFirst:!!opts.rowsAbove,marks});
-  return parties + sectionFieldsHtml([
+  return sectionFieldsHtml([
     ['reference', i18t('ov_f_reference'), esc(String((c&&c.id)||''))],
     ['name', i18t('ov_f_name'), R.name],
     /* ---- WHAT KIND OF PAPER THIS IS (upgrade 5, 18 Sep 2026) ----
@@ -6031,6 +6014,38 @@ function ktOverviewTermsHtml(c,opts={}){
      on it. One act, one handler, one wall. */
   const moveBtn=mayMove?`<button type="button" class="ui-btn" style="font-size:var(--t-label);padding:5px 11px" data-ov-move-stream="${esc(recK)}">${
     esc(i18t('ov_move_stream'))}</button>`:'';
+  /* ---- WHO THE AGREEMENT IS BETWEEN IS ITS OWN NAMED SECTION (Young
+     reported it 22 Sep 2026: *"i do not see the changes in the overview
+     page"*) ----
+     It was built at the top of The record, which is the artifact's own
+     drawing — and The record OPENS SHUT, and a shut `sectionHtml` draws no
+     body at all. MEASURED on a real page: `#kt-parties` was not merely
+     hidden, it was not in the document, and the only sign of the whole
+     feature was the small `+1` on the fact row. My own render of the artifact
+     drew that card open, which is why it looked right.
+
+     So the block gets a section of its own, directly above The record and
+     OPEN: who the agreement is between is the subject of the page, not
+     reference material, and naming a second party is an act with no other
+     door. The section carries the name, the count, the lock word and
+     `+ Add a party`; the block is drawn BARE so none of that is said twice.
+     The record keeps its own twelve filing attributes, counterparty and their
+     email among them — with the block out of that card nothing is printed
+     twice on it, and a reader who folds this section still gets the names
+     back from its summary. */
+  const pyK=OV_KEY(c,'parties');
+  const pyLocked=(typeof signingLocked==='function')?!!signingLocked(c):false;
+  const pyList=(typeof contractParties==='function')?(()=>{ try{ return contractParties(c)||[]; }catch(_){ return []; } })():[];
+  const pyBody=ktPartiesBlockHtml(c,{mayEdit:ed,bare:true});
+  const pyAdd=(ed&&!pyLocked&&!PORTAL_MODE)
+    ?`<button type="button" class="ui-btn" style="font-size:var(--t-label);padding:5px 11px" data-py-add="1">${
+      esc(i18t('py_add'))}</button>`:'';
+  const parties=pyBody?sectionHtml({
+    key:pyK, title:i18t('py_parties'), open:true,
+    chip: pyLocked?{ text:i18t('py_locked'), tone:'gray' }:null,
+    summary: pyList.map(p=>p.name).filter(Boolean).join(' \u00b7 '),
+    body:`<div id="kt-parties-host">${pyBody}</div>`,
+    acts: pyAdd }):'';
   const record=sectionHtml({
     key:recK, title:i18t('ov_record'), open:false,
     chip: holdChip(recHold),
@@ -6067,7 +6082,7 @@ function ktOverviewTermsHtml(c,opts={}){
     body:`<div id="kt-people">${people}</div>${ovAddressBookHtml(addrs)}`,
     acts: (ed&&anySigner)?`<button type="button" class="ui-btn" style="font-size:var(--t-label);padding:5px 11px" data-ov-signers="1">${
       esc(i18t('ppl_open_signers'))}</button>`:'' }):'';
-  return deal+alsoSec+record+peopleSec;
+  return deal+alsoSec+parties+record+peopleSec;
 }
 
 /* ---- RISK: A READ OF THE CHECKS YOU HAVE RUN, NOT A NEW NUMBER ----
@@ -6339,7 +6354,7 @@ function renderKeyTermsSide(c){
      the head says "open" and nothing appears. MEASURED the hour `also` was
      added: its own card reported "1 term" and drew no field at all. */
   if(pane&&window.sectionWire) sectionWire(pane,key=>{
-    if(/\.(deal|record|also|people)$/.test(key)) renderKeyTerms(c); else renderKeyTermsSide(c); });
+    if(/\.(deal|record|also|parties|people)$/.test(key)) renderKeyTerms(c); else renderKeyTermsSide(c); });
   /* #kt-readdoc's wiring went with the button — see readTermsHtml. */
 }
 
