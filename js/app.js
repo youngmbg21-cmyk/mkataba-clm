@@ -57,6 +57,7 @@ import './family.js';
 import './cohort.js';   // "Do this to these N": one act above the Contracts table, drawn only while it is narrowed (S13/S14, 16 Sep 2026)
 import './precedent.js';     // what this workspace's own settled rounds say (W3-2)
 import './ladder.js';       // every move on one clause, across every round (14 Sep 2026)
+import './runway.js';       // every decision you owe, on one line of time (22 Sep 2026)
 import './redlineplan.js';   // the co-pilot's first pass over their round (W3-1)
 import './standards.js';     // the Standards page's own readings (ideas 20 & 21)
 import './blanks.js';     // the open blanks of a drafted contract: one reading, read off the paper (17 Sep 2026)

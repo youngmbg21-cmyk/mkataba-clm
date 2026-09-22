@@ -4433,6 +4433,10 @@ function applyWsTabs(c){
   /* The layer belongs to the Document tab alone, and the cards it covers have to
      be handed back on the way to any other tab (idea 7). */
   docReadPaint(c);
+  /* AND X-RAY, after it, for the reason stated over docXrayPaint: the painter
+     above hands #doc-right back whenever the edition is off, which in this
+     mode it is. */
+  docXrayPaint(c); docXrayWire(c);
   /* The Document pane has just been given a width for the first time since it
      was hidden. Measure it NOW — see the note in layoutDocResizer about why it
      refuses to measure a hidden pane at all. */
@@ -9379,7 +9383,11 @@ function renderWorkspace(){
            exactly as the negotiation workbench draws it, from the same tokens.
            Same arrangement on both tabs, so switching moves the work and not
            the furniture. -->
-      <section style="overflow:hidden;display:flex;flex-direction:column;min-height:0">
+      ${''/* `position:relative` and an id, and NOTHING ELSE (22 Sep 2026):
+             relative positioning with no offsets changes no layout at all, and
+             it is what lets X-ray's spine float over this column's own grey
+             without the paper moving by a pixel. */}
+      <section id="doc-paper-col" style="position:relative;overflow:hidden;display:flex;flex-direction:column;min-height:0">
         <!-- document body (scrolls within the left pane) -->
         <div id="doc-scroll" class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:var(--s-1) 2px var(--s-6)">
           <!-- THE SHEET DOES NOT MAGNIFY (29 Aug 2026): it is capped at
@@ -9601,6 +9609,10 @@ function renderWorkspace(){
            measures each note against the CLIP's own top, so a clip 4px lower
            yields tops 4px smaller and the same screen position. */}
     <div id="doc-read" hidden style="grid-column:2;grid-row:1;position:absolute;inset:var(--s-1) 0 0;overflow:hidden"></div>
+    ${''/* X-RAY'S PANEL, the same geometry as the edition's layer beside it and
+           for the same reason: the cards under it are COVERED, never rebuilt,
+           so they keep their place and their own scroll position. */}
+    <div id="doc-xray" hidden style="grid-column:2;grid-row:1;position:absolute;inset:var(--s-1) 0 0;overflow:hidden"></div>
 
       <!-- Divider: drag right to widen the contract (default → +25%), never narrower. Double-click resets. -->
       <div id="doc-resizer" title="${i18t('ct_drag_width')}" style="position:absolute;top:0;bottom:0;left:0;width:14px;z-index:6;cursor:col-resize;display:flex;align-items:center;justify-content:center;touch-action:none" onmouseover="this.firstElementChild.style.background='var(--color-accent)'" onmouseout="if(!this.dataset.drag)this.firstElementChild.style.background='var(--color-neutral-300)'">
@@ -9845,14 +9857,31 @@ let _docReadBusy=false;
 const docReadFits=()=>window.innerWidth>=DOC_READ_MIN_W;
 /* READ, NEVER WRITTEN, WHERE IT CANNOT BE HONOURED — the nav drawer's rule: a
    sitting at a narrow width must not quietly clear a choice made on a laptop. */
-function docReadOn(){
-  if(!docReadFits()) return false;
-  try{ return localStorage.getItem(DOC_READ_KEY)==='1'; }catch(_){ return false; }
+/* ---- THREE POSITIONS, ONE STORE (22 Sep 2026) ----
+   X-ray is the switch's third position, so what was a yes/no about one layer
+   is now WHICH LAYER. The store keeps its key and its old value: a browser
+   holding '1' from yesterday still opens on Plain English, because that is
+   what '1' has always meant here. Anything the reader has never chosen reads
+   as the paper, which is where the switch rests.
+   docReadOn() KEEPS ITS NAME AND ITS ANSWER — it is asked by the painter, the
+   switch, the duty marks and the mirror column, and every one of those means
+   "is the plain-English edition up". Saying it in terms of the mode is what
+   stops those callers and this one drifting apart. */
+const DOC_VIEW_MODES=['paper','plain','xray'];
+function docViewMode(){
+  if(!docReadFits()) return 'paper';
+  let v=''; try{ v=localStorage.getItem(DOC_READ_KEY)||''; }catch(_){ v=''; }
+  if(v==='1') return 'plain';
+  return DOC_VIEW_MODES.indexOf(v)>0 ? v : 'paper';
 }
-function docReadSet(v){
+function docViewSet(m){
   if(!docReadFits()) return;
-  try{ localStorage.setItem(DOC_READ_KEY, v?'1':'0'); }catch(_){}
+  const v = m==='plain' ? '1' : (m==='xray' ? 'xray' : '0');
+  try{ localStorage.setItem(DOC_READ_KEY, v); }catch(_){}
 }
+function docReadOn(){ return docViewMode()==='plain'; }
+function docXrayOn(){ return docViewMode()==='xray'; }
+function docReadSet(v){ docViewSet(v?'plain':'paper'); }
 const docReadItems=c=>{
   const r=c&&c._readings;
   return (r&&Array.isArray(r.items)) ? r.items.slice().sort((a,b)=>(a.i||0)-(b.i||0)) : [];
@@ -10958,7 +10987,7 @@ function docReadPaint(c){
      notes have to follow it. One observer, armed once on the canvas. */
   if(window.ResizeObserver&&canvas&&!canvas.dataset.docReadObs){
     canvas.dataset.docReadObs='1';
-    new ResizeObserver(()=>{ const cur=state.contracts.find(x=>x.id===c.id)||c; docReadPaint(cur); }).observe(canvas);
+    new ResizeObserver(()=>{ const cur=state.contracts.find(x=>x.id===c.id)||c; docReadPaint(cur); docXrayPaint(cur); }).observe(canvas);
   }
 }
 /* THE SHAPE OF THE CLAUSE THIS ENTRY FACES, in the paper's own vocabulary. It
@@ -11121,10 +11150,18 @@ function docReadSwitchHtml(c){
      scan whose words never came out of the file. */
   if(!docReadClauses(c).length) return '';
   const on=docReadOn()&&docReadHeld(c);
+  /* X-RAY IS THE THIRD POSITION, straight after Plain English (22 Sep 2026).
+     It is lit off the MODE alone and never off docReadHeld: it needs no
+     reading to have been made — its panel offers that press where there is
+     none — so gating it on one would hide the position that explains the
+     other two. */
+  const xr=docXrayOn();
   return `<div class="doc-read-seg" role="group" aria-label="${esc(i18t('ct_read_group'))}">
-    <button type="button" data-doc-read="0" aria-pressed="${!on}">${esc(i18t('ct_read_contract'))}</button>
+    <button type="button" data-doc-read="0" aria-pressed="${!on&&!xr}">${esc(i18t('ct_read_contract'))}</button>
     <button type="button" data-doc-read="1" aria-pressed="${on}"${_docReadBusy?' disabled':''}
       title="${esc(i18t('ct_read_plain_title'))}">${esc(_docReadBusy?i18t('ct_read_reading'):i18t('ct_read_plain'))}</button>
+    <button type="button" data-doc-read="2" aria-pressed="${xr}"
+      title="${esc(i18t('xr_switch_title'))}">${esc(i18t('xr_switch'))}</button>
   </div>`;
 }
 async function docReadRun(c,opts){
@@ -11153,10 +11190,212 @@ async function docReadRun(c,opts){
   finally{ _docReadBusy=false; wsPaintTabRowEnd(c); }
   return true;
 }
+/* ============================================================
+   X-RAY — THE THIRD POSITION ON THE DOCUMENT TAB'S SWITCH
+   (Young ruled 22 Sep 2026)
+   ============================================================
+   Contract View shows the paper. Plain English shows the paper and a
+   translation beside it. X-ray shows the paper, a MAP of it down the margin,
+   and everything already known about whichever clause you are looking at.
+
+   IT SPENDS NOTHING AND ASKS NOTHING. Every section of the panel is a reading
+   this product has already paid for: the plain-English entry out of the
+   `_readings` the second position wrote, the open risk-scan findings, the
+   playbook review's verdicts, and the clause ladder. X-ray adds no route, no
+   store and no field (f360 greps for all of it) — it is a third way of
+   LOOKING at what is there, which is why it can be a position on a switch
+   rather than a feature with a bill.
+
+   THE MAP BELONGS IN A MARGIN, AND THE MARGIN IS GREY, NEVER PAPER. The
+   sheet is capped at --doc-sheet-max and centred, so there is page ground
+   either side of it whenever the column is wider than the sheet. The spine
+   floats over that ground: nothing in the layout changes, so the contract
+   cannot move by a pixel — refusal 3 satisfied by construction rather than by
+   measurement, which is the same answer the plain-English column already
+   gives. Where the ground is too narrow to hold it the spine is NOT DRAWN and
+   the panel still works: a verb that cannot work is not drawn.
+
+   NO EXPLAINER BAND, by the owner's word on the day. The prototype carried a
+   paragraph over the paper saying what X-ray was; this draws none, and the
+   tab row's own switch is what says which reading you are in.
+   ============================================================ */
+/* MEASURED, not chosen: on a 1500px window with the divider at rest the grey
+   beside the sheet is 43px, and a 34px column wanting 10px of clearance missed
+   it by ONE pixel and drew nothing. 28 and 8 fit that ordinary case with 15px
+   still clear of the paper, and the measurement in docXrayPaint is what keeps
+   the narrow ones honest rather than these numbers. */
+const DOC_XRAY_SPINE_W  = 28;   /* the map's own column, in px */
+const DOC_XRAY_SPINE_GAP= 8;    /* clear ground it will not encroach past */
+/* A QUOTE SHORTER THAN THIS NAMES NOTHING. Placement is containment — the
+   same certainty rlPbFindClause insists on — so a two-word quote that appears
+   in nine clauses must not put a mark on all nine. */
+const DOC_XRAY_QUOTE_MIN = 14;
+let _docXrayPick = 0;           /* which clause the panel is about, per sitting */
+
+const _xrNorm = s => { try{ if(window.quoteNorm) return quoteNorm(s); }catch(_){}
+  return String(s==null?'':s).toLowerCase().replace(/\s+/g,' ').trim(); };
+const _xrWords = t => { const x=String(t||'').trim(); return x?x.split(/\s+/).length:0; };
+
+/* IT REFUSES RATHER THAN GUESSES. One clause's own words containing the whole
+   quote is certainty about that clause; anything less is a mark on wording
+   nobody said anything about. */
+function docXrayPlace(rowText, quote){
+  const q=_xrNorm(quote);
+  if(q.length<DOC_XRAY_QUOTE_MIN) return false;
+  return _xrNorm(rowText).indexOf(q)>=0;
+}
+/* WHAT IS WORTH A LOOK ON THIS CLAUSE, from the two readings that carry a
+   quote. Borrowed whole: openFindings is the scan's own "not dismissed" rule
+   and findingQuote its own reading of where a finding points. */
+function docXrayMarks(c,row){
+  const out=[];
+  let finds=[];
+  try{ if(c&&c.scan&&window.openFindings) finds=openFindings(c)||[]; }catch(_){ finds=[]; }
+  finds.forEach(f=>{
+    const q=(window.findingQuote?findingQuote(f):(f&&f.quote)||'');
+    if(docXrayPlace(row.text,q)) out.push({ k:'scan', sev:String((f&&f.sev)||''),
+      words:String((f&&f.title)||''), why:String((f&&f.why)||''), id:(f&&f.id)||'' });
+  });
+  const vs=(c&&c.playbook&&Array.isArray(c.playbook.verdicts))?c.playbook.verdicts:[];
+  vs.forEach(v=>{
+    if(!v||String(v.status||'')==='ok') return;      /* a match is not a mark */
+    if(docXrayPlace(row.text,v.quote)) out.push({ k:'pb', sev:'',
+      words:String(v.category||''), why:String(v.position||'') });
+  });
+  return out;
+}
+const docXrayTone = marks =>
+  marks.some(m=>m.k==='scan'&&m.sev==='high') ? 'ruby' : (marks.length ? 'amber' : '');
+
+/* THE CLAUSE'S OWN ID, where the paper carries one. A stored rich body has
+   its clauses stamped; template paper does not, and on that paper the ladder
+   section is simply not drawn rather than claiming a clause was never argued. */
+function docXrayClauseId(row){
+  try{ const up=row&&row.el&&row.el.closest&&row.el.closest('[data-clause-id]');
+    return up?String(up.getAttribute('data-clause-id')||''):''; }catch(_){ return ''; }
+}
+/* ONE WALK, EVERY FIGURE. The spine, the panel and the head all read this, so
+   they cannot print three different answers about the same clause. It borrows
+   docReadSheet — the painted page as the plain-English column already reads
+   it — so the two positions of the switch see exactly the same clauses. */
+function docXrayRows(c){
+  const rows=(typeof docReadSheet==='function')?docReadSheet(c):[];
+  const out=rows.map((r,i)=>{
+    const marks=docXrayMarks(c,r);
+    return { i, el:r.el, row:r, words:_xrWords(r.text), marks, tone:docXrayTone(marks),
+      name:String(r.ownHead||'').trim(), cite:String(r.cite||''), sep:String(r.sep||'') };
+  });
+  const total=out.reduce((a,x)=>a+x.words,0)||1;
+  out.forEach(x=>{ x.share=Math.round(x.words/total*100); });
+  return out;
+}
+const docXrayLabel = x => ((x.cite?x.cite+(x.sep||'.')+' ':'')+(x.name||i18t('xr_unnamed'))).trim();
+
+/* ---------- the map ---------- */
+function docXraySpineHtml(rows){
+  return rows.map(x=>`<button type="button" class="doc-xr-seg${x.tone?' is-'+x.tone:''}${
+      x.i===_docXrayPick?' is-on':''}" data-xr-seg="${x.i}"
+      style="flex:${Math.max(1,x.words)} 1 0" aria-pressed="${x.i===_docXrayPick?'true':'false'}"
+      title="${esc(docXrayLabel(x)+' · '+i18tn('xr_words',x.words,{n:x.words}))}"
+      aria-label="${esc(docXrayLabel(x))}"><span class="doc-xr-dot"></span></button>`).join('');
+}
+/* ---------- the panel ---------- */
+function docXraySecHtml(k,body){
+  return `<div class="doc-xr-sec"><div class="doc-xr-k">${esc(k)}</div><div class="doc-xr-t">${body}</div></div>`;
+}
+function docXrayPanelHtml(c,rows){
+  if(!rows.length) return `<div class="doc-xr-none">${esc(i18t('xr_no_clauses'))}</div>`;
+  const x=rows[Math.min(Math.max(_docXrayPick,0),rows.length-1)];
+  /* THE PLAIN-ENGLISH ENTRY IS THE SECOND POSITION'S OWN, paired by the same
+     anchors it pairs with — never a second reading of the same words. */
+  let plain='';
+  try{
+    const paired=(typeof docReadAnchors==='function')?docReadAnchors(c):[];
+    const hit=paired.find(a=>a&&a.row&&a.row.el===x.el);
+    plain=hit?String((hit.it&&hit.it.plain)||'').trim():'';
+  }catch(_){ plain=''; }
+  let rungs=[];
+  const cid=docXrayClauseId(x.row);
+  if(cid){ try{ if(window.ladderRungs) rungs=ladderRungs(c,cid)||[]; }catch(_){ rungs=[]; } }
+
+  const marks=x.marks.length?x.marks.map(m=>`<div class="doc-xr-mark${m.sev==='high'?' is-high':''}">
+      <span class="doc-xr-mk">${esc(m.k==='scan'?i18t('xr_m_scan'):i18t('xr_m_pb'))}</span>
+      <span><b>${esc(m.words||'')}</b>${m.why?' — '+esc(m.why):''}</span></div>`).join(''):'';
+
+  return `<div class="doc-xr-head">
+      <h4>${esc(docXrayLabel(x))}</h4>
+      <span class="doc-xr-n">${esc(i18tn('xr_words',x.words,{n:x.words}))} · ${esc(i18t('xr_share',{n:x.share}))}</span>
+    </div>
+    ${docXraySecHtml(i18t('xr_sec_plain'), plain
+      ? docReadMark(plain)
+      : `<span class="doc-xr-q">${esc(i18t('xr_plain_none'))}</span>`)}
+    ${marks?docXraySecHtml(i18t('xr_sec_look'),marks)
+           :docXraySecHtml(i18t('xr_sec_look'),`<span class="doc-xr-q">${esc(i18t('xr_look_none'))}</span>`)}
+    ${rungs.length?docXraySecHtml(i18t('xr_sec_argued'),
+        `<b>${esc(i18tn('xr_rungs',rungs.length,{n:rungs.length}))}</b>`):''}`;
+}
+/* ---------- paint ----------
+   AFTER docReadPaint, ALWAYS, and the order is load-bearing: that painter
+   owns #doc-right's visibility and correctly gives it back when the reading
+   is off — which, in this mode, it is. This one takes it again. Two writers
+   of one property only agree while one of them runs last, so it is said here
+   and both callers keep it. */
+function docXrayPaint(c){
+  const layer=document.getElementById('doc-xray');
+  const sec=document.getElementById('doc-paper-col');
+  if(!layer) return;
+  const on=docXrayOn()&&_wsTab==='docs';
+  layer.hidden=!on;
+  const spineOld=document.getElementById('doc-xr-spine');
+  if(!on){ if(spineOld) spineOld.remove(); layer.innerHTML=''; return; }
+  const right=document.getElementById('doc-right');
+  if(right) right.style.visibility='hidden';
+  const rows=docXrayRows(c);
+  layer.innerHTML=`<div class="doc-xr-panel scroll-thin">${docXrayPanelHtml(c,rows)}</div>`;
+  /* THE SPINE ONLY WHERE THE GROUND WILL HOLD IT. Measured against the sheet
+     the reader is actually looking at, every paint, because the divider beside
+     this column can be dragged and the text size can change under it. */
+  if(spineOld) spineOld.remove();
+  if(!sec||!rows.length) return;
+  const canvas=document.getElementById('doc-canvas');
+  if(!canvas) return;
+  let room=0;
+  try{ room=canvas.getBoundingClientRect().left-sec.getBoundingClientRect().left; }catch(_){ room=0; }
+  if(!(room>=DOC_XRAY_SPINE_W+DOC_XRAY_SPINE_GAP)) return;
+  const sp=document.createElement('div');
+  sp.id='doc-xr-spine'; sp.className='doc-xr-spine';
+  sp.style.width=DOC_XRAY_SPINE_W+'px';
+  sp.setAttribute('role','group');
+  sp.setAttribute('aria-label',i18t('xr_spine_label'));
+  sp.innerHTML=docXraySpineHtml(rows);
+  sec.appendChild(sp);
+}
+/* ONE PRESS, ONE ACT: pick a clause, repaint the panel, land on the clause.
+   Delegated on the two hosts that draw it, armed once per element, because
+   both are rebuilt on every paint. */
+function docXrayWire(c){
+  [document.getElementById('doc-xray'),document.getElementById('doc-paper-col')].forEach(host=>{
+    if(!host||host.dataset.xrBound) return;
+    host.dataset.xrBound='1';
+    host.addEventListener('click',e=>{
+      const b=e.target&&e.target.closest&&e.target.closest('[data-xr-seg]');
+      if(!b) return;
+      const i=Number(b.getAttribute('data-xr-seg'));
+      if(!Number.isInteger(i)) return;
+      _docXrayPick=i;
+      docXrayPaint(c);
+      const rows=docXrayRows(c);
+      const el=rows[i]&&rows[i].el;
+      if(el&&el.scrollIntoView) el.scrollIntoView({block:'start'});
+    });
+  });
+}
 function wireDocRead(c,host){
   (host||document).querySelectorAll('[data-doc-read]').forEach(b=>{
     b.addEventListener('click',async ()=>{
-      const want=b.getAttribute('data-doc-read')==='1';
+      const pos=String(b.getAttribute('data-doc-read')||'0');
+      const mode=pos==='1'?'plain':pos==='2'?'xray':'paper';
+      const want=mode==='plain';
       /* SAVE THE BOX FIRST (Young ruled 9 Sep 2026). The contract form in that
          column commits a field on CHANGE, so a field still holding the caret is
          not on the record yet; blurring fires that same commit before anything
@@ -11169,9 +11408,10 @@ function wireDocRead(c,host){
            the reading we hold was made. Unchanged wording asks nothing. */
         if(!docReadItems(c).length||c._readSig!==sig){ if(!await docReadRun(c)) return; }
       }
-      docReadSet(want);
+      docViewSet(mode);
       wsPaintTabRowEnd(c);
       docReadPaint(c);
+      docXrayPaint(c); docXrayWire(c);
     });
   });
 }
@@ -11187,6 +11427,10 @@ function wireDocCanvas(c){
      is painted BESIDE the canvas rather than inside docBody, so it dies with
      every re-render and has to be put back here (idea 7). */
   docReadPaint(c);
+  /* AND X-RAY, on the same funnel and in this order — see the note over
+     docXrayPaint: docReadPaint gives #doc-right back when the edition is off,
+     which in this mode it is, so the cover has to be taken again after it. */
+  docXrayPaint(c); docXrayWire(c);
   /* AND THE PLACEHOLDERS IN A DOCUMENT SOMEBODY SENT US (item 9, 20 Sep 2026).
      Third on this funnel and for the third time the same reason: a mark built
      into docBody would TRAVEL — to the counterparty's page, the PDF and the
@@ -14057,6 +14301,9 @@ Object.assign(window,{paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,
      window from another module, or from a test stage, is silence when it is
      not on this list: this codebase's most repeated defect. */
   DOC_READ_KEY,DOC_READ_MIN_W,docReadFits,docReadOn,docReadSet,docReadItems,
+  DOC_VIEW_MODES,docViewMode,docViewSet,docXrayOn,DOC_XRAY_SPINE_W,DOC_XRAY_SPINE_GAP,
+  DOC_XRAY_QUOTE_MIN,docXrayPlace,docXrayMarks,docXrayTone,docXrayClauseId,docXrayRows,
+  docXrayLabel,docXraySpineHtml,docXrayPanelHtml,docXrayPaint,docXrayWire,
   docReadSheet,docReadClauses,docReadSig,docReadAnchors,docReadSwitchHtml,docReadPaint,docReadSync,
   docReadFront,docReadMirrorStyle,docReadMirrorToc,
   docReadRun,wireDocRead});

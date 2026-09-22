@@ -3065,10 +3065,16 @@
      "Let the plain english also sit in a white card and not the grey
      background"). A facing page beside the contract's cream one, which is also
      what makes the edition read as a document in its own right. */
-  #doc-read{ display:flex; flex-direction:column; padding:0 var(--s-3) var(--s-3);
+  /* ---- AND X-RAY'S PANEL IS THE SAME CARD (Young ruled 22 Sep 2026: "the
+     right hand side of the card should be on a white card just like plain
+     English"). ONE RULE, TWO LAYERS, deliberately: the switch draws both into
+     the same slot, and a second copy of these five declarations is a second
+     thing to keep in step the next time either is retuned. THE CLOTHES FOLLOW
+     THE BUILDER. */
+  #doc-read,#doc-xray{ display:flex; flex-direction:column; padding:0 var(--s-3) var(--s-3);
     background:var(--color-surface); border:1px solid var(--color-divider);
     border-radius:var(--radius); box-shadow:0 1px 2px rgba(15,23,42,.04); }
-  #doc-read[hidden]{ display:none; }
+  #doc-read[hidden],#doc-xray[hidden]{ display:none; }
   .doc-read-head{ flex:none; display:flex; align-items:center; gap:7px; flex-wrap:wrap;
     padding:11px 0 8px; border-bottom:1px solid var(--color-divider);
     font-size:var(--t-micro); font-weight:var(--w-title); letter-spacing:.09em;
@@ -5192,6 +5198,99 @@
   .hm-row.is-crit .hm-rtag{color:var(--st-amber-fg);}
   .hm-row.is-neg .hm-rtag{color:var(--st-ruby-fg);}
   .hm-rchev{flex:none;color:var(--color-neutral-400);}
+
+  /* ══ X-RAY — the map in the margin and the panel beside it (22 Sep 2026) ══
+     THE SPINE FLOATS OVER THE COLUMN'S OWN GREY and is never in the flow, so
+     the sheet beside it does not move by a pixel. It is only mounted where
+     that grey is wide enough to hold it — see docXrayPaint. */
+  .doc-xr-spine{position:absolute;left:0;top:0;bottom:0;z-index:2;
+    display:flex;flex-direction:column;gap:2px;padding:6px 4px;
+    background:var(--color-neutral-100);border-right:1px solid var(--color-divider);}
+  /* MEASURED on a real page: neutral-300 on the spine's neutral-100 ground is
+     1.1:1 and the map read as an empty strip. The gray DOT token is what this
+     product already uses for "present but quiet". */
+  .doc-xr-seg{position:relative;min-height:9px;padding:0;border:0;border-radius:2px;
+    background:var(--st-gray-dot);cursor:pointer;display:grid;place-items:center;}
+  .doc-xr-seg.is-amber{background:var(--st-amber-dot);}
+  .doc-xr-seg.is-ruby{background:var(--st-ruby-dot);}
+  .doc-xr-seg.is-on{outline:2px solid var(--accent-ink);outline-offset:1px;}
+  .doc-xr-seg:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:2px;}
+  .doc-xr-dot{display:none;}
+  /* The panel wears the reading column's own clothes: one card, its own
+     scroller, the cards beneath it covered rather than rebuilt. */
+  .doc-xr-panel{flex:1 1 auto;min-height:0;overflow-y:auto;padding-right:2px;
+    display:flex;flex-direction:column;gap:0;}
+  /* The card gives no top padding (the edition's caption row carries its own),
+     so this head carries the same 11px and the two columns start level. */
+  .doc-xr-head{padding:11px 0 10px;border-bottom:1px solid var(--color-divider);}
+  .doc-xr-head h4{margin:0;font-size:var(--t-card);font-weight:var(--w-title);
+    letter-spacing:-.01em;line-height:1.25;}
+  .doc-xr-n{display:block;margin-top:4px;font-family:var(--font-mono);
+    font-variant-numeric:tabular-nums;font-size:var(--t-label);color:var(--color-neutral-500);}
+  .doc-xr-sec{padding:11px 0;border-bottom:1px solid var(--color-divider);}
+  .doc-xr-sec:last-child{border-bottom:0;}
+  .doc-xr-k{margin-bottom:5px;font-size:var(--t-micro);font-weight:var(--w-strong);
+    letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);}
+  .doc-xr-t{font-size:var(--t-meta);line-height:1.55;color:var(--color-text);}
+  .doc-xr-q{color:var(--color-neutral-500);}
+  .doc-xr-mark{display:flex;gap:7px;align-items:flex-start;padding:3px 0;}
+  .doc-xr-mk{flex:none;font-size:var(--t-micro);font-weight:var(--w-strong);
+    letter-spacing:.06em;text-transform:uppercase;color:var(--st-amber-fg);
+    background:var(--st-amber-bg);border-radius:var(--radius);padding:1px 6px;}
+  .doc-xr-mark.is-high .doc-xr-mk{color:var(--st-ruby-fg);background:var(--st-ruby-bg);}
+  .doc-xr-none{font-size:var(--t-meta);color:var(--color-neutral-500);}
+
+  /* ══ THE RUNWAY — the decision card's one line of time (22 Sep 2026) ══
+     Left of TODAY is time already owed against this workspace's own answering
+     standard; right of it is time still to run. Every colour here is a token,
+     and the two directions are told apart by the ruby wash rather than by a
+     word, so the picture reads before the labels do.
+     IT IS NOT A BAND: it is the body of a card that was already on the page,
+     above the rows it is a picture of. */
+  .hm-rw{display:flex;gap:14px;align-items:stretch;flex-wrap:wrap;
+    padding:12px 14px 6px;border-bottom:1px solid var(--color-divider);}
+  .hm-rw-main{flex:1 1 380px;min-width:0;}
+  .hm-rw-ends{display:flex;justify-content:space-between;gap:12px;margin-bottom:6px;}
+  .hm-rw-end{min-width:0;font-size:var(--t-micro);font-weight:var(--w-strong);
+    letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .hm-rw-end.is-past{color:var(--st-ruby-fg);}
+  .hm-rw-rail{position:relative;height:76px;border-radius:var(--radius);overflow:hidden;}
+  .hm-rw-wash{position:absolute;top:0;bottom:21px;}
+  .hm-rw-wash.is-past{left:0;background:var(--st-ruby-bg);}
+  .hm-rw-wash.is-ahead{right:0;background:var(--color-neutral-100);}
+  .hm-rw-base{position:absolute;left:0;right:0;bottom:21px;height:1px;background:var(--rule-strong);}
+  .hm-rw-now{position:absolute;top:0;bottom:13px;width:2px;margin-left:-1px;background:var(--color-text);}
+  .hm-rw-pins{position:absolute;left:0;right:0;bottom:27px;height:44px;}
+  /* EVERY DOT IS A DOOR onto its own contract — the rows below do no more. */
+  .hm-rw-pin{position:absolute;width:9px;height:9px;margin-left:-4.5px;padding:0;
+    border:0;border-radius:50%;cursor:pointer;}
+  .hm-rw-pin:hover{box-shadow:0 0 0 3px color-mix(in srgb,var(--color-text) 14%,transparent);}
+  .hm-rw-pin:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:2px;}
+  .hm-rw-tick{position:absolute;bottom:2px;white-space:nowrap;font-family:var(--font-mono);
+    font-variant-numeric:tabular-nums;font-size:var(--t-figure);color:var(--color-neutral-500);}
+  .hm-rw-tick.is-past{color:var(--st-ruby-fg);}
+  .hm-rw-tick.is-now{font-weight:var(--w-strong);color:var(--color-text);transform:translateX(-50%);}
+  .hm-rw-tick.is-end{transform:translateX(-100%);}
+  .hm-rw-side{flex:0 0 226px;min-width:0;display:flex;flex-direction:column;
+    border-left:1px dashed var(--rule-strong);padding-left:14px;}
+  .hm-rw-sidehead{margin-bottom:5px;font-size:var(--t-micro);font-weight:var(--w-strong);
+    letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);}
+  .hm-rw-nc{display:flex;align-items:center;gap:9px;width:100%;padding:5px 0;
+    border:0;border-bottom:1px solid var(--rule-faint);background:none;
+    font:inherit;font-family:var(--font-body);color:inherit;text-align:left;cursor:pointer;}
+  .hm-rw-nc:last-child{border-bottom:0;}
+  .hm-rw-nc:hover{background:var(--nav-well);}
+  .hm-rw-nc:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:-2px;}
+  .hm-rw-ncd{flex:none;width:8px;height:8px;border-radius:50%;}
+  .hm-rw-ncn{flex:none;width:22px;font-family:var(--font-mono);font-variant-numeric:tabular-nums;
+    font-size:var(--t-md);font-weight:var(--w-strong);}
+  .hm-rw-ncw{flex:1 1 auto;min-width:0;font-size:var(--t-meta);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  @media (max-width:900px){
+    .hm-rw-side{flex-basis:100%;border-left:0;padding-left:0;padding-top:10px;
+      border-top:1px dashed var(--rule-strong);}
+  }
   /* ---- AUTO-TRIAGE'S CARD (owner-approved design, 9 Sep 2026) ----
      A row in this same list, in this same vocabulary — so folded it is
      indistinguishable from its neighbours, and open it is the only one that

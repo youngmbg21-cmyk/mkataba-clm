@@ -18678,3 +18678,82 @@ Noticed, not fixed:
 - paper-beside-questions-verify 7c/7g still fail identically on this tree and at the parent (34/36 both sides). Unchanged from earlier entries.
 
 Gates: 8,734 tests, 0 failed. Lint 0 errors. f363 26/26 (16 red at the parent), new-agreement-verify 38/38 (its 8 new checks 6 red at the parent, printing "paper false, 0 chars"), form-and-picker 24/24, draft-from-a-sentence all green, f345 / f360 / f148 / f270 / f331 / f104 / f312 all green.
+## 22 Sep 2026 — THE RUNWAY ON THE HOME PAGE, AND X-RAY BESIDE PLAIN ENGLISH
+
+Young: *"build the Runway into the home page and build the X-ray next to plain
+english... you have explanations between the top card and the paper so please
+exclude that from the implementation."* Both built; the explainer bands the
+prototype carried are asserted ABSENT on both surfaces.
+
+DEFECTS FOUND AND FIXED ON THE WAY
+- ONE NUMBER FOR ONE THING, TWELVE PIXELS APART. Measured on a real page the
+  hour the rail landed: a quiet desk's row read "42 days" beside a dot the rail
+  had placed at 53. Both true — the desk flag counts WORKING days since they
+  asked, the rail counts CALENDAR days past the standard — and together they
+  read as a contradiction. The row's tag on this card is now the rail's own
+  reading; the flag elsewhere keeps its word.
+- THE SPINE MISSED BY ONE PIXEL. A 34px map wanting 10px of clearance did not
+  fit the 43px of grey an ordinary 1500px window leaves beside the sheet, so it
+  drew nothing at all and nothing said why. 28 and 8 now, and the measurement in
+  docXrayPaint is what keeps narrow windows honest rather than the numbers.
+- THE MAP WAS INVISIBLE. neutral-300 segments on a neutral-100 ground measured
+  1.1:1; the map read as an empty strip. The gray DOT token instead.
+
+FIVE FAULTS IN MY OWN INSTRUMENTS, each found by pointing them at the parent
+- f363 section 1 PASSED against a build where js/runway.js does not exist: every
+  claim in it is an ABSENCE, and an absence is satisfied by an empty string.
+  Gated on the file existing. Twice — the guard beside it needed the same gate.
+- f363's write guard matched `c.side === 'past'`, a READING, because `=` also
+  matches the first character of `===`.
+- f363's "desk.js publishes deskCfg" was greedy past the closing brace and
+  matched the function's own declaration, so it would have passed on a build
+  that published nothing. Pinned to the list. deskCfg was ALREADY published, so
+  the claim is a named WALL rather than a new requirement.
+- runway-and-xray-verify TIMED OUT at the parent rather than reporting: thirty
+  seconds waiting for a control that is not there. Every driven half is guarded
+  now, and two claims that passed vacuously there ("the contract does not move",
+  on a build where nothing was pressed) are gated on the press having happened.
+- And eight claims SKIPPED at the parent rather than failing, which reads as
+  agreement. They report now.
+
+RE-POINTED IN PLACE
+- plain-english-verify 1e / 1k / 1l pinned "the switch has exactly TWO buttons".
+  The owner's own request made that false. The substance of each claim is
+  untouched; the count is pinned to the switch's own list.
+
+NOTICED, NOT FIXED
+- plain-english-verify 10c is red on this branch and red at the parent — a walk
+  reading 13 rows numbered 1..13 where the check wants the paper's own numbers.
+  Pre-existing, untouched.
+- Pressing Plain English on a workspace with no Copilot key leaves the switch
+  where it was, and only a toast says why. Pre-existing behaviour of that
+  position, not X-ray's.
+- The Runway is not built on the phone, which draws mNeedsYou instead.
+
+### 22 Sep 2026 (later) — X-RAY'S PANEL SITS ON THE EDITION'S OWN CARD
+
+Young, over a render: *"In X-ray page, the right hand side of the card should be
+on a white card just like plain English paper in on a white card."* It was
+sitting on the page ground.
+
+THIS IS THE 10 SEP 2026 RULING REACHING ITS SECOND LAYER — *"let the plain
+english also sit in a white card and not the grey background"* — so the answer
+is the SAME rule rather than a second copy of it: `#doc-read,#doc-xray` now
+carry the five declarations between them, and f364 pins both the shared
+selector and the absence of a private one. The browser file asks it as a
+RELATION: both layers resolved live and required to be equal, so a later
+palette pass moving one moves both or the check goes red.
+
+The card gives no top padding (the edition's caption row carries its own), so
+.doc-xr-head carries the same 11px and the two columns start level.
+
+MEASURED after: the card resolves identically to the edition's on every one of
+background, border width, border colour, radius, shadow and padding; and the
+contract still does not move by a pixel (ink 266.5 / sheet 43 / width 735,
+before, during and after). theme-tokens-verify 28/40 and contrast-verify 30/33
+on this branch AND at the parent — the colour census has not moved.
+
+A FAULT IN MY OWN INSTRUMENT: the new claim "X-ray has no card rule of its own"
+was written as a plain negative on `#doc-xray{`, which is a SUBSTRING of
+`#doc-read,#doc-xray{` — so it tripped on the very rule it exists to allow. A
+negative lookbehind for the comma.
