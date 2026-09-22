@@ -5045,6 +5045,11 @@ const STRINGS = {
     me_save_next: 'Save & next',
     me_counterparty: 'Counterparty',
     me_contract_type: 'Contract type',
+    /* The last row of the contract-type picker, and the box behind it. The
+       WORDS offered are the record's own and stay English (see the note
+       above META_FIELDS); these two are screen furniture and are not. */
+    me_type_another: 'Another type\u2026',
+    me_type_ph: "the document's own words, e.g. Master Services Agreement",
     me_effective_date: 'Effective date',
     me_expiry_date: 'Expiry date',
     me_value: 'Value',
@@ -12363,6 +12368,8 @@ const STRINGS = {
     me_save_next: 'Spara & nästa',
     me_counterparty: 'Motpart',
     me_contract_type: 'Avtalstyp',
+    me_type_another: 'En annan typ\u2026',
+    me_type_ph: 'dokumentets egna ord, t.ex. Ramavtal om tj\u00e4nster',
     me_effective_date: 'Ikraftträdandedatum',
     me_expiry_date: 'Slutdatum',
     me_value: 'Värde',

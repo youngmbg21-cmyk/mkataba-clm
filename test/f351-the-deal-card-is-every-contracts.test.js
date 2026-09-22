@@ -259,9 +259,23 @@ describe('f351 (5) typing over a reading wins, and says who did it', () => {
     assert.ok(/querySelectorAll\('\[data-ktm\]'\)/.test(w), 'one sweep, every box');
     assert.ok(/META_FIELDS\|\|\[\]\)\.find/.test(w), 'the type comes from the field set');
     /* A number box driven by `input` stores 9 on the way to 90 — the notice
-       period's own rule, restated for every field that is not free text. */
-    assert.ok(/f\.type==='text'\)\?'input':'change'/.test(w),
+       period's own rule, restated for every field that is not free text.
+       RE-POINTED IN PLACE 22 Sep 2026: this pinned the ternary's own spelling,
+       and the contract-type picker made the question the ELEMENT's as well as
+       the type's — a `picks` field is free text on the record and a SELECT on
+       the screen, and a select answers on `change`. The CLAIM is unchanged and
+       is asked as the relation instead. */
+    /* PIN THE REGION: wireKeyTerms carries TWO `const evt=` lines — the four
+       fields with a home of their own have one too — so this is asked of the
+       metadata sweep's own, not of whichever comes first in the file. */
+    const at = w.indexOf("querySelectorAll('[data-ktm]')");
+    const a2 = w.indexOf('const evt=', at);
+    const evt = w.slice(a2, w.indexOf(';', a2));
+    assert.ok(/'input'/.test(evt) && /'change'/.test(evt), 'the event is chosen, not assumed');
+    assert.ok(/f\.type[!=]==?'text'/.test(evt),
       'only free text writes on every keystroke');
+    assert.ok(/tagName==='SELECT'/.test(evt),
+      'and a select answers on change whatever its field says');
   });
 
   test('an empty box clears the field rather than storing a zero', () => {

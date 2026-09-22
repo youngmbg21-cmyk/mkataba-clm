@@ -20770,3 +20770,145 @@ IT IS THE VALUE-STREAM PICKER'S OWN MECHANISM, not a second idea of one. `PARTY_
 One door throughout: `openPartyEditor` is the only place in the product a party's role is typed, and the phone has no party editor.
 
 Driven at the parent, the six browser checks print the owner's screenshot back: `<INPUT> · "Contract type"`. And a seventh lesson, an old one: the first draft of that probe read `sel.options.length`, which at the parent is an `<input>` with no `.options` — so instead of reporting the fault it threw and took the whole file with it. A probe that throws proves nothing.
+
+## THE CONTRACT TYPE IS A CHOICE, AND THE WORDS ARE ENGLISH (Young ruled 22 Sep 2026)
+
+Young, 22 September 2026: *"make the contract type on the overview a dropdown
+too"*. It came the morning after the same ask for the Edit party window's role
+word, and the obvious move was to copy that build across. Measuring first is
+what stopped it, because the two fields look identical on screen and are not
+the same field at all.
+
+### WHAT WAS MEASURED BEFORE A LINE MOVED
+
+`metadata.contractType` is drawn first on the Overview's deal grid under the
+label `ov_f_type`. At rest it prints `contractTypeRead(c)` — which prefers the
+curated template kind and falls back to the extraction — and in the edit
+posture it drew a plain `<input type="text">`, because `META_FIELDS` declares
+it `type:'text'` and `ovMetaBoxHtml` has exactly two branches, a closed list
+and a text box.
+
+So on the one kind of contract this field exists for — an upload, where
+`cKind` says "External Document" and the extraction is the only answer — the
+fact that decides which playbook the whole standards check runs against had to
+be typed from memory, with nothing on the screen saying what words the product
+itself would recognise.
+
+Three readings were taken before anything was written:
+
+1. **`playbookKeyFor` (js/playbook.js).** It lowercases the type and runs four
+   passes: the workspace's own books' match words, the built-in type patterns,
+   a read-but-unmatched type taking the baseline, and finally the value-stream
+   fallback for a type nobody read. `copilotPlaybookKey` on the server mirrors
+   it pass for pass and **f133 runs both over the same contracts and requires
+   the same key.** So this string is not only printed — it is matched on, by
+   two hosts, and a wrong answer is silent.
+2. **The other two screens that draw this field.** `openMetaReview` (the
+   extraction review) and the upload confirm both branch on `f.type==='select'`
+   and otherwise draw a text box. Changing the type would have turned both into
+   closed dropdowns that DROP a reading off the list — a silent data loss on
+   the two screens whose whole job is showing you what Copilot read.
+3. **`cKind` (js/core.js).** `TEMPLATES[c.template]?.kind` — twelve words, one
+   per built-in template, already written onto every drafted contract.
+
+### THE THREE DECISIONS THAT CAME OUT OF THAT
+
+**THE FIELD STAYS FREE TEXT ON THE RECORD.** It gains `picks`, which means
+"free text, and here are words to offer". The type is untouched, so the
+extraction review and the upload confirm are byte-identical, and a reading off
+the paper can still be corrected there in any words at all. `ovMetaBoxHtml`
+gets a third branch, asked before the closed-list one.
+
+**THE WORDS ARE ENGLISH, AND THIS IS THE OPPOSITE OF THE PARTY ROLE BESIDE
+IT.** The party role build the day before offered eighteen translated words
+(`py_rw_*`) and stored the one the reader picked, and that was right: a party's
+role word is what THE PAPER calls them, and a Swedish contract says
+"Leverantör". This one is a matching key. A Swedish workspace storing
+"Leverantörsavtal" would match none of `playbookKeyFor`'s patterns, fall to
+pass 3, and be judged by the baseline book instead of the supply book — with
+nothing on any screen saying so. So the offered words stay English, which is
+the same ruling `RELATION_DOC_WORD`, `ROLE_LABEL` and the audit lines already
+follow: a label that is also a RECORD keeps English. The two screen sentences
+that are NOT the record — the last row's own words and the name box's hint —
+are translated as usual.
+
+**THE TWELVE ARE READ OFF `TEMPLATES`, NEVER TYPED HERE.** `contractTypeKinds`
+walks the template table for its kind column; `CONTRACT_TYPE_FALLBACK` is the
+literal for a stage without js/templates.js, written the way `docLibWording`
+carries its own fallback wording, and pinned as a no-drift wall against the
+table it mirrors. That makes the offered words the SAME words `cKind` writes
+onto every drafted contract, which is what lets an uploaded contract and a
+drafted one spell one type one way and resolve to one playbook.
+
+And that claim was measured rather than asserted. Staged the way f133 stages
+it — `playbookKeyFor` asks `contractTypeRead` and `CKIND_SAYS_NOTHING`, which
+live in js/core.js and are not on the playbook world, so a mirror test
+measuring the fallbacks measures the wrong thing — every one of the twelve was
+run through the real rule on an upload with no template and no value stream:
+
+    Raw Material Supply      -> supply        Distributor            -> supply
+    Packaging Supply         -> supply        Retail Listing         -> supply
+    Contract Manufacturing   -> supply        Marketing Services     -> services
+    Equipment Lease          -> lease         NDA                    -> nda
+    Warehousing              -> supply        Lease                  -> lease
+    Distribution Logistics   -> supply        Professional Services  -> services
+
+Not one falls through to `_default`, and the control beside it — the same
+contract with nothing read — still does. That table is the whole case for the
+English choice, and f361 (2) is it written down.
+
+### IT OFFERS AND NEVER REFUSES
+
+The value-stream picker's own mechanism, in four parts:
+
+- **The blank leads**, because clearing a term is an answer — the rule the
+  closed-list branch twelve lines below already states.
+- **Whatever is on the record leads the words** where it is not one of them,
+  folded free of case, so a reading of "Master Services Agreement" is never
+  quietly replaced by opening the box. This is the claim a blank record cannot
+  measure, which is why the browser check stages an off-list reading first.
+- **The last row types the document's own words** through `promptNewName`,
+  which is one name box with two consumers already.
+- **`metaPickOptions` is the one reading behind all three**, so a second
+  `picks` field tomorrow cannot drift from this one.
+
+### A SENTINEL NEVER REACHES THE RECORD, AND THE WALL IS IN THE HANDLER
+
+The party editor is a dialog with a Save button, so its sentinel wall sits at
+Save. This grid has no Save: every box writes as it is answered. So the wall is
+inside the handler — a cancelled name box returns before anything is written
+and puts the value back, exactly as `bindFolderSelect` puts a value stream
+back. The browser check drives that cancel and reads the record afterwards.
+
+And **the event is the element's**. The one `[data-ktm]` handler picked its
+event from `f.type` alone; a `picks` field is text on the record and a SELECT
+on the screen, and a select answers on `change`. Asked of the tag, so the two
+cannot disagree.
+
+### THE SIX QUESTIONS
+
+Run, because this moves something a person can press. Q1: a controlled list
+with an escape to free text is the standard answer and is what was built. Q2:
+the fact sits on the control itself — no band, no line added. Q3: the Overview
+is not the agreement's paper and nothing on the contract moved. Q5: the edit
+posture already IS the door onto this field, so this improves the one door
+rather than adding a second; `promptNewName` is the product's own name box.
+Q6: a picked word lands on the record with confidence 'high' exactly as typing
+did, and the read-out beside it prints the same word. No refusal bit.
+
+### TWO INSTRUMENT FAULTS, AND A DEFECT THAT IS NOT THIS REQUEST
+
+The first draft of the browser check pressed `Edit these details` and found no
+boxes at all — and the same happened at the parent, on a contract with nothing
+unusual on it. Traced: `Edit these details` is wired inside `renderKeyTerms`,
+which the section router calls on every fold, so on a FIRST paint of the
+Overview that act is drawn, hit-testable and does nothing until some fold
+repaints the card. Every earlier section of that file happens to fold something
+before it presses, which is why it had never been seen. Reported as one line in
+BUGLOG — it is not this request — and section 14 folds the card the way the
+product's own door does.
+
+And f351 (5) pinned `f.type==='text')?'input':'change'` as a literal source
+line. Re-pointed in place to the relation; on the way, its first draft read the
+FIRST `const evt=` in `wireKeyTerms`, which belongs to the four fields with a
+home of their own. **PIN THE REGION** — the metadata sweep's own — paid again.

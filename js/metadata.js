@@ -3,9 +3,67 @@
 
 /* Canonical metadata field set. Each contract may carry c.metadata with these
    keys and c.metadata.confidence[field] in {high,medium,low}. */
+/* ---- WHAT KIND OF AGREEMENT IS THIS -- THE PRODUCT'S OWN WORDS, OFFERED ----
+   (Young ruled 22 Sep 2026: *"make the contract type on the overview a
+   dropdown too"*, the morning after the same ask for a party's role word.)
+
+   THE FIELD STAYS FREE TEXT, because an uploaded document may call itself
+   anything and a closed list would DROP whatever Copilot read off the paper.
+   So this is the value-stream picker's own mechanism -- it OFFERS and never
+   REFUSES: the twelve words below, whatever is already on the record first
+   where it is not one of them, and a last row that types the document's own
+   words straight onto it.
+
+   AND THE WORDS ARE ENGLISH, WHICH IS THE OPPOSITE OF THE PARTY ROLE BESIDE
+   IT, for a reason worth writing down. A party's role word is what THE PAPER
+   calls them, so a Swedish contract says "Leverantor" and offering Swedish is
+   right. This one is a MATCHING KEY: playbookKeyFor lowercases it and runs it
+   past the built-in type patterns, copilotPlaybookKey on the server mirrors
+   that pass for pass, and f133 requires the two hosts to answer the same key.
+   A translated word would match none of them and take the baseline book
+   instead of the right one, silently -- so this is the RECORD-keeps-English
+   rule, the same one RELATION_DOC_WORD and the audit lines follow.
+
+   THE TWELVE ARE READ OFF TEMPLATES, not typed here, so they are the SAME
+   words cKind writes onto every drafted contract -- which is what makes an
+   uploaded contract and a drafted one spell one type one way and resolve to
+   one playbook. The literal is the FALLBACK for a stage without js/templates.js,
+   written the way docLibWording carries its own fallback wording. */
+const CONTRACT_TYPE_FALLBACK = Object.freeze(['Raw Material Supply','Packaging Supply',
+  'Contract Manufacturing','Equipment Lease','Warehousing','Distribution Logistics',
+  'Distributor','Retail Listing','Marketing Services','NDA','Lease','Professional Services']);
+function contractTypeKinds(){
+  try{
+    const t=(typeof TEMPLATES!=='undefined')?TEMPLATES:null;
+    if(t){ const out=[];
+      for(const id in t){ const k=t[id]&&t[id].kind; if(k && out.indexOf(k)<0) out.push(k); }
+      if(out.length) return out; }
+  }catch(_){}
+  return CONTRACT_TYPE_FALLBACK.slice();
+}
+/* The sentinel a picker's last row carries. It is a screen's word for "let me
+   type one" and MAY NEVER REACH THE RECORD -- every writer walls it. */
+const META_PICK_OTHER = '__other__';
+/* {v,l} pairs, the shape fieldOpt and every picker in this product reads.
+   WHATEVER IS ALREADY ON THE RECORD LEADS where it is not on the list, so a
+   reading of "Master Services Agreement" is never quietly replaced by opening
+   the box. One reading, so any field that grows a `picks` list gets the same
+   offers-never-refuses behaviour without a second copy of it. */
+function metaPickOptions(words, current){
+  const out=(words||[]).map(w=>({ v:String(w), l:String(w) }));
+  const cur=String(current==null?'':current).trim();
+  if(cur && !out.some(o=>o.v.toLowerCase()===cur.toLowerCase())) out.unshift({ v:cur, l:cur });
+  return out;
+}
+
 const META_FIELDS = [
   { k:'counterparty',     get label(){ return i18t('me_counterparty'); },   type:'text' },
-  { k:'contractType',     get label(){ return i18t('me_contract_type'); },  type:'text' },
+  /* `picks` is "free text, and here are words to offer". The TYPE is still
+     text, so the extraction review screen and the upload confirm -- which both
+     branch on type -- draw exactly the box they drew before, and a reading off
+     the paper can still be corrected there in any words at all. */
+  { k:'contractType',     get label(){ return i18t('me_contract_type'); },  type:'text',
+    get picks(){ return contractTypeKinds(); } },
   /* CATEGORY is not contractType. contractType is the document's own words
      ("Raw Material Supply Agreement") and is free text, so nothing can count
      it. Category is a short closed list, which is what every figure that says
@@ -690,4 +748,4 @@ async function runMetaBackfill(opts={}){
   next();
 }
 
-Object.assign(window,{META_FIELDS,RENEWAL_LABEL,metaEnName,termAdd,metaReadTerm,metaCheckTerm,TERM_TOLERANCE_DAYS,META_OPT_LABEL,metaOptLabel,unitDays,heuristicExtract,buildExtractionPayload,thoroughChunks,mergeThorough,THOROUGH_CHUNK,EXTRACT_TERMS,aiExtractMetadata,extractMetadata,openMetaReview,runMetaBackfill});
+Object.assign(window,{META_FIELDS,CONTRACT_TYPE_FALLBACK,contractTypeKinds,META_PICK_OTHER,metaPickOptions,RENEWAL_LABEL,metaEnName,termAdd,metaReadTerm,metaCheckTerm,TERM_TOLERANCE_DAYS,META_OPT_LABEL,metaOptLabel,unitDays,heuristicExtract,buildExtractionPayload,thoroughChunks,mergeThorough,THOROUGH_CHUNK,EXTRACT_TERMS,aiExtractMetadata,extractMetadata,openMetaReview,runMetaBackfill});

@@ -5322,6 +5322,26 @@ function ovMetaBoxHtml(c,k){
   const m=(c&&c.metadata)||{};
   const raw=m[k]==null?'':m[k];
   const a=`data-ktm="${esc(k)}"`;
+  /* ---- A FREE-TEXT FIELD THAT OFFERS THE PRODUCT'S OWN WORDS ----
+     (Young ruled 22 Sep 2026.) The value-stream picker's mechanism: a list
+     that OFFERS and never REFUSES. The blank leads, because clearing a term is
+     an answer; whatever is on the record leads the words where it is not one
+     of them, so a reading off the paper cannot be lost by opening the box; and
+     the last row types the document's own words. metaPickOptions is the one
+     reading behind all three, so a second `picks` field cannot drift from this
+     one. The words themselves are the RECORD's and are never translated -- see
+     the note above META_FIELDS. */
+  if(f.picks){
+    const cur=String(raw).trim();
+    const list=(window.metaPickOptions?metaPickOptions(f.picks,cur):[]);
+    const other=window.META_PICK_OTHER||'__other__';
+    return `<select ${a} style="${OV_IN}">
+        <option value=""${cur?'':' selected'}>${esc(i18t('ct_not_set'))}</option>
+        ${list.map(o=>`<option value="${esc(o.v)}"${
+          cur&&o.v.toLowerCase()===cur.toLowerCase()?' selected':''}>${esc(o.l)}</option>`).join('')}
+        <option value="${esc(other)}">${esc(i18t('me_type_another'))}</option>
+      </select>`;
+  }
   if(f.type==='select'){
     /* AN EMPTY OPTION LEADS, because clearing a term is an answer — and it is
        the one a reader needs when Copilot filled a field in on a contract that
@@ -11702,8 +11722,31 @@ function wireKeyTerms(c){
   document.querySelectorAll('[data-ktm]').forEach(inp=>{
     const key=inp.getAttribute('data-ktm');
     const f=(window.META_FIELDS||[]).find(x=>x.k===key); if(!f) return;
-    const evt=(f.type==='text')?'input':'change';
-    inp.addEventListener(evt,()=>{
+    /* THE EVENT IS THE ELEMENT'S, not only the type's: a `picks` field is free
+       text on the record and a SELECT on the screen, and a select answers on
+       `change`. Asked of the tag, so the two cannot disagree. */
+    const pick=(inp.tagName==='SELECT'&&!!f.picks);
+    const evt=(inp.tagName==='SELECT'||f.type!=='text')?'change':'input';
+    let last=inp.value;
+    inp.addEventListener(evt,async()=>{
+      /* ---- THE LAST ROW TYPES THE DOCUMENT'S OWN WORDS ----
+         A SENTINEL NEVER REACHES THE RECORD. There is no Save on this grid --
+         every box writes as it is answered -- so the wall is here: cancelled,
+         the box goes back to what it was and nothing is written, exactly as
+         bindFolderSelect puts a value stream back. */
+      if(pick && inp.value===(window.META_PICK_OTHER||'__other__')){
+        const word=(typeof promptNewName==='function')
+          ? await promptNewName({ title:f.label, sub:i18t('me_type_ph'),
+              placeholder:i18t('me_type_ph'), ok:i18t('act_save'),
+              make:x=>String(x||'').trim() })
+          : null;
+        if(!word){ inp.value=last; return; }
+        const opt=document.createElement('option');
+        opt.value=word; opt.textContent=word;
+        inp.insertBefore(opt, inp.lastElementChild);
+        inp.value=word;
+      }
+      last=inp.value;
       c.metadata=c.metadata||{}; c.metadata.confidence=c.metadata.confidence||{};
       const raw=String(inp.value==null?'':inp.value).trim();
       const n=f.type==='num'?Math.round(Number(raw)):null;

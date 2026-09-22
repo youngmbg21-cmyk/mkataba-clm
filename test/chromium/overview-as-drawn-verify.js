@@ -623,6 +623,151 @@ const SEC = (suffix) => {
     await page.evaluate(() => { const x = document.getElementById('py-cancel'); if (x) x.click(); });
     await page.waitForTimeout(300);
 
+    /* ===== 14. AND THE CONTRACT TYPE ON THE OVERVIEW IS A DROPDOWN TOO =====
+       Young, 22 September 2026: *"make the contract type on the overview a
+       dropdown too"*. MEASURED at the parent: a plain text box, so the one
+       fact the whole standards check resolves on had to be typed from memory.
+       Driven with a real pointer, because only a rendered page knows whether
+       a list opens and whether picking from it reaches the record.
+
+       THE OFF-LIST READING IS STAGED FIRST. A picker that dropped whatever
+       Copilot read would be a closed list wearing an open one's clothes, and
+       that is the claim a blank record could not measure. */
+    await page.evaluate(async x => {
+      const cc = state.contracts.find(y => y.id === x);
+      cc.metadata = cc.metadata || {};
+      cc.metadata.contractType = 'Master Services Agreement';
+      persist(cc); if (window.flushSaves) await flushSaves(); }, c.id);
+    await page.waitForTimeout(700);
+    /* THE FOLD IS THE REPAINT. `Edit these details` is wired inside
+       renderKeyTerms, which the section router calls on every fold, and the
+       grid has to be redrawn anyway to show the reading just put on the
+       record. Shut and open is the product's own door, pressed twice.
+       (MEASURED, and the same at the parent: on a first paint alone that act
+       is drawn and does nothing. Reported, not fixed — it is not this
+       request, and every earlier section here already folds.) */
+    for (let i = 0; i < 2; i++) {
+      await page.evaluate(() => { const h = document.querySelector('[data-sec-toggle$=".deal"]');
+        if (h) h.click(); });
+      await page.waitForTimeout(400);
+    }
+    const hasDealEdit = await page.evaluate(() => !!document.querySelector('[data-ov-edit$=".deal"]'));
+    if (!hasDealEdit) {
+      ['14a it is a dropdown, not a text box', '14b it offers the product\'s own words',
+        '14c an off-list reading is kept and leads', '14d pressing it opens HaTi\'s own list',
+        '14e picking one writes it onto the record, read closely',
+        '14f a cancelled name box writes nothing and puts the value back',
+        '14g and a type of your own goes on the record'].forEach(n => check(n, false, 'no edit act on this build'));
+    } else {
+    /* THE EDIT POSTURE IS A TOGGLE AND THIS FILE HAS PRESSED IT BEFORE, so the
+       press is asked for its RESULT rather than assumed: a second press where
+       the first turned it off. Measured, not counted. */
+    await page.click('[data-ov-edit$=".deal"]');
+    await page.waitForTimeout(900);
+    if (!await page.evaluate(() => !!document.querySelector('[data-ktm]'))) {
+      await page.click('[data-ov-edit$=".deal"]');
+      await page.waitForTimeout(900);
+    }
+    const ct = await page.evaluate(() => {
+      const el = document.querySelector('[data-ktm="contractType"]');
+      if (!el) return { none: true };
+      /* A BUILD WITH NO DROPDOWN MUST REPORT, NOT THROW. At the parent this
+         is an <input>, which has no .options at all. */
+      const os = el.options ? [...el.options] : [];
+      return { tag: el.tagName, n: os.length, value: el.value,
+        first: os.length ? os[0].value : null,
+        last: os.length ? os[os.length - 1].value : null,
+        lastText: os.length ? os[os.length - 1].textContent.trim() : null,
+        lead: os.length > 1 ? os[1].value : null,
+        selected: os.filter(o => o.selected).map(o => o.value),
+        offered: os.map(o => o.value) };
+    });
+    check('14a it is a dropdown, not a text box',
+      ct.tag === 'SELECT', ct.none ? 'no control at all' : '<' + ct.tag + '>');
+    /* THE WORDS ARE THE PRODUCT'S OWN — the same ones cKind writes onto every
+       drafted contract, which is what makes one type resolve to one playbook
+       however the contract arrived. */
+    const WANT_KINDS = ['Raw Material Supply', 'NDA', 'Lease', 'Professional Services'];
+    check('14b it offers the product\'s own words',
+      !ct.none && WANT_KINDS.every(k => (ct.offered || []).includes(k)),
+      ct.none ? 'not reached' : ct.n + ' rows: ' + (ct.offered || []).join(' · '));
+    /* THE BLANK LEADS (clearing a term is an answer), THE READING COMES NEXT,
+       AND IT IS THE ONE SELECTED. */
+    check('14c an off-list reading is kept and leads',
+      !ct.none && ct.first === '' && ct.lead === 'Master Services Agreement'
+        && ct.value === 'Master Services Agreement',
+      ct.none ? 'not reached' : 'first "' + ct.first + '" · lead "' + ct.lead + '" · value "' + ct.value + '"');
+    const cm = await page.evaluate(() => {
+      const el = document.querySelector('[data-ktm="contractType"]');
+      if (!el || el.tagName !== 'SELECT') return null;
+      el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+      return true; });
+    await page.waitForTimeout(400);
+    const menu = await page.evaluate(() => {
+      const m = document.querySelector('.hati-selmenu'); if (!m) return null;
+      const el = document.querySelector('[data-ktm="contractType"]');
+      const b = m.getBoundingClientRect(), s2 = el.getBoundingClientRect();
+      return { rows: m.querySelectorAll('[data-sm]').length, under: b.top >= s2.bottom - 1 }; });
+    check('14d pressing it opens HaTi\'s own list', !!cm && !!menu && menu.rows === ct.n && menu.under,
+      menu ? JSON.stringify(menu) : 'no menu');
+    /* AND PICKING ONE REACHES THE RECORD. `high` is what every later reader —
+       the standards check, the exposure register — treats as read from the
+       record rather than guessed off the paper. */
+    const wrote = await page.evaluate(async id => {
+      const rows = [...document.querySelectorAll('.hati-selmenu [data-sm]')];
+      const r = rows.find(x => x.textContent.trim() === 'Packaging Supply');
+      if (!r) return { no: true, why: 'no list to pick from' };
+      r.click(); await new Promise(z => setTimeout(z, 500));
+      if (window.flushSaves) await flushSaves();
+      const cc = state.contracts.find(y => y.id === id);
+      return { t: (cc.metadata || {}).contractType,
+        conf: ((cc.metadata || {}).confidence || {}).contractType,
+        book: window.playbookKeyFor ? playbookKeyFor(cc) : '?' };
+    }, c.id);
+    check('14e picking one writes it onto the record, read closely',
+      !wrote.no && wrote.t === 'Packaging Supply' && wrote.conf === 'high',
+      JSON.stringify(wrote));
+    /* THE WALL. There is no Save on this grid, so a cancelled name box must
+       leave the record exactly as it was. */
+    const cancelled = await page.evaluate(async id => {
+      const el = document.querySelector('[data-ktm="contractType"]');
+      if (!el || el.tagName !== 'SELECT') return { noBox: true, why: 'no dropdown' };
+      const was = el.value;
+      el.value = el.options[el.options.length - 1].value;
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+      await new Promise(z => setTimeout(z, 450));
+      const box = document.getElementById('nf-name');
+      if (!box) return { noBox: true };
+      document.getElementById('nf-cancel').click();
+      await new Promise(z => setTimeout(z, 350));
+      const cc = state.contracts.find(y => y.id === id);
+      return { back: document.querySelector('[data-ktm="contractType"]').value === was,
+        onRecord: (cc.metadata || {}).contractType };
+    }, c.id);
+    check('14f a cancelled name box writes nothing and puts the value back',
+      !cancelled.noBox && cancelled.back && cancelled.onRecord === 'Packaging Supply',
+      JSON.stringify(cancelled));
+    const own = await page.evaluate(async id => {
+      const el = document.querySelector('[data-ktm="contractType"]');
+      if (!el || el.tagName !== 'SELECT') return { noBox: true, why: 'no dropdown' };
+      el.value = el.options[el.options.length - 1].value;
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+      await new Promise(z => setTimeout(z, 450));
+      const box = document.getElementById('nf-name');
+      if (!box) return { noBox: true };
+      box.value = 'Tolling Agreement'; document.getElementById('nf-save').click();
+      await new Promise(z => setTimeout(z, 500));
+      if (window.flushSaves) await flushSaves();
+      const cc = state.contracts.find(y => y.id === id);
+      const after = document.querySelector('[data-ktm="contractType"]');
+      return { value: after.value, onRecord: (cc.metadata || {}).contractType,
+        onList: [...after.options].some(o => o.value === 'Tolling Agreement') };
+    }, c.id);
+    check('14g and a type of your own goes on the record',
+      !own.noBox && own.value === 'Tolling Agreement' && own.onRecord === 'Tolling Agreement'
+        && own.onList, JSON.stringify(own));
+    }
+
     check('7 no page errors anywhere in the journey', errors.length === 0, errors.join(' | '));
     await ctx.close();
   } finally {

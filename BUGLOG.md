@@ -18578,3 +18578,29 @@ Noticed, not fixed:
 Gates: 8,684 tests, 0 failed. Lint 0 errors. new-agreement 30/30, overview-as-drawn 55/55, counterparty-leads 32/32, nine-off-five-images 24/24, five-images-two 26/26, form-and-picker 24/24, draft-from-a-sentence green.
 
 Correction to the line above: the suite is 8,683 tests, not 8,684. Counted after the run finished rather than before it.
+
+## 22 Sep 2026 — the contract type on the Overview is a choice
+
+"make the contract type on the overview a dropdown too", the morning after the same ask for the Edit party window's role word. Copying that build across was the obvious move and measuring first is what stopped it: the two fields look identical on screen and are not the same field at all.
+
+MEASURED BEFORE A LINE MOVED. metadata.contractType is not only printed — playbookKeyFor lowercases it and matches the built-in type patterns on it, copilotPlaybookKey on the server mirrors that pass for pass, and f133 requires both hosts to answer the same key. And two other screens draw this field (the extraction review, the upload confirm), both branching on its declared type.
+
+So three decisions, each one a consequence of that:
+
+THE FIELD STAYS FREE TEXT ON THE RECORD. It gains `picks` — "free text, and here are words to offer" — rather than becoming a closed list, because the other two screens would then DROP whatever Copilot read when it is off the list, which is a silent loss on the two screens whose job is showing you the reading. Both are byte-identical.
+
+THE WORDS ARE ENGLISH, WHICH IS THE OPPOSITE OF THE PARTY ROLE BUILT YESTERDAY. A party's role word is what THE PAPER calls them, so offering Swedish is right there. This one is a matching key: a Swedish workspace storing a Swedish word would match none of the patterns and be judged by the baseline book instead of the supply book, with nothing on any screen saying so. It is the rule this file already follows for RELATION_DOC_WORD and the audit lines. The two sentences that are NOT the record — the last row's own words, the name box's hint — are in both books as usual.
+
+THE TWELVE ARE READ OFF TEMPLATES, NEVER TYPED. They are the same words cKind writes onto every drafted contract, so an uploaded contract and a drafted one spell one type one way. And every one of them was run through the real rule on an upload with no template and no value stream: all twelve resolve to a real book (supply, lease, services, nda) and not one falls to the baseline, while the control beside it — the same contract with nothing read — still does. That table is the case for the English choice.
+
+It OFFERS and never REFUSES: the blank leads, whatever is on the record leads the words where it is not one of them (folded), and the last row types the document's own words through promptNewName. One reading behind all three. A sentinel never reaches the record, and because this grid has no Save the wall is inside the handler — a cancelled name box writes nothing and puts the value back.
+
+Found while building:
+- A DEFECT THAT IS NOT THIS REQUEST, and it is below. The browser check pressed Edit these details and found no boxes at all — the same at the parent.
+- f351 (5) pinned the ternary's own spelling. Re-pointed in place to the relation; its first draft then read the FIRST `const evt=` in wireKeyTerms, which belongs to the four fields with a home of their own. PIN THE REGION, paid again in the same hour.
+
+Noticed, not fixed:
+- ON A FIRST PAINT OF THE OVERVIEW, `Edit these details` is drawn, hit-testable and does nothing. It is wired inside renderKeyTerms, which the section router calls on every fold, so the act only works once some fold has repainted the card. Measured on a plain contract and identical at the parent, so pre-existing. Every earlier section of overview-as-drawn-verify happens to fold something before it presses, which is why it had never been seen.
+- paper-beside-questions-verify 7c/7g and term-and-fields-verify still fail identically on this tree and at the parent. Unchanged from yesterday's entry.
+
+Gates: 8,699 tests, 0 failed. Lint 0 errors. f361 20/20 (18 red at the parent), overview-as-drawn 62/62 (its 7 new checks all red at the parent, printing <INPUT>), auto-triage 64/64, blanks-panel 37/37, refile-a-contract 26/26, five-images-two 26/26.
