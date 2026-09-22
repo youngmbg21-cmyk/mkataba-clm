@@ -460,7 +460,96 @@ function signerNoticeState(c, s){
     || /.+@.+\..+/.test(String(s.email||''));
   return reachable ? 'untold' : 'no-address';
 }
-function nextSigner(c){ return signerPlan(c).slice().sort((a,b)=>a.order-b.order).find(s=>!s.signed)||null; }
+/* ============================================================================
+   THE SIGNING ROUTE RUNS IN STEPS  (Young ruled it 22 Sep 2026)
+
+   A route has always been a strict queue: one signer, then the next, then the
+   next. That is one step per row, and it is still exactly what a route with
+   nothing stored means — `signStepOf` derives the step from `order`, so every
+   route on file keeps the turn order it has always had, to the row.
+
+   WHAT IS NEW is that two rows may share a step. Everybody in a step signs in
+   ANY ORDER; the next step's links do not exist until every row in the step
+   before has signed. That is the shape a guarantee needs: the customer and
+   the provider execute the agreement, and only then does the guarantor sign
+   the thing they are guaranteeing.
+
+   `step` is an ordinary field on a row and is ABSENT on every row on file.
+   Nothing here writes it but `saveSignerPlan`, which is still the one
+   authority on the route.
+   ========================================================================== */
+/* A row's step. ABSENT IS THE OLD READING: its own place in the queue, so a
+   five-row route with nothing stored is five steps of one, which is what it
+   has always been. A stored step is bounded at 1 — a zero or a negative would
+   sort ahead of the first step and open a link nobody released. */
+function signStepOf(s){
+  if(!s) return 1;
+  const n = Number(s.step);
+  if(Number.isFinite(n) && n >= 1) return Math.floor(n);
+  const o = Number(s.order);
+  return (Number.isFinite(o) && o >= 1) ? Math.floor(o) : 1;
+}
+/* The route as steps: an ordered list of `{n, rows}`, the step numbers
+   RENUMBERED from 1 with no gaps, because a route whose steps read 1, 2, 5 is
+   a route a reader has to work out. The stored numbers are only ever an
+   ORDER; this is what every screen draws and what every guard asks. */
+function signSteps(c){
+  const plan = signerPlan(c).slice().sort((a,b)=>(a.order||0)-(b.order||0));
+  const by = new Map();
+  plan.forEach(s => { const k = signStepOf(s);
+    if(!by.has(k)) by.set(k, []); by.get(k).push(s); });
+  return [...by.keys()].sort((a,b)=>a-b).map((k, i) => ({ n: i+1, rows: by.get(k) }));
+}
+/* Which renumbered step a row is in, or 0 where it is not on the route. */
+function signStepIndex(c, s){
+  const id = String((s && s.id) || '');
+  const st = signSteps(c).find(x => x.rows.some(r => String(r.id) === id));
+  return st ? st.n : 0;
+}
+/* Is every row in this step signed? An empty step is not complete — it is a
+   step somebody has not named anybody in, and treating it as done would
+   release the next one over an unnamed signature. */
+function signStepDone(c, n){
+  const st = signSteps(c).find(x => x.n === n);
+  return !!st && st.rows.length > 0 && st.rows.every(r => r.signed);
+}
+/* HAS SIGNING REACHED THIS STEP? Every earlier step complete, and no more.
+   This is the one reading the browser draws and the server enforces. */
+function signStepOpen(c, n){
+  const steps = signSteps(c);
+  for(const st of steps){ if(st.n >= n) break; if(!st.rows.every(r => r.signed)) return false; }
+  return steps.some(st => st.n === n);
+}
+/* MAY THIS ROW SIGN NOW? True where its step is open and it has not signed.
+   On a route with nothing stored this is exactly `nextSigner === s`, which is
+   what it has always meant. */
+function signRowOpen(c, s){
+  if(!s || s.signed) return false;
+  return signStepOpen(c, signStepIndex(c, s));
+}
+/* The step the route is waiting on — the first with anything unsigned in it.
+   0 once everything is signed. */
+function signStepNow(c){
+  const st = signSteps(c).find(x => !x.rows.every(r => r.signed));
+  return st ? st.n : 0;
+}
+/* ---- WHOSE TURN IT IS, WIDENED FROM ONE TO A STEP ----
+   `nextSigner` answers ONE row because four readings and a notice are built on
+   "the next person". With one row per step that is the same row it always
+   answered. With two rows in a step it answers the first unsigned one, and
+   `signOpenRows` is what a screen asks when it needs all of them. */
+function nextSigner(c){
+  const open = signOpenRows(c);
+  if(open.length) return open[0];
+  return signerPlan(c).slice().sort((a,b)=>a.order-b.order).find(s=>!s.signed)||null;
+}
+/* Everybody whose turn it is right now. One name on an ordinary route. */
+function signOpenRows(c){
+  const n = signStepNow(c);
+  if(!n) return [];
+  const st = signSteps(c).find(x => x.n === n);
+  return st ? st.rows.filter(r => !r.signed) : [];
+}
 function allSigned(c){ const p=signerPlan(c); return p.length>0 && p.every(s=>s.signed); }
 // The internal-then-counterparty gate: every internal signer must be done
 // before a counterparty signer's link goes live.
@@ -612,8 +701,14 @@ function saveSignerPlan(c, rows){
   const out=[];
   (rows||[]).forEach(s=>{ if(!s || !s.name) return;
     const prior=(c.signerPlan||[]).find(p=>p.id===s.id);
+    /* `step` and `partyId` are ADDITIVE and absent on every row on file. A
+       row that names neither reads exactly as it read yesterday: its own step
+       in the queue, and the first outside party (or ours) for its side. */
+    const step=Number(s.step);
     out.push({ id:s.id||'sg_'+Math.random().toString(36).slice(2,7), party:s.party, name:s.name, role:s.role||'',
       email:s.email, memberId:s.party==='internal'?(s.memberId||''):'', order:out.length+1,
+      ...(Number.isFinite(step)&&step>=1?{step:Math.floor(step)}:{}),
+      ...(s.partyId?{partyId:String(s.partyId)}:{}),
       signed:prior?!!prior.signed:false, at:prior?prior.at:null, by:prior?prior.by:null, signature:prior?prior.signature:null }); });
   const ourN=out.filter(s=>s.party!=='counterparty').length;
   const theirN=out.filter(s=>s.party==='counterparty').length;
@@ -670,6 +765,18 @@ function openSignerPlanEditor(c, opts){
   const dirList=`<datalist id="sp-dir-names">${people.map(p=>`<option value="${(p.name||p.email||'').replace(/"/g,'&quot;')}">${[p.title,p.email].filter(Boolean).join(' · ').replace(/"/g,'&quot;')}</option>`).join('')}</datalist>`;
   const IN='rounded-lg border border-inputln bg-white px-2 py-1.5 text-[12px]';
   const memberOpts=s=>`<option value="">${i18t('ap_pick_member')}</option>`+members.map(u=>`<option value="${u.id}" ${s.memberId===u.id?'selected':''}>${(u.name||u.email).replace(/</g,'&lt;')}</option>`).join('');
+  const esc1=v=>String(v==null?'':v).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+  /* WHICH COMPANY THIS PERSON SIGNS FOR. Drawn only where there is more than
+     one outside party to choose between — on an ordinary contract the row's
+     own "counterparty" already names the one there is, and a picker with a
+     single option is a control that decides nothing. */
+  const partyOpts=(s,i)=>{
+    if(typeof partiesMulti!=='function' || !partiesMulti(c) || s.party!=='counterparty') return '';
+    const rows=partiesTheirs(c);
+    const cur=String(s.partyId||'');
+    return `<select data-sp-partyid="${i}" class="${IN}">${
+      rows.map(p=>`<option value="${esc1(p.id)}"${p.id===cur?' selected':''}>${esc1(p.name)}</option>`).join('')}</select>`;
+  };
   const row=(s,i)=>`<div class="rounded-xl border border-line bg-slate-50/60 p-2.5 mb-2" data-sp-row="${i}">
       <div class="flex items-center gap-2 mb-1.5">
         <span class="h-5 w-5 grid place-items-center rounded-full bg-brand-600 text-white text-[10px] font-700">${i+1}</span>
@@ -678,6 +785,19 @@ function openSignerPlanEditor(c, opts){
           <option value="counterparty" ${s.party==='counterparty'?'selected':''}>${i18t('ap_counterparty')}</option></select>
         <span data-sp-member-wrap="${i}" class="${s.party==='counterparty'?'hidden':''}">
           <select data-sp-member="${i}" class="${IN}">${memberOpts(s)}</select></span>
+        ${''/* ---- WHICH STEP, AND WHICH PARTY (22 Sep 2026) ----
+               The step box is an ordinary number: two rows given the same
+               number sign in any order, and the next step opens when they are
+               both done. It DEFAULTS TO THE ROW'S OWN PLACE, so a route
+               arranged without touching it is the strict queue it has always
+               been. The party picker is drawn only on a contract with more
+               than one outside party, where "counterparty" no longer names
+               one company. */}
+        <label class="flex items-center gap-1 text-[10px] text-ink/50">${esc1(i18t('py_step_n',{n:''}).trim())}
+          <input data-sp-step="${i}" type="number" min="1" max="20" value="${
+            (typeof signStepOf==='function')?signStepOf({step:s.step,order:i+1}):(i+1)}"
+            class="${IN}" style="width:52px;text-align:center"/></label>
+        ${partyOpts(s,i)}
         <div class="ml-auto flex items-center gap-1">
           <button data-sp-up="${i}" ${i===0?'disabled':''} class="text-ink/40 hover:text-ink/70 text-[12px] disabled:opacity-30">↑</button>
           <button data-sp-down="${i}" class="text-ink/40 hover:text-ink/70 text-[12px]">↓</button>
@@ -719,8 +839,11 @@ function openSignerPlanEditor(c, opts){
   };
   const rerow=()=>{ document.getElementById('sp-rows').innerHTML=plan.map(row).join('')||''; wire(); tally(); };
   const readRow=idx=>{ const g=sel=>document.querySelector(`[data-sp-${sel}="${idx}"]`);
+    const step=g('step')?Number(g('step').value):NaN;
     return { party:g('party').value, name:g('name').value.trim(), role:g('role').value.trim(), email:g('email').value.trim(),
-      memberId:g('member')?g('member').value:'' }; };
+      memberId:g('member')?g('member').value:'',
+      ...(Number.isFinite(step)&&step>=1?{step:Math.floor(step)}:{}),
+      ...(g('partyid')?{partyId:g('partyid').value}:{}) }; };
   const syncPlanFromDom=()=>{ document.querySelectorAll('[data-sp-row]').forEach(r=>{ const i=Number(r.getAttribute('data-sp-row')); Object.assign(plan[i], readRow(i)); }); };
   const wire=()=>{
     document.querySelectorAll('[data-sp-del]').forEach(b=>b.addEventListener('click',()=>{ syncPlanFromDom(); plan.splice(Number(b.getAttribute('data-sp-del')),1); rerow(); }));
@@ -944,6 +1067,32 @@ function signerRouteHtml(c, opts){
     const ns=nextSigner(c);
     const signedCount=sorted.filter(s=>s.signed).length;
     const ord=n=>{ const t=['th','st','nd','rd'], v=n%100; return n+(t[(v-20)%10]||t[v]||t[0]); };
+    /* ---- THE STEPS, DRAWN ONLY WHERE THERE ARE ANY ----
+       A route whose every step holds one row is the strict queue this card has
+       always drawn, and it draws NO headings — so nothing on file moved. The
+       headings appear the moment two rows share a step, which is the only time
+       a reader needs to be told that two people may sign in any order. */
+    const steps=(typeof signSteps==='function')?signSteps(c):[];
+    const stepped=steps.some(x=>x.rows.length>1);
+    const firstOf=new Map();
+    if(stepped) steps.forEach(x=>{ if(x.rows[0]) firstOf.set(String(x.rows[0].id), x); });
+    const stepLead=(s)=>{
+      if(!stepped) return '';
+      const x=firstOf.get(String(s.id)); if(!x) return '';
+      const done=x.rows.filter(r=>r.signed).length;
+      const open=(typeof signStepOpen==='function')?signStepOpen(c,x.n):true;
+      return `<div class="ap-stepb${open?'':' is-dim'}"><span>${esc1(x.n===1
+          ? i18t('py_step_any_order',{n:x.n})
+          : i18t('py_step_released',{n:x.n,prev:x.n-1}))}</span><span class="ap-stepn">${
+          esc1(i18t('py_step_count',{done,total:x.rows.length}))}</span></div>`;
+    };
+    /* WHICH COMPANY THIS PERSON SIGNS FOR. Drawn only on a contract with more
+       than one outside party: on an ordinary one the row's own `party` tag
+       already says which side, and the name would be the contract's own
+       counterparty printed on every row. */
+    const manyParties=(typeof partiesMulti==='function')?partiesMulti(c):false;
+    const orgOf=s=>{ if(!manyParties) return '';
+      try{ const p=partyOfSigner(c,s); return p&&p.name?p.name:''; }catch(_){ return ''; } };
     const node=(state,label)=>`<span class="h-7 w-7 grid place-items-center rounded-full text-[11px] font-700 z-10 shrink-0 border-2 ${
       state==='done'?'bg-brand-600 border-brand-600 text-white':
       state==='cur'?'bg-white border-gold-500 text-gold-600 ring-4 ring-gold-100':
@@ -953,12 +1102,22 @@ function signerRouteHtml(c, opts){
         <span class="text-[9.5px] font-mono px-1.5 py-0.5 rounded-full ${signedCount===sorted.length?'bg-brand-50 text-brand-600':'bg-gold-50 text-gold-700'}">${i18t('ap_n_signed',{done:signedCount,total:sorted.length})}</span>
         ${canEdit()&&c.status!=='Signed'?`<button id="sp-edit" class="ml-auto text-[10px] font-600 text-brand-600 hover:text-brand-800">edit route</button>`:''}</div>`}
       <div class="relative">
-        ${sorted.map((s,i)=>{ const isCur=ns&&ns.id===s.id; const st=s.signed?'done':isCur?'cur':'wait';
+        ${sorted.map((s,i)=>{
+          /* ---- WHOSE TURN IS A STEP, NOT A ROW (22 Sep 2026) ----
+             On a route where no row names a step each step holds one row, so
+             signRowOpen answers exactly `ns && ns.id===s.id` and this card is
+             byte-identical. Where two parties share a step BOTH read as their
+             turn, which is what signing in any order means. */
+          const isCur=(typeof signRowOpen==='function')?signRowOpen(c,s):(ns&&ns.id===s.id);
+          const st=s.signed?'done':isCur?'cur':'wait';
+          const stepHead=stepLead(s,i);
           /* Behind an unsigned INTERNAL step, by ORDER — not the old blanket
              "any internal unsigned", which mislabelled a counterparty-FIRST
              route as gated when it was simply never sent. */
           const gated=!s.signed&&s.party==='counterparty'
-            &&sorted.some(x=>x.party==='internal'&&!x.signed&&(x.order||0)<(s.order||0));
+            &&sorted.some(x=>x.party==='internal'&&!x.signed
+              &&((typeof signStepOf==='function')
+                ? signStepOf(x)<signStepOf(s) : (x.order||0)<(s.order||0)));
           /* The journey of THEIR link, not the route's opinion of whose turn
              it is: not sent → sent → opened → signed. "SIGNING NOW" only
              appears once the contract is genuinely in front of them. */
@@ -1001,13 +1160,14 @@ function signerRouteHtml(c, opts){
             : ls==='held' ? tag('bg-slate-100 text-ink/50','LINK READY')
             : (ls==='unsent'&&isCur&&!gated) ? tag('bg-rose-50 text-rose-600','NOT SENT YET')
             : (ls==='unknown'||ls==='internal')&&isCur ? tag('bg-gold-100 text-gold-700','SIGNING NOW') : '';
-          return `<div class="flex gap-3 ${i<sorted.length-1?'pb-3':''} relative">
+          return stepHead+`<div class="flex gap-3 ${i<sorted.length-1?'pb-3':''} relative">
             ${i<sorted.length-1?`<span class="absolute left-[13px] top-7 bottom-0 w-0.5 ${s.signed?'bg-brand-500':'bg-slate-200'}"></span>`:''}
             ${node(st, s.signed?'✓':String(s.order))}
             <div class="min-w-0 pt-0.5">
               <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="text-[12.5px] font-600 ${s.signed?'text-ink':'text-ink/70'}">${(s.name||'').replace(/</g,'&lt;')}</span>
                 ${s.role?`<span class="text-[10.5px] text-ink/50">· ${s.role.replace(/</g,'&lt;')}</span>`:''}
+                ${orgOf(s)?`<span class="text-[10.5px] text-ink/60">· ${esc1(orgOf(s))}</span>`:''}
                 <span class="text-[8.5px] font-mono px-1 py-px rounded ${s.party==='counterparty'?'bg-gold-50 text-gold-700':'bg-brand-50 text-brand-600'}">${s.party}</span>
                 ${badge}
               </div>
@@ -1124,7 +1284,7 @@ function wireApprovalPanel(c){
    "have they seen it" — it reads shares.first_opened_at, which is stamped once
    on the first real open and never re-counted. */
 
-Object.assign(window,{overseerCfg,saveOverseerCfg,overseerEnforced,overseerFor,OVERSEER_STEP_ID,approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,saveSignerPlan,approvalPanelHtml,approvalChainHtml,APPROVAL_CLEAR_SAYS,approvalClearRows,approvalClearHtml,signerRouteHtml,wireApprovalPanel});
+Object.assign(window,{signStepOf,signSteps,signStepIndex,signStepDone,signStepOpen,signRowOpen,signStepNow,signOpenRows,overseerCfg,saveOverseerCfg,overseerEnforced,overseerFor,OVERSEER_STEP_ID,approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,saveSignerPlan,approvalPanelHtml,approvalChainHtml,APPROVAL_CLEAR_SAYS,approvalClearRows,approvalClearHtml,signerRouteHtml,wireApprovalPanel});
 
 /* ============================================================
    HOW MUCH MAY THIS PERSON SIGN FOR

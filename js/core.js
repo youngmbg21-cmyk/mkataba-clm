@@ -3844,6 +3844,45 @@ async function shareSendExtras(c, o){
   else if(sent) toast(i18tn('co_more_sent',sent,{n:sent}),'ok');
   return { sent, failed };
 }
+/* ---- WHICH PARTY THIS ROUND IS GOING TO (Young ruled it 22 Sep 2026) ----
+   Drawn only where there is more than one outside party. On every contract on
+   file `partiesMulti` is false and this returns '' — so the send screen did
+   not change for anybody who has not named a third party, which is the whole
+   design of this build.
+
+   A SIGNS-ONLY PARTY IS OFFERED AND SAYS WHY IT CANNOT NEGOTIATE, rather than
+   being left off the list: a name missing from a picker is a question a reader
+   has to work out, and the answer ("it signs only, and its link comes when its
+   signing step opens") is one line. Choosing it narrows the purpose to signing
+   by itself — `sharePartyPick` is the one place that is decided. */
+function sharePartyBoxHtml(c){
+  if(typeof partiesMulti!=='function' || !partiesMulti(c)) return '';
+  let rows=[]; try{ rows=partiesTheirs(c)||[]; }catch(_){ return ''; }
+  if(rows.length<2) return '';
+  const LBL2='font-size:var(--t-label);color:var(--color-neutral-600)';
+  /* `attr` is a local inside openShareModal; this builder is its own function
+     and escapes with the module's own `esc`, which is enough for an id drawn
+     from our own record. */
+  const opt=p=>`<option value="${esc(p.id)}">${esc(partyLine(p))}</option>`;
+  const notes=rows.filter(p=>p.involvement!=='negotiate')
+    .map(p=>esc(i18t(p.involvement==='sign'?'py_signs_only_note':'py_none_note',{name:p.name})))
+    .join('<br>');
+  return `<label style="display:block;margin:0 0 10px">
+      <span style="${HATI_LBL}">${esc(i18t('py_which'))}</span>
+      <select id="sh-party-sel" style="${HATI_FLD}">${rows.map(opt).join('')}</select>
+      <span style="display:block;${LBL2};margin-top:4px">${esc(i18t('py_which_sub'))}${
+        notes?'<br>'+notes:''}</span>
+    </label>`;
+}
+/* THE ONE READING of which party the open send dialog is addressed to. Null
+   on an ordinary contract, which is what every caller treats as "the one
+   outside party there is". */
+function sharePartyPick(c){
+  const el=(typeof document!=='undefined')?document.getElementById('sh-party-sel'):null;
+  if(!el) return null;
+  try{ return partyById(c, el.value); }catch(_){ return null; }
+}
+
 function shareNoteBoxHtml(c, hist){
   return `<label style="display:block"><span id="sh-summary-label" style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em;">${
         hist?i18t('co_note_with_record')
@@ -4470,6 +4509,21 @@ function buildSharePayload(c, docHash, who, opts){
     /* One courtesy sentence, on the round after the contact changed and on that
        round only. The entire visible consequence of everything the desk does. */
     leadNotice:leadNotice||undefined,
+    /* ---- WHICH PARTY THIS COPY IS FOR (22 Sep 2026) ----
+       Their ROLE, and how many OTHER outside parties there are — nothing else.
+       Who those others are is on the paper they are reading; what this line
+       is for is telling them what THEY may do, which is the one thing their
+       own page cannot work out. `undefined` on every ordinary contract, so no
+       link on file and no counterparty's page moved. */
+    party:(()=>{
+      try{
+        if(typeof partiesMulti!=='function' || !partiesMulti(c)) return undefined;
+        const me=(opts&&opts.partyId&&typeof partyById==='function')?partyById(c,opts.partyId):null;
+        const them=partiesTheirs(c);
+        const p=me||them[0]; if(!p||!p.role) return undefined;
+        return { role:p.role, others:Math.max(0, them.length-1) };
+      }catch(_){ return undefined; }
+    })(),
     purpose:purpose, purposeChosen:purposeChosen,
     /* ---- WHETHER ANYTHING ON THIS LINK CAN BE SIGNED ----
        A single boolean, and deliberately only that: the signing route names
@@ -5399,6 +5453,15 @@ async function openShareModal(c, opts={}){
              a copied link mails nothing); empty for email and WhatsApp. */}
       <div id="sh-ch-note" style="font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600);margin:0 0 var(--s-3)"></div>
       <div id="share-fields">
+        ${''/* ---- WHICH PARTY THIS ROUND IS GOING TO (22 Sep 2026) ----
+               Each outside party gets its own link and its own copy of the
+               page, so on a contract with more than one the send has to ask
+               which. DRAWN ONLY THERE: `sharePartyBoxHtml` returns '' on every
+               ordinary contract, so this dialog is byte-identical for them.
+               A party that SIGNS ONLY is offered with its reason rather than
+               hidden — a name missing from a list is a question; a name with
+               a sentence beside it is an answer. */}
+        <div id="sh-party">${(typeof sharePartyBoxHtml==='function')?sharePartyBoxHtml(c):''}</div>
         ${''/* Where the address came from rides as an attribute on the box —
                a test-facing fact — and is no longer a sentence above it: a
                filled box says it is filled. */}
@@ -6082,6 +6145,8 @@ async function openShareModal(c, opts={}){
         ? standingShares(priorShares).find(s=>
             String(s.recipientEmail||'').trim().toLowerCase()===String(email).trim().toLowerCase())
         : null;
+      /* Read at the PRESS, off the control the sender actually chose. */
+      const pyPick=(typeof sharePartyPick==='function')?sharePartyPick(c):null;
       try{
         r = reuse
           ? await api('shares/'+reuse.token+'/payload','PUT',{ payload:payloadObj })
@@ -6099,7 +6164,15 @@ async function openShareModal(c, opts={}){
                  on screen. Sent only on a signing link — it is meaningless on
                  the other two, and the server validates it against the stored
                  plan either way. */
-              signerId:(payloadObj.purpose==='sign' && signerSel) ? signerSel : undefined });
+              signerId:(payloadObj.purpose==='sign' && signerSel) ? signerSel : undefined,
+              /* ---- WHICH PARTY THIS LINK BELONGS TO (22 Sep 2026) ----
+                 Sent only where the sender was ASKED, which is only on a
+                 contract with more than one outside party. Absent everywhere
+                 else, and a share with no party on it reads as the first
+                 outside party — which is what every link on file is. Never
+                 guessed from the address: two people at two companies can
+                 share a domain. */
+              partyId:(pyPick&&pyPick.id)||undefined });
       }
       catch(e){ toast(e.message,'err'); return false; }
       reuseNote = reuse ? `<div style="border:1px solid var(--color-divider);background:var(--st-steel-bg);border-radius:var(--radius);padding:10px var(--s-3);font-size:var(--t-meta);line-height:1.55;color:var(--st-steel-fg);margin-bottom:var(--s-2)">
@@ -6695,6 +6768,25 @@ function openImportModal(c){
     }
   });
 }
+/* ---- WHICH PARTY A RESPONSE CAME BACK FROM (22 Sep 2026) ----
+   The answer is a fact about the LINK, not about the response: the share row
+   the reply arrived on carries its party, and the other side never gets to
+   say which company it is answering for. Read in this order:
+     1. the caller's own knowledge (the poller hands the share row it polled),
+     2. the share cache, matched on the response's own token,
+     3. nothing — which is what every ordinary contract answers, and what
+        negoResolve treats as "the one outside party there is".
+   Never matched by address: two people at two companies can share a domain. */
+function respPartyId(c, r, opts){
+  try{
+    if(opts && opts.partyId) return String(opts.partyId);
+    const tok=String((opts && opts.token) || (r && r.token) || '').trim();
+    if(!tok || typeof cachedShares!=='function') return '';
+    const sh=(cachedShares(c)||[]).find(x=>x && String(x.token||'')===tok);
+    return sh ? String(sh.partyId||'') : '';
+  }catch(_){ return ''; }
+}
+
 async function applyResponse(c, r, opts={}){
   if(!r || r.kind!=='hati-response'){ if(!opts.background) toast(i18t('co_invalid_response_code'),'err'); return false; }
   /* 'err', not a bare call — a bare call is SILENT by this product's own rule
@@ -6874,7 +6966,7 @@ async function applyResponse(c, r, opts={}){
        A decision only ever lands on a change WE proposed. Their own asks are
        not theirs to rule on: that would let one side mark its own wording
        adopted and tell the other it was agreed. */
-    const done=applyNegoDecisions(c, r, who);
+    const done=applyNegoDecisions(c, r, who, { partyId: respPartyId(c, r, opts) });
     /* AND WORDING OF THEIR OWN. A response on a negotiation link carries both:
        answers to our asks, and asks of theirs. Only decisions used to arrive,
        so the room's Change button on their side filed a change that could never
@@ -6944,7 +7036,7 @@ async function applyResponse(c, r, opts={}){
        Order matters: the decisions are applied FIRST, so the alignment the
        signal is checked against is the one their decisions produce, not the one
        the contract had before they answered. */
-    const done=applyNegoDecisions(c, r, who);
+    const done=applyNegoDecisions(c, r, who, { partyId: respPartyId(c, r, opts) });
     /* Wording of their own, arriving with the readiness signal. Filed BEFORE
        the signal is checked, for the same reason the decisions are: the
        alignment the claim is tested against has to be the one their whole
@@ -7163,9 +7255,15 @@ function negoTurnBack(c, who){
    A decision only ever lands on a change WE proposed. Their own asks are not
    theirs to rule on: that would let one side mark its own wording adopted and
    tell the other it was agreed. */
-function applyNegoDecisions(c, r, who){
+function applyNegoDecisions(c, r, who, opts={}){
   const list=Array.isArray(r.negoDecisions)?r.negoDecisions.slice(0,200):[];
   const done=[];
+  /* ---- WHICH PARTY ANSWERED (22 Sep 2026) ----
+     The share the response came back on names its party, and that is where
+     the id comes from — never from the response body, which is the other
+     side's to write. Absent on every ordinary contract and every link on
+     file, and negoResolve does nothing with an absent one. */
+  const partyId=String(opts.partyId||'');
   /* The identity that goes onto the decision is the honest one, not the typed
      one — see counterpartyActor. `who` is kept as the fallback so a response
      from before this existed still reads exactly as it always did. */
@@ -7175,7 +7273,7 @@ function applyNegoDecisions(c, r, who){
     if(!ch || ch.authorSide!=='owner') continue;
     if(d.status!=='accepted' && d.status!=='rejected') continue;
     if(negoResolve(c, ch.id, d.status, { side:'counterparty', by:actor,
-      reply:d.reply||null })) done.push({ id:ch.id, status:d.status, reply:d.reply||null });
+      partyId, reply:d.reply||null })) done.push({ id:ch.id, status:d.status, reply:d.reply||null });
   }
   return done;
 }
@@ -7556,4 +7654,4 @@ const END_STATES = [
 const endStateSays = k => { const x = END_STATES.find(e => e.k === k); return x ? x.says : ''; };
 Object.assign(window,{END_STATES,endStateSays});
 
-Object.assign(window,{cpReadyToSign,READY_META,READY_META_SHORT,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,userById,verifySeal,waShareLink});
+Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,READY_META,READY_META_SHORT,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,userById,verifySeal,waShareLink});

@@ -31,6 +31,7 @@ const MODULES = [
   'js/jurisdiction.js', // then this: money and law read from it
   'js/richdoc.js',
   'js/clausemodel.js',
+  'js/parties.js',   // who the agreement is between
   'js/redline.js',
   'js/docx.js',
   'js/docxwrite.js',

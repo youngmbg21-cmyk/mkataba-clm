@@ -135,11 +135,30 @@ const SEC = (suffix) => {
     await openSec(page, '.record');
     let rec = await page.evaluate(SEC, '.record');
     check('1a The record is drawn at all', !!rec, rec ? rec.cells.length + ' cells' : 'section missing');
-    const WANT = ['Reference', 'Counterparty', 'Their email', 'Value stream',
+    /* RE-POINTED IN PLACE, 22 Sep 2026 (the multi-party build). The claim is
+       that the card carries the artifact's filing attributes; it USED to ask
+       that each one be a label in the grid, which described the layout rather
+       than the fact. Counterparty and Their email are said by the PARTIES
+       BLOCK at the top of this card now, which gives the name, the role, the
+       contact and what that party may do -- strictly more than the two grid
+       cells said, and the grid drops them so nothing is printed twice. So the
+       nine filing facts are asked of the grid and those two are asked of the
+       card, as painted text. */
+    const WANT = ['Reference', 'Value stream',
       'Template', 'Owner', 'Status', 'Raised', 'Signed', 'Filed by', 'Last updated'];
     const missing = WANT.filter(w => !rec.labels.some(l => l.trim().toLowerCase() === w.toLowerCase()));
     check('1b it carries the artifact\'s filing attributes', missing.length === 0,
       missing.length ? 'missing ' + missing.join(', ') : rec.labels.length + ' cells: ' + rec.labels.join(' · '));
+    /* AND THE TWO THE PARTIES BLOCK TOOK ARE STILL ON THE CARD -- measured as
+       painted text on that block, never as source. A fact moved is a fact
+       that can go missing. */
+    const pyFacts = await page.evaluate(() => {
+      const b = document.querySelector('#kt-parties');
+      return b ? (b.innerText || '') : '';
+    });
+    check('1b2 and the parties block carries the counterparty and its address',
+      pyFacts.includes(c.counterparty) && pyFacts.includes(c.counterpartyEmail),
+      pyFacts ? pyFacts.replace(/\s+/g, ' ').slice(0, 140) : 'no parties block');
     /* THE FAULT THE OWNER REPORTED, stated as a measurement: not one editable
        box on the resting card. */
     check('1c and NOT ONE editable box at rest', rec.boxes === 0 && rec.rows === 0,

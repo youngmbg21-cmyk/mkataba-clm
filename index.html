@@ -3575,6 +3575,80 @@
   .sec-chip-gray{ background:var(--st-gray-bg); color:var(--st-gray-fg); }
   /* RULE 4: label above value, four to a row, and the caller never states a
      column count — the grid narrows on its own. */
+  /* ---- THE PARTIES BLOCK (22 Sep 2026) ----
+     Who the agreement is BETWEEN, on the record card, above the filing facts.
+     It is a LIST, not a grid: a party is a name, a role and what it may do,
+     and those three read across rather than down. No card, no corner, no fill
+     — it sits inside the section's own card and a second frame inside a frame
+     is this file's recorded fault. */
+  .py-block{ padding:12px 16px 2px; display:grid; gap:2px; }
+  .py-head{ display:flex; align-items:center; gap:8px; padding-bottom:4px; }
+  .py-h{ font-size:var(--t-micro); font-weight:var(--w-body); letter-spacing:.09em;
+    text-transform:uppercase; color:var(--color-neutral-600); flex:1; min-width:0; }
+  .py-n{ font-style:normal; font-family:var(--font-mono); letter-spacing:0; }
+  .py-add{ background:none; border:0; padding:0; cursor:pointer; flex:none;
+    font-family:inherit; font-size:var(--t-label); font-weight:var(--w-strong);
+    color:var(--accent-ink); }
+  .py-add:hover{ text-decoration:underline; }
+  .py-lock{ font-size:var(--t-label); color:var(--color-neutral-500); flex:none; }
+  .py-rows{ display:grid; }
+  /* THE ROW IS A DOOR ONLY WHERE PRESSING IT DOES SOMETHING — drawn as a
+     <div> otherwise, so nothing looks pressable that is not. */
+  .py-row{ display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto;
+    gap:10px; align-items:center; padding:8px 0; border-top:1px solid var(--rule);
+    font-size:var(--t-body); text-align:left; background:none; border-left:0;
+    border-right:0; border-bottom:0; font-family:inherit; color:inherit; width:100%; }
+  .py-item{ display:block; }
+  .py-rows > .py-item:first-child > .py-row{ border-top:0; }
+  /* THE NOTE HANGS UNDER THE NAME IT IS ABOUT, in the name column's own
+     inset, and it reserves its line off the signing phase rather than off
+     whether there is anything to say. */
+  .py-item > .sec-f-n{ padding:0 0 7px; margin-top:-4px; }
+  .py-row.is-door{ cursor:pointer; }
+  .py-row.is-door:hover{ background:var(--color-neutral-50); }
+  .py-nm{ font-weight:var(--w-strong); min-width:0; overflow:hidden;
+    text-overflow:ellipsis; }
+  .py-sub{ display:block; font-style:normal; font-size:var(--t-label);
+    font-weight:var(--w-body); color:var(--color-neutral-600); }
+  .py-ct{ font-size:var(--t-label); color:var(--color-neutral-600); min-width:0;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .py-chip{ flex:none; font-size:var(--t-micro); font-weight:var(--w-strong);
+    letter-spacing:.06em; text-transform:uppercase; border-radius:var(--radius);
+    padding:2px 7px; white-space:nowrap; }
+  .py-chip-ours{ background:var(--st-gray-bg); color:var(--st-gray-fg); }
+  .py-chip-inv{ background:var(--color-accent-50); color:var(--accent-ink); }
+  .py-chip-inv[data-inv="sign"]{ background:var(--st-steel-bg); color:var(--st-steel-fg); }
+  .py-chip-inv[data-inv="none"]{ background:var(--st-gray-bg); color:var(--st-gray-fg); }
+  /* The involvement picker in the party dialog: one row per answer, the
+     sentence under the word, because "Signs only" and "Named only" are not
+     self-explaining and the difference decides whether a link is ever made. */
+  /* A STEP HEADING ON THE SIGNING ORDER. A label, never a band: no fill, no
+     edge, no radius — the rule the three-stage signing list already keeps. */
+  /* The room's fact row says the first party and how many more. A figure. */
+  .room-py-n{ font-style:normal; font-family:var(--font-mono); font-size:var(--t-label);
+    font-weight:var(--w-body); color:var(--color-neutral-600);
+    border:1px solid var(--color-divider); border-radius:var(--radius);
+    padding:0 4px; margin-left:5px; }
+  .ap-stepb{ display:flex; align-items:center; gap:8px; padding:10px 0 4px;
+    font-size:var(--t-micro); font-weight:var(--w-strong); letter-spacing:.08em;
+    text-transform:uppercase; color:var(--color-neutral-600); }
+  .ap-stepb.is-dim{ color:var(--color-neutral-500); }
+  .ap-stepb > span:first-child{ flex:1; min-width:0; }
+  .ap-stepn{ font-family:var(--font-mono); letter-spacing:0; flex:none; }
+  .py-inv{ display:grid; gap:2px; margin:var(--s-2) 0 var(--s-1); }
+  .py-inv-row{ display:flex; gap:9px; align-items:flex-start; padding:7px 0;
+    border-top:1px solid var(--rule); cursor:pointer; font-size:var(--t-body); }
+  .py-inv-row:first-child{ border-top:0; }
+  .py-inv-row input{ margin-top:3px; flex:none; }
+  .py-inv-row b{ font-weight:var(--w-strong); }
+  .py-inv-row i{ display:block; font-style:normal; font-size:var(--t-label);
+    color:var(--color-neutral-600); }
+  /* A refusal sits where the reader is looking, on the screen that refused. */
+  .py-say{ margin-top:var(--s-2); font-size:var(--t-label); color:var(--st-ruby-fg); }
+  @media (max-width: 720px){
+    .py-row{ grid-template-columns:minmax(0,1fr); gap:3px; }
+    .py-chip{ justify-self:start; }
+  }
   .sec-fields{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr));
     gap:12px 24px; padding:12px 16px 14px; }
   .sec-f{ min-width:0; }

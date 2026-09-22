@@ -44,6 +44,12 @@ const MODULES = [
   'js/aichart.js',   // the chart recipes: pure functions of state
   'js/redline.js',
   'js/clausemodel.js',
+  /* Who the agreement is BETWEEN. A pure model: no route, no DOM, and every
+     reading it borrows (contractParty, FIRST_PARTY, i18t) is asked through
+     window with a guard, so a world that loads it and names nobody is
+     byte-identical. Before the funnel, because a decision is recorded
+     against a party. */
+  'js/parties.js',
   'js/docx.js',
   'js/docxwrite.js',
   'js/versioning.js',

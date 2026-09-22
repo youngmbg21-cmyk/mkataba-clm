@@ -29,7 +29,14 @@ function folderFiltered(){
   // the stream drawer is a daily list, so the shelf stays off it (WO-5);
   // the Archived view on the Contracts page is the one way back in
   let cs=folderContracts(f.id).filter(c=>!c.archived);
-  if(q) cs=cs.filter(c=>(c.name+' '+(c.counterparty||'')+' '+c.id).toLowerCase().includes(q));
+  /* ---- A SEARCH MATCHES ANY PARTY'S NAME (22 Sep 2026) ----
+     Without this a three-party contract disappears from a search for the
+     company that GUARANTEES it, which is exactly the company a reader looking
+     for an exposure searches by. `partiesMatch` derives the pair where nothing
+     is stored, so on every contract on file it answers what the counterparty
+     test answered and the result set does not move. */
+  if(q) cs=cs.filter(c=>((c.name||'')+' '+(c.counterparty||'')+' '+(c.id||'')).toLowerCase().includes(q)
+    || (typeof partiesMatch==='function' && partiesMatch(c,q)));
   let sort=state.folderSort||'updated';
   // a stored "sort by value" preference is meaningless without the right
   if(sort==='value' && typeof canViewValues==='function' && !canViewValues()) sort='updated';
@@ -1313,7 +1320,14 @@ function regFiltered(){
      which is M-5's own rule, kept. regNarrowed asks the same question the same
      way, so no head can call this page filtered when it is not. */
   const q=(regScope()==='negotiations'?'':String(R.query||'')).trim().toLowerCase();
-  if(q) cs=cs.filter(c=>((c.name||'')+' '+(c.counterparty||'')+' '+(c.id||'')).toLowerCase().includes(q));
+  /* ---- A SEARCH MATCHES ANY PARTY'S NAME (22 Sep 2026) ----
+     Without this a three-party contract disappears from a search for the
+     company that GUARANTEES it, which is exactly the company a reader looking
+     for an exposure searches by. `partiesMatch` derives the pair where nothing
+     is stored, so on every contract on file it answers what the counterparty
+     test answered and the result set does not move. */
+  if(q) cs=cs.filter(c=>((c.name||'')+' '+(c.counterparty||'')+' '+(c.id||'')).toLowerCase().includes(q)
+    || (typeof partiesMatch==='function' && partiesMatch(c,q)));
   // Per-member folder/stream access: a restricted member only ever sees the
   // streams an admin granted them (admins are always unrestricted).
   const acc=(typeof userFolderAccess==='function')?userFolderAccess():'*';
@@ -1650,6 +1664,16 @@ function regRowsHtml(cs){
        once so the two seats can never spell them differently. */
     const kindRound=`${cKind(c)}${round?` · ${i18t('ct_round_n',{n:round})}`:''}`;
     const cpName=c.counterparty||'—';
+    /* ---- AND HOW MANY MORE PARTIES THERE ARE (22 Sep 2026) ----
+       The cell keeps ONE name — the widest column on the table is still not
+       wide enough for three company names — and says how many others there
+       are. `partiesLead` derives the pair where nothing is stored, so `more`
+       is 0 on every contract on file and this draws exactly nothing there.
+       The count opens nothing: the list is on the hover and on the Overview. */
+    let pyMore=0, pyAll='';
+    try{ if(typeof partiesLead==='function'){ const L=partiesLead(c);
+      pyMore=L.more||0; if(pyMore) pyAll=L.all.join(' \u00b7 '); } }catch(_){}
+    const pyTag=pyMore?`<span class="reg-py-n" title="${esc(pyAll)}">+${pyMore}</span>`:'';
     const mv=regMoveWord(c);
     const CELL={};
     CELL.mk=`<td class="reg-mk">${c.id}</td>`;
@@ -1667,9 +1691,9 @@ function regRowsHtml(cs){
           title, the kind and the round, in that order — which is what keeps
           contracts-page-verify 1e true on the seat that draws no kind
           column. */
-    CELL.counterparty=`<td class="reg-cell-title" style="${c._famChild?'padding-left:30px':''}" title="${esc(cpName)} · ${esc(regTitleOf(c))} · ${esc(kindRound)}">
+    CELL.counterparty=`<td class="reg-cell-title" style="${c._famChild?'padding-left:30px':''}" title="${esc(pyAll||cpName)} · ${esc(regTitleOf(c))} · ${esc(kindRound)}">
         <span style="display:flex;align-items:center;gap:9px;min-width:0">
-        <span class="reg-title" style="min-width:0;flex:1;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:var(--t-body);font-weight:var(--w-body)" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc(c.parentId)}">↳ </span>`:''}${esc(cpName)}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:var(--w-body);font-size:var(--t-body);font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
+        <span class="reg-title" style="min-width:0;flex:1;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:var(--t-body);font-weight:var(--w-body)" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc(c.parentId)}">↳ </span>`:''}${esc(cpName)}${pyTag}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:var(--w-body);font-size:var(--t-body);font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
         </span><span class="reg-sub">${esc(regTitleOf(c))}</span>
       </td>`;
     /* THE KIND AND THE ROUND ARE A COLUMN ON THE NEGOTIATIONS SEAT ALONE,
@@ -2321,6 +2345,11 @@ function renderRegister(opts){
          beside it, so the eye runs down the names. The 23 Aug one-size,
          one-weight ruling was about SIZE — every cell is still 13px. */
       .reg-title{font-weight:var(--w-label);color:var(--color-text);line-height:var(--row-line-1)}
+      /* HOW MANY MORE PARTIES. A figure, so it is in the figure face, and it
+         takes no press — the list is on the cell's own hover. */
+      .reg-py-n{font-family:var(--font-mono);font-size:var(--t-label);font-weight:var(--w-body);
+        color:var(--color-neutral-600);border:1px solid var(--color-divider);border-radius:var(--radius);
+        padding:0 4px;margin-left:5px;flex:none}
       /* ---- THE ROW IS ONE LINE AND 36px (owner-ruled 24 Aug 2026) ----
          The cell padding is what sets it: 8px above and below a 20px line box
          is 36, which is the design's own --row-h. It was 4px above and below

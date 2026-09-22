@@ -2139,6 +2139,17 @@ function redlineLayoutCss(){
   .rl-sigrule{display:block;height:36px;border-bottom:1px solid var(--color-doc-rule)}
   .rl-sigfor{display:block;margin-top:var(--s-2);font-size:calc(12px * var(--doc-scale,1));color:var(--color-doc-muted);
     overflow-wrap:anywhere}
+  /* THREE OR MORE PARTIES WRAP rather than squeezing each rule to nothing —
+     a signature line narrower than a signature is not a signature line. The
+     gap is the same token; only the wrap and the floor are new, so a
+     two-party foot measures exactly what it measured. */
+  /* WHO HAS ANSWERED, on a contract with two negotiating parties. The same
+     rung as the row's own second line, in the label ink, so it reads as a
+     fact about the row rather than a second heading. */
+  .rl-card-party{color:var(--color-neutral-600)}
+  .rl-card-party:empty{display:none}
+  .rl-paper-foot.rl-foot-many{flex-wrap:wrap;gap:var(--s-6) var(--s-8)}
+  .rl-paper-foot.rl-foot-many .rl-sigline{flex:1 1 200px}
   @media (max-width:560px){ .rl-paper-foot{flex-direction:column;gap:22px} }
   .redline-page .rl-recital{margin:0 0 var(--s-4)}
   .redline-page .rl-recital p{margin:0 0 var(--s-2);font-size:var(--rl-doc-type);line-height:1.75;

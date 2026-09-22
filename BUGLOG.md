@@ -18469,3 +18469,26 @@ Found while fixing:
 Not done, and said out loud: no backfill. A contract scanned before this keeps a display string in `on` and still shows a dash — the sentence beside it cannot be turned into a day without guessing, and scanning again is one press.
 
 Gates: 8,602 tests, 0 failed. Lint 0 errors. calendar-day 23/23, overview-as-drawn 42/42, auto-triage 64/64; calendar-redesign fails the SAME three checks at the parent.
+
+## 22 Sep 2026 — who the agreement is between (the multi-party system)
+
+Young: "Start from the latest main then implement the multi party system accordingly then Merge to main." "Accordingly" is the artifact Comments and Parties, Full Pages, whose four open decisions (D6, D7, D8, D16) each carried a recommendation. All four taken. The order is WORKORDER-multi-party.md; the rule is in CLAUDE.md under WHO THE AGREEMENT IS BETWEEN.
+
+MEASURED FIRST, and it is the decision everything else rests on: `.counterparty` is read 432 times across 40 files. So `c.counterparty` IS the first outside party's name, always — `partiesSet` keeps it so in the same breath — and `contractParties` derives the pair every contract has always had where nothing is stored. No migration, and all 432 readings keep answering what they answered yesterday. Every new control is drawn only where `partiesMulti`, so an ordinary two-party contract is byte-identical everywhere.
+
+Three pushes: the parties themselves (js/parties.js, the Overview's parties block, the paper's front matter and foot, the register's +N and its search); one decision per negotiating party (`ch.decisions`, `negoPartyVerdicts`, the party on the LINK and never on the response); and the stepped signing route (`signStepOf` derives the step from `order`, the server widens `signerTurn` to "an earlier step" and releases every link in a step).
+
+Found while building:
+- TWO PYTHON EDIT SCRIPTS COMPUTED A REPLACEMENT AND NEVER WROTE THE FILE. One lost the addColumnIfMissing('shares','party_id','TEXT') line, so the server threw "table shares has no column named party_id" and every share test failed at the fetch; the other lost a const while keeping the line that read it. Neither is visible in a diff you did not take. Every edit script ends with the write and a grep now.
+- A FACT MOVED IS A NOTE MOVED. The parties block says the counterparty at rest, so the record grid stops drawing that cell — and the line saying the record and the paper disagree about the name went with the cell, in silence. f352 (3) caught it. The note travels on the first outside party's row now, through the same reading and the same builder the grid asks.
+- AND THE SAME MOVE IN A SECOND COSTUME: overview-as-drawn 1b asked that Counterparty and Their email be LABELS IN THE GRID, which described the layout rather than the fact. Re-pointed in place — nine filing facts asked of the grid, those two asked of the card as painted text, with 1b2 added because a fact that moves is a fact that can go missing.
+- TWO BUTTON KEYS I INVENTED (co_cancel, ct_save) do not exist; f148 caught them before any screen did. act_cancel and act_save are the product's own.
+- js/approvals.js is NOT on the test world's floor, so the step model is driven from the shipped source in a node:vm sandbox. The first slice ended on a byte count and cut a function in half. Pin the region.
+- A SWEEP FOR "participant" FAILED ON THIS FILE'S OWN HEADER SENTENCE. Read code, not prose — strip the comments first.
+
+Not built, and said out loud: the guarantor's own page (a signs-only party gets an ordinary signing link when its step opens, and the server refuses it a negotiation link; a page of its own showing the agreed wording with a comment box and no redlining is not built); a different purpose per recipient on one send; a parties section in the evidence pack; a party editor on the phone; on-time reporting by party.
+
+Noticed, not fixed:
+- CLAUDE.md's redesign section lists Insights in the Company rail group; the code has it in Work, where the 21 Sep ruling put it. The MAP is one ruling behind on that line.
+
+Gates: 8,651 tests, 0 failed. Lint 0 errors. overview-as-drawn 43/43; contracts-page, signing-flow, redline and share-recipient all green.

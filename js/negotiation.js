@@ -2639,6 +2639,75 @@ function negoRefusalClause(other, ch){
    pending. All three are reversible, all three are recorded with the RIGHT
    author — the person deciding is not the person who proposed — and none of
    them moves a hash. */
+/* ============================================================================
+   ONE DECISION PER NEGOTIATING PARTY  (Young ruled it 22 Sep 2026)
+
+   With one party on the other side a change has one answer and `ch.status` IS
+   that answer. With two, it has two, and the question a screen has to put is
+   no longer "was this accepted" but "who has answered, and what did they say".
+
+   `ch.decisions` is an ordinary field — a map of party id to `{status, at,
+   by}` — and it is ABSENT on every change on file. `negoPartyVerdicts` is the
+   ONE reading of where a change stands across the parties, and on a contract
+   with fewer than two negotiating parties it answers straight off `ch.status`,
+   so nothing about an ordinary negotiation moved.
+
+   TWO RULINGS ARE BUILT IN, both the artifact's recommendations:
+     D7 · ONE REFUSAL IS A REFUSAL. A change refused by any party is refused;
+          the card names who, and Reopen goes to that party alone.
+     · ACCEPTED MEANS ACCEPTED BY EVERYBODY. Until then the wording on
+          *As agreed* does not move — which falls out of `ch.status` staying
+          `pending` rather than out of a second rule anywhere.
+   ========================================================================= */
+function negoPartyDecisions(ch){
+  return (ch && ch.decisions && typeof ch.decisions === 'object') ? ch.decisions : null;
+}
+function negoPartyVerdicts(c, ch){
+  const parties = (typeof partiesNegotiating === 'function') ? partiesNegotiating(c) : [];
+  const single = parties.length < 2;
+  /* ONE PARTY (or none named): the change's own status is the whole answer,
+     which is what it has always been. */
+  if(single){
+    return { multi: false, total: parties.length || 1, rows: [],
+      accepted: ch && ch.status === 'accepted' ? 1 : 0,
+      refused: ch && ch.status === 'rejected' ? 1 : 0,
+      waiting: ch && ch.status === 'pending' ? 1 : 0,
+      status: (ch && ch.status) || 'pending', refusedBy: [], waitingOn: [] };
+  }
+  const d = negoPartyDecisions(ch) || {};
+  const rows = parties.map(p => {
+    const v = d[p.id];
+    return { party: p, status: (v && v.status) || 'pending', at: (v && v.at) || '', by: (v && v.by) || '' };
+  });
+  const accepted = rows.filter(r => r.status === 'accepted');
+  const refused = rows.filter(r => r.status === 'rejected');
+  const waiting = rows.filter(r => r.status === 'pending');
+  /* D7 · ONE REFUSAL IS A REFUSAL, and it outranks any number of acceptances:
+     the wording cannot go into the agreement while a party to it says no. */
+  const status = refused.length ? 'rejected'
+    : (waiting.length ? 'pending' : 'accepted');
+  return { multi: true, total: rows.length, rows,
+    accepted: accepted.length, refused: refused.length, waiting: waiting.length,
+    status, refusedBy: refused.map(r => r.party), waitingOn: waiting.map(r => r.party) };
+}
+/* The sentence a card prints. Null on an ordinary contract, where the pile
+   heading and the status word already say it and a second line would be the
+   same fact printed twice. */
+function negoPartyLine(c, ch){
+  const v = negoPartyVerdicts(c, ch);
+  if(!v.multi) return null;
+  const names = list => list.map(p => p.name).filter(Boolean).join(', ');
+  if(v.refused.length) return i18t('py_dec_refused_by', { who: names(v.refusedBy) });
+  if(!v.waiting) return i18t('py_dec_accepted_all');
+  if(v.accepted) return i18t('py_dec_mixed', { ok: v.accepted, who: names(v.waitingOn) });
+  return i18tn('py_dec_waiting', v.waitingOn.length, { who: names(v.waitingOn) });
+}
+/* "1 of 2" — drawn beside the row where a change is still collecting answers. */
+function negoPartyCount(c, ch){
+  const v = negoPartyVerdicts(c, ch);
+  return v.multi ? i18t('py_dec_of', { done: v.accepted + v.refused, total: v.total }) : '';
+}
+
 function negoResolve(c, id, status, opts = {}){
   negoInit(c);
   const ch = negoChangeById(c, id);
@@ -2786,6 +2855,27 @@ function negoResolve(c, id, status, opts = {}){
   }
   const who = String(opts.by || (window.currentUser && window.currentUser()?.name) || 'System');
   const prev = ch.status;
+  /* ---- A DECISION IS RECORDED AGAINST THE PARTY THAT MADE IT (22 Sep 2026) ----
+     `opts.partyId` arrives with an answer that came back down a party's own
+     link. Absent — which it is on every ordinary contract and every decision
+     on file — nothing below runs and the change's own status is the whole
+     answer, exactly as before.
+
+     WHERE IT IS PRESENT the party's verdict is stored and `status` is then
+     RE-READ from the roll-up: accepted only when every negotiating party has
+     accepted, refused the moment one refuses (D7). So a first acceptance on a
+     three-way contract leaves the change pending and the agreed wording
+     unmoved, which is what "accepted when all have accepted" means. */
+  let rolled = status;
+  const pid = String(opts.partyId || '');
+  if(pid && typeof partiesNegotiating === 'function' && partiesNegotiating(c).length > 1){
+    if(!ch.decisions || typeof ch.decisions !== 'object') ch.decisions = {};
+    if(status === 'pending') delete ch.decisions[pid];
+    else ch.decisions[pid] = { status, by: who,
+      at: (window.nowISO ? window.nowISO() : new Date().toISOString()) };
+    rolled = negoPartyVerdicts(c, ch).status;
+  }
+  status = rolled;
   if (prev === status) return ch;
 
   negoInvalidateVerification(c);
@@ -4947,6 +5037,7 @@ function cardName(name, org){
 if (typeof window !== 'undefined' && !Object.getOwnPropertyDescriptor(window,'negoLastRefusal'))
   Object.defineProperty(window, 'negoLastRefusal', { get: () => negoLastRefusal, configurable: true });
 if (typeof window !== 'undefined') Object.assign(window, {
+  negoPartyDecisions, negoPartyVerdicts, negoPartyLine, negoPartyCount,
   cardName, negoTheirCopy,
   negoClauseLabel, negoClauseName, negoClauses, negoClauseList, negoClauseById, negoClauseNowById,
   negoMeasuredFrom, negoMeasuredAlike, negoBodyOf,

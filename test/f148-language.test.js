@@ -71,6 +71,11 @@ const SAME_IN_BOTH = new Set([
   'ng_rung_plain',
   'ng_pb_std',
   'ng_rung_pick',
+  /* '+{n}' — a plus sign and a slot, on the counterparty cell and the room's
+     fact row where a contract has more than one outside party (22 Sep 2026).
+     There is not a readable word in it; every name it stands for is on the
+     hover, and those are the parties' own names in any language. */
+  'py_more',
   'int_cp_pay_in',        // 'in' is 'in' — the one-word direction on the party hub (A-3)
   'int_flow_in',          // 'In' is 'In' — the stream hub's money line (A-5)
   'reg_col_status',       // ditto

@@ -12807,6 +12807,24 @@ function rlPaperFootHtml(c){
       <span class="rl-sigrule"></span>
       <span class="rl-sigfor">${who ? i18t('ng_signed_for', { who: _ne(who) }) : '&mdash;'}</span>
     </div>`;
+  /* ---- ONE RULED LINE PER PARTY (22 Sep 2026) ----
+     Paper ends with a place for every party to sign, not for two. A contract
+     with nothing stored derives the two it has always had, so this builder —
+     which the Document tab, the workbench, the counterparty's page and the
+     phone all draw through — is byte-identical on every record on file.
+     A party recorded as NAMED ONLY gets no rule: it is on the paper and it
+     does not execute, and a ruled line nobody may sign is a line a reader
+     will wait for. */
+  try{
+    if(typeof contractParties === 'function'){
+      const rows = contractParties(c)
+        .filter(p => p.name && (p.side === PARTY_SIDE_OURS || p.involvement !== 'none'));
+      if(rows.length > 2){
+        return `<div class="rl-paper-foot rl-foot-many" aria-hidden="true">${
+          rows.map(p => line(p.name)).join('')}</div>`;
+      }
+    }
+  }catch(_){}
   return `<div class="rl-paper-foot" aria-hidden="true">${line(us)}${line(them)}</div>`;
 }
 
@@ -18047,6 +18065,14 @@ function redlineChangeCardsHtml(c, opts = {}){
          and the summary the funnel wrote. Every figure is js/ladder.js's own
          reading; nothing here initialises. */
       const sub = rlRowSubHtml(c, ch, side, sum);
+      /* ---- WHO HAS ANSWERED, ON A CONTRACT WITH TWO NEGOTIATING PARTIES ----
+         (22 Sep 2026.) `negoPartyLine` returns NULL on every ordinary
+         contract, so this line is not drawn there and the row is byte-
+         identical. Where it draws it says the one thing the piles cannot: a
+         change can be accepted by one party and still be waiting on another,
+         and the wording does not move until all of them have said yes. */
+      const pyLine = (typeof negoPartyLine === 'function') ? negoPartyLine(c, ch) : null;
+      const pySub = pyLine ? `<div class="rl-card-sum rl-card-party">${_ne(pyLine)}</div>` : '';
       /* ---- THE VERBS ON THE FACE (the artifact's row, 14 Sep 2026) ----
          Accept · Reject · Counter on an ask of theirs; Edit · Send · Discard
          on a draft of ours; Ladder on every row. THE WHOLE of `verbs` in that
@@ -18094,7 +18120,7 @@ function redlineChangeCardsHtml(c, opts = {}){
                   quiet, in the data face; the clause still leads. */}${
             who ? `<span class="rl-card-id">${_ne(ch.id)}</span>` : ''}${
             rlCardNotesCountHtml(c, ch, opts, side)}</div>
-          ${sub}
+          ${sub}${pySub}
         </div>
         ${''/* ---- AND THE OPEN BUTTON IS GONE WITH THE BODY IT UNFOLDED
                (Young ruled 15 Sep 2026) ----

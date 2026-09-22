@@ -2020,6 +2020,21 @@ function wirePortalNotes(){
   });
   document.addEventListener('keydown', ev => { if(ev.key==='Escape') portalNotesClose(); });
 }
+/* THE ONE READING of the sentence naming this reader's party. Null on every
+   ordinary link, where PORTAL_PARTY is absent. The other parties are named
+   only as a COUNT and a promise about order — who else is on the paper is on
+   the paper itself, and this line is about what the reader may do. */
+function portalPartyLine(){
+  try{
+    /* Read off the payload the link served, which is where it is written, and
+       through `window` because nothing declares a PORTAL_PARTY binding. */
+    const me = (PORTAL_OPTS && PORTAL_OPTS.payload && PORTAL_OPTS.payload.party) || null;
+    if(!me || !me.role) return '';
+    const more = Number(me.others || 0);
+    return ' ' + esc(i18t('py_you_are', { role: me.role }))
+      + (more ? ' ' + esc(i18t('py_guarantor_after')) : '');
+  }catch(_){ return ''; }
+}
 function wirePortalNego(c, p){
   /* ---- THE COUNTERPARTY'S PAGE IS THE WORKBENCH ----
      One negotiation surface, both sides of the table. This used to open the
@@ -2107,6 +2122,14 @@ function wirePortalNego(c, p){
 
      The promise itself is unchanged and is now a KEY rather than a literal, so
      it reads in both languages like the no-channel branch beside it. */
+  /* ---- WHICH PARTY THEY ARE, AND WHO COMES AFTER (22 Sep 2026) ----
+     On a contract with more than one outside party the reader has to be told
+     which of them this page is: "You are the Provider; the Guarantor signs
+     after the wording is agreed." Drawn only there — `PORTAL_PARTY` is on the
+     payload only where the sender was asked which party, which is only on a
+     multi-party contract — so an ordinary counterparty's page is byte-
+     identical. It is a clause on the wall line that already exists, never a
+     second band. */
   const banner = live
     ? `<div class="rl-wall" role="status"><span class="rl-wall-ic">&#128274;</span><span><b>${i18t('po_your_table')}</b> ${
         reachable
@@ -2114,7 +2137,7 @@ function wirePortalNego(c, p){
         /* THE PROMISE IS THE SAME; WHAT SEND DOES IS DIFFERENT, and the reader
            has to know that before they start rather than after they press it. */
         : esc(i18t('po_wall_no_channel'))
-      } <span id="pt-nego-facts" style="opacity:.75">${facts}</span></span></div>`
+      }${portalPartyLine()} <span id="pt-nego-facts" style="opacity:.75">${facts}</span></span></div>`
     /* THE DELIVERY SENTENCE IS ON BOTH BRANCHES, and the read-only one is the
        branch that needs it MOST — which is why it is not an afterthought here.
        Measured: the moment the owner collects their round the negotiation can

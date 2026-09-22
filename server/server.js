@@ -583,6 +583,12 @@ addColumnIfMissing('shares', 'purpose', 'TEXT');
    PROVIDER ACCEPTED IT now, never merely "we tried" (the false SENT of
    02 Aug 2026). Cleared on a later successful send. */
 addColumnIfMissing('shares', 'send_error', 'TEXT');
+/* ---- WHICH PARTY A LINK BELONGS TO (22 Sep 2026) ----
+   NULL on every row on file, and a null reads as the first outside party,
+   which is what every link ever made is. Never derived from the address: two
+   people at two companies can share a domain, and guessing which company a
+   signing link belongs to is the thing the parties build exists to stop. */
+addColumnIfMissing('shares', 'party_id', 'TEXT');
 
 /* ---------- THE THIRD PURPOSE: 'view' ----------
    A view link shows the contract with its redlines painted in, to somebody
@@ -9880,6 +9886,11 @@ function shareInfo(s) {
     // its turn email has gone — the owner's panel can tell a held link from a
     // sent one without guessing.
     signerId: s.signer_id || null,
+    /* WHICH PARTY THIS LINK BELONGS TO. Null on every link on file, and a
+       null reads as the first outside party — which is what every link on
+       file is. It is what tells the owner's page which company a decision
+       coming back on this link was made by. */
+    partyId: s.party_id || null,
     // Why the last automatic send failed, if it did — the panel's honest state.
     sendError: s.send_error || null,
     // WP-1.6: a derived view link names its parent, so the owner's panel can
@@ -9913,6 +9924,68 @@ function shareOwnerEmails(s) {   // the sender if known, else workspace admins
    the route must run unattended). So a counterparty row counts as signed the
    moment its bound share holds a signed response, without waiting for the
    owner's client to catch up. */
+/* ============================================================================
+   THE SERVER'S TWIN OF js/parties.js  (22 Sep 2026)
+
+   THE SERVER IS THE WALL and the browser is cosmetics, so the questions a
+   guard asks — is this a party of this contract, may it be sent a negotiation
+   link, which party does this link belong to — are answered HERE, off the
+   STORED record, never off the body.
+
+   It is a TWIN, not an import: the server carries no copy of the browser's
+   model and never has. The two are pinned EQUAL by f359 rather than left to
+   drift, and both derive the same two parties from `counterparty` where
+   nothing is stored — which is why every contract and every link on file
+   answers here exactly what it answered before this file changed.
+   ========================================================================= */
+function srvStoredContract(contractId) {
+  if (!contractId) return null;
+  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(String(contractId));
+  if (!row) return null;
+  try { return JSON.parse(row.json); } catch (_) { return null; }
+}
+const SRV_PARTY_INVOLVEMENT = ['negotiate', 'sign', 'none'];
+function srvPartyRow(p, i) {
+  const side = p && p.side === 'ours' ? 'ours' : 'theirs';
+  const inv = SRV_PARTY_INVOLVEMENT.indexOf(p && p.involvement) >= 0 ? p.involvement : 'negotiate';
+  const str = (v, n) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n || 200);
+  return {
+    id: str(p && p.id, 40) || ('py_' + i), name: str(p && p.name, 160),
+    role: str(p && p.role, 60), address: str(p && p.address, 200),
+    email: str(p && p.email, 200), side,
+    involvement: side === 'ours' ? 'negotiate' : inv,
+  };
+}
+function srvContractParties(c) {
+  if (!c) return [];
+  const stored = Array.isArray(c.parties) ? c.parties.filter(p => p && typeof p === 'object') : null;
+  const ours = srvPartyRow({ id: 'py_us', name: String(c.party || '').trim(), side: 'ours' }, 0);
+  if (stored && stored.length) {
+    const rows = stored.map(srvPartyRow);
+    const mine = rows.filter(r => r.side === 'ours');
+    const theirs = rows.filter(r => r.side !== 'ours');
+    return (mine.length ? mine.slice(0, 1) : [ours]).concat(theirs);
+  }
+  const out = [ours];
+  const them = String(c.counterparty || '').trim();
+  if (them) out.push(srvPartyRow({ id: 'py_them', name: them, side: 'theirs',
+    email: String(c.counterpartyEmail || '').trim() }, 1));
+  return out;
+}
+/* Everybody who NEGOTIATES. The population a round may be sent to, and the
+   population a change has to be answered by. */
+function srvPartiesNegotiating(c) {
+  return srvContractParties(c).filter(p => p.side !== 'ours' && p.involvement === 'negotiate');
+}
+/* Which party a stored share row belongs to. NULL party_id reads as the first
+   outside party, which is what every link on file is. */
+function srvPartyOfShare(c, shareRow) {
+  const list = srvContractParties(c).filter(p => p.side !== 'ours');
+  const want = String((shareRow && shareRow.party_id) || '').trim();
+  if (want) { const p = list.find(x => x.id === want); if (p) return p; }
+  return list.length ? list[0] : null;
+}
+
 function signerRouteFor(contractId) {
   if (!contractId) return null;
   const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(contractId);
@@ -9967,13 +10040,31 @@ const contractIsExecuted = contractId => {
 /* Is it this signer's moment? Order-based rather than a special internal/
    counterparty gate, so a mixed route (CEO → their MD → CFO → their FD) holds
    at every step, not only at the internal/counterparty boundary. */
+/* ---- THE SERVER'S TWIN OF signStepOf (js/approvals.js), 22 Sep 2026 ----
+   A row's step. ABSENT IS ITS OWN PLACE IN THE QUEUE, so every route on file
+   is the strict one-after-another route it has always been and this wall
+   refuses exactly what it refused yesterday. Written here rather than
+   imported because the server carries no copy of the browser's model — and
+   the two are pinned EQUAL by f359 rather than left to drift. */
+function srvSignStep(s) {
+  const n = Number(s && s.step);
+  if (Number.isFinite(n) && n >= 1) return Math.floor(n);
+  const o = Number(s && s.order);
+  return (Number.isFinite(o) && o >= 1) ? Math.floor(o) : 1;
+}
 function signerTurn(contractId, signerId) {
   const rt = signerRouteFor(contractId);
   if (!rt) return { ok: false, reason: 'no-route' };
   const mine = rt.plan.find(s => String(s.id) === String(signerId));
   if (!mine) return { ok: false, reason: 'unknown' };
   if (rt.signedRow(mine)) return { ok: false, reason: 'already-signed', signer: mine, plan: rt.plan };
-  const waitingOn = rt.plan.find(s => (s.order || 0) < (mine.order || 0) && !rt.signedRow(s));
+  /* ---- WAITING ON AN EARLIER STEP, NOT AN EARLIER ROW ----
+     Everybody in one step signs in any order; a step's links do not exist
+     until every row in the step before has signed. On a route where no row
+     names a step this is the old test to the row, because each row's step is
+     its own order. */
+  const myStep = srvSignStep(mine);
+  const waitingOn = rt.plan.find(s => srvSignStep(s) < myStep && !rt.signedRow(s));
   if (waitingOn) return { ok: false, reason: 'awaiting', signer: mine, waitingOn, plan: rt.plan };
   return { ok: true, signer: mine, plan: rt.plan, contract: rt.contract };
 }
@@ -10164,8 +10255,21 @@ async function releaseNextSignerLink(req, contractId) {
   try {
     const rt = signerRouteFor(contractId);
     if (!rt) return;
-    const next = rt.plan.find(s => !rt.signedRow(s));
-    if (!next) return;                                   // route complete — the seal is the client's act
+    /* ---- A STEP RELEASES EVERY LINK IN IT, NOT ONE (22 Sep 2026) ----
+       On a route where no row names a step each step holds one row, so this
+       loop runs once and sends the one link it has always sent. Where two
+       parties share a step both are released the moment the step before
+       completes, which is what "signs in any order" means. */
+    const open = rt.plan.filter(s => !rt.signedRow(s));
+    if (!open.length) return;                            // route complete — the seal is the client's act
+    const stepNow = Math.min(...open.map(srvSignStep));
+    const due = open.filter(s => srvSignStep(s) === stepNow);
+    for (const next of due) await releaseOneSignerLink(req, contractId, rt, next);
+  } catch (_) { /* the signature that triggered this is safe regardless */ }
+}
+
+async function releaseOneSignerLink(req, contractId, rt, next) {
+  try {
     if (next.party !== 'counterparty') {
       /* A mixed route can put an internal signer after a counterparty one. They
          sign in the app, so their nudge is the sign-in wording — and it is the
@@ -10202,6 +10306,26 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
   if (!payload || payload.kind !== 'hati-share') return res.status(400).json({ error: 'Invalid share payload' });
   const shareId = (payload.contract && payload.contract.id) || null;
   if (shareId && !idInScope(folderScopeFor(req.user), shareId)) return res.status(404).json({ error: 'Contract not found' });
+  /* ---- WHICH PARTY, AND THE SERVER IS THE WALL (22 Sep 2026) ----
+     Read off the STORED contract, never taken on the body's word: the id has
+     to name a party this contract really has, and a party recorded as SIGNS
+     ONLY or NAMED ONLY may not be given a negotiation link. A body naming a
+     party the record does not hold is refused rather than stored, because a
+     link bound to nothing is a link whose decisions come back from nobody. */
+  const partyAsk = (() => {
+    const want = String((req.body && req.body.partyId) || '').trim().slice(0, 40);
+    if (!want) return null;
+    const p = srvContractParties(shareId ? srvStoredContract(shareId) : null)
+      .find(x => x.id === want && x.side !== 'ours');
+    if (!p) return { bad: 'This contract has no such party.' };
+    if (p.involvement === 'none')
+      return { bad: `${p.name} is named on the paper and receives nothing.` };
+    if (p.involvement !== 'negotiate' && purpose === 'negotiate')
+      return { bad: `${p.name} signs only, so it does not get a negotiation link.` };
+    return { id: want };
+  })();
+  if (partyAsk && partyAsk.bad) return res.status(400).json({ error: partyAsk.bad });
+  const partyId = partyAsk ? partyAsk.id : null;
   /* ============================================================
      THE WALL, ENFORCED WHERE THE WORDING ACTUALLY LEAVES
      ============================================================
@@ -10382,11 +10506,12 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
         alreadySentAt: (!exSent && existing.sent_at) ? existing.sent_at : null });
     }
   }
-  db.prepare(`INSERT INTO shares (token,payload,created_at,contract_id,recipient_name,recipient_email,recipient_phone,channel,message,created_by,expires_at,durable,purpose,signer_id)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+  db.prepare(`INSERT INTO shares (token,payload,created_at,contract_id,recipient_name,recipient_email,recipient_phone,channel,message,created_by,expires_at,durable,purpose,signer_id,party_id)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
     .run(token, JSON.stringify(payload), now(), (payload.contract && payload.contract.id) || null,
       String(rec.name || '').slice(0, 120) || null, email || null, phone || null, ch,
-      String(message || '').slice(0, 1000) || null, req.user.id, expires, isDurable, purp, signerId);
+      String(message || '').slice(0, 1000) || null, req.user.id, expires, isDurable, purp, signerId,
+      partyId);
   /* WO N7: a share created by the owner IS the "sent" moment, whatever the
      channel — the derived view-links and payload refreshes are not. */
   logActivation('sent', shareId, (req.user && req.user.name) || null);

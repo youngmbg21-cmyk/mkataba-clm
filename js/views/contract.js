@@ -2044,7 +2044,24 @@ function docPaperHeadHtml(c, opts={}){
   const us=String((typeof window!=='undefined'&&window.contractParty)?contractParty(c)
     :((typeof window!=='undefined'&&window.FIRST_PARTY)||'')).trim();
   const them=String((c&&c.counterparty)||'').trim();
-  const between=(us&&them)?i18t('ct_between_parties',{us:esc(us),them:esc(them)}):'';
+  /* ---- EVERY PARTY IS NAMED ON THE PAPER (22 Sep 2026) ----
+     Two parties keep the sentence they have always had, byte for byte, so no
+     contract on file moved. Three or more read as a list with the role each
+     one is given, because "Between A and B" on a deed that binds three
+     companies is the paper telling a reader something untrue. contractParties
+     derives the pair where nothing is stored, so the branch below is the only
+     thing that is new. */
+  let between=(us&&them)?i18t('ct_between_parties',{us:esc(us),them:esc(them)}):'';
+  try{
+    if(typeof partiesMulti==='function' && partiesMulti(c)){
+      const rows=contractParties(c).filter(p=>p.name);
+      if(rows.length>2){
+        const names=rows.map(p=>`<b>${esc(p.name)}</b>${p.role?' ('+esc(p.role)+')':''}`);
+        const last=names.pop();
+        between=i18t('ct_between_list',{list:names.join(', ')+i18t('ct_between_and')+last});
+      }
+    }
+  }catch(_){}
   return `<header class="rl-paper-head">
     ${market?`<div class="rl-paper-kick">${esc(market)}${opts.note?' · '+esc(opts.note):''}</div>`:''}
     <h3 class="rl-paper-title">${esc((c&&c.name)||'')}</h3>
@@ -4402,7 +4419,8 @@ function applyWsTabs(c){
   });
   if(_wsTab==='history') roomPaintHistory(c);
   if(_wsTab==='oblig' && window.roomPaintObligations) roomPaintObligations(c);
-  if(_wsTab==='terms'){ renderKeyTermsSide(c); if(window.wireKtRows) wireKtRows(c); }
+  if(_wsTab==='terms'){ renderKeyTermsSide(c); if(window.wireKtRows) wireKtRows(c);
+    if(window.wireKtParties) wireKtParties(c); }
   /* The layer belongs to the Document tab alone, and the cards it covers have to
      be handed back on the way to any other tab (idea 7). */
   docReadPaint(c);
@@ -5479,6 +5497,194 @@ function ktDayDot(iso){
   return window.regDotDate ? regDotDate(d) : d;
 }
 
+/* ---- THE PARTIES BLOCK (Young ruled it 22 Sep 2026) ----
+   The rows *Counterparty* and *Their email* become a list of the legal
+   entities this agreement is between. Every contract on file shows the two
+   rows it has always had — ours and theirs — because contractParties derives
+   them where nothing is stored, so this card did not change for anybody who
+   has not named a third party.
+
+   IT IS DRAWN AT REST AND THE TWO ROWS ARE SKIPPED FROM THE GRID, so no fact
+   is printed twice. In the EDIT posture the editable counterparty and email
+   rows are drawn above by ktTermsRowsHtml — which is the one writer of those
+   two fields and stays it — so the block narrows to the parties BEYOND the
+   first and the one control that adds another. Nothing that existed was taken
+   away: the edit rows, focusKeyTerms' landing and the signing mark all still
+   go where they went.
+
+   PEOPLE ARE NOT PARTIES. The People section below names the humans and what
+   each may see; this names companies. The two sit on one card and the words
+   on each have to keep them apart. */
+function ktPartyRowHtml(c, p, opts){
+  const may = !!opts.mayEdit;
+  const ours = p.side === PARTY_SIDE_OURS;
+  const invWord = ours ? '' : i18t('py_inv_' + p.involvement);
+  const sub = [p.role, ours ? i18t('py_us') : ''].filter(Boolean).join(' · ');
+  const ct = [p.address, p.email].filter(Boolean).join(' · ');
+  const chip = ours
+    ? `<span class="py-chip py-chip-ours">${esc(i18t('py_ours'))}</span>`
+    : `<span class="py-chip py-chip-inv" data-inv="${esc(p.involvement)}">${esc(invWord)}</span>`;
+  /* A ROW IS PRESSED TO EDIT IT, and only where editing is live — a dead
+     button wearing a live one's clothes is this file's own named fault. Our
+     own row is not editable here: the party we are is `c.party`, which the
+     record's own row above already writes. */
+  const tag = (may && !ours) ? 'button' : 'div';
+  const attr = (may && !ours)
+    ? ` type="button" data-py-edit="${esc(p.id)}" title="${esc(i18t('py_edit'))}"`
+    : '';
+  /* ---- THE NOTE IS A SIBLING, NEVER A CHILD ----
+     A hold draws a real <button> (ovFieldNoteHtml's own rule) and this row is
+     itself a <button> where editing is live; a button inside a button is not
+     markup a browser will press. So the pair lives in one wrapper, which is
+     also what keeps ONE shape for every row -- an editable row and a read-only
+     one are drawn by the same two lines. */
+  return `<div class="py-item">
+      <${tag} class="py-row${(may&&!ours)?' is-door':''}"${attr}>
+      <span class="py-nm">${esc(p.name || '—')}${sub?`<i class="py-sub">${esc(sub)}</i>`:''}</span>
+      <span class="py-ct">${esc(ct)}</span>${chip}
+    </${tag}>${opts.note||''}</div>`;
+}
+
+function ktPartiesBlockHtml(c, opts={}){
+  if(typeof contractParties !== 'function') return '';
+  let rows = [];
+  try{ rows = contractParties(c) || []; }catch(_){ return ''; }
+  if(!rows.length) return '';
+  /* ---- THE PARTIES ARE FIXED ONCE SOMEBODY HAS SIGNED ----
+     The signing route's own rule, for the signing route's own reason: a
+     signature is given to a specific arrangement, and adding a party
+     afterwards means the person who signed signed something nobody showed
+     them. `signingLocked` reads BOTH stores and is the one reading. */
+  const locked = (typeof signingLocked === 'function') ? !!signingLocked(c) : false;
+  const mayEdit = !!opts.mayEdit && !locked && !PORTAL_MODE;
+  const beyond = !!opts.beyondFirst;
+  /* In the edit posture the first outside party is the editable row above, so
+     the block says the rest. Ours is dropped with it — the record's own party
+     row is that fact's home. */
+  const shown = beyond ? rows.filter(p => p.side !== PARTY_SIDE_OURS).slice(1) : rows;
+  const add = mayEdit
+    ? `<button type="button" class="py-add" data-py-add="1">${esc(i18t('py_add'))}</button>` : '';
+  if(!shown.length && !add) return '';
+  const n = rows.filter(p => p.side !== PARTY_SIDE_OURS).length + 1;
+  /* ---- THE NOTE FOLLOWS THE FACT ----
+     At rest this block draws the counterparty's name, so the line that says
+     the record and the paper disagree about it comes with it -- it is the
+     same reading (ovFieldMarkOf) and the same builder (ovFieldNoteHtml) the
+     grid asks, so the two cards can never say different things about one
+     field. It hangs on the FIRST outside party, because `c.counterparty` is
+     that party's name and no other.
+     AND IT RESERVES ITS LINE FOR THE WHOLE SIGNING PHASE, on `marks` alone:
+     within that phase a mark arriving or clearing moves no pixel. */
+  const mark = opts.marks ? ovFieldMarkOf(opts.marks, 'counterparty') : null;
+  let noted = false;
+  const noteFor = p => {
+    if(!opts.marks || p.side === PARTY_SIDE_OURS || noted) return '';
+    noted = true;
+    return ovFieldNoteHtml(mark, 'counterparty') || '<span class="sec-f-n"></span>';
+  };
+  return `<div class="py-block" id="kt-parties">
+      <div class="py-head"><span class="py-h">${esc(i18t('py_parties'))}${
+        beyond ? '' : ` <i class="py-n">${n}</i>`}</span>${add}${
+        locked ? `<span class="py-lock" title="${esc(i18t('py_locked'))}">${esc(i18t('py_locked'))}</span>` : ''}</div>
+      <div class="py-rows">${shown.map(p => ktPartyRowHtml(c, p, { mayEdit, note: noteFor(p) })).join('')}</div>
+    </div>`;
+}
+
+/* ---- ONE DIALOG, ONE WRITER, THREE DOORS ----
+   Add, edit and remove all land in `openPartyEditor`, which presses
+   `partiesSet` — the ONE writer of `c.parties`, and the one place
+   `c.counterparty` is kept in step with it. A second door onto that field
+   would be two screens disagreeing about who the agreement is with, which is
+   this codebase's most expensive fault class.
+
+   REFUSAL 5 WAS PUT TO THE OWNER AND LIFTED BY NAME: the counterparty row on
+   the record already writes the FIRST outside party, and it keeps doing so
+   through its own handler. This dialog is how a SECOND party is named, which
+   is an act the product did not have. Both write through `partiesSet`. */
+function openPartyEditor(c, id){
+  if(!c) return;
+  if(typeof signingLocked==='function' && signingLocked(c)){ toast(i18t('py_locked'),'warn'); return; }
+  const list=(typeof contractParties==='function'?contractParties(c):[]).slice();
+  const at=id?list.findIndex(p=>p.id===id):-1;
+  const adding=at<0;
+  const p=adding
+    ? { id:(typeof partyNewId==='function'?partyNewId():'py_'+Date.now()), name:'', role:'',
+        address:'', email:'', side:PARTY_SIDE_THEIRS, involvement:PARTY_INVOLVEMENT_DEFAULT }
+    : list[at];
+  const fld=(k,label,ph,val)=>`<label style="display:block;margin-bottom:var(--s-3)">
+      <span style="${HATI_LBL}">${esc(label)}</span>
+      <input id="py-${k}" type="text" style="${HATI_FLD}" value="${esc(val||'')}" placeholder="${esc(ph)}"/>
+    </label>`;
+  const inv=PARTY_INVOLVEMENT.map(k=>`<label class="py-inv-row">
+      <input type="radio" name="py-inv" value="${esc(k)}"${k===p.involvement?' checked':''}/>
+      <span><b>${esc(i18t('py_inv_'+k))}</b><i>${esc(i18t('py_inv_'+k+'_s'))}</i></span>
+    </label>`).join('');
+  openModal(`
+    <div style="padding:var(--s-4) var(--s-4) var(--s-3)">
+      <h3 style="margin:0 0 var(--s-3);font-size:var(--t-section);font-weight:var(--w-title)">${
+        esc(adding?i18t('py_add').replace(/^\+\s*/,''):i18t('py_edit'))}</h3>
+      ${fld('name',i18t('reg_col_counterparty'),i18t('py_name_ph'),p.name)}
+      ${fld('role',i18t('ov_f_type'),i18t('py_role_ph'),p.role)}
+      ${fld('addr',i18t('ov_f_stream').replace(/.*/,i18t('py_addr_ph')),i18t('py_addr_ph'),p.address)}
+      ${fld('email',i18t('ov_f_email'),i18t('py_email_ph'),p.email)}
+      <div class="py-inv">${inv}</div>
+      <div id="py-say" class="py-say" hidden></div>
+    </div>
+    <div style="display:flex;gap:var(--s-2);align-items:center;padding:0 var(--s-4) var(--s-4)">
+      ${(!adding&&p.side!==PARTY_SIDE_OURS)?`<button type="button" class="ui-btn" id="py-del" style="color:var(--st-ruby-fg)">${
+        esc(i18t('py_remove'))}</button>`:''}
+      <span style="flex:1"></span>
+      <button type="button" class="ui-btn" id="py-cancel">${esc(i18t('act_cancel'))}</button>
+      <button type="button" class="ui-btn ui-btn-primary" id="py-ok">${esc(i18t('act_save'))}</button>
+    </div>`, { maxWidth: DLG_W.m });
+
+  const say=m=>{ const el=document.getElementById('py-say'); if(!el) return;
+    el.textContent=m||''; el.hidden=!m; };
+  const write=rows=>{
+    const why=partiesSet(c,rows);
+    if(why){ say(why); return false; }
+    logAudit(c,'Parties',`Parties on this agreement: ${
+      contractParties(c).map(x=>x.name||'—').join(', ')}`);
+    persist(c); closeModal();
+    if(typeof renderKeyTerms==='function') renderKeyTerms(c);
+    if(typeof renderKeyTermsSide==='function') renderKeyTermsSide(c);
+    toast(i18t('py_saved'),'ok');
+    return true;
+  };
+  document.getElementById('py-cancel')?.addEventListener('click',()=>closeModal());
+  document.getElementById('py-del')?.addEventListener('click',async()=>{
+    const gone=list[at]; if(!gone) return;
+    const ok=await confirmDialog({ title:i18t('py_remove'),
+      message:i18t('py_removed',{name:gone.name||'—'}), okText:i18t('py_remove'), danger:true });
+    if(!ok) return;
+    write(list.filter((_,i)=>i!==at));
+  });
+  document.getElementById('py-ok')?.addEventListener('click',()=>{
+    const v=k=>String(document.getElementById('py-'+k)?.value||'').trim();
+    const chosen=document.querySelector('input[name="py-inv"]:checked');
+    const next={ ...p, name:v('name'), role:v('role'), address:v('addr'), email:v('email'),
+      involvement:chosen?chosen.value:p.involvement };
+    const rows=adding?list.concat([next]):list.map((x,i)=>i===at?next:x);
+    write(rows);
+  });
+  document.getElementById('py-name')?.focus();
+}
+
+/* The two presses on the block. Delegated on the pane the block is painted
+   into, bound once per element — the Overview repaints its own hosts and a
+   listener bound at boot would be live-looking and dead. */
+function wireKtParties(c){
+  const host=document.getElementById('kt-record-facts');
+  if(!host || host.dataset.pyBound==='1') return;
+  host.dataset.pyBound='1';
+  host.addEventListener('click',e=>{
+    const add=e.target.closest('[data-py-add]');
+    if(add){ e.preventDefault(); openPartyEditor(getContract(c.id)||c,''); return; }
+    const row=e.target.closest('[data-py-edit]');
+    if(row){ e.preventDefault(); openPartyEditor(getContract(c.id)||c, row.getAttribute('data-py-edit')); }
+  });
+}
+
 function ktRecordFactsHtml(c,opts={}){
   const marks=opts.rowsAbove?null:(opts.marks!==undefined?opts.marks:ovSignMarks(c));
   const dot=iso=>esc(ktDayDot(iso));   // one printer — see ktDayDot
@@ -5494,9 +5700,14 @@ function ktRecordFactsHtml(c,opts={}){
   /* LAST UPDATED prefers the trail's own stamp (the transport the light list
      carries) and falls back to the record's. No date is invented. */
   const updated=String((c&&c._lastAuditAt)||(c&&c.updatedAt)||(c&&c.updated_at)||'').slice(0,10);
-  const skip=opts.rowsAbove?new Set(['name','party','counterparty','cpEmail','stream','template','cpRouteEmail']):new Set();
+  /* AT REST THE PARTIES BLOCK SAYS THESE TWO, so the grid does not. In the
+     edit posture ktTermsRowsHtml draws them above and the grid already
+     skipped them, which is why only the resting set grew. */
+  const skip=opts.rowsAbove?new Set(['name','party','counterparty','cpEmail','stream','template','cpRouteEmail'])
+    :new Set(['counterparty','cpEmail']);
   const rt=ktRouteEmailRead(c);
-  return sectionFieldsHtml([
+  const parties=ktPartiesBlockHtml(c,{mayEdit:!!opts.mayEdit,beyondFirst:!!opts.rowsAbove,marks});
+  return parties + sectionFieldsHtml([
     ['reference', i18t('ov_f_reference'), esc(String((c&&c.id)||''))],
     ['name', i18t('ov_f_name'), R.name],
     /* ---- WHAT KIND OF PAPER THIS IS (upgrade 5, 18 Sep 2026) ----
@@ -5828,7 +6039,7 @@ function ktOverviewTermsHtml(c,opts={}){
         ? `<div id="kt-rows-record">${ktTermsRowsHtml(c,
             {editable:ed,only:['name','party','counterparty','cpEmail','cpRouteEmail','stream','template']})}</div>`
         : '<div id="kt-rows-record"></div>')
-      + `<div id="kt-record-facts">${ktRecordFactsHtml(c,{rowsAbove:recEd,marks})}</div>`,
+      + `<div id="kt-record-facts">${ktRecordFactsHtml(c,{rowsAbove:recEd,marks,mayEdit:ed})}</div>`,
     acts: editBtn(recK,recEd)+moveBtn });
   /* ---- THE SECOND DOOR ONTO WHO IS ON THIS CONTRACT (Young ruled 21 Sep
      2026: *"should you choose to skip this, there should be another door in
@@ -8137,7 +8348,19 @@ function roomFactsHtml(c,opts={}){
     return `<span class="room-facet-dot ${n?'is-look':'is-ok'}"></span>${esc(n?i18t('ct_copilot_read_n',{n}):i18t('ct_copilot_read_clear'))}`;
   })();
   const facets=[
-    [i18t('reg_col_counterparty'), c.counterparty?esc(c.counterparty):dash],
+    /* THE FIRST OUTSIDE PARTY, AND HOW MANY MORE. The count opens nothing;
+       the full list is on the hover and in the record. `partiesLead` answers
+       `more: 0` on every contract on file, so this fact is byte-identical
+       there. */
+    [i18t('reg_col_counterparty'), (()=>{
+      if(!c.counterparty) return dash;
+      let more=0, all='';
+      try{ if(typeof partiesLead==='function'){ const L=partiesLead(c);
+        more=L.more||0; all=L.all.join(' \u00b7 '); } }catch(_){}
+      return more
+        ? `<span title="${esc(all)}">${esc(c.counterparty)}<i class="room-py-n">+${more}</i></span>`
+        : esc(c.counterparty);
+    })()],
     [i18t('reg_col_value'), money],
     [i18t('ct_term_label'), termCell],
     ...(round?[[i18t('ct_fact_round'), round]]:[]),
@@ -11602,10 +11825,27 @@ function wireCompliance(c){
 function signPartyBoxes(c){
   const plan=(window.signerPlan?signerPlan(c):[]).slice().sort((a,b)=>(a.order||0)-(b.order||0));
   const sigs=c.signatures||[];
+  /* ---- THE BOX NAMES THE SIGNER'S OWN PARTY (22 Sep 2026) ----
+     A row carries an optional `partyId`; ABSENT IS THE OLD READING — ours for
+     an internal row, the first outside party for a counterparty one — which
+     is what `partyOfSigner` answers, so every row on file names the company it
+     has always named and a three-party route names the right one of the three.
+     The `side` stays the binary it has always been: it drives the mark's ink
+     and the signature store, neither of which learned about parties. */
+  const orgOf=s=>{
+    try{
+      if(typeof partyOfSigner==='function'){
+        const p=partyOfSigner(c,s);
+        if(p&&p.name) return p.name;
+      }
+    }catch(_){}
+    return s.party==='counterparty'?(c.counterparty||'the counterparty'):(contractParty(c)||'us');
+  };
   if(plan.length) return plan.map(s=>({
     id:s.id, side:s.party==='counterparty'?'counterparty':'first',
-    org:s.party==='counterparty'?(c.counterparty||'the counterparty'):(contractParty(c)||'us'),
+    org:orgOf(s), partyId:s.partyId||'',
     name:s.name||'', role:s.role||'', signed:!!s.signed, at:s.at||'',
+    step:(typeof signStepOf==='function')?signStepOf(s):1,
     image:(s.signature&&s.signature.image)||'',
   }));
   /* No route yet: the two implied parties. Ours is whoever has already signed,
@@ -13667,6 +13907,11 @@ Object.assign(window,{paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,
   ktDealFactsHtml,ktAlsoFactsHtml,ktAlsoRecorded,ktFieldCell,ktOverviewTermsHtml,
   OV_DEAL_FIELDS,OV_ALSO_FIELDS,OV_KT_FIELDS,OV_DERIVED_FIELDS,ovMetaBoxHtml,ovMetaField,ovMetaLabel,
   OV_MARK_ALIAS,ovFieldMarkOf,ovFieldNoteHtml,ovSignMarks,
+  /* THE PARTIES BLOCK. f232's net: every `window.foo` read must be a
+     published name, and applyWsTabs guards its wiring call exactly as it
+     guards wireKtRows above — unexported, that guard is false and the
+     rows sit there looking pressable and doing nothing. */
+  ktPartiesBlockHtml,ktPartyRowHtml,openPartyEditor,wireKtParties,
 
   ktFitSplit,ktWireSplit,ktStacked,KT_LEFT_MIN,KT_RIGHT_MIN,KT_SPLIT_KEY,
   /* And layoutDocResizer, for the same reason and with worse consequences: the
