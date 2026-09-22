@@ -173,7 +173,13 @@ test('F347 — the second five images', async t => {
   await t.test('(4) the colour is the RESULT, not whether the reading ran', () => {
     assert.match(CTR, /const OV_READ_TONE=\{ yes:'green', no:'', stale:'amber', look:'amber', bad:'ruby' \};/);
     /* Each row works out its own beside the figure it is about. */
-    assert.match(CTR, /state:hasBrief\?\(briefPart\?'look':'yes'\):'no'/, 'a cut-short brief wants you');
+    /* RE-POINTED IN PLACE, 22 Sep 2026: the row learned a fourth answer — a
+       brief written BEFORE the last round landed reads 'stale' — so the
+       branch grew. The claim is unchanged and is asked of the ORDER: a
+       cut-short brief is the first thing tested, and is never green. */
+    const briefRow = (CTR.match(/state:hasBrief\?[^,]*/) || [''])[0];
+    assert.match(briefRow, /^state:hasBrief\?\(briefPart\?'look':/, 'a cut-short brief wants you, and leads');
+    assert.ok(!/briefPart\?'yes'/.test(briefRow), 'and is never green');
     assert.match(CTR, /\(dev\?'look':'yes'\)/, 'departures are work');
     assert.match(CTR, /\(high\?'bad':\(open\?'look':'yes'\)\)/, 'a high finding is serious');
   });

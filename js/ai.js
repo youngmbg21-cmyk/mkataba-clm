@@ -4613,8 +4613,12 @@ function renderRenewalSection(c){
      about what the notice says or when it must go. */
   host.querySelector('[data-rn-served]')?.addEventListener('click',()=>{
     if(typeof openNoticeServedDialog==='function')
-      openNoticeServedDialog(c, ()=>{ try{ renderRenewalSection(c); }catch(_){}
-        try{ if(window.renderKeyTermsSide) renderKeyTermsSide(c); }catch(_){} });
+      /* THE CARD IS WHAT CARRIES THE SERVED LINE, so repainting it is the
+         whole of it. A second call to renderKeyTermsSide was written here
+         and was A GUARD THAT IS ALWAYS FALSE: that name is deliberately NOT
+         published (its own file says so beside it), so `window.` answered
+         undefined and the call never ran — f232 caught it. */
+      openNoticeServedDialog(c, ()=>{ try{ renderRenewalSection(c); }catch(_){} });
   });
   host.querySelector('[data-rn-notice]')?.addEventListener('click',()=>{
     if(!window.openNoticeDialog) return toast(i18t('rn_start_unavailable'),'err');

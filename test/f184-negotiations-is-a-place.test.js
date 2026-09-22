@@ -688,7 +688,17 @@ describe('F184 (3) — one count, four surfaces, and it never writes', () => {
     const needs = s.slice(s.indexOf('function negoRoundNeedsHtml'), s.indexOf('function wsTabRowEndHtml'));
     assert.match(needs, /negoNeedsYouIds\(c\)/, 'and so does the round line');
     const app = read('js/app.js');
-    assert.match(app, /negotiations: \(window\.negoNeedsYouTotal/, 'and so does the sidebar');
+    /* RE-POINTED IN PLACE, 22 Sep 2026: the sidebar asked this for itself and
+       so did Home's tile and the phone's bar, so one navigation walked the
+       book for the same figure FOUR times. They read navCounts() now, which
+       asks it ONCE per paint. The claim — one function, four surfaces — is
+       untouched; the surfaces reach it through the shared reading. So the
+       claim is pinned where the figure is actually read, inside navCounts,
+       rather than on an inline expression that has moved. */
+    const nav = (app.match(/function navCounts\(\)\{[\s\S]*?\n\}/) || [''])[0];
+    assert.match(nav, /negoNeedsYouTotal\(\)/, 'and so does the sidebar, through navCounts');
+    const rail = (app.match(/function updateSidebarCounts\(\)\{[\s\S]*?\n\}/) || [''])[0];
+    assert.match(rail, /navCounts\(\)/, 'and the rail asks that one reading');
     const nego = (read('js/views/negotiation.js') + read('js/views/negotiation-css.js'));
     /* NARROWED IN PLACE, 19 Aug 2026: the toolbar asks the same one function,
        for `rowSide` rather than `side`. The two are the same value on our own
