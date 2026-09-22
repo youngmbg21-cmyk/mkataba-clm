@@ -18631,3 +18631,23 @@ Noticed, not fixed:
 - paper-beside-questions-verify 7c/7g and term-and-fields-verify still fail identically on both sides. Unchanged from earlier entries.
 
 Gates: 8,708 tests, 0 failed. Lint 0 errors and the warning set diffed against the parent as identical. f362 12/12 (7 red at the parent), overview-as-drawn 65/65 (section 0 red at the parent, printing "0 boxes before, 0 after"), auto-triage 64/64, blanks-panel 37/37, refile-a-contract 26/26, amendment-journey 52/52.
+
+## 22 Sep 2026 — why proposal C is not on the owner's screen (measured, nothing built)
+
+"Advise why C is not yet built into hati. Do not code yet." Measurement only; no product code was written.
+
+IT IS BUILT AND IT IS ON MAIN. Commit 58e985b, 11:51 this morning. Driven at 1440x900 against a workspace with four published company standards: three columns (260 rail / 438 questions / 400 paper) in an 1180px frame, the rail's describe box and Find, both shelves as rows with version, usage and stream on one line, the lit row filled, the questions card headed "<name>  v1 . 8 questions", the shut people panel, the paper column with real wording in it, and the foot reading Cancel . Skip the questions . Create draft. Every panel of the artifact drew.
+
+WHAT IS MISSING IS THE THIRD COLUMN, AND IT IS A WIDTH. The paper is drawn only from 1280px of window. MEASURED at seven widths: 1024, 1180, 1194 and 1279 all fall back to two columns in a 900px frame with NO paper host in the document at all; 1280, 1366 and 1440 draw all three. An iPad Pro 11" in landscape reports 1194 and an iPad Air 11" reports 1180, so on every iPad but a 12.9" in landscape the half of proposal C that it was chosen for is simply not on the screen. Under 768 the phone shell draws instead and there is no pop-up at any width.
+
+AND THE RAIL LOOKS WRONG AT iPad HEIGHT FOR A SECOND REASON. The list scrolls inside the rail on a derived cap of 88vh less 396. At 834px of height that is 338px of an 895px list, and MEASURED, the first HaTi row sits at y=643 against a list bottom edge of y=645 - two pixels below the fold. So "HATI STANDARD" draws its heading and its line-of-business dropdown and not one row under it, and reads as an empty shelf. Scrolling inside the rail brings all twelve back.
+
+Three smaller departures from the drawing, all of them known: the artifact's "All 12 v" fold on the HaTi shelf is not built (HaTi lists all twelve and scrolls); the header's sub-line says "Your company standards first, then HaTi's" where the artifact says "Pick from the list; the agreement is drawn as you answer"; and the artifact drew "3 blanks left" over a company standard's paper where HaTi draws that count for its own templates (measured: ". 5 blanks left") and not for a company standard, which is the ruled decision that the number would be about the form rather than the paper.
+
+Ruled out on the way: the door. Only [data-page-new] - the + Draft new agreement button on Home, Contracts and the contract room - opens this pop-up. Use on a template's row, the phone's own New and "Pick one myself" all reach the older single-template answer step, which is not this screen and never was. And /js is served with Cache-Control: no-cache, so a reload picks the build up; a tab left open since this morning would not have reloaded.
+
+Noticed, not fixed:
+- THE AGREEMENT COLUMN IS NOT DRAWN ON AN 11" iPad IN LANDSCAPE (1194 or 1180 against a floor of 1280). Lowering the floor to about 1150 was costed rather than guessed: the questions would measure about 420px there, against 438 at 1440 and the 380 that proposal C was chosen to fix. At 1024 the same arithmetic gives 250px and the floor cannot come that far. The owner's call.
+- THE HaTi SHELF READS AS EMPTY on an iPad until the rail is scrolled, the first row landing two pixels below the fold. The artifact's own answer was a short list with an "All 12 v" control.
+
+Gates: nothing built, so nothing to gate. The two measurement scripts live in the run's scratchpad, not in test/.
