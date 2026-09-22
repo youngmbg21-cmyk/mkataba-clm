@@ -312,6 +312,166 @@ const check = (name, pass, detail) => {
     check('5c (CONTROL) a repaint at that width draws no switch and no layer',
       narrow.segs === 0 && narrow.xray !== false && !narrow.spine, JSON.stringify(narrow));
 
+    /* ================= 7. FORMAT A, ON A CONTRACT THAT HAS BEEN READ ====
+       WHY THIS SECTION EXISTS. Section 4 opened a contract with NO reading,
+       no brief and no scan, and asked whether the panel said "no reading".
+       It passed either way — and it passed, green, for as long as the X-ray
+       never once showed a reading, which is the fault the owner reported off
+       his iPad. A check that passes against the broken build is a
+       description. Everything below stages the real thing first. */
+    await page.setViewportSize({ width: 1500, height: 950 });
+    await page.waitForTimeout(300);
+    await page.evaluate(() => { selectContract(state.contracts[0].id); });
+    await page.waitForTimeout(1100);
+    await page.evaluate(() => { roomGoTab(state.contracts[0], 'docs'); });
+    await page.waitForTimeout(1100);
+
+    /* A reading per painted row, a brief whose first watchout quotes real
+       wording and whose second carries none, two unusual terms, and a high
+       plus a low finding quoting two different clauses. */
+    const staged = await page.evaluate(() => {
+      const c = state.contracts[0];
+      let sheet = [];
+      try { sheet = docReadSheet(c) || []; } catch (_) { sheet = []; }
+      if (sheet.length < 4) return { rows: sheet.length };
+      c._readings = { at: '21 Sep 2026', over: 0,
+        items: sheet.map((r, i) => ({ i, heading: r.heading, plain: 'XRPLAIN' + i + ' a reading of this clause.' })) };
+      const long = sheet.filter(r => String(r.text || '').split(/\s+/).length > 12);
+      const snip = r => String(r.text || '').split(/\s+/).slice(0, 8).join(' ');
+      const q0 = long[0] ? snip(long[0]) : '', q1 = long[1] ? snip(long[1]) : '';
+      c._brief = { at: '21 Sep 2026', data: { overview: 'x',
+        watchouts: [{ point: 'XRWATCH this one rests on wording.', quote: q0 },
+                    { point: 'XRLOOSE this one carries no wording at all.' }],
+        unusual: ['XRODD a term unusual for this kind of contract.'] } };
+      c.scan = { on: '2026-09-21', dismissed: [], findings: [
+        { id: 'xf1', sev: 'high', kind: 'risk', title: 'XRHIGH', why: 'It could hurt you.', quote: q0 },
+        { id: 'xf2', sev: 'low', kind: 'risk', title: 'XRLOW', why: 'Worth knowing.', quote: q1 }] };
+      return { rows: sheet.length, q0: !!q0, q1: !!q1 };
+    });
+    const ok7 = staged.rows >= 4 && staged.q0 && staged.q1;
+    if (!ok7) check('7 (stage) a contract with four painted clauses to read', false, JSON.stringify(staged));
+
+    const beforeXr = await ink();
+    const pressed7 = ok7 && await press('[data-doc-read="2"]', '7a2 there is an X-ray to press');
+    await page.waitForTimeout(900);
+    if (pressed7) await page.screenshot({ path: path.join(OUT, '03-xray-format-a.png') });
+
+    const fa = pressed7 ? await page.evaluate(() => {
+      const secOf = k => [...document.querySelectorAll('#doc-xray .doc-xr-sec')]
+        .find(s => (s.querySelector('.doc-xr-k') || {}).textContent &&
+          s.querySelector('.doc-xr-k').textContent.trim().indexOf(k) === 0) || null;
+      const txt = el => el ? el.innerText.replace(/\s+/g, ' ').trim() : '';
+      const marksIn = el => el ? [...el.querySelectorAll('.doc-xr-mark')].map(m =>
+        ({ grade: (m.className.match(/is-(ruby|amber|steel)/) || [])[1] || '-',
+           tag: txt(m.querySelector('.doc-xr-mk')), say: txt(m).slice(0, 60) })) : [];
+      /* land on the clause the high finding quotes */
+      const rows = docXrayRows(state.contracts[0]);
+      const i = rows.findIndex(r => r.tone === 'ruby');
+      if (i >= 0) { const b = document.querySelector('[data-xr-seg="' + i + '"]'); if (b) b.click(); }
+      return { i, tones: rows.map(r => r.tone || '-'),
+        segs: [...document.querySelectorAll('.doc-xr-seg')].map(b =>
+          (b.className.match(/is-(ruby|amber|steel)/) || [])[1] || '-'),
+        _later: 1 };
+    }) : null;
+    await page.waitForTimeout(500);
+
+    const panel = pressed7 ? await page.evaluate(() => {
+      const secOf = k => [...document.querySelectorAll('#doc-xray .doc-xr-sec')]
+        .find(s => { const h = s.querySelector('.doc-xr-k'); return h && h.textContent.trim().indexOf(k) === 0; }) || null;
+      const txt = el => el ? el.innerText.replace(/\s+/g, ' ').trim() : '';
+      const marksIn = el => el ? [...el.querySelectorAll('.doc-xr-mark')].map(m =>
+        ({ grade: (m.className.match(/is-(ruby|amber|steel)/) || [])[1] || '-',
+           tag: txt(m.querySelector('.doc-xr-mk')), say: txt(m).slice(0, 70) })) : [];
+      const plain = secOf(i18t('xr_sec_plain')), look = secOf(i18t('xr_sec_look')), wide = secOf(i18t('xr_sec_wide'));
+      return { plain: txt(plain && plain.querySelector('.doc-xr-t')).slice(0, 60),
+        look: marksIn(look), wide: marksIn(wide),
+        wideDrawn: !!wide, lookHead: txt(look && look.querySelector('.doc-xr-k')) };
+    }) : null;
+
+    check('7a the panel shows the reading that is ON the record',
+      !!panel && /^XRPLAIN/.test(panel.plain),
+      panel ? JSON.stringify(panel.plain) : 'X-ray was never pressed');
+    check('7b the map is GRADED — ruby, steel, and bare where nothing is said',
+      !!fa && fa.segs.indexOf('ruby') >= 0 && fa.segs.indexOf('steel') >= 0 && fa.segs.indexOf('-') >= 0,
+      fa ? fa.segs.join(',') : 'no map');
+    check('7c every mark on the clause names its source AND wears its grade',
+      !!panel && panel.look.length >= 2 && panel.look.every(m => m.grade !== '-' && m.tag.length > 1)
+        && panel.look.some(m => m.grade === 'ruby') && panel.look.some(m => m.grade === 'amber'),
+      panel ? JSON.stringify(panel.look) : 'no panel');
+    check('7d the brief’s watchout reached the clause its wording sits on',
+      !!panel && panel.look.some(m => /XRWATCH/.test(m.say) && m.grade === 'amber'),
+      panel ? JSON.stringify(panel.look.map(m => m.say)) : 'no panel');
+    check('7e an UNUSUAL term is said about the whole contract, in steel',
+      !!panel && panel.wideDrawn && panel.wide.some(m => /XRODD/.test(m.say) && m.grade === 'steel'),
+      panel ? JSON.stringify(panel.wide) : 'no panel');
+    check('7f a watchout with no wording is said there too, and never guessed onto a clause',
+      !!panel && panel.wide.some(m => /XRLOOSE/.test(m.say))
+        && !panel.look.some(m => /XRLOOSE/.test(m.say)),
+      panel ? JSON.stringify(panel.wide.map(m => m.say)) : 'no panel');
+    /* GATED on the block being drawn at all: "XRWATCH is not in it" is
+       satisfied by a build that draws no block, which proves nothing. */
+    check('7g and one that DID land is said on its clause, not twice',
+      !!panel && panel.wideDrawn && panel.wide.length > 0
+        && !panel.wide.some(m => /XRWATCH/.test(m.say)),
+      panel ? JSON.stringify(panel.wide.map(m => m.say)) : 'no panel');
+
+    const afterXr = await ink();
+    check('7h THE CONTRACT DOES NOT MOVE with the whole map drawn (refusal 3)',
+      pressed7 && beforeXr && afterXr && afterXr.inkLeft === beforeXr.inkLeft
+        && afterXr.inkTop === beforeXr.inkTop && afterXr.sheetW === beforeXr.sheetW,
+      (pressed7 ? '' : 'X-ray was never pressed · ') + JSON.stringify({ beforeXr, afterXr }));
+
+    /* ---- the press, with a reading on file and the route refusing ---- */
+    await press('[data-doc-read="0"]', '7i2 there is a way back to the paper');
+    await page.waitForTimeout(400);
+    const pr = await page.evaluate(async () => {
+      const real = window.api; let asked = 0;
+      window.api = async (p, m, b, o) => {
+        if (String(p).indexOf('ai/readings') === 0) { asked++; throw new Error('Copilot is busy'); }
+        return real(p, m, b, o);
+      };
+      const btn = document.querySelector('[data-doc-read="1"]');
+      if (btn) btn.click();
+      await new Promise(r => setTimeout(r, 1000));
+      const layer = document.getElementById('doc-read');
+      const out = { asked, mode: (typeof docViewMode === 'function') ? docViewMode() : '(absent)',
+        hidden: layer ? layer.hidden : '(absent)',
+        notes: document.querySelectorAll('#doc-read .doc-read-note').length };
+      window.api = real; return out;
+    });
+    check('7i Plain English opens off the reading already on file, buying nothing',
+      pr.asked === 0 && pr.mode === 'plain' && pr.hidden === false && pr.notes > 0,
+      JSON.stringify(pr));
+
+    /* ---- D1, the dividers ---- */
+    const divs = await page.evaluate(() => {
+      const bs = [...document.querySelectorAll('.doc-read-seg button')];
+      const grp = document.querySelector('.doc-read-seg');
+      const rung = getComputedStyle(document.documentElement).getPropertyValue('--ctl-h').trim();
+      return { rung, h: grp ? Math.round(grp.getBoundingClientRect().height) : -1,
+        rows: bs.map(b => ({ w: parseFloat(getComputedStyle(b).borderLeftWidth),
+          c: getComputedStyle(b).borderLeftColor,
+          pressed: b.getAttribute('aria-pressed') })) };
+    });
+    check('7j D1 — a hairline between every pair, none before the first',
+      divs.rows.length === 3 && divs.rows[0].w === 0 && divs.rows[1].w === 1 && divs.rows[2].w === 1,
+      JSON.stringify(divs.rows.map(r => r.w)));
+    /* MEASURED WITH THE LAST HALF LIT, not with whatever happened to be lit:
+       the question is what a divider does when it meets the filled half, and
+       on a build with no dividers at all "the lit one is the first one" made
+       that claim pass while measuring nothing. */
+    await press('[data-doc-read="2"]', '7k2 there is an X-ray to light');
+    await page.waitForTimeout(500);
+    const lit = await page.evaluate(() => [...document.querySelectorAll('.doc-read-seg button')]
+      .map(b => ({ w: parseFloat(getComputedStyle(b).borderLeftWidth),
+        pressed: b.getAttribute('aria-pressed') })));
+    check('7k and the divider is drawn beside the LIT half too, so nothing moves',
+      lit.length === 3 && lit[2].pressed === 'true' && lit[2].w === 1 && lit[1].w === 1,
+      JSON.stringify(lit));
+    check('7l (CONTROL) the group gained a divider and not a pixel of height',
+      divs.h > 0 && divs.rung && divs.h === Math.round(parseFloat(divs.rung)),
+      'group ' + divs.h + 'px · --ctl-h ' + divs.rung);
+
     check('6a no page errors anywhere in the run', errors.length === 0,
       errors.slice(0, 3).join(' | '));
   } finally {

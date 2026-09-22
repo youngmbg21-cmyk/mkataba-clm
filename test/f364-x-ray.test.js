@@ -142,9 +142,13 @@ describe('f364 (3) placement is certainty about one clause', () => {
     assert.ok(/window\.openFindings/.test(f), "the scan's own not-dismissed rule");
     assert.ok(/window\.findingQuote\?findingQuote\(f\)/.test(f), "and its own reading of the quote");
   });
+  /* RE-POINTED IN PLACE 22 Sep 2026 (Young: Format A, three grades). The claim
+     is unchanged — a clause wears its worst mark, never its first — but the
+     reading is a walk down XR_GRADES now rather than a two-armed ternary, so
+     a grade added tomorrow is one entry in that list and this stays true. */
   test('the tone is the worst mark on the clause, never the first', () => {
-    assert.ok(/marks\.some\(m=>m\.k==='scan'&&m\.sev==='high'\) \? 'ruby' : \(marks\.length \? 'amber' : ''\)/
-      .test(CODE));
+    assert.ok(/XR_GRADES\.find\(g=>\(marks\|\|\[\]\)\.some\(m=>m&&m\.grade===g\)\)/.test(CODE),
+      'the rank is walked, so the worst wins whatever order the marks arrived in');
   });
 });
 
@@ -159,10 +163,15 @@ describe('f364 (4) the two positions see the same clauses', () => {
     const f = region('docXrayRows');
     assert.ok(/const total=out\.reduce\(/.test(f) && /x\.share=Math\.round\(x\.words\/total\*100\)/.test(f));
   });
+  /* REVERSED IN PLACE 22 Sep 2026. This claim PINNED THE DEFECT: it required
+     `docReadAnchors(c)` — the call with no entries — and so it passed, green,
+     for as long as the X-ray never once showed a reading. The half that was
+     right is kept: the panel must BORROW the edition's pairing rather than
+     make a second one. What it must borrow it WITH is the entries. */
   test('the panel takes the edition’s OWN entry rather than making a second', () => {
     const f = region('docXrayPanelHtml');
-    assert.ok(/docReadAnchors==='function'\)\?docReadAnchors\(c\)/.test(f),
-      'paired by the same anchors the edition pairs with');
+    assert.ok(/docReadAnchors\(c\s*,\s*docReadItems\(c\)\)/.test(f),
+      'paired by the same anchors the edition pairs with, AND handed the same entries');
     assert.ok(/paired\.find\(a=>a&&a\.row&&a\.row\.el===x\.el\)/.test(f), 'and matched on the element');
   });
   test('where there is no reading it offers the press, and claims nothing', () => {
@@ -301,5 +310,182 @@ describe('f364 (8) it speaks both languages', () => {
         assert.equal((I18N.match(new RegExp('\\b' + kk + ':', 'g')) || []).length, 2,
           kk + ' is in both books'));
     });
+  });
+});
+
+/* ============================================================================
+   9 · FORMAT A, AND THE TWO FAULTS UNDER IT (Young ruled 22 Sep 2026)
+   ============================================================================
+   Off two screenshots: *"the x ray says press in plain english to get a plain
+   English but plain english is already there and also when i press on plain
+   english nothing happens"*, and *"the brief addresses concerns, unusual
+   clauses and areas i should pay attention to in the contract but these
+   clauses are not highlighted in the x-ray"*. He was shown three formats and
+   picked A — the graded map — and D1 for the dividers.
+
+   BOTH FAULTS WERE MEASURED IN A BROWSER FIRST, on a contract carrying a real
+   thirteen-clause reading: the Plain English column paired 13 and the X-ray
+   paired 0, and a press on Plain English bought a reading it already had and
+   then abandoned the press when that purchase failed.
+   ==========================================================================*/
+describe('f364 (9) Format A', () => {
+  const PANEL = () => region('docXrayPanelHtml');
+  const WIRE = () => region('wireDocRead');
+
+  /* ---- the pairing gets its entries ---- */
+  test('the panel HANDS THE READINGS OVER — docReadAnchors takes them second', () => {
+    const p = PANEL();
+    assert.ok(/docReadAnchors\(c\s*,\s*docReadItems\(c\)\)/.test(p),
+      'the X-ray pairs against the entries the edition holds, not against nothing');
+    assert.ok(!/docReadAnchors\(c\)/.test(p),
+      'and never calls it with the contract alone');
+  });
+  test('[wall] docReadAnchors still walks (items||[]) — silence is the safe failure', () => {
+    const a = region('docReadAnchors');
+    assert.ok(/function docReadAnchors\(c,\s*items\)/.test(a), 'items is its second parameter');
+    assert.ok(/\(items\|\|\[\]\)\.forEach/.test(a),
+      'a caller that forgets gets an empty pairing rather than a wrong one — which is ' +
+      'exactly why this fault was silent for as long as it was');
+  });
+
+  /* ---- the press ---- */
+  test('a MISSING memory is "we do not know", never "it moved"', () => {
+    const w = WIRE();
+    assert.ok(/const moved=!!\(sig&&c\._readSig&&c\._readSig!==sig\)/.test(w),
+      'the press asks for a re-read only where the signature is KNOWN to have moved');
+    assert.ok(!/c\._readSig!==sig\)\s*\{\s*if\(!await docReadRun/.test(w),
+      'and never off a bare inequality, which reads an absent memory as a change');
+  });
+  test('the painter and the press now read _readSig the same way', () => {
+    const paint = region('docReadPaint');
+    assert.ok(/sig&&c\._readSig&&c\._readSig!==sig/.test(paint), 'the painter, as it always did');
+    assert.ok(/sig&&c\._readSig&&c\._readSig!==sig/.test(WIRE()), 'and the press, which did not');
+  });
+  test('a refused re-read does not swallow the press', () => {
+    const w = WIRE();
+    assert.ok(/if\(!got&&!docReadItems\(c\)\.length\)\s*return;/.test(w),
+      'the press stands down ONLY where there is nothing at all to show');
+    assert.ok(w.indexOf('docViewSet(mode)') > w.indexOf('docReadRun(c)'),
+      'and the switch is set after the attempt, not skipped by it');
+  });
+  test('[wall] _readSig still has exactly ONE writer, inside docReadRun', () => {
+    const hits = (CODE.match(/_readSig\s*=(?!=)/g) || []).length;
+    assert.equal(hits, 1, 'one writer — the whole reasoning above rests on it not being stored');
+    assert.ok(/_readSig=sig/.test(region('docReadRun')), 'and it is docReadRun');
+  });
+
+  /* ---- three grades ---- */
+  test('XR_GRADES is ruby, amber, steel — and the order IS the rank', () => {
+    const m = CODE.match(/const XR_GRADES=\[([^\]]+)\]/);
+    assert.ok(m, 'XR_GRADES is declared');
+    assert.deepEqual(m[1].replace(/['\s]/g, '').split(','), ['ruby', 'amber', 'steel']);
+    assert.ok(/XR_GRADES\.find\(g=>\(marks\|\|\[\]\)\.some\(m=>m&&m\.grade===g\)\)/.test(CODE),
+      'a clause wears its WORST mark, walked down the rank, never its first');
+  });
+  test('exactly one thing earns ruby, and it is a high scan finding', () => {
+    const m = CODE.match(/const XR_SEV_GRADE=\{([^}]+)\}/);
+    assert.ok(m, 'the scan’s three severities are mapped once');
+    assert.ok(/high:'ruby'/.test(m[1]) && /med:'amber'/.test(m[1]) && /low:'steel'/.test(m[1]));
+    const marks = region('docXrayMarks');
+    assert.ok(!/grade:'ruby'/.test(marks),
+      'nothing else in the marks reader hands out ruby — only the severity table does');
+  });
+  test('three is the ceiling: the sheet dresses exactly those three', () => {
+    /* `is-on` is the picked segment's outline, not a grade — the map's own
+       three are what this counts. A sweep that took it in reported four. */
+    const segs = [...INDEX.matchAll(/\.doc-xr-seg\.is-([a-z]+)\{/g)]
+      .map(x => x[1]).filter(g => g !== 'on').sort();
+    assert.deepEqual(segs, ['amber', 'ruby', 'steel'], 'no fourth tint on the map');
+    const tags = [...INDEX.matchAll(/\.doc-xr-mark\.is-([a-z]+) \.doc-xr-mk\{/g)].map(x => x[1]).sort();
+    assert.deepEqual(tags, ['ruby', 'steel'], 'amber is the base, so the other two are stated');
+    assert.ok(!/\.doc-xr-mark\.is-high/.test(INDEX), 'is-high is stale and nothing dresses it');
+    assert.ok(!/is-high/.test(xrayBlock()), 'and nothing builds one');
+  });
+  test('every grade is a token this product already holds, in BOTH themes', () => {
+    ['ruby', 'amber', 'steel'].forEach(g => {
+      ['dot', 'fg', 'bg'].forEach(k => assert.ok(
+        (INDEX.match(new RegExp('--st-' + g + '-' + k + ':', 'g')) || []).length >= 2,
+        '--st-' + g + '-' + k + ' is answered in light AND dark'));
+    });
+  });
+
+  /* ---- the brief reaches the X-ray ---- */
+  test('the brief’s watchouts are marks, placed by the SAME containment', () => {
+    const marks = region('docXrayMarks');
+    assert.ok(/docXrayBriefWatch\(c\)\.forEach/.test(marks), 'the watchouts are read');
+    assert.ok(/docXrayPlace\(row\.text,w\.quote\)/.test(marks),
+      'and placed by the quote they carry — no looser reading is allowed in');
+    assert.ok(/tag:i18t\('xr_m_brief'\)/.test(marks), 'each naming the brief as its source');
+  });
+  test('[wall] the UNUSUAL list is not read by the clause marks', () => {
+    const marks = region('docXrayMarks');
+    assert.ok(!/unusual/i.test(marks),
+      'it carries a sentence and no wording, so no clause can honestly claim it — ' +
+      'matching it by its words would be the product guessing');
+    assert.ok(/d\.unusual/.test(region('docXrayWide')), 'it is said about the whole contract instead');
+  });
+  test('docXrayBriefWatch is the ONE reading of that list', () => {
+    assert.ok(/function docXrayBriefWatch\(c\)/.test(CODE), 'it exists');
+    /* COUNT THE CALLS, NOT THE DEFINITION — a count that matches its own
+       declaration is this codebase's own recorded instrument fault. */
+    const askers = (CODE.match(/docXrayBriefWatch\(c\)\./g) || []).length;
+    assert.equal(askers, 2, 'the clause marks and the contract-level block, and nothing else');
+    const w = region('docXrayWide');
+    assert.ok(/if\(landed\(w\.quote\)\)\s*return;/.test(w),
+      'a watchout that landed on its clause is said there, not twice');
+    assert.ok(/grade:'steel'/.test(w), 'and an unusual term is worth knowing, not a warning');
+  });
+
+  /* ---- one builder for a mark ---- */
+  test('ONE builder for a mark, and it always names who said it', () => {
+    assert.ok(/const docXrayMarkHtml = m =>/.test(CODE), 'one builder');
+    const p = PANEL();
+    assert.ok((p.match(/docXrayMarkHtml/g) || []).length === 2,
+      'drawn by the clause list and by the contract-level block — the clothes follow the builder');
+    const b = CODE.slice(CODE.indexOf('const docXrayMarkHtml'), CODE.indexOf('const docXrayMarkHtml') + 400);
+    assert.ok(/doc-xr-mk">\$\{esc\(m\.tag\|\|''\)\}/.test(b), 'every mark prints its source tag');
+    assert.ok(/is-\$\{esc\(m\.grade\|\|'amber'\)\}/.test(b), 'and wears its own grade');
+  });
+  test('the four source tags are in both books', () => {
+    ['xr_m_scan', 'xr_m_pb', 'xr_m_brief', 'xr_m_odd', 'xr_sec_wide'].forEach(k =>
+      assert.equal((I18N.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k));
+  });
+  test('silence names no reader, so it cannot go stale when a fourth is added', () => {
+    const m = I18N.match(/xr_look_none:\s*'([^']+)'/);
+    assert.ok(m, 'the sentence is there');
+    assert.ok(!/playbook|risk scan/i.test(m[1]),
+      'it listed two readers by name while there were three — it says nothing on the record ' +
+      'mentions this clause instead, and that that is not the same as safe');
+  });
+  test('[wall] and it still spends nothing, adds no route and no field', () => {
+    const B = xrayBlock();
+    assert.ok(B.length > 2000, 'gated: there is a block to grep');
+    [/\bapi\(/, /\bfetch\(/, /\bpersist\(/, /ai\//].forEach(re =>
+      assert.ok(!re.test(B), 'the X-ray reads what is already paid for — no ' + re));
+  });
+
+  /* ---- D1, the dividers ---- */
+  test('D1 — a line between every pair, in the frame’s own colour', () => {
+    const m = INDEX.match(/\.doc-read-seg button \+ button\{([^}]+)\}/);
+    assert.ok(m, 'the rule exists');
+    assert.ok(/border-left:1px solid/.test(m[1]), 'a 1px left edge on each button after the first');
+    assert.ok(/var\(--accent-ink\)/.test(m[1]), 'reading the frame’s own token');
+    assert.ok(!/#[0-9a-f]{3,8}\b/i.test(m[1]), 'and naming no colour of its own');
+  });
+  test('it is between EVERY pair, not only the unlit ones', () => {
+    /* GATED on there being a divider at all: an absence claim about a rule
+       that does not exist passes on a build with no dividers, which is the
+       quietest way a measurement proves nothing. */
+    assert.ok(/\.doc-read-seg button \+ button\{/.test(INDEX), 'gated: there is a divider');
+    assert.ok(!/\.doc-read-seg button:not\(\[aria-pressed/.test(INDEX),
+      'dropping the rule beside the filled half moves the furniture as the lit half moves');
+  });
+  test('[control] the group gained a divider and not a pixel of size', () => {
+    const m = INDEX.match(/\.doc-read-seg\{([^}]+)\}/);
+    assert.ok(m, 'the group rule is there');
+    assert.ok(/height:var\(--ctl-h\)/.test(m[1]), 'one rung with every other control');
+    assert.ok(/border-radius:var\(--radius\)/.test(m[1]), 'the platform’s own corner');
+    const b = INDEX.match(/\.doc-read-seg button\{([^}]+)\}/);
+    assert.ok(/padding:0 12px/.test(b[1]), 'and the same padding it always had');
   });
 });

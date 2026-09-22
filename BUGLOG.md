@@ -18711,3 +18711,51 @@ A FAULT IN MY OWN INSTRUMENT: the new claim "X-ray has no card rule of its own"
 was written as a plain negative on `#doc-xray{`, which is a SUBSTRING of
 `#doc-read,#doc-xray{` — so it tripped on the very rule it exists to allow. A
 negative lookbehind for the comma.
+
+## 22 Sep 2026 — FORMAT A AND D1 (Young: "I want format A button D1")
+
+Two faults he reported off an iPad, both MEASURED in a browser before a line moved,
+then Format A (the graded map) and D1 (a hairline between every pair) built as drawn.
+
+DEFECTS FOUND AND FIXED
+1. The X-ray's plain-English section said "No reading of this clause yet" on EVERY
+   clause of EVERY contract, whether a reading existed or not - it had never once
+   worked. docReadAnchors(c, items) takes the entries second and the panel passed
+   none, so it walked an empty list. MEASURED with 13 readings on the record: the
+   Plain English column paired 13, the X-ray paired 0.
+2. Pressing Plain English bought a fresh reading it already had, on every page load,
+   and abandoned the press before the switch moved if that purchase failed -
+   "nothing happens". c._readSig is not stored, so its absence after a refresh was
+   read as "the wording changed". docReadPaint 250 lines down had been reading the
+   same field correctly all along.
+3. f364 (4) was ASSERTING THE DEFECT - it required docReadAnchors(c), the call with
+   no entries - and the browser file opened a contract with no reading and asked
+   whether the panel said "no reading", which passes either way. Both reversed in
+   place; runway-and-xray-verify gained a section 7 that stages a REAL reading,
+   brief and scan (10 of its 12 checks red at the parent).
+4. Two of my own instrument faults, both quiet: a grade sweep that counted
+   .doc-xr-seg.is-on as a fourth grade, and a call count that matched its own
+   function declaration. Two more browser claims passed VACUOUSLY at the parent and
+   are gated now.
+
+BUILT
+- Three grades (ruby / amber / steel), each already a HaTi colour already meaning
+  that; XR_GRADES' order IS the rank and docXrayTone walks it, so a clause wears its
+  worst mark by construction. A bare segment is not "safe" and says so in words.
+- The brief's watchouts placed on their clause by the wording they quote; the
+  unusual list said about the WHOLE contract, because it carries no wording and
+  pinning it would be the product guessing. One builder for a mark; every mark names
+  its source.
+- D1: .doc-read-seg button + button, --accent-ink at 45%, between every pair. Group
+  still 30px against a --ctl-h of 30. The contract measured unmoved.
+
+Noticed, not fixed
+- f277's "no ring, no band, no strip - two buttons and nothing more" and "the layer
+  is a white sheet, not notes on the page ground" are RED AT THE PARENT (leftovers
+  from the X-ray / white-card work, not re-pointed then). Left red.
+- plain-english-verify 10c is red at the parent too. Left red.
+- CLAUDE.md's "HOW TO TEST ECONOMICALLY" quotes "~137 warnings"; re-measured today
+  it is 211, identical either side of this change. The note is stale.
+- docReadHeld is not on contract.js's publish list, so a browser probe cannot ask it
+  by name. Not a product fault (the Overview reads it bare in the same file) but it
+  makes that reading undrivable from a test stage.

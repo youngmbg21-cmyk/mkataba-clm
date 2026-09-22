@@ -3055,6 +3055,23 @@
   .doc-read-seg button[aria-pressed="true"]{ background:var(--accent-fill); color:#fff;
     font-weight:var(--w-title); }
   .doc-read-seg button:disabled{ opacity:.55; cursor:default; }
+  /* ---- D1 -- A LINE BETWEEN EVERY PAIR (Young ruled 22 Sep 2026) ----
+     Three words in one box read as one word wrapped; the owner asked for the
+     three positions to be divided, was shown three treatments drawn at real
+     size, and picked this one.
+
+     THE FRAME'S OWN COLOUR AT 45%, so it needs no new token: on the white
+     halves it is a light navy hairline, and where it meets the filled half
+     the fill shows through it as a slightly deeper navy. Either way it reads
+     as a seam rather than as a second border.
+
+     AND IT IS BETWEEN EVERY PAIR, NOT ONLY THE UNLIT ONES. Dropping the rule
+     beside the filled half is tidier at rest and MOVES THE FURNITURE as the
+     lit half moves, which is the one thing this product does not do.
+     (0,1,2) against the base rule's (0,1,1), so it wins on weight and needs no
+     override of last resort; the aria-pressed rule is (0,2,1) and sets no border. */
+  .doc-read-seg button + button{
+    border-left:1px solid color-mix(in srgb, var(--accent-ink) 45%, transparent); }
 
   /* ---- THE READINGS, IN THE COLUMN THE CARDS OCCUPY ----
      One note per clause, held at its clause's own top and moved with the paper
@@ -5211,8 +5228,15 @@
      product already uses for "present but quiet". */
   .doc-xr-seg{position:relative;min-height:9px;padding:0;border:0;border-radius:2px;
     background:var(--st-gray-dot);cursor:pointer;display:grid;place-items:center;}
+  /* THREE GRADES, NEVER FOUR (Young ruled 22 Sep 2026). Ruby is "this could
+     hurt you", amber "worth a look before you sign", steel "worth knowing,
+     not a warning" -- and the bare gray-dot ground above is NOT "safe", it is
+     "nothing on the record mentions this clause", which the panel says in
+     words. Each of the three is the token this product already uses for that
+     meaning; see XR_GRADES in js/views/contract.js. */
   .doc-xr-seg.is-amber{background:var(--st-amber-dot);}
   .doc-xr-seg.is-ruby{background:var(--st-ruby-dot);}
+  .doc-xr-seg.is-steel{background:var(--st-steel-dot);}
   .doc-xr-seg.is-on{outline:2px solid var(--accent-ink);outline-offset:1px;}
   .doc-xr-seg:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:2px;}
   .doc-xr-dot{display:none;}
@@ -5237,7 +5261,11 @@
   .doc-xr-mk{flex:none;font-size:var(--t-micro);font-weight:var(--w-strong);
     letter-spacing:.06em;text-transform:uppercase;color:var(--st-amber-fg);
     background:var(--st-amber-bg);border-radius:var(--radius);padding:1px 6px;}
-  .doc-xr-mark.is-high .doc-xr-mk{color:var(--st-ruby-fg);background:var(--st-ruby-bg);}
+  /* EVERY MARK NAMES WHO SAID IT and wears its own grade, so amber never
+     hides whether this is a rule of yours or something the paper itself does.
+     Amber is the base; `is-high` is STALE -- the grade is the class now. */
+  .doc-xr-mark.is-ruby .doc-xr-mk{color:var(--st-ruby-fg);background:var(--st-ruby-bg);}
+  .doc-xr-mark.is-steel .doc-xr-mk{color:var(--st-steel-fg);background:var(--st-steel-bg);}
   .doc-xr-none{font-size:var(--t-meta);color:var(--color-neutral-500);}
 
   /* ══ THE RUNWAY — the decision card's one line of time (22 Sep 2026) ══

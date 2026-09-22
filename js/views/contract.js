@@ -11244,28 +11244,113 @@ function docXrayPlace(rowText, quote){
   if(q.length<DOC_XRAY_QUOTE_MIN) return false;
   return _xrNorm(rowText).indexOf(q)>=0;
 }
-/* WHAT IS WORTH A LOOK ON THIS CLAUSE, from the two readings that carry a
+/* ---- THE THREE GRADES (Young ruled 22 Sep 2026, over a drawn ladder) ----
+
+   RUBY is "this could hurt you", and exactly one thing earns it: an open HIGH
+   finding from the risk scan. AMBER is "worth a look before you sign" -- a
+   clause that bites, or one that walks away from your own standard. STEEL is
+   "worth knowing, not a warning".
+
+   EVERY ONE OF THEM IS A COLOUR THIS PRODUCT ALREADY USES FOR THAT MEANING.
+   The brief has drawn its watchouts amber and its unusual terms in a quiet
+   grey since 19 August; the negotiate page has drawn a playbook departure
+   amber for longer than that. Nothing new is being taught, which is the whole
+   reason three grades can be read at a glance rather than learned.
+
+   THREE IS THE CEILING -- a fourth tint flattens the one that matters, which
+   is the owner's own ruling on the brief's two tones and on the bands before
+   it. AND NO MARK IS NOT "SAFE": it means nothing on the record mentions this
+   clause, which the panel says in words rather than leaving silence to be
+   read as approval. */
+const XR_GRADES=['ruby','amber','steel'];   /* worst first -- the order IS the rank */
+/* THE SCAN'S OWN THREE SEVERITIES, MAPPED ONCE. SEV_META lives in js/ai.js and
+   names high/med/low; a severity this table does not know reads AMBER, which
+   is the safe direction for something the scan thought worth raising at all. */
+const XR_SEV_GRADE={ high:'ruby', med:'amber', low:'steel' };
+
+/* THE BRIEF'S OWN WATCHOUTS, READ ONCE AND SHAPED ONCE, so a clause's marks
+   and the contract-level block cannot disagree about what is in the list. A
+   watchout with no sentence says nothing and is dropped. */
+function docXrayBriefWatch(c){
+  const d=(c&&c._brief&&c._brief.data)||null;
+  const list=(d&&Array.isArray(d.watchouts))?d.watchouts:[];
+  return list.map(w=>({ say:String((w&&w.point)||'').trim(), quote:(w&&w.quote)||'' }))
+    .filter(w=>!!w.say);
+}
+/* WHAT IS WORTH A LOOK ON THIS CLAUSE, from the three readings that carry a
    quote. Borrowed whole: openFindings is the scan's own "not dismissed" rule
-   and findingQuote its own reading of where a finding points. */
+   and findingQuote its own reading of where a finding points; a watchout
+   arrives with the wording it rests on, so it places by exactly the
+   containment docXrayPlace already insists on and by nothing looser.
+
+   THE BRIEF'S "UNUSUAL" LIST IS NOT HERE, deliberately: it carries a sentence
+   and no wording at all, so there is no clause it can honestly be pinned to.
+   It is said about the whole contract instead -- see docXrayWide. */
 function docXrayMarks(c,row){
   const out=[];
   let finds=[];
   try{ if(c&&c.scan&&window.openFindings) finds=openFindings(c)||[]; }catch(_){ finds=[]; }
   finds.forEach(f=>{
     const q=(window.findingQuote?findingQuote(f):(f&&f.quote)||'');
-    if(docXrayPlace(row.text,q)) out.push({ k:'scan', sev:String((f&&f.sev)||''),
-      words:String((f&&f.title)||''), why:String((f&&f.why)||''), id:(f&&f.id)||'' });
+    if(!docXrayPlace(row.text,q)) return;
+    const sev=String((f&&f.sev)||'');
+    out.push({ k:'scan', grade:XR_SEV_GRADE[sev]||'amber', tag:i18t('xr_m_scan'),
+      lead:String((f&&f.title)||''), say:String((f&&f.why)||''), id:(f&&f.id)||'', sev });
   });
   const vs=(c&&c.playbook&&Array.isArray(c.playbook.verdicts))?c.playbook.verdicts:[];
   vs.forEach(v=>{
     if(!v||String(v.status||'')==='ok') return;      /* a match is not a mark */
-    if(docXrayPlace(row.text,v.quote)) out.push({ k:'pb', sev:'',
-      words:String(v.category||''), why:String(v.position||'') });
+    if(!docXrayPlace(row.text,v.quote)) return;
+    out.push({ k:'pb', grade:'amber', tag:i18t('xr_m_pb'),
+      lead:String(v.category||''), say:String(v.position||'') });
+  });
+  docXrayBriefWatch(c).forEach(w=>{
+    if(!docXrayPlace(row.text,w.quote)) return;
+    out.push({ k:'brief', grade:'amber', tag:i18t('xr_m_brief'), lead:'', say:w.say });
   });
   return out;
 }
+/* ---- WHAT IS SAID ABOUT THE WHOLE AGREEMENT (U1, the owner's pick) ----
+
+   Two kinds of thing land here. The brief's UNUSUAL terms, which carry a
+   sentence and no wording, so no clause can claim them. And any WATCHOUT
+   whose wording did not land on a clause -- the quote is optional in what
+   Copilot is asked for, and one the paper has since been redlined away from
+   will not place either.
+
+   THE ALTERNATIVE WAS TO MATCH THEM BY THEIR WORDS, and it is refused: that
+   is the product guessing which clause a sentence is about, and a note beside
+   the wrong clause is worse than no note. An absence is stated, never guessed
+   -- which is why these are said HERE, in full, rather than quietly dropped. */
+function docXrayWide(c,rows){
+  const d=(c&&c._brief&&c._brief.data)||null;
+  if(!d) return [];
+  const out=[];
+  const list=Array.isArray(rows)?rows:[];
+  const landed=q=>list.some(x=>x&&x.row&&docXrayPlace(x.row.text,q));
+  docXrayBriefWatch(c).forEach(w=>{
+    if(landed(w.quote)) return;             /* said on its own clause, not twice */
+    out.push({ k:'brief', grade:'amber', tag:i18t('xr_m_brief'), lead:'', say:w.say });
+  });
+  (Array.isArray(d.unusual)?d.unusual:[]).forEach(u=>{
+    const say=String(u||'').trim(); if(!say) return;
+    out.push({ k:'odd', grade:'steel', tag:i18t('xr_m_odd'), lead:'', say });
+  });
+  return out;
+}
+/* A CLAUSE WEARS ITS WORST MARK, NEVER ITS FIRST. Written as a walk down the
+   rank rather than a chain of tests, so a grade added tomorrow is one entry in
+   XR_GRADES and this reading does not change. */
 const docXrayTone = marks =>
-  marks.some(m=>m.k==='scan'&&m.sev==='high') ? 'ruby' : (marks.length ? 'amber' : '');
+  XR_GRADES.find(g=>(marks||[]).some(m=>m&&m.grade===g))||'';
+/* ONE BUILDER FOR A MARK, wherever it is drawn. The clause's list and the
+   contract-level block are the same shape and must stay the same shape -- the
+   clothes follow the builder. EVERY MARK NAMES WHO SAID IT, so amber never
+   hides whether this is a rule of yours or something the paper itself does. */
+const docXrayMarkHtml = m => `<div class="doc-xr-mark is-${esc(m.grade||'amber')}">
+    <span class="doc-xr-mk">${esc(m.tag||'')}</span>
+    <span>${m.lead?`<b>${esc(m.lead)}</b>`:''}${m.lead&&m.say?' \u2014 ':''}${
+      m.say?esc(m.say):''}</span></div>`;
 
 /* THE CLAUSE'S OWN ID, where the paper carries one. A stored rich body has
    its clauses stamped; template paper does not, and on that paper the ladder
@@ -11307,10 +11392,20 @@ function docXrayPanelHtml(c,rows){
   if(!rows.length) return `<div class="doc-xr-none">${esc(i18t('xr_no_clauses'))}</div>`;
   const x=rows[Math.min(Math.max(_docXrayPick,0),rows.length-1)];
   /* THE PLAIN-ENGLISH ENTRY IS THE SECOND POSITION'S OWN, paired by the same
-     anchors it pairs with — never a second reading of the same words. */
+     anchors it pairs with — never a second reading of the same words.
+
+     AND THE ENTRIES HAVE TO BE HANDED OVER (Young reported it 22 Sep 2026:
+     *"the x ray says press in plain english to get a plain English but plain
+     english is already there"*). docReadAnchors takes the items as its SECOND
+     argument; this call passed none, so it walked `(items||[])` — an empty
+     list — found nothing, and the panel honestly printed the only sentence it
+     has for that case. On EVERY clause of EVERY contract, whether a reading
+     existed or not: it had never once worked. MEASURED in a browser on a
+     contract carrying thirteen readings — the Plain English column paired 13,
+     this paired 0. */
   let plain='';
   try{
-    const paired=(typeof docReadAnchors==='function')?docReadAnchors(c):[];
+    const paired=(typeof docReadAnchors==='function')?docReadAnchors(c,docReadItems(c)):[];
     const hit=paired.find(a=>a&&a.row&&a.row.el===x.el);
     plain=hit?String((hit.it&&hit.it.plain)||'').trim():'';
   }catch(_){ plain=''; }
@@ -11318,9 +11413,12 @@ function docXrayPanelHtml(c,rows){
   const cid=docXrayClauseId(x.row);
   if(cid){ try{ if(window.ladderRungs) rungs=ladderRungs(c,cid)||[]; }catch(_){ rungs=[]; } }
 
-  const marks=x.marks.length?x.marks.map(m=>`<div class="doc-xr-mark${m.sev==='high'?' is-high':''}">
-      <span class="doc-xr-mk">${esc(m.k==='scan'?i18t('xr_m_scan'):i18t('xr_m_pb'))}</span>
-      <span><b>${esc(m.words||'')}</b>${m.why?' — '+esc(m.why):''}</span></div>`).join(''):'';
+  const marks=(x.marks||[]).map(docXrayMarkHtml).join('');
+  /* SAID ABOUT THE WHOLE AGREEMENT, and drawn on every clause because that is
+     what it is about — not a shelf for leftovers. The count rides the heading
+     the way the change column's own heads carry theirs. */
+  const wide=docXrayWide(c,rows);
+  const n=s=>s.length?' · '+s.length:'';
 
   return `<div class="doc-xr-head">
       <h4>${esc(docXrayLabel(x))}</h4>
@@ -11329,8 +11427,10 @@ function docXrayPanelHtml(c,rows){
     ${docXraySecHtml(i18t('xr_sec_plain'), plain
       ? docReadMark(plain)
       : `<span class="doc-xr-q">${esc(i18t('xr_plain_none'))}</span>`)}
-    ${marks?docXraySecHtml(i18t('xr_sec_look'),marks)
-           :docXraySecHtml(i18t('xr_sec_look'),`<span class="doc-xr-q">${esc(i18t('xr_look_none'))}</span>`)}
+    ${docXraySecHtml(i18t('xr_sec_look')+n(x.marks||[]), marks
+      || `<span class="doc-xr-q">${esc(i18t('xr_look_none'))}</span>`)}
+    ${wide.length?docXraySecHtml(i18t('xr_sec_wide')+n(wide),
+        wide.map(docXrayMarkHtml).join('')):''}
     ${rungs.length?docXraySecHtml(i18t('xr_sec_argued'),
         `<b>${esc(i18tn('xr_rungs',rungs.length,{n:rungs.length}))}</b>`):''}`;
 }
@@ -11404,9 +11504,33 @@ function wireDocRead(c,host){
       if(act&&act!==document.body&&act.blur&&act.closest&&act.closest('#doc-right')) act.blur();
       if(want){
         const sig=docReadSig(c);
-        /* Ask where there is nothing yet, or where the paper has moved since
-           the reading we hold was made. Unchanged wording asks nothing. */
-        if(!docReadItems(c).length||c._readSig!==sig){ if(!await docReadRun(c)) return; }
+        /* ---- A MISSING MEMORY IS "WE DO NOT KNOW", NEVER "IT MOVED" ----
+           (Young reported it 22 Sep 2026: *"when i press on plain english
+           nothing happens"*.)
+
+           `c._readSig` is written in ONE place, inside docReadRun, and it is
+           not stored, not transport and not on the payload — so it lives only
+           as long as the tab does. The reading beside it, `c._readings`, rides
+           every GET. After a refresh the app therefore holds a whole edition
+           and no memory of what it was written about, and `_readSig !== sig`
+           read that absence as *the wording has changed*: the first press
+           after every page load bought a fresh reading it already had.
+
+           THE PAINTER 250 LINES DOWN ALREADY READS THIS FIELD CORRECTLY —
+           `sig && c._readSig && c._readSig!==sig` — and says nothing where the
+           memory is absent. Two readings of one fact, disagreeing, which is
+           this codebase's own named fault class; they agree now. */
+        const moved=!!(sig&&c._readSig&&c._readSig!==sig);
+        if(!docReadItems(c).length||moved){
+          const got=await docReadRun(c);
+          /* A REFUSED RE-READ IS NOT A REFUSED PRESS. Where an edition is
+             already on the record the switch still goes where the reader put
+             it and the column draws what it holds, with its own caption
+             saying how many clauses it can no longer speak for. Only where
+             there is nothing at all to show does the press stand down — and
+             docReadRun has already said why, in a toast. */
+          if(!got&&!docReadItems(c).length) return;
+        }
       }
       docViewSet(mode);
       wsPaintTabRowEnd(c);
@@ -14303,6 +14427,7 @@ Object.assign(window,{paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,
   DOC_READ_KEY,DOC_READ_MIN_W,docReadFits,docReadOn,docReadSet,docReadItems,
   DOC_VIEW_MODES,docViewMode,docViewSet,docXrayOn,DOC_XRAY_SPINE_W,DOC_XRAY_SPINE_GAP,
   DOC_XRAY_QUOTE_MIN,docXrayPlace,docXrayMarks,docXrayTone,docXrayClauseId,docXrayRows,
+  XR_GRADES,XR_SEV_GRADE,docXrayBriefWatch,docXrayWide,docXrayMarkHtml,
   docXrayLabel,docXraySpineHtml,docXrayPanelHtml,docXrayPaint,docXrayWire,
   docReadSheet,docReadClauses,docReadSig,docReadAnchors,docReadSwitchHtml,docReadPaint,docReadSync,
   docReadFront,docReadMirrorStyle,docReadMirrorToc,

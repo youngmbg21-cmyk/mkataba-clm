@@ -725,9 +725,20 @@ describe('f277 (9) a redlined clause is read again', () => {
 
   /* THE PRESS IS WHERE IT IS ASKED, and the stamp is taken from the walk that
      was SENT rather than read back after the await — the paper can be
-     repainted while the request is in flight. */
+     repainted while the request is in flight.
+
+     RE-POINTED IN PLACE 22 Sep 2026 (Young: *"when i press on plain english
+     nothing happens"*). The claim's own words were already right — "nothing
+     yet, or the wording has MOVED since the reading we hold" — and the guard
+     it pinned did not say that: a bare `c._readSig!==sig` reads an ABSENT
+     memory as a change, and that memory is not stored, so it is absent on
+     every page load. The press bought a reading it already had, every time.
+     `moved` is now the same three-part reading docReadPaint has always used,
+     and the two cannot drift. See f364 (9). */
   test('the press asks when the paper has moved, and the stamp is the sent walk', () => {
-    assert.ok(/if\(!docReadItems\(c\)\.length\|\|c\._readSig!==sig\)/.test(CONTRACT_JS),
+    assert.ok(/const moved=!!\(sig&&c\._readSig&&c\._readSig!==sig\)/.test(CONTRACT_JS),
+      'the wording is KNOWN to have moved — an absent stamp is "we do not know"');
+    assert.ok(/if\(!docReadItems\(c\)\.length\|\|moved\)/.test(CONTRACT_JS),
       'nothing yet, or the wording has moved since the reading we hold');
     const run = CONTRACT_JS.slice(CONTRACT_JS.indexOf('async function docReadRun'));
     const body = run.slice(0, run.indexOf('\nfunction '));

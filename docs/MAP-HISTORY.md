@@ -21130,3 +21130,85 @@ AND THE ORDER IS LOAD-BEARING: `docXrayPaint` runs after `docReadPaint`
 everywhere the mode or the tab changes, because that painter correctly hands
 `#doc-right` back whenever the edition is off — which, in this mode, it is. Two
 writers of one property only agree while one of them runs last.
+
+### FORMAT A — THE MAP IS GRADED, AND THE READING IS HANDED OVER (Young ruled 22 Sep 2026)
+
+The morning after X-ray shipped, two screenshots off an iPad:
+
+> *"Image 1, the x ray says press in plain english to get a plain English but plain english is already there and also when i press on plain english nothing happens. Image 2, the brief addresses concerns, unusual clauses and areas i should pay attention to in the contract but these clauses are not highlighted in the x-ray. Bring consistency to the platform so that people can have confidence in and seamless review of the contract. Bring the areas I should pay attention to to the xray in the event i missed reading the brief. They should obvisouly have different color gradings but create a format that makes sense. Also, place lines dividing the contract, plain english and x-ray Buttons. Do not code but create an artifact with proposals."*
+
+Three formats were drawn and put to him. He answered: **"I want format A button D1"**.
+
+#### BOTH FAULTS WERE MEASURED BEFORE A LINE MOVED
+
+A scratchpad probe drove the real page, staged a complete thirteen-clause reading on a real contract, and read the answers back:
+
+```
+STAGED A READING   {"rows":13,"items":13,"itemsOnRecord":13,"readSig":"undefined","sigNow":"13:1ibuctd"}
+FAULT A            anchors_withItems: 13 · anchors_asXrayCallsIt: 0
+                   panelPlainSection: "IN PLAIN ENGLISH No reading of this clause yet. Press Plain English to have one made."
+FAULT B            before {mode:"paper", readSig:"undefined", items:13}
+                   askedTheRoute: 1
+                   after  {mode:"paper", layerHidden:true, plainLit:"false"}
+                   itemsStillOnRecord: 13
+```
+
+**Fault A is one missing argument.** `docReadAnchors(c, items)` takes the entries as its SECOND parameter and walks `(items||[])`. The panel called it `docReadAnchors(c)`, so it walked an empty list, found nothing, and printed the only sentence it has for that case. It had never once worked — that sentence had appeared on every clause of every contract since the day the X-ray shipped.
+
+**And the check that should have caught it was asserting the defect.** f364 (4) required the literal `docReadAnchors(c)`; the browser file opened a contract that had no reading and asked whether the panel said "no reading", which passes either way. Both are reversed in place, with the reasoning kept beside them — a check that passes against the broken build is a description, not a test, and this file has now paid for that lesson in three different costumes.
+
+**Fault B is one field read two ways.** `c._readSig` is written in exactly one place, inside `docReadRun`, and it is neither stored, nor transport, nor on the payload — so it lives only as long as the tab. `c._readings` beside it rides every GET. After a refresh the app therefore holds a whole edition and no memory of what it was written about, and `c._readSig !== sig` read that absence as *the wording has changed*. Every page load, the first press bought a reading it already had; and `if(!await docReadRun(c)) return;` abandoned the press before `docViewSet(mode)`, so any refusal — no key, the day's cap, a slow link — showed the reader nothing at all.
+
+`docReadPaint`, 250 lines down, had been reading the same field correctly since the day it was written: `sig && c._readSig && c._readSig !== sig`. Two readings of one fact, disagreeing, which is this codebase's own most expensive fault class. They agree now.
+
+#### THE THREE GRADES, AND WHY THEY COULD BE READ AT A GLANCE
+
+The grades were not invented for this. Every one of them is a colour this product already uses for that meaning, which is the whole reason three of them can be read without being learned:
+
+| Grade | Means | Already drawn this way in |
+|---|---|---|
+| **Ruby** | This could hurt you | the X-ray's own high findings |
+| **Amber** | Worth a look before you sign | the brief's watchouts (19 Aug), a playbook departure on the negotiate page |
+| **Steel** | Worth knowing, not a warning | the brief's unusual terms, in its own quiet grey |
+| **no mark** | Nothing on the record mentions this clause | *said in words, because silence must never read as approval* |
+
+`XR_GRADES` is `['ruby','amber','steel']` and **the order IS the rank**: `docXrayTone` walks it and takes the first that any mark wears, so "a clause wears its worst mark, never its first" holds by construction rather than by a chain of tests. `XR_SEV_GRADE` maps the scan's own `high`/`med`/`low` and is the only thing in the file that hands out ruby.
+
+Three is the ceiling, and the sheet is the net: exactly three `.doc-xr-seg.is-*` rules, and `is-high` is stale with nothing dressing it and nothing building it.
+
+#### THE BRIEF'S TWO LISTS ARE NOT THE SAME KIND OF THING
+
+Measured off the schema on the server, which is what decided the design:
+
+- `watchouts[]` — up to six, `{point, quote}`, `required: ['point']`. **The quote is optional but usually there**, and the prompt asks for one continuous verbatim passage. So a watchout can be placed on its clause with certainty, by the very containment `docXrayPlace` already insists on for a risk finding.
+- `unusual[]` — up to four, **a bare string**. No wording at all.
+
+So `docXrayMarks` reads the watchouts and **does not read the unusual list**, and that absence is load-bearing. Pinning a sentence to a clause by matching its words is the product guessing, and a note beside the wrong clause is worse than no note. Three answers were put to the owner and he took the first: say them about the whole contract.
+
+`docXrayWide(c, rows)` is that block. It carries the unusual terms in steel, plus any watchout whose wording did not land on a clause — and **drops one that did**, so nothing is said twice. `docXrayBriefWatch` is the one reading of the list with exactly two askers, so the clause marks and the contract-level block cannot disagree about what is in it.
+
+`docXrayMarkHtml` is the ONE builder for a mark wherever it is drawn. Every mark names its source, so amber never hides whether this is a rule of yours or something the paper itself does.
+
+#### D1, AND WHY IT IS BETWEEN EVERY PAIR
+
+Three treatments were drawn at real size, each in two states, because the only real question is what a divider does when it meets the filled half:
+
+- **D1** — a hairline between every pair, the frame's own `--accent-ink` at 45%. On white it is a light hairline; where it meets the fill the fill shows through it as a slightly deeper shade. Either way it reads as a seam.
+- **D2** — dividers only between the unlit halves. Tidier at rest, and **the rules move as the lit half moves**, which is the one thing this product does not do.
+- **D3** — a full-strength rule. Reads as three buttons in a box rather than one control in three parts.
+
+He took D1. It is one declaration, `.doc-read-seg button + button`, at (0,1,2) against the base rule's (0,1,1), so it wins on weight and needs no override of last resort. The `aria-pressed` rule is (0,2,1) and sets no border, so there is no contest. MEASURED after: the group is still 30px against a `--ctl-h` of 30.
+
+#### WHAT THE CHECKS NOW STAGE
+
+The browser file's new section 7 exists because section 4 did not: it opened a contract with **no** reading, **no** brief and **no** scan. Section 7 stages a reading per painted row, a brief whose first watchout quotes real wording and whose second carries none, two unusual terms, and a high plus a low finding on two different clauses — then measures the painted panel, the graded spine, the press with the route refusing, and the dividers with the last half lit.
+
+Against unmodified main it prints the owner's screenshot back:
+
+```
+· 7a the panel shows the reading that is ON the record — "No reading of this clause yet. Press Plain English to have o"
+· 7i Plain English opens off the reading already on file, buying nothing — {"asked":1,"mode":"paper","hidden":true,"notes":0}
+· 7j D1 — a hairline between every pair, none before the first — [0,0,0]
+```
+
+Two instrument faults were found and fixed on the way, both of them the quiet kind: a grade sweep that counted `.doc-xr-seg.is-on` as a fourth grade, and a call count that matched its own function declaration. Two more browser claims passed **vacuously** at the parent (an absence in a block that is not drawn; "the lit one is the first one" on a build with no dividers at all) and are gated now.
