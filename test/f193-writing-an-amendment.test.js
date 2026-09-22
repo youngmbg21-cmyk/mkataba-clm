@@ -78,7 +78,11 @@ describe('f193 · the link is there from the first moment', () => {
     assert.equal(k.agreements, 1);
     assert.equal(k.documents, 2);
     assert.equal(k.amendments, 1);
-    assert.deepEqual(win.familyChildren('MK-1042').map(k => k.id), [c.id]);
+    /* RE-POINTED IN PLACE 21 Sep 2026, for the reason the note above this
+       block already gives: the family index hands back ITS OWN array, born
+       inside jsdom's realm, so deepStrictEqual fails on the constructor while
+       the two lists are identical. Joined, which is what the claim means. */
+    assert.equal(Array.prototype.map.call(win.familyChildren('MK-1042'), k => k.id).join(','), c.id);
   });
 
   test('nothing is left for a human to confirm — a person just made it', () => {

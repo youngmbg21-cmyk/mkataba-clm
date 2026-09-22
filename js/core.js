@@ -7511,4 +7511,33 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
+/* ============================================================
+   FOUR WAYS A CONTRACT ENDS, AND THE WORDS THAT TELL THEM APART
+   (21 Sep 2026, the process review's sixth item)
+
+   A contract can be SIGNED, DECLINED (shown as "Closed"), ARCHIVED (off
+   every list but still searchable) or ON HOLD (frozen, still on every
+   list). Each has different rules about what may still be edited, and
+   NOTHING ANYWHERE SAID SO — a reader deciding what to do with a dead
+   negotiation had to already know that archive hides it, decline closes
+   it and hold freezes it.
+
+   THIS IS THE ONE PLACE THOSE THREE SENTENCES LIVE, so the Contracts row
+   menu, the contract's own menu and anything added later cannot word them
+   differently. It decides nothing and writes nothing.
+
+   WHAT THE REVIEW ASKED FOR AND IS NOT BUILT, deliberately: it proposed
+   ONE DOOR instead of three, a window where the three are compared. The
+   owner ruled Hold onto the Contracts row BY NAME on 19 Sep, over a
+   drawing, because reaching it meant opening the contract first — and a
+   chooser would put it one press further away again. The words were the
+   half that was missing; the rows were not. */
+const END_STATES = [
+  { k:'decline', get label(){ return i18t('end_decline'); }, get says(){ return i18t('end_decline_says'); } },
+  { k:'archive', get label(){ return i18t('end_archive'); }, get says(){ return i18t('end_archive_says'); } },
+  { k:'hold',    get label(){ return i18t('end_hold'); },    get says(){ return i18t('end_hold_says'); } },
+];
+const endStateSays = k => { const x = END_STATES.find(e => e.k === k); return x ? x.says : ''; };
+Object.assign(window,{END_STATES,endStateSays});
+
 Object.assign(window,{cpReadyToSign,READY_META,READY_META_SHORT,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});

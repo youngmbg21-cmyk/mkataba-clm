@@ -789,6 +789,69 @@ const stHoldOn=u=>(typeof mayHoldContract==='function')
   ? mayHoldContract(u) : (u.role==='admin'||u.holdContracts===true);
 /* WHAT IS MISSING, AS A LIST OF WORDS — the same list the drawer refuses with
    and the same list the chip counts. One reading, three readers. */
+/* ============================================================
+   WHAT CAN THIS PERSON ACTUALLY DO? (21 Sep 2026, the process review's
+   fifth item)
+
+   A colleague can be given, one switch at a time: which value streams they
+   see, how much they may sign for, whether their work is checked before it
+   goes out, who checks it, who oversees them, whether they may re-file a
+   contract, whether they may write new paper, and whether they may freeze
+   one. Each is sensible on its own. Together, nobody could answer the
+   question above without opening this drawer and reading eight rows.
+
+   EVERY LINE IS BORROWED FROM THE SWITCH BELOW IT, so the summary and the
+   control can never disagree — this states what the product already decides,
+   it does not decide anything. It is READ-ONLY for the same reason: a second
+   place to change a grant is a second place for two screens to drift.
+
+   AN ADMIN IS SAID ONCE. Six of the eight are moot for an admin (they are
+   never capped, never narrowed, always allowed), and printing six lines
+   saying so is the fact printed six times. */
+function stPersonSays(u){
+  const out = [];
+  const say = (k, o) => (typeof i18t === 'function') ? i18t(k, o || {}) : k;
+  if(!u) return out;
+  const admin = String(u.role||'') === 'admin';
+  const viewer = String(u.role||'') === 'viewer';
+  /* 1 — which streams */
+  let acc = null; try{ acc = stAccessOf(u); }catch(_){ acc = null; }
+  const all = Object.keys((typeof FOLDERS!=='undefined' && FOLDERS) || {}).length;
+  if(acc && acc.all) out.push(say('st_sum_streams_all'));
+  else {
+    const n = (acc && acc.n) || 0;
+    out.push(n ? say('st_sum_streams_some', { n, all }) : say('st_sum_streams_none'));
+  }
+  if(admin){ out.push(say('st_sum_admin')); return out; }
+  /* 2 — how much they may sign for */
+  let cap = null; try{ cap = (typeof signCapOf==='function') ? signCapOf(u) : null; }catch(_){ cap = null; }
+  if(viewer) out.push(say('st_sum_cannot_sign'));
+  else if(cap && cap.answered && cap.limit != null)
+    out.push(say('st_sum_cap', { amount: (typeof fmtMoneyShort==='function') ? fmtMoneyShort(cap.limit) : String(cap.limit) }));
+  else out.push(say('st_sum_cap_none'));
+  /* 3 and 4 — is their work checked, and by whom */
+  const checked = u.reviewChecked !== false;
+  const by = (u.reviewerId && typeof userById==='function') ? (userById(u.reviewerId)||{}).name : '';
+  if(!checked) out.push(say('st_sum_unchecked'));
+  else out.push(by ? say('st_sum_checked_by', { who: by }) : say('st_sum_checked'));
+  /* 5 — who oversees them */
+  const over = (u.overseerId && typeof userById==='function') ? (userById(u.overseerId)||{}).name : '';
+  if(over) out.push(say('st_sum_overseen', { who: over }));
+  /* 6, 7, 8 — the three grants, said only where they are ON, because OFF is
+     the default and a list of things somebody cannot do is not a summary */
+  const grants = [];
+  if(u.newPaper === true) grants.push(say('st_sum_g_paper'));
+  if(u.reFile === true) grants.push(say('st_sum_g_refile'));
+  if(u.holdContracts === true) grants.push(say('st_sum_g_hold'));
+  out.push(grants.length ? say('st_sum_grants', { list: grants.join(', ') }) : say('st_sum_no_grants'));
+  return out;
+}
+function stPersonSumHtml(u){
+  const lines = stPersonSays(u);
+  if(!lines.length) return '';
+  return `<section class="st-sec st-sum"><h3 class="st-sec-h">${esc(i18t('st_sum_head'))}</h3>
+    <p class="st-sum-p">${lines.map(l=>esc(l)).join(' ')}</p></section>`;
+}
 function stPersonMissing(u){
   const out=[];
   if(!String(u.name||'').trim()) out.push(i18t('st_f_name'));
@@ -1072,6 +1135,7 @@ function settingsPersonDrawer(idOrNew){
       <input id="${id}" type="${type||'text'}" value="${PB_ATTR(value||'')}" style="${window.RV_FLD||ST_INPUT}"/>
       ${note?`<span class="st-note">${esc(note)}</span>`:''}</label>`;
   const body=`
+    ${isNew?'':stPersonSumHtml(u)}
     ${sec(1,i18t('st_sec_who'),
       fld('tm-name',i18t('st_f_name'),'','text',u.name)
       +fld('tm-email',i18t('st_f_email'),'','email',u.email)
@@ -4643,7 +4707,7 @@ Object.assign(window,{renderTeam,stRepaintPanel,renderMyAccountPage,briefCadence
   openMyAccount,openSettingsAt,settingsGoTab,settingsTab,stLandTop,SET_PANELS,ST_TABS,SET_CLOSURES,ST_GROUPS,ST_ATTENTION_MAX,
   stDrawerOpen,stDrawerClose,stDrawerRefuse,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,
   settingsWriteFolderAccess,settingsExportBackup,stGoLive,stSampleContracts,stClearSamples,stRunIntegrity,
-  stPersonMissing,stAccountBodyHtml,parseDirectoryCsv,openFolderAccessEditor,settingsMirrorDirectory,
+  stPersonMissing,stPersonSays,stPersonSumHtml,stAccountBodyHtml,parseDirectoryCsv,openFolderAccessEditor,settingsMirrorDirectory,
   stSigningSectionHtml,stSigningRead,stPaintLadder,stReviewSectionHtml,stReviewRead,stSignFolderHtml,stSignFolderRead,
   stOverseerSectionHtml,stOverseerRead,
   settingsMarketFactsHtml,settingsPaintShapeBoxes,settingsHeightsBefore,settingsHoldHeights,

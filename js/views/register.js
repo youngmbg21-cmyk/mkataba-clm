@@ -1367,10 +1367,25 @@ const REG_ROW_ACTIONS=[
   {k:'share',  ic:'share',     get label(){ return i18t('reg_share_with_cp'); }},
   {k:'scan',   ic:'sparkle',   get label(){ return i18t('reg_run_scan'); }},
   {k:'pdf',    ic:'printer',   get label(){ return i18t('reg_export_pdf'); }},
-  {k:'decline',ic:'ban',       get label(){ return i18t('reg_decline_close'); }, ruby:true},
+  /* ════ AND THE WORDS THAT TELL THE THREE APART (21 Sep 2026, the process
+     review's sixth item) ══════════════════════════════════════════════════
+     Decline, Archive and Hold are three different things and nothing anywhere
+     said how they differ — a reader deciding what to do with a dead
+     negotiation had to already know that archive hides it, decline closes it
+     and hold freezes it. `END_STATES` is now the ONE place those three
+     sentences live, and each row carries its own on the hover.
+     THE REVIEW ASKED FOR ONE DOOR INSTEAD OF THREE and that is NOT built,
+     deliberately: the owner ruled Hold onto this very row by name on 19 Sep,
+     over a drawing, because reaching it meant opening the contract first —
+     and a chooser would put it one press further away again. The words were
+     the half that was missing; the rows were not. */
+  {k:'decline',ic:'ban',       get label(){ return i18t('reg_decline_close'); },
+   get says(){ return i18t('end_decline_says'); }, ruby:true},
   /* the archive shelf (WO-5): reversible filing, editor-and-up — the same
      level as re-filing between streams, and audited the same way */
-  {k:'archive', ic:'folder',  get label(){ return i18t('reg_archive'); }, when:c=>!c.archived&&(typeof canEdit!=='function'||canEdit())},
+  {k:'archive', ic:'folder',  get label(){ return i18t('reg_archive'); },
+   get says(){ return i18t('end_archive_says'); },
+   when:c=>!c.archived&&(typeof canEdit!=='function'||canEdit())},
   {k:'restore', ic:'history', get label(){ return i18t('reg_restore'); }, when:c=>!!c.archived&&(typeof canEdit!=='function'||canEdit())},
   /* ════ AND THE HOLD, BESIDE ARCHIVE (Young reported it 19 Sep 2026) ═══════
      "Image 2 shows there is still no option for putting a hold or freezing a
@@ -1386,12 +1401,33 @@ const REG_ROW_ACTIONS=[
      DRAWN ONLY WHERE IT WOULD WORK, which is this catalogue's own rule: the
      per-person grant decides, the server's mayHoldRow is the wall. */
   {k:'hold',    ic:'shield',  get label(){ return i18t('hd_hold'); },
+   get says(){ return i18t('end_hold_says'); },
    when:c=>!contractOnHold(c)&&(typeof mayHoldContract!=='function'||mayHoldContract())},
   {k:'release', ic:'history', get label(){ return i18t('hd_release'); },
    when:c=>!!contractOnHold(c)&&(typeof mayHoldContract!=='function'||mayHoldContract())},
   // permanent delete — only offered while a contract is still a draft or in review
   {k:'delete', ic:'trash',     get label(){ return i18t('reg_delete_permanently'); }, ruby:true, when:c=>c.status==='Draft'||c.status==='Under Review'},
 ];
+/* WHAT EACH OF THE THREE ACTUALLY PRESSES. One place, so the chooser and the
+   rows that survive cannot drift about what an act means. Decline still
+   finishes inside the contract, exactly as the row did: closing a negotiation
+   is a decision with paper attached, not a menu press. */
+function regEndAct(c, k){
+  if(!c) return;
+  if(k === 'archive'){
+    if(window.contractSetArchived) contractSetArchived(c, true).then(ok=>{ if(ok) regRepaint(); });
+    return;
+  }
+  if(k === 'hold'){
+    if(!window.contractSetHold || !window.promptDialog) return;
+    Promise.resolve(promptDialog({ title:i18t('hd_ask_title'), message:i18t('hd_ask_msg'),
+      placeholder:i18t('hd_ask_ph'), confirmLabel:i18t('hd_hold'), multiline:true }))
+      .then(why=>{ if(why==null) return;
+        contractSetHold(c, true, why).then(ok=>{ if(ok) regRepaint(); }); });
+    return;
+  }
+  openWorkspace(c.id);   /* decline — completed inside the contract, as before */
+}
 /* THE ROW'S PRIMARY VERB.
    Not one generic "Open" down the column — each row offers the thing that
    stage actually calls for: a contract in review is opened to be argued over,
@@ -1566,7 +1602,11 @@ function regRowsHtml(cs){
     return out;
   };
   let lastBand=null;
-  const actBtns=c=>REG_ROW_ACTIONS.filter(a=>!a.when||a.when(c)).map(a=>`<button data-act="${a.k}" data-id="${c.id}" class="reg-act${a.ruby?' danger':''}" style="display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;font:inherit;font-size:var(--t-meta);text-align:left;padding:6px 9px;border-radius:var(--radius);cursor:pointer;color:${a.ruby?'var(--st-ruby-fg)':'inherit'}">${window.icon?icon(a.ic,'w-3.5 h-3.5'):''}${a.label}</button>`).join('');
+  /* THE SENTENCE RIDES THE HOVER, which is this product's own answer for a
+     fact about the machinery: the three that end a contract carry one line
+     each saying what they do, from END_STATES, so the menu and any other home
+     cannot word them differently. */
+  const actBtns=c=>REG_ROW_ACTIONS.filter(a=>!a.when||a.when(c)).map(a=>`<button data-act="${a.k}" data-id="${c.id}"${a.says?` title="${esc(a.says)}"`:''} class="reg-act${a.ruby?' danger':''}" style="display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;font:inherit;font-size:var(--t-meta);text-align:left;padding:6px 9px;border-radius:var(--radius);cursor:pointer;color:${a.ruby?'var(--st-ruby-fg)':'inherit'}">${window.icon?icon(a.ic,'w-3.5 h-3.5'):''}${a.label}</button>`).join('');
   return pageRows.map((c,i)=>{
     const eff=effectiveExpiry(c);
     const din=eff?daysUntil(eff):null;
@@ -1759,6 +1799,7 @@ function wireRegRows(){
     if(act==='open') openWorkspace(id);
     else if(act==='share') openShareModal(c);
     else if(act==='scan') runScanFor(c);
+
     else if(act==='archive'||act==='restore'){
       if(window.contractSetArchived) contractSetArchived(c,act==='archive').then(ok=>{ if(ok) regRepaint(); });
     }
@@ -2831,5 +2872,5 @@ Object.assign(window,{regSignedOn,regSignedYear,regSignedYears,regSignedCell,
   REG_COL_KEYS,REG_COL_KEYS_NEGO,REG_COL_W,REG_COL_W_NEGO,REG_COL_MIN_PX,
   regColWidths,regColSetWidths,regColReset,regColDefaults,regColTrade,regColApply,regWireColResize,
   REG_CMP,REG_SORT_DEFDIR,regBlanksLast,regStreamName,regRefParts,regNarrowed,regClearHtml,regPaintClear,
-  REG_BAR_FILTERS,REG_BAR_DEFAULT,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,regViewCount,REG_SAVED_KEY,REG_SAVED_FIELDS,regSavedViews,regSaveView,regForgetView,regApplySaved,regSavedMatches,regHeadFactsHtml,regPaintHeadFacts,regMoveWord,regOwnerCell,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regMode,regSetMode,regViewTabsHtml,regSegHtml,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,negoMoveSay,regShowOnly,regPaintCohort,renderRegister,renderRegisterBody,wireRegRows,
+  REG_BAR_FILTERS,REG_BAR_DEFAULT,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,regViewCount,REG_SAVED_KEY,REG_SAVED_FIELDS,regSavedViews,regSaveView,regForgetView,regApplySaved,regSavedMatches,regHeadFactsHtml,regPaintHeadFacts,regMoveWord,regOwnerCell,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regMode,regSetMode,regViewTabsHtml,regSegHtml,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,regEndAct,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,negoMoveSay,regShowOnly,regPaintCohort,renderRegister,renderRegisterBody,wireRegRows,
   regScope,regSetScope,regRepaint,regPageSize,regFitBandOffset,NEGO_BANDS,NEGO_BAND_DOT,negoGroupByMove,negoBandCounts,negoMovePillHtml,negoBandRowHtml});
