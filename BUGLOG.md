@@ -18878,3 +18878,32 @@ Noticed, not fixed
 - The phone's share sheet shows no readiness list.
 - The server does not refuse a signature for a missing field; the other side's signature can complete a contract without any of this being asked again.
 - Once a negotiation has stored the wording, an empty template box is a dash in the text and is no longer counted (a limit of this build, said to the owner).
+## 22 Sep 2026 — why the iPad still draws three columns, measured (no code written)
+
+Young, with a screenshot of the New agreement pop-up on hati-clm.onrender.com drawing three columns: *"We agreed to build a starkes for the iPad but this is what I am getting. Do not code but find the bug."*
+
+NOTHING IS BROKEN IN THE CODE. The rule is doing exactly what it was written to do, and the rule is the fault.
+
+THE SCREENSHOT NAMES THE BRANCH ITSELF. Under the questions it reads *"The paper draws beside these answers…"*, which is `na_note_wide` — the THREE-COLUMN note. The stacked branch carries a different sentence (`na_note_stack`, *"The agreement is under these questions…"*). So the code chose `wide` deliberately; it did not fail to find the stacked branch.
+
+THE ARITHMETIC OFF THE IMAGE AGREES. The capture is 2000x1499 at a 1.3342 ratio — a 4:3 iPad. An iPad Pro 12.9" is 2732x2048 physical and 1366x1024 CSS, and 2000/2732 = 1499/2048 = 0.732 exactly. The modal spans about 1726 image px; at 0.683 CSS px per image px that is 1179, which is NA_FRAME_W 1180 to the pixel.
+
+SO THE DEVICE REPORTS 1366 AND THE RULE SAYS 1280. `wide = winW >= NA_PAPER_MIN_W` and NA_PAPER_MIN_W is 1280, so 1366 is above the line and the laptop shape draws; `stack` is only asked where `wide` is false. "D for iPads" was implemented as "D under 1280px", and a 12.9-inch iPad in landscape sits above it.
+
+DRIVEN IN A REAL BROWSER AT THE FOUR SIZES REAL iPADS REPORT, and it reproduces the owner's screen exactly:
+
+    1366x1024  iPad Pro 12.9 landscape  na-wide   3 cols  260/438/400  frame 1180  <- the report
+    1194x834   iPad Pro 11  landscape   na-stack  2 cols  260/578      frame 900
+    1180x820   iPad Air 11  landscape   na-stack  2 cols  260/578      frame 900
+    1024x768   iPad 10.2    portrait    na-stack  2 cols  260/578      frame 900
+
+THIS DOES NOT DEPEND ON WHETHER THE DEPLOY CARRIES THE MERGE. The `wide` condition was not changed by the stacked commit (88263de refactored it onto the hoisted `winW` and left the comparison alone), and NA_PAPER_MIN_W has been 1280 since proposal C. At 1366 the pre-merge and post-merge builds draw the same three columns. The deployed file could not be read from here to confirm which it is serving — the egress policy refuses hati-clm.onrender.com — so that is stated rather than assumed.
+
+1366 WAS NAMED IN THE ADVICE TABLE BEFORE THE RULING ("iPad Pro 12.9 landscape | 1366 | yes"), so this is a known consequence of where the line was put, not a regression. What it shows is that a WIDTH is the wrong instrument for the question the owner is asking, which is about a device.
+
+No product code written — the owner asked for the bug, not the fix. Three ways forward were put to them: raise the line above 1366; decide by pointer/touch rather than by width; or leave it and accept that only the 12.9-inch gets the laptop shape.
+
+Noticed, not fixed:
+- f277 (1) and f277 (10) still red, still proved pre-existing at origin/main. Unchanged from the merge entry above.
+
+Gates: none run — nothing was changed.
