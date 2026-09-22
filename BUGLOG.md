@@ -18450,3 +18450,22 @@ Noticed, not fixed:
 - js/blanks.js line ~362 also reads todayStr() into a contract blank; a display date on paper is arguably right there and was left alone.
 
 Gates: 8,599 tests, 0 failed. Lint 0 errors. Browser set 39 of 129 red on this tree and the SAME 39 at the parent - lists compared file by file, nothing red here that was green there.
+
+## 22 Sep 2026 — the risk scan's date
+
+Young: "fix the risk scan date bug too" — the line logged as Noticed, not fixed an hour earlier.
+
+MEASURED in a real browser on both sides, pressing the product's own scan. Parent: `on:"22 Sept 2026"` and the Overview's What Copilot read row prints an em-dash. Fixed: `on:"2026-09-22"` and the row prints 22 Sept 2026. `at` untouched.
+
+`on` had ONE writer and ONE reader and they had never agreed: the writer stamped todayStr() (a DISPLAY string) and ktDayDot correctly refuses anything that is not an ISO day, so that row had shown a dash on every record ever scanned. Third payment for one confusion — the calendar, the served-notice wall, and now this.
+
+`todayISO()` is the one reading, declared in js/core.js DIRECTLY BELOW todayStr because that is the line it keeps being mistaken for, published, and asked by all three (scan, notice wall, calToday) through window with the same LOCAL arithmetic as each one's own fallback.
+
+Found while fixing:
+- THE CHECK THAT SHOULD HAVE CAUGHT IT WAS ASSERTING THE DEFECT: f328 pinned the source line `on:(typeof todayStr==='function')?todayStr()` under the message "and `on` is the ISO day a formatter can read" — the assertion and its own message contradicted each other. A check that reads the source LINE cannot see the VALUE. Reversed in place: it evaluates the expression and hands the result to ktDayDot's own shape.
+- MY FIRST DRAFT OF THAT CHECK PASSED AT THE PARENT: it bound only todayISO, so `typeof todayStr` answered 'undefined', the expression took its ISO fallback and the claim measured the fallback instead of the real pair. The f133 mirror-world trap again. Both names carry their real bodies now.
+- AND MY FIRST "PARENT" MEASUREMENT WAS THE FIXED TREE: the probe required /home/user/mkataba-clm/test/helpers by absolute path, so the worktree run served the main repo's files and reported the bug as not reproducing. Re-run against the worktree's own helpers, it reproduced exactly.
+
+Not done, and said out loud: no backfill. A contract scanned before this keeps a display string in `on` and still shows a dash — the sentence beside it cannot be turned into a day without guessing, and scanning again is one press.
+
+Gates: 8,602 tests, 0 failed. Lint 0 errors. calendar-day 23/23, overview-as-drawn 42/42, auto-triage 64/64; calendar-redesign fails the SAME three checks at the parent.
