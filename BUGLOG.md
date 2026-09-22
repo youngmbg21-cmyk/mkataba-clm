@@ -18469,3 +18469,12 @@ Found while fixing:
 Not done, and said out loud: no backfill. A contract scanned before this keeps a display string in `on` and still shows a dash — the sentence beside it cannot be turned into a day without guessing, and scanning again is one press.
 
 Gates: 8,602 tests, 0 failed. Lint 0 errors. calendar-day 23/23, overview-as-drawn 42/42, auto-triage 64/64; calendar-redesign fails the SAME three checks at the parent.
+
+## 22 Sep 2026 — the notice door on MK-196 (reported, explained, not fixed)
+
+Young, of the artifact's item 4: "this is what i see on my screen for an old contract which is not the same as what is in the artifact. Explain but do not code."
+
+READ, not guessed. MK-196 draws the renewal card at all, so renewalWindow returned non-null and renewalInForce is true (the name ends "(Draft)"; the record is executed). Counterparty named, expiry 30 Jul 2026 recorded, inWindow true at days -54. So of noticeBlockers' seven answers exactly ONE is on: `no-notice-period` - metadata.noticePeriodDays is absent, which the card already states in its own words above the acts row. Serve a notice and I served this are both gated on noticeMayDraft, so one missing field closes both doors. The screen is correct.
+
+Noticed, not fixed:
+- js/notice.js's header and CLAUDE.md both say "every refusal is a REASON the renewal card prints". It is not built that way: noticeWhyLine is only ever spoken as a toast from openNoticeDialog, i.e. AFTER a press on a door that is drawn. Where noticeMayDraft refuses, the button is simply absent and nothing on the card names the notice desk at all. The reader sees the notice-period line (rn_no_notice) but has no way to connect it to a door they never saw. nt_why_no_notice and its six siblings are written and unreachable on this path. The owner's call.
