@@ -18757,3 +18757,19 @@ A FAULT IN MY OWN INSTRUMENT: the new claim "X-ray has no card rule of its own"
 was written as a plain negative on `#doc-xray{`, which is a SUBSTRING of
 `#doc-read,#doc-xray{` — so it tripped on the very rule it exists to allow. A
 negative lookbehind for the comma.
+
+## 22 Sep 2026 — merged to main, and the test number was taken
+
+"Merge to main." Main had moved by two commits while the stacked pop-up was being built (the runway on Home, and X-ray beside Plain English), so this was a merge and not a fast-forward.
+
+THE MERGE ITSELF WAS CLEAN — git reported no conflict on any of the five files both sides touched (BUGLOG, CLAUDE.md, MAP-HISTORY, index.html, js/i18n.js). Nothing functional overlaps: the runway is on Home, X-ray is on the Plain English column, and this branch only moved the New agreement pop-up.
+
+WHAT DID COLLIDE IS THE TEST NUMBER. Main's own new file is test/f363-the-runway.test.js and this branch had written test/f363-the-agreement-is-stacked-under-1280.test.js. Two different checks under one number, which is how a re-pointing note ends up naming the wrong file six weeks later. Main's landed first, so this one was renamed to f365 (f364 is X-ray's) and every reference re-pointed with it: the file's own header and its nine section names, the two mentions in CLAUDE.md and the two in MAP-HISTORY — each read out of ITS OWN SECTION, never by a blind sweep, because the same string belongs to the runway five hundred lines above.
+
+Verified on the merged tree, not assumed: lint 0 errors; f365, f363 (the runway), f364, f345, f360 and f148 all green together; new-agreement-verify 38/38 and main's own runway-and-xray-verify 33/33 in a real browser.
+
+Noticed, not fixed:
+- f277 (1) and f277 (10) — the Plain English switch's "no ring, no band" claim and "the layer is a white sheet" — fail on the merged tree. PROVED PRE-EXISTING in a worktree at unmodified origin/main, where the same two claims fail and the other 121 pass. They arrived with the X-ray commits and belong to whoever owns that change.
+- paper-beside-questions-verify 7c/7g still fail identically on both sides. Unchanged from earlier entries.
+
+Gates: 8,790 tests, 2 failed and both proved red at origin/main. Lint 0 errors.

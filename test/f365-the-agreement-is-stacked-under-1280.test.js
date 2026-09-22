@@ -1,4 +1,4 @@
-/* f363 — THE AGREEMENT IS STACKED UNDER 1280, AND THE TWO SIDES SCROLL APART
+/* f365 — THE AGREEMENT IS STACKED UNDER 1280, AND THE TWO SIDES SCROLL APART
    ============================================================================
    Young, 22 September 2026, off the four renders he asked for: *"Build D for
    iPads but the right hand side should scroll separately from the [left] hand
@@ -30,7 +30,7 @@
      · the laptop shape, the shared preview pane and its own 1000 floor are
        untouched
 
-   Run: node --test test/f363-the-agreement-is-stacked-under-1280.test.js */
+   Run: node --test test/f365-the-agreement-is-stacked-under-1280.test.js */
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
@@ -74,7 +74,7 @@ function rule(sel) {
 /* ============================================================================
    1 · THE FLOOR, AND WHY IT IS NOT THE OTHER ONE
    ==========================================================================*/
-describe('f363 (1) NA_STACK_MIN_W', () => {
+describe('f365 (1) NA_STACK_MIN_W', () => {
   test('it is declared and it is 768', () => {
     const m = CODE.match(/const\s+NA_STACK_MIN_W\s*=\s*(\d+)\s*;/);
     assert.ok(m, 'NA_STACK_MIN_W is declared');
@@ -102,7 +102,7 @@ describe('f363 (1) NA_STACK_MIN_W', () => {
 /* ============================================================================
    2 · THE READING, AND THE ONE FLOOR IT DELIBERATELY DOES NOT ASK
    ==========================================================================*/
-describe('f363 (2) wide and stack', () => {
+describe('f365 (2) wide and stack', () => {
   const line = (() => {
     const m = NA.match(/const\s+stack\s*=\s*([^;]+);/);
     return m ? m[1] : '';
@@ -133,7 +133,7 @@ describe('f363 (2) wide and stack', () => {
 /* ============================================================================
    3 · ONE HOST, ONE ID, ONE PAINTER
    ==========================================================================*/
-describe('f363 (3) the paper and the questions are written once', () => {
+describe('f365 (3) the paper and the questions are written once', () => {
   test('[wall] id="na-paper" is written exactly once in the file', () => {
     /* TWO HOMES, NOT TWO HOSTS. A second literal would be a second element
        with the same id, and hostOpts.paperHost takes whichever the document
@@ -163,7 +163,7 @@ describe('f363 (3) the paper and the questions are written once', () => {
 /* ============================================================================
    4 · THE NOTE SAYS WHERE THE AGREEMENT IS
    ==========================================================================*/
-describe('f363 (4) three answers, one slot', () => {
+describe('f365 (4) three answers, one slot', () => {
   test('the note names all three shapes', () => {
     const m = NA.match(/i18t\(wide\?'na_note_wide':\(stack\?'([a-z_]+)':'na_note'\)\)/);
     assert.ok(m, 'the note reads all three');
@@ -190,7 +190,7 @@ describe('f363 (4) three answers, one slot', () => {
 /* ============================================================================
    5 · THE TWO COLUMNS SCROLL APART, ON ONE DERIVED NUMBER
    ==========================================================================*/
-describe('f363 (5) the stylesheet', () => {
+describe('f365 (5) the stylesheet', () => {
   test('both sides take the cap and their own scroller', () => {
     const r = rule('.na-stack .na-left,.na-stack .na-right');
     assert.ok(r, 'the rule exists and names BOTH sides');
@@ -244,7 +244,7 @@ describe('f363 (5) the stylesheet', () => {
 /* ============================================================================
    6 · PICKING ANOTHER TEMPLATE LANDS ON ITS QUESTIONS
    ==========================================================================*/
-describe('f363 (6) where the reader ends up', () => {
+describe('f365 (6) where the reader ends up', () => {
   test('a pick puts the stacked column back at the top', () => {
     assert.match(NA, /getElementById\('na-right'\)[\s\S]{0,60}?scrollTop\s*=\s*0/,
       'stacked, the paper is below the fold and a pick made while reading it '
@@ -260,7 +260,7 @@ describe('f363 (6) where the reader ends up', () => {
 /* ============================================================================
    7 · WHAT WAS NOT TOUCHED
    ==========================================================================*/
-describe('f363 (7) the shared preview is where it was', () => {
+describe('f365 (7) the shared preview is where it was', () => {
   test('[control] the pane keeps its own 52vh sheet and its 1000 floor', () => {
     /* fillPreview* is shared by three doors. This change places its host; it
        does not reach inside it. */
