@@ -44,13 +44,14 @@ const _noEsc = s => String(s == null ? '' : s).replace(/[&<>]/g, ch => ({ '&':'&
    "2" with "0" and answers false for every date in the future: the wall that
    refused a notice served tomorrow never refused anything, and the date box
    opened empty with no maximum, because a date input drops a value it cannot
-   read. THE CALENDAR PAID FOR THIS EXACT TRAP and wrote it down beside
-   calToday, which is the one reading — asked through window, because this
-   file draws on stages that carry no calendar, with the same LOCAL
-   arithmetic (never UTC, which puts today on yesterday for every reader west
-   of Greenwich after their afternoon). */
+   read. THE CALENDAR PAID FOR THIS EXACT TRAP and wrote it down beside its
+   own calToday; the risk scan paid for it a third time. `todayISO` in
+   js/core.js is the ONE reading now — asked through window, because this file
+   draws on stages that carry no core, with the same LOCAL arithmetic as its
+   fallback (never UTC, which puts today on yesterday for every reader west of
+   Greenwich after their afternoon). */
 function _noToday(){
-  try{ if(typeof window !== 'undefined' && typeof window.calToday === 'function') return calToday(); }catch(_){}
+  try{ if(typeof window !== 'undefined' && typeof window.todayISO === 'function') return todayISO(); }catch(_){}
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }

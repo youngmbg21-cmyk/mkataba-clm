@@ -194,8 +194,17 @@ describe('f358 (4) whether the notice was served', () => {
     assert.ok(/function _noToday\(\)/.test(NOTE), 'one reading, both sites');
     assert.equal((code(NOTE).match(/_noToday\(\)/g) || []).length, 3,
       'declared once, asked by the wall and by the box that offers the day');
-    assert.ok(/window\.calToday/.test(NOTE),
-      'the calendar already holds this reading — guarded, because this file draws without it');
+    /* RE-POINTED IN PLACE, 22 Sep 2026: this pinned `window.calToday` by NAME,
+       and the reading moved into js/core.js as `todayISO` when the risk scan
+       turned out to need the same answer — three files, one question. The
+       claim is asked as the RELATION: this file asks the one published
+       reading, and so does the calendar, so they cannot drift. */
+    assert.ok(/window\.todayISO === 'function'/.test(NOTE),
+      'guarded, because this file draws on stages without js/core.js');
+    assert.ok(/const todayISO = /.test(R('js/core.js')),
+      'and the reading it asks for is declared once');
+    assert.ok(/window\.todayISO === 'function'/.test(R('js/views/calendar.js')),
+      'the calendar asks the same one');
   });
   test('4e a served notice IS the renewal decision, so the chase stops', () => {
     const OB = code(R('js/obligations.js'));

@@ -262,7 +262,12 @@ function runScan(c){
      for it — the honest answer, and never a NaN again (see ktReadingsRowsHtml,
      which now refuses anything that is not an ISO day). */
   c.scan = { at:new Date().toLocaleString(langLocale(),{dateStyle:'medium',timeStyle:'short'}),
-    on:(typeof todayStr==='function')?todayStr():new Date().toISOString().slice(0,10),
+    /* `on` IS AN ISO DAY. It was written with todayStr() — a DISPLAY string —
+       so ktDayDot refused it and this row printed an em-dash on every record
+       ever scanned. todayISO is the one reading; the fallback is its own
+       arithmetic, because this file draws on stages without js/core.js. */
+    on:(typeof todayISO==='function')?todayISO()
+      :(d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)(new Date()),
     lang:(typeof langId==='function'?langId():'en'),
     findings:scanRules(c), dismissed:prev };
 }

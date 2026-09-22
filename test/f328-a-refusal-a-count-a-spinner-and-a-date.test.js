@@ -291,8 +291,64 @@ describe('f328 (5) a day is a day, and nothing prints NaN', () => {
     const b = fnBody(AI_SRC, 'runScan');
     assert.match(b, /at:new Date\(\)\.toLocaleString/,
       '`at` is still the sentence the findings panel prints, in its own language');
-    assert.match(b, /on:\(typeof todayStr==='function'\)\?todayStr\(\)/,
-      'and `on` is the ISO day a formatter can read');
+  });
+  /* REVERSED IN PLACE, 22 Sep 2026. The claim above used to continue:
+
+         assert.match(b, /on:\(typeof todayStr==='function'\)\?todayStr\(\)/,
+           'and `on` is the ISO day a formatter can read');
+
+     — which pinned the DEFECT and called it the fix. todayStr() returns
+     "22 Sept 2026", so ktDayDot refused it and this row printed an em-dash on
+     every record ever scanned; the assertion and its own message contradicted
+     each other and nobody read them together. A CHECK THAT READS THE SOURCE
+     LINE CANNOT SEE THE VALUE, so this asks what the product actually writes:
+     the `on:` expression is lifted out of runScan and EVALUATED. */
+  /* THE STAGE IS THE PRODUCT'S OWN. A first draft of this evaluated the `on:`
+     expression with only todayISO defined, so `typeof todayStr` answered
+     'undefined', the expression took its ISO fallback and the claim PASSED at
+     the parent — measuring the fallback instead of the real pair, which is a
+     trap this codebase has already paid for once. Both names are bound here
+     with the bodies js/core.js really gives them. */
+  const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const realTodayStr = () => new Date().toLocaleDateString('en-SE', { day: '2-digit', month: 'short', year: 'numeric' });
+  const scanOnExpr = () => {
+    const b = fnBody(AI_SRC, 'runScan');
+    const m = b.match(/on:([\s\S]*?),\n\s*lang:/);
+    assert.ok(m, 'the scan stamps `on` beside `lang`');
+    return m[1].replace(/\/\*[\s\S]*?\*\//g, ' ').trim();
+  };
+  test('and the day it stamps really is an ISO day', () => {
+    const expr = scanOnExpr();
+    const onStage = new Function('todayStr', 'todayISO', 'return (' + expr + ');')(realTodayStr, () => iso(new Date()));
+    assert.equal(onStage, iso(new Date()),
+      'what runScan writes, on a stage carrying core exactly as the product does');
+    const bare = new Function('return (' + expr + ');')();
+    assert.match(String(bare), /^\d{4}-\d{2}-\d{2}$/,
+      'and the fallback, for a stage without js/core.js, answers the same shape');
+  });
+  test('the day the scan stamps is one ktDayDot will PRINT', () => {
+    /* THE TWO HALVES MEASURED AGAINST EACH OTHER: the writer's real value
+       handed to the reader that was refusing it. */
+    const dot = fnBody(read('js/views/contract.js'), 'ktDayDot');
+    const re = dot.match(/\/\^[^/]+\/(?=\.test)/);
+    assert.ok(re, 'ktDayDot states the shape it accepts');
+    const shape = new RegExp(re[0].slice(1, -1));
+    const written = new Function('todayStr', 'todayISO', 'return (' + scanOnExpr() + ');')(realTodayStr, () => iso(new Date()));
+    assert.ok(shape.test(String(written).slice(0, 10)),
+      `the reader refused what the scan wrote: ${JSON.stringify(written)}`);
+    assert.ok(!shape.test(realTodayStr()),
+      'and a display string is still refused — that half was always right');
+  });
+  test('ONE reading answers "today as a day", and it is published', () => {
+    const CORE = read('js/core.js');
+    assert.match(CORE, /const todayISO = \(\) => \{/, 'it lives beside todayStr, which is what it keeps being confused with');
+    assert.ok(!/toISOString/.test(fnBody(CORE, 'todayISO') || CORE.slice(CORE.indexOf('const todayISO'), CORE.indexOf('const todayISO') + 400)),
+      'LOCAL, never UTC — toISOString puts today on yesterday west of Greenwich');
+    assert.ok(/todayISO/.test(CORE.split('Object.assign(window').slice(1).join('')),
+      'a name missing from the publish list cannot be read by ai.js, notice.js or the calendar');
+    for(const [f, why] of [['js/notice.js', 'the served-notice wall'], ['js/views/calendar.js', 'the calendar']]){
+      assert.match(read(f), /window\.todayISO === 'function'/, `${why} asks the one reading`);
+    }
   });
   test('and there is ONE printer, where there were FOUR', () => {
     /* This table's, the record grid's, the documents rows' and the room's fact

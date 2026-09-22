@@ -252,7 +252,13 @@ function calVisible(evs){
    DISPLAY string ("22 Aug 2026") that matched no cell at all, so today was
    simply never marked. */
 const _isoLocal=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-function calToday(){ return _isoLocal(new Date()); }
+/* The same question js/core.js's todayISO answers, and it is asked there so the
+   two cannot drift; `_isoLocal(new Date())` is the identical fallback, kept
+   because this file's week and month readings use _isoLocal anyway. */
+function calToday(){
+  try{ if(typeof window !== 'undefined' && typeof window.todayISO === 'function') return todayISO(); }catch(_){}
+  return _isoLocal(new Date());
+}
 
 function calWeekBounds(d){
   const t=d?new Date(d):new Date();
