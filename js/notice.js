@@ -39,6 +39,21 @@ const NOTICE_KINDS = ['non-renewal', 'termination'];
 const NOTICE_LATE_SAYS = true;
 
 const _noEsc = s => String(s == null ? '' : s).replace(/[&<>]/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[ch]));
+/* TODAY, AS AN ISO DAY — and `todayStr()` is NOT it. That reading is a
+   DISPLAY string ("22 Sep 2026"), so comparing it with an ISO day compares
+   "2" with "0" and answers false for every date in the future: the wall that
+   refused a notice served tomorrow never refused anything, and the date box
+   opened empty with no maximum, because a date input drops a value it cannot
+   read. THE CALENDAR PAID FOR THIS EXACT TRAP and wrote it down beside
+   calToday, which is the one reading — asked through window, because this
+   file draws on stages that carry no calendar, with the same LOCAL
+   arithmetic (never UTC, which puts today on yesterday for every reader west
+   of Greenwich after their afternoon). */
+function _noToday(){
+  try{ if(typeof window !== 'undefined' && typeof window.calToday === 'function') return calToday(); }catch(_){}
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
 /* A day written the way the paper writes one. fmtDocDate reads a fixed month
    list, so a letter does not change its wording with the reader's language
    setting — the counterparty reads the agreement's own language, not ours. */
@@ -168,7 +183,7 @@ function openNoticeDialog(c){
 function openNoticeServedDialog(c, after){
   if(!c) return false;
   const e = _noEsc;
-  const today = (typeof todayStr === 'function') ? todayStr() : new Date().toISOString().slice(0,10);
+  const today = _noToday();
   const had = noticeServed(c);
   const ways = NOTICE_WAYS.map(w => `<option value="${w}"${had && had.way===w ? ' selected' : ''}>${
     e(i18t(NOTICE_WAY_KEY[w]))}</option>`).join('');
@@ -249,7 +264,7 @@ function noticeMarkServed(c, on, way, ref, actor){
   if(!c) return null;
   const day = String(on || '').slice(0, 10);
   if(!/^\d{4}-\d{2}-\d{2}$/.test(day)) return null;
-  const today = (typeof todayStr === 'function') ? todayStr() : new Date().toISOString().slice(0, 10);
+  const today = _noToday();
   if(day > today) return null;
   const w = NOTICE_WAYS.includes(String(way)) ? String(way) : 'post';
   const u = actor || ((typeof currentUser === 'function') ? currentUser() : null);
