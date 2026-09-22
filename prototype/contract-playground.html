@@ -1,0 +1,1151 @@
+<title>The Contract Playground</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* HaTi's own approved tokens (prototype/hati-redesign-reference.html). */
+:root{
+  --bg:#F4F6F5; --surface:#FFFFFF; --surface-2:#EEF2F0; --surface-3:#E6ECEA;
+  --line:#E2E7E5; --line-2:#CBD3D0;
+  --ink:#141F1D; --ink-2:#5A6866; --ink-3:#6B7876;
+  --accent:#0E5F58; --accent-ink:#0B4A45; --accent-soft:#E1F0ED; --accent-line:#9CCFC6;
+  --amber:#B0560A; --amber-soft:#FBEEDB; --amber-dot:#E8A317;
+  --ruby:#B3261E; --ruby-soft:#FBE5E3;
+  --good:#1E7D4E; --good-soft:#DFF2E7;
+  --steel:#48639A; --steel-soft:#E6ECF6;
+  --violet:#6B5BA8; --violet-soft:#EDE9F7;
+  --paper:#FFFDF9; --paper-line:#ECE6D8; --paper-ink:#1C1A16;
+  --ins:#0B6B5F; --ins-bg:#DDF2ED; --del:#8F3A2E; --del-bg:#F8E4E0;
+  --shadow-1:0 1px 2px rgba(10,40,36,.06),0 1px 3px rgba(10,40,36,.04);
+  --shadow-2:0 8px 24px rgba(10,40,36,.10),0 2px 6px rgba(10,40,36,.06);
+  --sans:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --r:4px; --r-lg:8px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --bg:#0E1312; --surface:#151B1A; --surface-2:#1B2221; --surface-3:#212A28;
+  --line:#26302E; --line-2:#36423F;
+  --ink:#E6ECEA; --ink-2:#A0ACA9; --ink-3:#8B9895;
+  --accent:#5EC2B3; --accent-ink:#8ADACF; --accent-soft:#12302C; --accent-line:#1F5A52;
+  --amber:#EBAD46; --amber-soft:#3A2A0F; --amber-dot:#E8A317;
+  --ruby:#F0857B; --ruby-soft:#3F1C19;
+  --good:#5CC48E; --good-soft:#153224;
+  --steel:#8FA8DE; --steel-soft:#1D2637;
+  --violet:#A79AD6; --violet-soft:#221E36;
+  --paper:#1B1F1D; --paper-line:#2C3230; --paper-ink:#E8E6DF;
+  --ins:#6FD0BF; --ins-bg:#143A34; --del:#F09A8E; --del-bg:#3E1F1B;
+  --shadow-1:0 1px 2px rgba(0,0,0,.4); --shadow-2:0 8px 24px rgba(0,0,0,.5);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0E1312; --surface:#151B1A; --surface-2:#1B2221; --surface-3:#212A28;
+  --line:#26302E; --line-2:#36423F;
+  --ink:#E6ECEA; --ink-2:#A0ACA9; --ink-3:#8B9895;
+  --accent:#5EC2B3; --accent-ink:#8ADACF; --accent-soft:#12302C; --accent-line:#1F5A52;
+  --amber:#EBAD46; --amber-soft:#3A2A0F; --amber-dot:#E8A317;
+  --ruby:#F0857B; --ruby-soft:#3F1C19;
+  --good:#5CC48E; --good-soft:#153224;
+  --steel:#8FA8DE; --steel-soft:#1D2637;
+  --violet:#A79AD6; --violet-soft:#221E36;
+  --paper:#1B1F1D; --paper-line:#2C3230; --paper-ink:#E8E6DF;
+  --ins:#6FD0BF; --ins-bg:#143A34; --del:#F09A8E; --del-bg:#3E1F1B;
+  --shadow-1:0 1px 2px rgba(0,0,0,.4); --shadow-2:0 8px 24px rgba(0,0,0,.5);
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:400 14px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+h1,h2,h3{margin:0;text-wrap:balance}
+p{margin:0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.lbl{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+.app{max-width:1280px;margin:0 auto;padding-block:20px 44px;padding-left:16px;padding-right:16px}
+
+/* ── head ─────────────────────────────────────────────── */
+.mast{display:flex;gap:14px;align-items:flex-end;justify-content:space-between;
+  flex-wrap:wrap;padding-bottom:14px;border-bottom:2px solid var(--ink);margin-bottom:14px}
+.mast h1{font-size:23px;font-weight:600;letter-spacing:-.018em;line-height:1.1}
+.mast .sub{font-size:13px;color:var(--ink-2);margin-top:3px}
+.mast .sub b{color:var(--ink);font-weight:600}
+
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.modes{display:inline-flex;border:1px solid var(--line-2);border-radius:var(--r);
+  overflow:hidden;flex-wrap:wrap}
+.modes button{border:0;background:var(--surface);color:var(--ink-2);font-size:13px;
+  font-weight:500;padding:0 12px;height:30px;border-right:1px solid var(--line)}
+.modes button:last-child{border-right:0}
+.modes button:hover{background:var(--surface-2);color:var(--ink)}
+.modes button[aria-pressed="true"]{background:var(--accent);color:#fff;font-weight:600}
+.acts{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;
+  border-radius:var(--r);border:1px solid var(--line-2);background:var(--surface);
+  color:var(--ink);font-size:13px;font-weight:500;white-space:nowrap}
+.btn:hover{background:var(--surface-2);border-color:var(--ink-3)}
+.btn-p{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.btn-p:hover{background:var(--accent-ink);border-color:var(--accent-ink)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn:disabled:hover{background:var(--surface);border-color:var(--line-2)}
+
+.hint{font-size:13px;color:var(--ink-2);background:var(--surface);border:1px solid var(--line);
+  border-left:3px solid var(--accent-line);border-radius:var(--r);padding:9px 13px;margin-bottom:12px;
+  line-height:1.5}
+.hint b{color:var(--ink);font-weight:600}
+
+/* ── tour strip ───────────────────────────────────────── */
+.tour{display:none;gap:12px;align-items:center;flex-wrap:wrap;background:var(--amber-soft);
+  border-radius:var(--r);padding:10px 13px;margin-bottom:12px}
+.tour.on{display:flex}
+.tour .why{flex:1 1 300px;min-width:0;font-size:13.5px;color:var(--ink);line-height:1.45}
+.tour .why b{font-weight:600}
+.tour .tag{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--amber);display:block;margin-bottom:2px}
+.tour .nav{display:flex;gap:6px;align-items:center}
+.tour .ct{font-family:var(--mono);font-size:12px;color:var(--ink-2);min-width:74px;text-align:center}
+
+/* ── layout ───────────────────────────────────────────── */
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 336px;gap:14px;align-items:start}
+.grid.solo{grid-template-columns:minmax(0,1fr)}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+
+.col{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);
+  box-shadow:var(--shadow-1);overflow:hidden;display:flex;flex-direction:column}
+.colh{display:flex;gap:10px;align-items:center;justify-content:space-between;
+  padding:8px 13px;border-bottom:1px solid var(--line);background:var(--surface-2);flex-wrap:wrap}
+.colh .n{font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
+
+/* paper */
+.scroll{overflow:auto;height:min(68vh,600px);padding:16px;background:var(--surface-2)}
+.sheet{background:var(--paper);border:1px solid var(--paper-line);max-width:640px;margin:0 auto;
+  padding:34px 40px 44px;color:var(--paper-ink);font-size:13px;line-height:1.72}
+@media (max-width:560px){.sheet{padding:22px 20px 30px}.scroll{padding:10px}}
+.sheet .title{text-align:center;font-size:12px;font-weight:700;letter-spacing:.11em;
+  text-transform:uppercase;margin-bottom:6px}
+.sheet .parties{text-align:center;font-size:11.5px;color:var(--paper-ink);opacity:.72;
+  margin-bottom:26px;line-height:1.6}
+.cl{position:relative;border:0;background:none;padding:0;margin:0 0 20px;display:block;width:100%;
+  text-align:left;font:inherit;color:inherit;cursor:pointer}
+.cl h4{font-size:13px;font-weight:700;margin:0 0 5px;line-height:1.4}
+.cl p{margin:0 0 7px}
+.cl p:last-child{margin-bottom:0}
+.cl::after{content:"";position:absolute;left:-16px;top:2px;bottom:2px;width:3px;
+  background:transparent;border-radius:2px}
+.cl:hover h4{color:var(--accent-ink)}
+.cl.sel::after{background:var(--accent)}
+.cl.chg::after{background:var(--ruby)}
+.cl.sel.chg::after{background:linear-gradient(var(--accent) 50%,var(--ruby) 50%)}
+.cl.sel h4{color:var(--accent-ink)}
+.cl ins{background:var(--ins-bg);color:var(--ins);text-decoration:underline;
+  text-decoration-thickness:1px;padding:0 1px}
+.cl del{background:var(--del-bg);color:var(--del);padding:0 1px}
+.cl mark{background:var(--amber-soft);color:inherit;box-shadow:0 0 0 2px var(--amber-soft)}
+.gone{text-align:center;font-size:11px;color:var(--paper-ink);opacity:.5;
+  border-top:1px solid var(--paper-line);padding-top:14px;margin-top:4px;font-style:italic}
+
+.marks{display:flex;gap:9px;align-items:center;font-size:11.5px;color:var(--ink-2)}
+.marks i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;
+  vertical-align:0}
+
+/* panel */
+/* No nested scrollbar: the panel is finite, so it flows and the page grows.
+   Everything in a layer stays reachable without a second scroller to find. */
+.pbody{padding:13px}
+.pnote{font-size:12px;color:var(--ink-3);line-height:1.5;margin-top:12px;
+  border-top:1px solid var(--line);padding-top:10px}
+
+/* ── x-ray bands ──────────────────────────────────────── */
+.bands{display:flex;flex-direction:column;gap:3px}
+.band{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;padding:2px 0;
+  text-align:left}
+.band .bar{flex:none;width:14px;border-radius:2px;background:var(--line-2);min-height:9px}
+.band .nm{flex:1 1 auto;min-width:0;font-size:11.5px;color:var(--ink-2);line-height:1.2;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.band .mk{flex:none;width:7px;height:7px;border-radius:50%;background:transparent}
+.band .mk.amber{background:var(--amber-dot)}
+.band .mk.ruby{background:var(--ruby)}
+.band .mk.good{background:var(--good)}
+.band:hover .nm{color:var(--ink)}
+.band[aria-pressed="true"] .nm{color:var(--ink);font-weight:600}
+.band[aria-pressed="true"]{background:var(--accent-soft);border-radius:var(--r)}
+.band.k-pay .bar{background:var(--accent)}
+.band.k-liab .bar{background:var(--ruby)}
+.band.k-term .bar{background:var(--amber-dot)}
+.band.k-conf .bar{background:var(--steel)}
+.band.k-law .bar{background:var(--violet)}
+.band.k-dp .bar{background:#4E8C7A}
+.gap{margin-top:12px;padding:9px 10px;border:1px dashed var(--ink-3);border-radius:var(--r);
+  font-size:11.5px;color:var(--ink-2);line-height:1.45}
+.gap b{display:block;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--ink);margin-bottom:3px}
+.key{display:flex;flex-wrap:wrap;gap:8px 12px;margin-top:12px;font-size:11.5px;color:var(--ink-2)}
+.key span i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px}
+
+/* ── your book scales ─────────────────────────────────── */
+.sc{display:block;width:100%;border:0;background:none;text-align:left;padding:9px 6px;
+  border-radius:var(--r)}
+.sc + .sc{border-top:1px solid var(--line)}
+.sc:hover{background:var(--surface-2)}
+.sc .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.sc .fld{font-size:12.5px;font-weight:500;color:var(--ink)}
+.sc .val{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:12px;
+  font-weight:600;color:var(--ink);white-space:nowrap}
+.sc.off .val{color:var(--amber)}
+.sc.ok .val{color:var(--good)}
+.sc .track{position:relative;height:18px;margin-top:3px}
+.sc .rail{position:absolute;left:0;right:0;top:8px;height:2px;background:var(--line-2);border-radius:2px}
+.sc .spread{position:absolute;top:5px;height:8px;background:var(--accent-soft);
+  border:1px solid var(--accent-line);border-radius:2px}
+.sc .usual{position:absolute;top:2px;width:2px;height:14px;background:var(--accent-ink)}
+.sc .you{position:absolute;top:2px;width:13px;height:13px;border-radius:50%;
+  background:var(--amber-dot);border:2px solid var(--paper);margin-left:-6px;
+  box-shadow:0 0 0 1px var(--amber);transition:left 180ms}
+.sc.ok .you{background:var(--good);box-shadow:0 0 0 1px var(--good)}
+.sc .say{font-size:11.5px;color:var(--ink-3);line-height:1.4}
+.sc.none{opacity:.7}
+.sc.none .say{font-style:italic}
+
+/* ── plain english ────────────────────────────────────── */
+.pe{display:block;width:100%;border:0;background:none;text-align:left;padding:10px 8px;
+  border-radius:var(--r)}
+.pe + .pe{border-top:1px solid var(--line)}
+.pe:hover{background:var(--surface-2)}
+.pe .h{font-size:11.5px;font-weight:600;color:var(--ink-3);margin-bottom:3px}
+.pe .t{font-size:12.5px;color:var(--ink-2);line-height:1.5}
+.pe .t b{color:var(--ink);font-weight:600}
+.pe[aria-pressed="true"]{background:var(--accent-soft)}
+.pe[aria-pressed="true"] .h{color:var(--accent-ink)}
+
+/* ── what-if ──────────────────────────────────────────── */
+.lv{padding:8px 0}
+.lv + .lv{border-top:1px solid var(--line)}
+.lv .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:5px}
+.lv .nm{font-size:12.5px;font-weight:500}
+.lv .cur{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:12.5px;
+  font-weight:600;color:var(--ink)}
+.lv.moved .cur{color:var(--ins)}
+input[type=range]{width:100%;accent-color:var(--accent);height:20px;margin:0}
+.tk{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;
+  color:var(--ink-3);margin-top:-2px}
+.opts{display:flex;gap:5px;flex-wrap:wrap}
+.opts button{border:1px solid var(--line-2);background:var(--surface);border-radius:var(--r);
+  font-size:11.5px;padding:3px 9px;color:var(--ink-2)}
+.opts button:hover{border-color:var(--ink-3);color:var(--ink)}
+.opts button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);
+  color:#fff;font-weight:600}
+.outs{display:grid;gap:1px;background:var(--line);border:1px solid var(--line);
+  border-radius:var(--r-lg);overflow:hidden;margin-top:13px}
+.out{background:var(--surface);padding:8px 12px}
+.out .k{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+.out .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:15.5px;font-weight:500;
+  margin-top:2px}
+.out .v.warn{color:var(--amber)} .out .v.good{color:var(--good)}
+.out .s{font-size:11.5px;color:var(--ink-3);margin-top:2px;line-height:1.4}
+.wall{margin-top:12px;font-size:11.5px;color:var(--ink-2);line-height:1.5;
+  border-left:2px solid var(--line-2);padding-left:10px}
+.wall b{color:var(--ink);font-weight:600}
+
+/* ── replay ───────────────────────────────────────────── */
+.rp{overflow-x:auto}
+.rp-in{min-width:290px}
+.rr{display:grid;grid-template-columns:96px repeat(4,1fr);align-items:center}
+.rr.hd{border-bottom:1px solid var(--line);padding-bottom:5px;margin-bottom:3px}
+.rr.hd span{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);text-align:center}
+.rr.hd span:first-child{text-align:left}
+.rtr{padding:7px 0;border-bottom:1px solid var(--line);width:100%;border-left:0;border-right:0;
+  border-top:0;background:none;text-align:left}
+.rtr:last-of-type{border-bottom:0}
+.rtr:hover{background:var(--surface-2)}
+.rtr[aria-pressed="true"]{background:var(--accent-soft)}
+.rnm{font-size:11.5px;color:var(--ink);padding-right:8px;line-height:1.25}
+.rnm small{display:block;font-family:var(--mono);font-size:10px;color:var(--ink-3)}
+.cell{position:relative;height:20px;display:grid;place-items:center}
+.cell::before{content:"";position:absolute;left:0;right:0;top:9px;height:1px;background:var(--line)}
+.cell.lead::before{left:50%} .cell.tail::before{right:50%} .cell.no::before{background:transparent}
+.mv{position:relative;width:11px;height:11px;border-radius:50%;z-index:1}
+.mv.them{background:var(--amber-dot)} .mv.us{background:var(--accent)}
+.mv.set{width:13px;height:13px;background:var(--good);box-shadow:0 0 0 3px var(--good-soft)}
+.mv.open{background:var(--paper);border:2px solid var(--ruby)}
+.rlog{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+.rlog .ln{display:flex;gap:8px;font-size:12px;line-height:1.5;padding:3px 0;color:var(--ink-2)}
+.rlog .ln i{flex:none;width:9px;height:9px;border-radius:50%;margin-top:5px}
+.rlog .ln b{color:var(--ink);font-weight:600}
+.rlog .rd{margin-top:9px}
+
+/* ── selected clause band ─────────────────────────────── */
+.detail{margin-top:14px;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r-lg);box-shadow:var(--shadow-1);overflow:hidden}
+.dh{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;padding:11px 15px;
+  border-bottom:1px solid var(--line);background:var(--surface-2)}
+.dh h3{font-size:15px;font-weight:600;letter-spacing:-.01em}
+.dh .sz{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);margin-left:auto}
+.tags{display:flex;gap:5px;flex-wrap:wrap}
+.tag{font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.tag.kind{background:var(--surface-3);color:var(--ink-2)}
+.tag.pb{background:var(--amber-soft);color:var(--amber)}
+.tag.un{background:var(--amber-soft);color:var(--amber)}
+.tag.ex{background:var(--ruby-soft);color:var(--ruby)}
+.tag.du{background:var(--steel-soft);color:var(--steel)}
+.tag.ar{background:var(--violet-soft);color:var(--violet)}
+.tag.cl{background:var(--good-soft);color:var(--good)}
+.dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:1px;
+  background:var(--line)}
+.dc{background:var(--surface);padding:12px 15px}
+.dc .k{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--ink-3);margin-bottom:4px}
+.dc .t{font-size:13px;color:var(--ink);line-height:1.5}
+.dc .t b{font-weight:600}
+.dc .t.q{color:var(--ink-2)}
+
+/* ── foot ─────────────────────────────────────────────── */
+.foot{margin-top:26px;padding-top:16px;border-top:1px solid var(--line-2);
+  font-size:12.5px;color:var(--ink-3);line-height:1.6;max-width:78ch}
+.foot b{color:var(--ink-2);font-weight:600}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="app">
+
+  <header class="mast">
+    <div>
+      <h1>The Contract Playground</h1>
+      <p class="sub"><b>MK‑0142</b> · Raw material supply · Highland Materials AB and
+        Nordkalk Industrier AB · <span class="mono">SEK 4,200,000</span></p>
+    </div>
+    <p class="lbl" style="padding-bottom:3px">Working prototype · invented data</p>
+  </header>
+
+  <div class="bar">
+    <nav class="modes" id="modes" aria-label="Layer"></nav>
+    <div class="acts">
+      <button class="btn" id="tour-go" type="button">Walk me through it</button>
+      <button class="btn" id="reset" type="button" disabled>Put it back</button>
+    </div>
+  </div>
+
+  <p class="hint" id="hint"></p>
+
+  <div class="tour" id="tour">
+    <div class="why"><span class="tag" id="t-tag"></span><span id="t-why"></span></div>
+    <div class="nav">
+      <button class="btn" id="t-prev" type="button">Back</button>
+      <span class="ct mono" id="t-ct"></span>
+      <button class="btn btn-p" id="t-next" type="button">Next</button>
+      <button class="btn" id="t-end" type="button">Close</button>
+    </div>
+  </div>
+
+  <div class="grid" id="grid">
+    <section class="col">
+      <div class="colh">
+        <span class="lbl">The agreement</span>
+        <span class="marks" id="paper-marks"></span>
+      </div>
+      <div class="scroll" id="scroll">
+        <article class="sheet">
+          <div class="title">Raw Material Supply Agreement</div>
+          <div class="parties">between <b>Highland Materials AB</b> (the Buyer)<br>
+            and <b>Nordkalk Industrier AB</b> (the Supplier)<br>
+            dated 14 March 2026</div>
+          <div id="clauses"></div>
+          <div class="gone" id="gone"></div>
+        </article>
+      </div>
+    </section>
+
+    <aside class="col" id="panel">
+      <div class="colh"><span class="lbl" id="panel-t"></span><span class="n" id="panel-n"></span></div>
+      <div class="pbody" id="panel-b"></div>
+    </aside>
+  </div>
+
+  <section class="detail" id="detail"></section>
+
+  <p class="foot"><b>What this is.</b> A prototype of the five ideas working as one thing, on one
+    invented contract. Every layer reads the same record, which is the point: move the payment
+    lever and the map, the comparison against your book and the wording on the paper all change
+    together, because there is one reading underneath and not four. <b>Nothing here files
+    anything</b> — in HaTi the only way a change reaches a contract is the Apply button in the
+    clause editor, and that stays true however much you play in here.</p>
+
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ══════════════════════════════════════════════════════════
+   ONE RECORD. Every layer below reads this and nothing else.
+   ══════════════════════════════════════════════════════════ */
+
+var WORDS = { 15:'fifteen (15)', 30:'thirty (30)', 45:'forty-five (45)', 60:'sixty (60)',
+              75:'seventy-five (75)', 90:'ninety (90)', 120:'one hundred and twenty (120)' };
+
+/* The five things the what-if bench can move. `was` is what the paper says today. */
+var LEVERS = {
+  pay:    { was:60, now:60 },
+  liab:   { was:'uncapped', now:'uncapped' },
+  price:  { was:'open', now:'open' },
+  excl:   { was:'exclusive', now:'exclusive' },
+  notice: { was:90, now:90 }
+};
+
+/* Wording each lever writes. Written the way legal drafting writes a number —
+   in words and digits — because that is what HaTi's own figure writer does. */
+function say(key){
+  var v = LEVERS[key].now;
+  if(key === 'pay' || key === 'notice') return WORDS[v] + ' days';
+  if(key === 'liab') return ({
+    uncapped: 'shall be unlimited in respect of any claim arising from defective Goods',
+    value:    'shall not exceed the total Contract Value',
+    annual:   'shall not exceed the charges paid by the Buyer in the twelve (12) months preceding the claim'
+  })[v];
+  if(key === 'price') return ({
+    open:    'The Supplier may revise the Price upon thirty (30) days written notice to the Buyer',
+    ceiling: 'The Supplier may revise the Price upon thirty (30) days written notice to the Buyer, provided that no increase shall exceed three per cent (3%) in any twelve (12) month period',
+    indexed: 'The Price shall be adjusted once annually in line with the Swedish Consumer Price Index'
+  })[v];
+  if(key === 'excl') return ({
+    exclusive:    'its exclusive supplier of the Goods for the Territory',
+    nonexclusive: 'a non-exclusive supplier of the Goods for the Territory'
+  })[v];
+  return '';
+}
+function sayWas(key){
+  var keep = LEVERS[key].now; LEVERS[key].now = LEVERS[key].was;
+  var out = say(key); LEVERS[key].now = keep; return out;
+}
+var moved = function(k){ return LEVERS[k].now !== LEVERS[k].was; };
+
+/* ── the clauses ───────────────────────────────────────── */
+var CL = [
+ { id:'c1', num:'1', t:'Definitions', kind:'',
+   body:['In this Agreement: <b>Business Day</b> means any day other than a Saturday, Sunday or public holiday in Sweden. <b>Contract Value</b> means the aggregate sum payable by the Buyer over the Initial Term. <b>Delivery Date</b> means the date specified in an accepted Purchase Order. <b>Goods</b> means the limestone aggregate and associated raw materials described in Schedule 1.',
+         '<b>Forecast</b> means the rolling volume estimate provided under clause 3. <b>Price</b> means the price per tonne set out in Schedule 2, as revised under clause 4. <b>Specification</b> means the technical specification in Schedule 1. <b>Territory</b> means the Kingdom of Sweden and the Republic of Finland. <b>Term</b> means the Initial Term together with any renewal under clause 14.',
+         'References to a clause or Schedule are to a clause of, or Schedule to, this Agreement. Headings are for convenience only and do not affect interpretation. Words importing the singular include the plural and vice versa.'],
+   plain:'The list of words this contract gives a special meaning to. Nothing here creates an obligation — but two of them, <b>Contract Value</b> and <b>Territory</b>, decide how big the liability clause and the exclusivity clause actually are.' },
+
+ { id:'c2', num:'2', t:'Appointment and Exclusivity', kind:'',
+   body:['The Buyer appoints the Supplier as {{excl}} during the Term, and shall not purchase Goods of the same description from any other person during the Term.',
+         'The Supplier shall not be obliged to accept any Purchase Order which exceeds one hundred and twenty per cent (120%) of the volume most recently forecast by the Buyer under clause 3.'],
+   plain:'Tells you who you may buy from. As written you may <b>not buy these goods from anyone else</b> for as long as the agreement runs — and clause 14 gives you no way to end it early for convenience, so the two together lock you in.',
+   lever:'excl' },
+
+ { id:'c3', num:'3', t:'Supply and Forecasts', kind:'', duty:true,
+   body:['The Buyer shall provide a rolling twelve (12) week volume Forecast on the first Business Day of each calendar month. The Supplier shall use reasonable endeavours to meet each Forecast but the Forecast shall not constitute a binding commitment by either Party.',
+         'Each Purchase Order shall be submitted no fewer than ten (10) Business Days before the requested Delivery Date and shall be deemed accepted unless rejected in writing within three (3) Business Days.',
+         'Where the Supplier is unable to meet an accepted Purchase Order it shall notify the Buyer promptly and the Parties shall agree a revised Delivery Date in good faith.'],
+   plain:'You have to <b>send a forecast every month</b>, on the first working day. It is not binding, but missing it repeatedly weakens your position under the volume cap in clause 2. Orders need ten working days notice.' },
+
+ { id:'c4', num:'4', t:'Price and Price Review', kind:'pay',
+   body:['The Price for the Goods is set out in Schedule 2 and is exclusive of value added tax and of delivery charges, which shall be invoiced separately at cost.',
+         '{{price}}. Any revised Price shall take effect from the next Delivery Date falling after the expiry of that notice period and shall apply to all Purchase Orders accepted thereafter.'],
+   plain:'What you pay, and when that can change. As written the supplier <b>can reset the price whenever they like</b> with a month’s warning — there is no ceiling on the increase and no index to check it against.',
+   lever:'price' },
+
+ { id:'c5', num:'5', t:'Payment Terms', kind:'pay', duty:true,
+   body:['The Buyer shall pay each undisputed invoice within {{pay}} of receipt of a valid invoice.',
+         'Where an invoice is disputed in good faith the Buyer shall pay the undisputed portion and the Parties shall resolve the balance under clause 15. Interest shall accrue on overdue sums at eight per cent (8%) per annum above the reference rate of the Riksbank.'],
+   plain:'How long you have to pay. As written you get <b>60 days</b> from a valid invoice — and interest runs at 8% over the Riksbank rate if you are late.',
+   lever:'pay' },
+
+ { id:'c6', num:'6', t:'Delivery and Title', kind:'', duty:true,
+   body:['The Supplier shall deliver the Goods DAP to the Buyer’s nominated site in accordance with Incoterms 2020. Risk in the Goods shall pass to the Buyer on completion of unloading.',
+         'Title to the Goods shall pass to the Buyer on the earlier of payment in full and incorporation of the Goods into the Buyer’s products. Until title passes the Buyer shall store the Goods separately and shall insure them for their full replacement value.',
+         'The Supplier shall provide a certificate of analysis with each delivery. The Buyer shall provide reasonable access to the delivery site and shall unload each delivery within four (4) hours of arrival.'],
+   plain:'Who carries the risk, when the goods become yours, and two jobs that fall to you: <b>unload within four hours</b>, and <b>insure the goods</b> while they are on your site but not yet paid for.' },
+
+ { id:'c7', num:'7', t:'Inspection and Rejection', kind:'',
+   body:['The Buyer may inspect and reject Goods which do not conform to the Specification within fourteen (14) days of delivery. Goods not rejected within that period shall be deemed accepted.',
+         'Rejected Goods shall be replaced or credited at the Supplier’s election within ten (10) Business Days.'],
+   plain:'You have <b>14 days to reject a bad delivery</b>. After that it counts as accepted, whatever is wrong with it. This matches every other supply agreement you have signed.' },
+
+ { id:'c8', num:'8', t:'Quality and Warranty', kind:'',
+   body:['The Supplier warrants that the Goods shall conform to the Specification and shall be free from material defect for twenty-four (24) months from delivery.',
+         'The Supplier further warrants that the Goods shall be produced in compliance with all applicable environmental and health and safety law, and that it holds all permits necessary for their extraction and supply.',
+         'The Buyer’s remedies for breach of this clause are replacement, credit or repair, and are subject to clause 11.'],
+   plain:'A <b>24-month guarantee</b> on the goods, which is what you normally get. Note the last line: what you can actually recover is limited by the liability clause.' },
+
+ { id:'c9', num:'9', t:'Confidentiality', kind:'conf',
+   body:['Each Party shall keep confidential all information disclosed by the other which is identified as confidential or which would reasonably be regarded as such, and shall not use it for any purpose other than performance of this Agreement.',
+         'These obligations shall continue for five (5) years from the date of disclosure and shall survive termination. They do not apply to information which is or becomes public other than by breach of this clause, or which a Party is required to disclose by law or by a competent regulator.'],
+   plain:'Ordinary two-way confidentiality, running for <b>five years from disclosure</b> and surviving the end of the agreement. This is the length you usually sign.' },
+
+ { id:'c10', num:'10', t:'Data Protection', kind:'dp',
+   body:['Where either Party processes personal data on behalf of the other it shall do so only on documented instructions, shall implement appropriate technical and organisational measures, and shall not engage a sub-processor without prior written authorisation.',
+         'Each Party shall assist the other in responding to requests from data subjects and from the Integritetsskyddsmyndigheten, and shall notify the other without undue delay on becoming aware of a personal data breach.'],
+   plain:'Standard processor wording under the GDPR, naming the Swedish regulator. Nothing here is unusual for you.' },
+
+ { id:'c11', num:'11', t:'Liability', kind:'liab',
+   body:['Neither Party excludes or limits liability for death or personal injury caused by negligence, for fraud, or for any other liability which cannot lawfully be limited.',
+         'Subject to the foregoing, the Supplier’s liability under or in connection with this Agreement {{liab}}. Neither Party shall be liable for loss of profit, loss of production or any indirect loss.'],
+   plain:'What the supplier can be made to pay if things go wrong. As written, <b>there is no ceiling at all</b> on claims about faulty goods — and this is the shortest operative clause in the agreement.',
+   lever:'liab' },
+
+ { id:'c12', num:'12', t:'Indemnity', kind:'liab',
+   body:['The Supplier shall indemnify the Buyer against all claims by third parties arising from a defect in the Goods or from the Supplier’s breach of clause 8, save to the extent caused by the Buyer’s own act or omission.',
+         'The aggregate amount recoverable under this clause shall not exceed the Contract Value. The Buyer shall notify any claim promptly and shall permit the Supplier to conduct the defence of it.'],
+   plain:'If someone else sues you because the goods were faulty, the supplier picks up the bill — but only <b>up to the contract value</b>. That ceiling matches your playbook.' },
+
+ { id:'c13', num:'13', t:'Insurance', kind:'', duty:true,
+   body:['The Supplier shall maintain product liability insurance of not less than SEK 10,000,000 in the aggregate with a reputable insurer, and shall provide a certificate of currency to the Buyer annually and on request.'],
+   plain:'The supplier must carry <b>SEK 10m of product liability cover</b> and hand you a certificate every year. Somebody on your side has to notice when it does not arrive.' },
+
+ { id:'c14', num:'14', t:'Term and Termination', kind:'term',
+   body:['This Agreement shall commence on 14 March 2026 and shall continue for an Initial Term of twenty-four (24) months, expiring on 14 March 2028.',
+         'It shall thereafter renew automatically for successive periods of twelve (12) months unless either Party gives not less than {{notice}} written notice expiring at the end of the then current term.',
+         'Either Party may terminate immediately on written notice if the other commits a material breach which it fails to remedy within thirty (30) days of notice, or becomes subject to an insolvency event.'],
+   plain:'It <b>renews on its own every year</b> unless somebody gives notice in time. As written you need 90 days, so your last safe date is 15 December 2027. There is no right to walk away for convenience.',
+   lever:'notice' },
+
+ { id:'c15', num:'15', t:'Governing Law and Disputes', kind:'law',
+   body:['This Agreement and any dispute arising out of it shall be governed by the law of Sweden. The Parties shall first seek to resolve any dispute by good faith discussion between senior representatives.',
+         'Failing resolution within thirty (30) days, the dispute shall be finally settled by arbitration under the Rules of the Arbitration Institute of the Stockholm Chamber of Commerce, seated in Stockholm, in the English language.'],
+   plain:'Swedish law, and arguments go to <b>arbitration in Stockholm</b> rather than to court. This is your usual arrangement.' },
+
+ { id:'c16', num:'16', t:'General', kind:'',
+   body:['This Agreement constitutes the entire agreement between the Parties and supersedes all prior discussions. No variation shall be effective unless in writing and signed by both Parties.',
+         'Neither Party may assign or transfer this Agreement without the prior written consent of the other. No failure or delay in exercising a right shall operate as a waiver of it. Nothing in this Agreement creates a partnership or agency between the Parties.',
+         'Notices shall be given in writing to the addresses in Schedule 3 and shall be deemed received on delivery.'],
+   plain:'The usual closing machinery. One thing worth noticing: <b>neither side can hand this contract to somebody else</b> without consent — which matters if either business is sold.' }
+];
+
+/* ── what your book says. `live` reads the lever, so this whole
+      layer answers differently the moment you move one. ────── */
+var BOOK = [
+ { fld:'Payment terms', cl:'c5', unit:'days', lo:14, hi:75, usual:30, have:47,
+   live:function(){ return LEVERS.pay.now; },
+   val:function(){ return LEVERS.pay.now + ' days'; },
+   ok:function(){ return LEVERS.pay.now <= 30; },
+   say:function(){ var d = LEVERS.pay.now - 30;
+     return d <= 0 ? 'at or inside what you usually sign (30 days)'
+                   : d + ' days longer than you usually sign · 41 of 47 are 30 or less'; } },
+
+ { fld:'Liability', cl:'c11', unit:'', lo:0, hi:100, usual:12, have:47,
+   live:function(){ return LEVERS.liab.now === 'uncapped' ? 92 : 12; },
+   val:function(){ return ({uncapped:'Uncapped', value:'Capped at value', annual:'Capped at 12m'})[LEVERS.liab.now]; },
+   ok:function(){ return LEVERS.liab.now !== 'uncapped'; },
+   say:function(){ return LEVERS.liab.now === 'uncapped'
+     ? '44 of your 47 signed agreements cap it. This one does not.'
+     : 'now in line with 44 of your 47 signed agreements'; } },
+
+ { fld:'Price review', cl:'c4', unit:'', lo:0, hi:100, usual:20, have:47,
+   live:function(){ return ({open:88, ceiling:34, indexed:20})[LEVERS.price.now]; },
+   val:function(){ return ({open:'Open', ceiling:'Ceiling 3%', indexed:'Indexed'})[LEVERS.price.now]; },
+   ok:function(){ return LEVERS.price.now !== 'open'; },
+   say:function(){ return LEVERS.price.now === 'open'
+     ? 'only 6 of 47 let the other side reset the price freely'
+     : '41 of 47 are fixed, capped or indexed like this'; } },
+
+ { fld:'Exclusivity', cl:'c2', unit:'', lo:0, hi:100, usual:14, have:47,
+   live:function(){ return LEVERS.excl.now === 'exclusive' ? 86 : 14; },
+   val:function(){ return LEVERS.excl.now === 'exclusive' ? 'Exclusive' : 'Non-exclusive'; },
+   ok:function(){ return LEVERS.excl.now !== 'exclusive'; },
+   say:function(){ return LEVERS.excl.now === 'exclusive'
+     ? '5 of 47 are exclusive — unusual, but sometimes on purpose'
+     : 'the ordinary arrangement in 42 of your 47 agreements'; } },
+
+ { fld:'Notice period', cl:'c14', unit:'days', lo:30, hi:120, usual:60, have:47,
+   live:function(){ return LEVERS.notice.now; },
+   val:function(){ return LEVERS.notice.now + ' days'; },
+   ok:function(){ return Math.abs(LEVERS.notice.now - 60) <= 15; },
+   say:function(){ var d = LEVERS.notice.now;
+     return d === 60 ? 'exactly where you usually land'
+          : d > 60 ? (d - 60) + ' days more warning than usual — earlier date to act'
+                   : (60 - d) + ' days less warning than usual'; } },
+
+ { fld:'Warranty', cl:'c8', unit:'months', lo:12, hi:36, usual:24, have:44,
+   live:function(){ return 24; }, val:function(){ return '24 months'; },
+   ok:function(){ return true; }, say:function(){ return 'your commonest answer, in 31 of 44'; } },
+
+ { fld:'Confidentiality', cl:'c9', unit:'years', lo:2, hi:10, usual:5, have:47,
+   live:function(){ return 5; }, val:function(){ return '5 years'; },
+   ok:function(){ return true; }, say:function(){ return 'five years is what you sign almost every time'; } },
+
+ { fld:'Rejection window', cl:'c7', unit:'days', lo:5, hi:30, usual:14, have:19,
+   live:function(){ return 14; }, val:function(){ return '14 days'; },
+   ok:function(){ return true; }, say:function(){ return 'matches all 19 of your supply agreements'; } },
+
+ { fld:'Governing law', cl:'c15', unit:'', lo:0, hi:100, usual:12, have:47,
+   live:function(){ return 12; }, val:function(){ return 'Sweden'; },
+   ok:function(){ return true; }, say:function(){ return 'Swedish law in 43 of 47'; } },
+
+ { fld:'Rebate tiers', cl:null, unit:'', lo:0, hi:100, usual:null, have:1,
+   live:function(){ return null; }, val:function(){ return '3 tiers'; },
+   ok:function(){ return null; },
+   say:function(){ return 'not enough signed to know — this is only your second'; } }
+];
+
+/* ── what your playbook asks for ───────────────────────── */
+var PB = {
+  c4:  { want:'A ceiling or an index on any price rise',  now:'Open — the Supplier may reset it' },
+  c5:  { want:'30 days from a valid invoice',             now:function(){ return LEVERS.pay.now + ' days'; } },
+  c11: { want:'Capped at the contract value',             now:function(){
+           return ({uncapped:'Uncapped', value:'Capped at the contract value',
+                    annual:'Capped at 12 months of charges'})[LEVERS.liab.now]; } },
+  c14: { want:'60 days notice, and a right to end for convenience',
+         now:function(){ return LEVERS.notice.now + ' days notice, no convenience exit'; } },
+  c2:  { want:'Non-exclusive unless the volume justifies it',
+         now:function(){ return LEVERS.excl.now === 'exclusive' ? 'Exclusive, with no exit' : 'Non-exclusive'; } }
+};
+function pbOf(id){
+  var p = PB[id]; if(!p) return null;
+  var now = (typeof p.now === 'function') ? p.now() : p.now;
+  return { want:p.want, now:now, off:now.toLowerCase() !== p.want.toLowerCase() };
+}
+
+/* ── the argument so far ───────────────────────────────── */
+var RP = [
+ { cl:'c5',  nm:'Payment terms', sub:'settled R3',
+   mv:[{r:1,s:'them'},{r:2,s:'us'},{r:3,s:'set'}],
+   log:[{s:'them',t:'Opened at <b>90 days</b> from invoice.'},
+        {s:'us',  t:'Countered with <b>30 days</b> — our playbook figure.'},
+        {s:'set', t:'Settled at <b>60 days</b>. We moved 30, they moved 30.'}],
+   at:{ 1:'The Buyer shall pay each undisputed invoice within ninety (90) days of receipt of a valid invoice.',
+        2:'The Buyer shall pay each undisputed invoice within thirty (30) days of receipt of a valid invoice.' } },
+
+ { cl:'c11', nm:'Liability', sub:'still open, R4',
+   mv:[{r:1,s:'them'},{r:2,s:'us'},{r:3,s:'them'},{r:4,s:'open'}],
+   log:[{s:'them',t:'Opened <b>uncapped</b> for defective goods.'},
+        {s:'us',  t:'Asked for a cap at the <b>contract value</b>.'},
+        {s:'them',t:'Refused. Put the uncapped wording back.'},
+        {s:'open',t:'Nobody has moved since. <b>This is the open question.</b>'}],
+   at:{ 2:'Subject to the foregoing, the Supplier’s liability under or in connection with this Agreement shall not exceed the total Contract Value.' } },
+
+ { cl:'c2',  nm:'Exclusivity', sub:'settled R2',
+   mv:[{r:1,s:'us'},{r:2,s:'set'}],
+   log:[{s:'us', t:'We asked for <b>non-exclusive</b>.'},
+        {s:'set',t:'Conceded in exchange for the <b>3% volume rebate</b> in Schedule 2.'}],
+   at:{ 1:'The Buyer appoints the Supplier as a non-exclusive supplier of the Goods for the Territory during the Term.' } },
+
+ { cl:'c7',  nm:'Rejection window', sub:'settled R1',
+   mv:[{r:1,s:'set'}],
+   log:[{s:'them',t:'Opened at <b>7 days</b> to reject.'},
+        {s:'set', t:'Agreed <b>14 days</b> in the first round. No argument.'}],
+   at:{} },
+
+ { cl:'c15', nm:'Governing law', sub:'settled R2',
+   mv:[{r:1,s:'them'},{r:2,s:'set'}],
+   log:[{s:'them',t:'Proposed <b>Finnish law</b>, arbitration in Helsinki.'},
+        {s:'set', t:'Settled on <b>Swedish law</b>, SCC in Stockholm — your usual.'}],
+   at:{ 1:'This Agreement and any dispute arising out of it shall be governed by the law of Finland.' } }
+];
+var rpOf = function(id){ for(var i=0;i<RP.length;i++) if(RP[i].cl===id) return RP[i]; return null; };
+
+/* ── the guided walk ───────────────────────────────────── */
+var TOUR = [
+ { cl:'c11', tag:'Unusual for you',      why:'44 of your 47 signed agreements cap liability. This one does not — and it is the shortest operative clause in the document.' },
+ { cl:'c4',  tag:'Moves money',          why:'The price is not fixed. The supplier can reset it with a month’s notice, with no ceiling and no index.' },
+ { cl:'c5',  tag:'Playbook differs',     why:'Your playbook asks for 30 days to pay. This says 60 — and 41 of your 47 agreements are 30 or less.' },
+ { cl:'c2',  tag:'Locks you in',         why:'Exclusive, and clause 14 gives you no way out for convenience. Only 5 of your 47 agreements are exclusive.' },
+ { cl:'c14', tag:'Renews itself',        why:'This renews every year on its own. Your last safe date to stop it is 15 December 2027.' },
+ { cl:'c6',  tag:'You promise something',why:'Two jobs land on you here: unload each delivery within four hours, and insure the goods before you own them.' },
+ { cl:'c13', tag:'You promise something',why:'You have to hold an insurance certificate, renewed every year. HaTi would remind you 30 days before it lapses.' }
+];
+
+/* ══════════════════════════════════════════════════════════
+   READINGS — worked out from the record above, never stored.
+   ══════════════════════════════════════════════════════════ */
+
+var KIND_WORD = { pay:'Payment', liab:'Liability', law:'Governing law',
+                  conf:'Confidentiality', dp:'Data protection', term:'Termination' };
+
+function textOf(c){
+  return c.body.map(function(p){
+    return p.replace(/\{\{(\w+)\}\}/g, function(_, k){ return say(k); });
+  }).join(' ').replace(/<[^>]+>/g, '');
+}
+var wordsOf = function(c){ return textOf(c).trim().split(/\s+/).length; };
+
+/* What is worth a look on this clause, right now. Three sources, all checkable. */
+function flagsOf(c){
+  var out = [];
+  var p = pbOf(c.id);
+  if(p && p.off) out.push({ k:'pb', tone:'amber', word:'Playbook differs' });
+  if(EXP_CL[c.id] && EXP_CL[c.id]()) out.push({ k:'ex', tone:'ruby', word:'Leaves you exposed' });
+  var b = null;
+  for(var i=0;i<BOOK.length;i++) if(BOOK[i].cl === c.id) b = BOOK[i];
+  if(b && b.ok() === false) out.push({ k:'un', tone:'amber', word:'Unusual for you' });
+  if(c.duty) out.push({ k:'du', tone:'', word:'You promise something' });
+  var r = rpOf(c.id);
+  if(r) out.push({ k:'ar', tone:'', word:'Argued ' + r.mv.length + (r.mv.length === 1 ? ' round' : ' rounds') });
+  if(c.lever && moved(c.lever)) out.push({ k:'cl', tone:'good', word:'Changed on the bench' });
+  return out;
+}
+function toneOf(c){
+  var f = flagsOf(c), t = '';
+  for(var i=0;i<f.length;i++){
+    if(f[i].tone === 'good') return 'good';
+    if(f[i].tone === 'ruby') t = 'ruby';
+    else if(f[i].tone === 'amber' && t !== 'ruby') t = 'amber';
+  }
+  return t;
+}
+
+var EXP_CL = {
+  c11: function(){ return LEVERS.liab.now === 'uncapped'; },
+  c4:  function(){ return LEVERS.price.now === 'open'; },
+  c2:  function(){ return LEVERS.excl.now === 'exclusive'; }
+};
+
+/* Exposure — the same five conditions HaTi's exposure register counts. */
+function exposure(){
+  var out = [];
+  if(LEVERS.liab.now === 'uncapped') out.push('Liability uncapped');
+  if(LEVERS.price.now === 'open')    out.push('Price can be reset at will');
+  if(LEVERS.excl.now === 'exclusive')out.push('Locked in — exclusive, no exit');
+  return out;
+}
+
+var EXPIRY = new Date(2028, 2, 14);
+function actBy(){
+  var d = new Date(EXPIRY.getTime() - LEVERS.notice.now * 86400000);
+  return d.toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
+}
+var VALUE = 4200000;
+var fmtSEK = function(n){ return 'SEK ' + Math.round(n).toLocaleString('en-US'); };
+
+/* ══════════════════════════════════════════════════════════
+   STATE
+   ══════════════════════════════════════════════════════════ */
+var mode = 'xray', sel = 'c11', readAt = null, tour = -1;
+var MODES = [ ['paper','Paper'], ['xray','X-ray'], ['book','Your book'],
+              ['plain','Plain English'], ['whatif','What-if'], ['replay','Replay'] ];
+var HINTS = {
+  paper:  'Just the agreement, nothing beside it. <b>Press any clause</b> to see what HaTi knows about it.',
+  xray:   'A map of the document, one band per clause, as tall as the clause is long. <b>Press a band</b> to jump there. The dots say where something is worth a look — and the box at the bottom is what is <b>missing</b>.',
+  book:   'How this contract compares with the 47 agreements you have already signed. The pale block is your own range; the line is your usual answer; the dot is this contract. <b>Press a row</b> to see the clause.',
+  plain:  'Every clause in everyday words, kept beside the real wording rather than replacing it. <b>Press an entry</b> to see the clause it reads.',
+  whatif: '<b>Move a lever.</b> The wording on the paper changes, the map and the comparison with your book follow, and nothing is filed. This is the playground proper.',
+  replay: 'Every move ever made on this deal. <b>Press a clause</b> to read the argument, then read the clause as it stood in an earlier round.'
+};
+var $ = function(id){ return document.getElementById(id); };
+/* Which clause each lever rewrites — so a move shows you the words it changed. */
+var LEVER_CL = { pay:'c5', liab:'c11', price:'c4', excl:'c2', notice:'c14' };
+function levered(key){ sel = LEVER_CL[key]; readAt = null; paintAll(); scrollTo(sel); }
+
+/* ══════════════════════════════════════════════════════════
+   THE PAPER
+   ══════════════════════════════════════════════════════════ */
+function renderPaper(){
+  var host = $('clauses');
+  host.textContent = '';
+  CL.forEach(function(c){
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'cl' + (sel === c.id ? ' sel' : '') +
+                  ((c.lever && moved(c.lever)) || (readAt && readAt.cl === c.id) ? ' chg' : '');
+    b.id = 'p-' + c.id;
+    b.setAttribute('aria-pressed', sel === c.id ? 'true' : 'false');
+    var h = '<h4>' + c.num + '. ' + c.t + '</h4>';
+    var rr = readAt && readAt.cl === c.id ? rpOf(c.id) : null;
+    var old = rr && rr.at[readAt.r];
+    if(old){
+      h += '<p><mark>' + old + '</mark></p>' +
+           '<p style="opacity:.55;font-size:11.5px">Reading this clause as it stood in round ' +
+           readAt.r + '. The rest of the agreement is today’s wording.</p>';
+    } else {
+      c.body.forEach(function(p){
+        h += '<p>' + p.replace(/\{\{(\w+)\}\}/g, function(_, k){
+          if(!moved(k)) return say(k);
+          return '<del>' + sayWas(k) + '</del> <ins>' + say(k) + '</ins>';
+        }) + '</p>';
+      });
+    }
+    b.innerHTML = h;
+    b.addEventListener('click', function(){ pick(c.id); });
+    host.appendChild(b);
+  });
+
+  var total = CL.reduce(function(a, c){ return a + wordsOf(c); }, 0);
+  $('gone').textContent = 'No force majeure clause · no change of control clause';
+  var f = 0, a = 0, r = 0, g = 0;
+  CL.forEach(function(c){ var t = toneOf(c);
+    if(t){ f++; if(t === 'amber') a++; else if(t === 'ruby') r++; else g++; } });
+  $('paper-marks').innerHTML =
+    '<span class="mono">' + CL.length + ' clauses · ' + total.toLocaleString('en-US') +
+    ' words</span>' +
+    (r ? '<span><i style="background:var(--ruby)"></i>' + r + '</span>' : '') +
+    (a ? '<span><i style="background:var(--amber-dot)"></i>' + a + '</span>' : '') +
+    (g ? '<span><i style="background:var(--good)"></i>' + g + ' cleared</span>' : '');
+}
+
+function scrollTo(id){
+  var el = $('p-' + id), box = $('scroll');
+  if(!el || !box) return;
+  box.scrollTop = Math.max(0, el.offsetTop - box.offsetTop - 14);
+}
+
+function pick(id, noScroll){
+  sel = id;
+  if(!noScroll) { renderPaper(); scrollTo(id); } else renderPaper();
+  renderPanel(); renderDetail();
+}
+
+/* ══════════════════════════════════════════════════════════
+   THE LAYERS
+   ══════════════════════════════════════════════════════════ */
+function renderPanel(){
+  var grid = $('grid'), panel = $('panel');
+  grid.className = 'grid' + (mode === 'paper' ? ' solo' : '');
+  panel.hidden = (mode === 'paper');
+  if(mode === 'paper') return;
+
+  var t = $('panel-t'), n = $('panel-n'), b = $('panel-b');
+  b.textContent = ''; n.textContent = '';
+
+  if(mode === 'xray'){
+    t.textContent = 'X-ray';
+    var max = 0; CL.forEach(function(c){ max = Math.max(max, wordsOf(c)); });
+    var wrap = document.createElement('div'); wrap.className = 'bands';
+    CL.forEach(function(c){
+      var w = wordsOf(c), tone = toneOf(c);
+      var el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'band k-' + (c.kind || 'none');
+      el.setAttribute('aria-pressed', sel === c.id ? 'true' : 'false');
+      el.innerHTML = '<span class="bar" style="height:' +
+        Math.max(9, Math.round(w / max * 26)) + 'px"></span><span class="nm"></span>' +
+        '<span class="mk ' + tone + '"></span>';
+      el.querySelector('.nm').textContent = c.num + '. ' + c.t;
+      el.title = c.num + '. ' + c.t + ' · ' + w + ' words';
+      el.addEventListener('click', function(){ pick(c.id); });
+      wrap.appendChild(el);
+    });
+    b.appendChild(wrap);
+    var g = document.createElement('div'); g.className = 'gap';
+    g.innerHTML = '<b>Expected, not found</b>Force majeure · Change of control';
+    b.appendChild(g);
+    var k = document.createElement('div'); k.className = 'key';
+    k.innerHTML =
+      '<span><i style="background:var(--accent)"></i>Payment</span>' +
+      '<span><i style="background:var(--ruby)"></i>Liability</span>' +
+      '<span><i style="background:var(--amber-dot)"></i>Termination</span>' +
+      '<span><i style="background:var(--steel)"></i>Confidentiality</span>' +
+      '<span><i style="background:var(--violet)"></i>Governing law</span>' +
+      '<span><i style="background:#4E8C7A"></i>Data protection</span>' +
+      '<span><i style="background:var(--line-2)"></i>Other</span>';
+    b.appendChild(k);
+    var p = document.createElement('p'); p.className = 'pnote';
+    p.textContent = 'Bar height is measured from the wording, not typed in. Amber: your ' +
+      'playbook differs. Red: it leaves you exposed. Green: cleared on the bench.';
+    b.appendChild(p);
+  }
+
+  if(mode === 'book'){
+    t.textContent = 'Against your book';
+    var off = 0; BOOK.forEach(function(r){ if(r.ok() === false) off++; });
+    n.textContent = off + ' of ' + BOOK.length + ' differ';
+    BOOK.forEach(function(r){
+      var okv = r.ok(), v = r.live();
+      var el = document.createElement(r.cl ? 'button' : 'div');
+      if(r.cl) el.type = 'button';
+      el.className = 'sc ' + (okv === null ? 'none' : okv ? 'ok' : 'off');
+      var pct = (v == null) ? null :
+        Math.max(2, Math.min(98, (v - r.lo) / (r.hi - r.lo) * 100));
+      var upct = (r.usual == null) ? null :
+        Math.max(1, Math.min(99, (r.usual - r.lo) / (r.hi - r.lo) * 100));
+      var track = (v == null)
+        ? '<div class="track"></div>'
+        : '<div class="track"><div class="rail"></div>' +
+          '<div class="spread" style="left:' + Math.max(0, upct - 14) + '%;width:28%"></div>' +
+          (upct == null ? '' : '<div class="usual" style="left:' + upct + '%"></div>') +
+          '<div class="you" style="left:' + pct + '%"></div></div>';
+      el.innerHTML = '<span class="top"><span class="fld"></span><span class="val"></span></span>' +
+        track + '<span class="say"></span>';
+      el.querySelector('.fld').textContent = r.fld;
+      el.querySelector('.val').textContent = r.val();
+      el.querySelector('.say').textContent = r.say();
+      if(r.cl) el.addEventListener('click', function(){ pick(r.cl); });
+      b.appendChild(el);
+    });
+    var pn = document.createElement('p'); pn.className = 'pnote';
+    pn.textContent = 'This is counting, not advice. Unusual does not mean wrong — an exclusive ' +
+      'deal you chose on purpose is unusual and correct. Below three signed agreements HaTi ' +
+      'refuses to have a view at all.';
+    b.appendChild(pn);
+  }
+
+  if(mode === 'plain'){
+    t.textContent = 'Plain English';
+    n.textContent = CL.length + ' clauses';
+    CL.forEach(function(c){
+      var el = document.createElement('button');
+      el.type = 'button'; el.className = 'pe';
+      el.setAttribute('aria-pressed', sel === c.id ? 'true' : 'false');
+      el.innerHTML = '<span class="h"></span><span class="t">' + c.plain + '</span>';
+      el.querySelector('.h').textContent = c.num + '. ' + c.t;
+      el.addEventListener('click', function(){ pick(c.id); });
+      b.appendChild(el);
+    });
+    var pn2 = document.createElement('p'); pn2.className = 'pnote';
+    pn2.textContent = 'A translation, not a summary — one entry per clause, every figure kept, ' +
+      'no advice and no redrafting. It never replaces the wording.';
+    b.appendChild(pn2);
+  }
+
+  if(mode === 'whatif'){
+    t.textContent = 'What-if bench';
+    var m = 0; ['pay','liab','price','excl','notice'].forEach(function(k){ if(moved(k)) m++; });
+    n.textContent = m ? m + ' moved' : 'nothing moved';
+
+    b.appendChild(slider('pay', 'Days to pay', 15, 90, 15, function(v){ return v + ' days'; }));
+    b.appendChild(chooser('liab', 'Liability cap', [
+      ['uncapped','Uncapped'], ['value','At contract value'], ['annual','12 months of charges'] ]));
+    b.appendChild(chooser('price', 'Price review', [
+      ['open','Open'], ['ceiling','Ceiling 3%'], ['indexed','Indexed'] ]));
+    b.appendChild(chooser('excl', 'Exclusivity', [
+      ['exclusive','Exclusive'], ['nonexclusive','Non-exclusive'] ]));
+    b.appendChild(slider('notice', 'Notice to stop it renewing', 30, 120, 30,
+      function(v){ return v + ' days'; }));
+
+    var ex = exposure();
+    var outs = document.createElement('div'); outs.className = 'outs';
+    outs.innerHTML =
+      out('Cash tied up in this deal', fmtSEK(VALUE * LEVERS.pay.now / 365),
+          'on a contract value of ' + fmtSEK(VALUE),
+          LEVERS.pay.now > 30 ? 'warn' : 'good') +
+      out('Against your own book',
+          LEVERS.pay.now === 30 ? 'matches your usual'
+            : (Math.abs(LEVERS.pay.now - 30) + ' days ' + (LEVERS.pay.now > 30 ? 'worse' : 'better')),
+          'you usually sign 30 days on the supplier side',
+          LEVERS.pay.now > 30 ? 'warn' : 'good') +
+      out('Exposure rows', ex.length + ' of 3', ex.length ? ex.join(' · ') : 'all three cleared',
+          ex.length ? 'warn' : 'good') +
+      out('First date you must act', actBy(),
+          LEVERS.notice.now + ' days before it renews on 14 March 2028', '');
+    b.appendChild(outs);
+
+    var w = document.createElement('p'); w.className = 'wall';
+    w.innerHTML = '<b>It will not price the risk.</b> HaTi does not know your cost of capital, ' +
+      'so those days never turn into an interest figure. Days, cash, dates and your own book ' +
+      '\u2014 the judgement stays yours. And nothing here reaches the record: this wording ' +
+      'would go to the clause editor\u2019s <b>Apply</b>, the one door that has ever filed a change.';
+    b.appendChild(w);
+  }
+
+  if(mode === 'replay'){
+    t.textContent = 'How this deal moved';
+    n.textContent = '4 rounds · 11 weeks';
+    var rp = document.createElement('div'); rp.className = 'rp';
+    var inn = document.createElement('div'); inn.className = 'rp-in';
+    var hd = document.createElement('div'); hd.className = 'rr hd';
+    hd.innerHTML = '<span>Clause</span><span>R1</span><span>R2</span><span>R3</span><span>R4</span>';
+    inn.appendChild(hd);
+    RP.forEach(function(r){
+      var row = document.createElement('button');
+      row.type = 'button'; row.className = 'rr rtr';
+      row.setAttribute('aria-pressed', sel === r.cl ? 'true' : 'false');
+      var last = r.mv[r.mv.length - 1].r;
+      var h = '<span class="rnm">' + r.nm + '<small>' + r.sub + '</small></span>';
+      for(var i = 1; i <= 4; i++){
+        var m = null;
+        for(var j = 0; j < r.mv.length; j++) if(r.mv[j].r === i) m = r.mv[j];
+        var cls = 'cell' + (i === 1 ? ' lead' : '') + (i === last ? ' tail' : '') +
+                  (i > last ? ' no' : '');
+        h += '<span class="' + cls + '">' + (m ? '<span class="mv ' + m.s + '"></span>' : '') + '</span>';
+      }
+      row.innerHTML = h;
+      row.addEventListener('click', function(){ pick(r.cl); });
+      inn.appendChild(row);
+    });
+    rp.appendChild(inn); b.appendChild(rp);
+
+    var k2 = document.createElement('div'); k2.className = 'key';
+    k2.innerHTML = '<span><i style="border-radius:50%;background:var(--amber-dot)"></i>They asked</span>' +
+      '<span><i style="border-radius:50%;background:var(--accent)"></i>You asked</span>' +
+      '<span><i style="border-radius:50%;background:var(--good)"></i>Settled</span>' +
+      '<span><i style="border-radius:50%;background:var(--paper);box-shadow:0 0 0 1.5px var(--ruby)"></i>Open</span>';
+    b.appendChild(k2);
+
+    var r = rpOf(sel);
+    var log = document.createElement('div'); log.className = 'rlog';
+    if(!r){
+      log.innerHTML = '<p class="pnote" style="border:0;margin:0;padding:0">' +
+        'Nobody has ever proposed a change to this clause. Press a row above to read one that was argued.</p>';
+    } else {
+      var lh = '<p class="lbl" style="margin-bottom:6px">' + r.nm + '</p>';
+      r.log.forEach(function(l, i){
+        var col = l.s === 'them' ? 'var(--amber-dot)' : l.s === 'us' ? 'var(--accent)'
+                : l.s === 'set' ? 'var(--good)' : 'var(--ruby)';
+        lh += '<span class="ln"><i style="background:' + col + '"></i><span>' +
+              '<b>Round ' + (i + 1) + '</b> — ' + l.t + '</span></span>';
+      });
+      log.innerHTML = lh;
+      var keys = Object.keys(r.at);
+      if(keys.length){
+        var rd = document.createElement('div'); rd.className = 'rd opts';
+        keys.forEach(function(k){
+          var bt = document.createElement('button');
+          bt.type = 'button';
+          bt.textContent = 'Read as it stood · R' + k;
+          bt.setAttribute('aria-pressed',
+            readAt && readAt.cl === r.cl && String(readAt.r) === String(k) ? 'true' : 'false');
+          bt.addEventListener('click', function(){
+            readAt = (readAt && readAt.cl === r.cl && String(readAt.r) === String(k))
+              ? null : { cl:r.cl, r:k };
+            paintAll();
+            scrollTo(r.cl);
+          });
+          rd.appendChild(bt);
+        });
+        log.appendChild(rd);
+      } else {
+        var no = document.createElement('p'); no.className = 'pnote';
+        no.textContent = 'This one settled without a competing wording on the record, so there is ' +
+          'no earlier version to read.';
+        log.appendChild(no);
+      }
+    }
+    b.appendChild(log);
+  }
+}
+
+function out(k, v, s, tone){
+  return '<div class="out"><div class="k">' + k + '</div><div class="v ' + (tone || '') + '">' +
+         v + '</div><div class="s">' + s + '</div></div>';
+}
+
+function slider(key, label, min, max, step, fmt){
+  var d = document.createElement('div');
+  d.className = 'lv' + (moved(key) ? ' moved' : '');
+  d.innerHTML = '<div class="top"><span class="nm"></span><span class="cur"></span></div>';
+  d.querySelector('.nm').textContent = label;
+  d.querySelector('.cur').textContent = fmt(LEVERS[key].now) +
+    (moved(key) ? '  (was ' + fmt(LEVERS[key].was) + ')' : '');
+  var r = document.createElement('input');
+  r.type = 'range'; r.min = min; r.max = max; r.step = step; r.value = LEVERS[key].now;
+  r.id = 'lv-' + key; r.setAttribute('aria-label', label);
+  r.addEventListener('input', function(){
+    LEVERS[key].now = Number(r.value);
+    levered(key);
+    var again = $('lv-' + key); if(again) again.focus({ preventScroll:true });
+  });
+  d.appendChild(r);
+  var tk = document.createElement('div'); tk.className = 'tk';
+  for(var v = min; v <= max; v += step) tk.innerHTML += '<span>' + v + '</span>';
+  d.appendChild(tk);
+  return d;
+}
+
+function chooser(key, label, opts){
+  var d = document.createElement('div');
+  d.className = 'lv' + (moved(key) ? ' moved' : '');
+  d.innerHTML = '<div class="top"><span class="nm"></span><span class="cur"></span></div>';
+  d.querySelector('.nm').textContent = label;
+  var cur = ''; opts.forEach(function(o){ if(o[0] === LEVERS[key].now) cur = o[1]; });
+  d.querySelector('.cur').textContent = moved(key) ? 'changed' : 'as written';
+  var box = document.createElement('div'); box.className = 'opts';
+  opts.forEach(function(o){
+    var bt = document.createElement('button');
+    bt.type = 'button'; bt.textContent = o[1];
+    bt.setAttribute('aria-pressed', LEVERS[key].now === o[0] ? 'true' : 'false');
+    bt.addEventListener('click', function(){
+      LEVERS[key].now = o[0]; levered(key);
+    });
+    box.appendChild(bt);
+  });
+  d.appendChild(box);
+  return d;
+}
+
+/* ══════════════════════════════════════════════════════════
+   THE SELECTED CLAUSE
+   ══════════════════════════════════════════════════════════ */
+function renderDetail(){
+  var c = null; CL.forEach(function(x){ if(x.id === sel) c = x; });
+  var host = $('detail');
+  if(!c){ host.innerHTML = ''; return; }
+  var w = wordsOf(c);
+  var total = CL.reduce(function(a, x){ return a + wordsOf(x); }, 0);
+  var share = Math.round(w / total * 100);
+  var f = flagsOf(c), p = pbOf(c.id), r = rpOf(c.id);
+  var bk = null; for(var i = 0; i < BOOK.length; i++) if(BOOK[i].cl === c.id) bk = BOOK[i];
+
+  var tags = '<span class="tag kind">' + (KIND_WORD[c.kind] || 'Other') + '</span>';
+  f.forEach(function(x){ tags += '<span class="tag ' + x.k + '">' + x.word + '</span>'; });
+
+  var cells = '';
+  cells += cell('In plain English', c.plain, true);
+  cells += cell('Your playbook',
+    p ? (p.off ? '<b>Wants:</b> ' + p.want + '<br><b>Says:</b> ' + p.now
+               : '<b>Matches.</b> ' + p.want)
+      : 'Your playbook holds no position on this clause.');
+  cells += cell('Against your book',
+    bk ? '<b>' + bk.val() + '</b> — ' + bk.say()
+       : 'Nothing about this clause is recorded as a term, so there is nothing to compare.');
+  cells += cell('What has been argued',
+    r ? '<b>' + r.mv.length + (r.mv.length === 1 ? ' round' : ' rounds') + '</b> — ' + r.sub +
+        '. ' + r.log[r.log.length - 1].t
+      : 'Never argued. This wording is as it was first drafted.');
+
+  host.innerHTML =
+    '<div class="dh"><h3></h3><div class="tags">' + tags + '</div>' +
+    '<span class="sz">' + w + ' words · ' + share + '% of the agreement</span></div>' +
+    '<div class="dgrid">' + cells + '</div>';
+  host.querySelector('h3').textContent = c.num + '. ' + c.t;
+}
+function cell(k, t, quiet){
+  return '<div class="dc"><div class="k">' + k + '</div><div class="t' +
+         (quiet ? ' q' : '') + '">' + t + '</div></div>';
+}
+
+/* ══════════════════════════════════════════════════════════
+   CHROME
+   ══════════════════════════════════════════════════════════ */
+function renderModes(){
+  var host = $('modes');
+  host.textContent = '';
+  MODES.forEach(function(m){
+    var b = document.createElement('button');
+    b.type = 'button'; b.textContent = m[1];
+    b.setAttribute('aria-pressed', mode === m[0] ? 'true' : 'false');
+    b.addEventListener('click', function(){ mode = m[0]; paintAll(); });
+    host.appendChild(b);
+  });
+  $('hint').innerHTML = HINTS[mode];
+  var any = ['pay','liab','price','excl','notice'].some(moved) || !!readAt;
+  $('reset').disabled = !any;
+}
+
+function renderTour(){
+  var strip = $('tour');
+  strip.className = 'tour' + (tour >= 0 ? ' on' : '');
+  if(tour < 0) return;
+  var s = TOUR[tour];
+  $('t-tag').textContent = s.tag;
+  $('t-why').innerHTML = s.why;
+  $('t-ct').textContent = 'Stop ' + (tour + 1) + ' of ' + TOUR.length;
+  $('t-prev').disabled = (tour === 0);
+  $('t-next').textContent = (tour === TOUR.length - 1) ? 'Finish' : 'Next';
+}
+
+function paintAll(){ renderModes(); renderPaper(); renderPanel(); renderDetail(); renderTour(); }
+
+$('tour-go').addEventListener('click', function(){
+  tour = 0; readAt = null; sel = TOUR[0].cl;
+  paintAll(); scrollTo(sel);
+});
+$('t-next').addEventListener('click', function(){
+  if(tour >= TOUR.length - 1){ tour = -1; renderTour(); renderModes(); return; }
+  tour++; sel = TOUR[tour].cl; paintAll(); scrollTo(sel);
+});
+$('t-prev').addEventListener('click', function(){
+  if(tour <= 0) return;
+  tour--; sel = TOUR[tour].cl; paintAll(); scrollTo(sel);
+});
+$('t-end').addEventListener('click', function(){ tour = -1; renderTour(); });
+$('reset').addEventListener('click', function(){
+  Object.keys(LEVERS).forEach(function(k){ LEVERS[k].now = LEVERS[k].was; });
+  readAt = null; paintAll();
+});
+
+paintAll();
+scrollTo(sel);
+})();
+</script>
