@@ -18516,3 +18516,28 @@ Noticed, not fixed:
 - templates-tabs-verify section 8 fails identically on this tree, on the multi-party merge and on the commit before it (8a/8b/8c and a harness failure). Not caused by anything in this run.
 
 Gates: 8,659 tests, 0 failed. Lint 0 errors. overview-as-drawn 49/49 (its new section 12 is 7 checks, all 7 red at the merge commit, printing "no #kt-parties at all"); amendment-journey, auto-triage, refile-a-contract, share-recipient and blanks-panel all green.
+
+## 22 Sep 2026 — the New agreement pop-up, measured (proposals only, no code changed)
+
+Young, over a screenshot of the pop-up: "please redisign this pop up so that it is not so congested between the left side and the paper on the right. Maybe one side should be on top of the other? In fact, rethink the whole design and provide an artifact with different proposals of how to build it."
+
+An ARTIFACT of five proposals was asked for, not a build, and nothing in js/ or index.html was touched this run. Measured in a real browser at 1310x820, 1310x700, 1440x900, 1600x1000 and 1920x1080 first, so the proposals rest on numbers.
+
+What the measurement says at 1440x900:
+- The frame is 960x711. The columns are 518px (the picker) and 380px (the questions); two thirds of the screen is a picker used once.
+- The questions card draws its boxes in a 167px two-column grid. That is the width the iPad date-field report of 20 Sep came off.
+- THE CONTRACT IS NOT ON THAT SCREEN AT ALL. NA_PAPER_MIN_W is 1600, so what the owner calls "the paper on the right" is the QUESTIONS card. Worth saying plainly: the third column may never have been seen.
+- Past 1600 the picker gets WORSE, not better: it drops 518 -> 389px, the door cards 253 -> 189px, ALL FOUR company-standard names are cut off (0 truncated at 1440, 4 at 1600), and the HaTi chips go from three rows to four. The paper that arrives is 389x293 - a whole contract in a box smaller than a postcard.
+- Opening "Who else is on this agreement" (the participants panel, shipped 21 Sep) makes the card 549 -> 637px tall and THE WHOLE POP-UP SCROLLS at every height tried: it wants 673px and has 666 at 1440x900, 490 at 1310x700. The frame is already at its own ceiling (max-height 88vh).
+
+The five proposals, each drawn to true scale on the canvas with what it costs beside it: A two steps; B one on top of the other (the owner's own suggestion); C a rail and a page; D it stops being a pop-up; E one narrow column. Recommendation given in the reply, not in a drawing.
+
+Found while measuring:
+- MY OWN PROBE USED mousedown AND HaTi'S OWN DROPDOWN LISTENS ON pointerdown, so the first run reported every select as "native" when the product was drawing its own list correctly. The note above selectMenuWire says pointerdown and why (the owner's iPad); I read it after. The instrument, not the product.
+- I could not reproduce a dropdown overflowing the frame's right edge: HaTi's menu is clamped to the WINDOW, and at every select in that dialog it lands inside the frame (188px clear of the right edge at 1310, 1440 and 1920). Said as not-reproduced rather than asserted either way.
+
+Noticed, not fixed:
+- The scroll above is a real defect on an ordinary path (choose a standard, open the participants panel) and is left alone: this request was for proposals. Every proposal on the canvas removes it, three of them by construction.
+- templates-tabs-verify section 8 still fails identically on this tree and on the two commits before it. Unchanged from yesterday's entry.
+
+Gates: nothing to gate - no product file changed. Lint 0 errors (unchanged).
