@@ -21039,3 +21039,94 @@ everything; both are gated on the call being present now.
 And the note in `overview-as-drawn-verify` section 14 that recorded this
 defect as reported-not-fixed was re-pointed in place. A note describing a
 defect that no longer exists is worse than no note.
+
+## THE RUNWAY — THE DECISION CARD IS A LINE OF TIME (Young ruled 22 Sep 2026)
+
+It began as five renders. Young asked for the *Needs your decision* card drawn
+"more graphic than writings", chose the runway, and then asked the question
+that decided the whole shape of the thing:
+
+> *"in idea 1, how does the app measure that dates of redline answers that are
+> pending? Redlines usually do not have due dates."*
+
+MEASURED OUT OF THE RECORD RATHER THAN ANSWERED FROM MEMORY, and he is right.
+The six readings behind that card hold these dates and no others:
+
+| row | what is stored | what the number meant |
+|---|---|---|
+| a quiet desk | `createdAt` on their oldest pending change | WORKING days since they asked |
+| sitting in review | `c.lastAction` | calendar days since anything happened |
+| a review asked of you | `rv.at`, and an OPTIONAL `rv.due` | days since — plus a real deadline, if typed |
+| renew or exit | `renewalDecisionDate` | calendar days REMAINING |
+| your signature | nothing at all | — |
+| a join request | `req.at` | days since |
+
+So "37 days" was never lateness. It was 37 working days since they asked — about
+seven and a half calendar weeks — and it sat in the same column as "in 9 days",
+which is calendar days remaining. Two units and two directions, printed as one.
+
+THREE RULES CAME OUT OF THAT and they are what js/runway.js is. One unit, and it
+is calendar days: the staleness THRESHOLD stays in working days, deliberately,
+so a Friday ask is not called stale on Monday, but the distance drawn is a plain
+difference between two days and nothing here converts between them. The
+left-hand clock starts where the workspace's own answering standard ran out,
+never where they asked — a thing is not "45 days late", it is 45 days past a
+promise this workspace made to itself, and the rail's own label names it. And a
+row with no date is not plotted at all; it is counted beside the rail, and each
+count is a door.
+
+THE STANDARD IS THE DESK'S OWN — `deskCfg().staleDays`, five working days by
+default, already an admin setting on the negotiation-desk panel and already
+published. Reading it rather than inventing a second one means there is one
+promise, said in one place, and the quiet-desk flag and the rail cannot come to
+disagree about what it is.
+
+WHAT WENT WRONG ON THE DAY, and it is the fault this codebase keeps paying for:
+the rail landed and the row beside it still read "42 days" while the dot sat
+where the rail puts 53. Both numbers were true. Together they read as a
+contradiction twelve pixels apart. The row's tag on this card takes the rail's
+own reading now.
+
+THE OWNER EXCLUDED THE EXPLAINER BY NAME — *"you have explanations between the
+top card and the paper so please exclude that from the implementation"* — so the
+prototype's paragraph is not built. The two end labels carry the two directions,
+the left one carries the standard, and where that standard is SET rides the
+hover, because Team & settings is the one door onto it.
+
+## X-RAY — THE SWITCH'S THIRD POSITION (Young ruled 22 Sep 2026)
+
+*"Build the X-ray next to plain english."* Contract View shows the paper. Plain
+English shows the paper and a translation beside it. X-ray shows the paper, a
+map of it down the margin, and everything already known about whichever clause
+you are looking at.
+
+IT SPENDS NOTHING, and that is what makes it a POSITION rather than a feature
+with a bill. Every section of its panel is a reading this product has already
+paid for: the plain-English entry out of the `_readings` the second position
+wrote, paired by that position's own anchors; the open risk-scan findings; the
+playbook review's verdicts; and the clause ladder. X-ray adds no route, no store
+and no field — it is a third way of LOOKING at what is there.
+
+THE MAP BELONGS IN A MARGIN, AND THE MARGIN IS GREY, NEVER PAPER. The sheet is
+capped at `--doc-sheet-max` and centred, so there is page ground either side of
+it whenever the column is wider than the sheet. The spine floats over that
+ground: nothing in the layout changes, so the contract cannot move by a pixel —
+refusal 3 satisfied by construction rather than by argument, and then measured
+anyway, inside the document, identical before and after. Where the ground is too
+narrow the spine is not drawn and the panel still works.
+
+TWO NUMBERS WERE WRONG ON THE FIRST BUILD. A 34px map wanting 10px of clearance
+did not fit the 43px of grey an ordinary 1500px window leaves, and missed by ONE
+pixel — it drew nothing, silently. And the segments were neutral-300 on a
+neutral-100 ground, 1.1:1, so the map read as an empty strip. Both were found by
+looking at a rendered page rather than at the source.
+
+THE STORE KEPT ITS KEY. What was a yes/no about one layer is now which layer,
+and `'1'` still means Plain English, so a browser holding yesterday's choice
+opens where it always did. `docReadOn()` keeps its name and its answer, said in
+terms of the mode, which is what stops its six existing callers drifting from it.
+
+AND THE ORDER IS LOAD-BEARING: `docXrayPaint` runs after `docReadPaint`
+everywhere the mode or the tab changes, because that painter correctly hands
+`#doc-right` back whenever the edition is off — which, in this mode, it is. Two
+writers of one property only agree while one of them runs last.

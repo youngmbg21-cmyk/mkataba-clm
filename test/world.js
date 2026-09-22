@@ -109,6 +109,12 @@ const PLAYBOOK = 'js/playbook.js';
    the tests drive is the pair of pure functions the readiness surface is built
    from, not the full boot. */
 const HOME_VIEW = 'js/views/home.js';
+/* The runway (js/runway.js): the reading the dashboard's decision card is
+   drawn from. A reading with no view, no route and no store, on the shelf
+   js/precedent.js sits on. It comes in WITH the home view because that view
+   asks it by name, and on its own (buildWorld({runway:true})) for a test
+   about the arithmetic rather than the card. */
+const RUNWAY = 'js/runway.js';
 /* The register (buildWorld({registerView:true})). Loaded on request because it
    now draws TWO pages: Contracts, and — since 12 Aug 2026 — the Negotiations
    list, which is the same table with a scope. A test about the negotiations
@@ -453,7 +459,8 @@ function buildWorld(opts = {}) {
      the figure a clause is argued in, and a stage without that file would
      exercise this module's own typeof fallback and prove nothing. */
   if (opts.ladder){ if (!files.includes(PRECEDENT)) files.push(PRECEDENT); files.push(LADDER); }
-  if (opts.homeView) files.push(HOME_VIEW);
+  if (opts.runway && !files.includes(RUNWAY)) files.push(RUNWAY);
+  if (opts.homeView){ if (!files.includes(RUNWAY)) files.push(RUNWAY); files.push(HOME_VIEW); }
   /* The family model and the obligations record (buildWorld({family:true}) /
      ({obligations:true})). Loaded on request like the views: both sit beside the
      change model rather than under it — they annotate a contract and never

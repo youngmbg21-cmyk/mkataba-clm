@@ -18631,3 +18631,55 @@ Noticed, not fixed:
 - paper-beside-questions-verify 7c/7g and term-and-fields-verify still fail identically on both sides. Unchanged from earlier entries.
 
 Gates: 8,708 tests, 0 failed. Lint 0 errors and the warning set diffed against the parent as identical. f362 12/12 (7 red at the parent), overview-as-drawn 65/65 (section 0 red at the parent, printing "0 boxes before, 0 after"), auto-triage 64/64, blanks-panel 37/37, refile-a-contract 26/26, amendment-journey 52/52.
+
+## 22 Sep 2026 — THE RUNWAY ON THE HOME PAGE, AND X-RAY BESIDE PLAIN ENGLISH
+
+Young: *"build the Runway into the home page and build the X-ray next to plain
+english... you have explanations between the top card and the paper so please
+exclude that from the implementation."* Both built; the explainer bands the
+prototype carried are asserted ABSENT on both surfaces.
+
+DEFECTS FOUND AND FIXED ON THE WAY
+- ONE NUMBER FOR ONE THING, TWELVE PIXELS APART. Measured on a real page the
+  hour the rail landed: a quiet desk's row read "42 days" beside a dot the rail
+  had placed at 53. Both true — the desk flag counts WORKING days since they
+  asked, the rail counts CALENDAR days past the standard — and together they
+  read as a contradiction. The row's tag on this card is now the rail's own
+  reading; the flag elsewhere keeps its word.
+- THE SPINE MISSED BY ONE PIXEL. A 34px map wanting 10px of clearance did not
+  fit the 43px of grey an ordinary 1500px window leaves beside the sheet, so it
+  drew nothing at all and nothing said why. 28 and 8 now, and the measurement in
+  docXrayPaint is what keeps narrow windows honest rather than the numbers.
+- THE MAP WAS INVISIBLE. neutral-300 segments on a neutral-100 ground measured
+  1.1:1; the map read as an empty strip. The gray DOT token instead.
+
+FIVE FAULTS IN MY OWN INSTRUMENTS, each found by pointing them at the parent
+- f363 section 1 PASSED against a build where js/runway.js does not exist: every
+  claim in it is an ABSENCE, and an absence is satisfied by an empty string.
+  Gated on the file existing. Twice — the guard beside it needed the same gate.
+- f363's write guard matched `c.side === 'past'`, a READING, because `=` also
+  matches the first character of `===`.
+- f363's "desk.js publishes deskCfg" was greedy past the closing brace and
+  matched the function's own declaration, so it would have passed on a build
+  that published nothing. Pinned to the list. deskCfg was ALREADY published, so
+  the claim is a named WALL rather than a new requirement.
+- runway-and-xray-verify TIMED OUT at the parent rather than reporting: thirty
+  seconds waiting for a control that is not there. Every driven half is guarded
+  now, and two claims that passed vacuously there ("the contract does not move",
+  on a build where nothing was pressed) are gated on the press having happened.
+- And eight claims SKIPPED at the parent rather than failing, which reads as
+  agreement. They report now.
+
+RE-POINTED IN PLACE
+- plain-english-verify 1e / 1k / 1l pinned "the switch has exactly TWO buttons".
+  The owner's own request made that false. The substance of each claim is
+  untouched; the count is pinned to the switch's own list.
+
+NOTICED, NOT FIXED
+- plain-english-verify 10c is red on this branch and red at the parent — a walk
+  reading 13 rows numbered 1..13 where the check wants the paper's own numbers.
+  Pre-existing, untouched.
+- Pressing Plain English on a workspace with no Copilot key leaves the switch
+  where it was, and only a toast says why. Pre-existing behaviour of that
+  position, not X-ray's.
+- The Runway is not built on the phone, which draws mNeedsYou instead.

@@ -1135,6 +1135,15 @@ function renderDashboard(){
       meta:`${esc(i18t('rv_home_from',{who:x.rv.by}))} · ${esc(i18tn('rv_home_sub',x.st.total,{n:x.st.total}))}`,
       tag:x.rv.due?esc(String(x.rv.due)):esc(i18t('rv_home_open')),
       verb:i18t('home_verb_review'),
+      /* THE RUNWAY'S RAW FACTS (22 Sep 2026). `rk` is the kind of work and
+         `rw` is the ONE date this source really holds — never a presented
+         string, and never worked out here. js/runway.js turns them into a
+         side and a distance, once, so the picture and any reading of it
+         cannot disagree. A review is the only row on this card that can
+         carry a deadline somebody typed; without one it has elapsed time
+         and no clock. */
+      rk:'ask', rw:{ due:x.rv.due||null,
+        sat:(window.reviewDaysWaiting?reviewDaysWaiting(x.rv):null) },
     })),
     /* ---- SOMEBODY IS ASKING TO JOIN A NEGOTIATION YOU LEAD ----
        Not a new inbox. A request to join is exactly the shape of everything
@@ -1151,6 +1160,11 @@ function renderDashboard(){
       meta:esc(i18tn('dk_stale_sub',x.stale.n,{n:x.stale.n,who:x.stale.lead.name})),
       tag:esc(i18t('dk_stale_tag',{n:x.stale.days})),
       verb:i18t('act_open'),
+      /* THE DAY THEY ASKED, and nothing else. `stale.days` beside it is a
+         count of WORKING days, which is right for the flag and wrong for the
+         rail; handing the rail the timestamp lets it measure in the one unit
+         it uses everywhere. */
+      rk:'wait', rw:{ since:x.stale.since },
     })),
     ...myJoinAsks.map(x=>({
       cid:x.c.id, urgent:false, ic:'users',
@@ -1158,6 +1172,7 @@ function renderDashboard(){
       meta:x.req.why?`“${esc(x.req.why)}”`:esc(x.c.counterparty||i18t('home_no_counterparty')),
       tag:esc(i18t('dk_ask_tag')),
       verb:i18t('home_verb_answer'),
+      rk:'join', rw:{ sat:(window.rwDayDiff?rwDayDiff(x.req.at,rwToday()):null) },
     })),
     /* ---- YOUR SIGNATURE, AND WHAT STANDS BEFORE IT (13 Sep 2026) ----
        A contract whose next signature is this reader's, with something still
@@ -1172,6 +1187,9 @@ function renderDashboard(){
       meta:esc(x.c.counterparty||i18t('home_no_counterparty')),
       tag:esc(i18t('home_sign_tag')),
       verb:i18t('home_verb_sign'),
+      /* A SIGNATURE CARRIES NO DATE OF ANY KIND — not a deadline, not even a
+         day it landed on this reader. It is counted beside the rail. */
+      rk:'sign', rw:{},
     })),
     ...decisions.filter(x=>!deskIds.has(x.c.id)).map(x=>({
       cid:x.c.id, urgent:x.d<=30, ic:'calendar',
@@ -1179,6 +1197,10 @@ function renderDashboard(){
       meta:i18t('home_decide_by',{who:esc(x.c.counterparty||i18t('home_no_counterparty')),when:fmtDDay(x.dd)}),
       tag:x.d===0?i18t('home_today'):i18t('home_in_days',{n:x.d}),
       verb:i18t('home_verb_decide'),
+      /* The one row on this card with a real deadline of its own, worked out
+         from the contract's notice period. `decisions` is already filtered to
+         0..90 days ahead, so it only ever lands right of TODAY. */
+      rk:'renew', rw:{ left:x.d },
     })),
     ...waitingLongest.map(x=>({
       cid:x.c.id, urgent:x.idle>=30, ic:'clock',
@@ -1186,6 +1208,10 @@ function renderDashboard(){
       meta:`${esc(x.c.counterparty||i18t('home_no_counterparty'))} · ${esc(x.c.id)}`,
       tag:i18t('home_idle_days',{n:x.idle}),
       verb:i18t('act_open'),
+      /* Elapsed time and no standard to be past: HaTi holds no promise about
+         how long a contract may sit in review, so this is a no-clock row that
+         says how long it has sat. */
+      rk:'idle', rw:{ sat:x.idle },
     })),
   ];
   const decisionRows=decisionItems.slice(0,8).map(it=>{
@@ -1445,6 +1471,90 @@ function renderDashboard(){
      was a ruby circle is a ruby left rule and nothing about which row is
      alarming has moved. */
   const ddAll=decisionItems||[];
+
+  /* ---- THE RUNWAY (Young ruled 22 Sep 2026) ----
+     The same forty-nine rows, drawn as one line of time before they are
+     listed. js/runway.js does every count and every placement; nothing below
+     works anything out, which is what keeps the head, the rail and the column
+     beside it from ever printing three different totals.
+
+     NOTHING IS PLOTTED, NOTHING IS DRAWN. Where no row on this card carries a
+     date at all the rail is not built and the card is exactly what it was —
+     a verb that cannot work is not drawn, and a rail with no dots on it is a
+     picture of nothing.
+
+     NO EXPLAINER. The owner excluded the prototype's paragraph by name, so
+     the two end labels carry the two directions and the left one carries the
+     standard itself. Where that standard is SET rides the hover: Team &
+     settings owns it, and a second door onto it here would drift from it. */
+  const rwSp=(window.rwSplit?rwSplit(ddAll):null);
+  const rwPlain=h=>String(h==null?'':h).replace(/<[^>]*>/g,'').replace(/\s+/g,' ').trim();
+  const rwSay=r=>r.side==='past'?i18tn('rw_past_n',r.n,{n:r.n})
+              :r.side==='left'?i18tn('rw_left_n',r.n,{n:r.n})
+              :(r.sat!=null?i18tn('rw_sat_n',r.sat,{n:r.sat}):i18t('rw_no_clock'));
+  const rwTick=(side,n)=>rwX({side,n});
+  const rwCard=(()=>{
+    if(!rwSp||!rwSp.plotted) return '';
+    /* SEVERAL ROWS CAN LAND ON ONE DAY, so they stack upward rather than hide
+       one another — drawing all of them is the entire point. Past the stack
+       ceiling they sit on the top rung: the count is in the head either way,
+       and a dot leaving the rail would be a silent trim. */
+    const seen={};
+    const pins=rwSp.past.concat(rwSp.left).map(r=>{
+      const x=rwX(r); if(x==null) return '';
+      const k=x.toFixed(2); const i=seen[k]||0; seen[k]=i+1;
+      const say=rwPlain(r.it&&r.it.txt)+' · '+rwSay(r);
+      return `<button type="button" class="hm-rw-pin" data-sel="${esc(r.cid||'')}"
+        style="left:${x.toFixed(2)}%;bottom:${Math.min(i,RW_STACK_MAX-1)*RW_STACK}px;background:${RW_KINDS[r.kind].tone}"
+        title="${esc(say)}" aria-label="${esc(say)}"></button>`;
+    }).join('');
+    /* The ticks are the rail's own arithmetic asked back, never typed: move
+       either end of the window and the labels follow it. */
+    const tick=(x,cls,words)=>`<span class="hm-rw-tick${cls?' '+cls:''}" style="left:${x.toFixed(2)}%">${esc(words)}</span>`;
+    const ticks=tick(rwTick('past',RW_PAST_MAX),'is-past',i18t('rw_tick_past',{n:RW_PAST_MAX}))
+      +tick(rwTick('past',Math.round(RW_PAST_MAX/2)),'is-past',String(Math.round(RW_PAST_MAX/2)))
+      +tick(RW_TODAY_AT,'is-now',i18t('rw_today'))
+      +tick(rwTick('left',30),'',String(30))
+      +tick(rwTick('left',60),'',String(60))
+      +tick(rwTick('left',RW_LEFT_MAX),'is-end',i18t('rw_tick_out',{n:RW_LEFT_MAX}));
+    const groups=rwNoneGroups(rwSp).map(g=>`
+      <button type="button" class="hm-rw-nc" data-hm-go="rwnone:${esc(g.kind)}">
+        <span class="hm-rw-ncd" style="background:${RW_KINDS[g.kind].tone}"></span>
+        <span class="hm-rw-ncn" style="color:${RW_KINDS[g.kind].tone}">${g.n}</span>
+        <span class="hm-rw-ncw">${esc(i18t(RW_KINDS[g.kind].word))}</span>
+      </button>`).join('');
+    return `<div class="hm-rw">
+      <div class="hm-rw-main">
+        <div class="hm-rw-ends">
+          <span class="hm-rw-end is-past" title="${esc(i18t('rw_std_title'))}">${esc(i18t('rw_end_past',{n:rwStandardDays()}))}</span>
+          <span class="hm-rw-end">${esc(i18t('rw_end_left'))}</span>
+        </div>
+        <div class="hm-rw-rail">
+          <span class="hm-rw-wash is-past" style="width:${RW_TODAY_AT}%"></span>
+          <span class="hm-rw-wash is-ahead" style="left:${RW_TODAY_AT}%"></span>
+          <span class="hm-rw-base"></span>
+          <span class="hm-rw-now" style="left:${RW_TODAY_AT}%"></span>
+          <div class="hm-rw-pins">${pins}</div>
+          ${ticks}
+        </div>
+      </div>
+      ${groups?`<div class="hm-rw-side">
+        <span class="hm-rw-sidehead">${esc(i18t('rw_none_head'))}</span>
+        ${groups}
+      </div>`:''}
+    </div>`;
+  })();
+
+  /* ---- ONE NUMBER FOR ONE THING, TWELVE PIXELS APART ----
+     MEASURED on a real page the hour the rail landed: the row read "42 days"
+     and the dot beside it sat where the rail puts 53. Both are true and they
+     look like a contradiction. The desk's own tag counts WORKING days since
+     they asked — exactly right for the quiet-desk flag, which is a judgement
+     about whether a deal has gone quiet — and the rail measures CALENDAR days
+     PAST THE STANDARD, because that is the only unit both halves of the rail
+     can share. On this card the rail's reading wins, because it is the one the
+     picture is drawn in; everywhere else the flag keeps its own word. */
+  if(rwCard) rwSp.past.forEach(r=>{ if(r.kind==='wait'&&r.it) r.it.tag=esc(i18tn('rw_tag_past',r.n,{n:r.n})); });
   /* ---- AS MANY AS FIT ON THIS READER'S SCREEN (owner-ruled 29 Aug 2026) ----
      It was a flat four, so a 2000px-tall monitor showed the same four a laptop
      did and the rest of the screen was empty. HM_DD_MIN is what a laptop always
@@ -1453,7 +1563,7 @@ function renderDashboard(){
      hmFitDecisions, which is the only time the room below this list is known. */
   const ddShown=ddAll.slice(0, Math.max(HM_DD_MIN, _hmDdFit|0));
   const ddRows=ddShown.length
-    ? `<div class="hm-rows" id="hm-dd-rows">${ddShown.map(it=>it.kind==='triage'?triageRowHtml(it):`
+    ? rwCard+`<div class="hm-rows" id="hm-dd-rows">${ddShown.map(it=>it.kind==='triage'?triageRowHtml(it):`
         <button type="button" class="hm-row ${it.urgent?'is-neg':'is-crit'}" data-sel="${esc(it.cid)}">
           ${''/* THE TONE IS A DOT, NOT A LEFT RULE (21 Sep 2026): the
                  reference draws an 8px circle at the head of every decision
@@ -1472,7 +1582,9 @@ function renderDashboard(){
     : `<div class="hm-empty">${i18t('home_nothing_to_decide')}</div>`;
   /* DRAWN ONLY WHERE IT SHOWS SOMETHING NEW — at four or fewer, pressing it
      would open the list already on screen. */
-  const ddLink=(ddAll.length?`<span class="hm-sec-sub">${esc(i18tn('home_dd_items',ddAll.length,{n:ddAll.length}))} · ${esc(i18t('home_dd_sorted'))}</span>`:'')
+  const ddLink=(ddAll.length?`<span class="hm-sec-sub">${esc(i18tn('home_dd_items',ddAll.length,{n:ddAll.length}))} · ${esc(rwCard
+      ? i18t('rw_sum',{a:rwSp.past.length,b:rwSp.left.length,c:rwSp.none.length})
+      : i18t('home_dd_sorted'))}</span>`:'')
     + (ddAll.length>ddShown.length
     ? `<button type="button" class="hm-cz" data-hm-go="needsyou">${i18t('home_see_all',{n:ddAll.length})}
          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><use href="#i-right"/></svg></button>`
@@ -1656,6 +1768,14 @@ function renderDashboard(){
          in contracts. The bell owns the wider "everything owed to you". */
       const ids=(decisionItems||[]).map(x=>x.cid).filter(Boolean);
       if(window.regShowOnly && ids.length){ regShowOnly(ids,i18t('home_needs_decision')); return; }
+      const r=R(); r.stage='all'; setView('register'); return;
+    }
+    if(kind==='rwnone'){
+      /* THE COUNT OPENS THE LIST THAT MADE IT — this page's own rule, and the
+         same door the other three counts on it use. The rail can only draw
+         what fits; the register shows every one of them. */
+      const ids=((rwSp&&rwSp.noneBy&&rwSp.noneBy[arg])||[]).map(r=>r.cid).filter(Boolean);
+      if(window.regShowOnly && ids.length){ regShowOnly(ids,i18t(RW_KINDS[arg]?RW_KINDS[arg].word:'home_needs_decision')); return; }
       const r=R(); r.stage='all'; setView('register'); return;
     }
     if(kind==='fails'){

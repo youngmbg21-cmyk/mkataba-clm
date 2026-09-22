@@ -182,8 +182,17 @@ const withKeys = (entries, heads) => entries.map(e => ({ ...e, key: 'R' + e.i, h
       });
       return { segBorder: s.borderTopWidth, segOutline: s.outlineStyle, b };
     }, undefined, null);
-    check(!!ring && ring.b.length === 2 && ring.b.every(x => x.bw === '0px' && x.ow === '0px'),
-      '1e no ring round either button — the buttons draw no border and no outline',
+    /* ---- RE-POINTED IN PLACE, 22 Sep 2026 ----
+       These three pinned "the switch has exactly TWO buttons", which was true
+       until Young asked for X-ray beside Plain English. THE SUBSTANCE OF EACH
+       CLAIM IS UNTOUCHED — no ring on any of them, the resting halves no
+       heavier than the acts above, and only the lit one heavier. What moved is
+       the count, and it is pinned to the switch's own list rather than to a
+       number, so a fourth position would have to be a deliberate edit here
+       too. */
+    const SEG_N = 3;   /* Contract View · Plain English · X-ray */
+    check(!!ring && ring.b.length === SEG_N && ring.b.every(x => x.bw === '0px' && x.ow === '0px'),
+      '1e no ring round any button — the buttons draw no border and no outline',
       ring && JSON.stringify(ring.b.map(x => x.bw + '/' + x.ow)));
     check(!!ring && ring.b[0].text === 'Contract View' && ring.b[1].text === 'Plain English',
       '1f Contract View first, Plain English second — Young\'s own order',
@@ -232,14 +241,14 @@ const withKeys = (entries, heads) => entries.map(e => ({ ...e, key: 'R' + e.i, h
       && uniq(rung.text, 'size').length === 1 && rung.head[0].size === rung.text[0].size,
       '1j and every word in it reads at the same size',
       `head ${uniq(rung.head, 'size').join('/')} · slot ${uniq(rung.text, 'size').join('/')}`);
-    check(rung.seg.length === 2 && rung.seg.some(x => !x.on) && rung.head.length > 0
+    check(rung.seg.length === SEG_N && rung.seg.some(x => !x.on) && rung.head.length > 0
       && rung.seg.filter(x => !x.on).every(x => Number(x.w) <= Number(rung.head[0].w)),
       /* RE-POINTED 21 Sep 2026: the acts are .ui-btn at the redesign's label
          weight (500); the resting half is no heavier than them, and 1l keeps
          the other half of the ruling — only the lit half is heavier. */
       '1k the resting half is not bold — no heavier than the acts above',
       `resting ${rung.seg.filter(x => !x.on).map(x => x.w).join('/')} · acts ${rung.head[0] && rung.head[0].w}`);
-    check(rung.seg.length === 2 && rung.seg.some(x => x.on) && rung.head.length > 0
+    check(rung.seg.length === SEG_N && rung.seg.some(x => x.on) && rung.head.length > 0
       && rung.seg.filter(x => x.on).every(x => Number(x.w) > Number(rung.head[0].w)),
       '1l and only the shaded half is',
       rung.seg.map(x => (x.on ? 'lit ' : 'resting ') + x.w).join(' · '));
