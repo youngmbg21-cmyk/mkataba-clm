@@ -18412,3 +18412,41 @@ Found while measuring:
 Noticed, not fixed:
 - counterparty-leads-verify 4b pinned the brief as the FIRST button before signing; the owner's later ruling reverses it. Reversed in place, with the old reasoning kept - the only red file on this tree that was green at the parent, and it was a claim, not a defect.
 - The browser set is 39 of 129 red on this tree and the same 39 at the parent.
+
+## 22 Sep 2026 — the audit's fixes: part one (speed) and part two (the eight holes)
+
+Young: "Fix part one and two then merge to main."
+
+### Part one — the book is walked once, not once per contract
+
+Re-measured on a real browser at 3,004 contracts, same seeded workspace both sides. Parent -> this tree:
+Home 1,611 -> 223 · Contracts 1,656 -> 238 · Calendar 1,246 -> 162 · Obligations 1,013 -> 113 · Insights 3,891 -> 495 · Approvals 1,927 -> 984. hmDashSlices 306 -> 23, buildAlerts 307 -> 31, effectiveExpiry x1000 25 -> 1.
+
+Four fixes: the family index (a map built once, guarded by three O(1) facts and an explicit stamp); one count per paint (navCounts, memo dropped on a microtask, with a re-entrancy wall); one look-up per obligation tick; and the contracts list decorating itself from its own page's ids rather than reading two whole tables.
+
+Found while building:
+- THE FIRST INDEX WAS SLOWER THAN THE SCAN IT REPLACED: 1,035 -> 3,442 ms, because its guard was a per-call checksum over every parentId. A guard that walks the book is not a guard.
+- THE FIRST navCounts WAS A CYCLE: it asked approvalsDoorCount, which draws through hmDashSlices, which asks navCounts, and the memo was written only at the end - 1,132 walks of the book for one Home paint against 3 before. Found by counting stack frames, not by reading.
+- THE INSTRUMENT WAS WRONG AND I FOUND IT LATE: every setView('home') in the audit scripts drew an error card - the page key is 'dashboard'. Both sides drew the same wrong page so the comparison held, but the LABEL did not. Every figure above is the second measurement, against the real pages.
+- Arrays born inside jsdom carry that realm's Array.prototype, so deepStrictEqual fails on two identical lists. Compare joined strings.
+
+### Part two — eight places the product lost track
+
+Six built (the address book, stale readings, lanes on a beat, a served notice, the person summary, the read-only hint). Two not built, both deliberate and both pinned as absences in f358.
+
+Found while building:
+- todayStr() IS A DISPLAY STRING ("22 Sep 2026"). Comparing it with an ISO day compares "2" with "0", so the wall refusing a notice served tomorrow never refused anything, and the date box opened EMPTY with no maximum. The calendar had already paid for this exact trap and written it down beside calToday. Found by the net for the item that built it.
+- A GUARD THAT WAS ALWAYS FALSE, in my own line: the served-notice handler repainted the Overview side column through window.renderKeyTermsSide, a name deliberately not published. f232 caught it within the hour. The call was dead as well as unreachable - the renewal card carries the served line and renderRenewalSection repaints it.
+- f358's own 4d cut at the next backtick and that sentence has a nested template literal in the middle of it, so it read half a line and failed against correct code. Pin the region.
+
+Not built, and said to the owner:
+- ITEM 6, the end-state chooser. He ruled Hold onto the Contracts row BY NAME on 19 Sep, over a drawing, because reaching it meant opening the contract first. Folding the three into one door takes that back. The WORDS were the half that was missing; the three rows stay.
+- ITEM 7, the guest's one-time code. Already built: share_otp, the address is the stored one, the server refuses an unverified signature, and it is skippable only where EMAIL_ON() is false. I wrote a second set of routes, found the first, and reverted with git checkout. The audit had generalised a note about a guest's first SEND to signing.
+
+Re-pointed in place, each with its reason beside it: f184 (the sidebar's figure moved into navCounts), f347 (the brief row learned a fourth answer), f358 (4d).
+
+Noticed, not fixed:
+- js/ai.js writes c.scan.on with todayStr(), so the risk-scan day is a display string where every reader expects an ISO day. This is the same NaN this product fixed once at one of four call sites on 17 Sep; the value written INTO it was never fixed. Outside this request.
+- js/blanks.js line ~362 also reads todayStr() into a contract blank; a display date on paper is arguably right there and was left alone.
+
+Gates: 8,599 tests, 0 failed. Lint 0 errors. Browser set 39 of 129 red on this tree and the SAME 39 at the parent - lists compared file by file, nothing red here that was green there.
