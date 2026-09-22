@@ -1993,6 +1993,10 @@ function startApp(){
     setInterval(refreshShareOverview,60000); setInterval(refreshWaitingQuestions,60000); setInterval(refreshAiUsage,30000);
     window.loadAdviceRequests&&loadAdviceRequests().then(()=>{ updateSidebarCounts(); if(state.view==='advice') renderAdviceDesk(); }).catch(()=>{});
     window.loadIntake&&loadIntake().then(()=>{ updateSidebarCounts(); if(state.view==='intake') renderIntake(); }).catch(()=>{});
+    /* AND THE INTAKE LANES RUN ON THEIR OWN BEAT (21 Sep 2026): they used to
+       fire only when somebody opened the Requests page, so a request a rule
+       would have cleared in seconds waited for a human to look. */
+    window.intakeSweepStart&&intakeSweepStart();
     /* One-time heal: workspaces whose market was chosen before the choice was
        persisted server-side (see jxSet) have it only in this browser's local
        store, and every server-built artefact fell back to the default market.
@@ -4683,6 +4687,16 @@ function shareModalPrefill(shares, c){
   const route=c ? shareRouteRecipient(c) : null;
   if(route) return { name:route.name, email:route.email, phone:'', channel:'email',
     source:'route', signerId:route.signerId };
+  /* THE PEOPLE LIST IS THE SECOND ANSWER (21 Sep 2026, the process review's
+     first item). Where somebody has been NAMED on this contract, that is a
+     person this workspace decided is on it — a better answer than a contact
+     field typed once at creation, and the same list the send screen already
+     offers extra recipients from. Ahead of the record, behind the signing
+     route, which is still the sharpest answer there is: it names the person
+     whose turn it actually is. */
+  const named=(c && typeof participantSendRows==='function') ? participantSendRows(c)[0] : null;
+  if(named && named.email) return { name:named.name||'', email:named.email, phone:'',
+    channel:'email', source:'people', signerId:null };
   /* counterpartyContact already holds the second and third answers in the right
      order, including the case a share carries a name but no address. */
   const pick=c ? counterpartyContact(c, shares) : lastShareRecipient(shares);
@@ -4697,6 +4711,7 @@ function sharePrefillNote(pre){
   const p=pre||{};
   if(!(p.email||p.phone||p.name)) return '';
   return p.source==='route' ? i18t('co_filled_from_route')
+    : p.source==='people' ? i18t('co_filled_from_people')
     : p.source==='record' ? i18t('co_filled_from_record')
     : p.source==='last' ? i18t('co_filled_from_last') : '';
 }

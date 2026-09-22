@@ -260,6 +260,18 @@ function renewalQuestionOf(c){
   return { expiry: String(expiry || ''), notice: String(Number(m.noticePeriodDays) || 0) };
 }
 function renewalDecisionOf(c){
+  /* A NOTICE THAT WAS SERVED IS THE DECISION (21 Sep 2026, the process
+     review's fourth item). Serving a non-renewal notice is the answer to
+     this question in the strongest form there is — the letter has gone. Until
+     a person could record it, the clock went on counting down and the nags
+     went on firing at somebody who had already done the thing. It is read
+     through `window` with a guard: this module draws on stages without
+     js/notice.js, and an ABSENT reading must mean "nothing recorded", never
+     "served". */
+  let served = null;
+  try{ served = (typeof window !== 'undefined' && window.noticeServed) ? noticeServed(c) : null; }catch(_){ served = null; }
+  if(served) return { answer:'lapse', at:served.at || '', by:served.by || '',
+    expiry:(c && c.expiry) || '', decideBy:served.servedOn, served:true };
   const d = c && c.renewalDecision;
   if(!d || RENEWAL_ANSWERS.indexOf(d.answer) < 0) return null;
   const q = renewalQuestionOf(c);

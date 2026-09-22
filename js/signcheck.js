@@ -234,6 +234,61 @@ function signCheckBrief(c){
 }
 
 /* ============================================================
+   IS THIS READING OLDER THAN THE WORDING? (21 Sep 2026, the process
+   review's second item)
+
+   A round comes back, the other side's wording is filed, the screen
+   updates — and no reading is re-run. The brief still describes the
+   wording from before, the standards check still answers about the old
+   text, and the obligations list still reflects a document that has
+   changed. Until the signing flow was built that lasted all the way to
+   signature; it is caught at the last gate now, but between a round
+   landing and somebody starting to sign, every reading on the contract
+   is quietly out of date and nothing says so.
+
+   NOTHING HERE RE-RUNS ANYTHING. Re-reading on every round would spend
+   the workspace's money each time the other side moved a comma. This
+   says so instead, on the rows that already report each reading.
+
+   ONE READING, THREE KINDS, AND EVERY FACT BORROWED: the date each
+   reading was made, against signCheckBriefAt — the newest filed change
+   across c.changes and the closed rounds, read RAW. THREE ANSWERS, and
+   the third is the honest one: null means we do not know (nothing dated
+   to compare, or a reading that was never made), which is printed as
+   nothing rather than as a warning.
+
+   THE PLAYBOOK KEEPS ITS OWN AUTHORITY. playbookStale compares a stored
+   wording HASH, which is sharper than a date, so it is asked first and
+   this only answers where it says it does not know. A second hasher here
+   would drift from it, which is the trap signCheckBrief is already
+   written to avoid. */
+const READING_KINDS = ['brief', 'playbook', 'oblig'];
+function readingMadeAt(c, kind){
+  if (kind === 'brief')    return String((c && c._brief && c._brief.at) || '');
+  if (kind === 'playbook') return String((c && c.playbook && (c.playbook.checkedAt || c.playbook.at)) || '');
+  if (kind === 'oblig')    return String((c && c.obligationsReadAt) || '');
+  return '';
+}
+function readingStale(c, kind){
+  if (kind === 'playbook'){
+    let pb = null;
+    try { pb = (typeof playbookStale === 'function') ? playbookStale(c) : null; } catch (_) { pb = null; }
+    if (pb === true || pb === false) return pb;
+  }
+  const made = Date.parse(readingMadeAt(c, kind)) || 0;
+  if (!made) return null;                 /* never read is not out of date */
+  const moved = signCheckBriefAt(c);
+  if (!moved) return null;                /* nothing has been proposed to compare with */
+  return moved > made;
+}
+/* Which of the three a round has left behind. The count the Overview prints,
+   and the one thing a reader needs to know between a round landing and the
+   signing flow: how much of what is on this card speaks for the old text. */
+function readingsStale(c){
+  return READING_KINDS.filter(k => readingStale(c, k) === true);
+}
+
+/* ============================================================
    READING THE BRIEF IS THE LAST STEP, AND IT IS EACH SIGNER'S OWN
    ============================================================
    (Young ruled 21 Sep 2026.) *"…to verify that a user reads a brief of
@@ -671,5 +726,6 @@ if (typeof window !== 'undefined') Object.assign(window, {
   signCheckRowHolds, signCheckRows, signCheckHolding, signReadiness, signCheckWillRun,
   signCheck, signCheckReady, signCheckTableClear, signCheckWaiting,
   signCheckBrief, signCheckBriefAt, SIGN_STAGES, SIGN_STAGE_OF, signStageOf,
+  READING_KINDS, readingMadeAt, readingStale, readingsStale,
   signCheckStandards, signCheckObligations, signCheckRecord, signCheckRecordValue,
 });

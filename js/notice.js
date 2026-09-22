@@ -162,6 +162,52 @@ function openNoticeDialog(c){
   });
   return true;
 }
+/* ---- I SERVED THIS ---- The dialog is three answers and nothing else: the
+   day, the way, and the reference if there is one. It is a record of what a
+   person did, so the day may not be in the future and the button says so. */
+function openNoticeServedDialog(c, after){
+  if(!c) return false;
+  const e = _noEsc;
+  const today = (typeof todayStr === 'function') ? todayStr() : new Date().toISOString().slice(0,10);
+  const had = noticeServed(c);
+  const ways = NOTICE_WAYS.map(w => `<option value="${w}"${had && had.way===w ? ' selected' : ''}>${
+    e(i18t(NOTICE_WAY_KEY[w]))}</option>`).join('');
+  openModal(`<div class="p-6">
+    <h3 style="margin:0 0 var(--s-1);font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section)">${e(i18t('nt_served_title'))}</h3>
+    <p style="margin:0 0 var(--s-3);font-size:var(--t-meta);color:var(--color-neutral-700);line-height:1.55">${e(i18t('nt_served_sub'))}</p>
+    <div class="field-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:var(--s-3)">
+      <label style="display:block"><span style="display:block;font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-neutral-600);margin-bottom:4px">${
+        e(i18t('nt_served_on'))}</span>
+        <input id="nts-on" type="date" class="field" max="${e(today)}" value="${e((had&&had.servedOn)||today)}" style="width:100%"></label>
+      <label style="display:block"><span style="display:block;font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-neutral-600);margin-bottom:4px">${
+        e(i18t('nt_served_way'))}</span>
+        <select id="nts-way" class="field" style="width:100%">${ways}</select></label>
+    </div>
+    <label style="display:block;margin-top:var(--s-3)"><span style="display:block;font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-neutral-600);margin-bottom:4px">${
+      e(i18t('nt_served_ref'))}</span>
+      <input id="nts-ref" class="field" maxlength="120" value="${e((had&&had.ref)||'')}" placeholder="${e(i18t('nt_served_ref_ph'))}" style="width:100%"></label>
+    <p id="nts-say" style="margin:var(--s-2) 0 0;font-size:var(--t-label);color:var(--danger);min-height:1.4em"></p>
+    <div style="display:flex;gap:var(--s-2);justify-content:flex-end;margin-top:var(--s-4)">
+      ${had?`<button id="nts-clear" class="ui-btn" type="button" style="margin-right:auto">${e(i18t('nt_served_clear'))}</button>`:''}
+      <button id="nts-cancel" class="ui-btn" type="button">${e(i18t('act_cancel'))}</button>
+      <button id="nts-ok" class="ui-btn ui-btn-primary" type="button">${e(i18t('nt_served_ok'))}</button>
+    </div></div>`, { label:i18t('nt_served_title'), maxWidth:DLG_W.m });
+  const done = () => { closeModal(); try{ if(typeof persist === 'function') persist(c); }catch(_){}
+    try{ if(typeof after === 'function') after(); }catch(_){} };
+  document.getElementById('nts-cancel')?.addEventListener('click', closeModal);
+  document.getElementById('nts-clear')?.addEventListener('click', () => { noticeClearServed(c); done(); });
+  document.getElementById('nts-ok')?.addEventListener('click', () => {
+    const on = (document.getElementById('nts-on') || {}).value || '';
+    const way = (document.getElementById('nts-way') || {}).value || 'post';
+    const ref = (document.getElementById('nts-ref') || {}).value || '';
+    const out = noticeMarkServed(c, on, way, ref);
+    /* A REFUSAL CARRIES ITS WAY FORWARD ON THE SAME SCREEN. */
+    if(!out){ const say = document.getElementById('nts-say'); if(say) say.textContent = i18t('nt_served_bad_day'); return; }
+    if(typeof toast === 'function') toast(i18t('nt_served_ok_toast'), 'ok');
+    done();
+  });
+  return true;
+}
 const noticeWhyLine = why => {
   const k = (why || [])[0] || 'no-contract';
   const KEY = { 'amendment':'nt_why_amendment', 'archived':'nt_why_archived',
@@ -171,5 +217,71 @@ const noticeWhyLine = why => {
   return i18t(KEY[k] || 'nt_why_not_in_force');
 };
 
+/* ============================================================
+   AND WHETHER IT WAS SERVED (21 Sep 2026, the process review's fourth item)
+
+   HaTi composes the letter and the trail says it was drafted and copied. It
+   deliberately does not claim the notice was SERVED — a person serves it, and
+   HaTi did not see them do it. But nothing ever recorded that they had. So
+   the renewal clock kept counting down, the alert kept firing, and the
+   agreement renewed itself on a record that could not say whether the one act
+   that would have stopped it happened. It was the only hole in the lifecycle
+   where the product lost track entirely.
+
+   IT CLAIMS NOTHING HaTi SAW. `c.notice` is what a PERSON told it — the day,
+   the way, the reference — stamped with who said so. That is exactly what a
+   contract register is for, and it is why the words on the act are "I served
+   this", in the first person.
+
+   ONE FIELD, absent on every record on file, and NOT on EXECUTED_IMMUTABLE:
+   serving a notice is something that happens to a signed agreement, so a
+   sealed record must still be able to carry it. */
+const NOTICE_WAYS = ['post', 'email', 'courier', 'hand', 'portal'];
+const NOTICE_WAY_KEY = { post:'nt_way_post', email:'nt_way_email', courier:'nt_way_courier',
+  hand:'nt_way_hand', portal:'nt_way_portal' };
+function noticeServed(c){
+  const n = c && c.notice;
+  return (n && n.servedOn) ? n : null;
+}
+/* THE ONE WRITER. A day in the future is refused — a register that can say a
+   notice was served tomorrow is a register nobody can rely on. */
+function noticeMarkServed(c, on, way, ref, actor){
+  if(!c) return null;
+  const day = String(on || '').slice(0, 10);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(day)) return null;
+  const today = (typeof todayStr === 'function') ? todayStr() : new Date().toISOString().slice(0, 10);
+  if(day > today) return null;
+  const w = NOTICE_WAYS.includes(String(way)) ? String(way) : 'post';
+  const u = actor || ((typeof currentUser === 'function') ? currentUser() : null);
+  c.notice = { servedOn: day, way: w, ref: String(ref || '').slice(0, 120),
+    at: (typeof nowISO === 'function') ? nowISO() : new Date().toISOString(),
+    by: (u && (u.name || u.email)) || '' };
+  try{
+    if(typeof logAudit === 'function') logAudit(c, 'Notice',
+      `Recorded as served on ${_noDay(day)} by ${w}${c.notice.ref ? ` — ${c.notice.ref}` : ''}. Recorded by a person; HaTi did not send it.`);
+  }catch(_){}
+  return c.notice;
+}
+function noticeClearServed(c, actor){
+  if(!c || !c.notice) return false;
+  const was = c.notice;
+  delete c.notice;
+  try{
+    if(typeof logAudit === 'function') logAudit(c, 'Notice',
+      `The record of service on ${_noDay(was.servedOn)} was withdrawn.`);
+  }catch(_){}
+  return true;
+}
+/* What the renewal card prints once it has been served. */
+function noticeServedLine(c){
+  const n = noticeServed(c); if(!n) return '';
+  const way = (typeof i18t === 'function') ? i18t(NOTICE_WAY_KEY[n.way] || 'nt_way_post') : n.way;
+  return (typeof i18t === 'function')
+    ? i18t('nt_served_line', { day:_noDay(n.servedOn), way })
+    : `Notice served ${_noDay(n.servedOn)} by ${way}`;
+}
+
 Object.assign(window, { NOTICE_KINDS, NOTICE_LATE_SAYS, noticeBlockers, noticeMayDraft,
-  noticeDraft, noticeText, noticeDialogHtml, openNoticeDialog, noticeWhyLine });
+  noticeDraft, noticeText, noticeDialogHtml, openNoticeDialog, noticeWhyLine,
+  NOTICE_WAYS, NOTICE_WAY_KEY, noticeServed, noticeMarkServed, noticeClearServed,
+  noticeServedLine, openNoticeServedDialog });

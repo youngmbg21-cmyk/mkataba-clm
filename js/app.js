@@ -1054,8 +1054,16 @@ function openWorkspace(id){ state.activeId=id; state.selId=id; setView('workspac
    the + New contract menu) go through openWizard(), so the questions whose
    answers become the contract's data get asked exactly once, the same way, in
    both places. Kept because it is window-exported and produces a valid draft. */
-function createFromTemplate(tid){
-  if(!canEdit()){ toast(i18t('ap_viewers_no_create'),'err'); return; }
+/* `opts.quiet` — MINT IT, DO NOT MOVE ANYBODY (21 Sep 2026, the process
+   review's third item). The intake lanes press this function, and a rule that
+   fires without a human must not then take the human somewhere: on a timer it
+   would yank a reader off whatever they were doing and onto a fresh draft,
+   once per request cleared. Quiet skips the toast and the navigation and
+   RETURNS the contract, so the caller does not have to read state.activeId
+   back to find out what it just made. Every other door is byte-identical. */
+function createFromTemplate(tid, opts){
+  const quiet = !!(opts && opts.quiet);
+  if(!canEdit()){ toast(i18t('ap_viewers_no_create'),'err'); return null; }
   const t=TEMPLATES[tid], u=currentUser();
   const c={ id:nextId(), name:t.name+' (Draft)', counterparty:'', value:0, status:'Draft',
     template:tid, folder:t.folder,
@@ -1077,10 +1085,13 @@ function createFromTemplate(tid){
      creation site beside roomOpenOnTerms, because there is no single funnel
      for creating a contract. See contractArrived. */
   if(window.contractArrived) contractArrived(c);
-  state.activeId=c.id; state.selId=c.id;
+  if(!quiet){ state.activeId=c.id; state.selId=c.id; }
   persist(c);
-  toast(`New ${t.kind} created and filed in ${FOLDERS[t.folder].name}`);
-  setView('workspace');
+  if(!quiet){
+    toast(`New ${t.kind} created and filed in ${FOLDERS[t.folder].name}`);
+    setView('workspace');
+  }
+  return c;
 }
 
 /* ============================================================ NEW-CONTRACT MENU (command bar) */

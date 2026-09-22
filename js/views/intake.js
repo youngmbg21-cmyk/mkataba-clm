@@ -499,6 +499,43 @@ async function intakeDraft(id){
 
    ONE AT A TIME, NEWEST LAST, and it stops at the first failure — a lane that
    half-fired across a queue would be worse than one that did not fire. */
+/* ---- THE LANES DO NOT WAIT FOR SOMEBODY TO OPEN THIS PAGE (21 Sep 2026,
+   the process review's third item) ----
+
+   They fired when a person who may draft LOADED the Requests page, and
+   nothing ran them on a timer — so a request a rule would have cleared in
+   seconds sat in the queue until a human happened to look, while the person
+   who asked had been promised a date by a clock that was already running.
+   The whole point of a lane is that it does not need a human.
+
+   THE SERVER CANNOT DO THIS, and that is why it does not: the template
+   catalogue lives in the browser, and giving the server one would make it a
+   SECOND place contracts are minted from. So the sweep runs in whatever
+   browser has HaTi open and a person in it who may draft — the same
+   condition as before, without the page.
+
+   IT COSTS NOTHING IN A WORKSPACE WITH NO LANES: the list of lanes is read
+   first, and where there are none it returns before loading anything. */
+const IK_SWEEP_MS = 10 * 60 * 1000;
+let _ikSweepOn = false;
+async function intakeLaneSweep(){
+  if(typeof canEdit !== 'function' || !canEdit()) return 0;
+  if(!intakeLanes().length) return 0;
+  try{ if(!_intake.loaded) await loadIntake(); }catch(_){ return 0; }
+  let n = 0;
+  try{ n = await intakeRunLanes(); }catch(_){ return 0; }
+  if(n){
+    try{ if(window.updateSidebarCounts) updateSidebarCounts(); }catch(_){}
+    try{ if(typeof state!=='undefined' && state.view==='intake') renderIntake(); }catch(_){}
+  }
+  return n;
+}
+function intakeSweepStart(){
+  if(_ikSweepOn) return;
+  _ikSweepOn = true;
+  intakeLaneSweep();
+  try{ setInterval(intakeLaneSweep, IK_SWEEP_MS); }catch(_){}
+}
 let _ikLanesRunning = false;
 async function intakeRunLanes(){
   if(_ikLanesRunning) return 0;
@@ -514,8 +551,11 @@ async function intakeRunLanes(){
     for(const r of todo){
       const L = intakeLaneFor(r); if(!L) continue;
       if(!(typeof TEMPLATES!=='undefined' && TEMPLATES[L.template])) continue;
-      createFromTemplate(L.template);
-      const c = (typeof getContract==='function') ? getContract(state.activeId) : null;
+      /* QUIET: a lane fires without a human, so it may not take the human
+         anywhere. It returns the contract it made rather than leaving the
+         caller to read state.activeId back — which is also what made this
+         safe to run on a timer. */
+      const c = createFromTemplate(L.template, { quiet:true });
       if(!c) break;
       if(r.counterparty && !c.counterparty) c.counterparty = r.counterparty;
       if(r.folder && typeof FOLDERS!=='undefined' && FOLDERS[r.folder]) c.folder = r.folder;
@@ -676,7 +716,7 @@ async function intakeTrackCopy(id){
 Object.assign(window,{INTAKE_STATUS,IK_LIVE,IK_ROADS,IK_TONE,IK_MEDIAN_MIN,IK_STOPPED,
   IK_THEIR_PAPER,IK_MONEY,ikKnownCounterparty,intakeRoad,intakeStoppedAt,intakeMinutes,
   intakeMedianDays,intakePromise,intakePastDue,intakeTrackUrl,intakeLanes,intakeLaneFor,
-  intakeRunLanes,ikClockHtml,ikFactHtml,intakePick,intakePromiseAsk,intakeTrackCopy,intakePatch,
+  intakeRunLanes,intakeLaneSweep,intakeSweepStart,IK_SWEEP_MS,ikClockHtml,ikFactHtml,intakePick,intakePromiseAsk,intakeTrackCopy,intakePatch,
   intakeMine,intakeQueue,intakeCount,loadIntake,
   openIntakeForm,intakeAnswerLine,openIntakeTracker,intakeDraft,intakeSetStatus,renderIntake,ikRowHtml,intakeSuggestTemplate,
   _intakeState:_intake});

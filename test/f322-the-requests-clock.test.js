@@ -191,7 +191,11 @@ describe('f322 (4) a lane fires, and names itself on the record', () => {
   });
   test('4f it presses the ordinary creation path and mints nothing itself', () => {
     const run = CODE.slice(CODE.indexOf('async function intakeRunLanes'), CODE.indexOf('async function intakeSetStatus'));
-    assert.match(run, /createFromTemplate\(L\.template\)/);
+    /* RE-POINTED IN PLACE 21 Sep 2026: this pinned the call's exact
+       SIGNATURE, so adding the options argument that lets a lane mint
+       without navigating the reader broke a claim about which door it
+       presses. The claim is the DOOR. */
+    assert.match(run, /createFromTemplate\(\s*L\.template\b/);
     assert.ok(!/state\.contracts\.(push|unshift)|nextId\(/.test(run));
     assert.ok(!/signatures|signDocument|'Signed'|'Executed'/.test(run), 'a lane never signs anything');
   });

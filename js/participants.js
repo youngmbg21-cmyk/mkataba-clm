@@ -213,6 +213,61 @@ function participantSendRows(c){
       purpose: PARTY_PURPOSE_OF[_ptStr(p.role)] || 'view' }));
 }
 
+/* ============================================================
+   EVERY ADDRESS THIS CONTRACT HOLDS, IN THE ORDER A ROUND USES THEM
+   (21 Sep 2026, the process review's first item)
+
+   The same counterparty address can be typed in FOUR places — the Overview's
+   general contact, the signing order, the send screen, and the people list —
+   and until now no screen showed all four at once. HaTi already knew this was
+   a problem: it draws an amber cell when the first two disagree, which patches
+   the symptom. A reader could not tell which address a round would actually go
+   to without opening the send screen and looking.
+
+   ADDR_SOURCES IS THE ORDER shareModalPrefill ALREADY RESOLVES IN, written
+   down once. That is the whole point: the list is not a new opinion about
+   which address wins, it is the existing answer made visible, so the card and
+   the send screen cannot disagree about what will happen.
+
+   TWO OF THE FOUR MAY DIFFER ON PURPOSE — the finance director signs and the
+   commercial lead argues — so this NAMES them rather than refusing them. What
+   it refuses is silence. */
+const ADDR_SOURCES = ['route', 'people', 'record', 'last'];
+function contractAddressBook(c, shares){
+  const seen = new Map();          /* folded address -> row */
+  const add = (email, name, where) => {
+    const e = _ptStr(email); if(!e) return;
+    const k = e.toLowerCase();
+    const row = seen.get(k);
+    if(row){ if(!row.where.includes(where)) row.where.push(where); if(!row.name && name) row.name = _ptStr(name); return; }
+    seen.set(k, { email: e, name: _ptStr(name), where: [where] });
+  };
+  /* 1 — the signer whose turn it is. What a round goes to first. */
+  const route = _ptCall('shareRouteRecipient', c);
+  if(route) add(route.email, route.name, 'route');
+  /* 2 — the people list, in the roles' own order */
+  participantSendRows(c).forEach(p => add(p.email, p.name, 'people'));
+  /* 3 — the Overview's recorded contact */
+  if(c) add(c.counterpartyEmail, c.counterparty, 'record');
+  /* 4 — the last link actually sent */
+  const last = _ptCall('lastShareRecipient', shares || []);
+  if(last) add(last.email, last.name, 'last');
+
+  const rows = Array.from(seen.values()).map(r => Object.assign({}, r, {
+    /* the earliest source this address appears under decides where it sits */
+    rank: Math.min.apply(null, r.where.map(w => { const i = ADDR_SOURCES.indexOf(w); return i < 0 ? 99 : i; })),
+  })).sort((a, b) => a.rank - b.rank);
+  rows.forEach((r, i) => { r.willUse = i === 0; });
+  return { rows, used: rows[0] || null, extra: Math.max(0, rows.length - 1), agree: rows.length <= 1 };
+}
+/* Where an address came from, said in the reader's own words. One map, so the
+   card and the send screen's own prefill note name the same four places. */
+const ADDR_WHERE_KEY = { route:'ppl_addr_route', people:'ppl_addr_people', record:'ppl_addr_record', last:'ppl_addr_last' };
+function addressWhereWords(where){
+  const t = _ptW('i18t');
+  return (where || []).map(w => (typeof t === 'function' ? t(ADDR_WHERE_KEY[w] || w) : w)).join(' \u00b7 ');
+}
+
 /* ---- NAMED BEFORE THE RECORD EXISTS (the owner's own order: "before you
    create the draft") ----
    The drafting screen collects people while the paper is still being chosen,
@@ -412,4 +467,5 @@ if (typeof window !== 'undefined') Object.assign(window, {
   participantAccessLabel, participantAdd, participantSet, participantRemove, participantDuplicate,
   participantReach, participantReached, participantSignerRows, participantSendRows,
   participantsHold, participantsHeld, participantsDrop, participantsClaim,
+  contractAddressBook, addressWhereWords, ADDR_SOURCES, ADDR_WHERE_KEY,
 });

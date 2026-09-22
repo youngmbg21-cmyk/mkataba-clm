@@ -4531,7 +4531,21 @@ function renewalCardHtml(c){
              the card draws on stages where js/notice.js is not loaded. */}
       ${(may&&typeof window.noticeMayDraft==='function'&&noticeMayDraft(c))
         ?`<button class="ui-btn" data-rn-notice style="font-size:var(--t-label);padding:5px 11px">${i18t('nt_act')}</button>`:''}
+      ${''/* ---- AND WHETHER IT WAS SERVED (21 Sep 2026, the process review's
+             fourth item) ---- HaTi drafts the letter and a PERSON serves it,
+             and until now nothing ever recorded that they had: the clock kept
+             counting down and the agreement renewed itself on a record that
+             could not say whether the one act that would have stopped it
+             happened. Drawn wherever the letter could be drafted, so it sits
+             beside the act it follows; once served it says so instead. */}
+      ${(may&&typeof window.noticeServed==='function'&&typeof window.noticeMayDraft==='function'
+         &&(noticeServed(c)||noticeMayDraft(c)))
+        ?`<button class="ui-btn" data-rn-served style="font-size:var(--t-label);padding:5px 11px">${
+          i18t(noticeServed(c)?'nt_served_edit':'nt_served_act')}</button>`:''}
     </div>
+    ${(typeof window.noticeServedLine==='function'&&noticeServed(c))
+      ?`<p style="margin:7px 0 0;font-size:var(--t-label);line-height:1.5;color:var(--st-green-fg);font-weight:var(--w-label)">${
+        _aiEsc(noticeServedLine(c))}</p>`:''}
     ${''/* WHO GETS CHASED sits UNDER the row, not in it: in the row it competed
            for width with six controls and pushed them onto a second line, which
            is the thing this change is for. Its reason is on its hover. */}
@@ -4597,6 +4611,11 @@ function renderRenewalSection(c){
   /* ONE DOOR TO THE LETTER, and it is js/notice.js's own — the same reading
      the overnight desk's row leads with, so the two cannot come to disagree
      about what the notice says or when it must go. */
+  host.querySelector('[data-rn-served]')?.addEventListener('click',()=>{
+    if(typeof openNoticeServedDialog==='function')
+      openNoticeServedDialog(c, ()=>{ try{ renderRenewalSection(c); }catch(_){}
+        try{ if(window.renderKeyTermsSide) renderKeyTermsSide(c); }catch(_){} });
+  });
   host.querySelector('[data-rn-notice]')?.addEventListener('click',()=>{
     if(!window.openNoticeDialog) return toast(i18t('rn_start_unavailable'),'err');
     openNoticeDialog(c);

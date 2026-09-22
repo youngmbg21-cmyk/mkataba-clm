@@ -4573,6 +4573,28 @@ function ktRouteEmailRead(c){
   if(recorded && recorded.toLowerCase()===routeEmail.toLowerCase()) return null;
   return { email:routeEmail, who:String((route&&route.name)||'').trim() };
 }
+/* ---- EVERY ADDRESS ON FILE, IN THE ORDER A ROUND USES THEM (21 Sep 2026,
+   the process review's first item) ----
+   Drawn ONLY where there is more than one, so a contract with a single
+   address is byte-identical to what it was: an always-on block naming one
+   address is that fact printed twice, which is the band rule. The row that
+   WILL be used is marked, and the others are named rather than hidden —
+   two of the four may differ on purpose (the finance director signs, the
+   commercial lead argues). The order is contractAddressBook's, which is
+   shareModalPrefill's own, so this card and the send screen cannot disagree
+   about what happens next. */
+function ovAddressBookHtml(book){
+  if(!book || !book.rows || book.rows.length < 2) return '';
+  const rows = book.rows.map(r => `<div style="display:flex;gap:10px;align-items:baseline;padding:5px 0;border-top:1px solid var(--color-divider)">
+      <span style="font-family:var(--font-mono);font-size:var(--t-label);color:${r.willUse?'var(--accent-ink)':'var(--color-neutral-600)'};min-width:0;flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.email)}</span>
+      <span style="font-size:var(--t-label);color:var(--color-neutral-600);flex:none">${
+        r.willUse ? `<b style="color:var(--accent-ink);font-weight:var(--w-strong)">${esc(i18t('ppl_addr_uses'))}</b> \u00b7 ` : ''}${
+        esc(typeof addressWhereWords==='function' ? addressWhereWords(r.where) : '')}</span>
+    </div>`).join('');
+  return `<div style="margin-top:12px">
+    <div style="font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-neutral-600);margin-bottom:2px">${
+      esc(i18tn('ppl_addr_head', book.rows.length, { n: book.rows.length }))}</div>${rows}</div>`;
+}
 function ktRouteEmailRowHtml(c){
   const r=ktRouteEmailRead(c);
   if(!r) return '';
@@ -5549,6 +5571,14 @@ function ktReadingsRowsHtml(c){
   /* The one printer, and its whole story is beside it — see ktDayDot. The scan
      stamps `on` beside `at` now, so it has a day to give. */
   const dot=iso=>esc(ktDayDot(iso));
+  /* IS THIS READING OLDER THAN THE WORDING? (21 Sep 2026, the process
+     review's second item.) A round lands, the wording moves, and until now
+     three of these five rows went on reporting what they found in a document
+     that has since changed. readingStale is the ONE reading — it re-runs
+     nothing and spends nothing, it only says so. Its third answer is "we do
+     not know", which prints as the row's ordinary state rather than as a
+     warning. Guarded: this file draws on stages without js/signcheck.js. */
+  const rdStale=k=>{ try{ return window.readingStale ? readingStale(c,k)===true : false; }catch(_){ return false; } };
   const rows=[];
   /* 1. THE BRIEF -- asked through _hasBrief AND _brief, the light list's
      boolean first: the memo itself rides only the single contract's GET, and a
@@ -5559,7 +5589,7 @@ function ktReadingsRowsHtml(c){
     said: hasBrief?(briefPart?i18t('ov_r_brief_part'):i18t('ov_r_brief_yes')):i18t('ov_r_none'),
     /* A brief that came back CUT SHORT is a reading that wants you: the cap
        is a fact and the reader is being offered a rewrite. */
-    when: (c&&c._brief&&c._brief.at)||'', state:hasBrief?(briefPart?'look':'yes'):'no', tab:'' });
+    when: (c&&c._brief&&c._brief.at)||'', state:hasBrief?(briefPart?'look':(rdStale('brief')?'stale':'yes')):'no', tab:'' });
   /* 2. THE PLAYBOOK PASS, and its departures counted the way the playbook's
      own summary counts them. `playbookStale` has THREE answers and the third
      is "we do not know" -- printed as nothing rather than as a warning. */
@@ -5581,7 +5611,7 @@ function ktReadingsRowsHtml(c){
     when: (c&&c.playbook&&(c.playbook.checkedAt||c.playbook.at))||'',
     /* DEPARTURES ARE WORK. A pass that found none is clear; a pass that found
        three is three things somebody has to answer, and it read green. */
-    state: pb?(pbStale===true?'stale':(dev?'look':'yes')):'no', tab:'docs' });
+    state: pb?((pbStale===true||rdStale('playbook'))?'stale':(dev?'look':'yes')):'no', tab:'docs' });
   /* 3. OBLIGATIONS FOUND -- the contract's own list, and the day a reading was
      stamped on it. A list somebody typed by hand is still the list; what the
      date answers is when anything last READ the wording for them. */
@@ -5592,7 +5622,7 @@ function ktReadingsRowsHtml(c){
     /* THE READING IS THE FACT HERE, not the count: a contract with nothing
        owed is as honest an answer as one with twenty, and whether a promise is
        LATE is the Obligations tab's own colour rather than this row's. */
-    when: obRead, state: obRead?'yes':'no', tab:'oblig' });
+    when: obRead, state: obRead?(rdStale('oblig')?'stale':'yes'):'no', tab:'oblig' });
   /* 4. THE RISK SCAN -- run or not, and what is still open on it. */
   let open=0, high=0;
   try{ const f=((window.openFindings?openFindings(c):[])||[]);
@@ -5617,9 +5647,15 @@ function ktReadingsRowsHtml(c){
     said: read?i18t('ov_r_ready'):i18t('ov_r_none'),
     when: (c&&c._readings&&c._readings.at)||'', state:read?'yes':'no', tab:'docs' });
 
+  /* A COLOUR IS NOT A SENTENCE. `stale` was already an amber tone on this
+     table and nothing said what the amber meant, so the words are added HERE,
+     in the one row builder — a new row added tomorrow gets them by
+     construction rather than by somebody remembering. */
   const tr=r=>`<tr>
     <td class="ov-r-n">${esc(r.name)}</td>
-    <td class="ov-r-s"${OV_READ_TONE[r.state]?` style="color:var(--st-${OV_READ_TONE[r.state]}-fg)"`:''}>${esc(r.said)}</td>
+    <td class="ov-r-s"${OV_READ_TONE[r.state]?` style="color:var(--st-${OV_READ_TONE[r.state]}-fg)"`:''}>${
+      esc(r.said)}${r.state==='stale'?`<span style="display:block;font-size:var(--t-label);font-weight:var(--w-body)">${
+      esc(i18t('ov_r_before_round'))}</span>`:''}</td>
     <td class="ov-r-w">${dot(r.when)||'&mdash;'}</td>
     <td class="ov-r-d">${r.tab?`<button type="button" class="ui-btn" data-ov-read-go="${
       esc(r.tab)}">${esc(i18t('ov_r_open'))}</button>`:''}</td></tr>`;
@@ -5806,12 +5842,18 @@ function ktOverviewTermsHtml(c,opts={}){
      somebody here has a signing role. */
   const people=(typeof participantsPanelHtml==='function')?participantsPanelHtml(c,{
     editable:ed, reached:true }):'';
+  /* EVERY ADDRESS ON FILE, IN THE ORDER A ROUND USES THEM (21 Sep 2026).
+     The address a round actually goes to was only discoverable by opening the
+     send screen and looking. This prints what shareModalPrefill would pick —
+     BORROWED from that same order, never a second opinion — and names the
+     others rather than hiding them: two of the four may differ on purpose. */
+  const addrs=(typeof contractAddressBook==='function')?contractAddressBook(c, c&&c._shareFetch):null;
   const ppl=(typeof participantsOf==='function')?participantsOf(c):[];
   const anySigner=(typeof participantSignerRows==='function')&&participantSignerRows(c).length>0;
   const peopleSec=people?sectionHtml({
     key:OV_KEY(c,'people'), title:i18t('ppl_title'), open:false,
     summary: ppl.length?i18tn('ppl_n',ppl.length,{n:ppl.length}):i18t('ppl_none'),
-    body:`<div id="kt-people">${people}</div>`,
+    body:`<div id="kt-people">${people}</div>${ovAddressBookHtml(addrs)}`,
     acts: (ed&&anySigner)?`<button type="button" class="ui-btn" style="font-size:var(--t-label);padding:5px 11px" data-ov-signers="1">${
       esc(i18t('ppl_open_signers'))}</button>`:'' }):'';
   return deal+alsoSec+record+peopleSec;
