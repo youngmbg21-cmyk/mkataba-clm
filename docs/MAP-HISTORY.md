@@ -20755,6 +20755,32 @@ Measured after: three columns of 260 / 438 / 400 at both 1280 and 1440, the ques
 
 Thirteen of f360's sixteen leaf claims are red at the parent; the three that pass are named CONTROLS, and one of them is honest about being the half that was already built (the box has been a textarea since 21 September). Two of my own checks were found reading PROSE rather than code — "no `.na-door` rule survives" matched the note that says they are gone — and a count of `naCardTitle(r)` matched its own function definition. Both were narrowed.
 
+### And under 1280 it stacks, the two sides scrolling apart (22 September 2026)
+
+Proposal C shipped that morning and the owner opened it on an iPad and could not see it. The first job was to find out why, and the answer was a width.
+
+**MEASURED at seven widths in a real browser before a line moved.** 1024, 1180, 1194 and 1279 all fell back to two columns in a 900px frame with **no `#na-paper` in the document at all**; 1280, 1366 and 1440 drew all three. An iPad Pro 11" in landscape reports 1194 and an iPad Air 1180, so on every iPad but a 12.9" in landscape the half of the screen proposal C existed for was simply not there. Four renders were drawn at 1194×834 — leave it, widen, a tab, stacked — and the owner ruled: *"Build D for iPads but the right hand side should scroll separately from the [left] hand side."*
+
+**The floor is 768, and it is not the other floor.** `fillPreviewFits()` answers at 1000 and every other fill door reads it, so it was the obvious thing to reach for. It is the wrong one: that number is about a preview drawn BESIDE the questions, and one stacked UNDER them needs no width of its own. Asking it here would have taken the agreement off every iPad in portrait. 768 is where the phone shell takes over and this pop-up stops being drawn at all, so the floor covers every iPad in both orientations and nothing below.
+
+**One host, one id, one painter.** The temptation was to emit a second `<div id="na-paper">` in the stacked branch. Two elements with one id is a `getElementById` answering whichever the document reaches first, and `hostOpts.paperHost` is read exactly once at pick time — the wrong one and the preview paints into a box nobody can see. So the questions card and the paper host are each written into a named string once and PLACED twice, and f363 pins `id="na-paper"` and `id="na-card"` at exactly one literal each. `wide` and `stack` are mutually exclusive by construction (`stack = !wide && …`), so the two branches can never both fire.
+
+**One number, and it was already in the file.** A column that scrolls on its own needs a height, and the obvious answer is a literal. The file already had the derivation: `.na-picks` is capped at `88vh - 396`, and its note says what 396 is — the frame's own 2, the head's 69, the foot's 55, the body's 36 of padding and the rail's 234 of fixed parts, every one of them measured in a real browser rather than estimated. A column here IS the panel, so it is that same sum without the rail's share: 162. It lands exactly — at 1194×834 the right column measures 572 and 88vh less 162 is 572, and the body is left with nothing to scroll.
+
+**Both sides take the cap, not the right alone.** The ask grows as the reader types (up to seven lines), and the `.na-picks` note says so: once the reader types, the body scrolls, which is right. With the body no longer the scroller a rail that outgrew the panel would simply be clipped. So the rail gets the same cap and its own scroller — which is also, exactly, what the owner asked for.
+
+**A declaration restated rather than removed.** `.na-card` states `align-self:start`, which in the GRID stops a short card stretching to the rail's height. Inside a flex column the cross axis is the inline one, so the same declaration shrinks the card to its content WIDTH. It is restated at the narrower scope (`.na-right > .na-card`) and left alone on the base rule, which the grid still needs.
+
+**Where the reader ends up.** Stacked, the paper is below the fold. Picking a different template while reading it would leave the reader looking at a new contract's paper with its questions off the screen, so `pick()` puts the column back at the top — guarded, so the wide shape, which has no such column, is untouched. And the note in the card gained a third answer: it promises that every box lights the blank it fills, which on this shape is a light below the fold, so `na_note_stack` says the agreement is under the questions. Both books. No band — the slot already existed.
+
+**What was not touched.** The shared preview pane is used by three doors; this change places its host and does not reach inside it. Its sheet keeps its own 52vh cap and its own scroller, so on the stacked shape there are two nested scrollers — the column and the paper — which chain correctly and are the same arrangement the laptop shape has always had. Both are asserted as controls.
+
+**Measured after.** At 1194×834: `stack` true, two columns 260/578 in a 900 frame, the right column 572 tall holding 1020 of content and scrolling, the left 572 and not scrolling, the body not scrolling. A real wheel over the questions moved the sheet from 724 to 443 while the rail stayed at 138 to the pixel. At 1700 the three columns, the 1180 frame and the paper as its own track are what they were.
+
+**An instrument fault found on the way.** A helper that reads one CSS rule by `indexOf(sel + '{')` answered inside `.na-right > .na-card{` when asked for `.na-card{` — the narrower rule this change had just ADDED — so the check on the base rule read the new one and would have reported the opposite of the truth. Anchored at the start of its own line. Found by running it, not by reading it.
+
+Tests: f363 (26 claims, 16 red at the parent; the 10 that pass are named walls and controls), new-agreement-verify section 9 (8 checks, 6 red at the parent, printing `paper false · 0 chars`). f345's paper-host claim re-pointed in place with the reason beside it.
+
 ## THE WORD THE PAPER USES IS A CHOICE (Young ruled 22 Sep 2026)
 
 *"contract type should be a drop down of choices"*, over a screenshot of the Edit party window with one field boxed in red: **Contract type**, an empty text box whose placeholder read *"the word the paper uses, e.g. the Provider"*.

@@ -217,6 +217,83 @@ const READ = () => {
       await page.evaluate(() => (window.participantsHeld ? window.participantsHeld() : []).length === 0),
       'held after cancel');
 
+    /* ═══ 9 · UNDER 1280 THE AGREEMENT IS STACKED, AND THE TWO SIDES
+       SCROLL APART (Young ruled it 22 Sep 2026: "Build D for iPads but the
+       right hand side should scroll separately from the [left] hand side")
+       ═══
+       At the parent this reported no #na-paper in the document at all: the
+       agreement was drawn only from 1280, and an iPad Pro 11" in landscape
+       reports 1194. Every claim here is GATED on the pop-up being open, or an
+       empty page satisfies half of them. */
+    await page.evaluate(() => closeModal()); await pause(200);
+    await page.setViewportSize({ width: 1194, height: 834 }); await pause(300);
+    await page.evaluate(() => openNewAgreement()); await pause(900);
+    const D = () => {
+      const q = s2 => document.querySelector(s2);
+      const body = q('#na-body'), right = q('#na-right'), left = q('#wz-pick');
+      if (!body) return { err: 'no pop-up' };
+      const scr = e => e ? { h: Math.round(e.getBoundingClientRect().height),
+        scrollH: e.scrollHeight, scrolls: e.scrollHeight > e.clientHeight + 1 } : null;
+      return { stack: body.classList.contains('na-stack'),
+        cols: getComputedStyle(body).gridTemplateColumns.split(' ').length,
+        frameW: Math.round(q('.modal-in').getBoundingClientRect().width),
+        paper: !!q('#na-paper'), paperText: ((q('#tf-preview') || {}).textContent || '').length,
+        paperInRight: !!(right && q('#na-paper') && right.contains(q('#na-paper'))),
+        right: scr(right), left: scr(left),
+        bodyScrolls: body.scrollHeight > body.clientHeight + 1,
+        railTop: left ? Math.round(left.getBoundingClientRect().top) : null,
+        sheetTop: q('#tf-preview') ? Math.round(q('#tf-preview').getBoundingClientRect().top) : null,
+        note: ((q('.na-note') || {}).textContent || '').trim() };
+    };
+    let d = await page.evaluate(D);
+    await page.screenshot({ path: path.join(OUT, '03-stacked-1194.png') });
+    check('9a at 1194 the pop-up is the stacked shape, two columns in a 900 frame',
+      !d.err && d.stack && d.cols === 2 && d.frameW === 900,
+      d.err || `stack ${d.stack} · ${d.cols} cols · ${d.frameW}px`);
+    check('9b the agreement IS drawn, with wording in it, INSIDE the right column',
+      !d.err && d.paper && d.paperText > 40 && d.paperInRight,
+      d.err || `paper ${d.paper} · ${d.paperText} chars · in #na-right ${d.paperInRight}`);
+    check('9c the right column scrolls and the left does not',
+      !d.err && d.right && d.left && d.right.scrolls && !d.left.scrolls,
+      d.err || `right ${JSON.stringify(d.right)} · left ${JSON.stringify(d.left)}`);
+    /* A GUARD, not a red-at-the-parent claim: it held before too, and it is
+       here so a build that gave the body a third scroller is caught. */
+    check('9d GUARD — the body itself never scrolls, the two sides carry it',
+      !d.err && d.bodyScrolls === false, d.err || 'the body scrolls');
+    check('9e the note says where the agreement is',
+      !d.err && /under these questions/.test(d.note), d.err || d.note.slice(0, 70));
+    /* A REAL WHEEL, over the questions rather than the paper: the sheet is a
+       scroller of its own and the point of the claim is the COLUMN. */
+    const before9 = { railTop: d.railTop, sheetTop: d.sheetTop };
+    const cardBox = await page.evaluate(() => {
+      const b = document.querySelector('.na-card').getBoundingClientRect();
+      return { x: Math.round(b.left + b.width / 2), y: Math.round(b.top + 40) };
+    });
+    await page.mouse.move(cardBox.x, cardBox.y);
+    await page.mouse.wheel(0, 700); await pause(500);
+    d = await page.evaluate(D);
+    await page.screenshot({ path: path.join(OUT, '04-stacked-1194-scrolled.png') });
+    check('9f a real wheel over the questions brings the agreement up — and the rail does not move',
+      !d.err && before9.sheetTop != null && d.sheetTop != null
+      && (before9.sheetTop - d.sheetTop) > 200 && d.railTop === before9.railTop,
+      d.err || `sheet ${before9.sheetTop} → ${d.sheetTop} · rail ${before9.railTop} → ${d.railTop}`);
+    /* WHERE THE READER ENDS UP: another template is another set of questions. */
+    await page.evaluate(() => document.querySelector('[data-wz-tid]').click()); await pause(500);
+    check('9g picking another template puts the column back at its questions',
+      await page.evaluate(() => { const r = document.getElementById('na-right'); return !!r && r.scrollTop === 0; }),
+      'scrollTop after a pick');
+    await page.evaluate(() => closeModal()); await pause(200);
+
+    /* CONTROL — the laptop shape is what it was, and the paper is its own
+       column there rather than a child of #na-right. */
+    await page.setViewportSize({ width: 1700, height: 950 }); await pause(300);
+    await page.evaluate(() => openNewAgreement()); await pause(900);
+    d = await page.evaluate(D);
+    check('9h CONTROL — at 1700 the three columns come back and the paper is its own',
+      !d.err && !d.stack && d.cols === 3 && d.paper && d.paperInRight === false,
+      d.err || `stack ${d.stack} · ${d.cols} cols · in #na-right ${d.paperInRight}`);
+    await page.evaluate(() => closeModal());
+
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');
   } catch (e) { check('the run finished', false, String((e && e.message) || e)); }
   finally { await browser.close(); if (h.stop) h.stop(); }

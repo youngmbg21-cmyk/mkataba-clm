@@ -18651,3 +18651,30 @@ Noticed, not fixed:
 - THE HaTi SHELF READS AS EMPTY on an iPad until the rail is scrolled, the first row landing two pixels below the fold. The artifact's own answer was a short list with an "All 12 v" control.
 
 Gates: nothing built, so nothing to gate. The two measurement scripts live in the run's scratchpad, not in test/.
+
+## 22 Sep 2026 — the agreement is stacked under 1280, and the two sides scroll apart
+
+"Build D for iPads but the right hand side should scroll separately from the [left] hand side." Chosen off the four renders drawn that afternoon at 1194x834, after the pop-up had been measured at seven widths.
+
+WHAT THE MEASUREMENT SAID. 1024, 1180, 1194 and 1279 all fell back to two columns in a 900px frame with NO #na-paper in the document at all; 1280, 1366 and 1440 drew all three. An iPad Pro 11" in landscape reports 1194 and an iPad Air 1180, so on every iPad but a 12.9" in landscape the half of the screen proposal C existed for was simply not there.
+
+THE FLOOR IS 768 AND IT IS NOT THE OTHER FLOOR. fillPreviewFits() answers at 1000 and every other fill door reads it, so it was the obvious thing to reach for and it is the wrong one: that number is about a preview drawn BESIDE the questions, and one stacked UNDER them needs no width of its own — asking it here would have taken the agreement off every iPad in portrait. 768 is where the phone shell takes over and this pop-up stops being drawn at all.
+
+ONE HOST, ONE ID, ONE PAINTER. The easy version emits a second div with the same id in the stacked branch. Two elements with one id is a getElementById answering whichever the document reaches first, and the paper host is read exactly once at pick time — the wrong one and the preview paints into a box nobody can see. So the questions card and the paper host are each written into a named string ONCE and placed twice, and the net pins both at exactly one literal each. wide and stack are mutually exclusive by construction.
+
+ONE NUMBER, AND IT WAS ALREADY IN THE FILE. A column that scrolls on its own needs a height and the obvious answer is a literal. The list's own cap is 88vh less 396, and its note says what 396 is: the frame's 2, the head's 69, the foot's 55, the body's 36 of padding and the rail's 234 of fixed parts, every one measured in a real browser. A column here IS the panel, so it is that sum without the rail's share — 162. It lands exactly: at 1194x834 the right column measures 572 and 88vh less 162 is 572, so the body has nothing left to scroll.
+
+BOTH SIDES TAKE THE CAP, not the right alone. The ask grows as the reader types, and with the body no longer the scroller a rail that outgrew the panel would just be clipped. Which is also exactly what the owner asked for.
+
+A DECLARATION RESTATED RATHER THAN REMOVED. .na-card says align-self:start, which in the GRID stops a short card stretching to the rail's height; inside a flex column the cross axis is the INLINE one, so the same word shrinks the card to its content WIDTH. Restated at the narrower scope, left alone on the base rule.
+
+Measured after: at 1194 a real wheel over the questions moved the sheet from 724 to 443 while the rail stayed at 138 to the pixel; the body never scrolls; at 1700 the three columns, the 1180 frame and the paper as its own track are what they were.
+
+Found while building:
+- A HELPER THAT READS ONE CSS RULE by indexOf(sel + '{') answered inside ".na-right > .na-card{" when asked for ".na-card{" — the narrower rule this change had just ADDED — so the check on the base rule read the new one and would have reported the opposite of the truth. Anchored at the start of its own line. Found by running it, not by reading it.
+
+Noticed, not fixed:
+- ON THE STACKED SHAPE THERE ARE TWO NESTED SCROLLERS, the right column and the paper sheet inside it (the sheet keeps its own 52vh cap, which is the shared preview pane's and is used by three doors). They chain correctly and it is the same arrangement the laptop shape has always had, but on a touch device one long scroll would be kinder. Would need a stacked-only override on a shared pane; the owner's call.
+- paper-beside-questions-verify 7c/7g still fail identically on this tree and at the parent (34/36 both sides). Unchanged from earlier entries.
+
+Gates: 8,734 tests, 0 failed. Lint 0 errors. f363 26/26 (16 red at the parent), new-agreement-verify 38/38 (its 8 new checks 6 red at the parent, printing "paper false, 0 chars"), form-and-picker 24/24, draft-from-a-sentence all green, f345 / f360 / f148 / f270 / f331 / f104 / f312 all green.

@@ -603,6 +603,17 @@ const NA_RAIL_W = 260;           /* the picker's own column, rows not cards */
 const NA_PAPER_W = 400;          /* the agreement's column, at 1280 and up */
 const NA_FRAME_W = 1180;         /* rail + questions + paper */
 const NA_FRAME_NARROW_W = 900;   /* rail + questions */
+/* AND UNDER 1280 THE AGREEMENT IS STACKED, NOT DROPPED (Young ruled it
+   22 Sep 2026 off four renders: "Build D for iPads but the right hand side
+   should scroll separately"). MEASURED before the ruling: an iPad Pro 11" in
+   landscape reports 1194 and an iPad Air 1180, so on every iPad but a 12.9"
+   in landscape the pop-up fell to two columns and the agreement was not in
+   the document at all.
+   768 is where the phone shell takes over and this pop-up stops being drawn,
+   so the floor covers every iPad, landscape and portrait. It is deliberately
+   NOT fillPreviewFits()'s 1000: that floor is about a preview BESIDE the
+   questions, and one stacked under them needs no width of its own. */
+const NA_STACK_MIN_W = 768;
 function naUsageCount(kind, id){
   try{
     if(kind==='tid') return builtinUsageCount(id);
@@ -694,8 +705,13 @@ function openNewAgreement(o){
   const mineOf=()=>(mayEdit && typeof customTemplates==='function')?customTemplates():[];
   if(!tmpls.length && !libOf().length && !mineOf().length){ toast(i18t('wz_no_templates_role'),'err'); return; }
   const ready=(typeof draftAiReady==='function')&&draftAiReady();
-  const wide=(typeof window!=='undefined') && (window.innerWidth||0)>=NA_PAPER_MIN_W
+  const winW=(typeof window!=='undefined')?(window.innerWidth||0):0;
+  const wide=winW>=NA_PAPER_MIN_W
     && ((typeof fillPreviewFits!=='function') || fillPreviewFits());
+  /* ONE HOST, ONE ID, ONE PAINTER. #na-paper is emitted by exactly one of
+     these two branches and never by both, so the agreement keeps a single
+     home whatever the width and hostOpts.paperHost finds it by the same id. */
+  const stack=!wide && winW>=NA_STACK_MIN_W;
   const admin=(typeof isAdmin==='function')&&isAdmin();
   const sName=k=>(k&&typeof FOLDERS==='object'&&FOLDERS[k]&&FOLDERS[k].name)||'';
   const verOf=t=>'v'+((typeof templateVersionNo==='function')?templateVersionNo(t):1);
@@ -744,10 +760,33 @@ function openNewAgreement(o){
       ${sec('mine', i18t('na_saved'))}
       ${sec('tid', i18t('na_hati'))}`;
   };
+  /* THE QUESTIONS AND THE AGREEMENT ARE NAMED ONCE and placed twice, because
+     where they SIT is the only thing that changes with the width: three
+     columns from 1280, and under 1280 both inside one column that scrolls on
+     its own. Emitted from one string each, so the two shapes cannot drift
+     about what a question card or a paper host is. */
+  const naCard=`<div class="na-card" id="na-card">
+        <div class="na-card-h"><h3 id="na-card-name"></h3><span class="na-card-sub" id="na-card-sub"></span></div>
+        <div class="na-card-b"><div id="na-form"></div>
+          <div class="na-note">${i18t(wide?'na_note_wide':(stack?'na_note_stack':'na_note'))}</div>
+          ${/* ---- WHO ELSE IS ON THIS AGREEMENT (Young ruled 21 Sep 2026) ----
+               SHUT BY DEFAULT and under the questions, because it is an offer
+               and not a question: a draft is made without it every day. The
+               rows are the Overview's own builder, so the two doors cannot
+               disagree about what a role means, and nobody is emailed by
+               anything on this screen — an invitation goes with the first
+               send, which is the door that has always carried a link. */''}
+          <details id="na-people" class="na-people">
+            <summary>${i18t('ppl_title')}<span class="na-people-n" id="na-people-n"></span></summary>
+            <p class="na-people-s">${i18t('ppl_sub')}</p>
+            <div id="na-people-list"></div>
+          </details></div>
+      </div>`;
+  const naPaper=`<div id="na-paper" class="na-paper"></div>`;
   openModal(`<div id="na-root" class="na-root">
     <div class="na-head"><div><h3>${i18t('na_title')}</h3><div class="na-sub">${i18t('na_sub')}</div></div>
       <button type="button" id="na-x" class="na-x" aria-label="${esc(i18t('act_cancel'))}" title="${esc(i18t('act_cancel'))}">${icon('x','w-4 h-4')}</button></div>
-    <div id="na-body" class="na-body${wide?' na-wide':''}">
+    <div id="na-body" class="na-body${wide?' na-wide':''}${stack?' na-stack':''}">
       <div id="wz-pick" class="na-left na-rail">
         <div class="na-field"><label for="dr-say">${i18t('na_describe')}</label>
           <div class="na-row">${''/* A TEXTAREA, BECAUSE THE ASK IS A SENTENCE (Young ruled 21 Sep 2026:
@@ -773,29 +812,17 @@ function openNewAgreement(o){
           <span aria-hidden="true">·</span>
           <button type="button" id="na-import" class="ui-btn-plain">${i18t('na_import')}</button></div>
       </div>
-      <div class="na-card" id="na-card">
-        <div class="na-card-h"><h3 id="na-card-name"></h3><span class="na-card-sub" id="na-card-sub"></span></div>
-        <div class="na-card-b"><div id="na-form"></div>
-          <div class="na-note">${i18t(wide?'na_note_wide':'na_note')}</div>
-          ${/* ---- WHO ELSE IS ON THIS AGREEMENT (Young ruled 21 Sep 2026) ----
-               SHUT BY DEFAULT and under the questions, because it is an offer
-               and not a question: a draft is made without it every day. The
-               rows are the Overview's own builder, so the two doors cannot
-               disagree about what a role means, and nobody is emailed by
-               anything on this screen — an invitation goes with the first
-               send, which is the door that has always carried a link. */''}
-          <details id="na-people" class="na-people">
-            <summary>${i18t('ppl_title')}<span class="na-people-n" id="na-people-n"></span></summary>
-            <p class="na-people-s">${i18t('ppl_sub')}</p>
-            <div id="na-people-list"></div>
-          </details></div>
-      </div>
       ${''/* THE AGREEMENT SITS ON THE FAR SIDE OF THE QUESTIONS, not between
              the picker and them: what you are answering about is the thing
              you just chose, and the answers should not have to be read across
-             the paper to reach it. The host form mounts into it BY ID, so the
-             order here is presentation and nothing else. */}
-      ${wide?`<div id="na-paper" class="na-paper"></div>`:''}
+             the paper to reach it. Under 1280 there is no far side, so it
+             goes UNDER them inside #na-right, which scrolls on its own —
+             the rail holds still while you move between the two, which is
+             the half of the ruling that makes this shape work at all.
+             The host form mounts into the paper BY ID, so the order here is
+             presentation and nothing else. */}
+      ${stack?`<div class="na-right" id="na-right">${naCard}${naPaper}</div>`:naCard}
+      ${wide?naPaper:''}
     </div>
     <div class="na-foot">
       <button type="button" id="wz-pick-cancel" class="ui-btn-plain">${i18t('act_cancel')}</button>
@@ -852,6 +879,11 @@ function openNewAgreement(o){
     const nm=document.getElementById('na-card-name'), sb=document.getElementById('na-card-sub');
     if(nm) nm.textContent=name;
     if(sb) sb.textContent=`${ver?ver+' · ':''}${i18tn('na_questions', n, {n})}`;
+    /* A DIFFERENT TEMPLATE PUTS YOU BACK AT ITS QUESTIONS. Stacked, the paper
+       is below the fold, so a pick made while reading it would otherwise
+       leave the reader looking at a new contract's paper with its questions
+       off the screen. Nothing to do where the column does not exist. */
+    const rcol=document.getElementById('na-right'); if(rcol) rcol.scrollTop=0;
     light();
   };
   root._naPick=pick;
@@ -945,4 +977,4 @@ function naPickFromDraft(pick, prefill){
   return true;
 }
 
-Object.assign(window,{TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,NA_PAPER_MIN_W,NA_RAIL_W,NA_PAPER_W,NA_FRAME_W,NA_FRAME_NARROW_W});
+Object.assign(window,{TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,NA_PAPER_MIN_W,NA_STACK_MIN_W,NA_RAIL_W,NA_PAPER_W,NA_FRAME_W,NA_FRAME_NARROW_W});
