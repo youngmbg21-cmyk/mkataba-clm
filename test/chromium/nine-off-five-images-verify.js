@@ -88,23 +88,32 @@ const MARK = cid => {
 
     /* ═══ 1 · THE NEW AGREEMENT CARDS ═══ */
     await page.click('[data-page-new]'); await pause(900);
-    const cards = await page.evaluate(() => [...document.querySelectorAll('.na-door')].map(d => {
-      const r = d.getBoundingClientRect(), b = d.querySelector('b');
+    /* RE-POINTED IN PLACE 22 Sep 2026 — Young chose proposal C, the cards
+       became a rail of rows, and there is no grid left to stretch one row to
+       another's height. The reasoning that produced these claims is kept in
+       f349: reserving fixed the height BECAUSE a grid stretches. What still
+       has to hold, and is what a reader actually feels, is that a long name
+       does not wrap, every row measures the same, and the whole of what was
+       cut rides the hover. */
+    const cards = await page.evaluate(() => [...document.querySelectorAll('[data-wz-lib]')].map(d => {
+      const r = d.getBoundingClientRect(), b = d.querySelector('.na-pick-n');
       return { h: Math.round(r.height), name: (b && b.textContent || '').slice(0, 20),
         nameH: b ? Math.round(b.getBoundingClientRect().height) : 0,
+        cut: !!b && b.scrollWidth > b.clientWidth + 1,
         title: (d.getAttribute('title') || '') };
     }));
     await page.screenshot({ path: path.join(OUT, '01-cards.png') });
     const hs = [...new Set(cards.map(c => c.h))];
     check('1-stage six standards with names of very different lengths are drawn',
-      cards.length === 6, `${cards.length} cards`);
-    check('1a every card is exactly the same height',
+      cards.length === 6, `${cards.length} rows`);
+    check('1a every row is exactly the same height',
       cards.length === 6 && hs.length === 1, `heights: ${hs.join(' · ')}`);
-    check('1b and not a big one — under the artifact\'s own hundred pixels',
-      hs.length === 1 && hs[0] < 100, `${hs[0]}px`);
-    check('1c a long name takes one line, like a short one',
-      new Set(cards.map(c => c.nameH)).size === 1, cards.map(c => c.nameH).join('/'));
-    check('1d and the whole of what was cut is on the card\'s own hover',
+    check('1b and a rail row is a row, not a card — well under the old 86px',
+      hs.length === 1 && hs[0] < 60, `${hs[0]}px`);
+    check('1c a long name takes one line, like a short one, and is cut',
+      new Set(cards.map(c => c.nameH)).size === 1 && cards.some(c => c.cut),
+      cards.map(c => c.nameH).join('/') + ' · cut ' + cards.filter(c => c.cut).length);
+    check('1d and the whole of what was cut is on the row\'s own hover',
       cards.every(c => c.title.split('\n')[0].length > 0)
       && cards.some(c => c.title.split('\n').length > 1),
       JSON.stringify(cards[0] && cards[0].title.slice(0, 70)));

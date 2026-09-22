@@ -20706,3 +20706,67 @@ one thing on that rail a reader must read in full, keeps its 120px cap as a
 resting shape and gives it up on a press, with the control drawn only where
 the box really overflows, measured after the paint. And the standards tile
 gained the door the 20 September note had left waiting on the owner's word.
+
+## THE NEW AGREEMENT POP-UP IS A RAIL, THE QUESTIONS AND THE PAPER (Young chose proposal C, 22 Sep 2026)
+
+### The report, and what was actually on the screen
+
+*"One more addition: please redisign this pop up so that it is not so congested between the left side and the paper on the right. Maybe one side should be on top of the other? In fact, rethink the whole design and provide an artifact with different proposals of how to build it."*
+
+An artifact of proposals was asked for, not a build. Five were drawn on a canvas, at true scale, after the screen was driven in a real browser at 1310×820, 1310×700, 1440×900, 1600×1000 and 1920×1080.
+
+What that measurement found, at 1440×900:
+
+- The frame was 960×711. Two columns: 518px of picker, 380px of questions. Two thirds of a screen given to something a reader uses once and never looks at again.
+- The questions card drew its boxes in a 167px two-column grid. That is the width the iPad date-field report of 20 September came off.
+- **THE CONTRACT WAS NOT ON THAT SCREEN AT ALL.** `NA_PAPER_MIN_W` was 1600, so what the owner called "the paper on the right" was in fact the QUESTIONS card. The third column existed and they had very likely never seen it.
+- Past 1600 the picker got WORSE, not better: it dropped 518 → 389px, the door cards 253 → 189px, **all four company-standard names were cut off** (0 truncated at 1440, 4 at 1600), and the HaTi chips went from three rows to four. The paper that finally arrived was 389×293 — a whole contract in a box smaller than a postcard.
+- Opening *Who else is on this agreement* — the participants panel shipped the day before — made the questions card 549 → 637px tall and pushed the whole pop-up into scrolling at every window height tried: 673px wanted against 666 available at 1440×900, 490 at 1310×700. The frame was already at its own 88vh ceiling.
+
+Two instrument faults on the way, both mine. The first probe pressed `mousedown` and HaTi's own dropdown listens on `pointerdown` — the note above `selectMenuWire` says so, and says why (the owner's iPad) — so the first run reported every select as "native" while the product was drawing its own list perfectly. And the dropdown overflowing the frame's right edge could not be reproduced at all: HaTi's menu is clamped to the WINDOW and at every select in that dialog it landed 188px clear of the frame's right edge at 1310, 1440 and 1920. That was said as not-reproduced rather than asserted either way.
+
+### The five, and the one that was chosen
+
+A: two steps, one screen at a time. B: one on top of the other — the owner's own suggestion, built. C: a rail and a page. D: it stops being a pop-up. E: one narrow column. Each drawn to scale with what it costs beside it, and the recommendation given in the reply rather than in a drawing.
+
+The owner picked **C**, and added one thing: *"the describe what you need should be able to wrap text."*
+
+### What C is
+
+THREE COLUMNS where there were two, and four numbers said ONCE. `NA_RAIL_W` 260, `NA_PAPER_W` 400, `NA_FRAME_W` 1180 and `NA_FRAME_NARROW_W` 900 live in js/wizard.js; `--na-rail-w` and `--na-paper-w` mirror the two column widths on `.na-root`. f345 asserts the two hosts EQUAL rather than asserting either number, so a value changed on one side and not the other is caught here instead of on a screen. `NA_PAPER_MIN_W` moved 1600 → 1280, and 1180 fits a 1280 window because openModal's backdrop spends `var(--s-4)` a side.
+
+ONE ROW BUILDER FOR THREE SHELVES. `door` and `chip` were two builders for one act, and they had already drifted: the chip carried a different hover from the card's, and only the card said which value stream a template was filed in. `pickRow` replaces both; `.na-door` and `.na-chip` are gone from the stylesheet and from js/, not stubbed, because neither had a second producer anywhere in the product.
+
+THE CARD RULINGS OF 21 SEPTEMBER ARE SPENT, NOT BROKEN. *"they should all be the same size"* and *"still not the same size. Make them the same and not big either"* were answered by reserving every line of a card — and the reason that worked is written into the note: a GRID stretches every cell in a row to the tallest, so one long name made two rows measure 121px against 103px. A list does not stretch its siblings. The fault cannot come back, and the description those cards printed still rides `naCardTitle` on the row's own hover, which is this product's idiom for a cut. The reasoning is kept in the source beside the rows, because it is what makes the rows safe.
+
+IT IS THE TEMPLATES PAGE'S OWN RAIL, borrowed rather than reinvented: the same `--radius`, the same 10px inset, the same `--color-neutral-100` hover, the same `--accent-fill` under `#fff` when lit, and the figures in the mono face at micro, which is `.tpl-rail-n`'s own. `.82` of white on accent-fill measures 5.3:1, above the 4.5 this product holds 11px text to.
+
+THE LIST SCROLLS INSIDE THE RAIL, ON A CAP THAT IS DERIVED. `max(140px, calc(88vh - 396px))`, and every part of that 396 was measured rather than estimated: the frame's ceiling less 2, the head at 69, the foot at 55, the body's own padding at 36, and the rail's fixed parts — the ask at rest, Find, its hint and the Upload row — which measured 234px at 1100, 1280 and 1440 alike. A first draft guessed 185 and left the body 51px over at every width; the algebra was replaced by a measurement of both columns. On a fresh open the rail now fits and nothing at its foot is below the fold. Once the reader TYPES, the ask grows and the body scrolls, which is right — that is their own doing.
+
+EACH SHELF'S HEADING PINS. A scroller cuts where it cuts, and at 1100×800 it cut through the line-of-business control — a `<select>` drawn half, which is this product's own dead-door fault wearing another costume. Pinned, the heading says which shelf you are in and its one control is reachable the whole time that shelf is on screen.
+
+THE ASK GROWS WITH THE SENTENCE. It has WRAPPED since 21 September — a textarea, never an input — and measured in the new rail that was not enough: at 236px a plain sentence is five lines, the box stood at two, and the reader got a scrollbar inside a 54px box, which is the same fault as a line scrolling sideways wearing other clothes. `naSayFit` sets `height:auto` and then reads `scrollHeight`, bounded at `NA_SAY_MAX_LINES` 7 so a pasted paragraph cannot push the shelf off the screen; it runs on every keystroke and once at open, and writes nothing but a height. In the rail the box takes the whole line and Find drops under it — beside the button it measured 182px of a 236px column, about five words a line.
+
+THE AGREEMENT SITS ON THE FAR SIDE OF THE QUESTIONS, not between them and the picker: what you are answering about is the thing you just chose, and the answers should not have to be read across the paper to reach it. The host form mounts into it BY ID, so the order is presentation and nothing else.
+
+Measured after: three columns of 260 / 438 / 400 at both 1280 and 1440, the questions up from 380 to 438, the body no longer scrolling on a fresh open at 1100 or 1440. At 1280 the questions card is 8px taller than the body, so that one rung still scrolls by a hair — the rail no longer drives it, and that was said out loud rather than smoothed over.
+
+### The instruments
+
+Thirteen of f360's sixteen leaf claims are red at the parent; the three that pass are named CONTROLS, and one of them is honest about being the half that was already built (the box has been a textarea since 21 September). Two of my own checks were found reading PROSE rather than code — "no `.na-door` rule survives" matched the note that says they are gone — and a count of `naCardTitle(r)` matched its own function definition. Both were narrowed.
+
+## THE WORD THE PAPER USES IS A CHOICE (Young ruled 22 Sep 2026)
+
+*"contract type should be a drop down of choices"*, over a screenshot of the Edit party window with one field boxed in red: **Contract type**, an empty text box whose placeholder read *"the word the paper uses, e.g. the Provider"*.
+
+MEASURED before a line moved, and the report is right for a reason the words do not say. That box was built with `fld('role', i18t('ov_f_type'), …)` — and `ov_f_type` is the Overview's own label for `metadata.contractType`, which is the KIND of agreement: Supply, Lease, NDA. This field is not that. It is `p.role`, the word THIS paper uses for THIS party, and its own placeholder had said so the whole time. A label about the contract, sitting between *Counterparty* and *Town and country, as on the paper*, on a window that is about one party. That mislabel is almost certainly why the owner called it a contract type.
+
+So both halves were fixed: the label became `py_role` — "What the paper calls them", which matches "as on the paper" beside it — and the box became a dropdown.
+
+IT IS THE VALUE-STREAM PICKER'S OWN MECHANISM, not a second idea of one. `PARTY_ROLE_WORDS` is eighteen KEYS rather than eighteen literals, because the list is a SUGGESTION made to a reader in their own language — a Swedish workspace describing a Swedish agreement is offered Leverantör and Licensgivare. WHAT IS STORED IS THE PAPER'S OWN WORD AND IS NEVER TRANSLATED: `partiesSet` keeps whatever was in the box and `partyRoleWord` reads it back raw, which is the RECORD-versus-LABEL rule this codebase has paid for before. `partyRoleOptions(current)` keeps a stored word that is not on the list and puts it FIRST, exactly as `folderOptionsHtml` keeps a record's current stream even when it is out of reach — or reopening a record would silently re-word it. The last option is a sentinel that opens `promptNewName`, the product's own one name box, whose `make` here is the word itself, because a paper's word belongs to this contract and to no store. Cancelled, the box goes back to what it was, which is `bindFolderSelect`'s own rule.
+
+`selectMenuSweep` dresses it as HaTi's own list by construction — one delegated listener on the body — so nothing on this screen builds a dropdown. And the sentinel can never reach the record: `roleV` at Save is the wall for any path that did not put the select back.
+
+One door throughout: `openPartyEditor` is the only place in the product a party's role is typed, and the phone has no party editor.
+
+Driven at the parent, the six browser checks print the owner's screenshot back: `<INPUT> · "Contract type"`. And a seventh lesson, an old one: the first draft of that probe read `sel.options.length`, which at the parent is an `<input>` with no `.options` — so instead of reporting the fault it threw and took the whole file with it. A probe that throws proves nothing.

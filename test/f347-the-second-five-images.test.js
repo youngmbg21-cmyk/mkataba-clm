@@ -101,11 +101,17 @@ test('F347 — the second five images', async t => {
      reserve is no longer the sentence's alone: the name and the foot take one
      line each too, which is what actually made the cards equal — see
      f349 (1). Asked as the RELATION so a retune does not break it. */
-  await t.test('(2c) the sentence slot is always drawn, and reserves its lines', () => {
-    assert.match(WIZ, /<span class="na-about">/, 'always drawn — reserving is what fixes the height');
-    const r = /\.na-door \.na-about\{[^}]*\}/.exec(CSS)[0];
-    assert.match(r, /height:1\.4em/);
-    assert.match(r, /line-height:1\.4/);
+  /* REVERSED IN PLACE 22 Sep 2026 — Young chose proposal C and the cards are
+     gone. The reasoning above is kept because it is what makes the rows safe:
+     reserving fixed the height because a GRID stretches every cell in a row to
+     the tallest. A list does not, so the fault cannot come back, and the
+     sentence the slot carried still rides the row's own hover. */
+  await t.test('(2c) the cards are gone, and what reserved their lines is not needed', () => {
+    assert.ok(!/class="na-about"/.test(WIZ) && !/class="na-door/.test(WIZ), 'no card is drawn');
+    assert.ok(!/\.na-door \.na-about\{/.test(CSS), 'and no rule reserves one');
+    assert.match(WIZ, /const pickRow=r=>\{/, 'a row builder took its place');
+    assert.match(CSS, /\.na-pick-n\{[^}]*white-space:nowrap[^}]*\}/, 'the name is still cut, not wrapped');
+    assert.match(WIZ, /hint=naCardTitle\(r\)/, 'and the whole of it still rides the hover');
   });
 
   await t.test('(2d) the describe box is a textarea and keeps everything it had', () => {

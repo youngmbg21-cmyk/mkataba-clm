@@ -173,6 +173,40 @@ function partyName(c, id){
    paper says nothing rather than inventing one. */
 function partyRoleWord(p){ return p && p.role ? p.role : ''; }
 
+/* ---- AND IT IS A CHOICE, NOT A BLANK PAGE (Young ruled it 22 Sep 2026:
+   "contract type should be a drop down of choices", over the Edit party
+   window) ----
+   MEASURED first, and the report is right for a reason the words do not say:
+   that box was LABELLED with `ov_f_type` — "Contract type" — which is the
+   Overview's own label for `metadata.contractType`, the kind of agreement.
+   This field is not that. It is the word THIS paper uses for THIS party, and
+   its own placeholder said so all along. So the box gets its choices, and it
+   gets the label it should have had.
+
+   THE WORDS ARE KEYS, NOT LITERALS, because the list is a SUGGESTION made to
+   a reader in their own language — a Swedish workspace describing a Swedish
+   agreement is offered Swedish words. WHAT IS STORED IS THE PAPER'S OWN WORD
+   AND IS NEVER TRANSLATED: partiesSet keeps whatever was in the box and
+   partyRoleWord reads it back raw. That is the RECORD-versus-LABEL rule this
+   codebase has paid for before.
+
+   IT OFFERS AND NEVER REFUSES, which is the value-stream picker's own
+   mechanism rather than a second idea of one: a stored word that is not on
+   the list stays on the list (or reopening a record would silently re-word
+   it), and the last option is the sentinel that opens one name box. */
+const PARTY_ROLE_WORDS = Object.freeze(['supplier','customer','provider','client',
+  'seller','buyer','distributor','principal','licensor','licensee','lessor','lessee',
+  'contractor','consultant','discloser','recipient','guarantor','agent']);
+const PARTY_ROLE_OTHER = '__other__';
+/* {v,l} pairs, the shape fieldOpt and every picker in this product reads. */
+function partyRoleOptions(current){
+  const say = k => (typeof i18t === 'function') ? i18t('py_rw_' + k) : k;
+  const out = PARTY_ROLE_WORDS.map(k => ({ v: say(k), l: say(k) }));
+  const cur = String(current || '').trim();
+  if(cur && !out.some(o => o.v.toLowerCase() === cur.toLowerCase())) out.unshift({ v: cur, l: cur });
+  return out;
+}
+
 /* One line for a screen that has room for a name and a role and no more. */
 function partyLine(p){
   if(!p) return '';
@@ -314,6 +348,7 @@ if(typeof window !== 'undefined'){
     partiesNegotiating, partiesSigning, partyById, partyName, partyRoleWord, partyLine,
     partiesMatch, partiesLead, partiesRefusal, partiesSet, partyNewId,
     partyOfSigner, partyOfShare, partiesForPayload,
+    PARTY_ROLE_WORDS, PARTY_ROLE_OTHER, partyRoleOptions,
   });
 }
 if(typeof module !== 'undefined' && module.exports){
@@ -323,5 +358,6 @@ if(typeof module !== 'undefined' && module.exports){
     partiesNegotiating, partiesSigning, partyById, partyName, partyRoleWord, partyLine,
     partiesMatch, partiesLead, partiesRefusal, partiesSet, partyNewId,
     partyOfSigner, partyOfShare, partiesForPayload,
+    PARTY_ROLE_WORDS, PARTY_ROLE_OTHER, partyRoleOptions,
   };
 }

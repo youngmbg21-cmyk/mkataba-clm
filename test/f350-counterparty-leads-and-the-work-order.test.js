@@ -237,23 +237,28 @@ describe('f350 (5) — the pop-up has a ground, and every dropdown is HaTi’s o
   test('the cards have something to be white against', () => {
     assert.match(HTML, /\.na-body\{[^}]*background:var\(--color-bg\)/,
       'the body takes the page ground');
-    assert.match(HTML, /\.na-door\{[^}]*border:1px solid var\(--rule-strong\)/,
-      'and the card edge steps up to the token .ui-btn uses');
+    /* RE-POINTED IN PLACE 22 Sep 2026 (proposal C). The GROUND is the claim
+       and it is untouched; what sat on it stopped being six cards. The
+       questions card still steps its edge up to .ui-btn's own token, and the
+       CHOSEN thing is still the loudest on the screen — louder now, since a
+       lit rail row is filled rather than outlined. */
     assert.match(HTML, /\.na-card\{[^}]*border:1px solid var\(--rule-strong\)/);
-    /* THE CHOSEN CARD IS UNTOUCHED: it is the one thing on the screen that
-       must stay louder than everything else. */
-    assert.match(HTML, /\.na-door\.on\{ border-color:var\(--color-accent\)/);
+    assert.match(HTML, /\.na-pick\.on,\.na-pick\.on:hover\{ background:var\(--accent-fill\); \}/);
+    assert.match(HTML, /\.na-pick\.on \.na-pick-n\{ color:#fff/);
   });
 
   test('the section heading is not cramped against the cards above it', () => {
     /* MEASURED AGAINST THE CARD GAP, never a typed number: the cards sit 12px
        apart, so a section boundary of 12 was exactly as tight as the gap
        INSIDE a section — the owner's complaint, unfixed. It has to be more. */
+    /* RE-POINTED IN PLACE 22 Sep 2026: the gap INSIDE a section is the rail's
+       own row gap now, not a card grid's. The RELATION is the claim and is
+       unchanged — across a boundary must be more than within one. */
     const secGap = /\.na-sec \+ \.na-sec\{ margin-top:(\d+)px/.exec(HTML);
-    const cardGap = /\.na-doors\{[^}]*gap:(\d+)px/.exec(HTML);
-    assert.ok(secGap && cardGap, 'both gaps are readable');
-    assert.ok(+secGap[1] > +cardGap[1],
-      `a section stands clear of the one above: ${secGap[1]}px against ${cardGap[1]}px between cards`);
+    const rowGap = /\.na-rows\{[^}]*gap:(\d+)px/.exec(HTML);
+    assert.ok(secGap && rowGap, 'both gaps are readable');
+    assert.ok(+secGap[1] > +rowGap[1],
+      `a section stands clear of the one above: ${secGap[1]}px against ${rowGap[1]}px between rows`);
     assert.match(HTML, /\.na-sec-h\{[^}]*min-height:var\(--field-h,32px\)/, 'the row reserves the form’s own rung');
     assert.match(HTML, /\.na-lob select\{ height:var\(--field-h,32px\)/,
       'and its one control is the size of the controls beside it');

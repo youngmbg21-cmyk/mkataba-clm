@@ -18541,3 +18541,40 @@ Noticed, not fixed:
 - templates-tabs-verify section 8 still fails identically on this tree and on the two commits before it. Unchanged from yesterday's entry.
 
 Gates: nothing to gate - no product file changed. Lint 0 errors (unchanged).
+
+## 22 Sep 2026 — proposal C built, and the party's word on the paper
+
+Two orders. Young picked one of the five proposals drawn that morning — "Build C but the describe what you need should be able to wrap text" — and then, over a screenshot of the Edit party window, "contract type should be a drop down of choices".
+
+### The New agreement pop-up is a rail, the questions and the paper
+
+Three columns where there were two: the paper you have as a rail of rows (260), its questions (438 at a 1180 frame, up from 380), and the agreement itself (400). The line for drawing the agreement moved 1600 to 1280, which is the whole of what C was chosen for — at 1440 the contract was not on that screen at all.
+
+Four numbers said ONCE (js/wizard.js) and mirrored as tokens on .na-root, so the frame and the grid cannot drift; f345 asserts them equal rather than asserting either.
+
+ONE ROW BUILDER FOR THREE SHELVES. `door` and `chip` were two builders for one act and had already drifted — the chip carried a different hover and never said which stream a template was filed in. .na-door and .na-chip are gone, not stubbed; nothing else in the product drew one. The 21 Sep card rulings ("all the same size", "not big either") are SPENT, not broken: they were about a grid, which stretches every cell to the tallest, and a list does not.
+
+The rail is the Templates page's own — same radius, same inset, same hover, same lit treatment — borrowed rather than reinvented.
+
+THE LIST'S CAP IS DERIVED AND EVERY PART OF IT WAS MEASURED: head 69, foot 55, body padding 36, the rail's fixed parts 234 (identical at 1100, 1280 and 1440). On a fresh open the rail fits and Upload/Import are never below the fold. The shelf headings PIN, because the scroller was cutting through the line-of-business select — a select drawn half, which is the dead-door fault in another costume.
+
+THE ASK GROWS. It has wrapped since 21 Sep; what was missing is that at 236px a sentence is five lines and the box stood at two with a scrollbar inside it. naSayFit asks the element, bounded at seven lines, and writes nothing but a height.
+
+### The word the paper uses is a choice
+
+MEASURED before a line moved, and the report is right for a reason the words do not say: that box was labelled ov_f_type — the Overview's own label for metadata.contractType, the KIND of agreement — while holding the word THIS paper uses for THIS party. Its own placeholder said so the whole time. So both halves are fixed: the label is py_role ("What the paper calls them") and the box is a dropdown.
+
+It is the value-stream picker's own mechanism: eighteen role words as KEYS (offered in the reader's language; what is STORED is the paper's own word and is never translated), a stored word that is off the list kept and put first, and a last option that opens promptNewName — whose act is the word itself, because a paper's word belongs to no store. selectMenuSweep dresses it, so nothing here builds a dropdown. The sentinel can never reach the record.
+
+Found while building:
+- TWO OF MY OWN CHECKS READ THE PROSE, NOT THE CODE. "no .na-door rule survives" matched the note that says they are gone, and "ov_f_type is not this field's label" matched the comment recording the old mislabel. Both strip comments now. The standing lesson, paid twice in one run.
+- AND A COUNT MATCHED ITS OWN DEFINITION: counting naCardTitle(r) across the file included `function naCardTitle(r){`. Counted inside openNewAgreement now.
+- A PROBE THAT THROWS PROVES NOTHING: the driven party check read sel.options.length, and at the parent that control is an <input> with no .options, so the whole file crashed instead of reporting. It reports `<INPUT> · "Contract type"` now — the owner's screenshot, back.
+
+Noticed, not fixed:
+- paper-beside-questions-verify 7c/7g and term-and-fields-verify fail identically on this tree and at the parent (7 basic entries expected, 8 drawn; `.side` has nowhere to print). Pre-existing, nothing in this run touched them.
+- At 1280 the questions card is 8px taller than the body, so that one rung still scrolls by a hair. The rail no longer drives it.
+
+Gates: 8,684 tests, 0 failed. Lint 0 errors. new-agreement 30/30, overview-as-drawn 55/55, counterparty-leads 32/32, nine-off-five-images 24/24, five-images-two 26/26, form-and-picker 24/24, draft-from-a-sentence green.
+
+Correction to the line above: the suite is 8,683 tests, not 8,684. Counted after the run finished rather than before it.

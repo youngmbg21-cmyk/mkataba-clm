@@ -63,14 +63,24 @@ describe('f345 (1) the + button opens one screen', () => {
 describe('f345 (2) nothing a person could press disappeared', () => {
   test('the four menu rows have homes: describe, template, upload, import', () => {
     assert.match(NA, /id="dr-say"/, 'describe what you need');
-    assert.match(NA, /data-wz-\$\{r\.kind\}=/, 'the doors carry data-wz-lib / -mine');
-    assert.match(NA, /data-wz-tid="\$\{esc\(r\.id\)\}"/, 'the chips carry data-wz-tid');
+    /* RE-POINTED IN PLACE 22 Sep 2026 (proposal C). The doors and the chips
+       became ONE rail row, so there is one builder and one attribute shape
+       for all three shelves instead of two builders that could drift. The
+       CLAIM is unchanged: every shelf's rows carry the attribute the one
+       delegated handler answers, so nothing a person could press went. */
+    assert.match(NA, /data-wz-\$\{r\.kind\}=/, 'one row builder, every shelf');
+    assert.equal((NA.match(/data-wz-\$\{r\.kind\}=/g) || []).length, 1, 'and there is only one of it');
+    assert.match(NA, /b\.hasAttribute\('data-wz-lib'\)[\s\S]{0,200}data-wz-mine[\s\S]{0,200}data-wz-tid/,
+      'and the handler still answers all three');
     assert.match(NA, /id="na-upload"[\s\S]{0,300}id="na-import"/);
     assert.match(NA, /getElementById\('na-upload'\)\?\.addEventListener\('click', \(\)=>\{ closeModal\(\); if\(typeof openUploadModal==='function'\) openUploadModal\(\); \}\)/);
     assert.match(NA, /getElementById\('na-import'\)\?\.addEventListener\('click', \(\)=>\{ closeModal\(\); if\(typeof setView==='function'\) setView\('migration'\); \}\)/);
   });
   test('the picker\'s search, streams and line of business survive on it', () => {
-    assert.match(NA, /say\?\.addEventListener\('input',\(\)=>\{ clearTimeout\(_t\); _t=setTimeout\(paintLists, 120\); \}\)/, 'the sentence box filters as you type');
+    /* RE-POINTED IN PLACE 22 Sep 2026: the same listener also fits the box to
+       its own content now (Young: "the describe what you need should be able
+       to wrap text"). The CLAIM is the filter, and it is untouched. */
+    assert.match(NA, /say\?\.addEventListener\('input',\(\)=>\{ naSayFit\(say\); clearTimeout\(_t\); _t=setTimeout\(paintLists, 120\); \}\)/, 'the sentence box filters as you type');
     assert.match(region(WZ, 'naHit'), /\$\{r\.name\} \$\{r\.sub\} \$\{r\.stream\}/, 'over name, description and stream — the browse by stream, by another door');
     assert.match(NA, /id="wz-industry"/, 'the admin\'s line of business');
     assert.match(NA, /forYouPick\(tmpls\)\.list\.concat/, 'and FOR YOU\'s order leads the chips');
@@ -130,21 +140,46 @@ describe('f345 (3) the card is the existing door\'s own form, and this file mint
     assert.match(np, /if\(!root \|\| typeof root\._naPick!=='function' \|\| !pick\) return false;/);
     assert.match(np, /const kind=pick\.kind==='builtin'\?'tid':pick\.kind;/);
   });
-  test('the paper beside the questions survives, on a wide screen, and the line is said', () => {
-    assert.match(WZ, /const NA_PAPER_MIN_W = 1600;/);
+  /* RE-POINTED IN PLACE 22 Sep 2026 — Young chose proposal C. The line moved
+     1600 -> 1280 and the frame's three tracks became rail | questions | paper,
+     so the agreement is drawn on the screen he actually uses. The CLAIM is the
+     one that mattered: there is ONE line, it is stated, and the frame and the
+     grid read the same numbers rather than each typing their own. */
+  test('the paper beside the questions is drawn at 1280, and the numbers are said once', () => {
+    assert.match(WZ, /const NA_PAPER_MIN_W = 1280;/);
+    assert.match(WZ, /const NA_RAIL_W = 260;/);
+    assert.match(WZ, /const NA_PAPER_W = 400;/);
+    assert.match(WZ, /const NA_FRAME_W = 1180;/);
     assert.match(NA, /\$\{wide\?`<div id="na-paper" class="na-paper"><\/div>`:''\}/);
-    assert.match(NA, /maxWidth: wide\?'1240px':'960px'/);
-    assert.match(HTML, /\.na-body\.na-wide\{ grid-template-columns:minmax\(0,1fr\) minmax\(0,1fr\) 380px; \}/);
+    assert.match(NA, /maxWidth: \(wide\?NA_FRAME_W:NA_FRAME_NARROW_W\)\+'px'/, 'the frame reads the constants');
+    assert.match(HTML, /\.na-body\.na-wide\{ grid-template-columns:var\(--na-rail-w\) minmax\(0,1fr\) var\(--na-paper-w\); \}/);
+    /* THE TWO HOSTS MUST AGREE: the frame is the rail plus the questions plus
+       the paper plus the body's own padding and gaps, so a number changed on
+       one side and not the other is caught here rather than on a screen. */
+    const railCss = /--na-rail-w:(\d+)px/.exec(HTML), paperCss = /--na-paper-w:(\d+)px/.exec(HTML);
+    assert.ok(railCss && paperCss, 'the stylesheet states both widths');
+    assert.equal(+railCss[1], +/const NA_RAIL_W = (\d+);/.exec(WZ)[1], 'the rail is one number');
+    assert.equal(+paperCss[1], +/const NA_PAPER_W = (\d+);/.exec(WZ)[1], 'so is the paper');
+    /* AND 1180 FITS 1280: openModal's backdrop spends var(--s-4) a side. */
+    assert.ok(+/const NA_FRAME_W = (\d+);/.exec(WZ)[1] <= +/const NA_PAPER_MIN_W = (\d+);/.exec(WZ)[1] - 32,
+      'the frame fits the window the paper is promised on');
   });
 });
 
 describe('f345 (4) the clothes and the words', () => {
   test('the pop-up is dressed in HaTi\'s sheet, to the reference\'s numbers', () => {
-    assert.match(HTML, /\.na-body\{ display:grid; grid-template-columns:minmax\(0,1fr\) 380px; gap:20px; padding:18px 20px;/);
+    /* RE-POINTED IN PLACE 22 Sep 2026: the picker's column leads now (proposal
+       C) and its width is a token both hosts read. The rest of the frame —
+       the gap, the padding, the head, the foot, the card — is untouched. */
+    assert.match(HTML, /\.na-body\{ display:grid; grid-template-columns:var\(--na-rail-w\) minmax\(0,1fr\); gap:20px; padding:18px 20px;/);
     assert.match(HTML, /\.na-head\{ display:flex; align-items:flex-start; gap:10px; padding:14px 20px; border-bottom:1px solid var\(--color-divider\); \}/);
     assert.match(HTML, /\.na-foot\{ display:flex; align-items:center; gap:8px; padding:12px 20px; border-top:1px solid var\(--color-divider\); \}/);
-    assert.match(HTML, /\.na-doors\{ display:grid; grid-template-columns:1fr 1fr; gap:12px; \}/);
-    assert.match(HTML, /\.na-chip\{[^}]*height:26px; padding:0 9px; border:1px dashed var\(--rule-strong\); border-radius:13px;/);
+    /* THE CARDS AND THE CHIPS ARE GONE, and so are their rules — see f360.
+       What replaced them is the Templates page's own rail, borrowed rather
+       than reinvented, which is what this claim now holds. */
+    assert.ok(!/\.na-doors\{/.test(HTML) && !/\.na-chip\{/.test(HTML), 'no rule survives for a card or a chip');
+    assert.match(HTML, /\.na-pick\{[^}]*border-radius:var\(--radius\)/);
+    assert.match(HTML, /\.na-pick\.on,\.na-pick\.on:hover\{ background:var\(--accent-fill\); \}/);
     assert.match(HTML, /\.na-card-h\{ display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid var\(--color-divider\); \}/);
     assert.ok(!/\.na-[a-z-]*\{[^}]*!important/.test(HTML), 'never !important');
   });

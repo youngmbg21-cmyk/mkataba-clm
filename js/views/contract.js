@@ -5599,6 +5599,31 @@ function openPartyEditor(c, id){
       <span style="${HATI_LBL}">${esc(label)}</span>
       <input id="py-${k}" type="text" style="${HATI_FLD}" value="${esc(val||'')}" placeholder="${esc(ph)}"/>
     </label>`;
+  /* ---- THE WORD THE PAPER USES IS PICKED, NOT TYPED FROM NOTHING (Young,
+     22 Sep 2026) ----
+     THE SAME SHAPE AS EVERY OTHER PICKER IN THE PRODUCT, and it is the value
+     stream's own: a <select> whose list carries the stored word when that is
+     not one of the offered ones, and whose LAST option is a sentinel that
+     opens one name box. selectMenuSweep dresses it as HaTi's own list by
+     construction — one delegated listener on the body — so nothing here
+     builds a dropdown of its own.
+
+     AND THE LABEL IS THE FIX UNDER THE FIX: this box was labelled `ov_f_type`,
+     the Overview's label for metadata.contractType, which is the KIND of
+     agreement and not a fact about a party. Its own placeholder has always
+     said what it really holds. */
+  const roleSel=val=>{
+    const opts=(typeof partyRoleOptions==='function')?partyRoleOptions(val):[];
+    const cur=String(val||'').trim();
+    return `<label style="display:block;margin-bottom:var(--s-3)">
+      <span style="${HATI_LBL}">${esc(i18t('py_role'))}</span>
+      <select id="py-role" style="${HATI_FLD}">
+        <option value="">${esc(i18t('wz_not_set'))}</option>
+        ${opts.map(o=>`<option value="${esc(o.v)}"${o.v.toLowerCase()===cur.toLowerCase()?' selected':''}>${esc(o.l)}</option>`).join('')}
+        <option value="${esc(PARTY_ROLE_OTHER)}">${esc(i18t('py_role_another'))}</option>
+      </select>
+    </label>`;
+  };
   const inv=PARTY_INVOLVEMENT.map(k=>`<label class="py-inv-row">
       <input type="radio" name="py-inv" value="${esc(k)}"${k===p.involvement?' checked':''}/>
       <span><b>${esc(i18t('py_inv_'+k))}</b><i>${esc(i18t('py_inv_'+k+'_s'))}</i></span>
@@ -5608,7 +5633,7 @@ function openPartyEditor(c, id){
       <h3 style="margin:0 0 var(--s-3);font-size:var(--t-section);font-weight:var(--w-title)">${
         esc(adding?i18t('py_add').replace(/^\+\s*/,''):i18t('py_edit'))}</h3>
       ${fld('name',i18t('reg_col_counterparty'),i18t('py_name_ph'),p.name)}
-      ${fld('role',i18t('ov_f_type'),i18t('py_role_ph'),p.role)}
+      ${roleSel(p.role)}
       ${fld('addr',i18t('ov_f_stream').replace(/.*/,i18t('py_addr_ph')),i18t('py_addr_ph'),p.address)}
       ${fld('email',i18t('ov_f_email'),i18t('py_email_ph'),p.email)}
       <div class="py-inv">${inv}</div>
@@ -5635,6 +5660,28 @@ function openPartyEditor(c, id){
     toast(i18t('py_saved'),'ok');
     return true;
   };
+  /* THE SENTINEL OPENS ONE NAME BOX — promptNewName, the product's own, whose
+     `make` is the act. Here the act is the word itself: nothing is added to a
+     store, because the paper's word belongs to this contract and to no list.
+     Cancelled, the box goes back to what it was, exactly as bindFolderSelect
+     puts a stream back. */
+  const roleBox=document.getElementById('py-role');
+  if(roleBox){
+    let lastRole=roleBox.value;
+    roleBox.addEventListener('change',async()=>{
+      if(roleBox.value!==PARTY_ROLE_OTHER){ lastRole=roleBox.value; return; }
+      const word=(typeof promptNewName==='function')
+        ? await promptNewName({ title:i18t('py_role'), sub:i18t('py_role_ph'),
+            placeholder:i18t('py_role_ph'), ok:i18t('act_save'), make:x=>String(x||'').trim() })
+        : null;
+      if(word){
+        const opt=document.createElement('option');
+        opt.value=word; opt.textContent=word;
+        roleBox.insertBefore(opt, roleBox.lastElementChild);
+        roleBox.value=word; lastRole=word;
+      } else roleBox.value=lastRole;
+    });
+  }
   document.getElementById('py-cancel')?.addEventListener('click',()=>closeModal());
   document.getElementById('py-del')?.addEventListener('click',async()=>{
     const gone=list[at]; if(!gone) return;
@@ -5646,7 +5693,11 @@ function openPartyEditor(c, id){
   document.getElementById('py-ok')?.addEventListener('click',()=>{
     const v=k=>String(document.getElementById('py-'+k)?.value||'').trim();
     const chosen=document.querySelector('input[name="py-inv"]:checked');
-    const next={ ...p, name:v('name'), role:v('role'), address:v('addr'), email:v('email'),
+    /* A SENTINEL NEVER REACHES THE RECORD: a reader who opens the name box
+       and cancels leaves the select on what it was, and this is the wall for
+       any path that did not. */
+    const roleV=v('role')===PARTY_ROLE_OTHER?p.role||'':v('role');
+    const next={ ...p, name:v('name'), role:roleV, address:v('addr'), email:v('email'),
       involvement:chosen?chosen.value:p.involvement };
     const rows=adding?list.concat([next]):list.map((x,i)=>i===at?next:x);
     write(rows);

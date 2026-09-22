@@ -35,6 +35,9 @@ const { STRINGS, I18N_DEFAULT, LANGUAGES } = i18n;
 /* Words that are legitimately identical in both languages, so an equal-to-
    English value is a real translation rather than a forgotten one. */
 const SAME_IN_BOTH = new Set([
+  /* 'Agent' is the same word in both languages — one of the role words the
+     Edit party picker offers (22 Sep 2026). */
+  'py_rw_agent',
   /* 'std' is the same abbreviation in both languages on the figure scale (21 Sep 2026) */
   'ng_fig_std',
   /* home_clm_title was here for one day and is REVERSED IN PLACE (owner-asked

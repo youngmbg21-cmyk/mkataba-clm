@@ -166,22 +166,28 @@ const check = (name, ok, detail) => {
           return g; })(),
         secHeadMin: (() => { const sh = document.querySelector('.na-sec-h');
           return sh ? Math.round(sh.getBoundingClientRect().height) : null; })(),
-        /* THE REPORTED GAP, MEASURED: from the bottom of the last
-           company-standard card to the top of the heading row under it. */
-        realGap: (() => { const d = document.querySelector('.na-doors');
+        /* RE-POINTED IN PLACE 22 Sep 2026 — proposal C: the cards became a
+           rail of rows, so the gap is measured from the last ROW of a shelf
+           to the heading of the next. The CLAIM is the relation and it is
+           unchanged. */
+        realGap: (() => { const d = document.querySelector('.na-rows');
           const hs = [...document.querySelectorAll('.na-sec-h')];
           if (!d) return null;
           const db = d.getBoundingClientRect().bottom;
           const next = hs.map(x => x.getBoundingClientRect()).filter(r => r.top >= db - 1)
             .sort((a, b) => a.top - b.top)[0];
           return next ? Math.round(next.top - db) : null; })(),
-        doors: document.querySelectorAll('.na-door').length,
-        /* A CARD THAT IS NOT THE CHOSEN ONE: the selected card wears the
-           accent border and its inset ring by design, and reading the first
-           card in the list measured that instead of the ordinary edge. */
-        doorEdge: (() => { const d = document.querySelector('.na-door:not(.on)') || document.querySelector('.na-door');
-          return d ? getComputedStyle(d).borderColor : null; })(),
-        doorPlain: !!document.querySelector('.na-door:not(.on)') };
+        rows: document.querySelectorAll('.na-pick').length,
+        /* A ROW THAT IS NOT THE CHOSEN ONE. The chosen one is FILLED now, not
+           outlined, which is the Templates page's own lit-row treatment. */
+        pickPlain: !!document.querySelector('.na-pick:not(.on)'),
+        pickBg: (() => { const d = document.querySelector('.na-pick:not(.on)');
+          return d ? getComputedStyle(d).backgroundColor : null; })(),
+        onBg: (() => { const d = document.querySelector('.na-pick.on');
+          return d ? getComputedStyle(d).backgroundColor : null; })(),
+        railBg: (() => { const d = document.createElement('div');
+          d.style.background = 'var(--accent-fill)'; document.body.appendChild(d);
+          const v = getComputedStyle(d).backgroundColor; d.remove(); return v; })() };
     });
     /* NOT MERELY "different": at the parent the body painted nothing at all
        and transparent-against-white already read as a difference, so the
@@ -194,15 +200,20 @@ const check = (name, ok, detail) => {
       P.cardEdge === 'rgb(203, 211, 208)', P.cardEdge);
     check('3c the line-of-business control is the size of the controls beside it',
       P.lobH != null && P.fieldH != null && Math.abs(P.lobH - P.fieldH) <= 2, `lob ${P.lobH} · field ${P.fieldH}`);
-    check('3c2 an unchosen company-standard card wears the same visible edge',
-      P.doors > 0 && (P.doorPlain ? P.doorEdge === P.cardEdge : true),
-      `${P.doors} cards · plain ${P.doorPlain} · ${P.doorEdge}`);
-    /* THE OWNER'S OWN REPORT, MEASURED: the heading row under the cards stands
-       clear of them by MORE than the cards stand from each other (12px), which
-       is what "so close to overlapping" was about. */
-    check('3d and the heading row stands clear of the cards above it',
-      P.doors > 0 && P.realGap != null && P.realGap > 12 && P.secHeadMin >= 32,
-      `cards→heading ${P.realGap}px (cards sit 12px apart) · head row ${P.secHeadMin}px`);
+    /* RE-POINTED IN PLACE 22 Sep 2026. The ground is still the claim, and on
+       a rail it is the ROW that must not compete with it: an unchosen row
+       paints nothing and the chosen one is filled in the accent. */
+    check('3c2 an unchosen row paints nothing, and the chosen one is filled',
+      P.rows > 0 && P.pickPlain && P.pickBg === 'rgba(0, 0, 0, 0)' && P.onBg === P.railBg,
+      `${P.rows} rows · plain ${P.pickPlain} · resting ${P.pickBg} · lit ${P.onBg} · accent-fill ${P.railBg}`);
+    /* THE OWNER'S OWN REPORT, MEASURED: the heading row under a shelf stands
+       clear of it by MORE than the things inside that shelf stand from each
+       other, which is what "so close to overlapping" was about. RE-POINTED IN
+       PLACE 22 Sep 2026 — the 12px card gap became the rail's own row gap, so
+       the RELATION is read off the stylesheet rather than typed. */
+    check('3d and the heading row stands clear of the rows above it',
+      P.rows > 0 && P.realGap != null && P.secGap != null && P.realGap >= P.secGap && P.secHeadMin >= 32,
+      `rows→heading ${P.realGap}px against the ${P.secGap}px boundary · head row ${P.secHeadMin}px`);
 
     /* A DROPDOWN ON A PAGE THAT IS NOT THE CONTRACTS FILTER BAR draws HaTi's
        own list — which is the whole of the owner's third ask. */

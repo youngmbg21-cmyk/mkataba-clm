@@ -538,6 +538,91 @@ const SEC = (suffix) => {
       py.order.indexOf('parties') > -1 && py.order.indexOf('parties') < py.order.indexOf('record'),
       py.order.join(' \u00b7 '));
 
+    /* ===== 13. THE WORD THE PAPER USES IS A DROPDOWN OF CHOICES =====
+       Young, 22 September 2026: *"contract type should be a drop down of
+       choices"*, over the Edit party window. MEASURED at the parent: a plain
+       text box labelled "Contract type" — the Overview's own label for
+       metadata.contractType, borrowed for a field that holds the word THIS
+       paper uses for THIS party. Driven here with a real pointer, because
+       only a rendered page knows whether a list opens under the control. */
+    await page.evaluate(x => { const c = state.contracts.find(y => y.id === x);
+      const ps = contractParties(c);
+      partiesSet(c, [{ ...ps[0] }, { ...ps[1], role: 'the Offtaker' }]);
+      openPartyEditor(c, contractParties(c)[1].id); }, c.id);
+    await page.waitForTimeout(700);
+    const pe = await page.evaluate(() => {
+      const sel = document.getElementById('py-role');
+      if (!sel) return { none: true };
+      const lab = sel.closest('label') && sel.closest('label').querySelector('span');
+      /* A BUILD WITH NO DROPDOWN MUST REPORT, NOT THROW — a probe that throws
+         proves nothing. At the parent this control is an <input>, which has
+         no .options at all. */
+      const os = sel.options ? [...sel.options] : [];
+      return { tag: sel.tagName, label: lab ? lab.textContent.trim() : '',
+        n: os.length, value: sel.value,
+        first: os.length ? os[0].value : null,
+        last: os.length ? os[os.length - 1].value : null,
+        keptOffList: os.some(o => o.value === 'the Offtaker'),
+        offered: os.map(o => o.textContent) };
+    });
+    check('13a it is a dropdown, not a text box, and it says what it holds',
+      pe.tag === 'SELECT' && !/contract type/i.test(pe.label) && pe.label.length > 0,
+      pe.none ? 'no control' : `<${pe.tag}> · "${pe.label}"`);
+    check('13b the choices are real words a paper uses',
+      !pe.none && pe.n >= 14 && pe.offered.some(x => /Supplier|Leverant/.test(x))
+      && pe.offered.some(x => /Licensor|Licensgivare/.test(x)),
+      pe.none ? 'no control' : pe.n + ' options');
+    check('13c a word already on the record is kept, and leads, and is what shows',
+      !pe.none && pe.keptOffList && pe.value === 'the Offtaker' && pe.first === '',
+      pe.none ? 'no control' : `value "${pe.value}" · kept ${pe.keptOffList} · first "${pe.first}"`);
+    /* HaTi's OWN LIST, not the system's — one delegated sweep, and this
+       control did not opt out of it. */
+    await page.evaluate(() => { const sl = document.getElementById('py-role');
+      sl.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true })); });
+    await page.waitForTimeout(400);
+    const pm = await page.evaluate(() => { const m = document.querySelector('.hati-selmenu');
+      if (!m) return null; const b = m.getBoundingClientRect();
+      const s2 = document.getElementById('py-role').getBoundingClientRect();
+      return { rows: m.querySelectorAll('[data-sm]').length, w: Math.round(b.width),
+        under: b.top >= s2.bottom - 1, wide: b.width >= s2.width - 1 }; });
+    check('13d pressing it opens HaTi\'s own list, under the control and as wide',
+      !!pm && pm.rows === pe.n && pm.under && pm.wide, pm ? JSON.stringify(pm) : 'no menu');
+    /* AND PICKING ONE REALLY WRITES IT. */
+    const wrote = await page.evaluate(async id => {
+      const rows = [...document.querySelectorAll('.hati-selmenu [data-sm]')];
+      const r = rows.find(x => /Supplier|Leverant/.test(x.textContent));
+      if (!r) return { no: true, why: 'no list to pick from' };
+      r.click(); await new Promise(z => setTimeout(z, 250));
+      document.getElementById('py-ok').click(); await new Promise(z => setTimeout(z, 700));
+      const cc = state.contracts.find(y => y.id === id);
+      return { roles: contractParties(cc).map(p => p.role) };
+    }, c.id);
+    await page.waitForTimeout(600);
+    check('13e picking one writes the paper\'s word onto the record',
+      !wrote.no && /Supplier|Leverant/.test((wrote.roles || []).join('|')),
+      JSON.stringify(wrote));
+    /* THE WAY OUT OF THE LIST: a word the paper uses that nobody listed. */
+    await page.evaluate(x => { const cc = state.contracts.find(y => y.id === x);
+      openPartyEditor(cc, contractParties(cc)[1].id); }, c.id);
+    await page.waitForTimeout(600);
+    const own = await page.evaluate(async () => {
+      const sl = document.getElementById('py-role');
+      if (!sl || !sl.options || !sl.options.length) return { noBox: true, why: 'no dropdown' };
+      const sentinel = sl.options[sl.options.length - 1].value;
+      sl.value = sentinel; sl.dispatchEvent(new Event('change', { bubbles: true }));
+      await new Promise(z => setTimeout(z, 400));
+      const box = document.getElementById('nf-name');
+      if (!box) return { noBox: true };
+      box.value = 'the Offtaker'; document.getElementById('nf-save').click();
+      await new Promise(z => setTimeout(z, 300));
+      const after = document.getElementById('py-role');
+      return { value: after.value, onList: [...after.options].some(o => o.value === 'the Offtaker') };
+    });
+    check('13f and a word of your own goes in through the product\'s own name box',
+      !own.noBox && own.value === 'the Offtaker' && own.onList, JSON.stringify(own));
+    await page.evaluate(() => { const x = document.getElementById('py-cancel'); if (x) x.click(); });
+    await page.waitForTimeout(300);
+
     check('7 no page errors anywhere in the journey', errors.length === 0, errors.join(' | '));
     await ctx.close();
   } finally {

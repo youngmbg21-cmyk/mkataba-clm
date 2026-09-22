@@ -6006,7 +6006,13 @@
      number read off prototype/hati-redesign-reference.html, never a screenshot.
      The host forms keep their own inline grid; the card only asks the first
      box (the counterparty) to take the whole row, as the artifact draws it. */
-  .na-root{ display:flex; flex-direction:column; max-height:calc(88vh - 2px); font-size:var(--t-body); }
+  /* ---- PROPOSAL C, WHICH YOUNG CHOSE (22 Sep 2026) ----
+     Three columns: the paper you have as a RAIL of rows, its questions, and
+     the agreement itself. The two column widths are stated ONCE, here, and
+     js/wizard.js states the frame they add up to — two hosts, one set of
+     numbers, so the frame and the grid cannot drift. */
+  .na-root{ display:flex; flex-direction:column; max-height:calc(88vh - 2px); font-size:var(--t-body);
+    --na-rail-w:260px; --na-paper-w:400px; }
   .na-head{ display:flex; align-items:flex-start; gap:10px; padding:14px 20px; border-bottom:1px solid var(--color-divider); }
   .na-head h3{ margin:0; font-family:var(--font-heading); font-size:var(--t-section); font-weight:var(--w-title); color:var(--color-text); line-height:1.3; }
   .na-sub{ font-size:var(--t-label); color:var(--color-neutral-600); margin-top:2px; }
@@ -6028,10 +6034,41 @@
      six cards each claiming something, and only one of them — the chosen one —
      has anything to claim; that one already wears the accent border and its
      inset ring, and it is untouched. */
-  .na-body{ display:grid; grid-template-columns:minmax(0,1fr) 380px; gap:20px; padding:18px 20px; overflow:auto; min-height:0; align-items:start;
+  .na-body{ display:grid; grid-template-columns:var(--na-rail-w) minmax(0,1fr); gap:20px; padding:18px 20px; overflow:auto; min-height:0; align-items:start;
     background:var(--color-bg); }
-  .na-body.na-wide{ grid-template-columns:minmax(0,1fr) minmax(0,1fr) 380px; }
+  .na-body.na-wide{ grid-template-columns:var(--na-rail-w) minmax(0,1fr) var(--na-paper-w); }
   .na-left{ display:flex; flex-direction:column; gap:12px; min-width:0; }
+  /* THE LIST SCROLLS INSIDE THE RAIL, so a workspace with forty standards on
+     the shelf does not drive the height of the whole pop-up and push the two
+     doors at the foot of the rail below the fold.
+
+     THE CAP IS DERIVED, NOT PICKED, and every part of it was MEASURED in a
+     real browser rather than estimated: the frame's ceiling is 88vh less 2,
+     off which come the head (69), the foot (55), the body's own padding (36)
+     and the rail's fixed parts — the ask at rest, Find, its hint and the
+     Upload row — which measured 234px at 1100, 1280 and 1440 alike. 396 is
+     their sum. What is left is what the list may take, so on a fresh open the
+     rail fits and nothing at its foot is below the fold. A floor keeps it
+     usable on a very short window, where the body scrolls as it always has
+     rather than the list vanishing; and once the reader TYPES, the ask grows
+     and the body scrolls, which is right — that is their own doing. */
+  .na-picks{ min-height:0; overflow:auto; max-height:max(140px, calc(88vh - 396px)); }
+  /* The list's end is a hairline, not a half-row trailing into the footer:
+     ordinary furniture parting a list from the row under it. */
+  .na-rail .na-more{ border-top:1px solid var(--color-divider); padding-top:10px; margin-top:2px; }
+  /* EACH SHELF'S NAME PINS WHILE ITS ROWS RUN UNDER IT. A scroller cuts where
+     it cuts, and MEASURED at 1100x800 it cut through the line-of-business
+     control — a select drawn half — which is this product's own dead-door
+     fault in another costume. Pinned, the heading says which shelf you are
+     in and its one control is reachable the whole time that shelf is on
+     screen. It takes the body's own ground so rows pass behind it. */
+  .na-picks .na-sec-h{ position:sticky; top:0; z-index:1; background:var(--color-bg); }
+  /* IN THE RAIL THE ASK TAKES THE WHOLE WIDTH AND FIND DROPS UNDER IT.
+     MEASURED: beside the button the box was 182px of a 236px column, which is
+     about five words a line. The row already wraps; the box only had to claim
+     the line. */
+  .na-rail .na-row{ flex-wrap:wrap; }
+  .na-rail .na-row > .na-say{ flex:1 0 100%; }
   .na-field{ display:flex; flex-direction:column; gap:4px; }
   .na-field > label{ font-size:var(--t-label); color:var(--color-neutral-600); font-weight:var(--w-label); }
   .na-row{ display:flex; gap:6px; align-items:center; }
@@ -6068,47 +6105,54 @@
      beside it: at 26px against the form's 32px it read as a different class of
      thing crushed into a heading. */
   .na-lob select{ height:var(--field-h,32px); border:1px solid var(--rule-strong); border-radius:var(--radius); background:var(--color-surface); font:inherit; font-size:var(--t-label); color:inherit; padding:0 8px; }
-  .na-doors{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-  /* --rule-strong, not --color-divider: the edge that .ui-btn uses to stay
-     visible, which is the same job here now the card has a ground behind it. */
-  .na-door{ background:var(--color-surface); border:1px solid var(--rule-strong); border-radius:var(--radius-lg); padding:12px; text-align:left; display:flex; flex-direction:column; gap:2px; font:inherit; color:inherit; cursor:pointer; transition:border-color var(--dur-1); min-width:0; }
-  .na-door:hover{ border-color:var(--color-accent-300); }
-  .na-door.on{ border-color:var(--color-accent); box-shadow:inset 0 0 0 1px var(--color-accent); }
-  .na-door b{ font-size:var(--t-body); font-weight:var(--w-title); color:var(--color-text);
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.4; }
-  .na-door span{ font-size:var(--t-label); color:var(--color-neutral-600); }
-  /* ONE HEIGHT FOR EVERY CARD (Young, 21 Sep 2026: "they should all be the
-     same size"). The slot is ALWAYS drawn and reserves exactly two lines —
-     reserving is what fixes the height, because a grid stretches every cell to
-     the tallest and a clamp alone would cap the long one while still letting
-     an empty card shrink. A longer sentence is cut with the whole of it on the
-     card's own hover, which is this product's idiom for a cut. */
-  /* ---- AND THE NAME IS RESERVED TOO (Young, 21 Sep 2026: "these cards ...
-     are still not the same size. Make them the same and not big either") ----
-     MEASURED in a real browser: 103px against 121px, and the description slot
-     above was already doing its job — what differed was the NAME. A long one
-     ("Procurement Value Stream Agreement") wrapped to two lines, and since a
-     grid stretches every cell in a row to the tallest, the rows themselves
-     came out at two different heights.
+  /* IN THE RAIL IT TAKES ITS OWN LINE. margin-left:auto puts it beside the
+     heading, which is right in a 518px column and is 260px of nothing here;
+     .na-sec-h already wraps, so it only needed releasing. */
+  .na-rail .na-lob{ margin-left:0; width:100%; flex-direction:column; align-items:stretch; gap:4px; }
+  .na-rail .na-lob select{ width:100%; min-width:0; }
+  /* ---- A ROW, NOT A CARD (proposal C) ----
+     IT IS THE TEMPLATES PAGE'S OWN RAIL, not a second idea of one: the same
+     radius, the same 10px inset, the same neutral-100 hover and the same lit
+     treatment (--accent-fill under #fff), and the figures in the mono face at
+     micro, which is .tpl-rail-n's own. A rail already exists in this product
+     and this screen borrows it rather than growing a picker of its own.
 
-     SO EVERY LINE OF THE CARD IS RESERVED, not just the middle one. The name
-     takes one line, the sentence one, the foot one — a fixed three — and the
-     whole of each is on the card's own hover, which is this product's idiom
-     for a cut. The sentence dropped from two reserved lines to one on the
-     second half of the ask: the artifact's own card is about 80px and carries
-     a one-line description, and "not big" is measured against it. */
-  .na-door .na-about{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    height:1.4em; line-height:1.4; }
-  .na-door .na-go{ margin-top:auto; padding-top:4px; font-size:var(--t-label); color:var(--accent-ink);
-    font-weight:var(--w-title); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .na-chips{ display:flex; gap:6px; flex-wrap:wrap; }
-  .na-chip{ display:inline-flex; align-items:center; gap:6px; height:26px; padding:0 9px; border:1px dashed var(--rule-strong); border-radius:13px; font:inherit; font-size:var(--t-label); color:var(--color-neutral-600); background:var(--color-surface); cursor:pointer; }
-  .na-chip:hover{ border-color:var(--color-accent-300); color:var(--color-text); }
-  .na-chip.on{ border-style:solid; border-color:var(--color-accent-300); background:var(--color-accent-100); color:var(--accent-ink); font-weight:var(--w-label); }
+     THE CARD RULES BELOW ARE GONE, not stubbed: .na-door and .na-chip had no
+     second producer, so nothing else in the product could draw one. What they
+     were built to hold — every card one height, the name cut with the whole
+     of it on the hover — is kept by construction here, because a list does
+     not stretch its siblings and the hover still carries naCardTitle whole. */
+  .na-rows{ display:flex; flex-direction:column; gap:1px; }
+  .na-pick{ display:flex; flex-direction:column; gap:1px; width:100%; min-width:0; text-align:left;
+    border:0; background:none; font:inherit; color:inherit; cursor:pointer;
+    padding:5px 10px; border-radius:var(--radius); transition:background-color var(--dur-1); }
+  .na-pick:hover{ background:var(--color-neutral-100); }
+  .na-pick-n{ font-size:var(--t-body); font-weight:var(--w-label); color:var(--color-text);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.4; }
+  .na-pick-m{ font-family:var(--font-mono); font-size:var(--t-micro); color:var(--color-neutral-600);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.5; }
+  .na-pick.on,.na-pick.on:hover{ background:var(--accent-fill); }
+  .na-pick.on .na-pick-n{ color:#fff; font-weight:var(--w-strong); }
+  /* .82 of white on accent-fill measures 5.3:1 — above the 4.5 this product
+     holds 11px text to. The figure is quieter than the name and still read. */
+  .na-pick.on .na-pick-m{ color:#fff; opacity:.82; }
+  /* ---- WHAT THE TWO RETIRED CARD RULES WERE FOR (Young, 21 Sep 2026: "they
+     should all be the same size", then "still not the same size. Make them
+     the same and not big either") ----
+     MEASURED then: 103px against 121px, because a long name wrapped to two
+     lines and a GRID stretches every cell in a row to the tallest. The answer
+     was to reserve every line of the card — name, sentence, foot — and put
+     the whole of each on the card's own hover.
+
+     Proposal C spends that ruling rather than breaking it: with the cards
+     gone there is no grid to stretch anything, a row with no figures is one
+     line, and naCardTitle still carries the whole of the name, the sentence
+     and the provenance on the row's hover. The reasoning is kept because it
+     is what makes the rows above safe. */
   .na-none{ margin:0; font-size:var(--t-label); color:var(--color-neutral-600); }
   .na-more{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:var(--t-label); color:var(--color-neutral-600); padding-top:4px; }
   .na-more .ui-btn-plain{ padding:0; height:auto; min-height:0; font-size:var(--t-label); }
-  .na-paper{ min-width:0; }
+  .na-paper{ min-width:0; align-self:stretch; }
   .na-card{ background:var(--color-surface); border:1px solid var(--rule-strong); border-radius:var(--radius-lg); min-width:0; align-self:start; }
   .na-card-h{ display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid var(--color-divider); }
   .na-card-h h3{ margin:0; font-family:var(--font-heading); font-size:14px; font-weight:var(--w-title); color:var(--color-text); flex:1; min-width:0; line-height:1.35; }
@@ -6118,7 +6162,7 @@
   .na-note{ border:1px solid var(--color-divider); padding:12px 14px; border-radius:var(--radius); font-size:var(--t-meta); color:var(--color-neutral-600); line-height:1.5; }
   .na-foot{ display:flex; align-items:center; gap:8px; padding:12px 20px; border-top:1px solid var(--color-divider); }
   .na-grow{ flex:1; }
-  @media (max-width:760px){ .na-body,.na-body.na-wide{ grid-template-columns:1fr; } .na-doors{ grid-template-columns:1fr; } }
+  @media (max-width:760px){ .na-body,.na-body.na-wide{ grid-template-columns:1fr; } .na-picks{ max-height:none; } }
   .tpl-bar{ display:block; width:100%; border:0; background:none; text-align:left; font:inherit;
     color:inherit; cursor:pointer; padding:0; margin-bottom:6px; font-size:var(--t-label); }
   .tpl-bar-r{ display:flex; align-items:center; gap:8px; margin-bottom:3px; min-width:0; }

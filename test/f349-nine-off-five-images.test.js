@@ -46,28 +46,41 @@ const I18N = read('js/i18n.js');
    row to the tallest. So the reserve is not a property of one line: a card
    whose height must not vary has to reserve all of them. */
 test('F349 (1) — the New agreement card reserves every line it draws', async t => {
-  await t.test('(1a) the name takes one line and is cut', () => {
-    const r = /\.na-door b\{[^}]*\}/.exec(CSS);
-    assert.ok(r, '.na-door b has a rule of its own');
+  /* REVERSED IN PLACE 22 Sep 2026 — Young chose proposal C, the cards became
+     a rail of rows, and with no grid there is nothing to stretch a row to a
+     sibling's height. The reasoning above is kept whole because it is what
+     makes that safe. What survives is the part that was never about the grid:
+     a line is CUT rather than wrapped, and the whole of it rides one hover
+     built by one function. */
+  await t.test('(1a) the row\'s name takes one line and is cut', () => {
+    const r = /\.na-pick-n\{[^}]*\}/.exec(CSS);
+    assert.ok(r, '.na-pick-n has a rule of its own');
     assert.match(r[0], /white-space:nowrap/);
     assert.match(r[0], /text-overflow:ellipsis/);
   });
-  await t.test('(1b) so does the sentence, and it is ONE line now, not two', () => {
-    const r = /\.na-door \.na-about\{[^}]*\}/.exec(CSS)[0];
-    assert.match(r, /height:1\.4em/);
-    assert.match(r, /white-space:nowrap/);
-    assert.ok(!/line-clamp:2/.test(r), 'the two-line clamp is gone — "not big either"');
-  });
-  await t.test('(1c) and so does the foot', () => {
-    const r = /\.na-door \.na-go\{[^}]*\}/.exec(CSS)[0];
+  await t.test('(1b) so does its figure line', () => {
+    const r = /\.na-pick-m\{[^}]*\}/.exec(CSS)[0];
     assert.match(r, /white-space:nowrap/);
     assert.match(r, /text-overflow:ellipsis/);
+    assert.match(r, /font-family:var\(--font-mono\)/, 'figures are data, and wear the figure face');
+  });
+  await t.test('(1c) and no card rule survives to reserve anything', () => {
+    /* READ CODE, NOT PROSE — the standing lesson. The note that says those
+       rules are gone names them, so the comments come off first. */
+    const css = strip(CSS);
+    assert.ok(!/\.na-door/.test(css) && !/\.na-chip/.test(css), 'the card and chip rules are gone, not stubbed');
   });
   await t.test('(1d) a cut is not a silent trim — the whole of each rides one hover', () => {
     assert.match(WIZ, /function naCardTitle\(r\)\{/);
-    /* THE CARD ASKS THE ONE BUILDER. Assembled at the button it would be a
-       second reading of what the face shows, free to drift from it. */
-    assert.match(strip(WIZ), /const door=r=>\{ const sub=naCardSub\(r\), hint=naCardTitle\(r\);/);
+    /* ONE BUILDER, AND NOW FOR ALL THREE SHELVES: the chip used to carry a
+       different hover from the card's, which is exactly the drift two
+       builders for one act produce. */
+    assert.match(strip(WIZ), /const pickRow=r=>\{ const meta=\[r\.go\|\|'', r\.stream\|\|''\]\.filter\(Boolean\)\.join\(' · '\), hint=naCardTitle\(r\);/);
+    /* ASKED ONCE, BY THE ONE BUILDER — counted inside openNewAgreement, since
+       naCardTitle's own definition names the same argument. */
+    const na = strip(WIZ).slice(strip(WIZ).indexOf('function openNewAgreement'));
+    assert.equal((na.match(/naCardTitle\(r\)/g) || []).length, 1, 'one asker');
+    assert.equal((na.match(/const pickRow=/g) || []).length, 1, 'and one row builder');
     assert.match(WIZ, /naCardSub,naCardHint,naCardTitle/, 'published (the ES-module rule)');
   });
   await t.test('(1e) [wall] it carries the name, the shown sentence and the raw one', () => {

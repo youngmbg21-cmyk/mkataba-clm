@@ -636,3 +636,91 @@ describe('f359 (10) the parties are a section of their own', () => {
     assert.ok(!/py-head/.test(html), 'and no head of its own');
   });
 });
+
+/* ── f359 (11) THE WORD THE PAPER USES IS A CHOICE ──
+   Young, 22 Sep 2026, over the Edit party window: *"contract type should be
+   a drop down of choices"*.
+
+   MEASURED before a line moved, and the report is right for a reason the
+   words do not say: that box was labelled `ov_f_type` — "Contract type",
+   which is the Overview's own label for metadata.contractType, the KIND of
+   agreement — while holding the word THIS paper uses for THIS party. Its own
+   placeholder said so the whole time. So the box gets its choices and the
+   label it should have had, and the old one is a wall here. */
+describe('f359 (11) the party\'s word on the paper is picked, not typed from nothing', () => {
+  const editor = () => { const i = CONTRACT.indexOf('function openPartyEditor(');
+    assert.ok(i >= 0); return CONTRACT.slice(i, CONTRACT.indexOf('\nfunction ', i + 1)); };
+  const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
+
+  test('the words are keys, asked of i18t, not literals in the list', () => {
+    assert.match(PARTIES, /const PARTY_ROLE_WORDS = Object\.freeze\(\[/);
+    const list = /const PARTY_ROLE_WORDS = Object\.freeze\(\[([\s\S]*?)\]\)/.exec(PARTIES)[1];
+    const keys = list.match(/'([a-z]+)'/g).map(x => x.replace(/'/g, ''));
+    assert.ok(keys.length >= 12, keys.length + ' words offered');
+    assert.match(PARTIES, /i18t\('py_rw_' \+ k\)/, 'each is a key, in the reader\'s own language');
+    /* AND EVERY ONE IS IN BOTH BOOKS. A key with no Swedish would draw the
+       key itself into a dropdown. */
+    const I18N = read('js/i18n.js');
+    for (const k of keys)
+      assert.equal((I18N.match(new RegExp('py_rw_' + k + ':', 'g')) || []).length, 2,
+        'py_rw_' + k + ' is in both books');
+  });
+  test('[wall] what is STORED is the paper\'s own word, never a key', () => {
+    /* partyRoleOptions returns the WORD as the value, so the record carries
+       what a lawyer would read on the page — the RECORD-versus-LABEL rule. */
+    const fn = /function partyRoleOptions\(current\)\{[\s\S]*?\n\}/.exec(PARTIES)[0];
+    assert.match(fn, /\{ v: say\(k\), l: say\(k\) \}/, 'the value is the word, not the key');
+    assert.match(PARTIES, /function partyRoleWord\(p\)\{ return p && p\.role \? p\.role : ''; \}/,
+      'and it is read back raw');
+  });
+  test('it offers and never refuses: a stored word off the list stays on it', () => {
+    const w = buildWorld({}).win;
+    const opts = w.partyRoleOptions('the Offtaker');
+    assert.equal(opts[0].v, 'the Offtaker', 'the record\'s own word leads');
+    assert.ok(opts.length > 1, 'and the offered words follow');
+    /* NOT TWICE, and case is not what tells two words apart. */
+    const again = w.partyRoleOptions(opts[1].v.toLowerCase());
+    assert.equal(again.filter(o => o.v.toLowerCase() === opts[1].v.toLowerCase()).length, 1);
+    assert.equal(w.partyRoleOptions('').length, w.PARTY_ROLE_WORDS.length, 'nothing stored, nothing added');
+    assert.ok(typeof w.partyRoleOptions === 'function' && Array.isArray(w.PARTY_ROLE_WORDS),
+      'published (the ES-module rule)');
+  });
+  test('the dialog draws a select, blank first and the sentinel last', () => {
+    const e = editor();
+    assert.match(e, /<select id="py-role"/, 'a dropdown, not a text box');
+    assert.ok(!/<input id="py-role"/.test(e) && !/fld\('role'/.test(e), 'and the old box is gone');
+    const sel = /<select id="py-role"[\s\S]*?<\/select>/.exec(e)[0];
+    const blank = sel.indexOf("<option value=\"\">"), other = sel.indexOf('PARTY_ROLE_OTHER');
+    assert.ok(blank >= 0 && other > blank, 'not set leads, Another word ends it');
+    assert.match(sel, /opts\.map\(o=>/, 'and the middle is the one reading');
+  });
+  test('[wall] the label is the field\'s own, and the Overview\'s is not borrowed', () => {
+    assert.match(editor(), /\$\{esc\(i18t\('py_role'\)\)\}/);
+    /* READ CODE, NOT PROSE: the note that records the old mislabel names it. */
+    assert.ok(!/ov_f_type/.test(strip(editor())),
+      'ov_f_type is metadata.contractType\'s label and never this field\'s');
+    /* AND IT IS STILL THE OVERVIEW'S: nothing here took it away. */
+    assert.match(CONTRACT, /case 'contractType': return \[i18t\('ov_f_type'\)/);
+  });
+  test('[wall] the sentinel never reaches the record', () => {
+    assert.match(editor(), /const roleV=v\('role'\)===PARTY_ROLE_OTHER\?p\.role\|\|'':v\('role'\);/);
+    assert.match(editor(), /role:roleV,/);
+  });
+  test('the other word opens the product\'s own name box, and adds nothing to a store', () => {
+    const e = strip(editor());
+    assert.match(e, /promptNewName\(\{ title:i18t\('py_role'\)/, 'one name box, the streams\' own');
+    assert.match(e, /make:x=>String\(x\|\|''\)\.trim\(\)/, 'the act is the word itself');
+    assert.ok(!/addCustomFolder|saveSettings|addTemplateCategory/.test(e),
+      'the paper\'s word belongs to this contract and to no list');
+    assert.match(e, /else roleBox\.value=lastRole;/, 'cancelled, the box goes back — bindFolderSelect\'s own rule');
+  });
+  /* A NAMED CONTROL: it passes at the parent too, because the sweep already
+     existed. The claim is that this select did not opt out of it. */
+  test('[control] no dropdown is built here — selectMenuSweep dresses it', () => {
+    const e = strip(editor());
+    assert.ok(!/hati-selmenu/.test(e), 'the menu is the product\'s, armed once on the body');
+    assert.match(CORE, /function selectMenuSweep\(root\)\{/);
+    assert.match(CORE, /const SELECT_MENU_SEL = 'select:not\(\[multiple\]\):not\(\[size\]\):not\(\[data-native\]\)';/);
+    assert.ok(!/data-native/.test(e), 'and this one is not opted out of it');
+  });
+});

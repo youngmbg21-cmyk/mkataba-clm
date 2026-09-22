@@ -583,14 +583,26 @@ function wizardFormMount(o, tid, prefill){
    rule). The draft-from-a-sentence hand-off lands here through
    naPickFromDraft instead of opening a second dialog.
 
-   THE PAPER BESIDE THE QUESTIONS (18 Sep 2026) is kept: on a window at or
-   past NA_PAPER_MIN_W the frame widens by a third column between the doors
-   and the card, and the card's own note — the artifact's — says so. Under
-   it the pop-up is the artifact's two columns. THE LINE IS 1600 because the
-   artifact was drawn at 1440 with no paper and its note promises one "on a
-   wide screen": the owner's own laptops (1440, 1536) get the pop-up exactly
-   as drawn, a desktop monitor gets the paper. One number, said out loud. */
-const NA_PAPER_MIN_W = 1600;
+   THE PAPER BESIDE THE QUESTIONS (18 Sep 2026) is kept, and since 22 Sep it
+   is drawn on the screen the owner actually uses. THE LINE WAS 1600 because
+   the artifact of 21 Sep was drawn at 1440 with no paper; that reasoning is
+   kept here because it is what made the number safe, and it is what the
+   owner reversed. MEASURED before a line moved: at 1440 the contract was not
+   on this screen at all, and at 1600 it arrived at 389x293 while the picker
+   dropped 518 -> 389px and ALL FOUR company-standard names were cut off.
+   Proposal C, which the owner chose: the picker becomes a RAIL of rows, so
+   the questions and the agreement both get room, and the paper arrives at
+   1280 rather than 1600.
+
+   FOUR NUMBERS, SAID OUT LOUD AND READ BY BOTH HOSTS (the frame here, the
+   grid in index.html through --na-rail-w / --na-paper-w). 1180 fits a 1280
+   window: openModal's backdrop spends var(--s-4) a side, so 1248 is what a
+   frame may take there. */
+const NA_PAPER_MIN_W = 1280;
+const NA_RAIL_W = 260;           /* the picker's own column, rows not cards */
+const NA_PAPER_W = 400;          /* the agreement's column, at 1280 and up */
+const NA_FRAME_W = 1180;         /* rail + questions + paper */
+const NA_FRAME_NARROW_W = 900;   /* rail + questions */
 function naUsageCount(kind, id){
   try{
     if(kind==='tid') return builtinUsageCount(id);
@@ -606,6 +618,27 @@ function naHit(r, q){
   if(!words.length) return true;
   const hay=`${r.name} ${r.sub} ${r.stream}`.toLowerCase();
   return words.some(w=>hay.includes(w));
+}
+/* ---- THE ASK GROWS WITH THE SENTENCE (Young, 22 Sep 2026: "the describe
+   what you need should be able to wrap text") ----
+   It has WRAPPED since 21 Sep — a textarea, never an input — and MEASURED in
+   the new rail that was not enough: at 236px a plain sentence is five lines,
+   the box stood at two, and the reader got a scrollbar inside a 54px box.
+   That is the same fault as a line scrolling sideways wearing other clothes.
+   The box takes its own content's height, bounded at NA_SAY_MAX_LINES so a
+   pasted paragraph cannot push the shelf off the screen; past that it scrolls,
+   which is honest. Asked of the element, never of the character count. */
+const NA_SAY_MAX_LINES = 7;
+function naSayFit(el){
+  if(!el || !el.style) return;
+  try{
+    const cs=(typeof getComputedStyle==='function')?getComputedStyle(el):null;
+    const line=(cs && parseFloat(cs.lineHeight)) || 19;
+    const edge=cs?((parseFloat(cs.borderTopWidth)||0)+(parseFloat(cs.borderBottomWidth)||0)):2;
+    const pad=cs?((parseFloat(cs.paddingTop)||0)+(parseFloat(cs.paddingBottom)||0)):0;
+    el.style.height='auto';
+    el.style.height=Math.min(el.scrollHeight+edge, Math.round(line*NA_SAY_MAX_LINES+pad+edge))+'px';
+  }catch(_){}
 }
 function naHasWords(q){ return String(q||'').toLowerCase().split(/[^\p{L}\p{N}]+/u).some(w=>w.length>=3); }
 /* ---- WHAT A CARD SAYS UNDER ITS NAME (Young ruled 21 Sep 2026: "the
@@ -675,15 +708,27 @@ function openNewAgreement(o){
       .map(t=>({ kind:'tid', id:t.id, name:t.kind, sub:t.blurb||'', stream:sName(t.folder), cat:t.category })),
   ];
   let sel=null, api=null;
-  /* THE SENTENCE SLOT IS ALWAYS DRAWN, which is what makes the cards one
-     height: they are a grid, and a grid stretches every cell to the tallest,
-     so a clamp alone would cap the long one and still let a card with nothing
-     to say shrink. RESERVING IS WHAT FIXES THE HEIGHT — the arrival strip's
-     own lesson, 17 Sep 2026. */
-  const door=r=>{ const sub=naCardSub(r), hint=naCardTitle(r);
-    return `<button type="button" class="na-door${sel&&sel.kind===r.kind&&sel.id===r.id?' on':''}" data-wz-${r.kind}="${esc(r.id)}"${hint?` title="${esc(hint)}"`:''}>
-      <b>${esc(r.name)}</b><span class="na-about">${esc(sub)}</span><span class="na-go">${esc(r.go)}${r.stream?` · ${esc(r.stream)}`:''}</span></button>`; };
-  const chip=r=>`<button type="button" class="na-chip${sel&&sel.kind===r.kind&&sel.id===r.id?' on':''}" data-wz-tid="${esc(r.id)}" title="${esc(naCardSub(r)||r.sub)}">${esc(r.name)}</button>`;
+  /* ---- THE PAPER IS A LIST, NOT A WALL OF CARDS (Young chose proposal C,
+     22 Sep 2026) ----
+     ONE ROW BUILDER FOR ALL THREE SHELVES, where there were two — a card for
+     a company standard or a saved template, a chip for HaTi's own. Two
+     builders for one act is what drifts: the chip already carried a different
+     hover from the card's, and only the card said which stream a thing was
+     filed in. THE CLOTHES FOLLOW THE BUILDER.
+
+     WHAT A ROW HAS ROOM FOR IS THE NAME AND ITS FIGURES, and the description
+     is the STATED COST of this proposal. It is not lost: naCardTitle already
+     builds name + sentence + provenance and that is the row's own hover,
+     which is this product's idiom for a cut.
+
+     THE CARD RULINGS OF 21 SEP ARE SPENT, not broken. "they should all be the
+     same size" and "not big either" were about cards in a GRID, where a grid
+     stretches every cell to the tallest and a long name made two rows measure
+     121px against 103px. A list does not stretch its siblings, so a row with
+     no figures is simply one line and the fault cannot come back. */
+  const pickRow=r=>{ const meta=[r.go||'', r.stream||''].filter(Boolean).join(' · '), hint=naCardTitle(r);
+    return `<button type="button" class="na-pick${sel&&sel.kind===r.kind&&sel.id===r.id?' on':''}" data-wz-${r.kind}="${esc(r.id)}"${hint?` title="${esc(hint)}"`:''}>
+      <span class="na-pick-n">${esc(r.name)}</span>${meta?`<span class="na-pick-m">${esc(meta)}</span>`:''}</button>`; };
   const industry=()=>(typeof workspaceIndustry==='function')?workspaceIndustry():'';
   const lobHtml=()=>admin&&typeof INDUSTRY_TEMPLATES==='object'?`<label class="na-lob">${i18t('wz_line_of_business')}
         <select id="wz-industry"><option value="">${i18t('wz_not_set')}</option>${
@@ -692,18 +737,18 @@ function openNewAgreement(o){
     const all=rows(), hits=all.filter(r=>naHit(r,q));
     const none=naHasWords(q)&&!hits.length;
     const show=none?all:hits;
-    const sec=(kind,title,draw,cls)=>{ const rs=show.filter(r=>r.kind===kind); if(!rs.length) return '';
-      return `<div class="na-sec"><div class="na-sec-h"><span class="na-sec-label">${title}</span>${kind==='tid'?lobHtml():''}</div><div class="${cls}">${rs.map(draw).join('')}</div></div>`; };
+    const sec=(kind,title)=>{ const rs=show.filter(r=>r.kind===kind); if(!rs.length) return '';
+      return `<div class="na-sec"><div class="na-sec-h"><span class="na-sec-label">${title}</span>${kind==='tid'?lobHtml():''}</div><div class="na-rows">${rs.map(pickRow).join('')}</div></div>`; };
     return `${none?`<p class="na-none">${i18t(ready?'na_no_match_find':'na_no_match')}</p>`:''}
-      ${sec('lib', i18t('na_company'), door, 'na-doors')}
-      ${sec('mine', i18t('na_saved'), door, 'na-doors')}
-      ${sec('tid', i18t('na_hati'), chip, 'na-chips')}`;
+      ${sec('lib', i18t('na_company'))}
+      ${sec('mine', i18t('na_saved'))}
+      ${sec('tid', i18t('na_hati'))}`;
   };
   openModal(`<div id="na-root" class="na-root">
     <div class="na-head"><div><h3>${i18t('na_title')}</h3><div class="na-sub">${i18t('na_sub')}</div></div>
       <button type="button" id="na-x" class="na-x" aria-label="${esc(i18t('act_cancel'))}" title="${esc(i18t('act_cancel'))}">${icon('x','w-4 h-4')}</button></div>
     <div id="na-body" class="na-body${wide?' na-wide':''}">
-      <div id="wz-pick" class="na-left">
+      <div id="wz-pick" class="na-left na-rail">
         <div class="na-field"><label for="dr-say">${i18t('na_describe')}</label>
           <div class="na-row">${''/* A TEXTAREA, BECAUSE THE ASK IS A SENTENCE (Young ruled 21 Sep 2026:
              "Describe what you need area should be able to wrap text"). A
@@ -715,7 +760,12 @@ function openNewAgreement(o){
             <button type="button" id="dr-read" class="ui-btn"${ready?'':` disabled title="${esc(i18t('dr_no_ai'))}"`}>${icon('sparkle','w-3.5 h-3.5')} ${i18t('na_find')}</button></div>
           <span class="na-hint">${ready?i18t('na_find_hint'):i18t('dr_no_ai')}</span></div>
         <div id="dr-out"></div>
-        <div id="na-lists">${listsHtml('')}</div>
+        ${''/* THE LIST SCROLLS INSIDE THE RAIL, so a workspace with forty
+               standards on the shelf does not drive the height of the whole
+               pop-up. MEASURED at the parent: the frame was already at its
+               own ceiling (88vh) and opening the people panel pushed the body
+               into scrolling at every window height tried. */}
+        <div id="na-lists" class="na-picks">${listsHtml('')}</div>
         ${''/* THE OTHER TWO WAYS IN, kept: a received document is not drafted
                from a template, and neither is a back-catalogue. */}
         <div class="na-more"><span>${i18t('na_received')}</span>
@@ -723,7 +773,6 @@ function openNewAgreement(o){
           <span aria-hidden="true">·</span>
           <button type="button" id="na-import" class="ui-btn-plain">${i18t('na_import')}</button></div>
       </div>
-      ${wide?`<div id="na-paper" class="na-paper"></div>`:''}
       <div class="na-card" id="na-card">
         <div class="na-card-h"><h3 id="na-card-name"></h3><span class="na-card-sub" id="na-card-sub"></span></div>
         <div class="na-card-b"><div id="na-form"></div>
@@ -741,13 +790,19 @@ function openNewAgreement(o){
             <div id="na-people-list"></div>
           </details></div>
       </div>
+      ${''/* THE AGREEMENT SITS ON THE FAR SIDE OF THE QUESTIONS, not between
+             the picker and them: what you are answering about is the thing
+             you just chose, and the answers should not have to be read across
+             the paper to reach it. The host form mounts into it BY ID, so the
+             order here is presentation and nothing else. */}
+      ${wide?`<div id="na-paper" class="na-paper"></div>`:''}
     </div>
     <div class="na-foot">
       <button type="button" id="wz-pick-cancel" class="ui-btn-plain">${i18t('act_cancel')}</button>
       <span class="na-grow"></span>
       <button type="button" id="na-skip" class="ui-btn" title="${esc(i18t('lib_create_now_fill_later'))}">${i18t('na_skip')}</button>
       <button type="button" id="na-create" class="ui-btn ui-btn-primary">${i18t('tl_create_draft')}</button>
-    </div></div>`, { maxWidth: wide?'1240px':'960px', label: i18t('na_title') });
+    </div></div>`, { maxWidth: (wide?NA_FRAME_W:NA_FRAME_NARROW_W)+'px', label: i18t('na_title') });
   /* A STAGE WITHOUT REAL ELEMENTS (a sandbox that only records the markup)
      stops here: the markup is the whole of what it can read. */
   const root=document.getElementById('na-root');
@@ -763,7 +818,7 @@ function openNewAgreement(o){
       paintLists();
     });
   };
-  const light=()=>{ root.querySelectorAll('.na-door.on,.na-chip.on').forEach(b=>b.classList.remove('on'));
+  const light=()=>{ root.querySelectorAll('.na-pick.on').forEach(b=>b.classList.remove('on'));
     if(sel){ const b=root.querySelector(`[data-wz-${sel.kind}="${String(sel.id).replace(/["\\]/g,'\\$&')}"]`); if(b) b.classList.add('on'); } };
   /* THE CARD IS THE CHOSEN DOOR'S OWN FORM. Every branch returns the acts the
      foot presses; the head prints the version where there is one and how
@@ -859,7 +914,7 @@ function openNewAgreement(o){
   document.getElementById('na-import')?.addEventListener('click', ()=>{ closeModal(); if(typeof setView==='function') setView('migration'); });
   const say=document.getElementById('dr-say'), read=document.getElementById('dr-read');
   let _t=null;
-  say?.addEventListener('input',()=>{ clearTimeout(_t); _t=setTimeout(paintLists, 120); });
+  say?.addEventListener('input',()=>{ naSayFit(say); clearTimeout(_t); _t=setTimeout(paintLists, 120); });
   /* ENTER STILL PRESSES FIND, and Shift+Enter is a newline — the box wraps
      now, so a reader who wants a second line has a way to ask for one. */
   say?.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); if(read&&!read.disabled) read.click(); } });
@@ -870,6 +925,7 @@ function openNewAgreement(o){
   const first=rows()[0];
   const want=o.pick&&rows().find(r=>r.kind===o.pick.kind&&String(r.id)===String(o.pick.id));
   if(want) pick(want.kind, want.id, o.prefill); else if(first) pick(first.kind, first.id, o.prefill);
+  naSayFit(say);
   if(o.say && say) say.focus();
   /* The company standards may still be in flight (the same race the draft
      dialog closes): repaint the LISTS when they land, never the card. */
@@ -889,4 +945,4 @@ function naPickFromDraft(pick, prefill){
   return true;
 }
 
-Object.assign(window,{TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naHit,naCardSub,naCardHint,naCardTitle,NA_PAPER_MIN_W});
+Object.assign(window,{TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,NA_PAPER_MIN_W,NA_RAIL_W,NA_PAPER_W,NA_FRAME_W,NA_FRAME_NARROW_W});

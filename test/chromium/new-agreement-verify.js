@@ -28,10 +28,24 @@ const READ = () => {
   const panel = q('.modal-in').getBoundingClientRect();
   return { panelW: Math.round(panel.width), cols: getComputedStyle(q('#na-body')).gridTemplateColumns.split(' ').length,
     menuOpen: !(document.getElementById('new-menu') || { classList: { contains: () => true } }).classList.contains('hidden'),
-    doors: [...r.querySelectorAll('.na-door')].filter(seen).length,
-    chips: [...r.querySelectorAll('.na-chip')].filter(seen).length,
-    goLine: (r.querySelector('.na-door .na-go') || {}).textContent || '',
-    on: ((r.querySelector('.na-door.on,.na-chip.on') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
+    /* RE-POINTED 22 Sep 2026 — proposal C. The doors and the chips became one
+       rail of rows, so what used to be two counts is one. */
+    picks: [...r.querySelectorAll('.na-pick')].filter(seen).length,
+    lib: [...r.querySelectorAll('[data-wz-lib]')].filter(seen).length,
+    tid: [...r.querySelectorAll('[data-wz-tid]')].filter(seen).length,
+    goLines: [...r.querySelectorAll('[data-wz-lib] .na-pick-m')].map(x => x.textContent),
+    on: ((r.querySelector('.na-pick.on .na-pick-n') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
+    onFilled: (() => { const b = r.querySelector('.na-pick.on'); if (!b) return null;
+      const cs = getComputedStyle(b); return { bg: cs.backgroundColor, ink: getComputedStyle(b.querySelector('.na-pick-n')).color }; })(),
+    railW: Math.round(((q('#wz-pick') || { getBoundingClientRect: () => ({ width: 0 }) }).getBoundingClientRect()).width),
+    cardW: Math.round(((q('.na-card') || { getBoundingClientRect: () => ({ width: 0 }) }).getBoundingClientRect()).width),
+    listScrolls: (() => { const l = q('.na-picks'); return !!l && l.scrollHeight > l.clientHeight + 1; })(),
+    moreSeen: (() => { const mo = q('.na-more'), bd = q('#na-body'); if (!mo || !bd) return false;
+      const a = mo.getBoundingClientRect(), b2 = bd.getBoundingClientRect();
+      return a.bottom <= b2.bottom + 1 && a.top >= b2.top - 1; })(),
+    sayH: (() => { const t = q('#dr-say'); if (!t) return null;
+      return { h: Math.round(t.getBoundingClientRect().height), scrollH: t.scrollHeight, clientH: t.clientHeight,
+        sideways: t.scrollWidth > t.clientWidth + 1 }; })(),
     name: q('#na-card-name').textContent, sub: q('#na-card-sub').textContent,
     boxes: r.querySelectorAll('#na-form input,#na-form select').length,
     paper: !!q('#tf-preview'), paperText: ((q('#tf-preview') || {}).textContent || '').length,
@@ -45,9 +59,12 @@ const READ = () => {
   const h = await startHati();
   const W = await seedWorkspace(h);
   /* Two company standards, published, so the doors have something to draw. */
-  for (const [name, desc, cat] of [['Raw Material Supply Agreement', 'Commodity & ingredient supply into the plants', 'procurement'],
-    ['Mutual Non-Disclosure Agreement', 'Confidentiality for NPD & vendor onboarding', 'corporate']]) {
-    const tpl = await W.admin.json('/api/templates', { method: 'POST', body: { name, description: desc, category: cat } });
+  /* ONE OF THE TWO IS FILED IN A STREAM (22 Sep 2026), because the rail's row
+     carries version, usage AND stream on one line and the claim has to see a
+     real one rather than an absence. */
+  for (const [name, desc, cat, folder] of [['Raw Material Supply Agreement', 'Commodity & ingredient supply into the plants', 'procurement', 'proc'],
+    ['Mutual Non-Disclosure Agreement', 'Confidentiality for NPD & vendor onboarding', 'corporate', '']]) {
+    const tpl = await W.admin.json('/api/templates', { method: 'POST', body: { name, description: desc, category: cat, folder } });
     const tid = tpl.template.id; const tdet = await W.admin.json('/api/templates/' + tid); const tv = tdet.versions[0].id;
     await W.admin.json(`/api/templates/${tid}/versions/${tv}`, { method: 'PUT', body: { blocks: [
       { orderIndex: 0, blockType: 'heading', content: name },
@@ -73,28 +90,51 @@ const READ = () => {
     let m = await page.evaluate(READ);
     await page.screenshot({ path: path.join(OUT, '01-popup-1440.png') });
     check('1a the + button opens the pop-up, not a menu', !m.err && !m.menuOpen, m.err || `menu open ${m.menuOpen}`);
-    check('1b two columns at 1440, the artifact\'s own frame', !m.err && m.cols === 2 && m.panelW === 960, m.err || `${m.cols} cols, ${m.panelW}px`);
-    check('1c the company standards are doors, with version, use and stream', !m.err && m.doors === 2 && /v1 · used 0×/.test(m.goLine), m.err || `${m.doors} doors · "${m.goLine}"`);
-    check('1d HaTi\'s paper is a row of chips', !m.err && m.chips >= 10, m.err || `${m.chips} chips`);
-    check('1e the first door is lit and its questions are in the card', !m.err && m.on && m.name && m.boxes >= 6 && /questions/.test(m.sub), m.err || `${m.name} · ${m.sub} · ${m.boxes} boxes`);
+    /* RE-POINTED IN PLACE 22 Sep 2026 — Young chose proposal C off the five
+       proposals drawn that morning. At the parent this reported 2 columns and
+       960px, and the agreement was not on the screen at any width under 1600. */
+    check('1b three columns at 1440 — the rail, the questions and the agreement', !m.err && m.cols === 3 && m.panelW === 1180, m.err || `${m.cols} cols, ${m.panelW}px`);
+    check('1c the company standards are rows, with version, use and stream on one line',
+      !m.err && m.lib === 2 && m.goLines.some(x => /^v1 · used 0× · Procurement/.test(x)) && m.goLines.every(x => /^v1 · used 0×/.test(x)),
+      m.err || `${m.lib} rows · ${JSON.stringify(m.goLines)}`);
+    check('1d HaTi\'s paper is in the same rail, not a wall of chips', !m.err && m.tid >= 10 && m.picks === m.lib + m.tid, m.err || `${m.tid} of ${m.picks}`);
+    check('1e the first row is lit and its questions are in the card', !m.err && m.on && m.name && m.boxes >= 6 && /questions/.test(m.sub), m.err || `${m.name} · ${m.sub} · ${m.boxes} boxes`);
+    check('1e2 a lit row is FILLED, the product\'s own rail treatment', !m.err && m.onFilled
+      && m.onFilled.bg !== 'rgba(0, 0, 0, 0)' && /255, 255, 255/.test(m.onFilled.ink), m.err || JSON.stringify(m.onFilled));
+    check('1e3 the questions get more room than the 380px they had', !m.err && m.cardW >= 430, m.err || m.cardW + 'px');
     check('1f the sentence box, Find, Upload and Import are all on it', !m.err && m.say && m.find && m.upload && m.imp);
     check('1g the foot is Cancel · Skip the questions · Create draft', !m.err && m.foot.join('|') === 'Cancel|Skip the questions|Create draft', m.err || m.foot.join('|'));
-    check('1h no paper column under the wide line', !m.err && !m.paper);
+    /* REVERSED IN PLACE: the agreement is drawn at 1440 now, which is the
+       whole of what proposal C was chosen for. */
+    check('1h the agreement IS drawn at 1440, with wording in it', !m.err && m.paper && m.paperText > 40, m.err || `paper ${m.paper}, ${m.paperText} chars`);
+    check('1h2 the rail is 260 and the list scrolls inside it, so its foot stays on screen',
+      !m.err && m.railW === 260 && m.listScrolls && m.moreSeen,
+      m.err || `rail ${m.railW} · list scrolls ${m.listScrolls} · Upload row on screen ${m.moreSeen}`);
     check('1i the card\'s labels wear the artifact\'s label weight, not the form\'s bold', !m.err && Number(m.labelWeight) < 600, m.err || m.labelWeight);
 
     /* ===== 2. A CHIP SWAPS THE CARD ===== */
     await page.evaluate(() => document.querySelector('[data-wz-tid="ND"]').click()); await pause(500);
     m = await page.evaluate(READ);
-    check('2a pressing a HaTi chip lights it and draws that template\'s own questions', !m.err && /NDA/.test(m.on) && /NDA/.test(m.name) && m.boxes >= 5, m.err || `${m.on} · ${m.name} · ${m.boxes}`);
+    check('2a pressing a HaTi row lights it and draws that template\'s own questions', !m.err && /NDA/.test(m.on) && /NDA/.test(m.name) && m.boxes >= 5, m.err || `${m.on} · ${m.name} · ${m.boxes}`);
     check('2b the wizard\'s own boxes, by their own ids', await page.evaluate(() => !!document.getElementById('wz-counterparty') && !!document.getElementById('wz-cpemail')));
 
     /* ===== 3. THE BOX FILTERS BY WORD ===== */
     await page.fill('#dr-say', 'disclosure'); await pause(400);
     m = await page.evaluate(READ);
-    check('3a typing narrows the lists by word', !m.err && m.doors === 1 && m.chips <= 2, m.err || `${m.doors} doors, ${m.chips} chips`);
+    check('3a typing narrows the lists by word', !m.err && m.lib === 1 && m.tid <= 2, m.err || `${m.lib} standards, ${m.tid} HaTi`);
+    /* THE ASK GROWS WITH THE SENTENCE (Young, 22 Sep 2026). At the parent this
+       box stood at two lines whatever was typed and scrolled inside itself. */
+    const grow0 = await page.evaluate(() => document.getElementById('dr-say').getBoundingClientRect().height);
+    await page.fill('#dr-say', 'a two-year packaging supply agreement with Kenafric Industries where we are the supplier and payment is forty five days');
+    await pause(400);
+    const grew = await page.evaluate(() => { const t = document.getElementById('dr-say');
+      return { h: Math.round(t.getBoundingClientRect().height), inner: t.scrollHeight > t.clientHeight + 1, sideways: t.scrollWidth > t.clientWidth + 1 }; });
+    check('3a2 the describe box grows with the sentence and scrolls neither way',
+      grew.h > grow0 + 8 && !grew.inner && !grew.sideways,
+      `${Math.round(grow0)} -> ${grew.h}px · inner scroll ${grew.inner} · sideways ${grew.sideways}`);
     await page.fill('#dr-say', 'zzzz nothing'); await pause(400);
-    const none = await page.evaluate(() => ({ note: !!document.querySelector('.na-none'), doors: document.querySelectorAll('.na-door').length }));
-    check('3b nothing matching says so and still lists every door', none.note && none.doors === 2, JSON.stringify(none));
+    const none = await page.evaluate(() => ({ note: !!document.querySelector('.na-none'), rows: document.querySelectorAll('[data-wz-lib]').length }));
+    check('3b nothing matching says so and still lists every standard', none.note && none.rows === 2, JSON.stringify(none));
     await page.fill('#dr-say', ''); await pause(400);
 
     /* ===== 4. CREATE REALLY CREATES, THROUGH THE DOOR'S OWN ACT ===== */
@@ -129,7 +169,7 @@ const READ = () => {
     await page.evaluate(() => openNewAgreement()); await pause(900);
     m = await page.evaluate(READ);
     await page.screenshot({ path: path.join(OUT, '02-popup-1700.png') });
-    check('7a at 1700 the frame is 1240 with three columns', !m.err && m.cols === 3 && m.panelW === 1240, m.err || `${m.cols} cols, ${m.panelW}px`);
+    check('7a at 1700 the frame is the same 1180 with three columns', !m.err && m.cols === 3 && m.panelW === 1180, m.err || `${m.cols} cols, ${m.panelW}px`);
     check('7b and the paper is drawn, with wording in it', !m.err && m.paper && m.paperText > 40, m.err || `paper ${m.paper}, ${m.paperText} chars`);
     await page.evaluate(() => closeModal());
 
