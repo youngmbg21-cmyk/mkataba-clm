@@ -1,0 +1,980 @@
+<title>The Curious Contract</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* HaTi's own approved tokens (prototype/hati-redesign-reference.html) so this
+   page reads as a proposal for the product, not a visitor to it. */
+:root{
+  --bg:#F4F6F5; --surface:#FFFFFF; --surface-2:#EEF2F0; --surface-3:#E6ECEA;
+  --line:#E2E7E5; --line-2:#CBD3D0;
+  --ink:#141F1D; --ink-2:#5A6866; --ink-3:#6B7876; --ink-inv:#FFFFFF;
+  --accent:#0E5F58; --accent-ink:#0B4A45; --accent-soft:#E1F0ED; --accent-line:#9CCFC6;
+  --amber:#B0560A; --amber-soft:#FBEEDB; --amber-dot:#E8A317;
+  --ruby:#B3261E; --ruby-soft:#FBE5E3;
+  --good:#1E7D4E; --good-soft:#DFF2E7;
+  --steel:#48639A; --steel-soft:#E6ECF6;
+  --paper:#FFFDF9; --paper-line:#ECE6D8; --paper-ink:#1C1A16;
+  --shadow-1:0 1px 2px rgba(10,40,36,.06),0 1px 3px rgba(10,40,36,.04);
+  --shadow-2:0 8px 24px rgba(10,40,36,.10),0 2px 6px rgba(10,40,36,.06);
+  --sans:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --r:4px; --r-lg:8px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --bg:#0E1312; --surface:#151B1A; --surface-2:#1B2221; --surface-3:#212A28;
+  --line:#26302E; --line-2:#36423F;
+  --ink:#E6ECEA; --ink-2:#A0ACA9; --ink-3:#8B9895; --ink-inv:#0E1312;
+  --accent:#5EC2B3; --accent-ink:#8ADACF; --accent-soft:#12302C; --accent-line:#1F5A52;
+  --amber:#EBAD46; --amber-soft:#3A2A0F; --amber-dot:#E8A317;
+  --ruby:#F0857B; --ruby-soft:#3F1C19;
+  --good:#5CC48E; --good-soft:#153224;
+  --steel:#8FA8DE; --steel-soft:#1D2637;
+  --paper:#1B1F1D; --paper-line:#2C3230; --paper-ink:#E8E6DF;
+  --shadow-1:0 1px 2px rgba(0,0,0,.4); --shadow-2:0 8px 24px rgba(0,0,0,.5);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0E1312; --surface:#151B1A; --surface-2:#1B2221; --surface-3:#212A28;
+  --line:#26302E; --line-2:#36423F;
+  --ink:#E6ECEA; --ink-2:#A0ACA9; --ink-3:#8B9895; --ink-inv:#0E1312;
+  --accent:#5EC2B3; --accent-ink:#8ADACF; --accent-soft:#12302C; --accent-line:#1F5A52;
+  --amber:#EBAD46; --amber-soft:#3A2A0F; --amber-dot:#E8A317;
+  --ruby:#F0857B; --ruby-soft:#3F1C19;
+  --good:#5CC48E; --good-soft:#153224;
+  --steel:#8FA8DE; --steel-soft:#1D2637;
+  --paper:#1B1F1D; --paper-line:#2C3230; --paper-ink:#E8E6DF;
+  --shadow-1:0 1px 2px rgba(0,0,0,.4); --shadow-2:0 8px 24px rgba(0,0,0,.5);
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:400 16px/1.6 var(--sans);-webkit-font-smoothing:antialiased}
+.wrap{max-width:940px;margin:0 auto;padding-block:40px 80px;padding-left:16px;padding-right:16px}
+h1,h2,h3{text-wrap:balance;margin:0}
+p{margin:0}
+a{color:var(--accent-ink)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.lbl{font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--ink-3)}
+
+/* ── masthead ─────────────────────────────────────────── */
+.mast{border-bottom:2px solid var(--ink);padding-bottom:22px;margin-bottom:34px}
+.mast .kick{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:14px}
+.mast h1{font-size:clamp(34px,7vw,52px);line-height:1.02;font-weight:600;letter-spacing:-.022em}
+.mast .dek{margin-top:14px;font-size:18px;line-height:1.55;color:var(--ink-2);max-width:60ch}
+
+/* ── verdict ──────────────────────────────────────────── */
+.verdict{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:var(--r-lg);padding:26px 28px;box-shadow:var(--shadow-1);margin-bottom:16px}
+.verdict h2{font-size:22px;font-weight:600;letter-spacing:-.01em;margin-bottom:12px}
+.verdict p + p{margin-top:12px}
+.verdict .lead{font-size:17px;color:var(--ink)}
+.verdict p{color:var(--ink-2);max-width:66ch}
+.verdict strong{color:var(--ink);font-weight:600}
+.pull{margin-top:18px;padding:14px 16px;background:var(--amber-soft);border-radius:var(--r);
+  font-size:15px;color:var(--ink);line-height:1.5}
+.pull b{font-weight:600}
+
+/* ── holdings strip ───────────────────────────────────── */
+.holds{margin:34px 0 46px}
+.holds h3{font-size:15px;font-weight:600;margin-bottom:4px}
+.holds .note{font-size:14px;color:var(--ink-2);margin-bottom:16px;max-width:64ch}
+.hgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden}
+.hcell{background:var(--surface);padding:14px 16px}
+.hcell .n{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:24px;
+  font-weight:500;color:var(--accent-ink);line-height:1.1}
+.hcell .t{font-size:13px;color:var(--ink-2);margin-top:5px;line-height:1.4}
+
+/* ── idea sections ────────────────────────────────────── */
+.idea{margin-top:56px;padding-top:30px;border-top:1px solid var(--line-2)}
+.ihead{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.axis{flex:none;width:96px}
+.axis .num{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--ink-3)}
+.axis .word{display:block;font-size:15px;font-weight:600;color:var(--accent-ink);
+  margin-top:2px;letter-spacing:-.005em}
+.ititle{flex:1 1 320px;min-width:0}
+.ititle h2{font-size:27px;font-weight:600;letter-spacing:-.018em;line-height:1.15}
+.ititle .pitch{margin-top:8px;font-size:17px;line-height:1.5;color:var(--ink-2);max-width:56ch}
+.chip{display:inline-block;font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;
+  white-space:nowrap;margin-top:4px}
+.chip.first{background:var(--good-soft);color:var(--good)}
+.chip.leash{background:var(--amber-soft);color:var(--amber)}
+.chip.later{background:var(--surface-3);color:var(--ink-2)}
+.chip.cheap{background:var(--steel-soft);color:var(--steel)}
+
+.body{margin-top:22px}
+.body p{color:var(--ink-2);max-width:64ch;font-size:16px}
+.body p + p{margin-top:12px}
+.body strong{color:var(--ink);font-weight:600}
+
+/* drawing frame */
+.draw{margin:26px 0;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r-lg);box-shadow:var(--shadow-1);overflow:hidden}
+.draw-h{display:flex;gap:10px;align-items:center;justify-content:space-between;
+  padding:9px 14px;border-bottom:1px solid var(--line);background:var(--surface-2);flex-wrap:wrap}
+.draw-b{padding:18px}
+.cap{font-size:13px;color:var(--ink-3);padding:0 18px 16px;line-height:1.5}
+
+/* facts rows */
+.facts{display:grid;gap:1px;background:var(--line);border:1px solid var(--line);
+  border-radius:var(--r-lg);overflow:hidden;margin-top:22px}
+.fact{background:var(--surface);padding:13px 16px;display:grid;
+  grid-template-columns:132px 1fr;gap:14px;align-items:baseline}
+.fact > .k{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.fact > .v{font-size:15px;color:var(--ink);line-height:1.5}
+.fact > .v code{font-family:var(--mono);font-size:12.5px;background:var(--surface-2);
+  padding:1px 5px;border-radius:3px;color:var(--accent-ink);white-space:nowrap}
+@media (max-width:560px){.fact{grid-template-columns:1fr;gap:5px}}
+
+/* ── 1. x-ray mock ────────────────────────────────────── */
+.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:var(--r);overflow:hidden}
+.seg span{font-size:12px;padding:4px 10px;color:var(--ink-2);background:var(--surface);font-weight:500}
+.seg span.on{background:var(--accent);color:#fff;font-weight:600}
+.xr{display:grid;grid-template-columns:1fr 250px;gap:16px;align-items:start}
+@media (max-width:680px){.xr{grid-template-columns:1fr}}
+.sheet{background:var(--paper);border:1px solid var(--paper-line);border-radius:2px;padding:20px 22px;
+  min-height:330px}
+.sheet .st{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--paper-ink);text-align:center;margin-bottom:14px}
+.sl{height:6px;background:var(--paper-line);border-radius:2px;margin-bottom:7px;opacity:.75}
+.sh{height:7px;background:var(--paper-ink);opacity:.72;border-radius:2px;margin:15px 0 9px;width:46%}
+.sl.hl{background:var(--amber-dot);opacity:.85}
+.bands{display:flex;flex-direction:column;gap:2px}
+.band{display:flex;align-items:center;gap:7px;width:100%;text-align:left;border:0;background:none;
+  padding:0;cursor:pointer;font:inherit}
+.band .bar{flex:none;width:13px;border-radius:2px;background:var(--surface-3)}
+.band .nm{font-size:11.5px;color:var(--ink-2);line-height:1.15;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;flex:1 1 auto;min-width:0}
+.band .mk{flex:none;width:6px;height:6px;border-radius:50%;background:transparent}
+.band .mk.f{background:var(--amber-dot)}
+.band .mk.r{background:var(--ruby)}
+.band:hover .nm,.band:focus-visible .nm{color:var(--ink);font-weight:600}
+.band.k-pay .bar{background:var(--accent)}
+.band.k-liab .bar{background:var(--ruby)}
+.band.k-term .bar{background:var(--amber-dot)}
+.band.k-conf .bar{background:var(--steel)}
+.band.k-law .bar{background:#7B6CA8}
+.band.k-dp .bar{background:#4E8C7A}
+.gap{margin-top:9px;padding:8px 9px;border:1px dashed var(--ink-3);border-radius:var(--r);
+  font-size:11.5px;color:var(--ink-2);line-height:1.4}
+.gap b{color:var(--ink);font-weight:600;display:block;font-size:11px;letter-spacing:.06em;
+  text-transform:uppercase;margin-bottom:3px}
+.xcap{min-height:42px;font-size:13.5px;color:var(--ink-2);line-height:1.5;
+  padding:10px 12px;background:var(--surface-2);border-radius:var(--r);margin-top:14px}
+.xcap b{color:var(--ink);font-weight:600}
+
+/* ── 2. normal-for-us scales ──────────────────────────── */
+.scales{display:flex;flex-direction:column;gap:2px}
+.sc{display:grid;grid-template-columns:150px 1fr 96px;gap:14px;align-items:center;
+  padding:11px 2px}
+.sc + .sc{border-top:1px solid var(--line)}
+@media (max-width:620px){.sc{grid-template-columns:1fr;gap:7px}.sc .rdg{text-align:left!important}}
+.sc .fld{font-size:13.5px;color:var(--ink);font-weight:500}
+.sc .track{position:relative;height:26px}
+.sc .rail{position:absolute;left:0;right:0;top:12px;height:2px;background:var(--line-2);border-radius:2px}
+.sc .spread{position:absolute;top:8px;height:10px;background:var(--accent-soft);
+  border:1px solid var(--accent-line);border-radius:2px}
+.sc .usual{position:absolute;top:4px;width:2px;height:18px;background:var(--accent-ink)}
+.sc .you{position:absolute;top:6px;width:14px;height:14px;border-radius:50%;
+  background:var(--amber-dot);border:2px solid var(--surface);box-shadow:0 0 0 1px var(--amber)}
+.sc .you.ok{background:var(--good);box-shadow:0 0 0 1px var(--good)}
+.sc .rdg{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:12.5px;
+  text-align:right;color:var(--ink-2);line-height:1.35}
+.sc .rdg b{display:block;color:var(--ink);font-weight:600;font-size:13px}
+.sc .rdg.warn b{color:var(--amber)}
+.sc.unknown{opacity:.72}
+.sc.unknown .track{display:flex;align-items:center}
+.sc.unknown .none{font-size:12.5px;color:var(--ink-3);font-style:italic}
+
+/* ── 3. what-if bench ─────────────────────────────────── */
+.bench{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:620px){.bench{grid-template-columns:1fr}}
+.lever{background:var(--surface-2);border-radius:var(--r-lg);padding:16px}
+.lever .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;gap:10px}
+.lever .top .now{font-family:var(--mono);font-variant-numeric:tabular-nums;
+  font-size:24px;font-weight:500;color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--accent);height:24px}
+.ticks{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;
+  color:var(--ink-3);margin-top:2px}
+.outs{display:flex;flex-direction:column;gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden}
+.out{background:var(--surface);padding:12px 14px}
+.out .k{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.out .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:20px;
+  font-weight:500;margin-top:3px;color:var(--ink)}
+.out .v.warn{color:var(--amber)}
+.out .v.good{color:var(--good)}
+.out .s{font-size:12px;color:var(--ink-3);margin-top:2px}
+.honest{margin-top:14px;font-size:13px;color:var(--ink-2);line-height:1.5;
+  border-left:2px solid var(--line-2);padding-left:12px}
+.honest b{color:var(--ink);font-weight:600}
+
+/* ── 4. tour stepper ──────────────────────────────────── */
+.tour{display:flex;flex-direction:column;gap:14px}
+.dots{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.dot{width:30px;height:5px;border-radius:3px;background:var(--line-2);border:0;padding:0;cursor:pointer}
+.dot.on{background:var(--accent)}
+.dot.done{background:var(--accent-line)}
+.stop{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+@media (max-width:620px){.stop{grid-template-columns:1fr}}
+.stop .side{background:var(--surface-2);border-radius:var(--r-lg);padding:15px 16px}
+.stop .side.pap{background:var(--paper);border:1px solid var(--paper-line);color:var(--paper-ink)}
+.stop .side .cl{font-size:12px;font-weight:600;color:var(--paper-ink);margin-bottom:7px}
+.stop .side .tx{font-size:13px;line-height:1.55;color:var(--paper-ink);opacity:.86}
+.stop .side .en{font-size:13.5px;line-height:1.55;color:var(--ink-2)}
+.stop .side .en b{color:var(--ink);font-weight:600}
+.why{display:flex;gap:9px;align-items:flex-start;font-size:13.5px;color:var(--ink);
+  background:var(--amber-soft);border-radius:var(--r);padding:11px 13px;line-height:1.45}
+.why .tag{flex:none;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--amber);padding-top:2px}
+.tour .cnt{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin-left:auto}
+
+/* ── 5. replay ────────────────────────────────────────── */
+.rp{overflow-x:auto}
+.rp-in{min-width:520px}
+.rp-r{display:grid;grid-template-columns:132px repeat(4,1fr);gap:0;align-items:center}
+.rp-r.head{border-bottom:1px solid var(--line);padding-bottom:7px;margin-bottom:5px}
+.rp-r.head span{font-family:var(--mono);font-size:11px;color:var(--ink-3);text-align:center}
+.rp-r.head span:first-child{text-align:left}
+.rp-tr{padding:9px 0;border-bottom:1px solid var(--line)}
+.rp-tr:last-child{border-bottom:0}
+.rp-nm{font-size:13px;color:var(--ink);padding-right:10px;line-height:1.3}
+.rp-nm small{display:block;font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:1px}
+.cell{position:relative;height:22px;display:grid;place-items:center}
+.cell::before{content:"";position:absolute;left:0;right:0;top:10px;height:1px;background:var(--line)}
+.cell.lead::before{left:50%}
+.cell.tail::before{right:50%}
+.mv{position:relative;width:13px;height:13px;border-radius:50%;z-index:1}
+.mv.them{background:var(--amber-dot)}
+.mv.us{background:var(--accent)}
+.mv.set{width:15px;height:15px;background:var(--good);
+  box-shadow:0 0 0 3px var(--good-soft)}
+.mv.open{background:var(--surface);border:2px solid var(--ruby)}
+.ghost{position:absolute;top:1px;bottom:1px;width:1px;border-left:1px dashed var(--ink-3);opacity:.7}
+.rp-key{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;font-size:12px;color:var(--ink-2)}
+.rp-key i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;
+  vertical-align:-1px}
+
+/* ── closing ──────────────────────────────────────────── */
+.close{margin-top:60px;padding-top:30px;border-top:2px solid var(--ink)}
+.close h2{font-size:27px;font-weight:600;letter-spacing:-.018em}
+.order{display:grid;gap:1px;background:var(--line);border:1px solid var(--line);
+  border-radius:var(--r-lg);overflow:hidden;margin-top:22px}
+.ord{background:var(--surface);padding:15px 17px;display:grid;
+  grid-template-columns:30px 1fr auto;gap:14px;align-items:baseline}
+@media (max-width:560px){.ord{grid-template-columns:24px 1fr;gap:10px}.ord .wk{grid-column:2}}
+.ord .no{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--ink-3)}
+.ord .d{font-size:15px;color:var(--ink);line-height:1.45}
+.ord .d small{display:block;color:var(--ink-2);font-size:13.5px;margin-top:3px}
+.ord .wk{font-family:var(--mono);font-size:12px;color:var(--ink-3);white-space:nowrap}
+.rule{margin-top:26px;background:var(--accent-soft);border-radius:var(--r-lg);padding:20px 22px}
+.rule h3{font-size:16px;font-weight:600;color:var(--accent-ink);margin-bottom:8px}
+.rule p{font-size:15px;color:var(--ink);line-height:1.55;max-width:64ch}
+.rule p + p{margin-top:10px}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+
+  <header class="mast">
+    <div class="kick">
+      <span class="lbl">Brainstorm · HaTi</span>
+      <span class="lbl mono" style="color:var(--ink-3)">22 Sep 2026</span>
+    </div>
+    <h1>The Curious Contract</h1>
+    <p class="dek">Five ways to let someone <em>look</em> at a contract instead of only being told
+      what they owe on it — what each one would show, where it would sit in HaTi, and which two
+      are worth building first.</p>
+  </header>
+
+  <!-- ═══ VERDICT ═══ -->
+  <section class="verdict">
+    <h2>Is it a good idea?</h2>
+    <p class="lead"><strong>Yes — and it is the biggest thing missing from HaTi.</strong> Every
+      screen in the product today answers the same question: <em>what do I owe?</em> Blockers,
+      holds, counts, rows waiting on you. Not one screen answers <em>what am I actually looking
+      at?</em> A person who opens a forty-page agreement they did not write gets a wall of words
+      and a list of chores.</p>
+    <p>The good news is that HaTi already knows the answer. It records twenty-six terms per
+      contract, can name what each clause is for, remembers every negotiating move the company
+      has ever made, holds a position per clause, and reads every clause into plain English.
+      None of that is drawn as a picture anywhere. So this is mostly a <strong>looking</strong>
+      problem, not a <strong>knowing</strong> problem — which is why it is cheap.</p>
+    <div class="pull">
+      <b>One correction, and it matters.</b> Do not build a playground as a <em>place</em>.
+      HaTi built a beautiful read-only overview page for Templates and deleted it three days
+      later — it had forty-four things you could press and not one of them did anything. A page
+      you visit once out of interest is a page nobody opens twice. Build these as
+      <b>layers on the contract you are already reading</b>, and as one <b>fact</b> that every
+      existing screen can borrow. Then curiosity sits on the path to the work instead of beside it.
+    </div>
+    <p style="margin-top:18px"><strong>The real risk is not cost, it is tone.</strong> A lawyer's
+      job is to be certain. A product that says “huh, interesting” about a clause can read as a
+      product that is not sure. So every mark in every idea below rests on something checkable —
+      a word count, a recorded term, your own playbook, your own signed history — and never on a
+      hunch. Curiosity is allowed to point. It is not allowed to have opinions.</p>
+    <p><strong>And one upside worth naming out loud.</strong> Almost everything HaTi does well is
+      invisible: the walls, the one funnel, the review gate, the things that quietly refuse to go
+      wrong. None of it demos. A picture of a contract demos in ten seconds.</p>
+  </section>
+
+  <!-- ═══ WHAT HATI ALREADY HOLDS ═══ -->
+  <section class="holds">
+    <h3>Why this is cheaper than it sounds</h3>
+    <p class="note">Everything below is read back from what HaTi already stores. No new data is
+      collected, and four of the five ideas spend nothing on Copilot.</p>
+    <div class="hgrid">
+      <div class="hcell"><div class="n">26</div><div class="t">terms recorded per contract —
+        price, notice, caps, exclusivity, disputes</div></div>
+      <div class="hcell"><div class="n">6</div><div class="t">clause kinds HaTi can name from a
+        heading alone</div></div>
+      <div class="hcell"><div class="n">every</div><div class="t">negotiating move ever made,
+        with who asked and how it ended</div></div>
+      <div class="hcell"><div class="n">1</div><div class="t">playbook position per clause, with
+        the range it will accept</div></div>
+      <div class="hcell"><div class="n">all</div><div class="t">clauses already translated into
+        plain English, clause by clause</div></div>
+      <div class="hcell"><div class="n">5</div><div class="t">exposure readings already counted
+        across the whole book</div></div>
+    </div>
+  </section>
+
+  <!-- ═══ IDEA 1 ═══ -->
+  <section class="idea">
+    <div class="ihead">
+      <div class="axis"><span class="num">01</span><span class="word">Shape</span></div>
+      <div class="ititle">
+        <h2>The X-ray</h2>
+        <p class="pitch">A map of the document down the side of the document. What it is made of,
+          how big each part is, and where something is worth a second look.</p>
+        <span class="chip first">Build first</span>
+      </div>
+    </div>
+
+    <div class="body">
+      <p>The Document tab already has a switch with two positions: the contract, and the plain
+        English reading beside it. This is a <strong>third position on the same switch</strong>.
+        Press it and the right-hand column becomes a strip of bands — one band per clause, as tall
+        as the clause is long, coloured by what the clause is for. Press a band and the paper
+        scrolls to it.</p>
+      <p>The point is proportion and absence. You can see in one glance that the liability clause
+        is the shortest thing in the document and the definitions are the longest — and that
+        <strong>there is no force majeure clause at all</strong>. Absence is the most interesting
+        thing a map can show, and HaTi has no surface anywhere that shows it today.</p>
+    </div>
+
+    <div class="draw">
+      <div class="draw-h">
+        <div class="seg"><span>Contract</span><span>Plain English</span><span class="on">X-ray</span></div>
+        <span class="lbl">MK-0142 · Raw material supply</span>
+      </div>
+      <div class="draw-b">
+        <div class="xr">
+          <div class="sheet" aria-hidden="true">
+            <div class="st">Raw Material Supply Agreement</div>
+            <div class="sh"></div>
+            <div class="sl" style="width:97%"></div><div class="sl" style="width:92%"></div>
+            <div class="sl" style="width:99%"></div><div class="sl" style="width:71%"></div>
+            <div class="sh" style="width:38%"></div>
+            <div class="sl" style="width:95%"></div><div class="sl hl" style="width:88%"></div>
+            <div class="sl" style="width:64%"></div>
+            <div class="sh" style="width:42%"></div>
+            <div class="sl" style="width:98%"></div><div class="sl" style="width:84%"></div>
+            <div class="sl" style="width:93%"></div><div class="sl" style="width:57%"></div>
+            <div class="sh" style="width:34%"></div>
+            <div class="sl" style="width:90%"></div><div class="sl" style="width:46%"></div>
+          </div>
+
+          <div>
+            <div class="bands" id="xr-bands"></div>
+            <div class="gap">
+              <b>Expected, not found</b>
+              Force majeure · Change of control
+            </div>
+          </div>
+        </div>
+        <p class="xcap" id="xr-cap"><b>16 clauses, 3,050 words.</b> Three carry a mark. Point at a
+          band to read it.</p>
+      </div>
+      <p class="cap">Bar height is the clause's own length. Colour is what the clause is for.
+        A dot means something is worth a look — amber for a difference from your playbook, red for
+        a term that leaves you exposed.</p>
+    </div>
+
+    <div class="facts">
+      <div class="fact"><div class="k">Where it lives</div><div class="v">A third position on the
+        Document tab's existing view switch. No new page, no new tab, no band across the top.</div></div>
+      <div class="fact"><div class="k">Built from</div><div class="v">
+        <code>clauseSegment</code> for the parts, <code>clauseKind</code> for the colours,
+        <code>rlPbFindClause</code> for playbook differences, <code>docDutyMark</code> for
+        promises, <code>ladderRungs</code> for what has been argued. All of it already exists.</div></div>
+      <div class="fact"><div class="k">Costs the paper</div><div class="v">Nothing. It takes the
+        right-hand column the way plain English already does — the contract does not move a pixel.</div></div>
+      <div class="fact"><div class="k">Watch out for</div><div class="v">“Expected, not found”
+        needs a short, defensible list per contract type, or it becomes HaTi inventing a standard
+        nobody wrote down. Start with six clauses that are genuinely in almost every agreement.</div></div>
+    </div>
+  </section>
+
+  <!-- ═══ IDEA 2 ═══ -->
+  <section class="idea">
+    <div class="ihead">
+      <div class="axis"><span class="num">02</span><span class="word">Comparison</span></div>
+      <div class="ititle">
+        <h2>Is this normal for us?</h2>
+        <p class="pitch">Not “does this break the rule” — HaTi already answers that. “Have we ever
+          signed anything like this before?”</p>
+        <span class="chip first">Build first</span>
+      </div>
+    </div>
+
+    <div class="body">
+      <p>Today HaTi has exactly one idea of unusual: a difference from the playbook — from what the
+        company <em>says</em> it wants. It has no idea of a difference from <strong>itself</strong>
+        — from what the company actually signs. Those are different things, and the second one is
+        the one that makes a person curious.</p>
+      <p>The arithmetic already exists in a small corner of the product: the Our Standards page can
+        look across signed contracts, find the commonest value for a term, and say how often it
+        appears. Point that same counting at all twenty-six recorded terms and you get a reading
+        for any contract: <strong>where does this one sit against our own book?</strong></p>
+      <p>The honest half is what makes it trustworthy. Below three signed contracts it refuses to
+        have an opinion — and that refusal is itself the most interesting line on the page:
+        <em>“this is the first one of these you have done.”</em></p>
+    </div>
+
+    <div class="draw">
+      <div class="draw-h">
+        <span class="lbl">MK-0142 against 47 signed agreements</span>
+        <span class="lbl mono" style="color:var(--ink-3)">4 of 26 terms differ</span>
+      </div>
+      <div class="draw-b">
+        <div class="scales">
+
+          <div class="sc">
+            <div class="fld">Payment terms</div>
+            <div class="track">
+              <div class="rail"></div>
+              <div class="spread" style="left:12%;width:30%"></div>
+              <div class="usual" style="left:22%"></div>
+              <div class="you" style="left:66%"></div>
+            </div>
+            <div class="rdg warn"><b>60 days</b>you usually sign 30</div>
+          </div>
+
+          <div class="sc">
+            <div class="fld">Liability</div>
+            <div class="track">
+              <div class="rail"></div>
+              <div class="spread" style="left:6%;width:16%"></div>
+              <div class="usual" style="left:13%"></div>
+              <div class="you" style="left:88%"></div>
+            </div>
+            <div class="rdg warn"><b>Uncapped</b>44 of 47 are capped</div>
+          </div>
+
+          <div class="sc">
+            <div class="fld">Notice period</div>
+            <div class="track">
+              <div class="rail"></div>
+              <div class="spread" style="left:28%;width:34%"></div>
+              <div class="usual" style="left:44%"></div>
+              <div class="you" style="left:50%"></div>
+            </div>
+            <div class="rdg"><b>60 days</b>right where you usually land</div>
+          </div>
+
+          <div class="sc">
+            <div class="fld">Exclusivity</div>
+            <div class="track">
+              <div class="rail"></div>
+              <div class="spread" style="left:10%;width:22%"></div>
+              <div class="usual" style="left:18%"></div>
+              <div class="you" style="left:80%"></div>
+            </div>
+            <div class="rdg warn"><b>Exclusive</b>5 of 47 are</div>
+          </div>
+
+          <div class="sc unknown">
+            <div class="fld">Rebate tiers</div>
+            <div class="track"><span class="none">not enough signed to know — this is your second</span></div>
+            <div class="rdg"><b>3 tiers</b>no view</div>
+          </div>
+
+        </div>
+      </div>
+      <p class="cap">The pale block is the range your book actually sits in. The line is your
+        commonest answer. The dot is this contract. Nothing here is a score and nothing here is
+        advice — it is counting, and every row can name the contracts it counted.</p>
+    </div>
+
+    <div class="facts">
+      <div class="fact"><div class="k">Where it lives</div><div class="v">Everywhere at once,
+        because it is a <em>fact</em>, not a screen: a small mark on the Overview cell, a row on
+        the list before signing, the amber dots on the X-ray, a line in the brief.</div></div>
+      <div class="fact"><div class="k">Built from</div><div class="v">The counting already written
+        in <code>stdDraftFromSigned</code>, pointed at all of <code>META_FIELDS</code> instead of
+        four. One new file, no route, no stored field, no Copilot spend.</div></div>
+      <div class="fact"><div class="k">Why first</div><div class="v">It is the engine underneath
+        idea 1 and idea 3. Build it once and three screens get cleverer without being redesigned.</div></div>
+      <div class="fact"><div class="k">Watch out for</div><div class="v">“Unusual” must never read
+        as “wrong”. An exclusive deal you chose on purpose is unusual and correct. The wording has
+        to stay flat: <em>you usually sign 30</em>, never <em>this is too long</em>.</div></div>
+    </div>
+  </section>
+
+  <!-- ═══ IDEA 3 ═══ -->
+  <section class="idea">
+    <div class="ihead">
+      <div class="axis"><span class="num">03</span><span class="word">Consequence</span></div>
+      <div class="ititle">
+        <h2>The what-if bench</h2>
+        <p class="pitch">The playground proper: pull a lever, watch the consequence, commit
+          nothing. The only one of the five where the reader touches the contract.</p>
+        <span class="chip leash">Build — on a short leash</span>
+      </div>
+    </div>
+
+    <div class="body">
+      <p>This is what most people mean by a playground. Drag payment terms from 60 days to 30 and
+        watch what it does to the cash tied up in the deal. Push the notice period out and watch
+        the date you must act by move. Accept their liability position and watch the exposure
+        register gain a row.</p>
+      <p>HaTi has the machinery: it already knows how to write a figure into a clause properly
+        (<em>“thirty (30) days”</em>, in words and digits, without disturbing anything around it),
+        and the negotiation ladder already draws a scale per clause with your standard, your
+        fallback and their last position on it.</p>
+      <p><strong>The leash is the whole design.</strong> This product's first rule is that it never
+        invents a number. So the bench may only move things the record can answer — days, dates,
+        cash timing, and where the book's average lands. It may not price risk, score a deal, or
+        tell you what a cap is worth. And nothing it shows reaches the contract until the reader
+        presses the same Apply button they would have pressed anyway.</p>
+    </div>
+
+    <div class="draw">
+      <div class="draw-h">
+        <span class="lbl">Clause 5 · Payment terms</span>
+        <span class="lbl mono" style="color:var(--ink-3)">nothing filed · nothing saved</span>
+      </div>
+      <div class="draw-b">
+        <div class="bench">
+          <div class="lever">
+            <div class="top">
+              <span class="lbl">Days to pay</span>
+              <span class="now"><span id="wf-d">60</span> days</span>
+            </div>
+            <input type="range" id="wf" name="wf" min="15" max="90" step="15" value="60"
+              aria-label="Days to pay">
+            <div class="ticks"><span>15</span><span>30</span><span>45</span><span>60</span>
+              <span>75</span><span>90</span></div>
+            <p class="honest" style="margin-top:16px"><b>As written today:</b> sixty (60) days
+              from receipt of a valid invoice. Your playbook says thirty.</p>
+          </div>
+          <div class="outs">
+            <div class="out">
+              <div class="k">Cash tied up in this deal</div>
+              <div class="v" id="wf-cash">SEK 690,411</div>
+              <div class="s" id="wf-cash-s">on a contract value of SEK 4,200,000</div>
+            </div>
+            <div class="out">
+              <div class="k">Against your own book</div>
+              <div class="v" id="wf-book">30 days worse</div>
+              <div class="s" id="wf-book-s">you usually sign 30 days on the supplier side</div>
+            </div>
+            <div class="out">
+              <div class="k">Your supplier-side average</div>
+              <div class="v" id="wf-avg">42.4 days</div>
+              <div class="s">across 47 live agreements</div>
+            </div>
+          </div>
+        </div>
+        <p class="honest" style="margin-top:18px"><b>What it will not tell you.</b> HaTi does not
+          know your cost of capital, so it will not turn those days into an interest figure and
+          call it a saving. It shows the days, the cash and where you usually land. The judgement
+          stays yours.</p>
+      </div>
+      <p class="cap">Move the slider. Nothing on this bench touches the record — to change the
+        contract you still press Apply in the clause editor, the one door that has always filed
+        a change.</p>
+    </div>
+
+    <div class="facts">
+      <div class="fact"><div class="k">Where it lives</div><div class="v">A tab in the Copilot rail
+        beside the clause editor, next to the ladder and the figure scale that are already there.
+        Not a page of its own.</div></div>
+      <div class="fact"><div class="k">Built from</div><div class="v">
+        <code>ladderTrack</code> for the scale, <code>ladderWriteFigure</code> for writing the
+        number into the wording, <code>payTermsData</code> for the book's average,
+        <code>fxHome</code> for money, <code>renewalWindow</code> for dates.</div></div>
+      <div class="fact"><div class="k">The one hard rule</div><div class="v">It files nothing.
+        Every route out of the bench goes through the clause editor's existing Apply. A second way
+        to file a change is the most expensive mistake this codebase knows how to make.</div></div>
+      <div class="fact"><div class="k">Watch out for</div><div class="v">Scope creep into a deal
+        scorer. The moment it multiplies a risk by a probability it has stopped being HaTi.</div></div>
+    </div>
+  </section>
+
+  <!-- ═══ IDEA 4 ═══ -->
+  <section class="idea">
+    <div class="ihead">
+      <div class="axis"><span class="num">04</span><span class="word">Sequence</span></div>
+      <div class="ititle">
+        <h2>The first sixty seconds</h2>
+        <p class="pitch">Not a map — a walk. Seven stops through a document that just arrived,
+          one clause at a time, each with a sentence saying why it is a stop.</p>
+        <span class="chip later">Build later</span>
+      </div>
+    </div>
+
+    <div class="body">
+      <p>When a document arrives, HaTi already reads it: it writes a brief, checks it against the
+        playbook, finds the obligations and fills what it can. Today that arrives as four small
+        tiles and a paragraph. The reader is still left alone with forty pages.</p>
+      <p>Instead, pace it. Seven stops. Each one scrolls the paper to a clause, puts the plain
+        English beside it, and says in one line why this clause was chosen — it moves money, your
+        playbook disagrees with it, it is unusual for you, or it creates a promise somebody has to
+        keep. Then next.</p>
+      <p><strong>The ranking is free</strong> — it is the same set of marks the X-ray already
+        computes, sorted. So idea 4 costs almost nothing once idea 1 exists, which is exactly why
+        it should wait for it.</p>
+    </div>
+
+    <div class="draw">
+      <div class="draw-h">
+        <span class="lbl">Arrived from Nordkalk AB · 2 hours ago</span>
+        <span class="lbl mono cnt" id="tr-n" style="color:var(--ink-3)">Stop 3 of 7</span>
+      </div>
+      <div class="draw-b">
+        <div class="tour">
+          <div class="dots" role="group" aria-label="Tour stops">
+            <button class="dot done" type="button" data-s="0" aria-label="Stop 1"></button>
+            <button class="dot done" type="button" data-s="1" aria-label="Stop 2"></button>
+            <button class="dot on" type="button" data-s="2" aria-label="Stop 3"></button>
+            <button class="dot" type="button" data-s="3" aria-label="Stop 4"></button>
+            <button class="dot" type="button" data-s="4" aria-label="Stop 5"></button>
+            <button class="dot" type="button" data-s="5" aria-label="Stop 6"></button>
+            <button class="dot" type="button" data-s="6" aria-label="Stop 7"></button>
+          </div>
+          <div class="why"><span class="tag" id="tr-tag">Unusual for you</span>
+            <span id="tr-why">44 of your 47 signed agreements cap liability. This one does not.</span></div>
+          <div class="stop">
+            <div class="side pap">
+              <div class="cl" id="tr-cl">11. Liability</div>
+              <div class="tx" id="tr-tx">Neither Party excludes liability for death or personal
+                injury caused by negligence. Save as aforesaid, the Supplier's liability under this
+                Agreement shall be unlimited in respect of any claim arising from defective Goods.</div>
+            </div>
+            <div class="side">
+              <div class="lbl" style="margin-bottom:7px">In plain English</div>
+              <div class="en" id="tr-en">If the goods are faulty, <b>there is no ceiling</b> on what
+                the supplier can be made to pay. Most of your agreements put a ceiling on this.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="cap">Press a stop. The walk is a press, never an interruption — it never opens by
+        itself and it can be closed for good.</p>
+    </div>
+
+    <div class="facts">
+      <div class="fact"><div class="k">Where it lives</div><div class="v">A button on the arrival
+        strip that already appears on a new contract's Overview: <em>Walk me through it</em>.</div></div>
+      <div class="fact"><div class="k">Built from</div><div class="v">The arrival reading that
+        already runs (<code>triageRun</code>), plus the X-ray's marks, sorted. The plain English
+        column already exists per clause.</div></div>
+      <div class="fact"><div class="k">Why later</div><div class="v">It is the cheapest of the five
+        <em>after</em> idea 1, and close to pointless before it. Building it first would mean
+        writing the ranking twice.</div></div>
+      <div class="fact"><div class="k">Watch out for</div><div class="v">Tone. A lawyer being walked
+        through their own document can feel talked down to. Keep the sentences factual and let
+        anyone skip to the end in one press.</div></div>
+    </div>
+  </section>
+
+  <!-- ═══ IDEA 5 ═══ -->
+  <section class="idea">
+    <div class="ihead">
+      <div class="axis"><span class="num">05</span><span class="word">Story</span></div>
+      <div class="ititle">
+        <h2>How this deal moved</h2>
+        <p class="pitch">Every argument HaTi has ever hosted is on the record and nothing has ever
+          drawn it. A replay of the negotiation, clause by clause, round by round.</p>
+        <span class="chip cheap">Cheap — and it is the demo</span>
+      </div>
+    </div>
+
+    <div class="body">
+      <p>HaTi stores the whole argument: who asked for what, on which clause, in which round, and
+        how it ended. The deal board shows where things stand <em>now</em>. Nothing shows how they
+        got there.</p>
+      <p>One track per argued clause, one column per round, a dot for every move coloured by who
+        made it. You can see at a glance that exclusivity settled in round two and liability is
+        still open in round four — and, from your own history with this counterparty, that this is
+        two rounds longer than usual.</p>
+      <p>Of the five this is the least useful per hour of work and <strong>by far the most
+        likeable</strong>. It is the screen someone shows a colleague. It also quietly answers a
+        question no CLM answers: <em>where do we always give in?</em></p>
+    </div>
+
+    <div class="draw">
+      <div class="draw-h">
+        <span class="lbl">MK-0142 · Nordkalk AB · 4 rounds, 11 weeks</span>
+        <span class="lbl mono" style="color:var(--ink-3)">your average with them: 2.4 rounds</span>
+      </div>
+      <div class="draw-b">
+        <div class="rp"><div class="rp-in">
+          <div class="rp-r head">
+            <span>Clause</span><span>Round 1</span><span>Round 2</span><span>Round 3</span><span>Round 4</span>
+          </div>
+
+          <div class="rp-r rp-tr">
+            <div class="rp-nm">Payment terms<small>30 → 60 days</small></div>
+            <div class="cell lead"><span class="mv them"></span></div>
+            <div class="cell"><span class="mv us"></span></div>
+            <div class="cell tail"><span class="mv set"></span></div>
+            <div class="cell" style="opacity:.3"></div>
+          </div>
+
+          <div class="rp-r rp-tr">
+            <div class="rp-nm">Liability<small>still open</small></div>
+            <div class="cell lead"><span class="mv them"></span></div>
+            <div class="cell"><span class="mv us"></span></div>
+            <div class="cell"><span class="mv them"></span></div>
+            <div class="cell tail"><span class="mv open"></span></div>
+          </div>
+
+          <div class="rp-r rp-tr">
+            <div class="rp-nm">Exclusivity<small>settled</small></div>
+            <div class="cell lead"><span class="mv us"></span></div>
+            <div class="cell tail"><span class="mv set"></span></div>
+            <div class="cell" style="opacity:.3"></div>
+            <div class="cell" style="opacity:.3"></div>
+          </div>
+
+          <div class="rp-r rp-tr">
+            <div class="rp-nm">Rejection window<small>7 → 14 days</small></div>
+            <div class="cell lead tail"><span class="mv set"></span></div>
+            <div class="cell" style="opacity:.3"></div>
+            <div class="cell" style="opacity:.3"></div>
+            <div class="cell" style="opacity:.3"></div>
+          </div>
+
+          <div class="rp-r rp-tr">
+            <div class="rp-nm">Governing law<small>settled</small></div>
+            <div class="cell lead"><span class="mv them"></span></div>
+            <div class="cell tail"><span class="mv set"></span></div>
+            <div class="cell" style="opacity:.3"></div>
+            <div class="cell" style="opacity:.3"></div>
+          </div>
+        </div></div>
+        <div class="rp-key">
+          <span><i style="background:var(--amber-dot)"></i>They asked</span>
+          <span><i style="background:var(--accent)"></i>You asked</span>
+          <span><i style="background:var(--good)"></i>Settled</span>
+          <span><i style="background:var(--surface);border:2px solid var(--ruby)"></i>Still open</span>
+        </div>
+      </div>
+      <p class="cap">Read down the tracks and the pattern shows: three clauses settled by round
+        two, liability has been passed back and forth four times. That is the conversation you are
+        still having.</p>
+    </div>
+
+    <div class="facts">
+      <div class="fact"><div class="k">Where it lives</div><div class="v">A reading on the
+        contract's own History tab, and a second home on the deal board where the same clauses
+        are already listed.</div></div>
+      <div class="fact"><div class="k">Built from</div><div class="v">
+        <code>ladderRungs</code> per clause, <code>ladderBoard</code> for the ordering, and
+        <code>precedentMine</code> for “how long this usually takes with them” — which already
+        accepts a counterparty.</div></div>
+      <div class="fact"><div class="k">Nothing new</div><div class="v">No route, no stored field,
+        no model. It is drawing something the record has held all along.</div></div>
+      <div class="fact"><div class="k">Watch out for</div><div class="v">Do not let it grow verbs.
+        The moment a dot can be pressed to reopen a settled change it becomes a second way to
+        decide things, and decisions belong on the redline column.</div></div>
+    </div>
+  </section>
+
+  <!-- ═══ CLOSING ═══ -->
+  <section class="close">
+    <h2>What I would actually build</h2>
+    <div class="order">
+      <div class="ord">
+        <span class="no">1</span>
+        <div class="d">Is this normal for us?
+          <small>The counting engine. Invisible on its own, and it makes everything after it
+            possible. One file, no new data.</small></div>
+        <span class="wk">the foundation</span>
+      </div>
+      <div class="ord">
+        <span class="no">2</span>
+        <div class="d">The X-ray
+          <small>The first thing anyone will see and the first thing worth showing anyone. Sits on
+            a switch that already exists, costs the contract nothing.</small></div>
+        <span class="wk">the face of it</span>
+      </div>
+      <div class="ord">
+        <span class="no">3</span>
+        <div class="d">How this deal moved
+          <small>Cheap, likeable, and it answers a question no competitor answers. Good to have in
+            hand before a demo.</small></div>
+        <span class="wk">the charm</span>
+      </div>
+      <div class="ord">
+        <span class="no">4</span>
+        <div class="d">The what-if bench
+          <small>Genuinely useful, and the one that needs discipline. Worth doing properly once
+            the three above are in.</small></div>
+        <span class="wk">needs care</span>
+      </div>
+      <div class="ord">
+        <span class="no">5</span>
+        <div class="d">The first sixty seconds
+          <small>Nearly free once the X-ray exists, and easy to get wrong on tone. Last, and
+            optional.</small></div>
+        <span class="wk">if it earns it</span>
+      </div>
+    </div>
+
+    <div class="rule">
+      <h3>The one rule that keeps all five safe</h3>
+      <p>Every one of these shows things the reader can already act on somewhere else in HaTi.
+        That is the danger and the discipline: <strong>none of them may grow its own way to change
+        the contract.</strong> A band on the X-ray scrolls the paper. A dot on the replay opens
+        the clause. The bench hands its wording to the Apply button that has always filed changes.
+        They are windows, not doors.</p>
+      <p>Keep that line and curiosity is free. Cross it and you have built a second product that
+        disagrees with the first one — which, by this codebase's own account, is the most expensive
+        mistake it knows how to make.</p>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  /* ── 1. X-ray bands ───────────────────────────────── */
+  var CL = [
+    {n:'1. Definitions',            w:340, k:'', m:'', d:'The longest thing in the agreement — 340 words, 11% of the document.'},
+    {n:'2. Appointment',            w:180, k:'', m:'r', d:'Exclusive, with no right to terminate for convenience. 5 of your 47 agreements are exclusive.'},
+    {n:'3. Supply & forecasts',     w:260, k:'', m:'', d:'Ordinary supply mechanics. Nothing unusual.'},
+    {n:'4. Price & price review',   w:210, k:'k-pay', m:'f', d:'Price may be reset by the supplier with 30 days notice — no ceiling, no index.'},
+    {n:'5. Payment terms',          w:150, k:'k-pay', m:'f', d:'60 days from invoice. Your playbook says 30, and 30 is what you usually sign.'},
+    {n:'6. Delivery & title',       w:290, k:'', m:'', d:'Creates two promises you have to keep. Both are on the obligations tab.'},
+    {n:'7. Inspection & rejection', w:120, k:'', m:'', d:'14 days to reject a delivery. Your other supply agreements use 14 as well.'},
+    {n:'8. Quality & warranty',     w:240, k:'', m:'', d:'24-month warranty. In line with your book.'},
+    {n:'9. Confidentiality',        w:190, k:'k-conf', m:'', d:'Five years from disclosure. Ordinary.'},
+    {n:'10. Data protection',       w:160, k:'k-dp',  m:'', d:'Standard processor wording. Nothing recorded as unusual.'},
+    {n:'11. Liability',             w:95,  k:'k-liab',m:'r', d:'Uncapped — and the shortest operative clause in the document. 44 of your 47 agreements cap it.'},
+    {n:'12. Indemnity',             w:140, k:'k-liab',m:'', d:'Capped at the contract value. That much matches your playbook.'},
+    {n:'13. Insurance',             w:110, k:'', m:'', d:'A certificate is due each year — already on the obligations tab.'},
+    {n:'14. Term & termination',    w:200, k:'k-term',m:'f', d:'Auto-renews with 90 days notice. Your playbook asks for 60.'},
+    {n:'15. Governing law',         w:85,  k:'k-law', m:'', d:'Swedish law, SCC arbitration in Stockholm. Your usual.'},
+    {n:'16. General',               w:180, k:'', m:'', d:'Boilerplate. No force majeure clause anywhere in the agreement.'}
+  ];
+  var host = document.getElementById('xr-bands');
+  var cap  = document.getElementById('xr-cap');
+  var REST = '<b>16 clauses, 3,050 words.</b> Three carry a mark. Point at a band to read it.';
+  if(host){
+    var max = 340;
+    CL.forEach(function(c){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'band ' + c.k;
+      b.innerHTML = '<span class="bar" style="height:' +
+        Math.max(7, Math.round(c.w / max * 30)) + 'px"></span>' +
+        '<span class="nm"></span><span class="mk ' + c.m + '"></span>';
+      b.querySelector('.nm').textContent = c.n;
+      var show = function(){
+        cap.innerHTML = '<b></b> ';
+        cap.firstChild.textContent = c.n + ' · ' + c.w + ' words.';
+        cap.appendChild(document.createTextNode(' ' + c.d));
+      };
+      b.addEventListener('mouseenter', show);
+      b.addEventListener('focus', show);
+      b.addEventListener('click', show);
+      b.addEventListener('mouseleave', function(){ cap.innerHTML = REST; });
+      host.appendChild(b);
+    });
+  }
+
+  /* ── 3. what-if bench ─────────────────────────────── */
+  var VALUE = 4200000, USUAL = 30, OTHERS = 46, OTHER_SUM = 42.4 * 47 - 60;
+  var wf = document.getElementById('wf');
+  var fmt = function(n){ return 'SEK ' + Math.round(n).toLocaleString('en-US'); };
+  if(wf){
+    var paint = function(){
+      var d = Number(wf.value);
+      document.getElementById('wf-d').textContent = d;
+      document.getElementById('wf-cash').textContent = fmt(VALUE * d / 365);
+      var diff = d - USUAL, bk = document.getElementById('wf-book');
+      bk.textContent = diff > 0 ? (diff + ' days worse')
+                     : diff < 0 ? (-diff + ' days better') : 'matches your usual';
+      bk.className = 'v ' + (diff > 0 ? 'warn' : diff < 0 ? 'good' : '');
+      document.getElementById('wf-book-s').textContent = diff === 0
+        ? 'exactly what you usually sign on the supplier side'
+        : 'you usually sign ' + USUAL + ' days on the supplier side';
+      document.getElementById('wf-avg').textContent =
+        ((OTHER_SUM + d) / 47).toFixed(1) + ' days';
+    };
+    wf.addEventListener('input', paint);
+    paint();
+  }
+
+  /* ── 4. tour ──────────────────────────────────────── */
+  var ST = [
+    {cl:'4. Price & price review', tag:'Moves money',
+     tx:'The Supplier may revise the Price upon thirty (30) days written notice to the Buyer, such revision to take effect from the next Delivery Date.',
+     en:'The supplier can <b>change the price whenever they like</b>, with a month’s warning. There is no ceiling and no index.',
+     why:'The price is not fixed and nothing limits how far it can move.'},
+    {cl:'5. Payment terms', tag:'Playbook differs',
+     tx:'The Buyer shall pay each undisputed invoice within sixty (60) days of receipt of a valid invoice.',
+     en:'You have <b>60 days to pay</b>. Your own standard asks for 30, and 30 is what you normally sign.',
+     why:'Your playbook asks for 30 days. This says 60.'},
+    {cl:'11. Liability', tag:'Unusual for you',
+     tx:'Neither Party excludes liability for death or personal injury caused by negligence. Save as aforesaid, the Supplier’s liability under this Agreement shall be unlimited in respect of any claim arising from defective Goods.',
+     en:'If the goods are faulty, <b>there is no ceiling</b> on what the supplier can be made to pay. Most of your agreements put a ceiling on this.',
+     why:'44 of your 47 signed agreements cap liability. This one does not.'},
+    {cl:'2. Appointment', tag:'Locks you in',
+     tx:'The Buyer appoints the Supplier as its exclusive supplier of the Goods for the Territory during the Term.',
+     en:'You may <b>not buy these goods from anyone else</b> while this runs, and there is no way to end it early for convenience.',
+     why:'Exclusive, with no exit for convenience. 5 of your 47 agreements are exclusive.'},
+    {cl:'14. Term & termination', tag:'Renews itself',
+     tx:'This Agreement shall renew automatically for successive periods of twelve (12) months unless either Party gives ninety (90) days written notice.',
+     en:'This <b>renews on its own every year</b> unless somebody gives 90 days notice. Miss the date and you have another year.',
+     why:'Auto-renews. Your first date to act is 14 December 2027.'},
+    {cl:'6. Delivery & title', tag:'You promise something',
+     tx:'The Buyer shall provide a rolling twelve (12) week forecast on the first Business Day of each month.',
+     en:'You have to <b>send a forecast every month</b>. That is a job somebody in your team now owns.',
+     why:'Creates a monthly duty on your side. Now on the obligations tab.'},
+    {cl:'13. Insurance', tag:'You promise something',
+     tx:'The Supplier shall maintain product liability insurance of not less than SEK 10,000,000 and shall provide a certificate annually.',
+     en:'The supplier must <b>hand you an insurance certificate every year</b>. You have to chase it if it does not arrive.',
+     why:'A document you must hold. HaTi will remind you 30 days before it lapses.'}
+  ];
+  var dots = Array.prototype.slice.call(document.querySelectorAll('.dot'));
+  if(dots.length){
+    var go = function(i){
+      var s = ST[i]; if(!s) return;
+      document.getElementById('tr-n').textContent  = 'Stop ' + (i + 1) + ' of ' + ST.length;
+      document.getElementById('tr-cl').textContent = s.cl;
+      document.getElementById('tr-tx').textContent = s.tx;
+      document.getElementById('tr-en').innerHTML   = s.en;
+      document.getElementById('tr-tag').textContent = s.tag;
+      document.getElementById('tr-why').textContent = s.why;
+      dots.forEach(function(d, j){
+        d.className = 'dot' + (j === i ? ' on' : j < i ? ' done' : '');
+      });
+    };
+    dots.forEach(function(d){
+      d.addEventListener('click', function(){ go(Number(d.dataset.s)); });
+    });
+    go(2);
+  }
+})();
+</script>
