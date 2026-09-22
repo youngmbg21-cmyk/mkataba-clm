@@ -353,7 +353,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:20px;margin:0}
 .frame{border-radius:var(--r-lg);overflow:hidden}
 .frame.on{border:1px solid var(--line-2);box-shadow:var(--shadow-2);background:var(--surface)}
 .frame:not(.on) .sh-bar,.frame:not(.on) .sh-rail,
-.frame:not(.on) .sh-head,.frame:not(.on) .sh-tabs,.frame:not(.on) .sw-acts{display:none}
+.frame:not(.on) .sh-head,.frame:not(.on) .sh-tabs{display:none}
 .sh-body{display:flex;min-height:0}
 .sh-content{flex:1 1 auto;min-width:0}
 .frame.on .sh-content{padding:14px 16px 20px;background:var(--bg)}
@@ -419,23 +419,33 @@ input[type=range]{width:100%;accent-color:var(--accent);height:20px;margin:0}
 .sh-head .facts div .v.mono{font-family:var(--mono);font-weight:500}
 .sh-head .facts div .v.amber{color:var(--amber)}
 
-.sh-tabs{display:flex;gap:2px;background:var(--surface);border-bottom:1px solid var(--line);
-  padding:0 16px;overflow-x:auto}
-.sh-tabs span{font-size:13px;font-weight:500;color:var(--ink-3);padding:9px 11px;
+/* The room's tab row carries its own right-hand end: the view switch, the
+   text-size stepper, Focus and Export, all on the tabs' own line. */
+.sh-tabs{display:flex;align-items:center;gap:12px;background:var(--surface);
+  border-bottom:1px solid var(--line);padding:0 16px;overflow-x:auto}
+.sh-tabs .tabs{display:flex;gap:2px;flex:none}
+.sh-tabs .tabs > span{font-size:13px;font-weight:500;color:var(--ink-3);padding:9px 11px;
   border-bottom:2px solid transparent;white-space:nowrap}
-.sh-tabs span.on{color:var(--ink);font-weight:600;border-bottom-color:var(--accent)}
-.sh-tabs span .cnt{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-left:4px}
+.sh-tabs .tabs > span.on{color:var(--ink);font-weight:600;border-bottom-color:var(--accent)}
+.sh-tabs .tabs .cnt{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-left:4px}
+.sh-tabs .sp{flex:1 1 auto;min-width:10px}
+.sh-tabs .tend{display:flex;align-items:center;gap:8px;flex:none;padding:7px 0}
+.sh-tabs .tend .sq{height:30px;padding:0 9px;border:1px solid var(--line-2);border-radius:var(--r);
+  display:flex;align-items:center;gap:6px;background:var(--surface);color:var(--ink-2);
+  font-size:12.5px;white-space:nowrap}
+.sh-tabs .tend .step{padding:0;gap:0}
+.sh-tabs .tend .step span{padding:0 9px;font-size:12.5px}
+.sh-tabs .tend .step i{width:1px;align-self:stretch;background:var(--line-2)}
+@media (max-width:860px){
+  .sh-tabs{flex-wrap:wrap;overflow-x:visible}
+  .sh-tabs .sp{display:none}
+  .sh-tabs .tend{padding-bottom:10px}
+}
+/* With the shell off the tab row is not drawn, so the same switch takes a line
+   of its own. Same builder, same handlers. */
+.bare-switch{display:flex;gap:10px;align-items:center;margin-bottom:12px}
+.frame.on .bare-switch{display:none}
 
-.sh-switch{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
-.more-layers{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
-.ml-lbl{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
-  color:var(--ink-3)}
-.modes-sm button{height:26px;font-size:12px;padding:0 9px}
-.frame.on .sh-switch{padding:0 0 12px;background:transparent}
-.sw-acts{margin-left:auto;display:flex;gap:6px;align-items:center;font-size:12.5px;
-  color:var(--ink-2)}
-.sw-acts .sq{height:30px;padding:0 10px;border:1px solid var(--line-2);border-radius:var(--r);
-  display:flex;align-items:center;gap:6px;background:var(--surface);white-space:nowrap}
 .frame svg{width:15px;height:15px;flex:none}
 
 .narrow{display:none;font-size:12px;color:var(--amber);background:var(--amber-soft);
@@ -460,7 +470,6 @@ input[type=range]{width:100%;accent-color:var(--accent);height:20px;margin:0}
   <div class="protobar">
     <button class="btn btn-p" id="shell-go" type="button" aria-pressed="true">Showing it inside HaTi</button>
     <button class="btn" id="tour-go" type="button">Walk me through it</button>
-    <button class="btn" id="reset" type="button" disabled>Put it back</button>
     <span class="note">Everything below the green bar is the prototype. The chrome is HaTi's own.</span>
   </div>
 
@@ -526,23 +535,24 @@ input[type=range]{width:100%;accent-color:var(--accent);height:20px;margin:0}
         </div>
 
         <div class="sh-tabs">
-          <span>Overview</span>
-          <span class="on">Document</span>
-          <span>Signing</span>
-          <span>Obligations<span class="cnt">7</span></span>
-          <span>History</span>
+          <span class="tabs">
+            <span>Overview</span>
+            <span class="on">Document</span>
+            <span>Signing</span>
+            <span>Obligations<span class="cnt">7</span></span>
+            <span>History</span>
+          </span>
+          <span class="sp"></span>
+          <span class="tend">
+            <nav class="modes" id="modes" aria-label="Document view"></nav>
+            <span class="sq step"><span>A−</span><i></i><span>A+</span></span>
+            <span class="sq"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.4 5.6V2.6h3M13.6 5.6V2.6h-3M2.4 10.4v3h3M13.6 10.4v3h-3"/></svg></span>
+            <span class="sq"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.6v7.4"/><path d="M5.2 7.2 8 10l2.8-2.8"/><path d="M2.8 12.4h10.4"/></svg> Export ▾</span>
+          </span>
         </div>
 
-        <div class="sh-switch">
-          <nav class="modes" id="modes" aria-label="Document view"></nav>
-          <span class="more-layers">
-            <span class="ml-lbl">On their own</span>
-            <nav class="modes modes-sm" id="modes2" aria-label="Single layer"></nav>
-          </span>
-          <span class="sw-acts">
-            <span class="sq"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.6v7.4"/><path d="M5.2 7.2 8 10l2.8-2.8"/><path d="M2.8 12.4h10.4"/></svg> Export ▾</span>
-            <span class="sq"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.4 5.6V2.6h3M13.6 5.6V2.6h-3M2.4 10.4v3h3M13.6 10.4v3h-3"/></svg></span>
-          </span>
+        <div class="bare-switch">
+          <nav class="modes" id="modes-bare" aria-label="Document view"></nav>
         </div>
 
         <p class="narrow" id="narrow">This window is under 1024px. HaTi does not draw the
@@ -942,18 +952,21 @@ var fmtSEK = function(n){ return 'SEK ' + Math.round(n).toLocaleString('en-US');
    STATE
    ══════════════════════════════════════════════════════════ */
 var mode = 'all', sel = 'c11', readAt = null, tour = -1, shell = true;
-/* THE DOCUMENT TAB'S OWN SWITCH, in the product's own order: Contract View
-   sits first and is lit at rest, Plain English second, and the Playground
-   takes the position straight after it. Three segments, one control.
-   The four below are the prototype's own — each of the readings the
-   Playground merges, on its own, so they can be looked at one at a time.
-   They are deliberately a SEPARATE control: seven positions would not be
-   HaTi's switch, and drawing them as one would say it was. */
-var MODES = [ ['paper','Contract View'], ['plain','Plain English'], ['all','Playground'] ];
-var MODES_MORE = [ ['xray','X-ray'], ['book','Your book'],
-                   ['whatif','What-if'], ['replay','Replay'] ];
+/* THE DOCUMENT TAB'S OWN SWITCH AND NOTHING ELSE: Contract View first and lit
+   at rest, Plain English second, X-ray third. Three segments, one control, at
+   the right-hand end of the room's tab row — which is where the product draws
+   this switch today (its own #ws-tabrow-end slot, beside the text-size
+   stepper, Focus and Export).
+
+   X-RAY IS THE MERGED READING — the spine in the margin plus the per-clause
+   panel. The single-layer views this prototype carried (the band list, the
+   book list, the what-if bench, the replay) are RETIRED FROM THE SWITCH on
+   the owner's word. Their builders are left below, unreferenced: a reading
+   deleted outright is one somebody rebuilds from scratch a month later, and
+   one line in this list puts any of them back. */
+var MODES = [ ['paper','Contract View'], ['plain','Plain English'], ['all','X-ray'] ];
 var HINTS = {
-  all:    '<b>Straight after Plain English, on the switch that is already there.</b> All three ' +
+  all:    '<b>X-ray \u2014 the third position on the switch, straight after Plain English.</b> All three ' +
           'readings at once: the map runs down the paper\u2019s own margin as a <b>spine</b> ' +
           '\u2014 the whole document to scale, with your place on it \u2014 and the panel is ' +
           'whatever clause you are looking at, in plain English, against your book and against ' +
@@ -1151,10 +1164,10 @@ function renderPanel(){
         : 'Never argued. This wording is as it was first drafted.'));
 
     var pn = document.createElement('p'); pn.className = 'pnote';
-    pn.innerHTML = 'Three layers, one panel. The map is a <b>map</b>, so it sits in the margin; ' +
+    pn.innerHTML = 'Three readings, one panel. The map is a <b>map</b>, so it sits in the margin; ' +
       'the comparison and the reading are both facts about <b>one clause</b>, so they belong ' +
-      'beside that clause rather than in two more lists. ' + w + ' words, ' +
-      Math.round(w / tot * 100) + '% of the agreement.';
+      'beside that clause rather than in two more lists. Colour on the spine is what the clause ' +
+      'is for \u2014 payment, liability, termination and so on; the dot is what is worth a look.';
     b.appendChild(pn);
     return;
   }
@@ -1457,12 +1470,13 @@ function fillModes(host, list){
     host.appendChild(b);
   });
 }
+/* TWO HOSTS, ONE BUILDER — the switch is drawn inside the tab row when the
+   shell is on and on a line of its own when it is off, and one fillModes
+   means the two cannot disagree about what a press does. */
 function renderModes(){
   fillModes($('modes'), MODES);
-  fillModes($('modes2'), MODES_MORE);
+  fillModes($('modes-bare'), MODES);
   $('hint').innerHTML = HINTS[mode];
-  var any = ['pay','liab','price','excl','notice'].some(moved) || !!readAt;
-  $('reset').disabled = !any;
 }
 
 function renderTour(){
@@ -1513,10 +1527,6 @@ $('t-prev').addEventListener('click', function(){
   tour--; sel = TOUR[tour].cl; paintAll(); scrollTo(sel);
 });
 $('t-end').addEventListener('click', function(){ tour = -1; renderTour(); });
-$('reset').addEventListener('click', function(){
-  Object.keys(LEVERS).forEach(function(k){ LEVERS[k].now = LEVERS[k].was; });
-  readAt = null; paintAll();
-});
 
 paintAll();
 scrollTo(sel);
