@@ -426,7 +426,11 @@ input[type=range]{width:100%;accent-color:var(--accent);height:20px;margin:0}
 .sh-tabs span.on{color:var(--ink);font-weight:600;border-bottom-color:var(--accent)}
 .sh-tabs span .cnt{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-left:4px}
 
-.sh-switch{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.sh-switch{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.more-layers{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.ml-lbl{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--ink-3)}
+.modes-sm button{height:26px;font-size:12px;padding:0 9px}
 .frame.on .sh-switch{padding:0 0 12px;background:transparent}
 .sw-acts{margin-left:auto;display:flex;gap:6px;align-items:center;font-size:12.5px;
   color:var(--ink-2)}
@@ -530,7 +534,11 @@ input[type=range]{width:100%;accent-color:var(--accent);height:20px;margin:0}
         </div>
 
         <div class="sh-switch">
-          <nav class="modes" id="modes" aria-label="Layer"></nav>
+          <nav class="modes" id="modes" aria-label="Document view"></nav>
+          <span class="more-layers">
+            <span class="ml-lbl">On their own</span>
+            <nav class="modes modes-sm" id="modes2" aria-label="Single layer"></nav>
+          </span>
           <span class="sw-acts">
             <span class="sq"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.6v7.4"/><path d="M5.2 7.2 8 10l2.8-2.8"/><path d="M2.8 12.4h10.4"/></svg> Export ▾</span>
             <span class="sq"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.4 5.6V2.6h3M13.6 5.6V2.6h-3M2.4 10.4v3h3M13.6 10.4v3h-3"/></svg></span>
@@ -934,17 +942,29 @@ var fmtSEK = function(n){ return 'SEK ' + Math.round(n).toLocaleString('en-US');
    STATE
    ══════════════════════════════════════════════════════════ */
 var mode = 'all', sel = 'c11', readAt = null, tour = -1, shell = true;
-var MODES = [ ['paper','Paper'], ['all','Playground'], ['xray','X-ray'], ['book','Your book'],
-              ['plain','Plain English'], ['whatif','What-if'], ['replay','Replay'] ];
+/* THE DOCUMENT TAB'S OWN SWITCH, in the product's own order: Contract View
+   sits first and is lit at rest, Plain English second, and the Playground
+   takes the position straight after it. Three segments, one control.
+   The four below are the prototype's own — each of the readings the
+   Playground merges, on its own, so they can be looked at one at a time.
+   They are deliberately a SEPARATE control: seven positions would not be
+   HaTi's switch, and drawing them as one would say it was. */
+var MODES = [ ['paper','Contract View'], ['plain','Plain English'], ['all','Playground'] ];
+var MODES_MORE = [ ['xray','X-ray'], ['book','Your book'],
+                   ['whatif','What-if'], ['replay','Replay'] ];
 var HINTS = {
-  all:    'All three readings at once. The map runs down the paper\u2019s own margin as a ' +
-          '<b>spine</b> \u2014 the whole document to scale, with your place on it. The panel is ' +
+  all:    '<b>Straight after Plain English, on the switch that is already there.</b> All three ' +
+          'readings at once: the map runs down the paper\u2019s own margin as a <b>spine</b> ' +
+          '\u2014 the whole document to scale, with your place on it \u2014 and the panel is ' +
           'whatever clause you are looking at, in plain English, against your book and against ' +
           'your playbook. <b>Press a clause, or a segment of the spine.</b>',
-  paper:  'Just the agreement, nothing beside it. <b>Press any clause</b> to see what HaTi knows about it.',
+  paper:  'What HaTi calls <b>Contract View</b> \u2014 just the agreement, nothing beside it, ' +
+          'and the position the switch rests on. <b>Press any clause</b> to see what is known about it.',
   xray:   'A map of the document, one band per clause, as tall as the clause is long. <b>Press a band</b> to jump there. The dots say where something is worth a look — and the box at the bottom is what is <b>missing</b>.',
   book:   'How this contract compares with the 47 agreements you have already signed. The pale block is your own range; the line is your usual answer; the dot is this contract. <b>Press a row</b> to see the clause.',
-  plain:  'Every clause in everyday words, kept beside the real wording rather than replacing it. <b>Press an entry</b> to see the clause it reads.',
+  plain:  'The second position on the switch, and the one HaTi already has. Every clause in ' +
+          'everyday words, kept beside the real wording rather than replacing it. ' +
+          '<b>Press an entry</b> to see the clause it reads.',
   whatif: '<b>Move a lever.</b> The wording on the paper changes, the map and the comparison with your book follow, and nothing is filed. This is the playground proper.',
   replay: 'Every move ever made on this deal. <b>Press a clause</b> to read the argument, then read the clause as it stood in an earlier round.'
 };
@@ -1427,16 +1447,19 @@ function cell(k, t, quiet){
 /* ══════════════════════════════════════════════════════════
    CHROME
    ══════════════════════════════════════════════════════════ */
-function renderModes(){
-  var host = $('modes');
+function fillModes(host, list){
   host.textContent = '';
-  MODES.forEach(function(m){
+  list.forEach(function(m){
     var b = document.createElement('button');
     b.type = 'button'; b.textContent = m[1];
     b.setAttribute('aria-pressed', mode === m[0] ? 'true' : 'false');
     b.addEventListener('click', function(){ mode = m[0]; paintAll(); });
     host.appendChild(b);
   });
+}
+function renderModes(){
+  fillModes($('modes'), MODES);
+  fillModes($('modes2'), MODES_MORE);
   $('hint').innerHTML = HINTS[mode];
   var any = ['pay','liab','price','excl','notice'].some(moved) || !!readAt;
   $('reset').disabled = !any;
