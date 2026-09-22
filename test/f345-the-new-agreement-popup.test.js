@@ -150,7 +150,13 @@ describe('f345 (3) the card is the existing door\'s own form, and this file mint
     assert.match(WZ, /const NA_RAIL_W = 260;/);
     assert.match(WZ, /const NA_PAPER_W = 400;/);
     assert.match(WZ, /const NA_FRAME_W = 1180;/);
-    assert.match(NA, /\$\{wide\?`<div id="na-paper" class="na-paper"><\/div>`:''\}/);
+    /* RE-POINTED IN PLACE 22 Sep 2026 (f363). The host is NAMED once and
+       PLACED twice now — its own column here, and inside #na-right when the
+       agreement is stacked under the questions — so the literal moved out of
+       this branch. The claim is the same one: at 1280 and up the paper is a
+       track of the grid and nothing else. */
+    assert.match(NA, /\$\{wide\?naPaper:''\}/);
+    assert.match(NA, /const\s+naPaper\s*=\s*`<div id="na-paper" class="na-paper"><\/div>`/);
     assert.match(NA, /maxWidth: \(wide\?NA_FRAME_W:NA_FRAME_NARROW_W\)\+'px'/, 'the frame reads the constants');
     assert.match(HTML, /\.na-body\.na-wide\{ grid-template-columns:var\(--na-rail-w\) minmax\(0,1fr\) var\(--na-paper-w\); \}/);
     /* THE TWO HOSTS MUST AGREE: the frame is the rail plus the questions plus

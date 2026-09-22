@@ -6280,6 +6280,28 @@
   .na-more{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:var(--t-label); color:var(--color-neutral-600); padding-top:4px; }
   .na-more .ui-btn-plain{ padding:0; height:auto; min-height:0; font-size:var(--t-label); }
   .na-paper{ min-width:0; align-self:stretch; }
+  /* ---- UNDER 1280 THE AGREEMENT IS STACKED AND THE TWO SIDES SCROLL APART
+     (Young ruled it 22 Sep 2026, off four renders: "Build D for iPads but the
+     right hand side should scroll separately from the [left] hand side") ----
+
+     ONE NUMBER, AND IT IS THE LIST'S OWN. The .na-picks cap above reads
+     88vh less 396, where 396 is 162 — the frame's own 2, the head's 69, the
+     foot's 55 and the body's 36 of padding — plus the rail's 234 of fixed
+     parts. 162 is that same sum without the rail's, so a column here is
+     exactly the panel: a rail at its cap and a right column at its cap land
+     on one height and the body never has anything left to scroll.
+
+     BOTH SIDES TAKE IT, not the right alone. The ask grows as the reader
+     types, and a rail that outgrew the panel would be clipped by a body with
+     nothing left to give. */
+  .na-stack .na-left,.na-stack .na-right{ min-height:0; max-height:calc(88vh - 162px);
+    overflow:auto; overscroll-behavior:contain; }
+  .na-right{ display:flex; flex-direction:column; gap:16px; min-width:0; }
+  /* .na-card states align-self:start for the GRID, where it keeps a short
+     card from stretching to the rail's height. Inside a flex column the cross
+     axis is the INLINE one, so that same declaration shrinks the card to its
+     content width — restated here rather than taken off there. */
+  .na-right > .na-card{ align-self:stretch; }
   .na-card{ background:var(--color-surface); border:1px solid var(--rule-strong); border-radius:var(--radius-lg); min-width:0; align-self:start; }
   .na-card-h{ display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid var(--color-divider); }
   .na-card-h h3{ margin:0; font-family:var(--font-heading); font-size:14px; font-weight:var(--w-title); color:var(--color-text); flex:1; min-width:0; line-height:1.35; }

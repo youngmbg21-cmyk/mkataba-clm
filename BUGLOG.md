@@ -18632,6 +18632,52 @@ Noticed, not fixed:
 
 Gates: 8,708 tests, 0 failed. Lint 0 errors and the warning set diffed against the parent as identical. f362 12/12 (7 red at the parent), overview-as-drawn 65/65 (section 0 red at the parent, printing "0 boxes before, 0 after"), auto-triage 64/64, blanks-panel 37/37, refile-a-contract 26/26, amendment-journey 52/52.
 
+## 22 Sep 2026 — why proposal C is not on the owner's screen (measured, nothing built)
+
+"Advise why C is not yet built into hati. Do not code yet." Measurement only; no product code was written.
+
+IT IS BUILT AND IT IS ON MAIN. Commit 58e985b, 11:51 this morning. Driven at 1440x900 against a workspace with four published company standards: three columns (260 rail / 438 questions / 400 paper) in an 1180px frame, the rail's describe box and Find, both shelves as rows with version, usage and stream on one line, the lit row filled, the questions card headed "<name>  v1 . 8 questions", the shut people panel, the paper column with real wording in it, and the foot reading Cancel . Skip the questions . Create draft. Every panel of the artifact drew.
+
+WHAT IS MISSING IS THE THIRD COLUMN, AND IT IS A WIDTH. The paper is drawn only from 1280px of window. MEASURED at seven widths: 1024, 1180, 1194 and 1279 all fall back to two columns in a 900px frame with NO paper host in the document at all; 1280, 1366 and 1440 draw all three. An iPad Pro 11" in landscape reports 1194 and an iPad Air 11" reports 1180, so on every iPad but a 12.9" in landscape the half of proposal C that it was chosen for is simply not on the screen. Under 768 the phone shell draws instead and there is no pop-up at any width.
+
+AND THE RAIL LOOKS WRONG AT iPad HEIGHT FOR A SECOND REASON. The list scrolls inside the rail on a derived cap of 88vh less 396. At 834px of height that is 338px of an 895px list, and MEASURED, the first HaTi row sits at y=643 against a list bottom edge of y=645 - two pixels below the fold. So "HATI STANDARD" draws its heading and its line-of-business dropdown and not one row under it, and reads as an empty shelf. Scrolling inside the rail brings all twelve back.
+
+Three smaller departures from the drawing, all of them known: the artifact's "All 12 v" fold on the HaTi shelf is not built (HaTi lists all twelve and scrolls); the header's sub-line says "Your company standards first, then HaTi's" where the artifact says "Pick from the list; the agreement is drawn as you answer"; and the artifact drew "3 blanks left" over a company standard's paper where HaTi draws that count for its own templates (measured: ". 5 blanks left") and not for a company standard, which is the ruled decision that the number would be about the form rather than the paper.
+
+Ruled out on the way: the door. Only [data-page-new] - the + Draft new agreement button on Home, Contracts and the contract room - opens this pop-up. Use on a template's row, the phone's own New and "Pick one myself" all reach the older single-template answer step, which is not this screen and never was. And /js is served with Cache-Control: no-cache, so a reload picks the build up; a tab left open since this morning would not have reloaded.
+
+Noticed, not fixed:
+- THE AGREEMENT COLUMN IS NOT DRAWN ON AN 11" iPad IN LANDSCAPE (1194 or 1180 against a floor of 1280). Lowering the floor to about 1150 was costed rather than guessed: the questions would measure about 420px there, against 438 at 1440 and the 380 that proposal C was chosen to fix. At 1024 the same arithmetic gives 250px and the floor cannot come that far. The owner's call.
+- THE HaTi SHELF READS AS EMPTY on an iPad until the rail is scrolled, the first row landing two pixels below the fold. The artifact's own answer was a short list with an "All 12 v" control.
+
+Gates: nothing built, so nothing to gate. The two measurement scripts live in the run's scratchpad, not in test/.
+
+## 22 Sep 2026 — the agreement is stacked under 1280, and the two sides scroll apart
+
+"Build D for iPads but the right hand side should scroll separately from the [left] hand side." Chosen off the four renders drawn that afternoon at 1194x834, after the pop-up had been measured at seven widths.
+
+WHAT THE MEASUREMENT SAID. 1024, 1180, 1194 and 1279 all fell back to two columns in a 900px frame with NO #na-paper in the document at all; 1280, 1366 and 1440 drew all three. An iPad Pro 11" in landscape reports 1194 and an iPad Air 1180, so on every iPad but a 12.9" in landscape the half of the screen proposal C existed for was simply not there.
+
+THE FLOOR IS 768 AND IT IS NOT THE OTHER FLOOR. fillPreviewFits() answers at 1000 and every other fill door reads it, so it was the obvious thing to reach for and it is the wrong one: that number is about a preview drawn BESIDE the questions, and one stacked UNDER them needs no width of its own — asking it here would have taken the agreement off every iPad in portrait. 768 is where the phone shell takes over and this pop-up stops being drawn at all.
+
+ONE HOST, ONE ID, ONE PAINTER. The easy version emits a second div with the same id in the stacked branch. Two elements with one id is a getElementById answering whichever the document reaches first, and the paper host is read exactly once at pick time — the wrong one and the preview paints into a box nobody can see. So the questions card and the paper host are each written into a named string ONCE and placed twice, and the net pins both at exactly one literal each. wide and stack are mutually exclusive by construction.
+
+ONE NUMBER, AND IT WAS ALREADY IN THE FILE. A column that scrolls on its own needs a height and the obvious answer is a literal. The list's own cap is 88vh less 396, and its note says what 396 is: the frame's 2, the head's 69, the foot's 55, the body's 36 of padding and the rail's 234 of fixed parts, every one measured in a real browser. A column here IS the panel, so it is that sum without the rail's share — 162. It lands exactly: at 1194x834 the right column measures 572 and 88vh less 162 is 572, so the body has nothing left to scroll.
+
+BOTH SIDES TAKE THE CAP, not the right alone. The ask grows as the reader types, and with the body no longer the scroller a rail that outgrew the panel would just be clipped. Which is also exactly what the owner asked for.
+
+A DECLARATION RESTATED RATHER THAN REMOVED. .na-card says align-self:start, which in the GRID stops a short card stretching to the rail's height; inside a flex column the cross axis is the INLINE one, so the same word shrinks the card to its content WIDTH. Restated at the narrower scope, left alone on the base rule.
+
+Measured after: at 1194 a real wheel over the questions moved the sheet from 724 to 443 while the rail stayed at 138 to the pixel; the body never scrolls; at 1700 the three columns, the 1180 frame and the paper as its own track are what they were.
+
+Found while building:
+- A HELPER THAT READS ONE CSS RULE by indexOf(sel + '{') answered inside ".na-right > .na-card{" when asked for ".na-card{" — the narrower rule this change had just ADDED — so the check on the base rule read the new one and would have reported the opposite of the truth. Anchored at the start of its own line. Found by running it, not by reading it.
+
+Noticed, not fixed:
+- ON THE STACKED SHAPE THERE ARE TWO NESTED SCROLLERS, the right column and the paper sheet inside it (the sheet keeps its own 52vh cap, which is the shared preview pane's and is used by three doors). They chain correctly and it is the same arrangement the laptop shape has always had, but on a touch device one long scroll would be kinder. Would need a stacked-only override on a shared pane; the owner's call.
+- paper-beside-questions-verify 7c/7g still fail identically on this tree and at the parent (34/36 both sides). Unchanged from earlier entries.
+
+Gates: 8,734 tests, 0 failed. Lint 0 errors. f363 26/26 (16 red at the parent), new-agreement-verify 38/38 (its 8 new checks 6 red at the parent, printing "paper false, 0 chars"), form-and-picker 24/24, draft-from-a-sentence all green, f345 / f360 / f148 / f270 / f331 / f104 / f312 all green.
 ## 22 Sep 2026 — THE RUNWAY ON THE HOME PAGE, AND X-RAY BESIDE PLAIN ENGLISH
 
 Young: *"build the Runway into the home page and build the X-ray next to plain
@@ -18759,3 +18805,18 @@ Noticed, not fixed
 - docReadHeld is not on contract.js's publish list, so a browser probe cannot ask it
   by name. Not a product fault (the Overview reads it bare in the same file) but it
   makes that reading undrivable from a test stage.
+## 22 Sep 2026 — merged to main, and the test number was taken
+
+"Merge to main." Main had moved by two commits while the stacked pop-up was being built (the runway on Home, and X-ray beside Plain English), so this was a merge and not a fast-forward.
+
+THE MERGE ITSELF WAS CLEAN — git reported no conflict on any of the five files both sides touched (BUGLOG, CLAUDE.md, MAP-HISTORY, index.html, js/i18n.js). Nothing functional overlaps: the runway is on Home, X-ray is on the Plain English column, and this branch only moved the New agreement pop-up.
+
+WHAT DID COLLIDE IS THE TEST NUMBER. Main's own new file is test/f363-the-runway.test.js and this branch had written test/f363-the-agreement-is-stacked-under-1280.test.js. Two different checks under one number, which is how a re-pointing note ends up naming the wrong file six weeks later. Main's landed first, so this one was renamed to f365 (f364 is X-ray's) and every reference re-pointed with it: the file's own header and its nine section names, the two mentions in CLAUDE.md and the two in MAP-HISTORY — each read out of ITS OWN SECTION, never by a blind sweep, because the same string belongs to the runway five hundred lines above.
+
+Verified on the merged tree, not assumed: lint 0 errors; f365, f363 (the runway), f364, f345, f360 and f148 all green together; new-agreement-verify 38/38 and main's own runway-and-xray-verify 33/33 in a real browser.
+
+Noticed, not fixed:
+- f277 (1) and f277 (10) — the Plain English switch's "no ring, no band" claim and "the layer is a white sheet" — fail on the merged tree. PROVED PRE-EXISTING in a worktree at unmodified origin/main, where the same two claims fail and the other 121 pass. They arrived with the X-ray commits and belong to whoever owns that change.
+- paper-beside-questions-verify 7c/7g still fail identically on both sides. Unchanged from earlier entries.
+
+Gates: 8,790 tests, 2 failed and both proved red at origin/main. Lint 0 errors.
