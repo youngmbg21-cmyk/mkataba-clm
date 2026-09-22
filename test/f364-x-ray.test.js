@@ -134,13 +134,19 @@ describe('f364 (3) placement is certainty about one clause', () => {
   test('and placement is containment, not overlap', () => {
     assert.ok(/_xrNorm\(rowText\)\.indexOf\(q\)>=0/.test(region('docXrayPlace')));
   });
+  /* RE-POINTED IN PLACE 22 Sep 2026 (item D): the four sources are read by
+     named helpers the clause marks AND the contract-level block share, so the
+     claims are asked of those helpers. The route answers 'aligned', which the
+     old test never named — a matching verdict was being drawn amber. */
   test('a playbook verdict that MATCHES is not a mark', () => {
-    assert.ok(/if\(!v\|\|String\(v\.status\|\|''\)==='ok'\) return;/.test(region('docXrayMarks')));
+    assert.ok(/const _xrPbOpen = v => !!v && !\/\^\(ok\|aligned\)\$\//.test(CODE),
+      "both spellings of a match — 'ok' and the route's own 'aligned' — are refused");
+    assert.ok(/_xrVerdicts\(c\)\.forEach/.test(region('docXrayMarks')));
   });
   test('the scan reading is borrowed whole, dismissals and all', () => {
-    const f = region('docXrayMarks');
-    assert.ok(/window\.openFindings/.test(f), "the scan's own not-dismissed rule");
-    assert.ok(/window\.findingQuote\?findingQuote\(f\)/.test(f), "and its own reading of the quote");
+    assert.ok(/window\.openFindings/.test(region('_xrFinds')), "the scan's own not-dismissed rule");
+    assert.ok(/window\.findingQuote\?findingQuote\(f\)/.test(CODE), "and its own reading of the quote");
+    assert.ok(/_xrFinds\(c\)\.forEach/.test(region('docXrayMarks')));
   });
   /* RE-POINTED IN PLACE 22 Sep 2026 (Young: Format A, three grades). The claim
      is unchanged — a clause wears its worst mark, never its first — but the
@@ -413,16 +419,23 @@ describe('f364 (9) Format A', () => {
   test('the brief’s watchouts are marks, placed by the SAME containment', () => {
     const marks = region('docXrayMarks');
     assert.ok(/docXrayBriefWatch\(c\)\.forEach/.test(marks), 'the watchouts are read');
-    assert.ok(/docXrayPlace\(row\.text,w\.quote\)/.test(marks),
+    assert.ok(/docXrayPlace\(txt,w\.quote\)/.test(marks) && /const txt=docXrayRowText\(row\)/.test(marks),
       'and placed by the quote they carry — no looser reading is allowed in');
-    assert.ok(/tag:i18t\('xr_m_brief'\)/.test(marks), 'each naming the brief as its source');
+    /* The mark's shape lives in ONE builder the clause list and the
+       contract-level block share (22 Sep 2026), so the source tag is asked of it. */
+    assert.ok(/_xrBriefMark\(w\)/.test(marks) && /const _xrBriefMark = w => \(\{[^)]*tag:i18t\('xr_m_brief'\)/.test(CODE),
+      'each naming the brief as its source');
   });
-  test('[wall] the UNUSUAL list is not read by the clause marks', () => {
+  /* REVERSED IN PLACE 22 Sep 2026 (item G, Young's go): the brief now asks
+     for a quote on every unusual term, so one that CARRIES a quote is placed by
+     exactly the watchouts' containment. What stays a wall is the guess: an
+     unusual term with no quote is never matched by its words. */
+  test('[wall] an UNUSUAL term is placed only by its own quote, never its words', () => {
     const marks = region('docXrayMarks');
-    assert.ok(!/unusual/i.test(marks),
-      'it carries a sentence and no wording, so no clause can honestly claim it — ' +
-      'matching it by its words would be the product guessing');
-    assert.ok(/d\.unusual/.test(region('docXrayWide')), 'it is said about the whole contract instead');
+    assert.ok(/docXrayBriefOdd\(c\)\.forEach\(u=>\{ if\(docXrayPlace\(txt,u\.quote\)\)/.test(marks),
+      'the same containment, on the quote it carries');
+    assert.ok(!/u\.say\)\)/.test(marks), 'never on the sentence');
+    assert.ok(/docXrayBriefOdd\(c\)\.forEach/.test(region('docXrayWide')), 'and said about the whole contract where it lands nowhere');
   });
   test('docXrayBriefWatch is the ONE reading of that list', () => {
     assert.ok(/function docXrayBriefWatch\(c\)/.test(CODE), 'it exists');
@@ -431,9 +444,10 @@ describe('f364 (9) Format A', () => {
     const askers = (CODE.match(/docXrayBriefWatch\(c\)\./g) || []).length;
     assert.equal(askers, 2, 'the clause marks and the contract-level block, and nothing else');
     const w = region('docXrayWide');
-    assert.ok(/if\(landed\(w\.quote\)\)\s*return;/.test(w),
+    assert.ok(/if\(!landed\(w\.quote\)\)/.test(w),
       'a watchout that landed on its clause is said there, not twice');
-    assert.ok(/grade:'steel'/.test(w), 'and an unusual term is worth knowing, not a warning');
+    assert.ok(/_xrOddMark\(u\)/.test(w) && /const _xrOddMark = u => \(\{[^)]*grade:'steel'/.test(CODE),
+      'and an unusual term is worth knowing, not a warning');
   });
 
   /* ---- one builder for a mark ---- */

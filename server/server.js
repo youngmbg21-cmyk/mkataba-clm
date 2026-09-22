@@ -5665,18 +5665,30 @@ app.post('/api/ai/brief', auth, editor, rlAiDeep, aiFeature('brief'), aiBudgetGu
           value: { type: 'string', description: 'What is paid, with the currency exactly as written.' },
           paymentTerms: { type: 'string', description: 'When and how payment falls due.' },
         } },
+        /* ---- EVERY CONCERN CARRIES ITS REASON, AND ITS WORDING (Young ruled
+           22 Sep 2026) ----
+           `why` is the one plain sentence the X-ray prints under each concern
+           as "Why it matters", and an unusual term now carries a verbatim
+           quote like a watchout so it can be placed on its own clause rather
+           than only said about the whole agreement. Older briefs hold a bare
+           string per unusual term; every reader takes both shapes. */
         watchouts: { type: 'array', maxItems: 6, items: { type: 'object', properties: {
           point: { type: 'string', description: 'A clause that bites, in one plain sentence — what it means in practice.' },
+          why: { type: 'string', description: 'One plain sentence on why this is worth a look before signing — the practical consequence for the reader. Never advice on whether to sign.' },
           quote: { type: 'string', description: 'Short verbatim snippet it comes from.' + AI_QUOTE_RULE },
-        }, required: ['point'] } },
-        unusual: { type: 'array', maxItems: 4, items: { type: 'string' },
-          description: 'Terms unusual for this kind of contract, plainly put. Empty if none.' },
+        }, required: ['point', 'why'] } },
+        unusual: { type: 'array', maxItems: 4, items: { type: 'object', properties: {
+          point: { type: 'string', description: 'The unusual term, plainly put.' },
+          why: { type: 'string', description: 'One plain sentence on why it is unusual for this kind of contract and why that matters to the reader.' },
+          quote: { type: 'string', description: 'Short verbatim snippet of the wording it rests on, where there is one.' + AI_QUOTE_RULE },
+        }, required: ['point', 'why'] },
+          description: 'Terms unusual for this kind of contract. Empty if none.' },
       },
       required: ['overview', 'watchouts'],
     },
   };
   const J = orgJx();
-  const prompt = `You are explaining a contract to a business owner who has no lawyer, under ${J.adjective} law. Read the DOCUMENT and return a short cover memo via contract_brief. Plain, everyday sentences — any unavoidable legal term gets an immediate plain explanation. Only state what the wording actually says: never invent, never guess, and never propose new wording — this is a reading aid, not a redraft. Keep every monetary amount in the money section only. If something is unusual for this kind of contract, say so plainly; if nothing is, return an empty unusual list.\n\nDOCUMENT:\n${sent}`;
+  const prompt = `You are explaining a contract to a business owner who has no lawyer, under ${J.adjective} law. Read the DOCUMENT and return a short cover memo via contract_brief. Plain, everyday sentences — any unavoidable legal term gets an immediate plain explanation. Only state what the wording actually says: never invent, never guess, and never propose new wording — this is a reading aid, not a redraft. Keep every monetary amount in the money section only. If something is unusual for this kind of contract, say so plainly; if nothing is, return an empty unusual list. For every watchout and every unusual term, add one plain sentence saying WHY it is worth a look — the practical consequence for the reader, never whether to sign — and quote the wording it rests on where there is one.\n\nDOCUMENT:\n${sent}`;
   try {
     /* ---- ROOM FOR THE ANSWER THIS SCHEMA ASKS FOR ---- (owner-reported 10 Sep 2026)
        "The brief is written and readable; refresh and the card is back to Not
@@ -5692,13 +5704,17 @@ app.post('/api/ai/brief', auth, editor, rlAiDeep, aiFeature('brief'), aiBudgetGu
        ADVISORY, not a cap: this codebase MEASURED the obligations reader
        returning 40 items against a stated 20, so the list halves are budgeted
        at double. That is ~2,650, and 4,000 leaves the wrapper room on top.
+       22 SEP 2026: every watchout and unusual term gained a `why` sentence
+       (~40 each) and each unusual term a quote (~150) — about 1,000 more at
+       face value, ~2,000 doubled — so the ceiling moved to 6,000 by the same
+       arithmetic.
 
        OUTPUT IS BILLED AS USED, so headroom that is not needed costs nothing;
        an answer cut off costs the whole answer. The obligations reader learned
        exactly this and its ceiling is pinned to its own schema for the same
        reason — see f280, which pins this one to the two maxItems above rather
        than to the number, so the two cannot drift. */
-    const resp = await anthropicMessages(key, 'deep', { max_tokens: 4000, tools: [tool], tool_choice: { type: 'tool', name: 'contract_brief' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'brief', who: aiWho(req) });
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 6000, tools: [tool], tool_choice: { type: 'tool', name: 'contract_brief' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'brief', who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });

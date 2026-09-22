@@ -481,6 +481,34 @@ function docxNumberWalker(numbering){
    also mark any style with an outlineLvl. Both are read, because a contract
    drafted from a firm's own template regularly uses a style called something
    else entirely with the outline level set. */
+/* ---- DOES A HEADING-STYLED PARAGRAPH READ AS WORDING? ----
+   Three signs, each one a fact about the paragraph and none a guess at what
+   it is about:
+   1. A RUN-IN TITLE: the paragraph opens in bold and carries ordinary
+      (not bold) words after it — the drafter's own "Title. Wording…" shape.
+   2. IT ENDS LIKE A SENTENCE OR A LIST ITEM (. ; : , or "; and" / "; or")
+      and has at least DOCX_HEAD_PUNCT_MIN words — a title does not end in punctuation, and
+      "1. Definitions." stays a heading because it is too short to be wording.
+   3. IT IS LONGER THAN DOCX_HEAD_MAX_WORDS — no title runs that long.
+   A short, unpunctuated heading ("TERM AND TERMINATION", "Testing phase")
+   is left a heading, which is what every other file already relied on. */
+const DOCX_HEAD_MAX_WORDS = 20;
+const DOCX_HEAD_PUNCT_MIN = 4;
+function docxStyledIsWording(html, text){
+  const t = String(text || '').replace(/\s+/g, ' ').trim();
+  if(!t) return false;
+  const words = t.split(' ').length;
+  if(words > DOCX_HEAD_MAX_WORDS) return true;
+  if(words >= DOCX_HEAD_PUNCT_MIN && /(?:[.;:,]|[;,]\s+(?:and|or))$/i.test(t)) return true;
+  const h = String(html || '').trim();
+  const lead = /^(?:<(?:strong|b)>[\s\S]*?<\/(?:strong|b)>\s*)+/.exec(h);
+  if(lead){
+    const rest = h.slice(lead[0].length).replace(/<[^>]+>/g, '').trim();
+    if(/[A-Za-z]{2,}/.test(rest) && rest.split(/\s+/).length >= 3) return true;
+  }
+  return false;
+}
+
 function docxHeadingStyles(xml){
   const out = {};
   if(!xml) return out;
@@ -864,6 +892,7 @@ function docxXmlToRich(xml, parts){
     const lead = mark ? esc(mark) : '';
     let lvl = heads[style] || (/^heading\s*([1-9])$/i.test(String(style).replace(/[-_]/g, ' '))
       ? Math.min(4, Number(/([1-9])/.exec(style)[1])) : 0);
+    const baseLvl = lvl;   /* the file's own level, before the title shift */
     if(lvl) lvl = Math.min(4, lvl + shift);
     else if(titleStyles.test(String(style))) lvl = 1;
     else if(subtitleStyles.test(String(style))) lvl = Math.min(4, 1 + shift);
@@ -886,6 +915,29 @@ function docxXmlToRich(xml, parts){
         lvl = guessedTitle ? 2 : 1;
         guessedTitle = true;
       }
+    }
+    /* ---- A HEADING STYLE IS NOT ALWAYS A HEADING (Young reported it 22 Sep
+       2026, off a Maersk SaaS agreement) ----
+       Lawyers' templates regularly number their CLAUSES with Word's own
+       "Heading 2" / "Heading 3" styles, because that is how Word numbers
+       them, and write the whole clause in that paragraph — a bold run-in
+       title and then the wording ("1.1 Non-exclusivity. This Agreement is…").
+       Read by style alone, every such clause became a heading: drawn big and
+       bold on the paper, and sent to the Plain English route as a title with
+       NOTHING under it, which the model is told to leave unread. MEASURED on
+       that file: 310 headings, 142 of them longer than 25 words.
+       docxStyledIsWording is the one reading; a paragraph it answers yes for
+       is a numbered paragraph, keeping ONLY the emphasis its own runs carry.
+       The text projection does not move by a character — only the markup. */
+    if(lvl && docxStyledIsWording(runs.html, runs.text)){
+      if(!shape.some(s => /^hati-lv-/.test(s))){
+        /* The file's own outline level, never the title shift: a clause in
+           "Heading 2" sits at the margin, "Heading 3" one step in. */
+        const step = Math.min(3, Math.max(0, (baseLvl || lvl) - 2));
+        if(step) shape.push('hati-lv-' + step);
+      }
+      report.demoted = (report.demoted || 0) + 1;
+      lvl = 0;
     }
     if(lvl){ report.headings++; out.push(`<h${lvl}>${lead}${runs.html}</h${lvl}>`); }
     else {
@@ -1923,12 +1975,12 @@ function docxExportTracked(html, opts = {}){
     comments: { placed: placed.length, left: (built.comments && built.comments.left) || 0 } };
 }
 
-if(typeof window!=='undefined') Object.assign(window,{DOCX_MIME,isWordDoc,docxExtract,docxExtractRich,docxXmlToRich,docxXmlToText,docxNumbering,docxNumberWalker,docxStartOverrides,docxHeadingStyles,docxStyleNums,docxTopBlocks,docxRunsHtml,docxTableHtml,docxNumFormat,docxBulletMark,docxHtmlBlocks,docxHtmlTableRows,docxReadParts,DOCX_PARTS,docLineKind,docClausePrefix,
+if(typeof window!=='undefined') Object.assign(window,{docxStyledIsWording,DOCX_MIME,isWordDoc,docxExtract,docxExtractRich,docxXmlToRich,docxXmlToText,docxNumbering,docxNumberWalker,docxStartOverrides,docxHeadingStyles,docxStyleNums,docxTopBlocks,docxRunsHtml,docxTableHtml,docxNumFormat,docxBulletMark,docxHtmlBlocks,docxHtmlTableRows,docxReadParts,DOCX_PARTS,docLineKind,docClausePrefix,
   docTextIsRunOn,docBreakRunOn,docBlocksFromText,docRichFromText,docLineWraps,DOC_FURNITURE,DOC_BULLET,DOC_LABEL,DOC_NUMBERED,
   docxStripUiBadges,docxRunsFromHtml,docxTrackedXml,docxDocumentXml,docxExportTracked,docxZip,docxCrc32,
   docxComments,docxCommentQuote,docxCommentsXml,docxCommentsExtendedXml,docxCommentsPrepare,
   DOCX_UI_CLASSES,DOCX_UI_ID});
-if(typeof module!=='undefined'&&module.exports) module.exports={zipEntries,zipEntryBytes,inflateRawBytes,decodeXmlEntities,docxXmlToText,docxXmlToRich,docxExtract,docxExtractRich,docxNumbering,docxNumberWalker,docxStartOverrides,docxHeadingStyles,docxStyleNums,docxTopBlocks,docxRunsHtml,docxTableHtml,docxNumFormat,docxBulletMark,docxHtmlBlocks,docxHtmlTableRows,docxReadParts,DOCX_PARTS,docLineKind,docClausePrefix,
+if(typeof module!=='undefined'&&module.exports) module.exports={docxStyledIsWording,DOCX_HEAD_MAX_WORDS,DOCX_HEAD_PUNCT_MIN,zipEntries,zipEntryBytes,inflateRawBytes,decodeXmlEntities,docxXmlToText,docxXmlToRich,docxExtract,docxExtractRich,docxNumbering,docxNumberWalker,docxStartOverrides,docxHeadingStyles,docxStyleNums,docxTopBlocks,docxRunsHtml,docxTableHtml,docxNumFormat,docxBulletMark,docxHtmlBlocks,docxHtmlTableRows,docxReadParts,DOCX_PARTS,docLineKind,docClausePrefix,
   docTextIsRunOn,docBreakRunOn,docBlocksFromText,docRichFromText,docLineWraps,
   docxStripUiBadges,docxRunsFromHtml,docxTrackedXml,docxDocumentXml,docxExportTracked,docxZip,docxCrc32,
   docxComments,docxCommentQuote,docxCommentsXml,docxCommentsExtendedXml,docxCommentsPrepare,

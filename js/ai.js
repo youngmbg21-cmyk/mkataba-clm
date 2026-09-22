@@ -4158,11 +4158,21 @@ function renderBriefSection(c){
      knowing, not necessarily dangerous — so it takes the steel tone rather
      than a second amber. Two tones, two meanings; the app's own tokens, no
      new colour. */
+  /* EVERY CONCERN SAYS WHY (22 Sep 2026): the brief is asked for a reason
+     under each watchout and unusual term, printed as the X-ray prints it. An
+     unusual term is a bare string on every brief written before then and an
+     object after; both shapes are read, and a missing reason draws nothing. */
+  const whyLine=w=>w?`<div class="br-why"><b>${_aiEsc(i18t('xr_why'))}</b> ${briefMark(w)}</div>`:'';
   const wl=(d.watchouts||[]).map(w=>`<li class="br-item br-watch">
       <div class="br-point">${briefMark(w.point||'')}</div>
+      ${whyLine(w.why)}
       ${w.quote?`<div class="br-quote">“${briefMark(w.quote)}”</div>`:''}</li>`).join('');
-  const ul=(d.unusual||[]).filter(Boolean).map(u=>`<li class="br-item br-odd">
-      <div class="br-point">${briefMark(u)}</div></li>`).join('');
+  const ul=(d.unusual||[]).filter(Boolean).map(u=>{
+      const o=(typeof u==='object')?u:{point:String(u)};
+      return o.point?`<li class="br-item br-odd">
+      <div class="br-point">${briefMark(o.point)}</div>
+      ${whyLine(o.why)}
+      ${o.quote?`<div class="br-quote">“${briefMark(o.quote)}”</div>`:''}</li>`:''; }).join('');
   const head=(t,tone)=>`<h6 class="br-head br-head-${tone}"><span class="br-dot"></span>${t}</h6>`;
   host.innerHTML=`
     <style>
@@ -4185,6 +4195,8 @@ function renderBriefSection(c){
          and three tints in one panel would flatten the one that matters. */
       #brief-section .br-odd{background:var(--st-gray-bg);border-left:3px solid var(--st-gray-dot)}
       #brief-section .br-point{font-size:var(--t-body);line-height:1.6;font-weight:var(--w-body);color:var(--color-text)}
+      #brief-section .br-why{font-size:var(--t-meta);line-height:1.5;color:var(--color-neutral-600);margin-top:4px}
+      #brief-section .br-why b{color:var(--color-text);font-weight:var(--w-label)}
       #brief-section .br-quote{font-size:var(--t-meta);line-height:1.5;color:var(--color-neutral-600);
         font-style:italic;margin-top:5px}
       #brief-section .br-facts{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;

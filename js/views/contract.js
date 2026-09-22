@@ -4949,6 +4949,16 @@ function wireKtFolder(c){
    Home's own stamp — one fact, one state, so dismissing it in either place
    dismisses it in both. An always-there strip is furniture, and the readings
    themselves live on in their own cards for good. */
+/* ONE READING OF WHERE THE OBLIGATIONS TILE GOES (F, 22 Sep 2026): the list
+   this reading found, while the tab is empty and something is held; the tab
+   otherwise. Read raw — READING MUST NOT WRITE. */
+function obTileOpensReview(c){
+  const onTab=(c&&Array.isArray(c.obligations))?c.obligations.length:0;
+  if(onTab) return false;
+  let held=[];
+  try{ held=(typeof window.triageHeldObligations==='function')?(triageHeldObligations(c)||[]):[]; }catch(_){ held=[]; }
+  return held.length>0&&typeof window.runFindObligations==='function';
+}
 function ktTriageStripHtml(c){
   if(!c||typeof triageTiles!=='function'||typeof triageOf!=='function') return '';
   const t=triageOf(c); if(!t) return '';
@@ -5183,7 +5193,16 @@ function paintKtTriage(c){
        stands aside: that guard exists to stop a FAILURE being retried silently
        and paid for on every send, which is not what this is. */
     if(go==='retry'){ if(window.triageAndPaint) triageAndPaint(c,{again:true}); return; }
-    if(go==='oblig'){ if(window.roomGoTab) roomGoTab(c,'oblig'); return; }
+    /* ---- THE OBLIGATIONS DOOR FOLLOWS THE TAB (F, Young ruled 22 Sep 2026) ----
+       While the Obligations tab is EMPTY the press opens the list this reading
+       already found, to tick and add — the funnel runFindObligations, which
+       offers a held reading and never pays for a second one. Once the tab has
+       obligations the press goes straight there. Where nothing is held there is
+       nothing to offer and the tab is the destination either way. */
+    if(go==='oblig'){
+      if(obTileOpensReview(c)){ runFindObligations(c); return; }
+      if(window.roomGoTab) roomGoTab(c,'oblig'); return;
+    }
     /* Standards opens the playbook review in the same panel, by the same one
        act — see doorFor. */
     if(go==='playbook'){ openCheckPanel(c,'playbook'); return; }
@@ -6163,7 +6182,10 @@ function ktOverviewTermsHtml(c,opts={}){
   const peopleSec=people?sectionHtml({
     key:OV_KEY(c,'people'), title:i18t('ppl_title'), open:false,
     summary: ppl.length?i18tn('ppl_n',ppl.length,{n:ppl.length}):i18t('ppl_none'),
-    body:`<div id="kt-people">${people}</div>${ovAddressBookHtml(addrs)}`,
+    /* THE BODY TAKES THE CARD'S OWN INSET (I, Young reported it 22 Sep 2026:
+       the text and "+ Add someone" sat on the card's edge). sectionHtml leaves
+       the inset to its caller, and this caller never gave one. */
+    body:`<div class="sec-body"><div id="kt-people">${people}</div>${ovAddressBookHtml(addrs)}</div>`,
     acts: (ed&&anySigner)?`<button type="button" class="ui-btn" style="font-size:var(--t-label);padding:5px 11px" data-ov-signers="1">${
       esc(i18t('ppl_open_signers'))}</button>`:'' }):'';
   return deal+alsoSec+parties+record+peopleSec;
@@ -10081,12 +10103,35 @@ const _docReadWords=t=>String(t||'').replace(/\s+/g,' ').trim()
    either, which is honest — and the number then goes beside the reading rather
    than on a line of its own (see docReadPaint). */
 const _docReadBoldLead=el=>{
+  /* A WORD FILE SPLITS ONE BOLD TITLE INTO MANY RUNS — "Request ", "for ",
+     "provision of" … each its own <strong> — so the lead-in is the whole run
+     of adjacent bold siblings (_docReadBoldLeadLoose), and here it must also
+     START the paragraph. */
+  const bt=_docReadBoldLeadLoose(el);
+  if(!bt) return '';
+  const t=String(el&&el.textContent||'').replace(/\s+/g,' ').trim();
+  const at=t.indexOf(bt);
+  if(at<0) return '';
+  if(at<=2) return bt;
+  /* …or start straight after the clause's own number ("1.1 Title. …"), which
+     is how a numbered paragraph read out of Word carries its title. */
+  const num=_docReadHeadCut(t).num;
+  return (num&&t.indexOf(num)===0&&at<=num.length+3)?bt:'';
+};
+/* The same run of bold, found wherever it starts — a heading-shaped clause
+   carries its number in front of the bold ("1.1\tRequest for …"), which the
+   paragraph rule above refuses on purpose. */
+const _docReadBoldLeadLoose=el=>{
   let b=null;
   try{ b=el&&el.querySelector&&el.querySelector('strong,b'); }catch(_){}
   if(!b) return '';
-  const t=String(el&&el.textContent||'').replace(/\s+/g,' ').trim();
-  const bt=String(b.textContent||'').replace(/\s+/g,' ').trim();
-  return (bt&&t.indexOf(bt)>=0&&t.indexOf(bt)<=2)?bt.slice(0,140):'';
+  let raw=String(b.textContent||'');
+  for(let n=b.nextSibling;n;n=n.nextSibling){
+    if(n.nodeType===3){ if(/\S/.test(n.nodeValue||'')) break; raw+=n.nodeValue; continue; }
+    if(n.nodeType===1&&/^(STRONG|B)$/.test(n.tagName)){ raw+=n.textContent||''; continue; }
+    break;
+  }
+  return raw.replace(/\s+/g,' ').trim().slice(0,140);
 };
 const _docReadLead=el=>{
   const t=String(el&&el.textContent||'').replace(/\s+/g,' ').trim();
@@ -10165,7 +10210,7 @@ function docReadSheet(c){
     /* A MARK'S OWN TEXT IS THE NUMBER, NEVER THE WORDING, so its lead-in and
        its wording both come from what follows it — where a paragraph anchor's
        wording includes its own line. */
-    const heading=row.isHead?own:(row.isMark?_docReadWords(after):_docReadLead(row.el));
+    let heading=row.isHead?own:(row.isMark?_docReadWords(after):_docReadLead(row.el));
     /* ---- THE HEADING THE DRAFTER WROTE (Young ruled 10 Sep 2026: "dropping
        copilot headings makes sense") ----
        The edition is a translation of this contract, so its headings are this
@@ -10188,7 +10233,30 @@ function docReadSheet(c){
       const lead=row.isMark?_docReadBoldLead(leadEl):_docReadBoldLead(row.el);
       ownHead=lead?_docReadName(_docReadHeadCut(lead).rest):'';
     }
-    const text=(row.isHead||row.isMark)?after:(after?own+' '+after:own);
+    let text=(row.isHead||row.isMark)?after:(after?own+' '+after:own);
+    /* ---- A HEADING THAT IS A WHOLE CLAUSE IS READ AS ONE (22 Sep 2026) ----
+       A Word file whose clauses are set in a heading style arrives with the
+       whole clause inside an <h2> and nothing under it. Sent as a SECTION it
+       comes back unread by design, so the column stayed white beside it. The
+       Word reader no longer produces that shape (docxStyledIsWording), but
+       every contract uploaded before it still carries it — so a heading-only
+       row that is WORDING by the same measure is sent with its own words as
+       its text. One reading, borrowed through window where the reader is
+       loaded; the word count alone where it is not. */
+    if(row.isHead&&!text){
+      let wordy=false;
+      try{ wordy=(typeof window.docxStyledIsWording==='function')
+        ? window.docxStyledIsWording(row.el.innerHTML,own)
+        : own.split(' ').length>20; }catch(_){ wordy=false; }
+      /* The name to print is its bold run-in title or nothing, and the
+         pairing reading is its first words — never the whole clause twice. */
+      if(wordy){
+        text=own;
+        heading=_docReadWords(own);
+        const b=_docReadBoldLead(row.el)||_docReadBoldLeadLoose(row.el);
+        ownHead=b?_docReadName(_docReadHeadCut(b).rest||b):'';
+      }
+    }
     /* `cite` IS THE NUMBER TO SHOW, AND IT IS NOT `num` — DELIBERATELY.
        `num` is what docReadClauses sends to /api/ai/readings, and that route's
        cache key is a hash of exactly what it was sent. Fill `num` here and
@@ -10735,7 +10803,17 @@ function docReadPaint(c){
       esc(i18t('ct_read_plain'))}</span>${dutyN?`<button type="button" class="doc-read-duty" data-doc-read-duty
       aria-pressed="${dutyOn}" title="${esc(i18t('ct_duty_title'))}"><span class="dr-tick" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="#i-check"/></svg></span>${
       esc(i18tn('ct_duty_switch',dutyN,{n:dutyN}))}</button>`:''}${
-      moved?`<span class="doc-read-moved">${esc(i18tn('ct_read_moved',moved,{n:moved}))} <button type="button" class="ui-btn-plain" data-doc-read-again>${esc(i18t('ct_read_again'))}</button></span>`:''}</div>
+      moved?`<span class="doc-read-moved">${esc(i18tn('ct_read_moved',moved,{n:moved}))} <button type="button" class="ui-btn-plain" data-doc-read-again>${esc(i18t('ct_read_again'))}</button></span>`
+      /* ---- A SHORT READING IS SAID WHERE THE READER IS LOOKING (Young
+         reported it 22 Sep 2026: a long contract, the Plain English column
+         white from top to bottom, and no word of why) ----
+         The partial and cap lines are drawn at the FOOT of the edition, which
+         on a 60-page contract is a scroll of a thousand lines away. The head
+         is always on screen, so the same fact and the same press are said here
+         too — the moved line's own slot and its own door, never a band. */
+      :(partial||over)?`<span class="doc-read-moved doc-read-short">${esc(partial
+          ?i18tn('ct_read_partial',partial,{n:partial})
+          :i18tn('ct_read_over',over,{n:over}))} <button type="button" class="ui-btn-plain" data-doc-read-again>${esc(i18t('ct_read_again'))}</button></span>`:''}</div>
     <div class="doc-read-clip"><div id="doc-read-inner">${front.map((f,i)=>
       `<div class="doc-read-mirror" data-doc-read-front="${i}"${
         f.style?` style="${esc(f.style)}"`:''} aria-hidden="true">${
@@ -11270,73 +11348,92 @@ const XR_SEV_GRADE={ high:'ruby', med:'amber', low:'steel' };
 
 /* THE BRIEF'S OWN WATCHOUTS, READ ONCE AND SHAPED ONCE, so a clause's marks
    and the contract-level block cannot disagree about what is in the list. A
-   watchout with no sentence says nothing and is dropped. */
+   watchout with no sentence says nothing and is dropped. `why` is the brief's
+   own reason (asked for since 22 Sep 2026); a brief written before then has
+   none and the mark simply carries no reason line. */
 function docXrayBriefWatch(c){
   const d=(c&&c._brief&&c._brief.data)||null;
   const list=(d&&Array.isArray(d.watchouts))?d.watchouts:[];
-  return list.map(w=>({ say:String((w&&w.point)||'').trim(), quote:(w&&w.quote)||'' }))
+  return list.map(w=>({ say:String((w&&w.point)||'').trim(), quote:(w&&w.quote)||'',
+      why:String((w&&w.why)||'').trim() }))
     .filter(w=>!!w.say);
 }
-/* WHAT IS WORTH A LOOK ON THIS CLAUSE, from the three readings that carry a
+/* THE BRIEF'S UNUSUAL TERMS, in either shape: a bare sentence (every brief
+   written before 22 Sep 2026) or {point, quote, why}. One carrying a quote can
+   now be placed on its clause exactly as a watchout is. */
+function docXrayBriefOdd(c){
+  const d=(c&&c._brief&&c._brief.data)||null;
+  const list=(d&&Array.isArray(d.unusual))?d.unusual:[];
+  return list.map(u=>(u&&typeof u==='object')
+      ? { say:String(u.point||'').trim(), quote:u.quote||'', why:String(u.why||'').trim() }
+      : { say:String(u||'').trim(), quote:'', why:'' })
+    .filter(u=>!!u.say);
+}
+/* ---- A CLAUSE'S WORDS ARE ITS NAME AND ITS WORDING (C, 22 Sep 2026) ----
+   A quote was matched against the wording UNDER a heading only, so wherever a
+   Word file had put a whole clause inside its heading, nothing could ever
+   land on it — the map went grey and every concern fell to the contract-level
+   list. The heading is part of the clause and is read with it. */
+const docXrayRowText = row => row
+  ? ((row.headed&&row.heading&&String(row.text||'').indexOf(row.heading)<0)
+      ? row.heading+' '+String(row.text||'') : String(row.text||''))
+  : '';
+/* A PLAYBOOK VERDICT THAT MATCHES IS NOT A MARK. The route answers
+   'aligned'; older records and the rule-based pass have said 'ok'. */
+const _xrPbOpen = v => !!v && !/^(ok|aligned)$/.test(String(v.status||''));
+/* ONE SHAPE PER SOURCE, so a mark on a clause and the same concern in the
+   contract-level block are drawn from one builder and cannot drift. */
+const _xrScanMark = f => { const sev=String((f&&f.sev)||'');
+  return { k:'scan', grade:XR_SEV_GRADE[sev]||'amber', tag:i18t('xr_m_scan'),
+    lead:String((f&&f.title)||''), say:'', why:String((f&&f.why)||''), id:(f&&f.id)||'', sev }; };
+const _xrPbMark = v => ({ k:'pb', grade:'amber', tag:i18t('xr_m_pb'),
+    lead:String(v.category||''),
+    say:i18t(String(v.status)==='missing'?'xr_pb_missing':'xr_pb_departs'),
+    why:v.position?i18t('xr_pb_why',{pos:String(v.position)}):'' });
+const _xrBriefMark = w => ({ k:'brief', grade:'amber', tag:i18t('xr_m_brief'), lead:'', say:w.say, why:w.why||'' });
+const _xrOddMark = u => ({ k:'odd', grade:'steel', tag:i18t('xr_m_odd'), lead:'', say:u.say, why:u.why||'' });
+function _xrFinds(c){
+  try{ if(c&&c.scan&&window.openFindings) return openFindings(c)||[]; }catch(_){}
+  return [];
+}
+const _xrFindQuote = f => (window.findingQuote?findingQuote(f):(f&&f.quote)||'');
+const _xrVerdicts = c => ((c&&c.playbook&&Array.isArray(c.playbook.verdicts))?c.playbook.verdicts:[]).filter(_xrPbOpen);
+/* WHAT IS WORTH A LOOK ON THIS CLAUSE, from the four readings that carry a
    quote. Borrowed whole: openFindings is the scan's own "not dismissed" rule
-   and findingQuote its own reading of where a finding points; a watchout
-   arrives with the wording it rests on, so it places by exactly the
-   containment docXrayPlace already insists on and by nothing looser.
-
-   THE BRIEF'S "UNUSUAL" LIST IS NOT HERE, deliberately: it carries a sentence
-   and no wording at all, so there is no clause it can honestly be pinned to.
-   It is said about the whole contract instead -- see docXrayWide. */
+   and findingQuote its own reading of where a finding points; a watchout or an
+   unusual term arrives with the wording it rests on, so it places by exactly
+   the containment docXrayPlace already insists on and by nothing looser. */
 function docXrayMarks(c,row){
   const out=[];
-  let finds=[];
-  try{ if(c&&c.scan&&window.openFindings) finds=openFindings(c)||[]; }catch(_){ finds=[]; }
-  finds.forEach(f=>{
-    const q=(window.findingQuote?findingQuote(f):(f&&f.quote)||'');
-    if(!docXrayPlace(row.text,q)) return;
-    const sev=String((f&&f.sev)||'');
-    out.push({ k:'scan', grade:XR_SEV_GRADE[sev]||'amber', tag:i18t('xr_m_scan'),
-      lead:String((f&&f.title)||''), say:String((f&&f.why)||''), id:(f&&f.id)||'', sev });
-  });
-  const vs=(c&&c.playbook&&Array.isArray(c.playbook.verdicts))?c.playbook.verdicts:[];
-  vs.forEach(v=>{
-    if(!v||String(v.status||'')==='ok') return;      /* a match is not a mark */
-    if(!docXrayPlace(row.text,v.quote)) return;
-    out.push({ k:'pb', grade:'amber', tag:i18t('xr_m_pb'),
-      lead:String(v.category||''), say:String(v.position||'') });
-  });
-  docXrayBriefWatch(c).forEach(w=>{
-    if(!docXrayPlace(row.text,w.quote)) return;
-    out.push({ k:'brief', grade:'amber', tag:i18t('xr_m_brief'), lead:'', say:w.say });
-  });
+  const txt=docXrayRowText(row);
+  _xrFinds(c).forEach(f=>{ if(docXrayPlace(txt,_xrFindQuote(f))) out.push(_xrScanMark(f)); });
+  _xrVerdicts(c).forEach(v=>{ if(docXrayPlace(txt,v.quote)) out.push(_xrPbMark(v)); });
+  docXrayBriefWatch(c).forEach(w=>{ if(docXrayPlace(txt,w.quote)) out.push(_xrBriefMark(w)); });
+  docXrayBriefOdd(c).forEach(u=>{ if(docXrayPlace(txt,u.quote)) out.push(_xrOddMark(u)); });
   return out;
 }
 /* ---- WHAT IS SAID ABOUT THE WHOLE AGREEMENT (U1, the owner's pick) ----
 
-   Two kinds of thing land here. The brief's UNUSUAL terms, which carry a
-   sentence and no wording, so no clause can claim them. And any WATCHOUT
-   whose wording did not land on a clause -- the quote is optional in what
-   Copilot is asked for, and one the paper has since been redlined away from
-   will not place either.
+   Everything that could not be tied to one clause's wording lands here, from
+   EVERY source — never quietly dropped (D, Young reported it 22 Sep 2026: "the
+   X-ray is not adding risk scans to the things to watch out for"). A scan
+   finding or a playbook verdict whose quote did not land used to vanish,
+   while a brief item in the same position was said here; now all four are.
 
    THE ALTERNATIVE WAS TO MATCH THEM BY THEIR WORDS, and it is refused: that
    is the product guessing which clause a sentence is about, and a note beside
-   the wrong clause is worse than no note. An absence is stated, never guessed
-   -- which is why these are said HERE, in full, rather than quietly dropped. */
+   the wrong clause is worse than no note. An absence is stated, never guessed.
+   Worst first, so a red finding is never under a list of grey ones. */
 function docXrayWide(c,rows){
-  const d=(c&&c._brief&&c._brief.data)||null;
-  if(!d) return [];
   const out=[];
   const list=Array.isArray(rows)?rows:[];
-  const landed=q=>list.some(x=>x&&x.row&&docXrayPlace(x.row.text,q));
-  docXrayBriefWatch(c).forEach(w=>{
-    if(landed(w.quote)) return;             /* said on its own clause, not twice */
-    out.push({ k:'brief', grade:'amber', tag:i18t('xr_m_brief'), lead:'', say:w.say });
-  });
-  (Array.isArray(d.unusual)?d.unusual:[]).forEach(u=>{
-    const say=String(u||'').trim(); if(!say) return;
-    out.push({ k:'odd', grade:'steel', tag:i18t('xr_m_odd'), lead:'', say });
-  });
-  return out;
+  const landed=q=>list.some(x=>x&&x.row&&docXrayPlace(docXrayRowText(x.row),q));
+  _xrFinds(c).forEach(f=>{ if(!landed(_xrFindQuote(f))) out.push(_xrScanMark(f)); });
+  _xrVerdicts(c).forEach(v=>{ if(!landed(v.quote)) out.push(_xrPbMark(v)); });
+  docXrayBriefWatch(c).forEach(w=>{ if(!landed(w.quote)) out.push(_xrBriefMark(w)); });
+  docXrayBriefOdd(c).forEach(u=>{ if(!landed(u.quote)) out.push(_xrOddMark(u)); });
+  const rank=g=>{ const i=XR_GRADES.indexOf(g); return i<0?XR_GRADES.length:i; };
+  return out.map((m,i)=>({m,i})).sort((a,b)=>rank(a.m.grade)-rank(b.m.grade)||a.i-b.i).map(x=>x.m);
 }
 /* A CLAUSE WEARS ITS WORST MARK, NEVER ITS FIRST. Written as a walk down the
    rank rather than a chain of tests, so a grade added tomorrow is one entry in
@@ -11349,8 +11446,8 @@ const docXrayTone = marks =>
    hides whether this is a rule of yours or something the paper itself does. */
 const docXrayMarkHtml = m => `<div class="doc-xr-mark is-${esc(m.grade||'amber')}">
     <span class="doc-xr-mk">${esc(m.tag||'')}</span>
-    <span>${m.lead?`<b>${esc(m.lead)}</b>`:''}${m.lead&&m.say?' \u2014 ':''}${
-      m.say?esc(m.say):''}</span></div>`;
+    <span class="doc-xr-mt"><span>${m.lead?`<b>${esc(m.lead)}</b>`:''}${m.lead&&m.say?' \u2014 ':''}${
+      m.say?esc(m.say):''}</span>${m.why?`<span class="doc-xr-why"><b>${esc(i18t('xr_why'))}</b> ${esc(m.why)}</span>`:''}</span></div>`;
 
 /* THE CLAUSE'S OWN ID, where the paper carries one. A stored rich body has
    its clauses stamped; template paper does not, and on that paper the ladder
@@ -11367,14 +11464,16 @@ function docXrayRows(c){
   const rows=(typeof docReadSheet==='function')?docReadSheet(c):[];
   const out=rows.map((r,i)=>{
     const marks=docXrayMarks(c,r);
-    return { i, el:r.el, row:r, words:_xrWords(r.text), marks, tone:docXrayTone(marks),
-      name:String(r.ownHead||'').trim(), cite:String(r.cite||''), sep:String(r.sep||'') };
+    return { i, el:r.el, row:r, words:_xrWords(docXrayRowText(r)), marks, tone:docXrayTone(marks),
+      name:String(r.ownHead||'').trim(),
+      /* a numbered paragraph carries its number on `num`, a heading on `cite` */
+      cite:String(r.cite||r.num||''), sep:String(r.sep||'') };
   });
   const total=out.reduce((a,x)=>a+x.words,0)||1;
   out.forEach(x=>{ x.share=Math.round(x.words/total*100); });
   return out;
 }
-const docXrayLabel = x => ((x.cite?x.cite+(x.sep||'.')+' ':'')+(x.name||i18t('xr_unnamed'))).trim();
+const docXrayLabel = x => ((x.cite?x.cite+(x.sep||(/\./.test(x.cite)?'':'.'))+' ':'')+(x.name||i18t('xr_unnamed'))).trim();
 
 /* ---------- the map ---------- */
 function docXraySpineHtml(rows){
@@ -11385,8 +11484,8 @@ function docXraySpineHtml(rows){
       aria-label="${esc(docXrayLabel(x))}"><span class="doc-xr-dot"></span></button>`).join('');
 }
 /* ---------- the panel ---------- */
-function docXraySecHtml(k,body){
-  return `<div class="doc-xr-sec"><div class="doc-xr-k">${esc(k)}</div><div class="doc-xr-t">${body}</div></div>`;
+function docXraySecHtml(k,body,cls){
+  return `<div class="doc-xr-sec${cls?' '+cls:''}"><div class="doc-xr-k">${esc(k)}</div><div class="doc-xr-t">${body}</div></div>`;
 }
 function docXrayPanelHtml(c,rows){
   if(!rows.length) return `<div class="doc-xr-none">${esc(i18t('xr_no_clauses'))}</div>`;
@@ -11430,7 +11529,7 @@ function docXrayPanelHtml(c,rows){
     ${docXraySecHtml(i18t('xr_sec_look')+n(x.marks||[]), marks
       || `<span class="doc-xr-q">${esc(i18t('xr_look_none'))}</span>`)}
     ${wide.length?docXraySecHtml(i18t('xr_sec_wide')+n(wide),
-        wide.map(docXrayMarkHtml).join('')):''}
+        wide.map(docXrayMarkHtml).join(''),'is-wide'):''}
     ${rungs.length?docXraySecHtml(i18t('xr_sec_argued'),
         `<b>${esc(i18tn('xr_rungs',rungs.length,{n:rungs.length}))}</b>`):''}`;
 }
@@ -14389,7 +14488,7 @@ function distributionPanelHtml(c){
 
 
 Object.assign(window,{paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,
-  wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,paintKtTriage,triageAndPaint,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,DOC_SHARED_CLAUSES,DOC_SHARED_SKIP,docSharedSkip,docLibWording,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,KT_FIELD_HOME,KT_FOCUS_TRIES,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,docReadMark,docReadFlags,DOC_DUTY_HEAD,DOC_DUTY_VERB,DOC_DUTY_STATE,DOC_DUTY_RE,DOC_DUTY_KEY,docDutyOn,docDutySet,docDutyMark,docDutyCount,DOC_DUTY_PAPER_MAX,DOC_DUTY_PAPER_CLASS,DOC_DUTY_PAPER_SKIP,docDutyPaperClear,docDutyPaperPaint,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
+  wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,obTileOpensReview,paintKtTriage,triageAndPaint,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,DOC_SHARED_CLAUSES,DOC_SHARED_SKIP,docSharedSkip,docLibWording,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,KT_FIELD_HOME,KT_FOCUS_TRIES,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,docReadMark,docReadFlags,DOC_DUTY_HEAD,DOC_DUTY_VERB,DOC_DUTY_STATE,DOC_DUTY_RE,DOC_DUTY_KEY,docDutyOn,docDutySet,docDutyMark,docDutyCount,DOC_DUTY_PAPER_MAX,DOC_DUTY_PAPER_CLASS,DOC_DUTY_PAPER_SKIP,docDutyPaperClear,docDutyPaperPaint,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign
@@ -14427,7 +14526,7 @@ Object.assign(window,{paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,
   DOC_READ_KEY,DOC_READ_MIN_W,docReadFits,docReadOn,docReadSet,docReadItems,
   DOC_VIEW_MODES,docViewMode,docViewSet,docXrayOn,DOC_XRAY_SPINE_W,DOC_XRAY_SPINE_GAP,
   DOC_XRAY_QUOTE_MIN,docXrayPlace,docXrayMarks,docXrayTone,docXrayClauseId,docXrayRows,
-  XR_GRADES,XR_SEV_GRADE,docXrayBriefWatch,docXrayWide,docXrayMarkHtml,
+  XR_GRADES,XR_SEV_GRADE,docXrayBriefWatch,docXrayBriefOdd,docXrayRowText,docXrayWide,docXrayMarkHtml,
   docXrayLabel,docXraySpineHtml,docXrayPanelHtml,docXrayPaint,docXrayWire,
   docReadSheet,docReadClauses,docReadSig,docReadAnchors,docReadSwitchHtml,docReadPaint,docReadSync,
   docReadFront,docReadMirrorStyle,docReadMirrorToc,

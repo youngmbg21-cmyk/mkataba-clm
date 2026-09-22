@@ -18820,3 +18820,19 @@ Noticed, not fixed:
 - paper-beside-questions-verify 7c/7g still fail identically on both sides. Unchanged from earlier entries.
 
 Gates: 8,790 tests, 2 failed and both proved red at origin/main. Lint 0 errors.
+
+## 22 Sep 2026 — the uploaded contract, fixed (A to L)
+
+Built on the owner's "go ahead with A to L", over the drawing "HaTi — The Uploaded Contract, Fixed".
+- A: Word clauses set in heading styles (Heading 2 with a bold run-in title) were read as headings. docxStyledIsWording makes them numbered paragraphs; text byte-identical. On the owner's file 310 headings became 105.
+- B: Plain English sends a heading-only row that is wording WITH its words; a bold title split across Word runs is one lead-in; a short reading is said in the column head, not only at its foot.
+- C/D/E: the X-ray matches against a clause's name and wording; scan findings and playbook verdicts that land nowhere go to About this contract (they used to vanish); an 'aligned' verdict was drawn amber and is no mark now.
+- F: the obligations tile opens the found list while the tab is empty, else the tab.
+- G: the brief requires a "why" on every watchout and unusual term; unusual terms carry a quote; both shapes read.
+- H: About this contract shaded very light red.
+- I/J/K: Who else inset, What Copilot read head gap, Parties one line.
+
+Noticed, not fixed
+- f277 (1) and f277 (10) still red at origin/main (already logged). Left red.
+- upload-structure-verify 2a/2b red at origin/main too (the title counted as a fifth heading). Left red.
+- Some list items in the Maersk file (e.g. "Disputed invoices", "No suspension") arrive with no clause number; not checked whether Word numbers them. Not touched.

@@ -3627,6 +3627,10 @@
     border-right:0; border-bottom:0; font-family:inherit; color:inherit; width:100%; }
   .py-item{ display:block; }
   .py-rows > .py-item:first-child > .py-row{ border-top:0; }
+  /* ONE LINE UNDER THE HEAD, NOT TWO (K, Young reported it 22 Sep 2026): the
+     first row's rule sat 2px under the section head's own rule. `.py-item` is
+     gone, so the rule above no longer reaches the row it was written for. */
+  .py-rows > .py-row:first-child{ border-top:0; }
   /* THE NOTE HANGS UNDER THE NAME IT IS ABOUT, in the name column's own
      inset, and it reserves its line off the signing phase rather than off
      whether there is anything to say. */
@@ -3780,7 +3784,10 @@
      section on every stage it is drawn on. Borrowed shape: the register's own
      head weight and hairline, so a table inside a section reads like every
      other table in the product. */
-  .ov-reads{ width:100%; border-collapse:collapse; margin:0 0 4px; table-layout:fixed; }
+  /* THE HEAD ROW STANDS CLEAR OF THE CARD'S HEAD (J, Young reported it 22 Sep
+     2026: "too close to the line above it"): the same 14px every other card's
+     body starts with. */
+  .ov-reads{ width:100%; border-collapse:collapse; margin:14px 0 4px; table-layout:fixed; }
   /* ---- NO LINES RUNNING ACROSS THE CARD (Young ruled 21 Sep 2026) ----
      Five rows with a rule under each, inside a card that already has its own
      edge, drew six horizontals across one small table. The rows are spaced
@@ -5266,6 +5273,20 @@
      Amber is the base; `is-high` is STALE -- the grade is the class now. */
   .doc-xr-mark.is-ruby .doc-xr-mk{color:var(--st-ruby-fg);background:var(--st-ruby-bg);}
   .doc-xr-mark.is-steel .doc-xr-mk{color:var(--st-steel-fg);background:var(--st-steel-bg);}
+  /* A MARK IS ITS POINT OVER ITS REASON (G, 22 Sep 2026): every concern says
+     why it is worth a look, on its own line in the label shade. */
+  .doc-xr-mt{display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .doc-xr-why{color:var(--color-neutral-600);}
+  .doc-xr-why b{color:var(--color-text);font-weight:var(--w-label);}
+  /* ABOUT THIS CONTRACT IS SHADED A VERY LIGHT RED (H, Young ruled 22 Sep
+     2026): what could not be tied to one clause is still something to read
+     before signing, and the shade sets it apart from the clause's own list.
+     Mixed from the ruby wash and the surface, so the night theme answers. */
+  .doc-xr-sec.is-wide{margin-top:12px;padding:11px 14px;border:1px solid
+    color-mix(in srgb,var(--st-ruby-dot) 22%,var(--color-surface));border-radius:var(--radius-lg);
+    background:color-mix(in srgb,var(--st-ruby-bg) 55%,var(--color-surface));}
+  .doc-xr-sec.is-wide:last-child{border-bottom:1px solid
+    color-mix(in srgb,var(--st-ruby-dot) 22%,var(--color-surface));}
   .doc-xr-none{font-size:var(--t-meta);color:var(--color-neutral-500);}
 
   /* ══ THE RUNWAY — the decision card's one line of time (22 Sep 2026) ══
