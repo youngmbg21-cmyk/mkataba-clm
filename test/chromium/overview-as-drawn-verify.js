@@ -131,6 +131,52 @@ const SEC = (suffix) => {
     await page.click('#ws-tabs [data-ws-tab="terms"]');
     await page.waitForTimeout(1200);
 
+    /* ===== 0. THE ACTS WORK ON A FIRST PAINT, BEFORE ANYTHING FOLDS =====
+       Young, 22 September 2026: *"fix the edit button bug too"*. MEASURED at
+       the parent on a plain contract: `Edit these details` is drawn, visible
+       and hit-testable, and pressing it opens ZERO boxes — because #kt-ov-terms
+       filled itself from the room's template and renderKeyTerms, which is what
+       WIRES every door on that card, had never run. A fold repainted it and
+       the button came alive, which is why it had never been seen.
+
+       THIS SECTION IS FIRST ON PURPOSE. Every other section here folds
+       something before it presses, and a fold is exactly what used to hide
+       this. It presses once and presses again, so the card is left resting
+       and section 1 below measures what it always measured. */
+    const firstPress = await page.evaluate(async () => {
+      const b = document.querySelector('[data-ov-edit$=".deal"]');
+      if (!b) return { no: true, why: 'no edit act on this build' };
+      const before = document.querySelectorAll('[data-ktm],[data-kt]').length;
+      b.click(); await new Promise(z => setTimeout(z, 400));
+      const after = document.querySelectorAll('[data-ktm],[data-kt]').length;
+      document.querySelector('[data-ov-edit$=".deal"]').click();
+      await new Promise(z => setTimeout(z, 400));
+      return { before, after, rest: document.querySelectorAll('[data-ktm],[data-kt]').length };
+    });
+    await page.waitForTimeout(400);
+    check('0a Edit these details works on the very first press',
+      !firstPress.no && firstPress.before === 0 && firstPress.after > 0,
+      firstPress.no ? firstPress.why : firstPress.before + ' boxes before, ' + firstPress.after + ' after');
+    /* AND IT IS STILL A TOGGLE — the press that opened it closes it, so the
+       card is left exactly as this file found it. */
+    check('0b and pressing it again puts the card back',
+      !firstPress.no && firstPress.after > 0 && firstPress.rest === 0,
+      JSON.stringify(firstPress));
+    /* THE PARTIES DOOR IS ON THE SAME CARD and its listener sits on the HOST
+       this change now rewrites, so it is measured on a first paint too. */
+    const firstParty = await page.evaluate(async () => {
+      const add = document.querySelector('[data-py-add]');
+      if (!add) return { no: true, why: 'no add-a-party door' };
+      add.click(); await new Promise(z => setTimeout(z, 450));
+      const opened = !!document.getElementById('py-name');
+      const x = document.getElementById('py-cancel'); if (x) x.click();
+      await new Promise(z => setTimeout(z, 300));
+      return { opened };
+    });
+    check('0c [control] and so does + Add a party — green both sides, it is the door this change could most plausibly have broken',
+      !firstParty.no && firstParty.opened,
+      JSON.stringify(firstParty));
+
     /* ============ 1. THE RECORD IS THE ARTIFACT'S GRID ============ */
     await openSec(page, '.record');
     let rec = await page.evaluate(SEC, '.record');
@@ -639,13 +685,13 @@ const SEC = (suffix) => {
       cc.metadata.contractType = 'Master Services Agreement';
       persist(cc); if (window.flushSaves) await flushSaves(); }, c.id);
     await page.waitForTimeout(700);
-    /* THE FOLD IS THE REPAINT. `Edit these details` is wired inside
-       renderKeyTerms, which the section router calls on every fold, and the
-       grid has to be redrawn anyway to show the reading just put on the
-       record. Shut and open is the product's own door, pressed twice.
-       (MEASURED, and the same at the parent: on a first paint alone that act
-       is drawn and does nothing. Reported, not fixed — it is not this
-       request, and every earlier section here already folds.) */
+    /* THE FOLD IS THE REPAINT, and it is here because the grid has to be
+       redrawn to show the reading just put on the record — not because the
+       act needs waking. RE-POINTED IN PLACE 22 Sep 2026: this note used to
+       record that `Edit these details` did nothing on a first paint and was
+       reported rather than fixed. It is fixed (section 0 above is the
+       measurement), so the old sentence is gone rather than left standing as
+       a false note. Shut and open is the product's own door, pressed twice. */
     for (let i = 0; i < 2; i++) {
       await page.evaluate(() => { const h = document.querySelector('[data-sec-toggle$=".deal"]');
         if (h) h.click(); });

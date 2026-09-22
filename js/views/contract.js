@@ -4419,7 +4419,16 @@ function applyWsTabs(c){
   });
   if(_wsTab==='history') roomPaintHistory(c);
   if(_wsTab==='oblig' && window.roomPaintObligations) roomPaintObligations(c);
-  if(_wsTab==='terms'){ renderKeyTermsSide(c); if(window.wireKtRows) wireKtRows(c);
+  /* ---- THE OVERVIEW'S THREE HOSTS ARE PAINTED HERE, ALL THREE ----
+     renderKeyTermsSide fills #kt-ov-lead and #kt-side; renderKeyTerms fills
+     #kt-ov-terms between them and WIRES it (see the slot's own note). The
+     standalone wireKtRows call is GONE, not merely moved: renderKeyTerms calls
+     it itself, and wireKtRows adds a listener per row with no bound-once flag,
+     so leaving both would put two handlers on every row. renderKeyTerms runs
+     AFTER the side so its document-wide row sweep covers what the side drew.
+     wireKtParties binds on the HOST rather than its children and carries its
+     own flag, so the repaint underneath it cannot take it off. */
+  if(_wsTab==='terms'){ renderKeyTermsSide(c); renderKeyTerms(c);
     if(window.wireKtParties) wireKtParties(c); }
   /* The layer belongs to the Document tab alone, and the cards it covers have to
      be handed back on the way to any other tab (idea 7). */
@@ -9241,8 +9250,6 @@ function renderWorkspace(){
   const tmplLabel=c.template?((window.TEMPLATES&&TEMPLATES[c.template]&&TEMPLATES[c.template].name)||c.template):(isUpload(c)?'Uploaded document':'—');
   // Key terms stay editable until the seal binds them (sealString folds
   // counterparty/value/valueType in), and only for roles that can edit.
-  const ktEditable=!locked&&canEdit()&&!PORTAL_MODE;
-  const ktReadable=((isUpload(c)?(c.upload&&c.upload.extractedText):(window.docPlainText?docPlainText(c):''))||'').length>200;
   // Back goes to the Contracts page — or the stream drawer the room was opened
   // from, which is that page narrowed — and nowhere else (owner-asked 17 Aug
   // 2026; see goBack in wireRoomHead). The label says the destination.
@@ -9628,7 +9635,20 @@ function renderWorkspace(){
                carries `empty:hidden`, so an ordinary contract opens on The
                deal. Painted by renderKeyTermsSide. */}
         <div id="kt-ov-lead" class="empty:hidden"></div>
-        <div id="kt-ov-terms">${ktOverviewTermsHtml(c,{editable:ktEditable,readable:ktReadable})}</div>
+        ${''/* ---- A SLOT, NOT THE SECTIONS THEMSELVES (Young reported it 22 Sep
+               2026: the Edit button did nothing) ----
+               This host interpolated `ktOverviewTermsHtml` here while the two
+               beside it were empty slots their painter fills, and that one
+               difference was the whole defect: the markup arrived WITHOUT
+               renderKeyTerms ever running, and renderKeyTerms is where every
+               door on it is wired -- Edit these details, Move to another
+               stream, a marked field, the signers row, the people list, and
+               wireKeyTerms' own boxes. So the buttons drew, hit-tested and did
+               nothing until some fold repainted the card. Measured on a plain
+               contract: press Edit on a first paint, 0 boxes; fold once, 24.
+               It is the same answer as #kt-triage-slot above -- a slot and a
+               painter -- and it makes this host ONE WRITER rather than two. */}
+        <div id="kt-ov-terms"></div>
         ${''/* Related agreements and What Copilot read, shut on arrival:
                reference rather than work. Painted by renderKeyTermsSide. */}
         <div id="kt-side"></div>

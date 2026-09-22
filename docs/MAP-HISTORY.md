@@ -20912,3 +20912,130 @@ And f351 (5) pinned `f.type==='text')?'input':'change'` as a literal source
 line. Re-pointed in place to the relation; on the way, its first draft read the
 FIRST `const evt=` in `wireKeyTerms`, which belongs to the four fields with a
 home of their own. **PIN THE REGION** — the metadata sweep's own — paid again.
+
+## THE OVERVIEW'S ACTS WORK ON A FIRST PAINT (Young ruled 22 Sep 2026)
+
+Young, 22 September 2026: *"fix the edit button bug too."* The bug was the one
+line left in the previous run's BUGLOG under "Noticed, not fixed": on a first
+paint of the Overview, `Edit these details` did nothing.
+
+### WHAT WAS MEASURED
+
+Driven in a real browser on an ordinary contract — Under Review, a template,
+metadata on the record — arriving on the Overview tab for the first time:
+
+    FIRST PAINT:  edit act drawn: 1 · press -> 0 boxes
+    AFTER A FOLD: edit act drawn: 1 · press -> 24 boxes
+
+The button was drawn, visible, hit-testable and dead. Folding any section shut
+and open again — which is what every other check in that browser file happens
+to do before it presses anything — woke it. That is why it had gone unseen
+through every run since the Overview was built.
+
+Two further facts from the same measurement:
+
+    slots on first paint: { lead: 50, terms: 5827, side: 899, sideSecs: 2 }
+
+`#kt-ov-lead` and `#kt-side` were FILLED on a first paint — so the tab's own
+branch in `applyWsTabs` really does run on arrival, and `renderKeyTermsSide`
+really does paint its two hosts. Only the middle one was different.
+
+### THE CAUSE
+
+The Overview's stack is three hosts:
+
+    <div class="ov-stack" id="kt-overview">
+      <div id="kt-ov-lead" class="empty:hidden"></div>
+      <div id="kt-ov-terms">${ktOverviewTermsHtml(c, …)}</div>   <-- this one
+      <div id="kt-side"></div>
+    </div>
+
+Two empty slots and one that filled itself. And `renderKeyTerms` — the painter
+that would have filled the third — is where EVERY door on that card is wired:
+
+    wireKtRows(c); wireKeyTerms(c);            // the rows, and the boxes
+    host.querySelectorAll('[data-ov-edit]')    // Edit these details
+    participantsWire(peopleHost, …)            // the people list
+    host.querySelector('[data-ov-signers]')    // the signers row
+    host.querySelectorAll('[data-ov-fix]')     // a marked field's Fix
+    host.querySelectorAll('[data-ov-move-stream]')  // Move to another stream
+
+So the markup arrived and none of it was armed. The tab branch had ONE of
+those six patched in by hand —
+
+    if(_wsTab==='terms'){ renderKeyTermsSide(c); if(window.wireKtRows) wireKtRows(c);
+      if(window.wireKtParties) wireKtParties(c); }
+
+— which is the tell. Somebody had found the rows dead, armed that one by name,
+and the other five stayed dead. Only `Edit these details` is drawn in an OPEN
+section on an ordinary contract, so only `Edit these details` was reported.
+
+### THE FIX WAS ALREADY WRITTEN DOWN, TWELVE LINES ABOVE THE FAULT
+
+Immediately above the stack, in the same template:
+
+    ${''/* A SLOT, NOT THE STRIP ITSELF. The room is rendered BEFORE the
+           readings run … so interpolating the strip here draws nothing
+           and leaves no element for the paint to replace. The product's own
+           answer to exactly this is a slot and a painter (#ws-tabrow-end). */}
+    <div id="kt-triage-slot"></div>
+
+Same shape, same answer. `#kt-ov-terms` becomes an empty slot, `renderKeyTerms`
+fills it, and the tab branch calls it beside the sibling painter it already
+called. The host goes from TWO writers to ONE — the change removes a writer
+rather than adding a call.
+
+There is no flash: `applyWsTabs(c)` is the last statement of `wireWsTabs(c)`,
+so the template's write and the painter's run in the same synchronous tick and
+the browser never paints between them. Measured after the change, the host is
+5,827 characters on a first paint exactly as before.
+
+### THREE THINGS THAT HAD TO BE GOT RIGHT
+
+**THE STANDALONE `wireKtRows` CALL IS DELETED, NOT MOVED.** `renderKeyTerms`
+calls it itself, and `wireKtRows` walks `[data-kt-row]` document-wide adding a
+listener per row **with no bound-once flag**. Leaving both calls on the same
+path would have put two handlers on every row — and the second handler on a
+`.kt-field` blur writes the record a second time.
+
+**ORDER IS LOAD-BEARING.** The side is painted first and the middle second, so
+the painter's document-wide row sweep covers whatever the side drew. Written
+the other way round, any row `renderKeyTermsSide` paints would be unwired.
+
+**`wireKtParties` SURVIVES THE REPAINT BY CONSTRUCTION.** It is delegated on
+the HOST rather than on its children and carries `host.dataset.pyBound`, and
+`renderKeyTerms` writes the host's `innerHTML` rather than replacing the
+element — so the listener outlives every repaint and the flag still binds it
+once. Driven both ways rather than reasoned: `+ Add a party` opens the editor
+on a first paint and after a repaint.
+
+Two template locals (`ktEditable`, `ktReadable` at the room's scope) were
+orphaned by the change and went with it. `locked` beside them is still read,
+and the lint warning set was diffed against the parent and is identical.
+
+### THE CHECKS, AND WHERE THEY HAD TO GO
+
+`overview-as-drawn-verify` gained **section 0**, and its position is the claim:
+every other section in that file folds something before it presses, and a fold
+is precisely what used to hide this. It presses once, asserts boxes appeared,
+presses again to leave the card resting, and section 1 below measures exactly
+what it measured before. At the parent `0a` prints `0 boxes before, 0 after` —
+the owner's report, reproduced.
+
+`0b` (the press is still a toggle) was written ungated and PASSED at the
+parent — on the fault, because nothing had opened so nothing needed closing.
+It is gated on `after > 0` now. `0c` (the parties door) passes on both sides
+and is LABELLED a control: it is the door this change could most plausibly
+have broken, and its job is to say it did not.
+
+f362 pins the structure: the host is a slot, all three in the stack are slots,
+`ktOverviewTermsHtml` has exactly one caller, the branch paints the middle host
+after the side, `wireKtRows` is called once on that path, and the two `[wall]`
+claims that the painter still refuses a missing host and still arms all four
+acts. **Two order claims were written with a bare `indexOf` comparison and
+passed at the parent**, because an ABSENT call indexes at -1 and -1 sits before
+everything; both are gated on the call being present now.
+
+And the note in `overview-as-drawn-verify` section 14 that recorded this
+defect as reported-not-fixed was re-pointed in place. A note describing a
+defect that no longer exists is worse than no note.

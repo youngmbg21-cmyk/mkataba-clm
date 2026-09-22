@@ -18604,3 +18604,30 @@ Noticed, not fixed:
 - paper-beside-questions-verify 7c/7g and term-and-fields-verify still fail identically on this tree and at the parent. Unchanged from yesterday's entry.
 
 Gates: 8,699 tests, 0 failed. Lint 0 errors. f361 20/20 (18 red at the parent), overview-as-drawn 62/62 (its 7 new checks all red at the parent, printing <INPUT>), auto-triage 64/64, blanks-panel 37/37, refile-a-contract 26/26, five-images-two 26/26.
+
+## 22 Sep 2026 — the Overview's acts work on a first paint
+
+"fix the edit button bug too" — the one line left under Noticed, not fixed in the entry above.
+
+MEASURED before a line moved, in a real browser on an ordinary contract. Arrive on the Overview, press Edit these details: ZERO boxes. Fold any section shut and open again, press it again: 24. The button was drawn, visible and hit-testable the whole time, and every other check in that browser file happens to fold something before it presses, which is why this had never been seen.
+
+The same measurement gave the cause away. The Overview's stack is three hosts, and two of them — the renewal lead and the side sections — were already FILLED on that first paint. So the tab's own branch really does run on arrival and really does paint. Only the middle host was different: it filled itself from the room's template instead of being an empty slot, so the function that fills it never ran. And that function is where EVERY door on that card is wired — Edit these details, Move to another stream, a marked field's Fix, the signers row, the people list, and the boxes themselves. Six things unarmed; only one of them is drawn in an open section on an ordinary contract, so only one was reported.
+
+The tell was in the branch: it armed the ROWS by hand, by name, and nothing else. Somebody had found that one dead and patched it where they found it.
+
+THE FIX WAS ALREADY WRITTEN DOWN TWELVE LINES ABOVE THE FAULT. The strip above the stack carries a note calling itself "A SLOT, NOT THE STRIP ITSELF", with a painter, as the product's own answer to exactly this shape. So the host becomes a slot too and the tab branch paints it beside the sibling painter it already called — ONE writer where there were two. No flash: the paint runs in the same tick as the template.
+
+Three things had to be got right, each measured rather than reasoned:
+- THE HAND-PATCHED wireKtRows CALL IS DELETED, NOT MOVED. The painter calls it itself, and it adds a listener per row with no bound-once flag — two calls on one path would put two handlers on every row, and the second one writes the record again on blur.
+- ORDER. The side is painted first, so the painter's document-wide row sweep covers what the side drew.
+- THE PARTIES DOOR listens on the HOST, not its children, and the painter writes the host's innerHTML rather than replacing it — so it survives every repaint. Driven both ways to be sure, rather than argued.
+
+Found while building:
+- TWO OF MY OWN ORDER CLAIMS PASSED AT THE PARENT. A bare indexOf comparison reads -1 for an absent call, and -1 sits before everything, so "the side is painted first" was satisfied by a build that painted neither. Both are gated on the call being present now. The same shape as last week's lesson, in a new costume.
+- AND ONE BROWSER CLAIM PASSED ON THE FAULT: "pressing it again puts the card back" was true at the parent because nothing had opened, so nothing needed closing. Gated on something having opened.
+
+Noticed, not fixed:
+- seven-fixes-verify 5b, 5c, 6e and 6f fail identically on this tree and at the parent (three arrows where two are expected; the fill tile's older-note branch). Pre-existing, from a later ruling that added a third door, and nothing in this run touched them.
+- paper-beside-questions-verify 7c/7g and term-and-fields-verify still fail identically on both sides. Unchanged from earlier entries.
+
+Gates: 8,708 tests, 0 failed. Lint 0 errors and the warning set diffed against the parent as identical. f362 12/12 (7 red at the parent), overview-as-drawn 65/65 (section 0 red at the parent, printing "0 boxes before, 0 after"), auto-triage 64/64, blanks-panel 37/37, refile-a-contract 26/26, amendment-journey 52/52.
