@@ -10463,7 +10463,9 @@ function rlStartLivePoll(c){
            stopped moving under them never reads as a page that has stalled. */
         const fresh = await api('contracts/' + id);
         const i = state.contracts.findIndex(x => x && x.id === id);
-        if (i >= 0) state.contracts[i] = fresh;
+        /* A contract object swapped in place: same array, same length, so the
+           family index's O(1) guard cannot see it. Raise the stamp. */
+        if (i >= 0){ state.contracts[i] = fresh; if(window.familyIndexDirty) familyIndexDirty(); }
         if (rlEditorOpen()){
           _rlLivePending = true;
           if (window.toast) toast(i18t('ng_live_held_for_editor', { id }), 'warn');
