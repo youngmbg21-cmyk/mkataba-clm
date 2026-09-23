@@ -129,9 +129,13 @@ describe('f315 the whole contract is read', () => {
     assert.equal(r.status, 502, 'the reader is told why rather than shown an empty column');
   });
 
-  test('(5) the total ceiling is still a fact, and it is a dozen pages rather than one', () => {
+  /* RE-POINTED 23 Sep 2026 (Young: "hati seems to not be able to read a long
+     contract which is unacceptable"): a page also closes at READ_PAGE_CHARS of
+     wording, and the runaway guard is forty pages, not twelve. */
+  test('(5) the total ceiling is still a fact, and it is a runaway guard rather than a limit', () => {
     assert.match(SERVER, /const READ_PAGE = 60;/, 'the page is one call\'s own arithmetic');
-    assert.match(SERVER, /const READ_MAX_PAGES = 12;/);
+    assert.match(SERVER, /const READ_PAGE_CHARS = \d+;/, 'and it closes on its wording as well as its count');
+    assert.match(SERVER, /const READ_MAX_PAGES = 40;/);
     assert.match(SERVER, /const READ_MAX_CLAUSES = READ_PAGE \* READ_MAX_PAGES;/,
       'and the total is derived from the two, never typed twice');
     assert.match(SERVER, /const READ_AT_ONCE = 3;/, 'a few pages at a time, never all of them at once');

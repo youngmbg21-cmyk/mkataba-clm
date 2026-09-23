@@ -88,6 +88,9 @@ async function press(page, sel, what){
   await page.evaluate(() => window.setView('register'));
   await page.waitForTimeout(900);
   await page.evaluate(() => window.openNewMenu(document.querySelector('[data-page-new]')));
+  await page.waitForTimeout(500);
+  /* 23 Sep 2026: the button opens two doors first (openNewDoors); this presses Draft from HaTi. */
+  await page.click('[data-nd-door="draft"]').catch(() => {});
   await page.waitForTimeout(700);
 
   const menu = await page.evaluate(() => {

@@ -86,7 +86,9 @@ const READ = () => {
     await page.evaluate(async () => { try { await tplLibRefresh(); } catch (_) {} setView('register'); }); await pause(900);
 
     /* ===== 1. THE + BUTTON OPENS ONE SCREEN ===== */
-    await page.click('[data-page-new]'); await pause(900);
+    await page.click('[data-page-new]'); await pause(500);
+    /* 23 Sep 2026: the button opens two doors first (openNewDoors); this presses Draft from HaTi. */
+    await page.click('[data-nd-door="draft"]').catch(() => {}); await pause(900);
     let m = await page.evaluate(READ);
     await page.screenshot({ path: path.join(OUT, '01-popup-1440.png') });
     check('1a the + button opens the pop-up, not a menu', !m.err && !m.menuOpen, m.err || `menu open ${m.menuOpen}`);
@@ -157,16 +159,16 @@ const READ = () => {
 
     /* ===== 6. CANCEL AND ESCAPE ===== */
     await page.evaluate(() => { setView('register'); }); await pause(500);
-    await page.evaluate(() => openNewAgreement()); await pause(400);
+    await page.evaluate(() => openNewAgreement({})); await pause(400);
     await page.click('#wz-pick-cancel'); await pause(300);
     check('6a Cancel closes it', await page.evaluate(() => !document.getElementById('na-root')));
-    await page.evaluate(() => openNewAgreement()); await pause(400);
+    await page.evaluate(() => openNewAgreement({})); await pause(400);
     await page.keyboard.press('Escape'); await pause(300);
     check('6b so does Escape', await page.evaluate(() => !document.getElementById('na-root')));
 
     /* ===== 7. PAST THE WIDE LINE THE PAPER DRAWS BESIDE THE ANSWERS ===== */
     await page.setViewportSize({ width: 1700, height: 950 }); await pause(300);
-    await page.evaluate(() => openNewAgreement()); await pause(900);
+    await page.evaluate(() => openNewAgreement({})); await pause(900);
     m = await page.evaluate(READ);
     await page.screenshot({ path: path.join(OUT, '02-popup-1700.png') });
     check('7a at 1700 the frame is the same 1180 with three columns', !m.err && m.cols === 3 && m.panelW === 1180, m.err || `${m.cols} cols, ${m.panelW}px`);
@@ -177,7 +179,7 @@ const READ = () => {
        *"before you create the draft you should have the option to add the
        other participants."* SHUT BY DEFAULT — it is an offer, not a question
        — and nothing it collects is written anywhere until a record exists. */
-    await page.evaluate(() => openNewAgreement()); await pause(600);
+    await page.evaluate(() => openNewAgreement({})); await pause(600);
     const ppl = await page.evaluate(() => {
       const d = document.getElementById('na-people');
       if (!d) return null;
@@ -227,7 +229,7 @@ const READ = () => {
        empty page satisfies half of them. */
     await page.evaluate(() => closeModal()); await pause(200);
     await page.setViewportSize({ width: 1194, height: 834 }); await pause(300);
-    await page.evaluate(() => openNewAgreement()); await pause(900);
+    await page.evaluate(() => openNewAgreement({})); await pause(900);
     const D = () => {
       const q = s2 => document.querySelector(s2);
       const body = q('#na-body'), right = q('#na-right'), left = q('#wz-pick');
@@ -287,7 +289,7 @@ const READ = () => {
     /* CONTROL — the laptop shape is what it was, and the paper is its own
        column there rather than a child of #na-right. */
     await page.setViewportSize({ width: 1700, height: 950 }); await pause(300);
-    await page.evaluate(() => openNewAgreement()); await pause(900);
+    await page.evaluate(() => openNewAgreement({})); await pause(900);
     d = await page.evaluate(D);
     check('9h CONTROL — at 1700 the three columns come back and the paper is its own',
       !d.err && !d.stack && d.cols === 3 && d.paper && d.paperInRight === false,

@@ -247,6 +247,9 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
     await page.evaluate(() => setView('register'));
     await page.waitForTimeout(900);
     await page.evaluate(() => { const b = document.querySelector('.hm-primary'); if (b) b.click(); });
+    /* 23 Sep 2026: the button opens two doors first; this presses Draft from HaTi. */
+    await page.waitForTimeout(400);
+    await page.evaluate(() => { const d = document.querySelector('[data-nd-door="draft"]'); if (d) d.click(); });
     await page.waitForTimeout(1600);
     await page.screenshot({ path: path.join(OUT, '05-popup.png') });
     const pop = await page.evaluate(() => {

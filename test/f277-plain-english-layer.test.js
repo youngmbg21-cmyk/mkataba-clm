@@ -489,7 +489,11 @@ describe('f277 (6) the route', () => {
   });
 
   test('an answer cut short is handed over and NOT kept', async () => {
-    ai.script({ content: tu({ readings: [{ ...at(0), plain: 'Half an answer.' }] }), stopReason: 'max_tokens' });
+    /* RE-POINTED 23 Sep 2026: a page cut short is now asked again in two
+       halves, once — so the stand-in answers all three calls cut short, and
+       the claim is still that nothing half-finished is kept. */
+    const cut = { content: tu({ readings: [{ ...at(0), plain: 'Half an answer.' }] }), stopReason: 'max_tokens' };
+    ai.script(cut, cut, cut);
     const out = await W.admin.json('/api/ai/readings', { method: 'POST',
       body: { id: 'MK-PE-1', clauses: CLAUSES.slice(0, 2), force: true } });
     assert.equal(out.readings.truncated, true, 'the reader is told where they are looking');

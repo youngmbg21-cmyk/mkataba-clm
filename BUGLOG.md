@@ -18878,3 +18878,14 @@ Noticed, not fixed
 - The phone's share sheet shows no readiness list.
 - The server does not refuse a signature for a missing field; the other side's signature can complete a contract without any of this being asked again.
 - Once a negotiation has stored the wording, an empty template box is a dash in the text and is no longer counted (a limit of this build, said to the owner).
+
+## 23 Sep 2026 — four fixes off one long contract
+
+- The Overview's deal card printed the metadata reading's own call syntax (payment terms, governing law). Not from A–L; the reading was never checked. js/metaclean.js now checks it at the route, the browser door, and on the way in; the extract ceiling 1,500 → 3,000.
+- Plain English on a ~200,000-character contract: 60-clause pages overflowed one answer, and the whole edition was held to one call's character ceiling. Pages are sized by wording; the ceiling is gone; a cut page is re-asked in halves once; the head says when a reading could not finish.
+- The X-ray map scrolls; every block at least 16px; it follows the paper.
+- Draft new agreement opens two doors (Draft from HaTi / Upload a contract); the separate Upload button on Contracts is gone.
+
+Noticed, not fixed
+- The drafting screen still carries its own quiet "Upload it" link at the foot of the left pane — now a second way to the same dialog. Kept by the 21 Sep "nothing pressable went" ruling; the owner may want it removed.
+- f277 (1)/(10) and plain-english-verify 10c remain red at origin/main (already logged).

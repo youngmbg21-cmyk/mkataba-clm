@@ -5373,12 +5373,22 @@ ${String(text)}`;
     // Thorough mode reads the whole agreement chunk by chunk — judgement work
     // over partial context, so it runs on the deep tier.
     const tier = thorough ? 'deep' : 'fast';
-    const resp = await anthropicMessages(key, tier, { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'file_contract' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'extract', allowance: req.aiAllowance, who: aiWho(req) });
+    /* 1,500 was set when the answer had eleven fields. It has nineteen now,
+       each with a verbatim span beside it, and three are free text (21 Sep
+       2026) — at face value ~2,000 tokens, so 3,000 leaves the wrapper room.
+       Output is billed as used; an answer cut short costs the whole answer. */
+    const resp = await anthropicMessages(key, tier, { max_tokens: 3000, tools: [tool], tool_choice: { type: 'tool', name: 'file_contract' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'extract', allowance: req.aiAllowance, who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
-    const out = block.input || {};
+    /* THE ANSWER IS CHECKED BEFORE IT LEAVES (23 Sep 2026): a field carrying
+       the model's own call syntax is cut at the seam, an answer written under
+       another field's name is moved there where that field is empty, and an
+       answer that only says the contract is silent is filed as silence. One
+       reading, js/metaclean.js, shared with the browser. */
+    const cleaned = metaUnleak(block.input || {}, Object.keys(tool.input_schema.properties || {}));
+    const out = cleaned.meta || {};
     const sourceSpans = (out.sourceSpans && typeof out.sourceSpans === 'object') ? out.sourceSpans : null;
     delete out.sourceSpans;
     res.json({ metadata: out, sourceSpans, source: 'ai', tier, ...aiNotice(req, resp) });
@@ -5779,8 +5789,24 @@ app.post('/api/ai/brief', auth, editor, rlAiDeep, aiFeature('brief'), aiBudgetGu
    THE TOTAL CEILING IS STILL A FACT, never a silent trim: past it the count is
    said exactly as before, and it is set high enough that no ordinary agreement
    meets it. */
+/* ---- A PAGE IS SIZED BY ITS WORDS, NOT ONLY COUNTED BY ITS CLAUSES (Young
+   reported it 23 Sep 2026: a 200,000-character SaaS agreement came back with
+   "your input was shortened … the answer was cut short" and "Copilot found
+   nothing to say") ----
+   Sixty clauses of long commercial paper is ~60,000 characters, and a
+   translation of that does not fit in one answer's 8,000 tokens — the first
+   page came back cut short, was thrown away, and the reader was told there was
+   nothing to say. So a page now closes at READ_PAGE_CHARS of wording as well
+   as at READ_PAGE clauses, whichever comes first. The arithmetic: 14,000
+   characters is ~3,500 tokens in, and a plain translation runs to about the
+   same, which leaves 8,000 comfortable room. A single clause longer than that
+   is still one row and is sent on a page of its own.
+   AND THE WHOLE EDITION IS NO LONGER HELD TO ONE CALL'S CEILING: each page is
+   its own call, so the only limit on one call is the page. What remains is a
+   runaway guard, READ_MAX_PAGES pages, said as a count where it bites. */
 const READ_PAGE = 60;
-const READ_MAX_PAGES = 12;
+const READ_PAGE_CHARS = 14000;
+const READ_MAX_PAGES = 40;
 const READ_AT_ONCE = 3;
 const READ_MAX_CLAUSES = READ_PAGE * READ_MAX_PAGES;
 /* THE ROW'S ADDRESS, AND THE READING OF IT. `R7` is an opaque key no clause
@@ -5909,14 +5935,15 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
   const pageText = rows => rows.map((x, k) =>
     `[${readKeyOf(k)}] ${x.kind === 'section' ? 'SECTION' : 'CLAUSE'}${x.num ? ' ' + x.num : ''}\nheading: ${x.heading}\n${x.text}`
   ).join('\n\n');
-  const maxChars = aiDocChars();
-  const pages = []; let chars = 0, read = 0;
-  for (let at = 0; at < list.length; at += READ_PAGE) {
-    const rows = list.slice(at, at + READ_PAGE);
-    const body = pageText(rows);
-    if (pages.length && chars + body.length > maxChars) break;
-    pages.push({ base: at, rows, body });
-    chars += body.length; read += rows.length;
+  const pages = []; let read = 0;
+  for (let at = 0; at < list.length && pages.length < READ_MAX_PAGES; ) {
+    let end = at + 1;
+    while (end < list.length && end - at < READ_PAGE
+      && pageText(list.slice(at, end + 1)).length <= READ_PAGE_CHARS) end++;
+    const rows = list.slice(at, end);
+    pages.push({ base: at, rows, body: pageText(rows) });
+    read += rows.length;
+    at = end;
   }
   if (read < list.length) req.aiInputCapped = true;
   const sent = pages.map(p => p.body).join('\n\n');
@@ -5981,11 +6008,42 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
     /* A FEW AT A TIME, never all of them: a twelve-page contract fired in one
        breath is twelve deep calls against the provider's own rate limit, and
        one refusal there would cost the whole edition. */
-    const answers = new Array(pages.length).fill(null);
-    for (let at = 0; at < pages.length; at += READ_AT_ONCE) {
-      const slice = pages.slice(at, at + READ_AT_ONCE);
-      const got = await Promise.all(slice.map(askPage));
-      got.forEach((g, k) => { answers[at + k] = g; });
+    const askAll = async list => {
+      const got = new Array(list.length).fill(null);
+      for (let at = 0; at < list.length; at += READ_AT_ONCE) {
+        const res2 = await Promise.all(list.slice(at, at + READ_AT_ONCE).map(askPage));
+        res2.forEach((g, k) => { got[at + k] = g; });
+      }
+      return got;
+    };
+    let answers = await askAll(pages);
+    /* ---- A PAGE CUT SHORT IS ASKED AGAIN IN TWO HALVES, ONCE (23 Sep 2026) ----
+       A page whose answer ran out of room lost the clauses at its end. Rather
+       than keep the half and count the rest as unread, the page is split and
+       each half asked on its own — twice the room for the same words. Once
+       only: a half that is still cut short is kept as it is and said. */
+    const retry = [];
+    answers.forEach((g, n) => {
+      const pg = pages[n];
+      if (g && !g.err && g.resp && g.resp.truncated && pg.rows.length > 1) {
+        const mid = Math.ceil(pg.rows.length / 2);
+        const a = pg.rows.slice(0, mid), b = pg.rows.slice(mid);
+        retry.push({ n, halves: [
+          { base: pg.base, rows: a, body: pageText(a) },
+          { base: pg.base + mid, rows: b, body: pageText(b) }] });
+      }
+    });
+    if (retry.length) {
+      const halves = retry.flatMap(r => r.halves);
+      const got = await askAll(halves);
+      const keepPages = [], keepAnswers = [];
+      pages.forEach((pg, n) => {
+        const r = retry.find(x => x.n === n);
+        if (!r) { keepPages.push(pg); keepAnswers.push(answers[n]); return; }
+        r.halves.forEach(h => { keepPages.push(h); keepAnswers.push(got[halves.indexOf(h)]); });
+      });
+      pages.length = 0; pages.push(...keepPages);
+      answers = keepAnswers;
     }
     /* THE FIRST PAGE IS THE ONE THAT MAY REFUSE THE WHOLE PRESS: with nothing
        read at all there is no edition to hand over and the reader is told why.
@@ -13312,6 +13370,7 @@ const TPL_ORIGINS = ['upload', 'saved_from_contract', 'built_in_hati'];
    entry in that file, nowhere else. */
 const { FIELD_LIB: TPL_FIELD_LIB, fieldLibValidate } = require(path.join(__dirname, '..', 'js', 'fieldlib.js'));
 const { templateFormDocHtml, templateFormResolveDefaults } = require(path.join(__dirname, '..', 'js', 'templateform.js'));
+const { metaUnleak } = require(path.join(__dirname, '..', 'js', 'metaclean.js'));
 /* The design catalogue — the same file the browser renders from, so a
    designId this route accepts is a designId every surface can draw. */
 const { DOC_DESIGNS, DESIGN_LOGO_POSITIONS, normalizeDesignBranding,

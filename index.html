@@ -5228,12 +5228,17 @@
      the sheet beside it does not move by a pixel. It is only mounted where
      that grey is wide enough to hold it — see docXrayPaint. */
   .doc-xr-spine{position:absolute;left:0;top:0;bottom:0;z-index:2;
-    display:flex;flex-direction:column;gap:2px;padding:6px 4px;
-    background:var(--color-neutral-100);border-right:1px solid var(--color-divider);}
+    display:flex;flex-direction:column;gap:4px;padding:6px 4px;
+    background:var(--color-neutral-100);border-right:1px solid var(--color-divider);
+    /* THE MAP SCROLLS ON ITS OWN (23 Sep 2026) — every block keeps a height it
+       can be pressed at; the scrollbar is hidden because the strip is 28px and
+       the wheel and a drag both move it. */
+    overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;}
+  .doc-xr-spine::-webkit-scrollbar{display:none;}
   /* MEASURED on a real page: neutral-300 on the spine's neutral-100 ground is
      1.1:1 and the map read as an empty strip. The gray DOT token is what this
      product already uses for "present but quiet". */
-  .doc-xr-seg{position:relative;min-height:9px;padding:0;border:0;border-radius:2px;
+  .doc-xr-seg{position:relative;flex:none;min-height:9px;padding:0;border:0;border-radius:2px;
     background:var(--st-gray-dot);cursor:pointer;display:grid;place-items:center;}
   /* THREE GRADES, NEVER FOUR (Young ruled 22 Sep 2026). Ruby is "this could
      hurt you", amber "worth a look before you sign", steel "worth knowing,
@@ -5247,6 +5252,11 @@
   .doc-xr-seg.is-on{outline:2px solid var(--accent-ink);outline-offset:1px;}
   .doc-xr-seg:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:2px;}
   .doc-xr-dot{display:none;}
+  /* WHERE THE READER IS ON THE PAPER: a short accent rule beside the block of
+     the clause at the top of the sheet, which the map follows as the paper
+     scrolls. The picked clause keeps its own outline. */
+  .doc-xr-seg.is-here::before{content:'';position:absolute;left:-4px;top:2px;bottom:2px;
+    width:2px;border-radius:1px;background:var(--accent-ink);}
   /* The panel wears the reading column's own clothes: one card, its own
      scroller, the cards beneath it covered rather than rebuilt. */
   .doc-xr-panel{flex:1 1 auto;min-height:0;overflow-y:auto;padding-right:2px;
