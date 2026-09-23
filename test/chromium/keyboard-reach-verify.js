@@ -270,8 +270,12 @@ async function tabAround(page, sel, n = 25) {
   /* ---------- 11 · A READING IS NOT A WORKING POSTURE ---------- */
   {
     const inert = await page.evaluate(async () => {
-      const read = m => { const b = document.querySelector(`[data-rl-read="${m}"]`); if (b) b.click(); };
-      read('agreed');
+      /* RE-POINTED IN PLACE 23 Sep 2026 (Young: "Delete the As agreed and with
+         changes pages"). No screen offers a clean reading any more, so the
+         press is gone; the posture it tested is still built, and is reached
+         here the only way left — the reading's own setter and a repaint. */
+      if (typeof rlSetReadMode === 'function') rlSetReadMode('agreed');
+      if (typeof renderRedline === 'function') renderRedline();
       await new Promise(r => setTimeout(r, 700));
       const col = document.getElementById('rl-changes-col');
       if (!col) return { col: false };

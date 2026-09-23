@@ -49,7 +49,13 @@ const longBody = n => '<h1>SOFTWARE AS A SERVICE AGREEMENT</h1>' + Array.from({ 
     ...base, id: 'MK-LC1', name: 'SaaS agreement', value: 9000000, metadata: BROKEN,
     format: 'rich', redlineText: longBody(3) } } });
   await W.admin.json('/api/contracts/MK-LC2', { method: 'PUT', body: { baseVersion: 0, contract: {
-    ...base, id: 'MK-LC2', name: 'Long SaaS agreement', format: 'rich', redlineText: longBody(150) } } });
+    ...base, id: 'MK-LC2', name: 'Long SaaS agreement', format: 'rich', redlineText: longBody(150),
+    /* THE MAP DRAWS THE MARKED CLAUSES ONLY (Young ruled 23 Sep 2026: "just
+       keep the colored ones"), so the stage marks every clause — a playbook
+       departure quoting each one's own words — or there is no map to scroll. */
+    playbook: { at: '2026-09-22', verdicts: Array.from({ length: 150 }, (_, k) => ({
+      category: 'Service level', status: 'deviation', note: 'Softer than our standard.',
+      quote: `Clause ${k + 1}. The Supplier shall perform the Services` })) } } } });
 
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const errors = [];

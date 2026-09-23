@@ -397,6 +397,12 @@ const drive = async (page, fn, arg, fallback) => {
     await pause(1800);
     await drive(page, () => { const b = document.querySelector('[data-ws-tab="docs"]'); if (b) b.click(); }, undefined, null);
     await pause(1200);
+    /* RE-POINTED IN PLACE 23 Sep 2026 (Young: "the landing state should be on
+       contract view"). The Document tab now lands on Contract View after a
+       refresh, so Plain English is pressed again; what is remembered — and
+       what this claim is about — is the obligations switch inside it. */
+    await drive(page, () => { const b = document.querySelector('[data-doc-read="1"]'); if (b) b.click(); }, undefined, null);
+    await pause(1500);
     const backOn = await drive(page, () => {
       const btn = document.querySelector('[data-doc-read-duty]');
       return { pressed: btn ? btn.getAttribute('aria-pressed') : null,

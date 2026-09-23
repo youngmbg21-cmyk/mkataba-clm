@@ -223,8 +223,11 @@ const check = (name, pass, detail) => {
     });
     check('4c the panel is up and the edition is not', xr.layer && !xr.read);
     check('4d the cards beneath it are covered, not rebuilt', xr.right === 'hidden', xr.right);
-    check('4e the map is drawn', xr.spine && xr.segs > 1, xr.segs + ' segments');
-    check('4f and it takes grey, never paper', xr.overlap === false, 'overlap:' + xr.overlap);
+    /* REVERSED IN PLACE 23 Sep 2026 (Young: "Remove the grey dna strands and
+       just keep the colored ones that are of interest"). This record carries
+       no mark, so the map is not drawn at all; its geometry and its press are
+       measured in section 7, on a record that has marks. */
+    check('4e nothing marked, no map', !xr.spine && xr.segs === 0, xr.segs + ' segments');
     check('4g the panel names the clause it is about', !!(xr.head || '').trim(), xr.head);
     check('4h it says what is known, borrowed', xr.secs.length >= 2, JSON.stringify(xr.secs));
     /* THE CARD IS THE EDITION'S OWN, asked as a RELATION rather than as a
@@ -246,20 +249,7 @@ const check = (name, pass, detail) => {
       pressedXray && xr.bands === 0,
       (pressedXray ? '' : 'X-ray was never up · ') + 'found ' + xr.bands);
 
-    /* pressing a segment moves the panel to that clause and lights exactly one */
-    if (pressedXray && xr.segs > 2) {
-      await page.click('[data-xr-seg="2"]');
-      await page.waitForTimeout(400);
-      const picked = await page.evaluate(() => ({
-        head: (document.querySelector('.doc-xr-head h4') || {}).textContent,
-        lit: document.querySelectorAll('.doc-xr-seg.is-on').length,
-      }));
-      check('4j a segment picks its clause, and exactly one is lit',
-        picked.lit === 1 && picked.head !== xr.head, JSON.stringify(picked));
-    } else {
-      check('4j a segment picks its clause, and exactly one is lit', false,
-        'no map to press · segs:' + xr.segs);
-    }
+
 
     /* the way back hands the cards over, and the paper is where it was */
     await press('[data-doc-read="0"]', '4k2 there is a way back to the paper');
@@ -368,7 +358,11 @@ const check = (name, pass, detail) => {
       const rows = docXrayRows(state.contracts[0]);
       const i = rows.findIndex(r => r.tone === 'ruby');
       if (i >= 0) { const b = document.querySelector('[data-xr-seg="' + i + '"]'); if (b) b.click(); }
-      return { i, tones: rows.map(r => r.tone || '-'),
+      const sp = document.getElementById('doc-xr-spine'), cv = document.getElementById('doc-canvas');
+      const overlap = sp && cv ? sp.getBoundingClientRect().right > cv.getBoundingClientRect().left : null;
+      const lit = document.querySelectorAll('.doc-xr-seg.is-on').length;
+      const head = (document.querySelector('.doc-xr-head h4') || {}).textContent || '';
+      return { i, overlap, lit, head, tones: rows.map(r => r.tone || '-'),
         segs: [...document.querySelectorAll('.doc-xr-seg')].map(b =>
           (b.className.match(/is-(ruby|amber|steel)/) || [])[1] || '-'),
         _later: 1 };
@@ -391,9 +385,15 @@ const check = (name, pass, detail) => {
     check('7a the panel shows the reading that is ON the record',
       !!panel && /^XRPLAIN/.test(panel.plain),
       panel ? JSON.stringify(panel.plain) : 'X-ray was never pressed');
-    check('7b the map is GRADED — ruby, steel, and bare where nothing is said',
-      !!fa && fa.segs.indexOf('ruby') >= 0 && fa.segs.indexOf('steel') >= 0 && fa.segs.indexOf('-') >= 0,
-      fa ? fa.segs.join(',') : 'no map');
+    /* REVERSED IN PLACE 23 Sep 2026: the map draws the MARKED clauses only,
+       so "bare where nothing is said" is now "nothing bare on the map". */
+    check('7b the map is GRADED — ruby and steel, and nothing grey on it',
+      !!fa && fa.segs.indexOf('ruby') >= 0 && fa.segs.indexOf('steel') >= 0 && fa.segs.indexOf('-') < 0
+        && fa.segs.length === fa.tones.filter(t => t !== '-').length,
+      fa ? fa.segs.join(',') + ' of ' + fa.tones.join(',') : 'no map');
+    check('7b2 and it takes grey, never paper', !!fa && fa.overlap === false, fa ? 'overlap:' + fa.overlap : 'no map');
+    check('7b3 a block picks its clause, and exactly one is lit', !!fa && fa.i >= 0 && fa.lit === 1,
+      fa ? JSON.stringify({ i: fa.i, lit: fa.lit, head: fa.head }) : 'no map');
     check('7c every mark on the clause names its source AND wears its grade',
       !!panel && panel.look.length >= 2 && panel.look.every(m => m.grade !== '-' && m.tag.length > 1)
         && panel.look.some(m => m.grade === 'ruby') && panel.look.some(m => m.grade === 'amber'),
