@@ -19031,3 +19031,13 @@ Noticed, not fixed
 - The approval RULE steps (value, law, deviation rules) are still enforced only in the browser: the server never reads approvalChain. The personal approval is enforced on the server now; the rule steps are not.
 - approveContract still toasts "Step approved — next approver notified" for a rule step, and nothing notifies anybody.
 - The phone's approvals card prints "Requested by", "Waiting", "N days ago" and "since today" in hard-coded English, and its fallback toasts "Could not approve" / "Could not reject" too.
+
+## 23 Sep 2026 — the prototype's polish on the side panel, Home and the Overview tab
+
+On the owner's go. CSS only, one scoped block at the end of the main sheet (#side-nav, .hm-page, #kt-overview). The typeface and the room head were not touched. Lint 0 errors (214 warnings, as main). Full suite 9,031 tests, 2 failed: f277 (1) and (10), red on untouched main with the same checks. Browser files run: home-page 53/53, kpi-four 19/19, overview-as-drawn 65/65, nav-floats 67/67, pages-read-alike 52/52, laptops 21/21, keyboard-reach 40/40; contrast-verify 30/33 and white-band-and-tabs 18/21 carry exactly main's failures. theme-tokens: main already fails 14 screens; this change adds the side panel's new ink on all 20 and Home's shadows — audited, not re-recorded (refused in-session).
+
+Noticed, not fixed
+- f277 (1) and (10) are red on main ("the layer is a white sheet" and a count of 3 where 2 is expected).
+- theme-tokens-verify is stale on main for 14 screens (calendar, templates, contract, keyterms, signing, history, negotiate, both themes).
+- contrast-verify: the calendar's month count and the dark theme's parties chip "Negotiates and signs" (on a light accent-50 ground) fail AA on main.
+- white-band-and-tabs 5-ref / 5a: the Insights tabs are not found on main.

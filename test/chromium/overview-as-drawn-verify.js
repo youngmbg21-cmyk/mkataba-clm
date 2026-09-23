@@ -514,8 +514,12 @@ const SEC = (suffix) => {
       ty ? JSON.stringify(ty) : 'no section');
     check('8b the field NAME is not bold', !!ty && Number(ty.label) <= 400,
       ty ? 'label weight ' + ty.label : 'not measured');
-    check('8c CONTROL — and it keeps the product\'s own label treatment otherwise',
-      !!ty && ty.labelCase === 'uppercase', ty ? String(ty.labelCase) : 'not measured');
+    /* RE-POINTED 23 Sep 2026 (Young's go on the prototype "HaTi — Production
+       Polish"): the field name is a quiet SENTENCE-CASE label now, the
+       prototype's own field grid. This control used to pin the micro-caps
+       treatment of 20 Sep; the WEIGHT half of that ruling (8b) stands. */
+    check('8c CONTROL — the field name reads as a quiet sentence-case label',
+      !!ty && ty.labelCase === 'none', ty ? String(ty.labelCase) : 'not measured');
     check('8d CONTROL — an ANSWERED field stays bold', !!ty && Number(ty.answered) >= 600,
       ty ? 'value weight ' + ty.answered : 'not measured');
     check('8e CONTROL — and stays in the page\'s own ink, not the label\'s grey',
