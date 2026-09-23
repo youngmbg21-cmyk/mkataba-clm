@@ -68,7 +68,7 @@ describe('f360 (1) the picker is a rail of rows, and there is one builder', () =
     const fn = /function naCardTitle\(r\)\{[\s\S]*?\n\}/.exec(WZ)[0];
     assert.match(fn, /naCardSub\(r\)/, 'the sentence the face used to carry');
     for (const keep of ['id="dr-say"', 'id="dr-read"', 'id="dr-out"', 'id="wz-industry"',
-      'id="na-upload"', 'id="na-import"', 'id="na-people"', 'id="na-create"', 'id="na-skip"', 'id="wz-pick-cancel"'])
+      /* id="na-upload" left: REVERSED 23 Sep 2026 (Young: "remove the Upload it link") — upload is a door in front of this screen (openNewDoors) */ 'id="na-import"', 'id="na-people"', 'id="na-create"', 'id="na-skip"', 'id="wz-pick-cancel"'])
       assert.ok(NA.includes(keep), keep + ' still has a home');
   });
   test('[wall] the pop-up still mints nothing of its own', () => {

@@ -18889,3 +18889,7 @@ Noticed, not fixed
 Noticed, not fixed
 - The drafting screen still carries its own quiet "Upload it" link at the foot of the left pane — now a second way to the same dialog. Kept by the 21 Sep "nothing pressable went" ruling; the owner may want it removed.
 - f277 (1)/(10) and plain-english-verify 10c remain red at origin/main (already logged).
+
+## 23 Sep 2026 — the drafting screen's "Upload it" link removed
+
+On the owner's word. Its lead "Received a contract instead?" went with it (it named the upload, and would have sat in front of Import, a different job). Import contracts stays. f345, f360, new-agreement-verify 1f and draft-from-a-sentence-verify 1e reversed in place; all green.

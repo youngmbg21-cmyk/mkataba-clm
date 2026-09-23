@@ -844,11 +844,12 @@ function openNewAgreement(o){
                own ceiling (88vh) and opening the people panel pushed the body
                into scrolling at every window height tried. */}
         <div id="na-lists" class="na-picks">${listsHtml('')}</div>
-        ${''/* THE OTHER TWO WAYS IN, kept: a received document is not drafted
-               from a template, and neither is a back-catalogue. */}
-        <div class="na-more"><span>${i18t('na_received')}</span>
-          <button type="button" id="na-upload" class="ui-btn-plain">${i18t('na_upload')}</button>
-          <span aria-hidden="true">·</span>
+        ${''/* THE BACK-CATALOGUE'S WAY IN, kept. "Upload it" and its lead
+               "Received a contract instead?" are GONE (Young ruled 23 Sep 2026:
+               "remove the Upload it link") — upload is its own door in front of
+               this screen now (openNewDoors), and a second way to one dialog is
+               two doors. na_upload / na_received are inert in both books. */}
+        <div class="na-more">
           <button type="button" id="na-import" class="ui-btn-plain">${i18t('na_import')}</button></div>
       </div>
       ${''/* THE AGREEMENT SITS ON THE FAR SIDE OF THE QUESTIONS, not between
@@ -981,7 +982,6 @@ function openNewAgreement(o){
     _naClaimed=true; fn(); };
   document.getElementById('na-create')?.addEventListener('click', goCreate(()=>api.create()));
   document.getElementById('na-skip')?.addEventListener('click', goCreate(()=>api.skip()));
-  document.getElementById('na-upload')?.addEventListener('click', ()=>{ closeModal(); if(typeof openUploadModal==='function') openUploadModal(); });
   document.getElementById('na-import')?.addEventListener('click', ()=>{ closeModal(); if(typeof setView==='function') setView('migration'); });
   const say=document.getElementById('dr-say'), read=document.getElementById('dr-read');
   let _t=null;

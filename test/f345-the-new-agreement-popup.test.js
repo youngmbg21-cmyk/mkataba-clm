@@ -72,8 +72,9 @@ describe('f345 (2) nothing a person could press disappeared', () => {
     assert.equal((NA.match(/data-wz-\$\{r\.kind\}=/g) || []).length, 1, 'and there is only one of it');
     assert.match(NA, /b\.hasAttribute\('data-wz-lib'\)[\s\S]{0,200}data-wz-mine[\s\S]{0,200}data-wz-tid/,
       'and the handler still answers all three');
-    assert.match(NA, /id="na-upload"[\s\S]{0,300}id="na-import"/);
-    assert.match(NA, /getElementById\('na-upload'\)\?\.addEventListener\('click', \(\)=>\{ closeModal\(\); if\(typeof openUploadModal==='function'\) openUploadModal\(\); \}\)/);
+    /* REVERSED 23 Sep 2026 (Young: "remove the Upload it link") — upload is a door in front of this screen (openNewDoors), so the screen's own link is gone and Import stays. */
+    assert.ok(!/id="na-upload"/.test(NA) && !/getElementById\('na-upload'\)/.test(NA), 'no second way to the upload dialog');
+    assert.match(NA, /id="na-import"/);
     assert.match(NA, /getElementById\('na-import'\)\?\.addEventListener\('click', \(\)=>\{ closeModal\(\); if\(typeof setView==='function'\) setView\('migration'\); \}\)/);
   });
   test('the picker\'s search, streams and line of business survive on it', () => {
