@@ -100,7 +100,10 @@ describe('f324 (1) the button exists only while the table is narrowed', () => {
   test('1e the page header leaves a SLOT, and the register is what fills it', () => {
     /* Upload joined the row on 21 Sep 2026 (the redesign's second pass); the
        slot is still FIRST, left of both. */
-    assert.match(APP, /register:\s*\['cohort',\s*'upload',\s*'new'\]/, 'the slot is first, left of Upload and Draft new agreement');
+    /* RE-POINTED 23 Sep 2026: Upload is a door INSIDE Draft new agreement now
+       (Young: "i need upload to be inside draft new agreement"), so the row is
+       the slot and the one button — the slot still first. */
+    assert.match(APP, /register:\s*\['cohort',\s*'new'\]/, 'the slot is first, left of Draft new agreement');
     assert.match(APP, /kind==='cohort'\)\s*return\s*`<span id="reg-cohort-slot"><\/span>`/,
       'the header draws an empty slot and never the button itself');
     assert.match(REG, /function regPaintCohort\(\)/);
