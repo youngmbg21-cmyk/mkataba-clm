@@ -785,4 +785,16 @@ async function runMetaBackfill(opts={}){
   next();
 }
 
-Object.assign(window,{META_FIELDS,CONTRACT_TYPE_FALLBACK,contractTypeKinds,META_PICK_OTHER,metaPickOptions,RENEWAL_LABEL,metaEnName,metaEffDateOnto,termAdd,metaReadTerm,metaCheckTerm,TERM_TOLERANCE_DAYS,META_OPT_LABEL,metaOptLabel,unitDays,heuristicExtract,buildExtractionPayload,thoroughChunks,mergeThorough,THOROUGH_CHUNK,EXTRACT_TERMS,aiExtractMetadata,extractMetadata,openMetaReview,runMetaBackfill});
+/* ---- THE CONTRACT'S OWN GOVERNING LAW (fix 7, Young ruled 23 Sep 2026: "A,
+   show the governing law the contract names") ----
+   The negotiate page's paper printed "Jurisdiction: Sweden (EU/GDPR)" under the
+   title of a contract governed by Kenyan law, because it read the WORKSPACE'S
+   market — where this company sits — and presented it as a fact about the
+   paper. ONE reading of the paper's own choice: what the record says, which is
+   exactly what the Overview's Governing law cell prints, and nothing where the
+   record says nothing. The market is never a stand-in for it. */
+function contractGoverningLaw(c){
+  return String((c&&c.metadata&&c.metadata.governingLaw)||'').replace(/\s+/g,' ').trim();
+}
+
+Object.assign(window,{contractGoverningLaw,META_FIELDS,CONTRACT_TYPE_FALLBACK,contractTypeKinds,META_PICK_OTHER,metaPickOptions,RENEWAL_LABEL,metaEnName,metaEffDateOnto,termAdd,metaReadTerm,metaCheckTerm,TERM_TOLERANCE_DAYS,META_OPT_LABEL,metaOptLabel,unitDays,heuristicExtract,buildExtractionPayload,thoroughChunks,mergeThorough,THOROUGH_CHUNK,EXTRACT_TERMS,aiExtractMetadata,extractMetadata,openMetaReview,runMetaBackfill});

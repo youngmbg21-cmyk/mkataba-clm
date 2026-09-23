@@ -12119,7 +12119,6 @@ function rlWireResizer(host){
    The DATA is the engine's throughout — negoClauseList, negoChanges, the
    fingerprints and the ops diff — so nothing here invents a change, a decision
    or an id. */
-const RL_REGION = { SE: 'Sweden (EU/GDPR)', KE: 'Kenya (KICA/ODPC)' };
 function redlineDocHtml(c, opts = {}){
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   const clauses = (typeof negoClauseList === 'function') ? negoClauseList(c) : [];
@@ -12183,7 +12182,17 @@ function redlineDocHtml(c, opts = {}){
     } else orphanInserts.push(ch);
   }
   const tmpl = (window.TEMPLATES && c.template && TEMPLATES[c.template] && TEMPLATES[c.template].name) || 'Contract';
-  const region = RL_REGION[(window.state && state.region) || 'KE'] || RL_REGION.KE;
+  /* ---- THE LAW THIS PAPER CHOOSES, NEVER THE WORKSPACE'S MARKET (fix 7,
+     Young ruled 23 Sep 2026) ----
+     This line read "Jurisdiction:" off the workspace setting, so a Kenyan-law
+     contract opened in a Swedish workspace said Sweden. It says the contract's
+     OWN governing law now — contractGoverningLaw, the reading the Overview
+     prints — and where HaTi has not read one it says nothing about the law at
+     all rather than guess. */
+  const law = (typeof window.contractGoverningLaw === 'function')
+    ? contractGoverningLaw(c)
+    : String((c && c.metadata && c.metadata.governingLaw) || '').replace(/\s+/g, ' ').trim();
+  const lawHtml = law ? ` &middot; ${_ne(i18t('ng_paper_law', { law }))}` : '';
   const editable = !opts.readonly && opts.canEdit !== false;
   /* ---- THE CLAUSE PANEL'S BODIES ARE BUILT HERE AND RENDERED THERE ----
      A sink, not a second reading. Everything the panel needs — which changes
@@ -12759,13 +12768,13 @@ function redlineDocHtml(c, opts = {}){
       ${frontCl ? `<div class="rl-front-top">${frontPill}</div>` : ''}
       ${front.leadHtml ? `<div class="rl-paper-kick">${front.leadHtml}</div>` : ''}
       <h3 class="rl-paper-title">${_ne(front.titleText)}</h3>
-      ${front.leadHtml ? '' : `<p class="rl-paper-sub">${_ne(tmpl)} &middot; Jurisdiction: ${_ne(region)}</p>`}
+      ${front.leadHtml ? '' : `<p class="rl-paper-sub">${_ne(tmpl)}${lawHtml}</p>`}
     </header>
     ${front.bodyHtml ? `<div class="rl-recital" data-anchor="recital">${front.bodyHtml}</div>` : ''}${
       frontCl ? cpPush(frontCl, frontChs) : ''}`
     : `<header class="rl-paper-head">
       <h3 class="rl-paper-title">${_ne((c.name || tmpl)).toUpperCase()}</h3>
-      <p class="rl-paper-sub">${_ne(tmpl)} &middot; Jurisdiction: ${_ne(region)}</p>
+      <p class="rl-paper-sub">${_ne(tmpl)}${lawHtml}</p>
     </header>`;
   /* nego-doc is required, not cosmetic: the Copilot selection menu (the three
      NEGO_AI_ACTIONS — rephrase for advantage, explain legal risk, shorten
