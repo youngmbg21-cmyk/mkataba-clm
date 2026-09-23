@@ -18992,3 +18992,14 @@ Noticed, not fixed
 - On the negotiate page a final page banner with no clause after it is not drawn (it stays in the document).
 - Contracts read in Plain English before today carry no per-clause readings, so the first wording change after the deploy re-reads them once in full.
 - Still red on untouched main (unchanged here): f277 (1)/(10), plain-english-verify 10c, redline-verify 5, notes-two-rooms-verify (2 checks), competing-redlines-verify ("a legacy clause names BOTH asks"), and the 33 other browser files listed in the run.
+## 23 Sep 2026 — advice only: a contract signed in DocuSign, filed on its own record
+
+The owner asked how HaTi should handle third-party paper that is reviewed here and signed in DocuSign. Advice given, no code changed. The existing door for this is "Signed on paper instead? File the signed copy here" on the Signing tab (attachPaperSignature). Driven on an UPLOADED contract with the real functions (a stand-in only for statusChip, which draws the chip), it files the copy on the same record, keeps the history and the id — and:
+
+Noticed, not fixed
+- verifySeal on a received contract filed this way says "Seal MISMATCH — the record changed after signing": c.hash is the signed copy's own hash, verifySeal compares it with sha256(sealString(c)). On a drafted contract filed the same way it says "No frozen snapshot on this record". Every paper-filed record reports a false fault.
+- externalExecutionBlock was written for MIGRATED records: on a paper-filed contract it prints "MIGRATED" and "Signed before it was migrated into HaTi", "Filed into HaTi by —", and shows the file that ARRIVED (c.upload.fileName / fileHash), never the signed copy (c.execution.fileName / fileHash).
+- The evidence pack reads c.upload too (sealedFileSha256, uploadedFile) and says "migrated in as a record".
+- Nothing in js/ reads c.documents or c.execution.fileId, so the signed copy is stored and cannot be opened again from any screen.
+- attachPaperSignature asks only the negotiation; approvals, the check before signing and reading the brief are not asked, and the server's signing guards fire only on an added in-app signature.
+- f28 covers a drafted contract only and never presses Verify seal, which is why none of this is red.
