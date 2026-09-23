@@ -354,6 +354,69 @@ const BODY =
       !!(plain && plain.styled === false && plain.heads >= 3 && plain.segs === 2),
       plain ? `${plain.heads} headings, ${plain.segs} clauses, styled ${plain.styled}` : '—');
 
+    /* ---- 8. THE MAERSK SHAPE: THE NUMBERS AND THE SPACES ON THE PAPER
+       (Young reported it 23 Sep 2026; f370 is the reading) ----
+       A list that points at another list through a list style, and spaces
+       Word kept in runs of their own, bold or underlined. At the parent the
+       sheet printed "3.1" where the file says 3.3, and "Order.Unless". Read
+       off the PAINTED sheet, because that is where the owner saw it. */
+    try {
+      const W8 = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
+      const R8 = (t, o) => `<w:r>${o ? `<w:rPr>${o}</w:rPr>` : ''}<w:t xml:space="preserve">${t}</w:t></w:r>`;
+      const P8 = (st, id, lv, runs) => `<w:p><w:pPr>${st ? `<w:pStyle w:val="${st}"/>` : ''}<w:numPr><w:ilvl w:val="${lv}"/><w:numId w:val="${id}"/></w:numPr></w:pPr>${runs}</w:p>`;
+      const L8 = [0, 1, 2].map(i => `<w:lvl w:ilvl="${i}"><w:start w:val="1"/><w:numFmt w:val="decimal"/><w:lvlText w:val="${['%1', '%1.%2', '%1.%2.%3'][i]}"/></w:lvl>`).join('');
+      const H8 = n => `<w:style w:type="paragraph" w:styleId="Heading${n}"><w:name w:val="heading ${n}"/><w:pPr><w:outlineLvl w:val="${n - 1}"/></w:pPr></w:style>`;
+      const body8 = P8('Heading1', 1, 0, R8('DEFINITIONS')) + P8('Heading1', 1, 0, R8('SERVICES'))
+        + P8('Heading1', 1, 0, R8('TERM AND TERMINATION'))
+        + P8('Heading2', 2, 1, R8('Term of the Agreement.', '<w:b/>') + R8(' This Agreement shall commence on the Effective Date.'))
+        + P8('Heading2', 2, 1, R8('Term of Service Order.', '<w:b/>') + R8(' ', '<w:b/>') + R8('Unless otherwise specified, the term of any agreed') + R8(' ', '<w:u w:val="single"/>') + R8('Service Order(s) is six (6) months.'))
+        + P8('Heading2', 1, 1, R8('Extension of a Service Order.', '<w:b/>') + R8(' If relevant, Maersk may renew the Service Order(s).'))
+        + P8('Heading2', 1, 1, R8('Termination for convenience'))
+        + P8('Heading3', 2, 2, R8('The Agreement.', '<w:b/>') + R8(' Maersk may terminate the Agreement upon three (3) months notice.'));
+      const bytes8 = mkDocx(body8, { parts: [
+        { name: 'word/numbering.xml', data: `<?xml version="1.0"?><w:numbering ${W8}><w:abstractNum w:abstractNumId="10"><w:styleLink w:val="MaerskList"/>${L8}</w:abstractNum><w:abstractNum w:abstractNumId="11"><w:numStyleLink w:val="MaerskList"/></w:abstractNum><w:num w:numId="1"><w:abstractNumId w:val="10"/></w:num><w:num w:numId="2"><w:abstractNumId w:val="11"/></w:num></w:numbering>` },
+        { name: 'word/styles.xml', data: `<?xml version="1.0"?><w:styles ${W8}>${H8(1)}${H8(2)}${H8(3)}</w:styles>` },
+      ] });
+      const file8 = path.join(OUT, 'Maersk_Shape.docx');
+      fs.writeFileSync(file8, Buffer.from(bytes8));
+      await page.evaluate(() => openUploadModal());
+      await page.waitForTimeout(700);
+      const in8 = await page.$('#up-file');
+      await in8.setInputFiles(file8);
+      await page.waitForTimeout(4000);
+      await page.fill('#up-cp', 'Maersk A/S').catch(() => {});
+      const go8 = await page.$('#up-go');
+      if (go8) await go8.click();
+      await page.waitForTimeout(3500);
+      const id8 = await page.evaluate(() => {
+        const c = state.contracts.find(x => x.source === 'upload' && (x.upload || {}).fileName === 'Maersk_Shape.docx');
+        return c ? c.id : null;
+      });
+      if (id8){
+        await page.evaluate(i => openWorkspace(i), id8);
+        await page.waitForTimeout(1200);
+        await page.evaluate(() => roomGoTab(getContract(state.activeId), 'docs'));
+        await page.waitForSelector('#doc-canvas', { timeout: 15000 }).catch(() => {});
+        await page.waitForTimeout(1400);
+      }
+      const sheet = await page.evaluate(() => {
+        const box = document.querySelector('#doc-canvas [data-anchor="redline"]') || document.getElementById('doc-canvas');
+        return box ? box.innerText.replace(/[ \t ]+/g, ' ') : '';
+      });
+      const at = (num, words) => new RegExp('(^|\\n)\\s*' + num.replace(/\./g, '\\.') + ' ' + words).test(sheet);
+      const wanted = [['3.1', 'Term of the Agreement'], ['3.2', 'Term of Service Order'], ['3.3', 'Extension of a Service Order'],
+        ['3.4', 'Termination for convenience'], ['3.4.1', 'The Agreement']];
+      const wrong = wanted.filter(([n, w]) => !at(n, w)).map(([n]) => n);
+      check('8a the painted sheet numbers the Maersk clauses as Word does — 3.1 to 3.4.1',
+        !!id8 && wrong.length === 0, id8 ? (wrong.length ? 'not found: ' + wrong.join(', ') : 'all five') : 'the upload did not file');
+      check('8b and no word is joined to its neighbour',
+        /Order\. Unless/.test(sheet) && /agreed Service/.test(sheet) && !/Order\.Unless|agreedService/.test(sheet),
+        (sheet.match(/Term of Service Order[^\n]{0,70}/) || [''])[0]);
+      await page.screenshot({ path: path.join(OUT, '08-maersk-shape.png') });
+    } catch (e) {
+      check('8 the Maersk-shaped upload ran', false, e.message);
+    }
+
     check('7 no page errors anywhere in the journey', errors.length === 0,
       errors.slice(0, 3).join(' | '));
   } catch (e) {

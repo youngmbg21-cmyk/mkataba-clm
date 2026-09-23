@@ -193,6 +193,9 @@ const RICH_MAP = { B:'STRONG', I:'EM', STRIKE:'S', DEL:'S', INS:'U', MARK:'SPAN'
    deciding whether a wrapper can safely become a <p>. */
 const RICH_BLOCKS = new Set(['P','H1','H2','H3','H4','UL','OL','LI','TABLE',
   'THEAD','TBODY','TR','TH','TD','BLOCKQUOTE','PRE']);
+/* The inline dress a lone space may be wearing. Stripped of it, the space
+   stays — see the empty-piece pass in _normaliseStructure. */
+const RICH_KEEP_SPACE = new Set(['SPAN','STRONG','EM','U','S']);
 /* Block-level tags that are NOT on the allowlist. Simply unwrapping these
    would glue the text of two paragraphs together — which is exactly the silent
    structure loss this whole module exists to prevent — so one holding only
@@ -416,7 +419,20 @@ function _normaliseStructure(root){
        wall rather than a nicety. */
     if(el.tagName==='SPAN'
       && String(el.getAttribute('class')||'').trim()===RICH_WFIELD_CLASS) return;
-    if(!(el.textContent||'').trim()) el.remove();
+    if((el.textContent||'').trim()) return;
+    /* ---- A SPACE IS WORDING, WHATEVER IT IS DRESSED IN (Young reported it 23
+       Sep 2026, off a Maersk agreement: "Order.Unless", "agreedService") ----
+       Word regularly puts the space between two words in a run of its own,
+       bold or underlined with its neighbour. This pass removed such a piece as
+       "empty" — and the space went with it, so two words were joined on the
+       paper while the plain text beside it still read them apart. An INLINE
+       piece holding only whitespace gives up its DRESS and keeps its
+       characters; only a truly empty one, or a block, is noise. */
+    if(RICH_KEEP_SPACE.has(el.tagName) && (el.textContent||'').length){
+      const par=el.parentNode;
+      if(par){ while(el.firstChild) par.insertBefore(el.firstChild, el); }
+    }
+    el.remove();
   });
   // source indentation between blocks is not document content — drop it, so
   // what is stored is the document and not the shape of the file it came from

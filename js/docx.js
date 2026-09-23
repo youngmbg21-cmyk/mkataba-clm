@@ -266,7 +266,23 @@ function docxTopBlocks(body){
    Read beside docxHeadingStyles and for the same reason: a contract drafted
    from a firm's own template states its numbering ONCE, in the style, and
    writes nothing on each paragraph. */
-function docxStyleNums(xml){
+/* ---- A STYLE INHERITS FROM THE STYLE IT IS BASED ON (Young reported it 23
+   Sep 2026, off a Maersk agreement) ----
+   *"Image 1 is what hati pulled from the contract but the contract itself in
+   image 2 shows the clauses to be not what hati transcribed."* 3.1 and 3.2
+   arrived with no number, 3.3 as "3.1", 3.4 as "3.2", 3.4.1 with none.
+   ONE OF TWO CAUSES, BOTH COMMON IN A LARGE COMPANY'S TEMPLATE, and both
+   reproduced exactly: a paragraph style that carries NO numbering of its own
+   but is `w:basedOn` a style that does (this section), and a list that points
+   at another list through a list style (docxNumbering, below). Word follows
+   both; this reader followed neither, so those paragraphs were never counted
+   and every paragraph after them took the count from where it had stopped.
+   THE CHAIN IS READ ONCE, per style, nearest first: numId and ilvl are two
+   properties and inherit separately; a numId of 0 anywhere on the way up is
+   Word saying "no numbering" and ends the walk. Bounded, because a file can
+   name a loop. */
+const DOCX_STYLE_HOPS = 20;
+function docxStyleTable(xml){
   const out = {};
   if(!xml) return out;
   const re = /<w:style\b([^>]*)>([\s\S]*?)<\/w:style>/g;
@@ -274,11 +290,44 @@ function docxStyleNums(xml){
   while((m = re.exec(xml))){
     const id = (m[1].match(/w:styleId="([^"]*)"/) || [])[1];
     if(!id) continue;
-    const np = (String(m[2] || '').match(/<w:numPr\b[^>]*>[\s\S]*?<\/w:numPr>/) || [''])[0];
-    if(!np) continue;
-    const numId = (np.match(/<w:numId\b[^>]*w:val="(\d+)"/) || [])[1];
-    const ilvl = (np.match(/<w:ilvl\b[^>]*w:val="(\d+)"/) || [])[1] || '0';
-    if(numId != null && numId !== '0') out[id] = { numId, ilvl };
+    const b = m[2] || '';
+    const np = (b.match(/<w:numPr\b[^>]*>[\s\S]*?<\/w:numPr>/) || [''])[0];
+    const byName = /^heading\s*([1-9])$/i.exec(String(id).replace(/[-_]/g, ' '))
+      || /<w:name\b[^>]*w:val="heading\s*([1-9])"/i.exec(b);
+    out[id] = {
+      type: (m[1].match(/w:type="([^"]*)"/) || [])[1] || 'paragraph',
+      numId: np ? (np.match(/<w:numId\b[^>]*w:val="(\d+)"/) || [])[1] : undefined,
+      ilvl: np ? (np.match(/<w:ilvl\b[^>]*w:val="(\d+)"/) || [])[1] : undefined,
+      outlineLvl: (b.match(/<w:outlineLvl\b[^>]*w:val="(\d+)"/) || [])[1],
+      nameLvl: byName ? Number(byName[1]) : null,
+      basedOn: (b.match(/<w:basedOn\b[^>]*w:val="([^"]*)"/) || [])[1] || '',
+    };
+  }
+  return out;
+}
+/* The style and every style it is based on, nearest first. */
+function docxStyleChain(table, id){
+  const chain = [], seen = new Set();
+  let cur = id, hops = 0;
+  while(cur && table && table[cur] && !seen.has(cur) && hops++ < DOCX_STYLE_HOPS){
+    seen.add(cur); chain.push(cur); cur = table[cur].basedOn;
+  }
+  return chain;
+}
+function docxStyleNums(xml){
+  const table = docxStyleTable(xml), out = {};
+  for(const id of Object.keys(table)){
+    if(table[id].type !== 'paragraph') continue;
+    let numId, ilvl, from = '';
+    for(const s of docxStyleChain(table, id)){
+      const st = table[s];
+      if(ilvl == null && st.ilvl != null) ilvl = st.ilvl;
+      if(st.numId != null){ numId = st.numId; from = s; break; }
+    }
+    /* `ilvl` stays null where no style on the way up states one: the level is
+       then the one the list itself links to this style (docxLevelForStyle),
+       which is how Word numbers a heading whose style names only the list. */
+    if(numId != null && numId !== '0') out[id] = { numId, ilvl: ilvl != null ? ilvl : null, from };
   }
   return out;
 }
@@ -371,8 +420,8 @@ function docxBulletMark(text){
    read WordprocessingML that way since it was written, the shapes are shallow
    and well-known, and adding an XML parser to the browser bundle for three
    attributes is a dependency nobody needs. */
-function docxNumbering(xml){
-  const out = { abs: {}, num: {} };
+function docxNumbering(xml, stylesXml){
+  const out = { abs: {}, num: {}, alias: {} };
   if(!xml) return out;
   /* numId → abstractNumId, plus any per-instance level override. */
   const numRe = /<w:num\b[^>]*w:numId="(\d+)"[^>]*>([\s\S]*?)<\/w:num>/g;
@@ -382,9 +431,57 @@ function docxNumbering(xml){
     const a = (body.match(/<w:abstractNumId\b[^>]*w:val="(\d+)"/) || [])[1];
     if(a != null) out.num[m[1]] = { abs: a, over: docxLevels(body), start: docxStartOverrides(body) };
   }
+  /* ---- A LIST CAN BE ANOTHER LIST (23 Sep 2026, the Maersk report) ----
+     An abstract definition carrying `w:numStyleLink` has NO levels of its own:
+     it says "number me exactly as the list style X does", and the definition
+     that really holds the levels carries `w:styleLink` X. Word follows the
+     link, so paragraphs on either numId share ONE sequence. Read without it,
+     the linked paragraphs resolved to nothing and were never counted, and
+     every number after them was wrong — which is the only way a document can
+     print "3.1" where it says 3.3. The link is also stated in styles.xml (a
+     numbering-type style whose numPr names the real list), which is read
+     where numbering.xml does not say it itself. */
+  const styleLink = {}, numStyleLink = {};
   const absRe = /<w:abstractNum\b[^>]*w:abstractNumId="(\d+)"[^>]*>([\s\S]*?)<\/w:abstractNum>/g;
-  while((m = absRe.exec(xml))){ out.abs[m[1]] = docxLevels(m[2] || ''); }
+  while((m = absRe.exec(xml))){
+    const body = m[2] || '';
+    out.abs[m[1]] = docxLevels(body);
+    const sl = (body.match(/<w:styleLink\b[^>]*w:val="([^"]*)"/) || [])[1];
+    const nsl = (body.match(/<w:numStyleLink\b[^>]*w:val="([^"]*)"/) || [])[1];
+    if(sl && styleLink[sl] == null) styleLink[sl] = m[1];
+    if(nsl) numStyleLink[m[1]] = nsl;
+  }
+  const table = stylesXml ? docxStyleTable(stylesXml) : {};
+  for(const a of Object.keys(numStyleLink)){
+    const name = numStyleLink[a];
+    let target = styleLink[name];
+    if(target == null && table[name] && table[name].numId != null){
+      const inst = out.num[String(table[name].numId)];
+      if(inst) target = inst.abs;
+    }
+    if(target != null && String(target) !== String(a)) out.alias[a] = String(target);
+  }
   return out;
+}
+/* The abstract definition that really holds the levels, through any list-style
+   link. Bounded: a file can name a loop. */
+function docxAbsOf(numbering, abs){
+  let a = String(abs), hops = 0;
+  while(numbering && numbering.alias && numbering.alias[a] != null && hops++ < 8) a = String(numbering.alias[a]);
+  return a;
+}
+/* ---- WHICH LEVEL A STYLE IS ----
+   A heading style regularly names only the list (`w:numId`) and not the level:
+   the LIST says which level belongs to which style, with a `w:pStyle` inside
+   the `w:lvl`. Read without it every such paragraph counted at level 0 — "4"
+   where the document says 3.1. Asked of the paragraph's whole style chain,
+   nearest first; null where the list links no level to any of them. */
+function docxLevelForStyle(numbering, numId, chain){
+  const inst = numbering && numbering.num[String(numId)];
+  if(!inst || !chain || !chain.length) return null;
+  const levels = numbering.abs[docxAbsOf(numbering, inst.abs)] || {};
+  for(const s of chain) for(const k of Object.keys(levels)) if(levels[k].pStyle === s) return k;
+  return null;
 }
 /* ---- HOW WORD SAYS "RESTART THIS LIST" ----
    A <w:lvlOverride> may carry ONLY a <w:startOverride>, with no nested
@@ -414,6 +511,8 @@ function docxLevels(xml){
       text:  decodeXmlEntities((b.match(/<w:lvlText\b[^>]*w:val="([^"]*)"/) || [])[1] || ''),
       start: Number((b.match(/<w:start\b[^>]*w:val="(-?\d+)"/) || [])[1] || 1),
       restart: (b.match(/<w:lvlRestart\b[^>]*w:val="(-?\d+)"/) || [])[1],
+      /* the paragraph style this level is linked to — see docxLevelForStyle */
+      pStyle: (b.match(/<w:pStyle\b[^>]*w:val="([^"]*)"/) || [])[1] || '',
     };
   }
   return lv;
@@ -430,12 +529,24 @@ function docxLevels(xml){
    writes a list that is interrupted and resumed. */
 function docxNumberWalker(numbering){
   const counts = {};                       // abs (or numId, when overridden) → { level → n }
-  return function next(numId, ilvl){
+  /* `next.failKey` names the SEQUENCE a paragraph belonged to when its level
+     could not be read — a list HaTi cannot count all the way through, whose
+     later numbers could therefore be wrong (see the safety net in
+     docxXmlToRich). A numId with no definition at all is not such a list:
+     Word draws no number for it either. */
+  const next = function(numId, ilvl){
+    next.failKey = null;
     const inst = numbering.num[String(numId)];
     if(!inst) return null;                 // a numId with no definition: no number
-    const lv = (inst.over && inst.over[String(ilvl)]) || (numbering.abs[inst.abs] || {})[String(ilvl)];
-    if(!lv) return null;
-    const abs = inst.abs;
+    /* THROUGH ANY LIST-STYLE LINK (docxNumbering): the levels and the count
+       both belong to the definition that really holds them. */
+    const abs = docxAbsOf(numbering, inst.abs);
+    const lvAt = numbering.abs[abs] || {};
+    const lv = (inst.over && inst.over[String(ilvl)]) || lvAt[String(ilvl)];
+    if(!lv){
+      next.failKey = Object.keys(inst.start || {}).length ? ('n' + numId) : ('a' + abs);
+      return null;
+    }
     /* ---- WHICH SEQUENCE THIS PARAGRAPH BELONGS TO ----
        Per ABSTRACT list by default, because two numIds pointing at one
        definition are how Word writes a list that is interrupted and resumed —
@@ -472,8 +583,9 @@ function docxNumberWalker(numbering){
       if(!def) return '';
       return docxNumFormat(ov[String(idx)] != null ? ov[String(idx)] : def.start, def.fmt);
     });
-    return { text: text.trim(), bullet: false, level: L };
+    return { text: text.trim(), bullet: false, level: L, key };
   };
+  return next;
 }
 
 /* ---- WHICH STYLES ARE HEADINGS ----
@@ -510,19 +622,27 @@ function docxStyledIsWording(html, text){
 }
 
 function docxHeadingStyles(xml){
-  const out = {};
-  if(!xml) return out;
-  const re = /<w:style\b([^>]*)>([\s\S]*?)<\/w:style>/g;
-  let m;
-  while((m = re.exec(xml))){
-    const id = (m[1].match(/w:styleId="([^"]*)"/) || [])[1];
-    if(!id) continue;
-    const b = m[2] || '';
-    const ol = (b.match(/<w:outlineLvl\b[^>]*w:val="(\d+)"/) || [])[1];
-    const byName = /^heading\s*([1-9])$/i.exec(String(id).replace(/[-_]/g, ' '))
-      || /<w:name\b[^>]*w:val="heading\s*([1-9])"/i.exec(b);
-    if(ol != null) out[id] = Math.min(4, Number(ol) + 1);
-    else if(byName) out[id] = Math.min(4, Number(byName[1]));
+  const table = docxStyleTable(xml), out = {};
+  /* ---- A STYLE BASED ON A HEADING IS A HEADING, AND LEVEL 9 IS BODY TEXT
+     (23 Sep 2026) ----
+     Read through the `w:basedOn` chain, nearest statement first, exactly as
+     Word resolves it: a firm's "Clause Level 2" based on Heading 2 is a level-2
+     heading though it names no level itself. And `w:outlineLvl` 9 is Word's
+     own value for BODY TEXT — it was read as a fourth-level heading, so a
+     style that switched its heading-ness OFF became a heading. The style's own
+     name still counts where no outline level is stated anywhere on the way. */
+  for(const id of Object.keys(table)){
+    if(table[id].type !== 'paragraph') continue;
+    /* The NEAREST style that says anything decides: its outline level where
+       it states one, else its own heading name — so a "Heading 2" based on
+       "Heading 1" stays level 2, and a style based on "Heading 2" is level 2. */
+    let lvl = 0;
+    for(const s of docxStyleChain(table, id)){
+      const st = table[s];
+      if(st.outlineLvl != null){ const ol = Number(st.outlineLvl); lvl = ol <= 8 ? Math.min(4, ol + 1) : 0; break; }
+      if(st.nameLvl != null){ lvl = Math.min(4, st.nameLvl); break; }
+    }
+    if(lvl) out[id] = lvl;
   }
   return out;
 }
@@ -785,10 +905,61 @@ function docxTocTail(html, text){
    it. Returns the HTML for the record, the plain text for everything else, and
    an honest report of what could not be read. */
 function docxXmlToRich(xml, parts){
-  const numbering = docxNumbering(parts && parts['word/numbering.xml']);
-  const heads = docxHeadingStyles(parts && parts['word/styles.xml']);
-  const styleNums = docxStyleNums(parts && parts['word/styles.xml']);
+  const stylesXml = parts && parts['word/styles.xml'];
+  const numbering = docxNumbering(parts && parts['word/numbering.xml'], stylesXml);
+  const heads = docxHeadingStyles(stylesXml);
+  const styleNums = docxStyleNums(stylesXml);
+  const styleTable = docxStyleTable(stylesXml);
   const nextNum = docxNumberWalker(numbering);
+  /* ---- THE SAFETY NET: A LIST HaTi CANNOT COUNT ALL THE WAY THROUGH LOSES
+     ITS NUMBERS (23 Sep 2026) ----
+     D-4 says a number that cannot be read is left off rather than guessed.
+     It was kept for the paragraph that could not be read and broken for every
+     paragraph AFTER it in the same list, whose count had skipped one — so a
+     reader saw "3.1" printed where the contract says 3.3, which is a guessed
+     number by another route and worse than a missing one, because it cites a
+     different clause. So every mark is emitted as a PLACEHOLDER and settled at
+     the end: where any paragraph of a sequence could not be read, the whole
+     sequence draws without numbers and every one of them is counted into the
+     file strip's "could not be read". Bullets are marks, not citations, and
+     stay. A placeholder is a control character XML 1.0 cannot carry, so no
+     wording can ever look like one. */
+  const marks = [], broken = new Set();
+  const place = (n, sep) => {
+    marks.push({ text: n.text + sep, key: n.key || '', counted: !n.bullet });
+    return '\u0001' + (marks.length - 1) + '\u0001';
+  };
+  /* ONE READING OF A PARAGRAPH'S NUMBER, for the body and for a table's cells
+     alike: its own numPr first, then the style chain's, then the level the
+     list links to its style. */
+  const numOf = (pr, style) => {
+    let numId = (pr.match(/<w:numId\b[^>]*w:val="(\d+)"/) || [])[1];
+    let ilvl = (pr.match(/<w:ilvl\b[^>]*w:val="(\d+)"/) || [])[1];
+    if(numId == null && style && styleNums[style]){
+      numId = styleNums[style].numId;
+      if(ilvl == null && styleNums[style].ilvl != null) ilvl = styleNums[style].ilvl;
+    }
+    if(numId === '0') numId = undefined;
+    if(numId != null && ilvl == null)
+      ilvl = docxLevelForStyle(numbering, numId, docxStyleChain(styleTable, style)) || '0';
+    return { numId, ilvl: ilvl == null ? '0' : ilvl };
+  };
+  /* A table cell's paragraphs are counted in the same sequence as the body's,
+     because Word counts them there — skipping them shifted every number after
+     the table. Their marker is set off by a space: a tab inside a cell would
+     read as a column. */
+  const cellNum = pp => {
+    const pr = (pp.match(/<w:pPr\b[^>]*>[\s\S]*?<\/w:pPr>/) || [''])[0];
+    const st = (pr.match(/<w:pStyle\b[^>]*w:val="([^"]*)"/) || [])[1] || '';
+    const { numId, ilvl } = numOf(pr, st);
+    if(numId == null) return '';
+    const n = nextNum(numId, ilvl);
+    if(!n){ if(nextNum.failKey) broken.add(nextNum.failKey); report.unnumbered++; return ''; }
+    if(n.bullet) return (n.mark || '•') + ' ';
+    if(!n.text) return '';
+    report.numbered++;
+    return place(n, ' ');
+  };
   const tracked = { ins: (xml.match(/<w:ins[ >]/g) || []).length,
                     del: (xml.match(/<w:del[ >]/g) || []).length };
   let body = xml.replace(/^[\s\S]*?<w:body[^>]*>/, '').replace(/<\/w:body>[\s\S]*$/, '');
@@ -836,7 +1007,7 @@ function docxXmlToRich(xml, parts){
   for(const b of docxTopBlocks(body)){
     const blk = b.xml;
     if(b.kind === 'w:tbl'){
-      const t = docxTableHtml(blk, report);
+      const t = docxTableHtml(blk, report, cellNum);
       if(t){ out.push(t.html); lines.push(...t.lines); }
       continue;
     }
@@ -849,18 +1020,15 @@ function docxXmlToRich(xml, parts){
        paragraph alone gave those documents NO numbers at all — and, because
        numId was absent, no honest report either, so the file strip did not
        even say the numbering could not be read. The paragraph's own <w:numPr>
-       still wins where it has one. */
-    let numId = (pr.match(/<w:numId\b[^>]*w:val="(\d+)"/) || [])[1];
-    let ilvl = (pr.match(/<w:ilvl\b[^>]*w:val="(\d+)"/) || [])[1] || '0';
-    if(numId == null && style && styleNums[style]){
-      numId = styleNums[style].numId;
-      ilvl = (pr.match(/<w:ilvl\b[^>]*w:val="(\d+)"/) || [])[1] || styleNums[style].ilvl;
-    }
-    /* numId="0" is OOXML's reserved way of saying THIS PARAGRAPH CARRIES NO
+       still wins where it has one — and the style's numbering is read through
+       the style it is BASED ON (docxStyleNums), with the level the list links
+       to the style where the style names none (docxLevelForStyle).
+       numId="0" is OOXML's reserved way of saying THIS PARAGRAPH CARRIES NO
        NUMBERING — Word writes it whenever numbering is removed from a
        paragraph that would otherwise inherit it from its style. It is an
-       answer, not a failure, so it must not be counted as one. */
-    if(numId === '0') numId = undefined;
+       answer, not a failure, so it must not be counted as one. numOf is the
+       one reading, shared with a table's cells. */
+    const { numId, ilvl } = numOf(pr, style);
     const runs = docxRunsHtml(blk, { rich: true });
     report.fields += runs.fields || 0;
     /* ---- THE SHAPE THE FILE STATED ---- */
@@ -877,12 +1045,13 @@ function docxXmlToRich(xml, parts){
     let mark = '';
     if(numId != null){
       const n = nextNum(numId, ilvl);
-      if(n && n.text){ mark = n.text + '\t'; report.numbered++; }
+      /* The mark is a PLACEHOLDER until the end — see the safety net above. */
+      if(n && n.text){ mark = place(n, '\t'); report.numbered++; }
       /* A NUMBER THAT COULD NOT BE RESOLVED IS NOT INVENTED (D-4) — the
          paragraph draws without one and the count is reported, so the file
          strip can say the document numbers automatically and HaTi could not
          read it. */
-      else if(!n) report.unnumbered++;
+      else if(!n){ report.unnumbered++; if(nextNum.failKey) broken.add(nextNum.failKey); }
       else if(n.bullet) mark = (n.mark || '\u2022') + '\t';
     }
     const plain = (mark + runs.text);
@@ -953,8 +1122,21 @@ function docxXmlToRich(xml, parts){
     }
     lines.push(plain);
   }
-  const text = lines.join('\n').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
-  return { html: out.join(''), text, tracked, report };
+  /* ---- THE MARKS ARE SETTLED HERE, NOW THAT EVERY SEQUENCE HAS BEEN READ ----
+     A sequence with any paragraph HaTi could not read draws with no numbers
+     at all, and each number held back joins the file strip's count. */
+  let heldBack = 0;
+  for(const mk of marks) if(broken.has(mk.key) && mk.counted) heldBack++;
+  report.numbered -= heldBack;
+  report.unnumbered += heldBack;
+  const escM = t => String(t).replace(/[&<>]/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[ch]));
+  const settle = (s, asHtml) => String(s).replace(/\u0001(\d+)\u0001/g, (mm, i) => {
+    const mk = marks[Number(i)];
+    if(!mk || broken.has(mk.key)) return '';
+    return asHtml ? escM(mk.text) : mk.text;
+  });
+  const text = settle(lines.join('\n'), false).replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+  return { html: settle(out.join(''), true), text, tracked, report };
 }
 
 /* ---- A TABLE IS A TABLE (J-3.2) ----
@@ -963,7 +1145,7 @@ function docxXmlToRich(xml, parts){
    spans, the first carrying the wording and the rest empty. That is a visible,
    honest approximation rather than a silent one — the row still has the right
    number of columns, which is what a rate card is read by. */
-function docxTableHtml(tbl, report){
+function docxTableHtml(tbl, report, numFn){
   const rows = tbl.match(/<w:tr\b[^>]*>[\s\S]*?<\/w:tr>/g) || [];
   if(!rows.length) return null;
   const head = new Set();
@@ -981,7 +1163,16 @@ function docxTableHtml(tbl, report){
     cells.forEach(tc => {
       const span = Number((tc.match(/<w:gridSpan\b[^>]*w:val="(\d+)"/) || [])[1] || 1);
       const paras = tc.match(/<w:p\b[^>]*>[\s\S]*?<\/w:p>/g) || [];
-      const parts = paras.map(pp => docxRunsHtml(pp, { rich: true }));
+      /* A NUMBERED PARAGRAPH IN A CELL IS COUNTED (23 Sep 2026) in the body's
+         own sequence, by the caller's one reading (`numFn`), and wears its
+         marker — Word draws it there, and skipping it shifted every number
+         after the table. Absent `numFn` the table reads exactly as before. */
+      const parts = paras.map(pp => {
+        const r = docxRunsHtml(pp, { rich: true });
+        const mk = numFn ? numFn(pp) : '';
+        return mk ? { html: mk.replace(/[&<>]/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[ch])) + r.html,
+          text: mk + r.text, fields: r.fields } : r;
+      });
       if(report) for(const pt of parts) report.fields += pt.fields || 0;
       /* ONE LINE PER CELL, IN THE MARKUP AND IN THE TEXT ALIKE. A <br> inside
          a cell makes richToText flush a line, so a cell holding two paragraphs
@@ -1975,12 +2166,12 @@ function docxExportTracked(html, opts = {}){
     comments: { placed: placed.length, left: (built.comments && built.comments.left) || 0 } };
 }
 
-if(typeof window!=='undefined') Object.assign(window,{docxStyledIsWording,DOCX_MIME,isWordDoc,docxExtract,docxExtractRich,docxXmlToRich,docxXmlToText,docxNumbering,docxNumberWalker,docxStartOverrides,docxHeadingStyles,docxStyleNums,docxTopBlocks,docxRunsHtml,docxTableHtml,docxNumFormat,docxBulletMark,docxHtmlBlocks,docxHtmlTableRows,docxReadParts,DOCX_PARTS,docLineKind,docClausePrefix,
+if(typeof window!=='undefined') Object.assign(window,{docxStyledIsWording,docxStyleTable,docxStyleChain,docxAbsOf,docxLevelForStyle,DOCX_MIME,isWordDoc,docxExtract,docxExtractRich,docxXmlToRich,docxXmlToText,docxNumbering,docxNumberWalker,docxStartOverrides,docxHeadingStyles,docxStyleNums,docxTopBlocks,docxRunsHtml,docxTableHtml,docxNumFormat,docxBulletMark,docxHtmlBlocks,docxHtmlTableRows,docxReadParts,DOCX_PARTS,docLineKind,docClausePrefix,
   docTextIsRunOn,docBreakRunOn,docBlocksFromText,docRichFromText,docLineWraps,DOC_FURNITURE,DOC_BULLET,DOC_LABEL,DOC_NUMBERED,
   docxStripUiBadges,docxRunsFromHtml,docxTrackedXml,docxDocumentXml,docxExportTracked,docxZip,docxCrc32,
   docxComments,docxCommentQuote,docxCommentsXml,docxCommentsExtendedXml,docxCommentsPrepare,
   DOCX_UI_CLASSES,DOCX_UI_ID});
-if(typeof module!=='undefined'&&module.exports) module.exports={docxStyledIsWording,DOCX_HEAD_MAX_WORDS,DOCX_HEAD_PUNCT_MIN,zipEntries,zipEntryBytes,inflateRawBytes,decodeXmlEntities,docxXmlToText,docxXmlToRich,docxExtract,docxExtractRich,docxNumbering,docxNumberWalker,docxStartOverrides,docxHeadingStyles,docxStyleNums,docxTopBlocks,docxRunsHtml,docxTableHtml,docxNumFormat,docxBulletMark,docxHtmlBlocks,docxHtmlTableRows,docxReadParts,DOCX_PARTS,docLineKind,docClausePrefix,
+if(typeof module!=='undefined'&&module.exports) module.exports={docxStyledIsWording,docxStyleTable,docxStyleChain,docxAbsOf,docxLevelForStyle,DOCX_HEAD_MAX_WORDS,DOCX_HEAD_PUNCT_MIN,zipEntries,zipEntryBytes,inflateRawBytes,decodeXmlEntities,docxXmlToText,docxXmlToRich,docxExtract,docxExtractRich,docxNumbering,docxNumberWalker,docxStartOverrides,docxHeadingStyles,docxStyleNums,docxTopBlocks,docxRunsHtml,docxTableHtml,docxNumFormat,docxBulletMark,docxHtmlBlocks,docxHtmlTableRows,docxReadParts,DOCX_PARTS,docLineKind,docClausePrefix,
   docTextIsRunOn,docBreakRunOn,docBlocksFromText,docRichFromText,docLineWraps,
   docxStripUiBadges,docxRunsFromHtml,docxTrackedXml,docxDocumentXml,docxExportTracked,docxZip,docxCrc32,
   docxComments,docxCommentQuote,docxCommentsXml,docxCommentsExtendedXml,docxCommentsPrepare,
