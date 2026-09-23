@@ -18907,3 +18907,23 @@ Noticed, not fixed:
 - f277 (1) and f277 (10) still red, still proved pre-existing at origin/main. Unchanged from the merge entry above.
 
 Gates: none run — nothing was changed.
+
+## 23 Sep 2026 — the New agreement pop-up loses its paper, and the ask takes the top line
+
+Young, over four renders of the pop-up without the agreement: *"Actually remove paper from the pop up entirely and in any type of computer"*, *"Try different designs to ensure the describe what you need maybe takes the whole top line"*, chose option 1, then *"Implement the fix but start from the latest main."*
+
+Started from the latest main (00d9196); yesterday's one unmerged entry was rebased on top and its text proved word-for-word identical before the branch was force-pushed with a lease pinned to the old tip.
+
+WHAT WAS BUILT. One line takes the paper off: the card mounts the chosen door's own form, and all three forms ask for a paper host before drawing one, so `paperHost:null` removes it here and leaves their own dialogs untouched. The wide and stacked gates, #na-paper, #na-right, the four constants that fed them and their CSS are gone. "Describe what you need" and its answer slot moved out of the rail to span the body, dressed as the questions card is: the box went from 182px to 750px with Find beside it. `na_note` reworded in both books (no paper, no blank to light); `na_note_wide` / `na_note_stack` inert in both. The template list's cap was re-derived by measurement at three widths, both languages, Copilot on and off: 88vh - 373 (was 396), every part listed beside the rule.
+
+A CONSEQUENCE, MEASURED ON BOTH VERSIONS AND TOLD TO THE OWNER: the ask above both columns takes 146px from the questions card's room, so the body now scrolls on a short screen — 47px at 1440x900, 105 at 1194x834, 135 at 800 tall; none at 1920x1080 or at the owner's 1366x1024. Create is outside the scroller; the Upload row is on screen on a fresh open. At the parent the body did not scroll at 1440x900. A fix (the box one line tall at rest, the hint onto its hover) was offered, not built.
+
+A CORRECTION TO YESTERDAY'S REPORT: the option-1 renders were described as "no answer cut off". The instrument was scrollWidth on the form's controls, and a native select reports nothing that way. See the first line below.
+
+Noticed, not fixed:
+- "Which side are we on?" still cuts its first answer ("Neither — this is not about buying or se…") in a half-width select at 578px. Pre-existing and cut more at the parent (438px card).
+- "Or describe what you need" now leads the screen; its "Or" was written for a box that came after the list. Wording, the owner's call.
+- f277 (1) and f277 (10) still red — proved again on today's unchanged main (7a06ab6): 121 of 123 there, the same two.
+- paper-beside-questions-verify 7c/7g red on both sides (34/36 at the parent and here).
+
+Gates: lint 0 errors, 213 warnings (213 at the parent). f368 30/30 (21 red at the parent, the 9 that pass are named walls and controls); 22 related node files plus f148/f232/f48, 728/728. new-agreement-verify 42/42 (12 red at the parent); counterparty-leads 32/32, draft-from-a-sentence all, form-and-picker 24/24, nine-off-five-images 24/24. Full suite: 8,861 tests, 2 failed, both f277, both proved red on today's main.
