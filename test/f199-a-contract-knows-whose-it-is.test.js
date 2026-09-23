@@ -278,7 +278,9 @@ function chainStage(opts = {}) {
   };
   sb.window = sb; sb.globalThis = sb;
   vm.createContext(sb);
-  for (const f of ['js/i18n.js', 'js/jurisdiction.js', 'js/approvals.js'])
+  /* js/signapproval.js joined the stage on 23 Sep 2026: the personal step is
+     read by it on both hosts (approval before signing). */
+  for (const f of ['js/i18n.js', 'js/jurisdiction.js', 'js/signapproval.js', 'js/approvals.js'])
     vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sb, { filename: f });
   sb.approvalRules = () => opts.rules || [];
   return { sb, asha, boss, admin };
@@ -293,13 +295,17 @@ describe('f199 — overseen by', () => {
     assert.deepEqual(Array.from(sb.buildApprovalChain(owned(asha))), []);
   });
 
+  /* RE-POINTED 23 Sep 2026 (approval before signing): the step is ASKED FOR
+     now, so before anybody sends it it reads 'unasked' — the lead's move, not
+     the approver's. It still joins the ONE chain and still names the overseer. */
   test('ON, it joins the ONE chain as a final step naming the overseer', () => {
     const { sb, asha, boss } = chainStage({ on: true });
     const chain = sb.buildApprovalChain(owned(asha));
     assert.equal(chain.length, 1);
     assert.equal(chain[0].approver.kind, 'member');
     assert.equal(chain[0].approver.name, boss.name);
-    assert.equal(chain[0].status, 'pending');
+    assert.equal(chain[0].status, 'unasked', 'nobody has sent it for approval yet');
+    assert.equal(chain[0].sa, true, 'and it is the personal approval, drawn from its own record');
   });
 
   test('and it sorts LAST, after the ordinary rules', () => {
@@ -330,15 +336,27 @@ describe('f199 — overseen by', () => {
       'the owner is not on the roster, so there is nobody to look up');
   });
 
+  /* RE-POINTED 23 Sep 2026 (approval before signing). The decision lives on
+     the REQUEST now — c.signApprovals, written by the person asked and
+     guarded by the server — so it survives every rebuild by construction.
+     A decision pressed onto the chain under the old model is NOT honoured:
+     it has no request and no named decider behind it, and the owner was told
+     such contracts are sent for approval once more. */
   test('a decision already taken survives the chain being rebuilt', () => {
-    /* buildApprovalChain runs on EVERY read; a step whose approval was erased
-       on the next read is the fault this preservation exists for. */
-    const { sb, asha } = chainStage({ on: true });
+    const { sb, asha, boss } = chainStage({ on: true });
     const c = owned(asha);
-    c.approvalChain = [{ ruleId: sb.OVERSEER_STEP_ID, status: 'approved', by: 'Grace Njeri', at: 'then' }];
+    const need = sb.signApprovalNeeds(c)[0];
+    c.signApprovals = [{ id: 'sa_1', key: need.key, approverId: boss.id, approverName: boss.name,
+      status: 'approved', askedBy: { id: asha.id, name: asha.name }, askedAt: new Date().toISOString(),
+      decidedBy: { id: boss.id, name: boss.name }, decidedAt: new Date().toISOString(),
+      stamp: sb.saStamp(c), shows: sb.saShows(c, null), people: need.people }];
     const chain = sb.buildApprovalChain(c);
     assert.equal(chain[0].status, 'approved');
     assert.equal(chain[0].by, 'Grace Njeri');
+    const legacy = owned(asha);
+    legacy.approvalChain = [{ ruleId: sb.OVERSEER_STEP_ID, status: 'approved', by: 'Grace Njeri', at: 'then' }];
+    assert.equal(sb.buildApprovalChain(legacy)[0].status, 'unasked',
+      'an approval pressed onto the old chain names no request, so it is asked for again');
   });
 
   test('nobody oversees themselves, even if the record says so', () => {

@@ -18,6 +18,12 @@ const { jxPack, JX_DEFAULT, JURISDICTIONS,
 const { STRINGS: I18N_STRINGS, I18N_DEFAULT } = require('../js/i18n.js');
 /* The graph's `where` predicate, one for both hosts (Copilot audit phase 4). */
 const { graphWhereHit } = require('../js/graphwhere.js');
+/* Approval before signing: who on a contract needs a named colleague's yes
+   before anyone signs it (23 Sep 2026). ONE reading for both hosts — the
+   screen and this wall ask the same questions of the same record, so they
+   cannot come to different answers about whether a contract may be signed. */
+const { saNeeds, saState, saStamp, saShows, saDrift, saStarted, saMayDecide,
+  SA_NOTE_MAX, SA_KEEP, SA_REMIND_WORKDAYS, SA_ESCALATE_WORKDAYS } = require('../js/signapproval.js');
 /* Look a string up in a specific language rather than "the current" one: there
    is no current language on a server writing to five recipients at once. */
 /* WHAT LANGUAGE DOES THIS RECIPIENT READ? A member of the workspace carries
@@ -294,12 +300,18 @@ const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role,
   newPaper: !!u.new_paper,
   reFile: !!u.re_file,
   holdContracts: !!u.hold_contracts,
-  overseerId: u.overseer_id || null });
+  overseerId: u.overseer_id || null,
+  /* The stored answers, never the resolved rule — saRuleOf reads them on both
+     hosts, and a server that pre-resolved them would be a second place the
+     rule is decided. */
+  overseerOn: u.overseer_on || null,
+  overseerBackupId: u.overseer_backup_id || null,
+  overseerWhen: u.overseer_when || null });
 /* The facts on that record that are ONE PERSON'S OWN and an admin's business,
    and nobody else's. Stripped from every colleague's copy at the bootstrap —
    see the note there. A new per-person setting belongs on this list the day it
    is added; f202 fails if one of these ever reaches a non-admin again. */
-const ADMIN_ONLY_USER_FIELDS = ['folderAccess', 'signCap', 'reviewChecked', 'reviewerId', 'overseerId', 'twoStep', 'newPaper', 'reFile', 'holdContracts'];
+const ADMIN_ONLY_USER_FIELDS = ['folderAccess', 'signCap', 'reviewChecked', 'reviewerId', 'overseerId', 'overseerOn', 'overseerBackupId', 'overseerWhen', 'twoStep', 'newPaper', 'reFile', 'holdContracts'];
 
 /* ---------- per-contract storage (scales to large portfolios) ----------
    Each contract is its own row with its own version. Lists return a light
@@ -527,6 +539,14 @@ addColumnIfMissing('users', 'reviewer_id', 'TEXT');
    the contract's OWNER, so it could not exist before a contract knew whose it
    was. NULL = nobody, which is where every existing member starts. */
 addColumnIfMissing('users', 'overseer_id', 'TEXT');
+/* ...and, since 23 Sep 2026, whether that approval is ASKED FOR before
+   signing ('always' | 'off' — NULL reads the old workspace switch, so nothing
+   moved on the day of the deploy), who steps in when the approver is away,
+   and whether it bites when they lead a contract, are named to sign one, or
+   both (NULL = both). See js/signapproval.js. */
+addColumnIfMissing('users', 'overseer_on', 'TEXT');
+addColumnIfMissing('users', 'overseer_backup_id', 'TEXT');
+addColumnIfMissing('users', 'overseer_when', 'TEXT');
 // two-step sign-in (WO-6): the secret is stored raw (the algorithm needs it
 // back) and NEVER travels — publicUser is an allow-list and carries only the
 // twoStep boolean. pending holds an unconfirmed enrolment; recovery holds the
@@ -1308,6 +1328,138 @@ function signCheckRefusal(c){
     + (open.length > 3 ? `, and ${open.length - 3} more` : '')
     + '. Settle or accept each one on the Signing tab first.';
 }
+/* ============================================================
+   APPROVAL BEFORE SIGNING — the server's half (23 Sep 2026)
+   ============================================================
+   js/signapproval.js is the reading, required at the top of this file; these
+   are the server's own inputs to it (the whole roster, which a browser that
+   is not an admin never sees, and the old workspace switch a person nobody
+   has answered for still reads) and the walls built on it. */
+function srvSaUsers() {
+  return db.prepare('SELECT id, name, role, overseer_id, overseer_on, overseer_backup_id, overseer_when FROM users').all()
+    .map(u => ({ id: u.id, name: u.name, role: u.role, overseerId: u.overseer_id || null,
+      overseerOn: u.overseer_on || null, overseerBackupId: u.overseer_backup_id || null, overseerWhen: u.overseer_when || null }));
+}
+const srvSaLegacyOn = () => !!(((getSetting('appSettings') || {}).overseer || {}).on);
+function srvSignNeeds(c, users) {
+  try { return saNeeds(c, users || srvSaUsers(), srvSaLegacyOn()); } catch (_) { return []; }
+}
+/* A counterparty's signature lives on their share row until a browser applies
+   it, so "has signing started" asks the shares table as well as the record. */
+function srvSaResponded(contractId) {
+  if (!contractId) return false;
+  for (const r of db.prepare(`SELECT response FROM shares WHERE contract_id=? AND response IS NOT NULL AND revoked_at IS NULL`).all(contractId)) {
+    try { if (JSON.parse(r.response).action === 'sign') return true; } catch (_) {}
+  }
+  return false;
+}
+/* What the Signing tab needs to know that a reader without the money cannot
+   work out for themselves: each need's standing, read here with the full
+   record. Transport, never record. */
+function srvSignStateTransport(c, needs) {
+  try {
+    const st = saState(c, needs, { responded: srvSaResponded(c && c.id) });
+    return st.rows.map(r => ({ key: r.need.key, status: r.status, drift: r.drift, expired: r.expired,
+      waited: r.waited, escalated: r.escalated }));
+  } catch (_) { return []; }
+}
+/* THE ONE REFUSAL the three walls ask — the in-app signature, a signing link,
+   and the counterparty's own signature. Asked of the STORED contract, never
+   of the request, because the record arriving is the thing under suspicion.
+   Null where nothing is owed or signing has already started. */
+function srvSignApprovalOpen(stored) {
+  if (!stored) return [];
+  const needs = srvSignNeeds(stored);
+  if (!needs.length) return [];
+  const st = saState(stored, needs, { responded: srvSaResponded(stored.id) });
+  return st.ok ? [] : st.open;
+}
+function srvSignApprovalRefusal(stored) {
+  const open = srvSignApprovalOpen(stored);
+  if (!open.length) return null;
+  const r = open[0], appr = r.need.approverName || 'an admin';
+  if (r.status === 'pending') return `This contract is waiting on ${appr}'s approval, and nobody signs until they approve.`;
+  if (r.status === 'refused') return `${appr} refused to approve this contract. Revise it and send it for approval again from the Signing tab.`;
+  if (r.status === 'lapsed') return `This contract changed after ${appr} approved it, so it has to be sent for approval again.`;
+  return `This contract needs ${appr}'s approval before anyone signs it. Send it for approval from the Signing tab first.`;
+}
+/* ---- THE REQUESTS ARE MERGED, NEVER OVERWRITTEN ----
+   A save carries the whole record, and a browser holding an older copy would
+   otherwise take a decision back off it. So the STORED list is the base — the
+   locks' own rule — and a save may only ADD a new request, or move a waiting
+   one to approved, refused or withdrawn, each by the person entitled to.
+   Everything a request says about its question is stamped HERE: who it goes
+   to (the rule's own answer, not the sender's), when, and exactly what it is
+   of, so no client can ask a friendlier approver or carry a stamp of an
+   older, cheaper version. Returns { list } or { status, error }. */
+function srvSignApprovalMerge(prev, c, user) {
+  const prevList = (Array.isArray(prev && prev.signApprovals) ? prev.signApprovals : []).filter(x => x && x.id);
+  const inList = (Array.isArray(c && c.signApprovals) ? c.signApprovals : []).filter(x => x && x.id);
+  if (!prevList.length && !inList.length) return { list: null };
+  const out = prevList.map(x => ({ ...x }));
+  const byId = new Map(out.map(x => [String(x.id), x]));
+  let needs = null;
+  const round = c && c.negotiation && typeof c.negotiation.round === 'number' ? c.negotiation.round : null;
+  for (const e of inList) {
+    const before = byId.get(String(e.id));
+    if (!before) {
+      if (e.status !== 'pending')
+        return { status: 403, error: 'A new approval request starts as waiting — it cannot arrive already decided.' };
+      if (!e.askedBy || String(e.askedBy.id) !== String(user.id))
+        return { status: 403, error: 'An approval request is sent in your own name.' };
+      needs = needs || srvSignNeeds(c);
+      const need = needs.find(n => String(n.key) === String(e.key));
+      if (!need) return { status: 403, error: 'Nobody on this contract needs that approval before signing.' };
+      if (String(need.approverId || '') === String(user.id) || String(need.backupId || '') === String(user.id))
+        return { status: 403, error: 'An approval cannot be sent to the person sending it.' };
+      const fresh = { id: String(e.id).slice(0, 40), key: String(need.key),
+        approverId: need.approverId || '', approverName: need.approverName || '',
+        backupId: need.backupId || '', backupName: need.backupName || '', people: need.people,
+        status: 'pending', askedBy: { id: user.id, name: user.name || '' }, askedAt: now(),
+        note: clean(e.note).slice(0, SA_NOTE_MAX), stamp: saStamp(c), shows: saShows(c, round),
+        decidedBy: null, decidedAt: null, as: null, decision: null,
+        notice: e.notice || null, reminded: [] };
+      out.push(fresh); byId.set(String(fresh.id), fresh);
+      continue;
+    }
+    /* The delivery facts may be written by whoever sent the message. */
+    if (stable(before.notice || null) !== stable(e.notice || null)) before.notice = e.notice || null;
+    if (Array.isArray(e.reminded) && e.reminded.length > (before.reminded || []).length)
+      before.reminded = e.reminded.slice(-10);
+    if (before.status !== 'pending' || e.status === before.status) continue;
+    if (e.status === 'withdrawn') {
+      if (!(before.askedBy && String(before.askedBy.id) === String(user.id)) && user.role !== 'admin')
+        return { status: 403, error: 'Only the person who sent it, or an admin, can withdraw an approval request.' };
+      before.status = 'withdrawn';
+      continue;
+    }
+    if (e.status !== 'approved' && e.status !== 'refused')
+      return { status: 400, error: 'An approval is approved, refused or withdrawn.' };
+    const as = saMayDecide(before, user);
+    if (!as) return { status: 403, error: `This approval is ${before.approverName || 'an admin'}'s to give.` };
+    const note = clean(e.decision).slice(0, SA_NOTE_MAX);
+    if (e.status === 'refused' && !note) return { status: 400, error: 'A refusal has to say why — the reason is what goes back.' };
+    if (as === 'admin' && !note) return { status: 400, error: 'An admin deciding in the approver\'s place has to say why.' };
+    /* IT MUST BE DECIDING WHAT WAS ASKED. Measured against the STORED record:
+       a contract that moved since the request has a request that no longer
+       describes it. */
+    if (prev && !saStarted(prev) && saDrift(before.stamp, prev).length)
+      return { status: 409, error: 'The contract changed after it was sent for approval, so it has to be sent again.' };
+    before.status = e.status;
+    before.decidedBy = { id: user.id, name: user.name || '', role: user.role || '' };
+    before.decidedAt = now(); before.as = as; before.decision = note || null;
+  }
+  /* Bounded like the browser bounds it, and a request still waiting is never
+     the one dropped. */
+  let list = out;
+  if (list.length > SA_KEEP) {
+    const drop = list.length - SA_KEEP;
+    let n = 0;
+    list = list.filter(x => (n < drop && x.status !== 'pending') ? (n++, false) : true);
+  }
+  return { list };
+}
+
 /* Which of our unsent asks the gate has not been satisfied about. A cleared
    verdict that has gone stale counts as unreviewed, which is the whole point of
    the staleness rule. */
@@ -1391,6 +1543,12 @@ function maskContractValues(c, moneyKeys) {
   }
   // a counterparty's counter-offer is a monetary figure like any other
   if (Array.isArray(x.rounds)) x.rounds = x.rounds.map(r => (r && r.proposedValue != null) ? { ...r, proposedValue: null } : r);
+  /* ...and so is the figure an approval request records it was OF. The
+     request itself stays: who asked, who approves and what they decided are
+     not money. */
+  if (Array.isArray(x.signApprovals)) x.signApprovals = x.signApprovals.map(r => r ? {
+    ...r, shows: r.shows ? { ...r.shows, value: null, currency: '' } : r.shows,
+    stamp: r.stamp ? { ...r.stamp, value: '', currency: '' } : r.stamp } : r);
   x._valuesHidden = true;
   return x;
 }
@@ -2802,9 +2960,18 @@ app.get('/api/contracts', auth, (req, res) => {
   }
   const w = where.length ? 'WHERE ' + where.join(' AND ') : '';
   const total = db.prepare(`SELECT COUNT(*) n FROM contracts ${w}`).get(args).n;
+  const saUsers = srvSaUsers();
   const rows = db.prepare(`SELECT json, version FROM contracts ${w} ORDER BY seq DESC LIMIT @limit OFFSET @offset`)
     .all({ ...args, limit, offset })
-    .map(r => { const c = JSON.parse(r.json); c._v = r.version; return HEAVY(money ? c : maskContractValues(c, moneyKeys)); });
+    .map(r => { const c = JSON.parse(r.json); c._v = r.version;
+      /* APPROVAL BEFORE SIGNING rides the list too (23 Sep 2026), read off
+         the WHOLE record before any money is masked: Home, the bell and the
+         Approvals page all count off these rows. */
+      const needs = srvSignNeeds(c, saUsers);
+      const x = HEAVY(money ? c : maskContractValues(c, moneyKeys));
+      x._signNeeds = needs;
+      if (!money && needs.length) x._signState = srvSignStateTransport(c, needs);
+      return x; });
   /* ---- WHETHER COPILOT HAS READ THIS ONE (24 Aug 2026) ----
      The home page's coverage tile counts the live agreements Copilot has been
      through. Two of the three readings — a playbook pass and a risk scan —
@@ -2949,6 +3116,15 @@ app.get('/api/contracts/:id', auth, (req, res) => {
   if (!r || !inScope(folderScopeFor(req.user), r.folder)) return res.status(404).json({ error: 'Contract not found' });
   const c = JSON.parse(r.json); c._v = r.version;
   const out = visibleContract(c, req.user);
+  /* APPROVAL BEFORE SIGNING (23 Sep 2026): who on this contract needs a named
+     approval, read with the whole roster — a colleague's rule is an admin-only
+     fact about THEM, but that this contract cannot be signed until somebody
+     approves it is a fact about the CONTRACT, and everybody who works on it
+     needs it. A reader without the money also gets each need's standing,
+     read here with the figures they cannot see. Transport, never record. */
+  const signNeeds = srvSignNeeds(c);
+  out._signNeeds = signNeeds;
+  if (out._valuesHidden && signNeeds.length) out._signState = srvSignStateTransport(c, signNeeds);
   /* The Contract Brief rides along as TRANSPORT (_brief, from its own table —
      WO-2): never part of the record, stripped again on PUT. A reader without
      canViewValues gets it with the money section removed — the same masking
@@ -3269,6 +3445,7 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   delete c._brief;
   delete c._renewalAdvice;   // W2-4: transport too, off its own table
   delete c._readings;        // idea 7: the plain-English layer, off its own table
+  delete c._signNeeds; delete c._signState;   // approval before signing: read here, never stored
 
   let prev = null;
   if (existing) { try { prev = JSON.parse(existing.json); } catch (_) { prev = null; } }
@@ -3299,6 +3476,19 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     }
     if (Array.isArray(c.rounds) && Array.isArray(prev.rounds))
       c.rounds = c.rounds.map((r, i) => (r && prev.rounds[i] && r.proposedValue == null) ? { ...r, proposedValue: prev.rounds[i].proposedValue } : r);
+  }
+
+  /* ---- APPROVAL BEFORE SIGNING: THE REQUESTS ARE MERGED (23 Sep 2026) ----
+     After the money is put back, because a request is stamped with exactly
+     what it is of — and a reader who cannot see the money must not be able
+     to stamp a cheaper contract than the one on file. srvSignApprovalMerge
+     is the whole rule: the stored list is the base, and a save may only add
+     a request in its sender's own name or move a waiting one on by the person
+     entitled to. */
+  {
+    const m = srvSignApprovalMerge(prev, c, req.user);
+    if (m.error) return res.status(m.status || 403).json({ error: m.error, signApproval: true });
+    if (m.list) c.signApprovals = m.list; else delete c.signApprovals;
   }
 
   /* ---- AN ANSWER MUST NAME THE PERSON WHO GAVE IT (16 Sep 2026) ----
@@ -3816,6 +4006,24 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     }
   }
 
+  /* ---- AND APPROVAL BEFORE SIGNING, ON A SAVE THAT STARTS SIGNING ----
+     (23 Sep 2026.) The rule governs whether signing may START: the first
+     signature of any kind, a route row newly marked signed, or the record
+     sealed — in the app or on paper. Asked of the STORED record, and not at
+     all once signing has begun, so a route in progress is never stopped half
+     way and an inbound signature being applied is never refused by a rule it
+     already passed. */
+  if (prev && !saStarted(prev, { responded: srvSaResponded(req.params.id) })) {
+    const addsSig = Array.isArray(c.signatures) && c.signatures.length > 0;
+    const was = new Map((Array.isArray(prev.signerPlan) ? prev.signerPlan : []).filter(Boolean).map(x => [String(x.id), x]));
+    const marksRow = (Array.isArray(c.signerPlan) ? c.signerPlan : []).some(x => x && x.signed && !(was.get(String(x.id)) || {}).signed);
+    const seals = c.status === 'Signed' && prev.status !== 'Signed';
+    if (addsSig || marksRow || seals) {
+      const refusal = srvSignApprovalRefusal(prev);
+      if (refusal) return res.status(403).json({ error: refusal, signApproval: true });
+    }
+  }
+
   /* ---------- THE INTERNAL REVIEW, GUARDED ON THE WAY IN ----------
      Asked as a DIFFERENCE, exactly like the signing-step guard above it, and
      for the same reason: this route receives the whole contract on every save,
@@ -3996,8 +4204,16 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
       return nx ? String(nx.id) : '';
     };
     if (turnOf(c) && turnOf(prev) !== turnOf(c)) notifyInternalSignerTurn(req, c.id);
+    /* ...and when this save GAVE the approval signing was waiting on, the turn
+       that notice was holding is announced now (23 Sep 2026). */
+    else if (prev && srvSignApprovalRefusal(prev) && !srvSignApprovalRefusal(c)) notifyInternalSignerTurn(req, c.id);
   } catch (_) { /* the save is the thing that matters */ }
-  res.json({ ok: true, version: next });
+  /* The save may have moved who is on the route, so the server's reading of
+     the approvals it needs rides back with the answer — read with the whole
+     roster, which a browser that is not an admin does not have. */
+  const signNeeds = srvSignNeeds(c);
+  res.json({ ok: true, version: next, signNeeds,
+    ...(canViewValues(req.user) ? {} : { signState: srvSignStateTransport(c, signNeeds) }) });
 });
 
 const ACTIVATION_EVENTS = ['added', 'scanned', 'sent', 'signed'];
@@ -9734,6 +9950,151 @@ app.post('/api/contracts/:id/escalate', auth, editor, async (req, res) => {
   res.json({ ok: true, told: true, name: u.name, to, ...mailReport(r3), emailConfigured: EMAIL_ON() });
 });
 
+/* ---------- APPROVAL BEFORE SIGNING: WHO IS TOLD (23 Sep 2026) ----------
+   The browser writes the request, the decision and the withdrawal through the
+   ordinary save (srvSignApprovalMerge guards them); this route only TELLS the
+   people concerned, and it owns the half that must never be the browser's —
+   the ADDRESS. It takes a request's id, reads who to write to off the STORED
+   contract, and refuses a body-supplied address outright (the open-relay rule
+   the review-request and escalate routes state in the same words).
+
+   THREE NOTICES: `ask` and `remind` go to the approver (or every admin where
+   the named approver has left), and only from the person who asked or an
+   admin; `decided` goes back to the person who asked, and only from the
+   person who decided. A reminder is held to one a day for one request, so a
+   button cannot become a way of filling somebody's inbox. Every recipient
+   must be able to open the contract, and the value is left out of the mail
+   of anybody who may not see money.
+
+   It writes nothing to the record. The answer is sendEmail's own, so the
+   screen can say whether anything actually went. */
+function saMailFacts(c, u) {
+  const bits = [];
+  if (c.counterparty) bits.push(String(c.counterparty));
+  if (canViewValues(u) && c.valueType !== 'none' && Number(c.value) > 0) {
+    let cur = ''; try { cur = contractCurrency(c) || ''; } catch (_) { cur = ''; }
+    bits.push(`${cur ? cur + ' ' : ''}${Number(c.value).toLocaleString('en-GB')}`);
+  }
+  const f = c.fields || {}, m = c.metadata || {};
+  const start = String(f.effDate || m.effectiveDate || '').slice(0, 10), end = String(c.expiry || f.expiry || m.expiryDate || '').slice(0, 10);
+  if (start || end) bits.push([start, end].filter(Boolean).join(' – '));
+  return bits.join(' · ');
+}
+function saMailTo(users, folder) {
+  return users.filter(u => u && /.+@.+\..+/.test(String(u.email || '')) && inScope(folderScopeFor(u), folder));
+}
+async function saSendApprovalMail(req, c, r, kind, recipients, extra) {
+  const cName = c.name || c.id;
+  const link = contractUrl(req, c.id, 'sign');
+  let first = null, n = 0;
+  for (const u of recipients) {
+    const L = langForEmail(u.email);
+    const asker = (r.askedBy && r.askedBy.name) || '';
+    const decider = (r.decidedBy && r.decidedBy.name) || '';
+    let subject = '', lines = [];
+    if (kind === 'ask') {
+      subject = tFor(L, 'mail_sa_ask_subject', { name: cName, id: c.id });
+      lines = [tFor(L, 'mail_sa_ask_line', { who: asker }), '', `${cName} (${c.id})`, saMailFacts(c, u),
+        ...(r.note ? ['', tFor(L, 'mail_sa_note', { who: asker, note: r.note })] : []),
+        '', tFor(L, 'mail_sa_open'), link, '', tFor(L, 'mail_sa_rule')];
+    } else if (kind === 'remind') {
+      subject = tFor(L, 'mail_sa_remind_subject', { name: cName });
+      lines = [tFor(L, 'mail_sa_remind_line', { who: asker, date: String(r.askedAt || '').slice(0, 10) }), '',
+        `${cName} (${c.id})`, saMailFacts(c, u), '', tFor(L, 'mail_sa_open'), link];
+    } else if (kind === 'escalate') {
+      subject = tFor(L, 'mail_sa_esc_subject', { name: cName, n: extra && extra.days });
+      lines = [tFor(L, 'mail_sa_esc_line', { who: asker, approver: r.approverName || 'an admin', n: extra && extra.days }), '',
+        `${cName} (${c.id})`, saMailFacts(c, u), '', tFor(L, 'mail_sa_open'), link];
+    } else if (r.status === 'approved') {
+      subject = tFor(L, 'mail_sa_ok_subject', { name: cName });
+      lines = [tFor(L, 'mail_sa_ok_line', { who: decider }), ...(r.decision ? ['', `“${r.decision}”`] : []), '', tFor(L, 'mail_at_open'), link];
+    } else {
+      subject = tFor(L, 'mail_sa_no_subject', { name: cName });
+      lines = [tFor(L, 'mail_sa_no_line', { who: decider, why: r.decision || '' }), '', tFor(L, 'mail_sa_no_next'), link];
+    }
+    const body = `${tFor(L, 'mail_hello')} ${u.name || ''},\n\n${lines.join('\n')}\n\n${tFor(L, 'mail_automated_notice')}`;
+    const sent = await sendEmail(u.email, subject, body, `sign approval ${kind}: ${c.id} -> ${u.email}`);
+    if (!first) first = { u, sent };
+    if (sent && sent.sent) n++;
+  }
+  return { first, n };
+}
+app.post('/api/contracts/:id/sign-approval-notify', auth, editor, async (req, res) => {
+  const b = req.body || {};
+  if (b.email || b.to || b.address)
+    return res.status(400).json({ error: 'This route finds the address itself from the workspace’s own records. Send the request id, not an email address.' });
+  const kind = String(b.kind || '');
+  if (!['ask', 'remind', 'decided'].includes(kind)) return res.status(400).json({ error: 'That is not a notice this route sends.' });
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  let c = {}; try { c = JSON.parse(row.json) || {}; } catch (_) { c = {}; }
+  const r = (Array.isArray(c.signApprovals) ? c.signApprovals : []).find(x => x && String(x.id) === String(b.reqId || ''));
+  if (!r) return res.status(404).json({ error: 'That approval request is not on this contract.' });
+  const all = db.prepare('SELECT * FROM users').all();
+  let to = [];
+  if (kind === 'ask' || kind === 'remind') {
+    if (r.status !== 'pending') return res.status(409).json({ error: 'That approval request is no longer waiting.' });
+    if (!(r.askedBy && String(r.askedBy.id) === String(req.user.id)) && req.user.role !== 'admin')
+      return res.status(403).json({ error: 'Only the person who sent it, or an admin, can send this notice.' });
+    if (kind === 'remind') {
+      const key = `sa:${r.id}:remind:${now().slice(0, 10)}`;
+      if (db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(key))
+        return res.status(429).json({ error: 'They have already been reminded about this today.' });
+      db.prepare('INSERT INTO reminders (rkey,created_at) VALUES (?,?)').run(key, now());
+    }
+    to = r.approverId ? all.filter(u => String(u.id) === String(r.approverId)) : all.filter(u => u.role === 'admin');
+  } else {
+    if (r.status !== 'approved' && r.status !== 'refused') return res.status(409).json({ error: 'That approval has not been decided.' });
+    if (!(r.decidedBy && String(r.decidedBy.id) === String(req.user.id)))
+      return res.status(403).json({ error: 'Only the person who decided it can send this notice.' });
+    to = all.filter(u => r.askedBy && String(u.id) === String(r.askedBy.id));
+  }
+  to = saMailTo(to, row.folder);
+  if (!to.length) return res.json({ ok: true, emailSent: false, emailConfigured: EMAIL_ON(), outbox: !EMAIL_ON(),
+    emailError: 'Nobody who can open this contract has an address on file to write to.', name: null });
+  const out = await saSendApprovalMail(req, c, r, kind, to);
+  res.json({ ok: true, name: out.first.u.name, n: out.n, ...mailReport(out.first.sent) });
+});
+
+/* ---- THE REMINDERS NOBODY HAS TO REMEMBER TO SEND ----
+   A request waiting SA_REMIND_WORKDAYS working days reminds its approver
+   once; one waiting SA_ESCALATE_WORKDAYS tells the backup and the admins
+   once, because by then somebody is away. The reminders table is the dedupe,
+   keyed on the request, so a second sweep the same day costs nothing and a
+   request sent again starts its own clock. A lapsed request is not chased: it
+   has to be sent again, and the person who sent it is the one who is told. */
+async function runSignApprovalReminders() {
+  const rows = db.prepare("SELECT id, folder, json FROM contracts WHERE status!='Declined' AND status!='Signed' AND json LIKE '%signApprovals%'").all();
+  if (!rows.length) return { checked: 0, sent: 0 };
+  const all = db.prepare('SELECT * FROM users').all();
+  const shaped = srvSaUsers();
+  let sent = 0;
+  const once = key => {
+    if (db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(key)) return false;
+    db.prepare('INSERT INTO reminders (rkey,created_at) VALUES (?,?)').run(key, now());
+    return true;
+  };
+  for (const row of rows) {
+    let c; try { c = JSON.parse(row.json) || {}; } catch (_) { continue; }
+    let st; try { st = saState(c, srvSignNeeds(c, shaped), { responded: srvSaResponded(c.id) }); } catch (_) { continue; }
+    if (st.started) continue;
+    for (const r of st.rows) {
+      if (r.status !== 'pending' || !r.req) continue;
+      if (r.waited >= SA_REMIND_WORKDAYS && once(`sa:${r.req.id}:auto-remind`)) {
+        const to = saMailTo(r.req.approverId ? all.filter(u => String(u.id) === String(r.req.approverId)) : all.filter(u => u.role === 'admin'), row.folder);
+        if (to.length) { const out = await saSendApprovalMail(null, c, r.req, 'remind', to); sent += out.n; }
+      }
+      if (r.waited >= SA_ESCALATE_WORKDAYS && once(`sa:${r.req.id}:escalate`)) {
+        const skip = new Set([String(r.req.approverId || ''), String((r.req.askedBy || {}).id || ''), ...(r.req.people || []).map(p => String(p.id))]);
+        const to = saMailTo(all.filter(u => !skip.has(String(u.id))
+          && (String(u.id) === String(r.req.backupId || '') || u.role === 'admin')), row.folder);
+        if (to.length) { const out = await saSendApprovalMail(null, c, r.req, 'escalate', to, { days: r.waited }); sent += out.n; }
+      }
+    }
+  }
+  return { checked: rows.length, sent };
+}
+
 /* ---------- THE NEGOTIATION MEMO, MAILED TO A COLLEAGUE ----------
    (owner-asked 9 Sep 2026: "We need to bring back the send to a colleague
    button.")
@@ -10027,6 +10388,11 @@ app.patch('/api/users/:id', auth, (req, res) => {
   /* Who oversees them is an admin's grant for the same reason the rest are:
      somebody who could pick their own approver is not overseen. */
   const hasOverseer = b.overseerId !== undefined;
+  /* ...and the rest of APPROVAL BEFORE SIGNING (23 Sep 2026): whether it is
+     on, who steps in, and when it bites. The same reason, the same wall. */
+  const hasSaOn = b.overseerOn !== undefined, hasSaBackup = b.overseerBackupId !== undefined,
+    hasSaWhen = b.overseerWhen !== undefined;
+  const hasSa = hasSaOn || hasSaBackup || hasSaWhen;
   /* The two-step RESCUE (WO-6): an admin clears a locked-out member's second
      step so they can enrol again. A grant-shaped act like the rest — and
      never on yourself, because your own lock comes off with a code on the
@@ -10035,12 +10401,12 @@ app.patch('/api/users/:id', auth, (req, res) => {
   /* WHO MAY MAKE NEW PAPER is an admin's grant for the plainest reason of all:
      somebody who could tick their own box is not governed by the rule. */
   const hasPaper = b.newPaper !== undefined;
-  if (!hasRole && !hasValues && !hasTitle && !hasCap && !hasChecked && !hasReviewer && !hasOverseer && !hasClear2 && !hasPaper)
+  if (!hasRole && !hasValues && !hasTitle && !hasCap && !hasChecked && !hasReviewer && !hasOverseer && !hasSa && !hasClear2 && !hasPaper)
     return res.status(400).json({ error: 'Nothing to change' });
   const self = req.params.id === req.user.id;
   // Only a title may be set by a non-admin, and only on their own account.
   if (req.user.role !== 'admin'
-    && !(self && hasTitle && !hasRole && !hasValues && !hasCap && !hasChecked && !hasReviewer && !hasOverseer && !hasClear2 && !hasPaper))
+    && !(self && hasTitle && !hasRole && !hasValues && !hasCap && !hasChecked && !hasReviewer && !hasOverseer && !hasSa && !hasClear2 && !hasPaper))
     return res.status(403).json({ error: 'Admin access required' });
   if (userPrefs(req.user).mustChangePassword)
     return res.status(403).json({ error: 'Set your own password before making changes', mustChangePassword: true });
@@ -10101,6 +10467,36 @@ app.patch('/api/users/:id', auth, (req, res) => {
       if (who.role === 'viewer') return res.status(400).json({ error: 'A Viewer cannot approve a contract.' });
     }
     db.prepare('UPDATE users SET overseer_id=? WHERE id=?').run(oid, req.params.id);
+  }
+  if (hasSa) {
+    /* Read against what the row will hold after THIS save, so a request that
+       names a new approver and switches the rule on in one breath is judged
+       as one change. Refused rather than coerced: an approval rule read out
+       of a typo is worse than none. */
+    const row = db.prepare('SELECT * FROM users WHERE id=?').get(req.params.id) || {};
+    const on = hasSaOn ? (b.overseerOn == null || b.overseerOn === '' ? null : String(b.overseerOn)) : (row.overseer_on || null);
+    if (on !== null && on !== 'always' && on !== 'off')
+      return res.status(400).json({ error: 'Approval before signing is either "always" or "off".' });
+    const approver = row.overseer_id || null;
+    if (on === 'always' && !approver)
+      return res.status(400).json({ error: 'Pick who approves before switching approval before signing on.' });
+    let bid = hasSaBackup ? (b.overseerBackupId == null || b.overseerBackupId === '' ? null : String(b.overseerBackupId)) : (row.overseer_backup_id || null);
+    if (bid) {
+      if (bid === req.params.id) return res.status(400).json({ error: 'Nobody steps in for their own approval.' });
+      if (bid === approver) return res.status(400).json({ error: 'The backup has to be somebody other than the approver.' });
+      const who = db.prepare('SELECT id, role FROM users WHERE id=?').get(bid);
+      if (!who) return res.status(400).json({ error: 'That backup is not a member of this workspace.' });
+      if (who.role === 'viewer') return res.status(400).json({ error: 'A Viewer cannot approve a contract.' });
+    }
+    let when = hasSaWhen ? (b.overseerWhen == null || b.overseerWhen === '' ? null : String(b.overseerWhen)) : (row.overseer_when || null);
+    if (when !== null) {
+      const parts = when.split(',').map(x => x.trim()).filter(Boolean);
+      if (!parts.length || parts.some(x => x !== 'lead' && x !== 'sign'))
+        return res.status(400).json({ error: 'Approval before signing applies when they lead a contract, are named to sign one, or both.' });
+      when = ['lead', 'sign'].filter(x => parts.includes(x)).join(',');
+    }
+    db.prepare('UPDATE users SET overseer_on=?, overseer_backup_id=?, overseer_when=? WHERE id=?')
+      .run(on, bid, when, req.params.id);
   }
   if (hasValues) {
     const role = hasRole ? b.role : target.role;
@@ -10621,6 +11017,10 @@ async function notifyInternalSignerTurn(req, contractId, opts = {}) {
     if (contractIsExecuted(contractId)) return { ok: false, reason: 'executed' };
     const rt = signerRouteFor(contractId);
     if (!rt) return { ok: false, reason: 'no-route' };
+    /* "It is your turn" is not true while an approval before signing is
+       outstanding (23 Sep 2026) — nobody signs until it is given. The notice
+       waits, and the save that gives the approval announces the turn. */
+    if (srvSignApprovalRefusal(rt.contract)) return { ok: false, reason: 'awaiting-approval' };
     const next = rt.plan.find(s => !rt.signedRow(s));
     if (!next) return { ok: false, reason: 'route-complete' };
     /* A NAMED SIGNER, OR WHOEVER IS UP. The resend button names its row, and
@@ -10844,6 +11244,17 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
       error: 'Nobody has been named to sign this contract, so a signing link cannot be issued. '
         + 'Add the signers on the Signing tab — that is what starts the signing process — and send again.',
       needsSigners: true });
+  /* ---- NOBODY SIGNS BEFORE THE APPROVAL (23 Sep 2026) ----
+     Where a personal approval before signing is outstanding, a signing link
+     would let the other side sign first and go round it — so it is not
+     issued, in the approval's own words. Asked of the STORED contract. An
+     executed contract is exempt for the reason the check above gives. */
+  if (purp === 'sign' && !contractIsExecuted(shareId)) {
+    const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(shareId);
+    let stored = null; try { stored = row ? JSON.parse(row.json) : null; } catch (_) { stored = null; }
+    const held = stored ? srvSignApprovalRefusal(stored) : null;
+    if (held) return res.status(409).json({ error: held, signApproval: true });
+  }
   /* ---- THE SHARE BUTTON REACHES THE ROUTE (auto-bind) ----
      Only the route's own issued links used to carry the signer binding, so a
      contract sent through the ordinary Share dialog created an UNBOUND link —
@@ -12089,6 +12500,20 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
     const refusal = stored ? signCheckRefusal(stored) : null;
     if (refusal) return res.status(403).json({ error: refusal, signCheck: true });
   }
+  /* ---- AND NOBODY SIGNS BEFORE THE APPROVAL (23 Sep 2026) ----
+     The wall for a link minted before the approval was owed, or one whose
+     approval has since lapsed. THE COUNTERPARTY NEVER LEARNS ABOUT IT: the
+     approval is the sender's business, so they are told only that the
+     contract is not ready to be signed yet — never who has to approve it. */
+  if (r.action === 'sign') {
+    const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(s.contract_id);
+    let stored = null; try { stored = row ? JSON.parse(row.json) : null; } catch (_) { stored = null; }
+    if (stored && srvSignApprovalRefusal(stored))
+      return res.status(409).json({
+        error: 'This contract is not ready to be signed yet. The sender will let you know when it is — '
+          + 'you can still read it and comment in the meantime.',
+        notReady: true });
+  }
   if (r.action === 'sign') {
     /* ---- W7: A SIGNATURE LANDS ON ITS OWN ROW, OR NOT AT ALL ----
        A bound link signs one step of the route, in that step's turn. Out of
@@ -12754,7 +13179,14 @@ function runReminders() {
   }
   return { checked, queued };
 }
-app.post('/api/reminders/run', auth, admin, (req, res) => res.json(runReminders()));
+/* The admin's own "run it now" — and since 23 Sep 2026 it runs the approval
+   reminders too, and says what they did beside what the renewal sweep did. */
+app.post('/api/reminders/run', auth, admin, async (req, res) => {
+  const out = runReminders();
+  let signApproval = null;
+  try { signApproval = await runSignApprovalReminders(); } catch (e) { signApproval = { error: (e && e.message) || String(e) }; }
+  res.json({ ...(out || {}), signApproval });
+});
 /* ---------- THE DAILY BRIEF (WO-3, WORKORDER-gap-map.md) ----------
    Once a day, per member, ONE email listing what needs THEM — and on a quiet
    day, nothing at all. The report's single next step: HaTi speaks first.
@@ -13120,6 +13552,20 @@ function reminderSweep() {
           'system', 'reminder sweep failure', now());
     } catch (_) {}
   }
+  /* APPROVAL BEFORE SIGNING's own reminders ride the same timer, under their
+     OWN catch and their own admin-visible note — the M-6 lesson again. Async
+     (it sends mail), started and left to finish; its dedupe rows make a
+     second run the same day a no-op. */
+  Promise.resolve().then(runSignApprovalReminders).catch(e => {
+    const msg = (e && e.message) || String(e);
+    console.warn('[sign-approval] reminder sweep failed:', msg);
+    try {
+      db.prepare('INSERT INTO outbox (id,to_addr,subject,body,sent,provider,dev_hint,created_at) VALUES (?,?,?,?,0,?,?,?)')
+        .run('sa_' + rid(6), 'admin', 'Approval reminders did not run',
+          `HaTi could not send this cycle's reminders about contracts waiting on an approval before signing.\n\nReason: ${msg}`,
+          'system', 'sign approval reminder failure', now());
+    } catch (_) {}
+  });
   /* The daily brief rides the same timer under its OWN catch: neither sweep
      may take the other down, and its failure is recorded where an admin can
      see it — the M-6 lesson, applied on arrival rather than after the first

@@ -494,12 +494,17 @@ function hmDashSlices(){
     if(c && c._raisedBy!=null) return c._raisedBy===me.name;
     return (c&&c.audit||[]).some(a=>/creat/i.test(a.action||'')&&a.user===me.name);
   };
-  const canApproveSomeStep=st=>!!me&&(st.chain||[]).some(s=>s.status!=='approved'&&s.status!=='rejected'
-    &&(typeof userCanApprove==='function'?userCanApprove(s.approver,me):false));
+  /* A PERSONAL APPROVAL (23 Sep 2026) waits on its approver only once it is
+     ASKED, and on the backup and the admins only once it has waited too long
+     — signApprovalWaitsOn is that one reading, shared with the Approvals page
+     and the bell. The rule steps are asked exactly as before. */
+  const canApproveSomeStep=(st,c)=>!!me&&((st.chain||[]).some(s=>!s.sa&&s.status!=='approved'&&s.status!=='rejected'
+    &&(typeof userCanApprove==='function'?userCanApprove(s.approver,me):false))
+    || (typeof signApprovalWaitsOn==='function' && (()=>{ try{ return signApprovalWaitsOn(c,me).length>0; }catch(_){ return false; } })()));
   const myApprovals=cs.filter(c=>c.status!=='Signed'&&c.status!=='Declined').map(c=>{
     let st; try{ st=((window.approvalState)||approvalState)(c); }catch(e){ return null; }
     if(!st||!st.required||st.ok) return null;
-    const mine=canApproveSomeStep(st), own=raisedByMe(c);
+    const mine=canApproveSomeStep(st,c), own=raisedByMe(c);
     if(!mine&&!own) return null;
     return { c, st, mine, own, idle:idleOf(c) };
   }).filter(Boolean).sort((a,b)=>b.idle-a.idle);

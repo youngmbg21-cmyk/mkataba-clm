@@ -105,8 +105,13 @@ describe('f242 · the seven that grey out', () => {
     const src = read('js/approvals.js');
     const i = src.indexOf('id="ap-resubmit"');
     const block = src.slice(i - 1200, i + 700);
-    assert.match(block, /const back=\(st\.chain\|\|\[\]\)\.filter\(x=>x\.status==='rejected'\|\|x\.status==='stale'\)/,
+    /* RE-POINTED 23 Sep 2026 (approval before signing): a personal approval
+       is sent again through its own request window, never by Resubmit, so
+       BOTH halves now leave the personal steps out — still the same set. */
+    assert.match(block, /const back=\(st\.chain\|\|\[\]\)\.filter\(x=>!x\.sa&&\(x\.status==='rejected'\|\|x\.status==='stale'\)\)/,
       'the same set resubmitApproval itself requires');
+    assert.match(src, /const back=st\.chain\.filter\(s=>!s\.sa && \(s\.status==='rejected'\|\|s\.status==='stale'\)\);/,
+      'and resubmitApproval asks exactly that set');
     assert.match(block, /ap_nothing_resubmit/, 'the reason is on hover');
     assert.match(block, /disabled aria-disabled="true"/);
     assert.ok(!bare(src, "i18t\\('ap_nothing_resubmit'\\)"));

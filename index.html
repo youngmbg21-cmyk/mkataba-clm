@@ -8025,6 +8025,51 @@
   .ap-foot{display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);padding:6px 14px;border-top:1px solid var(--color-divider);font-size:var(--t-label);color:var(--color-neutral-600);}
   .ap-go{min-height:26px;padding:0 10px;font-size:var(--t-meta);}
 
+  /* ═══ APPROVAL BEFORE SIGNING (23 Sep 2026) ═══════════════════════════
+     The request window, the approver's own card at the top of the signing
+     column, and the Off | Always switch in the person's drawer. Every value
+     a token; the card wears the card corner. js/approvals.js draws the first
+     two, js/views/settings.js the third. */
+  .sa-dlg{padding:var(--s-6);}
+  .sa-h{margin:0;font-family:var(--font-heading);font-size:var(--t-card);font-weight:var(--w-title);color:var(--color-text);}
+  .sa-sub{margin-top:2px;font-size:var(--t-meta);color:var(--color-neutral-600);}
+  .sa-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px 14px;margin-top:14px;}
+  .sa-lbl{display:block;font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600);margin-bottom:4px;}
+  .sa-who{display:flex;align-items:center;gap:var(--s-2);}
+  .sa-av{width:26px;height:26px;flex:none;border-radius:50%;display:grid;place-items:center;background:var(--st-steel-bg);color:var(--accent-ink);font-size:var(--t-label);font-weight:var(--w-strong);}
+  .sa-who-t{display:block;font-size:var(--t-body);font-weight:var(--w-label);color:var(--color-text);}
+  .sa-who-s{display:block;font-size:var(--t-meta);color:var(--color-neutral-600);}
+  .sa-box{margin-top:14px;border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:12px 14px;}
+  .sa-boxh{font-size:var(--t-body);font-weight:var(--w-title);color:var(--color-text);margin-bottom:8px;}
+  .sa-kv{display:grid;grid-template-columns:96px minmax(0,1fr);gap:4px 10px;font-size:var(--t-body);}
+  .sa-k{color:var(--color-neutral-600);}
+  .sa-v{color:var(--color-text);min-width:0;}
+  .sa-note{margin-top:8px;font-size:var(--t-meta);color:var(--color-neutral-600);}
+  .sa-dlg > .sa-lbl{margin-top:14px;}
+  .sa-inp{display:block;width:100%;box-sizing:border-box;border:1px solid var(--field-line);border-radius:var(--radius);background:var(--color-surface);padding:7px 10px;font:inherit;font-size:var(--t-body);color:var(--color-text);resize:vertical;}
+  .sa-foot{display:flex;align-items:center;gap:var(--s-2);margin-top:var(--s-4);flex-wrap:wrap;}
+  .sa-foot-note{flex:1 1 200px;font-size:var(--t-meta);color:var(--color-neutral-600);}
+  .sa-card{background:var(--color-surface);border:1px solid var(--st-amber-line);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);}
+  .sa-card-h{display:flex;align-items:center;gap:var(--s-2);padding:11px 15px;border-bottom:1px solid var(--st-amber-line);}
+  .sa-card-t{font-family:var(--font-heading);font-size:var(--t-body);font-weight:var(--w-title);color:var(--color-text);}
+  .sa-card-when{margin-left:auto;font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;}
+  .sa-card-b{display:flex;flex-direction:column;gap:10px;padding:12px 15px 14px;}
+  .sa-card-lead{margin:0;font-size:var(--t-body);color:var(--color-text);}
+  .sa-quote{margin:0;border-left:3px solid var(--color-divider);padding:2px 0 2px 10px;font-size:var(--t-body);color:var(--color-text);}
+  .sa-mv{font-size:var(--t-meta);color:var(--color-neutral-700);line-height:1.5;}
+  .sa-mv b{font-weight:var(--w-label);color:var(--color-text);}
+  .sa-mv-more{color:var(--color-neutral-600);}
+  .sa-acts{display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;}
+  .ui-btn.sa-refuse{color:var(--st-ruby-fg);border-color:var(--st-ruby-line);}
+  .sa-set-head{display:flex;align-items:center;gap:var(--s-3);margin-bottom:10px;}
+  .sa-set-head .st-role-name{flex:1;min-width:0;}
+  .sa-seg{display:inline-flex;height:var(--ctl-h);border:1px solid var(--btn-edge);border-radius:var(--radius);overflow:hidden;flex:none;}
+  .sa-seg button{height:100%;padding:0 12px;border:0;background:transparent;font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);color:var(--color-neutral-700);cursor:pointer;}
+  .sa-seg button + button{border-left:1px solid var(--btn-edge);}
+  .sa-seg button.on{background:var(--accent-fill);color:#fff;}
+  .sa-seg button:focus-visible{outline:2px solid var(--color-accent);outline-offset:-2px;}
+  .sa-set-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px 12px;}
+
   /* ═══ A CARD WEARS THE CARD CORNER (DECIDE 3 of the redesign order, 20 Sep
      2026): --radius (4px) is for CONTROLS and --radius-lg (8px) for the
      surfaces that hold content — the reference's own pair. The contract

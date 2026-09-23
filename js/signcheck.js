@@ -505,7 +505,7 @@ const SIGN_STAGE_OF = {
   negotiation: 'paper', fields: 'paper', placeholders: 'paper', blanks: 'paper', docs: 'paper',
   'standards-read': 'read', standard: 'read', obligations: 'read',
   record: 'read', risk: 'read',
-  approval: 'people', turn: 'people', signers: 'people', spots: 'people',
+  approval: 'people', signapproval: 'people', turn: 'people', signers: 'people', spots: 'people',
   cap: 'people', folder: 'people',
   brief: 'sign', 'brief-read': 'sign',
 };
@@ -613,12 +613,22 @@ function signReadiness(c, opts){
   const rows = [];
   const bl = _scCall('signBlockers', c) || [];
   bl.filter(b => b && b.key !== 'signcheck').forEach(b => rows.push({
-    kind: b.key, key: 'bl:' + b.key, label: b.label, short: b.short,
+    kind: b.key, key: b.rowKey || ('bl:' + b.key), label: b.label, short: b.short,
     /* WHICH BOXES, where the blocker names them (the empty-box row, 23 Sep
        2026) — so signFieldMarks can mark the one the Overview owns and the
        card can choose a door that works. Absent on every other row. */
     ...(Array.isArray(b.fields) ? { fields: b.fields.slice() } : {}),
+    /* AND WHICH REQUEST, on a personal approval's row (23 Sep 2026): the card
+       draws its state and its verbs off it. `rowKey` keeps two approvers on
+       two rows. */
+    ...(b.sa ? { sa: b.sa } : {}),
     stage: signStageOf(b.key), holds: true, settled: false }));
+  /* A PERSONAL APPROVAL THAT WAS GIVEN is settled and folds away with the
+     rest, so the card keeps a trace of who approved and when — an empty stage
+     draws nothing, and an approval that vanished on being given would leave
+     the signer nothing to point at. */
+  (_scCall('signApprovalSettledRows', c) || []).forEach(r => rows.push({
+    kind: 'signapproval', key: r.rowKey, sa: r, stage: signStageOf('signapproval'), holds: false, settled: true }));
   /* THE LIGHT LIST: a register row carries no wording (HEAVY strips an
      upload's text), so the two rows that hash the wording — "the review is
      about earlier wording", "the wording moved since the obligations were
