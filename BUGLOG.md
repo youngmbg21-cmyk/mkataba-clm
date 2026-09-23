@@ -19003,3 +19003,12 @@ Noticed, not fixed
 - Nothing in js/ reads c.documents or c.execution.fileId, so the signed copy is stored and cannot be opened again from any screen.
 - attachPaperSignature asks only the negotiation; approvals, the check before signing and reading the brief are not asked, and the server's signing guards fire only on an added in-app signature.
 - f28 covers a drafted contract only and never presses Verify seal, which is why none of this is red.
+
+## 23 Sep 2026 — advice only: some people always need approval before signing
+
+The owner asked how an admin can make certain people unable to sign without approval, whatever the value. Advice and drawings given (the canvas "Signed in DocuSign — Screens", second row), no code changed. The nearest existing feature is "Overseen by" (overseerFor / OVERSEER_STEP_ID in js/approvals.js), behind a workspace switch that is off by default.
+
+Noticed, not fixed
+- approveContract toasts "Step approved — next approver notified", and nothing notifies anybody: no mail, no message. The next approver learns only from their own bell or Home.
+- The server enforces no approval at all: server/server.js never reads approvalChain, so a save adding a session signature, POST /api/shares with purpose 'sign' and the respond route all pass with approvals outstanding. Only signDocument and the share dialog refuse, in the browser.
+- ov_no_owner says "imported or uploaded paper gets no overseer step", but submitUpload stamps an owner (contractOwnerStamp), so an upload from the upload screen does get the step. Only migrated and mailroom contracts have no owner.
