@@ -147,6 +147,16 @@ db.exec(`
   -- side's paper is ours, and it never travels to them.
   CREATE TABLE IF NOT EXISTS clause_readings (
     contract_id TEXT PRIMARY KEY, json TEXT NOT NULL, created_at TEXT NOT NULL);
+  -- AND THE SAME READINGS, KEPT ONE CLAUSE AT A TIME (fix 6, Young's go,
+  -- 23 Sep 2026). The table above holds a WHOLE edition, written only when
+  -- every clause came back, so one failure used to lose everything read before
+  -- it. This one is written the moment each clause is read and is keyed by
+  -- the row's own fingerprint (what the model is told about that one clause,
+  -- in the reader's language), so a press after a failure — or after one
+  -- clause changed — asks only for the clauses nobody has read.
+  CREATE TABLE IF NOT EXISTS clause_reading_rows (
+    contract_id TEXT NOT NULL, hash TEXT NOT NULL, json TEXT NOT NULL, created_at TEXT NOT NULL,
+    PRIMARY KEY (contract_id, hash));
   -- THE INTAKE FRONT DOOR (W2-2). A colleague who may not draft can still ASK
   -- for a contract; the request is a record of its own, never a half-made
   -- contract, so nothing unapproved can be mistaken for paper. The folder is
@@ -4041,6 +4051,9 @@ app.delete('/api/contracts/:id', auth, editor, (req, res) => {
     for (const fid of fileIds) db.prepare('DELETE FROM files WHERE id=?').run(fid);
     db.prepare('DELETE FROM briefs WHERE contract_id=?').run(req.params.id);
     db.prepare('DELETE FROM renewal_advice WHERE contract_id=?').run(req.params.id);
+    /* The plain-English readings kept a clause at a time (fix 6) are a reading
+       of THIS contract's wording and go with it. */
+    db.prepare('DELETE FROM clause_reading_rows WHERE contract_id=?').run(req.params.id);
     db.prepare('DELETE FROM contracts WHERE id=?').run(req.params.id);
   });
   _storedBytes = null;   // H-8: recompute the storage total after removing files
@@ -5809,6 +5822,59 @@ const READ_PAGE_CHARS = 14000;
 const READ_MAX_PAGES = 40;
 const READ_AT_ONCE = 3;
 const READ_MAX_CLAUSES = READ_PAGE * READ_MAX_PAGES;
+/* ---- PLAIN ENGLISH READS IN THE BACKGROUND, A CLAUSE AT A TIME (fix 6,
+   Young's go on the preview, 23 Sep 2026) ----
+   "On a long contract, one press tries to translate everything in one go, and
+   nothing is kept until the very end — so one problem loses the lot."
+
+   THREE THINGS CHANGE AND ONE DOES NOT.
+   1. EVERY CLAUSE IS KEPT THE MOMENT IT IS READ, in clause_reading_rows, keyed
+      by `readRowHash` — the row exactly as the model is told about it (its
+      kind, number, heading and wording) in the reader's language, and NOT its
+      page key, which is only where it happened to sit. A press after a failure,
+      or after one clause changed, asks the model for the rows no fingerprint
+      answers and nothing else.
+   2. THE READING IS A JOB ON THE SERVER, not a request: it keeps going when the
+      reader leaves the page or closes the tab, a second press on the same
+      wording JOINS it rather than paying twice, and `/progress` tells the
+      column what has come back so far ("Reading 4 of 12").
+   3. A PAGE THAT FAILED IS ASKED AGAIN, ONCE — only that page.
+   THE WHOLE-EDITION CACHE ABOVE IS UNCHANGED: it is still written only when
+   every clause came back, and it is still what rides the contract as
+   `_readings`. What changed is that a hole in it no longer costs the rest. */
+const readRowHash = (lang, x) => sha(['r1', lang, x.kind, x.num, x.heading, x.text].join('\u0001'));
+function readRowsGet(contractId, hashes){
+  const out = new Map();
+  const want = Array.from(new Set(hashes.filter(Boolean)));
+  /* In slices, because SQLite caps the number of bound values in one query and
+     a long contract is thousands of clauses. */
+  for (let at = 0; at < want.length; at += 400) {
+    const part = want.slice(at, at + 400);
+    const rows = db.prepare(`SELECT hash, json FROM clause_reading_rows WHERE contract_id=? AND hash IN (${part.map(() => '?').join(',')})`)
+      .all(String(contractId), ...part);
+    rows.forEach(r => { try { const j = JSON.parse(r.json); out.set(r.hash, { plain: String(j.plain || ''), head: String(j.head || '') }); } catch (_) {} });
+  }
+  return out;
+}
+/* INSERT OR IGNORE: a clause already kept is never rewritten, so two jobs that
+   both read one clause cannot flip its reading back and forth under a reader. */
+function readRowsKeep(contractId, rows){
+  const ins = db.prepare('INSERT OR IGNORE INTO clause_reading_rows (contract_id,hash,json,created_at) VALUES (?,?,?,?)');
+  const at = now();
+  for (const r of rows) {
+    if (!r || !r.hash) continue;
+    try { ins.run(String(contractId), r.hash, JSON.stringify({ plain: String(r.plain || ''), head: String(r.head || '') }), at); } catch (_) {}
+  }
+}
+/* The jobs in flight, by contract and language, and the browser's own name for
+   the press it made (`run`), so /progress answers about THAT press and never
+   about somebody else's reading of an older wording. A finished job is kept a
+   little while so a poll that lands just after the end still gets its answer. */
+const _readJobs = new Map();
+const _readRuns = new Map();
+const READ_JOB_KEEP_MS = 60000;
+const readJobKey = (id, lang) => String(id) + '\n' + lang;
+const readRunName = v => { const s = String(v == null ? '' : v).trim(); return /^[A-Za-z0-9_-]{8,64}$/.test(s) ? s : ''; };
 /* THE ROW'S ADDRESS, AND THE READING OF IT. `R7` is an opaque key no clause
    could carry (see the note over `doc` in the route); the reverse reading
    answers -1 for anything that is not exactly one. */
@@ -5930,6 +5996,25 @@ const READ_PLAIN_RULE = [
   'A few clauses have nothing worth telling a business owner — a cover page, a table of contents, a heading-and-interpretation clause, counterparts, severability. Return an EMPTY reading for those, with a heading. An empty reading is the right answer for them and is far better than padding one out. It is the exception: on an ordinary commercial clause there is always something to say.',
 ].join('\n');
 
+/* ---- WHAT HAS COME BACK SO FAR (fix 6) ----
+   The column asks this every second or two while a reading runs, so it is
+   deliberately NOT behind the AI limiter or the spend guard — it spends nothing
+   and reads nothing new. It sits under the CONTRACT rather than under /api/ai/
+   for the same reason: it is a question about a record, not a model call, and
+   nothing counting model calls should ever count it. It answers about ONE press (`run`, the browser's own
+   name for it) and only on a contract the reader may open; `from` is how many
+   entries the column already holds, so each answer carries only what is new.
+   Nothing here is stored or written. */
+app.get('/api/contracts/:id/reading-progress', auth, (req, res) => {
+  const row = db.prepare('SELECT folder FROM contracts WHERE id=?').get(String(req.params.id));
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  const job = _readRuns.get(readRunName(req.query && req.query.run));
+  if (!job || job.id !== String(req.params.id)) return res.json({ running: false, known: false });
+  const from = Math.max(0, Math.min(job.log.length, parseInt(req.query && req.query.from, 10) || 0));
+  res.json({ running: !!job.running, known: true, total: job.total, done: job.done.size,
+    items: job.log.slice(from), next: job.log.length });
+});
+
 app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBudgetGuard, capAiInput, async (req, res) => {
   const { id, clauses, force } = req.body || {};
   if (!id) return res.status(400).json({ error: 'id is required' });
@@ -6006,14 +6091,63 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
      translation is for. */
   const inputHash = sha(lang + '\n' + sent);
   const prev = db.prepare('SELECT json FROM clause_readings WHERE contract_id=?').get(String(id));
+  /* Each row's own fingerprint — see readRowHash (fix 6). */
+  const hashes = list.map(x => readRowHash(lang, x));
   if (prev && !force) {
     try {
       const r = JSON.parse(prev.json);
-      if (r.inputHash === inputHash) return res.json({ readings: r, cached: true });
+      /* ---- A WHOLE EDITION IS SERVED WHOLE; ONE WITH A HOLE IN IT IS NOT
+         (fix 6) ----
+         An edition below the quarter line is still kept with its count (C-6),
+         so the column can say so after a refresh. But a clause it could not
+         match used to stay missing for the life of the wording, because this
+         cache answered every later press. It now answers only where nothing is
+         missing; otherwise the press goes on below, where everything already
+         read comes out of the per-clause table for nothing and ONLY the missing
+         clauses are asked for again. */
+      if (r.inputHash === inputHash && !(Number(r.unmatched) > 0)) {
+        /* …AND WHAT IT HOLDS IS KEPT A CLAUSE AT A TIME, so an edition read
+           before the clauses were kept one by one is not paid for again the
+           day one clause changes. INSERT OR IGNORE: nothing already kept is
+           touched. */
+        readRowsKeep(id, (Array.isArray(r.items) ? r.items : [])
+          .filter(it => it && Number.isInteger(it.i) && it.i >= 0 && it.i < list.length
+            && readNorm(it.heading) === readNorm(list[it.i].heading))
+          .map(it => ({ hash: hashes[it.i], plain: it.plain, head: it.head })));
+        return res.json({ readings: r, cached: true });
+      }
     } catch (_) {}
   }
+
+  /* ---- ONE READING OF ONE WORDING AT A TIME (fix 6) ----
+     A second press on the same wording — the same reader back from another
+     page, a colleague, the browser asking again after a dropped connection —
+     JOINS the reading already running rather than paying for it twice. A press
+     on DIFFERENT wording waits for the one in flight to finish first, so the
+     clauses the two have in common are read once and come out of the table. */
+  const run = readRunName(req.body && req.body.run);
+  const jobKey = readJobKey(id, lang);
+  const send = out => {
+    if (out.error) return res.status(out.status || 502).json({ error: out.error });
+    return res.json({ readings: out.readings, ...aiNotice(req, out.flags) });
+  };
+  for (let other = _readJobs.get(jobKey); other && other.running; other = _readJobs.get(jobKey)) {
+    if (other.inputHash === inputHash) {
+      if (run) { other.runs.add(run); _readRuns.set(run, other); }
+      return send(await other.promise);
+    }
+    try { await other.promise; } catch (_) {}
+  }
+
+  /* ---- EVERYTHING ALREADY READ IS KEPT (fix 6) ----
+     `covered` is every row the pages reach (the runaway guard still says what
+     it left out, in `over`); `pending` is the ones no kept reading answers. */
+  const have = readRowsGet(id, hashes);
+  const covered = [];
+  pages.forEach(pg => pg.rows.forEach((_, k) => covered.push(pg.base + k)));
+  const pending = covered.filter(i => !have.has(hashes[i]));
   const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  if (pending.length && !key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
 
   const tool = {
     name: 'clause_readings',
@@ -6041,7 +6175,13 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
   const J = orgJx();
   const LANG = READ_LANGS[lang];
   const promptFor = body => `You are writing a plain-English edition of a contract for a business owner who has no lawyer and no legal training, under ${J.adjective} law. It is set out beside the agreement, clause for clause: every row below gets its own entry, and the reader's eye moves between the two. DO NOT WRITE HEADINGS — each entry is drawn under the contract's OWN heading and number, so a heading of yours would be a second name for one clause. Return them through clause_readings.\n\nThe key in brackets is the row's address for your answer. It is not the clause number, which is part of the heading and is the contract's own.\n\nWRITE EVERY ENTRY IN ${LANG}, whatever language the contract itself is written in — the reader's own language is what this is for.\n\n${READ_PLAIN_RULE}\n\nTHE CONTRACT:\n${body}`;
-  try {
+  const who = aiWho(req);
+
+  const job = { id: String(id), inputHash, total: list.length, log: [], done: new Set(), running: true, runs: new Set() };
+  if (run) { job.runs.add(run); _readRuns.set(run, job); }
+  _readJobs.set(jobKey, job);
+
+  const readAll = async () => {
     /* 8,000 RATHER THAN THE 4,000 A SUMMARY NEEDED, and the arithmetic rather
        than a guess: READ_MAX_CLAUSES is 60, a translated clause runs to about
        60 words (~80 tokens) plus a heading and the JSON around it, call it 110
@@ -6049,60 +6189,55 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
        that is not needed costs nothing; an answer cut off costs the reader the
        whole edition, and a cut-short one is not cached (below). */
     /* ---- ONE PAGE, ONE CALL ---- 8,000 tokens is READ_PAGE's own arithmetic,
-       which is why the page is 60 and not the whole document. */
+       which is why the page is 60 and not the whole document.
+       AN ANSWER THROUGH ANY OTHER TOOL IS NO ANSWER (fix 6): the call forces
+       clause_readings, so a block of another name is not a reading of this
+       page and the page is treated as one that failed — which is what gets it
+       asked again. */
     const askPage = async pg => {
-      const resp = await anthropicMessages(key, 'deep', { max_tokens: 8000, tools: [tool], tool_choice: { type: 'tool', name: 'clause_readings' }, messages: [{ role: 'user', content: promptFor(pg.body) }] }, { feature: 'readings', who: aiWho(req) });
+      const resp = await anthropicMessages(key, 'deep', { max_tokens: 8000, tools: [tool], tool_choice: { type: 'tool', name: 'clause_readings' }, messages: [{ role: 'user', content: promptFor(pg.body) }] }, { feature: 'readings', who });
       if (!resp.ok) return { err: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) };
-      const block = (resp.data.content || []).find(b => b.type === 'tool_use');
+      const block = (resp.data.content || []).find(b => b.type === 'tool_use' && b.name === 'clause_readings');
       if (!block) return { err: 'Copilot returned no structured result' };
       return { resp, block };
     };
     /* A FEW AT A TIME, never all of them: a twelve-page contract fired in one
        breath is twelve deep calls against the provider's own rate limit, and
-       one refusal there would cost the whole edition. */
-    const askAll = async list => {
+       one refusal there would cost the whole edition. THREE HANDS, NOT THREE
+       AT A TIME (fix 6): each hand takes the next page the moment its own
+       comes back, so one slow page no longer holds two finished ones — and
+       each page is LANDED as it arrives (`onPage`), which is what lets the
+       column fill while the rest is still being read. */
+    const askAll = async (list, onPage) => {
       const got = new Array(list.length).fill(null);
-      for (let at = 0; at < list.length; at += READ_AT_ONCE) {
-        const res2 = await Promise.all(list.slice(at, at + READ_AT_ONCE).map(askPage));
-        res2.forEach((g, k) => { got[at + k] = g; });
-      }
+      let next = 0;
+      const hand = async () => {
+        while (next < list.length) {
+          const n = next++;
+          got[n] = await askPage(list[n]);
+          if (onPage) onPage(got[n], list[n]);
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(READ_AT_ONCE, list.length) }, hand));
       return got;
     };
-    let answers = await askAll(pages);
-    /* ---- A PAGE CUT SHORT IS ASKED AGAIN IN TWO HALVES, ONCE (23 Sep 2026) ----
-       A page whose answer ran out of room lost the clauses at its end. Rather
-       than keep the half and count the rest as unread, the page is split and
-       each half asked on its own — twice the room for the same words. Once
-       only: a half that is still cut short is kept as it is and said. */
-    const retry = [];
-    answers.forEach((g, n) => {
-      const pg = pages[n];
-      if (g && !g.err && g.resp && g.resp.truncated && pg.rows.length > 1) {
-        const mid = Math.ceil(pg.rows.length / 2);
-        const a = pg.rows.slice(0, mid), b = pg.rows.slice(mid);
-        retry.push({ n, halves: [
-          { base: pg.base, rows: a, body: pageText(a) },
-          { base: pg.base + mid, rows: b, body: pageText(b) }] });
+    /* A page of just these rows, sized exactly as the first pass sizes one.
+       `idx` carries each row's place in the whole list, because the rows are
+       no longer next to each other. */
+    const pagesOf = idxs => {
+      const out = [];
+      for (let at = 0; at < idxs.length; ){
+        let end = at + 1;
+        const rowsOf = (a, b) => idxs.slice(a, b).map(i => list[i]);
+        while (end < idxs.length && end - at < READ_PAGE
+          && pageText(rowsOf(at, end + 1)).length <= READ_PAGE_CHARS) end++;
+        const idx = idxs.slice(at, end);
+        const rows = idx.map(i => list[i]);
+        out.push({ base: -1, idx, rows, body: pageText(rows) });
+        at = end;
       }
-    });
-    if (retry.length) {
-      const halves = retry.flatMap(r => r.halves);
-      const got = await askAll(halves);
-      const keepPages = [], keepAnswers = [];
-      pages.forEach((pg, n) => {
-        const r = retry.find(x => x.n === n);
-        if (!r) { keepPages.push(pg); keepAnswers.push(answers[n]); return; }
-        r.halves.forEach(h => { keepPages.push(h); keepAnswers.push(got[halves.indexOf(h)]); });
-      });
-      pages.length = 0; pages.push(...keepPages);
-      answers = keepAnswers;
-    }
-    /* THE FIRST PAGE IS THE ONE THAT MAY REFUSE THE WHOLE PRESS: with nothing
-       read at all there is no edition to hand over and the reader is told why.
-       A LATER page that failed is counted as unread rather than thrown away —
-       the pages before it are a real part of the document and the foot already
-       has a sentence for "N further clauses were not read". */
-    if (answers[0] && answers[0].err) return res.status(502).json({ error: answers[0].err });
+      return out;
+    };
     /* PAIRED BY THE NUMBER IT WAS GIVEN, never by array position: an answer that
        skipped one clause would otherwise shunt every reading after it onto the
        wrong wording, which is the worst thing this feature could do. Anything
@@ -6119,115 +6254,175 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
        a pairing reading and is drawn nowhere; the heading printed stays the
        paper's own. */
     const items = [];
-    let entriesN = 0;
-    let unmatched = 0;
+    const paired = new Set();
+    /* Rows that were on a page whose answer ARRIVED (any pass), rows landed
+       from an answer that was CUT SHORT (shown, never kept), and the first
+       error a page came back with (said only where nothing at all was read). */
+    const answered = new Set();
+    const cut = new Set();
+    let firstErr = '';
     let truncated = false;
-    let unread = 0;
     /* ---- A REFUSED PAIRING SAYS WHY (D-2c) ----
        Counting alone left "8 could not be matched" with nothing to read. Each
        refused entry is kept as {key, echo, want} — capped, echo bounded — so
        the fault can be READ off the record (`_readings.failed`, transport like
        the rest) and off the server log, rather than guessed at. */
     let failed = [];
-    const paired = new Set();
     let recording = true;
     const refuse = (r, want, i) => {
       if (recording && failed.length < READ_MAX_CLAUSES)
         failed.push({ i: i == null ? -1 : i, key: String((r && r.key) || '').slice(0, 12), echo: String((r && r.heading) || '').slice(0, 140), want: String(want || '').slice(0, 140) });
     };
-    /* ---- THE PAGES ARE MERGED INTO ONE EDITION ----
-       A key is the row's address WITHIN ITS PAGE; `base` puts it back on the
-       whole list, so `i` on a stored item is the global index the browser pairs
-       against and every guard below is asked of the row it really names. */
-    let base = 0;
-    const readPage = (block, pg) => {
-    base = pg.base;
-    const entries = block.input && Array.isArray(block.input.readings) ? block.input.readings : [];
-    entriesN += entries.length;
-    entries.forEach(r => {
-      const k = readKeyIndex(r && r.key);
-      const i = k < 0 ? -1 : (pg.idx ? (k < pg.idx.length ? pg.idx[k] : -1) : base + k);
-      if (k < 0 || k >= pg.rows.length || i < 0 || i >= list.length) { refuse(r, ''); return; }
-      if (paired.has(i)) return;
-      const want = readEchoOf(list[i]);
-      if (readEchoJudge(r && r.heading, list, i) === 'shift') { refuse(r, want, i); return; }
-      const plain = String((r && r.plain) || '').trim();
-      const head = String((r && r.head) || '').trim();
-      /* ---- THE HEADING IS THE DRAFTER'S OWN (Young ruled 10 Sep 2026) ----
-         `head` is no longer asked for and is kept here for the one reason that
-         matters: a reading CACHED before this ruling still carries one, and the
-         section rule below is what keeps those rows alive. The browser draws
-         the paper's own heading either way, so nothing already read has to be
-         paid for again — and a model that answers with one anyway is stored
-         and simply not drawn. */
-      /* A SECTION ROW IS KEPT ON ITS HEADING ALONE — it is the edition's own
-         section title and carries no wording by design. Everything else needs
-         a reading: a clause entry with only a heading would draw a title over
-         nothing. The NUMBER is the browser's, never the model's. */
-      /* ---- EVERY PAIRED ROW IS KEPT, READING OR NOT (D-1, Young chose option
-         A, 11 Sep 2026) ----
-         A clause with an empty reading used to be dropped here ("a clause entry
-         with only a heading would draw a title over nothing"). The edition is a
-         document: a clause the model had nothing to say about — counterparts,
-         severability — still has its name in it, and the browser draws the
-         PAPER's heading, never one of the model's. Nothing is invented; an
-         empty `plain` stays empty. */
-      items.push({ i, num: list[i].num, heading: list[i].heading, kind: list[i].kind, head, plain });
-      paired.add(i);
-    });
+    /* ONE PLACE A READING LANDS: into the edition, into what /progress hands
+       the column, and — unless it came from an answer cut short — into the
+       table, the moment it arrives. */
+    const land = (i, plain, head) => {
+      const it = { i, num: list[i].num, heading: list[i].heading, kind: list[i].kind, head, plain };
+      items.push(it); paired.add(i); job.log.push(it); job.done.add(i);
     };
+    /* Everything already read lands first and costs nothing. */
+    covered.forEach(i => { const got = have.get(hashes[i]); if (got) land(i, got.plain, got.head); });
     /* A MODEL FALLBACK IS ONE FACT ABOUT THE PRESS, not one per page: the
        first page that reports it carries it into the one notice the reader is
        shown. */
     let fell = null;
-    const answeredRows = [];
-    answers.forEach((g, n) => {
-      if (!g || g.err || !g.block){ unread += pages[n].rows.length; return; }
-      if (g.resp && g.resp.truncated) truncated = true;
+    /* ---- THE PAGES ARE MERGED INTO ONE EDITION ----
+       A key is the row's address WITHIN ITS PAGE; `base` (or `idx`, on a page
+       of rows that are not next to each other) puts it back on the whole list,
+       so `i` on a stored item is the global index the browser pairs against and
+       every guard below is asked of the row it really names. */
+    const readPage = (g, pg) => {
+      const entries = g.block.input && Array.isArray(g.block.input.readings) ? g.block.input.readings : [];
+      const isCut = !!(g.resp && g.resp.truncated);
+      if (isCut) truncated = true;
       if (g.resp && g.resp.fellBack && !fell) fell = g.resp;
-      pages[n].rows.forEach((_, k) => answeredRows.push(pages[n].idx ? pages[n].idx[k] : pages[n].base + k));
-      readPage(g.block, pages[n]);
-    });
+      pg.rows.forEach((_, k) => answered.add(pg.idx ? pg.idx[k] : pg.base + k));
+      let refusedN = 0;
+      const got = [];
+      entries.forEach(r => {
+        const k = readKeyIndex(r && r.key);
+        const i = k < 0 ? -1 : (pg.idx ? (k < pg.idx.length ? pg.idx[k] : -1) : pg.base + k);
+        if (k < 0 || k >= pg.rows.length || i < 0 || i >= list.length) { refuse(r, ''); refusedN++; return; }
+        if (paired.has(i) || got.some(x => x.i === i)) return;
+        const want = readEchoOf(list[i]);
+        if (readEchoJudge(r && r.heading, list, i) === 'shift') { refuse(r, want, i); refusedN++; return; }
+        const plain = String((r && r.plain) || '').trim();
+        const head = String((r && r.head) || '').trim();
+        /* ---- THE HEADING IS THE DRAFTER'S OWN (Young ruled 10 Sep 2026) ----
+           `head` is no longer asked for and is kept here for the one reason that
+           matters: a reading CACHED before this ruling still carries one, and the
+           section rule below is what keeps those rows alive. The browser draws
+           the paper's own heading either way, so nothing already read has to be
+           paid for again — and a model that answers with one anyway is stored
+           and simply not drawn. */
+        /* A SECTION ROW IS KEPT ON ITS HEADING ALONE — it is the edition's own
+           section title and carries no wording by design. Everything else needs
+           a reading: a clause entry with only a heading would draw a title over
+           nothing. The NUMBER is the browser's, never the model's. */
+        /* ---- EVERY PAIRED ROW IS KEPT, READING OR NOT (D-1, Young chose option
+           A, 11 Sep 2026) ----
+           A clause with an empty reading used to be dropped here ("a clause entry
+           with only a heading would draw a title over nothing"). The edition is a
+           document: a clause the model had nothing to say about — counterparts,
+           severability — still has its name in it, and the browser draws the
+           PAPER's heading, never one of the model's. Nothing is invented; an
+           empty `plain` stays empty. */
+        got.push({ i, plain, head });
+      });
+      /* ---- A PAGE MORE THAN A QUARTER MISFILED IS NOT KEPT (fix 6) ----
+         The whole-edition rule below, asked of one page before anything from
+         it reaches the table: where more than a quarter of its entries named
+         the wrong clause, the ones that paired are still SHOWN but none is
+         KEPT, so the next press asks again rather than serving a doubtful
+         reading for the life of the wording. And A CUT-SHORT ANSWER IS NEVER
+         KEPT — its last entry may stop mid-sentence. */
+      const doubtful = entries.length > 0 && refusedN * 4 > entries.length;
+      got.forEach(x => { land(x.i, x.plain, x.head); if (isCut) cut.add(x.i); });
+      if (!isCut && !doubtful)
+        readRowsKeep(id, got.map(x => ({ hash: hashes[x.i], plain: x.plain, head: x.head })));
+    };
+    const errored = [];
+    /* A PAGE CUT SHORT (more than one row) waits for its halves rather than
+       being landed: its last entry may stop mid-sentence. */
+    const halvesOf = [];
+    const onFirst = (g, pg) => {
+      if (!g || g.err || !g.block){
+        if (g && g.err && !firstErr) firstErr = g.err;
+        (pg.idx || pg.rows.map((_, k) => pg.base + k)).forEach(i => errored.push(i));
+        return;
+      }
+      if (g.resp && g.resp.truncated && pg.rows.length > 1) { halvesOf.push(pg); return; }
+      readPage(g, pg);
+    };
+    const onLater = (g, pg) => {
+      if (!g || g.err || !g.block){ if (g && g.err && !firstErr) firstErr = g.err; return; }
+      readPage(g, pg);
+    };
+    await askAll(pagesOf(pending), onFirst);
+    /* ---- A PAGE CUT SHORT IS ASKED AGAIN IN TWO HALVES, ONCE (23 Sep 2026) ----
+       A page whose answer ran out of room lost the clauses at its end. Rather
+       than keep the half and count the rest as unread, the page is split and
+       each half asked on its own — twice the room for the same words. Once
+       only: a half that is still cut short is kept as it is and said. */
+    if (halvesOf.length) {
+      const halves = [];
+      halvesOf.forEach(pg => {
+        const mid = Math.ceil(pg.rows.length / 2);
+        const idx = pg.idx || pg.rows.map((_, k) => pg.base + k);
+        [idx.slice(0, mid), idx.slice(mid)].forEach(part => {
+          const rows = part.map(i => list[i]);
+          halves.push({ base: -1, idx: part, rows, body: pageText(rows) });
+        });
+      });
+      const got = await askAll(halves);
+      got.forEach((g, n) => {
+        const pg = halves[n];
+        if (!g || g.err || !g.block){
+          if (g && g.err && !firstErr) firstErr = g.err;
+          pg.idx.forEach(i => errored.push(i));
+          return;
+        }
+        readPage(g, pg);
+      });
+    }
     /* ---- A CLAUSE LEFT WITHOUT A READING IS ASKED FOR AGAIN, BY ITSELF
        (23 Sep 2026) ----
        Whatever the first pass could not pair — an entry the model skipped, or
        one it filed under the wrong key — is gathered into fresh pages of just
        those clauses and asked ONCE more, with fresh keys, so the reader is
-       never sent to press "try again" for what HaTi can ask for itself. The
-       pages carry `idx`, the global index of each row, because the rows are no
-       longer next to each other. A clause still missing after that is counted
-       and said, exactly as before. */
-    const missing = answeredRows.filter(i => !paired.has(i));
-    if (missing.length){
-      const again = [];
-      for (let at = 0; at < missing.length; ){
-        let end = at + 1;
-        const rowsOf = (a, b) => missing.slice(a, b).map(i => list[i]);
-        while (end < missing.length && end - at < READ_PAGE
-          && pageText(rowsOf(at, end + 1)).length <= READ_PAGE_CHARS) end++;
-        const idx = missing.slice(at, end);
-        const rows = idx.map(i => list[i]);
-        again.push({ base: -1, idx, rows, body: pageText(rows) });
-        at = end;
-      }
+       never sent to press "try again" for what HaTi can ask for itself. A
+       clause still missing after that is counted and said, exactly as before.
+       ---- AND SO IS A PAGE THAT FAILED (fix 6: "If one part fails, only that
+       part is tried again") ----
+       A page that never answered — a provider error, a dropped connection —
+       used to be counted as unread for good. Its clauses join the same second
+       ask, after a short pause so a busy provider has a moment. */
+    const again = pending.filter(i => !paired.has(i));
+    if (again.length){
+      if (errored.length) await new Promise(r => setTimeout(r, AI_RETRY_PAUSE_MS));
       /* The first pass's refusals are what the reader is shown for a clause
          still missing; the second pass's keys are its own short list and
          would name nothing a reader could find. */
       recording = false;
-      const got = await askAll(again);
-      got.forEach((g, n) => {
-        if (!g || g.err || !g.block) return;
-        if (g.resp && g.resp.fellBack && !fell) fell = g.resp;
-        readPage(g.block, again[n]);
-      });
-      items.sort((a, b) => a.i - b.i);
+      await askAll(pagesOf(again), onLater);
     }
-    unmatched = answeredRows.filter(i => !paired.has(i)).length;
+    items.sort((a, b) => a.i - b.i);
+    /* A ROW THAT NEVER GOT AN ANSWER IS UNREAD; ONE THAT GOT AN ANSWER NOBODY
+       COULD PAIR IS UNMATCHED. Two different facts with two different
+       sentences on the column, so they are counted apart. */
+    const unread = pending.filter(i => !paired.has(i) && !answered.has(i)).length;
+    const unmatched = pending.filter(i => !paired.has(i) && answered.has(i)).length;
+    /* THE FIRST PAGE REFUSING USED TO REFUSE THE PRESS, which threw away every
+       page that HAD come back. The rule is now what it always meant: with
+       nothing read at all there is no edition to hand over, and the reader is
+       told why. */
+    if (!items.length && !answered.size && firstErr) return { status: 502, error: firstErr };
     /* A page cut short whose missing clauses were then read is a WHOLE
-       edition: nothing is left out, so nothing is said to be. */
-    if (!unmatched) truncated = false;
+       edition: nothing is left out, so nothing is said to be — unless a
+       reading on it came from the cut answer itself. */
+    if (!unmatched && !cut.size) truncated = false;
     failed = failed.filter(f => f.i < 0 || !paired.has(f.i));
-    entriesN = answeredRows.length;
+    const entriesN = answered.size + (covered.length - pending.length);
     over += unread;
     // A CUT-SHORT ANSWER IS NOT CACHED AS A WHOLE ONE — the brief paid for this
     // lesson: written to the table it would serve half a document for ever, with
@@ -6250,9 +6445,24 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
     if (!truncated && !unread && !partial && items.length)
       db.prepare('INSERT INTO clause_readings (contract_id,json,created_at) VALUES (?,?,?) ON CONFLICT(contract_id) DO UPDATE SET json=excluded.json, created_at=excluded.created_at')
         .run(String(id), JSON.stringify(readings), now());
-    res.json({ readings, ...aiNotice(req, { truncated, fellBack: !!(fell && fell.fellBack),
-      model: fell && fell.model, rejectedModel: fell && fell.rejectedModel }) });
-  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+    return { readings, flags: { truncated, fellBack: !!(fell && fell.fellBack),
+      model: fell && fell.model, rejectedModel: fell && fell.rejectedModel } };
+  };
+  /* THE JOB OUTLIVES THE REQUEST: nothing here reads `res`, so a reader who
+     leaves the page or closes the tab leaves it running, and every clause it
+     reads is kept as it lands. Kept in the map a minute after it ends, so a
+     poll that lands just after the end still gets its answer. */
+  job.promise = readAll()
+    .catch(e => ({ status: 502, error: 'Copilot request failed: ' + e.message }))
+    .finally(() => {
+      job.running = false;
+      const t = setTimeout(() => {
+        if (_readJobs.get(jobKey) === job) _readJobs.delete(jobKey);
+        job.runs.forEach(r => { if (_readRuns.get(r) === job) _readRuns.delete(r); });
+      }, READ_JOB_KEEP_MS);
+      if (t && t.unref) t.unref();
+    });
+  return send(await job.promise);
 });
 
 /* ===================== EVENTS OUT (W2-3, gap-map) =====================

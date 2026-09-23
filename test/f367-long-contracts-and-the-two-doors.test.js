@@ -102,7 +102,11 @@ describe('f367 (2) Plain English reads a long contract in right-sized pages', ()
   });
   test('an edition that could not finish is held, and its head says so', () => {
     assert.match(ROOM, /\|\|Number\(r\.readings\.over\)>0\|\|r\.readings\.truncated\)/, 'it lands instead of "nothing to say"');
-    assert.match(ROOM, /const docReadHeld=c=>docReadItems\(c\)\.length>0\|\|docReadUnmatched\(c\)>0\s*\|\|Number\(\(c&&c\._readings&&c\._readings\.over\)\|\|0\)>0;/);
+    /* RE-POINTED IN PLACE (fix 6, 23 Sep 2026): a reading still RUNNING is
+       held too — the column opens on the press and says how far it has got.
+       The claim this was about, an edition that could not finish, is the
+       same line. */
+    assert.match(ROOM, /const docReadHeld=c=>docReadItems\(c\)\.length>0\|\|docReadUnmatched\(c\)>0\s*\|\|Number\(\(c&&c\._readings&&c\._readings\.over\)\|\|0\)>0\|\|docReadRunning\(c\);/);
   });
 });
 

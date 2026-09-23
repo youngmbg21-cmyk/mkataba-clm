@@ -604,12 +604,20 @@ const withKeys = (entries, heads) => entries.map(e => ({ ...e, key: 'R' + e.i, h
       '9a unchanged wording asks nothing — the reading it holds still fits', calls - callsBefore);
 
     ai.reset();
-    ai.script(tool(withKeys([
+    /* RE-POINTED IN PLACE (fix 6, Young's go, 23 Sep 2026: "When one clause
+       changes, only that clause is read again"). This answer was a canned
+       whole-document one, keyed by position; now only the clause that MOVED is
+       sent, so the stand-in answers the page it is actually sent — by each
+       row's own heading, exactly as the provider does. */
+    const heads9 = await headsOf(page, 'MK-A2');
+    const want9 = withKeys([
       { i: 0, head: 'What you are buying, and how orders are placed', plain: '' },
       { i: 1, head: 'How this agreement works', plain: 'REDLINED READING for the clause that moved.' },
       { i: 2, head: 'Placing an order', plain: 'You send a written order. The Supplier then has five working days to confirm it.' },
       { i: 3, head: 'Which document wins', plain: 'If this agreement and an order say different things, this agreement wins.' },
-    ], await headsOf(page, 'MK-A2'))));
+    ], heads9);
+    ai.script(body => tool([...String(body.messages[0].content).matchAll(/\[(R\d{1,3})\] (?:CLAUSE|SECTION)[^\n]*\nheading: ([^\n]*)/g)]
+      .map(m => ({ key: m[1], heading: m[2], plain: ((want9.find(e => e.heading === m[2]) || {}).plain) || '' }))));
     await drive(page, html => {
       const c = state.contracts.find(x => x.id === 'MK-A2');
       c.redlineText = html; c.format = 'rich'; renderWorkspace(c.id);

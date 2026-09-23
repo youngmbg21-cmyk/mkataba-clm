@@ -369,12 +369,22 @@ describe('f364 (9) Format A', () => {
     assert.ok(/sig&&c\._readSig&&c\._readSig!==sig/.test(paint), 'the painter, as it always did');
     assert.ok(/sig&&c\._readSig&&c\._readSig!==sig/.test(WIRE()), 'and the press, which did not');
   });
+  /* RE-POINTED IN PLACE (fix 6, Young's go, 23 Sep 2026: "Each clause
+     appears as soon as it is read"). The 22 Sep fault was a refused re-read
+     RETURNING before the switch was set, so the press did nothing. The switch
+     is now set BEFORE the reading, so the column can fill as it runs — which
+     makes that fault impossible by construction — and a reading that brings
+     back nothing stands down by itself: with nothing held the column is not
+     drawn. */
   test('a refused re-read does not swallow the press', () => {
     const w = WIRE();
-    assert.ok(/if\(!got&&!docReadItems\(c\)\.length\)\s*return;/.test(w),
-      'the press stands down ONLY where there is nothing at all to show');
-    assert.ok(w.indexOf('docViewSet(mode)') > w.indexOf('docReadRun(c)'),
-      'and the switch is set after the attempt, not skipped by it');
+    assert.ok(w.indexOf('docViewSet(mode)') > 0 && w.indexOf('docViewSet(mode)') < w.indexOf('await docReadRun(c)'),
+      'the switch is set BEFORE the attempt, so no refusal can skip it');
+    assert.ok(!/if\(!got&&!docReadItems\(c\)\.length\)\s*return;/.test(w),
+      'and there is no early return left between the press and the switch');
+    const held = region('docReadPaint');
+    assert.ok(/const on=docReadOn\(\)&&_wsTab==='docs'&&docReadHeld\(c\);/.test(held),
+      'the column is drawn only where something is held — which is how a reading that brought nothing back stands down');
   });
   test('[wall] _readSig still has exactly ONE writer, inside docReadRun', () => {
     const hits = (CODE.match(/_readSig\s*=(?!=)/g) || []).length;

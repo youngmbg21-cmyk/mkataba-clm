@@ -122,11 +122,38 @@ describe('f315 the whole contract is read', () => {
     assert.ok(!c._readings, 'a document with a hole in it is not cached, or it is served for the life of the wording');
   });
 
-  test('(4) the first page refusing refuses the press — there is no edition to hand over', async () => {
+  /* REVERSED IN PLACE (fix 6, Young's go, 23 Sep 2026: "If one part fails,
+     only that part is tried again. Everything already read is kept."). This
+     claim used to hold that the FIRST page failing refused the whole press —
+     which threw away every page that had come back. What it always meant is
+     kept as (4b): with NOTHING read at all there is no edition to hand over. */
+  test('(4) the first page failing no longer throws away the pages that came back', async () => {
     ai.reset();
     ai.script(dead, answerPage);
     const r = await W.admin.raw('/api/ai/readings', { method: 'POST', body: { id: 'MK-F315-3', clauses: clauses(80) } });
+    assert.equal(r.status, 200, 'what was read is handed over');
+    assert.equal(r.json.readings.items.length, 20, 'the page that answered is kept');
+    assert.equal(r.json.readings.over, 60, 'and the page that failed — asked again once, and failing again — is counted as unread');
+    assert.ok(ai.calls.length >= 3, 'the failed page was asked again: ' + ai.calls.length);
+  });
+
+  test('(4b) with nothing read at all the press is refused, and the reader is told why', async () => {
+    ai.reset();
+    ai.script(dead, dead, dead, dead);
+    await put('MK-F315-5');
+    const r = await W.admin.raw('/api/ai/readings', { method: 'POST', body: { id: 'MK-F315-5', clauses: clauses(80) } });
     assert.equal(r.status, 502, 'the reader is told why rather than shown an empty column');
+  });
+
+  test('(4c) a later press asks only for the clauses nobody has read', async () => {
+    ai.reset();
+    ai.script(answerPage, answerPage);
+    const r = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F315-3', clauses: clauses(80) } });
+    assert.equal(r.readings.items.length, 80, 'the edition is whole now');
+    assert.equal(r.readings.over, 0);
+    const sent = ai.calls.map(c => c.body.messages[0].content.split('THE CONTRACT:\n')[1] || '').join('\n');
+    assert.ok(!/CLAUSE 61\n/.test(sent) && !/CLAUSE 80\n/.test(sent), 'the twenty already read were not sent again');
+    assert.ok(/CLAUSE 1\n/.test(sent) && /CLAUSE 60\n/.test(sent), 'only the sixty that failed');
   });
 
   /* RE-POINTED 23 Sep 2026 (Young: "hati seems to not be able to read a long
@@ -161,6 +188,14 @@ describe('f315 the whole contract is read', () => {
     ai.script(answerPage, answerPage);
     const third = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F315-4', clauses: moved } });
     assert.ok(!third.cached, 'a word moved on page two is a different document');
-    assert.equal(ai.calls.length, 4);
+    /* RE-POINTED IN PLACE (fix 6, 23 Sep 2026: "When one clause changes, only
+       that clause is read again"). This read 4 — the whole document asked
+       again for one moved word. Every clause is kept as it is read now, so
+       the moved clause is the ONLY thing sent. */
+    assert.equal(ai.calls.length, 3, 'one more call, not two');
+    const last = ai.calls[2].body.messages[0].content.split('THE CONTRACT:\n')[1] || '';
+    assert.ok(/CLAUSE 66\n/.test(last) && !/CLAUSE 65\n/.test(last) && !/CLAUSE 1\n/.test(last),
+      'and that call carried the moved clause alone');
+    assert.equal(third.readings.items.length, 70, 'the edition is still whole');
   });
 });

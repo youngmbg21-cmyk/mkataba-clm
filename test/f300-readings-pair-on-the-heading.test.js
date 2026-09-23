@@ -63,6 +63,7 @@ describe('f300 the readings pair on the heading, never on a number a clause coul
     await put('MK-F300-2');
     await put('MK-F300-3');
     await put('MK-F300-4');
+    await put('MK-F300-5');
   });
   after(async () => { await h.stop(); await ai.stop(); });
 
@@ -163,7 +164,12 @@ describe('f300 the readings pair on the heading, never on a number a clause coul
       { i: 2, key: 'row R2', heading: CLAUSES[2].heading, plain: PLAIN[2] },
       { i: 3, key: 'R3', heading: CLAUSES[3].heading, plain: PLAIN[3] },
     ] }));
-    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F300-4', clauses: CLAUSES, force: true } });
+    /* RE-POINTED IN PLACE (fix 6, 23 Sep 2026): every clause is now KEPT the
+       moment it is read, and `force` no longer throws that away — "Everything
+       already read is kept" is the owner's own ruling. MK-F300-4's four were
+       read in (3), so this claim, which is about KEYS, is asked on a contract
+       nobody has read. */
+    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F300-5', clauses: CLAUSES, force: true } });
     assert.deepEqual(out.readings.items.map(x => x.i), [3]);
     assert.equal(out.readings.unmatched, 3);
     assert.equal(out.readings.partial, true);

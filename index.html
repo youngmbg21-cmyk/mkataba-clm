@@ -3325,6 +3325,19 @@
     font-family:inherit; font-weight:var(--w-title); color:var(--color-text); }
   .doc-read-over{ position:absolute; left:0; right:0; padding-right:4px;
     font-size:var(--t-label); color:var(--color-neutral-600); }
+  /* ---- PLAIN ENGLISH READS IN THE BACKGROUND (fix 6, 23 Sep 2026) ----
+     HOW FAR IT HAS GOT sits in the moved line's own slot and register, in the
+     quiet ink rather than the amber: nothing is wrong, it is still reading.
+     A CLAUSE STILL TO COME keeps its place with its own number and a quiet
+     "Reading…". It is furniture ABOUT the reading, like the caption and the
+     foot, so it keeps the product's face and the foot's size — the measured
+     face is the readings' alone. Its own class, never .doc-read-note: nothing
+     that counts readings may find it. */
+  .doc-read-moved.doc-read-progress{ color:var(--color-neutral-600); }
+  .doc-read-wait{ position:absolute; left:0; right:0; padding-right:4px;
+    font-size:var(--t-label); line-height:1.75; color:var(--color-neutral-500); }
+  .doc-read-wait p{ margin:0; }
+  .doc-read-wait .dr-n{ margin-right:.4em; font-variant-numeric:tabular-nums; }
 
   /* The quiet line under the tabs: one sentence saying what this tab is for,
      and at most one button. Not a card — it explains the page, it is not part

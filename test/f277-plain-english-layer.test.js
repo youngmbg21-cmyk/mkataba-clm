@@ -494,8 +494,14 @@ describe('f277 (6) the route', () => {
        the claim is still that nothing half-finished is kept. */
     const cut = { content: tu({ readings: [{ ...at(0), plain: 'Half an answer.' }] }), stopReason: 'max_tokens' };
     ai.script(cut, cut, cut);
+    /* RE-POINTED IN PLACE (fix 6, 23 Sep 2026): every clause is now kept the
+       moment it is read and `force` no longer throws that away ("Everything
+       already read is kept"), so the two clauses read above would come out of
+       the table and nothing would be asked. The claim is about an answer cut
+       SHORT, so it is asked of wording nobody has read. */
+    const fresh = CLAUSES.slice(0, 2).map(x => ({ ...x, text: x.text + ' As restated.' }));
     const out = await W.admin.json('/api/ai/readings', { method: 'POST',
-      body: { id: 'MK-PE-1', clauses: CLAUSES.slice(0, 2), force: true } });
+      body: { id: 'MK-PE-1', clauses: fresh, force: true } });
     assert.equal(out.readings.truncated, true, 'the reader is told where they are looking');
     const c = await W.admin.json('/api/contracts/MK-PE-1');
     assert.ok(!(c._readings && c._readings.truncated),
@@ -742,12 +748,19 @@ describe('f277 (9) a redlined clause is read again', () => {
   test('the press asks when the paper has moved, and the stamp is the sent walk', () => {
     assert.ok(/const moved=!!\(sig&&c\._readSig&&c\._readSig!==sig\)/.test(CONTRACT_JS),
       'the wording is KNOWN to have moved — an absent stamp is "we do not know"');
-    assert.ok(/if\(!docReadItems\(c\)\.length\|\|moved\)/.test(CONTRACT_JS),
+    /* RE-POINTED IN PLACE (fix 6, 23 Sep 2026): the press also asks where the
+       edition it holds has a HOLE in it ("only that part is tried again") and
+       where a reading is still running (it joins it). The first two reasons
+       are the ones this claim was always about. */
+    assert.ok(/ask=!docReadItems\(c\)\.length\|\|moved\|\|holes\|\|docReadRunning\(c\);/.test(CONTRACT_JS),
       'nothing yet, or the wording has moved since the reading we hold');
     const run = CONTRACT_JS.slice(CONTRACT_JS.indexOf('async function docReadRun'));
     const body = run.slice(0, run.indexOf('\nfunction '));
-    assert.ok(body.indexOf('const sig=docReadSig(c);') < body.indexOf('await api('),
-      'taken BEFORE the await');
+    /* The request is no longer awaited where it is made — the column polls
+       for progress while it runs — so the claim is asked of the SEND. */
+    assert.ok(body.indexOf('const sig=docReadSig(c);') > 0
+      && body.indexOf('const sig=docReadSig(c);') < body.indexOf("api('ai/readings','POST'"),
+      'taken BEFORE the request goes');
     assert.ok(/c\._readSig=sig;/.test(body), 'and stamped only on a reading that arrived');
   });
 });

@@ -5967,7 +5967,10 @@ function ktReadingsRowsHtml(c){
      is undefined and every guard on it takes the fallback in silence -- the
      exact fault f232 sweeps for, and it caught this one. A const is not
      hoisted, but this runs at paint time, long after the module evaluated. */
-  let read=false; try{ read=!!docReadHeld(c); }catch(_){ read=!!(c&&c._readings); }
+  /* A READING THAT HAS STARTED AND BROUGHT NOTHING BACK YET IS NOT READY
+     (fix 6): docReadHeld holds the column open while it reads, and this row
+     must not call that "ready". */
+  let read=false; try{ read=!!docReadHeld(c)&&!(docReadRunning(c)&&!docReadItems(c).length); }catch(_){ read=!!(c&&c._readings); }
   rows.push({ k:'plain', name:i18t('ov_r_plain'),
     said: read?i18t('ov_r_ready'):i18t('ov_r_none'),
     when: (c&&c._readings&&c._readings.at)||'', state:read?'yes':'no', tab:'docs' });
@@ -9914,7 +9917,51 @@ const DOC_READ_KEY='hati.v1.docPlainEnglish';
 const DOC_READ_MIN_W=1024;
 /* The air an entry keeps below it when the one above has pushed it down. */
 const DOC_READ_GAP=18;
-let _docReadBusy=false;
+/* ---- PLAIN ENGLISH READS IN THE BACKGROUND (fix 6, Young's go on the
+   preview, 23 Sep 2026) ----
+   "On a long contract, one press tries to translate everything in one go, and
+   nothing is kept until the very end — so one problem loses the lot."
+
+   THE COLUMN OPENS ON THE PRESS AND FILLS AS THE CLAUSES COME BACK. The
+   reading is a job on the server (see /api/ai/readings), which keeps every
+   clause the moment it is read; this side asks how far it has got
+   (`/reading-progress`, named by `run`, this press's own name) while the
+   reader is looking, and draws what has arrived, with "Reading 4 of 12" in the
+   column's own heading and a quiet "Reading…" beside each clause still to
+   come.
+
+   ONE PRESS PER CONTRACT, and leaving is not cancelling: `_docReadJobs` holds
+   the press by contract id, so coming back to the tab and pressing again JOINS
+   it rather than asking twice, and the server carries on whether anybody is
+   watching or not. Nothing here is stored; the reading lands on the contract
+   as `_readings`, the transport it has always been. */
+const DOC_READ_FIRST_MS=400;
+const DOC_READ_POLL_MS=1500;
+/* A reading the server is still doing when the connection drops is waited for
+   rather than abandoned — but not for ever. The provider's own ceiling is two
+   minutes a page, and a forty-page contract three pages at a time is well
+   inside this. */
+const DOC_READ_WAIT_MS=30*60*1000;
+const _docReadJobs=new Map();
+const docReadRunning=c=>!!(c&&c.id!=null&&_docReadJobs.has(c.id));
+/* The contract as it is NOW: a reading outlives the object it was pressed on
+   whenever the room re-fetches the record, so every landing asks by id. */
+const docReadCur=(id,c)=>((state&&state.contracts)||[]).find(x=>x&&x.id===id)||c;
+/* A poll nobody is looking at is a request for nothing — the reading goes on
+   at the server either way, and the column catches up when the reader is back. */
+const docReadWatching=id=>state.view==='workspace'&&state.activeId===id&&_wsTab==='docs'&&docReadOn();
+const docReadSleep=ms=>new Promise(r=>setTimeout(r,ms));
+/* THIS PRESS'S OWN NAME, so the server's answer about progress is about THIS
+   reading and never about a colleague's reading of an older wording. */
+function docReadRunName(){
+  try{
+    if(window.crypto&&crypto.getRandomValues){
+      const a=new Uint8Array(12); crypto.getRandomValues(a);
+      return Array.from(a,b=>b.toString(16).padStart(2,'0')).join('');
+    }
+  }catch(_){ }
+  return (Date.now().toString(36)+Math.random().toString(36).slice(2)+'0000000000').slice(0,20);
+}
 
 const docReadFits=()=>window.innerWidth>=DOC_READ_MIN_W;
 /* READ, NEVER WRITTEN, WHERE IT CANNOT BE HONOURED — the nav drawer's rule: a
@@ -9960,8 +10007,11 @@ const docReadItems=c=>{
 const docReadUnmatched=c=>Number((c&&c._readings&&c._readings.partial&&c._readings.unmatched)||0);
 /* An edition that could not finish (pages left unread) is held too, so its
    head can say how many clauses and carry Read again (23 Sep 2026). */
+/* …AND SO IS ONE STILL BEING READ (fix 6): the column opens on the press and
+   fills as the clauses come back, so it has something to say — how far it has
+   got — before the first reading has landed. */
 const docReadHeld=c=>docReadItems(c).length>0||docReadUnmatched(c)>0
-  ||Number((c&&c._readings&&c._readings.over)||0)>0;
+  ||Number((c&&c._readings&&c._readings.over)||0)>0||docReadRunning(c);
 /* WHAT COUNTS AS A CLAUSE HERE IS WHAT IS PAINTED ON THE SHEET, and that is
    the safety of the whole pairing rather than a shortcut.
 
@@ -10786,14 +10836,31 @@ function docReadPaint(c){
      route answered for and the pairing then refused is one the reader is
      looking at a gap beside. */
   let moved=0;
+  /* ---- WHILE IT READS, THE HEAD SAYS HOW FAR IT HAS GOT (fix 6) ----
+     "Reading 4 of 12" takes the slot the moved and short lines use — the
+     column's own heading, never a band — and neither of those is said while a
+     reading is running: the edition they would describe is being replaced. */
+  const running=docReadRunning(c);
+  const prog=(running&&c._readings&&c._readings.running)?c._readings:null;
   try{
-    const sig=docReadSig(c);
+    const sig=running?'':docReadSig(c);
     if(sig&&c._readSig&&c._readSig!==sig){
       const sheet=docReadSheet(c)||[];
       moved=Math.max(0,sheet.filter(x=>x&&x.kind!=='front').length-pairs.length);
       if(!moved) moved=1;
     }
   }catch(_){ moved=0; }
+  /* ---- AND A QUIET "Reading…" BESIDE EACH CLAUSE STILL TO COME (fix 6) ----
+     The rows of the sheet no entry has landed on yet, in paper order, each
+     with its own number — so the column keeps the contract's shape while it
+     fills rather than growing from the top. Drawn only while a reading runs,
+     and with a class of its own: anything counting the READINGS on a page must
+     never find these among them (the mirror's lesson). */
+  const waits=[];
+  if(running){
+    const got=new Set(docReadItems(c).map(it=>Number(it&&it.i)));
+    try{ (docReadSheet(c)||[]).forEach((row,k)=>{ if(row&&row.el&&!got.has(k)) waits.push({k,row}); }); }catch(_){ }
+  }
   /* ---- THE SWITCH'S TWO FACTS, READ ONCE PER PAINT ----
      How many of the clauses on screen carry a promise, and whether the reader
      has asked for them to be lit. Counted off the paired READINGS — the very
@@ -10853,7 +10920,10 @@ function docReadPaint(c){
       esc(i18t('ct_read_plain'))}</span>${dutyN?`<button type="button" class="doc-read-duty" data-doc-read-duty
       aria-pressed="${dutyOn}" title="${esc(i18t('ct_duty_title'))}"><span class="dr-tick" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="#i-check"/></svg></span>${
       esc(i18tn('ct_duty_switch',dutyN,{n:dutyN}))}</button>`:''}${
-      moved?`<span class="doc-read-moved">${esc(i18tn('ct_read_moved',moved,{n:moved}))} <button type="button" class="ui-btn-plain" data-doc-read-again>${esc(i18t('ct_read_again'))}</button></span>`
+      running?`<span class="doc-read-moved doc-read-progress" role="status">${esc(prog&&Number.isFinite(prog.done)
+          ?i18t('ct_read_progress',{n:prog.done,m:prog.total})
+          :i18t('ct_read_reading'))}</span>`
+      :moved?`<span class="doc-read-moved">${esc(i18tn('ct_read_moved',moved,{n:moved}))} <button type="button" class="ui-btn-plain" data-doc-read-again>${esc(i18t('ct_read_again'))}</button></span>`
       /* ---- A SHORT READING IS SAID WHERE THE READER IS LOOKING (Young
          reported it 22 Sep 2026: a long contract, the Plain English column
          white from top to bottom, and no word of why) ----
@@ -10957,6 +11027,10 @@ function docReadPaint(c){
         +(body?`<p${lead?' class="dr-lead"':''}>${lead?numHtml:''}${
             dutyOn?docDutyMark(docReadMark(body)):docReadMark(body)}</p>`:'')
         +`</div>`;
+    }).join('')}${waits.map(w=>{
+      const num=String(w.row.num||w.row.cite||'').trim();
+      return `<div class="doc-read-wait" data-doc-read-wait="${w.k}" aria-hidden="true"><p>${
+        num?`<span class="dr-n">${esc(num+String(w.row.sep||''))}</span>`:''}${esc(i18t('ct_read_reading'))}</p></div>`;
     }).join('')}
       ${over?`<div class="doc-read-over">${esc(i18tn('ct_read_over',over,{n:over}))}</div>`:''}
       ${partial?`<div class="doc-read-over doc-read-partial">${esc(i18tn('ct_read_partial',partial,{n:partial}))} <button type="button" class="ui-btn-plain" data-doc-read-again>${esc(i18t('ct_read_again'))}</button></div>`:''}
@@ -11037,8 +11111,18 @@ function docReadPaint(c){
      title page whose copy runs a few pixels taller than the paper it copies
      must not cost the first clause its place. MEASURED — sharing one floor put
      the first reading 28px below the clause it reads. */
+  /* The clauses still to come are placed in the SAME pass, in paper order, so
+     a "Reading…" and a reading can never overlap. */
+  let w=0;
+  const waitsUpTo=i=>{
+    while(w<waits.length&&waits[w].k<i){
+      place(waits[w].row.el, inner.querySelector(`[data-doc-read-wait="${waits[w].k}"]`), DOC_READ_GAP);
+      w++;
+    }
+  };
   floor=0;
-  pairs.forEach((p,n)=>place(p.el, inner.querySelector(`[data-doc-read-note="${n}"]`), DOC_READ_GAP));
+  pairs.forEach((p,n)=>{ waitsUpTo(Number(p.it&&p.it.i)); place(p.el, inner.querySelector(`[data-doc-read-note="${n}"]`), DOC_READ_GAP); });
+  waitsUpTo(Infinity);
   const lastEl=pairs.length?pairs[pairs.length-1].el.getBoundingClientRect().bottom-base:0;
   const last=Math.max(lastEl,bottom);
   const overEl=inner.querySelector('.doc-read-over:not(.doc-read-partial)');
@@ -11286,42 +11370,124 @@ function docReadSwitchHtml(c){
   const xr=docXrayOn();
   return `<div class="doc-read-seg" role="group" aria-label="${esc(i18t('ct_read_group'))}">
     <button type="button" data-doc-read="0" aria-pressed="${!on&&!xr}">${esc(i18t('ct_read_contract'))}</button>
-    <button type="button" data-doc-read="1" aria-pressed="${on}"${_docReadBusy?' disabled':''}
-      title="${esc(i18t('ct_read_plain_title'))}">${esc(_docReadBusy?i18t('ct_read_reading'):i18t('ct_read_plain'))}</button>
+    ${''/* NEVER GREYED WHILE IT READS (fix 6): the column is open and says how
+           far it has got, so the half that opened it stays lit and pressable —
+           a second press joins the reading already running. */}
+    <button type="button" data-doc-read="1" aria-pressed="${on}"
+      title="${esc(i18t('ct_read_plain_title'))}">${esc(i18t('ct_read_plain'))}</button>
     <button type="button" data-doc-read="2" aria-pressed="${xr}"
       title="${esc(i18t('xr_switch_title'))}">${esc(i18t('xr_switch'))}</button>
   </div>`;
 }
 async function docReadRun(c,opts){
-  if(_docReadBusy) return false;
+  const id=c&&c.id;
+  if(id==null) return false;
+  /* ONE PRESS PER CONTRACT: a reading already running is joined, never asked
+     for twice (fix 6). */
+  const busy=_docReadJobs.get(id);
+  if(busy) return busy.promise;
   const clauses=docReadClauses(c);
   if(!clauses.length){ toast(i18t('ct_read_nothing'),'warn'); return false; }
+  /* STAMPED ONLY ON A READING THAT ARRIVED, and stamped with the signature of
+     the walk that was SENT — taken before the request goes, because the paper
+     can be repainted while it is in flight and a signature read afterwards
+     would claim a reading of wording nobody read. */
   const sig=docReadSig(c);
-  _docReadBusy=true; wsPaintTabRowEnd(c);
+  const job={ run:docReadRunName(), got:new Map(), from:0, total:clauses.length, prev:c._readings };
+  _docReadJobs.set(id,job);
+  /* What the column shows until the first answer about progress arrives: the
+     edition it already held, if any — never a blank column over wording that
+     was read yesterday — marked as reading. */
+  const prev=c._readings;
+  c._readings=Object.assign({ v:1, items:[] }, prev||{},
+    { running:true, total:clauses.length, done:null, over:0, unmatched:0, partial:false, truncated:false });
+  wsPaintTabRowEnd(c);
+  job.promise=(async()=>{
+    let r=null, err=null;
+    const started=Date.now();
+    try{
+      /* ONE ASK, AND ONE MORE ONLY IF THE CONNECTION DROPPED. `force` is the
+         foot's "try again": it skips the whole edition the route keeps, and
+         never what was read clause by clause. */
+      for(let attempt=0;attempt<2;attempt++){
+        let settled=false; r=null; err=null;
+        const post=api('ai/readings','POST',{id,clauses,force:!!(opts&&opts.force),run:job.run})
+          .then(x=>{ r=x; },e=>{ err=e; }).then(()=>{ settled=true; });
+        let wait=DOC_READ_FIRST_MS;
+        while(!settled){
+          await Promise.race([post,docReadSleep(wait)]);
+          wait=DOC_READ_POLL_MS;
+          if(settled) break;
+          await docReadPoll(id,job);
+        }
+        /* An answer, or a refusal the server GAVE (it carries a status): done. */
+        if(!err||err.status) break;
+        /* ---- THE CONNECTION DROPPED, NOT THE READING (fix 6) ----
+           A long contract can outlast a proxy's patience with one request.
+           The server carries on regardless and keeps every clause as it lands,
+           so the column waits for it to finish and then asks once more — which
+           is answered out of what was kept, and costs nothing. */
+        let p=null;
+        do{
+          await docReadSleep(DOC_READ_POLL_MS);
+          p=await docReadPoll(id,job,true);
+        } while(p&&p.running&&Date.now()-started<DOC_READ_WAIT_MS);
+      }
+      c=docReadCur(id,c);
+      /* A PARTIAL ANSWER STILL LANDS, even with nothing paired in it: the
+         column has to be able to say how many clauses could not be matched,
+         and it can only say that off a reading it holds. */
+      /* …AND SO DOES ONE THAT COULD NOT FINISH (23 Sep 2026): an edition whose
+         pages were cut short or left unread is a fact about the reading, and
+         the column's head says how many clauses and offers Read again.
+         Telling the reader "Copilot found nothing to say" there was untrue. */
+      if(!err&&r&&r.readings&&Array.isArray(r.readings.items)&&(r.readings.items.length||r.readings.partial
+          ||Number(r.readings.over)>0||r.readings.truncated)){
+        c._readings=r.readings;
+        c._readSig=sig;
+        return true;
+      }
+      /* Nothing arrived: whatever the column held before the press is put back. */
+      if(job.prev) c._readings=job.prev; else delete c._readings;
+      if(err) toast((err&&err.message)||i18t('ct_read_failed'),'err');
+      else toast(i18t('ct_read_nothing_back'),'warn');
+      return false;
+    }finally{
+      _docReadJobs.delete(id);
+      const cur=docReadCur(id,c);
+      wsPaintTabRowEnd(cur);
+      if(docReadWatching(id)) docReadPaint(cur);
+    }
+  })();
+  return job.promise;
+}
+/* HOW FAR IT HAS GOT: the entries that came back since the last ask, merged
+   by their place in the contract, and painted where the reader is looking.
+   Reads nothing it did not ask for and writes nothing but the transport. */
+async function docReadPoll(id,job,always){
+  if(!always&&!docReadWatching(id)) return null;
+  let p=null;
   try{
-    /* `force` is the foot's "try again" on a PARTIAL edition — the brief's own
-       rewrite press: an answer the route could not pair was never cached, so
-       asking again is the only way forward, and it is asked for by name. */
-    const r=await api('ai/readings','POST',{id:c.id,clauses,force:!!(opts&&opts.force)});
-    /* A PARTIAL ANSWER STILL LANDS, even with nothing paired in it: the column
-       has to be able to say how many clauses could not be matched, and it can
-       only say that off a reading it holds. */
-    /* …AND SO DOES ONE THAT COULD NOT FINISH (23 Sep 2026): an edition whose
-       pages were cut short or left unread is a fact about the reading, and the
-       column's head says how many clauses and offers Read again. Telling the
-       reader "Copilot found nothing to say" there was untrue. */
-    if(r&&r.readings&&Array.isArray(r.readings.items)&&(r.readings.items.length||r.readings.partial
-        ||Number(r.readings.over)>0||r.readings.truncated)){
-      c._readings=r.readings;
-      /* STAMPED ONLY ON A READING THAT ARRIVED, and stamped with the signature
-         of the walk that was SENT — taken before the await, because the paper
-         can be repainted while the request is in flight and a signature read
-         afterwards would claim a reading of wording nobody read. */
-      c._readSig=sig;
-    } else { toast(i18t('ct_read_nothing_back'),'warn'); return false; }
-  }catch(e){ toast((e&&e.message)||i18t('ct_read_failed'),'err'); return false; }
-  finally{ _docReadBusy=false; wsPaintTabRowEnd(c); }
-  return true;
+    p=await api('contracts/'+encodeURIComponent(id)+'/reading-progress?run='+encodeURIComponent(job.run)+'&from='+job.from,
+      'GET',undefined,{quiet:true});
+  }catch(_){ return null; }
+  if(!p||!p.known) return p;
+  (Array.isArray(p.items)?p.items:[]).forEach(it=>{
+    const i=Number(it&&it.i);
+    if(Number.isInteger(i)&&i>=0) job.got.set(i,it);
+  });
+  job.from=Number(p.next)||job.from;
+  if(Number(p.total)>0) job.total=Number(p.total);
+  if(p.running){
+    const cur=docReadCur(id);
+    if(cur){
+      const items=Array.from(job.got.values()).sort((a,b)=>a.i-b.i);
+      cur._readings={ v:1, running:true, total:job.total, done:items.length, items,
+        over:0, unmatched:0, partial:false, truncated:false };
+      if(docReadWatching(id)) docReadPaint(cur);
+    }
+  }
+  return p;
 }
 /* ============================================================
    X-RAY — THE THIRD POSITION ON THE DOCUMENT TAB'S SWITCH
@@ -11712,6 +11878,7 @@ function wireDocRead(c,host){
          is covered over. */
       const act=document.activeElement;
       if(act&&act!==document.body&&act.blur&&act.closest&&act.closest('#doc-right')) act.blur();
+      let ask=false;
       if(want){
         const sig=docReadSig(c);
         /* ---- A MISSING MEMORY IS "WE DO NOT KNOW", NEVER "IT MOVED" ----
@@ -11731,21 +11898,37 @@ function wireDocRead(c,host){
            memory is absent. Two readings of one fact, disagreeing, which is
            this codebase's own named fault class; they agree now. */
         const moved=!!(sig&&c._readSig&&c._readSig!==sig);
-        if(!docReadItems(c).length||moved){
-          const got=await docReadRun(c);
-          /* A REFUSED RE-READ IS NOT A REFUSED PRESS. Where an edition is
-             already on the record the switch still goes where the reader put
-             it and the column draws what it holds, with its own caption
-             saying how many clauses it can no longer speak for. Only where
-             there is nothing at all to show does the press stand down — and
-             docReadRun has already said why, in a toast. */
-          if(!got&&!docReadItems(c).length) return;
-        }
+        /* ---- AND AN EDITION WITH A HOLE IN IT IS ASKED FOR TOO (fix 6:
+           "If one part fails, only that part is tried again") ----
+           A clause the last reading could not match is asked for again on the
+           next press — and only that clause: everything read before it is kept
+           at the server and comes back for nothing. A reading still running is
+           JOINED, which is how a reader who left mid-read finds the column
+           carrying on where it was. */
+        const holes=Number((c._readings&&c._readings.unmatched)||0)>0;
+        ask=!docReadItems(c).length||moved||holes||docReadRunning(c);
       }
+      /* ---- THE COLUMN OPENS ON THE PRESS AND FILLS AS IT IS READ (fix 6) ----
+         It used to wait for the whole contract before the switch moved at
+         all. The switch is set FIRST now, so the reader watches the clauses
+         arrive. A reading that brings back nothing at all needs no second
+         write to stand down: with nothing held the column is not drawn, so
+         the paper and Contract View are what the reader sees — and
+         docReadRun has already said why, in a toast. */
       docViewSet(mode);
       wsPaintTabRowEnd(c);
       docReadPaint(c);
       docXrayPaint(c); docXrayWire(c);
+      if(!ask) return;
+      await docReadRun(c);
+      const cur=docReadCur(c.id,c);
+      /* THE READER MAY HAVE MOVED ON while it read — the other half of the
+         switch, another tab, another page — and that choice stands: nothing
+         is repainted over it. */
+      if(docViewMode()!=='plain'||!docReadWatching(cur.id)) return;
+      wsPaintTabRowEnd(cur);
+      docReadPaint(cur);
+      docXrayPaint(cur); docXrayWire(cur);
     });
   });
 }
