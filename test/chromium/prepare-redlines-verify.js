@@ -92,7 +92,24 @@ const VERDICTS = [
   const ai = await startScriptedAi();
   const h = await startHati({ ANTHROPIC_BASE_URL: ai.base });
   const W = await seedWorkspace(h);
-  ai.script([{ type: 'tool_use', id: 'tu_pb', name: 'playbook_review', input: { verdicts: VERDICTS } }]);
+  /* ---- IT ANSWERS EVERY STANDARD IT IS ASKED ABOUT (re-pointed 23 Sep 2026,
+     fix 3) ----
+     The check now sends one position per standard on the Our standards page
+     and asks for exactly one verdict each; a check that answers only some is
+     reported as "k of n checked" and is never reused as a finished one. So the
+     stand-in reads the positions it was actually sent — a FUNCTION answer, the
+     helper's own form for a route that must answer what it was asked — gives
+     the four scripted findings their scripted verdicts and calls every other
+     standard met, which is what a provider that obeyed the prompt returns. */
+  ai.script(body => {
+    const prompt = String(((body.messages || [])[0] || {}).content || '');
+    let positions = [];
+    try{ positions = (JSON.parse(prompt.slice(prompt.indexOf('PLAYBOOK:\n') + 10, prompt.indexOf('\n\nDOCUMENT:'))).positions) || []; }catch(_){}
+    const byCat = new Map(VERDICTS.map(v => [v.category, v]));
+    const verdicts = positions.map(p => byCat.get(p.category)
+      || { category: p.category, status: 'aligned', quote: '', position: p.note || '', redline: '', escalate: false });
+    return [{ type: 'tool_use', id: 'tu_pb', name: 'playbook_review', input: { verdicts } }];
+  });
   const ID = 'MK-A12';
   await W.admin.json('/api/contracts/' + ID, { method: 'PUT', body: { contract: {
     id: ID, name: 'Nordkust supply agreement', counterparty: 'Nordkust Industri AB', counterpartyEmail: 'ola@nordkust.se',
@@ -553,6 +570,40 @@ const VERDICTS = [
   await pause(500);
   await page.evaluate(() => { const b = document.getElementById('cf-ok'); b && b.click(); });
   await pause(400);
+
+  /* ============ 9. A CHECK THAT DID NOT FINISH SAYS SO (fix 3, 23 Sep 2026) ============
+     The owner's report: "gave an answer that everything was clean". One way
+     that sentence was reached is an answer the provider CUT SHORT at its token
+     ceiling — it arrived with one verdict or none, was saved, and was read as
+     clean. Played back here as the provider really fails (stop_reason
+     max_tokens), through the real row, on a contract with no check on file.
+     At the parent the toast read "Every playbook position is aligned". */
+  await page.evaluate(id => {
+    const c = state.contracts.find(x => x.id === id);
+    c.changes = []; delete c.playbook; renderRedline();
+  }, ID);
+  await pause(900);
+  ai.script({ content: [{ type: 'tool_use', id: 'tu_pb_cut', name: 'playbook_review',
+    input: { verdicts: [{ category: 'Governing law', status: 'aligned', quote: '' }] } }], stopReason: 'max_tokens' });
+  const callsBefore9 = ai.calls.length;
+  await page.evaluate(() => { const t = document.getElementById('toast-root'); if (t) t.innerHTML = ''; });
+  await page.click('#ws-more').catch(() => {});
+  await pause(400);
+  const pressed9 = await pressRow(page); await pause(700);
+  if (pressed9){ await page.evaluate(() => { const b = document.getElementById('cf-ok'); b && b.click(); }); }
+  await pause(4000);
+  const cut9 = await page.evaluate(id => {
+    const c = state.contracts.find(x => x.id === id);
+    return { toast: (document.getElementById('toast-root') || {}).innerText || '',
+      changes: (c.changes || []).length, saved: !!(c.playbook && c.playbook.verdicts) };
+  }, ID);
+  check(pressed9 && ai.calls.length === callsBefore9 + 1,
+    '9- the control: the press really asked the provider', `${ai.calls.length - callsBefore9} call(s)`);
+  check(/didn.t finish/i.test(cut9.toast) && /cut short/i.test(cut9.toast) && !/aligned|is met/i.test(cut9.toast),
+    '9a a check cut short says it did not finish — never that the contract is clean', cut9.toast.trim().slice(0, 140));
+  check(cut9.changes === 0, '9b [control] and nothing was filed — true at the parent too, where the half check held nothing to propose', cut9.changes);
+  check(!cut9.saved, '9c and the half-finished check was not saved, so no screen can call it clean later', cut9.saved);
+  await page.screenshot({ path: path.join(OUT, '10-cut-short.png') });
 
   check(errors.length === 0, 'no page errors', errors.join(' | ') || 'clean');
   await browser.close(); await h.stop(); await ai.stop();

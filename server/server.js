@@ -6987,6 +6987,11 @@ app.post('/api/ai/renewal', auth, editor, rlAiDeep, aiFeature('renewal'), aiBudg
    unchanged: it keeps its own middleware, validation and error mapping, and
    its tests prove it. Always the deep tier: this is a legal-review synthesis
    by nature, whichever door it is called through. */
+/* The ceiling for a standards check: a base, and a verdict's worth per
+   standard asked (a quote, the position and a redline each), bounded. */
+const PB_REVIEW_TOKENS_BASE = 1200, PB_REVIEW_TOKENS_EACH = 700, PB_REVIEW_TOKENS_MAX = 8000;
+const pbReviewTokens = n => Math.min(PB_REVIEW_TOKENS_MAX,
+  PB_REVIEW_TOKENS_BASE + PB_REVIEW_TOKENS_EACH * Math.max(4, Number(n) || 0));
 async function aiPlaybookVerdicts(key, { text, playbook, kind }, meter) {
   /* Read BEFORE the tool, because the redline rule names the jurisdiction. */
   const J = orgJx();
@@ -6998,7 +7003,7 @@ async function aiPlaybookVerdicts(key, { text, playbook, kind }, meter) {
       properties: {
         verdicts: { type: 'array', items: { type: 'object', properties: {
           category: { type: 'string', description: 'The playbook category being judged.' },
-          status: { type: 'string', enum: ['aligned','deviation','missing'], description: 'aligned = meets the position; deviation = present but off-position; missing = absent.' },
+          status: { type: 'string', enum: ['aligned','deviation','missing','na'], description: 'aligned = meets the position; deviation = present but off-position; missing = absent; na = the standard has no occasion in this kind of document at all (payment terms in a non-disclosure agreement) — never for a standard the document merely leaves out, which is missing.' },
           quote: { type: 'string', description: 'Verbatim clause snippet from the document (empty if missing).' },
           position: { type: 'string', description: 'The playbook’s preferred position, briefly.' },
           redline: { type: 'string', description: 'Suggested replacement wording in the preferred position (only for deviation/missing).' + AI_REDLINE_RULE(J.adjective) },
@@ -7008,8 +7013,17 @@ async function aiPlaybookVerdicts(key, { text, playbook, kind }, meter) {
       required: ['verdicts'],
     },
   };
-  const prompt = `You are a contracts reviewer practising under ${J.adjective} law. Judge the DOCUMENT against the PLAYBOOK for a ${kind || 'contract'}. For every playbook position and range, return a verdict (aligned / deviation / missing) with a verbatim quote where present — one continuous run of text copied exactly, never two passages joined with "..." — the preferred position, and — for deviations or missing items — a suggested redline in the preferred wording.${AI_REDLINE_RULE(J.adjective)} Mark escalate=true where the playbook flags Legal approval. Return via playbook_review.\n\nPLAYBOOK:\n${JSON.stringify(playbook || {})}\n\nDOCUMENT:\n${aiDocText(null, text)}`;
-  const resp = await anthropicMessages(key, 'deep', { max_tokens: 2500, tools: [tool], tool_choice: { type: 'tool', name: 'playbook_review' }, messages: [{ role: 'user', content: prompt }] }, { feature: (meter && meter.feature) || 'playbook', who: (meter && meter.who) || null });
+  /* ---- EVERY STANDARD, AND ROOM FOR EVERY ANSWER (fix 3, 23 Sep 2026) ----
+     The browser now sends one position per standard on the Our standards page
+     (its range folded in), and asks for exactly one verdict each. The ceiling
+     was a flat 2,500 tokens: six verdicts, each carrying a quote and a whole
+     redline, ran past it, and the answer arrived cut short — which the browser
+     then read as "every position is aligned". Sized to what was asked now,
+     and the route says when it was cut short anyway. */
+  const asked = (Array.isArray(playbook && playbook.positions) ? playbook.positions.length : 0)
+    + (Array.isArray(playbook && playbook.ranges) ? playbook.ranges.length : 0);
+  const prompt = `You are a contracts reviewer practising under ${J.adjective} law. Judge the DOCUMENT against the PLAYBOOK for a ${kind || 'contract'}. For every playbook position and range, return EXACTLY ONE verdict, in the order given, with its category copied word for word (aligned / deviation / missing / na) with a verbatim quote where present — one continuous run of text copied exactly, never two passages joined with "..." — the preferred position, and — for deviations or missing items — a suggested redline in the preferred wording.${AI_REDLINE_RULE(J.adjective)} A position that carries a range is judged against that figure; a position that carries a standard wording is judged against that wording. Use na only where the standard has no occasion in this kind of document at all; a standard the document simply leaves out is missing. Mark escalate=true where the playbook flags Legal approval. Return via playbook_review.\n\nPLAYBOOK:\n${JSON.stringify(playbook || {})}\n\nDOCUMENT:\n${aiDocText(null, text)}`;
+  const resp = await anthropicMessages(key, 'deep', { max_tokens: pbReviewTokens(asked), tools: [tool], tool_choice: { type: 'tool', name: 'playbook_review' }, messages: [{ role: 'user', content: prompt }] }, { feature: (meter && meter.feature) || 'playbook', who: (meter && meter.who) || null });
   if (!resp.ok) return { ok: false, resp };
   const block = (resp.data.content || []).find(b => b.type === 'tool_use');
   if (!block) return { ok: false, resp, noResult: true };
@@ -7027,7 +7041,10 @@ app.post('/api/ai/playbook', auth, rlAiDeep, aiFeature('playbook'), aiBudgetGuar
       if (r.noResult) return res.status(502).json({ error: 'Copilot returned no structured result' });
       return res.status(502).json({ error: 'Copilot provider error (' + r.resp.status + '): ' + String(r.resp.error).slice(0, 300) });
     }
-    res.json({ verdicts: r.verdicts, ...aiNotice(req, r.resp) });
+    /* `truncated` is the FACT beside the notice's sentence: the browser saves
+       no check that was cut short (fix 3), so it has to be told, not left to
+       read a notice. */
+    res.json({ verdicts: r.verdicts, truncated: !!(r.resp && r.resp.truncated), ...aiNotice(req, r.resp) });
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
 
@@ -7744,7 +7761,7 @@ const COPILOT_TOOLS = [
       whose: { type: 'string', enum: ['ours', 'theirs'], description: 'Optional: our duties or the counterparty\'s.' } } } },
   { name: 'get_contract_history', description: COPILOT_HISTORY_DESC,
     input_schema: { type: 'object', properties: { id: { type: 'string', description: 'Contract id, e.g. MK-103.' } }, required: ['id'] } },
-  { name: 'check_against_playbook', description: 'Review one contract against the workspace playbook — the organisation\'s standard positions for its contract type. PREFERS THE REVIEW ALREADY ON THE CONTRACT: where the workspace has run one, this returns it (source:"stored-review", with the playbook it was checked against, when it was run and whether it was Copilot-assisted or rule-based) — that is exactly what the reader sees in their Playbook review panel, so quote it rather than re-judging the contract. Only where a contract has never been checked does it run one now (source:"run-now"), and it says so. Returns one verdict per playbook position (aligned / deviation / missing, with verbatim quotes), noPlaybook:true when no playbook is configured for that contract type, or checkedNothing:true when a fresh check came back with no verdicts — which is NOT the same as the contract meeting every standard. ALWAYS NAME THE PLAYBOOK YOU READ and say whether it was the stored review or a fresh one. Use for questions about whether a contract matches our standards, positions or playbook.',
+  { name: 'check_against_playbook', description: 'Review one contract against the workspace playbook — the organisation\'s standard positions for its contract type. PREFERS THE REVIEW ALREADY ON THE CONTRACT: where the workspace has run one, this returns it (source:"stored-review", with the playbook it was checked against, when it was run and whether it was Copilot-assisted or rule-based) — that is exactly what the reader sees in their Playbook review panel, so quote it rather than re-judging the contract. Only where a contract has never been checked does it run one now (source:"run-now"), and it says so. Returns one verdict per playbook position (aligned / deviation / missing / na — na meaning the standard does not apply to this kind of contract, with verbatim quotes), noPlaybook:true when no playbook is configured for that contract type, or checkedNothing:true when a fresh check came back with no verdicts — which is NOT the same as the contract meeting every standard. ALWAYS NAME THE PLAYBOOK YOU READ and say whether it was the stored review or a fresh one. Use for questions about whether a contract matches our standards, positions or playbook.',
     input_schema: { type: 'object', properties: { id: { type: 'string', description: 'Contract id, e.g. MK-103.' } }, required: ['id'] } },
   { name: 'deliver_answer', description: 'Deliver the final grounded answer to the user. Call this once — and only once — after gathering what you need. Reference contracts by name and id, and cite the ones you used.',
     input_schema: { type: 'object', properties: {

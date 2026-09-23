@@ -5919,7 +5919,7 @@ function ktReadingsRowsHtml(c){
      own summary counts them. `playbookStale` has THREE answers and the third
      is "we do not know" -- printed as nothing rather than as a warning. */
   const pb=(c&&c.playbook&&Array.isArray(c.playbook.verdicts))?c.playbook.verdicts:null;
-  const dev=pb?pb.filter(v=>v&&v.status&&v.status!=='aligned').length:0;
+  const dev=pb?pb.filter(v=>v&&(window.pbVerdictOpen?pbVerdictOpen(v):(v&&!/^(aligned|ok|na)$/.test(String(v.status||''))))).length:0;
   let pbStale=null; try{ pbStale=window.playbookStale?playbookStale(c):null; }catch(_){ pbStale=null; }
   /* AND IT NAMES THE BOOK IT USED (upgrade 5, 18 Sep 2026). A count of
      departures with no book behind it reads the same whether the right
@@ -6230,8 +6230,10 @@ function riskRead(c){
   const open=(typeof openFindings==='function')?openFindings(c):[];
   if(!pb&&!c.scan) return null;
   const bars=[];
-  if(pb) pb.slice(0,5).forEach(v=>bars.push({ label:String(v.category||'Term'),
-    n:v.status==='aligned'?8:v.status==='deviation'?55:v.escalate?90:75 }));
+  /* A standard that does not apply to this contract (fix 3) is not a risk
+     bar at all, and a settled one scores as a met one. */
+  if(pb) pb.filter(v=>v&&v.status!=='na').slice(0,5).forEach(v=>bars.push({ label:String(v.category||'Term'),
+    n:v.status==='aligned'||v.status==='ok'?8:v.status==='deviation'?55:v.escalate?90:75 }));
   /* ---- THE SCALE, AND WHY IT IS NOT AN AVERAGE OF THE BARS ----
      Averaging saturated instantly: one scan bar drawn from six ordinary
      findings scored the whole contract 100 — maximum risk on a routine supply
@@ -6246,7 +6248,7 @@ function riskRead(c){
     bars.push({ get label(){ return i18t('ct_open_scan_findings'); }, n:scan });
   }
   let book=0;
-  if(pb) book=Math.min(100,pb.reduce((a,v)=>a+(v.status==='aligned'?0:v.status==='deviation'?12:18)+(v.escalate&&v.status!=='aligned'?10:0),0));
+  if(pb) book=Math.min(100,pb.reduce((a,v)=>a+(!(window.pbVerdictOpen?pbVerdictOpen(v):(v&&!/^(aligned|ok|na)$/.test(String(v.status||''))))?0:v.status==='deviation'?12:18)+(v.escalate&&(window.pbVerdictOpen?pbVerdictOpen(v):(v&&!/^(aligned|ok|na)$/.test(String(v.status||''))))?10:0),0));
   const score=Math.min(100,Math.round(scan*0.6+book*0.6));
   return { score, bars, ranPb:!!pb, ranScan:!!c.scan };
 }
@@ -10670,7 +10672,7 @@ function docReadFlags(c){
   try{
     const vs=(c.playbook&&Array.isArray(c.playbook.verdicts))?c.playbook.verdicts:[];
     for(const v of vs){
-      if(!v||v.status==='aligned') continue;
+      if(!v||!(window.pbVerdictOpen?pbVerdictOpen(v):(v&&!/^(aligned|ok|na)$/.test(String(v.status||''))))) continue;
       add(find(v.quote,v.category), i18t('ct_read_watch_pb',{what:String(v.category||'').trim()}));
     }
   }catch(_){}
@@ -11433,7 +11435,7 @@ const docXrayRowText = row => row
   : '';
 /* A PLAYBOOK VERDICT THAT MATCHES IS NOT A MARK. The route answers
    'aligned'; older records and the rule-based pass have said 'ok'. */
-const _xrPbOpen = v => !!v && !/^(ok|aligned)$/.test(String(v.status||''));
+const _xrPbOpen = v => !!v && !/^(ok|aligned|na)$/.test(String(v.status||''));
 /* ONE SHAPE PER SOURCE, so a mark on a clause and the same concern in the
    contract-level block are drawn from one builder and cannot drift. */
 const _xrScanMark = f => { const sev=String((f&&f.sev)||'');

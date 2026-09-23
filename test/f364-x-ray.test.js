@@ -139,7 +139,9 @@ describe('f364 (3) placement is certainty about one clause', () => {
      claims are asked of those helpers. The route answers 'aligned', which the
      old test never named — a matching verdict was being drawn amber. */
   test('a playbook verdict that MATCHES is not a mark', () => {
-    assert.ok(/const _xrPbOpen = v => !!v && !\/\^\(ok\|aligned\)\$\//.test(CODE),
+    /* and, since fix 3 (23 Sep 2026), a standard that does not apply to this
+       contract ('na') — it is not a departure, so it is not a mark either. */
+    assert.ok(/const _xrPbOpen = v => !!v && !\/\^\(ok\|aligned\|na\)\$\//.test(CODE),
       "both spellings of a match — 'ok' and the route's own 'aligned' — are refused");
     assert.ok(/_xrVerdicts\(c\)\.forEach/.test(region('docXrayMarks')));
   });

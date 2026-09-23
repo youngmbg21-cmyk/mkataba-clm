@@ -212,10 +212,17 @@ describe('f242 · the seven that speak, because greying is impossible', () => {
   });
 
   test('the playbook pass says so when everything is aligned', () => {
+    /* ---- RE-POINTED 23 Sep 2026 (fix 3) ----
+       This pinned `aligned === rev.verdicts.length ? 'ok' : 'warn'`, which is
+       the very line that said "every position is aligned" over an EMPTY list —
+       the owner's Warehousing agreement, with four standards off, reported
+       clean. The claim it was making still stands and is asked of the one
+       sentence-chooser both doors share: the best outcome is 'ok', the other
+       outcomes are 'warn'. */
     const src = read('js/views/negotiation.js');
-    assert.match(src, /i18t\('ng_pb_all_aligned'\) : i18t\('ng_pb_nothing_proposable'\)/);
-    assert.match(src, /aligned === rev\.verdicts\.length \? 'ok' : 'warn'/,
-      "the best outcome is 'ok', the other is 'warn'");
+    const say = src.slice(src.indexOf('function rlPbOutcomeSay('), src.indexOf('async function rlPrepareRedlines('));
+    assert.match(say, /text: i18t\('ng_pb_all_aligned'[^\n]*kind: 'ok'/, "the best outcome is 'ok'");
+    assert.match(say, /i18t\('ng_pb_nothing_proposable'\), kind: 'warn'/, "the other is 'warn'");
   });
 
   test('Verify integrity reports BOTH verdicts a real customer meets', () => {

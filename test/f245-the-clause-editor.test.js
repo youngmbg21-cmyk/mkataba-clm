@@ -774,8 +774,11 @@ describe('f245 (11) — the playbook scan reports its own failure', () => {
   test('a scan that comes back with nothing is recorded, not swallowed', () => {
     assert.match(CODE, /else _ceScanErr = 'empty'/,
       'the one runner writes it down when no review arrives');
-    assert.match(CODE, /if \(rev\) \{ _ceScan = rev; _ceScanErr = null; \}/,
+    /* RE-POINTED 23 Sep 2026 (fix 3): a review arriving is filed ON THE RECORD,
+       the one saved check every door reads, and the rail reads it there. */
+    assert.match(CODE, /if \(rev\) \{ _ceScan = null; _ceScanErr = null; \}/,
       'and a review arriving clears it — the note is never stale');
+    assert.match(CODE, /_ceC\.playbook = rev;/, 'and the review is on the record');
     assert.match(CODE, /_ceScanBusy = true; _ceScanErr = null;/,
       'a fresh run clears it before it starts, so the old note cannot outlive it');
   });

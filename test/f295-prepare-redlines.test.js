@@ -45,16 +45,34 @@ function world(opts = {}){
   w.toasts = []; win.toast = (m, k) => w.toasts.push({ kind: k || 'ok', text: String(m) });
   w.asked = 0; win.confirmDialog = async () => { w.asked++; return opts.refuse ? false : true; };
   w.reviews = 0;
+  /* ---- A FINISHED CHECK, STAMPED THE WAY THE RUNNER STAMPS ONE (re-pointed
+     23 Sep 2026, fix 3) ----
+     Prepare redlines reuses a review on file only where it asked EVERY
+     standard on the Our standards page and is about the wording as it stands
+     (pbReviewUsable). The scripted runner therefore says what the real one
+     says — how many standards, which, and the wording hash — through the
+     product's own readings, and the stage carries a hasher (js/dedupe.js is
+     not on this world; the shape of the hash does not matter, only that it
+     is the same for the same words). */
+  win.simhash64 = t => 'h' + String(t || '').length + ':' + String(t || '').slice(0, 40);
+  /* and the contract's KIND, which core.js answers in the product and this
+     stage does not load — the list of standards is chosen by it. */
+  if (typeof win.cKind !== 'function') win.cKind = () => 'Raw Material Supply Agreement';
+  w.finished = (c, rev) => {
+    const std = win.pbStandardsFor(c).standards;
+    return { ...rev, standards: std.length, checked: std.length, categories: std.map(x => x.category),
+      wordingHash: win.playbookHashOf(win.playbookText(c)) };
+  };
   /* The review, scripted: a deviation that LOCATES clause 2 (edit), a standard
      the scan found nowhere (add, with the library's own preferred wording),
      and a deviation nobody could place (unplaced). */
-  win.runPlaybookReview = async c => { w.reviews++; return { key: 'supply', label: 'Supply', source: 'ai', verdicts: [
+  win.runPlaybookReview = async c => { w.reviews++; return w.finished(c, { key: 'supply', label: 'Supply', source: 'ai', verdicts: [
     { category: 'Payment terms', status: 'deviation', quote: 'pay each undisputed invoice within sixty (60) days', position: '≤ 45 days',
       redline: 'The Buyer shall pay each undisputed invoice within forty-five (45) days of receipt.', escalate: false },
     { category: 'Data protection', status: 'missing', quote: '', position: 'Data protection clause', redline: '', escalate: false },
     { category: 'Liability cap', status: 'deviation', quote: 'a sentence the contract does not carry anywhere at all', position: 'cap', redline: 'Liability is capped.', escalate: true },
     { category: 'Confidentiality', status: 'aligned', quote: 'keep the other\'s information confidential' },
-  ] }; };
+  ] }); };
   /* One library position with the workspace's own preferred wording (the ADD
      files THAT, never the model's draft), and none for the others. */
   win.clauseLibrary = () => [{ id: 'cl-dp', category: 'Data protection', name: 'Data protection', preferred: 'Each party shall comply with the Data Protection Act.', fallback: 'A weaker line.' }];
@@ -146,8 +164,9 @@ describe('f295 — it asks before it spends, and a refusal writes nothing', () =
   test('the dialog names the cost, or says the review is on file and the press costs nothing', async () => {
     assert.ok(/ng_prepare_ask_stored/.test(RUN) && /ng_prepare_ask/.test(RUN) && /confirmDialog\(/.test(RUN));
     assert.ok(/one deep Copilot call/.test(I18N) && /costs nothing/.test(I18N));
-    const w = world(); const c = contract({ playbook: { key: 'supply', label: 'Supply', source: 'ai', verdicts: [
-      { category: 'Data protection', status: 'missing', redline: '' } ] } });
+    const w = world(); const c = contract();
+    c.playbook = w.finished(c, { key: 'supply', label: 'Supply', source: 'ai', verdicts: [
+      { category: 'Data protection', status: 'missing', redline: '' } ] });
     w.win.state.contracts.push(c);
     let msg = ''; w.win.confirmDialog = async o => { msg = o.message; return true; };
     await w.win.rlPrepareRedlines(c);
@@ -173,7 +192,10 @@ describe('f295 — the review is the existing one, the filing is the existing on
     assert.ok(!c.negotiation.turnAt, 'the turn never moved');
     assert.ok(c.playbook && c.playbook.verdicts.length === 4, 'the review is on the record, as the review window leaves it');
     assert.equal(w.toasts.length, 1); assert.equal(w.toasts[0].kind, 'ok');
-    assert.match(w.toasts[0].text, /^2 drafts filed under Your drafts — nothing sent · 1 could not be placed$/);
+    /* AND HOW MUCH WAS CHECKED, on every press since fix 3 (23 Sep 2026) — the
+       owner's approved line: "5 drafts filed under Your drafts — nothing sent ·
+       6 of 6 standards checked". This stage's page holds five. */
+    assert.match(w.toasts[0].text, /^2 drafts filed under Your drafts — nothing sent · 1 could not be placed · 5 of 5 standards checked$/);
     const line = c.audit.find(a => /Redlines prepared/.test(a.detail));
     assert.ok(line && /2 drafts filed unsent, 0 already here, 1 not placed/.test(line.detail), 'one English audit line naming the counts');
   });
@@ -186,7 +208,7 @@ describe('f295 — the review is the existing one, the filing is the existing on
     assert.equal(out.filed, 0); assert.equal(out.here, 2, 'both refused by the walls, counted as already here'); assert.equal(out.unplaced, 1);
     assert.equal(JSON.stringify(c.changes.map(x => [x.id, x.status, x.hash])), before, 'the record did not move');
     assert.equal(w.toasts[1].kind, 'warn');
-    assert.match(w.toasts[1].text, /^No drafts were filed — 2 already here · 1 could not be placed$/);
+    assert.match(w.toasts[1].text, /^No drafts were filed — 2 already here · 1 could not be placed · 5 of 5 standards checked$/);
   });
   test('every proposal is recorded for the acceptance metrics as a playbook proposal, at the press', async () => {
     const w = world(); const c = contract(); w.win.state.contracts.push(c);
@@ -209,7 +231,9 @@ describe('f295 — the review is the existing one, the filing is the existing on
     assert.ok(/rlFilePlaybookProposal\(c, it, words, bag\)/.test(RUN));
     for (const bad of ['turnAt', 'nego-send', 'reshareToLastRecipient', 'negoHandOver', 'negoAdvanceRound', 'buildSharePayload', "api('shares", 'onSendDirect'])
       assert.ok(!RUN.includes(bad), 'nothing is sent: ' + bad);
-    assert.ok(/rlPlaybookProposals\(c, rev\)/.test(RUN) && /runPlaybookReview\(c\)/.test(RUN), 'the existing reading and the existing review');
+    /* `runPlaybookReview(c, o)` since fix 3: asked QUIET, so a check that did
+       not finish is said once, by this press, as the sentence it is. */
+    assert.ok(/rlPlaybookProposals\(c, rev\)/.test(RUN) && /runPlaybookReview\(c, o\)/.test(RUN), 'the existing reading and the existing review');
   });
   test('rlFilePlaybookProposal\'s opts are additive — no opts, no change', () => {
     const file = VIEW.slice(VIEW.indexOf('async function rlFilePlaybookProposal'), VIEW.indexOf('async function rlOpenPlaybookReview'));

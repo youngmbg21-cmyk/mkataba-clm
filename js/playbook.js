@@ -152,6 +152,141 @@ function resolvePlaybook(key){
 }
 function clauseById(id){ return clauseLibrary().find(c=>c.id===id); }
 
+/* ============================================================================
+   EVERY STANDARD ON THE OUR STANDARDS PAGE IS CHECKED (Young ruled it 23 Sep
+   2026, fix 3 of the seven he approved: "Our standards")
+   ============================================================================
+   REPORTED off his Warehousing agreement: Prepare redlines said "Every playbook
+   position is aligned — nothing to propose" on a contract whose liability cap,
+   termination periods and missing confidentiality clause were all off his own
+   standards. TWO FAULTS UNDER ONE MESSAGE:
+     · THE CHECK READ ONE BOOK. resolvePlaybook hands back the few positions of
+       the book the contract TYPE picks — four for a services agreement — so
+       Termination, which sits on the Our standards page like every other
+       standard, was never asked about on any contract whose book did not name
+       it. The reader sees six standards on that page and was told about four.
+     · AN ANSWER THAT NEVER CAME READ AS A CLEAN ONE. "aligned === verdicts" is
+       true of an EMPTY list, and a Copilot answer cut short by its token
+       ceiling (2,500 for six verdicts with a redline each) arrives empty or
+       half-finished — and was saved, and was then called clean everywhere.
+
+   THE LIST, ONE PER CATEGORY: every clause library entry (the standards the
+   page shows), then any category the contract type's book adds that the
+   library does not carry (a lease's stamp duty, a supply agreement's
+   rejection window). The BOOK still decides how hard a standard is held — its
+   required/preferred and its escalation override the library's defaults — and
+   a book RANGE is folded into the standard of the same name rather than asked
+   as a second question, so "Liability cap" is one row with one answer, not two
+   rows that can disagree. A library entry the book does not name is asked as
+   PREFERRED and never escalates: the book is still where a workspace says what
+   needs Legal. */
+function pbStandardsFor(c){
+  const key=playbookKeyFor(c);
+  const book=resolvePlaybook(key);
+  const norm=s=>String(s==null?'':s).trim().toLowerCase();
+  const out=[], at=new Map();
+  const put=std=>{
+    const k=norm(std.category); if(!k) return null;
+    if(at.has(k)) return at.get(k);
+    at.set(k,std); out.push(std); return std;
+  };
+  for(const L of (clauseLibrary()||[])){
+    if(!L||!L.category) continue;
+    put({ category:String(L.category), pos:'preferred', clause:L.id||null, escalate:false,
+      note:String(L.guidance||'') });
+  }
+  for(const p of (book.positions||[])){
+    if(!p||!p.category) continue;
+    const s=put({ category:String(p.category), pos:p.pos||'preferred', clause:p.clause||null,
+      escalate:!!p.escalate, note:String(p.note||'') });
+    if(!s) continue;
+    s.pos=p.pos||s.pos; s.escalate=!!p.escalate;
+    if(p.clause) s.clause=p.clause;
+    if(p.note) s.note=String(p.note);
+  }
+  for(const r of (book.ranges||[])){
+    if(!r||!r.label) continue;
+    const s=put({ category:String(r.label), pos:'preferred', clause:null, escalate:!!r.escalate,
+      note:String(r.note||'') });
+    if(!s) continue;
+    s.range={ key:r.key, op:r.op, value:r.value, note:String(r.note||'') };
+    if(r.escalate) s.escalate=true;
+  }
+  return { key, label:book.label, standards:out };
+}
+/* What the MODEL is shown for each standard: the words it is judged against,
+   never a library id it has no way to read. A getter-backed library entry is
+   read HERE, at the press, so the wording follows the market setting. */
+function pbStandardsSent(standards){
+  return (standards||[]).map(s=>{
+    const L=s.clause?clauseById(s.clause):null;
+    const o={ category:s.category, pos:s.pos, escalate:!!s.escalate, note:s.note||'' };
+    if(L){ o.standard=String(L.preferred||''); o.fallback=String(L.fallback||''); }
+    if(s.range) o.range={ op:s.range.op, value:s.range.value, limit:s.range.note||`${s.range.op} ${s.range.value}` };
+    return o;
+  });
+}
+/* ---- WHICH VERDICTS ARE WORK — the ONE reading ----
+   `na` (a standard with no occasion in this kind of contract — payment terms in
+   an NDA) joined the three statuses with this fix, and six readers were asking
+   "is it not aligned?" to mean "is it a departure", which would have counted
+   every "does not apply" as one and proposed wording for it. Asked through
+   this instead, so a fifth status cannot repeat that.
+   IT NAMES WHAT IS SETTLED, NOT WHAT IS OPEN, on purpose: the settled answers
+   are the ones HaTi knows (met, an older record's 'ok', does not apply), and
+   anything else — a word no engine here writes — stays WORK, exactly as the
+   old "not aligned" reading kept it. A standards check that drops what it
+   cannot read is the fault this fix exists to close. */
+const PB_SETTLED_STATUSES=['aligned','ok','na'];
+function pbVerdictOpen(v){ return !!v && !PB_SETTLED_STATUSES.includes(String(v.status||'')); }
+/* Pair what came back with what was asked. A verdict is matched to its
+   standard by category — exactly, or where one name contains the other ("
+   Termination" and "Termination for convenience") — and a standard counts as
+   CHECKED where at least one verdict answers it. Nothing the model said is
+   dropped: an answer that matches no standard is kept at the end, because it
+   is still a finding about this contract. */
+function pbAlignVerdicts(standards, verdicts){
+  const norm=s=>String(s==null?'':s).toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  const cats=(standards||[]).map(s=>norm(s.category));
+  const pairOf=v=>{
+    const k=norm(v&&v.category); if(!k) return -1;
+    let i=cats.indexOf(k);
+    if(i<0) i=cats.findIndex(x=>x&&(k.includes(x)||x.includes(k)));
+    return i;
+  };
+  const tagged=(verdicts||[]).filter(v=>v&&typeof v==='object').map((v,n)=>({ v, i:pairOf(v), n }));
+  const seen=new Set(tagged.filter(t=>t.i>=0).map(t=>t.i));
+  tagged.sort((a,b)=>((a.i<0?1e9:a.i)-(b.i<0?1e9:b.i))||(a.n-b.n));
+  return { verdicts:tagged.map(t=>t.v), checked:seen.size };
+}
+/* ---- "EVERY STANDARD IS MET" MAY ONLY BE SAID OF A FINISHED CHECK ----
+   true  — every standard asked about came back answered
+   false — some came back unanswered, or nothing came back at all
+   null  — a review filed before this was recorded: it does not say how many
+           standards it was asked, so it is neither finished nor unfinished,
+           and nothing may call it clean on its behalf */
+function pbReviewComplete(r){
+  if(!r||!Array.isArray(r.verdicts)||!r.verdicts.length||r.truncated) return false;
+  if(r.standards==null) return null;
+  return Number(r.checked||0)>=Number(r.standards||0);
+}
+/* The saved check Prepare redlines may use without asking again: finished,
+   about the wording as it stands, and asked about every standard the page
+   holds TODAY (a standard added since is a standard it never saw). Anything
+   less is run again — the confirm says it costs a call before it does. */
+function pbReviewUsable(c){
+  const r=c&&c.playbook;
+  if(pbReviewComplete(r)!==true) return false;
+  /* A reading that cannot be taken is "do not reuse", never a throw on the
+     press: the next step runs a fresh check and says what it costs first. */
+  try{
+    if(playbookStale(c)!==false) return false;
+    const norm=s=>String(s==null?'':s).trim().toLowerCase();
+    const had=new Set((r.categories||[]).map(norm));
+    return pbStandardsFor(c).standards.every(s=>had.has(norm(s.category)));
+  }catch(_){ return false; }
+}
+
 /* ---- WHAT A RANGE READS OUT OF WORDING — one reading, two callers ----
    These two patterns were written inline inside playbookReviewHeuristic and are
    now asked for by name, because the template builder counts the SAME ranges
@@ -507,44 +642,55 @@ function pbUnquotedLoss(bodyHtml,quote,newText){
   return gone;
 }
 
-/* ---- heuristic playbook review (no key): deterministic clause checks ---- */
+/* ---- heuristic playbook review (no key): deterministic clause checks ----
+   ONE ANSWER PER STANDARD since fix 3 (23 Sep 2026): it walks the same list
+   the Copilot check is sent — pbStandardsFor — so the two engines are asked
+   the same questions and a reader who switches the key off sees the same rows.
+   A standard with a RANGE is read for its figure first, exactly as the range
+   pass read it; where the figure cannot be read, liability falls back to the
+   presence check (it always did) and payment says missing (it always did). */
 function playbookReviewHeuristic(c, text){
   const t=String(text||'').replace(/\s+/g,' '); const T=t.toLowerCase();   // read across the document's line wrapping
-  const pb=resolvePlaybook(playbookKeyFor(c));
+  const std=pbStandardsFor(c);
   const verdicts=[];
   const V=(category,status,quote,position,redline,escalate)=>verdicts.push({category,status,quote:quote||'',position:position||'',redline:redline||'',escalate:!!escalate});
-  // positions
-  pb.positions.forEach(p=>{
+  const sentence=re=>{ const m=t.match(re); return m?m[0].trim():''; };
+  const presence=p=>{
+    const cat=String(p.category||'').toLowerCase();
+    if(cat==='governing law') return { present:/govern(?:ed|ing)[^.]*law/i.test(t), quote:sentence(/[^.]*govern(?:ed|ing)[^.]*law[^.]*\./i) };
+    if(cat==='data protection') return { present:/data protection act|odpc|personal data|gdpr|data protection/i.test(t), quote:sentence(/[^.]*(data protection|personal data)[^.]*\./i) };
+    if(cat==='confidentiality') return { present:/confidential/i.test(t), quote:sentence(/[^.]*confidential[^.]*\./i) };
+    if(cat==='liability cap') return { present:/liab[^.]*cap|cap[^.]*liab|aggregate liability|limitation of liability/i.test(t), quote:sentence(/[^.]*liab[^.]*\./i) };
+    if(cat==='stamp duty') return { present:/stamp dut/i.test(t), quote:sentence(/[^.]*stamp dut[^.]*\./i) };
+    if(cat==='termination') return { present:/terminat/i.test(t), quote:sentence(/[^.]*terminat[^.]*\./i) };
+    if(cat==='payment terms') return { present:/\b(?:payment|invoice)/i.test(t), quote:sentence(/[^.]*\b(?:payment|invoice)[^.]*\./i) };
+    if(cat==='quality & rejection'){ const sb=(jxStandardsBody()||'').toLowerCase();
+      return { present:new RegExp(`(${sb?sb+'|':''}reject|specification|spec\\b|quality)`,'i').test(t), quote:sentence(/[^.]*(reject|specification|quality)[^.]*\./i) }; }
+    return { present:T.includes(cat), quote:'' };
+  };
+  std.standards.forEach(p=>{
     const cl=p.clause?clauseById(p.clause):null;
-    let present=false, quote='';
-    if(p.category==='Governing law'){ present=/govern(?:ed|ing)[^.]*law/i.test(t); const m=t.match(/[^.]*govern(?:ed|ing)[^.]*law[^.]*\./i); quote=m?m[0].trim():'';
+    if(p.range&&p.range.key==='paymentDays'){ const r=p.range, m=pbRangeRead(r.key,t);
+      if(m){ const d=Number(m[1]); const ok=r.op==='<='?d<=r.value:d>=r.value; V(p.category, ok?'aligned':'deviation', m[0].trim(), r.note||`${r.op} ${r.value} days`, ok?'':clauseById('cl-pay')?.preferred||'', !ok&&p.escalate); }
+      else V(p.category,'missing','',r.note||'Payment terms', clauseById('cl-pay')?.preferred||'', p.escalate);
+      return; }
+    if(p.range&&p.range.key==='liabilityMonths'){ const r=p.range, m=pbRangeRead(r.key,t);
+      if(m){ const d=Number(m[1]); const ok=d>=r.value; V(p.category, ok?'aligned':'deviation', m[0].trim(), r.note||`≥ ${r.value} months`, ok?'':clauseById('cl-liab')?.preferred||'', !ok&&p.escalate); return; }
+      /* no explicit months: the presence check below answers, as it did */ }
+    if(String(p.category).toLowerCase()==='governing law'){
       /* Relative to the workspace, not to Kenya: the pack excludes the home
          market's own names, so switching the setting moves what counts as
          foreign without touching this line. */
       const seats=(typeof jxForeignMarkers==='function'?jxForeignMarkers():[]).map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|');
       const foreign=seats?new RegExp(`laws?\\s+of\\s+(${seats})`,'i').test(t):false;
-      if(foreign){ V(p.category,'deviation',quote,`${jxAdjective()} law & forum`, cl?cl.preferred:'', true); return; } }
-    else if(p.category==='Data protection'){ present=/data protection act|odpc|personal data/i.test(t); const m=t.match(/[^.]*(data protection|personal data)[^.]*\./i); quote=m?m[0].trim():''; }
-    else if(p.category==='Confidentiality'){ present=/confidential/i.test(t); const m=t.match(/[^.]*confidential[^.]*\./i); quote=m?m[0].trim():''; }
-    else if(p.category==='Liability cap'){ present=/liab[^.]*cap|cap[^.]*liab|aggregate liability|limitation of liability/i.test(t); const m=t.match(/[^.]*liab[^.]*\./i); quote=m?m[0].trim():''; }
-    else if(p.category==='Stamp duty'){ present=/stamp dut/i.test(t); const m=t.match(/[^.]*stamp dut[^.]*\./i); quote=m?m[0].trim():''; }
-    else if(p.category==='Quality & rejection'){ const sb=(jxStandardsBody()||'').toLowerCase();
-      present=new RegExp(`(${sb?sb+'|':''}reject|specification|spec\\b|quality)`,'i').test(t); const m=t.match(/[^.]*(reject|specification|quality)[^.]*\./i); quote=m?m[0].trim():''; }
-    else { present=T.includes(p.category.toLowerCase()); }
-    if(present) V(p.category,'aligned',quote,cl?cl.name:p.note||'','',false);
+      if(foreign){ V(p.category,'deviation',presence(p).quote,`${jxAdjective()} law & forum`, cl?cl.preferred:'', true); return; } }
+    const got=presence(p);
+    if(got.present) V(p.category,'aligned',got.quote,cl?cl.name:p.note||'','',false);
     else V(p.category,'missing','',cl?cl.name:(p.note||p.category), cl?cl.preferred:'', p.escalate);
   });
-  // ranges
-  pb.ranges.forEach(r=>{
-    if(r.key==='paymentDays'){ const m=pbRangeRead(r.key,t);
-      if(m){ const d=Number(m[1]); const ok=r.op==='<='?d<=r.value:d>=r.value; V(r.label, ok?'aligned':'deviation', m[0].trim(), r.note||`${r.op} ${r.value} days`, ok?'':clauseById('cl-pay')?.preferred||'', !ok&&r.escalate); }
-      else V(r.label,'missing','',r.note||'Payment terms', clauseById('cl-pay')?.preferred||'', r.escalate); }
-    else if(r.key==='liabilityMonths'){ const m=pbRangeRead(r.key,t);
-      if(m){ const d=Number(m[1]); const ok=d>=r.value; V(r.label, ok?'aligned':'deviation', m[0].trim(), r.note||`≥ ${r.value} months`, ok?'':clauseById('cl-liab')?.preferred||'', !ok&&r.escalate); }
-      // if no explicit months, the 'Liability cap' position check already covers presence
-    }
-  });
-  return { key:playbookKeyFor(c), label:pb.label, verdicts, source:'heuristic' };
+  return { key:std.key, label:std.label, verdicts, source:'heuristic',
+    standards:std.standards.length, checked:std.standards.length,
+    categories:std.standards.map(x=>x.category) };
 }
 /* `opts.quiet` SUPPRESSES THE TOAST AND CHANGES NOTHING ELSE — see
    runContractBrief for why it exists. WHERE THERE IS NO ANSWER (nothing
@@ -658,15 +804,33 @@ async function runPlaybookReview(c,opts={}){
   const stamp = r => (r && !r.error)
     ? { ...pbCarryDecisions(c && c.playbook, r), wordingHash:playbookHashOf(text), checkedAt:new Date().toISOString() } : r;
   if(API_MODE() && state.aiConfigured){
-    try{ const pb=resolvePlaybook(playbookKeyFor(c));
+    /* A HALF-FINISHED CHECK IS NEVER SAVED (fix 3, 23 Sep 2026). A cut-short
+       answer and an empty one are refusals in words, handed back the way this
+       runner already hands back "nothing readable" — a quiet caller gets the
+       sentence, a loud one sees it — so no caller can store it and no screen
+       can later read an unfinished check as a clean contract. */
+    const refuse=key=>{ const why=i18t(key);
+      if(opts.quiet) return { error:why, [key==='pb_cut_short'?'truncated':'empty']:true };
+      toast(why,'warn'); return null; };
+    let r=null;
+    const std=pbStandardsFor(c);
+    try{
       // The whole wording goes. A standards check reading only the front of an
       // agreement reports "aligned" on a contract whose deviation is at the
       // back, which is worse than not checking at all. Ceiling: aiDocChars.
-      const r=await api('ai/playbook','POST',{ text, playbook:pb, kind:cKind(c) },
-        { quiet:!!opts.quiet });
-      if(r&&r.notice) opts.notice=r.notice;
-      return stamp({ key:playbookKeyFor(c), label:pb.label, verdicts:r.verdicts||[], source:'ai' });
+      r=await api('ai/playbook','POST',{ text,
+        playbook:{ label:std.label, positions:pbStandardsSent(std.standards), ranges:[] },
+        kind:cKind(c) }, { quiet:!!opts.quiet });
     }catch(e){ if(!opts.quiet) toast(i18t('pb_review_unavailable'),'err'); }
+    if(r&&r.notice) opts.notice=r.notice;
+    if(r){
+      if(r.truncated) return refuse('pb_cut_short');
+      const got=pbAlignVerdicts(std.standards, r.verdicts||[]);
+      if(!got.verdicts.length) return refuse('pb_came_back_empty');
+      return stamp({ key:std.key, label:std.label, verdicts:got.verdicts, source:'ai',
+        standards:std.standards.length, checked:got.checked,
+        categories:std.standards.map(x=>x.category) });
+    }
   }
   return stamp(playbookReviewHeuristic(c, text));
 }
@@ -675,7 +839,10 @@ function deviationSummary(c){
   const dev=r.verdicts.filter(v=>v.status==='deviation').length;
   const miss=r.verdicts.filter(v=>v.status==='missing').length;
   const esc=r.verdicts.filter(v=>(v.status==='deviation'||v.status==='missing')&&v.escalate).length;
-  return { dev, miss, esc, total:r.verdicts.length, ok:dev===0&&miss===0 };
+  /* `complete` rides beside `ok` (fix 3): ok says nothing open was FOUND,
+     complete says every standard was ASKED — and only the two together may be
+     read as "every standard is met". */
+  return { dev, miss, esc, total:r.verdicts.length, ok:dev===0&&miss===0, complete:pbReviewComplete(r) };
 }
 
 /* ---- workspace playbook review panel (E4-T5) ----
@@ -720,6 +887,9 @@ const PB_MARK = {
   aligned:   { bg:'var(--st-green-bg)', fg:'var(--st-green-fg)', glyph:'&#10003;', word:'matches Our standards' },
   deviation: { bg:'var(--st-amber-bg)', fg:'var(--st-amber-fg)', glyph:'!',        word:'off Our standard' },
   missing:   { bg:'var(--st-ruby-bg)',  fg:'var(--st-ruby-fg)',  glyph:'!',        word:'not in this document' },
+  /* a standard with no occasion in this kind of contract (fix 3) — quiet grey,
+     never a departure and never proposed */
+  na:        { bg:'var(--st-gray-bg)',  fg:'var(--st-gray-fg)',  glyph:'&ndash;', word:'does not apply here' },
 };
 const _pbEsc = s => String(s==null?'':s).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
 
@@ -746,6 +916,7 @@ function pbVerdictWords(v){
   const pos=String((v&&v.position)||'').trim();
   const st=(v&&v.status)||'';
   if(st==='aligned') return pos ? `Matches Our standards · ${pos}` : 'Matches Our standards';
+  if(st==='na') return i18t('pb_na_line');
   if(st==='deviation') return pos ? `Our standard is ${pos}` : 'Off Our standard';
   return pos ? `Not in this document · Our standard is ${pos}` : 'Not in this document';
 }
@@ -763,7 +934,10 @@ function pbVerdictLine(v){ return _pbEsc(pbVerdictWords(v)); }
 function pbHeadPill(sm){
   if(!sm||!sm.total) return '';
   const chip=(bg,fg,txt)=>`<span style="flex:none;font-size:var(--t-label);font-weight:var(--w-title);border-radius:var(--radius);padding:2px 9px;background:${bg};color:${fg}">${txt}</span>`;
-  if(sm.ok) return chip('var(--st-green-bg)','var(--st-green-fg)','all aligned');
+  /* GREEN ONLY OVER A FINISHED CHECK (fix 3): nothing found in a check that
+     did not ask about every standard is not "all aligned" — it is "not every
+     standard answered", which the line under the heading says in words. */
+  if(sm.ok) return sm.complete===true ? chip('var(--st-green-bg)','var(--st-green-fg)','all aligned') : '';
   if(sm.esc) return chip('var(--st-ruby-bg)','var(--st-ruby-fg)',`${sm.esc} to escalate`);
   const n=sm.dev+sm.miss;
   return chip('var(--st-amber-bg)','var(--st-amber-fg)',`${n} to fix`);
@@ -840,7 +1014,7 @@ function renderPlaybookSection(c){
     const m=PB_MARK[v.status]||PB_MARK.missing;
     const id=pbFoldKey(c,v,i);
     const open=!pbUI.shut.has(id);
-    const detail = (v.quote || (v.status!=='aligned'&&v.position) || (editable&&v.redline));
+    const detail = (v.quote || (pbVerdictOpen(v)&&v.position) || (editable&&v.redline));
     return `
     <div style="border-top:1px solid var(--color-divider)">
       <button ${detail?`data-pb-row="${_pbEsc(id)}"`:''} style="display:flex;align-items:flex-start;gap:9px;width:100%;text-align:left;border:0;background:none;font:inherit;color:inherit;padding:9px 2px;${detail?'cursor:pointer':'cursor:default'}">
@@ -849,11 +1023,11 @@ function renderPlaybookSection(c){
           <span style="display:block;font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);line-height:1.35">${_pbEsc(v.category)}</span>
           <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.45;margin-top:1px">${pbVerdictLine(v)}</span>
         </span>
-        ${v.escalate&&v.status!=='aligned'?`<span title="${i18t('pb_needs_legal')}" style="flex:none;font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.06em;text-transform:uppercase;color:var(--st-ruby-fg)">escalate</span>`:''}
+        ${v.escalate&&pbVerdictOpen(v)?`<span title="${i18t('pb_needs_legal')}" style="flex:none;font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.06em;text-transform:uppercase;color:var(--st-ruby-fg)">escalate</span>`:''}
       </button>
       ${open&&detail?`<div style="padding:0 2px 10px 28px;display:flex;flex-direction:column;gap:6px">
         ${v.quote?`<div style="font-size:var(--t-label);line-height:1.6;color:var(--color-neutral-700);border-left:2px solid var(--color-divider);padding-left:9px;font-style:italic">&ldquo;${_pbEsc(String(v.quote).slice(0,220))}${String(v.quote).length>220?'&hellip;':''}&rdquo;</div>`:''}
-        ${v.status!=='aligned'&&v.position?`<div style="font-size:var(--t-label);line-height:1.6;color:var(--color-neutral-700)"><b>${i18t('pb_our_standard')}</b> ${_pbEsc(v.position)}</div>`:''}
+        ${pbVerdictOpen(v)&&v.position?`<div style="font-size:var(--t-label);line-height:1.6;color:var(--color-neutral-700)"><b>${i18t('pb_our_standard')}</b> ${_pbEsc(v.position)}</div>`:''}
         ${''/* ---- THIS PANEL IS A READING, AND NOTHING ON IT FILES (owner-asked
                10 Sep 2026: "ONE DOOR ONTO ADDING A CLAUSE") ----
                It carried "Apply suggested wording as a redline", a FOURTH way
@@ -887,7 +1061,12 @@ function renderPlaybookSection(c){
         ? `<p style="font-size:var(--t-meta);color:var(--color-neutral-700);line-height:1.55;margin:0">${i18t('pb_check_contract')}</p>`
         : !r.verdicts.length
         ? `<p style="font-size:var(--t-meta);color:var(--color-neutral-700);line-height:1.55;margin:0">${i18t('pb_came_back_with')} <b>${i18t('pb_nothing_to_report')}</b> ${i18t('pb_not_same_as_passing')} <b>${_pbEsc(r.label)}</b> ${i18t('pb_may_have_no_positions')} <b>${i18t('nav_our_standards')}</b>${i18t('pb_then_rerun')}</p>`
-        : `<p style="font-size:var(--t-label);color:var(--color-neutral-500);margin:0 0 var(--s-1)">${i18t('pb_against_the')} <b>${_pbEsc(r.label)}</b> playbook${r.source==='ai'?'':' &middot; basic checks'}</p>
+        : `<p style="font-size:var(--t-label);color:var(--color-neutral-500);margin:0 0 var(--s-1)">${r.standards!=null
+            /* HOW MANY OF THE STANDARDS WERE ANSWERED, where the check says
+               (fix 3). An older review never recorded it and keeps its old
+               line rather than having a count guessed for it. */
+            ? i18t('pb_checked_of',{k:Number(r.checked||0),n:Number(r.standards||0)})
+            : `${i18t('pb_against_the')} <b>${_pbEsc(r.label)}</b> playbook`}${r.source==='ai'?'':' &middot; basic checks'}</p>
       <div>${rowsHtml}</div>`}
       ${ins.length?`<div style="margin-top:10px;border-top:1px solid var(--color-divider);padding-top:9px">
         ${''/* ---- THEY ARE PROPOSED, NOT INSERTED ----
@@ -1273,4 +1452,4 @@ function openClausePicker(c, opts){
   document.querySelectorAll('[data-cl-ins]').forEach(b=>b.addEventListener('click',()=>{ const cl=clauseById(b.getAttribute('data-cl-ins')); closeModal(); if(onPick) onPick(cl); }));
 }
 
-Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,pbCarryDecisions,PB_TEXT_MIN,playbookText,PB_RANGE_READERS,pbRangeRead,PB_QUOTE_MIN,PB_QUOTE_LEAD,pbClauseBlocks,pbQuoteBlock,pbSwapBlock,pbPositionFigure,pbFitWording,pbFitInto,pbUnquotedLoss,pbClauseHeadWords,pbDropRepeatedHeading,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,playbookStale,playbookHashOf,deviationSummary,renderPlaybookSection,pbProposedClauses,applyClauseRedline,pbShowInsert,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});
+Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,pbCarryDecisions,PB_TEXT_MIN,playbookText,PB_RANGE_READERS,pbRangeRead,PB_QUOTE_MIN,PB_QUOTE_LEAD,pbClauseBlocks,pbQuoteBlock,pbSwapBlock,pbPositionFigure,pbFitWording,pbFitInto,pbUnquotedLoss,pbClauseHeadWords,pbDropRepeatedHeading,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,pbStandardsFor,pbStandardsSent,PB_SETTLED_STATUSES,pbVerdictOpen,pbAlignVerdicts,pbReviewComplete,pbReviewUsable,playbookReviewHeuristic,runPlaybookReview,playbookStale,playbookHashOf,deviationSummary,renderPlaybookSection,pbProposedClauses,applyClauseRedline,pbShowInsert,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});

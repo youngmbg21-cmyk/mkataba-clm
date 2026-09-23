@@ -1219,7 +1219,8 @@ function ceWordingLabel(kind){
    re-scan is what tells you whether the standard is still missing. */
 let _ceScanFiled = {};
 const ceScanKey = it => `${(it && it.v && it.v.category) || '?'}::${(it && it.v && it.v.status) || '?'}`;
-const ceDeviationCount = () => ceScanItems().filter(it => it.v && it.v.status !== 'aligned').length;
+const ceDeviationCount = () => ceScanItems().filter(it => it.v
+  && (window.pbVerdictOpen ? pbVerdictOpen(it.v) : !/^(aligned|ok|na)$/.test(String(it.v.status || '')))).length;
 
 /* ============================================================================
    WHAT A PRESS COSTS (owner-asked 26 Aug 2026, drawn and ruled first)
@@ -4523,9 +4524,22 @@ async function ceRunScan(){
   let rev = null;
   try{ rev = await runPlaybookReview(_ceC); }catch(_){ rev = null; }
   _ceScanBusy = false;
+  /* ---- ONE SAVED CHECK, WHICHEVER DOOR RAN IT (fix 3, 23 Sep 2026) ----
+     This scan was held in memory for the sitting, so the Checks card, Prepare
+     redlines and this rail could each be reading a different check of one
+     contract — and did. It is filed on the record the way the Checks card's
+     own press files it, before the page-open test, because a check that ran
+     is a fact about the contract whether or not this page is still up. */
+  if (rev && _ceC){
+    _ceC.playbook = rev;
+    if (window.logAudit) logAudit(_ceC, 'Playbook',
+      `Playbook review run from the clause editor — ${rev.verdicts.length} position${rev.verdicts.length === 1 ? '' : 's'} checked (${rev.source === 'ai' ? 'Copilot-assisted' : 'rule-based'})`);
+    if (window.persist) persist(_ceC);
+  }
   if (!clauseEditorOpen()) return;
-  /* A review arriving clears the note; nothing arriving IS the note. */
-  if (rev) { _ceScan = rev; _ceScanErr = null; }
+  /* A review arriving clears the note; nothing arriving IS the note. The
+     record now holds it, so the rail reads the record like every other door. */
+  if (rev) { _ceScan = null; _ceScanErr = null; }
   else _ceScanErr = 'empty';
   ceRenderLane(); ceRenderTabs(); ceRenderHead();
 }

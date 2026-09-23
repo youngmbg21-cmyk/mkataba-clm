@@ -88,7 +88,9 @@ describe('f308 (1) — the standards review remembers what it read', () => {
   test('the stamp is written where the review is BUILT, not at the stores', () => {
     const code = strip(read('js/playbook.js'));
     assert.match(code, /const stamp = r =>/, 'one stamper');
-    assert.match(code, /return stamp\(\{ key:playbookKeyFor\(c\)/, 'the model\'s branch');
+    /* `key:std.key` since fix 3 (23 Sep 2026): the model's branch is asked
+       every standard on the page, and the key comes with that list. */
+    assert.match(code, /return stamp\(\{ key:std\.key/, 'the model\'s branch');
     assert.match(code, /return stamp\(playbookReviewHeuristic\(c, text\)\)/, 'and the heuristic\'s');
   });
 });

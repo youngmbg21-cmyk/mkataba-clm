@@ -13667,7 +13667,10 @@ function rlPlaybookProposals(c, rev){
   const out = [];
   const lib = (window.clauseLibrary ? clauseLibrary() : []);
   for (const v of ((rev && rev.verdicts) || [])){
-    if (!v || v.status === 'aligned') continue;
+    /* ONLY A DEPARTURE IS WORK (fix 3): asked through the playbook's own
+       reading, because "not aligned" also meant a standard that DOES NOT APPLY
+       to this contract, and an older record's 'ok' — neither is proposed. */
+    if (!v || !(window.pbVerdictOpen ? pbVerdictOpen(v) : !/^(aligned|ok|na)$/.test(String(v.status || '')))) continue;
     const cl = v.quote ? rlPbFindClause(c, v.quote, v.category) : null;
     const libCl = lib.find(x => _rlPbNorm(x.category) === _rlPbNorm(v.category)
       || _rlPbNorm(x.name) === _rlPbNorm(v.category)) || null;
@@ -13900,6 +13903,29 @@ function rlFirstClauseId(c){
   const cl = (list || []).find(x => x && x.clauseId);
   return cl ? String(cl.clauseId) : '';
 }
+/* ---- WHAT A CHECK WITH NOTHING TO PROPOSE MAY SAY (fix 3, 23 Sep 2026) ----
+   ONE sentence-chooser for the two doors that end here — Prepare redlines and
+   the review window — so they cannot disagree about when a contract is clean.
+   "Every standard is met" needs a FINISHED check with nothing open; a check
+   that answered only some standards says how many; a check that found open
+   points it cannot word says so. `aligned === verdicts.length` is gone: it was
+   true of an empty list, which is how a check that never answered read as a
+   clean contract. */
+function rlPbCheckedLine(rev){
+  if (!rev || rev.standards == null) return '';
+  return i18t(rev.source === 'ai' ? 'ng_pb_checked' : 'ng_pb_checked_basic',
+    { k: Number(rev.checked || 0), n: Number(rev.standards || 0) });
+}
+function rlPbOutcomeSay(rev){
+  const vs = (rev && Array.isArray(rev.verdicts)) ? rev.verdicts : [];
+  const open = vs.filter(v => window.pbVerdictOpen ? pbVerdictOpen(v) : (v && !/^(aligned|ok|na)$/.test(String(v.status || '')))).length;
+  const done = window.pbReviewComplete ? pbReviewComplete(rev) : (vs.length > 0);
+  if (!vs.length) return { text: i18t('pb_came_back_empty'), kind: 'warn' };
+  if (open) return { text: i18t('ng_pb_nothing_proposable'), kind: 'warn' };
+  if (done === true) return { text: i18t('ng_pb_all_aligned', { n: Number(rev.standards || vs.length) }), kind: 'ok' };
+  if (done === false) return { text: i18t('ng_pb_partly_checked', { k: Number(rev.checked || 0), n: Number(rev.standards || 0) }), kind: 'warn' };
+  return { text: i18t('ng_pb_all_aligned_old'), kind: 'ok' };
+}
 async function rlPrepareRedlines(c, again){
   if (!window.runPlaybookReview || !window.confirmDialog || !window.rlPlaybookProposals){
     if (window.toast) toast(i18t('ng_playbook_not_loaded'), 'err');
@@ -13907,7 +13933,14 @@ async function rlPrepareRedlines(c, again){
   }
   /* NEVER ON AN EXECUTED CONTRACT, whatever drew the row. */
   if (window.negoExecuted && negoExecuted(c)) return null;
-  const stored = !!(c.playbook && Array.isArray(c.playbook.verdicts) && c.playbook.verdicts.length);
+  /* ---- A SAVED CHECK IS USED ONLY WHERE IT IS FINISHED AND CURRENT (fix 3,
+     23 Sep 2026) ----
+     It used any review on file with a verdict in it: one filed before every
+     standard was checked, one about wording three rounds old, one the arrival
+     read made from a cut-short answer. pbReviewUsable asks all three, and the
+     confirm below says whether this press costs a call before it spends it. */
+  const stored = window.pbReviewUsable ? !!pbReviewUsable(c)
+    : !!(c.playbook && Array.isArray(c.playbook.verdicts) && c.playbook.verdicts.length);
   const go = await confirmDialog({ title: i18t('ng_prepare'),
     message: i18t(stored ? 'ng_prepare_ask_stored' : 'ng_prepare_ask'),
     confirmLabel: i18t('ng_prepare_go') });
@@ -13921,7 +13954,14 @@ async function rlPrepareRedlines(c, again){
   let rev = stored ? c.playbook : null;
   if (!rev){
     let err = null;
-    try{ rev = await runPlaybookReview(c); }catch(e){ err = e; }
+    const o = { quiet: true };
+    try{ rev = await runPlaybookReview(c, o); }catch(e){ err = e; }
+    /* A REFUSAL IN WORDS IS SAID AS IT STANDS — "the check did not finish,
+       nothing was filed, run it again" — never dressed as "could not run". */
+    if (!err && rev && rev.error){
+      if (window.toast) toast(String(rev.error) + ' ' + i18t('ng_prepare_nothing_filed'), 'warn');
+      return null;
+    }
     if (err || !rev || !Array.isArray(rev.verdicts)){
       if (window.toast) toast(i18t('ng_review_failed') + ((err && err.message) || 'no usable result'), 'err');
       return null;
@@ -13933,9 +13973,8 @@ async function rlPrepareRedlines(c, again){
   const items = rlPlaybookProposals(c, rev);
   const n = { filed: 0, here: 0, unplaced: 0, refused: 0, fallback: 0, broad: 0 };
   if (!items.length){
-    const aligned = rev.verdicts.filter(v => v.status === 'aligned').length;
-    if (window.toast) toast(aligned === rev.verdicts.length ? i18t('ng_pb_all_aligned') : i18t('ng_pb_nothing_proposable'),
-      aligned === rev.verdicts.length ? 'ok' : 'warn');
+    const said = rlPbOutcomeSay(rev);
+    if (window.toast) toast(said.text, said.kind);
     if (window.persist) persist(c);
     if (again) again();
     return n;
@@ -14008,6 +14047,10 @@ async function rlPrepareRedlines(c, again){
   if (n.refused) parts.push(i18t('ng_prepare_refused', { n: n.refused }));
   if (n.fallback) parts.push(i18t('ng_prepare_fallback', { n: n.fallback }));
   if (n.broad) parts.push(i18t('ng_prepare_broad', { n: n.broad }));
+  /* AND HOW MUCH WAS CHECKED, every time (fix 3): a count of drafts says
+     what was filed, and only this says whether every standard was asked. */
+  const checkedLine = rlPbCheckedLine(rev);
+  if (checkedLine) parts.push(checkedLine);
   if (window.toast){
     if (n.filed) toast(i18tn('ng_prepare_filed', n.filed, { n: n.filed }) + (parts.length ? ' · ' + parts.join(' · ') : ''), 'ok');
     else toast(i18t('ng_prepare_none') + ' ' + parts.join(' · '), 'warn');
@@ -14152,8 +14195,13 @@ async function rlOpenPlaybookReview(c, again){
   const restore = btn ? btn.innerHTML : '';
   if (btn){ btn.disabled = true; btn.innerHTML = '&#10022; Reviewing&hellip;'; }
   let rev = null, err = null;
-  try{ rev = await runPlaybookReview(c); }catch(e){ err = e; }
+  const o = { quiet: true };
+  try{ rev = await runPlaybookReview(c, o); }catch(e){ err = e; }
   if (btn){ btn.disabled = false; btn.innerHTML = restore; }
+  if (!err && rev && rev.error){
+    if (window.toast) toast(String(rev.error), 'warn');
+    return;
+  }
   if (err || !rev || !Array.isArray(rev.verdicts)){
     if (window.toast) toast(i18t('ng_review_failed') + ((err && err.message) || 'no usable result'), 'err');
     return;
@@ -14165,12 +14213,11 @@ async function rlOpenPlaybookReview(c, again){
   const items = rlPlaybookProposals(c, rev);
   const aligned = rev.verdicts.filter(v => v.status === 'aligned').length;
   if (!items.length){
-    /* 'ok' on the aligned case, 'warn' on the other: a bare call prints
-       nothing, so the pass's BEST outcome — the contract agrees with every one
-       of our own positions — was the one the reader never heard. */
-    if (window.toast) toast(aligned === rev.verdicts.length
-      ? i18t('ng_pb_all_aligned') : i18t('ng_pb_nothing_proposable'),
-      aligned === rev.verdicts.length ? 'ok' : 'warn');
+    /* 'ok' on the finished-and-met case, 'warn' on the others: a bare call
+       prints nothing, so the pass's BEST outcome was the one the reader never
+       heard — and since fix 3 "met" needs every standard to have been asked. */
+    const said = rlPbOutcomeSay(rev);
+    if (window.toast) toast(said.text, said.kind);
     if (again) again();
     return;
   }
@@ -14257,7 +14304,7 @@ async function rlOpenPlaybookReview(c, again){
   </div>`;
   openModal(`<div style="padding:20px var(--s-6);max-height:calc(100vh - 80px);overflow-y:auto">
     <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;margin:0 0 var(--s-1)">&#10022; ${i18tn('ng_playbook_review',items.length,{n:items.length})}</h2>
-    <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 14px;line-height:1.55">${aligned} position${aligned === 1 ? '' : 's'} aligned${rev.source === 'ai' ? ' &middot; Copilot-assisted review' : ' &middot; rule-based review'}. A proposal files as an ordinary fingerprinted change only when you press it — nothing applies itself. <b>${i18t('ng_preferred')}</b> ${i18t('ng_opening_position')} <b>fallback</b> ${i18t('ng_concession_allowed')} ${i18t('ng_draft_is_copilots')}</p>
+    <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 14px;line-height:1.55">${aligned} position${aligned === 1 ? '' : 's'} aligned${rlPbCheckedLine(rev) ? ' &middot; ' + _ne(rlPbCheckedLine(rev)) : ''}${rev.source === 'ai' ? ' &middot; Copilot-assisted review' : ' &middot; rule-based review'}. A proposal files as an ordinary fingerprinted change only when you press it — nothing applies itself. <b>${i18t('ng_preferred')}</b> ${i18t('ng_opening_position')} <b>fallback</b> ${i18t('ng_concession_allowed')} ${i18t('ng_draft_is_copilots')}</p>
     ${items.map(itemHtml).join('')}
     <div style="display:flex;justify-content:flex-end"><button id="pbr-close" class="ui-btn">${i18t('act_close')}</button></div>
   </div>`, { maxWidth: '780px' });
