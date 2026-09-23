@@ -502,7 +502,7 @@ function signCheckRowHolds(row, gate){
    has always said. */
 const SIGN_STAGES = ['paper', 'read', 'people', 'sign'];
 const SIGN_STAGE_OF = {
-  negotiation: 'paper', fields: 'paper', placeholders: 'paper', docs: 'paper',
+  negotiation: 'paper', fields: 'paper', placeholders: 'paper', blanks: 'paper', docs: 'paper',
   'standards-read': 'read', standard: 'read', obligations: 'read',
   record: 'read', risk: 'read',
   approval: 'people', turn: 'people', signers: 'people', spots: 'people',
@@ -614,6 +614,10 @@ function signReadiness(c, opts){
   const bl = _scCall('signBlockers', c) || [];
   bl.filter(b => b && b.key !== 'signcheck').forEach(b => rows.push({
     kind: b.key, key: 'bl:' + b.key, label: b.label, short: b.short,
+    /* WHICH BOXES, where the blocker names them (the empty-box row, 23 Sep
+       2026) — so signFieldMarks can mark the one the Overview owns and the
+       card can choose a door that works. Absent on every other row. */
+    ...(Array.isArray(b.fields) ? { fields: b.fields.slice() } : {}),
     stage: signStageOf(b.key), holds: true, settled: false }));
   /* THE LIGHT LIST: a register row carries no wording (HEAVY strips an
      upload's text), so the two rows that hash the wording — "the review is
@@ -690,6 +694,15 @@ function signCheckWillRun(r){
    `noted` is the record disagreeing with the paper, which the gate may not be
    holding on but a signer should still see beside the figure. */
 const SIGN_FIELD_OF = { counterparty: 'counterparty', value: 'value' };
+/* ---- AND THE ONE EMPTY BOX THE OVERVIEW OWNS (23 Sep 2026) ----
+   The empty-box row names boxes in HaTi's own paper. Most of them live only in
+   the paper ("Material", "Territory"), but the start date is the SAME place the
+   Overview's Effective cell writes — c.fields.effDate — so typing the cell
+   fills the box, before and after the contract leaves Draft. That one is
+   marked where the field is, as the counterparty and the value are. A box
+   whose cell reads somewhere else is deliberately not on this table: a mark
+   under a cell already showing a value would contradict itself. */
+const SIGN_BOX_FIELD = { effDate: 'effDate' };
 function signFieldMarks(c){
   /* `live` is "this contract is in the phase where a field can be marked",
      which is not the same question as "is anything marked right now". The
@@ -704,22 +717,26 @@ function signFieldMarks(c){
   let rows = [];
   try{ rows = signReadiness(c).open || []; }catch(_){ rows = []; }
   rows.forEach(row => {
-    const f = row.kind === 'record' ? row.field : SIGN_FIELD_OF[row.kind];
-    if (!f) return;
-    const mark = { field: f, kind: row.kind, holds: !!row.holds,
-      paper: row.kind === 'record' ? _scStr(row.paper) : '',
-      why: _scStr(row.label || row.short || '') };
-    const cur = out.fields[f];
-    /* A HOLD OUTRANKS A NOTE on the same field: one cell, one mark, and it is
-       the more serious of the two. */
-    if (!cur || (mark.holds && !cur.holds)) out.fields[f] = mark;
+    const fs = row.kind === 'record' ? [row.field]
+      : row.kind === 'blanks' ? (Array.isArray(row.fields) ? row.fields : []).map(k => SIGN_BOX_FIELD[k])
+      : [SIGN_FIELD_OF[row.kind]];
+    fs.forEach(f => {
+      if (!f) return;
+      const mark = { field: f, kind: row.kind, holds: !!row.holds,
+        paper: row.kind === 'record' ? _scStr(row.paper) : '',
+        why: _scStr(row.label || row.short || '') };
+      const cur = out.fields[f];
+      /* A HOLD OUTRANKS A NOTE on the same field: one cell, one mark, and it is
+         the more serious of the two. */
+      if (!cur || (mark.holds && !cur.holds)) out.fields[f] = mark;
+    });
   });
   for (const k in out.fields){ out.n++; if (out.fields[k].holds) out.holds++; else out.noted++; }
   return out;
 }
 
 if (typeof window !== 'undefined') Object.assign(window, {
-  SIGN_FIELD_OF, signFieldMarks,
+  SIGN_FIELD_OF, SIGN_BOX_FIELD, signFieldMarks,
   briefReadKey, briefReadOf, briefReadBy, briefMarkRead, briefReadWho, signCheckBriefStands,
   SIGN_ACCEPT_MAX, SIGN_RECORD_ROWS, SIGN_CHECK_GATES, SIGN_CHECK_GATE_DEFAULT, SIGN_RISK_SEV,
   signCheckGate, signCheckApplies, signCheckBlocker, signCheckMayAccept, signCheckAcceptedProperly, signCheckAcceptStale,

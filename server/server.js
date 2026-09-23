@@ -6589,8 +6589,14 @@ app.post('/api/mailroom', rlMailroom, express.json({ limit: '32mb' }), (req, res
     setSetting('uid', String(uid));
     const id = 'MK-' + uid;
     const at = now();
+    /* ---- AND NO CLAIM ABOUT MONEY EITHER (Young's go, 23 Sep 2026) ----
+       This carried valueType 'none', which is not "nobody has said" but "no
+       money passes under this paper" — a claim about a document nobody has
+       read, and one that silenced the value question at the Send screen and
+       the Sign button for good. Absent is the honest shape, and isMonetary
+       already reads an upload's silence as money. */
     const c = {
-      id, name: mailroomName(name, subject), counterparty: '', value: 0, valueType: 'none',
+      id, name: mailroomName(name, subject), counterparty: '', value: 0,
       status: 'Draft', template: null, source: 'upload', folder, lastAction: at.slice(0, 10),
       expiry: null, hash: null, signedAt: null, signatory: null, compliance: {},
       fields: {}, scan: null, comments: [], signatures: [], obligations: [],
@@ -13820,7 +13826,24 @@ app.post('/api/templates/:id/contracts', auth, editor, (req, res) => {
     counterparty: clean(b.counterparty).slice(0, 120),
     counterpartyEmail: /.+@.+\..+/.test(String(b.counterpartyEmail || '')) ? clean(b.counterpartyEmail).slice(0, 160) : '',
     value: Number(b.value) > 0 ? Number(b.value) : 0,
-    valueType: Number(b.value) > 0 ? 'estimated' : 'none',
+    /* ---- A VALUE LEFT EMPTY IS NOT "NO MONEY PASSES" (Young's go, 23 Sep 2026) ----
+       The recommendation the owner approved: "Non-monetary" should never
+       again be set automatically. This wrote
+       'none' whenever the value box was left empty or "Skip for now" was
+       pressed — a box the form labels "if known" — so every such contract read
+       as non-monetary for the rest of its life: the value was never asked for
+       again, not at the Send screen and not at the Sign button, and the Overview
+       greyed the box out. A stamp nobody chose is not an answer (see
+       _repairValueType in js/core.js, which says so for the opposite stamp).
+       SO THE TEMPLATE ANSWERS THE SILENCE, and only where it has something to
+       say: a standard filed under the NDA category is paper no money passes
+       under, exactly as HaTi's own TEMPLATES.ND carries valueType:'none'.
+       Anything else writes NOTHING, and isMonetary reads that silence as money
+       — its own documented default for a template with no view. A figure typed
+       at creation is still a figure, and a person can still say "no money"
+       with the tick-box on the Overview. */
+    ...(Number(b.value) > 0 ? { valueType: 'estimated' }
+      : String(t.category || '') === 'nda' ? { valueType: 'none' } : {}),
     status: 'Draft', template: null, folder, source: null,
     lastAction: 'Created from template',
     expiry: /^\d{4}-\d{2}-\d{2}$/.test(String(b.expiry || '')) ? String(b.expiry) : null,

@@ -701,6 +701,10 @@ function applyReviewedMeta(c, m){
   if(m.counterparty) c.counterparty=m.counterparty;
   if(m.value!=null&&Number(m.value)>0){ c.value=Number(m.value); if(c.valueType==='none') c.valueType='estimated'; }
   if(m.expiryDate) c.expiry=m.expiryDate;
+  /* AND THE EFFECTIVE DATE the reviewer just confirmed, which this copied
+     nowhere — see metaEffDateOnto (js/metadata.js). Overwriting, like the
+     expiry above it: a person has just confirmed this very value. */
+  if(typeof metaEffDateOnto==='function') metaEffDateOnto(c, m, { overwrite: true });
   if(c.migration){ c.migration.needsReview=false; c.migration.blocked=null; }
   c.lastAction=todayStr();
   logAudit(c,'Migration review',`Extracted details confirmed by ${currentUser()?.name||'reviewer'}`);
@@ -760,6 +764,9 @@ async function migRerunAi(){
     if(meta.counterparty&&!c.counterparty) c.counterparty=meta.counterparty;
     if(meta.value&&!(Number(c.value)>0)){ c.value=Number(meta.value)||0; if(c.valueType==='none') c.valueType='estimated'; }
     if(meta.expiryDate&&!c.expiry) c.expiry=meta.expiryDate;
+    /* The effective date too, fill only like the expiry above it — see
+       metaEffDateOnto (js/metadata.js). */
+    if(typeof metaEffDateOnto==='function') metaEffDateOnto(c, meta);
     logAudit(c,'Copilot extraction','Re-ran Copilot metadata extraction over the stored document text');
     c.migration.aiSource='ai';
     c.migration.needsReview=migNeedsReview(meta, c);

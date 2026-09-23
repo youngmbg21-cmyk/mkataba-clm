@@ -2017,6 +2017,9 @@ function applyMetadata(c, m){
   if(m.counterparty && !c.counterparty) c.counterparty=m.counterparty;
   if(m.value && !(Number(c.value)>0)){ c.value=Number(m.value)||0; if(c.valueType==='none') c.valueType='estimated'; }
   if(m.expiryDate && !c.expiry) c.expiry=m.expiryDate;
+  /* AND THE EFFECTIVE DATE, which this door confirmed and never copied — see
+     metaEffDateOnto (js/metadata.js). Fill only, like the three above it. */
+  if(typeof metaEffDateOnto==='function') metaEffDateOnto(c, m);
   logAudit(c,'Metadata confirmed',`Filed with ${m._source==='ai'?'Copilot-extracted':'pattern-matched'} details (type ${m.contractType||'—'}, category ${m.category||'—'}, renewal ${m.renewalType||'—'})`);
 }
 
@@ -12278,7 +12281,10 @@ async function fillKeyTermsFromDocument(c){
     if(meta._source==='ai' && isMonetary(c) && !(Number(c.value)>0) && Number(meta.value)>0){
       c.value=Number(meta.value); if(c.valueType!=='estimated') c.valueType='estimated'; filled.push('value');
     }
-    if(!(c.fields&&c.fields.effDate) && meta.effectiveDate){ c.fields=c.fields||{}; c.fields.effDate=meta.effectiveDate; filled.push('effective date'); }
+    /* The one copy of the effective-date rule (js/metadata.js), which the three
+       other doors that save a reading now call too — this door was the only
+       one that had it. */
+    if(typeof metaEffDateOnto==='function' && metaEffDateOnto(c, meta)) filled.push('effective date');
     if(!c.expiry && meta.expiryDate){ c.expiry=meta.expiryDate; filled.push('expiry'); }
     /* ---- AND THE TWO THE READER ALREADY FOUND AND THREW AWAY ---- (16 Sep 2026)
        This function has always read the WHOLE extraction and then kept four
@@ -12826,6 +12832,7 @@ function signRowTitle(c,r){
     case 'signers': return t('sc_row_signers');
     case 'counterparty': case 'value': return i18t('sc_row_blank',{field:t(r.kind==='value'?'sc_f_value':'sc_f_counterparty')});
     case 'placeholders': return t('sc_row_placeholders');
+    case 'blanks': return t('sc_row_blanks');
     case 'fields': return t('sc_row_fields');
     case 'spots': return t('sc_row_spots');
     default: return String(r.short||r.label||r.kind);
@@ -12947,6 +12954,23 @@ function signCheckCardHtml(c){
       case 'negotiation': why=r.label; acts.push(verb('data-sc-nego','1','sc_open_nego')); break;
       case 'counterparty': case 'value': why=r.label; acts.push(verb('data-sc-fix',r.kind,'sc_fill_btn')); break;
       case 'placeholders': case 'fields': why=r.label; acts.push(verb('data-sc-docs','1','sc_open_doc')); break;
+      /* ---- AN EMPTY BOX: THE DOOR THAT CAN STILL FILL IT (23 Sep 2026) ----
+         CHOSEN AT THE DRAW, and the handler obeys the attribute. While the
+         paper is a draft its boxes are typeable and the fill panel lists
+         them, so the door lands on the first one. Once it has left Draft the
+         panel stands down (docFillable), and "Open the document" would land
+         on a dash nobody can type into — so: where every empty box is one the
+         Overview owns (the start date), that cell is the door; otherwise the
+         words have to be proposed, which is the negotiation's job. */
+      case 'blanks': {
+        why=r.label;
+        const home=window.SIGN_BOX_FIELD||{};
+        const keys=Array.isArray(r.fields)?r.fields:[];
+        let fillable=false; try{ fillable=!!docFillable(c); }catch(_){ fillable=false; }
+        if(fillable) acts.push(verb('data-sc-blanks','docs','ng_blanks_fill'));
+        else if(keys.length && keys.every(k=>home[k])) acts.push(verb('data-sc-fix',home[keys[0]],'sc_fill_btn'));
+        else acts.push(verb('data-sc-blanks','nego','sc_open_nego'));
+        break; }
       case 'spots': why=r.label; if(window.signWalkGo) acts.push(verb('data-sc-spots','1','sc_place_btn')); break;
       default: why=r.label||'';
     }
@@ -13340,6 +13364,18 @@ function renderSignSide(c){
     if(window.openSignerPlanEditor) openSignerPlanEditor(c);
   });
   host.querySelector('[data-sc-nego]')?.addEventListener('click',()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); });
+  /* The empty-box row's door. Its own attribute rather than a second
+     data-sc-nego: that one is bound with querySelector, and with the
+     negotiation row drawn above this one the second button would be dead
+     (f295's lesson). `docs` lands on the first empty box — AFTER the paint,
+     as the negotiate page's own "Fill them in" does, because the panel it
+     focuses is written by the render roomGoTab asks for. */
+  host.querySelectorAll('[data-sc-blanks]').forEach(b=>b.addEventListener('click',()=>{
+    if(b.getAttribute('data-sc-blanks')==='nego'){ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); return; }
+    if(window.roomGoTab) roomGoTab(c,'docs');
+    const first=(window.contractBoxesOpen?(contractBoxesOpen(c)[0]||{}):{}).key||'';
+    setTimeout(()=>{ try{ if(window.contractFieldFocus) contractFieldFocus(c, first); }catch(_){ } },0);
+  }));
   host.querySelectorAll('[data-sc-docs]').forEach(b=>b.addEventListener('click',()=>{ if(window.roomGoTab) roomGoTab(c,'docs'); }));
   host.querySelector('[data-sc-spots]')?.addEventListener('click',()=>{ if(window.signWalkGo) signWalkGo(c); });
   host.querySelector('[data-sc-fold]')?.addEventListener('click',()=>{ _scSettledOpen=!_scSettledOpen; scAgain(); });
@@ -13387,8 +13423,9 @@ function renderSignSide(c){
    a desk refusal, a review hold — and the Sign handler used to wrap whatever it
    got in "Fill these in on Key terms, or in the document, before signing." A
    desk refusal is not a blank, so the reader was told to do something
-   impossible. Only these three are answered by filling something in. */
-const READINESS_FIELD_KEYS = ['counterparty','value','placeholders'];
+   impossible. Only these are answered by filling something in — and since
+   23 Sep 2026 an empty box in HaTi's own paper (`blanks`) is one of them. */
+const READINESS_FIELD_KEYS = ['counterparty','value','placeholders','blanks'];
 
 /* ============================================================
    WHAT STOPS A SIGNATURE — ONE LIST, TWO READERS
@@ -13896,7 +13933,9 @@ function signWalkGo(c){
 function signBlockers(c){
   const out=[];
   if(!c) return out;
-  const add=(key,label,short)=>out.push({ key, label, short });
+  /* `extra` is additive: the empty-box row carries WHICH boxes (`fields`), so
+     the Overview can mark the one it owns and the row can choose its door. */
+  const add=(key,label,short,extra)=>out.push({ key, label, short, ...(extra||{}) });
   /* ---- A CONTRACT IN DISPUTE IS NOT SIGNED (upgrade 8, 18 Sep 2026) ----
      FIRST in the list, because it is the one blocker that is not about this
      contract being ready — it is about it being evidence. The server refuses
@@ -13965,7 +14004,9 @@ function signBlockers(c){
   const readiness=(window.contractReadiness?contractReadiness(c):[]);
   for(const b of readiness.filter(x=>x.severity==='block'&&READINESS_FIELD_KEYS.includes(x.key)))
     add(b.key, b.label, b.key==='counterparty'?'add the counterparty'
-      : b.key==='value'?'add the contract value' : 'fill the blanks in the wording');
+      : b.key==='value'?'add the contract value'
+      : b.key==='blanks'?i18t('sc_short_blanks') : 'fill the blanks in the wording',
+      Array.isArray(b.fields)?{ fields:b.fields.slice() }:null);
   try{
     if(c.templateForm && window.templateFormProblems){
       const probs=templateFormProblems(c.templateForm);

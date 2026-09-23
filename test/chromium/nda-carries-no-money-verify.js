@@ -148,8 +148,16 @@ const check = (name, pass, detail) => {
         splitLine: /Also worth knowing/.test(d.textContent),
         blocks: readinessBlocks(c).length };
     });
+    /* RE-POINTED IN PLACE, 23 Sep 2026 (signing without the facts). This pinned
+       the literal "2 things to fix" off a fixture whose RM boxes are all empty.
+       Since an empty box in HaTi's own paper is a block of its own (`blanks`),
+       the same fixture carries THREE — the counterparty, the value, and the two
+       empty boxes as one row — so the claim this check is named for is asked as
+       the RELATION it always was: the heading counts what is listed under it.
+       `>= 2` keeps the fixture's two original blocks honest. */
     check('the number in the heading is the number of items under it',
-      both.blockItems === both.blocks && /2 things to fix/.test(both.head),
+      both.blockItems === both.blocks && both.blocks >= 2
+        && new RegExp('\\b' + both.blocks + ' things to fix').test(both.head),
       `${both.head} · ${both.blockItems} listed`);
     check('what is merely worth knowing is separated out and says so',
       both.noteItems > 0 && both.splitLine, `${both.noteItems} note(s)`);

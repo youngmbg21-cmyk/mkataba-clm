@@ -236,6 +236,26 @@ function contractBlanks(c){
    30) is NOT open: the page states a figure and the reader has it. */
 const contractBlanksOpen = c => contractBlanks(c).filter(b => !String(b.value||'').trim());
 
+/* ---- THE EMPTY BOXES IN OUR OWN PAPER, WHICH A SIGNATURE MAY NOT SEAL AS A
+   DASH (Young's go, 23 Sep 2026) ----
+   From the recommendation the owner approved: *"flag them at the first send … They are checked again at signing."* A box
+   left empty in one of HaTi's own templates is frozen as "—" by
+   readOnlyDocHtml / freezeContractHtml, so the signed copy said "Material: —"
+   and nothing on the way asked about it: the readiness list only ever matched
+   bracket and brace placeholders, and a dash is neither.
+
+   ONE READING, THE PANEL'S OWN. This is contractBlanksOpen narrowed to the
+   `field` kind and nothing else, so the Send screen, the Sign button and the
+   fill panel's own "N of M" count the same boxes and cannot disagree:
+     · a `sync` box IS the record (the counterparty, the value) and has its
+       own readiness row already — counting it here would say it twice;
+     · an `upload` blank is a placeholder in the OTHER side's paper, which is a
+       different question with a different answer, and is not asked here.
+   It reads the wording, which still carries the boxes after a contract leaves
+   Draft (negoBlanksOpen records that it does) — which is exactly when a hold
+   is needed and the fill panel has stood down. */
+const contractBoxesOpen = c => contractBlanksOpen(c).filter(b => b && b.kind === 'field');
+
 /* ---- WHICH FIELDS ARE STILL OPEN, BY NAME (Young reported it 21 Sep 2026:
    "the open fields is not sharing anything meaningful") ----
    The arrival tile read *"Open fields are on the panel — This contract fills
@@ -407,7 +427,7 @@ function blanksAskPayload(c, left){
 
 if(typeof window !== 'undefined') Object.assign(window, {
   BLANK_USUAL_MIN, BLANK_MAX, BLANK_NEVER_FILLED,
-  contractHasBlanks, contractBlanks, contractBlanksOpen, blankLabel,
+  contractHasBlanks, contractBlanks, contractBlanksOpen, contractBoxesOpen, blankLabel,
   BLANK_NONE_REASONS, contractBlanksNone, contractOpenFieldNames,
   contractBlankSet, contractBlankUsual, fillBlanksFromRecord, blanksAskPayload,
 });

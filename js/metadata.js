@@ -184,6 +184,43 @@ const metaEnName = k => String(k == null ? '' : k)
   .replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase();
 const metaOptLabel = v => { const s=String(v==null?'':v);
   return (s in META_OPT_LABEL) ? META_OPT_LABEL[s] : s; };
+/* ---- THE EFFECTIVE DATE A READING FOUND GOES WHERE THE OVERVIEW PRINTS IT
+   (Young's go, 23 Sep 2026) ----
+   Four doors copy what a reading found onto the record — the upload's own
+   confirm (applyMetadata), the import queue's confirm (applyReviewedMeta), the
+   import re-read (migRerunAi) and Fill from document. They copied the
+   counterparty, the value and the expiry; only the last copied the effective
+   date. So a date Copilot read, and a person CONFIRMED on the upload screen,
+   was kept in the background (metadata) and never reached c.fields.effDate —
+   the field the Overview prints, the check before signing compares, Copilot's
+   own card reads and the room's Term is measured from. The Overview said "—"
+   beside an expiry that had arrived through the very same press.
+
+   ONE HELPER FOR ALL FOUR, so a fifth door is one call rather than a fifth copy
+   of the rule. THE IMPORTER'S OWN BUILD (migBuildAndSave) IS DELIBERATELY NOT
+   A CALLER: most of what it brings in is paper executed elsewhere, which is
+   sealed the moment it lands (EXECUTED_IMMUTABLE freezes `fields`), and an
+   unconfirmed machine reading written there could never be corrected. A
+   working import takes the date when a person confirms it in the queue.
+   ONLY AN ISO DAY IS A DAY (the ktDayDot lesson): anything else
+   writes nothing, because a date box cannot hold it and a screen would print
+   it as NaN. `overwrite` is the caller's own rule and only the import queue's
+   confirm asks for it — there a person has just confirmed this very value,
+   and that function already overwrites the expiry beside it. Everywhere else
+   an answer already on the record is somebody's and is never replaced.
+   Returns whether it wrote. */
+const META_ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+function metaEffDateOnto(c, m, opts){
+  if(!c || !m) return false;
+  const day = String(m.effectiveDate == null ? '' : m.effectiveDate).trim();
+  if(!META_ISO_DAY.test(day)) return false;
+  const cur = String((c.fields && c.fields.effDate) || '').trim();
+  if(cur === day) return false;
+  if(cur && !(opts && opts.overwrite)) return false;
+  c.fields = c.fields || {};
+  c.fields.effDate = day;
+  return true;
+}
 /* Kept because other modules read it directly. The values it holds are the
    same four renewal options, now answered by the one table above. */
 const RENEWAL_LABEL = { get 'auto-renew'(){ return metaOptLabel('auto-renew'); },
@@ -748,4 +785,4 @@ async function runMetaBackfill(opts={}){
   next();
 }
 
-Object.assign(window,{META_FIELDS,CONTRACT_TYPE_FALLBACK,contractTypeKinds,META_PICK_OTHER,metaPickOptions,RENEWAL_LABEL,metaEnName,termAdd,metaReadTerm,metaCheckTerm,TERM_TOLERANCE_DAYS,META_OPT_LABEL,metaOptLabel,unitDays,heuristicExtract,buildExtractionPayload,thoroughChunks,mergeThorough,THOROUGH_CHUNK,EXTRACT_TERMS,aiExtractMetadata,extractMetadata,openMetaReview,runMetaBackfill});
+Object.assign(window,{META_FIELDS,CONTRACT_TYPE_FALLBACK,contractTypeKinds,META_PICK_OTHER,metaPickOptions,RENEWAL_LABEL,metaEnName,metaEffDateOnto,termAdd,metaReadTerm,metaCheckTerm,TERM_TOLERANCE_DAYS,META_OPT_LABEL,metaOptLabel,unitDays,heuristicExtract,buildExtractionPayload,thoroughChunks,mergeThorough,THOROUGH_CHUNK,EXTRACT_TERMS,aiExtractMetadata,extractMetadata,openMetaReview,runMetaBackfill});

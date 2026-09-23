@@ -3465,17 +3465,52 @@ function contractPlaceholders(c){
 function contractReadiness(c){
   const p=[];
   if(!c) return p;
-  const add=(severity,key,label)=>p.push({ severity, key, label });
+  const add=(severity,key,label,extra)=>p.push({ severity, key, label, ...(extra||{}) });
   if(!String(c.counterparty||'').trim()) add('block','counterparty','No counterparty is set.');
   if(isMonetary(c) && !(Number(c.value)>0))
     add('block','value','No contract value is set, and this contract type carries one.');
   if(!c.expiry && !(c.fields&&c.fields.expiry) && (c.metadata||{}).renewalType!=='evergreen')
     add('warn','term','No expiry or term end is recorded, so no renewal reminder can be scheduled.');
-  if(!c.effectiveDate && !(c.fields&&c.fields.effDate))
+  /* ---- AN EMPTY BOX IN OUR OWN PAPER HOLDS, LIKE A [NAME] DOES (Young's go,
+     23 Sep 2026) ----
+     From the recommendation the owner approved: *"Empty boxes in our own paper: flag them at the first send, using the
+     tick-to-confirm the Send screen already uses for [NAME]-style blanks …
+     They are checked again at signing."* A box left empty in one of HaTi's
+     own templates is sealed as "—", which the placeholder pattern below
+     cannot see, so a contract reading "Material: —" went out and was signed
+     with nothing on the way saying so.
+
+     A BLOCK, SO BOTH DOORS ALREADY KNOW WHAT TO DO WITH IT: the Send screen
+     asks for its tick ("Send it anyway") and signBlockers holds the signature
+     — no new band, no new gate. contractBoxesOpen (js/blanks.js) is the fill
+     panel's own count, so the three can never name different boxes, and the
+     keys ride on the row so the Overview and the signing list can point at
+     the right place. It NAMES them, because "2 fields are empty" is something
+     you press through, and "Start date, Material" is something you can judge. */
+  let boxes=[];
+  try{ boxes=(typeof window!=='undefined'&&window.contractBoxesOpen)?(contractBoxesOpen(c)||[]):[]; }catch(_){ boxes=[]; }
+  /* ONE FACT, SAID ONCE: where the empty box IS the start date, the block below
+     already names it, and a second line under "also worth knowing" repeating it
+     is the same fact printed twice. */
+  if(!c.effectiveDate && !(c.fields&&c.fields.effDate) && !boxes.some(b=>b.key==='effDate'))
     add('warn','effective','No effective date is recorded.');
   const ph=contractPlaceholders(c);
   if(ph.length) add('block','placeholders',
     `The document still contains ${ph.length} unfilled placeholder${ph.length===1?'':'s'}: ${ph.slice(0,5).join(', ')}${ph.length>5?', …':''}`);
+  if(boxes.length){
+    /* Three named, then "and N more" — the negotiate page's own three
+       (NG_BLANKS_NAMED). Kept inside the function: several tests lift this
+       function out of the file on its own, and a name above it would not
+       travel with it. */
+    const NAMED=3;
+    const names=boxes.slice(0,NAMED).map(b=>String(b.label||b.key||'').trim()).filter(Boolean);
+    const more=boxes.length-names.length;
+    add('block','blanks',
+      i18tn('rd_boxes_empty',boxes.length,{n:boxes.length})+' '+(more>0
+        ? i18tn('ng_blanks_these_more',more,{names:names.join(', '),more})
+        : i18t('ng_blanks_these',{names:names.join(', ')})),
+      { fields: boxes.map(b=>b.key) });
+  }
   /* INTERNAL APPROVAL IS PART OF BEING READY TO SEND, and it was not on this
      list. Signing checks it — signDocument refuses outright — but sharing
      never did, and sharing is how a contract actually reaches the other side:
