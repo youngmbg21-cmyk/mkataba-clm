@@ -528,6 +528,85 @@ function _clTitleIndex(blocks, headings){
 const _clHeadingsMarkClauses = (blocks, headings) =>
   headings.length > (_clTitleIndex(blocks, headings) >= 0 ? 1 : 0);
 
+/* ---- A BANNER OVER NUMBERED CLAUSES IS NOT A CLAUSE (Young ruled 23 Sep
+   2026, fix 2 of the seven he approved) ----
+   The Warehousing agreement sets four "PAGE 1 OF 4: DEFINITIONS, SCOPE &
+   FACILITY" lines as Heading 2 and its real clauses — "1. DEFINITIONS AND
+   INTERPRETATION" to "11. GOVERNING LAW" — as Heading 3 under them. The rule
+   below reads "a heading opens a clause and closes at the next heading of the
+   same or higher rank", so the four banners became the clauses and the eleven
+   numbered clauses became their insides: the Copilot editor opened on a whole
+   page, a redline card covered three clauses, and two fixes on one page
+   overwrote each other. MEASURED: 5 clauses where the document has 12.
+   THE PATTERN, and every part of it is a fact about the document, never a
+   guess about its words:
+     · the headings above some rank D carry NO clause number, and
+     · at rank D at least two headings do, and those numbers RUN ON across the
+       banners (1, 2, 3 | 4, 5 | … | 11 — a restart under each one is an
+       Article/Section shape and keeps the old reading), and
+     · every banner has a numbered clause after it before the next banner.
+   Then rank D is the clause and each banner rides with the clause after it as
+   `sectionHtml` — still on the paper, drawn as a section title, never a
+   clause of its own: no pencil, no card, no count.
+   AND IT NEVER RE-SPLITS A DOCUMENT ALREADY STAMPED THE OLD WAY. A banner that
+   carries a clause id was a clause when somebody filed changes against it;
+   reading it differently now would re-point every one of them (the owner's
+   decision: contracts already being negotiated keep today's split). The ids
+   ARE the record of which reading a document was stamped under — the first
+   branch below reads them — so no flag and no migration. */
+function _clBanners(blocks, headings){
+  const attr = window.RICH_CLAUSE_ATTR || 'data-clause-id';
+  const titleAt = _clTitleIndex(blocks, headings);
+  const title = titleAt >= 0 ? blocks[titleAt] : null;
+  const hs = headings.filter(el => el !== title);
+  const numOf = el => clauseParseHeading((el.textContent || '').replace(/\s+/g, ' ').trim()).num;
+  /* ---- ONCE A DOCUMENT HAS BEEN READ THIS WAY, THE IDS ARE THE RECORD ----
+     Stamping writes an id on every heading that opens a clause and on nothing
+     else, so a stamped document SAYS which reading it was stamped under. Under
+     the ordinary reading every heading ranked at or above the clause it follows
+     opens a clause of its own, so an unstamped heading ranked ABOVE every
+     stamped one cannot exist there; under this one, that is exactly what a
+     banner is. Reading the ids rather than the pattern is what keeps the split
+     STILL: an accepted rename that drops a number, or a clause inserted in the
+     middle, would break "the numbers run on" and flip the whole agreement back
+     to five clauses under every change filed against the twelve. */
+  const stamped = hs.filter(el => el.getAttribute(attr));
+  if (stamped.length){
+    const ranks = new Set(stamped.map(_clRank));
+    if (ranks.size !== 1) return null;
+    const D = _clRank(stamped[0]);
+    const upper = hs.filter(el => _clRank(el) < D);
+    if (!upper.length || upper.some(el => numOf(el))) return null;
+    return { rank: D, banners: new Set(upper) };
+  }
+  /* ---- THE FIRST READING: the pattern, every part of it a fact ---- */
+  if (hs.length < 4) return null;
+  const ranks = Array.from(new Set(hs.map(_clRank))).sort((a, b) => a - b);
+  if (ranks.length < 2) return null;
+  let D = 0;
+  for (const r of ranks.slice(1))
+    if (hs.filter(el => _clRank(el) === r && numOf(el)).length >= 2){ D = r; break; }
+  if (!D) return null;
+  const upper = hs.filter(el => _clRank(el) < D);
+  if (!upper.length) return null;
+  if (upper.some(el => numOf(el))) return null;              // a numbered one is a real clause
+  let prev = 0;
+  for (const el of hs){
+    if (_clRank(el) !== D || !numOf(el)) continue;
+    const n = Number(String(numOf(el)).split('.')[0]);
+    if (!(n > prev)) return null;                            // a restart: not this pattern
+    prev = n;
+  }
+  let open = false, holding = 0;
+  for (const el of hs){
+    const r = _clRank(el);
+    if (r < D){ if (open && !holding) return null; open = true; holding = 0; }
+    else if (r === D && open && numOf(el)) holding++;
+  }
+  if (open && !holding) return null;                         // a banner with nothing under it
+  return { rank: D, banners: new Set(upper) };
+}
+
 /* ---------- the segmentation ----------
    Walk the document's top-level blocks once. A heading opens a clause; it
    closes at the next heading of the same or higher rank, so an <h3>
@@ -562,9 +641,17 @@ function clauseSegment(html){
     out.push(cur);
     cur = null;
   };
+  /* A BANNER (see _clBanners) closes the clause before it and rides with the
+     clause after it, together with anything set between the two; where the
+     document has no banners this is null and the walk is exactly what it was. */
+  const ban = _clBanners(blocks, headings);
+  let pend = [];
   for (let i = start; i < blocks.length; i++){
     const el = blocks[i];
+    if (ban && ban.banners.has(el)){ close(); pend.push(el.outerHTML); continue; }
     const rank = _clRank(el);
+    /* a sub-heading set between a banner and its first clause is the banner's */
+    if (rank && ban && rank > ban.rank && !cur && pend.length){ pend.push(el.outerHTML); continue; }
     if (rank && (!cur || rank <= cur.rank)){
       close();
       const headText = (el.textContent || '').replace(/\s+/g, ' ').trim();
@@ -572,8 +659,10 @@ function clauseSegment(html){
       cur = { clauseId: el.getAttribute(window.RICH_CLAUSE_ATTR || 'data-clause-id') || null,
         rank, num: parsed.num, title: parsed.title, headingText: headText,
         headingHtml: el.outerHTML, bodyHtml: '', text: '', _body: [] };
+      if (pend.length){ cur.sectionHtml = pend.join(''); pend = []; }
       continue;
     }
+    if (pend.length && !cur){ pend.push(el.outerHTML); continue; }
     if (!cur) continue;                       // stray content before any heading
     cur._body.push(el);
   }
@@ -895,6 +984,14 @@ function clauseCarryIds(prevHtml, nextHtml){
   const take = id => { if (!id || used.has(id)) return false; used.add(id); return true; };
   const key = el => (el.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
   const unmatched = [];
+  /* ---- THE CARRY RENAMES CLAUSES; IT NEVER MAKES ONE (23 Sep 2026) ----
+     The fresh stamp has already decided which headings open a clause in the
+     document as it is read NOW, and those are the ones carrying an id. An id
+     carried onto any other heading would turn it back into a clause under the
+     reading it had BEFORE — which is how a page banner stamped under the old
+     reading (see _clBanners) would have pulled "Re-read document" straight
+     back to five clauses on a contract nobody had filed a change on. */
+  const isClause = el => !!el.getAttribute(attr);
   if (was.byHeading){
     const pool = new Map();
     for (const el of was.els){
@@ -904,11 +1001,12 @@ function clauseCarryIds(prevHtml, nextHtml){
       pool.get(k).push(id);
     }
     now.els.forEach((el, i) => {
+      if (!isClause(el)) return;
       const list = pool.get(key(el));
       const id = list && list.length ? list.shift() : null;
       if (id && take(id)) el.setAttribute(attr, id); else unmatched.push(i);
     });
-  } else now.els.forEach((_, i) => unmatched.push(i));
+  } else now.els.forEach((el, i) => { if (isClause(el)) unmatched.push(i); });
   for (const i of unmatched){
     const src = was.els[i];
     const id = src ? src.getAttribute(attr) : null;

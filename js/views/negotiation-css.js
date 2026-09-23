@@ -2154,6 +2154,23 @@ function redlineLayoutCss(){
   .redline-page .rl-recital{margin:0 0 var(--s-4)}
   .redline-page .rl-recital p{margin:0 0 var(--s-2);font-size:var(--rl-doc-type);line-height:1.75;
     color:var(--color-text)}
+  /* ---- A PAGE BANNER IS A SECTION TITLE, NOT A CLAUSE (Young ruled 23 Sep
+     2026, fix 2 of seven) ----
+     Drawn by rlSectionHtml above the clause it rides with, in the approved
+     drawing's clothes: small spaced capitals in the paper's muted ink over a
+     hairline — a place in the document, never a heading anybody edits. It
+     keeps the document's own heading tag, because the Word export writes it
+     as a heading and a returned file then reads the same banners again rather
+     than folding their words into the clause above. So the rule is written
+     twice: a document design's heading treatment scores (0,3,0) and would
+     otherwise dress the banner as one more clause heading. By SCOPE. Top
+     level, because the room's canvas draws it too. */
+  .rl-sect{margin:var(--s-6) 0 10px;padding:0 0 4px;border-bottom:1px solid var(--color-doc-rule)}
+  .rl-sect > :is(h1,h2,h3,h4,p),
+  [data-doc-body] :is(.doc-surface,.rl-paper) .rl-sect > :is(h1,h2,h3,h4,p){margin:0;padding:0;
+    font-family:var(--font-body);font-size:calc(11px * var(--doc-scale,1));font-weight:var(--w-strong);
+    letter-spacing:.12em;text-transform:uppercase;line-height:1.5;text-align:start;
+    color:var(--color-doc-muted)}
   /* ---- AND A SECOND INSET INSIDE THE FIRST ----
      .rl-clause is also .nego-clause, which carries padding:10px var(--s-3) for the
      room's hover wash. Stacked on the sheet's own padding that put every line

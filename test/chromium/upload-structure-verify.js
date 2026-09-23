@@ -417,6 +417,79 @@ const BODY =
       check('8 the Maersk-shaped upload ran', false, e.message);
     }
 
+    /* ---- 9. THE WAREHOUSING SHAPE: A PAGE BANNER IS NOT A CLAUSE
+       (Young ruled it 23 Sep 2026; f371 is the reading) ----
+       Unnumbered "PAGE 1 OF 2" lines set as Heading 2 over numbered clauses set
+       as Heading 3. At the parent the negotiate page drew the two banners as
+       two clauses, each holding a whole page. Measured on the PAINTED
+       negotiate page, because that is where the owner saw it. */
+    try {
+      const W9 = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
+      const R9 = t => `<w:r><w:t xml:space="preserve">${t}</w:t></w:r>`;
+      const S9 = (st, t) => `<w:p><w:pPr><w:pStyle w:val="${st}"/></w:pPr>${R9(t)}</w:p>`;
+      const P9 = t => `<w:p>${R9(t)}</w:p>`;
+      const H9 = n => `<w:style w:type="paragraph" w:styleId="Heading${n}"><w:name w:val="heading ${n}"/><w:pPr><w:outlineLvl w:val="${n - 1}"/></w:pPr></w:style>`;
+      const body9 = S9('Heading1', 'WAREHOUSING AGREEMENT')
+        + P9('This Agreement is made between Apex Logistics Limited and Savannah Consumer Goods Limited.')
+        + S9('Heading3', 'RECITALS:') + P9('WHEREAS the Logistics Provider stores and handles goods.')
+        + S9('Heading2', 'PAGE 1 OF 2: DEFINITIONS AND SCOPE')
+        + S9('Heading3', '1. DEFINITIONS') + P9('In this Agreement the words below have these meanings.')
+        + S9('Heading3', '2. SCOPE OF SERVICES') + P9('The Logistics Provider shall store the Goods at the Facility.')
+        + S9('Heading2', 'PAGE 2 OF 2: FEES AND LAW')
+        + S9('Heading3', '3. CHARGES AND PAYMENT') + P9('The Customer shall pay each invoice within thirty (30) days.')
+        + S9('Heading3', '4. GOVERNING LAW') + P9('This Agreement is governed by the laws of Kenya.');
+      const bytes9 = mkDocx(body9, { parts: [
+        { name: 'word/styles.xml', data: `<?xml version="1.0"?><w:styles ${W9}>${H9(1)}${H9(2)}${H9(3)}</w:styles>` },
+      ] });
+      const file9 = path.join(OUT, 'Warehousing_Shape.docx');
+      fs.writeFileSync(file9, Buffer.from(bytes9));
+      await page.evaluate(() => { try { closeModal(); } catch (_) {} });
+      await page.evaluate(() => openUploadModal());
+      await page.waitForTimeout(700);
+      const in9 = await page.$('#up-file');
+      await in9.setInputFiles(file9);
+      await page.waitForTimeout(4000);
+      await page.fill('#up-cp', 'Savannah Consumer Goods Limited').catch(() => {});
+      const go9 = await page.$('#up-go');
+      if (go9) await go9.click();
+      await page.waitForTimeout(3500);
+      const id9 = await page.evaluate(() => {
+        const c = state.contracts.find(x => x.source === 'upload' && (x.upload || {}).fileName === 'Warehousing_Shape.docx');
+        return c ? c.id : null;
+      });
+      if (id9){
+        await page.evaluate(i => openRedlineWorkbench(i), id9);
+        await page.waitForSelector('.redline-page .rl-doc', { timeout: 15000 }).catch(() => {});
+        await page.waitForTimeout(1500);
+      }
+      const paper = await page.evaluate(() => {
+        const doc = document.querySelector('.redline-page .rl-doc');
+        if (!doc) return null;
+        const clauses = Array.from(doc.querySelectorAll('section.rl-clause[data-clause]'));
+        const sects = Array.from(doc.querySelectorAll('.rl-sect'));
+        const shown = el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+        return {
+          clauses: clauses.length,
+          heads: clauses.map(s => (s.querySelector('.rl-clause-h') || {}).textContent || '').map(t => t.trim()),
+          sects: sects.filter(shown).map(s => s.textContent.trim()),
+          doorsInSect: sects.reduce((n, s) => n + s.querySelectorAll('button,[data-rl-cp-editor],[data-rl-cp-open],[data-clause]').length, 0),
+          pageAsClause: clauses.some(s => /PAGE \d OF/.test((s.querySelector('.rl-clause-h') || {}).textContent || '')),
+        };
+      });
+      check('9a the negotiate page draws the numbered clauses as the clauses — five, not three',
+        !!paper && paper.clauses === 5 && !paper.pageAsClause,
+        paper ? `${paper.clauses} clauses: ${paper.heads.join(' | ')}` : (id9 ? 'no paper' : 'the upload did not file'));
+      check('9b and each page banner is still on the paper, as a section title',
+        !!paper && paper.sects.length === 2 && /PAGE 1 OF 2/.test(paper.sects[0]) && /PAGE 2 OF 2/.test(paper.sects[1]),
+        paper ? JSON.stringify(paper.sects) : '—');
+      check('9c a section title is not a door — no pencil, no clause behind it',
+        !!paper && paper.sects.length === 2 && paper.doorsInSect === 0,
+        paper ? `${paper.doorsInSect} doors in the section titles` : '—');
+      await page.screenshot({ path: path.join(OUT, '09-warehousing-shape.png') });
+    } catch (e) {
+      check('9 the Warehousing-shaped upload ran', false, e.message);
+    }
+
     check('7 no page errors anywhere in the journey', errors.length === 0,
       errors.slice(0, 3).join(' | '));
   } catch (e) {

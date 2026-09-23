@@ -870,6 +870,22 @@ function rlClauseShape(cl){
   } catch (_){ return null; }
 }
 
+/* ---- A PAGE BANNER IS DRAWN AS A SECTION TITLE, NEVER AS A CLAUSE (Young
+   ruled 23 Sep 2026, fix 2 of seven) ----
+   Where a document sets unnumbered banners ("PAGE 1 OF 4: DEFINITIONS, SCOPE &
+   FACILITY") over its real numbered clauses, the clause model rides each
+   banner with the clause after it as `sectionHtml` (see _clBanners in
+   js/clausemodel.js). It is still the document's own words, so every paper
+   that draws the clause list draws it — in its own place, above that clause —
+   and nothing about it is a door: no pencil, no card, no data-clause, marked
+   chrome so a highlight never mistakes it for wording. ONE builder for the
+   three papers this file draws, so they cannot disagree about where a page
+   begins. Undefined on every other document, which draws exactly as before. */
+function rlSectionHtml(cl){
+  const html = cl && cl.sectionHtml;
+  return html ? `<div class="rl-sect" data-nego-chrome>${html}</div>` : '';
+}
+
 /* ---- WHOSE MARK, FROM THIS CHAIR (14 Sep 2026) ----
    'us' or 'them' relative to the READER, which is what the colours say. One
    reading for every paper this file draws and for the card's preview, so a
@@ -1213,7 +1229,7 @@ function negoDocHtml(c, opts){
   const _rvOnly = (typeof rlRvDocClauses === 'function') ? rlRvDocClauses(c, opts) : null;
   const _rvHidden = _rvOnly ? clauses.filter(cl => !_rvOnly.has(String(cl.clauseId))).length : 0;
   const body = clauses.filter(cl => !_rvOnly || _rvOnly.has(String(cl.clauseId))).map(cl => {
-    const own = clauseBlock(cl, byClause.get(cl.clauseId), prefix);
+    const own = rlSectionHtml(cl) + clauseBlock(cl, byClause.get(cl.clauseId), prefix);
     if (baseline) return own;
     const after = (insertsAfter.get(cl.clauseId) || []).map(insertBlock).join('');
     return own + after;
@@ -1942,7 +1958,7 @@ function negoCleanDocHtml(c, whichSide){
        screen at all, so there is nothing here that needs the flat projection —
        and a screen whose whole purpose is "read it as a contract" is the last
        place that should show a flattened one. */
-    return `<div class="nego-clause" id="${left ? 'nb' : 'nw'}-${negoDomId(cl.clauseId)}" data-clause="${_ne(cl.clauseId)}">
+    return `${rlSectionHtml(cl)}<div class="nego-clause" id="${left ? 'nb' : 'nw'}-${negoDomId(cl.clauseId)}" data-clause="${_ne(cl.clauseId)}">
       ${label ? `<h2 data-nego-chrome>${_ne(label)}</h2>` : ''}${negoRichBody(cl)}</div>`;
   }).join('');
   return `<article class="nego-doc">
@@ -12518,7 +12534,7 @@ function redlineDocHtml(c, opts = {}){
      reviewer who has pressed the control below. */
   const _rvOnly = rlRvDocClauses(c, opts);
   const _rvHidden = _rvOnly ? clauses.filter(cl => !_rvOnly.has(String(cl.clauseId))).length : 0;
-  const body = clauses.filter(cl => !_rvOnly || _rvOnly.has(String(cl.clauseId))).map(cl => {
+  const drawClause = cl => {
     const after = (insertsAfter.get(cl.clauseId) || []).map(insertBlock).join('');
     const chs = byClause.get(cl.clauseId) || [];
     /* The one clause whose wording is being typed right now — see the note on
@@ -12657,7 +12673,9 @@ function redlineDocHtml(c, opts = {}){
       ${richBody(cl)}
       ${cpPush(cl, chs)}
     </section>${after}`;
-  }).join('') + orphanInserts.map(insertBlock).join('');
+  };
+  const body = clauses.filter(cl => !_rvOnly || _rvOnly.has(String(cl.clauseId)))
+    .map(cl => rlSectionHtml(cl) + drawClause(cl)).join('') + orphanInserts.map(insertBlock).join('');
   /* ---- THE DOCUMENT'S OWN FRONT MATTER, NOT A LABEL ABOUT IT ----
      The Doc page opens with the contract's kicker line, its own title and the
      recital naming the parties and the key terms; the clause model calls all
