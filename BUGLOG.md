@@ -18942,3 +18942,13 @@ Noticed, not fixed
 ## 23 Sep 2026 — the drafting screen's "Upload it" link removed
 
 On the owner's word. Its lead "Received a contract instead?" went with it (it named the upload, and would have sat in front of Import, a different job). Import contracts stays. f345, f360, new-agreement-verify 1f and draft-from-a-sentence-verify 1e reversed in place; all green.
+
+## 23 Sep 2026 — the no-paper pop-up merged with main's two doors
+
+- Main had put two doors in front of the New agreement pop-up (Draft from HaTi / Upload a contract) and taken "Upload it" off the row under the template list. Both kept. That row is one of the parts the list's height cap is made of: it was 51px (two lines) and is 28px now (Import alone, one line in both books). Measured again at 1100, 1280, 1440, 1920 and both iPad sizes, Copilot on and off: 88vh − 373 → 88vh − 350. The note beside the rule, f368 and the rulebook say so; the Import row is on screen on a fresh open at every size.
+- new-agreement-verify: two direct opens passed no options and would have met the two doors; they pass {} like main's own. Three "Upload row" labels say "Import row".
+- Checked: lint 0 errors; the pop-up's unit tests 276/276; new-agreement-verify 42/42; draft-from-a-sentence-verify, long-contract-verify 14/14, form-and-picker-verify 24/24; full suite 8,882 tests, 2 failed — f277 (1) and (10), identical on untouched main.
+
+Noticed, not fixed
+- The note above openNewAgreement in js/wizard.js still calls upload and import "the quiet pair at the foot of the left pane (Upload also sits beside New agreement on Contracts)" — stale since main's two doors. A comment, not code; the rulebook's copy of the sentence was updated.
+- term-and-fields-verify (5 checks) and paper-beside-questions-verify 7c/7g fail identically on untouched main (already logged).
