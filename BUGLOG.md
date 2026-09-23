@@ -18952,3 +18952,11 @@ On the owner's word. Its lead "Received a contract instead?" went with it (it na
 Noticed, not fixed
 - The note above openNewAgreement in js/wizard.js still calls upload and import "the quiet pair at the foot of the left pane (Upload also sits beside New agreement on Contracts)" — stale since main's two doors. A comment, not code; the rulebook's copy of the sentence was updated.
 - term-and-fields-verify (5 checks) and paper-beside-questions-verify 7c/7g fail identically on untouched main (already logged).
+
+## 23 Sep 2026 — renders of the three screens that still show the agreement preview
+
+No code changed. The owner asked where the agreement preview still shows. Driven in a real browser at 1366 × 1024: three screens, all opened from the Templates page's Templates tab, a row's "Draft a contract" — the company-standard screen (openContractEssentials), the saved-template fill screen (openTemplateFillModal) and HaTi's questions screen (openWizard(tid)). Yesterday's answer said two; the company-standard screen was missed.
+
+Noticed, not fixed
+- HaTi's questions screen: the back link reads "← templates", hardcoded English and lower case, in both languages.
+- The same list is "Counterparty paper" on the Templates table and "Saved templates" in the New agreement pop-up — two names for one thing.
