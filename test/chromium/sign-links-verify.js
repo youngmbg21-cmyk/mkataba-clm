@@ -339,6 +339,14 @@ const ROUTE = [
          real blocker and correctly on the list. Cleared here so the last claim
          is about the EMPTY list rather than about approvals. */
       state.settings = { ...(state.settings || {}), approvalRules: [] };
+      /* RE-POINTED 23 Sep 2026 (signing without the facts): an EMPTY BOX in
+         HaTi's own paper holds a signature now (the `blanks` row), and this
+         fixture's template boxes were never filled — a real blocker, correctly
+         on the list. Filled here through the product's own writer, and BEFORE
+         the check below is stamped against the wording (the boxes are part of
+         it), so the last claim stays about the EMPTY list. */
+      (window.contractBoxesOpen ? contractBoxesOpen(c) : []).forEach(b =>
+        contractBlankSet(c, b.key, b.type === 'date' ? '2026-10-01' : 'Stated', { quiet: true, hold: true }));
       /* Since 13 Sep 2026 an UNRUN check holds under the default gate (the
          owner: signing before the check ran was "nonsensical"). This claim
          is about the EMPTY list, so the check is stamped as run against this

@@ -65,6 +65,16 @@ const check = (name, pass, detail) => {
       /* Guarded so this file still RUNS against a build without the writer —
          a bench that throws proves nothing about the checks under it. */
       if (window.briefMarkRead) briefMarkRead(c);
+      /* AND ITS BOXES ARE FILLED (23 Sep 2026, signing without the facts). An
+         empty box in HaTi's own paper holds a signature now, and this
+         fixture's template boxes were never filled — so, for the brief's own
+         reason above, every count here would be one higher and counting a row
+         this file is not about. Filled through the product's own writer, and
+         BEFORE the wording is hashed below, because the boxes are part of the
+         wording. signing-without-the-facts-verify is where that row is
+         measured. Guarded for the same reason as the brief. */
+      if (window.contractBoxesOpen && window.contractBlankSet) contractBoxesOpen(c).forEach(b =>
+        contractBlankSet(c, b.key, b.type === 'date' ? '2026-10-01' : 'Stated', { quiet: true, hold: true }));
       const hash = playbookHashOf(playbookText(c));
       c.playbook = { label: 'Default', wordingHash: hash, verdicts: [
         { category: 'Governing law', status: 'deviation', escalate: true, position: 'Kenyan law', quote: '' },

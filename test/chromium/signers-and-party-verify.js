@@ -51,7 +51,13 @@ const contract = () => ({
   id: 'MK-SP1', name: 'Component Supply — Juno', counterparty: 'Juno Limited',
   counterpartyEmail: 'juno@example.co.ke', folder: 'proc', value: 4800000,
   valueType: 'estimated', status: 'Under Review', template: 'RM',
-  fields: { effDate: '2026-08-01' }, metadata: {}, audit: [], rounds: [], versions: [],
+  /* RE-POINTED 23 Sep 2026 (signing without the facts): the RM paper's other
+     core box, `material`, is filled too. An empty box in HaTi's own paper is
+     a readiness BLOCK now, so left empty the Send screen asks its tick before
+     anything else and this file — which is about WHO SIGNS — would be
+     measuring that tick instead. The start date was filled here for the same
+     kind of reason before. */
+  fields: { effDate: '2026-08-01', material: 'Machined components' }, metadata: {}, audit: [], rounds: [], versions: [],
   signatures: [], comments: [], changes: [], obligations: [], scan: null,
 });
 
