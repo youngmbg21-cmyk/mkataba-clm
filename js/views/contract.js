@@ -10253,8 +10253,10 @@ function docReadSheet(c){
       if(wordy){
         text=own;
         heading=_docReadWords(own);
+        /* Where the paper gives no bold title, the heading it drew stays the
+           name — the owner's D-1 ruling: the paper's own heading is drawn. */
         const b=_docReadBoldLead(row.el)||_docReadBoldLeadLoose(row.el);
-        ownHead=b?_docReadName(_docReadHeadCut(b).rest||b):'';
+        if(b) ownHead=_docReadName(_docReadHeadCut(b).rest||b);
       }
     }
     /* `cite` IS THE NUMBER TO SHOW, AND IT IS NOT `num` — DELIBERATELY.
