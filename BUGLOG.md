@@ -18836,3 +18836,45 @@ Noticed, not fixed
 - f277 (1) and f277 (10) still red at origin/main (already logged). Left red.
 - upload-structure-verify 2a/2b red at origin/main too (the title counted as a fifth heading). Left red.
 - Some list items in the Maersk file (e.g. "Disputed invoices", "No suspension") arrive with no clause number; not checked whether Word numbers them. Not touched.
+
+## 23 Sep 2026 — signing without the facts: the three quick fixes
+
+Off a review of what a contract could be signed without (the owner's screenshot of the Overview's deal card, half its cells dashed). The owner took the recommended answers to the four questions, said "Go ahead but start from the latest main" on the three quick fixes only, then "Merge to main". Built from origin/main at 5eb1c3b.
+
+WHAT THE REVIEW MEASURED (no code changed for it)
+- Only three things about a contract's content held the Sign button: the counterparty, the value where money passes, and bracket/brace placeholders in wording we drafted. The effective date and the expiry were 'warn' rows, which the list before signing never takes.
+- A company-standard contract whose value box was left empty (or "Skip for now") was stamped valueType 'none' on the server and read as non-monetary for life. Reproduced on a real server.
+- An empty box in HaTi's own templates was sealed as "—" and nothing on the way asked about it.
+- An effective date Copilot read, and a person confirmed on the upload screen, never reached the Effective field.
+
+BUILT
+1. A value left empty is no longer stamped "no money passes": the company-standard route writes 'estimated' for a typed value, 'none' only for a standard filed under the NDA category, nothing otherwise; the mailroom writes nothing.
+2. metaEffDateOnto copies a reading's effective date onto c.fields.effDate — fill only, an ISO day or nothing — at four doors (the upload's confirm, the import queue's confirm with overwrite, the import re-read, Fill from document).
+3. An empty box in HaTi's own paper is a readiness block (`blanks`): the Send screen asks its tick, the Sign button holds, the row names the boxes (three, then "and N more") and carries a door chosen at the draw (the fill panel on a Draft; the Overview's start date past Draft; else the negotiation). The Overview marks the start date when it is the box holding the signature. The old "No effective date" warning stands down when the start date box is already named.
+
+LEFT ALONE ON PURPOSE (said to the owner)
+- The bulk importer still stamps 'none' on a no-value import: its review gate reads 'none' as "value not needed", and most imports are already signed.
+- Records already stamped 'none' are NOT rewritten: a deliberate tick leaves only an audit line, which the light list strips, so a repair could not tell the two apart. Put to the owner.
+- The importer's own build does not copy the effective date: an import executed elsewhere is sealed on arrival, and an unconfirmed reading would be frozen for good.
+
+NOT BUILT — the rest of the reviewed plan, waiting on the owner's go
+- The required-to-sign list (contract type, effective/expiry or an honest answer, renewal, notice where it renews by itself, payment terms and category where money passes, governing law), Copilot pre-fill per missing field, "Not in this contract" / "On signature" / "No end date", a reason when ticking "Non-monetary", blanks in an uploaded document at signing, the same rule on the server, a named signer for every party that signs.
+
+THE BROWSER SET, COMPARED FILE BY FILE
+- 45 of 136 red on the first full run. Every red file (bar the three on KNOWN_RED) was run again beside a worktree at unmodified main and its failure NAMES compared. Four were this change's own and all four were FIXTURES: each drafted from a built-in template and never filled its boxes, so it now carries the `blanks` hold. sign-links-verify and signing-flow-verify fill the boxes in their staging (before the wording is hashed); signers-and-party-verify's MK-SP1 fills `material`; nda-carries-no-money-verify asks its heading count as the relation. Each re-run green (signers-and-party keeps the one failure it has at main).
+- After: 42 of 136 red — 39 failing identically at main, 3 on KNOWN_RED.
+- Node suite: 8,857 tests, 2 failed — f277 (1) and f277 (10), red at main too (already logged). Lint 0 errors, 213 warnings, identical to main.
+
+Noticed, not fixed
+- The Document tab keeps its canvas from the last full paint: a term typed on the Overview reaches a built-in contract's paper on the next paint of the room, not on a tab switch. Proved at unmodified main.
+- The import queue's confirm on an import executed elsewhere is refused by the server (409, metadata cannot change after signature), so that review can never be confirmed. Proved at unmodified main.
+- signBlockMessage's closing sentence still says "Key terms"; the tab is called Overview.
+- On a built-in template the wording is drawn from the fields, and the fields freeze only at execution, not at the first signature — a term typed on the Overview after one party has signed changes the paper the next signer sees. Read in the code, not driven.
+- Approval rules "by contract type" read cKind, which answers "External Document" for every upload, so a type-based rule never fires on an uploaded contract.
+- A contract with no owner skips the "Overseen by" approval step.
+- On a multi-party contract, a party marked "signs" needs no named signer: signingRouteOpen asks only for one signer on each SIDE.
+- The signing list maps a 'docs' row kind that nothing produces; "Documents they must hold" is never asked before signing.
+- The check before signing counts obligations with no date or no owner and never shows the count.
+- The phone's share sheet shows no readiness list.
+- The server does not refuse a signature for a missing field; the other side's signature can complete a contract without any of this being asked again.
+- Once a negotiation has stored the wording, an empty template box is a dash in the text and is no longer counted (a limit of this build, said to the owner).
