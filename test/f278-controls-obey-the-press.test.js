@@ -46,11 +46,16 @@ test('f278 (1) the fact row has no second opinion about folding', () => {
   /* AND NO SCROLL LISTENER READS THE FACT ROW. The one other scroll listener
      in this file is the plain-English column's own sync, which keeps two
      columns in step and folds nothing. */
+  /* RE-POINTED 23 Sep 2026: the X-ray map follows the paper (docXrayFollow),
+     which is a second listener that folds nothing either. Both are named, so
+     a third — the snap coming back — still fails here. */
   const scrollers = CODE.match(/addEventListener\('scroll'/g) || [];
-  assert.equal(scrollers.length, 1,
-    'one scroll listener left in this file, and it is docReadSync');
+  assert.equal(scrollers.length, 2,
+    'two scroll listeners in this file: docReadSync and the X-ray map\'s follow');
   assert.ok(/sc\.addEventListener\('scroll',docReadSync/.test(CODE),
-    'the survivor is the plain-English sync, by name');
+    'the plain-English sync, by name');
+  assert.ok(/raf=requestAnimationFrame\(\(\)=>\{ raf=0; docXrayFollow\(\); \}\)/.test(CODE),
+    'and the map\'s follow, which moves the map and never the head');
 });
 
 /* ---------------------------------------------------------------- 2 */

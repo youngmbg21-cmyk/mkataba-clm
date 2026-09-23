@@ -87,7 +87,9 @@ const MARK = cid => {
     await pause(1000);
 
     /* ═══ 1 · THE NEW AGREEMENT CARDS ═══ */
-    await page.click('[data-page-new]'); await pause(900);
+    await page.click('[data-page-new]'); await pause(500);
+    /* 23 Sep 2026: the button opens two doors first (openNewDoors); this presses Draft from HaTi. */
+    await page.click('[data-nd-door="draft"]').catch(() => {}); await pause(900);
     /* RE-POINTED IN PLACE 22 Sep 2026 — Young chose proposal C, the cards
        became a rail of rows, and there is no grid left to stretch one row to
        another's height. The reasoning that produced these claims is kept in

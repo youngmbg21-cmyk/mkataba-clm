@@ -222,7 +222,7 @@ describe('f368 (5) the stylesheet', () => {
   test('the list\'s cap is 88vh less the stated sum', () => {
     const m = rule('.na-picks').match(/max-height:max\(140px, calc\(88vh - (\d+)px\)\)/);
     assert.ok(m, 'a floor and a derivation, never a picked number');
-    assert.equal(Number(m[1]), 373, 'the sum re-derived when the ask left the rail');
+    assert.equal(Number(m[1]), 350, 'the sum re-derived when the ask left the rail, and again when the Upload link left the row under the list');
   });
   test('and the arithmetic the note states adds up to the number the rule uses', () => {
     /* Was: "162 is the list's own 396 without the rail's 234". The note beside

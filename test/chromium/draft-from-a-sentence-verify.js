@@ -88,6 +88,9 @@ async function press(page, sel, what){
   await page.evaluate(() => window.setView('register'));
   await page.waitForTimeout(900);
   await page.evaluate(() => window.openNewMenu(document.querySelector('[data-page-new]')));
+  await page.waitForTimeout(500);
+  /* 23 Sep 2026: the button opens two doors first (openNewDoors); this presses Draft from HaTi. */
+  await page.click('[data-nd-door="draft"]').catch(() => {});
   await page.waitForTimeout(700);
 
   const menu = await page.evaluate(() => {
@@ -102,7 +105,8 @@ async function press(page, sel, what){
   check(menu.pick && menu.doors >= 4, '1b the template picker is ON the screen — the first thing a reader meets', `${menu.doors} doors`);
   check(menu.say, '1c the sentence box reads beside it');
   check(await visible(page, '#dr-say'), '1d and it is visible pixels, not markup behind something');
-  check(menu.upload && menu.imp, '1e upload and import keep their doors on the same screen');
+  /* REVERSED 23 Sep 2026 (Young: "remove the Upload it link") — upload is a door in front of this screen (openNewDoors). */
+  check(!menu.upload && menu.imp, '1e import keeps its door on the same screen; upload is the door in front of it');
   await page.screenshot({ path: path.join(OUT, 'menu.png') });
 
   /* ============ 2. THE SENTENCE BOX ============ */

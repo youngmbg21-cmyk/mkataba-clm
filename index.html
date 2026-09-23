@@ -5228,12 +5228,17 @@
      the sheet beside it does not move by a pixel. It is only mounted where
      that grey is wide enough to hold it — see docXrayPaint. */
   .doc-xr-spine{position:absolute;left:0;top:0;bottom:0;z-index:2;
-    display:flex;flex-direction:column;gap:2px;padding:6px 4px;
-    background:var(--color-neutral-100);border-right:1px solid var(--color-divider);}
+    display:flex;flex-direction:column;gap:4px;padding:6px 4px;
+    background:var(--color-neutral-100);border-right:1px solid var(--color-divider);
+    /* THE MAP SCROLLS ON ITS OWN (23 Sep 2026) — every block keeps a height it
+       can be pressed at; the scrollbar is hidden because the strip is 28px and
+       the wheel and a drag both move it. */
+    overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;}
+  .doc-xr-spine::-webkit-scrollbar{display:none;}
   /* MEASURED on a real page: neutral-300 on the spine's neutral-100 ground is
      1.1:1 and the map read as an empty strip. The gray DOT token is what this
      product already uses for "present but quiet". */
-  .doc-xr-seg{position:relative;min-height:9px;padding:0;border:0;border-radius:2px;
+  .doc-xr-seg{position:relative;flex:none;min-height:9px;padding:0;border:0;border-radius:2px;
     background:var(--st-gray-dot);cursor:pointer;display:grid;place-items:center;}
   /* THREE GRADES, NEVER FOUR (Young ruled 22 Sep 2026). Ruby is "this could
      hurt you", amber "worth a look before you sign", steel "worth knowing,
@@ -5247,6 +5252,11 @@
   .doc-xr-seg.is-on{outline:2px solid var(--accent-ink);outline-offset:1px;}
   .doc-xr-seg:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:2px;}
   .doc-xr-dot{display:none;}
+  /* WHERE THE READER IS ON THE PAPER: a short accent rule beside the block of
+     the clause at the top of the sheet, which the map follows as the paper
+     scrolls. The picked clause keeps its own outline. */
+  .doc-xr-seg.is-here::before{content:'';position:absolute;left:-4px;top:2px;bottom:2px;
+    width:2px;border-radius:1px;background:var(--accent-ink);}
   /* The panel wears the reading column's own clothes: one card, its own
      scroller, the cards beneath it covered rather than rebuilt. */
   .doc-xr-panel{flex:1 1 auto;min-height:0;overflow-y:auto;padding-right:2px;
@@ -6186,8 +6196,8 @@
     background:var(--color-bg); }
   .na-left{ display:flex; flex-direction:column; gap:12px; min-width:0; }
   /* THE LIST SCROLLS INSIDE THE RAIL, so a workspace with forty standards on
-     the shelf does not drive the height of the whole pop-up and push the two
-     doors at the foot of the rail below the fold.
+     the shelf does not drive the height of the whole pop-up and push the
+     door at the foot of the rail below the fold.
 
      THE CAP IS DERIVED, NOT PICKED, and every part of it was MEASURED in a
      real browser rather than estimated. RE-DERIVED 23 Sep 2026, when the ask
@@ -6197,17 +6207,20 @@
        the frame's edge 2 (the ceiling is 88vh; .na-root takes 88vh less 2)
      + the head 69 (68.6) + the foot 55 + the body's own padding 36
      + the ask across the top 126 (125.6) + the body's row gap under it 20
-     + the rail's gap 12 + the Upload row 51 (50.6, two lines at 260px)
-       and its margin 2                                        = 373.
-     The same at 1100, 1280 and 1440 (the frame is one width now), in English
-     and in Swedish, with Copilot connected and without — the hint under the
-     ask is a different sentence in each and all of them are one line there.
+     + the rail's gap 12 + the Import row 28 (27.8, one line at 260px)
+       and its margin 2                                        = 350.
+     The same at 1100, 1280, 1440 and 1920, and at both iPad sizes (the frame
+     is one width now), in English and in Swedish, with Copilot connected and
+     without — the hint under the ask is a different sentence in each and all
+     of them are one line there. RE-DERIVED AGAIN the same day, when the
+     "Upload it" link left the row under the list (upload is a door in front
+     of this screen now): that row was 51 (two lines) and is Import alone.
      What is left is what the list may take, so on a fresh open the rail fits
      and nothing at its foot is below the fold. A floor keeps it usable on a
      very short window, where the body scrolls as it always has rather than
      the list vanishing; and once the reader TYPES, the ask grows and the body
      scrolls, which is right — that is their own doing. */
-  .na-picks{ min-height:0; overflow:auto; max-height:max(140px, calc(88vh - 373px)); }
+  .na-picks{ min-height:0; overflow:auto; max-height:max(140px, calc(88vh - 350px)); }
   /* The list's end is a hairline, not a half-row trailing into the footer:
      ordinary furniture parting a list from the row under it. */
   .na-rail .na-more{ border-top:1px solid var(--color-divider); padding-top:10px; margin-top:2px; }

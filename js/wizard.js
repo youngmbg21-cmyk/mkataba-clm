@@ -696,7 +696,46 @@ function naCardTitle(r){
     /* the sentence the face carries, and the raw one where it was refused */
     shown, (sub && sub !== shown) ? sub : ''].filter(Boolean).join('\n');
 }
+/* ---- TWO DOORS BEHIND ONE BUTTON (Young ruled 23 Sep 2026: "i need upload
+   to be inside draft new agreement. When you click on draft new agreement you
+   should have a door to drafting from contracts in hati or door to uploading")
+   ----
+   The Contracts page carried a separate Upload button beside Draft new
+   agreement; upload also sat as a quiet link at the foot of the drafting
+   screen, where it was easy to miss. A PERSON pressing the button — called
+   with no options — now meets the two doors first. Every caller that already
+   knows it is drafting (a picked template, a sentence, a prefill, the wizard's
+   way back) passes options and goes straight to the drafting screen, so no
+   internal path grows a question.
+   ONE ACT EACH, NEVER A SECOND ONE: the drafting door is this function, the
+   upload door is openUploadModal — the one dialog every upload already uses. */
+function openNewDoors(){
+  if(typeof canEdit==='function' && !canEdit()){ toast(i18t('wz_viewers_no_create'),'err'); return; }
+  const esc=x=>String(x==null?'':x).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+  const ic=(n)=>(typeof icon==='function')?icon(n,'w-4 h-4'):'';
+  const door=(k,ico,t,d)=>`<button type="button" class="tn-tile" data-nd-door="${k}"
+      style="display:flex;flex-direction:column;gap:10px;width:100%;text-align:left;padding:16px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;color:var(--color-text);cursor:pointer">
+      <span style="width:32px;height:32px;border-radius:var(--radius);display:grid;place-items:center;background:var(--st-steel-bg);color:var(--st-steel-fg)">${ic(ico)}</span>
+      <span style="display:block;font-size:var(--t-card);font-weight:var(--w-title)">${esc(t)}</span>
+      <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5">${esc(d)}</span></button>`;
+  openModal(`<div style="padding:24px">
+      <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;color:var(--color-text);margin:0 0 14px">${esc(i18t('na_doors_title'))}</h3>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+        ${door('draft','file',i18t('na_door_draft'),i18t('na_door_draft_sub'))}
+        ${door('upload','upload',i18t('na_door_upload'),i18t('na_door_upload_sub'))}
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:16px">
+        <button type="button" class="ui-btn" data-nd-door="cancel">${esc(i18t('act_cancel'))}</button></div>
+    </div>`, { maxWidth: (typeof DLG_W!=='undefined'&&DLG_W.m)||520 });
+  document.querySelectorAll('[data-nd-door]').forEach(b=>b.addEventListener('click',()=>{
+    const k=b.getAttribute('data-nd-door');
+    closeModal();
+    if(k==='draft') openNewAgreement({ door:true });
+    else if(k==='upload'){ if(typeof openUploadModal==='function') openUploadModal(); }
+  }));
+}
 function openNewAgreement(o){
+  if(o===undefined) return openNewDoors();
   o=o||{};
   if(typeof canEdit==='function' && !canEdit()){ toast(i18t('wz_viewers_no_create'),'err'); return; }
   const esc=x=>String(x==null?'':x).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
@@ -804,11 +843,12 @@ function openNewAgreement(o){
                own ceiling (88vh) and opening the people panel pushed the body
                into scrolling at every window height tried. */}
         <div id="na-lists" class="na-picks">${listsHtml('')}</div>
-        ${''/* THE OTHER TWO WAYS IN, kept: a received document is not drafted
-               from a template, and neither is a back-catalogue. */}
-        <div class="na-more"><span>${i18t('na_received')}</span>
-          <button type="button" id="na-upload" class="ui-btn-plain">${i18t('na_upload')}</button>
-          <span aria-hidden="true">·</span>
+        ${''/* THE BACK-CATALOGUE'S WAY IN, kept. "Upload it" and its lead
+               "Received a contract instead?" are GONE (Young ruled 23 Sep 2026:
+               "remove the Upload it link") — upload is its own door in front of
+               this screen now (openNewDoors), and a second way to one dialog is
+               two doors. na_upload / na_received are inert in both books. */}
+        <div class="na-more">
           <button type="button" id="na-import" class="ui-btn-plain">${i18t('na_import')}</button></div>
       </div>
       ${naCard}
@@ -929,7 +969,6 @@ function openNewAgreement(o){
     _naClaimed=true; fn(); };
   document.getElementById('na-create')?.addEventListener('click', goCreate(()=>api.create()));
   document.getElementById('na-skip')?.addEventListener('click', goCreate(()=>api.skip()));
-  document.getElementById('na-upload')?.addEventListener('click', ()=>{ closeModal(); if(typeof openUploadModal==='function') openUploadModal(); });
   document.getElementById('na-import')?.addEventListener('click', ()=>{ closeModal(); if(typeof setView==='function') setView('migration'); });
   const say=document.getElementById('dr-say'), read=document.getElementById('dr-read');
   let _t=null;
@@ -964,4 +1003,4 @@ function naPickFromDraft(pick, prefill){
   return true;
 }
 
-Object.assign(window,{TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,NA_RAIL_W,NA_FRAME_NARROW_W});
+Object.assign(window,{openNewDoors,TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,NA_RAIL_W,NA_FRAME_NARROW_W});

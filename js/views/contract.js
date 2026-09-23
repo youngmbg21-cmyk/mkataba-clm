@@ -2013,6 +2013,10 @@ function triageAndPaint(c, opts){
 }
 /* Fold confirmed metadata back into the contract's own fields + a metadata block. */
 function applyMetadata(c, m){
+  /* THE ANSWER IS CHECKED BEFORE IT IS FILED (23 Sep 2026) — the server's own
+     reading, asked again here because a heuristic pass and an older server
+     both reach this door. */
+  try{ if(typeof window.metaUnleak==='function') m=window.metaUnleak(m).meta; }catch(_){}
   c.metadata = m;
   if(m.counterparty && !c.counterparty) c.counterparty=m.counterparty;
   if(m.value && !(Number(c.value)>0)){ c.value=Number(m.value)||0; if(c.valueType==='none') c.valueType='estimated'; }
@@ -9916,7 +9920,10 @@ const docReadItems=c=>{
    clauses could not be matched, and the press that asks again. The switch and
    the painter both ask it, so the lit half and the layer cannot disagree. */
 const docReadUnmatched=c=>Number((c&&c._readings&&c._readings.partial&&c._readings.unmatched)||0);
-const docReadHeld=c=>docReadItems(c).length>0||docReadUnmatched(c)>0;
+/* An edition that could not finish (pages left unread) is held too, so its
+   head can say how many clauses and carry Read again (23 Sep 2026). */
+const docReadHeld=c=>docReadItems(c).length>0||docReadUnmatched(c)>0
+  ||Number((c&&c._readings&&c._readings.over)||0)>0;
 /* WHAT COUNTS AS A CLAUSE HERE IS WHAT IS PAINTED ON THE SHEET, and that is
    the safety of the whole pairing rather than a shortcut.
 
@@ -11261,7 +11268,12 @@ async function docReadRun(c,opts){
     /* A PARTIAL ANSWER STILL LANDS, even with nothing paired in it: the column
        has to be able to say how many clauses could not be matched, and it can
        only say that off a reading it holds. */
-    if(r&&r.readings&&Array.isArray(r.readings.items)&&(r.readings.items.length||r.readings.partial)){
+    /* …AND SO DOES ONE THAT COULD NOT FINISH (23 Sep 2026): an edition whose
+       pages were cut short or left unread is a fact about the reading, and the
+       column's head says how many clauses and offers Read again. Telling the
+       reader "Copilot found nothing to say" there was untrue. */
+    if(r&&r.readings&&Array.isArray(r.readings.items)&&(r.readings.items.length||r.readings.partial
+        ||Number(r.readings.over)>0||r.readings.truncated)){
       c._readings=r.readings;
       /* STAMPED ONLY ON A READING THAT ARRIVED, and stamped with the signature
          of the walk that was SENT — taken before the await, because the paper
@@ -11481,10 +11493,22 @@ function docXrayRows(c){
 const docXrayLabel = x => ((x.cite?x.cite+(x.sep||(/\./.test(x.cite)?'':'.'))+' ':'')+(x.name||i18t('xr_unnamed'))).trim();
 
 /* ---------- the map ---------- */
+/* ---- THE MAP SCROLLS, SO EVERY BLOCK CAN BE PRESSED (Young asked 23 Sep
+   2026: "make the scale scrollable so that the DNA strands are not too tiny
+   to click on") ----
+   On a 200-clause contract the map squeezed every clause into the height of
+   the screen and each block was a few pixels tall. A block now has a floor it
+   can be pressed at, XR_SEG_MIN, and grows with its clause's words up to
+   XR_SEG_MAX — a relation to the words, never a share of the screen — and the
+   map scrolls on its own. It FOLLOWS the paper (docXrayFollow): the clause at
+   the top of the sheet is marked on the map and kept in view. */
+const XR_SEG_MIN = 16, XR_SEG_MAX = 44, XR_SEG_WORDS = 400;
+const docXraySegH = words => Math.round(XR_SEG_MIN
+  + (XR_SEG_MAX - XR_SEG_MIN) * Math.min(1, Math.sqrt(Math.max(0, words) / XR_SEG_WORDS)));
 function docXraySpineHtml(rows){
   return rows.map(x=>`<button type="button" class="doc-xr-seg${x.tone?' is-'+x.tone:''}${
       x.i===_docXrayPick?' is-on':''}" data-xr-seg="${x.i}"
-      style="flex:${Math.max(1,x.words)} 1 0" aria-pressed="${x.i===_docXrayPick?'true':'false'}"
+      style="height:${docXraySegH(x.words)}px" aria-pressed="${x.i===_docXrayPick?'true':'false'}"
       title="${esc(docXrayLabel(x)+' · '+i18tn('xr_words',x.words,{n:x.words}))}"
       aria-label="${esc(docXrayLabel(x))}"><span class="doc-xr-dot"></span></button>`).join('');
 }
@@ -11551,7 +11575,8 @@ function docXrayPaint(c){
   const on=docXrayOn()&&_wsTab==='docs';
   layer.hidden=!on;
   const spineOld=document.getElementById('doc-xr-spine');
-  if(!on){ if(spineOld) spineOld.remove(); layer.innerHTML=''; return; }
+  const keepTop=spineOld?spineOld.scrollTop:0;
+  if(!on){ if(spineOld) spineOld.remove(); layer.innerHTML=''; _xrRowEls=[]; return; }
   const right=document.getElementById('doc-right');
   if(right) right.style.visibility='hidden';
   const rows=docXrayRows(c);
@@ -11573,6 +11598,35 @@ function docXrayPaint(c){
   sp.setAttribute('aria-label',i18t('xr_spine_label'));
   sp.innerHTML=docXraySpineHtml(rows);
   sec.appendChild(sp);
+  /* A REPAINT KEEPS THE MAP WHERE THE READER LEFT IT, then follows the paper. */
+  if(keepTop) sp.scrollTop=keepTop;
+  _xrRowEls=rows.map(x=>x.el);
+  docXrayFollow();
+  const scroller=document.getElementById('doc-scroll');
+  if(scroller&&!scroller.dataset.xrFollowBound){
+    scroller.dataset.xrFollowBound='1';
+    let raf=0;
+    scroller.addEventListener('scroll',()=>{ if(raf) return;
+      raf=requestAnimationFrame(()=>{ raf=0; docXrayFollow(); }); },{passive:true});
+  }
+}
+/* WHICH CLAUSE IS AT THE TOP OF THE SHEET, marked on the map and kept in view.
+   It moves the MAP only, never the paper, and never takes focus. */
+let _xrRowEls=[];
+function docXrayFollow(){
+  const sp=document.getElementById('doc-xr-spine');
+  const scroller=document.getElementById('doc-scroll');
+  if(!sp||!scroller||!_xrRowEls.length) return;
+  const top=scroller.getBoundingClientRect().top+24;
+  let here=0;
+  _xrRowEls.forEach((el,i)=>{ try{ if(el&&el.getBoundingClientRect().top<=top) here=i; }catch(_){} });
+  sp.querySelectorAll('.doc-xr-seg.is-here').forEach(b=>b.classList.remove('is-here'));
+  const seg=sp.querySelector(`[data-xr-seg="${here}"]`);
+  if(!seg) return;
+  seg.classList.add('is-here');
+  const a=seg.offsetTop, b=a+seg.offsetHeight;
+  if(a<sp.scrollTop+8) sp.scrollTop=Math.max(0,a-8);
+  else if(b>sp.scrollTop+sp.clientHeight-8) sp.scrollTop=b-sp.clientHeight+8;
 }
 /* ONE PRESS, ONE ACT: pick a clause, repaint the panel, land on the clause.
    Delegated on the two hosts that draw it, armed once per element, because
@@ -14570,7 +14624,7 @@ Object.assign(window,{paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,
   DOC_VIEW_MODES,docViewMode,docViewSet,docXrayOn,DOC_XRAY_SPINE_W,DOC_XRAY_SPINE_GAP,
   DOC_XRAY_QUOTE_MIN,docXrayPlace,docXrayMarks,docXrayTone,docXrayClauseId,docXrayRows,
   XR_GRADES,XR_SEV_GRADE,docXrayBriefWatch,docXrayBriefOdd,docXrayRowText,docXrayWide,docXrayMarkHtml,
-  docXrayLabel,docXraySpineHtml,docXrayPanelHtml,docXrayPaint,docXrayWire,
+  docXrayLabel,docXraySpineHtml,docXraySegH,XR_SEG_MIN,XR_SEG_MAX,docXrayFollow,docXrayPanelHtml,docXrayPaint,docXrayWire,
   docReadSheet,docReadClauses,docReadSig,docReadAnchors,docReadSwitchHtml,docReadPaint,docReadSync,
   docReadFront,docReadMirrorStyle,docReadMirrorToc,
   docReadRun,wireDocRead});

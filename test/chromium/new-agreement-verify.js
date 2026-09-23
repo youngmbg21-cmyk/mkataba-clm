@@ -96,7 +96,9 @@ const READ = () => {
     await page.evaluate(async () => { try { await tplLibRefresh(); } catch (_) {} setView('register'); }); await pause(900);
 
     /* ===== 1. THE + BUTTON OPENS ONE SCREEN ===== */
-    await page.click('[data-page-new]'); await pause(900);
+    await page.click('[data-page-new]'); await pause(500);
+    /* 23 Sep 2026: the button opens two doors first (openNewDoors); this presses Draft from HaTi. */
+    await page.click('[data-nd-door="draft"]').catch(() => {}); await pause(900);
     let m = await page.evaluate(READ);
     await page.screenshot({ path: path.join(OUT, '01-popup-1440.png') });
     check('1a the + button opens the pop-up, not a menu', !m.err && !m.menuOpen, m.err || `menu open ${m.menuOpen}`);
@@ -115,7 +117,8 @@ const READ = () => {
     check('1e2 a lit row is FILLED, the product\'s own rail treatment', !m.err && m.onFilled
       && m.onFilled.bg !== 'rgba(0, 0, 0, 0)' && /255, 255, 255/.test(m.onFilled.ink), m.err || JSON.stringify(m.onFilled));
     check('1e3 the questions get more room than the 380px they had', !m.err && m.cardW >= 430, m.err || m.cardW + 'px');
-    check('1f the sentence box, Find, Upload and Import are all on it', !m.err && m.say && m.find && m.upload && m.imp);
+    /* REVERSED 23 Sep 2026 (Young: "remove the Upload it link") — upload is a door in front of this screen (openNewDoors): the screen carries the sentence box, Find and Import, and NO upload link. */
+    check('1f the sentence box, Find and Import are on it, and no second Upload', !m.err && m.say && m.find && !m.upload && m.imp);
     check('1g the foot is Cancel · Skip the questions · Create draft', !m.err && m.foot.join('|') === 'Cancel|Skip the questions|Create draft', m.err || m.foot.join('|'));
     /* REVERSED IN PLACE: the agreement is drawn at 1440 now, which is the
        whole of what proposal C was chosen for.
@@ -125,7 +128,7 @@ const READ = () => {
       && await page.evaluate(() => !document.getElementById('na-paper')), m.err || `paper ${m.paper}, ${m.paperText} chars`);
     check('1h2 the rail is 260 and the list scrolls inside it, so its foot stays on screen',
       !m.err && m.railW === 260 && m.listScrolls && m.moreSeen,
-      m.err || `rail ${m.railW} · list scrolls ${m.listScrolls} · Upload row on screen ${m.moreSeen}`);
+      m.err || `rail ${m.railW} · list scrolls ${m.listScrolls} · Import row on screen ${m.moreSeen}`);
     check('1i the card\'s labels wear the artifact\'s label weight, not the form\'s bold', !m.err && Number(m.labelWeight) < 600, m.err || m.labelWeight);
     /* THE ASK TAKES THE WHOLE TOP LINE (Young, 22-23 Sep 2026). At the parent
        it sat in the 260px rail: the box 236px wide and Find UNDER it. */
@@ -184,10 +187,10 @@ const READ = () => {
 
     /* ===== 6. CANCEL AND ESCAPE ===== */
     await page.evaluate(() => { setView('register'); }); await pause(500);
-    await page.evaluate(() => openNewAgreement()); await pause(400);
+    await page.evaluate(() => openNewAgreement({})); await pause(400);
     await page.click('#wz-pick-cancel'); await pause(300);
     check('6a Cancel closes it', await page.evaluate(() => !document.getElementById('na-root')));
-    await page.evaluate(() => openNewAgreement()); await pause(400);
+    await page.evaluate(() => openNewAgreement({})); await pause(400);
     await page.keyboard.press('Escape'); await pause(300);
     check('6b so does Escape', await page.evaluate(() => !document.getElementById('na-root')));
 
@@ -195,7 +198,7 @@ const READ = () => {
        REVERSED IN PLACE 23 Sep 2026: this said the paper drew beside the
        answers at 1700. It draws at no width now; the frame is one width. */
     await page.setViewportSize({ width: 1700, height: 950 }); await pause(300);
-    await page.evaluate(() => openNewAgreement()); await pause(900);
+    await page.evaluate(() => openNewAgreement({})); await pause(900);
     m = await page.evaluate(READ);
     await page.screenshot({ path: path.join(OUT, '02-popup-1700.png') });
     check('7a at 1700 the frame is the same 900 with two columns', !m.err && m.cols === 2 && m.panelW === 900, m.err || `${m.cols} cols, ${m.panelW}px`);
@@ -206,7 +209,7 @@ const READ = () => {
        *"before you create the draft you should have the option to add the
        other participants."* SHUT BY DEFAULT — it is an offer, not a question
        — and nothing it collects is written anywhere until a record exists. */
-    await page.evaluate(() => openNewAgreement()); await pause(600);
+    await page.evaluate(() => openNewAgreement({})); await pause(600);
     const ppl = await page.evaluate(() => {
       const d = document.getElementById('na-people');
       if (!d) return null;
@@ -253,7 +256,7 @@ const READ = () => {
        columns, which is exactly what "under 1280" said, and the ruling that
        followed took the paper off this screen on every device. What is left
        to drive: both iPad sizes get the same two columns, nothing stacked, no
-       paper; the Upload row is on screen on a fresh open; the foot with Create
+       paper; the Import row is on screen on a fresh open; the foot with Create
        is always there; the note says only what is true; and whatever sits
        below the fold is reachable with a real wheel.
        The old 9h (the laptop shape at 1700) is section 7's claim now.
@@ -280,7 +283,7 @@ const READ = () => {
     let d;
     for (const [w, hh, label] of [[1194, 834, 'iPad Pro 11"'], [1366, 1024, 'iPad Pro 12.9"']]) {
       await page.setViewportSize({ width: w, height: hh }); await pause(300);
-      await page.evaluate(() => openNewAgreement()); await pause(900);
+      await page.evaluate(() => openNewAgreement({})); await pause(900);
       d = await page.evaluate(D);
       await page.screenshot({ path: path.join(OUT, `03-ipad-${w}.png`) });
       check(`9a ${label} at ${w}: two columns in a 900 frame, nothing stacked`,
@@ -290,7 +293,7 @@ const READ = () => {
       /* A GUARD: it held at the parent too. It is here because the list's
          cap was RE-DERIVED when the ask left the rail, and this is the whole
          of what that cap promises. */
-      check(`9c GUARD ${label} at ${w}: the Upload row is on screen on a fresh open`,
+      check(`9c GUARD ${label} at ${w}: the Import row is on screen on a fresh open`,
         !d.err && d.moreOnScreen, d.err || (d.moreOnScreen ? 'on screen' : 'the rail\'s foot is below the fold'));
       /* A GUARD, not a red-at-the-parent claim: the foot sits outside the
          scroller in both shapes. It is here because on a short screen the
@@ -307,7 +310,7 @@ const READ = () => {
        is below the fold must be reachable, and the foot must not move.
        A GUARD at the parent too: there the stacked column scrolled instead. */
     await page.setViewportSize({ width: 1194, height: 834 }); await pause(300);
-    await page.evaluate(() => openNewAgreement()); await pause(900);
+    await page.evaluate(() => openNewAgreement({})); await pause(900);
     const before9 = await page.evaluate(D);
     const cardBox = await page.evaluate(() => {
       const b = document.querySelector('.na-card').getBoundingClientRect();

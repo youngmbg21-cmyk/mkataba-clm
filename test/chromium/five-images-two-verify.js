@@ -108,6 +108,9 @@ const ok = (name, good, detail) => {
 
     /* ════════ 2. THE NEW AGREEMENT CARDS ════════ */
     await page.evaluate(() => { const b = document.querySelector('.hm-primary'); if (b) b.click(); });
+    /* 23 Sep 2026: the button opens two doors first; this presses Draft from HaTi. */
+    await page.waitForTimeout(400);
+    await page.evaluate(() => { const d = document.querySelector('[data-nd-door="draft"]'); if (d) d.click(); });
     await page.waitForTimeout(1800);
     await page.screenshot({ path: path.join(OUT, '02-new-agreement.png') });
 

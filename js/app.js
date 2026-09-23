@@ -85,6 +85,7 @@ import './templatefields.js';
 import './views/library.js';
 import './fieldlib.js';            // the template-library field catalogue (shared with the server)
 import './branding.js';            // document designs AND structures (shared with the server — one catalogue)
+import './metaclean.js';          // the reading's answer is checked before it is filed (shared with the server)
 import './templateform.js';        // template-form rendering + validation (shared with the server)
 import './views/templatelib.js';   // the versioned company standard-template library
 import './views/templatebuilder.js';  // edits one draft version of a library template
@@ -238,7 +239,11 @@ const PAGE_ACTIONS = {
   /* UPLOAD SITS BESIDE NEW AGREEMENT (the redesign's second pass, 21 Sep 2026 —
      the reference frame draws both). It is the SAME door the + menu's own
      "Upload a received contract" row presses: openUploadModal, one dialog. */
-  register: ['cohort', 'upload', 'new'],
+  /* …AND SINCE 23 SEP 2026 UPLOAD IS A DOOR INSIDE IT (Young: "i need upload to
+     be inside draft new agreement"): the separate button is gone and the one
+     button opens two doors — see openNewDoors in js/wizard.js. The 'upload'
+     branch below is kept for a page that asks for it; none does. */
+  register: ['cohort', 'new'],
   folder:   ['export', 'new'],
   workspace:['export'],
   pipeline: ['new'],

@@ -18927,3 +18927,18 @@ Noticed, not fixed:
 - paper-beside-questions-verify 7c/7g red on both sides (34/36 at the parent and here).
 
 Gates: lint 0 errors, 213 warnings (213 at the parent). f368 30/30 (21 red at the parent, the 9 that pass are named walls and controls); 22 related node files plus f148/f232/f48, 728/728. new-agreement-verify 42/42 (12 red at the parent); counterparty-leads 32/32, draft-from-a-sentence all, form-and-picker 24/24, nine-off-five-images 24/24. Full suite: 8,861 tests, 2 failed, both f277, both proved red on today's main.
+
+## 23 Sep 2026 — four fixes off one long contract
+
+- The Overview's deal card printed the metadata reading's own call syntax (payment terms, governing law). Not from A–L; the reading was never checked. js/metaclean.js now checks it at the route, the browser door, and on the way in; the extract ceiling 1,500 → 3,000.
+- Plain English on a ~200,000-character contract: 60-clause pages overflowed one answer, and the whole edition was held to one call's character ceiling. Pages are sized by wording; the ceiling is gone; a cut page is re-asked in halves once; the head says when a reading could not finish.
+- The X-ray map scrolls; every block at least 16px; it follows the paper.
+- Draft new agreement opens two doors (Draft from HaTi / Upload a contract); the separate Upload button on Contracts is gone.
+
+Noticed, not fixed
+- The drafting screen still carries its own quiet "Upload it" link at the foot of the left pane — now a second way to the same dialog. Kept by the 21 Sep "nothing pressable went" ruling; the owner may want it removed.
+- f277 (1)/(10) and plain-english-verify 10c remain red at origin/main (already logged).
+
+## 23 Sep 2026 — the drafting screen's "Upload it" link removed
+
+On the owner's word. Its lead "Received a contract instead?" went with it (it named the upload, and would have sat in front of Import, a different job). Import contracts stays. f345, f360, new-agreement-verify 1f and draft-from-a-sentence-verify 1e reversed in place; all green.
