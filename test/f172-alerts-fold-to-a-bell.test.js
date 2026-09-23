@@ -176,7 +176,11 @@ describe('f172 · the notices draw in place and the bell opens the panel', () =>
        out of it did not take the stack's own notices with it. */
     const w = world();
     await mounted(w, 'news');
-    press(w, '.rl-tabrow [data-rl-read="agreed"]');
+    /* RE-POINTED IN PLACE 23 Sep 2026: "As agreed" is no longer offered
+       (Young: "Delete the As agreed and with changes pages"), so there is no
+       other reading to explain; what this file can still ask is that none is
+       offered and the stack stands. */
+    assert.equal($(w, '.rl-tabrow [data-rl-read="agreed"]'), null, 'As agreed is not offered');
     assert.equal($(w, '.rl-note-card'), null, 'no floating band explains it');
     assert.equal($(w, '.rl-idx-reading'), null, 'and no strip in the column either');
     assert.ok($(w, '.rl-notices .rv-banner'),

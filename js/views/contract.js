@@ -3551,7 +3551,14 @@ function wsNextAction(c){
           guide:`Your turn — ${mine||'some'} change${mine===1?'':'s'} still open with ${who}.` };
   }
   // Under Review
-  if(!appr.ok) return { get label(){ return i18t('ct_send_to_cp'); }, ic:'share', get guide(){ return i18t('ct_share_draft_guide'); }, kind:'share' };
+  /* ---- "SEND TO COUNTERPARTY" IS GONE (Young ruled 23 Sep 2026: "send to
+     counterparty is redundant as the share button already does this") ----
+     It opened the very dialog Share beside it opens, in the head's one filled
+     slot — two doors onto one act, twelve pixels apart. noButton, not null,
+     for the reason its siblings give: the GUIDE still answers what the next
+     step is, and Share stays the one door. */
+  if(!appr.ok) return { get label(){ return i18t('ct_send_to_cp'); }, ic:'share', get guide(){ return i18t('ct_share_draft_guide'); }, kind:'share',
+    noButton:true };
   /* ---- NO BUTTON FOR "GO AND FIND THE REAL BUTTON" ----
      U-8 gave this state a primary reading "Review & sign below", on the sound
      reasoning that labelling it "Sign" was a false promise: the click only
@@ -4338,6 +4345,17 @@ function wsPaintTabRowEnd(c){
 function applyWsTabs(c){
   const keys=ROOM_TABS.map(t=>t[0]);
   if(!keys.includes(_wsTab)) _wsTab='docs';
+  /* ---- THE DOCUMENT TAB LANDS ON THE CONTRACT (Young ruled 23 Sep 2026:
+     "when you go to document page, the landing state should be on contract
+     view not x-ray") ----
+     The switch's choice used to be remembered for ever, so a reader who
+     looked at the X-ray once found every contract opening on it. It is now a
+     choice about THIS visit: ARRIVING on the tab — from another tab, another
+     contract or another page — puts it back to Contract View, and a repaint
+     of the tab the reader is already on keeps whatever they picked. */
+  const here=(c&&c.id)+'|'+_wsTab;
+  if(_wsTab==='docs' && _docViewAt!==here) docViewSet('paper');
+  _docViewAt=here;
   const paint=k=>{
     document.querySelectorAll('[data-ws-pane]').forEach(p=>{
       /* A PANE MAY SERVE MORE THAN ONE TAB (J-1). The Document and Signing
@@ -5579,7 +5597,11 @@ function ktPartyRowHtml(c, p, opts){
   const ours = p.side === PARTY_SIDE_OURS;
   const invWord = ours ? '' : i18t('py_inv_' + p.involvement);
   const sub = [p.role, ours ? i18t('py_us') : ''].filter(Boolean).join(' · ');
-  const ct = [p.address, p.email].filter(Boolean).join(' · ');
+  /* THE TOWN IS NOT PRINTED (Young ruled 23 Sep 2026: "remove city from the
+     Add Party fields") — the box went, and a place printed off a record
+     nobody can edit any more would be a fact with no way to correct it. An
+     older record keeps the field; nothing draws it. */
+  const ct = p.email || '';
   const chip = ours
     ? `<span class="py-chip py-chip-ours">${esc(i18t('py_ours'))}</span>`
     : `<span class="py-chip py-chip-inv" data-inv="${esc(p.involvement)}">${esc(invWord)}</span>`;
@@ -5693,7 +5715,6 @@ function openPartyEditor(c, id){
         esc(adding?i18t('py_add').replace(/^\+\s*/,''):i18t('py_edit'))}</h3>
       ${fld('name',i18t('reg_col_counterparty'),i18t('py_name_ph'),p.name)}
       ${roleSel(p.role)}
-      ${fld('addr',i18t('ov_f_stream').replace(/.*/,i18t('py_addr_ph')),i18t('py_addr_ph'),p.address)}
       ${fld('email',i18t('ov_f_email'),i18t('py_email_ph'),p.email)}
       <div class="py-inv">${inv}</div>
       <div id="py-say" class="py-say" hidden></div>
@@ -5756,7 +5777,7 @@ function openPartyEditor(c, id){
        and cancels leaves the select on what it was, and this is the wall for
        any path that did not. */
     const roleV=v('role')===PARTY_ROLE_OTHER?p.role||'':v('role');
-    const next={ ...p, name:v('name'), role:roleV, address:v('addr'), email:v('email'),
+    const next={ ...p, name:v('name'), role:roleV, email:v('email'),
       involvement:chosen?chosen.value:p.involvement };
     const rows=adding?list.concat([next]):list.map((x,i)=>i===at?next:x);
     write(rows);
@@ -6177,14 +6198,15 @@ function ktOverviewTermsHtml(c,opts={}){
      asked. The one act is the signing order's own editor, drawn only where
      somebody here has a signing role. */
   const people=(typeof participantsPanelHtml==='function')?participantsPanelHtml(c,{
-    editable:ed, reached:true }):'';
+    editable:ed, reached:true, auto:true }):'';
   /* EVERY ADDRESS ON FILE, IN THE ORDER A ROUND USES THEM (21 Sep 2026).
      The address a round actually goes to was only discoverable by opening the
      send screen and looking. This prints what shareModalPrefill would pick —
      BORROWED from that same order, never a second opinion — and names the
      others rather than hiding them: two of the four may differ on purpose. */
   const addrs=(typeof contractAddressBook==='function')?contractAddressBook(c, c&&c._shareFetch):null;
-  const ppl=(typeof participantsOf==='function')?participantsOf(c):[];
+  const ppl=((typeof participantsOf==='function')?participantsOf(c):[])
+    .concat((typeof participantsAuto==='function')?participantsAuto(c):[]);
   const anySigner=(typeof participantSignerRows==='function')&&participantSignerRows(c).length>0;
   const peopleSec=people?sectionHtml({
     key:OV_KEY(c,'people'), title:i18t('ppl_title'), open:false,
@@ -7867,6 +7889,15 @@ function applyDocZoom(){
      1 and are untouched. */
   const pref=(window.rlDocType?rlDocType():15)/15;
   wrap.style.setProperty('--doc-scale', pref.toFixed(3));
+  /* ---- AND THE X-RAY BESIDE IT (Young ruled 23 Sep 2026: "The font size
+     adjuster should apply to both sides of the page even in x-ray") ----
+     The Plain English column already follows the paper (its size is measured
+     off the sheet); the X-ray panel is a sibling of the paper and read its
+     type off fixed tokens, so the stepper moved one side of the page and not
+     the other. It takes the same RATIO, written on its own host because the
+     host is not inside #doc-zoom. */
+  const xr=document.getElementById('doc-xray');
+  if(xr) xr.style.setProperty('--doc-scale', pref.toFixed(3));
 }
 function wireDocResizer(){
   const grid=document.getElementById('doc-grid'), rez=document.getElementById('doc-resizer');
@@ -9897,6 +9928,11 @@ const docReadFits=()=>window.innerWidth>=DOC_READ_MIN_W;
    "is the plain-English edition up". Saying it in terms of the mode is what
    stops those callers and this one drifting apart. */
 const DOC_VIEW_MODES=['paper','plain','xray'];
+let _docViewAt='';
+/* Leaving the room is the other half of arriving: the next visit to the same
+   contract's Document tab is an arrival too. setView calls it on every
+   navigation that changes the page. */
+function docViewLeave(){ _docViewAt=''; }
 function docViewMode(){
   if(!docReadFits()) return 'paper';
   let v=''; try{ v=localStorage.getItem(DOC_READ_KEY)||''; }catch(_){ v=''; }
@@ -11505,8 +11541,18 @@ const docXrayLabel = x => ((x.cite?x.cite+(x.sep||(/\./.test(x.cite)?'':'.'))+' 
 const XR_SEG_MIN = 16, XR_SEG_MAX = 44, XR_SEG_WORDS = 400;
 const docXraySegH = words => Math.round(XR_SEG_MIN
   + (XR_SEG_MAX - XR_SEG_MIN) * Math.min(1, Math.sqrt(Math.max(0, words) / XR_SEG_WORDS)));
+/* ---- ONLY THE CLAUSES WORTH A LOOK ARE ON THE MAP (Young ruled 23 Sep
+   2026: "Remove the grey dna strands and just keep the colored ones that are
+   of interest") ----
+   A grey block said "nothing on the record mentions this clause" once per
+   clause, which on a long contract was a column of grey with the few marks
+   the reader came for lost in it. The map now draws the marked clauses alone,
+   in the paper's order; an unmarked clause is still in the panel and still on
+   the paper — the map is a list of where to look, not a picture of the whole
+   agreement. Nothing marked, no map. */
+const docXraySpineRows = rows => (rows||[]).filter(x => x && x.tone);
 function docXraySpineHtml(rows){
-  return rows.map(x=>`<button type="button" class="doc-xr-seg${x.tone?' is-'+x.tone:''}${
+  return docXraySpineRows(rows).map(x=>`<button type="button" class="doc-xr-seg${x.tone?' is-'+x.tone:''}${
       x.i===_docXrayPick?' is-on':''}" data-xr-seg="${x.i}"
       style="height:${docXraySegH(x.words)}px" aria-pressed="${x.i===_docXrayPick?'true':'false'}"
       title="${esc(docXrayLabel(x)+' · '+i18tn('xr_words',x.words,{n:x.words}))}"
@@ -11585,7 +11631,7 @@ function docXrayPaint(c){
      the reader is actually looking at, every paint, because the divider beside
      this column can be dragged and the text size can change under it. */
   if(spineOld) spineOld.remove();
-  if(!sec||!rows.length) return;
+  if(!sec||!docXraySpineRows(rows).length){ _xrRowEls=[]; return; }
   const canvas=document.getElementById('doc-canvas');
   if(!canvas) return;
   let room=0;
@@ -11621,7 +11667,11 @@ function docXrayFollow(){
   let here=0;
   _xrRowEls.forEach((el,i)=>{ try{ if(el&&el.getBoundingClientRect().top<=top) here=i; }catch(_){} });
   sp.querySelectorAll('.doc-xr-seg.is-here').forEach(b=>b.classList.remove('is-here'));
-  const seg=sp.querySelector(`[data-xr-seg="${here}"]`);
+  /* The map carries the MARKED clauses only, so the clause at the top of the
+     sheet may have no block: the mark goes on the nearest marked clause at or
+     above it — the last one the reader has reached. */
+  let seg=null;
+  sp.querySelectorAll('[data-xr-seg]').forEach(b=>{ if(Number(b.getAttribute('data-xr-seg'))<=here) seg=b; });
   if(!seg) return;
   seg.classList.add('is-here');
   const a=seg.offsetTop, b=a+seg.offsetHeight;
@@ -14620,7 +14670,7 @@ Object.assign(window,{paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,
   /* idea 7 — the plain-English layer. Published because a name read through
      window from another module, or from a test stage, is silence when it is
      not on this list: this codebase's most repeated defect. */
-  DOC_READ_KEY,DOC_READ_MIN_W,docReadFits,docReadOn,docReadSet,docReadItems,
+  DOC_READ_KEY,DOC_READ_MIN_W,docReadFits,docViewLeave,docReadOn,docReadSet,docReadItems,
   DOC_VIEW_MODES,docViewMode,docViewSet,docXrayOn,DOC_XRAY_SPINE_W,DOC_XRAY_SPINE_GAP,
   DOC_XRAY_QUOTE_MIN,docXrayPlace,docXrayMarks,docXrayTone,docXrayClauseId,docXrayRows,
   XR_GRADES,XR_SEV_GRADE,docXrayBriefWatch,docXrayBriefOdd,docXrayRowText,docXrayWide,docXrayMarkHtml,

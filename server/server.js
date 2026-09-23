@@ -5839,6 +5839,58 @@ const readEchoFold = s => readNorm(s)
   .replace(/^(?:section|clause)\b\s*/, '')
   .replace(/^[0-9][0-9.()a-z]{0,11}\s+[—-]\s+/, '')
   .replace(/^heading:\s*/, '');
+/* ---- THE ECHO IS A SENSE CHECK, NOT A SPELLING TEST (Young, the third
+   report, 23 Sep 2026: "for the 3rd time asking, Hati is still not
+   translating the entire contract to plain english. Find a final
+   resolution") ----
+   The edition was not short because Copilot stopped reading — every page was
+   answered. It was short because each answer had to repeat its row's heading
+   CHARACTER FOR CHARACTER, and on a real Word contract the model tidies what
+   it copies: a curly quote comes back straight, a tab becomes a space, a long
+   bold lead-in is shortened, a dash changes shape. Every one of those was
+   refused as a mispairing, and past a quarter refused the WHOLE edition was
+   thrown away ("56 clauses could not be matched").
+
+   What the echo exists to catch is a SHIFT — an entry written for one clause
+   filed under its neighbour's key (11 Sep). So the question is no longer "is
+   it identical" but "which row on this page does it describe":
+   - it agrees with the row its key names (loosely: punctuation, quotes,
+     dashes, numbering and spacing folded away, then equal, or one runs into
+     the other, or most of the words are shared) → paired;
+   - it agrees with a DIFFERENT row better → a shift, refused;
+   - it describes no row at all (a garbled or empty echo) → the key decides,
+     because the key is HaTi's own address and cannot be mistaken for a
+     clause number any more. */
+const readEchoWords = s => readEchoFold(s)
+  .replace(/[\u2018\u2019\u201A\u201B\u2032`´]/g, "'").replace(/[\u201C\u201D\u201E\u2033]/g, '"')
+  .replace(/^\(?[0-9ivxlc]+(?:[.)][0-9a-z]+)*[.)]?\s+/i, '')
+  .replace(/[^\p{L}\p{N}\s]+/gu, ' ').replace(/\s+/g, ' ').trim()
+  .split(' ').filter(Boolean);
+function readEchoScore(echo, want){
+  const a = readEchoWords(echo), b = readEchoWords(want);
+  if (!a.length || !b.length) return 0;
+  const A = a.join(' '), B = b.join(' ');
+  if (A === B) return 1;
+  if (Math.min(a.length, b.length) >= 3 && (A.startsWith(B) || B.startsWith(A))) return 0.9;
+  const sb = new Set(b);
+  const shared = a.filter(w => sb.has(w)).length;
+  return shared / Math.min(a.length, b.length);
+}
+const READ_ECHO_AGREE = 0.6;
+/* THE ONE JUDGE: 'ok' (paired), 'shift' (refused), 'blind' (no row matched;
+   the key decides). `rows` is the WHOLE list and `k` the row the key names,
+   because an echo naming a clause on another page is as much a shift as one
+   naming its neighbour. */
+function readEchoJudge(echo, rows, k){
+  const mine = readEchoScore(echo, readEchoOf(rows[k]));
+  if (mine >= READ_ECHO_AGREE){
+    const better = rows.some((r, j) => j !== k && readEchoScore(echo, readEchoOf(r)) > mine + 0.05
+      && readEchoScore(echo, readEchoOf(r)) >= READ_ECHO_AGREE);
+    return better ? 'shift' : 'ok';
+  }
+  const elsewhere = rows.some((r, j) => j !== k && readEchoScore(echo, readEchoOf(r)) >= READ_ECHO_AGREE);
+  return elsewhere ? 'shift' : 'blind';
+}
 /* THE READING FOLLOWS THE READER, NEVER THE PAPER. This product's own split:
    LANGUAGE is the person's and the MARKET is the company's, so a Swedish
    colleague reading a Kenyan contract gets Swedish. Without this the screen was
@@ -6076,11 +6128,12 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
        refused entry is kept as {key, echo, want} — capped, echo bounded — so
        the fault can be READ off the record (`_readings.failed`, transport like
        the rest) and off the server log, rather than guessed at. */
-    const failed = [];
-    const refuse = (r, want) => {
-      unmatched++;
-      if (failed.length < READ_MAX_CLAUSES)
-        failed.push({ key: String((r && r.key) || '').slice(0, 12), echo: String((r && r.heading) || '').slice(0, 140), want: String(want || '').slice(0, 140) });
+    let failed = [];
+    const paired = new Set();
+    let recording = true;
+    const refuse = (r, want, i) => {
+      if (recording && failed.length < READ_MAX_CLAUSES)
+        failed.push({ i: i == null ? -1 : i, key: String((r && r.key) || '').slice(0, 12), echo: String((r && r.heading) || '').slice(0, 140), want: String(want || '').slice(0, 140) });
     };
     /* ---- THE PAGES ARE MERGED INTO ONE EDITION ----
        A key is the row's address WITHIN ITS PAGE; `base` puts it back on the
@@ -6093,10 +6146,11 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
     entriesN += entries.length;
     entries.forEach(r => {
       const k = readKeyIndex(r && r.key);
-      const i = k < 0 ? -1 : base + k;
-      if (k < 0 || k >= pg.rows.length || i >= list.length) { refuse(r, ''); return; }
+      const i = k < 0 ? -1 : (pg.idx ? (k < pg.idx.length ? pg.idx[k] : -1) : base + k);
+      if (k < 0 || k >= pg.rows.length || i < 0 || i >= list.length) { refuse(r, ''); return; }
+      if (paired.has(i)) return;
       const want = readEchoOf(list[i]);
-      if (readEchoFold(r && r.heading) !== readEchoFold(want)) { refuse(r, want); return; }
+      if (readEchoJudge(r && r.heading, list, i) === 'shift') { refuse(r, want, i); return; }
       const plain = String((r && r.plain) || '').trim();
       const head = String((r && r.head) || '').trim();
       /* ---- THE HEADING IS THE DRAFTER'S OWN (Young ruled 10 Sep 2026) ----
@@ -6119,18 +6173,61 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
          PAPER's heading, never one of the model's. Nothing is invented; an
          empty `plain` stays empty. */
       items.push({ i, num: list[i].num, heading: list[i].heading, kind: list[i].kind, head, plain });
+      paired.add(i);
     });
     };
     /* A MODEL FALLBACK IS ONE FACT ABOUT THE PRESS, not one per page: the
        first page that reports it carries it into the one notice the reader is
        shown. */
     let fell = null;
+    const answeredRows = [];
     answers.forEach((g, n) => {
       if (!g || g.err || !g.block){ unread += pages[n].rows.length; return; }
       if (g.resp && g.resp.truncated) truncated = true;
       if (g.resp && g.resp.fellBack && !fell) fell = g.resp;
+      pages[n].rows.forEach((_, k) => answeredRows.push(pages[n].idx ? pages[n].idx[k] : pages[n].base + k));
       readPage(g.block, pages[n]);
     });
+    /* ---- A CLAUSE LEFT WITHOUT A READING IS ASKED FOR AGAIN, BY ITSELF
+       (23 Sep 2026) ----
+       Whatever the first pass could not pair — an entry the model skipped, or
+       one it filed under the wrong key — is gathered into fresh pages of just
+       those clauses and asked ONCE more, with fresh keys, so the reader is
+       never sent to press "try again" for what HaTi can ask for itself. The
+       pages carry `idx`, the global index of each row, because the rows are no
+       longer next to each other. A clause still missing after that is counted
+       and said, exactly as before. */
+    const missing = answeredRows.filter(i => !paired.has(i));
+    if (missing.length){
+      const again = [];
+      for (let at = 0; at < missing.length; ){
+        let end = at + 1;
+        const rowsOf = (a, b) => missing.slice(a, b).map(i => list[i]);
+        while (end < missing.length && end - at < READ_PAGE
+          && pageText(rowsOf(at, end + 1)).length <= READ_PAGE_CHARS) end++;
+        const idx = missing.slice(at, end);
+        const rows = idx.map(i => list[i]);
+        again.push({ base: -1, idx, rows, body: pageText(rows) });
+        at = end;
+      }
+      /* The first pass's refusals are what the reader is shown for a clause
+         still missing; the second pass's keys are its own short list and
+         would name nothing a reader could find. */
+      recording = false;
+      const got = await askAll(again);
+      got.forEach((g, n) => {
+        if (!g || g.err || !g.block) return;
+        if (g.resp && g.resp.fellBack && !fell) fell = g.resp;
+        readPage(g.block, again[n]);
+      });
+      items.sort((a, b) => a.i - b.i);
+    }
+    unmatched = answeredRows.filter(i => !paired.has(i)).length;
+    /* A page cut short whose missing clauses were then read is a WHOLE
+       edition: nothing is left out, so nothing is said to be. */
+    if (!unmatched) truncated = false;
+    failed = failed.filter(f => f.i < 0 || !paired.has(f.i));
+    entriesN = answeredRows.length;
     over += unread;
     // A CUT-SHORT ANSWER IS NOT CACHED AS A WHOLE ONE — the brief paid for this
     // lesson: written to the table it would serve half a document for ever, with

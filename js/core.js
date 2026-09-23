@@ -2823,7 +2823,18 @@ function _selMenuArmDoc(){
   }, true);
   document.addEventListener('keydown', ev => { if (_selMenuEl && ev.key === 'Escape') selectMenuClose(); }, true);
   window.addEventListener('resize', selectMenuClose);
-  window.addEventListener('scroll', selectMenuClose, true);
+  /* THE MENU'S OWN SCROLL IS NOT A PAGE SCROLL (Young reported it 23 Sep
+     2026: "I am unable to scroll in the pop up without the drop down
+     closing"). This listener is in the CAPTURE phase so a scroll anywhere
+     under the menu's anchor shuts it — and a scroll INSIDE the list reached
+     it too, so the one act a long list asks for closed it. A scroll whose
+     target is the menu (or inside it) is the reader moving the list. */
+  window.addEventListener('scroll', ev => {
+    if (!_selMenuEl) return;
+    const t = ev && ev.target;
+    if (t && t.nodeType === 1 && (t === _selMenuEl || _selMenuEl.contains(t))) return;
+    selectMenuClose();
+  }, true);
 }
 function _selMenuAnchorEl(sel){ return (sel && sel.closest) ? sel.closest('label,.reg-chip') : null; }
 /* Arm a root. Bound once per element, the register's own idiom, so a repaint

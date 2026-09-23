@@ -119,7 +119,11 @@ function contractParties(c){
        surface that draws this list draws us first. */
     const ours = rows.filter(r => r.side === PARTY_SIDE_OURS);
     const theirs = rows.filter(r => r.side !== PARTY_SIDE_OURS);
-    if(ours.length) return ours.slice(0, 1).concat(theirs);
+    if(ours.length){
+      const us = ours[0];
+      if(!us.email) us.email = partyOurEmail(c);
+      return [us].concat(theirs);
+    }
     return [_pyDerivedOurs(c)].concat(theirs);
   }
   /* ---- NOTHING STORED: the two parties this contract has always had ----
@@ -133,7 +137,27 @@ function contractParties(c){
 }
 
 function _pyDerivedOurs(c){
-  return _pyRow({ id: 'py_us', name: partyOurName(c), side: PARTY_SIDE_OURS, involvement: 'negotiate' }, 0);
+  return _pyRow({ id: 'py_us', name: partyOurName(c), email: partyOurEmail(c), side: PARTY_SIDE_OURS, involvement: 'negotiate' }, 0);
+}
+
+/* ---- OUR SIDE HAS AN ADDRESS TOO (Young reported it 23 Sep 2026: "there is
+   no email for US") ----
+   The other side's row always printed an address and ours printed none, so
+   the one fact the reader most often needs from our row — who at our end the
+   other side writes to — was missing. The answer is the contract's OWNER, the
+   colleague who raised it and whose name the head already prints: their
+   address is looked up off the member list, never typed a second time and
+   never stored on the contract. A row that already carries one keeps it. No
+   owner, or an owner the member list does not know, is an honest blank. */
+function partyOurEmail(c){
+  try{
+    const o = c && c.owner;
+    const users = (typeof window !== 'undefined' && typeof window.getUsers === 'function') ? (window.getUsers() || []) : [];
+    if(!o || !users.length) return '';
+    const u = (o.id != null && users.find(x => String(x.id) === String(o.id)))
+      || (o.name && users.find(x => x.name === o.name)) || null;
+    return _pyStr(u && u.email, 200);
+  }catch(_){ return ''; }
 }
 
 /* Everybody who is not us. THE LIST EVERY "which party" CONTROL OFFERS. */
@@ -344,7 +368,7 @@ if(typeof window !== 'undefined'){
   Object.assign(window, {
     PARTY_INVOLVEMENT, PARTY_INVOLVEMENT_DEFAULT, PARTY_SIDE_OURS, PARTY_SIDE_THEIRS,
     PARTY_MAX, PARTY_NAME_MAX, PARTY_ROLE_MAX, PARTY_ADDR_MAX,
-    contractParties, partiesTheirs, partyOurs, partyOurName, partiesMulti,
+    contractParties, partiesTheirs, partyOurs, partyOurName, partyOurEmail, partiesMulti,
     partiesNegotiating, partiesSigning, partyById, partyName, partyRoleWord, partyLine,
     partiesMatch, partiesLead, partiesRefusal, partiesSet, partyNewId,
     partyOfSigner, partyOfShare, partiesForPayload,
@@ -354,7 +378,7 @@ if(typeof window !== 'undefined'){
 if(typeof module !== 'undefined' && module.exports){
   module.exports = {
     PARTY_INVOLVEMENT, PARTY_INVOLVEMENT_DEFAULT, PARTY_SIDE_OURS, PARTY_SIDE_THEIRS,
-    PARTY_MAX, contractParties, partiesTheirs, partyOurs, partyOurName, partiesMulti,
+    PARTY_MAX, contractParties, partiesTheirs, partyOurs, partyOurName, partyOurEmail, partiesMulti,
     partiesNegotiating, partiesSigning, partyById, partyName, partyRoleWord, partyLine,
     partiesMatch, partiesLead, partiesRefusal, partiesSet, partyNewId,
     partyOfSigner, partyOfShare, partiesForPayload,

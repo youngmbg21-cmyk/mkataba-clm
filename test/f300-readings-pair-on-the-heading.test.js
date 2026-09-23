@@ -95,8 +95,16 @@ describe('f300 the readings pair on the heading, never on a number a clause coul
     assert.deepEqual(tool.input_schema.properties.readings.items.required, ['key', 'heading', 'plain']);
   });
 
+  /* RE-POINTED IN PLACE (Young, the third report, 23 Sep 2026: "Hati is still
+     not translating the entire contract to plain english"). This claim used
+     to refuse an echo that named NO heading on the page, and that refusal —
+     repeated across a Word contract whose headings the model tidied as it
+     copied them — is what threw away 56 clauses. The echo now guards against
+     a SHIFT only: an echo that describes another row on the page is refused
+     (2b, 6b); one that describes no row is taken on its key, which is HaTi's
+     own address. The case that still drops a row is the shift, below. */
   test('(2) right keys with one wrong echoed heading: that row is dropped and counted, the rest pair, and the reading is kept', async () => {
-    ai.script(tu({ readings: [right(0), right(1), { ...right(2), heading: 'Approvals and media' }, right(3)] }));
+    ai.script(tu({ readings: [right(0), right(1), { ...right(2), heading: CLAUSES[3].heading }, right(3)] }));
     const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F300-2', clauses: CLAUSES } });
     const items = out.readings.items;
     assert.deepEqual(items.map(x => x.i).sort(), [0, 1, 3], 'three paired, the mismatched one gone');
@@ -141,8 +149,11 @@ describe('f300 the readings pair on the heading, never on a number a clause coul
       { i: 1, key: 'R1', heading: 'The Buyer shall inspect each consignment within three days', plain: 'You have three days to check each delivery.' },
     ] }));
     const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F300-4', clauses: bare, force: true } });
-    assert.deepEqual(out.readings.items.map(x => x.i), [0], 'eight words pair; nine do not — the echo is exact after folding');
-    assert.equal(out.readings.unmatched, 1);
+    /* RE-POINTED IN PLACE (23 Sep 2026): the echo is a sense check now, not
+       a spelling test, so an echo that runs one word past the eight it was
+       asked for still names its own row and pairs. */
+    assert.deepEqual(out.readings.items.map(x => x.i), [0, 1], 'eight words pair, and so does an echo that runs one word on');
+    assert.equal(out.readings.unmatched, 0);
   });
 
   test('(5) a key that is not exactly R<n> — the clause number itself, a bare integer, a stray word — resolves to nothing', async () => {

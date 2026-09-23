@@ -3762,6 +3762,11 @@
     border-radius:var(--radius); color:var(--color-neutral-600); font-size:15px; line-height:1; }
   .pt-x button:hover{ color:var(--danger); }
   .pt-none{ margin:0; font-size:var(--t-meta); color:var(--color-neutral-500); }
+  /* A ROW HaTi ADDED says so on the name, quietly — the reader can tell who
+     they named from who worked on it (23 Sep 2026). A label, not a band. */
+  .pt-auto{ font-size:var(--t-label); font-weight:var(--w-label); color:var(--color-neutral-600);
+    border:1px solid var(--rule-strong,#CBD3D0); border-radius:var(--radius); padding:0 5px; margin-left:4px;
+    white-space:nowrap; vertical-align:1px; }
   .pt-acts{ display:flex; gap:8px; padding-top:2px; }
   @media (max-width:760px){
     .pt-row, .pt-list.has-reached .pt-row{ grid-template-columns:minmax(0,1fr) 26px; }
@@ -5298,6 +5303,14 @@
   .doc-xr-sec.is-wide:last-child{border-bottom:1px solid
     color-mix(in srgb,var(--st-ruby-dot) 22%,var(--color-surface));}
   .doc-xr-none{font-size:var(--t-meta);color:var(--color-neutral-500);}
+  /* THE X-RAY FOLLOWS THE READER'S TEXT SIZE (23 Sep 2026): every size in
+     the panel is its token times --doc-scale, which applyDocZoom writes on
+     #doc-xray from the same stepper the paper reads. Written here, after the
+     rules it scales, at the same weight, so it wins by order. */
+  #doc-xray .doc-xr-head h4{font-size:calc(var(--t-card) * var(--doc-scale,1));}
+  #doc-xray .doc-xr-n{font-size:calc(var(--t-label) * var(--doc-scale,1));}
+  #doc-xray .doc-xr-k,#doc-xray .doc-xr-mk{font-size:calc(var(--t-micro) * var(--doc-scale,1));}
+  #doc-xray .doc-xr-t,#doc-xray .doc-xr-none{font-size:calc(var(--t-meta) * var(--doc-scale,1));}
 
   /* ══ THE RUNWAY — the decision card's one line of time (22 Sep 2026) ══
      Left of TODAY is time already owed against this workspace's own answering
@@ -7897,7 +7910,7 @@
      on the body at `position:fixed` (see selectMenuOpen) so a sticky band
      cannot clip it, and above the modal scrim's own rung so a menu opened
      inside a dialog is not painted under it. */
-  .hati-selmenu{position:fixed;z-index:120;max-height:min(50vh,340px);overflow:auto;padding:4px;
+  .hati-selmenu{position:fixed;z-index:120;max-height:min(50vh,340px);overflow:auto;overscroll-behavior:contain;padding:4px;
     background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);
     box-shadow:0 10px 28px color-mix(in srgb,var(--color-text) 16%,transparent);}
   .hati-selmenu-row{display:block;width:100%;box-sizing:border-box;text-align:left;

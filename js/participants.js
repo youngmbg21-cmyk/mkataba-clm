@@ -157,6 +157,90 @@ function participantReach(c, p){
   return { ok: true, why: '' };
 }
 
+/* ---- THE PEOPLE WHO WORKED ON IT ARE NAMED WITHOUT BEING TYPED (Young
+   ruled 23 Sep 2026: "keep it but automate who else is this by adding the
+   internal people who edited the contract and approved it") ----
+   A READING, NOT A WRITER. The contract already records who filed each change
+   (`ch.author` on our side, this round and every closed one) and who approved
+   each step (`c.approvalChain`, and the older single `c.approval`), and the
+   trail records who edited the wording. Reading those at draw time means an
+   older contract fills in too, nothing new is stored when somebody edits, and
+   no door onto editing or approving had to learn about this list.
+
+   ONLY A COLLEAGUE: a name is kept only where it resolves to a MEMBER — the
+   other side's authors are not members, and "System" is nobody. ONE ROW PER
+   PERSON with every role they earned, and a role a hand-named row already
+   carries is not said twice. Being listed here grants nothing: it records who
+   worked on it, and access stays what the workspace says.
+
+   TAKING ONE OFF is a remembered choice (`c.participantsAutoOff`, member ids,
+   absent on every record on file) — the one write, and only on a press. */
+const PT_AUTO_EDIT_ACTIONS = ['Edited', 'Document', 'Corrected'];
+function participantsAuto(c){
+  if (!c) return [];
+  const users = _ptCall('getUsers') || [];
+  if (!users.length) return [];
+  const byName = n => { const k = _ptFold(n); return k ? users.find(u => u && _ptFold(u.name) === k) || null : null; };
+  const byId = id => (id == null || id === '') ? null : users.find(u => u && String(u.id) === String(id)) || null;
+  const found = new Map();
+  const note = (u, role) => {
+    if (!u) return;
+    const key = String(u.id);
+    const row = found.get(key) || { key, memberId: key, name: _ptStr(u.name), email: _ptStr(u.email), roles: [] };
+    if (row.roles.indexOf(role) < 0) row.roles.push(role);
+    found.set(key, row);
+  };
+  const changes = [].concat(Array.isArray(c.changes) ? c.changes : []);
+  const rounds = c.negotiation && Array.isArray(c.negotiation.rounds) ? c.negotiation.rounds : [];
+  rounds.forEach(r => { if (r && Array.isArray(r.changes)) changes.push(...r.changes); });
+  changes.forEach(ch => {
+    if (!ch || (ch.authorSide && ch.authorSide !== 'owner')) return;
+    note(byId(ch.authorId) || byName(ch.author), 'contribute');
+  });
+  (Array.isArray(c.audit) ? c.audit : []).forEach(a => {
+    if (a && PT_AUTO_EDIT_ACTIONS.indexOf(a.action) >= 0) note(byName(a.user), 'contribute');
+  });
+  (Array.isArray(c.approvalChain) ? c.approvalChain : []).forEach(st => {
+    if (st && st.status === 'approved') note(byName(st.by), 'approve');
+  });
+  if (c.approval && c.approval.by) note(byId(c.approval.byId) || byName(c.approval.by), 'approve');
+  const off = Array.isArray(c.participantsAutoOff) ? c.participantsAutoOff.map(String) : [];
+  const named = participantsOf(c);
+  const out = [];
+  found.forEach(row => {
+    if (off.indexOf(row.key) >= 0) return;
+    const mine = named.filter(p => (p.memberId && String(p.memberId) === row.key)
+      || (row.email && _ptFold(p.email) === _ptFold(row.email))
+      || (!p.email && row.name && _ptFold(p.name) === _ptFold(row.name)));
+    row.roles = row.roles.filter(r => !mine.some(p => _ptStr(p.role) === r));
+    if (row.roles.length) out.push(row);
+  });
+  return out;
+}
+function participantAutoOff(c, key){
+  if (!c || !key) return false;
+  const list = Array.isArray(c.participantsAutoOff) ? c.participantsAutoOff : [];
+  if (list.map(String).indexOf(String(key)) >= 0) return false;
+  c.participantsAutoOff = list.concat([String(key)]);
+  return true;
+}
+function participantAutoRowHtml(carrier, a, opts){
+  const o = opts || {};
+  const ed = o.editable !== false;
+  const roles = a.roles.map(r => participantRoleLabel(r)).join(' · ');
+  const cell = (inner) => `<div class="pt-c">${inner}</div>`;
+  return `<div class="pt-row is-auto" data-pt-auto="${_ptEsc(a.key)}">
+    ${cell(`<b>${_ptEsc(a.name)}</b> <span class="pt-auto" title="${_ptEsc(i18t('ppl_auto_title'))}">${_ptEsc(i18t('ppl_auto'))}</span>`)}
+    ${cell(_ptEsc(a.email))}
+    ${cell(_ptEsc(roles))}
+    ${cell(_ptEsc(participantAccessLabel(PARTY_ACCESS_DEFAULT)))}
+    ${o.reached ? `<div class="pt-c pt-reached"></div>` : ''}
+    <div class="pt-c pt-x">${ed ? `<button type="button" data-pt-auto-remove="${_ptEsc(a.key)}"
+      title="${_ptEsc(i18t('ppl_remove'))}" aria-label="${_ptEsc(i18t('ppl_remove'))}">&#215;</button>` : ''}</div>
+    <div class="pt-says">${_ptEsc(a.roles.map(r => participantFills(r)).filter(Boolean).join(' '))}</div>
+  </div>`;
+}
+
 /* ---- WHAT HAS ACTUALLY REACHED THEM ----
    Borrowed, never computed: the signer plan is the product's own list and the
    share cache is the product's own answer about links. `unknown` is honest —
@@ -363,9 +447,14 @@ function participantsPanelHtml(carrier, opts){
     ${o.reached ? `<div class="pt-c">${_ptEsc(i18t('ppl_reached_head'))}</div>` : ''}
     <div class="pt-c"></div><div class="pt-says"></div>
   </div>`;
-  const rows = list.map(p => participantRowHtml(carrier, p, o)).join('');
+  /* THE AUTOMATIC ROWS SIT UNDER THE HAND-NAMED ONES, only where the caller
+     asks (a contract that exists; the drafting screen has nobody who worked
+     on it yet). */
+  const auto = o.auto ? participantsAuto(carrier) : [];
+  const rows = list.map(p => participantRowHtml(carrier, p, o)).join('')
+    + auto.map(a => participantAutoRowHtml(carrier, a, o)).join('');
   return `<div class="pt-list${o.reached ? ' has-reached' : ''}">
-    ${list.length ? head + rows : `<p class="pt-none">${_ptEsc(i18t('ppl_none'))}</p>`}
+    ${(list.length || auto.length) ? head + rows : `<p class="pt-none">${_ptEsc(i18t('ppl_none'))}</p>`}
     ${ed ? `<div class="pt-acts"><button type="button" class="ui-btn" data-pt-add="1">${
       _ptEsc(i18t('ppl_add'))}</button></div>` : ''}
   </div>`;
@@ -386,6 +475,16 @@ function participantsWire(root, carrier, opts){
       participantAdd(carrier, { name: '', email: '', role: o.role || 'read',
         access: PARTY_ACCESS_DEFAULT });
       changed(); again(); return;
+    }
+    const off = ev.target.closest && ev.target.closest('[data-pt-auto-remove]');
+    if (off && host.contains(off)){
+      const key = off.getAttribute('data-pt-auto-remove');
+      const row = participantsAuto(carrier).find(a => a.key === key);
+      if (participantAutoOff(carrier, key)){
+        if (typeof o.onRemove === 'function' && row) o.onRemove(row);
+        changed(); again();
+      }
+      return;
     }
     const rm = ev.target.closest && ev.target.closest('[data-pt-remove]');
     if (rm && host.contains(rm)){
@@ -459,7 +558,8 @@ function shareMoreChosen(){
 
 if (typeof window !== 'undefined') Object.assign(window, {
   shareMoreRowsHtml, shareMoreChosen,
-  participantsPanelHtml, participantRowHtml, participantsWire, participantRoleOptions,
+  participantsPanelHtml, participantRowHtml, participantsWire, participantsAuto, participantAutoOff,
+  participantAutoRowHtml, PT_AUTO_EDIT_ACTIONS, participantRoleOptions,
   participantAccessOptions, participantReachedWord, PT_IN,
   PARTY_SIDES, PARTY_ROLES, PARTY_ROLE_OF, PARTY_ACCESS, PARTY_ACCESS_OF, PARTY_ACCESS_DEFAULT,
   PARTY_PATCH_KEYS, PARTY_PURPOSE_OF,

@@ -369,65 +369,33 @@ describe('F84 — how the contract reads, as three words', () => {
      There is one column now, so there is nothing to switch between — and the
      switch that took its place on the strip is a different question entirely:
      not WHICH LIST am I looking at, but HOW IS THE SAME DOCUMENT DRAWN. */
-  test('three readings, one of them pressed', async () => {
+  /* ---- REVERSED IN PLACE 23 Sep 2026 (Young: "Delete the As agreed and with
+     changes pages from document page and negotiate page") ----
+     Three readings became one. The claims below kept their subject — how the
+     contract reads, and that reading never writes — and now ask it of the one
+     reading left. The other two readings' renderers are kept whole and are
+     still pinned elsewhere (f249, f250); what is gone is every way to reach
+     them from a screen. */
+  test('one reading, and it is pressed', async () => {
     const p = await page();
     const segs = p.$$('.rl-readwrap [data-rl-read]');
-    assert.deepEqual(segs.map(b => b.getAttribute('data-rl-read')),
-      ['marks', 'agreed', 'proposed']);
-    assert.equal(segs.filter(b => b.getAttribute('aria-pressed') === 'true').length, 1,
-      'exactly one is pressed — three readings, not three checkboxes');
+    assert.deepEqual(segs.map(b => b.getAttribute('data-rl-read')), ['marks']);
+    assert.equal(segs.filter(b => b.getAttribute('aria-pressed') === 'true').length, 1);
     assert.equal(p.win.rlReadMode(), 'marks', 'and the ordinary reading is the default');
   });
 
-  /* ---- REVERSED IN PLACE, 24 Aug 2026 (owner-reported: "remove the strip
-     from the top of the contract in both as agreed and with changes pages") ----
-     THE SAFETY CLAIM IS KEPT AND RE-POINTED, which is the whole of this edit:
-     a document quietly missing its strikes looks like a document with nothing
-     on the table, so a non-default reading must still SAY so and must still
-     offer the way back. What moved is where. The band across the top of the
-     contract is gone; the CHANGE COLUMN beside it now greys itself, states that
-     this is a reading, and carries the one way back. */
-  test('a clean reading takes the marks off, and says so', async () => {
+  test('the redline shows its marks, and nothing offers the clean readings', async () => {
     const p = await page();
     assert.ok(p.$('#rl-doc del, #rl-doc .nego-del'), 'redlined shows the strike');
-    assert.equal(p.$('.rl-note-card'), null, 'and owes no explanation');
-    assert.equal(p.$('.rl-side.is-reading'), null, 'the column is live on the redline');
-
-    p.$('[data-rl-read="agreed"]').click();
-    assert.equal(p.win.rlReadMode(), 'agreed');
-    assert.equal(p.$('#rl-doc del, #rl-doc .nego-del'), null,
-      'as agreed: the proposal is not applied and not marked');
-    assert.equal(p.$('#rl-doc ins, #rl-doc .nego-ins'), null);
-    assert.equal(p.$('.rl-note-card'), null,
-      'and the band across the top of the contract is gone');
-    /* THE FACT IS NOT LOST — it is on the column, which is where the reader is
-       being told they cannot act.
-       REVERSED IN PLACE 24 Aug 2026 (WO-14, owner-asked: "delete the strip for
-       now"). The STRIP of words went; the GREYING stayed, which is the half
-       that says a reading cannot be acted on. The way back was never only on
-       the strip — the three reading tabs are drawn on every paint, they are
-       where the reader pressed to get here, and they are what the strip's own
-       button was a proxy for. So the claim is now: the column says it, and the
-       way back is the tab that is always on screen. */
-    assert.ok(p.$('.rl-side.is-reading'), 'a non-default reading says so on the column');
-    assert.equal(p.$('.rl-idx-reading'), null, 'the strip of words is gone (WO-14)');
-    assert.ok(p.$('.rl-tabrow [data-rl-read="marks"]'),
-      'and the way back is the reading tab, drawn on every paint');
-    /* AND NOTHING ON THE PAPER OFFERS TO WRITE. The pencil is the one door
-       into the clause panel, and the panel is where a change is filed. */
-    assert.equal(p.$('.rl-cp-pill'), null, 'no clause offers an edit on a reading');
-
-    p.$('.rl-tabrow [data-rl-read="marks"]').click();
-    assert.equal(p.win.rlReadMode(), 'marks', 'and the way back works');
-    assert.equal(p.$('.rl-side.is-reading'), null);
-    assert.ok(p.$('.rl-cp-pill'), 'and the clause offers its edit again');
+    assert.equal(p.$('[data-rl-read="agreed"]'), null, 'As agreed is gone');
+    assert.equal(p.$('[data-rl-read="proposed"]'), null, 'With changes is gone');
+    assert.equal(p.$('.rl-side.is-reading'), null, 'the column is live');
+    assert.ok(p.$('.rl-cp-pill'), 'and the clause offers its edit');
   });
 
-  test('nothing about the record moves when the reading does', async () => {
+  test('nothing about the record moves when the reading tab is pressed', async () => {
     const p = await page();
     const before = JSON.stringify(p.win.negoChanges(p.c));
-    p.$('[data-rl-read="proposed"]').click();
-    p.$('[data-rl-read="agreed"]').click();
     p.$('[data-rl-read="marks"]').click();
     assert.equal(JSON.stringify(p.win.negoChanges(p.c)), before,
       'a way of reading is not a way of writing');

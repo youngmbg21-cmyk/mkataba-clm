@@ -5424,6 +5424,11 @@ if (typeof document !== 'undefined' && !document._rlRvDocWired){
 const RL_READS = ['marks', 'agreed', 'proposed'];
 let _rlRead = 'marks';
 function rlReadMode(){ return _rlRead; }
+/* THE SWITCH OFFERS 'marks' ALONE since 23 Sep 2026 (see rlReadSegsHtml),
+   and no control anywhere names another reading; the two others stay
+   settable here so their renderers — kept whole, and still pinned by the
+   suite — can be put back with two lines. */
+const RL_READS_OFFERED = ['marks'];
 function rlSetReadMode(v){
   _rlRead = RL_READS.includes(v) ? v : 'marks';
   rlPaintReadSegs();
@@ -6974,8 +6979,7 @@ function rlBaselineHtml(c, cl, side, opts = {}){
     : _ne(i18t('ng_base_eq_agreed'));
   return `<div class="rl-baseline" data-rl-baseline="${_ne(id)}">
     <span><b>${_ne(i18t('ng_base_plain', { n: num }))}</b> = ${plain}</span>
-    <span><b>${_ne(i18t('ng_base_agreed'))}</b> = R0${figOf(b.baseFig)} &middot; <button type="button"
-      data-rl-read="agreed">${_ne(i18t('ng_read_agreed'))}</button></span></div>`;
+    <span><b>${_ne(i18t('ng_base_agreed'))}</b> = R0${figOf(b.baseFig)}</span></div>`;
 }
 /* ---- THE LADDER ITSELF ----
    Newest at the top, which is the History tab's own order and the order a
@@ -7782,9 +7786,15 @@ function rlReadSegsHtml(opts = {}){
     title="${_nea(tip)}">${_ne(label)}${v === 'marks' ? cnt : ''}</button>`;
   return `<div class="rl-segwrap rl-readwrap" role="group" aria-label="${_nea(i18t('ng_read_group'))}"
     title="${_nea(i18t('ng_read_group'))}">${
-    seg('marks', i18t('ng_read_marks'), i18t('ng_read_marks_title'))}${
-    seg('agreed', i18t('ng_read_agreed'), i18t('ng_read_agreed_title'))}${
-    seg('proposed', i18t('ng_read_proposed'), i18t('ng_read_proposed_title'))}</div>`;
+    seg('marks', i18t('ng_read_marks'), i18t('ng_read_marks_title'))}</div>`;
+  /* ---- "AS AGREED" AND "WITH CHANGES" ARE GONE (Young ruled 23 Sep 2026:
+     "Delete the As agreed and with changes pages from document page and
+     negotiate page") ----
+     The redlined reading is the only one on every page that draws this
+     switch — the negotiate page, the clause editor and the counterparty's
+     page — so no two screens disagree about what can be read. The two
+     readings' code is kept whole and unreachable (rlSetReadMode takes
+     nothing but 'marks'); two lines put them back. */
 }
 /* WHICHEVER PAGE IS MOUNTED. #view-redline is the owner's own bench; the
    counterparty reads the same component mounted inside their share page, where
