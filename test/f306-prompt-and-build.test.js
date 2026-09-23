@@ -133,8 +133,13 @@ describe('f306 (3) — one range reader, two callers', () => {
   });
 
   test('the heuristic asks for it by name rather than carrying the patterns', () => {
-    assert.match(PB, /if\(r\.key==='paymentDays'\)\{ const m=pbRangeRead\(r\.key,t\);/);
-    assert.match(PB, /else if\(r\.key==='liabilityMonths'\)\{ const m=pbRangeRead\(r\.key,t\);/);
+    /* RE-POINTED IN PLACE (fix 3, Young's go, 23 Sep 2026: "Prepare redlines
+       checks every standard on Our standards"). The heuristic walks ONE list of
+       standards now — the book's positions with its ranges folded in — so a
+       range is reached as `p.range` rather than off a separate loop. What this
+       claim is about is unchanged: it asks pbRangeRead by name. */
+    assert.match(PB, /if\(p\.range&&p\.range\.key==='paymentDays'\)\{ const r=p\.range, m=pbRangeRead\(r\.key,t\);/);
+    assert.match(PB, /if\(p\.range&&p\.range\.key==='liabilityMonths'\)\{ const r=p\.range, m=pbRangeRead\(r\.key,t\);/);
     /* ONE home, so the two screens cannot drift: each pattern appears exactly
        once in the file, inside the reader. */
     const pay = PB.match(/within\\s\+\(\\d\{1,3\}\)/g) || [];

@@ -1303,6 +1303,8 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       rail: !!(ed && ed.querySelector('.ce-rail')),
       wording: live ? live.innerText.replace(/\s+/g, ' ').trim().length : 0,
       lane: (ed && ed.querySelector('#ce-lane')) ? ed.querySelector('#ce-lane').childElementCount : 0,
+      scope: (() => { const k = ed && ed.querySelector('#ce-scope .ce-scope.is-clause');
+        return k ? k.textContent.replace(/\s+/g, ' ').trim().slice(0, 60) : ''; })(),
       panelHeld: !!document.querySelector('#rl-cp.is-open'),
       dialogs: document.querySelectorAll('.nego-aipop').length,
       modals: document.querySelectorAll('#modal-root *').length };
@@ -1318,9 +1320,15 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('4 with its Copilot rail beside the wording', routed.rail && routed.wording > 20,
     `${routed.wording} characters of standing wording`);
   check('4 and the clause panel is still standing behind it', routed.panelHeld);
+  /* RE-POINTED IN PLACE (fix 5, Young ruled 23 Sep 2026: "one Copilot look —
+     the card always says what Copilot works on; the greeting sentence goes").
+     This read the rail's LANE, which the greeting sentence used to fill; the
+     sentence is gone by the owner's word, so on a clause with nothing settled
+     and nothing asked the lane is rightly empty. What says the hand-over
+     landed ON THE PAGE is the rail's own card naming the whole clause. */
   check('3 the hand-over lands on the page, not in a popover',
-    routed.lane > 0 && routed.dialogs === 0,
-    JSON.stringify({ lane: routed.lane, dialogs: routed.dialogs }));
+    !!routed.scope && routed.dialogs === 0,
+    JSON.stringify({ scope: routed.scope, lane: routed.lane, dialogs: routed.dialogs }));
   check('3 no modal anywhere on the redline route', routed.modals === 0, routed.modals);
   await page.screenshot({ path: path.join(OUT, '04-copilot-panel.png') });
   /* CLOSED AGAIN: it is a fixed layer over the whole window, and every check

@@ -145,7 +145,11 @@ describe('f333 (5) the contract type the record already holds', () => {
     assert.ok(!/resolvePlaybook\(/.test(CT.slice(CT.indexOf('function ktReadingsRowsHtml'), CT.indexOf('function ktDocsRowsHtml'))),
       'the row must not resolve a book of its own');
     const PB = read('js/playbook.js');
-    assert.equal((PB.match(/label:pb\.label/g) || []).length, 2, 'and both branches of the review stamp one');
+    /* RE-POINTED IN PLACE (fix 3, 23 Sep 2026): the review stamps the label of
+       the STANDARDS it checked (pbStandardsFor — the book with the library's
+       positions folded in), so the name is `std.label` now. Both branches still
+       stamp one. */
+    assert.equal((PB.match(/key:std\.key, label:std\.label, verdicts/g) || []).length, 2, 'and both branches of the review stamp one');
   });
 
   test('5d the Overview prints it, borrowed and not computed', () => {

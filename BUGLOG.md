@@ -18967,3 +18967,28 @@ Noticed, not fixed
 - The workbench's read-only reading postures (greyed column, read notice band) are now unreachable from any screen; kept whole, two lines put them back.
 - clause-editor-verify 33h (caret lands on the pressed word) failed once and passed on the rerun — timing, not this change.
 - 39 browser files are red at untouched main today (the same set here, no new failing checks).
+
+## 23 Sep 2026 — seven fixes off one review
+
+On the owner's go ("fix all from 1 through 7 and merge to main"), over the before-and-after preview.
+- 1 Word numbers and spaces: lists reached through a list style or a based-on style, list levels linked to a style, numbered paragraphs inside tables; a list HaTi cannot count through prints no numbers (said on the file strip); a space alone in a bold/underlined run is kept.
+- 2 A page banner ("PAGE 1 OF 4: …") over numbered clauses rides with the clause after it as a quiet title; a contract already stamped keeps its split; Re-read on an un-negotiated one adopts the new one.
+- 3 Prepare redlines checks every standard on Our standards; a cut-short or empty answer is refused and never saved; "every standard is met" only over a finished check; each result names the count checked; "does not apply" is its own answer.
+- 4 A highlight in the parties block offers Ask · Edit · Comment; across two clauses Ask · Comment only, and Ask opens the editing Copilot on the first clause.
+- 5 The editor's Copilot card always says what it works on (clause, your words, a question, the whole contract); the greeting sentence is gone; whole-contract mode hands Copilot the whole contract for that message.
+- 6 Plain English keeps each clause as it is read, runs as a job the page can leave, retries a failed page once, and a later press asks only for what is missing or moved; the column opens at once with "Reading N of M".
+- 7 The negotiate page's line under the title names the contract's own governing law (nothing when unread), never the workspace's market.
+
+- Verified on the owner's real Maersk file (attached at the end of the run): main numbered the project schedule's headings wrong — "48.2 Completion of performance of Project Phase" is 57.2 in Word, because the "Ikke med" style inherits Heading 1's numbering through basedOn. The branch reads 57.2.
+
+Gates: lint 0 errors, 214 warnings (the same as main). Full suite: 8,997 tests, 2 failed — f277 (1) and (10), both red on untouched main. New: f370–f374 all green (f373 18 of 20 red at main, f374 6 of 6). Browser: the whole set run once — 39 of 136 red, and every one of the 39 is red on untouched main with the SAME failing checks (compared check by check); upload-structure-verify has 5 fewer failing checks than main. New browser files green: one-copilot-verify 16/16, reading-in-the-background-verify 16/16. Re-pointed in place with the ruling beside each: f203 (who is named through aiWho), f306 (3) and f333 (5e) (fix 3's one list), f230, f245, f304, f96, f148, f277, f300, f315 (4 REVERSED), f364, f367, plain-english-verify 9, clause-editor-verify (the passage-card probes), redline-verify 3.
+
+Noticed, not fixed
+- Templates → Convert a document cannot take a long document: it sends the whole text in ONE Copilot call (max 8,192 output tokens, 2-minute timeout, retried once) and asks for the whole template back. The owner's SaaS agreement (~31,000 words, 205,000 characters, 51 tables) timed out twice; with more time the answer would still be cut off.
+- tplExtractionText (server) silently cuts a Word file to its first 60,000 characters before the converter sees it — a silent trim, against the standing rule.
+- The contract delete route removes briefs and renewal advice but not the whole-edition Plain English row (clause_readings); the per-clause rows added today are removed.
+- Server approval rule reads v.verdict === 'deviation' (the stored field is status) — the rule can never fire.
+- playbookKeyFor checks the generic "services" pattern before the logistics words, so a Warehousing and Logistics Services agreement takes the services book.
+- On the negotiate page a final page banner with no clause after it is not drawn (it stays in the document).
+- Contracts read in Plain English before today carry no per-clause readings, so the first wording change after the deploy re-reads them once in full.
+- Still red on untouched main (unchanged here): f277 (1)/(10), plain-english-verify 10c, redline-verify 5, notes-two-rooms-verify (2 checks), competing-redlines-verify ("a legacy clause names BOTH asks"), and the 33 other browser files listed in the run.

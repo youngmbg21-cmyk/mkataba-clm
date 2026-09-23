@@ -6175,8 +6175,6 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
   const J = orgJx();
   const LANG = READ_LANGS[lang];
   const promptFor = body => `You are writing a plain-English edition of a contract for a business owner who has no lawyer and no legal training, under ${J.adjective} law. It is set out beside the agreement, clause for clause: every row below gets its own entry, and the reader's eye moves between the two. DO NOT WRITE HEADINGS — each entry is drawn under the contract's OWN heading and number, so a heading of yours would be a second name for one clause. Return them through clause_readings.\n\nThe key in brackets is the row's address for your answer. It is not the clause number, which is part of the heading and is the contract's own.\n\nWRITE EVERY ENTRY IN ${LANG}, whatever language the contract itself is written in — the reader's own language is what this is for.\n\n${READ_PLAIN_RULE}\n\nTHE CONTRACT:\n${body}`;
-  const who = aiWho(req);
-
   const job = { id: String(id), inputHash, total: list.length, log: [], done: new Set(), running: true, runs: new Set() };
   if (run) { job.runs.add(run); _readRuns.set(run, job); }
   _readJobs.set(jobKey, job);
@@ -6195,7 +6193,7 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
        page and the page is treated as one that failed — which is what gets it
        asked again. */
     const askPage = async pg => {
-      const resp = await anthropicMessages(key, 'deep', { max_tokens: 8000, tools: [tool], tool_choice: { type: 'tool', name: 'clause_readings' }, messages: [{ role: 'user', content: promptFor(pg.body) }] }, { feature: 'readings', who });
+      const resp = await anthropicMessages(key, 'deep', { max_tokens: 8000, tools: [tool], tool_choice: { type: 'tool', name: 'clause_readings' }, messages: [{ role: 'user', content: promptFor(pg.body) }] }, { feature: 'readings', who: aiWho(req) });
       if (!resp.ok) return { err: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) };
       const block = (resp.data.content || []).find(b => b.type === 'tool_use' && b.name === 'clause_readings');
       if (!block) return { err: 'Copilot returned no structured result' };
