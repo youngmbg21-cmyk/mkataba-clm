@@ -18952,3 +18952,18 @@ On the owner's word. Its lead "Received a contract instead?" went with it (it na
 Noticed, not fixed
 - The note above openNewAgreement in js/wizard.js still calls upload and import "the quiet pair at the foot of the left pane (Upload also sits beside New agreement on Contracts)" — stale since main's two doors. A comment, not code; the rulebook's copy of the sentence was updated.
 - term-and-fields-verify (5 checks) and paper-beside-questions-verify 7c/7g fail identically on untouched main (already logged).
+
+## 23 Sep 2026 — nine off the owner's list
+
+- Plain English on a long Word contract: "56 clauses could not be matched". Every page was answered; each answer had to echo its heading exactly and the model tidies what it copies. The echo is now a sense check against the whole list (only a SHIFT is refused), and unpaired clauses are re-asked once by themselves.
+- The Document tab remembered X-ray/Plain English for ever; it now lands on Contract View on every arrival.
+- X-ray map: grey (unmarked) blocks removed; the panel still lists every clause. The X-ray panel now follows the text size.
+- "Send to counterparty" removed (Share is the one door). "As agreed" / "With changes" removed from every switch (negotiate, clause editor, counterparty page); their renderers kept and still tested.
+- The role dropdown closed when its own list scrolled (capture-phase page-scroll listener). Our party row shows the contract owner's email; City removed from the party form and row.
+- "Who else is on this agreement" now lists, automatically, colleagues who filed a change, edited the wording or approved (a reading; taking one off is remembered).
+- Browser checks re-pointed in place to these rulings: runway-and-xray 4e/7b, long-contract 3 (stage now marks every clause), duty-marks 7b, keyboard-reach 11, ladder 17c, clause-editor 12d/12e/12n, pages-read-alike 3, counterparty-reading-and-more 1/12, nego-redesign 2; f84, f172, f300 (2)(4).
+
+Noticed, not fixed
+- The workbench's read-only reading postures (greyed column, read notice band) are now unreachable from any screen; kept whole, two lines put them back.
+- clause-editor-verify 33h (caret lands on the pressed word) failed once and passed on the rerun — timing, not this change.
+- 39 browser files are red at untouched main today (the same set here, no new failing checks).

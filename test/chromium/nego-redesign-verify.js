@@ -278,8 +278,9 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        (re-pointed 20 Sep 2026, when the redesign order moved --t-body to
        13px and this line went red for the wrong reason). */
     const bodyPx = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--t-body').trim());
-    check('2 the three readings are tabs at the body rung, full height of the bar',
-      tabs.segs.length === 3 && tabs.segs.every(s => s.size === bodyPx && s.h >= 40),
+    /* RE-POINTED IN PLACE 23 Sep 2026 (Young: "Delete the As agreed and with changes pages"): the switch offers the redline alone, on every page that draws it. */
+    check('2 the reading is a tab at the body rung, full height of the bar',
+      tabs.segs.length === 1 && tabs.segs.every(s => s.size === bodyPx && s.h >= 40),
       tabs.segs.map(s => `${s.t} ${s.size}/${s.h}px`).join(', ') + ` (body ${bodyPx})`);
     /* THE MARK IS THE UNDERLINE, and the pill it replaced is gone: a raised
        white chip on a grey tray was the OLD control, and both at once would be

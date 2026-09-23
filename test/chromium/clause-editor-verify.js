@@ -839,9 +839,12 @@ const dismissNote = async pg => {
         .map(b => b.getAttribute('data-rl-read')),
       seg: bs.every(b => /rl-seg/.test(b.className)) };
   });
-  ck('12d the three readings are the product\'s OWN builder, in its third home',
-     !!segs && segs.n === 3 && segs.seg
-       && segs.vals.join(',') === 'marks,agreed,proposed' && segs.on.join(',') === 'marks',
+  /* RE-POINTED IN PLACE 23 Sep 2026 (Young: "Delete the As agreed and with
+     changes pages"): the builder is still the product's own, and draws the
+     redline alone in every home. */
+  ck('12d the reading switch is the product\'s OWN builder, in its third home, and offers the redline alone',
+     !!segs && segs.n === 1 && segs.seg
+       && segs.vals.join(',') === 'marks' && segs.on.join(',') === 'marks',
      segs && `${segs.n} tabs ${JSON.stringify(segs.vals)}, live ${JSON.stringify(segs.on)}`);
 
   /* MEASURED ON THE LIVE CLAUSE, not on the whole document. A SETTLED change
@@ -852,7 +855,15 @@ const dismissNote = async pg => {
   const marksBefore = await p.evaluate(() =>
     document.querySelectorAll('.rl-clause-live ins, .rl-clause-live .nego-ins,'
       + ' .rl-clause-live del, .rl-clause-live .nego-del').length);
-  await p.click('#clause-editor [data-rl-read="agreed"]');
+  /* RE-POINTED IN PLACE 23 Sep 2026 (Young: "Delete the As agreed and with
+     changes pages"): no screen offers the press any more. The posture below
+     is still built, so it is reached through the page's OWN handler with a
+     press the test supplies — what is measured is unchanged. */
+  await p.evaluate(() => {
+    const b = document.createElement('button');
+    b.setAttribute('data-rl-read', 'agreed'); b.style.display = 'none';
+    document.getElementById('clause-editor').appendChild(b); b.click(); b.remove();
+  });
   await pause(500);
   const agreed = await p.evaluate(() => {
     const page = document.getElementById('clause-editor');
@@ -1007,7 +1018,11 @@ const dismissNote = async pg => {
   });
   ck('12n leaving on a clean reading leaves the page underneath IN STEP — its '
      + 'tabs and its document say the same thing',
-     under.mode === 'agreed' && under.tabOn === 'true' && under.pencils === 0,
+     /* RE-POINTED IN PLACE 23 Sep 2026: there is no As agreed tab left to
+        light (Young: "Delete the As agreed and with changes pages"), so the
+        page is in step when its document follows the reading — no tab says
+        otherwise, and the pencils stand down. */
+     under.mode === 'agreed' && under.tabOn === null && under.pencils === 0,
      `mode ${under.mode}, tab ${under.tabOn}, pencils ${under.pencils}`);
   await p.evaluate(() => { if (window.rlSetReadMode) rlSetReadMode('marks'); if (window.renderRedline) renderRedline(); });
   await pause(500);

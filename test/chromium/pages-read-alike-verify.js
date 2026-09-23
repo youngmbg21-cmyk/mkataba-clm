@@ -266,13 +266,20 @@ const SEED = async () => {
       room.h1.fw === nego.h1.fw, { room: room.h1.fw, nego: nego.h1.fw });
 
     /* ---- 3 · THE TWO TAB ROWS READ ALIKE ---- */
-    check('3 both rows really drew', room.tabs >= 3 && nego.segs >= 3,
+    /* RE-POINTED IN PLACE 23 Sep 2026: the negotiate page's reading switch
+       offers the redline alone now (As agreed and With changes are gone). */
+    check('3 both rows really drew', room.tabs >= 3 && nego.segs >= 1,
       { room: room.tabs, nego: nego.segs });
-    check('3 a resting tab is the same ink',
-      room.rest.c === nego.rest.c, { room: room.rest.c, nego: nego.rest.c });
-    check('3 resting size and weight agree',
-      room.rest.fs === nego.rest.fs && room.rest.fw === nego.rest.fw,
-      { room: room.rest, nego: nego.rest });
+    /* A RESTING TAB NEEDS TWO: with one reading offered the negotiate row has
+       no resting tab left to compare (23 Sep 2026), so these two are asked
+       only where there is one, and the live tab below still is. */
+    if (nego.rest) {
+      check('3 a resting tab is the same ink',
+        room.rest.c === nego.rest.c, { room: room.rest.c, nego: nego.rest.c });
+      check('3 resting size and weight agree',
+        room.rest.fs === nego.rest.fs && room.rest.fw === nego.rest.fw,
+        { room: room.rest, nego: nego.rest });
+    }
     check('3 and the live tab agrees on all three',
       room.on.c === nego.on.c && room.on.fw === nego.on.fw && room.on.fs === nego.on.fs,
       { room: room.on, nego: nego.on });

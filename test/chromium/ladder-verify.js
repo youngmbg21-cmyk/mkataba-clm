@@ -423,11 +423,10 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
   }, { c4: staged.c4, c5: staged.c5 });
   check('17a the stacked clause carries the line naming what the plain words are', base17.seen && /Plain text on clause/.test(base17.text) && /R0/.test(base17.text), base17.text);
   check('17b a lone ask carries no line', !base17.lone);
-  check('17c its "As agreed" is a real press onto the reading', base17.press);
-  await page.click(`.rl-baseline[data-rl-baseline="${staged.c4}"] [data-rl-read="agreed"]`); await pause(400);
-  const read17 = await page.evaluate(() => ({ mode: rlReadMode(), lines: document.querySelectorAll('.rl-baseline').length }));
-  check('17d pressing it reads the paper as agreed, and the line stands down with the marks', read17.mode === 'agreed' && read17.lines === 0, JSON.stringify(read17));
-  await page.click('[data-rl-read="marks"]'); await pause(400);
+  /* REVERSED IN PLACE 23 Sep 2026 (Young: "Delete the As agreed and with
+     changes pages"): the line still says what the plain words are and what was
+     agreed, and no longer offers a press onto a reading that is gone. */
+  check('17c the line offers no "As agreed" press', !base17.press);
 
   /* 18 · the column: one row per argument, the verbs on the face, the track */
   const col18 = await page.evaluate(o => {

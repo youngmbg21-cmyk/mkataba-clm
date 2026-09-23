@@ -103,8 +103,9 @@ const PAPER = `(() => {
       return { box: s(wrap),
         segs: [...document.querySelectorAll('#view-redline .rl-readwrap .rl-seg')].map(b => b.textContent.trim()) };
     }, [SEEN]);
-    check('12 the owner\'s own reading switch is untouched — three segments, still drawn',
-      ownerBefore.box && ownerBefore.box.on && ownerBefore.segs.length === 3,
+    /* RE-POINTED IN PLACE 23 Sep 2026 (Young: "Delete the As agreed and with changes pages"): the switch offers the redline alone, on every page that draws it. */
+    check('12 the owner\'s own reading switch is untouched — one segment, still drawn',
+      ownerBefore.box && ownerBefore.box.on && ownerBefore.segs.length === 1,
       JSON.stringify(ownerBefore.segs));
 
     await page.evaluate(() => window.SHOW_COUNTERPARTY());
@@ -124,7 +125,8 @@ const PAPER = `(() => {
     }, [SEEN]);
     check('1 THE READING SWITCH IS IN THEIR HEADER, as visible pixels',
       sw.box && sw.box.on && sw.inHead, JSON.stringify(sw.box));
-    check('1 three segments, each drawn', sw.labels.length === 3
+    /* RE-POINTED IN PLACE 23 Sep 2026 (Young: "Delete the As agreed and with changes pages"): the switch offers the redline alone, on every page that draws it. */
+    check('1 one segment, drawn', sw.labels.length === 1
       && sw.boxes.every(b => b && b.on), JSON.stringify(sw.labels));
     check('1 exactly one of them reads as chosen',
       sw.pressed.filter(x => x === 'true').length === 1, JSON.stringify(sw.pressed));
