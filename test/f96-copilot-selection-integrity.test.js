@@ -682,11 +682,19 @@ describe('F96 (B8) — the front matter, and the silence that is now correct', (
     const { menu, passage } = p.readSel(recital, 'Between the parties');
     assert.equal(passage.clauseIds.length, 0, 'front matter belongs to no clause');
     /* RE-POINTED AGAIN 11 Sep 2026 (round three): the front matter offers Ask
-       Copilot and Comment (anchored to the front region); never Edit. The
-       silence was a fault under the owner's principle. */
+       Copilot and Comment (anchored to the front region). The silence was a
+       fault under the owner's principle.
+       AND ON 23 SEP 2026 (fix 4, Young, off his parties block: "you can't edit
+       with copilot because it is missing") the recital is the FRONT REGION's
+       own words, which the change model has addressed since 28 Aug — so it is
+       offered what a clause's own words are, Edit included, wherever the page
+       has the editor to open. It is still not a CLAUSE: the reading above
+       names none. */
     assert.ok(menu, 'the front matter is offered on');
     const verbs = [...menu.querySelectorAll('[data-nego-ai]')].map(b => b.getAttribute('data-nego-ai'));
-    assert.ok(!verbs.includes('edit'), 'never Edit outside a clause');
+    const editorHere = typeof p.win.rlEditorTakesIt === 'function' && typeof p.win.rlOpenClauseEditor === 'function'
+      && p.win.rlEditorTakesIt('owner', {});
+    assert.equal(verbs.includes('edit'), editorHere, 'Edit exactly where the editor can open on the front region');
     assert.ok(verbs.includes('ask'), 'Ask Copilot is offered');
     assert.equal(p.$$('.nego-selnote').length, 0,
       'no explanation in a floating note — the menu is the answer');

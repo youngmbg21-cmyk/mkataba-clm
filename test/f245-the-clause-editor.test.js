@@ -502,12 +502,20 @@ describe('f245 (16) — the highlighted passage goes to the rail, and it files n
     assert.match(r[0], /data-ce-act="scope-off"/, 'a way to let the passage go');
     assert.match(r[0], /data-ce-act="scope-cut"/,
       'and the strip\'s own delete verb, which had no other home in the product');
-    assert.match(r[0], /box\.innerHTML = ''/, 'and it draws nothing when nothing is attached');
+    /* ---- REVERSED IN PLACE 23 Sep 2026 (fix 5, Young: "one Copilot look")
+       ---- This pinned "it draws nothing when nothing is attached", which is
+       why the pencil opened a greeting and a highlight a card — one Copilot in
+       two looks. The card ALWAYS says what Copilot is working on now: with
+       nothing attached that is the WHOLE CLAUSE, and after the ✕ the whole
+       contract. */
+    assert.match(r[0], /class="ce-scope is-clause"/, 'with nothing attached it holds the whole clause');
+    assert.match(r[0], /class="ce-scope is-whole"/, 'and after the ✕, the whole contract');
     /* THE ASK BOX STATES THE NARROWING BY BEING SET TO IT — the WHOSE ASKS
        rule, on a placeholder. */
     /* RE-POINTED 11 Sep 2026 (evening): the placeholder also says which VERB
-       the passage is held under — a question or an edit. */
-    assert.match(r[0], /ask\.placeholder = _cet\(sel \? \(asking \? 'ce_ask_ph_question' : 'ce_ask_ph_passage'\) : 'ce_ask_ph'\)/,
+       the passage is held under — a question or an edit. And since fix 5 it
+       names the other two things the card can hold. */
+    assert.match(r[0], /ask\.placeholder = _cet\(\{ ask: 'ce_ask_ph_question', edit: 'ce_ask_ph_passage',\s*contract: 'ce_ask_ph_contract', clause: 'ce_ask_ph_clause' \}\[state\]\)/,
       'and the box says what it is for');
   });
 
@@ -2890,7 +2898,10 @@ describe('f245 (25) — the page may not hide a proposed deletion', () => {
     /* 5.2 — Accept and Reject exist, on the card in the change column, and they
        work. Mirroring them here would be a second door onto an act that already
        has one. What the edit page owes the reader is the READING. */
-    assert.ok(!/negoResolve/.test(CODE),
+    /* The decide funnel by NAME (23 Sep 2026): the whole-contract question
+       reads negoResolvedText — the agreed wording, a READING — whose name
+       begins with the funnel's. This asks for the funnel itself. */
+    assert.ok(!/negoResolve(?!d)/.test(CODE),
       'the clause editor does not so much as mention the decide funnel');
   });
 

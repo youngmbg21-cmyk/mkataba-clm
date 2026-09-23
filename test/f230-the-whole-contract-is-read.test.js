@@ -102,7 +102,11 @@ describe('F230 — the whole contract is read', () => {
        goes in the body — the check one test up already fails on any slice. */
     assert.match(OBLIG, /api\('ai\/obligations','POST',\{ text \}/);
     assert.match(AI, /api\('ai\/brief','POST',\{ id:c\.id, text:String\(text\|\|''\), force/);
-    assert.match(PLAYBOOK, /api\('ai\/playbook','POST',\{ text, playbook:pb/);
+    /* Re-pointed 23 Sep 2026: the check now sends EVERY standard on Our
+       standards (the library's positions folded with the book's), so the
+       second key is no longer the bare book `pb`. What this claim is about —
+       the WHOLE `text` as the first key of the body — is unchanged. */
+    assert.match(PLAYBOOK, /api\('ai\/playbook','POST',\{ text,\s*playbook:/);
     /* Renewal is server-built and never had a browser half — and since the
        working core was lifted out of its route (9 Sep 2026) the wording is READ
        at the route and HANDED to the builder, so the two halves are asserted as

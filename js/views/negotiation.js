@@ -4632,7 +4632,7 @@ function wireNegotiationTab(c, opts = {}){
            paper has one). Never Edit: the editor opens on a clause. F96 (B8)'s
            silence is re-pointed. */
         if (onPaper){
-          rlPaperOfferFromRange({ c, opts, side, passage, text, rect,
+          rlPaperOfferFromRange({ c, opts, side, passage, text, rect, inFront: rlSelInFront(sel),
             openEditor: (typeof openEditor === 'function') ? openEditor : null });
           return;
         }
@@ -4674,7 +4674,7 @@ function wireNegotiationTab(c, opts = {}){
            (B8b)); silence on a highlight is a fault now. ONE reading for both
            papers — this one and the clause editor's — decides what is offered
            on what: rlPaperOfferFromRange. */
-        rlPaperOfferFromRange({ c, opts, side, passage, text, rect,
+        rlPaperOfferFromRange({ c, opts, side, passage, text, rect, inFront: rlSelInFront(sel),
           openEditor: (typeof openEditor === 'function') ? openEditor : null });
         return;
       }
@@ -16655,6 +16655,14 @@ function rlNoteFromSelection(c, sel, opts = {}){
        the editor opens on one clause (said to the owner, who may rule
        otherwise);
      · their seat: Comment alone. */
+/* Do BOTH ends of this selection sit in the paper's own head — its title
+   block or the recital under it? That is the front region's wording (fix 4). */
+function rlSelInFront(sel){
+  if (!sel) return false;
+  const el = n => (n ? (n.nodeType === 1 ? n : n.parentElement) : null);
+  const inHead = n => { const e = el(n); return !!(e && e.closest && e.closest('.rl-paper-head, .rl-recital')); };
+  return inHead(sel.anchorNode) && inHead(sel.focusNode);
+}
 function rlPaperOfferFromRange(ctx){
   const { c, opts, side, passage, text, rect, openEditor } = ctx;
   if (!c || !passage || !rect) return false;
@@ -16678,8 +16686,19 @@ function rlPaperOfferFromRange(ctx){
   const fold = t => String(t || '').replace(/\s+/g, ' ').trim();
   let whole = fold(text);
   if (spilt && whole.endsWith(fold(spilt))) whole = whole.slice(0, whole.length - fold(spilt).length).trim();
-  const single = ps.length === 1 && fold(ps[0].text) === whole;
   const frontCl = (typeof negoFrontClause === 'function') ? negoFrontClause(c) : null;
+  /* ---- THE PARTIES BLOCK IS ONE REGION, AND IT IS EDITABLE (Young ruled it
+     23 Sep 2026, fix 4 of seven) ----
+     The recital under the title — who the parties are — is drawn BESIDE the
+     front region's header rather than inside it, so a highlight there touched
+     no [data-clause] at all and was offered only Ask and Comment: the owner's
+     screenshot. The front matter has been a region the change model can
+     address since 28 Aug, and the clause editor opens on it; a highlight whose
+     both ends sit in the paper's head or its recital is that region's own
+     words, so it is offered exactly what a clause's own words are. */
+  if (ctx.inFront && frontCl && ps.length <= 1 && (!ps.length || String(ps[0].clauseId) === String(frontCl.clauseId)))
+    ps = [{ clauseId: frontCl.clauseId, text: whole }];
+  const single = ps.length === 1 && fold(ps[0].text) === whole;
   const words = single ? String(ps[0].text || '').replace(/[ \t]+\n/g, '\n').trim() : String(text || '').trim();
   /* THE ONE FLOOR, AND IT IS EMPTINESS. See the note at the paper's mouseup:
      three characters refused "by" and "PO" while the clause editor offered on
@@ -16689,8 +16708,12 @@ function rlPaperOfferFromRange(ctx){
   if (!words.length) return false;
   const commentClauseId = ps.length ? ps[0].clauseId : (frontCl ? frontCl.clauseId : null);
   const commentQuote = ps.length ? String(ps[0].text || '').trim() : words;
+  /* WHERE A QUESTION ABOUT WIDER WORDS OPENS THE EDITING COPILOT (fix 4): on
+     the first clause the highlight touches, or the front region. Never where
+     the words are ONE clause's own — that is `single`, which edits. */
+  const askAt = commentClauseId || null;
   return rlPaperSelOffer({ c, opts, side, text: words, clauseId: single ? ps[0].clauseId : null, rect,
-    openEditor: single ? openEditor : null, commentClauseId, commentQuote });
+    openEditor, askAt, commentClauseId, commentQuote });
 }
 /* A QUESTION ABOUT ANY WORDS goes to the Copilot panel — the Document tab's
    own door (docAiRead, through window), one composer, the passage on the
@@ -16714,8 +16737,9 @@ function rlPaperSelOffer(ctx){
      Copilot verbs land in the clause editor through its one door, the verb
      riding as passageMode; wider than one clause Ask goes to the panel and
      Edit is not offered (rlPaperOfferFromRange says why). */
-  const single = !!(clauseId && typeof ctx.openEditor === 'function'
+  const takes = !!(typeof ctx.openEditor === 'function'
     && window.rlEditorTakesIt && rlEditorTakesIt(side, opts || {}));
+  const single = !!(clauseId && takes);
   if (!theirs) acts.push({ id: 'ask', label: i18t('ng_sel_ask') });
   if (!theirs && single) acts.push({ id: 'edit', label: i18t('ng_sel_edit') });
   const cqId = ctx.commentClauseId || clauseId || null;
@@ -16728,6 +16752,19 @@ function rlPaperSelOffer(ctx){
     }
     if (single && (a.id === 'edit' || a.id === 'ask')){
       ctx.openEditor(clauseId, { passage: text, passageMode: a.id === 'ask' ? 'ask' : 'edit' });
+      return;
+    }
+    /* ---- ASK COPILOT IS THE EDITING COPILOT, WHATEVER WAS HIGHLIGHTED (fix 4,
+       23 Sep 2026) ----
+       Across two clauses it opened the main HaTi chat, a different Copilot in
+       a different place, and the owner asked for the one that works on the
+       contract. It opens the clause editor on the first clause the words
+       touch, holding them as a QUESTION — nothing across two clauses is ever
+       edited (the owner's decision), so the words ride loose rather than being
+       found in one clause's box. Where the editor cannot open (a narrow
+       window) the panel still answers, as it did. */
+    if (a.id === 'ask' && takes && ctx.askAt){
+      ctx.openEditor(ctx.askAt, { passage: text, passageMode: 'ask' });
       return;
     }
     rlAskCopilotPanel(c, text);
@@ -19888,7 +19925,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlNoteDialogHtml, openChangeNoteDialog, rlNoteAskAfterFile,
   rlNotesPin, rlNotesUnpin, rlNotesPinned, rlNotesPanelClosed, rlNpPinFor, negoWhenFull, rlNpClauseLabel,
   rlNpThreadHtml, rlNpListHtml, rlNpPinHtml, rlChatThreads, rlNpWireActs, rlNpSetDone, rlNpShowFocused,
-  rlNoteFromSelection, rlPaperSelOffer, rlPaperOfferFromRange, rlAskCopilotPanel, rlPaintNoteMarks, rlRepaintNoteMarks, rlNpNoteByKey, rlWrapWords, negoNoteMeta,
+  rlNoteFromSelection, rlPaperSelOffer, rlPaperOfferFromRange, rlSelInFront, rlAskCopilotPanel, rlPaintNoteMarks, rlRepaintNoteMarks, rlNpNoteByKey, rlWrapWords, negoNoteMeta,
   rlChatRows, rlChatPanelHtml, rlChatPanelPaint,
   negoPostToChannel, negoNotifyMentions, negoMentionLine, rlNotesPanelHtml, rlNotesPanelPaint, rlWireNotesPanel,
   rlNpTagMenuHtml, rlNpTagWire, rlNpMarkMentions, rlTagInk,

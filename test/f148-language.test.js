@@ -100,6 +100,7 @@ const SAME_IN_BOTH = new Set([
   'ce_prompt_ask',
   'ce_prompt_passage',
   'ce_prompt_question',   // the Ask verb's own prompt (11 Sep 2026, evening)
+  'ce_prompt_contract',   // the whole-contract question's prompt (fix 5, 23 Sep 2026)
   /* A LABEL THAT IS ALSO A RECORD KEEPS ENGLISH — this file's own standing
      rule. ce_provenance is written onto the change as its note and is read by
      whoever opens the trail, in whatever language they work in. */

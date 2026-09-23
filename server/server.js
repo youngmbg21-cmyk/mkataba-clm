@@ -8045,12 +8045,13 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
   const { messages, context } = req.body || {};
+  const wholeDoc = !!(context && typeof context === 'object' && context.wholeDoc === true);
   if (!Array.isArray(messages) || !messages.length) return res.status(400).json({ error: 'messages are required' });
   const cx = copilotCtx(req);
   // Keep only clean user/assistant text turns; cap history and per-turn size.
   const convo = messages
     .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
-    .slice(-10).map(m => {
+    .slice(-10).map((m, i, arr) => {
       /* ---- THE PER-TURN CAP IS NOT SMALLER THAN THE THING IT CARRIES ----
          4,000 characters silently cut every message, breaking a promise the
          product makes in writing elsewhere: "the FULL passage reaches the model
@@ -8061,8 +8062,16 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
          any real passage and far under the document ceiling, and the cut is now
          a FACT rather than a silent trim: aiInputCapped is what aiNotice turns
          into a sentence, and both chat routes already fold that in. */
-      if (m.content.length > COPILOT_TURN_CHARS) req.aiInputCapped = true;
-      return { role: m.role, content: m.content.slice(0, COPILOT_TURN_CHARS) };
+      /* ---- A QUESTION ABOUT THE WHOLE CONTRACT CARRIES THE WHOLE CONTRACT
+         (fix 5, 23 Sep 2026) ----
+         The clause editor's whole-contract mode sends the contract as ONE
+         message and says so (context.wholeDoc). That one message — the last,
+         the question — takes the DOCUMENT ceiling every other single-document
+         reading takes (aiDocChars), not the per-turn one; the history before
+         it keeps the per-turn cap, and a cut is still a fact. */
+      const cap = (wholeDoc && i === arr.length - 1 && m.role === 'user') ? aiDocChars() : COPILOT_TURN_CHARS;
+      if (m.content.length > cap) req.aiInputCapped = true;
+      return { role: m.role, content: m.content.slice(0, cap) };
     });
   if (!convo.length || convo[convo.length - 1].role !== 'user') return res.status(400).json({ error: 'the last message must be from the user' });
 
@@ -8343,11 +8352,12 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
   const { messages, context } = req.body || {};
+  const wholeDoc = !!(context && typeof context === 'object' && context.wholeDoc === true);
   if (!Array.isArray(messages) || !messages.length) return res.status(400).json({ error: 'messages are required' });
   const cx = copilotCtx(req);
   const convo = messages
     .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
-    .slice(-10).map(m => {
+    .slice(-10).map((m, i, arr) => {
       /* ---- THE PER-TURN CAP IS NOT SMALLER THAN THE THING IT CARRIES ----
          4,000 characters silently cut every message, breaking a promise the
          product makes in writing elsewhere: "the FULL passage reaches the model
@@ -8358,8 +8368,16 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
          any real passage and far under the document ceiling, and the cut is now
          a FACT rather than a silent trim: aiInputCapped is what aiNotice turns
          into a sentence, and both chat routes already fold that in. */
-      if (m.content.length > COPILOT_TURN_CHARS) req.aiInputCapped = true;
-      return { role: m.role, content: m.content.slice(0, COPILOT_TURN_CHARS) };
+      /* ---- A QUESTION ABOUT THE WHOLE CONTRACT CARRIES THE WHOLE CONTRACT
+         (fix 5, 23 Sep 2026) ----
+         The clause editor's whole-contract mode sends the contract as ONE
+         message and says so (context.wholeDoc). That one message — the last,
+         the question — takes the DOCUMENT ceiling every other single-document
+         reading takes (aiDocChars), not the per-turn one; the history before
+         it keeps the per-turn cap, and a cut is still a fact. */
+      const cap = (wholeDoc && i === arr.length - 1 && m.role === 'user') ? aiDocChars() : COPILOT_TURN_CHARS;
+      if (m.content.length > cap) req.aiInputCapped = true;
+      return { role: m.role, content: m.content.slice(0, cap) };
     });
   if (!convo.length || convo[convo.length - 1].role !== 'user') return res.status(400).json({ error: 'the last message must be from the user' });
 

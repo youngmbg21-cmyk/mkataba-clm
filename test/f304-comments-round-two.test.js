@@ -305,7 +305,9 @@ describe('f304 (5) — a selection across two sub-paragraphs is one passage', ()
     assert.ok(p.win.document.querySelector('#ce-scope .ce-scope.is-asking'));
     assert.equal(p.win.document.querySelector('#ce-ask').placeholder, p.win.i18t('ce_ask_ph_question'));
     assert.ok(!/data-ce-apply/.test(p.win.ceCardHtml({ text: 'x', mode: 'ask' }, 0, 0)), 'an ask card offers no Apply');
-    assert.match(CE, /ask: _cet\(asking \? 'ce_prompt_question' : scope \? 'ce_prompt_passage' : 'ce_prompt_ask'\)/,
+    /* RE-POINTED 23 Sep 2026 (fix 5): the whole contract is a question too,
+       and it asks first — a passage-free ask after the ✕. */
+    assert.match(CE, /ask: _cet\(whole \? 'ce_prompt_contract' : asking \? 'ce_prompt_question' : scope \? 'ce_prompt_passage' : 'ce_prompt_ask'\)/,
       'the prompt asks for an explanation, not a rewrite');
     p.win.rlCloseClauseEditor();
   });
@@ -490,7 +492,13 @@ describe('f304 (9) — round three: every highlight offers, on both papers', () 
     assert.equal(opened[0].id, p.cl7.clauseId); assert.equal(opened[0].o.passageMode, 'ask');
   });
 
-  test('across two clauses: Ask (the Copilot panel) · Comment (the first clause’s share) — never Edit', async () => {
+  /* ---- REVERSED IN PLACE 23 Sep 2026 (fix 4, Young: Ask Copilot "brings up
+     the main hati copilot chatbot instead of taking me to the copilot that
+     edits contracts") ----
+     Across two clauses Ask opened the Copilot PANEL — the main chat. It opens
+     the editing Copilot now, on the first clause the words touch, holding them
+     as a question. Never Edit across two clauses stands: the owner's decision. */
+  test('across two clauses: Ask (the editing Copilot, as a question) · Comment (the first clause’s share) — never Edit', async () => {
     const p = await bench(); wide(p.win);
     const asked = []; p.win.docAiRead = (c, a, t) => { asked.push(t); };
     const opened = [];
@@ -498,7 +506,11 @@ describe('f304 (9) — round three: every highlight offers, on both papers', () 
       passage: partsOf(p, [p.cl7.clauseId, 'cl_8'], ['loss.', 'Two years']), openEditor: (id, o) => opened.push({ id, o }) });
     same(menu.actions.map(a => a.id), ['ask', 'comment']);
     menu.onPick({ id: 'ask' });
-    same(asked, ['loss.\nTwo years']); assert.equal(opened.length, 0);
+    assert.equal(asked.length, 0, 'not the main chat');
+    assert.equal(opened.length, 1);
+    assert.equal(opened[0].id, p.cl7.clauseId, 'on the first clause the words touch');
+    assert.equal(opened[0].o.passageMode, 'ask', 'as a question, never an edit');
+    assert.equal(opened[0].o.passage, 'loss.\nTwo years', 'holding every word highlighted');
     menu.onPick({ id: 'comment' });
     const pin = p.win.rlNotesPinned();
     assert.equal(pin.clauseId, p.cl7.clauseId); assert.equal(pin.quote, 'loss.');

@@ -122,6 +122,13 @@ let _ceScanBusy = false;
 let _ceScanErr = null;
 let _ceSayTimer = null;
 let _ceSel = null;          /* the passage being rewritten in place */
+/* ---- WHOLE-CONTRACT MODE (Young ruled it 23 Sep 2026, fix 5 of seven) ----
+   The ✕ on the card lets go of what Copilot was holding — the clause, or the
+   words — and the rail then answers about the WHOLE CONTRACT: the owner's own
+   words, "you can ask copilot about anything across the entire contract". A
+   question there is a reading; it changes no wording. Cleared the moment the
+   reader works on wording again: a highlight, typing, or another clause. */
+let _ceWhole = false;
 let _ceRendering = false;   /* the paper is being written over — see ceRenderPaper */
 let _cePlaceAt = null;      /* where the clause moved TO was on screen — see ceGoClause */
 /* How much of the draft the leave warning quotes back. A confirm dialog is ONE
@@ -899,6 +906,17 @@ function clauseEditorCss(){
     font-size:var(--t-label); font-weight:var(--w-strong); background:var(--color-surface);
     border:1px solid var(--color-divider); color:var(--st-ruby-fg); cursor:pointer}
   .ce-scope .cut:hover{border-color:var(--st-ruby-fg)}
+  ${''/* ---- ONE CARD, FOUR SHAPES (fix 5, 23 Sep 2026) ----
+     The approved drawing's own: a question in Copilot's violet, the whole
+     contract in steel, a small line under the quote saying what the card
+     holds. Colours are the ones those meanings already wear on this page. */}
+  .ce-scope.is-asking .eb{color:#6d28d9}
+  html.dark .ce-scope.is-asking .eb{color:#c4b5fd}
+  .ce-scope.is-asking q{border-left-color:#6d28d9}
+  html.dark .ce-scope.is-asking q{border-left-color:#c4b5fd}
+  .ce-scope.is-whole .eb{color:var(--st-steel-fg)}
+  .ce-scope.is-clause q{-webkit-line-clamp:3}
+  .ce-scope .sm{margin:6px 0 0; font-size:var(--t-label); line-height:1.5; color:var(--color-neutral-600)}
 
   .ce-empty{font-size:var(--t-meta); color:var(--color-neutral-600); line-height:1.6}
 
@@ -2052,7 +2070,7 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
      words, and a card carries no Apply. */
   _ceEditing = !ceUnderDeletion()
     && (wantTyping || (_ceText === _ceBase && _ceHead === _ceHeadBase));
-  _ceThread = []; _ceBusy = false; _ceScanBusy = false; _ceScanErr = null; _ceSel = null;
+  _ceThread = []; _ceBusy = false; _ceScanBusy = false; _ceScanErr = null; _ceSel = null; _ceWhole = false;
   _ceScan = null; _ceScanFiled = {};
   /* ---- THE RAIL OPENS ON THE FINDING IT IS ALREADY HOLDING ----
      (owner-approved 13 Sep 2026, group 1 of the build plan.)
@@ -2178,7 +2196,7 @@ function rlCloseClauseEditor(opts = {}){
   try{ readMoved = _ceRead0 != null && window.rlReadMode && rlReadMode() !== _ceRead0; }catch(_){}
   _ceRead0 = null;
   _ceC = null; _ceClauseId = null; _ceOpts = null; _ceAgain = null;
-  _ceThread = []; _ceSteps = []; _ceStep = 0; _ceSel = null; _ceLead = null;
+  _ceThread = []; _ceSteps = []; _ceStep = 0; _ceSel = null; _ceLead = null; _ceWhole = false;
   _ceRendering = false; _ceZoom = 100;
   _ceOpenText = '';
   _ceBusy = false;
@@ -4017,7 +4035,10 @@ function ceTurnHtml(t, i){
       <div class="n"><span>${_cee(_cet('ce_answer'))}</span><span class="g"></span></div>
       ${t.passage ? `<q class="aq" title="${_ceea(t.passage.text)}">${_cee(t.passage.text)}</q>` : ''}
       <div class="av"><span class="g"></span>
-        ${ceUnderDeletion() ? '' : `<button type="button" class="p" data-ce-edit-with="${i}">${_cet('ce_edit_with_this')}</button>`}
+        ${''/* Edit with this re-attaches the SAME words under the edit verb, so
+               it is drawn only where there are words one clause holds: never
+               on the whole contract, never on words across two clauses. */}
+        ${(ceUnderDeletion() || !t.passage || t.passage.loose) ? '' : `<button type="button" class="p" data-ce-edit-with="${i}">${_cet('ce_edit_with_this')}</button>`}
       </div>
     </div></div>`;
   return `<div class="ce-ai">${
@@ -4047,10 +4068,15 @@ function ceGreetingHtml(){
   if (pc) rows.push([_cet('ce_read_precedent'), pc]);
   const ta = ceTheirAsk();
   if (ta) rows.push([_cet('ce_read_theirs'), ta]);
-  return `<div class="ce-ai"><p class="t">${_cee(_cet('ce_greeting',
-    { clause: ceClauseLabel(cl) || _cet('ce_this_clause') }))}</p>${
-    rows.length ? `<ul class="ce-read">${rows.map(r =>
-      `<li><b>${_cee(r[0])}</b><span>${_cee(r[1])}</span></li>`).join('')}</ul>` : ''}</div>`;
+  /* ---- THE GREETING SENTENCE IS GONE (Young ruled it 23 Sep 2026, fix 5:
+     "the greeting that filled the top of the panel goes") ----
+     The card at the foot now says what Copilot is working on, so a sentence
+     at the top saying the same was the fact printed twice. THE TWO FACTS
+     STAY where there are any — they are the reason this function exists (13
+     Sep 2026) and nothing else on the page states them. */
+  void cl;
+  return rows.length ? `<div class="ce-ai"><ul class="ce-read">${rows.map(r =>
+      `<li><b>${_cee(r[0])}</b><span>${_cee(r[1])}</span></li>`).join('')}</ul></div>` : '';
 }
 /* ONE CARD SHAPE, whether it comes from the chat or from the scan, because
    both hand wording to the same Apply. What a card must always carry: what it
@@ -4107,6 +4133,9 @@ function ceRenderChips(){
   if (_ceSel && _ceSel.mode === 'ask'){
     /* ASK: questions, not rewrites — nothing here can end in an Apply. */
     qs.push(_cet('ce_q_words_mean'), _cet('ce_q_words_standard'), _cet('ce_q_words_risk'));
+  } else if (!_ceSel && _ceWhole){
+    /* THE WHOLE CONTRACT (fix 5): questions about any part of it. */
+    qs.push(_cet('ce_q_contract_risks'), _cet('ce_q_contract_missing'), _cet('ce_q_contract_end'));
   } else if (_ceSel){
     qs.push(_cet('ce_inline_shorten'), _cet('ce_inline_firmer'), _cet('ce_inline_plain'));
   } else {
@@ -4231,6 +4260,23 @@ function ceReadList(){
   return out;
 }
 
+/* ---- WHAT "THE WHOLE CONTRACT" IS WHEN IT IS ASKED ABOUT (fix 5) ----
+   The wording as it stands — the round's baseline with every adopted change
+   in it — which is what the paper beside the rail reads as. Its own reading,
+   never a second one: negoResolvedText is what the round close writes. */
+function ceWholeText(){
+  try{ if (window.negoResolvedText){ const t = String(negoResolvedText(_ceC) || ''); if (t.trim()) return t; } }catch(_){}
+  try{ if (window.playbookText) return String(playbookText(_ceC) || ''); }catch(_){}
+  return '';
+}
+/* The ask carries the whole contract as ONE message; the context says so, and
+   the chat route lets that one message reach the document ceiling rather than
+   the per-turn one (a question is short; a contract is not). */
+function ceWholeContext(){
+  let ctx = null;
+  try{ ctx = (typeof window.buildAssistantContext === 'function') ? buildAssistantContext() : null; }catch(_){ ctx = null; }
+  return Object.assign({}, ctx || {}, { wholeDoc: true });
+}
 async function ceAsk(question, opts = {}){
   const q = String(question == null ? '' : question).trim();
   if (!q || _ceBusy) return;
@@ -4243,12 +4289,16 @@ async function ceAsk(question, opts = {}){
      pressed minutes later, and a card that asked about one sentence may never
      replace another. */
   const scope = _ceSel;
+  /* THE WHOLE CONTRACT (fix 5, 23 Sep 2026) is a question too: Copilot is
+     given the whole contract and answers, naming the clause for each point;
+     it changes no wording from there. */
+  const whole = !scope && _ceWhole;
   /* ASK IS A QUESTION (Young, 11 Sep 2026, evening: "ask copilot simply
      allows you to ask a question but not edit"). Under an 'ask' passage the
      prompt asks for an explanation, the answer is drawn as a reading with no
      Apply anywhere, nothing is recorded as proposed, and the one way on is
      Edit with this on the answer card (ceEditWith). */
-  const asking = !!(scope && scope.mode === 'ask');
+  const asking = whole || !!(scope && scope.mode === 'ask');
   if (!opts.silent) _ceThread.push({ who: 'you', text: q });
   _ceBusy = true;
   ceRenderLane();
@@ -4271,14 +4321,17 @@ async function ceAsk(question, opts = {}){
     res = await copilotPropose({
       /* ONE CALL, TWO SCOPES. The prompt says which, so an answer meant to
          replace one sentence is never written as a whole clause. */
-      ask: _cet(asking ? 'ce_prompt_question' : scope ? 'ce_prompt_passage' : 'ce_prompt_ask'),
-      passage: scope ? scope.text : (_ceText || _ceBase),
+      ask: _cet(whole ? 'ce_prompt_contract' : asking ? 'ce_prompt_question' : scope ? 'ce_prompt_passage' : 'ce_prompt_ask'),
+      passage: whole ? ceWholeText() : scope ? scope.text : (_ceText || _ceBase),
       instruction: q,
-      clauseLabel: ceClauseLabel(cl),
+      /* No clause label on the whole contract: that line tells the model the
+         passage is ONE clause, which is exactly what it is not here. */
+      clauseLabel: whole ? '' : ceClauseLabel(cl),
       party: (window.contractParty ? contractParty(_ceC) : (window.FIRST_PARTY || '')) || '',
       law: window.jxLaw ? jxLaw() : '',
-      playbook: [cePlaybookLine(), cePrecedentLine(), ceTheirAsk()].filter(Boolean).join('\n'),
+      playbook: whole ? '' : [cePlaybookLine(), cePrecedentLine(), ceTheirAsk()].filter(Boolean).join('\n'),
       history,
+      context: whole ? ceWholeContext() : undefined,
     });
   }catch(e){ err = e; }
   _ceBusy = false;
@@ -4295,10 +4348,11 @@ async function ceAsk(question, opts = {}){
     /* NO READING LIST UNDER A QUESTION (Young, 11 Sep 2026, late: "not
        necessary when I am simply asking a question. When I want to edit then
        include it"): the three rows rest wording that is about to move. */
-    _ceThread.push({ who: 'ai', text: advice || wording, read: [], asking: true, passage: scope,
+    _ceThread.push({ who: 'ai', text: advice || wording, read: [], asking: true, passage: scope, whole,
       /* Wording the model volunteered anyway is HELD, not offered: Edit with
-         this turns it into a card with Apply; until then it is nowhere. */
-      held: (wording && advice && wording !== scope.text) ? wording : '' });
+         this turns it into a card with Apply; until then it is nowhere. Never
+         on the whole contract or on loose words, which nothing edits. */
+      held: (wording && advice && scope && !scope.loose && wording !== scope.text) ? wording : '' });
     ceRenderLane();
     return;
   }
@@ -4910,6 +4964,15 @@ function ceOfferPassage(sel){
    ONE selection reading — so the rail holds exactly what a drag would have
    given it, refusals included. Nothing where the words are not in the draft. */
 function ceAttachWords(text, mode){
+  /* A QUESTION ABOUT WORDS THIS CLAUSE DOES NOT HOLD — a highlight across two
+     clauses, fix 4 (23 Sep 2026) — is held LOOSE: asked about, never marked or
+     edited. Every door that hands words over asks this one function, so the
+     rule is kept once. An EDIT of words the box does not hold is still
+     nothing, as it always was. */
+  const found = ceAttachWordsIn(text, mode);
+  return found || (mode === 'ask' ? ceAttachLoose(text) : false);
+}
+function ceAttachWordsIn(text, mode){
   const box = _ceQ('#ce-clausebody');
   const q = String(text || '').replace(/\s+/g, ' ').trim();
   if (!box || !q || !document.createTreeWalker || !window.getSelection) return false;
@@ -4946,6 +5009,7 @@ function ceAttachWords(text, mode){
    'edit', which is what every older caller meant. */
 function ceAttachPassage(sel, mode){
   if (!sel) return;
+  _ceWhole = false;
   const m = mode === 'ask' ? 'ask' : 'edit';
   if (_ceSel && _ceSel.text === sel.text && _ceSel.line === sel.line && (_ceSel.mode || 'edit') === m) return;
   sel.mode = m;
@@ -4967,6 +5031,24 @@ function ceFocusAsk(){
   const box = _ceQ('#ce-ask');
   if (!box || !box.focus) return;
   try { box.focus({ preventScroll: true }); } catch (e){ try { box.focus(); } catch (_){} }
+}
+/* Words held as a question and nothing else: no range, no mark, no line in
+   this clause's box — they may not be in it at all (fix 4, a highlight across
+   two clauses). The card says what they are; the answer is a reading. */
+function ceAttachLoose(text){
+  const t = String(text == null ? '' : text).replace(/[^\S\n]+/g, ' ').trim();
+  if (!t) return false;
+  _ceWhole = false;
+  _ceSel = { text: t, mode: 'ask', loose: true };
+  ceStampPick();
+  ceRenderScope(); ceRenderChips(); ceFocusAsk();
+  return true;
+}
+/* The ✕ on the card, and nothing else, turns the rail to the whole contract. */
+function ceSetWhole(on){
+  _ceWhole = !!on;
+  ceRenderScope(); ceRenderChips();
+  if (_ceWhole) ceFocusAsk();
 }
 function ceDetachPassage(){
   if (!_ceSel) return;
@@ -5019,15 +5101,51 @@ function ceRenderScope(){
   const ask = _ceQ('#ce-ask');
   const sel = _ceSel;
   const asking = !!(sel && sel.mode === 'ask');
-  if (ask) ask.placeholder = _cet(sel ? (asking ? 'ce_ask_ph_question' : 'ce_ask_ph_passage') : 'ce_ask_ph');
+  /* ---- ONE CARD, FOUR THINGS IT CAN SAY (Young ruled it 23 Sep 2026, fix 5)
+     ---- The pencil used to open a greeting and a highlight a card, so one
+     Copilot wore two looks and a reader could not tell what it was working
+     on. The card now ALWAYS says: the whole clause (the pencil), your words
+     (Edit with Copilot), a question about words (Ask Copilot), or the whole
+     contract (after the ✕). */
+  const state = sel ? (asking ? 'ask' : 'edit') : (_ceWhole ? 'contract' : 'clause');
+  if (ask) ask.placeholder = _cet({ ask: 'ce_ask_ph_question', edit: 'ce_ask_ph_passage',
+    contract: 'ce_ask_ph_contract', clause: 'ce_ask_ph_clause' }[state]);
+  /* The rail's own clause label says the same: in whole-contract mode it is
+     not about this clause any more. */
+  const lab = _ceQ('.ce-ah-cl');
+  if (lab){
+    const name = state === 'contract' ? _cet('ce_whole_contract') : (ceClauseLabel(ceClause()) || _cet('ce_this_clause'));
+    lab.textContent = name; lab.title = name;
+  }
   if (!box) return;
-  if (!sel){ box.innerHTML = ''; return; }
-  const where = ceClauseLabel(ceClause()) || _cet('ce_this_clause');
+  const where = (sel && sel.loose) ? _cet('ce_scope_words') : (ceClauseLabel(ceClause()) || _cet('ce_this_clause'));
+  const off = `<button type="button" class="x" data-ce-act="scope-off"
+        title="${_ceea(_cet('ce_scope_to_contract'))}" aria-label="${_ceea(_cet('ce_scope_to_contract'))}">&#10005;</button>`;
+  if (state === 'contract'){
+    const name = String((_ceC && _ceC.name) || '').trim();
+    box.innerHTML = `<div class="ce-scope is-whole">
+      <div class="eb"><b>&#128214; ${_cee(_cet('ce_scope_contract', { name: name || _cet('ce_this_contract') }))}</b></div>
+      <p class="sm">${_cee(_cet('ce_scope_contract_line'))}</p>
+    </div>`;
+    return;
+  }
+  if (state === 'clause'){
+    /* The clause's WORDS, never its markup: the draft is stored as a rich
+       body, and a card quoting "<p>" is a card quoting nothing a reader wrote. */
+    const raw = String(_ceText || _ceBase || '');
+    const words = String(window.richToText ? richToText(raw) : raw.replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ').trim();
+    box.innerHTML = `<div class="ce-scope is-clause">
+      <div class="eb"><b>&#9998; ${_cee(_cet('ce_scope_in', { where }))}</b><span class="g"></span>${off}</div>
+      ${words ? `<q title="${_ceea(words)}">${_cee(words)}</q>` : ''}
+      <p class="sm">${_cee(_cet('ce_scope_whole_clause'))}</p>
+    </div>`;
+    return;
+  }
   box.innerHTML = `<div class="ce-scope${asking ? ' is-asking' : ''}">
     <div class="eb"><b>${asking ? '&#10024;' : '&#9998;'} ${_cee(_cet(asking ? 'ce_scope_asking' : 'ce_scope_in', { where }))}</b><span class="g"></span>
-      <button type="button" class="x" data-ce-act="scope-off"
-        title="${_ceea(_cet('ce_scope_off'))}" aria-label="${_ceea(_cet('ce_scope_off'))}">&#10005;</button></div>
+      ${off}</div>
     <q title="${_ceea(sel.text)}">${_cee(sel.text)}</q>
+    ${asking ? `<p class="sm">${_cee(_cet('ce_scope_asking_line'))}</p>` : ''}
     ${''/* ---- THE ONE VERB THE STRIP CARRIED THAT NOTHING ELSE DOES ----
            "Suggest deleting these words" was the strip's own &times; and is the
            only one-press way in the product to strike a sentence out. It is on
@@ -5886,6 +6004,8 @@ function ceWirePage(page){
       /* On because nothing refused it — the wall is the line above, and the
          28 Aug rule about ARRIVAL is untouched (this is a press). */
       _ceEditing = !why;
+      /* Typing in the clause is working on the clause: the rail follows it. */
+      _ceWhole = false;
       ceDetachPassage(); ceRenderPaper(); ceRenderBar();
       ceFocusTyping();
       return;
@@ -5927,7 +6047,9 @@ function ceWirePage(page){
       }
       /* THE PASSAGE'S OWN CARD IN THE RAIL CARRIES BOTH: the way to let it go,
          and the one verb that strikes it out. */
-      case 'scope-off': ceDetachPassage(); break;
+      /* THE ✕ LETS GO AND TURNS TO THE WHOLE CONTRACT (fix 5), on every card
+         that carries one — the clause, the words or the question. */
+      case 'scope-off': ceDetachPassage(); ceSetWhole(true); break;
       case 'scope-cut': ceCutPassage(); break;
       case 'scan-run': ceRunScan(); break;
       default: break;
@@ -6206,7 +6328,7 @@ Object.assign(window, {
   clauseEditorOpen, clauseEditorClauseId, clauseEditorContract, clauseEditorDirty, ceCanFile, clauseEditorCss,
   clauseEditorLeaveAsk,
   clauseEditorHtml, clauseEditorRefusal, clauseEditorFits,
-  rlOpenClauseEditor, rlCloseClauseEditor,
+  rlOpenClauseEditor, rlCloseClauseEditor, ceAttachLoose, ceSetWhole,
   ceApply, ceUndo, ceDiscard, ceFile, ceAsk, ceRunScan, ceScanItems, ceScanGroups, ceClauseFindings, ceAddMissingClause,
   ceBoxDirty,
   ceHeldPassage, ceSelection, ceSelectionRead, ceAttachPassage, ceDetachPassage, ceOfferPassage, ceAttachWords, ceRenderScope, ceRenderChips,
