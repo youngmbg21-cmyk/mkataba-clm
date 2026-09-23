@@ -604,8 +604,8 @@ function wizardFormMount(o, tid, prefill){
    they are handed a host for it — wizardFormMount, openContractEssentials
    and openTemplateFillModal each ask `paperHost` first — and this screen
    hands them none. Their own dialogs still draw the agreement beside the
-   questions from fillPreviewFits()'s 1000; whether it goes from those too is
-   the owner's open question, not this change's.
+   questions from fillPreviewFits()'s 1000, and they keep it: shown all
+   three, the owner ruled "leave them as they are" (23 Sep 2026).
 
    TWO NUMBERS, SAID OUT LOUD AND READ BY BOTH HOSTS: the rail (here, and in
    index.html through --na-rail-w) and the frame, which is one width at every
