@@ -583,37 +583,38 @@ function wizardFormMount(o, tid, prefill){
    rule). The draft-from-a-sentence hand-off lands here through
    naPickFromDraft instead of opening a second dialog.
 
-   THE PAPER BESIDE THE QUESTIONS (18 Sep 2026) is kept, and since 22 Sep it
-   is drawn on the screen the owner actually uses. THE LINE WAS 1600 because
-   the artifact of 21 Sep was drawn at 1440 with no paper; that reasoning is
-   kept here because it is what made the number safe, and it is what the
-   owner reversed. MEASURED before a line moved: at 1440 the contract was not
-   on this screen at all, and at 1600 it arrived at 389x293 while the picker
-   dropped 518 -> 389px and ALL FOUR company-standard names were cut off.
-   Proposal C, which the owner chose: the picker becomes a RAIL of rows, so
-   the questions and the agreement both get room, and the paper arrives at
-   1280 rather than 1600.
+   THE PAPER IS GONE FROM THIS SCREEN, AND THE ASK TAKES THE TOP LINE (Young
+   ruled it 22-23 Sep 2026: "remove paper from the pop up entirely and in any
+   type of computer", then, off four renders of the screen without it, "the
+   describe what you need maybe takes the whole top line" — option 1, "ask on
+   top, then list and questions side by side").
+   THIS REVERSES TWO RULINGS OF THE DAY BEFORE, and their reasoning is kept
+   here because it is what makes this safe rather than a swing back:
+   · proposal C: the agreement drawn beside the questions from 1280, because
+     at the old line of 1600 it was not on the owner's screen at all;
+   · D: under 1280 the agreement stacked UNDER the questions, the two sides
+     scrolling apart, because every iPad but a 12.9" fell below 1280.
+   MEASURED the next morning on the owner's own iPad Pro 12.9" (1366 wide):
+   it drew the laptop's three columns, exactly what the line said. The answer
+   was not a better line; it was no paper on this screen on any device. A
+   draft opens on the contract page, where the whole wording is the first
+   thing on screen — one press away, not lost.
+   THE OTHER CREATION SCREENS ARE UNTOUCHED, BY CONSTRUCTION. This card mounts
+   the chosen door's own form, and all three forms draw a paper ONLY where
+   they are handed a host for it — wizardFormMount, openContractEssentials
+   and openTemplateFillModal each ask `paperHost` first — and this screen
+   hands them none. Their own dialogs still draw the agreement beside the
+   questions from fillPreviewFits()'s 1000; whether it goes from those too is
+   the owner's open question, not this change's.
 
-   FOUR NUMBERS, SAID OUT LOUD AND READ BY BOTH HOSTS (the frame here, the
-   grid in index.html through --na-rail-w / --na-paper-w). 1180 fits a 1280
-   window: openModal's backdrop spends var(--s-4) a side, so 1248 is what a
-   frame may take there. */
-const NA_PAPER_MIN_W = 1280;
+   TWO NUMBERS, SAID OUT LOUD AND READ BY BOTH HOSTS: the rail (here, and in
+   index.html through --na-rail-w) and the frame, which is one width at every
+   window now. The wide and stacked gates, and the four numbers that fed them
+   (NA_PAPER_MIN_W, NA_PAPER_W, NA_FRAME_W, NA_STACK_MIN_W), had no reader
+   left and are GONE rather than kept dormant: a branch that can never fire
+   again is a guard that is always false. */
 const NA_RAIL_W = 260;           /* the picker's own column, rows not cards */
-const NA_PAPER_W = 400;          /* the agreement's column, at 1280 and up */
-const NA_FRAME_W = 1180;         /* rail + questions + paper */
-const NA_FRAME_NARROW_W = 900;   /* rail + questions */
-/* AND UNDER 1280 THE AGREEMENT IS STACKED, NOT DROPPED (Young ruled it
-   22 Sep 2026 off four renders: "Build D for iPads but the right hand side
-   should scroll separately"). MEASURED before the ruling: an iPad Pro 11" in
-   landscape reports 1194 and an iPad Air 1180, so on every iPad but a 12.9"
-   in landscape the pop-up fell to two columns and the agreement was not in
-   the document at all.
-   768 is where the phone shell takes over and this pop-up stops being drawn,
-   so the floor covers every iPad, landscape and portrait. It is deliberately
-   NOT fillPreviewFits()'s 1000: that floor is about a preview BESIDE the
-   questions, and one stacked under them needs no width of its own. */
-const NA_STACK_MIN_W = 768;
+const NA_FRAME_NARROW_W = 900;   /* rail + questions — the frame, at every window */
 function naUsageCount(kind, id){
   try{
     if(kind==='tid') return builtinUsageCount(id);
@@ -705,13 +706,6 @@ function openNewAgreement(o){
   const mineOf=()=>(mayEdit && typeof customTemplates==='function')?customTemplates():[];
   if(!tmpls.length && !libOf().length && !mineOf().length){ toast(i18t('wz_no_templates_role'),'err'); return; }
   const ready=(typeof draftAiReady==='function')&&draftAiReady();
-  const winW=(typeof window!=='undefined')?(window.innerWidth||0):0;
-  const wide=winW>=NA_PAPER_MIN_W
-    && ((typeof fillPreviewFits!=='function') || fillPreviewFits());
-  /* ONE HOST, ONE ID, ONE PAINTER. #na-paper is emitted by exactly one of
-     these two branches and never by both, so the agreement keeps a single
-     home whatever the width and hostOpts.paperHost finds it by the same id. */
-  const stack=!wide && winW>=NA_STACK_MIN_W;
   const admin=(typeof isAdmin==='function')&&isAdmin();
   const sName=k=>(k&&typeof FOLDERS==='object'&&FOLDERS[k]&&FOLDERS[k].name)||'';
   const verOf=t=>'v'+((typeof templateVersionNo==='function')?templateVersionNo(t):1);
@@ -760,15 +754,11 @@ function openNewAgreement(o){
       ${sec('mine', i18t('na_saved'))}
       ${sec('tid', i18t('na_hati'))}`;
   };
-  /* THE QUESTIONS AND THE AGREEMENT ARE NAMED ONCE and placed twice, because
-     where they SIT is the only thing that changes with the width: three
-     columns from 1280, and under 1280 both inside one column that scrolls on
-     its own. Emitted from one string each, so the two shapes cannot drift
-     about what a question card or a paper host is. */
+  /* THE QUESTIONS CARD — one string, placed once, beside the rail. */
   const naCard=`<div class="na-card" id="na-card">
         <div class="na-card-h"><h3 id="na-card-name"></h3><span class="na-card-sub" id="na-card-sub"></span></div>
         <div class="na-card-b"><div id="na-form"></div>
-          <div class="na-note">${i18t(wide?'na_note_wide':(stack?'na_note_stack':'na_note'))}</div>
+          <div class="na-note">${i18t('na_note')}</div>
           ${/* ---- WHO ELSE IS ON THIS AGREEMENT (Young ruled 21 Sep 2026) ----
                SHUT BY DEFAULT and under the questions, because it is an offer
                and not a question: a draft is made without it every day. The
@@ -782,23 +772,32 @@ function openNewAgreement(o){
             <div id="na-people-list"></div>
           </details></div>
       </div>`;
-  const naPaper=`<div id="na-paper" class="na-paper"></div>`;
   openModal(`<div id="na-root" class="na-root">
     <div class="na-head"><div><h3>${i18t('na_title')}</h3><div class="na-sub">${i18t('na_sub')}</div></div>
       <button type="button" id="na-x" class="na-x" aria-label="${esc(i18t('act_cancel'))}" title="${esc(i18t('act_cancel'))}">${icon('x','w-4 h-4')}</button></div>
-    <div id="na-body" class="na-body${wide?' na-wide':''}${stack?' na-stack':''}">
+    <div id="na-body" class="na-body">
+      ${''/* THE ASK TAKES THE WHOLE TOP LINE (Young, 22-23 Sep 2026: "the
+             describe what you need maybe takes the whole top line"). It was
+             the first thing in a 260px rail, where the box was 182px wide —
+             about five words a line — and Find was pushed underneath it. Out
+             of the rail it spans both columns, so a sentence sits on one line
+             with Find beside it, and it is the first thing on the screen,
+             which is what it is: the one door that needs no browsing. The
+             rail's own "Find drops under the box" rules stop applying by
+             construction, because they are scoped to .na-rail. Every handler
+             finds these by id, so nothing was rewired. */}
+      <div class="na-field"><label for="dr-say">${i18t('na_describe')}</label>
+        <div class="na-row">${''/* A TEXTAREA, BECAUSE THE ASK IS A SENTENCE (Young ruled 21 Sep 2026:
+           "Describe what you need area should be able to wrap text"). A
+           single-line input scrolls sideways and shows a reader the last
+           eight words of what they typed. It keeps its id, its cap, its
+           placeholder and its Enter (Enter presses Find; Shift+Enter is a
+           newline), so nothing that reads #dr-say changed. */}
+          <textarea id="dr-say" class="na-inp na-say" rows="2" maxlength="${(typeof DRAFT_SENTENCE_MAX==='number')?DRAFT_SENTENCE_MAX:2000}" placeholder="${esc(i18t('dr_ph'))}" autocomplete="off"></textarea>
+          <button type="button" id="dr-read" class="ui-btn"${ready?'':` disabled title="${esc(i18t('dr_no_ai'))}"`}>${icon('sparkle','w-3.5 h-3.5')} ${i18t('na_find')}</button></div>
+        <span class="na-hint">${ready?i18t('na_find_hint'):i18t('dr_no_ai')}</span></div>
+      <div id="dr-out"></div>
       <div id="wz-pick" class="na-left na-rail">
-        <div class="na-field"><label for="dr-say">${i18t('na_describe')}</label>
-          <div class="na-row">${''/* A TEXTAREA, BECAUSE THE ASK IS A SENTENCE (Young ruled 21 Sep 2026:
-             "Describe what you need area should be able to wrap text"). A
-             single-line input scrolls sideways and shows a reader the last
-             eight words of what they typed. It keeps its id, its cap, its
-             placeholder and its Enter (Enter presses Find; Shift+Enter is a
-             newline), so nothing that reads #dr-say changed. */}
-            <textarea id="dr-say" class="na-inp na-say" rows="2" maxlength="${(typeof DRAFT_SENTENCE_MAX==='number')?DRAFT_SENTENCE_MAX:2000}" placeholder="${esc(i18t('dr_ph'))}" autocomplete="off"></textarea>
-            <button type="button" id="dr-read" class="ui-btn"${ready?'':` disabled title="${esc(i18t('dr_no_ai'))}"`}>${icon('sparkle','w-3.5 h-3.5')} ${i18t('na_find')}</button></div>
-          <span class="na-hint">${ready?i18t('na_find_hint'):i18t('dr_no_ai')}</span></div>
-        <div id="dr-out"></div>
         ${''/* THE LIST SCROLLS INSIDE THE RAIL, so a workspace with forty
                standards on the shelf does not drive the height of the whole
                pop-up. MEASURED at the parent: the frame was already at its
@@ -812,24 +811,14 @@ function openNewAgreement(o){
           <span aria-hidden="true">·</span>
           <button type="button" id="na-import" class="ui-btn-plain">${i18t('na_import')}</button></div>
       </div>
-      ${''/* THE AGREEMENT SITS ON THE FAR SIDE OF THE QUESTIONS, not between
-             the picker and them: what you are answering about is the thing
-             you just chose, and the answers should not have to be read across
-             the paper to reach it. Under 1280 there is no far side, so it
-             goes UNDER them inside #na-right, which scrolls on its own —
-             the rail holds still while you move between the two, which is
-             the half of the ruling that makes this shape work at all.
-             The host form mounts into the paper BY ID, so the order here is
-             presentation and nothing else. */}
-      ${stack?`<div class="na-right" id="na-right">${naCard}${naPaper}</div>`:naCard}
-      ${wide?naPaper:''}
+      ${naCard}
     </div>
     <div class="na-foot">
       <button type="button" id="wz-pick-cancel" class="ui-btn-plain">${i18t('act_cancel')}</button>
       <span class="na-grow"></span>
       <button type="button" id="na-skip" class="ui-btn" title="${esc(i18t('lib_create_now_fill_later'))}">${i18t('na_skip')}</button>
       <button type="button" id="na-create" class="ui-btn ui-btn-primary">${i18t('tl_create_draft')}</button>
-    </div></div>`, { maxWidth: (wide?NA_FRAME_W:NA_FRAME_NARROW_W)+'px', label: i18t('na_title') });
+    </div></div>`, { maxWidth: NA_FRAME_NARROW_W+'px', label: i18t('na_title') });
   /* A STAGE WITHOUT REAL ELEMENTS (a sandbox that only records the markup)
      stops here: the markup is the whole of what it can read. */
   const root=document.getElementById('na-root');
@@ -852,8 +841,8 @@ function openNewAgreement(o){
      many boxes were drawn. */
   /* THE CARD'S LABELS ARE THE ARTIFACT'S FIELD LABELS — 12px, label weight,
      the quiet ink — and carry no "→ where it is filed" arrow (the pop-up diet
-     of 13 Sep names those arrows stale; here the box is 380px wide and the
-     arrow made every label two lines). The three host forms draw their
+     of 13 Sep names those arrows stale; the box was 380px wide when this
+     was written and the arrow made every label two lines). The three host forms draw their
      labels through HATI_LBL-style inline declarations, which is the product's
      rule for a field label, so the card RE-DRESSES them after the mount
      rather than growing a fourth label renderer: one renderer per door, one
@@ -867,7 +856,10 @@ function openNewAgreement(o){
   };
   const pick=(kind,id,prefill)=>{
     const host=document.getElementById('na-form'); if(!host) return;
-    const hostOpts={ host, paperHost:document.getElementById('na-paper'), root:document.getElementById('na-body') };
+    /* NO PAPER HOST, SO NO PAPER. All three forms ask for one before they
+       draw an agreement, so handing them null is the one line that takes it
+       off this screen and leaves their own dialogs exactly as they were. */
+    const hostOpts={ host, paperHost:null, root:document.getElementById('na-body') };
     sel={kind,id}; api=null; let name='', ver='';
     if(kind==='tid'){ api=wizardFormMount(hostOpts, id, prefill); const t=TEMPLATES[id]; name=t?t.kind:id; }
     else if(kind==='lib'){ const t=libOf().find(x=>x.id===id); name=t?t.name:id; ver='v'+((t&&t.publishedVersion)||1);
@@ -879,11 +871,6 @@ function openNewAgreement(o){
     const nm=document.getElementById('na-card-name'), sb=document.getElementById('na-card-sub');
     if(nm) nm.textContent=name;
     if(sb) sb.textContent=`${ver?ver+' · ':''}${i18tn('na_questions', n, {n})}`;
-    /* A DIFFERENT TEMPLATE PUTS YOU BACK AT ITS QUESTIONS. Stacked, the paper
-       is below the fold, so a pick made while reading it would otherwise
-       leave the reader looking at a new contract's paper with its questions
-       off the screen. Nothing to do where the column does not exist. */
-    const rcol=document.getElementById('na-right'); if(rcol) rcol.scrollTop=0;
     light();
   };
   root._naPick=pick;
@@ -977,4 +964,4 @@ function naPickFromDraft(pick, prefill){
   return true;
 }
 
-Object.assign(window,{TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,NA_PAPER_MIN_W,NA_STACK_MIN_W,NA_RAIL_W,NA_PAPER_W,NA_FRAME_W,NA_FRAME_NARROW_W});
+Object.assign(window,{TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,NA_RAIL_W,NA_FRAME_NARROW_W});

@@ -6,6 +6,10 @@
    template's questions are in the card, Create really creates, the sentence
    box filters, and past the wide line the paper draws beside the answers.
    At the parent the + button opens a menu and 1a is red.
+   RE-POINTED 23 Sep 2026 (Young: "remove paper from the pop up entirely and
+   in any type of computer", then option 1, the ask across the top): there is
+   no paper at any width now, and the ask spans the body above the rail.
+   1b, 1h, 7 and 9 are reversed in place; 1j is new.
 
    Run: node test/chromium/new-agreement-verify.js */
 const fs = require('node:fs');
@@ -51,7 +55,13 @@ const READ = () => {
     paper: !!q('#tf-preview'), paperText: ((q('#tf-preview') || {}).textContent || '').length,
     say: !!q('#dr-say'), find: !!q('#dr-read'), upload: !!q('#na-upload'), imp: !!q('#na-import'),
     foot: [...r.querySelectorAll('.na-foot button')].map(b => b.textContent.trim()),
-    labelWeight: getComputedStyle(r.querySelector('#na-form label > span') || r).fontWeight };
+    labelWeight: getComputedStyle(r.querySelector('#na-form label > span') || r).fontWeight,
+    /* WHERE THE ASK SITS (23 Sep 2026): in the body above the rail, or in it. */
+    ask: (() => { const f = q('.na-field'), b = q('#na-body'), t = q('#dr-say'), fd = q('#dr-read'), rl = q('#wz-pick');
+      if (!f || !t || !fd) return null;
+      const tr = t.getBoundingClientRect(), dr = fd.getBoundingClientRect();
+      return { inBody: f.parentElement === b, inRail: !!(rl && rl.contains(f)), sayW: Math.round(tr.width),
+        findBeside: dr.left >= tr.right - 1 && dr.top < tr.bottom && dr.bottom > tr.top }; })() };
 };
 
 (async () => {
@@ -92,8 +102,11 @@ const READ = () => {
     check('1a the + button opens the pop-up, not a menu', !m.err && !m.menuOpen, m.err || `menu open ${m.menuOpen}`);
     /* RE-POINTED IN PLACE 22 Sep 2026 — Young chose proposal C off the five
        proposals drawn that morning. At the parent this reported 2 columns and
-       960px, and the agreement was not on the screen at any width under 1600. */
-    check('1b three columns at 1440 — the rail, the questions and the agreement', !m.err && m.cols === 3 && m.panelW === 1180, m.err || `${m.cols} cols, ${m.panelW}px`);
+       960px, and the agreement was not on the screen at any width under 1600.
+       REVERSED IN PLACE 23 Sep 2026 — no paper on this screen, on any device:
+       the rail and the questions, in one 900 frame. At the parent this
+       reported 3 columns and 1180px. */
+    check('1b two columns at 1440 in a 900 frame — the rail and the questions', !m.err && m.cols === 2 && m.panelW === 900, m.err || `${m.cols} cols, ${m.panelW}px`);
     check('1c the company standards are rows, with version, use and stream on one line',
       !m.err && m.lib === 2 && m.goLines.some(x => /^v1 · used 0× · Procurement/.test(x)) && m.goLines.every(x => /^v1 · used 0×/.test(x)),
       m.err || `${m.lib} rows · ${JSON.stringify(m.goLines)}`);
@@ -105,12 +118,20 @@ const READ = () => {
     check('1f the sentence box, Find, Upload and Import are all on it', !m.err && m.say && m.find && m.upload && m.imp);
     check('1g the foot is Cancel · Skip the questions · Create draft', !m.err && m.foot.join('|') === 'Cancel|Skip the questions|Create draft', m.err || m.foot.join('|'));
     /* REVERSED IN PLACE: the agreement is drawn at 1440 now, which is the
-       whole of what proposal C was chosen for. */
-    check('1h the agreement IS drawn at 1440, with wording in it', !m.err && m.paper && m.paperText > 40, m.err || `paper ${m.paper}, ${m.paperText} chars`);
+       whole of what proposal C was chosen for.
+       REVERSED AGAIN 23 Sep 2026 — the owner took it off this screen. At the
+       parent this printed "paper true" with its wording. */
+    check('1h no agreement is drawn at 1440', !m.err && !m.paper && m.paperText === 0
+      && await page.evaluate(() => !document.getElementById('na-paper')), m.err || `paper ${m.paper}, ${m.paperText} chars`);
     check('1h2 the rail is 260 and the list scrolls inside it, so its foot stays on screen',
       !m.err && m.railW === 260 && m.listScrolls && m.moreSeen,
       m.err || `rail ${m.railW} · list scrolls ${m.listScrolls} · Upload row on screen ${m.moreSeen}`);
     check('1i the card\'s labels wear the artifact\'s label weight, not the form\'s bold', !m.err && Number(m.labelWeight) < 600, m.err || m.labelWeight);
+    /* THE ASK TAKES THE WHOLE TOP LINE (Young, 22-23 Sep 2026). At the parent
+       it sat in the 260px rail: the box 236px wide and Find UNDER it. */
+    check('1j the ask spans the top line, above the rail, with Find beside the box',
+      !m.err && m.ask && m.ask.inBody && !m.ask.inRail && m.ask.sayW >= 700 && m.ask.findBeside,
+      m.err || JSON.stringify(m.ask));
 
     /* ===== 2. A CHIP SWAPS THE CARD ===== */
     await page.evaluate(() => document.querySelector('[data-wz-tid="ND"]').click()); await pause(500);
@@ -123,9 +144,15 @@ const READ = () => {
     m = await page.evaluate(READ);
     check('3a typing narrows the lists by word', !m.err && m.lib === 1 && m.tid <= 2, m.err || `${m.lib} standards, ${m.tid} HaTi`);
     /* THE ASK GROWS WITH THE SENTENCE (Young, 22 Sep 2026). At the parent this
-       box stood at two lines whatever was typed and scrolled inside itself. */
+       box stood at two lines whatever was typed and scrolled inside itself.
+       RE-STAGED IN PLACE 23 Sep 2026: the box is 750px wide now, not 236, so
+       the old one-line request fits in its two rows and has nothing to grow
+       into. The request below runs to three lines at the new width, which is
+       what the claim needs to exercise — the claim itself is unchanged. */
     const grow0 = await page.evaluate(() => document.getElementById('dr-say').getBoundingClientRect().height);
-    await page.fill('#dr-say', 'a two-year packaging supply agreement with Kenafric Industries where we are the supplier and payment is forty five days');
+    await page.fill('#dr-say', 'a two-year packaging supply agreement with Kenafric Industries where we are the supplier, '
+      + 'payment is forty five days from invoice, ninety days notice to terminate, prices reviewed every six months '
+      + 'against the published index, delivery to our Nairobi and Mombasa warehouses, and a cap on liability at the fees paid');
     await pause(400);
     const grew = await page.evaluate(() => { const t = document.getElementById('dr-say');
       return { h: Math.round(t.getBoundingClientRect().height), inner: t.scrollHeight > t.clientHeight + 1, sideways: t.scrollWidth > t.clientWidth + 1 }; });
@@ -164,13 +191,15 @@ const READ = () => {
     await page.keyboard.press('Escape'); await pause(300);
     check('6b so does Escape', await page.evaluate(() => !document.getElementById('na-root')));
 
-    /* ===== 7. PAST THE WIDE LINE THE PAPER DRAWS BESIDE THE ANSWERS ===== */
+    /* ===== 7. PAST THE OLD WIDE LINE NOTHING CHANGES SHAPE =====
+       REVERSED IN PLACE 23 Sep 2026: this said the paper drew beside the
+       answers at 1700. It draws at no width now; the frame is one width. */
     await page.setViewportSize({ width: 1700, height: 950 }); await pause(300);
     await page.evaluate(() => openNewAgreement()); await pause(900);
     m = await page.evaluate(READ);
     await page.screenshot({ path: path.join(OUT, '02-popup-1700.png') });
-    check('7a at 1700 the frame is the same 1180 with three columns', !m.err && m.cols === 3 && m.panelW === 1180, m.err || `${m.cols} cols, ${m.panelW}px`);
-    check('7b and the paper is drawn, with wording in it', !m.err && m.paper && m.paperText > 40, m.err || `paper ${m.paper}, ${m.paperText} chars`);
+    check('7a at 1700 the frame is the same 900 with two columns', !m.err && m.cols === 2 && m.panelW === 900, m.err || `${m.cols} cols, ${m.panelW}px`);
+    check('7b and no paper is drawn', !m.err && !m.paper, m.err || `paper ${m.paper}, ${m.paperText} chars`);
     await page.evaluate(() => closeModal());
 
     /* ═══ 8 · WHO ELSE IS ON THIS AGREEMENT (Young ruled 21 Sep 2026) ═══
@@ -217,54 +246,69 @@ const READ = () => {
       await page.evaluate(() => (window.participantsHeld ? window.participantsHeld() : []).length === 0),
       'held after cancel');
 
-    /* ═══ 9 · UNDER 1280 THE AGREEMENT IS STACKED, AND THE TWO SIDES
-       SCROLL APART (Young ruled it 22 Sep 2026: "Build D for iPads but the
-       right hand side should scroll separately from the [left] hand side")
-       ═══
-       At the parent this reported no #na-paper in the document at all: the
-       agreement was drawn only from 1280, and an iPad Pro 11" in landscape
-       reports 1194. Every claim here is GATED on the pop-up being open, or an
-       empty page satisfies half of them. */
+    /* ═══ 9 · ON AN iPAD IT IS THE SAME TWO COLUMNS, AND THERE IS NO PAPER ═══
+       REVERSED IN PLACE 23 Sep 2026. This section drove D — "under 1280 the
+       agreement is stacked and the two sides scroll apart" (Young, 22 Sep).
+       The next morning the owner's iPad Pro 12.9" (1366 wide) drew three
+       columns, which is exactly what "under 1280" said, and the ruling that
+       followed took the paper off this screen on every device. What is left
+       to drive: both iPad sizes get the same two columns, nothing stacked, no
+       paper; the Upload row is on screen on a fresh open; the foot with Create
+       is always there; the note says only what is true; and whatever sits
+       below the fold is reachable with a real wheel.
+       The old 9h (the laptop shape at 1700) is section 7's claim now.
+       Every claim is GATED on the pop-up being open. */
     await page.evaluate(() => closeModal()); await pause(200);
-    await page.setViewportSize({ width: 1194, height: 834 }); await pause(300);
-    await page.evaluate(() => openNewAgreement()); await pause(900);
     const D = () => {
       const q = s2 => document.querySelector(s2);
-      const body = q('#na-body'), right = q('#na-right'), left = q('#wz-pick');
+      const body = q('#na-body');
       if (!body) return { err: 'no pop-up' };
-      const scr = e => e ? { h: Math.round(e.getBoundingClientRect().height),
-        scrollH: e.scrollHeight, scrolls: e.scrollHeight > e.clientHeight + 1 } : null;
-      return { stack: body.classList.contains('na-stack'),
+      const inView = (el, box) => { if (!el || !box) return false;
+        const a = el.getBoundingClientRect(), b = box.getBoundingClientRect();
+        return a.height > 0 && a.top >= b.top - 1 && a.bottom <= b.bottom + 1; };
+      return { stack: body.classList.contains('na-stack'), right: !!q('#na-right'),
         cols: getComputedStyle(body).gridTemplateColumns.split(' ').length,
         frameW: Math.round(q('.modal-in').getBoundingClientRect().width),
-        paper: !!q('#na-paper'), paperText: ((q('#tf-preview') || {}).textContent || '').length,
-        paperInRight: !!(right && q('#na-paper') && right.contains(q('#na-paper'))),
-        right: scr(right), left: scr(left),
-        bodyScrolls: body.scrollHeight > body.clientHeight + 1,
-        railTop: left ? Math.round(left.getBoundingClientRect().top) : null,
-        sheetTop: q('#tf-preview') ? Math.round(q('#tf-preview').getBoundingClientRect().top) : null,
+        paper: !!q('#na-paper') || !!q('#tf-preview'),
+        moreOnScreen: inView(q('.na-more'), body),
+        peopleOnScreen: inView(q('#na-people > summary'), body),
+        footOnScreen: (() => { const f = q('.na-foot'); if (!f) return false; const r = f.getBoundingClientRect();
+          return r.height > 0 && r.top >= 0 && r.bottom <= window.innerHeight + 1; })(),
+        bodyScroll: body.scrollTop,
         note: ((q('.na-note') || {}).textContent || '').trim() };
     };
-    let d = await page.evaluate(D);
-    await page.screenshot({ path: path.join(OUT, '03-stacked-1194.png') });
-    check('9a at 1194 the pop-up is the stacked shape, two columns in a 900 frame',
-      !d.err && d.stack && d.cols === 2 && d.frameW === 900,
-      d.err || `stack ${d.stack} · ${d.cols} cols · ${d.frameW}px`);
-    check('9b the agreement IS drawn, with wording in it, INSIDE the right column',
-      !d.err && d.paper && d.paperText > 40 && d.paperInRight,
-      d.err || `paper ${d.paper} · ${d.paperText} chars · in #na-right ${d.paperInRight}`);
-    check('9c the right column scrolls and the left does not',
-      !d.err && d.right && d.left && d.right.scrolls && !d.left.scrolls,
-      d.err || `right ${JSON.stringify(d.right)} · left ${JSON.stringify(d.left)}`);
-    /* A GUARD, not a red-at-the-parent claim: it held before too, and it is
-       here so a build that gave the body a third scroller is caught. */
-    check('9d GUARD — the body itself never scrolls, the two sides carry it',
-      !d.err && d.bodyScrolls === false, d.err || 'the body scrolls');
-    check('9e the note says where the agreement is',
-      !d.err && /under these questions/.test(d.note), d.err || d.note.slice(0, 70));
-    /* A REAL WHEEL, over the questions rather than the paper: the sheet is a
-       scroller of its own and the point of the claim is the COLUMN. */
-    const before9 = { railTop: d.railTop, sheetTop: d.sheetTop };
+    let d;
+    for (const [w, hh, label] of [[1194, 834, 'iPad Pro 11"'], [1366, 1024, 'iPad Pro 12.9"']]) {
+      await page.setViewportSize({ width: w, height: hh }); await pause(300);
+      await page.evaluate(() => openNewAgreement()); await pause(900);
+      d = await page.evaluate(D);
+      await page.screenshot({ path: path.join(OUT, `03-ipad-${w}.png`) });
+      check(`9a ${label} at ${w}: two columns in a 900 frame, nothing stacked`,
+        !d.err && !d.stack && !d.right && d.cols === 2 && d.frameW === 900,
+        d.err || `stack ${d.stack} · #na-right ${d.right} · ${d.cols} cols · ${d.frameW}px`);
+      check(`9b ${label} at ${w}: no agreement is drawn`, !d.err && !d.paper, d.err || `paper ${d.paper}`);
+      /* A GUARD: it held at the parent too. It is here because the list's
+         cap was RE-DERIVED when the ask left the rail, and this is the whole
+         of what that cap promises. */
+      check(`9c GUARD ${label} at ${w}: the Upload row is on screen on a fresh open`,
+        !d.err && d.moreOnScreen, d.err || (d.moreOnScreen ? 'on screen' : 'the rail\'s foot is below the fold'));
+      /* A GUARD, not a red-at-the-parent claim: the foot sits outside the
+         scroller in both shapes. It is here because on a short screen the
+         body now scrolls, and Create must never be what scrolls away. */
+      check(`9d GUARD ${label} at ${w}: Cancel, Skip and Create are always on screen`,
+        !d.err && d.footOnScreen, d.err || (d.footOnScreen ? 'on screen' : 'the foot is off screen'));
+      await page.evaluate(() => closeModal()); await pause(200);
+    }
+    check('9e the note says only what is true — no blank to light, nothing "under these questions"',
+      !d.err && /Copilot reads the agreement on arrival/.test(d.note) && !/lights the blank|under these questions/.test(d.note),
+      d.err || d.note.slice(0, 90));
+    /* A REAL WHEEL, at the iPad size where the body DOES scroll (MEASURED: by
+       105px at 1194x834, because the ask now sits above both columns). What
+       is below the fold must be reachable, and the foot must not move.
+       A GUARD at the parent too: there the stacked column scrolled instead. */
+    await page.setViewportSize({ width: 1194, height: 834 }); await pause(300);
+    await page.evaluate(() => openNewAgreement()); await pause(900);
+    const before9 = await page.evaluate(D);
     const cardBox = await page.evaluate(() => {
       const b = document.querySelector('.na-card').getBoundingClientRect();
       return { x: Math.round(b.left + b.width / 2), y: Math.round(b.top + 40) };
@@ -272,27 +316,16 @@ const READ = () => {
     await page.mouse.move(cardBox.x, cardBox.y);
     await page.mouse.wheel(0, 700); await pause(500);
     d = await page.evaluate(D);
-    await page.screenshot({ path: path.join(OUT, '04-stacked-1194-scrolled.png') });
-    check('9f a real wheel over the questions brings the agreement up — and the rail does not move',
-      !d.err && before9.sheetTop != null && d.sheetTop != null
-      && (before9.sheetTop - d.sheetTop) > 200 && d.railTop === before9.railTop,
-      d.err || `sheet ${before9.sheetTop} → ${d.sheetTop} · rail ${before9.railTop} → ${d.railTop}`);
-    /* WHERE THE READER ENDS UP: another template is another set of questions. */
+    await page.screenshot({ path: path.join(OUT, '04-ipad-1194-scrolled.png') });
+    check('9f GUARD a real wheel over the questions brings the last of them into view, and the foot stays',
+      !d.err && d.peopleOnScreen && d.footOnScreen,
+      d.err || `"Who else" on screen ${before9.peopleOnScreen} → ${d.peopleOnScreen} · foot ${d.footOnScreen}`);
+    /* WHERE THE READER ENDS UP: another template is another set of questions,
+       and still no paper. At the parent the stacked paper followed the pick. */
     await page.evaluate(() => document.querySelector('[data-wz-tid]').click()); await pause(500);
-    check('9g picking another template puts the column back at its questions',
-      await page.evaluate(() => { const r = document.getElementById('na-right'); return !!r && r.scrollTop === 0; }),
-      'scrollTop after a pick');
-    await page.evaluate(() => closeModal()); await pause(200);
-
-    /* CONTROL — the laptop shape is what it was, and the paper is its own
-       column there rather than a child of #na-right. */
-    await page.setViewportSize({ width: 1700, height: 950 }); await pause(300);
-    await page.evaluate(() => openNewAgreement()); await pause(900);
     d = await page.evaluate(D);
-    check('9h CONTROL — at 1700 the three columns come back and the paper is its own',
-      !d.err && !d.stack && d.cols === 3 && d.paper && d.paperInRight === false,
-      d.err || `stack ${d.stack} · ${d.cols} cols · in #na-right ${d.paperInRight}`);
-    await page.evaluate(() => closeModal());
+    check('9g picking another template swaps the questions and draws no paper', !d.err && !d.paper, d.err || `paper ${d.paper}`);
+    await page.evaluate(() => closeModal()); await pause(200);
 
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');
   } catch (e) { check('the run finished', false, String((e && e.message) || e)); }

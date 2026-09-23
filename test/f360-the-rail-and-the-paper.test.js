@@ -105,10 +105,21 @@ describe('f360 (2) the ask wraps, and grows with the sentence', () => {
     assert.match(NA, /say\?\.addEventListener\('input',\(\)=>\{ naSayFit\(say\);/);
     assert.match(NA, /naSayFit\(say\);\s*\n\s*if\(o\.say && say\) say\.focus\(\);/, 'and on arrival, before the caret');
   });
-  test('in the rail the box takes the whole line and Find drops under it', () => {
-    assert.match(CSS, /\.na-rail \.na-row\{ flex-wrap:wrap; \}/);
-    assert.match(CSS, /\.na-rail \.na-row > \.na-say\{ flex:1 0 100%; \}/);
-    assert.match(CSS, /\.na-inp\.na-say\{[^}]*height:auto/, 'the field rung is taken back off a growing box');
+  /* REVERSED IN PLACE 23 Sep 2026 — Young: "the describe what you need maybe
+     takes the whole top line", option 1. This claim said the box took the whole
+     width OF THE RAIL and Find dropped under it, which was right while the ask
+     lived in a 260px column (MEASURED: 182px beside the button, five words a
+     line). It lives above both columns now, so those two rail rules have
+     nothing to match and are gone, and the box and Find share one row. At the
+     parent the ask was inside #wz-pick and both rules stood. */
+  test('the ask is out of the rail: it spans the body, and Find sits beside the box', () => {
+    const rail = NA.slice(NA.indexOf('<div id="wz-pick"'), NA.indexOf('${naCard}'));
+    assert.ok(NA.indexOf('<div class="na-field">') >= 0 && NA.indexOf('<div class="na-field">') < NA.indexOf('<div id="wz-pick"'),
+      'the ask is drawn before the rail');
+    assert.ok(!/na-field|id="dr-say"/.test(rail), 'and not inside it');
+    assert.match(CSS, /\.na-field\{[^}]*grid-column:1 \/ -1/, 'it spans both columns');
+    assert.ok(!/\.na-rail \.na-row/.test(CSS), 'the two rules that dropped Find under the box are gone');
+    assert.match(CSS, /\.na-inp\.na-say\{[^}]*height:auto/, 'the field rung is still taken back off a growing box');
   });
 });
 
@@ -145,15 +156,21 @@ describe('f360 (3) the rail is the product\'s own, and its list is bounded', () 
   });
 });
 
-describe('f360 (4) three columns, and the agreement on the far side', () => {
-  test('the paper is drawn AFTER the questions, and is found by id', () => {
-    const paper = NA.indexOf('id="na-paper"'), card = NA.indexOf('class="na-card" id="na-card"');
-    assert.ok(card >= 0 && paper > card, 'the agreement sits beyond the answers, not between them and the picker');
-    assert.match(NA, /paperHost:document\.getElementById\('na-paper'\)/,
-      'the host form mounts by id, so the order is presentation and nothing else');
+/* RENAMED AND REVERSED IN PLACE 23 Sep 2026: this block was "three columns,
+   and the agreement on the far side". The owner took the agreement off this
+   screen on every device; what is left to pin is that it is really gone, and
+   gone by the one line that hands the mounted form no host for it. */
+describe('f360 (4) two columns, and no agreement on this screen', () => {
+  test('no paper is drawn, and the mounted form is handed no host for one', () => {
+    /* At the parent the paper was drawn AFTER the questions and found by id. */
+    assert.ok(!/id="na-paper"/.test(strip(NA)), 'no paper host in the markup');
+    assert.match(strip(NA), /paperHost:null/,
+      'and the form is handed none — which is the whole of how it draws none');
+    assert.ok(!/paperHost:document\.getElementById\('na-paper'\)/.test(NA));
   });
   test('the stack under 760px is one column, and the cap is released there', () => {
-    assert.match(CSS, /@media \(max-width:760px\)\{ \.na-body,\.na-body\.na-wide\{ grid-template-columns:1fr; \} \.na-picks\{ max-height:none; \} \}/);
+    /* RE-POINTED IN PLACE 23 Sep 2026: the wide body it also named is gone. */
+    assert.match(CSS, /@media \(max-width:760px\)\{ \.na-body\{ grid-template-columns:1fr; \} \.na-picks\{ max-height:none; \} \}/);
   });
   test('[wall] no rule shouts, and the card rules are gone rather than stubbed', () => {
     assert.ok(!/\.na-[a-z-]*\{[^}]*!important/.test(CSS), 'never !important');

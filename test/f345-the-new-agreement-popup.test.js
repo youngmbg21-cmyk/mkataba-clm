@@ -144,31 +144,28 @@ describe('f345 (3) the card is the existing door\'s own form, and this file mint
      1600 -> 1280 and the frame's three tracks became rail | questions | paper,
      so the agreement is drawn on the screen he actually uses. The CLAIM is the
      one that mattered: there is ONE line, it is stated, and the frame and the
-     grid read the same numbers rather than each typing their own. */
-  test('the paper beside the questions is drawn at 1280, and the numbers are said once', () => {
-    assert.match(WZ, /const NA_PAPER_MIN_W = 1280;/);
+     grid read the same numbers rather than each typing their own.
+     REVERSED IN PLACE 23 Sep 2026 — Young: "remove paper from the pop up
+     entirely and in any type of computer", then option 1, the ask across the
+     top. There is no paper line any more because there is no paper; what the
+     claim still holds is its second half — the frame and the grid read the
+     SAME numbers. At the parent the paper host was drawn and handed to the
+     form, and all four of its numbers were published. */
+  test('the pop-up draws no paper at any width, and the numbers that remain are said once', () => {
+    const code = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
+    assert.ok(!/id="na-paper"/.test(code(NA)), 'no paper host is drawn');
+    assert.match(code(NA), /paperHost:null/, 'and the mounted form is handed none');
+    assert.ok(!/NA_PAPER_MIN_W|NA_PAPER_W|NA_FRAME_W\b|NA_STACK_MIN_W/.test(code(WZ)),
+      'the four numbers the paper needed are gone, not kept dormant');
     assert.match(WZ, /const NA_RAIL_W = 260;/);
-    assert.match(WZ, /const NA_PAPER_W = 400;/);
-    assert.match(WZ, /const NA_FRAME_W = 1180;/);
-    /* RE-POINTED IN PLACE 22 Sep 2026 (f363). The host is NAMED once and
-       PLACED twice now — its own column here, and inside #na-right when the
-       agreement is stacked under the questions — so the literal moved out of
-       this branch. The claim is the same one: at 1280 and up the paper is a
-       track of the grid and nothing else. */
-    assert.match(NA, /\$\{wide\?naPaper:''\}/);
-    assert.match(NA, /const\s+naPaper\s*=\s*`<div id="na-paper" class="na-paper"><\/div>`/);
-    assert.match(NA, /maxWidth: \(wide\?NA_FRAME_W:NA_FRAME_NARROW_W\)\+'px'/, 'the frame reads the constants');
-    assert.match(HTML, /\.na-body\.na-wide\{ grid-template-columns:var\(--na-rail-w\) minmax\(0,1fr\) var\(--na-paper-w\); \}/);
-    /* THE TWO HOSTS MUST AGREE: the frame is the rail plus the questions plus
-       the paper plus the body's own padding and gaps, so a number changed on
-       one side and not the other is caught here rather than on a screen. */
-    const railCss = /--na-rail-w:(\d+)px/.exec(HTML), paperCss = /--na-paper-w:(\d+)px/.exec(HTML);
-    assert.ok(railCss && paperCss, 'the stylesheet states both widths');
+    assert.match(WZ, /const NA_FRAME_NARROW_W = 900;/);
+    assert.match(NA, /\{ maxWidth: NA_FRAME_NARROW_W\+'px'/, 'the frame reads the constant, at every width');
+    assert.ok(!/\.na-body\.na-wide/.test(code(HTML)), 'no third track');
+    /* THE TWO HOSTS MUST AGREE about the rail, as they did about the paper. */
+    const railCss = /--na-rail-w:(\d+)px/.exec(HTML);
+    assert.ok(railCss, 'the stylesheet states the rail');
     assert.equal(+railCss[1], +/const NA_RAIL_W = (\d+);/.exec(WZ)[1], 'the rail is one number');
-    assert.equal(+paperCss[1], +/const NA_PAPER_W = (\d+);/.exec(WZ)[1], 'so is the paper');
-    /* AND 1180 FITS 1280: openModal's backdrop spends var(--s-4) a side. */
-    assert.ok(+/const NA_FRAME_W = (\d+);/.exec(WZ)[1] <= +/const NA_PAPER_MIN_W = (\d+);/.exec(WZ)[1] - 32,
-      'the frame fits the window the paper is promised on');
+    assert.ok(!/--na-paper-w/.test(code(HTML)), 'and the paper\'s width token went with the paper');
   });
 });
 
