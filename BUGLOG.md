@@ -19045,3 +19045,11 @@ Noticed, not fixed
 ## Run 24 Sep 2026 — the prototype polish reverted
 
 - The side panel / Home / Overview polish (commit 745bdf4) was REVERTED on the owner's word: it fell short of the prototype, which is to be finished first and then applied to HaTi in full. The code is back to 80856be.
+
+## 23 Sep 2026 — how to make the long SaaS agreement a company standard (a question, nothing changed)
+
+Tried on a copy with the owner's real file: upload as a contract, then More → Save as template. No Copilot, done in under a second; the builder opened in 2s with no page errors; the counterparty's name became a blank; 100 of 118 sections arrived written.
+
+Noticed, not fixed
+- Save as template (tplRichBlocks) keeps headings, paragraphs and list items only, so every table is dropped: on this file 47 tables, ~27,000 characters (the definitions list, service levels, charges). Company templates have no table block at all.
+- The document's own bracket placeholders ("[address]", "[CVR No. if applicable]") come across as fixed text, not blanks.
