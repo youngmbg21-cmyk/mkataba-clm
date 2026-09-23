@@ -455,8 +455,14 @@ function mApprovalsHtml(){
        "Requested by · Ilana Mwangi · 4 days ago". The name and the date are
        carried on the row for exactly this (contractOwnerName reads the stored
        owner first, then the server's _raisedBy stop-gap). */
-    const reqBy = (typeof contractOwnerName==='function') ? contractOwnerName(c) : null;
-    const reqAt = (typeof repRaisedAt==='function') ? repRaisedAt(c) : null;
+    /* A PERSONAL APPROVAL WAS ASKED FOR BY SOMEBODY (23 Sep 2026): the
+       person who sent it, off the request's own record, rather than whoever
+       raised the contract. */
+    const saReq = (typeof apSaWaiting==='function') ? ((apSaWaiting(c)||{}).req||null) : null;
+    const reqBy = saReq ? ((saReq.askedBy&&saReq.askedBy.name)||null)
+      : (typeof contractOwnerName==='function') ? contractOwnerName(c) : null;
+    const reqAt = saReq ? saReq.askedAt : (typeof repRaisedAt==='function') ? repRaisedAt(c) : null;
+    const saAs = (saReq && typeof saMayDecide==='function' && typeof currentUser==='function') ? saMayDecide(saReq, currentUser()) : null;
     const requested = (reqBy||reqAt) ? { user:reqBy, at:reqAt?new Date(reqAt).toISOString():null } : null;
     return `
     <div class="m-card" style="margin-bottom:var(--s-3)">
@@ -476,6 +482,13 @@ function mApprovalsHtml(){
             [requested&&requested.user ? mEsc(requested.user) : '',
              x.idle ? `${x.idle} day${x.idle===1?'':'s'} ago` : 'since today'].filter(Boolean).join(' · ')}</div></div>
         </div>
+        ${saReq&&typeof saShowsLine==='function'?`<div style="margin-top:var(--s-3)"><div class="m-note">${i18t('sa_card_you_approve')}</div><div style="font-size:16px;margin-top:1px">${mEsc(saShowsLine(c,saReq.shows))}</div></div>`:''}
+        ${saReq&&saReq.note?`<div style="margin-top:var(--s-3);border-left:3px solid var(--color-divider);padding:2px 0 2px 10px">“${mEsc(saReq.note)}”</div>`:''}
+        ${''/* THE DESKTOP CARD'S NOTE BOX, ON THE PHONE. An admin deciding in
+               the approver's place must say why, and a refusal with nowhere to
+               type the reason is a door that cannot work — so the box is drawn
+               for every personal approval, required only where it is. */}
+        ${saReq?`<div style="margin-top:var(--s-3)"><div class="m-note">${i18t(saAs==='admin'?'sa_card_note_admin':'sa_card_note')}</div><textarea class="m-area" id="m-appr-note" rows="2" maxlength="${typeof SA_NOTE_MAX==='number'?SA_NOTE_MAX:600}">${mEsc(s.apprNote||'')}</textarea></div>`:''}
         <div style="display:flex;gap:10px;margin-top:14px">
           <button class="m-btn m-btn-primary" style="flex:1.4" data-m-approve="${mEsc(c.id)}">${i18t('m_approve')}</button>
           <button class="m-btn" style="flex:1;border-color:var(--st-ruby-line);color:var(--st-ruby-fg)" data-m-reject="${mEsc(c.id)}">${i18t('m_reject')}</button>
@@ -666,14 +679,18 @@ function mWireScreen(root){
   root.querySelectorAll('[data-m-appr]').forEach(b=>b.addEventListener('click',()=>{
     const id = b.getAttribute('data-m-appr');
     s.apprOpen = (s.apprOpen===id) ? null : id;
-    s.apprReject = null; s.apprWhy=''; s.apprErr=false;
+    s.apprReject = null; s.apprWhy=''; s.apprErr=false; s.apprNote='';
     mRender();
   }));
   root.querySelectorAll('[data-m-approve]').forEach(b=>b.addEventListener('click',()=>{
     const c = getContract(b.getAttribute('data-m-approve'));
     if(!c) return;
-    try{ approveContract(c); }catch(e){ if(window.toast) toast(e.message||'Could not approve','err'); }
-    s.apprOpen=null; mRender();
+    /* The note box is drawn for a personal approval only, so every other
+       approval reaches approveContract exactly as it always did. */
+    const noteBox = root.querySelector('#m-appr-note');
+    const note = noteBox ? String(noteBox.value||'').trim() : '';
+    try{ approveContract(c, note||undefined); }catch(e){ if(window.toast) toast(e.message||'Could not approve','err'); }
+    s.apprOpen=null; s.apprNote=''; mRender();
   }));
   root.querySelectorAll('[data-m-reject]').forEach(b=>b.addEventListener('click',()=>{
     s.apprReject = b.getAttribute('data-m-reject'); s.apprErr=false; mRender();
@@ -690,6 +707,8 @@ function mWireScreen(root){
   }));
   const why = root.querySelector('#m-reject-why');
   if(why) why.addEventListener('input',()=>{ s.apprWhy = why.value; });
+  const apNote = root.querySelector('#m-appr-note');
+  if(apNote) apNote.addEventListener('input',()=>{ s.apprNote = apNote.value; });
 
   if(typeof mWireContract==='function') mWireContract(root);
 }

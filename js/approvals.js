@@ -164,24 +164,28 @@ function buildApprovalChain(c){
       if(drift.length){ step.status='stale'; step.drift=drift; }
     }
     return step; });
-  /* THE OVERSEER JOINS THE SAME CHAIN, LAST, as an ordinary step — so
-     approvalState, the panel, the refusal and the dashboard count all inherit
-     it and nothing grows a second gate. Its decision is preserved across
-     rebuilds exactly like a rule's, by the same ruleId lookup. */
-  const ov=overseerFor(c);
-  if(ov){
-    const was=prior.find(p=>p.ruleId===OVERSEER_STEP_ID);
-    const kept=was&&(was.status==='approved'||was.status==='rejected')?was.status:'pending';
-    const step={ ruleId:OVERSEER_STEP_ID, name:i18t('ov_step_name',{who:ov.raiser.name||''}),
-      approver:{kind:'member',name:ov.over.name}, order:9999,
-      status:kept, by:was?.by||null, at:was?.at||null, comment:was?.comment||null,
-      stamp:was?.stamp||null };
-    if(kept==='approved'){
-      const drift=approvalDrift(step, c);
-      if(drift.length){ step.status='stale'; step.drift=drift; }
-    }
-    chain.push(step);
-  }
+  /* ---- THE PERSONAL APPROVAL JOINS THE SAME CHAIN, LAST (23 Sep 2026) ----
+     It used to be one step whose decision lived on this chain, keyed off the
+     contract's owner, and granted by whoever pressed Approve while it was
+     "next". Scenario 2 made it a thing somebody ASKS for and a named person
+     DECIDES, so its decision now lives on its own record — `c.signApprovals`,
+     read by js/signapproval.js on both hosts — and this chain only DRAWS it.
+     One step per approver. approvalState, the gate card, the refusal and the
+     dashboard count all inherit it, and nothing grows a second gate.
+
+     A DECISION PRESSED ONTO THIS CHAIN UNDER THE OLD MODEL IS NOT HONOURED.
+     The old step had no request and no named decider, so an approval recorded
+     there cannot say who gave it or of what; the contract is sent for
+     approval once more. Said to the owner in plain words.
+
+     ONCE SIGNING HAS STARTED the approval has done its work: a need nobody
+     approved (a route begun before the rule existed) is not drawn at all, so a
+     route in progress is never stopped half way by a step it never had. */
+  let sa=null; try{ sa=signApprovalStateOf(c); }catch(_){ sa=null; }
+  if(sa) sa.rows.forEach((r,i)=>{
+    if(sa.started && r.status!=='approved') return;
+    chain.push(saChainStep(r,i));
+  });
   return chain;
 }
 const OVERSEER_STEP_ID='__overseer__';
@@ -199,41 +203,70 @@ function approvalState(c){
   for(const step of chain){ if(step.status!=='approved'){ next=step; break; } }
   const ok=chain.every(s=>s.status==='approved');
   const me=currentUser();
-  const canApproveNext = !!next && userCanApprove(next.approver, me);
+  /* A PERSONAL APPROVAL IS DECIDED BY ITS NAMED PEOPLE, AND ONLY ONCE IT IS
+     ASKED. userCanApprove answers "is this the person named", which is not
+     the whole question for that step: an unasked request is the lead's move,
+     not the approver's, and the person who asked may never answer their own
+     question. saMayDecide is the ONE reading of that, on both hosts. */
+  const canApproveNext = !!next && (next.sa
+    ? (next.status==='pending' && !!(typeof saMayDecide==='function' && saMayDecide(next.req, me)))
+    : userCanApprove(next.approver, me));
   const rejected=chain.filter(s=>s.status==='rejected');
   const stale=chain.filter(s=>s.status==='stale');
   return { required:true, ok, chain, next, canApproveNext, rejected, stale,
     approverLabel: next?approverLabelOf(next.approver):'' };
 }
+/* ---- ONE VERB, WHATEVER IS WAITING ON THIS READER ----
+   Approve means "decide what is in front of me". A RULE step this reader may
+   approve comes first, because the rule chain is sequential and that is its
+   own ruling; otherwise a PERSONAL approval asked of this reader is decided on
+   its own record, in any order — it is one named person's yes, and holding it
+   behind somebody else's step would email an approver who then cannot act.
+   The phone, the gate card and the Approvals page all press this, so none of
+   them needs to know which kind of step it is. */
 function approveContract(c, comment){
   const st=approvalState(c);
   if(!st.required){ return; }
+  if(st.next && !st.next.sa && st.canApproveNext){
+    const u=currentUser();
+    const stamp=approvalStamp(c);
+    const was=st.next.status;
+    /* The personal steps are DRAWN on this chain and never stored on it —
+       their decisions live on c.signApprovals. */
+    c.approvalChain=st.chain.filter(s=>!s.sa).map(s=> s.ruleId===st.next.ruleId
+      ? {...s, status:'approved', by:u.name, at:nowISO(), comment:comment||null, stamp, drift:undefined}
+      : s);
+    logAudit(c,'Approved',`Step "${st.next.name}" approved by ${u.name} (${ROLE_LABEL[u.role]})`
+      +` — for ${fmtMoneyShort(stamp.value)} and the wording as it stands`
+      +(was==='stale'?' · re-approved after the contract changed':was==='rejected'?' · previously refused':''));
+    persist(c); renderSignButton(c); renderAuditSection(c);
+    const done=approvalState(c).ok;
+    toast(done?'All approvals complete — signing unlocked':'Step approved — next approver notified');
+    return;
+  }
+  const mine=signApprovalDecidable(c);
+  if(mine.length) return signApprovalDecide(c, mine[0].req.id, 'approved', comment);
   if(!st.next){ toast(i18t('ap_chain_complete')); return; }
-  if(!st.canApproveNext){ toast(`This step needs ${approverLabelOf(st.next.approver)}`,'err'); return; }
-  const u=currentUser();
-  const stamp=approvalStamp(c);
-  const was=st.next.status;
-  c.approvalChain=st.chain.map(s=> s.ruleId===st.next.ruleId
-    ? {...s, status:'approved', by:u.name, at:nowISO(), comment:comment||null, stamp, drift:undefined}
-    : s);
-  logAudit(c,'Approved',`Step "${st.next.name}" approved by ${u.name} (${ROLE_LABEL[u.role]})`
-    +` — for ${fmtMoneyShort(stamp.value)} and the wording as it stands`
-    +(was==='stale'?' · re-approved after the contract changed':was==='rejected'?' · previously refused':''));
-  persist(c); renderSignButton(c); renderAuditSection(c);
-  const done=approvalState(c).ok;
-  toast(done?'All approvals complete — signing unlocked':'Step approved — next approver notified');
+  toast(`This step needs ${approverLabelOf(st.next.approver)}`,'err');
 }
 function rejectApprovalStep(c, comment){
-  const st=approvalState(c); if(!st.next) return;
-  const u=currentUser(); if(!st.canApproveNext){ toast(`This step needs ${approverLabelOf(st.next.approver)}`,'err'); return; }
-  c.approvalChain=st.chain.map(s=> s.ruleId===st.next.ruleId
-    ? {...s, status:'rejected', by:u.name, at:nowISO(), comment:comment||s.comment||null} : s);
-  if(c.status!=='Signed') c.status='Under Review';
-  logAudit(c,'Approval rejected',`Step "${st.next.name}" rejected by ${u.name}`
-    +(comment?` — “${String(comment).slice(0,500)}”`:'')
-    +' — the contract goes back to its owner to revise and resubmit');
-  persist(c); renderSignButton(c); renderAuditSection(c);
-  toast(i18t('ap_step_rejected'));
+  const st=approvalState(c); if(!st.required) return;
+  if(st.next && !st.next.sa && st.canApproveNext){
+    const u=currentUser();
+    c.approvalChain=st.chain.filter(s=>!s.sa).map(s=> s.ruleId===st.next.ruleId
+      ? {...s, status:'rejected', by:u.name, at:nowISO(), comment:comment||s.comment||null} : s);
+    if(c.status!=='Signed') c.status='Under Review';
+    logAudit(c,'Approval rejected',`Step "${st.next.name}" rejected by ${u.name}`
+      +(comment?` — “${String(comment).slice(0,500)}”`:'')
+      +' — the contract goes back to its owner to revise and resubmit');
+    persist(c); renderSignButton(c); renderAuditSection(c);
+    toast(i18t('ap_step_rejected'));
+    return;
+  }
+  const mine=signApprovalDecidable(c);
+  if(mine.length) return signApprovalDecide(c, mine[0].req.id, 'refused', comment);
+  if(!st.next) return;
+  toast(`This step needs ${approverLabelOf(st.next.approver)}`,'err');
 }
 /* THE WAY OUT OF A REFUSAL.
 
@@ -242,18 +275,22 @@ function rejectApprovalStep(c, comment){
    on the screen that puts it back in front of them. The audit trail records
    both the refusal and the resubmission, so "approved on the third ask" stays
    readable afterwards — which is the reason this is a verb and not a quiet
-   reset of the status. */
+   reset of the status.
+
+   RULE STEPS ONLY. A personal approval is sent again the way it was sent the
+   first time — through the one request dialog — because a new request is a
+   new question with its own stamp, not an old answer wiped. */
 function resubmitApproval(c, note){
   const st=approvalState(c);
   if(!st.required) return false;
-  const back=st.chain.filter(s=>s.status==='rejected'||s.status==='stale');
+  const back=st.chain.filter(s=>!s.sa && (s.status==='rejected'||s.status==='stale'));
   /* 'warn', never bare: a bare toast prints nothing, so this refusal — the one
      the greyed button above makes unreachable through the interface — said
      nothing at all to anybody who reached it another way. */
   if(!back.length){ toast(i18t('ap_nothing_resubmit'),'warn'); return false; }
   if(!canEdit()){ toast(i18t('ap_viewers_no_resubmit'),'err'); return false; }
   const u=currentUser();
-  c.approvalChain=st.chain.map(s=> (s.status==='rejected'||s.status==='stale')
+  c.approvalChain=st.chain.filter(s=>!s.sa).map(s=> (s.status==='rejected'||s.status==='stale')
     ? {...s, status:'pending', by:null, at:null, comment:null, stamp:null, drift:undefined} : s);
   logAudit(c,'Approval resubmitted',
     `${back.map(s=>`"${s.name}"`).join(', ')} sent back for approval by ${(u&&u.name)||'System'}`
@@ -262,6 +299,467 @@ function resubmitApproval(c, note){
   persist(c); renderSignButton(c); renderAuditSection(c);
   toast(`Sent back for approval — waiting on ${approverLabelOf(back[0].approver)}`);
   return true;
+}
+
+/* ============================================================
+   APPROVAL BEFORE SIGNING — the screen's half (Young ruled 23 Sep 2026)
+   ============================================================
+   js/signapproval.js is the reading, shared with the server. This is what a
+   person presses: send for approval, decide, withdraw, remind. Every write
+   lands on `c.signApprovals` through persist() and is guarded as a
+   DIFFERENCE by PUT /api/contracts/:id; every email goes through
+   POST /api/contracts/:id/sign-approval-notify, which looks the address up
+   itself and reports what really happened.
+
+   WHERE THE RULE IS READ FROM. A colleague's rule is an admin-only fact about
+   them, so in server mode a reader who is not an admin cannot see who else on
+   this contract is marked. The server reads it with the whole roster and
+   hands the answer down as `_signNeeds` — transport, never record, stripped
+   on save. An admin and local mode read the roster fresh, and the reader's
+   OWN rule is always read fresh, so a lead who has just added themselves to
+   the signing route sees their own approval at once. */
+function signApprovalLegacyOn(){ try{ return !!overseerCfg().on; }catch(_){ return false; } }
+function signApprovalNeeds(c){
+  if(!c || typeof saNeeds!=='function') return [];
+  let users=[]; try{ users=(typeof getUsers==='function'?getUsers():[])||[]; }catch(_){ users=[]; }
+  const local=saNeeds(c, users, signApprovalLegacyOn());
+  const me=(typeof currentUser==='function')?currentUser():null;
+  const remote=(typeof API_MODE==='function')&&API_MODE();
+  if(!remote || (me&&me.role==='admin') || !Array.isArray(c._signNeeds)) return local;
+  const out=c._signNeeds.map(n=>({ ...n, people:(n.people||[]).map(p=>({ ...p, why:(p.why||[]).slice() })) }));
+  local.forEach(n=>{ if(!out.some(x=>String(x.key)===String(n.key))) out.push(n); });
+  return out;
+}
+function signApprovalStateOf(c){
+  if(typeof saState!=='function') return { rows:[], ok:true, started:false, open:[] };
+  const st=saState(c, signApprovalNeeds(c), { nowMs:Date.now() });
+  /* A READER WHO CANNOT SEE THE MONEY cannot measure whether an approval
+     still describes the contract — the figures it was stamped with are the
+     ones hidden from them. The server measured it with the whole record and
+     sent each need's standing as `_signState`; that answer is used as it
+     came, and the wall asks the same thing again at the signature. */
+  if(c && c._valuesHidden && Array.isArray(c._signState)){
+    const by=new Map(c._signState.map(x=>[String(x.key), x]));
+    st.rows.forEach(r=>{ const t=by.get(String(r.need.key)); if(!t) return;
+      r.status=t.status; r.drift=(t.drift||[]).slice(); r.expired=!!t.expired;
+      r.waited=t.waited||0; r.escalated=!!t.escalated; });
+    st.ok=!st.rows.length || st.started || st.rows.every(r=>r.status==='approved');
+    st.open=st.started?[]:st.rows.filter(r=>r.status!=='approved');
+  }
+  return st;
+}
+function saStepName(n){
+  const ppl=(n&&n.people)||[];
+  const who=ppl.map(p=>p.name).filter(Boolean).join(i18t('sa_and'));
+  return ppl.some(p=>(p.why||[]).includes('lead')) ? i18t('ov_step_name',{who}) : i18t('sa_step_signs',{who});
+}
+/* An old figure is printed in the contract's own currency, the one
+   fmtMoneyOf prints the new figure in — two spellings of one amount side by
+   side is the kind of thing a reader stops trusting. */
+function saMoney(c, n){
+  if(n==null) return i18t('sa_no_money');
+  let cur=''; try{ cur=(typeof contractCurrency==='function')?contractCurrency(c):''; }catch(_){ cur=''; }
+  let loc; try{ loc=(typeof jxLocale==='function')?jxLocale():undefined; }catch(_){ loc=undefined; }
+  return `${cur?cur+' ':''}${Number(n||0).toLocaleString(loc)}`;
+}
+/* WHAT MOVED, in the words a person uses, from the keys the reading gives. */
+function saDriftWords(c, r){
+  if(!r) return [];
+  if(r.expired) return [i18t('sa_mv_expired',{n:SA_UNUSED_DAYS})];
+  const was=(r.req&&r.req.shows)||{};
+  return (r.drift||[]).map(k=>k==='value'
+    ? i18t('sa_mv_value',{from:saMoney(c,was.value), to:saMoney(c,c.valueType==='none'?null:Number(c.value||0))})
+    : i18t('sa_mv_'+k));
+}
+const SA_CHAIN_STATUS={ unasked:'unasked', pending:'pending', approved:'approved', refused:'rejected', lapsed:'stale' };
+function saChainStep(r,i){
+  const n=r.need, req=r.req||null;
+  return { ruleId:OVERSEER_STEP_ID, sa:true, key:n.key, need:n, req, name:saStepName(n),
+    approver: n.approverId ? { kind:'member', name:n.approverName, id:n.approverId } : { kind:'role', role:'admin' },
+    order:9999+i, status:SA_CHAIN_STATUS[r.status]||'unasked', saStatus:r.status,
+    by:req&&req.decidedBy?req.decidedBy.name:null, at:req?req.decidedAt:null,
+    comment:req?req.decision:null, drift:undefined, driftKeys:(r.drift||[]).slice(), expired:!!r.expired,
+    waited:r.waited||0, escalated:!!r.escalated };
+}
+/* The pending requests THIS reader may decide, in any capacity. The card on
+   the Signing tab offers them; approveContract presses them. */
+function signApprovalDecidable(c, u){
+  const me=u||((typeof currentUser==='function')?currentUser():null);
+  if(!me) return [];
+  return signApprovalStateOf(c).rows.filter(r=>r.status==='pending' && r.req && saMayDecide(r.req, me))
+    .map(r=>({ ...r, as:saMayDecide(r.req, me) }));
+}
+/* The ones that WAIT ON this reader — what their queue, their bell and their
+   phone count. The approver from the moment it is asked; the backup and the
+   admins only once it has waited SA_ESCALATE_WORKDAYS, or at once where the
+   approver has left and there is nobody else. They MAY decide earlier from
+   the contract itself; this is only about whose list it is on. */
+function signApprovalWaitsOn(c, u){
+  return signApprovalDecidable(c, u).filter(r=>r.as==='approver' || r.escalated || !r.need.approverId);
+}
+/* ---- MAY IT BE SENT FOR APPROVAL NOW ----
+   Only once the paper is final: an approval covers the wording that will be
+   signed, so asking while the negotiation is still moving asks a colleague to
+   approve something that is about to change. The owner's words for the
+   screen: "nothing new appears until the deal is agreed". */
+/* signBlockers is the ONE list of what holds a signature, and it is asked
+   here rather than restated — with `noSa`, because that list asks THIS file
+   for its own rows and would otherwise ask itself. */
+const SA_PAPER_KEYS=['negotiation','fields','placeholders','blanks','counterparty','value','hold'];
+function signApprovalPaperHolds(c){
+  let bl=[]; try{ bl=(typeof signBlockers==='function')?signBlockers(c,{ noSa:true }):[]; }catch(_){ bl=[]; }
+  return bl.filter(b=>b && SA_PAPER_KEYS.includes(b.key));
+}
+function signApprovalRequestable(c, u, state){
+  const me=u||((typeof currentUser==='function')?currentUser():null);
+  const st=state||signApprovalStateOf(c);
+  const rows=st.started?[]:st.rows.filter(r=>r.status==='unasked'||r.status==='refused'||r.status==='lapsed');
+  if(!rows.length) return { ok:false, rows:[], why:i18t('sa_nothing_to_ask') };
+  if(!me || (typeof canEdit==='function' && !canEdit())) return { ok:false, rows, why:i18t('sa_viewer_no') };
+  if(rows.some(r=>String(r.need.approverId)===String(me.id)||String(r.need.backupId)===String(me.id)))
+    return { ok:false, rows, why:i18t('sa_you_approve_it') };
+  if(signApprovalPaperHolds(c).length) return { ok:false, rows, why:i18t('sa_not_final'), waiting:true };
+  return { ok:true, rows, why:'' };
+}
+/* The round the approver is shown, read RAW: negoRound initialises a
+   negotiation and READING MUST NOT WRITE. */
+function signApprovalRound(c){
+  const n=c&&c.negotiation&&c.negotiation.round;
+  return (typeof n==='number'&&n>=1)?n:null;
+}
+function saFmtDay(iso){
+  const d=String(iso||'').slice(0,10);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(d)) return '';
+  try{ return (typeof regDotDate==='function')?regDotDate(d):d; }catch(_){ return d; }
+}
+function saWhen(iso){
+  const t=Date.parse(iso||'');
+  if(!Number.isFinite(t)) return '';
+  try{ return (typeof fmtDT==='function')?fmtDT(iso):saFmtDay(iso); }catch(_){ return saFmtDay(iso); }
+}
+/* One line saying what an approval is OF: the round, the money, the dates. */
+function saShowsLine(c, shows){
+  const s=shows||{};
+  const bits=[];
+  bits.push(s.round?i18t('sa_v_round',{n:s.round}):i18t('sa_v_now'));
+  bits.push(s.value==null?i18t('sa_no_money'):saMoney(c,s.value));
+  if(s.start||s.end) bits.push([saFmtDay(s.start),saFmtDay(s.end)].filter(Boolean).join(' – '));
+  return bits.join(' · ');
+}
+
+/* ---- THE EMAIL, AND WHAT IT REALLY DID ----
+   The address is the server's to find: it takes the request's id and reads
+   the approver off the STORED contract, so the record has to be on the
+   server first. The answer is sendEmail's own — sent, in the outbox because
+   no provider is set, or refused with the provider's reason — and it is
+   filed on the request, so it outlives the toast. Local mode has no server
+   and says so rather than pretending. */
+async function signApprovalNotify(c, kind, req){
+  if(!(typeof API_MODE==='function' && API_MODE())) return { local:true, emailSent:false };
+  try{ if(typeof flushSaves==='function') await flushSaves(); }catch(_){}
+  try{
+    return await api('contracts/'+c.id+'/sign-approval-notify','POST',{ kind, reqId:req.id }, { quiet:true });
+  }catch(e){ return { emailSent:false, emailError:(e&&e.message)||'', failed:true }; }
+}
+function saNoticeOf(out){
+  if(!out) return null;
+  return { at:nowISO(), emailed:!!out.emailSent, local:!!out.local,
+    outbox:!!out.outbox, error:out.emailSent?null:(out.emailError||null), to:out.name||null };
+}
+function saDeliveryWords(notice){
+  if(!notice) return '';
+  if(notice.emailed) return i18t('sa_d_emailed');
+  if(notice.local) return i18t('sa_d_local');
+  if(notice.outbox) return i18t('sa_d_outbox');
+  return i18t('sa_d_failed');
+}
+
+/* ---- SEND FOR APPROVAL ----
+   One request per approver the rule names, each carrying the stamp of
+   exactly what is put in front of them and an optional note. The note goes
+   in the email and on the card; it never travels to the other side. */
+async function signApprovalRequest(c, note){
+  const me=(typeof currentUser==='function')?currentUser():null;
+  if(!c||!me) return false;
+  const can=signApprovalRequestable(c, me);
+  if(!can.ok){ toast(can.why,'warn'); return false; }
+  const at=nowISO();
+  const text=String(note||'').trim().slice(0,SA_NOTE_MAX);
+  const stamp=saStamp(c), shows=saShows(c, signApprovalRound(c));
+  const list=Array.isArray(c.signApprovals)?c.signApprovals.slice():[];
+  const made=can.rows.map(r=>{
+    const n=r.need;
+    const req={ id:'sa_'+Math.random().toString(36).slice(2,10), key:String(n.key),
+      approverId:n.approverId||'', approverName:n.approverName||'', backupId:n.backupId||'', backupName:n.backupName||'',
+      people:(n.people||[]).map(p=>({ id:String(p.id), name:String(p.name||''), why:(p.why||[]).slice() })),
+      status:'pending', askedBy:{ id:String(me.id), name:me.name||'' }, askedAt:at, note:text, stamp, shows,
+      decidedBy:null, decidedAt:null, as:null, decision:null, notice:null, reminded:[] };
+    list.push(req);
+    return req;
+  });
+  c.signApprovals=list.slice(-SA_KEEP);
+  made.forEach(req=>logAudit(c,'Approval requested',
+    `${me.name} asked ${req.approverName||'an admin'} to approve before anyone signs — for `
+    +`${saShowsLine(c,req.shows)}, the wording as it stands`+(text?` — “${text}”`:'')));
+  persist(c);
+  let first=null;
+  for(const req of made){
+    const out=await signApprovalNotify(c,'ask',req);
+    const notice=saNoticeOf(out);
+    const live=(c.signApprovals||[]).find(x=>x&&x.id===req.id);
+    if(live) live.notice=notice;
+    if(!first) first={ req, notice };
+  }
+  persist(c);
+  const who=made.map(r=>r.approverName||i18t('sa_admins')).join(i18t('sa_and'));
+  const n=first&&first.notice;
+  /* THREE HONEST ANSWERS: it went; email is off here, so the message sits
+     in the outbox (not a failure, and not "sent" either); or the provider
+     refused it. */
+  toast(n&&n.emailed?i18t('sa_asked_toast',{who})
+    :n&&n.local?i18t('sa_asked_toast_local',{who})
+    :n&&n.outbox?i18t('sa_asked_toast_outbox',{who})
+    :i18t('sa_asked_toast_nomail',{who}), n&&n.emailed?'ok':'warn');
+  saRepaint(c);
+  return true;
+}
+/* ---- APPROVE OR REFUSE ----
+   The capacity is saMayDecide's, the same function the server asks. A
+   refusal always carries its reason, because the reason is what goes back to
+   the person who asked; an admin deciding in somebody else's place says why
+   either way. A request whose contract has moved since it was asked has
+   lapsed and is not decided — it is sent again, with the new stamp. */
+async function signApprovalDecide(c, reqId, verdict, note){
+  const me=(typeof currentUser==='function')?currentUser():null;
+  const st=signApprovalStateOf(c);
+  const row=st.rows.find(r=>r.req&&r.req.id===reqId);
+  if(!row||!me){ toast(i18t('sa_gone'),'warn'); return false; }
+  const as=saMayDecide(row.req, me);
+  if(!as){ toast(i18t('sa_decide_not_you',{who:row.req.approverName||i18t('sa_admins')}),'warn'); return false; }
+  if(row.status==='lapsed'){ toast(i18t('sa_decide_changed'),'warn'); return false; }
+  if(row.status!=='pending'){ toast(i18t('sa_gone'),'warn'); return false; }
+  const text=String(note||'').trim().slice(0,SA_NOTE_MAX);
+  const asker=(row.req.askedBy&&row.req.askedBy.name)||'';
+  if(verdict==='refused' && !text){ toast(i18t('sa_refuse_needs_why',{who:asker}),'warn'); return false; }
+  if(as==='admin' && !text){ toast(i18t('sa_admin_needs_why',{who:row.req.approverName||i18t('sa_admins')}),'warn'); return false; }
+  const live=(c.signApprovals||[]).find(x=>x&&x.id===reqId);
+  if(!live){ toast(i18t('sa_gone'),'warn'); return false; }
+  live.status=verdict==='approved'?'approved':'refused';
+  live.decidedBy={ id:String(me.id), name:me.name||'', role:me.role||'' };
+  live.decidedAt=nowISO(); live.as=as; live.decision=text||null;
+  const cap=as==='backup'?` as the backup for ${row.req.approverName}`:as==='admin'?` as an admin, in ${row.req.approverName||'the approver'}’s place`:'';
+  if(verdict==='approved') logAudit(c,'Approved',
+    `Signing approved by ${me.name}${cap} — for ${saShowsLine(c,live.shows)}, the wording as it stands`+(text?` — “${text}”`:''));
+  else logAudit(c,'Approval rejected',
+    `Signing approval refused by ${me.name}${cap} — “${text}” — it goes back to ${asker||'whoever asked'} to revise and send again`);
+  persist(c);
+  const out=await signApprovalNotify(c,'decided',live);
+  toast(verdict==='approved'?i18t('sa_approved_toast',{who:asker}):i18t('sa_refused_toast',{who:asker}),'ok');
+  if(out && !out.local && !out.emailSent) toast(i18t(out.outbox?'sa_told_outbox':'sa_told_nomail',{who:asker}),'warn');
+  saRepaint(c);
+  return true;
+}
+/* Withdrawn by the person who asked, or an admin — a question taken back
+   leaves the contract unasked, exactly as before it was sent. */
+function signApprovalWithdraw(c, reqId){
+  const me=(typeof currentUser==='function')?currentUser():null;
+  const live=(c&&c.signApprovals||[]).find(x=>x&&x.id===reqId);
+  if(!live||live.status!=='pending'||!me){ toast(i18t('sa_gone'),'warn'); return false; }
+  if(!(String((live.askedBy||{}).id)===String(me.id) || me.role==='admin')){ toast(i18t('sa_withdraw_not_you'),'warn'); return false; }
+  live.status='withdrawn';
+  logAudit(c,'Approval withdrawn',`${me.name} withdrew the request asking ${live.approverName||'an admin'} to approve before signing`);
+  persist(c);
+  toast(i18t('sa_withdrawn_toast'),'ok');
+  saRepaint(c);
+  return true;
+}
+/* A deliberate nudge, with a visible result, never a silent retry. The server
+   holds it to once a day for one request, so a button cannot become a way of
+   flooding somebody's inbox. */
+async function signApprovalRemind(c, reqId){
+  const live=(c&&c.signApprovals||[]).find(x=>x&&x.id===reqId);
+  if(!live||live.status!=='pending'){ toast(i18t('sa_gone'),'warn'); return false; }
+  const out=await signApprovalNotify(c,'remind',live);
+  if(out&&out.emailSent){
+    live.reminded=(Array.isArray(live.reminded)?live.reminded:[]).concat([{ at:nowISO(), by:((currentUser()||{}).name)||'' }]).slice(-10);
+    persist(c);
+    toast(i18t('sa_reminded_toast',{who:live.approverName||i18t('sa_admins')}),'ok');
+  } else toast((out&&out.error)||i18t('sa_remind_nomail'),'warn');
+  saRepaint(c);
+  return !!(out&&out.emailSent);
+}
+function saRepaint(c){
+  try{ if(typeof renderSignButton==='function') renderSignButton(c); }catch(_){}
+  try{ if(typeof renderAuditSection==='function') renderAuditSection(c); }catch(_){}
+  try{ if(typeof updateAlertBadge==='function') updateAlertBadge(); }catch(_){}
+}
+
+/* ---- THE ROWS "BEFORE YOU SIGN" DRAWS ----
+   One row per need, in the people stage. signBlockers carries the ones that
+   HOLD (so the button and the refusal read the same sentence); an approved
+   one is settled and folds away with the rest. `rowKey` keeps two approvers
+   on two rows. */
+function signApprovalRows(c){
+  const st=signApprovalStateOf(c);
+  if(st.started || !st.rows.length) return [];
+  const can=signApprovalRequestable(c, null, st);
+  return st.rows.map(r=>({ kind:'signapproval', rowKey:'sa:'+r.need.key, status:r.status,
+    need:r.need, req:r.req, driftWords:saDriftWords(c,r), expired:!!r.expired,
+    waited:r.waited||0, escalated:!!r.escalated,
+    askable:can.ok && can.rows.some(x=>x.need.key===r.need.key),
+    waiting:!!can.waiting && (r.status==='unasked'||r.status==='refused'||r.status==='lapsed'),
+    holds:r.status!=='approved', settled:r.status==='approved' }));
+}
+function signApprovalBlockLabel(c, r){
+  const appr=r.need.approverName||i18t('sa_admins');
+  const people=(r.need.people||[]).map(p=>p.name).filter(Boolean).join(i18t('sa_and'));
+  if(r.status==='pending') return i18t('sa_block_pending',{approver:appr});
+  if(r.status==='refused') return i18t('sa_block_refused',{approver:appr, why:(r.req&&r.req.decision)||''});
+  if(r.status==='lapsed') return i18t('sa_block_lapsed',{approver:appr});
+  return i18t('sa_block',{people, approver:appr});
+}
+function signApprovalSettledRows(c){
+  return signApprovalRows(c).filter(r=>r.settled).map(r=>({ ...r, key:r.rowKey, stage:'people', holds:false }));
+}
+/* The one sentence the share dialog and the route's own send button say when
+   a signing link is asked for before the approval is in. Null where nothing
+   is holding. */
+function signApprovalHoldsLinks(c){
+  const rows=signApprovalRows(c).filter(r=>r.holds);
+  return rows.length ? signApprovalBlockLabel(c, rows[0]) : null;
+}
+
+/* ---- THE REQUEST, ON ONE SCREEN ----
+   Who approves and who steps in, exactly what they approve, and a note.
+   It opens only where the request can be sent; where it cannot, the press
+   that would have opened it says why instead. */
+function openSignApprovalDialog(c){
+  const can=signApprovalRequestable(c);
+  if(!can.ok){ toast(can.why,'warn'); return false; }
+  const e=s=>String(s==null?'':s).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+  const shows=saShows(c, signApprovalRound(c));
+  const users=(typeof getUsers==='function'?getUsers():[])||[];
+  const titleOf=id=>{ const u=users.find(x=>String(x.id)===String(id)); return (u&&u.title)||''; };
+  const person=(name,sub)=>`<div class="sa-who"><span class="sa-av" aria-hidden="true">${e(String(name||'?').split(' ').filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase())}</span><span><span class="sa-who-t">${e(name)}</span>${sub?`<span class="sa-who-s">${e(sub)}</span>`:''}</span></div>`;
+  const first=can.rows[0].need;
+  const apName=first.approverName||i18t('sa_admins');
+  const needs=can.rows.map(r=>{ const n=r.need;
+    return `<div class="sa-pair">
+      <div><span class="sa-lbl">${e(i18t('sa_dlg_approver'))}</span>${n.approverId?person(n.approverName,titleOf(n.approverId)):`<div class="sa-who-s">${e(i18t('sa_dlg_admins'))}</div>`}</div>
+      <div><span class="sa-lbl">${e(i18t('sa_dlg_backup'))}</span>${n.backupId?person(n.backupName,titleOf(n.backupId)):`<div class="sa-who-s">${e(i18t('sa_dlg_no_backup'))}</div>`}</div>
+    </div>`; }).join('');
+  const kv=(k,v)=>`<span class="sa-k">${e(k)}</span><span class="sa-v">${e(v)}</span>`;
+  const cp=(typeof signerPlan==='function'?signerPlan(c):[]).filter(s=>s&&s.party==='counterparty'&&!s.signed)[0];
+  /* Our own side is named from the workspace where the record names no
+     entity of ours — the paper does the same (contractParty). */
+  const partiesShown=(shows.parties||[]).slice();
+  try{ const ours=(typeof contractParty==='function')?contractParty(c):''; if(ours && !partiesShown.includes(ours)) partiesShown.unshift(ours); }catch(_){}
+  openModal(`<div class="sa-dlg">
+    <h3 class="sa-h">${e(i18t('sa_dlg_title'))}</h3>
+    <div class="sa-sub">${e([c.id,c.name,c.counterparty].filter(Boolean).join(' · '))}</div>
+    ${needs}
+    <div class="sa-box">
+      <div class="sa-boxh">${e(i18t('sa_dlg_exactly',{who:apName}))}</div>
+      <div class="sa-kv">
+        ${kv(i18t('sa_dlg_version'), shows.round?i18t('sa_v_round_today',{n:shows.round}):i18t('sa_v_now_today'))}
+        ${kv(i18t('sa_dlg_value'), shows.value==null?i18t('sa_no_money'):saMoney(c,shows.value))}
+        ${(shows.start||shows.end)?kv(i18t('sa_dlg_dates'), [saFmtDay(shows.start),saFmtDay(shows.end)].filter(Boolean).join(' – ')):''}
+        ${partiesShown.length?kv(i18t('sa_dlg_parties'), partiesShown.join(' · ')):''}
+        ${shows.signers.length?kv(i18t('sa_dlg_signers'), shows.signers.join(i18t('sa_then'))):''}
+      </div>
+      <div class="sa-note">${e(i18t('sa_dlg_also'))}</div>
+    </div>
+    <label class="sa-lbl" for="sa-ask-note">${e(i18t('sa_dlg_note',{who:apName}))}</label>
+    <textarea id="sa-ask-note" class="sa-inp" maxlength="${SA_NOTE_MAX}" rows="3"></textarea>
+    <div class="sa-foot">
+      <span class="sa-foot-note">${e(cp?i18t('sa_dlg_foot_cp',{who:cp.name}):i18t('sa_dlg_foot'))}</span>
+      <button type="button" class="ui-btn" id="sa-ask-cancel">${e(i18t('act_cancel'))}</button>
+      <button type="button" class="ui-btn ui-btn-primary" id="sa-ask-go">${e(i18t('sa_dlg_go'))}</button>
+    </div>
+  </div>`, { maxWidth: DLG_W.m });
+  document.getElementById('sa-ask-cancel')?.addEventListener('click',()=>closeModal());
+  document.getElementById('sa-ask-go')?.addEventListener('click',async ev=>{
+    const b=ev.currentTarget; b.disabled=true;
+    const note=(document.getElementById('sa-ask-note')||{}).value||'';
+    closeModal();
+    await signApprovalRequest(c, note);
+  });
+  return true;
+}
+/* ---- REFUSING, IN ITS OWN SMALL WINDOW ----
+   The reason is required and says where it goes. */
+async function openSignApprovalRefuse(c, reqId){
+  const row=signApprovalDecidable(c).find(r=>r.req.id===reqId);
+  if(!row){ toast(i18t('sa_gone'),'warn'); return false; }
+  const asker=(row.req.askedBy&&row.req.askedBy.name)||'';
+  if(typeof window.promptDialog!=='function') return false;
+  const why=await window.promptDialog({ title:i18t('sa_refuse_title',{who:asker}),
+    message:i18t('sa_refuse_note',{who:asker}), label:i18t('sa_refuse_label'),
+    confirmLabel:i18t('sa_refuse_go'), multiline:true });
+  if(why==null) return false;
+  if(!String(why).trim()){ toast(i18t('sa_refuse_needs_why',{who:asker}),'warn'); return false; }
+  return signApprovalDecide(c, reqId, 'refused', why);
+}
+
+/* ---- THE APPROVER'S CARD, AT THE TOP OF THE SIGNING COLUMN ----
+   Drawn only for somebody who may decide a request that is really waiting:
+   the approver, the backup or an admin. Everything on it is borrowed — the
+   request's own stamp and note, the readiness list's count, the brief's own
+   "what moved" reading — so it adds no new judgement, only the two verbs. */
+function signApprovalAskCardHtml(c){
+  const mine=signApprovalDecidable(c);
+  if(!mine.length) return '';
+  const r=mine[0], req=r.req;
+  const e=s=>String(s==null?'':s).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+  const asker=(req.askedBy&&req.askedBy.name)||'';
+  const lead=r.as==='approver'?i18t('sa_card_asks',{who:asker})
+    :r.as==='backup'?i18t('sa_card_asks_backup',{who:asker, approver:req.approverName})
+    :i18t('sa_card_asks_admin',{who:asker, approver:req.approverName||i18t('sa_admins')});
+  let open=0; try{ open=(typeof signReadiness==='function'?signReadiness(c).holds:[]).filter(x=>x.kind!=='signapproval').length; }catch(_){ open=0; }
+  let readers=[]; try{
+    const key=(typeof briefReadKey==='function')?briefReadKey(c):'';
+    readers=key?Object.values(c.briefRead||{}).filter(x=>x&&x.key===key&&x.by).map(x=>x.by):[];
+  }catch(_){ readers=[]; }
+  const checks=(open?i18tn('sa_card_checks_open',open,{n:open}):i18t('sa_card_checks_clear'))
+    +(readers.length?' · '+i18t('sa_card_brief_read',{who:readers.join(', ')}):'');
+  let moved=null; try{ moved=(typeof briefMoved==='function')?briefMoved(c):null; }catch(_){ moved=null; }
+  const briefBtn=(c._brief&&!c._brief.truncated)?`<button type="button" class="ui-btn ui-btn-plain" data-kt-brief="open">${e(i18t('br_open'))}</button>`:'';
+  return `<section class="sa-card" id="sa-card" data-sa-req="${e(req.id)}">
+    <div class="sa-card-h"><span class="sa-card-t">${e(i18t('sa_card_head'))}</span><span class="sa-card-when">${e(saWhen(req.askedAt))}</span></div>
+    <div class="sa-card-b">
+      <p class="sa-card-lead">${e(lead)}</p>
+      ${req.note?`<p class="sa-quote">“${e(req.note)}”</p>`:''}
+      <div class="sa-kv">
+        <span class="sa-k">${e(i18t('sa_card_you_approve'))}</span><span class="sa-v">${e(saShowsLine(c,req.shows))}</span>
+        <span class="sa-k">${e(i18t('sa_card_checks'))}</span><span class="sa-v">${e(checks)}</span>
+      </div>
+      ${moved&&moved.rows.length?`<div class="sa-moved"><span class="sa-lbl">${e(i18t('sa_card_moved'))}</span>${
+        moved.rows.map(x=>`<div class="sa-mv"><b>${e(x.clause)}</b> — ${e(x.said||i18t('br_moved_nosay'))}</div>`).join('')}${
+        moved.over?`<div class="sa-mv sa-mv-more">${e(i18t('br_moved_more',{n:moved.over}))}</div>`:''}</div>`:''}
+      <label class="sa-lbl" for="sa-dec-note">${e(i18t(r.as==='admin'?'sa_card_note_admin':'sa_card_note'))}</label>
+      <textarea id="sa-dec-note" class="sa-inp" rows="2" maxlength="${SA_NOTE_MAX}"></textarea>
+      <div class="sa-acts">
+        <button type="button" class="ui-btn ui-btn-primary" data-sa-approve="${e(req.id)}">${e(i18t('sa_card_approve'))}</button>
+        <button type="button" class="ui-btn sa-refuse" data-sa-refuse="${e(req.id)}">${e(i18t('sa_card_refuse'))}</button>
+        ${briefBtn}
+      </div>
+    </div>
+  </section>`;
+}
+function wireSignApprovalCard(c, after){
+  const host=document.getElementById('sa-card'); if(!host) return;
+  const again=()=>{ if(typeof after==='function') after(); };
+  host.querySelector('[data-sa-approve]')?.addEventListener('click',async ev=>{
+    const b=ev.currentTarget; b.disabled=true;
+    const note=(document.getElementById('sa-dec-note')||{}).value||'';
+    const ok=await signApprovalDecide(c, b.getAttribute('data-sa-approve'), 'approved', note);
+    if(!ok) b.disabled=false;
+    again();
+  });
+  host.querySelector('[data-sa-refuse]')?.addEventListener('click',async ev=>{
+    const ok=await openSignApprovalRefuse(c, ev.currentTarget.getAttribute('data-sa-refuse'));
+    if(ok) again();
+  });
 }
 
 /* ---- multi-signer (E5-T3) ----
@@ -952,8 +1450,10 @@ function approvalClearRows(c){
   /* THE OVERSEER IS A RULE TOO, and its absence is the same kind of fact: no
      colleague is set to oversee whoever raised this. Only said where the
      product has somebody to have named. */
-  let ov=null; try{ ov=(typeof overseerFor==='function')?overseerFor(c):null; }catch(_){ ov=null; }
-  if(!ov) rows.push({ k:'overseer', said:i18t('ap_clr_no_overseer') });
+  /* Read off the SAME needs the chain draws (23 Sep 2026): nobody on this
+     contract is marked as needing a named approval before signing. */
+  let needs=[]; try{ needs=signApprovalNeeds(c); }catch(_){ needs=[]; }
+  if(!needs.length) rows.push({ k:'overseer', said:i18t('ap_clr_no_overseer') });
   /* AND THE READER'S OWN SIGNING LIMIT, which is checked in the same breath
      and holds nothing here. Only where a limit was actually answered — an
      unanswered cap is not a limit this contract is inside of. */
@@ -1005,37 +1505,50 @@ function approvalChainHtml(c, opts){
   if(!st.required) return (opts&&opts.clear) ? approvalClearHtml(c) : '';
   const stepChip=s=>s.status==='approved'?'text-brand-600':s.status==='rejected'?'text-rose-600':s.status==='stale'?'text-gold-700':'text-ink/50';
   const esc1=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
-  const stepRight=s=>s.status==='approved'?`✓ ${esc1(s.by)}`
+  /* A PERSONAL APPROVAL SAYS WHERE ITS OWN REQUEST STANDS — not asked yet,
+     asked, needs you, approved, refused, lapsed. Its reason and its verbs
+     are on the readiness list and on the approver's own card; this row is
+     the record. */
+  const me=(typeof currentUser==='function')?currentUser():null;
+  const saRight=s=>s.status==='approved'?`✓ ${esc1(i18t('sa_gate_approved',{when:saWhen(s.at)}))}`
+    :s.status==='rejected'?esc1(i18t('sa_gate_refused',{when:saWhen(s.at)}))
+    :s.status==='stale'?esc1(i18t(s.expired?'sa_gate_expired':'sa_gate_lapsed'))
+    :s.status==='pending'?esc1((s.req&&typeof saMayDecide==='function'&&saMayDecide(s.req,me))
+      ? i18t('sa_gate_needs_you') : i18t('sa_gate_pending',{when:saWhen(s.req&&s.req.askedAt)}))
+    :esc1(i18t('sa_gate_unasked'));
+  const stepRight=s=>s.sa?saRight(s)
+    :s.status==='approved'?`✓ ${esc1(s.by)}`
     :s.status==='rejected'?`✕ refused by ${esc1(s.by)}`
     :s.status==='stale'?`↻ re-approval needed`
     :'needs '+approverLabelOf(s.approver);
+  const stepName=s=>s.sa?`${esc1(s.name)} <span class="text-ink/50">· ${esc1(i18t('sa_gate_approves',{who:approverLabelOf(s.approver)}))}</span>`:esc1(s.name);
   let html='';
   {
     /* THE REFUSAL, AND THE WAY OUT OF IT — both on the panel the owner reads.
        A rejected step used to be erased before it could be drawn (see
        buildApprovalChain); now that it survives, the owner is told what was
        refused, by whom and why, and given the one control that moves it on. */
-    const blocked=(st.rejected||[]).concat(st.stale||[]);
+    const blocked=(st.rejected||[]).concat(st.stale||[]).filter(x=>!x.sa);
     const owner=canEdit()&&c.status!=='Signed'&&blocked.length;
     html+=`<div class="${bare?'':'rounded-xl border '+(st.rejected&&st.rejected.length?'border-rose-200':'border-line')+' bg-white p-3 mb-2'}">
       ${bare?'':`<div class="text-[11px] font-600 text-ink mb-1.5">${i18t('ap_approval_chain')}</div>`}
       ${st.chain.map((s,i)=>`<div class="flex items-center gap-2 text-[11.5px] py-0.5">
         <span class="h-4 w-4 grid place-items-center rounded-full text-[8px] font-700 ${s.status==='approved'?'bg-brand-600 text-white':s.status==='rejected'?'bg-rose-500 text-white':s.status==='stale'?'bg-gold-500 text-white':'bg-slate-200 text-ink/60'}">${i+1}</span>
-        <span class="${stepChip(s)}">${esc1(s.name)}</span>
+        <span class="${stepChip(s)}">${stepName(s)}</span>
         <span class="ml-auto text-[10px] text-ink/50">${stepRight(s)}</span>
       </div>`).join('')}
-      ${(st.rejected||[]).map(s=>`<div class="mt-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-2 text-[11px] text-rose-700 leading-relaxed">
+      ${(st.rejected||[]).filter(s=>!s.sa).map(s=>`<div class="mt-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-2 text-[11px] text-rose-700 leading-relaxed">
         <b>${esc1(s.by)||'An approver'} refused “${esc1(s.name)}”.</b>${s.comment?` “${esc1(s.comment)}”`:''}
         <span class="block text-rose-700/80 mt-0.5">${i18t('ap_nothing_until_settled')}</span>
       </div>`).join('')}
-      ${(st.stale||[]).map(s=>`<div class="mt-1.5 rounded-lg border border-gold-500/30 bg-gold-500/10 px-2.5 py-2 text-[11px] text-gold-700 leading-relaxed">
+      ${(st.stale||[]).filter(s=>!s.sa).map(s=>`<div class="mt-1.5 rounded-lg border border-gold-500/30 bg-gold-500/10 px-2.5 py-2 text-[11px] text-gold-700 leading-relaxed">
         <b>“${esc1(s.name)}” needs approving again.</b> ${esc1(s.by)||'It'} approved it, and since then ${esc1((s.drift||[]).join(' and '))}.
         <span class="block text-gold-700/80 mt-0.5">${i18t('ap_signoff_covers')}</span>
       </div>`).join('')}
-      ${st.next&&st.canApproveNext?`<div class="flex gap-2 mt-2">
+      ${st.next&&st.canApproveNext&&!st.next.sa?`<div class="flex gap-2 mt-2">
         <button id="ap-approve" class="rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11px] font-600 hover:bg-brand-800">${st.next.status==='pending'?'Approve':'Approve again'} “${esc1(st.next.name)}”</button>
         <button id="ap-reject" class="rounded-lg border border-rose-200 text-rose-600 px-3 py-1.5 text-[11px] font-600 hover:bg-rose-50">${i18t('ve_reject')}</button></div>`
-        :st.next?`<div class="mt-1.5 text-[10px] text-ink/55">${i18t('ap_waiting_on',{who:approverLabelOf(st.next.approver)})}</div>`:''}
+        :(st.next&&!st.next.sa)?`<div class="mt-1.5 text-[10px] text-ink/55">${i18t('ap_waiting_on',{who:approverLabelOf(st.next.approver)})}</div>`:''}
       ${''/* ---- GREY WHEN THERE IS NOTHING TO SEND BACK ----
              This drew for the owner whatever the chain said, and the act behind
              it refuses unless some step is rejected or stale — the same set the
@@ -1044,7 +1557,7 @@ function approvalChainHtml(c, opts){
              whose only outcome was a refusal. ONE reading (the chain's own
              rejected/stale steps) now decides both, and the reason is on hover
              because a dimmed control that cannot explain itself is a wall. */}
-      ${owner?(()=>{ const back=(st.chain||[]).filter(x=>x.status==='rejected'||x.status==='stale');
+      ${owner?(()=>{ const back=(st.chain||[]).filter(x=>!x.sa&&(x.status==='rejected'||x.status==='stale'));
         const why=back.length?'':i18t('ap_nothing_resubmit');
         return `<button id="ap-resubmit"${why?' disabled aria-disabled="true"':''} title="${esc1(why)}"
           class="mt-2 w-full rounded-lg border border-brand-200 text-brand-700 px-3 py-1.5 text-[11px] font-600 hover:bg-brand-50${why?' opacity-50 cursor-not-allowed':''}">${i18t('ap_revise_send_back')}</button>`; })():''}
@@ -1091,6 +1604,11 @@ function signerRouteHtml(c, opts){
        already says which side, and the name would be the contract's own
        counterparty printed on every row. */
     const manyParties=(typeof partiesMulti==='function')?partiesMulti(c):false;
+    /* NOBODY SIGNS BEFORE THE APPROVAL (23 Sep 2026): every unsigned row
+       WAITS while a personal approval is outstanding, and says so on its own
+       line — an inline state, not a band. The counterparty's own send is
+       greyed with the same sentence, because the server refuses the link. */
+    let saHold=null; try{ saHold=signApprovalHoldsLinks(c); }catch(_){ saHold=null; }
     const orgOf=s=>{ if(!manyParties) return '';
       try{ const p=partyOfSigner(c,s); return p&&p.name?p.name:''; }catch(_){ return ''; } };
     const node=(state,label)=>`<span class="h-7 w-7 grid place-items-center rounded-full text-[11px] font-700 z-10 shrink-0 border-2 ${
@@ -1137,6 +1655,7 @@ function signerRouteHtml(c, opts){
           })[nst]||null;
           const meta=s.signed
             ? `${ord(s.order)} · ${s.at?fmtDT(s.at):''}${s.signature&&s.signature.form?' · '+s.signature.form+' signature':''}`
+            : saHold ? `${ord(s.order)} · ${i18t('sa_route_waits')}`
             : notice(s) ? notice(s)
             : ls==='opened' ? `${ord(s.order)} · contract opened — awaiting their signature`
             : ls==='sent' ? `${ord(s.order)} · contract sent — not opened yet`
@@ -1149,7 +1668,11 @@ function signerRouteHtml(c, opts){
             : isCur ? `${ord(s.order)} · their turn now`
             : `${ord(s.order)} · waiting`;
           const tag=(cls,txt)=>`<span class="text-[8.5px] font-mono px-1 py-px rounded ${cls}">${txt}</span>`;
+          /* WHILE THE APPROVAL HOLDS, NOBODY'S TURN HAS COME: no "signing now",
+             no "not sent yet", no stale email verdict — the meta line says the
+             row waits, and that is the whole of it. */
           const badge=s.signed ? ''
+            : saHold ? ''
             : nst==='notified' ? tag('bg-gold-100 text-gold-700','TOLD')
             : nst==='notify-failed' ? tag('bg-rose-50 text-rose-600','EMAIL FAILED')
             : nst==='no-address' ? tag('bg-rose-50 text-rose-600','NO ADDRESS')
@@ -1173,7 +1696,7 @@ function signerRouteHtml(c, opts){
               </div>
               <div class="text-[10px] font-mono text-ink/45 mt-0.5">${meta}</div>
               ${(!s.signed&&s.party==='counterparty'&&(ls==='unsent'||ls==='failed')&&!gated&&canEdit())
-                ? `<button data-sp-send="${String(s.id).replace(/"/g,'&quot;')}" class="mt-1 rounded-lg border border-brand-200 text-brand-700 px-2 py-1 text-[10px] font-600 hover:bg-brand-50">${ls==='failed'?'Resend their signing link':'Email their signing link'}</button>`
+                ? `<button data-sp-send="${String(s.id).replace(/"/g,'&quot;')}"${saHold?` disabled aria-disabled="true" title="${esc1(saHold)}"`:''} class="mt-1 rounded-lg border border-brand-200 text-brand-700 px-2 py-1 text-[10px] font-600 hover:bg-brand-50${saHold?' opacity-50 cursor-not-allowed':''}">${ls==='failed'?'Resend their signing link':'Email their signing link'}</button>`
                 : ''}
               ${''/* THE INTERNAL ROW'S OWN DOOR. A resend is a deliberate act
                      with a visible result, never a silent retry — so it is
@@ -1181,7 +1704,7 @@ function signerRouteHtml(c, opts){
                      something: told (say it again), the email failed, and never
                      told. Not on 'no-address', where the fix is the route or the
                      team record and the row says so. */}
-              ${(!s.signed&&s.party!=='counterparty'&&canEdit()
+              ${(!s.signed&&s.party!=='counterparty'&&canEdit()&&!saHold
                  &&['notified','notify-failed','untold'].includes(nst))
                 ? `<button data-sp-notify="${String(s.id).replace(/"/g,'&quot;')}" class="mt-1 rounded-lg border border-brand-200 text-brand-700 px-2 py-1 text-[10px] font-600 hover:bg-brand-50">${
                     nst==='untold'?'Tell them it is their turn'
@@ -1228,7 +1751,9 @@ function wireApprovalPanel(c){
     b.disabled=true; b.textContent='Sending…';
     let out=null;
     try{ out=window.issueSigningRouteLinks?await issueSigningRouteLinks(c):null; }catch(e){ out=null; }
-    if(out&&out.links){
+    if(out&&out.heldForApproval){
+      toast(out.heldForApproval,'warn');
+    } else if(out&&out.links){
       const first=out.links.find(x=>!x.heldForTurn);
       toast(first&&first.emailSent
         ? `${first.signer.name} has been emailed their signing link`
@@ -1284,7 +1809,12 @@ function wireApprovalPanel(c){
    "have they seen it" — it reads shares.first_opened_at, which is stamped once
    on the first real open and never re-counted. */
 
-Object.assign(window,{signStepOf,signSteps,signStepIndex,signStepDone,signStepOpen,signRowOpen,signStepNow,signOpenRows,overseerCfg,saveOverseerCfg,overseerEnforced,overseerFor,OVERSEER_STEP_ID,approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,saveSignerPlan,approvalPanelHtml,approvalChainHtml,APPROVAL_CLEAR_SAYS,approvalClearRows,approvalClearHtml,signerRouteHtml,wireApprovalPanel});
+Object.assign(window,{signStepOf,signSteps,signStepIndex,signStepDone,signStepOpen,signRowOpen,signStepNow,signOpenRows,overseerCfg,saveOverseerCfg,overseerEnforced,overseerFor,OVERSEER_STEP_ID,approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,saveSignerPlan,approvalPanelHtml,approvalChainHtml,APPROVAL_CLEAR_SAYS,approvalClearRows,approvalClearHtml,signerRouteHtml,wireApprovalPanel,
+  signApprovalLegacyOn,signApprovalNeeds,signApprovalStateOf,saStepName,saMoney,saDriftWords,SA_CHAIN_STATUS,saChainStep,
+  signApprovalDecidable,signApprovalWaitsOn,SA_PAPER_KEYS,signApprovalPaperHolds,signApprovalRequestable,signApprovalRound,
+  saFmtDay,saWhen,saShowsLine,signApprovalNotify,saNoticeOf,saDeliveryWords,signApprovalRequest,signApprovalDecide,
+  signApprovalWithdraw,signApprovalRemind,saRepaint,signApprovalRows,signApprovalBlockLabel,signApprovalSettledRows,
+  signApprovalHoldsLinks,openSignApprovalDialog,openSignApprovalRefuse,signApprovalAskCardHtml,wireSignApprovalCard});
 
 /* ============================================================
    HOW MUCH MAY THIS PERSON SIGN FOR

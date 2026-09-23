@@ -18992,3 +18992,42 @@ Noticed, not fixed
 - On the negotiate page a final page banner with no clause after it is not drawn (it stays in the document).
 - Contracts read in Plain English before today carry no per-clause readings, so the first wording change after the deploy re-reads them once in full.
 - Still red on untouched main (unchanged here): f277 (1)/(10), plain-english-verify 10c, redline-verify 5, notes-two-rooms-verify (2 checks), competing-redlines-verify ("a legacy clause names BOTH asks"), and the 33 other browser files listed in the run.
+## 23 Sep 2026 — advice only: a contract signed in DocuSign, filed on its own record
+
+The owner asked how HaTi should handle third-party paper that is reviewed here and signed in DocuSign. Advice given, no code changed. The existing door for this is "Signed on paper instead? File the signed copy here" on the Signing tab (attachPaperSignature). Driven on an UPLOADED contract with the real functions (a stand-in only for statusChip, which draws the chip), it files the copy on the same record, keeps the history and the id — and:
+
+Noticed, not fixed
+- verifySeal on a received contract filed this way says "Seal MISMATCH — the record changed after signing": c.hash is the signed copy's own hash, verifySeal compares it with sha256(sealString(c)). On a drafted contract filed the same way it says "No frozen snapshot on this record". Every paper-filed record reports a false fault.
+- externalExecutionBlock was written for MIGRATED records: on a paper-filed contract it prints "MIGRATED" and "Signed before it was migrated into HaTi", "Filed into HaTi by —", and shows the file that ARRIVED (c.upload.fileName / fileHash), never the signed copy (c.execution.fileName / fileHash).
+- The evidence pack reads c.upload too (sealedFileSha256, uploadedFile) and says "migrated in as a record".
+- Nothing in js/ reads c.documents or c.execution.fileId, so the signed copy is stored and cannot be opened again from any screen.
+- attachPaperSignature asks only the negotiation; approvals, the check before signing and reading the brief are not asked, and the server's signing guards fire only on an added in-app signature.
+- f28 covers a drafted contract only and never presses Verify seal, which is why none of this is red.
+
+## 23 Sep 2026 — advice only: some people always need approval before signing
+
+The owner asked how an admin can make certain people unable to sign without approval, whatever the value. Advice and drawings given (the canvas "Signed in DocuSign — Screens", second row), no code changed. The nearest existing feature is "Overseen by" (overseerFor / OVERSEER_STEP_ID in js/approvals.js), behind a workspace switch that is off by default.
+
+Noticed, not fixed
+- approveContract toasts "Step approved — next approver notified", and nothing notifies anybody: no mail, no message. The next approver learns only from their own bell or Home.
+- The server enforces no approval at all: server/server.js never reads approvalChain, so a save adding a session signature, POST /api/shares with purpose 'sign' and the respond route all pass with approvals outstanding. Only signDocument and the share dialog refuse, in the browser.
+- ov_no_owner says "imported or uploaded paper gets no overseer step", but submitUpload stamps an owner (contractOwnerStamp), so an upload from the upload screen does get the step. Only migrated and mailroom contracts have no owner.
+
+## 23 Sep 2026 — approval before signing (Scenario 2)
+
+On the owner's word ("Implement scenario 2 … merge to Main"). Scenario 1 (the Review Desk for signed copies) is not built — the owner has not approved it. No decisions were marked on the proposal, so every default is its recommendation.
+- Per person, set by an admin: Off | Always, who approves, who steps in when they are away, and whether it applies when the person leads or when they are named to sign. The People row and the drawer's sentence say it.
+- The lead sends for approval from the Signing tab (the Sign button says "Send for approval" when that is all that is left, then "Waiting on X's approval"); the request says exactly what is approved; the approver is emailed, finds it on Approvals and on the contract's own card, and approves or refuses (a refusal needs a reason; an admin deciding in their place needs a reason). The phone's approvals card presses the same verb and now carries the note box.
+- A change to the wording, value, currency, dates, parties or signers lapses an approval (formatting and notes do not); so do 30 days unused. The row says what moved.
+- The server refuses a save that starts signing, a signing link, and a counterparty's signature while it is outstanding; the counterparty is told only that the contract is not ready yet. The internal signer's turn email is held until the approval.
+- Reminders on the sweep: after 2 working days the approver once; after 5 the backup and the admins.
+- The old workspace switch left the approval-rules panel; its stored value is read only as the default for a person set before today. A decision pressed onto the old overseer step is not honoured, so those contracts are asked again. overseerFor and saveOverseerCfg have no caller now (kept).
+- The "remove this person" warning said the approval step would name an account that no longer exists; with a backup (else the admins) it no longer does, and it now says so — counted only for people whose rule is on.
+
+Gates: lint 0 errors, 214 warnings (the same as main). Full suite: 9,031 tests, 2 failed — f277 (1) and (10), both red on untouched main with the same checks. New: f375 (all green; 6e measures the share-readiness list with a personal step pending, refused and lapsed — red at main), approval-before-signing-verify 34/34 (three people and a phone). Browser set run once: 39 of 137 red, and every one of the 39 is red on untouched main with the same failing checks (compared check by check). Re-pointed in place: f199 (stage loads js/signapproval.js; a legacy chain decision is not honoured), f242 (the resubmit filter skips personal steps), f148 (sa_dlg_version is one word in both books). Kept green as they were: f79 (the readiness list reads the approval fields it always read, filtered to rule steps) and f331 (the new PATCH condition sits before the tail f331 pins).
+
+Noticed, not fixed
+- The signing order calls an internal signer's notice that went to the outbox a failure ("EMAIL FAILED", "Try the email again") — signerNoticeState reads only `sent` — on every contract when email is off. Held back here only while a personal approval holds.
+- The approval RULE steps (value, law, deviation rules) are still enforced only in the browser: the server never reads approvalChain. The personal approval is enforced on the server now; the rule steps are not.
+- approveContract still toasts "Step approved — next approver notified" for a rule step, and nothing notifies anybody.
+- The phone's approvals card prints "Requested by", "Waiting", "N days ago" and "since today" in hard-coded English, and its fallback toasts "Could not approve" / "Could not reject" too.

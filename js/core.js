@@ -1255,6 +1255,10 @@ async function saveContract(c){
   delete payload._renewalPrep;
   delete payload._renewalAdvice;
   delete payload._signedAt; delete payload._lastAuditAt;
+  /* _signNeeds is the server's reading of who on this contract needs a named
+     approval before signing (23 Sep 2026) — read with the whole roster,
+     which a reader who is not an admin cannot see. Transport, never record. */
+  delete payload._signNeeds; delete payload._signState;
   if(payload.upload && payload.upload.fileId){ payload.upload={...payload.upload, dataUrl:undefined}; }
   // Word-review version files and the rounds that carried them follow the same
   // rule: once the bytes live in the files store, the synced JSON keeps only
@@ -1266,6 +1270,10 @@ async function saveContract(c){
   try{
     const r=await api('contracts/'+c.id,'PUT',{ contract:payload, baseVersion:c._v||0, uid });
     c._v=r.version; c._loaded=true; c._light=false;
+    /* The save may have moved who is on the route, so the server's reading
+       of the approvals it needs rides back with the answer. */
+    if(r && Array.isArray(r.signNeeds)) c._signNeeds=r.signNeeds;
+    if(r && Array.isArray(r.signState)) c._signState=r.signState;
   }catch(e){
     if(/conflict|version/i.test(e.message)){
       /* H-4: someone else saved this contract while it was being edited. The old
@@ -3557,16 +3565,25 @@ function contractReadiness(c){
      REFUSAL is different: somebody said no, and putting that wording in front
      of the counterparty anyway is a decision the sender should have to own. So
      is a sign-off the contract has since moved out from under. */
+  /* THE RULE STEPS ONLY (23 Sep 2026). A personal approval before signing
+     governs SIGNING and nothing else: a refusal of one usually says "go back
+     and ask them for 45 days", which is a round that has to be SENT — so it
+     may never stop a negotiation going out. It holds the signing links, and
+     the sign-purpose check below says so in its own words. */
   try{
     const ap=(window.approvalState)?window.approvalState(c):null;
-    if(ap && ap.required && !ap.ok){
-      const refused=(ap.rejected||[])[0], stale=(ap.stale||[])[0];
+    const isRule=s=>!!s && !s.sa;
+    const refused=((ap&&ap.rejected)||[]).filter(isRule)[0], stale=((ap&&ap.stale)||[]).filter(isRule)[0];
+    /* The chain is sequential and the personal steps sort last, so a next
+       step that is personal means every rule step has cleared. */
+    const nextRule=(ap && isRule(ap.next)) ? ap.next : null;
+    if(ap && ap.required && !ap.ok && (refused || stale || nextRule)){
       if(refused) add('block','approval',
         `Internal approval was refused${refused.by?` by ${refused.by}`:''} — “${refused.name}” is unresolved.`);
       else if(stale) add('block','approval',
         `“${stale.name}” was approved and the contract has changed since — it needs approving again.`);
       else add('warn','approval',
-        `Internal approval is outstanding: “${ap.next?ap.next.name:'approval'}” is waiting on ${ap.approverLabel||'an approver'}. This contract cannot go out for signature until it clears.`);
+        `Internal approval is outstanding: “${nextRule.name}” is waiting on ${ap.approverLabel||'an approver'}. This contract cannot go out for signature until it clears.`);
     }
   }catch(_){ /* a readiness list that cannot be built is not a reason to block */ }
   /* AND THE OTHER GATE, THE EARLIER ONE. Approval above governs SIGNING; this
@@ -5284,6 +5301,10 @@ async function reshareToLastRecipient(c, opts={}){
    only the caller knows whether an owner is watching. */
 async function issueSigningRouteLinks(c){
   if(!API_MODE() || !window.signerPlan) return null;
+  /* NOBODY SIGNS BEFORE THE APPROVAL (23 Sep 2026). The server refuses these
+     links while a personal approval is outstanding; this says so in the
+     approval's own sentence before a request is spent finding out. */
+  try{ const held=window.signApprovalHoldsLinks?signApprovalHoldsLinks(c):null; if(held) return { heldForApproval:held }; }catch(_){}
   const cps=signerPlan(c).filter(s=>s && s.party==='counterparty' && !s.signed)
     .slice().sort((a,b)=>(a.order||0)-(b.order||0));
   if(!cps.length) return null;
@@ -6058,6 +6079,10 @@ async function openShareModal(c, opts={}){
        so does this. A negotiation link is unaffected: sending a draft out for
        comment is exactly what happens BEFORE approval. */
     if(purposeSel==='sign'){
+      /* The personal approval first, in its own sentence — the server
+         refuses this link for the same reason. */
+      let saHeld=null; try{ saHeld=window.signApprovalHoldsLinks?signApprovalHoldsLinks(c):null; }catch(_){ saHeld=null; }
+      if(saHeld){ toast(saHeld,'err'); return false; }
       let ap=null; try{ ap=(window.approvalState)?window.approvalState(c):null; }catch(_){ ap=null; }
       if(ap && ap.required && !ap.ok){
         toast(`This contract needs internal approval before it can go out for signature — ${

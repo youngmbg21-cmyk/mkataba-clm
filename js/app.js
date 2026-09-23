@@ -35,6 +35,9 @@ import './payterms.js';    // payment terms turned into a number of days, and co
    signer editor opens on the rows this list can fill. */
 import './participants.js';
 import './signcheck.js';   // where a contract stands at the signing door: one deterministic reading, no spend (13 Sep 2026)
+/* Approval before signing: who on a contract needs a named colleague's yes
+   before anyone signs it — one reading, loaded by the server too (23 Sep 2026). */
+import './signapproval.js';
 import './approvals.js';
 import './review.js';       // internal review: the step between writing a redline and sending it
 import './desk.js';         // the negotiation desk: who works this negotiation, and who may send
@@ -1662,6 +1665,16 @@ function buildAlerts(){
   if(D){
     (D.myApprovals||[]).filter(x=>x.mine).forEach(x=>push('approval',x.c,
       i18t('al_approval'),()=>{ openWorkspace(x.c.id); if(window.roomGoTab) try{ roomGoTab(x.c,'sign'); }catch(_){} }));
+    /* AND A REFUSAL COMES BACK TO THE PERSON WHO ASKED (23 Sep 2026): the
+       approval before signing was refused, and the reason is on the Signing
+       tab. Read off their own contracts' rows above — nothing new is walked. */
+    const meNow=(typeof currentUser==='function')?currentUser():null;
+    (D.myApprovals||[]).filter(x=>x.own&&!x.mine).forEach(x=>{
+      const bad=((x.st&&x.st.chain)||[]).find(s=>s.sa&&s.status==='rejected'&&s.req&&s.req.askedBy
+        &&meNow&&String(s.req.askedBy.id)===String(meNow.id));
+      if(bad) push('approval',x.c,i18t('al_sa_refused',{who:bad.by||''}),
+        ()=>{ openWorkspace(x.c.id); if(window.roomGoTab) try{ roomGoTab(x.c,'sign'); }catch(_){} });
+    });
     /* 5. A renewal decision coming due. */
     (D.decisions||[]).filter(x=>x.d<=30).forEach(x=>push('renewal',x.c,
       x.d===0?i18t('al_renewal_today'):i18tn('al_renewal_in',x.d,{n:x.d}),

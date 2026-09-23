@@ -38,14 +38,34 @@ function apRuleText(st){
   return step?(step.name||(window.approverLabelOf?approverLabelOf(step.approver):'')||'—'):'—';
 }
 /* ---- THE ROWS, off the readings named above ---- */
+/* ---- A PERSONAL APPROVAL IS A REQUEST, AND THE ROW SAYS WHOSE (23 Sep 2026) ----
+   Where the thing waiting on this reader is an approval somebody ASKED for,
+   "asked by" is the person who asked and "waiting" is counted from the ask —
+   both off the request's own record, never re-derived. Everything else is the
+   chain's row exactly as it was. */
+function apSaWaiting(c){
+  const me=(typeof currentUser==='function')?currentUser():null;
+  try{ return (typeof signApprovalWaitsOn==='function')?(signApprovalWaitsOn(c,me)[0]||null):null; }catch(_){ return null; }
+}
 function apApprovalRows(){
   const D=(typeof hmDashSlices==='function')?hmDashSlices():{};
-  return (D.myApprovals||[]).map(x=>({
-    c:x.c, mine:!!x.mine, own:!!x.own, idle:x.idle||0, st:x.st,
-    rule:apRuleText(x.st),
-    who:(typeof contractOwnerName==='function')?(contractOwnerName(x.c)||''):'',
-    waitsOn:(x.st&&x.st.approverLabel)||'',
-  }));
+  return (D.myApprovals||[]).map(x=>{
+    const sa=x.mine?apSaWaiting(x.c):null;
+    const req=sa&&sa.req;
+    const next=x.st&&x.st.next;
+    const asked=req?Date.parse(req.askedAt||''):NaN;
+    return {
+      c:x.c, mine:!!x.mine, own:!!x.own, st:x.st,
+      idle:Number.isFinite(asked)?Math.max(0,Math.floor((Date.now()-asked)/86400000)):(x.idle||0),
+      rule:req?(typeof saStepName==='function'?saStepName(sa.need):apRuleText(x.st)):apRuleText(x.st),
+      ruleSub:req?i18t('sa_pg_rule_sub'):'',
+      who:req?((req.askedBy&&req.askedBy.name)||''):((typeof contractOwnerName==='function')?(contractOwnerName(x.c)||''):''),
+      waitsOn:(x.st&&x.st.approverLabel)||'',
+      /* An approval nobody has sent is not "waiting on" its approver — it is
+         the lead's move, and the row says so. */
+      notAsked:!!(next&&next.sa&&next.status==='unasked'),
+    };
+  });
 }
 function apSignatureRows(){
   const cs=(state.contracts||[]).filter(c=>!c.archived);
@@ -86,7 +106,7 @@ function renderApprovalsPage(){
   const apRowsHtml=ap.map(r=>`<tr data-ap-row="${esc(r.c.id)}">
       <td class="mono">${esc(r.c.id)}</td>
       <td><span class="ap-name">${esc(r.c.name||'')}</span><span class="ap-sub">${esc(r.c.counterparty||'')}</span></td>
-      <td>${esc(r.rule)}${r.mine?'':`<span class="ap-sub">${esc(i18t('ap_pg_waiting_on',{who:r.waitsOn||'—'}))}</span>`}</td>
+      <td>${esc(r.rule)}${r.mine?(r.ruleSub?`<span class="ap-sub">${esc(r.ruleSub)}</span>`:''):`<span class="ap-sub">${esc(r.notAsked?i18t('sa_pg_not_asked'):i18t('ap_pg_waiting_on',{who:r.waitsOn||'—'}))}</span>`}</td>
       <td>${esc(r.who||'—')}</td>
       <td class="${r.idle>=3?'late':''}">${esc(apWaitingText(r.idle))}</td>
       ${money?`<td class="r mono">${apValueCell(r.c)}</td>`:''}
@@ -122,4 +142,4 @@ function renderApprovalsPage(){
   document.querySelector('[data-ap-rules]')?.addEventListener('click',()=>openSettingsAt('platform','approvals'));
   setActiveNav('approvals');
 }
-Object.assign(window,{AP_TABS,apTab,apSetTab,apApprovalRows,apSignatureRows,approvalsDoorCount,renderApprovalsPage,apOpenSigning});
+Object.assign(window,{AP_TABS,apTab,apSetTab,apSaWaiting,apApprovalRows,apSignatureRows,approvalsDoorCount,renderApprovalsPage,apOpenSigning});

@@ -822,6 +822,14 @@ function stPersonSays(u){
     const n = (acc && acc.n) || 0;
     out.push(n ? say('st_sum_streams_some', { n, all }) : say('st_sum_streams_none'));
   }
+  /* 0 — whether their contracts need a named approval before signing. Said
+     for an ADMIN too, and before their one line: of all eight this is the one
+     that is not moot for an admin, because it is a rule ABOUT the person, not
+     a right they hold by rank (23 Sep 2026). */
+  let saOn = false;
+  try{ saOn = (typeof saRuleOf==='function') && saRuleOf(u, (typeof signApprovalLegacyOn==='function') ? signApprovalLegacyOn() : false).on; }catch(_){ saOn = false; }
+  const over = (u.overseerId && typeof userById==='function') ? (userById(u.overseerId)||{}).name : '';
+  if(saOn && over) out.push(say('sa_sum_on', { who: over }));
   if(admin){ out.push(say('st_sum_admin')); return out; }
   /* 2 — how much they may sign for */
   let cap = null; try{ cap = (typeof signCapOf==='function') ? signCapOf(u) : null; }catch(_){ cap = null; }
@@ -834,9 +842,7 @@ function stPersonSays(u){
   const by = (u.reviewerId && typeof userById==='function') ? (userById(u.reviewerId)||{}).name : '';
   if(!checked) out.push(say('st_sum_unchecked'));
   else out.push(by ? say('st_sum_checked_by', { who: by }) : say('st_sum_checked'));
-  /* 5 — who oversees them */
-  const over = (u.overseerId && typeof userById==='function') ? (userById(u.overseerId)||{}).name : '';
-  if(over) out.push(say('st_sum_overseen', { who: over }));
+  /* 5 — who oversees them: said above, as the approval it now is. */
   /* 6, 7, 8 — the three grants, said only where they are ON, because OFF is
      the default and a list of things somebody cannot do is not a summary */
   const grants = [];
@@ -892,6 +898,10 @@ function stPeopleHtml(){
                  an admin comes to this list to check and it was invisible until
                  you opened somebody. signCapText is the ONE reading. */}
           <span data-st-cap="${PB_ATTR(u.id)}" style="color:${(typeof signCapOf==='function'&&!signCapOf(u).answered&&u.role!=='viewer'&&u.role!=='admin')?'var(--st-amber-fg)':'var(--color-neutral-600)'}">${esc((typeof signCapText==='function')?signCapText(u):'')}</span>
+          ${''/* WHO APPROVES BEFORE THEY SIGN (23 Sep 2026), on the row, for
+                 the signing limit's own reason: it is the fact an admin comes
+                 to this list to check. Drawn only where the rule is on. */}
+          ${stApprovalRowText(u)?`<span data-st-sa="${PB_ATTR(u.id)}" style="color:var(--color-neutral-600)">${esc(stApprovalRowText(u))}</span>`:''}
         </span>
       </span>
       <span class="st-chip" data-tone="${miss.length?'warn':'ok'}">${miss.length?i18tn('st_n_missing',miss.length,{n:miss.length}):i18t('st_complete')}</span>
@@ -1059,48 +1069,112 @@ function stReviewRead(){
 }
 
 /* ---- SECTION 6 — WHO SIGNS OFF THEIR CONTRACTS ----
-   Hangs on the contract's OWNER, so it says nothing about contracts nobody
-   raised — imported and uploaded paper keeps the ordinary rules, and the
-   panel says so rather than leaving an admin to discover it. Never for a
-   Viewer, who raises nothing. */
+   APPROVAL BEFORE SIGNING (Young ruled 23 Sep 2026: "Implement scenario 2").
+   The admin sets it ONCE, on the person: Off or Always, who approves, who
+   steps in when they are away, and whether it bites when this person LEADS a
+   contract, is NAMED TO SIGN one, or both. Nothing they lead or sign is then
+   signed until the approver says yes, whatever the value.
+
+   IT REPLACES THE WORKSPACE SWITCH that used to sit on the approval rules
+   panel. A person nobody has answered for yet reads that old switch, so the
+   morning after the deploy every workspace is exactly as it was; the first
+   Save here writes this person's own answer and the switch is never read for
+   them again. js/signapproval.js is the reading, on both hosts. Never for a
+   Viewer, who leads and signs nothing. */
+function stApprovalRuleOf(u){
+  try{ return saRuleOf(u, (typeof signApprovalLegacyOn==='function') ? signApprovalLegacyOn() : false); }
+  catch(_){ return { on:false, approverId:'', backupId:'', lead:true, sign:true }; }
+}
+function stApprovalRowText(u){
+  if(!u || u.role==='viewer' || typeof saRuleOf!=='function') return '';
+  const r=stApprovalRuleOf(u);
+  if(!r.on) return '';
+  const who=(typeof userById==='function' && userById(r.approverId)||{}).name||'';
+  return who ? i18t('sa_person_row',{who}) : '';
+}
 function stOverseerSectionHtml(u, isNew){
-  if(typeof overseerCfg!=='function') return '';
+  if(typeof overseerCfg!=='function' || typeof saRuleOf!=='function') return '';
   if(u.role==='viewer') return '';
-  const on=overseerEnforced();
+  const r=isNew ? { on:false, approverId:'', backupId:'', lead:true, sign:true } : stApprovalRuleOf(u);
   const cand=((typeof getUsers==='function'?getUsers():[])||[])
     .filter(x=>x&&x.id!==u.id&&x.role!=='viewer');
+  const opts=(sel,none)=>`<option value="">${esc(none)}</option>`
+    +cand.map(x=>`<option value="${PB_ATTR(x.id)}"${String(sel||'')===String(x.id)?' selected':''}>${esc(x.name||x.email)}</option>`).join('');
   return `<section class="st-sec">
     <h3 class="st-sec-h"><span class="st-sec-n">6</span>${esc(i18t('ov_section'))}</h3>
-    ${on?'':`<p class="st-note" style="margin-bottom:var(--s-2)">${esc(i18t('ov_says_not_enforced'))}</p>`}
-    <label style="display:block">
-      <span style="${window.RV_LBL||''}">${esc(i18t('ov_person'))}</span>
-      <select id="tm-overseer" style="${window.RV_FLD||ST_INPUT}">
-        <option value="">${esc(i18t('ov_nobody'))}</option>
-        ${cand.map(x=>`<option value="${PB_ATTR(x.id)}"${String(u.overseerId||'')===String(x.id)?' selected':''}>${esc(x.name||x.email)}</option>`).join('')}
-      </select>
-      <span class="st-note">${esc(i18t('ov_person_sub'))}</span></label>
+    <div class="sa-set-head"><span class="st-role-name">${esc(i18t('sa_rule_label'))}</span>
+      <span class="sa-seg" role="group" aria-label="${PB_ATTR(i18t('sa_rule_label'))}">
+        <button type="button" data-sa-set="off" aria-pressed="${r.on?'false':'true'}"${r.on?'':' class="on"'}>${esc(i18t('sa_off'))}</button>
+        <button type="button" data-sa-set="always" aria-pressed="${r.on?'true':'false'}"${r.on?' class="on"':''}>${esc(i18t('sa_always'))}</button>
+      </span></div>
+    <div class="sa-set-grid">
+      <label style="display:block"><span style="${window.RV_LBL||''}">${esc(i18t('sa_approver'))}</span>
+        <select id="tm-overseer" style="${window.RV_FLD||ST_INPUT}">${opts(u.overseerId,i18t('ov_nobody'))}</select></label>
+      <label style="display:block"><span style="${window.RV_LBL||''}">${esc(i18t('sa_backup'))}</span>
+        <select id="tm-sa-backup" style="${window.RV_FLD||ST_INPUT}">${opts(r.backupId,i18t('sa_backup_none'))}</select></label>
+    </div>
+    <div style="margin-top:var(--s-2)"><span style="${window.RV_LBL||''}">${esc(i18t('sa_applies'))}</span>
+      <label class="st-toggle" style="margin-bottom:var(--s-1)"><input id="tm-sa-lead" type="checkbox"${r.lead?' checked':''}/>
+        <span><span class="st-role-name">${esc(i18t('sa_when_lead'))}</span></span></label>
+      <label class="st-toggle"><input id="tm-sa-sign" type="checkbox"${r.sign?' checked':''}/>
+        <span><span class="st-role-name">${esc(i18t('sa_when_sign'))}</span></span></label>
+    </div>
     <p class="st-note" id="tm-ov-says" style="margin-top:var(--s-2)"></p>
-    <p class="st-note">${esc(i18t('ov_no_owner'))}</p>
   </section>`;
 }
 function stOverseerWire(u){
-  const sel=document.getElementById('tm-overseer');
   const says=document.getElementById('tm-ov-says');
   if(!says) return;
   const who=(u&&u.name)||i18t('sc_this_person');
+  const users=()=>((typeof getUsers==='function'?getUsers():[])||[]);
+  const nameOf=id=>{ const x=users().find(p=>String(p.id)===String(id)); return x?(x.name||x.email):''; };
+  const segs=[...document.querySelectorAll('[data-sa-set]')];
   const paint=()=>{
-    const pick=sel&&sel.value
-      ? ((typeof getUsers==='function'?getUsers():[])||[]).find(x=>String(x.id)===String(sel.value))
-      : null;
-    says.textContent=pick ? i18t('ov_says_on',{who,over:pick.name||pick.email})
-                          : i18t('ov_says_off',{who});
+    const r=stOverseerRead()||{};
+    const appr=nameOf(r.overseerId), back=nameOf(r.overseerBackupId);
+    if(r.overseerOn!=='always'){ says.textContent=i18t('sa_says_off',{who}); return; }
+    if(!appr){ says.textContent=i18t('sa_says_no_approver'); return; }
+    const lead=/lead/.test(r.overseerWhen||''), sign=/sign/.test(r.overseerWhen||'');
+    says.textContent=i18t(lead&&sign?'sa_says_on':lead?'sa_says_on_lead':'sa_says_on_sign',{who,approver:appr})
+      +(back?' '+i18t('sa_says_backup',{backup:back,approver:appr}):'');
   };
-  sel?.addEventListener('change',paint);
+  segs.forEach(b=>b.addEventListener('click',()=>{
+    segs.forEach(x=>{ const on=x===b; x.classList.toggle('on',on); x.setAttribute('aria-pressed',on?'true':'false'); });
+    paint(); }));
+  ['tm-overseer','tm-sa-backup','tm-sa-lead','tm-sa-sign'].forEach(id=>document.getElementById(id)?.addEventListener('change',paint));
   paint();
 }
+/* Reads the section back into the four fields the record holds. Undefined
+   where the section is not drawn, so an untouched drawer sends nothing. */
 function stOverseerRead(){
   const sel=document.getElementById('tm-overseer');
-  return sel ? (sel.value||null) : undefined;
+  if(!sel) return undefined;
+  const on=document.querySelector('[data-sa-set].on');
+  const lead=!!(document.getElementById('tm-sa-lead')||{}).checked;
+  const sign=!!(document.getElementById('tm-sa-sign')||{}).checked;
+  return { overseerId: sel.value||null,
+    overseerOn: on ? on.getAttribute('data-sa-set') : 'off',
+    overseerBackupId: (document.getElementById('tm-sa-backup')||{}).value||null,
+    overseerWhen: [lead?'lead':'', sign?'sign':''].filter(Boolean).join(',') };
+}
+/* What a Save would change, measured against what the person's rule READS
+   today — so a drawer opened and saved without a touch sends nothing, and a
+   person nobody has answered for keeps reading the old switch. Returns
+   {patch} or {refuse}. */
+function stOverseerPatch(target, read){
+  if(!read) return { patch:{} };
+  if(read.overseerOn==='always' && !read.overseerId) return { refuse:i18t('sa_need_approver') };
+  if(read.overseerOn==='always' && !read.overseerWhen) return { refuse:i18t('sa_need_when') };
+  if(read.overseerBackupId && read.overseerBackupId===read.overseerId) return { refuse:i18t('sa_backup_same') };
+  const now=target ? stApprovalRuleOf(target) : { on:false, backupId:'', lead:true, sign:true };
+  const patch={};
+  if(String(read.overseerId||'')!==String((target&&target.overseerId)||'')) patch.overseerId=read.overseerId;
+  if((read.overseerOn==='always')!==!!now.on || (target && target.overseerOn==null && patch.overseerId!==undefined))
+    patch.overseerOn=read.overseerOn;
+  if(String(read.overseerBackupId||'')!==String((target&&target.overseerBackupId)||'')) patch.overseerBackupId=read.overseerBackupId;
+  const whenNow=[now.lead?'lead':'', now.sign?'sign':''].filter(Boolean).join(',');
+  if(read.overseerWhen!==whenNow) patch.overseerWhen=read.overseerWhen;
+  return { patch };
 }
 
 /* ---- ONE DRAWER, WHETHER YOU ARE ADDING OR EDITING ----
@@ -1330,6 +1404,12 @@ async function settingsSavePerson(existing){
   if(missing.length){ stDrawerRefuse(i18tn('st_missing',missing.length,{what:missing.join(', ')})); return; }
   if(typeof cap==='number' && Number.isNaN(cap)){ stDrawerRefuse(i18t('sc_bad_number')); return; }
   if(signFolders===false){ stDrawerRefuse(i18t('set_pick_one_stream')); return; }
+  /* The approval section's own refusals, in the drawer's foot like every
+     other: switched on with nobody to approve, applying to nothing, or a
+     backup who is the approver. */
+  const ovPatch=(typeof stOverseerPatch==='function')
+    ? stOverseerPatch(isNew?null:(getUsers()||[]).find(x=>x.id===existing.id), ovr) : { patch:{} };
+  if(ovPatch.refuse){ stDrawerRefuse(ovPatch.refuse); return; }
   if(isNew && (getUsers()||[]).some(x=>(x.email||'').toLowerCase()===email)){ stDrawerRefuse(i18t('set_member_exists')); return; }
 
   /* Folder access is decided BEFORE the account exists. `null` means every
@@ -1369,7 +1449,7 @@ async function settingsSavePerson(existing){
     if(cap!==undefined && !(typeof cap==='number' && Number.isNaN(cap))) after.signCap=cap;
     if(rv&&rv.reviewChecked!==undefined) after.reviewChecked=rv.reviewChecked;
     if(rv&&rv.reviewerId!==undefined) after.reviewerId=rv.reviewerId;
-    if(ovr!==undefined) after.overseerId=ovr;
+    Object.assign(after, ovPatch.patch||{});
     if(newId && signFolders!==undefined && typeof saveSignFolders==='function'){
       try{ await saveSignFolders(newId, signFolders); }catch(e){ toast(e.message,'err'); }
     }
@@ -1439,7 +1519,7 @@ async function settingsSavePerson(existing){
     if(cap!==undefined && cap!==capWas) patch.signCap=cap;
     if(rv&&rv.reviewChecked!==undefined && rv.reviewChecked!==reviewChecked(target)) patch.reviewChecked=rv.reviewChecked;
     if(rv&&rv.reviewerId!==undefined && String(rv.reviewerId||'')!==String(target.reviewerId||'')) patch.reviewerId=rv.reviewerId;
-    if(ovr!==undefined && String(ovr||'')!==String(target.overseerId||'')) patch.overseerId=ovr;
+    Object.assign(patch, ovPatch.patch||{});
     /* The server takes title (self or admin), role and canViewValues. It does
        NOT take a name today, so a rename is applied to the record we hold and
        the directory that feeds signer fields — said here rather than pretended
@@ -1454,7 +1534,8 @@ async function settingsSavePerson(existing){
     if(patch.signCap!==undefined) body.signCap=patch.signCap;
     if(patch.reviewChecked!==undefined) body.reviewChecked=patch.reviewChecked;
     if(patch.reviewerId!==undefined) body.reviewerId=patch.reviewerId;
-    if(patch.overseerId!==undefined) body.overseerId=patch.overseerId;
+    for(const k of ['overseerId','overseerOn','overseerBackupId','overseerWhen'])
+      if(patch[k]!==undefined) body[k]=patch[k];
     if(Object.keys(body).length){
       try{ const r=await api('users/'+target.id,'PATCH',body); if(r&&r.user) Object.assign(target,r.user); }
       catch(e){ stDrawerRefuse(e.message); return; }
@@ -1468,7 +1549,8 @@ async function settingsSavePerson(existing){
     if(patch.signCap!==undefined) target.signCap=patch.signCap;
     if(patch.reviewChecked!==undefined) target.reviewChecked=patch.reviewChecked;
     if(patch.reviewerId!==undefined) target.reviewerId=patch.reviewerId;
-    if(patch.overseerId!==undefined) target.overseerId=patch.overseerId;
+    for(const k of ['overseerId','overseerOn','overseerBackupId','overseerWhen'])
+      if(patch[k]!==undefined) target[k]=patch[k];
   } else {
     target.name=name||target.name; target.title=title; if(roleChanged) target.role=role;
     const capNow=(typeof signCapOf==='function')?signCapOf(target):{answered:false,limit:null};
@@ -1476,7 +1558,7 @@ async function settingsSavePerson(existing){
     if(cap!==undefined && cap!==capWas) target.signCap=cap;
     if(rv&&rv.reviewChecked!==undefined) target.reviewChecked=rv.reviewChecked;
     if(rv&&rv.reviewerId!==undefined) target.reviewerId=rv.reviewerId;
-    if(ovr!==undefined) target.overseerId=ovr;
+    Object.assign(target, ovPatch.patch||{});
     saveUsers(us);
   }
   if(target.role!=='admin'){
@@ -1509,14 +1591,19 @@ function settingsMirrorDirectory(name,email,title){
    be stuck, and the desks can be reassigned afterwards by any admin. */
 async function settingsRemoveMember(u){
   const us=getUsers(); const t=us.find(x=>x.id===u.id); if(!t) return;
-  /* ---- SOMEBODY WHO OVERSEES OTHERS TAKES THAT STEP WITH THEM ----
+  /* ---- SOMEBODY WHO APPROVES FOR OTHERS TAKES THAT ROLE WITH THEM ----
      Said BEFORE the removal, beside the negotiation-lead warning and for the
-     same reason: the approval step stays and names an account that no longer
-     exists, and an admin needs to know to repoint it. It WARNS rather than
-     refusing — an admin removing somebody who left on Friday must not be
-     stuck. */
+     same reason: an admin needs to know to name somebody new. Since 23 Sep
+     2026 nothing is stranded meanwhile — an approval whose approver has gone
+     falls to the backup, else to the admins (saNeeds) — and the sentence says
+     so. It WARNS rather than refusing — an admin removing somebody who left
+     on Friday must not be stuck. */
   let oversees='';
-  const watched=((getUsers()||[]).filter(x=>x&&String(x.overseerId||'')===String(t.id)));
+  /* Only people whose rule is ON (23 Sep 2026): a person with an approver
+     named and the rule switched off asks nobody anything. */
+  const legacyOn=(typeof signApprovalLegacyOn==='function')?signApprovalLegacyOn():false;
+  const watched=((getUsers()||[]).filter(x=>x&&String(x.overseerId||'')===String(t.id)
+    && (typeof saRuleOf!=='function' || saRuleOf(x,legacyOn).on)));
   if(watched.length) oversees=`\n\n${i18tn('ov_leaver',watched.length,{who:t.name,n:watched.length})}`;
   let leads='';
   if(window.deskLedBy){
@@ -2212,10 +2299,11 @@ const SET_PANELS={
           <input id="sc-rule-on" type="checkbox"${((typeof signCapEnforced==='function')&&signCapEnforced())?' checked':''}/>
           <span><span class="st-role-name">${esc(i18t('sc_rule_on'))}</span>
           <span class="st-note">${esc(i18t('sc_rule_sub'))}</span></span></label>
-        <label class="st-toggle" style="margin-bottom:var(--s-2)">
-          <input id="ov-rule-on" type="checkbox"${((typeof overseerEnforced==='function')&&overseerEnforced())?' checked':''}/>
-          <span><span class="st-role-name">${esc(i18t('ov_rule_on'))}</span>
-          <span class="st-note">${esc(i18t('ov_rule_sub'))}</span></span></label>
+        ${''/* THE OVERSEER SWITCH IS GONE FROM HERE (23 Sep 2026): approval
+               before signing is set on each person, in their own drawer, and
+               a workspace switch beside it would be a second door onto one
+               rule. A person nobody has answered for still READS the old
+               switch, so nothing changed on the day this moved. */}
         <label class="st-toggle" style="margin-bottom:var(--s-2)">
           <input id="sf-rule-on" type="checkbox"${((typeof signFolderEnforced==='function')&&signFolderEnforced())?' checked':''}/>
           <span><span class="st-role-name">${esc(i18t('sf_rule_on'))}</span>
@@ -2235,11 +2323,6 @@ const SET_PANELS={
            recorded and a limit that refuses are different facts), so it
            repaints — the panel does not, and the page behind it does not. */
         stPaintLadder();
-      });
-      document.getElementById('ov-rule-on')?.addEventListener('change',e=>{
-        if(typeof saveOverseerCfg!=='function') return;
-        saveOverseerCfg({ on:e.target.checked });
-        toast(i18t('ov_rule_saved'));
       });
       document.getElementById('sf-rule-on')?.addEventListener('change',e=>{
         if(typeof saveSignFolderCfg!=='function') return;

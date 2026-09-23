@@ -3557,6 +3557,20 @@ function wsNextAction(c){
      slot — two doors onto one act, twelve pixels apart. noButton, not null,
      for the reason its siblings give: the GUIDE still answers what the next
      step is, and Share stays the one door. */
+  /* A PERSONAL APPROVAL IS ITS OWN NEXT STEP (23 Sep 2026): the guide says
+     who it waits on, or that it has to be sent — never "send it to the other
+     side", which is not what is owed. noButton for its siblings' reason: the
+     Signing tab's own button carries the act. */
+  if(!appr.ok && window.signApprovalRows){
+    let rows=[]; try{ rows=signApprovalRows(c).filter(r=>r.holds); }catch(_){ rows=[]; }
+    const ruleOpen=((appr.chain)||[]).some(s=>!s.sa&&s.status!=='approved');
+    if(rows.length && !ruleOpen){
+      const r=rows[0];
+      const who=(r.need&&r.need.approverName)||i18t('sa_admins');
+      return { get label(){ return i18t('sa_ask_btn'); }, ic:'share', kind:'sign-approval', noButton:true,
+        get guide(){ return r.status==='pending' ? i18t('sa_guide_pending',{who}) : i18t('sa_guide_ask',{who}); } };
+    }
+  }
   if(!appr.ok) return { get label(){ return i18t('ct_send_to_cp'); }, ic:'share', get guide(){ return i18t('ct_share_draft_guide'); }, kind:'share',
     noButton:true };
   /* ---- NO BUTTON FOR "GO AND FIND THE REAL BUTTON" ----
@@ -12855,7 +12869,19 @@ function renderSignButton(c){
      are gone from under it — every one of them is a row on the card. */
   const rd=window.signReadiness?signReadiness(c):{ holds:[], noted:[], n:0 };
   const holdsN=rd.holds.length, notedN=rd.noted.length;
-  const signLabel = holdsN ? i18t('sc_btn_to_settle',{n:holdsN})
+  /* ---- WHEN THE ONLY THING LEFT IS THE APPROVAL (23 Sep 2026) ----
+     The owner's drawing: "the Sign button reads Send for approval". Only
+     where the personal approval is the ONE thing still holding — anywhere
+     else the button stays the list's door and the approval is one row on it.
+     Asked for is not decided: while it waits, the button says who it waits
+     on, and the press lands on the row. */
+  const saOnly=holdsN>0 && rd.holds.every(r=>r.kind==='signapproval');
+  const saAsk=saOnly && rd.holds.some(r=>r.sa&&r.sa.askable);
+  const saWait=saOnly && !saAsk && rd.holds.every(r=>r.sa&&r.sa.status==='pending');
+  const saWho=saWait ? rd.holds.map(r=>(r.sa.need&&r.sa.need.approverName)||i18t('sa_admins')).join(i18t('sa_and')) : '';
+  const signLabel = saAsk ? i18t('sa_ask_btn')
+    : saWait ? i18t('sa_btn_waiting',{who:saWho})
+    : holdsN ? i18t('sc_btn_to_settle',{n:holdsN})
     : notedN ? i18t('sc_btn_noted',{n:notedN})
     : (planned&&ns ? `Sign as ${ns.name}` : 'Sign Document');
   const rowWord=r=>signRowTitle(c,r);
@@ -12889,13 +12915,16 @@ function renderSignButton(c){
     ${''/* NOT disabled while something holds: the press is a DOOR onto the
            first open row (signLandOnList), which is the one thing a reader
            facing a refusal needs. It keeps the held face so it never promises. */}
-    <button id="sign-btn" data-sign-holds="${holdsN}" title="${esc(signTitle)}" class="w-full flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold transition ${ready?'bg-brand-900 text-white hover:bg-brand-800 shadow-lg shadow-brand-900/20':'bg-brand-100 text-brand-800/70 sign-held'}">
-      ${icon('finger','w-[18px] h-[18px]')} ${esc(signLabel)}
+    <button id="sign-btn" data-sign-holds="${holdsN}"${saAsk?' data-sa-ask-btn="1"':''} title="${esc(signTitle)}" class="w-full flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold transition ${ready||saAsk?'bg-brand-900 text-white hover:bg-brand-800 shadow-lg shadow-brand-900/20':'bg-brand-100 text-brand-800/70 sign-held'}">
+      ${icon(saAsk?'share':'finger','w-[18px] h-[18px]')} ${esc(signLabel)}
     </button>
     ${ready?`<p class="mt-2 text-[11px] text-center text-brand-800/65">Freezes the exact text, applies a tamper-evident SHA-256 seal${planned?' when the last signer signs':''}.</p>`
-           :`<p class="mt-2 text-[11px] text-center text-brand-800/65">${esc(i18t('sc_btn_held_line'))}</p>`}
+           :`<p class="mt-2 text-[11px] text-center text-brand-800/65">${esc(i18t(saAsk?'sa_btn_ask_line':saWait?'sa_btn_wait_line':'sc_btn_held_line'))}</p>`}
     ${paperRoute}`;
-  document.getElementById('sign-btn').addEventListener('click',()=>{ if(ready) signDocument(c); else signLandOnList(c); });
+  document.getElementById('sign-btn').addEventListener('click',()=>{
+    if(ready) signDocument(c);
+    else if(saAsk && window.openSignApprovalDialog) openSignApprovalDialog(c);
+    else signLandOnList(c); });
   signPaintHeadLabel(c);
   document.getElementById('sp-setup')?.addEventListener('click',()=>openSignerPlanEditor(c));
   wirePaper();
@@ -13105,6 +13134,46 @@ function signWhyShort(t){
   if (w.length <= SIGN_WHY_WORDS) return s;
   return w.slice(0, SIGN_WHY_WORDS).join(' ').replace(/[,;:.]$/, '') + '\u2026';
 }
+/* ---- A PERSONAL APPROVAL'S ROW (23 Sep 2026) ----
+   Its title is where the request stands, named after the approver; its
+   sentence is what is owed or what happened. `sa` is the row signApprovalRows
+   built — the one reading — so the title and the button cannot disagree. */
+function signApprovalRowTitle(sa){
+  if(!sa) return i18t('sa_row_unasked');
+  const who=(sa.need&&sa.need.approverName)||i18t('sa_admins');
+  switch(sa.status){
+    case 'pending': return i18t('sa_row_pending',{who});
+    case 'refused': return i18t('sa_row_refused',{who:(sa.req&&sa.req.decidedBy&&sa.req.decidedBy.name)||who});
+    case 'lapsed': return i18t(sa.expired?'sa_row_expired':'sa_row_lapsed',{who:(sa.req&&sa.req.decidedBy&&sa.req.decidedBy.name)||who});
+    case 'approved': return i18t('sa_row_approved',{who:(sa.req&&sa.req.decidedBy&&sa.req.decidedBy.name)||who});
+    default: return i18t('sa_row_unasked');
+  }
+}
+function signApprovalRowWhy(c, sa){
+  if(!sa) return '';
+  const req=sa.req||null, n=sa.need||{};
+  const appr=n.approverName||i18t('sa_admins');
+  const people=(n.people||[]).map(p=>p.name).filter(Boolean).join(i18t('sa_and'));
+  const when=iso=>(window.saWhen?saWhen(iso):String(iso||'').slice(0,10));
+  switch(sa.status){
+    case 'pending': {
+      const d=(window.saDeliveryWords&&req)?saDeliveryWords(req.notice):'';
+      /* The DAY, not the minute: the row is capped at fifteen words and the
+         delivery fact is the half a reader acts on. The minute is on the
+         approver's own card. */
+      const day=(window.saFmtDay&&req)?saFmtDay(req.askedAt):when(req&&req.askedAt);
+      return i18t('sa_why_pending',{when:day, by:(req&&req.askedBy&&req.askedBy.name)||''})+(d?' '+d:'');
+    }
+    case 'refused': return i18t('sa_why_refused',{why:(req&&req.decision)||'', when:when(req&&req.decidedAt)});
+    case 'lapsed': return sa.expired
+      ? i18t('sa_why_expired',{when:when(req&&req.decidedAt), n:window.SA_UNUSED_DAYS||30})
+      : i18t('sa_why_lapsed',{what:(sa.driftWords||[]).join(', ')});
+    case 'approved': return i18t('sa_why_approved',{when:when(req&&req.decidedAt),
+      what:(window.saShowsLine&&req)?saShowsLine(c,req.shows):''})
+      +(req&&req.decision?` — “${req.decision}”`:'');
+    default: return sa.waiting ? i18t('sa_why_wait') : i18t('sa_why_unasked',{people, approver:appr});
+  }
+}
 function signRowTitle(c,r){
   const t=k=>i18t(k);
   switch(r.kind){
@@ -13116,6 +13185,7 @@ function signRowTitle(c,r){
     case 'record': return i18t('sc_rec_head',{field:t('sc_f_'+r.field)});
     case 'risk': return String(r.title||'');
     case 'approval': return t('sc_row_approval');
+    case 'signapproval': return signApprovalRowTitle(r.sa);
     case 'turn': return t('sc_row_turn');
     case 'negotiation': return t('sc_row_negotiation');
     case 'signers': return t('sc_row_signers');
@@ -13239,6 +13309,24 @@ function signCheckCardHtml(c){
          work lives on this screen. A row whose work is elsewhere — the
          negotiation, a colleague's approval — keeps its sentence and its own
          door, because there is nothing here to point at. */
+      /* ---- A PERSONAL APPROVAL (23 Sep 2026) ----
+         The verbs are the requester's: send it (or send it again), remind,
+         withdraw, go back to the negotiation after a refusal. The approver's
+         own two verbs are on their card at the top of this column, so a
+         reader never meets Approve on a row they cannot decide. */
+      case 'signapproval': {
+        const sa=r.sa||{}; const req=sa.req||null;
+        why=signApprovalRowWhy(c,sa);
+        const meNow=(window.currentUser&&currentUser())||null;
+        const asker=!!(req&&req.askedBy&&meNow&&String(req.askedBy.id)===String(meNow.id));
+        if(sa.askable) acts.push(verb('data-sa-ask','1','sa_ask_btn'));
+        if(sa.status==='refused') acts.push(verb('data-sa-nego','1','sc_open_nego'));
+        if(sa.status==='lapsed' && !sa.expired) acts.push(verb('data-sa-changed','1','sa_see_changed'));
+        if(sa.status==='pending' && req && (asker || (meNow&&meNow.role==='admin'))){
+          acts.push(verb('data-sa-remind',req.id,'sa_remind_btn'));
+          acts.push(verb('data-sa-withdraw',req.id,'sa_withdraw_btn'));
+        }
+        break; }
       case 'signers': acts.push(verb('data-sc-signers','1','ct_add_signers')); break;
       case 'negotiation': why=r.label; acts.push(verb('data-sc-nego','1','sc_open_nego')); break;
       case 'counterparty': case 'value': why=r.label; acts.push(verb('data-sc-fix',r.kind,'sc_fill_btn')); break;
@@ -13557,6 +13645,10 @@ function renderSignSide(c){
            much as the order — and a note tucked into the lower one reads as
            being about that one alone. */}
     ${closed?`<p class="sign-closed-note">${esc(i18t('ct_signing_closed'))}</p>`:''}
+    ${''/* THE APPROVER'S OWN CARD (23 Sep 2026), above everything: for the
+           person a personal approval is asked of, deciding it IS the work on
+           this tab. Drawn only while there is a request they may decide. */}
+    ${(!closed&&window.signApprovalAskCardHtml)?signApprovalAskCardHtml(c):''}
     ${''/* THE CHECK, ABOVE THE GATE AND THE ORDER: it is about whether this
            wording should be signed at all, which is a question that comes
            before who signs it and in what order. */}
@@ -13668,6 +13760,27 @@ function renderSignSide(c){
   host.querySelectorAll('[data-sc-docs]').forEach(b=>b.addEventListener('click',()=>{ if(window.roomGoTab) roomGoTab(c,'docs'); }));
   host.querySelector('[data-sc-spots]')?.addEventListener('click',()=>{ if(window.signWalkGo) signWalkGo(c); });
   host.querySelector('[data-sc-fold]')?.addEventListener('click',()=>{ _scSettledOpen=!_scSettledOpen; scAgain(); });
+  /* ---- THE PERSONAL APPROVAL'S DOORS (23 Sep 2026) ----
+     Every one presses a function js/approvals.js owns — the one request
+     dialog, the one decision, the one withdrawal, the one reminder — and
+     querySelectorAll, because two approvers draw two rows (f295's lesson). */
+  if(window.wireSignApprovalCard) wireSignApprovalCard(c, scAgain);
+  host.querySelectorAll('[data-sa-ask]').forEach(b=>b.addEventListener('click',()=>{
+    if(window.openSignApprovalDialog) openSignApprovalDialog(c); }));
+  host.querySelectorAll('[data-sa-nego]').forEach(b=>b.addEventListener('click',()=>{
+    if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); }));
+  host.querySelectorAll('[data-sa-changed]').forEach(b=>b.addEventListener('click',()=>{
+    if(window.roomGoTab) roomGoTab(c,'history'); }));
+  host.querySelectorAll('[data-sa-remind]').forEach(b=>b.addEventListener('click',async()=>{
+    b.disabled=true;
+    try{ if(window.signApprovalRemind) await signApprovalRemind(c,b.getAttribute('data-sa-remind')); }
+    finally{ scAgain(); } }));
+  host.querySelectorAll('[data-sa-withdraw]').forEach(b=>b.addEventListener('click',async()=>{
+    const ok=window.confirmDialog ? await confirmDialog({ title:i18t('sa_withdraw_q'),
+      message:i18t('sa_withdraw_msg'), confirmLabel:i18t('sa_withdraw_btn') }) : true;
+    if(!ok) return;
+    if(window.signApprovalWithdraw) signApprovalWithdraw(c,b.getAttribute('data-sa-withdraw'));
+    scAgain(); }));
   host.querySelectorAll('[data-sc-keep]').forEach(b=>b.addEventListener('click',
     ()=>signCheckKeep(c,b.getAttribute('data-sc-keep'),scAgain)));
   /* ---- THE PLACEMENT ACTS ----
@@ -14222,6 +14335,12 @@ function signWalkGo(c){
 function signBlockers(c){
   const out=[];
   if(!c) return out;
+  /* `{ noSa:true }`, a SECOND argument asked by js/approvals.js alone: whether
+     a personal approval may be SENT depends on whether the paper is final,
+     which is read off THIS list — so that one caller asks for it without its
+     own rows. Read off `arguments` so the one-argument signature every other
+     caller (and five checks that pin this region) knows stays as it is. */
+  const noSa=!!(arguments[1]&&arguments[1].noSa);
   /* `extra` is additive: the empty-box row carries WHICH boxes (`fields`), so
      the Overview can mark the one it owns and the row can choose its door. */
   const add=(key,label,short,extra)=>out.push({ key, label, short, ...(extra||{}) });
@@ -14240,17 +14359,27 @@ function signBlockers(c){
      so it is no longer a box on the page that a queue of real obstacles has
      to stand behind. signDocument stamps c.compliance.consent off the pad's
      own answer; see captureSignature. */
+  /* THE RULE STEPS keep their one row, in their own words. The PERSONAL
+     approval (23 Sep 2026) is its own row per approver, below, with its own
+     verbs — it is something somebody sends and somebody decides, and "waiting
+     on" is not true of a request nobody has sent yet. */
   try{
     const ap=(window.approvalState)?window.approvalState(c):null;
-    if(ap && ap.required && !ap.ok){
-      const refused=(ap.rejected||[])[0], stale=(ap.stale||[])[0];
+    const rules=((ap&&ap.chain)||[]).filter(s=>!s.sa);
+    const nextRule=rules.find(s=>s.status!=='approved');
+    if(ap && ap.required && nextRule){
+      const refused=rules.filter(s=>s.status==='rejected')[0], stale=rules.filter(s=>s.status==='stale')[0];
       add('approval', refused
           ? `Internal approval was refused${refused.by?` by ${refused.by}`:''} — “${refused.name}” is unresolved.`
           : stale
           ? `“${stale.name}” was approved and the contract has changed since — it needs approving again.`
-          : `Internal approval is outstanding: “${ap.next?ap.next.name:'approval'}” is waiting on ${ap.approverLabel||'an approver'}.`,
+          : `Internal approval is outstanding: “${nextRule.name}” is waiting on ${window.approverLabelOf?approverLabelOf(nextRule.approver):'an approver'}.`,
         'approvals outstanding');
     }
+  }catch(_){}
+  if(!noSa) try{
+    (window.signApprovalRows?signApprovalRows(c):[]).filter(r=>r.holds).forEach(r=>
+      add('signapproval', signApprovalBlockLabel(c,r), i18t('sa_block_short'), { rowKey:r.rowKey, sa:r }));
   }catch(_){}
   /* WHOSE TURN IT IS. A counterparty step is collected on their own link, so
      the in-app button has nothing to do — which the panel has always said and
@@ -14512,6 +14641,11 @@ async function attachPaperSignature(c, file, opts={}){
     (window.unresolvedRedlines&&unresolvedRedlines(c)?['there are still open proposed edits']:[]));
   if(paperBlockers.length){
     toast(`${paperBlockers.join('; ')} — settle the negotiation before recording a signature`,'err'); return null; }
+  /* A signature on paper is still a signature (23 Sep 2026): where a personal
+     approval is outstanding, recording one would be the way round it. The
+     server refuses the same save. */
+  try{ const held=window.signApprovalHoldsLinks?signApprovalHoldsLinks(c):null;
+    if(held){ toast(held,'err'); return null; } }catch(_){}
   if(file.size>uploadMax()){ toast(uploadTooBigMsg(file),'err'); return null; }
 
   let dataUrl;
