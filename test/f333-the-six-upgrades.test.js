@@ -55,9 +55,15 @@ describe('f333 (4) "nothing fits" leads to the door that exists', () => {
   test('4a3 two doors, and the second is drawn only where it would work', () => {
     assert.match(DR, /id='dr-doors'/);
     assert.match(DR, /b\.id='dr-ask-team'/, 'Send this as a request');
-    assert.match(DR, /mayMakeNewPaper\(\) && typeof tplLibCreateModal==='function'/,
+    /* RE-POINTED 24 Sep 2026 (one door to standards): the second door opens
+       the one door's FIRST START with the reader's sentence already in it,
+       rather than the blank create dialog that asked for a name first. The
+       grant it is drawn behind is unchanged. */
+    assert.match(DR, /mayMakeNewPaper\(\) && typeof openNewStandard==='function'/,
       'writing new paper is the grant that is off by default — the door is not drawn without it');
     assert.match(DR, /t\.id='dr-write-template'/);
+    assert.match(DR, /openNewStandard\(\{ start:'scratch', said:String\(sentence\|\|''\) \}\)/,
+      'and it carries the sentence into "From scratch"');
   });
 
   test('4a4 what happens next is read off the record, and refuses rather than averages', () => {

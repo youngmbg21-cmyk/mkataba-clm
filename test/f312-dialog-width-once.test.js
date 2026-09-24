@@ -110,13 +110,19 @@ describe('f312 (3) — the source sheet fills its frame, and asks one question',
      moment: WHERE THE WORDS COME FROM, with five answers, and the kind is
      settled by the answer.
 
+     ---- RE-POINTED AGAIN 24 Sep 2026 (Young's go on "One Door to
+     Standards") ---- the five answers are THREE STARTS now — from scratch,
+     from a template you have, from one of our contracts — and the other
+     side's paper is a quiet link at the foot, because it is not a standard of
+     ours. The button presses openNewStandard (js/views/newstandard.js).
+
      WHAT THIS TEST IS FOR IS UNCHANGED and is still f312's own rule: a dialog
      states its width ONCE, on the frame, and the box inside states none. That
      is the fault f312 exists for — a 380px box in a 512px frame with the blank
      down one side — and it holds for whatever dialog lives here. */
   const stage = () => {
     const cap = capture();
-    const w = loadViews(['js/views/library.js'], {
+    const w = loadViews(['js/views/library.js', 'js/views/newstandard.js'], {
       state: { contracts: [], settings: {}, view: 'templates' },
       tplLibAll: () => ({ canManage: true, templates: [] }),
       openModal: cap.open, closeModal() {}, openCreateTemplateModal() {}, tplLibCreateModal() {},
@@ -124,27 +130,26 @@ describe('f312 (3) — the source sheet fills its frame, and asks one question',
     w.tplNewMenu();
     return cap;
   };
-  test('five sources, one shape each, and no width on the box', () => {
+  test('three starts, one shape each, and no width on the box', () => {
     const cap = stage();
     assert.ok(cap.html, 'the dialog opened');
-    assert.equal((cap.html.match(/data-tpl-src="/g) || []).length, 5, 'five answers to one question');
+    assert.equal((cap.html.match(/data-ns-start="/g) || []).length, 3, 'three answers to one question');
     assert.ok(!/max-width/.test(cap.html), 'the frame states the width; the box states none');
     assert.match(cap.html, /^<div style="padding:24px">/, '24 on every side');
   });
-  test('each source carries a mark, its name and its one line; Cancel is the foot’s only control', () => {
+  test('each start carries a mark, its name and its one line; Cancel is the foot’s only button', () => {
     const cap = stage();
-    /* A MARK PER SOURCE, pinned as the mark and not as the mechanism: the old
-       tiles hand-wrote `<use href="#i-…">` at the sprite, these call the
-       product's own icon() helper, and the stage stubs that to a bare <svg>.
-       Counting the svg holds for either. */
-    assert.equal((cap.html.match(/<svg/g) || []).length, 5, 'a mark per source');
-    assert.match(cap.html, /A document I have/); assert.match(cap.html, /blank page/);
+    /* A MARK PER START, pinned as the mark and not as the mechanism: the
+       product's own icon() helper, which the stage stubs to a bare <svg>. */
+    assert.equal((cap.html.match(/<svg/g) || []).length, 3, 'a mark per start');
+    assert.match(cap.html, /From scratch/); assert.match(cap.html, /From a template you have/); assert.match(cap.html, /From one of our contracts/);
     assert.equal((cap.html.match(/class="ui-btn"/g) || []).length, 1, 'Cancel alone in the foot');
     assert.ok(!/ui-btn-primary/.test(cap.html), 'a question has no filled verb');
+    assert.match(cap.html, /id="ns-cp" class="ns-link"/, 'the other side’s paper is a quiet link, not a fourth start');
   });
   test('the dialog says its name to a screen reader', () => {
     const cap = stage();
-    assert.equal(cap.opts.label, 'Where do the words come from?');
+    assert.equal(cap.opts.label, 'New standard contract');
   });
 });
 

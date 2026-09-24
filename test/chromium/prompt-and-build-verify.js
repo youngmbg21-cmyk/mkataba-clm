@@ -104,6 +104,10 @@ const RAIL = () => {
     await pause(900);
     s = await page.evaluate(RAIL);
     check('2a · the outline comes back as a list, headings only', /Parties[\s\S]*Definitions[\s\S]*Payment terms/.test(s.lane) && /Headings only/.test(s.lane), s.lane.slice(0, 120));
+    /* How many of the TICKED rows the list says come from your clause library —
+       read off the list the reader was shown, before the press (see 2e). */
+    const fromLib = await page.evaluate(() => [...document.querySelectorAll('#tb-lane .tb-list li')]
+      .filter(li => { const c = li.querySelector('input[type="checkbox"]'); return c && c.checked && li.querySelector('.src.lib'); }).length);
     await page.click('[data-tb-out-add]');
     await pause(900);
     s = await page.evaluate(RAIL);
@@ -118,7 +122,12 @@ const RAIL = () => {
     check('2c · the first section is in hand, framed on the paper and named on the focus card',
       /Section 1 · Parties/i.test(s.scope) && s.on.length === 1 && s.on[0] === 'Parties', { scope: s.scope, on: s.on });
     check('2d · the walk is on and asks its question in HaTi’s own words', /what should it say\?/.test(s.lane) && /Walk me through it · on/.test(s.foot), { foot: s.foot });
-    check('2e · the foot counts: 0 of N written', new RegExp('0 of ' + N).test(s.foot), s.foot);
+    /* RE-POINTED IN PLACE, 24 Sep 2026 (one door to standards). A section the
+       list marked "Your library" now arrives WRITTEN — the press that adds it
+       is the press that fills it with the workspace's own approved clause — so
+       the foot no longer reads 0. The claim is the relation: it counts exactly
+       the sections the library wrote, out of all of them. */
+    check('2e · the foot counts what was written: the library’s sections, of N', fromLib > 0 && new RegExp('^' + fromLib + ' of ' + N).test(s.foot.trim()), { fromLib, foot: s.foot });
 
     /* ================= 3 · TAG (a real press on the ✦) ================ */
     const tag2 = page.locator('[data-tb-sec]').nth(1).locator('[data-tb-tag]');
@@ -147,18 +156,34 @@ const RAIL = () => {
     check('4d · nothing landed on the paper yet — a card waits for a person', !/within/.test(s.sec2), s.sec2.slice(0, 80));
 
     /* ================= 5 · APPLY ================ */
+    /* Where the walk should go next is read off the PAPER before the press:
+       the first section after this one that still owes wording, else the first
+       one from the top (tbNextEmpty's own order). */
+    const nextOwed = await page.evaluate(() => {
+      const secs = [...document.querySelectorAll('[data-tb-sec]')].map((e, i) => ({ i, empty: e.classList.contains('is-empty'), head: (e.querySelector('.tb-hed') || {}).textContent || '' }));
+      const after = secs.find(x => x.i > 1 && x.empty) || secs.find(x => x.i !== 1 && x.empty);
+      return after ? { n: after.i + 1, head: after.head } : null;
+    });
+    const wroteBefore = Number((/^(\d+) of/.exec(s.foot.trim()) || [])[1]);
     await page.click('[data-tb-use]');
     await pause(700);
     s = await page.evaluate(RAIL);
     await page.screenshot({ path: path.join(OUT, '04-applied.png') });
     check('5a · Apply puts the wording on the paper, in section 2', /freight within/.test(s.sec2), s.sec2.slice(0, 100));
     check('5b · the receipt names the section', /Applied to 2 · Definitions/.test(s.lane), s.lane.slice(-160));
-    check('5c · the walk moves on to the next empty section, section 3', /Section 3 · Payment terms/.test(s.scope), s.scope);
+    /* RE-POINTED IN PLACE, 24 Sep 2026: the next EMPTY section is no longer
+       section 3, because Payment terms now arrives written from the library.
+       The claim was always "the next empty one" — asked of the paper. */
+    check('5c · the walk moves on to the next section still to write', !!nextOwed && new RegExp('Section ' + nextOwed.n + ' · ' + nextOwed.head.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(s.scope), { scope: s.scope, expected: nextOwed });
     /* RE-POINTED IN PLACE, 17 Sep 2026 (the build plan's upgrade 1). The claim
        is that Apply leaves work owing and the strip SAYS so; what it says
        changed, because the work is now kept in this browser and "Unsaved
        changes" would be untrue. Section 14 drives the whole journey. */
-    check('5d · the foot counts 1 of N, and the strip says the draft is kept', new RegExp('1 of ' + N).test(s.foot) && /kept/i.test(s.dirty) && !/saved/i.test(s.dirty), { foot: s.foot, dirty: s.dirty });
+    /* And RE-POINTED AGAIN, 24 Sep 2026: "1 of N" became "one MORE than
+       before the press" — the library's sections were already counted. */
+    check('5d · the foot counts one more written section, and the strip says the draft is kept',
+      Number.isFinite(wroteBefore) && new RegExp('^' + (wroteBefore + 1) + ' of ' + N).test(s.foot.trim()) && /kept/i.test(s.dirty) && !/saved/i.test(s.dirty),
+      { before: wroteBefore, foot: s.foot, dirty: s.dirty });
 
     /* ================= 6 · SAVE: the one door, end to end ================ */
     await page.click('#tb-save');

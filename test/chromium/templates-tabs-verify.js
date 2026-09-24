@@ -694,20 +694,30 @@ const BOX = sel => {
        painted selects, the create door is picked with a real change event, the
        name box is typed into and its button pressed, and the answer is read
        back OFF THE SERVER rather than off the screen that just drew it. */
-    await page.evaluate(() => { const b = document.querySelector('[data-tpl-tab="list"]'); if (b) b.click(); });
+    /* RE-POINTED IN PLACE, 24 Sep 2026 (Young's go on "One Door to
+       Standards", decision 5). The "New standard template" form this section
+       photographed has no door any more: the name, category and value stream
+       are chips at the top of the builder, and each opens the Template
+       details box — the SAME pair of pickers, wired by the same
+       tplLibWireCatStream. So the dialog is reached the way a reader reaches
+       it now: a template in the builder, and a press on its Category chip. */
+    const tb8 = await page.evaluate(async () => {
+      const d = await api('templates', 'POST', { name: 'Filing probe', category: 'other', description: '' });
+      const t = await api('templates/' + d.template.id);
+      return { tid: d.template.id, vid: t.versions.find(v => v.status === 'draft').id };
+    });
+    await page.evaluate(i => openTemplateBuilder(i.tid, i.vid), tb8);
+    await pause(1200);
+    await page.evaluate(() => { const b = document.querySelector('[data-tb-meta="category"]'); if (b) b.click(); });
     await pause(700);
-    await page.evaluate(() => { const b = document.getElementById('tpl-new'); if (b) b.click(); });
-    await pause(600);
-    await page.evaluate(() => { const b = document.getElementById('tn-company'); if (b) b.click(); });
-    await pause(700);
-    await page.screenshot({ path: path.join(OUT, '08-new-standard-template.png') });
+    await page.screenshot({ path: path.join(OUT, '08-template-details.png') });
 
     const doors = await page.evaluate(() => {
       const opts = id => [...(document.getElementById(id) || { options: [] }).options]
         .map(o => ({ v: o.value, t: o.textContent.trim() }));
-      return { cat: opts('tpllib-cat'), stream: opts('tpllib-stream') };
+      return { cat: opts('tpllib-m-cat'), stream: opts('tpllib-m-stream') };
     });
-    check('8a · the dialog the owner photographed is open, with both pickers',
+    check('8a · the Template details box is open, with both pickers',
       doors.cat.length > 1 && doors.stream.length > 1,
       { cat: doors.cat.length, stream: doors.stream.length });
     check('8b · THE REPORTED FAULT: the category picker now says how one is made',
@@ -724,7 +734,7 @@ const BOX = sel => {
     /* A REAL PICK, A REAL NAME, A REAL PRESS. */
     const madeCat = await (async () => {
       await page.evaluate(() => {
-        const sel = document.getElementById('tpllib-cat');
+        const sel = document.getElementById('tpllib-m-cat');
         sel.value = '__new__'; sel.dispatchEvent(new Event('change', { bubbles: true }));
       });
       await pause(500);
@@ -734,7 +744,7 @@ const BOX = sel => {
       await page.click('#nf-save');
       await pause(700);
       return { up, ...(await page.evaluate(() => {
-        const sel = document.getElementById('tpllib-cat');
+        const sel = document.getElementById('tpllib-m-cat');
         return { value: sel.value, text: (sel.selectedOptions[0] || {}).textContent,
           has: [...sel.options].some(o => o.textContent.trim() === 'Distribution') };
       })) };
@@ -746,7 +756,7 @@ const BOX = sel => {
 
     const madeStream = await (async () => {
       await page.evaluate(() => {
-        const sel = document.getElementById('tpllib-stream');
+        const sel = document.getElementById('tpllib-m-stream');
         sel.value = '__new__'; sel.dispatchEvent(new Event('change', { bubbles: true }));
       });
       await pause(500);
@@ -756,7 +766,7 @@ const BOX = sel => {
       await page.click('#nf-save');
       await pause(900);
       return { up, ...(await page.evaluate(() => {
-        const sel = document.getElementById('tpllib-stream');
+        const sel = document.getElementById('tpllib-m-stream');
         return { value: sel.value, text: (sel.selectedOptions[0] || {}).textContent,
           inFolders: !!Object.values(FOLDERS).find(f => f.name === 'Legal & Regulatory') };
       })) };
@@ -788,35 +798,68 @@ const BOX = sel => {
        one is driven: the dialog is opened with a real press and its pickers are
        read off the DOM, because a select nobody wired is a dead option and that
        is exactly the drift these two dialogs have had before. */
+    /* RE-POINTED IN PLACE, 24 Sep 2026 (Young's go on "One Door to
+       Standards"). Decision 4 named the button "+ New standard contract", and
+       "Convert a document" went from beside it: converting a document is one
+       of the three starts behind it ("From a template you have" → Upload a
+       file), where the document is COPIED rather than re-typed. The 18 Sep ask
+       — a converted document is filed in a value stream — is kept, where
+       decision 5 put it: the start asks nothing about filing, and the builder
+       opens with the Stream chip at its head, amber until it is chosen, one
+       press from the stream picker and its create door. */
+    await page.evaluate(() => { try { closeModal(); } catch (_) {} setView('templates'); });
+    await pause(900);
     await page.evaluate(() => { const b = document.querySelector('[data-tpl-tab="list"]'); if (b) b.click(); });
     await pause(700);
     const words = await page.evaluate(() => {
       const n = document.getElementById('tpl-new'), c = document.getElementById('tpl-convert');
       return { newBtn: n ? n.textContent.trim() : null, conv: c ? c.textContent.trim() : null };
     });
-    check('9a · the button says what it does: Build new template',
-      words.newBtn === '+ Build new template', words);
-    check('9b · and Convert a document is still beside it', /Convert a document/.test(words.conv || ''), words);
+    check('9a · the button says what it does: + New standard contract',
+      words.newBtn === '+ New standard contract', words);
+    check('9b · and it is the ONE door — Convert a document is no longer beside it', words.conv === null, words);
 
-    await page.evaluate(() => { const b = document.getElementById('tpl-convert'); if (b) b.click(); });
-    await pause(700);
-    await page.screenshot({ path: path.join(OUT, '09-convert-a-document.png') });
+    await page.evaluate(() => { const b = document.getElementById('tpl-new'); if (b) b.click(); });
+    await pause(500);
+    await page.evaluate(() => { const b = document.querySelector('[data-ns-start="template"]'); if (b) b.click(); });
+    await pause(600);
+    await page.screenshot({ path: path.join(OUT, '09-from-a-template.png') });
     const conv = await page.evaluate(() => {
-      const opts = id => [...(document.getElementById(id) || { options: [] }).options]
-        .map(o => ({ v: o.value, t: o.textContent.trim() }));
-      const lab = document.querySelector('#tpllib-up-stream')
-        ? (document.querySelector('#tpllib-up-stream').closest('label') || {}).textContent : '';
-      return { cat: opts('tpllib-up-cat'), stream: opts('tpllib-up-stream'),
-        label: String(lab || '').replace(/\s+/g, ' ').trim().slice(0, 40),
-        file: !!document.getElementById('tpllib-up-file') };
+      const dlg = document.querySelector('#modal-root [role="dialog"]');
+      const lit = document.querySelector('[data-ns-tab].on');
+      const pane = document.querySelector('[data-ns-pane="upload"]');
+      const first = pane && pane.querySelector('input,select,textarea,button');
+      return { tab: lit && lit.getAttribute('data-ns-tab'), firstTab: (document.querySelector('[data-ns-tab]') || {}).getAttribute && document.querySelector('[data-ns-tab]').getAttribute('data-ns-tab'),
+        firstIsFile: !!first && first.id === 'ns-file',
+        pickers: dlg ? dlg.querySelectorAll('select').length : -1 };
     });
-    check('9c · THE REPORTED GAP: converting a document now asks for a value stream',
-      conv.stream.length > 1, { n: conv.stream.length, label: conv.label });
-    check('9d · and a category, the same pair the other dialog asks',
-      conv.cat.length > 1, conv.cat.length);
-    check('9e · the stream picker is WIRED — its create door is there, so it is not a dead list',
-      conv.stream.some(o => o.v === '__new__'), conv.stream.map(o => o.v).join(','));
-    check('9f · and the file box is still the first thing on the dialog', conv.file === true, conv.file);
+    check('9f · the upload tab leads and is lit, and the file box is the first thing on it',
+      conv.tab === 'upload' && conv.firstTab === 'upload' && conv.firstIsFile, conv);
+    check('9c · the start asks nothing about filing — no category or stream picker on it (decision 5)',
+      conv.pickers === 0, conv);
+
+    await page.setInputFiles('#ns-file', { name: 'Carrier terms.txt', mimeType: 'text/plain',
+      buffer: Buffer.from('CARRIER AGREEMENT\n\n1. Services\n\nThe Carrier shall collect and deliver the goods.\n\n2. Fees\n\nThe Customer shall pay the fees in the order.\n') });
+    for (let i = 0; i < 20; i++) { await pause(300); if (await page.evaluate(() => !!(document.getElementById('ns-got') || {}).textContent)) break; }
+    await page.evaluate(() => { const b = document.getElementById('ns-go'); if (b && !b.disabled) b.click(); });
+    for (let i = 0; i < 20; i++) { await pause(400); if (await page.evaluate(() => !!document.querySelector('[data-tb-meta="stream"]'))) break; }
+    await pause(800);
+    const chip = await page.evaluate(() => {
+      const b = document.querySelector('[data-tb-meta="stream"]');
+      return b ? { empty: b.classList.contains('empty'), dashed: getComputedStyle(b).borderTopStyle, text: b.textContent.replace(/\s+/g, ' ').trim() } : null;
+    });
+    await page.screenshot({ path: path.join(OUT, '09-copied-head.png') });
+    check('9d · THE REPORTED GAP, WHERE IT LIVES NOW: the copy opens with a Stream chip that is plainly not filed yet',
+      !!chip && chip.empty && chip.dashed === 'dashed', chip);
+    await page.evaluate(() => { const b = document.querySelector('[data-tb-meta="stream"]'); if (b) b.click(); });
+    await pause(700);
+    const streamBox = await page.evaluate(() => {
+      const sel = document.getElementById('tpllib-m-stream');
+      return { focused: document.activeElement && document.activeElement.id,
+        opts: sel ? [...sel.options].map(o => o.value) : [] };
+    });
+    check('9e · one press opens the stream picker with the caret in it, and its create door is there — not a dead list',
+      streamBox.focused === 'tpllib-m-stream' && streamBox.opts.length > 1 && streamBox.opts.includes('__new__'), streamBox);
     await page.evaluate(() => { try { closeModal(); } catch (_) {} });
     await pause(300);
 

@@ -352,7 +352,13 @@ const SEED = () => {
       kept.sameSearch && kept.lit.length === 1 && kept.lit[0] === 'ready', kept.lit);
 
     /* ============ 6 · THE WORDING SITS ON PAPER ========================== */
-    await page.evaluate(async () => { if (typeof tplMakeItOurs === 'function') await tplMakeItOurs('PS'); });
+    /* RE-POINTED IN PLACE, 24 Sep 2026 (one door to standards): "Make it
+       ours" is a shortcut INTO the one door now — it opens "From a template
+       you have" on HaTi's own tab with this template already chosen — so the
+       copy is made by the press a reader makes there, not by the shortcut. */
+    await page.evaluate(() => { if (typeof tplMakeItOurs === 'function') tplMakeItOurs('PS'); });
+    await pause(700);
+    await page.evaluate(() => { const b = document.getElementById('ns-go'); if (b && !b.disabled) b.click(); });
     await pause(3500);
     await page.evaluate(() => { try { closeModal(); } catch (e) {} });
     await pause(400);

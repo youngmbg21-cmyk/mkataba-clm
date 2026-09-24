@@ -8994,7 +8994,12 @@ function roomHeadHtml(c,opts={}){
                  nobody holding a code can miss it. */}
           ${may?`<button type="button" id="ws-import" title="${i18t('ct_read_word_back')}">${icon('download','w-3.5 h-3.5')}${i18t('ct_import_word_file')}</button>`:''}
           <button type="button" id="ws-compare" title="${i18t('ct_compare_review')}">${icon('columns','w-3.5 h-3.5')}Compare versions</button>
-          ${may?`<button type="button" id="ws-tpl" title="${i18t('ct_save_as_reusable')}">${icon('copy','w-3.5 h-3.5')}Save as template</button>`:''}
+          ${''/* "Save as template" LEFT THIS MENU (Young's go on "One Door to
+                 Standards", 24 Sep 2026): the same start lives behind the
+                 Templates page's one button — "From one of our contracts" —
+                 where it keeps the contract's tables and files the standard
+                 in the contract's own value stream. #ws-tpl and
+                 ct_save_as_reusable are STALE; the key stays inert. */}
           <hr>
           <div class="mgroup">${i18t('ct_export')}</div>
           <button type="button" id="ws-pdf" title="${i18t('ct_clean_copy')}">${icon('printer','w-3.5 h-3.5')}PDF<span class="mnote">clean copy</span></button>
@@ -9868,13 +9873,9 @@ function renderWorkspace(){
   document.getElementById('ws-compare')?.addEventListener('click',()=>openCompareModal(c));
   // No ws-edit wiring: the button is gone, and leaving the listener behind is
   // how a removed feature comes back the next time someone re-adds the markup.
-  /* API mode: "Save as template" lands in the versioned Template Library (a
-     draft opened in the builder). The older settings-blob flow remains the
-     local-mode path, where the server-backed library does not exist. */
-  document.getElementById('ws-tpl')?.addEventListener('click',()=>{
-    if(API_MODE()&&window.saveContractToLibrary) saveContractToLibrary(c);
-    else saveContractAsTemplate(c);
-  });
+  /* No ws-tpl wiring: "Save as template" is the one door's third start now
+     (js/views/newstandard.js). Leaving the listener behind is how a removed
+     row comes back the next time somebody re-adds the markup. */
   document.getElementById('ws-pdf')?.addEventListener('click',()=>exportPDF(c));
   document.getElementById('ws-pdf-record')?.addEventListener('click',()=>exportPDF(c,{record:true}));
   document.getElementById('ws-word')?.addEventListener('click',()=>exportWordTracked(c));

@@ -19045,3 +19045,28 @@ Noticed, not fixed
 ## Run 24 Sep 2026 — the prototype polish reverted
 
 - The side panel / Home / Overview polish (commit 745bdf4) was REVERTED on the owner's word: it fell short of the prototype, which is to be finished first and then applied to HaTi in full. The code is back to 80856be.
+
+## 23 Sep 2026 — how to make the long SaaS agreement a company standard (a question, nothing changed)
+
+Tried on a copy with the owner's real file: upload as a contract, then More → Save as template. No Copilot, done in under a second; the builder opened in 2s with no page errors; the counterparty's name became a blank; 100 of 118 sections arrived written.
+
+Noticed, not fixed
+- Save as template (tplRichBlocks) keeps headings, paragraphs and list items only, so every table is dropped: on this file 47 tables, ~27,000 characters (the definitions list, service levels, charges). Company templates have no table block at all.
+- The document's own bracket placeholders ("[address]", "[CVR No. if applicable]") come across as fixed text, not blanks.
+
+## 24 Sep 2026 — one door to a standard contract
+
+On the owner's word ("GO Ahead and build it", the render "One Door to Standards", every decision as recommended). On branch claude/beautiful-pascal-cvz3kw; not merged — offered.
+- The Templates page has one button, "+ New standard contract", and one question with three starts: From scratch, From a template you have (a Word file, a PDF, pasted wording or one of HaTi's), From one of our contracts. "Convert a document", the contract menu's "Save as template" and the "New standard template" form are no longer doors; Make it ours opens the second start with that HaTi template chosen.
+- A document is copied, not re-typed: headings, clause numbers and tables word for word ("no word changed" is checked). The owner's SaaS agreement (118 headings, 595 numbers, 47 tables) copies in full.
+- Every start ends in the same builder with Copilot's first move waiting: the sections and where each one's words come from; the likely blanks, unticked; or the check against Our standards with every deal detail that was taken out and a way to put it back.
+- The name, category and value stream sit at the top of the builder, each one press from the Template details box. Publish asks once about anything still open, each item a door, and "Publish anyway" still goes on.
+- Found while driving it and repaired: HaTi templates' camelCase keys were slugged by the server while the wording kept the old spelling (three of seven blanks "unplaced", all seven offered back as blanks to make); the liability clause proposed twice ("Limitation of liability" and the playbook's "Liability cap"); a missing standard listed twice (a position and a range on one category); the start's outline read not counted ("read 0"); a refused outline not keeping the sentence; the builder strip growing to 35px when Discard wrapped; a failed copy leaving an empty draft template in the library.
+
+Gates: lint 0 errors, 213 warnings (the same as the commit before). Full suite 9,070 tests, 2 failed — f277 (1) and (10), red on the untouched commit with the same checks. f376 48 claims (sections 2–8 all red at the commit before; each of the four repairs red with that repair alone reverted); one-door-verify 37/37 (0/37 at the commit before). 19 related browser files run on both copies: identical check by check. Re-pointed in place, each with its reason: f102, f306, f312, f330, f331, f333, n8, f332 (2a)(3d)(4a) — the first two were left stale by this feature's own first commit this morning — dialog-balance-verify (18/18; red before, for an older chooser), templates-tabs-verify 8 and 9 (reached through the builder's head; the section crashed before), templates-cleaned-up-verify 6, prompt-and-build-verify 2e/5c/5d.
+
+Noticed, not fixed
+- The Template details box's "None yet" value stream keeps the old stream (tplLibPick falls back when the value is empty), so a template cannot be un-filed.
+- The server's template create and rename routes accept only the five built-in categories (TPL_CATEGORIES), so a category a company added in Settings cannot be saved onto a template.
+- A template written from scratch prints its FIRST section heading ("Parties") as the published contract's title and numbers from the second; the builder's paper draws the template's name above it instead. The rail's own outline did the same before this change.
+- templates-tabs-verify 7c (the rail's two captions) and counterparty-reading-and-more-verify (stops at a click on "As agreed", which the page no longer draws) are red, as they were before this change.

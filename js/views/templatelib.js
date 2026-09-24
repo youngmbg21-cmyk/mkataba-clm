@@ -227,8 +227,11 @@ async function renderCompanyTemplatesSection() {
     el.addEventListener('click', () => openTemplateLibDetail(el.getAttribute('data-tpllib-open'))));
   host.querySelectorAll('[data-tpllib-use]').forEach(el =>
     el.addEventListener('click', e => { e.stopPropagation(); tplLibNewContract(el.getAttribute('data-tpllib-use')); }));
-  host.querySelector('#tpllib-new')?.addEventListener('click', tplLibCreateModal);
-  host.querySelector('#tpllib-upload')?.addEventListener('click', tplLibUploadModal);
+  /* ONE DOOR (24 Sep 2026): this section has no host on any page today, and if
+     one draws it again its two buttons are the one door's two starts — never
+     the Copilot conversion and the blank-page dialog they used to open. */
+  host.querySelector('#tpllib-new')?.addEventListener('click', () => openNewStandard());
+  host.querySelector('#tpllib-upload')?.addEventListener('click', () => openNewStandard({ start: 'template', tab: 'upload' }));
 }
 
 function tplCompanySectionHtml() {
@@ -860,36 +863,10 @@ function tplLibCreateModal() {
   });
 }
 
-/* ---------- save an existing contract into the library ---------- */
-function saveContractToLibrary(c) {
-  if (!tplLibCanManage() && !(typeof canEdit === 'function' && canEdit())) { toast(i18t('tl_admin_legal_only'), 'err'); return; }
-  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none';
-  openModal(`
-    <div style="padding:24px">
-      <h3 style="margin:0 0 var(--s-1);font-family:var(--font-heading);font-size:16px;font-weight:var(--w-title)">${i18t('tl_save_as_standard')}</h3>
-      <p style="margin:0 0 14px;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.5">
-        HaTi copies this contract's wording into a new draft template. Party-specific values it can
-        recognise — names, emails, amounts, dates — become empty typed fields; everything else stays
-        fixed wording. You review and publish from the builder; nothing changes on ${esc(c.id)} itself.</p>
-      <label style="display:block;margin-bottom:var(--s-4)"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tl_template_name')}</span>
-        <input id="tpllib-sv-name" style="${INP}" maxlength="160" value="${esc(c.name)} — standard template"></label>
-      <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-        <button class="ui-btn" onclick="closeModal()">${i18t('act_cancel')}</button>
-        <button id="tpllib-sv-go" class="ui-btn ui-btn-primary">${i18t('tl_create_draft_template')}</button>
-      </div>
-    </div>`);
-  document.getElementById('tpllib-sv-go')?.addEventListener('click', async () => {
-    try {
-      const r = await api(`contracts/${c.id}/save-as-template`, 'POST', {
-        name: document.getElementById('tpllib-sv-name').value.trim() });
-      closeModal();
-      toast(`Draft template created — ${r.fieldsCreated} field${r.fieldsCreated === 1 ? '' : 's'} recognised`);
-      setView('templates');
-      if(newPaperBlock()) return;
-      openTemplateBuilder(r.templateId, r.versionId);
-    } catch (e) { toast(e.message, 'err'); }
-  });
-}
+/* saveContractToLibrary — the "Save as template" dialog that asked a name and
+   copied a contract's wording as plain text — is GONE (24 Sep 2026). Its one
+   act is the one door's third start, "From one of our contracts"
+   (js/views/newstandard.js), which asks nothing and keeps the tables. */
 
 /* ---------- template detail: versions, meta, lifecycle ---------- */
 async function openTemplateLibDetail(id) {
@@ -1024,7 +1001,14 @@ async function openTemplateLibDetail(id) {
     }));
 }
 
-function tplLibMetaModal(t) {
+/* ONE BOX, TWO WAYS IN (24 Sep 2026, "One Door to Standards" decision 5).
+   The template's own page opens it from its menu; the builder's head opens it
+   from the name, the category and the stream chips. `opts.focus` puts the
+   caret on the field the reader pressed, and `opts.onSaved` hands the saved
+   template back to a caller that must stay where it is — the builder repaints
+   its head rather than being navigated away from the draft under the reader's
+   hand. Without either, the box behaves exactly as it always did. */
+function tplLibMetaModal(t, opts = {}) {
   openModal(`
     <div style="padding:24px">
       <h3 style="margin:0 0 14px;font-family:var(--font-heading);font-size:16px;font-weight:var(--w-title)">${i18t('tl_template_details')}</h3>
@@ -1039,16 +1023,27 @@ function tplLibMetaModal(t) {
       </div>
     </div>`);
   tplLibWireCatStream('tpllib-m-cat', 'tpllib-m-stream');
+  /* AFTER THE FRAME'S OWN FOCUS, never before it: openModal hands focus to the
+     box's first control on the next tick (trapFocus), and a caret placed now
+     would be moved back to the name — measured, the Stream chip landed in the
+     Name box. A timer queued after that one runs after it. */
+  const at = { name: 'tpllib-m-name', category: 'tpllib-m-cat', stream: 'tpllib-m-stream' }[opts.focus];
+  if (at) setTimeout(() => {
+    const el = document.getElementById(at); if (!el) return;
+    try { el.focus({ preventScroll: true }); if (opts.focus === 'name' && el.select) el.select(); } catch (_) { /* a stage without focus */ }
+  }, 0);
   document.getElementById('tpllib-m-save')?.addEventListener('click', async () => {
     const name = document.getElementById('tpllib-m-name').value.trim();
     if (!name) { toast(i18t('tl_needs_name'), 'err'); return; }
     try {
-      await api('templates/' + t.id, 'PATCH', {
+      const r = await api('templates/' + t.id, 'PATCH', {
         name, category: tplLibPick('tpllib-m-cat', t.category || 'other'),
         folder: tplLibPick('tpllib-m-stream', t.folder || '') || null,
         description: document.getElementById('tpllib-m-desc').value.trim(),
       });
-      closeModal(); toast(i18t('tl_saved')); openTemplateLibDetail(t.id);
+      closeModal(); toast(i18t('tl_saved'));
+      if (typeof opts.onSaved === 'function') opts.onSaved(r && r.template ? r.template : null);
+      else openTemplateLibDetail(t.id);
     } catch (e) { toast(e.message, 'err'); }
   });
 }
@@ -1273,9 +1268,11 @@ Object.assign(window, { newPaperBlocked, newPaperBlockLine, newPaperBlock, tplLi
   renderCompanyTemplatesSection, tplLibPublished, tplLibCount, tplLibRefresh, tplLibReady,
   openTemplateLibDetail, tplLibEdit, tplLibCanManage, tplLibCancelPending,
   tplLibSheetHtml, tplLibRestore, tplLibArchivedAsk,
-  saveContractToLibrary, tplLibNewContract, renderTemplateFormSection, openTemplateConfirm,
+  tplLibNewContract, renderTemplateFormSection, openTemplateConfirm,
   tplFormCommit, tplFormBlankClick,
   TPLLIB_CATEGORIES, TPLLIB_STATUS, templateCategories, tplCategoryName, tplCatSaved,
   addTemplateCategory, renameTemplateCategory, removeTemplateCategory,
   bindCategorySelect, tplLibWireCatStream, tplLibPick,
+  /* The builder's head chips open this same box (24 Sep 2026). */
+  tplLibMetaModal,
 });

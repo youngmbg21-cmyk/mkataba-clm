@@ -98,19 +98,33 @@ describe('f102 — save-as-template', () => {
     assert.equal(c.libraryTemplateId, undefined, 'saving AS a template does not stamp provenance — only creating FROM one does');
   });
 
-  test('a rich-format body converts through its block structure', async () => {
+  /* RE-POINTED 24 Sep 2026 (one door to standards). This claim pinned the
+     OLD reading — a rich body read line by line into PLAIN TEXT — which is the
+     reading that dropped all 47 tables of the owner's SaaS agreement. A rich
+     body is copied as the document's own markup now: the heading keeps its
+     element and level, and a table keeps its rows. The substance is unchanged
+     — the heading is a heading block, the party is a blank — and a table is
+     added to the fixture because a table is what the old reading lost. */
+  test('a rich-format body is copied as its own markup — headings and tables kept', async () => {
     const c = await w.admin.json('/api/contracts/MK-A2');
     const v0 = c._v; delete c._v;
     c.format = 'rich';
-    c.redlineText = '<h1>MILK COLLECTION AGREEMENT</h1><p>Between Highland Corporate Ltd and Nandi Dairy.</p><h2>Article 1</h2><p>Collection happens daily.</p>';
+    c.redlineText = '<h1>MILK COLLECTION AGREEMENT</h1><p>Between Highland Corporate Ltd and Nandi Dairy.</p><h2>Article 1</h2><p>Collection happens daily.</p>'
+      + '<table><tbody><tr><th>Route</th><th>Litres</th></tr><tr><td>Nandi</td><td>4,000</td></tr></tbody></table>';
     await w.admin.json('/api/contracts/MK-A2', { method: 'PUT', body: { contract: c, baseVersion: v0 } });
 
     const r = await w.admin.json('/api/contracts/MK-A2/save-as-template', { method: 'POST', body: { name: 'Milk standard' } });
     const v = await w.admin.json(`/api/templates/${r.templateId}/versions/${r.versionId}`);
+    const text = b => b.content.replace(/<[^>]+>/g, '').trim();
     assert.equal(v.blocks[0].blockType, 'heading');
-    assert.equal(v.blocks[0].content, 'MILK COLLECTION AGREEMENT');
+    assert.equal(v.blocks[0].format, 'rich', 'the heading is the document’s own element');
+    assert.equal(v.blocks[0].content, '<h1>MILK COLLECTION AGREEMENT</h1>');
+    assert.equal(text(v.blocks[0]), 'MILK COLLECTION AGREEMENT');
     assert.ok(v.blocks.some(b => b.content.includes('{{counterparty_name}}')));
-    assert.ok(v.blocks.some(b => b.blockType === 'heading' && b.content === 'Article 1'));
+    assert.ok(v.blocks.some(b => b.blockType === 'heading' && text(b) === 'Article 1'));
+    const all = v.blocks.map(b => b.content).join('');
+    assert.match(all, /<table><tbody><tr><th>Route<\/th><th>Litres<\/th><\/tr><tr><td>Nandi<\/td><td>4,000<\/td><\/tr><\/tbody><\/table>/,
+      'THE TABLE SURVIVES — every row, every cell');
   });
 
   test('folder scope holds, and viewers cannot template anything', async () => {

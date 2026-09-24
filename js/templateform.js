@@ -87,6 +87,215 @@ const tplFormHeadingNumbered = h => {
   return !!m && (!!m[3] || !!m[4] || m[2].includes('.'));
 };
 
+/* ═══════ A TEMPLATE KEEPS THE DOCUMENT IT WAS COPIED FROM (Young's go on "One
+   Door to Standards", 24 Sep 2026) ═══════
+   A template block used to be PLAIN TEXT, and nothing else could be stored:
+   a heading was a line, wording was paragraphs of characters. So every door
+   that turned a real document into a standard had to throw its shape away —
+   "Save as template" dropped all 47 tables of the SaaS agreement, and the
+   Copilot conversion re-typed a 100-page file and ran out of room.
+
+   A BLOCK MAY NOW BE `format: 'rich'`: its content is the document's own
+   markup — a heading element as the file set it, or the paragraphs, lists
+   and tables under it — through the SAME allowlist every contract body goes
+   through (js/richdoc.js). Plain blocks are untouched and still the default:
+   absent means plain, on every template stored before this.
+
+   TWO RULES CARRY IT.
+     · IT IS RENDERED VERBATIM, then the blanks. A copied document numbers
+       itself — the numbers are part of its wording — so where a template holds
+       a rich heading HaTi adds no number to ANY heading (tplFormNumbersOff),
+       or a copied "3.4" would print as "7. 3.4".
+     · THE ALLOWLIST RUNS HERE, on both hosts. The server's PUT route asks it
+       before anything is stored and this renderer asks it again on the way
+       out — storage is never trusted at render time. It is a REBUILD, not a
+       filter: a tag off the list is dropped whole, and every attribute is
+       re-derived from a value this code checked. It carries no data-clause-id:
+       a template is not a contract, and each contract mints its own. */
+const TPLFORM_RICH = 'rich';
+const tplFormRich = b => !!b && b.format === TPLFORM_RICH;
+/* A block's own ceiling for rich markup. Wider than the plain one because
+   markup is longer than its words; a copied table larger than this is split by
+   rows before it gets here (tplFormCopyBlocks), never cut. */
+const TPLFORM_RICH_MAX = 120000;
+/* THE SAME LIST AS js/richdoc.js's RICH_TAGS / RICH_SHAPE_CLASSES / the span
+   classes, lower-cased. The server cannot load that file (it needs a DOM), so
+   the list is written twice — and f375 compares the two SETS, so they cannot
+   drift without a red check. */
+const TPLFORM_RICH_TAGS = new Set(['p', 'br', 'h1', 'h2', 'h3', 'h4', 'strong', 'em', 'u', 's',
+  'ul', 'ol', 'li', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'blockquote', 'pre', 'span']);
+const TPLFORM_SHAPES = new Set(['hati-lv-1', 'hati-lv-2', 'hati-lv-3', 'hati-tight', 'hati-pb', 'hati-toc']);
+const TPLFORM_KEY_RE = /^[a-z][a-z0-9_]{0,63}$/;
+const tplFormSpanClassOk = v => v === 'hati-field' || v === 'hati-toc-n' || v === 'hati-wfield' || v === 'hati-field-done'
+  || /^hati-ink-(?:blue|violet|plum|ochre|grey)$/.test(v) || /^hati-hl-(?:yellow|blue|violet|grey)$/.test(v)
+  || /^hati-fs-(?:9|10|11|12|14|16|18|20|24|28)$/.test(v);
+function tplFormAttrs(tag) {
+  const out = {};
+  const inner = String(tag).replace(/^<\s*[a-zA-Z][a-zA-Z0-9]*/, '').replace(/\/?\s*>?$/, '');
+  const re = /([a-zA-Z_:][-a-zA-Z0-9_:.]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
+  let m;
+  while ((m = re.exec(inner))) {
+    const k = m[1].toLowerCase();
+    if (!(k in out)) out[k] = m[2] != null ? m[2] : m[3] != null ? m[3] : (m[4] || '');
+  }
+  return out;
+}
+function tplFormRichSafe(html) {
+  const src = String(html == null ? '' : html).slice(0, TPLFORM_RICH_MAX)
+    .replace(/<!--[\s\S]*?(?:-->|$)/g, '')
+    /* What these carry is code, never wording — dropped WITH their contents. */
+    .replace(/<(script|style|template|iframe|object|embed|svg|math|noscript|textarea|title|head|select|button)\b[\s\S]*?(?:<\/\1\s*>|$)/gi, '');
+  return src.replace(/<[^>]*>?/g, tag => {
+    const m = /^<\s*(\/?)\s*([a-zA-Z][a-zA-Z0-9]*)/.exec(tag);
+    if (!m) return '';
+    const name = m[2].toLowerCase();
+    if (!TPLFORM_RICH_TAGS.has(name)) return '';
+    if (name === 'br') return m[1] ? '' : '<br>';
+    if (m[1]) return `</${name}>`;
+    const a = tplFormAttrs(tag); let keep = '';
+    if (name === 'p') {
+      const cls = Array.from(new Set(String(a.class || '').split(/\s+/).filter(x => TPLFORM_SHAPES.has(x))));
+      if (cls.length) keep = ` class="${cls.join(' ')}"`;
+    } else if (name === 'ol') {
+      if (/^\d{1,4}$/.test(a.start || '')) keep += ` start="${a.start}"`;
+      if (/^[1aAiI]$/.test(a.type || '')) keep += ` type="${a.type}"`;
+    } else if (name === 'span') {
+      const cls = String(a.class || '').trim();
+      if (tplFormSpanClassOk(cls)) {
+        keep = ` class="${cls}"`;
+        if ((cls === 'hati-field' || cls === 'hati-field-done') && TPLFORM_KEY_RE.test(a['data-field-key'] || ''))
+          keep += ` data-field-key="${a['data-field-key']}"`;
+        if (cls === 'hati-wfield' && TPLFORM_KEY_RE.test(a['data-wfield'] || ''))
+          keep += ` data-wfield="${a['data-wfield']}"`;
+      }
+    }
+    return `<${name}${keep}>`;
+  });
+}
+/* Where any heading is the document's own, every number is the document's
+   own: HaTi derives none. */
+const tplFormNumbersOff = blocks => (blocks || []).some(b => b && b.blockType === 'heading' && tplFormRich(b));
+/* ---- ONE TEXT PROJECTION OF A BLOCK ----
+   What the builder's Copilot, its playbook count and its section list read. A
+   plain block IS its text; a rich one is its markup read as the words a person
+   sees — a paragraph a line, a table cell a tab. */
+const TPLFORM_ENT = { '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'", '&nbsp;': ' ', '&#160;': ' ' };
+function tplFormRichText(html) {
+  return String(html == null ? '' : html)
+    .replace(/<\/(p|h[1-4]|li|tr|blockquote|pre)>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/t[dh]>/gi, '\t')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&(?:amp|lt|gt|quot|#39|nbsp|#160);/g, m => TPLFORM_ENT[m])
+    .replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+const tplFormBlockText = b => (tplFormRich(b) ? tplFormRichText(b.content) : String((b && b.content) || ''));
+/* ---- A WORD IN THE WORDING, NEVER IN THE MARKUP ----
+   Turning "nShift Group A/S" into a blank is a literal replacement, and in a
+   rich block it must only ever touch the TEXT between tags — never a class
+   name or an attribute. The text is stored escaped, so the needle is escaped
+   the same way. A phrase split across two inline tags is not found, and is not
+   counted either: the count is what WILL be replaced, never more. */
+function tplFormRichReplace(html, find, repl) {
+  const f = TPLFORM_ESC(find);
+  if (!f) return { html: String(html == null ? '' : html), n: 0 };
+  let n = 0;
+  const out = String(html == null ? '' : html).split(/(<[^>]*>)/).map(seg => {
+    if (!seg || seg[0] === '<') return seg;
+    const parts = seg.split(f); n += parts.length - 1;
+    return repl == null ? seg : parts.join(repl);
+  }).join('');
+  return { html: out, n };
+}
+/* The same act over ANY block — plain or rich — so no caller asks which. */
+function tplFormBlockReplace(b, find, repl) {
+  if (!b || !find) return { content: (b && b.content) || '', n: 0 };
+  if (tplFormRich(b)) { const r = tplFormRichReplace(b.content, find, repl); return { content: r.html, n: r.n }; }
+  const parts = String(b.content || '').split(String(find));
+  return { content: repl == null ? String(b.content || '') : parts.join(repl), n: parts.length - 1 };
+}
+
+/* ═══════ THE COPIER — a document becomes blocks, word for word ═══════
+   Headings, numbers and tables are the file's; HaTi only decides where one
+   SECTION ends and the next begins, which is at a heading. The text never
+   moves: every piece of markup lands in exactly one block, in order, and the
+   blocks joined back together are the document.
+
+   A SECTION BODY IS BOUNDED, so a long clause becomes two blocks under one
+   heading rather than one block the PUT route would have to cut. A table
+   larger than a block is split between ROWS into two tables, never inside one.
+   And a document with more headings than a version may hold keeps its minor
+   headings inside the section body instead — still headings, still printed,
+   just not each a section of its own. */
+const TPLFORM_COPY_BODY_MAX = 40000;
+const TPLFORM_COPY_MAX_BLOCKS = 480;
+const TPLFORM_VOID = new Set(['br']);
+function tplFormSplitRich(html) {
+  const s = String(html == null ? '' : html); const out = [];
+  let depth = 0, start = -1, top = null, last = 0;
+  const loose = (a, b) => { const t = s.slice(a, b); if (t.trim()) out.push({ tag: 'p', html: `<p>${t.trim()}</p>` }); };
+  const re = /<\/?([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>/g; let m;
+  while ((m = re.exec(s))) {
+    const name = m[1].toLowerCase(); const close = m[0][1] === '/';
+    if (TPLFORM_VOID.has(name)) {
+      if (depth === 0) { loose(last, m.index); out.push({ tag: 'br', html: '<br>' }); last = re.lastIndex; }
+      continue;
+    }
+    if (!close) { if (depth === 0) { loose(last, m.index); start = m.index; top = name; } depth++; continue; }
+    if (depth === 0) continue;               /* a stray closer at the top level carries nothing */
+    depth--;
+    if (depth === 0 && start >= 0) { out.push({ tag: top, html: s.slice(start, re.lastIndex) }); start = -1; top = null; last = re.lastIndex; }
+  }
+  if (start >= 0) out.push({ tag: top, html: s.slice(start) });
+  else loose(last, s.length);
+  return out;
+}
+/* A table too long for one block, cut between rows. The head row travels with
+   every half, so each reads as the table it is part of. */
+function tplFormSplitTable(html, max) {
+  const rows = String(html).match(/<tr\b[\s\S]*?<\/tr>/gi) || [];
+  if (rows.length < 2) return [html];
+  const head = /<th\b/i.test(rows[0]) ? rows[0] : '';
+  const body = head ? rows.slice(1) : rows;
+  const out = []; let cur = [];
+  const push = () => { if (cur.length) out.push(`<table><tbody>${head}${cur.join('')}</tbody></table>`); cur = []; };
+  for (const r of body) { if (cur.length && (head.length + cur.join('').length + r.length) > max) push(); cur.push(r); }
+  push();
+  return out;
+}
+function tplFormCopyBlocks(html, opts = {}) {
+  const max = opts.maxBlocks || TPLFORM_COPY_MAX_BLOCKS;
+  const cap = opts.bodyMax || TPLFORM_COPY_BODY_MAX;
+  const pieces = [];
+  for (const p of tplFormSplitRich(html)) {
+    if (p.tag === 'table' && p.html.length > cap) tplFormSplitTable(p.html, cap).forEach(t => pieces.push({ tag: 'table', html: t }));
+    else pieces.push(p);
+  }
+  const levels = [['h1', 'h2', 'h3', 'h4'], ['h1', 'h2', 'h3'], ['h1', 'h2'], ['h1'], []];
+  let blocks = [];
+  for (const lv of levels) {
+    blocks = []; let body = []; let size = 0;
+    const flush = () => {
+      if (!body.length) return;
+      const content = body.join('');
+      blocks.push({ blockType: /\{\{[a-z0-9_.]+\}\}/i.test(content) ? 'field_group' : 'fixed_text', format: TPLFORM_RICH, content });
+      body = []; size = 0;
+    };
+    for (const p of pieces) {
+      /* A heading with no words (Word's empty "Heading 2" line, kept for
+         spacing) opens no section: it stays where it is, inside the body. */
+      if (lv.includes(p.tag) && tplFormRichText(p.html)) {
+        flush(); blocks.push({ blockType: 'heading', format: TPLFORM_RICH, content: p.html }); continue;
+      }
+      if (body.length && size + p.html.length > cap) flush();
+      body.push(p.html); size += p.html.length;
+    }
+    flush();
+    if (blocks.length <= max) break;
+  }
+  return blocks;
+}
+
 /* blocks + values → the contract's rich HTML body. Fixed wording arrives
    escaped (template content is plain text with placeholders); paragraph
    breaks inside one block become separate <p>s. */
@@ -99,14 +308,22 @@ function templateFormDocHtml(form) {
   const paras = text => String(text || '').split(/\n{2,}/).map(p => p.trim()).filter(Boolean)
     .map(p => `<p>${tplFormSubstitute(TPLFORM_ESC(p), fields, values).replace(/\n/g, '<br>')}</p>`);
   const blocks = ((form && form.blocks) || []).slice().sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+  const own = tplFormNumbersOff(blocks);
   let first = true; let clause = 0;
   for (const b of blocks) {
     if (b.blockType === 'branding') continue; // the header renders from org_branding, outside the body
+    /* THE DOCUMENT'S OWN MARKUP, verbatim through the allowlist, then the
+       blanks — a copied heading keeps its level and its number, a copied table
+       its rows. See TPLFORM_RICH above. */
+    if (tplFormRich(b) && b.blockType !== 'signature_block') {
+      out.push(tplFormSubstitute(tplFormRichSafe(b.content), fields, values));
+      first = false; continue;
+    }
     if (b.blockType === 'heading') {
       const h = tplFormSubstitute(TPLFORM_ESC(b.content), fields, values);
       if (first) { out.push(`<h1>${h}</h1>`); first = false; continue; }
       clause++;
-      out.push(`<h2>${tplFormHeadingNumbered(b.content) ? '' : clause + '. '}${h}</h2>`);
+      out.push(`<h2>${(own || tplFormHeadingNumbered(b.content)) ? '' : clause + '. '}${h}</h2>`);
       continue;
     }
     first = false;
@@ -193,8 +410,15 @@ function templateBrandingFooterHtml(c) {
   return `<div style="margin-top:22px;padding-top:10px;border-top:1px solid var(--color-doc-rule,#d8d5cd);font-size:var(--t-label);color:var(--color-doc-muted,#6b6f76);text-align:center">${TPLFORM_ESC(b.footerText)}</div>`;
 }
 
+/* The rich half is published on both hosts under one set of names: the server's
+   PUT route and save-as-template ask the allowlist and the copier, the builder
+   asks the projection and the replacement, and a check asks all of them. */
+const TPLFORM_RICH_API = { TPLFORM_RICH, TPLFORM_RICH_MAX, TPLFORM_RICH_TAGS, TPLFORM_SHAPES, TPLFORM_COPY_BODY_MAX,
+  TPLFORM_COPY_MAX_BLOCKS, tplFormRich, tplFormRichSafe, tplFormNumbersOff, tplFormRichText, tplFormBlockText,
+  tplFormRichReplace, tplFormBlockReplace, tplFormSplitRich, tplFormSplitTable, tplFormCopyBlocks, tplFormSpanClassOk };
 if (typeof module !== 'undefined' && module.exports)
-  module.exports = { templateFormDocHtml, templateFormResolveDefaults, templateFormProblems, templateFormStripMarker, tplFormHeadingNumbered };
+  module.exports = { templateFormDocHtml, templateFormResolveDefaults, templateFormProblems, templateFormStripMarker, tplFormHeadingNumbered,
+    ...TPLFORM_RICH_API };
 if (typeof window !== 'undefined')
   Object.assign(window, { templateFormDocHtml, templateFormResolveDefaults, templateFormProblems, tplFormHeadingNumbered,
-    templateFormStripMarker, templateBrandingHeaderHtml, templateBrandingFooterHtml });
+    templateFormStripMarker, templateBrandingHeaderHtml, templateBrandingFooterHtml, ...TPLFORM_RICH_API });

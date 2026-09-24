@@ -5624,6 +5624,76 @@ ${String(text)}`;
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
 
+/* ---------- Copilot's SMALL QUESTIONS about a copied document (one door, 24 Sep 2026) ----------
+   "From a template you have" copies a document word for word — HaTi does
+   that, not Copilot, so a 100-page file is no harder than a two-page one.
+   What Copilot is asked afterwards is SMALL and SHAPED: here are a few
+   candidates HaTi found (a bracketed placeholder, a party's name, an amount, a
+   date), each with a line of the text around it — which of them is a BLANK
+   the next deal fills, which is a NOTE to whoever drafts, and which should be
+   LEFT alone (a real date, a statute)? And what to call each blank.
+
+   ASKED IN PIECES, so a long document never hits a limit: the browser sends
+   at most BLANK_LABEL_MAX candidates a call and asks again for the rest.
+   NOTHING IS WRITTEN HERE: the answer is labels, and a label only becomes a
+   blank when a person ticks it (decision 3: suggestions arrive unticked). */
+const BLANK_LABEL_MAX = 30;
+async function aiLabelCandidates(req, res, key) {
+  const b = req.body || {};
+  const cands = (Array.isArray(b.candidates) ? b.candidates : []).slice(0, BLANK_LABEL_MAX)
+    .filter(c => c && typeof c.id === 'string' && typeof c.text === 'string' && c.text.trim())
+    .map(c => ({ id: String(c.id).slice(0, 24), text: String(c.text).slice(0, 120), context: String(c.context || '').slice(0, 320) }));
+  if (!cands.length) return res.status(400).json({ error: 'candidates are required' });
+  const ids = new Set(cands.map(c => c.id));
+  const tool = {
+    name: 'label_candidates',
+    description: 'Say, for each candidate found in a copied standard contract, whether it is a fill-in blank, a note to the drafter, or wording to leave alone.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        items: { type: 'array', maxItems: BLANK_LABEL_MAX, items: { type: 'object', properties: {
+          id: { type: 'string', description: 'The candidate id, exactly as given.' },
+          kind: { type: 'string', enum: ['blank', 'note', 'leave'], description: 'blank = changes from one deal to the next (the other party, a price, a date the deal sets). note = an instruction to whoever drafts, never meant to be signed ("[Modify this section as necessary.]"). leave = standing wording that must stay (a statute, a regulation\'s date, our own company\'s name).' },
+          label: { type: 'string', description: 'For a blank: a short label the next person fills in, e.g. "Supplier\'s name", "Payment plan". Under 40 characters.' },
+          type: { type: 'string', enum: ['text', 'party', 'num', 'date', 'select'], description: 'For a blank: party = the other company\'s name, num = a number or amount, date = a calendar date.' },
+          why: { type: 'string', description: 'For a note or a leave: ONE short reason, e.g. "the date of the EU data protection rules". Under 90 characters.' },
+          variants: { type: 'array', maxItems: 4, items: { type: 'string' }, description: 'For a blank that is a party NAME only: other spellings of that same name seen in the context (a short trading name). Never a defined term like "Supplier" or "the Company".' },
+        }, required: ['id', 'kind'] } },
+        category: { type: 'string', enum: ['sales', 'procurement', 'employment', 'nda', 'other'], description: 'What kind of agreement this is, from our side: sales = we sell or supply; procurement = we buy; employment; nda; other.' },
+      },
+      required: ['items'],
+    },
+  };
+  const title = String(b.title || '').slice(0, 160);
+  const ours = String(b.company || '').slice(0, 120);
+  const prompt = `A company copied one of its standard contracts into HaTi${title ? ` ("${title}")` : ''}. `
+    + (ours ? `The company is "${ours}" — its own name is never a blank. ` : '')
+    + `HaTi found the candidates below in the wording. For EACH one say whether it is a blank, a note, or something to leave.\n\n`
+    + `Rules:\n- A blank is only what genuinely changes per deal: the other party, amounts the deal sets, the deal's own dates, addresses, registration numbers.\n`
+    + `- A bracketed instruction to the drafter is a note, not a blank.\n- A date or number that belongs to a law, a standard or a regulation is left alone.\n`
+    + `- Answer every candidate, by its id. Write no contract wording.\n\nCANDIDATES:\n`
+    + cands.map(c => `${c.id}: "${c.text}"${c.context ? `  — in: …${c.context}…` : ''}`).join('\n')
+    + `\n\nReturn via the label_candidates tool.`;
+  try {
+    const resp = await anthropicMessages(key, 'fast', { max_tokens: 2400, tools: [tool], tool_choice: { type: 'tool', name: 'label_candidates' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'blanks', who: aiWho(req) });
+    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    const block = (resp.data.content || []).find(x => x.type === 'tool_use');
+    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    const out = block.input || {};
+    const KINDS = ['blank', 'note', 'leave'], TYPES = ['text', 'party', 'num', 'date', 'select'];
+    /* ONLY WHAT WAS ASKED COMES BACK, and every string is bounded — a label
+       is shown to a person before it becomes anything. */
+    const items = (Array.isArray(out.items) ? out.items : [])
+      .filter(x => x && ids.has(String(x.id)) && KINDS.includes(x.kind))
+      .map(x => ({ id: String(x.id), kind: x.kind,
+        label: clean(x.label || '').slice(0, 60), type: TYPES.includes(x.type) ? x.type : 'text',
+        why: clean(x.why || '').slice(0, 140),
+        variants: (Array.isArray(x.variants) ? x.variants : []).filter(v => typeof v === 'string' && v.trim().length >= 3).map(v => v.trim().slice(0, 80)).slice(0, 4) }));
+    res.json({ items, category: TPL_CATEGORIES.includes(out.category) ? out.category : null,
+      answered: items.length, asked: cands.length, ...aiNotice(req, resp) });
+  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+}
+
 /* ---------- Copilot: suggest the blanks in a customer's template ----------
    Proposes fields plus a rewritten body with {{key}} placeholders inserted.
    The human reviews and edits every proposal in the template editor before
@@ -5631,6 +5701,7 @@ ${String(text)}`;
 app.post('/api/ai/blanks', auth, rlAiLight, aiFeature('blanks'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  if (Array.isArray((req.body || {}).candidates)) return aiLabelCandidates(req, res, key);
   const { text } = req.body || {};
   if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
   const tool = {
@@ -5707,7 +5778,7 @@ const OUTLINE_SECTIONS_MAX = 20;
 app.post('/api/ai/outline', auth, editor, rlAiLight, aiFeature('outline'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
-  const { sentence, kind, required } = req.body || {};
+  const { sentence, kind, required, title: wantTitle } = req.body || {};
   if (!sentence || typeof sentence !== 'string' || !sentence.trim())
     return res.status(400).json({ error: 'sentence is required' });
   const said = String(sentence).slice(0, OUTLINE_SENTENCE_MAX);
@@ -5728,11 +5799,19 @@ app.post('/api/ai/outline', auth, editor, rlAiLight, aiFeature('outline'), aiBud
             properties: {
               heading: { type: 'string', description: 'The section heading as it would be printed — Title Case, no number, under 70 characters.' },
               intent: { type: 'string', description: 'ONE plain sentence saying what this section has to settle. Not the wording, and never a draft clause.' },
+              optional: { type: 'boolean', description: 'True only for a section many agreements of this kind leave out (an escrow, a most-favoured-customer clause). Optional sections arrive unticked.' },
             },
             required: ['heading', 'intent'],
           },
         },
         note: { type: 'string', description: 'One sentence for the person reading this: anything you were unsure about, or left out.' },
+        /* THE ONE-DOOR START ASKS TWO MORE FACTS (24 Sep 2026): a name for the
+           new standard and its category, both shown at the top of the builder
+           and changeable there. Asked only by that start (`title: true`). */
+        ...(wantTitle ? {
+          name_suggestion: { type: 'string', description: 'A short name for this standard contract, the way a legal team files it — e.g. "SaaS Subscription Agreement". Under 60 characters, no party names.' },
+          category_guess: { type: 'string', enum: ['sales', 'procurement', 'employment', 'nda', 'other'], description: 'sales = we sell or supply; procurement = we buy; employment; nda = a confidentiality agreement; other = none of these.' },
+        } : {}),
       },
       required: ['sections'],
     },
@@ -5761,9 +5840,16 @@ app.post('/api/ai/outline', auth, editor, rlAiLight, aiFeature('outline'), aiBud
       .filter(x => x && typeof x.heading === 'string' && x.heading.trim())
       .slice(0, OUTLINE_SECTIONS_MAX)
       .map(x => ({ heading: String(x.heading).trim().slice(0, 120),
-                   intent: String(x.intent || '').trim().slice(0, 300) }));
+                   intent: String(x.intent || '').trim().slice(0, 300),
+                   ...(x.optional === true ? { optional: true } : {}) }));
     if (!sections.length) return res.status(502).json({ error: 'Copilot proposed no sections' });
-    res.json({ sections, note: typeof out.note === 'string' ? out.note : '', ...aiNotice(req, resp) });
+    const extra = {};
+    if (wantTitle) {
+      const nm = typeof out.name_suggestion === 'string' ? clean(out.name_suggestion).slice(0, 80) : '';
+      if (nm) extra.title = nm;
+      if (TPL_CATEGORIES.includes(out.category_guess)) extra.category = out.category_guess;
+    }
+    res.json({ sections, note: typeof out.note === 'string' ? out.note : '', ...extra, ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
 
@@ -14155,7 +14241,28 @@ const TPL_ORIGINS = ['upload', 'saved_from_contract', 'built_in_hati'];
    this re-check is the answer that counts. Adding a future type is a single
    entry in that file, nowhere else. */
 const { FIELD_LIB: TPL_FIELD_LIB, fieldLibValidate } = require(path.join(__dirname, '..', 'js', 'fieldlib.js'));
-const { templateFormDocHtml, templateFormResolveDefaults } = require(path.join(__dirname, '..', 'js', 'templateform.js'));
+const { templateFormDocHtml, templateFormResolveDefaults, tplFormRichSafe, tplFormBlockText,
+  tplFormBlockReplace, tplFormCopyBlocks, TPLFORM_RICH_MAX } = require(path.join(__dirname, '..', 'js', 'templateform.js'));
+/* ---- A BLOCK MAY CARRY THE DOCUMENT'S OWN MARKUP (one door, 24 Sep 2026) ----
+   `format` is 'rich' or absent. Absent on every block stored before this, and
+   absent reads as plain — no backfill, because every one of them IS plain.
+   See TPLFORM_RICH in js/templateform.js for the two rules it carries. */
+addColumnIfMissing('template_blocks', 'format', 'TEXT');
+/* The ONE reading of how a stored or sent block is written back: a rich block
+   goes through the allowlist and keeps its markup, anything else is plain text
+   exactly as before. Signature blocks and the branding header are never rich —
+   they are HaTi's own furniture, not wording copied from a document. */
+const TPL_RICH_TYPES = ['heading', 'fixed_text', 'field_group'];
+function tplBlockRow(bl) {
+  const rich = bl && bl.format === 'rich' && TPL_RICH_TYPES.includes(bl.blockType || bl.block_type);
+  const raw = String(bl && bl.content != null ? bl.content : '');
+  return rich ? { format: 'rich', content: tplFormRichSafe(raw).slice(0, TPLFORM_RICH_MAX) }
+              : { format: null, content: raw.slice(0, 60000) };
+}
+/* What a reader is served: `format` only where it says something, so a plain
+   block reads byte-for-byte as it always did. */
+const tplBlockOut = bl => ({ id: bl.id, orderIndex: bl.order_index, blockType: bl.block_type, content: bl.content || '',
+  ...(bl.format === 'rich' ? { format: 'rich' } : {}) });
 const { metaUnleak } = require(path.join(__dirname, '..', 'js', 'metaclean.js'));
 /* The design catalogue — the same file the browser renders from, so a
    designId this route accepts is a designId every surface can draw. */
@@ -14241,14 +14348,20 @@ app.post('/api/templates', auth, paperMaker, passwordCurrent, (req, res) => {
   /* A stream is optional and stays optional: absent is the honest answer for a
      template nobody has filed, and the picker has a folder for exactly that. */
   const folder = tplFolderOf(b.folder);
+  /* WHAT KIND OF FILE A COPIED TEMPLATE CAME FROM (one door, 24 Sep 2026).
+     The copier reads the file in the browser — the same readers every
+     uploaded contract goes through — and names the kind here, so a template
+     copied from a scan still carries the scan's warnings. Only the three known
+     kinds are recorded; anything else is the honest NULL. */
+  const sourceType = TPL_SOURCE_TYPES.includes(b.sourceType) ? b.sourceType : null;
   const t = {
     id: 'tpl_' + rid(8), name, description: clean(b.description).slice(0, 2000), category,
     folder, origin, source_contract_id: null, created_by: req.user.name,
   };
   txn(() => {
-    db.prepare(`INSERT INTO templates (id,org_id,name,description,category,folder,status,origin,source_contract_id,created_by,created_at,updated_at)
-      VALUES (?,?,?,?,?,?,'draft',?,?,?,?,?)`)
-      .run(t.id, WORKSPACE_ID, t.name, t.description, t.category, t.folder, t.origin, t.source_contract_id, t.created_by, now(), now());
+    db.prepare(`INSERT INTO templates (id,org_id,name,description,category,folder,status,origin,source_contract_id,created_by,created_at,updated_at,source_type)
+      VALUES (?,?,?,?,?,?,'draft',?,?,?,?,?,?)`)
+      .run(t.id, WORKSPACE_ID, t.name, t.description, t.category, t.folder, t.origin, t.source_contract_id, t.created_by, now(), now(), sourceType);
     tplNewVersion(t.id, 1);
   });
   res.json({ ok: true, template: tplListView(tplGet(t.id)) });
@@ -14333,7 +14446,7 @@ app.get('/api/templates/:id/versions/:vid', auth, (req, res) => {
     version: { id: v.id, versionNumber: v.version_number, status: v.status,
       publishedAt: v.published_at, publishedBy: v.published_by,
       changeNote: v.change_note || '', errorNote: v.error_note || '' },
-    blocks: tplBlocksOf(v.id).map(bl => ({ id: bl.id, orderIndex: bl.order_index, blockType: bl.block_type, content: bl.content || '' })),
+    blocks: tplBlocksOf(v.id).map(tplBlockOut),
     fields: vFields,
     /* ---- WHAT A CONTRACT MADE FROM THIS VERSION WOULD ALREADY CARRY ----
        (Young ruled 18 Sep 2026: every creation door shows the paper beside its
@@ -14391,17 +14504,20 @@ app.put('/api/templates/:id/versions/:vid', auth, paperMaker, passwordCurrent, (
   const cleanBlocks = [];
   for (const bl of blocks) {
     if (!TPL_BLOCK_TYPES.includes(bl.blockType)) return res.status(400).json({ error: `Unknown block type “${bl.blockType}”` });
+    /* A RICH BLOCK IS WRITTEN THROUGH THE ALLOWLIST — the server is the wall,
+       whatever the browser already did (see tplBlockRow). */
+    const row = tplBlockRow(bl);
     cleanBlocks.push({
       id: 'tb_' + rid(8), order_index: Number(bl.orderIndex) || 0,
-      block_type: bl.blockType, content: String(bl.content == null ? '' : bl.content).slice(0, 60000),
+      block_type: bl.blockType, content: row.content, format: row.format,
     });
   }
   txn(() => {
     db.prepare('DELETE FROM template_blocks WHERE template_version_id=?').run(v.id);
     db.prepare('DELETE FROM template_fields WHERE template_version_id=?').run(v.id);
     for (const bl of cleanBlocks)
-      db.prepare('INSERT INTO template_blocks (id,template_version_id,order_index,block_type,content) VALUES (?,?,?,?,?)')
-        .run(bl.id, v.id, bl.order_index, bl.block_type, bl.content);
+      db.prepare('INSERT INTO template_blocks (id,template_version_id,order_index,block_type,content,format) VALUES (?,?,?,?,?,?)')
+        .run(bl.id, v.id, bl.order_index, bl.block_type, bl.content, bl.format);
     for (const f of cleanFields)
       db.prepare(`INSERT INTO template_fields (id,template_version_id,field_key,label,section,order_index,field_type,control,options,required,default_value,help_text,detection_confidence,human_reviewed)
         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
@@ -14495,8 +14611,8 @@ app.post('/api/templates/:id/versions', auth, paperMaker, passwordCurrent, (req,
   const v = tplNewVersion(t.id, (source ? source.version_number : 0) + 1);
   if (source) txn(() => {
     for (const bl of tplBlocksOf(source.id))
-      db.prepare('INSERT INTO template_blocks (id,template_version_id,order_index,block_type,content) VALUES (?,?,?,?,?)')
-        .run('tb_' + rid(8), v.id, bl.order_index, bl.block_type, bl.content);
+      db.prepare('INSERT INTO template_blocks (id,template_version_id,order_index,block_type,content,format) VALUES (?,?,?,?,?,?)')
+        .run('tb_' + rid(8), v.id, bl.order_index, bl.block_type, bl.content, bl.format === 'rich' ? 'rich' : null);
     for (const f of db.prepare('SELECT * FROM template_fields WHERE template_version_id=?').all(source.id))
       db.prepare(`INSERT INTO template_fields (id,template_version_id,field_key,label,section,order_index,field_type,control,options,required,default_value,help_text,detection_confidence,human_reviewed)
         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
@@ -14530,87 +14646,235 @@ function tplTextBlocks(text) {
   }
   return out;
 }
-function tplRichBlocks(html) {
-  // The rich format is a sanitised fragment with a fixed tag allowlist, so a
-  // scan for block elements is dependable — no DOM needed on this side.
-  const out = [];
-  const re = /<(h[1-4]|p|li|blockquote|pre)\b[^>]*>([\s\S]*?)<\/\1>/gi;
-  let m;
-  while ((m = re.exec(html)) != null) {
-    const text = richBodyToSearchText(m[2]);
-    if (!text) continue;
-    out.push({ block_type: /^h/i.test(m[1]) ? 'heading' : 'fixed_text', content: text });
-  }
-  return out.length ? out : tplTextBlocks(richBodyToSearchText(html));
+/* tplRichBlocks — which read a rich body block by block into PLAIN TEXT and
+   dropped every table — is GONE (24 Sep 2026). A rich body is copied by
+   tplFormCopyBlocks now (js/templateform.js), the one copier every door uses. */
+/* ---- FROM ONE OF OUR CONTRACTS (one door, 24 Sep 2026) ----
+   Reached through "+ New standard contract" → "From one of our contracts";
+   the contract's own menu no longer carries it (Young's go on "One Door to
+   Standards"). Three things changed, each off the owner's own paper:
+     · THE WORDING KEEPS ITS SHAPE. A rich body goes through the one copier
+       (tplFormCopyBlocks, js/templateform.js) — headings at their level,
+       numbers as the paper prints them, every table. It used to be read line
+       by line into plain text, and the tables fell on the floor.
+     · IT IS FILED WHERE THE CONTRACT WAS. The template takes the contract's
+       own value stream — a fact, never a guess — and a category read off what
+       the record says about which side of the money we were on.
+     · IT SAYS WHAT IT TOOK OUT. `taken` names each deal detail turned into a
+       blank and the words it replaced, so the builder can put one back; and
+       `negotiated` names each clause the other side changed and we accepted,
+       with our first draft of it, so their win does not quietly become our
+       standard. Nothing is guessed: every value comes off the record. */
+const TPL_SIDE_CATEGORY = { customer: 'procurement', supplier: 'sales' };
+const TPL_FOLDER_CATEGORY = { proc: 'procurement', sales: 'sales' };
+function tplCategoryOfContract(c) {
+  const side = TPL_SIDE_CATEGORY[(c && c.metadata && c.metadata.category) || ''];
+  if (side) return side;
+  const kind = [c.kind, c.type, c.metadata && c.metadata.contractType, c.name].filter(Boolean).join(' ');
+  if (/non-?\s*disclosure|\bnda\b|confidentiality agreement/i.test(kind)) return 'nda';
+  if (/\bemploy/i.test(kind)) return 'employment';
+  return TPL_FOLDER_CATEGORY[c.folder] || 'other';
 }
+const TPL_CO_SUFFIX = /\s*,?\s*\b(?:ltd|limited|plc|llc|inc|incorporated|gmbh|ag|ab|a\/s|aps|asa|oy|s\.?a\.?|b\.?v\.?|n\.?v\.?|pty(?:\s+ltd)?|co|company|corp(?:oration)?|sarl|s\.?p\.?a\.?|s\.?r\.?l\.?)\.?\s*$/i;
+const tplReEsc = x => String(x).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/* The name the contract had, less the other side's. */
+function tplNameWithoutParty(name, party) {
+  let n = String(name || '').trim();
+  const p = String(party || '').trim();
+  const stem = p.replace(TPL_CO_SUFFIX, '').trim();
+  for (const x of [p, stem].filter((v, i, all) => v && v.length >= 3 && all.indexOf(v) === i)) {
+    const re = new RegExp(`\\s*(?:[—–|·,:-]|\\bwith\\b|\\bfor\\b|\\bbetween\\b)?\\s*\\(?${tplReEsc(x)}\\)?(?=\\s|$|[—–|·,:)-])`, 'i');
+    if (re.test(n)) { n = n.replace(re, ' '); break; }
+  }
+  return n.replace(/\s{2,}/g, ' ').replace(/^[\s—–|·,:-]+|[\s—–|·,:-]+$/g, '').trim();
+}
+/* Every spelling of a record fact the wording is likely to carry — longest
+   first, so "4,800,000.00" is taken whole rather than leaving ".00" behind. */
+const TPL_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+function tplDateNeedles(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ''));
+  if (!m) return [];
+  const y = m[1], mo = Number(m[2]), d = Number(m[3]);
+  if (!mo || mo > 12 || !d || d > 31) return [];
+  const M = TPL_MONTHS[mo - 1], dd = String(d).padStart(2, '0'), mm = String(mo).padStart(2, '0');
+  const th = (d % 10 === 1 && d !== 11) ? 'st' : (d % 10 === 2 && d !== 12) ? 'nd' : (d % 10 === 3 && d !== 13) ? 'rd' : 'th';
+  return [`${d}${th} ${M} ${y}`, `${d} ${M} ${y}`, `${dd} ${M} ${y}`, `${M} ${d}, ${y}`, `${d} ${M.slice(0, 3)} ${y}`,
+    `${dd}/${mm}/${y}`, `${d}/${mo}/${y}`, `${dd}.${mm}.${y}`, `${y}-${mm}-${dd}`];
+}
+function tplMoneyNeedles(n) {
+  const v = Number(n) || 0;
+  if (v < 100) return [];
+  const en = v.toLocaleString('en-US');
+  return [v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), en, en.replace(/,/g, ' '), String(v)]
+    .filter((x, i, all) => all.indexOf(x) === i);
+}
+function tplPartyNeedles(party) {
+  const p = String(party || '').trim(); if (p.length < 3) return [];
+  const out = [p];
+  if (/\bLtd\.?$/i.test(p)) out.push(p.replace(/\bLtd\.?$/i, 'Limited'));
+  if (/\bLimited$/i.test(p)) out.push(p.replace(/\bLimited$/i, 'Ltd'));
+  const stem = p.replace(TPL_CO_SUFFIX, '').trim();
+  if (stem !== p && (stem.split(/\s+/).length >= 2 || stem.length >= 6)) out.push(stem);
+  return out.filter((x, i, all) => all.indexOf(x) === i);
+}
+/* WHICH CLAUSES THE OTHER SIDE MOVED, read off the record raw: every change
+   on the table and in every closed round, grouped by clause. A clause counts
+   where they asked for a change AND a change on it was accepted — the agreed
+   wording is not what we first wrote. `first` is our first draft of it: the
+   wording the earliest change on that clause was measured against. */
+function tplNegotiatedClauses(c) {
+  const all = [];
+  const rounds = (c.negotiation && Array.isArray(c.negotiation.rounds)) ? c.negotiation.rounds : [];
+  rounds.forEach((r, i) => (Array.isArray(r.changes) ? r.changes : []).forEach(ch => all.push({ ch, n: Number(r.n) || i + 1 })));
+  (Array.isArray(c.changes) ? c.changes : []).forEach(ch => all.push({ ch, n: Number(ch && ch.roundN) || 1e6 }));
+  all.sort((x, y) => (x.n - y.n) || ((Number(x.ch.seq) || 0) - (Number(y.ch.seq) || 0))
+    || String(x.ch.createdAt || '').localeCompare(String(y.ch.createdAt || '')));
+  const by = new Map();
+  for (const { ch } of all) {
+    if (!ch || !ch.clauseId) continue;
+    if (!by.has(ch.clauseId)) by.set(ch.clauseId, []);
+    by.get(ch.clauseId).push(ch);
+  }
+  const out = [];
+  for (const [clauseId, chs] of by) {
+    if (!chs.some(x => x.authorSide === 'counterparty') || !chs.some(x => x.status === 'accepted')) continue;
+    const last = chs[chs.length - 1];
+    out.push({ clauseId, clause: String(last.clauseLabel || last.headingText || clauseId).slice(0, 160),
+      heading: String(chs.map(x => x.headingText).filter(Boolean).pop() || '').slice(0, 160),
+      first: String(chs[0].oldText || '').slice(0, 4000), deleted: chs.some(x => x.changeType === 'deleteClause' && x.status === 'accepted') });
+    if (out.length >= 40) break;
+  }
+  return out;
+}
+/* HaTi's own signature paragraph, as templateFormDocHtml prints it — read back
+   into the signature block it was, rather than copied as wording and signed
+   twice. */
+const TPL_SIG_PARA = /<p><strong>Signed for ([^<]{1,160})<\/strong><br>Name: <span class="hati-field">full name<\/span><br>Title: <span class="hati-field">job title<\/span><br>Signature: <span class="hati-field">signature<\/span><\/p>/g;
 app.post('/api/contracts/:id/save-as-template', auth, templateManager, passwordCurrent, (req, res) => {
   const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
   if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
   let c; try { c = JSON.parse(row.json); } catch (_) { return res.status(500).json({ error: 'The contract record could not be read' }); }
-  const bodyText = c.format === 'rich' ? null : (c.redlineText || (c.upload && c.upload.extractedText) || '');
-  const blocks = c.format === 'rich' && c.redlineText ? tplRichBlocks(c.redlineText) : tplTextBlocks(bodyText);
-  if (!blocks.length) return res.status(400).json({ error: 'This contract has no document text to turn into a template' });
+
+  const fields = [];
+  const taken = new Map();   /* key → { key, label, value, places } */
+  /* `value` is the spelling that occurred MOST, so putting one back restores
+     the words the paper used most often. */
+  const took = (key, label, value, n) => {
+    if (!n) return;
+    const t = taken.get(key) || { key, label, value: '', places: 0, spell: {} };
+    t.places += n;
+    const v = String(value || ''); t.spell[v] = (t.spell[v] || 0) + n;
+    t.value = Object.keys(t.spell).sort((a, b) => t.spell[b] - t.spell[a])[0] || v;
+    taken.set(key, t);
+  };
+  const sigs = [];
+  let blocks;
+  const rich = c.format === 'rich' && c.redlineText;
+  if (rich) {
+    let html = String(c.redlineText);
+    html = html.replace(TPL_SIG_PARA, (m, who) => { sigs.push(richBodyToSearchText(who)); return ''; });
+    /* A CONTRACT DRAWN FROM OUR OWN TEMPLATE STILL SAYS WHICH BLANK EACH ANSWER
+       FILLED — the span carries the key — so the answer goes back to being
+       that blank, defined exactly as the template defined it. */
+    const tf = (c.templateForm && Array.isArray(c.templateForm.fields)) ? c.templateForm.fields : [];
+    const tfBy = new Map(tf.filter(f => f && TPL_KEY_RE.test(String(f.fieldKey || ''))).map(f => [f.fieldKey, f]));
+    const used = new Set();
+    html = html.replace(/<span\b([^>]*)>([^<]*)<\/span>/g, (m, attrs, inner) => {
+      const cls = /\bclass="(hati-field(?:-done)?)"/.exec(attrs);
+      const key = /\bdata-field-key="([a-z][a-z0-9_]{0,63})"/.exec(attrs);
+      if (!cls || !key || !tfBy.has(key[1])) return m;
+      used.add(key[1]);
+      if (cls[1] === 'hati-field-done') took(key[1], tfBy.get(key[1]).label || key[1], richBodyToSearchText(inner), 1);
+      return `{{${key[1]}}}`;
+    });
+    for (const k of used) {
+      const f = tfBy.get(k);
+      fields.push({ key: k, label: f.label || k, type: TPL_FIELD_LIB[f.fieldType] ? f.fieldType : 'short_text', section: f.section || null,
+        required: !!f.required, control: f.control === 'guided' ? 'guided' : 'free', options: Array.isArray(f.options) ? f.options : [],
+        defaultValue: f.defaultValue || '', helpText: f.helpText || '', own: true });
+    }
+    blocks = tplFormCopyBlocks(html).map(b => ({ block_type: b.blockType, content: b.content, format: 'rich' }));
+  } else {
+    blocks = tplTextBlocks(c.redlineText || (c.upload && c.upload.extractedText) || '');
+  }
+  if (!blocks.length || !blocks.some(b => tplFormBlockText({ format: b.format, content: b.content }).trim()))
+    return res.status(400).json({ error: 'This contract has no document text to turn into a template' });
 
   /* Party-specific values, read from the record the contract already carries.
-     Every literal occurrence in the wording becomes a {{placeholder}} and an
-     empty field of the right type. Nothing is invented: a value that does not
-     appear in the text creates no field. */
-  const money = Number(c.value) || 0;
+     Every occurrence in the wording becomes a {{placeholder}} and an empty
+     field of the right type. Nothing is invented: a value that does not appear
+     in the text creates no field. */
   const candidates = [
-    { key: 'counterparty_name', label: 'Counterparty name', type: 'short_text', required: true,
-      needles: [c.counterparty].filter(Boolean) },
-    { key: 'counterparty_email', label: 'Counterparty email', type: 'email',
-      needles: [c.counterpartyEmail].filter(Boolean) },
-    { key: 'contract_value', get label(){ return `Contract value (${orgJx().currency})`; }, type: 'currency',
-      needles: money > 0 ? [money.toLocaleString('en-US'), String(money)] : [] },
-    { key: 'effective_date', label: 'Effective date', type: 'date',
-      needles: [c.fields && c.fields.effDate].filter(Boolean) },
-    { key: 'expiry_date', label: 'Expiry date', type: 'date',
-      needles: [c.expiry].filter(Boolean) },
+    { key: 'counterparty_name', label: 'Counterparty name', type: 'short_text', required: true, needles: tplPartyNeedles(c.counterparty) },
+    { key: 'counterparty_email', label: 'Counterparty email', type: 'email', needles: [c.counterpartyEmail].filter(x => x && String(x).length >= 3) },
+    { key: 'contract_value', get label(){ return `Contract value (${orgJx().currency})`; }, type: 'currency', needles: tplMoneyNeedles(c.value) },
+    { key: 'effective_date', label: 'Effective date', type: 'date', needles: tplDateNeedles(c.fields && c.fields.effDate) },
+    { key: 'expiry_date', label: 'Expiry date', type: 'date', needles: tplDateNeedles(c.expiry) },
   ];
-  const fields = [];
   let section = null;
   const sectionOf = [];
-  blocks.forEach(b => { if (b.block_type === 'heading') section = b.content.slice(0, 120); sectionOf.push(section); });
+  blocks.forEach(b => { if (b.block_type === 'heading') section = tplFormBlockText({ format: b.format, content: b.content }).slice(0, 120); sectionOf.push(section); });
   for (const cand of candidates) {
-    let found = false;
-    blocks.forEach((b, i) => {
-      for (const needle of cand.needles) {
-        if (needle && needle.length >= 3 && b.content.includes(needle)) {
-          b.content = b.content.split(needle).join(`{{${cand.key}}}`);
-          b.block_type = b.block_type === 'heading' ? 'heading' : 'field_group';
-          if (!found) { fields.push({ ...cand, section: sectionOf[i] }); found = true; }
-        }
-      }
-    });
+    const needles = cand.needles.slice().sort((x, y) => y.length - x.length);
+    let where = null, first = '';
+    for (const needle of needles) {
+      if (!needle || needle.length < 3) continue;
+      blocks.forEach((b, i) => {
+        const r = tplFormBlockReplace({ format: b.format, content: b.content }, needle, `{{${cand.key}}}`);
+        if (!r.n) return;
+        b.content = r.content;
+        if (b.block_type !== 'heading') b.block_type = 'field_group';
+        if (where == null) where = i;
+        if (!first) first = needle;
+        took(cand.key, cand.label, needle, r.n);
+      });
+    }
+    if (where != null && !fields.some(f => f.key === cand.key)) fields.push({ ...cand, label: cand.label, section: sectionOf[where] });
   }
-  // Every agreement signs; give the draft the signature scaffolding so the
-  // builder starts from something publishable. The manager adjusts from here.
-  blocks.push({ block_type: 'signature_block', content: 'Company' });
-  blocks.push({ block_type: 'signature_block', content: 'Counterparty' });
-  fields.push({ key: 'company_signature', label: 'Signed for the company', type: 'signature_name_title', section: 'Signatures' });
-  fields.push({ key: 'counterparty_signature', label: 'Signed for the counterparty', type: 'signature_name_title', section: 'Signatures' });
+  /* Every agreement signs: HaTi's own signature lines come back as the blocks
+     they were, and a contract that had none is given both parties' scaffolding,
+     as before. */
+  if (sigs.length) sigs.forEach(who => blocks.push({ block_type: 'signature_block', content: who }));
+  else {
+    blocks.push({ block_type: 'signature_block', content: 'Company' });
+    blocks.push({ block_type: 'signature_block', content: 'Counterparty' });
+  }
+  if (!fields.some(f => f.type === 'signature_name_title')) {
+    fields.push({ key: 'company_signature', label: 'Signed for the company', type: 'signature_name_title', section: 'Signatures' });
+    fields.push({ key: 'counterparty_signature', label: 'Signed for the counterparty', type: 'signature_name_title', section: 'Signatures' });
+  }
 
-  const FOLDER_CATEGORY = { proc: 'procurement', sales: 'sales', corp: 'other', mfg: 'other', dist: 'other', mktg: 'other' };
-  const name = clean((req.body || {}).name).slice(0, 160) || `${c.name} — standard template`;
+  const name = clean((req.body || {}).name).slice(0, 160) || tplNameWithoutParty(c.name, c.counterparty) || c.name || 'Standard contract';
+  const category = tplCategoryOfContract(c);
+  const folder = tplFolderOf(c.folder);
   const tid = 'tpl_' + rid(8);
   let vid;
   txn(() => {
-    db.prepare(`INSERT INTO templates (id,org_id,name,description,category,status,origin,source_contract_id,created_by,created_at,updated_at)
-      VALUES (?,?,?,?,?,'draft','saved_from_contract',?,?,?,?)`)
-      .run(tid, WORKSPACE_ID, name, `Saved from ${c.id} (${c.name})`, FOLDER_CATEGORY[c.folder] || 'other', c.id, req.user.name, now(), now());
+    /* PROVENANCE IS NOT A DESCRIPTION (21 Sep 2026): where it came from is
+       origin + source_contract_id, and the description stays the owner's. */
+    db.prepare(`INSERT INTO templates (id,org_id,name,description,category,folder,status,origin,source_contract_id,created_by,created_at,updated_at)
+      VALUES (?,?,?,?,?,?,'draft','saved_from_contract',?,?,?,?)`)
+      .run(tid, WORKSPACE_ID, name, '', category, folder, c.id, req.user.name, now(), now());
     const v = tplNewVersion(tid, 1);
     vid = v.id;
-    blocks.forEach((b, i) =>
-      db.prepare('INSERT INTO template_blocks (id,template_version_id,order_index,block_type,content) VALUES (?,?,?,?,?)')
-        .run('tb_' + rid(8), vid, i, b.block_type, b.content.slice(0, 60000)));
+    blocks.forEach((b, i) => {
+      const w = tplBlockRow({ blockType: b.block_type, format: b.format, content: b.content });
+      db.prepare('INSERT INTO template_blocks (id,template_version_id,order_index,block_type,content,format) VALUES (?,?,?,?,?,?)')
+        .run('tb_' + rid(8), vid, i, b.block_type, w.content, w.format);
+    });
     fields.forEach((f, i) =>
       db.prepare(`INSERT INTO template_fields (id,template_version_id,field_key,label,section,order_index,field_type,control,options,required,default_value,help_text,detection_confidence,human_reviewed)
-        VALUES (?,?,?,?,?,?,?,'free',NULL,?,NULL,NULL,'high',0)`)
-        .run('tf_' + rid(8), vid, f.key, f.label, f.section || null, i, f.type, f.required ? 1 : 0));
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+        .run('tf_' + rid(8), vid, f.key, f.label, f.section || null, i, f.type, f.control === 'guided' ? 'guided' : 'free',
+          f.control === 'guided' ? JSON.stringify((f.options || []).map(String).slice(0, 50)) : null, f.required ? 1 : 0,
+          f.defaultValue ? String(f.defaultValue).slice(0, 2000) : null, f.helpText ? String(f.helpText).slice(0, 1000) : null,
+          f.own ? 'manual' : 'high', f.own ? 1 : 0));
   });
   res.json({ ok: true, templateId: tid, versionId: vid,
-    fieldsCreated: fields.length, blocksCreated: blocks.length });
+    fieldsCreated: fields.length, blocksCreated: blocks.length,
+    name, category, folder, contractId: c.id,
+    taken: Array.from(taken.values()).map(t => ({ key: t.key, label: t.label, value: String(t.value).slice(0, 200), places: t.places })),
+    negotiated: tplNegotiatedClauses(c) });
 });
 
 /* ---- create a contract FROM a template (Phase C) ----
@@ -14644,7 +14908,10 @@ app.post('/api/templates/:id/contracts', auth, editor, (req, res) => {
     fieldType: f.field_type, control: f.control, options: f.options,
     required: f.required, defaultValue: f.default_value || '', helpText: f.help_text || '',
   }));
-  const blocks = tplBlocksOf(pub.id).map(bl => ({ orderIndex: bl.order_index, blockType: bl.block_type, content: bl.content || '' }));
+  /* The version's own markup travels with each block, so a contract drawn
+     from a copied document prints its tables and its numbers. */
+  const blocks = tplBlocksOf(pub.id).map(bl => ({ orderIndex: bl.order_index, blockType: bl.block_type, content: bl.content || '',
+    ...(bl.format === 'rich' ? { format: 'rich' } : {}) }));
   /* Company answers arrive pre-filled: {{org.…}} defaults resolve from the
      org profile at CREATION time. Later profile edits do not reach this
      contract — same copy semantics as the template content itself. */
