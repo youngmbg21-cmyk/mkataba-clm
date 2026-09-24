@@ -321,12 +321,7 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
         cardRule: (() => { const c = document.querySelector('.hm-card .hm-sec');
           return !!c && getComputedStyle(c).borderBottomWidth !== '0px'; })(),
         decide: (typeof i18t === 'function') ? i18t('home_needs_decision') : null,
-        /* RE-POINTED 23 Sep 2026 (the prototype's polish): measured off the
-           tile's own LABEL, not its box. The card head and the tile now share
-           an 18px inset, so the heading lines up with the tile's words — which
-           is what "starts on the page's own margin like the tiles" means. The
-           box edge sat 19px out and was only ever a proxy, with 18 of slack. */
-        tilesX: (() => { const e = document.querySelector('.hm-tile .hm-t');
+        tilesX: (() => { const e = document.querySelector('.hm-tile');
           return e ? Math.round(e.getBoundingClientRect().x) : null; })(),
         headX: secs.length ? Math.round(secs[0].querySelector('h2').getBoundingClientRect().x) : null,
         decideTxt: decide ? decide.querySelector('h2').textContent.trim() : null,
@@ -357,7 +352,7 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
       { head: homeLine.heads[0] && +homeLine.heads[0].y.toFixed(1),
         act: homeLine.workAct && +homeLine.workAct.y.toFixed(1) });
     check('4d it starts on the page\'s own margin, like the tiles above it',
-      homeLine.tilesX == null || near(homeLine.headX, homeLine.tilesX, 4),
+      homeLine.tilesX == null || near(homeLine.headX, homeLine.tilesX, 18),
       { head: homeLine.headX, tiles: homeLine.tilesX });
 
     /* ================= 5 · A RESTING TAB IS DARK INK ======================= */

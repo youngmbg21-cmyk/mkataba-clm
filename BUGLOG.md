@@ -19041,3 +19041,7 @@ Noticed, not fixed
 - theme-tokens-verify is stale on main for 14 screens (calendar, templates, contract, keyterms, signing, history, negotiate, both themes).
 - contrast-verify: the calendar's month count and the dark theme's parties chip "Negotiates and signs" (on a light accent-50 ground) fail AA on main.
 - white-band-and-tabs 5-ref / 5a: the Insights tabs are not found on main.
+
+## Run 24 Sep 2026 — the prototype polish reverted
+
+- The side panel / Home / Overview polish (commit 745bdf4) was REVERTED on the owner's word: it fell short of the prototype, which is to be finished first and then applied to HaTi in full. The code is back to 80856be.
