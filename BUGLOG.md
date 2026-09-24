@@ -19134,3 +19134,11 @@ Noticed, not fixed
 
 Noticed, not fixed
 - Nothing.
+
+## Run 24 Sep 2026 — three ideas for the top of Home (drawn, not built)
+
+- On the owner's word ("give me an idea of how the homepage should look like. It should be executive high level view and not too dense"), answered with the new DESIGN OPTIONS habit: one part of the page (the top of Home, above the decision list), three options named for their idea (Scoreboard, Briefing, Map), drawn on HaTi's own frame and tokens in one Artifact with a switcher. Nothing in HaTi changed; the owner picks by name.
+- Measured first: today's Home with the Kenya sample book at 1440x900 and 1366x1024.
+
+Noticed, not fixed
+- Home: the Active value tile cuts its own figure. It reads "KES 817.70…" at 1440x900 and "KES 817.7…" at 1366x1024 (sample book), and its line "across 30 agreemen…" is cut too, so the reader cannot see the M.
