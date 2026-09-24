@@ -742,7 +742,10 @@ describe('f331 (13) — the link, and the room to draw it', () => {
        makes; the company standard renders the server's own builder. */
     assert.match(LIB, /paper: \(\) => fillTemplateBody\(templateBody\(t\), \{\}, templateFormat\(t\)\)/,
       'a saved template with no blanks fills with nothing — that IS its wording');
-    assert.match(TL, /templateFormDocHtml\(\{ blocks:/,
+    /* RE-POINTED IN PLACE, 24 Sep 2026: the preview hands the renderer the
+       template's name and origin as the contract's own copy carries them, so
+       the pane titles the paper as the contract will (tplFormHeads). */
+    assert.match(TL, /templateFormDocHtml\(\{ templateName: t\.name, templateOrigin: t\.origin,\s*blocks:/,
       'a company standard renders through the function POST \/contracts calls');
     assert.match(TL, /values: v\.values \|\| \{\}/,
       'and takes the server\'s own resolved defaults rather than guessing at them');

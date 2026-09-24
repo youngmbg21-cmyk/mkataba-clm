@@ -492,7 +492,12 @@ describe('f376 (5) the name, category and value stream are at the top of the bui
     press('[data-tb-meta="stream"]'); press('[data-tb-meta="category"]'); press('[data-tb-meta="name"]');
     assert.deepEqual(calls.map(c => c.focus), ['stream', 'category', 'name']);
     assert.ok(calls.every(c => c.id === 'tpl_1' && typeof c.onSaved === 'function'));
-    calls[0].onSaved({ id: 'tpl_1', name: 'SaaS Subscription Agreement', category: 'sales', folder: 'proc' });
+    /* RE-POINTED IN PLACE, 24 Sep 2026: the saved template carries its
+       `origin`, as every template the route hands back does (tplListView).
+       A template written here is titled by its name, so a rename reaches the
+       paper's title; a copied document keeps its own title line whatever the
+       template is called (tplFormHeads). */
+    calls[0].onSaved({ id: 'tpl_1', name: 'SaaS Subscription Agreement', category: 'sales', folder: 'proc', origin: 'built_in_hati' });
     const head = win.document.getElementById('tb-head');
     assert.ok(win.document.getElementById('tb-page'), 'the builder is still open');
     assert.equal(head.querySelector('[data-tb-meta="name"] .v').textContent, 'SaaS Subscription Agreement');

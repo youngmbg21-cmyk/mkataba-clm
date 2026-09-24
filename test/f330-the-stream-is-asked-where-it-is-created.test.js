@@ -158,7 +158,11 @@ describe('f330 (3) — converting a document files it', () => {
   test('a sentinel never reaches the route', () => {
     const fn = realBody(strip(TLIB), 'function tplLibUploadModal(');
     assert.match(fn, /category: tplLibPick\('tpllib-up-cat', 'other'\)/, 'the category through the guard');
-    assert.match(fn, /folder: tplLibPick\('tpllib-up-stream', ''\) \|\| null/, 'and the stream');
+    /* RE-POINTED IN PLACE, 24 Sep 2026: the stream box reads through its OWN
+       guard, tplLibPickStream — "None yet" is an answer there (no stream),
+       and only the sentinel keeps what the template had. tplLibPick fell back
+       on both, which is why a template could never be taken out of a stream. */
+    assert.match(fn, /folder: tplLibPickStream\('tpllib-up-stream', null\)/, 'and the stream, through its own guard');
     assert.ok(!/document\.getElementById\('tpllib-up-stream'\)\.value/.test(fn),
       'never read raw off the box');
   });
@@ -171,7 +175,11 @@ describe('f330 (3) — converting a document files it', () => {
     assert.match(region, /INSERT INTO templates \(id,org_id,name,description,category,folder,/,
       'the row carries a folder now');
     assert.match(region, /tplFolderOf\(b\.folder\)/, 'read by the route that already had this question');
-    assert.match(region, /TPL_CATEGORIES\.includes\(b\.category\)/, 'and the category by its own list');
+    /* RE-POINTED IN PLACE, 24 Sep 2026: the category is read by tplCategoryOk,
+       the reading all three filing routes share — HaTi's five and the
+       categories the company added in Settings, which TPL_CATEGORIES alone
+       quietly filed as Other. */
+    assert.match(region, /tplCategoryOk\(b\.category\)/, 'and the category by the reading every filing route shares');
   });
 });
 

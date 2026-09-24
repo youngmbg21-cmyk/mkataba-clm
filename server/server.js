@@ -14233,6 +14233,20 @@ const TPL_SOURCE_TYPES = ['docx', 'pdf_digital', 'pdf_scanned'];
 const TPL_IS_SCANNED = st => st === 'pdf_scanned';
 
 const TPL_CATEGORIES = ['sales', 'procurement', 'employment', 'nda', 'other'];
+/* ---- A CATEGORY THE COMPANY ADDED IS A CATEGORY (24 Sep 2026) ----
+   Since 17 Sep a company keeps its own categories (PUT /api/settings/filing,
+   appSettings.templateCategories) and every picker offers them — but the
+   three routes that file a template asked TPL_CATEGORIES, the five HaTi ships
+   with, and nothing else. So the details box refused a company's own category
+   with "Unknown category", and the create routes filed it quietly as Other.
+   The list is still an ALLOW-LIST: HaTi's five, plus the ids the company has
+   written through its own bounded route. Nothing else is stored. */
+const tplCompanyCategoryIds = () => {
+  const s = getSetting('appSettings') || {};
+  return new Set((Array.isArray(s.templateCategories) ? s.templateCategories : [])
+    .map(r => (r && typeof r.id === 'string') ? r.id : '').filter(Boolean));
+};
+const tplCategoryOk = v => typeof v === 'string' && (TPL_CATEGORIES.includes(v) || tplCompanyCategoryIds().has(v));
 const TPL_ORIGINS = ['upload', 'saved_from_contract', 'built_in_hati'];
 
 /* The field library — the fixed catalogue of field types the whole feature is
@@ -14343,7 +14357,7 @@ app.post('/api/templates', auth, paperMaker, passwordCurrent, (req, res) => {
   const b = req.body || {};
   const name = clean(b.name).slice(0, 160);
   if (!name) return res.status(400).json({ error: 'A template needs a name' });
-  const category = TPL_CATEGORIES.includes(b.category) ? b.category : 'other';
+  const category = tplCategoryOk(b.category) ? b.category : 'other';
   const origin = TPL_ORIGINS.includes(b.origin) ? b.origin : 'built_in_hati';
   /* A stream is optional and stays optional: absent is the honest answer for a
      template nobody has filed, and the picker has a folder for exactly that. */
@@ -14389,7 +14403,11 @@ app.patch('/api/templates/:id', auth, templateManager, passwordCurrent, (req, re
   if (b.name !== undefined) { const n = clean(b.name).slice(0, 160); if (!n) return res.status(400).json({ error: 'A template needs a name' }); sets.push('name=?'); args.push(n); }
   if (b.description !== undefined) { sets.push('description=?'); args.push(clean(b.description).slice(0, 2000)); }
   if (b.category !== undefined) {
-    if (!TPL_CATEGORIES.includes(b.category)) return res.status(400).json({ error: 'Unknown category' });
+    /* Asked as a DIFFERENCE: the category a template is already filed under
+       stays sayable even after the company takes it off its list (the picker
+       keeps it for the same reason), so re-saving the details never fails on
+       it. A change is a change to a category the list holds. */
+    if (b.category !== t.category && !tplCategoryOk(b.category)) return res.status(400).json({ error: 'Unknown category' });
     sets.push('category=?'); args.push(b.category);
   }
   /* FILING A TEMPLATE IS NOT ACCESS CONTROL, and this route deliberately does
@@ -14916,8 +14934,12 @@ app.post('/api/templates/:id/contracts', auth, editor, (req, res) => {
      org profile at CREATION time. Later profile edits do not reach this
      contract — same copy semantics as the template content itself. */
   const values = templateFormResolveDefaults(fields, tplOrgValues());
+  /* `templateOrigin` is what tells the renderer whether this paper opens with
+     a title of its own or takes the template's name as its title — see
+     tplFormHeads in js/templateform.js. It travels with the copy, so every
+     later drawing of this contract reads the same answer. */
   const form = {
-    templateId: t.id, templateVersionId: pub.id, templateName: t.name,
+    templateId: t.id, templateVersionId: pub.id, templateName: t.name, templateOrigin: t.origin,
     versionNumber: pub.version_number, blocks, fields, values,
   };
   const branding = db.prepare('SELECT * FROM org_branding WHERE org_id=?').get(WORKSPACE_ID);
@@ -15521,8 +15543,9 @@ app.post('/api/templates/upload', auth, paperMaker, passwordCurrent, rlAiDeep, a
     /* ---- IT IS FILED WHERE THE CONVERTER WAS TOLD TO FILE IT (Young ruled
        18 Sep 2026) ---- The dialog asks for a category and a value stream in
        the same row the "new standard template" dialog uses, so this route reads
-       them with the SAME readings that route does: TPL_CATEGORIES for the one
-       and tplFolderOf for the other. Absent stays absent — a converted document
+       them with the SAME readings that route does: tplCategoryOk for the one
+       (HaTi's five and the company's own, 24 Sep 2026) and tplFolderOf for
+       the other. Absent stays absent — a converted document
        nobody has filed is honestly unfiled. */
     db.prepare(`INSERT INTO templates (id,org_id,name,description,category,folder,status,origin,source_contract_id,created_by,created_at,updated_at,source_type,page_count)
       VALUES (?,?,?,?,?,?,'draft','upload',NULL,?,?,?,?,?)`)
@@ -15535,7 +15558,7 @@ app.post('/api/templates/upload', auth, paperMaker, passwordCurrent, rlAiDeep, a
          — both already stored, one line down — and templateProvenanceHtml is
          what draws it. An undescribed template is honestly undescribed, and
          the browser's naCardSub says what it is from its category instead. */
-      .run(tid, WORKSPACE_ID, name, '', TPL_CATEGORIES.includes(b.category) ? b.category : 'other', tplFolderOf(b.folder), req.user.name, now(), now(),
+      .run(tid, WORKSPACE_ID, name, '', tplCategoryOk(b.category) ? b.category : 'other', tplFolderOf(b.folder), req.user.name, now(), now(),
         sourceType, isPdf ? pdf.pageCount : null);
     const v = tplNewVersion(tid, 1);
     vid = v.id;

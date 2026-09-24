@@ -1243,6 +1243,9 @@ function tbStyleHtml() {
   .tb-sec.is-esc>.tb-row-h>.tb-dot{background:var(--st-amber-fg)}
   .tb-h{display:flex;gap:6px;align-items:baseline;font-size:14px;font-weight:var(--w-strong);margin:0 0 2px;font-family:inherit;line-height:1.5}
   .tb-n{flex:none}
+  /* A heading that prints as the document's title is drawn as the name above
+     a written template is: centred, the heading face, one step larger. */
+  .tb-h.is-title{justify-content:center;font-family:var(--font-heading);font-size:16px;letter-spacing:.01em}
   .tb-ed{outline:none;min-height:1.4em;white-space:pre-wrap;overflow-wrap:anywhere;min-width:2ch}
   .tb-ed:empty::before{content:attr(data-ph);color:var(--color-neutral-500);font-style:italic;font-weight:var(--w-body)}
   .tb-p{margin:0 0 6px;padding:2px 0}
@@ -1457,12 +1460,19 @@ function tbPaperHtml() {
   /* A COPIED DOCUMENT CARRIES ITS OWN TITLE AND ITS OWN NUMBERS. Where any
      block is the document's markup the paper draws no name above it and adds
      no number to any heading — templateFormDocHtml's own two readings, asked
-     here so the paper and the published contract cannot disagree. */
+     here so the paper and the published contract cannot disagree.
+     WHICH LINE IS THE TITLE (24 Sep 2026) is the renderer's reading too —
+     tplFormHeads: a template written here is titled by its NAME and numbers
+     every section from 1, and paper that opens with a title of its own draws
+     that line as the title and no name above it. The name above "Parties" is
+     what the author always saw; the published contract printed "Parties"
+     instead. On a stage without that file the old reading stands. */
   const richDoc = _tb.blocks.some(tbRich);
+  const plan = typeof tplFormHeads === 'function' ? tplFormHeads(_tb.blocks, t.name, t.origin) : null;
   const ownNos = richDoc && typeof tplFormNumbersOff === 'function' ? tplFormNumbersOff(_tb.blocks) : false;
-  let titled = richDoc;
+  let titled = plan ? !plan.title : richDoc;
   const closeSigs = () => { if (sigs) { html += '</div>'; sigs = false; } };
-  const title = () => { if (!titled) { html += `<h2 class="tb-title">${esc(t.name)}</h2>`; titled = true; } };
+  const title = () => { if (!titled) { html += `<h2 class="tb-title">${esc((plan && plan.title) || t.name)}</h2>`; titled = true; } };
   _tb.blocks.forEach((b, i) => {
     if (b.blockType !== 'signature_block') closeSigs();
     if (b.blockType === 'branding') {
@@ -1479,14 +1489,17 @@ function tbPaperHtml() {
          keeps it. Both readings are that renderer's, asked through window so
          the paper and the published contract cannot drift. */
       n++; const own = ownNos || ((typeof tplFormHeadingNumbered === 'function') && tplFormHeadingNumbered(b.content));
-      const clauseNo = (n === 1 || own || tbRich(b)) ? '' : String(n - 1) + '.';
+      const mk = plan ? plan.marks[i] : null;
+      const clauseNo = mk ? mk.no : ((n === 1 || own || tbRich(b)) ? '' : String(n - 1) + '.');
+      /* The heading that prints AS the title is drawn as one. */
+      const asTitle = !!(mk && mk.title);
       const sec = bySec.get(i); const st = sec ? tbSecState(sec, cov) : '';
       /* A copied heading keeps the level the file gave it; its words are
          edited in place and written back into the same element. */
       const lv = tbRich(b) ? tbRichTag(b.content) : '';
       const head = lv
         ? `<${lv} class="tb-h tb-rh lv-${lv.slice(1)}"><span class="tb-ed tb-hed" contenteditable="true" spellcheck="false" data-tb-content="${i}" data-tb-kind="rheading" data-tb-lv="${lv}" data-ph="${i18t('tb_ph_heading')}">${tbRichChipsHtml(tbRichInner(b.content))}</span></${lv}>`
-        : `<h3 class="tb-h">${clauseNo ? `<span class="tb-n">${clauseNo}</span>` : ''}<span class="tb-ed tb-hed" contenteditable="true" spellcheck="false" data-tb-content="${i}" data-tb-kind="heading" data-ph="${i18t('tb_ph_heading')}">${esc(b.content)}</span></h3>`;
+        : `<h3 class="tb-h${asTitle ? ' is-title' : ''}">${clauseNo ? `<span class="tb-n">${clauseNo}</span>` : ''}<span class="tb-ed tb-hed" contenteditable="true" spellcheck="false" data-tb-content="${i}" data-tb-kind="heading" data-ph="${i18t('tb_ph_heading')}">${esc(b.content)}</span></h3>`;
       html += `<div class="tb-sec${sec && sec.k === _tb.focus ? ' is-on' : ''}${st ? ' is-' + st : ''}${sec && !tbSectionText(sec) ? ' is-empty' : ''}" data-tb-sec="${b._k}">
         <div class="tb-row tb-row-h" data-tb-row="${i}"><span class="tb-dot"></span>${G(i, fits ? `<button type="button" data-tb-tag="${b._k}" title="${i18t('tb_ask_label')}">✦</button>` : '')}
           ${head}</div>
@@ -2501,6 +2514,9 @@ async function tbPublishGo() {
     tid: _tb.tid, vid: _tb.vid, versionNumber: _tb.versionNumber,
     templateName: _tb.template.name,
     form: {
+      /* The name and the origin decide which line prints as the title
+         (tplFormHeads), so the Design step's sample reads as the paper did. */
+      templateName: _tb.template.name, templateOrigin: _tb.template.origin,
       blocks: _tb.blocks.map((b, i) => tbBlockOut(b, i)),
       fields: _tb.fields, values: {},
     },

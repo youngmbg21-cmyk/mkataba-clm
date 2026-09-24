@@ -4,7 +4,7 @@
 // regenerates it must produce the same wording, or the two screens drift.
 //
 // A contract created from a library template carries `c.templateForm`:
-//   { templateId, templateVersionId, templateName, versionNumber,
+//   { templateId, templateVersionId, templateName, templateOrigin, versionNumber,
 //     blocks: [{orderIndex, blockType, content}],
 //     fields: [{fieldKey, label, section, fieldType, control, options,
 //               required, defaultValue, helpText}],
@@ -86,6 +86,73 @@ const tplFormHeadingNumbered = h => {
   const m = /^(\()?(\d+(?:\.\d+)*)(\))?\s*([.):\u2013\u2014-])?/.exec(t);
   return !!m && (!!m[3] || !!m[4] || m[2].includes('.'));
 };
+
+/* ---- WHICH LINE IS THE DOCUMENT'S TITLE (Young asked 24 Sep 2026: "A
+   template written from scratch shows its first section heading, such as
+   'Parties', as the published contract's title.") ----
+   The rule above — the first heading is the title — is the rule of a COPIED
+   document: a file, a contract or HaTi's own paper opens with its own name,
+   and the clauses under it are numbered. A template WRITTEN IN HaTi opens with
+   its first section ("Parties"), and its title is the name it was given. The
+   builder's paper has always drawn that name above the sections, so the author
+   read one document and the published contract printed another: "Parties" as
+   the title, and every section one number low.
+
+   ONE READING, asked by the renderer below and by the builder's paper, so what
+   an author sees is what prints. It decides nothing about wording — only which
+   line is the title and the number each heading prints.
+
+   THE ORIGIN IS THE FACT IT RESTS ON. `upload` and `saved_from_contract` are
+   documents and keep the rule above. `built_in_hati` is what the create route
+   records for paper written in HaTi — from scratch, by hand, or one of HaTi's
+   own made ours — and only HaTi's own opens with a title of its own. That one
+   is told apart by what it carries, never by a guess at its words: its first
+   heading reads the template's own name, or carries no number while most of
+   the headings under it do (HaTi's paper numbers every clause, "1.
+   Definitions") — which still holds after the template is renamed. A form
+   with NO origin — every contract minted before this — keeps the rule above,
+   so no contract's wording moves when it is drawn again. A copied document
+   (any rich block) carries its own title and its own numbers. */
+const TPLFORM_WRITTEN_HERE = 'built_in_hati';
+const tplFormFold = s => String(s == null ? '' : s).normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+function tplFormNameIsTitle(blocks, name, origin) {
+  if (origin !== TPLFORM_WRITTEN_HERE || !String(name == null ? '' : name).trim()) return false;
+  const list = (blocks || []).filter(b => b && b.blockType !== 'branding');
+  if (list.some(tplFormRich)) return false;
+  const lead = list[0];
+  if (lead && lead.blockType === 'heading') {
+    if (tplFormFold(lead.content) === tplFormFold(name)) return false;
+    const later = list.slice(1).filter(b => b.blockType === 'heading');
+    const own = later.filter(b => tplFormHeadingNumbered(b.content)).length;
+    if (!tplFormHeadingNumbered(lead.content) && own * 2 > later.length) return false;
+  }
+  return true;
+}
+/* The plan both drawers follow, in the order they are given: `title` is the
+   line printed ABOVE every block (the template's name) or null, and `marks[i]`
+   says of each plain heading whether it is the title and the number it
+   prints. The walk is the renderer's own, step for step — a branding block is
+   not part of the body, and anything else before the first heading means the
+   document opens with wording and has no heading for a title. */
+function tplFormHeads(blocks, name, origin) {
+  const list = blocks || [];
+  const byName = tplFormNameIsTitle(list, name, origin);
+  const own = tplFormNumbersOff(list);
+  const marks = []; let first = true; let clause = 0;
+  list.forEach((b, i) => {
+    marks[i] = null;
+    if (!b || b.blockType === 'branding') return;
+    if (tplFormRich(b) && b.blockType !== 'signature_block') { first = false; return; }
+    if (b.blockType === 'heading') {
+      if (first && !byName) { marks[i] = { title: true, no: '' }; first = false; return; }
+      first = false; clause++;
+      marks[i] = { title: false, no: (own || tplFormHeadingNumbered(b.content)) ? '' : clause + '.' };
+      return;
+    }
+    first = false;
+  });
+  return { title: byName ? String(name).trim() : null, marks };
+}
 
 /* ═══════ A TEMPLATE KEEPS THE DOCUMENT IT WAS COPIED FROM (Young's go on "One
    Door to Standards", 24 Sep 2026) ═══════
@@ -308,25 +375,26 @@ function templateFormDocHtml(form) {
   const paras = text => String(text || '').split(/\n{2,}/).map(p => p.trim()).filter(Boolean)
     .map(p => `<p>${tplFormSubstitute(TPLFORM_ESC(p), fields, values).replace(/\n/g, '<br>')}</p>`);
   const blocks = ((form && form.blocks) || []).slice().sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
-  const own = tplFormNumbersOff(blocks);
-  let first = true; let clause = 0;
-  for (const b of blocks) {
+  /* Which line is the title and the number each heading prints — the one
+     reading the builder's paper asks too (tplFormHeads, above). */
+  const plan = tplFormHeads(blocks, form && form.templateName, form && form.templateOrigin);
+  if (plan.title) out.push(`<h1>${TPLFORM_ESC(plan.title)}</h1>`);
+  for (let i = 0; i < blocks.length; i++) {
+    const b = blocks[i];
     if (b.blockType === 'branding') continue; // the header renders from org_branding, outside the body
     /* THE DOCUMENT'S OWN MARKUP, verbatim through the allowlist, then the
        blanks — a copied heading keeps its level and its number, a copied table
        its rows. See TPLFORM_RICH above. */
     if (tplFormRich(b) && b.blockType !== 'signature_block') {
       out.push(tplFormSubstitute(tplFormRichSafe(b.content), fields, values));
-      first = false; continue;
+      continue;
     }
     if (b.blockType === 'heading') {
       const h = tplFormSubstitute(TPLFORM_ESC(b.content), fields, values);
-      if (first) { out.push(`<h1>${h}</h1>`); first = false; continue; }
-      clause++;
-      out.push(`<h2>${(own || tplFormHeadingNumbered(b.content)) ? '' : clause + '. '}${h}</h2>`);
+      const m = plan.marks[i] || { title: false, no: '' };
+      out.push(m.title ? `<h1>${h}</h1>` : `<h2>${m.no ? m.no + ' ' : ''}${h}</h2>`);
       continue;
     }
-    first = false;
     if (b.blockType === 'signature_block') {
       const party = TPLFORM_ESC(b.content || 'Signature');
       out.push(`<p><strong>Signed for ${party}</strong><br>Name: <span class="hati-field">full name</span><br>Title: <span class="hati-field">job title</span><br>Signature: <span class="hati-field">signature</span></p>`);
@@ -418,7 +486,8 @@ const TPLFORM_RICH_API = { TPLFORM_RICH, TPLFORM_RICH_MAX, TPLFORM_RICH_TAGS, TP
   tplFormRichReplace, tplFormBlockReplace, tplFormSplitRich, tplFormSplitTable, tplFormCopyBlocks, tplFormSpanClassOk };
 if (typeof module !== 'undefined' && module.exports)
   module.exports = { templateFormDocHtml, templateFormResolveDefaults, templateFormProblems, templateFormStripMarker, tplFormHeadingNumbered,
-    ...TPLFORM_RICH_API };
+    tplFormHeads, tplFormNameIsTitle, ...TPLFORM_RICH_API };
 if (typeof window !== 'undefined')
   Object.assign(window, { templateFormDocHtml, templateFormResolveDefaults, templateFormProblems, tplFormHeadingNumbered,
+    tplFormHeads, tplFormNameIsTitle,
     templateFormStripMarker, templateBrandingHeaderHtml, templateBrandingFooterHtml, ...TPLFORM_RICH_API });

@@ -66,9 +66,17 @@ function addTemplateCategory(name){
   const row = { id: tplCatSlug(name), name };
   state.settings = state.settings || {};
   state.settings.templateCategories = tplCatSaved().concat([row]);
-  if (typeof saveFilingSettings === 'function') saveFilingSettings();
+  if (typeof saveFilingSettings === 'function') _tplCatSaving = saveFilingSettings();
   return { ...row, custom: true };
 }
+/* A CATEGORY MADE INSIDE A DIALOG IS ON THE SERVER BEFORE THAT DIALOG FILES
+   ANYTHING UNDER IT (24 Sep 2026). The server only accepts a category the
+   company's list holds, and the list is written by its own request — so a
+   Save pressed while that request is still out could be refused. Each save
+   that files a category waits for it first; a failed write has already said
+   so, and the refusal that follows says why. */
+let _tplCatSaving = null;
+const tplCatSettled = () => Promise.resolve(_tplCatSaving).catch(() => null);
 function renameTemplateCategory(id, name){
   name = String(name || '').trim(); if (!name) return false;
   const list = tplCatSaved(); const hit = list.find(c => c && c.id === id);
@@ -340,11 +348,12 @@ function tplLibUploadModal() {
     const r = new FileReader();
     r.onload = async () => {
       try {
+        await tplCatSettled();
         const d = await api('templates/upload', 'POST', {
           dataUrl: String(r.result), fileName: file.name,
           name: document.getElementById('tpllib-up-name').value.trim(),
           category: tplLibPick('tpllib-up-cat', 'other'),
-          folder: tplLibPick('tpllib-up-stream', '') || null,
+          folder: tplLibPickStream('tpllib-up-stream', null),
         });
         closeModal();
         if (d.notice) toast(d.notice, 'err');
@@ -522,7 +531,11 @@ function tplLibNewContract(id, prefill, ho) {
       const vid = t && t.publishedVersionId;
       if (!vid || typeof templateFormDocHtml !== 'function') return '';
       const v = await api(`templates/${id}/versions/${vid}`, 'GET', null, { quiet: true });
-      return templateFormDocHtml({ blocks: v.blocks || [], fields: (v.fields || []).map(f => ({
+      /* The name and where the paper came from travel as they do on the
+         contract, or this pane would title the paper one way and the
+         contract another (tplFormHeads). */
+      return templateFormDocHtml({ templateName: t.name, templateOrigin: t.origin,
+        blocks: v.blocks || [], fields: (v.fields || []).map(f => ({
         fieldKey: f.field_key, label: f.label, fieldType: f.field_type,
         control: f.control, options: f.options, required: f.required,
       })), values: v.values || {} });
@@ -801,6 +814,22 @@ function tplLibPick(id, fallback){
   const v = el ? String(el.value || '') : '';
   return (!v || v === '__new__') ? fallback : v;
 }
+/* ---- "NONE YET" IS AN ANSWER THE STREAM BOX CAN GIVE (24 Sep 2026) ----
+   The category box always holds a category, so an empty value there is only
+   ever a box that never loaded. The stream box is different: its first option
+   is "None yet", and choosing it files the template under no stream. Read
+   through tplLibPick, that empty answer fell back to the stream the template
+   already had, so a template could be moved between streams but never taken
+   out of one — the details box saved, said "Saved", and changed nothing.
+   So the stream is read here: empty is null (the route's own tplFolderOf reads
+   it the same way), and only the sentinel — or a box that is not there — keeps
+   what the template had. The three dialogs that draw this row ask it. */
+function tplLibPickStream(id, current){
+  const el = document.getElementById(id);
+  const v = el ? String(el.value || '') : '';
+  if (!el || v === '__new__') return current || null;
+  return v || null;
+}
 function tplLibCatStreamRowHtml(idCat, idStream, category, folder) {
   const FLD = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none';
   const LBL = 'display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)';
@@ -851,9 +880,10 @@ function tplLibCreateModal() {
     const name = document.getElementById('tpllib-name').value.trim();
     if (!name) { toast(i18t('tl_needs_name'), 'err'); return; }
     try {
+      await tplCatSettled();
       const d = await api('templates', 'POST', {
         name, category: tplLibPick('tpllib-cat', 'other'),
-        folder: tplLibPick('tpllib-stream', '') || null,
+        folder: tplLibPickStream('tpllib-stream', null),
         description: document.getElementById('tpllib-desc').value.trim(),
       });
       closeModal();
@@ -893,7 +923,8 @@ async function openTemplateLibDetail(id) {
   if (showVer && typeof templateFormDocHtml === 'function') {
     try {
       const v = await api(`templates/${t.id}/versions/${showVer.id}`, 'GET', null, { quiet: true });
-      wording = templateFormDocHtml({ blocks: v.blocks || [], fields: (v.fields || []).map(f => ({
+      wording = templateFormDocHtml({ templateName: t.name, templateOrigin: t.origin,
+        blocks: v.blocks || [], fields: (v.fields || []).map(f => ({
         fieldKey: f.field_key, label: f.label, fieldType: f.field_type,
         control: f.control, options: f.options, required: f.required,
       })), values: v.values || {} });
@@ -1036,9 +1067,10 @@ function tplLibMetaModal(t, opts = {}) {
     const name = document.getElementById('tpllib-m-name').value.trim();
     if (!name) { toast(i18t('tl_needs_name'), 'err'); return; }
     try {
+      await tplCatSettled();
       const r = await api('templates/' + t.id, 'PATCH', {
         name, category: tplLibPick('tpllib-m-cat', t.category || 'other'),
-        folder: tplLibPick('tpllib-m-stream', t.folder || '') || null,
+        folder: tplLibPickStream('tpllib-m-stream', t.folder),
         description: document.getElementById('tpllib-m-desc').value.trim(),
       });
       closeModal(); toast(i18t('tl_saved'));
@@ -1272,7 +1304,7 @@ Object.assign(window, { newPaperBlocked, newPaperBlockLine, newPaperBlock, tplLi
   tplFormCommit, tplFormBlankClick,
   TPLLIB_CATEGORIES, TPLLIB_STATUS, templateCategories, tplCategoryName, tplCatSaved,
   addTemplateCategory, renameTemplateCategory, removeTemplateCategory,
-  bindCategorySelect, tplLibWireCatStream, tplLibPick,
+  bindCategorySelect, tplLibWireCatStream, tplLibPick, tplLibPickStream,
   /* The builder's head chips open this same box (24 Sep 2026). */
   tplLibMetaModal,
 });

@@ -225,7 +225,16 @@ describe('f332 (3) the number the document will print', () => {
        printed verbatim by templateFormDocHtml, which derives no number for it
        (f376 (1)), so the paper derives none either — the same rule, one more
        case of "the document numbers itself". */
-    assert.match(TB, /const clauseNo = \(n === 1 \|\| own \|\| tbRich\(b\)\) \? '' : String\(n - 1\) \+ '\.'/,
+    /* RE-POINTED IN PLACE, 24 Sep 2026: which line is the TITLE is now a
+       reading too (tplFormHeads) — a template written in HaTi is titled by
+       its name, and "Parties" is section 1, where the paper counted from the
+       second heading and the contract printed "Parties" as its title. The
+       paper takes the number from that plan; the old reading stays only as
+       the answer on a stage without js/templateform.js. The claim is what it
+       was: the paper draws the number the document will print. */
+    assert.match(TB, /const plan = typeof tplFormHeads === 'function' \? tplFormHeads\(_tb\.blocks, t\.name, t\.origin\) : null;/,
+      'the paper asks the renderer\'s own plan');
+    assert.match(TB, /const clauseNo = mk \? mk\.no : \(\(n === 1 \|\| own \|\| tbRich\(b\)\) \? '' : String\(n - 1\) \+ '\.'\);/,
       'and it draws the number the document will print, not the position in the list');
   });
 });

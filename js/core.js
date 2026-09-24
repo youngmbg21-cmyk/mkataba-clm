@@ -4696,6 +4696,10 @@ function buildSharePayload(c, docHash, who, opts){
       templateForm:c.templateForm?{ templateId:c.templateForm.templateId,
         templateVersionId:c.templateForm.templateVersionId,
         templateName:c.templateForm.templateName, versionNumber:c.templateForm.versionNumber,
+        /* Which line is the title (tplFormHeads): without it their page
+           would draw a template written here with its first section as the
+           title the moment they filled a field, and ours with its name. */
+        templateOrigin:c.templateForm.templateOrigin,
         blocks:c.templateForm.blocks, fields:c.templateForm.fields,
         values:{...(c.templateForm.values||{})} }:undefined,
       /* The design travels with the words: a snapshot on the contract wins
