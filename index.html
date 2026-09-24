@@ -3988,24 +3988,69 @@
      WHO did it without wrapping. .hist-grid and .hist-rail are STALE; flag any
      mention. The rail's vertical line went with the two-column layout: it was
      threading 21px ringed glyphs together, and at 8px in a ruled table the rows
-     are already a list. */
+     are already a list.
+     THE LINE IS BACK (Young ruled 24 Sep 2026, over the "HaTi — Production
+     Polish" canvas: "the line attaching the history and rounds"). What the
+     August note got right is kept: a line threading SOLID dots through a RULED
+     table is two ways of saying "a list" at once. So the rules across the page
+     go, and the line comes back with the RING it was drawn for — the canvas's
+     own 13px hollow disc, whose middle is the page's surface so the line passes
+     behind it. The numbers are the canvas's (110 · 14 · 16 · 13 · 44); the side
+     inset stays the head's own --s-4 so the day lines up under "History". */
   .hist-head{ display:flex; align-items:center; gap:10px; flex-wrap:wrap;
     padding:10px var(--s-4); border-bottom:1px solid var(--color-divider); }
   .hist-cap{ font-size:var(--t-label); color:var(--color-neutral-600); }
   /* THE ROW IS THE DESIGN'S: a fixed time column, the kind as a dot, the event
-     over its actor, and the round at the right wall. Ruled edge to edge, which
-     is why the pane carries no padding of its own. */
-  .hist-ev{ display:flex; gap:14px; align-items:flex-start;
-    padding:11px var(--s-4); border-bottom:1px solid var(--rule); }
-  .hist-ev:last-child{ border-bottom:0; }
+     over its actor, and the round at the right wall. Edge to edge, which is why
+     the pane carries no padding of its own — and since 24 Sep 2026 UNRULED:
+     the line down the rings is what joins one entry to the next.
+     ONE SET OF NUMBERS, SAID ONCE ON THE TRAIL, so the line and the ring cannot
+     drift apart: the line's left edge and its two ends are worked out from the
+     same four the grid and the ring are built from. */
+  .hist-trail{ --hist-when-w:110px; --hist-gap:var(--s-4); --hist-dot:13px; --hist-pad-y:13px;
+    --hist-dot-top:4px;
+    --hist-dot-mid:calc(var(--hist-pad-y) + var(--hist-dot-top) + var(--hist-dot) / 2);
+    position:relative; padding:6px 0 8px; }
+  .hist-ev{ position:relative; display:grid; align-items:start; gap:var(--hist-gap);
+    grid-template-columns:var(--hist-when-w) 14px minmax(0,1fr) 44px;
+    padding:var(--hist-pad-y) var(--s-4); }
+  /* The line: one 1px piece per entry, top to bottom, so the pieces meet with
+     no break however tall an entry grows ("Show the wording" included). The
+     first starts at its ring's centre and the last ends at its ring's centre,
+     so the line begins and stops at a ring, never in empty space — and one
+     entry alone draws none. */
+  .hist-ev::before{ content:""; position:absolute; top:0; bottom:0; width:1px;
+    left:calc(var(--s-4) + var(--hist-when-w) + var(--hist-gap) + var(--hist-dot) / 2 - .5px);
+    background:var(--rule); }
+  .hist-trail > .hist-ev:first-child::before{ top:var(--hist-dot-mid); }
+  .hist-trail > .hist-ev:last-child::before{ bottom:calc(100% - var(--hist-dot-mid)); }
   .hist-ev:hover{ background:var(--nav-well); }
-  .hist-when{ flex:none; width:104px; font-size:var(--t-meta); color:var(--color-neutral-600);
-    font-variant-numeric:tabular-nums; line-height:20px; }
-  .hist-dot{ flex:none; width:8px; height:8px; border-radius:50%; margin-top:6px; }
-  .hist-body{ flex:1; min-width:0; }
-  .hist-round{ flex:none; font-size:var(--t-label); color:var(--color-neutral-400);
-    font-variant-numeric:tabular-nums; line-height:20px; }
-  .hist-text{ font-size:var(--t-body); line-height:20px; }
+  /* The day a person would say over the time (histWhen). The canvas's ink-2 and
+     ink-3 are one step darker here, the house rule: a day and a time are facts,
+     and the faintest grey is for an absence. */
+  .hist-when{ display:flex; flex-direction:column; min-width:0;
+    font-size:var(--t-body); line-height:18px; color:var(--color-neutral-600);
+    font-variant-numeric:tabular-nums; }
+  .hist-time{ font-size:var(--t-meta); color:var(--color-neutral-500); }
+  /* THE RING. Its tone is the edge (set on the element by histTone) and its
+     middle is the surface, which is what hides the line behind it; it sits
+     above the line by z-index. On a hovered row the middle takes the row's own
+     wash, or the ring would read as a white coin on a tinted row. */
+  .hist-dot{ position:relative; z-index:1; box-sizing:border-box;
+    width:var(--hist-dot); height:var(--hist-dot); margin-top:var(--hist-dot-top);
+    border-radius:50%; border:2.5px solid var(--color-neutral-400); background:var(--color-surface); }
+  .hist-ev:hover .hist-dot{ background:var(--nav-well); }
+  .hist-body{ min-width:0; }
+  .hist-round{ font-size:var(--t-label); font-weight:var(--w-strong); color:var(--color-neutral-500);
+    font-variant-numeric:tabular-nums; line-height:20px; text-align:right; }
+  /* An entry in no round: the canvas's dash, in the ink this product keeps for
+     an absence. */
+  .hist-round.is-none{ font-weight:var(--w-body); color:var(--color-neutral-400); }
+  /* THE SENTENCE ABOVE THE NAMES IS BLACK (Young ruled 24 Sep 2026). It was
+     already the page's own ink; what made it read grey was 13px at the body
+     weight in a thin face, beside a grey line under it. The label weight is the
+     canvas's own (.row-t, 500) and it is what separates WHAT from WHO. */
+  .hist-text{ font-size:var(--t-body); line-height:20px; color:var(--color-text); font-weight:var(--w-label); }
   .hist-meta{ font-size:var(--t-label); color:var(--color-neutral-500); margin-top:1px; }
   .hist-meta:empty{ display:none; }
   .hist-empty{ padding:22px var(--s-4); font-size:var(--t-meta); color:var(--color-neutral-600); }
