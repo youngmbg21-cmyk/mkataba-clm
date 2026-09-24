@@ -19089,3 +19089,16 @@ Noticed, not fixed
 
 Noticed, not fixed
 - theme-tokens-verify: register--light and register--dark now differ from the baseline by exactly two shades, rgb(124, 58, 237) and rgb(180, 83, 9) — the Marketing and Manufacturing colour bars that only the removed key drew on that file's three-contract book. An owned change, audited as a set (two gone, nothing added); the baseline edit was refused by the session's permission check, so those two lines are still to be taken out of theme-tokens-baseline.json by hand.
+
+## Run 24 Sep 2026 — six off five images
+
+- On the owner's word, sent while the table-foot run was going ("When done, Merge to main then: …"). The table foot was merged first; these six were built after it on the same branch.
+- Built: the Value Stream column is gone from the Contracts and Negotiations tables (the Stream filter and the sort by stream stay; the counterparty took the width); Home's decision card is the graph alone and grows to the bottom of the screen; the X-ray strand's blocks share the strip so it ends where the column ends (16px floor kept — a contract with more marked clauses than fit still scrolls); "Why it matters:" is bold in the X-ray and in the brief panel; the contract page's "Exit focus · Esc" chip and its Esc key stay on the contract page, and focus mode is still on when you come back.
+- Fixed on the way because the change caused it: the Negotiations group headings spanned a literal eight columns, one more than the table now draws — they read the seat's own column count.
+- Gates: lint 0 errors, 213 warnings (unchanged). Full suite 9,101 tests, 2 failed — f277 (1) and (10), red on main with the same checks. f379: 10 of 13 red at the parent. six-off-five-images-verify: 31/31, 17 red at the parent. 22 affected browser files run on both sides: identical to main except where re-pointed; negotiations-door-verify's two "four tabs" checks red on both.
+
+Noticed, not fixed
+- contrast-verify dashboard (light and dark) now fails: the runway's "No clock on these" COUNT (.hm-rw-ncn) is inked in its kind's DOT tone — grey-dot is 2.98:1 on white. The styling is older than this run (the owner's own screenshot shows a grey "40"); the rail now draws on an undated card too, so the census page shows it. Recolouring it (the kind's text shade) is a small change for the owner to approve.
+- theme-tokens-verify: dashboard gains the rail's shades (rgb(140,152,149), rgb(179,38,30), rgb(251,229,227) light; four in dark) and register loses the stream bars (rgb(3,105,161), rgb(46,159,128)) on top of the two the table foot removed. Owned changes, audited as sets; the baseline was not re-recorded (the edit was refused in this session).
+- rowsThatFit (js/app.js) has no caller now that Home's rows are gone; it is kept published.
+- The contract page's focus chip says "Exit focus · Esc" and its hover in hardcoded English (ct_exit_focus_header / ng_exit_focus exist in both books), so a Swedish reader sees English there.

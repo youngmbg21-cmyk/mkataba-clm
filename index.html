@@ -5279,7 +5279,10 @@
   /* MEASURED on a real page: neutral-300 on the spine's neutral-100 ground is
      1.1:1 and the map read as an empty strip. The gray DOT token is what this
      product already uses for "present but quiet". */
-  .doc-xr-seg{position:relative;flex:none;min-height:9px;padding:0;border:0;border-radius:2px;
+  /* A BLOCK'S HEIGHT IS ITS SHARE OF THE STRIP (24 Sep 2026): grow by the
+     clause's weight (--xr-w, from docXraySegH) from a zero basis, never below
+     the pressable floor the builder writes on the block (XR_SEG_MIN). */
+  .doc-xr-seg{position:relative;flex:var(--xr-w,1) 0 0px;min-height:9px;padding:0;border:0;border-radius:2px;
     background:var(--st-gray-dot);cursor:pointer;display:grid;place-items:center;}
   /* THREE GRADES, NEVER FOUR (Young ruled 22 Sep 2026). Ruby is "this could
      hurt you", amber "worth a look before you sign", steel "worth knowing,
@@ -5328,7 +5331,11 @@
      why it is worth a look, on its own line in the label shade. */
   .doc-xr-mt{display:flex;flex-direction:column;gap:2px;min-width:0;}
   .doc-xr-why{color:var(--color-neutral-600);}
-  .doc-xr-why b{color:var(--color-text);font-weight:var(--w-label);}
+  /* THE LEAD-IN IS BOLD (Young ruled 24 Sep 2026: "the why it matters should
+     be in bold font") — the product's bold token, the same one an answered
+     field's value wears. The brief panel's twin (#brief-section .br-why b,
+     js/ai.js) takes the same weight, so the two never disagree. */
+  .doc-xr-why b{color:var(--color-text);font-weight:var(--w-strong);}
   /* ABOUT THIS CONTRACT IS SHADED A VERY LIGHT RED (H, Young ruled 22 Sep
      2026): what could not be tied to one clause is still something to read
      before signing, and the shade sets it apart from the clause's own list.
@@ -5399,6 +5406,22 @@
     .hm-rw-side{flex-basis:100%;border-left:0;padding-left:0;padding-top:10px;
       border-top:1px dashed var(--rule-strong);}
   }
+  /* ---- THE DECISION CARD ENDS WITH THE GRAPH, AND THE GRAPH TAKES THE REST
+     OF THE SCREEN (Young ruled 24 Sep 2026: "end the card with only the graph
+     in it", then "extend the graph to cover the little space left to have a
+     full screen") ----
+     The page is at least the scroller's own height (--view-h, measured by
+     syncViewHeight), the card grows into whatever the rows above it left, and
+     the rail grows inside the card. Where the page is already taller than the
+     screen nothing grows and the page scrolls exactly as before: the rail
+     keeps its 76px as a floor. The rows' separator goes too — the card's own
+     edge is the end now. The dots stay on the baseline; only the washes, the
+     TODAY line and the no-clock column take the new height. */
+  .hm-page{min-height:var(--view-h);}
+  .hm-page>.hm-card.hm-dd{flex:1 0 auto;display:flex;flex-direction:column;}
+  .hm-dd>.hm-rw{flex:1 0 auto;border-bottom:0;}
+  .hm-dd .hm-rw-main{display:flex;flex-direction:column;}
+  .hm-dd .hm-rw-rail{flex:1 0 76px;height:auto;}
   /* ---- AUTO-TRIAGE'S CARD (owner-approved design, 9 Sep 2026) ----
      A row in this same list, in this same vocabulary — so folded it is
      indistinguishable from its neighbours, and open it is the only one that

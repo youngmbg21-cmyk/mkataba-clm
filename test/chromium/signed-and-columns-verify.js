@@ -297,10 +297,14 @@ const check = (name, ok, detail) => {
         grips: document.querySelectorAll('[data-reg-grip]').length };
     });
     if (neg.n) {
-      check('the Negotiations seat draws EIGHT columns and no Signed',
-        neg.n === 8 && !neg.text.some(t => /^Signed$/i.test(t)), JSON.stringify(neg.text));
+      /* RE-POINTED IN PLACE 24 Sep 2026: seven since the value stream column
+         left both seats — asked of the seat's own key list; a grip on every
+         column but the last. */
+      const nk = await page.evaluate(() => REG_COL_KEYS_NEGO.length);
+      check('the Negotiations seat draws its own columns and no Signed',
+        neg.n === nk && !neg.text.some(t => /^Signed$/i.test(t)), JSON.stringify(neg.text));
       check('and no Signed filter either', !neg.filter);
-      check('but its columns are draggable too', neg.grips === 7, String(neg.grips));
+      check('but its columns are draggable too', neg.grips === nk - 1, `${neg.grips} grips for ${nk} columns`);
     } else {
       check('the Negotiations seat could not be reached — reported, not skipped', false, 'no table');
     }

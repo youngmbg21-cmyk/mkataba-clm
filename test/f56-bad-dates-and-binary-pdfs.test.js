@@ -46,7 +46,12 @@ const badContract = (over = {}) => ({
    obligations.js loads first so its export replaces the stub the harness
    supplies — the whole point is to exercise the shipped function. */
 function screens(contracts) {
-  const sb = loadViews(['js/obligations.js', 'js/views/home.js', 'js/views/calendar.js'], {
+  /* js/runway.js JOINS THIS STAGE (24 Sep 2026): Home's decision card is the
+     runway alone since the owner took its rows off ("end the card with only
+     the graph in it"), and a dated decision is a DOT carrying its contract's
+     id — so "is this contract on Home" is asked of the dots, which the
+     product always draws through this module. */
+  const sb = loadViews(['js/obligations.js', 'js/runway.js', 'js/views/home.js', 'js/views/calendar.js'], {
     TEMPLATES: STUB_TEMPLATES, FOLDERS: STUB_FOLDERS,
     state: { contracts, settings: {}, view: 'dashboard',
       serverStats: { total: contracts.length }, shareOverview: {}, shareByContract: {} },

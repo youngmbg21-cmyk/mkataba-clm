@@ -550,8 +550,13 @@ function regBarShown(R){
    share are still cut identically (contracts-page-verify 11d pairs by KEY).
    The row builder emits its cells in the seat's own key order, so a column
    moved here moves on every row. */
-const REG_COL_KEYS      = ['mk','counterparty','stream','stage','move','value','signed','expiry','owner','acts'];
-const REG_COL_KEYS_NEGO = ['mk','counterparty','kind','stream','value','expiry','stage','move'];
+/* ---- NO VALUE STREAM COLUMN ON EITHER SEAT (Young ruled 24 Sep 2026: "Remove
+   the value stream column from both pages as well but not from the filter") ----
+   The Stream FILTER chip stays, and so does sorting by stream — in the sort
+   dropdown, which already offers sorts with no column of their own (risk,
+   title). CELL.stream and its colour tick are deleted, not stubbed. */
+const REG_COL_KEYS      = ['mk','counterparty','stage','move','value','signed','expiry','owner','acts'];
+const REG_COL_KEYS_NEGO = ['mk','counterparty','kind','value','expiry','stage','move'];
 /* THE SIX COLUMNS BOTH SEATS SHARE ARE CUT IDENTICALLY, AND THE COUNTERPARTY
    IS THE COLUMN WITH THE GIVE — the register's own rule since the two lists
    became one renderer, and the reason a reader moving between Contracts and
@@ -595,8 +600,14 @@ const REG_COL_KEYS_NEGO = ['mk','counterparty','kind','stream','value','expiry',
    re-pointing white-band-and-tabs 5d/5e already took on 21 Sep. The leading
    line is the page ink at the label weight and the second is a size down in
    the quiet grey, unchanged; only WHICH FACT each one carries has moved. */
-const REG_COL_W         = [6,26,13,11,7,9,7,13,5,3];
-const REG_COL_W_NEGO    = [6,26,14,13,9,13,11,8];
+/* THE STREAM COLUMN'S 13 POINTS WENT TO THE GIVE COLUMN ON BOTH SEATS (24 Sep
+   2026) — the rule above, run backwards: a column leaving is paid back to the
+   counterparty alone, so the five columns both seats share (mk · counterparty
+   · value · expiry · status) stay cut identically. 26 → 39. A width array
+   stored before this has one entry too many and is ignored (regColWidths), so
+   nobody's table shifts a column left. */
+const REG_COL_W         = [6,39,11,7,9,7,13,5,3];
+const REG_COL_W_NEGO    = [6,39,14,9,13,11,8];
 /* A column may not be dragged to nothing. A PIXEL floor rather than a percent
    one, because 4% is 51px on a laptop and 77px on a wide monitor — the same
    reasoning that made the divider's own limits pixels. Converted against the
@@ -1549,14 +1560,16 @@ function negoMovePillHtml(c){
    is generated during render rather than being a member of the filtered set, so
    the footer's "showing 1–8 of 8" can never count one. */
 function negoBandRowHtml(band, n){
-  /* EIGHT, not nine: a band only ever draws on the Negotiations seat, which
-     is the seat that has no Signed column. */
+  /* THE SEAT'S OWN COUNT, NEVER A LITERAL: a band only ever draws on the
+     Negotiations seat, so it spans REG_COL_KEYS_NEGO. It read a literal 8, and
+     when the stream column left that seat (24 Sep 2026) the band would have
+     spanned one column more than the table draws. */
   /* ---- THE COUNT IS PART OF THE HEADING (21 Sep 2026, Young: the four pages
      must look exactly like the artifact) ---- the reference writes
      "WAITING ON YOU · 3" as one line; HaTi boxed the number in a pill beside
      it, which is a second shape for a fact the words are already carrying.
      Same reading, same element, same class, no box. */
-  return `<tr class="ngl-band" role="presentation"><td role="presentation" colspan="8">
+  return `<tr class="ngl-band" role="presentation"><td role="presentation" colspan="${REG_COL_KEYS_NEGO.length}">
     <div class="ngl-band-in" role="heading" aria-level="3">
       <span class="ngl-band-dot" style="background:${NEGO_BAND_DOT[band.tone]}" aria-hidden="true"></span>
       <span class="ngl-band-k">${esc(band.label)}</span>
@@ -1701,7 +1714,11 @@ function regRowsHtml(cs){
           is what that page is about. On Contracts the same words are on the
           cell's hover above. */
     CELL.kind=neg?`<td class="reg-typecell">${esc(kindRound)}</td>`:'';
-    CELL.stream=`<td style="color:var(--color-neutral-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(regStreamName(c))}"><span style="display:inline-flex;align-items:center;gap:7px;min-width:0;max-width:100%"><span class="reg-tick" style="background:${folderColor(c)}"></span><span style="min-width:0;overflow:hidden;text-overflow:ellipsis">${esc(regStreamName(c)||'—')}</span></span></td>`;
+    /* ---- THE `stream` CELL IS GONE FROM BOTH SEATS (24 Sep 2026) ----
+          Owner-ruled with the filter kept. DELETED RATHER THAN STUBBED, for
+          the `name` column's reason below. regStreamName stays: the sort by
+          stream (in the dropdown) still reads it, and the CSV export keeps
+          its own Folder column. */
     CELL.value=`<td style="text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:var(--w-body);white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}">${val}</td>`;
     CELL.signed=`<td style="white-space:nowrap">${regSignedCell(c)}</td>`;
     CELL.expiry=`<td style="white-space:nowrap"><span class="reg-day" style="color:${renDateColor}">${renDate}</span>${renIn?` <span class="reg-day" style="color:${renColor}">· ${renIn}</span>`:''}</td>`;
@@ -2409,9 +2426,6 @@ function renderRegister(opts){
          added. */
       .reg-table td.reg-cell-menu{overflow:visible;text-overflow:clip}
       .reg-table td > span{vertical-align:middle}
-      /* The tick no longer spans two lines, so it stops stretching and takes a
-         height of its own beside the one line it marks. */
-      .reg-tick{flex:none;width:3px;height:14px;align-self:center}
       /* The stage, as a dot and a word. The dot is the shape a scanned column
          needs; the word is what stops the colour being the only carrier. BOTH
          come from contractStatusDotHtml, which shares its branch with the chip
@@ -2668,7 +2682,6 @@ function renderRegister(opts){
                          sort dropdown, which has carried a sort with no column
                          of its own (`risk`) since it was built. */
                   if(k==='kind') return sortableTh('kind',i18t('reg_col_type_round'));
-                  if(k==='stream') return sortableTh('stream',i18t('reg_value_stream'));
                   if(k==='value') return sortableTh('value',i18t('reg_col_value'),'text-align:right');
                   if(k==='signed') return sortableTh('signed',i18t('reg_col_signed'));
                   if(k==='expiry') return sortableTh('expiry',i18t('reg_col_expiry'));
@@ -2703,7 +2716,9 @@ function renderRegister(opts){
                  The link-state key left this strip earlier for its own reason
                  (the column explains itself on hover); the folder page keeps it.
                  `reg_per_page` and `ngl_no_paging` are STALE, inert in both
-                 books. The Board view's key went the same day — see below. */}
+                 books. The Board view's key went the same day (the Board branch
+                 above), and later that day the stream COLUMN itself went too
+                 (see REG_COL_KEYS) — the Stream filter stays. */}
         </div>
       </section>`}
     </div>

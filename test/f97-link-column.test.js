@@ -97,8 +97,14 @@ describe('F97 — one builder, so the two tables cannot disagree', () => {
        asked for every column to sort, so this heading goes through sortableTh
        — which is the one builder that hands a head its width, its grip, its
        caret and its keyboard reach. Pinned as that RELATION rather than as the
-       markup, which is what has moved three times. */
-    assert.match(reg, /sortableTh\('stream',i18t\('reg_value_stream'\)\)/);
+       markup, which is what has moved three times.
+       ---- REVERSED IN PLACE 24 Sep 2026 (Young: "Remove the value stream
+       column from both pages as well but not from the filter") ----
+       The freed column went to the stream in Aug; the owner has now taken the
+       stream column off both seats. The register draws no stream head; the
+       Stream FILTER stays (f379 pins it). The two builder claims below are
+       about every head and still stand. */
+    assert.ok(!/sortableTh\('stream',/.test(reg), 'the register draws no value-stream head');
     assert.match(reg, /const sortableTh=\(key,label,extra=''\)=>\{[\s\S]{0,400}gripFor\(i\)/);
     assert.match(reg, /const colAt=\(extra=''\)=>\{ const i=_colN\+\+; return `width:\$\{COLW\[i\]\}%/);
   });
@@ -170,13 +176,19 @@ describe('F97 — one builder, so the two tables cannot disagree', () => {
       /* Since 21 Sep 2026 the table's own key list is the count (eleven on
          Contracts, eight on Negotiations), so the expression that reads it is
          the seat's own answer. */
-      assert.ok(v === '8' || v === '${(neg?REG_COL_KEYS_NEGO:REG_COL_KEYS).length}',
+      /* '8' is the FOLDER page's own table (the stream drawer), which is not
+         the register and keeps its eight. */
+      assert.ok(v === '8' || v === '${(neg?REG_COL_KEYS_NEGO:REG_COL_KEYS).length}'
+        || v === '${REG_COL_KEYS_NEGO.length}',
         `a full-width row spans ${v}, which is not a count either table draws`);
     }
-    /* THE BAND ROW IS THE NEGOTIATIONS SEAT'S OWN and stays at eight — it only
-       ever draws there, and that is the seat with no Signed column. */
+    /* THE BAND ROW IS THE NEGOTIATIONS SEAT'S OWN — it only ever draws there.
+       RE-POINTED IN PLACE 24 Sep 2026: it was pinned as a literal eight, and
+       when the owner took the stream column off both seats the literal would
+       have spanned a column the table no longer draws. It reads the seat's own
+       key list now, which is the relation this was always claiming. */
     const band = reg.slice(reg.indexOf('function negoBandRowHtml'));
-    assert.match(band.slice(0, band.indexOf('\n}')), /colspan="8"/);
+    assert.match(band.slice(0, band.indexOf('\n}')), /colspan="\$\{REG_COL_KEYS_NEGO\.length\}"/);
     /* And the register's own empty row follows the seat rather than a number. */
     /* The seat's own key list is the count since 21 Sep 2026. */
     assert.match(reg, /colspan="\$\{\(neg\?REG_COL_KEYS_NEGO:REG_COL_KEYS\)\.length\}"/);

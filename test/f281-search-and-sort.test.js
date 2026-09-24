@@ -234,10 +234,16 @@ describe('f281 (5) — every column that can be ordered has a head that orders i
     const hStart = REG.indexOf("if(k==='mk') return sortableTh('ref'");
     const head = REG.slice(hStart, REG.indexOf('ngl_col_move', hStart) + 80);
     assert.ok(hStart > 0 && head.length > 200, 'the head region is readable');
-    for (const k of ['ref', 'party', 'stream', 'value', 'expiry', 'stage'])
+    for (const k of ['ref', 'party', 'value', 'expiry', 'stage'])
       assert.ok(head.includes(`sortableTh('${k}'`), k + "'s head sorts");
     assert.ok(!head.includes("sortableTh('name'"), 'and the title is a sort without a column');
     assert.ok(win.REG_SORTS.some(s => s.k === 'name'), 'still offered in the dropdown');
+    /* ---- RE-POINTED IN PLACE 24 Sep 2026 (Young: "Remove the value stream
+       column from both pages as well but not from the filter") ----
+       `stream` left the heads as `name` did and joins the sorts with no column
+       of their own: its comparator stays, and the dropdown still offers it. */
+    assert.ok(!head.includes("sortableTh('stream'"), 'the stream is a sort without a column now');
+    assert.ok(win.REG_SORTS.some(s => s.k === 'stream'), 'and it is still offered in the dropdown');
     assert.ok(head.includes("sortableTh('kind'"), "the Negotiations seat's Type column sorts");
   });
 

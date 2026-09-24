@@ -137,16 +137,22 @@ const check = (name, ok, detail) => {
     const cols = await page.evaluate(() => ({
       heads: [...document.querySelectorAll('.reg-table thead th')]
         .map(t => t.textContent.replace(/[▲▼↕⇅]/g, '').trim()),
-      streamCell: (() => { const td = document.querySelectorAll('tr[data-row] td')[3];
-        return td ? td.textContent.trim() : null; })(),
       tick: !!document.querySelector('tr[data-row] .reg-tick'),
+      streamChip: (() => { const s = document.getElementById('reg-type-sel');
+        const chip = s && s.closest('.reg-chip'); if (!chip) return null;
+        const r = chip.getBoundingClientRect(); return { w: Math.round(r.width), opts: s.options.length }; })(),
       linkCells: document.querySelectorAll('tr[data-row] .share-dot, tr[data-row] [data-share-dot]').length,
     }));
-    check('3a the value stream is a column of its own',
-      cols.heads.some(x => /value stream|affärsområde/i.test(x)), cols.heads.join(' · '));
-    check('3b and it is written out on the row, not only ticked',
-      !!cols.streamCell && cols.streamCell !== '—', cols.streamCell);
-    check('3c the 3px tick survives beside the title', cols.tick);
+    /* ---- 3a–3c REVERSED IN PLACE 24 Sep 2026 (Young: "Remove the value
+       stream column from both pages as well but not from the filter") ----
+       They asserted the stream was a column of its own, written out on the
+       row beside a 3px tick. The owner has taken the column off both seats and
+       KEPT the filter, so the claims now say exactly that. */
+    check('3a the value stream is no longer a column',
+      !cols.heads.some(x => /value stream|affärsområde|värdeflöde/i.test(x)), cols.heads.join(' · '));
+    check('3b and no row draws its stream tick', !cols.tick);
+    check('3c CONTROL the Stream filter is still on the bar, with its streams to pick',
+      !!cols.streamChip && cols.streamChip.w > 0 && cols.streamChip.opts > 1, JSON.stringify(cols.streamChip));
     check('3d the LINK column is gone from this table',
       !cols.heads.some(x => /^link$|^länk$/i.test(x)), cols.heads.join(' · '));
 
@@ -600,8 +606,12 @@ const check = (name, ok, detail) => {
       .find(x => /Negotiation/i.test(x.textContent)); b && b.click(); });
     await page.waitForTimeout(2500);
     const nego = await page.evaluate(READ);
-    check('11a the negotiations list draws the same table', !!nego && nego.w.length === 8,
-      nego && nego.w.join(','));
+    /* RE-POINTED IN PLACE 24 Sep 2026: seven since the owner took the value
+       stream column off both seats — asked of the seat's own key list, never a
+       typed count. */
+    const negoCols = await page.evaluate(() => REG_COL_KEYS_NEGO.length);
+    check('11a the negotiations list draws the same table', !!nego && nego.w.length === negoCols,
+      nego && `${nego.w.join(',')} · ${negoCols} keys`);
     check('11b at the same type size as Contracts',
       nego && nego.fs === pages[0].fs, `${nego && nego.fs} vs ${pages[0].fs}`);
     check('11c its columns are fixed too, and it does not scroll sideways',
@@ -616,10 +626,13 @@ const check = (name, ok, detail) => {
        onwards the two lists no longer name the same column — index 5 is Signed
        here and Expiry there. Paired BY KEY off the seat's own column list, so
        the next column added to either seat costs no edit. */
-    const SHARED = ['mk', 'counterparty', 'stream', 'value', 'expiry', 'stage'];
+    /* FIVE SINCE 24 Sep 2026 (Young: "Remove the value stream column from both
+       pages as well but not from the filter") — the stream column left both
+       seats and its width went back to the counterparty on both. */
+    const SHARED = ['mk', 'counterparty', 'value', 'expiry', 'stage'];
     const keys = await page.evaluate(() => [REG_COL_KEYS, REG_COL_KEYS_NEGO]);
     const pair = k => [pages[0].w[keys[0].indexOf(k)], nego && nego.w[keys[1].indexOf(k)]];
-    check('11d and the six columns both tables share are cut identically',
+    check('11d and the five columns both tables share are cut identically',
       nego && SHARED.every(k => { const [a, b] = pair(k); return a != null && a === b; }),
       nego && SHARED.map(k => { const [a, b] = pair(k); return `${k} ${a}/${b}`; }).join(' · '));
 
@@ -952,8 +965,12 @@ const check = (name, ok, detail) => {
     await page.waitForTimeout(700);
     const heads = await page.evaluate(() => [...document.querySelectorAll('.reg-table thead th')]
       .map(th => ({ text: th.textContent.replace(/[▲▼↕]/g, '').trim(), sort: th.getAttribute('data-reg-sort') })));
-    check('18a the reference, counterparty and stream heads all sort now',
-      ['ref', 'party', 'stream'].every(k => heads.some(h => h.sort === k)),
+    /* RE-POINTED IN PLACE 24 Sep 2026: the stream column is gone from both
+       seats (the owner's word, filter kept), so its head is gone with it; the
+       sort by stream is still offered in the Sort dropdown — 18c2 below
+       picks it there. */
+    check('18a the reference and counterparty heads sort, and no stream head is drawn',
+      ['ref', 'party'].every(k => heads.some(h => h.sort === k)) && !heads.some(h => h.sort === 'stream'),
       JSON.stringify(heads.map(h => h.sort)));
     check('18b and the last column, which has no heading, still does not',
       heads.length > 0 && heads[heads.length - 1].sort === null,
@@ -988,7 +1005,7 @@ const check = (name, ok, detail) => {
         .filter(x => x && x !== '—');
       const ordered = (xs, cmp, sign) => xs.every((_, i) => i === 0 || sign * cmp(xs[i - 1], xs[i]) <= 0);
       const out = {};
-      for (const [key, i, cmp] of [['ref', idx('mk'), cmpNat], ['party', idx('counterparty'), cmpTxt], ['stream', idx('stream'), cmpTxt]]){
+      for (const [key, i, cmp] of [['ref', idx('mk'), cmpNat], ['party', idx('counterparty'), cmpTxt]]){
         const head = () => document.querySelector(`[data-reg-sort="${key}"]`);
         if (!head()){ out[key] = { err: 'no head sorts ' + key, n: 0 }; continue; }
         head().click();
@@ -1003,7 +1020,7 @@ const check = (name, ok, detail) => {
       }
       return out;
     });
-    for (const key of ['ref', 'party', 'stream']){
+    for (const key of ['ref', 'party']){
       const p = pressed[key];
       check(`18c ${key}: a press really reorders the column`,
         !p.err && p.n > 1 && p.head[0] !== p.head[1] && p.aria === 'ascending',
@@ -1011,6 +1028,28 @@ const check = (name, ok, detail) => {
       check(`18d ${key}: and each direction is really in that order`,
         !p.err && p.up && p.down, p.err || `up ${p.up} · down ${p.down}`);
     }
+
+    /* 18c2 — THE SORT BY STREAM SURVIVES THE COLUMN. Picked in the Sort
+       dropdown, the way a reader now reaches it, and the painted rows read
+       back in stream order: each row's stream is looked up off its own record
+       (there is no cell to read), compared with this file's own comparator. */
+    const byStream = await page.evaluate(async () => {
+      const sel = document.getElementById('reg-sort');
+      if (!sel || ![...sel.options].some(o => o.value === 'stream')) return { err: 'the dropdown offers no stream sort' };
+      sel.value = 'stream'; sel.dispatchEvent(new Event('change', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 500));
+      const names = [...document.querySelectorAll('tr[data-row]')]
+        .map(r => { const c = getContract(r.getAttribute('data-row')); return c ? regStreamName(c) : ''; })
+        .filter(Boolean);
+      const sign = regState().dir;
+      const ok = names.every((_, i) => i === 0 || sign * names[i - 1].localeCompare(names[i]) <= 0);
+      sel.value = 'updated'; sel.dispatchEvent(new Event('change', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 300));
+      return { n: names.length, ok, first: names[0], last: names[names.length - 1] };
+    });
+    check('18c2 the sort by stream is still there, in the dropdown, and it orders the rows',
+      !byStream.err && byStream.n > 1 && byStream.ok,
+      byStream.err || `${byStream.n} rows · "${byStream.first}" … "${byStream.last}"`);
 
     /* THE HEAD ROW STILL HOLDS ONE LINE. Three carets are three more glyphs on
        a row of fixed percentage widths, and Swedish's words are longer. */

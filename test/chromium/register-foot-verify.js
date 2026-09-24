@@ -123,18 +123,22 @@ const KEYS = `(() => {
       c1 ? c1.showing : 'no foot');
     ok('1g CONTROL the pager is still there on a book of two pages', !!c1 && c1.pagerBtns >= 3,
       c1 ? `${c1.pagerBtns} buttons` : 'no foot');
-    /* The fact the key used to explain is on the row itself: the stream's
-       colour sits beside the stream's own name in its own column. */
-    const rows = await page.evaluate(() => [...document.querySelectorAll('#reg-tbody tr[data-row]')].slice(0, 5)
-      .map(tr => {
-        const bar = [...tr.querySelectorAll('td span span')].find(s => {
+    /* ---- 1h RE-POINTED LATER THE SAME DAY (24 Sep 2026) ----
+       It was a CONTROL: "every row still names its stream beside its colour",
+       the fact the key used to explain. Hours later the owner took the stream
+       COLUMN off both pages too ("Remove the value stream column from both
+       pages as well but not from the filter"), so there is no colour left on a
+       row for any key to explain — asserted as that, beside the filter that
+       stays. */
+    const rows = await page.evaluate(() => ({
+      bars: [...document.querySelectorAll('#reg-tbody tr[data-row]')].slice(0, 5)
+        .filter(tr => [...tr.querySelectorAll('td span')].some(s => {
           const r = s.getBoundingClientRect(); return r.width > 0 && r.width <= 6 && r.height >= 8;
-        });
-        return { bar: !!bar, name: bar ? bar.parentElement.textContent.trim() : '' };
-      }));
-    ok('1h CONTROL every row still names its stream beside its colour',
-      rows.length > 0 && rows.every(r => r.bar && r.name.length > 0),
-      rows.map(r => r.name || '(none)').join(' · '));
+        })).length,
+      filter: !!document.getElementById('reg-type-sel'),
+    }));
+    ok('1h no row draws a stream colour now, and the Stream filter stays',
+      rows.bars === 0 && rows.filter, JSON.stringify(rows));
 
     /* ════════ 2. THE CONTRACTS PAGE'S BOARD ════════
        The same page, drawn as cards. The key used to sit above the columns. */

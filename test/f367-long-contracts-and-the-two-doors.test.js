@@ -113,16 +113,27 @@ describe('f367 (2) Plain English reads a long contract in right-sized pages', ()
 /* ===================== 3 · THE MAP SCROLLS ===================== */
 describe('f367 (3) the X-ray map can be pressed on a long contract', () => {
   const seg = ROOM.slice(ROOM.indexOf('const XR_SEG_MIN'), ROOM.indexOf('function docXraySpineHtml('));
-  test('every block has a height it can be pressed at, growing with its words', () => {
+  /* ---- RE-POINTED IN PLACE 24 Sep 2026 (Young: "make the DNA strand to
+     cover until the bottom of the screen. It should not extend past the
+     length of the screen") ----
+     It pinned a block as a fixed HEIGHT, "never a share of the screen". The
+     owner has now asked for exactly the share: the blocks divide the strip's
+     height between them, weighted by docXraySegH, so the strand ends where the
+     column ends. THE 23 SEP FLOOR IS KEPT — no block below XR_SEG_MIN — and
+     only a contract with more marked clauses than fit at that floor still
+     scrolls, which is the one place the two rulings meet. */
+  test('every block has a floor it can be pressed at, and a weight that grows with its words', () => {
     assert.match(seg, /const XR_SEG_MIN = (\d+), XR_SEG_MAX = (\d+)/);
     const [, mn] = seg.match(/const XR_SEG_MIN = (\d+)/) || [];
     assert.ok(Number(mn) >= 14, 'no block below 14px');
-    assert.match(ROOM, /style="height:\$\{docXraySegH\(x\.words\)\}px"/, 'a height, never a share of the screen');
+    assert.match(ROOM, /style="--xr-w:\$\{docXraySegH\(x\.words\)\};min-height:\$\{XR_SEG_MIN\}px"/,
+      'a share of the strip, weighted by the words, never below the floor');
   });
-  test('the map scrolls on its own, and a block is never squeezed', () => {
+  test('the strand fills its strip, and scrolls only past the floor', () => {
     const rule = INDEX.slice(INDEX.indexOf('.doc-xr-spine{'), INDEX.indexOf('.doc-xr-spine{') + 500);
-    assert.match(rule, /overflow-y:auto;/);
-    assert.match(INDEX, /\.doc-xr-seg\{position:relative;flex:none;/);
+    assert.match(rule, /overflow-y:auto;/, 'the scroll is kept for the one case the floor cannot fit');
+    assert.match(INDEX, /\.doc-xr-seg\{position:relative;flex:var\(--xr-w,1\) 0 0px;/,
+      'a block grows by its weight from a zero basis');
   });
   test('the map follows the paper and keeps its place through a repaint', () => {
     assert.match(ROOM, /function docXrayFollow\(\)/);

@@ -499,12 +499,16 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
     theirAsk(b.byId('MK-1'), 'CHG-1');
     b.win.openNegotiations();
     const heads = b.$$('.reg-table thead th').map(t => t.textContent.replace(/[▲▼↕]/g, '').trim());
-    assert.equal(heads.length, 8);
+    /* RE-POINTED IN PLACE 24 Sep 2026: seven since the owner took the value
+       stream column off both seats — asked as the relation to the seat's own
+       key list, never a typed count, so the next column costs no edit here. */
+    assert.equal(heads.length, b.win.REG_COL_KEYS_NEGO.length);
+    assert.ok(!heads.some(h => /Value stream/i.test(h)), 'no value stream column on this page');
     assert.equal(heads[0], 'MK');
-    /* Seven of the eight are Contracts' own; only the last one differs, and it
-       is a STATE rather than an action. */
-    assert.match(heads[7], /Whose move/i);
-    assert.ok(!/Actions/i.test(heads[7]));
+    /* The last one is a STATE rather than an action. */
+    const last = heads[heads.length - 1];
+    assert.match(last, /Whose move/i);
+    assert.ok(!/Actions/i.test(last));
     /* The row's ⋯ menu and its action link went with the column. */
     assert.equal(b.$$('#reg-tbody [data-menu]').length, 0, 'no row menu on this page');
     assert.equal(b.$$('#reg-tbody .reg-actlink').length, 0);

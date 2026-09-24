@@ -284,7 +284,11 @@ describe('f240 (5) — the rows read at one size and one weight', () => {
       'the reference is still the row’s teal handle, at the rung that clears AA');
     assert.match(rowsFn, /renDateColor/, 'the expiry still carries its urgency colour');
     assert.match(rowsFn, /\$\{renColor\}/, 'and so does the countdown');
-    assert.match(rowsFn, /folderColor\(c\)/, 'the stream tick is untouched');
+    /* REVERSED IN PLACE 24 Sep 2026: the stream tick lived in the stream
+       column, and the owner took that column off both seats ("Remove the value
+       stream column from both pages as well but not from the filter"). The
+       tick went with it — deliberately, not a colour that drifted. */
+    assert.ok(!/folderColor\(c\)/.test(rowsFn), 'the stream tick left the row with its column');
   });
 
   test('the status chip is flattened HERE, never at .badge', () => {
@@ -343,8 +347,12 @@ describe('f240 (5) — the rows read at one size and one weight', () => {
        LITERAL where the claim is that the stream has a column of its own. The
        cell and that column's own sort now share one reading (regStreamName),
        so the literal was the expression rather than the fact. */
-    assert.match(rowsFn, /regStreamName\(c\)/,
-      'and the stream it sat beside is written out in a column');
+    /* ---- REVERSED IN PLACE 24 Sep 2026 (Young: "Remove the value stream
+       column from both pages as well but not from the filter") ----
+       The stream stopped being a column on either seat, so the row builder
+       writes it nowhere; sorting by it and filtering by it both stay. */
+    assert.ok(!/regStreamName\(c\)/.test(rowsFn),
+      'the row no longer writes the stream out — the column is gone');
     /* The height is stated on the CELL, which for a td is a floor rather than a
        cap — content taller than it still expands the row. */
     assert.match(css, /\.reg-table\{--reg-row-h:36px\}/);
