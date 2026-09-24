@@ -35,6 +35,17 @@ function renderWith(contracts, { money = true, shareOverview = {}, kpis = null }
   sb.renderDashboard();
   return sb.document.getElementById('content').innerHTML;
 }
+/* The same render, handing back the sandbox too — the Map's reading is asked
+   directly where a claim is about what it COUNTED (24 Sep 2026). */
+function renderSb(contracts, opts = {}) {
+  const money = opts.money !== false;
+  const sb = loadViews(VIEWS, { canViewValues: () => money,
+    state: { contracts, settings: {}, view: 'dashboard', serverStats: { total: contracts.length },
+      shareOverview: opts.shareOverview || {}, shareByContract: (opts.shareOverview || {}).byContract || {} } });
+  sb.renderDashboard();
+  return { sb, html: sb.document.getElementById('content').innerHTML };
+}
+const liveOf = rows => rows.filter(c => c.status !== 'Declined' && !c.archived).length;
 
 let h, W;
 before(async () => { h = await startHati(); W = await seedWorkspace(h); });
@@ -49,18 +60,27 @@ describe('F3 — the dashboard only ever contains scoped contracts', () => {
 
     assert.deepEqual(mentionsFolderB(html), [], 'a folder-B contract reached the dashboard DOM');
     assert.ok(!html.includes('MK-B1') && !html.includes('MK-B2'), 'a folder-B contract id is in the DOM');
-    // …and the folder-A contracts genuinely rendered, so this is not passing
-    // because nothing rendered at all
-    assert.ok(html.includes('MK-A2'), 'the restricted user\'s own contracts should be on the dashboard');
-    /* The "Key metrics" caption retired with the SAP treatment (20 Aug 2026);
-       the KPI grid itself is the render sentinel now. */
-    assert.ok(html.includes('kpi-grid'), 'the dashboard should have rendered');
+    /* …and the folder-A contracts genuinely rendered, so this is not passing
+       because nothing rendered at all.
+       RE-POINTED IN PLACE 24 Sep 2026: the rows that printed a contract's id
+       ("Needs your decision") left Home on the owner's word, and the Map
+       prints COUNTS. The claim is unchanged and stronger as a number: the head
+       counts exactly the restricted reader's own live book. */
+    assert.ok(html.includes('id="hm-map"'), 'the dashboard should have rendered');
+    const n = liveOf(page.rows);
+    assert.ok(n > 0 && html.includes(n + ' active contract'),
+      'the restricted user\'s own contracts should be counted on the dashboard');
   });
 
   test('the same render for an unrestricted user does contain folder B', async () => {
     const page = await W.unrestricted.json('/api/contracts?limit=200');
     const html = renderWith(page.rows);
-    assert.ok(html.includes('MK-B2'), 'an unrestricted user should still see the whole portfolio');
+    /* RE-POINTED IN PLACE 24 Sep 2026 — see the test above: the Map counts,
+       so the whole portfolio shows up as the whole COUNT. */
+    const mine = await W.restricted.json('/api/contracts?limit=200');
+    const n = liveOf(page.rows);
+    assert.ok(n > liveOf(mine.rows) && html.includes(n + ' active contract'),
+      'an unrestricted user should still see the whole portfolio');
   });
 
   test('every dashboard panel is built from the scoped list', async () => {
@@ -74,15 +94,19 @@ describe('F3 — the dashboard only ever contains scoped contracts', () => {
     /* Contract lifecycle is a tile a reader CHOOSES since 20 Sep 2026 (DECIDE 2
        of the redesign order: the fixed Portfolio row joined the picker), so it
        is asked for the way a person would — through the picker's own store. */
-    const html = renderWith(page.rows, { shareOverview: overview, kpis: ['approvals', 'negotiations', 'lifecycle', 'avgcycle'] });
+    const { sb, html } = renderSb(page.rows, { shareOverview: overview });
     assert.deepEqual(mentionsFolderB(html), []);
-    assert.ok(html.includes('kpi-grid'));   // caption retired with the SAP treatment
-    /* REVERSED IN PLACE 24 Aug 2026. The claim is unchanged — every panel on
-       this page is built from the SCOPED list — only the panels moved: the
-       pipeline card became the Contract lifecycle tile and Decisions due
-       became the "Needs your decision" rows. */
-    assert.ok(html.includes('Contract lifecycle'));
-    assert.ok(html.includes('Needs your decision'));
+    /* REVERSED IN PLACE 24 Aug 2026, and again 24 Sep 2026. The claim is
+       unchanged — every panel on this page is built from the SCOPED list —
+       only the panels moved: the tiles and "Needs your decision" left the
+       desktop Home for the Map (Young's word), so the Map's own reading is
+       what is asked: every contract it counted is one this reader holds. */
+    assert.ok(html.includes('id="hm-map"'));
+    const held = new Set(page.rows.map(c => c.id));
+    const d = sb.hmMapData();
+    const ids = d.months.reduce((a, M) => a.concat(M.ids), []).concat(d.win.ids);
+    assert.ok(ids.every(id => held.has(id)), 'the Map counted a contract outside the reader\'s scope');
+    assert.equal(d.total.n, liveOf(page.rows), 'and its head counts the scoped live book exactly');
   });
 });
 
@@ -98,7 +122,14 @@ describe('F3 — money KPIs are absent, not greyed out, without the right', () =
     // the catalog filters it out before the preference is honoured.
     const html = renderWith(sample(), { money: false, kpis: ['under_mgmt', 'active_value'] });
     assert.ok(!html.includes('Active value'), 'the Active value card must not be rendered');
-    assert.ok(html.includes('Active contracts'), 'the non-money cards are still there');
+    /* RE-POINTED IN PLACE 24 Sep 2026: the desktop draws no tiles any more —
+       the phone's figures list is the ribbon, and it draws off this same
+       catalogue — so the catalogue is what is asked, and the desktop's own
+       Map must offer no Value half either. */
+    const { sb } = renderSb(sample(), { money: false });
+    assert.ok(!sb.kpiCatalogOrder().includes('active_value'), 'the catalogue drops it before a preference is honoured');
+    assert.ok(sb.kpiCatalogOrder().includes('under_mgmt'), 'the non-money cards are still there');
+    assert.ok(!html.includes('data-hm-measure="value"'), 'and the Map offers no Value half');
     /* AND THE MONEY IS GONE FROM THE FIXED ROW TOO. The Portfolio row is not
        the reader's to choose, so a right they do not have has to be answered
        there as well: the lifecycle tile prints the active value and must not
@@ -109,14 +140,20 @@ describe('F3 — money KPIs are absent, not greyed out, without the right', () =
   test('an admin (or anyone with the right) still gets "Active value"', () => {
     // Not in the default four — the redesign leads money-free — but one click
     // away under Customize, which this seeded preference stands in for.
-    const html = renderWith(sample(), { money: true, kpis: ['under_mgmt', 'active_value'] });
-    assert.ok(html.includes('Active value'));
+    /* RE-POINTED IN PLACE 24 Sep 2026 — see above: the catalogue offers it,
+       and the desktop's Map offers the Value half. */
+    const { sb, html } = renderSb(sample(), { money: true });
+    assert.ok(sb.kpiCatalogOrder().includes('active_value'));
+    assert.ok(html.includes('data-hm-measure="value"'));
   });
 
   test('the expiring cards drop the KES exposure delta and say when instead', () => {
-    const withMoney = renderWith(sample(), { money: true, kpis: ['expiring90'] });
+    /* RE-POINTED IN PLACE 24 Sep 2026: the card is drawn by the phone's
+       figures list now, off this same catalogue entry — so the entry is what
+       is asked. */
+    const withMoney = renderSb(sample(), { money: true }).sb.hmDashSlices().KPI_CATALOG.expiring90.delta;
     assert.match(withMoney, /exposure/, 'with the right, the exposure delta is shown');
-    const without = renderWith(sample(), { money: false, kpis: ['expiring90'] });
+    const without = renderSb(sample(), { money: false }).sb.hmDashSlices().KPI_CATALOG.expiring90.delta;
     assert.ok(!without.includes('exposure'), 'the KES exposure delta must go');
     assert.match(without, /soonest in \d+d|none due/, 'the card should say when, not how much');
   });
@@ -141,12 +178,14 @@ describe('F3 — money KPIs are absent, not greyed out, without the right', () =
      about survives and is the half that matters — a stage block states a COUNT
      and never a money figure, so a reader without the right cannot read the
      book's value off the stage bars. */
+  /* RE-POINTED IN PLACE 24 Sep 2026: the lifecycle tile's three blocks are
+     the Map's stage bar and legend now. Same claim — a stage states a COUNT
+     and never a money figure to a reader without the right. */
   test('the lifecycle blocks show counts, never money', () => {
-    /* chosen through the picker — see the scoped-list test above (DECIDE 2) */
-    const without = renderWith(sample(), { money: false, kpis: ['approvals', 'negotiations', 'lifecycle', 'avgcycle'] });
-    assert.ok(without.includes('hm-stg'), 'the tile draws its three stage blocks');
-    const tile = without.slice(without.indexOf('hm-life'));
-    assert.ok(!/KES/.test(tile), 'a stage block must not print a money figure');
+    const without = renderWith(sample(), { money: false });
+    assert.ok(without.includes('hm-map-stages'), 'the Map draws its stage bar');
+    const card = without.slice(without.indexOf('id="hm-map"'));
+    assert.ok(!/KES/.test(card), 'a stage must not print a money figure');
   });
 });
 
@@ -187,19 +226,16 @@ describe('F3 — the KPI ribbon holds four, and says so', () => {
       'the first four in the order the reader chose, not a re-pick');
   });
 
-  test('and the ribbon really draws four, not six', () => {
+  /* REVERSED IN PLACE 24 Sep 2026 (Young: the Map takes the tiles' place on
+     the desktop). The desktop draws NO KPI card at all now; the ribbon is the
+     phone's figures list, which draws from currentKpiSel — and the test above
+     pins that a stored six is only ever read as four. */
+  test('and the desktop draws no ribbon at all — the phone reads the capped four', () => {
     const html = renderWith(two(),
       { kpis: ['under_mgmt', 'avgcycle', 'approvals', 'compliance', 'awaiting', 'highrisk'] });
-    const shown = ['Active contracts', 'Avg turnaround time', 'Pending approvals', 'Compliance rating']
-      .filter(w => html.includes(w));
-    assert.equal(shown.length, 4, 'the four that fit: ' + shown.join(', '));
-    /* CLAIM RE-POINTED (20 Aug 2026): the words "High-risk findings" now also
-       title one of the bottom summary cards, which is ALWAYS drawn — so the
-       page text can no longer prove the SIXTH KPI stayed off the ribbon. The
-       KPI cards' own ids can: exactly four, and highrisk not among them. */
-    assert.equal((html.match(/data-kpi-id="/g) || []).length, 4, 'exactly four KPI cards');
-    assert.ok(!html.includes('data-kpi-id="highrisk"'),
-      'the sixth choice reached the ribbon anyway');
+    assert.equal((html.match(/data-kpi-id="/g) || []).length, 0, 'no KPI card on the desktop Home');
+    const phone = fs.readFileSync(path.join(__dirname, '..', 'js/mobile-screens.js'), 'utf8');
+    assert.match(phone, /currentKpiSel\(\)/, 'the phone draws the chosen four');
   });
 
   test('kpiAtMax is the one predicate both pickers ask', () => {
@@ -213,19 +249,25 @@ describe('F3 — the KPI ribbon holds four, and says so', () => {
 
   test('the FLOOR is untouched — one metric is still the minimum', () => {
     const w = sb();
-    /* The ceiling must not have quietly replaced the rule it sits above. */
-    const home = fs.readFileSync(path.join(__dirname, '..', 'js/views/home.js'), 'utf8');
-    assert.match(home, /home_keep_one_metric/, 'the floor still refuses in words');
-    assert.match(home, /home_max_metrics/, 'and so does the ceiling');
+    /* The ceiling must not have quietly replaced the rule it sits above.
+       RE-POINTED IN PLACE 24 Sep 2026: the desktop popover that said these
+       left with the tiles, so the one picker left — the phone's sheet — is
+       where both refusals are asked. */
+    const phone = fs.readFileSync(path.join(__dirname, '..', 'js/mobile-screens.js'), 'utf8');
+    assert.match(phone, /m_keep_one_metric/, 'the floor still refuses in words');
+    assert.match(phone, /m_max_metrics/, 'and so does the ceiling');
     w.setKpiSel(['under_mgmt']);
     assert.deepEqual(w.currentKpiSel(), ['under_mgmt'], 'one is still a legal ribbon');
   });
 
-  test('both shells refuse, and neither keeps its own copy of the number', () => {
+  /* RE-POINTED IN PLACE 24 Sep 2026: ONE SHELL picks now. The desktop
+     popover left with the tiles it chose, and it may not leave a second copy
+     of the rule behind in Home's source either. */
+  test('the one picker refuses, and keeps no copy of the number', () => {
     const home = fs.readFileSync(path.join(__dirname, '..', 'js/views/home.js'), 'utf8');
     const phone = fs.readFileSync(path.join(__dirname, '..', 'js/mobile-screens.js'), 'utf8');
-    assert.match(home, /kpiAtMax\(cur\)&&!cur\.includes\(id\)/,
-      'the desktop popover asks the predicate before it accepts a tick');
+    assert.ok(!/kpiAtMax\(cur\)&&!cur\.includes\(id\)/.test(home),
+      'no desktop picker is left behind to disagree with the phone');
     assert.match(phone, /cur\.length>=max/, 'and the phone sheet refuses too');
     assert.match(phone, /typeof KPI_MAX==='number'/,
       'the phone READS the ceiling; a second copy of 4 is a second thing to change');

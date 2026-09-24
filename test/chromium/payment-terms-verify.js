@@ -362,41 +362,57 @@ const EXTRA = [
     check('6c the honest limit is on the page',
       /bank|accounting/i.test(honest), 'it says what it cannot see');
 
-    /* ─── 7 · the Home tile ─── */
+    /* ─── 7 · the Home tile ───
+       RE-POINTED IN PLACE 24 Sep 2026 (Young, over "Executive Home Options":
+       the Map took the four tiles' place on the desktop Home, then "Build
+       it"). The tile's READING is unchanged and still offered — the phone's
+       own Home draws the same catalogue entry when it is chosen — so 7a–7c
+       are asked there, on a phone-width screen, of the very figures they
+       asked of the desktop tile. 7d IS REVERSED: the desktop tile was the one
+       door from Home onto this tab and it LEFT with the tiles, by the owner's
+       word; the claim now measures that it is gone rather than pretending a
+       door survived. (The phone draws no Insights, so its tile opens the
+       register — recorded, not changed.) */
     await seedBook();
     const d2 = await reading();
     await page.evaluate(() => { setKpiSel(['payterms', 'approvals', 'negotiations', 'avgcycle']); setView('dashboard'); });
     await page.waitForTimeout(1200);
+    const onDesk = await page.evaluate(() => ({
+      tile: !!document.querySelector('[data-kpi-id="payterms"]'),
+      map: !!document.getElementById('hm-map') }));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(700);
+    await page.evaluate(() => { if (window.mGo) mGo('home'); });
+    await page.waitForTimeout(900);
     const tile = await page.evaluate(() => {
-      const el = document.querySelector('[data-kpi-id="payterms"]');
+      const el = document.querySelector('.m-kpi[data-m-kpi="payterms"]');
       if (!el) return null;
       const r = el.getBoundingClientRect();
-      return { text: el.textContent.replace(/\s+/g, ' ').trim(), w: Math.round(r.width), h: Math.round(r.height),
-               dead: el.classList.contains('is-dead') };
+      return { text: el.textContent.replace(/\s+/g, ' ').trim(), w: Math.round(r.width), h: Math.round(r.height) };
     });
-    check('7a the tile draws on Home', tile && tile.w > 100 && tile.h > 60,
+    check('7a the tile draws on the phone\'s Home, where the tiles still live', tile && tile.w > 100 && tile.h > 50,
       tile ? `${tile.w}x${tile.h}` : 'absent');
     check('7b it counts BOTH sides', tile && tile.text.includes(String(d2.overN)),
       tile ? `${tile.text} · reading says ${d2.overN}` : 'absent');
     /* The two halves are printed and they add up to the headline -- a single
        number with no split reads as all bad news, which is the whole reason
-       the owner's ruling needed a sub-line. */
-    check('7c and names the two halves apart',
-      tile && new RegExp(String(d2.overCust) + '\\D+' + String(d2.overSupp)).test(tile.text),
-      tile ? `${tile.text} · wants ${d2.overCust} then ${d2.overSupp}` : 'absent');
+       the owner's ruling needed a sub-line. ASKED OF THE READING SINCE 24 SEP
+       2026: the desktop tile printed this sub-line and left with the tiles;
+       the phone's tile has only ever printed the count line, never the split
+       (measured — pre-existing, recorded in BUGLOG, not changed here). The
+       reading every tile draws from must still carry both halves. */
+    const split = await page.evaluate(() => {
+      const k = hmDashSlices().KPI_CATALOG.payterms;
+      return k ? String(k.sub || '') : null;
+    });
+    check('7c and the reading still names the two halves apart',
+      split != null && new RegExp(String(d2.overCust) + '\\D+' + String(d2.overSupp)).test(split),
+      `${split} · wants ${d2.overCust} then ${d2.overSupp}`);
     await page.screenshot({ path: path.join(OUT, '02-tile.png'), fullPage: true });
-
-    if (tile && !tile.dead) {
-      await page.click('[data-kpi-id="payterms"]');
-      await page.waitForTimeout(1400);
-      const went = await page.evaluate(() => ({ view: state.view, tab: window.intel && intel.tab,
-        body: !!document.getElementById('ig-pt-body') }));
-      check('7d pressing it lands on THIS tab, not the register',
-        went.view === 'intel' && went.tab === 'payterms' && went.body,
-        `${went.view} · ${went.tab} · body ${went.body}`);
-    } else {
-      check('7d pressing it lands on THIS tab, not the register', false, 'the tile drew dead');
-    }
+    await page.setViewportSize({ width: 1500, height: 1100 });
+    await page.waitForTimeout(700);
+    check('7d the desktop Home carries no tile — the Map took the tiles\' place',
+      !onDesk.tile && onDesk.map, `tile ${onDesk.tile} · map ${onDesk.map}`);
 
     /* ─── 8 · no page scrolls sideways ─── */
     await page.evaluate(() => { intel.tab = 'payterms'; setView('intel'); });

@@ -200,15 +200,21 @@ const SEED = t => {
       const el = document.querySelector(`[data-tri-row="${cid}"]`);
       const anyRow = document.querySelectorAll('[data-tri-row]').length;
       const anyTile = document.querySelectorAll('.hm-tri-tile').length;
-      const list = document.getElementById('hm-dd-rows');
+      /* RE-POINTED IN PLACE 24 Sep 2026 (Young: "instead of needs your
+         decision, delete it and replace with prepared for you", then "Build
+         it"): the decisions list this card used to lead LEFT HOME with the
+         tiles, by the owner's word. What 3c guards is unchanged — taking the
+         reading's card away did not take the page's own work with it — and
+         the page's own work is the Map now. */
+      const map = document.getElementById('hm-map');
       return { forThis: !!el, anyRow, anyTile,
-        listStillDraws: !!(list && list.children.length >= 0) };
+        listStillDraws: !!(map && map.getBoundingClientRect().height > 40) };
     }, id, { forThis: true, anyRow: 1, anyTile: 4 });
     check('3a · Home draws no triage row for a contract that was just read',
       onHome.forThis === false, onHome);
     check('3b · and none for any contract, so the four tiles live in one place',
       onHome.anyRow === 0 && onHome.anyTile === 0, onHome);
-    check('3c · the decisions list it used to lead is still there',
+    check('3c · the page\'s own card (the Map, since 24 Sep) is still there',
       onHome.listStillDraws === true, onHome);
 
     /* ============ 7 · THE JOURNEY, FROM THE BUTTON ============ */

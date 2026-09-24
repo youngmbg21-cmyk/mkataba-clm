@@ -312,7 +312,12 @@ describe('f311 (5) — upstream quotes the same number', () => {
   test('the bell\'s signature row and Home\'s decision row read it, light where the record is', () => {
     assert.match(strip(APP), /signReadiness\(c,\{ light:!!\(c\._light&&!c\._loaded\) \}\)\.n/);
     assert.match(strip(HOME), /signReadiness\(c,\{ light:!!\(c\._light&&!c\._loaded\) \}\)\.n/);
-    assert.match(HOME, /home_sign_row/);
+    /* RE-POINTED IN PLACE 24 Sep 2026: Home's decision row left the page with
+       its card (Young: "instead of needs your decision, delete it and replace
+       with prepared for you"). The reading above is hmMySignings' own, and the
+       page that draws it now is Approvals & signing — asked here so the one
+       reading still has its reader. */
+    assert.match(read('js/views/approvalsview.js'), /hmMySignings\(cs\)/);
   });
   test('the words are in both books', () => {
     for (const k of ['sc_ready_head', 'sc_btn_to_settle', 'sc_btn_noted', 'ct_sign_n_to_settle', 'sc_ask_colleague',

@@ -165,7 +165,11 @@ const PROBE = () => {
       const sc = document.getElementById('content-scroll');
       const pg = document.querySelector('.hm-page');
       if (!sc || !pg) return null;
-      const last = document.querySelector('.hm-rows, .hm-empty');
+      /* RE-POINTED IN PLACE 24 Sep 2026: the last thing on Home is Prepared
+         for you when something is prepared, else the Map — the decisions
+         list this used to find LEFT HOME with the tiles (owner-ruled). */
+      const last = document.querySelector('#hm-desk-rows') || document.getElementById('hm-map');
+      const map = document.getElementById('hm-map');
       return {
         sideways: document.documentElement.scrollWidth > document.documentElement.clientWidth,
         /* The last thing on the page has to be reachable — inside the
@@ -173,14 +177,21 @@ const PROBE = () => {
         reachable: !last || Math.round(last.getBoundingClientRect().bottom)
           <= Math.round(sc.getBoundingClientRect().top) + sc.scrollHeight + 2,
         tiles: document.querySelectorAll('.hm-tile').length,
-        kpiMax: window.KPI_MAX,
+        map: !!map,
+        /* A figure is CUT OFF when its box holds less than it draws — the one
+           question only a browser can answer, asked of every figure the Map
+           carries at this laptop's own width. */
+        clipped: map ? [...map.querySelectorAll('.hm-map-fact, .hm-map-legend button')]
+          .filter(el => el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1).length : -1,
       };
     });
     check(`${L.name}: the dashboard never scrolls sideways and nothing is cut off`,
       /* RE-POINTED 21 Sep 2026 (DECIDE 2): the Portfolio row joined the picker,
-         so the page draws KPI_MAX tiles, not eight. */
-      fill && !fill.sideways && fill.reachable && fill.tiles === fill.kpiMax,
-      fill ? `sideways ${fill.sideways} · reachable ${fill.reachable} · ${fill.tiles} tiles` : 'no page');
+         so the page draws KPI_MAX tiles, not eight. RE-POINTED AGAIN 24 Sep
+         2026 (the Map took the tiles' place, owner-ruled): no tiles, the Map
+         drawn, and none of its figures cut off at this width. */
+      fill && !fill.sideways && fill.reachable && fill.tiles === 0 && fill.map && fill.clipped === 0,
+      fill ? `sideways ${fill.sideways} · reachable ${fill.reachable} · ${fill.tiles} tiles · map ${fill.map} · clipped ${fill.clipped}` : 'no page');
     /* And the change list has room for a change. */
     await page.evaluate(() => window.openWorkspace(window.state.contracts[0].id));
     await page.waitForTimeout(400);

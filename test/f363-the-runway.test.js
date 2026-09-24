@@ -242,41 +242,34 @@ describe('f363 (6) the rail’s own arithmetic', () => {
 });
 
 /* ============================================================================
-   7 · THE HOME PAGE HANDS IT RAW FACTS
+   7 · THE CARD LEFT HOME, AND THE READING STAYS WHOLE — REVERSED IN PLACE
    ----------------------------------------------------------------------------
-   The old card's own tag is a PRESENTED string — "37 days", already through
-   i18t and esc. A reading built on that would be reading its own output.
+   Young, 24 Sep 2026: *"instead of needs your decision, delete it and replace
+   with prepared for you"*, then *"Build it"*. The rail sat on that card, so it
+   left with it. WHAT STOOD HERE pinned how Home fed the rail — six sources,
+   each carrying a kind and a raw clock, the quiet desk's timestamp, the rail
+   above the rows, a pin and a count as doors, one number beside a dot. Every
+   one of those was right for the card it was written for, and the reading
+   they fed is untouched: sections 1–6 above still pin js/runway.js whole.
+
+   WHAT HAS TO HOLD NOW is that no half of the rail is left on a page that no
+   longer draws it — a source still carrying `rk`, a handler still answering
+   `rwnone`, a class nothing draws — and that the reading is still there for
+   the day a screen asks for it again.
    ==========================================================================*/
-describe('f363 (7) the card carries the record, not its own words', () => {
-  test('all six sources carry a kind and a clock', () => {
-    ['rk:\'ask\'', 'rk:\'wait\'', 'rk:\'join\'', 'rk:\'sign\'', 'rk:\'renew\'', 'rk:\'idle\'']
-      .forEach(k => assert.ok(HOME_CODE.includes(k), 'a source carries ' + k));
-    assert.equal((HOME_CODE.match(/\brw:\s*\{/g) || []).length, 6,
-      'six sources, six raw clocks');
+describe('f363 (7) the rail left Home with its card, and nothing of it stayed behind', () => {
+  test('no source on Home carries a kind and a clock for a rail that is not drawn', () => {
+    assert.ok(!/\brk:'/.test(HOME_CODE), 'no row source is left carrying a runway kind');
+    assert.ok(!/\brw:\s*\{/.test(HOME_CODE), 'and none carries a raw clock');
   });
-  test('the quiet desk hands over the DAY THEY ASKED, not its working-day count', () => {
-    assert.ok(/rk:'wait',\s*rw:\s*\{\s*since:x\.stale\.since\s*\}/.test(HOME_CODE),
-      'the timestamp travels, so the rail can measure in its own unit');
+  test('no rail markup, no split, no rwnone door', () => {
+    assert.ok(!/hm-rw/.test(HOME_CODE), 'no rail class is drawn');
+    assert.ok(!/rwSplit\(/.test(HOME_CODE), 'the split is not asked');
+    assert.ok(!/rwnone/.test(HOME_CODE), 'and no handler answers a door that is not drawn');
   });
-  test('the rail is above the rows, and the rows are still drawn', () => {
-    assert.ok(/ddRows\s*=\s*ddShown\.length\s*\?\s*rwCard\+`<div class="hm-rows"/.test(HOME_CODE),
-      'the picture leads and the list survives under it');
-  });
-  test('nothing is plotted, nothing is drawn', () => {
-    assert.ok(/if\(!rwSp\|\|!rwSp\.plotted\)\s*return\s*'';/.test(HOME_CODE),
-      'a rail with no dots on it is not built');
-  });
-  test('every dot is a door, and so is every count', () => {
-    assert.ok(/class="hm-rw-pin" data-sel=/.test(HOME_CODE), 'a pin opens its contract');
-    assert.ok(/data-hm-go="rwnone:\$\{esc\(g\.kind\)\}"/.test(HOME_CODE), 'a count opens its list');
-    assert.ok(/kind==='rwnone'/.test(HOME_CODE), 'and the page’s one destination handler answers it');
-  });
-  test('the row and the rail speak ONE number about a quiet desk', () => {
-    assert.ok(/rwSp\.past\.forEach\(r=>\{ if\(r\.kind==='wait'&&r\.it\) r\.it\.tag=/.test(HOME_CODE),
-      'the tag beside a dot is the dot’s own reading');
-  });
-  test('the head counts the three piles off the same split', () => {
-    assert.ok(/rw_sum',\{a:rwSp\.past\.length,b:rwSp\.left\.length,c:rwSp\.none\.length\}/.test(HOME_CODE));
+  test('[wall] the reading itself is kept whole and published', () => {
+    for (const k of ['rwClock', 'rwSplit', 'rwX', 'rwAddWorkingDays'])
+      assert.ok(new RegExp('\\b' + k + '\\b').test(RUNWAY), k + ' is still in the reading');
   });
 });
 
@@ -284,17 +277,18 @@ describe('f363 (7) the card carries the record, not its own words', () => {
    8 · BOTH BOOKS, AND NO KEY DRAWN AS ITS OWN NAME
    ==========================================================================*/
 describe('f363 (8) it speaks both languages', () => {
-  test('every rw_ key the card asks for is in both dictionaries', () => {
+  /* RE-POINTED IN PLACE 24 Sep 2026: the card that asked for the rail's words
+     left Home, so the words asked for are the reading's OWN — the six kinds
+     js/runway.js names — which is what a screen that asks for the rail again
+     will print. */
+  test('every rw_ key the reading names is in both dictionaries', () => {
     const I18N = read('js/i18n.js');
-    /* PLURALITY IS READ OFF THE CALL, never guessed from the key's spelling:
-       i18tn wants _one and _other, i18t wants the key itself. */
-    const asked = new Map();
-    for (const m of HOME_CODE.matchAll(/\b(i18tn?)\('(rw_[a-z_]+)'/g)) asked.set(m[2], m[1]);
-    assert.ok(asked.size >= 6, 'the card asks for a good few');
-    asked.forEach((fn, k) => {
-      (fn === 'i18tn' ? [k + '_one', k + '_other'] : [k]).forEach(kk =>
-        assert.equal((I18N.match(new RegExp('\\b' + kk + ':', 'g')) || []).length, 2,
-          kk + ' is in both books'));
+    const asked = new Set([...RUNWAY.matchAll(/'(rw_[a-z_]+)'/g)].map(m => m[1]));
+    assert.ok(asked.size >= 6, 'the reading names its six kinds');
+    asked.forEach(k => {
+      const n = (I18N.match(new RegExp('\\b' + k + ':', 'g')) || []).length
+        || (I18N.match(new RegExp('\\b' + k + '_one:', 'g')) || []).length;
+      assert.equal(n, 2, k + ' is in both books');
     });
   });
 });

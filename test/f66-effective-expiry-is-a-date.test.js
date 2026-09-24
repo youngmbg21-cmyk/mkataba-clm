@@ -81,9 +81,15 @@ describe('F66 — a hand-typed expiry is a date on every screen that reads it', 
     // number a person acts on — two contracts end this month, not one
     const card = /Expiring[^<]*30[\s\S]{0,400}?tnum[^>]*>([\d,]+)</.exec(html)
       || /30 days[\s\S]{0,600}?>(\d+)</.exec(html);
-    assert.ok(html.includes('MK-HUMAN'),
+    /* RE-POINTED IN PLACE 24 Sep 2026: the list that printed these ids left
+       the desktop Home for the Map (Young's word). The attention list is the
+       reading every expiry figure is drawn from — hmDashSlices' own thirty-day
+       bucket, which the phone's "Expiring < 30 days" draws — so it is asked. */
+    assert.ok(html.includes('id="hm-map"'), 'Home rendered');
+    const soon = sb.hmDashSlices().exp30.map(x => x.c.id).join(',');
+    assert.ok(soon.includes('MK-HUMAN'),
       'a contract ending in twenty days belongs on the attention list however its date was typed');
-    assert.ok(html.includes('MK-CLEAN'), 'and the clean one is still there');
+    assert.ok(soon.includes('MK-CLEAN'), 'and the clean one is still there');
     const expiring = sb.agreementsIn(sb.state.contracts)
       .map(c => sb.effectiveExpiry(c)).filter(e => e && sb.daysUntil(e) >= 0 && sb.daysUntil(e) <= 30);
     assert.equal(expiring.length, 2,

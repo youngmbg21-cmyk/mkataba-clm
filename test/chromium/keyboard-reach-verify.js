@@ -125,21 +125,40 @@ async function tabAround(page, sel, n = 25) {
     await page.keyboard.press('Escape'); await pause(300);
   }
 
-  /* ---------- 5 · THE KPI CUSTOMIZER ---------- */
+  /* ---------- 5 · THE MAP'S SWITCH TAKES THE KEYBOARD ----------
+     RE-POINTED IN PLACE 24 Sep 2026 (Young, over "Executive Home Options":
+     the Map, then "Build it"). The KPI customizer this section held to a focus
+     trap LEFT HOME with the four tiles it chose; the phone keeps its own sheet.
+     The fault this section existed for is the same one in a new home: a
+     control whose press REBUILDS the card under it drops focus onto the body,
+     and a keyboard reader is thrown to the top of the page. The Count | Value
+     switch repaints the Map's inside on every press, so the claim is that the
+     pressed half still has focus afterwards — driven with Enter and Space,
+     never read off the markup. */
   await page.evaluate(() => setView('dashboard')); await pause(600);
-  const gear = await page.$('#kpi-customize');
-  if (gear) {
-    await gear.click(); await pause(350);
-    const start = await page.evaluate(inside('#kpi-cust-pop'));
-    check('the KPI customizer takes focus', start.in, start.at);
-    const after = await tabAround(page, '#kpi-cust-pop', 20);
-    check('and Tab stays in it, not out into the drag handles behind', after.in, after.at);
-    await page.keyboard.press('Escape'); await pause(300);
-    const gone = await page.evaluate(() => !document.getElementById('kpi-cust-pop'));
-    check('and Escape shuts it — it had no keyboard way out at all', gone);
-    const back = await page.evaluate(() => document.activeElement && document.activeElement.id);
-    check('and focus goes back to the gear', back === 'kpi-customize', String(back));
-  } else check('the KPI customizer is on the page', false, '#kpi-customize not found');
+  const sw = await page.$('[data-hm-measure="value"]');
+  if (sw) {
+    await sw.focus();
+    await page.keyboard.press('Enter'); await pause(300);
+    const v = await page.evaluate(() => {
+      const a = document.activeElement;
+      return { at: a ? a.getAttribute('data-hm-measure') : null,
+               pressed: (document.querySelector('[data-hm-measure="value"]') || {}).getAttribute
+                 ? document.querySelector('[data-hm-measure="value"]').getAttribute('aria-pressed') : null };
+    });
+    check('Enter on the Map\'s switch really switches it', v.pressed === 'true', JSON.stringify(v));
+    check('and focus stays on the half that was pressed, not the top of the page',
+      v.at === 'value', JSON.stringify(v));
+    await page.keyboard.press('Shift+Tab'); await pause(150);
+    await page.keyboard.press('Space'); await pause(300);
+    const c = await page.evaluate(() => {
+      const a = document.activeElement;
+      return { at: a ? a.getAttribute('data-hm-measure') : null,
+               pressed: document.querySelector('[data-hm-measure="count"]').getAttribute('aria-pressed') };
+    });
+    check('and Shift+Tab then Space walks back to Count, focus kept again',
+      c.pressed === 'true' && c.at === 'count', JSON.stringify(c));
+  } else check('the Map\'s Count | Value switch is on the page', false, '[data-hm-measure] not found');
 
   /* ---------- 6 · confirmDialog ---------- */
   {
@@ -304,42 +323,34 @@ async function tabAround(page, sel, n = 25) {
     check('and it takes the keyboard back on the redlined reading', back === false, String(back));
   }
 
-  /* ---------- 11b · THE KPI ROW REORDERS BY KEYBOARD ---------- */
+  /* ---------- 11b · EVERY DOOR ON THE MAP IS A BUTTON ----------
+     RE-POINTED IN PLACE 24 Sep 2026: the KPI row this section reordered with
+     Alt+Arrow LEFT HOME with the tiles (drag and its keyboard twin went with
+     the thing they moved). What replaces it is asked the way this file asks
+     everything: every figure on the Map that opens a list must be a real
+     button a keyboard reaches, carrying a name a screen reader can say — a
+     bare coloured block with a click handler is exactly what an audit finds —
+     and Enter on one must land where the click lands. */
   await page.evaluate(() => setView('dashboard')); await pause(700);
   {
-    const before = await page.evaluate(() =>
-      [...document.querySelectorAll('[data-kpi-id]')].map(b => b.getAttribute('data-kpi-id')));
-    const hint = await page.evaluate(() => {
-      const t = document.querySelector('[data-kpi-id]');
-      const id = t && t.getAttribute('aria-describedby');
-      const h = id && document.getElementById(id);
-      /* THE CLASS HAS TO EXIST OR THE HINT IS A VISIBLE SENTENCE nobody asked
-         for — the ui-input lesson. Measured, not read off the markup. */
-      const cs = h && getComputedStyle(h);
-      return { described: !!h, text: h ? h.textContent.trim().slice(0, 40) : null,
-               clipped: cs ? (cs.position === 'absolute' && parseFloat(cs.width) <= 2) : null };
-    });
-    check('the cards tell a screen reader they can be reordered',
-      hint.described && !!hint.text, JSON.stringify(hint));
-    check('and that hint is clipped, not drawn — .sr-only really exists',
-      hint.clipped === true, JSON.stringify(hint));
-    const after = await page.evaluate(async () => {
-      const t = document.querySelector('[data-kpi-id]');
-      t.focus();
-      t.dispatchEvent(new KeyboardEvent('keydown',
-        { key: 'ArrowRight', altKey: true, bubbles: true }));
-      await new Promise(r => setTimeout(r, 600));
-      return [...document.querySelectorAll('[data-kpi-id]')].map(b => b.getAttribute('data-kpi-id'));
-    });
-    check('and Alt+Arrow actually moves one — drag was the only way',
-      JSON.stringify(before) !== JSON.stringify(after),
-      `${before.join(',')} -> ${after.join(',')}`);
-    const kept = await page.evaluate(() => {
-      const a = document.activeElement;
-      return a ? a.getAttribute('data-kpi-id') : null;
-    });
-    check('and focus stays on the card that moved, not the top of the page',
-      kept === before[0], String(kept));
+    const doors = await page.evaluate(() => [...document.querySelectorAll('#hm-map [data-hm-map]')].map(el => ({
+      tag: el.tagName.toLowerCase(), tab: el.tabIndex, off: !!el.disabled,
+      name: (el.getAttribute('aria-label') || el.textContent || '').replace(/\s+/g, ' ').trim(),
+      door: el.getAttribute('data-hm-map') })));
+    const bad = doors.filter(d => d.tag !== 'button' || d.tab < 0 || d.off || !d.name);
+    check('every door on the Map is a button a keyboard reaches, with a name',
+      doors.length > 0 && bad.length === 0,
+      bad.length ? JSON.stringify(bad.slice(0, 3)) : `${doors.length} doors`);
+    const col = await page.$('#hm-map .hm-map-col[data-hm-map]');
+    if (col) {
+      await col.focus();
+      await page.keyboard.press('Enter'); await pause(900);
+      const landed = await page.evaluate(() => ({ view: state.view,
+        only: (regState().only && regState().only.ids) ? regState().only.ids.length : 0 }));
+      check('and Enter on a month lands on the register, narrowed to that month',
+        landed.view === 'register' && landed.only > 0, JSON.stringify(landed));
+      await page.evaluate(() => { regState().only = null; });
+    } else check('a month with something ending in it is on the Map', false, 'no live column');
   }
 
   /* ---------- 11c · INSIGHTS' FILTERS TAKE THE KEYBOARD ---------- */

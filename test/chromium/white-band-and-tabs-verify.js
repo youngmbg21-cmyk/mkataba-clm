@@ -321,6 +321,7 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
         cardRule: (() => { const c = document.querySelector('.hm-card .hm-sec');
           return !!c && getComputedStyle(c).borderBottomWidth !== '0px'; })(),
         decide: (typeof i18t === 'function') ? i18t('home_needs_decision') : null,
+        mapTitle: (typeof i18t === 'function') ? i18t('home_map_title') : null,
         tilesX: (() => { const e = document.querySelector('.hm-tile');
           return e ? Math.round(e.getBoundingClientRect().x) : null; })(),
         headX: secs.length ? Math.round(secs[0].querySelector('h2').getBoundingClientRect().x) : null,
@@ -341,9 +342,17 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
        these claims were really about — every heading painted, its act on the
        heading's own line, and the heading starting on the page's own left
        margin — are asked here unchanged. */
-    check('4a every section heading really drew, and Needs your decision closes',
+    /* ---- RE-POINTED IN PLACE 24 Sep 2026 (Young, over "Executive Home
+       Options": "instead of needs your decision, delete it and replace with
+       prepared for you", then "Build it") ---- Needs your decision no longer
+       closes the page: it LEFT HOME, and the Map leads it. What 4a is about is
+       unchanged — every heading that is drawn is painted — and it now also
+       measures the order the owner chose: the Map first, and no heading left
+       for the card that went. */
+    check('4a every section heading really drew, the Map leads, and Needs your decision is gone',
       homeLine.heads.length >= 1 && homeLine.heads.length <= 2
-        && homeLine.heads.every(Boolean) && homeLine.decideTxt === homeLine.decide,
+        && homeLine.heads.every(Boolean) && homeLine.heads[0].txt === homeLine.mapTitle
+        && !homeLine.heads.some(h => h && h.txt === homeLine.decide),
       homeLine.heads.map(h => h && h.txt));
     check('4b each heading sits in a card head that rules itself off',
       homeLine.cardRule, { rule: homeLine.cardRule, span: homeLine.workRule });

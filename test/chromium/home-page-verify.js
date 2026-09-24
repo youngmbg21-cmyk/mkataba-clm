@@ -159,128 +159,144 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     check('2 every white surface is exactly #ffffff, not a shade of one',
       notWhite.length === 0, notWhite.slice(0, 3).join(' | ') || 'all pure');
 
-    /* ================= 3. THE SECTIONS AND THEIR TILES ==================
-       DECIDE 2 of the 20 Sep 2026 redesign order (the owner's own artifact of
-       the Home page, built without the Portfolio row): the page is My work →
-       Prepared for you (only while something IS prepared) → Needs your
-       decision. The four fixed Portfolio tiles did not vanish — they joined
-       the picker, and section 4 below proves the picker offers them. The old
-       claims ("three sections", "four fixed") are REVERSED IN PLACE; their
-       reasoning about one row height and the retired ring stands. */
-    const shape = await page.evaluate(() => ({
-      sections: [...document.querySelectorAll('.hm-sec h2')].map(e => e.textContent.trim()),
-      myWork: i18t('home_my_work'), portfolio: i18t('home_portfolio_sec'), decide: i18t('home_needs_decision'),
-      work: document.querySelectorAll('.hm-tile.is-work').length,
-      port: document.querySelectorAll('.hm-tile.is-port').length,
-      workH: [...document.querySelectorAll('.hm-tile.is-work')].map(e => Math.round(e.getBoundingClientRect().height)),
-      banner: document.querySelectorAll('.hm-banner').length,
-      ring: document.querySelectorAll('.hm-pipe-card, #hm-segs, #hm-ring-row').length,
-    }));
-    /* RE-POINTED IN PLACE 21 Sep 2026 (Young: Home must look exactly like the
-       artifact): the reference draws NO label over the four tiles — they are
-       self-labelled and the row above carries the act that changes them — so
-       "My work" is stale on the face and the first head on the page is now the
-       first CARD's. The claim that matters is unchanged and is the one below:
-       the page ends on Needs your decision, with no Portfolio row between. */
-    check('3 the tiles lead unlabelled and Needs your decision closes, with no Portfolio row between',
-      !shape.sections.includes(shape.myWork)
-        && shape.sections[shape.sections.length - 1] === shape.decide
-        && !shape.sections.includes(shape.portfolio) && shape.sections.length <= 3,
+    /* ================= 3. THE MAP TOOK THE TILES' PLACE =================
+       REVERSED IN PLACE 24 Sep 2026 (Young, over the drawing "Executive Home
+       Options": the Map picked by name, a Count · Value switch, then "instead
+       of needs your decision, delete it and replace with prepared for you",
+       then "Build it"). What stood here pinned four tiles you choose, one row
+       height and "Needs your decision" closing the page; every one of those
+       went with the tiles. The page is the greeting, the Map, and Prepared for
+       you when something is prepared. The retired banner and ring stay proved
+       absent as pixels. */
+    const shape = await page.evaluate(() => {
+      const map = document.getElementById('hm-map'), greet = document.querySelector('.hm-greet');
+      return {
+        sections: [...document.querySelectorAll('.hm-sec h2')].map(e => e.textContent.trim()),
+        title: i18t('home_map_title'), portfolio: i18t('home_portfolio_sec'), decide: i18t('home_needs_decision'),
+        tiles: document.querySelectorAll('.hm-tile').length,
+        choose: !!document.getElementById('kpi-customize'),
+        mapW: map ? Math.round(map.getBoundingClientRect().width) : 0,
+        greetW: greet ? Math.round(greet.getBoundingClientRect().width) : -1,
+        banner: document.querySelectorAll('.hm-banner').length,
+        ring: document.querySelectorAll('.hm-pipe-card, #hm-segs, #hm-ring-row').length,
+      };
+    });
+    check('3 the Map leads, and no decisions card or Portfolio row is left',
+      shape.sections[0] === shape.title && !shape.sections.includes(shape.decide)
+        && !shape.sections.includes(shape.portfolio) && shape.sections.length <= 2,
       shape.sections.join(' · '));
-    check('3 four tiles you choose, and no fixed row',
-      shape.work === 4 && shape.port === 0, `${shape.work} + ${shape.port}`);
-    check('3 and the row is one height, not four',
-      new Set(shape.workH).size === 1, `work ${shape.workH.join('/')}`);
-    /* The two things the design replaced, proved ABSENT as pixels rather than
-       merely unreferenced — a retired class that still draws is not retired. */
+    check('3 no tiles and no "Choose tiles" — the Map took their place',
+      shape.tiles === 0 && !shape.choose, `${shape.tiles} tiles · choose ${shape.choose}`);
+    check('3 and the Map is the whole width of the page, like every Home card',
+      shape.mapW > 600 && Math.abs(shape.mapW - shape.greetW) <= 1, `map ${shape.mapW} · page ${shape.greetW}`);
     check('3 the hero banner and the pipeline ring are gone',
       shape.banner === 0 && shape.ring === 0, `banner ${shape.banner} · ring ${shape.ring}`);
 
-    /* ================= 4. THE FIGURES IN A ROW SIT ON ONE LINE =========== */
-    /* A footnote that wraps to two lines pushes its own figure up, and then
-       four figures in a row sit on four different lines. */
+    /* ================= 4. THE FIGURES SIT ON ONE LINE ====================
+       RE-POINTED IN PLACE 24 Sep 2026: the tiles' figures are the Map's stage
+       figures now, and the same rule holds — three figures in a row sit on
+       one line. THE PICKER'S HALF IS REVERSED: the desktop picker left with
+       the tiles it chose, and the readings it offered are still offered by the
+       phone's own sheet, off the same catalogue — asked here so nothing a
+       person could choose yesterday is unreachable today. */
     const tops = await page.evaluate(() =>
-      [...document.querySelectorAll('.hm-tile.is-work .hm-n')].map(e => Math.round(e.getBoundingClientRect().top)));
-    check('4 the My work figures share one baseline',
-      Math.max(...tops) - Math.min(...tops) <= 1, tops.join(' / '));
-    /* THE PORTFOLIO READINGS ARE IN THE PICKER. The row went; the four
-       readings it carried (lifecycle, under management, import queue, Copilot
-       coverage) are offered as tiles a reader may choose, so nothing a person
-       could read on this page yesterday is unreachable today. Asked of the
-       painted popover, off the catalogue's own ids. */
-    const offered = await page.evaluate(() => {
-      const btn = document.getElementById('kpi-customize');
-      if (!btn) return { open: false, ids: [] };
-      btn.click();
-      const pop = document.getElementById('kpi-cust-pop');
-      const ids = pop ? [...pop.querySelectorAll('[data-kpi-toggle]')].map(e => e.getAttribute('data-kpi-toggle')) : [];
-      const visible = !!pop && pop.getBoundingClientRect().height > 40;
-      if (btn && pop) btn.click();
-      return { open: visible, ids };
-    });
+      [...document.querySelectorAll('.hm-map-lv')].map(e => Math.round(e.getBoundingClientRect().top)));
+    check('4 the stage figures share one baseline',
+      tops.length === 3 && Math.max(...tops) - Math.min(...tops) <= 1, tops.join(' / '));
+    const offered = await page.evaluate(() => (window.kpiCatalogOrder ? kpiCatalogOrder() : []));
     const want = ['lifecycle', 'compliance', 'importq', 'coverage'];
-    check('4 the picker offers the four Portfolio readings as tiles',
-      offered.open && want.every(id => offered.ids.includes(id)),
-      offered.open ? `offers ${offered.ids.length}: missing ${want.filter(id => !offered.ids.includes(id)).join(',') || 'none'}` : 'picker did not open');
+    check('4 the phone\'s picker still offers the four Portfolio readings',
+      want.every(id => offered.includes(id)),
+      `missing ${want.filter(id => !offered.includes(id)).join(',') || 'none'}`);
 
-    /* ================= 5. EVERY TILE IS A DOOR, AND A ZERO IS NOT ======== */
-    const doors = await page.evaluate(() => {
-      const t = [...document.querySelectorAll('.hm-tile')];
-      return t.map(e => ({
-        title: (e.querySelector('.hm-t') || {}).textContent || '',
-        n: (e.querySelector('.hm-n') || {}).textContent || '',
-        dead: e.classList.contains('is-dead'),
-        life: e.classList.contains('is-life'),
-        /* Refused EITHER WAY — see hmTile. A fixed tile is `disabled`; a
-           My-work tile is aria-disabled instead, because it is also the drag
-           handle for reordering and a disabled button fires no drag events. */
-        refused: !!e.disabled || e.getAttribute('aria-disabled') === 'true',
-        draggable: e.getAttribute('draggable') === 'true',
-        arrow: !!e.querySelector('.hm-go'),
-        dest: e.getAttribute('data-hm-go') || '',
-        go: e.getAttribute('data-hm-go') || (e.getAttribute('data-kpi-id') ? 'kpi' : ''),
-      }));
-    });
-    const live = doors.filter(d => !d.dead && !d.life);
-    const dead = doors.filter(d => d.dead);
-    check('5 every live tile carries a destination and an arrow',
-      live.length > 0 && live.every(d => d.go && d.arrow),
-      `${live.length} live: ` + live.map(d => d.title.trim()).join(', '));
-    /* A DOOR ONTO NOTHING IS A DEAD PRESS. The zero still draws — it is true —
-       and the tile is DISABLED rather than merely unpainted, so the browser
-       refuses the press and a keyboard reader is told. */
-    check('5 a tile counting zero is refused and loses its arrow',
-      dead.length > 0 && dead.every(d => d.refused && !d.arrow && !d.dest),
-      `${dead.length} dead: ` + dead.map(d => `${d.title.trim()}=${d.n.trim()}`).join(', '));
-    /* …AND CAN STILL BE MOVED. Disabling a My-work tile would refuse the press
-       and take drag-reorder with it, so a reader could never shift a zero card
-       out of first place. */
-    check('5 but a zero card in My work is still draggable',
-      dead.filter(d => d.draggable).every(d => !d.disabled),
-      dead.filter(d => d.draggable).map(d => d.title.trim()).join(', ') || 'none');
+    /* ================= 5. EVERY FIGURE IS A DOOR, AND A ZERO IS NOT ======
+       RE-POINTED IN PLACE 24 Sep 2026 to the Map's own figures. The rule is
+       unchanged: a figure with something behind it is a door with an arrow,
+       and a zero still draws — it is true — but refuses the press. */
+    const doors = await page.evaluate(() => [...document.querySelectorAll('.hm-map-fact')].map(e => ({
+      label: ((e.querySelector('.hm-map-fl') || {}).textContent || '').trim(),
+      n: ((e.querySelector('.hm-map-ff') || {}).textContent || '').trim(),
+      refused: !!e.disabled, arrow: !!e.querySelector('.hm-map-go'),
+      dest: e.getAttribute('data-hm-map') || '' })));
+    const liveD = doors.filter(d => !d.refused), deadD = doors.filter(d => d.refused);
+    check('5 every side figure with something behind it carries a destination and an arrow',
+      liveD.every(d => d.dest && d.arrow), `${liveD.length} live: ` + liveD.map(d => d.label).join(', '));
+    check('5 a zero is refused and loses its arrow',
+      deadD.every(d => !d.arrow && !d.dest) && doors.length === 3,
+      `${deadD.length} refused: ` + deadD.map(d => `${d.label}=${d.n}`).join(', '));
+    check('5 and nothing on Home is a drag handle any more',
+      (await page.evaluate(() => document.querySelectorAll('#content [draggable="true"]').length)) === 0);
 
     /* ================= 6. THE NUMBER AND THE LIST MUST MATCH ============= */
-    /* The whole rule in one press: Pending approvals says 2, so the list it
-       opens has 2 rows in it. Worked out separately they drift, and then the
-       card is lying. */
+    /* The whole rule in one press, on the Map: three contracts staged to end
+       in one month, the column says three, and the list it opens has three
+       rows in it. Worked out separately they drift, and then the card lies. */
     const promised = await page.evaluate(() => {
-      const t = [...document.querySelectorAll('.hm-tile.is-work')]
-        .find(e => /approval/i.test((e.querySelector('.hm-t') || {}).textContent || ''));
-      if (!t) return null;
-      t.click();
-      return Number(((t.querySelector('.hm-n') || {}).textContent || '').replace(/\D/g, ''));
+      const day = (m, d) => { const t = new Date(); const x = new Date(t.getFullYear(), t.getMonth() + m, d);
+        return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); };
+      const live = state.contracts.filter(c => !c.archived && c.status !== 'Declined').slice(0, 3);
+      /* KEPT, AND PUT BACK AFTER THE PRESS. Four months out with thirty days'
+         notice is inside the renewal window, so these three would otherwise
+         put a renewal on the overnight desk and section 11's CONTROL — an
+         empty desk draws nothing — would be measuring this section's stage. */
+      window.__s6 = live.map(c => ({ c, had: Object.fromEntries(['status', 'parentId', 'expiry', 'metadata']
+        .map(k => [k, Object.prototype.hasOwnProperty.call(c, k) ? { v: c[k] } : null])) }));
+      live.forEach(c => { c.status = 'Signed'; c.parentId = null; c.expiry = day(4, 15);
+        c.metadata = Object.assign({}, c.metadata, { expiryDate: c.expiry, noticePeriodDays: 30 }); });
+      renderDashboard();
+      const col = document.querySelector('[data-hm-map="month:4"]');
+      if (!col) return null;
+      const n = hmMapData().months[4].n;
+      col.click();
+      return n;
     });
     await page.waitForTimeout(1500);
     const landed = await page.evaluate(() => ({
       view: state.view,
       rows: document.querySelectorAll('#reg-body tr[data-row], tr[data-row]').length,
     }));
-    check('6 pressing a tile opens the register',
+    check('6 pressing a month opens the register',
       landed.view === 'register', landed.view);
     check('6 and the list is exactly as long as the number promised',
-      promised != null && landed.rows === promised,
-      `tile said ${promised} · list shows ${landed.rows}`);
+      promised != null && promised > 0 && landed.rows === promised,
+      `column said ${promised} · list shows ${landed.rows}`);
     await page.screenshot({ path: path.join(OUT, '02-door-landed.png') });
+    await page.evaluate(() => {
+      (window.__s6 || []).forEach(({ c, had }) => Object.entries(had).forEach(([k, w]) => {
+        if (w) c[k] = w.v; else delete c[k];
+      }));
+      delete window.__s6;
+      if (window.regState) regState().only = null;
+    });
+
+    /* ---- 6b. A STAGE DOOR, PRESSED AFTER THE NEGOTIATIONS PAGE ----
+       The Negotiations list is the Contracts table on its own seat, with its
+       own filters, and the seat stays set when the reader leaves. A stage door
+       that reads the filters without putting the seat back writes the stage
+       into the Negotiations seat's state and opens a Contracts list that never
+       heard of it — the fault regShowOnly and the shell's search box were both
+       fixed for. The number on the door is the whole book's, so the list it
+       opens must hold exactly that many. */
+    await page.evaluate(() => { if (window.regSetScope) regSetScope('negotiations');
+      const R = regState(); R.stage = 'all'; setView('dashboard'); });
+    await page.waitForTimeout(900);
+    const stageDoor = await page.evaluate(async () => {
+      const b = document.querySelector('#hm-map .hm-map-legend [data-hm-map^="stage:"]');
+      if (!b) return null;
+      const k = b.getAttribute('data-hm-map').split(':')[1];
+      const want = hmMapData().stages.find(s => s.k === k).n;
+      b.click();
+      await new Promise(r => setTimeout(r, 900));
+      return { k, want, view: state.view, scope: window.regScope ? regScope() : null,
+        stage: regState().stage, got: window.regFiltered ? regFiltered().length : -1 };
+    });
+    check('6b a stage door opens the Contracts seat on that stage, whatever page came before',
+      !!stageDoor && stageDoor.view === 'register' && !stageDoor.scope && stageDoor.stage === stageDoor.k,
+      JSON.stringify(stageDoor));
+    check('6b and the list holds exactly the number on the door',
+      !!stageDoor && stageDoor.got === stageDoor.want,
+      stageDoor ? `door said ${stageDoor.want} · list holds ${stageDoor.got}` : 'no stage door');
+    await page.evaluate(() => { const R = regState(); R.stage = 'all'; });
 
     /* ================= 7. THE EMAIL WARNING MOVED TO THE BELL ============ */
     await page.evaluate(() => setView('dashboard'));
@@ -316,7 +332,8 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       const b = document.querySelector('.hm-primary'), c = getComputedStyle(b);
       return { bg: c.backgroundColor, ink: c.color, edge: c.borderTopColor,
         page: getComputedStyle(document.body).backgroundColor,
-        tile: getComputedStyle(document.querySelector('.hm-tile')).backgroundColor };
+        /* RE-POINTED 24 Sep 2026: the tiles left; the Map is the card. */
+        tile: getComputedStyle(document.getElementById('hm-map')).backgroundColor };
     });
     check('8 the one act on the page stays legible at night',
       ratio(dark.ink, dark.bg) >= 4.5, `ink ${ratio(dark.ink, dark.bg)}:1`);
@@ -324,57 +341,45 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
        its fill and the claim is the fill against the page. */
     check('8 and its fill stands off the page',
       ratio(dark.bg, dark.page) >= 3, `fill ${ratio(dark.bg, dark.page)}:1`);
-    check('8 the tiles take the dark surface, not the light one',
+    check('8 the Map takes the dark surface, not the light one',
       dark.tile !== 'rgb(255, 255, 255)' && dark.tile !== dark.page, dark.tile);
     await page.screenshot({ path: path.join(OUT, '04-dark.png') });
     await page.click('#theme-btn');
     await page.waitForTimeout(1000);
 
-    /* ================= 9. THE ROW STACKS RATHER THAN CRUSHING =========== */
-    /* The reference answers nothing under desktop width. These are HaTi's own
-       rules, and what they have to prove is that nothing ever scrolls the page
-       sideways. */
+    /* ================= 9. THE MAP STACKS RATHER THAN CRUSHING =========== */
+    /* RE-POINTED IN PLACE 24 Sep 2026: the tile row became the Map's body —
+       the charts beside the three facts, and the facts under the charts below
+       1100px. What it has to prove is unchanged: nothing ever scrolls the
+       page sideways. */
     for (const w of [1280, 1100, 900]) {
       await page.setViewportSize({ width: w, height: 860 });
       await page.waitForTimeout(700);
       const r = await page.evaluate(() => ({
-        cols: getComputedStyle(document.querySelector('.hm-tiles.is-work')).gridTemplateColumns.split(' ').length,
+        cols: getComputedStyle(document.querySelector('.hm-map-body')).gridTemplateColumns.split(' ').length,
         sideways: document.documentElement.scrollWidth > document.documentElement.clientWidth,
       }));
-      check(`9 ${w}: the tiles fit their row and the page never scrolls sideways`,
-        !r.sideways && r.cols >= 1 && r.cols <= 4, `${r.cols} columns`);
+      check(`9 ${w}: the Map fits and the page never scrolls sideways`,
+        !r.sideways && (w > 1100 ? r.cols === 2 : r.cols === 1), `${r.cols} columns`);
     }
     await page.setViewportSize({ width: 1440, height: 900 });
 
-    /* ============ 10. ONE BOARD, NOT TWO BANDS (owner-asked 26 Aug 2026) ====
-       "Make the cards in the second line have the same height as the cards in
-       the 1st line." They were 141 and 176, two numbers typed 35px apart.
-
-       THE HEIGHT IS PINNED AS A RELATION, NEVER A NUMBER — "every tile is the
-       same height as every other" — so the next time somebody re-measures this
-       page it costs no test edit. That lesson has been paid for four times in
-       this suite already.
-
-       AND THE CLIP CHECK IS THE HALF THAT EARNS ITS PLACE. Matching the rows is
-       one line of CSS; matching them WITHOUT cutting content off is the thing
-       that is easy to get wrong, and the first attempt did — 141 clipped all
-       four Portfolio tiles, including three that look identical to a My work
-       tile. scrollHeight against clientHeight is how a browser answers it, and
-       nothing but a browser can. */
+    /* ============ 10. NOTHING ON THE MAP IS CUT OFF =====================
+       RE-POINTED IN PLACE 24 Sep 2026. The claim this carried — one height
+       for every tile, and no tile clipping its content — is asked of the Map:
+       none of its figures or labels is cut off, at four real widths. The
+       clip check is still the half that earns its place: scrollHeight against
+       clientHeight is how a browser answers it, and nothing else can. */
     for (const w of [1280, 1366, 1440, 1920]) {
       await page.setViewportSize({ width: w, height: 860 });
       await page.waitForTimeout(600);
-      const t = await page.evaluate(() => [...document.querySelectorAll('.hm-tile')].map(el => ({
-        name: (el.querySelector('.hm-t') || {}).textContent || '?',
-        h: Math.round(el.getBoundingClientRect().height),
+      const t = await page.evaluate(() => [...document.querySelectorAll('.hm-map-fact, .hm-map-legend button')].map(el => ({
+        name: (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 30),
         clipped: el.scrollHeight > el.clientHeight + 1,
       })));
-      const heights = [...new Set(t.map(x => x.h))];
-      check(`10 ${w}: both rows are one height`, heights.length === 1,
-        heights.length === 1 ? `${heights[0]}px` : 'heights: ' + heights.join(', '));
-      const clipped = t.filter(x => x.clipped).map(x => x.name.trim());
-      check(`10 ${w}: and no tile has its content cut off`, clipped.length === 0,
-        clipped.length ? 'clipped: ' + clipped.join(', ') : `${t.length} tiles clear`);
+      const clipped = t.filter(x => x.clipped).map(x => x.name);
+      check(`10 ${w}: nothing on the Map has its content cut off`, t.length === 6 && clipped.length === 0,
+        clipped.length ? 'clipped: ' + clipped.join(', ') : `${t.length} figures clear`);
     }
     await page.setViewportSize({ width: 1440, height: 900 });
 
@@ -450,9 +455,8 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
         secTop: (() => { const h = [...document.querySelectorAll('.hm-sec')]
           .find(x => /Prepared for you/i.test((x.querySelector('h2') || {}).textContent || ''));
           return h ? Math.round(h.getBoundingClientRect().top) : null; })(),
-        ddSecTop: (() => { const h = [...document.querySelectorAll('.hm-sec')]
-          .find(x => /Needs your decision|Beslut/i.test((x.querySelector('h2') || {}).textContent || ''));
-          return h ? Math.round(h.getBoundingClientRect().top) : null; })(),
+        mapTop: (() => { const m = document.getElementById('hm-map');
+          return m ? Math.round(m.getBoundingClientRect().top) : null; })(),
         ddTop: dd ? Math.round(dd.getBoundingClientRect().top) : null,
         sub: sec ? ((sec.querySelector('.hm-desk-sub') || {}).textContent || '').trim() : '',
         acts: rows.map(el => [...el.querySelectorAll('[data-desk-act]')]
@@ -477,9 +481,11 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       `${desk.n} · ${desk.kinds.join(', ')} · order ${order.join(', ')}`);
     check('11d and every one of them is visible pixels',
       desk.painted === desk.n && desk.n > 0, `${desk.painted} of ${desk.n} painted`);
-    check('11e the desk sits ABOVE the reader’s own list',
-      desk.secTop != null && desk.ddSecTop != null && desk.secTop < desk.ddSecTop,
-      `desk ${desk.secTop}px · decisions ${desk.ddSecTop}px`);
+    /* REVERSED IN PLACE 24 Sep 2026: the reader's own list left the page, and
+       the owner's drawing puts prepared work UNDER the Map. */
+    check('11e the desk sits BELOW the Map',
+      desk.secTop != null && desk.mapTop != null && desk.secTop > desk.mapTop,
+      `map ${desk.mapTop}px · desk ${desk.secTop}px`);
     /* THE PROMISE THE WHOLE DESK RESTS ON, and no clock time — HaTi does not
        yet work while nobody is watching, so "finished 05:40" would be the page
        inventing a night shift. */
@@ -515,9 +521,12 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
         .some(b => b.getAttribute('data-sel') === id);
       return { inDesk, inDd };
     }, staged ? staged.ren : '');
-    check('11h a renewal the desk prepared is NOT also in Needs your decision',
-      once.inDesk && !once.inDd,
-      `desk ${once.inDesk} · decisions ${once.inDd}`);
+    /* RE-POINTED IN PLACE 24 Sep 2026: the one-door rule was that a contract
+       is LISTED once on this page. The decisions list left, so the desk is the
+       only list; the Map counts and lists nothing. */
+    check('11h a renewal the desk prepared is listed once — the desk is the only list',
+      once.inDesk && !once.inDd && !(await page.evaluate(() => !!document.getElementById('hm-dd-rows'))),
+      `desk ${once.inDesk} · another list ${once.inDd}`);
     /* ---- AND ONE THE CAP HELD BACK IS STILL SOMEWHERE (Young, 9 Sep 2026) ----
        "it says 2 of 9 but does it mean copilot prepared 9 in total and if so,
        where is the rest of the 9?" — and the answer was that the renewals among
@@ -539,8 +548,11 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     check('11h2 a second renewal decision really does qualify for the desk', held.qualifies);
     check('11h3 …the cap keeps it off the desk',
       !held.inDesk, `on the desk: ${held.inDesk}`);
-    check('11h4 …and it is still in Needs your decision, not lost between the two',
-      held.inDd, `in the decisions list: ${held.inDd}`);
+    /* RE-POINTED IN PLACE 24 Sep 2026: "not lost" is now the Map — the
+       contract the cap held back is still COUNTED in the month it ends. */
+    const heldOnMap = await page.evaluate(id => hmMapData().months.some(M => M.ids.includes(id)), staged ? staged.ren2 : '');
+    check('11h4 …and it is still on the Map, in its month, not lost',
+      heldOnMap, `counted on the Map: ${heldOnMap}`);
     /* AND THE CONTROL THAT MAKES THAT CLAIM MEAN SOMETHING. On a quiet book
        "Needs your decision" can be empty, and then "not in the list" is true of
        every contract there is. 11l below dismisses the desk's renewal and
@@ -597,11 +609,12 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     check('11k and the record carries the stamp, so it does not come back',
       away && away.stamped, away ? (away.stampedKeys || []).join(' | ') : '—');
 
-    const moved = await page.evaluate(id =>
-      [...document.querySelectorAll('#hm-dd-rows [data-sel]')]
-        .some(b => b.getAttribute('data-sel') === id), staged ? staged.ren : '');
-    check('11l …and it is in Needs your decision instead — so 11h was a filter, not an empty list',
-      moved === true, `in the decisions list: ${moved}`);
+    /* RE-POINTED IN PLACE 24 Sep 2026: put away from the desk, it is still
+       counted on the Map — putting a row away hides the proposal, never the
+       contract. */
+    const moved = await page.evaluate(id => hmMapData().months.some(M => M.ids.includes(id)), staged ? staged.ren : '');
+    check('11l …and it is still counted on the Map — putting a row away hides nothing else',
+      moved === true, `counted on the Map: ${moved}`);
 
     check('no page errors', errors.length === 0, errors.slice(0, 2).join(' | ') || 'clean');
   } catch (e) {

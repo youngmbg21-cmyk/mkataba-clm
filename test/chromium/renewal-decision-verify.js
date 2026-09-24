@@ -118,7 +118,8 @@ const check = (name, pass, detail) => {
        '4b stamped with the question it answered, so it can lapse',
        '4c one English line on the trail, and the trail is intact',
        '4d the overnight desk stops offering it',
-       '4e Home\'s "Needs your decision" drops it, and with it the bell',
+       '4e the decisions reading the bell rides on drops it',
+       '4e2 and the Map on Home moves it to the "decision made" pile',
        '4f Insights agrees it is decided — no second answer on a second screen',
        '5a the question comes back',
        '5b but nothing is un-recorded, so a mis-press costs nothing',
@@ -188,13 +189,24 @@ const check = (name, pass, detail) => {
         trail: (c.audit || []).length,
         desk: (window.deskItems ? deskItems() : []).filter(x => x.kind === 'renewal' && x.cid === i).length,
         home: (window.hmDashSlices ? hmDashSlices().decisions : []).filter(x => x.c.id === i).length,
+        /* THE MAP (24 Sep 2026) reads the renewal card's own reading of the
+           decision, so an answer moves its contract into the "made" pile of the
+           month its term ends — asked of the reading, not the pixels. */
+        mapMade: window.hmMapData ? hmMapData().months.some(M => M.made.ids.includes(i)) : null,
+        mapDue: window.hmMapData ? hmMapData().months.some(M => M.due.ids.includes(i)) : null,
         insights: window.pfRenewalDecided ? pfRenewalDecided(c) : null };
     }, id);
     check('4a the record carries the answer, the reason and who took it', rec.answer === 'renegotiate' && /price review/.test(rec.why || '') && rec.byId && !!rec.byName, rec.answer);
     check('4b stamped with the question it answered, so it can lapse', rec.stamped === true);
     check('4c one English line on the trail, and the trail is intact', rec.audit === 1 && rec.trail > 1, { audit: rec.audit, trail: rec.trail });
     check('4d the overnight desk stops offering it', rec.desk === 0, rec.desk);
-    check('4e Home\'s "Needs your decision" drops it, and with it the bell', rec.home === 0, rec.home);
+    /* RE-POINTED IN PLACE 24 Sep 2026: "Needs your decision" LEFT HOME on the
+       owner's word; the reading it drew (hmDashSlices().decisions) is kept and
+       is what the bell's renewal rows ride on, so the claim is unchanged and
+       only its name moved. The Map is the new place a renewal shows on Home. */
+    check('4e the decisions reading the bell rides on drops it', rec.home === 0, rec.home);
+    check('4e2 and the Map on Home moves it to the "decision made" pile',
+      rec.mapMade === true && rec.mapDue === false, { made: rec.mapMade, due: rec.mapDue });
     check('4f the Insights renewal-runway panel agrees it is decided', rec.insights === true, rec.insights);
 
     /* ---- 5 · changing the decision asks again without un-recording it ---- */

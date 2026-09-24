@@ -18,6 +18,10 @@
      · with a ceiling, every change is a SWAP, so the journey that matters is
        four presses long and has to be driven end to end.
 
+   SINCE 24 SEP 2026 THE DESKTOP HOME DRAWS NO RIBBON (the Map took its
+   place, owner-ruled), so every claim below about the picker is asked of the
+   one picker left — the phone's sheet — and section 1 measures the reversal.
+
    Screenshots go to test/chromium/shots/kpi-four/.
    Run: node test/chromium/kpi-four-verify.js */
 const fs = require('node:fs');
@@ -78,85 +82,29 @@ const PANEL = `(() => {
     await page.evaluate(() => setView('dashboard'));
     await page.waitForTimeout(1200);
 
-    /* ================= 1. THE RIBBON AND THE PANEL AT FOUR ================ */
-    await page.click('#kpi-customize');
-    await page.waitForTimeout(500);
-    await page.screenshot({ path: path.join(OUT, '01-at-four.png') });
-    const full = await page.evaluate(PANEL);
-
-    check('the ribbon draws four cards', full.tiles === 4, `${full.tiles} cards`);
-    check('and the panel says so before anything is pressed — "4 of 4"',
-      /4/.test(full.count || '') && (full.count || '').split(/\D+/).filter(Boolean).join('/') === '4/4',
-      full.count);
-    check('EVERY UNCHOSEN METRIC IS LOCKED — the ceiling is visible, not discovered',
-      full.lockedOff === full.rows.length - 4 && full.liveOff === 0,
-      `${full.lockedOff} locked · ${full.liveOff} still pressable`);
-    /* Not just disabled: a control that is dead and looks alive is worse than
-       one that refuses, because the reader blames themselves. */
-    check('and a locked row LOOKS locked — dimmed, and not pointing',
-      full.rows.filter(r => !r.on).every(r => r.dim && r.cursor !== 'pointer'),
-      full.rows.filter(r => !r.on).map(r => `${r.id}:${r.dim ? 'dim' : 'BRIGHT'}/${r.cursor}`).slice(0, 3).join(' · '));
-    check('the four that ARE chosen stay pressable — turning one off is the way forward',
-      full.rows.filter(r => r.on).every(r => !r.disabled && r.cursor === 'pointer'),
-      full.on.join(', '));
-    check('and the foot says what to do instead of only refusing',
-      /turn one off/i.test(full.foot), full.foot.slice(0, 70));
-
-    /* ================= 2. A FIFTH CANNOT BE ADDED ========================= */
-    /* FIXTURE CORRECTED 24 Aug 2026, not the claim: the default four changed
-       (approvals · negotiations · expiring90 · avgcycle), so expiring90 is now
-       ON and compliance is the one that is OFF and locked. The test needs a
-       metric that is genuinely locked to press, and this is it. */
-    const tried = await page.evaluate(() => {
-      const b = document.querySelector('[data-kpi-toggle="compliance"]');
-      b.click();                                   // a real press on a locked row
-      return { checked: b.checked };
-    });
-    await page.waitForTimeout(800);
-    const after = await page.evaluate(PANEL);
-    check('2 pressing a locked metric does nothing at all',
-      !tried.checked && after.tiles === 4 && after.sel.length === 4,
-      `checked ${tried.checked} · ${after.tiles} cards · ${after.sel.length} chosen`);
-    check('2 and the four on the ribbon are the four that were there',
-      JSON.stringify(after.on) === JSON.stringify(full.on), after.on.join(', '));
-
-    /* ================= 3. THE SWAP, WHICH IS NOW THE ONLY MOVE ============ */
-    /* With a ceiling, adding is swapping. The panel used to be destroyed by the
-       repaint behind every tick, which made a swap untick → reopen → tick. */
-    /* …and the one turned OFF to free a slot has to be one that is on. */
-    await page.evaluate(() => document.querySelector('[data-kpi-toggle="expiring90"]').click());
-    await page.waitForTimeout(800);
-    const three = await page.evaluate(PANEL);
-    check('3 THE PANEL SURVIVES THE PRESS — it is still open on the same screen',
-      three.open, three.open ? 'open' : 'closed — a swap would take two round trips');
-    check('3 turning one off frees the rest immediately',
-      three.sel.length === 3 && three.lockedOff === 0 && /3/.test(three.count || ''),
-      `${three.sel.length} chosen · ${three.lockedOff} locked · count "${three.count}"`);
-    await page.screenshot({ path: path.join(OUT, '02-room-for-one.png') });
-
-    await page.evaluate(() => document.querySelector('[data-kpi-toggle="compliance"]').click());
-    await page.waitForTimeout(800);
-    const swapped = await page.evaluate(PANEL);
-    check('3 and the new metric goes on, back to four',
-      swapped.sel.length === 4 && swapped.sel.includes('compliance')
-      && !swapped.sel.includes('expiring90') && swapped.tiles === 4,
-      swapped.sel.join(', '));
-    check('3 which locks the rest again — the rule holds after a swap, not only at rest',
-      swapped.lockedOff === swapped.rows.length - 4 && swapped.liveOff === 0,
-      `${swapped.lockedOff} locked`);
-    await page.screenshot({ path: path.join(OUT, '03-swapped.png') });
-
-    /* ================= 4. AN OLD PREFERENCE OF SIX ======================== */
-    const legacy = await page.evaluate(() => {
-      /* Saved before the rule existed, or on another device. */
-      setKpiSel(['under_mgmt', 'avgcycle', 'approvals', 'compliance', 'awaiting', 'highrisk']);
-      renderDashboard();
-      return { shown: currentKpiSel(), tiles: document.querySelectorAll('#kpi-grid > *').length };
-    });
-    check('4 a preference of six draws four, and the first four it named',
-      legacy.tiles === 4 && legacy.shown.length === 4
-      && legacy.shown[0] === 'under_mgmt' && legacy.shown[3] === 'compliance',
-      `${legacy.tiles} cards — ${legacy.shown.join(', ')}`);
+    /* ================= 1. THE DESKTOP HOME HOLDS NO RIBBON ================
+       REVERSED IN PLACE 24 Sep 2026 (Young, over the drawing "Executive Home
+       Options": the Map, a Count · Value switch, then "Build it"). The four
+       tiles and the popover that chose them LEFT THE DESKTOP HOME — the Map
+       took their place — so the ceiling this file exists for is now the rule
+       of ONE picker: the phone's sheet, which reads the same preference
+       through the same functions (currentKpiSel, KPI_MAX, kpiAtMax). What
+       sections 1–4 asked of the popover — a locked row LOOKS locked, the
+       chosen four stay pressable, the swap survives the repaint, an old
+       preference of six draws four — is asked of the sheet below, press for
+       press. What is left here is the reversal itself, measured on the page:
+       no ribbon, no gear, and the Map in their place. */
+    const desk = await page.evaluate(() => ({
+      tiles: document.querySelectorAll('#kpi-grid > *, .hm-tile').length,
+      gear: !!document.getElementById('kpi-customize'),
+      map: !!document.getElementById('hm-map'),
+      cap: typeof KPI_MAX === 'number' ? KPI_MAX : null,
+    }));
+    await page.screenshot({ path: path.join(OUT, '01-desktop-map.png') });
+    check('1 the desktop Home draws no tiles and no picker',
+      desk.tiles === 0 && !desk.gear, `${desk.tiles} tiles · gear ${desk.gear}`);
+    check('1 the Map is drawn in their place', desk.map, desk.map ? 'drawn' : 'absent');
+    check('1 and the ceiling is still ONE published number the phone reads', desk.cap === 4, String(desk.cap));
 
     /* ================= 5. THE PHONE SAYS THE SAME THING =================== */
     const phone = await browser.newContext({ viewport: { width: 390, height: 844 },
@@ -204,6 +152,48 @@ const PANEL = `(() => {
     });
     check('5 and tapping one changes nothing',
       tapped.before === 4 && tapped.after === 4, `${tapped.before} → ${tapped.after}`);
+
+    /* ---- 2–4, RE-POINTED ONTO THE SHEET (24 Sep 2026) ---- */
+    const SHEET = `(() => {
+      const rows = [...document.querySelectorAll('[data-m-kpi-toggle]')].map(b => ({
+        id: b.getAttribute('data-m-kpi-toggle'), dim: Number(getComputedStyle(b).opacity) < 0.7 }));
+      const sel = currentKpiSel(), sheet = document.querySelector('.m-sheet');
+      return { open: !!sheet, sel, rows, dimmed: rows.filter(r => r.dim).length,
+        chosenDim: rows.filter(r => sel.includes(r.id) && r.dim).length,
+        text: (sheet || { textContent: '' }).textContent.replace(/\\s+/g, ' ') };
+    })()`;
+    const rest = await mp.evaluate(SHEET);
+    check('2 the four that ARE chosen stay bright — turning one off is the way forward',
+      rest.sel.length === 4 && rest.chosenDim === 0, `${rest.chosenDim} of the chosen dimmed`);
+    await mp.evaluate(() => document.querySelector('[data-m-kpi-toggle="expiring90"]').click());
+    await mp.waitForTimeout(600);
+    const three = await mp.evaluate(SHEET);
+    check('3 THE SHEET SURVIVES THE PRESS — still open on the same screen',
+      three.open, three.open ? 'open' : 'closed — a swap would take two round trips');
+    check('3 turning one off frees the rest immediately',
+      three.sel.length === 3 && three.dimmed === 0 && /3 of 4/.test(three.text),
+      `${three.sel.length} chosen · ${three.dimmed} dimmed · ${(three.text.match(/\d+ of \d+/) || ['?'])[0]}`);
+    await mp.screenshot({ path: path.join(OUT, '05-phone-room-for-one.png') });
+    await mp.evaluate(() => document.querySelector('[data-m-kpi-toggle="compliance"]').click());
+    await mp.waitForTimeout(600);
+    const swapped = await mp.evaluate(SHEET);
+    check('3 and the new metric goes on, back to four',
+      swapped.sel.length === 4 && swapped.sel.includes('compliance') && !swapped.sel.includes('expiring90'),
+      swapped.sel.join(', '));
+    check('3 which dims the rest again — the rule holds after a swap, not only at rest',
+      swapped.dimmed === swapped.rows.length - 4, `${swapped.dimmed} dimmed of ${swapped.rows.length}`);
+    const legacy = await mp.evaluate(async () => {
+      /* Saved before the rule existed, or on another device. */
+      setKpiSel(['under_mgmt', 'avgcycle', 'approvals', 'compliance', 'awaiting', 'highrisk']);
+      mCloseSheet(); mGo('home');
+      await new Promise(r => setTimeout(r, 600));
+      return { shown: currentKpiSel(), tiles: document.querySelectorAll('.m-kpi').length };
+    });
+    check('4 a preference of six draws four on the phone, and the first four it named',
+      legacy.tiles === 4 && legacy.shown.length === 4
+      && legacy.shown[0] === 'under_mgmt' && legacy.shown[3] === 'compliance',
+      `${legacy.tiles} cards — ${legacy.shown.join(', ')}`);
+    await mp.evaluate(() => { if (window.setKpiSel && window.DEFAULT_KPI_SEL) setKpiSel(DEFAULT_KPI_SEL.slice()); });
     await phone.close();
 
     check('no page errors', errors.length === 0, errors.slice(0, 2).join(' | ') || 'clean');

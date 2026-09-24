@@ -100,94 +100,13 @@ function setKpiSel(arr){ try{ localStorage.setItem(kpiPrefsKey(), JSON.stringify
    phone's figures list, both pickers. A cap applied only where cards are drawn
    would leave the pickers offering a fifth tick that draws nothing. */
 function currentKpiSel(){ const s=getKpiSel(); return (s.length?s:DEFAULT_KPI_SEL.filter(id=>kpiCatalogOrder().includes(id))).slice(0,KPI_MAX); }
-// Non-intrusive popover to toggle which KPI cards appear. Reorder is by dragging
-// the cards themselves; this panel handles show/hide + reset.
-/* THE PANEL STAYS OPEN WHILE YOU WORK IT. A toggle repaints the dashboard, and
-   the popover hangs inside #content — so every tick used to destroy it. That
-   was survivable while a reader could simply ADD a metric; with a ceiling of
-   four, every change is a SWAP, and a swap became untick → reopen → tick.
-   Re-opened against the freshly drawn button rather than kept alive across the
-   repaint, because the node it was anchored to no longer exists. */
-let _kpiPopOff=null;
-function kpiApply(cur){
-  setKpiSel(cur);
-  renderDashboard();
-  const btn=document.getElementById('kpi-customize');
-  if(btn) openKpiCustomizer(btn);
-}
-function openKpiCustomizer(anchor){
-  const prev=document.getElementById('kpi-cust-pop');
-  /* Second click on the gear closes it. The trap hands focus back to whatever
-     opened it, which on this path is the gear the reader has just pressed —
-     so the release runs while the node is still in the document. */
-  if(prev){ if(prev._kpiRelease){ try{ prev._kpiRelease(); }catch(_){} } prev.remove(); return; }
-  /* The outside-press listener from a popover this one replaces. It removes
-     itself on the next document click, but a run of ticks would stack one per
-     tick until then — armed once, dropped here. */
-  if(_kpiPopOff){ document.removeEventListener('click',_kpiPopOff,true); _kpiPopOff=null; }
-  const sel=currentKpiSel();
-  const full=kpiAtMax(sel);
-  const pop=document.createElement('div');
-  pop.id='kpi-cust-pop';
-  pop.style.cssText='position:absolute;z-index:60;top:calc(100% + 6px);right:0;width:252px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:var(--radius);padding:var(--s-2);';
-  /* At four, the rows that cannot be turned on SAY SO before they are pressed —
-     dimmed, not pointing, and carrying the sentence as a tooltip. The ticked
-     four stay live, because turning one off is the way forward. */
-  const row=id=>{
-    const on=sel.includes(id), shut=full&&!on;
-    return `
-    <label ${shut?`title="${esc(i18t('home_max_metrics',{max:KPI_MAX}))}"`:''}
-      style="display:flex;align-items:center;gap:9px;padding:7px var(--s-2);border-radius:var(--radius);font-size:var(--t-body);${
-        shut?'cursor:default;opacity:.45;':'cursor:pointer;'}"${
-        shut?'':` onmouseover="this.style.background='color-mix(in srgb,var(--color-accent) 9%,transparent)'" onmouseout="this.style.background='none'"`}>
-      <input type="checkbox" data-kpi-toggle="${id}" ${on?'checked':''} ${shut?'disabled':''} style="width:15px;height:15px;accent-color:var(--color-accent);flex:none;"/>
-      <span style="flex:1;">${KPI_META[id]}</span>
-    </label>`;
-  };
-  pop.innerHTML=`
-    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:var(--s-2);padding:var(--s-1) var(--s-2) 6px;">
-      <span style="font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);font-weight:var(--w-title);">${i18t('home_show_metrics')}</span>
-      ${''/* The count is the rule, stated without being pressed: a reader who
-             sees "4 of 4" never has to discover the ceiling by hitting it. */}
-      <span id="kpi-cust-count" style="font-size:var(--t-label);font-weight:var(--w-title);font-variant-numeric:tabular-nums;color:${full?'var(--color-accent-700)':'var(--color-neutral-500)'};">${i18t('home_metrics_count',{n:sel.length,max:KPI_MAX})}</span>
-    </div>
-    ${kpiCatalogOrder().map(row).join('')}
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);border-top:1px solid var(--color-divider);margin-top:6px;padding:var(--s-2) var(--s-2) var(--s-1);">
-      <span style="font-size:var(--t-label);color:var(--color-neutral-500);">${full?esc(i18t('home_max_metrics',{max:KPI_MAX})):i18t('home_drag_reorder')}</span>
-      <button data-kpi-reset style="border:0;background:none;color:var(--accent-ink-700);font-weight:var(--w-strong);font-size:var(--t-label);cursor:pointer;padding:0;flex:none;">${i18t('home_reset')}</button>
-    </div>`;
-  anchor.parentElement.style.position='relative';
-  anchor.parentElement.appendChild(pop);
-  /* ---- THE KEYBOARD STAYS IN THE POPOVER, AND ESCAPE SHUTS IT ---- (25 Aug 2026)
-     It had neither. Measured: Tab from the last tick walked into the KPI cards
-     behind it — cards that are also DRAG HANDLES — and the only way to dismiss
-     it was a mouse click somewhere else, which a keyboard reader does not have.
-     kpiApply re-opens this popover against the freshly drawn button on every
-     tick, so the trap is set here, where the element is created, and the two
-     always match; the ways out below each release it. */
-  const popRelease = (typeof window.trapFocus==='function') ? window.trapFocus(pop) : null;
-  const shut = () => {
-    if(popRelease){ try{ popRelease(); }catch(_){} }
-    pop.remove(); document.removeEventListener('keydown', onEsc, true);
-  };
-  const onEsc = e => { if(e.key==='Escape' && pop.isConnected){ e.stopPropagation(); shut(); } };
-  document.addEventListener('keydown', onEsc, true);
-  pop._kpiRelease = shut;
-  pop.querySelectorAll('[data-kpi-toggle]').forEach(cb=>cb.addEventListener('change',()=>{
-    const id=cb.getAttribute('data-kpi-toggle');
-    let cur=currentKpiSel();
-    if(cb.checked){
-      /* The model refuses too, not only the drawing. A disabled box is a
-         statement about pixels; this is the rule. */
-      if(kpiAtMax(cur)&&!cur.includes(id)){ cb.checked=false; toast(i18t('home_max_metrics',{max:KPI_MAX}),'err'); return; }
-      if(!cur.includes(id)) cur.push(id);
-    }
-    else { if(cur.length<=1){ cb.checked=true; toast(i18t('home_keep_one_metric'),'err'); return; } cur=cur.filter(x=>x!==id); }
-    kpiApply(cur);
-  }));
-  pop.querySelector('[data-kpi-reset]')?.addEventListener('click',()=>{ kpiApply(DEFAULT_KPI_SEL.slice()); });
-  setTimeout(()=>{ const onDoc=e=>{ if(!pop.contains(e.target)&&e.target!==anchor&&!anchor.contains(e.target)){ shut(); document.removeEventListener('click',onDoc,true); if(_kpiPopOff===onDoc) _kpiPopOff=null; } }; _kpiPopOff=onDoc; document.addEventListener('click',onDoc,true); },0);
-}
+/* ---- THE DESKTOP PICKER LEFT WITH THE TILES (Young ruled 24 Sep 2026) ----
+   openKpiCustomizer and kpiApply drew the "Choose tiles" popover over Home's
+   four tiles and repainted them on every tick. The Map took the tiles' place
+   on the desktop, so the popover had no button and no tiles to choose — it is
+   deleted rather than left behind as a door onto nothing. THE PHONE'S OWN
+   SHEET IS THE PICKER NOW, and everything it reads stays exactly where it was:
+   KPI_META, KPI_MAX, kpiAtMax, currentKpiSel, setKpiSel, kpiCatalogOrder. */
 /* ---- THE THIRD PLACE A READINESS SIGNAL REACHES THE OWNER ------------------
    The waiting-on-you card on the dashboard, which is the one surface they see
    without opening anything.
@@ -543,10 +462,14 @@ function hmDashSlices(){
     :(arr.length?`soonest in ${arr[0].d}d`:'none due');
   const expSub=arr=>arr.length?`soonest ${arr[0].d===0?'today':'in '+arr[0].d+' days'} · ${esc(arr[0].c.counterparty||arr[0].c.name)}`:'nothing inside the window';
   // avg cycle draft→signed from audit where both stamps exist
-  const cycles=cs.filter(c=>c.status==='Signed').map(c=>{
+  /* THE CONTRACTS THE AVERAGE IS MADE OF travel beside it (24 Sep 2026), so
+     the Map's turnaround door opens exactly those and the number on the door
+     is the list behind it. The arithmetic is unchanged. */
+  const cycleRows=cs.filter(c=>c.status==='Signed').map(c=>{
     const cr=_raised(c), sg=_signed(c);          /* see the note above the KPIs */
-    if(cr!=null&&sg!=null){ const d=(sg-cr)/864e5; return d>0?d:null; } return null;
+    if(cr!=null&&sg!=null){ const d=(sg-cr)/864e5; return d>0?{ id:c.id, d }:null; } return null;
   }).filter(x=>x!=null);
+  const cycles=cycleRows.map(x=>x.d), cycleIds=cycleRows.map(x=>x.id);
   const avgCycle=cycles.length?(cycles.reduce((s,x)=>s+x,0)/cycles.length).toFixed(1)+'d':'—';
 
   // Gradient hero cards — one semantic tone per KPI. The full catalog is keyed
@@ -613,6 +536,9 @@ function hmDashSlices(){
   const obDue=(typeof window.openObligations==='function'
     ? (openObligations(30)||[]) : []).filter(o=>o&&o.days!=null);
   const obLate=obDue.filter(o=>o.days<0).length;
+  /* ONE READING OF WHAT IS OWED, asked by the tile (the phone's figures list)
+     and by the Map's side column — see hmOwed. */
+  const owedW=hmOwed(cs, money);
   const KPI_CATALOG={
     under_mgmt:  {label:KPI_META.under_mgmt,   val:Number(countAll).toLocaleString(jxLocale()),        delta:i18t('home_new_this_week',{n:newThisWeek}),                                    sub:stageSub, grad:G.steel, ic:'building', go:{stage:'all'}},
     /* W2-1: the figure is ONE currency, and where a foreign contract could not
@@ -709,26 +635,7 @@ function hmDashSlices(){
        permission — never a row of dashes. THE DESTINATION IS THE WORKLIST,
        narrowed the way the tile counted. */
     owed: (()=>{
-      const canMoney = (typeof obligationMoneyVisible==='function') ? obligationMoneyVisible() : money;
-      let sum=0, n=0, late=0, left=0;
-      for(const c of cs){
-        for(const o of (Array.isArray(c.obligations)?c.obligations:[])){
-          if(!o) continue;
-          if(typeof obligationIsTheirs==='function' && !obligationIsTheirs(o)) continue;
-          const st=(typeof obState==='function')?obState(o):((o.status==='done')?'done':'open');
-          if(st==='done') continue;
-          const amt=(typeof obligationAmount==='function')?obligationAmount(o):Number(o.amount||0);
-          if(!(amt>0)) continue;
-          n++; if(st==='overdue') late++;
-          if(!canMoney) continue;
-          /* THE OBLIGATION'S MONEY IS THE CONTRACT'S OWN CURRENCY (J-5.2), so
-             it converts through the contract exactly as the contract's value
-             does — and an unconvertible one is LEFT OUT and counted, never
-             summed at par. */
-          const h=(typeof fxHome==='function')?fxHome({ value:amt, metadata:c.metadata }):{v:amt,missing:false};
-          if(h&&h.missing) left++; else sum+=(h&&h.v)||0;
-        }
-      }
+      const { canMoney, sum, n, late, left } = owedW;
       return { label:KPI_META.owed,
         val: canMoney ? fmtMoneyShort(sum) : Number(n).toLocaleString(jxLocale()),
         delta: late?i18tn('home_owed_late',late,{n:late}):i18t('home_all_clear'),
@@ -741,9 +648,372 @@ function hmDashSlices(){
   return { cs, money, m, countAll, valOf, dU, idleOf, STAGE_DEF, stages, expiring, rdd,
     decisions, waitingLongest, fmtDDay, highRisk, awaiting, awaitingCount, me, raisedByMe,
     canApproveSomeStep, myApprovals, newThisWeek, stalled, onExecuted, lapsed, expWithin,
-    exp30, exp60, exp90, expVal, expDelta, expSub, cycles, avgCycle, G, stageSub, live,
+    exp30, exp60, exp90, expVal, expDelta, expSub, cycles, cycleIds, owedW, avgCycle, G, stageSub, live,
     clean, compliancePct, REG_PROFILE, apprMineN, myReviews, myJoinAsks, myStaleDesks, KPI_CATALOG,
     negoLive, negoNeedsMe, importQ, cov, agreementsIn };
+}
+
+/* ---- A CARD HEAD, AT MODULE SCOPE (24 Sep 2026) ----
+   Lifted out of renderDashboard when the Map became its second wearer: a
+   head of title · quiet sub · acts at the right, over the card's own hairline
+   when `card` is set. Prepared for you and the Map ask this one builder, so
+   the two card heads on the page can never drift apart. */
+const hmSecHtml=(title,extra,card)=>`
+    <div class="hm-sec${card?' is-cardh':''}">
+      <h2>${esc(title)}</h2>${card?'':'<span class="hm-rule"></span>'}${extra||''}
+    </div>`;
+
+/* ---- MONEY OWED TO US, ONE READING (24 Sep 2026) ----
+   Lifted out of the "Money owed to us" tile when the Map took its place on
+   the desktop: the tile still draws on the phone's figures list and the Map's
+   side column says the same fact, so the arithmetic lives once.
+
+   WHAT IT COUNTS is obligations that are THEIRS carrying an amount and still
+   outstanding — a promise on the other side, with a figure, that nobody has
+   ticked off. Every figure is BORROWED (obligationAmount, obState,
+   obligationIsTheirs, fxHome). It converts and COUNTS what it left out, and
+   works no money out at all for a reader without the permission. */
+function hmOwed(cs, money){
+  const canMoney = (typeof obligationMoneyVisible==='function') ? obligationMoneyVisible() : money;
+  let sum=0, n=0, late=0, left=0;
+  for(const c of (cs||[])){
+    for(const o of (Array.isArray(c&&c.obligations)?c.obligations:[])){
+      if(!o) continue;
+      if(typeof obligationIsTheirs==='function' && !obligationIsTheirs(o)) continue;
+      const st=(typeof obState==='function')?obState(o):((o.status==='done')?'done':'open');
+      if(st==='done') continue;
+      const amt=(typeof obligationAmount==='function')?obligationAmount(o):Number(o.amount||0);
+      if(!(amt>0)) continue;
+      n++; if(st==='overdue') late++;
+      if(!canMoney) continue;
+      /* THE OBLIGATION'S MONEY IS THE CONTRACT'S OWN CURRENCY (J-5.2), so it
+         converts through the contract exactly as the contract's value does —
+         and an unconvertible one is LEFT OUT and counted, never summed at par. */
+      const h=(typeof fxHome==='function')?fxHome({ value:amt, metadata:c.metadata }):{v:amt,missing:false};
+      if(h&&h.missing) left++; else sum+=(h&&h.v)||0;
+    }
+  }
+  return { n, late, sum, left, canMoney };
+}
+
+/* ============================================================
+   THE MAP — WHERE YOUR CONTRACTS STAND (Young ruled 24 Sep 2026)
+   ============================================================
+   *"give me an idea of how the homepage should look like. It should be
+   executive high level view and not too dense"* → three drawn options, and the
+   owner picked the Map by name. Then: *"it is heavy on the cash side. make it
+   so you have a toggle for review in cash or in quantity as in number of
+   contracts"*, then *"instead of needs your decision, delete it and replace
+   with prepared for you"*, then *"Build it"*. The drawing is the artifact
+   "Executive Home Options".
+
+   IT REPLACES THE FOUR TILES AND "Choose tiles" ON THE DESKTOP, said to the
+   owner before the build. THE CATALOGUE IS NOT DELETED: the phone's figures
+   list reads KPI_META, currentKpiSel and the catalogue's readings, and every
+   one of them is still here.
+
+   COUNTING IS NOT DRAWING — the Insights panels' rule. hmMapData returns plain
+   data and not one character of markup; hmMapInnerHtml draws it and works
+   nothing out, so a figure on this card can never differ between what was
+   counted and what was drawn. EVERY FIGURE IS BORROWED from the reading that
+   already owns it: the stages are hmDashSlices' own, the renewal piles are
+   renewalWindow's (the ONE predicate every renewal nag asks), what could hurt
+   you is the Exposure register's leading row, owed is the owed tile's reading,
+   turnaround is the turnaround tile's.
+
+   MONEY OBEYS canViewValues BY CONSTRUCTION: a reader who may not see values
+   gets no Value half of the switch at all and no money anywhere on the card —
+   never a row of dashes. Every figure that ADDS contracts converts through
+   fxHome, and what could not be converted is COUNTED AND SAID (fx_left_out).
+
+   EVERY FIGURE IS A DOOR, AND THE NUMBER ON THE DOOR IS THE LIST BEHIND IT.
+   A month or the ninety-day window opens the register narrowed to exactly the
+   contracts it counted (regShowOnly with their ids); a stage opens the
+   register on that stage; a zero is not a door. */
+const HM_MAP_MONTHS = 12;
+/* THE MEASURE IS THE READER'S OWN, remembered in this browser only — the same
+   shape as the KPI choice it replaces (per person, per browser, never sent).
+   COUNT AT REST, which is the owner's own complaint turned into the default:
+   the drawing was "heavy on the cash side". */
+function hmMeasureKey(){ const u=(typeof currentUser==='function')&&currentUser(); return 'hati.v1.homeMeasure.'+((u&&u.id)||'anon'); }
+function hmMeasure(money){
+  if(money===false) return 'count';
+  let v=null; try{ v=localStorage.getItem(hmMeasureKey()); }catch(_){ v=null; }
+  return v==='value' ? 'value' : 'count';
+}
+function hmSetMeasure(m){ try{ localStorage.setItem(hmMeasureKey(), m==='value'?'value':'count'); }catch(_){} }
+
+/* THE THREE STAGES THE BAR DRAWS — the live book is exactly these three
+   (STATUS_META has four and the fourth, Declined, is what "live" leaves out),
+   so the three segments add up to the head's own number by construction. */
+const HM_MAP_STAGES = [
+  { k:'Draft',        cls:'is-s1', word:'home_stage_drafting' },
+  { k:'Under Review', cls:'is-s2', word:'home_stage_in_review' },
+  { k:'Signed',       cls:'is-s3', word:'home_stage_executed' },
+];
+
+function hmMapData(sl){
+  const S = sl || hmDashSlices();
+  const money = !!S.money;
+  const cs = S.cs || [];
+  const live = S.live || [];
+
+  const stages = HM_MAP_STAGES.map(d=>{
+    const s=(S.stages||[]).find(x=>x.k===d.k)||{ n:0, val:0 };
+    return { k:d.k, cls:d.cls, word:d.word, n:s.n||0, v:money?(s.val||0):null };
+  });
+  const total = { n:stages.reduce((a,s)=>a+s.n,0),
+                  v:money?stages.reduce((a,s)=>a+(s.v||0),0):null };
+  /* "19 IN NEGOTIATION" IS negoLiveList's OWN, narrowed to the stage it is
+     printed under — a live negotiation on a record in any other stage would
+     make the line claim more than the segment holds. */
+  const nego = (S.negoLive||[]).filter(c=>c&&c.status==='Under Review'&&!c.archived).length;
+  let left = { n:0, codes:[] };
+  if(money && typeof fxMissing==='function'){
+    let m={}; try{ m=fxMissing(live)||{}; }catch(_){ m={}; }
+    const codes=Object.keys(m).sort();
+    left={ n:codes.reduce((a,k)=>a+m[k],0), codes };
+  }
+
+  /* ---- THE NEXT TWELVE MONTHS, FROM THIS ONE ----
+     THE CURRENT MONTH IS COLUMN ZERO, so nothing between today and the first
+     of next month falls off the picture; it counts only from TODAY (an
+     agreement that ended on the 3rd is not coming up for anything).
+     A contract lands on the month its term ENDS, and its pile is the renewal
+     card's own reading of the DECISION: made, due (inside the ninety-day
+     window, or past it and still open) or not due yet. */
+  const today=(typeof todayISO==='function')?todayISO():(()=>{ const d=new Date();
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
+  const t0=new Date(today+'T00:00:00'); const y0=t0.getFullYear(), m0=t0.getMonth();
+  const months=[];
+  for(let i=0;i<HM_MAP_MONTHS;i++){ const d=new Date(y0,m0+i,1);
+    months.push({ i, y:d.getFullYear(), m:d.getMonth(), n:0, v:0, ids:[],
+      made:{n:0,v:0,ids:[]}, due:{n:0,v:0,ids:[]}, later:{n:0,v:0,ids:[]} }); }
+  const winDays=(typeof RENEWAL_WINDOW_DAYS==='number')?RENEWAL_WINDOW_DAYS:90;
+  const win={ d:winDays, n:0, v:0, ids:[] };
+  for(const c of cs){
+    let w=null; try{ w=(typeof renewalWindow==='function')?renewalWindow(c):null; }catch(_){ w=null; }
+    if(!w || !w.expiry) continue;
+    const ed=w.expiresDays; if(ed==null || isNaN(ed) || ed<0) continue;
+    const e=new Date(String(w.expiry)+'T00:00:00'); if(isNaN(e.getTime())) continue;
+    const i=(e.getFullYear()-y0)*12+(e.getMonth()-m0);
+    if(i<0 || i>=HM_MAP_MONTHS) continue;
+    const pile=w.decided?'made':(w.inWindow?'due':'later');
+    let v=0;
+    if(money){ const h=(typeof fxHome==='function')?fxHome(c):{ v:Number(c.value||0), missing:false };
+      v=(h&&!h.missing)?(h.v||0):0; }
+    const M=months[i];
+    M[pile].n++; M[pile].v+=v; M[pile].ids.push(c.id);
+    M.n++; M.v+=v; M.ids.push(c.id);
+    if(ed<=winDays){ win.n++; win.v+=v; win.ids.push(c.id); }
+  }
+  /* WHERE THE WINDOW SITS, as a column and a fraction of it — today to today
+     plus ninety days, measured in days, never rounded to whole months. */
+  const dim=(y,m)=>new Date(y,m+1,0).getDate();
+  const at=d=>({ i:(d.getFullYear()-y0)*12+(d.getMonth()-m0), f:(d.getDate()-1)/dim(d.getFullYear(),d.getMonth()) });
+  const endD=new Date(y0,m0,t0.getDate()+winDays);
+  /* THE BOX STARTS AT THE CURRENT MONTH'S OWN EDGE: that column only ever
+     holds contracts ending from TODAY on (a past day of this month draws
+     nothing), so its whole width is inside the window. The far edge is the
+     ninetieth day itself, which can fall part-way through a month — a bar it
+     crosses holds contracts on both sides of it, and the label's count is the
+     exact one. */
+  win.from={ i:0, f:0 };
+  win.to=at(endD); win.to.f+=1/dim(endD.getFullYear(),endD.getMonth());
+  if(win.to.i>=HM_MAP_MONTHS) win.to={ i:HM_MAP_MONTHS-1, f:1 };
+
+  /* THE BUSIEST TWO MONTHS AFTER THE WINDOW — the wave worth seeing coming.
+     Asked in EACH measure, because a month of many small contracts and a month
+     of two large ones are different answers and the switch shows both. Inside
+     the window the window's own label already speaks, so the bracket starts
+     after it. Nothing ahead at all, nothing drawn. */
+  const busiest=key=>{ let best=null;
+    for(let i=win.to.i+1;i<HM_MAP_MONTHS-1;i++){
+      const a=months[i], b=months[i+1], s=key==='value'?(a.v+b.v):(a.n+b.n);
+      if(s>0 && (!best || s>best.s)) best={ i, s, n:a.n+b.n, v:a.v+b.v };
+    }
+    return best; };
+  const peak={ count:busiest('count'), value:money?busiest('value'):null };
+
+  /* ---- THE SIDE COLUMN ----
+     WHAT COULD HURT YOU IS THE EXPOSURE REGISTER'S LEADING ROW — the same row
+     that page puts first and draws the bar beside — so the door lands on the
+     page already pointing at the fact it printed. Absent where the Insights
+     module is not on the stage; a book with nothing uncapped leads with
+     nothing and says so. */
+  let hurt=null;
+  if(typeof exposureData==='function'){
+    try{ const e=exposureData(); const r=((e&&e.rows)||[]).find(x=>x.k===e.lead)||null;
+      hurt=r?{ k:r.k, title:String(r.title||''), n:r.n||0, v:money?r.value:null }:{ k:null, n:0 }; }catch(_){ hurt=null; }
+  }
+  const owed = S.owedW || (typeof hmOwed==='function' ? hmOwed(cs, money) : { n:0, late:0, sum:0, left:0, canMoney:false });
+  /* TURNAROUND IS THE TILE'S OWN AVERAGE, and its door opens exactly the
+     contracts the average is made of — "the list that would change its
+     number", this page's rule — rather than every signed contract. */
+  const cyc=S.cycles||[];
+  const turn=cyc.length?{ d:Math.round(cyc.reduce((a,x)=>a+x,0)/cyc.length), n:cyc.length, ids:(S.cycleIds||[]).slice() }:null;
+
+  return { money, total, stages, nego, left, months, win, peak, hurt, owed, turn, today };
+}
+
+/* THE CARD'S INSIDE. It works nothing out — every number comes off `d` — so
+   the switch repaints this and nothing else, and a figure cannot move between
+   what was counted and what was drawn. */
+function hmMapInnerHtml(d, mode){
+  const byV=mode==='value' && d.money;
+  const nf=n=>Number(n||0).toLocaleString(jxLocale());
+  const cash=v=>fmtMoneyShort(v||0);
+  const nC=n=>i18tn('home_map_n_contracts',n,{n:nf(n)});
+  const go=`<svg class="hm-map-go" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><use href="#i-right"/></svg>`;
+
+  /* ---- THE HEAD: the name, what the book holds, and the switch ----
+     THE SWITCH IS THE DOCUMENT TAB'S OWN CONTROL (.doc-read-seg), borrowed
+     rather than re-drawn — one segmented control, one dress, so the two can
+     never drift. Only the shaded half is bold, the rule it already carries. */
+  const sub=byV
+    ? i18tn('home_map_sub_v',d.total.n,{n:nf(d.total.n),v:cash(d.total.v)})
+    : i18tn('home_map_sub_n',d.total.n,{n:nf(d.total.n)});
+  const leftOut=(byV && d.left.n) ? ' · '+i18tn('fx_left_out',d.left.n,{n:d.left.n,codes:d.left.codes.join(', ')}) : '';
+  const cur=(typeof jxCurrency==='function')?jxCurrency():'';
+  const seg=d.money?`<span class="doc-read-seg hm-map-seg" role="group" aria-label="${esc(i18t('home_map_by'))}">
+      <button type="button" data-hm-measure="count" aria-pressed="${byV?'false':'true'}" title="${esc(i18t('home_map_count_title'))}">${esc(i18t('home_map_count'))}</button>
+      <button type="button" data-hm-measure="value" aria-pressed="${byV?'true':'false'}" title="${esc(i18t('home_map_value_title',{cur}))}">${esc(i18t('home_map_value'))}</button>
+    </span>`:'';
+  const head=hmSecHtml(i18t('home_map_title'),
+    `<span class="hm-sec-sub hm-map-sub">${esc(sub+leftOut)}</span>${seg}`,true);
+
+  /* ---- BY STAGE ---- */
+  const stTot=byV?(d.total.v||0):d.total.n;
+  const bar=stTot>0?`<div class="hm-map-stages">${d.stages.map(s=>{
+      const w=byV?(s.v||0):s.n; if(!(w>0)) return '';
+      const say=i18t(s.word)+': '+(byV?cash(s.v)+' · ':'')+nC(s.n);
+      return `<button type="button" class="${s.cls}" style="flex-grow:${w}" data-hm-map="stage:${esc(s.k)}" aria-label="${esc(say)}" title="${esc(say)}"></button>`;
+    }).join('')}</div>`
+    :`<div class="hm-map-none">${esc(i18t('home_map_none'))}</div>`;
+  const legend=`<div class="hm-map-legend">${d.stages.map(s=>{
+      const big=byV?cash(s.v):nf(s.n);
+      const unit=byV?nC(s.n):i18tn('home_map_unit',s.n,{n:s.n});
+      const more=(s.k==='Under Review' && d.nego)?' · '+i18tn('home_map_nego',d.nego,{n:nf(d.nego)}):'';
+      return `<button type="button" ${s.n?`data-hm-map="stage:${esc(s.k)}"`:'disabled'}>
+        <span class="hm-map-ln"><i class="hm-map-sw ${s.cls}"></i>${esc(i18t(s.word))}</span>
+        <span class="hm-map-lv">${esc(big)}</span>
+        <span class="hm-map-lc">${esc(unit+more)}</span></button>`;
+    }).join('')}</div>`;
+
+  /* ---- COMING UP FOR RENEWAL ---- */
+  const val=p=>byV?(p.v||0):p.n;
+  const max=Math.max(0,...d.months.map(val));
+  const any=d.months.some(M=>M.n>0);
+  const mName=(M,opt)=>{ try{ return new Date(M.y,M.m,1).toLocaleDateString(langLocale(),opt); }catch(_){ return ''; } };
+  /* A PLACE ON THE PLOT, as CSS: twelve columns with a gap between each, so a
+     point a fraction of the way into column i sits i gaps and i + f column
+     widths from the left edge. Written with the gap as a token, so the plot's
+     own gap and the window's arithmetic cannot come apart. */
+  const X=p=>`(${(p.i+p.f).toFixed(4)} * (100% - 11 * var(--map-gap)) / 12 + ${p.i} * var(--map-gap))`;
+  const cols=d.months.map(M=>{
+    const parts=[['later','is-later'],['due','is-due'],['made','is-made']].map(([k,cls])=>{
+      const a=byV?(M[k].v||0):M[k].n;
+      return a>0?`<i class="${cls}" style="height:${(max?a/max*100:0).toFixed(2)}%"></i>`:'';
+    }).join('');
+    const bits=[M.made.n?i18tn('home_map_bit_made',M.made.n,{n:M.made.n}):'',
+      M.due.n?i18tn('home_map_bit_due',M.due.n,{n:M.due.n}):'',
+      M.later.n?i18tn('home_map_bit_later',M.later.n,{n:M.later.n}):''].filter(Boolean).join(' · ');
+    const say=mName(M,{month:'long',year:'numeric'})+': '+(byV?cash(M.v)+' · ':'')+nC(M.n)+(bits?' · '+bits:'');
+    return `<button type="button" class="hm-map-col" ${M.n?`data-hm-map="month:${M.i}"`:'disabled'} aria-label="${esc(say)}" title="${esc(say)}">${parts}</button>`;
+  }).join('');
+  const axis=d.months.map(M=>{ const jan=M.m===0;
+    return `<span${jan?' class="is-yr"':''}>${esc(mName(M,jan?{month:'short',year:'2-digit'}:{month:'short'}))}</span>`; }).join('');
+  /* THE WINDOW'S LABEL IS ITS DOOR. The box behind it is decoration — pressing
+     it would swallow the presses meant for the three columns under it. */
+  const winFacts=[i18t('home_map_window',{d:d.win.d}), byV?cash(d.win.v):'', nC(d.win.n)].filter(Boolean);
+  const winLabel=winFacts.map((f,i)=>(i?'<span class="hm-map-wsep"> · </span>':'')+`<span class="hm-map-wf">${esc(f)}</span>`).join('');
+  const winBox=`<div class="hm-map-win" style="left:calc(${X(d.win.from)} - 3px);width:calc(${X(d.win.to)} - ${X(d.win.from)} + 6px)">
+      <button type="button" class="hm-map-wl" ${d.win.n?'data-hm-map="window"':'disabled'}>${winLabel}</button></div>`;
+  const pk=byV?d.peak.value:d.peak.count;
+  /* A BRACKET NEAR THE RIGHT EDGE HANGS ITS FIGURE LEFTWARDS, or the card's
+     own overflow would cut the number off at the rounded corner. */
+  const peak=pk?`<div class="hm-map-peak${pk.i>=HM_MAP_MONTHS-3?' is-end':''}" aria-hidden="true" style="left:calc(${X({i:pk.i,f:0})});width:calc(${X({i:pk.i+1,f:1})} - ${X({i:pk.i,f:0})})">
+      <span>${esc(byV?cash(pk.v)+' · '+nC(pk.n):nC(pk.n))}</span></div>`:'';
+  const plot=any?`<div class="hm-map-plot">${winBox}${peak}${cols}</div><div class="hm-map-axis">${axis}</div>
+      <div class="hm-map-key"><span><i class="hm-map-sw is-made"></i>${esc(i18t('home_map_rn_made'))}</span><span><i class="hm-map-sw is-due"></i>${esc(i18t('home_map_rn_due'))}</span><span><i class="hm-map-sw is-later"></i>${esc(i18t('home_map_rn_later'))}</span></div>`
+    :`<div class="hm-map-none">${esc(i18t('home_map_rn_none'))}</div>`;
+
+  /* ---- THE SIDE COLUMN: three facts, each a door, a zero is not one ---- */
+  const fact=(label,fig,line,door)=>`<button type="button" class="hm-map-fact" ${door?`data-hm-map="${door}"`:'disabled'}>
+      <span class="hm-map-fl">${esc(label)}${door?go:''}</span>
+      <span class="hm-map-ff">${esc(fig)}</span>
+      <span class="hm-map-fs">${line}</span></button>`;
+  const facts=[];
+  if(d.hurt){
+    const h=d.hurt;
+    if(!h.n) facts.push(fact(i18t('home_map_hurt'),'0',esc(i18t('home_map_hurt_none')),''));
+    else facts.push(fact(i18t('home_map_hurt'),byV&&h.v!=null?cash(h.v):nf(h.n),
+      esc(byV&&h.v!=null?i18tn('home_map_in_n',h.n,{n:nf(h.n)})+' · '+h.title:h.title),'hurt'));
+  }
+  const w=d.owed;
+  if(!w.n) facts.push(fact(i18t('home_map_owed'),'0',esc(i18t('home_owed_none')),''));
+  else{
+    const late=w.late?' · <span class="is-late">'+esc(i18tn('home_owed_late',w.late,{n:w.late}))+'</span>':'';
+    const lft=(byV&&w.canMoney&&w.left)?' · '+esc(i18tn('home_owed_left',w.left,{n:w.left})):'';
+    facts.push(byV&&w.canMoney
+      ? fact(i18t('home_map_owed'),cash(w.sum),esc(i18tn('home_owed_of',w.n,{n:w.n}))+late+lft,'owed')
+      : fact(i18t('home_map_owed'),nf(w.n),esc(i18tn('home_map_owed_unit',w.n,{n:w.n}))+late,'owed'));
+  }
+  facts.push(d.turn
+    ? fact(i18t('home_map_turn'),i18tn('home_map_days',d.turn.d,{n:d.turn.d}),esc(i18tn('home_map_turn_sub',d.turn.n,{n:d.turn.n})),d.turn.ids.length?'turn':'')
+    : fact(i18t('home_map_turn'),'—',esc(i18t('home_map_turn_none')),''));
+
+  return head+`<div class="hm-map-body">
+      <div class="hm-map-charts">
+        <div><span class="hm-map-lab">${esc(i18t('home_map_by_stage'))}</span>${bar}${legend}</div>
+        <div class="hm-map-rn"><span class="hm-map-lab">${esc(i18t('home_map_rn_title'))}</span>${plot}</div>
+      </div>
+      <div class="hm-map-side">${facts.join('')}</div>
+    </div>`;
+}
+
+/* ONE LISTENER PER CARD, delegated and bound once per element: the switch
+   repaints the card's INSIDE, never the page, so the reader keeps their place
+   and the pressed half keeps the keyboard. */
+function hmMapWire(el, d){
+  /* A STAGE WITH NO REAL ELEMENT (the node suite's own DOM) is asked nothing:
+     binding is a browser's business, and a stub that cannot carry a dataset
+     must not take the whole page down with it. */
+  if(!el || !el.dataset || typeof el.addEventListener!=='function' || el.dataset.hmMapBound) return;
+  el.dataset.hmMapBound='1';
+  el.addEventListener('click',e=>{
+    const sw=e.target.closest && e.target.closest('[data-hm-measure]');
+    if(sw && el.contains(sw)){
+      const m=sw.getAttribute('data-hm-measure')==='value'?'value':'count';
+      if((el.getAttribute('data-measure')||'count')===m) return;
+      hmSetMeasure(m);
+      el.setAttribute('data-measure',m);
+      el.innerHTML=hmMapInnerHtml(d,m);
+      const back=el.querySelector(`[data-hm-measure="${m}"]`); if(back) try{ back.focus({preventScroll:true}); }catch(_){}
+      return;
+    }
+    const b=e.target.closest && e.target.closest('[data-hm-map]');
+    if(!b || !el.contains(b) || b.disabled) return;
+    e.stopPropagation();
+    const [kind,arg]=String(b.getAttribute('data-hm-map')||'').split(':');
+    const only=(ids,label)=>{ if(window.regShowOnly && ids && ids.length) regShowOnly(ids,label); };
+    /* THE STAGE DOOR PUTS THE CONTRACTS SEAT BACK FIRST. The Negotiations
+       list is this same table on its own seat with its own filters, and the
+       seat stays set when the reader leaves it — read the state without
+       putting it back and the stage is written into the Negotiations seat and
+       a Contracts list opens that never heard of it (regShowOnly's own reason,
+       and the shell search's own fix). And the number on the door is the whole
+       book's, so a named set left over from an earlier door is let go. */
+    if(kind==='stage'){ if(window.regSetScope) regSetScope(null);
+      const r=regState(); r.type='all'; r.sel={}; r.view=null; r.only=null; r.page=1; r.stage=arg; setView('register'); return; }
+    if(kind==='month'){ const M=d.months[Number(arg)]; if(!M) return;
+      let name=''; try{ name=new Date(M.y,M.m,1).toLocaleDateString(langLocale(),{month:'long',year:'numeric'}); }catch(_){}
+      only(M.ids,i18t('home_map_ending_in',{month:name})); return; }
+    if(kind==='window'){ only(d.win.ids,i18t('home_map_window_label',{d:d.win.d})); return; }
+    if(kind==='hurt'){ if(window.intelGoTab) intelGoTab('exposure'); else setView('intel'); return; }
+    if(kind==='owed'){ if(window.obwGoFiltered) obwGoFiltered({state:'open', side:'theirs'}); else setView('obligations'); return; }
+    if(kind==='turn'){ only(d.turn&&d.turn.ids,i18t('home_map_turn_label')); return; }
+  });
 }
 
 /* THE EMAIL WARNING, SAID ONCE AND QUIETLY.
@@ -951,75 +1221,27 @@ function triageSubHead(c){
   return [f,who?i18t('tri_by',{who}):'',c.id].filter(Boolean).join(' · ');
 }
 function renderDashboard(){
-  const { cs, money, m, countAll, valOf, dU, idleOf, STAGE_DEF, stages, expiring, rdd,
-    decisions, waitingLongest, fmtDDay, highRisk, awaiting, awaitingCount, me, raisedByMe,
-    canApproveSomeStep, myApprovals, newThisWeek, stalled, onExecuted, lapsed, expWithin,
-    exp30, exp60, exp90, expVal, expDelta, expSub, cycles, avgCycle, G, stageSub, live,
-    clean, compliancePct, REG_PROFILE, apprMineN, myReviews, myJoinAsks, myStaleDesks, KPI_CATALOG,
-    importQ, cov } = hmDashSlices();
-  const kpiSel=currentKpiSel().filter(id=>KPI_CATALOG[id]);
-  // Adaptive layout: the redesign's stat cards are wider and quieter than the
-  // gradient blocks they replace, so they sit four to a row and wrap.
-  /* Balanced rows, so a chosen sixth metric never lands alone on a second row:
-     up to 4 sit in one row, 5–6 split 3+3 (or 3+2), more than 6 go four-up. */
-  const kpiN=kpiSel.length||1, kpiCols=kpiN<=4?kpiN:(kpiN<=6?3:4);
-  /* The design's stat card: a muted label with a bare tinted glyph on the first
-     line, the figure and its delta on the second, and the composition on a
-     quiet third. No icon tile and no gradient — the colour is carried by the
-     glyph and the delta alone. Tone comes from the metric's semantics (steel =
-     volume, emerald = good, amber = pending, ruby = risk). */
-  const TONE_OF=g=>g===G.green?'emerald':g===G.amber?'amber':g===G.ruby?'ruby':'steel';
-  const TONE_FG={steel:'var(--tile-steel-fg)',emerald:'var(--tile-emerald-fg)',amber:'var(--tile-amber-fg)',ruby:'var(--tile-ruby-fg)'};
-  /* THE TOP EDGE IS THE CARD'S TONE (the SAP treatment, owner-approved render
-     20 Aug 2026): a 3px coloured rule along the top of a flat white card —
-     teal for volume, amber for pending, green for good, ruby for risk — so
-     whichever four metrics the reader picks, each carries its own colour.
-     THE HOVER MUST NOT TOUCH borderColor ANY MORE: resetting it would paint
-     all four sides the divider grey and erase the top edge. */
-  const TONE_EDGE={steel:'var(--color-accent-600)',emerald:'var(--st-green-dot)',amber:'var(--st-amber-dot)',ruby:'var(--st-ruby-dot)'};
-  /* ---- EVERY CARD ITS OWN COLOUR, AND ITS NUMBER TO MATCH (owner-asked
-     24 Aug 2026: "the colors of the top of the cards should all be different
-     for each card and the number inside the cards should reflect that color as
-     well", ruled: "just to tell them apart") ----
-     HaTi coloured a tile by what its metric MEANT — amber attention, ruby
-     overdue, green good — so two metrics that both mean "needs attention" drew
-     the same amber side by side, which is what the owner's screenshot shows.
-     THE COLOUR IS NOW POSITIONAL: the four tiles in a row take four different
-     tones whatever the metrics happen to be, and the numeral takes its tile's
-     tone.
-     WHAT THIS COSTS, put to the owner before they ruled and recorded rather
-     than re-argued: colour no longer MEANS anything on this page. Amber here
-     does not say "this needs you". FOUR OTHER SURFACES KEEP THE OLD MEANING
-     and must not be swept with it — the sidebar's amber counts, the alerts
-     panel's amber rows, the register's status tones and the calendar legend.
-     Home is the exception, deliberately.
-     THE DEMO'S OWN RULE WAS NARROWER, and it is worth knowing which half was
-     adopted: it colours a numeral only on a STATUS tone and leaves its
-     brand-teal tiles' numbers black — three of its seven. The owner asked for
-     every number to follow its card and that is what this does.
-     THE ZERO-COUNT GREY IS UNTOUCHED — a tile counting zero is not a door, and
-     with every other number coloured it is now the only grey one, which makes
-     it a stronger signal rather than a weaker one. */
-  const HM_ROW_TONES=['var(--color-accent-600)','var(--st-amber-dot)',
-    'var(--st-ruby-dot)','var(--st-green-dot)'];
-  /* THE FIRST INK HAS A NIGHT ANSWER (21 Sep 2026): it read accent-700 by
-     name, which the redesign's ramp made #0B4A45 — 1.73:1 on the dark
-     ground, measured by contrast-verify on the Home figure. --accent-ink-700
-     is accent-700 by day and accent-400 at night, the pair the design system
-     already keeps for exactly this; the other three inks have their own. */
-  const HM_ROW_INKS =['var(--accent-ink-700)','var(--st-amber-fg)',
-    'var(--st-ruby-fg)','var(--st-green-fg)'];
-  const kpiCard=id=>{ const k=KPI_CATALOG[id], t=TONE_OF(k.grad); return `
-    <button data-kpi-id="${id}" draggable="true" class="hati-stat" style="position:relative;display:flex;flex-direction:column;gap:7px;align-items:stretch;border:1px solid var(--color-divider);border-top:3px solid ${TONE_EDGE[t]};border-radius:var(--radius);background:var(--color-surface);padding:var(--s-3) 14px;font:inherit;color:inherit;cursor:grab;text-align:left;box-shadow:none;transition:transform var(--dur-2) var(--ease),opacity var(--dur-1);" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
-      <span style="display:block;font-size:var(--t-label);font-weight:var(--w-title);letter-spacing:.1em;text-transform:uppercase;line-height:1.3;color:var(--color-neutral-500);">${k.label}</span>
-      <span style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;">
-        <span class="tnum" style="font-family:var(--font-mono);font-weight:var(--w-strong);font-size:22px;line-height:1.1;letter-spacing:-.02em;color:var(--color-text);">${k.val}</span>
-        <span style="font-size:var(--t-label);font-weight:var(--w-strong);color:${TONE_FG[t]};text-align:right;">${k.delta}</span>
-      </span>
-      <span style="font-size:var(--t-label);color:var(--color-neutral-500);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${k.sub||''}</span>
-    </button>`; };
-  const kpiHtml=kpiSel.map(kpiCard).join('');
-  let workTiles='';
+  /* ---- HOME IS THE GREETING, THE MAP AND PREPARED FOR YOU (Young ruled
+     24 Sep 2026) ----
+     *"instead of needs your decision, delete it and replace with prepared for
+     you"*, over the drawing whose top was the Map; then *"Build it"*. The four
+     tiles, "Choose tiles" and "Needs your decision" left the DESKTOP page,
+     each said to the owner before it was built. What did NOT leave:
+       · every reading behind them — hmDashSlices, the KPI catalogue, KPI_META
+         and currentKpiSel still answer, because the phone's figures list and
+         its picker read them, and the Approvals page reads hmMySignings;
+       · the two reminders that lived only on that card — a colleague asking
+         to join a negotiation and a negotiation gone quiet — which ride the
+         bell now (buildAlerts, desk-join / desk-quiet);
+       · every renewal it listed, which the Map's chart draws and opens.
+     hmDashSlices is asked ONCE per paint and handed to the Map, which borrows
+     every figure from it — one walk of the book (the performance audit's
+     rule, paid for at 108 million list items). */
+  const SL=hmDashSlices();
+  const { cs, countAll, me } = SL;
+  const mapD=hmMapData(SL);
+  const measure=hmMeasure(mapD.money);
+
 
 
   /* The dashboard no longer carries Decisions due, Obligations, the renewal
@@ -1063,210 +1285,14 @@ function renderDashboard(){
   const REGION_LABEL={SE:'Sweden', KE:'Kenya'};
   const regionNow=REGION_LABEL[state.region]||REGION_LABEL.KE;
 
-  /* ---- THE LIFECYCLE IS A TILE NOW, NOT A RING (24 Aug 2026) ----
-     The card drew a donut on two thirds with a stage key and a third column
-     listing that stage's contracts. It is three blocks in the Portfolio row:
-     a count, a bar and a word, each of them a DOOR into the register narrowed
-     to that stage.
-
-     WHAT WAS LOST WAS SAID OUT LOUD BEFORE IT WAS BUILT: reading a stage's
-     contracts without leaving the page. Pressing a stage now opens the
-     register, which shows more per contract than the cramped column did — one
-     press either way. The owner was told and chose it.
-
-     RETIRED WITH IT: hmArcsHtml, hmKeyHtml, hmSideHtml, hmSideHeadHtml,
-     hmPaint, hmFit, _hmStage, RING_MIN/RING_MAX, PIPE_DOT and every .hm-pipe-*
-     and .hm-ring-* class. Flag any mention as stale. What SURVIVES is the pair
-     the tile still needs — the three stages and their counts — because they
-     were never the ring's, they were the book's. */
-  const PIPE_DEF=[
-    {k:'Draft',        n:1, get title(){ return i18t('home_stage_draft'); },  tone:'steel',   fg:'var(--color-neutral-700)', bd:'var(--color-divider)',                              chip:'var(--color-neutral-100)'},
-    {k:'Under Review', n:2, get title(){ return i18t('home_stage_review'); },  tone:'amber',   fg:'var(--st-amber-fg)',       bd:'color-mix(in srgb,#f59e0b 34%,transparent)',        chip:'var(--st-amber-bg)'},
-    {k:'Signed',       n:3, get title(){ return i18t('home_stage_sign'); },   tone:'emerald', fg:'var(--st-green-fg)',       bd:'color-mix(in srgb,#10b981 34%,transparent)',        chip:'var(--st-green-bg)'},
-  ];
-  const hmCounts=PIPE_DEF.map(st=>cs.filter(c=>c.status===st.k).length);
-
-  /* ---- DECISIONS DUE (in the design's feed slot) ----
-     The audit stream that sat here read "Created — Seeded as sample data" over
-     and over, because a created record is the only history a fresh contract
-     has. What belongs in the one column beside the pipeline is what needs a
-     person: a renewal decision whose date is closing, and paper that has sat in
-     review. Drawn in the design's feed row — a round tone tile, two lines — and
-     capped to the pipeline's height, scrolling inside its own box. */
   /* ---- THE OVERNIGHT DESK (idea 19) ----
-     Read before the list below it, because the list below it depends on the
-     answer: a contract the desk has prepared a renewal for LEAVES "Needs your
-     decision", or Home says the same thing about the same contract twice. */
+     Since 24 Sep 2026 it is the only list on Home. It was read before
+     "Needs your decision" because a contract the desk had prepared a renewal
+     for LEFT that list (deskCids, the one-door eviction); with the list gone
+     there is nothing here to evict from, and deskCids stays published for its
+     own tests rather than being asked by a page that has no second list. */
   const deskAll=(typeof deskItems==='function')?deskItems(cs):[];
   const deskRows=(typeof deskShown==='function')?deskShown(deskAll):[];
-  /* ONLY THE RENEWAL SOURCE IS FILTERED, and that is the whole precision of the
-     one-door rule: a colleague waiting on your review is a different subject
-     that happens to share a contract, and dropping that row because a renewal
-     is also due would lose it.
-
-     AND ONLY THE ROWS ON SCREEN, never deskAll — see deskCids, whose own first
-     rule this reverses. The desk shows at most one renewal, so passing the
-     whole list struck every OTHER renewal out of the list below and left it
-     nowhere on the page. */
-  const deskIds=(typeof deskCids==='function')?deskCids(deskRows):new Set();
-
-  /* ONE READING, TWO SURFACES (20 Sep 2026): the Approvals & signing page
-     draws the same list, so the arithmetic lives in hmMySignings below. */
-  const mySignings=hmMySignings(cs);
-  const decisionItems=[
-    /* ---- AUTO-TRIAGE'S CARD IS NOT ON HOME (owner-ruled 9 Sep 2026) ----
-       *"delete the 4 cards from the home page and simply land in the key terms
-       page when you upload with the boxes attached."* The four tiles are on the
-       contract's own Key terms tab now — where the upload lands — and having
-       the same four in two places is the duplication this rulebook opens by
-       warning about.
-
-       THIS REVERSES THE DAY'S OWN DESIGN, and the reasoning it was built on
-       ("first, because it is the only row here carrying something the reader
-       has not seen at all") was answered instead by moving the reader to the
-       thing rather than the thing to the reader.
-
-       WHAT IT COSTS, SAID OUT LOUD: nothing on Home now says a contract
-       arrived and was read. It is one press from the Contracts page, and one
-       line to put back — triageCards() is untouched and still answers, and
-       triageRowHtml still draws. What went is the SOURCE this list read them
-       from. */
-    /* REVIEWS LEAD, because they are the only item on this card that somebody
-       is personally waiting on. A renewal date does not know your name; a
-       colleague who sent you three redlines on Tuesday does. */
-    ...myReviews.map(x=>({
-      cid:x.c.id, urgent:!!(x.rv.due&&String(x.rv.due)<new Date().toISOString().slice(0,10)), ic:'users',
-      txt:i18t('rv_home_title')+' — <strong style="font-weight:var(--w-strong)">'+esc(x.c.name)+'</strong>',
-      meta:`${esc(i18t('rv_home_from',{who:x.rv.by}))} · ${esc(i18tn('rv_home_sub',x.st.total,{n:x.st.total}))}`,
-      tag:x.rv.due?esc(String(x.rv.due)):esc(i18t('rv_home_open')),
-      verb:i18t('home_verb_review'),
-      /* THE RUNWAY'S RAW FACTS (22 Sep 2026). `rk` is the kind of work and
-         `rw` is the ONE date this source really holds — never a presented
-         string, and never worked out here. js/runway.js turns them into a
-         side and a distance, once, so the picture and any reading of it
-         cannot disagree. A review is the only row on this card that can
-         carry a deadline somebody typed; without one it has elapsed time
-         and no clock. */
-      rk:'ask', rw:{ due:x.rv.due||null,
-        sat:(window.reviewDaysWaiting?reviewDaysWaiting(x.rv):null) },
-    })),
-    /* ---- SOMEBODY IS ASKING TO JOIN A NEGOTIATION YOU LEAD ----
-       Not a new inbox. A request to join is exactly the shape of everything
-       else on this card — one colleague waiting on one answer from this reader
-       by name — and putting it anywhere else would be a second place to look
-       for the same kind of thing. Answered in the desk sheet, one press away
-       from the contract it is about. */
-    /* Quiet deals lead everything: the counterparty is already waiting, and
-       every day this sits on the card is a day they are not being answered. */
-    ...myStaleDesks.map(x=>({
-      cid:x.c.id, urgent:true, ic:'clock',
-      txt:i18t('dk_stale_card',{who:esc(x.c.counterparty||i18t('home_no_counterparty'))})
-        +' — <strong style="font-weight:var(--w-strong)">'+esc(x.c.name)+'</strong>',
-      meta:esc(i18tn('dk_stale_sub',x.stale.n,{n:x.stale.n,who:x.stale.lead.name})),
-      tag:esc(i18t('dk_stale_tag',{n:x.stale.days})),
-      verb:i18t('act_open'),
-      /* THE DAY THEY ASKED, and nothing else. `stale.days` beside it is a
-         count of WORKING days, which is right for the flag and wrong for the
-         rail; handing the rail the timestamp lets it measure in the one unit
-         it uses everywhere. */
-      rk:'wait', rw:{ since:x.stale.since },
-    })),
-    ...myJoinAsks.map(x=>({
-      cid:x.c.id, urgent:false, ic:'users',
-      txt:i18t('dk_join_card',{who:esc(x.req.name)})+' — <strong style="font-weight:var(--w-strong)">'+esc(x.c.name)+'</strong>',
-      meta:x.req.why?`“${esc(x.req.why)}”`:esc(x.c.counterparty||i18t('home_no_counterparty')),
-      tag:esc(i18t('dk_ask_tag')),
-      verb:i18t('home_verb_answer'),
-      rk:'join', rw:{ sat:(window.rwDayDiff?rwDayDiff(x.req.at,rwToday()):null) },
-    })),
-    /* ---- YOUR SIGNATURE, AND WHAT STANDS BEFORE IT (13 Sep 2026) ----
-       A contract whose next signature is this reader's, with something still
-       to settle first, is a decision owed by name — the shape of everything
-       else on this card. The number is signReadiness's, the same the Signing
-       tab and the head quote; read LIGHT off a register row so the two rows
-       that hash the wording are never guessed. A contract with nothing to
-       settle is the bell's "your turn to sign", not a decision. */
-    ...mySignings.map(x=>({
-      cid:x.c.id, urgent:false, ic:'finger',
-      txt:i18t('home_sign_row',{n:x.n,name:`<strong style="font-weight:var(--w-strong)">${esc(x.c.name)}</strong>`}),
-      meta:esc(x.c.counterparty||i18t('home_no_counterparty')),
-      tag:esc(i18t('home_sign_tag')),
-      verb:i18t('home_verb_sign'),
-      /* A SIGNATURE CARRIES NO DATE OF ANY KIND — not a deadline, not even a
-         day it landed on this reader. It is counted beside the rail. */
-      rk:'sign', rw:{},
-    })),
-    ...decisions.filter(x=>!deskIds.has(x.c.id)).map(x=>({
-      cid:x.c.id, urgent:x.d<=30, ic:'calendar',
-      txt:i18t('home_renew_or_exit',{name:`<strong style="font-weight:var(--w-strong)">${esc(x.c.name)}</strong>`}),
-      meta:i18t('home_decide_by',{who:esc(x.c.counterparty||i18t('home_no_counterparty')),when:fmtDDay(x.dd)}),
-      tag:x.d===0?i18t('home_today'):i18t('home_in_days',{n:x.d}),
-      verb:i18t('home_verb_decide'),
-      /* The one row on this card with a real deadline of its own, worked out
-         from the contract's notice period. `decisions` is already filtered to
-         0..90 days ahead, so it only ever lands right of TODAY. */
-      rk:'renew', rw:{ left:x.d },
-    })),
-    ...waitingLongest.map(x=>({
-      cid:x.c.id, urgent:x.idle>=30, ic:'clock',
-      txt:i18t('home_waiting_on_review',{name:`<strong style="font-weight:var(--w-strong)">${esc(x.c.name)}</strong>`}),
-      meta:`${esc(x.c.counterparty||i18t('home_no_counterparty'))} · ${esc(x.c.id)}`,
-      tag:i18t('home_idle_days',{n:x.idle}),
-      verb:i18t('act_open'),
-      /* Elapsed time and no standard to be past: HaTi holds no promise about
-         how long a contract may sit in review, so this is a no-clock row that
-         says how long it has sat. */
-      rk:'idle', rw:{ sat:x.idle },
-    })),
-  ];
-  const decisionRows=decisionItems.slice(0,8).map(it=>{
-    const bg=it.urgent?'var(--tile-ruby-bg)':'var(--tile-amber-bg)';
-    const fg=it.urgent?'var(--tile-ruby-fg)':'var(--tile-amber-fg)';
-    return `<button data-sel="${esc(it.cid)}" style="display:flex;gap:11px;width:100%;padding:9px 2px;border:0;border-bottom:1px solid var(--color-divider);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;">
-      <span style="width:30px;height:30px;flex:none;border-radius:50%;background:${bg};color:${fg};display:grid;place-items:center;">${icon(it.ic,'w-3.5 h-3.5',1.8)}</span>
-      <span style="flex:1;min-width:0;">
-        <span style="display:flex;align-items:baseline;gap:var(--s-2);">
-          <span style="flex:1;min-width:0;font-size:var(--t-meta);line-height:1.4;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${it.txt}</span>
-          <span style="flex:none;font-size:var(--t-label);font-weight:var(--w-strong);font-family:var(--font-mono);color:${fg};">${esc(it.tag)}</span>
-        </span>
-        <span style="display:block;margin-top:2px;font-size:var(--t-label);color:var(--color-neutral-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${it.meta}</span>
-      </span>
-    </button>`; }).join('')
-    || `<div style="display:flex;align-items:center;gap:var(--s-2);font-size:var(--t-meta);color:var(--color-neutral-500);padding:var(--s-3) 2px;"><span style="color:var(--st-green-fg);display:inline-flex;">${icon('check2','w-4 h-4')}</span>${i18t('home_nothing_to_decide')}</div>`;
-  /* The footer link has to lead where the rows actually live, and this card
-     holds two different kinds of item. A renewal decision is a date, so the
-     calendar is its home; a contract sitting in review is not on any calendar —
-     it is a row in the register. Sending both to the calendar (which the old
-     single-purpose panel could safely do) would land a reader on a screen that
-     shows none of what they clicked. So the footer names its destination, and
-     when the list mixes the two it offers both. */
-  const lnk=(attr,label)=>`<button ${attr} style="border:0;background:none;padding:2px;font:inherit;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink-700);cursor:pointer;text-align:left;">${label}</button>`;
-  const renewalN=decisions.length, reviewN=waitingLongest.length;
-  /* ---- EVERY LINK HERE NAMES WHERE A ROW ABOVE IT LIVES (owner-asked 20 Aug
-     2026: "remove any other shortcuts unrelated to decisions due") ----
-     The high-risk link rode here for a day, put in when the bottom row was
-     removed so the number kept a door. It was the one link with no row above
-     it — this card holds renewal decisions and contracts sitting in review,
-     and nothing else — so it is gone. The number is not lost: the Compliance
-     card in the ribbon opens the register sorted by risk, and Our standards is
-     a door in the sidebar. home_risk_link and data-open-standards are STALE. */
-  const footerLinks=[
-    renewalN?lnk('data-open-decisions',`${renewalN} renewal decision${renewalN===1?'':'s'} in the calendar →`):'',
-    reviewN?lnk('data-open-review',i18t('home_waiting_in_review',{n:reviewN})):'',
-  ].filter(Boolean);
-  const decisionFooter=(decisionItems.length>8||footerLinks.length>1)&&footerLinks.length
-    ? `<div style="flex:none;margin-top:var(--s-2);padding-top:var(--s-2);border-top:1px solid var(--color-divider);display:flex;flex-direction:column;gap:2px;align-items:flex-start;">${footerLinks.join('')}</div>`
-    : '';
-  const activitySection=`
-    <section style="flex:1;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:none;border-radius:var(--radius);padding:var(--s-4) 18px;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden;">
-      <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:6px;flex:none;">
-        <h4 style="font-size:var(--t-card);margin:0;font-weight:var(--w-title);">${i18t('home_decisions_due')}</h4>
-        <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:${decisionItems.length?'var(--st-amber-dot)':'var(--st-green-dot)'};flex:none;"></span>
-        ${decisionItems.length?`<span style="margin-left:auto;font-size:var(--t-label);font-weight:var(--w-title);padding:2px var(--s-2);background:var(--st-amber-bg);color:var(--st-amber-fg);">${decisionItems.length}</span>`:''}
-      </div>
-      <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;">${decisionRows}</div>
-      ${decisionFooter}
-    </section>`;
 
   /* THE BOTTOM ROW IS GONE (owner-asked 20 Aug 2026, with the Hero B render).
      Its three cards repeated what the page already said — Awaiting counterparty
@@ -1333,7 +1359,11 @@ function renderDashboard(){
      is true; the arrow goes and the press is refused, because a door onto an
      empty list is a press that makes the reader think they did something
      wrong. hmTile does that from the number itself, so it can never be
-     forgotten on a tile added later. */
+     forgotten on a tile added later. SINCE 24 SEP 2026 THE TILES ARE OFF THE
+     DESKTOP HOME and hmTile went with them; both rules live on in the Map —
+     every figure opens the list that makes it (fact(), the month and stage
+     doors), and a zero draws and refuses the press — and on the phone's own
+     tiles, which read the same catalogue's `go`. */
   /* ---- A SECTION HEAD, AND THE CARD HEAD IT BECOMES (Young ruled 21 Sep
      2026: Home must look exactly like the artifact) ----
      The reference draws Prepared for you and Needs your decision as CARDS: a
@@ -1342,258 +1372,11 @@ function renderDashboard(){
      border is that rule — one head, two shapes, so the two sections and the
      My work label can never drift apart. `card` is opt-in, so My work is
      byte-identical to what it was. */
-  const hmSec=(title,extra,card)=>`
-    <div class="hm-sec${card?' is-cardh':''}">
-      <h2>${esc(title)}</h2>${card?'':'<span class="hm-rule"></span>'}${extra||''}
-    </div>`;
-  /* THE CARD IS THE WIDTH OF THE FOUR TILES ABOVE IT — the owner's own words,
-     and it holds by construction: both are block children of .hm-page, so
-     neither carries a width of its own. The reference caps its stack at
-     1100px and its tiles at the page measure, which is the gap the owner
-     ringed; HaTi takes the tiles' width for both. */
+  /* THE HEAD BUILDER LIVES AT MODULE SCOPE since 24 Sep 2026 (hmSecHtml),
+     because the Map draws its own head with it and a second copy of four
+     lines of markup is how two card heads come to disagree. */
+  const hmSec=hmSecHtml;
   const hmCard=(head,body)=>`<section class="hm-card">${head}${body}</section>`;
-  const hmArrow=`<svg class="hm-go" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><use href="#i-right"/></svg>`;
-  /* A tile is a <button> whichever it is, so the row never changes shape; a
-     dead one is DISABLED rather than merely unpainted, so the browser itself
-     refuses the press and a keyboard reader is told instead of being led to a
-     control that does nothing. */
-  const hmDead=v=>{ const t=String(v==null?'':v).replace(/[^0-9.]/g,''); return t===''||Number(t)===0; };
-  const hmTile=(o)=>{
-    const dead=o.dead!=null?o.dead:hmDead(o.n);
-    /* A DEAD TILE IS REFUSED, AND HOW IT IS REFUSED DEPENDS ON WHAT ELSE IT
-       DOES. A fixed Portfolio tile does one thing, so `disabled` is right: the
-       browser itself declines the press and a keyboard reader is told.
-       A My-work tile is ALSO the drag handle for reordering the four, and a
-       disabled button fires no drag events — so disabling it would take the
-       reader's ability to move a zero card out of first place. Those keep
-       aria-disabled and lose their destination and their arrow, which is what
-       actually advertises a door; the handler checks .is-dead before it
-       navigates. */
-    const draggy=/draggable/.test(o.attrs||'');
-    return `<button type="button" class="hm-tile ${o.tall?'is-port':'is-work'}${dead?' is-dead':''}"
-      style="border-top-color:${o.edge}"
-      ${dead?(draggy?'aria-disabled="true"':'disabled'):`data-hm-go="${esc(o.go||'')}"`}
-      ${o.id?`id="${o.id}"`:''} ${o.attrs||''}>
-      ${''/* ---- THREE REGIONS, THE SAME ON EVERY CARD (owner-asked 26 Aug
-             2026: "The top cards and the bottom cards have to be the same size
-             as far as height and remove empty spaces which makes the card look
-             empty. Create a well structured card like a fiori card…") ----
-             Header · figure · footing fact, and they are REGIONS rather than a
-             run of children so the grid can line them up across the row. The
-             header is one span holding the title and its detail, because the
-             two are one region and a subgrid places children by ROW: left
-             loose they would take two of the three rows between them and put
-             the figure where the foot belongs. */}
-      ${dead?'':hmArrow}
-      ${''/* THE DETAIL SITS BESIDE THE FIGURE (second pass, 21 Sep 2026 — the
-             reference draws "6  3 approvals · 3 negotiation moves" on one
-             line). Same three regions, same subgrid; the .hm-s span moved
-             from the head region into the figure's. */}
-      <span class="hm-head"><span class="hm-t">${o.t}</span></span>
-      <span class="hm-big"><span class="hm-n"${o.ink&&!dead?` style="color:${o.ink}"`:''}>${o.n}</span>${o.u?`<span class="hm-u">${o.u}</span>`:''}<span class="hm-s">${o.s||''}</span></span>
-      <span class="hm-foot${o.fc?' '+o.fc:''}">${o.f||''}</span>
-    </button>`;
-  };
-
-  /* MY WORK — the four the reader chooses. Same ids and the same drag-to-
-     reorder as before; only the dress and the door are new. */
-  const buildWorkTiles=()=>kpiSel.map((id,i)=>{
-    const k=KPI_CATALOG[id];
-    /* The lifecycle tile is the one composite face in the catalogue: a stage
-       bar beside the money, each stage its own door. It is built below
-       (lifeTile) and dropped into the chosen slot with the reorder attributes
-       every other tile carries, so it drags and Alt+Arrows like the rest. */
-    if(id==='lifecycle') return lifeTile(i);
-    return hmTile({ t:esc(k.label), s:esc(k.sub||''), n:esc(String(k.val)), u:'',
-      f:esc(String(k.delta||'')), fc:'', edge:HM_ROW_TONES[i%4], ink:HM_ROW_INKS[i%4], go:'kpi:'+id,
-      /* aria-describedby names the sr-only sentence under the row that tells a
-         screen reader these cards reorder with Alt+Arrow. It goes HERE, on the
-         builder that actually draws the row. kpiCard() further up is a second
-         builder for the same tile whose output (kpiHtml) is computed and never
-         interpolated — this line was written on that one first and reached
-         nothing on the dashboard, which a browser press is what caught. */
-      attrs:`data-kpi-id="${id}" draggable="true" aria-describedby="kpi-reorder-hint"`,
-      /* An average has no number to test — "—" is not zero, it is "not yet
-         measurable" — so the tile is dead when there is nothing behind it. */
-      dead:String(k.val)==='—'||hmDead(k.val) });
-  }).join('');
-
-  /* PORTFOLIO — fixed furniture, in the design's own order. */
-  const lifeTotal=hmCounts.reduce((a,b)=>a+b,0);
-  const lifeW=n=>Math.round(46+40*(lifeTotal?n/lifeTotal:0.33));
-  const LIFE_CLS=['is-draft','is-review','is-signed'];
-  /* THE TILE USES THE SHORT STAGE WORDS. PIPE_DEF's own titles are the
-     register's ("Draft & Template", "Review & Redline", "Sign & Executed") and
-     they are right there; under a 46px block they overlapped each other. The
-     stage they name is identical — only the label is shorter. */
-  const LIFE_WORD=[i18t('home_stage_draft_short'),i18t('home_stage_review_short'),i18t('home_stage_sign_short')];
-  const lifeStack=PIPE_DEF.map((st,i)=>{
-    const n=hmCounts[i];
-    return `<span class="hm-stg-wrap" style="width:${lifeW(n)}px">
-      <button type="button" class="hm-stg ${LIFE_CLS[i]}${n?'':' is-zero'}"
-        ${n?`data-hm-go="stage:${esc(st.k)}"`:'disabled'}>
-        <span class="hm-sn">${n}</span><span class="hm-bar"></span>
-        <span class="hm-sl">${esc(LIFE_WORD[i]||st.title)}</span>
-      </button></span>`;
-  }).join('');
-  const lifeTile=(i)=>`
-    <div class="hm-tile is-work is-life" style="border-top-color:${HM_ROW_TONES[(i|0)%4]}"
-      data-kpi-id="lifecycle" draggable="true" aria-describedby="kpi-reorder-hint" tabindex="0">
-      <span class="hm-head"><span class="hm-t">${i18t('home_lifecycle')}</span><span class="hm-s">${i18tn('home_live_by_stage',live.length,{n:live.length})}</span></span>
-      ${''/* THE WIDE CARD FILLS THE SAME THREE REGIONS, which is the test of
-             whether the skeleton is right: its figure region holds a stage bar
-             beside the money rather than one numeral, and it is the tallest
-             thing any card puts there — which is where --hm-r2 comes from. */}
-      <span class="hm-life">
-        <span class="hm-stack">${lifeStack}</span>
-        ${''/* A READER WITHOUT canViewValues GETS NO MONEY HALF AT ALL, not a
-             dash under a money label. "Active value under management: —" tells
-             them there is a figure and that it is being kept from them, which
-             is worse than the tile simply being about stages; and the label
-             alone was enough to fail this page's own no-money sweep. */}
-        ${money?`<span class="hm-money">
-          <span class="hm-m">${esc(fmtMoneyShort(valOf(live)))}</span>
-          <span class="hm-ml">${i18t('home_active_value_sub')}</span>
-        </span>`:''}
-      </span>
-      <span class="hm-foot">${i18t('home_agreements_docs',{n:countAll,d:agreementsIn(cs).length})}</span>
-    </div>`;
-
-  /* ---- THE PORTFOLIO ROW IS NOT DRAWN AS A ROW ANY MORE (the redesign,
-     DECIDE 2, 20 Sep 2026) ---- Its four tiles are in the picker: Compliance
-     was always there, and lifecycle / importq / coverage joined it above. A
-     reader who wants the old row ticks them under Customize. `home_portfolio_sec`
-     is STALE on the face and inert in both books. */
-  workTiles=buildWorkTiles();
-
-  /* NEEDS YOUR DECISION — four rows, then a link that carries the count. It is
-     not drawn at or below four, because pressing it would open the list you
-     are already reading. */
-  /* THE ROWS ARE decisionItems, UNCHANGED. That list is assembled above from
-     five readings — reviews owed, quiet desks, join requests, renewal
-     decisions and contracts sitting in review — and this is a re-dressing of
-     it, not a second reading. The tone follows its own `urgent` flag, so what
-     was a ruby circle is a ruby left rule and nothing about which row is
-     alarming has moved. */
-  const ddAll=decisionItems||[];
-
-  /* ---- THE RUNWAY (Young ruled 22 Sep 2026) ----
-     The same forty-nine rows, drawn as one line of time before they are
-     listed. js/runway.js does every count and every placement; nothing below
-     works anything out, which is what keeps the head, the rail and the column
-     beside it from ever printing three different totals.
-
-     NOTHING IS PLOTTED, NOTHING IS DRAWN. Where no row on this card carries a
-     date at all the rail is not built and the card is exactly what it was —
-     a verb that cannot work is not drawn, and a rail with no dots on it is a
-     picture of nothing.
-
-     NO EXPLAINER. The owner excluded the prototype's paragraph by name, so
-     the two end labels carry the two directions and the left one carries the
-     standard itself. Where that standard is SET rides the hover: Team &
-     settings owns it, and a second door onto it here would drift from it. */
-  const rwSp=(window.rwSplit?rwSplit(ddAll):null);
-  const rwPlain=h=>String(h==null?'':h).replace(/<[^>]*>/g,'').replace(/\s+/g,' ').trim();
-  const rwSay=r=>r.side==='past'?i18tn('rw_past_n',r.n,{n:r.n})
-              :r.side==='left'?i18tn('rw_left_n',r.n,{n:r.n})
-              :(r.sat!=null?i18tn('rw_sat_n',r.sat,{n:r.sat}):i18t('rw_no_clock'));
-  const rwTick=(side,n)=>rwX({side,n});
-  const rwCard=(()=>{
-    if(!rwSp||!rwSp.plotted) return '';
-    /* SEVERAL ROWS CAN LAND ON ONE DAY, so they stack upward rather than hide
-       one another — drawing all of them is the entire point. Past the stack
-       ceiling they sit on the top rung: the count is in the head either way,
-       and a dot leaving the rail would be a silent trim. */
-    const seen={};
-    const pins=rwSp.past.concat(rwSp.left).map(r=>{
-      const x=rwX(r); if(x==null) return '';
-      const k=x.toFixed(2); const i=seen[k]||0; seen[k]=i+1;
-      const say=rwPlain(r.it&&r.it.txt)+' · '+rwSay(r);
-      return `<button type="button" class="hm-rw-pin" data-sel="${esc(r.cid||'')}"
-        style="left:${x.toFixed(2)}%;bottom:${Math.min(i,RW_STACK_MAX-1)*RW_STACK}px;background:${RW_KINDS[r.kind].tone}"
-        title="${esc(say)}" aria-label="${esc(say)}"></button>`;
-    }).join('');
-    /* The ticks are the rail's own arithmetic asked back, never typed: move
-       either end of the window and the labels follow it. */
-    const tick=(x,cls,words)=>`<span class="hm-rw-tick${cls?' '+cls:''}" style="left:${x.toFixed(2)}%">${esc(words)}</span>`;
-    const ticks=tick(rwTick('past',RW_PAST_MAX),'is-past',i18t('rw_tick_past',{n:RW_PAST_MAX}))
-      +tick(rwTick('past',Math.round(RW_PAST_MAX/2)),'is-past',String(Math.round(RW_PAST_MAX/2)))
-      +tick(RW_TODAY_AT,'is-now',i18t('rw_today'))
-      +tick(rwTick('left',30),'',String(30))
-      +tick(rwTick('left',60),'',String(60))
-      +tick(rwTick('left',RW_LEFT_MAX),'is-end',i18t('rw_tick_out',{n:RW_LEFT_MAX}));
-    const groups=rwNoneGroups(rwSp).map(g=>`
-      <button type="button" class="hm-rw-nc" data-hm-go="rwnone:${esc(g.kind)}">
-        <span class="hm-rw-ncd" style="background:${RW_KINDS[g.kind].tone}"></span>
-        <span class="hm-rw-ncn" style="color:${RW_KINDS[g.kind].tone}">${g.n}</span>
-        <span class="hm-rw-ncw">${esc(i18t(RW_KINDS[g.kind].word))}</span>
-      </button>`).join('');
-    return `<div class="hm-rw">
-      <div class="hm-rw-main">
-        <div class="hm-rw-ends">
-          <span class="hm-rw-end is-past" title="${esc(i18t('rw_std_title'))}">${esc(i18t('rw_end_past',{n:rwStandardDays()}))}</span>
-          <span class="hm-rw-end">${esc(i18t('rw_end_left'))}</span>
-        </div>
-        <div class="hm-rw-rail">
-          <span class="hm-rw-wash is-past" style="width:${RW_TODAY_AT}%"></span>
-          <span class="hm-rw-wash is-ahead" style="left:${RW_TODAY_AT}%"></span>
-          <span class="hm-rw-base"></span>
-          <span class="hm-rw-now" style="left:${RW_TODAY_AT}%"></span>
-          <div class="hm-rw-pins">${pins}</div>
-          ${ticks}
-        </div>
-      </div>
-      ${groups?`<div class="hm-rw-side">
-        <span class="hm-rw-sidehead">${esc(i18t('rw_none_head'))}</span>
-        ${groups}
-      </div>`:''}
-    </div>`;
-  })();
-
-  /* ---- ONE NUMBER FOR ONE THING, TWELVE PIXELS APART ----
-     MEASURED on a real page the hour the rail landed: the row read "42 days"
-     and the dot beside it sat where the rail puts 53. Both are true and they
-     look like a contradiction. The desk's own tag counts WORKING days since
-     they asked — exactly right for the quiet-desk flag, which is a judgement
-     about whether a deal has gone quiet — and the rail measures CALENDAR days
-     PAST THE STANDARD, because that is the only unit both halves of the rail
-     can share. On this card the rail's reading wins, because it is the one the
-     picture is drawn in; everywhere else the flag keeps its own word. */
-  if(rwCard) rwSp.past.forEach(r=>{ if(r.kind==='wait'&&r.it) r.it.tag=esc(i18tn('rw_tag_past',r.n,{n:r.n})); });
-  /* ---- AS MANY AS FIT ON THIS READER'S SCREEN (owner-ruled 29 Aug 2026) ----
-     It was a flat four, so a 2000px-tall monitor showed the same four a laptop
-     did and the rest of the screen was empty. HM_DD_MIN is what a laptop always
-     got and is the floor a bad measurement falls back to, so the worst case is
-     the page exactly as it shipped. The count is set after the paint by
-     hmFitDecisions, which is the only time the room below this list is known. */
-  const ddShown=ddAll.slice(0, Math.max(HM_DD_MIN, _hmDdFit|0));
-  const ddRows=ddShown.length
-    ? rwCard+`<div class="hm-rows" id="hm-dd-rows">${ddShown.map(it=>it.kind==='triage'?triageRowHtml(it):`
-        <button type="button" class="hm-row ${it.urgent?'is-neg':'is-crit'}" data-sel="${esc(it.cid)}">
-          ${''/* THE TONE IS A DOT, NOT A LEFT RULE (21 Sep 2026): the
-                 reference draws an 8px circle at the head of every decision
-                 row. The tone classes are unchanged — the dot reads its
-                 colour off them — so which row is alarming has not moved. */}
-          <span class="hm-rdot" aria-hidden="true"></span>
-          <span class="hm-rb"><span class="hm-rt">${it.txt}</span><span class="hm-rm">${it.meta}</span></span>
-          <span class="hm-rtag">${esc(it.tag)}</span>
-          ${''/* THE VERB IS A WORD ON THE ROW (second pass, 21 Sep 2026): the
-                 reference draws Approve · Decide · Sign · Review at the right.
-                 It is a SPAN dressed as a button, because the row IS the
-                 button — one press, one door, the row's own. */}
-          ${it.verb?`<span class="hm-rverb">${esc(it.verb)}</span>`:''}
-          <svg class="hm-rchev" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><use href="#i-right"/></svg>
-        </button>`).join('')}</div>`
-    : `<div class="hm-empty">${i18t('home_nothing_to_decide')}</div>`;
-  /* DRAWN ONLY WHERE IT SHOWS SOMETHING NEW — at four or fewer, pressing it
-     would open the list already on screen. */
-  const ddLink=(ddAll.length?`<span class="hm-sec-sub">${esc(i18tn('home_dd_items',ddAll.length,{n:ddAll.length}))} · ${esc(rwCard
-      ? i18t('rw_sum',{a:rwSp.past.length,b:rwSp.left.length,c:rwSp.none.length})
-      : i18t('home_dd_sorted'))}</span>`:'')
-    + (ddAll.length>ddShown.length
-    ? `<button type="button" class="hm-cz" data-hm-go="needsyou">${i18t('home_see_all',{n:ddAll.length})}
-         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><use href="#i-right"/></svg></button>`
-    : '');
 
   const hour=new Date().getHours();
   const greetKey=hour<12?'home_greet_morning':hour<17?'home_greet_afternoon':'home_greet_evening';
@@ -1634,8 +1417,9 @@ function renderDashboard(){
 
      WHAT IS NOT LOST, which is what makes this safe: the desk is a stack rather
      than a queue, and everything held back is still where it always was — the
-     renewals in Needs your decision, the late promises on the Obligations
-     worklist, what HaTi read on the contract itself. Discarding a row lets the
+     renewals on the Map and the Calendar (they were in "Needs your decision"
+     until 24 Sep 2026), the late promises on the Obligations worklist, what
+     HaTi read on the contract itself. Discarding a row lets the
      next one step into the slot. `desk_showing` is STALE and left inert in both
      books; the day the desk grows a door onto the rest, it comes back. */
   const deskSub=deskRows.length
@@ -1643,7 +1427,8 @@ function renderDashboard(){
     : '';
   /* NOTHING PREPARED DRAWS NOTHING AT ALL — no heading, no empty state. An
      empty section that says so every morning is the furniture this rulebook
-     keeps warning about, and the list below already has its own empty state. */
+     keeps warning about. Since 24 Sep 2026 there is no list below it; the Map
+     above is always drawn, so the page is never empty on a quiet morning. */
   const deskSection=deskRows.length?hmCard(
     hmSec(i18t('desk_sec'),`<span class="hm-desk-sub">${deskSub}</span>
       <button type="button" class="hm-cz" data-desk-act="discard-all">${esc(i18t('desk_discard_all'))}</button>`,true),
@@ -1654,152 +1439,26 @@ function renderDashboard(){
     ${firstRunBanner}
 
     ${''/* THE HEAD IS THE REFERENCE'S (the redesign's second pass, 21 Sep
-           2026): the greeting over its own line, and the two acts at the right —
-           Choose tiles (the SAME #kpi-customize, moved up from the My work
-           section head) beside the filled New agreement. */}
+           2026): the greeting over its own line, and the act at the right.
+           ONE ACT SINCE 24 Sep 2026 — Choose tiles (#kpi-customize) left with
+           the four tiles it chose; the filled New agreement stays. */}
     <div class="hm-greet">
       <span class="hm-greet-l"><h1>${i18t(greetKey)}, ${esc(firstName)}</h1>
       <span class="hm-greet-sub">${todayLine}</span></span>
       <span style="flex:1 1 auto"></span>
-      <button id="kpi-customize" class="ui-btn" title="${i18t('home_choose_metrics')}">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
-        ${i18t('home_choose_tiles')}
-      </button>
       <button id="hero-draft" class="hm-primary">
         ${icon('plus','w-3.5 h-3.5',2)} ${i18t('home_draft_new')}
       </button>
     </div>
 
-    ${''/* NO LABEL OVER THE TILES (Young ruled 21 Sep 2026: Home must look
-           exactly like the artifact). The reference draws the four straight
-           under the greeting: they are self-labelled, the reader chose them,
-           and the row above already carries the act that changes them.
-           `home_my_work` is STALE ON THE FACE and inert in both books. */}
-    <div id="kpi-grid" class="hm-tiles is-work" data-kpi-cols="${kpiCols}">${workTiles}</div>
-    ${''/* A KEYBOARD AFFORDANCE NOBODY IS TOLD ABOUT IS ONE NOBODY USES. Drawn
-         for a screen reader only, because the cards already SAY "drag to
-         reorder" in the customizer's foot for everybody else and a second
-         visible sentence under the row is furniture. */}
-    <span id="kpi-reorder-hint" class="sr-only">${i18t('home_reorder_keys')}</span>
+    ${''/* THE MAP (Young ruled 24 Sep 2026). data-measure carries the switch's
+           own answer, so a repaint of the card's inside knows where it stands. */}
+    <section class="hm-card hm-map" id="hm-map" data-measure="${measure}">${hmMapInnerHtml(mapD, measure)}</section>
 
     ${deskSection}
-
-    ${hmCard(hmSec(i18t('home_needs_decision'),ddLink,true), ddRows)}
   </div>`;
 
   // ---- wiring ----
-  const SORT_DIR={value:-1,risk:-1,expiry:1};   // first-click direction for KPI drill-throughs
-  const goReg=g=>{ const R=regState(); R.stage=g.stage||'all'; R.type='all'; R.view=g.view||null; if(g.sort){ R.sort=g.sort; R.dir=SORT_DIR[g.sort]||-1; } R.sel={}; setView('register'); };
-  // KPI cards: click drills into the register; drag to reorder (persisted per user).
-  const kgrid=document.getElementById('kpi-grid');
-  let kpiDragId=null;
-  kgrid?.querySelectorAll('[data-kpi-id]').forEach(el=>{
-    const id=el.getAttribute('data-kpi-id');
-    el.addEventListener('click',()=>{
-      /* A tile counting zero opens nothing — see hmTile. It stays draggable,
-         so the refusal lives here rather than on the element. */
-      if(el.classList&&el.classList.contains('is-dead')) return;
-      const g=KPI_CATALOG[id]&&KPI_CATALOG[id].go; if(!g) return;
-      /* A metric whose list is not the register names the view it belongs to
-         instead — Live negotiations is a list of negotiations, not of rows in
-         the contracts table. */
-      if(g.obligations){
-        if(typeof window.obwGoFiltered === 'function') obwGoFiltered(g.obligations);
-        else setView('obligations');
-        return;
-      }
-      if(g.intelTab){
-        if(typeof window.intelGoTab === 'function') intelGoTab(g.intelTab);
-        else setView('intel');
-        return;
-      }
-      if(g.nav){ setView(g.nav); return; }
-      goReg(g);
-    });
-    el.addEventListener('dragstart',e=>{ kpiDragId=id; el.style.opacity='.35'; try{ e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain',id); }catch(_){} });
-    el.addEventListener('dragend',()=>{ kpiDragId=null; el.style.opacity=''; });
-    /* ---- AND THE KEYBOARD CAN REORDER THEM TOO ---- (25 Aug 2026)
-       Dragging is the only way this row could be reordered, and drag-and-drop
-       reaches nobody working from a keyboard, switch access or a screen
-       reader. Alt+Arrow is the pattern browsers and editors already use for
-       "move this item"; it is Alt-modified deliberately, because a bare arrow
-       on a KPI card is how a reader scrolls the dashboard.
-       IT GOES THROUGH THE SAME ARITHMETIC AS THE DROP — one array, one splice,
-       one setKpiSel — so the two ways of moving a card cannot come to disagree
-       about what the order is. */
-    el.addEventListener('keydown',e=>{
-      if(!e.altKey) return;
-      const d = e.key==='ArrowLeft' ? -1 : e.key==='ArrowRight' ? 1 : 0;
-      if(!d) return;
-      e.preventDefault();
-      const arr=currentKpiSel().filter(x=>KPI_CATALOG[x]);
-      const from=arr.indexOf(id); if(from<0) return;
-      const to=from+d; if(to<0||to>=arr.length) return;
-      arr.splice(from,1); arr.splice(to,0,id); setKpiSel(arr); renderDashboard();
-      /* The row is rebuilt, so the card the reader is moving is a NEW element —
-         find it again and put focus back on it, or every press drops them at
-         the top of the page. */
-      setTimeout(()=>{ document.querySelector(`[data-kpi-id="${id}"]`)?.focus({preventScroll:true}); },0);
-    });
-    el.addEventListener('dragover',e=>{ e.preventDefault(); try{ e.dataTransfer.dropEffect='move'; }catch(_){} });
-    el.addEventListener('drop',e=>{ e.preventDefault();
-      const overId=id, dId=kpiDragId||(e.dataTransfer&&e.dataTransfer.getData('text/plain'));
-      if(!dId||dId===overId) return;
-      const arr=currentKpiSel().filter(x=>KPI_CATALOG[x]);
-      const from=arr.indexOf(dId), to=arr.indexOf(overId);
-      if(from<0||to<0) return;
-      arr.splice(from,1); arr.splice(to,0,dId); setKpiSel(arr); renderDashboard();
-    });
-  });
-  document.getElementById('kpi-customize')?.addEventListener('click',e=>{ e.stopPropagation(); openKpiCustomizer(e.currentTarget); });
-
-  /* ---- EVERY DOOR ON THIS PAGE GOES THROUGH ONE HANDLER ----
-     One rule decides where each tile lands: it opens the list that would
-     change its number. Written as a destination STRING on the element rather
-     than a listener per tile, so a tile added later is a door by construction
-     and cannot be the one somebody forgot to wire.
-
-     THE NUMBER AND THE LIST MUST MATCH. Each destination below narrows the
-     register with the same reading the tile counted, never a near-enough one —
-     a card that says 11 and opens a list of 14 is a card that is lying. */
-  document.querySelectorAll('[data-hm-go]').forEach(el=>el.addEventListener('click',e=>{
-    e.stopPropagation();
-    const [kind,arg]=String(el.getAttribute('data-hm-go')||'').split(':');
-    const R=()=>{ const r=regState(); r.type='all'; r.sel={}; r.view=null; return r; };
-    if(kind==='stage'){ const r=R(); r.stage=arg; setView('register'); return; }
-    if(kind==='nav'){ setView(arg); return; }
-    if(kind==='needsyou'){
-      /* The rows above are contracts waiting on this reader, so the link stays
-         in contracts. The bell owns the wider "everything owed to you". */
-      const ids=(decisionItems||[]).map(x=>x.cid).filter(Boolean);
-      if(window.regShowOnly && ids.length){ regShowOnly(ids,i18t('home_needs_decision')); return; }
-      const r=R(); r.stage='all'; setView('register'); return;
-    }
-    if(kind==='rwnone'){
-      /* THE COUNT OPENS THE LIST THAT MADE IT — this page's own rule, and the
-         same door the other three counts on it use. The rail can only draw
-         what fits; the register shows every one of them. */
-      const ids=((rwSp&&rwSp.noneBy&&rwSp.noneBy[arg])||[]).map(r=>r.cid).filter(Boolean);
-      if(window.regShowOnly && ids.length){ regShowOnly(ids,i18t(RW_KINDS[arg]?RW_KINDS[arg].word:'home_needs_decision')); return; }
-      const r=R(); r.stage='all'; setView('register'); return;
-    }
-    if(kind==='fails'){
-      /* COMPLIANCE OPENS THE ONES THAT FAIL, NOT ALL OF THEM. Pressing "92%"
-         and landing on every contract in the book tells the reader nothing;
-         the 8% with a finding is the whole point of the number. Same reading
-         the percentage was worked out from — contractRisk at or above 60. */
-      const ids=live.filter(c=>contractRisk(c)>=60).map(c=>c.id);
-      if(window.regShowOnly && ids.length){ regShowOnly(ids,KPI_META.compliance); return; }
-      const r=R(); r.stage='all'; r.sort='risk'; r.dir=-1; setView('register'); return;
-    }
-    if(kind==='copilot'){
-      /* THE LIST IS THE ONES IT HAS NOT READ — the exact set the tile counted,
-         handed over by id so the two can never disagree. */
-      const ids=live.filter(c=>!copilotRead(c)).map(c=>c.id);
-      if(window.regShowOnly && ids.length){ regShowOnly(ids,i18t('home_copilot_coverage')); return; }
-      const r=R(); r.stage='all'; setView('register'); return;
-    }
-  }));
   /* The banner's one button opens the same new-contract menu the command bar
      owns, rather than a second way of creating paper. */
   document.getElementById('hero-draft')?.addEventListener('click',e=>{
@@ -1832,16 +1491,9 @@ function renderDashboard(){
     e.preventDefault(); e.stopPropagation();
     if(typeof openAI==='function') openAI('What needs my attention in the next 90 days — renewals, expiries and anything overdue?');
   });
-  /* THE RING'S OWN WIRING IS RETIRED WITH IT (24 Aug 2026). It repainted the
-     donut, the key and the stage list in place on a press, and measured the
-     ring against the card with a ResizeObserver. The lifecycle tile needs none
-     of it: its three blocks are ordinary doors and go through the one
-     [data-hm-go] handler above like every other tile on the page. */
 
-  document.querySelectorAll('[data-sel]').forEach(el=>el.addEventListener('click',()=>selectContract(el.getAttribute('data-sel'))));
   document.querySelectorAll('[data-act-decide]').forEach(el=>el.addEventListener('click',()=>openWorkspace(el.getAttribute('data-act-decide'))));
   document.querySelectorAll('[data-share-open]').forEach(el=>el.addEventListener('click',()=>openWorkspace(el.getAttribute('data-share-open'))));
-  document.querySelectorAll('[data-open-decisions]').forEach(el=>el.addEventListener('click',()=>setView('calendar')));
   /* ---- THE TRIAGE CARD'S OWN PRESSES ----
      THE FOLD IS PER SITTING AND REPAINTS NOTHING BUT THIS PAGE. It is a
      posture, so it is not stored: a card folded on Monday is open again on
@@ -1950,10 +1602,6 @@ function renderDashboard(){
     if(window.triageAck) triageAck(c);
     selectContract(id);
   }));
-  // contracts sitting in review are register rows, not calendar entries
-  document.querySelectorAll('[data-open-review]').forEach(el=>el.addEventListener('click',()=>{
-    const R=regState(); R.stage='Under Review'; R.type='all'; R.view=null; R.sel={}; setView('register');
-  }));
   document.getElementById('ob-open-cal')?.addEventListener('click',e=>{ e.stopPropagation(); setView('calendar'); });
   /* Through the shared verb in js/obligations.js, exactly as the calendar does:
      one place decides what completing means, and one refresh puts every surface
@@ -1969,45 +1617,10 @@ function renderDashboard(){
     try{ lsSet(ddOpenKey(), !!e.currentTarget.open); }catch(_){}
   });
   if(window.wireEmailSetupBanner) wireEmailSetupBanner();
-  hmFitDecisions();
+  /* THE MAP'S DOORS AND ITS SWITCH, one delegated listener on the card. */
+  hmMapWire(document.getElementById('hm-map'), mapD);
   setActiveNav('dashboard');
 }
 
-/* ---- FILL THE HEIGHT WITH THE DECISIONS THAT ARE WAITING ----
-   Measured after the paint, because the room under this list is whatever the
-   two card rows above it left — a number that does not exist while the markup
-   is being built. Re-rendered ONLY when the answer actually changes, or a
-   window resize would repaint the dashboard on every pixel of a drag.
-   ONE ROW'S OWN HEIGHT IS MEASURED, never assumed: this row's padding has
-   moved twice this month and a typed number would have gone stale with it. */
-const HM_DD_MIN = 4;      /* what a laptop always showed, and the safe floor */
-const HM_DD_MAX = 40;     /* past this it is a list, and the list has a page */
-let _hmDdFit = HM_DD_MIN;
-function hmFitDecisions(){
-  if(typeof document==='undefined') return;
-  const rows=document.getElementById('hm-dd-rows');
-  if(!rows) return;
-  const first=rows.firstElementChild;
-  const rowH=first ? first.getBoundingClientRect().height : 0;
-  if(!(rowH>0)) return;              /* a hidden pane measures 0 — leave it be */
-  const want=(typeof window!=='undefined' && window.rowsThatFit)
-    ? rowsThatFit(rows, rowH, HM_DD_MIN, HM_DD_MAX) : HM_DD_MIN;
-  if(want===_hmDdFit) return;
-  _hmDdFit=want;
-  renderDashboard();
-}
-if(typeof window!=='undefined' && typeof ResizeObserver==='function'){
-  /* The WINDOW is what changes the room, and the dashboard is rebuilt on every
-     view change anyway — so one observer on the scroller, armed once. */
-  const arm=()=>{
-    const sc=document.getElementById('content-scroll');
-    if(!sc || sc.dataset.hmFitBound) return;
-    sc.dataset.hmFitBound='1';
-    try{ new ResizeObserver(()=>hmFitDecisions()).observe(sc); }catch(_){}
-  };
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', arm);
-  else arm();
-}
-
-Object.assign(window,{renderDashboard,hmFitDecisions,HM_DD_MIN,hmDashSlices,hmMySignings,copilotRead,copilotCoverage,gsSteps,gettingStartedHtml,gsIsSeed,
+Object.assign(window,{renderDashboard,hmDashSlices,hmMySignings,hmMapData,hmMapInnerHtml,hmMapWire,hmMeasure,hmSetMeasure,hmOwed,hmSecHtml,HM_MAP_MONTHS,HM_MAP_STAGES,copilotRead,copilotCoverage,gsSteps,gettingStartedHtml,gsIsSeed,
   KPI_META,currentKpiSel,setKpiSel,kpiCatalogOrder,DEFAULT_KPI_SEL,KPI_MAX,kpiAtMax,readyToSignItems});

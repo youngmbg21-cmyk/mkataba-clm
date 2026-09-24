@@ -41,6 +41,9 @@
 
    ---- ONE DOOR (owner-asked, and it is why this file exists rather than a
    fourth branch inside Home) ----
+   (24 Sep 2026: "Needs your decision" LEFT HOME on the owner's word, so the
+   eviction below has no list to act on there; deskCids stays published and
+   tested. The reasoning is kept because it is why the rule was right.)
    A renewal inside 90 days is ALREADY a row in "Needs your decision", at
    exactly this window. Drawn naively the same contract would say the same thing
    twice, twelve pixels apart. So a contract the desk has prepared something for
@@ -81,7 +84,8 @@ const DESK_CHASE_LATE = 1;
    DISMISSED IS DISMISSED. A row put away does not come back tomorrow, because
    the desk's promise is that it is a stack of things prepared ONCE, not a
    queue that nags. Nothing is lost by putting one away: the renewal is still in
-   "Needs your decision" and on the Calendar, the late promise is still on the
+   "Needs your decision" (since 24 Sep 2026: on the Map) and on the Calendar,
+   the late promise is still on the
    Obligations worklist, and the deviations are still on the contract's own
    page. */
 const deskKeyOf = it => (it && it.ob) ? (it.kind + ':' + it.ob.id) : (it && it.kind) || '';
