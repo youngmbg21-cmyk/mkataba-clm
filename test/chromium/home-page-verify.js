@@ -436,7 +436,8 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     const desk = await page.evaluate(() => {
       const rows = [...document.querySelectorAll('#hm-desk-rows .hm-row')];
       const r0 = rows[0] ? rows[0].getBoundingClientRect() : null;
-      const dd = document.querySelector('#hm-dd-rows .hm-row');
+      /* The card's first dated decision — a dot on the rail since 24 Sep. */
+      const dd = document.querySelector('.hm-dd [data-sel]');
       const sec = [...document.querySelectorAll('.hm-sec')]
         .find(x => /Prepared for you/i.test((x.querySelector('h2') || {}).textContent || ''));
       return {
@@ -507,11 +508,16 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       desk.acts.length === 3 && desk.acts.every(a => a.includes('discard')),
       `${desk.acts.length} rows · ${desk.acts.join(' | ')}`);
 
-    /* ---- ONE DOOR: the owner's own question, end to end ---- */
+    /* ---- ONE DOOR: the owner's own question, end to end ----
+       RE-POINTED 24 Sep 2026: the decision card's ROWS are gone (Young: "end
+       the card with only the graph in it"). A dated decision is a DOT on the
+       rail now, and a dot carries the same data-sel as the row did, so every
+       claim below asks the whole card (.hm-dd [data-sel]) — which is both
+       halves of the old question: is the contract on the card or not. */
     const once = await page.evaluate(id => {
       const inDesk = [...document.querySelectorAll('#hm-desk-rows [data-desk-cid]')]
         .some(b => b.getAttribute('data-desk-cid') === id);
-      const inDd = [...document.querySelectorAll('#hm-dd-rows [data-sel]')]
+      const inDd = [...document.querySelectorAll('.hm-dd [data-sel]')]
         .some(b => b.getAttribute('data-sel') === id);
       return { inDesk, inDd };
     }, staged ? staged.ren : '');
@@ -525,7 +531,7 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     const held = await page.evaluate(id => {
       const inDesk = [...document.querySelectorAll('#hm-desk-rows [data-desk-cid]')]
         .some(b => b.getAttribute('data-desk-cid') === id);
-      const inDd = [...document.querySelectorAll('#hm-dd-rows [data-sel]')]
+      const inDd = [...document.querySelectorAll('.hm-dd [data-sel]')]
         .some(b => b.getAttribute('data-sel') === id);
       /* EITHER KIND. Since 16 Sep a contract inside its notice window is on
          the desk as a NOTICE rather than as a renewal — the sharper form of
@@ -598,7 +604,7 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       away && away.stamped, away ? (away.stampedKeys || []).join(' | ') : '—');
 
     const moved = await page.evaluate(id =>
-      [...document.querySelectorAll('#hm-dd-rows [data-sel]')]
+      [...document.querySelectorAll('.hm-dd [data-sel]')]
         .some(b => b.getAttribute('data-sel') === id), staged ? staged.ren : '');
     check('11l …and it is in Needs your decision instead — so 11h was a filter, not an empty list',
       moved === true, `in the decisions list: ${moved}`);

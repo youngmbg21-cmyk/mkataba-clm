@@ -75,8 +75,12 @@ describe('f350 (1) — the counterparty leads and the title sits under it', () =
   });
 
   test('the Negotiations seat gains a column of its own, and Contracts loses one', () => {
-    assert.equal(win.REG_COL_KEYS.length, 10, 'ten on Contracts, where there were eleven');
-    assert.equal(win.REG_COL_KEYS_NEGO.length, 8, 'and eight on Negotiations, where there were eight');
+    /* RE-POINTED IN PLACE 24 Sep 2026: the owner took the value stream column
+       off both seats ("Remove the value stream column from both pages as well
+       but not from the filter"), so ten → nine and eight → seven. The claim
+       about the kind column is unchanged. */
+    assert.equal(win.REG_COL_KEYS.length, 9, 'nine on Contracts (ten before the stream column went)');
+    assert.equal(win.REG_COL_KEYS_NEGO.length, 7, 'and seven on Negotiations (eight before it went)');
     assert.deepEqual(win.REG_COL_KEYS_NEGO.filter(k => !win.REG_COL_KEYS.includes(k)), ['kind']);
     /* IMMEDIATELY RIGHT OF THE COUNTERPARTY — the owner named the place. */
     const i = win.REG_COL_KEYS_NEGO.indexOf('counterparty');
@@ -90,8 +94,11 @@ describe('f350 (1) — the counterparty leads and the title sits under it', () =
     assert.equal(win.REG_COL_W_NEGO.length, win.REG_COL_KEYS_NEGO.length);
     const A = Object.fromEntries(win.REG_COL_KEYS.map((k, i) => [k, win.REG_COL_W[i]]));
     const B = Object.fromEntries(win.REG_COL_KEYS_NEGO.map((k, i) => [k, win.REG_COL_W_NEGO[i]]));
-    for (const k of ['mk', 'counterparty', 'stream', 'value', 'expiry', 'stage'])
+    /* FIVE since 24 Sep 2026 — the stream column left both seats, and its
+       width went back to the counterparty on both, so these still agree. */
+    for (const k of ['mk', 'counterparty', 'value', 'expiry', 'stage'])
       assert.equal(A[k], B[k], k + ' is cut the same on both seats');
+    assert.ok(!('stream' in A) && !('stream' in B), 'and neither seat has a stream column');
     /* "SO WE CAN SEE THE MOST OF THE COUNTERPARTY NAME" — it is the widest
        column on either table, and by a clear margin, because it now carries
        two facts where the two columns it replaced carried one each. */

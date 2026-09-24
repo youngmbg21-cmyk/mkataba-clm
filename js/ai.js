@@ -4196,7 +4196,7 @@ function renderBriefSection(c){
       #brief-section .br-odd{background:var(--st-gray-bg);border-left:3px solid var(--st-gray-dot)}
       #brief-section .br-point{font-size:var(--t-body);line-height:1.6;font-weight:var(--w-body);color:var(--color-text)}
       #brief-section .br-why{font-size:var(--t-meta);line-height:1.5;color:var(--color-neutral-600);margin-top:4px}
-      #brief-section .br-why b{color:var(--color-text);font-weight:var(--w-label)}
+      #brief-section .br-why b{color:var(--color-text);font-weight:var(--w-strong)}
       #brief-section .br-quote{font-size:var(--t-meta);line-height:1.5;color:var(--color-neutral-600);
         font-style:italic;margin-top:5px}
       #brief-section .br-facts{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;

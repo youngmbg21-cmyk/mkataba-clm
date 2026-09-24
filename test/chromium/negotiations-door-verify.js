@@ -263,6 +263,7 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       /* It IS the register now — the filter bar is the point, not the fault. */
       filters: document.querySelectorAll('#reg-stage-sel, #reg-type-sel, #reg-sort').length,
       showing: (document.querySelector('#reg-showing') || {}).textContent,
+      keys: (window.REG_COL_KEYS_NEGO || []).length,
     }), SEEN);
     check('with nothing to reopen it lands on the table', !!list.table && list.table.on,
       list.table ? `${list.table.w}x${list.table.h}` : 'MISSING');
@@ -277,7 +278,10 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     check('and nothing else — the resting head carries no subtitle',
       list.sub === 0, `${list.sub} paragraph(s)`);
     check('the columns are the Contracts table\'s, ending in Whose move',
-      list.cols.length === 8 && list.cols[0] === 'MK' && /Whose move/i.test(list.cols[7] || ''),
+      /* RE-POINTED IN PLACE 24 Sep 2026: seven since the value stream column
+         left both seats — the count is the seat's own key list (list.keys),
+         and the LAST column is still whose move. */
+      list.cols.length === list.keys && list.cols[0] === 'MK' && /Whose move/i.test(list.cols[list.cols.length - 1] || ''),
       list.cols.join(' | '));
     check('three bands, in fixed order, each a full-width row of its own',
       list.bands.length === 3

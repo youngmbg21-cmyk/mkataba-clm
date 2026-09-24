@@ -93,8 +93,15 @@ const check = (name, ok, detail) => {
     /* A NAMED CONTROL: it holds before and after, which is the owner's own
        ask on this seat — "do not delete any column". It is here so a future
        pass cannot quietly drop one. */
-    check('2a the Negotiations table keeps its eight columns',
-      !N.err && N.ths.length === 8, N.err || `${N.ths && N.ths.length}: ` + (N.ths || []).map(x => x.t).join(' | '));
+    /* RE-POINTED IN PLACE 24 Sep 2026: "do not delete any column" was the
+       owner's ask for THIS ruling; three days later he asked for one to go —
+       "Remove the value stream column from both pages as well but not from
+       the filter" — so the seat keeps every column EXCEPT the stream: seven,
+       asked of its own key list, with the stream asserted absent. */
+    const nKeys = await page.evaluate(() => REG_COL_KEYS_NEGO.length);
+    check('2a the Negotiations table keeps every column but the value stream',
+      !N.err && N.ths.length === nKeys && !(N.ths || []).some(x => /value stream/i.test(x.t)),
+      N.err || `${N.ths && N.ths.length} of ${nKeys}: ` + (N.ths || []).map(x => x.t).join(' | '));
     check('2b the words that were under the contract name are a column of their own',
       !!N.typeCell && /·/.test(N.typeCell), N.typeCell);
     check('2c and it sits immediately right of the counterparty', (() => {
@@ -112,12 +119,14 @@ const check = (name, ok, detail) => {
     /* BALANCE, MEASURED ACROSS THE TWO PAGES: the columns both seats share are
        cut identically in PIXELS, which is what a reader moving between them
        actually experiences. */
-    const shared = ['MK', 'Counterparty', 'Value stream', 'Value', 'Expiry date', 'Status'];
+    /* FIVE since 24 Sep 2026: the owner took the value stream column off both
+       seats (filter kept), and its width went back to the counterparty on both. */
+    const shared = ['MK', 'Counterparty', 'Value', 'Expiry date', 'Status'];
     const wOf = (l, n) => { const x = l.find(y => y.t.toLowerCase() === n.toLowerCase()); return x ? x.w : null; };
     const pairs = shared.map(n => [n, wOf(C.ths || [], n), wOf(N.ths || [], n)]);
     /* A NAMED CONTROL for the same reason: this invariant held before this
        change and has to go on holding through it. */
-    check('2f the six columns both tables share are cut identically, in pixels',
+    check('2f the five columns both tables share are cut identically, in pixels',
       pairs.every(([, a, b]) => a != null && a === b),
       pairs.map(([n, a, b]) => `${n} ${a}/${b}`).join(' · '));
 

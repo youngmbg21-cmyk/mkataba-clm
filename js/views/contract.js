@@ -8212,10 +8212,22 @@ let _wsFocus=false,_wsFocusFor=null;
    Two ways out now, the same two the negotiation workbench has always had: a
    chip that stays on the page, and Escape. The chip is created on entry and
    removed on exit, so it costs nothing when focus is off. */
+/* ---- THE CHIP BELONGS TO THIS PAGE (Young reported it 24 Sep 2026: "when
+   on focus mode, and you change pages, the exit focus esc should not move with
+   you to other pages. It should stay where the focus mode is") ----
+   It was appended to document.body, which no page change ever clears, so a
+   reader who left the room in focus mode carried "Exit focus · Esc" onto the
+   Contracts page, Home and everywhere else. It is mounted in #content now —
+   the room's own page, which every navigation replaces — and drawn only while
+   the room is the page on screen. THE MODE ITSELF STAYS WHERE IT WAS:
+   wireWsFocus keeps _wsFocus for the same contract, so coming back to it
+   finds focus mode still on and its chip back in the corner. */
+const wsFocusHere=()=>typeof state!=='undefined'&&!!state&&(state.view==='workspace'||state.view==='doc');
 function wsFocusChip(){
   let chip=document.getElementById('ws-focus-out');
-  if(!_wsFocus){ if(chip) chip.remove(); return; }
+  if(!_wsFocus||!wsFocusHere()){ if(chip) chip.remove(); return; }
   if(chip) return;
+  const host=document.getElementById('content')||document.body;
   chip=document.createElement('button');
   chip.id='ws-focus-out';
   chip.type='button';
@@ -8224,7 +8236,7 @@ function wsFocusChip(){
   chip.style.cssText='position:fixed;right:18px;bottom:18px;z-index:70;font-size:var(--t-meta);padding:var(--s-2) 14px;box-shadow:var(--shadow-md)';
   chip.innerHTML='Exit focus &middot; Esc';
   chip.addEventListener('click',()=>{ _wsFocus=false; applyWsFocus(); });
-  document.body.appendChild(chip);
+  host.appendChild(chip);
 }
 let _wsFocusKeyWired=false;
 function applyWsFocus(){
@@ -8272,6 +8284,12 @@ function wireWsFocus(c){
     _wsFocusKeyWired=true;
     document.addEventListener('keydown',e=>{
       if(e.key!=='Escape'||!_wsFocus) return;
+      /* THE KEY STAYS WITH ITS PAGE TOO (24 Sep 2026): the listener outlives
+         every paint, and Escape pressed on another page — to close a dialog
+         there — silently took the room out of focus mode behind the reader's
+         back. It answers only while the room is on screen, the guard the
+         negotiate page's own Escape has always had (rlWireFocusKey). */
+      if(!wsFocusHere()) return;
       const t=e.target;
       if(t&&/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName||'')) return;
       if(t&&t.isContentEditable) return;
@@ -11721,6 +11739,17 @@ const docXrayLabel = x => ((x.cite?x.cite+(x.sep||(/\./.test(x.cite)?'':'.'))+' 
    XR_SEG_MAX — a relation to the words, never a share of the screen — and the
    map scrolls on its own. It FOLLOWS the paper (docXrayFollow): the clause at
    the top of the sheet is marked on the map and kept in view. */
+/* ---- AND THE STRAND RUNS TO THE BOTTOM OF THE SCREEN, AND NO FURTHER
+   (Young ruled 24 Sep 2026: "make the DNA strand to cover until the bottom of
+   the screen. It should not extend past the length of the screen") ----
+   Since only the marked clauses are on the map (below), a short list stopped
+   two-thirds down and left the rest of the strip empty. The blocks now SHARE
+   the strip's height — docXraySegH is a block's WEIGHT, so a longer clause is
+   still a taller block — and the strand ends where the paper's column ends.
+   XR_SEG_MIN STAYS THE FLOOR, because the 23 Sep ask was that no block be too
+   small to press: only a contract with more marked clauses than fit at that
+   floor (about 29 on a laptop screen) still scrolls, and that is the one case
+   where the two rulings meet and the older one decides. */
 const XR_SEG_MIN = 16, XR_SEG_MAX = 44, XR_SEG_WORDS = 400;
 const docXraySegH = words => Math.round(XR_SEG_MIN
   + (XR_SEG_MAX - XR_SEG_MIN) * Math.min(1, Math.sqrt(Math.max(0, words) / XR_SEG_WORDS)));
@@ -11737,7 +11766,7 @@ const docXraySpineRows = rows => (rows||[]).filter(x => x && x.tone);
 function docXraySpineHtml(rows){
   return docXraySpineRows(rows).map(x=>`<button type="button" class="doc-xr-seg${x.tone?' is-'+x.tone:''}${
       x.i===_docXrayPick?' is-on':''}" data-xr-seg="${x.i}"
-      style="height:${docXraySegH(x.words)}px" aria-pressed="${x.i===_docXrayPick?'true':'false'}"
+      style="--xr-w:${docXraySegH(x.words)};min-height:${XR_SEG_MIN}px" aria-pressed="${x.i===_docXrayPick?'true':'false'}"
       title="${esc(docXrayLabel(x)+' · '+i18tn('xr_words',x.words,{n:x.words}))}"
       aria-label="${esc(docXrayLabel(x))}"><span class="doc-xr-dot"></span></button>`).join('');
 }
