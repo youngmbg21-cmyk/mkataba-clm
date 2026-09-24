@@ -19125,3 +19125,13 @@ Noticed, not fixed
 - The History tab's five filters are hardcoded English — the labels (Clause, Person, Side, Round, Outcome), the Side and Outcome options, and each Round option ("Round 1") — so a Swedish reader sees English there.
 - The other side's copy of the history and the shared history link (negoTimelineScreenHtml) still draw the older design: 22px glyph marks, oldest first, the ISO day. Left alone on purpose; the owner has been told.
 - room-order-and-notices-verify: three checks red on both sides ("nothing still awaiting an answer sits under a decided change", "the All / Mine / Theirs cuts are untouched").
+
+## 24 Sep 2026 — advice only: redline here, sign there (process design)
+
+The owner asked for a process: upload the other side's contract only to redline it with today's tools, hand it over once both sides agree, let them run the signing (DocuSign, another service or paper), then upload the signed copy, which is filed and gets its contract number then. The design was published as the page "Redline Here, Sign There" with eight decisions and my recommendations; no code changed. It keeps most of "Scenario 1 — Signed Outside HaTi" (24 Sep) and replaces the Review Desk of "Approval and Their Paper" (23 Sep).
+
+Noticed, not fixed
+- executedAttachment (server) attaches c.upload.dataUrl (the file as it ARRIVED) or execution.html, never a paper-filed signed copy (c.execution.fileId). "Send signed copies to all parties" on a paper-filed upload sends the unsigned original where its bytes are stored inline, and nothing otherwise. Read, not driven.
+- runShareNudges does not ask whether the contract is executed, closed or archived, so an unopened email link still gets "is waiting for your review" three days on after the deal is done.
+- The mailroom stores its file as upload.{name, type, sha256, data}; the browser reads upload.fileName / fileHash / dataUrl / fileId and nothing reads upload.data, so a mailroom document cannot be opened from the import queue and its row shows no file name. Read, not driven.
+- A counterparty's "Agree to the wording but don't sign" writes c.acceptance (applyResponse, js/core.js) and nothing reads it.
