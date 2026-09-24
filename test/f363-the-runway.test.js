@@ -258,31 +258,22 @@ describe('f363 (7) the card carries the record, not its own words', () => {
     assert.ok(/rk:'wait',\s*rw:\s*\{\s*since:x\.stale\.since\s*\}/.test(HOME_CODE),
       'the timestamp travels, so the rail can measure in its own unit');
   });
-  /* ---- REVERSED IN PLACE 24 Sep 2026 (Young: "remove the highlighted
-     alerts and end the card with only the graph in it") ----
-     These two said the list survived under the rail, and that an undated card
-     drew no rail because the rows said the rest. The rows are gone, so the
-     card IS the rail, and it is drawn whenever there is anything on the card:
-     an empty line of time beside "No clock on these" says "nothing is dated",
-     where a blank card would say nothing at all. */
-  test('the card ends with the rail, and draws no rows under it', () => {
-    assert.ok(/const ddRows=rwCard\s*\|\|/.test(HOME_CODE), 'the rail is the whole body');
-    assert.ok(!/id="hm-dd-rows"/.test(HOME_CODE), 'and the decision rows are gone');
+  test('the rail is above the rows, and the rows are still drawn', () => {
+    assert.ok(/ddRows\s*=\s*ddShown\.length\s*\?\s*rwCard\+`<div class="hm-rows"/.test(HOME_CODE),
+      'the picture leads and the list survives under it');
   });
-  test('the rail is drawn whenever the card has anything on it', () => {
-    assert.ok(/if\(!rwSp\|\|!rwSp\.rows\.length\)\s*return\s*'';/.test(HOME_CODE),
-      'an undated card still draws its rail and its no-clock column');
+  test('nothing is plotted, nothing is drawn', () => {
+    assert.ok(/if\(!rwSp\|\|!rwSp\.plotted\)\s*return\s*'';/.test(HOME_CODE),
+      'a rail with no dots on it is not built');
   });
   test('every dot is a door, and so is every count', () => {
     assert.ok(/class="hm-rw-pin" data-sel=/.test(HOME_CODE), 'a pin opens its contract');
     assert.ok(/data-hm-go="rwnone:\$\{esc\(g\.kind\)\}"/.test(HOME_CODE), 'a count opens its list');
     assert.ok(/kind==='rwnone'/.test(HOME_CODE), 'and the page’s one destination handler answers it');
   });
-  /* REVERSED IN PLACE 24 Sep 2026: the rows were the second carrier of a quiet
-     desk's number and they are gone, so there is nothing left to agree with the
-     rail — and nothing rewrites an item's tag any more. */
-  test('with no rows, nothing re-words a quiet desk’s tag', () => {
-    assert.ok(!/r\.it\.tag=/.test(HOME_CODE), 'the rail and its hover are the only carriers');
+  test('the row and the rail speak ONE number about a quiet desk', () => {
+    assert.ok(/rwSp\.past\.forEach\(r=>\{ if\(r\.kind==='wait'&&r\.it\) r\.it\.tag=/.test(HOME_CODE),
+      'the tag beside a dot is the dot’s own reading');
   });
   test('the head counts the three piles off the same split', () => {
     assert.ok(/rw_sum',\{a:rwSp\.past\.length,b:rwSp\.left\.length,c:rwSp\.none\.length\}/.test(HOME_CODE));

@@ -5406,22 +5406,6 @@
     .hm-rw-side{flex-basis:100%;border-left:0;padding-left:0;padding-top:10px;
       border-top:1px dashed var(--rule-strong);}
   }
-  /* ---- THE DECISION CARD ENDS WITH THE GRAPH, AND THE GRAPH TAKES THE REST
-     OF THE SCREEN (Young ruled 24 Sep 2026: "end the card with only the graph
-     in it", then "extend the graph to cover the little space left to have a
-     full screen") ----
-     The page is at least the scroller's own height (--view-h, measured by
-     syncViewHeight), the card grows into whatever the rows above it left, and
-     the rail grows inside the card. Where the page is already taller than the
-     screen nothing grows and the page scrolls exactly as before: the rail
-     keeps its 76px as a floor. The rows' separator goes too — the card's own
-     edge is the end now. The dots stay on the baseline; only the washes, the
-     TODAY line and the no-clock column take the new height. */
-  .hm-page{min-height:var(--view-h);}
-  .hm-page>.hm-card.hm-dd{flex:1 0 auto;display:flex;flex-direction:column;}
-  .hm-dd>.hm-rw{flex:1 0 auto;border-bottom:0;}
-  .hm-dd .hm-rw-main{display:flex;flex-direction:column;}
-  .hm-dd .hm-rw-rail{flex:1 0 76px;height:auto;}
   /* ---- AUTO-TRIAGE'S CARD (owner-approved design, 9 Sep 2026) ----
      A row in this same list, in this same vocabulary — so folded it is
      indistinguishable from its neighbours, and open it is the only one that

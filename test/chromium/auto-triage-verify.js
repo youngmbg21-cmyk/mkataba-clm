@@ -200,18 +200,15 @@ const SEED = t => {
       const el = document.querySelector(`[data-tri-row="${cid}"]`);
       const anyRow = document.querySelectorAll('[data-tri-row]').length;
       const anyTile = document.querySelectorAll('.hm-tri-tile').length;
-      /* RE-POINTED 24 Sep 2026: the decision card's rows are gone (Young: "end
-         the card with only the graph in it"), so what "still there" means is
-         the CARD — its head and its graph — not a list inside it. */
-      const list = document.querySelector('.hm-card.hm-dd');
+      const list = document.getElementById('hm-dd-rows');
       return { forThis: !!el, anyRow, anyTile,
-        listStillDraws: !!list };
+        listStillDraws: !!(list && list.children.length >= 0) };
     }, id, { forThis: true, anyRow: 1, anyTile: 4 });
     check('3a · Home draws no triage row for a contract that was just read',
       onHome.forThis === false, onHome);
     check('3b · and none for any contract, so the four tiles live in one place',
       onHome.anyRow === 0 && onHome.anyTile === 0, onHome);
-    check('3c · the decisions card it used to lead is still there',
+    check('3c · the decisions list it used to lead is still there',
       onHome.listStillDraws === true, onHome);
 
     /* ============ 7 · THE JOURNEY, FROM THE BUTTON ============ */

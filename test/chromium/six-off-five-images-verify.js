@@ -10,14 +10,18 @@
    pages, the exit focus esc should not move with you to other pages. It should
    stay where the focus mode is."*
 
-   WHY A BROWSER FILE. Four of the six are geometry or a computed style — a
-   card that reaches the bottom of the screen, a strand that ends where the
-   column ends, a weight — and the sixth is a JOURNEY across two pages, which
-   only the real shell with its real router can walk.
+   HOME WAS REVERTED THE SAME DAY (Young: "Revert just the home page to how it
+   was before"): images 2 and 3 are undone and their checks are gone from this
+   file. The other four stand.
+
+   WHY A BROWSER FILE. Three of the four are geometry or a computed style — a
+   column that is not drawn, a strand that ends where the column ends, a
+   weight — and the fourth is a JOURNEY across two pages, which only the real
+   shell with its real router can walk.
 
    CONTROLS pass on both sides by design and prove the change is narrow: the
-   Stream filter, the tiles, the pressable floor under a strand's block, and
-   the focus mode's own way out.
+   Stream filter, the pressable floor under a strand's block, and the focus
+   mode's own way out.
 
    Run: node test/chromium/six-off-five-images-verify.js */
 const fs = require('node:fs');
@@ -90,56 +94,12 @@ const ok = (name, good, detail) => {
       n1.band != null && n1.band === n1.heads.length, `colspan ${n1.band} · ${n1.heads.length} columns`);
     await page.screenshot({ path: path.join(OUT, '02-negotiations.png') });
 
-    /* ════════ 2 + 3. HOME: THE CARD ENDS WITH THE GRAPH, AND FILLS THE SCREEN ════════
-       Staged: three renewals at known distances and a quiet desk sixty days
-       old — the runway's own staging (runway-and-xray-verify 3). */
-    const stageHome = () => page.evaluate(() => {
-      const iso = n => { const d = new Date(); d.setDate(d.getDate() + n);
-        const q = x => String(x).padStart(2, '0');
-        return d.getFullYear() + '-' + q(d.getMonth() + 1) + '-' + q(d.getDate()); };
-      const me = currentUser();
-      const live = state.contracts.filter(c => c.status !== 'Declined' && !isArchived(c));
-      [10, 35, 70].forEach((d, i) => { const c = live[i]; if (!c) return;
-        c.metadata = c.metadata || {}; c.metadata.expiryDate = iso(d); c.metadata.noticePeriodDays = 0; c.expiry = iso(d); });
-      const q = live[3];
-      if (q) { q.desk = { leadId: me.id, leadName: me.name };
-        q.changes = [{ id: 'x1', clauseId: 'cl_1', authorSide: 'counterparty', status: 'pending',
-          createdAt: new Date(Date.now() - 60 * 86400000).toISOString(), summary: 's', type: 'modify' }]; }
-      setView('dashboard');
-    });
-    const home = () => page.evaluate(() => {
-      const sc = document.getElementById('content-scroll');
-      const card = [...document.querySelectorAll('.hm-card')].find(x => /needs your decision/i.test(x.textContent));
-      if (!card) return null;
-      const rail = card.querySelector('.hm-rw-rail');
-      const last = card.lastElementChild;
-      return {
-        rows: card.querySelectorAll('.hm-rows .hm-row, #hm-dd-rows').length,
-        lastIsGraph: !!last && last.classList.contains('hm-rw'),
-        gapToBottom: Math.round(sc.getBoundingClientRect().bottom - card.getBoundingClientRect().bottom),
-        pad: parseFloat(getComputedStyle(document.querySelector('.hm-page')).paddingBottom) || 0,
-        overflow: sc.scrollHeight - sc.clientHeight,
-        rail: rail ? Math.round(rail.getBoundingClientRect().height) : 0,
-        seeAll: !!card.querySelector('[data-hm-go="needsyou"]'),
-        tiles: document.querySelectorAll('#kpi-grid [data-kpi-id]').length,
-      };
-    });
-    for (const [w, hh] of [[1920, 950], [1366, 650]]) {
-      await page.setViewportSize({ width: w, height: hh });
-      await stageHome();
-      await page.waitForTimeout(900);
-      const m = await home();
-      await page.screenshot({ path: path.join(OUT, `03-home-${w}x${hh}.png`) });
-      ok(`2a ${w}x${hh} the decision card draws no rows`, !!m && m.rows === 0, m ? m.rows + ' rows' : 'no card');
-      ok(`2b ${w}x${hh} and it ends with the graph`, !!m && m.lastIsGraph, m ? String(m.lastIsGraph) : 'no card');
-      ok(`2c ${w}x${hh} "See all" is still the door onto the whole list`, !!m && m.seeAll);
-      ok(`3a ${w}x${hh} the card reaches the bottom of the screen, less the page's own margin`,
-        !!m && Math.abs(m.gapToBottom - m.pad) <= 2, m ? `${m.gapToBottom}px to the bottom · margin ${m.pad}px` : 'no card');
-      ok(`3b ${w}x${hh} and the page does not scroll to get there`, !!m && m.overflow <= 1, m ? m.overflow + 'px' : 'no card');
-      ok(`3c ${w}x${hh} the graph itself grew into the room`, !!m && m.rail > 76, m ? m.rail + 'px' : 'no card');
-      ok(`3d ${w}x${hh} CONTROL the four tiles are still there`, !!m && m.tiles === 4, m ? m.tiles + ' tiles' : 'no card');
-    }
-    await page.setViewportSize({ width: 1500, height: 950 });
+    /* ════════ 2 + 3. HOME — REVERTED THE SAME DAY ════════
+       The decision card ending with its graph and filling the screen were
+       built and then undone on the owner's word ("Revert just the home
+       page to how it was before"). Their checks went with them; the
+       restored card is measured by home-page-verify and
+       runway-and-xray-verify, back as they were. */
 
     /* ════════ 4. THE X-RAY STRAND RUNS TO THE BOTTOM, AND NO FURTHER ════════ */
     await page.evaluate(() => { selectContract(state.contracts[0].id); });

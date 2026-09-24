@@ -40,9 +40,7 @@ const mk = (id, expiryDate, over = {}) => ({
   audit: [], comments: [], signatures: [], ...over });
 
 function world(files, contracts) {
-  /* js/runway.js joins the stage (24 Sep 2026): Home's decisions are dots on
-     the runway since its rows went, and a dot carries its contract's id. */
-  return loadViews(['js/obligations.js', 'js/family.js', 'js/runway.js', ...files], {
+  return loadViews(['js/obligations.js', 'js/family.js', ...files], {
     TEMPLATES: STUB_TEMPLATES, FOLDERS: STUB_FOLDERS,
     state: { contracts, settings: {}, view: 'folder', folderId: 'proc', folderShown: 50,
       serverStats: { total: contracts.length }, shareOverview: {}, shareByContract: {},
