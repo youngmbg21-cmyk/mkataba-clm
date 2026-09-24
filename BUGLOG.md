@@ -19081,3 +19081,11 @@ Noticed, not fixed
 - type-and-symbols-verify: "each one is painted at the size the sheet asks for" (redline row marks 13x13) is red on main too.
 - index.html still carries an HTML comment "Inter throughout" near the top of the body — stale since 25 Aug.
 - prototype/*.html pages link only fonts/fonts.css and still draw IBM Plex Sans.
+
+## Run 24 Sep 2026 — the table's foot is the count and the pager
+
+- On the owner's word ("delete this from both the contracts and negotiations pages", over the VALUE STREAMS key and "40 per page"; asked about Negotiations' "one page — every group whole": "remove it too"). The foot under the Contracts and Negotiations tables now holds the count and the pager and nothing else; the Contracts page's Board view lost the same key above its columns. My Queue (not named) keeps its key.
+- Gates: lint 0 errors, 213 warnings (the same as the commit before). Full suite 9,087 tests, 2 failed — f277 (1) and (10), red on main with the same checks. f378: 4 of 7 red at the parent. register-foot-verify: 19/19, 9 red at the parent. contracts-page, keyboard-reach, laptops, pages-read-alike: identical to the parent; negotiations-door-verify: the same two "four tabs" checks red on both sides.
+
+Noticed, not fixed
+- theme-tokens-verify: register--light and register--dark now differ from the baseline by exactly two shades, rgb(124, 58, 237) and rgb(180, 83, 9) — the Marketing and Manufacturing colour bars that only the removed key drew on that file's three-contract book. An owned change, audited as a set (two gone, nothing added); the baseline edit was refused by the session's permission check, so those two lines are still to be taken out of theme-tokens-baseline.json by hand.

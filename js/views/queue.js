@@ -58,8 +58,12 @@ function pipeColumnInner(col, list){
    is handed; renderPipeline (the routable My Queue page) hands it the whole
    book exactly as before, and the register's Board mode hands it regFiltered()
    so the same filters narrow both shapes. pipeCard is untouched: every fact a
-   card carried yesterday it carries today. */
-function pipeBoardHtml(cs){
+   card carried yesterday it carries today.
+   `opts.legend === false` leaves the VALUE STREAMS key off (Young ruled 24 Sep
+   2026: "delete this from both the contracts and negotiations pages"). Only
+   the Contracts page asks for that; My Queue was not named and keeps its key,
+   so the default is the old markup, byte for byte. */
+function pipeBoardHtml(cs, opts){
   const valOf=arr=>arr.reduce((s,c)=>s+(window.fxHomeValue?fxHomeValue(c):Number(c.value||0)),0);
   const groups=PIPE_COLS.map(col=>{ const list=cs.filter(c=>c.status===col.k); return {col, list, val:valOf(list)}; });
 
@@ -82,7 +86,7 @@ function pipeBoardHtml(cs){
       /* keep the category stripe (border-left) on hover — only the other three sides + shadow react */
       .q-card:hover{border-top-color:var(--color-accent)!important;border-right-color:var(--color-accent)!important;border-bottom-color:var(--color-accent)!important;box-shadow:var(--shadow-md)!important}
     </style>
-    <div style="flex:none;margin-bottom:10px">${folderLegendHtml()}</div>
+    ${(opts&&opts.legend===false)?'':`<div style="flex:none;margin-bottom:10px">${folderLegendHtml()}</div>`}
     <div class="board-cols board-4" style="flex:1;min-height:0;display:grid;gap:var(--s-3)">${columnsHtml}</div>`;
 }
 function renderPipeline(){

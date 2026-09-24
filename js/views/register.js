@@ -2589,11 +2589,18 @@ function renderRegister(opts){
       ${regMode()==='board'?`
       <section class="blueprint bp-round reg-board-wrap" style="background:var(--color-surface);box-shadow:var(--shadow-sm);flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden">
         <div id="reg-scroll" style="flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;padding:var(--s-3)">
-          ${(typeof pipeBoardHtml==='function')?pipeBoardHtml(cs):''}
+          ${(typeof pipeBoardHtml==='function')?pipeBoardHtml(cs,{legend:false}):''}
         </div>
         <div style="flex:none;border-top:1px solid var(--color-divider);display:flex;align-items:center;justify-content:space-between;gap:10px var(--s-4);flex-wrap:wrap;padding:5px var(--s-3);font-size:var(--t-label);color:var(--color-neutral-600)">
           <span id="reg-showing" role="status" aria-live="polite" aria-atomic="true">${regFooterText(cs,{all:true})}</span>
-          ${''/* no legend down here: the board draws its own above the columns */}
+          ${''/* ---- NO VALUE STREAMS KEY ON THIS PAGE, BOARD OR TABLE (Young
+                 ruled 24 Sep 2026: "delete this from both the contracts and
+                 negotiations pages") ----
+                 The board is the same page in a second shape, so its key above
+                 the columns went with the table's. Every card names its stream
+                 beside its colour bar, which is the fact the key explained.
+                 My Queue — a separate page drawing the same board, and not
+                 named — keeps its key: `legend:false` is asked only here. */}
         </div>
       </section>`:`
       <section class="blueprint bp-round" style="background:var(--color-surface);box-shadow:var(--shadow-sm);flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden">
@@ -2679,18 +2686,24 @@ function renderRegister(opts){
         <div style="flex:none;border-top:1px solid var(--color-divider);display:flex;align-items:center;justify-content:space-between;gap:10px var(--s-4);flex-wrap:wrap;padding:5px var(--s-3);font-size:var(--t-label);color:var(--color-neutral-600)">
           <span id="reg-showing" role="status" aria-live="polite" aria-atomic="true">${regFooterText(cs)}</span>
           <div id="reg-pager" style="display:flex;align-items:center;gap:6px">${regPager(cs)}</div>
-          ${''/* ONE LEGEND DOWN HERE, NOT TWO. The strip carried both the link
-                 states (sent · opened · changes · signed · declined · not sent)
-                 and the value streams, and between them and the count and the
-                 pager it wrapped to two lines and read as a wall. The value
-                 streams key stays because the stripe down the left edge of
-                 every row is the thing on this page with no other explanation;
-                 the LINK column has a heading and every dot names its own state
-                 on hover, so it explains itself where a reader is already
-                 looking. The folder page keeps its link key — there the strip
-                 holds nothing else, and the marks are why it exists. */}
-          ${folderLegendHtml({style:'font-size:var(--t-label)'})}
-          <span>${neg?esc(i18t('ngl_no_paging')):i18t('reg_per_page',{n:REG_PAGE})}</span>
+          ${''/* ---- THE FOOT IS THE COUNT AND THE PAGER, AND NOTHING ELSE
+                 (Young ruled 24 Sep 2026, over a screenshot of this strip:
+                 "delete this from both the contracts and negotiations pages";
+                 asked about Negotiations' own note in that spot: "remove it
+                 too") ----
+                 The VALUE STREAMS key and the page-size note — "40 per page" on
+                 Contracts, `ngl_no_paging` on Negotiations — are gone from both
+                 seats. THIS REVERSES "the value streams key stays because the
+                 stripe down the left edge of every row is the thing on this page
+                 with no other explanation": that stripe moved INTO the stream
+                 cell on 21 Sep 2026, beside the stream's own name, so the key had
+                 become a fact printed twice, and on a workspace with eleven
+                 streams the strip wrapped into three lines. The page size is
+                 still said where it matters — "Showing 1–40 of 50 · page 1 of 2".
+                 The link-state key left this strip earlier for its own reason
+                 (the column explains itself on hover); the folder page keeps it.
+                 `reg_per_page` and `ngl_no_paging` are STALE, inert in both
+                 books. The Board view's key went the same day — see below. */}
         </div>
       </section>`}
     </div>
