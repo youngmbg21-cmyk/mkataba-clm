@@ -19142,3 +19142,10 @@ Noticed, not fixed
 
 Noticed, not fixed
 - Home: the Active value tile cuts its own figure. It reads "KES 817.70…" at 1440x900 and "KES 817.7…" at 1366x1024 (sample book), and its line "across 30 agreemen…" is cut too, so the reader cannot see the M.
+
+## Run 24 Sep 2026 — the Home drawing: Prepared for you in place of Needs your decision (drawn, not built)
+
+The owner asked, on the Map drawing: "instead of needs your decision, delete it and replace with prepared for you." Done in the drawing only, using HaTi's own card (its kinds, wording and buttons). HaTi's real Home is untouched.
+
+### Noticed, not fixed
+- Prepared for you: the kind tags (Notice, Chase, Read, Memo) are different widths, so the row titles beside them start at different places — 159, 165 and 168px at 1440 wide, measured on a copy of the card built from the same styles.
