@@ -1351,7 +1351,7 @@ function renderDashboard(){
      neither carries a width of its own. The reference caps its stack at
      1100px and its tiles at the page measure, which is the gap the owner
      ringed; HaTi takes the tiles' width for both. */
-  const hmCard=(head,body,cls)=>`<section class="hm-card${cls?' '+cls:''}">${head}${body}</section>`;
+  const hmCard=(head,body)=>`<section class="hm-card">${head}${body}</section>`;
   const hmArrow=`<svg class="hm-go" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><use href="#i-right"/></svg>`;
   /* A tile is a <button> whichever it is, so the row never changes shape; a
      dead one is DISABLED rather than merely unpainted, so the browser itself
@@ -1499,14 +1499,7 @@ function renderDashboard(){
               :(r.sat!=null?i18tn('rw_sat_n',r.sat,{n:r.sat}):i18t('rw_no_clock'));
   const rwTick=(side,n)=>rwX({side,n});
   const rwCard=(()=>{
-    /* ---- DRAWN WHENEVER THE CARD HAS ANYTHING ON IT (Young ruled 24 Sep
-       2026: "remove the highlighted alerts and end the card with only the
-       graph in it") ----
-       It used to stand down where nothing carried a date, because the rows
-       under it said the rest. The rows are gone, so the rail IS the card: an
-       empty line of time beside "No clock on these" says "nothing is dated"
-       where a blank card would say nothing at all. */
-    if(!rwSp||!rwSp.rows.length) return '';
+    if(!rwSp||!rwSp.plotted) return '';
     /* SEVERAL ROWS CAN LAND ON ONE DAY, so they stack upward rather than hide
        one another — drawing all of them is the entire point. Past the stack
        ceiling they sit on the top rung: the count is in the head either way,
@@ -1557,37 +1550,47 @@ function renderDashboard(){
     </div>`;
   })();
 
-  /* ---- ONE NUMBER FOR ONE THING, TWELVE PIXELS APART (22 Sep 2026) ----
-     The rows re-worded a waiting desk's tag to the rail's own reading so the
-     two could not print 42 and 53 side by side. THE ROWS ARE GONE (24 Sep
-     2026, below), so there is no second number left to agree with: the rail
-     and its hover are the only carriers, and `rw_tag_past` is inert. */
-  /* ---- THE CARD ENDS WITH THE GRAPH (Young ruled 24 Sep 2026, over a
-     screenshot with the rows ringed: "remove the highlighted alerts and end
-     the card with only the graph in it") ----
-     The list under the rail is gone. NOTHING IN IT IS LOST: every dated row is
-     a dot that opens its own contract, every undated one is counted in "No
-     clock on these" with a door onto exactly those contracts, and "See all N"
-     in the head opens the whole list on the Contracts page. THE CARD THEN
-     FILLS THE SCREEN (the same ruling's next image: "extend the graph to cover
-     the little space left"): the card and the rail grow into whatever height
-     the page has left, by CSS alone (.hm-dd), so nothing is measured after
-     the paint and nothing repaints on a resize.
-     THIS RETIRES "AS MANY AS FIT ON THIS READER'S SCREEN" (29 Aug 2026):
-     hmFitDecisions, HM_DD_MIN, HM_DD_MAX and _hmDdFit counted rows, and there
-     are no rows to count. */
-  const ddRows=rwCard
-    || (ddAll.length ? '' : `<div class="hm-empty">${i18t('home_nothing_to_decide')}</div>`);
-  /* DRAWN WHENEVER THERE IS ANYTHING TO SEE. It used to stand down at four
-     or fewer, because the list was then already on screen; since 24 Sep 2026
-     the card draws no list, so this is the one door onto all of it. */
-  /* "sorted by what closes first" described the ROWS, so it went with them
-     (`home_dd_sorted` is inert in both books); the rail's own sum is what the
-     sub-line says. */
-  const ddLink=(ddAll.length?`<span class="hm-sec-sub">${esc(i18tn('home_dd_items',ddAll.length,{n:ddAll.length}))}${rwCard
-      ? ' · '+esc(i18t('rw_sum',{a:rwSp.past.length,b:rwSp.left.length,c:rwSp.none.length}))
-      : ''}</span>`:'')
-    + (ddAll.length
+  /* ---- ONE NUMBER FOR ONE THING, TWELVE PIXELS APART ----
+     MEASURED on a real page the hour the rail landed: the row read "42 days"
+     and the dot beside it sat where the rail puts 53. Both are true and they
+     look like a contradiction. The desk's own tag counts WORKING days since
+     they asked — exactly right for the quiet-desk flag, which is a judgement
+     about whether a deal has gone quiet — and the rail measures CALENDAR days
+     PAST THE STANDARD, because that is the only unit both halves of the rail
+     can share. On this card the rail's reading wins, because it is the one the
+     picture is drawn in; everywhere else the flag keeps its own word. */
+  if(rwCard) rwSp.past.forEach(r=>{ if(r.kind==='wait'&&r.it) r.it.tag=esc(i18tn('rw_tag_past',r.n,{n:r.n})); });
+  /* ---- AS MANY AS FIT ON THIS READER'S SCREEN (owner-ruled 29 Aug 2026) ----
+     It was a flat four, so a 2000px-tall monitor showed the same four a laptop
+     did and the rest of the screen was empty. HM_DD_MIN is what a laptop always
+     got and is the floor a bad measurement falls back to, so the worst case is
+     the page exactly as it shipped. The count is set after the paint by
+     hmFitDecisions, which is the only time the room below this list is known. */
+  const ddShown=ddAll.slice(0, Math.max(HM_DD_MIN, _hmDdFit|0));
+  const ddRows=ddShown.length
+    ? rwCard+`<div class="hm-rows" id="hm-dd-rows">${ddShown.map(it=>it.kind==='triage'?triageRowHtml(it):`
+        <button type="button" class="hm-row ${it.urgent?'is-neg':'is-crit'}" data-sel="${esc(it.cid)}">
+          ${''/* THE TONE IS A DOT, NOT A LEFT RULE (21 Sep 2026): the
+                 reference draws an 8px circle at the head of every decision
+                 row. The tone classes are unchanged — the dot reads its
+                 colour off them — so which row is alarming has not moved. */}
+          <span class="hm-rdot" aria-hidden="true"></span>
+          <span class="hm-rb"><span class="hm-rt">${it.txt}</span><span class="hm-rm">${it.meta}</span></span>
+          <span class="hm-rtag">${esc(it.tag)}</span>
+          ${''/* THE VERB IS A WORD ON THE ROW (second pass, 21 Sep 2026): the
+                 reference draws Approve · Decide · Sign · Review at the right.
+                 It is a SPAN dressed as a button, because the row IS the
+                 button — one press, one door, the row's own. */}
+          ${it.verb?`<span class="hm-rverb">${esc(it.verb)}</span>`:''}
+          <svg class="hm-rchev" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><use href="#i-right"/></svg>
+        </button>`).join('')}</div>`
+    : `<div class="hm-empty">${i18t('home_nothing_to_decide')}</div>`;
+  /* DRAWN ONLY WHERE IT SHOWS SOMETHING NEW — at four or fewer, pressing it
+     would open the list already on screen. */
+  const ddLink=(ddAll.length?`<span class="hm-sec-sub">${esc(i18tn('home_dd_items',ddAll.length,{n:ddAll.length}))} · ${esc(rwCard
+      ? i18t('rw_sum',{a:rwSp.past.length,b:rwSp.left.length,c:rwSp.none.length})
+      : i18t('home_dd_sorted'))}</span>`:'')
+    + (ddAll.length>ddShown.length
     ? `<button type="button" class="hm-cz" data-hm-go="needsyou">${i18t('home_see_all',{n:ddAll.length})}
          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><use href="#i-right"/></svg></button>`
     : '');
@@ -1681,7 +1684,7 @@ function renderDashboard(){
 
     ${deskSection}
 
-    ${hmCard(hmSec(i18t('home_needs_decision'),ddLink,true), ddRows, 'hm-dd')}
+    ${hmCard(hmSec(i18t('home_needs_decision'),ddLink,true), ddRows)}
   </div>`;
 
   // ---- wiring ----
@@ -1966,15 +1969,45 @@ function renderDashboard(){
     try{ lsSet(ddOpenKey(), !!e.currentTarget.open); }catch(_){}
   });
   if(window.wireEmailSetupBanner) wireEmailSetupBanner();
+  hmFitDecisions();
   setActiveNav('dashboard');
 }
 
-/* ---- FILL THE HEIGHT WITH THE DECISIONS THAT ARE WAITING (29 Aug 2026) —
-   RETIRED 24 Sep 2026 ----
-   hmFitDecisions measured the room under the decision rows after the paint
-   and re-rendered with as many rows as fitted. The owner took the rows off the
-   card, and the graph that is left fills the room by CSS (.hm-dd in
-   index.html) — no measurement, no second paint, no observer on the scroller.
-   Deleted rather than stubbed: nothing else called it. */
-Object.assign(window,{renderDashboard,hmDashSlices,hmMySignings,copilotRead,copilotCoverage,gsSteps,gettingStartedHtml,gsIsSeed,
+/* ---- FILL THE HEIGHT WITH THE DECISIONS THAT ARE WAITING ----
+   Measured after the paint, because the room under this list is whatever the
+   two card rows above it left — a number that does not exist while the markup
+   is being built. Re-rendered ONLY when the answer actually changes, or a
+   window resize would repaint the dashboard on every pixel of a drag.
+   ONE ROW'S OWN HEIGHT IS MEASURED, never assumed: this row's padding has
+   moved twice this month and a typed number would have gone stale with it. */
+const HM_DD_MIN = 4;      /* what a laptop always showed, and the safe floor */
+const HM_DD_MAX = 40;     /* past this it is a list, and the list has a page */
+let _hmDdFit = HM_DD_MIN;
+function hmFitDecisions(){
+  if(typeof document==='undefined') return;
+  const rows=document.getElementById('hm-dd-rows');
+  if(!rows) return;
+  const first=rows.firstElementChild;
+  const rowH=first ? first.getBoundingClientRect().height : 0;
+  if(!(rowH>0)) return;              /* a hidden pane measures 0 — leave it be */
+  const want=(typeof window!=='undefined' && window.rowsThatFit)
+    ? rowsThatFit(rows, rowH, HM_DD_MIN, HM_DD_MAX) : HM_DD_MIN;
+  if(want===_hmDdFit) return;
+  _hmDdFit=want;
+  renderDashboard();
+}
+if(typeof window!=='undefined' && typeof ResizeObserver==='function'){
+  /* The WINDOW is what changes the room, and the dashboard is rebuilt on every
+     view change anyway — so one observer on the scroller, armed once. */
+  const arm=()=>{
+    const sc=document.getElementById('content-scroll');
+    if(!sc || sc.dataset.hmFitBound) return;
+    sc.dataset.hmFitBound='1';
+    try{ new ResizeObserver(()=>hmFitDecisions()).observe(sc); }catch(_){}
+  };
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', arm);
+  else arm();
+}
+
+Object.assign(window,{renderDashboard,hmFitDecisions,HM_DD_MIN,hmDashSlices,hmMySignings,copilotRead,copilotCoverage,gsSteps,gettingStartedHtml,gsIsSeed,
   KPI_META,currentKpiSel,setKpiSel,kpiCatalogOrder,DEFAULT_KPI_SEL,KPI_MAX,kpiAtMax,readyToSignItems});

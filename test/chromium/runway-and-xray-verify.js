@@ -70,22 +70,17 @@ const check = (name, pass, detail) => {
     check('1b the X-ray reading is loaded', loaded.xray);
     check('1c the view mode is loaded', loaded.mode);
 
-    /* ================= 2. NOTHING DATED: THE RAIL IS STILL THE CARD =======
-       REVERSED IN PLACE 24 Sep 2026 (Young: "remove the highlighted alerts and
-       end the card with only the graph in it"). This was a CONTROL — with
-       nothing to plot the rail was not drawn and the rows said the rest. The
-       rows are gone, so the rail IS the card: on the seeded book (two
-       contracts sitting in review, neither dated) it draws an empty line of
-       time beside "No clock on these", and no rows under it. */
+    /* ================= 2. A CONTROL: NOTHING DATED, NOTHING DRAWN =======
+       The seeded book has no quiet desk and no renewal inside ninety days, so
+       the card is exactly what it was. This one PASSES against the parent and
+       is meant to: it is what proves the rail is not simply always there. */
     const rest = await page.evaluate(() => ({
-      rail: !!document.querySelector('.hm-dd .hm-rw'),
-      pins: document.querySelectorAll('.hm-dd .hm-rw-pin').length,
-      groups: document.querySelectorAll('.hm-dd .hm-rw-nc').length,
+      rail: !!document.querySelector('.hm-rw'),
       rows: document.querySelectorAll('#hm-dd-rows .hm-row').length,
     }));
-    check('2a with nothing dated the rail is still drawn — no dots, the undated counted beside it',
-      rest.rail && rest.pins === 0 && rest.groups > 0, JSON.stringify(rest));
-    check('2b and no rows are drawn under it', rest.rows === 0, rest.rows + ' rows');
+    check('2a (CONTROL) with nothing to plot the rail is not drawn', !rest.rail,
+      'rail:' + rest.rail);
+    check('2b (CONTROL) and the rows are still there', rest.rows >= 0, rest.rows + ' rows');
 
     /* ================= 3. STAGE DATED WORK, AND MEASURE THE RAIL ========
        Three renewals at known distances and a quiet desk whose oldest ask is
@@ -144,15 +139,13 @@ const check = (name, pass, detail) => {
       check('3g the head counts the three piles', /past your standard/.test(rw.sub), rw.sub);
       check('3h every no-clock count is a door', rw.groups.length > 0 &&
         rw.groups.every(g => /^rwnone:/.test(g.go)), JSON.stringify(rw.groups.map(g => g.go)));
-      /* ---- 3i REVERSED IN PLACE 24 Sep 2026 ----
-         It asked that the quiet desk's ROW say the same N as its dot. The
-         rows are gone (the owner's ruling), so the dot is the one carrier:
-         its hover names how far past the standard it sits, and no row is
-         left to disagree with it. */
+      /* ONE NUMBER FOR ONE THING: the quiet desk's dot says "N days past your
+         standard" and its row must say the same N, not the working-day count
+         the desk flag uses. */
       const pastTitle = (rw.titles.find(t => /past your standard/.test(t)) || '');
       const n = (pastTitle.match(/(\d+)\s+days? past/) || [])[1];
-      check('3i the dot is the one carrier of the number, and no row is left to disagree',
-        !!n && rw.rowTags.length === 0,
+      check('3i the row and the picture say ONE number about the same contract',
+        !!n && rw.rowTags.some(t => t.replace(/\D/g, '') === n),
         'dot: ' + n + ' · rows: ' + JSON.stringify(rw.rowTags));
     } else {
       /* A SKIPPED CLAIM IS NOT A PASSING ONE. Against a build without the rail
@@ -161,7 +154,7 @@ const check = (name, pass, detail) => {
        '3d every dot is a door onto its contract', '3e the left end names the standard',
        '3f where that standard is set rides the hover', '3g the head counts the three piles',
        '3h every no-clock count is a door',
-       '3i the dot is the one carrier of the number'].forEach(n => check(n, false, 'no rail to measure'));
+       '3i the row and the picture say ONE number'].forEach(n => check(n, false, 'no rail to measure'));
     }
     /* THE OWNER'S EXCLUSION, on the home page. */
     const homeBands = await page.evaluate(() => {

@@ -10,7 +10,13 @@
    pages, the exit focus esc should not move with you to other pages. It should
    stay where the focus mode is."*
 
-   WHY MOSTLY SOURCE CLAIMS. Four of the six are geometry or a journey across
+   HOME WAS REVERTED THE SAME DAY (Young: "Revert just the home page to how it
+   was before"). Images 2 and 3 — the decision card ending with its graph, and
+   the graph filling the screen — are undone, so their claims are gone from
+   this file; the Home page's own tests (f3, f252, f363, home-page-verify) are
+   back as they were and pin the restored card. The other four stand.
+
+   WHY MOSTLY SOURCE CLAIMS. Three of the four are geometry or a journey across
    pages and are measured in test/chromium/six-off-five-images-verify.js. What
    is pinned here is the shape that makes each of them true, and the walls:
    the Stream filter and the sort by stream survive the column, the pressable
@@ -28,7 +34,6 @@ const read = p => fs.readFileSync(path.join(__dirname, '..', p), 'utf8');
    the sweeps look for. A sweep reads CODE. */
 const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
 const REG = strip(read('js/views/register.js'));
-const HOME = strip(read('js/views/home.js'));
 const ROOM = strip(read('js/views/contract.js'));
 const AI = read('js/ai.js');
 const CSS = read('index.html');
@@ -65,28 +70,12 @@ test('F379 — six off five images', async t => {
     assert.match(REG, /<tr class="ngl-band" role="presentation"><td role="presentation" colspan="\$\{REG_COL_KEYS_NEGO\.length\}">/);
   });
 
-  /* ═══════ 2 + 3. HOME: THE CARD ENDS WITH THE GRAPH, AND FILLS THE SCREEN ═══════ */
-  await t.test('(2) the decision card draws no rows, and ends with the rail', () => {
-    assert.ok(!/id="hm-dd-rows"/.test(HOME), 'the rows are gone');
-    assert.match(HOME, /const ddRows=rwCard\s*\|\|/, 'the rail is the card\'s whole body');
-    assert.match(HOME, /if\(!rwSp\|\|!rwSp\.rows\.length\) return '';/,
-      'and it is drawn whenever there is anything on the card');
-    assert.ok(!/hmFitDecisions|HM_DD_MIN|_hmDdFit/.test(HOME), 'the row-fitting machinery went with the rows');
-    assert.ok(!/i18t\('home_dd_sorted'\)/.test(HOME), '"sorted by what closes first" described the rows and went with them');
-  });
-  /* Not a control: at the parent "See all" stood down at four or fewer,
-     because the rows were then already on screen. With no rows it is the
-     one door onto every decision, so it draws whenever there is one. */
-  await t.test('(2b) "See all" is drawn whenever there is anything — the one door onto every decision', () => {
-    assert.match(HOME, /\+ \(ddAll\.length\s*\?\s*`<button type="button" class="hm-cz" data-hm-go="needsyou">/);
-  });
-  await t.test('(3) the card and the rail grow into the rest of the screen', () => {
-    assert.match(HOME, /hmCard\(hmSec\(i18t\('home_needs_decision'\),ddLink,true\), ddRows, 'hm-dd'\)/);
-    assert.match(CSS, /\.hm-page\{min-height:var\(--view-h\);\}/);
-    assert.match(CSS, /\.hm-page>\.hm-card\.hm-dd\{flex:1 0 auto;display:flex;flex-direction:column;\}/);
-    assert.match(CSS, /\.hm-dd>\.hm-rw\{flex:1 0 auto;border-bottom:0;\}/);
-    assert.match(CSS, /\.hm-dd \.hm-rw-rail\{flex:1 0 76px;height:auto;\}/, 'never below its old height');
-  });
+  /* ═══════ 2 + 3. HOME — REVERTED THE SAME DAY ═══════
+     The decision card ending with its graph (2), "See all" always drawn (2b)
+     and the card filling the screen (3) were built and then undone on the
+     owner's word ("Revert just the home page to how it was before"). Their
+     claims went with them; the restored card is pinned by the Home page's own
+     tests. */
 
   /* ═══════ 4. THE STRAND RUNS TO THE BOTTOM, AND NO FURTHER ═══════ */
   await t.test('(4) a block is a share of the strip, weighted by its words', () => {

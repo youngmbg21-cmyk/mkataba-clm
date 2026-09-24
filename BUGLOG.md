@@ -19102,3 +19102,14 @@ Noticed, not fixed
 - theme-tokens-verify: dashboard gains the rail's shades (rgb(140,152,149), rgb(179,38,30), rgb(251,229,227) light; four in dark) and register loses the stream bars (rgb(3,105,161), rgb(46,159,128)) on top of the two the table foot removed. Owned changes, audited as sets; the baseline was not re-recorded (the edit was refused in this session).
 - rowsThatFit (js/app.js) has no caller now that Home's rows are gone; it is kept published.
 - The contract page's focus chip says "Exit focus · Esc" and its hover in hardcoded English (ct_exit_focus_header / ng_exit_focus exist in both books), so a Swedish reader sees English there.
+
+## Run 24 Sep 2026 — Home reverted
+
+- On the owner's word, after the six off five images were merged: "Revert just the home page to how it was before and then merge to main." Images 2 and 3 are undone — Home's "Needs your decision" card has its rows again under the runway, fitted to the screen with four as the floor, "See all" only where it shows more, and the rail stands down where nothing is dated. Home's code is byte-identical to the commit before the six; the five fill rules are gone from index.html. The other four of the six (no stream column, the X-ray strand, the bold "Why it matters", the focus chip) stand.
+- The tests re-pointed for Home are back exactly as they were: f3, f252, f363, f56, f66, home-page-verify, runway-and-xray-verify, auto-triage-verify. The Home claims came out of f379 (now 10 claims, 7 red at the parent) and six-off-five-images-verify (now 17 checks, 7 red at the parent).
+- Gates: lint 0 errors, 213 warnings (unchanged). Full suite 9,098 tests, 2 failed — f277 (1) and (10), red on main with the same checks. Run on both sides: home-page 53/53, runway-and-xray 45/45, auto-triage 64/64, kpi-four 19/19, pages-read-alike 52/52 — identical to the parent; theme-tokens-verify and contrast-verify fail on exactly the parent's screens, and the dashboard passes both again. Photographed at 1366x768: runway, four rows, "See all 5".
+
+Noticed, not fixed
+- The previous run's two dashboard findings no longer show on the census pages, because the rail is again not drawn on an undated card. The grey "No clock on these" count (.hm-rw-ncn, grey-dot 2.98:1) is still faint wherever the rail does draw an undated group — the fault is unchanged, only out of the census's sight.
+- rowsThatFit has its caller back (Home), so the previous run's note that it has none is moot.
+- keeps-your-place-verify stops with an error at its line 179 on both sides (the same before and after; not investigated).

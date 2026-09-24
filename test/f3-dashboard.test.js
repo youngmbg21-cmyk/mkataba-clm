@@ -50,14 +50,8 @@ describe('F3 — the dashboard only ever contains scoped contracts', () => {
     assert.deepEqual(mentionsFolderB(html), [], 'a folder-B contract reached the dashboard DOM');
     assert.ok(!html.includes('MK-B1') && !html.includes('MK-B2'), 'a folder-B contract id is in the DOM');
     // …and the folder-A contracts genuinely rendered, so this is not passing
-    // because nothing rendered at all.
-    /* RE-POINTED IN PLACE 24 Sep 2026: the decision card's ROWS are gone (Young:
-       "remove the highlighted alerts and end the card with only the graph in
-       it"), and they were what printed a contract's id on this page. The
-       sentinel is now what the card COUNTS — the restricted reader's own one
-       contract waiting in review, never folder B's — which is the same claim
-       asked of the number the card really draws. */
-    assert.match(html, /<span class="hm-sec-sub">1 item\b/, 'the restricted user\'s own contract is what the card counts');
+    // because nothing rendered at all
+    assert.ok(html.includes('MK-A2'), 'the restricted user\'s own contracts should be on the dashboard');
     /* The "Key metrics" caption retired with the SAP treatment (20 Aug 2026);
        the KPI grid itself is the render sentinel now. */
     assert.ok(html.includes('kpi-grid'), 'the dashboard should have rendered');
@@ -66,9 +60,7 @@ describe('F3 — the dashboard only ever contains scoped contracts', () => {
   test('the same render for an unrestricted user does contain folder B', async () => {
     const page = await W.unrestricted.json('/api/contracts?limit=200');
     const html = renderWith(page.rows);
-    /* Re-pointed with the test above: the card counts both contracts waiting
-       in review — folder A's and folder B's. */
-    assert.match(html, /<span class="hm-sec-sub">2 items\b/, 'an unrestricted user should still see the whole portfolio');
+    assert.ok(html.includes('MK-B2'), 'an unrestricted user should still see the whole portfolio');
   });
 
   test('every dashboard panel is built from the scoped list', async () => {
