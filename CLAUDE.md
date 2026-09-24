@@ -60,6 +60,20 @@ THE OWNER'S OWN WORDS, 24 Aug 2026. They sit ABOVE the Bug Fix Rules because the
 
 **THE ANSWERS STAY QUIET.** Work them internally; in the summary mention only the checks that CHANGED what was built, any you could not answer honestly, and any refusal you are asking the owner to lift. **THEY NEVER CHANGE WHAT IS BUILT AND NEVER WIDEN THE JOB**: anything they turn up beyond the request is one line in BUGLOG.md. Refusal 3 is a NUMBER and is not yet pinned in a browser file; the other four are judgements.
 
+## DESIGN OPTIONS, AND THE PAGE CHECKLIST — TWO HABITS BORROWED FROM EMIL KOWALSKI'S SKILLS (owner-asked 24 Sep 2026)
+
+> *"okay i want to borrow this"* — the method of the `prototype` skill and the four questions of the `apple-design` skill in github.com/emilkowalski/skills (MIT), put in HaTi's own words. **Written here, NOT installed**; that repo's other eleven skills are not adopted. "The prototype" elsewhere in this file still means HaTi's own approved reference design.
+
+**DESIGN OPTIONS — how a DESIGN QUESTION is answered**: the owner asks how something should look, or for a new look or a redesign. An exact instruction is built as given, with no round of options.
+- **ONE PART OF A PAGE PER ROUND.** "The whole page" is narrowed to the part that matters most; say which, and offer the rest as later rounds.
+- **THREE BY DEFAULT, FIVE AT MOST, EACH A REALLY DIFFERENT IDEA** (layout, density, tone, how it is used), **NAMED FOR THAT IDEA** ("Quiet", "Dense"), never A/B/C. Two that differ only in colour or wording are ONE option: replace one, or show fewer and say so.
+- **EVERY OPTION IS FINISHED WORK INSIDE HaTi'S OWN SYSTEM** — its tokens, faces and every rule in this file (NO NEW BANDS, THE SIX QUESTIONS, the contract's pixels), realistic HaTi content (contracts, names, figures, never filler text), anything pressable responding. One that breaks a rule is not an option.
+- **SHOWN ONE AT A TIME, FULL SIZE, ON ITS REAL PAGE**, all in one Artifact with a switcher to flip between them (a button per option; the number and arrow keys on a keyboard; the flip is instant). Never shrunk side by side: small pictures lie about spacing and size.
+- **WITH IT, A TABLE**: each option's idea, when it wins, what it costs; then one recommendation and its reason (who uses the page, and how often).
+- **THE OWNER PICKS BY NAME; ONLY THAT ONE IS BUILT.** "Another round around X" draws new options around X.
+
+**THE PAGE CHECKLIST — four questions**, asked of every option before it is shown and of any page the owner asks to have reviewed: (1) Is the most important thing the easiest to see? (2) Are related things grouped together? (3) Does each label say what's behind it? (4) Can you always tell where you are and how to get back? A "no" is fixed before the option is shown, or named as its cost; a review answers the four in plain English, a line each.
+
 ## Bug Fix Rules
 
 1. DUPLICATION WARNING: This app draws the same UI in several places. Never assume a fix in one place fixes them all.

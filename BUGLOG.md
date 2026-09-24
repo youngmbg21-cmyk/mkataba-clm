@@ -19125,3 +19125,12 @@ Noticed, not fixed
 - The History tab's five filters are hardcoded English — the labels (Clause, Person, Side, Round, Outcome), the Side and Outcome options, and each Round option ("Round 1") — so a Swedish reader sees English there.
 - The other side's copy of the history and the shared history link (negoTimelineScreenHtml) still draw the older design: 22px glyph marks, oldest first, the ISO day. Left alone on purpose; the owner has been told.
 - room-order-and-notices-verify: three checks red on both sides ("nothing still awaiting an answer sits under a decided change", "the All / Mine / Theirs cuts are untouched").
+
+## Run 24 Sep 2026 — two design habits borrowed from Emil Kowalski's skills
+
+- On the owner's word ("okay i want to borrow this"), after asking what github.com/emilkowalski/skills holds and whether it could help design HaTi's pages. Borrowed: the prototype skill's way of choosing a design (one part of a page per round, three to five really different options named for their idea, shown one at a time at full size with a switcher, a table of when each wins and what it costs) and the apple-design skill's four review questions. Written in HaTi's own words; nothing installed; the repo's other eleven skills not adopted.
+- Written: a new CLAUDE.md section after THE SIX QUESTIONS (DESIGN OPTIONS, AND THE PAGE CHECKLIST), and its story in docs/MAP-HISTORY.md under the same heading. No product code, test or setting changed.
+- Gates: no check opens CLAUDE.md or MAP-HISTORY (searched test/, scripts/, server/). Lint 0 errors, 213 warnings (unchanged). The suite was not run: no code changed.
+
+Noticed, not fixed
+- Nothing.
