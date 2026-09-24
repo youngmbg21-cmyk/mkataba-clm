@@ -1490,7 +1490,17 @@ const ALERT_KINDS = [
      next move is yours and it is one press. */
   { k:'cp-ready',    tone:'green', ic:'&#128077;'},
   { k:'negotiation', tone:'amber', ic:'&#9998;' },
+  /* ---- TWO REMINDERS THAT LIVED ONLY ON HOME (24 Sep 2026) ----
+     "Needs your decision" left Home on the owner's word, and two of its rows
+     were said nowhere else in the product: a negotiation the other side has
+     been waiting on past the standard, and a colleague asking to join one
+     this reader leads. They are REGISTERED KINDS, ranked where their work
+     sits — the quiet desk beside the negotiation it is about, the join request
+     beside the other colleague waiting on this reader by name. Amber, both:
+     work owed, not a fault. */
+  { k:'desk-quiet',  tone:'amber', ic:'&#9203;' },
   { k:'review-mine', tone:'amber', ic:'&#128100;' },
+  { k:'desk-join',   tone:'amber', ic:'&#128101;' },
   { k:'approval',    tone:'amber', ic:'&#9989;'  },
   /* ---- AN ANSWER THAT WILL NOT LAND (owner-asked 23 Aug 2026) ----
      A REGISTERED KIND, not a special case at the draw. It arrived as a warn
@@ -1676,6 +1686,29 @@ function buildAlerts(){
       if(bad) push('approval',x.c,i18t('al_sa_refused',{who:bad.by||''}),
         ()=>{ openWorkspace(x.c.id); if(window.roomGoTab) try{ roomGoTab(x.c,'sign'); }catch(_){} });
     });
+    /* ---- A NEGOTIATION GONE QUIET, AND A COLLEAGUE ASKING TO JOIN ----
+       (24 Sep 2026.) Read off the same slices the approvals above ride on —
+       myStaleDesks and myJoinAsks, which were "Needs your decision"'s own two
+       sources — so nothing new walks the book, and the bell says exactly what
+       that card said, to exactly the people it said it to (the lead and the
+       admins for a quiet desk; whoever may change the desk for a join). */
+    /* HOW LONG IT HAS SAT LEADS THE SUB-LINE: it was the card's own tag, and
+       a quiet desk without its age is a reminder with the urgency taken out.
+       It is the desk flag's own count and word (dk_stale_tag), as it is
+       everywhere the flag is printed — the rail that re-measured it in
+       calendar days left with the card. */
+    (D.myStaleDesks||[]).forEach(x=>{ const st=x.stale||{};
+      const sub=[st.days!=null?i18t('dk_stale_tag',{n:st.days}):'',
+        st.n?i18tn('dk_stale_sub',st.n,{n:st.n,who:(st.lead&&st.lead.name)||''}):''].filter(Boolean).join(' · ');
+      push('desk-quiet',x.c,
+        i18t('dk_stale_card',{who:x.c.counterparty||i18t('home_no_counterparty')}),
+        ()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(x.c.id); else openWorkspace(x.c.id); },
+        sub?{ sub }:null); });
+    (D.myJoinAsks||[]).forEach(x=>{ const why=x.req&&x.req.why;
+      push('desk-join',x.c,
+        i18t('dk_join_card',{who:(x.req&&x.req.name)||''}),
+        ()=>openWorkspace(x.c.id),
+        (why||x.c.counterparty)?{ sub:why?'\u201c'+why+'\u201d':x.c.counterparty }:null); });
     /* 5. A renewal decision coming due. */
     (D.decisions||[]).filter(x=>x.d<=30).forEach(x=>push('renewal',x.c,
       x.d===0?i18t('al_renewal_today'):i18tn('al_renewal_in',x.d,{n:x.d}),

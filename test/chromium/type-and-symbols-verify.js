@@ -287,39 +287,37 @@ const SHELL_ICONS = [
        and pressing a stage really goes there rather than merely carrying an
        attribute. */
     console.log('\n--- 3. the lifecycle tile, and its three doors ---');
-    /* SINCE 20 Sep 2026 (DECIDE 2 of the redesign order) the Portfolio row is
-       gone and the lifecycle tile is one a reader CHOOSES in the picker, so it
-       is staged the way a reader would put it on the page — through the
-       product's own setKpiSel — and the default four are put back after the
-       register has been reached, so the later Home measurements in this file
-       see the page as it ships. */
-    await page.evaluate(() => {
-      const cur = (window.currentKpiSel && currentKpiSel()) || [];
-      if (!cur.includes('lifecycle')) setKpiSel([...cur.slice(0, 3), 'lifecycle']);
-      renderDashboard();
-    });
-    await page.waitForTimeout(400);
+    /* RE-POINTED IN PLACE 24 Sep 2026 (Young, over "Executive Home Options":
+       the Map took the tiles' place, then "Build it"). The lifecycle tile LEFT
+       HOME with the other tiles; its three stages are the Map's "By stage"
+       part now — the same three stages off the same reading (hmDashSlices'
+       stages), each block a door. The claims are unchanged and asked of it:
+       no retired "View full register" link, a label that names the thing,
+       three stages drawn, and a press that really GOES to the register. */
+    await page.evaluate(() => { if (window.setView) setView('dashboard'); });
+    await page.waitForTimeout(600);
     const head = await page.evaluate(() => {
-      const tile = document.querySelector('.hm-tile.is-life');
-      if (!tile) return { err: 'no lifecycle tile' };
+      const map = document.getElementById('hm-map');
+      if (!map) return { err: 'no Map on Home' };
+      const lab = [...map.querySelectorAll('.hm-map-lab')].map(e => e.textContent.trim());
       return {
-        link: !!tile.querySelector('[data-open-register]'),
-        text: /view full register|visa hela registret/i.test(tile.textContent),
-        stages: tile.querySelectorAll('.hm-stg').length,
-        live: tile.querySelectorAll('.hm-stg[data-hm-go]').length,
-        heading: (tile.querySelector('.hm-t') || {}).textContent || '',
+        link: !!map.querySelector('[data-open-register]'),
+        text: /view full register|visa hela registret/i.test(map.textContent),
+        stages: map.querySelectorAll('.hm-map-legend button').length,
+        live: map.querySelectorAll('.hm-map-legend [data-hm-map^="stage:"]').length,
+        heading: lab[0] || '', want: i18t('home_map_by_stage'),
       };
     });
-    check('the lifecycle tile exists', !head.err, head.err);
+    check('the Map\'s stage part exists', !head.err, head.err);
     check('the "View full register" button is still gone', head.link === false);
     check('and its words are gone with it', head.text === false);
-    check('the heading names the thing', /lifecycle|livscykel/i.test(head.heading), head.heading);
+    check('the heading names the thing', !!head.heading && head.heading === head.want, head.heading);
     check('all three stages are drawn', head.stages === 3, `${head.stages} blocks`);
-    check('the register is still reachable from the tile', head.live > 0,
+    check('the register is still reachable from the stages', head.live > 0,
       `${head.live} of ${head.stages} are doors`);
 
     /* It has to actually GO there, not merely carry the attribute. */
-    await page.evaluate(() => document.querySelector('.hm-stg[data-hm-go]').click());
+    await page.evaluate(() => { const b = document.querySelector('#hm-map .hm-map-legend [data-hm-map^="stage:"]'); if (b) b.click(); });
     await page.waitForTimeout(900);
     const landed = await page.evaluate(() => ({
       view: window.state && window.state.view,
@@ -327,7 +325,6 @@ const SHELL_ICONS = [
     }));
     check('pressing a stage still opens the register', landed.view === 'register', landed.view);
     check('and the register has rows in it', landed.rows > 0, String(landed.rows));
-    await page.evaluate(() => { if (window.DEFAULT_KPI_SEL) setKpiSel(DEFAULT_KPI_SEL.slice()); });
 
     await page.screenshot({ path: path.join(OUT, '04-register.png') });
 

@@ -68,39 +68,47 @@ for (let i = 1; i <= 12; i++)
     await pause(900);
     await page.screenshot({ path: path.join(OUT, '01-home.png') });
 
+    /* RE-POINTED IN PLACE 24 Sep 2026 (Young, over "Executive Home Options":
+       the Map took the four tiles' place, then "Build it"). The tiles this
+       section held to one height LEFT HOME; the cards on Home now are the
+       Map's three facts down its side. The defect the section exists for is
+       unchanged and is asked of them: a spacer or a reserved footer line that
+       reads as an EMPTY BAND inside a card. The equal-height claim is not
+       carried over — the three stack in one column, where a fact whose line
+       wraps is taller by that line and nothing else, and 3d measures that no
+       line is held open. */
     const cards = await page.evaluate(() => {
-      const out = [];
-      for (const grid of document.querySelectorAll('.hm-tiles')){
-        const kind = grid.classList.contains('is-port') ? 'port' : 'work';
-        for (const t of grid.querySelectorAll('.hm-tile')){
-          const box = t.getBoundingClientRect();
-          const R = el => el ? el.getBoundingClientRect() : null;
-          /* THE GAPS BETWEEN THE REGIONS, measured as painted pixels. A card
-             "looks empty" when one of these opens up, so the claim is about
-             the gaps and not about the height. */
-          const head = R(t.querySelector('.hm-head'));
-          const fig = R(t.querySelector('.hm-big') || t.querySelector('.hm-life'));
-          const foot = R(t.querySelector('.hm-foot'));
-          out.push({ kind, title: (t.querySelector('.hm-t') || {}).textContent || '',
-            h: Math.round(box.height),
-            gapHeadToFig: head && fig ? Math.round(fig.top - head.bottom) : null,
-            gapFigToFoot: fig && foot ? Math.round(foot.top - fig.bottom) : null,
-            spacer: !!t.querySelector('.hm-sp'),
-            footReserve: foot ? Math.round(foot.height) : null });
+      const R = el => el ? el.getBoundingClientRect() : null;
+      return [...document.querySelectorAll('#hm-map .hm-map-fact')].map(t => {
+        const head = R(t.querySelector('.hm-map-fl'));
+        const fig = R(t.querySelector('.hm-map-ff'));
+        const fs = t.querySelector('.hm-map-fs');
+        const foot = R(fs);
+        /* THE LINES THE FOOT'S OWN TEXT TAKES, counted off the painted line
+           boxes — a foot taller than its lines is holding one open. */
+        let lines = 0;
+        if (fs && fs.textContent.trim()) {
+          const rg = document.createRange(); rg.selectNodeContents(fs);
+          lines = new Set([...rg.getClientRects()].filter(q => q.width > 0).map(q => Math.round(q.top))).size;
         }
-      }
-      return out;
+        return { title: (t.querySelector('.hm-map-fl') || {}).textContent || '',
+          h: Math.round(R(t).height),
+          gapHeadToFig: head && fig ? Math.round(fig.top - head.bottom) : null,
+          gapFigToFoot: fig && foot ? Math.round(foot.top - fig.bottom) : null,
+          spacer: !!t.querySelector('.hm-sp'),
+          footH: foot ? foot.height : null,
+          footLines: lines,
+          lh: fs ? parseFloat(getComputedStyle(fs).lineHeight) || 0 : 0 };
+      });
     });
-    const heights = [...new Set(cards.map(c => c.h))];
-    /* RE-POINTED 21 Sep 2026 (DECIDE 2): the Portfolio row's four tiles joined
-       the picker, so Home draws the KPI_MAX tiles the reader chose and no second
-       row. The claim — every tile one height — is unchanged. */
-    const kpiMax = await page.evaluate(() => window.KPI_MAX);
-    check('3a every card on Home is the same height, top row and bottom',
-      heights.length === 1 && cards.length === kpiMax,
-      `${cards.length} cards, heights: ${heights.join(', ')}`);
-    check('3b the spacer that became the hole is gone from every card',
-      cards.every(c => !c.spacer), `spacer found on ${cards.filter(c => c.spacer).length}`);
+    const tiles = await page.evaluate(() => document.querySelectorAll('.hm-tile').length);
+    check('3a the tiles left Home, and the Map\'s three facts are its cards',
+      tiles === 0 && cards.length === 3,
+      `${tiles} tiles · ${cards.length} facts: ${cards.map(c => c.title.trim()).join(' | ')}`);
+    check('3b the spacer that became the hole is on no card',
+      cards.every(c => !c.spacer)
+        && (await page.evaluate(() => !document.querySelector('#content .hm-sp'))),
+      `spacer found on ${cards.filter(c => c.spacer).length}`);
     /* THE NUMBER IS NOT THE POINT — the RELATION is: no gap between two
        regions may be bigger than the card's own padding, or it reads as a
        band rather than as air. Written this way it costs nothing at the next
@@ -110,17 +118,16 @@ for (let i = 1; i <= 12; i++)
        gap smaller than a line reads as air; one bigger than a line reads as a
        missing line — which is exactly what the 25px band was. Written this way
        it costs nothing at the next spacing or type pass. */
-    const lineH = await page.evaluate(() => {
-      const f = document.querySelector('.hm-foot');
-      return Math.round(parseFloat(getComputedStyle(f).lineHeight) || 16);
-    });
+    const lineH = cards.length ? Math.round(cards[0].lh || 16) : 16;
     const worst = cards.reduce((m, c) =>
       Math.max(m, c.gapHeadToFig || 0, c.gapFigToFoot || 0), 0);
     check('3c no gap inside a card is as tall as a line of its own text',
-      worst < lineH, `worst gap ${worst}px against a ${lineH}px line`);
-    const feet = [...new Set(cards.map(c => c.footReserve))];
-    check('3d and no footer holds empty lines open — they measure alike',
-      feet.length === 1, `footer heights: ${feet.join(', ')}`);
+      cards.length > 0 && worst < lineH, `worst gap ${worst}px against a ${lineH}px line`);
+    const held = cards.filter(c => c.footLines > 0 && Math.abs(c.footH - c.footLines * c.lh) > 1.5);
+    check('3d and no footer holds an empty line open — each is exactly as tall as its lines',
+      cards.length > 0 && held.length === 0,
+      held.length ? held.map(c => `${c.title.trim()}: ${Math.round(c.footH)}px for ${c.footLines} line(s)`).join(' · ')
+        : cards.map(c => `${c.footLines}×${Math.round(c.lh)}`).join(', '));
 
     /* ============================================================
        4 · A REFRESH LEAVES YOU WHERE YOU WERE

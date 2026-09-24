@@ -51,11 +51,15 @@ function render(user, { money = true, contracts = CONTRACTS } = {}) {
   });
   sb.renderDashboard();
   const html = sb.document.getElementById('content').innerHTML;
-  /* The KPI card is a single <button data-kpi-id="approvals">…</button>, so the
-     slice to its closing tag is exactly the card and nothing beside it. */
-  const start = html.indexOf('data-kpi-id="approvals"');
-  assert.ok(start > 0, 'the Pending approvals card should render');
-  return { html, card: html.slice(start, html.indexOf('</button>', start)) };
+  /* RE-POINTED IN PLACE 24 Sep 2026 (Young: the Map takes the tiles' place
+     on the desktop Home). The "Pending approvals" card is drawn by the phone's
+     figures list now, off this same catalogue entry — so the entry's own
+     words ARE the card, and every claim below is unchanged. The desktop draws
+     no tile at all, which is asked here too so the two cannot drift. */
+  assert.ok(!html.includes('data-kpi-id="approvals"'), 'the desktop Home draws no approvals tile');
+  const k = sb.hmDashSlices().KPI_CATALOG.approvals;
+  assert.ok(k, 'the Pending approvals card should render');
+  return { html, card: [k.label, k.val, k.delta, k.sub].join(' · ') };
 }
 
 const ADMIN = { id: 'u_admin', name: 'Amina Otieno', role: 'admin' };

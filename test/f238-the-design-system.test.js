@@ -537,12 +537,18 @@ describe('f238 — the design system has its other half', () => {
       ['js/app.js',             /_panelTrap\s*=\s*trapFocus\(panel\)/, 'the alerts panel'],
       ['js/app.js',             /trapFocus\([^)]*modal-in[^)]*\)/,    'the command palette'],
       ['js/views/settings.js',  /_stTrap\s*=\s*window\.trapFocus\(el\)/, 'the settings drawer'],
-      ['js/views/home.js',      /window\.trapFocus\(pop\)/,           'the KPI customizer'],
       ['js/views/portal.js',    /PT_ALERTS_TRAP\s*=\s*window\.trapFocus\(panel\)/, "the counterparty's alerts"],
       ['js/mobile.js',          /_mSheetTrap\s*=\s*window\.trapFocus\(panel/, "the phone's seven sheets"],
     ];
     for (const [f, re, what] of homes)
       assert.match(JS(f), re, what + ' holds the keyboard');
+    /* EIGHT SINCE 24 Sep 2026: the KPI customizer was the ninth, and it left
+       Home with the four tiles it chose (Young: the Map takes their place).
+       What still has to hold is that no overlay is left on that page without
+       a trap — so the page may not grow a popover back without joining this
+       list. */
+    assert.ok(!/document\.createElement\('div'\)[\s\S]{0,200}position:absolute;z-index/.test(JS('js/views/home.js')),
+      'Home draws no popover of its own any more');
   });
 
   test('a refusal and a result are announced, not only drawn', () => {
@@ -562,10 +568,13 @@ describe('f238 — the design system has its other half', () => {
   test('.sr-only exists, because something now writes it', () => {
     /* The ui-input lesson, which this codebase records by name: a class the
        app never defines is a class that styles nothing. The KPI row's keyboard
-       hint is its one consumer and the two arrived together. */
+       hint was its first consumer and left Home with the tiles (24 Sep 2026);
+       RE-POINTED IN PLACE to the two consumers that stay — the obligations
+       worklist's acts column head and the settings search label. */
     assert.match(SHEET, /\.sr-only\{[^}]*clip-path:inset\(50%\)/,
       'clipped rather than display:none — a hidden element says nothing at all');
-    assert.match(JS('js/views/home.js'), /class="sr-only"/, 'and it has a consumer');
+    assert.match(JS('js/obligations.js'), /class="sr-only"/, 'and it has a consumer');
+    assert.match(JS('js/views/settings.js'), /class="sr-only"/, 'two, in fact');
   });
 
   test('the live door and the live tab say so, not only look so', () => {

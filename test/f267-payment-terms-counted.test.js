@@ -351,10 +351,13 @@ describe('f267 (7) the Home tile', () => {
       'it prints the customer half AND the supplier half');
   });
 
+  /* RE-POINTED IN PLACE 24 Sep 2026: the desktop tile and the press that
+     honoured this left Home with the four tiles (Young: the Map takes their
+     place). The tile's catalogue entry still names the TAB as where it leads
+     — that is the claim — and the desktop keeps no second copy of the press. */
   test('its destination is the TAB, not the register', () => {
     assert.match(HOME, /go:\{intelTab:'payterms'\}/);
-    assert.match(HOME, /g\.intelTab/, 'the press handler knows that branch');
-    assert.match(HOME, /intelGoTab\(g\.intelTab\)/, 'through the one named door');
+    assert.ok(!/intelGoTab\(g\.intelTab\)/.test(HOME), 'no desktop press is left behind for a tile that is not drawn');
   });
 
   test('amber only when something is actually over', () => {

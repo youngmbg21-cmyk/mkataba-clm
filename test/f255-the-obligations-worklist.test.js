@@ -221,7 +221,10 @@ describe('f255 (3) — the door, and where a row lands', () => {
       'the destination is this page, and it names the cut');
     assert.match(HOME, /openObligations\(30\)[\s\S]{0,80}days!=null/,
       'which is the same reading the number itself is counted from');
-    assert.match(HOME, /obwGoFiltered\(g\.obligations\)/, 'and one door applies it');
+    /* RE-POINTED IN PLACE 24 Sep 2026: the desktop press that applied this cut
+       left with the tiles (the Map took their place); the Map's own
+       obligations door applies ITS cut through the same one door. */
+    assert.match(HOME, /obwGoFiltered\(\{state:'open', side:'theirs'\}\)/, 'and one door applies it');
   });
 
   test('the sidebar door narrows to its own count too, and only while it has one', () => {

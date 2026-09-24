@@ -1422,7 +1422,9 @@ const TPL_PAGE_CAP=8;
    is nothing to withhold and nothing to measure. Both are STALE, along with
    _tplOvCols and tplOvSlice; flag any mention. TPL_PAGE_CAP above still governs
    the TABLE, which is what it was written for.
-   rowsThatFit is untouched and still fills Home's decisions list. */
+   rowsThatFit is untouched. It filled Home's decisions list until that card
+   left the page (24 Sep 2026); it stays published for the next list that
+   needs it. */
 /* The window the overview's "most used" bars measure, and the floor under a
    deviation rate. Three is PRECEDENT_MIN's own reasoning: a rate off one
    contract is not a rate, it is that contract. */

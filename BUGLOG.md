@@ -19125,3 +19125,42 @@ Noticed, not fixed
 - The History tab's five filters are hardcoded English — the labels (Clause, Person, Side, Round, Outcome), the Side and Outcome options, and each Round option ("Round 1") — so a Swedish reader sees English there.
 - The other side's copy of the history and the shared history link (negoTimelineScreenHtml) still draw the older design: 22px glyph marks, oldest first, the ISO day. Left alone on purpose; the owner has been told.
 - room-order-and-notices-verify: three checks red on both sides ("nothing still awaiting an answer sits under a decided change", "the All / Mine / Theirs cuts are untouched").
+
+## Run 24 Sep 2026 — two design habits borrowed from Emil Kowalski's skills
+
+- On the owner's word ("okay i want to borrow this"), after asking what github.com/emilkowalski/skills holds and whether it could help design HaTi's pages. Borrowed: the prototype skill's way of choosing a design (one part of a page per round, three to five really different options named for their idea, shown one at a time at full size with a switcher, a table of when each wins and what it costs) and the apple-design skill's four review questions. Written in HaTi's own words; nothing installed; the repo's other eleven skills not adopted.
+- Written: a new CLAUDE.md section after THE SIX QUESTIONS (DESIGN OPTIONS, AND THE PAGE CHECKLIST), and its story in docs/MAP-HISTORY.md under the same heading. No product code, test or setting changed.
+- Gates: no check opens CLAUDE.md or MAP-HISTORY (searched test/, scripts/, server/). Lint 0 errors, 213 warnings (unchanged). The suite was not run: no code changed.
+
+Noticed, not fixed
+- Nothing.
+
+## Run 24 Sep 2026 — three ideas for the top of Home (drawn, not built)
+
+- On the owner's word ("give me an idea of how the homepage should look like. It should be executive high level view and not too dense"), answered with the new DESIGN OPTIONS habit: one part of the page (the top of Home, above the decision list), three options named for their idea (Scoreboard, Briefing, Map), drawn on HaTi's own frame and tokens in one Artifact with a switcher. Nothing in HaTi changed; the owner picks by name.
+- Measured first: today's Home with the Kenya sample book at 1440x900 and 1366x1024.
+
+Noticed, not fixed
+- Home: the Active value tile cuts its own figure. It reads "KES 817.70…" at 1440x900 and "KES 817.7…" at 1366x1024 (sample book), and its line "across 30 agreemen…" is cut too, so the reader cannot see the M.
+
+## Run 24 Sep 2026 — the Home drawing: Prepared for you in place of Needs your decision (drawn, not built)
+
+The owner asked, on the Map drawing: "instead of needs your decision, delete it and replace with prepared for you." Done in the drawing only, using HaTi's own card (its kinds, wording and buttons). HaTi's real Home is untouched.
+
+### Noticed, not fixed
+- Prepared for you: the kind tags (Notice, Chase, Read, Memo) are different widths, so the row titles beside them start at different places — 159, 165 and 168px at 1440 wide, measured on a copy of the card built from the same styles.
+
+## Run 24 Sep 2026 — the Map on Home (built)
+
+- On the owner's word ("Build it and merge to main"), over the drawing "Executive Home Options": the Map picked by name, a Count / Value switch asked for ("make it so you have a toggle for review in cash or in quantity"), and "instead of needs your decision, delete it and replace with prepared for you".
+- Built: Home is the greeting, the Map ("Where your contracts stand" — by stage; what comes up for renewal over the next twelve months with the ninety-day window boxed and the busiest two months after it marked; three facts: what could hurt you, owed to us, average turnaround) and Prepared for you. Count at rest; Value is one press away and remembered per person in that browser; a reader without the money permission gets no switch. Every figure opens the list that makes it; a zero is not a door. The four tiles, "Choose tiles" and "Needs your decision" (with its line of time) are off the desktop Home. The phone is untouched.
+- Moved so nothing was lost: a negotiation gone quiet and a colleague asking to join one were said only on the removed card. Both are rows in the bell now, off the same readings; the quiet one leads with how long it has sat.
+- Fixed on the way because the new door would have carried it: a stage door pressed after visiting the Negotiations page wrote the stage into the Negotiations list's own filters and opened an unfiltered Contracts list (measured: the door said 2, the list held 4). The Map's stage door puts the Contracts seat back first.
+- Gates: lint 0 errors, 179 warnings (213 on main). Full suite 9,140 tests, 2 failed — f277 (1) and (10), red on main with the same checks. f381: 26 claims, 25 red at the parent (the one pass is a named wall). home-page-verify 51/51; 6b red with the old stage door. Whole browser set run: 43 of 145 files red, and every one of them is red on main with exactly the same checks, except theme-tokens-verify's two dashboard lines (below).
+
+Noticed, not fixed
+- theme-tokens-verify: the two dashboard lines move with this change and were NOT re-recorded (the edit was refused in this session). Audited as a set and stable over two recordings. Light — out: rgb(217, 69, 59); in: rgb(94, 194, 179), color(srgb 0.94949 0.980863 0.976157), color(srgb 0.0431373 0.290196 0.270588 / 0.45). Dark — out: rgb(217, 69, 59); in: rgb(46, 140, 130), color(srgb 0.105255 0.158275 0.149961), color(srgb 0.151059 0.263059 0.245961), color(srgb 0.368627 0.760784 0.701961 / 0.45). Every "in" is the Map's own (its stage shades, the window's fill, and the switch's divider borrowed from the Document tab); the "out" is a removed tile's red edge.
+- theme-tokens-verify's fixture uses fixed dates: MK-83 (expires 31 Mar 2027) enters the renewal window around 1 Jan 2027, and the dashboard lines will move again by themselves then (the old card's line of time had the same exposure).
+- The phone's figure tile prints only its count line, never the second line the payment-terms tile carries (the split between the two sides), so on the phone that tile shows one number with no split. The desktop tile, which printed it, is gone.
+- The phone's figure tiles ignore the `obligations`, `intelTab` and `nav` destinations in the catalogue (only stage, view and sort are used), so the payment-terms and owed tiles open the Contracts list on the phone rather than their own page.
+- Home still binds three listeners for things nothing draws ([data-act-decide], [data-share-open], the .dd-card toggle), and ddStartsOpen has no caller — the same on main.

@@ -73,12 +73,15 @@ const CROPS = [
   { key: 'filters',    label: 'Contracts — the filter bar',
     go: async p => { await p.evaluate(() => setView('register')); await pause(800); },
     sel: '.reg-band' },
-  { key: 'kpi-card',   label: 'Home — a metric card',
+  /* RE-POINTED 24 Sep 2026: the metric cards and the decisions list LEFT
+     HOME (owner-ruled — the Map took their place, Prepared for you stayed), so
+     the two Home crops are the Map's figures and the prepared rows. */
+  { key: 'map-card',   label: 'Home — the Map\'s figures',
     go: async p => { await p.evaluate(() => setView('dashboard')); await pause(900); },
-    sel: '[data-kpi-id]' },
-  { key: 'decisions',  label: 'Home — the decisions list',
+    sel: '#hm-map .hm-map-side' },
+  { key: 'prepared',   label: 'Home — prepared for you',
     go: async p => { await p.evaluate(() => setView('dashboard')); await pause(900); },
-    sel: '.hm-row', rows: 3 },
+    sel: '#hm-desk-rows .hm-row', rows: 3 },
   { key: 'kt-rows',    label: 'Key terms — the fact rows',
     go: async p => { await p.evaluate(() => { openWorkspace('MK-82'); roomGoTab(getContract('MK-82'), 'terms'); }); await pause(1000); },
     sel: '[data-kt-row]', rows: 5 },

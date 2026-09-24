@@ -67,10 +67,13 @@ describe('F56 — an expiry that is not a date does not take the screen down', (
     const sb = screens([badContract(), good]);
     sb.renderDashboard();
     const html = sb.document.getElementById('content').innerHTML;
-    /* The "Key metrics" caption retired with the SAP treatment (20 Aug 2026);
-       the KPI grid itself is the render sentinel now. */
-    assert.ok(html.includes('kpi-grid'), 'the dashboard must have rendered');
-    assert.ok(html.includes('MK-OK'),
+    /* The "Key metrics" caption retired with the SAP treatment (20 Aug 2026).
+       RE-POINTED IN PLACE 24 Sep 2026: the tiles and the rows that printed a
+       contract's id left the desktop Home for the Map (Young's word), so the
+       Map is the sentinel and its head COUNTS the whole portfolio — both
+       records, the malformed one and the good one. */
+    assert.ok(html.includes('id="hm-map"'), 'the dashboard must have rendered');
+    assert.ok(html.includes('2 active contracts'),
       'one malformed record must not cost every other contract its screen');
   });
 

@@ -68,7 +68,11 @@ describe('F252 — a page fills the reader\'s own screen', () => {
   test('1 · one reading, and both lists ask it rather than working it out', () => {
     assert.match(APP, /Object\.assign\(window,\{[^}]*rowsThatFit/,
       'it is published, or the views reach for a name that is not there');
-    assert.match(HOME, /rowsThatFit\(/, 'Home asks it');
+    /* RE-POINTED IN PLACE 24 Sep 2026: Home's decisions list — the one caller
+       — left the page for the Map (Young's word), so rowsThatFit has no caller
+       today and stays published for the next list that needs it. What has to
+       go on holding is the loop below: no page works the room out itself. */
+    assert.ok(!/rowsThatFit\(/.test(HOME), 'Home has no fitted list left to ask it');
     /* RE-POINTED 29 Aug 2026: the templates wall was the second reader and it
        has no fit any more — its cards are the page's categories, a bounded
        handful that always draws in full. Home is the one caller now, and what
@@ -97,15 +101,16 @@ describe('F252 — a page fills the reader\'s own screen', () => {
     assert.equal(rowsThatFit(el(100, 300), 100, 4, 40), 4, 'and never under the floor');
   });
 
-  test('4 · Home keeps its old four as the floor', () => {
-    assert.match(HOME, /const HM_DD_MIN = 4;/, 'four is what a laptop always showed');
-    assert.match(HOME, /ddAll\.slice\(0, Math\.max\(HM_DD_MIN, _hmDdFit\|0\)\)/,
-      'the list is sliced to the fitted count, never below the floor');
-    assert.match(HOME, /if\(!\(rowH>0\)\) return;/,
-      'a row that measures nothing leaves the count alone');
-    assert.match(HOME, /if\(want===_hmDdFit\) return;/,
-      'and it re-renders only when the answer actually changes — a resize drag '
-      + 'must not repaint the dashboard on every pixel');
+  /* REVERSED IN PLACE 24 Sep 2026. What stood here pinned Home's fitted
+     decisions list — four as the floor, the fitted count as the slice, a
+     re-render only when the answer moved. The list left the page with its
+     card (Young: "instead of needs your decision, delete it and replace with
+     prepared for you"), and a fit left behind with nothing to fit is a
+     ResizeObserver repainting Home for nothing. So the claim is its absence,
+     whole: no floor, no fitted count, no observer. */
+  test('4 · Home keeps no fitted list, and nothing left over from one', () => {
+    assert.ok(!/HM_DD_MIN|_hmDdFit|hmFitDecisions/.test(HOME), 'the fit went with the list');
+    assert.ok(!/hmFitBound/.test(HOME), 'and so did its observer');
   });
 
   test('5 · the templates wall withholds nothing at all — REVERSED IN PLACE', () => {
@@ -128,15 +133,12 @@ describe('F252 — a page fills the reader\'s own screen', () => {
       'the wall is every bucket the data holds, sliced by nothing');
   });
 
-  test('6 · and Home still counts the whole book, capping only the drawing', () => {
-    /* Home is unchanged and is where this rule still bites: its decisions list
-       fits rows to the screen, and its see-all reads the WHOLE list rather
-       than the fitted one, so the count cannot follow the window. */
-    /* RE-POINTED (21 Sep 2026): the link shares its line with the section's
-       count sub-line now; the see-all half is unchanged. */
-    assert.match(HOME, /\(ddAll\.length>ddShown\.length\s*\?/,
-      "Home's see-all draws only where it shows something new");
-    assert.match(HOME, /const ddShown=ddAll\.slice\(0, Math\.max\(HM_DD_MIN, _hmDdFit\|0\)\)/,
-      'and the fit caps the drawing, never the reading');
+  /* REVERSED IN PLACE 24 Sep 2026 — see (4). The rule this pinned still holds
+     on Home in its strongest form: the Map counts the WHOLE live book and caps
+     nothing at all, so there is no slice for a count to follow. */
+  test('6 · and Home counts the whole book, capping nothing', () => {
+    assert.ok(!/ddAll|ddShown/.test(HOME), 'no fitted slice is left on the page');
+    const map = HOME.slice(HOME.indexOf('\nfunction hmMapData('), HOME.indexOf('\nfunction hmMapInnerHtml('));
+    assert.ok(map.length > 100 && !/\.slice\(0,/.test(map), 'the Map\'s reading slices nothing');
   });
 });

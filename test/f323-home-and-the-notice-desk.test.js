@@ -216,26 +216,40 @@ describe('f323 (4) the lapsed certificate is the Overview\'s own reading', () =>
   });
 });
 
+/* RE-POINTED IN PLACE 24 Sep 2026 (the Map on Home, owner-ruled): the owed
+   arithmetic moved out of the catalogue entry into hmOwed, ONE reading asked by
+   the phone's owed tile and by the Map's "Owed to us" fact, so the two can
+   never print different sums. The claims below are unchanged; what they are
+   asked of is that function plus the entry that dresses it. PIN THE REGION,
+   NOT A BYTE COUNT — the 2,200-character slice this used to take stopped
+   covering the arithmetic the moment it moved, and read neighbours instead. */
+const OWED = (() => {
+  const at = HOME.search(/\nfunction hmOwed\(/);
+  const body = at < 0 ? '' : HOME.slice(at, HOME.indexOf('\n}\n', at + 1) + 2);
+  const e = HOME.indexOf('owed: (()=>{');
+  const entry = e < 0 ? '' : HOME.slice(e, HOME.indexOf('})(),', e) + 5);
+  return body + '\n' + entry;
+})();
 describe('f323 (5) money owed is borrowed, converted, and permission-aware', () => {
   test('5a it borrows every reading and computes no state of its own', () => {
-    const t = HOME.slice(HOME.indexOf('owed: (()=>{'), HOME.indexOf('owed: (()=>{') + 2200);
+    const t = OWED;
     assert.match(t, /obligationIsTheirs/);
     assert.match(t, /obState/);
     assert.match(t, /obligationAmount/);
     assert.match(t, /fxHome/);
   });
   test('5b an unconvertible amount is LEFT OUT and counted, never summed at par', () => {
-    const t = HOME.slice(HOME.indexOf('owed: (()=>{'), HOME.indexOf('owed: (()=>{') + 2200);
+    const t = OWED;
     assert.match(t, /if\(h&&h\.missing\) left\+\+; else sum\+=/);
     assert.match(t, /home_owed_left/);
   });
   test('5c no permission means the COUNT, never a row of dashes', () => {
-    const t = HOME.slice(HOME.indexOf('owed: (()=>{'), HOME.indexOf('owed: (()=>{') + 2200);
+    const t = OWED;
     assert.match(t, /canMoney \? fmtMoneyShort\(sum\) : Number\(n\)/);
     assert.match(t, /obligationMoneyVisible/);
   });
   test('5d the destination counts the way the tile counted', () => {
-    const t = HOME.slice(HOME.indexOf('owed: (()=>{'), HOME.indexOf('owed: (()=>{') + 2200);
+    const t = OWED;
     assert.match(t, /go:\{obligations:\{state:'open', side:'theirs'\}\}/);
   });
   test('5e it is "owed to us", never "receivable" — HaTi reads agreements, not a ledger', () => {

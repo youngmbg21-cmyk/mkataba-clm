@@ -76,11 +76,15 @@ const check = (name, pass, detail) => {
        is meant to: it is what proves the rail is not simply always there. */
     const rest = await page.evaluate(() => ({
       rail: !!document.querySelector('.hm-rw'),
-      rows: document.querySelectorAll('#hm-dd-rows .hm-row').length,
+      /* RE-POINTED IN PLACE 24 Sep 2026: the rows lived on "Needs your
+         decision", which LEFT HOME on the owner's word. What this CONTROL
+         guards is that Home still draws its own card — the decisions card at
+         the parent, the Map here — so it still passes on both. */
+      card: !!document.querySelector('#hm-map, #hm-dd-rows'),
     }));
     check('2a (CONTROL) with nothing to plot the rail is not drawn', !rest.rail,
       'rail:' + rest.rail);
-    check('2b (CONTROL) and the rows are still there', rest.rows >= 0, rest.rows + ' rows');
+    check('2b (CONTROL) and Home still draws its own card', rest.card, 'card:' + rest.card);
 
     /* ================= 3. STAGE DATED WORK, AND MEASURE THE RAIL ========
        Three renewals at known distances and a quiet desk whose oldest ask is
@@ -104,61 +108,61 @@ const check = (name, pass, detail) => {
     await page.waitForTimeout(500);
     await page.screenshot({ path: path.join(OUT, '01-home-runway.png') });
 
+    /* REVERSED IN PLACE 24 Sep 2026 (Young: "instead of needs your decision,
+       delete it and replace with prepared for you", then "Build it"). The rail
+       sat on that card and LEFT HOME with it; js/runway.js is kept whole, and
+       f363 pins the reading. WHAT STOOD HERE measured the rail's pixels — dots
+       inside their rail, painted, each a door, the standard named at the left
+       end, three piles counted in the head, one number beside a dot — and
+       every claim was right for the card it was written for.
+
+       WHAT HAS TO HOLD NOW is that the DATED WORK the rail plotted is still on
+       the page, where a reader can press it: each staged renewal counted in
+       the month its term ends on the Map, that month a door, the ones inside
+       ninety days in the window's own count, and the quiet desk a row in the
+       bell — the one screen it moved to, since nothing else in the product
+       said it. Measured on the page, never read off the source. */
     const rw = await page.evaluate(() => {
-      const rail = document.querySelector('.hm-rw-rail');
-      if (!rail) return null;
-      const rr = rail.getBoundingClientRect();
-      const pins = [...document.querySelectorAll('.hm-rw-pin')];
-      const inside = pins.filter(e => { const q = e.getBoundingClientRect();
-        return q.left >= rr.left - 6 && q.right <= rr.right + 6 && q.top >= rr.top - 1 && q.bottom <= rr.bottom + 1; });
-      const painted = pins.filter(e => getComputedStyle(e).backgroundColor !== 'rgba(0, 0, 0, 0)' && e.getBoundingClientRect().width > 0);
-      const groups = [...document.querySelectorAll('.hm-rw-nc')];
+      const live = state.contracts.filter(c => c.status !== 'Declined' && !isArchived(c));
+      const d = window.hmMapData ? hmMapData() : null;
+      const renewals = live.slice(0, 3).map(c => {
+        let w = null; try { w = renewalWindow(c); } catch (_) { w = null; }
+        if (!w || !w.expiry || !d) return { id: c.id, inForce: !!(w && w.expiry) };
+        const e = new Date(w.expiry + 'T00:00:00'), t = new Date(d.today + 'T00:00:00');
+        const i = (e.getFullYear() - t.getFullYear()) * 12 + (e.getMonth() - t.getMonth());
+        return { id: c.id, inForce: true, i, days: w.expiresDays,
+          counted: !!(d.months[i] && d.months[i].ids.includes(c.id)),
+          door: !!document.querySelector(`#hm-map [data-hm-map="month:${i}"]`),
+          inWin: d.win.ids.includes(c.id) };
+      });
+      const q = live[3];
+      const bell = (window.buildAlerts ? buildAlerts() : []).filter(a => a.kind === 'desk-quiet');
       return {
-        pins: pins.length, inside: inside.length, painted: painted.length,
-        doors: pins.filter(e => e.hasAttribute('data-sel')).length,
-        titles: pins.map(e => e.getAttribute('title') || ''),
-        groups: groups.map(e => ({ txt: e.textContent.replace(/\s+/g, ' ').trim(),
-          go: e.getAttribute('data-hm-go') || '' })),
-        sub: (document.querySelector('.hm-sec-sub') || {}).textContent || '',
-        ends: [...document.querySelectorAll('.hm-rw-end')].map(e => e.textContent.trim()),
-        std: (document.querySelector('.hm-rw-end.is-past') || {}).title || '',
-        rowTags: [...document.querySelectorAll('#hm-dd-rows .hm-rtag')].map(e => e.textContent.trim()),
+        rail: !!document.querySelector('.hm-rw, .hm-rw-rail'),
+        map: !!d, renewals,
+        winDoor: !!document.querySelector('#hm-map [data-hm-map="window"]'),
+        quiet: q ? bell.some(a => a.id === q.id) : null,
+        quietSub: q ? ((bell.find(a => a.id === q.id) || {}).sub || '') : '',
       };
     });
-    check('3a the rail is drawn once something carries a date', !!rw);
-    if (rw) {
-      check('3b every dot is inside its own rail', rw.pins > 0 && rw.inside === rw.pins,
-        rw.inside + ' of ' + rw.pins);
-      check('3c every dot is painted', rw.painted === rw.pins, rw.painted + ' of ' + rw.pins);
-      check('3d every dot is a door onto its contract', rw.doors === rw.pins,
-        rw.doors + ' of ' + rw.pins);
-      check('3e the left end names the standard it measures against',
-        /working day/i.test(rw.ends[0] || ''), rw.ends[0]);
-      check('3f and where that standard is SET rides the hover, not a second door',
-        /settings/i.test(rw.std), rw.std);
-      check('3g the head counts the three piles', /past your standard/.test(rw.sub), rw.sub);
-      check('3h every no-clock count is a door', rw.groups.length > 0 &&
-        rw.groups.every(g => /^rwnone:/.test(g.go)), JSON.stringify(rw.groups.map(g => g.go)));
-      /* ONE NUMBER FOR ONE THING: the quiet desk's dot says "N days past your
-         standard" and its row must say the same N, not the working-day count
-         the desk flag uses. */
-      const pastTitle = (rw.titles.find(t => /past your standard/.test(t)) || '');
-      const n = (pastTitle.match(/(\d+)\s+days? past/) || [])[1];
-      check('3i the row and the picture say ONE number about the same contract',
-        !!n && rw.rowTags.some(t => t.replace(/\D/g, '') === n),
-        'dot: ' + n + ' · rows: ' + JSON.stringify(rw.rowTags));
-    } else {
-      /* A SKIPPED CLAIM IS NOT A PASSING ONE. Against a build without the rail
-         these eight simply vanished from the tally, which reads as agreement. */
-      ['3b every dot is inside its own rail', '3c every dot is painted',
-       '3d every dot is a door onto its contract', '3e the left end names the standard',
-       '3f where that standard is set rides the hover', '3g the head counts the three piles',
-       '3h every no-clock count is a door',
-       '3i the row and the picture say ONE number'].forEach(n => check(n, false, 'no rail to measure'));
-    }
-    /* THE OWNER'S EXCLUSION, on the home page. */
+    const ren = rw.renewals.filter(r => r.inForce);
+    check('3a the rail left Home with its card — dated work staged, and no rail drawn',
+      rw.map && !rw.rail, `map ${rw.map} · rail ${rw.rail}`);
+    check('3b every staged renewal is counted in the month its term ends',
+      ren.length > 0 && ren.every(r => r.counted), JSON.stringify(ren.map(r => [r.id, r.i, r.counted])));
+    check('3c and that month is a door onto the list',
+      ren.length > 0 && ren.every(r => r.door), JSON.stringify(ren.map(r => [r.id, r.door])));
+    check('3d the ones inside ninety days are in the window\'s own count, and it is a door',
+      ren.filter(r => r.days <= 90).every(r => r.inWin) && (ren.some(r => r.days <= 90) ? rw.winDoor : true),
+      JSON.stringify(ren.map(r => [r.id, r.days, r.inWin])) + ' · door ' + rw.winDoor);
+    check('3e the quiet desk the rail plotted is a row in the bell now',
+      rw.quiet === true, 'in the bell: ' + rw.quiet);
+    check('3f and the row leads with how long it has sat, as the card\'s tag did',
+      /^\d+ days?\b/.test(rw.quietSub), rw.quietSub || 'no sub-line');
+    /* THE OWNER'S EXCLUSION, on the home page — asked of the card that is
+       there now. */
     const homeBands = await page.evaluate(() => {
-      const card = document.querySelector('.hm-rw');
+      const card = document.getElementById('hm-map');
       if (!card) return -1;
       return card.parentElement.querySelectorAll('.hint,[class*="banner"],[class*="callout"]').length;
     });
