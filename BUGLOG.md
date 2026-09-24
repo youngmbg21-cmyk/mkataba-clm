@@ -19045,3 +19045,16 @@ Noticed, not fixed
 ## Run 24 Sep 2026 — the prototype polish reverted
 
 - The side panel / Home / Overview polish (commit 745bdf4) was REVERTED on the owner's word: it fell short of the prototype, which is to be finished first and then applied to HaTi in full. The code is back to 80856be.
+
+## 24 Sep 2026 — advice only: Scenario 1 rebuilt (negotiated in HaTi, signed outside it)
+
+The owner asked for Scenario 1 to be rebuilt: the whole negotiation in HaTi, the signing outside it (paper or DocuSign), the signed copy filed back for storage. Advice and drawings only (the doc "HaTi Screens — Approval, and Signing Outside HaTi", screens 12–22); no code changed. The Review Desk design is withdrawn from that doc.
+
+Noticed, not fixed
+- A signed copy filed through "Signed on paper instead?" can be deleted by the admin's clean-up of unused files: fileInScope and the orphan sweep read c.upload and c.documents, never c.execution.fileId, and documents is not frozen after signing.
+- The executed-copy email (executedAttachment) attaches only c.upload.dataUrl or a PDF built from execution.html, so a paper-filed signed copy is never attached.
+- attachPaperSignature shows its success toast before the server has answered.
+- POST /api/files accepts any dataUrl string, with no type or content check.
+- The mailroom stores a document as upload.data / upload.sha256, and nothing in js/ or the server reads those names, so a mailroom file cannot be opened from any screen.
+- The old "Send to Docs tab for signature" button (#nego-to-docs, onReadyToSign) is unreachable: openNegotiationOwnerRoom has no caller.
+- exportPDF removes the signature block ([data-anchor="sig"]) from an unsigned contract, so the only clean PDF HaTi makes has no signature lines.
