@@ -177,19 +177,23 @@ describe('N8 (3) — the templates library page', () => {
     assert.match(rows, /data-tpl-ours="ND"/, 'a built-in can finally be made ours');
     /* ---- AND THE TWO TOP BUTTONS ARE ONE ----
        "Convert a document" was a sibling of "+ Build new template" and is not
-       a sibling act: it is one of five answers to "where do the words come
-       from", which the one door asks. The BUTTON's own words are still the
-       owner's and still drawn. */
-    assert.match(shell, /Build new template/);
-    /* REVERSED IN PLACE (21 Sep 2026, the redesign's second pass): the
-       owner-approved reference draws Convert a document beside Build new
-       template, and it is back as a PROXY — the head's button and the
-       chooser's own "a document" row press ONE function, so the two doors
-       are one act and cannot drift. */
-    assert.ok(shell.includes('id="tpl-convert"'), 'Convert a document is drawn beside the one door');
+       a sibling act: it is one of the answers to "how do you want to start",
+       which the one door asks. The BUTTON's own words are still the owner's
+       and still drawn. */
+    /* RE-POINTED 24 Sep 2026 (Young's go on "One Door to Standards",
+       decision 4): the one door says what it makes — a standard contract. */
+    assert.match(shell, /New standard contract/);
+    /* REVERSED AGAIN, 24 Sep 2026. The redesign's second pass (21 Sep) put
+       Convert a document back beside the one door as a PROXY because the
+       reference drew both; the owner's later drawing, "One Door to
+       Standards", makes them ONE button — converting a document is the start
+       "From a template you have" → Upload a file, where the document is now
+       COPIED rather than re-typed. So the head draws one door, and the act is
+       behind it. */
+    assert.ok(!shell.includes('id="tpl-convert"'), 'one button: Convert a document is behind the one door, not beside it');
     const LIB = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js', 'views', 'library.js'), 'utf8');
-    assert.match(LIB, /getElementById\('tpl-convert'\)\?\.addEventListener\('click',tplConvertDoor\)/, 'the head presses the one act');
-    assert.match(LIB, /if\(k==='doc'\) return tplConvertDoor\(\);/, 'and so does the chooser\'s own row');
+    assert.match(LIB, /getElementById\('tpl-new'\)\?\.addEventListener\('click',tplNewMenu\)/, 'the head presses the one door');
+    assert.match(LIB, /function tplNewMenu\(\)\{ return openNewStandard\(\); \}/, 'and the one door is the three starts');
   });
 });
 

@@ -208,11 +208,21 @@ describe('f331 (5) — every door refuses the same way', () => {
   });
 
   test('every door into the builder asks it', () => {
+    /* RE-POINTED 24 Sep 2026 (one door to standards): "Save as template"'s
+       own dialog is GONE, and with it one of the four refusals this counted —
+       its door is the one door's third start now, which asks the same rule
+       before the draft is made (js/views/newstandard.js). The count is the
+       doors that remain in the library file plus the one door's two askers. */
     const s = strip(TPLLIB);
-    assert.ok((s.match(/if\(newPaperBlock\(\)\) return/g) || []).length >= 4,
-      'the three named doors plus the create modal');
+    assert.ok((s.match(/if\(newPaperBlock\(\)\) return/g) || []).length >= 3,
+      'the builder\'s two named doors plus the create modal');
     assert.match(s, /function tplLibCreateModal\(\) \{\s*\n?\s*if\(newPaperBlock\(\)\) return;/,
       'minting a template asks first');
+    const NS = strip(read('js/views/newstandard.js'));
+    assert.match(NS, /if \(NS_GATED\.includes\(k\) && typeof newPaperBlock === 'function' && newPaperBlock\(\)\) return;/,
+      'the one door asks before a gated start opens');
+    assert.match(NS, /if \(typeof newPaperBlock === 'function' && newPaperBlock\(\)\) return;\s*go\.disabled = true;/,
+      'and the contract start asks before the draft is made, as Save as template asked before the builder opened');
   });
 
   test('the drawn doors GREY with the reason, never hide', () => {
@@ -223,10 +233,13 @@ describe('f331 (5) — every door refuses the same way', () => {
     /* RE-POINTED 18 Sep 2026: the two-tile "What kind of template?" dialog is
        gone and the source sheet stands where it stood. THE CLAIM IS THE SAME —
        a refused door is drawn dead, with the reason on it, and a live one
-       still looks pressable — so it is asked of the sheet that exists. */
-    assert.match(LIB, /not-allowed/, 'and the refused source says so');
-    assert.match(LIB, /cursor:\$\{off\?'not-allowed':'pointer'\}/, 'while a live source still looks pressable');
-    assert.match(LIB, /\$\{off\?` disabled title="\$\{_tplEsc\(why\)\}"`:''\}/,
+       still looks pressable — so it is asked of the sheet that exists.
+       RE-POINTED AGAIN 24 Sep 2026: the sheet is the one door's three starts
+       (js/views/newstandard.js) — same claim, asked of that screen. */
+    const NS = read('js/views/newstandard.js');
+    assert.match(NS, /\.ns-tile\[disabled\]\{cursor:not-allowed/, 'and the refused start says so');
+    assert.match(NS, /\.ns-tile\{[^}]*cursor:pointer/, 'while a live start still looks pressable');
+    assert.match(NS, /\$\{dead \? ` disabled title="\$\{nsEsc\(why\)\}"` : ''\}/,
       'and it carries the reason rather than going quiet');
   });
 
@@ -240,13 +253,22 @@ describe('f331 (5) — every door refuses the same way', () => {
        If `paste` or `signed` ever appears on that list, the owner's own note
        on the permission row — that uploading received paper stays open — has
        stopped being true. */
-    const m = LIB.match(/const NEW_PAPER=\[([^\]]*)\]/);
+    /* RE-POINTED 24 Sep 2026: the sheet's five sources are the one door's
+       three starts (js/views/newstandard.js), and the gate is still ONE named
+       list. "A blank page", "a document" and "one of HaTi's" are the two gated
+       starts now (scratch; template = upload · paste · HaTi's). Their paper is
+       the foot's link, which files it as THEIR paper through the door that
+       always did — importing, never refused. */
+    const NS = read('js/views/newstandard.js');
+    const m = NS.match(/const NS_GATED = \[([^\]]*)\]/);
     assert.ok(m, 'the gate is one named list');
     const gated = m[1].split(',').map(x => x.trim().replace(/'/g, ''));
-    assert.deepEqual(gated.slice().sort(), ['blank', 'doc', 'hati'],
-      'only the three doors that mint a company standard');
-    assert.ok(!gated.includes('paste'), 'pasting their wording is importing, not writing');
-    assert.ok(!gated.includes('signed'), 'save-as-template carries templateManager, not paperMaker');
+    assert.deepEqual(gated.slice().sort(), ['scratch', 'template'],
+      'only the two starts that mint a company standard from new wording');
+    assert.ok(!gated.includes('contract'), 'save-as-template carries templateManager, not paperMaker');
+    const cp = /getElementById\('ns-cp'\)[^\n]*/.exec(NS);
+    assert.ok(cp && /openCreateTemplateModal\('paste'\)/.test(cp[0]) && !/newPaperBlock/.test(cp[0]),
+      'their paper is imported through its own door, and nothing refuses it');
   });
 });
 

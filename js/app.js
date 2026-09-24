@@ -92,6 +92,7 @@ import './metaclean.js';          // the reading's answer is checked before it i
 import './templateform.js';        // template-form rendering + validation (shared with the server)
 import './views/templatelib.js';   // the versioned company standard-template library
 import './views/templatebuilder.js';  // edits one draft version of a library template
+import './views/newstandard.js';      // + New standard contract: one question, three starts, one builder
 import './views/designstep.js';       // the Design step: pick a structure and a style before publish
 import './views/migration.js';
 /* The phone. Imported last, so every function it reads — the dashboard's

@@ -297,12 +297,16 @@ async function draftNothingFits(out, sentence, why, closest){
   /* THE SECOND DOOR IS NOT FOR MOST PEOPLE, and that is the governance rule
      working rather than a gap: writing new paper is the grant that is off by
      default. Drawn only where pressing it would do something. */
-  if(typeof mayMakeNewPaper==='function' && mayMakeNewPaper() && typeof tplLibCreateModal==='function'){
+  /* AND IT IS THE ONE DOOR'S FIRST START (24 Sep 2026): "From scratch", with
+     the reader's own sentence already in the box, so Copilot proposes the
+     sections of exactly the paper they asked for — never a blank dialog that
+     asks for a name first. */
+  if(typeof mayMakeNewPaper==='function' && mayMakeNewPaper() && typeof openNewStandard==='function'){
     const t=document.createElement('button');
     t.type='button'; t.id='dr-write-template'; t.className='ui-btn';
     t.style.cssText='font-size:var(--t-meta);padding:5px 11px';
     t.textContent=i18t('dr_write_template');
-    t.addEventListener('click',()=>{ closeModal(); tplLibCreateModal(); });
+    t.addEventListener('click',()=>{ closeModal(); openNewStandard({ start:'scratch', said:String(sentence||'') }); });
     row.appendChild(t);
   }
   /* WHAT HAPPENS NEXT, where the record can say. Quietly loaded and quietly

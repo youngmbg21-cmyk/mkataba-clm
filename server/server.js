@@ -5624,6 +5624,76 @@ ${String(text)}`;
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
 
+/* ---------- Copilot's SMALL QUESTIONS about a copied document (one door, 24 Sep 2026) ----------
+   "From a template you have" copies a document word for word — HaTi does
+   that, not Copilot, so a 100-page file is no harder than a two-page one.
+   What Copilot is asked afterwards is SMALL and SHAPED: here are a few
+   candidates HaTi found (a bracketed placeholder, a party's name, an amount, a
+   date), each with a line of the text around it — which of them is a BLANK
+   the next deal fills, which is a NOTE to whoever drafts, and which should be
+   LEFT alone (a real date, a statute)? And what to call each blank.
+
+   ASKED IN PIECES, so a long document never hits a limit: the browser sends
+   at most BLANK_LABEL_MAX candidates a call and asks again for the rest.
+   NOTHING IS WRITTEN HERE: the answer is labels, and a label only becomes a
+   blank when a person ticks it (decision 3: suggestions arrive unticked). */
+const BLANK_LABEL_MAX = 30;
+async function aiLabelCandidates(req, res, key) {
+  const b = req.body || {};
+  const cands = (Array.isArray(b.candidates) ? b.candidates : []).slice(0, BLANK_LABEL_MAX)
+    .filter(c => c && typeof c.id === 'string' && typeof c.text === 'string' && c.text.trim())
+    .map(c => ({ id: String(c.id).slice(0, 24), text: String(c.text).slice(0, 120), context: String(c.context || '').slice(0, 320) }));
+  if (!cands.length) return res.status(400).json({ error: 'candidates are required' });
+  const ids = new Set(cands.map(c => c.id));
+  const tool = {
+    name: 'label_candidates',
+    description: 'Say, for each candidate found in a copied standard contract, whether it is a fill-in blank, a note to the drafter, or wording to leave alone.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        items: { type: 'array', maxItems: BLANK_LABEL_MAX, items: { type: 'object', properties: {
+          id: { type: 'string', description: 'The candidate id, exactly as given.' },
+          kind: { type: 'string', enum: ['blank', 'note', 'leave'], description: 'blank = changes from one deal to the next (the other party, a price, a date the deal sets). note = an instruction to whoever drafts, never meant to be signed ("[Modify this section as necessary.]"). leave = standing wording that must stay (a statute, a regulation\'s date, our own company\'s name).' },
+          label: { type: 'string', description: 'For a blank: a short label the next person fills in, e.g. "Supplier\'s name", "Payment plan". Under 40 characters.' },
+          type: { type: 'string', enum: ['text', 'party', 'num', 'date', 'select'], description: 'For a blank: party = the other company\'s name, num = a number or amount, date = a calendar date.' },
+          why: { type: 'string', description: 'For a note or a leave: ONE short reason, e.g. "the date of the EU data protection rules". Under 90 characters.' },
+          variants: { type: 'array', maxItems: 4, items: { type: 'string' }, description: 'For a blank that is a party NAME only: other spellings of that same name seen in the context (a short trading name). Never a defined term like "Supplier" or "the Company".' },
+        }, required: ['id', 'kind'] } },
+        category: { type: 'string', enum: ['sales', 'procurement', 'employment', 'nda', 'other'], description: 'What kind of agreement this is, from our side: sales = we sell or supply; procurement = we buy; employment; nda; other.' },
+      },
+      required: ['items'],
+    },
+  };
+  const title = String(b.title || '').slice(0, 160);
+  const ours = String(b.company || '').slice(0, 120);
+  const prompt = `A company copied one of its standard contracts into HaTi${title ? ` ("${title}")` : ''}. `
+    + (ours ? `The company is "${ours}" — its own name is never a blank. ` : '')
+    + `HaTi found the candidates below in the wording. For EACH one say whether it is a blank, a note, or something to leave.\n\n`
+    + `Rules:\n- A blank is only what genuinely changes per deal: the other party, amounts the deal sets, the deal's own dates, addresses, registration numbers.\n`
+    + `- A bracketed instruction to the drafter is a note, not a blank.\n- A date or number that belongs to a law, a standard or a regulation is left alone.\n`
+    + `- Answer every candidate, by its id. Write no contract wording.\n\nCANDIDATES:\n`
+    + cands.map(c => `${c.id}: "${c.text}"${c.context ? `  — in: …${c.context}…` : ''}`).join('\n')
+    + `\n\nReturn via the label_candidates tool.`;
+  try {
+    const resp = await anthropicMessages(key, 'fast', { max_tokens: 2400, tools: [tool], tool_choice: { type: 'tool', name: 'label_candidates' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'blanks', who: aiWho(req) });
+    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    const block = (resp.data.content || []).find(x => x.type === 'tool_use');
+    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    const out = block.input || {};
+    const KINDS = ['blank', 'note', 'leave'], TYPES = ['text', 'party', 'num', 'date', 'select'];
+    /* ONLY WHAT WAS ASKED COMES BACK, and every string is bounded — a label
+       is shown to a person before it becomes anything. */
+    const items = (Array.isArray(out.items) ? out.items : [])
+      .filter(x => x && ids.has(String(x.id)) && KINDS.includes(x.kind))
+      .map(x => ({ id: String(x.id), kind: x.kind,
+        label: clean(x.label || '').slice(0, 60), type: TYPES.includes(x.type) ? x.type : 'text',
+        why: clean(x.why || '').slice(0, 140),
+        variants: (Array.isArray(x.variants) ? x.variants : []).filter(v => typeof v === 'string' && v.trim().length >= 3).map(v => v.trim().slice(0, 80)).slice(0, 4) }));
+    res.json({ items, category: TPL_CATEGORIES.includes(out.category) ? out.category : null,
+      answered: items.length, asked: cands.length, ...aiNotice(req, resp) });
+  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+}
+
 /* ---------- Copilot: suggest the blanks in a customer's template ----------
    Proposes fields plus a rewritten body with {{key}} placeholders inserted.
    The human reviews and edits every proposal in the template editor before
@@ -5631,6 +5701,7 @@ ${String(text)}`;
 app.post('/api/ai/blanks', auth, rlAiLight, aiFeature('blanks'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  if (Array.isArray((req.body || {}).candidates)) return aiLabelCandidates(req, res, key);
   const { text } = req.body || {};
   if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
   const tool = {
@@ -5707,7 +5778,7 @@ const OUTLINE_SECTIONS_MAX = 20;
 app.post('/api/ai/outline', auth, editor, rlAiLight, aiFeature('outline'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
-  const { sentence, kind, required } = req.body || {};
+  const { sentence, kind, required, title: wantTitle } = req.body || {};
   if (!sentence || typeof sentence !== 'string' || !sentence.trim())
     return res.status(400).json({ error: 'sentence is required' });
   const said = String(sentence).slice(0, OUTLINE_SENTENCE_MAX);
@@ -5728,11 +5799,19 @@ app.post('/api/ai/outline', auth, editor, rlAiLight, aiFeature('outline'), aiBud
             properties: {
               heading: { type: 'string', description: 'The section heading as it would be printed — Title Case, no number, under 70 characters.' },
               intent: { type: 'string', description: 'ONE plain sentence saying what this section has to settle. Not the wording, and never a draft clause.' },
+              optional: { type: 'boolean', description: 'True only for a section many agreements of this kind leave out (an escrow, a most-favoured-customer clause). Optional sections arrive unticked.' },
             },
             required: ['heading', 'intent'],
           },
         },
         note: { type: 'string', description: 'One sentence for the person reading this: anything you were unsure about, or left out.' },
+        /* THE ONE-DOOR START ASKS TWO MORE FACTS (24 Sep 2026): a name for the
+           new standard and its category, both shown at the top of the builder
+           and changeable there. Asked only by that start (`title: true`). */
+        ...(wantTitle ? {
+          name_suggestion: { type: 'string', description: 'A short name for this standard contract, the way a legal team files it — e.g. "SaaS Subscription Agreement". Under 60 characters, no party names.' },
+          category_guess: { type: 'string', enum: ['sales', 'procurement', 'employment', 'nda', 'other'], description: 'sales = we sell or supply; procurement = we buy; employment; nda = a confidentiality agreement; other = none of these.' },
+        } : {}),
       },
       required: ['sections'],
     },
@@ -5761,9 +5840,16 @@ app.post('/api/ai/outline', auth, editor, rlAiLight, aiFeature('outline'), aiBud
       .filter(x => x && typeof x.heading === 'string' && x.heading.trim())
       .slice(0, OUTLINE_SECTIONS_MAX)
       .map(x => ({ heading: String(x.heading).trim().slice(0, 120),
-                   intent: String(x.intent || '').trim().slice(0, 300) }));
+                   intent: String(x.intent || '').trim().slice(0, 300),
+                   ...(x.optional === true ? { optional: true } : {}) }));
     if (!sections.length) return res.status(502).json({ error: 'Copilot proposed no sections' });
-    res.json({ sections, note: typeof out.note === 'string' ? out.note : '', ...aiNotice(req, resp) });
+    const extra = {};
+    if (wantTitle) {
+      const nm = typeof out.name_suggestion === 'string' ? clean(out.name_suggestion).slice(0, 80) : '';
+      if (nm) extra.title = nm;
+      if (TPL_CATEGORIES.includes(out.category_guess)) extra.category = out.category_guess;
+    }
+    res.json({ sections, note: typeof out.note === 'string' ? out.note : '', ...extra, ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
 

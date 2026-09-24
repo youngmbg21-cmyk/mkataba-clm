@@ -1240,20 +1240,31 @@ function tplBuiltinBlocks(html){
 }
 /* The rendered built-in, with its fill-in boxes turned into the blanks they
    stand for. Lifted from the retired function, which got this part right. */
+/* A TEMPLATE KEY IS lower_snake_case (the server's TPL_KEY_RE), and HaTi's own
+   built-ins name theirs in camelCase — effDate, payDays, inspectDays. The
+   server slugs a key it cannot take while the marker in the wording keeps the
+   old spelling, so MEASURED on the Raw Material Supply Agreement three of its
+   seven blanks came out "unplaced", a contract drawn from the copy printed
+   three blanks nobody could fill, and the builder offered the stranded
+   markers back as blanks to make. The key is put in the template's own shape
+   HERE, on the marker and the field in the same breath (24 Sep 2026). */
+const tplBuiltinKey=k=>String(k||'').replace(/([a-z0-9])([A-Z])/g,'$1_$2').toLowerCase()
+  .replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'').replace(/^([0-9])/,'f$1').slice(0,64)||'field';
 function tplBuiltinDraftBody(bid){
   const t=TEMPLATES[bid]; if(!t) return null;
-  const fields=templateFields(t).map(f=>({...f}));
+  const fields=templateFields(t).map(f=>({...f, key:tplBuiltinKey(f.key)}));
   const probe=migrateContract({ id:'TPL-PREVIEW', name:t.name, template:bid, counterparty:'',
     value:0, valueType:t.valueType, folder:t.folder, status:'Draft', fields:{} });
   const holder=document.createElement('div');
   holder.innerHTML=docBody(probe);
   holder.querySelectorAll('.seal-in,[data-anchor="sig"]').forEach(el=>el.remove());
   holder.querySelectorAll('input,textarea').forEach(inp=>{
-    const key=inp.getAttribute('data-field')||inp.getAttribute('data-sync')||'';
+    const raw=inp.getAttribute('data-field')||inp.getAttribute('data-sync')||'';
+    const key=raw?tplBuiltinKey(raw):'';
     const known=fields.find(f=>f.key===key);
     const span=document.createElement('span');
     span.textContent = known ? `{{${known.key}}}` : (key?`{{${key}}}`:'_____________');
-    if(key && !known) fields.push({ key, label:key.replace(/([A-Z])/g,' $1').replace(/^./,s=>s.toUpperCase()),
+    if(key && !known) fields.push({ key, label:raw.replace(/([A-Z])/g,' $1').replace(/^./,s=>s.toUpperCase()),
       type:'text', maps:'', required:false, def:'', opts:[] });
     inp.replaceWith(span);
   });
@@ -1263,32 +1274,19 @@ function tplBuiltinDraftBody(bid){
     blocks:tplBuiltinBlocks(html),
     fields:fields.filter(f=>used.includes(f.key)) };
 }
-async function tplMakeItOurs(bid){
+/* ---- "MAKE IT OURS" IS A SHORTCUT INTO THE ONE DOOR (decision 1, Young's go
+   on "One Door to Standards", 24 Sep 2026) ----
+   It opens "From a template you have" on HaTi's own, with THIS template
+   already chosen — the same flow the button runs, so the copy it makes is the
+   copy every start makes: filed in the template's own value stream, with the
+   category its stream states, and opened in the builder with Copilot's list of
+   likely blanks. The creation itself lives in the start (nsOpenTemplate). */
+function tplMakeItOurs(bid){
   if(typeof window.newPaperBlock==='function' && window.newPaperBlock()) return;
   if(!tplCanManage()){ toast(i18t('lb_viewers_no_add'),'err'); return; }
   if(!API_MODE()){ toast(i18t('tl_needs_server'),'warn'); return; }
-  const built=tplBuiltinDraftBody(bid);
-  if(!built||built.blocks.length<2){ toast(i18t('lb_could_not_convert'),'err'); return; }
-  try{
-    const d=await api('templates','POST',{ name:built.name, category:'other',
-      folder:built.folder||'', origin:'built_in_hati',
-      description:i18t('lib_ours_desc',{name:built.name}) });
-    const tid=d.template.id;
-    /* POST answers with the template only, so the draft it just minted is
-       read back rather than guessed at. */
-    const det=await api('templates/'+tid);
-    const draft=(det.versions||[]).find(v=>v.status==='draft');
-    if(!draft) throw new Error(i18t('tl_edit_failed'));
-    await api(`templates/${tid}/versions/${draft.id}`,'PUT',{
-      blocks:built.blocks.map((b,i)=>({ ...b, orderIndex:i })),
-      fields:built.fields.map((f,i)=>({ fieldKey:f.key, label:f.label||f.key, orderIndex:i,
-        fieldType:'short_text', control:'free', required:!!f.required })),
-    });
-    if(typeof tplLibRefresh==='function') await tplLibRefresh();
-    toast(i18t('lib_ours_made',{name:built.name}),'ok');
-    if(window.openTemplateBuilder) openTemplateBuilder(tid,draft.id);
-    else if(window.openTemplateLibDetail) openTemplateLibDetail(tid);
-  }catch(e){ toast((e&&e.message)||i18t('tl_edit_failed'),'err'); }
+  if(typeof openNewStandard!=='function'){ toast(i18t('tl_edit_failed'),'err'); return; }
+  return openNewStandard({ start:'template', tab:'hati', pick:bid });
 }
 
 /* ============================================================ BULK CREATION
@@ -1792,114 +1790,27 @@ function tplRowMoreMenu(ref){
   document.getElementById('tm-close')?.addEventListener('click',closeModal);
   ids.forEach(id=>document.getElementById(id)?.addEventListener('click',ACT[id]));
 }
-/* ════ ONE BUTTON, ONE QUESTION, FIVE ANSWERS (Young confirmed 18 Sep 2026) ══
-   The page carried TWO buttons at the top — "Convert a document" and
-   "+ Build new template" — with three routes behind them, each landing
-   somewhere different, and the second opened a dialog asking what KIND of
-   paper this was before anybody had seen a word of it.
+/* ════ ONE BUTTON, ONE QUESTION, THREE STARTS (Young's go on "One Door to
+   Standards", 24 Sep 2026) ════
+   The five answers of 18 Sep ("Where do the words come from?") are three now,
+   and they live in js/views/newstandard.js: from scratch, from a template you
+   have (a Word file, a PDF, pasted wording or one of HaTi's — COPIED EXACTLY),
+   or from one of our contracts. Every start ends in the same builder with
+   Copilot's first move waiting, and none of them asks the name or where it is
+   filed — the builder's head shows both, filled in (decision 5).
 
-   THE HONEST QUESTION IS WHERE THE WORDS COME FROM. That is the only thing a
-   person knows at this moment, and it decides everything else: a document you
-   have, wording you paste, a contract already signed, one of HaTi's twelve, or
-   nothing at all. The kind question disappears because the answer to this one
-   settles it — a pasted counterparty draft is their paper, a blank page is
-   ours — and the name is editable in the builder's own header afterwards.
+   The 18 Sep reasoning still holds and is why this is one question: the
+   honest thing a person knows at this moment is where the words come from.
+   What changed is that four doors copied the words four ways and one of them
+   lost every table.
 
-   NOTHING NEW IS MINTED HERE. Every row presses a door that already existed
-   and is already guarded; this is one screen in front of five of them. */
-const TPL_SOURCES = [
-  { k:'doc',    ic:'upload', get t(){ return i18t('lib_src_doc'); },    get d(){ return i18t('lib_src_doc_sub'); } },
-  { k:'paste',  ic:'copy',   get t(){ return i18t('lib_src_paste'); },  get d(){ return i18t('lib_src_paste_sub'); } },
-  { k:'signed', ic:'doc',    get t(){ return i18t('lib_src_signed'); }, get d(){ return i18t('lib_src_signed_sub'); } },
-  { k:'hati',   ic:'copy',   get t(){ return i18t('lib_src_hati'); },   get d(){ return i18t('lib_src_hati_sub'); } },
-  { k:'blank',  ic:'plus',   get t(){ return i18t('lib_src_blank'); },  get d(){ return i18t('lib_src_blank_sub'); } },
-];
-/* ONE ACT, TWO DOORS (second pass, 21 Sep 2026): the chooser's "a document"
-   row and the page head's Convert a document both press THIS, so the head's
-   button is a proxy and not a second implementation. */
-function tplConvertDoor(){
-  const lib=(typeof tplLibAll==='function')?tplLibAll():{canManage:false};
-  const companyOk=API_MODE()&&lib.canManage;
-  return (companyOk&&typeof tplLibUploadModal==='function')?tplLibUploadModal():openCreateTemplateModal('upload');
-}
-function tplNewMenu(){
-  const lib=(typeof tplLibAll==='function')?tplLibAll():{canManage:false};
-  const companyOk=API_MODE()&&lib.canManage;
-  const npBlocked=(typeof newPaperBlocked==='function')&&newPaperBlocked();
-  /* ---- ONLY THE DOORS THAT WRITE OUR OWN PAPER ARE GATED ----
-     The first draft of this refused a source whenever `!companyOk`, which
-     OVER-REFUSED: pasting or converting the other side's wording is importing,
-     not writing, and openCreateTemplateModal takes it whatever the new-paper
-     grant says. The rule names writing our own paper, so it is asked of the
-     three doors that mint a company standard — blank, one of HaTi's, and a
-     converted document — and of nothing else. `signed` is not here either:
-     save-as-template carries templateManager, not paperMaker.
-     Found by f331 (5), which exists to hold exactly this line. */
-  const NEW_PAPER=['blank','hati','doc'];
-  const row=(sc)=>{
-    /* A source is drawn DEAD where its door cannot work, with the reason on
-       it — never hidden, or the reader wonders what they are not being shown. */
-    const off=NEW_PAPER.includes(sc.k)&&npBlocked;
-    const why=off?i18t('np_refused_ask'):'';
-    return `<button data-tpl-src="${sc.k}" class="tn-tile"${off?` disabled title="${_tplEsc(why)}"`:''}
-      style="display:flex;gap:12px;width:100%;text-align:left;padding:13px 14px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;color:var(--color-text);cursor:${off?'not-allowed':'pointer'};opacity:${off?'.55':'1'};margin-bottom:8px">
-      <span style="flex:none;width:30px;height:30px;border-radius:var(--radius);display:grid;place-items:center;background:var(--st-steel-bg);color:var(--st-steel-fg)">${icon(sc.ic,'w-4 h-4')}</span>
-      <span style="flex:1;min-width:0">
-        <span style="display:block;font-size:var(--t-body);font-weight:var(--w-title)">${_tplEsc(sc.t)}</span>
-        <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5">${_tplEsc(off?why:sc.d)}</span>
-      </span></button>`;
-  };
-  openModal(`<div style="padding:24px">
-    <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0 0 var(--s-1)">${i18t('lib_src_title')}</h3>
-    <p style="margin:0 0 16px;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.55">${i18t('lib_src_lead')}</p>
-    ${TPL_SOURCES.map(row).join('')}
-    <div style="display:flex;justify-content:flex-end;margin-top:14px"><button id="tn-close" class="ui-btn">${i18t('act_cancel')}</button></div>
-  </div>`,{label:i18t('lib_src_title')});
-  document.getElementById('tn-close')?.addEventListener('click',closeModal);
-  document.querySelectorAll('[data-tpl-src]').forEach(b=>b.addEventListener('click',()=>{
-    const k=b.getAttribute('data-tpl-src'); closeModal();
-    if(k==='doc') return tplConvertDoor();
-    if(k==='paste') return openCreateTemplateModal('paste');
-    if(k==='signed') return tplPickContract();
-    if(k==='hati') return tplPickBuiltin();
-    if(k==='blank') return companyOk?tplLibCreateModal():openCreateTemplateModal('paste');
-  }));
-}
-/* The two pickers the sources need. Both read populations that already exist
-   and press acts that already exist. */
-function tplPickBuiltin(){
-  const rows=Object.values(TEMPLATES).filter(t=>templateAllowedForRole(t.id,currentUser()?.role||'viewer'));
-  tplPickList(i18t('lib_src_hati'),i18t('lib_pick_hati_lead'),
-    rows.map(t=>({ id:t.id, name:t.name, sub:`${FOLDERS[t.folder]?.name||''}` })),
-    id=>tplMakeItOurs(id));
-}
-function tplPickContract(){
-  /* Newest first, and a contract with no wording is not offered — the act
-     behind this refuses it anyway, and a door that lands on a refusal looks
-     exactly like a broken one. */
-  const rows=(state.contracts||[]).filter(c=>c&&(c.redlineText||(c.upload&&c.upload.extractedText)))
-    .slice(0,40).map(c=>({ id:c.id, name:c.name||c.id, sub:`${c.id}${c.counterparty?' · '+c.counterparty:''}${c.status?' · '+c.status:''}` }));
-  if(!rows.length){ toast(i18t('lib_pick_none'),'warn'); return; }
-  tplPickList(i18t('lib_src_signed'),i18t('lib_pick_contract_lead'),rows,id=>{
-    const c=(state.contracts||[]).find(x=>x.id===id); if(!c) return;
-    if(typeof saveContractToLibrary==='function') saveContractToLibrary(c);
-    else saveContractAsTemplate(c);
-  });
-}
-function tplPickList(title,lead,rows,pick){
-  openModal(`<div style="padding:24px">
-    <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0 0 var(--s-1)">${_tplEsc(title)}</h3>
-    <p style="margin:0 0 14px;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.55">${_tplEsc(lead)}</p>
-    <div style="max-height:320px;overflow:auto">${rows.map(r=>`<button data-tpl-pick="${_tplEsc(r.id)}"
-      style="display:block;width:100%;text-align:left;padding:10px 12px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;color:inherit;cursor:pointer;margin-bottom:6px">
-      <span style="display:block;font-size:var(--t-body);font-weight:var(--w-strong)">${_tplEsc(r.name)}</span>
-      <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600)">${_tplEsc(r.sub)}</span></button>`).join('')}</div>
-    <div style="display:flex;justify-content:flex-end;margin-top:14px"><button id="tp-close" class="ui-btn">${i18t('act_cancel')}</button></div>
-  </div>`);
-  document.getElementById('tp-close')?.addEventListener('click',closeModal);
-  document.querySelectorAll('[data-tpl-pick]').forEach(b=>b.addEventListener('click',()=>{
-    const id=b.getAttribute('data-tpl-pick'); closeModal(); pick(id); }));
-}
+   TWO NAMES STAY, AS PROXIES, so no caller has to learn a new one: the
+   head's button (tplNewMenu) and "Make it ours" (tplMakeItOurs) each open the
+   one door on the start they always meant. tplConvertDoor, TPL_SOURCES,
+   tplPickBuiltin, tplPickContract and tplPickList are GONE — "Convert a
+   document" is the start "From a template you have" → Upload a file, and the
+   lists they drew are the starts' own now. */
+function tplNewMenu(){ return openNewStandard(); }
 /* ==================================================== TEMPLATES OVERVIEW ====
    THE PAGE IS TWO TABS (owner-asked 25 Aug 2026, off the demo): "Templates
    overview" is the demo's own card wall, "Templates" is the table this page
@@ -2721,17 +2632,14 @@ function renderTemplatesPage(){
              under the title" for this page on the owner's later word. */}
       <p class="page-facts" style="margin-top:3px">${i18t('lib_templates_sub')}</p></div>
       <span style="flex:1"></span>
-      ${''/* ONE BUTTON. "Convert a document" was a sibling of "+ New template"
-             and is not a sibling act — it is one of five ways to answer the
-             same question, which the one door now asks. `lib_convert_document`
-             is STALE on this page and stays in both books, inert. */}
-      ${''/* CONVERT A DOCUMENT IS BACK BESIDE THE ONE DOOR (second pass, 21 Sep
-             2026 — the reference draws both). It is a PROXY onto the chooser's
-             own "a document" row (tplConvertDoor), gated exactly as that row
-             is, so the two cannot drift. `lib_convert_document` is LIVE again. */}
-      ${canManage?`<button id="tpl-convert" class="ui-btn" style="font-size:var(--t-meta);padding:6px 14px"${
-        ((typeof newPaperBlocked==='function'&&newPaperBlocked())?` disabled title="${esc(i18t('np_refused'))+' '+esc(i18t('np_refused_ask'))}"`:'')
-      }>${icon('upload','w-3.5 h-3.5')} ${i18t('lib_convert_document')}</button>`:''}
+      ${''/* ONE BUTTON (Young's go on "One Door to Standards", 24 Sep 2026).
+             "Convert a document" is gone from beside it again — reversing the
+             second pass of 21 Sep, which put it back as a proxy because the
+             reference drew both. It was never a sibling act: converting a
+             document is one of the three starts behind this button ("From a
+             template you have" → Upload a file), where the document is now
+             COPIED rather than re-typed. `lib_convert_document` is STALE on
+             this page, inert in both books. */}
       ${canManage?`<button id="tpl-new" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:6px 14px"${
         ((typeof newPaperBlocked==='function'&&newPaperBlocked())?` disabled title="${esc(i18t('np_refused'))+' '+esc(i18t('np_refused_ask'))}"`:'')
       }>${i18t('lib_new_template')}</button>`:''}
@@ -2812,7 +2720,6 @@ function renderTemplatesPage(){
     _tplPage.stream=_tplPage.stream===v?null:v; tplPageRefilter(); }));
   document.getElementById('tpl-search')?.addEventListener('input',e=>{ _tplPage.q=e.target.value; tplPagePaintRows(); });
   document.getElementById('tpl-new')?.addEventListener('click',tplNewMenu);
-  document.getElementById('tpl-convert')?.addEventListener('click',tplConvertDoor);
   /* Company templates come from the server cache; the first visit renders
      before it is warm, so refresh and repaint the rows when the list moves. */
   /* ---- A FAILED FETCH MUST NOT ASK FOR ANOTHER RENDER ----
@@ -2964,4 +2871,4 @@ function renderPlaybookPage(){
 
 Object.assign(window,{tplOvFit,HATI_SAMPLES,openBlanksEditor,_tplPreviewHtml,_tplSourceLabel,_richSelection,_richReplaceRange,
   templateVersionNo,templateVersions,templateUsage,templateUsageLabel,saveTemplateVersion,
-  openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,tplMakeItOurs,tplBuiltinDraftBody,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplHealthData,tplHealthHtml,TPL_HEALTH_ROWS,tplPageRefilter,tplRowContracts,tplBookHtml,tplBookRepaint,TPL_BOOK_SECS,tplOvCardHtml,tplOvPanelsHtml,tplOvRateInk,bucketStreamName,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,tplRowPile,tplRowWants,TPL_PILES,tplRowMoreMenu,tplPageRowHtml,tplPageFiltered,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});
+  openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,tplMakeItOurs,tplBuiltinDraftBody,tplBuiltinKey,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplHealthData,tplHealthHtml,TPL_HEALTH_ROWS,tplPageRefilter,tplRowContracts,tplBookHtml,tplBookRepaint,TPL_BOOK_SECS,tplOvCardHtml,tplOvPanelsHtml,tplOvRateInk,bucketStreamName,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,tplRowPile,tplRowWants,TPL_PILES,tplRowMoreMenu,tplPageRowHtml,tplPageFiltered,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});

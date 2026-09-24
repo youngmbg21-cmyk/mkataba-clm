@@ -124,9 +124,13 @@ describe('f330 (1) — the hover card is dormant, not deleted', () => {
 });
 
 describe('f330 (2) — the button says what it does', () => {
-  test('"+ Build new template", in both books', () => {
-    assert.match(I18N, /lib_new_template: '\+ Build new template'/, 'English');
-    assert.match(I18N, /lib_new_template: '\+ Bygg ny mall'/, 'Swedish');
+  /* RE-POINTED 24 Sep 2026 (Young's go on "One Door to Standards", decision
+     4): the one door is named for what it makes — a standard contract — now
+     that it starts from scratch, from a template or from one of our
+     contracts. Still one key, still both books; only the words moved. */
+  test('"+ New standard contract", in both books', () => {
+    assert.match(I18N, /lib_new_template: '\+ New standard contract'/, 'English');
+    assert.match(I18N, /lib_new_template: '\+ Nytt standardavtal'/, 'Swedish');
     assert.equal((I18N.match(/lib_new_template:/g) || []).length, 2, 'one key, two books');
   });
   test('and it is still the one key the page draws', () => {

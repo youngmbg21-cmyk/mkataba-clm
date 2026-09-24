@@ -154,8 +154,17 @@ describe('f332 (2) Apply answers the whole section', () => {
     assert.match(TB, /tbSectionText, tbDropExtraBody,/, 'published');
     const fn = TB.slice(TB.indexOf('async function tbAccept'));
     const body = fn.slice(0, fn.indexOf('\n}\n'));
-    assert.match(body, /_tb\.blocks\[bi\]\.content = a\.text;\s*\n\s*tbDropExtraBody\(sec, bi\);/,
-      'the accepted text replaces the section, so the blocks it replaced go');
+    /* RE-POINTED IN PLACE, 24 Sep 2026 (one door to standards): a block may
+       now carry a copied document's own markup (format 'rich'), and Copilot's
+       wording is plain text, so the block drops its format between the write
+       and the removal. The claim was always the ORDER — write the answer, then
+       take out the blocks it replaced, before anything else — and nothing but
+       that one line may stand between them. */
+    const at = body.indexOf('_tb.blocks[bi].content = a.text;');
+    const drop = body.indexOf('tbDropExtraBody(sec, bi);');
+    assert.ok(at > 0 && drop > at, 'the accepted text replaces the section, so the blocks it replaced go');
+    assert.equal(body.slice(at + '_tb.blocks[bi].content = a.text;'.length, drop).replace(/\/\*[\s\S]*?\*\//g, '').trim(),
+      'delete _tb.blocks[bi].format;', 'and only the format goes between the two');
   });
 
   test('2b the model really is shown every block, which is why one was not enough', () => {
@@ -212,7 +221,11 @@ describe('f332 (3) the number the document will print', () => {
     const TB = read('js/views/templatebuilder.js');
     assert.match(TB, /typeof tplFormHeadingNumbered === 'function'\) && tplFormHeadingNumbered\(b\.content\)/,
       'the builder asks the renderer rather than keeping a second rule');
-    assert.match(TB, /const clauseNo = \(n === 1 \|\| own\) \? '' : String\(n - 1\) \+ '\.'/,
+    /* RE-POINTED IN PLACE, 24 Sep 2026: a COPIED heading (format 'rich') is
+       printed verbatim by templateFormDocHtml, which derives no number for it
+       (f376 (1)), so the paper derives none either — the same rule, one more
+       case of "the document numbers itself". */
+    assert.match(TB, /const clauseNo = \(n === 1 \|\| own \|\| tbRich\(b\)\) \? '' : String\(n - 1\) \+ '\.'/,
       'and it draws the number the document will print, not the position in the list');
   });
 });
@@ -224,7 +237,13 @@ describe('f332 (4) the blanks call is counted and its failures are spoken', () =
 
   test('4a it counts itself like the other two metered calls', () => {
     assert.match(body(), /_tb\.reads\+\+/, 'it is metered on the server, so it belongs in "read N"');
-    assert.equal((TB.match(/_tb\.reads\+\+/g) || []).length, 3, 'outline, propose, blanks');
+    /* RE-POINTED IN PLACE, 24 Sep 2026 (one door to standards): two more
+       metered calls count themselves — the outline a scratch start asked for
+       before the builder opened, and the small questions a copied document's
+       first move asks. Every metered call in the builder is still counted. */
+    assert.equal((TB.match(/_tb\.reads\+\+/g) || []).length, 5, 'outline, propose, blanks, the start’s outline, the first move’s small questions');
+    assert.match(TB, /if \(st\.outline\) _tb\.reads\+\+;/, 'the start’s outline');
+    assert.match(TB, /const d = await api\('ai\/blanks', 'POST', \{ candidates:[\s\S]{0,300}?_tb\.reads\+\+;/, 'and each small question');
   });
 
   test('4b a refusal is said on the section, through the one sentence builder', () => {

@@ -166,7 +166,7 @@ function tbDraftSettled() {
   _tb.base = tbDraftBase(_tb.blocks, _tb.fields);
 }
 
-async function openTemplateBuilder(tid, vid) {
+async function openTemplateBuilder(tid, vid, opts = {}) {
   if (window.tplLibCancelPending) tplLibCancelPending(); // a stale library list must not paint over the builder
   tbKeepCancel();   /* a timer still holding the LAST template must not fire under this one */
   let t, v;
@@ -218,11 +218,17 @@ async function openTemplateBuilder(tid, vid) {
 
   /* The section in hand at open is the first one still to write, else the
      first — so the rail has something to say before anything is pressed. */
-  const secs = tbSections(); const first = secs.find(x => !tbSectionText(x)) || secs[0];
-  _tb.focus = first ? first.k : null;
+  const secs = tbSections(); const first = secs.find(x => tbSectionOwes(x)) || secs[0];
+  /* ARRIVING FROM THE ONE DOOR (24 Sep 2026): the start says what Copilot's
+     first move is, and that move LEADS the rail — so no section is in hand
+     yet. This stays the open's ONE write of the section in hand (tbFocus is
+     the only other), which is why the start does not write it itself. */
+  _tb.focus = first && !opts.start ? first.k : null;
+  if (opts.start) tbStartWith(opts.start);
   /* A fresh open is a NAVIGATION and lands at the top of the paper — the place
      tbPaint holds is a repaint's, never another template's. */
   tbPaint({ fresh: true });
+  if (_tb.start && _tb.start.kind === 'template') tbBlanksFirst();
   /* THE CONFLICT IS ASKED OVER THE SERVER'S OWN WORDING, never before it: the
      reader is being asked whether to put their draft back over what is on the
      screen, so what is on the screen has to be the version. */
@@ -272,6 +278,21 @@ function tbSections(blocks) {
 const tbSectionAt = k => tbSections().find(s => s.k === k) || null;
 const tbSectionText = (sec, blocks) => { const bs = blocks || (_tb && _tb.blocks) || [];
   return sec ? sec.body.map(i => (bs[i] ? tbBlockText(bs[i]) : '')).join('\n\n').trim() : ''; };
+/* ---- A COPIED HEADING OWES NO WORDING (24 Sep 2026) ----
+   A section is still to write where its heading was written HERE and nothing
+   stands under it. A heading copied from a document is that document's own
+   structure — "43 Termination Management Plan" over 43.1, a "Clause 2" line
+   over its title, an annex label — and the copy promised that no word
+   changed, so nothing is missing under it. Measured on the owner's SaaS
+   agreement: 18 of its 118 copied headings stand over nothing, and every one
+   was offered a "write this section" prompt and counted as unwritten. ONE
+   reading, asked by the paper's prompt, the rail's count, its walk, the
+   section in hand at open, and the question Publish asks. */
+function tbSectionOwes(sec, blocks) {
+  if (!sec || tbSectionText(sec, blocks)) return false;
+  const bs = blocks || (_tb && _tb.blocks) || [];
+  return !tbRich(bs[sec.headIndex]);
+}
 
 /* ---- YOUR OWN PAPER, BEFORE ANY SPEND ----
    CLAUSE_KINDS (js/clausemodel.js) is the product's own heading vocabulary and
@@ -342,6 +363,20 @@ function tbCoverage(blocks, category) {
   const covered = rows.filter(x => x.state !== 'open').length;
   return { label: R.label || '', rows, covered, total: rows.length,
            deviations: rows.filter(x => x.state === 'dev').length };
+}
+/* THE CLAUSES OUR STANDARDS EXPECT AND THIS TEMPLATE DOES NOT HAVE — each
+   ONCE, less any the reader chose to leave out. A book can hold a position
+   AND a range on one category (the supply book's liability cap): two
+   standards, one missing clause. Measured, the contract card listed
+   "Liability cap" twice. One reading for the card and for the publish
+   question, so the two cannot count one gap differently. */
+function tbMissingStandards(cov) {
+  const left = ((_tb && _tb.decided) || {}).left || [];
+  const out = [];
+  (cov ? cov.rows : []).forEach(r => {
+    if (r.state === 'open' && !left.includes(r.category) && !out.some(x => x.category === r.category)) out.push(r);
+  });
+  return out;
 }
 
 /* The position a section is judged against, as one sentence for the prompt and
@@ -466,40 +501,342 @@ async function tbOutlineRun(said) {
   try {
     const d = await api('ai/outline', 'POST', { sentence: said, kind: (_tb.template && _tb.template.category) || '', required });
     _tb.reads++;
-    /* A SECTION IS PROPOSED ONCE. The playbook's rows come from positions AND
-       ranges, which can share a category, and a model that ignored "do not
-       propose these" would name one again — so the playbook's additions are
-       folded against what is already on the list, and against each other. */
-    const fold = h => String(h || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ');
-    const proposed = (d.sections || []).map(x => ({ heading: x.heading, intent: x.intent || '', on: true }));
-    const seen = new Set(proposed.map(x => fold(x.heading)));
-    const mine = [];
-    (cov ? cov.rows : []).filter(r => r.state === 'open').forEach(r => {
-      if (seen.has(fold(r.category))) return;
-      seen.add(fold(r.category));
-      mine.push({ heading: r.category, intent: r.note || '', playbook: true, on: true });
-    });
-    _tb.outline = { said, note: d.note || '', sections: proposed.concat(mine) };
+    _tb.outline = tbOutlineFrom(d, said);
     _tb.said = said;
   } catch (e) { _tb.outline = { said, error: tbSay(e) }; }
   tbPaintRail();
 }
+/* ---- WHERE EACH PROPOSED SECTION'S WORDS WILL COME FROM (one door, 24 Sep
+   2026) ---- The owner's rule for a new standard: your clause library FIRST,
+   then Our standards, and Copilot drafts only what neither has — and every
+   section says which. A reading, asked of the same two functions the rail
+   already asks: the library has wording for this heading (lib), the playbook
+   holds a position on it but no wording (std), or neither (ai). */
+function tbSourceOf(head) { return tbLibraryFor(head) ? 'lib' : tbStandardFor(head) ? 'std' : 'ai'; }
+/* ONE READING OF AN OUTLINE, for the rail's own ask and the scratch start:
+   the model's headings, then the playbook's open positions it did not name,
+   each proposed ONCE. An optional section (an escrow) arrives unticked. */
+function tbOutlineFrom(d, said) {
+  const cov = tbCoverage();
+  /* A SECTION IS PROPOSED ONCE. The playbook's rows come from positions AND
+     ranges, which can share a category, and a model that ignored "do not
+     propose these" would name one again — so the playbook's additions are
+     folded against what is already on the list, and against each other. */
+  const fold = h => String(h || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ');
+  const proposed = ((d && d.sections) || []).map(x => ({ heading: x.heading, intent: x.intent || '', on: !x.optional, optional: !!x.optional }));
+  /* A NAME IS NOT THE ONLY WAY TWO SECTIONS ARE ONE. Measured: the model's
+     "Limitation of liability" and the playbook's "Liability cap" both went on
+     the list, both drew the library's liability clause, and the paper carried
+     it twice. Each heading is folded under the KIND the playbook reads it as
+     (tbKindOf — the reading the coverage and the library already ask) as well
+     as under its own words. */
+  const kindOf = h => { const t = tbKindOf(h); return t ? fold(t.category) : null; };
+  const seen = new Set();
+  proposed.forEach(x => { seen.add(fold(x.heading)); const k = kindOf(x.heading); if (k) seen.add(k); });
+  const mine = [];
+  (cov ? cov.rows : []).filter(r => r.state === 'open').forEach(r => {
+    const k = kindOf(r.category);
+    if (seen.has(fold(r.category)) || (k && seen.has(k))) return;
+    seen.add(fold(r.category)); if (k) seen.add(k);
+    mine.push({ heading: r.category, intent: r.note || '', playbook: true, on: true });
+  });
+  return { said, note: (d && d.note) || '', sections: proposed.concat(mine).map(x => ({ ...x, src: tbSourceOf(x.heading) })) };
+}
 /* Add the ticked sections; then WALK ME THROUGH IT is on by default (the
    owner's decision 2, 13 Sep 2026) — the first empty section is put in hand
-   with its question. `walk:false` is the "I'll write them myself" chip. */
+   with its question. `walk:false` is the "I'll write them myself" chip.
+   A section from YOUR LIBRARY arrives written (24 Sep 2026): the list said
+   "Your library" beside it before the press, and the words are the
+   workspace's own approved clause — so the press that adds the section is the
+   press that fills it, through tbAddBlock, the one push. Everything else
+   arrives empty, for the walk. */
 function tbOutlineAdd(opts = {}) {
   const list = (_tb.outline && _tb.outline.sections || []).filter(x => x.on);
   if (!list.length) { toast(i18t('tb_pb_none_ticked'), 'err'); return; }
-  let first = null;
   list.forEach(x => {
-    const h = tbAddBlock('heading', x.heading); tbAddBlock('field_group', '');
-    if (h) { _tb.intent[h._k] = x.intent || ''; if (!first) first = h; }
+    const h = tbAddBlock('heading', x.heading);
+    const lib = (x.src || tbSourceOf(x.heading)) === 'lib' ? tbLibraryFor(x.heading) : null;
+    tbAddBlock('field_group', lib ? lib.preferred : '');
+    if (h) _tb.intent[h._k] = x.intent || '';
   });
   _tb.outline = null;
   _tb.walk = opts.walk !== false;
   toast(i18tn('tb_pb_added', list.length, { n: list.length }));
   tbPaint();
-  if (first) tbFocus(first._k, { scroll: true });
+  const first = tbSections().find(s => tbSectionOwes(s)) || tbSections()[0];
+  if (first) tbFocus(first.k, { scroll: true });
+}
+
+/* ═══════════════ COPILOT'S FIRST MOVE, ONE PER START (24 Sep 2026) ═══════════════
+   Young's go on "One Door to Standards": every start ends in THIS builder,
+   and only Copilot's first move differs —
+     from scratch              → the list of sections (tbOutlineFrom), each
+                                 saying where its words will come from
+     from a template you have  → the list of likely blanks, UNTICKED
+                                 (decision 3), and what is NOT a blank
+     from one of our contracts → what was taken out, and the check against
+                                 Our standards, plus what the other side
+                                 changed in negotiation
+   All of it is held per sitting (_tb.start and what it carries) and none of
+   it travels: a save writes blocks and fields exactly as before. */
+function tbStartWith(st) {
+  _tb.start = st || null;
+  if (!st) return;
+  if (st.kind === 'scratch') {
+    _tb.said = st.said || '';
+    _tb.outline = st.outline ? tbOutlineFrom(st.outline, st.said || '') : null;
+    /* The outline the start asked for is a read spent in this sitting, and
+       the card's cost line counts reads — measured, it said "read 0" under
+       an answer that had just been paid for. A REFUSED outline keeps the
+       sentence in the box it is asked from again: the start promised it
+       would be kept, and it was not drawn anywhere. */
+    if (st.outline) _tb.reads++;
+    else if (st.said) _tb.ask._ = st.said;
+    _tb.tab = 'build'; _tb.walk = true;
+  } else if (st.kind === 'template') {
+    _tb.tab = 'blanks';
+    _tb.cands = { busy: true, rows: [], notes: [], leave: [], all: false };
+  } else if (st.kind === 'contract') {
+    _tb.tab = 'build';
+    _tb.taken = (st.taken || []).map(t => ({ ...t }));
+    _tb.negotiated = (st.negotiated || []).slice();
+    _tb.decided = { kept: [], left: [], neg: [] };
+  }
+}
+
+/* ---- WHAT LOOKS LIKE A BLANK IN A COPIED DOCUMENT ----
+   HaTi finds the CANDIDATES itself, and Copilot only labels them — small
+   questions, asked in pieces, so a long document never hits a limit. Two
+   kinds of candidate:
+     · what the document marks as a gap itself — a bracket, a ruled line, a
+       Word fill-in field — read by THE SAME matcher that finds the blanks in
+       paper the other side sent us (js/uploadblanks.js), never a second one;
+     · a FACT a deal usually sets — a company's name, an amount, a date —
+       offered only where Copilot can say whether it is one. Without Copilot
+       these are not offered at all, and the card says so. */
+const TB_CAND_MAX = 60;       /* the most suggestions one copied document offers */
+const TB_CAND_CHUNK = 30;     /* asked of Copilot this many at a time — the route's own BLANK_LABEL_MAX */
+const TB_CAND_SHOWN = 8;      /* drawn before "… and N more" */
+const TB_CO_RE = /\b((?:[A-Z][\w&.'’-]*|[a-z]+[A-Z][\w&.'’-]*)(?:\s+(?:[A-Z][\w&.'’-]*|of|and|&)){0,5}\s+(?:A\/S|ApS|AB|Ltd\.?|Limited|PLC|plc|LLC|Inc\.?|GmbH|AG|S\.A\.|B\.V\.|N\.V\.|Pty\s+Ltd|Oy|ASA|SARL|S\.p\.A\.|Srl|Corp\.?|Corporation))(?![\w])/g;
+const TB_MONEY_RE = /(?:[€$£]\s?|\b(?:USD|EUR|GBP|SEK|KES|DKK|NOK|CHF|ZAR|UGX|TZS)\s?)\d{1,3}(?:[,.\s]\d{3})*(?:[.,]\d{1,2})?(?![\d])|\b\d{1,3}(?:[,.\s]\d{3})+(?:[.,]\d{1,2})?\s?(?:USD|EUR|GBP|SEK|KES|DKK|NOK|CHF)\b/g;
+const TB_DATE_RE = /\b\d{1,2}(?:st|nd|rd|th)?\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}\b|\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+\d{4}\b/g;
+const tbTextBlocks = () => _tb.blocks.map((b, i) => i).filter(i => ['heading', 'fixed_text', 'field_group'].includes(_tb.blocks[i].blockType));
+/* How many places a set of words would change — measured by DOING it on a
+   copy, longest first, so "nShift Group A/S" and "nShift" are not counted
+   twice where one sits inside the other. */
+function tbPlaces(needles) {
+  const list = Array.from(new Set((needles || []).filter(Boolean))).sort((a, b) => b.length - a.length);
+  let n = 0;
+  for (const i of tbTextBlocks()) {
+    let b = { ..._tb.blocks[i] };
+    for (const x of list) {
+      const r = typeof tplFormBlockReplace === 'function' ? tplFormBlockReplace(b, x, '\u0000') : { content: b.content, n: 0 };
+      n += r.n; b = { ...b, content: r.content };
+    }
+  }
+  return n;
+}
+function tbOurName() {
+  return String((window.ORG_BRANDING && ORG_BRANDING.companyName) || (typeof FIRST_PARTY === 'string' ? FIRST_PARTY : '') || '').trim();
+}
+function tbBlankCandidates() {
+  const blocks = tbTextBlocks().map(i => _tb.blocks[i]);
+  const text = blocks.map(b => tbBlockText(b)).join('\n');
+  const ours = tbOurName().toLowerCase();
+  const out = []; const seen = new Set();
+  const ctx = t => { const at = text.indexOf(t); if (at < 0) return ''; return text.slice(Math.max(0, at - 90), at + t.length + 90).replace(/\s+/g, ' ').trim(); };
+  const add = (t, kind, label) => {
+    const k = String(t || '').trim(); if (!k || k.length < 3 || seen.has(k) || out.length >= TB_CAND_MAX) return;
+    if (ours && k.toLowerCase() === ours) return;
+    seen.add(k); out.push({ id: 'c' + (out.length + 1), text: k, kind, label: label || '', context: ctx(k) });
+  };
+  /* 1. What the document marks itself — the received-paper matcher, walked
+        over every block's own markup (or its words, for a plain block). */
+  if (typeof upWalk === 'function' && typeof upNodesFrom === 'function') {
+    for (const b of blocks) {
+      const html = tbRich(b) ? b.content : (typeof esc === 'function' ? esc(b.content) : String(b.content || ''));
+      upWalk(upNodesFrom(html, true), ({ hit, node }) => {
+        if (hit.kind === 'rule') {
+          /* A RULED LINE IS KEYED ON THE WORDS IN FRONT OF IT — the same
+             string of underscores elsewhere is a different question — so the
+             needle is the line WITH those words, exactly as written. */
+          const from = Math.max(0, hit.s - 30);
+          const pre = String(node.text || '').slice(from, hit.s).replace(/^\S*\s/, '');
+          if (!pre.trim()) return;
+          add(pre + hit.raw, 'line', typeof upLabel === 'function' ? upLabel(typeof upLead === 'function' ? upLead(pre) : pre) : pre.trim());
+          return;
+        }
+        /* A {{marker}} IS ALREADY A BLANK HERE — it is the builder's own
+           syntax, and the received-paper matcher reads it as one of its three
+           shapes. Offered back, it asked the reader to make a blank of a blank
+           (measured: all seven of a HaTi template's, "tick the ones to make
+           blanks"). */
+        if (/^\{\{[\s\S]*\}\}$/.test(hit.raw)) return;
+        const inner = /^\[(.*)\]$/.exec(hit.raw);
+        add(hit.raw, 'mark', typeof upLabel === 'function' ? upLabel((inner ? inner[1] : hit.name).replace(/^(?:insert|please add|add|enter|type)\s+/i, '')) : hit.name);
+      });
+    }
+  }
+  /* 2. Facts a deal usually sets — only where Copilot will say which they are. */
+  if (typeof copilotAvailable === 'function' && copilotAvailable()) {
+    for (const re of [TB_CO_RE, TB_MONEY_RE, TB_DATE_RE]) {
+      re.lastIndex = 0; let m;
+      while ((m = re.exec(text))) { if (m.index === re.lastIndex) re.lastIndex++; add((m[1] || m[0]).trim(), re === TB_CO_RE ? 'party' : re === TB_MONEY_RE ? 'money' : 'date'); }
+    }
+  }
+  return out.map(c => ({ ...c, places: tbPlaces([c.text]) })).filter(c => c.places > 0);
+}
+/* A variant is kept only where it is really in the document, is not one of
+   the document's own DEFINED TERMS ("the Supplier") and is not our own name. */
+function tbVariantsOk(vs) {
+  const text = tbTextBlocks().map(i => tbBlockText(_tb.blocks[i])).join('\n');
+  const ours = tbOurName().toLowerCase();
+  return (vs || []).filter(v => {
+    const x = String(v || '').trim();
+    if (x.length < 3 || (ours && x.toLowerCase() === ours) || !text.includes(x)) return false;
+    return !new RegExp(`[“"‘']\\s*${x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*[”"’']`).test(text);
+  });
+}
+async function tbBlanksFirst() {
+  const C = _tb.cands; if (!C) return;
+  const cands = tbBlankCandidates();
+  const ai = typeof copilotAvailable === 'function' && copilotAvailable();
+  const answered = new Map();
+  let category = null;
+  if (ai && cands.length) {
+    try {
+      for (let i = 0; i < cands.length; i += TB_CAND_CHUNK) {
+        const chunk = cands.slice(i, i + TB_CAND_CHUNK);
+        const d = await api('ai/blanks', 'POST', { candidates: chunk.map(c => ({ id: c.id, text: c.text, context: c.context })),
+          title: (_tb.template && _tb.template.name) || '', company: tbOurName() }, { quiet: true });
+        _tb.reads++;
+        (d.items || []).forEach(it => answered.set(it.id, it));
+        if (!category && d.category) category = d.category;
+      }
+    } catch (e) { C.error = tbSay(e); }
+  }
+  const rows = [], notes = [], leave = [];
+  let dropped = 0;
+  for (const c of cands) {
+    const it = answered.get(c.id);
+    if (it && it.kind === 'note') { notes.push({ id: c.id, text: c.text, why: it.why || '', places: c.places }); continue; }
+    if (it && it.kind === 'leave') { leave.push({ id: c.id, text: c.text, why: it.why || '' }); continue; }
+    /* UNANSWERED, a fact is not offered — HaTi cannot tell a party's name from
+       wording that must stand — and a gap the document marks itself is, with
+       HaTi's own label. What was left out is COUNTED and said (a cap is a
+       fact, never a silent trim): measured, an answer that labelled nothing
+       made every name, amount and date vanish without a word. */
+    if (!it && !['mark', 'line'].includes(c.kind)) { dropped++; continue; }
+    const variants = it ? tbVariantsOk(it.variants) : [];
+    rows.push({ id: c.id, text: c.text, label: (it && it.label) || c.label || c.text, type: (it && it.type) || (c.kind === 'money' ? 'num' : c.kind === 'date' ? 'date' : c.kind === 'party' ? 'party' : 'text'),
+      variants, places: tbPlaces([c.text, ...variants]), on: false });
+  }
+  if (!_tb || _tb.cands !== C) return;          /* the reader left, or started again */
+  Object.assign(C, { busy: false, rows, notes, leave, nokey: !ai, asked: cands.length, dropped });
+  /* THE CATEGORY IS COPILOT'S READING OF THE KIND OF AGREEMENT, filled in
+     only where nobody has chosen one yet — and it lands on the head's chip,
+     one press from being changed (decision 5). */
+  if (category && category !== 'other' && _tb.template && (_tb.template.category || 'other') === 'other') {
+    /* The answer lands on THIS template only: the reader may have opened
+       another while the PATCH was out, and its head must not take this one's. */
+    const tid = _tb.tid;
+    try { const r = await api('templates/' + tid, 'PATCH', { category }, { quiet: true }); if (r && r.template && _tb && _tb.tid === tid) _tb.template = r.template; }
+    catch (_) { /* the reading stays a reading; the chip still says Other */ }
+    if (!_tb || _tb.tid !== tid) return;
+  }
+  /* THE PAPER IS NOT REPAINTED: nothing on it moved, and the reader may be
+     typing in it while Copilot answered. The rail and the head are. */
+  tbPaintRail();
+  if (typeof tbPaintHead === 'function') tbPaintHead();
+}
+/* ---- MAKE N BLANKS — the count follows the ticks ----
+   Every ticked suggestion becomes one field, and every place its words stand
+   — and any variant Copilot named — becomes that field's marker, through the
+   ONE word-replacing act. Longest words first, so a short trading name never
+   bites into the long one. Markers land BEFORE the fields exist (the kept
+   blank's own order): a field with nothing pointing at it is the bug. */
+function tbMakeBlanks() {
+  const C = _tb.cands; if (!C) return;
+  const on = C.rows.filter(r => r.on); if (!on.length) return;
+  const keys = new Set(_tb.fields.map(f => f.fieldKey));
+  const mint = label => {
+    const base = String(label || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').replace(/^([0-9])/, 'f$1').slice(0, 60) || 'field';
+    let k = base, n = 2; while (keys.has(k)) k = base + '_' + (n++); keys.add(k); return k;
+  };
+  on.forEach(r => { r.key = mint(r.label); });
+  const jobs = [];
+  on.forEach(r => [r.text, ...(r.variants || [])].forEach(x => jobs.push({ x, key: r.key })));
+  jobs.sort((a, b) => b.x.length - a.x.length);
+  const landed = new Map();
+  for (const j of jobs) {
+    const n = tbReplaceWords(tbTextBlocks(), j.x, '{{' + j.key + '}}');
+    if (n) landed.set(j.key, (landed.get(j.key) || 0) + n);
+  }
+  let places = 0;
+  on.forEach(r => {
+    const n = landed.get(r.key) || 0; if (!n) return;
+    places += n;
+    _tb.fields.push({ fieldKey: r.key, label: r.label, section: '', fieldType: TB_BLANK_TYPE[r.type] || 'short_text',
+      control: 'free', options: [], required: false, defaultValue: '', helpText: '', detectionConfidence: 'manual', humanReviewed: true });
+  });
+  C.rows = C.rows.filter(r => !r.on);
+  tbTouch();
+  toast(i18tn('tb_c_made', landed.size, { n: landed.size, p: places }), 'ok');
+  tbPaint();
+}
+/* A NOTE TO WHOEVER DRAFTS is not wording anybody signs: take it out, or keep
+   it where it is. Taking it out is the same one act as every other word
+   replacement. */
+function tbCandNote(id, remove) {
+  const C = _tb.cands; if (!C) return;
+  const n = C.notes.find(x => x.id === id); if (!n) return;
+  if (remove) { const k = tbReplaceWords(tbTextBlocks(), n.text, ''); if (k) { tbTouch(); toast(i18tn('tb_c_removed', k, { n: k }), 'ok'); } }
+  C.notes = C.notes.filter(x => x.id !== id);
+  tbPaint();
+}
+
+/* ---- FROM ONE OF OUR CONTRACTS: put a deal detail back ----
+   The route said which words each blank replaced; putting one back is the
+   same one act in reverse, and the field goes with its last marker. */
+function tbPutBack(key) {
+  const t = (_tb.taken || []).find(x => x.key === key && !x.back); if (!t || !t.value) return;
+  const n = tbReplaceWords(tbTextBlocks(), '{{' + key + '}}', t.value, true);
+  t.back = true;
+  if (!tbPlaceholderUse(key)) _tb.fields = _tb.fields.filter(f => f.fieldKey !== key);
+  tbTouch();
+  toast(i18tn('tb_k_put_back', n, { n, what: t.value }), 'ok');
+  tbPaint();
+}
+/* A clause the other side moved, found on this template by its heading — the
+   label the record kept, folded, against each section's own heading. */
+function tbSectionForClause(label, heading) {
+  const fold = x => String(x || '').toLowerCase().replace(/\b(?:clause|section|article)\b/g, ' ').replace(/[^a-z]+/g, ' ').trim();
+  const want = [fold(heading), fold(label)].filter(x => x.length >= 4);
+  if (!want.length) return null;
+  return tbSections().find(s => { const h = fold(s.head); return h.length >= 4 && want.some(w => w === h || w.includes(h) || h.includes(w)); }) || null;
+}
+/* Our first draft of that clause, on the section's own card: Apply is "go back
+   to your first draft", and it is the ONE writer Apply always was. */
+function tbCompareFirst(clauseId) {
+  const x = (_tb.negotiated || []).find(n => n.clauseId === clauseId); if (!x) return;
+  const sec = tbSectionForClause(x.clause, x.heading); if (!sec) return;
+  tbFocus(sec.k, { scroll: true });
+  tbTurn(sec.k, { who: 'ai', text: i18t('tb_k_first_says', { cp: (_tb.start && _tb.start.counterparty) || i18t('tb_k_they') }),
+    card: { src: i18t('tb_k_first_src'), tone: 'lib', free: true, text: x.first, before: tbSectionText(sec), rests: '' } });
+  tbPaintRail();
+}
+/* "Add our clause" puts the heading and the library's own wording where the
+   agreement's clauses are — before the signatures, never after them. The two
+   blocks are made by tbAddBlock (the one push) and then MOVED, not pushed. */
+function tbAddStandard(category) {
+  const lib = tbLibraryFor(category);
+  const h = tbAddBlock('heading', category); const w = tbAddBlock('field_group', lib ? lib.preferred : '');
+  const sig = _tb.blocks.findIndex(b => b.blockType === 'signature_block');
+  if (h && w && sig >= 0 && sig < _tb.blocks.indexOf(h)) {
+    _tb.blocks = _tb.blocks.filter(b => b !== h && b !== w);
+    _tb.blocks.splice(sig, 0, h, w);
+  }
+  tbPaint(); if (h) tbFocus(h._k, { scroll: true });
 }
 
 /* ---- THE ONE READING OF WHICH SECTION IS IN HAND ---- */
@@ -514,7 +851,7 @@ const tbTurn = (k, t) => { tbThread(k).push(t); return t; };
 function tbNextEmpty(fromK) {
   const secs = tbSections(); if (!secs.length) return null;
   const i = secs.findIndex(s => s.k === fromK);
-  for (let n = 1; n <= secs.length; n++) { const s = secs[(i + n + secs.length) % secs.length]; if (!tbSectionText(s) && s.k !== fromK) return s; }
+  for (let n = 1; n <= secs.length; n++) { const s = secs[(i + n + secs.length) % secs.length]; if (tbSectionOwes(s) && s.k !== fromK) return s; }
   return null;
 }
 function tbFocus(k, opts = {}) {
@@ -733,12 +1070,16 @@ async function tbBlanksRun(k, text) {
    (7)): Apply, typing, and this. In a copied document only the TEXT between
    tags is touched, never a tag (tplFormBlockReplace). Returns how many places
    changed, which is what every caller reports. */
-function tbReplaceWords(indices, find, repl) {
+/* `asText` says the replacement is WORDS rather than a marker, so a copied
+   document gets them escaped as its text is ("Smith & Co" → "Smith &amp; Co"). */
+const tbEscText = x => String(x == null ? '' : x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+function tbReplaceWords(indices, find, repl, asText) {
   let n = 0;
   for (const bi of indices || []) {
     const b = _tb.blocks[bi]; if (!b || !find) continue;
-    const r = typeof tplFormBlockReplace === 'function' ? tplFormBlockReplace(b, find, repl)
-      : { content: String(b.content || '').split(String(find)).join(repl), n: String(b.content || '').split(String(find)).length - 1 };
+    const put = asText && tbRich(b) ? tbEscText(repl) : repl;
+    const r = typeof tplFormBlockReplace === 'function' ? tplFormBlockReplace(b, find, put)
+      : { content: String(b.content || '').split(String(find)).join(put), n: String(b.content || '').split(String(find)).length - 1 };
     if (!r.n) continue;
     _tb.blocks[bi].content = r.content;
     n += r.n;
@@ -813,7 +1154,64 @@ function tbStyleHtml() {
      contract's pixels); the shell's thin scrollbar (.scroll-thin on the
      element); a wheel at the end goes nowhere else. */
   .tb-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:0 2px 28px}
-  .tb-strip{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .tb-strip{display:flex;align-items:center;gap:10px;flex-wrap:nowrap;margin-bottom:14px;min-width:0}
+  /* ════ THE HEAD: the name, the draft chip, the category and the stream (24 Sep 2026) ════
+     ONE LINE, and it is the WORDS that give: the two acts and the back square
+     never shrink and never wrap inside themselves (the spine's measured fault
+     above tbRailHtml), while the name and each chip's value elide — the whole
+     of each is on its hover. The chips are pills, which is not a corner. */
+  .tb-strip .tb-back{flex:none;width:30px;padding:0}
+  .tb-strip .tb-act{flex:none;white-space:nowrap}
+  .tb-head{display:flex;align-items:center;gap:8px;min-width:0;flex:0 1 auto}
+  .tb-tname{display:inline-flex;align-items:center;gap:6px;min-width:0;flex:0 1 auto;background:none;border:0;border-bottom:1px dashed var(--color-neutral-300);border-radius:0;padding:0 0 1px;cursor:pointer;
+    font:inherit;font-size:14px;font-weight:var(--w-title);color:var(--color-text)}
+  .tb-tname .v{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  .tb-tname-i{width:12px;height:12px;flex:none;color:var(--color-neutral-500)}
+  .tb-tname:hover{border-bottom-color:var(--accent-ink)}
+  .tb-chipv{flex:none;white-space:nowrap;font-family:var(--font-mono);font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--st-steel-fg);border:1px solid var(--st-steel-line);background:var(--st-steel-bg);border-radius:var(--radius);padding:1px 7px}
+  .tb-fchip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;min-width:0;flex:0 1 auto;white-space:nowrap;cursor:pointer;
+    border:1px solid var(--btn-edge,var(--color-divider));border-radius:999px;background:var(--color-surface);font:inherit;font-size:var(--t-meta);color:var(--color-text)}
+  .tb-fchip .k{flex:none;color:var(--color-neutral-600)}
+  .tb-fchip .v{min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .tb-fchip .sw{width:8px;height:8px;border-radius:2px;flex:none}
+  .tb-fchip-c{width:10px;height:10px;flex:none;color:var(--color-neutral-500)}
+  .tb-fchip:hover{border-color:var(--accent-ink)}
+  .tb-fchip.empty{border-style:dashed;border-color:var(--st-amber-dot);background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .tb-fchip.empty .k,.tb-fchip.empty .tb-fchip-c{color:var(--st-amber-fg)}
+  .tb-tname:focus-visible,.tb-fchip:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
+  /* WHO GIVES FIRST. Measured at 1440 with a long stream: shrinking in
+     proportion cut "Other" to "Ot…" while forty characters of name stood
+     whole. The name gives first (its whole is on the hover and on the Template
+     details box), the stream next, the category last — a category is one or two
+     words and a cut one names nothing. */
+  .tb-head .tb-tname{flex-shrink:4;min-width:6em}
+  .tb-head .tb-fchip[data-tb-meta="stream"]{flex-shrink:2}
+  .tb-head .tb-fchip[data-tb-meta="category"]{flex-shrink:.3}
+  /* THE STRIP'S LADDER, asked of the strip's own width (the divider moves it
+     as much as the window does). Measured at 1366 with a restored draft, the
+     name was 83px while "Category" and "Stream" stood whole beside it; so the
+     two chip keys go first (the whole of each chip is on its hover), then the
+     draft chip (Publish says the version twelve pixels away), then Save
+     draft's word (its tick stays, the word is on its hover — the review
+     buttons' own -tight rung). The name keeps
+     six letters' width at every rung — it is the one thing on the strip the
+     reader came here to name. Discard never gives: squeezed, its word wrapped
+     and the strip grew to 35px (refusal 3). */
+  .tb-strip{container-type:inline-size}
+  .tb-strip #tb-drop{flex:none;white-space:nowrap}
+  @container (max-width:900px){ .tb-fchip .k{display:none} }
+  @container (max-width:640px){ .tb-head .tb-chipv{display:none} }
+  @container (max-width:620px){ .tb-strip #tb-save .w{display:none} }
+  /* THE QUESTION PUBLISH ASKS — drawn in the modal root, dressed here because
+     this sheet is on the page for as long as the builder is. */
+  .tb-pq{border:1px solid var(--color-divider);border-radius:var(--radius)}
+  .tb-pq-o{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--color-divider);font-size:var(--t-body);line-height:1.45}
+  .tb-pq-o:last-child{border-bottom:0}
+  .tb-pq-t{flex:1;min-width:0}
+  .tb-pq-dot{width:8px;height:8px;border-radius:50%;flex:none}
+  .tb-pq-dot.amb{background:var(--st-amber-dot)}
+  .tb-pq-dot.gry{background:var(--color-neutral-400)}
+  .tb-pq-o .ui-btn{flex:none;font-size:var(--t-meta);padding:2px 10px;min-height:0;height:26px}
   /* ════ THE THREE STEPS, IN THE STRIP THAT ALREADY EXISTS (18 Sep 2026) ═════
      The builder never said what the job WAS: you arrived on a document with a
      Copilot beside it and had to work out for yourself that marking the blanks
@@ -909,6 +1307,17 @@ function tbStyleHtml() {
   .tb-list label{display:flex;gap:8px;align-items:flex-start;cursor:pointer} .tb-list label>span{min-width:0;flex:1}
   .tb-list .fr{font-size:var(--t-micro);color:var(--st-steel-fg);background:var(--st-steel-bg);padding:0 5px;margin-left:6px;white-space:nowrap}
   .tb-list .it{display:block;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.45}
+  /* Where a proposed section's words will come from (24 Sep 2026): the three
+     sources in the three tones the builder already uses for them — the
+     library steel, the playbook green, Copilot's own violet. */
+  .tb-list .src{font-size:var(--t-micro);font-weight:var(--w-strong);padding:0 5px;margin-left:6px;white-space:nowrap}
+  .tb-list .src.lib{background:var(--st-steel-bg);color:var(--st-steel-fg)}
+  .tb-list .src.std{background:var(--st-green-bg);color:var(--st-green-fg)}
+  .tb-list .src.ai{background:#EDE9FE;color:#5B21B6}
+  .tb-list .opt{font-weight:var(--w-body);color:var(--color-neutral-500)}
+  .tb-cands .w,.tb-first .w{font-family:var(--font-doc,inherit);color:var(--color-text);overflow-wrap:anywhere}
+  .tb-more{border:0;background:none;padding:6px 0 0;font:inherit;font-size:var(--t-label);color:var(--accent-ink);cursor:pointer}
+  .tb-first .n{font-size:var(--t-meta)}
   .tb-rows{margin:0;padding:0;list-style:none} .tb-rows li{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--color-divider);font-size:var(--t-meta);flex-wrap:wrap}
   .tb-rows li:first-child{border-top:0} .tb-rows .g{flex:1;min-width:0} .tb-rows .st{font-size:var(--t-label);white-space:nowrap;color:var(--color-neutral-600)}
   .tb-rows .st.ok{color:var(--st-green-fg)} .tb-rows .st.dev{color:var(--st-ruby-fg)} .tb-rows .st.open{color:var(--st-amber-fg)}
@@ -1081,7 +1490,7 @@ function tbPaperHtml() {
       html += `<div class="tb-sec${sec && sec.k === _tb.focus ? ' is-on' : ''}${st ? ' is-' + st : ''}${sec && !tbSectionText(sec) ? ' is-empty' : ''}" data-tb-sec="${b._k}">
         <div class="tb-row tb-row-h" data-tb-row="${i}"><span class="tb-dot"></span>${G(i, fits ? `<button type="button" data-tb-tag="${b._k}" title="${i18t('tb_ask_label')}">✦</button>` : '')}
           ${head}</div>
-        ${sec && !sec.body.length ? `<p class="tb-p tb-ph" data-tb-ph="${b._k}">${i18t('tb_ph_empty')}</p>` : ''}`;
+        ${sec && !sec.body.length && tbSectionOwes(sec) ? `<p class="tb-p tb-ph" data-tb-ph="${b._k}">${i18t('tb_ph_empty')}</p>` : ''}`;
       open = true; return;
     }
     if (b.blockType === 'fixed_text' || b.blockType === 'field_group') {
@@ -1163,9 +1572,18 @@ function tbOutlineLaneHtml() {
   let html = o.said ? tbYouHtml(o.said) : '';
   if (o.busy) return html + tbAiHtml(i18t('tb_pb_thinking'));
   if (o.error) return html + tbAiHtml(esc(o.error), 'amber') + `<div class="tb-card"><div class="av" style="margin-top:0"><button type="button" data-tb-brief-again>${i18t('tb_pb_try_again')}</button></div></div>`;
-  const rows = o.sections.map((x, n) => `<li><label><input type="checkbox" data-tb-out="${n}" ${x.on ? 'checked' : ''} style="margin-top:3px"><span><b>${esc(x.heading)}</b>${x.playbook ? `<span class="fr">${i18t('tb_pb_from_playbook')}</span>` : ''}${x.intent ? `<span class="it">${esc(x.intent)}</span>` : ''}</span></label></li>`).join('');
+  /* EVERY SECTION SAYS WHERE ITS WORDS WILL COME FROM (24 Sep 2026): your
+     clause library, Our standards, or Copilot's own draft — tbSourceOf, asked
+     when the list was made. The sentence above the list COUNTS them; HaTi
+     composes it, never the model. */
+  const SRC = { lib: 'tb_src_lib', std: 'tb_src_std', ai: 'tb_src_ai' };
+  const rows = o.sections.map((x, n) => `<li><label><input type="checkbox" data-tb-out="${n}" ${x.on ? 'checked' : ''} style="margin-top:3px"><span><b>${esc(x.heading)}</b>${x.optional ? `<span class="opt"> · ${i18t('tb_src_optional')}</span>` : ''}${x.src ? `<span class="src ${x.src}">${i18t(SRC[x.src])}</span>` : ''}${x.playbook ? `<span class="fr">${i18t('tb_pb_from_playbook')}</span>` : ''}${x.intent ? `<span class="it">${esc(x.intent)}</span>` : ''}</span></label></li>`).join('');
   const n = o.sections.filter(x => x.on).length;
-  return html + `<div class="tb-ai"><p class="t">${i18tn('tb_pb_proposed_n', o.sections.length, { n: o.sections.length })}${o.note ? ' ' + esc(o.note) : ''}</p>
+  const cnt = k => o.sections.filter(x => x.src === k).length;
+  const lead = o.sections.some(x => x.src)
+    ? i18t('tb_out_lead', { n: o.sections.length, lib: cnt('lib'), std: cnt('std'), ai: cnt('ai') })
+    : i18tn('tb_pb_proposed_n', o.sections.length, { n: o.sections.length });
+  return html + `<div class="tb-ai"><p class="t">${lead}${o.note ? ' ' + esc(o.note) : ''}</p>
     <div class="tb-card"><ul class="tb-list">${rows}</ul><span class="r">${i18t('tb_pb_headings_only')}</span>
       <div class="av"><button type="button" class="p" data-tb-out-add ${n ? '' : 'disabled'}>${i18tn('tb_pb_add_n', n, { n })}</button>
         <button type="button" data-tb-brief-again>${i18t('tb_pb_start_again')}</button><span class="cost">${i18t('tb_pb_read_n', { n: _tb.reads })}</span></div></div></div>`;
@@ -1178,6 +1596,9 @@ function tbBuildLaneHtml() {
      2026): once the paper carries blocks, the rail is about the section in hand. */
   if (_tb.blocks.length && !_tb.outline) {
     const sec = _tb.focus != null ? tbSectionAt(_tb.focus) : null;
+    /* FROM ONE OF OUR CONTRACTS, the first move is the check — drawn whenever
+       no section is in hand, so ✕ on a section brings it back. */
+    if (!sec && _tb.start && _tb.start.kind === 'contract') return tbContractCardHtml() + (secs.length ? tbSectionListHtml(secs) : '');
     if (!sec) return (_tb.said ? `<p class="tb-quiet">${i18t('tb_pb_building')} <i style="font-style:normal;color:var(--color-text)">“${esc(_tb.said)}”</i></p>` : '')
       + tbAiHtml(i18t('tb_pick_lead')) + (secs.length ? tbSectionListHtml(secs) : '');
     let html = '';
@@ -1216,7 +1637,85 @@ function tbPlaybookLaneHtml(cov) {
     <span class="r">${esc(cov.label)}</span><ul class="tb-rows" style="margin-top:6px">${rows}</ul>
     <span class="r">${i18t('tb_pb_dev_rides')}</span></div>`;
 }
+/* ---- THE LIKELY BLANKS, as Copilot's first move on a copied document ----
+   Every row arrives UNTICKED (decision 3): nothing becomes a blank until a
+   person ticks it, and the button's count follows the ticks. Below them, what
+   is NOT a blank and why — a note to whoever drafts (take it out, or keep
+   it), and words left as they are. */
+function tbCandsCardHtml() {
+  const C = _tb.cands; if (!C) return '';
+  if (C.busy) return tbAiHtml(i18t('tb_c_reading'));
+  const st = _tb.start || {}; const f = st.facts || null;
+  const bits = [];
+  if (st.from === 'hati') bits.push(i18t('tb_c_copied_hati'));
+  else if (f) bits.push(i18t(st.same ? 'tb_c_copied_same' : 'tb_c_copied', {
+    h: i18tn('ns_f_heads', f.heads, { n: f.heads }), n: i18tn('ns_f_numbers', f.numbers, { n: f.numbers }), t: i18tn('ns_f_tables', f.tables, { n: f.tables }) }));
+  if (st.scanned) bits.push(i18t('tb_c_scanned'));
+  bits.push(C.rows.length ? i18tn('tb_c_found', C.rows.length, { n: C.rows.length }) : i18t('tb_c_found_none'));
+  if (C.nokey) bits.push(i18t('tb_c_nokey'));
+  else if (C.dropped) bits.push(i18tn('tb_c_unanswered', C.dropped, { n: C.dropped }));
+  let html = `<div class="tb-ai"><p class="t">${esc(bits.join(' '))}</p>${C.error ? `<p class="t" style="color:var(--st-amber-fg);margin-top:6px">${esc(C.error)}</p>` : ''}`;
+  if (C.rows.length) {
+    const shown = C.all ? C.rows : C.rows.slice(0, TB_CAND_SHOWN);
+    html += `<div class="tb-card tb-cands"><ul class="tb-list">${shown.map(r => `<li><label><input type="checkbox" data-tb-cand="${esc(r.id)}" ${r.on ? 'checked' : ''} style="margin-top:3px"><span>
+      <span class="w">${esc(r.text)}</span>${(r.variants || []).length ? `<span class="w"> · ${esc(r.variants.join(' · '))}</span>` : ''} → <span class="tb-bl">${esc(r.label)}</span>
+      <span class="it">${i18tn('tb_c_places', r.places, { n: r.places })}</span></span></label></li>`).join('')}</ul>
+      ${!C.all && C.rows.length > TB_CAND_SHOWN ? `<button type="button" class="tb-more" data-tb-cand-all>${i18tn('tb_c_more', C.rows.length - TB_CAND_SHOWN, { n: C.rows.length - TB_CAND_SHOWN })}</button>` : ''}`;
+    const n = C.rows.filter(r => r.on).length;
+    html += `<div class="av"><button type="button" class="p" data-tb-cand-make ${n ? '' : 'disabled'}>${n ? i18tn('tb_c_make', n, { n }) : i18t('tb_c_tick')}</button>
+      <span class="cost">${i18t('tb_c_follows')}</span></div></div>`;
+  }
+  if (C.notes.length || C.leave.length) {
+    html += `<div class="tb-card tb-cands"><div class="n">${i18t('tb_c_not_blanks')}</div><ul class="tb-rows" style="margin-top:4px">`
+      + C.notes.map(x => `<li><span class="g"><span class="w">${esc(x.text)}</span><span class="sub" style="font-family:inherit">${esc(x.why || i18t('tb_c_note_why'))}</span></span>
+          <button type="button" class="x" data-tb-note-rm="${esc(x.id)}">${i18t('tb_c_remove')}</button><button type="button" data-tb-note-keep="${esc(x.id)}">${i18t('tb_c_keep')}</button></li>`).join('')
+      + C.leave.map(x => `<li><span class="g"><span class="w">${esc(x.text)}</span><span class="sub" style="font-family:inherit">${esc(i18t('tb_c_left', { why: x.why || '' }).replace(/\s+—\s*$/, ''))}</span></span></li>`).join('')
+      + `</ul></div>`;
+  }
+  return html + '</div>';
+}
+/* ---- FROM ONE OF OUR CONTRACTS: the check ----
+   Composed by HaTi from three readings it already had — what the route took
+   out, the playbook count this builder has always made (tbCoverage), and the
+   clauses the other side changed. No model is asked for any of it. */
+function tbContractCardHtml() {
+  const st = _tb.start || {}; const D = _tb.decided || { kept: [], left: [], neg: [] };
+  const cov = tbCoverage();
+  const taken = (_tb.taken || []).filter(t => !t.back);
+  const dev = cov ? cov.rows.filter(r => r.state === 'dev') : [];
+  const open = tbMissingStandards(cov);
+  const hit = cov ? cov.rows.filter(r => r.state === 'hit').length : 0;
+  const neg = (_tb.negotiated || []).filter(x => !D.neg.includes(x.clauseId));
+  const grp = (label, n) => `<div class="n" style="margin-top:10px">${label}<span class="g"></span><span class="chip lib">${n}</span></div>`;
+  let html = `<div class="tb-ai"><p class="t">${esc(i18t('tb_k_lead', { id: st.contractId || '' }))}</p><div class="tb-card tb-first">`;
+  html += grp(i18t('tb_k_taken'), taken.length);
+  html += taken.length ? `<ul class="tb-rows">${taken.map(t => `<li><span class="g"><span class="w">${esc(t.value)}</span> → <span class="tb-bl">${esc(t.label)}</span>
+      <span class="sub" style="font-family:inherit">${i18tn('tb_c_places', t.places, { n: t.places })}</span></span>
+      <button type="button" data-tb-putback="${esc(t.key)}">${i18t('tb_k_put_back_btn')}</button></li>`).join('')}</ul>`
+    : `<span class="r">${i18t('tb_k_taken_none')}</span>`;
+  if (dev.length) {
+    html += grp(i18t('tb_k_differs'), dev.length) + `<ul class="tb-rows">${dev.map(r => {
+      const kept = D.kept.includes(r.category); const lib = r.where && tbLibraryFor(r.where.head);
+      return `<li><span class="g"><b>${esc(r.where ? r.where.head : r.category)}</b><span class="sub" style="font-family:inherit">${esc(i18t('tb_pb_dev_note', { n: r.figure, want: r.want, note: '' }).trim())}</span></span>
+        ${kept ? `<span class="st">${i18t('tb_k_kept')}</span>` : `${r.where && lib ? `<button type="button" data-tb-k-use="${r.where.k}">${i18t('tb_k_use_ours')}</button>` : r.where ? `<button type="button" data-tb-show="${r.where.k}">${i18t('tb_show_me')}</button>` : ''}
+        <button type="button" data-tb-k-keep="${esc(r.category)}">${i18t('tb_c_keep')}</button>`}</li>`; }).join('')}</ul>`;
+  }
+  if (open.length) {
+    html += grp(i18t('tb_k_missing'), open.length) + `<ul class="tb-rows">${open.map(r => `<li><span class="g"><b>${esc(r.category)}</b><span class="sub" style="font-family:inherit">${i18t('tb_k_expected')}</span></span>
+        <button type="button" data-tb-k-add="${esc(r.category)}">${i18t('tb_k_add_ours')}</button><button type="button" data-tb-k-left="${esc(r.category)}">${i18t('tb_k_leave_out')}</button></li>`).join('')}</ul>`;
+  }
+  if (neg.length) {
+    html += grp(i18t('tb_k_negotiated'), neg.length) + `<ul class="tb-rows">${neg.map(x => {
+      const sec = tbSectionForClause(x.clause, x.heading);
+      return `<li><span class="g"><b>${esc(x.clause)}</b><span class="sub" style="font-family:inherit">${esc(i18t(x.deleted ? 'tb_k_neg_deleted' : 'tb_k_neg_asked', { cp: st.counterparty || i18t('tb_k_they') }))}</span></span>
+        ${sec && x.first && !x.deleted ? `<button type="button" data-tb-k-neg="${esc(x.clauseId)}">${i18t('tb_k_compare')}</button>` : ''}
+        <button type="button" data-tb-k-negkeep="${esc(x.clauseId)}">${i18t('tb_k_keep_agreed')}</button></li>`; }).join('')}</ul>`;
+  }
+  html += grp(i18t('tb_k_matches'), hit);
+  return html + '</div></div>';
+}
 function tbBlanksLaneHtml() {
+  const first = tbCandsCardHtml();
   const proposed = tbProposedRowHtml(null);
   const rows = _tb.fields.map((f, i) => {
     const lib = (window.FIELD_LIB || {})[f.fieldType] || { label: f.fieldType };
@@ -1229,7 +1728,7 @@ function tbBlanksLaneHtml() {
       <button type="button" data-tb-fcopy="${i}" title="${i18t('tb_copy_placeholder')}">⧉</button><button type="button" data-tb-fedit="${i}">${i18t('act_edit')}</button><button type="button" class="x" data-tb-fdel="${i}">✕</button>
       <span class="sub">{{${esc(f.fieldKey)}}} · ${esc(lib.label)}${f.control === 'guided' ? ` · guided (${f.options.length})` : ''}${f.defaultValue ? ' · default set' : ''} · ${uses ? i18tn('tb_in_blocks', uses, { n: uses }) : `<span style="color:var(--st-amber-fg)">${i18t('tb_unplaced')}</span>`}</span></li>`;
   }).join('');
-  return `${proposed}${rows ? `<ul class="tb-rows">${rows}</ul>` : (proposed ? '' : tbAiHtml(i18t('tb_no_fields')))}
+  return `${first}${proposed}${rows ? `<ul class="tb-rows">${rows}</ul>` : (proposed || first ? '' : tbAiHtml(i18t('tb_no_fields')))}
     <div style="margin-top:12px"><button type="button" id="tb-addfield" class="ui-btn" style="font-size:var(--t-meta);padding:var(--s-1) 10px">${icon('plus', 'w-3 h-3')} ${i18t('tl_add_field')}</button></div>`;
 }
 function tbScopeHtml() {
@@ -1287,7 +1786,7 @@ function tbAskHtml() {
 function tbFootHtml() {
   const secs = tbSections();
   if (!secs.length) return `<span>${i18t('tb_foot_none')}</span>`;
-  const written = secs.filter(s => tbSectionText(s)).length;
+  const written = secs.filter(s => !tbSectionOwes(s)).length;
   const cov = tbCoverage(); const dev = cov ? cov.deviations : 0;
   const nx = tbNextEmpty(_tb.focus);
   return `<span><b>${i18t('tb_pb_covered', { n: written, m: secs.length })}</b> ${i18t('tb_foot_written')}${dev ? ` · <b>${dev}</b> ${i18tn('tb_foot_dev', dev, { n: dev })}` : ''}</span><span class="sp"></span>
@@ -1321,7 +1820,8 @@ function tbFootHtml() {
    they never shipped, so there is nothing to retire. */
 function tbRailHtml() {
   const tab = _tb.tab || 'build';
-  const cov = tbCoverage(); const dev = cov ? cov.deviations : 0; const nb = _tb.fields.length + (_tb.proposed || []).length;
+  const cov = tbCoverage(); const dev = cov ? cov.deviations : 0;
+  const nb = _tb.fields.length + (_tb.proposed || []).length + ((_tb.cands && _tb.cands.rows) || []).length;
   const T = (id, label, n, cls) => `<button type="button" role="tab" data-tb-tab="${id}" aria-selected="${tab === id}" class="${tab === id ? 'is-on' : ''}">${label}${n ? `<span class="n${cls ? ' ' + cls : ''}">${n}</span>` : ''}</button>`;
   return `<aside class="tb-rail" id="tb-rail" aria-label="${i18t('tb_copilot')}">
     <div class="tb-ah"><span class="sp">✦ ${i18t('tb_copilot')}</span><span class="tb-tabs" role="tablist">${T('build', i18t('tb_tab_build'))}${T('playbook', i18t('tb_pb_playbook'), dev, 'r')}${T('blanks', i18t('tb_tab_blanks'), nb)}</span></div>
@@ -1330,6 +1830,134 @@ function tbRailHtml() {
     ${tab === 'build' ? tbScopeHtml() + tbChipsRowHtml() + tbAskHtml() : ''}
     <div class="tb-railfoot" id="tb-railfoot">${tbFootHtml()}</div>
   </aside>`;
+}
+
+/* ════════ THE NAME, THE CATEGORY AND THE STREAM, AT THE TOP (24 Sep 2026) ════════
+   Young's decision 5 on "One Door to Standards": whichever door a template
+   came through, what it is called and where it is filed sit at the top of the
+   builder — filled in from what HaTi already knows, changeable at any time.
+   Every chip is a door onto the Template details box the template's own page
+   already opens (tplLibMetaModal), with the caret on the field pressed: ONE
+   box, two ways in, so the name, the category and the stream keep one writer.
+
+   A STREAM NOBODY CHOSE IS SAID, NEVER GUESSED: the chip draws "choose" on a
+   dashed amber edge — work owed, which is what amber means on this page — and
+   the question Publish asks names it with its own door.
+
+   THE ROW MAY NOT GROW (the 18 Sep spine note above tbRailHtml is the measurement): a
+   strip that wraps pushes the wording down, and so does a button that wraps
+   inside itself. So the strip is ONE line, the two acts never wrap, and what
+   gives is WORDS — the name and each chip's value elide, the whole of each on
+   its hover. */
+function tbHeadFacts() {
+  const t = (_tb && _tb.template) || {};
+  const category = t.category || 'other';
+  const f = t.folder && typeof FOLDERS !== 'undefined' ? FOLDERS[t.folder] : null;
+  return {
+    name: t.name || '', category,
+    categoryName: (typeof tplCategoryName === 'function' ? tplCategoryName(category) : '') || category,
+    folder: t.folder || '', streamName: t.folder ? ((f && f.name) || t.folder) : '', color: (f && f.color) || '',
+  };
+}
+function tbHeadHtml() {
+  const h = tbHeadFacts();
+  const caret = icon('chevD', 'tb-fchip-c');
+  const chip = (what, key, val, sw) => `<button type="button" class="tb-fchip${val ? '' : ' empty'}" data-tb-meta="${what}"
+      title="${esc(val ? i18t('tb_h_chip_title', { k: key, v: val }) : i18t('tb_h_stream_none'))}"><span class="k">${esc(key)}</span>${sw || ''}<span class="v">${esc(val || i18t('tb_h_choose'))}</span>${caret}</button>`;
+  return `<button type="button" class="tb-tname" data-tb-meta="name" title="${esc(i18t('tb_h_rename', { name: h.name }))}"><span class="v">${esc(h.name)}</span>${icon('pencil', 'tb-tname-i')}</button>`
+    + `<span class="tb-chipv">${i18t('tb_v_draft', { n: _tb.versionNumber })}</span>`
+    + chip('category', i18t('tb_h_category'), h.categoryName)
+    + chip('stream', i18t('tb_h_stream'), h.streamName, h.color ? `<span class="sw" style="background:${esc(h.color)}"></span>` : '');
+}
+function tbPaintHead() { const el = document.getElementById('tb-head'); if (el && _tb) el.innerHTML = tbHeadHtml(); }
+/* THE DOOR. The box saves through the template's own PATCH; what comes back
+   is the template, so the head repaints from the SERVER'S answer — never from
+   what was typed. The paper's title is the name too, so a rename repaints it. */
+function tbMetaOpen(focus) {
+  if (!_tb || typeof tplLibMetaModal !== 'function') return;
+  const tid = _tb.tid;
+  tplLibMetaModal(_tb.template, {
+    focus,
+    onSaved: t => {
+      if (!_tb || _tb.tid !== tid || !t) return;
+      const renamed = t.name !== (_tb.template && _tb.template.name);
+      _tb.template = t;
+      tbPaintHead();
+      if (renamed) tbPaintPaper();
+    },
+  });
+}
+
+/* ════════ PUBLISH ASKS ONCE, AND NAMES WHAT IS STILL OPEN (24 Sep 2026) ════════
+   Decision 2 of "One Door to Standards": publishing while something is open
+   ASKS once — the way the builder already treats a difference from Our
+   standards, recorded and never blocking — and every item it names is a door
+   straight to it. Nothing open, no question: Publish goes on as it always did.
+
+   tbOpenItems is the ONE reading of "what is still open". It spends nothing,
+   writes nothing and borrows every figure from a reading the rail already
+   draws — tbSections, tbCoverage, the suggestions held for this sitting — so
+   the question cannot disagree with the tab twelve pixels away. The order is
+   the work's: where it is filed, what is unwritten, the blanks Copilot
+   suggested, then the standards. A difference somebody chose to KEEP is still
+   said, as a fact (grey), because publishing is where it stops being a draft. */
+function tbOpenItems() {
+  if (!_tb) return [];
+  const out = [];
+  if (!(_tb.template && _tb.template.folder)) out.push({ kind: 'stream', tone: 'amb' });
+  const empty = tbSections().filter(s => tbSectionOwes(s));
+  if (empty.length) out.push({ kind: 'empty', tone: 'amb', n: empty.length, k: empty[0].k, head: empty[0].head || '' });
+  const C = _tb.cands;
+  if (C && !C.busy && C.rows.length) out.push({ kind: 'cands', tone: 'amb', n: C.rows.length });
+  const cov = tbCoverage();
+  if (cov) {
+    const D = _tb.decided || {};
+    cov.rows.filter(r => r.state === 'dev' && r.where).forEach(r => {
+      const kept = (D.kept || []).includes(r.category);
+      out.push({ kind: 'dev', tone: kept ? 'gry' : 'amb', kept, k: r.where.k, head: r.where.head || r.category });
+    });
+    const miss = tbMissingStandards(cov).map(r => r.category);
+    if (miss.length) out.push({ kind: 'missing', tone: 'amb', n: miss.length, list: miss });
+  }
+  return out;
+}
+const TB_PQ_NAMED = 3;   /* missing clauses named in the row before "…" — the rest are on the Playbook tab */
+function tbOpenItemLine(it) {
+  if (it.kind === 'stream') return i18t('tb_pq_stream');
+  if (it.kind === 'empty') return it.n === 1 ? i18t('tb_pq_empty_one', { head: it.head || i18t('tb_untitled') }) : i18t('tb_pq_empty_other', { n: it.n, head: it.head || i18t('tb_untitled') });
+  if (it.kind === 'cands') return i18tn('tb_pq_cands', it.n, { n: it.n });
+  if (it.kind === 'dev') return i18t(it.kept ? 'tb_pq_dev_kept' : 'tb_pq_dev', { head: it.head });
+  if (it.kind === 'missing') return i18tn('tb_pq_missing', it.n, { n: it.n, list: it.list.slice(0, TB_PQ_NAMED).join(', ') + (it.n > TB_PQ_NAMED ? '…' : '') });
+  return '';
+}
+function tbPublishAskHtml(items) {
+  const h = tbHeadFacts();
+  const rows = items.map((it, i) => `<div class="tb-pq-o"><span class="tb-pq-dot ${it.tone}"></span><span class="tb-pq-t">${esc(tbOpenItemLine(it))}</span>
+      <button type="button" class="ui-btn" data-tb-pq="${i}">${i18t(it.kind === 'stream' ? 'tb_pq_choose' : 'tb_pq_show')}</button></div>`).join('');
+  return `<div style="padding:24px">
+    <h3 style="margin:0 0 6px;font-family:var(--font-heading);font-size:16px;font-weight:var(--w-title)">${esc(i18t('tb_pq_title', { name: h.name, n: _tb.versionNumber }))}</h3>
+    <p style="margin:0 0 12px;font-size:var(--t-body);color:var(--color-neutral-600)">${esc(i18tn('tb_pq_lead', items.length, { n: items.length }))}</p>
+    <div class="tb-pq">${rows}</div>
+    <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:var(--s-4)">
+      <button type="button" class="ui-btn" id="tb-pq-keep">${i18t('tb_pq_keep')}</button>
+      <button type="button" class="ui-btn ui-btn-primary" id="tb-pq-go">${i18t('tb_pq_go')}</button>
+    </div></div>`;
+}
+/* Each door closes the question FIRST and then acts, so the reader lands on
+   the thing it named rather than behind a dialog. Keep writing changes
+   nothing — the draft is exactly as it was before Publish was pressed. */
+function tbPublishAsk(items) {
+  openModal(tbPublishAskHtml(items), { maxWidth: (window.DLG_W && DLG_W.m) || '520px', label: i18t('tb_pq_title', { name: tbHeadFacts().name, n: _tb.versionNumber }) });
+  const root = document.getElementById('modal-root');
+  root?.querySelectorAll('[data-tb-pq]').forEach(b => b.addEventListener('click', () => {
+    const it = items[Number(b.getAttribute('data-tb-pq'))]; closeModal(); if (!it) return;
+    if (it.kind === 'stream') tbMetaOpen('stream');
+    else if (it.kind === 'empty' || it.kind === 'dev') tbFocus(it.k, { scroll: true });
+    else if (it.kind === 'cands') tbSetTab('blanks');
+    else if (it.kind === 'missing') tbSetTab('playbook');
+  }));
+  document.getElementById('tb-pq-keep')?.addEventListener('click', () => closeModal());
+  document.getElementById('tb-pq-go')?.addEventListener('click', () => { closeModal(); tbPublishGo(); });
 }
 
 /* ---- PAINTING. The page once; the paper and the rail into their own slots,
@@ -1362,18 +1990,17 @@ function tbGutter(on) { const sc = document.getElementById('content-scroll'); if
    which is what the net reads. */
 function tbPaint(opts = {}) {
   const CARD = 'background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius)';
-  const t = _tb.template;
   const held = opts.fresh ? null : tbHoldScroll();
   document.getElementById('content').innerHTML = `${tbStyleHtml()}
   <div class="view-enter tb-page${tbRailFits() ? '' : ' no-rail'}" id="tb-page" style="padding:var(--page-pad)">
     <div class="tb-left">
       <div class="tb-strip">
-        <button id="tb-back" class="ui-btn" style="font-size:var(--t-meta);padding:var(--s-1) 10px">${icon('arrowLeft', 'w-3.5 h-3.5')} ${esc(t.name)}</button>
-        <span style="font-family:var(--font-mono);font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--st-steel-fg);border:1px solid var(--st-steel-line);background:var(--st-steel-bg);border-radius:var(--radius);padding:1px 7px">${i18t('tb_v_draft', { n: _tb.versionNumber })}</span>
+        <button id="tb-back" type="button" class="ui-btn tb-back" title="${esc(i18t('tb_h_back'))}" aria-label="${esc(i18t('tb_h_back'))}">${icon('arrowLeft', 'w-3.5 h-3.5')}</button>
+        <span id="tb-head" class="tb-head">${tbHeadHtml()}</span>
         <span id="tb-dirtyslot" style="display:flex;align-items:center;gap:var(--s-2);min-width:0">${tbDirtyHtml()}</span>
         <span style="flex:1"></span>
-        <button id="tb-save" class="ui-btn" style="font-size:var(--t-meta);padding:5px 13px">${icon('check2', 'w-3.5 h-3.5')} ${i18t('tb_save_draft')}</button>
-        <button id="tb-publish" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:5px 13px">Publish v${_tb.versionNumber}</button>
+        <button id="tb-save" class="ui-btn tb-act" style="font-size:var(--t-meta);padding:5px 13px" title="${esc(i18t('tb_save_draft'))}" aria-label="${esc(i18t('tb_save_draft'))}">${icon('check2', 'w-3.5 h-3.5')}<span class="w"> ${i18t('tb_save_draft')}</span></button>
+        <button id="tb-publish" class="ui-btn ui-btn-primary tb-act" style="font-size:var(--t-meta);padding:5px 13px">Publish v${_tb.versionNumber}</button>
       </div>
       <!-- THE PAPER SCROLLS INSIDE ITS COLUMN (14 Sep 2026): everything under the
            strip lives in this one scroller, so the strip above and the rail
@@ -1391,6 +2018,7 @@ function tbPaint(opts = {}) {
   tbRestoreScroll(held);
   tbGutter(true);
 }
+
 /* ============================================================================
    THE DIVIDER (Young asked 14 Sep 2026: "make this page similar in
    functionality to the editor page … you can drag / pull a separator one side
@@ -1517,7 +2145,15 @@ function tbWireSplit() {
   }
 }
 function tbPaintPaper() { const s = document.getElementById('tb-paperslot'); if (s) s.innerHTML = tbPaperHtml(); }
-function tbPaintRail() { const s = document.getElementById('tb-railslot'); if (s) s.innerHTML = tbRailFits() ? tbRailHtml() : ''; }
+/* `keep` holds the lane's own place: a tick, a Keep or a Leave out changes one
+   row of the list the reader is looking at, and must not throw them to its
+   top (keepScroll's rule, for this page's own scroller). */
+function tbPaintRail(o = {}) {
+  const s = document.getElementById('tb-railslot'); if (!s) return;
+  const lane = o.keep ? document.getElementById('tb-lane') : null; const top = lane ? lane.scrollTop : null;
+  s.innerHTML = tbRailFits() ? tbRailHtml() : '';
+  if (top != null) { const l2 = document.getElementById('tb-lane'); if (l2) l2.scrollTop = top; }
+}
 function tbPaintScope() { const s = document.getElementById('tb-scope'); if (s) s.outerHTML = tbScopeHtml(); }
 function tbPaintFocusFrame() {
   document.querySelectorAll('[data-tb-sec]').forEach(el => el.classList.toggle('is-on', String(el.getAttribute('data-tb-sec')) === String(_tb.focus)));
@@ -1598,7 +2234,12 @@ function tbWire() {
      first keystroke. The strip itself is only ever rebuilt by tbPaint, which
      runs tbWire again, so this is one listener per paint and never two. */
   document.querySelector('.tb-strip')?.addEventListener('click', e => {
-    if (e.target.closest && e.target.closest('#tb-drop')) tbDropDraft();
+    if (!e.target.closest) return;
+    if (e.target.closest('#tb-drop')) { tbDropDraft(); return; }
+    /* The head is repainted by tbPaintHead without a tbWire, so its three
+       doors are answered here, on the strip, for the same reason as Discard. */
+    const m = e.target.closest('[data-tb-meta]');
+    if (m) tbMetaOpen(m.getAttribute('data-tb-meta'));
   });
   if (!_tbResizeBound && typeof window !== 'undefined' && typeof window.addEventListener === 'function') { _tbResizeBound = true; window.addEventListener('resize', tbOnResize); }
   _tb._fits = tbRailFits();
@@ -1727,6 +2368,18 @@ function tbWire() {
       return;
     }
     if ((b = hit('[data-tb-keep]'))) { tbKeepBlank(Number(b.getAttribute('data-tb-keep'))); return; }
+    /* ---- the one door's first moves (24 Sep 2026) ---- */
+    if (hit('[data-tb-cand-all]')) { if (_tb.cands) { _tb.cands.all = true; tbPaintRail({ keep: true }); } return; }
+    if (hit('[data-tb-cand-make]')) { tbMakeBlanks(); return; }
+    if ((b = hit('[data-tb-note-rm]'))) { tbCandNote(b.getAttribute('data-tb-note-rm'), true); return; }
+    if ((b = hit('[data-tb-note-keep]'))) { tbCandNote(b.getAttribute('data-tb-note-keep'), false); return; }
+    if ((b = hit('[data-tb-putback]'))) { tbPutBack(b.getAttribute('data-tb-putback')); return; }
+    if ((b = hit('[data-tb-k-use]'))) { const k = Number(b.getAttribute('data-tb-k-use')); tbFocus(k, { scroll: true }); tbUseLibrary(k); return; }
+    if ((b = hit('[data-tb-k-keep]'))) { (_tb.decided = _tb.decided || { kept: [], left: [], neg: [] }).kept.push(b.getAttribute('data-tb-k-keep')); tbPaintRail({ keep: true }); return; }
+    if ((b = hit('[data-tb-k-add]'))) { tbAddStandard(b.getAttribute('data-tb-k-add')); return; }
+    if ((b = hit('[data-tb-k-left]'))) { (_tb.decided = _tb.decided || { kept: [], left: [], neg: [] }).left.push(b.getAttribute('data-tb-k-left')); tbPaintRail({ keep: true }); return; }
+    if ((b = hit('[data-tb-k-neg]'))) { tbCompareFirst(b.getAttribute('data-tb-k-neg')); return; }
+    if ((b = hit('[data-tb-k-negkeep]'))) { (_tb.decided = _tb.decided || { kept: [], left: [], neg: [] }).neg.push(b.getAttribute('data-tb-k-negkeep')); tbPaintRail({ keep: true }); return; }
     if ((b = hit('[data-tb-drop]'))) { tbDropBlank(Number(b.getAttribute('data-tb-drop'))); return; }
     if ((b = hit('[data-tb-fedit]'))) { tbFieldModal(Number(b.getAttribute('data-tb-fedit'))); return; }
     if ((b = hit('[data-tb-fcopy]'))) {
@@ -1753,6 +2406,9 @@ function tbWire() {
   rail?.addEventListener('change', e => {
     const b = e.target.closest ? e.target.closest('[data-tb-out]') : null;
     if (b) { const x = _tb.outline && _tb.outline.sections[Number(b.getAttribute('data-tb-out'))]; if (x) { x.on = b.checked; tbPaintRail(); } }
+    /* A tick on a suggested blank: the count on "Make N blanks" follows it. */
+    const c = e.target.closest ? e.target.closest('[data-tb-cand]') : null;
+    if (c && _tb.cands) { const r = _tb.cands.rows.find(x => x.id === c.getAttribute('data-tb-cand')); if (r) { r.on = c.checked; tbPaintRail({ keep: true }); } }
   });
   rail?.addEventListener('input', e => {
     if (e.target.id !== 'tb-ask') return;
@@ -1830,7 +2486,14 @@ async function tbSave(quiet) {
    DESIGN-contract-designer.md). The step carries the change-note field and
    the publish call; with a company default already saved it opens
    pre-dressed and Publish is one click. */
-async function tbPublish() {
+function tbPublish() {
+  /* THE QUESTION COMES BEFORE THE SAVE (24 Sep 2026): "Keep writing" must
+     leave the draft exactly as it was, strip line included. */
+  const open = tbOpenItems();
+  if (open.length) { tbPublishAsk(open); return; }
+  return tbPublishGo();
+}
+async function tbPublishGo() {
   if (!await tbSave(true)) return;
   tbGutter(false);   /* the Design step is its own page; onBack repaints this one, which paints it on again */
   openDesignStep({
@@ -1988,4 +2651,12 @@ Object.assign(window, { openTemplateBuilder, tbCardWording, TB_BLOCK_META, TB_PB
   tbTouch, tbKeepNow, tbDirtyLine, tbDirtyHtml, tbAdopt, tbDropDraft, tbLeave, tbSave,
   /* A copied document on the paper (24 Sep 2026): the block's two shapes, its
      words, and the chips drawn into — and read back out of — its markup. */
-  tbBlockCopy, tbBlockOut, tbBlockText, tbRichChipsHtml, tbReadRich, tbPaperHtml });
+  tbBlockCopy, tbBlockOut, tbBlockText, tbRichChipsHtml, tbReadRich, tbPaperHtml,
+  /* One door to standards (24 Sep 2026): the start each door hands over,
+     Copilot's first move for it, the one word-replacing act, the head's
+     name / category / stream, and the question Publish asks. */
+  tbStartWith, tbOutlineFrom, tbSourceOf, tbReplaceWords, tbPlaces, tbTextBlocks, tbBlankCandidates, tbVariantsOk, tbBlanksFirst, tbMakeBlanks,
+  tbCandNote, tbPutBack, tbSectionForClause, tbCompareFirst, tbAddStandard, tbCandsCardHtml, tbContractCardHtml,
+  TB_CAND_MAX, TB_CAND_CHUNK, TB_CAND_SHOWN,
+  tbHeadFacts, tbHeadHtml, tbPaintHead, tbMetaOpen, tbOpenItems, tbOpenItemLine, tbPublishAskHtml, tbPublishAsk, tbPublish, tbPublishGo, TB_PQ_NAMED,
+  tbSectionOwes, tbMissingStandards });

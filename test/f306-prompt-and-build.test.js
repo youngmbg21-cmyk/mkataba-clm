@@ -329,7 +329,7 @@ describe('f306 (7) — one door into the record', () => {
       '_tb.blocks[bi].content = r.content;',
       '_tb.blocks[i].content = kind === \'rich\' ? tbReadRich(el) : kind === \'rheading\' ? tbReadRich(el, el.getAttribute(\'data-tb-lv\') || tbRichTag(_tb.blocks[i].content)) : tbReadEditable(el);',
     ]);
-    assert.match(TB, /function tbReplaceWords\(indices, find, repl\)[\s\S]{0,700}_tb\.blocks\[bi\]\.content = r\.content;/,
+    assert.match(TB, /function tbReplaceWords\(indices, find, repl(?:, asText)?\)[\s\S]{0,900}_tb\.blocks\[bi\]\.content = r\.content;/,
       'the second writer is tbReplaceWords, and nothing else writes that statement');
     assert.match(TB, /function tbKeepBlank\(i\)[\s\S]{0,500}tbReplaceWords\(sec\.body, p\.find, '\{\{' \+ p\.key \+ '\}\}'\)/,
       'keeping a blank presses it');
@@ -653,7 +653,11 @@ describe('f306 (11) — what the screen prints', () => {
   });
 
   test('the sheet dresses the handle itself and hides it where there is no rail', () => {
-    const css = TB.slice(TB.indexOf('function tbStyleHtml'), TB.indexOf('function tbStyleHtml') + 6000);
+    /* RE-POINTED 24 Sep 2026 (one door to standards): this slice was a BYTE
+       COUNT from the sheet's first line, and the head chips' rules pushed the
+       rail slot's rule past it. The region is the whole sheet — the function
+       to its closing style tag — which is what the claim is about. */
+    const css = TB.slice(TB.indexOf('function tbStyleHtml'), TB.indexOf('</style>`', TB.indexOf('function tbStyleHtml')));
     assert.match(css, /\.tb-resizer\{position:absolute;top:0;bottom:0;width:14px/, 'the editor\'s handle, value for value, in this page\'s own sheet');
     assert.match(css, /\.tb-resizer\[data-rl-at-limit\] span\{background:var\(--st-amber-dot\)\}/, 'and it says when it will not go further');
     assert.match(css, /\.tb-page\.no-rail > \.tb-resizer\{display:none\}/, 'no rail, no handle');
@@ -718,7 +722,11 @@ describe('f306 (11) — what the screen prints', () => {
   });
 
   test('the sheet: the page is --view-h tall, the column stacks strip over scroller, the rail is the row\'s height and never sticky', () => {
-    const css = TB.slice(TB.indexOf('function tbStyleHtml'), TB.indexOf('function tbStyleHtml') + 9000);
+    /* RE-POINTED 24 Sep 2026 (one door to standards): this slice was a BYTE
+       COUNT from the sheet's first line, and the head chips' rules pushed the
+       rail slot's rule past it. The region is the whole sheet — the function
+       to its closing style tag — which is what the claim is about. */
+    const css = TB.slice(TB.indexOf('function tbStyleHtml'), TB.indexOf('</style>`', TB.indexOf('function tbStyleHtml')));
     assert.match(css, /\.tb-page\{[^}]*height:var\(--view-h\)[^}]*\}/, 'the shell\'s own measured room, as the register and the contract room');
     assert.match(css, /\.tb-page\{[^}]*grid-template-rows:minmax\(0,1fr\)/, 'one row that may shrink');
     assert.match(css, /\.tb-left\{min-width:0;min-height:0;display:flex;flex-direction:column\}/, 'the column stacks the strip over the scroller');
