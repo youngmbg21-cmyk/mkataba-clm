@@ -50,7 +50,8 @@ const READ = `(() => {
   const head = paper.querySelector('h2,h3,h4') || null;
   const pencil = paper.querySelector('.rl-cp-pill') || null;
   const mark = pencil ? pencil.querySelector('svg') : null;
-  return { paper: face(paper), hook,
+  const tok = n => getComputedStyle(document.documentElement).getPropertyValue(n).split(',')[0].replace(/['"]/g, '').trim();
+  return { paper: face(paper), hook, bodyTok: tok('--font-body'), docTok: tok('--font-doc'),
     body: face(body), bodyAlign: body ? getComputedStyle(body).textAlign : null,
     head: face(head), headTT: head ? getComputedStyle(head).textTransform : null,
     pencil: face(pencil), pencilMark: face(mark),
@@ -104,8 +105,12 @@ const openNego = async (page, id) => {
     const plainNeg = await openNego(page, id);
     check('0a CONTROL — with no design set, no design hook is on either paper',
       !plainDoc.hook && !plainNeg.hook, `doc ${plainDoc.hook} · nego ${plainNeg.hook}`);
-    check('0b CONTROL — and the negotiate page keeps the platform’s own face',
-      !!plainNeg.body && /Plex/.test(plainNeg.paper), plainNeg.paper);
+    /* RE-POINTED IN PLACE 24 Sep 2026 (the prototype's faces): this pinned
+       the NAME Plex, which was true while the paper and the platform shared one
+       face. The paper has its own face now, so the claim is the RELATION — with
+       no design, the sheet wears the paper token, whatever it names. */
+    check('0b CONTROL — and the negotiate page keeps the paper’s own face',
+      !!plainNeg.body && plainNeg.paper === plainNeg.docTok, `${plainNeg.paper} · token ${plainNeg.docTok}`);
 
     /* ---- 1. THE REPORTED FAULT, ON ONE CONTRACT, ON BOTH PAGES ---- */
     await page.evaluate(i => {
@@ -139,10 +144,12 @@ const openNego = async (page, id) => {
        own chrome pretending to be the agreement. */
     check('2a the negotiate page still draws its clause pencil',
       neg.has.pencil, neg.has.pencil ? 'present' : 'absent');
+    /* RE-POINTED IN PLACE 24 Sep 2026: the relation, not the name Plex —
+       the pencil wears the platform's body token, whatever it names. */
     check('2b the pencil keeps the product’s own face',
-      !!neg.pencil && /Plex/.test(neg.pencil), neg.pencil);
+      !!neg.pencil && neg.pencil === neg.bodyTok, `${neg.pencil} · token ${neg.bodyTok}`);
     check('2c and so does the mark inside it',
-      !neg.pencilMark || /Plex/.test(neg.pencilMark), neg.pencilMark);
+      !neg.pencilMark || neg.pencilMark === neg.bodyTok, neg.pencilMark);
 
     /* ---- 3. A SECOND DESIGN, SO 1c CANNOT PASS BY COINCIDENCE ----
        Ceremonial is a different family AND uppercases its headings, so this

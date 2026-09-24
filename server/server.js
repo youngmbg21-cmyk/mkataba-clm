@@ -7321,7 +7321,7 @@ function trackPageHtml(r) {
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
   <title>Where is my contract?</title></head>
-  <body style="margin:0;background:#f4f6f5;font:15px 'IBM Plex Sans',-apple-system,Segoe UI,Arial,sans-serif;color:#1B2A28">
+  <body style="margin:0;background:#f4f6f5;font:15px 'Geist','IBM Plex Sans',-apple-system,Segoe UI,Arial,sans-serif;color:#1B2A28">
     <div style="max-width:620px;margin:0 auto;padding:40px 22px 60px">
       <p style="margin:0 0 22px;font-size:13px;letter-spacing:.09em;text-transform:uppercase;color:#5F6D6B">HaTi</p>
       <div style="background:#fff;border:1px solid #e2e6e5;border-radius:2px;padding:26px 24px">
@@ -7350,7 +7350,7 @@ app.get('/track/:token', (req, res) => {
     ? db.prepare('SELECT * FROM intake_requests WHERE track_token=?').get(tok) : null;
   res.set('Cache-Control', 'no-store');
   if (!r) return res.status(404).type('html').send(
-    `<!doctype html><body style="margin:0;background:#f4f6f5;font:15px 'IBM Plex Sans',Arial,sans-serif;color:#1B2A28">
+    `<!doctype html><body style="margin:0;background:#f4f6f5;font:15px 'Geist','IBM Plex Sans',Arial,sans-serif;color:#1B2A28">
      <div style="max-width:620px;margin:0 auto;padding:60px 22px"><p style="font-size:16px">This tracking link is not valid. Ask whoever sent it to you for a new one.</p></div></body>`);
   res.type('html').send(trackPageHtml(r));
 });

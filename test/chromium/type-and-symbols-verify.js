@@ -106,13 +106,13 @@ const SHELL_ICONS = [
       const heading = getComputedStyle(document.documentElement)
         .getPropertyValue('--font-heading').trim();
       return {
-        loaded400: document.fonts.check("400 16px 'IBM Plex Sans'"),
-        loaded500: document.fonts.check("500 16px 'IBM Plex Sans'"),
-        loaded600: document.fonts.check("600 16px 'IBM Plex Sans'"),
-        loaded700: document.fonts.check("700 16px 'IBM Plex Sans'"),
+        loaded400: document.fonts.check("400 16px 'Geist'"),
+        loaded500: document.fonts.check("500 16px 'Geist'"),
+        loaded600: document.fonts.check("600 16px 'Geist'"),
+        loaded700: document.fonts.check("700 16px 'Geist'"),
         headingToken: heading,
         bodyStack: body,
-        widthFace: mk("'IBM Plex Sans'"),
+        widthFace: mk("'Geist'"),
         widthFallback: mk('Arial'),
         /* If the face failed to load it and the fallback measure the same,
            because the face would BE the fallback. */
@@ -121,8 +121,13 @@ const SHELL_ICONS = [
     /* CLAIM REVERSED IN PLACE 25 Aug 2026: the platform face is IBM Plex Sans;
        it was Inter from 22 Aug and "72" before that. The token is written with
        quotes because the family name has spaces, so the test allows for them. */
-    check('the stylesheet asks for IBM Plex Sans first',
-      /^'?IBM Plex Sans'?/.test(face.headingToken), face.headingToken);
+    /* REVERSED IN PLACE AGAIN 24 Sep 2026 (owner-asked, to match the
+       prototype): the platform face is GEIST, and IBM Plex Sans is named
+       SECOND as the per-glyph fallback for Greek, which Geist does not carry. */
+    check('the stylesheet asks for Geist first',
+      /^'?Geist'?/.test(face.headingToken), face.headingToken);
+    check('and IBM Plex Sans is still named, second, for the glyphs Geist lacks',
+      /^'?Geist'?\s*,\s*'?IBM Plex Sans'?/.test(face.headingToken), face.headingToken);
     check('and "72" is nowhere in the platform stack',
       !/72/.test(face.headingToken + ' ' + face.bodyStack), face.headingToken);
     /* ---- THE RANGE NARROWED WITH THE FACE, AND THE LIST FOLLOWS IT ----
@@ -137,7 +142,7 @@ const SHELL_ICONS = [
     }
     check('the face is different from the fallback, so it genuinely loaded',
       Math.abs(face.widthFace - face.widthFallback) > 1,
-      `IBM Plex Sans ${face.widthFace.toFixed(1)}px vs Arial ${face.widthFallback.toFixed(1)}px`);
+      `Geist ${face.widthFace.toFixed(1)}px vs Arial ${face.widthFallback.toFixed(1)}px`);
 
     /* THE FIGURE FACE WAS THE PLATFORM FACE from 22 Aug to 20 Sep 2026:
        --font-mono is used ~160 times for ids, dates, counts and money, and the
@@ -154,13 +159,33 @@ const SHELL_ICONS = [
       const probe = t => { const s = document.createElement('span'); s.textContent = 'MK-2041 · KES 571.8M · 30.06.2027';
         s.style.cssText = 'position:absolute;visibility:hidden;font-size:40px;font-family:' + t; document.body.appendChild(s);
         const w = s.getBoundingClientRect().width; s.remove(); return w; };
-      return { v, wFace: probe("'JetBrains Mono'"), wFallback: probe('monospace'), loaded: document.fonts.check("12px 'JetBrains Mono'") };
+      const doc = getComputedStyle(document.documentElement).getPropertyValue('--font-doc').trim();
+      return { v, doc, wFace: probe("'Geist'"), wFallback: probe('monospace'), loaded: document.fonts.check("12px 'Geist'") };
     });
-    check('the figure token names the reference\'s own face',
-      /^'?JetBrains Mono'?/.test(mono.v), mono.v);
+    /* REVERSED IN PLACE AGAIN 24 Sep 2026 (owner-asked, to match the
+       prototype): the prototype sets figures in its platform face, so the
+       typewriter look (JetBrains Mono, 20 Sep) left the data. The ~160 readers
+       of the token move together, exactly as they did on 20 Sep. */
+    check('the figure token names the platform face, as the prototype does',
+      /^'?Geist'?/.test(mono.v), mono.v);
     check('and that face genuinely loaded from fonts/, not a silent fallback',
       mono.loaded && Math.abs(mono.wFace - mono.wFallback) > 1,
-      `loaded ${mono.loaded} · JetBrains Mono ${mono.wFace.toFixed(1)}px vs monospace ${mono.wFallback.toFixed(1)}px`);
+      `loaded ${mono.loaded} · Geist ${mono.wFace.toFixed(1)}px vs monospace ${mono.wFallback.toFixed(1)}px`);
+    /* THE PAPER'S OWN FACE (24 Sep 2026): the contract reads a book serif. It
+       is served as files split by unicode-range, so it is LOADED on demand —
+       the check asks for it the way the paper does, then measures it. */
+    const paper = await page.evaluate(async () => {
+      await document.fonts.load("16px 'Source Serif 4'", 'Agreement');
+      const probe = t => { const s = document.createElement('span'); s.textContent = 'This Agreement is made between the parties';
+        s.style.cssText = 'position:absolute;visibility:hidden;font-size:40px;font-family:' + t; document.body.appendChild(s);
+        const w = s.getBoundingClientRect().width; s.remove(); return w; };
+      return { loaded: document.fonts.check("16px 'Source Serif 4'", 'Agreement'), wFace: probe("'Source Serif 4'"), wFallback: probe('serif') };
+    });
+    check('the paper token names Source Serif 4 first',
+      /^'?Source Serif 4'?/.test(mono.doc), mono.doc);
+    check('and the serif genuinely loaded from fonts/',
+      paper.loaded && Math.abs(paper.wFace - paper.wFallback) > 1,
+      `loaded ${paper.loaded} · Source Serif 4 ${paper.wFace.toFixed(1)}px vs serif ${paper.wFallback.toFixed(1)}px`);
 
     /* ---- 2. EVERY SHELL SYMBOL RESOLVES TO PAINTED PIXELS ---- */
     console.log('\n--- 2. every symbol in the shell resolves ---');

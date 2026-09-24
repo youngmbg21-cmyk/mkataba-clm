@@ -412,7 +412,7 @@ function cohortPackHtml(d){
     : '';
   return `<!doctype html><html><head><meta charset="utf-8"><title>Diligence pack</title>
   <style>@media print{ body{background:#fff} .noprint{display:none} }</style></head>
-  <body style="margin:0;background:#f4f6f5;font:13px 'IBM Plex Sans',-apple-system,Segoe UI,Arial,sans-serif;color:#1B2A28">
+  <body style="margin:0;background:#f4f6f5;font:13px 'Geist','IBM Plex Sans',-apple-system,Segoe UI,Arial,sans-serif;color:#1B2A28">
     <div style="max-width:940px;margin:0 auto;padding:28px 24px 60px">
       <header style="margin:0 0 18px">
         <h1 style="margin:0;font-size:22px;font-weight:700">Diligence pack</h1>

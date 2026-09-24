@@ -123,6 +123,12 @@
      redesign removes. -->
 <link rel="stylesheet" href="fonts/fonts.css">
 <link rel="stylesheet" href="fonts/jetbrains-mono.css">
+<!-- 24 Sep 2026: Geist is the platform face and Source Serif 4 the contract
+     paper's (owner-asked, to match the prototype). fonts.css stays linked:
+     IBM Plex Sans is named SECOND in every stack, the per-glyph fallback for
+     Greek, which Geist does not carry. -->
+<link rel="stylesheet" href="fonts/geist.css">
+<link rel="stylesheet" href="fonts/source-serif-4.css">
 </head>
 <body>
 <!-- Inter throughout — the product's own chrome and the contract paper alike.
@@ -425,15 +431,27 @@
        always was: it is distributed for use with SAP's own software, and this
        is not that. See the note at the top of fonts/fonts.css, which carries
        the measurements and the one coverage narrowing this swap cost. */
-    --font-heading:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
-    --font-body:'IBM Plex Sans','Segoe UI',system-ui,-apple-system,Arial,sans-serif;
+    /* SINCE 24 SEP 2026 THE PLATFORM FACE IS GEIST (owner-asked: "change the
+       font in HaTi to match the prototype approach across the platform"). The
+       prototype's approach is three decisions, and each token below carries
+       one: screens read Geist; figures and references read Geist too, lined up
+       by tabular digits rather than a typewriter face; the contract paper reads
+       a book serif, Source Serif 4. IBM Plex Sans is named SECOND everywhere —
+       Geist carries no Greek, and the browser falls back per glyph, so a name
+       written in Greek still reads in a designed face (F85's reason). The
+       reasoning above is kept because it is what the swap reverses. */
+    --font-heading:'Geist','IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
+    --font-body:'Geist','IBM Plex Sans','Segoe UI',system-ui,-apple-system,Arial,sans-serif;
     /* THE FIGURE FACE, not a code face. This token is used ~160 times for
        reference ids, dates, day counts and money — data, not code — so it
        follows the platform face. Plex's digits sit on one width under
        `font-variant-numeric:tabular-nums`, which is what the money and count
        columns already ask for, so they line up without borrowing a typewriter
        face to do it. */
-    --font-mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    /* SINCE 24 SEP 2026 THE FIGURES ARE GEIST, as the prototype draws them —
+       the typewriter look (JetBrains Mono, 20 Sep) is retired from data. The
+       token keeps its name: ~160 rules read it, and they are figures. */
+    --font-mono:'Geist','IBM Plex Sans','Segoe UI',system-ui,-apple-system,Arial,sans-serif;
     /* True monospace, kept for the two things that are genuinely code: a
        SHA-256 fingerprint and a keyboard chip. Courier New by the owner's own
        spec — the two deliberate exceptions to the platform face. */
@@ -454,7 +472,12 @@
        then, IBM Plex Sans since 25 Aug. This token stays a token — the paper's
        face is its own decision, and pointing both at one family today must not
        make them one setting tomorrow. */
-    --font-doc:'IBM Plex Sans','Segoe UI',system-ui,-apple-system,Arial,sans-serif;
+    /* SINCE 24 SEP 2026 THE PAPER IS A BOOK SERIF, Source Serif 4, as the
+       prototype draws it: the agreement reads as a printed instrument and the
+       furniture round it reads Geist. A contract given its own design (Formal
+       legal and the rest) still wears that design's face — those rules name
+       their own family and win exactly as before. */
+    --font-doc:'Source Serif 4','IBM Plex Serif',Georgia,'Times New Roman',serif;
     --font-doc-mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
 
     /* Document text colour. A solid token, deliberately NOT an opacity

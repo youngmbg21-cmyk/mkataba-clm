@@ -128,7 +128,7 @@ function _acRefreshFont(){
   /* THE FALLBACK FOLLOWS THE PLATFORM FACE (25 Aug 2026, the Plex swap). The
      token is what actually answers; this is only for a stage that has no
      :root, and a stale fallback there names a face that is no longer served. */
-  const fam = _acVar('--font-body', "'IBM Plex Sans','Segoe UI',system-ui,-apple-system,Arial,sans-serif");
+  const fam = _acVar('--font-body', "'Geist','IBM Plex Sans','Segoe UI',system-ui,-apple-system,Arial,sans-serif");
   Chart.defaults.font.family = fam;
   Chart.defaults.color = AC_INK;
 }

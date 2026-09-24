@@ -19070,3 +19070,14 @@ Noticed, not fixed
 - The server's template create and rename routes accept only the five built-in categories (TPL_CATEGORIES), so a category a company added in Settings cannot be saved onto a template.
 - A template written from scratch prints its FIRST section heading ("Parties") as the published contract's title and numbers from the second; the builder's paper draws the template's name above it instead. The rail's own outline did the same before this change.
 - templates-tabs-verify 7c (the rail's two captions) and counterparty-reading-and-more-verify (stops at a click on "As agreed", which the page no longer draws) are red, as they were before this change.
+
+## Run 24 Sep 2026 — the prototype's faces across the platform
+
+- Screens and figures now read Geist and the contract paper reads Source Serif 4 (owner-asked, to match the prototype). IBM Plex Sans is kept loaded and named second, as the Greek fallback. `--font-code` keeps a true monospace.
+- Fixed on the way because the change caused it: the negotiate page's clause headings (h4) took the shell's heading face and mixed Geist with the serif on one sheet; `.rl-paper` headings and the title now name `--font-doc`.
+- Re-pointed in place: type-and-symbols-verify section 1 (the face names) and negotiate-design-verify 0b/2b/2c (pinned the name Plex; now the relation to the token).
+
+### Noticed, not fixed
+- type-and-symbols-verify: "each one is painted at the size the sheet asks for" (redline row marks 13x13) is red on main too.
+- index.html still carries an HTML comment "Inter throughout" near the top of the body — stale since 25 Aug.
+- prototype/*.html pages link only fonts/fonts.css and still draw IBM Plex Sans.

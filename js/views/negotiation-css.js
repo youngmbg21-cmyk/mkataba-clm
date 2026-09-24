@@ -2117,12 +2117,19 @@ function redlineLayoutCss(){
      export, the Document tab before its zoom is applied) is unchanged. The
      multipliers are each size over the workbench's own 15px base, so at the
      default this rule set computes to exactly the numbers it replaced. */
-  .rl-paper-title{margin:10px 0 0;font-family:var(--font-heading);
+  /* 24 Sep 2026: the title and every heading ON THE PAPER read the paper's
+     face (--font-doc, Source Serif 4), as the prototype draws them. Before,
+     the title named --font-heading and a clause heading (an h4) took the
+     shell's heading rule, so the sheet mixed two faces once they differed. A
+     contract's own design still wins: those rules name their family with
+     !important and a wider scope. */
+  .rl-paper :is(h1,h2,h3,h4,h5,h6){font-family:var(--font-doc)}
+  .rl-paper-title{margin:10px 0 0;font-family:var(--font-doc);
     font-size:calc(20px * var(--doc-scale,1));font-weight:var(--w-strong);letter-spacing:-.01em;color:var(--color-doc-text)}
   .rl-paper-sub{margin:var(--s-2) 0 0;font-size:calc(13px * var(--doc-scale,1));color:var(--color-doc-muted)}
   /* The kicker above the title — the Doc page's own line, in its clothes:
      mono, uppercase, wide tracking. Rendered from the document, not invented. */
-  .rl-paper-kick,.rl-paper-kick p{margin:0 0 6px;font-size:calc(10px * var(--doc-scale,1));font-weight:var(--w-strong);
+  .rl-paper-kick,.rl-paper-kick p{font-family:var(--font-body);margin:0 0 6px;font-size:calc(10px * var(--doc-scale,1));font-weight:var(--w-strong);
     text-transform:uppercase;letter-spacing:.18em;
     line-height:1.5;color:var(--color-doc-muted)}
   /* The recital — the party/key-terms paragraph between the title and clause 1.
