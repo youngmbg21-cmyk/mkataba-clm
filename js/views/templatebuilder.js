@@ -50,14 +50,31 @@ const TB_DRAFT_KEY = 'hati.v1.tbDrafts';
 const TB_DRAFT_MAX = 6;    /* how many template versions may hold a kept draft at once */
 const TB_DRAFT_MS = 800;   /* the debounce — well under the time one sentence takes to type */
 const tbDraftId = (tid, vid) => `${tid}:${vid}`;
+/* ---- A BLOCK AS THE BUILDER HOLDS IT, AND AS IT TRAVELS (24 Sep 2026) ----
+   `format: 'rich'` rides with a block copied from a document — its content is
+   the document's own markup (see TPLFORM_RICH in js/templateform.js). It is
+   carried ONLY where it says something, so a plain block is the same three
+   keys it always was, on the way in, on the way out and in the kept draft. */
+const tbBlockCopy = (b, k) => ({ blockType: b.blockType, content: b.content,
+  ...(b.format === 'rich' ? { format: 'rich' } : {}), ...(k != null ? { _k: k } : {}) });
+const tbBlockOut = (b, i) => ({ ...(i != null ? { orderIndex: i } : {}), blockType: b.blockType, content: b.content,
+  ...(b.format === 'rich' ? { format: 'rich' } : {}) });
+const tbRich = b => !!b && b.format === 'rich';
+/* The words of a block — what Copilot, the playbook count and every list on
+   the rail read. The shared projection where it is on the stage. */
+const tbBlockText = b => (typeof tplFormBlockText === 'function' ? tplFormBlockText(b)
+  : tbRich(b) ? String((b && b.content) || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() : String((b && b.content) || ''));
 /* THE FINGERPRINT IS OVER EXACTLY THE TWO SHAPES tbSave WRITES, in tbSave's
    own order, so "has the server moved" is asked of the same bytes the server
    was given. It is a cheap equality and nothing else — not a seal, not a
    version, and never shown to anybody. */
 function tbDraftBase(blocks, fields) {
   try {
+    /* `format` joins only where it says something, so every plain template's
+       fingerprint — and every draft kept before rich blocks existed — is
+       byte-identical to what it was. */
     return JSON.stringify([
-      (blocks || []).map(b => [b.blockType, b.content]),
+      (blocks || []).map(b => (b.format === 'rich' ? [b.blockType, b.content, 'rich'] : [b.blockType, b.content])),
       (fields || []).map(f => [f.fieldKey, f.label, f.fieldType, f.control, !!f.required,
         f.defaultValue || '', (f.options || []).join('')]),
     ]);
@@ -92,7 +109,7 @@ function tbDraftKeep() {
       tid: _tb.tid, vid: _tb.vid, versionNumber: _tb.versionNumber,
       /* The client key `_k` is left behind deliberately: it is this sitting's
          own and tbAdopt mints it again, exactly as tbSave strips it. */
-      blocks: _tb.blocks.map(b => ({ blockType: b.blockType, content: b.content })),
+      blocks: _tb.blocks.map(b => tbBlockOut(b)),
       fields: _tb.fields.map(f => ({ ...f })),
       base: _tb.base || '', at: new Date().toISOString(),
     };
@@ -116,7 +133,7 @@ const tbDraftWhen = iso => {
    counts from it, so a key from another sitting would collide with the next
    block anybody adds. */
 function tbAdopt(d) {
-  _tb.blocks = (d.blocks || []).map((b, i) => ({ blockType: b.blockType, content: b.content, _k: i + 1 }));
+  _tb.blocks = (d.blocks || []).map((b, i) => tbBlockCopy(b, i + 1));
   _tb.fields = (d.fields || []).map(f => ({ ...f }));
   _tb.seq = _tb.blocks.length;
   _tb.dirty = true; _tb.kept = true; _tb.restoredAt = tbDraftWhen(d.at);
@@ -165,7 +182,7 @@ async function openTemplateBuilder(tid, vid) {
        an index moves the moment somebody presses an arrow. tbSave maps every
        block to {orderIndex, blockType, content}, so this cannot reach the
        server however long it lives here. */
-    blocks: v.blocks.map((b, i) => ({ blockType: b.blockType, content: b.content, _k: i + 1 })),
+    blocks: v.blocks.map((b, i) => tbBlockCopy(b, i + 1)),
     fields: v.fields.map(f => ({
       fieldKey: f.field_key, label: f.label, section: f.section || '', fieldType: f.field_type,
       control: f.control, options: f.options || [], required: f.required,
@@ -247,14 +264,14 @@ function tbAskRestore(d) {
 function tbSections(blocks) {
   const out = []; let cur = null;
   (blocks || (_tb && _tb.blocks) || []).forEach((b, i) => {
-    if (b.blockType === 'heading') { cur = { k: b._k, head: b.content || '', headIndex: i, body: [] }; out.push(cur); return; }
+    if (b.blockType === 'heading') { cur = { k: b._k, head: tbRich(b) ? tbBlockText(b).replace(/\s+/g, ' ').trim() : (b.content || ''), headIndex: i, body: [] }; out.push(cur); return; }
     if (cur && (b.blockType === 'fixed_text' || b.blockType === 'field_group')) cur.body.push(i);
   });
   return out;
 }
 const tbSectionAt = k => tbSections().find(s => s.k === k) || null;
 const tbSectionText = (sec, blocks) => { const bs = blocks || (_tb && _tb.blocks) || [];
-  return sec ? sec.body.map(i => (bs[i] && bs[i].content) || '').join('\n\n').trim() : ''; };
+  return sec ? sec.body.map(i => (bs[i] ? tbBlockText(bs[i]) : '')).join('\n\n').trim() : ''; };
 
 /* ---- YOUR OWN PAPER, BEFORE ANY SPEND ----
    CLAUSE_KINDS (js/clausemodel.js) is the product's own heading vocabulary and
@@ -659,6 +676,9 @@ async function tbAccept(k, idx) {
   }
   const bi = tbWordingBlock(sec);
   _tb.blocks[bi].content = a.text;
+  /* Copilot's wording is plain text, so the block is plain from here on: the
+     card showed the section's whole text against it before the press. */
+  delete _tb.blocks[bi].format;
   tbDropExtraBody(sec, bi);
   tbTouch();
   a.applied = true;
@@ -705,16 +725,33 @@ async function tbBlanksRun(k, text) {
     tbPaintRail();
   }
 }
+/* ---- A WORD IN THE WORDING BECOMES SOMETHING ELSE — ONE ACT (24 Sep 2026) ----
+   Keeping a suggested blank, making several blanks at once, putting a deal
+   detail back, taking out a note to the drafter: four presses, ONE move —
+   every occurrence of some words, in the given blocks, replaced — so they share
+   this one writer, and what may write a block is still three things (f306
+   (7)): Apply, typing, and this. In a copied document only the TEXT between
+   tags is touched, never a tag (tplFormBlockReplace). Returns how many places
+   changed, which is what every caller reports. */
+function tbReplaceWords(indices, find, repl) {
+  let n = 0;
+  for (const bi of indices || []) {
+    const b = _tb.blocks[bi]; if (!b || !find) continue;
+    const r = typeof tplFormBlockReplace === 'function' ? tplFormBlockReplace(b, find, repl)
+      : { content: String(b.content || '').split(String(find)).join(repl), n: String(b.content || '').split(String(find)).length - 1 };
+    if (!r.n) continue;
+    _tb.blocks[bi].content = r.content;
+    n += r.n;
+  }
+  return n;
+}
 function tbKeepBlank(i) {
   const p = (_tb.proposed || [])[i]; if (!p) return;
   const sec = tbSectionAt(p.k);
   /* The marker is placed where the wording actually is — by literal
      replacement, the same move the upload path makes — so a field can never
      exist with nothing pointing at it. */
-  if (sec) sec.body.forEach(bi => {
-    if (_tb.blocks[bi].content.includes(p.find))
-      _tb.blocks[bi].content = _tb.blocks[bi].content.split(p.find).join('{{' + p.key + '}}');
-  });
+  if (sec) tbReplaceWords(sec.body, p.find, '{{' + p.key + '}}');
   _tb.fields.push({ fieldKey: p.key, label: p.label, section: '', fieldType: p.type,
     control: p.opts.length ? 'guided' : 'free', options: p.opts, required: p.required,
     defaultValue: '', helpText: '', detectionConfidence: 'manual', humanReviewed: true });
@@ -812,6 +849,19 @@ function tbStyleHtml() {
   .tb-ed:empty::before{content:attr(data-ph);color:var(--color-neutral-500);font-style:italic;font-weight:var(--w-body)}
   .tb-p{margin:0 0 6px;padding:2px 0}
   .tb-ph{color:var(--color-neutral-500);font-style:italic;cursor:text}
+  /* A COPIED DOCUMENT'S OWN MARKUP (24 Sep 2026). Its paragraphs, steps,
+     contents rows and tables are dressed by the document's own sheet
+     (.hati-doc, index.html) so the paper reads as it will print; these lines
+     only settle it into this paper — the paper's face and size, and whitespace
+     read as HTML reads it (a tab in "3.4<tab>Scope" is a gap, as on the
+     contract). The title rule is the sheet's for ONE document; here every
+     block is its own wrapper, so a heading kept in a body is not a title. */
+  .tb-paper .tb-rich.hati-doc{font-size:14px;line-height:1.7;font-family:inherit;white-space:normal}
+  .tb-paper .tb-rich.hati-doc > h1:first-child{text-align:inherit;font-size:1.15em}
+  .tb-rh .tb-ed{white-space:normal}
+  .tb-rh.lv-1,.tb-rh.lv-2{font-size:16px}
+  .tb-rh.lv-3{font-size:15px}
+  .tb-rh.lv-4{font-size:14px}
   .tb-bl{display:inline-flex;align-items:center;padding:0 6px;background:var(--st-steel-bg);border:1px solid var(--st-steel-line);color:var(--st-steel-fg);
     border-radius:var(--radius);font-size:12px;font-weight:var(--w-title);line-height:1.55;white-space:nowrap;vertical-align:baseline;cursor:pointer;font-style:normal}
   .tb-bl.is-new{background:var(--st-amber-bg);border-color:var(--st-amber-line);color:var(--st-amber-fg)}
@@ -902,12 +952,37 @@ function tbStyleHtml() {
    the key on the hover. A marker with no field behind it is drawn amber so
    the person sees it wants declaring; reading the block back turns every chip
    into its marker again, so the record never learns the chips exist. */
+function tbChipHtml(key) {
+  const f = _tb.fields.find(x => x.fieldKey === key);
+  const label = f ? (f.label || key) : key;
+  return `<span class="tb-bl${f ? '' : ' is-new'}" contenteditable="false" data-tb-blank="${esc(key)}" title="${f ? esc('{{' + key + '}} · ' + i18t('tb_bl_edit')) : esc(i18t('tb_bl_new'))}">${esc(label)}</span>`;
+}
 function tbChipsHtml(text) {
-  return esc(String(text || '')).replace(/\{\{([a-z0-9_]+)\}\}/gi, (m, key) => {
-    const f = _tb.fields.find(x => x.fieldKey === key);
-    const label = f ? (f.label || key) : key;
-    return `<span class="tb-bl${f ? '' : ' is-new'}" contenteditable="false" data-tb-blank="${esc(key)}" title="${f ? esc('{{' + key + '}} · ' + i18t('tb_bl_edit')) : esc(i18t('tb_bl_new'))}">${esc(label)}</span>`;
-  });
+  return esc(String(text || '')).replace(/\{\{([a-z0-9_]+)\}\}/gi, (m, key) => tbChipHtml(key));
+}
+/* ---- A COPIED DOCUMENT IS DRAWN AS THE DOCUMENT (24 Sep 2026) ----
+   A rich block's markup goes through the product's own sanitiser on the way
+   onto the screen — storage is never trusted at render time — and its blanks
+   become the same chips, in the TEXT between tags only. Reading it back is
+   the reverse: every chip becomes its marker again and the whole block goes
+   through the sanitiser, so what is stored is always the allowlist's shape
+   and never the builder's own furniture (a chip, a contenteditable). */
+function tbRichChipsHtml(html) {
+  const safe = typeof sanitizeRich === 'function' ? sanitizeRich(String(html || '')) : String(html || '');
+  return safe.split(/(<[^>]*>)/).map(seg => (!seg || seg[0] === '<') ? seg
+    : seg.replace(/\{\{([a-z0-9_]+)\}\}/gi, (m, key) => tbChipHtml(key))).join('');
+}
+const tbRichTag = html => { const m = /^\s*<(h[1-4])\b/i.exec(String(html || '')); return m ? m[1].toLowerCase() : 'h2'; };
+const tbRichInner = html => String(html || '').replace(/^\s*<h[1-4]\b[^>]*>/i, '').replace(/<\/h[1-4]>\s*$/i, '');
+function tbReadRich(el, tag) {
+  const clone = el.cloneNode(true);
+  clone.querySelectorAll('[data-tb-blank]').forEach(x => x.replaceWith(document.createTextNode('{{' + x.getAttribute('data-tb-blank') + '}}')));
+  let html = clone.innerHTML;
+  if (tag) html = `<${tag}>${html}</${tag}>`;
+  if (typeof sanitizeRich === 'function') html = sanitizeRich(html);
+  /* A template is not a contract: it carries no clause identity (the server's
+     allowlist drops it too, so the kept draft and the save agree). */
+  return String(html).replace(/\sdata-clause-id="[^"]*"/g, '');
 }
 function tbReadEditable(el) {
   let out = '';
@@ -942,7 +1017,7 @@ function tbCardDeviates(sec, text) {
   const bs = _tb.blocks.map(b => ({ ...b }));
   const bi = sec.body.length ? sec.body[0] : -1;
   if (bi < 0) bs.splice(sec.headIndex + 1, 0, { blockType: 'field_group', content: text, _k: -1 });
-  else bs[bi].content = text;
+  else { bs[bi].content = text; delete bs[bi].format; }
   const c = tbCoverage(bs); if (!c) return false;
   const k = bi < 0 ? -1 : bs[bi]._k;
   return c.rows.some(r => r.state === 'dev' && r.where && (r.where.k === sec.k || (k === -1 && r.where.head === sec.head)));
@@ -969,7 +1044,14 @@ function tbPaperHtml() {
       <button type="button" data-tb-up="${i}" ${i === 0 ? 'disabled' : ''} title="${i18t('tb_move_up')}">↑</button>
       <button type="button" data-tb-down="${i}" ${i === _tb.blocks.length - 1 ? 'disabled' : ''} title="${i18t('tb_move_down')}">↓</button>
       <button type="button" data-tb-del="${i}" title="${i18t('tb_remove_block')}">✕</button></span>`;
-  let html = ''; let open = false; let n = 0; let sigs = false; let titled = false;
+  let html = ''; let open = false; let n = 0; let sigs = false;
+  /* A COPIED DOCUMENT CARRIES ITS OWN TITLE AND ITS OWN NUMBERS. Where any
+     block is the document's markup the paper draws no name above it and adds
+     no number to any heading — templateFormDocHtml's own two readings, asked
+     here so the paper and the published contract cannot disagree. */
+  const richDoc = _tb.blocks.some(tbRich);
+  const ownNos = richDoc && typeof tplFormNumbersOff === 'function' ? tplFormNumbersOff(_tb.blocks) : false;
+  let titled = richDoc;
   const closeSigs = () => { if (sigs) { html += '</div>'; sigs = false; } };
   const title = () => { if (!titled) { html += `<h2 class="tb-title">${esc(t.name)}</h2>`; titled = true; } };
   _tb.blocks.forEach((b, i) => {
@@ -987,16 +1069,28 @@ function tbPaperHtml() {
          number; the rest number from 1, and one already carrying its own
          keeps it. Both readings are that renderer's, asked through window so
          the paper and the published contract cannot drift. */
-      n++; const own = (typeof tplFormHeadingNumbered === 'function') && tplFormHeadingNumbered(b.content);
-      const clauseNo = (n === 1 || own) ? '' : String(n - 1) + '.';
+      n++; const own = ownNos || ((typeof tplFormHeadingNumbered === 'function') && tplFormHeadingNumbered(b.content));
+      const clauseNo = (n === 1 || own || tbRich(b)) ? '' : String(n - 1) + '.';
       const sec = bySec.get(i); const st = sec ? tbSecState(sec, cov) : '';
+      /* A copied heading keeps the level the file gave it; its words are
+         edited in place and written back into the same element. */
+      const lv = tbRich(b) ? tbRichTag(b.content) : '';
+      const head = lv
+        ? `<${lv} class="tb-h tb-rh lv-${lv.slice(1)}"><span class="tb-ed tb-hed" contenteditable="true" spellcheck="false" data-tb-content="${i}" data-tb-kind="rheading" data-tb-lv="${lv}" data-ph="${i18t('tb_ph_heading')}">${tbRichChipsHtml(tbRichInner(b.content))}</span></${lv}>`
+        : `<h3 class="tb-h">${clauseNo ? `<span class="tb-n">${clauseNo}</span>` : ''}<span class="tb-ed tb-hed" contenteditable="true" spellcheck="false" data-tb-content="${i}" data-tb-kind="heading" data-ph="${i18t('tb_ph_heading')}">${esc(b.content)}</span></h3>`;
       html += `<div class="tb-sec${sec && sec.k === _tb.focus ? ' is-on' : ''}${st ? ' is-' + st : ''}${sec && !tbSectionText(sec) ? ' is-empty' : ''}" data-tb-sec="${b._k}">
         <div class="tb-row tb-row-h" data-tb-row="${i}"><span class="tb-dot"></span>${G(i, fits ? `<button type="button" data-tb-tag="${b._k}" title="${i18t('tb_ask_label')}">✦</button>` : '')}
-          <h3 class="tb-h">${clauseNo ? `<span class="tb-n">${clauseNo}</span>` : ''}<span class="tb-ed tb-hed" contenteditable="true" spellcheck="false" data-tb-content="${i}" data-tb-kind="heading" data-ph="${i18t('tb_ph_heading')}">${esc(b.content)}</span></h3></div>
+          ${head}</div>
         ${sec && !sec.body.length ? `<p class="tb-p tb-ph" data-tb-ph="${b._k}">${i18t('tb_ph_empty')}</p>` : ''}`;
       open = true; return;
     }
     if (b.blockType === 'fixed_text' || b.blockType === 'field_group') {
+      /* The document's own paragraphs, lists and tables, dressed by the
+         document's own sheet (.hati-doc) so the paper reads as it will print. */
+      if (tbRich(b)) {
+        html += `<div class="tb-row" data-tb-row="${i}">${G(i)}<div class="tb-p tb-ed tb-rich hati-doc" contenteditable="true" data-tb-content="${i}" data-tb-kind="rich" data-ph="${i18t('tb_ph_wording')}">${tbRichChipsHtml(b.content)}</div></div>`;
+        return;
+      }
       html += `<div class="tb-row" data-tb-row="${i}">${G(i)}<div class="tb-p tb-ed" contenteditable="true" data-tb-content="${i}" data-tb-kind="text" data-ph="${i18t('tb_ph_wording')}">${tbChipsHtml(b.content)}</div></div>`;
       return;
     }
@@ -1540,23 +1634,31 @@ function tbWire() {
   });
   paper?.addEventListener('focusin', e => {
     const k = tbSecOf(e.target); if (k != null && k !== _tb.focus && tbBlockOf(e.target) >= 0) tbFocus(k);
+    /* A new paragraph typed into the document's markup is a <p>, never a <div>. */
+    const ed = e.target.closest ? e.target.closest('[data-tb-kind="rich"]') : null;
+    if (ed) { try { document.execCommand('defaultParagraphSeparator', false, 'p'); } catch (_) {} }
   });
   paper?.addEventListener('input', e => {
     const i = tbBlockOf(e.target); if (i < 0) return;
     const el = e.target.closest('[data-tb-content]');
-    _tb.blocks[i].content = tbReadEditable(el);
+    const kind = el.getAttribute('data-tb-kind');
+    _tb.blocks[i].content = kind === 'rich' ? tbReadRich(el)
+      : kind === 'rheading' ? tbReadRich(el, el.getAttribute('data-tb-lv') || tbRichTag(_tb.blocks[i].content)) : tbReadEditable(el);
     tbTouch();
     tbPatchDirty();
     const sec = el.closest('[data-tb-sec]');
     if (sec) { const s = tbSectionAt(Number(sec.getAttribute('data-tb-sec'))); if (s) sec.classList.toggle('is-empty', !tbSectionText(s)); }
-    if (el.getAttribute('data-tb-kind') === 'heading') tbPaintScope();
+    if (kind === 'heading' || kind === 'rheading') tbPaintScope();
   });
   paper?.addEventListener('focusout', e => {
     const i = tbBlockOf(e.target); if (i < 0) return;
     const el = e.target.closest('[data-tb-content]');
     /* Leaving a block draws its chips again; the caret has gone, so nothing
        is lost by rebuilding the words. Chips flip the paper's state dot too. */
-    if (el.getAttribute('data-tb-kind') === 'text') el.innerHTML = tbChipsHtml(_tb.blocks[i].content);
+    const kind = el.getAttribute('data-tb-kind');
+    if (kind === 'text') el.innerHTML = tbChipsHtml(_tb.blocks[i].content);
+    else if (kind === 'rich') el.innerHTML = tbRichChipsHtml(_tb.blocks[i].content);
+    else if (kind === 'rheading') el.innerHTML = tbRichChipsHtml(tbRichInner(_tb.blocks[i].content));
     const sec = el.closest('[data-tb-sec]');
     if (sec) { const s = tbSectionAt(Number(sec.getAttribute('data-tb-sec'))); const st = s ? tbSecState(s, tbCoverage()) : '';
       ['is-written', 'is-dev', 'is-esc'].forEach(c => sec.classList.remove(c)); if (st) sec.classList.add('is-' + st); }
@@ -1567,6 +1669,9 @@ function tbWire() {
     const kind = e.target.closest('[data-tb-content]').getAttribute('data-tb-kind');
     if (e.key === 'Escape') { e.target.blur(); return; }
     if (e.key !== 'Enter') return;
+    /* In the document's own markup Enter is the browser's: a new paragraph,
+       which the sanitiser keeps as a <p> on the way back. */
+    if (kind === 'rich') return;
     e.preventDefault();
     if (kind === 'text' && !e.shiftKey) { try { document.execCommand('insertText', false, '\n'); } catch (_) {} return; }
     e.target.blur();
@@ -1709,7 +1814,7 @@ function tbLeave() {
 async function tbSave(quiet) {
   try {
     await api(`templates/${_tb.tid}/versions/${_tb.vid}`, 'PUT', {
-      blocks: _tb.blocks.map((b, i) => ({ orderIndex: i, blockType: b.blockType, content: b.content })),
+      blocks: _tb.blocks.map((b, i) => tbBlockOut(b, i)),
       fields: _tb.fields.map((f, i) => ({ ...f, orderIndex: i, humanReviewed: true })),
     });
     /* The version now holds exactly this, so the kept draft is spent: leaving
@@ -1733,7 +1838,7 @@ async function tbPublish() {
     tid: _tb.tid, vid: _tb.vid, versionNumber: _tb.versionNumber,
     templateName: _tb.template.name,
     form: {
-      blocks: _tb.blocks.map((b, i) => ({ orderIndex: i, blockType: b.blockType, content: b.content })),
+      blocks: _tb.blocks.map((b, i) => tbBlockOut(b, i)),
       fields: _tb.fields, values: {},
     },
     onBack: () => tbPaint(),
@@ -1880,4 +1985,7 @@ Object.assign(window, { openTemplateBuilder, tbCardWording, TB_BLOCK_META, TB_PB
      strip says — published for the same reason as the rest of this line, so a
      check can drive them without a builder open. */
   TB_DRAFT_KEY, TB_DRAFT_MAX, TB_DRAFT_MS, tbDraftId, tbDraftBase, tbDraftRead, tbDraftKeep, tbDraftDrop,
-  tbTouch, tbKeepNow, tbDirtyLine, tbDirtyHtml, tbAdopt, tbDropDraft, tbLeave, tbSave });
+  tbTouch, tbKeepNow, tbDirtyLine, tbDirtyHtml, tbAdopt, tbDropDraft, tbLeave, tbSave,
+  /* A copied document on the paper (24 Sep 2026): the block's two shapes, its
+     words, and the chips drawn into — and read back out of — its markup. */
+  tbBlockCopy, tbBlockOut, tbBlockText, tbRichChipsHtml, tbReadRich, tbPaperHtml });

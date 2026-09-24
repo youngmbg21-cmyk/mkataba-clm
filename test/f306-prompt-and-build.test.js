@@ -315,13 +315,24 @@ describe('f306 (7) — one door into the record', () => {
     assert.match(TB, /function tbStep\(d\)[\s\S]{0,300}tbFocus\(/);
   });
 
-  test('Apply, typing and a kept blank are the only three things that write a block', () => {
+  /* RE-POINTED 24 Sep 2026 (one door to standards). Still THREE writers, and
+     the count is the claim. The kept blank's literal replacement became
+     tbReplaceWords — the one act "these words become something else", which
+     the one-door work gave three more presses (make several blanks, put a
+     deal detail back, take out a drafter's note) — and typing learned to read
+     a copied document's own markup back. Each press shares a writer rather
+     than adding one. */
+  test('Apply, typing and the one word-replacing act are the only three things that write a block', () => {
     const writes = TB.match(/_tb\.blocks\[[a-z]+\]\.content = [^;]+;/g) || [];
     assert.deepEqual(writes.map(w => w.replace(/\s+/g, ' ')), [
       '_tb.blocks[bi].content = a.text;',
-      '_tb.blocks[bi].content = _tb.blocks[bi].content.split(p.find).join(\'{{\' + p.key + \'}}\');',
-      '_tb.blocks[i].content = tbReadEditable(el);',
+      '_tb.blocks[bi].content = r.content;',
+      '_tb.blocks[i].content = kind === \'rich\' ? tbReadRich(el) : kind === \'rheading\' ? tbReadRich(el, el.getAttribute(\'data-tb-lv\') || tbRichTag(_tb.blocks[i].content)) : tbReadEditable(el);',
     ]);
+    assert.match(TB, /function tbReplaceWords\(indices, find, repl\)[\s\S]{0,700}_tb\.blocks\[bi\]\.content = r\.content;/,
+      'the second writer is tbReplaceWords, and nothing else writes that statement');
+    assert.match(TB, /function tbKeepBlank\(i\)[\s\S]{0,500}tbReplaceWords\(sec\.body, p\.find, '\{\{' \+ p\.key \+ '\}\}'\)/,
+      'keeping a blank presses it');
   });
 
   /* PIN THE REGION, NOT A BYTE COUNT. This sliced 600 characters off the front
@@ -375,12 +386,24 @@ describe('f306 (8) — a blank nobody kept cannot ride a save', () => {
     assert.match(body, /_tb\.proposed\.splice\(i, 1\)/);
   });
 
+  /* RE-POINTED 24 Sep 2026 (one door to standards): this pinned the save's
+     block mapping as a LITERAL, and the mapping moved into tbBlockOut when a
+     block learned to carry the document's own markup (`format: 'rich'`). The
+     claim is unchanged and is now asked of what the function RETURNS: the
+     same shape for a plain block, `format` only where it says something, and
+     never the client key. */
   test('tbSave still writes the same two shapes, and no client key', () => {
     const at = TB.indexOf('async function tbSave');
-    const body = TB.slice(at, at + 700);
-    assert.match(body, /blocks: _tb\.blocks\.map\(\(b, i\) => \(\{ orderIndex: i, blockType: b\.blockType, content: b\.content \}\)\)/);
+    const body = TB.slice(at, TB.indexOf('\n}\n', at));
+    assert.match(body, /blocks: _tb\.blocks\.map\(\(b, i\) => tbBlockOut\(b, i\)\)/);
     assert.ok(!body.includes('_tb.proposed'), 'a proposal is not part of a save');
     assert.ok(!body.includes('_k'), 'the client key never travels');
+    const win = loadViews(['js/clausemodel.js', 'js/playbook.js', 'js/views/templatebuilder.js'],
+      { state: { settings: {} }, API_MODE: () => false, canEdit: () => true });
+    assert.deepEqual(JSON.parse(JSON.stringify(win.tbBlockOut({ blockType: 'heading', content: 'Term', _k: 7 }, 3))),
+      { orderIndex: 3, blockType: 'heading', content: 'Term' }, 'a plain block is the three keys it always was');
+    assert.deepEqual(JSON.parse(JSON.stringify(win.tbBlockOut({ blockType: 'fixed_text', content: '<p>x</p>', format: 'rich', _k: 8 }, 4))),
+      { orderIndex: 4, blockType: 'fixed_text', content: '<p>x</p>', format: 'rich' }, 'a rich block says so, and nothing else joins');
   });
 });
 
