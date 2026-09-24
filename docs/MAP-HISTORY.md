@@ -10971,6 +10971,79 @@ Tests: history-head-verify (35 — two claims RE-POINTED: the outside-press that
 used to land on `.hist-rail`, and the count read off `.pill-x`), f120/f121/f143/
 f144 unchanged.
 
+### A LINE OF TIME, NEWEST FIRST (Young ruled 24 Sep 2026)
+
+Over a picture of the "HaTi — Production Polish" canvas with two red boxes —
+the day column on the left and the round column on the right: *"Implement the
+highlighted designs in the picture in the history tab. The way the history is
+chronicled, the line attaching the history and rounds. Also the sentences above
+the names should be in black font."* Measured on the tab before a line moved:
+every row printed the record's ISO day (`2026-09-24`, seven times over on one
+morning), an 8px solid dot, a hairline rule across the page under each entry,
+`Round 1` in the faintest grey, and the sentence at 13px in the page's ink at
+the BODY weight. The list ran oldest first.
+
+**NEWEST FIRST, ON THE DRAWING ONLY.** The canvas says "N events · newest
+first" with Today at the top. `roomHistoryHtml` turns the list round;
+`roomHistoryEvents` — the one reading — is left oldest first, because turning
+the reading round would have reordered every other caller with it. A stable
+sort reversed puts two entries stamped at one instant latest-written first,
+which is what newest first means. The pop-out record (their page and the
+history link) and the exported report keep oldest first; both say so in their
+own words and f380 holds them to it.
+
+**THE DAY OVER THE TIME, AND A NOTE OF AUGUST REVERSED.** The row's own note
+chose "the DATE ONLY" because "the trail stores a day for most entries".
+MEASURED: it does not. `logAudit` stamps `nowISO()`, and the negotiation's
+events carry `createdAt`, `resolvedAt`, `withdrawn.at` and a round's own `at` —
+all full times. The column was throwing the time away. `histWhen(at, now)`
+answers the day a person would say (`ct_hist_today`, else day and month in the
+reader's language, with the year only where it is not this year — the canvas
+draws two months of one year, and a trail that crosses New Year must not print
+"5 Mar" for two different Marches) and the time from `negoWhen`, the product's
+one clock. Two refusals: a record holding only a day gets the day alone,
+because 00:00 would be a time the product invented; and a bare day is read as
+the LOCAL day it names — `new Date('2026-03-05')` is UTC midnight, the 4th for
+every reader west of Greenwich. f380 moves its own clock to Los Angeles and
+checks the instrument bites before it believes the answer.
+
+**THE LINE CAME BACK WITH THE RING IT WAS DRAWN FOR.** August removed the rail's
+line because it threaded solid dots through a ruled table — two ways of saying
+"a list" at once — and that half was right. So the rules between rows went, and
+the line returned with the canvas's 13px hollow ring: the tone is the ring's
+EDGE (still `histTone`, still `HIST_KIND` and `HIST_OUTCOME_TONE`, so a refusal
+is still ruby), the middle is `--color-surface`, and the ring sits over the
+line. The line is one 1px piece per entry (`.hist-ev::before`), so the pieces
+meet however tall an entry grows — "Show the wording" included. The first
+piece starts at its ring's centre and the last ends at its ring's centre, so
+the line begins and stops at a ring and one entry alone draws none. Its left
+edge and both ends are computed from the SAME variables on `.hist-trail` that
+build the grid and the ring, so the two cannot drift. On a hovered row the
+ring's middle takes the row's wash, or it reads as a white coin.
+
+**THE ROUND IS `R1`, AND AN ENTRY IN NO ROUND SAYS SO.** The canvas's own
+marker, at the strong weight, with `ct_round_n` on the hover so it is still a
+name rather than a code. A row with no round draws the canvas's dash
+(`.is-none`, hidden from a screen reader) so the column always holds its width.
+
+**THE SENTENCE WAS ALREADY BLACK; IT READ GREY BECAUSE OF ITS WEIGHT.** Probed:
+`.hist-text` computed to the page's own ink by day and by night. What the owner
+saw as grey was 13px at the body weight in a thin face over a grey names line.
+The canvas's `.row-t` is 500, which is `--w-label`, and that is the change; the
+colour is now stated on the rule as well. The names line under it is untouched.
+
+**NOT CHANGED, said to the owner:** the counterparty's copy of the history and
+the shared history link (both draw the older pop-out design), the phone's own
+history tab, and the exported and printed report, which is chronological by
+design. The colour census moved by nothing: the ring's tones and the line's
+colour were all already on that screen, and theme-tokens-verify and
+contrast-verify report the same results before and after.
+
+Tests: f380 (20 claims, 16 red at the parent; the four that pass are named
+walls and controls), history-timeline-verify (33 checks, 26 red at the parent;
+6a and 8a are controls — the ink was already right — and 6b is the claim);
+history-head-verify 35/35 on both sides.
+
 ## THE HISTORY HEAD ASKS EACH QUESTION ONCE (owner-reported, 13 Aug 2026)
 
 "Whose asks am I looking at" was answered TWICE on the room's History tab: an Everyone / Ours / Theirs pill on the head AND the Side dropdown in the filter panel. They never disagreed — the chips wrote the same f.side, deliberately — but the duplicate ANNOUNCED ITSELF: a chip counted as "a filter is on", which sprang the panel open, which showed the reader their own choice repeated back in a different vocabulary. THE CHIPS ARE GONE AND THE LID WENT WITH THEM (#hist-filter, the Filter button): the five — Clause / Person / Side / Round / Outcome, plus Clear — sit in the open, and roomPaintHistory auto-opens nothing. .hist-segs / .hist-seg / data-ht-side and the keys ct_whose_changes / ct_filter are STALE — flag any mention (the two dictionary entries are left in place, inert). THE COST WAS WEIGHED AND TAKEN: the filter most reached for is two presses instead of one; it buys a duplicate that cannot come back, four filters that stop being a secret behind a button, and the real prize — ALL THREE HISTORY SCREENS NOW AGREE, because the pop-out record and the counterparty's read-only copy always looked exactly like this.

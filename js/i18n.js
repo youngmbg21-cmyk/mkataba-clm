@@ -1804,6 +1804,10 @@ const STRINGS = {
     ct_esc_to_leave: 'Esc to leave',
     ct_this_contract: 'This contract',
     ct_round_n: 'Round {n}',
+    /* The History tab's round column (24 Sep 2026) — the canvas's own short form;
+       ct_round_n above is its hover. */
+    ct_round_short: 'R{n}',
+    ct_hist_today: 'Today',
     /* the head's six facts (the reference's drawing, second pass 21 Sep 2026) */
     ct_fact_round: 'Round',
     ct_fact_copilot: 'Copilot',
@@ -6409,7 +6413,9 @@ const STRINGS = {
     ct_hist_print_wording: 'Print the wording that changed under each proposal',
     ct_hist_hide_wording: 'Hide the wording',
     ct_hist_show_wording: 'Show the wording',
-    ct_hist_reading: 'Oldest first · every entry names who and when',
+    /* Newest first since 24 Sep 2026 (the History tab's order was reversed on
+       the owner's word; the pop-out record and the export keep oldest first). */
+    ct_hist_reading: 'Newest first · every entry names who and when',
     ct_hist_none_match: 'Nothing matches these filters.',
     ct_hist_none_yet: 'Nothing has happened to this contract yet.',
     ct_hist_events_one: '{n} event',
@@ -9963,6 +9969,8 @@ const STRINGS = {
     ct_esc_to_leave: 'Esc för att lämna',
     ct_this_contract: 'Det här avtalet',
     ct_round_n: 'Runda {n}',
+    ct_round_short: 'R{n}',
+    ct_hist_today: 'Idag',
     ct_fact_round: 'Runda',
     ct_fact_copilot: 'Copilot',
     ct_copilot_read_n: 'Läst · {n} att titta på',
@@ -14046,7 +14054,7 @@ const STRINGS = {
     ct_hist_print_wording: 'Visa formuleringen som ändrades under varje förslag',
     ct_hist_hide_wording: 'Dölj formuleringen',
     ct_hist_show_wording: 'Visa formuleringen',
-    ct_hist_reading: 'Äldsta först · varje post namnger vem och när',
+    ct_hist_reading: 'Nyast först · varje post namnger vem och när',
     ct_hist_none_match: 'Inget matchar dessa filter.',
     ct_hist_none_yet: 'Inget har hänt med detta avtal ännu.',
     ct_hist_events_one: '{n} händelse',

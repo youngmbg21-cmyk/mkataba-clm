@@ -35,6 +35,10 @@ const { STRINGS, I18N_DEFAULT, LANGUAGES } = i18n;
 /* Words that are legitimately identical in both languages, so an equal-to-
    English value is a real translation rather than a forgotten one. */
 const SAME_IN_BOTH = new Set([
+  /* 'R{n}' is the same short form in both languages — "Runda" starts with R
+     too. The History tab's round column; its hover says the whole word in the
+     reader's language (24 Sep 2026). */
+  'ct_round_short',
   /* 'Version' is the same word in both languages — the row of the send-for-
      approval window that names which version is approved (23 Sep 2026). */
   'sa_dlg_version',

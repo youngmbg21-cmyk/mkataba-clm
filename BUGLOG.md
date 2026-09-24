@@ -19113,3 +19113,15 @@ Noticed, not fixed
 - The previous run's two dashboard findings no longer show on the census pages, because the rail is again not drawn on an undated card. The grey "No clock on these" count (.hm-rw-ncn, grey-dot 2.98:1) is still faint wherever the rail does draw an undated group — the fault is unchanged, only out of the census's sight.
 - rowsThatFit has its caller back (Home), so the previous run's note that it has none is moot.
 - keeps-your-place-verify stops with an error at its line 179 on both sides (the same before and after; not investigated).
+
+## Run 24 Sep 2026 — the History tab reads as a line of time
+
+- On the owner's word, over a picture of the Production Polish canvas with the day column and the round column ringed: "Implement the highlighted designs in the picture in the history tab. The way the history is chronicled, the line attaching the history and rounds. Also the sentences above the names should be in black font."
+- Built on the contract's History tab: newest entry first; the day a person would say ("Today", "22 Sept", the year only for another year) with the time under it; a ring in the kind's tone joined by one thin line from the first entry to the last, with no rules across the page; the round as "R1" (the whole word on the hover) and a dash where an entry has no round; the sentence above the names in the page's ink at the label weight. Only the drawing is turned round — the reading (roomHistoryEvents) stays oldest first.
+- Gates: lint 0 errors, 213 warnings (unchanged). Full suite 9,118 tests, 2 failed — f277 (1) and (10), red on main with the same checks. f380: 20/20, 16 red at the parent. history-timeline-verify: 33/33, 26 red at the parent. history-head-verify 35/35 on both sides; theme-tokens-verify, contrast-verify and room-order-and-notices-verify fail on exactly the parent's checks.
+
+Noticed, not fixed
+- At night the History ring for a proposal (--color-accent, dark teal) is hard to see on the dark ground. The old solid dot had the same tone and the same problem.
+- The History tab's five filters are hardcoded English — the labels (Clause, Person, Side, Round, Outcome), the Side and Outcome options, and each Round option ("Round 1") — so a Swedish reader sees English there.
+- The other side's copy of the history and the shared history link (negoTimelineScreenHtml) still draw the older design: 22px glyph marks, oldest first, the ISO day. Left alone on purpose; the owner has been told.
+- room-order-and-notices-verify: three checks red on both sides ("nothing still awaiting an answer sits under a decided change", "the All / Mine / Theirs cuts are untouched").

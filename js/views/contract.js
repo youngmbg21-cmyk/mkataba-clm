@@ -6636,8 +6636,62 @@ function roomHistoryEvents(c,f={}){
    module prints the raw name rather than throwing. */
 const _ctClauseName = s => (window.negoClauseName ? negoClauseName(s)
   : String(s == null ? '' : s));
+/* ---- THE DAY OVER THE TIME (Young ruled 24 Sep 2026, over a picture of the
+   "HaTi — Production Polish" canvas) ----
+   The column printed the record's own ISO day, "2026-09-24", on every row, so
+   a reader worked out which of seven identical dates was this morning. The
+   canvas prints the DAY a person would say — "Today", "22 Sep" — with the
+   time under it, and that is what this returns: {day, time}.
+
+   THE REVERSAL IS SAID OUT LOUD. The note in the row below, of 24 Aug, chose
+   "the DATE ONLY" because "the trail stores a day for most entries". MEASURED
+   today it does not: every writer stamps a full time (logAudit's nowISO, and
+   the negotiation's createdAt / resolvedAt / withdrawn.at / a round's own at),
+   so the time was on the record the whole while and the column was throwing it
+   away. A record stamped with a day and nothing else — an older import — gets
+   the day alone: printing 00:00 would be the product inventing a time.
+
+   THE YEAR ONLY WHERE IT IS NOT THIS YEAR. The canvas draws two months of one
+   year; a trail that crosses New Year must not print "5 Mar" for two different
+   Marches. The month follows the READER'S language (langLocale — the register's
+   own reading), the time is the product's one clock (negoWhen, through window;
+   the same arithmetic as its own fallback), and a value that is not a date is
+   printed as it came rather than as NaN. */
+function histWhen(at, now){
+  const s=String(at==null?'':at);
+  const dayOnly=/^\d{4}-\d{2}-\d{2}$/.test(s);
+  /* A bare day parses as UTC midnight, which is YESTERDAY for every reader
+     west of Greenwich; read it as the local day it names, regDotDate's way. */
+  const d=new Date(dayOnly?s+'T00:00:00':s);
+  if(!s||isNaN(d.getTime())) return { day:s.slice(0,10), time:'' };
+  const n=now||new Date();
+  const thisYear=d.getFullYear()===n.getFullYear();
+  let day;
+  if(thisYear&&d.getMonth()===n.getMonth()&&d.getDate()===n.getDate()) day=i18t('ct_hist_today');
+  else {
+    const loc=(typeof langLocale==='function')?langLocale():undefined;
+    try{ day=d.toLocaleDateString(loc,thisYear?{day:'numeric',month:'short'}
+      :{day:'numeric',month:'short',year:'numeric'}); }catch(_){ day=s.slice(0,10); }
+  }
+  let time='';
+  if(!dayOnly){
+    if(window.negoWhen) time=negoWhen(s);
+    else { try{ time=d.toLocaleTimeString((typeof jxLocale==='function')?jxLocale():undefined,
+      {hour:'2-digit',minute:'2-digit'}); }catch(_){ time=''; } }
+  }
+  return { day, time };
+}
 function roomHistoryHtml(c,f={}){
-  const evs=roomHistoryEvents(c,f);
+  /* ---- NEWEST FIRST (Young ruled 24 Sep 2026: "The way the history is
+     chronicled") ----
+     The canvas reads "N events · newest first" with Today at the top; this page
+     read oldest first, so the thing a reader opened the tab to find — what
+     happened last — was at the bottom of a list that only grows. THE READING IS
+     NOT TURNED ROUND, only the drawing: roomHistoryEvents is still oldest first
+     for every caller that reads it, and the count below still counts it. A
+     stable sort reversed puts two entries stamped at one instant in the order
+     they were written, latest first, which is what newest first means. */
+  const evs=roomHistoryEvents(c,f).slice().reverse();
   /* The total is the UNFILTERED list, counted the same way — merged twins are
      one event in both, so "7 of 11" can never appear over a page that is
      hiding nothing. */
@@ -6653,12 +6707,23 @@ function roomHistoryHtml(c,f={}){
        The DATE ONLY, as before: the trail stores a day for most entries and a
        column that is sometimes a time and sometimes not is worse than one that
        is always a day. */
-    const when=e.at?String(e.at).slice(0,10):'';
+    /* REVERSED 24 Sep 2026 — see histWhen above: the day a person would say,
+       with the time under it. */
+    const w=histWhen(e.at);
     /* WHO, on its own line under WHAT — the design's shape, and it is what the
        full width bought. The ROUND leaves this run for a marker at the right
        edge, so the eye can find where one round ends without reading. */
     const meta=[e.actor||'',e.clauseLabel||''].filter(Boolean).map(esc).join(' · ');
-    const rd=(e.round!=null&&e.round!=='')?`<span class="hist-round">${esc(i18t('ct_round_n',{n:e.round}))}</span>`:'';
+    /* ---- THE ROUND IS "R1", AND AN ENTRY IN NO ROUND SAYS SO (24 Sep 2026) ----
+       The canvas's own marker. "Round 1" beside every one of a round's rows
+       was the same word repeated down the right wall; the short form is the
+       column, and the whole name rides the hover so it is still nameable
+       rather than a code. A row with no round — created, sent, signed — draws
+       the canvas's dash rather than nothing, so the column holds its width and
+       an empty cell cannot be read as a round nobody printed. */
+    const rd=(e.round!=null&&e.round!=='')
+      ?`<span class="hist-round" title="${esc(i18t('ct_round_n',{n:e.round}))}">${esc(i18t('ct_round_short',{n:e.round}))}</span>`
+      :`<span class="hist-round is-none" aria-hidden="true">—</span>`;
     /* ---- THE WORDING THAT CHANGED, UNDER THE EVENT THAT CHANGED IT ----
        The exported report prints each proposal's redline and the page did not,
        which is why the export read as the fuller record. Same builder, same
@@ -6681,10 +6746,14 @@ function roomHistoryHtml(c,f={}){
        at 8px solid it is the same reading in the space the design gives it, and
        the tone is unchanged — HIST_KIND is still the one table. The glyph is
        not lost: it rides the dot's own hover, so the kind is still nameable
-       rather than colour-only. */
-    return `<div class="hist-ev">
-      <span class="hist-when">${esc(when)}</span>
-      <span class="hist-dot" style="background:${histTone(e)}" title="${esc(m.mark)}" aria-hidden="true"></span>
+       rather than colour-only.
+       A RING SINCE 24 SEP 2026: the tone is the EDGE and the middle is the
+       page's own surface, because the line that joins the entries runs behind
+       it (the stylesheet). Still HIST_KIND and HIST_OUTCOME_TONE, still read
+       through histTone — a refusal is still ruby. */
+    return `<div class="hist-ev" data-hist-at="${esc(e.at||'')}">
+      <span class="hist-when"><span class="hist-day">${esc(w.day)}</span>${w.time?`<span class="hist-time">${esc(w.time)}</span>`:''}</span>
+      <span class="hist-dot" style="border-color:${histTone(e)}" title="${esc(m.mark)}" aria-hidden="true"></span>
       <div class="hist-body"><div class="hist-text">${esc(e.text||'')}</div>
       <div class="hist-meta">${meta}${also?(meta?' · ':'')+also:''}</div>${body}${why}${reply}</div>
       ${rd}</div>`;
@@ -6745,7 +6814,12 @@ function roomHistoryHtml(c,f={}){
     </div>
     <div id="hist-filters" style="margin-bottom:10px">${roomHistoryFiltersHtml(c,f)}</div>
     <div id="ht-verify-result"></div>
-    ${evs.length?evs.map(row).join('')
+    ${''/* THE TRAIL IS ONE ELEMENT (24 Sep 2026) so the line joining the rings
+           knows where it starts and stops: it begins at the first entry's ring
+           and ends at the last's, and a filter that leaves one entry draws no
+           line at all. The empty sentence stays outside it — there is nothing
+           to join. */}
+    ${evs.length?`<div class="hist-trail">${evs.map(row).join('')}</div>`
       :`<p class="hist-empty">${on?esc(i18t('ct_hist_none_match')):esc(i18t('ct_hist_none_yet'))}</p>`}`;
 }
 function roomHistoryFiltersHtml(c,f){
@@ -15014,7 +15088,7 @@ Object.assign(window,{paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,
      I walked it on re-rendered the workspace, which measures on the way in. */
   layoutDocResizer,renderSignButton,renderSignSide,roomFactsHtml,signBlockHtml,signReadinessCardHtml,signRowTitle,signWhyShort,SIGN_WHY_WORDS,signLandOnList,signCheckEscalate,signCheckTake,signRiskDismiss,signConsentStamp,signHeadLabel,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,reviewReturnedRound,docWorkingTextNoteHtml,docNothingWrittenHtml,docHasNoWording,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
-  ROOM_TABS,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomCurrentTab,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,ktDayDot,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,tplFormOpenFields,openCheckPanel,roomHeadHtml,wireRoomHead,
+  ROOM_TABS,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomCurrentTab,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,histWhen,roomVersionsHtml,docFillable,ktDayDot,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,tplFormOpenFields,openCheckPanel,roomHeadHtml,wireRoomHead,
   DOC_SEL_ACTIONS,wireDocCopilotSel,docAiRead,docSelKill,
   /* idea 7 — the plain-English layer. Published because a name read through
      window from another module, or from a test stage, is silence when it is
