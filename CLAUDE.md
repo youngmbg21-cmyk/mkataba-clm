@@ -1913,3 +1913,11 @@ Diagnosed off a Warehousing agreement and a Maersk SaaS upload; the owner approv
 - MEASURED: first ink unmoved on the Document tab (271.9) and up 1px on the negotiate page (287.7 → 286.7).
 Tests: f377 (9 of 10 red at the parent; the monospace is the WALL), type-and-symbols-verify section 1 reversed in place.
 
+
+## THE TABLE'S FOOT IS THE COUNT AND THE PAGER (Young ruled 24 Sep 2026)
+
+*"delete this from both the contracts and negotiations pages"*, over the VALUE STREAMS key and "40 per page"; asked about Negotiations' own note in that spot: *"remove it too."*
+- ONE foot, both seats: `#reg-showing` + `#reg-pager`, nothing else. `reg_per_page` and `ngl_no_paging` are STALE, inert in both books. REVERSES "the value streams key stays" (the stripe had moved into the stream cell on 21 Sep — the key was the fact printed twice). The count still says "page 1 of 2".
+- The Board view is the same page: `pipeBoardHtml(cs,{legend:false})`. My Queue was not named and keeps its key — the default is the old markup, byte for byte.
+- theme-tokens-verify's two register screens lose the two stream colours only the key drew; the baseline was NOT re-recorded (the edit was refused in that session) — see BUGLOG.
+Tests: f378 (4 of 7 red at the parent; a wall and two controls), register-foot-verify (9 of 19 red; the ten are controls, the stage and the error sweep); f97's claim reversed in place.

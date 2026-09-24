@@ -128,8 +128,16 @@ describe('F97 — one builder, so the two tables cannot disagree', () => {
     const foot = reg.slice(at);
     assert.ok(!/shareLegendHtml\(/.test(foot),
       'the register footer was the crowded one; the link key came out of it');
-    assert.ok(/folderLegendHtml\(/.test(foot),
-      'the value-stream key stays — the row edge-stripe has no other explanation');
+    /* ---- REVERSED IN PLACE 24 Sep 2026 (Young, over a screenshot of this
+       foot: "delete this from both the contracts and negotiations pages") ----
+       This asserted the value-stream key STAYED, "the row edge-stripe has no
+       other explanation". That stopped being true on 21 Sep 2026, when the
+       stripe moved into the stream cell beside the stream's own name — the
+       key was then the same fact printed twice, and it wrapped the foot into
+       a wall. The whole ruling is pinned in f378; this claim now says the
+       opposite of what it said. */
+    assert.ok(!/folderLegendHtml\(/.test(foot),
+      'the value-stream key is gone from the register foot too — the stream cell names its own colour');
   });
 
   test('and the register column still explains itself without one', () => {
