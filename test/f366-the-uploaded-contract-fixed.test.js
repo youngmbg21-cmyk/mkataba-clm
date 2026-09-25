@@ -16,7 +16,8 @@
      E  the map's segments are sized by the clause's whole words
      F  the obligations tile opens the found list while the tab is empty
      G  every concern carries its reason; the brief asks for it
-     H  "About this contract" is shaded a very light red
+     H  "About this contract" is shaded a very light red — REVERSED 25 Sep
+        2026: the shade is Worth a look's, and About this contract is gone
      I  "Who else is on this agreement" takes the card's own inset
      J  "What Copilot read" stands its head row clear of the card's head
      K  Parties draws one line under its head, not two
@@ -213,7 +214,7 @@ const C = {
 const HEAD_ROW = { headed: true, heading: '4.3 No suspension. Irrespective of any dispute, Supplier shall meet its obligation to provide the Services and is not entitled to suspend, withhold, discontinue or interrupt the Services.', text: '' };
 const PAY_ROW = { headed: false, heading: 'Due payment.', text: '5.6 Due payment. Payment is due sixty (60) days from receipt of a correct invoice.' };
 
-describe('f366 (C, D, E) every concern is placed on its clause or said about the whole contract', () => {
+describe('f366 (C, D, E) every concern is placed on its clause; what lands nowhere is gathered by a dormant reading', () => {
   test('the X-ray block evaluates', () => assert.ok(X, 'the block between DOC_XRAY_QUOTE_MIN and docXrayClauseId runs'));
   test('C · a quote is matched against the clause\'s name AND its wording', () => {
     if (!X) return assert.fail('no X-ray');
@@ -228,7 +229,11 @@ describe('f366 (C, D, E) every concern is placed on its clause or said about the
     const m = X.docXrayMarks(C, PAY_ROW);
     assert.equal(m.filter(x => x.k === 'pb').length, 0, 'aligned is not amber');
   });
-  test('D · nothing is dropped: an unplaced scan finding is said about the whole contract, worst first', () => {
+  /* RE-POINTED IN PLACE 25 Sep 2026: the X-ray no longer SAYS these (the owner
+     had About this contract taken out), but the reading that gathers them is
+     kept whole with no caller, so its behaviour is still pinned here — and the
+     H claim below pins that nothing draws it. */
+  test('D · the dormant whole-contract reading still gathers an unplaced scan finding, worst first', () => {
     if (!X) return assert.fail('no X-ray');
     const wide = X.docXrayWide(C, [{ row: HEAD_ROW }, { row: PAY_ROW }]);
     const scan = wide.filter(x => x.k === 'scan');
@@ -238,7 +243,7 @@ describe('f366 (C, D, E) every concern is placed on its clause or said about the
     const ranks = wide.map(x => X.XR_GRADES.indexOf(x.grade));
     assert.deepEqual(ranks, [...ranks].sort((a, b) => a - b), 'worst first');
   });
-  test('G · an unusual term that carries a quote is placed; a bare one stays about the whole contract', () => {
+  test('G · an unusual term that carries a quote is placed; a bare one is gathered by the dormant reading', () => {
     if (!X) return assert.fail('no X-ray');
     const row = { headed: false, text: '12.4 Maersk may terminate on a change of Control of Supplier without cost.' };
     const m = X.docXrayMarks(C, row);
@@ -261,11 +266,21 @@ describe('f366 (C, D, E) every concern is placed on its clause or said about the
   test('E · the map is sized by the clause\'s whole words', () => {
     assert.ok(/words:_xrWords\(docXrayRowText\(r\)\)/.test(ROOM));
   });
-  test('H · "About this contract" is shaded a very light red, in both themes', () => {
-    assert.ok(/wide\.map\(docXrayMarkHtml\)\.join\(''\),'is-wide'\)/.test(ROOM), 'the section carries the class');
-    const rule = INDEX.slice(INDEX.indexOf('.doc-xr-sec.is-wide{'), INDEX.indexOf('.doc-xr-sec.is-wide{') + 300);
+  /* REVERSED IN PLACE 25 Sep 2026 (Young: "i want this highlighted area in
+     the x-ray page to be the area that is highlighted in light red … this
+     'about contract x' portion should be excluded from the x-ray so there is
+     only one red highlighted area which is the worth a look area"). The same
+     shade, mixed the same way, moved onto the clause's own Worth a look — and
+     only while that list holds something. Nothing draws is-wide any more. */
+  test('H · Worth a look carries the very light red, only while it holds something, in both themes', () => {
+    assert.ok(/marks\?'is-look has':'is-look'/.test(ROOM), 'the clause list carries the shade only when it has marks');
+    assert.ok(!/'is-wide'/.test(ROOM), 'and nothing builds the old contract-level block');
+    const at = INDEX.indexOf('.doc-xr-sec.is-look.has{');
+    assert.ok(at > 0, 'the rule exists');
+    const rule = INDEX.slice(at, INDEX.indexOf('}', at));
     assert.ok(/background:color-mix\(in srgb,var\(--st-ruby-bg\) 55%,var\(--color-surface\)\)/.test(rule),
       'mixed from the ruby wash and the surface, so the night theme answers');
+    assert.ok(!/\.doc-xr-sec\.is-wide\{/.test(INDEX), 'and nothing dresses the stale class');
   });
 });
 

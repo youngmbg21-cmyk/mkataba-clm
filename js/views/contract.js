@@ -12104,6 +12104,15 @@ function docXrayMarks(c,row){
 }
 /* ---- WHAT IS SAID ABOUT THE WHOLE AGREEMENT (U1, the owner's pick) ----
 
+   DORMANT SINCE 25 SEP 2026, KEPT WHOLE (Young: "this 'about contract x'
+   portion should be excluded from the x-ray so there is only one red
+   highlighted area which is the worth a look area"). The panel draws it no
+   more; it stays the one reading of "which concerns land on no clause", with
+   no caller, because a reading deleted outright is rebuilt worse a month
+   later and two lines in docXrayPanelHtml put it back. What it listed is
+   still read where it came from — the Brief, the Risk scan and the Playbook
+   check. The note below is how it read while it was drawn.
+
    Everything that could not be tied to one clause's wording lands here, from
    EVERY source — never quietly dropped (D, Young reported it 22 Sep 2026: "the
    X-ray is not adding risk scans to the things to watch out for"). A scan
@@ -12164,6 +12173,362 @@ function docXrayRows(c){
   return out;
 }
 const docXrayLabel = x => ((x.cite?x.cite+(x.sep||(/\./.test(x.cite)?'':'.'))+' ':'')+(x.name||i18t('xr_unnamed'))).trim();
+
+/* ================================================================
+   WHO DOES WHAT — the X-ray panel's third section
+   (Young ruled 25 Sep 2026)
+   ================================================================
+   *"i want this highlighted area in the x-ray page to be the area that is
+   highlighted in light red … this 'about contract x' portion should be
+   excluded from the x-ray … Advise what I can add there … It should not be
+   something that will be constant every time you move to a different clause"*
+   — and, over three drawn options for that space, *"build it using your
+   recommendation of who does what"*.
+
+   WHAT THIS CLAUSE MAKES EACH SIDE DO, WHAT EACH SIDE MAY DO, AND WHAT IT
+   LIMITS: one line per sentence that says so, sorted by who — you, them,
+   both, then any line whose side cannot be told — and within a side in the
+   paper's own order. Pressing a line takes the paper to that sentence through
+   scrollToQuote, the risk scan's own "take me to these words", never a second
+   finder.
+
+   NO MODEL DECIDES ANY OF IT — the safety the duty highlighter rests on
+   (19 Sep 2026). A DUTY is DOC_DUTY_RE's own phrase: that pattern, never a
+   copy of it. A RIGHT is "may" (or "is entitled to", "has the right to") in
+   front of an action verb from a named list, and "may not" is a prohibition.
+   A LIMIT is the handful of phrases that cap or exclude a liability. It reads
+   English drafting and nothing else: CONTRACT TEXT IS NEVER TRANSLATED, so a
+   Swedish clause finds nothing and the section says so in words.
+
+   WHO, IN THIS ORDER — the order the owner was shown on the drawing:
+     1. words that name BOTH sides ("either party", "each party", "the
+        parties") are both. The Obligations tab records ONE owner per item
+        and cannot say "both", so on a mutual sentence it is not asked;
+     2. an obligation ON THE OBLIGATIONS TAB whose own quote sits in the
+        sentence answers with its owner (obligationIsTheirs) — somebody may
+        have ruled on it there;
+     3. a party's own name in the sentence: the legal name on the record,
+        the word the paper calls them (the parties list's role), or the short
+        name the paper defines in brackets after the legal name ("Customer");
+     4. otherwise UNCLEAR, said in words and never guessed.
+
+   IT SPENDS NOTHING, STORES NOTHING AND ADDS NO ROUTE: the painted page, the
+   parties list and the Obligations tab are all already on this screen. And
+   READING MUST NOT WRITE — nothing here touches the record.
+   ================================================================ */
+const XR_WD_MAX = 12;         /* a cap is a fact: the rest are counted and said */
+const XR_WD_WORDS = 32;       /* longer is cut at a word; the whole sentence is on the hover */
+const XR_WD_SIDES = ['you','them','both','unclear'];   /* the order IS the sort */
+/* THE DUTY PATTERN IS BORROWED WHOLE; a non-global twin of the same source,
+   because the original carries the `g` flag for its painter and a shared
+   lastIndex between two readers is a bug that only shows on the second call. */
+const _xrDutyRe = () => new RegExp(DOC_DUTY_RE.source, 'i');
+/* Where the VERB starts inside a duty match, so a line can begin at what the
+   side must do ("pay each undisputed invoice…") rather than repeat "shall".
+   The same two lists the pattern is built from; no head word is on either. */
+const _xrDutyVerbRe = () => new RegExp('(?:' + DOC_DUTY_VERB.concat(DOC_DUTY_STATE, ['responsible\\s+for'])
+  .map(v => v.replace(/ /g, '\\s+')).join('|') + ')\\b', 'i');
+/* A RIGHT: may, or one of its longer spellings, then an action verb. The verb
+   list is what keeps "may be", "may have" and "as may be agreed" out. */
+const XR_RIGHT_HEAD = ['may','shall be entitled to','is entitled to','are entitled to',
+  'shall have the right to','has the right to','have the right to','reserves the right to',
+  'reserve the right to','is permitted to','are permitted to'];
+const XR_RIGHT_VERB = ['terminate','suspend','withhold','assign','transfer','subcontract','audit','inspect',
+  'reject','cancel','renew','extend','recover','deduct','set off','offset','charge','increase','use',
+  'disclose','request','require','elect','appoint','retain','remove','replace','return','refuse',
+  'decline','claim','seek','enter','access','sell','dispose of','publish','amend','vary','modify',
+  'purchase','order','resell','distribute','sublicense','license','engage','solicit','verify','review',
+  'approve','accept','exercise','give','invoice','store','collect','rely on','end'];
+const XR_RIGHT_RE = new RegExp('\\b(' + XR_RIGHT_HEAD.map(h => h.replace(/ /g, '\\s+')).join('|') + ')\\s+(not\\s+)?'
+  + DOC_DUTY_ADV + '(' + XR_RIGHT_VERB.map(v => v.replace(/ /g, '\\s+')).join('|') + ')\\b', 'i');
+/* A LIMIT caps or excludes a liability. "not limited to" is NOT one — it is
+   "including but not limited to", the commonest phrase in drafting — so the
+   pattern asks for is/are/be in front of "limited to". */
+const XR_LIMIT_RE = /\b(?:in\s+no\s+event\s+(?:shall|will)|(?:shall|will)\s+not\s+be\s+(?:liable|responsible)|(?:is|are)\s+not\s+(?:liable|responsible)|(?:shall|will)\s+not\s+exceed|(?:is|are|be)\s+capped\s+at|(?:is|are|be)\s+limited\s+to)\b/i;
+/* Words that name BOTH sides — asked of the SUBJECT only, so "notice to the
+   other party" in the object never turns a one-sided duty into a mutual one. */
+const XR_BOTH_RE = /\b(?:either|each|both|neither)\s+(?:of\s+the\s+)?part(?:y|ies)\b|\b(?:the|both)\s+parties\b/i;
+/* A SUB-CLAUSE'S OWN NUMBER at the start of a paragraph — "XIV.2", "20.1",
+   "4.3.1" — which is what a line cites. Roman or arabic, always dotted, so a
+   year or an amount is never read as one. */
+const XR_CITE_RE = /^\s*((?:[IVXLC]+|\d{1,3})(?:\.\d{1,3})+)\b/;
+/* An abbreviation's full stop is not the end of a sentence. */
+const XR_ABBR_RE = /\b(?:e\.g|i\.e|etc|inc|ltd|co|corp|no|nos|art|arts|sec|secs|cl|para|mr|mrs|ms|dr|st|vs|u\.s|u\.k)\.$/i;
+
+/* ONE PARAGRAPH'S SENTENCES. Conservative on purpose: a split is only made at
+   a full stop, question or exclamation mark followed by a capital or a digit,
+   and never after an abbreviation — a sentence cut in half is a duty read
+   without its subject. */
+function xrSentences(t){
+  const s = String(t == null ? '' : t).replace(/\s+/g, ' ').trim();
+  if(!s) return [];
+  const out = [];
+  const re = /[.!?]["”’)\]]*\s+(?=["“(\[]?[A-Z0-9])/g;
+  let from = 0, m;
+  while((m = re.exec(s))){
+    if(XR_ABBR_RE.test(s.slice(from, m.index + 1))) continue;
+    const piece = s.slice(from, m.index + m[0].length).trim();
+    if(piece) out.push(piece);
+    from = m.index + m[0].length;
+  }
+  const rest = s.slice(from).trim();
+  if(rest) out.push(rest);
+  return out;
+}
+/* THE CLAUSE'S OWN PARAGRAPHS on the painted page: every leaf block from the
+   clause's anchor up to the next clause's, or up to the first piece of
+   furniture that follows (docReadSheet's own stopping rule). Read off the
+   page the reader is looking at, so a line and the sentence the press lands
+   on are the same words. */
+function xrClauseBlocks(rows, i){
+  const canvas = (typeof document !== 'undefined') ? document.getElementById('doc-canvas') : null;
+  const x = rows && rows[i];
+  if(!canvas || !x || !x.el) return [];
+  const FOLLOW = Node.DOCUMENT_POSITION_FOLLOWING;
+  const furniture = Array.from(canvas.querySelectorAll(DOC_READ_FURNITURE));
+  const stop = (rows[i + 1] && rows[i + 1].el)
+    || furniture.find(f => !f.contains(x.el) && !!(x.el.compareDocumentPosition(f) & FOLLOW)) || null;
+  const within = el => {
+    if(el !== x.el && !x.el.contains(el) && !(x.el.compareDocumentPosition(el) & FOLLOW)) return false;
+    if(stop && (el === stop || stop.contains(el) || (stop.compareDocumentPosition(el) & FOLLOW))) return false;
+    if(furniture.some(f => f === el || f.contains(el))) return false;
+    return !el.closest('[data-pg-layer]');
+  };
+  const LEAF = 'h1,h2,h3,h4,h5,h6,p,li,td,th,blockquote,pre,div';
+  return Array.from(canvas.querySelectorAll(LEAF))
+    .filter(el => !el.querySelector(LEAF) && within(el)
+      && String(el.textContent || '').replace(/\s+/g, ' ').trim());
+}
+/* WHO EACH SIDE IS CALLED ON THIS PAPER, lower-cased. Borrowed, never
+   invented: the parties list (its legal names and the words the paper uses
+   for them) and the short name the paper itself defines in brackets right
+   after a legal name — `Highland Corporate Ltd ("Customer")`. The search for
+   that short name stops at the next party's name, so one side's bracket is
+   never read as the other's. */
+function xrPartyNames(c, pageText){
+  const out = { ours: [], theirs: [] };
+  let list = [];
+  try{ list = (typeof contractParties === 'function') ? (contractParties(c) || []) : []; }catch(_){ list = []; }
+  if(!list.length){
+    list = [{ side: 'ours', name: String((c && c.party) || '') },
+            { side: 'theirs', name: String((c && c.counterparty) || '') }];
+  }
+  const fold = s => String(s == null ? '' : s).replace(/\s+/g, ' ').trim().toLowerCase().replace(/^the\s+/, '');
+  const page = String(pageText || '');
+  const low = page.toLowerCase();
+  const names = list.map(p => fold(p.name)).filter(n => n.length >= 3);
+  const DEF = /\(\s*(?:the\s+|each\s+an?\s+|hereinafter(?:\s+(?:referred\s+to\s+as|called))?\s+(?:the\s+)?)?["“'‘]([^"”'’()]{2,40})["”'’]\s*\)/;
+  list.forEach(p => {
+    const bin = p.side === 'ours' ? out.ours : out.theirs;
+    const put = v => { const f = fold(v); if(f.length >= 3 && bin.indexOf(f) < 0) bin.push(f); };
+    put(p.name); put(p.role);
+    const nm = fold(p.name);
+    if(nm.length < 3) return;
+    const at = low.indexOf(nm);
+    if(at < 0) return;
+    let end = Math.min(low.length, at + nm.length + 300);
+    names.forEach(o => { if(o === nm) return; const j = low.indexOf(o, at + nm.length); if(j >= 0 && j < end) end = j; });
+    const m = DEF.exec(page.slice(at + nm.length, end));
+    if(m) put(m[1]);
+  });
+  return out;
+}
+/* A NAME IS FOUND AS A WHOLE NAME, never inside a longer word. */
+const _xrHasName = (text, name) => {
+  const t = ' ' + String(text || '').toLowerCase().replace(/[^a-z0-9&.'’\- ]+/g, ' ').replace(/\s+/g, ' ') + ' ';
+  const n = String(name || '').toLowerCase().replace(/[^a-z0-9&.'’\- ]+/g, ' ').replace(/\s+/g, ' ').trim();
+  if(!n) return false;
+  return new RegExp('[ (]' + n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + "(?:'s|’s)?[ ,.;:)]").test(t);
+};
+function xrSideByName(subject, names){
+  const ours = (names.ours || []).some(n => _xrHasName(subject, n));
+  const theirs = (names.theirs || []).some(n => _xrHasName(subject, n));
+  if(ours && theirs) return 'both';
+  return ours ? 'you' : theirs ? 'them' : '';
+}
+/* WHAT ONE SENTENCE DOES, and where its verb starts: the EARLIEST of a duty, a
+   right or a limit, because the first phrase in a sentence is the one its
+   subject governs. Null where the sentence does none of the three. */
+function xrActOf(s){
+  const t = String(s || '');
+  const found = [];
+  const d = _xrDutyRe().exec(t);
+  if(d){
+    const v = _xrDutyVerbRe().exec(d[0]);
+    found.push({ at: d.index, len: d[0].length, verbAt: d.index + (v ? v.index : 0),
+      kind: /\bnot\b/i.test(d[0]) ? 'mustnot' : 'must' });
+  }
+  const r = XR_RIGHT_RE.exec(t);
+  if(r){
+    const head = r[1] || '', not = r[2] || '';
+    const verbAt = r.index + r[0].indexOf(r[3], head.length + not.length);
+    found.push({ at: r.index, len: r[0].length, verbAt, kind: not ? 'mustnot' : 'may' });
+  }
+  const l = XR_LIMIT_RE.exec(t);
+  if(l) found.push({ at: l.index, len: l[0].length, verbAt: -1, kind: 'limit' });
+  if(!found.length) return null;
+  found.sort((a, b) => a.at - b.at);
+  const hit = found[0];
+  /* "NEITHER PARTY SHALL disclose" is a promise NOT to: the negative lives in
+     the subject, not beside the verb. Asked of the subject alone, so "notice
+     to neither party" in the object never turns a duty round. */
+  if(hit.kind !== 'limit' && /\b(?:neither|no)\s+(?:of\s+the\s+)?part(?:y|ies)\b/i.test(t.slice(0, hit.at).split(/[,;:]/).pop()))
+    hit.kind = 'mustnot';
+  return hit;
+}
+/* WHERE THE SUBJECT ENDS IN A SENTENCE THE OBLIGATIONS TAB VOUCHES FOR.
+   The duty pattern's verb list is the owner's own, narrow on purpose, so a
+   sentence can be a duty on the tab ("the parties shall cooperate") without
+   one of its verbs. The tab already says it is a duty; this only finds the
+   modal, so the subject can be read and the line can start at the verb. It
+   is asked of such sentences and of no other. */
+const XR_MODAL_RE = /\b(?:shall|must|will|agrees?\s+to|undertakes?\s+to|(?:is|are)\s+(?:required|obliged)\s+to)\s+(not\s+)?/i;
+/* WHOSE OBLIGATION, off the tab's own reading where it is loaded; an item
+   filed before the field existed reads as ours, as it does everywhere. */
+const _xrObTheirs = o => {
+  try{ if(typeof window.obligationIsTheirs === 'function') return !!window.obligationIsTheirs(o); }catch(_){}
+  return !!(o && o.party === 'theirs');
+};
+/* WHICH SENTENCE AN OBLIGATION ON THE TAB IS ABOUT, by its own quote and the
+   containment the rest of the X-ray insists on: the sentence holds the quote,
+   or the quote spans the sentence, or the sentence holds the quote's opening.
+   The first sentence that answers takes it, so one item is one line. */
+function xrPlaceObligations(c, sentences){
+  const at = new Map();
+  const obs = (c && Array.isArray(c.obligations)) ? c.obligations : [];
+  const norm = sentences.map(s => _xrNorm(s.text));
+  obs.forEach(o => {
+    const q = _xrNorm(o && o.quote);
+    if(q.length < DOC_XRAY_QUOTE_MIN) return;
+    const open = q.length >= 60 ? q.slice(0, 60) : '';
+    const i = norm.findIndex(s => s.indexOf(q) >= 0
+      || (s.length >= DOC_XRAY_QUOTE_MIN && q.indexOf(s) >= 0)
+      || (open && s.indexOf(open) >= 0));
+    if(i < 0) return;
+    if(!at.has(i)) at.set(i, []);
+    at.get(i).push(o);
+  });
+  return at;
+}
+/* A LINE LONGER THAN XR_WD_WORDS IS CUT AT A WORD, and the cut is said with
+   an ellipsis; the whole sentence rides on the line's hover. */
+const _xrCut = t => {
+  const w = String(t || '').trim().split(/\s+/);
+  return w.length > XR_WD_WORDS ? w.slice(0, XR_WD_WORDS).join(' ') + '…' : w.join(' ');
+};
+/* THE ONE READING: the lines of "Who does what" for the clause the panel is
+   about. Plain data — the builder below draws it and computes nothing. */
+function docXrayWho(c, rows, i){
+  const blocks = xrClauseBlocks(rows, i);
+  if(!blocks.length) return { lines: [], total: 0, tally: {} };
+  const x = rows[i];
+  const sentences = [];
+  let cite = String((x && x.cite) || '');
+  blocks.forEach(el => {
+    const t = String(el.textContent || '').replace(/\s+/g, ' ').trim();
+    const m = XR_CITE_RE.exec(t);
+    if(m) cite = m[1];
+    xrSentences(t).forEach(s => sentences.push({ text: s, cite }));
+  });
+  const canvas = document.getElementById('doc-canvas');
+  const names = xrPartyNames(c, canvas ? String(canvas.textContent || '').replace(/\s+/g, ' ') : '');
+  const placed = xrPlaceObligations(c, sentences);
+  const lines = [];
+  sentences.forEach((s, n) => {
+    let act = xrActOf(s.text);
+    const obs = placed.get(n) || [];
+    if(!act && !obs.length) return;
+    /* A sentence the tab vouches for, with no verb from the duty list: the
+       modal alone places the subject and the start of the line. */
+    if(!act){
+      const m = XR_MODAL_RE.exec(s.text);
+      if(m) act = { at: m.index, len: m[0].length, verbAt: m.index + m[0].length, kind: m[1] ? 'mustnot' : 'must', tab: true };
+    }
+    const kind = act ? act.kind : 'must';
+    let subject = '';
+    if(act){
+      const before = s.text.slice(0, act.at);
+      subject = before.split(/[,;:]/).pop().trim();
+      /* "In no event shall either party be liable": the subject follows the
+         phrase, so a limit with nothing in front of it reads the words after. */
+      if(!subject && kind === 'limit') subject = s.text.slice(act.at + act.len).split(/\s+/).slice(0, 6).join(' ');
+    }
+    let side = '';
+    if(act && XR_BOTH_RE.test(subject)) side = 'both';
+    else if(obs.length) side = _xrObTheirs(obs[0]) ? 'them' : 'you';
+    else if(act) side = xrSideByName(subject, names);
+    if(!side) side = 'unclear';
+    const own = act && act.verbAt >= 0 && side !== 'unclear' && kind !== 'limit';
+    const say = own ? s.text.slice(act.verbAt) : s.text;
+    lines.push({ n, side, kind, cite: s.cite, text: s.text, say: _xrCut(say), ob: obs[0] || null });
+  });
+  const rank = s => XR_WD_SIDES.indexOf(s);
+  lines.sort((a, b) => rank(a.side) - rank(b.side) || a.n - b.n);
+  const tally = {};
+  lines.forEach(l => { tally[l.side] = (tally[l.side] || 0) + 1; });
+  return { lines, total: lines.length, tally };
+}
+/* THE CHIP IS THE SUBJECT AND ITS MODAL, so a line reads as a sentence:
+   "You must" · "pay each undisputed invoice within thirty (30) days…". A
+   limit is a limit whichever side it protects; an unclear side says so. */
+/* EVERY KEY IS WRITTEN OUT, never built from pieces, so the net that checks
+   each asked key is in both books can see them all — and each is a closure,
+   so the reader's language is read at the draw, not frozen at load. */
+const XR_WD_CHIPS = {
+  you_must: () => i18t('xr_wd_you_must'), you_mustnot: () => i18t('xr_wd_you_mustnot'), you_may: () => i18t('xr_wd_you_may'),
+  them_must: () => i18t('xr_wd_them_must'), them_mustnot: () => i18t('xr_wd_them_mustnot'), them_may: () => i18t('xr_wd_them_may'),
+  both_must: () => i18t('xr_wd_both_must'), both_mustnot: () => i18t('xr_wd_both_mustnot'), both_may: () => i18t('xr_wd_both_may'),
+};
+const XR_WD_BAL = {
+  you: n => i18t('xr_wd_bal_you', { n }), them: n => i18t('xr_wd_bal_them', { n }),
+  both: n => i18t('xr_wd_bal_both', { n }), unclear: n => i18t('xr_wd_bal_unclear', { n }),
+};
+function xrWhoChip(l){
+  if(l.kind === 'limit') return i18t('xr_wd_limit');
+  const f = XR_WD_CHIPS[l.side + '_' + l.kind];
+  return f ? f() : i18t('xr_wd_unclear');
+}
+/* The day an obligation on the tab is due, done or late — borrowed readings
+   (obState, obligationDue) and the one day printer (ktDayDot). */
+function xrWhoTracked(o){
+  if(!o) return '';
+  const bits = [i18t('xr_wd_tracked')];
+  let st = '';
+  try{ st = (typeof window.obState === 'function') ? window.obState(o) : ''; }catch(_){ st = ''; }
+  if(st === 'done') bits.push(i18t('xr_wd_done'));
+  else {
+    if(st === 'overdue') bits.push(i18t('xr_wd_overdue'));
+    let due = '';
+    try{ due = (typeof window.obligationDue === 'function') ? (window.obligationDue(o) || '') : String(o.due || ''); }catch(_){ due = ''; }
+    const day = ktDayDot(due);
+    if(day) bits.push(i18t('xr_wd_due', { d: day }));
+  }
+  return bits.join(' · ');
+}
+/* THE BUILDER DRAWS THE READING AND COMPUTES NOTHING. */
+function docXrayWhoHtml(who){
+  const lines = (who && who.lines) || [];
+  const head = i18t('xr_sec_who') + (lines.length ? ' · ' + lines.length : '');
+  if(!lines.length)
+    return docXraySecHtml(head, `<span class="doc-xr-q">${esc(i18t('xr_wd_none'))}</span>`, 'is-who');
+  const t = who.tally || {};
+  const sum = XR_WD_SIDES.reduce((a, s) => a + (t[s] || 0), 0) || 1;
+  const bar = XR_WD_SIDES.filter(s => t[s]).map(s =>
+    `<i class="is-${s}" style="width:${(t[s] / sum * 100).toFixed(2)}%"></i>`).join('');
+  const says = XR_WD_SIDES.filter(s => t[s]).map(s => XR_WD_BAL[s](t[s])).join(' · ');
+  const shown = lines.slice(0, XR_WD_MAX);
+  const more = lines.length - shown.length;
+  const tracked = shown.some(l => l.ob);
+  const body = `<div class="doc-xr-bal"><span class="doc-xr-bar" aria-hidden="true">${bar}</span><span class="doc-xr-balsay">${esc(says)}</span></div>`
+    + shown.map(l => `<button type="button" class="doc-xr-wd" data-xr-wd="${l.n}" data-xr-q="${esc(l.text)}" title="${esc(l.text)}">
+        <span class="doc-xr-who is-${l.kind === 'limit' ? 'limit' : l.side}">${esc(xrWhoChip(l))}</span>
+        <span class="doc-xr-wdt">${docReadMark(l.say)}</span>
+        <span class="doc-xr-wdc">${esc(l.cite || '')}</span>
+        ${l.ob ? `<span class="doc-xr-wdo">${esc(xrWhoTracked(l.ob))}</span>` : ''}</button>`).join('')
+    + (more > 0 ? `<div class="doc-xr-q doc-xr-wdmore">${esc(i18tn('xr_wd_more', more, { n: more }))}</div>` : '')
+    + (tracked ? `<button type="button" class="ui-btn doc-xr-wdgo" data-xr-ob="1" title="${esc(i18t('xr_wd_go_title'))}">${esc(i18t('xr_wd_go'))} <span aria-hidden="true">→</span></button>` : '');
+  return docXraySecHtml(head, body, 'is-who');
+}
 
 /* ---------- the map ---------- */
 /* ---- THE MAP SCROLLS, SO EVERY BLOCK CAN BE PRESSED (Young asked 23 Sep
@@ -12236,11 +12601,26 @@ function docXrayPanelHtml(c,rows){
   if(cid){ try{ if(window.ladderRungs) rungs=ladderRungs(c,cid)||[]; }catch(_){ rungs=[]; } }
 
   const marks=(x.marks||[]).map(docXrayMarkHtml).join('');
-  /* SAID ABOUT THE WHOLE AGREEMENT, and drawn on every clause because that is
-     what it is about — not a shelf for leftovers. The count rides the heading
-     the way the change column's own heads carry theirs. */
-  const wide=docXrayWide(c,rows);
   const n=s=>s.length?' · '+s.length:'';
+  /* ---- ONE LIGHT-RED AREA, AND IT IS WORTH A LOOK (Young ruled 25 Sep
+     2026: "i want this highlighted area in the x-ray page to be the area that
+     is highlighted in light red … this 'about contract x' portion should be
+     excluded from the x-ray so there is only one red highlighted area") ----
+     The shade the contract-level block wore since 22 Sep moves onto the
+     clause's own list, and only while that list HOLDS something — a red box
+     that says "nothing here" is an alarm about nothing, so an empty list
+     stays white. About this contract is no longer drawn: what it listed is
+     still on the Brief, the Risk scan and the Playbook check, and docXrayWide
+     is kept whole, with no caller, because two lines put it back.
+
+     WHO DOES WHAT takes the space it left, and it is different on every
+     clause by construction — see docXrayWho. */
+  /* A READING THAT THROWS DRAWS NOTHING, never "found nothing": the empty
+     line is a claim about the clause, and a fault is not one. Logged, so it
+     is not silent either. */
+  let who=null;
+  try{ who=docXrayWho(c,rows,rows.indexOf(x)); }
+  catch(e){ who=null; try{ console.warn('X-ray · who does what', e); }catch(_){} }
 
   return `<div class="doc-xr-head">
       <h4>${esc(docXrayLabel(x))}</h4>
@@ -12250,9 +12630,8 @@ function docXrayPanelHtml(c,rows){
       ? docReadMark(plain)
       : `<span class="doc-xr-q">${esc(i18t('xr_plain_none'))}</span>`)}
     ${docXraySecHtml(i18t('xr_sec_look')+n(x.marks||[]), marks
-      || `<span class="doc-xr-q">${esc(i18t('xr_look_none'))}</span>`)}
-    ${wide.length?docXraySecHtml(i18t('xr_sec_wide')+n(wide),
-        wide.map(docXrayMarkHtml).join(''),'is-wide'):''}
+      || `<span class="doc-xr-q">${esc(i18t('xr_look_none'))}</span>`, marks?'is-look has':'is-look')}
+    ${who?docXrayWhoHtml(who):''}
     ${rungs.length?docXraySecHtml(i18t('xr_sec_argued'),
         `<b>${esc(i18tn('xr_rungs',rungs.length,{n:rungs.length}))}</b>`):''}`;
 }
@@ -12334,6 +12713,25 @@ function docXrayWire(c){
     if(!host||host.dataset.xrBound) return;
     host.dataset.xrBound='1';
     host.addEventListener('click',e=>{
+      /* WHO DOES WHAT's two presses ride this same listener. A line takes the
+         paper to its sentence through scrollToQuote — the risk scan's own
+         "take me to these words", never a second finder — and the door goes
+         to the Obligations tab through roomGoTab, the one router both shells
+         press. The contract is looked up LIVE at the press: this listener is
+         armed once per element and a record replaced since would otherwise
+         be the one it acted on. */
+      const wd=e.target&&e.target.closest&&e.target.closest('[data-xr-wd]');
+      if(wd){
+        const q=String(wd.getAttribute('data-xr-q')||'');
+        try{ if(q&&typeof window.scrollToQuote==='function') window.scrollToQuote(q); }catch(_){}
+        return;
+      }
+      const go=e.target&&e.target.closest&&e.target.closest('[data-xr-ob]');
+      if(go){
+        const cur=(typeof getContract==='function'&&c&&getContract(c.id))||c;
+        roomGoTab(cur,'oblig');
+        return;
+      }
       const b=e.target&&e.target.closest&&e.target.closest('[data-xr-seg]');
       if(!b) return;
       const i=Number(b.getAttribute('data-xr-seg'));
@@ -15482,6 +15880,7 @@ Object.assign(window,{paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,
   DOC_VIEW_MODES,docViewMode,docViewSet,docXrayOn,DOC_XRAY_SPINE_W,DOC_XRAY_SPINE_GAP,
   DOC_XRAY_QUOTE_MIN,docXrayPlace,docXrayMarks,docXrayTone,docXrayClauseId,docXrayRows,
   XR_GRADES,XR_SEV_GRADE,docXrayBriefWatch,docXrayBriefOdd,docXrayRowText,docXrayWide,docXrayMarkHtml,
+  XR_WD_MAX,XR_WD_WORDS,XR_WD_SIDES,XR_WD_CHIPS,XR_WD_BAL,XR_MODAL_RE,XR_RIGHT_RE,XR_LIMIT_RE,XR_BOTH_RE,xrSentences,xrClauseBlocks,xrPartyNames,xrSideByName,xrActOf,xrPlaceObligations,docXrayWho,docXrayWhoHtml,xrWhoChip,xrWhoTracked,
   docXrayLabel,docXraySpineHtml,docXraySegH,XR_SEG_MIN,XR_SEG_MAX,docXrayFollow,docXrayPanelHtml,docXrayPaint,docXrayWire,
   docReadSheet,docReadClauses,docReadSig,docReadAnchors,docReadSwitchHtml,docReadPaint,docReadSync,
   docReadFront,docReadMirrorStyle,docReadMirrorToc,

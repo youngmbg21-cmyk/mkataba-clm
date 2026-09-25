@@ -10,8 +10,8 @@
         body weight — with only its own title in bold
      2  the X-ray map colours the clause the risk scan found; pressing that
         colour lands the panel on it; the mark carries its "Why it matters";
-        a finding that lands nowhere is in About this contract, which is
-        shaded a light red
+        Worth a look is shaded a light red, and a finding that lands nowhere
+        is no longer drawn (About this contract left the X-ray, 25 Sep 2026)
      3  the obligations tile opens the found list while the tab is empty,
         and goes to the tab once the tab has obligations
      4  Who else / What Copilot read / Parties: inset, head gap, one line
@@ -157,24 +157,34 @@ const BODY =
       const mark = panel && [...panel.querySelectorAll('.doc-xr-mark.is-ruby')][0];
       const why = mark && mark.querySelector('.doc-xr-why');
       const wide = panel && panel.querySelector('.doc-xr-sec.is-wide');
-      const bg = wide ? getComputedStyle(wide).backgroundColor : '';
+      const look = panel && panel.querySelector('.doc-xr-sec.is-look');
+      const bg = look ? getComputedStyle(look).backgroundColor : '';
       return { head: (panel.querySelector('.doc-xr-head h4') || {}).textContent || '',
         mark: mark ? mark.textContent.replace(/\s+/g, ' ').trim() : '',
         why: why ? why.textContent.replace(/\s+/g, ' ').trim() : '',
-        wide: wide ? wide.textContent.replace(/\s+/g, ' ').trim() : '', bg };
+        wide: wide ? wide.textContent.replace(/\s+/g, ' ').trim() : '', bg,
+        anywhere: panel ? panel.textContent.replace(/\s+/g, ' ') : '' };
     });
     check('2d pressing the red segment lands the panel on that clause',
       !!(pressed && /No suspension/.test(pressed.head + pressed.mark)), pressed ? pressed.head : 'no red segment');
     check('2e the scan finding is on it, with its reason under it',
       !!(pressed && /No right to suspend/.test(pressed.mark) && /Your only lever/.test(pressed.why)),
       pressed ? pressed.why : '—');
-    check('2f a finding that lands nowhere is in About this contract, not dropped',
-      !!(pressed && /Governing law abroad/.test(pressed.wide)), pressed ? pressed.wide.slice(0, 90) : '—');
+    /* REVERSED IN PLACE 25 Sep 2026 (Young: "this 'about contract x' portion
+       should be excluded from the x-ray"). A finding that lands on no clause
+       was said in About this contract; that block is gone and the finding
+       stays on the Risk scan panel. GATED on the panel having drawn its
+       clause, so a build that draws nothing cannot pass it. */
+    check('2f About this contract is not drawn, and a finding that lands nowhere is not guessed onto a clause',
+      !!(pressed && pressed.head && !pressed.wide && !/Governing law abroad/.test(pressed.anywhere)),
+      pressed ? (pressed.wide || '(no block)').slice(0, 90) : '—');
     /* color-mix() resolves to color(srgb r g b) with 0..1 channels in this
        browser, and to rgb() in others — both are read. */
     const rgb = (pressed && pressed.bg.match(/[\d.]+/g) || []).map(Number)
       .map(v => /srgb/.test(pressed.bg) ? v * 255 : v);
-    check('2g About this contract is shaded a light red',
+    /* RE-POINTED IN PLACE 25 Sep 2026: the same shade, on the clause's own
+       Worth a look — the one light-red area left in the X-ray. */
+    check('2g Worth a look, holding the scan finding, is shaded a light red',
       rgb.length >= 3 && rgb[0] > rgb[1] && rgb[0] > rgb[2] && rgb[1] > 200, pressed ? pressed.bg : '—');
     await page.screenshot({ path: path.join(OUT, '02-xray.png') });
     await page.evaluate(() => { if (typeof docViewSet === 'function') docViewSet('paper'); });
