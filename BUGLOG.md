@@ -19212,3 +19212,12 @@ Noticed, not fixed
 - The duty highlighter's verb list (owner-ruled, narrow) has no "cooperate", "procure that", "use reasonable efforts to" and the like, so Plain English's duty marks and Who does what both miss such duties unless the Obligations tab already holds them.
 - Who does what reads a sentence's side from the party names on the record and the short names the paper defines in brackets; a contract that calls a party something else (e.g. only "the Supplier" with no bracket and no role recorded) reads those lines as "Unclear".
 - (Later in the same run) f384 gained one claim — a reading that throws draws no section, never the "found nothing" line — so it is 40 claims, 38 red at the parent.
+
+## Run 25 Sep 2026 — the buttons reviewed against SAP, Apple and seven other design systems (review only, no code)
+
+- On the owner's word ("review ... and advise ... No coding"): nothing in the product changed. Measured in a real browser with the 30-contract sample book, on 28 screens and dialogs: 250 different pressable controls, 70 of them bordered or filled buttons, at 11 heights (22, 24, 26, 28, 30, 31, 33, 34, 36, 38, 48), 4 text sizes, 3 weights and 4 corner shapes. Text boxes measured 28 to 36 against buttons at 30 and a field setting of 32. In the code: 190 of the 393 buttons wearing the platform class set their own padding or text size inline (36 different paddings), 75 more use the old utility-class style, `ui-btn-sm` is used nowhere, and 39 button class names exist. The page header rows already share one height (30).
+- Compared with the published button rules of SAP Fiori, Apple, Google Material 3, Microsoft Fluent 2, Atlassian, IBM Carbon, GitHub Primer, Shopify Polaris and Salesforce Lightning, read from each company's own public code and documentation sources (several of their websites could not be opened).
+- Three options drawn on five real screens and at iPad size, following the design-options habit: Compact (28), Standard (32), Comfortable (36). The first line of the contract measured unmoved in all of them (Document tab 271.9, Negotiate page 286.7, iPad 271.9). Recommended Standard, with an automatic step-up to Comfortable on touch screens as a separate yes or no. Published as the private page "HaTi Button Audit". Waiting on the owner's pick.
+
+Noticed, not fixed
+- The Contracts list shows "&amp;" in the contract name under each counterparty ("Digital &amp; Influencer Campaign"): regTitleOf already escapes the name and the row escapes it a second time.
