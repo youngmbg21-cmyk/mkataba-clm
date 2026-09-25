@@ -707,6 +707,14 @@ function hmOwed(cs, money){
    with prepared for you"*, then *"Build it"*. The drawing is the artifact
    "Executive Home Options".
 
+   AND A DAY LATER (Young ruled 25 Sep 2026): *"reduce the where your
+   contracts stand card by 25% as it is dominating the screen too much"* —
+   the height came out of the air and the chart heights, never a figure (see
+   the stylesheet); *"the color code of the drafting, review and executed
+   should match the color coding in the contracts list page"* — hmStageTone
+   below; and "Needs your decision" came back under Prepared for you with two
+   rows (renderDashboard).
+
    IT REPLACES THE FOUR TILES AND "Choose tiles" ON THE DESKTOP, said to the
    owner before the build. THE CATALOGUE IS NOT DELETED: the phone's figures
    list reads KPI_META, currentKpiSel and the catalogue's readings, and every
@@ -747,10 +755,29 @@ function hmSetMeasure(m){ try{ localStorage.setItem(hmMeasureKey(), m==='value'?
    (STATUS_META has four and the fourth, Declined, is what "live" leaves out),
    so the three segments add up to the head's own number by construction. */
 const HM_MAP_STAGES = [
-  { k:'Draft',        cls:'is-s1', word:'home_stage_drafting' },
-  { k:'Under Review', cls:'is-s2', word:'home_stage_in_review' },
-  { k:'Signed',       cls:'is-s3', word:'home_stage_executed' },
+  { k:'Draft',        word:'home_stage_drafting' },
+  { k:'Under Review', word:'home_stage_in_review' },
+  { k:'Signed',       word:'home_stage_executed' },
 ];
+/* ---- A STAGE WEARS THE CONTRACTS LIST'S OWN COLOUR (Young ruled 25 Sep 2026) ----
+   *"The color code of the drafting, review and executed should match the
+   color coding in the contracts list page."* The list draws each stage as a
+   dot in STATUS_META's `dot` — grey, amber, green — so the bar and the
+   legend's squares ask that same table and nothing else, and a stage cannot
+   be one colour in the list and another on Home.
+   THIS REVERSES 24 Sep's own reasoning ("the accent's own three steps and
+   never the status tones, because amber means one thing on this card"), kept
+   beside the stylesheet: In Review is amber here now, as it is everywhere
+   else, and the renewal chart's "decision due" pile is amber too. The owner's
+   word decides it; the legend under each names what its colour means.
+   READ THROUGH window: js/core.js owns the table and is not on every stage
+   (the node suite's DOM loads no core), so the literal answers there — and
+   f381 pins the literal EQUAL to STATUS_META's own, or it would drift. */
+const HM_STAGE_TONE_FALLBACK = { 'Draft':'var(--st-gray-dot)', 'Under Review':'var(--st-amber-dot)', 'Signed':'var(--st-green-dot)' };
+function hmStageTone(k){
+  const M=(typeof window!=='undefined' && window.STATUS_META) || null;
+  return (M && M[k] && M[k].dot) || HM_STAGE_TONE_FALLBACK[k] || 'var(--st-gray-dot)';
+}
 
 function hmMapData(sl){
   const S = sl || hmDashSlices();
@@ -760,7 +787,7 @@ function hmMapData(sl){
 
   const stages = HM_MAP_STAGES.map(d=>{
     const s=(S.stages||[]).find(x=>x.k===d.k)||{ n:0, val:0 };
-    return { k:d.k, cls:d.cls, word:d.word, n:s.n||0, v:money?(s.val||0):null };
+    return { k:d.k, word:d.word, tone:hmStageTone(d.k), n:s.n||0, v:money?(s.val||0):null };
   });
   const total = { n:stages.reduce((a,s)=>a+s.n,0),
                   v:money?stages.reduce((a,s)=>a+(s.v||0),0):null };
@@ -887,17 +914,20 @@ function hmMapInnerHtml(d, mode){
   const bar=stTot>0?`<div class="hm-map-stages">${d.stages.map(s=>{
       const w=byV?(s.v||0):s.n; if(!(w>0)) return '';
       const say=i18t(s.word)+': '+(byV?cash(s.v)+' · ':'')+nC(s.n);
-      return `<button type="button" class="${s.cls}" style="flex-grow:${w}" data-hm-map="stage:${esc(s.k)}" aria-label="${esc(say)}" title="${esc(say)}"></button>`;
+      return `<button type="button" style="flex-grow:${w};background:${esc(s.tone)}" data-hm-map="stage:${esc(s.k)}" aria-label="${esc(say)}" title="${esc(say)}"></button>`;
     }).join('')}</div>`
     :`<div class="hm-map-none">${esc(i18t('home_map_none'))}</div>`;
   const legend=`<div class="hm-map-legend">${d.stages.map(s=>{
       const big=byV?cash(s.v):nf(s.n);
       const unit=byV?nC(s.n):i18tn('home_map_unit',s.n,{n:s.n});
       const more=(s.k==='Under Review' && d.nego)?' · '+i18tn('home_map_nego',d.nego,{n:nf(d.nego)}):'';
+      /* THE FIGURE AND ITS UNIT SHARE A LINE (25 Sep 2026, the card a
+         quarter shorter): "12 contracts · 3 in negotiation" reads as one
+         phrase, and the legend drops from three lines to two. */
       return `<button type="button" ${s.n?`data-hm-map="stage:${esc(s.k)}"`:'disabled'}>
-        <span class="hm-map-ln"><i class="hm-map-sw ${s.cls}"></i>${esc(i18t(s.word))}</span>
-        <span class="hm-map-lv">${esc(big)}</span>
-        <span class="hm-map-lc">${esc(unit+more)}</span></button>`;
+        <span class="hm-map-ln"><i class="hm-map-sw" style="background:${esc(s.tone)}"></i>${esc(i18t(s.word))}</span>
+        <span class="hm-map-lf"><span class="hm-map-lv">${esc(big)}</span>
+        <span class="hm-map-lc">${esc(unit+more)}</span></span></button>`;
     }).join('')}</div>`;
 
   /* ---- COMING UP FOR RENEWAL ---- */
@@ -1220,6 +1250,103 @@ function triageSubHead(c){
   const who=(t&&t.by)||'';
   return [f,who?i18t('tri_by',{who}):'',c.id].filter(Boolean).join(' · ');
 }
+/* ---- NEEDS YOUR DECISION — ONE READING (Young ruled 25 Sep 2026) ----
+   The list the card draws, lifted out of renderDashboard when the card came
+   back: COUNTING IS NOT DRAWING, and the card's rows, the count in its head,
+   the "See all" door and the checks that press it all read THIS list, so the
+   number on the door cannot drift from the list behind it. It writes
+   nothing. `deskRows` is the desk's rows ON SCREEN — the page hands over the
+   ones it drew; a caller that has none gets the same reading the page would
+   make. */
+function hmDecisionItems(S, deskRows){
+  const SL=S||hmDashSlices();
+  const { cs, myReviews, myStaleDesks, myJoinAsks, decisions, waitingLongest, fmtDDay } = SL;
+  const shown=deskRows||((typeof deskItems==='function'&&typeof deskShown==='function')?deskShown(deskItems(cs)):[]);
+  /* ONLY THE RENEWAL SOURCE IS FILTERED, and that is the whole precision of the
+     one-door rule: a colleague waiting on your review is a different subject
+     that happens to share a contract, and dropping that row because a renewal
+     is also due would lose it.
+     AND ONLY THE ROWS ON SCREEN, never deskAll — see deskCids, whose own first
+     rule this reverses. The desk shows at most one renewal, so passing the
+     whole list struck every OTHER renewal out of the list below and left it
+     nowhere on the page. */
+  const deskIds=(typeof deskCids==='function')?deskCids(shown):new Set();
+
+  /* ---- THE ROWS, in the card's own order ----
+     Restored as it stood on 23 Sep 2026, less the runway's raw facts (the
+     rail is not drawn, so a row carries nothing for it). Every row is one
+     decision owed BY NAME to this reader. A TAG IS A PLAIN STRING and the
+     row escapes it once — it was escaped here AND at the row, so a translation
+     carrying an ampersand would have printed "&amp;". */
+  const strong=x=>`<strong style="font-weight:var(--w-strong)">${esc(x)}</strong>`;
+  /* ONE READING, TWO SURFACES (20 Sep 2026): the Approvals & signing page
+     draws the same list, so the arithmetic lives in hmMySignings. */
+  const mySignings=hmMySignings(cs);
+  const decisionItems=[
+    /* REVIEWS LEAD, because they are the only item on this card that somebody
+       is personally waiting on. A renewal date does not know your name; a
+       colleague who sent you three redlines on Tuesday does. */
+    ...(myReviews||[]).map(x=>({
+      cid:x.c.id, urgent:!!(x.rv.due&&String(x.rv.due)<new Date().toISOString().slice(0,10)),
+      txt:esc(i18t('rv_home_title'))+' — '+strong(x.c.name),
+      meta:`${esc(i18t('rv_home_from',{who:x.rv.by}))} · ${esc(i18tn('rv_home_sub',x.st.total,{n:x.st.total}))}`,
+      tag:x.rv.due?String(x.rv.due):i18t('rv_home_open'),
+      verb:i18t('home_verb_review'),
+    })),
+    /* A QUIET DEAL: the counterparty is already waiting, and every day this
+       sits here is a day they are not being answered. */
+    ...(myStaleDesks||[]).map(x=>({
+      cid:x.c.id, urgent:true,
+      txt:esc(i18t('dk_stale_card',{who:x.c.counterparty||i18t('home_no_counterparty')}))+' — '+strong(x.c.name),
+      meta:esc(i18tn('dk_stale_sub',x.stale.n,{n:x.stale.n,who:(x.stale.lead&&x.stale.lead.name)||''})),
+      tag:i18t('dk_stale_tag',{n:x.stale.days}),
+      verb:i18t('act_open'),
+    })),
+    /* SOMEBODY IS ASKING TO JOIN A NEGOTIATION YOU LEAD — one colleague
+       waiting on one answer from this reader by name, the shape of every
+       other row here. */
+    ...(myJoinAsks||[]).map(x=>({
+      cid:x.c.id, urgent:false,
+      txt:esc(i18t('dk_join_card',{who:(x.req&&x.req.name)||''}))+' — '+strong(x.c.name),
+      meta:(x.req&&x.req.why)?`\u201c${esc(x.req.why)}\u201d`:esc(x.c.counterparty||i18t('home_no_counterparty')),
+      tag:i18t('dk_ask_tag'),
+      verb:i18t('home_verb_answer'),
+    })),
+    /* YOUR SIGNATURE, AND WHAT STANDS BEFORE IT — the number is
+       signReadiness's, the same the Signing tab and the head quote. */
+    ...mySignings.map(x=>({
+      cid:x.c.id, urgent:false,
+      txt:i18t('home_sign_row',{n:x.n,name:strong(x.c.name)}),
+      meta:esc(x.c.counterparty||i18t('home_no_counterparty')),
+      tag:i18t('home_sign_tag'),
+      verb:i18t('home_verb_sign'),
+    })),
+    ...(decisions||[]).filter(x=>!deskIds.has(x.c.id)).map(x=>({
+      cid:x.c.id, urgent:x.d<=30,
+      txt:i18t('home_renew_or_exit',{name:strong(x.c.name)}),
+      meta:i18t('home_decide_by',{who:esc(x.c.counterparty||i18t('home_no_counterparty')),when:fmtDDay(x.dd)}),
+      tag:x.d===0?i18t('home_today'):i18t('home_in_days',{n:x.d}),
+      verb:i18t('home_verb_decide'),
+    })),
+    ...(waitingLongest||[]).map(x=>({
+      cid:x.c.id, urgent:x.idle>=30,
+      txt:i18t('home_waiting_on_review',{name:strong(x.c.name)}),
+      meta:`${esc(x.c.counterparty||i18t('home_no_counterparty'))} · ${esc(x.c.id)}`,
+      tag:i18t('home_idle_days',{n:x.idle}),
+      verb:i18t('act_open'),
+    })),
+  ];
+  return decisionItems;
+}
+
+/* ---- TWO ROWS, WHATEVER THE SCREEN (Young ruled 25 Sep 2026) ----
+   *"only have 2 lines and nothing more."* The list used to fill the reader's
+   screen (hmFitDecisions, a floor of four and a ceiling of forty); it is two
+   now on every screen, and a number rather than a measurement, because
+   nothing about the room below it decides how many the owner wants. A CAP IS
+   A FACT: the head counts them all and "See all" opens every one. */
+const HM_DD_ROWS = 2;
+
 function renderDashboard(){
   /* ---- HOME IS THE GREETING, THE MAP AND PREPARED FOR YOU (Young ruled
      24 Sep 2026) ----
@@ -1236,7 +1363,17 @@ function renderDashboard(){
        · every renewal it listed, which the Map's chart draws and opens.
      hmDashSlices is asked ONCE per paint and handed to the Map, which borrows
      every figure from it — one walk of the book (the performance audit's
-     rule, paid for at 108 million list items). */
+     rule, paid for at 108 million list items).
+
+     AND "NEEDS YOUR DECISION" CAME BACK THE NEXT DAY (Young ruled 25 Sep
+     2026): *"below prepared for you card, add bring back the needs your
+     attention card but only have 2 lines and nothing more."* It is the
+     same card under its own name — the approved reference calls it "Needs
+     your decision"; "Needs your attention" is the Settings page's block —
+     with its own rows in its own order, and TWO of them. What did not come
+     back with it: the line of time (js/runway.js stays dormant) and the
+     fitted slice (hmFitDecisions). The two bell rows stay too — the bell
+     says everything owed to you, this card the first two decisions. */
   const SL=hmDashSlices();
   const { cs, countAll, me } = SL;
   const mapD=hmMapData(SL);
@@ -1286,13 +1423,16 @@ function renderDashboard(){
   const regionNow=REGION_LABEL[state.region]||REGION_LABEL.KE;
 
   /* ---- THE OVERNIGHT DESK (idea 19) ----
-     Since 24 Sep 2026 it is the only list on Home. It was read before
-     "Needs your decision" because a contract the desk had prepared a renewal
-     for LEFT that list (deskCids, the one-door eviction); with the list gone
-     there is nothing here to evict from, and deskCids stays published for its
-     own tests rather than being asked by a page that has no second list. */
+     Read before the list below it, because the list below it depends on the
+     answer: a contract the desk has prepared a renewal for LEAVES "Needs your
+     decision", or Home says the same thing about the same contract twice.
+     (For one day, 24 Sep 2026, the desk was the only list on Home and there
+     was nothing to evict from; the list came back on 25 Sep, and so did the
+     eviction.) */
   const deskAll=(typeof deskItems==='function')?deskItems(cs):[];
   const deskRows=(typeof deskShown==='function')?deskShown(deskAll):[];
+  /* The list below, read once with the desk's own rows (see hmDecisionItems). */
+  const decisionItems=hmDecisionItems(SL, deskRows);
 
   /* THE BOTTOM ROW IS GONE (owner-asked 20 Aug 2026, with the Hero B render).
      Its three cards repeated what the page already said — Awaiting counterparty
@@ -1417,9 +1557,9 @@ function renderDashboard(){
 
      WHAT IS NOT LOST, which is what makes this safe: the desk is a stack rather
      than a queue, and everything held back is still where it always was — the
-     renewals on the Map and the Calendar (they were in "Needs your decision"
-     until 24 Sep 2026), the late promises on the Obligations worklist, what
-     HaTi read on the contract itself. Discarding a row lets the
+     renewals in "Needs your decision" (off the page for one day, 24 Sep
+     2026) and on the Map and the Calendar, the late promises on the
+     Obligations worklist, what HaTi read on the contract itself. Discarding a row lets the
      next one step into the slot. `desk_showing` is STALE and left inert in both
      books; the day the desk grows a door onto the rest, it comes back. */
   const deskSub=deskRows.length
@@ -1427,12 +1567,39 @@ function renderDashboard(){
     : '';
   /* NOTHING PREPARED DRAWS NOTHING AT ALL — no heading, no empty state. An
      empty section that says so every morning is the furniture this rulebook
-     keeps warning about. Since 24 Sep 2026 there is no list below it; the Map
-     above is always drawn, so the page is never empty on a quiet morning. */
+     keeps warning about, and the list below it already has its own empty
+     state (for one day, 24 Sep 2026, there was no list below it). */
   const deskSection=deskRows.length?hmCard(
     hmSec(i18t('desk_sec'),`<span class="hm-desk-sub">${deskSub}</span>
       <button type="button" class="hm-cz" data-desk-act="discard-all">${esc(i18t('desk_discard_all'))}</button>`,true),
     `<div class="hm-rows" id="hm-desk-rows">${deskRows.map(deskRowHtml).join('')}</div>`):'';
+
+  /* ---- NEEDS YOUR DECISION, TWO ROWS (Young ruled 25 Sep 2026) ----
+     The row is the reference's, as it stood: a tone dot (ruby where it is
+     urgent, amber otherwise), the decision over one quiet line, its tag, the
+     verb as a word and the chevron — one press, the row's own. THE HEAD
+     COUNTS THEM ALL and "See all" is drawn only where more wait than show,
+     because pressing it with nothing more would open the list already on
+     screen. AN EMPTY LIST SAYS SO in one line: this is the reader's own work,
+     and "nothing to decide" is worth knowing, unlike an empty desk above. */
+  const ddShown=decisionItems.slice(0,HM_DD_ROWS);
+  const ddRowsHtml=ddShown.length
+    ? `<div class="hm-rows" id="hm-dd-rows">${ddShown.map(it=>`
+        <button type="button" class="hm-row ${it.urgent?'is-neg':'is-crit'}" data-sel="${esc(it.cid)}">
+          <span class="hm-rdot" aria-hidden="true"></span>
+          <span class="hm-rb"><span class="hm-rt">${it.txt}</span><span class="hm-rm">${it.meta}</span></span>
+          <span class="hm-rtag">${esc(it.tag)}</span>
+          ${it.verb?`<span class="hm-rverb">${esc(it.verb)}</span>`:''}
+          <svg class="hm-rchev" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><use href="#i-right"/></svg>
+        </button>`).join('')}</div>`
+    : `<div class="hm-empty">${esc(i18t('home_nothing_to_decide'))}</div>`;
+  const ddN=decisionItems.length;
+  const ddHead=(ddN?`<span class="hm-sec-sub">${esc(i18tn('home_dd_items',ddN,{n:ddN}))} · ${esc(i18t('home_dd_sorted'))}</span>`:'')
+    + (ddN>ddShown.length
+    ? `<button type="button" class="hm-cz" data-hm-go="needsyou">${esc(i18t('home_see_all',{n:ddN}))}
+         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><use href="#i-right"/></svg></button>`
+    : '');
+  const ddSection=hmCard(hmSec(i18t('home_needs_decision'),ddHead,true), ddRowsHtml);
 
   document.getElementById('content').innerHTML=`
   <div class="view-enter hm-page">
@@ -1456,6 +1623,8 @@ function renderDashboard(){
     <section class="hm-card hm-map" id="hm-map" data-measure="${measure}">${hmMapInnerHtml(mapD, measure)}</section>
 
     ${deskSection}
+
+    ${ddSection}
   </div>`;
 
   // ---- wiring ----
@@ -1617,10 +1786,23 @@ function renderDashboard(){
     try{ lsSet(ddOpenKey(), !!e.currentTarget.open); }catch(_){}
   });
   if(window.wireEmailSetupBanner) wireEmailSetupBanner();
+  /* ---- NEEDS YOUR DECISION'S TWO PRESSES ----
+     A ROW OPENS ITS CONTRACT, as it always did. "See all" opens Contracts
+     narrowed to every contract on the list — the rows are contracts waiting
+     on this reader, so the door stays in Contracts; the bell owns the wider
+     "everything owed to you". Scoped to the card, so no other [data-sel] on
+     a page this module draws can answer. */
+  document.querySelectorAll('#hm-dd-rows [data-sel]').forEach(el=>el.addEventListener('click',()=>selectContract(el.getAttribute('data-sel'))));
+  document.querySelector('[data-hm-go="needsyou"]')?.addEventListener('click',e=>{
+    e.stopPropagation();
+    const ids=decisionItems.map(x=>x.cid).filter(Boolean);
+    if(window.regShowOnly && ids.length){ regShowOnly(ids,i18t('home_needs_decision')); return; }
+    const r=regState(); r.type='all'; r.sel={}; r.view=null; r.stage='all'; setView('register');
+  });
   /* THE MAP'S DOORS AND ITS SWITCH, one delegated listener on the card. */
   hmMapWire(document.getElementById('hm-map'), mapD);
   setActiveNav('dashboard');
 }
 
-Object.assign(window,{renderDashboard,hmDashSlices,hmMySignings,hmMapData,hmMapInnerHtml,hmMapWire,hmMeasure,hmSetMeasure,hmOwed,hmSecHtml,HM_MAP_MONTHS,HM_MAP_STAGES,copilotRead,copilotCoverage,gsSteps,gettingStartedHtml,gsIsSeed,
+Object.assign(window,{renderDashboard,hmDashSlices,hmDecisionItems,HM_DD_ROWS,hmStageTone,hmMySignings,hmMapData,hmMapInnerHtml,hmMapWire,hmMeasure,hmSetMeasure,hmOwed,hmSecHtml,HM_MAP_MONTHS,HM_MAP_STAGES,copilotRead,copilotCoverage,gsSteps,gettingStartedHtml,gsIsSeed,
   KPI_META,currentKpiSel,setKpiSel,kpiCatalogOrder,DEFAULT_KPI_SEL,KPI_MAX,kpiAtMax,readyToSignItems});

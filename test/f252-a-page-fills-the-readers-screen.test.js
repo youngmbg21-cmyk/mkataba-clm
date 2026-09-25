@@ -108,9 +108,16 @@ describe('F252 — a page fills the reader\'s own screen', () => {
      prepared for you"), and a fit left behind with nothing to fit is a
      ResizeObserver repainting Home for nothing. So the claim is its absence,
      whole: no floor, no fitted count, no observer. */
+  /* AND THE LIST CAME BACK UNFITTED (Young ruled 25 Sep 2026: "bring back
+     the needs your attention card but only have 2 lines and nothing more").
+     Two rows on every screen, so the claim still holds whole — no floor, no
+     fitted count, no observer — asked of the CODE now, because the note that
+     explains why names the function that went. */
   test('4 · Home keeps no fitted list, and nothing left over from one', () => {
-    assert.ok(!/HM_DD_MIN|_hmDdFit|hmFitDecisions/.test(HOME), 'the fit went with the list');
-    assert.ok(!/hmFitBound/.test(HOME), 'and so did its observer');
+    const code = HOME.replace(/\/\*[\s\S]*?\*\//g, '');
+    assert.ok(!/HM_DD_MIN|_hmDdFit|hmFitDecisions/.test(code), 'the fit went with the list');
+    assert.ok(!/hmFitBound/.test(code), 'and so did its observer');
+    assert.match(code, /const HM_DD_ROWS = 2;/, 'the list is two rows, a number and not a measurement');
   });
 
   test('5 · the templates wall withholds nothing at all — REVERSED IN PLACE', () => {
@@ -136,8 +143,12 @@ describe('F252 — a page fills the reader\'s own screen', () => {
   /* REVERSED IN PLACE 24 Sep 2026 — see (4). The rule this pinned still holds
      on Home in its strongest form: the Map counts the WHOLE live book and caps
      nothing at all, so there is no slice for a count to follow. */
+  /* HALF RE-POINTED IN PLACE 25 Sep 2026: the decisions card came back with
+     TWO rows — a slice, but not a fitted one, and not a silent one: its head
+     counts the WHOLE list and "See all" opens every one (f382). */
   test('6 · and Home counts the whole book, capping nothing', () => {
-    assert.ok(!/ddAll|ddShown/.test(HOME), 'no fitted slice is left on the page');
+    assert.match(HOME, /const ddShown=decisionItems\.slice\(0,HM_DD_ROWS\);/, 'the one slice is the two rows');
+    assert.match(HOME, /const ddN=decisionItems\.length;/, 'and the head counts the whole list, not the slice');
     const map = HOME.slice(HOME.indexOf('\nfunction hmMapData('), HOME.indexOf('\nfunction hmMapInnerHtml('));
     assert.ok(map.length > 100 && !/\.slice\(0,/.test(map), 'the Map\'s reading slices nothing');
   });

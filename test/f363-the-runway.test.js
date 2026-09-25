@@ -256,6 +256,11 @@ describe('f363 (6) the rail’s own arithmetic', () => {
    longer draws it — a source still carrying `rk`, a handler still answering
    `rwnone`, a class nothing draws — and that the reading is still there for
    the day a screen asks for it again.
+
+   THE CARD CAME BACK ON 25 SEP 2026 AND THE RAIL DID NOT (Young: "bring back
+   the needs your attention card but only have 2 lines and nothing more").
+   Every claim below still holds as written: the rows came back without the
+   runway's raw facts, and nothing draws the rail.
    ==========================================================================*/
 describe('f363 (7) the rail left Home with its card, and nothing of it stayed behind', () => {
   test('no source on Home carries a kind and a clock for a rail that is not drawn', () => {

@@ -349,10 +349,14 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
        unchanged — every heading that is drawn is painted — and it now also
        measures the order the owner chose: the Map first, and no heading left
        for the card that went. */
-    check('4a every section heading really drew, the Map leads, and Needs your decision is gone',
-      homeLine.heads.length >= 1 && homeLine.heads.length <= 2
+    /* ---- AND BACK AGAIN 25 Sep 2026 (Young: "below prepared for you card,
+       add bring back the needs your attention card but only have 2 lines and
+       nothing more") ---- Needs your decision closes the page once more, under
+       the Map and under Prepared for you when that is drawn. */
+    check('4a every section heading really drew, the Map leads, and Needs your decision closes',
+      homeLine.heads.length >= 2 && homeLine.heads.length <= 3
         && homeLine.heads.every(Boolean) && homeLine.heads[0].txt === homeLine.mapTitle
-        && !homeLine.heads.some(h => h && h.txt === homeLine.decide),
+        && homeLine.heads[homeLine.heads.length - 1].txt === homeLine.decide,
       homeLine.heads.map(h => h && h.txt));
     check('4b each heading sits in a card head that rules itself off',
       homeLine.cardRule, { rule: homeLine.cardRule, span: homeLine.workRule });

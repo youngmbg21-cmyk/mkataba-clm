@@ -32,11 +32,12 @@ test('1 the page reads the two readings Home already makes, and readyToSignItems
 });
 /* RE-POINTED IN PLACE 24 Sep 2026: Home stopped DRAWING it — its decisions
    card left the page on the owner's word — and the page is its one drawer now.
-   The reading stays where it was lifted to, published, so the page and the
-   bell cannot come to count signatures two ways. */
-test('1b hmMySignings is ONE reading: Home keeps it, the page draws it', () => {
+   REVERSED BACK 25 Sep 2026: the card came back (two rows, Young's word), so
+   Home draws the signing rows again, through the same lifted reading — the
+   claim as it stood before the 24th. */
+test('1b hmMySignings is ONE reading: Home draws it and the page draws it', () => {
   assert.match(HOME, /\nfunction hmMySignings\(cs\)\{/);
-  assert.ok(!/const mySignings=hmMySignings\(cs\);/.test(HOME), 'Home draws no signing rows of its own any more');
+  assert.match(HOME, /const mySignings=hmMySignings\(cs\);/, 'Home\'s decision list reads the lifted function');
   assert.match(HOME, /Object\.assign\(window,\{[^}]*hmMySignings/, 'and it is published for the page');
 });
 test('2 NO SECOND WAY TO APPROVE OR SIGN: the page opens the Signing tab and calls no act', () => {

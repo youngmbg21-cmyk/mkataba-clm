@@ -7319,9 +7319,9 @@ const STRINGS = {
     home_needs_decision: 'Needs your decision',
     /* ---- THE MAP (Young ruled 24 Sep 2026) ----
        Home's first card since the four tiles left the desktop.
-       home_needs_decision above is STALE ON THE FACE since the same day (the
-       card it named left the page, the owner's own word) and inert in both
-       books; home_my_work and home_see_all were already stale. */
+       home_needs_decision above and home_see_all are LIVE AGAIN since 25 Sep
+       2026: the card left the page for one day and came back under the Map
+       with two rows (the owner's word both times). home_my_work stays stale. */
     home_map_title: 'Where your contracts stand',
     home_map_by: 'Show the map by',
     home_map_count: 'Count',
