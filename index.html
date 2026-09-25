@@ -5096,6 +5096,10 @@
   .hm-card .hm-sec h2{font-size:var(--t-md);}
   .hm-card .hm-sec .hm-sec-sub,.hm-card .hm-sec .hm-desk-sub{margin-right:auto;}
   .hm-card .hm-rows{background:none;border:0;}
+  /* AND ITS EMPTY LINE (25 Sep 2026, when Needs your decision came back): the
+     card's own border is the frame, so the one line inside it draws none of
+     its own — a box inside a box read as two lines under the heading. */
+  .hm-card .hm-empty{background:none;border:0;}
 
   /* ══ THE MAP — WHERE YOUR CONTRACTS STAND (Young ruled 24 Sep 2026) ══════
      The drawing is "Executive Home Options": the stages as one bar, the next
@@ -5104,33 +5108,48 @@
 
      ITS OWN COLOURS ARE TOKENS ON THE CARD, read off the accent ladder so a
      navy workspace draws navy — and given a night answer here, because the
-     ladder itself has none. AMBER MEANS ONE THING ON THIS CARD, a renewal
-     decision that is due and not made, which is why the stages are the
-     accent's own three steps and never the status tones (In Review is amber
-     everywhere else, and two meanings for one colour twelve pixels apart is
-     the fault the drawing was redrawn to avoid). */
-  .hm-map{ --map-s1:var(--color-accent-200); --map-s2:var(--color-accent-400); --map-s3:var(--color-accent-600);
-    --map-made:var(--color-accent-600); --map-due:var(--st-amber-dot); --map-later:var(--color-neutral-300);
+     ladder itself has none.
+
+     THE STAGES ARE NOT AMONG THEM SINCE 25 SEP 2026 (Young: "The color code
+     of the drafting, review and executed should match the color coding in
+     the contracts list page"). The bar and the legend's squares are painted
+     from STATUS_META's own `dot` — hmStageTone — so a stage is one colour in
+     the list and on Home. WHAT THIS REVERSES, kept because it is the cost:
+     "AMBER MEANS ONE THING ON THIS CARD, a renewal decision that is due and
+     not made, which is why the stages are the accent's own three steps and
+     never the status tones (In Review is amber everywhere else, and two
+     meanings for one colour twelve pixels apart is the fault the drawing was
+     redrawn to avoid)." In Review is amber here now as well; each chart's own
+     legend names what its colour means. */
+  .hm-map{ --map-made:var(--color-accent-600); --map-due:var(--st-amber-dot); --map-later:var(--color-neutral-300);
     --map-win:color-mix(in srgb,var(--color-accent-400) 8%,var(--color-surface)); --map-gap:6px; }
-  html.dark .hm-map{ --map-s1:color-mix(in srgb,var(--color-accent-400) 24%,var(--color-surface));
-    --map-s2:var(--color-accent-500); --map-s3:var(--color-accent-400); --map-made:var(--color-accent-400); }
+  html.dark .hm-map{ --map-made:var(--color-accent-400); }
   /* The sub-line gives before the switch does, and says where it was cut. */
   .hm-map .hm-sec .hm-map-sub{ flex:0 1 auto; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   /* THE SWITCH IS THE DOCUMENT TAB'S OWN (.doc-read-seg); only its width is
      stated here, so the lit half's bold never moves the control it sits in. */
   .hm-map-seg button{ min-width:72px; }
-  .hm-map-body{ display:grid; grid-template-columns:minmax(0,1fr) 260px; gap:28px; padding:16px 18px 18px; }
-  .hm-map-charts{ display:grid; gap:26px; min-width:0; }
+  /* ---- A QUARTER SHORTER (Young ruled 25 Sep 2026: "reduce the where your
+     contracts stand card by 25% as it is dominating the screen too much and
+     taking over the whole screen") ----
+     MEASURED at the parent: 545px tall at every desktop width (1280 to 1920)
+     and 671 where the facts stack under the charts. NOTHING ON IT WENT — every
+     figure, door, label and the switch are still drawn at the sizes they had;
+     what came out is AIR and CHART HEIGHT: the body's padding, the gaps, the
+     stage bar (38 to 22), the legend (the figure and its unit share a line),
+     the renewal plot (168 to 102), the facts' padding. The figures' own type
+     sizes are untouched, so a number reads exactly as large as it did. */
+  .hm-map-body{ display:grid; grid-template-columns:minmax(0,1fr) 260px; gap:12px 28px; padding:12px 18px 14px; }
+  .hm-map-charts{ display:grid; gap:16px; min-width:0; }
   .hm-map-lab{ display:block; font-size:var(--t-micro); font-weight:var(--w-label); letter-spacing:.09em;
     text-transform:uppercase; color:var(--color-neutral-500); }
   .hm-map-none{ margin-top:10px; font-size:var(--t-meta); color:var(--color-neutral-500); }
-  .hm-map-stages{ display:flex; gap:3px; height:38px; margin-top:10px; }
+  .hm-map-stages{ display:flex; gap:3px; height:22px; margin-top:8px; }
   .hm-map-stages button{ flex:1 1 0px; min-width:6px; border:0; padding:0; border-radius:3px; cursor:pointer; }
   .hm-map-stages button:hover{ filter:brightness(1.07); }
-  .hm-map .is-s1{ background:var(--map-s1); } .hm-map .is-s2{ background:var(--map-s2); } .hm-map .is-s3{ background:var(--map-s3); }
   .hm-map .is-made{ background:var(--map-made); } .hm-map .is-due{ background:var(--map-due); } .hm-map .is-later{ background:var(--map-later); }
-  .hm-map-legend{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:10px; }
-  .hm-map-legend button{ display:grid; gap:2px; text-align:left; border:0; background:none; padding:6px 8px;
+  .hm-map-legend{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:6px; }
+  .hm-map-legend button{ display:grid; gap:2px; text-align:left; border:0; background:none; padding:4px 8px;
     border-radius:var(--radius); cursor:pointer; font:inherit; color:inherit; min-width:0; }
   .hm-map-legend button:hover{ background:var(--nav-well); }
   .hm-map-legend button:disabled{ cursor:default; }
@@ -5139,13 +5158,18 @@
   .hm-map-sw{ display:inline-block; flex:none; width:8px; height:8px; border-radius:2px; }
   .hm-map-lv{ font-family:var(--font-mono); font-size:18px; font-weight:var(--w-title); letter-spacing:-.01em;
     line-height:1.25; color:var(--color-text); font-variant-numeric:tabular-nums; }
-  .hm-map-lc{ font-size:var(--t-meta); color:var(--color-neutral-500); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  /* The figure and its unit on one line, and the unit WRAPS UNDER the figure
+     rather than being cut where the column is too narrow for both — a unit
+     that says "3 in negotiation" is a fact, never a silent trim. */
+  .hm-map-lf{ display:flex; flex-wrap:wrap; align-items:baseline; column-gap:6px; min-width:0; }
+  .hm-map-lc{ font-size:var(--t-meta); color:var(--color-neutral-500); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    min-width:0; max-width:100%; }
   /* THE PLOT. Twelve columns and a gap between each, and the window and the
      bracket are placed by that same arithmetic (hmMapInnerHtml's X), with the
      gap read from one token so the two cannot come apart. The top margin is
      room for the bracket's figure, clear of the heading above it. */
   .hm-map-plot{ position:relative; display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:var(--map-gap);
-    height:168px; align-items:end; margin-top:46px; border-bottom:1px solid var(--color-divider); }
+    height:102px; align-items:end; margin-top:42px; border-bottom:1px solid var(--color-divider); }
   .hm-map-col{ position:relative; height:100%; min-width:0; display:flex; flex-direction:column; justify-content:flex-end;
     border:0; background:none; padding:0; cursor:pointer; }
   .hm-map-col:disabled{ cursor:default; }
@@ -5161,20 +5185,20 @@
     color:var(--color-neutral-600); white-space:nowrap; text-align:left; cursor:pointer; }
   .hm-map-wl:not(:disabled):hover{ color:var(--accent-ink); text-decoration:underline; }
   .hm-map-wl:disabled{ cursor:default; }
-  .hm-map-peak{ position:absolute; top:-22px; height:6px; border-top:1px solid var(--color-neutral-500); pointer-events:none; }
+  .hm-map-peak{ position:absolute; top:-20px; height:6px; border-top:1px solid var(--color-neutral-500); pointer-events:none; }
   .hm-map-peak::before,.hm-map-peak::after{ content:""; position:absolute; top:-1px; height:6px; border-left:1px solid var(--color-neutral-500); }
   .hm-map-peak::before{ left:0; } .hm-map-peak::after{ right:0; }
   .hm-map-peak span{ position:absolute; bottom:calc(100% + 2px); left:50%; transform:translateX(-50%); padding:0 6px;
     background:var(--color-surface); white-space:nowrap; font-size:var(--t-meta); font-weight:var(--w-strong); color:var(--color-text); }
   .hm-map-peak.is-end span{ left:auto; right:0; transform:none; }
-  .hm-map-axis{ display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:var(--map-gap); margin-top:6px;
+  .hm-map-axis{ display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:var(--map-gap); margin-top:4px;
     font-size:var(--t-meta); color:var(--color-neutral-500); text-align:center; }
   .hm-map-axis span{ min-width:0; overflow:hidden; text-overflow:clip; white-space:nowrap; }
   .hm-map-axis .is-yr{ color:var(--color-text); font-weight:var(--w-label); }
-  .hm-map-key{ display:flex; flex-wrap:wrap; gap:16px; margin-top:12px; font-size:var(--t-meta); color:var(--color-neutral-600); }
+  .hm-map-key{ display:flex; flex-wrap:wrap; gap:16px; margin-top:8px; font-size:var(--t-meta); color:var(--color-neutral-600); }
   .hm-map-key span{ display:inline-flex; align-items:center; gap:6px; }
   .hm-map-side{ display:grid; align-content:start; border-left:1px solid var(--color-divider); padding-left:24px; }
-  .hm-map-fact{ display:grid; gap:3px; width:100%; text-align:left; border:0; background:none; padding:14px 8px;
+  .hm-map-fact{ display:grid; gap:3px; width:100%; text-align:left; border:0; background:none; padding:10px 8px;
     border-radius:var(--radius); cursor:pointer; font:inherit; color:inherit; min-width:0; }
   .hm-map-fact + .hm-map-fact{ border-top:1px solid var(--color-divider); border-radius:0; }
   .hm-map-fact:not(:disabled):hover{ background:var(--nav-well); }
@@ -5189,9 +5213,10 @@
   .hm-map :is(.hm-map-stages button,.hm-map-legend button,.hm-map-col,.hm-map-wl,.hm-map-fact):focus-visible{
     outline:2px solid var(--color-accent-600); outline-offset:1px; }
   @media (max-width:1100px){
-    .hm-map-body{ grid-template-columns:minmax(0,1fr); }
+    .hm-map-body{ grid-template-columns:minmax(0,1fr); row-gap:10px; }
     .hm-map-side{ border-left:0; padding-left:0; border-top:1px solid var(--color-divider); grid-template-columns:repeat(3,minmax(0,1fr)); }
     .hm-map-fact + .hm-map-fact{ border-top:0; border-left:1px solid var(--color-divider); }
+    .hm-map-fact{ padding:7px 8px; }
   }
   @media (max-width:680px){
     .hm-map{ --map-gap:3px; }

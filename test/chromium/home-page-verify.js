@@ -181,9 +181,13 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
         ring: document.querySelectorAll('.hm-pipe-card, #hm-segs, #hm-ring-row').length,
       };
     });
-    check('3 the Map leads, and no decisions card or Portfolio row is left',
-      shape.sections[0] === shape.title && !shape.sections.includes(shape.decide)
-        && !shape.sections.includes(shape.portfolio) && shape.sections.length <= 2,
+    /* HALF REVERSED IN PLACE 25 Sep 2026 (Young: "below prepared for you
+       card, add bring back the needs your attention card but only have 2
+       lines and nothing more"). The decisions card is BACK and closes the
+       page; the Portfolio row stays gone. */
+    check('3 the Map leads, Needs your decision closes, and no Portfolio row is left',
+      shape.sections[0] === shape.title && shape.sections[shape.sections.length - 1] === shape.decide
+        && !shape.sections.includes(shape.portfolio) && shape.sections.length >= 2 && shape.sections.length <= 3,
       shape.sections.join(' · '));
     check('3 no tiles and no "Choose tiles" — the Map took their place',
       shape.tiles === 0 && !shape.choose, `${shape.tiles} tiles · choose ${shape.choose}`);
@@ -191,6 +195,82 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       shape.mapW > 600 && Math.abs(shape.mapW - shape.greetW) <= 1, `map ${shape.mapW} · page ${shape.greetW}`);
     check('3 the hero banner and the pipeline ring are gone',
       shape.banner === 0 && shape.ring === 0, `banner ${shape.banner} · ring ${shape.ring}`);
+
+    /* ============ 3b. A QUARTER SHORTER (Young ruled 25 Sep 2026) ==========
+       "reduce the where your contracts stand card by 25% as it is dominating
+       the screen too much and taking over the whole screen." THE BASELINE IS
+       A MEASUREMENT, NOT A TARGET TYPED FROM NOWHERE: the parent drew the card
+       544.9px tall at every desktop width and 671.4 where the facts stack
+       under the charts (1100px), read off a real page before a line moved.
+       And the height may only come out of the AIR — every figure, door and
+       the switch are counted as still drawn, in the same breath. */
+    const PARENT_MAP_H = { desk: 544.9, stacked: 671.4 };
+    const tall = async () => page.evaluate(() => {
+      const m = document.getElementById('hm-map');
+      return { h: m ? +m.getBoundingClientRect().height.toFixed(1) : 0,
+        legend: m ? m.querySelectorAll('.hm-map-legend button').length : 0,
+        months: m ? m.querySelectorAll('.hm-map-col').length : 0,
+        facts: m ? m.querySelectorAll('.hm-map-fact').length : 0,
+        bar: m ? m.querySelectorAll('.hm-map-stages [data-hm-map^="stage:"]').length : 0,
+        sw: m ? m.querySelectorAll('[data-hm-measure]').length : 0 };
+    });
+    const t1440 = await tall();
+    await page.setViewportSize({ width: 1100, height: 800 });
+    await page.waitForTimeout(600);
+    const t1100 = await tall();
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.waitForTimeout(600);
+    check('3b the Map is a quarter shorter on a desktop screen',
+      t1440.h > 0 && t1440.h <= 0.75 * PARENT_MAP_H.desk,
+      `${t1440.h}px against ${PARENT_MAP_H.desk} — ${((1 - t1440.h / PARENT_MAP_H.desk) * 100).toFixed(1)}% less`);
+    check('3b and where the facts stack under the charts',
+      t1100.h > 0 && t1100.h <= 0.75 * PARENT_MAP_H.stacked,
+      `${t1100.h}px against ${PARENT_MAP_H.stacked} — ${((1 - t1100.h / PARENT_MAP_H.stacked) * 100).toFixed(1)}% less`);
+    /* [wall] — true at the parent too, by design: it is what the height may
+       NOT be bought with. */
+    check('3b (wall) and nothing on it went — three stages, twelve months, three facts, the switch',
+      t1440.legend === 3 && t1440.months === 12 && t1440.facts === 3 && t1440.bar >= 1 && t1440.sw === 2,
+      JSON.stringify(t1440));
+
+    /* ======= 3c. THE STAGES WEAR THE CONTRACTS LIST'S OWN COLOURS ========
+       "The color code of the drafting, review and executed should match the
+       color coding in the contracts list page." Measured on BOTH pages, the
+       way a reader compares them: one contract is staged into each stage so
+       all three draw, the Map's bar and squares are read, then the Contracts
+       page is opened and its stage dots read, stage by stage. */
+    const mapTones = await page.evaluate(() => {
+      const live = state.contracts.filter(c => !c.archived && c.status !== 'Declined');
+      window.__s3c = live.slice(0, 3).map(c => ({ c, status: c.status }));
+      ['Draft', 'Under Review', 'Signed'].forEach((st, i) => { if (live[i]) live[i].status = st; });
+      renderDashboard();
+      const bg = e => e ? getComputedStyle(e).backgroundColor : null;
+      const out = {};
+      for (const k of ['Draft', 'Under Review', 'Signed']) {
+        const seg = document.querySelector(`#hm-map .hm-map-stages [data-hm-map="stage:${k}"]`);
+        const leg = document.querySelector(`#hm-map .hm-map-legend [data-hm-map="stage:${k}"] .hm-map-sw`);
+        out[k] = { bar: bg(seg), square: bg(leg) };
+      }
+      return out;
+    });
+    await page.evaluate(() => setView('register'));
+    await page.waitForTimeout(1200);
+    const listTones = await page.evaluate(() => {
+      const out = {};
+      document.querySelectorAll('tr[data-row]').forEach(tr => {
+        const c = state.contracts.find(x => x.id === tr.getAttribute('data-row'));
+        const dot = tr.querySelector('.reg-stg i');
+        if (c && dot && !out[c.status]) out[c.status] = getComputedStyle(dot).backgroundColor;
+      });
+      return out;
+    });
+    await page.evaluate(() => { (window.__s3c || []).forEach(({ c, status }) => { c.status = status; });
+      delete window.__s3c; setView('dashboard'); });
+    await page.waitForTimeout(1000);
+    const toneRows = ['Draft', 'Under Review', 'Signed'].map(k => ({ k, list: listTones[k] || null,
+      bar: mapTones[k] && mapTones[k].bar, square: mapTones[k] && mapTones[k].square }));
+    check('3c each stage on the Map is the colour the Contracts list gives it — the bar and the square',
+      toneRows.every(r => r.list && r.bar === r.list && r.square === r.list),
+      toneRows.map(r => `${r.k}: list ${r.list} · bar ${r.bar} · square ${r.square}`).join(' | '));
 
     /* ================= 4. THE FIGURES SIT ON ONE LINE ====================
        RE-POINTED IN PLACE 24 Sep 2026: the tiles' figures are the Map's stage
@@ -457,6 +537,9 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
           return h ? Math.round(h.getBoundingClientRect().top) : null; })(),
         mapTop: (() => { const m = document.getElementById('hm-map');
           return m ? Math.round(m.getBoundingClientRect().top) : null; })(),
+        ddSecTop: (() => { const h = [...document.querySelectorAll('.hm-sec')]
+          .find(x => /Needs your decision|Kräver ditt beslut/i.test((x.querySelector('h2') || {}).textContent || ''));
+          return h ? Math.round(h.getBoundingClientRect().top) : null; })(),
         ddTop: dd ? Math.round(dd.getBoundingClientRect().top) : null,
         sub: sec ? ((sec.querySelector('.hm-desk-sub') || {}).textContent || '').trim() : '',
         acts: rows.map(el => [...el.querySelectorAll('[data-desk-act]')]
@@ -486,6 +569,12 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     check('11e the desk sits BELOW the Map',
       desk.secTop != null && desk.mapTop != null && desk.secTop > desk.mapTop,
       `map ${desk.mapTop}px · desk ${desk.secTop}px`);
+    /* AND ABOVE THE READER'S OWN LIST, which came back on 25 Sep 2026 (Young:
+       "below prepared for you card, add bring back the needs your attention
+       card"). The headings, not the rows — the list can be empty. */
+    check('11e2 …and ABOVE Needs your decision',
+      desk.ddSecTop != null && desk.secTop != null && desk.ddSecTop > desk.secTop,
+      `desk ${desk.secTop}px · decisions ${desk.ddSecTop}px`);
     /* THE PROMISE THE WHOLE DESK RESTS ON, and no clock time — HaTi does not
        yet work while nobody is watching, so "finished 05:40" would be the page
        inventing a night shift. */
@@ -521,12 +610,17 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
         .some(b => b.getAttribute('data-sel') === id);
       return { inDesk, inDd };
     }, staged ? staged.ren : '');
-    /* RE-POINTED IN PLACE 24 Sep 2026: the one-door rule was that a contract
-       is LISTED once on this page. The decisions list left, so the desk is the
-       only list; the Map counts and lists nothing. */
-    check('11h a renewal the desk prepared is listed once — the desk is the only list',
-      once.inDesk && !once.inDd && !(await page.evaluate(() => !!document.getElementById('hm-dd-rows'))),
-      `desk ${once.inDesk} · another list ${once.inDd}`);
+    /* RE-POINTED IN PLACE 24 Sep 2026 (the decisions list left and the desk
+       was the only list) AND BACK 25 Sep 2026 (the list came back, two rows).
+       The one-door rule is asked of the LIST, not of its two rows on screen:
+       with two rows, "not among the rows" would be true of anything third or
+       later, and prove nothing. hmDecisionItems is the list the card, its
+       head and its See all door all read. */
+    const onList = id => page.evaluate(x => (window.hmDecisionItems ? hmDecisionItems() : []).some(it => it.cid === x), id);
+    const renOnList = await onList(staged ? staged.ren : '');
+    check('11h a renewal the desk prepared is NOT also in Needs your decision',
+      once.inDesk && !once.inDd && !renOnList,
+      `desk ${once.inDesk} · on the list ${renOnList} · in its rows ${once.inDd}`);
     /* ---- AND ONE THE CAP HELD BACK IS STILL SOMEWHERE (Young, 9 Sep 2026) ----
        "it says 2 of 9 but does it mean copilot prepared 9 in total and if so,
        where is the rest of the 9?" — and the answer was that the renewals among
@@ -548,11 +642,14 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     check('11h2 a second renewal decision really does qualify for the desk', held.qualifies);
     check('11h3 …the cap keeps it off the desk',
       !held.inDesk, `on the desk: ${held.inDesk}`);
-    /* RE-POINTED IN PLACE 24 Sep 2026: "not lost" is now the Map — the
-       contract the cap held back is still COUNTED in the month it ends. */
+    /* RE-POINTED IN PLACE 24 Sep 2026 ("not lost" meant the Map) AND BACK
+       25 Sep 2026: the decisions list is back, so the renewal the cap held
+       back is ON IT — asked of the list, which its See all door opens. The
+       Map still counts it in its month, and that half stays. */
     const heldOnMap = await page.evaluate(id => hmMapData().months.some(M => M.ids.includes(id)), staged ? staged.ren2 : '');
-    check('11h4 …and it is still on the Map, in its month, not lost',
-      heldOnMap, `counted on the Map: ${heldOnMap}`);
+    const heldOnList = await onList(staged ? staged.ren2 : '');
+    check('11h4 …and it is still in Needs your decision, not lost between the two',
+      heldOnList && heldOnMap, `on the list ${heldOnList} · counted on the Map ${heldOnMap}`);
     /* AND THE CONTROL THAT MAKES THAT CLAIM MEAN SOMETHING. On a quiet book
        "Needs your decision" can be empty, and then "not in the list" is true of
        every contract there is. 11l below dismisses the desk's renewal and
@@ -609,12 +706,105 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     check('11k and the record carries the stamp, so it does not come back',
       away && away.stamped, away ? (away.stampedKeys || []).join(' | ') : '—');
 
-    /* RE-POINTED IN PLACE 24 Sep 2026: put away from the desk, it is still
-       counted on the Map — putting a row away hides the proposal, never the
-       contract. */
+    /* RE-POINTED IN PLACE 24 Sep 2026 (the Map) AND BACK 25 Sep 2026: put
+       away from the desk, the SAME contract is on Needs your decision instead
+       — so 11h was a filter, not an empty list — and still on the Map. */
+    const movedOnList = await onList(staged ? staged.ren : '');
     const moved = await page.evaluate(id => hmMapData().months.some(M => M.ids.includes(id)), staged ? staged.ren : '');
-    check('11l …and it is still counted on the Map — putting a row away hides nothing else',
-      moved === true, `counted on the Map: ${moved}`);
+    check('11l …and it is in Needs your decision instead — so 11h was a filter, not an empty list',
+      movedOnList === true && moved === true, `on the list ${movedOnList} · counted on the Map ${moved}`);
+
+    /* ============ 12. NEEDS YOUR DECISION — TWO ROWS AND NOTHING MORE ======
+       Young, 25 Sep 2026: "below prepared for you card, add bring back the
+       needs your attention card but only have 2 lines and nothing more." What
+       only a browser can say: that at most TWO rows are PAINTED, that the head
+       counts the whole list, that "See all" opens exactly the contracts on it,
+       that a row opens its contract, and that an empty list is one line.
+       Everything staged here is put back before the next claim. */
+    await page.evaluate(() => setView('dashboard'));
+    await page.waitForTimeout(900);
+    const dd = await page.evaluate(() => {
+      const iso = n => { const d = new Date(); d.setDate(d.getDate() + n); const q = x => String(x).padStart(2, '0');
+        return d.getFullYear() + '-' + q(d.getMonth() + 1) + '-' + q(d.getDate()); };
+      /* At least three on the list, so the cap has something to hold back:
+         contracts sitting in review are listed whole, longest idle first. */
+      window.__s12 = [];
+      const onIt = () => new Set((window.hmDecisionItems ? hmDecisionItems() : []).map(x => x.cid));
+      const pool = state.contracts.filter(c => !c.archived && c.status !== 'Declined' && !onIt().has(c.id));
+      for (const c of pool) { if ((window.hmDecisionItems ? hmDecisionItems() : []).length >= 3) break;
+        window.__s12.push({ c, status: c.status, lastAction: c.lastAction });
+        c.status = 'Under Review'; c.lastAction = iso(-40); }
+      renderDashboard();
+      const list = window.hmDecisionItems ? hmDecisionItems() : [];
+      const card = [...document.querySelectorAll('.hm-card')].find(x => /Needs your decision/.test((x.querySelector('h2') || {}).textContent || ''));
+      const rows = card ? [...card.querySelectorAll('#hm-dd-rows .hm-row')] : [];
+      const sub = card ? ((card.querySelector('.hm-sec-sub') || {}).textContent || '') : '';
+      const m = /(\d+)/.exec(sub);
+      return { n: list.length, ids: list.map(x => x.cid), shown: rows.map(r => r.getAttribute('data-sel')),
+        painted: rows.filter(r => { const b = r.getBoundingClientRect(); return b.width > 200 && b.height > 30; }).length,
+        headN: m ? Number(m[1]) : null, sub: sub.replace(/\s+/g, ' ').trim(),
+        seeAll: !!(card && card.querySelector('[data-hm-go="needsyou"]')),
+        seeAllN: card && card.querySelector('[data-hm-go="needsyou"]') ? (/(\d+)/.exec(card.querySelector('[data-hm-go="needsyou"]').textContent) || [])[1] : null,
+        card: !!card, rail: !!(card && card.querySelector('.hm-rw')) };
+    });
+    await page.screenshot({ path: path.join(OUT, '12-needs-your-decision.png') });
+    check('12a the list could be staged with more than two on it', dd.n >= 3, `${dd.n} on the list`);
+    check('12b exactly two rows are painted, and they are the list\'s first two',
+      dd.painted === 2 && dd.shown.join(',') === dd.ids.slice(0, 2).join(','),
+      `painted ${dd.painted} · rows ${dd.shown.join(', ')} · list ${dd.ids.slice(0, 4).join(', ')}…`);
+    check('12c the head counts the whole list, and See all carries the same number',
+      dd.headN === dd.n && dd.seeAll && Number(dd.seeAllN) === dd.n, `"${dd.sub}" · See all ${dd.seeAllN} · list ${dd.n}`);
+    /* ASKED OF A CARD THAT IS THERE: "no rail" is true of a page with no
+       card at all, which is exactly the parent — so the card is required. */
+    check('12d and nothing more — no line of time on the card', dd.card && !dd.rail, `card ${dd.card} · rail ${dd.rail}`);
+
+    /* See all opens Contracts narrowed to exactly the contracts on the list.
+       GUARDED: a build without the door reports it rather than timing out. */
+    if (dd.seeAll) await page.click('[data-hm-go="needsyou"]');
+    await page.waitForTimeout(1300);
+    const all = await page.evaluate(() => ({ view: state.view,
+      rows: [...document.querySelectorAll('tr[data-row]')].map(r => r.getAttribute('data-row')) }));
+    const ddWant = [...new Set(dd.ids)].sort().join(',');
+    check('12e See all opens Contracts on exactly the contracts the list holds',
+      all.view === 'register' && [...all.rows].sort().join(',') === ddWant,
+      `${all.view} · ${all.rows.length} rows · want ${ddWant.split(',').length}`);
+    await page.evaluate(() => { if (window.regState) regState().only = null; setView('dashboard'); });
+    await page.waitForTimeout(900);
+
+    /* A row opens its own contract. */
+    const firstId = await page.evaluate(() => { const r = document.querySelector('#hm-dd-rows .hm-row');
+      return r ? r.getAttribute('data-sel') : null; });
+    if (firstId) await page.click('#hm-dd-rows .hm-row');
+    await page.waitForTimeout(1200);
+    const opened = await page.evaluate(() => ({ view: state.view, active: state.activeId }));
+    check('12f pressing a row opens that contract',
+      !!firstId && opened.active === firstId && opened.view !== 'dashboard', `${firstId} → ${opened.view} ${opened.active}`);
+    await page.evaluate(() => setView('dashboard'));
+    await page.waitForTimeout(900);
+
+    /* Nothing to decide is one line: every contract parked as CLOSED for one
+       render, then put back. Every source the list reads leaves a closed
+       contract out (a draft is not enough — a draft with an end date still
+       owes a renewal decision), so the list is empty by construction; the
+       reading is asked too, so an empty card is never taken on trust. */
+    const none = await page.evaluate(() => {
+      const had = state.contracts.map(c => ({ c, status: c.status }));
+      state.contracts.forEach(c => { c.status = 'Declined'; });
+      renderDashboard();
+      const card = [...document.querySelectorAll('.hm-card')].find(x => /Needs your decision/.test((x.querySelector('h2') || {}).textContent || ''));
+      const out = { list: window.hmDecisionItems ? hmDecisionItems().length : -1,
+        empty: !!(card && card.querySelector('.hm-empty')), rows: card ? card.querySelectorAll('.hm-row').length : -1,
+        seeAll: !!(card && card.querySelector('[data-hm-go="needsyou"]')),
+        text: card ? ((card.querySelector('.hm-empty') || {}).textContent || '').trim() : '',
+        left: (window.hmDecisionItems ? hmDecisionItems() : []).map(x => x.cid) };
+      had.forEach(({ c, status }) => { c.status = status; });
+      (window.__s12 || []).forEach(({ c, status, lastAction }) => { c.status = status; c.lastAction = lastAction; });
+      delete window.__s12;
+      renderDashboard();
+      return out;
+    });
+    check('12g with nothing to decide, it says so in one line — no rows, no See all',
+      none.list === 0 && none.empty && none.rows === 0 && !none.seeAll, JSON.stringify(none));
 
     check('no page errors', errors.length === 0, errors.slice(0, 2).join(' | ') || 'clean');
   } catch (e) {

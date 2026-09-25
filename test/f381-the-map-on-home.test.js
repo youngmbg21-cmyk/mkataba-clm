@@ -65,15 +65,23 @@ const fnBody = (src, name) => {
 };
 
 describe('F381 (1) — Home is the greeting, the Map and Prepared for you', () => {
-  test('the Map is drawn, and the tiles, Choose tiles and the decisions card are not', () => {
+  /* HALF REVERSED IN PLACE 25 Sep 2026 (Young: "below prepared for you card,
+     add bring back the needs your attention card but only have 2 lines and
+     nothing more"). The tiles and "Choose tiles" stay gone; the decisions
+     card is BACK, under the Map, with its rows — and its line of time is
+     still gone, which is the half of the old claim that holds. f382 pins the
+     two rows. */
+  test('the Map is drawn, the tiles and Choose tiles are not, and the decisions card is back without its rail', () => {
     const { html } = world();
     assert.ok(html.includes('id="hm-map"'), 'the Map is on the page');
     assert.ok(html.includes('hm-card hm-map'), 'in the card shell every Home card wears');
     assert.ok(!html.includes('data-kpi-id'), 'no KPI tile is drawn on the desktop');
     assert.ok(!html.includes('kpi-grid'), 'and no tile row');
     assert.ok(!html.includes('kpi-customize'), '"Choose tiles" left with the tiles it chose');
-    assert.ok(!html.includes('Needs your decision'), 'the decisions card left the page');
-    assert.ok(!html.includes('hm-dd-rows') && !html.includes('hm-rw'), 'and its rows and its rail with it');
+    assert.ok(html.includes('Needs your decision'), 'the decisions card is back on the page');
+    assert.ok(html.indexOf('id="hm-map"') < html.indexOf('Needs your decision'), 'under the Map');
+    assert.ok(html.includes('hm-dd-rows'), 'with its rows');
+    assert.ok(!html.includes('hm-rw'), 'and without its rail');
   });
   test('the desktop picker is deleted, not left as a door onto nothing', () => {
     assert.ok(!/function openKpiCustomizer\(/.test(HOME), 'the popover has no button to open it');
@@ -223,6 +231,9 @@ describe('F381 (5) — every figure is a door, and a zero is not one', () => {
   });
 });
 
+/* The card they lived on came back on 25 Sep 2026 (two rows); the bell rows
+   stay, because the bell says everything owed to you and the card only the
+   first two decisions. The claims below are unchanged. */
 describe('F381 (6) — the two reminders that lived only on the removed card ride the bell', () => {
   const kinds = () => {
     const m = APP.match(/const ALERT_KINDS = \[([\s\S]*?)\n\];/);
@@ -260,9 +271,17 @@ describe('F381 (7) — the words', () => {
     assert.ok(!/Needs your decision/.test(i18n.STRINGS.en.desk_discard_msg));
     assert.ok(!/Beslut att fatta/.test(i18n.STRINGS.sv.desk_discard_msg));
   });
-  test('the card\'s colours are tokens with a night answer', () => {
-    assert.match(CSS, /\.hm-map\{ --map-s1:var\(--color-accent-200\)/);
-    assert.match(CSS, /html\.dark \.hm-map\{ --map-s1:/);
-    assert.match(CSS, /--map-due:var\(--st-amber-dot\)/, 'amber means one thing on this card');
+  /* RE-POINTED IN PLACE 25 Sep 2026 (Young: "The color code of the drafting,
+     review and executed should match the color coding in the contracts list
+     page"). The stages left the card's own accent tokens for STATUS_META's
+     dots (f382 pins that), so "amber means one thing on this card" is no
+     longer true and is not asked. What still holds: the renewal piles are
+     tokens on the card, and the one that follows the accent has a night
+     answer. */
+  test('the card\'s own colours are tokens with a night answer', () => {
+    assert.match(CSS, /\.hm-map\{ --map-made:var\(--color-accent-600\)/);
+    assert.match(CSS, /html\.dark \.hm-map\{ --map-made:/);
+    assert.match(CSS, /--map-due:var\(--st-amber-dot\)/, 'a decision due is amber');
+    assert.ok(!/--map-s[123]/.test(CSS), 'and the stages carry no accent tokens of their own any more');
   });
 });

@@ -282,24 +282,36 @@ describe('F274 — the overnight desk', () => {
     });
 
     /* REVERSED IN PLACE 24 Sep 2026 (Young: "instead of needs your decision,
-       delete it and replace with prepared for you"). The two claims here were
-       about the list below the desk — which renewals it gave up, and that the
-       desk led it. The list is gone, so there is nothing on Home to evict
-       from and nothing to lead; the one-door RULE above (deskCids) is kept,
-       published and still true, for the day a second list comes back. What
-       must hold now is that no half of the eviction is left behind on a page
-       with one list, and that the desk sits where the owner drew it: under
-       the Map. */
-    test('Home keeps no eviction left over from the list that left', () => {
-      assert.ok(!/deskCids\(/.test(HOME_CODE), 'no list on Home for the desk to evict from');
-      assert.ok(!/decisions\.filter\(x=>!deskIds/.test(HOME_CODE), 'and no half-deleted filter');
+       delete it and replace with prepared for you") — the list left and there
+       was nothing on Home to evict from — AND REVERSED BACK 25 Sep 2026
+       (Young: "below prepared for you card, add bring back the needs your
+       attention card but only have 2 lines"). The list is back, so the two
+       claims as they stood before the 24th are back too: the desk evicts the
+       renewal SOURCE only, built from the rows it DRAWS, and it leads the
+       reader's own list. The eviction lives in hmDecisionItems now (the list
+       lifted into one reading), which the page hands its own desk rows. */
+    test('Home filters the renewal source by the desk, and only that source', () => {
+      assert.match(HOME_CODE, /\.\.\.\(decisions\|\|\[\]\)\.filter\(x=>!deskIds\.has\(x\.c\.id\)\)\.map\(/,
+        'the renewal rows are the ones that move');
+      /* AND IT IS BUILT FROM THE ROWS ON SCREEN. Handed deskAll it evicted
+         every qualifying renewal while drawing one, so the rest were on
+         neither list — the fault this whole section exists to prevent, running
+         the other way. */
+      assert.match(HOME_CODE, /deskCids\(shown\)/, 'only what is drawn may evict anything');
+      assert.match(HOME_CODE, /hmDecisionItems\(SL, deskRows\)/, 'and the page hands over the rows it drew');
+      assert.ok(!/deskCids\(deskAll\)/.test(HOME_CODE), 'never the whole list');
+      for (const other of ['myReviews', 'myStaleDesks', 'myJoinAsks', 'waitingLongest'])
+        assert.ok(!new RegExp(other + '(\\|\\|\\[\\])?\\)?\\.filter\\(x=>!deskIds').test(HOME_CODE),
+          other + ' is a different subject and is never evicted by the desk');
     });
 
-    test('Home draws the desk under the Map, and no decisions card at all', () => {
-      const i = HOME.indexOf('id="hm-map"');
-      const j = HOME.indexOf('${deskSection}');
-      assert.ok(i > 0 && j > i, 'the Map leads, prepared work follows');
-      assert.ok(!HOME.includes("hmSec(i18t('home_needs_decision')"), 'the decisions card left the page');
+    test('Home draws the desk under the Map and above the reader\u2019s own list', () => {
+      const m = HOME.indexOf('id="hm-map"');
+      const i = HOME.indexOf('${deskSection}');
+      const j = HOME.indexOf('${ddSection}');
+      assert.ok(m > 0 && i > m, 'the Map leads, prepared work follows');
+      assert.ok(j > i, 'and the reader\u2019s own queue follows that');
+      assert.ok(HOME.includes("hmSec(i18t('home_needs_decision')"), 'the decisions card is drawn again');
     });
   });
 
