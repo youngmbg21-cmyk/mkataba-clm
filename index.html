@@ -527,6 +527,14 @@
     /* The lift under the sheet. Softer and longer than --shadow-md: a page
        resting on a desk, not a card floating over one. */
     --shadow-paper:0 1px 2px rgba(38,55,74,.05), 0 18px 44px -22px rgba(38,55,74,.28);
+    /* ---- THE PAGE (Young ruled 25 Sep 2026: "it should look like its on
+       Microsoft Word waiting to be edited") ----
+       The contract is drawn as PAGES now — white on the grey desk, the way
+       Word shows a document — on the Document tab, the Negotiate page and the
+       Signing tab (js/pages.js). The cream above is kept for the smaller
+       things that still read as a slip of paper (a rung's peek card). */
+    --color-page:#FFFFFF; --color-page-line:#DCE2E0; --color-page-mark:#A9B5B2;
+    --shadow-page:0 1px 2px rgba(20,31,29,.07), 0 10px 26px -14px rgba(20,31,29,.26);
 
     /* ═══ THE SPACING LADDER — one place, all four style sources ═══
        WHAT WAS HERE AND WHY IT WENT: --space-1..8 was a 0.85x scaling of
@@ -901,6 +909,11 @@
     --mk-hl-yellow:rgba(250,204,21,.30); --mk-hl-blue:rgba(96,165,250,.30);
     --mk-hl-violet:rgba(167,139,250,.30); --mk-hl-grey:rgba(148,163,184,.30);
     --shadow-paper:0 1px 2px rgba(0,0,0,.4), 0 18px 44px -22px rgba(0,0,0,.6);
+    /* The working copy's page is the dark sheet it always was; the SIGNING
+       copy pins itself back to white (see .pg-sign), because it is the page
+       that gets signed and printed. */
+    --color-page:#1B1F1D; --color-page-line:#2C3230; --color-page-mark:#56615F;
+    --shadow-page:0 1px 2px rgba(0,0,0,.4), 0 14px 34px -18px rgba(0,0,0,.6);
 
     --color-neutral-100:#1B2221; --color-neutral-200:#26302E; --color-neutral-300:#36423F;
     /* The design's dark ramp, step for step (tokens.css html.dark): ink
@@ -3061,6 +3074,25 @@
   #ws-tabrow-end .ws-export-menu .mnote{ margin-left:auto; font-size:var(--t-label); color:var(--color-neutral-600); }
   #ws-tabrow-end .ws-focus-door{ width:var(--ctl-h); padding:0; justify-content:center; }
   #ws-tabrow-end .ws-focus-door[aria-pressed="true"]{ background:var(--nav-well); }
+  /* ---- THE SIGNING COPY'S CONTROLS (25 Sep 2026) ----
+     Which copy this is and where its words came from, then the page it is on
+     and the zoom — the design's own control row. One rung with the rest of the
+     slot; the two steppers wear the type stepper's box so the row reads as
+     one family. */
+  #ws-tabrow-end .sc-label{ display:inline-flex; align-items:center; gap:6px; min-width:0; flex:0 1 auto;
+    font-size:var(--t-body); color:var(--color-neutral-700); white-space:nowrap; overflow:hidden; }
+  #ws-tabrow-end .sc-label b{ font-weight:var(--w-strong); color:var(--color-text); }
+  #ws-tabrow-end .sc-label .sc-src{ color:var(--color-neutral-600); overflow:hidden; text-overflow:ellipsis; }
+  #ws-tabrow-end .sc-step{ display:inline-flex; align-items:center; gap:2px; flex:none; height:var(--ctl-h);
+    box-sizing:border-box; padding:0 3px; border:1px solid var(--btn-edge); border-radius:var(--radius);
+    background:var(--color-surface); }
+  #ws-tabrow-end .sc-step button{ width:22px; height:22px; display:inline-grid; place-items:center; padding:0;
+    border:0; background:none; border-radius:var(--radius); color:var(--color-neutral-600); font:inherit;
+    font-size:var(--t-body); cursor:pointer; }
+  #ws-tabrow-end .sc-step button:hover:not(:disabled){ background:var(--nav-well); color:var(--color-text); }
+  #ws-tabrow-end .sc-step button:disabled{ opacity:.4; cursor:default; }
+  #ws-tabrow-end .sc-step>span{ min-width:3.2em; text-align:center; font-size:var(--t-body); color:var(--color-text);
+    font-variant-numeric:tabular-nums; white-space:nowrap; padding:0 4px; }
 
   /* ---- THE PLAIN-ENGLISH SWITCH (idea 7) ----
      Contract View first and lit at rest, Plain English second — Young's own
@@ -7737,6 +7769,120 @@
     .hati-doc tr,.hati-doc h1,.hati-doc h2,.hati-doc h3,.hati-doc h4{break-inside:avoid;}
     .hati-doc h1,.hati-doc h2,.hati-doc h3,.hati-doc h4{break-after:avoid;}
   }
+
+  /* ============ THE PAGE-MAKER (js/pages.js) — Young ruled 25 Sep 2026 ============
+     A contract drawn as PAGES. The working copy (Document tab, Negotiate page,
+     the other side's negotiating link) is white pages on the grey desk with
+     Word's corner marks, the letterhead faded to one line in the top margin
+     and the page number faded in the foot. The signing copy (the Signing tab,
+     and every tab once the contract is signed) is the company's design at full
+     strength on fixed A4 pages.
+
+     THE LAYER IS DRAWN OVER THE SHEET. The gap between two pages is painted in
+     the desk's own colour, which js/pages.js reads off the page, so nothing
+     that crosses it shows — and WORDING never crosses it, because a block that
+     cannot fit on any page grows its page instead of being cut. Every word in
+     the layer is generated content (attr()), so no Range, copy or textContent
+     ever reads "Page 2 of 6" as part of the contract. */
+  .pg-sheet{position:relative}
+  /* the air that runs the paper down to the last page's bottom edge */
+  .pg-sheet::after{content:'';display:block;height:var(--pg-extra,0px)}
+  .pg-layer{position:absolute;left:0;top:0;right:0;height:0;z-index:3;pointer-events:none;
+    user-select:none;-webkit-user-select:none}
+  .pg-layer>*{position:absolute;box-sizing:border-box}
+  .pg-gap::before,.pg-gap::after{content:'';position:absolute;left:32px;right:32px;height:1px;
+    background:var(--color-page-line)}
+  .pg-gap::before{top:0;box-shadow:0 3px 8px rgba(20,31,29,.12)}
+  .pg-gap::after{bottom:0}
+  .pg-corner{width:14px;height:14px;border:0 solid var(--color-page-mark)}
+  .pg-corner.tl{border-right-width:1px;border-bottom-width:1px}
+  .pg-corner.tr{border-left-width:1px;border-bottom-width:1px}
+  .pg-corner.bl{border-right-width:1px;border-top-width:1px}
+  .pg-corner.br{border-left-width:1px;border-top-width:1px}
+  /* FADED, NOT HIDDEN: the way Word dims a header while you type in the body.
+     The type is the document's own face (js/pages.js writes it on the layer). */
+  .pg-head,.pg-foot,.pg-run,.pg-sfoot{display:flex;gap:1em;font-size:10px;line-height:12px;white-space:nowrap}
+  .pg-head,.pg-foot{color:var(--color-text);opacity:.36}
+  .pg-head{letter-spacing:.24em;text-transform:uppercase}
+  .pg-head::before{content:attr(data-l);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;text-align:center}
+  .pg-head.is-run::before{text-align:left}
+  .pg-head.is-run::after{content:attr(data-r);flex:none;letter-spacing:.08em}
+  .pg-foot{justify-content:center;letter-spacing:.02em;opacity:.46}
+  .pg-foot::before{content:attr(data-l)}
+  /* The working copy's sheet. The Negotiate page's paper takes the same three
+     values in its own sheet (redlineLayoutCss), so the two pages cannot
+     disagree about what the working copy looks like. */
+  .pg-sheet.pg-work{background:var(--color-page);border:1px solid var(--color-page-line);
+    box-shadow:var(--shadow-page);border-radius:0}
+  /* A Word page break is the page ending now, so the rule and air that stood
+     in for it on one long sheet stand down on a paged one. */
+  .pg-sheet .hati-doc .hati-pb{margin:0;border-top:0}
+
+  /* ---- THE SIGNING COPY: the design at full strength on A4 ----
+     A fixed 794px page (A4 at 96px to the inch) that the size control ZOOMS
+     rather than re-flowing (the owner's pick 4A), so the pages you read are
+     the pages you sign. It is always white: it is the page that gets signed
+     and printed, so the dark theme's paper and the reader's own text size
+     stop at its edge — the desk stays dark, the document does not. */
+  .pg-zoomwrap{position:relative;margin:0 auto}
+  .pg-sheet.pg-sign{width:794px;max-width:none;box-sizing:border-box;border-radius:0;
+    background:#fff;border:1px solid #D8DEDC;box-shadow:0 2px 4px rgba(20,31,29,.06),0 16px 36px -18px rgba(20,31,29,.34);
+    transform-origin:0 0;--doc-scale:1;
+    --color-doc-text:#1B2A28;--color-doc-muted:#43524F;--color-doc-rule:#c9ccd1;--color-doc-surface:#fff;
+    --color-doc-warm:#fff;--color-doc-warm-line:#e2e8f0;--color-page:#fff;--color-page-line:#D8DEDC;
+    --color-text:#1B2A28;--color-divider:#e2e8f0;
+    --color-neutral-100:#f1f5f9;--color-neutral-200:#e2e8f0;--color-neutral-300:#cbd5e1;
+    --color-neutral-400:#93A09E;--color-neutral-500:#5F6D6B;--color-neutral-600:#5F6D6B;
+    --color-neutral-700:#1B2A28;--color-neutral-800:#1B2A28;--color-neutral-900:#1B2A28;
+    color:#1B2A28}
+  .pg-run{color:#6b7780;letter-spacing:.2em;text-transform:uppercase}
+  .pg-run::before{content:attr(data-l);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .pg-sfoot{justify-content:center;color:#6b7780;font-size:11px;line-height:14px}
+  .pg-sfoot::before{content:attr(data-l)}
+  .pg-dfoot{display:block}
+  .pg-theirfoot{text-align:center;font-size:11px;line-height:14px;color:#5F6D6B}
+  .pg-theirfoot::before{content:attr(data-l)}
+  /* THEIR PAPER AS IT CAME: their own file in the browser's viewer, then the
+     page they sign on (js/views/contract.js signCopyTheirs). */
+  .sc-file{max-width:var(--doc-sheet-max,860px);margin:0 auto var(--s-4)}
+  .sc-file-frame{display:block;width:100%;height:calc(100vh - 235px);min-height:560px;border:1px solid var(--color-page-line);background:#fff}
+  .sc-file-img{display:block;max-width:100%;margin:0 auto;border:1px solid var(--color-page-line);background:#fff}
+  .pg-sign .sc-sigpage-h{margin:0 0 8px;font-size:1.25em;font-weight:var(--w-strong);color:#1B2A28}
+  .pg-sign .sc-sigpage-p{margin:0 0 8px;font-size:.9em;line-height:1.6;color:#5F6D6B}
+  /* A PRINTED PAGE: one box per sheet of A4 (js/pages.js pagesPrintPages). */
+  .pp-page{position:relative;overflow:hidden;margin:0;break-after:page;page-break-after:always;break-inside:avoid}
+  .pp-page:last-child{break-after:auto;page-break-after:auto}
+  .pp-measure{position:absolute;left:-12000px;top:0;visibility:hidden;pointer-events:none}
+  /* A blank nobody filled prints as a paper form's ruled line — and stops
+     signing, which the signing column already says. */
+  /* Written at .pg-sheet.pg-sign so the dark theme's own tint for a frozen
+     field (html.dark .field-frozen) cannot reach a page that is always white. */
+  .pg-sheet.pg-sign .field-frozen{background:none;border:0;border-radius:0;padding:0;
+    font-weight:inherit;color:inherit}
+  .pg-sheet.pg-sign .field-frozen[data-sync="counterparty"]{font-weight:var(--w-strong)}
+  .pg-sheet.pg-sign .field-frozen[data-empty],
+  .pg-sheet.pg-sign .hati-field{display:inline-block;min-width:7em;color:transparent;background:none;
+    border:0;border-bottom:1px solid #5F6D6B;border-radius:0;padding:0;line-height:1.1;box-shadow:none}
+  /* ---- THE PLACES TO SIGN, ON THE PAGE (the owner's pick 5A) ----
+     The parties' lines become the boxes a signature goes in: the reader's own
+     in the accent with "Sign here" pointing at it from the margin, every other
+     party's in grey. Only on the signing copy; the working copy keeps plain
+     ruled lines, nothing to sign yet. */
+  .pg-sheet.pg-sign .rl-sigline[data-pg-flag]{position:relative}
+  .pg-sheet.pg-sign .rl-sigline[data-pg-flag] .rl-sigrule{position:relative;height:66px;box-sizing:border-box;
+    border:1.5px dashed #CBD3D0;border-radius:var(--radius);background:#F7F9F8}
+  .pg-sheet.pg-sign .rl-sigline[data-pg-flag] .rl-sigrule::after{content:'';position:absolute;left:14px;right:14px;
+    bottom:14px;border-top:1px solid #1B2A28}
+  .pg-sheet.pg-sign .rl-sigline.pg-mine[data-pg-flag] .rl-sigrule{border-color:var(--accent-fill);
+    background:color-mix(in srgb,var(--accent-fill) 6%,#fff);
+    box-shadow:0 0 0 4px color-mix(in srgb,var(--accent-fill) 12%,transparent)}
+  .pg-sheet.pg-sign .rl-sigline.pg-mine[data-pg-flag]::before{content:attr(data-pg-flag);position:absolute;
+    left:-80px;top:20px;height:26px;width:76px;box-sizing:border-box;padding-left:9px;display:flex;align-items:center;
+    font-family:var(--font-body);font-size:12px;font-weight:700;background:var(--accent-fill);color:#fff;
+    clip-path:polygon(0 0,84% 0,100% 50%,84% 100%,0 100%)}
+  .pg-sheet.pg-sign .rl-sigline.pg-mine.pg-flag-right[data-pg-flag]::before{left:auto;right:-80px;
+    padding-left:0;padding-right:9px;justify-content:flex-end;
+    clip-path:polygon(16% 0,100% 0,100% 100%,16% 100%,0 50%)}
   @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important;}}
 
   /* ============ document designs — body typography ============

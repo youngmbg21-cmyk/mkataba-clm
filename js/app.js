@@ -88,6 +88,7 @@ import './templatefields.js';
 import './views/library.js';
 import './fieldlib.js';            // the template-library field catalogue (shared with the server)
 import './branding.js';            // document designs AND structures (shared with the server — one catalogue)
+import './pages.js';               // a contract drawn as pages: the working copy and the signing copy (25 Sep 2026)
 import './metaclean.js';          // the reading's answer is checked before it is filed (shared with the server)
 import './templateform.js';        // template-form rendering + validation (shared with the server)
 import './views/templatelib.js';   // the versioned company standard-template library
@@ -3211,6 +3212,20 @@ function fillPrintRoot(){
   try{
     const root = document.getElementById('print-root');
     if (!root || root.innerHTML.trim()) return;      // a deliberate fill wins
+    /* ---- THE SIGNING COPY PRINTS AS ITS OWN PAGES (25 Sep 2026) ----
+       Printing from the Signing tab — or from a signed contract, which every
+       tab shows as the signed copy — prints the pages on screen, one sheet of
+       A4 each, with the same running head and "Page 2 of 6". */
+    const sign = document.querySelector('#doc-signwrap .pg-sheet');
+    if (sign && sign.getClientRects().length && sign._pgInfo && window.pagesPrintPages){
+      const pagesHtml = pagesPrintPages(sign);
+      if (pagesHtml){
+        root.dataset.autofill = '1';
+        root.innerHTML = '<div class="pp-doc">' + pagesHtml + '</div>';
+        if (window.pagesPrintPageRule) pagesPrintPageRule(true);
+        return;
+      }
+    }
     const src = printSurface();
     if (!src) return;
     const title = (document.querySelector('.room-name h1,#page-head h1,h1')||{}).textContent||'';

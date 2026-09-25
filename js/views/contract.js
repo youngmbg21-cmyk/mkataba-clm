@@ -2357,7 +2357,7 @@ function uploadDocBody(c){
        came from is worth one line and no border. PDFs keep their file preview:
        there is no text to lay out, so a frame is the honest rendering. */
     : (isDocx&&!c.redlineText&&(u.extractedText||'').length>40)
-    ? `<div style="font-size:var(--t-label);color:var(--color-neutral-600);margin:0 0 14px">${i18t('ct_reading_view')}</div>
+    ? `<div class="up-caption" style="font-size:var(--t-label);color:var(--color-neutral-600);margin:0 0 14px">${i18t('ct_reading_view')}</div>
        <div data-upwording>${documentTextHtml(u.extractedText,{size:null,lh:'1.85'})}</div>`
     /* ---- A CONTRACT ON SCREEN IS NOT A FILE THAT CANNOT BE PREVIEWED ----
        This chain ends in a dashed card saying the file cannot be shown and to
@@ -2435,7 +2435,7 @@ function uploadDocBody(c){
          off; the FACTS elide, longest-lived first, and each keeps its own
          hover. A strip that cannot grow cannot cost the paper anything, at any
          width and however many facts land on it later. */}
-    <div class="mb-4" style="display:flex;align-items:center;gap:var(--s-2);flex-wrap:nowrap;overflow:hidden;white-space:nowrap;font-size:var(--t-label);color:var(--color-neutral-600);border-bottom:1px solid var(--color-divider);padding-bottom:9px">
+    <div class="mb-4 up-strip" style="display:flex;align-items:center;gap:var(--s-2);flex-wrap:nowrap;overflow:hidden;white-space:nowrap;font-size:var(--t-label);color:var(--color-neutral-600);border-bottom:1px solid var(--color-divider);padding-bottom:9px">
       <span style="display:inline-flex;align-items:center;gap:5px;min-width:0;overflow:hidden;text-overflow:ellipsis">
         ${icon('file','w-3.5 h-3.5')}<b style="font-weight:var(--w-strong);color:var(--color-text);overflow:hidden;text-overflow:ellipsis">${esc(u.fileName||'—')}</b>${sizeKB?` · ${sizeKB} KB`:''}
       </span>
@@ -2544,7 +2544,7 @@ function uploadDocBody(c){
     ${c.redlineText?`
     ${((isDocx||isPdf) && !(window.uploadWordingEdited ? uploadWordingEdited(c)
         : ((c.changes||[]).length || (c.versions||[]).length)))
-      ? `<div style="font-size:var(--t-label);color:var(--color-neutral-600);margin:0 0 14px">${i18t('ct_reading_view')}</div>` : ''}
+      ? `<div class="up-caption" style="font-size:var(--t-label);color:var(--color-neutral-600);margin:0 0 14px">${i18t('ct_reading_view')}</div>` : ''}
     ${''/* `data-upwording` NAMES THE AGREEMENT INSIDE THIS TAB, and nothing else
          on it. The placeholder marks are painted into text nodes, and the two
          things on this page ruled with underscores that are NOT blanks in the
@@ -2778,6 +2778,355 @@ function docBodyStructured(c){
   const body = docBody(c);
   return (window.docStructureBodyHtml && window.resolveDocBranding)
     ? docStructureBodyHtml(resolveDocBranding(c), body) : body;
+}
+
+/* ============================================================
+   TWO COPIES OF ONE CONTRACT (Young ruled 25 Sep 2026, over "HaTi — Working
+   copy and signing copy", picks 1A 2B 3A 4A 5A 6A)
+   ============================================================
+   "When a contract goes to the document page, the negotiation page as well,
+   it should look like its on Microsoft Word waiting to be edited. But when you
+   go to the signing page it should look exactly like how it was designed."
+
+   THE WORKING COPY — the Document tab while the contract is being worked on.
+   White pages on the grey desk with a gap between them, Word's corner marks,
+   the letterhead FADED to one line in each page's top margin (2B), the page
+   number faded in the foot (3A), ALWAYS ONE COLUMN (so every redline lines up
+   with its clause), the fields still grey boxes to fill, and no places to sign
+   (5A).
+
+   THE SIGNING COPY — the Signing tab, and every tab once the contract is
+   signed. The company's design at full strength on fixed A4 pages: the full
+   letterhead on page one, a slim running head after it, the design's own
+   footer with "Page 2 of 6" on every page, the design's structure, every field
+   as the words that were filled in (an empty one a ruled line), no marks and
+   no pencils, the places to sign marked on the page — and a size control that
+   ZOOMS the whole page rather than re-flowing it (4A), so the pages you read
+   are the pages you sign.
+
+   ONE BUILDER FOR EACH COPY (docSheetHtml), one page-maker under both
+   (js/pages.js). Their paper never wears our letterhead or our design, in
+   either copy. */
+function docSealedCopy(c){ return !!(c && c.status === 'Signed'); }
+function docCopyOf(c){ return (_wsTab === 'sign' || docSealedCopy(c)) ? 'sign' : 'work'; }
+/* The Signing copy's fields: the words that were filled in, and a ruled line
+   where nothing was — readOnlyDocHtml's own projection, with the empties
+   marked so the page can rule them. */
+function docSignBodyHtml(html){
+  const tmp=document.createElement('div');
+  tmp.innerHTML=String(html||'');
+  /* readOnlyDocHtml's own projection, done here so a field keeps saying WHICH
+     fact it is (data-sync / data-field): the counterparty's name stays in the
+     weight the recital sets our own in, and a reader of this page — the field
+     link, a test — can still ask which blank a word came from. */
+  tmp.querySelectorAll('input,textarea').forEach(inp=>{
+    const s=document.createElement('span');
+    s.className='field-frozen';
+    const v=(typeof fieldDisplayValue==='function')?fieldDisplayValue(inp):(inp.value||inp.getAttribute('value')||'');
+    ['data-sync','data-field'].forEach(a=>{ if(inp.hasAttribute(a)) s.setAttribute(a,inp.getAttribute(a)); });
+    s.textContent=v||'—';
+    if(!v){ s.setAttribute('data-empty',''); s.setAttribute('title',i18t('ct_term_not_filled')); }
+    inp.replaceWith(s);
+  });
+  /* A company template's unanswered blank (.hati-field) STAYS the element it
+     is — the other side's signing link fills one by pressing it — and the page
+     rules it as a line (.pg-sign .hati-field in index.html). */
+  /* An upload's file strip is a fact about the FILE — its name, who filed it,
+     two buttons — and not a line of their paper, so it stays on the Document
+     tab and never reaches a page that is signed or printed. So does the
+     caption saying where the words were read from. */
+  tmp.querySelectorAll('.up-strip,.up-caption').forEach(n=>n.remove());
+  return tmp.innerHTML;
+}
+/* THE DESIGN'S PAPER STYLE, SPLIT: the accent stays on the sheet, and a rule
+   drawn round the page (Formal Legal) is handed to the page-maker so EVERY
+   page is ruled rather than one border round the whole long sheet. */
+function docSignPaperParts(b){
+  const all=(b&&window.docDesignPaperStyle)?docDesignPaperStyle(b):'';
+  const frame=(/(?:^|;)\s*border:[^;]*;/.test(all)&&/box-shadow:/.test(all))
+    ? all.replace(/--doc-design-accent:[^;]*;/,'') : '';
+  const sheet=frame ? (all.match(/--doc-design-accent:[^;]*;/)||[''])[0] : all;
+  return { sheet, frame };
+}
+function docSheetHtml(c){
+  const mode=docCopyOf(c);
+  const up=isUpload(c);
+  const b=(!up&&window.resolveDocBranding)?resolveDocBranding(c):null;
+  if(mode==='work'){
+    const body=docFillable(c)?docBody(c):readOnlyDocHtml(docBody(c));
+    const accent=(b&&window.docDesignPaperStyle)?((docDesignPaperStyle(b).match(/--doc-design-accent:[^;]*;/)||[''])[0]):'';
+    /* The design's TYPEFACE comes (docDesignBodyAttr); its structure and its
+       page decorations do not — the working copy looks the same whatever the
+       design, apart from the typeface. */
+    return `<div class="blueprint pg-sheet pg-work" data-copy="work"${b&&window.docDesignBodyAttr?docDesignBodyAttr(b):''} style="padding:34px var(--s-10) 44px;max-width:var(--doc-sheet-max,${DOC_PAGE_W}px);margin:0 auto;border-radius:0;${accent}">
+      <article id="doc-canvas" class="doc-surface" style="background:transparent">${body}</article>
+    </div>`;
+  }
+  return signCopySheetHtml(c);
+}
+/* ---- THE SIGNING COPY'S ONE BUILDER ----
+   The Signing tab and the other side's signing link both draw the signing copy
+   through this, so the two can never disagree about how the finished document
+   looks. `o.wrapId` names the zoom wrapper, `o.canvasId` the article (the room
+   keeps its #doc-canvas; their page has its own). */
+/* ---- THEIR PAPER, SIGNED (Young ruled 25 Sep 2026, the owner's pick 6A) ----
+   "For a contract the other side sent, 'exactly as designed' means as they
+   designed it. Your letterhead never goes on their paper." Three answers:
+     asItCame   a PDF or a scan nobody changed a word of — their file itself,
+                every page exactly as they sent it, and a signature page after
+                it (HaTi cannot mark a place inside a PDF's own pages, so the
+                places to sign are on a page of their own — said on it);
+     theirLook  a Word file — the words set in the file's own look: its page
+                size, margins, face, header and footer (report.layout);
+     plain      their PDF with changed words (6A) — the agreed words on a plain
+                page, and the control row says it was rebuilt from their file.
+   null for our own paper. */
+function signCopyTheirs(c){
+  if(!c||!isUpload(c)) return null;
+  const u=c.upload||{}, mime=u.mime||'';
+  const isPdf=/pdf/.test(mime), isImg=/^image\//.test(mime);
+  const edited=!!(window.uploadWordingEdited&&uploadWordingEdited(c));
+  if((isPdf||isImg)&&!edited) return { kind:'asItCame', isPdf, isImg };
+  if(window.isWordDoc&&isWordDoc(c)) return { kind:'theirLook', layout:(u.docStructure&&u.docStructure.layout)||null };
+  return { kind:'plain' };
+}
+function signCopySheetHtml(c, o){
+  o=o||{};
+  const up=isUpload(c);
+  const theirs=signCopyTheirs(c);
+  const b=(!up&&window.resolveDocBranding)?resolveDocBranding(c):null;
+  const P=window.PG_SIGN_PAD||{t:64,r:84,b:88,l:84};
+  const structured=(b&&window.docStructureBodyHtml)?docStructureBodyHtml(b,docBody(c)):docBody(c);
+  /* TWO COLUMNS DO NOT GO ONTO THE SIGNING PAGES YET: a page-maker that moves
+     whole blocks cannot fill two columns a page at a time, and a column that
+     ran the whole length of a long contract is not a page anybody signs. The
+     structure's other four are on. */
+  const attr=(b&&window.docDesignPaperAttr)?docDesignPaperAttr(b).replace(/ data-doc-structure="two-column"/,''):'';
+  const parts=docSignPaperParts(b);
+  const head=(!up&&window.templateBrandingHeaderHtml)?templateBrandingHeaderHtml(c,{bleedX:P.l,bleedY:P.t}):'';
+  const canvasId=o.canvasId===undefined?'doc-canvas':o.canvasId;
+  const wrapId=esc(o.wrapId||'doc-signwrap');
+  const artId=canvasId?` id="${esc(canvasId)}"`:'';
+  if(theirs&&theirs.kind==='asItCame'){
+    const u=c.upload||{}, url=docFileUrl(c);
+    const file=theirs.isImg
+      ? `<img src="${url}" alt="${esc(u.fileName||i18t('ct_uploaded_document'))}" class="sc-file-img"/>`
+      : `<iframe src="${url}" class="sc-file-frame" title="${esc(u.fileName||i18t('ct_uploaded_document'))}"></iframe>`;
+    return `<div class="sc-file" data-sc-asitcame>${file}</div>
+    <div class="pg-zoomwrap" id="${wrapId}">
+      <div class="blueprint pg-sheet pg-sign" data-copy="sign" data-pg-sigpage style="padding:${P.t}px ${P.r}px ${P.b}px ${P.l}px">
+        <article${artId} class="doc-surface" style="background:transparent">
+          <h3 class="sc-sigpage-h">${esc(i18t('sc_sigpage_title'))}</h3>
+          <p class="sc-sigpage-p">${esc(i18t('sc_sigpage_note',{file:u.fileName||i18t('ct_uploaded_document')}))}</p>
+          ${signatureBlock(c)}
+        </article>
+      </div>
+    </div>`;
+  }
+  /* THEIR WORD FILE'S OWN PAGE: its size, its margins, its face. A value the
+     file did not state keeps the A4 default. */
+  const lay=(theirs&&theirs.kind==='theirLook'&&theirs.layout)||null;
+  const pw=lay&&lay.pageW?lay.pageW:0, ph=lay&&lay.pageH?lay.pageH:0;
+  const m=(lay&&lay.margins)||null;
+  const pad=m?`${m.t}px ${m.r}px ${m.b}px ${m.l}px`:`${P.t}px ${P.r}px ${P.b}px ${P.l}px`;
+  const size=pw?`width:${pw}px;`:'';
+  /* THE FACE AND THE SIZE REACH THE WORDING THROUGH THE TWO TOKENS THE
+     PAPER IS SET IN — every rule on the sheet reads var(--font-doc) and
+     scales by var(--doc-scale) from its 14px — so their file's own face and
+     size are what every line of it wears, with our serif behind as the
+     fallback where the face is not installed. */
+  const face=lay&&(lay.font||lay.sizePt)
+    ? `${lay.font?`--font-doc:'${String(lay.font).replace(/['"<>;]/g,'')}','Source Serif 4',Georgia,serif;font-family:var(--font-doc);`:''}${lay.sizePt?`--doc-scale:${(lay.sizePt*96/72/14).toFixed(3)};`:''}` : '';
+  return `<div class="pg-zoomwrap" id="${wrapId}">
+    <div class="blueprint pg-sheet pg-sign" data-copy="sign"${attr}${ph?` data-pg-h="${ph}"`:''} style="padding:${pad};${size}${parts.sheet}"${parts.frame?` data-pg-frame="${esc(parts.frame)}"`:''}>
+      ${head}
+      <article${artId} class="doc-surface${face?' sc-their-face':''}" style="background:transparent;${face}">${docSignBodyHtml(structured)}</article>
+    </div>
+  </div>`;
+}
+/* What runs across the top of a signing page: our letterhead's name, or —
+   on their Word file — their own header, on every page from the first. */
+function signCopyRunning(c){
+  const t=signCopyTheirs(c);
+  if(t&&t.kind==='theirLook'&&t.layout&&t.layout.header) return { text:t.layout.header, first:true };
+  return { text:window.pagesLetterheadName?pagesLetterheadName(c):'', first:false };
+}
+/* The signing copy's pages, on any screen that drew one. */
+function signCopyWatch(sheet, c, onDone){
+  if(!sheet||!c||!window.pagesWatch) return null;
+  const run=signCopyRunning(c);
+  return pagesWatch(sheet,{ mode:'sign', pageH:Number(sheet.getAttribute('data-pg-h'))||window.PG_SIGN_H||1122.5,
+    gap:window.PG_GAP, running:run.text, runningFirst:run.first,
+    foot:label=>window.pagesSignFoot?pagesSignFoot(c,label):'',
+    noNumber:sheet.hasAttribute('data-pg-sigpage'),
+    frame:sheet.getAttribute('data-pg-frame')||'', onDone });
+}
+/* A signing copy with no size control of its own (the other side's signing
+   link) is zoomed to fit the column it sits in, never above its own size. */
+function signCopyFit(sheet){
+  const wrap=sheet&&sheet.parentElement;
+  const col=wrap&&wrap.parentElement;
+  if(!wrap||!col) return;
+  const W=sheet.offsetWidth||window.PG_SIGN_W||794;
+  const z=Math.max(0.35,Math.min(1,(col.clientWidth||W)/W));
+  sheet.style.transform=Math.abs(z-1)<0.001?'':`scale(${z})`;
+  wrap.style.width=(W*z)+'px';
+  wrap.style.height=(sheet.offsetHeight*z)+'px';
+  if(!wrap._scFit&&typeof ResizeObserver==='function'){
+    let t=0;
+    wrap._scFit=new ResizeObserver(()=>{ if(t) clearTimeout(t); t=setTimeout(()=>{ if(!wrap.isConnected){ try{ wrap._scFit.disconnect(); }catch(_){} return; } signCopyFit(sheet); },80); });
+    wrap._scFit.observe(col);
+  }
+}
+/* THE ONE REPAINT OF THE SHEET — both rebuild sites, and the Document ↔
+   Signing tab change, which swaps one copy for the other. The listeners that
+   live on the canvas element are re-armed here because the element is new. */
+function docRepaintSheet(c){
+  const host=document.getElementById('doc-sheet-host');
+  if(!host||!c) return;
+  const old=host.querySelector('.pg-sheet');
+  if(old&&window.pagesUnwatch) pagesUnwatch(old);
+  host.setAttribute('data-copy',docCopyOf(c));
+  host.innerHTML=docSheetHtml(c);
+  try{ wireDocumentSync(c); }catch(_){}
+  wireDocCanvas(c);
+  try{ wireDocCopilotSel(c); }catch(_){}
+  try{ wireFieldLink(c); }catch(_){}
+}
+/* THE PAGES. Called from wireDocCanvas, AFTER anything that adds height to
+   the paper (the places to sign) and BEFORE anything that measures it (Plain
+   English, X-ray), which is the whole reason it lives on that funnel. */
+function docPaginate(c){
+  if(!window.pagesWatch||!c) return;
+  const sheet=document.querySelector('#doc-sheet-host .pg-sheet');
+  if(!sheet) return;
+  if(sheet.getAttribute('data-copy')==='sign'){
+    signCopyWatch(sheet,c,()=>{ scApplyZoom(); scPaintPage(); });
+  } else {
+    pagesWatch(sheet,{ mode:'work', gap:window.PG_GAP, corners:true,
+      name:window.pagesLetterheadName?pagesLetterheadName(c):'', ref:c.id||'' });
+  }
+}
+
+/* ---- THE SIGNING COPY'S SIZE CONTROL ZOOMS THE PAGE (the owner's pick 4A) ----
+   The pages are laid out once at A4 and the whole of them is scaled, so
+   nothing moves or re-breaks. "Fit" (the default) is the largest size at which
+   a page fits the column, never above 100%; the reader's own choice is kept in
+   this browser. */
+const SC_ZOOMS=[0.5,0.67,0.75,0.9,1,1.1,1.25,1.5,1.75,2];
+const SC_ZOOM_KEY='hati.v1.signZoom';
+function scZoomPref(){
+  let v=null; try{ v=(typeof lsGet==='function')?lsGet(SC_ZOOM_KEY):localStorage.getItem(SC_ZOOM_KEY); }catch(_){ v=null; }
+  const n=Number(v);
+  return SC_ZOOMS.includes(n)?n:'fit';
+}
+function scZoomSet(v){
+  try{ if(typeof lsSet==='function') lsSet(SC_ZOOM_KEY,v); else localStorage.setItem(SC_ZOOM_KEY,String(v)); }catch(_){}
+}
+function scZoomFit(){
+  const col=document.getElementById('doc-scroll');
+  const sh=document.querySelector('#doc-signwrap .pg-sheet');
+  const W=(sh&&sh.offsetWidth)||window.PG_SIGN_W||794;
+  const avail=col?Math.max(200,col.clientWidth-28):W;
+  return Math.max(0.4,Math.min(1,avail/W));
+}
+function scZoomNow(){ const p=scZoomPref(); return p==='fit'?scZoomFit():p; }
+function scApplyZoom(){
+  const wrap=document.getElementById('doc-signwrap');
+  const sheet=wrap&&wrap.querySelector('.pg-sheet');
+  if(!sheet) return;
+  const z=scZoomNow();
+  sheet.style.transform=Math.abs(z-1)<0.001?'':`scale(${z})`;
+  wrap.style.width=((sheet.offsetWidth||window.PG_SIGN_W||794)*z)+'px';
+  wrap.style.height=(sheet.offsetHeight*z)+'px';
+  const out=document.getElementById('sc-zoom-out');
+  if(out) out.textContent=Math.round(z*100)+'%';
+  if(!wrap._scFitWatch&&typeof ResizeObserver==='function'){
+    const col=document.getElementById('doc-scroll');
+    if(col){
+      let t=0;
+      wrap._scFitWatch=new ResizeObserver(()=>{ if(t) clearTimeout(t); t=setTimeout(()=>{ if(!wrap.isConnected){ try{ wrap._scFitWatch.disconnect(); }catch(_){} return; } if(scZoomPref()==='fit') scApplyZoom(); },80); });
+      wrap._scFitWatch.observe(col);
+    }
+  }
+}
+function scZoomStep(dir){
+  const now=scZoomNow();
+  let next;
+  if(dir>0) next=SC_ZOOMS.find(z=>z>now+0.001);
+  else next=[...SC_ZOOMS].reverse().find(z=>z<now-0.001);
+  if(next==null) return;
+  scZoomSet(next);
+  scApplyZoom();
+}
+/* "Page 2 of 6" follows the reading. */
+function scPaintPage(){
+  const sheet=document.querySelector('#doc-signwrap .pg-sheet');
+  const out=document.getElementById('sc-page-out');
+  if(!sheet||!out||!window.pagesAtView) return;
+  const info=sheet._pgInfo; if(!info) return;
+  const at=pagesAtView(sheet,document.getElementById('doc-scroll'));
+  out.textContent=window.pagesNumberLabel?pagesNumberLabel(at,info.n):`${at} / ${info.n}`;
+  const prev=document.getElementById('sc-page-prev'), next=document.getElementById('sc-page-next');
+  if(prev) prev.disabled=at<=1;
+  if(next) next.disabled=at>=info.n;
+}
+function scPageGo(dir){
+  const sheet=document.querySelector('#doc-signwrap .pg-sheet');
+  const sc=document.getElementById('doc-scroll');
+  if(!sheet||!sc||!window.pagesGoTo) return;
+  const at=pagesAtView(sheet,sc);
+  pagesGoTo(sheet,sc,at+dir);
+  scPaintPage();
+}
+/* Where the words on the signing copy came from, said once in the control
+   row (never a band): the round they were agreed in, as drafted, their paper
+   as it came — or, once signed, when. */
+function scSourceLine(c){
+  if(!c) return '';
+  if(docSealedCopy(c)){
+    const d=window.contractSignedLabel?contractSignedLabel(c):'';
+    return d?i18t('sc_src_signed',{d}):'';
+  }
+  if(isUpload(c)){
+    if(window.uploadWordingEdited&&uploadWordingEdited(c)) return i18t('sc_src_rebuilt');
+    return i18t('sc_src_theirs');
+  }
+  const rounds=(c.negotiation&&Array.isArray(c.negotiation.rounds))?c.negotiation.rounds.length:0;
+  if(rounds>0) return i18t('sc_src_round',{n:rounds});
+  return i18t('sc_src_draft');
+}
+function scControlsHtml(c){
+  const src=scSourceLine(c);
+  const label=docSealedCopy(c)?i18t('sc_signed_copy'):i18t('sc_signing_copy');
+  const lab=`<span class="sc-label">${icon('lock','w-3.5 h-3.5')}<b>${esc(label)}</b>${src?`<span class="sc-src">· ${esc(src)}</span>`:''}</span>`;
+  /* Their file as it came is THEIR pages, in the browser's own viewer with its
+     own size control; our only page is the one they sign on. */
+  const t=signCopyTheirs(c);
+  if(t&&t.kind==='asItCame') return lab;
+  return `${lab}
+    <span class="sc-step" role="group" aria-label="${esc(i18t('sc_pages'))}">
+      <button type="button" id="sc-page-prev" data-sc-page="-1" title="${esc(i18t('sc_page_prev'))}" aria-label="${esc(i18t('sc_page_prev'))}"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg></button>
+      <span id="sc-page-out" aria-live="polite">${esc(window.pagesNumberLabel?pagesNumberLabel(1,1):'1')}</span>
+      <button type="button" id="sc-page-next" data-sc-page="1" title="${esc(i18t('sc_page_next'))}" aria-label="${esc(i18t('sc_page_next'))}"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></button>
+    </span>
+    <span class="sc-step" role="group" aria-label="${esc(i18t('sc_zoom'))}">
+      <button type="button" data-sc-zoom="-1" title="${esc(i18t('sc_zoom_out'))}" aria-label="${esc(i18t('sc_zoom_out'))}">&minus;</button>
+      <span id="sc-zoom-out">100%</span>
+      <button type="button" data-sc-zoom="1" title="${esc(i18t('sc_zoom_in'))}" aria-label="${esc(i18t('sc_zoom_in'))}">+</button>
+    </span>`;
+}
+function scWireControls(host){
+  if(!host) return;
+  host.querySelectorAll('[data-sc-zoom]').forEach(b=>b.addEventListener('click',()=>scZoomStep(Number(b.getAttribute('data-sc-zoom'))||0)));
+  host.querySelectorAll('[data-sc-page]').forEach(b=>b.addEventListener('click',()=>scPageGo(Number(b.getAttribute('data-sc-page'))||0)));
+  const sc=document.getElementById('doc-scroll');
+  if(sc&&!sc._scPageBound){
+    sc._scPageBound=true;
+    let raf=0;
+    sc.addEventListener('scroll',()=>{ if(raf) return; raf=requestAnimationFrame(()=>{ raf=0; scPaintPage(); }); },{passive:true});
+  }
+  scApplyZoom(); scPaintPage();
 }
 
 /* ---- THE DOCUMENT TAB READS; IT DOES NOT EDIT ----
@@ -4172,10 +4521,14 @@ function wsTabRowEndHtml(c){
      (the stored preference still applied, they simply could not change it),
      and on a contract with no places to fill the slot was empty. The stepper
      belongs to the PAPER, and both tabs draw the paper. */
-  if(_wsTab==='sign') return (window.signWalkHtml?signWalkHtml(c):'')
-    + (window.rlTypeStepHtml?rlTypeStepHtml():'');
+  /* ---- ON THE SIGNING COPY THE SIZE CONTROL ZOOMS THE PAGE (4A) ----
+     and the row says which copy this is and where its words came from, with
+     the page it is on — the design's own control row, never a band. The
+     reader's text-size stepper is the WORKING copy's; here it would re-break
+     the very pages that get signed. */
+  if(_wsTab==='sign') return scControlsHtml(c) + (window.signWalkHtml?signWalkHtml(c):'');
   if(_wsTab!=='docs') return '';
-  const step=window.rlTypeStepHtml?rlTypeStepHtml():'';
+  const step=docCopyOf(c)==='sign' ? scControlsHtml(c) : (window.rlTypeStepHtml?rlTypeStepHtml():'');
   /* Raw, not negoChanges(): that call runs negoInit, which CREATES a
      negotiation on a contract that has none — and this builder runs on every
      paint of every Document tab. See negoNeedsYouIds for the same trap. */
@@ -4329,6 +4682,7 @@ function wsPaintTabRowEnd(c){
   if(!end) return;
   end.innerHTML=wsTabRowEndHtml(c);
   if(window.rlWireTypeStep) rlWireTypeStep(end);
+  if(end.querySelector('[data-sc-zoom]')) scWireControls(end);
   end.querySelector('#ws-to-nego')?.addEventListener('click',()=>{
     if(window.roomGoTab) roomGoTab(c,'redline');
     else if(window.openRedlineWorkbench) openRedlineWorkbench(c.id);
@@ -4396,6 +4750,14 @@ function applyWsTabs(c){
     });
   };
   paint(_wsTab);
+  /* ---- THE DOCUMENT AND SIGNING TABS SHOW TWO COPIES OF ONE CONTRACT (Young
+     ruled 25 Sep 2026) ---- one sheet pane, two builders: arriving on the
+     other tab swaps the working copy for the signing copy, or back. A signed
+     contract shows the signed copy on both, so nothing is swapped. */
+  if(_wsTab==='docs'||_wsTab==='sign'){
+    const host=document.getElementById('doc-sheet-host');
+    if(host&&host.getAttribute('data-copy')!==docCopyOf(c)) docRepaintSheet(c);
+  }
   /* THE STRIP DESCRIBES THE TAB YOU ARE ON, so it is repainted when the tab
      changes. It was drawn once per workspace render, which meant whichever tab
      happened to be current at render time kept describing the room for as long
@@ -9601,15 +9963,15 @@ function renderWorkspace(){
                  with the contract's other facts in the right-hand column
                  (Young, 10 Aug 2026: "open this space up for the contract
                  exclusively"). Same builder, same words, one column across. */}
-          <div class="blueprint"${window.docDesignPaperAttr&&window.resolveDocBranding?docDesignPaperAttr(resolveDocBranding(c)):''} style="background:var(--color-doc-warm);border-color:var(--color-doc-warm-line);box-shadow:var(--shadow-paper);padding:34px var(--s-10) 44px;max-width:var(--doc-sheet-max,${DOC_PAGE_W}px);margin:0 auto;border-radius:0;${window.docDesignPaperStyle&&window.resolveDocBranding?docDesignPaperStyle(resolveDocBranding(c)):''}">
-            ${window.templateBrandingHeaderHtml?templateBrandingHeaderHtml(c,{bleedX:40,bleedY:34}):''}
-            <article id="doc-canvas" class="doc-surface" style="background:transparent">${docFillable(c)?docBodyStructured(c):readOnlyDocHtml(docBodyStructured(c))}</article>
-            ${''/* The parties' lines at the foot are NOT drawn here. Every
-                   document body this tab can render ends with signatureBlock,
-                   and that is where they are — one foot per contract, not two
-                   stacked because two files each thought it was theirs. */}
-            ${window.templateBrandingFooterHtml?templateBrandingFooterHtml(c):''}
-          </div>
+          ${''/* ---- THE SHEET IS ONE OF TWO COPIES (Young ruled 25 Sep 2026) ----
+                 docSheetHtml builds the WORKING copy here (pages like Word,
+                 the letterhead faded to one line, one column, the fields to
+                 fill) and the SIGNING copy on the Signing tab and once signed
+                 (the design at full strength on A4 pages). The host is a slot
+                 so the tab change can swap one for the other — see
+                 docRepaintSheet. The parties' lines at the foot are still not
+                 drawn here: every body ends with signatureBlock. */}
+          <div id="doc-sheet-host" data-copy="${docCopyOf(c)}">${docSheetHtml(c)}</div>
           </div>
         </div>
       </section>
@@ -9938,7 +10300,7 @@ function renderWorkspace(){
   // rehydrate a server-stored uploaded file's bytes for preview/download
   if(API_MODE() && isUpload(c) && c.upload?.fileId && !c.upload?.dataUrl){
     api('files/'+c.upload.fileId).then(f=>{ c.upload.dataUrl=f.dataUrl;
-      if(state.activeId===c.id){ const dc=document.getElementById('doc-canvas'); if(dc){ dc.innerHTML=docBodyStructured(c); wireDocCanvas(c); } }
+      if(state.activeId===c.id) docRepaintSheet(c);
     }).catch(()=>{});
   }
   wireKeyTerms(c);
@@ -12057,7 +12419,21 @@ function wireDocCanvas(c){
      is drawn AFTER the canvas rather than inside docBody — see the note over
      signSpotsPaint — so it dies with every re-render, exactly like the two
      buttons above, and for exactly the same reason it is re-armed here. */
-  if(window.signSpotsPaint) signSpotsPaint(c);
+  /* ---- ONLY ON THE SIGNING COPY (the owner's pick 5A, 25 Sep 2026) ----
+     "The working copy stays for work. Signing happens on the finished pages."
+     The places to sign — and the "Sign here" on the parties' lines — are
+     drawn where signing happens and nowhere else. */
+  const _signCopy=docCopyOf(c)==='sign';
+  if(_signCopy&&window.signSpotsPaint) signSpotsPaint(c);
+  if(_signCopy&&!docSealedCopy(c)&&window.pagesSignFlags){
+    const cv=document.getElementById('doc-canvas');
+    if(cv) pagesSignFlags(cv, PORTAL_MODE?1:0);
+  }
+  /* ---- THE PAGES, AFTER EVERYTHING THAT ADDS HEIGHT AND BEFORE EVERYTHING
+     THAT MEASURES (25 Sep 2026) ---- the places to sign above are in the
+     flow, so they have to be in before a page is broken; Plain English and
+     X-ray below measure where each clause IS, so they come after. */
+  try{ docPaginate(c); }catch(_){}
   /* The plain-English layer rides this same funnel and for the same reason: it
      is painted BESIDE the canvas rather than inside docBody, so it dies with
      every re-render and has to be put back here (idea 7). */
@@ -14919,7 +15295,9 @@ async function finalizeExecution(c, opts={}){
   // Re-render if the contract is open; guarded so a headless finalize (the
   // counterparty signs last while the contract isn't on screen) can't fail.
   try{
-    const canvas=document.getElementById('doc-canvas'); if(canvas){ canvas.innerHTML=docBodyStructured(c); wireDocCanvas(c); }
+    /* Signed now, so every tab shows the signed copy — docRepaintSheet asks
+       docCopyOf, which answers 'sign' for a signed contract. */
+    docRepaintSheet(c);
     if(typeof updateStatusUI==='function') updateStatusUI(c);
     /* The bar that says what to do next. Left alone, it kept the sentence it
        had a second earlier — "Erik has signed. Your signature is the only thing
@@ -15058,6 +15436,13 @@ function distributionPanelHtml(c){
 
 
 Object.assign(window,{paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,
+  /* TWO COPIES OF ONE CONTRACT (25 Sep 2026): the sheet's builders and the
+     signing copy's controls. The other side's signing link draws the signing
+     copy through signCopySheetHtml, so it must be on this list — a name read
+     through window that is not published is silence. */
+  docSealedCopy,docCopyOf,docSignBodyHtml,docSignPaperParts,docSheetHtml,docRepaintSheet,docPaginate,
+  signCopySheetHtml,signCopyWatch,signCopyFit,signCopyTheirs,signCopyRunning,SC_ZOOMS,SC_ZOOM_KEY,scZoomPref,scZoomSet,scZoomFit,scZoomNow,
+  scApplyZoom,scZoomStep,scPaintPage,scPageGo,scSourceLine,scControlsHtml,scWireControls,
   wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,obTileOpensReview,paintKtTriage,triageAndPaint,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,DOC_SHARED_CLAUSES,DOC_SHARED_SKIP,docSharedSkip,docLibWording,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,KT_FIELD_HOME,KT_FOCUS_TRIES,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,docReadMark,docReadFlags,DOC_DUTY_HEAD,DOC_DUTY_VERB,DOC_DUTY_STATE,DOC_DUTY_RE,DOC_DUTY_KEY,docDutyOn,docDutySet,docDutyMark,docDutyCount,DOC_DUTY_PAPER_MAX,DOC_DUTY_PAPER_CLASS,DOC_DUTY_PAPER_SKIP,docDutyPaperClear,docDutyPaperPaint,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never

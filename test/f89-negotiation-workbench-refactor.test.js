@@ -484,7 +484,17 @@ describe('F89 (2) — a centred sheet with gutters, like the Doc page', () => {
     assert.ok(!/max-width:660px/.test(r), 'not the fixed page it used to be');
     assert.match(r, /margin:0 auto/, 'centred, so the gutters split evenly past the cap');
     assert.match(r, /padding:30px 56px 34px/, "the render's own margins");
-    assert.match(r, /box-shadow:none/, 'and flat — a filled column has nothing to float above');
+    /* ---- REVERSED IN PLACE, 25 Sep 2026 (Young: "When a contract goes to the
+       document page, the negotiation page as well, it should look like its on
+       Microsoft Word waiting to be edited") ----
+       The flat sheet is the WORKING COPY now: white pages on the grey desk,
+       each casting the soft shadow a page in Word casts, which the approved
+       design draws on this page. Asserted as the TOKENS the Document tab's
+       working copy reads (.pg-sheet.pg-work in index.html), so the two pages
+       cannot disagree about what a page looks like. */
+    assert.match(r, /box-shadow:var\(--shadow-page\)/, 'the working copy\'s own page shadow');
+    assert.match(r, /background:var\(--color-page\)/, 'on the working copy\'s own page colour');
+    assert.match(r, /border:1px solid var\(--color-page-line\)/, 'with its own edge');
     const z = p.rule('.redline-page .rl-zoom') || '';
     assert.match(z, /zoom:1/, 'the zoom layer is pinned, not fitted');
     const src89 = require('node:fs').readFileSync(
@@ -493,11 +503,14 @@ describe('F89 (2) — a centred sheet with gutters, like the Doc page', () => {
       'nothing computes a fit for this page any more');
     assert.match(src89, /root\.style\.setProperty\('--rl-doc-type', v \+ 'px'\)/,
       'one writer for the preference, still');
-    /* WARM PAPER, ON ITS OWN TOKENS — untouched by the render. The sheet and
-       the cards beside it must not be the same white or the paper never reads
-       as paper. */
-    assert.match(r, /background:var\(--color-doc-warm\)/, 'the sheet is paper, not another card');
-    assert.match(r, /border:1px solid var\(--color-doc-warm-line\)/, 'with a warm hairline round it');
+    /* WARM PAPER, ON ITS OWN TOKENS — untouched by the 22 Aug render.
+       REVERSED IN PLACE 25 Sep 2026 with the flat sheet above: the working copy
+       is WHITE, like a page in Word, and what makes it read as paper beside a
+       white card is no longer a tint but what a page in Word has — its edge,
+       its shadow and the grey desk showing between one page and the next (the
+       page-maker, js/pages.js). Its three tokens are asserted above; the old
+       warm pair is asserted gone, so the two copies cannot drift apart again. */
+    assert.ok(!/--color-doc-warm/.test(r), 'the warm paper is gone from this sheet');
   });
 
   test('the column is nothing at all — the sheet is the object', async () => {

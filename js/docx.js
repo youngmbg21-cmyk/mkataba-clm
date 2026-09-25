@@ -1208,6 +1208,120 @@ function docxTableHtml(tbl, report, numFn){
 /* Read a .docx as STRUCTURE. Same refusals as docxExtract, word for word, so
    a file that could not be read still says the same thing to the person
    holding it. */
+/* ============================================================
+   THE FILE'S OWN PAGE (Young ruled 25 Sep 2026, over "HaTi — Working copy and
+   signing copy": "Their Word file, words changed — the agreed words, set in
+   their file's own look: its page size, margins, fonts, header and footer.")
+   ============================================================
+   Read once, when the file is read, and stored beside the structure report
+   (report.layout). The signing copy is its one reader: it draws their paper
+   at their page size, inside their margins, in their face, under their header
+   and over their footer. NOTHING IS GUESSED — a value the file does not state
+   is simply absent, and the signing copy uses its own A4 default for it.
+   Every part opened here carries its own small ceiling, as every part the
+   reader opens does (DOCX_PARTS). */
+const DOCX_LAYOUT_CAP_KB = 256;
+/* 1440 twips to the inch, 96 CSS pixels to the inch. */
+const docxTwipsPx = v => { const n = Math.abs(Number(v)); return n > 0 ? Math.round(n / 15 * 10) / 10 : null; };
+/* The text a header or footer PRINTS, without a page-number field's cached
+   digits (that number is the page Word last laid out, not a fact about the
+   paper) — and whether it carried one, so the signing copy numbers its own. */
+function docxBandText(xml){
+  let s = String(xml || '');
+  let pageField = false;
+  s = s.replace(/<w:fldSimple\b[^>]*w:instr="\s*(?:PAGE|NUMPAGES)\b[^"]*"[^>]*>[\s\S]*?<\/w:fldSimple>/g, () => { pageField = true; return ''; });
+  /* A complex field: begin … instrText PAGE … separate … RESULT … end. */
+  s = s.replace(/<w:fldChar\b[^>]*w:fldCharType="begin"[^>]*\/>([\s\S]*?)<w:fldChar\b[^>]*w:fldCharType="end"[^>]*\/>/g, (m, inner) => {
+    if(/<w:instrText[^>]*>\s*(?:PAGE|NUMPAGES)\b/.test(inner)){ pageField = true; return ''; }
+    return m;
+  });
+  let text = s.replace(/<w:tab\s*\/>/g, ' ').replace(/<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>|<[^>]+>/g, (m, t) => t != null ? decodeXmlEntities(t) : ' ')
+    .replace(/\s+/g, ' ').trim();
+  /* The words that only ever framed the number ("Page … of …") go with it,
+     so the signing copy's own "Page 2 of 6" is not printed beside a stray
+     "Page". */
+  if(pageField) text = text.replace(/(^|\s)(?:page|p\.|of|sida|av)(?=\s|$)/gi, ' ').replace(/(^|\s)[-–—\/|·]+(?=\s|$)/g, ' ')
+    .replace(/\s+/g, ' ').trim();
+  return { text: text.slice(0, 240), pageField };
+}
+function docxLayoutOf(xml, stylesXml, themeXml, bands){
+  const secs = String(xml || '').match(/<w:sectPr\b[\s\S]*?<\/w:sectPr>/g) || [];
+  const sec = secs.length ? secs[secs.length - 1] : '';
+  const at = (src, tag, name) => { const m = new RegExp('<w:' + tag + '\\b[^>]*\\bw:' + name + '="(-?[0-9.]+)"').exec(src || ''); return m ? m[1] : null; };
+  const out = {};
+  const w = docxTwipsPx(at(sec, 'pgSz', 'w')), h = docxTwipsPx(at(sec, 'pgSz', 'h'));
+  if(w && h && w >= 300 && h >= 300 && w <= 2400 && h <= 3400){ out.pageW = w; out.pageH = h; }
+  const mg = { t: docxTwipsPx(at(sec, 'pgMar', 'top')), r: docxTwipsPx(at(sec, 'pgMar', 'right')),
+    b: docxTwipsPx(at(sec, 'pgMar', 'bottom')), l: docxTwipsPx(at(sec, 'pgMar', 'left')) };
+  if([mg.t, mg.r, mg.b, mg.l].every(v => v != null && v <= 400)) out.margins = mg;
+  /* THE FACE AND THE SIZE: the file's defaults, with its default paragraph
+     style laid over them — the two places Word itself reads them from. A
+     theme font is named through the theme, which is where Word names it. */
+  const styles = String(stylesXml || '');
+  const defs = (/<w:docDefaults\b[\s\S]*?<\/w:docDefaults>/.exec(styles) || [''])[0];
+  const normal = (/<w:style\b[^>]*w:type="paragraph"[^>]*w:default="1"[^>]*>[\s\S]*?<\/w:style>/.exec(styles) || [''])[0];
+  const theme = String(themeXml || '');
+  const themeFace = which => { const blk = (new RegExp('<a:' + which + 'Font>[\\s\\S]*?<\\/a:' + which + 'Font>').exec(theme) || [''])[0];
+    const m = /<a:latin\b[^>]*typeface="([^"]+)"/.exec(blk); return m ? m[1] : ''; };
+  const faceIn = src => {
+    const rf = /<w:rFonts\b([^>]*)\/?>/.exec(src || '');
+    if(!rf) return '';
+    const a = (/w:ascii="([^"]+)"/.exec(rf[1]) || [])[1];
+    if(a) return a;
+    const t = (/w:asciiTheme="([^"]+)"/.exec(rf[1]) || [])[1];
+    if(t) return themeFace(/^major/.test(t) ? 'major' : 'minor');
+    return '';
+  };
+  const sizeIn = src => { const m = /<w:sz\b[^>]*w:val="([0-9]+)"/.exec(src || ''); return m ? Number(m[1]) / 2 : null; };
+  const face = faceIn(normal) || faceIn(defs);
+  const size = sizeIn(normal) || sizeIn(defs);
+  if(face && /^[\w .'-]{1,60}$/.test(face)) out.font = face;
+  if(size && size >= 6 && size <= 30) out.sizePt = size;
+  if(bands && bands.header && bands.header.text) out.header = bands.header.text;
+  if(bands && bands.footer && bands.footer.text) out.footer = bands.footer.text;
+  if(bands && ((bands.header && bands.header.pageField) || (bands.footer && bands.footer.pageField))) out.pageField = true;
+  return Object.keys(out).length ? out : null;
+}
+/* The small parts the page is read from: the relationships (which header and
+   footer the body's section names), the theme (what a theme font IS), and
+   that header and footer. Each under its own ceiling; a damaged one reads as
+   absent. */
+async function docxReadLayout(bytes, entries, xml, parts){
+  const cap = DOCX_LAYOUT_CAP_KB * 1024;
+  const read = async name => {
+    const e = entries.find(x => x.name === name);
+    if(!e || e.rawLen === 0xFFFFFFFF || e.rawLen > cap) return '';
+    try{
+      let raw;
+      if(e.method === 0) raw = zipEntryBytes(bytes, e);
+      else if(e.method === 8) raw = await inflateRawBytes(zipEntryBytes(bytes, e));
+      else return '';
+      return new TextDecoder().decode(raw);
+    }catch(_){ return ''; }
+  };
+  try{
+    const secs = String(xml || '').match(/<w:sectPr\b[\s\S]*?<\/w:sectPr>/g) || [];
+    const sec = secs.length ? secs[secs.length - 1] : '';
+    const rels = await read('word/_rels/document.xml.rels');
+    const target = kind => {
+      const ref = new RegExp('<w:' + kind + 'Reference\\b[^>]*w:type="default"[^>]*r:id="([^"]+)"').exec(sec)
+        || new RegExp('<w:' + kind + 'Reference\\b[^>]*r:id="([^"]+)"[^>]*w:type="default"').exec(sec);
+      if(!ref) return '';
+      const m = new RegExp('<Relationship\\b[^>]*Id="' + ref[1].replace(/[^\w-]/g, '') + '"[^>]*Target="([^"]+)"').exec(rels)
+        || new RegExp('<Relationship\\b[^>]*Target="([^"]+)"[^>]*Id="' + ref[1].replace(/[^\w-]/g, '') + '"').exec(rels);
+      if(!m) return '';
+      const t = m[1].replace(/^\/?word\//, '').replace(/^\.\//, '');
+      return /^[\w\-./]+\.xml$/.test(t) && !/\.\./.test(t) ? 'word/' + t : '';
+    };
+    const hName = target('header'), fName = target('footer');
+    const bands = {
+      header: hName ? docxBandText(await read(hName)) : null,
+      footer: fName ? docxBandText(await read(fName)) : null };
+    const theme = await read('word/theme/theme1.xml');
+    return docxLayoutOf(xml, parts && parts['word/styles.xml'], theme, bands);
+  }catch(_){ return null; }
+}
+
 async function docxExtractRich(bytes){
   let entries;
   try{ entries = zipEntries(bytes); }
@@ -1222,6 +1336,9 @@ async function docxExtractRich(bytes){
   if(!xml) throw new Error('this .docx uses a compression HaTi cannot read — re-save it from Word');
   const out = docxXmlToRich(xml, parts);
   if(!out.text) throw new Error('no readable text found in this Word document');
+  /* The file's own page, beside the structure (see docxLayoutOf). Never a
+     reason to refuse a file: a page that cannot be read is simply absent. */
+  try{ const lay = await docxReadLayout(bytes, entries, xml, parts); if(lay && out.report) out.report.layout = lay; }catch(_){}
   return out;
 }
 
@@ -2170,9 +2287,11 @@ if(typeof window!=='undefined') Object.assign(window,{docxStyledIsWording,docxSt
   docTextIsRunOn,docBreakRunOn,docBlocksFromText,docRichFromText,docLineWraps,DOC_FURNITURE,DOC_BULLET,DOC_LABEL,DOC_NUMBERED,
   docxStripUiBadges,docxRunsFromHtml,docxTrackedXml,docxDocumentXml,docxExportTracked,docxZip,docxCrc32,
   docxComments,docxCommentQuote,docxCommentsXml,docxCommentsExtendedXml,docxCommentsPrepare,
-  DOCX_UI_CLASSES,DOCX_UI_ID});
+  DOCX_UI_CLASSES,DOCX_UI_ID,
+  docxLayoutOf,docxBandText,docxReadLayout,docxTwipsPx,DOCX_LAYOUT_CAP_KB});
 if(typeof module!=='undefined'&&module.exports) module.exports={docxStyledIsWording,docxStyleTable,docxStyleChain,docxAbsOf,docxLevelForStyle,DOCX_HEAD_MAX_WORDS,DOCX_HEAD_PUNCT_MIN,zipEntries,zipEntryBytes,inflateRawBytes,decodeXmlEntities,docxXmlToText,docxXmlToRich,docxExtract,docxExtractRich,docxNumbering,docxNumberWalker,docxStartOverrides,docxHeadingStyles,docxStyleNums,docxTopBlocks,docxRunsHtml,docxTableHtml,docxNumFormat,docxBulletMark,docxHtmlBlocks,docxHtmlTableRows,docxReadParts,DOCX_PARTS,docLineKind,docClausePrefix,
   docTextIsRunOn,docBreakRunOn,docBlocksFromText,docRichFromText,docLineWraps,
   docxStripUiBadges,docxRunsFromHtml,docxTrackedXml,docxDocumentXml,docxExportTracked,docxZip,docxCrc32,
   docxComments,docxCommentQuote,docxCommentsXml,docxCommentsExtendedXml,docxCommentsPrepare,
-  DOCX_UI_CLASSES,DOCX_UI_ID};
+  DOCX_UI_CLASSES,DOCX_UI_ID,
+  docxLayoutOf,docxBandText,docxReadLayout,docxTwipsPx,DOCX_LAYOUT_CAP_KB};

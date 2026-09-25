@@ -2073,8 +2073,13 @@ function redlineLayoutCss(){
      contract page prints square, and the rounded sheet read as an app card
      rather than paper. The radius comes off the paper and off the clause
      panel ONLY — every other rounded control on this page keeps its own. */}
-  .redline-page .rl-paper{--rl-paper-pad:56px;padding:30px 56px 34px;max-width:var(--doc-sheet-max,860px);background:var(--color-doc-warm);
-    border:1px solid var(--color-doc-warm-line);border-radius:0;box-shadow:none;margin:0 auto;
+  ${''/* ---- WHITE, LIKE A PAGE IN WORD (Young ruled 25 Sep 2026) ----
+     The working copy's three values, the same ones the Document tab's sheet
+     takes (.pg-sheet.pg-work in index.html), so the two pages cannot disagree
+     about what the working copy looks like. js/pages.js draws the pages over
+     it. */}
+  .redline-page .rl-paper{--rl-paper-pad:56px;padding:30px 56px 34px;max-width:var(--doc-sheet-max,860px);background:var(--color-page);
+    border:1px solid var(--color-page-line);border-radius:0;box-shadow:var(--shadow-page);margin:0 auto;
     width:100%}
   /* ---- THE HUNDRED-PIXEL GUTTER DOWN THE LEFT ----
      The engine reserves it — padding-left:100px on .nego-pane.working

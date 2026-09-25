@@ -81,6 +81,8 @@ const MODULES = [
    needs something living in that file — paper execution, for one — asks for it
    and accepts the heavier stage; every other test keeps the light one. */
 const CONTRACT_VIEW = 'js/views/contract.js';
+/* js/pages.js — the page-maker (25 Sep 2026): a contract drawn as pages. */
+const PAGES = 'js/pages.js';
 /* js/ocr.js — the scanning path (buildWorld({ocr:true})). It sits beside the
    contract view rather than under it: it decides whether a document is a scan,
    drives the two recognisers, and states where a document's words came from.
@@ -449,6 +451,11 @@ function buildWorld(opts = {}) {
   const ctx = dom.getInternalVMContext();
   const loaded = [];
   const files = [...MODULES];
+  /* The page-maker comes with either view that draws a contract: the room's
+     Document and Signing tabs and the Negotiate page's paper. It publishes
+     through window and every caller asks for it through window with a guard,
+     so a stage without it draws the one long sheet it always drew. */
+  if ((opts.negotiationView || opts.contractView) && !files.includes(PAGES)) files.push(PAGES);
   if (opts.negotiationView) files.push(...NEGOTIATION_VIEW);
   if (opts.contractView) files.push(CONTRACT_VIEW);
   if (opts.metadata && !files.includes(METADATA)) files.push(METADATA);

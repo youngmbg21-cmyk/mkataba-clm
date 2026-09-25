@@ -49,13 +49,19 @@ test('f278 (1) the fact row has no second opinion about folding', () => {
   /* RE-POINTED 23 Sep 2026: the X-ray map follows the paper (docXrayFollow),
      which is a second listener that folds nothing either. Both are named, so
      a third — the snap coming back — still fails here. */
+  /* RE-POINTED 25 Sep 2026: the signing copy's "Page 2 of 6" follows the
+     paper as the reader scrolls (scPaintPage) — a third listener, and it too
+     folds nothing: it writes the page number into the control row. Named
+     below with the other two, so a fourth still fails here. */
   const scrollers = CODE.match(/addEventListener\('scroll'/g) || [];
-  assert.equal(scrollers.length, 2,
-    'two scroll listeners in this file: docReadSync and the X-ray map\'s follow');
+  assert.equal(scrollers.length, 3,
+    'three scroll listeners in this file: docReadSync, the X-ray map\'s follow and the signing copy\'s page number');
   assert.ok(/sc\.addEventListener\('scroll',docReadSync/.test(CODE),
     'the plain-English sync, by name');
   assert.ok(/raf=requestAnimationFrame\(\(\)=>\{ raf=0; docXrayFollow\(\); \}\)/.test(CODE),
     'and the map\'s follow, which moves the map and never the head');
+  assert.ok(/raf=requestAnimationFrame\(\(\)=>\{ raf=0; scPaintPage\(\); \}\)/.test(CODE),
+    'and the signing copy\'s page number, which writes a number and never touches the head');
 });
 
 /* ---------------------------------------------------------------- 2 */
