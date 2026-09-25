@@ -42,6 +42,7 @@ const MODULES = [
   'js/precedent.js', 'js/ladder.js',
   'js/wordflow.js',
   'js/core.js',
+  'js/pages.js',   // the page-maker: the working copy's pages and the signing copy's
   // the real document renderer: the portal shows the contract through
   // docBody()/readOnlyDocHtml(), so stubbing it would mean asserting on my
   // rendering rather than the product's

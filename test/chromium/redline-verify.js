@@ -163,6 +163,11 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       zoom: (() => { const w = paper.closest('.rl-zoom');
         return w ? (Number(getComputedStyle(w).zoom) || 1) : 1; })(),
       paperShadow: getComputedStyle(paper).boxShadow,
+      /* The working copy's own page shadow, resolved on THIS page (25 Sep
+         2026): a probe wearing the token, read back the way the paper is. */
+      pageShadow: (() => { const p = document.createElement('div');
+        p.style.boxShadow = 'var(--shadow-page)'; paper.appendChild(p);
+        const v = getComputedStyle(p).boxShadow; p.remove(); return v; })(),
       paperBg: getComputedStyle(paper).backgroundColor,
       colBorder: getComputedStyle(col).borderTopWidth,
       colBg: getComputedStyle(col).backgroundColor,
@@ -202,8 +207,18 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
      column edge to edge, and the render draws it flat. What made the shadow
      necessary — an edge of its own — is the hairline asserted directly above,
      which is untouched and is now doing the whole job. */
-  check('2 and it is FLAT — a sheet that fills its column has nothing to float above',
-    sheet.paperShadow === 'none' || !sheet.paperShadow, sheet.paperShadow);
+  /* ---- REVERSED IN PLACE, 25 Sep 2026 (Young: "When a contract goes to the
+     document page, the negotiation page as well, it should look like its on
+     Microsoft Word waiting to be edited") ----
+     The flat sheet of 22 Aug is now the WORKING COPY: white pages lying on
+     the grey desk, each with the soft shadow a page in Word casts — the
+     approved design draws exactly that on this page. The claim is the
+     RELATION: the paper wears the working copy's own token, resolved here, so
+     the Document tab and this page cannot disagree about what a page looks
+     like. The probe is asked for a real shadow first, or two 'none's agree. */
+  check('2 and it lies on the desk like a page in Word — the working copy\'s own shadow',
+    !!sheet.pageShadow && sheet.pageShadow !== 'none' && sheet.paperShadow === sheet.pageShadow,
+    `${sheet.paperShadow} · the token resolves to ${sheet.pageShadow}`);
   check('2 the sheet reads as paper against the column behind it',
     sheet.paperBg !== sheet.colBg, `${sheet.paperBg} on ${sheet.colBg}`);
   /* ---- CLAIM UPDATED, 13 Aug 2026, OWNER-ASKED ----
@@ -259,9 +274,24 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     const left = Math.min(...bodies.map(b => b.getBoundingClientRect().left));
     const right = Math.max(...bodies.map(b => b.getBoundingClientRect().right));
     const cls = [...document.querySelectorAll('#rl-doc .rl-clause')];
-    const gaps = cls.slice(1).map((c, i) =>
-      c.getBoundingClientRect().top - cls[i].getBoundingClientRect().bottom);
     const sheetEl = document.querySelector('#rl-doc .rl-paper');
+    /* ---- A PAGE BREAK IS NOT A GAP BETWEEN CLAUSES (25 Sep 2026) ----
+       The paper is PAGES now (js/pages.js): a clause that would cross a page
+       starts the next one, so the distance to it is the foot of one page, the
+       grey between them and the head of the next. The evenness this claim
+       guards is between clauses on ONE page; the page a point sits on is read
+       off the page-maker's own record, so a break is told apart by the pages
+       and never by its size. */
+    const pgInfo = sheetEl && sheetEl._pgInfo;
+    const shR = sheetEl ? sheetEl.getBoundingClientRect() : null;
+    const shScale = sheetEl && sheetEl.offsetHeight ? shR.height / sheetEl.offsetHeight : 1;
+    const pageOf = y => { if (!pgInfo || !shR) return 0; const t = (y - shR.top) / (shScale || 1);
+      let k = 0; pgInfo.pages.forEach((p, j) => { if (t >= p.top - 0.75) k = j; }); return k; };
+    const gaps = [], pageBreaks = [];
+    cls.slice(1).forEach((c, i) => {
+      const a = cls[i].getBoundingClientRect(), b = c.getBoundingClientRect();
+      (pageOf(a.bottom - 1) === pageOf(b.top + 1) ? gaps : pageBreaks).push(b.top - a.bottom);
+    });
     const paper = sheetEl.getBoundingClientRect();
     /* ---- READ THE SHEET IN ITS OWN SPACE ----
        The sheet is a fixed page inside a zoom wrapper now, so every length
@@ -274,7 +304,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     return { left: Math.round(left - col.left), right: Math.round(col.right - right),
       colWidth: Math.round(col.width), paperWidth: Math.round(paper.width), zoom: z,
       padL: Math.round((left - paper.left) / z), padR: Math.round((paper.right - right) / z),
-      textWidth: Math.round(right - left), gaps: gaps.map(g => Math.round(g / z)),
+      textWidth: Math.round(right - left), gaps: gaps.map(g => Math.round(g / z)), pageBreaks: pageBreaks.length,
       toolRows: document.querySelectorAll('#rl-doc .rl-tools, #rl-doc .rl-tool').length };
   });
   check('2b the text sits the same distance from both edges',
@@ -314,7 +344,8 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('2b the clause tool row is gone from the paper',
     inset.toolRows === 0, `${inset.toolRows} tool elements found`);
   check('2b the gaps between clauses are even and tight',
-    inset.gaps.every(g => g <= 20), JSON.stringify(inset.gaps));
+    inset.gaps.length >= 3 && inset.gaps.every(g => g <= 20),
+    `${JSON.stringify(inset.gaps)} · ${inset.pageBreaks} page break(s) between clauses, not counted`);
   /* ---- REVERSED IN PLACE, 26 Aug 2026 (owner-asked: "you should only see the
      highlighted edit button when you hover over a respective clause. And the
      edit symbol should be in a visible grey font") ----

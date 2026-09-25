@@ -70,6 +70,18 @@ const INK_TOP = `(() => {
   return null;
 })()`;
 
+/* WHERE THE SHEET ITSELF STARTS, and the page's own top margin — the two
+   halves 1c needs since the Signing tab draws the signing copy (25 Sep 2026).
+   The sheet is the element the canvas sits on: the page-maker's .pg-sheet, or
+   the older .blueprint on a build without it. */
+const SHEET_TOP = `(() => {
+  const box = document.getElementById('doc-canvas');
+  const sh = box && box.closest('.pg-sheet, .blueprint');
+  if (!sh) return null;
+  return { top: Math.round(sh.getBoundingClientRect().top),
+    pad: Math.round(parseFloat(getComputedStyle(sh).paddingTop) || 0) };
+})()`;
+
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
@@ -124,6 +136,7 @@ const INK_TOP = `(() => {
 
     /* ================= 1 — ONE SHEET, TWO TABS */
     const docInk = await page.evaluate(INK_TOP);
+    const docSheet = await page.evaluate(SHEET_TOP);
     const docBox = await seen(page, '#doc-canvas');
     check('1a the Document tab draws the agreement', !!(docBox && docBox.on),
       docBox ? `${docBox.w}x${docBox.h}` : 'absent');
@@ -131,15 +144,30 @@ const INK_TOP = `(() => {
     await page.evaluate(() => roomGoTab(getContract(state.activeId), 'sign'));
     await page.waitForTimeout(900);
     const signInk = await page.evaluate(INK_TOP);
+    const signSheet = await page.evaluate(SHEET_TOP);
     const signBox = await seen(page, '#doc-canvas');
     check('1b the Signing tab draws THE SAME sheet', !!(signBox && signBox.on),
       signBox ? `${signBox.w}x${signBox.h}` : 'absent');
-    /* THE WORK ORDER'S OWN ACCEPTANCE 5: identical on both tabs, and the
+    /* THE WORK ORDER'S OWN ACCEPTANCE 5 was: identical on both tabs, and the
        Document tab's own number unchanged. Both are reported either way, so a
-       failure names the two numbers rather than saying "not equal". */
-    check('1c the pixels above the first line are IDENTICAL on both tabs',
-      docInk != null && signInk != null && Math.abs(docInk - signInk) <= 1,
-      `document ${docInk} · signing ${signInk}`);
+       failure names the numbers rather than saying "not equal".
+
+       ---- 1c REVERSED IN PLACE 25 Sep 2026 (Young: "when you go to the
+       signing page it should look exactly like how it was designed") ----
+       Until then both tabs drew ONE sheet, so the first line sat at the same
+       pixel on both. The Signing tab now draws the SIGNING COPY — a real A4
+       page carrying the page's own top margin, as it prints — so its first
+       line sits lower by exactly the difference between the two pages' own
+       top margins, AND BY NOTHING ELSE. That second half is what 1c still
+       protects, and it is the half refusal 3 is about: no CHROME grew. Both
+       copies start at the same pixel, and each first line sits its own
+       page's margin below it. */
+    const inkIn = (ink, sh) => (ink != null && sh) ? ink - sh.top - sh.pad : null;
+    check('1c both copies start at the SAME pixel, and each first line sits its own page’s margin below it',
+      docSheet && signSheet && Math.abs(docSheet.top - signSheet.top) <= 1
+      && inkIn(docInk, docSheet) != null && Math.abs(inkIn(docInk, docSheet) - inkIn(signInk, signSheet)) <= 1,
+      `document ${docInk} (sheet ${docSheet && docSheet.top} + ${docSheet && docSheet.pad})`
+      + ` · signing ${signInk} (sheet ${signSheet && signSheet.top} + ${signSheet && signSheet.pad})`);
 
     /* ---- 1c2. AND THE DOCUMENT TAB'S OWN NUMBER IS UNMOVED ----
        ADDED 30 Aug 2026. 1c reads both tabs at HEAD and asserts they agree —

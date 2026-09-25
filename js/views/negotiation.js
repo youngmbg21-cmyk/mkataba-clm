@@ -1850,6 +1850,7 @@ function negoVerifyPill(c, ch){
    briefly. */
 function negoAfterPaint(c, opts, host){
   try { if (host && c) rlPaintNoteMarks(host, c, opts || {}); } catch (e){}
+  try { if (host && c) rlPaginate(host, c); } catch (e){}
   if (!host || !window.negoRefreshVerification) return;
   if (window.negoVerifyCached && negoVerifyCached(c)) return;
   negoRefreshVerification(c).then(() => {
@@ -1862,6 +1863,28 @@ function negoAfterPaint(c, opts, host){
       if (ch && pill) pill.outerHTML = negoVerifyPill(c, ch);
     });
   }).catch(() => {});
+}
+
+/* ---- THE NEGOTIATE PAGE IS THE WORKING COPY TOO (Young ruled 25 Sep 2026) ----
+   "When a contract goes to the document page, the negotiation page as well, it
+   should look like its on Microsoft Word waiting to be edited." The same
+   page-maker the Document tab uses (js/pages.js): white pages on the grey desk,
+   the gap between them, Word's corner marks, the letterhead faded to one line
+   in the top margin and the page number faded in the foot. The pages are drawn
+   OVER the paper and move no element, so every clause, pencil, mark and note
+   marker is exactly where it always was on the page it now sits on.
+
+   NOT IN THE CLAUSE EDITOR, deliberately. That page is where a person types,
+   and a page break re-drawn under the caret moves the words they are typing —
+   the owner's own rule that nothing may move because a cursor went in. Its
+   paper keeps the page's colour and edge, one long sheet. */
+function rlPaginate(host, c){
+  if (!host || !c || !window.pagesWatch) return;
+  host.querySelectorAll('.rl-paper').forEach(sheet => {
+    if (sheet.closest('.ce-paperwrap')) return;
+    pagesWatch(sheet, { mode: 'work', gap: window.PG_GAP, corners: true,
+      name: window.pagesLetterheadName ? pagesLetterheadName(c) : '', ref: c.id || '' });
+  });
 }
 
 /* ---------- the pane selectors ----------

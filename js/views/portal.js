@@ -3662,11 +3662,20 @@ function renderSharePortal(p, opts={}){
                exists and still carries the per-change threads in the room. */}
         ${portalThreadHtml(c,p)}
         ${portalTemplateFormHtml(c,p)}
-        <div id="pt-doc" class="blueprint"${window.docDesignPaperAttr&&window.resolveDocBranding?docDesignPaperAttr(resolveDocBranding(c)):''} style="background:var(--color-doc-surface);box-shadow:var(--shadow-md);border-radius:0;padding:30px 36px;${window.docDesignPaperStyle&&window.resolveDocBranding?docDesignPaperStyle(resolveDocBranding(c)):''}">
+        ${''/* ---- THEIR SIGNING LINK SHOWS THE SIGNING COPY (Young ruled 25 Sep
+               2026) ---- the finished document, exactly as the Signing tab
+               draws it and through the same builder: the design at full
+               strength on A4 pages, the fields as the words filled in, "Page 2
+               of 6", and the place THEY sign marked. It is zoomed to fit this
+               column; the pages themselves never re-break. A stage without the
+               contract view keeps the one sheet it always drew. */}
+        ${window.signCopySheetHtml
+          ? `<div id="pt-doc">${signCopySheetHtml(c,{ wrapId:'pt-signwrap', canvasId:'' })}</div>`
+          : `<div id="pt-doc" class="blueprint"${window.docDesignPaperAttr&&window.resolveDocBranding?docDesignPaperAttr(resolveDocBranding(c)):''} style="background:var(--color-doc-surface);box-shadow:var(--shadow-md);border-radius:0;padding:30px 36px;${window.docDesignPaperStyle&&window.resolveDocBranding?docDesignPaperStyle(resolveDocBranding(c)):''}">
           ${window.templateBrandingHeaderHtml?templateBrandingHeaderHtml(c,{bleedX:36,bleedY:30}):''}
           <article class="doc-surface">${window.docStructureBodyHtml&&window.resolveDocBranding?docStructureBodyHtml(resolveDocBranding(c),readOnlyDocHtml(docBody(c))):readOnlyDocHtml(docBody(c))}</article>
           ${window.templateBrandingFooterHtml?templateBrandingFooterHtml(c):''}
-        </div>
+        </div>`}
         <!-- Rewriting a contract used to happen in a twelve-row box inside the
              360px column on the right. It happens here now, at the size of the
              document it replaces. -->
@@ -3832,6 +3841,15 @@ function renderSharePortal(p, opts={}){
   // the shared Negotiation component, rendered for this side
   wirePortalNego(portalNegoContract(p), p);
   wirePortalTemplateForm(p);
+  /* THE SIGNING COPY'S PAGES, and the place this reader signs marked on them —
+     their own line is the second (ours comes first on the paper). */
+  try{
+    const sh=document.querySelector('#pt-doc .pg-sheet');
+    if(sh&&window.signCopyWatch){
+      if(!portalExecuted()&&window.pagesSignFlags) pagesSignFlags(sh.querySelector('article'),1);
+      signCopyWatch(sh,c,()=>{ if(window.signCopyFit) signCopyFit(sh); });
+    }
+  }catch(_){}
   if(portalReadOnly()){
     for(const b of portalActionButtons()){ b.disabled=true; b.style.opacity='.4'; b.style.cursor='default'; }
     const rl=document.getElementById('pt-redline-text'); if(rl) rl.readOnly=true;
@@ -4335,8 +4353,14 @@ function wirePortalTemplateForm(p){
     if(window.templateFormDocHtml){
       p.contract.redlineText=templateFormDocHtml(form);
       const doc=document.querySelector('#pt-doc article');
-      if(doc && window.readOnlyDocHtml && window.renderDocHtml)
-        doc.innerHTML=readOnlyDocHtml(renderDocHtml(p.contract.redlineText, window.RICH_FORMAT||'rich'));
+      if(doc && window.readOnlyDocHtml && window.renderDocHtml){
+        /* The signing copy's own projection where it is drawn, so an answer
+           typed into the form reads as a word on the page, not a tinted box;
+           the pages re-break by themselves (the page-maker watches the sheet). */
+        const html=renderDocHtml(p.contract.redlineText, window.RICH_FORMAT||'rich');
+        doc.innerHTML=(window.docSignBodyHtml&&doc.closest('.pg-sign'))?docSignBodyHtml(html):readOnlyDocHtml(html);
+        if(doc.closest('.pg-sign')&&!portalExecuted()&&window.pagesSignFlags) pagesSignFlags(doc,1);
+      }
     }
     if(PORTAL_OPTS.token){
       const el=stateEl(); if(el) el.textContent='Saving…';
@@ -4704,6 +4728,30 @@ function printExecutionBlock(c){
    contract (printIsHatiExecuted) — a document signed on paper or in someone
    else's system never carried it. That gate is untouched; `record` narrows it
    further to the copy that asked for it. */
+/* The signing copy's pages for a print: drawn off-screen with the same
+   builder the Signing tab uses, broken into pages by the same page-maker, and
+   rebuilt one box per sheet of A4. '' where nothing can be measured. */
+function exportSignPagesHtml(c, execBlock){
+  if(!window.signCopySheetHtml||!window.pagesLayout||!window.pagesPrintPages||typeof document==='undefined') return '';
+  const host=document.createElement('div');
+  host.className='pp-measure';
+  host.innerHTML=signCopySheetHtml(c,{ wrapId:'pp-wrap', canvasId:'' });
+  document.body.appendChild(host);
+  try{
+    const sheet=host.querySelector('.pg-sheet');
+    const art=sheet&&sheet.querySelector('article');
+    if(!sheet||!art) return '';
+    /* The execution, once, in its print dress — as the one long sheet printed it. */
+    if(execBlock){ art.querySelectorAll('.seal-in,[data-anchor="sig"]').forEach(n=>n.remove()); art.insertAdjacentHTML('beforeend',execBlock); }
+    const info=pagesLayout(sheet,{ mode:'sign', pageH:window.PG_SIGN_H||1122.5, gap:0,
+      running:window.pagesLetterheadName?pagesLetterheadName(c):'',
+      foot:label=>window.pagesSignFoot?pagesSignFoot(c,label):'',
+      frame:sheet.getAttribute('data-pg-frame')||'' });
+    if(!info) return '';
+    return pagesPrintPages(sheet);
+  }catch(_){ return ''; }
+  finally{ host.remove(); }
+}
 function exportPDF(c, opts){
   const record = !!(opts && opts.record);
   let bodyHtml;
@@ -4784,6 +4832,37 @@ function exportPDF(c, opts){
      would print over it. */
   const printDesign=window.resolveDocBranding?resolveDocBranding(c):null;
   const printCover=(printDesign&&printDesign.designId&&isUpload(c)&&!record&&window.docDesignCoverPageHtml)?docDesignCoverPageHtml(printDesign,c):'';
+  /* ---- THE PDF IS THE SIGNING COPY'S OWN PAGES (Young ruled 25 Sep 2026) ----
+     "Signing copy — the Signing tab, the other side's signing link, Export to
+     PDF, Print." Our own paper prints as the signing copy's pages, built by the
+     same page-maker the Signing tab draws with, so the break points, the
+     letterhead, the running head and "Page 2 of 6" are the screen's. The
+     execution prints once, at the end of the wording, as it always has. HaTi's
+     own record — the masthead, the seal box, the audit trail — follows the
+     agreement on pages of its own, never above page one, where it would push
+     every page off its sheet. Where there is no layout to measure (a stage
+     with no browser) or the paper is theirs, the one long sheet prints
+     exactly as before. */
+  const signPages=(!isUpload(c)&&typeof exportSignPagesHtml==='function')?exportSignPagesHtml(c,execBlock):'';
+  if(signPages){
+    const recordPart=record?`<div class="pp-record" style="font-family:Inter,system-ui,-apple-system,'Segoe UI',Arial,sans-serif;padding:64px 84px;color:#1d1f20;break-before:page;page-break-before:always">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--color-accent);padding-bottom:10px;margin-bottom:var(--s-6);">
+        <div style="font-weight:var(--w-title);font-size:18px;">HaTi <span style="font-weight:var(--w-body);font-size:var(--t-label);color:#5F6D6B;">${i18t('po_contract_lifecycle')}</span></div>
+        <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--t-label);color:#5F6D6B;">${c.id} · generated ${fmtDT(nowISO())}</div>
+      </div>
+      ${marks&&(!execBlock)&&c.hash&&c.hash!=='PRE-SEEDED'?`<div style="margin-bottom:var(--s-6);padding:var(--s-3);border:1px solid var(--color-divider);border-radius:var(--radius);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--t-label);word-break:break-all;"><strong>${isExternallyExecuted(c)?'SHA-256 ORIGINAL FILE FINGERPRINT':'SHA-256 DOCUMENT SEAL'}</strong><br/>${isExternallyExecuted(c)?((c.upload&&c.upload.fileHash)||'—'):c.hash}<br/><span style="color:#5F6D6B;">${(window.contractSignedLabel?contractSignedLabel(c):c.signedAt)||''}${isExternallyExecuted(c)?' · executed outside HaTi':''}</span></div>`:''}
+      ${marks&&audit?`<div><div style="font-weight:var(--w-strong);font-size:var(--t-body);border-bottom:1px solid var(--color-divider);padding-bottom:6px;margin-bottom:var(--s-2);">${i18t('po_audit_trail')}</div><table style="font-size:var(--t-label);border-collapse:collapse;width:100%;">${audit}</table></div>`:''}
+      <div style="margin-top:var(--s-6);font-size:var(--t-figure);color:#A9B3B1;text-align:center;">Generated by HaTi CLM · ${FIRST_PARTY}</div>
+    </div>`:'';
+    document.getElementById('print-root').innerHTML=`<div class="pp-doc">${signPages}</div>${recordPart}`;
+    if(window.pagesPrintPageRule) pagesPrintPageRule(true);
+    if (!(typeof window!=='undefined' && window.PORTAL_MODE)){
+      logAudit(c,'Exported',record?'Full record exported (seal and audit trail)':'PDF export generated');
+      persist(c); renderAuditSection(c);
+    }
+    window.print();
+    return;
+  }
   document.getElementById('print-root').innerHTML=`
     <div${printDesign&&window.docDesignPaperAttr?docDesignPaperAttr(printDesign):''} style="font-family:Inter,system-ui,-apple-system,'Segoe UI',Arial,sans-serif;max-width:760px;margin:0 auto;padding:var(--s-8) var(--s-6);color:#1d1f20;${printDesign&&window.docDesignPaperStyle?docDesignPaperStyle(printDesign):''}">
       ${record?`<div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--color-accent);padding-bottom:10px;margin-bottom:var(--s-6);">
@@ -4847,4 +4926,4 @@ async function refreshStats(){
 
 Object.assign(window,{portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
   portalAlertsOpen,portalAlertsClose,portalPaintAlerts,wirePortalAlerts,portalAlertsStyle,
-  portalGoToChange,portalPressSend,PT_READ_KEY,ptReadMap,ptRevisionKey,ptRevisionRead,ptSetRevisionRead,portalHideRevisedBanner,portalShowRevisedBanner,portalWireRevisedBanner,portalRevisedBanner,portalChangedText,openPortalCompare,PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,openDerivedLinkDialog,portalReadingBtnsHtml,portalEnsureResponderName});
+  portalGoToChange,portalPressSend,PT_READ_KEY,ptReadMap,ptRevisionKey,ptRevisionRead,ptSetRevisionRead,portalHideRevisedBanner,portalShowRevisedBanner,portalWireRevisedBanner,portalRevisedBanner,portalChangedText,openPortalCompare,PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,exportSignPagesHtml,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,openDerivedLinkDialog,portalReadingBtnsHtml,portalEnsureResponderName});

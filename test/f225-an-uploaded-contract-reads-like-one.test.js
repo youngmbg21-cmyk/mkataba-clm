@@ -135,7 +135,12 @@ describe('f225 (2) — the wording is the page, not a box on it', () => {
        so nobody reads this removal as covering it: it was not in the ask, and
        it is a fact about the paper being sealed rather than an instruction
        about how to read it. */
-    const grid = SRC.slice(SRC.indexOf('id="doc-grid"'), SRC.indexOf('id="doc-canvas"'));
+    /* RE-POINTED IN PLACE 25 Sep 2026: the region is "between the grid and the
+       paper". The paper used to be the canvas written straight into the room's
+       template; since the two copies (js/pages.js) it is drawn by one builder
+       per copy (docSheetHtml, far ABOVE the template), and the template holds
+       its HOST. Anchored on the canvas, this slice ran backwards and read ''. */
+    const grid = SRC.slice(SRC.indexOf('id="doc-grid"'), SRC.indexOf('id="doc-sheet-host"'));
     assert.ok(!/i18t\('ct_received_read_below'\)/.test(grid),
       'the received strip is not drawn above the paper');
     assert.match(grid, /executed and locked/, 'and the locked band is untouched');
