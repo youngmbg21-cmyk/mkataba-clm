@@ -5542,15 +5542,60 @@
      field's value wears. The brief panel's twin (#brief-section .br-why b,
      js/ai.js) takes the same weight, so the two never disagree. */
   .doc-xr-why b{color:var(--color-text);font-weight:var(--w-strong);}
-  /* ABOUT THIS CONTRACT IS SHADED A VERY LIGHT RED (H, Young ruled 22 Sep
-     2026): what could not be tied to one clause is still something to read
-     before signing, and the shade sets it apart from the clause's own list.
-     Mixed from the ruby wash and the surface, so the night theme answers. */
-  .doc-xr-sec.is-wide{margin-top:12px;padding:11px 14px;border:1px solid
+  /* WORTH A LOOK IS THE ONE LIGHT-RED AREA (Young ruled 25 Sep 2026: "i want
+     this highlighted area in the x-ray page to be the area that is highlighted
+     in light red … so there is only one red highlighted area which is the
+     worth a look area"). The shade About this contract wore since 22 Sep moves
+     here, and only while the list HOLDS something (the has class): a red box saying
+     "nothing here" is an alarm about nothing. Mixed from the ruby wash and the
+     surface, so the night theme answers. The is-wide class is STALE — nothing draws
+     it. The border is stated whole at three classes, so the base section's
+     bottom rule and its :last-child answer cannot take an edge off the box. */
+  .doc-xr-sec.is-look.has{margin:12px 0 4px;padding:11px 14px;border:1px solid
     color-mix(in srgb,var(--st-ruby-dot) 22%,var(--color-surface));border-radius:var(--radius-lg);
     background:color-mix(in srgb,var(--st-ruby-bg) 55%,var(--color-surface));}
-  .doc-xr-sec.is-wide:last-child{border-bottom:1px solid
-    color-mix(in srgb,var(--st-ruby-dot) 22%,var(--color-surface));}
+  /* ── WHO DOES WHAT (25 Sep 2026): a balance line, then one press per line.
+     The chip is the subject and its modal; YOU wears the accent, THEY a plain
+     edge, BOTH a quiet fill, a LIMIT a dashed edge and an UNCLEAR side the
+     label shade. Amber is not used on purpose: in this panel amber already
+     means "worth a look", and a colour with two meanings twelve pixels apart
+     stops being read. */
+  .doc-xr-bal{display:flex;align-items:center;gap:10px;margin:0 0 8px;}
+  .doc-xr-bar{flex:1 1 auto;display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--color-neutral-100);}
+  .doc-xr-bar i{display:block;height:100%;}
+  .doc-xr-bar .is-you{background:var(--accent-fill);}
+  .doc-xr-bar .is-them{background:var(--color-neutral-400);}
+  .doc-xr-bar .is-both{background:repeating-linear-gradient(90deg,var(--accent-fill) 0 7px,var(--color-neutral-400) 7px 14px);}
+  .doc-xr-bar .is-unclear{background:var(--color-neutral-300);}
+  .doc-xr-balsay{flex:none;font-size:var(--t-label);color:var(--color-neutral-500);white-space:nowrap;}
+  /* THE LINES SHARE ONE SET OF COLUMNS (subgrid), so every line's words start
+     at the same place whatever its chip says — measured, "Either side may"
+     and "Both must" put two lines' wording 30px apart when each row sized its
+     own chip. The section's body is the grid; a line spans it and borrows its
+     three tracks. */
+  .doc-xr-sec.is-who .doc-xr-t{display:grid;grid-template-columns:auto minmax(0,1fr) auto;column-gap:9px;}
+  .doc-xr-sec.is-who .doc-xr-t > *{grid-column:1 / -1;}
+  .doc-xr-wd{display:grid;grid-template-columns:subgrid;row-gap:3px;align-items:start;
+    width:100%;margin:0;padding:7px 4px;border:0;border-top:1px dashed var(--color-divider);
+    border-radius:var(--radius);background:transparent;color:var(--color-text);font:inherit;text-align:left;cursor:pointer;}
+  .doc-xr-bal + .doc-xr-wd{border-top:0;}
+  .doc-xr-wd:hover{background:color-mix(in srgb,var(--color-neutral-100) 70%,transparent);}
+  .doc-xr-wd:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:1px;}
+  .doc-xr-who{justify-self:start;white-space:nowrap;font-size:var(--t-label);font-weight:var(--w-strong);
+    line-height:1.5;padding:1px 8px;border-radius:999px;border:1px solid transparent;}
+  .doc-xr-who.is-you{color:var(--accent-ink);background:color-mix(in srgb,var(--accent-fill) 10%,var(--color-surface));
+    border-color:color-mix(in srgb,var(--accent-fill) 35%,var(--color-surface));}
+  .doc-xr-who.is-them{color:var(--color-text);border-color:var(--rule-strong);}
+  .doc-xr-who.is-both{color:var(--color-text);background:var(--color-neutral-100);}
+  .doc-xr-who.is-limit{color:var(--color-neutral-500);border:1px dashed var(--rule-strong);}
+  .doc-xr-who.is-unclear{color:var(--color-neutral-500);border-color:var(--color-divider);}
+  .doc-xr-wdt{font-size:var(--t-meta);line-height:1.55;min-width:0;}
+  .doc-xr-wdc{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:var(--t-label);
+    color:var(--color-neutral-500);padding-top:1px;white-space:nowrap;}
+  .doc-xr-wdo{grid-column:2 / 4;font-size:var(--t-label);color:var(--st-green-fg);}
+  .doc-xr-wdo::before{content:'\2713\00a0';}
+  .doc-xr-wdmore{padding:6px 4px 0;font-size:var(--t-label);}
+  .doc-xr-wdgo{margin-top:10px;justify-self:start;}
   .doc-xr-none{font-size:var(--t-meta);color:var(--color-neutral-500);}
   /* THE X-RAY FOLLOWS THE READER'S TEXT SIZE (23 Sep 2026): every size in
      the panel is its token times --doc-scale, which applyDocZoom writes on
@@ -5560,6 +5605,9 @@
   #doc-xray .doc-xr-n{font-size:calc(var(--t-label) * var(--doc-scale,1));}
   #doc-xray .doc-xr-k,#doc-xray .doc-xr-mk{font-size:calc(var(--t-micro) * var(--doc-scale,1));}
   #doc-xray .doc-xr-t,#doc-xray .doc-xr-none{font-size:calc(var(--t-meta) * var(--doc-scale,1));}
+  #doc-xray .doc-xr-wdt{font-size:calc(var(--t-meta) * var(--doc-scale,1));}
+  #doc-xray .doc-xr-who,#doc-xray .doc-xr-wdc,#doc-xray .doc-xr-wdo,#doc-xray .doc-xr-balsay,
+  #doc-xray .doc-xr-wdmore{font-size:calc(var(--t-label) * var(--doc-scale,1));}
 
   /* ══ THE RUNWAY — the decision card's one line of time (22 Sep 2026) ══
      Left of TODAY is time already owed against this workspace's own answering

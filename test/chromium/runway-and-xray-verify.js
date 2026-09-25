@@ -405,19 +405,23 @@ const check = (name, pass, detail) => {
     check('7d the brief’s watchout reached the clause its wording sits on',
       !!panel && panel.look.some(m => /XRWATCH/.test(m.say) && m.grade === 'amber'),
       panel ? JSON.stringify(panel.look.map(m => m.say)) : 'no panel');
-    check('7e an UNUSUAL term is said about the whole contract, in steel',
-      !!panel && panel.wideDrawn && panel.wide.some(m => /XRODD/.test(m.say) && m.grade === 'steel'),
-      panel ? JSON.stringify(panel.wide) : 'no panel');
-    check('7f a watchout with no wording is said there too, and never guessed onto a clause',
-      !!panel && panel.wide.some(m => /XRLOOSE/.test(m.say))
-        && !panel.look.some(m => /XRLOOSE/.test(m.say)),
-      panel ? JSON.stringify(panel.wide.map(m => m.say)) : 'no panel');
-    /* GATED on the block being drawn at all: "XRWATCH is not in it" is
-       satisfied by a build that draws no block, which proves nothing. */
-    check('7g and one that DID land is said on its clause, not twice',
-      !!panel && panel.wideDrawn && panel.wide.length > 0
-        && !panel.wide.some(m => /XRWATCH/.test(m.say)),
-      panel ? JSON.stringify(panel.wide.map(m => m.say)) : 'no panel');
+    /* REVERSED IN PLACE 25 Sep 2026 (Young: "this 'about contract x' portion
+       should be excluded from the x-ray so there is only one red highlighted
+       area which is the worth a look area"). What lands on no clause was
+       SAID in a contract-level block; the X-ray draws that block no more — it
+       stays on the Brief and the Risk scan. What still holds, and is still
+       asserted, is that nothing is ever GUESSED onto a clause. */
+    check('7e About this contract is not drawn, though the brief has an unusual term that lands nowhere',
+      !!panel && !panel.wideDrawn && !panel.look.some(m => /XRODD/.test(m.say)),
+      panel ? JSON.stringify({ wide: panel.wideDrawn, look: panel.look.map(m => m.say) }) : 'no panel');
+    check('7f a watchout with no wording is never guessed onto a clause',
+      !!panel && !panel.look.some(m => /XRLOOSE/.test(m.say)),
+      panel ? JSON.stringify(panel.look.map(m => m.say)) : 'no panel');
+    /* GATED on the clause's own list holding something: "not in a block" is
+       satisfied by a build that draws nothing, which proves nothing. */
+    check('7g and one that DID land is said on its clause, once',
+      !!panel && panel.look.length > 0 && panel.look.filter(m => /XRWATCH/.test(m.say)).length === 1,
+      panel ? JSON.stringify(panel.look.map(m => m.say)) : 'no panel');
 
     const afterXr = await ink();
     check('7h THE CONTRACT DOES NOT MOVE with the whole map drawn (refusal 3)',

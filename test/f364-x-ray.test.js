@@ -447,14 +447,22 @@ describe('f364 (9) Format A', () => {
     assert.ok(/docXrayBriefOdd\(c\)\.forEach\(u=>\{ if\(docXrayPlace\(txt,u\.quote\)\)/.test(marks),
       'the same containment, on the quote it carries');
     assert.ok(!/u\.say\)\)/.test(marks), 'never on the sentence');
-    assert.ok(/docXrayBriefOdd\(c\)\.forEach/.test(region('docXrayWide')), 'and said about the whole contract where it lands nowhere');
+    /* RE-POINTED IN PLACE 25 Sep 2026 (Young: "this 'about contract x'
+       portion should be excluded from the x-ray"). An unusual term that lands
+       nowhere was SAID about the whole contract; the panel says it no more.
+       The reading that gathered it is kept whole with no caller, so what is
+       asserted now is that it still reads the list AND that nothing draws it. */
+    assert.ok(/docXrayBriefOdd\(c\)\.forEach/.test(region('docXrayWide')),
+      'the dormant whole-contract reading still reads the unusual terms, kept whole');
+    assert.ok(!/docXrayWide\(/.test(region('docXrayPanelHtml')),
+      'and the panel no longer draws what lands nowhere');
   });
   test('docXrayBriefWatch is the ONE reading of that list', () => {
     assert.ok(/function docXrayBriefWatch\(c\)/.test(CODE), 'it exists');
     /* COUNT THE CALLS, NOT THE DEFINITION — a count that matches its own
        declaration is this codebase's own recorded instrument fault. */
     const askers = (CODE.match(/docXrayBriefWatch\(c\)\./g) || []).length;
-    assert.equal(askers, 2, 'the clause marks and the contract-level block, and nothing else');
+    assert.equal(askers, 2, 'the clause marks and the dormant contract-level reading (kept whole since 25 Sep 2026), and nothing else');
     const w = region('docXrayWide');
     assert.ok(/if\(!landed\(w\.quote\)\)/.test(w),
       'a watchout that landed on its clause is said there, not twice');
@@ -466,8 +474,11 @@ describe('f364 (9) Format A', () => {
   test('ONE builder for a mark, and it always names who said it', () => {
     assert.ok(/const docXrayMarkHtml = m =>/.test(CODE), 'one builder');
     const p = PANEL();
-    assert.ok((p.match(/docXrayMarkHtml/g) || []).length === 2,
-      'drawn by the clause list and by the contract-level block — the clothes follow the builder');
+    /* REVERSED IN PLACE 25 Sep 2026: About this contract left the X-ray, so
+       the builder has ONE home in the panel — the clause's own list. It was
+       two while the contract-level block was drawn. */
+    assert.ok((p.match(/docXrayMarkHtml/g) || []).length === 1,
+      'drawn by the clause list alone — the contract-level block is no longer drawn');
     const b = CODE.slice(CODE.indexOf('const docXrayMarkHtml'), CODE.indexOf('const docXrayMarkHtml') + 400);
     assert.ok(/doc-xr-mk">\$\{esc\(m\.tag\|\|''\)\}/.test(b), 'every mark prints its source tag');
     assert.ok(/is-\$\{esc\(m\.grade\|\|'amber'\)\}/.test(b), 'and wears its own grade');
