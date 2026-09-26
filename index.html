@@ -8722,6 +8722,155 @@
   .ap-table tbody tr.is-sel td:first-child{box-shadow:inset 2px 0 0 var(--accent-solid);}
   .ap-table tbody tr.is-sel td.mono{color:var(--accent-ink);}
 
+  /* ═══ THE INSPECTOR ON FOUR MORE PAGES (Young ruled 26 Sep 2026: the
+     Obligations page, the contract's Obligations tab, Our standards and
+     Requests, off the "Obligations, Standards, Requests" page) ═══════════════
+     ONE SHAPE FOR ALL FOUR, and it is the Approvals page's: the page owns its
+     height, a list card and the panel sit side by side and each scrolls inside
+     itself. The list is ONE table grammar — a sticky head in plain words, rows
+     two lines deep, a group heading carrying a dot, a count and (where there is
+     money) what it adds up to — so the four read as one product. Every value is
+     a token; the tones are the product's own ruby / amber / steel / green. */
+  .ins-page{display:flex;flex-direction:column;gap:var(--s-3);padding:0 var(--page-pad-x) var(--s-4);height:var(--view-h);box-sizing:border-box;min-height:0;}
+  .ins-page > .reg-views,.ins-page > .st-tabs{flex:none;}
+  .ins-body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) var(--ins-panel-w);gap:14px;}
+  .ins-card{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);
+    min-height:0;display:flex;flex-direction:column;overflow:hidden;}
+  .ins-card > .ins-bar{flex:none;display:flex;flex-wrap:wrap;gap:var(--s-2);align-items:center;padding:10px 12px;border-bottom:1px solid var(--color-divider);}
+  /* The chip's own row layout is the register's (`.reg-f`, in that page's
+     injected sheet); these pages do not load that sheet, so it is said here. */
+  .ins-bar .reg-chip{display:inline-flex;min-width:0;}
+  .ins-card > .ins-offer{flex:none;display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap;padding:9px 12px;border-bottom:1px solid var(--color-divider);
+    color:var(--color-neutral-600);font-size:var(--t-label);}
+  .ins-offer b{color:var(--color-text);font-weight:var(--w-label);}
+  .ins-offer .sp{flex:1;}
+  .ins-scroll{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;}
+  .ins-foot{flex:none;display:flex;align-items:center;gap:10px;padding:0 12px;min-height:40px;border-top:1px solid var(--color-divider);
+    color:var(--color-neutral-600);font-size:var(--t-label);}
+  table.ins-lt{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed;font-size:var(--t-body);line-height:1.45;}
+  .ins-lt th{position:sticky;top:0;z-index:1;background:var(--color-surface);text-align:left;font-size:var(--t-label);font-weight:var(--w-label);
+    color:var(--color-neutral-600);height:36px;padding:0 12px;border-bottom:1px solid var(--color-divider);white-space:nowrap;}
+  .ins-lt th.r,.ins-lt td.r{text-align:right;}
+  .ins-lt td{padding:0 12px;border-bottom:1px solid var(--rule);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;height:52px;}
+  .ins-lt tbody tr[data-ins-row]{cursor:pointer;}
+  .ins-lt tbody tr[data-ins-row]:hover td{background:var(--surface-2);}
+  .ins-lt tbody tr.is-sel td{background:color-mix(in srgb,var(--color-accent) 8%,transparent);}
+  .ins-lt tbody tr.is-sel td:first-child{box-shadow:inset 2px 0 0 var(--accent-solid);}
+  .ins-lt tbody tr[data-ins-row]:focus{outline:none;}
+  .ins-lt tbody tr[data-ins-row]:focus-visible td{box-shadow:inset 0 2px 0 var(--focus-color),inset 0 -2px 0 var(--focus-color);}
+  .ins-lt tr.ins-grp td{height:36px;background:var(--color-surface);border-bottom:1px solid var(--color-divider);font-weight:var(--w-title);color:var(--color-text);padding-top:6px;}
+  .ins-g{display:flex;align-items:center;gap:8px;min-width:0;}
+  .ins-g .n{color:var(--color-neutral-600);font-weight:var(--w-label);font-variant-numeric:tabular-nums;}
+  .ins-g-r{margin-left:auto;min-width:0;font-weight:var(--w-body);color:var(--color-neutral-600);font-size:var(--t-label);overflow:hidden;text-overflow:ellipsis;}
+  .ins-lt tr.ins-empty td{height:120px;text-align:center;color:var(--color-neutral-600);white-space:normal;}
+  .ins-dot2{width:7px;height:7px;border-radius:50%;display:inline-block;flex:none;background:var(--st-gray-dot);}
+  .ins-dot2.is-ruby{background:var(--st-ruby-dot);}
+  .ins-dot2.is-amber{background:var(--st-amber-dot);}
+  .ins-dot2.is-steel{background:var(--st-steel-dot);}
+  .ins-dot2.is-green{background:var(--st-green-dot);}
+  .ins-dot2.is-gray{background:var(--st-gray-dot);}
+  .ins-c2{display:flex;flex-direction:column;min-width:0;line-height:1.35;}
+  .ins-c2 > b{font-weight:var(--w-label);color:var(--color-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ins-c2 > span{color:var(--color-neutral-600);font-size:var(--t-label);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  /* THE FIVE INKS A WORD ON THESE LISTS MAY WEAR, each one meaning one thing:
+     late, soon, waiting its turn, done, and quiet. */
+  .ins-late{color:var(--st-ruby-fg);font-weight:var(--w-label);}
+  .ins-soon{color:var(--st-amber-fg);font-weight:var(--w-label);}
+  .ins-wait{color:var(--st-steel-fg);font-weight:var(--w-label);}
+  .ins-ok{color:var(--st-green-fg);font-weight:var(--w-label);}
+  .ins-quiet{color:var(--color-neutral-500);}
+  .ins-nobody{color:var(--st-amber-fg);font-weight:var(--w-label);}
+  .ins-who{display:inline-flex;align-items:center;gap:7px;color:var(--color-neutral-600);min-width:0;max-width:100%;}
+  .ins-who > span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ins-av{width:20px;height:20px;border-radius:50%;background:var(--surface-2);color:var(--color-neutral-600);font-size:10px;font-weight:var(--w-title);
+    display:inline-grid;place-items:center;flex:none;font-style:normal;letter-spacing:.02em;}
+  .ins-amt{font-weight:var(--w-label);color:var(--color-text);font-variant-numeric:tabular-nums;}
+  .ins-cnt{font-weight:var(--w-title);font-variant-numeric:tabular-nums;}
+  .ins-cnt.is-bad{color:var(--st-ruby-fg);}
+  .ins-cnt.is-warn{color:var(--st-amber-fg);}
+  .ins-legal{color:var(--st-ruby-fg);font-weight:var(--w-label);}
+  .ins-road-close{color:var(--st-ruby-fg);font-weight:var(--w-label);}
+  .ins-road-lane{color:var(--st-green-fg);font-weight:var(--w-label);}
+  .ins-road-routine{color:var(--color-neutral-600);font-weight:var(--w-label);}
+  .ins-road-standard{color:var(--color-text);font-weight:var(--w-label);}
+  /* ---- THE PANEL, FOR ANYTHING THAT IS NOT A CONTRACT ----
+     The title is a sentence, so it may take two lines; the line under it may
+     wrap. A wide fact takes the whole row. */
+  .ins-cp.is-item{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;text-wrap:balance;}
+  .ins-sub.is-item{white-space:normal;}
+  .ins-st-t{min-width:0;}
+  .ins-st .x,.ins-p .x{color:var(--color-neutral-600);}
+  .ins-facts .wide{grid-column:1 / -1;}
+  .ins-facts .wide dd{white-space:normal;}
+  .ins-sec h3 .rt{margin-left:auto;color:var(--color-neutral-600);font-weight:var(--w-label);}
+  .ins-q{margin:0 0 8px;padding:2px 0 2px 12px;border-left:2px solid var(--rule-strong);color:var(--color-text);line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;}
+  .ins-q:last-child{margin-bottom:0;}
+  .ins-p{margin:0;color:var(--color-text);line-height:1.5;overflow-wrap:anywhere;}
+  .ins-p + .ins-p{margin-top:6px;}
+  .ins-lbl{font-size:var(--t-micro);text-transform:uppercase;letter-spacing:.09em;color:var(--color-neutral-600);margin:10px 0 3px;}
+  .ins-lbl:first-child{margin-top:0;}
+  .ins-sec .ins-log li .x{color:var(--color-neutral-600);}
+  .ins-docf{display:flex;align-items:center;gap:12px;}
+  .ins-docf .fi{width:30px;height:36px;border:1px solid var(--color-divider);border-radius:var(--radius);display:grid;place-items:center;color:var(--color-neutral-600);flex:none;background:var(--color-surface);}
+  .ins-docf .fi svg{width:16px;height:16px;}
+  .ins-docf > div{display:flex;flex-direction:column;min-width:0;}
+  .ins-docf b{font-weight:var(--w-label);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ins-docf span{font-size:var(--t-label);}
+  .ins-ch{margin:0;padding:0;list-style:none;}
+  .ins-ch li{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:2px 10px;align-items:start;padding:7px 0;border-top:1px solid var(--rule);}
+  .ins-ch li:first-child{border-top:0;padding-top:2px;}
+  .ins-ch .mk{width:16px;height:16px;border-radius:50%;display:grid;place-items:center;margin-top:1px;border:1.5px solid var(--rule-strong);background:var(--color-surface);color:#fff;box-sizing:border-box;}
+  .ins-ch .mk svg{width:10px;height:10px;}
+  .ins-ch .mk.is-ok{background:var(--st-green-dot);border-color:var(--st-green-dot);}
+  .ins-ch .mk.is-bad{background:var(--st-ruby-dot);border-color:var(--st-ruby-dot);}
+  .ins-ch .mk.is-hold{border-style:dashed;border-color:var(--st-steel-dot);}
+  .ins-ch .t{display:flex;flex-direction:column;min-width:0;}
+  .ins-ch .t b{font-weight:var(--w-label);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ins-ch .t span{font-size:var(--t-label);color:var(--color-neutral-600);}
+  .ins-ch li.is-me .t b{font-weight:var(--w-title);}
+  .ins-ch .m{font-weight:var(--w-label);white-space:nowrap;font-variant-numeric:tabular-nums;}
+  /* A LIST INSIDE THE PANEL WHOSE ROWS ARE DOORS (where contracts depart,
+     what is already on the book). A real button per row, the name over the
+     line, the verdict at the right. */
+  .ins-gl{margin:0;padding:0;list-style:none;}
+  .ins-gi{width:calc(100% + 16px);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1px 12px;padding:7px 8px;margin:0 -8px;border:0;border-radius:var(--radius);
+    background:none;text-align:left;cursor:pointer;color:inherit;font:inherit;}
+  .ins-gi:hover{background:var(--surface-2);}
+  .ins-gi:focus-visible{outline:2px solid var(--focus-color);outline-offset:-2px;}
+  .ins-gi b{font-weight:var(--w-label);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ins-gi span{font-size:var(--t-label);color:var(--color-neutral-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ins-gi .r{grid-row:1 / span 2;grid-column:2;align-self:center;font-size:var(--t-label);font-weight:var(--w-label);white-space:nowrap;}
+  .ins-stdl{margin:0;padding:0;list-style:none;}
+  .ins-stdl li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1px 12px;padding:7px 0;border-top:1px solid var(--rule);}
+  .ins-stdl li:first-child{border-top:0;padding-top:0;}
+  .ins-stdl b{font-weight:var(--w-label);}
+  .ins-stdl .d{grid-column:1;font-size:var(--t-label);color:var(--color-neutral-600);}
+  .ins-stdl .r{grid-row:1;grid-column:2;font-size:var(--t-label);white-space:nowrap;text-align:right;}
+  .ins-inh{font-size:var(--t-micro);color:var(--color-neutral-500);border:1px solid var(--color-divider);border-radius:var(--radius);padding:0 5px;margin-left:6px;font-weight:var(--w-body);white-space:nowrap;}
+  .ins-dvh{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin:0 0 8px;}
+  .ins-dvh b{font-weight:var(--w-title);}
+  .ins-dvh .st{font-size:var(--t-label);font-weight:var(--w-label);color:var(--st-amber-fg);}
+  .ins-dvh .lg{margin-left:auto;font-size:var(--t-label);font-weight:var(--w-label);color:var(--st-ruby-fg);}
+  .ins-dvh .ok{margin-left:auto;font-size:var(--t-label);font-weight:var(--w-label);color:var(--st-green-fg);}
+  /* THE TAB'S OWN LINE on the contract's Obligations tab: the switch, the
+     facts in one sentence, and the two verbs at the right. */
+  .obt-line{display:flex;align-items:center;gap:14px;flex:none;flex-wrap:wrap;}
+  .obt-line .facts{color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+  .obt-line .facts b{color:var(--color-text);font-weight:var(--w-label);}
+  .obt-line .sp{flex:1;}
+  .reg-seg .n{margin-left:6px;font-size:var(--t-label);opacity:.8;font-variant-numeric:tabular-nums;}
+  #ws-obligations-pane.is-ins{display:flex;flex-direction:column;gap:12px;flex:1;min-height:0;}
+  /* OUR STANDARDS IN THIS SHAPE. The page owns its height and does not
+     scroll, so the pinned tab row has nothing to pin against — and its bleed
+     into the page's own padding (made for a scrolling page) would pull it up
+     under the header. Undone here by scope. The three tabs are three list-and-
+     panel grids side by side in the markup, and a grid that states its own
+     display must be told what [hidden] means. */
+  .ins-page > .st-tabs-pin{margin:0;padding:0;}
+  .ins-body[hidden]{display:none;}
+  .ins-c2 > b.is-req{font-weight:var(--w-title);}
+  .sd-moves{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+
   /* ═══ THE CONTRACT ROOM'S HEAD CARD (20 Sep 2026, step 4 of the redesign
      order) — ONE builder, roomHeadHtml, dresses both heads, so every rule
      here reaches the negotiate page too. The title takes the reference's

@@ -395,8 +395,127 @@ function stdDraftWorthOffering(){
   return stdUsingDefaults() && stdSignedBook().length >= STD_DRAFT_MIN;
 }
 
+/* ---- 5 · WHO DEPARTS FROM WHAT (the Inspector, Young ruled 26 Sep 2026) ----
+   The three tabs of Our standards became a list with the chosen item read
+   beside it, and the three are LINKED: a standard lists the contracts that
+   depart from it, a book lists where its contracts depart, and a departure
+   names the standard it misses. Every one of those is a count over the SAME
+   population, so the population is one reading here and the three tabs ask it.
+
+   THE CHECKED BOOK is every contract carrying a stored standards check, less
+   the shelf and the closed deals (Insights' own LIVE rule: a deal nobody is
+   doing has no departures worth a reader's time). It reads `c.playbook` RAW
+   and runs nothing: a contract nobody has checked is not "clean", it is not in
+   the count at all, and every screen says how many were checked.
+
+   A DEPARTURE is the verdict deviationSummary already counts (deviation or
+   missing). An ACCEPTED one still departs — somebody decided to sign it
+   anyway, and the page says so — but it no longer needs Legal. */
+const STD_DEPART_STATUSES = ['deviation', 'missing'];
+function stdCheckedBook(){
+  return ((window.state && Array.isArray(state.contracts)) ? state.contracts : [])
+    .filter(c => c && !(c.archived && c.archived.at) && c.status !== 'Declined'
+      && c.playbook && Array.isArray(c.playbook.verdicts));
+}
+function stdDepartures(c){
+  const vs = (c && c.playbook && Array.isArray(c.playbook.verdicts)) ? c.playbook.verdicts : [];
+  return vs.filter(v => v && STD_DEPART_STATUSES.includes(String(v.status || '')));
+}
+function stdMeets(c){
+  const vs = (c && c.playbook && Array.isArray(c.playbook.verdicts)) ? c.playbook.verdicts : [];
+  return vs.filter(v => v && (v.status === 'aligned' || v.status === 'ok'));
+}
+const stdNeedsLegal = v => !!(v && v.escalate && !v.accepted);
+/* THE BOOK A CONTRACT WAS CHECKED AGAINST is the one its check STAMPED — the
+   Overview prints that one, never a book re-resolved today. An older check
+   carries no key and answers today's reading. */
+function stdBookOf(c){
+  const k = c && c.playbook && c.playbook.key;
+  if (k) return String(k);
+  try { return (typeof playbookKeyFor === 'function') ? playbookKeyFor(c) : '_default'; } catch (_) { return '_default'; }
+}
+/* Every checked contract that departs from one standard, with the verdict
+   that says how. Matched by the standard's NAME, which is how the check names
+   its verdicts (pbStandardsFor, one per category). */
+function stdDepartsFrom(category, book){
+  const out = [];
+  for (const c of (book || stdCheckedBook())) {
+    const v = stdDepartures(c).find(x => _stdSame(x.category, category));
+    if (v) out.push({ c, v });
+  }
+  return out;
+}
+/* The contracts a book governs: every checked contract for the baseline,
+   which is where every contract starts; the contracts stamped with it for a
+   contract type. */
+function stdBookContracts(key, book){
+  const all = book || stdCheckedBook();
+  return key === '_default' ? all : all.filter(c => stdBookOf(c) === key);
+}
+/* WHAT A BOOK HOLDS, EACH STANDARD ONCE. resolvePlaybook hands back the
+   baseline's positions and ranges followed by the book's own, and a position
+   and a limit of the same name are ONE standard — "Liability cap" was two
+   chips on the supply and services books. `own` says whether the book wrote
+   it or inherited it from the baseline. Ordered by how hard it is held. */
+const STD_LINE_RANK = { required: 0, forbidden: 1, limit: 2, preferred: 3 };
+function stdBookLines(key){
+  const pb = _stdPb();
+  const own = pb[key] || {};
+  const resolved = (typeof resolvePlaybook === 'function') ? resolvePlaybook(key) : { positions: [], ranges: [] };
+  const norm = s => String(s == null ? '' : s).trim().toLowerCase();
+  /* WHAT THE BOOK WROTE ITSELF, asked by NAME and read ONCE: a built-in book's
+     positions can be a getter (the lease book's follow the market), which
+     hands back new objects on every read, so an identity test would call the
+     lease book's own stamp duty "from the baseline". */
+  const ownCats = new Set([].concat(
+    (own.positions || []).map(p => norm(p && p.category)),
+    (own.ranges || []).map(r => norm(r && r.label))).filter(Boolean));
+  const isOwn = k => key === '_default' || ownCats.has(k);
+  const lines = [], at = new Map();
+  for (const p of (resolved.positions || [])) {
+    if (!p || !p.category) continue;
+    const k = norm(p.category);
+    const mine = isOwn(k);
+    if (at.has(k)) { const l = at.get(k); if (mine) { l.pos = p.pos || l.pos; l.note = p.note || l.note; l.own = true; }
+      l.legal = l.legal || !!p.escalate; continue; }
+    const l = { category: String(p.category), pos: p.pos || 'preferred', note: String(p.note || ''),
+      legal: !!p.escalate, own: mine, limit: null, clause: p.clause || null };
+    at.set(k, l); lines.push(l);
+  }
+  for (const r of (resolved.ranges || [])) {
+    if (!r || !r.label) continue;
+    const k = norm(r.label);
+    const mine = isOwn(k);
+    if (at.has(k)) { const l = at.get(k); l.limit = r; l.legal = l.legal || !!r.escalate; l.own = l.own || mine; continue; }
+    const l = { category: String(r.label), pos: 'limit', note: String(r.note || ''),
+      legal: !!r.escalate, own: mine, limit: r, clause: null };
+    at.set(k, l); lines.push(l);
+  }
+  const rank = l => (STD_LINE_RANK[l.pos] != null ? STD_LINE_RANK[l.pos] : 9);
+  return lines.sort((a, b) => rank(a) - rank(b));
+}
+/* THE BOOK A STANDARD'S POSITION IS HELD IN: the baseline where it names it,
+   else the first contract type that does, else the baseline — which is where
+   "Change the position" takes a reader. */
+function stdBookFor(category){
+  const pb = _stdPb();
+  const names = b => !!b && ((b.positions || []).some(p => p && _stdSame(p.category, category))
+    || (b.ranges || []).some(r => r && _stdSame(r.label, category)));
+  if (names(pb._default || _stdBase())) return '_default';
+  for (const key of Object.keys(pb)) if (key !== '_default' && names(pb[key])) return key;
+  return '_default';
+}
+/* STILL OPEN TO CHANGE: not signed, and no signature given on either side. */
+function stdOpenToChange(c){
+  if (!c || c.status === 'Signed') return false;
+  try { if (typeof negoWordingFrozen === 'function' && negoWordingFrozen(c)) return false; } catch (_) {}
+  return true;
+}
+
 Object.assign(window, { STD_WINDOW_DAYS, STD_MIN_ROUNDS, STD_DRAFT_MIN, STD_DRAFT_SHARE,
   STD_STANCE_RANK, STD_DRAFT_SUBJECTS, STD_DRAFT_UNREADABLE,
   stdStanceOf, stdFigureIn, stdFallbackOf, stdPreferredFigure,
   stdWindow, stdHeld, stdHistoryFor, stdLearned, stdSignedBook, stdDraftFromSigned,
-  stdUsingDefaults, stdDraftWorthOffering });
+  stdUsingDefaults, stdDraftWorthOffering,
+  STD_DEPART_STATUSES, stdCheckedBook, stdDepartures, stdMeets, stdNeedsLegal, stdBookOf,
+  stdDepartsFrom, stdBookContracts, STD_LINE_RANK, stdBookLines, stdBookFor, stdOpenToChange });

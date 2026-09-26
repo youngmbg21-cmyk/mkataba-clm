@@ -19283,6 +19283,49 @@ Noticed, not fixed
 - flat-rows 2d/2e/2f, the four browser files that stop on the same driver error on both versions (counterparty-reading-and-more, keeps-your-place, reopen-a-refusal, six-round-audit) and the other main-red files are unchanged.
 - theme-tokens-verify: red on 20 of 40 screens on both versions and NOT re-recorded. The uncut set difference against main is exactly this work's own: fix 3 takes #CBD3D0 off calendar and templates (light), the text-size stepper's own night edge rgba(148,163,184,.28) off the Document tab, Negotiate and Signing (dark), and the view switch's 45% accent seam off Home, the Document tab and Signing (light and dark); the Inspector adds the selected row's 8% accent tint on the Contracts page and, at night, drops #1B2221 there — the resting count pill, which a quick view with nothing in it no longer draws.
 - (Correction to the Gates line above) Twelve files, not eleven, had failures that were this work's own — the twelve named there; row-density stopped on a press it could no longer make rather than failing a check, which is why a count by failing check names reads eleven.
+
+## Run 26 Sep 2026 — the Obligations page, three designs to choose from (no code)
+
+- On the owner's word: "give me a render in artifact of the obligations page but keeping the same format as the inspector design then add 2 rival designs as well. No coding". Published as the private page "Obligations Page Options": today's page photographed, then Inspector, Two Ledgers and Week Board drawn full size on one sample book (22 obligations on 12 signed contracts), with a comparison table, the page checklist and one recommendation (Inspector). No product code changed.
+
+Noticed, not fixed
+- The Obligations worklist adds money we owe to money owed to us: each band's sum and the foot's Committed, Outstanding and Overdue figures add both directions (on the sample book "Overdue SEK 10.54M" is SEK 6.80M owed to us plus SEK 3.74M we owe).
+- The worklist foot's "Paid" always reads SEK 0 when the page opens, because the page opens on outstanding obligations only.
+- Every obligation the other side owes carries "Nobody owns this" beside the counterparty's name, on the worklist and on the contract's Obligations tab; the tag reads a missing colleague, which is true of every "theirs" obligation.
+- The worklist and the contract's Obligations tab print due and completion dates as raw 2026-09-20 strings rather than through the one day printer.
+- "Due this month" is the calendar month (one reading, both surfaces): at the month's end it covers a few days, and something due in five days sits under "Later" beside a 2029 date.
+
+## Run 26 Sep 2026 — Obligations: Inspector chosen for the page, three choices for the contract's tab (no code)
+
+- On the owner's word: "I choose inspector but do not build it yet. Rebuild the artifact with only inspector included but then provide 3 choices of how the obligations on the contracts obligations tab would look like. No coding." The private page "Obligations Page Options" now shows the chosen Inspector for the page and, for the tab, today's photo plus Inspector, Two Sides and Timeline, with a comparison table, the page checklist and one recommendation (Inspector). No product code changed.
+
+Noticed, not fixed
+- The contract's Obligations tab does not show when a required document ends (only the Overview's "Documents they must hold" does), does not show that an obligation was chased, and offers no Chase.
+- On that tab a paid chain step's chip ("Paid 2026-08-14") repeats the date printed in the column beside it.
+
+## Run 26 Sep 2026 — Obligations tab chosen, Our standards in the Inspector design, three Requests designs (no code)
+
+- On the owner's word: "I choose inspector for the tab too so update the artifact with inspector but also add to the artifact all the 3 tabs in the our stands page to have inspector design as well. Finally, provide me with 3 different options of how to design the Requests page. The current design does not use the space effectively. No coding." The private page, now titled "Obligations, Standards, Requests", shows: three Requests designs (Inspector, Board, Two Desks) beside today's photo, each from two chairs (a drafter and a colleague who only asks), with a comparison table, the page checklist and one recommendation (Inspector); Our standards drawn in the Inspector design on all three tabs, linked to each other, beside today's photos; and the Inspector designs already chosen for the Obligations page and tab. Staged on the sample book with HaTi's own rule-based standards check and eleven requests written as the server stores them. No product code changed.
+
+Noticed, not fixed
+- No screen ever marks a request "Being drafted": the status exists and the route accepts it, but no button sends it, so a request somebody is working on still says "Waiting" beside their name.
+- "Waiting to be picked up (N)" on the Requests page counts every open request, including ones somebody already holds.
+- "Pick it up" on a request a colleague holds moves it to the presser without asking or saying so.
+- The Requests queue is newest first, so a request past its promised date can sit last.
+- A request you asked for yourself is printed twice for an editor: in the queue and under "What you have asked for".
+- A declined request's clock reads "done in 24 hours" (the same words as a drafted one).
+- The standards check asks every contract about payment terms, because the baseline's 45-day limit applies to every book: both NDAs and all three leases in the sample report payment terms as missing and marked for Legal.
+- The data protection standard's name is built from the market's law and reads "the GDPR (Regulation (EU) 2016/679) compliance" in a Swedish workspace.
+- The Negotiation playbook tab draws a limit and a position of the same name as two chips ("Liability cap" twice on the supply and services books).
+- Portfolio deviations shows the first 8 contracts with departures and says nothing about the rest (22 in the sample).
+
+## Run 26 Sep 2026 — Inspector chosen for the Requests page (no code)
+
+- On the owner's word: "I choose Inspector for the Requests page too. No coding yet." The private page "Obligations, Standards, Requests" now shows only the Inspector design for Requests (with today's photo to compare, from both chairs), beside the Inspector designs for Our standards, the Obligations page and the contract's Obligations tab. Board and Two Desks are gone from the page. Three small questions stay open for the owner and are listed on the page: "Take it over" asking first on a request a colleague holds; a held request shown as being worked on; and where the helping sentence for people who ask should live. No product code changed.
+
+## Run 26 Sep 2026 — the three Requests rulings (no code)
+
+- On the owner's word: "Yes to all three." Ruled for the Requests page when it is built: (1) on a request a colleague already holds, "Pick it up" becomes "Take it over" and asks before moving it; (2) a request somebody holds shows as being worked on, not "Waiting"; (3) the sentence for people who ask ("Describe what you need in plain words…") moves from under the page title to the top of the Ask for a contract window. All three are drawn in the private page "Obligations, Standards, Requests" (the ask window and the take-over question open from the picture). No product code changed; the owner's earlier "No coding yet" stands.
 ## 24 Sep 2026 — advice only: redline here, sign there (process design)
 
 The owner asked for a process: upload the other side's contract only to redline it with today's tools, hand it over once both sides agree, let them run the signing (DocuSign, another service or paper), then upload the signed copy, which is filed and gets its contract number then. The design was published as the page "Redline Here, Sign There" with eight decisions and my recommendations; no code changed. It keeps most of "Scenario 1 — Signed Outside HaTi" (24 Sep) and replaces the Review Desk of "Approval and Their Paper" (23 Sep).
@@ -19348,3 +19391,22 @@ Noticed, not fixed
 - The handover's placeholder check (OH_BLANK_RES in js/outside.js) refuses [insert …], [ALL CAPS] and {{key}} but not a lower- or title-case bracket such as [amount] or [Price] — its own comment's example, "[amount]", is one it does not catch. Such a blank can go out unfilled; filled by them it is now accepted and listed rather than flagged. For the owner to rule on.
 - The word check's search window can leave the last word of a short changed paragraph out of both the change and the leftovers ("2. [Reserved]" replaced by "The Supplier may terminate at will." shows the change without "will."). The paragraph is still flagged as changed. Same on main.
 - The fills list names a blank written as [______] the way the upload panel does, with a stray opening bracket ("Lease is made on ["). Already logged in the last run against the panel; the fills list inherits it because it asks the same reading.
+
+## Run 26 Sep 2026 (night) — the Inspector on four more pages
+
+- On the owner's word, over the "Obligations, Standards, Requests" page: the Inspector (a list beside one item's facts; a press selects, a second press opens) for the Obligations page, the contract's own Obligations tab, all three tabs of Our standards and the Requests page, "yes to all three" on the Requests rulings, then "go and merge main when complete". Built on claude/hati-button-review-9x2sbo, merged up from main (afc2d0b) first.
+- Measured first, on the sample book: the Obligations worklist's Overdue filter listed one more than the sidebar door counted (a payment step held back behind an earlier one is waiting, not late); its "Nobody owns it" counted obligations the other side owes, which always have an owner; the tracker link said "Waiting to be picked up" over a request a colleague had already taken.
+- Built: one frame for anything that is not a contract (insPaintPanel with an item, and its small builders) and the page header's two slots for the three pages (PAGE_HEAD_PAINT). Obligations: one population (obwBook) and one predicate (obwPass) for the list, every view's count and the head; seven windows in the drawing's order; money in four directions, never netted; the reminders line mirrors the server's own milestones; Remove asks first. The contract tab uses the same list builder (Outstanding · Completed · All). Our standards: still one tab row and one handler; the tabs are linked both ways (a standard to its book, to the contracts that depart from it, and back); each standard is one line per book; the book's choosing words are the playbook's own list (lifted into PB_TYPE_PATTERNS, the same four patterns); removing a standard asks first; every save repaints the page it was made on; the "still on the default playbook" card is one line with Compare them (the comparison in a window). Requests: the team's views and chips, the asker's own requests with no team filters, and the three rulings (taking over asks first; a held request reads "being worked on" on the page and on the tracker link; the helping sentence opens the Ask window).
+- Below 1040px of page each of the four draws exactly what it drew before; the phone keeps its own screens.
+- Gates: lint 0 errors, 178 warnings (unchanged). Full suite 9,403 tests, 5 failed: f277 (1) and (10), f387 (2) and (4), the four that fail on main with the same messages, and the new test file itself, renamed from f388 to f390 (f388 was already taken) after the run had started, so the run could not find it; run on its own it is 33/33. f390: 33 claims, 31 red at the parent (4f and 6 are walls). four-inspectors-verify: 30 checks, 30 pass; at the parent 25 red, the stage, the three below-the-line controls and the page-error sweep passing on both. Browser set: 152 files, 44 red on the branch; every one of the 44 run again on main's code: 43 fail the same checks word for word there, and the 44th, clause-editor-verify, missed one caret check (33h) under the full run's load and is 290/290 on both sides run alone. four-inspectors-verify, payment-chain-verify and standards-page-verify are green in the set. The colour census's output is byte-identical to main's. Node checks re-pointed in place: f255 (1)(2) — (2) reversed, "Nobody owns it" is our side only — f259 (5), f262 (8); f148 gained five words that read the same in both languages. obligations-tab-, amount-and-window-, payment-chain- and standards-page-verify now stage the old shape with insForce(false).
+
+Deliberately left alone (said to the owner)
+- The standards check still asks an NDA and a lease about payment terms, and the data-protection standard keeps its name; the owner said not to change either in this run.
+- Mark done stays on an obligation of theirs (beside Chase) and on a step waiting on an earlier one, as today's page offers it; the drawing showed only Chase there.
+
+Noticed, not fixed
+- Our standards below the width line: the classic clause row's Remove still takes the standard off at once, without asking; the new list's Remove asks.
+- HaTi's rule-based standards check (used when no Copilot key is set) could not read a payment period from most of the sample contracts on this run's stage.
+- obligations-tab-verify fails its band-heading check and amount-and-window-verify stops on "sel.options is not iterable", on main as on the branch.
+- keeps-your-place-verify stops at the Templates section on the overview wall that was deleted on 19 Sep (#tpl-ov-cards), so its later checks never run; same on main.
+- The server answers /favicon.ico with a 404 and index.html names no icon, so every page load logs one failed request in the browser console. Same on main.

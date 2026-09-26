@@ -55,6 +55,13 @@ const day = off => { const d = new Date(); d.setDate(d.getDate() + off);
     await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go');
     await page.waitForTimeout(3000);
+    /* THE CLASSIC SHAPE, STAGED (26 Sep 2026). This file measures the page as
+       it draws below INS_MIN_W — the full table it was written for. At this
+       window the page draws the Inspector since the owner chose it for the
+       Obligations page, its contract tab; the Inspector is measured in
+       four-inspectors-verify. insForce is the page's own stage door, never
+       stored. */
+    await page.evaluate(() => { if (typeof insForce === 'function') insForce(false); });
 
     /* The shape the whole feature was drawn for. Persisted through the real
        save, because obligations set only in memory are discarded by

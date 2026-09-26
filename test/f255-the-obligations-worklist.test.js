@@ -85,7 +85,14 @@ describe('f255 (1) — a table of obligations, counting nothing of its own', () 
     /* allObligations for the book, obState for overdue, obligationBand for the
        pile, toggleObligation for the act. A new copy of any of them is how two
        screens come to disagree about one commitment. */
-    const fn = OB_CODE.match(/function obwRows\(f\)\{[\s\S]*?\n\}/)[0];
+    /* ---- RE-POINTED IN PLACE 26 Sep 2026 (the Inspector on this page) ----
+       The population moved out of obwRows into obwBook, and the filters into
+       obwPass, so the list, each view's count and the head line ask ONE
+       population once per paint rather than walking the book once per view.
+       The claim is unchanged: the three functions together are "the page's
+       reading", and every name below must still be asked there. */
+    const fn = ['obwBook()', 'obwPass(o, f)', 'obwRows(f)']
+      .map(sig => OB_CODE.match(new RegExp('function ' + sig.replace(/[()]/g, '\\$&') + '\\{[\\s\\S]*?\\n\\}'))[0]).join('\n');
     /* ---- RE-POINTED IN PLACE 31 Aug 2026 (L-3) ---- The claim is unchanged and
        is STRONGER: obligationBand takes the CONTRACT now, so this page reads the
        payment chain through the same function the contract's own tab does. It
@@ -137,8 +144,16 @@ describe('f255 (2) — every filter narrows the one population', () => {
     assert.equal(rowsWith(win, { state: 'all' }).length, 5);
     assert.equal(rowsWith(win, { side: 'theirs' }).length, 1);
     assert.equal(rowsWith(win, { whose: 'mine' }).length, 2, 'both of Wanjiku’s');
-    assert.equal(rowsWith(win, { whose: 'none' }).length, 2,
-      'the theirs one and the one named after nobody — neither will be reminded');
+    /* ---- REVERSED IN PLACE 26 Sep 2026 (the Inspector's own chip, "Nobody
+       owns it") ---- It counted the theirs one too, because nothing on our side
+       is reminded about it. But the chip names OWNERSHIP, and an obligation of
+       theirs has an owner — the other side, named in the row's own Whose
+       cell — so counting it under "Nobody owns it" filled the cut with rows
+       nobody here could give an owner to. What it is for is the ONE named
+       after nobody, and that is still here. */
+    assert.equal(rowsWith(win, { whose: 'none' }).length, 1,
+      'the one named after nobody — the theirs one has an owner, the other side');
+    assert.ok(rowsWith(win, { whose: 'none' }).every(x => x.id === 'b2'), 'and it is that one');
   });
 
   test('the value stream narrows it too', () => {

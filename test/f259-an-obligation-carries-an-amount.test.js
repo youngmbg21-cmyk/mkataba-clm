@@ -152,7 +152,14 @@ describe('f259 (5) — the totals ride what is already on the screen', () => {
     /* Two rows on that page can be in two currencies, so a bare sum would add
        shillings to euros. A silent trim on a money headline is the fault the
        insights panels were rebuilt to stop. */
-    const home = OB_CODE.slice(OB_CODE.indexOf('const homeSum = list =>'), OB_CODE.indexOf('const banded ='));
+    /* ---- RE-POINTED IN PLACE 26 Sep 2026 (the Inspector on the Obligations
+       page) ---- The sum was an arrow written inside renderObligationsList;
+       it is obwHomeSum now, because the classic page, the Inspector's group
+       headings and its head line all add the same list up and three copies of
+       this arithmetic is how two of them come to disagree. The claim is the
+       same claim, asked of the one function. */
+    const home = OB_CODE.slice(OB_CODE.indexOf('function obwHomeSum('), OB_CODE.indexOf('function obMoneyWords('));
+    assert.ok(home.length > 40, 'the one cross-contract sum was found');
     assert.match(home, /fxHome\(\{ \.\.\.o\._c, value: n \}\)/);
     assert.match(home, /if\(h && h\.missing\)\{ missing\[h\.code \|\| '\?'\] =/);
     assert.match(OB_CODE, /ob_total_left_out/, 'and the foot says so');

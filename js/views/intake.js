@@ -24,6 +24,13 @@
 
 const INTAKE_STATUS = {
   open:      { get label(){ return i18t('ik_st_open'); },      tone:'amber' },
+  /* ---- SOMEBODY HOLDS IT: "BEING WORKED ON", NEVER "WAITING" (Young ruled
+     26 Sep 2026, the second of the three rulings) ----
+     Not a status anybody sets: an OPEN request somebody has picked up is
+     read as held (intakeStatusKey). The stored status stays `open`, so no
+     mail is sent by picking it up — the person who asked is told when it is
+     drafted or declined, which is what every screen promises them. */
+  held:      { get label(){ return i18t('ik_st_held'); },      tone:'steel' },
   accepted:  { get label(){ return i18t('ik_st_accepted'); },  tone:'steel' },
   done:      { get label(){ return i18t('ik_st_done'); },      tone:'green' },
   declined:  { get label(){ return i18t('ik_st_declined'); },  tone:'ruby'  },
@@ -267,6 +274,13 @@ function ikChip(status){
   const s=INTAKE_STATUS[status]||INTAKE_STATUS.open;
   return `<span class="pill-x" style="background:var(--st-${s.tone}-bg);color:var(--st-${s.tone}-fg)">${esc(s.label)}</span>`;
 }
+/* THE ONE READING OF WHICH WORD A REQUEST WEARS: its stored status, except
+   that an open request somebody is holding is being worked on. The tracker
+   page on the server asks the same question of the same two columns. */
+function intakeStatusKey(r){
+  if(r && r.status==='open' && r.assignee && r.assignee.id) return 'held';
+  return (r && r.status) || 'open';
+}
 function ikRowHtml(r, opts={}){
   const when=(()=>{ try{ return new Date(r.createdAt).toLocaleDateString(langLocale(),{day:'numeric',month:'short'}); }catch(_){ return ''; } })();
   const may=(typeof canEdit==='function'&&canEdit());
@@ -279,7 +293,7 @@ function ikRowHtml(r, opts={}){
      colleagues, because holding a request is something you do, not something
      you assign to somebody else. */
   if(may&&IK_LIVE.includes(r.status)) acts.push(`<button class="ui-btn ui-btn-sm" data-ik-pick="${esc(r.id)}">${
-    esc(r.assignee&&me&&r.assignee.id===me.id?i18t('ik_act_drop'):i18t('ik_act_pick'))}</button>`);
+    esc(intakePickLabel(r))}</button>`);
   if(may&&IK_LIVE.includes(r.status)) acts.push(`<button class="ui-btn ui-btn-sm" data-ik-promise="${esc(r.id)}">${
     esc(r.promisedAt?i18t('ik_act_repromise'):i18t('ik_act_promise'))}</button>`);
   if(may&&r.status==='open') acts.push(`<button class="ui-btn ui-btn-sm" data-ik-decline="${esc(r.id)}">${i18t('ik_act_decline')}</button>`);
@@ -290,7 +304,7 @@ function ikRowHtml(r, opts={}){
       <div style="display:flex;align-items:baseline;gap:9px;flex-wrap:wrap">
         <span style="font-family:var(--font-mono);font-size:var(--t-label);color:var(--color-neutral-500)">${esc(r.id)}</span>
         <span style="font-size:var(--t-card);font-weight:var(--w-strong);flex:1;min-width:0">${esc(r.title)}</span>
-        ${ikChip(r.status)}
+        ${ikChip(intakeStatusKey(r))}
       </div>
       <p style="margin:0;font-size:var(--t-meta);line-height:1.55;color:var(--color-neutral-700);white-space:pre-wrap">${esc(r.need)}</p>
       <div style="font-size:var(--t-label);color:var(--color-neutral-600)">
@@ -352,6 +366,11 @@ function openIntakeForm(pre){
   const LBL=window.HATI_LBL;
   openModal(`<div style="padding:24px">
     <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;margin:0 0 var(--s-1)">${i18t('ik_ask_title')}</h3>
+    ${''/* THE HELPING SENTENCE LIVES WHERE THE ASKING HAPPENS (Young ruled
+          26 Sep 2026, the third of the three rulings). It sat on the page,
+          above a list, where the person it was written for had not yet
+          pressed anything; it is read now at the one moment it helps. */}
+    <p id="ik-lead" style="margin:0 0 14px;font-size:var(--t-body);color:var(--color-neutral-600);line-height:1.5">${esc(i18t('ik_lead_asker'))}</p>
     <label style="display:block;margin-bottom:10px"><span style="${LBL}">${i18t('ik_f_title')}</span>
       <input id="ik-title" value="${esc(String((pre&&pre.title)||''))}" style="${FLD}" placeholder="${esc(i18t('ik_f_title_ph'))}" maxlength="200"/></label>
     <label style="display:block;margin-bottom:10px"><span style="${LBL}">${i18t('ik_f_need')}</span>
@@ -606,6 +625,14 @@ async function intakeSetStatus(id,status,opts={}){
 function renderIntake(){
   const host=document.getElementById('content'); if(!host) return;
   const may=(typeof canEdit==='function'&&canEdit());
+  /* THE INSPECTOR WHERE THE WIDTH HOLDS IT (26 Sep 2026). Below INS_MIN_W
+     the page below is drawn exactly as it was. */
+  if(typeof window.insFits==='function'&&insFits()&&typeof window.insPaintPanel==='function'){
+    renderIntakeInspector(host);
+    ikAfterRender(may);
+    return;
+  }
+  _ikHead={ facts:'', acts:'' }; ikPaintHead();
   const mine=intakeMine(), queue=intakeQueue();
   /* ONE SHAPE FOR "NOTHING HERE" (25 Aug 2026) — it was a bare paragraph, one
      of seven different treatments of the same state across the product.
@@ -621,10 +648,12 @@ function renderIntake(){
            flush against the sidebar. 16px 18px 28px is this product's own page
            measure — the same one Templates, Reports and the template library
            use — rather than a number picked for this screen. */}
-    <div class="view-enter" style="padding:var(--page-pad);display:flex;flex-direction:column;gap:22px;max-width:894px">
+    <div class="view-enter" style="padding:var(--page-pad);display:flex;flex-direction:column;gap:22px;max-width:894px" data-ins-page="intake" data-ins="0">
       <section style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap">
         <div style="flex:1;min-width:220px">
-          <p style="font-size:var(--t-body);color:var(--color-neutral-600);line-height:1.6;margin:0">${esc(may?i18t('ik_lead_editor'):i18t('ik_lead_asker'))}</p>
+          ${''/* The asker's helping sentence moved into the Ask window (Young
+                ruled 26 Sep 2026); the editor's line about the queue stays. */}
+          ${may?`<p style="font-size:var(--t-body);color:var(--color-neutral-600);line-height:1.6;margin:0">${esc(i18t('ik_lead_editor'))}</p>`:''}
         </div>
         <button id="ik-new" class="ui-btn ui-btn-primary" style="flex:none">${i18t('ik_ask_btn')}</button>
       </section>
@@ -656,6 +685,11 @@ function renderIntake(){
   host.querySelectorAll('[data-ik-pick]').forEach(b=>b.addEventListener('click',()=>intakePick(b.getAttribute('data-ik-pick'))));
   host.querySelectorAll('[data-ik-promise]').forEach(b=>b.addEventListener('click',()=>intakePromiseAsk(b.getAttribute('data-ik-promise'))));
   host.querySelectorAll('[data-ik-track]').forEach(b=>b.addEventListener('click',()=>intakeTrackCopy(b.getAttribute('data-ik-track'))));
+  ikAfterRender(may);
+}
+/* What every paint of this page does once its markup is down, in either
+   shape: say where the reader is, and load or run what has not happened. */
+function ikAfterRender(may){
   if(typeof setActiveNav==='function') setActiveNav('intake');
   /* The list is fetched once per sitting and repainted here when it lands —
      the same shape the Advice Desk uses, and the reason the empty state is a
@@ -666,6 +700,381 @@ function renderIntake(){
      anything fired, and answers 0 the rest of the time, which is every time
      for a workspace that has written no lanes. */
   else if(may) intakeRunLanes().then(n=>{ if(n && state.view==='intake') renderIntake(); });
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   THE INSPECTOR ON THE REQUESTS PAGE (Young chose it by name, 26 Sep 2026,
+   and ruled three things with it: a request a colleague holds is TAKEN OVER
+   and that asks first; a held request reads "being worked on"; the helping
+   sentence moves into the Ask window)
+   ════════════════════════════════════════════════════════════════════════
+   The page used a third of the screen: a column of cards 894px wide. It is
+   the list and the panel now, full width, from two chairs — the team that
+   drafts (every request in its streams, finished ones included, with who
+   holds it, the road and the date promised) and the colleague who asked (only
+   their own, and what happens next). EVERY VERB IS THE ONE IT ALWAYS WAS:
+   Draft it (intakeDraft), Pick it up / Put it down / Take it over
+   (intakePick), Promise a date (intakePromiseAsk), Decline and Withdraw
+   (intakeSetStatus), Copy the tracker link (intakeTrackCopy). NOTHING HERE
+   CALLS A MODEL: looking at a request costs nothing. */
+const IK_V_TEAM = [['open','ik_v_open'],['mine','ik_v_mine'],['fin','ik_v_fin'],['all','ik_v_all']];
+const IK_V_ASKER = [['open','ik_v_open'],['fin','ik_v_fin_asker'],['all','ik_v_all']];
+const IK_DEF = { view:'open', who:'all', road:'all', folder:'all' };
+const IK_CHIPS = ['who', 'road', 'folder'];
+let _ikF = null;
+function ikFilters(){ if(!_ikF) _ikF={ ...IK_DEF }; return _ikF; }
+let _ikHead = { facts:'', acts:'' };
+function ikPaintHead(){
+  if(typeof document==='undefined') return;
+  const f=document.getElementById('page-head-facts'); if(f) f.innerHTML=_ikHead.facts;
+  const a=document.getElementById('page-head-acts'); if(a){ a.innerHTML=_ikHead.acts;
+    a.querySelector('#ik-new')?.addEventListener('click',()=>openIntakeForm()); }
+}
+const _ikMe = () => { try{ return (typeof currentUser==='function')?currentUser():null; }catch(_){ return null; } };
+const ikIsMine = r => { const me=_ikMe(); return !!(me&&r&&r.by&&r.by.id===me.id); };
+const ikHeldByMe = r => { const me=_ikMe(); return !!(me&&r&&r.assignee&&r.assignee.id===me.id); };
+/* A DAY AS A READER SAYS IT, in their own language. */
+function ikDay(iso, o){
+  const s=String(iso||''); if(!s) return '';
+  const d=new Date(/^\d{4}-\d{2}-\d{2}$/.test(s)?s+'T00:00:00':s);
+  if(isNaN(d.getTime())) return '';
+  const opt=Object.assign({ day:'numeric', month:'short' }, (o&&o.weekday)?{ weekday:'short' }:{},
+    ((o&&o.long)||d.getFullYear()!==new Date().getFullYear())?{ year:'numeric' }:{});
+  try{ return d.toLocaleDateString(langLocale(), opt); }catch(_){ return s.slice(0,10); }
+}
+/* How long, in the largest unit that is honest: minutes, hours, days. */
+function ikTookWords(min){
+  const m=Math.max(0,Number(min)||0);
+  if(m<60) return i18tn('ik_t_min',m,{n:m});
+  if(m<20*60){ const h=Math.round(m/60); return i18tn('ik_t_hour',h,{n:h}); }
+  const d=Math.max(1,Math.round(m/1440)); return i18tn('ik_t_day',d,{n:d});
+}
+function ikAgeWords(r){
+  const t=Date.parse(String((r&&r.createdAt)||''));
+  if(!isFinite(t)) return '';
+  const days=Math.max(0,Math.floor((Date.now()-t)/86400000));
+  if(days===0) return i18t('ik_age_today');
+  if(days===1) return i18t('ik_age_yesterday');
+  return i18tn('ik_age_days',days,{n:days});
+}
+/* ---- WHICH PILE A REQUEST SITS IN — one reading for the groups, the head's
+   counts, the status line and the views ----
+   Past its promise leads (a date somebody gave is late), then nobody holds
+   it, then being worked on, then finished. The team's finished pile is THIS
+   MONTH's (the page is a worklist, and the month is what the median above it
+   is measured over); an older one is its own pile, reached through All. */
+function intakeFinishedThisMonth(r){
+  const at=intakeStoppedAt(r); if(!at) return false;
+  const d=new Date(at); if(isNaN(d.getTime())) return false;
+  const n=new Date(); return d.getFullYear()===n.getFullYear()&&d.getMonth()===n.getMonth();
+}
+function intakeStage(r, asker){
+  if(IK_STOPPED.includes(r&&r.status)) return (asker||intakeFinishedThisMonth(r))?'fin':'old';
+  const p=intakePromise(r);
+  if(p&&p.k==='over') return 'over';
+  return intakeStatusKey(r)==='held'||(r&&r.status==='accepted')?'held':'nobody';
+}
+const IK_GROUPS = [
+  ['over',  'ik_g_over',   'ik_g_over',          'ruby'],
+  ['nobody','ik_g_nobody', 'ik_g_nobody_asker',  'amber'],
+  ['held',  'ik_g_held',   'ik_g_held',          'steel'],
+  ['fin',   'ik_g_fin',    'ik_g_fin_asker',     'green'],
+  ['old',   'ik_g_old',    'ik_g_old',           'gray'],
+];
+function ikPassView(r, v, asker){
+  if(v==='open') return !IK_STOPPED.includes(r.status);
+  if(v==='mine') return ikIsMine(r);
+  if(v==='fin') return IK_STOPPED.includes(r.status)&&(asker||intakeFinishedThisMonth(r));
+  return true;
+}
+function ikPassChips(r, f){
+  if(f.who==='me'&&!ikHeldByMe(r)) return false;
+  if(f.who==='nobody'&&((r.assignee&&r.assignee.id)||IK_STOPPED.includes(r.status))) return false;
+  if(f.who==='other'&&!(r.assignee&&r.assignee.id&&!ikHeldByMe(r))) return false;
+  if(f.road!=='all'&&intakeRoad(r).k!==f.road) return false;
+  if(f.folder!=='all'&&String(r.folder||'')!==String(f.folder)) return false;
+  return true;
+}
+/* THE ORDER INSIDE A PILE: the oldest ask first where nobody holds it, the
+   nearest promise first where somebody does, the latest finish first. */
+function ikSort(a, b){
+  const ga=intakeStage(a), gb=intakeStage(b);
+  if(ga==='nobody'&&gb==='nobody') return String(a.createdAt||'').localeCompare(String(b.createdAt||''));
+  if((ga==='fin'||ga==='old')&&(gb==='fin'||gb==='old')) return String(intakeStoppedAt(b)||'').localeCompare(String(intakeStoppedAt(a)||''));
+  const pa=a.promisedAt?String(a.promisedAt):'9999', pb=b.promisedAt?String(b.promisedAt):'9999';
+  return pa.localeCompare(pb)||String(a.createdAt||'').localeCompare(String(b.createdAt||''));
+}
+/* THE PROMISED CELL: the day in bold and what it means today under it; a
+   finished request says when it finished and how long it took. */
+function intakePromiseSay(r){
+  if(IK_STOPPED.includes(r.status)){
+    const at=intakeStoppedAt(r), mins=intakeMinutes(r);
+    const t=mins==null?'':ikTookWords(mins);
+    const sub=!t?'':r.status==='declined'?i18t('ik_declined_after',{t}):r.status==='withdrawn'?i18t('ik_withdrawn_after',{t}):i18t('ik_took',{t});
+    return { day: at?ikDay(at):'—', sub, cls: r.status==='done'?'ins-ok':'ins-quiet' };
+  }
+  if(!r.promisedAt) return null;
+  const iso=String(r.promisedAt).slice(0,10);
+  const d=(typeof daysUntil==='function')?daysUntil(iso):null;
+  const day=ikDay(iso,{ weekday:true });
+  if(d==null||!isFinite(d)) return { day, sub:'', cls:'' };
+  if(d<0) return { day, sub:i18tn('ik_over_day',-d,{n:-d}), cls:'ins-late' };
+  if(d===0) return { day, sub:i18t('ik_pr_today'), cls:'ins-soon' };
+  if(d===1) return { day, sub:i18t('ik_pr_tomorrow'), cls:'ins-soon' };
+  return { day, sub:i18tn('ik_pr_in',d,{n:d}), cls: d<=3?'ins-soon':'' };
+}
+function ikInitials(name){ return String(name||'').trim().split(/\s+/).filter(Boolean).map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
+function ikWhoHtml(name, shown){
+  return `<span class="ins-who"><i class="ins-av" aria-hidden="true">${esc(ikInitials(name))}</i><span title="${esc(name)}">${esc(shown||name)}</span></span>`;
+}
+function ikWithCellHtml(r, asker){
+  if(IK_STOPPED.includes(r.status)){
+    if(r.status==='declined') return `<span class="ins-quiet">${esc(i18t('ik_st_declined'))}</span>`;
+    if(r.status==='withdrawn') return `<span class="ins-quiet">${esc(i18t('ik_st_withdrawn'))}</span>`;
+    if(r.lane) return `<span class="ins-ok">${esc(i18t('ik_with_lane'))}</span>`;
+    const n=(r.assignee&&r.assignee.name)||r.decidedBy||'';
+    return n?ikWhoHtml(n):`<span class="ins-quiet">—</span>`;
+  }
+  if(!(r.assignee&&r.assignee.id)) return `<span class="ins-nobody">${esc(i18t('ik_with_nobody'))}</span>`;
+  return ikWhoHtml(r.assignee.name||'', (!asker&&ikHeldByMe(r))?i18t('ik_with_you'):'');
+}
+function ikRoadHtml(r){
+  const road=intakeRoad(r);
+  const rd=IK_ROADS[road.k]||IK_ROADS.standard;
+  return `<span class="ins-road-${road.k}"${road.why?` title="${esc(road.why)}"`:''}>${esc(rd.label)}</span>`;
+}
+/* ---- THE PANEL: what they asked for, where it has got to, and the verbs ---- */
+function ikStatusSay(r, asker){
+  const g=intakeStage(r, asker);
+  const tone=(IK_GROUPS.find(x=>x[0]===g)||[])[3]||'gray';
+  const p=intakePromise(r);
+  if(g==='over') return { tone, html:`<span class="ins-late">${esc(i18t('ik_s_over',{when:p?p.text:''}))}</span> <span class="x">· ${esc(ikHeldByMe(r)&&!asker?i18t('ik_s_held_you'):i18t('ik_s_with',{who:(r.assignee&&r.assignee.name)||''}))}</span>` };
+  if(g==='nobody') return { tone, html:`${esc(i18t(asker?'ik_s_nobody_asker':'ik_s_nobody'))} <span class="x">· ${esc(i18t('ik_s_asked',{age:ikAgeWords(r)}))}</span>` };
+  if(g==='held') return { tone, html:`${esc(ikHeldByMe(r)&&!asker?i18t('ik_s_you_work'):i18t('ik_s_they_work',{who:(r.assignee&&r.assignee.name)||''}))}${
+    r.promisedAt?` <span class="x">· ${esc(i18t('ik_s_promised',{day:ikDay(String(r.promisedAt).slice(0,10),{weekday:true})}))}</span>`:''}` };
+  const at=intakeStoppedAt(r), mins=intakeMinutes(r), t=mins==null?'':ikTookWords(mins);
+  if(r.status==='declined') return { tone:'gray', html:`${esc(i18t('ik_s_declined',{date:ikDay(at)}))}${t?` <span class="x">· ${esc(i18t('ik_s_after',{t}))}</span>`:''}` };
+  if(r.status==='withdrawn') return { tone:'gray', html:esc(i18t('ik_s_withdrawn',{date:ikDay(at)})) };
+  return { tone:'green', html:`<span class="ins-ok">${esc(r.contractId?i18t('ik_s_drafted',{id:r.contractId}):i18t('ik_st_done'))}</span>${
+    (r.lane||t)?` <span class="x">· ${esc([r.lane?i18t('ik_s_lane'):'', t?i18t('ik_s_took',{t}):''].filter(Boolean).join(' · '))}</span>`:''}` };
+}
+function ikActs(r, asker){
+  const may=(typeof canEdit==='function'&&canEdit());
+  const live=IK_LIVE.includes(r.status);
+  const acts=[], menu=[];
+  const track=!!intakeTrackUrl(r);
+  const openAct=r.contractId?{ k:'open', kind:'accent', label:i18t('ik_act_open_mk',{id:r.contractId}), run:()=>openWorkspace(r.contractId) }:null;
+  if(asker){
+    if(live&&ikIsMine(r)) acts.push({ k:'withdraw', label:i18t('ik_act_withdraw'), title:i18t('ik_withdraw_msg'), run:()=>intakeSetStatus(r.id,'withdrawn') });
+    if(openAct&&r.status==='done') acts.unshift(openAct);
+    if(track) acts.push({ k:'track', label:i18t('ik_act_copy_track'), icon:'link', title:i18t('ik_track_title'), run:()=>intakeTrackCopy(r.id) });
+    return { acts, menu:'' };
+  }
+  if(may&&r.status==='open') acts.push({ k:'draft', kind:'accent', label:i18t('ik_act_draft'), icon:'pencil', attrs:`data-ik-draft="${esc(r.id)}"`, run:()=>intakeDraft(r.id) });
+  if(may&&live) acts.push({ k:'pick', label:intakePickLabel(r), run:()=>intakePick(r.id) });
+  if(may&&live) acts.push({ k:'promise', label:r.promisedAt?i18t('ik_act_repromise'):i18t('ik_act_promise'), title:i18t('ik_promise_msg'), run:()=>intakePromiseAsk(r.id) });
+  if(openAct&&r.status==='done') acts.unshift(openAct);
+  if(may&&r.status==='open') menu.push(insMenuItemHtml({ k:'decline', label:i18t('ik_act_decline'), ruby:true, says:i18t('ik_decline_msg') }));
+  if(live&&(ikIsMine(r)||(typeof isAdmin==='function'&&isAdmin()))) menu.push(insMenuItemHtml({ k:'withdraw', label:i18t('ik_act_withdraw'), says:i18t('ik_withdraw_msg') }));
+  if(track) menu.push(insMenuItemHtml({ k:'track', label:i18t('ik_act_copy_track'), icon:'link', says:i18t('ik_track_title') }));
+  return { acts, menu:menu.join('') };
+}
+function ikBookHtml(r){
+  const cp=String(r.counterparty||'').trim();
+  if(!cp) return '';
+  const n=cp.toLowerCase();
+  const cs=((window.state&&state.contracts)||[]).filter(c=>c&&String(c.counterparty||'').trim().toLowerCase()===n);
+  if(!cs.length) return insSecHtml(cp, '', `<p class="ins-p">${esc(i18t('ik_new_cp',{cp}))}</p>`, 'ik-book');
+  const shown=cs.slice(0,6);
+  const kind=c=>{ try{ return (typeof cKind==='function')?cKind(c):''; }catch(_){ return ''; } };
+  const st=c=>{ try{ return (typeof contractStatusMeta==='function'&&contractStatusMeta(c)&&contractStatusMeta(c).label)||c.status||''; }catch(_){ return c.status||''; } };
+  return insSecHtml(i18t('ik_sec_book',{cp}), cs.length, `<ul class="ins-gl">${shown.map(c=>`<li><button type="button" class="ins-gi" data-ik-cgo="${esc(c.id)}"><b>${
+    esc((window.contractRef?contractRef(c):c.id)+' · '+(c.name||''))}</b><span>${esc(kind(c))}</span><span class="r">${esc(st(c))}</span></button></li>`).join('')}</ul>${
+    cs.length>shown.length?`<p class="ins-note" style="margin-top:6px">${esc(i18tn('ik_book_more',cs.length-shown.length,{n:cs.length-shown.length}))}</p>`:''}`, 'ik-book');
+}
+function ikHistoryHtml(r, asker){
+  const h=[];
+  const mine=ikIsMine(r);
+  h.push({ t: mine?i18t('ik_h_asked_you'):i18t('ik_h_asked',{who:(r.by&&r.by.name)||''}), at:r.createdAt });
+  const at=intakeStoppedAt(r);
+  const by=String(r.decidedBy||'').trim();
+  if(r.status==='done') h.push({ t: r.lane?i18t('ik_h_lane',{lane:r.lane,id:r.contractId||''})
+    : by?i18t('ik_h_drafted_by',{id:r.contractId||'',who:by}):i18t('ik_h_drafted',{id:r.contractId||''}), at });
+  if(r.status==='declined') h.push({ t: by?i18t('ik_h_declined_by',{who:by}):i18t('ik_h_declined'), at });
+  if(r.status==='withdrawn') h.push({ t:i18t('ik_h_withdrawn'), at });
+  h.sort((a,b)=>String(b.at||'').localeCompare(String(a.at||'')));
+  return insSecHtml(i18t('ik_sec_history'), '', `<ul class="ins-log">${h.map(l=>`<li><span class="t">${esc(l.t)}</span><span class="w">${esc(ikDay(l.at))}</span></li>`).join('')}</ul>`, 'ik-hist');
+}
+/* "Sent" must mean sent: the page promises an email only where one can go. */
+function ikMails(){
+  return !!(typeof API_MODE==='function'&&API_MODE()
+    && !(typeof emailOff==='function'&&emailOff())
+    && !(typeof emailFailing==='function'&&emailFailing()));
+}
+function ikPanelOpts(r, asker){
+  const first=String((r.by&&r.by.name)||'').trim().split(/\s+/)[0]||'';
+  const mine=ikIsMine(r);
+  const st=ikStatusSay(r, asker);
+  const stream=(r.folder&&window.FOLDERS&&FOLDERS[r.folder])?FOLDERS[r.folder].name:'';
+  const pr=intakePromiseSay(r);
+  const withV=IK_STOPPED.includes(r.status)
+    ? esc((r.assignee&&r.assignee.name)||'')
+    : (r.assignee&&r.assignee.id)?esc(r.assignee.name||''):`<span class="ins-nobody">${esc(i18t('ik_with_nobody'))}</span>`;
+  const road=intakeRoad(r);
+  const rd=IK_ROADS[road.k]||IK_ROADS.standard;
+  const stopped=IK_STOPPED.includes(r.status);
+  const facts=asker
+    ? [ { k:'with', label:i18t('ik_f_with'), v:withV },
+        { k:'promised', label:i18t('ik_f_promised'), v:r.promisedAt?esc(ikDay(String(r.promisedAt).slice(0,10),{long:true})):'' },
+        { k:'cp', label:i18t('ik_f_cp'), v:esc(r.counterparty||'') },
+        { k:'stream', label:i18t('ins_f_stream'), v:esc(stream) } ]
+    : [ { k:'road', label:i18t('ik_f_road'), v:`<span class="ins-road-${road.k}">${esc(rd.label)}</span>` },
+        { k:'with', label:i18t('ik_f_with'), v:withV },
+        { k:'promised', label:i18t('ik_f_promised'), v:r.promisedAt?esc(ikDay(String(r.promisedAt).slice(0,10),{long:true})):'' },
+        stopped ? { k:'took', label:i18t('ik_f_took'), v:(pr&&pr.sub)?esc(ikTookWords(intakeMinutes(r)||0)):'' }
+                : { k:'asked', label:i18t('ik_f_asked'), v:esc(ikAgeWords(r)) },
+        { k:'cp', label:i18t('ik_f_cp'), v:esc(r.counterparty||'') },
+        { k:'stream', label:i18t('ins_f_stream'), v:esc(stream) } ];
+  let body=insKvHtml(facts);
+  body+=insSecHtml((asker||mine)?i18t('ik_sec_need_you'):i18t('ik_sec_need',{first}), '', `<p class="ins-p" style="white-space:pre-wrap">${esc(r.need||'')}</p>`, 'ik-need');
+  if(r.status==='declined') body+=insSecHtml(i18t('ik_sec_declined'), '', r.note?`<blockquote class="ins-q">${esc(r.note)}</blockquote>`:`<p class="ins-note">${esc(i18t('ik_no_reason'))}</p>`, 'ik-why');
+  if(!asker){
+    const says=road.k==='lane'?(road.why?road.why+'.':''):i18t('ik_road_'+road.k+'_says');
+    body+=insSecHtml(i18t('ik_sec_road'), '', `<p class="ins-p"><span class="ins-road-${road.k}">${esc(rd.label)}.</span> ${esc(says)}</p>${
+      road.k!=='lane'&&road.why?`<p class="ins-note" style="margin-top:6px">${esc(i18t('ik_road_read',{why:road.why}))}</p>`:''}`, 'ik-road');
+    body+=ikBookHtml(r);
+    if(!mine&&!stopped){
+      const url=intakeTrackUrl(r);
+      body+=insSecHtml(i18t('ik_sec_inform',{first}), '', `<p class="ins-p">${esc(ikMails()?i18t('ik_inform',{first}):i18t('ik_inform_nomail',{first}))}</p>${
+        url?`<button type="button" class="ui-link" data-ik-track-sec style="margin-top:6px">${typeof icon==='function'?icon('link','w-3.5 h-3.5'):''}${esc(i18t('ik_act_copy_track'))}</button>`:''}`, 'ik-inform');
+    }
+  } else if(!stopped){
+    const holder=String((r.assignee&&r.assignee.name)||'').trim(), hf=holder.split(/\s+/)[0]||holder;
+    const p=intakePromise(r);
+    const day=r.promisedAt?ikDay(String(r.promisedAt).slice(0,10),{weekday:true}):'';
+    /* WHOLE SENTENCES, one per case — a sentence glued from halves does not
+       survive translation. */
+    const lead=!holder ? i18t('ik_next_nobody')
+      : !day ? i18t('ik_next_held',{first:hf})
+      : (p&&p.k==='over') ? i18t('ik_next_over',{first:hf,day})
+      : i18t('ik_next_promised',{first:hf,day});
+    body+=insSecHtml(i18t('ik_sec_next'), '', `<p class="ins-p">${esc(lead)}${ikMails()?' '+esc(i18t('ik_next_mail')):''}</p>`, 'ik-next');
+  }
+  body+=ikHistoryHtml(r, asker);
+  const { acts, menu }=ikActs(r, asker);
+  const eyebrow=`<span class="ins-ref">${esc(r.id)}</span>${stream?' · '+esc(stream):''}`;
+  const sub=(asker||mine)?esc(i18t('ik_sub_you',{date:ikDay(r.createdAt)})):esc(i18t('ik_sub_by',{name:(r.by&&r.by.name)||'',date:ikDay(r.createdAt)}));
+  return {
+    item:{ id:r.id },
+    head:{ eyebrow, title:r.title||'', sub, tone:st.tone, status:st.html, acts, menuHtml:menu, moreAria:i18t('reg_more_actions') },
+    acts, body,
+    onMenu:act=>{
+      if(act==='decline') intakeSetStatus(r.id,'declined');
+      else if(act==='withdraw') intakeSetStatus(r.id,'withdrawn');
+      else if(act==='track') intakeTrackCopy(r.id);
+    },
+  };
+}
+function renderIntakeInspector(host){
+  const may=(typeof canEdit==='function'&&canEdit());
+  const asker=!may;
+  const f=ikFilters();
+  const V=asker?IK_V_ASKER:IK_V_TEAM;
+  if(!V.some(v=>v[0]===f.view)) f.view='open';
+  const all=asker?intakeMine():((_intake&&_intake.list)||[]);
+  const base=asker?all:all.filter(r=>ikPassChips(r,f));
+  const rows=base.filter(r=>ikPassView(r,f.view,asker)).sort(ikSort);
+  const narrowing=asker?[]:IK_CHIPS.filter(k=>String(f[k])!==String(IK_DEF[k]));
+  /* THE HEAD: what the queue looks like right now, and the one filled act. */
+  const live=all.filter(r=>!IK_STOPPED.includes(r.status));
+  if(asker){
+    const n=live.length;
+    _ikHead.facts=esc(n?i18tn('ik_head_asker',n,{n}):i18t('ik_head_asker_none'))+(ikMails()?' · '+esc(i18t('ik_head_asker_mail')):'');
+  } else {
+    const nob=live.filter(r=>intakeStage(r)==='nobody').length, over=live.filter(r=>intakeStage(r)==='over').length;
+    const med=intakeMedianDays(all);
+    _ikHead.facts=[ esc(i18tn('ik_head_open',live.length,{n:live.length})),
+      nob?esc(i18tn('ik_head_nobody',nob,{n:nob})):'',
+      over?`<span class="ins-late">${esc(i18tn('ik_head_over',over,{n:over}))}</span>`:'',
+      med!=null?esc(i18t('ik_median',{n:med})):'' ].filter(Boolean).join(' · ');
+  }
+  _ikHead.acts=`<button type="button" id="ik-new" class="ui-btn ui-btn-primary">${typeof icon==='function'?icon('plus','w-3.5 h-3.5'):''}${esc(i18t('ik_ask_btn'))}</button>`;
+  const views=insViewTabsHtml({ attr:'data-ik-view', cur:f.view, label:i18t('ik_views_label'),
+    views:V.map(([k,key])=>({ k, label:i18t(key), n:base.filter(r=>ikPassView(r,k,asker)).length })) });
+  const folders=(typeof visibleFolders==='function')?visibleFolders():Object.values(window.FOLDERS||{});
+  const chips=asker?'':[
+    insChipHtml({ attr:'data-ik-f', key:'who', label:i18t('ik_c_who'), cur:f.who, def:IK_DEF.who,
+      opts:[['all',i18t('ik_c_who_all')],['me',i18t('ik_c_who_me')],['nobody',i18t('ik_c_who_nobody')],['other',i18t('ik_c_who_colleague')]] }),
+    insChipHtml({ attr:'data-ik-f', key:'road', label:i18t('ik_f_road'), cur:f.road, def:IK_DEF.road,
+      opts:[['all',i18t('ik_c_road_all')],...['close','standard','routine','lane'].map(k=>[k,IK_ROADS[k].label])] }),
+    insChipHtml({ attr:'data-ik-f', key:'folder', label:i18t('ins_f_stream'), cur:f.folder, def:IK_DEF.folder,
+      opts:[['all',i18t('ob_f_folder_all')],...folders.map(x=>[x.id,x.name])] }),
+  ].join('')+(narrowing.length?`<button type="button" class="ui-link" data-ik-clear>${esc(i18tn('ob_clear_n',narrowing.length,{n:narrowing.length}))}</button>`:'');
+  const cols=asker
+    ? [{ t:i18t('ik_col_request') }, { t:i18t('ik_f_with'), w:170 }, { t:i18t('ik_f_promised'), w:140 }]
+    : [{ t:i18t('ik_col_request') }, { t:i18t('ik_f_road'), w:120 }, { t:i18t('ik_f_with'), w:156 }, { t:i18t('ik_f_promised'), w:132 }];
+  const tr=r=>{
+    const sub=asker
+      ? [r.counterparty||'', i18t('ik_row_asked',{date:ikDay(r.createdAt)})].filter(Boolean).join(' · ')
+      : [ikIsMine(r)?i18t('ik_with_you'):((r.by&&r.by.name)||''), r.counterparty||'', ikAgeWords(r)].filter(Boolean).join(' · ');
+    const pr=intakePromiseSay(r);
+    const prHtml=pr?`<span class="ins-c2"><b>${esc(pr.day)}</b><span class="${pr.cls}">${esc(pr.sub)}</span></span>`:`<span class="ins-quiet">—</span>`;
+    return `<tr data-ins-row data-ik-row="${esc(r.id)}" tabindex="-1">
+      <td><span class="ins-c2"><b title="${esc(r.title||'')}">${esc(r.title||'')}</b><span>${esc(sub)}</span></span></td>
+      ${asker?'':`<td>${ikRoadHtml(r)}</td>`}
+      <td>${ikWithCellHtml(r, asker)}</td>
+      <td>${prHtml}</td>
+    </tr>`;
+  };
+  let body='';
+  IK_GROUPS.forEach(([k,team,ask,tone])=>{
+    const g=rows.filter(r=>intakeStage(r,asker)===k);
+    if(!g.length) return;
+    body+=`<tr class="ins-grp" data-ik-grp="${k}"><td colspan="${cols.length}"><span class="ins-g"><i class="ins-dot2 is-${tone}" aria-hidden="true"></i>${esc(i18t(asker?ask:team))}<span class="n">${g.length}</span></span></td></tr>`+g.map(tr).join('');
+  });
+  if(!rows.length){
+    const msg=asker?i18t('ik_mine_empty'):narrowing.length?i18t('ik_none_match'):(f.view==='open'?i18t('ik_queue_empty'):i18t('ob_none_here'));
+    body=`<tr class="ins-empty"><td colspan="${cols.length}">${esc(msg)}${narrowing.length?`<br><button type="button" class="ui-link" data-ik-clear style="margin-top:8px">${esc(i18t('ob_clear_filters'))}</button>`:''}</td></tr>`;
+  }
+  const table=`<table class="ins-lt ik-lt"><colgroup>${cols.map(c=>`<col${c.w?` style="width:${c.w}px"`:''}>`).join('')}</colgroup><thead><tr>${
+    cols.map(c=>`<th>${esc(c.t)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
+  host.innerHTML=`<div class="view-enter ins-page ik-ins" data-ins-page="intake" data-ins="1">
+    ${views}
+    <div class="ins-body">
+      <section class="ins-card" aria-label="${esc(i18t('nav_intake'))}">
+        ${chips?`<div class="ins-bar reg-filterbar">${chips}</div>`:''}
+        <div class="ins-scroll" id="ik-scroll">${table}</div>
+        <div class="ins-foot"><span>${esc(asker?i18t('ik_foot_asker'):i18t('ik_showing',{n:rows.length,of:all.length}))}</span></div>
+      </section>
+      <aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ik_panel_label'))}"></aside>
+    </div>
+  </div>`;
+  ikPaintHead();
+  const again=()=>{ if(typeof keepScroll==='function') keepScroll(()=>renderIntake()); else renderIntake(); };
+  host.querySelectorAll('[data-ik-view]').forEach(b=>b.addEventListener('click',()=>{ f.view=b.getAttribute('data-ik-view'); again(); }));
+  host.querySelectorAll('[data-ik-f]').forEach(s=>s.addEventListener('change',()=>{ f[s.getAttribute('data-ik-f')]=s.value; again(); }));
+  host.querySelectorAll('[data-ik-clear]').forEach(b=>b.addEventListener('click',()=>{ IK_CHIPS.forEach(k=>{ f[k]=IK_DEF[k]; }); again(); }));
+  const seat=asker?'intake:asker':'intake:team';
+  const tb=host.querySelector('.ik-lt tbody');
+  const idOf=t=>t.getAttribute('data-ik-row');
+  const byId=new Map(rows.map(r=>[r.id,r]));
+  const id=insPick(seat, rows.map(r=>r.id));
+  if(tb) insMarkRow(tb,'[data-ins-row]',idOf,id);
+  const paint=k=>{
+    const r=byId.get(k);
+    if(!r){ insPaintPanel({ empty:asker?i18t('ik_panel_none_asker'):i18t('ik_panel_none') }); return; }
+    insPaintPanel(ikPanelOpts(r, asker));
+    const pan=document.getElementById('ins-panel'); if(!pan) return;
+    pan.querySelector('[data-ik-track-sec]')?.addEventListener('click',()=>intakeTrackCopy(r.id));
+    pan.querySelectorAll('[data-ik-cgo]').forEach(b=>b.addEventListener('click',()=>openWorkspace(b.getAttribute('data-ik-cgo'))));
+  };
+  paint(id);
+  /* A SECOND PRESS OPENS THE CONTRACT THE REQUEST BECAME, where it became
+     one; on anything else the verbs in the panel are the way on. */
+  if(tb) insListWire(tb,{ rowSel:'[data-ins-row]', idOf,
+    onSelect:k=>{ insSelect(seat,k); insMarkRow(tb,'[data-ins-row]',idOf,k); paint(k); },
+    onOpen:k=>{ const r=byId.get(k); if(r&&r.contractId) openWorkspace(r.contractId); } });
+  if(typeof insWatchWidth==='function') insWatchWidth();
 }
 
 /* ---- THE TWO ACTS, AND THE LINK ---- */
@@ -685,8 +1094,35 @@ async function intakePick(id){
   const r=(_intake.list||[]).find(x=>x.id===id); if(!r) return;
   const me=currentUser(); if(!me) return;
   const mine=!!(r.assignee&&r.assignee.id===me.id);
+  /* ---- A REQUEST A COLLEAGUE HOLDS IS TAKEN OVER, AND THAT ASKS FIRST
+     (Young ruled 26 Sep 2026, the first of the three rulings) ----
+     "Pick it up" on a row somebody else was holding moved it to the presser
+     in silence — the colleague found out, if at all, from the queue. It is
+     named for what it does now, and it asks. */
+  if(!mine && r.assignee && r.assignee.id) return intakeTakeOver(id);
   if(await intakePatch(id,{ status:r.status, assignee: mine?'':me.id }))
     toast(mine?i18t('ik_dropped'):i18t('ik_picked'),'ok');
+}
+/* THE WORD ON THE ONE CONTROL: pick it up, put it down, or take it over. One
+   reading, asked by the row and by the panel. */
+function intakePickLabel(r){
+  const me=(typeof currentUser==='function')?currentUser():null;
+  if(r&&r.assignee&&r.assignee.id&&me&&r.assignee.id===me.id) return i18t('ik_act_drop');
+  if(r&&r.assignee&&r.assignee.id) return i18t('ik_act_take');
+  return i18t('ik_act_pick');
+}
+async function intakeTakeOver(id){
+  const r=(_intake.list||[]).find(x=>x.id===id); if(!r) return;
+  const me=currentUser(); if(!me) return;
+  const holder=String((r.assignee&&r.assignee.name)||'').trim();
+  const first=holder.split(/\s+/)[0]||holder;
+  const ok=(typeof confirmDialog!=='function')?true:await confirmDialog({
+    title:i18t('ik_take_title',{first}),
+    message:i18t('ik_take_msg',{holder,title:r.title||''}),
+    confirmLabel:i18t('ik_act_take') });
+  if(!ok) return;
+  if(await intakePatch(id,{ status:r.status, assignee:me.id }))
+    toast(i18t('ik_taken',{first}),'ok');
 }
 /* A PROMISED DATE IS A PROMISE, so a person types it. HaTi proposes nothing
    here — not a working-day estimate, not a median, not a road-based guess —
@@ -718,5 +1154,8 @@ Object.assign(window,{INTAKE_STATUS,IK_LIVE,IK_ROADS,IK_TONE,IK_MEDIAN_MIN,IK_ST
   intakeMedianDays,intakePromise,intakePastDue,intakeTrackUrl,intakeLanes,intakeLaneFor,
   intakeRunLanes,intakeLaneSweep,intakeSweepStart,IK_SWEEP_MS,ikClockHtml,ikFactHtml,intakePick,intakePromiseAsk,intakeTrackCopy,intakePatch,
   intakeMine,intakeQueue,intakeCount,loadIntake,
+  intakeStatusKey,intakePickLabel,intakeTakeOver,intakeStage,intakeFinishedThisMonth,intakePromiseSay,
+  ikPaintHead,ikAfterRender,renderIntakeInspector,ikPanelOpts,ikActs,ikStatusSay,ikFilters,
+  IK_V_TEAM,IK_V_ASKER,IK_DEF,IK_CHIPS,IK_GROUPS,ikPassView,ikPassChips,ikSort,ikAgeWords,ikTookWords,ikDay,
   openIntakeForm,intakeAnswerLine,openIntakeTracker,intakeDraft,intakeSetStatus,renderIntake,ikRowHtml,intakeSuggestTemplate,
   _intakeState:_intake});

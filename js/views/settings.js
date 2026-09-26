@@ -4162,6 +4162,10 @@ async function precedentAdopt(key,row){
    comparison. Stored, it would open a table over somebody's standards a week
    later with nothing on screen saying why. */
 let _stdDraftOpen = false;
+/* The Inspector's offer line asks for the comparison straight away (26 Sep
+   2026): it draws it in a window of its own, so the card's own "Check them"
+   step is the press that was already made. */
+function stdDraftSetOpen(v){ _stdDraftOpen = !!v; }
 function renderStandardsDraft(){
   const host=document.getElementById('standards-draft'); if(!host) return;
   if(typeof stdDraftWorthOffering!=='function'||!stdDraftWorthOffering()){ host.innerHTML=''; return; }
@@ -4353,6 +4357,11 @@ function stdFallbackChipHtml(cl){
 }
 
 function renderClauseLibrary(){
+  /* THE INSPECTOR DRAWS THIS PAGE WHERE THE WIDTH HOLDS IT (26 Sep 2026), and
+     it has no #clause-lib: every save that ends here — the clause editor, an
+     adopted fallback, a removal — repaints THAT page instead, so a change made
+     from its panel is on screen the moment it is saved. */
+  if(typeof pbInsMounted==='function'&&pbInsMounted()){ renderPlaybookPage(); return; }
   const host=document.getElementById('clause-lib'); if(!host) return;
   const canEditLib=isAdmin()||currentUser()?.role==='legal';
   const lib=clauseLibrary();
@@ -4428,6 +4437,7 @@ function pbPosChip(pos){
 }
 const pbRangeChip = rg => `<span style="font-size:var(--t-label);font-family:var(--font-mono);border-radius:var(--radius);padding:2px 9px;background:var(--st-amber-bg);color:var(--st-amber-fg)">${PB_ESC(rg.label)} ${rg.op} ${rg.value}${rg.escalate?' ⚑':''}</span>`;
 function renderPlaybookView(){
+  if(typeof pbInsMounted==='function'&&pbInsMounted()){ renderPlaybookPage(); return; }
   const pv=document.getElementById('playbook-view'); if(!pv) return;
   const canEditPb=isAdmin()||currentUser()?.role==='legal';
   const pb=playbook();
@@ -4459,17 +4469,39 @@ function renderPlaybookView(){
     <p style="font-size:var(--t-label);color:var(--color-neutral-500);margin-top:var(--s-1)">${i18t('set_flag_legend')}${canEditPb?i18t('set_flag_legend_more'):''}</p>`;
   if(!canEditPb) return;
   pv.querySelectorAll('[data-pb-edit]').forEach(b=>b.addEventListener('click',()=>openPlaybookEditor(b.getAttribute('data-pb-edit'))));
-  pv.querySelectorAll('[data-pb-del]').forEach(b=>b.addEventListener('click',async()=>{
-    const key=b.getAttribute('data-pb-del'); const cur=playbook();
-    if(!await confirmDialog({title:i18t('set_remove_type_q',{label:cur[key]?.label||key}), message:i18t('set_remove_type_msg'), confirmLabel:i18t('set_remove_type_btn'), danger:true})) return;
-    const pb2=JSON.parse(JSON.stringify(cur)); delete pb2[key]; savePlaybook(pb2); renderPlaybookView(); toast(i18t('set_type_removed'));
-  }));
+  pv.querySelectorAll('[data-pb-del]').forEach(b=>b.addEventListener('click',()=>pbRemoveType(b.getAttribute('data-pb-del'))));
   document.getElementById('pb-add')?.addEventListener('click',()=>openPlaybookEditor(null));
-  document.getElementById('pb-reset')?.addEventListener('click',async()=>{
-    if(!await confirmDialog({title:i18t('set_reset_pb_q'), message:i18t('set_reset_pb_msg',{pack:jxPlaybookLabel()}), confirmLabel:i18t('set_reset_pb_btn'), danger:true})) return;
-    state.settings=state.settings||{}; delete state.settings.playbook; if(typeof saveSettings==='function') saveSettings();
-    renderPlaybookView(); toast(i18t('set_pb_reset_done'));
-  });
+  document.getElementById('pb-reset')?.addEventListener('click',()=>pbResetPlaybook());
+}
+/* ---- THE TWO ACTS THAT THROW A BOOK AWAY, EACH WRITTEN ONCE (26 Sep 2026) ----
+   Lifted out of the handlers above, word for word, because the Inspector's
+   panel and head offer the same two acts: a press on either shape of the page
+   is this one function, so the question they ask and what they write cannot
+   drift apart. Both ask first. */
+async function pbRemoveType(key){
+  const cur=playbook();
+  if(!key||key==='_default'||!cur[key]) return false;
+  if(!await confirmDialog({title:i18t('set_remove_type_q',{label:cur[key]?.label||key}), message:i18t('set_remove_type_msg'), confirmLabel:i18t('set_remove_type_btn'), danger:true})) return false;
+  const pb2=JSON.parse(JSON.stringify(cur)); delete pb2[key]; savePlaybook(pb2); renderPlaybookView(); toast(i18t('set_type_removed'));
+  return true;
+}
+async function pbResetPlaybook(){
+  if(!await confirmDialog({title:i18t('set_reset_pb_q'), message:i18t('set_reset_pb_msg',{pack:jxPlaybookLabel()}), confirmLabel:i18t('set_reset_pb_btn'), danger:true})) return false;
+  state.settings=state.settings||{}; delete state.settings.playbook; if(typeof saveSettings==='function') saveSettings();
+  renderPlaybookView(); toast(i18t('set_pb_reset_done'));
+  return true;
+}
+/* REMOVING A STANDARD ASKS FIRST on the Inspector's panel (Young's yes to the
+   drawing, 26 Sep 2026): it is the wording every future check measures
+   against and the wording HaTi drafts with, so a slip of the ⋯ menu must not
+   take it. The classic row's own Remove is left exactly as it was. */
+async function stdRemoveClause(i){
+  const lib=clauseLibrary(); const cl=lib[i]; if(!cl) return false;
+  if(!await confirmDialog({ title:i18t('sd_remove_q',{name:cl.name||cl.category||''}), message:i18t('sd_remove_msg'),
+    confirmLabel:i18t('sd_remove_go'), danger:true })) return false;
+  const lib2=lib.slice(); lib2.splice(i,1); saveClauseLibrary(lib2); stdSetOpenClause(null); renderClauseLibrary();
+  toast(i18t('set_t_clause_removed'),'ok');
+  return true;
 }
 /* Modal editor for one playbook entry (key='_default' edits the baseline,
    null adds a new contract type). Positions and numeric limits are edited live
@@ -4824,6 +4856,7 @@ async function loadSessions(){
    this codebase for a year. openMyAccount and openSettingsAt are the two doors
    the shell calls; SET_PANELS and the readers beside it are what the tests read. */
 Object.assign(window,{renderTeam,stRepaintPanel,renderMyAccountPage,briefCadenceOf,BRIEF_EVERY_VALUES,renderPrecedentPanel,precedentAdopt,stdOpenPreferred,renderStandardsDraft,stdOpenClauseId,stdSetOpenClause,stdStanceChipHtml,stdFallbackChipHtml,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
+  renderPlaybookView,openPlaybookEditor,pbRemoveType,pbResetPlaybook,stdRemoveClause,stdDraftSetOpen,
   renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions,
   openMyAccount,openSettingsAt,settingsGoTab,settingsTab,stLandTop,SET_PANELS,ST_TABS,SET_CLOSURES,ST_GROUPS,ST_ATTENTION_MAX,
   stDrawerOpen,stDrawerClose,stDrawerRefuse,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,

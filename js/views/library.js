@@ -2762,6 +2762,11 @@ function pbPageTab(){ return PB_PAGE_TABS.includes(_pbPageTab)?_pbPageTab:'claus
 function renderPlaybookPage(){
   const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius-lg)';
   const canEditLib=isAdmin()||currentUser()?.role==='legal';
+  /* THE INSPECTOR WHERE THE WIDTH HOLDS IT (Young ruled 26 Sep 2026: all three
+     tabs "to have inspector design"). Below INS_MIN_W the page is drawn
+     exactly as it was; both shapes share the ONE tab row and its ONE handler
+     at the foot of this function. */
+  const INS=(typeof insFits==='function'&&insFits()&&typeof insPaintPanel==='function');
 
   // portfolio deviations (from the existing playbook review results)
   const devRows=state.contracts
@@ -2779,15 +2784,24 @@ function renderPlaybookPage(){
     :`<p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0;line-height:1.6">${i18t('lib_no_deviations')} <b>${i18t('lib_copilot_review')}</b> ${i18t('lib_from_workspace')}</p>`;
 
   const tab=pbPageTab();
+  /* In the Inspector's shape each tab carries its count, the Templates page's
+     own `.st-tab-n` (26 Sep 2026). */
+  const sd=INS?sdData():null;
   /* PINNED, LIKE TEAM & SETTINGS (Young ruled 18 Sep 2026: "Similar to the team
      and settings page, the page should scroll behind the tab line"). The class
      is the opt-in and the rule is in index.html; the Templates page's own
      .st-tabs row is deliberately NOT opted in — it was not asked for. */
   const tabRow=`<div class="st-tabs st-tabs-pin" role="tablist">${PB_PAGE_TABS.map(k=>
-    `<button class="st-tab${k===tab?' on':''}" data-pb-tab="${k}" role="tab" aria-selected="${k===tab?'true':'false'}">${esc(i18t(PB_TAB_LABEL[k]))}</button>`).join('')}</div>`;
+    `<button class="st-tab${k===tab?' on':''}" data-pb-tab="${k}" role="tab" aria-selected="${k===tab?'true':'false'}">${esc(i18t(PB_TAB_LABEL[k]))}${sd?`<span class="st-tab-n">${sd.n[k]}</span>`:''}</button>`).join('')}</div>`;
 
+  if(INS){
+    _pbHead=sdHeads(sd, canEditLib);
+    document.getElementById('content').innerHTML=sdPageHtml(tabRow, tab, sd);
+    sdWire(sd, canEditLib);
+  } else {
+  _pbHead={ facts:{}, acts:{} }; pbPaintHead();
   document.getElementById('content').innerHTML=`
-  <div class="view-enter" style="padding:var(--page-pad)">
+  <div class="view-enter" style="padding:var(--page-pad)" data-ins-page="playbook" data-ins="0">
     ${''/* THE STANDARDS PAGE'S OWN CLOTHES, WRITTEN IN THE PAGE. It is
           thrown away the moment the reader leaves, so it cannot quietly
           repaint a screen that has not asked for it — the register's own
@@ -2851,6 +2865,7 @@ function renderPlaybookPage(){
 
   renderClauseLibrary();   // fills #clause-lib and #playbook-view, wires edit/add/remove
   document.querySelectorAll('[data-dev-open]').forEach(b=>b.addEventListener('click',()=>openWorkspace(b.getAttribute('data-dev-open'))));
+  }
   /* A tab press is CLASS AND HIDDEN FLIPS, never a re-render: the clause
      library holds open editors and scroll the reader is in the middle of,
      and the settings page's own rule is that a selection must not rebuild
@@ -2864,6 +2879,9 @@ function renderPlaybookPage(){
     });
     document.querySelectorAll('[data-pb-sec]').forEach(s=>{ s.hidden=s.getAttribute('data-pb-sec')!==k; });
     const sub=document.getElementById('pb-tabsub'); if(sub) sub.textContent=i18t(PB_TAB_SUB[k]);
+    /* The Inspector's head says what THIS tab holds and carries its own act
+       (Add clause · Reset / Add contract type · none). Classic paints nothing. */
+    if(typeof pbPaintHead==='function') pbPaintHead();
     /* AND IT LANDS AT THE TOP OF THE TAB IT OPENED. Until the row was pinned
        this came for free: reaching a tab meant already being at the top. Now a
        tab can be pressed from the bottom of a long clause library, and a press
@@ -2872,9 +2890,594 @@ function renderPlaybookPage(){
        asked through window because that module is not on every stage. */
     if(typeof stLandTop==='function') stLandTop();
   }));
+  /* Either shape arms the watch: a width that crosses the line repaints the
+     page in the other shape (INS_PAGE_REPAINT names this page). */
+  if(typeof insWatchWidth==='function') insWatchWidth();
   setActiveNav('playbook');
 }
 
-Object.assign(window,{tplOvFit,HATI_SAMPLES,openBlanksEditor,_tplPreviewHtml,_tplSourceLabel,_richSelection,_richReplaceRange,
+/* ════════════════════════════════════════════════════════════════════════
+   OUR STANDARDS IN THE INSPECTOR (Young chose it by name, 26 Sep 2026: "all
+   the 3 tabs in the our standards page to have inspector design as well")
+   ════════════════════════════════════════════════════════════════════════
+   Each tab is a list with the chosen item read beside it, and the three are
+   LINKED: a standard lists the contracts that depart from it, a book lists
+   where its contracts depart, and a departure names the standard it misses —
+   each of those a press that lands on the other tab with the right thing
+   chosen. What the drawing fixed on the way: a book lists each of its
+   standards ONCE (a position and a limit of one name were two chips), and the
+   deviations tab lists EVERY contract with a departure, grouped by whether it
+   can still change (it showed the top eight and said nothing of the rest).
+
+   NOTHING IS DECIDED HERE. How firm a standard is (stdStanceOf), what its
+   fallback says (stdFallbackOf), who departs from what (stdDepartsFrom,
+   stdBookContracts, stdBookLines) and what was settled (stdLearned,
+   stdHistoryFor) are js/standards.js's readings; this draws them.
+
+   EVERY VERB IS THE ONE IT ALWAYS WAS: the clause editor, the book editor,
+   stdOpenPreferred and precedentAdopt, pbRemoveType and pbResetPlaybook. The
+   one new act is that removing a STANDARD asks first (stdRemoveClause).
+   THE TAB ROW AND ITS HANDLER ARE THE CLASSIC PAGE'S: a tab press is class and
+   hidden flips, never a rebuild, and every link below presses a tab button. */
+const SD_DEV_DEF = { std:'all', book:'all', legal:'all' };
+const SD_DEV_CHIPS = ['std', 'book', 'legal'];
+let _sdDev = null;
+function sdDevFilters(){ if(!_sdDev) _sdDev = { ...SD_DEV_DEF }; return _sdDev; }
+/* "Leave them as they are" puts the offer away for this sitting — the fact it
+   states is still true, so it is back on the next visit (the classic card's
+   own rule). */
+let _sdOfferGone = false;
+/* What the head says and carries, per tab — the page's own facts line and its
+   one act, painted into the header's two slots (PAGE_HEAD_PAINT). */
+let _pbHead = { facts:{}, acts:{} };
+/* How many departures a standard's panel names before it counts the rest. */
+const SD_WHERE_MAX = 6;
+function pbInsMounted(){
+  return typeof document!=='undefined' && !!document.querySelector('[data-ins-page="playbook"][data-ins="1"]');
+}
+function pbPaintHead(){
+  if(typeof document==='undefined') return;
+  const tab=pbPageTab();
+  const f=document.getElementById('page-head-facts'); if(f) f.innerHTML=(_pbHead.facts&&_pbHead.facts[tab])||'';
+  const a=document.getElementById('page-head-acts'); if(!a) return;
+  a.innerHTML=(_pbHead.acts&&_pbHead.acts[tab])||'';
+  a.querySelector('#cl-add')?.addEventListener('click',()=>openClauseEditor(-1));
+  a.querySelector('#pb-add')?.addEventListener('click',()=>openPlaybookEditor(null));
+  a.querySelector('#pb-reset')?.addEventListener('click',()=>pbResetPlaybook());
+}
+const sdSame=(a,b)=>String(a==null?'':a).trim().toLowerCase()===String(b==null?'':b).trim().toLowerCase();
+const sdRef=c=>(typeof contractRef==='function')?contractRef(c):c.id;
+/* A list of names, joined the way the reader's own language joins them. */
+function sdList(names, type){
+  const L=(names||[]).filter(Boolean);
+  try{ if(typeof Intl!=='undefined'&&Intl.ListFormat) return new Intl.ListFormat((typeof langLocale==='function')?langLocale():'en', { style:'long', type:type==='or'?'disjunction':'conjunction' }).format(L); }catch(_){}
+  return L.join(', ');
+}
+const sdUnit=u=>(u==='days'||u==='months'||u==='years')?i18t('sd_unit_'+u):String(u||'');
+function sdDay(iso, long){
+  const d=String(iso||'').slice(0,10);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(d)) return '';
+  if(long){ try{ return new Date(d+'T00:00:00').toLocaleDateString((typeof langLocale==='function')?langLocale():'en-GB',{ day:'numeric', month:'short', year:'numeric' }); }catch(_){ return d; } }
+  return (typeof regDotDate==='function')?regDotDate(d):d;
+}
+/* ---- THE READINGS THIS PAGE DRAWS, taken ONCE per paint ---- */
+function sdData(){
+  const book=(typeof stdCheckedBook==='function')?stdCheckedBook():[];
+  const lib=clauseLibrary();
+  const pb=playbook();
+  const keys=Object.keys(pb);
+  const off=book.filter(c=>stdDepartures(c).length);
+  return { book, lib, pb, keys, off,
+    open:off.filter(stdOpenToChange).length,
+    required:lib.filter(cl=>{ const st=stdStanceOf(cl); return !!st&&st.scope==='all'&&st.pos==='required'; }).length,
+    n:{ clauses:lib.length, playbook:keys.length, deviations:off.length } };
+}
+function sdHeads(d, mayEdit){
+  const checked=d.book.length;
+  const facts={
+    clauses:[ i18tn('sd_h_standards',d.lib.length,{n:d.lib.length}),
+      d.required?i18tn('sd_h_required',d.required,{n:d.required}):'',
+      checked?i18tn('sd_h_depart',d.off.length,{n:d.off.length,of:checked}):i18t('sd_h_unchecked') ].filter(Boolean).map(esc).join(' · '),
+    playbook:[ i18tn('sd_h_books',d.keys.length,{n:d.keys.length}), i18t('sd_h_books_how') ].map(esc).join(' · '),
+    deviations:(checked?[ i18tn('sd_h_dev',d.off.length,{n:d.off.length,of:checked}), i18tn('sd_h_open',d.open,{n:d.open}) ]:[ i18t('sd_h_unchecked') ]).map(esc).join(' · '),
+  };
+  const plus=(typeof icon==='function')?icon('plus','w-3.5 h-3.5'):'';
+  const acts={
+    clauses:mayEdit?`<button type="button" id="cl-add" class="ui-btn ui-btn-primary">${plus}${esc(i18t('lib_add_clause'))}</button>`:'',
+    playbook:mayEdit?`<button type="button" id="pb-reset" class="ui-link">${esc(i18t('set_reset_defaults2'))}</button><button type="button" id="pb-add" class="ui-btn ui-btn-primary">${plus}${esc(i18t('set_add_contract_type'))}</button>`:'',
+    deviations:'',
+  };
+  return { facts, acts };
+}
+/* ---- HOW FIRM A STANDARD IS, in three places: the list, the panel's facts
+   and the sentence under its name ---- */
+function sdFirm(cl){
+  const st=(typeof stdStanceOf==='function')?stdStanceOf(cl):null;
+  if(!st) return { word:i18t('sd_firm_none'), where:i18t('sd_where_none'), sentence:i18t('sd_firm_s_none'), req:false };
+  const word=i18t(st.pos==='required'?'std_required':st.pos==='forbidden'?'std_forbidden':'std_preferred');
+  const types=sdList((st.types||[]).map(t=>t.label));
+  const req=st.pos==='required'||st.pos==='forbidden';
+  if(st.scope==='all') return { word, req,
+    where:types?i18t('sd_where_all_more',{types}):i18t('sd_where_all'),
+    sentence:types?i18t('sd_firm_s_all_more',{word,types}):i18t('sd_firm_s_all',{word}) };
+  return { word, req, where:i18t('sd_where_some',{types}), sentence:i18t('sd_firm_s_some',{word,types}) };
+}
+const sdBaseLimit=cat=>((playbook()._default||{}).ranges||[]).find(r=>r&&sdSame(r.label,cat))||null;
+function sdLimitWords(r){
+  if(!r) return '';
+  const n=r.value;
+  let s=r.key==='paymentDays'?i18t('sd_lim_days_max',{n}):r.key==='liabilityMonths'?i18t('sd_lim_months_min',{n})
+    :(r.op==='<='?i18t('sd_lim_max',{n}):i18t('sd_lim_min',{n}));
+  const m=/prefer\s+(\d+)/i.exec(String(r.note||''));
+  if(m) s+=' '+i18t('sd_lim_prefer',{n:m[1]});
+  return s;
+}
+/* Who has to say yes to a departure — the book's own escalation, read, never
+   guessed. */
+function sdLegalLine(cat){
+  const lim=sdBaseLimit(cat);
+  if(lim&&lim.escalate){
+    if(lim.key==='paymentDays') return i18t('sd_legal_days',{n:lim.value});
+    if(lim.key==='liabilityMonths') return i18t('sd_legal_months',{n:lim.value});
+    return i18t('sd_legal_any');
+  }
+  const pb=playbook();
+  return Object.keys(pb).some(k=>((pb[k]&&pb[k].positions)||[]).some(p=>p&&sdSame(p.category,cat)&&p.escalate))
+    ? i18t('sd_legal_any') : '';
+}
+function sdFbShort(cl){
+  const fb=(typeof stdFallbackOf==='function')?stdFallbackOf(cl):null;
+  if(!fb) return { text:i18t('sd_fb_none'), none:true };
+  return { text:fb.figure!=null?i18t('sd_fb_fig',{figure:fb.figure,unit:sdUnit(fb.unit)}):i18t('sd_fb_words') };
+}
+function sdCountCell(list){
+  if(!list.length) return `<span class="ins-quiet">${esc(i18t('sd_none'))}</span>`;
+  const legal=list.filter(x=>stdNeedsLegal(x.v)).length;
+  const sub=legal?`<span class="ins-legal">${esc(i18tn('sd_n_legal',legal,{n:legal}))}</span>`
+    :(list.every(x=>x.v.status==='missing')?esc(i18t('sd_all_leave_out')):'');
+  return `<span class="ins-c2"><b class="ins-cnt ${legal?'is-bad':'is-warn'}">${esc(i18tn('sd_n_contracts',list.length,{n:list.length}))}</b><span>${sub}</span></span>`;
+}
+function sdTableHtml(cls, cols, body){
+  return `<table class="ins-lt ${cls}"><colgroup>${cols.map(c=>`<col${c.w?` style="width:${c.w}px"`:''}>`).join('')}</colgroup><thead><tr>${
+    cols.map(c=>`<th>${esc(c.t)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
+}
+const sdIdCmp=(a,b)=>String(sdRef(a)).localeCompare(String(sdRef(b)),undefined,{numeric:true});
+/* ---- 1 · THE CLAUSE LIBRARY ---- */
+function sdClauseListHtml(d){
+  const cols=[{t:i18t('sd_col_standard')},{t:i18t('sd_col_firm'),w:230},{t:i18t('sd_col_fallback'),w:140},{t:i18t('sd_col_departing'),w:150}];
+  const body=d.lib.map(cl=>{
+    const f=sdFirm(cl), fb=sdFbShort(cl), off=stdDepartsFrom(cl.category, d.book);
+    return `<tr data-ins-row data-sd-row="${esc(String(cl.id))}" tabindex="-1">
+      <td><span class="ins-c2"><b title="${esc(cl.name||'')}">${esc(cl.name||'')}</b><span>${esc(cl.category||'')}</span></span></td>
+      <td><span class="ins-c2"><b class="${f.req?'is-req':''}">${esc(f.word)}</b><span title="${esc(f.where)}">${esc(f.where)}</span></span></td>
+      <td><span class="${fb.none?'ins-quiet':''}">${esc(fb.text)}</span></td>
+      <td>${d.book.length?sdCountCell(off):`<span class="ins-quiet">—</span>`}</td></tr>`;
+  }).join('')||`<tr class="ins-empty"><td colspan="4">${esc(i18t('set_no_clauses'))}</td></tr>`;
+  return sdTableHtml('sd-lt sd-lib', cols, body);
+}
+/* WHAT YOU HAVE SETTLED FOR — the learned card's own reading, for THIS
+   standard: a proposal where the quarter's settled rounds say the line should
+   move (and the two buttons the card has always carried, pressing the same
+   two acts), a line that is holding, the all-time history, or the honest
+   absence. */
+function sdSettledHtml(cl, mayAdopt){
+  let L=null; try{ L=(typeof stdLearned==='function')?stdLearned():null; }catch(_){ L=null; }
+  const mine=x=>!!x&&(x.clause===cl.id||sdSame(x.category,cl.category));
+  const p=L&&(L.proposals||[]).find(mine);
+  if(p){
+    const says=[ p.preferredFigure!=null?i18t('std_learn_pref_says',{figure:p.preferredFigure,unit:p.unit}):'',
+      p.fallbackFigure!=null?i18t('std_learn_fb_says',{figure:p.fallbackFigure,unit:p.unit}):'' ].filter(Boolean).join(' ');
+    const btns=mayAdopt?[
+      p.moves.includes('preferred')?`<button type="button" class="ui-btn ui-btn-sm" data-sd-pref="${esc(p.key)}">${esc(i18t('std_learn_move_pref',{figure:p.figure,unit:p.unit}))}</button>`:'',
+      p.moves.includes('fallback')?`<button type="button" class="ui-btn ui-btn-sm" data-sd-fb="${esc(p.key)}">${esc(i18t('std_learn_move_fb',{figure:p.figure,unit:p.unit}))}</button>`:''
+    ].join(''):'';
+    return `<p class="ins-p">${esc(i18t('std_learn_line',{category:p.category,figure:p.figure,unit:p.unit,seen:p.seen,settled:p.settled}))}</p>${
+      says?`<p class="ins-note">${esc(says)}</p>`:''}${btns?`<div class="sd-moves">${btns}</div>`:''}`;
+  }
+  const h=L&&(L.holding||[]).find(mine);
+  if(h) return `<p class="ins-p">${esc(i18t('std_learn_hold_line',{figure:h.figure,unit:h.unit,seen:h.seen,settled:h.settled}))}</p>`;
+  let hist=null; try{ hist=(typeof stdHistoryFor==='function')?stdHistoryFor(cl):null; }catch(_){ hist=null; }
+  if(hist) return `<p class="ins-p"><b>${esc(i18t('std_your_history'))}</b> ${esc(i18t('std_hist_line',{figure:hist.figure,unit:hist.unit,seen:hist.seen,settled:hist.settled}))}</p>`;
+  return `<p class="ins-note">${esc(i18t('sd_settled_none',{category:cl.category||''}))}</p>`;
+}
+function sdVerdictWord(v){
+  if(v.accepted) return { cls:'ins-ok', word:i18t('sd_accepted') };
+  if(stdNeedsLegal(v)) return { cls:'ins-legal', word:i18t('sd_needs_legal') };
+  return { cls:'ins-soon', word:i18t(v.status==='missing'?'sd_missing':'sd_departs') };
+}
+function sdClausePanelOpts(cl, d, mayEdit){
+  const f=sdFirm(cl), fbs=sdFbShort(cl);
+  const fb=(typeof stdFallbackOf==='function')?stdFallbackOf(cl):null;
+  const off=stdDepartsFrom(cl.category, d.book);
+  const legal=off.filter(x=>stdNeedsLegal(x.v)).length;
+  const tone=!d.book.length?'gray':!off.length?'green':legal?'ruby':'amber';
+  const status=!d.book.length?esc(i18t('sd_st_unchecked'))
+    :off.length?esc(i18tn('sd_st_depart',off.length,{n:off.length}))+(legal?` <span class="x">·</span> <span class="ins-legal">${esc(i18tn('sd_st_legal',legal,{n:legal}))}</span>`:'')
+    :esc(i18t('sd_st_meets'));
+  const lim=sdBaseLimit(cl.category);
+  let body=insKvHtml([
+    { k:'firm', label:i18t('sd_col_firm'), v:esc(f.word) },
+    { k:'limit', label:i18t('sd_f_limit'), v:lim?esc(sdLimitWords(lim)):'' },
+    { k:'fallback', label:i18t('sd_col_fallback'), v:esc(fbs.text) },
+    { k:'departing', label:i18t('sd_col_departing'), v:d.book.length?esc(i18t('sd_f_departing',{n:off.length,of:d.book.length})):'' } ]);
+  const pref=String(cl.preferred||'').trim();
+  body+=insSecHtml(i18t('std_ask_for'),'',pref?`<blockquote class="ins-q">${esc(pref)}</blockquote>`:`<p class="ins-note">${esc(i18t('sd_no_wording'))}</p>`,'sd-ask');
+  body+=insSecHtml(i18t('std_go_down_to'),'',fb?`<blockquote class="ins-q">${esc(fb.text)}</blockquote>`:`<p class="ins-p">${esc(i18t('std_no_fallback_note'))}</p>`,'sd-fb');
+  if(String(cl.guidance||'').trim()) body+=insSecHtml(i18t('sd_sec_guidance'),'',`<p class="ins-p">${esc(cl.guidance)}</p>`,'sd-guide');
+  const listed=off.slice().sort((a,b)=>(stdNeedsLegal(b.v)-stdNeedsLegal(a.v))||(stdOpenToChange(b.c)-stdOpenToChange(a.c))||sdIdCmp(b.c,a.c));
+  const shown=listed.slice(0,SD_WHERE_MAX);
+  const where=!d.book.length?`<p class="ins-note">${esc(i18t('sd_where_unchecked'))}</p>`
+    :!off.length?`<p class="ins-p">${esc(i18tn('sd_where_meets',d.book.length,{n:d.book.length}))}</p>`
+    :`<ul class="ins-gl">${shown.map(x=>{ const w=sdVerdictWord(x.v);
+        return `<li><button type="button" class="ins-gi" data-sd-godev="${esc(x.c.id)}" data-sd-cat="${esc(cl.category)}"><b>${esc(sdRef(x.c)+' · '+(x.c.counterparty||x.c.name||''))}</b><span>${
+          x.v.status==='missing'?esc(i18t('sd_leaves_out')):(x.v.quote?'“'+esc(x.v.quote)+'”':esc(i18t('sd_paper_noquote')))}</span><span class="r ${w.cls}">${esc(w.word)}</span></button></li>`; }).join('')}</ul>${
+      off.length>shown.length?`<button type="button" class="ui-link" data-sd-devcat="${esc(cl.category)}" style="margin-top:6px">${esc(i18t('sd_show_all_dev',{n:off.length}))}</button>`:''}`;
+  body+=insSecHtml(i18t('sd_sec_where'),d.book.length?off.length:'',where,'sd-where');
+  body+=insSecHtml(i18t('sd_sec_settled'),'',sdSettledHtml(cl, mayEdit),'sd-settled');
+  const acts=[];
+  if(mayEdit) acts.push({ k:'edit', kind:'accent', label:i18t('std_edit_wording'), icon:'pencil',
+    run:()=>{ const i=clauseLibrary().findIndex(x=>String(x.id)===String(cl.id)); if(i>=0) openClauseEditor(i); } });
+  /* A PROXY ONTO THE TAB THAT ALREADY EXISTS, never a second door: the
+     position lives on the Negotiation playbook tab — this lands there with the
+     book that holds it chosen. Open to every reader: it moves them, it writes
+     nothing. */
+  acts.push({ k:'pos', label:i18t('std_change_position'), run:()=>sdGoBook(stdBookFor(cl.category)) });
+  const menu=mayEdit?insMenuItemHtml({ k:'remove', label:i18t('sd_remove'), ruby:true, icon:'trash', says:i18t('sd_remove_says') }):'';
+  return {
+    item:{ id:String(cl.id) }, host:'sd-panel-clauses',
+    head:{ eyebrow:`${esc(cl.category||'')} · ${esc(i18t('lib_clause_library'))}`, title:cl.name||cl.category||'',
+      sub:esc([f.sentence, sdLegalLine(cl.category)].filter(Boolean).join(' ')), tone, status, acts, menuHtml:menu, moreAria:i18t('reg_more_actions') },
+    acts, body,
+    onMenu:act=>{ if(act==='remove'){ const i=clauseLibrary().findIndex(x=>String(x.id)===String(cl.id)); if(i>=0) stdRemoveClause(i); } },
+  };
+}
+/* ---- 2 · THE NEGOTIATION PLAYBOOK ---- */
+function sdBookListHtml(d){
+  const cols=[{t:i18t('sd_col_book')},{t:i18t('sd_col_standards'),w:140},{t:i18t('sd_col_contracts'),w:120},{t:i18t('sd_col_depart'),w:120}];
+  const body=d.keys.map(k=>{
+    const b=d.pb[k]||{}, base=k==='_default';
+    const lines=stdBookLines(k), cs=stdBookContracts(k,d.book), off=cs.filter(c=>stdDepartures(c).length);
+    const legalLines=lines.filter(l=>l.legal).length, offLegal=off.some(c=>stdDepartures(c).some(stdNeedsLegal));
+    return `<tr data-ins-row data-sd-book="${esc(k)}" tabindex="-1">
+      <td><span class="ins-c2"><b title="${esc(b.label||k)}">${esc(b.label||k)}</b><span>${esc(i18t(base?'sd_book_base_sub':'sd_book_type_sub'))}</span></span></td>
+      <td><span class="ins-c2"><b>${lines.length}</b><span${legalLines?' class="ins-legal"':''}>${esc(legalLines?i18tn('sd_n_need_legal',legalLines,{n:legalLines}):i18t('sd_none_legal'))}</span></span></td>
+      <td><span class="ins-c2"><b>${esc(base?i18t('sd_all_n',{n:cs.length}):String(cs.length))}</b><span>${esc(i18t('sd_checked'))}</span></span></td>
+      <td>${off.length?`<span class="ins-c2"><b class="ins-cnt ${offLegal?'is-bad':'is-warn'}">${off.length}</b><span>${esc(i18t('sd_depart_word'))}</span></span>`:`<span class="ins-quiet">${esc(i18t('sd_none'))}</span>`}</td></tr>`;
+  }).join('');
+  return sdTableHtml('sd-lt sd-books', cols, body);
+}
+function sdBookPanelOpts(key, d, mayEdit){
+  const b=d.pb[key]||{}, base=key==='_default';
+  const lines=stdBookLines(key), cs=stdBookContracts(key,d.book), off=cs.filter(c=>stdDepartures(c).length);
+  const counts=new Map();
+  cs.forEach(c=>stdDepartures(c).forEach(v=>counts.set(v.category,(counts.get(v.category)||0)+1)));
+  const top=[...counts.entries()].sort((a,c)=>c[1]-a[1]);
+  /* WHAT CHOOSES THIS BOOK, in the words that choose it: a book the workspace
+     wrote carries its own match words; a built-in one prints playbookKeyFor's
+     own list (pbTypeWords), so the sentence cannot drift from the rule. */
+  const words=base?null:((Array.isArray(b.match)&&b.match.length)?b.match:((typeof pbTypeWords==='function')?pbTypeWords(key):null));
+  const sub=base?i18t('sd_book_base_says'):(words&&words.length?i18t('sd_book_type_says',{words:sdList(words,'or')}):i18t('sd_book_type_nowords'));
+  const use=base?i18t('sd_every_contract'):i18tn('sd_st_book_use',cs.length,{n:cs.length});
+  const status=`${esc(use)} <span class="x">·</span> ${esc(i18tn('sd_st_book_off',off.length,{n:off.length}))}`;
+  const tone=off.length?'amber':(cs.length?'green':'gray');
+  const lineHtml=l=>{
+    const firm=l.pos==='limit'?sdLimitWords(l.limit)
+      :i18t(l.pos==='required'?'std_required':l.pos==='forbidden'?'std_forbidden':'std_preferred')+(l.limit?' · '+sdLimitWords(l.limit):'');
+    const note=l.pos==='limit'?'':(l.note&&!/^\s*[≤≥<>]/.test(l.note)?l.note:'');
+    return `<li><b>${esc(l.category)}${!base&&!l.own?`<span class="ins-inh">${esc(i18t('sd_from_base'))}</span>`:''}</b><span class="d">${esc(firm)}${note?' · '+esc(note):''}</span><span class="r">${
+      l.legal?`<span class="ins-legal">${esc(i18t('sd_needs_legal'))}</span>`:'<span class="ins-quiet">—</span>'}</span></li>`;
+  };
+  let body=insKvHtml([
+    { k:'standards', label:i18t('sd_col_standards'), v:String(lines.length) },
+    { k:'legal', label:i18t('sd_f_need_legal'), v:String(lines.filter(l=>l.legal).length) },
+    { k:'checked', label:i18t('sd_f_checked'), v:String(cs.length) },
+    { k:'depart', label:i18t('sd_col_depart'), v:String(off.length) } ]);
+  body+=insSecHtml(i18t('sd_sec_its'),lines.length,lines.length?`<ul class="ins-stdl">${lines.map(lineHtml).join('')}</ul>`:`<p class="ins-note">${esc(i18t('set_no_positions'))}</p>`,'sd-its');
+  const where=!cs.length?`<p class="ins-note">${esc(i18t('sd_book_unchecked'))}</p>`
+    :!top.length?`<p class="ins-p">${esc(i18t('sd_book_meets'))}</p>`
+    :`<ul class="ins-gl">${top.map(([cat,n])=>{ const L=d.lib.find(x=>sdSame(x.category,cat));
+        return `<li><button type="button" class="ins-gi" data-sd-bookdev="${esc(key)}" data-sd-cat="${esc(cat)}"><b>${esc(cat)}</b><span>${esc(L?L.name:i18t('sd_held_here'))}</span><span class="r">${esc(i18tn('sd_n_contracts',n,{n}))}</span></button></li>`; }).join('')}</ul>
+      <button type="button" class="ui-link" data-sd-bookdev="${esc(key)}" style="margin-top:6px">${esc(i18t('sd_show_book_dev'))}</button>`;
+  body+=insSecHtml(i18t('sd_sec_book_where'),cs.length?i18t('sd_n_of',{n:off.length,of:cs.length}):'',where,'sd-bwhere');
+  const acts=mayEdit?[{ k:'edit', kind:'accent', label:i18t('act_edit'), icon:'pencil', run:()=>openPlaybookEditor(key) }]:[];
+  const menu=!mayEdit?'':base
+    ?insMenuItemHtml({ k:'reset', label:i18t('set_reset_defaults2'), ruby:true, says:i18t('sd_reset_says') })
+    :insMenuItemHtml({ k:'remove', label:i18t('sd_remove_type'), ruby:true, icon:'trash', says:i18t('set_remove_type_msg') });
+  return {
+    item:{ id:key }, host:'sd-panel-books',
+    head:{ eyebrow:`${esc(i18t('lib_negotiation_playbook'))} · ${esc(i18t(base?'sd_eb_book_base':'sd_eb_book_type'))}`, title:b.label||key,
+      sub:esc(sub), tone, status, acts, menuHtml:menu, moreAria:i18t('reg_more_actions') },
+    acts, body,
+    onMenu:act=>{ if(act==='reset') pbResetPlaybook(); else if(act==='remove') pbRemoveType(key); },
+  };
+}
+/* ---- 3 · PORTFOLIO DEVIATIONS ---- */
+function sdDevRows(d, f){
+  return d.off
+    .filter(c=>f.std==='all'||stdDepartures(c).some(v=>sdSame(v.category,f.std)))
+    .filter(c=>f.book==='all'||stdBookOf(c)===f.book)
+    .filter(c=>f.legal==='all'||stdDepartures(c).some(stdNeedsLegal));
+}
+const sdLegalN=c=>stdDepartures(c).filter(stdNeedsLegal).length;
+const sdDevSort=(a,b)=>(sdLegalN(b)-sdLegalN(a))||(stdDepartures(b).length-stdDepartures(a).length)||sdIdCmp(b,a);
+const sdBookLabel=c=>(c.playbook&&c.playbook.label)||((playbook()[stdBookOf(c)]||{}).label)||stdBookOf(c);
+const sdByWord=c=>i18t((c.playbook&&c.playbook.source)==='ai'?'sd_by_copilot':'sd_by_rules');
+function sdDevChipsHtml(d, f){
+  const cats=[], seen=new Set();
+  d.off.forEach(c=>stdDepartures(c).forEach(v=>{ const k=String(v.category||'').trim().toLowerCase(); if(k&&!seen.has(k)){ seen.add(k); cats.push(v.category); } }));
+  const books=[...new Set(d.off.map(stdBookOf))];
+  const narrowing=SD_DEV_CHIPS.filter(k=>String(f[k])!==String(SD_DEV_DEF[k])).length;
+  return [
+    insChipHtml({ attr:'data-sd-f', key:'std', label:i18t('sd_c_std'), cur:f.std, def:'all', opts:[['all',i18t('sd_c_std_all')],...cats.map(x=>[x,x])] }),
+    insChipHtml({ attr:'data-sd-f', key:'book', label:i18t('sd_col_book'), cur:f.book, def:'all', opts:[['all',i18t('sd_c_book_all')],...books.map(k=>[k,(d.pb[k]||{}).label||k])] }),
+    insChipHtml({ attr:'data-sd-f', key:'legal', label:i18t('sd_c_legal'), cur:f.legal, def:'all', opts:[['all',i18t('sd_c_legal_all')],['yes',i18t('sd_c_legal_yes')]] }),
+  ].join('')+(narrowing?`<button type="button" class="ui-link" data-sd-clear>${esc(i18tn('ob_clear_n',narrowing,{n:narrowing}))}</button>`:'');
+}
+function sdDevListHtml(d, rows){
+  const cols=[{t:i18t('sd_col_contract')},{t:i18t('sd_col_departures'),w:160},{t:i18t('sd_col_book'),w:170},{t:i18t('sd_col_checked'),w:140}];
+  const tr=c=>{
+    const n=stdDepartures(c).length, legal=sdLegalN(c), acc=stdDepartures(c).some(v=>v.accepted);
+    let kind=''; try{ kind=(typeof cKind==='function')?cKind(c):''; }catch(_){ kind=''; }
+    const day=sdDay(c.playbook&&c.playbook.checkedAt);
+    return `<tr data-ins-row data-sd-dev="${esc(c.id)}" tabindex="-1">
+      <td><span class="ins-c2"><b title="${esc(c.name||'')}">${esc(c.name||'')}</b><span>${esc(sdRef(c)+' · '+(c.counterparty||'—'))}</span></span></td>
+      <td><span class="ins-c2"><b class="ins-cnt ${legal?'is-bad':'is-warn'}">${n}</b><span>${legal?`<span class="ins-legal">${esc(i18tn('sd_n_legal_row',legal,{n:legal}))}</span>`:esc(i18t(acc?'sd_accepted_before':'sd_none_legal'))}</span></span></td>
+      <td><span class="ins-c2"><b title="${esc(sdBookLabel(c))}">${esc(sdBookLabel(c))}</b><span>${esc(kind)}</span></span></td>
+      <td><span class="ins-c2"><b>${esc(day||'—')}</b><span>${esc(sdByWord(c))}</span></span></td></tr>`;
+  };
+  let body='';
+  [['open','sd_g_open','sd_g_open_r','amber'],['signed','sd_g_signed','sd_g_signed_r','gray']].forEach(([k,lab,right,tone])=>{
+    const g=rows.filter(c=>k==='open'?stdOpenToChange(c):!stdOpenToChange(c)).sort(sdDevSort);
+    if(!g.length) return;
+    body+=`<tr class="ins-grp" data-sd-grp="${k}"><td colspan="${cols.length}"><span class="ins-g"><i class="ins-dot2 is-${tone}" aria-hidden="true"></i>${esc(i18t(lab))}<span class="n">${g.length}</span><span class="ins-g-r">${esc(i18t(right))}</span></span></td></tr>`+g.map(tr).join('');
+  });
+  if(!rows.length){
+    const f=sdDevFilters();
+    const narrowing=SD_DEV_CHIPS.some(k=>String(f[k])!==String(SD_DEV_DEF[k]));
+    const msg=!d.book.length?i18t('sd_dev_unchecked'):narrowing?i18t('sd_none_match'):i18t('sd_dev_none');
+    body=`<tr class="ins-empty"><td colspan="${cols.length}">${esc(msg)}${narrowing?`<br><button type="button" class="ui-link" data-sd-clear style="margin-top:8px">${esc(i18t('ob_clear_filters'))}</button>`:''}</td></tr>`;
+  }
+  return sdTableHtml('sd-lt sd-dev', cols, body);
+}
+function sdDevPanelOpts(c, d){
+  const deps=stdDepartures(c).slice().sort((a,b)=>(stdNeedsLegal(b)-stdNeedsLegal(a))||((a.status==='missing')-(b.status==='missing')));
+  const legal=deps.filter(stdNeedsLegal).length;
+  const meets=stdMeets(c);
+  const total=((c.playbook&&c.playbook.verdicts)||[]).length;
+  let kind=''; try{ kind=(typeof cKind==='function')?cKind(c):''; }catch(_){ kind=''; }
+  const stage=(typeof statusLabel==='function')?statusLabel(c.status):String(c.status||'');
+  const bookLabel=sdBookLabel(c);
+  const status=esc(i18tn('sd_st_deps',deps.length,{n:deps.length}))+(legal?` <span class="x">·</span> <span class="ins-legal">${esc(i18tn('sd_st_legal',legal,{n:legal}))}</span>`:'');
+  let body=insKvHtml([
+    { k:'checked', label:i18t('sd_col_checked'), v:esc(sdDay(c.playbook&&c.playbook.checkedAt,true)) },
+    { k:'by', label:i18t('sd_f_by'), v:esc(i18t((c.playbook&&c.playbook.source)==='ai'?'sd_copilot':'sd_rules')) },
+    { k:'book', label:i18t('sd_col_book'), v:esc(bookLabel), wide:true },
+    { k:'meets', label:i18t('sd_f_meets'), v:esc(i18t('sd_meets_n',{n:meets.length,of:total})) },
+    { k:'stage', label:i18t('sd_f_stage'), v:esc(stage) } ]);
+  body+=deps.map(v=>{
+    const L=d.lib.find(x=>sdSame(x.category,v.category));
+    const lim=sdBaseLimit(v.category);
+    const std=L?(lim?sdLimitWords(lim)+' · ':'')+(L.name||L.category):(v.position||i18t('sd_held_in_book',{book:bookLabel}));
+    const who=v.accepted||null;
+    return `<section class="ins-sec sd-dep"><div class="ins-dvh"><b>${esc(v.category||'')}</b><span class="st">${esc(i18t(v.status==='missing'?'sd_missing':'sd_departs'))}</span>${
+        who?`<span class="ok">${esc(i18t('sd_accepted'))}</span>`:stdNeedsLegal(v)?`<span class="lg">${esc(i18t('sd_needs_legal_yes'))}</span>`:''}</div>
+      <p class="ins-lbl">${esc(i18t('sd_lbl_paper'))}</p>${v.status==='missing'?`<p class="ins-p">${esc(i18t('sd_paper_nothing'))}</p>`
+        :v.quote?`<blockquote class="ins-q">“${esc(v.quote)}”</blockquote>`:`<p class="ins-note">${esc(i18t('sd_paper_noquote'))}</p>`}
+      <p class="ins-lbl">${esc(i18t('sd_lbl_standard'))}</p><p class="ins-p">${esc(std)}</p>
+      ${who?`<p class="ins-lbl">${esc(i18t('sd_accepted'))}</p><p class="ins-p">${esc(i18t('sd_accepted_by',{who:who.by||'',date:sdDay(who.at,true),why:who.why||''}))}</p>`:''}
+      <button type="button" class="ui-link" style="margin-top:8px" ${L?`data-sd-gostd="${esc(String(L.id))}"`:`data-sd-gobook="${esc(stdBookOf(c))}"`}>${esc(L?i18t('sd_see_std'):i18t('sd_see_book',{book:bookLabel}))}</button></section>`;
+  }).join('');
+  if(meets.length) body+=insSecHtml(i18t('sd_sec_meets'),meets.length,`<p class="ins-p">${meets.map(v=>esc(v.category||'')).join(' · ')}</p>`,'sd-meets');
+  const acts=[{ k:'open', kind:'accent', label:i18t('ins_open_contract'), run:()=>sdOpenContract(c.id) }];
+  const may=(typeof canEdit==='function'&&canEdit());
+  const ai=!!((typeof API_MODE==='function')&&API_MODE()&&state.aiConfigured);
+  const menu=may?insMenuItemHtml({ k:'check', label:i18t('sd_check_again'), icon:'refresh', says:i18t(ai?'sd_check_ai':'sd_check_rules') }):'';
+  return {
+    item:{ id:c.id }, host:'sd-panel-dev',
+    head:{ eyebrow:`<span class="ins-ref">${esc(sdRef(c))}</span>${kind?' · '+esc(kind):''} · ${esc(stage)}`, title:c.name||'',
+      sub:esc(c.counterparty||''), tone:legal?'ruby':'amber', status, acts, menuHtml:menu, moreAria:i18t('reg_more_actions') },
+    acts, body,
+    onMenu:act=>{ if(act==='check') sdCheckAgain(c); },
+  };
+}
+function sdOpenContract(id){
+  if(typeof selectContract==='function') selectContract(id);
+  else if(typeof openWorkspace==='function') openWorkspace(id);
+}
+/* CHECK AGAIN IS THE CHECKS CARD'S OWN ACT, written out the same way — the
+   same runner, the same audit line, the same save — and it asks first where
+   Copilot reads, because that read is paid for. The record is fetched whole
+   first: the list holds the LIGHT copy, and a save of a light copy is not a
+   save of the contract. */
+async function sdCheckAgain(c){
+  if(!(typeof canEdit==='function'&&canEdit())) return;
+  const ai=!!((typeof API_MODE==='function')&&API_MODE()&&state.aiConfigured);
+  if(ai&&!await confirmDialog({ title:i18t('sd_check_q',{ref:sdRef(c)}), message:i18t('sd_check_ai'), confirmLabel:i18t('sd_check_go') })) return;
+  try{ if(typeof ensureFull==='function') await ensureFull(c); }catch(_){ toast(i18t('sd_check_failed'),'err'); return; }
+  const res=await runPlaybookReview(c);
+  if(res&&!res.error){
+    c.playbook=res;
+    logAudit(c,'Playbook',`Reviewed against ${res.label} — ${deviationSummary(c).dev} deviation(s), ${deviationSummary(c).miss} missing`);
+    persist(c);
+    toast(i18t('sd_checked_toast',{book:res.label||''}),'ok');
+  }
+  if(state.view==='playbook') sdRepaint();
+}
+/* A repaint that keeps the reader's place: the page's own scrollers carry ids
+   so keepScroll can put them back. */
+function sdRepaint(){ if(typeof keepScroll==='function') keepScroll(()=>renderPlaybookPage()); else renderPlaybookPage(); }
+/* ---- THE LINKS BETWEEN THE TABS — each one presses the tab's own button ---- */
+function sdGoTab(k){ document.querySelector(`[data-pb-tab="${k}"]`)?.click(); }
+function sdSelectIn(tab, id){
+  const seat={ clauses:'std:clauses', playbook:'std:books', deviations:'std:dev' }[tab];
+  if(seat) insSelect(seat, id);
+}
+function sdGoBook(key){
+  sdSelectIn('playbook', key);
+  sdGoTab('playbook');
+  sdPaintSection('playbook');
+}
+function sdGoClause(id){
+  sdSelectIn('clauses', id);
+  sdGoTab('clauses');
+  sdPaintSection('clauses');
+}
+function sdGoDev(o){
+  const f=sdDevFilters();
+  Object.assign(f, SD_DEV_DEF, o&&o.filters||{});
+  if(o&&o.id) sdSelectIn('deviations', o.id);
+  sdGoTab('deviations');
+  sdPaintSection('deviations');
+}
+/* ---- THE PAGE ---- */
+function sdPageHtml(tabRow, tab, d){
+  const offer=(!_sdOfferGone&&typeof stdDraftWorthOffering==='function'&&stdDraftWorthOffering())
+    ? (()=>{ const n=(typeof stdSignedBook==='function')?stdSignedBook().length:0;
+        return `<div class="ins-offer" data-sd-offer><span><b>${esc(i18t('std_draft_still_default'))}.</b> ${esc(i18tn('sd_offer_sub',n,{n}))}</span><span class="sp"></span>
+          <button type="button" class="ui-btn ui-btn-sm" data-sd-draft-go title="${esc(i18tn('std_draft_go',n,{n}))}">${esc(i18t('sd_offer_go'))}</button>
+          <button type="button" class="ui-link" data-sd-draft-no>${esc(i18t('std_draft_by_hand'))}</button></div>`; })()
+    : '';
+  const f=sdDevFilters();
+  const rows=sdDevRows(d, f);
+  return `<div class="view-enter ins-page sd-ins" data-ins-page="playbook" data-ins="1">
+    ${tabRow}
+    <div class="ins-body" data-pb-sec="clauses"${tab==='clauses'?'':' hidden'}>
+      <section class="ins-card" aria-label="${esc(i18t('lib_clause_library'))}">
+        ${offer}
+        <div class="ins-scroll" id="sd-scroll-clauses">${sdClauseListHtml(d)}</div>
+        <div class="ins-foot"><span>${esc(i18t('lib_clause_library_sub'))}</span></div>
+      </section>
+      <aside id="sd-panel-clauses" class="ins-panel" aria-label="${esc(i18t('sd_panel_clause'))}"></aside>
+    </div>
+    <div class="ins-body" data-pb-sec="playbook"${tab==='playbook'?'':' hidden'}>
+      <section class="ins-card" aria-label="${esc(i18t('lib_negotiation_playbook'))}">
+        <div class="ins-scroll" id="sd-scroll-books">${sdBookListHtml(d)}</div>
+        <div class="ins-foot"><span>${esc(i18t('sd_foot_books'))}</span></div>
+      </section>
+      <aside id="sd-panel-books" class="ins-panel" aria-label="${esc(i18t('sd_panel_book'))}"></aside>
+    </div>
+    <div class="ins-body" data-pb-sec="deviations"${tab==='deviations'?'':' hidden'}>
+      <section class="ins-card" aria-label="${esc(i18t('lib_portfolio_deviations'))}">
+        ${d.off.length?`<div class="ins-bar reg-filterbar" data-sd-bar>${sdDevChipsHtml(d, f)}</div>`:''}
+        <div class="ins-scroll" id="sd-scroll-dev">${sdDevListHtml(d, rows)}</div>
+        <div class="ins-foot"><span data-sd-foot>${esc(i18t('sd_showing',{n:rows.length,of:d.off.length}))}</span></div>
+      </section>
+      <aside id="sd-panel-dev" class="ins-panel" aria-label="${esc(i18t('sd_panel_dev'))}"></aside>
+    </div>
+  </div>`;
+}
+/* ONE TAB'S LIST AND PANEL, painted from the readings of THIS paint. A filter,
+   a link from another tab or a save redraws the section it touched and
+   nothing else — a press that filters may not throw the reader's place. */
+let _sdData = null;
+let _sdMayEdit = false;
+function sdPaintSection(tab){
+  const d=_sdData; if(!d) return;
+  const sec=document.querySelector(`.sd-ins [data-pb-sec="${tab}"]`); if(!sec) return;
+  if(tab==='deviations'){
+    const f=sdDevFilters();
+    const rows=sdDevRows(d, f);
+    const bar=sec.querySelector('[data-sd-bar]'); if(bar) bar.innerHTML=sdDevChipsHtml(d, f);
+    const sc=sec.querySelector('#sd-scroll-dev'); if(sc) sc.innerHTML=sdDevListHtml(d, rows);
+    const ft=sec.querySelector('[data-sd-foot]'); if(ft) ft.textContent=i18t('sd_showing',{n:rows.length,of:d.off.length});
+    sdWireDevControls(sec);
+  }
+  sdWireList(tab);
+}
+function sdWireDevControls(sec){
+  const f=sdDevFilters();
+  sec.querySelectorAll('[data-sd-f]').forEach(s=>s.addEventListener('change',()=>{ f[s.getAttribute('data-sd-f')]=s.value; sdPaintSection('deviations'); }));
+  sec.querySelectorAll('[data-sd-clear]').forEach(b=>b.addEventListener('click',()=>{ Object.assign(f, SD_DEV_DEF); sdPaintSection('deviations'); }));
+}
+/* The list's hands and its panel, per tab: the ids a tab lists, how one row
+   is named, what its panel says and what "open" means for it — the editor
+   for a standard or a book, the contract for a departure. */
+function sdWireList(tab){
+  const d=_sdData; if(!d) return;
+  const mayEdit=_sdMayEdit;
+  const spec={
+    clauses:{ seat:'std:clauses', attr:'data-sd-row', ids:()=>d.lib.map(cl=>String(cl.id)),
+      panel:id=>{ const cl=d.lib.find(x=>String(x.id)===id); return cl?sdClausePanelOpts(cl,d,mayEdit):null; },
+      open:id=>{ if(!mayEdit) return; const i=clauseLibrary().findIndex(x=>String(x.id)===id); if(i>=0) openClauseEditor(i); },
+      host:'sd-panel-clauses', empty:'sd_panel_none_clause' },
+    playbook:{ seat:'std:books', attr:'data-sd-book', ids:()=>d.keys.slice(),
+      panel:id=>(d.pb[id]?sdBookPanelOpts(id,d,mayEdit):null),
+      open:id=>{ if(mayEdit) openPlaybookEditor(id); },
+      host:'sd-panel-books', empty:'sd_panel_none_book' },
+    deviations:{ seat:'std:dev', attr:'data-sd-dev', ids:()=>sdDevRows(d, sdDevFilters()).sort((a,b)=>(stdOpenToChange(b)-stdOpenToChange(a))||sdDevSort(a,b)).map(c=>c.id),
+      panel:id=>{ const c=d.off.find(x=>x.id===id); return c?sdDevPanelOpts(c,d):null; },
+      open:id=>sdOpenContract(id),
+      host:'sd-panel-dev', empty:'sd_panel_none_dev' },
+  }[tab];
+  if(!spec) return;
+  const sec=document.querySelector(`.sd-ins [data-pb-sec="${tab}"]`); if(!sec) return;
+  const tb=sec.querySelector('table.sd-lt tbody');
+  const idOf=t=>t.getAttribute(spec.attr);
+  const id=insPick(spec.seat, spec.ids());
+  if(tb) insMarkRow(tb,'[data-ins-row]',idOf,id);
+  const paint=k=>{
+    const o=k?spec.panel(k):null;
+    if(!o){ insPaintPanel({ host:spec.host, empty:i18t(spec.empty) }); return; }
+    insPaintPanel(o);
+    sdWirePanel(spec.host);
+  };
+  paint(id);
+  const row=id&&tb?tb.querySelector(`[${spec.attr}="${CSS.escape(String(id))}"]`):null;
+  if(row&&typeof row.scrollIntoView==='function'&&!sec.hidden) row.scrollIntoView({ block:'nearest' });
+  if(tb) insListWire(tb,{ rowSel:'[data-ins-row]', idOf,
+    onSelect:k=>{ insSelect(spec.seat,k); insMarkRow(tb,'[data-ins-row]',idOf,k); paint(k); },
+    onOpen:k=>spec.open(k) });
+}
+/* The doors inside a panel: to another tab, to a contract, and the two
+   learned moves — each of them an act that already exists. */
+function sdWirePanel(hostId){
+  const pan=document.getElementById(hostId); if(!pan) return;
+  pan.querySelectorAll('[data-sd-godev]').forEach(b=>b.addEventListener('click',()=>
+    sdGoDev({ id:b.getAttribute('data-sd-godev'), filters:{ std:b.getAttribute('data-sd-cat')||'all' } })));
+  pan.querySelectorAll('[data-sd-devcat]').forEach(b=>b.addEventListener('click',()=>
+    sdGoDev({ filters:{ std:b.getAttribute('data-sd-devcat') } })));
+  pan.querySelectorAll('[data-sd-bookdev]').forEach(b=>b.addEventListener('click',()=>{
+    const k=b.getAttribute('data-sd-bookdev'), cat=b.getAttribute('data-sd-cat');
+    sdGoDev({ filters:{ book:k==='_default'?'all':k, std:cat||'all' } });
+  }));
+  pan.querySelectorAll('[data-sd-gostd]').forEach(b=>b.addEventListener('click',()=>sdGoClause(b.getAttribute('data-sd-gostd'))));
+  pan.querySelectorAll('[data-sd-gobook]').forEach(b=>b.addEventListener('click',()=>sdGoBook(b.getAttribute('data-sd-gobook'))));
+  let L=null;
+  const learned=()=>{ if(!L){ try{ L=stdLearned(); }catch(_){ L=null; } } return L; };
+  const row=k=>((learned()||{}).proposals||[]).find(p=>p.key===k)||null;
+  pan.querySelectorAll('[data-sd-pref]').forEach(b=>b.addEventListener('click',()=>{ const x=row(b.getAttribute('data-sd-pref')); if(x) stdOpenPreferred(x); }));
+  pan.querySelectorAll('[data-sd-fb]').forEach(b=>b.addEventListener('click',()=>{
+    const x=row(b.getAttribute('data-sd-fb')); if(!x) return;
+    const cl=(typeof clauseById==='function')?clauseById(x.clause):null;
+    precedentAdopt(x.key,{ ...x, current:cl?String(cl.fallback||'')||null:null });
+  }));
+}
+/* THE COMPARISON THE OFFER PROMISES, in a window of its own: the classic
+   card's own table (renderStandardsDraft), drawn open. Its moves go through
+   stdOpenPreferred as they always did. */
+function sdOpenDraftCompare(){
+  if(typeof openModal!=='function'||typeof renderStandardsDraft!=='function') return;
+  openModal(`<div style="padding:20px 22px">
+    <div id="standards-draft"></div>
+    <div class="dlg-foot" style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:var(--s-3)">
+      <button type="button" class="ui-btn" data-sd-draft-close>${esc(i18t('act_close'))}</button></div></div>`,
+    { maxWidth:(window.DLG_W&&DLG_W.xl)||'760px' });
+  if(typeof stdDraftSetOpen==='function') stdDraftSetOpen(true);
+  renderStandardsDraft();
+  if(typeof stdDraftSetOpen==='function') stdDraftSetOpen(false);
+  document.querySelector('[data-sd-draft-close]')?.addEventListener('click',()=>closeModal());
+}
+function sdWire(d, mayEdit){
+  _sdData=d; _sdMayEdit=!!mayEdit;
+  pbPaintHead();
+  const root=document.querySelector('.sd-ins'); if(!root) return;
+  root.querySelector('[data-sd-draft-go]')?.addEventListener('click',sdOpenDraftCompare);
+  root.querySelector('[data-sd-draft-no]')?.addEventListener('click',()=>{ _sdOfferGone=true; root.querySelector('[data-sd-offer]')?.remove(); });
+  const dev=root.querySelector('[data-pb-sec="deviations"]'); if(dev) sdWireDevControls(dev);
+  PB_PAGE_TABS.forEach(sdWireList);
+}
+
+Object.assign(window,{pbInsMounted,pbPaintHead,sdData,sdHeads,sdFirm,sdLimitWords,sdLegalLine,sdClausePanelOpts,sdBookPanelOpts,sdDevPanelOpts,sdDevRows,sdDevFilters,SD_DEV_DEF,SD_DEV_CHIPS,SD_WHERE_MAX,sdPaintSection,sdGoTab,sdGoBook,sdGoClause,sdGoDev,sdCheckAgain,sdOpenDraftCompare,
+  tplOvFit,HATI_SAMPLES,openBlanksEditor,_tplPreviewHtml,_tplSourceLabel,_richSelection,_richReplaceRange,
   templateVersionNo,templateVersions,templateUsage,templateUsageLabel,saveTemplateVersion,
   openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,tplMakeItOurs,tplBuiltinDraftBody,tplBuiltinKey,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplHealthData,tplHealthHtml,TPL_HEALTH_ROWS,tplPageRefilter,tplRowContracts,tplBookHtml,tplBookRepaint,TPL_BOOK_SECS,tplOvCardHtml,tplOvPanelsHtml,tplOvRateInk,bucketStreamName,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,tplRowPile,tplRowWants,TPL_PILES,tplRowMoreMenu,tplPageRowHtml,tplPageFiltered,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});
