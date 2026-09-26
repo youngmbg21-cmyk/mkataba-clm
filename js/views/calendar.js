@@ -459,9 +459,9 @@ function calLegendHtml(){
    only the arrows carried is on their titles as it always was. */
 function calMonthStepHtml(y, m){
   return `<span class="cal-sel">
-      <button id="cal-prev" title="${_esc(i18t('cal_prev_month'))}" aria-label="${_esc(i18t('cal_prev_month'))}">&lsaquo;</button>
+      <button id="cal-prev" title="${_esc(i18t('cal_prev_month'))}" aria-label="${_esc(i18t('cal_prev_month'))}">${icon('chevL','w-3.5 h-3.5')}</button>
       <button id="cal-today" class="cal-sel-now">${_esc(calMonthName(y,m))}</button>
-      <button id="cal-next" title="${_esc(i18t('cal_next_month'))}" aria-label="${_esc(i18t('cal_next_month'))}">&rsaquo;</button>
+      <button id="cal-next" title="${_esc(i18t('cal_next_month'))}" aria-label="${_esc(i18t('cal_next_month'))}">${icon('chevR','w-3.5 h-3.5')}</button>
     </span>`;
 }
 
@@ -704,7 +704,7 @@ function calPanelHtml(evs){
       ? window.emptyStateHtml({ title:i18t('cal_nothing_due',{n:win}), sub:i18t('cal_nothing_due_sub') })
       : `<div class="cal-empty-t">${_esc(i18t('cal_nothing_due',{n:win}))}</div>`
         + `<div class="cal-empty-s">${_esc(i18t('cal_nothing_due_sub'))}</div>`}</div>`}</div>
-    <div class="cal-panel-foot"><button class="cal-link" id="cal-open-reg">${_esc(i18t('cal_open_register'))} →</button></div>
+    <div class="cal-panel-foot"><button class="cal-link" id="cal-open-reg">${_esc(i18t('cal_open_register'))}${icon('chevR','w-3.5 h-3.5')}</button></div>
   </section>`;
 }
 
@@ -765,9 +765,9 @@ function renderCalendar(){
                handler; only the shape and the place moved. */}
         <span class="cal-seg cal-seg-view">${seg('month',i18t('cal_v_month'),view==='month'?inPeriod:null)}${seg('horizon',i18t('cal_v_horizon'),null)}</span>
         <span class="cal-seg">${scopeSeg('all',i18t('cal_all_dates'))}${scopeSeg('mine',i18t('cal_mine'))}</span>
-        <button class="ui-btn ui-btn-lg" id="cal-export" title="${_esc(i18t('cal_export_title'))}">${icon('download','w-3.5 h-3.5')} ${_esc(i18t('cal_export'))}</button>
-        <button class="ui-btn ui-btn-lg" id="cal-share" title="${_esc(i18t('cal_share_title'))}">${icon('share','w-3.5 h-3.5')} ${_esc(i18t('cal_share'))}</button>
-        <button class="ui-btn ui-btn-lg ui-btn-plain" id="cal-more" aria-haspopup="true" aria-expanded="false">${_esc(i18t('ct_more'))} <span aria-hidden="true">▾</span></button>
+        <button class="ui-btn" id="cal-export" title="${_esc(i18t('cal_export_title'))}">${icon('download','w-3.5 h-3.5')} ${_esc(i18t('cal_export'))}</button>
+        <button class="ui-btn" id="cal-share" title="${_esc(i18t('cal_share_title'))}">${icon('share','w-3.5 h-3.5')} ${_esc(i18t('cal_share'))}</button>
+        <button class="ui-btn ui-btn-plain" id="cal-more" aria-haspopup="true" aria-expanded="false">${_esc(i18t('ct_more'))}${icon('chevD','w-3.5 h-3.5')}</button>
         <div id="cal-more-menu" class="cal-menu" hidden>
           <button data-cal-act="print">${_esc(i18t('cal_print'))}</button>
           <button data-cal-act="register">${_esc(i18t('cal_open_register'))}</button>
@@ -881,21 +881,22 @@ function calStyleCss(){ return `
          AND THE HALVES STRETCH, which is `.doc-read-seg`'s own mechanism and
          the answer the seat switch took on 19 Sep 2026; never a second set of
          heights, which would have to be kept in step with this one for ever. */}
-  .cal-seg{display:inline-flex;align-items:stretch;border:1px solid var(--color-divider);height:28px;
+  .cal-seg{display:inline-flex;align-items:stretch;border:1px solid var(--color-divider);height:var(--ctl-h);
     border-radius:var(--radius);overflow:hidden;flex:none;align-self:center}
   ${''/* The view switch's halves are anchors (the seg builder's own markup,
          so the keyboard door and the handler are unchanged); the scope
          switch's are spans. ONE rule dresses both, or the two segments
          standing beside each other would not match. */}
-  .cal-seg span,.cal-seg a,.cal-seg button{display:flex;align-items:center;height:100%;padding:0 var(--s-3);font-size:var(--t-meta);
-    color:var(--color-neutral-600);cursor:pointer;border:0;background:none;font-family:inherit}
+  .cal-seg span,.cal-seg a,.cal-seg button{display:flex;align-items:center;height:100%;padding:0 var(--pad-ctl-x);font-size:var(--t-body);
+    font-weight:var(--w-label);color:var(--color-neutral-600);cursor:pointer;border:0;background:none;font-family:inherit}
   /* accent-700, not the lighter step: white on accent-600 measures 3.74:1 and
      this is 13px. The darker step reads in both workspace accents. */
   .cal-seg span.on,.cal-seg a.on,.cal-seg button.on{background:var(--color-accent-700);color:#fff;font-weight:var(--w-title)}
   .cal-seg a .c{font-size:var(--t-micro);font-variant-numeric:tabular-nums;opacity:.85}
   .cal-sel{display:inline-flex;align-items:center;gap:2px;flex:none;align-self:center}
   .cal-sel button{border:0;background:none;font:inherit;font-size:var(--t-body);color:var(--color-text);
-    cursor:pointer;padding:var(--s-1) var(--s-2);line-height:1.2}
+    cursor:pointer;padding:0 var(--s-2);line-height:1.2;display:inline-flex;align-items:center;min-height:var(--tap-min);border-radius:var(--radius)}
+  .cal-sel button:hover{background:var(--surface-2)}
   .cal-sel button:hover{color:var(--accent-ink)}
   .cal-sel-now{white-space:nowrap;font-variant-numeric:tabular-nums}
   /* ---- THE PAGE MEASURE, SHARED WITH THE BANDS ABOVE ---- */
@@ -1092,8 +1093,8 @@ function calStyleCss(){ return `
   .cal-days:not(.cal-seg):hover{border-color:var(--accent-ink)}
   /* Four numerals and nothing else, so the group is narrow enough to sit in a
      card head beside its own heading. */
-  .cal-seg-days{height:24px}
-  .cal-seg-days button{padding:0 9px;font-variant-numeric:tabular-nums}
+  .cal-seg-days{height:var(--ctl-h-sm)}
+  .cal-seg-days button{padding:0 var(--pad-ctl-x-sm);font-size:var(--t-meta);font-variant-numeric:tabular-nums}
   /* The cap, stated only while it bites. */
   .cal-panel-cap{flex:none;padding:7px 14px;font-size:var(--t-label);
     color:var(--color-neutral-600);background:var(--nav-well);
@@ -1122,8 +1123,10 @@ function calStyleCss(){ return `
   .cal-theirs{flex:none;font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.04em;text-transform:uppercase;
     padding:1px var(--s-1);background:var(--st-amber-bg);color:var(--st-amber-fg)}
   .cal-panel-foot{flex:none;padding:11px 14px}
-  .cal-link{border:0;background:none;font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);
-    color:var(--accent-ink-700);cursor:pointer;padding:0}
+  .cal-link{border:0;background:none;font:inherit;font-size:var(--t-body);font-weight:var(--w-label);
+    color:var(--accent-ink);cursor:pointer;padding:0 4px;min-height:var(--tap-min);display:inline-flex;align-items:center;gap:4px;border-radius:var(--radius)}
+  .cal-link:hover{background:color-mix(in srgb,var(--accent-solid) 10%,transparent)}
+  .cal-link > svg{width:var(--btn-ic);height:var(--btn-ic);flex:none}
   html.dark .cal-link,html.dark .cal-upn-done,html.dark .cal-more{color:var(--color-accent-300)}
   .cal-empty{padding:22px 14px;text-align:center}
   .cal-empty-t{font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text)}
@@ -1294,7 +1297,7 @@ function openCalendarShare(evs){
     <div class="rvd-body">
       <label class="rvd-opt" style="display:block">
         <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600);margin-bottom:5px">${_esc(i18t('cal_share_who'))}</span>
-        <select id="cal-share-who" style="width:100%;padding:var(--s-2) 10px;border:1px solid var(--color-divider);border-radius:var(--radius);font:inherit;font-size:var(--t-body);background:var(--color-surface);color:var(--color-text)">
+        <select id="cal-share-who" style="width:100%;border:1px solid var(--color-divider);border-radius:var(--radius);font:inherit;background:var(--color-surface);color:var(--color-text);height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
           ${people.map(u=>`<option value="${_esc(u.id)}">${_esc(u.name)} — ${_esc(u.email)}</option>`).join('')}
         </select>
       </label>

@@ -273,18 +273,18 @@ function ikRowHtml(r, opts={}){
   const me=currentUser();
   const isMine=!!(me&&r.by&&r.by.id===me.id);
   const acts=[];
-  if(may&&r.status==='open') acts.push(`<button class="ui-btn" data-ik-draft="${esc(r.id)}" style="font-size:var(--t-label);padding:var(--s-1) 10px">${i18t('ik_act_draft')}</button>`);
+  if(may&&r.status==='open') acts.push(`<button class="ui-btn ui-btn-sm" data-ik-draft="${esc(r.id)}">${i18t('ik_act_draft')}</button>`);
   /* S4's two doors, and they only exist for somebody who could act on it.
      "Pick it up" puts the presser's own name on the row — never a picker of
      colleagues, because holding a request is something you do, not something
      you assign to somebody else. */
-  if(may&&IK_LIVE.includes(r.status)) acts.push(`<button class="ui-btn" data-ik-pick="${esc(r.id)}" style="font-size:var(--t-label);padding:var(--s-1) 10px">${
+  if(may&&IK_LIVE.includes(r.status)) acts.push(`<button class="ui-btn ui-btn-sm" data-ik-pick="${esc(r.id)}">${
     esc(r.assignee&&me&&r.assignee.id===me.id?i18t('ik_act_drop'):i18t('ik_act_pick'))}</button>`);
-  if(may&&IK_LIVE.includes(r.status)) acts.push(`<button class="ui-btn" data-ik-promise="${esc(r.id)}" style="font-size:var(--t-label);padding:var(--s-1) 10px">${
+  if(may&&IK_LIVE.includes(r.status)) acts.push(`<button class="ui-btn ui-btn-sm" data-ik-promise="${esc(r.id)}">${
     esc(r.promisedAt?i18t('ik_act_repromise'):i18t('ik_act_promise'))}</button>`);
-  if(may&&r.status==='open') acts.push(`<button class="ui-btn" data-ik-decline="${esc(r.id)}" style="font-size:var(--t-label);padding:var(--s-1) 10px">${i18t('ik_act_decline')}</button>`);
-  if(r.contractId) acts.push(`<button class="ui-btn" data-ik-open="${esc(r.contractId)}" style="font-size:var(--t-label);padding:var(--s-1) 10px">${i18t('ik_act_open')}</button>`);
-  if(isMine&&IK_LIVE.includes(r.status)) acts.push(`<button class="ui-btn" data-ik-withdraw="${esc(r.id)}" style="font-size:var(--t-label);padding:var(--s-1) 10px">${i18t('ik_act_withdraw')}</button>`);
+  if(may&&r.status==='open') acts.push(`<button class="ui-btn ui-btn-sm" data-ik-decline="${esc(r.id)}">${i18t('ik_act_decline')}</button>`);
+  if(r.contractId) acts.push(`<button class="ui-btn ui-btn-sm" data-ik-open="${esc(r.contractId)}">${i18t('ik_act_open')}</button>`);
+  if(isMine&&IK_LIVE.includes(r.status)) acts.push(`<button class="ui-btn ui-btn-sm" data-ik-withdraw="${esc(r.id)}">${i18t('ik_act_withdraw')}</button>`);
   return `<article class="ik-row" style="border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);padding:var(--s-3) 14px;display:grid;grid-template-columns:minmax(0,1fr) max-content;gap:6px 18px;align-items:start">
     <div style="grid-column:1;display:flex;flex-direction:column;gap:6px;min-width:0">
       <div style="display:flex;align-items:baseline;gap:9px;flex-wrap:wrap">
@@ -325,7 +325,7 @@ function ikClockHtml(r){
     ${ikFactHtml(i18t('ik_f_with'), r.assignee&&r.assignee.name?esc(r.assignee.name):'', 'ink')}
     ${ikFactHtml(i18t('ik_f_promised'), p?esc(p.text):'', p?p.tone:'ink')}
     ${url?`<button data-ik-track="${esc(r.id)}" title="${esc(i18t('ik_track_title'))}"
-      style="border:0;background:none;font:inherit;font-size:var(--t-meta);color:var(--accent-ink);cursor:pointer;padding:0;margin-top:15px;white-space:nowrap">${esc(i18t('ik_track'))}</button>`:''}
+      class="ui-link" style="margin-top:15px">${esc(i18t('ik_track'))}</button>`:''}
   </div>`;
 }
 
@@ -355,7 +355,7 @@ function openIntakeForm(pre){
     <label style="display:block;margin-bottom:10px"><span style="${LBL}">${i18t('ik_f_title')}</span>
       <input id="ik-title" value="${esc(String((pre&&pre.title)||''))}" style="${FLD}" placeholder="${esc(i18t('ik_f_title_ph'))}" maxlength="200"/></label>
     <label style="display:block;margin-bottom:10px"><span style="${LBL}">${i18t('ik_f_need')}</span>
-      <textarea id="ik-need" rows="5" style="${FLD};resize:vertical" placeholder="${esc(i18t('ik_f_need_ph'))}" maxlength="4000">${esc(String((pre&&pre.need)||''))}</textarea></label>
+      <textarea id="ik-need" rows="5" style="${FLD};height:auto;resize:vertical" placeholder="${esc(i18t('ik_f_need_ph'))}" maxlength="4000">${esc(String((pre&&pre.need)||''))}</textarea></label>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <label style="flex:1;min-width:170px"><span style="${LBL}">${i18t('ik_f_who')}</span>
         <input id="ik-cp" style="${FLD}" maxlength="200"/></label>
@@ -367,8 +367,8 @@ function openIntakeForm(pre){
     </div>
     <p id="ik-err" style="font-size:var(--t-meta);color:var(--st-ruby-fg);min-height:16px;margin:var(--s-2) 0 0"></p>
     <div style="display:flex;gap:var(--s-2);justify-content:flex-end;margin-top:10px">
-      <button id="ik-cancel" class="ui-btn" style="font-size:var(--t-meta);padding:7px 14px">${i18t('act_cancel')}</button>
-      <button id="ik-send" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:7px 14px">${i18t('ik_send')}</button>
+      <button id="ik-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      <button id="ik-send" class="ui-btn ui-btn-primary">${i18t('ik_send')}</button>
     </div>
   </div>`,{maxWidth:'560px'});
   document.getElementById('ik-cancel')?.addEventListener('click',()=>closeModal());
@@ -451,8 +451,8 @@ async function intakeDraft(id){
         ${ids.map(t=>`<option value="${esc(t)}"${pick&&pick.id===t?' selected':''}>${esc(TEMPLATES[t].name)}</option>`).join('')}
       </select></label>
     <div style="display:flex;gap:var(--s-2);justify-content:flex-end">
-      <button id="ik-d-cancel" class="ui-btn" style="font-size:var(--t-meta);padding:7px 14px">${i18t('act_cancel')}</button>
-      <button id="ik-d-go" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:7px 14px">${i18t('ik_create_draft')}</button>
+      <button id="ik-d-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      <button id="ik-d-go" class="ui-btn ui-btn-primary">${i18t('ik_create_draft')}</button>
     </div>
   </div>`,{maxWidth:'560px'});
   const restore=()=>{ const b=document.querySelector(`[data-ik-draft="${CSS.escape(id)}"]`); if(b){ b.disabled=false; b.textContent=i18t('ik_act_draft'); } };
@@ -626,7 +626,7 @@ function renderIntake(){
         <div style="flex:1;min-width:220px">
           <p style="font-size:var(--t-body);color:var(--color-neutral-600);line-height:1.6;margin:0">${esc(may?i18t('ik_lead_editor'):i18t('ik_lead_asker'))}</p>
         </div>
-        <button id="ik-new" class="ui-btn ui-btn-primary" style="font-size:var(--t-body);padding:var(--s-2) 15px;flex:none">${i18t('ik_ask_btn')}</button>
+        <button id="ik-new" class="ui-btn ui-btn-primary" style="flex:none">${i18t('ik_ask_btn')}</button>
       </section>
       ${may?`<section>
         ${''/* ---- THE HEADING CARRIES THE CLOCK (S4) ----

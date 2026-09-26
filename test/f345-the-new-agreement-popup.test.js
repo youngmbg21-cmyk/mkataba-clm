@@ -187,11 +187,18 @@ describe('f345 (4) the clothes and the words', () => {
     assert.match(HTML, /\.na-card-h\{ display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid var\(--color-divider\); \}/);
     assert.ok(!/\.na-[a-z-]*\{[^}]*!important/.test(HTML), 'never !important');
   });
+  /* RE-POINTED IN PLACE 26 Sep 2026 (the Compact ladder, Young picked it).
+     The claim — all three forms read ONE field-height token — is unchanged.
+     What moved: the token is the everyday button's own rung now
+     (--field-h:var(--ctl-h), 28), because rule 2 of the button review is that
+     a text box and the button beside it are one height; and a one-line box
+     takes that as its HEIGHT rather than a floor, or a box would still grow
+     past the button beside it. The fallback is the rung's own 28. */
   test('the three creation forms read the field-height token', () => {
-    assert.match(TF, /min-height:var\(--field-h,36px\)/);
-    assert.match(region(LIB, 'openTemplateFillModal'), /min-height:var\(--field-h,36px\)/);
-    assert.match(WZ, /const WZ_ST='width:100%;min-height:var\(--field-h,36px\)/);
-    assert.match(HTML, /--field-h:32px/);
+    assert.match(TF, /height:var\(--field-h,28px\)/);
+    assert.match(region(LIB, 'openTemplateFillModal'), /height:var\(--field-h,28px\)/);
+    assert.match(WZ, /const WZ_ST='width:100%;height:var\(--field-h,28px\)/);
+    assert.match(HTML, /--field-h:var\(--ctl-h\)/, 'a box is the everyday button\'s height, said once');
   });
   test('every word is in both books, and differently', () => {
     const KEYS = ['na_title', 'na_sub', 'na_describe', 'na_find', 'na_find_hint', 'na_company', 'na_saved', 'na_hati', 'na_go',

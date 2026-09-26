@@ -987,6 +987,12 @@ function textToRich(text){
    filed, and through which funnel, belongs to the host. That is what keeps this
    out of the second-door problem: the bar is a set of hands, not a way in.
    ========================================================================== */
+/* A DRAWN CARET for the bar's two pickers (the Compact ladder, 26 Sep 2026 —
+   rule 5 of the button review: drawn icons only, no typed arrows). It was the
+   character U+25BE, which every font draws at its own size and weight. Kept
+   OUT of RICH_BAR_ICON on purpose: that set is the bar's nine tools, all
+   authored 15 wide so one rule scales them by exactly 1.2 (f266). */
+const RICH_BAR_CARET = '<svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>';
 const RICH_BAR_ICON = {
   ul:'<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><circle cx="3" cy="4" r="1.1" fill="currentColor" stroke="none"/><circle cx="3" cy="8" r="1.1" fill="currentColor" stroke="none"/><circle cx="3" cy="12" r="1.1" fill="currentColor" stroke="none"/><path d="M6.5 4h7M6.5 8h7M6.5 12h7"/></svg>',
   ol:'<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M6.5 4h7M6.5 8h7M6.5 12h7"/><text x="0.6" y="5.6" font-size="5" fill="currentColor" stroke="none">1</text><text x="0.6" y="9.6" font-size="5" fill="currentColor" stroke="none">2</text><text x="0.6" y="13.6" font-size="5" fill="currentColor" stroke="none">3</text></svg>',
@@ -1043,7 +1049,7 @@ function richBarHtml(opts){
       out.push(`<button type="button" class="${cls}-size" data-rb-size-open="1"`
         + ` title="${_rbA(_rbT('rb_size'))}" aria-label="${_rbA(_rbT('rb_size'))}" tabindex="-1">`
         + `<span class="${cls}-size-v" data-rb-size-val>${_rbA(String(size))}</span>`
-        + `<span class="${cls}-car">&#9662;</span></button>`);
+        + `<span class="${cls}-car">${RICH_BAR_CARET}</span></button>`);
       return;
     }
     const tip = _rbA(_rbT(it.tip));
@@ -1053,7 +1059,7 @@ function richBarHtml(opts){
       out.push(`<button type="button" class="${cls}-btn ${cls}-wide" data-rb-pick="${it.k}"`
         + ` title="${tip}" aria-label="${tip}" tabindex="-1">${swatch}`
         + `<span class="${cls}-sw ${richMarkDefault(it.k)}" data-rb-sw="${it.k}"></span>`
-        + `<span class="${cls}-car">&#9662;</span></button>`);
+        + `<span class="${cls}-car">${RICH_BAR_CARET}</span></button>`);
       return;
     }
     const face = it.glyph || RICH_BAR_ICON[it.icon] || '';

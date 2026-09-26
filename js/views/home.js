@@ -245,7 +245,7 @@ function gettingStartedHtml(){
         <span style="display:block;font-size:var(--t-body);font-weight:var(--w-strong);color:${tone};${s.done?'text-decoration:line-through;text-decoration-color:var(--color-neutral-400);':''}">${s.t}</span>
         ${isCur?`<span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.45">${s.d}</span>`:''}
       </span>
-      ${isCur&&(s.k!=='sign'||gsGoTargetExists(s.k))?`<span style="flex:none;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--accent-ink-700)">${i18t('home_go')}</span>`:''}`;
+      ${isCur&&(s.k!=='sign'||gsGoTargetExists(s.k))?`<span style="flex:none;display:inline-flex;align-items:center;gap:2px;font-size:var(--t-body);font-weight:var(--w-label);color:var(--accent-ink)">${i18t('home_go')}${icon('chevR','w-3.5 h-3.5')}</span>`:''}`;
     /* The whole current row is the button — a target the size of the step,
        not a link the size of an arrow. */
     return isCur&&(s.k!=='sign'||gsGoTargetExists(s.k))
@@ -258,7 +258,7 @@ function gettingStartedHtml(){
         <h2 style="margin:0;font-family:var(--font-heading);font-weight:var(--w-title);font-size:var(--t-card);color:var(--color-text)">${all?'You’re set up — first contract signed ⚡':'Getting started'}</h2>
         <span style="font-size:var(--t-label);color:var(--color-neutral-600);font-family:var(--font-mono)">${done} of ${steps.length} done</span>
         <span style="flex:1"></span>
-        <button id="gs-dismiss" class="ui-btn" title="${i18t('home_hide_checklist')}" style="font-size:var(--t-label);padding:3px 10px">${all?'Done — hide this':'Hide'}</button>
+        <button id="gs-dismiss" class="ui-btn ui-btn-sm" title="${i18t('home_hide_checklist')}">${all?'Done — hide this':'Hide'}</button>
       </div>
       <div style="height:6px;border-radius:var(--radius);background:var(--color-neutral-100);margin-bottom:10px"><i style="display:block;height:100%;border-radius:var(--radius);background:var(--color-accent);width:${Math.round(done/steps.length*100)}%"></i></div>
       ${all?`<p style="margin:0;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.55">Your workspace has done the whole journey — a contract in, scanned, sent and signed. Everything from here is more of the same.</p>`:rows}

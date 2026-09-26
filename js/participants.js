@@ -456,7 +456,7 @@ function participantsPanelHtml(carrier, opts){
   return `<div class="pt-list${o.reached ? ' has-reached' : ''}">
     ${(list.length || auto.length) ? head + rows : `<p class="pt-none">${_ptEsc(i18t('ppl_none'))}</p>`}
     ${ed ? `<div class="pt-acts"><button type="button" class="ui-btn" data-pt-add="1">${
-      _ptEsc(i18t('ppl_add'))}</button></div>` : ''}
+      (typeof window!=='undefined'&&window.plusLed) ? window.plusLed(_ptEsc(i18t('ppl_add'))) : _ptEsc(i18t('ppl_add'))}</button></div>` : ''}
   </div>`;
 }
 /* ONE LISTENER PER MOUNT, bound once per element — the section grammar's own

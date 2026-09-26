@@ -670,12 +670,12 @@ function openMetaReview(meta, onConfirm, opts={}){
     const ring = low ? 'border-gold-400 bg-gold-500/5' : 'border-inputln bg-white';
     if(f.type==='select'){
       return `<label class="block"><span class="text-[11px] font-600 text-ink/70">${f.label}${badge(c[f.k])}</span>
-        <select data-mf="${f.k}" class="mt-1 w-full rounded-lg border ${ring} px-2.5 py-2 text-sm outline-none focus:border-brand-500">
+        <select data-mf="${f.k}" class="mt-1 w-full rounded-lg border ${ring} ui-fld outline-none focus:border-brand-500">
           ${f.opts.map(o=>`<option value="${o}" ${v===o?'selected':''}>${metaOptLabel(o)}</option>`).join('')}</select>${spanLine(f.k)}${checkLine(f.k)}</label>`;
     }
     const it = f.type==='date'?'date':(f.type==='num'?'number':'text');
     return `<label class="block"><span class="text-[11px] font-600 text-ink/70">${f.label}${badge(c[f.k])}</span>
-      <input data-mf="${f.k}" type="${it}" value="${String(v).replace(/"/g,'&quot;')}" class="mt-1 w-full rounded-lg border ${ring} px-2.5 py-2 text-sm outline-none focus:border-brand-500"/>${spanLine(f.k)}${checkLine(f.k)}</label>`;
+      <input data-mf="${f.k}" type="${it}" value="${String(v).replace(/"/g,'&quot;')}" class="mt-1 w-full rounded-lg border ${ring} ui-fld outline-none focus:border-brand-500"/>${spanLine(f.k)}${checkLine(f.k)}</label>`;
   };
   openModal(`
     <div class="p-6 max-w-lg">
@@ -687,9 +687,9 @@ function openMetaReview(meta, onConfirm, opts={}){
         <span>${String(opts.ocrNotice).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))} Every field below is capped at <b>medium</b> confidence until you confirm it.</span></div>`:''}
       <div class="grid grid-cols-2 gap-3" style="max-height:min(52vh,460px);overflow-y:auto;padding-right:var(--s-1)">${META_FIELDS.map(field).join('')}</div>
       <div class="flex justify-end gap-2 mt-5">
-        ${queued?`<button id="mr-stop" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50" style="margin-right:auto">${i18t('me_stop')}</button>`:''}
-        <button id="mr-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${queued?i18t('me_skip_this'):i18t('act_cancel')}</button>
-        <button id="mr-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${opts.saveLabel||'Confirm & save'}</button>
+        ${queued?`<button id="mr-stop" class="ui-btn" style="margin-right:auto">${i18t('me_stop')}</button>`:''}
+        <button id="mr-cancel" class="ui-btn">${queued?i18t('me_skip_this'):i18t('act_cancel')}</button>
+        <button id="mr-save" class="ui-btn ui-btn-primary">${opts.saveLabel||'Confirm & save'}</button>
       </div>
     </div>`);
   // A scrim click closes the modal (openModal wiring) without telling the

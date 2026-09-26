@@ -87,8 +87,8 @@ function openFolderAccessEditor(userId){
       <input type="checkbox" id="fa-all" ${isAll?'checked':''} style="width:16px;height:16px;accent-color:var(--color-accent)"/> ${i18t('set_all_streams')}</label>
     <div id="fa-list" style="display:${isAll?'none':'grid'};grid-template-columns:1fr;gap:6px;max-height:300px;overflow:auto;margin-bottom:14px">${folders.map(fRow).join('')}</div>
     <div class="flex justify-end gap-2">
-      <button id="fa-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_cancel')}</button>
-      <button id="fa-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${i18t('set_save_access')}</button></div>
+      <button id="fa-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      <button id="fa-save" class="ui-btn ui-btn-primary">${i18t('set_save_access')}</button></div>
   </div>`);
   const allBox=document.getElementById('fa-all'), list=document.getElementById('fa-list');
   allBox.addEventListener('change',()=>{ list.style.display=allBox.checked?'none':'grid'; });
@@ -258,7 +258,7 @@ function settingsPaintShapeBoxes(){
    place a control's clothes are decided. */
 const ST_CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius-lg);padding:var(--s-4)';
 const ST_H4='font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-card);margin:0 0 6px;color:var(--color-text)';
-const ST_INPUT='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:6px 9px;font:inherit;font-size:var(--t-body);color:inherit;outline:none';
+const ST_INPUT='width:100%;height:var(--field-h);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);color:inherit;outline:none';
 const ST_MONO='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:5px var(--s-2);font-family:var(--font-mono);font-size:var(--t-label);color:inherit;outline:none';
 const ST_BTN='font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-body);padding:6px 14px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:var(--radius);cursor:pointer;white-space:nowrap';
 const ST_BTN_SM='font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-meta);padding:5px var(--s-3);background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:var(--radius);cursor:pointer';
@@ -432,7 +432,7 @@ function stDrawerPaint(d){
          <span class="st-dcrumb-n">${esc(i18t('st_panel_pos',{n:place.n,total:place.total}))}</span>
        </div>` : '';
   document.getElementById('st-dhead').innerHTML=
-    `${crumb}${head}<button class="st-dx" data-st-dclose title="${esc(i18t('st_close_drawer'))}" aria-label="${esc(i18t('st_close_drawer'))}">✕</button>`;
+    `${crumb}${head}<button class="st-dx" data-st-dclose title="${esc(i18t('st_close_drawer'))}" aria-label="${esc(i18t('st_close_drawer'))}">${icon('x')}</button>`;
   const ttl=el.querySelector('.rvd-title'); if(ttl && !ttl.id) ttl.id='st-drawer-title';
   document.getElementById('st-dbody').innerHTML=d.body||'';
   /* THE REFUSAL SITS IN THE FOOT, NOT AT THE TOP OF THE BODY, and that is a
@@ -911,7 +911,7 @@ function stPeopleHtml(){
   return `${banner}
     <div class="st-people-head">
       <span class="st-people-count">${i18tn('st_people_count',users.length,{n:users.length})}</span>
-      <button id="st-add-person" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:5px var(--s-3)" data-st-panel="person:new">${i18t('st_add_person')}</button>
+      <button id="st-add-person" class="ui-btn ui-btn-primary" data-st-panel="person:new">${i18t('st_add_person')}</button>
     </div>
     <div class="st-people">${rows}</div>`;
 }
@@ -1825,7 +1825,7 @@ async function stHooksAdd(){
       <p class="st-note" style="margin:0 0 10px">${esc(i18t('st_hooks_secret_msg'))}</p>
       <div style="font-family:var(--font-mono);font-size:var(--t-body);background:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius);padding:10px var(--s-3);word-break:break-all;user-select:all">${esc(r.secret)}</div>
       <div style="display:flex;justify-content:flex-end;margin-top:var(--s-3)">
-        <button id="wh-done" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:7px 14px">${i18t('ts_done')}</button>
+        <button id="wh-done" class="ui-btn ui-btn-primary">${i18t('ts_done')}</button>
       </div></div>`,{ maxWidth: DLG_W.m });
     document.getElementById('wh-done')?.addEventListener('click',()=>closeModal());
   }catch(e){ stDrawerRefuse((e&&e.message)||i18t('co_settings_save_failed')); }
@@ -1931,7 +1931,7 @@ async function stTwoStepToggle(){
     <p id="ts-err" class="st-note" style="color:var(--st-ruby-fg);min-height:16px;margin:6px 0 0"></p>
     <div style="display:flex;gap:var(--s-2);justify-content:flex-end;margin-top:var(--s-3)">
       <button id="ts-cancel" style="${ST_BTN2}">${i18t('act_cancel')}</button>
-      <button id="ts-confirm" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:7px 14px">${i18t('ts_confirm')}</button>
+      <button id="ts-confirm" class="ui-btn ui-btn-primary">${i18t('ts_confirm')}</button>
     </div>
   </div>`,{ maxWidth: DLG_W.m });
   document.getElementById('ts-cancel')?.addEventListener('click',()=>closeModal());
@@ -1950,7 +1950,7 @@ async function stTwoStepToggle(){
           ${(r.recovery||[]).map(cd=>`<span style="background:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius);padding:6px 10px;text-align:center">${esc(cd)}</span>`).join('')}
         </div>
         <div style="display:flex;justify-content:flex-end;margin-top:14px">
-          <button id="ts-done" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:7px 14px">${i18t('ts_done')}</button>
+          <button id="ts-done" class="ui-btn ui-btn-primary">${i18t('ts_done')}</button>
         </div>
       </div>`,{ maxWidth: DLG_W.m });
       document.getElementById('ts-done')?.addEventListener('click',()=>{ closeModal(); toast(i18t('ts_on_done'),'ok'); openMyAccount(); });
@@ -2991,7 +2991,7 @@ function stPaintFolders(){
                 :`<span class="st-fname" data-st-fixed="1">${esc(f.name)}</span>`}
       <span class="st-fmeta">${i18tn('st_p_folders_count',n,{n})} · ${f.local?esc(i18t('st_p_folders_thisbrowser')):i18t('st_p_folders_seen',{n:seers(f.id),total:users.length})}</span>
       ${f.custom&&f.local?`<button class="st-fshare" data-st-fshare="${PB_ATTR(f.id)}" title="${esc(i18t('st_p_folders_share_t'))}">${esc(i18t('st_p_folders_share'))}</button>`:''}
-      ${f.custom?`<button class="st-fdel" data-st-fdel="${PB_ATTR(f.id)}" title="${esc(i18t('act_remove'))}">✕</button>`
+      ${f.custom?`<button class="st-fdel" data-st-fdel="${PB_ATTR(f.id)}" title="${esc(i18t('act_remove'))}" aria-label="${esc(i18t('act_remove'))}">${icon('x','w-3.5 h-3.5')}</button>`
                 :`<span class="st-fmeta" style="opacity:.7">${esc(i18t('st_p_folders_builtin'))}</span>`}
     </div>`;
   }).join('');
@@ -3048,7 +3048,7 @@ function stPaintCategories(){
       ${c.custom?`<input class="st-fname" data-st-crename="${PB_ATTR(c.id)}" value="${PB_ATTR(c.name)}"/>`
                 :`<span class="st-fname" data-st-fixed="1">${esc(c.name)}</span>`}
       <span class="st-fmeta">${n==null?'':esc(i18tn('st_p_cats_used',n,{n}))}</span>
-      ${c.custom?`<button class="st-fdel" data-st-cdel="${PB_ATTR(c.id)}" title="${esc(i18t('act_remove'))}">✕</button>`
+      ${c.custom?`<button class="st-fdel" data-st-cdel="${PB_ATTR(c.id)}" title="${esc(i18t('act_remove'))}" aria-label="${esc(i18t('act_remove'))}">${icon('x','w-3.5 h-3.5')}</button>`
                 :`<span class="st-fmeta" style="opacity:.7">${esc(i18t('st_p_folders_builtin'))}</span>`}
     </div>`;
   }).join('');
@@ -3425,7 +3425,7 @@ function stEngineBodyHtml(){
           <input id="ai-key" type="password" placeholder="sk-ant-…" style="${window.RV_FLD||ST_INPUT}"/></label>
         <button id="ai-key-save" style="${ST_BTN}">${i18t('set_save_key')}</button>
       </div>
-      <button id="ai-key-clear" disabled aria-disabled="true" style="margin-top:6px;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--st-ruby-dot);background:none;border:0;cursor:default;opacity:.5;padding:0">${i18t('set_remove_key')}</button>
+      <button id="ai-key-clear" type="button" disabled aria-disabled="true" class="ui-link ui-link-danger" style="margin-top:6px;cursor:default;opacity:.5">${i18t('set_remove_key')}</button>
       <p class="st-note" style="margin-top:var(--s-3)">${i18t('set_local_mode_note')}</p>
       ${''/* THE ACCEPTANCE READING IS DRAWN HERE TOO, and that is the one-builder
              rule rather than a convenience: it counts the book in the browser and
@@ -3442,7 +3442,7 @@ function stEngineBodyHtml(){
         <input id="ai-key" type="password" placeholder="sk-ant-…" style="${window.RV_FLD||ST_INPUT}"/></label>
       <button id="ai-key-save" style="${ST_BTN}">${i18t('set_save_key')}</button>
     </div>
-    <button id="ai-key-clear" disabled aria-disabled="true" style="margin-top:6px;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--st-ruby-dot);background:none;border:0;cursor:default;opacity:.5;padding:0">${i18t('set_remove_key')}</button>
+    <button id="ai-key-clear" type="button" disabled aria-disabled="true" class="ui-link ui-link-danger" style="margin-top:6px;cursor:default;opacity:.5">${i18t('set_remove_key')}</button>
 
     <div class="st-sec st-sec-top">
       <div style="font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text)">${i18t('set_spend_today')}</div>
@@ -4435,8 +4435,8 @@ function renderPlaybookView(){
     <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-2)">
       <span style="font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text)">${i18t('set_playbook_by_type')}</span>
       ${canEditPb?`<span style="margin-left:auto;display:flex;gap:var(--s-2)">
-        <button id="pb-add" class="ui-btn ui-btn-primary" style="font-size:var(--t-label);padding:var(--s-1) 10px">${icon('plus','w-3 h-3')} ${i18t('set_add_type')}</button>
-        <button id="pb-reset" style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600);background:none;border:0;cursor:pointer">${i18t('set_reset_defaults2')}</button>
+        <button id="pb-add" class="ui-btn ui-btn-sm ui-btn-primary">${icon('plus','w-3 h-3')} ${i18t('set_add_type')}</button>
+        <button id="pb-reset" type="button" class="ui-link">${i18t('set_reset_defaults2')}</button>
       </span>`:''}
     </div>
     ${baseCard}${typeCards}
@@ -4474,15 +4474,15 @@ function openPlaybookEditor(key){
       <input id="pb-f-match" value="${PB_ATTR(e.match.join(', '))}" placeholder="${esc(i18t('set_ph_eg_keywords'))}" style="${inp}"></label>
     <div style="font-size:var(--t-label);color:var(--color-neutral-600);background:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius);padding:7px 9px;margin-bottom:var(--s-3)">${i18t('set_inherited_baseline')} <span style="display:inline-flex;flex-wrap:wrap;gap:var(--s-1);vertical-align:middle">${inherited.positions.map(pbPosChip).join('')}${inherited.ranges.map(pbRangeChip).join('')}</span></div>`:''}
 
-    <div style="display:flex;align-items:center;margin:0 0 6px"><span style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text)">${isBase?i18t('set_positions'):i18t('set_positions_for_type')}</span><button id="pb-add-pos" style="margin-left:auto;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink-700);background:none;border:0;cursor:pointer">${i18t('set_add_position')}</button></div>
+    <div style="display:flex;align-items:center;margin:0 0 6px"><span style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text)">${isBase?i18t('set_positions'):i18t('set_positions_for_type')}</span><button id="pb-add-pos" class="ui-link" style="margin-left:auto">${(typeof window!=='undefined'&&window.plusLed?window.plusLed(i18t('set_add_position')):i18t('set_add_position'))}</button></div>
     <div id="pb-pos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px"></div>
 
-    <div style="display:flex;align-items:center;margin:0 0 6px"><span style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text)">${i18t('set_numeric_limits')}</span><button id="pb-add-rng" style="margin-left:auto;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink-700);background:none;border:0;cursor:pointer">${i18t('set_add_limit')}</button></div>
+    <div style="display:flex;align-items:center;margin:0 0 6px"><span style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text)">${i18t('set_numeric_limits')}</span><button id="pb-add-rng" class="ui-link" style="margin-left:auto">${(typeof window!=='undefined'&&window.plusLed?window.plusLed(i18t('set_add_limit')):i18t('set_add_limit'))}</button></div>
     <div id="pb-rng-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:var(--s-4)"></div>
 
     <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-      <button id="pb-cancel" class="ui-btn" style="font-size:var(--t-meta);padding:6px 14px">${i18t('act_cancel')}</button>
-      <button id="pb-save" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:6px var(--s-4)">${i18t('act_save')}</button>
+      <button id="pb-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      <button id="pb-save" class="ui-btn ui-btn-primary">${i18t('act_save')}</button>
     </div>
   </div>`, {maxWidth:'34rem'});
 
@@ -4492,19 +4492,19 @@ function openPlaybookEditor(key){
     const pl=document.getElementById('pb-pos-list');
     pl.innerHTML=e.positions.length?e.positions.map((p,i)=>`
       <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;border:1px solid var(--color-divider);border-radius:var(--radius);padding:7px var(--s-2);background:var(--color-bg)">
-        <input data-pb-cat="${i}" value="${PB_ATTR(p.category||'')}" placeholder="${esc(i18t('set_ph_category'))}" style="flex:1;min-width:150px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:5px 7px;font:inherit;font-size:var(--t-meta);outline:none">
+        <input data-pb-cat="${i}" value="${PB_ATTR(p.category||'')}" placeholder="${esc(i18t('set_ph_category'))}" style="flex:1;min-width:150px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
         <span style="display:inline-flex;gap:3px">${seg(i)}</span>
         <label style="display:inline-flex;align-items:center;gap:var(--s-1);font-size:var(--t-label);color:var(--color-neutral-700);white-space:nowrap"><input type="checkbox" data-pb-esc="${i}" ${p.escalate?'checked':''} style="accent-color:var(--color-accent)">${i18t('set_flag_legal')}</label>
-        <button data-pb-rmpos="${i}" title="${i18t('act_remove')}" style="background:none;border:0;cursor:pointer;color:var(--color-neutral-500);font-size:var(--t-card);line-height:1;padding:0 2px">×</button>
+        <button data-pb-rmpos="${i}" title="${i18t('act_remove')}" aria-label="${i18t('act_remove')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon('x')}</button>
       </div>`).join(''):`<p style="font-size:var(--t-label);color:var(--color-neutral-500);margin:0">${isBase?i18t('set_no_specific_positions'):i18t('set_no_specific_inherits')}</p>`;
     const rl=document.getElementById('pb-rng-list');
     rl.innerHTML=e.ranges.length?e.ranges.map((r,i)=>`
       <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;border:1px solid var(--color-divider);border-radius:var(--radius);padding:7px var(--s-2);background:var(--color-bg)">
-        <input data-pb-rlabel="${i}" value="${PB_ATTR(r.label||'')}" placeholder="${esc(i18t('set_ph_label_payment'))}" style="flex:1;min-width:120px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:5px 7px;font:inherit;font-size:var(--t-meta);outline:none">
-        <select data-pb-rop="${i}" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:5px 6px;font:inherit;font-size:var(--t-meta);cursor:pointer"><option value="<=" ${r.op==='<='?'selected':''}>≤</option><option value=">=" ${r.op==='>='?'selected':''}>≥</option></select>
-        <input data-pb-rval="${i}" type="number" value="${r.value}" style="width:74px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:5px 7px;font:inherit;font-size:var(--t-meta);outline:none">
+        <input data-pb-rlabel="${i}" value="${PB_ATTR(r.label||'')}" placeholder="${esc(i18t('set_ph_label_payment'))}" style="flex:1;min-width:120px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
+        <select data-pb-rop="${i}" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;cursor:pointer;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"><option value="<=" ${r.op==='<='?'selected':''}>≤</option><option value=">=" ${r.op==='>='?'selected':''}>≥</option></select>
+        <input data-pb-rval="${i}" type="number" value="${r.value}" style="width:74px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
         <label style="display:inline-flex;align-items:center;gap:var(--s-1);font-size:var(--t-label);color:var(--color-neutral-700);white-space:nowrap"><input type="checkbox" data-pb-resc="${i}" ${r.escalate?'checked':''} style="accent-color:var(--color-accent)">${i18t('set_flag_legal')}</label>
-        <button data-pb-rmrng="${i}" title="${i18t('act_remove')}" style="background:none;border:0;cursor:pointer;color:var(--color-neutral-500);font-size:var(--t-card);line-height:1;padding:0 2px">×</button>
+        <button data-pb-rmrng="${i}" title="${i18t('act_remove')}" aria-label="${i18t('act_remove')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon('x')}</button>
       </div>`).join(''):`<p style="font-size:var(--t-label);color:var(--color-neutral-500);margin:0">${i18t('set_no_numeric_limits')}</p>`;
     // wire row inputs → live working copy
     pl.querySelectorAll('[data-pb-cat]').forEach(el=>el.addEventListener('input',()=>{ e.positions[+el.dataset.pbCat].category=el.value; }));
@@ -4538,12 +4538,12 @@ function openClauseEditor(idx){
   const cl=idx>=0?{...lib[idx]}:{ id:'cl_'+Math.random().toString(36).slice(2,7), category:'', name:'', preferred:'', fallback:'', guidance:'' };
   const fld=(k,label,ta)=>ta
     ? `<label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">${label}</span><textarea id="ce-${k}" rows="2" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500">${(cl[k]||'').replace(/</g,'&lt;')}</textarea></label>`
-    : `<label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">${label}</span><input id="ce-${k}" value="${(cl[k]||'').replace(/"/g,'&quot;')}" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500"/></label>`;
+    : `<label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">${label}</span><input id="ce-${k}" value="${(cl[k]||'').replace(/"/g,'&quot;')}" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500"/></label>`;
   openModal(`<div class="p-6">
     <h3 class="font-serif font-600 text-lg text-ink mb-3">${idx>=0?'Edit':'Add'} clause</h3>
     ${fld('category','Category')}${fld('name','Name')}${fld('preferred','Preferred wording',true)}${fld('fallback','Fallback wording',true)}${fld('guidance','Guidance',true)}
-    <div class="flex justify-end gap-2 mt-2"><button id="ce-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_cancel')}</button>
-      <button id="ce-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${i18t('act_save')}</button></div>
+    <div class="flex justify-end gap-2 mt-2"><button id="ce-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      <button id="ce-save" class="ui-btn ui-btn-primary">${i18t('act_save')}</button></div>
   </div>`);
   document.getElementById('ce-cancel').addEventListener('click',closeModal);
   document.getElementById('ce-save').addEventListener('click',()=>{
@@ -4598,25 +4598,25 @@ function openApprovalRuleEditor(idx){
   openModal(`<div class="p-6">
     <h3 class="font-serif font-600 text-lg text-ink mb-3">${idx>=0?i18t('set_edit_rule'):i18t('set_add_rule')}</h3>
     <label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">${i18t('set_order_lower_first')}</span>
-      <input id="ar-order" type="number" min="1" value="${r.order||1}" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm"/></label>
+      <input id="ar-order" type="number" min="1" value="${r.order||1}" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld"/></label>
     <label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">${i18t('set_condition')}</span>
-      <select id="ar-cond" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm">${AR_CONDS().map(([k,l])=>`<option value="${k}" ${r.cond.type===k?'selected':''}>${l}</option>`).join('')}</select></label>
+      <select id="ar-cond" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld">${AR_CONDS().map(([k,l])=>`<option value="${k}" ${r.cond.type===k?'selected':''}>${l}</option>`).join('')}</select></label>
     <div id="ar-condval" class="mb-2.5"></div>
     <label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">${i18t('set_approver')}</span>
-      <select id="ar-approver" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm">
+      <select id="ar-approver" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld">
         <option value="role:admin" ${r.approver.kind==='role'&&r.approver.role==='admin'?'selected':''}>${i18t('set_any_admin')}</option>
         <option value="role:legal" ${r.approver.kind==='role'&&r.approver.role==='legal'?'selected':''}>${i18t('set_any_legal')}</option>
         ${orphan?`<option value="orphan" selected>${esc(orphan)} — ${i18t('set_approver_gone')}</option>`:''}
         ${members.map(m=>`<option value="member:${m.name}" ${r.approver.kind==='member'&&r.approver.name===m.name?'selected':''}>${m.name} (${roleName(m.role)})</option>`).join('')}
       </select>
       ${orphan?`<span style="display:block;margin-top:6px;font-size:var(--t-label);color:var(--st-amber-fg);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);padding:6px 9px">${i18t('set_approver_gone_note',{name:esc(orphan)})}</span>`:''}</label>
-    <div class="flex justify-end gap-2 mt-2"><button id="ar-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_cancel')}</button>
-      <button id="ar-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${i18t('set_save_rule')}</button></div>
+    <div class="flex justify-end gap-2 mt-2"><button id="ar-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      <button id="ar-save" class="ui-btn ui-btn-primary">${i18t('set_save_rule')}</button></div>
   </div>`);
   const renderCondVal=()=>{ const t=document.getElementById('ar-cond').value; const h=document.getElementById('ar-condval');
-    if(t==='value') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('set_threshold',{cur:jxCurrency()})}</span><input id="ar-cv" type="number" value="${r.cond.type==='value'?r.cond.value:5000000}" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm"/></label>`;
-    else if(t==='folder') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('set_value_stream')}</span><select id="ar-cv" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm">${Object.values(FOLDERS).map(f=>`<option value="${esc(f.id)}" ${r.cond.value===f.id?'selected':''}>${esc(f.name)}</option>`).join('')}</select></label>`;
-    else if(t==='kind') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('set_type_contains')}</span><input id="ar-cv" value="${r.cond.type==='kind'?(r.cond.value||''):''}" placeholder="${esc(i18t('set_ph_eg_lease'))}" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm"/></label>`;
+    if(t==='value') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('set_threshold',{cur:jxCurrency()})}</span><input id="ar-cv" type="number" value="${r.cond.type==='value'?r.cond.value:5000000}" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld"/></label>`;
+    else if(t==='folder') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('set_value_stream')}</span><select id="ar-cv" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld">${Object.values(FOLDERS).map(f=>`<option value="${esc(f.id)}" ${r.cond.value===f.id?'selected':''}>${esc(f.name)}</option>`).join('')}</select></label>`;
+    else if(t==='kind') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('set_type_contains')}</span><input id="ar-cv" value="${r.cond.type==='kind'?(r.cond.value||''):''}" placeholder="${esc(i18t('set_ph_eg_lease'))}" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld"/></label>`;
     else h.innerHTML=`<p class="text-[11px] text-ink/55">${i18t('set_no_extra_value')}</p>`; };
   document.getElementById('ar-cond').addEventListener('change',renderCondVal); renderCondVal();
   document.getElementById('ar-cancel').addEventListener('click',closeModal);
@@ -4772,7 +4772,7 @@ async function loadSessions(){
       return `<div style="display:flex;align-items:center;gap:var(--s-2);border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);padding:7px 10px">
         <span style="min-width:0"><span style="font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text)">${dev}${s.current?` <span style="font-size:var(--t-figure);font-family:var(--font-mono);color:var(--accent-ink-700)">${i18t('set_this_device')}</span>`:''}</span>
         <span style="display:block;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-neutral-500)">${s.ip||'—'} · ${i18t('set_last_seen',{when:s.lastSeen?fmtDT(s.lastSeen):'—'})}</span></span>
-        ${s.current?'':`<button data-sess-revoke="${s.id}" style="margin-left:auto;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--st-ruby-dot);background:none;border:0;cursor:pointer">${i18t('set_revoke')}</button>`}
+        ${s.current?'':`<button data-sess-revoke="${s.id}" type="button" class="ui-link ui-link-danger" style="margin-left:auto">${i18t('set_revoke')}</button>`}
       </div>`; }).join('')}</div>`:`<p style="font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('set_no_active_sessions')}</p>`;
     host.querySelectorAll('[data-sess-revoke]').forEach(b=>b.addEventListener('click',async()=>{
       try{ await api('sessions/'+b.getAttribute('data-sess-revoke'),'DELETE'); toast(i18t('set_t_session_revoked')); loadSessions(); }

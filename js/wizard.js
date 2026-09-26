@@ -263,7 +263,7 @@ function openWizard(preTid, prefill){
             <div style="${GRID}">${forYou.map(card).join('')}</div>
           </div>`:''}
           ${admin?`<label style="display:flex;align-items:center;gap:var(--s-2);margin:0 0 var(--s-3);font-size:var(--t-label);color:var(--color-neutral-600)">${i18t('wz_line_of_business')}
-            <select id="wz-industry" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:var(--s-1) var(--s-2);font:inherit;font-size:var(--t-meta);color:inherit">
+            <select id="wz-industry" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;color:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
               <option value="">${i18t('wz_not_set')}</option>
               ${Object.keys(INDUSTRY_TEMPLATES).map(k=>`<option value="${k}" ${industry===k?'selected':''}>${INDUSTRY_LABEL[k]}</option>`).join('')}
             </select></label>`:''}
@@ -272,7 +272,7 @@ function openWizard(preTid, prefill){
                  for when you do. Making the search obey the open folder would
                  make the faster of the two routes the narrower one. */}
           <input id="wz-search" type="search" placeholder="${i18t('wz_search_all')}" autocomplete="off"
-            style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:var(--s-2) var(--s-3);font:inherit;font-size:var(--t-body);color:inherit;outline:none;margin-bottom:10px"/>
+            style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);font:inherit;color:inherit;outline:none;margin-bottom:10px;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/>
           <div id="wz-hits" style="${GRID};margin-bottom:10px"></div>
           <span style="${EYE}">${i18t('wz_streams_head')}</span>
           <div style="${GRID}">${order.map(streamCard).join('')}</div>`}
@@ -349,7 +349,7 @@ function openWizard(preTid, prefill){
        neither can draw a different contract from the same answers. */
     const _pv = (typeof fillPreviewFits==='function') && fillPreviewFits();
     openModal(`<div style="padding:22px var(--s-6);">
-      <button id="wz-back" style="font-size:var(--t-label);color:var(--accent-ink-700);font-weight:var(--w-strong);font-family:var(--font-mono);background:none;border:0;cursor:pointer;margin-bottom:var(--s-2);padding:0;">← templates</button>
+      <button id="wz-back" type="button" class="ui-link" style="margin-bottom:var(--s-2)">${(typeof icon==='function')?icon('chevL','w-3.5 h-3.5'):''}templates</button>
       <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;color:var(--color-text);margin:0 0 3px;">${t.kind}</h3>
       <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-4);line-height:1.5;">${t.blurb||''}</p>
       <div id="wz-cols" style="display:grid;grid-template-columns:${_pv?'minmax(0,1fr) minmax(0,1fr)':'minmax(0,1fr)'};gap:var(--s-4);align-items:start">
@@ -494,7 +494,7 @@ function wzMapNote(v){
   if(!m || String(m).trim().toLowerCase()===String(v.label||'').trim().toLowerCase()) return '';
   return `<span style="font-weight:var(--w-body);color:var(--color-neutral-500);text-transform:none;letter-spacing:0"> → ${m}</span>`;
 }
-const WZ_ST='width:100%;min-height:var(--field-h,36px);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none;';
+const WZ_ST='width:100%;height:var(--field-h,28px);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:0 var(--field-pad-x,10px);font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none;';
 function wzFieldHtml(v){
   const id='wz-'+String(v.key).replace(/[:]/g,'_');
   const lbl=`<span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em;">${v.label}${v.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}${wzMapNote(v)}</span>`;
@@ -849,13 +849,17 @@ function openNewAgreement(o){
                this screen now (openNewDoors), and a second way to one dialog is
                two doors. na_upload / na_received are inert in both books. */}
         <div class="na-more">
-          <button type="button" id="na-import" class="ui-btn-plain">${i18t('na_import')}</button></div>
+          <button type="button" id="na-import" class="ui-link">${i18t('na_import')}</button></div>
       </div>
       ${naCard}
     </div>
+    ${''/* ONE FOOTER ORDER (the Compact ladder, 26 Sep 2026 — rule 8 of the
+           button review): the buttons sit together at the right, Cancel
+           first and the main act last, as in every other dialog. Cancel was
+           a bare word alone at the far left. */}
     <div class="na-foot">
-      <button type="button" id="wz-pick-cancel" class="ui-btn-plain">${i18t('act_cancel')}</button>
       <span class="na-grow"></span>
+      <button type="button" id="wz-pick-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <button type="button" id="na-skip" class="ui-btn" title="${esc(i18t('lib_create_now_fill_later'))}">${i18t('na_skip')}</button>
       <button type="button" id="na-create" class="ui-btn ui-btn-primary">${i18t('tl_create_draft')}</button>
     </div></div>`, { maxWidth: NA_FRAME_NARROW_W+'px', label: i18t('na_title') });

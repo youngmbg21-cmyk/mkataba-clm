@@ -110,7 +110,7 @@ function renderApprovalsPage(){
       <td>${esc(r.who||'—')}</td>
       <td class="${r.idle>=3?'late':''}">${esc(apWaitingText(r.idle))}</td>
       ${money?`<td class="r mono">${apValueCell(r.c)}</td>`:''}
-      <td class="r"><button type="button" class="ui-btn ap-go" data-ap-open="${esc(r.c.id)}" title="${esc(i18t('ap_pg_gate_title'))}">${esc(r.mine?i18t('ap_pg_open_gate'):i18t('ap_pg_open'))}</button></td>
+      <td class="r"><button type="button" class="ui-btn ui-btn-sm ap-go" data-ap-open="${esc(r.c.id)}" title="${esc(i18t('ap_pg_gate_title'))}">${esc(r.mine?i18t('ap_pg_open_gate'):i18t('ap_pg_open'))}</button></td>
     </tr>`);
   const sgHead=[{t:'MK'},{t:i18t('reg_col_title')},{t:i18t('ap_pg_what_waits')},...(money?[{t:i18t('reg_col_value'),right:true}]:[]),{t:''}];
   const sgRowsHtml=sg.map(r=>`<tr data-ap-row="${esc(r.c.id)}">
@@ -118,7 +118,7 @@ function renderApprovalsPage(){
       <td><span class="ap-name">${esc(r.c.name||'')}</span><span class="ap-sub">${esc(r.c.counterparty||'')}</span></td>
       <td>${r.kind==='sign'?esc(i18tn('ap_pg_to_settle',r.n,{n:r.n})):esc(i18t('ap_pg_ready_sign',{who:r.by||r.c.counterparty||''}))}</td>
       ${money?`<td class="r mono">${apValueCell(r.c)}</td>`:''}
-      <td class="r"><button type="button" class="ui-btn ap-go" data-ap-open="${esc(r.c.id)}" title="${esc(i18t('ap_pg_sign_title'))}">${esc(i18t('ap_pg_open_signing'))}</button></td>
+      <td class="r"><button type="button" class="ui-btn ui-btn-sm ap-go" data-ap-open="${esc(r.c.id)}" title="${esc(i18t('ap_pg_sign_title'))}">${esc(i18t('ap_pg_open_signing'))}</button></td>
     </tr>`);
   const n=tab==='approvals'?ap.length:sg.length;
   const tabBtn=(k,label,count)=>`<button type="button" class="st-tab${tab===k?' on':''}" data-ap-tab="${k}" role="tab" aria-selected="${tab===k?'true':'false'}">${esc(label)}${count?` <span class="ap-n">${count}</span>`:''}</button>`;
@@ -132,7 +132,7 @@ function renderApprovalsPage(){
       ${tab==='approvals'?apTableHtml(apHead,apRowsHtml,i18t('ap_pg_none_approvals')):apTableHtml(sgHead,sgRowsHtml,i18t('ap_pg_none_sign'))}
       <div class="ap-foot">
         <span>${esc(i18tn('ap_pg_foot',n,{n}))}</span>
-        ${(typeof isAdmin==='function'&&isAdmin()&&typeof openSettingsAt==='function')?`<button type="button" class="ui-btn ui-btn-plain" data-ap-rules>${esc(i18t('ap_pg_rules'))} ↗</button>`:''}
+        ${(typeof isAdmin==='function'&&isAdmin()&&typeof openSettingsAt==='function')?`<button type="button" class="ui-btn ui-btn-plain" data-ap-rules>${esc(i18t('ap_pg_rules'))}${(typeof icon==='function')?icon('chevR','w-3.5 h-3.5'):''}</button>`:''}
       </div>
     </section>
   </div>`;

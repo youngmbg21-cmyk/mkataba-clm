@@ -106,7 +106,7 @@ function renderAdviceIntake(){
         <label style="display:block;margin-bottom:var(--s-3)"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em">${i18t('apo_describe')}</span>
           <textarea id="ap-desc" rows="4" placeholder="${esc(i18t('po_ph_advice_example'))}" style="${inputStyle}min-height:0"></textarea></label>
         <label style="display:flex;align-items:flex-start;gap:9px;font-size:var(--t-meta);color:var(--color-neutral-700);margin-bottom:14px;line-height:1.45"><input id="ap-priority" type="checkbox" style="width:15px;height:15px;accent-color:var(--color-accent);margin-top:1px"/><span><strong>${i18t('apo_priority')}</strong> ${i18t('apo_priority_note')}</span></label>
-        <button id="ap-go" class="ui-btn ui-btn-primary" style="width:100%;padding:10px;font-size:var(--t-body)">${icon('send','w-4 h-4')} Submit request</button>
+        <button id="ap-go" class="ui-btn ui-btn-lg ui-btn-primary" style="width:100%">${icon('send','w-4 h-4')} Submit request</button>
         <div id="ap-result" style="margin-top:14px"></div>
       </aside>
     </div>
@@ -157,8 +157,8 @@ function renderAdviceIntake(){
         <p style="font-size:var(--t-label);color:var(--color-neutral-700);margin:0 0 var(--s-2);line-height:1.5">${i18t('apo_estimated_by')} <strong>${fmtDay(req.eta)}</strong>${i18t('apo_follow_stage')}</p>
         <textarea id="ap-link" readonly rows="2" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:9px;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all">${link}</textarea>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s-2);margin-top:var(--s-2)">
-          <button id="ap-copy" class="ui-btn" style="padding:var(--s-2);font-size:var(--t-meta)">${icon('copy','w-3 h-3')} ${i18t('po_copy_link')}</button>
-          <button id="ap-open" class="ui-btn ui-btn-primary" style="padding:var(--s-2);font-size:var(--t-meta)">${i18t('apo_open_tracking')}</button>
+          <button id="ap-copy" class="ui-btn">${icon('copy','w-3 h-3')} ${i18t('po_copy_link')}</button>
+          <button id="ap-open" class="ui-btn ui-btn-primary">${i18t('apo_open_tracking')}</button>
         </div>
       </div>`;
     document.getElementById('ap-copy').addEventListener('click',async()=>{ try{ await navigator.clipboard.writeText(link); }catch(e){ document.getElementById('ap-link').select(); document.execCommand('copy'); } toast(i18t('apo_tracking_copied'),'ok'); });
@@ -235,7 +235,7 @@ function renderAdviceTracking(r){
         ${row('Urgency', r.urgency==='priority'?'Priority':'Standard')}
         ${r.contractName?row('Contract', pesc(r.contractName)):''}
         <p style="font-size:var(--t-label);color:var(--color-neutral-500);margin:10px 0 0;line-height:1.55">The final fee is confirmed with you at Scoping before billable work starts — you will never be invoiced beyond what is agreed there.</p>
-        <button id="at-new" class="ui-btn" style="width:100%;margin-top:14px;padding:var(--s-2);font-size:var(--t-meta)">${icon('plus','w-3.5 h-3.5')} Submit another request</button>
+        <button id="at-new" class="ui-btn" style="width:100%;margin-top:14px">${icon('plus','w-3.5 h-3.5')} Submit another request</button>
       </aside>
     </div>
     <style>.portal-grid{grid-template-columns:1fr}@media(min-width:1024px){.portal-grid{grid-template-columns:1fr 340px}.portal-aside{position:sticky;top:24px}}</style>`);

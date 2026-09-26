@@ -561,12 +561,20 @@ describe('f313 — the clause ladder', () => {
     const idx = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
     const grp = idx.match(/\.room-checks\{[^}]*\}/)[0];
     const btn = idx.match(/\n  \.room-check\{[^}]*\}/)[0];
-    assert.match(grp, /gap:6px/, 'the row\'s own gap');
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the Compact ladder, Young picked it).
+       Two literals moved onto the ladder: the gap is the one "between buttons
+       in a group" (8), asked now as the RELATION the words always claimed —
+       the same gap the acts row itself wears — and the glyph is the rung's own
+       icon size (14 at the everyday rung) rather than a hand-set 18. The box
+       is still the rung and still the row's; nothing else here moved. */
+    const actsRow = idx.match(/\.room-head \.room-acts\{[^}]*\}/)[0];
+    const gapOf = s => (s.match(/gap:([^;]+);/) || [])[1];
+    assert.ok(gapOf(grp) && gapOf(grp) === gapOf(actsRow), 'the row\'s own gap: ' + gapOf(grp) + ' vs ' + gapOf(actsRow));
     assert.ok(!/margin-left:auto/.test(grp), 'the right wall it was pinned to is gone');
     assert.match(idx, /\.room-acts-lead > \.room-checks\{ order:4; \}/, 'after More, which is order 3');
     assert.match(btn, /var\(--ctl-h,28px\)/, 'one rung with every other button in the row');
     assert.match(btn, /border:1px solid var\(--btn-edge/, 'the accent edge .ui-btn defines');
-    assert.match(idx, /\.room-check svg\{ width:18px; height:18px; \}/, 'the glyph is what grows');
+    assert.match(idx, /\.room-check svg\{ width:var\(--btn-ic\); height:var\(--btn-ic\); \}/, 'the glyph is the rung\'s own icon size');
     /* AND THE WORKBENCH'S OWN ROW RULE MAY NOT STRETCH THEM: it pins every
        button to 11px of side padding, which is right for a word and turns a
        square into a lozenge. Named at that rule's weight plus one — by SCOPE,

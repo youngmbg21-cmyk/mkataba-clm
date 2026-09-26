@@ -74,7 +74,7 @@ function renderDirectory(){
                same people, one of which edits them, is exactly the confusion
                worth one sentence. Non-admins are told nothing, because there
                is nowhere for them to go. */}
-        ${admin?`<button id="dir-manage" class="ui-btn" style="margin-left:auto;font-size:var(--t-meta);padding:var(--s-1) var(--s-3)">${
+        ${admin?`<button id="dir-manage" class="ui-btn" style="margin-left:auto">${
           i18t('dir_manage')}</button>`:''}
       </div>
       <div class="dir-rows">${people.map(dirRowHtml).join('')||(typeof window.emptyStateHtml==='function'

@@ -848,14 +848,29 @@ describe('f277 (10) the edition is a facing page', () => {
 describe('f277 (11) the control row reads as one row with the acts above it', () => {
   const NEGO_CSS = SRC('js/views/negotiation-css.js');
 
-  /* THE CLAIM IS A RELATION, NOT A NUMBER — .ui-btn-lg is what the row above
-     is, so both sides are read and compared. A later retune moves them
-     together and costs this no edit. */
+  /* THE CLAIM IS A RELATION, NOT A NUMBER — the row above is what the slot is
+     measured against, so both sides are read and compared. A later retune
+     moves them together and costs this no edit.
+
+     RE-POINTED IN PLACE 26 Sep 2026 (the Compact ladder, Young picked it).
+     The row above used to wear .ui-btn-lg, which then meant "a head-row
+     button": the base height at weight 400. With ONE label weight for every
+     button that difference went, so the head row wears the BASE .ui-btn and
+     .ui-btn-lg is the large rung (the Sign button, an empty page's one
+     invitation). The claim is unchanged — the rung above is --ctl-h at
+     --t-body and it is not bold — only the rule that carries it moved. Bold is
+     600 and up here, so the label weight is asked to be under that. */
   test('the head row above is the rung everything is measured against', () => {
+    const at = INDEX.indexOf('.ui-btn{display:inline-flex');
+    assert.ok(at > 0, 'the base button rule exists');
+    const base = INDEX.slice(at, INDEX.indexOf('transition:', at));
+    assert.ok(/min-height:var\(--ctl-h\)/.test(base));
+    assert.ok(/font-size:var\(--t-body\)/.test(base));
+    assert.ok(/font-weight:var\(--w-label\)/.test(base), 'one label weight for every button');
+    const w = INDEX.match(/--w-label:(\d+)/);
+    assert.ok(w && Number(w[1]) < 600, 'and that weight is not bold: ' + (w && w[1]));
     const lg = INDEX.slice(INDEX.indexOf('.ui-btn-lg{'), INDEX.indexOf('.ui-btn-lg{') + 200);
-    assert.ok(/min-height:var\(--ctl-h\)/.test(lg));
-    assert.ok(/font-size:var\(--t-body\)/.test(lg));
-    assert.ok(/font-weight:var\(--w-body\)/.test(lg), 'and it is not bold');
+    assert.ok(/min-height:var\(--ctl-h-lg\)/.test(lg), '.ui-btn-lg is the large rung now, not the head row');
   });
 
   test('the Document tab slot takes that rung, size and weight', () => {
@@ -866,8 +881,12 @@ describe('f277 (11) the control row reads as one row with the acts above it', ()
     assert.ok(/#ws-tabrow-end \.rl-type-step\{ height:var\(--ctl-h\)/.test(css));
     assert.ok(!/--ctl-h-lg/.test(css), 'and nothing in the slot is on the taller rung any more');
     assert.ok(/\.doc-read-seg\{[^}]*height:var\(--ctl-h\)/.test(css));
-    assert.ok(/font-size:var\(--t-body\);\s*\n?\s*font-weight:var\(--w-body\)/.test(css),
-      'the seg reads at the body rung, unbold');
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the Compact ladder): the row's one
+       weight is the LABEL weight now, the weight every button beside the
+       switch wears — still not bold, and still the same as its neighbours,
+       which is what "one row" asked for. */
+    assert.ok(/font-size:var\(--t-body\);\s*\n?\s*font-weight:var\(--w-label\)/.test(css),
+      'the seg reads at the body size and the buttons\' own label weight, unbold');
   });
 
   test('only the shaded half is bold', () => {
@@ -891,8 +910,14 @@ describe('f277 (11) the control row reads as one row with the acts above it', ()
     const css = NEGO_CSS.slice(at, tail + 120);
     assert.ok(/\.rl-head \.rl-type-step\{height:var\(--ctl-h\)/.test(css));
     assert.ok(/\.rl-head \.rl-segwrap:not\(\.rl-readwrap\)\{height:var\(--ctl-h\)\}/.test(css));
-    assert.ok(/\.rl-head \.rl-livelist\{font-size:var\(--t-body\);font-weight:var\(--w-body\)\}/.test(css));
-    assert.ok(/\.rl-head \.rl-needs\{font-size:var\(--t-body\)\}/.test(css),
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the Compact ladder): the one weight the
+       row reads at is the label weight every button wears, so each control
+       names --w-label where it named --w-body. Still every control the row
+       draws, and still only the shaded half above it. */
+    assert.ok(/\.rl-head \.rl-type-step button\{font-size:var\(--t-body\);font-weight:var\(--w-label\)\}/.test(css));
+    assert.ok(/\.rl-head \.rl-segwrap:not\(\.rl-readwrap\) \.rl-seg\{\s*font-size:var\(--t-body\);font-weight:var\(--w-label\)\}/.test(css));
+    assert.ok(/\.rl-head \.rl-livelist\{font-size:var\(--t-body\);font-weight:var\(--w-label\)\}/.test(css));
+    assert.ok(/\.rl-head \.rl-needs\{font-size:var\(--t-body\);font-weight:var\(--w-label\)\}/.test(css),
       'every control the row draws, not only the four in the screenshot');
     assert.ok(/\.rl-seg\.on\{font-weight:var\(--w-title\)\}/.test(css), 'and only the shaded one is bold');
   });

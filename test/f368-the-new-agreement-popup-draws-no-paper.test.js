@@ -222,7 +222,12 @@ describe('f368 (5) the stylesheet', () => {
   test('the list\'s cap is 88vh less the stated sum', () => {
     const m = rule('.na-picks').match(/max-height:max\(140px, calc\(88vh - (\d+)px\)\)/);
     assert.ok(m, 'a floor and a derivation, never a picked number');
-    assert.equal(Number(m[1]), 350, 'the sum re-derived when the ask left the rail, and again when the Upload link left the row under the list');
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the Compact ladder): 350 → 355. Two of
+       the listed parts were re-measured, never guessed — the foot, whose
+       buttons came down to the 28 rung (55 → 53), and the Import row, which is
+       a text button with a real 24px target now (28 → 35). The claim beside
+       this one still checks that the note's parts add up to the rule. */
+    assert.equal(Number(m[1]), 355, 'the sum re-derived when the ask left the rail, when the Upload link left the row under the list, and for the Compact ladder');
   });
   test('and the arithmetic the note states adds up to the number the rule uses', () => {
     /* Was: "162 is the list's own 396 without the rail's 234". The note beside

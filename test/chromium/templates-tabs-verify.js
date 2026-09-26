@@ -813,10 +813,12 @@ const BOX = sel => {
     await pause(700);
     const words = await page.evaluate(() => {
       const n = document.getElementById('tpl-new'), c = document.getElementById('tpl-convert');
-      return { newBtn: n ? n.textContent.trim() : null, conv: c ? c.textContent.trim() : null };
+      return { newBtn: n ? n.textContent.trim() : null, drawn: !!(n && n.querySelector('svg')), conv: c ? c.textContent.trim() : null };
     });
-    check('9a · the button says what it does: + New standard contract',
-      words.newBtn === '+ New standard contract', words);
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the Compact ladder): the plus is a
+       drawn icon now, never a typed "+", so the words stand alone beside it. */
+    check('9a · the button says what it does: New standard contract, with a drawn plus',
+      words.newBtn === 'New standard contract' && words.drawn, words);
     check('9b · and it is the ONE door — Convert a document is no longer beside it', words.conv === null, words);
 
     await page.evaluate(() => { const b = document.getElementById('tpl-new'); if (b) b.click(); });

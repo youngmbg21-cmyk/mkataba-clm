@@ -916,7 +916,7 @@ function renderMigQueue(){
         <span style="font-size:var(--t-body);font-weight:var(--w-strong)">${M.running?'Importing batch '+(M.batch||''):'Batch '+(M.batch||'')+(cancelled?' stopped':' finished')}</span>
         <span style="font-size:var(--t-label);color:var(--color-neutral-600);font-family:var(--font-mono)">${done}/${M.queue.length}${cancelled?` · ${cancelled} cancelled`:''}</span>
         <span style="flex:1"></span>
-        ${M.running?`<button id="mig-cancel" class="ui-btn" style="font-size:var(--t-meta);padding:var(--s-1) 10px">${i18t('mig_stop_after_current')}</button>`:''}
+        ${M.running?`<button id="mig-cancel" class="ui-btn">${i18t('mig_stop_after_current')}</button>`:''}
       </div>
       <div style="height:6px;background:var(--color-neutral-200);border-radius:var(--radius);overflow:hidden;margin-bottom:10px"><div style="width:${pct}%;height:100%;background:var(--color-accent);transition:width var(--dur-3)"></div></div>
       ${M.ocrError?`<div style="font-size:var(--t-meta);color:var(--st-amber-fg);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);border-radius:var(--radius);padding:7px 10px;margin-bottom:var(--s-2)">A scanned document could not be read: ${migEsc(M.ocrError)}. Those files were imported with no text — open each one and enter the details, or fix the reader and use “Re-run Copilot extraction”.</div>`:''}
@@ -963,10 +963,10 @@ function migDupeRowHtml(q, i){
       <button data-dup-import="${i}" style="${btn}">${i18t('mig_import_anyway')}</button>
       <span style="display:inline-flex;align-items:center;gap:5px">
         <button data-dup-link="${i}" style="${btn};border-color:var(--color-accent);color:var(--accent-ink)">${i18t('mig_import_link_as')}</button>
-        <select data-dup-rel="${i}" style="font:inherit;font-size:var(--t-label);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:3px 5px">
+        <select data-dup-rel="${i}" style="font:inherit;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
           ${CONTRACT_RELATIONS.map(r=>`<option value="${r.k}">${r.label}</option>`).join('')}</select>
         <span style="font-size:var(--t-label);color:var(--color-neutral-600)">of</span>
-        <select data-dup-parent="${i}" style="font:inherit;font-size:var(--t-label);font-family:var(--font-mono);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:3px 5px">${parentOpts}</select>
+        <select data-dup-parent="${i}" style="font:inherit;font-family:var(--font-mono);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">${parentOpts}</select>
       </span>
     </div>`:''}
   </div>`;
@@ -1020,7 +1020,7 @@ function migUnfinishedHtml(){
       <div style="margin-bottom:5px">Started ${migEsc(String(b.startedAt||'').slice(0,16).replace('T',' '))}${b.startedBy?' by '+migEsc(b.startedBy):''}. Drop these files again to finish the job:</div>
       <ul style="margin:0 0 6px;padding-left:var(--s-4);line-height:1.6">${b.missed.slice(0,15).map(x=>`<li>${migEsc(x.name)}${x.note?` — ${migEsc(x.note)}`:''}</li>`).join('')}</ul>
       ${b.missed.length>15?`<div style="margin-bottom:6px">…and ${b.missed.length-15} more.</div>`:''}
-      <button data-dismiss-batch="${migEsc(b.id)}" class="ui-btn" style="font-size:var(--t-label);padding:3px 9px">${i18t('mig_dismiss')}</button>
+      <button data-dismiss-batch="${migEsc(b.id)}" class="ui-btn ui-btn-sm">${i18t('mig_dismiss')}</button>
     </div>`).join('');
 }
 function renderMigration(){
@@ -1038,7 +1038,7 @@ function renderMigration(){
   const kpi=(n,label,color)=>`<div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:18px 20px;box-shadow:var(--shadow-sm)">
       <div style="font-family:var(--font-mono);font-size:24px;font-weight:var(--w-title);color:${color||'var(--color-text)'};line-height:1;font-variant-numeric:tabular-nums">${n}</div>
       <div style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-top:6px">${label}</div></div>`;
-  const selStyle='font:inherit;font-size:var(--t-meta);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:5px 7px;color:inherit;cursor:pointer';
+  const selStyle='font:inherit;font-size:var(--field-size);height:var(--field-h);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:0 var(--field-pad-x);color:inherit;cursor:pointer';
 
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="padding:var(--page-pad)">
@@ -1084,7 +1084,7 @@ function renderMigration(){
           <label style="display:flex;align-items:center;gap:7px;font-size:var(--t-meta);color:var(--color-neutral-700)">${i18t('mig_file_under')}
             <select id="mig-folder" style="${selStyle}">${folderOpts}</select></label>
           <span style="flex:1"></span>
-          <button id="mig-manifest-btn" class="ui-btn" style="font-size:var(--t-meta);padding:5px 11px">${icon('list','w-3.5 h-3.5')} ${M.manifest?'Replace manifest':'Load manifest CSV'}</button>
+          <button id="mig-manifest-btn" class="ui-btn">${icon('list','w-3.5 h-3.5')} ${M.manifest?'Replace manifest':'Load manifest CSV'}</button>
           <button id="mig-manifest-tpl" style="border:0;background:none;cursor:pointer;font-size:var(--t-label);color:var(--accent-ink-700);text-decoration:underline;padding:0">template</button>
           <input id="mig-manifest-file" type="file" accept=".csv" class="hidden" style="display:none">
         </div>
@@ -1114,10 +1114,10 @@ function renderMigration(){
           <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-card);margin:0">${i18t('mig_migrated_contracts')}</h3>
           <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${k.complete}/${k.total} fully migrated</span>
           <span style="flex:1"></span>
-          ${canEdit()&&k.review?`<button id="mig-review-all" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:5px var(--s-3)">${icon('check2','w-3.5 h-3.5')} Review all (${k.review})</button>`:''}
-          ${canEdit()&&heur&&API_MODE()&&state.aiConfigured?`<button id="mig-rerun" class="ui-btn" style="font-size:var(--t-meta);padding:5px var(--s-3)">${icon('sparkle','w-3.5 h-3.5')} Re-run Copilot extraction (${heur})</button>`:''}
-          <button id="mig-sheet-out" class="ui-btn" style="font-size:var(--t-meta);padding:5px var(--s-3)">${icon('download','w-3.5 h-3.5')} Review sheet</button>
-          ${canEdit()?`<button id="mig-sheet-in" class="ui-btn" style="font-size:var(--t-meta);padding:5px var(--s-3)">${icon('upload','w-3.5 h-3.5')} Import sheet</button>
+          ${canEdit()&&k.review?`<button id="mig-review-all" class="ui-btn ui-btn-primary">${icon('check2','w-3.5 h-3.5')} Review all (${k.review})</button>`:''}
+          ${canEdit()&&heur&&API_MODE()&&state.aiConfigured?`<button id="mig-rerun" class="ui-btn">${icon('sparkle','w-3.5 h-3.5')} Re-run Copilot extraction (${heur})</button>`:''}
+          <button id="mig-sheet-out" class="ui-btn">${icon('download','w-3.5 h-3.5')} Review sheet</button>
+          ${canEdit()?`<button id="mig-sheet-in" class="ui-btn">${icon('upload','w-3.5 h-3.5')} Import sheet</button>
           <input id="mig-sheet-file" type="file" accept=".csv" style="display:none">`:''}
         </div>
         <div class="table-scroll">
@@ -1144,9 +1144,9 @@ function renderMigration(){
                   ${c.migration.blocked?`<span style="display:block;font-size:var(--t-label);color:var(--st-ruby-fg)">no readable text${c.migration.ocrTotalPages?' (OCR tried)':''}</span>`:need?`<span style="display:block;font-size:var(--t-label);color:var(--st-amber-fg)">${c.migration.aiSource==='ai'?'low-confidence fields':'pattern-matched only'}</span>`:''}
                   ${isOcrText(c.migration.textSource)?`<span style="display:block;font-size:var(--t-label);color:var(--st-amber-fg)" title="${migEsc(ocrProvenanceLine(c.upload||c.migration))}">machine-read from a scan${c.migration.ocrSkippedPages?` · ${c.migration.ocrSkippedPages} page${c.migration.ocrSkippedPages===1?'':'s'} skipped`:''}</span>`:''}</td>
                 <td style="text-align:right;padding-right:var(--s-3);white-space:nowrap" onclick="event.stopPropagation()">
-                  ${(c.linkSuggestions&&c.linkSuggestions.length&&!c.parentId&&!c.linkConfirmed&&canEdit())?`<button data-mig-link="${c.id}" class="ui-btn" style="font-size:var(--t-label);padding:3.5px 10px;border-color:var(--color-accent);color:var(--accent-ink)">${i18t('mig_col_link')}</button>`:''}
-                  ${need&&canEdit()?`<button data-mig-review="${c.id}" class="ui-btn ui-btn-primary" style="font-size:var(--t-label);padding:3.5px 10px">${i18t('mig_review')}</button>`:''}
-                  <button data-open="${c.id}" class="ui-btn" style="font-size:var(--t-label);padding:3.5px 10px">${i18t('mig_open')}</button>
+                  ${(c.linkSuggestions&&c.linkSuggestions.length&&!c.parentId&&!c.linkConfirmed&&canEdit())?`<button data-mig-link="${c.id}" class="ui-btn ui-btn-sm" style="border-color:var(--color-accent);color:var(--accent-ink)">${i18t('mig_col_link')}</button>`:''}
+                  ${need&&canEdit()?`<button data-mig-review="${c.id}" class="ui-btn ui-btn-sm ui-btn-accent">${i18t('mig_review')}</button>`:''}
+                  <button data-open="${c.id}" class="ui-btn ui-btn-sm">${i18t('mig_open')}</button>
                 </td>
               </tr>`; }).join('')}
             </tbody>

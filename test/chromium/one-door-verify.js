@@ -118,8 +118,13 @@ const DOC = styledPara('Title', null, 0, 'SERVICES AGREEMENT')
     await toTemplates();
 
     /* ================= 1 · ONE BUTTON, ONE QUESTION ================ */
-    const btn = await page.evaluate(() => { const b = document.getElementById('tpl-new'); return b ? b.textContent.trim() : null; });
-    check('1a · one create button, named for what it makes', btn === '+ New standard contract', btn);
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the Compact ladder, Young picked it):
+       the plus is a DRAWN icon now (rule 5 of the button review — no typed
+       plus signs), so the words are read off the button with the icon beside
+       them, and the icon is asked for as what it is. */
+    const btn = await page.evaluate(() => { const b = document.getElementById('tpl-new');
+      return b ? { words: b.textContent.trim(), drawn: !!b.querySelector('svg') } : null; });
+    check('1a · one create button, named for what it makes', !!btn && btn.words === 'New standard contract' && btn.drawn, JSON.stringify(btn));
     check('1b · and nothing beside it converts a document', !(await has('#tpl-convert')));
     await page.click('#tpl-new').catch(() => {});
     await pause(450);

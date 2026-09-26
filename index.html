@@ -655,8 +655,20 @@
        That is what stops a control inventing a half-rung box: .ui-btn's
        `padding:6px var(--s-3)` computed to 30.8px against .ui-btn-lg's fixed 28,
        under a comment claiming the large one was the larger. */
-    --pad-ctl-x:var(--s-3);
-    --ctl-h-sm:26px; --ctl-h:30px; --ctl-h-lg:32px;
+    /* ---- THE COMPACT LADDER (Young ruled 26 Sep 2026: "Implement compact") ----
+       THREE SIZES AND NO OTHERS, picked by name off the button review ("HaTi
+       Button Audit"), which measured eleven button heights on 28 screens. Small
+       for repeated rows and cards, everyday for everything else, large only for
+       an empty page's one invitation and the Sign button. A text box, a dropdown,
+       a two-way switch and a filter chip placed beside a button take the
+       everyday height too (--field-h reads the same number). Each rung has ONE
+       text size and ONE side padding; every label is medium weight — the fill,
+       never the weight, says which button is the main one. Icons are 14px in
+       the small and everyday rungs (alone or beside a word) and 16px in the
+       large one; 6px from the word; 8px between two buttons in a group. */
+    --pad-ctl-x:10px; --pad-ctl-x-sm:8px; --pad-ctl-x-lg:12px;
+    --ctl-h-sm:22px; --ctl-h:28px; --ctl-h-lg:32px;
+    --btn-ic:14px; --btn-ic-lg:16px; --btn-gap:6px; --btn-group-gap:8px;
     /* A PLATFORM CONSTANT, NOT A SPACING VALUE — deliberately off the ladder
        and exempt from any sweep. 44px is the phone touch minimum. */
     --ctl-h-touch:44px;
@@ -817,7 +829,10 @@
        apart) disagreeing on padding, size, height and leading, and a fourth
        (RV_FLD) carrying a comment saying it was a deliberate copy that must be
        kept in step — which had already drifted 2px from what it quoted. */
-    --field-h:32px; --field-size:var(--t-body); --field-lh:18px;
+    /* THE BUTTON'S OWN RUNG since 26 Sep 2026 (the Compact ladder): a text box
+       beside a button is the button's height, so this READS --ctl-h rather than
+       typing 28 a second time. It was 32 against buttons at 30. */
+    --field-h:var(--ctl-h); --field-size:var(--t-body); --field-lh:18px;
     /* DERIVED, never typed, so it cannot drift from --field-h: the remainder
        after the line box and the two borders. */
     --field-pad-y:calc((var(--field-h) - var(--field-lh) - 2px) / 2);
@@ -1363,7 +1378,7 @@
      exactly that until this line. */
   .sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
     overflow:hidden;clip:rect(0,0,0,0);clip-path:inset(50%);white-space:nowrap;border:0}
-  .ui-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-body);line-height:var(--lh-tight);color:var(--accent-ink);background:transparent;border:1px solid var(--btn-edge);border-radius:var(--radius);
+  .ui-btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--btn-gap);cursor:pointer;font-family:var(--font-heading);font-weight:var(--w-label);font-size:var(--t-body);line-height:var(--lh-tight);color:var(--accent-ink);background:transparent;border:1px solid var(--btn-edge);border-radius:var(--radius);
     /* HEIGHT COMES FROM A RUNG, NEVER FROM PADDING. `padding:6px var(--s-3)` on a
        14px/1.2 label computes to 30.8px — 2.8px TALLER than .ui-btn-lg's fixed
        28, under a source comment calling the large one the larger. A rung plus
@@ -1371,6 +1386,11 @@
        box. min-height rather than height, so a two-line label still grows. */
     min-height:var(--ctl-h);padding:0 var(--pad-ctl-x);
     transition:background var(--dur-1),border-color var(--dur-1),color var(--dur-1);}
+  /* ONE ICON SIZE PER RUNG (the Compact ladder, 26 Sep 2026). The call sites
+     hand icon() a Tailwind size (w-3, w-3.5, w-4 — 12, 14 and 16px); this rule
+     is what makes an icon beside a word 14px whichever one was typed. A direct
+     child only, so a spinner or a count badge nested deeper keeps its own. */
+  .ui-btn > svg{width:var(--btn-ic);height:var(--btn-ic);flex:none;}
   .ui-btn:hover{background:color-mix(in srgb,var(--accent-solid) 10%,transparent);}
   /* :not(.ui-btn-primary): the hover rule outranks the primary's resting
      border on specificity, and a ring flashing over a filled navy button
@@ -1382,29 +1402,73 @@
      accent ink, so it never becomes the grey furniture of the 17 Aug report. */
   .ui-btn-plain{border-color:transparent;background:transparent;}
   .ui-btn-plain:hover{background:color-mix(in srgb,var(--accent-solid) 10%,transparent);border-color:transparent;}
-  /* LARGE — the head rows that were redesigned to the mock-up's drawing.
-     Deliberately NOT the base: see the note above about the fold ladder.
-     ---- ONE SIZE, AND ONE RUNG SMALLER (owner-reported 22 Aug 2026, off the
-     calendar head: "the big buttons should all be the same font size but they
-     are also too big so reduce them by a size including the boxes they are
-     in") ----
-     THEY WERE ALREADY ONE SIZE — measured on the contract head, all four
-     compute to 15px and differ only in weight (700 on the filled one) and in
-     having a fill at all. What reads as bigger is the fill, not the type; the
-     fill is answered separately (see wsNextAction, which no longer takes one).
-     So what actually moved is the second half of the report: one rung down
-     this product's own ladder, 15 → 14, and the box with it, 30 → 28. Still
-     larger and lighter than the base .ui-btn (14px/600) — the difference is
-     now the WEIGHT and the box, which is what a head row wanted from this
-     class in the first place. */
-  .ui-btn-lg{min-height:var(--ctl-h);padding:0 var(--pad-ctl-x);font-size:var(--t-body);font-weight:var(--w-body);}
-  /* THE SMALL RUNG. It did not exist, which is why 176 buttons carry an INLINE
-     padding or font-size instead — 10 distinct paddings and 4 type sizes typed
-     at the call site, none of which any stylesheet can reach, because an inline
-     declaration outranks every selector. A dense control now has a class to
-     reach for. Migrating those 176 call sites is a separate, visual pass: each
-     one is a hand-tuned dense row and they want a human eye, not a regex. */
-  .ui-btn-sm{min-height:var(--ctl-h-sm);padding:0 var(--s-2);font-size:var(--t-meta);}
+  /* THE TEXT BUTTON (the Compact ladder, 26 Sep 2026 — rule 10 of the button
+     review: "Run", "See all", "Send something else"). ONE LOOK: the accent ink
+     at the label weight, no underline — an underline is for a link inside a
+     sentence — and a real target at least --tap-min tall. The 4px of padding
+     is given back by the margin, so the words line up with the text beside
+     them and the hover wash still has room round them. A drawn arrow, never a
+     typed one, sits at the rung's icon size. */
+  .ui-link{display:inline-flex;align-items:center;gap:4px;min-height:var(--tap-min);padding:0 4px;margin:0 -4px;
+    border:0;border-radius:var(--radius);background:none;font:inherit;font-family:var(--font-heading);font-size:var(--t-body);
+    font-weight:var(--w-label);line-height:var(--lh-tight);color:var(--accent-ink);cursor:pointer;text-decoration:none;white-space:nowrap;}
+  .ui-link:hover{background:color-mix(in srgb,var(--accent-solid) 10%,transparent);}
+  .ui-link > svg{width:var(--btn-ic);height:var(--btn-ic);flex:none;}
+  .ui-link:disabled{color:var(--color-neutral-400);cursor:not-allowed;background:none;}
+  /* A TEXT BUTTON THAT THROWS SOMETHING AWAY (Revoke, Remove key) keeps the
+     one look and takes the refusal's ink, as .ui-btn-danger does for a
+     bordered one. */
+  .ui-link.ui-link-danger{color:var(--st-ruby-fg);}
+  .ui-link.ui-link-danger:hover{background:color-mix(in srgb,var(--st-ruby-fg) 8%,transparent);}
+  .ui-link.ui-link-danger:disabled{color:var(--color-neutral-400);}
+  /* A ONE-LINE BOX IS THE BUTTON'S HEIGHT (the Compact ladder, 26 Sep 2026 —
+     rule 2 of the button review: a button, a text box and a dropdown placed
+     side by side are one height). For the forms still written in the older
+     utility classes, which carried their own padding and a 14px/20px line and
+     measured 34 to 42 pixels. The border and the face stay the form's own. */
+  .ui-fld{height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size);line-height:var(--field-lh);}
+  /* A DIALOG'S FOOT (the Compact ladder, 26 Sep 2026 — rule 8 of the button
+     review): the buttons together at the right, Cancel first and the main act
+     last, 8px apart — and PINNED to the dialog's own bottom, so a long form
+     never hides the button that finishes it below the fold. A white face so
+     what scrolls under it does not show through. */
+  .dlg-foot{display:flex;align-items:center;justify-content:flex-end;gap:var(--btn-group-gap);flex-wrap:wrap;
+    margin-top:14px;padding:10px 0 2px;position:sticky;bottom:0;z-index:2;background:var(--color-surface);
+    box-shadow:0 -1px 0 var(--color-divider);}
+  /* THE FOOT A DIALOG DID NOT NAME (dlgPinFoot in js/core.js finds it and
+     marks it). Pinned the same way, and nothing else about it moves: its own
+     layout, order and spacing are the dialog's. The hairline and the breathing
+     room above and below are drawn only while the panel really scrolls, so a
+     dialog that fits looks exactly as it did. */
+  .modal-in [data-dlg-foot]{position:sticky;bottom:0;z-index:2;background:var(--color-surface);}
+  .modal-in[data-scrolls] [data-dlg-foot]{box-shadow:0 -1px 0 var(--color-divider);padding-top:10px;padding-bottom:10px;}
+  /* ---- LARGE IS LARGE (the Compact ladder, 26 Sep 2026) ----
+     This class used to mean "a head-row button": the same height as the base,
+     only lighter (weight 400), and eight head-row buttons wore it. With one
+     weight for every label that difference is gone, so those eight wear the
+     base .ui-btn and this name now says what it is — the one LARGE rung, for an
+     empty page's one invitation (emptyStateHtml) and the Sign button. History
+     of the old meaning: docs/MAP-HISTORY.md, THREE BUTTON LEVELS and ONE
+     CONTROL ROW. */
+  .ui-btn-lg{min-height:var(--ctl-h-lg);padding:0 var(--pad-ctl-x-lg);font-size:var(--t-body);}
+  .ui-btn-lg > svg{width:var(--btn-ic-lg);height:var(--btn-ic-lg);}
+  /* THE SMALL RUNG, for buttons inside repeated rows and cards. 22px drawn,
+     and a PRESSABLE area of 24 — the invisible edge below is the 1px each side
+     that WCAG 2.5.8's 24 × 24 target minimum (--tap-min) asks for. SAP draws
+     its touch buttons the same way: 36 drawn inside 44 pressable. It moves no
+     layout: the edge is absolutely positioned and paints nothing.
+     -2px, NOT -1px, AND THAT IS MEASURED: an absolutely placed box is placed
+     against its parent's PADDING box, which sits 1px inside the border, so
+     -1px only reached the border's own edge and the press stayed 22 — a real
+     mouse half a pixel under the button landed on the cell behind it. */
+  .ui-btn-sm{min-height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);font-size:var(--t-meta);gap:4px;position:relative;}
+  .ui-btn-sm::after{content:"";position:absolute;inset:-2px;}
+  /* AN ICON THAT STANDS ALONE is a SQUARE of its rung — the same height as
+     the buttons beside it, its name on the hover (rule 6 of the review). The
+     icon keeps its rung's size; only the width is taken off the padding. */
+  .ui-btn-icon{width:var(--ctl-h);min-width:var(--ctl-h);padding:0;flex:none;}
+  .ui-btn-sm.ui-btn-icon{width:var(--ctl-h-sm);min-width:var(--ctl-h-sm);}
+  .ui-btn-lg.ui-btn-icon{width:var(--ctl-h-lg);min-width:var(--ctl-h-lg);}
 
   /* ═══ A HEAD ROW HAS ONE HEIGHT AND ONE BASELINE, WHATEVER CLASS THE BUTTON
      CAME FROM ═══ Scoped to the CONTAINER, not to a class, because the measured
@@ -1415,7 +1479,6 @@
      Weight is deliberately still free: the one filled act may carry its own. */
   .room-acts button,.room-acts .ui-btn,#ws-head .room-acts button{
     min-height:var(--ctl-h);line-height:var(--lh-tight);}
-  .ui-btn-lg.ui-btn-primary{font-weight:var(--w-title);}
   /* HIDING A BUTTON HAS TO ACTUALLY HIDE IT. The rule above sets a display, and
      an author rule beats the browser's own [hidden]{display:none} — so every
      `btn.hidden = true` in this app was leaving the button standing on screen,
@@ -1943,7 +2006,7 @@
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .room-head .room-sub{ font-size:var(--t-meta); color:var(--color-neutral-600); margin-top:3px;
     overflow-wrap:anywhere; }
-  .room-head .room-acts{ display:flex; align-items:center; gap:6px; flex:none; }
+  .room-head .room-acts{ display:flex; align-items:center; gap:var(--btn-group-gap); flex:none; }
   /* ---- THE MENU ENDS THE GROUP WHERE THE ACT LEADS IT ----
      On the workbench the mock-up draws Publish round, then the alternatives,
      then Share, then More — the act first and the overflow last. The head
@@ -2101,7 +2164,7 @@
      More, Share and Internal review beside them. The GLYPH grows to fill the
      taller-looking box (16 → 18) — the box may not grow past the row's rung,
      so "bigger" is spent on the mark rather than on the chrome. */
-  .room-checks{ display:flex; align-items:center; gap:6px; flex:none; }
+  .room-checks{ display:flex; align-items:center; gap:var(--btn-group-gap); flex:none; }
   .room-acts-lead > .room-checks{ order:4; }
   /* THE CHAT DOOR IS THE FIRST THING IN THAT GROUP, so "next to the More
      button" is true by construction: .room-checks is order 4, More is 3, and
@@ -2117,7 +2180,7 @@
   .room-check{ width:var(--ctl-h,28px); height:var(--ctl-h,28px); display:grid; place-items:center; padding:0;
     border:1px solid var(--btn-edge,var(--color-accent-600)); border-radius:var(--radius);
     background:transparent; cursor:pointer; color:var(--accent-ink); }
-  .room-check svg{ width:18px; height:18px; }
+  .room-check svg{ width:var(--btn-ic); height:var(--btn-ic); }
   .room-check:hover{ background:var(--nav-well); color:var(--accent-ink); }
   .room-check.has-run{ color:var(--accent-ink); }
   .room-check:disabled{ opacity:.4; cursor:default; }
@@ -2427,7 +2490,7 @@
     color:var(--st-amber-fg); font-size:var(--t-meta); line-height:1.5; }
   /* The dismiss. Quiet, in the notice's own ink, and the same shape as the
      review banner's — two notices in one corner should not close two ways. */
-  .dk-notice-x{ flex:none; align-self:flex-start; font:inherit; font-size:var(--t-card); line-height:1;
+  .dk-notice-x{ flex:none; align-self:flex-start; font:inherit; font-size:var(--t-card); line-height:1; display:inline-grid; place-items:center;
     cursor:pointer; border:0; background:transparent; color:inherit; opacity:.65;
     padding:1px 2px; margin:-1px -3px 0 2px; }
   .dk-notice-x:hover{ opacity:1; }
@@ -2435,9 +2498,9 @@
     letter-spacing:.07em; border:1px solid currentColor; border-radius:var(--radius); padding:2px 6px; }
   .dk-notice-txt{ flex:1; min-width:0; }
   .dk-notice-said{ flex:none; opacity:.8; font-style:italic; }
-  .dk-notice-btn{ flex:none; font:inherit; font-size:var(--t-label); font-weight:var(--w-title); cursor:pointer;
-    border-radius:var(--radius); padding:var(--s-1) 10px; border:1.5px solid currentColor; background:transparent;
-    color:inherit; }
+  .dk-notice-btn{ flex:none; font:inherit; font-size:var(--t-meta); font-weight:var(--w-label); cursor:pointer;
+    border-radius:var(--radius); min-height:var(--ctl-h-sm); padding:0 var(--pad-ctl-x-sm); border:1px solid currentColor; background:transparent;
+    color:inherit; display:inline-flex; align-items:center; }
   /* Rows in the desk sheet. */
   .dk-row{ display:flex; align-items:center; gap:9px; border:1px solid var(--color-divider);
     border-radius:var(--radius); padding:7px 10px; margin-bottom:6px; background:var(--color-surface); }
@@ -2789,9 +2852,10 @@
   .st-drawer.open{ transform:translateX(0); }
   .st-dhead{ position:relative; flex:none; }
   .st-dhead .rvd-head{ padding-right:44px; }
-  .st-dx{ position:absolute; top:12px; right:12px; width:26px; height:26px; border-radius:var(--radius);
+  .st-dx{ position:absolute; top:12px; right:12px; width:var(--ctl-h); height:var(--ctl-h); border-radius:var(--radius);
     border:1px solid var(--color-accent-300); background:var(--color-surface); cursor:pointer;
-    font-size:var(--t-meta); line-height:1; color:var(--accent-ink); }
+    display:grid; place-items:center; padding:0; line-height:1; color:var(--accent-ink); }
+  .st-dx svg{ width:var(--btn-ic); height:var(--btn-ic); }
   .st-dbody{ flex:1; min-height:0; overflow-y:auto; padding:15px 20px; }
   .st-dfoot{ flex:none; display:flex; flex-direction:column; gap:9px;
     padding:var(--s-3) 20px; border-top:1px solid var(--color-divider); background:var(--color-bg); }
@@ -2862,7 +2926,7 @@
   input.st-fname:hover, input.st-fname:focus{ border-color:var(--color-divider);
     background:var(--color-surface); }
   .st-fmeta{ flex:none; font-size:var(--t-label); color:var(--color-neutral-600); }
-  .st-fdel{ flex:none; border:0; background:none; cursor:pointer; color:var(--color-neutral-500);
+  .st-fdel{ flex:none; border:0; background:none; cursor:pointer; color:var(--color-neutral-500); display:inline-grid; place-items:center;
     font-size:var(--t-card); line-height:1; padding:0 3px; }
   .st-fdel:hover{ color:var(--st-ruby-dot); }
   .st-you{ max-width:620px; }
@@ -2916,9 +2980,10 @@
      the grey override comes off here, so it simply inherits .ui-btn's accent
      border like Share and Draft new agreement beside it. Reaches the contract
      room's head and the negotiation page's, which draw one builder. */
-  .ws-more-btn{ padding:0 10px; gap:6px; font-size:var(--t-body); }
+  .ws-more-btn{ padding:0 var(--pad-ctl-x); gap:var(--btn-gap); }
   .ws-more-btn:hover{ border-color:var(--color-accent); color:var(--accent-ink); }
   .ws-more-btn .ws-more-caret{ display:inline-flex; transition:transform var(--dur-1); }
+  .ws-more-btn .ws-more-caret svg{ width:var(--btn-ic); height:var(--btn-ic); }
   .ws-more-btn[aria-expanded="true"]{ border-color:var(--color-accent);
     background:var(--st-steel-bg); color:var(--st-steel-fg); }
   .ws-more-btn[aria-expanded="true"] .ws-more-caret{ transform:rotate(180deg); }
@@ -3046,7 +3111,7 @@
      and weight follow it too: .ui-btn-lg is 14px at weight 400, and only a
      PRESSED segment is bold. */
   #ws-tabrow-end .ui-btn{ min-height:var(--ctl-h); padding-block:0;
-    font-size:var(--t-body); font-weight:var(--w-body); }
+    font-size:var(--t-body); font-weight:var(--w-label); }
   /* THE STEPPER STATES ITS OWN HEIGHT, so this slot has to state one too.
      Its own block 2,350 lines into the negotiation sheet pins height:28px
      UNSCOPED and deliberately — one builder, three homes — so trimming the
@@ -3056,7 +3121,7 @@
      negotiation control row, whose fold ladder is measured in pixels. */
   #ws-tabrow-end .rl-type-step{ height:var(--ctl-h); padding:0 3px; }
   #ws-tabrow-end .rl-type-step button,
-  #ws-tabrow-end .rl-type-step .rl-type-out{ font-size:var(--t-body); font-weight:var(--w-body); }
+  #ws-tabrow-end .rl-type-step .rl-type-out{ font-size:var(--t-body); font-weight:var(--w-label); }
   /* THE CONTROL ROW'S EXPORT MENU AND FOCUS DOOR (second pass, 21 Sep 2026).
      A <details> so the row needs no script to open it; its rows press the ⋯
      menu's own buttons (wsPaintTabRowEnd). The focus door is a square in the
@@ -3086,7 +3151,7 @@
   #ws-tabrow-end .sc-step{ display:inline-flex; align-items:center; gap:2px; flex:none; height:var(--ctl-h);
     box-sizing:border-box; padding:0 3px; border:1px solid var(--btn-edge); border-radius:var(--radius);
     background:var(--color-surface); }
-  #ws-tabrow-end .sc-step button{ width:22px; height:22px; display:inline-grid; place-items:center; padding:0;
+  #ws-tabrow-end .sc-step button{ width:var(--ctl-h-sm); height:var(--ctl-h-sm); display:inline-grid; place-items:center; padding:0;
     border:0; background:none; border-radius:var(--radius); color:var(--color-neutral-600); font:inherit;
     font-size:var(--t-body); cursor:pointer; }
   #ws-tabrow-end .sc-step button:hover:not(:disabled){ background:var(--nav-well); color:var(--color-text); }
@@ -3103,10 +3168,12 @@
     border:1px solid var(--accent-ink); border-radius:var(--radius); }
   .doc-read-seg button{ display:grid; place-items:center; height:100%; padding:0 12px;
     border:0; background:none; font:inherit; font-size:var(--t-body);
-    font-weight:var(--w-body); color:var(--accent-ink); white-space:nowrap; cursor:pointer; }
+    font-weight:var(--w-label); color:var(--accent-ink); white-space:nowrap; cursor:pointer; }
   /* ONLY THE SHADED ONE IS BOLD — Young's own rule for both of this product's
      control rows: the row reads at one weight and the lit half is what stands
-     out of it. */
+     out of it. Since the Compact ladder (26 Sep 2026) that one weight is the
+     LABEL weight every button wears, so the resting halves are 500 beside
+     Export and Share rather than 400; the lit half keeps its 600. */
   .doc-read-seg button[aria-pressed="true"]{ background:var(--accent-fill); color:#fff;
     font-weight:var(--w-title); }
   .doc-read-seg button:disabled{ opacity:.55; cursor:default; }
@@ -3825,9 +3892,10 @@
   .pt-row.is-blocked{ background:var(--st-amber-bg); border-left:3px solid var(--st-amber-dot);
     border-radius:var(--radius); margin:0 -6px; padding:4px 6px; }
   .pt-reached{ font-size:var(--t-label); color:var(--color-neutral-600); white-space:nowrap; }
-  .pt-x button{ width:26px; height:26px; display:grid; place-items:center; cursor:pointer;
+  .pt-x button{ width:var(--ctl-h-sm); height:var(--ctl-h-sm); display:grid; place-items:center; cursor:pointer;
     background:var(--color-surface); border:1px solid var(--rule-strong,#CBD3D0);
-    border-radius:var(--radius); color:var(--color-neutral-600); font-size:15px; line-height:1; }
+    border-radius:var(--radius); color:var(--color-neutral-600); line-height:1; padding:0; }
+  .pt-x button svg{ width:var(--btn-ic); height:var(--btn-ic); }
   .pt-x button:hover{ color:var(--danger); }
   .pt-none{ margin:0; font-size:var(--t-meta); color:var(--color-neutral-500); }
   /* A ROW HaTi ADDED says so on the name, quietly — the reader can tell who
@@ -3885,7 +3953,7 @@
   /* A DOOR IS A BUTTON (Young, same ruling): the Open column was five bare
      accent words in a row and read as a list rather than as five separate
      presses. `.ui-btn` is the product's own outlined control. */
-  .ov-reads .ov-r-d .ui-btn{ height:24px; padding:0 10px; font-size:var(--t-label); }
+  .ov-reads .ov-r-d .ui-btn{ min-height:var(--ctl-h-sm); padding:0 var(--pad-ctl-x-sm); font-size:var(--t-meta); }
   .ov-reads td,.ov-reads th{ overflow:hidden; text-overflow:ellipsis; }
   @media (max-width:900px){ .ov-reads .ov-r-w{ display:none; } .ov-reads th:nth-child(3){ display:none; } }
   @media (max-width:1180px){ .sec-fields{ grid-template-columns:repeat(3,minmax(0,1fr)); } }
@@ -3976,8 +4044,9 @@
      inside a page, which is three chances to end up paler than intended. */
   .ob-meta{ font-size:var(--t-label); line-height:1.5; color:var(--color-neutral-600); }
   .ob-due{ font-size:var(--t-label); color:var(--color-neutral-600); }
-  .ob-acts button{ font-size:var(--t-label); font-weight:var(--w-strong); color:var(--accent-ink); cursor:pointer; }
-  .ob-acts button:hover{ text-decoration:underline; text-underline-offset:2px; }
+  .ob-acts button{ font-size:var(--t-label); font-weight:var(--w-label); color:var(--accent-ink); cursor:pointer;
+    min-height:var(--tap-min); border-radius:var(--radius); }
+  .ob-acts button:hover{ background:color-mix(in srgb,var(--accent-solid) 10%,transparent); }
   .ob-acts button.is-del{ color:var(--st-ruby-fg,#be123c); }
   /* The quote is the EVIDENCE — the wording the obligation was read out of —
      so it is the last thing that should be hard to read. Kept italic and
@@ -3989,9 +4058,9 @@
   /* ---- THE OBLIGATIONS PAIR ---- see the note at their markup (js/obligations.js).
      Written here rather than as utility classes because what they needed was a
      resting FILL, and the utilities that were on them only ever set a border. */
-  .ob-btn{ display:inline-flex; align-items:center; gap:6px; cursor:pointer;
-    font:inherit; font-size:var(--t-label); font-weight:var(--w-strong); line-height:1.2;
-    border:1px solid; border-radius:var(--radius); padding:6px var(--s-3);
+  .ob-btn{ display:inline-flex; align-items:center; gap:4px; cursor:pointer;
+    font:inherit; font-size:var(--t-meta); font-weight:var(--w-label); line-height:var(--lh-tight);
+    border:1px solid; border-radius:var(--radius); min-height:var(--ctl-h-sm); padding:0 var(--pad-ctl-x-sm);
     transition:background var(--dur-1), border-color var(--dur-1); }
   .ob-btn-add{ color:var(--accent-ink);
     border-color:color-mix(in srgb,var(--color-accent) 45%,var(--color-divider));
@@ -4126,9 +4195,9 @@
   .hist-f{ display:flex; flex-direction:column; flex:1 1 0; min-width:132px; }
   .hist-f > span{ font-size:var(--t-label); font-weight:var(--w-body); letter-spacing:0; text-transform:none;
     color:var(--color-neutral-600); margin-bottom:3px; white-space:nowrap; }
-  .hist-f select{ font:inherit; font-size:var(--t-meta); font-weight:var(--w-body); text-transform:none;
+  .hist-f select{ font:inherit; font-size:var(--field-size); font-weight:var(--w-body); text-transform:none;
     letter-spacing:0; border:1px solid var(--color-divider); border-radius:var(--radius);
-    padding:5px 9px; background:var(--color-surface); color:var(--color-text);
+    height:var(--field-h); padding:0 var(--field-pad-x); background:var(--color-surface); color:var(--color-text);
     width:100%; min-width:0; }
   /* Clear is a verb, not a field: it keeps its own size while the five grow. */
   .hist-filters #ht-clear{ flex:none; }
@@ -4158,8 +4227,8 @@
   #obw-clear.is-on{ border-color:var(--accent-solid); color:var(--accent-ink); }
   #obw-clear.is-on b{ font-weight:var(--w-title); }
   #obw-clear:disabled{ opacity:.5; cursor:default; }
-  .obw-f select{ font:inherit; font-size:var(--t-meta); border:1px solid var(--color-divider);
-    border-radius:var(--radius); padding:5px 9px; background:var(--color-surface);
+  .obw-f select{ font:inherit; font-size:var(--field-size); border:1px solid var(--color-divider);
+    border-radius:var(--radius); height:var(--field-h); padding:0 var(--field-pad-x); background:var(--color-surface);
     color:var(--color-text); width:100%; min-width:0; }
   .obw-filters #obw-clear{ flex:none; }
   /* FIXED, so the columns do not move as the reader filters — the contracts
@@ -4254,8 +4323,8 @@
      second is the one somebody has to act on. */
   .obw-who .obt-unowned{ display:block; font-size:var(--t-label); }
   .obw-acts button{ border:0; background:none; padding:0 0 0 var(--s-3); font:inherit;
-    font-size:var(--t-label); color:var(--accent-ink); cursor:pointer; }
-  .obw-acts button:hover{ text-decoration:underline; }
+    font-size:var(--t-label); font-weight:var(--w-label); color:var(--accent-ink); cursor:pointer; min-height:var(--tap-min); }
+  .obw-acts button:hover{ color:var(--color-text); }
 
   /* ---- OBLIGATIONS: a home of their own (owner-asked 29 Aug 2026, J-2.1) ----
      The trail's own shape, for the same reason: this is a worklist, so the rows
@@ -4288,14 +4357,14 @@
   /* The form's one new row: the contract's currency as a fixed prefix rather
      than a picker, so a second currency can never be stored beside the
      contract's own and drift from it. */
-  .of-amt{ display:flex; align-items:stretch; width:100%;
+  .of-amt{ display:flex; align-items:stretch; width:100%; height:var(--field-h); box-sizing:border-box;
     border:1px solid var(--field-line); border-radius:var(--radius);
     background:var(--color-surface); overflow:hidden; }
   .of-amt i{ font-style:normal; display:flex; align-items:center; padding:0 10px;
     background:var(--nav-well); border-right:1px solid var(--field-line);
     font-size:var(--t-label); font-weight:var(--w-strong); color:var(--color-neutral-600); }
-  .of-amt input{ flex:1; min-width:0; border:0; background:none; outline:none;
-    padding:8px 12px; font:inherit; font-size:var(--t-body);
+  .of-amt input{ flex:1; min-width:0; border:0; background:none; outline:none; height:100%;
+    padding:0 var(--field-pad-x); font:inherit; font-size:var(--t-body);
     font-variant-numeric:tabular-nums; color:inherit; }
   .obt-row{ display:flex; gap:14px; align-items:flex-start;
     padding:11px var(--s-4); border-bottom:1px solid var(--rule); }
@@ -4414,9 +4483,9 @@
   .obt-verbs{ flex:none; display:flex; justify-content:flex-end; gap:var(--s-3);
     line-height:20px; min-width:172px; }
   .obt-verbs button{ border:0; background:none; padding:0; font:inherit;
-    font-size:var(--t-label); color:var(--accent-ink); cursor:pointer; }
+    font-size:var(--t-label); font-weight:var(--w-label); color:var(--accent-ink); cursor:pointer; min-height:var(--tap-min); }
   .obt-verbs button.is-del{ color:var(--danger); }
-  .obt-verbs button:hover{ text-decoration:underline; }
+  .obt-verbs button:hover{ color:var(--color-text); }
   /* The count on the tab itself. Quiet by default — it is a fact about how much
      is outstanding — and amber only when something is actually late. */
   .room-tab-n{ margin-left:5px; font-size:var(--t-label); font-variant-numeric:tabular-nums;
@@ -4461,8 +4530,10 @@
   .check-row .cn{ font-weight:var(--w-strong); line-height:1.35; }
   .check-row .cs{ font-size:var(--t-label); color:var(--color-neutral-600); line-height:1.45; }
   .check-row .cg{ flex:none; border:0; background:none; cursor:pointer; font:inherit; margin-top:1px;
-    font-size:var(--t-label); font-weight:var(--w-title); color:var(--accent-ink); padding:0; }
-  .check-row .cg:hover{ text-decoration:underline; }
+    font-size:var(--t-body); font-weight:var(--w-label); color:var(--accent-ink); padding:0 4px;
+    min-height:var(--tap-min); display:inline-flex; align-items:center; gap:2px; border-radius:var(--radius); }
+  .check-row .cg svg{ width:var(--btn-ic); height:var(--btn-ic); flex:none; }
+  .check-row .cg:hover{ background:color-mix(in srgb,var(--accent-solid) 10%,transparent); }
 
   /* ---- DARK IS A BLACK THEME, INCLUDING ITS TWO BIGGEST SURFACES ----
      Both theme pickers — the desktop menu and the phone's swatch button —
@@ -4644,7 +4715,7 @@
   /* The header's icon controls lose their box. Three bordered grey tiles in a
      row read as a toolbar of equal weights; they are secondary to the search
      and the Copilot, and now look it. */
-  .hdr-icon-btn{position:relative;width:36px;height:36px;display:grid;place-items:center;border:1px solid transparent;background:transparent;border-radius:var(--radius);color:var(--color-neutral-500);cursor:pointer;transition:background var(--dur-1),color var(--dur-1);}
+  .hdr-icon-btn{position:relative;width:var(--ctl-h);height:var(--ctl-h);display:grid;place-items:center;border:1px solid transparent;background:transparent;border-radius:var(--radius);color:var(--color-neutral-500);cursor:pointer;transition:background var(--dur-1),color var(--dur-1);}
   .hdr-icon-btn:hover{background:var(--color-neutral-100);color:var(--color-text);}
 
   /* ---- THE SHELL BAR'S OWN CHROME (24 Aug 2026) ----
@@ -4652,7 +4723,7 @@
      hover that lightens the ground rather than tinting the glyph. Scoped to
      #top-header so .hdr-icon-btn keeps its light-ground treatment everywhere
      else it draws — the class is used well outside this bar. */
-  #top-header .hdr-icon-btn{width:32px;height:32px;color:#fff;flex:none;}
+  #top-header .hdr-icon-btn{width:var(--ctl-h);height:var(--ctl-h);color:#fff;flex:none;}
   #top-header .hdr-icon-btn:hover{background:rgba(255,255,255,.12);color:#fff;}
   #top-header .sh-div{flex:none;width:1px;height:18px;background:rgba(255,255,255,.24);margin:0 var(--s-1);}
 
@@ -5037,8 +5108,8 @@
   .hm-sec-sub{font-size:var(--t-label);color:var(--color-neutral-600);flex:none;margin-right:auto;}
   .hm-sec .hm-sec-sub+.hm-rule{display:none;}
   .hm-big .hm-s{margin:0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;align-self:baseline;}
-  .hm-rverb{flex:none;display:inline-flex;align-items:center;height:26px;padding:0 10px;border:1px solid var(--rule-strong);border-radius:var(--radius);
-    background:var(--color-surface);font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;}
+  .hm-rverb{flex:none;display:inline-flex;align-items:center;height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);border:1px solid var(--rule-strong);border-radius:var(--radius);
+    background:var(--color-surface);font-size:var(--t-meta);font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;}
   .hm-row:hover .hm-rverb{border-color:var(--color-accent);color:var(--accent-ink);}
   /* ---- THE BUTTON DOES NOT ANCHOR THE ROW'S BASELINE (25 Aug 2026) ----
      This row is baseline-aligned so the greeting and the date read off one
@@ -5081,9 +5152,9 @@
      24 Aug's "the one act is white" on the owner's later drawing. One class,
      both pages, so they cannot disagree. */
   .hm-primary{flex:none;white-space:nowrap;height:var(--ctl-h);display:inline-flex;
-    align-items:center;gap:7px;padding:0 var(--s-3);background:var(--accent-fill);
+    align-items:center;gap:var(--btn-gap);padding:0 var(--pad-ctl-x);background:var(--accent-fill);
     border:1px solid var(--accent-fill);color:#fff;
-    font:inherit;font-family:var(--font-body);font-size:var(--t-meta);font-weight:var(--w-strong);
+    font:inherit;font-family:var(--font-heading);font-size:var(--t-body);font-weight:var(--w-label);
     cursor:pointer;border-radius:var(--radius);}
   .hm-primary:hover{background:var(--accent-ink);border-color:var(--accent-ink);}
   /* AT NIGHT THE FILL STEPS UP A RUNG: accent-600 on the dark page measures
@@ -5801,8 +5872,8 @@
     border-radius:var(--radius);padding:1px 5px;margin-left:4px;}
   .sc-find-a{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;}
   .sc-find-a button{border:0;background:none;padding:0;font:inherit;
-    font-size:var(--t-label);font-weight:var(--w-title);color:var(--accent-ink);cursor:pointer;}
-  .sc-find-a button:hover{text-decoration:underline;}
+    font-size:var(--t-label);font-weight:var(--w-label);color:var(--accent-ink);cursor:pointer;min-height:var(--tap-min);}
+  .sc-find-a button:hover{color:var(--color-text);}
   /* ---- BEFORE YOU SIGN, the one list (13 Sep 2026) ----
      A mark per row says its weight without a word: ruby for an escalation,
      amber for anything else that holds, a quiet dot for what is merely
@@ -5843,8 +5914,8 @@
      same weight (0,1,0) — so which face the button wore would be decided by
      which rule sits later in this file, which is not a thing anyone editing
      either one would think to check. */
-  .sc-stage-act{flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;
-    font-family:var(--font-heading);font-size:var(--t-meta);font-weight:var(--w-body);
+  .sc-stage-act{flex:none;display:inline-flex;align-items:center;justify-content:center;gap:var(--btn-gap);
+    font-family:var(--font-heading);font-size:var(--t-body);font-weight:var(--w-label);
     line-height:var(--lh-tight);color:var(--accent-ink);background:transparent;
     border:1px solid var(--btn-edge);border-radius:var(--radius);
     min-height:var(--ctl-h);padding:0 var(--pad-ctl-x);cursor:pointer;
@@ -5900,7 +5971,10 @@
   .sc-fold-x{color:var(--accent-ink);font-weight:var(--w-title);margin-left:4px;}
   /* The held Sign button is a door, not a dead control: it keeps the held
      face but says so with the pointer. */
-  #sign-btn.sign-held{cursor:pointer;}
+  /* THE HELD FACE (the Compact ladder, 26 Sep 2026): the large rung in the
+     secondary face — never the fill, so it never promises — with the quiet
+     ink. It is still a door (signLandOnList), so it keeps a pointer. */
+  #sign-btn.sign-held{cursor:pointer;color:var(--color-neutral-700);}
   .hm-tri-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
     gap:10px;margin-top:10px;}
   .hm-tri-tile{border:1px solid var(--color-divider);padding:8px 10px;min-width:0;}
@@ -6132,9 +6206,10 @@
      A fixed height so the line cannot grow and start costing the page more
      than the banner gave up for it. */
   .hm-kpi-bar{display:flex;align-items:center;justify-content:flex-end;height:26px;padding:0 2px;}
-  .hm-cz{display:inline-flex;align-items:center;gap:6px;background:none;border:0;padding:2px 0;
-    font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--accent-ink-700);cursor:pointer;}
-  .hm-cz:hover{color:var(--accent-ink);text-decoration:underline;}
+  .hm-cz{display:inline-flex;align-items:center;gap:4px;background:none;border:0;padding:0 4px;min-height:var(--tap-min);border-radius:var(--radius);
+    font:inherit;font-size:var(--t-body);font-weight:var(--w-label);color:var(--accent-ink);cursor:pointer;}
+  .hm-cz:hover{background:color-mix(in srgb,var(--accent-solid) 10%,transparent);}
+  .hm-cz > svg{width:var(--btn-ic);height:var(--btn-ic);flex:none;}
   .hm-cz:focus-visible{outline:2px solid var(--accent-solid);outline-offset:2px;}
 
   /* Home — lifecycle pipeline: two thirds to the ring, one third to the list
@@ -6468,7 +6543,9 @@
   .tpl-li-t{ display:block; font-size:var(--t-body); font-weight:var(--w-label); color:var(--color-text);
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .tpl-li-s{ display:block; font-size:var(--t-label); color:var(--color-neutral-600); margin-top:1px; }
-  .ui-btn.tpl-btn-xs{ height:22px; min-height:0; padding:0 7px; font-size:var(--t-micro); font-weight:var(--w-strong); }
+  /* .tpl-btn-xs carries no size since 26 Sep 2026: the rows wear .ui-btn-sm,
+     the small rung, like every other repeated row (the Compact ladder). The
+     class stays as the row buttons' name. */
   /* ---- THE NEW AGREEMENT POP-UP (Young, 21 Sep 2026), to the reference's
      own .modal.xl / .modal-h / .door / .chip / .card / .field rules — every
      number read off prototype/hati-redesign-reference.html, never a screenshot.
@@ -6513,24 +6590,28 @@
      real browser rather than estimated. RE-DERIVED 23 Sep 2026, when the ask
      left the rail for the top line of the body: the old 396 counted the ask,
      Find and the hint as part of the rail (234px of it), and both halves of
-     that moved. Each part rounded UP to a whole pixel, as before:
+     that moved. RE-DERIVED AGAIN the same day, when the "Upload it" link left
+     the row under the list (upload is a door in front of this screen now):
+     that row was 51 (two lines) and became Import alone. RE-DERIVED 26 Sep
+     2026 for the Compact ladder: the foot's buttons are 28 (were 30) and the
+     Import row is a text button with a real 24px target (it was a 17px
+     line), both re-measured at every size below.
+     Each part rounded UP to a whole pixel, as before:
        the frame's edge 2 (the ceiling is 88vh; .na-root takes 88vh less 2)
-     + the head 69 (68.6) + the foot 55 + the body's own padding 36
+     + the head 69 (68.6) + the foot 53 + the body's own padding 36
      + the ask across the top 126 (125.6) + the body's row gap under it 20
-     + the rail's gap 12 + the Import row 28 (27.8, one line at 260px)
-       and its margin 2                                        = 350.
+     + the rail's gap 12 + the Import row 35 (its 10px of air, the rule and
+       the 24px target) and its margin 2                        = 355.
      The same at 1100, 1280, 1440 and 1920, and at both iPad sizes (the frame
      is one width now), in English and in Swedish, with Copilot connected and
      without — the hint under the ask is a different sentence in each and all
-     of them are one line there. RE-DERIVED AGAIN the same day, when the
-     "Upload it" link left the row under the list (upload is a door in front
-     of this screen now): that row was 51 (two lines) and is Import alone.
+     of them are one line there.
      What is left is what the list may take, so on a fresh open the rail fits
      and nothing at its foot is below the fold. A floor keeps it usable on a
      very short window, where the body scrolls as it always has rather than
      the list vanishing; and once the reader TYPES, the ask grows and the body
      scrolls, which is right — that is their own doing. */
-  .na-picks{ min-height:0; overflow:auto; max-height:max(140px, calc(88vh - 350px)); }
+  .na-picks{ min-height:0; overflow:auto; max-height:max(140px, calc(88vh - 355px)); }
   /* The list's end is a hairline, not a half-row trailing into the footer:
      ordinary furniture parting a list from the row under it. */
   .na-rail .na-more{ border-top:1px solid var(--color-divider); padding-top:10px; margin-top:2px; }
@@ -6644,7 +6725,6 @@
      is what makes the rows above safe. */
   .na-none{ margin:0; font-size:var(--t-label); color:var(--color-neutral-600); }
   .na-more{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:var(--t-label); color:var(--color-neutral-600); padding-top:4px; }
-  .na-more .ui-btn-plain{ padding:0; height:auto; min-height:0; font-size:var(--t-label); }
   .na-card{ background:var(--color-surface); border:1px solid var(--rule-strong); border-radius:var(--radius-lg); min-width:0; align-self:start; }
   .na-card-h{ display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid var(--color-divider); }
   .na-card-h h3{ margin:0; font-family:var(--font-heading); font-size:14px; font-weight:var(--w-title); color:var(--color-text); flex:1; min-width:0; line-height:1.35; }
@@ -6664,7 +6744,7 @@
   .tpl-bar-t > span{ display:block; height:4px; background:var(--accent-solid); border-radius:2px; }
   .tpl-empty{ font-size:var(--t-label); color:var(--color-neutral-500); margin:0; }
   /* ---- THE LIST'S SEARCH, the reference's .search: 30px, grey well. ---- */
-  .tpl-search{ display:flex; align-items:center; gap:8px; height:30px; width:260px; max-width:50%;
+  .tpl-search{ display:flex; align-items:center; gap:8px; height:var(--field-h); width:260px; max-width:50%;
     padding:0 10px; border:1px solid var(--color-divider); border-radius:var(--radius);
     background:var(--color-neutral-100); color:var(--color-neutral-500); flex:none; }
   .tpl-search:hover{ border-color:var(--rule-strong); }
@@ -6816,8 +6896,8 @@
     #brand-wordmark{display:none;}
     /* Every control stays reachable — they are tightened, never dropped. */
     #top-header #brand-mark{width:30px!important;height:30px!important;border-radius:var(--radius)!important;}
-    #top-header .hdr-icon-btn{width:30px!important;height:30px!important;}
-    #top-header #side-logout{width:30px!important;height:30px!important;}
+    #top-header .hdr-icon-btn{width:var(--ctl-h)!important;height:var(--ctl-h)!important;}
+    #top-header #side-logout{width:var(--ctl-h)!important;height:var(--ctl-h)!important;}
     #top-header #side-avatar{width:28px!important;height:28px!important;}
     #top-header #cmd-ai{padding:7px var(--s-2)!important;}
     #top-header>div:last-child{gap:var(--s-1)!important;}
@@ -7721,7 +7801,10 @@
   /* An ink class sets `color`, so the swatch borrows it; a highlight class sets
      `background` and already paints itself. Two selectors, no !important. */
   .rb-sw[class*="hati-ink-"]{background:currentColor;}
-  .rb-car{font-size:var(--t-micro);color:var(--color-neutral-600);}
+  .rb-car{display:inline-flex;align-items:center;font-size:var(--t-micro);color:var(--color-neutral-600);}
+  /* The caret is drawn inside a tool button, where .rb-btn svg scales the
+     tools to 18 — one class heavier, so it keeps its own small size. */
+  .rb-btn .rb-car svg,.rb-size .rb-car svg{width:9px;height:9px;}
   .rb-sep{width:1px;height:22px;background:var(--color-divider);margin:0 6px;flex:none;}
   /* the size box takes Word's own shape, because that is where a writer looks */
   .rb-size{flex:none;display:flex;align-items:center;height:34px;gap:6px;
@@ -8173,14 +8256,14 @@
     --bar-well:rgba(255,255,255,.10);
     --bar-hover:rgba(255,255,255,.15);
   }
-  #top-header .hdr-icon-btn{width:30px;height:30px;color:var(--bar-ink-2);border-radius:var(--radius);}
+  #top-header .hdr-icon-btn{width:var(--ctl-h);height:var(--ctl-h);color:var(--bar-ink-2);border-radius:var(--radius);}
   #top-header .hdr-icon-btn:hover{background:var(--bar-hover);color:var(--bar-ink);}
   #top-header .sh-div{background:var(--bar-line);}
   #top-header #shell-title{font-weight:var(--w-strong);color:var(--bar-ink);font-size:var(--t-body);}
   #top-header #brand-block,#top-header #brand-wordmark{color:var(--bar-ink);}
   #top-header #brand-block{display:none;}
   @media (max-width:899px){ #top-header #brand-block{display:flex;} }
-  #top-header .cmd-search{height:30px;background:var(--bar-well);border:1px solid var(--bar-line);color:var(--bar-ink-2);border-radius:var(--radius);}
+  #top-header .cmd-search{height:var(--ctl-h);background:var(--bar-well);border:1px solid var(--bar-line);color:var(--bar-ink-2);border-radius:var(--radius);}
   #top-header .cmd-search:hover{border-color:rgba(255,255,255,.4);}
   /* The focus ring is WHITE here, not the accent: the accent ramp is the
      ground this bar is painted in, so an accent ring on it is a ring nobody
@@ -8239,6 +8322,23 @@
   .ui-btn-primary{color:#fff;background:var(--accent-fill);font-weight:var(--w-label);}
   .ui-btn-primary:hover{background:var(--accent-solid-hover);}
   .ui-btn:disabled,.ui-btn[aria-disabled="true"]{color:var(--color-neutral-400);background:var(--color-surface);}
+  /* A BUTTON THAT THROWS SOMETHING AWAY wears the refusal's ink — the one
+     colour this product reads as "this cannot be taken back" (the Compact
+     ladder, 26 Sep 2026). It replaces the ruby outlines several buttons wrote
+     by hand, each a slightly different red. The confirm
+     dialog's own filled red Confirm is untouched: that is the one place a
+     destructive act is the main act of the area. Written HERE, after the
+     reference's white face and one class heavier, because that face sets the
+     page ink at (0,1,0) and a rule above it would lose while looking correct. */
+  .ui-btn.ui-btn-danger:not(.ui-btn-primary){color:var(--st-ruby-fg);border-color:var(--st-ruby-line);}
+  .ui-btn.ui-btn-danger:not(.ui-btn-primary):hover{border-color:var(--st-ruby-fg);background:color-mix(in srgb,var(--st-ruby-fg) 8%,var(--color-surface));}
+  .ui-btn.ui-btn-danger:disabled{color:var(--color-neutral-400);border-color:var(--btn-edge);}
+  /* THE MAIN ACT OF A REPEATED ROW takes the accent's INK, never its fill
+     (rule 4 of the button review: one filled button per area, and a table of
+     twelve rows is one area, not twelve). The row still says which press is
+     its main one: the accent word stands out from the page-ink words beside
+     it, at the same weight. */
+  .ui-btn.ui-btn-accent:not(.ui-btn-primary){color:var(--accent-ink);}
 
   /* ═══ THE CONTRACTS PAGE (20 Sep 2026, step 3 of the redesign order) ═══
      The quick filters as a tab row, two segmented controls at the bar's right
@@ -8266,10 +8366,10 @@
   .reg-vtab.on .n{color:var(--accent-ink);background:color-mix(in srgb,var(--color-accent) 12%,transparent);}
   .reg-vtab-saved{padding:0 4px 0 12px;gap:2px;}
   .reg-vtab-saved>button{border:0;background:none;font:inherit;color:inherit;cursor:pointer;padding:0;}
-  .reg-vtab-saved>button.x{color:var(--color-neutral-500);font-size:var(--t-body);padding:0 6px;border-radius:var(--radius);}
+  .reg-vtab-saved>button.x{color:var(--color-neutral-500);font-size:var(--t-body);padding:0 6px;border-radius:var(--radius);display:inline-grid;place-items:center;}
   .reg-vtab-saved>button.x:hover{color:var(--st-ruby-fg);background:var(--st-ruby-bg);}
   .reg-views-end{margin-left:auto;flex:none;align-self:center;padding-bottom:6px;}
-  .reg-vtab-act{border:0;background:none;font:inherit;font-size:var(--t-body);font-weight:var(--w-label);color:var(--color-neutral-600);cursor:pointer;padding:4px 8px;border-radius:var(--radius);white-space:nowrap;}
+  .reg-vtab-act{border:0;background:none;font:inherit;font-size:var(--t-body);font-weight:var(--w-label);color:var(--accent-ink);cursor:pointer;padding:0 8px;min-height:var(--tap-min);display:inline-flex;align-items:center;gap:4px;border-radius:var(--radius);white-space:nowrap;}
   .reg-vtab-act:hover{color:var(--color-text);background:var(--surface-2);}
   /* THE CHIP IS THE HIT AREA, END TO END (Young, 21 Sep 2026 — the filters
      "do not work at all"). The select is an invisible overlay across the whole
@@ -8286,7 +8386,7 @@
      is exactly what a date is. ONE class, both columns, so they cannot drift. */
   .reg-table .reg-day{font-family:var(--font-mono);font-size:var(--t-label);font-weight:var(--w-body);
     font-variant-numeric:tabular-nums;color:var(--color-neutral-600);}
-  .reg-filterbar .reg-chip{position:relative;flex-direction:row;align-items:center;gap:5px;height:var(--ctl-h);padding:0 11px 0 10px;border:1px solid var(--rule-strong);border-radius:999px;background:var(--color-surface);color:var(--color-neutral-700);font-size:var(--t-label);font-weight:var(--w-label);white-space:nowrap;cursor:pointer;}
+  .reg-filterbar .reg-chip{position:relative;flex-direction:row;align-items:center;gap:5px;height:var(--ctl-h);padding:0 var(--pad-ctl-x);border:1px solid var(--rule-strong);border-radius:999px;background:var(--color-surface);color:var(--color-neutral-700);font-size:var(--t-body);font-weight:var(--w-label);white-space:nowrap;cursor:pointer;}
   /* NOTHING DECORATIVE TAKES THE PRESS. The funnel mark, the word and the
      caret all sit over the control, and a press on any of them has to reach
      it — MEASURED, a press on the caret landed on the <label>, which opens
@@ -8335,7 +8435,8 @@
   .reg-filterbar .reg-chip.on{border-color:var(--color-accent);color:var(--accent-ink);font-weight:var(--w-strong);background:color-mix(in srgb,var(--color-accent) 8%,transparent);}
   .reg-filterbar .reg-chip.on .reg-f-l b{color:var(--accent-ink);}
   .reg-filterbar .reg-chip:hover{border-color:var(--color-accent);}
-  .reg-filterbar .reg-chip-btn{font:inherit;font-size:var(--t-label);font-weight:var(--w-label);color:var(--accent-ink);padding:0 12px;align-self:auto;}
+  .reg-filterbar .reg-chip-btn{font:inherit;font-size:var(--t-body);font-weight:var(--w-label);color:var(--accent-ink);padding:0 var(--pad-ctl-x);align-self:auto;display:inline-flex;align-items:center;gap:var(--btn-gap);}
+  .reg-filterbar .reg-chip-btn > svg{width:var(--btn-ic);height:var(--btn-ic);flex:none;}
   .reg-table td.reg-cell-title{line-height:1.3;padding-top:3px;padding-bottom:3px;}
   .reg-table .reg-sub{display:block;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   /* The Negotiations seat's Type column (21 Sep 2026). It reads at the
@@ -8352,7 +8453,7 @@
   .page-facts{font-size:var(--t-body);color:var(--color-neutral-600);margin-top:3px;line-height:1.4;}
   .page-facts:empty{display:none;}
   .reg-seg{display:inline-flex;align-items:stretch;height:var(--ctl-h);border:1px solid var(--color-divider);border-radius:var(--radius);overflow:hidden;background:var(--color-surface);align-self:flex-end;flex:none;}
-  .reg-seg button{border:0;background:transparent;font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);color:var(--color-neutral-600);padding:0 10px;cursor:pointer;white-space:nowrap;}
+  .reg-seg button{border:0;background:transparent;font:inherit;font-size:var(--t-body);font-weight:var(--w-label);color:var(--color-neutral-600);padding:0 var(--pad-ctl-x);cursor:pointer;white-space:nowrap;}
   .reg-seg button + button{border-left:1px solid var(--color-divider);}
   .reg-seg button:hover{background:var(--surface-2);color:var(--color-text);}
   .reg-seg button.on,.reg-seg button[aria-pressed="true"]{background:var(--accent-fill);color:#fff;font-weight:var(--w-strong);}
@@ -8421,7 +8522,8 @@
   .ap-n{font-family:var(--font-mono);font-size:var(--t-figure);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:var(--radius);padding:1px 6px;margin-left:4px;font-weight:var(--w-strong);}
   .ap-empty{padding:28px 14px;text-align:center;color:var(--color-neutral-500);font-size:var(--t-body);}
   .ap-foot{display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);padding:6px 14px;border-top:1px solid var(--color-divider);font-size:var(--t-label);color:var(--color-neutral-600);}
-  .ap-go{min-height:26px;padding:0 10px;font-size:var(--t-meta);}
+  /* .ap-go is the small rung since 26 Sep 2026 (the Compact ladder): a row's
+     verb wears .ui-btn-sm in the markup and takes no size of its own here. */
 
   /* ═══ APPROVAL BEFORE SIGNING (23 Sep 2026) ═══════════════════════════
      The request window, the approver's own card at the top of the signing
@@ -8462,7 +8564,7 @@
   .sa-set-head{display:flex;align-items:center;gap:var(--s-3);margin-bottom:10px;}
   .sa-set-head .st-role-name{flex:1;min-width:0;}
   .sa-seg{display:inline-flex;height:var(--ctl-h);border:1px solid var(--btn-edge);border-radius:var(--radius);overflow:hidden;flex:none;}
-  .sa-seg button{height:100%;padding:0 12px;border:0;background:transparent;font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);color:var(--color-neutral-700);cursor:pointer;}
+  .sa-seg button{height:100%;padding:0 var(--pad-ctl-x);border:0;background:transparent;font:inherit;font-size:var(--t-body);font-weight:var(--w-label);color:var(--color-neutral-700);cursor:pointer;}
   .sa-seg button + button{border-left:1px solid var(--btn-edge);}
   .sa-seg button.on{background:var(--accent-fill);color:#fff;}
   .sa-seg button:focus-visible{outline:2px solid var(--color-accent);outline-offset:-2px;}
@@ -9191,7 +9293,8 @@
 #ai-feed .ai-target-ask{font-size:var(--t-body);line-height:1.55}
 /* Suggested-question chips: shown on an empty panel only (js/ai.js). */
 .ai-chip{border:1px dashed var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);
-  font-size:var(--t-label);font-weight:var(--w-body);border-radius:var(--radius);padding:var(--s-1) 10px;cursor:pointer;
+  display:inline-flex;align-items:center;min-height:var(--ctl-h-sm);
+  font-size:var(--t-meta);font-weight:var(--w-body);border-radius:var(--radius);padding:0 var(--pad-ctl-x-sm);cursor:pointer;
   transition:border-color var(--dur-1),color var(--dur-1),background var(--dur-1)}
 .ai-chip:hover{border-color:var(--color-accent);color:var(--accent-ink);border-style:solid;background:var(--color-surface)}
 .ai-tone{font-weight:var(--w-strong);border-radius:var(--radius);padding:0 3px}

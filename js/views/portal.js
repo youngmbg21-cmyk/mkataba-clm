@@ -130,10 +130,10 @@ function portalRevisedBanner(){
         <span style="display:block;font-size:var(--t-card);font-weight:var(--w-strong);color:var(--st-amber-fg)">${headline}</span>
         <span style="display:block;font-size:var(--t-meta);color:var(--color-neutral-600);font-family:var(--font-mono)">${sub}</span>
       </span>
-      <button id="pt-see-changes" style="flex:none;font:inherit;font-size:var(--t-body);font-weight:var(--w-strong);border:0;border-radius:var(--radius);padding:9px var(--s-4);cursor:pointer;background:var(--st-amber-dot);color:#fff">${i18t('po_see_what_changed')}</button>
+      <button id="pt-see-changes" type="button" class="ui-btn" style="flex:none;border-color:var(--st-amber-dot);background:var(--st-amber-dot);color:#fff">${i18t('po_see_what_changed')}</button>
       <button id="pt-revised-dismiss" title="${i18t('po_mark_read_wont_come_back')}"
         aria-label="${i18t('po_mark_read_dismiss')}"
-        style="flex:none;width:28px;height:28px;display:grid;place-items:center;border:1px solid var(--st-amber-line);background:transparent;color:var(--st-amber-fg);border-radius:var(--radius);cursor:pointer;font:inherit;font-size:var(--t-card);line-height:1">&times;</button>
+        style="flex:none;width:var(--ctl-h);height:var(--ctl-h);display:grid;place-items:center;border:1px solid var(--st-amber-line);background:transparent;color:var(--st-amber-fg);border-radius:var(--radius);cursor:pointer;padding:0;line-height:1">${icon('x','w-3.5 h-3.5')}</button>
     </div>
     <style>
       @keyframes pt-pulse{0%,100%{box-shadow:0 0 0 0 rgba(184,134,43,.55)}50%{box-shadow:0 0 0 6px rgba(184,134,43,0)}}
@@ -271,10 +271,10 @@ function portalCompareBar(){
     <div id="pt-history" style="display:flex;align-items:center;gap:11px;flex-wrap:wrap;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:11px var(--s-4);margin:0 0 18px;box-shadow:var(--shadow-sm)">
       <span style="flex:none;display:inline-flex;color:var(--color-accent)">${icon('history','w-4 h-4')}</span>
       <span style="flex:1;min-width:180px;font-size:var(--t-body);color:var(--color-neutral-700);line-height:1.5">${line}</span>
-      ${hist?`<button id="pt-hist" class="ui-btn pt-verb" style="flex:none;font-size:var(--t-body);padding:var(--s-2) 14px"
+      ${hist?`<button id="pt-hist" class="ui-btn pt-verb" style="flex:none"
         title="${i18t('po_every_change_oldest')}">${
         icon('history','w-3.5 h-3.5',2)}Negotiation history</button>`:''}
-      ${cmp?`<button id="pt-compare" class="ui-btn pt-verb" style="flex:none;font-size:var(--t-body);padding:var(--s-2) 14px"
+      ${cmp?`<button id="pt-compare" class="ui-btn pt-verb" style="flex:none"
         title="${i18t('po_two_versions_side')}">${
         icon('columns','w-3.5 h-3.5',2)}Compare wording</button>`:''}
     </div>`;
@@ -1041,12 +1041,12 @@ function portalClauseEditorHtml(c){
       <div data-cl="${u.i}" style="border:1px solid ${edited?'var(--st-amber-dot)':'var(--color-divider)'};background:${edited?'var(--st-amber-bg)':'var(--color-surface)'};border-radius:var(--radius);padding:10px 13px">
         <div data-cl-view="${u.i}" style="display:flex;align-items:flex-start;gap:10px">
           <span style="flex:1;min-width:0;font-size:${heading?'13.5px':'13px'};line-height:1.7;${heading?'font-weight:var(--w-title);letter-spacing:.02em;':''}color:var(--color-doc-text);white-space:pre-wrap">${esc(shown)}</span>
-          <button data-cl-edit="${u.i}" class="ui-btn" style="flex:none;font-size:var(--t-label);padding:var(--s-1) 10px">${edited?'Edit again':'Change'}</button>
+          <button data-cl-edit="${u.i}" class="ui-btn ui-btn-sm" style="flex:none">${edited?'Edit again':'Change'}</button>
         </div>
         ${edited?`<div style="margin-top:6px;font-size:var(--t-label);color:var(--st-amber-fg);display:flex;align-items:center;gap:7px;flex-wrap:wrap">
           <span>${i18t('po_you_changed_this')}</span>
           ${PORTAL_CLAUSE_NOTES[u.i]?`<span style="color:var(--color-neutral-700);font-size:var(--t-label)">“${esc(PORTAL_CLAUSE_NOTES[u.i])}”</span>`:''}
-          <button data-cl-undo="${u.i}" style="border:0;background:none;padding:0;font:inherit;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--st-amber-fg);cursor:pointer;text-decoration:underline">${i18t('po_undo')}</button></div>`:''}
+          <button data-cl-undo="${u.i}" type="button" class="ui-link">${i18t('po_undo')}</button></div>`:''}
       </div>`;
   }).join('');
   const n=Object.keys(PORTAL_CLAUSE_EDITS).length;
@@ -1074,8 +1074,8 @@ function wirePortalClauseEditor(c, p){
           <textarea data-cl-note="${i}" class="chat-field" rows="1" placeholder="e.g. Net-60 is our standard payment term." style="width:100%;border:1px solid var(--color-divider);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-meta);background:var(--color-surface);outline:none">${esc(PORTAL_CLAUSE_NOTES[i]||'')}</textarea>
         </label>
         <div style="display:flex;gap:7px;justify-content:flex-end;margin-top:7px">
-          <button data-cl-cancel="${i}" class="ui-btn" style="font-size:var(--t-label);padding:var(--s-1) 11px">${i18t('act_cancel')}</button>
-          <button data-cl-save="${i}" class="ui-btn ui-btn-primary" style="font-size:var(--t-label);padding:var(--s-1) 11px">${i18t('po_keep_this_change')}</button>
+          <button data-cl-cancel="${i}" class="ui-btn ui-btn-sm">${i18t('act_cancel')}</button>
+          <button data-cl-save="${i}" class="ui-btn ui-btn-sm ui-btn-primary">${i18t('po_keep_this_change')}</button>
         </div>`;
       const ta=row.querySelector(`[data-cl-input="${i}"]`); if(ta){ ta.focus(); }
       row.querySelector(`[data-cl-cancel="${i}"]`).addEventListener('click',repaint);
@@ -1680,7 +1680,7 @@ function portalAgreedHtml(p){
              screen's own wiring rather than in wirePortalNego — that function
              returns early when #pt-nego is absent, and #pt-nego is exactly what
              this branch no longer draws. */}
-      ${changes.length?`<button id="pt-nego-open" class="ui-btn" style="flex:none;font-size:var(--t-meta);padding:7px 14px"
+      ${changes.length?`<button id="pt-nego-open" class="ui-btn" style="flex:none"
         title="${i18t('po_every_change_oldest')}">${i18t('po_review_what_changed')}</button>`:''}
     </div>`;
 }
@@ -1827,12 +1827,12 @@ function portalNegoFootHtml(p){
            reader holding decisions there would otherwise have no batch send at
            all. Same reasoning as the sentences this flag already stands down.
            The per-card Send is untouched on both. */}
-    ${n && !PORTAL_FOOT_COMPACT?`<button id="pt-nego-send" class="ui-btn ui-btn-primary nego-pulse" style="flex:none;font-size:var(--t-body);padding:var(--s-2) 15px">${i18tn('po_send_n_decisions',n,{n})}</button>`:''}
+    ${n && !PORTAL_FOOT_COMPACT?`<button id="pt-nego-send" class="ui-btn ui-btn-primary nego-pulse" style="flex:none">${i18tn('po_send_n_decisions',n,{n})}</button>`:''}
     <button id="pt-nego-ready" class="ui-btn" ${readyOk&&!spent?'':'disabled'}
       title="${esc(spent?i18t('po_ready_spent_title'):readyOk?i18t('po_ready_tell_title'):whyNot)}"
-      style="flex:none;font-size:var(--t-meta);padding:var(--s-2) 14px">${spent?i18t('po_readiness_sent'):i18t('po_ready_to_sign')}</button>
-    <button id="pt-nego-decline" class="ui-btn" style="flex:none;font-size:var(--t-meta);padding:var(--s-2) 14px;color:var(--st-ruby-dot);border-color:color-mix(in srgb,var(--st-ruby-dot) 40%,transparent)">${i18t('po_decline')}</button>
-    ${portalCanDerive()?`<button id="pt-derive" class="ui-btn" style="flex:none;font-size:var(--t-meta);padding:var(--s-2) 14px"
+      style="flex:none">${spent?i18t('po_readiness_sent'):i18t('po_ready_to_sign')}</button>
+    <button id="pt-nego-decline" class="ui-btn ui-btn-danger" style="flex:none">${i18t('po_decline')}</button>
+    ${portalCanDerive()?`<button id="pt-derive" class="ui-btn" style="flex:none"
       title="${i18t('po_mint_readonly')}">${i18t('po_share_readonly')}</button>`:''}`;
 }
 /* ---- THE LINK IS HANDED OVER ONCE, AND THE PANEL IS GONE ----
@@ -1872,8 +1872,8 @@ function openDerivedLinkDialog(d, org){
         who?`For <b>${esc(who)}</b>. `:''}${i18t('po_readonly_copy_now')}</p>
       <div style="display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;margin-bottom:var(--s-3)">
         <input readonly value="${esc(link)}" id="pt-derived-link"
-          style="flex:1;min-width:200px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:7px 9px;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-text);outline:none">
-        <button class="ui-btn" id="pt-derive-copy" style="flex:none;font-size:var(--t-meta);padding:7px 13px">${i18t('po_copy')}</button>
+          style="flex:1;min-width:200px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);font-family:var(--font-mono);color:var(--color-text);outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
+        <button class="ui-btn" id="pt-derive-copy" style="flex:none">${i18t('po_copy')}</button>
       </div>
       ${''/* The panel's own sentence, kept whole. A reader who passes a link on
              believing it private has been misled by our silence. */}
@@ -1956,7 +1956,7 @@ function portalNotesShellHtml(){
     <header class="pt-alerts-head">
       <span class="pt-alerts-title">${esc(i18t('po_notes'))}</span>
       <button id="pt-notes-close" class="pt-alerts-x" type="button"
-        title="${esc(i18t('act_close'))}" aria-label="${esc(i18t('act_close'))}">&times;</button>
+        title="${esc(i18t('act_close'))}" aria-label="${esc(i18t('act_close'))}">${icon('x','w-3.5 h-3.5')}</button>
     </header>
     <div id="pt-notes-body" class="pt-notes-body"></div>
   </aside>`;
@@ -2473,7 +2473,7 @@ function portalUpdatedNoticeHtml(){
     <span style="flex:none;display:inline-flex">${icon('alert','w-4 h-4')}</span>
     <span style="flex:1;min-width:0;line-height:1.5"><b>${i18t('po_contract_updated')}</b>
       Your unsent work is still here — send it or set it aside, then refresh to see the new copy.</span>
-    <button id="pt-updated-go" class="ui-btn" style="flex:none;font-size:var(--t-meta);padding:6px 13px">${i18t('po_refresh_now')}</button>
+    <button id="pt-updated-go" class="ui-btn" style="flex:none">${i18t('po_refresh_now')}</button>
   </div>`;
 }
 function portalShowUpdatedNotice(){
@@ -2919,7 +2919,7 @@ function portalAlertsShellHtml(){
     <header class="pt-alerts-head">
       <span class="pt-alerts-title">${esc(i18t('pa_title'))}</span>
       <button id="pt-alerts-close" class="pt-alerts-x" type="button"
-        title="${esc(i18t('pa_close'))}" aria-label="${esc(i18t('pa_close'))}">&times;</button>
+        title="${esc(i18t('pa_close'))}" aria-label="${esc(i18t('pa_close'))}">${icon('x','w-3.5 h-3.5')}</button>
     </header>
     <div id="pt-alerts-body" class="pt-alerts-body"></div>
   </aside>`;
@@ -3057,8 +3057,9 @@ function portalAlertsStyle(){
       padding:var(--s-3) 14px;border-bottom:1px solid var(--color-divider);}
     .pt-alerts-title{flex:1;font-size:var(--t-label);font-weight:var(--w-title);letter-spacing:.12em;
       text-transform:uppercase;color:var(--color-neutral-600);}
-    .pt-alerts-x{border:0;background:none;font:inherit;font-size:var(--t-page);line-height:1;cursor:pointer;
-      color:var(--color-neutral-600);padding:0 var(--s-1);}
+    .pt-alerts-x{border:0;background:none;font:inherit;line-height:1;cursor:pointer;display:inline-grid;place-items:center;
+      width:var(--ctl-h);height:var(--ctl-h);border-radius:var(--radius);color:var(--color-neutral-600);padding:0;}
+    .pt-alerts-x:hover{background:var(--surface-2);color:var(--color-text);}
     .pt-alerts-body{flex:1;min-height:0;overflow-y:auto;padding:10px var(--s-3);}
     .pt-notes-body{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;padding:0;}
     .pt-notes-body .rl-np{display:flex;flex-direction:column;min-height:0;flex:1;}
@@ -3180,7 +3181,7 @@ function portalWorkbenchStyle(){
     /* Two classes here too, and for the same reason: .ui-btn sets its own
        font-size and padding, so a single-class rule loses the tie wherever
        this sheet happens to land. */
-    .ui-btn.pw-id-verb{flex:none;font-size:var(--t-meta);padding:7px var(--s-3);min-height:32px;}
+    .ui-btn.pw-id-verb{flex:none;font-size:var(--t-body);padding:0 var(--pad-ctl-x);min-height:var(--ctl-h);}
     /* Verbs on the left of it, reading controls on the right. Without this the
        row is one undifferentiated run of pills. */
     .pw-id-rule{width:1px;height:22px;flex:none;background:var(--color-divider);margin:0 1px;}
@@ -3629,7 +3630,7 @@ function renderSharePortal(p, opts={}){
     c.redlineText=templateFormDocHtml(c.templateForm);
   const input=(id,label,ph)=>`
     <label style="display:block;margin-bottom:10px;"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em;">${label}</span>
-    <input id="${id}" type="text" placeholder="${ph}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none;"/></label>`;
+    <input id="${id}" type="text" placeholder="${ph}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font-family:var(--font-body);color:var(--color-text);outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>`;
   const TA='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:var(--s-2) 11px;font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none;';
   root.innerHTML=`
   <div style="min-height:100vh;background:var(--color-bg);">
@@ -3686,7 +3687,7 @@ function renderSharePortal(p, opts={}){
               <span style="display:block;font-family:var(--font-heading);font-weight:var(--w-strong);font-size:16px;">${i18t('po_propose_your_edits')}</span>
               <span style="display:block;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.5;margin-top:3px;">Change the clauses you want to change. ${esc(p.org)} sees your edits as a tracked redline — additions and deletions highlighted — and can accept or reject each one on its own. The document's headings, numbering and layout are kept; you are editing the words, not the formatting.</span>
             </span>
-            <button id="pt-redline-cancel" class="ui-btn" style="flex:none;font-size:var(--t-meta);padding:7px 14px">${i18t('act_cancel')}</button>
+            <button id="pt-redline-cancel" class="ui-btn" style="flex:none">${i18t('act_cancel')}</button>
           </div>
           <div id="pt-clause-editor" class="scroll-thin" style="padding:18px 22px;max-height:min(62vh,620px);overflow-y:auto;background:var(--color-doc-surface)"></div>
           <div id="portal-plain" class="hidden">
@@ -3694,9 +3695,9 @@ function renderSharePortal(p, opts={}){
           </div>
           <div style="padding:14px 22px;border-top:1px solid var(--color-divider);display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--color-bg)">
             <span id="pt-redline-count" style="font-size:var(--t-meta);color:var(--color-neutral-600)">${i18t('po_name_from_panel')}</span>
-            <button id="pt-plain-toggle" style="border:0;background:none;padding:0;font:inherit;font-size:var(--t-meta);color:var(--accent-ink-700);cursor:pointer;text-decoration:underline">${i18t('po_edit_whole_doc')}</button>
+            <button id="pt-plain-toggle" type="button" class="ui-link">${i18t('po_edit_whole_doc')}</button>
             <span style="flex:1"></span>
-            <button id="pt-redline-submit" class="ui-btn ui-btn-primary" style="font-size:var(--t-body);padding:10px 20px">${i18t('po_submit_edits')}</button>
+            <button id="pt-redline-submit" class="ui-btn ui-btn-primary">${i18t('po_submit_edits')}</button>
           </div>
         </div>
         `}
@@ -3774,9 +3775,8 @@ function renderSharePortal(p, opts={}){
           <p style="margin:0;font-size:var(--t-meta);line-height:1.55;color:var(--st-amber-fg)">${esc(i18t('po_no_signers_yet',{org:(p&&p.org)||'the sender'}))}</p>
         </div>`:''}
         <div style="display:flex;flex-direction:column;gap:var(--s-2);">
-          <button id="pt-sign" class="ui-btn ui-btn-primary" style="width:100%;padding:11px;font-size:var(--t-card);">${icon('finger','w-4 h-4')} ${i18t('po_sign_this_contract')}</button>
-          <button id="pt-other-toggle" aria-expanded="false" aria-controls="pt-other"
-            style="width:100%;background:none;border:0;padding:6px 0;font:inherit;font-size:var(--t-meta);color:var(--accent-ink-700);cursor:pointer;text-align:center;text-decoration:underline">${i18t('po_not_ready_sign')}</button>
+          <button id="pt-sign" class="ui-btn ui-btn-lg ui-btn-primary" style="width:100%">${icon('finger','w-4 h-4')} ${i18t('po_sign_this_contract')}</button>
+          <button id="pt-other-toggle" type="button" aria-expanded="false" aria-controls="pt-other" class="ui-link" style="display:flex;width:100%;justify-content:center;margin:0">${i18t('po_not_ready_sign')}</button>
           <div id="pt-other" class="hidden" style="display:flex;flex-direction:column;gap:9px;border-top:1px solid var(--color-divider);padding-top:11px">
             ${''/* ---- A BUTTON THAT OPENS NOTHING IS WORSE THAN NO BUTTON ----
                    "Change the wording yourself" opens #portal-redline, and W6
@@ -3801,11 +3801,11 @@ function renderSharePortal(p, opts={}){
                    : 'Describe it in the comment box above. The wording stays as it is for now.'],
                ['pt-accept','check2','Agree to the wording — but don’t sign yet','Tells them you are happy with the text. Nothing is signed and nothing is binding.']]
               .map(([id,ic,label,why])=>`<div>
-                <button id="${id}" class="ui-btn" style="width:100%;padding:9px;font-size:var(--t-body);text-align:left;display:flex;align-items:center;gap:7px">${icon(ic,'w-3.5 h-3.5')} ${label}</button>
+                <button id="${id}" class="ui-btn" style="width:100%;text-align:left;display:flex;align-items:center">${icon(ic,'w-3.5 h-3.5')} ${label}</button>
                 <span style="display:block;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600);margin:var(--s-1) 2px 0">${why}</span>
               </div>`).join('')}
             <div style="border-top:1px solid var(--color-divider);padding-top:9px">
-              <button id="pt-decline" class="ui-btn" style="width:100%;padding:9px;font-size:var(--t-body);color:var(--st-ruby-dot);border-color:color-mix(in srgb,var(--st-ruby-dot) 40%,transparent);">${i18t('po_decline_contract')}</button>
+              <button id="pt-decline" class="ui-btn ui-btn-danger" style="width:100%">${i18t('po_decline_contract')}</button>
               <span style="display:block;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600);margin:var(--s-1) 2px 0">${i18t('po_ends_the_deal')}</span>
             </div>
           </div>
@@ -4222,7 +4222,7 @@ function portalOfferResponseCode(p, response, label){
         <div style="display:flex;align-items:center;gap:6px;color:var(--accent-ink);font-size:var(--t-meta);font-weight:var(--w-strong);margin-bottom:6px;">${icon('check2','w-3.5 h-3.5')} ${head}</div>
         <p style="font-size:var(--t-label);color:var(--color-neutral-700);margin:0 0 var(--s-2);line-height:1.5;">${lead}</p>
         <textarea id="pt-code" readonly rows="4" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:10px;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all;">${code}</textarea>
-        <button id="pt-copy" class="ui-btn ui-btn-primary" style="margin-top:var(--s-2);width:100%;padding:var(--s-2);font-size:var(--t-meta);">${icon('copy','w-3 h-3')} ${i18t('po_copy_response_code')}</button>
+        <button id="pt-copy" class="ui-btn ui-btn-primary" style="margin-top:var(--s-2);width:100%">${icon('copy','w-3 h-3')} ${i18t('po_copy_response_code')}</button>
       </div>`;
     document.getElementById('pt-copy').addEventListener('click',async()=>{
       const ta=document.getElementById('pt-code'); ta.select();
@@ -4243,8 +4243,8 @@ function portalOfferResponseCode(p, response, label){
       <textarea id="pt-code" readonly rows="5" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:10px;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all;">${code}</textarea>
       <p style="font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.55;margin:10px 0 var(--s-4)">${i18t('po_code_only_showing')}</p>
       <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-        <button id="pt-copy" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:7px 13px">${icon('copy','w-3 h-3')} ${i18t('po_copy_response_code')}</button>
-        <button id="pt-code-done" class="ui-btn" style="font-size:var(--t-meta);padding:7px 13px">${i18t('po_done')}</button>
+        <button id="pt-copy" class="ui-btn ui-btn-primary">${icon('copy','w-3 h-3')} ${i18t('po_copy_response_code')}</button>
+        <button id="pt-code-done" class="ui-btn">${i18t('po_done')}</button>
       </div>
     </div>`;
   document.body.appendChild(ov);
@@ -4288,7 +4288,7 @@ function portalTemplateFormHtml(c,p){
   if(!fields.length) return '';
   const values=form.values||{};
   const editable=!portalExecuted()&&!portalReadOnly();
-  const INP='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none';
+  const INP='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
   const required=fields.filter(f=>f.required);
   const filled=required.filter(f=>String(values[f.fieldKey]||'').trim()!=='');
   const inputFor=(f,idx)=>{
@@ -4298,7 +4298,7 @@ function portalTemplateFormHtml(c,p){
       const opts=(f.options||[]).map(o=>`<option value="${esc(o)}"${v===o?' selected':''}>${esc(o)}</option>`).join('');
       return `<select data-ptf="${idx}" style="${INP}" ${editable?'':'disabled'}><option value="">${i18t('po_choose')}</option>${opts}</select>`;
     }
-    if(lib.input==='textarea') return `<textarea data-ptf="${idx}" style="${INP};min-height:48px;resize:vertical" placeholder="${esc(lib.hint)}" ${editable?'':'disabled'}>${esc(v)}</textarea>`;
+    if(lib.input==='textarea') return `<textarea data-ptf="${idx}" style="${INP};height:auto;padding:var(--field-pad-y) var(--field-pad-x);min-height:48px;resize:vertical" placeholder="${esc(lib.hint)}" ${editable?'':'disabled'}>${esc(v)}</textarea>`;
     if(lib.input==='file'||lib.input==='image')
       return `<div style="display:flex;align-items:center;gap:var(--s-2)">${v?`<span class="badge" style="background:var(--color-neutral-100);color:var(--color-neutral-700)">attached</span>`:''}<input type="file" data-ptf-file="${idx}" accept="${lib.input==='image'?'image/png,image/jpeg,image/webp':'*/*'}" style="font-size:var(--t-label)" ${editable?'':'disabled'}></div>`;
     const type={email:'email',tel:'tel',date:'date'}[lib.input]||'text';
@@ -4415,12 +4415,12 @@ function wirePortalTemplateForm(p){
       const pop=document.createElement('div');
       pop.id='ptf-pop';
       pop.style.cssText=`position:fixed;z-index:80;top:${Math.round(r.bottom+6)}px;left:${Math.round(Math.min(Math.max(8,r.left),(window.innerWidth||1200)-296))}px;width:284px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);box-shadow:var(--shadow-md);padding:10px var(--s-3)`;
-      const INP='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none';
+      const INP='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
       const v=(form.values||{})[f.fieldKey]==null?'':String(form.values[f.fieldKey]);
       const inputHtml=(f.control==='guided'||f.fieldType==='select')
         ? `<select data-ptf-pop style="${INP}"><option value="">${i18t('po_choose')}</option>${(f.options||[]).map(o=>`<option value="${esc(o)}"${v===o?' selected':''}>${esc(o)}</option>`).join('')}</select>`
         : lib.input==='textarea'
-          ? `<textarea data-ptf-pop style="${INP};min-height:52px">${esc(v)}</textarea>`
+          ? `<textarea data-ptf-pop style="${INP};height:auto;padding:var(--field-pad-y) var(--field-pad-x);min-height:52px">${esc(v)}</textarea>`
           : `<input type="${({email:'email',tel:'tel',date:'date'})[lib.input]||'text'}" data-ptf-pop value="${esc(v)}" placeholder="${esc(lib.hint||'')}" style="${INP}">`;
       pop.innerHTML=`
         <div style="font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:5px">${esc(f.label||f.fieldKey)}${f.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}</div>
@@ -4460,8 +4460,8 @@ async function portalSignUnverified(p, info){
     <div style="border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:var(--radius);padding:13px;">
       <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--st-amber-fg);margin-bottom:5px;">${icon('alert','w-3.5 h-3.5')} Signing without an email check</div>
       <p style="font-size:var(--t-meta);color:var(--st-amber-fg);margin:0 0 10px;line-height:1.55;">${i18t('po_cannot_verify',{email:esc(info.email),how:i18t('po_not_independently_verified')})}</p>
-      <button id="pt-unver-go" class="ui-btn ui-btn-primary" style="width:100%;padding:9px;font-size:var(--t-body);">${icon('finger','w-4 h-4')} ${i18t('po_sign_anyway')}</button>
-      <button id="pt-unver-cancel" style="margin-top:6px;width:100%;background:none;border:0;font-size:var(--t-label);color:var(--color-neutral-600);cursor:pointer;font-family:var(--font-body);">${i18t('act_cancel')}</button>
+      <button id="pt-unver-go" class="ui-btn ui-btn-lg ui-btn-primary" style="width:100%">${icon('finger','w-4 h-4')} ${i18t('po_sign_anyway')}</button>
+      <button id="pt-unver-cancel" type="button" class="ui-link" style="display:flex;width:100%;justify-content:center;margin:6px 0 0">${i18t('act_cancel')}</button>
     </div>`;
   document.getElementById('pt-unver-cancel').addEventListener('click',()=>{ box.innerHTML=''; portalSetIdle(); });
   document.getElementById('pt-unver-go').addEventListener('click',async()=>{
@@ -4526,8 +4526,8 @@ async function portalStartOtp(p, info){
       ${(sentTo&&info.email&&sentTo.toLowerCase()!==String(info.email||'').toLowerCase())?`<p style="margin:0 0 var(--s-2);font-size:var(--t-label);border-radius:var(--radius);background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border:1px solid color-mix(in srgb,var(--st-amber-dot) 30%,transparent);color:var(--st-amber-fg);padding:6px 10px;line-height:1.5;">${i18t('po_code_goes_only_to_full',{email:esc(sentTo)})}</p>`:''}
       ${emailSent?'':`<p style="margin:0 0 var(--s-2);font-size:var(--t-label);border-radius:var(--radius);background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border:1px solid color-mix(in srgb,var(--st-amber-dot) 30%,transparent);color:var(--st-amber-fg);padding:6px 10px;line-height:1.5;">${esc(emailWhy||i18t('po_code_not_sent_generic'))} ${i18t('po_ask_sender_for_code',{who:esc((PORTAL_OPTS.payload&&PORTAL_OPTS.payload.sharedBy)||i18t('po_the_sender'))})}</p>`}
       <input id="pt-otp" inputmode="numeric" maxlength="6" placeholder="______" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:var(--s-2) 11px;text-align:center;font-size:18px;font-family:var(--font-mono);letter-spacing:.4em;color:var(--color-text);outline:none;"/>
-      <button id="pt-otp-go" class="ui-btn ui-btn-primary" style="margin-top:var(--s-2);width:100%;padding:9px;font-size:var(--t-body);">${icon('finger','w-4 h-4')} ${i18t('po_verify_and_sign')}</button>
-      <button id="pt-otp-resend" style="margin-top:6px;width:100%;background:none;border:0;font-size:var(--t-label);color:var(--color-neutral-600);cursor:pointer;font-family:var(--font-body);">${i18t('po_resend_code')}</button>
+      <button id="pt-otp-go" class="ui-btn ui-btn-lg ui-btn-primary" style="margin-top:var(--s-2);width:100%">${icon('finger','w-4 h-4')} ${i18t('po_verify_and_sign')}</button>
+      <button id="pt-otp-resend" type="button" class="ui-link" style="display:flex;width:100%;justify-content:center;margin:6px 0 0">${i18t('po_resend_code')}</button>
     </div>`;
   document.getElementById('pt-otp-go').addEventListener('click',()=>portalVerifyAndSign(p, info));
   /* L1: a 30-second cooldown on Resend, with a live countdown, so rapid taps do
@@ -4586,7 +4586,7 @@ async function portalVerifyAndSign(p, info){
           <div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:var(--radius);padding:14px;">
             <div style="display:flex;align-items:center;gap:6px;color:var(--st-ruby-fg);font-size:var(--t-body);font-weight:var(--w-strong);margin-bottom:var(--s-1);">${icon('alert','w-4 h-4')} ${i18t('po_signature_failed')}</div>
             <p style="font-size:var(--t-label);color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5;">${esc(e.message||'The connection dropped before your signature was recorded.')} You’re already verified — you can try again without a new code.</p>
-            <button id="pt-sign-retry" class="ui-btn ui-btn-primary" style="width:100%;padding:9px;font-size:var(--t-body);">${icon('finger','w-4 h-4')} Try signing again</button>
+            <button id="pt-sign-retry" class="ui-btn ui-btn-lg ui-btn-primary" style="width:100%">${icon('finger','w-4 h-4')} Try signing again</button>
           </div>`;
         document.getElementById('pt-sign-retry')?.addEventListener('click',submitSigned);
       } else toast(e.message,'err');

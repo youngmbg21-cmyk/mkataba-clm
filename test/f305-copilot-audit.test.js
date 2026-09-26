@@ -491,8 +491,14 @@ describe('one figure, both hosts', () => {
     assert.ok(AI.includes('wholeBook:inp.wholeBook===true'), 'and on the local brain\'s');
     const win = brain([{ id: 'MK-1', name: 'a', status: 'Signed', value: 1 }, { id: 'MK-2', name: 'b', status: 'Signed', value: 1 }], { regShowOnly: () => {} });
     const html = win.aiWorklistHtml([], { wholeBook: true });
-    const word = (html.match(/>([^<]*)<\/button>/) || [])[1] || '';
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the Compact ladder): the door is a text
+       button now and its arrow is DRAWN, so the words are no longer the last
+       thing before </button> — the arrow's svg is. The words are read as the
+       button's text with the markup taken out, which is what a reader sees. */
+    const inner = (html.match(/<button[^>]*>([\s\S]*?)<\/button>/) || [])[1] || '';
+    const word = inner.replace(/<[^>]*>/g, '').trim();
     assert.ok(html.includes('data-ai-worklist-all="1"') && word && !/\d/.test(word), 'the whole-book door, no figure on it: ' + word);
+    assert.ok(/<svg/.test(inner) && !/&rarr;|→/.test(inner), 'and its arrow is drawn, never typed');
     assert.ok(win.aiRenderServerAnswer({ answer: 'x', cards: [], wholeBook: true }).cards.includes('data-ai-worklist-all'), 'a server answer with the flag draws it');
     assert.ok(!win.aiRenderServerAnswer({ answer: 'x', cards: [] }).cards.includes('data-ai-worklist-all'), 'and one without does not');
   });

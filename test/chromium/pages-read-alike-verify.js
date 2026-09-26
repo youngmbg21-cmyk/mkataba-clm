@@ -409,8 +409,13 @@ const SEED = async () => {
     check('5 nothing on the row is filled',
       heads.nego.every(b => !b.filled),
       heads.nego.map(b => `${b.t}:${b.filled ? 'FILLED' : 'flat'}`));
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the Compact ladder, Young picked it):
+       "not bold" was measured as "at most 400", the row's weight that day.
+       Every button label is ONE weight now, the medium label weight (500), so
+       the claim is asked as what it says — one weight across the row, and not
+       a bold one (600 and up). It still leads by position, not weight. */
     check('5 and nothing on it is bold either — it leads by position, not weight',
-      heads.nego.every(b => Number(b.fw) <= 400),
+      heads.nego.length > 0 && new Set(heads.nego.map(b => b.fw)).size === 1 && heads.nego.every(b => Number(b.fw) < 600),
       heads.nego.map(b => `${b.t}:${b.fw}`));
 
     await page.evaluate(id => openWorkspace(id), cid);

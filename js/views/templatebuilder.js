@@ -1169,8 +1169,8 @@ function tbStyleHtml() {
   .tb-tname-i{width:12px;height:12px;flex:none;color:var(--color-neutral-500)}
   .tb-tname:hover{border-bottom-color:var(--accent-ink)}
   .tb-chipv{flex:none;white-space:nowrap;font-family:var(--font-mono);font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--st-steel-fg);border:1px solid var(--st-steel-line);background:var(--st-steel-bg);border-radius:var(--radius);padding:1px 7px}
-  .tb-fchip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;min-width:0;flex:0 1 auto;white-space:nowrap;cursor:pointer;
-    border:1px solid var(--btn-edge,var(--color-divider));border-radius:999px;background:var(--color-surface);font:inherit;font-size:var(--t-meta);color:var(--color-text)}
+  .tb-fchip{display:inline-flex;align-items:center;gap:6px;height:var(--ctl-h);padding:0 var(--pad-ctl-x);min-width:0;flex:0 1 auto;white-space:nowrap;cursor:pointer;
+    border:1px solid var(--btn-edge,var(--color-divider));border-radius:999px;background:var(--color-surface);font:inherit;font-size:var(--t-body);color:var(--color-text)}
   .tb-fchip .k{flex:none;color:var(--color-neutral-600)}
   .tb-fchip .v{min-width:0;overflow:hidden;text-overflow:ellipsis}
   .tb-fchip .sw{width:8px;height:8px;border-radius:2px;flex:none}
@@ -1211,7 +1211,7 @@ function tbStyleHtml() {
   .tb-pq-dot{width:8px;height:8px;border-radius:50%;flex:none}
   .tb-pq-dot.amb{background:var(--st-amber-dot)}
   .tb-pq-dot.gry{background:var(--color-neutral-400)}
-  .tb-pq-o .ui-btn{flex:none;font-size:var(--t-meta);padding:2px 10px;min-height:0;height:26px}
+  .tb-pq-o .ui-btn{flex:none;font-size:var(--t-meta);padding:0 var(--pad-ctl-x-sm);min-height:var(--ctl-h-sm)}
   /* ════ THE THREE STEPS, IN THE STRIP THAT ALREADY EXISTS (18 Sep 2026) ═════
      The builder never said what the job WAS: you arrived on a document with a
      Copilot beside it and had to work out for yourself that marking the blanks
@@ -1230,10 +1230,11 @@ function tbStyleHtml() {
   .tb-row{position:relative}
   .tb-g{position:absolute;left:-48px;top:1px;display:flex;flex-direction:column;gap:3px;opacity:0;transition:opacity var(--dur-1)}
   .tb-row:hover>.tb-g,.tb-row:focus-within>.tb-g,.tb-sec.is-on>.tb-row-h>.tb-g{opacity:1}
-  .tb-g button{width:22px;height:22px;display:grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-surface);
-    border-radius:var(--radius);font:inherit;font-size:11px;color:var(--color-neutral-600);padding:0;cursor:pointer;line-height:1}
+  .tb-g button{width:var(--ctl-h-sm);height:var(--ctl-h-sm);display:grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-surface);
+    border-radius:var(--radius);font:inherit;font-size:var(--t-meta);color:var(--color-neutral-600);padding:0;cursor:pointer;line-height:1}
+  .tb-g button svg{width:var(--btn-ic);height:var(--btn-ic)}
   .tb-g button:hover{border-color:var(--accent-solid);color:var(--color-text)}
-  .tb-g button[data-tb-tag]{color:#5B21B6;border-color:#DDD6FE;background:#F5F3FF;font-size:12px}
+  .tb-g button[data-tb-tag]{color:#5B21B6;border-color:#DDD6FE;background:#F5F3FF;font-size:var(--t-meta)}
   .tb-g button[disabled]{opacity:.35;cursor:default}
   .tb-sec{position:relative;padding:6px 10px 6px 12px;margin:0 -10px 2px -12px;border-radius:0}
   .tb-sec.is-on{outline:1px dashed color-mix(in srgb,var(--color-text) 34%,transparent);outline-offset:1px}
@@ -1298,7 +1299,7 @@ function tbStyleHtml() {
   .tb-card .pv{display:block;margin-top:var(--s-2);padding:var(--s-2) 10px;background:var(--color-surface);border:1px solid var(--color-divider);font-size:var(--t-meta);line-height:1.65;max-height:220px;overflow:auto;white-space:pre-wrap}
   .tb-card .pv ins{color:var(--st-green-fg);text-decoration:none;font-weight:var(--w-strong)} .tb-card .pv del{color:var(--st-ruby-fg);text-decoration:line-through}
   .tb-card .av{display:flex;gap:var(--s-2);margin-top:9px;flex-wrap:wrap;align-items:center}
-  .tb-card .av button{height:26px;padding:0 11px;font:inherit;font-size:var(--t-label);font-weight:var(--w-strong);background:var(--color-surface);color:var(--accent-ink);border:1px solid var(--color-divider);cursor:pointer}
+  .tb-card .av button{height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);background:var(--color-surface);color:var(--accent-ink);border:1px solid var(--color-divider);cursor:pointer}
   .tb-card .av button.p{background:var(--color-accent-700);border-color:var(--accent-ink-700);color:#fff}
   .tb-card .av button:hover{border-color:var(--accent-solid)} .tb-card .av button[disabled]{opacity:.45;cursor:default}
   .tb-card .av .cost{margin-left:auto;font-size:var(--t-micro);color:var(--color-neutral-500)}
@@ -1321,7 +1322,7 @@ function tbStyleHtml() {
   .tb-rows{margin:0;padding:0;list-style:none} .tb-rows li{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--color-divider);font-size:var(--t-meta);flex-wrap:wrap}
   .tb-rows li:first-child{border-top:0} .tb-rows .g{flex:1;min-width:0} .tb-rows .st{font-size:var(--t-label);white-space:nowrap;color:var(--color-neutral-600)}
   .tb-rows .st.ok{color:var(--st-green-fg)} .tb-rows .st.dev{color:var(--st-ruby-fg)} .tb-rows .st.open{color:var(--st-amber-fg)}
-  .tb-rows button{font:inherit;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink);border:1px solid var(--color-divider);background:var(--color-surface);padding:1px 8px;white-space:nowrap;cursor:pointer}
+  .tb-rows button{display:inline-flex;align-items:center;gap:4px;font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);color:var(--accent-ink);border:1px solid var(--color-divider);background:var(--color-surface);min-height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);white-space:nowrap;cursor:pointer}
   .tb-rows button.x{color:var(--st-ruby-fg);border-color:var(--st-ruby-line)}
   .tb-rows i.d{width:7px;height:7px;border-radius:50%;background:var(--color-divider);flex:none;display:block} .tb-rows i.d.ok{background:var(--accent-solid)} .tb-rows i.d.dev{background:var(--st-ruby-fg)}
   .tb-rows .sub{display:block;width:100%;font-size:var(--t-label);color:var(--color-neutral-600);font-family:var(--font-mono);line-height:1.4}
@@ -1329,7 +1330,7 @@ function tbStyleHtml() {
   .tb-scope .eb{display:flex;align-items:center;gap:6px;font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--accent-ink)}
   .tb-scope .eb b{font-weight:var(--w-title);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .tb-scope .eb .g{flex:1;min-width:4px}
-  .tb-scope .x{flex:none;width:20px;height:20px;display:inline-grid;place-items:center;padding:0;font:inherit;font-size:var(--t-label);background:none;border:0;color:var(--color-neutral-600);cursor:pointer;letter-spacing:0}
+  .tb-scope .x{flex:none;width:var(--ctl-h-sm);height:var(--ctl-h-sm);display:inline-grid;place-items:center;padding:0;font:inherit;font-size:var(--t-label);background:none;border:0;color:var(--color-neutral-600);cursor:pointer;letter-spacing:0}
   .tb-scope .x:hover{color:var(--color-text)}
   .tb-scope q{display:block;margin-top:5px;padding-left:8px;quotes:none;border-left:2px solid var(--accent-solid);font-size:var(--t-label);line-height:1.55;color:var(--color-text)}
   .tb-scope q.e{color:var(--color-neutral-500);font-style:italic}
@@ -1338,13 +1339,14 @@ function tbStyleHtml() {
   .tb-chips{flex:none;display:flex;gap:7px;flex-wrap:nowrap;overflow-x:auto;padding:0 14px 9px;scrollbar-width:thin;
     -webkit-mask-image:linear-gradient(to right,#000 calc(100% - 34px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 34px),transparent)}
   .tb-chips:empty{padding:0}
-  .tb-chips button{flex:none;height:25px;padding:0 9px;font:inherit;font-size:var(--t-label);white-space:nowrap;background:var(--color-surface);color:var(--color-neutral-600);border:1px solid var(--color-divider);cursor:pointer}
-  .tb-chips button:hover{color:var(--color-text);border-color:var(--accent-solid)} .tb-chips button.next{border-color:var(--accent-solid);color:var(--accent-ink);font-weight:var(--w-title)}
+  .tb-chips button{flex:none;height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);white-space:nowrap;background:var(--color-surface);color:var(--color-neutral-600);border:1px solid var(--color-divider);cursor:pointer}
+  .tb-chips button:hover{color:var(--color-text);border-color:var(--accent-solid)} .tb-chips button.next{border-color:var(--accent-solid);color:var(--accent-ink)}
   .tb-ask{flex:none;display:flex;gap:var(--s-2);padding:10px 14px;border-top:1px solid var(--color-divider);align-items:flex-end;position:relative}
   .tb-ask textarea{flex:1;min-width:0;height:74px;min-height:74px;max-height:200px;padding:9px 11px;font:inherit;font-size:var(--t-meta);line-height:1.5;resize:none;
     white-space:pre-wrap;overflow-wrap:break-word;background:var(--color-surface);border:1px solid var(--color-divider);color:var(--color-text);outline:none}
   .tb-ask textarea:focus{box-shadow:var(--focus)} .tb-ask textarea[disabled]{background:var(--color-neutral-100)}
-  .tb-ask button{flex:none;display:inline-grid;place-items:center;width:32px;height:32px;padding:0;background:var(--color-accent-700);border:1px solid var(--color-accent-700);color:#fff;font-size:14px;cursor:pointer}
+  .tb-ask button{flex:none;display:inline-grid;place-items:center;width:var(--ctl-h);height:var(--ctl-h);padding:0;background:var(--color-accent-700);border:1px solid var(--color-accent-700);color:#fff;cursor:pointer}
+  .tb-ask button svg{width:var(--btn-ic);height:var(--btn-ic)}
   .tb-ask button:hover{background:var(--accent-ink);border-color:var(--accent-ink)} .tb-ask button[disabled]{opacity:.45;cursor:default}
   .tb-pick{position:absolute;left:14px;bottom:92px;width:min(280px,calc(100% - 28px));background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);padding:4px 0;z-index:5;max-height:220px;overflow:auto}
   .tb-pick button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:5px 10px;border:0;background:none;font:inherit;font-size:var(--t-label);cursor:pointer;color:var(--color-text)}
@@ -1450,9 +1452,9 @@ function tbPaperHtml() {
   const secs = tbSections(); const bySec = new Map(secs.map(s => [s.headIndex, s]));
   const fits = tbRailFits();
   const G = (i, extra) => `<span class="tb-g">${extra || ''}
-      <button type="button" data-tb-up="${i}" ${i === 0 ? 'disabled' : ''} title="${i18t('tb_move_up')}">↑</button>
-      <button type="button" data-tb-down="${i}" ${i === _tb.blocks.length - 1 ? 'disabled' : ''} title="${i18t('tb_move_down')}">↓</button>
-      <button type="button" data-tb-del="${i}" title="${i18t('tb_remove_block')}">✕</button></span>`;
+      <button type="button" data-tb-up="${i}" ${i === 0 ? 'disabled' : ''} title="${i18t('tb_move_up')}" aria-label="${i18t('tb_move_up')}">${icon('chevU')}</button>
+      <button type="button" data-tb-down="${i}" ${i === _tb.blocks.length - 1 ? 'disabled' : ''} title="${i18t('tb_move_down')}" aria-label="${i18t('tb_move_down')}">${icon('chevD')}</button>
+      <button type="button" data-tb-del="${i}" title="${i18t('tb_remove_block')}" aria-label="${i18t('tb_remove_block')}">${icon('x')}</button></span>`;
   let html = ''; let open = false; let n = 0; let sigs = false;
   /* A COPIED DOCUMENT CARRIES ITS OWN TITLE AND ITS OWN NUMBERS. Where any
      block is the document's markup the paper draws no name above it and adds
@@ -1513,10 +1515,10 @@ function tbPaperHtml() {
   if (open) html += '</div>';
   title();
   html += `<div class="tb-add">
-      <select id="tb-addtype" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:var(--s-1) var(--s-2);font:inherit;font-size:var(--t-meta)">
+      <select id="tb-addtype" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
         ${Object.entries(TB_BLOCK_META).map(([k, m]) => `<option value="${k}" title="${esc(m.tip)}">${m.label}</option>`).join('')}
       </select>
-      <button type="button" id="tb-addblock" class="ui-btn" style="font-size:var(--t-meta);padding:var(--s-1) 10px">${icon('plus', 'w-3 h-3')} ${i18t('tb_add_block')}</button>
+      <button type="button" id="tb-addblock" class="ui-btn ui-btn-sm">${icon('plus', 'w-3 h-3')} ${i18t('tb_add_block')}</button>
     </div>`;
   return `<article class="tb-paper" id="tb-paper">${html}</article>`;
 }
@@ -1627,7 +1629,7 @@ function tbPlaybookLaneHtml(cov) {
     else {
       const empty = secs.find(s => { const t = tbKindOf(s.head); return t && t.category === r.category; });
       door = empty ? `<button type="button" data-tb-cover-draft="${empty.k}" data-tb-note="${esc(r.note || '')}">${i18t('tb_draft_this')}</button>`
-                   : `<button type="button" data-tb-cover-add="${esc(r.category)}">${i18t('tb_pb_add_section')}</button>`;
+                   : `<button type="button" data-tb-cover-add="${esc(r.category)}">${(typeof window!=='undefined'&&window.plusLed?window.plusLed(i18t('tb_pb_add_section')):i18t('tb_pb_add_section'))}</button>`;
     }
     const st = r.state === 'dev' ? `${i18t('tb_pb_reads_fig', { n: r.figure })} · ${r.op} ${r.want}` : r.state === 'hit' ? i18t('tb_met') : i18t('tb_not_yet_written');
     return `<li><i class="d ${r.state === 'hit' ? 'ok' : r.state}"></i><span class="g">${esc(r.category)}${r.escalate ? ` · ${i18t('tb_pb_legal')}` : ''}</span><span class="st ${r.state === 'hit' ? 'ok' : r.state}">${st}</span>${door}
@@ -1725,11 +1727,11 @@ function tbBlanksLaneHtml() {
     const conf = f.detectionConfidence !== 'manual' && !f.humanReviewed
       ? `<span class="st" style="color:${f.detectionConfidence === 'low' ? 'var(--st-ruby-fg)' : 'var(--st-amber-fg)'}" title="${i18t('tb_detected_unreviewed')}">${esc(f.detectionConfidence)} confidence</span>` : '';
     return `<li><span class="tb-bl">${esc(f.label || f.fieldKey)}</span>${f.required ? '<span class="st" style="color:var(--st-ruby-fg)" title="Required">*</span>' : ''}${conf}<span class="g"></span>
-      <button type="button" data-tb-fcopy="${i}" title="${i18t('tb_copy_placeholder')}">⧉</button><button type="button" data-tb-fedit="${i}">${i18t('act_edit')}</button><button type="button" class="x" data-tb-fdel="${i}">✕</button>
+      <button type="button" data-tb-fcopy="${i}" title="${i18t('tb_copy_placeholder')}" aria-label="${i18t('tb_copy_placeholder')}">${icon('copy','w-3.5 h-3.5')}</button><button type="button" data-tb-fedit="${i}">${i18t('act_edit')}</button><button type="button" class="x" data-tb-fdel="${i}" title="${i18t('act_remove')}" aria-label="${i18t('act_remove')}">${icon('x','w-3.5 h-3.5')}</button>
       <span class="sub">{{${esc(f.fieldKey)}}} · ${esc(lib.label)}${f.control === 'guided' ? ` · guided (${f.options.length})` : ''}${f.defaultValue ? ' · default set' : ''} · ${uses ? i18tn('tb_in_blocks', uses, { n: uses }) : `<span style="color:var(--st-amber-fg)">${i18t('tb_unplaced')}</span>`}</span></li>`;
   }).join('');
   return `${first}${proposed}${rows ? `<ul class="tb-rows">${rows}</ul>` : (proposed || first ? '' : tbAiHtml(i18t('tb_no_fields')))}
-    <div style="margin-top:12px"><button type="button" id="tb-addfield" class="ui-btn" style="font-size:var(--t-meta);padding:var(--s-1) 10px">${icon('plus', 'w-3 h-3')} ${i18t('tl_add_field')}</button></div>`;
+    <div style="margin-top:12px"><button type="button" id="tb-addfield" class="ui-btn ui-btn-sm">${icon('plus', 'w-3 h-3')} ${i18t('tl_add_field')}</button></div>`;
 }
 function tbScopeHtml() {
   const sec = _tb.focus != null ? tbSectionAt(_tb.focus) : null;
@@ -1737,9 +1739,9 @@ function tbScopeHtml() {
   const txt = tbSectionText(sec);
   const ctx = (_tb.ctx || []).map(k => tbSectionAt(k)).filter(Boolean);
   return `<div id="tb-scope"><div class="tb-scope"><div class="eb"><b>✎ ${i18t('tb_scope', { n: tbSectionNo(sec), head: esc(sec.head) || i18t('tb_untitled') })}</b><span class="g"></span>
-      <button type="button" class="x" data-tb-step="-1" title="${i18t('tb_prev')}">◀</button><button type="button" class="x" data-tb-step="1" title="${i18t('tb_next')}">▶</button><button type="button" class="x" data-tb-untag title="${i18t('tb_untag')}">✕</button></div>
+      <button type="button" class="x" data-tb-step="-1" title="${i18t('tb_prev')}" aria-label="${i18t('tb_prev')}">${icon('chevL','w-3.5 h-3.5')}</button><button type="button" class="x" data-tb-step="1" title="${i18t('tb_next')}" aria-label="${i18t('tb_next')}">${icon('chevR','w-3.5 h-3.5')}</button><button type="button" class="x" data-tb-untag title="${i18t('tb_untag')}" aria-label="${i18t('tb_untag')}">${icon('x','w-3.5 h-3.5')}</button></div>
     <q class="${txt ? '' : 'e'}">${esc(txt ? txt.slice(0, 160) + (txt.length > 160 ? '…' : '') : i18t('tb_not_written'))}</q>
-    ${ctx.map(c => `<span class="ctx">@ ${tbSectionNo(c)} · ${esc(c.head)} — ${i18t('tb_for_context')} <button type="button" data-tb-unctx="${c.k}" title="${i18t('tb_untag')}">✕</button></span>`).join('')}</div></div>`;
+    ${ctx.map(c => `<span class="ctx">@ ${tbSectionNo(c)} · ${esc(c.head)} — ${i18t('tb_for_context')} <button type="button" data-tb-unctx="${c.k}" title="${i18t('tb_untag')}" aria-label="${i18t('tb_untag')}" style="display:inline-flex;vertical-align:middle">${icon('x','w-3 h-3')}</button></span>`).join('')}</div></div>`;
 }
 function tbChipsRowHtml() {
   const chips = [];
@@ -1780,7 +1782,7 @@ function tbAskHtml() {
     : tbSectionText(sec) ? i18t('tb_ph_change') : _tb.walk ? i18t('tb_ph_answer') : i18t('tb_pb_ask_ph');
   const draft = sec ? (_tb.ask[sec.k] || '') : (_tb.ask._ || '');
   return `<div class="tb-ask" id="tb-askrow"><textarea id="tb-ask" rows="1" maxlength="${TB_ASK_MAX}" placeholder="${esc(ph)}" aria-label="${i18t('tb_ask_label')}" ${on ? '' : 'disabled'}>${esc(draft)}</textarea>
-    <button type="button" data-tb-send title="${on ? i18t('tb_pb_one_read') : esc(i18t('tb_pb_nokey'))}" aria-label="${i18t('tb_send')}" ${on ? '' : 'disabled'}>➤</button>
+    <button type="button" data-tb-send title="${on ? i18t('tb_pb_one_read') : esc(i18t('tb_pb_nokey'))}" aria-label="${i18t('tb_send')}" ${on ? '' : 'disabled'}>${icon('send')}</button>
     <div class="tb-pick" id="tb-pick" hidden></div></div>`;
 }
 function tbFootHtml() {
@@ -1791,7 +1793,7 @@ function tbFootHtml() {
   const nx = tbNextEmpty(_tb.focus);
   return `<span><b>${i18t('tb_pb_covered', { n: written, m: secs.length })}</b> ${i18t('tb_foot_written')}${dev ? ` · <b>${dev}</b> ${i18tn('tb_foot_dev', dev, { n: dev })}` : ''}</span><span class="sp"></span>
     <button type="button" class="tb-walk${_tb.walk ? ' is-on' : ''}" data-tb-walk title="${esc(i18t('tb_walk_title'))}">${i18t('tb_walk')} · ${_tb.walk ? i18t('tb_on') : i18t('tb_off')}</button>
-    <button type="button" class="ui-btn tb-nextbtn" data-tb-next="${nx ? nx.k : ''}" ${nx ? '' : 'disabled'} style="font-size:var(--t-label);padding:2px 9px">${i18t('tb_next_section')} →</button>`;
+    <button type="button" class="ui-btn ui-btn-sm tb-nextbtn" data-tb-next="${nx ? nx.k : ''}" ${nx ? '' : 'disabled'}>${i18t('tb_next_section')}${icon('chevR')}</button>`;
 }
 /* ════ THE THREE-STEP SPINE WAS BUILT, MEASURED AND TAKEN OUT (18 Sep 2026)
    ═══ It was in the approved plan and the plan was wrong, which is what
@@ -1999,8 +2001,8 @@ function tbPaint(opts = {}) {
         <span id="tb-head" class="tb-head">${tbHeadHtml()}</span>
         <span id="tb-dirtyslot" style="display:flex;align-items:center;gap:var(--s-2);min-width:0">${tbDirtyHtml()}</span>
         <span style="flex:1"></span>
-        <button id="tb-save" class="ui-btn tb-act" style="font-size:var(--t-meta);padding:5px 13px" title="${esc(i18t('tb_save_draft'))}" aria-label="${esc(i18t('tb_save_draft'))}">${icon('check2', 'w-3.5 h-3.5')}<span class="w"> ${i18t('tb_save_draft')}</span></button>
-        <button id="tb-publish" class="ui-btn ui-btn-primary tb-act" style="font-size:var(--t-meta);padding:5px 13px">Publish v${_tb.versionNumber}</button>
+        <button id="tb-save" class="ui-btn tb-act" title="${esc(i18t('tb_save_draft'))}" aria-label="${esc(i18t('tb_save_draft'))}">${icon('check2', 'w-3.5 h-3.5')}<span class="w"> ${i18t('tb_save_draft')}</span></button>
+        <button id="tb-publish" class="ui-btn ui-btn-primary tb-act">Publish v${_tb.versionNumber}</button>
       </div>
       <!-- THE PAPER SCROLLS INSIDE ITS COLUMN (14 Sep 2026): everything under the
            strip lives in this one scroller, so the strip above and the rail
@@ -2177,7 +2179,7 @@ function tbDirtyLine() {
 function tbDirtyHtml() {
   const line = tbDirtyLine();
   const drop = (_tb && _tb.restoredAt)
-    ? `<button id="tb-drop" class="ui-btn" style="font-size:var(--t-label);padding:2px 9px">${esc(i18t('tb_kept_discard'))}</button>` : '';
+    ? `<button id="tb-drop" class="ui-btn ui-btn-sm">${esc(i18t('tb_kept_discard'))}</button>` : '';
   return `<span id="tb-dirty" style="font-size:var(--t-label);color:var(--color-neutral-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(line)}</span>${drop}`;
 }
 function tbPatchDirty() {
@@ -2515,7 +2517,7 @@ function tbFieldModal(index, presetKey) {
     options: [], required: false, defaultValue: '', helpText: '',
     detectionConfidence: 'manual', humanReviewed: true,
   };
-  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none';
+  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
   const types = Object.entries(window.FIELD_LIB || {}).map(([k, v]) =>
     `<option value="${k}"${f.fieldType === k ? ' selected' : ''}>${v.label}</option>`).join('');
   openModal(`
@@ -2539,7 +2541,7 @@ function tbFieldModal(index, presetKey) {
       </div>
       <label id="tbf-optwrap" style="display:${f.control === 'guided' ? 'block' : 'none'};margin-top:10px">
         <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tb_approved_options')} <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">${i18t('tb_one_per_line')}</span></span>
-        <textarea id="tbf-options" style="${INP};min-height:64px">${esc(f.options.join('\n'))}</textarea></label>
+        <textarea id="tbf-options" style="${INP};height:auto;padding:var(--field-pad-y) var(--field-pad-x);min-height:64px">${esc(f.options.join('\n'))}</textarea></label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
         <label><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tb_default_value')} <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">(supports {{org.…}})</span></span>
           <input id="tbf-default" style="${INP}" maxlength="2000" value="${esc(f.defaultValue)}" placeholder="e.g. {{org.company_name}}"></label>
@@ -2590,7 +2592,7 @@ async function tbPaintBranding() {
   let b = null;
   try { b = (await api('org/branding')).branding; } catch (_) {}
   b = b || { logoUrl: null, companyName: '', registrationNumber: '', address: '', defaultFooterText: '' };
-  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none';
+  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
   host.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
       <h4 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-card);margin:0">${i18t('tb_branding')}</h4>
@@ -2602,7 +2604,7 @@ async function tbPaintBranding() {
           ${b.logoUrl ? `<img src="${b.logoUrl}" alt="logo" style="max-width:100%;max-height:100%">` : `<span style="font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('tb_no_logo')}</span>`}
         </div>
         <input type="file" id="tb-logo-file" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="display:none">
-        <button id="tb-logo-btn" class="ui-btn" style="font-size:var(--t-label);padding:3px 9px">${icon('upload', 'w-3 h-3')} ${b.logoUrl ? 'Replace logo' : 'Upload logo'}</button>
+        <button id="tb-logo-btn" class="ui-btn ui-btn-sm">${icon('upload', 'w-3 h-3')} ${b.logoUrl ? 'Replace logo' : 'Upload logo'}</button>
       </div>
       <div style="min-width:260px;flex:1;display:grid;grid-template-columns:1fr 1fr;gap:var(--s-2)">
         <input id="tb-b-name" style="${INP}" placeholder="${i18t('tb_company_name')}" value="${esc(b.companyName)}">
@@ -2610,7 +2612,7 @@ async function tbPaintBranding() {
         <input id="tb-b-addr" style="${INP};grid-column:1/-1" placeholder="${i18t('tb_reg_address')}" value="${esc(b.address)}">
         <input id="tb-b-footer" style="${INP};grid-column:1/-1" placeholder="Footer text (e.g. Registered in ${jxName()} · C.123456)" value="${esc(b.defaultFooterText)}">
         <div style="grid-column:1/-1;display:flex;justify-content:flex-end">
-          <button id="tb-b-save" class="ui-btn" style="font-size:var(--t-label);padding:var(--s-1) 11px">${i18t('tb_save_branding')}</button>
+          <button id="tb-b-save" class="ui-btn ui-btn-sm">${i18t('tb_save_branding')}</button>
         </div>
       </div>
     </div>`;

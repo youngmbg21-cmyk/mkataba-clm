@@ -159,7 +159,12 @@ describe('f240 (2) — the stripe is a third shorter and the caption shares the 
 
 /* ================================================== 3 — NOTHING IN THE HEAD IS BOLD */
 describe('f240 (3) — Publish Round is not bold', () => {
-  const rule = strip(NCSS).match(/#ws-head \.room-acts button:not\([^{]*\{font-weight:var\(--w-body\)\}/)[0];
+  /* RE-POINTED 26 Sep 2026 (the Compact ladder): the head's weight is the ONE
+     label weight every button carries — medium, which is still not bold. It
+     was regular, which made Share read lighter here than in the room. The
+     claim this section makes (nothing in the head is BOLD, the lead act is
+     not excluded) is the same claim, asked of the new weight. */
+  const rule = strip(NCSS).match(/#ws-head \.room-acts button:not\([^{]*\{font-weight:var\(--w-label\)\}/)[0];
 
   test('the head-row weight rule no longer excludes the lead act', () => {
     assert.ok(!/\.rl-btn-go/.test(rule), rule);

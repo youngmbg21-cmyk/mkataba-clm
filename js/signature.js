@@ -70,7 +70,7 @@ function openSignaturePad(opts={}){
           </div>
           <p style="font-size:var(--t-meta);color:${N6};margin:6px 0 var(--s-3);line-height:1.5;">${i18t('si_draw_type_upload')}</p>
           <div id="sig-tabs" style="display:flex;gap:var(--s-1);border-bottom:1px solid ${C};">
-            ${['draw','type','upload'].map((k,i)=>`<button data-sig-tab="${k}" style="flex:0 0 auto;padding:var(--s-2) 14px;font:inherit;font-size:var(--t-body);font-weight:var(--w-strong);font-family:var(--font-heading);letter-spacing:.02em;cursor:pointer;background:none;border:0;border-bottom:2px solid transparent;color:${N6};">${k==='draw'?'✎ Draw':k==='type'?'⌨ Type':'⭱ Upload'}</button>`).join('')}
+            ${['draw','type','upload'].map((k,i)=>`<button data-sig-tab="${k}" style="flex:0 0 auto;padding:var(--s-2) 14px;font:inherit;font-size:var(--t-body);font-weight:var(--w-strong);font-family:var(--font-heading);letter-spacing:.02em;cursor:pointer;background:none;border:0;border-bottom:2px solid transparent;color:${N6};">${k==='draw'?'Draw':k==='type'?'Type':'Upload'}</button>`).join('')}
             ${saved?`<button data-sig-tab="saved" style="margin-left:auto;padding:var(--s-2) 14px;font:inherit;font-size:var(--t-body);font-weight:var(--w-strong);font-family:var(--font-mono);cursor:pointer;background:none;border:0;border-bottom:2px solid transparent;color:${N6};">★ Saved</button>`:''}
           </div>
         </div>
@@ -78,7 +78,7 @@ function openSignaturePad(opts={}){
           <!-- DRAW -->
           <div data-sig-pane="draw">
             <canvas id="sig-canvas" width="${SIG_W}" height="${SIG_H}" style="width:100%;height:auto;border:1.5px dashed ${C};border-radius:var(--radius);background:var(--color-bg);touch-action:none;cursor:crosshair;display:block"></canvas>
-            <button id="sig-clear" style="margin-top:var(--s-2);font:inherit;font-size:var(--t-label);color:${N6};background:none;border:0;cursor:pointer;">Clear</button>
+            <button id="sig-clear" type="button" class="ui-link" style="margin-top:var(--s-2)">Clear</button>
           </div>
           <!-- TYPE -->
           <div data-sig-pane="type" style="display:none">
@@ -109,8 +109,8 @@ function openSignaturePad(opts={}){
             <input id="sig-adopt" type="checkbox" ${saved?'checked':''} style="width:15px;height:15px;accent-color:${ACC}"/> Save my signature for next time
           </label>
           <div style="margin-left:auto;display:flex;gap:var(--s-2)">
-            <button id="sig-cancel" class="ui-btn" style="padding:var(--s-2) var(--s-4);font-size:var(--t-body)">${i18t('act_cancel')}</button>
-            <button id="sig-adopt-go" class="ui-btn ui-btn-primary" style="padding:var(--s-2) 18px;font-size:var(--t-body)">${icon('finger','w-4 h-4')} ${i18t('si_adopt_and_sign')}</button>
+            <button id="sig-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+            <button id="sig-adopt-go" class="ui-btn ui-btn-primary">${icon('finger','w-4 h-4')} ${i18t('si_adopt_and_sign')}</button>
           </div>
         </div>
       </div>`;

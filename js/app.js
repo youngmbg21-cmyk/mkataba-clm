@@ -255,7 +255,7 @@ const PAGE_ACTIONS = {
   reports:  ['export'],
 };
 function pageActionHtml(kind){
-  if(kind==='export') return `<button data-page-export class="ui-btn" style="font-size:var(--t-meta);padding:6px var(--s-3)" title="${i18t('ap_export_working_set')}">`+
+  if(kind==='export') return `<button data-page-export class="ui-btn" title="${i18t('ap_export_working_set')}">`+
     `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:-2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>${i18t('ap_export')}</button>`;
   /* ---- ONE ACT, ONE BUTTON (owner-asked 26 Aug 2026: "the new contract should
      look like the draft new agreement in the home page. Same feature same

@@ -161,7 +161,7 @@ function openAdviceModal(id){
       <div style="font-size:var(--t-label);color:var(--color-neutral-500);font-family:var(--font-mono);margin-top:2px">${esc(n.by)} · ${fmtDT(n.at)}</div>
     </div>`).join('')||`<div style="font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('adv_no_notes')}</div>`;
   const members=getUsers().filter(u=>u.role!=='viewer');
-  const selStyle='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:6px 9px;font:inherit;font-size:var(--t-meta);color:inherit;outline:none';
+  const selStyle='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);color:inherit;outline:none';
   openModal(`
     <div style="padding:22px var(--s-6)">
       <div style="display:flex;align-items:center;gap:9px;margin-bottom:2px">
@@ -201,7 +201,7 @@ function openAdviceModal(id){
           <select id="adv-status" style="${selStyle}">${ADVICE_STAGES.map(s=>`<option value="${s.k}" ${r.status===s.k?'selected':''}>${s.label}</option>`).join('')}</select></label>
       </div>
       <label style="display:block;margin-top:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono)">${i18t('adv_add_note')}</span>
-        <textarea id="adv-note" rows="2" placeholder="Scope confirmed with customer…" style="${selStyle}"></textarea></label>`:''}
+        <textarea id="adv-note" rows="2" placeholder="Scope confirmed with customer…" style="${selStyle};height:auto;padding:var(--field-pad-y) var(--field-pad-x)"></textarea></label>`:''}
       <div style="margin-top:14px;display:flex;align-items:center;gap:var(--s-2)">
         <button id="adv-copy-track" class="ui-btn">${icon('copy','w-3.5 h-3.5')} Customer tracking link</button>
         <span style="flex:1"></span>
@@ -231,7 +231,7 @@ function openAdviceModal(id){
 /* ---------- rate card (published fees; admin edits, everyone reads) ---------- */
 function openRateCardModal(){
   const editable=isAdmin();
-  const inp=(id,v)=>`<input id="${id}" type="number" min="1" value="${v}" ${editable?'':'disabled'} style="width:100%;border:1px solid var(--color-divider);background:${editable?'var(--color-surface)':'var(--color-bg)'};border-radius:var(--radius);padding:5px 7px;font-family:var(--font-mono);font-size:var(--t-meta);color:inherit;outline:none"/>`;
+  const inp=(id,v)=>`<input id="${id}" type="number" min="1" value="${v}" ${editable?'':'disabled'} style="width:100%;border:1px solid var(--color-divider);background:${editable?'var(--color-surface)':'var(--color-bg)'};border-radius:var(--radius);font-family:var(--font-mono);color:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/>`;
   const rows=Object.values(ADVICE_SERVICES).map(s=>{
     const r=adviceRateFor(s.id);
     return `<tr style="border-bottom:1px solid var(--color-divider)">

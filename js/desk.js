@@ -979,7 +979,7 @@ function deskNoticeHtml(c, opts = {}){
       ? `<span class="dk-notice-said">${_dkE(i18t('dk_asked_already'))}</span>`
       : `<button type="button" class="dk-notice-btn" data-dk-join="1">${_dkE(i18t('dk_ask_to_join'))}</button>`}
     <button type="button" class="dk-notice-x" data-dk-clear="1"
-      aria-label="${_dkE(i18t('dk_clear_notice'))}" title="${_dkE(i18t('dk_clear_notice'))}">&times;</button>
+      aria-label="${_dkE(i18t('dk_clear_notice'))}" title="${_dkE(i18t('dk_clear_notice'))}">${(typeof window!=='undefined'&&window.icon)?window.icon('x','w-3.5 h-3.5'):'&times;'}</button>
   </div>`;
 }
 
@@ -1099,13 +1099,13 @@ function deskSheetHtml(c){
            tint the share dialog gives the option you have chosen — one thing
            on the panel reads as the subject and the rest as the list. */}
     ${_dkPersonRow({ name: lead.name, sub: d.by ? i18t('dk_started_by', { who: d.by, when: when(d.openedAt) }) : '' },
-      may ? `<button type="button" class="ui-btn" data-dk-handover="1" style="font-size:var(--t-label);padding:var(--s-1) 9px">${_dkE(i18t('dk_handover_btn'))}</button>` : '',
+      may ? `<button type="button" class="ui-btn ui-btn-sm" data-dk-handover="1">${_dkE(i18t('dk_handover_btn'))}</button>` : '',
       'dk-row-lead')}
 
     <div style="${DK_LBL}margin-top:14px">${_dkE(i18tn('dk_contributors_n', others.length, { n: others.length }))}</div>
     ${others.length ? others.map(p => _dkPersonRow(
         { name: p.name, sub: i18t('dk_added_when', { when: when(p.at) }) },
-        may ? `<button type="button" class="ui-btn" data-dk-remove="${_dkE(p.id)}" style="font-size:var(--t-label);padding:var(--s-1) 9px">${_dkE(i18t('dk_remove_btn'))}</button>` : '')).join('')
+        may ? `<button type="button" class="ui-btn ui-btn-sm" data-dk-remove="${_dkE(p.id)}">${_dkE(i18t('dk_remove_btn'))}</button>` : '')).join('')
       : `<p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 6px">${_dkE(i18t('dk_no_contributors'))}</p>`}
 
     ${may ? `
@@ -1115,7 +1115,7 @@ function deskSheetHtml(c){
         placeholder="${_dkE(i18t('dk_add_ph'))}" style="${DK_FLD}padding-right:30px"/>
       <button type="button" id="dk-who-caret" tabindex="-1" aria-label="${_dkE(i18t('dk_show_all'))}"
         style="position:absolute;right:1px;top:1px;bottom:1px;width:28px;border:0;background:transparent;
-        cursor:pointer;color:var(--color-neutral-600);font-size:var(--t-label);line-height:1">&#9662;</button>
+        cursor:pointer;color:var(--color-neutral-600);line-height:1;display:grid;place-items:center">${(typeof window!=='undefined'&&window.icon)?window.icon('chevD','w-3.5 h-3.5'):'&#9662;'}</button>
       <ul id="dk-who-list" role="listbox" hidden
         style="list-style:none;margin:2px 0 0;padding:0;position:absolute;left:0;right:0;top:100%;z-index:5;
         max-height:212px;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);
@@ -1136,8 +1136,8 @@ function deskSheetHtml(c){
         ${r.why ? `<span class="dk-row-sub" title="${_dkE(r.why)}">“${_dkE(_dkClamp(r.why, 120))}”</span>` : ''}
       </span>
       <span style="display:flex;gap:6px;flex:none">
-        <button type="button" class="ui-btn ui-btn-primary" data-dk-approve="${_dkE(r.id)}" style="font-size:var(--t-label);padding:var(--s-1) 9px">${_dkE(i18t('dk_approve_btn'))}</button>
-        <button type="button" class="ui-btn" data-dk-decline="${_dkE(r.id)}" style="font-size:var(--t-label);padding:var(--s-1) 9px">${_dkE(i18t('dk_decline_btn'))}</button>
+        <button type="button" class="ui-btn ui-btn-sm ui-btn-accent" data-dk-approve="${_dkE(r.id)}">${_dkE(i18t('dk_approve_btn'))}</button>
+        <button type="button" class="ui-btn ui-btn-sm" data-dk-decline="${_dkE(r.id)}">${_dkE(i18t('dk_decline_btn'))}</button>
       </span></div>`).join('')}` : ''}
 
     ${''/* ---- WHAT THE OTHER SIDE KNOWS, ON THE PANEL THAT CHANGES IT ----
@@ -1223,7 +1223,7 @@ function openDeskHandover(c, opts = {}){
           placeholder="${_dkE(i18t('dk_add_ph'))}" style="${DK_FLD}padding-right:30px"/>
         <button type="button" id="dk-who-caret" tabindex="-1" aria-label="${_dkE(i18t('dk_show_all'))}"
           style="position:absolute;right:1px;top:1px;bottom:1px;width:28px;border:0;background:transparent;
-          cursor:pointer;color:var(--color-neutral-600);font-size:var(--t-label);line-height:1">&#9662;</button>
+          cursor:pointer;color:var(--color-neutral-600);line-height:1;display:grid;place-items:center">${(typeof window!=='undefined'&&window.icon)?window.icon('chevD','w-3.5 h-3.5'):'&#9662;'}</button>
         <ul id="dk-who-list" role="listbox" hidden
           style="list-style:none;margin:2px 0 0;padding:0;position:absolute;left:0;right:0;top:100%;z-index:5;
           max-height:212px;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);
@@ -1282,7 +1282,7 @@ function openDeskJoinAsk(c, opts = {}){
     ${_dkHead('&#9995;', i18t('dk_join_title'), i18t('dk_join_sub', { who: lead.name }))}
     <div class="rvd-body">
       <label for="dk-why" style="${DK_LBL}">${_dkE(i18t('dk_join_why_label'))}</label>
-      <textarea id="dk-why" rows="3" maxlength="${DK_WHY_MAX}" style="${DK_FLD}resize:vertical"
+      <textarea id="dk-why" rows="3" maxlength="${DK_WHY_MAX}" style="${DK_FLD}height:auto;resize:vertical"
         placeholder="${_dkE(i18t('dk_join_why_ph'))}"></textarea>
     </div>
     <div class="rvd-foot">

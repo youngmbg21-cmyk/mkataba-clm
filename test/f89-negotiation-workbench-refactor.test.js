@@ -1038,7 +1038,18 @@ describe('F89 (11,12) — the card verbs, their colours, and where Edit lands', 
     const acc = p.rule('.redline-page .rl-card-verbs .rl-acc,.redline-page .rl-card-verbs .rl-send') || '';
     assert.match(acc, /background:transparent/, 'flat, so its outline can be seen');
     assert.match(acc, /color:var\(--accent-ink\)/, 'and an ink that answers in dark');
-    assert.match(acc, /font-weight:var\(--w-title\)/, 'the row still says which verb leads');
+    /* ---- RE-POINTED IN PLACE 26 Sep 2026 (the Compact ladder, Young picked
+       it) ---- The 700 said which verb leads. Rule 3 of the button review is
+       that every button label is ONE weight and "the weight never" says which
+       is the main one — so Accept reads at the label weight like its
+       neighbours, and the row says which verb leads by the two things that
+       were always saying it too: it comes FIRST, and it is the only one of the
+       three in the full accent ink (Reject is the refusal's red, Edit the
+       lighter accent step). The claim is kept; its carrier moved. */
+    assert.match(acc, /font-weight:var\(--w-label\)/, 'one label weight, like every other verb');
+    const edit = p.rule('.redline-page .rl-card-verbs .rl-edit') || '';
+    assert.ok(/color:var\(--accent-ink-700\)/.test(edit) && !/color:var\(--accent-ink\)[;}]/.test(edit),
+      'the row still says which verb leads: Accept alone wears the full accent ink');
     assert.match(p.rule('.redline-page .rl-card-verbs button') || '',
       /border:1px solid var\(--rl-btn-line\)/, 'every verb wears the head row\'s own line');
     /* ---- AND THE OUTLINE IS GONE AGAIN, REVERSED IN PLACE (owner-reported

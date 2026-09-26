@@ -412,8 +412,11 @@ function negoStyleHtml(){
   .nego-selmenu.nego-selbar{flex-direction:row;align-items:center;gap:2px;
     min-width:0;padding:4px}
   .nego-selmenu.nego-selbar button{display:inline-flex;width:auto;text-align:center;
-    justify-content:center;gap:6px;white-space:nowrap;padding:7px 12px;
-    font-size:var(--t-meta);font-weight:var(--w-title);color:var(--accent-ink)}
+    justify-content:center;gap:var(--btn-gap);white-space:nowrap;min-height:var(--ctl-h);padding:0 var(--pad-ctl-x);
+    font-size:var(--t-body);font-weight:var(--w-label);color:var(--accent-ink)}
+  ${''/* MEDIUM, NOT BOLD (the Compact ladder, 26 Sep 2026): the bar's verbs are
+         buttons and every button label carries the one weight. The 15 Sep
+         ruling's colour and order are untouched. */}
   .nego-selmenu.nego-selbar button.rl-verb-ai{color:#6d28d9}
   html.dark .nego-selmenu.nego-selbar button.rl-verb-ai{color:#c4b5fd}
   .nego-selmenu.nego-selbar button:hover,
@@ -1449,7 +1452,8 @@ function redlineLayoutCss(){
     background:none;text-decoration:underline}
   .redline-page .rl-needs-dot{width:8px;height:8px;border-radius:var(--radius);background:var(--st-amber-dot);
     flex:none;animation:none}
-  .redline-page .rl-needs-go{color:var(--color-neutral-400)}
+  .redline-page .rl-needs-go{display:inline-flex;align-items:center;color:var(--color-neutral-400)}
+  .redline-page .rl-needs-go svg{width:var(--btn-ic);height:var(--btn-ic)}
   /* ---- THE FLOATING NOTICES ----
      Bottom-right, over the page, never a band above the contract. See the note
      at the markup for why. Capped so a long sentence cannot become a panel,
@@ -1744,10 +1748,10 @@ function redlineLayoutCss(){
      no business being as tall as the control group. */
   .redline-page .rl-livelist{flex:none;align-self:center;display:inline-flex;align-items:center;
     gap:7px;border:0;background:none;color:var(--accent-ink);border-radius:var(--radius);padding:0;
-    font:inherit;font-size:var(--t-meta);font-weight:var(--w-body);cursor:pointer;
+    font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);cursor:pointer;min-height:var(--tap-min);
     transition:background var(--dur-1),border-color var(--dur-1),color var(--dur-1)}
   .redline-page .rl-livelist:hover{background:none;border-color:var(--color-neutral-400);
-    color:var(--color-text);border:0;text-decoration:underline}
+    color:var(--color-text);border:0}
   .redline-page .rl-livelist .rl-livelist-n{font-family:var(--font-mono);font-size:var(--t-figure);font-weight:var(--w-title);
     line-height:1.7;color:var(--color-neutral-600);background:var(--color-neutral-100);
     border:1px solid var(--color-divider);border-radius:var(--radius);padding:0 6px}
@@ -1757,7 +1761,8 @@ function redlineLayoutCss(){
      34px and 12-13px against a head row of 28px and 14px directly above them,
      so the page carried two control heights and two control sizes one under
      the other. The rung, the size and the weight are the head row's own now —
-     .ui-btn-lg is --ctl-h at --t-body, weight 400 — and ONLY A SHADED SEGMENT
+     then .ui-btn-lg, --ctl-h at --t-body, weight 400; the weight moved with
+     the Compact ladder, see the last paragraph — and ONLY A SHADED SEGMENT
      IS BOLD, which is what marks the live half of a pair once the row reads at
      one weight.
 
@@ -1772,9 +1777,17 @@ function redlineLayoutCss(){
      head-row pin one page along records why: a rule naming today's controls is
      one the next control walks past, and a row at two sizes is what was
      reported. rlFitTabRow's fold ladder measures this row in pixels and is
-     unchanged; it is re-measured in control-row-folds-verify. */
+     unchanged; it is re-measured in control-row-folds-verify.
+
+     THE ROW'S ONE WEIGHT IS THE LABEL WEIGHT since the Compact ladder (Young
+     picked it 26 Sep 2026): every button label is medium, so the resting
+     half of a switch, the stepper's two presses and the needs chip read at
+     500 beside the buttons, and the shaded half is still the one that
+     stands out. Left at 400 they would have made this one row two weights
+     again, which is the thing this rule was written to stop. The stepper's
+     readout is a figure, not a press, and keeps the body weight. */
   .redline-page .rl-head .rl-type-step{height:var(--ctl-h);padding:0 3px}
-  .redline-page .rl-head .rl-type-step button,
+  .redline-page .rl-head .rl-type-step button{font-size:var(--t-body);font-weight:var(--w-label)}
   .redline-page .rl-head .rl-type-step .rl-type-out{font-size:var(--t-body);font-weight:var(--w-body)}
   .redline-page .rl-head .rl-segwrap:not(.rl-readwrap){height:var(--ctl-h)}
   ${''/* THE HEIGHT CAME OUT OF THIS RULE ON 19 Sep 2026, and it is the cause
@@ -1788,10 +1801,10 @@ function redlineLayoutCss(){
          gap 3 top / 3 bottom before, 0 and 0 after. Fixed by taking the stale
          declaration out, never by out-weighting it. */}
   .redline-page .rl-head .rl-segwrap:not(.rl-readwrap) .rl-seg{
-    font-size:var(--t-body);font-weight:var(--w-body)}
+    font-size:var(--t-body);font-weight:var(--w-label)}
   .redline-page .rl-head .rl-segwrap:not(.rl-readwrap) .rl-seg.on{font-weight:var(--w-title)}
-  .redline-page .rl-head .rl-livelist{font-size:var(--t-body);font-weight:var(--w-body)}
-  .redline-page .rl-head .rl-needs{font-size:var(--t-body)}
+  .redline-page .rl-head .rl-livelist{font-size:var(--t-body);font-weight:var(--w-label)}
+  .redline-page .rl-head .rl-needs{font-size:var(--t-body);font-weight:var(--w-label)}
   ${''/* THE PURPLE CAME OFF (owner-asked 20 Aug 2026, off a screenshot of the
         row): the two review buttons wear the "N needs you" chip's own
         neutral clothes — surface, hairline, quiet ink — and keep their bold
@@ -2897,8 +2910,9 @@ function redlineLayoutCss(){
          pair carries, stated once for both buttons here. */}
   .redline-page .rl-empty-acts{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 2px}
   .redline-page .rl-empty-acts button{flex:none;border-radius:var(--radius);cursor:pointer;
-    font:inherit;font-size:var(--t-meta);font-weight:var(--w-title);
-    padding:0 11px;white-space:nowrap;height:var(--ctl-h);display:inline-flex;align-items:center;gap:6px}
+    font:inherit;font-family:var(--font-heading);font-size:var(--t-body);font-weight:var(--w-label);
+    padding:0 var(--pad-ctl-x);white-space:nowrap;height:var(--ctl-h);display:inline-flex;align-items:center;gap:var(--btn-gap)}
+  .redline-page .rl-empty-acts button svg{width:var(--btn-ic);height:var(--btn-ic);flex:none}
   .redline-page .rl-empty-acts button[data-rl-prepare]{border:0;background:var(--accent-fill);color:#fff}
   ${''/* ---- ONE PENCIL BETWEEN THE TWO, AND IT IS ON THE RIGHT ONE ----
          Photographed before this rule existed: both buttons carried the pencil,
@@ -3059,11 +3073,11 @@ function redlineLayoutCss(){
          and the dark theme together. The open (green) state below and the
          hover are untouched; the counterparty's Open borrows this rule and
          moves with it. */}
-  .redline-page .rl-open-btn{flex:none;margin-left:2px;padding:0 var(--s-3);display:inline-flex;
-    align-items:center;cursor:pointer;font:inherit;font-size:var(--t-body);font-weight:var(--w-body);line-height:1.6;
+  .redline-page .rl-open-btn{flex:none;margin-left:2px;padding:0 var(--pad-ctl-x-sm);display:inline-flex;
+    align-items:center;cursor:pointer;font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);line-height:1;
     border:1px solid var(--btn-edge);border-radius:var(--radius);background:var(--color-surface);
     color:var(--accent-ink);transition:border-color var(--dur-1),color var(--dur-1),background var(--dur-1);
-    height:30px}
+    height:var(--ctl-h-sm)}
   .redline-page .rl-open-btn:hover{border-color:var(--color-accent);color:var(--st-steel-fg);
     background:var(--st-steel-bg)}
   .redline-page .rl-open-btn:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
@@ -3074,10 +3088,10 @@ function redlineLayoutCss(){
      hover and on its accessible name, so nothing rests on the mark. The ink is
      the accent so the pair reads as door-then-door with the Copilot one
      leading, which is the order the approved journey puts them in. */
-  .redline-page .rl-cp-editor-btn{flex:none;margin-left:2px;padding:0 9px;display:inline-flex;
-    align-items:center;cursor:pointer;font:inherit;font-size:var(--t-meta);font-weight:var(--w-body);line-height:1.6;
+  .redline-page .rl-cp-editor-btn{flex:none;margin-left:2px;padding:0 var(--pad-ctl-x-sm);display:inline-flex;
+    align-items:center;cursor:pointer;font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);line-height:1;
     border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);
-    color:var(--accent-ink);transition:border-color var(--dur-1),color var(--dur-1),background var(--dur-1);height:30px}
+    color:var(--accent-ink);transition:border-color var(--dur-1),color var(--dur-1),background var(--dur-1);height:var(--ctl-h-sm)}
   .redline-page .rl-cp-editor-btn:hover{border-color:var(--color-accent);
     color:var(--st-steel-fg);background:var(--st-steel-bg)}
   .redline-page .rl-cp-editor-btn:focus-visible{outline:2px solid var(--color-accent);
@@ -3513,9 +3527,8 @@ function redlineLayoutCss(){
          behind a menu. The INK is untouched and is what tells them apart. */}
   .redline-page .rl-card-d .rl-card-verbs{margin-top:0;gap:var(--s-3);flex-wrap:wrap}
   .redline-page .rl-card-d .rl-card-verbs button{border:0;background:none;padding:0;
-    height:auto;min-height:0;font-size:var(--t-label);font-weight:var(--w-title);line-height:18px}
-  .redline-page .rl-card-d .rl-card-verbs button:hover{background:none;
-    text-decoration:underline}
+    height:auto;min-height:0;font-size:var(--t-label);font-weight:var(--w-label);line-height:18px}
+  .redline-page .rl-card-d .rl-card-verbs button:hover{background:none;color:var(--color-text)}
   ${''/* COPILOT KEEPS ITS OWN COLOUR, inherited from the ⋯ menu's lead row —
          the same violet .rl-btn-alt has carried since the playbook pass. It is
          the one verb in this bar that is not a decision about the change, and
@@ -3727,9 +3740,9 @@ function redlineLayoutCss(){
          colour as the fill behind it is not a border, so the outline the owner
          asked for is only visible on a flat face. */}
   .redline-page .rl-card-verbs button{border:1px solid var(--rl-btn-line);border-radius:var(--radius);
-    padding:0 var(--s-3);font:inherit;
-    font-size:var(--t-body);font-weight:var(--w-body);line-height:1;cursor:pointer;transition:filter var(--dur-1);
-    height:30px;display:inline-flex;align-items:center;background:transparent}
+    padding:0 var(--pad-ctl-x-sm);font:inherit;
+    font-size:var(--t-meta);font-weight:var(--w-label);line-height:1;cursor:pointer;transition:filter var(--dur-1);
+    height:var(--ctl-h-sm);display:inline-flex;align-items:center;gap:4px;background:transparent}
   /* washes darken a touch on hover in light, lift in dark — a brightness
      bump on a near-white tint is invisible */
   .redline-page .rl-card-verbs button:hover{filter:brightness(.95)}
@@ -3760,7 +3773,7 @@ function redlineLayoutCss(){
          been beaten — white on a clear face. Caught by reading the cascade,
          not by looking. */}
   .redline-page .rl-card-verbs .rl-acc,.redline-page .rl-card-verbs .rl-send{
-    background:transparent;color:var(--accent-ink);font-weight:var(--w-title)}
+    background:transparent;color:var(--accent-ink);font-weight:var(--w-label)}
   .redline-page .rl-card-verbs .rl-acc:hover,.redline-page .rl-card-verbs .rl-send:hover{
     background:color-mix(in srgb,var(--accent-solid) 10%,transparent)}
   ${''/* ---- NO LINES ROUND THE CARD'S OWN VERBS (owner-reported 22 Aug 2026,
@@ -4384,7 +4397,8 @@ function redlineLayoutCss(){
   .redline-page .rl-cp-label{margin:0;font-size:var(--t-label);font-weight:var(--w-title);letter-spacing:.06em;
     text-transform:uppercase;color:var(--color-neutral-600)}
   .redline-page .rl-cp-min{order:2;margin-left:auto;border:0;background:transparent;
-    font-size:18px;line-height:1;color:var(--color-neutral-600);cursor:pointer;padding:2px var(--s-1)}
+    line-height:1;color:var(--color-neutral-600);cursor:pointer;padding:0;display:inline-grid;place-items:center;
+    width:var(--ctl-h-sm);height:var(--ctl-h-sm);border-radius:var(--radius)}
   .redline-page .rl-cp-min:hover{color:var(--color-text)}
   ${''/* The body alone takes the panel's own type preference (rlCpSetType) —
      zoom, the sheet's established mechanism, so everything inside scales
@@ -5155,7 +5169,7 @@ function redlineLayoutCss(){
          on which of its pages you stood on. The flat treatment — no box, the
          hairline before the acts, quiet ink — is the BASE rule now, so both
          heads read it from one place and there is nothing to keep in step. */}
-  .redline-page #ws-head .room-acts{gap:6px;align-items:center;flex:none}
+  .redline-page #ws-head .room-acts{gap:var(--btn-group-gap);align-items:center;flex:none}
   ${''/* ---- ONE FILLED ACT, AND IT IS PUBLISH ROUND ----
          The render draws four buttons of which exactly one is filled — the
          platform's own button rule, which this head was breaking: the review
@@ -5189,7 +5203,7 @@ function redlineLayoutCss(){
          DISPLAY IS PART OF THE FIX — .rl-pb-btn computes 'block', and a block
          at a fixed height does not centre its own words. Colour, border, fill
          and the filled act's 700 are each button's own and are left alone. */}
-  .redline-page #ws-head .room-acts button{height:28px;padding:0 11px;font-size:var(--t-body);
+  .redline-page #ws-head .room-acts button{height:var(--ctl-h);padding:0 var(--pad-ctl-x);gap:var(--btn-gap);font-size:var(--t-body);
     line-height:1.2;display:inline-flex;align-items:center;box-sizing:border-box;
     ${''/* ONE OUTLINE FOR THE WHOLE ROW (owner-asked 23 Aug 2026: "the more
            buttons should have the same color outline like the other buttons").
@@ -5325,12 +5339,17 @@ function redlineLayoutCss(){
          while leaving the other is the inconsistency the last report was about.
          SCOPED TO THE HEAD, which is what keeps it safe: .rl-btn and .rl-btn-go
          also draw on the CONTROL BAR, whose metrics feed rlFitTabRow's fold
-         ladder, and this selector reaches neither .rl-tabrow nor .rl-head. */}
-  .redline-page #ws-head .room-acts button:not(.ui-btn-primary){font-weight:var(--w-body)}
+         ladder, and this selector reaches neither .rl-tabrow nor .rl-head.
+         ---- AND MEDIUM, NOT REGULAR (the Compact ladder, 26 Sep 2026) ----
+         Nothing here is bold still: medium is the ONE label weight every
+         button in the product carries, the filled act included. Regular was
+         what made Share read lighter here than the same Share in the contract
+         room (the button review's finding "one button, two weights"). */}
+  .redline-page #ws-head .room-acts button:not(.ui-btn-primary){font-weight:var(--w-label)}
 
   .redline-page #ws-head .rl-pb-btn{background:none;
     border:1px solid color-mix(in srgb,var(--accent-solid) 50%,transparent);
-    color:var(--accent-ink);font-weight:var(--w-body);box-shadow:none}
+    color:var(--accent-ink);font-weight:var(--w-label);box-shadow:none}
   .redline-page #ws-head .rl-pb-btn:hover:not(:disabled){
     background:color-mix(in srgb,var(--accent-solid) 8%,transparent)}
   html.dark .redline-page #ws-head .rl-pb-btn{color:var(--color-accent-300)}
@@ -5592,7 +5611,7 @@ function redlineLayoutCss(){
      and the owner's own earlier decision does not, because at the 300px the
      divider allows a box round a column of boxes reads as clutter. */
 
-  .redline-page .rl-card-verbs .rl-acc,.redline-page .rl-card-verbs .rl-send{font-weight:var(--w-title)}
+  .redline-page .rl-card-verbs .rl-acc,.redline-page .rl-card-verbs .rl-send{font-weight:var(--w-label)}
 
   ${''/* A RECEIPT IS A SHAPE, NOT A TYPE SCALE. It shrank its id, its state and
          its clause a size below the working card's, which read fine on the
@@ -5642,10 +5661,10 @@ function redlineLayoutCss(){
          changes what the box WEARS and never where anything on the row sits.
          It keeps opacity:1 - a pencil that says Done may not be hover-only,
          because it is the way out of typing. */}
-  .redline-page .rl-cp-pill.rl-cp-pill-done{position:absolute;right:0;top:0;opacity:1;flex:none;gap:5px;
-    height:24px;padding:0 9px;border:1px solid var(--color-accent-600);
+  .redline-page .rl-cp-pill.rl-cp-pill-done{position:absolute;right:0;top:0;opacity:1;flex:none;gap:4px;
+    height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);border:1px solid var(--color-accent-600);
     background:var(--color-surface);color:var(--accent-ink);
-    font-size:var(--t-label);font-weight:var(--w-strong);letter-spacing:0;text-transform:none}
+    font-size:var(--t-meta);font-weight:var(--w-label);letter-spacing:0;text-transform:none}
   .redline-page .rl-cp-pill.rl-cp-pill-done svg{width:14px;height:14px}
   .redline-page .rl-cp-pill.rl-cp-pill-done:hover{background:var(--color-accent-100)}
   
@@ -5749,8 +5768,8 @@ function redlineLayoutCss(){
   .redline-page .rl-rung-say::after{content:'\\201D'}
   .redline-page .rl-rung-acts{display:flex;gap:12px;flex-wrap:wrap;margin-top:5px}
   .redline-page .rl-rung-acts button{border:0;background:none;padding:0;cursor:pointer;
-    font:inherit;font-size:var(--t-meta);font-weight:var(--w-title);color:var(--accent-ink)}
-  .redline-page .rl-rung-acts button:hover{text-decoration:underline}
+    font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);color:var(--accent-ink);min-height:var(--tap-min)}
+  .redline-page .rl-rung-acts button:hover{color:var(--color-text)}
   .redline-page .rl-rung-acts button.acc{color:var(--st-green-fg)}
   .redline-page .rl-ladder-foot{margin-top:10px}
   .redline-page .rl-rung-base .rl-rung-what{color:var(--color-neutral-600)}
@@ -5849,7 +5868,12 @@ function redlineLayoutCss(){
          so the four read as one row, and is NOT a fourth reading — it never
          takes the .on face, because the board is a window and not a mode the
          paper is in. */}
-  .redline-page .rl-boardseg{align-self:center;color:var(--accent-ink);font-weight:var(--w-title)}
+  ${''/* AND ITS SIZE IS THE TABS' TOO (the Compact ladder, 26 Sep 2026): it
+         took the base segment's 12px and 26px from .rl-seg while the tabs
+         beside it read 13px at the label weight. One text size and one weight
+         in one row, on the everyday rung; the lit face keeps the bold. */}
+  .redline-page .rl-boardseg{align-self:center;color:var(--accent-ink);font-size:var(--t-body);
+    font-weight:var(--w-label);height:var(--ctl-h)}
   .redline-page .rl-boardseg:hover{background:var(--color-surface)}
 
 
@@ -5902,7 +5926,7 @@ function redlineLayoutCss(){
   /* ---- THE DEAL BOARD PAGE (14 Sep 2026) ---- the grid steps aside for it */
   .redline-page.rl-board-on #rl-grid,.redline-page.rl-board-on .rl-turnwrap{display:none}
   .redline-page .rl-boardpage{flex:1 1 auto;min-height:0;overflow:auto;padding:16px 24px 40px}
-  .redline-page .rl-boardseg.on{background:var(--accent-fill);color:#fff}
+  .redline-page .rl-boardseg.on{background:var(--accent-fill);color:#fff;font-weight:var(--w-title)}
   .db-sum{display:flex;gap:18px;flex-wrap:wrap;font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 12px;align-items:center}
   .db-sum b{color:var(--color-text);font-size:var(--t-card);font-weight:var(--w-strong)}
   .db-sum .sp{flex:1}
@@ -6019,8 +6043,8 @@ function redlineLayoutCss(){
   .redline-page .rl-idx-title i{font-family:var(--font-mono);font-size:var(--t-meta);
     font-weight:var(--w-label);color:var(--color-neutral-500);margin-left:2px}
   .redline-page .rl-idx-top .rl-unsent-go,
-  .redline-page .rl-idx-top .rl-close-go{margin-bottom:0;height:26px;padding:0 9px;
-    font-size:var(--t-label);font-weight:var(--w-label);border-radius:var(--radius)}
+  .redline-page .rl-idx-top .rl-close-go{margin-bottom:0;height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);
+    font-size:var(--t-meta);font-weight:var(--w-label);border-radius:var(--radius)}
   .redline-page .rl-close-go{background:transparent;color:var(--color-neutral-600)}
   .redline-page .rl-close-go:hover:not(:disabled){background:var(--color-neutral-100);
     color:var(--color-text);filter:none}
@@ -6047,8 +6071,12 @@ function redlineLayoutCss(){
   .redline-page .rl-card-d .rl-card-face{justify-content:flex-start;gap:2px}
   .redline-page .rl-card-d .rl-card-face button,
   .redline-page .rl-card-d .rl-card-face button:has(.rl-verb-i){display:inline-flex;
-    align-items:center;gap:4px;height:24px;padding:0 6px;border-radius:var(--radius);
-    font-size:var(--t-label);font-weight:var(--w-strong);line-height:1}
+    align-items:center;gap:4px;height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);border-radius:var(--radius);
+    font-size:var(--t-meta);font-weight:var(--w-label);line-height:1}
+  ${''/* THE SMALL RUNG, LIKE EVERY OTHER REPEATED ROW (the Compact ladder,
+         26 Sep 2026): 22 drawn, 12px at the one label weight, the rung's own
+         8px of side padding and its 14px mark. The reference's 24px/600 verb
+         was a size of its own; the words and their order are untouched. */}
   ${''/* THE INK IS STATED ON THE PLAIN SELECTOR ONLY — (0,3,1) — so the four
          rules below at (0,4,0) still win for Reject, Discard, Ladder and
          Withdraw, and the locked door keeps its label shade. Written on the
@@ -6057,7 +6085,7 @@ function redlineLayoutCss(){
   .redline-page .rl-card-d .rl-card-face button{color:var(--accent-ink)}
   .redline-page .rl-card-d .rl-card-face button:hover{text-decoration:none;
     background:var(--color-accent-100)}
-  .redline-page .rl-card-d .rl-card-face .rl-verb-i{width:13px;height:13px}
+  .redline-page .rl-card-d .rl-card-face .rl-verb-i{width:var(--btn-ic);height:var(--btn-ic)}
   .redline-page .rl-card-d .rl-card-face .rl-acc{color:var(--accent-ink)}
   .redline-page .rl-card-d .rl-card-face .rl-rej,
   .redline-page .rl-card-d .rl-card-face [data-rl-retract]{color:var(--st-ruby-fg)}
@@ -6124,8 +6152,8 @@ function redlineLayoutCss(){
     border:1px solid var(--rule-strong);border-radius:10px;padding:0 7px;height:18px;
     background:var(--color-surface);white-space:nowrap}
   .redline-page .rl-cp-rungs svg{width:11px;height:11px;flex:none}
-  .redline-page .ui-btn.rl-cp-hd-edit{margin-left:auto;flex:none;height:22px;min-height:0;padding:0 7px;
-    font-size:var(--t-micro);font-weight:var(--w-strong);gap:4px}
+  .redline-page .ui-btn.rl-cp-hd-edit{margin-left:auto;flex:none;height:var(--ctl-h-sm);min-height:0;padding:0 var(--pad-ctl-x-sm);
+    font-size:var(--t-meta);font-weight:var(--w-label);gap:4px}
   .redline-page .rl-cp:not(.is-ladder) .rl-cp-hd-edit{display:none}
   .redline-page .rl-cp-sec{margin:0;padding:12px 16px;border-bottom:1px solid var(--color-divider)}
   .redline-page .rl-cp-h{margin:0 0 8px;font-size:var(--t-micro);letter-spacing:.08em;

@@ -1158,9 +1158,9 @@ function openSigningLockedNotice(c, opts){
       <li>${esc(i18t('ap_restart_keeps_wording'))}</li>
     </ul>
     <div class="flex justify-end gap-2">
-      ${admin?`<button id="sp-restart" class="rounded-lg border px-4 py-2 text-sm font-600" style="color:var(--st-ruby-dot);border-color:color-mix(in srgb,var(--st-ruby-dot) 40%,transparent)">${i18t('ap_start_signing_again')}</button>`
+      ${admin?`<button id="sp-restart" class="ui-btn ui-btn-danger">${i18t('ap_start_signing_again')}</button>`
         :`<span class="text-[11px] text-ink/50 self-center">${esc(i18t('ap_restart_admin_only'))}</span>`}
-      <button id="sp-shut" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${i18t('act_close')}</button>
+      <button id="sp-shut" class="ui-btn ui-btn-primary">${i18t('act_close')}</button>
     </div></div>`);
   document.getElementById('sp-shut').addEventListener('click',()=>{ closeModal(); if(back) back(); });
   document.getElementById('sp-restart')?.addEventListener('click',async()=>{
@@ -1261,7 +1261,10 @@ function openSignerPlanEditor(c, opts){
   // People directory (imported contacts + team members) → drives name auto-fill.
   const people=(typeof orgDirectory==='function')?orgDirectory():[];
   const dirList=`<datalist id="sp-dir-names">${people.map(p=>`<option value="${(p.name||p.email||'').replace(/"/g,'&quot;')}">${[p.title,p.email].filter(Boolean).join(' · ').replace(/"/g,'&quot;')}</option>`).join('')}</datalist>`;
-  const IN='rounded-lg border border-inputln bg-white px-2 py-1.5 text-[12px]';
+  /* ONE BOX HEIGHT (the Compact ladder, 26 Sep 2026): the row's selects and
+     the step number are text boxes, so they sit on the field rung beside the
+     22px move buttons instead of their own 32-33px. */
+  const IN='rounded-lg border border-inputln bg-white ui-fld';
   const memberOpts=s=>`<option value="">${i18t('ap_pick_member')}</option>`+members.map(u=>`<option value="${u.id}" ${s.memberId===u.id?'selected':''}>${(u.name||u.email).replace(/</g,'&lt;')}</option>`).join('');
   const esc1=v=>String(v==null?'':v).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
   /* WHICH COMPANY THIS PERSON SIGNS FOR. Drawn only where there is more than
@@ -1297,9 +1300,9 @@ function openSignerPlanEditor(c, opts){
             class="${IN}" style="width:52px;text-align:center"/></label>
         ${partyOpts(s,i)}
         <div class="ml-auto flex items-center gap-1">
-          <button data-sp-up="${i}" ${i===0?'disabled':''} class="text-ink/40 hover:text-ink/70 text-[12px] disabled:opacity-30">↑</button>
-          <button data-sp-down="${i}" class="text-ink/40 hover:text-ink/70 text-[12px]">↓</button>
-          <button data-sp-del="${i}" class="text-rose-500 hover:text-rose-700 text-[11px] font-600 ml-1">✕</button></div>
+          <button data-sp-up="${i}" ${i===0?'disabled':''} class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon" title="${i18t('tb_move_up')}" aria-label="${i18t('tb_move_up')}">${icon('chevU')}</button>
+          <button data-sp-down="${i}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon" title="${i18t('tb_move_down')}" aria-label="${i18t('tb_move_down')}">${icon('chevD')}</button>
+          <button data-sp-del="${i}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon ui-btn-danger ml-1" title="${i18t('act_remove')}" aria-label="${i18t('act_remove')}">${icon('x')}</button></div>
       </div>
       <div class="grid grid-cols-3 gap-2">
         <input data-sp-name="${i}" list="sp-dir-names" value="${(s.name||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ap_name')}" class="${IN}"/>
@@ -1311,15 +1314,15 @@ function openSignerPlanEditor(c, opts){
     <p class="text-xs text-ink/60 mb-3">${i18t('ap_route_line')}</p>
     ${dirList}
     <div id="sp-rows">${plan.map(row).join('')||`<div class="text-[12px] text-ink/50 mb-2">${i18t('ap_no_signers')}</div>`}</div>
-    <button id="sp-add" class="text-[12px] font-600 text-brand-600 hover:text-brand-800 mb-2">${i18t('ap_add_signer')}</button>
+    <button id="sp-add" class="ui-link mb-2">${(typeof window!=='undefined'&&window.plusLed?window.plusLed(i18t('ap_add_signer')):i18t('ap_add_signer'))}</button>
     ${''/* ---- BOTH SIDES, COUNTED WHILE YOU TYPE ----
            The rule is that a route names somebody on each side, and a rule a
            form only mentions when it refuses is a rule the form is keeping to
            itself. This says where the route stands after every keystroke, so
            the refusal below is a confirmation rather than a surprise. */}
     <div id="sp-tally" class="mb-4 text-[11.5px] leading-relaxed"></div>
-    <div class="flex justify-end gap-2"><button id="sp-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_cancel')}</button>
-      <button id="sp-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${i18t('ap_save_route')}</button></div>
+    <div class="flex justify-end gap-2"><button id="sp-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      <button id="sp-save" class="ui-btn ui-btn-primary">${i18t('ap_save_route')}</button></div>
   </div>`, { maxWidth: DLG_W.l });
   /* Named rows only, on both counts: a blank row is discarded on save (see
      `if(!s.name) return` below), so counting it here would promise a route the
@@ -1546,8 +1549,8 @@ function approvalChainHtml(c, opts){
         <span class="block text-gold-700/80 mt-0.5">${i18t('ap_signoff_covers')}</span>
       </div>`).join('')}
       ${st.next&&st.canApproveNext&&!st.next.sa?`<div class="flex gap-2 mt-2">
-        <button id="ap-approve" class="rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11px] font-600 hover:bg-brand-800">${st.next.status==='pending'?'Approve':'Approve again'} “${esc1(st.next.name)}”</button>
-        <button id="ap-reject" class="rounded-lg border border-rose-200 text-rose-600 px-3 py-1.5 text-[11px] font-600 hover:bg-rose-50">${i18t('ve_reject')}</button></div>`
+        <button id="ap-approve" class="ui-btn ui-btn-sm ui-btn-primary">${st.next.status==='pending'?'Approve':'Approve again'} “${esc1(st.next.name)}”</button>
+        <button id="ap-reject" class="ui-btn ui-btn-sm ui-btn-danger">${i18t('ve_reject')}</button></div>`
         :(st.next&&!st.next.sa)?`<div class="mt-1.5 text-[10px] text-ink/55">${i18t('ap_waiting_on',{who:approverLabelOf(st.next.approver)})}</div>`:''}
       ${''/* ---- GREY WHEN THERE IS NOTHING TO SEND BACK ----
              This drew for the owner whatever the chain said, and the act behind
@@ -1560,7 +1563,7 @@ function approvalChainHtml(c, opts){
       ${owner?(()=>{ const back=(st.chain||[]).filter(x=>!x.sa&&(x.status==='rejected'||x.status==='stale'));
         const why=back.length?'':i18t('ap_nothing_resubmit');
         return `<button id="ap-resubmit"${why?' disabled aria-disabled="true"':''} title="${esc1(why)}"
-          class="mt-2 w-full rounded-lg border border-brand-200 text-brand-700 px-3 py-1.5 text-[11px] font-600 hover:bg-brand-50${why?' opacity-50 cursor-not-allowed':''}">${i18t('ap_revise_send_back')}</button>`; })():''}
+          class="ui-btn ui-btn-sm mt-2 w-full${why?' opacity-50 cursor-not-allowed':''}">${i18t('ap_revise_send_back')}</button>`; })():''}
     </div>`;
   }
   return html;
@@ -1618,7 +1621,7 @@ function signerRouteHtml(c, opts){
     html+=`<div class="${bare?'':'rounded-xl border border-line bg-white p-3 mb-2'}">
       ${bare?'':`<div class="flex items-center gap-2 mb-2"><span class="text-[11px] font-600 text-ink">${i18t('ap_signature_progress')}</span>
         <span class="text-[9.5px] font-mono px-1.5 py-0.5 rounded-full ${signedCount===sorted.length?'bg-brand-50 text-brand-600':'bg-gold-50 text-gold-700'}">${i18t('ap_n_signed',{done:signedCount,total:sorted.length})}</span>
-        ${canEdit()&&c.status!=='Signed'?`<button id="sp-edit" class="ml-auto text-[10px] font-600 text-brand-600 hover:text-brand-800">edit route</button>`:''}</div>`}
+        ${canEdit()&&c.status!=='Signed'?`<button id="sp-edit" type="button" class="ui-link" style="margin-left:auto">edit route</button>`:''}</div>`}
       <div class="relative">
         ${sorted.map((s,i)=>{
           /* ---- WHOSE TURN IS A STEP, NOT A ROW (22 Sep 2026) ----
@@ -1696,7 +1699,7 @@ function signerRouteHtml(c, opts){
               </div>
               <div class="text-[10px] font-mono text-ink/45 mt-0.5">${meta}</div>
               ${(!s.signed&&s.party==='counterparty'&&(ls==='unsent'||ls==='failed')&&!gated&&canEdit())
-                ? `<button data-sp-send="${String(s.id).replace(/"/g,'&quot;')}"${saHold?` disabled aria-disabled="true" title="${esc1(saHold)}"`:''} class="mt-1 rounded-lg border border-brand-200 text-brand-700 px-2 py-1 text-[10px] font-600 hover:bg-brand-50${saHold?' opacity-50 cursor-not-allowed':''}">${ls==='failed'?'Resend their signing link':'Email their signing link'}</button>`
+                ? `<button data-sp-send="${String(s.id).replace(/"/g,'&quot;')}"${saHold?` disabled aria-disabled="true" title="${esc1(saHold)}"`:''} class="ui-btn ui-btn-sm mt-1${saHold?' opacity-50 cursor-not-allowed':''}">${ls==='failed'?'Resend their signing link':'Email their signing link'}</button>`
                 : ''}
               ${''/* THE INTERNAL ROW'S OWN DOOR. A resend is a deliberate act
                      with a visible result, never a silent retry — so it is
@@ -1706,7 +1709,7 @@ function signerRouteHtml(c, opts){
                      team record and the row says so. */}
               ${(!s.signed&&s.party!=='counterparty'&&canEdit()&&!saHold
                  &&['notified','notify-failed','untold'].includes(nst))
-                ? `<button data-sp-notify="${String(s.id).replace(/"/g,'&quot;')}" class="mt-1 rounded-lg border border-brand-200 text-brand-700 px-2 py-1 text-[10px] font-600 hover:bg-brand-50">${
+                ? `<button data-sp-notify="${String(s.id).replace(/"/g,'&quot;')}" class="ui-btn ui-btn-sm mt-1">${
                     nst==='untold'?'Tell them it is their turn'
                     : nst==='notify-failed'?'Try the email again'
                     : 'Remind them'}</button>`

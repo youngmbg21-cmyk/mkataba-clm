@@ -207,11 +207,11 @@ function promptNewName(o){
       <div class="modal-in" role="dialog" aria-modal="true" style="position:relative;width:100%;max-width:26rem;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);padding:22px var(--s-6)">
         <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:16px;margin:0 0 var(--s-1)">${esc(o.title)}</h3>
         <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 14px;line-height:1.5">${esc(o.sub)}</p>
-        <input id="nf-name" placeholder="${esc(o.placeholder||'')}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:9px 11px;font:inherit;font-size:var(--t-body);outline:none" />
+        <input id="nf-name" placeholder="${esc(o.placeholder||'')}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)" />
         <div id="nf-err" style="font-size:var(--t-label);color:var(--st-ruby-dot);margin-top:6px;display:none">${i18t('fo_enter_name')}</div>
         <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:var(--s-4)">
-          <button id="nf-cancel" class="ui-btn" style="font-size:var(--t-meta)">${i18t('act_cancel')}</button>
-          <button id="nf-save" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta)">${esc(o.ok)}</button>
+          <button id="nf-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+          <button id="nf-save" class="ui-btn ui-btn-primary">${esc(o.ok)}</button>
         </div>
       </div>`;
     document.body.appendChild(ov);

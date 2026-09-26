@@ -46,7 +46,7 @@ const NS_GATED = ['scratch', 'template'];
 
 const NS_TITLE = 'font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0 0 var(--s-1)';
 const NS_LEAD = 'margin:0 0 16px;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.55';
-const NS_FLD = 'width:100%;box-sizing:border-box;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:8px 10px;font:inherit;font-size:var(--t-body);outline:none';
+const NS_FLD = 'width:100%;box-sizing:border-box;height:var(--field-h);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
 
 /* The dialog's own few rules, emitted once. Every value is a token. */
 function nsStyle() {
@@ -65,7 +65,7 @@ function nsStyle() {
   .ns-foot .sp{flex:1}
   .ns-link{border:0;background:none;padding:0;font:inherit;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
   .ns-tabs{display:flex;gap:0;border:1px solid var(--color-divider);border-radius:var(--radius);overflow:hidden;margin-bottom:14px}
-  .ns-tabs button{flex:1;height:32px;border:0;border-left:1px solid var(--color-divider);background:var(--color-surface);font:inherit;font-size:var(--t-meta);color:var(--color-text);cursor:pointer}
+  .ns-tabs button{flex:1;height:var(--ctl-h);border:0;border-left:1px solid var(--color-divider);background:var(--color-surface);font:inherit;font-size:var(--t-body);font-weight:var(--w-label);color:var(--color-text);cursor:pointer}
   .ns-tabs button:first-child{border-left:0}
   .ns-tabs button.on{background:var(--accent-fill);color:#fff;font-weight:var(--w-strong)}
   .ns-pane[hidden]{display:none}
@@ -192,7 +192,7 @@ function nsOpenScratch(o = {}) {
   openModal(`<div style="padding:24px">
     <h3 style="${NS_TITLE}">${nsEsc(i18t('ns_scratch'))}</h3>
     <label style="display:block;margin:10px 0 0"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${nsEsc(i18t('ns_what_for'))}</span>
-      <textarea id="ns-say-box" rows="4" maxlength="${NS_SAY_MAX}" placeholder="${nsEsc(i18t('ns_what_for_ph'))}" style="${NS_FLD};resize:vertical;min-height:96px">${nsEsc(o.said || '')}</textarea></label>
+      <textarea id="ns-say-box" rows="4" maxlength="${NS_SAY_MAX}" placeholder="${nsEsc(i18t('ns_what_for_ph'))}" style="${NS_FLD};height:auto;padding:var(--field-pad-y) var(--field-pad-x);resize:vertical;min-height:96px">${nsEsc(o.said || '')}</textarea></label>
     <div id="ns-say" class="ns-say"></div>
     ${nsFootHtml(ai ? i18t('ns_propose') : i18t('ns_open_builder'), ai ? '' : i18t('tb_pb_nokey'))}
   </div>`, { maxWidth: nsW('l'), label: i18t('ns_scratch') });

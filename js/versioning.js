@@ -647,7 +647,7 @@ function openCompareModal(c){
     <div style="padding:20px 22px">
       <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-3)"><span style="color:var(--color-accent)">${icon('history','w-4 h-4')}</span>
         <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0;flex:1">${i18t('ve_compare_versions')}</h3>
-        <button id="cmp-x" title="${i18t('act_close')}" class="ui-btn" style="flex:none;width:30px;height:30px;padding:0">${icon('close','w-3.5 h-3.5')}</button></div>
+        <button id="cmp-x" title="${i18t('act_close')}" class="ui-btn ui-btn-icon" style="flex:none">${icon('close','w-3.5 h-3.5')}</button></div>
       ${cumulative?`<div id="cmp-mode" style="display:flex;gap:2px;background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:var(--radius);padding:3px;width:max-content;margin-bottom:10px">
         ${segBtn('pair','Two versions',true)}${segBtn('cum','vs Original — cumulative',false)}
       </div>`:''}
@@ -704,8 +704,8 @@ function openCompareModal(c){
              itself, so the button stays pressable rather than mysteriously
              absent. */}
       <div style="display:flex;align-items:center;gap:var(--s-2);margin-top:14px;flex-wrap:wrap">
-        ${canSnap?`<button id="cmp-snap-now" class="ui-btn" style="font-size:var(--t-meta);padding:5px 11px" title="${i18t('ve_save_wording_now')}">${icon('plus','w-3 h-3')} Snapshot now</button>
-        <button id="cmp-restore" class="ui-btn" style="font-size:var(--t-meta);padding:5px 11px" hidden></button>`:''}
+        ${canSnap?`<button id="cmp-snap-now" class="ui-btn" title="${i18t('ve_save_wording_now')}">${icon('plus','w-3 h-3')} Snapshot now</button>
+        <button id="cmp-restore" class="ui-btn" hidden></button>`:''}
         <span style="flex:1"></span>
         <button id="cmp-done" class="ui-btn ui-btn-primary">${i18t('act_close')}</button>
       </div>
@@ -836,11 +836,11 @@ function reviewProposedRound(c, n){
         <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--accent-ink);margin-bottom:2px">${i18t('ve_why_they_asked')}</span>
         <span style="font-size:var(--t-meta);line-height:1.55;color:var(--color-neutral-800)">${e(ask)}</span></div>`:''}
       <div style="display:flex;gap:6px;margin-top:9px;align-items:center">
-        <button data-dec="accept" data-for="${b.id}" class="ui-btn" style="font-size:var(--t-meta);padding:5px var(--s-3)">${i18t('ve_accept')}</button>
-        <button data-dec="reject" data-for="${b.id}" class="ui-btn" style="font-size:var(--t-meta);padding:5px var(--s-3)">${i18t('ve_reject')}</button>
+        <button data-dec="accept" data-for="${b.id}" class="ui-btn ui-btn-sm">${i18t('ve_accept')}</button>
+        <button data-dec="reject" data-for="${b.id}" class="ui-btn ui-btn-sm">${i18t('ve_reject')}</button>
         <span data-state="${b.id}" style="margin-left:auto;font-size:var(--t-label);font-weight:var(--w-strong)"></span>
       </div>
-      <input data-reply="${b.id}" type="text" placeholder="${i18t('ve_your_reply_optional')}" style="width:100%;margin-top:7px;border:1px solid var(--color-divider);border-radius:var(--radius);padding:6px 9px;font:inherit;font-size:var(--t-meta);background:var(--color-bg);outline:none"/>
+      <input data-reply="${b.id}" type="text" placeholder="${i18t('ve_your_reply_optional')}" style="width:100%;margin-top:7px;border:1px solid var(--color-divider);border-radius:var(--radius);font:inherit;background:var(--color-bg);outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/>
     </div>`;};
   openModal(`
     <div style="height:100%;display:flex;flex-direction:column;min-height:0">
@@ -860,8 +860,8 @@ function reviewProposedRound(c, n){
             <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:11px">
               <span style="font-size:var(--t-meta);font-weight:var(--w-strong)">${i18tn('ve_decide_each',blocks.length,{n:blocks.length})}</span>
               <span style="flex:1"></span>
-              <button id="pr-all-acc" class="ui-btn" style="font-size:var(--t-meta);padding:5px 11px">${i18t('ve_accept_all')}</button>
-              <button id="pr-all-rej" class="ui-btn" style="font-size:var(--t-meta);padding:5px 11px">${i18t('ve_reject_all')}</button>
+              <button id="pr-all-acc" class="ui-btn">${i18t('ve_accept_all')}</button>
+              <button id="pr-all-rej" class="ui-btn">${i18t('ve_reject_all')}</button>
             </div>
             <div id="pr-blocks" style="display:flex;flex-direction:column;gap:9px;margin-bottom:18px">${blocks.map(blockRow).join('')}</div>`:''}
           <div style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:7px">${i18t('ve_doc_with_changes')}</div>

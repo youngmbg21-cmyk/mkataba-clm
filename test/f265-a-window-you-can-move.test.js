@@ -330,8 +330,16 @@ describe('f265 · a move is not an act', () => {
   test('and the ways out of a dialog are untouched', () => {
     const core = read('js/core.js');
     assert.match(core, /_modalRelease = trapFocus\(panel\)/, 'the keyboard still stays inside it');
-    assert.match(core, /if\(_modalDrag\)\{ try\{ _modalDrag\(\); \}catch\(e\)\{\} _modalDrag=null; \}\s*\n\s*document\.getElementById\('modal-root'\)\.innerHTML=''/,
-      'closing releases the drag before the markup goes');
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the Compact ladder): the claim was an
+       ORDER — the drag is released before the markup goes — pinned as two
+       lines standing next to each other. A third release (the pinned dialog
+       foot's, which also has to let go of a panel before it is torn out)
+       now sits between them, so the order is asked as an order, inside the
+       one function that closes. */
+    const close = core.slice(core.indexOf('function closeModal(){'), core.indexOf('function closeModal(){') + 1600);
+    const drag = close.indexOf('if(_modalDrag){ try{ _modalDrag(); }catch(e){} _modalDrag=null; }');
+    const gone = close.indexOf("document.getElementById('modal-root').innerHTML=''");
+    assert.ok(drag > 0 && gone > drag, 'closing releases the drag before the markup goes');
     assert.match(core, /document\.getElementById\('modal-scrim'\)\.addEventListener\('click',\(\)=>closeModalGuarded\(\)\)/,
       'the scrim still closes it, and still through the guard');
   });

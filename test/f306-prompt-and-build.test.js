@@ -427,7 +427,11 @@ describe('f306 (9) — every failure speaks, and every string is in both books',
 
   test('no key is drawn as a sentence in the rail, never silence', () => {
     assert.match(TB, /if \(!on\) return tbAiHtml\(i18t\('tb_pb_nokey'\), 'amber'\)/);
-    assert.match(TB, /\$\{on \? '' : 'disabled'\}>➤/, 'and the send button is greyed with the reason on its hover');
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the Compact ladder): the typed ➤ is a
+       DRAWN send icon now — rule 5 of the button review, drawn icons only. The
+       claim is the greying and the reason on the hover, and neither moved. */
+    assert.match(TB, /\$\{on \? '' : 'disabled'\}>\$\{icon\('send'\)\}/, 'and the send button is greyed with the reason on its hover');
+    assert.ok(!/>➤</.test(TB), 'and no typed arrow stands in for the icon');
   });
 
   test('the two dictionaries carry the same Prompt & Build keys', () => {

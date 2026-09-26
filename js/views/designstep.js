@@ -144,7 +144,7 @@ function dsPaint(opts) {
      control and step the one stored preference. */
   if (window.redlineLayoutCss) redlineLayoutCss();
   const CARD = 'background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius)';
-  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none';
+  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
   const b = _ds.b;
   const design = docDesignById(b.designId) || DOC_DESIGNS[0];
   const structure = docStructureById(b.structureId) || DOC_STRUCTURES[0];
@@ -276,7 +276,7 @@ function dsPaint(opts) {
   const posChips = DESIGN_LOGO_POSITIONS.map(p => {
     const label = { 'top-left': 'Top left', 'top-center': 'Top centre', 'top-right': 'Top right', footer: 'Footer' }[p];
     const sel = b.logoPosition === p;
-    return `<button data-ds-pos="${p}" class="ui-btn" style="font-size:var(--t-label);padding:3px 10px;${sel ? 'background:var(--color-accent-700);border-color:var(--accent-ink-700);color:#fff;font-weight:var(--w-title)' : ''}">${label}</button>`;
+    return `<button data-ds-pos="${p}" class="ui-btn ui-btn-sm" style="${sel ? 'background:var(--color-accent-700);border-color:var(--accent-ink-700);color:#fff;font-weight:var(--w-title)' : ''}">${label}</button>`;
   }).join('');
 
   /* The colour control is ALWAYS drawn, on every design. It used to appear only
@@ -299,8 +299,8 @@ function dsPaint(opts) {
     <div style="margin-top:14px">
       <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:5px">${i18t('ds_accent_colour')}</span>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-        <button data-ds-accentsrc="logo" class="ui-btn" style="font-size:var(--t-label);padding:3px 10px;${b.accentSource !== 'manual' ? 'background:var(--color-accent-700);border-color:var(--accent-ink-700);color:#fff;font-weight:var(--w-title)' : ''}">${i18t('ds_from_logo')}</button>
-        <button data-ds-accentsrc="manual" class="ui-btn" style="font-size:var(--t-label);padding:3px 10px;${b.accentSource === 'manual' ? 'background:var(--color-accent-700);border-color:var(--accent-ink-700);color:#fff;font-weight:var(--w-title)' : ''}">${i18t('ds_pick_my_own')}</button>
+        <button data-ds-accentsrc="logo" class="ui-btn ui-btn-sm" style="${b.accentSource !== 'manual' ? 'background:var(--color-accent-700);border-color:var(--accent-ink-700);color:#fff;font-weight:var(--w-title)' : ''}">${i18t('ds_from_logo')}</button>
+        <button data-ds-accentsrc="manual" class="ui-btn ui-btn-sm" style="${b.accentSource === 'manual' ? 'background:var(--color-accent-700);border-color:var(--accent-ink-700);color:#fff;font-weight:var(--w-title)' : ''}">${i18t('ds_pick_my_own')}</button>
         <span style="display:inline-block;width:15px;height:15px;border-radius:var(--radius);background:${accentNow};border:1px solid var(--color-divider)" title="${esc(accentNow)}"></span>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:9px">${swatches}</div>
@@ -308,8 +308,7 @@ function dsPaint(opts) {
         <input type="color" id="ds-accent" value="${accentNow}" aria-label="${i18t('ds_choose_colour')}"
           style="width:30px;height:28px;border:1px solid var(--color-divider);border-radius:var(--radius);padding:2px;background:var(--color-surface);cursor:pointer">
         <input id="ds-accent-hex" value="${esc((rawPick || accentNow).toUpperCase())}" maxlength="7" spellcheck="false" aria-label="${i18t('ds_brand_hex')}"
-          style="width:92px;font-family:var(--font-code);font-size:var(--t-meta);text-transform:uppercase;border:1px solid var(--color-divider);
-          background:var(--color-surface);color:var(--color-text);border-radius:var(--radius);padding:5px var(--s-2);outline:none">
+          style="width:92px;font-family:var(--font-code);text-transform:uppercase;border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-text);border-radius:var(--radius);outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
       </div>
       ${!design.usesAccent ? `<div style="font-size:var(--t-label);line-height:1.5;margin-top:var(--s-2);padding:6px var(--s-2);border-radius:var(--radius);
         background:var(--st-amber-bg,#fef3c7);border:1px solid var(--st-amber-line,#fcd34d);color:var(--st-amber-fg,#b45309)">
@@ -370,19 +369,19 @@ function dsPaint(opts) {
 
   const rh = railHead();
   const stepAction = step === 1
-    ? `<button id="ds-next" class="ui-btn ui-btn-primary" style="width:100%;font-size:var(--t-body);padding:var(--s-2)">
-         Next: choose a structure ${icon('arrowRight', 'w-3.5 h-3.5')}</button>
+    ? `<button id="ds-next" class="ui-btn ui-btn-primary" style="width:100%">
+         Next: choose a structure ${icon('chevR', 'w-3.5 h-3.5')}</button>
        <p style="font-size:var(--t-label);color:var(--color-neutral-500);line-height:1.5;margin:7px 0 0;text-align:center">${publish ? i18t('ds_step_2_then_publish') : i18t('ds_step_2_then_save')}</p>`
     : publish
-      ? `<button id="ds-publish" class="ui-btn ui-btn-primary" style="width:100%;font-size:var(--t-body);padding:var(--s-2)">Publish v${_ds.versionNumber}</button>
+      ? `<button id="ds-publish" class="ui-btn ui-btn-primary" style="width:100%">Publish v${_ds.versionNumber}</button>
          <p style="font-size:var(--t-label);color:var(--color-neutral-500);line-height:1.5;margin:7px 0 0">Publishing freezes this version forever and makes it what the whole team creates contracts from. Contracts already created from earlier versions are not touched.</p>`
-      : `<button id="ds-save" class="ui-btn ui-btn-primary" style="width:100%;font-size:var(--t-body);padding:var(--s-2)">${i18t('ds_save_design')}</button>
+      : `<button id="ds-save" class="ui-btn ui-btn-primary" style="width:100%">${i18t('ds_save_design')}</button>
          <p style="font-size:var(--t-label);color:var(--color-neutral-500);line-height:1.5;margin:7px 0 0">${i18t('ds_applies_future')}</p>`;
 
   document.getElementById('content').innerHTML = `
   <div class="view-enter ds-page${_ds.focus ? ' ds-focus' : ''}" style="${VIEW};padding:var(--s-3) var(--s-4) 14px;display:flex;flex-direction:column;gap:11px">
     <div style="flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <button id="ds-back" class="ui-btn" style="font-size:var(--t-meta);padding:var(--s-1) 10px">${icon('arrowLeft', 'w-3.5 h-3.5')} ${
+      <button id="ds-back" class="ui-btn">${icon('arrowLeft', 'w-3.5 h-3.5')} ${
         step === 2 ? 'Back to style' : (publish ? 'Back to builder' : 'Back to settings')}</button>
       <h3 style="margin:0;font-family:var(--font-heading);font-size:16px;font-weight:var(--w-title)">Design${publish ? ` — publish ${esc(_ds.templateName)} v${_ds.versionNumber}` : ' — your company standard'}</h3>
       <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${step === 1
@@ -429,9 +428,9 @@ function dsPaint(opts) {
                preference shared with the Doc tab and the Redline canvas, so a
                size set here is the size there. -->
           ${window.rlTypeStepHtml ? rlTypeStepHtml() : ''}
-          <button id="ds-focus" class="ui-btn" title="${_ds.focus ? 'Leave full screen' : 'Fill the screen with the document'}"
+          <button id="ds-focus" class="ui-btn ui-btn-icon" title="${_ds.focus ? 'Leave full screen' : 'Fill the screen with the document'}"
             aria-pressed="${_ds.focus ? 'true' : 'false'}"
-            style="padding:var(--s-1) 7px;${_ds.focus ? 'background:var(--color-accent-700);border-color:var(--accent-ink-700);color:#fff' : ''}">
+            style="${_ds.focus ? 'background:var(--color-accent-700);border-color:var(--accent-ink-700);color:#fff' : ''}">
             ${icon('expand', 'w-3.5 h-3.5')}</button>
         </div>
         <div id="ds-docpane" class="scroll-thin" style="flex:1;min-height:0;padding:var(--s-4);
@@ -451,7 +450,7 @@ function dsPaint(opts) {
           </div>
           <div>
             <input type="file" id="ds-logo-file" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="display:none">
-            <button id="ds-logo-btn" class="ui-btn" style="font-size:var(--t-label);padding:3px 9px">${icon('upload', 'w-3 h-3')} ${b.logoUrl ? 'Replace logo' : 'Upload logo'}</button>
+            <button id="ds-logo-btn" class="ui-btn ui-btn-sm">${icon('upload', 'w-3 h-3')} ${b.logoUrl ? 'Replace logo' : 'Upload logo'}</button>
             <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-500);margin-top:3px">${i18t('ds_png_jpg')}</span>
           </div>
         </div>
@@ -484,7 +483,7 @@ function dsPaint(opts) {
         </div>
         ${publish && step === 2 ? `
         <label style="display:block;margin-top:14px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('ds_what_changed_why')}</span>
-          <textarea id="ds-note" style="${INP};min-height:48px" maxlength="500" placeholder="e.g. Payment terms now offer 30/45/60 days">${esc(_ds.changeNote)}</textarea></label>
+          <textarea id="ds-note" style="${INP};height:auto;padding:var(--field-pad-y) var(--field-pad-x);min-height:48px" maxlength="500" placeholder="e.g. Payment terms now offer 30/45/60 days">${esc(_ds.changeNote)}</textarea></label>
         <label style="display:flex;align-items:flex-start;gap:7px;margin-top:var(--s-3);font-size:var(--t-label);line-height:1.5;${_ds.orgHadDesign ? 'cursor:pointer' : 'opacity:.75'}">
           <input type="checkbox" id="ds-default" ${_ds.saveDefault ? 'checked' : ''} ${_ds.orgHadDesign ? '' : 'disabled'} style="margin-top:2px">
           <span>${_ds.orgHadDesign
