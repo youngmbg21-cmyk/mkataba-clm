@@ -7138,6 +7138,52 @@
   .ig-node.hi .ig-chip{stroke:var(--color-accent);stroke-width:2;filter:drop-shadow(0 6px 14px rgba(43,43,45,.14))}
   .ig-node.dim{opacity:.22;transition:opacity var(--dur-1)}
   .ig-lab{pointer-events:none;font-size:var(--t-meta);font-family:var(--font-body)}
+  /* ---- ANALYZE CONTRACT — the paper in the graph's column (26 Sep 2026) ----
+     The strip is the column's own header (the switch, the reference, the
+     doors); the paper COVERS the stage the graph is drawn on, so the nodes
+     keep their layout underneath; the marks are the risk scan's own, held;
+     the pin is the comment marker's own disc. Every colour a token. */
+  .ig-strip{display:flex;align-items:center;gap:12px;height:36px;padding:0 14px;background:var(--color-surface);border-bottom:1px solid var(--color-divider);flex:none;min-width:0}
+  .ig-strip[hidden]{display:none}
+  .ig-sw{display:inline-flex;height:24px;border:1px solid var(--btn-edge);border-radius:var(--radius);overflow:hidden;background:var(--color-surface);flex:none}
+  .ig-sw button{height:100%;padding:0 10px;font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);color:var(--color-neutral-600);background:none;border:0;cursor:pointer;white-space:nowrap}
+  .ig-sw button + button{border-left:1px solid var(--btn-edge)}
+  .ig-sw button[aria-pressed="true"]{background:var(--accent-fill);color:#fff;font-weight:var(--w-strong)}
+  .ig-strip-ref{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:var(--t-body);color:var(--color-text);display:flex;align-items:center;gap:6px}
+  .ig-strip-ref b{font-weight:var(--w-label)}
+  .ig-strip-ref .q{color:var(--color-neutral-600)}
+  .ig-strip-dot{width:8px;height:8px;border-radius:50%;flex:none}
+  .ig-strip-sp{flex:1}
+  .ig-strip-pins{font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap}
+  .ig-paper{position:absolute;inset:0;z-index:3;background:var(--color-bg)}
+  .ig-paper[hidden]{display:none}
+  .ig-paper-wrap{position:relative;height:100%;display:flex;min-height:0}
+  .ig-paper-wrap .ig-spine[hidden]{display:none}
+  .ig-paper-scroll{flex:1;min-width:0;overflow:auto;padding:20px 24px 60px 44px;position:relative}
+  .ig-paper-scroll .pg-sheet{margin:0 auto}
+  /* The held mark: the scan's flash colours, but STILL — the reader is reading it. */
+  .ig-mark{background:var(--st-steel-bg);border-radius:var(--radius);box-shadow:0 0 0 2px var(--st-steel-bg)}
+  .ig-mark.ob{background:var(--st-amber-bg);box-shadow:0 0 0 2px var(--st-amber-bg)}
+  .ig-mark.is-on{box-shadow:0 0 0 2px var(--st-steel-bg),0 0 0 4px color-mix(in srgb,var(--color-accent) 35%,transparent)}
+  .ig-mark.ob.is-on{box-shadow:0 0 0 2px var(--st-amber-bg),0 0 0 4px color-mix(in srgb,var(--st-amber-dot) 55%,transparent)}
+  .ig-pinhost{position:relative}
+  .ig-pin{position:absolute;left:-30px;top:2px;width:18px;height:18px;box-sizing:border-box;padding:0;margin:0;border-radius:50%;border:1.5px solid var(--accent-fill);background:var(--st-steel-bg);color:var(--accent-ink);font-family:var(--font-body);font-size:10px;line-height:1;font-weight:var(--w-strong);font-variant-numeric:tabular-nums;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+  .ig-pin.ob{border-color:var(--st-amber-dot);background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .ig-pin:hover{box-shadow:0 0 0 3px color-mix(in srgb,var(--color-accent) 25%,transparent)}
+  .ig-cites{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .ig-cite{display:inline-flex;align-items:center;gap:5px;height:var(--ctl-h-sm);max-width:100%;padding:0 8px 0 5px;border:1px solid var(--btn-edge);border-radius:var(--radius);background:var(--color-surface);color:var(--accent-ink);font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);cursor:pointer}
+  .ig-cite .w{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ig-cite:hover{border-color:var(--accent-ink)}
+  .ig-cite.is-on{background:var(--color-accent-50);border-color:var(--accent-ink)}
+  .ig-cite-n{width:16px;height:16px;border-radius:50%;background:var(--st-steel-bg);color:var(--accent-ink);font-size:10px;font-weight:var(--w-strong);display:inline-grid;place-items:center;flex:none;font-variant-numeric:tabular-nums}
+  .ig-cite.ob .ig-cite-n{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .ig-nothing{margin-top:6px;font-size:var(--t-meta);color:var(--color-neutral-600);font-style:italic}
+  .ig-turn-on > div:last-child > div:first-child{box-shadow:0 0 0 3px color-mix(in srgb,var(--color-accent) 30%,transparent)}
+  /* FOCUS folds the page's head away — the paper takes the column's full
+     height; the shell and the panel stay (the 19 Sep 2026 focus ruling). The
+     head itself is folded on the element (it carries an inline display);
+     this rule takes the grouped-by line with it. */
+  #ig-page.ig-focus > #ig-note{display:none}
   .ig-sub{pointer-events:none;font-size:var(--t-figure);font-family:var(--font-mono)}
   /* A-1: the node's third line and its hover card. A node Copilot has not read
      is faded — the chip alone, so its facts still read. The hover card is the
