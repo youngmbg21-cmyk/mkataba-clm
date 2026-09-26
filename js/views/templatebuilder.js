@@ -492,6 +492,7 @@ function tbSay(e) {
 async function tbOutlineRun(said) {
   said = String(said == null ? ((document.getElementById('tb-ask') || {}).value || '') : said).trim().slice(0, TB_ASK_MAX);
   if (!said) { toast(i18t('tb_pb_say_first'), 'err'); return; }
+  const me = _tb;   /* the answer lands in the template it was asked in (see tbDraft) */
   _tb.outline = { busy: true, said }; _tb.ask._ = ''; tbPaintRail();
   /* The playbook's own required categories go out as "do not propose these" and
      come back added by HaTi, marked. "Your playbook requires this" is a fact
@@ -500,10 +501,11 @@ async function tbOutlineRun(said) {
   const required = cov ? cov.rows.map(r => r.category) : [];
   try {
     const d = await api('ai/outline', 'POST', { sentence: said, kind: (_tb.template && _tb.template.category) || '', required });
+    if (_tb !== me) return;
     _tb.reads++;
     _tb.outline = tbOutlineFrom(d, said);
     _tb.said = said;
-  } catch (e) { _tb.outline = { said, error: tbSay(e) }; }
+  } catch (e) { if (_tb !== me) return; _tb.outline = { said, error: tbSay(e) }; }
   tbPaintRail();
 }
 /* ---- WHERE EACH PROPOSED SECTION'S WORDS WILL COME FROM (one door, 24 Sep
@@ -937,6 +939,14 @@ async function tbDraft(k, said, o = {}) {
     tbTurn(k, { who: 'you', text: said }); tbTurn(k, { who: 'ai', text: i18t('tb_pb_nokey'), tone: 'amber' }); tbPaintRail(); return;
   }
   const refine = o.refine || _tb.refine || null;
+  /* ---- THE ANSWER LANDS IN THE TEMPLATE IT WAS ASKED IN (26 Sep 2026, the
+     overnight clean-up) ---- `_tb` is replaced whenever another template is
+     opened, and section keys start again at 1 in every one of them — so an
+     answer that came back after the reader had moved on found a matching
+     section in the NEW template and offered wording written for the old one,
+     which Apply then wrote in. tbBlanksFirst already asks this; every await
+     here does now. */
+  const me = _tb;
   tbTurn(k, { who: 'you', text: said });
   _tb.ask[k] = ''; _tb.busy = k; tbPaintRail();
   const lib = tbLibraryFor(sec.head);
@@ -952,6 +962,7 @@ async function tbDraft(k, said, o = {}) {
       precedent: tbPrecedentFor(sec.head) || '',
       others: tbContextText(),
     });
+    if (_tb !== me) return;
     _tb.reads++;
     if (!made) tbTurn(k, { who: 'ai', text: i18t('tb_pb_unreadable'), tone: 'amber' });
     else if (!String(made.proposedText || '').trim()) {
@@ -965,7 +976,7 @@ async function tbDraft(k, said, o = {}) {
         card: { src: lib ? i18t('tb_pb_src_lib') : i18t('tb_pb_src_ai'), tone: lib ? 'lib' : 'ai',
           text: String(made.proposedText).trim(), asked: said, read: _tb.reads, before, rests: tbRestsLine(sec, lib) } });
     }
-  } catch (e) { tbTurn(k, { who: 'ai', text: tbSay(e), tone: 'amber' }); }
+  } catch (e) { if (_tb !== me) return; tbTurn(k, { who: 'ai', text: tbSay(e), tone: 'amber' }); }
   _tb.busy = null; _tb.refine = null; _tb.ctx = [];
   tbPaintRail();
 }
@@ -1035,8 +1046,10 @@ async function tbAccept(k, idx) {
 const TB_BLANK_TYPE = { text: 'short_text', party: 'short_text', num: 'number', date: 'date', select: 'select' };
 async function tbBlanksRun(k, text) {
   if (!String(text || '').trim() || !(typeof copilotAvailable === 'function' && copilotAvailable())) return;
+  const me = _tb;   /* the answer lands in the template it was asked in (see tbDraft) */
   try {
     const d = await api('ai/blanks', 'POST', { text }, { quiet: true });
+    if (_tb !== me) return;
     /* IT IS A READ LIKE THE OTHER TWO (a repair off the 18 Sep list). Every
        Apply fires this second call; it is metered on the server, so leaving it
        out of the count made the card's "read N" a number that did not match
@@ -1058,6 +1071,7 @@ async function tbBlanksRun(k, text) {
        was swallowed whole, so a builder that had quietly stopped proposing
        blanks looked identical to one with nothing to propose. tbSay gives each
        its own sentence and it lands on the section being looked at. */
+    if (_tb !== me) return;
     tbTurn(k, { who: 'ai', text: tbSay(e), tone: 'amber' });
     tbPaintRail();
   }

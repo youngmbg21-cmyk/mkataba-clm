@@ -1120,9 +1120,14 @@ function createFromTemplate(tid, opts){
   /* AND COPILOT READS IT (Young ruled 17 Sep 2026) — registered at every
      creation site beside roomOpenOnTerms, because there is no single funnel
      for creating a contract. See contractArrived. */
-  if(window.contractArrived) contractArrived(c);
   if(!quiet){ state.activeId=c.id; state.selId=c.id; }
+  /* SAVED FIRST, THEN READ (26 Sep 2026, the overnight clean-up): the
+     reading's first step is flushSaves(), which can only save what persist()
+     has queued — called after contractArrived, the queue was still empty, the
+     brief reached the server before the contract did, and every draft made
+     here was stamped "No brief — Contract not found" (never retried). */
   persist(c);
+  if(window.contractArrived) contractArrived(c);
   if(!quiet){
     toast(`New ${t.kind} created and filed in ${FOLDERS[t.folder].name}`);
     setView('workspace');

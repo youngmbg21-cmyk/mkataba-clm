@@ -1848,6 +1848,8 @@ const STRINGS = {
        prints one of these on its hover and in the toast where it is pressed. */
     ng_start_sealed: 'This agreement is executed — its wording is sealed',
     ng_start_archived: 'This agreement is archived',
+    ng_start_held: 'This agreement is on hold for a dispute — release the hold to negotiate it',
+    sp_notice_outbox: 'the email is waiting in the outbox, because email is not set up on this server (Settings → Build & launch → Email delivery & outbox)',
     ct_back_to_agreement: 'Back to this agreement',
     ct_between_parties: 'Between {us} and {them}',
     /* THREE OR MORE PARTIES read as a list, not as a pair. The paper's own
@@ -10873,6 +10875,8 @@ const STRINGS = {
     ct_round_needs_title: 'Öppna förhandlingen — de här väntar på ditt svar',
     ng_start_sealed: 'Avtalet är verkställt — dess formulering är förseglad',
     ng_start_archived: 'Avtalet är arkiverat',
+    ng_start_held: 'Avtalet är pausat på grund av en tvist — häv pausen för att förhandla det',
+    sp_notice_outbox: 'e-postmeddelandet väntar i utkorgen, eftersom e-post inte är konfigurerad på den här servern (Inställningar → Bygg och driftsätt → E-postleverans och utkorg)',
     ct_back_to_agreement: 'Tillbaka till avtalet',
     ct_between_parties: 'Mellan {us} och {them}',
     ct_between_list: 'Mellan {list}',

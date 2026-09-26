@@ -3538,6 +3538,14 @@ function renderIntelDock(){
     document.getElementById('igd-expand').addEventListener('click',()=>{ intel.dockOpen=true; renderIntelDock(); igSyncDockWidth(); });
     return;
   }
+  /* ---- WHAT THE READER IS TYPING SURVIVES A REPAINT (26 Sep 2026, the
+     overnight clean-up) ---- The dock is rebuilt when an answer lands, and the
+     box was rebuilt empty with it — so a question typed while the last answer
+     was still coming was lost twice over: pressing Enter emptied the box and
+     asked nothing (intelAsk refuses while busy), and the repaint then took
+     what was left. The words and the caret are carried across. */
+  const _was=document.getElementById('igd-input');
+  const _keep=_was?_was.value:'', _focus=!!(_was&&document.activeElement===_was);
   const msgs=intel.history.map(igMsgHTML).join('');
   const typing=intel.busy?`
     <div class="ai-msg flex gap-2">
@@ -3602,7 +3610,12 @@ function renderIntelDock(){
     try{ if(typeof lsSet==='function') lsSet('hati.v1.intelWide',intel.dockWide); }catch(_){}
     renderIntelDock(); igSyncDockWidth();
   });
-  const go=()=>{ const inp=document.getElementById('igd-input'); const v=inp.value; inp.value=''; intelAsk(v); };
+  if(_keep){ const n=document.getElementById('igd-input'); if(n){ n.value=_keep; if(_focus){ try{ n.focus(); }catch(_){ } } } }
+  /* A question is only taken out of the box when it is really asked: while an
+     answer is still coming it stays where it was typed (see above). */
+  const go=()=>{ const inp=document.getElementById('igd-input'); const v=inp.value;
+    if(!String(v||'').trim()||intel.busy) return;
+    inp.value=''; intelAsk(v); };
   document.getElementById('igd-go').addEventListener('click',go);
   document.getElementById('igd-input').addEventListener('keydown',e=>{ if(e.key==='Enter') go(); });
   dock.querySelectorAll('[data-igsug]').forEach(b=>b.addEventListener('click',()=>intelAsk(b.getAttribute('data-igsug'))));
@@ -3769,8 +3782,22 @@ function igAskCost(){
 /* The first door. A second Analyze on the same contract only puts the paper
    back up; on another contract it starts a fresh paper — the pins are the
    paper's own and go with it (said in the summary, not hidden). */
-function igAnalyze(id){
+async function igAnalyze(id){
   const c=getContract(id); if(!c) return;
+  /* ---- THE WHOLE RECORD FIRST (26 Sep 2026, the overnight clean-up) ----
+     The book in memory is the LIGHT list, and the server's HEAVY strip takes
+     an upload's extracted text (and a sealed record's execution copy) off
+     every row of it. So a contract nobody had opened in this sitting drew an
+     empty paper, the ask box said "(0 words)", and every question came back
+     "This contract has no wording to read yet". intelTemplateAsk already
+     loads the whole record before it reads one; so does this. A failure
+     leaves what the light row has, which is what this did before. */
+  if(c._light&&!c._loaded&&typeof ensureFull==='function'){
+    try{ await ensureFull(c); }catch(_){ /* the light row stands */ }
+    const host=document.getElementById('ig-paper');
+    if(host&&host.dataset.for===c.id) delete host.dataset.for;
+    if(intel.paper&&intel.paper.id===id) intel.paper.words=igPaperWords(c);
+  }
   if(!intel.paper||intel.paper.id!==id) intel.paper={ id, mode:'paper', focus:false, pins:[], seq:0, on:null, words:igPaperWords(c) };
   else intel.paper.mode='paper';
   if(!intel.dockOpen){ intel.dockOpen=true; igSyncDockWidth(); }
@@ -4016,6 +4043,8 @@ async function igPaperAsk(q){
   if(!c) return intelChatAsk(q);
   /* No engine: intelChatAsk carries the one nudge this page gives for that. */
   if(!(typeof copilotAvailable==='function'&&copilotAvailable())) return intelChatAsk(q);
+  /* The whole record, for the reason igAnalyze gives. */
+  if(c._light&&!c._loaded&&typeof ensureFull==='function'){ try{ await ensureFull(c); }catch(_){ } }
   const ref=(window.contractRef?contractRef(c):c.id);
   const wording=igPaperText(c);
   if(!wording){ intel.history.push({role:'assistant', err:true, text:igEsc(i18t('int_paper_no_wording'))}); return; }

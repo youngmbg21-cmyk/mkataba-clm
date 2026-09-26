@@ -130,9 +130,14 @@ function buildFromCustomTemplate(t, values, opts){
   /* AND COPILOT READS IT (Young ruled 17 Sep 2026) — registered at every
      creation site beside roomOpenOnTerms, because there is no single funnel
      for creating a contract. See contractArrived. */
-  if(window.contractArrived) contractArrived(c);
   state.activeId=c.id; state.selId=c.id;
+  /* SAVED FIRST, THEN READ (26 Sep 2026, the overnight clean-up): the
+     reading's first step is flushSaves(), which can only save what persist()
+     has queued — called after contractArrived, the queue was still empty, the
+     brief reached the server before the contract did, and every draft made
+     here was stamped "No brief — Contract not found" (never retried). */
   persist(c);
+  if(window.contractArrived) contractArrived(c);
   toast(`Draft created from “${t.name}”`);
   setView('workspace');
   return c;
@@ -1446,10 +1451,16 @@ function tplPageRows(){
   const lib=(typeof tplLibAll==='function')?tplLibAll():{list:[],canManage:false};
   for(const t of lib.list){
     const draft=t.status!=='published';
+    /* THE ONE PRESENTING READING (26 Sep 2026): a category the company added
+       in Settings is named by tplCategoryName, never looked up in the five
+       built-ins alone — or this row printed "Company paper" while the picker
+       beside it named the category. */
+    const catName=(typeof tplCategoryName==='function'&&t.category)?tplCategoryName(t.category)
+      :((typeof TPLLIB_CATEGORIES!=='undefined'&&TPLLIB_CATEGORIES[t.category])||null);
     rows.push({ kind:'company', id:t.id, name:t.name, draft,
-      sub:`${(typeof TPLLIB_CATEGORIES!=='undefined'&&TPLLIB_CATEGORIES[t.category])||'Company paper'}${draft?' · not published':''}`,
+      sub:`${catName||'Company paper'}${draft?' · not published':''}`,
       stream:null, get origin(){ return i18t('lib_grp_company'); },
-      category:(typeof TPLLIB_CATEGORIES!=='undefined'&&TPLLIB_CATEGORIES[t.category])||null,
+      category:catName||null,
       version:t.publishedVersion?('v'+t.publishedVersion):null,
       /* A DATE IS LABELLED WITH WHAT IT IS. The overview prints it beside the
          version, and "12 Aug 2026" on its own is a fact nobody can read —

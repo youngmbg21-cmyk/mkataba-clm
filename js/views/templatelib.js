@@ -654,6 +654,12 @@ function tplLibSheetHtml(wording) {
 async function tplLibRestore(t, after) {
   try {
     await api('templates/' + t.id, 'PATCH', { status: 'restore' });
+    /* THE LIST EVERY PICKER READS FOLLOWS THE ACT (26 Sep 2026, the overnight
+       clean-up): the template cache is fetched once and the New agreement
+       screen reads it as it stands, so an act that moves a template's standing
+       refreshes it — or a restored standard stays off the shelf until the
+       Templates page is next opened. */
+    await tplLibRefresh();
     toast(i18t('tl_restored', { name: t.name }), 'ok');
     if (typeof after === 'function') await after();
     return true;
@@ -800,6 +806,16 @@ function tplLibPick(id, fallback){
   const el = document.getElementById(id);
   const v = el ? String(el.value || '') : '';
   return (!v || v === '__new__') ? fallback : v;
+}
+/* A STREAM MAY BE EMPTIED. The same reading as tplLibPick, except that an empty
+   choice is the answer "none yet" (null) rather than "keep what it had"; only
+   the sentinel, and a box that is not on the page, keep the fallback. */
+function tplLibStreamPick(id, fallback){
+  const el = document.getElementById(id);
+  if (!el) return fallback == null ? null : fallback;
+  const v = String(el.value || '');
+  if (v === '__new__') return fallback == null ? null : fallback;
+  return v || null;
 }
 function tplLibCatStreamRowHtml(idCat, idStream, category, folder) {
   const FLD = 'width:100%;height:var(--field-h);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
@@ -972,6 +988,7 @@ async function openTemplateLibDetail(id) {
   document.getElementById('tpllib-archive')?.addEventListener('click', async () => {
     try {
       await api('templates/' + t.id, 'PATCH', { status: 'archived' });
+      await tplLibRefresh();   /* an archived standard leaves every picker now (see tplLibRestore) */
       toast(`“${t.name}” archived — existing contracts keep their link to it`);
       openTemplateLibDetail(t.id);
     } catch (e) { toast(e.message, 'err'); }
@@ -986,7 +1003,7 @@ async function openTemplateLibDetail(id) {
       ? await confirmDialog({ title: `Delete “${t.name}”?`, message: 'It has never spawned a contract, so nothing cites it. This cannot be undone.', confirmLabel: 'Delete template', danger: true })
       : true;
     if (!ok) return;
-    try { await api('templates/' + t.id, 'DELETE'); toast(`“${t.name}” deleted`); setView('templates'); }
+    try { await api('templates/' + t.id, 'DELETE'); await tplLibRefresh(); toast(`“${t.name}” deleted`); setView('templates'); }
     catch (e) { toast(e.message, 'err'); }
   });
   document.getElementById('tpllib-newversion')?.addEventListener('click', async () => {
@@ -1039,7 +1056,11 @@ function tplLibMetaModal(t, opts = {}) {
     try {
       const r = await api('templates/' + t.id, 'PATCH', {
         name, category: tplLibPick('tpllib-m-cat', t.category || 'other'),
-        folder: tplLibPick('tpllib-m-stream', t.folder || '') || null,
+        /* "NONE YET" IS AN ANSWER (26 Sep 2026, the overnight clean-up): only the
+           "+ New value stream" sentinel falls back to what the template had. An
+           empty choice used to fall back too, so a filed template could never be
+           un-filed — Saved said so, and the stream stayed. */
+        folder: tplLibStreamPick('tpllib-m-stream', t.folder || null),
         description: document.getElementById('tpllib-m-desc').value.trim(),
       });
       closeModal(); toast(i18t('tl_saved'));
@@ -1271,7 +1292,7 @@ Object.assign(window, { newPaperBlocked, newPaperBlockLine, newPaperBlock, tplLi
   tplLibSheetHtml, tplLibRestore, tplLibArchivedAsk,
   tplLibNewContract, renderTemplateFormSection, openTemplateConfirm,
   tplFormCommit, tplFormBlankClick,
-  TPLLIB_CATEGORIES, TPLLIB_STATUS, templateCategories, tplCategoryName, tplCatSaved,
+  TPLLIB_CATEGORIES, TPLLIB_STATUS, templateCategories, tplCategoryName, tplCatSaved, tplLibStreamPick,
   addTemplateCategory, renameTemplateCategory, removeTemplateCategory,
   bindCategorySelect, tplLibWireCatStream, tplLibPick,
   /* The builder's head chips open this same box (24 Sep 2026). */

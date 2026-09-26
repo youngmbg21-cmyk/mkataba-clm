@@ -397,7 +397,7 @@ function pfFindingsFoot(page, pages, total){
   /* A press that cannot go anywhere is genuinely DISABLED rather than dimmed —
      the browser refuses it and a keyboard reader is told, where an opacity is a
      live control that happens to look faint. */
-  const step=(dir,label,off)=>`<button data-pf-find-page="${dir}"${off?' disabled':''}
+  const step=(dir,label,off)=>`<button data-pf-find-page="${dir}" data-pf-page-now="${page}"${off?' disabled':''}
     aria-label="${pfEsc(label)}" title="${pfEsc(label)}"
     style="border:1px solid var(--field-line);background:var(--color-surface);color:var(--accent-ink);
       border-radius:var(--radius);cursor:${off?'default':'pointer'};font:inherit;
@@ -531,7 +531,14 @@ function wirePortfolioFrame(rerender){
      joins the same handler rather than needing its own. */
   document.querySelectorAll('[data-pf-find-page]').forEach(el=>el.addEventListener('click',()=>{
     const F=pfState();
-    F.findPage=Math.max(0,(F.findPage|0)+(el.getAttribute('data-pf-find-page')==='next'?1:-1));
+    /* FROM THE PAGE ON SCREEN (26 Sep 2026, the overnight clean-up): the card
+       draws the stored page CLAMPED to what the narrowed list holds, so after a
+       filter the stored number can sit past the end — and one ‹ press stepped
+       from THAT number and landed on the same clamped page, a press that did
+       nothing. The button carries the page it was drawn on. */
+    const now=Number(el.getAttribute('data-pf-page-now'));
+    const from=Number.isFinite(now)?now:(F.findPage|0);
+    F.findPage=Math.max(0,from+(el.getAttribute('data-pf-find-page')==='next'?1:-1));
     /* THROUGH THE FUNNEL, LIKE EVERY OTHER PRESS ON THIS CARD (29 Aug 2026).
        It called renderIntel() directly and so walked straight past again() —
        which is why THIS was the button the owner reported: every filter beside

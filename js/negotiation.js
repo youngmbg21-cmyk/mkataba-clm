@@ -347,6 +347,14 @@ function negoMayStart(c){
   if (negoHandedOver(c) && !negoExecuted(c)) return { ok: false, why: 'handover' };
   if (negoWordingFrozen(c)) return { ok: false, why: 'sealed' };
   if (c.archived) return { ok: false, why: 'archived' };
+  /* ---- A CONTRACT IN DISPUTE IS FROZEN, AND THE DOOR SAYS SO (26 Sep 2026,
+     the overnight clean-up) ---- The server refuses a save that moves a held
+     contract's wording or negotiation (the three refusals of upgrade 8), and
+     since tonight it asks that on EVERY save rather than only on a half-signed
+     one. So the door is shut here too, with the reason, rather than letting a
+     reader file a change the save will then refuse. The hold's own reading,
+     asked raw so a stage without js/core.js still answers. */
+  if (c.hold && c.hold.at) return { ok: false, why: 'held' };
   return { ok: true, why: '' };
 }
 /* The one sentence a shut door prints, by reason — the hover, the aria-label
@@ -356,6 +364,7 @@ function negoMayStartLine(c){
   if (r.ok) return '';
   const t = (typeof i18t === 'function') ? i18t : k => k;
   return r.why === 'archived' ? t('ng_start_archived')
+    : r.why === 'held' ? t('ng_start_held')
     : r.why === 'handover' ? t('ng_start_handover') : t('ng_start_sealed');
 }
 

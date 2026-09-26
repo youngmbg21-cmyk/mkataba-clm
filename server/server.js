@@ -592,6 +592,12 @@ addColumnIfMissing('outbox', 'detail', 'TEXT');
 // few wrong guesses regardless of where the guesses come from — defence in
 // depth that does not depend on IP-based rate limiting alone.
 addColumnIfMissing('share_otp', 'attempts', 'INTEGER NOT NULL DEFAULT 0');
+/* WHERE AN INTERNAL SIGNER'S TURN NOTICE WENT (26 Sep 2026, the overnight
+   clean-up): sendEmail's own `provider` — 'resend', 'outbox', or the refusal.
+   Without it a notice queued because this server has no email provider read as
+   "EMAIL FAILED" on the signing order, against the product's own rule that the
+   outbox is honest delivery, not failure. NULL on every row written before. */
+addColumnIfMissing('signer_notices', 'provider', 'TEXT');
 /* ---- THE REQUESTS QUEUE GETS A CLOCK, A HOLDER AND A WAY TO BE FOLLOWED
    (S4 + S5 + S3 of HaTi's Next Fifteen, 16 Sep 2026) ----
    Four columns, all nullable, all absent on every request on file — so a
@@ -1231,7 +1237,15 @@ function rvGateApplies(c, u){
   if (g.when === 'value') return Number((c && c.value) || 0) >= g.value;
   /* 'deviation' — the playbook says this contract is off-piste. */
   const pb = c && c.playbook;
-  return !!(pb && Array.isArray(pb.verdicts) && pb.verdicts.some(v => v && v.verdict === 'deviation'));
+  /* ---- THE STORED FIELD IS `status` (26 Sep 2026, the overnight clean-up) ----
+     This read `v.verdict === 'deviation'`, a field no review has ever written —
+     runPlaybookReview and the overnight pass both store `status` — so a gate set
+     to "when the contract departs from our standards" never held anything on
+     the server. It now asks what the browser's twin asks (contractHasDeviation →
+     deviationSummary): a departure OR a standard that is missing. `verdict` is
+     still read, for any record written that way by hand. */
+  return !!(pb && Array.isArray(pb.verdicts) && pb.verdicts.some(v => v
+    && (v.status === 'deviation' || v.status === 'missing' || v.verdict === 'deviation')));
 }
 /* ============================================================
    THE CHECK BEFORE SIGNING — THE SERVER'S HALF (13 Sep 2026, phase 5)
@@ -3752,38 +3766,14 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     return res.status(400).json({ error: 'A renewal decision must name the person recording it, and carry the deadline it answers.' });
   }
 
-  if (prev && isExecutedRow(prev)) {
-    const changed = EXECUTED_IMMUTABLE.filter(k => stable(prev[k]) !== stable(c[k])
-      && !(SEAL_ACQUIRABLE.has(k) && isEmptyish(prev[k])));
-    if (changed.length) {
-      return res.status(409).json({
-        error: `${req.params.id} is executed — ${changed.join(', ')} cannot be changed after signature. Record an amendment instead.`,
-        immutable: changed,
-      });
-    }
-  } else if (prev && anySignatureRow(prev)) {
-    /* ---------- AND THE WORDING FREEZES AT THE FIRST SIGNATURE, HERE TOO ----------
-       (launch audit, 21 Aug 2026.) The rule is owner-ruled and already stated in
-       CLAUDE.md — the wording freezes at the FIRST signature, not the last — and
-       it was enforced ONLY in the browser, at negoFileChange and negoResolve
-       (negoWordingFrozen, js/negotiation.js). The guard above engages only once
-       the record is FULLY executed, so on a route with more than one signer
-       there was a window — first mark taken, status still Under Review, no seal
-       — in which a raw save could rewrite the document. The first signer's mark
-       then stood over wording they had never seen, and their stored signature
-       kept the docHash of text the record no longer held.
-
-       This is the same "the browser is cosmetics, the server is the wall" class
-       the legal audit closed for the desk rule, the review wall, the signing cap
-       and the reserved signing step; the wording freeze simply never got its
-       half. ASKED AS A DIFFERENCE, like every guard on this route.
-
-       THE WORDING ONLY, deliberately — mirroring the browser's own scope, whose
-       comment says it out loud: "Numbering, obligations, the audit trail and the
-       signature-taking itself are unaffected — the point is that the words stop
-       moving, not that the contract stops working." Taking the signature, filling
-       in Key terms while the second signer is waited on, and every additive fact
-       stay open, so nothing an SME does between two signatures is refused. */
+  /* ---- MOVED OUT OF THE HALF-SIGNED BRANCH (26 Sep 2026, the overnight
+     clean-up) ---- These two guards were written INSIDE the `else if (prev &&
+     anySignatureRow(prev))` block below, so they ran only in the narrow window
+     where somebody had signed and not everybody had: on an UNSIGNED contract
+     and on an EXECUTED one — the two a dispute is almost always about — an
+     editor without the grant could put a hold on or take it off, and a held,
+     unsigned contract's wording could still be moved by a save. They now run
+     on every save, before the signing rules, exactly as their own note says. */
   /* ---------- A CONTRACT IN DISPUTE IS FROZEN (upgrade 8, 18 Sep 2026) ----------
      When a dispute starts the wording stops being a working document and
      becomes evidence. THREE REFUSALS, asked as a difference like every guard on
@@ -3832,7 +3822,38 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
       });
     }
   }
+  if (prev && isExecutedRow(prev)) {
+    const changed = EXECUTED_IMMUTABLE.filter(k => stable(prev[k]) !== stable(c[k])
+      && !(SEAL_ACQUIRABLE.has(k) && isEmptyish(prev[k])));
+    if (changed.length) {
+      return res.status(409).json({
+        error: `${req.params.id} is executed — ${changed.join(', ')} cannot be changed after signature. Record an amendment instead.`,
+        immutable: changed,
+      });
+    }
+  } else if (prev && anySignatureRow(prev)) {
+    /* ---------- AND THE WORDING FREEZES AT THE FIRST SIGNATURE, HERE TOO ----------
+       (launch audit, 21 Aug 2026.) The rule is owner-ruled and already stated in
+       CLAUDE.md — the wording freezes at the FIRST signature, not the last — and
+       it was enforced ONLY in the browser, at negoFileChange and negoResolve
+       (negoWordingFrozen, js/negotiation.js). The guard above engages only once
+       the record is FULLY executed, so on a route with more than one signer
+       there was a window — first mark taken, status still Under Review, no seal
+       — in which a raw save could rewrite the document. The first signer's mark
+       then stood over wording they had never seen, and their stored signature
+       kept the docHash of text the record no longer held.
 
+       This is the same "the browser is cosmetics, the server is the wall" class
+       the legal audit closed for the desk rule, the review wall, the signing cap
+       and the reserved signing step; the wording freeze simply never got its
+       half. ASKED AS A DIFFERENCE, like every guard on this route.
+
+       THE WORDING ONLY, deliberately — mirroring the browser's own scope, whose
+       comment says it out loud: "Numbering, obligations, the audit trail and the
+       signature-taking itself are unaffected — the point is that the words stop
+       moving, not that the contract stops working." Taking the signature, filling
+       in Key terms while the second signer is waited on, and every additive fact
+       stay open, so nothing an SME does between two signatures is refused. */
     const changed = SIGNED_WORDING_FROZEN.filter(k => stable(prev[k]) !== stable(c[k]));
     if (changed.length) {
       return res.status(409).json({
@@ -11808,8 +11829,13 @@ function signerTurnEmail({ signer, plan, payload, link, expiresAt, senderLang })
       refused email is a row saying so with a resend beside it. */
 function signerNoticesFor(contractId) {
   try {
-    return db.prepare(`SELECT id, signer_id AS signerId, email, sent, detail, by_user AS by, kind,
-      created_at AS at FROM signer_notices WHERE contract_id=? ORDER BY created_at ASC`).all(contractId);
+    return db.prepare(`SELECT id, signer_id AS signerId, email, sent, detail, by_user AS by, kind, provider,
+      created_at AS at FROM signer_notices WHERE contract_id=? ORDER BY created_at ASC`).all(contractId)
+      /* `outbox`: the notice was kept in the outbox because no provider was set
+         up — the stored provider, else (a row written before it was recorded)
+         the sentence this file itself writes for exactly that case. */
+      .map(n => ({ ...n, outbox: !n.sent && (n.provider === 'outbox'
+        || (!n.provider && /in the outbox/i.test(String(n.detail || '')))) }));
   } catch (_) { return []; }
 }
 /* WHERE A COLLEAGUE'S POST GOES. The row is off the stored contract; the member
@@ -11906,10 +11932,10 @@ async function notifyInternalSignerTurn(req, contractId, opts = {}) {
     const detail = r.sent ? null
       : String(r.detail || (EMAIL_ON() ? 'The email provider refused the message.'
         : 'Email is not configured on this server — the message is in the outbox.')).slice(0, 300);
-    db.prepare(`INSERT INTO signer_notices (id,contract_id,signer_id,email,sent,detail,by_user,kind,created_at)
-      VALUES (?,?,?,?,?,?,?,?,?)`).run('sn_' + rid(8), contractId, String(row.id), to.email,
+    db.prepare(`INSERT INTO signer_notices (id,contract_id,signer_id,email,sent,detail,by_user,kind,created_at,provider)
+      VALUES (?,?,?,?,?,?,?,?,?,?)`).run('sn_' + rid(8), contractId, String(row.id), to.email,
       r.sent ? 1 : 0, detail, (req && req.user && req.user.name) || null,
-      opts.force ? 'resend' : 'turn', now());
+      opts.force ? 'resend' : 'turn', now(), String(r.provider || '').slice(0, 40) || null);
     return { ok: !!r.sent, reason: r.sent ? 'sent' : 'send-failed', detail,
       signer: row.name || null, email: to.email, addressFrom: to.from };
   } catch (e) {
@@ -13793,6 +13819,18 @@ function runShareNudges() {
     if (shareExpired(s)) continue;
     const sentAt = Date.parse(s.sent_at || s.created_at);
     if (!Number.isFinite(sentAt) || Date.now() - sentAt < SHARE_NUDGE_DAYS * 86400000) continue;
+    /* ---- A REMINDER ABOUT A DEAL THAT IS OVER IS NOT SENT (26 Sep 2026, the
+       overnight clean-up) ---- "is waiting for your review" went to an
+       unopened link three days on whatever had happened to the contract since:
+       signed, closed, archived, deleted, or frozen for a dispute. The stored
+       contract is asked, never the payload the link was minted with. Nothing
+       is stamped for a skipped one — `reminded_at` means a reminder went. */
+    let cur = null;
+    try {
+      const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(String(s.contract_id));
+      cur = row ? JSON.parse(row.json) : null;
+    } catch (_) { cur = null; }
+    if (!cur || isExecutedRow(cur) || cur.status === 'Declined' || cur.archived || (cur.hold && cur.hold.at)) continue;
     let p = {}; try { p = JSON.parse(s.payload) || {}; } catch (_) {}
     const cName = (p.contract && p.contract.name) || s.contract_id || 'a contract';
     sendEmail(s.recipient_email, `Reminder: "${cName}" is waiting for your review`,
@@ -15082,6 +15120,18 @@ const TPL_SOURCE_TYPES = ['docx', 'pdf_digital', 'pdf_scanned'];
 const TPL_IS_SCANNED = st => st === 'pdf_scanned';
 
 const TPL_CATEGORIES = ['sales', 'procurement', 'employment', 'nda', 'other'];
+/* ---- A CATEGORY IS ONE OF HaTi'S FIVE OR ONE THE COMPANY ADDED (26 Sep 2026,
+   the overnight clean-up) ---- Settings has let a company keep its own list of
+   template categories since 17 Sep (PUT /api/settings/filing stores them under
+   appSettings.templateCategories), and every picker offers them — but the three
+   routes that file a template checked the five built-ins alone: a create filed
+   the company's own category as 'other' without a word, and an edit answered
+   "Unknown category". One reading, three routes. */
+function tplCategoryOk(v) {
+  if (TPL_CATEGORIES.includes(v)) return true;
+  const s = getSetting('appSettings') || {};
+  return Array.isArray(s.templateCategories) && s.templateCategories.some(c => c && c.id === v);
+}
 const TPL_ORIGINS = ['upload', 'saved_from_contract', 'built_in_hati'];
 
 /* The field library — the fixed catalogue of field types the whole feature is
@@ -15192,7 +15242,7 @@ app.post('/api/templates', auth, paperMaker, passwordCurrent, (req, res) => {
   const b = req.body || {};
   const name = clean(b.name).slice(0, 160);
   if (!name) return res.status(400).json({ error: 'A template needs a name' });
-  const category = TPL_CATEGORIES.includes(b.category) ? b.category : 'other';
+  const category = tplCategoryOk(b.category) ? b.category : 'other';
   const origin = TPL_ORIGINS.includes(b.origin) ? b.origin : 'built_in_hati';
   /* A stream is optional and stays optional: absent is the honest answer for a
      template nobody has filed, and the picker has a folder for exactly that. */
@@ -15238,7 +15288,7 @@ app.patch('/api/templates/:id', auth, templateManager, passwordCurrent, (req, re
   if (b.name !== undefined) { const n = clean(b.name).slice(0, 160); if (!n) return res.status(400).json({ error: 'A template needs a name' }); sets.push('name=?'); args.push(n); }
   if (b.description !== undefined) { sets.push('description=?'); args.push(clean(b.description).slice(0, 2000)); }
   if (b.category !== undefined) {
-    if (!TPL_CATEGORIES.includes(b.category)) return res.status(400).json({ error: 'Unknown category' });
+    if (!tplCategoryOk(b.category)) return res.status(400).json({ error: 'Unknown category' });
     sets.push('category=?'); args.push(b.category);
   }
   /* FILING A TEMPLATE IS NOT ACCESS CONTROL, and this route deliberately does
@@ -16384,7 +16434,7 @@ app.post('/api/templates/upload', auth, paperMaker, passwordCurrent, rlAiDeep, a
          — both already stored, one line down — and templateProvenanceHtml is
          what draws it. An undescribed template is honestly undescribed, and
          the browser's naCardSub says what it is from its category instead. */
-      .run(tid, WORKSPACE_ID, name, '', TPL_CATEGORIES.includes(b.category) ? b.category : 'other', tplFolderOf(b.folder), req.user.name, now(), now(),
+      .run(tid, WORKSPACE_ID, name, '', tplCategoryOk(b.category) ? b.category : 'other', tplFolderOf(b.folder), req.user.name, now(), now(),
         sourceType, isPdf ? pdf.pageCount : null);
     const v = tplNewVersion(tid, 1);
     vid = v.id;

@@ -476,8 +476,14 @@ function createFromWizard(tid, vars, opts){
   /* AND COPILOT READS IT (Young ruled 17 Sep 2026) — registered at every
      creation site beside roomOpenOnTerms, because there is no single funnel
      for creating a contract. See contractArrived. */
+  /* SAVED FIRST, THEN READ (26 Sep 2026, the overnight clean-up): the
+     reading's first step is flushSaves(), which can only save what persist()
+     has queued — called after contractArrived, the queue was still empty, the
+     brief reached the server before the contract did, and every draft made
+     here was stamped "No brief — Contract not found" (never retried). */
+  persist(c);
   if(window.contractArrived) contractArrived(c);
-  persist(c); closeModal();
+  closeModal();
   toast(`Draft created — ${t.kind}`);
   setView('workspace'); renderSideFolders&&renderSideFolders();
 }
@@ -969,8 +975,16 @@ function openNewAgreement(o){
   document.getElementById('na-x')?.addEventListener('click', leave);
   /* CREATING IS THE ONE WAY OUT THAT KEEPS THEM: the record is minted in the
      same breath and contractArrived claims them off the hold. */
-  const goCreate=fn=>()=>{ if(!api){ toast(i18t('na_pick_first'),'err'); return; }
-    _naClaimed=true; fn(); };
+  /* ---- A CREATE THAT WAS REFUSED KEEPS NOTHING (26 Sep 2026, the overnight
+     clean-up) ---- The flag was raised before the act ran and never lowered, so
+     a Create refused for a missing answer left the people held after Cancel,
+     ✕, Escape or the scrim — and the next contract made through ANY door
+     claimed them. Asked after the act: a screen still standing means nothing
+     was minted, and the hold is this screen's again. */
+  const goCreate=fn=>async()=>{ if(!api){ toast(i18t('na_pick_first'),'err'); return; }
+    _naClaimed=true;
+    try{ await fn(); }catch(_){ /* the act says its own refusal */ }
+    if(document.getElementById('na-root')) _naClaimed=false; };
   document.getElementById('na-create')?.addEventListener('click', goCreate(()=>api.create()));
   document.getElementById('na-skip')?.addEventListener('click', goCreate(()=>api.skip()));
   document.getElementById('na-import')?.addEventListener('click', ()=>{ closeModal(); if(typeof setView==='function') setView('migration'); });
