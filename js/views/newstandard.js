@@ -423,10 +423,10 @@ function nsOpenContract() {
   if (!all.length) { toast(i18t('lib_pick_none'), 'warn'); return; }
   let pick = null; let q = '';
   const row = c => `<button type="button" class="ns-row${pick === c.id ? ' on' : ''}" data-ns-c="${nsEsc(c.id)}" aria-pressed="${pick === c.id}">
-    <span class="n">${nsEsc(c.name || c.id)}</span><span class="s">${nsEsc([c.id, c.counterparty, typeof statusLabel === 'function' ? statusLabel(c.status) : c.status].filter(Boolean).join(' · '))}</span></button>`;
+    <span class="n">${nsEsc(c.name || (window.contractRef ? contractRef(c) : c.id))}</span><span class="s">${nsEsc([(window.contractRef ? contractRef(c) : c.id), c.counterparty, typeof statusLabel === 'function' ? statusLabel(c.status) : c.status].filter(Boolean).join(' · '))}</span></button>`;
   const rows = () => {
     const f = q.toLowerCase();
-    const hit = all.filter(c => !f || [c.name, c.id, c.counterparty].some(x => String(x || '').toLowerCase().includes(f)));
+    const hit = all.filter(c => !f || [c.name, c.id, c.contractNo, c.counterparty].some(x => String(x || '').toLowerCase().includes(f)));
     return hit.slice(0, 200).map(row).join('') || `<div style="padding:12px;font-size:var(--t-meta);color:var(--color-neutral-600)">${nsEsc(i18t('ns_c_none'))}</div>`;
   };
   openModal(`<div style="padding:24px">
@@ -460,7 +460,7 @@ function nsOpenContract() {
     try {
       const r = await api(`contracts/${c.id}/save-as-template`, 'POST', {});
       closeModal();
-      return nsOpen(r.templateId, r.versionId, { kind: 'contract', contractId: c.id, contractName: c.name || c.id,
+      return nsOpen(r.templateId, r.versionId, { kind: 'contract', contractId: c.id, contractRef: (window.contractRef ? contractRef(c) : c.id), contractName: c.name || (window.contractRef ? contractRef(c) : c.id),
         counterparty: c.counterparty || '', taken: r.taken || [], negotiated: r.negotiated || [] });
     } catch (e) { go.disabled = false; go.textContent = was; nsSayOn(e.message || String(e), true); }
   });

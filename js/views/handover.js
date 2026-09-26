@@ -21,7 +21,7 @@
    guarded as a difference by the server. */
 
 const HO_FILE_ACCEPT = '.pdf,.docx,.txt,.png,.jpg,.jpeg';
-const HO_VIA_KEYS = { docusign: 'ho_via_docusign', esign: 'ho_via_esign', own: 'ho_via_own', paper: 'ho_via_paper', other: 'ho_via_other' };
+const HO_VIA_KEYS = { docusign: 'ho_via_docusign', esign: 'ho_via_esign', own: 'ho_via_own', paper: 'ho_via_paper', other: 'ho_via_else' };
 const _hoEsc = s => (typeof esc === 'function') ? esc(String(s == null ? '' : s))
   : String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 const _hoDay = iso => { const d = String(iso || '').slice(0, 10);
@@ -282,17 +282,33 @@ async function openHandoverWindow(c){
   const vN = (Array.isArray(c.versions) ? c.versions.length : 0) + (roundOpen ? 2 : 1);
   const FLD = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)';
   const L = t => `<div class="ho-l">${_hoEsc(t)}</div>`;
+  /* MORE THAN ONE PARTY NEGOTIATED (Phase 2): each one's agreement is said by
+     name and day — one Ready to sign from one link cannot speak for the
+     others — and the Word file goes to each of them. */
+  const multi = typeof partiesNegotiating === 'function' ? partiesNegotiating(c) : [];
+  const many = multi.length > 1;
+  const howHtml = many
+    ? `<div class="ho-how">${multi.map(p => `<label class="ho-radio"><span>${_hoEsc(i18t('ho_how_party', { who: p.name }))}</span>
+        <input type="date" max="${today}" value="${today}" data-ho-party-day="${_hoEsc(p.id)}" style="${FLD};width:auto;height:28px;margin-left:6px"></label>`).join('')}
+        <div class="ho-sub">${_hoEsc(i18t('ho_how_each'))}</div></div>`
+    : '';
+  const toRows = many
+    ? multi.map((p, i) => `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" data-ho-to-party="${_hoEsc(p.id)}">
+        <input type="text" data-ho-to-name placeholder="${_hoEsc(i18t('ho_to_name_ph'))}" value="${_hoEsc(i ? '' : (pre.name || ''))}" style="${FLD}" aria-label="${_hoEsc(p.name)}">
+        <input type="email" data-ho-to-email placeholder="${_hoEsc(i18t('ho_to_email_ph_for', { who: p.name }))}" value="${_hoEsc(p.email || (i ? '' : (pre.email || '')))}" style="${FLD}" aria-label="${_hoEsc(p.name)}">
+      </div>`).join('')
+    : '';
   openModal(`<div class="ho-win" style="padding:22px var(--s-6)">
     <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;margin:0 0 var(--s-3)">${_hoEsc(i18t('ho_win_title'))}</h2>
     <div class="ho-grid">
       ${L(i18t('ho_win_agreed'))}
       <div>${_hoEsc(roundOpen ? i18t('ho_win_agreed_open', { round: round || 1, n: prog.total }) : i18t('ho_win_agreed_v', { v: vN, round: Math.max(1, (round || 1) - 1) }))}</div>
       ${L(i18t('ho_win_how'))}
-      <div class="ho-how">
+      ${many ? howHtml : `<div class="ho-how">
         ${signal ? `<label class="ho-radio"><input type="radio" name="ho-how" value="signal" checked> <span>${_hoEsc(i18t('ho_how_signal', { who: signal.name || c.counterparty || '', when: typeof fmtDT === 'function' ? fmtDT(signal.at) : _hoDay(signal.at) }))}</span></label>` : ''}
         <label class="ho-radio"><input type="radio" name="ho-how" value="email"${signal ? '' : ' checked'}> <span>${_hoEsc(i18t('ho_how_email'))}</span>
           <input id="ho-how-day" type="date" max="${today}" value="${signal ? '' : today}" style="${FLD};width:auto;height:28px;margin-left:6px"></label>
-      </div>
+      </div>`}
       ${L(i18t('ho_win_signs'))}
       <div>${who
         ? `<span>${_hoEsc(who.name)}${who.role ? ' · ' + _hoEsc(who.role) : ''} · ${_hoEsc(i18t('ho_from_order'))}</span> <button type="button" class="ui-link" id="ho-sig-change">${_hoEsc(i18t('ho_change'))}</button>`
@@ -306,8 +322,8 @@ async function openHandoverWindow(c){
           <button type="button" data-ho-ch="download" aria-pressed="false">${_hoEsc(i18t('ho_ch_download'))}</button>
         </div>
         <div id="ho-email-box" style="margin-top:8px;display:grid;gap:6px">
-          <input id="ho-to-name" type="text" placeholder="${_hoEsc(i18t('ho_to_name_ph'))}" value="${_hoEsc(pre.name || '')}" style="${FLD}">
-          <input id="ho-to-email" type="email" placeholder="${_hoEsc(i18t('ho_to_email_ph'))}" value="${_hoEsc(pre.email || c.counterpartyEmail || '')}" style="${FLD}">
+          ${many ? toRows : `<input id="ho-to-name" type="text" placeholder="${_hoEsc(i18t('ho_to_name_ph'))}" value="${_hoEsc(pre.name || '')}" style="${FLD}">
+          <input id="ho-to-email" type="email" placeholder="${_hoEsc(i18t('ho_to_email_ph'))}" value="${_hoEsc(pre.email || c.counterpartyEmail || '')}" style="${FLD}">`}
           <textarea id="ho-note" rows="3" style="${FLD};height:auto;padding:6px var(--field-pad-x);resize:vertical">${_hoEsc(i18t('ho_note_default'))}</textarea>
         </div>
       </div>
@@ -333,15 +349,27 @@ async function openHandoverWindow(c){
   document.getElementById('ho-go')?.addEventListener('click', async e => {
     const btn = e.currentTarget;
     const err = m => { const el = document.getElementById('ho-err'); if (el){ el.textContent = m; el.hidden = false; } };
-    const howKind = (root.querySelector('input[name="ho-how"]:checked') || {}).value || 'email';
-    const day = (document.getElementById('ho-how-day') || {}).value || '';
-    if (howKind === 'email' && (!/^\d{4}-\d{2}-\d{2}$/.test(day) || day > today)) return err(i18t('ho_how_need_day'));
-    const to = { name: ((document.getElementById('ho-to-name') || {}).value || '').trim(),
-      email: ((document.getElementById('ho-to-email') || {}).value || '').trim() };
-    if (channel === 'email' && !/.+@.+\..+/.test(to.email)) return err(i18t('ho_need_email'));
+    let how, to, also = [];
+    if (many){
+      const parties = [...root.querySelectorAll('[data-ho-party-day]')].map(i => ({ id: i.getAttribute('data-ho-party-day'), at: i.value || '' }));
+      if (parties.some(p => !/^\d{4}-\d{2}-\d{2}$/.test(p.at) || p.at > today)) return err(i18t('ho_how_need_each'));
+      how = { kind: 'email', parties };
+      const rows = [...root.querySelectorAll('[data-ho-to-party]')].map(r => ({ partyId: r.getAttribute('data-ho-to-party'),
+        name: ((r.querySelector('[data-ho-to-name]') || {}).value || '').trim(), email: ((r.querySelector('[data-ho-to-email]') || {}).value || '').trim() }));
+      if (channel === 'email' && rows.some(r => !/.+@.+\..+/.test(r.email))) return err(i18t('ho_need_email_each'));
+      to = rows[0] || { name: '', email: '' }; also = rows.slice(1);
+    } else {
+      const howKind = (root.querySelector('input[name="ho-how"]:checked') || {}).value || 'email';
+      const day = (document.getElementById('ho-how-day') || {}).value || '';
+      if (howKind === 'email' && (!/^\d{4}-\d{2}-\d{2}$/.test(day) || day > today)) return err(i18t('ho_how_need_day'));
+      how = howKind === 'signal' ? { kind: 'signal' } : { kind: 'email', at: day };
+      to = { name: ((document.getElementById('ho-to-name') || {}).value || '').trim(),
+        email: ((document.getElementById('ho-to-email') || {}).value || '').trim() };
+      if (channel === 'email' && !/.+@.+\..+/.test(to.email)) return err(i18t('ho_need_email'));
+    }
     btn.disabled = true; btn.textContent = i18t('ho_handing');
-    const out = await outsideHandOver(c, { how: howKind === 'signal' ? { kind: 'signal' } : { kind: 'email', at: day },
-      channel, to, note: ((document.getElementById('ho-note') || {}).value || '').trim(), signatoryId: who && who.id });
+    const out = await outsideHandOver(c, { how, channel, to, also,
+      note: ((document.getElementById('ho-note') || {}).value || '').trim(), signatoryId: who && who.id });
     if (out && out.ok){ closeModal(); return; }
     btn.disabled = false; btn.textContent = i18t('ho_go');
     err((out && out.error) || i18t('ho_hand_failed'));
@@ -370,14 +398,17 @@ async function outsideHandOver(c, o){
     const f = wordAgreedFile(c);
     const b64 = typeof bytesToBase64 === 'function' ? bytesToBase64(f.bytes) : '';
     const r = await api(`contracts/${encodeURIComponent(c.id)}/handover`, 'POST', {
-      act: 'hand', how: o.how, channel: o.channel, to: o.to, note: o.note, signatoryId: o.signatoryId || null,
+      act: 'hand', how: o.how, channel: o.channel, to: o.to, also: o.also || [], note: o.note, signatoryId: o.signatoryId || null,
       version: Array.isArray(c.versions) ? c.versions.length : null, agreedHash: stamp.hash, agreedWords: stamp.words,
       file: { filename: f.name, content: b64 } });
     outsideAdopt(c, r);
     if (o.channel === 'download') _hoDownloadBytes(f.bytes, f.name);
-    const sent = o.channel === 'email' ? !!(r && r.emailSent) : true;
+    /* Said per address: every send the route recorded, delivered or not. */
+    const sends = ((r && r.handover && r.handover.sends) || []).filter(x => x && x.channel === 'email');
+    const sent = o.channel === 'email' ? (sends.length ? sends.every(x => x.emailSent) : !!(r && r.emailSent)) : true;
+    const toWords = sends.length ? sends.map(x => x.to && x.to.email).filter(Boolean).join(', ') : o.to.email;
     if (typeof toast === 'function') toast(o.channel === 'email'
-      ? (sent ? i18t('ho_done_email', { to: o.to.email }) : i18t('ho_done_outbox', { to: o.to.email }))
+      ? (sent ? i18t('ho_done_email', { to: toWords }) : i18t('ho_done_outbox', { to: toWords }))
       : i18t('ho_done_download'), sent ? 'ok' : 'warn');
     _hoAfterAct(c);
     return { ok: true };
@@ -725,17 +756,31 @@ function outsideFiledBefore(hash, selfId){
     || (x.execution && x.execution.fileHash === hash)
     || (x.upload && x.upload.fileHash === hash && x.status === 'Signed'))) || null;
 }
+/* WHO IS EXPECTED TO HAVE SIGNED: every party that signs (Phase 2 — filing
+   needs every signature), by the person named for it where there is one, else
+   by the company beside a signature word, which a person then confirms; and
+   our signatory. */
 function _hoSignerExpect(c){
   const ho = handoverOf(c) || {};
   const ours = typeof outsideSignatory === 'function' ? outsideSignatory(c) : null;
-  const theirs = (ho.to && ho.to.name) || '';
+  const plan = (Array.isArray(c.signerPlan) ? c.signerPlan : []).filter(s => s && s.party === 'counterparty' && s.name);
+  const signing = (typeof partiesSigning === 'function' ? partiesSigning(c) : [])
+    .filter(p => p && p.name);
   const list = [];
-  if (theirs) list.push({ name: theirs, side: 'theirs' });
-  (Array.isArray(c.signerPlan) ? c.signerPlan : []).filter(s => s && s.party === 'counterparty' && s.name)
-    .forEach(s => { if (!list.some(x => x.name === s.name)) list.push({ name: s.name, side: 'theirs' }); });
-  /* Nobody on their side is named on the file: their company is looked for
-     beside a signature word instead, and a person confirms it. */
-  if (!list.length && c.counterparty) list.push({ name: c.counterparty, side: 'theirs', party: true });
+  if (signing.length > 1){
+    signing.forEach(p => {
+      const named = plan.filter(s => String(s.partyId || '') === p.id);
+      if (named.length) named.forEach(s => list.push({ name: s.name, side: 'theirs', partyId: p.id }));
+      else list.push({ name: p.name, side: 'theirs', party: true, partyId: p.id });
+    });
+  } else {
+    const theirs = (ho.to && ho.to.name) || '';
+    if (theirs) list.push({ name: theirs, side: 'theirs' });
+    plan.forEach(s => { if (!list.some(x => x.name === s.name)) list.push({ name: s.name, side: 'theirs' }); });
+    /* Nobody on their side is named on the file: their company is looked for
+       beside a signature word instead, and a person confirms it. */
+    if (!list.length && c.counterparty) list.push({ name: c.counterparty, side: 'theirs', party: true });
+  }
   if (ours && ours.name) list.push({ name: ours.name, side: 'ours' });
   return list;
 }
@@ -754,8 +799,9 @@ function _hoFilingScreen(c, read){
   const start = startsOnSig ? signedOn : (f.effDate || m.effectiveDate || '');
   const ends = c.expiry || m.expiryDate || '';
   const notice = m.noticePeriodDays != null ? m.noticePeriodDays : '';
-  const theirsFound = said.signers.filter(s => s.side === 'theirs' && s.found).length > 0;
-  const oursFound = said.signers.filter(s => s.side === 'ours' && s.found).length > 0;
+  /* Every expected signature found — each party's, and ours. */
+  const theirsFound = said.signers.some(s => s.side === 'theirs') && said.signers.filter(s => s.side === 'theirs').every(s => s.found);
+  const oursFound = said.signers.some(s => s.side === 'ours') ? said.signers.filter(s => s.side === 'ours').every(s => s.found) : false;
   const FLD = 'border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)';
   const nextNo = (typeof contractIsWorkingFile === 'function' && contractIsWorkingFile(c)) ? i18t('ho_gets_number') : '';
   const approvals = Array.isArray(ho.approvals) ? ho.approvals : [];
@@ -807,19 +853,25 @@ function _hoFilingScreen(c, read){
   </div>`, { maxWidth: '1100px', height: '88vh', label: i18t('ho_check_copy') });
   const acts = document.getElementById('ho-f-acts');
   const both = () => !!(document.getElementById('ho-both') || {}).checked;
-  /* THE BUTTONS FOLLOW WHO HAS SIGNED. Same words: File as signed, or — only
-     they have signed — keep it as evidence and wait for ours. Different words
-     and only they have signed: Send it back leads, and Accept as signed… is
-     the approver's or an admin's. Different and both signed: there is nothing
-     to send back — file it with the difference recorded, or hold and raise. */
+  /* THE BUTTONS FOLLOW WHO HAS SIGNED. Same words: File as signed, or — not
+     everybody has signed — keep it as evidence and wait. Different words and
+     not everybody has signed: Send it back leads, and accepting the difference
+     (the approver's or an admin's, with a reason) keeps the copy waiting —
+     nothing is filed until every party has signed. Different and everybody
+     signed: there is nothing to send back — file it with the difference
+     recorded, or hold and raise. */
   const paint = () => {
     const bs = both();
     const mayAccept = isAdminNow || _hoApprovedBy(c, me);
     let html = '';
+    /* A COPY SOME HAVE NOT SIGNED IS NEVER FILED (filing needs every
+       signature): it is kept on the waiting card — with the difference
+       accepted, where the approver or an admin accepts it, so the copy ours
+       signs next is not sent back for it. */
     if (r.same && bs) html = `<button type="button" class="ui-btn ui-btn-primary" data-ho-f="file">${_hoEsc(i18t('ho_file_as_signed'))}${nextNo ? ' · ' + _hoEsc(nextNo) : ''}</button>`;
     else if (r.same && !bs) html = `<button type="button" class="ui-btn ui-btn-primary" data-ho-f="partial">${_hoEsc(i18t('ho_keep_partial'))}</button>`;
     else if (!bs) html = `<button type="button" class="ui-btn ui-btn-primary" data-ho-f="sendback">${_hoEsc(i18t('ho_send_back'))}</button>`
-      + (mayAccept ? ` <button type="button" class="ui-btn" data-ho-f="accept">${_hoEsc(i18t('ho_accept_as_signed'))}</button>` : '');
+      + (mayAccept ? ` <button type="button" class="ui-btn" data-ho-f="accept-partial">${_hoEsc(i18t('ho_accept_partial'))}</button>` : '');
     else html = (mayAccept ? `<button type="button" class="ui-btn ui-btn-primary" data-ho-f="accept">${_hoEsc(i18t('ho_file_with_diff'))}</button> ` : '')
       + `<button type="button" class="ui-btn" data-ho-f="hold">${_hoEsc(i18t('ho_hold_raise'))}</button>`;
     if (!r.same && !mayAccept) html += `<div class="ho-sub" style="margin-top:6px">${_hoEsc(i18t('ho_accept_who'))}</div>`;
@@ -837,11 +889,18 @@ function _hoFilingScreen(c, read){
     try {
       if (what === 'sendback' || what === 'hold') await outsideSendBack(c, r, { both: what === 'hold', read });
       else if (what === 'partial') await outsidePartial(c, read, signers());
+      else if (what === 'accept-partial'){
+        const why = await promptDialog({ title: i18t('ho_accept_title'), message: i18t('ho_accept_partial_msg'),
+          placeholder: i18t('ho_accept_ph'), confirmLabel: i18t('ho_accept_partial'), multiline: true });
+        if (!String(why || '').trim()){ btn.disabled = false; return; }
+        await outsidePartial(c, read, signers(), { differs: { by: { id: me ? String(me.id) : '', name: (me && me.name) || '', role: (me && me.role) || '' },
+          why: String(why).trim().slice(0, 600), line: outsideCompareLine(r) }, same: false });
+      }
       else {
         let differs = null;
         if (what === 'accept'){
           const why = await promptDialog({ title: i18t('ho_accept_title'), message: i18t('ho_accept_msg'),
-            placeholder: i18t('ho_accept_ph'), confirmLabel: i18t(both() ? 'ho_file_with_diff' : 'ho_accept_as_signed'), multiline: true });
+            placeholder: i18t('ho_accept_ph'), confirmLabel: i18t('ho_file_with_diff'), multiline: true });
           if (!String(why || '').trim()){ btn.disabled = false; return; }
           differs = { by: { id: me ? String(me.id) : '', name: (me && me.name) || '', role: (me && me.role) || '' }, why: String(why).trim().slice(0, 600), at: (typeof nowISO === 'function' ? nowISO() : new Date().toISOString()) };
         }
@@ -855,7 +914,7 @@ function _hoFilingScreen(c, read){
         if (!/^\d{4}-\d{2}-\d{2}$/.test(d.signed)){ err(i18t('ho_signed_need')); btn.disabled = false; return; }
         const cert = ((document.getElementById('ho-cert') || {}).files || [])[0] || null;
         const parentId = (document.getElementById('ho-parent') || {}).value || '';
-        await outsideFile(c, { read, compare: r, differs, via, dates: d, signers: signers(), cert, parentId });
+        await outsideFile(c, { read, compare: r, differs, via, dates: d, signers: signers(), cert, parentId, everyone: both() });
       }
       closeModal();
     } catch (e2) { err((e2 && e2.message) || String(e2)); btn.disabled = false; }
@@ -893,11 +952,12 @@ async function _hoUploadFile(read){
   return { fileId: r && r.id };
 }
 /* ONLY THEY HAVE SIGNED: kept as evidence, and the file keeps waiting. */
-async function outsidePartial(c, read, signers){
+async function outsidePartial(c, read, signers, o){
   const up = await _hoUploadFile(read);
   await outsideAct(c, 'partial', { fileId: up.fileId, fileName: read.name, sha256: read.fileHash,
     signedBy: signers.filter(s => s.signed && s.side === 'theirs').map(s => s.name),
-    signedOn: (signers.find(s => s.signed && s.on) || {}).on || '', same: true });
+    signedOn: (signers.find(s => s.signed && s.on) || {}).on || '',
+    same: !(o && o.same === false), differs: (o && o.differs) || null });
   if (typeof toast === 'function') toast(i18t('ho_partial_kept'), 'ok');
   _hoAfterAct(c);
 }
@@ -944,6 +1004,9 @@ async function outsideFile(c, o){
       missing: cmp.missingCount, inserted: (cmp.inserted || []).length, renamed: cmp.renamed || [],
       line: outsideCompareLine(cmp), ocr: !!cmp.ocr, coverage: cmp.coverage },
     differs: o.differs || null,
+    /* the person filing says the copy carries every party's signature — the
+       server files nothing without it */
+    everyone: o.everyone === true,
     approvalsUsed: ((handoverOf(c) || {}).approvals || []).slice(0, 10),
   };
   /* the dates, where a person confirmed them — a fill, never a guess */
@@ -967,7 +1030,7 @@ async function outsideFile(c, o){
   c.hash = typeof sha256 === 'function' && typeof sealString === 'function' ? await sha256(sealString(c)) : c.hash;
   if (typeof logAudit === 'function') logAudit(c, 'Executed outside HaTi',
     `Signed copy filed by ${(me && me.name) || 'System'} — “${o.read.name}”, SHA-256 ${String(o.read.fileHash).slice(0, 16)}…`
-    + ` · signed ${o.dates.signed} · ${(o.via && i18t(HO_VIA_KEYS[o.via] || 'ho_via_other')) || ''}`
+    + ` · signed ${o.dates.signed} · ${(o.via && i18t(HO_VIA_KEYS[o.via] || 'ho_via_else')) || ''}`
     + ` · ${outsideCompareLine(cmp)}`
     + (o.differs ? ` Filed with the difference recorded by ${o.differs.by.name} (${o.differs.by.role}): “${o.differs.why}”.` : '')
     + (cert ? ` Certificate of completion kept (“${cert.name}”).` : '')
@@ -981,6 +1044,83 @@ async function outsideFile(c, o){
      runFindObligations returns into the review dialog with a reading already
      held — it pays for nothing twice. */
   try { if (typeof runFindObligations === 'function') setTimeout(() => runFindObligations(c, {}), 400); } catch (_) {}
+}
+
+/* ============================================================
+   THE UPLOAD BUTTON KNOWS A SIGNED COPY WHEN IT SEES ONE (decision 9)
+   ============================================================
+   A signed copy comes back by email as often as by the Signing tab, and the
+   natural thing to do with a file is to press Upload. So the upload, once it
+   has read the file, compares it with every agreed version out for signature
+   and — where one matches — asks whether this is that file's signed copy.
+   Never assumed: "No, a new contract" carries on as an ordinary upload. And
+   where nothing matches but something is out, the reader may still say which
+   one it is. Their link is not a way in: the design and the signing are theirs
+   and so is the file, which comes back to us, not through a form of ours. */
+const HO_MATCH_MIN = 0.6;
+/* A CAP, SAID: the upload compares its text with at most this many files out
+   for signature — the likeliest first (their company named in the text, then
+   the newest handover) — and the pick-list under it names EVERY file out, so a
+   file past the cap is still one choice away rather than silently missing. */
+const HO_MATCH_MAX = 20;
+async function outsideMatchUpload(text, textSource){
+  const cs = ((typeof state !== 'undefined' && state && state.contracts) || []).filter(c => {
+    try { return handoverActive(c) && !c.archived; } catch (_) { return false; } });
+  if (!cs.length || !String(text || '').trim()) return { best: null, outs: cs };
+  const ocr = typeof isOcrText === 'function' ? isOcrText(textSource) : /ocr/.test(String(textSource || ''));
+  const low = String(text).toLowerCase();
+  const named = c => { const cp = String(c.counterparty || '').trim().toLowerCase(); return cp && low.includes(cp) ? 1 : 0; };
+  const outAt = c => String((handoverOf(c) || {}).at || '');
+  const order = cs.slice().sort((a, b) => (named(b) - named(a)) || outAt(b).localeCompare(outAt(a)));
+  let best = null;
+  for (const c of order.slice(0, HO_MATCH_MAX)){
+    try {
+      if (typeof ensureFull === 'function' && c._light && !c._loaded) await ensureFull(c);
+      const r = outsideCompare(outsideAgreedParas(c), text, { ocr });
+      if (r && !r.unrelated && r.coverage >= HO_MATCH_MIN && (!best || r.coverage > best.r.coverage)) best = { c, r };
+    } catch (_) {}
+  }
+  return { best, outs: cs };
+}
+function outsideUploadOfferHtml(m){
+  if (!m || (!m.best && !(m.outs && m.outs.length))) return '';
+  if (m.best){
+    const c = m.best.c;
+    return `<div id="ho-up-match" class="ho-route" style="margin:0 0 12px;border-color:var(--st-steel-line);background:var(--st-steel-bg)">
+      <div class="ho-route-v">${_hoEsc(i18t('ho_up_match_q', { ref: contractRef(c), name: c.name || '' }))}</div>
+      <p class="ho-route-say">${_hoEsc(outsideCheckLine(m.best.r))}</p>
+      <div class="ho-acts">
+        <button type="button" class="ui-btn ui-btn-primary" data-ho-up-file="${_hoEsc(c.id)}">${_hoEsc(i18t('ho_up_file_it'))}</button>
+        <button type="button" class="ui-btn" data-ho-up-new="1">${_hoEsc(i18t('ho_up_new'))}</button>
+      </div></div>`;
+  }
+  return `<div id="ho-up-pick" style="margin:0 0 12px">
+    <label class="ho-via"><span>${_hoEsc(i18t('ho_up_pick_q'))}</span>
+      <select id="ho-up-which" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
+        <option value="">${_hoEsc(i18t('ho_up_pick_none'))}</option>
+        ${m.outs.map(c => `<option value="${_hoEsc(c.id)}">${_hoEsc(contractRef(c))} · ${_hoEsc(c.name || '')}${c.counterparty ? ' · ' + _hoEsc(c.counterparty) : ''}</option>`).join('')}
+      </select></label>
+    <button type="button" class="ui-btn" data-ho-up-pick="1" style="margin-top:6px" hidden>${_hoEsc(i18t('ho_up_file_it'))}</button>
+  </div>`;
+}
+/* `read` is the upload's own reading of the file — the filing screen needs
+   nothing more, and reads nothing twice. */
+function wireOutsideUploadOffer(root, read){
+  if (!root) return;
+  const go = id => {
+    const c = typeof getContract === 'function' ? getContract(id) : null;
+    if (!c) return;
+    if (typeof closeModal === 'function') closeModal();
+    openOutsideFiling(c, { read });
+  };
+  root.querySelectorAll('[data-ho-up-file]').forEach(b => b.addEventListener('click', () => go(b.getAttribute('data-ho-up-file'))));
+  root.querySelectorAll('[data-ho-up-new]').forEach(b => b.addEventListener('click', () => {
+    const box = root.querySelector('#ho-up-match'); if (box) box.remove(); }));
+  const sel = root.querySelector('#ho-up-which'), pick = root.querySelector('[data-ho-up-pick]');
+  if (sel && pick){
+    sel.addEventListener('change', () => { pick.hidden = !sel.value; });
+    pick.addEventListener('click', () => { if (sel.value) go(sel.value); });
+  }
 }
 
 /* ============================================================
@@ -1000,7 +1140,7 @@ function outsideExecutionBlock(c){
   const signers = sc && Array.isArray(sc.signers) ? sc.signers.map(s => `${_hoEsc(s.name)}${s.on ? ' · ' + _hoEsc(_hoDay(s.on)) : ''}`).join('<br>') : '';
   return `<div class="seal-in ho-ex" data-anchor="sig">
     <div class="ho-ex-h"><span>${_hoEsc(i18t('ho_ex_title'))}</span>${typeof statusChip === 'function' ? statusChip('Signed') : ''}</div>
-    <p class="ho-sub">${_hoEsc(i18t(ex.method === 'paper' ? 'ho_ex_paper_line' : 'ho_ex_line', { via: via ? i18t(HO_VIA_KEYS[via] || 'ho_via_other') : '' }))}</p>
+    <p class="ho-sub">${_hoEsc(i18t(ex.method === 'paper' ? 'ho_ex_paper_line' : 'ho_ex_line', { via: via ? i18t(HO_VIA_KEYS[via] || 'ho_via_else') : '' }))}</p>
     <div class="ho-ex-grid">
       ${cell(i18t('ho_ex_filed'), _hoEsc((sc && sc.by && sc.by.name) || ex.by || '—'), _hoEsc(typeof fmtDT === 'function' ? fmtDT((sc && sc.at) || ex.at) : ((sc && sc.at) || ex.at || '')))}
       ${cell(i18t('ho_ex_signed_on'), _hoEsc(_hoDay((sc && sc.signedOn) || ex.signedOn) || '—'), signers)}
@@ -1029,4 +1169,5 @@ if (typeof window !== 'undefined') Object.assign(window, {
   openHandoverWindow, outsideHandOver, outsideAdopt, outsideAct, outsideWaitCardHtml, wireOutsideWait,
   outsideOpenFile, outsideChase, openOutsideSendAgain, outsideReopen, outsideCloseDeal, outsideReadFile,
   outsideDiffHtml, outsideCheckLine, openOutsideCheck, openOutsideFiling, outsideFiledBefore, outsidePartial,
-  outsideSendBack, outsideFile, outsideExecutionBlock, HO_VIA_KEYS });
+  outsideSendBack, outsideFile, outsideExecutionBlock, HO_VIA_KEYS,
+  outsideMatchUpload, outsideUploadOfferHtml, wireOutsideUploadOffer, HO_MATCH_MAX, HO_MATCH_MIN });

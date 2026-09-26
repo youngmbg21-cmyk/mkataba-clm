@@ -399,8 +399,14 @@ describe('f308 (5b) — the server is the wall', () => {
   });
 
   test('the refusal is one function, asked at both signing doors', () => {
-    assert.equal((SERVER.match(/signCheckRefusal\(/g) || []).length, 3,
-      'declared once and asked at the in-app save and at the counterparty\'s respond route');
+    /* RE-POINTED 26 Sep 2026 — a THIRD door: a contract the other side signs their own
+       way is signed nowhere in HaTi, so the moment the agreed words leave for signature
+       (POST /api/contracts/:id/handover, act 'hand') asks the same refusal. Still one
+       function; the count names every door that asks it. */
+    assert.equal((SERVER.match(/signCheckRefusal\(/g) || []).length, 4,
+      'declared once and asked at the in-app save, at the counterparty\'s respond route and at the handover');
+    assert.match(SERVER, /if \(act === 'hand'\)[\s\S]{0,1600}signCheckRefusal\(c\)/,
+      'and the handover asks it before anything leaves');
   });
 
   /* THE HONEST LIMIT, STATED RATHER THAN DISCOVERED: the wall enforces the two

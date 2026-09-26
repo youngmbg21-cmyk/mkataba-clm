@@ -94,7 +94,7 @@ function outsideListed(c){
 
 /* ---- WORKING DAYS, the way an office counts waiting ----
    Monday to Friday, counted from the day after. The same arithmetic as
-   saWorkdays (js/signapproval.js) — f381 pins the two equal — kept here so
+   saWorkdays (js/signapproval.js) — f388 pins the two equal — kept here so
    this file stands on its own on either host. Public holidays are not known
    and are not guessed. */
 function ohWorkdays(fromIso, toMs){

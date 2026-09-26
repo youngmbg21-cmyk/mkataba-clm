@@ -129,7 +129,7 @@ function mHomeHtml(){
         <button class="m-row" data-m-open="${mEsc(n.c.id)}" style="align-items:flex-start">
           <span style="width:10px;height:10px;border-radius:50%;flex:none;margin-top:6px;background:${n.dot}"></span>
           <span style="flex:1;min-width:0">
-            <span class="m-row-name">${mEsc(n.c.name||n.c.id)}</span>
+            <span class="m-row-name">${mEsc(n.c.name||(window.contractRef?contractRef(n.c):n.c.id))}</span>
             <span class="m-row-sub">${mEsc((typeof cParty==='function'?cParty(n.c):n.c.counterparty)||'No counterparty yet')}</span>
             <span style="display:block;font-size:var(--t-card);margin-top:5px;line-height:1.45;color:${n.tone}">${mEsc(n.reason)}</span>
           </span>
@@ -150,7 +150,7 @@ function mHomeHtml(){
       ${expiring.slice(0,6).map(x=>`
         <button class="m-row" data-m-open="${mEsc(x.c.id)}">
           <span style="flex:1;min-width:0">
-            <span class="m-row-name" style="font-weight:var(--w-body)">${mEsc(x.c.name||x.c.id)}</span>
+            <span class="m-row-name" style="font-weight:var(--w-body)">${mEsc(x.c.name||(window.contractRef?contractRef(x.c):x.c.id))}</span>
             <span class="m-row-sub">${mEsc((typeof cParty==='function'?cParty(x.c):x.c.counterparty)||'—')}</span>
           </span>
           <span style="flex:none;font-size:var(--t-card);color:var(--color-neutral-600);white-space:nowrap">${mEsc(x.d===0?'today':'in '+x.d+'d')}</span>
@@ -278,7 +278,7 @@ function mContractsHtml(){
         <button class="m-reg-row" data-m-open="${mEsc(c.id)}">
           <span class="m-stripe" style="background:${(typeof folderColor==='function')?folderColor(c):'var(--color-neutral-300)'}"></span>
           <span style="display:flex;align-items:flex-start;gap:var(--s-2)">
-            <span style="flex:1;min-width:0;font-size:16px;font-weight:var(--w-strong);line-height:1.3">${mEsc(c.name||c.id)}</span>
+            <span style="flex:1;min-width:0;font-size:16px;font-weight:var(--w-strong);line-height:1.3">${mEsc(c.name||(window.contractRef?contractRef(c):c.id))}</span>
             ${mPill(c)}
           </span>
           <span class="m-row-sub">${mEsc((typeof cParty==='function'?cParty(c):c.counterparty)||'No counterparty yet')}</span>
@@ -356,7 +356,7 @@ function mNegotiationsHtml(){
     <button class="m-reg-row" data-m-nego="${mEsc(c.id)}">
       <span class="m-stripe" style="background:${(typeof folderColor==='function')?folderColor(c):'var(--color-neutral-300)'}"></span>
       <span style="display:flex;align-items:flex-start;gap:var(--s-2)">
-        <span style="flex:1;min-width:0;font-size:16px;font-weight:var(--w-strong);line-height:1.3">${mEsc(c.name||c.id)}</span>
+        <span style="flex:1;min-width:0;font-size:16px;font-weight:var(--w-strong);line-height:1.3">${mEsc(c.name||(window.contractRef?contractRef(c):c.id))}</span>
       </span>
       <span class="m-row-sub">${mEsc(c.counterparty||i18t('ng_door_them'))}</span>
       <span style="display:flex;gap:var(--s-2);margin-top:7px;align-items:center">
@@ -468,7 +468,7 @@ function mApprovalsHtml(){
     <div class="m-card" style="margin-bottom:var(--s-3)">
       <button class="m-row" data-m-appr="${mEsc(c.id)}" style="align-items:flex-start;padding:14px">
         <span style="flex:1;min-width:0">
-          <span class="m-row-name">${mEsc(c.name||c.id)}</span>
+          <span class="m-row-name">${mEsc(c.name||(window.contractRef?contractRef(c):c.id))}</span>
           <span class="m-row-sub">${mEsc((typeof cParty==='function'?cParty(c):c.counterparty)||'—')}</span>
         </span>
         ${mPill(c)}

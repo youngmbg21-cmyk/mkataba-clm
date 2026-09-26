@@ -613,7 +613,10 @@ function stSearchHits(q){
   if(!words.length) return [];
   return stPanelKeys(null).filter(k=>{
     const p=SET_PANELS[k];
-    let hay=[p.title(), p.sub?p.sub():'', i18t('st_tab_'+p.tab), i18t('st_grp_'+stGroupKeyOf(k))].join(' ');
+    /* `find`: the words of a setting that shares another's drawer, so the box
+       finds it by what it says (the signing route inside the signing check). */
+    let hay=[p.title(), p.sub?p.sub():'', i18t('st_tab_'+p.tab), i18t('st_grp_'+stGroupKeyOf(k)),
+      p.find?[].concat(p.find()).join(' '):''].join(' ');
     const st=stStateOf(k);
     if(st && st.text) hay+=' '+String(st.text).replace(/<[^>]*>/g,' ');
     hay=hay.toLowerCase();
@@ -2373,24 +2376,21 @@ const SET_PANELS={
     sub:()=>i18t('sc_set_sub'),
     state(){ const g=(window.signCheckGate?signCheckGate():'off');
       return { dot:g==='off'?'off':'ok', text:`${i18t('sc_set_title')} — ${i18t('sc_set_'+g)}` }; },
-    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('sc_set_sub')}</p><div id="sc-gate-panel"></div>`; },
-    wire(){ renderSignCheckGatePanel(); },
-  },
-
-  /* ---- WHO RUNS THE SIGNING ON AN UPLOAD (26 Sep 2026, decision 3) ----
-     The answer ticked by default when somebody uploads the other side's
-     contract: we sign it in HaTi, or they sign it their way and we file the
-     signed copy. Two answers, and the factory one is what every upload did
-     before the question existed, so nothing moves on the day of the deploy. A
-     setting that writes on change, like every gate beside it. */
-  signroute:{
-    tab:'platform', group:'agreement', mandatory:false,
-    title:()=>i18t('ho_set_title'),
-    sub:()=>i18t('ho_set_sub'),
-    state(){ const v=(state.settings&&state.settings.signRouteDefault)==='outside'?'outside':'inside';
-      return { dot:'ok', text:`${i18t('ho_set_title')} — ${i18t(v==='outside'?'ho_route_out':'ho_route_in')}` }; },
-    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('ho_set_sub')}</p><div id="ho-route-panel"></div>`; },
-    wire(){ renderSignRouteDefaultPanel(); },
+    /* ---- AND WHO RUNS THE SIGNING ON AN UPLOAD (26 Sep 2026, decision 3) ----
+       The answer ticked by default when somebody uploads the other side's
+       contract: we sign it in HaTi, or they sign it their way and we file the
+       signed copy. Two answers, and the factory one is what every upload did
+       before the question existed, so nothing moves on the day of the deploy.
+       IN THIS DRAWER, NOT A ROW OF ITS OWN: it is the same kind of rule — how a
+       contract gets to signed — and a row of its own made this group five long,
+       where the page's own rule is that no group is a wall (settings-groups 1c).
+       `find` puts its words in the search, so it is found by what it says. */
+    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('sc_set_sub')}</p><div id="sc-gate-panel"></div>`
+      + `<div class="ho-set-route" style="margin-top:18px;padding-top:14px;border-top:1px solid var(--color-divider)">`
+      + `<div style="font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text);margin-bottom:4px">${i18t('ho_set_title')}</div>`
+      + `<p class="st-note" style="margin-bottom:10px">${i18t('ho_set_sub')}</p><div id="ho-route-panel"></div></div>`; },
+    find:()=>[i18t('ho_set_title'), i18t('ho_set_sub')],
+    wire(){ renderSignCheckGatePanel(); renderSignRouteDefaultPanel(); },
   },
 
   desk:{

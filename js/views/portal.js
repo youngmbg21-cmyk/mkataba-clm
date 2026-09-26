@@ -782,7 +782,12 @@ function portalExecuted(){
 /* Every reason this copy cannot be submitted, in one read. Three of them
    existed and were checked one at a time in five places; the fourth — the
    contract has been signed — was checked nowhere at all. */
-const portalReadOnly = () => !!(PORTAL_OPTS.superseded||PORTAL_OPTS.responded||portalExecuted());
+/* HANDED OVER TO THEM (26 Sep 2026, redline here, sign there): the agreed
+   words left the sender's workspace as a Word file to be signed on this side,
+   so nothing answered here can change them. The server refuses an answer too;
+   this is the sentence that stops a reader writing one. */
+const portalHandedOver = () => !!(PORTAL_OPTS && PORTAL_OPTS.handover && PORTAL_OPTS.handover.live);
+const portalReadOnly = () => !!(PORTAL_OPTS.superseded||PORTAL_OPTS.responded||portalExecuted()||portalHandedOver());
 /* The deal is done, the link is answered, or the wording has moved on since it
    was sent. Any of the three means nothing on this page can be submitted, and
    the page should say so at the top rather than letting someone fill a form
@@ -798,6 +803,28 @@ function portalClosedBanner(){
       <span style="flex:1;min-width:0;line-height:1.5">
         <span style="display:block;font-size:var(--t-card);font-weight:var(--w-strong);color:var(--st-green-fg)">${i18t('po_executed_sealed')}</span>
         <span style="display:block;font-size:var(--t-meta);color:var(--st-green-fg);margin-top:2px">The wording is final and read-only${done.at?` — signed ${fmtDT(done.at)}`:''}. You can still read this copy and keep this link. Nothing further can be proposed, decided or signed here; if something has to change, ask ${esc((PORTAL_OPTS.payload&&PORTAL_OPTS.payload.sharedBy)||'the sender')} to record an amendment.</span>
+      </span>
+    </div>`;
+  /* THE AGREED WORDS ARE WITH THEM TO SIGN, or the version handed over was
+     withdrawn. The file is theirs to download from here; the design and the
+     signing are theirs. A withdrawn version says so, so nobody signs it. */
+  const ho=PORTAL_OPTS&&PORTAL_OPTS.handover;
+  if(ho&&ho.live) return `
+    <div id="pt-handover" style="display:flex;align-items:flex-start;gap:var(--s-3);border:1px solid var(--st-steel-line);background:var(--st-steel-bg);border-left:4px solid var(--st-steel-dot);border-radius:var(--radius);padding:13px 17px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
+      <span style="flex:1;min-width:0;line-height:1.5">
+        <span style="display:block;font-size:var(--t-card);font-weight:var(--w-strong);color:var(--st-steel-fg)">${esc(i18t('po_ho_title'))}</span>
+        <span style="display:block;font-size:var(--t-meta);color:var(--st-steel-fg);margin-top:2px">${esc(i18t('po_ho_line',{ when:fmtDT(ho.at), sender:(PORTAL_OPTS.payload&&PORTAL_OPTS.payload.sharedBy)||i18t('po_the_sender') }))}</span>
+        ${PORTAL_OPTS.token?`<a id="pt-ho-file" class="ui-btn" style="margin-top:8px;display:inline-flex;text-decoration:none" href="api/shares/${encodeURIComponent(PORTAL_OPTS.token)}/handover-file" download>${esc(i18t('po_ho_download'))}${ho.fileName?` · ${esc(ho.fileName)}`:''}</a>`:''}
+      </span>
+    </div>`;
+  /* Only over the copy that WAS handed over: a round sent on this link after
+     the reopen is the new version, and it says nothing about the old one. */
+  const pAt=String((PORTAL_OPTS.payload&&PORTAL_OPTS.payload.at)||'');
+  if(ho&&ho.withdrawnAt&&(!pAt||pAt<=String(ho.withdrawnAt))) return `
+    <div id="pt-handover-withdrawn" style="display:flex;align-items:flex-start;gap:var(--s-3);border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-left:4px solid var(--st-ruby-dot);border-radius:var(--radius);padding:13px 17px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
+      <span style="flex:1;min-width:0;line-height:1.5">
+        <span style="display:block;font-size:var(--t-card);font-weight:var(--w-strong);color:var(--st-ruby-fg)">${esc(i18t('po_ho_withdrawn_title'))}</span>
+        <span style="display:block;font-size:var(--t-meta);color:var(--st-ruby-fg);margin-top:2px">${esc(i18t('po_ho_withdrawn_line',{ when:fmtDT(ho.at), gone:fmtDT(ho.withdrawnAt), sender:(PORTAL_OPTS.payload&&PORTAL_OPTS.payload.sharedBy)||i18t('po_the_sender') }))}</span>
       </span>
     </div>`;
   const sup=PORTAL_OPTS.superseded;
@@ -2391,6 +2418,8 @@ function portalRenderOpts(token, d){
     /* Read LIVE, not from the payload: a signature that landed after this link
        was last refreshed is precisely the case that matters. */
     executed:d.executed||null,
+    /* Read live like `executed`: handed over as a Word file, or withdrawn. */
+    handover:d.handover||null,
     emailConfigured:d.emailConfigured!==false, messages:d.messages||[],
     /* The server states it on the envelope as well as inside the payload, and
        the render reads whichever arrives — a reader who may do nothing must not
@@ -2424,6 +2453,7 @@ function portalSignature(d){
     String((c.negotiation&&c.negotiation.round)||''),
     `op${(c.openPoints||[]).length}`, `v${(c.versions||[]).length}`, `rd${(c.rounds||[]).length}`,
     d.executed?`x:${d.executed.at||'1'}`:'', d.superseded?`s:${d.superseded.at||'1'}`:'',
+    d.handover?`h:${d.handover.live?1:0}:${d.handover.withdrawnAt||''}`:'',
     d.responded?'r':'', String((d.messages||[]).length),
     String((d.share&&d.share.expiresAt)||''),
     /* THE ONE EXCEPTION TO "CONTENT ONLY", and it earns it. Whether the last
@@ -2462,7 +2492,7 @@ function portalPollDecide(d, prevSig){
      not to be rude, but because everything they are working on has just become
      unsendable, and letting them carry on typing into it is the worse outcome.
      The banner that replaces it says exactly what happened. */
-  if(d.executed || d.superseded) return 'repaint';
+  if(d.executed || d.superseded || (d.handover && d.handover.live)) return 'repaint';
   return portalBusy() ? 'notify' : 'repaint';
 }
 /* The quiet strip. It appears once, says what moved, and waits — it never
@@ -3311,7 +3341,7 @@ function renderShareWorkbench(p, opts={}){
       <span class="pw-id-badge">HT</span>
       <span class="pw-id-main">
         <h1>${esc(c.name||'Contract')}</h1>
-        <span class="pw-id-sub">${esc(c.id||'')}${c.counterparty?` &middot; with ${esc(c.counterparty)}`:''}
+        <span class="pw-id-sub">${esc((window.contractRef?contractRef(c):c.id)||'')}${c.counterparty?` &middot; with ${esc(c.counterparty)}`:''}
           &middot; shared by ${esc(p.sharedBy||org)}${opts.share&&opts.share.expiresAt
             ?` &middot; link expires ${esc(String(opts.share.expiresAt).slice(0,10))}`:''}</span>
       </span>
@@ -3493,7 +3523,7 @@ function renderShareHistory(p, opts={}){
               <span style="display:block;font-family:var(--font-heading);font-weight:var(--w-strong);font-size:16px;
                 white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(c.name||'Contract')}</span>
               <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);font-family:var(--font-mono);
-                white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(c.id||'')}${
+                white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc((window.contractRef?contractRef(c):c.id)||'')}${
                 c.counterparty?` &middot; with ${esc(c.counterparty)}`:''} &middot; shared by ${esc(p.sharedBy||org)}${expires}</span>
             </span>
           </section>
@@ -3502,7 +3532,7 @@ function renderShareHistory(p, opts={}){
                  spending two lines on. */}
           <div class="rl-wall" role="status"><span class="rl-wall-ic">&#128220;</span><span>
             <b>${i18t('po_record_not_contract')}</b> Every change proposed on
-            ${esc(c.id||'this contract')}, in the order it happened, with what was decided. This link
+            ${esc((window.contractRef?contractRef(c):c.id)||'this contract')}, in the order it happened, with what was decided. This link
             is read-only and the agreement itself does not travel with it &mdash; there is nothing
             here to answer or sign.</span></div>
           <div style="background:var(--color-surface);border:1px solid var(--color-divider);
@@ -3537,7 +3567,7 @@ function renderShareHistory(p, opts={}){
       if(typeof window.negoIntegrityReport!=='function'||!window.negoHistoryExportHtml) return;
       const r=await negoIntegrityReport(c);
       const html=negoHistoryExportHtml(c, r);
-      if(window.downloadFile) downloadFile(`${c.id||'contract'}-negotiation-history.html`, html, 'text/html');
+      if(window.downloadFile) downloadFile(`${(window.contractRef?contractRef(c):c.id)||'contract'}-negotiation-history.html`, html, 'text/html');
     });
   };
   paint({});
@@ -3639,7 +3669,7 @@ function renderSharePortal(p, opts={}){
         <div style="width:34px;height:34px;background:var(--color-accent);color:#fff;display:grid;place-items:center;font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-card);letter-spacing:.02em;border-radius:var(--radius);flex:none;">HT</div>
         <div style="line-height:1.25;min-width:0;">
           <div style="font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-card);">${i18t('po_shared_for_review',{org:esc(p.org)})}</div>
-          <div style="font-size:var(--t-label);color:var(--color-accent-200);font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(p.contract.id)} · shared by ${esc(p.sharedBy)} · ${fmtDT(p.at)}${opts.share&&opts.share.expiresAt?` · link expires ${String(opts.share.expiresAt).slice(0,10)}`:''} · via HaTi</div>
+          <div style="font-size:var(--t-label);color:var(--color-accent-200);font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc((window.contractRef?contractRef(p.contract):p.contract.id))} · shared by ${esc(p.sharedBy)} · ${fmtDT(p.at)}${opts.share&&opts.share.expiresAt?` · link expires ${String(opts.share.expiresAt).slice(0,10)}`:''} · via HaTi</div>
         </div>
       </div>
     </header>
@@ -4848,7 +4878,7 @@ function exportPDF(c, opts){
     const recordPart=record?`<div class="pp-record" style="font-family:Inter,system-ui,-apple-system,'Segoe UI',Arial,sans-serif;padding:64px 84px;color:#1d1f20;break-before:page;page-break-before:always">
       <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--color-accent);padding-bottom:10px;margin-bottom:var(--s-6);">
         <div style="font-weight:var(--w-title);font-size:18px;">HaTi <span style="font-weight:var(--w-body);font-size:var(--t-label);color:#5F6D6B;">${i18t('po_contract_lifecycle')}</span></div>
-        <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--t-label);color:#5F6D6B;">${c.id} · generated ${fmtDT(nowISO())}</div>
+        <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--t-label);color:#5F6D6B;">${(window.contractRef?contractRef(c):c.id)} · generated ${fmtDT(nowISO())}</div>
       </div>
       ${marks&&(!execBlock)&&c.hash&&c.hash!=='PRE-SEEDED'?`<div style="margin-bottom:var(--s-6);padding:var(--s-3);border:1px solid var(--color-divider);border-radius:var(--radius);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--t-label);word-break:break-all;"><strong>${isExternallyExecuted(c)?'SHA-256 ORIGINAL FILE FINGERPRINT':'SHA-256 DOCUMENT SEAL'}</strong><br/>${isExternallyExecuted(c)?((c.upload&&c.upload.fileHash)||'—'):c.hash}<br/><span style="color:#5F6D6B;">${(window.contractSignedLabel?contractSignedLabel(c):c.signedAt)||''}${isExternallyExecuted(c)?' · executed outside HaTi':''}</span></div>`:''}
       ${marks&&audit?`<div><div style="font-weight:var(--w-strong);font-size:var(--t-body);border-bottom:1px solid var(--color-divider);padding-bottom:6px;margin-bottom:var(--s-2);">${i18t('po_audit_trail')}</div><table style="font-size:var(--t-label);border-collapse:collapse;width:100%;">${audit}</table></div>`:''}
@@ -4867,7 +4897,7 @@ function exportPDF(c, opts){
     <div${printDesign&&window.docDesignPaperAttr?docDesignPaperAttr(printDesign):''} style="font-family:Inter,system-ui,-apple-system,'Segoe UI',Arial,sans-serif;max-width:760px;margin:0 auto;padding:var(--s-8) var(--s-6);color:#1d1f20;${printDesign&&window.docDesignPaperStyle?docDesignPaperStyle(printDesign):''}">
       ${record?`<div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--color-accent);padding-bottom:10px;margin-bottom:var(--s-6);">
         <div style="font-family:Inter,system-ui,-apple-system,'Segoe UI',Arial,sans-serif;font-weight:var(--w-title);font-size:18px;">HaTi <span style="font-weight:var(--w-body);font-size:var(--t-label);color:#5F6D6B;">${i18t('po_contract_lifecycle')}</span></div>
-        <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--t-label);color:#5F6D6B;">${c.id} · generated ${fmtDT(nowISO())}</div>
+        <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--t-label);color:#5F6D6B;">${(window.contractRef?contractRef(c):c.id)} · generated ${fmtDT(nowISO())}</div>
       </div>`:''}
       ${window.templateBrandingHeaderHtml?templateBrandingHeaderHtml(c,record?{}:{bleedX:24,bleedY:32}):''}
       ${printCover}
@@ -4924,6 +4954,6 @@ async function refreshStats(){
   try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
 }
 
-Object.assign(window,{portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
+Object.assign(window,{portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
   portalAlertsOpen,portalAlertsClose,portalPaintAlerts,wirePortalAlerts,portalAlertsStyle,
   portalGoToChange,portalPressSend,PT_READ_KEY,ptReadMap,ptRevisionKey,ptRevisionRead,ptSetRevisionRead,portalHideRevisedBanner,portalShowRevisedBanner,portalWireRevisedBanner,portalRevisedBanner,portalChangedText,openPortalCompare,PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,exportSignPagesHtml,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,openDerivedLinkDialog,portalReadingBtnsHtml,portalEnsureResponderName});

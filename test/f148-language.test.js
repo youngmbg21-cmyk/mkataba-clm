@@ -35,6 +35,10 @@ const { STRINGS, I18N_DEFAULT, LANGUAGES } = i18n;
 /* Words that are legitimately identical in both languages, so an equal-to-
    English value is a real translation rather than a forgotten one. */
 const SAME_IN_BOTH = new Set([
+  /* 'DocuSign' is a product's name, and '{who} · {title}' names who signed and
+     their title with nothing to translate — both on the signed-copy screen of a
+     contract the other side signs their own way (26 Sep 2026). */
+  'ho_via_docusign', 'ho_sig_named',
   /* 'R{n}' is the same short form in both languages — "Runda" starts with R
      too. The History tab's round column; its hover says the whole word in the
      reader's language (24 Sep 2026). */

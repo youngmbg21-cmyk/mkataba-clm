@@ -172,7 +172,7 @@ function precedentMine(opts={}){
         if(n!=null&&isFinite(n)) row.numbers[side==='ours'?'oursAccepted':'theirsAccepted'].push(n);
       }
       if(row.examples.length<PRECEDENT_EXAMPLES)
-        row.examples.push({ contractId:c.id, contractName:c.name||c.id,
+        row.examples.push({ contractId:c.id, contractName:c.name||(window.contractRef?contractRef(c):c.id),
           counterparty:c.counterparty||'', side, outcome,
           clause:ch.clauseLabel||'', at:ch.updatedAt||ch.createdAt||null,
           why:ch.why||null });

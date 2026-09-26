@@ -126,13 +126,14 @@ function calendarEvents(){
   const out=[];
   state.contracts.forEach(c=>{
     if(c.status!=='Declined'&&!c.archived){
+      const cref=(window.contractRef?contractRef(c):c.id);
       /* Through dateOnly, because the grid is keyed by YYYY-MM-DD: an expiry
          written "30 September 2026" matched no cell, so the event was built,
          counted and then rendered on no day at all. Same normalisation the
          decision date uses, so the two are comparable below. */
       const rawExp=(window.effectiveExpiry?effectiveExpiry(c):null)||(c.metadata&&c.metadata.expiryDate)||c.expiry;
       const exp=window.dateOnly?dateOnly(rawExp):rawExp;
-      if(exp) out.push({ date:exp, type:'expiry', cid:c.id, cname:c.name, note:c.counterparty||'' });
+      if(exp) out.push({ date:exp, type:'expiry', cid:c.id, cref, cname:c.name, note:c.counterparty||'' });
       /* ---- A RENEWAL SOMEBODY HAS ANSWERED IS NOT A DECISION OWED ----
          (16 Sep 2026.) THE RULE, WRITTEN ONCE AND READ EVERYWHERE: a surface
          counting to the DECISION date is silenced by any recorded answer; a
@@ -141,7 +142,7 @@ function calendarEvents(){
          "decide by", so it is the first kind. The expiry chip beside it stays —
          the agreement still ends on that day whatever was decided. */
       const dd=(typeof renewalDecided==='function'&&renewalDecided(c))?null:renewalDecisionDate(c);
-      if(dd && dd!==exp) out.push({ date:dd, type:'renewal', cid:c.id, cname:c.name, note:'decide by' });
+      if(dd && dd!==exp) out.push({ date:dd, type:'renewal', cid:c.id, cref, cname:c.name, note:'decide by' });
 
     /* Through the same normalisation the expiry goes through. A due date filed
        as "31 March 2027" — which is what a Copilot scan and a typed migration
@@ -152,7 +153,7 @@ function calendarEvents(){
        declined contract owes nothing, and its obligations on the agenda were
        jobs somebody would have done for a deal that never happened. */
     (c.obligations||[]).forEach(o=>{ const od=window.obligationDue?obligationDue(o):o.due;
-      if(od) out.push({ date:od, type:'obligation', cid:c.id, cname:c.name, note:o.desc,
+      if(od) out.push({ date:od, type:'obligation', cid:c.id, cref, cname:c.name, note:o.desc,
         /* Carried so the agenda can act on this row without looking anything
            up. BY ID, never by position: this list is sorted by date and the
            contract's own list is not, so an index here would tick off a
@@ -187,11 +188,11 @@ function calendarEvents(){
     if(n){
       (Array.isArray(n.rounds)?n.rounds:[]).forEach(r=>{
         const at=window.dateOnly?dateOnly(r&&r.at):((r&&r.at)||'').slice(0,10);
-        if(at) out.push({ date:at, type:'round', cid:c.id, cname:c.name,
+        if(at) out.push({ date:at, type:'round', cid:c.id, cref, cname:c.name,
           note:i18t('cal_round_n',{n:r.n||''}), round:r.n||null });
       });
       const t=window.dateOnly?dateOnly(n.turnAt):String(n.turnAt||'').slice(0,10);
-      if(t) out.push({ date:t, type:'round', cid:c.id, cname:c.name,
+      if(t) out.push({ date:t, type:'round', cid:c.id, cref, cname:c.name,
         note:i18t('cal_round_n',{n:n.round||''}), round:n.round||null });
     }
     }
@@ -284,7 +285,7 @@ const _dot=(color,px)=>`<span style="width:${px}px;height:${px}px;border-radius:
    cell's own tooltip either way. */
 function calChipText(e){
   if(e.type==='obligation') return String(e.note||CAL_EVENT.obligation.label);
-  return CAL_EVENT[e.type].short+' · '+e.cid;
+  return CAL_EVENT[e.type].short+' · '+(e.cref||e.cid);
 }
 
 /* ---- THE CALENDAR FILE ----
@@ -307,7 +308,7 @@ function calIcsFor(evs){
     `DTSTART;VALUE=DATE:${day(e.date)}`,
     `DTEND;VALUE=DATE:${next(e.date)}`,
     `SUMMARY:${_ics(CAL_EVENT[e.type].short+' · '+e.cname)}`,
-    `DESCRIPTION:${_ics(CAL_EVENT[e.type].label+(e.note?' — '+e.note:'')+' · '+e.cid)}`,
+    `DESCRIPTION:${_ics(CAL_EVENT[e.type].label+(e.note?' — '+e.note:'')+' · '+(e.cref||e.cid))}`,
     'END:VEVENT'].join('\r\n')).join('\r\n');
   return ['BEGIN:VCALENDAR','PRODID:-//HaTi//Contract calendar//EN','VERSION:2.0','CALSCALE:GREGORIAN',
     body,'END:VCALENDAR'].filter(Boolean).join('\r\n')+'\r\n';
@@ -336,7 +337,7 @@ function calUpcoming(evs, days){
 function calSummaryLines(evs, days){
   return calUpcoming(evs, days||calAgendaDays()).slice(0,CAL_AGENDA_ROWS).map(e=>{
     const d=daysUntil(e.date);
-    return `${e.date} · ${CAL_EVENT[e.type].label} — ${e.cname} (${e.cid})`
+    return `${e.date} · ${CAL_EVENT[e.type].label} — ${e.cname} (${e.cref||e.cid})`
       +(e.note&&e.type==='obligation'?` · ${e.note}`:'')
       +` · ${d===0?i18t('cal_today'):i18t('cal_in_days',{n:d})}`;
   });
@@ -588,7 +589,7 @@ function calHorizonHtml(){
                what a reader scanning a wall of expiry dates is looking for,
                and the money only where they may see it (the product's own
                rule, borrowed rather than re-asked). */}
-        <span class="m">${[r.c.counterparty?_esc(r.c.counterparty):'', _esc(r.c.id),
+        <span class="m">${[r.c.counterparty?_esc(r.c.counterparty):'', _esc(window.contractRef?contractRef(r.c):r.c.id),
           ((typeof canViewValues!=='function'||canViewValues())&&Number(r.c.value)>0)
             ? _esc(window.fmtMoneyShortOf?fmtMoneyShortOf(r.c):fmtMoneyShort(r.c.value)) : ''
           ].filter(Boolean).join(' · ')}</span>
@@ -656,7 +657,7 @@ function calPanelHtml(evs){
       <span class="dt"><b>${_esc(dd)}</b><i>${_esc(mo)}</i></span>
       <button class="g" data-sel="${_esc(e.cid)}">
         <span class="n2">${_esc(ev.label)} — ${_esc(e.cname)}</span>
-        <span class="m3">${_esc(e.type==='obligation'?(e.note||'')+' · '+(e.owner||i18t('cal_unassigned')):(e.note||e.cid))}</span>
+        <span class="m3">${_esc(e.type==='obligation'?(e.note||'')+' · '+(e.owner||i18t('cal_unassigned')):(e.note||e.cref||e.cid))}</span>
       </button>${theirs}${done}
       <span class="lft" style="color:${ev.fg}">${_esc(when)}</span>
     </div>`;

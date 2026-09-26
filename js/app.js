@@ -199,7 +199,7 @@ function commandMeta(view){
     }
     case 'workspace': {
       const c=getContract(state.activeId);
-      return [i18t('pg_workspace'), c?`${c.id} · ${c.name}${c.counterparty?' — '+c.counterparty:''}`:i18t('pg_open_from_register')];
+      return [i18t('pg_workspace'), c?`${(window.contractRef?contractRef(c):c.id)} · ${c.name}${c.counterparty?' — '+c.counterparty:''}`:i18t('pg_open_from_register')];
     }
     case 'redline': {
       const c=getContract(state.activeId);
@@ -219,7 +219,7 @@ function commandMeta(view){
       try{ held = (typeof window !== 'undefined' && window.redlineHeldId) ? redlineHeldId() : null; }catch(_){ held = null; }
       const one = !!(c && held && String(held) === String(c.id));
       return [i18t(one ? 'pg_workspace' : 'pg_negotiate'),
-        c?`${c.id} · ${c.name}${c.counterparty?' — '+c.counterparty:''}`:i18t('pg_open_from_register')];
+        c?`${(window.contractRef?contractRef(c):c.id)} · ${c.name}${c.counterparty?' — '+c.counterparty:''}`:i18t('pg_open_from_register')];
     }
     default: return ['HaTi', ''];
   }
@@ -403,7 +403,7 @@ function paintShellTitle(view){
 function shellCrumbAdopt(c, backBtn){
   const el=document.getElementById('shell-title'); if(!el||!c) return false;
   const wb=!!(backBtn&&backBtn.getAttribute('data-back')==='contract');
-  const who=`${c.id} · ${(window.roomHeadTitle?roomHeadTitle(c):c.name)||''}`;
+  const who=`${(window.contractRef?contractRef(c):c.id)} · ${(window.roomHeadTitle?roomHeadTitle(c):c.name)||''}`;
   const sep=()=>{ const i=document.createElement('i'); i.className='crumb-sep'; i.setAttribute('aria-hidden','true'); i.textContent='/'; return i; };
   const plain=t=>{ const s=document.createElement('span'); s.className='crumb-here'; s.textContent=t; s.title=t; return s; };
   const word=(btn,t)=>{ let w=btn.querySelector('.crumb-word'); if(!w){ w=document.createElement('span'); w.className='crumb-word'; btn.appendChild(w); } w.textContent=t; btn.classList.add('in-crumb'); return btn; };
@@ -1219,7 +1219,7 @@ function exportWorkingSetCsv(){
   if(!rows.length){ toast(i18t('ap_nothing_to_export'),'err'); return; }
   const esc=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
   const head=['ID','Name','Counterparty','Stream',`Value (${jxCurrency()})`,'Status','Last action','Expiry'];
-  const body=rows.map(c=>[c.id,c.name,c.counterparty||'',FOLDERS[c.folder]?.name||'',csvValueCell(c),statusLabel(c.status),c.lastAction||'',c.expiry||''].map(esc).join(','));
+  const body=rows.map(c=>[(window.contractRef?contractRef(c):c.id),c.name,c.counterparty||'',FOLDERS[c.folder]?.name||'',csvValueCell(c),statusLabel(c.status),c.lastAction||'',c.expiry||''].map(esc).join(','));
   const csv=[head.map(esc).join(','),...body].join('\n');
   const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
   const a=document.createElement('a'); a.href=url; a.download='hati-register.csv'; a.click(); URL.revokeObjectURL(url);
@@ -1242,12 +1242,12 @@ function commandPaletteResults(q){
       .forEach(f=>out.push({kind:'folder',id:f.id,title:f.name,get sub(){ return i18t('ap_value_stream'); },ic:f.ic||'folder'}));
   }
   let cs=state.contracts.slice();
-  if(q) cs=cs.filter(c=>(c.name+' '+(c.counterparty||'')+' '+c.id).toLowerCase().includes(q));
+  if(q) cs=cs.filter(c=>(c.name+' '+(c.counterparty||'')+' '+c.id+' '+(c.contractNo||'')).toLowerCase().includes(q));
   else cs=cs.slice().sort((a,b)=>Date.parse(b.lastAction||0)-Date.parse(a.lastAction||0));
   cs.slice(0,q?12:6).forEach(c=>out.push({kind:'contract',id:c.id,
     // an archived row stays findable HERE (filing, not deleting — WO-5) and
     // says so, since no list would explain how it got here otherwise
-    title:c.name, sub:`${c.id}${c.counterparty?' · '+c.counterparty:''}${c.archived?' · '+i18t('ct_archived_tag'):''}`, ic:(window.cIcon?cIcon(c):'file'), status:c.status}));
+    title:c.name, sub:`${(window.contractRef?contractRef(c):c.id)}${c.counterparty?' · '+c.counterparty:''}${c.archived?' · '+i18t('ct_archived_tag'):''}`, ic:(window.cIcon?cIcon(c):'file'), status:c.status}));
   return out.slice(0,14);
 }
 function openCommandPalette(){
@@ -1405,9 +1405,11 @@ function activityCategory(txt){
   return 'steel';
 }
 const CAT_DOT={gray:'var(--st-gray-dot)',amber:'var(--st-amber-dot)',green:'var(--st-green-dot)',ruby:'var(--st-ruby-dot)',steel:'var(--color-accent)'};
-function activityRow(id,action,detail,at){
+function activityRow(id,action,detail,at,ref){
   const txt=detail||action||'';
-  return {id, txt:`${action?action+' — ':''}${txt}`.replace(/^ — /,''), at, when:relTime(at), cat:activityCategory((action||'')+' '+txt)};
+  /* `ref` is what a person reads (the contract number, where a working file
+     has taken one); `id` stays the key the row opens. */
+  return {id, ref:ref||id, txt:`${action?action+' — ':''}${txt}`.replace(/^ — /,''), at, when:relTime(at), cat:activityCategory((action||'')+' '+txt)};
 }
 function buildActivityFeed(limit=40){
   // Server mode: the light contract list carries no audit trail, so the
@@ -1416,7 +1418,7 @@ function buildActivityFeed(limit=40){
   if(API_MODE()&&state.activityFeed) return state.activityFeed.slice(0,limit);
   const feed=[];
   state.contracts.forEach(c=>{
-    (c.audit||[]).forEach(a=>feed.push(activityRow(c.id,a.action,a.detail,a.at)));
+    (c.audit||[]).forEach(a=>feed.push(activityRow(c.id,a.action,a.detail,a.at,(window.contractRef?contractRef(c):c.id))));
   });
   feed.sort((a,b)=>Date.parse(b.at||0)-Date.parse(a.at||0));
   return feed.slice(0,limit);
@@ -1430,7 +1432,7 @@ function refreshActivityFeed(force){
   if(!force&&state.activityFeed&&(Date.now()-_activityAt)<15000) return;
   _activityBusy=true;
   api('activity?limit=40')
-    .then(r=>{ state.activityFeed=(r.events||[]).map(e=>activityRow(e.id,e.action,e.detail,e.at)); })
+    .then(r=>{ state.activityFeed=(r.events||[]).map(e=>activityRow(e.id,e.action,e.detail,e.at,e.contractNo)); })
     .catch(()=>{})
     .finally(()=>{ _activityAt=Date.now(); _activityBusy=false; if(state.panelOpen&&state.view!=='intel') renderContextPanel(); });
 }
@@ -1506,6 +1508,16 @@ const ALERT_KINDS = [
      beside the other colleague waiting on this reader by name. Amber, both:
      work owed, not a fault. */
   { k:'desk-quiet',  tone:'amber', ic:'&#9203;' },
+  /* ---- OUT WITH THEM FOR SIGNATURE (26 Sep 2026, redline here, sign there) ----
+     To the person who handed it over (or the contract's owner), and only when
+     something is owed: they have signed and ours is next, the fifth working
+     day has passed with nothing back, or it has been out long enough to ask
+     whether the deal is still live. The same three moments the reminder mails
+     name, off the same readings in js/outside.js. Amber: work owed. It sits
+     after the quiet desk — both are the other side sitting on something past
+     the standard — and never between the quiet desk and the negotiation it is
+     about (f381 pins that pair). */
+  { k:'handover',    tone:'amber', ic:'&#128228;' },
   { k:'review-mine', tone:'amber', ic:'&#128100;' },
   { k:'desk-join',   tone:'amber', ic:'&#128101;' },
   { k:'approval',    tone:'amber', ic:'&#9989;'  },
@@ -1584,7 +1596,7 @@ function buildAlerts(){
      NAMED "MK-324" is the same duplicate wearing different clothes. */
   const push=(kind,c,text,go,extra)=>{ const d=ALERT_KINDS.find(x=>x.k===kind)||ALERT_KINDS[0];
     const nm=c?String(c.name||''):'';
-    out.push({ kind, id:c?c.id:'', name:(nm && nm!==(c&&c.id))?nm:'', text, tone:d.tone, ic:d.ic, go,
+    out.push({ kind, id:c?c.id:'', ref:c?(window.contractRef?contractRef(c):c.id):'', name:(nm && nm!==(c&&c.id) && nm!==(c&&c.contractNo))?nm:'', text, tone:d.tone, ic:d.ic, go,
       ...(extra||{}) }); };
 
   /* 1. THE COUNTERPARTY HAS SAID THEY ARE READY TO SIGN (owner-reported
@@ -1612,8 +1624,31 @@ function buildAlerts(){
       let ready=false; try{ ready=cpReadyToSign(c); }catch(_){ ready=false; }
       if(!ready) return;
       let news=false; try{ news=!!(window.rlBellIsNews && rlBellIsNews(c)); }catch(_){ news=false; }
+      /* On a file they sign the next move is the handover, not a link. */
+      const theySign=!!(window.signRouteOf&&signRouteOf(c)==='outside');
       push('cp-ready',c,i18t('al_cp_ready'),
-        ()=>{ if(window.openWorkspace) openWorkspace(c.id); },{ news });
+        ()=>{ if(window.openWorkspace) openWorkspace(c.id); if(theySign&&window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} },
+        theySign?{ news, sub:i18t('ho_al_ready_sub') }:{ news });
+    });
+  }
+  /* 1a. OUT WITH THEM FOR SIGNATURE, and something is owed (see the kind). */
+  if(me && window.handoverActive){
+    const nowMs=Date.now();
+    cs.forEach(c=>{
+      let out=false; try{ out=handoverActive(c); }catch(_){ out=false; }
+      if(!out||c.archived) return;
+      const ho=c.handover||{};
+      const mine=(ho.by&&String(ho.by.id)===String(me.id)) || (c.owner&&String(c.owner.id)===String(me.id));
+      if(!mine) return;
+      let st='with'; try{ st=window.handoverStage?handoverStage(c,nowMs):'with'; }catch(_){ st='with'; }
+      const wait=window.handoverWaitWords?handoverWaitWords(c):'';
+      const n=window.handoverDays?handoverDays(c,nowMs):0;
+      const first=window.handoverFirstReminderAt?handoverFirstReminderAt(c):NaN;
+      const text=st==='partial'?i18t('al_ho_partial')
+        : st==='stale'?i18t('al_ho_live',{ wait:i18tn('ho_days',n,{n}) })
+        : (Number.isFinite(first)&&nowMs>=first)?i18t('al_ho_wait',{ wait }) : '';
+      if(!text) return;
+      push('handover',c,text,()=>{ if(window.openWorkspace) openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} });
     });
   }
   /* 1b. AN ANSWER FROM THE OTHER SIDE THAT THIS BROWSER CANNOT TAKE IN.
@@ -1737,7 +1772,8 @@ function buildAlerts(){
         own answer about whose turn it is; matching by member record first and
         address second is the same order internalSignerRecipient uses. */
   if(me && window.nextSigner){
-    cs.filter(c=>c.status!=='Declined').forEach(c=>{
+    /* A file THEY sign is never signed here, so it is never this row. */
+    cs.filter(c=>c.status!=='Declined'&&!(window.signRouteOf&&signRouteOf(c)==='outside')).forEach(c=>{
       let ns=null; try{ ns=nextSigner(c); }catch(_){ ns=null; }
       if(!ns||ns.party==='counterparty'||ns.signed) return;
       const mine=(ns.memberId&&String(ns.memberId)===String(me.id))
@@ -2550,7 +2586,7 @@ function activityPanelHtml(){
             <span style="width:8px;height:8px;border-radius:50%;background:${CAT_DOT[a.cat]};flex:none;margin-top:var(--s-1);"></span>
             <span style="flex:1;min-width:0;">
               <span style="display:block;font-size:var(--t-meta);line-height:1.4;">${a.txt}</span>
-              <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-500);margin-top:1px;font-family:var(--font-mono);">${a.id} · ${a.when}</span>
+              <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-500);margin-top:1px;font-family:var(--font-mono);">${a.ref||a.id} · ${a.when}</span>
             </span>
           </button>`).join(''):`<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:var(--s-3) 2px;">${i18t('ap_no_activity')}</div>`}
       </div>`;
@@ -2584,7 +2620,7 @@ function alertsPanelHtml(){
               <span class="al-t" style="display:block;font-size:var(--t-meta);line-height:1.4;font-weight:var(--w-strong);">${esc(a.text)}</span>
               ${a.sub?`<span class="al-sub" style="display:block;font-size:var(--t-label);line-height:1.45;color:var(--color-neutral-600);margin-top:2px;">${esc(a.sub)}</span>`:''}
               ${a.name?`<span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(a.name)}</span>`:''}
-              <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-500);font-family:var(--font-mono);">${esc(a.id)}</span>
+              <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-500);font-family:var(--font-mono);">${esc(a.ref||a.id)}</span>
             </span>
           </button>`).join(''):`
           <div style="padding:26px 6px;text-align:center;">

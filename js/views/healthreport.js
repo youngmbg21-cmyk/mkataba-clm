@@ -237,19 +237,19 @@ function buildHealthReportHtml(d, imgs){
 
   // §3 — expiring
   const expRows=d.expiring90.slice(0,10).map(x=>[
-    _hrEsc(x.c.name||x.c.id), _hrEsc(x.c.counterparty||'—'), _hrDate(x.e), _hrDaysCell(x.d),
+    _hrEsc(x.c.name||(window.contractRef?contractRef(x.c):x.c.id)), _hrEsc(x.c.counterparty||'—'), _hrDate(x.e), _hrDaysCell(x.d),
     ...(money?[x.c.value?_hrEsc(_hrMoney(x.c.value)):'—']:[]) ]);
   const expCols=[t('hr_col_contract'),t('hr_col_party'),t('hr_col_date'),t('hr_col_days'),...(money?[t('hr_col_value')]:[])];
 
   // §4 — stuck
-  const stuckRows=d.stuckReview.slice(0,8).map(x=>[_hrEsc(x.c.name||x.c.id),_hrEsc(x.c.counterparty||'—'),_hrIdleCell(x.idle)]);
+  const stuckRows=d.stuckReview.slice(0,8).map(x=>[_hrEsc(x.c.name||(window.contractRef?contractRef(x.c):x.c.id)),_hrEsc(x.c.counterparty||'—'),_hrIdleCell(x.idle)]);
   const deadNames=(d.friction&&Array.isArray(d.friction.deadlockList))
     ?d.friction.deadlockList.map(x=>x&&(x.name||x.id||x)).filter(v=>typeof v==='string'&&v).slice(0,4):[];
 
   // §5 — risky
   const riskRows=d.risky.slice(0,8).map(x=>{
     const f=d.findingsOf(x.c);
-    return [_hrEsc(x.c.name||x.c.id),_hrEsc(x.c.counterparty||'—'),_hrRiskCell(Math.round(x.r)),_hrEsc(f.join('; ')||'—')];
+    return [_hrEsc(x.c.name||(window.contractRef?contractRef(x.c):x.c.id)),_hrEsc(x.c.counterparty||'—'),_hrRiskCell(Math.round(x.r)),_hrEsc(f.join('; ')||'—')];
   });
 
   // §6 — friction
@@ -265,7 +265,7 @@ function buildHealthReportHtml(d, imgs){
 
   // §7 — actions
   const actParts=[];
-  if(d.decisions.length) actParts.push(`<h3>${_hrEsc(t('hr_act_renewals'))}</h3>${table([t('hr_col_contract'),t('hr_col_party'),t('hr_col_date'),t('hr_col_days')],d.decisions.slice(0,8).map(x=>[_hrEsc(x.c.name||x.c.id),_hrEsc(x.c.counterparty||'—'),_hrDate(x.dd),_hrDaysCell(x.d)]))}`);
+  if(d.decisions.length) actParts.push(`<h3>${_hrEsc(t('hr_act_renewals'))}</h3>${table([t('hr_col_contract'),t('hr_col_party'),t('hr_col_date'),t('hr_col_days')],d.decisions.slice(0,8).map(x=>[_hrEsc(x.c.name||(window.contractRef?contractRef(x.c):x.c.id)),_hrEsc(x.c.counterparty||'—'),_hrDate(x.dd),_hrDaysCell(x.d)]))}`);
   if(d.overdueOb.length) actParts.push(`<h3>${_hrEsc(t('hr_act_overdue'))}</h3><ul>${d.overdueOb.slice(0,8).map(o=>`<li>${_hrSpan('neg','⚠')} ${_hrEsc(o.desc||'—')}${o.cname?` — ${_hrEsc(o.cname)}`:''}</li>`).join('')}</ul>`);
 
   const gen=d.generatedAt.toLocaleDateString(langLocale(),{day:'2-digit',month:'long',year:'numeric'});

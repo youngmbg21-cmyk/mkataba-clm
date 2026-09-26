@@ -338,7 +338,7 @@ function cohortPackRow(c){
   let assur = '';
   try{ const a = (typeof contractAssurance==='function') ? contractAssurance(c) : null; assur = (a && (a.label || a.rung)) || ''; }catch(_){ assur=''; }
   return {
-    id: c.id, name: c.name||'', who: c.counterparty||'',
+    id: c.id, ref: (window.contractRef?contractRef(c):c.id), name: c.name||'', who: c.counterparty||'',
     stream: (typeof regStreamName==='function') ? regStreamName(c) : (c.folder||''),
     status: c.status||'',
     value: money ? (typeof fmtMoneyOf==='function' ? fmtMoneyOf(c, c.value||0) : String(c.value||0)) : '',
@@ -390,7 +390,7 @@ function cohortPackHtml(d){
   const body = d.rows.map(r=>`
     <section style="page-break-inside:avoid;border:1px solid #e2e6e5;border-radius:2px;padding:16px 18px;margin:0 0 14px">
       <div style="display:flex;justify-content:space-between;gap:16px;align-items:baseline;margin-bottom:8px">
-        <h2 style="margin:0;font-size:15px;font-weight:700;color:#1B2A28">${e(r.id)} &nbsp;${e(r.name)}</h2>
+        <h2 style="margin:0;font-size:15px;font-weight:700;color:#1B2A28">${e(r.ref||r.id)} &nbsp;${e(r.name)}</h2>
         <span style="font-size:12px;color:#5F6D6B">${e(r.status)}</span>
       </div>
       <table style="width:100%;border-collapse:collapse;font-size:12px;color:#1B2A28">

@@ -4207,6 +4207,7 @@ function negoCopilotContext(c){
   return {
     surface: 'negotiation-room',
     contractId: c.id || null,
+    contractNo: c.contractNo || null,
     name: c.name || null,
     counterparty: c.counterparty || null,
     round: negoRound(c),

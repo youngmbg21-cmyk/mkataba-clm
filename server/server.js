@@ -1484,8 +1484,8 @@ function srvSignApprovalMerge(prev, c, user) {
 
    THE HANDOVER IS THIS ROUTE'S, NEVER A SAVE'S. `handover` and
    `handoverHistory` are written by POST /api/contracts/:id/handover and by
-   nothing else, and the ordinary save keeps the STORED values — the locks'
-   own rule (contractSaveKeepsLocks). So no client can forge a handover, lift
+   nothing else, and the ordinary save keeps the STORED values — the clause
+   locks' own rule, borrowed. So no client can forge a handover, lift
    one, or wind back a reminder by saving the record it happens to hold.
 
    THE CONTRACT NUMBER IS THIS SERVER'S TO GIVE. A working file (RL-012) takes
@@ -1579,8 +1579,11 @@ function srvMayAcceptDiffer(c, u) {
   if (!u) return false;
   if (u.role === 'admin') return true;
   const id = String(u.id);
+  /* APPROVED ONLY — the browser's own reading (_hoApprovedBy) asks the same. A
+     request withdrawn while it waited was never a yes, and one withdrawn at a
+     reopen was a yes to wording that has since moved; neither may accept a copy. */
   const sa = (Array.isArray(c && c.signApprovals) ? c.signApprovals : []).some(r => r
-    && (r.status === 'approved' || r.status === 'withdrawn')
+    && r.status === 'approved'
     && ((r.decidedBy && String(r.decidedBy.id) === id) || String(r.approverId || '') === id || String(r.backupId || '') === id));
   const rule = (Array.isArray(c && c.approvalChain) ? c.approvalChain : []).some(s => s && s.status === 'approved'
     && String(s.by || '') === String(u.name || ''));
@@ -1607,9 +1610,11 @@ function srvNextContractNo() {
   setSetting('uid', n);
   return no;
 }
-/* Our own people on this file: the lead, the desk, the people list, the
-   signatory and whoever approved it — members only, each once, and only those
-   who can open the contract. The one list every handover mail is sent to. */
+/* Our own people on this file: the lead, the desk, the signatory and whoever
+   approved it — members only, each once, and only those who can open the
+   contract. The one list every handover mail is sent to. NOT the Overview's
+   "Who else" list: naming somebody there sends them nothing, by the owner's
+   own wall (f354), so this server never reads it. */
 function hoPeople(c, opts) {
   const o = opts || {};
   const users = db.prepare('SELECT * FROM users').all();
@@ -1627,7 +1632,6 @@ function hoPeople(c, opts) {
   if (c.owner && c.owner.id) add(c.owner.id, 'lead');
   const d = deskOfRow(c);
   if (d) { add(d.leadId, 'lead'); (d.contributors || []).forEach(p => add(p && p.id, 'contributor')); }
-  (Array.isArray(c.participants) ? c.participants : []).forEach(p => { if (p && p.memberId) add(p.memberId, 'contributor'); });
   (Array.isArray(c.signerPlan) ? c.signerPlan : []).forEach(s => { if (s && s.party === 'internal' && s.memberId) add(s.memberId, 'signatory'); });
   const ho = c.handover;
   if (ho && ho.signatory && ho.signatory.id) add(ho.signatory.id, 'signatory');
@@ -3268,7 +3272,7 @@ app.get('/api/activity', auth, (req, res) => {
     let c; try { c = JSON.parse(r.json); } catch (_) { continue; }
     const audit = Array.isArray(c.audit) ? c.audit : [];
     for (const a of audit.slice(-40)) {
-      feed.push({ id: c.id, name: c.name, action: a.action || '', detail: a.detail || '', at: a.at || '', user: a.user || '' });
+      feed.push({ id: c.id, contractNo: c.contractNo || undefined, name: c.name, action: a.action || '', detail: a.detail || '', at: a.at || '', user: a.user || '' });
     }
   }
   feed.sort((x, y) => Date.parse(y.at || 0) - Date.parse(x.at || 0));
@@ -3296,18 +3300,18 @@ app.get('/api/search', auth, (req, res) => {
   const snippets = canViewValues(req.user);
   if (!ftsOk) { // graceful fallback: LIKE over the indexed columns
     const like = '%' + likeEscape(q.toLowerCase()) + '%';
-    const w = whereOf("(lower(c.name) LIKE ? ESCAPE '\\' OR lower(c.counterparty) LIKE ? ESCAPE '\\')", fs.sql);
-    const rows = db.prepare(`SELECT c.id, c.name, c.counterparty FROM contracts c ${w} LIMIT ?`).all(like, like, ...fs.args, limit);
-    return res.json({ hits: rows.map(r => ({ id: r.id, name: r.name, counterparty: r.counterparty, snippet: '' })), fts: false, snippets });
+    const w = whereOf("(lower(c.name) LIKE ? ESCAPE '\\' OR lower(c.counterparty) LIKE ? ESCAPE '\\' OR lower(COALESCE(c.contract_no,'')) LIKE ? ESCAPE '\\')", fs.sql);
+    const rows = db.prepare(`SELECT c.id, c.contract_no, c.name, c.counterparty FROM contracts c ${w} LIMIT ?`).all(like, like, like, ...fs.args, limit);
+    return res.json({ hits: rows.map(r => ({ id: r.id, contractNo: r.contract_no || undefined, name: r.name, counterparty: r.counterparty, snippet: '' })), fts: false, snippets });
   }
   // sanitise into a prefix MATCH query (avoid FTS5 syntax errors on punctuation)
   const match = q.replace(/["']/g, ' ').split(/\s+/).filter(Boolean).map(t => t.replace(/[^\w]/g, '') + '*').filter(t => t.length > 1).join(' OR ');
   if (!match) return res.json({ hits: [], fts: true });
   try {
     const w = whereOf('contracts_fts MATCH ?', fs.sql);
-    const rows = db.prepare(`SELECT f.id, f.name, f.counterparty, snippet(contracts_fts,3,'[',']','…',12) AS snippet, bm25(contracts_fts) AS rank
+    const rows = db.prepare(`SELECT f.id, c.contract_no, f.name, f.counterparty, snippet(contracts_fts,3,'[',']','…',12) AS snippet, bm25(contracts_fts) AS rank
       FROM contracts_fts f JOIN contracts c ON c.id = f.id ${w} ORDER BY rank LIMIT ?`).all(match, ...fs.args, limit);
-    res.json({ hits: rows.map(r => ({ id: r.id, name: r.name, counterparty: r.counterparty, snippet: snippets ? r.snippet : '' })), fts: true, snippets });
+    res.json({ hits: rows.map(r => ({ id: r.id, contractNo: r.contract_no || undefined, name: r.name, counterparty: r.counterparty, snippet: snippets ? r.snippet : '' })), fts: true, snippets });
   } catch (e) { res.status(200).json({ hits: [], fts: true, error: 'search parse' }); }
 });
 
@@ -3889,6 +3893,11 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     const sc = c.signedCopy || {};
     if (!sc.file || !hoFileRow(sc.file.fileId))
       return res.status(400).json({ error: 'The signed copy has to be on the server before it is filed. Upload it again.' });
+    /* FILING NEEDS EVERY SIGNATURE (Phase 2): the person filing says the copy
+       carries every party's signature. A copy only some have signed is kept
+       on the handover and waits; it is never the contract of record. */
+    if (sc.everyone !== true)
+      return res.status(400).json({ error: 'A signed copy is filed once every party has signed it. Keep a part-signed copy on the waiting card instead.', everyone: false });
     const cmp = sc.compare || null;
     if (!cmp || cmp.same !== true) {
       const d = sc.differs || null;
@@ -7928,7 +7937,10 @@ function copilotOpenFindings(c) {
 // Parse one contract's stored json, scoped to the caller's org.
 function copilotGetJson(ctx, id) {
   if (!id) return null;
-  const r = db.prepare('SELECT json, folder FROM contracts WHERE id=? AND org_id=?').get(String(id), ctx.org);
+  /* By key, or by the contract number a working file took when its signed
+     copy was filed (26 Sep 2026): the model may name either. */
+  const r = db.prepare('SELECT json, folder FROM contracts WHERE id=? AND org_id=?').get(String(id), ctx.org)
+    || db.prepare('SELECT json, folder FROM contracts WHERE contract_no=? AND org_id=?').get(String(id).toUpperCase(), ctx.org);
   // Out of the caller's folder scope is indistinguishable from absent, here as
   // everywhere else — the model is told the contract was not found, so it
   // cannot report its existence back to the user.
@@ -7942,7 +7954,7 @@ function copilotCard(ctx, id) {
   if (!c) return null;
   const open = copilotOpenFindings(c);
   const card = {
-    id: c.id, name: c.name || c.id, counterparty: c.counterparty || '',
+    id: c.id, contractNo: c.contractNo || undefined, name: c.name || c.id, counterparty: c.counterparty || '',
     value: Number(c.value) || 0, valueType: c.valueType || 'standard',
     status: c.status || '', folder: c.folder || '', template: c.template || '',
     source: c.source || '', expiry: c.expiry || '', openFindings: open.length,
@@ -7965,7 +7977,7 @@ function copilotDetail(ctx, id) {
   const d = copilotDaysUntil(c.expiry);
   const body = contractFullBody(c);
   const detail = {
-    found: true, id: c.id, name: c.name || c.id, counterparty: c.counterparty || 'none',
+    found: true, id: c.id, contractNo: c.contractNo || undefined, name: c.name || c.id, counterparty: c.counterparty || 'none',
     folder: c.folder || '', template: c.template || '', isUpload: c.source === 'upload',
     value: Number(c.value) || 0, monetary: c.valueType !== 'none', valueType: c.valueType || 'standard',
     ...copilotMoneyOf(c),
@@ -8177,7 +8189,7 @@ function copilotList(ctx, filter = {}) {
   const off = Math.max(0, Math.floor(Number(filter.offset) || 0));
   const shown = cs.slice(off, off + 40).map(c => {
     const d = copilotDaysUntil(c.expiry);
-    const row = { id: c.id, name: c.name || c.id, counterparty: c.counterparty || '', folder: c.folder || '', status: c.status || '', value: Number(c.value) || 0, ...copilotMoneyOf(c), expiry: c.expiry || '', daysUntilExpiry: d, openFindings: copilotOpenFindings(c).length };
+    const row = { id: c.id, contractNo: c.contractNo || undefined, name: c.name || c.id, counterparty: c.counterparty || '', folder: c.folder || '', status: c.status || '', value: Number(c.value) || 0, ...copilotMoneyOf(c), expiry: c.expiry || '', daysUntilExpiry: d, openFindings: copilotOpenFindings(c).length };
     if (!ctx.money) copilotStripMoney(row);
     return row;
   });
@@ -8218,7 +8230,7 @@ function copilotCardOf(c, briefIds) {
   const read = !!((briefIds && briefIds.has(String(c.id))) || rv || (c.scan && Array.isArray(c.scan.findings)));
   let move = null;
   try { const n = copilotNegotiation(c); if (n && n.active) move = n.turn === 'counterparty' ? 'them' : 'you'; } catch (_) {}
-  return { id: c.id, name: c.name || c.id, counterparty: c.counterparty || '', folder: c.folder || '', kind: copilotContractKind(c),
+  return { id: c.id, contractNo: c.contractNo || undefined, name: c.name || c.id, counterparty: c.counterparty || '', folder: c.folder || '', kind: copilotContractKind(c),
     status: c.status || '', value: Number(c.value) || 0, expiry: c.expiry || '', signedAt: contractSignedOn(c) || '',
     overdue, offStandard, read, move, archived: !!c.archived };
 }
@@ -8716,7 +8728,7 @@ function graphSays(g) {
       if (num(f.overdue)) p.push(`${num(f.overdue)} overdue obligation${num(f.overdue) === 1 ? '' : 's'}`);
       if (num(f.offStandard) != null) p.push(num(f.offStandard) ? `${num(f.offStandard)} off standard` : 'on standard');
       if (f.unread) p.push('not read by Copilot');
-      return p.length ? `${cut(id, 40)}: ${p.join(', ')}` : ''; }).filter(Boolean);
+      return p.length ? `${cut(f.contractNo ? `${f.contractNo} (worked as ${id})` : id, 60)}: ${p.join(', ')}` : ''; }).filter(Boolean);
     const more = Object.keys(g.facts).length - ids.length + (num(g.factsOmitted) || 0);
     if (lines.length) t += `What the graph says about each contract: ${lines.join('; ')}${more > 0 ? `; and ${more} more not listed` : ''}. `;
   }
@@ -8779,7 +8791,7 @@ HOW TO WORK:
 - QUESTIONS ABOUT OBLIGATIONS, PROMISES, DELIVERABLES OR PAYMENTS DUE are answered from get_obligations (one contract, or the whole book, with "byBand" counts); QUESTIONS ABOUT WHO DID WHAT AND WHEN on a contract are answered from get_contract_history. Never infer either from the wording alone.
 - QUESTIONS ABOUT WHETHER A CONTRACT MATCHES OUR STANDARDS, POSITIONS OR PLAYBOOK: call check_against_playbook with the contract id and answer from its verdicts. If it returns noPlaybook, say plainly that no playbook is set up for this contract type — do not improvise one.
 - Reply in the language the user wrote their question in. This reader's interface language is ${(typeof ctx.lang === 'string' && ctx.lang.trim()) ? ctx.lang.trim().slice(0, 35) : 'English (en)'}. Contract quotes stay verbatim in their original language; your own words follow the user's.
-- Contract ids look like MK-103. THE NUMBER IN AN ID IS A COUNTER, NOT A COUNT: it only ever goes up, is never reused or rewound, and is spent by deleted contracts and abandoned drafts alike — so MK-397 says nothing about how many contracts exist. Count contracts from list_portfolio's "total", never from the highest id.
+- Contract ids look like MK-103. A working file — a contract negotiated here and signed on the other side's system — has an id like RL-012 until its signed copy is filed; then it also carries a contract number ("contractNo", MK-…), which is the reference people use: name it by that number. THE NUMBER IN AN ID IS A COUNTER, NOT A COUNT: it only ever goes up, is never reused or rewound, and is spent by deleted contracts and abandoned drafts alike — so MK-397 says nothing about how many contracts exist. Count contracts from list_portfolio's "total", never from the highest id.
 - MONEY: the workspace currency is ${orgJx().currency}; each contract states its OWN currency and its "value" is in that currency. Never add values across currencies and never convert by yourself — the tools carry converted figures ("valueInHomeCurrency", "valueTotalInHomeCurrency") and say what was left out for want of a rate ("valueLeftOut"); quote those, and say what was left out.
 - LEAD WITH THE ANSWER, not a list. Say what the data means (counts, totals, the standout item, what to watch) before naming contracts. Cite at most 3 of the most relevant contracts unless the user explicitly asks for the full list; for broad matches, summarize the aggregate and offer to list the rest or drill into one.
 - Always finish by calling deliver_answer exactly once. Cite the contracts you used. When you compared 2+ contracts, fill in the compare table.
@@ -9791,7 +9803,7 @@ function executedPdf(c) {
     y -= 18;
   }
   para(`${c.name || 'Contract'}`, { size: 15, font: F.bold, align: centeredHeads ? 'center' : null, after: 2 });
-  para(`${c.id}${c.counterparty ? ' · with ' + c.counterparty : ''} · Fully executed${sealWhen(c) ? ' · ' + sealWhen(c) : ''}`,
+  para(`${contractRef(c)}${c.counterparty ? ' · with ' + c.counterparty : ''} · Fully executed${sealWhen(c) ? ' · ' + sealWhen(c) : ''}`,
     { size: 8.5, color: '5c6a72', align: centeredHeads ? 'center' : null, after: 12 });
 
   // ---- the frozen sealed wording ----
@@ -9894,6 +9906,18 @@ function executedPdf(c) {
 
 function executedAttachment(c) {
   const esc = s => String(s == null ? '' : s).replace(/[&<>]/g, x => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[x]));
+  /* THE SIGNED COPY OF RECORD (26 Sep 2026): a contract signed outside HaTi —
+     or filed through the old paper door — goes out as the copy that was
+     signed, never as the file uploaded at the start. */
+  const signedId = (c.signedCopy && c.signedCopy.file && c.signedCopy.file.fileId)
+    || (c.execution && c.execution.offPlatform && c.execution.fileId) || null;
+  if (signedId) {
+    const f = hoFileRow(signedId);
+    const m = f && String(f.data || '').match(/^data:([^;]*);base64,(.*)$/s);
+    if (m && m[2] && m[2].length <= 14 * 1024 * 1024)
+      return { filename: String(f.name || contractRef(c) + ' — signed copy').slice(0, 120), content: m[2] };
+    return null;
+  }
   if (c.upload && c.upload.dataUrl) {
     const m = String(c.upload.dataUrl).match(/^data:([^;]*);base64,(.*)$/s);
     if (m && m[2] && m[2].length <= 14 * 1024 * 1024)
@@ -9904,7 +9928,7 @@ function executedAttachment(c) {
   const safeName = String(c.name || 'contract').replace(/[^\w\-. ]+/g, '').trim().slice(0, 60) || 'contract';
   try {
     const pdf = executedPdf(c);
-    return { filename: `${c.id} — Executed — ${safeName}.pdf`, content: pdf.toString('base64') };
+    return { filename: `${contractRef(c)} — Executed — ${safeName}.pdf`, content: pdf.toString('base64') };
   } catch (e) {
     console.warn('[distribute] PDF build failed for ' + c.id + ' (' + e.message + ') — attaching the styled HTML copy instead.');
     return executedAttachmentHtml(c);
@@ -10018,7 +10042,7 @@ ${footerHtml}
 </div>
 </body></html>`;
   const safeName = String(c.name || 'contract').replace(/[^\w\-. ]+/g, '').trim().slice(0, 60) || 'contract';
-  return { filename: `${c.id} — Executed — ${safeName}.html`, content: Buffer.from(doc, 'utf8').toString('base64') };
+  return { filename: `${contractRef(c)} — Executed — ${safeName}.html`, content: Buffer.from(doc, 'utf8').toString('base64') };
 }
 
 /* Distribution: email each party their copy of the executed contract. The
@@ -10244,7 +10268,21 @@ app.post('/api/contracts/:id/handover', auth, editor, async (req, res) => {
        record — or the lead's word that they confirmed by email, with the day. */
     const how = b.how || {};
     let howRec = null;
-    if (how.kind === 'signal') {
+    /* EVERY NEGOTIATING PARTY AGREES (Phase 2). Where more than one party
+       negotiated, one Ready to sign from one link cannot speak for the others,
+       so each one's agreement is said by name and day. */
+    const negotiating = srvPartiesNegotiating(c);
+    if (negotiating.length > 1) {
+      const said = Array.isArray(how.parties) ? how.parties : [];
+      const dayOf = p => { const x = said.find(s => s && String(s.id) === p.id); const d = String((x && x.at) || '').slice(0, 10);
+        return /^\d{4}-\d{2}-\d{2}$/.test(d) && d <= hoToday() ? d : ''; };
+      const missing = negotiating.filter(p => !dayOf(p));
+      if (missing.length) return res.status(400).json({
+        error: `Every party that negotiated has to have agreed. Say on which day each one confirmed: ${missing.map(p => p.name).join(', ')}.`,
+        parties: missing.map(p => p.id) });
+      const days = negotiating.map(p => ({ id: p.id, name: p.name, at: dayOf(p) }));
+      howRec = { kind: 'email', at: days.map(d => d.at).sort().pop(), parties: days };
+    } else if (how.kind === 'signal') {
       const sig = c.negotiation && c.negotiation.ready && c.negotiation.ready.counterparty;
       if (!sig) return res.status(400).json({ error: 'There is no Ready to sign from them on file. Tick that they confirmed by email, with the date.' });
       howRec = { kind: 'signal', at: sig.at || null, name: clean(sig.name || sig.by || '').slice(0, 120) };
@@ -10299,11 +10337,22 @@ app.post('/api/contracts/:id/handover', auth, editor, async (req, res) => {
     let report = null;
     if (channel === 'email') report = mailReport(await hoMailFile(req, c, c.handover, to, clean(b.note).slice(0, HO_NOTE_MAX)));
     c.handover.sends.push({ at, by: me, to, channel, ...(report || {}) });
+    /* THE WORD FILE GOES TO EACH PARTY (Phase 2): one mail per address, each
+       recorded, each said — a mail that did not go is not a party told. */
+    const also = channel === 'email' && Array.isArray(b.also) ? b.also.slice(0, 8) : [];
+    for (const a of also) {
+      const t = { name: clean(a && a.name).slice(0, 120), email: String((a && a.email) || '').trim().toLowerCase().slice(0, 200),
+        partyId: clean(a && a.partyId).slice(0, 40) };
+      if (!/.+@.+\..+/.test(t.email) || t.email === to.email) continue;
+      const r2 = mailReport(await hoMailFile(req, c, c.handover, t, clean(b.note).slice(0, HO_NOTE_MAX)));
+      c.handover.sends.push({ at, by: me, to: t, channel, ...r2 });
+    }
     say('Handed over', `Agreed wording handed over for signature by ${me.name} — `
       + (channel === 'email'
-        ? `emailed as a Word file to ${to.email}${report && report.emailSent ? '' : ' (not delivered: see the outbox)'}`
+        ? `emailed as a Word file to ${c.handover.sends.map(x => `${x.to.email}${x.emailSent ? '' : ' (not delivered: see the outbox)'}`).join(', ')}`
         : 'downloaded as a Word file for the lead to send')
-      + `. They agreed ${howRec.kind === 'signal' ? 'with Ready to sign on HaTi’s link' : `by email on ${howRec.at}`}`
+      + `. They agreed ${howRec.kind === 'signal' ? 'with Ready to sign on HaTi’s link'
+        : howRec.parties ? `— ${howRec.parties.map(p => `${p.name} on ${p.at}`).join(', ')}` : `by email on ${howRec.at}`}`
       + `. Signs for us: ${signatory ? signatory.name : 'not named'}. The wording is locked until it is filed or the negotiation is reopened.`);
     hoWrite(c.id, c);
     c.handover.told = await hoTellPeople(req, c, 'hand', { skipId: me.id });
@@ -10367,12 +10416,24 @@ app.post('/api/contracts/:id/handover', auth, editor, async (req, res) => {
   if (act === 'partial') {
     const fileId = String(b.fileId || '');
     if (!hoFileRow(fileId)) return res.status(400).json({ error: 'The copy has to be on the server first. Upload it again.' });
+    /* A DIFFERENCE ACCEPTED ON A COPY ONLY THEY HAVE SIGNED (decision 7): by
+       the approver or an admin, with a reason — the same people and the same
+       rule as a difference accepted at filing. Nothing is filed. */
+    let differs = null;
+    if (b.differs) {
+      const why = clean(b.differs.why).slice(0, 600);
+      if (!why) return res.status(400).json({ error: 'Say why the difference is accepted.' });
+      if (!srvMayAcceptDiffer(c, req.user))
+        return res.status(403).json({ error: 'A difference in the words is accepted by the person who approved this contract, or by an admin — with a reason.', differs: true });
+      differs = { by: { id: String(req.user.id), name: me.name, role: req.user.role || '' }, why, at, line: clean(b.differs.line).slice(0, 300) };
+    }
     ho.partial = { at, by: me, fileId, fileName: clean(b.fileName).slice(0, 160), sha256: clean(b.sha256).slice(0, 80),
       signedBy: (Array.isArray(b.signedBy) ? b.signedBy : []).map(x => clean(x).slice(0, 120)).filter(Boolean).slice(0, 12),
       signedOn: /^\d{4}-\d{2}-\d{2}$/.test(String(b.signedOn || '')) ? String(b.signedOn) : '',
-      same: b.same === true };
+      same: b.same === true && !differs, differs };
     say('They have signed', `${me.name} kept a copy ${ho.partial.signedBy.length ? ho.partial.signedBy.join(', ') + ' signed' : 'they signed'}`
-      + ` (“${ho.partial.fileName || 'a file'}”) as evidence. It is waiting on our signature.`);
+      + ` (“${ho.partial.fileName || 'a file'}”) as evidence. It is waiting on our signature.`
+      + (differs ? ` Its words differ from the agreed version, and ${me.name} accepted the difference: “${differs.why}”.` : ''));
     hoWrite(c.id, c);
     const told = await hoTellPeople(req, c, 'partial', { skipId: me.id });
     return done({ told });
@@ -10485,7 +10546,7 @@ app.post('/api/contracts/:id/chase', auth, editor, async (req, res) => {
       emailSent: false, emailConfigured: EMAIL_ON(), outbox: false,
       emailError: 'There is no email address on file for the counterparty, so no message was sent. Add one on Key terms.' });
   const L = langForEmail(to);
-  const vars = { desc: o.desc || '', name: c.name || c.id, id: c.id, due: o.due || '' };
+  const vars = { desc: o.desc || '', name: c.name || contractRef(c), id: contractRef(c), due: o.due || '' };
   /* ---- A DATE THAT DOES NOT EXIST IS NOT WRITTEN INTO A SENTENCE ----
      The line reads "...which was due on {due}. Could you let us know where it
      stands?", and an obligation with no date produced "due on ." in a message
@@ -10700,18 +10761,18 @@ async function saSendApprovalMail(req, c, r, kind, recipients, extra) {
     const decider = (r.decidedBy && r.decidedBy.name) || '';
     let subject = '', lines = [];
     if (kind === 'ask') {
-      subject = tFor(L, 'mail_sa_ask_subject', { name: cName, id: c.id });
-      lines = [tFor(L, 'mail_sa_ask_line', { who: asker }), '', `${cName} (${c.id})`, saMailFacts(c, u),
+      subject = tFor(L, 'mail_sa_ask_subject', { name: cName, id: contractRef(c) });
+      lines = [tFor(L, 'mail_sa_ask_line', { who: asker }), '', `${cName} (${contractRef(c)})`, saMailFacts(c, u),
         ...(r.note ? ['', tFor(L, 'mail_sa_note', { who: asker, note: r.note })] : []),
         '', tFor(L, 'mail_sa_open'), link, '', tFor(L, 'mail_sa_rule')];
     } else if (kind === 'remind') {
       subject = tFor(L, 'mail_sa_remind_subject', { name: cName });
       lines = [tFor(L, 'mail_sa_remind_line', { who: asker, date: String(r.askedAt || '').slice(0, 10) }), '',
-        `${cName} (${c.id})`, saMailFacts(c, u), '', tFor(L, 'mail_sa_open'), link];
+        `${cName} (${contractRef(c)})`, saMailFacts(c, u), '', tFor(L, 'mail_sa_open'), link];
     } else if (kind === 'escalate') {
       subject = tFor(L, 'mail_sa_esc_subject', { name: cName, n: extra && extra.days });
       lines = [tFor(L, 'mail_sa_esc_line', { who: asker, approver: r.approverName || 'an admin', n: extra && extra.days }), '',
-        `${cName} (${c.id})`, saMailFacts(c, u), '', tFor(L, 'mail_sa_open'), link];
+        `${cName} (${contractRef(c)})`, saMailFacts(c, u), '', tFor(L, 'mail_sa_open'), link];
     } else if (r.status === 'approved') {
       subject = tFor(L, 'mail_sa_ok_subject', { name: cName });
       lines = [tFor(L, 'mail_sa_ok_line', { who: decider }), ...(r.decision ? ['', `“${r.decision}”`] : []), '', tFor(L, 'mail_at_open'), link];
@@ -11780,6 +11841,10 @@ async function notifyInternalSignerTurn(req, contractId, opts = {}) {
        outstanding (23 Sep 2026) — nobody signs until it is given. The notice
        waits, and the save that gives the approval announces the turn. */
     if (srvSignApprovalRefusal(rt.contract)) return { ok: false, reason: 'awaiting-approval' };
+    /* A FILE THEY SIGN (26 Sep 2026) is never signed here, so nobody is told
+       it is their turn to sign in HaTi. Our signatory is told to expect the
+       document at the handover instead (hoTellPeople). */
+    if (signRouteOf(rt.contract || {}) === 'outside') return { ok: false, reason: 'they-sign' };
     const next = rt.plan.find(s => !rt.signedRow(s));
     if (!next) return { ok: false, reason: 'route-complete' };
     /* A NAMED SIGNER, OR WHOEVER IS UP. The resend button names its row, and
@@ -13886,7 +13951,7 @@ function runReminders() {
       const ms = [90, 60, 30].find(m => days === m);
       const who = ownerOf(full, c.folder);
       if (ms != null && !lapsing) {
-        const vars = { n: ms, name: c.name, id: c.id, cp: c.counterparty || '', expiry };
+        const vars = { n: ms, name: c.name, id: contractRef(full.id ? full : c), cp: c.counterparty || '', expiry };
         const link = contractUrl(null, c.id);
         const mk = a => {
           const L = who && a === who.email ? (who.lang || I18N_DEFAULT) : langForEmail(a);
@@ -13911,7 +13976,7 @@ function runReminders() {
         const ddIso = isoDay(dd); const ddDays = daysTo(ddIso);
         const dms = [14, 7, 1].find(m => ddDays === m);
         if (dms != null && !decided) {
-          const dvars = { n: dms, name: c.name, id: c.id, notice, expiry, decide: ddIso };
+          const dvars = { n: dms, name: c.name, id: contractRef(full.id ? full : c), notice, expiry, decide: ddIso };
           const dlink = contractUrl(null, c.id);
           const dmk = a => {
             const L = who && a === who.email ? (who.lang || I18N_DEFAULT) : langForEmail(a);
@@ -13955,7 +14020,7 @@ function runReminders() {
         if (od === 0) {
           const prev = (full.obligations || []).find(x => x && String(x.id) === String(o.after || ''));
           const to = obligationRecipient((c.owner && c.owner.name) || '');
-          const vars = { desc: o.desc, name: c.name, id: c.id, due, step: (prev && prev.desc) || '' };
+          const vars = { desc: o.desc, name: c.name, id: contractRef(full.id ? full : c), due, step: (prev && prev.desc) || '' };
           const link = contractUrl(null, c.id);
           const held = a => {
             const L = to && a === to.email ? (to.lang || I18N_DEFAULT) : langForEmail(a);
@@ -13976,7 +14041,7 @@ function runReminders() {
           // one vars object for subject AND line — the subject carries {desc}
           // always and {days} on the escalation, and a template var only half
           // supplied prints itself literally
-          const vars = { desc: o.desc, name: c.name, id: c.id, due,
+          const vars = { desc: o.desc, name: c.name, id: contractRef(full.id ? full : c), due,
             days: -od, assignee: who.name || o.assignee };
           return {
             subject: tFor(L, `mail_ob_${key}_subject`, vars),
@@ -13996,7 +14061,7 @@ function runReminders() {
         if (od === -4 && fireTo(`${c.id}:ob:${okey}:escalate`, admins, oMail('esc'), `obligation escalated: ${c.name}`)) queued++;
       } else if (od === -1 && fire(`${c.id}:ob:${okey}:overdue`,
         `Obligation overdue: ${c.name}`,
-        `The obligation "${o.desc}" on "${c.name}" (${c.id}) was due ${due} and is now overdue${o.assignee ? ` (assigned to ${o.assignee})` : ''}.`,
+        `The obligation "${o.desc}" on "${c.name}" (${contractRef(full.id ? full : c)}) was due ${due} and is now overdue${o.assignee ? ` (assigned to ${o.assignee})` : ''}.`,
         `obligation overdue: ${c.name}`)) queued++;
     });
   }
@@ -14537,7 +14602,7 @@ function buildMonthlyReport(month) {
     const exp = dateOnly((c.metadata && c.metadata.expiryDate) || r.expiry || null);
     if (!exp) continue;
     const d = daysTo(exp);
-    if (d >= 0 && d <= 90) expiring.push({ name: r.name, id: r.id, exp, d });
+    if (d >= 0 && d <= 90) expiring.push({ name: r.name, id: contractRef(c && c.id ? c : r), exp, d });
   }
   expiring.sort((a, b) => a.d - b.d);
   let overdueOb = 0;

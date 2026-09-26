@@ -1831,7 +1831,14 @@ async function runUploadPipeline(file){
   const s1=document.getElementById('up-step-1'), s2=document.getElementById('up-step-2');
   if(!s1||!s2) return;    // the dialog was closed mid-read — nothing is filed
   _up={ file, mime, word, wordTracked, wordHtml, extractedText, textSource, upload, meta };
-  s2.innerHTML=uploadConfirmHtml(_up, meta);
+  /* A SIGNED COPY OF A FILE OUT FOR SIGNATURE? (26 Sep 2026) Asked of the
+     words this upload has just read; js/views/handover.js decides and draws. */
+  let hoMatch=null;
+  try{ hoMatch=window.outsideMatchUpload?await outsideMatchUpload(extractedText, textSource):null; }catch(_){ hoMatch=null; }
+  if(!document.getElementById('up-step-2')) return;
+  s2.innerHTML=(window.outsideUploadOfferHtml?outsideUploadOfferHtml(hoMatch):'')+uploadConfirmHtml(_up, meta);
+  if(window.wireOutsideUploadOffer) wireOutsideUploadOffer(s2, { file, name:file.name, size:file.size, mime,
+    dataUrl:upload.dataUrl, fileHash:upload.fileHash, text:extractedText, textSource, word });
   s1.classList.add('hidden');
   s2.classList.remove('hidden');
   bindFolderSelect(document.getElementById('up-folder'));
@@ -2224,7 +2231,7 @@ function openEditDocModal(c){
     <div style="padding:var(--s-6) 26px 20px;height:100%;display:flex;flex-direction:column;min-height:0">
       <div style="${COL};padding:0 26px">
         <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-1)"><span style="color:var(--color-accent)">${icon('pencil','w-4 h-4')}</span>
-          <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">${i18t('ct_edit_document',{id:c.id})}</h3></div>
+          <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">${i18t('ct_edit_document',{id:(window.contractRef?contractRef(c):c.id)})}</h3></div>
         ${''/* ONE LINE, AND ONLY WHERE SAVE COSTS SOMETHING (the pop-up diet,
                13 Sep 2026): the formatting is lost and cannot be got back, so
                that stays on the face; how versions and Compare work does not. */}
@@ -3060,7 +3067,7 @@ function docPaginate(c){
     signCopyWatch(sheet,c,()=>{ scApplyZoom(); scPaintPage(); });
   } else {
     pagesWatch(sheet,{ mode:'work', gap:window.PG_GAP, corners:true,
-      name:window.pagesLetterheadName?pagesLetterheadName(c):'', ref:c.id||'' });
+      name:window.pagesLetterheadName?pagesLetterheadName(c):'', ref:(window.contractRef?contractRef(c):c.id)||'' });
   }
 }
 
@@ -6294,7 +6301,13 @@ function ktRecordFactsHtml(c,opts={}){
     :new Set();
   const rt=ktRouteEmailRead(c);
   return sectionFieldsHtml([
-    ['reference', i18t('ov_f_reference'), esc(String((c&&c.id)||''))],
+    /* THE REFERENCE A PERSON READS (26 Sep 2026): the contract number where a
+       working file has taken one, with the working reference it was
+       negotiated under beside it — both still find it; and a working file
+       says it is one until it is filed. */
+    ['reference', i18t('ov_f_reference'), esc(String((c&&(window.contractRef?contractRef(c):c.id))||''))
+      +(c&&c.contractNo&&c.contractNo!==c.id?` <span style="color:var(--color-neutral-600);font-weight:var(--w-body)">· ${esc(i18t('ho_ref_was',{id:c.id}))}</span>`
+      :(c&&window.contractIsWorkingFile&&contractIsWorkingFile(c)?` <span style="color:var(--color-neutral-600);font-weight:var(--w-body)">· ${esc(i18t('ho_ref_working'))}</span>`:''))],
     ['name', i18t('ov_f_name'), R.name],
     /* ---- WHAT KIND OF PAPER THIS IS (upgrade 5, 18 Sep 2026) ----
        The record printed twelve filing facts and not this one, so a reader
@@ -8647,7 +8660,7 @@ function wordTrackedFile(c,opts){
   const out=docxExportTracked(html,{author:(opts&&opts.author)||(me&&me.name)||'HaTi',
     comments:wordCommentsOf(c,side)});
   return { bytes:out.bytes, tracked:out.tracked, comments:out.comments,
-    name:`${c.id}-redline.docx` };
+    name:`${(window.contractRef?contractRef(c):c.id)}-redline.docx` };
 }
 /* ---- THE RECORD'S OWN FILE (13 Sep 2026) ---- wordTrackedFile is the
    CONTRACT as a Word file; a history send is the RECORD, and it has its own
@@ -8659,7 +8672,7 @@ async function wordHistoryFile(c,opts){
   const r=await negoIntegrityReport(c);
   const me=(window.currentUser&&currentUser())||null;
   const out=docxExportTracked(negoHistoryWordHtml(c,r),{author:(opts&&opts.author)||(me&&me.name)||'HaTi'});
-  return { bytes:out.bytes, tracked:out.tracked, verified:!!r.ok, name:`${c.id}-negotiation-history.docx` };
+  return { bytes:out.bytes, tracked:out.tracked, verified:!!r.ok, name:`${(window.contractRef?contractRef(c):c.id)}-negotiation-history.docx` };
 }
 /* Bytes to base64, for the one caller that has to hand the file to the server
    (the Word channel on the send). Chunked because a spread over a whole file
@@ -9181,7 +9194,7 @@ function roomHeadTitle(c){
 function roomHeadSubHtml(c, opts = {}){
   const F=(typeof window!=='undefined'&&window.FOLDERS)||{};
   const bits = [];
-  if (c && c.id) bits.push(`<span class="room-sub-id">${esc(c.id)}</span>`);
+  if (c && c.id) bits.push(`<span class="room-sub-id">${esc((window.contractRef?contractRef(c):c.id))}</span>`);
   const kind = (typeof cKind === 'function') ? cKind(c) : '';
   if (kind) bits.push(esc(kind));
   if (c && F[c.folder]) bits.push(`<span class="room-sub-stream"><i style="background:${esc(F[c.folder].color||'var(--color-neutral-400)')}"></i>${esc(F[c.folder].name)}</span>`);
@@ -9351,7 +9364,7 @@ function roomHeadHtml(c,opts={}){
       <button id="ws-back" type="button" class="room-crumb-back"${backC ? ' data-back="contract"' : ''}
         data-crumb="${esc(backC?c.id:((_wr.view==='folder'&&_wr.folderId&&F[_wr.folderId])?F[_wr.folderId].name:i18t('ct_back_register')))}"
         title="${esc(backTitle)}" aria-label="${esc(backTitle)}"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><use href="#i-left"/></svg></button>
-      <i aria-hidden="true">/</i><span class="room-crumb-here">${esc(c.id)}</span>
+      <i aria-hidden="true">/</i><span class="room-crumb-here">${esc((window.contractRef?contractRef(c):c.id))}</span>
     </nav>
     <div class="room-id">
       <div class="room-name">

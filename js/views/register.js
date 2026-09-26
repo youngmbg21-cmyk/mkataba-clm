@@ -35,7 +35,7 @@ function folderFiltered(){
      for an exposure searches by. `partiesMatch` derives the pair where nothing
      is stored, so on every contract on file it answers what the counterparty
      test answered and the result set does not move. */
-  if(q) cs=cs.filter(c=>((c.name||'')+' '+(c.counterparty||'')+' '+(c.id||'')).toLowerCase().includes(q)
+  if(q) cs=cs.filter(c=>((c.name||'')+' '+(c.counterparty||'')+' '+(c.id||'')+' '+(c.contractNo||'')).toLowerCase().includes(q)
     || (typeof partiesMatch==='function' && partiesMatch(c,q)));
   let sort=state.folderSort||'updated';
   // a stored "sort by value" preference is meaningless without the right
@@ -261,11 +261,12 @@ function folderExpiryCell(c){
   const from=window.expirySource?expirySource(c):null;
   const dt=regDotDate(eff);
   let col='var(--color-neutral-700)', hint='', weight=400;
-  if(from) hint=i18t('reg_from_id',{id:from.id});
+  const fromRef=from?(window.contractRef?contractRef(from):from.id):'';
+  if(from) hint=i18t('reg_from_id',{id:fromRef});
   if(c.status!=='Declined'){ const d=daysUntil(eff);
-    if(d<0){ col='var(--st-ruby-fg)'; weight=600; hint=`${i18t('reg_days_ago',{n:-d})}${from?' · '+i18t('reg_from_id',{id:from.id}):''}`; }
-    else if(d<30){ col='var(--st-ruby-fg)'; weight=600; hint=`${i18t('reg_in_days',{n:d})}${from?' · from '+from.id:''}`; }
-    else if(d<=90){ col='var(--st-amber-fg)'; hint=`${i18t('reg_in_days',{n:d})}${from?' · from '+from.id:''}`; }
+    if(d<0){ col='var(--st-ruby-fg)'; weight=600; hint=`${i18t('reg_days_ago',{n:-d})}${from?' · '+i18t('reg_from_id',{id:fromRef}):''}`; }
+    else if(d<30){ col='var(--st-ruby-fg)'; weight=600; hint=`${i18t('reg_in_days',{n:d})}${from?' · from '+fromRef:''}`; }
+    else if(d<=90){ col='var(--st-amber-fg)'; hint=`${i18t('reg_in_days',{n:d})}${from?' · from '+fromRef:''}`; }
   }
   return `<span style="color:${col};font-weight:${weight};font-variant-numeric:tabular-nums">${dt}</span>${hint?`<span style="display:block;font-size:var(--t-label);color:${col}">${hint}</span>`:''}`;
 }
@@ -287,7 +288,7 @@ function folderRowsHtml(cs){
         <span style="width:26px;height:26px;flex:none;display:grid;place-items:center;border-radius:var(--radius);border:1px solid var(--color-divider);background:${isUpload(c)?'var(--color-accent-200)':'var(--color-bg)'};color:${isUpload(c)?'var(--color-accent-800)':'var(--color-neutral-600)'}" ${isUpload(c)?`title="${i18t('reg_uploaded_from_cp')}"`:''}>${icon(cIcon(c),'w-3.5 h-3.5')}</span>
         <span style="min-width:0">
           <span style="display:block;font-weight:var(--w-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.name)}</span>
-          <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="font-family:var(--font-mono)">${esc(c.id)}</span> · ${esc(c.counterparty||'No counterparty yet')}</span>
+          <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="font-family:var(--font-mono)">${esc((window.contractRef?contractRef(c):c.id))}</span> · ${esc(c.counterparty||'No counterparty yet')}</span>
         </span>
       </div></td>
       <td style="font-size:var(--t-meta);color:var(--color-neutral-700);white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:6px">${icon(cIcon(c),'w-4 h-4')}${cKind(c)}</span>${scan}</td>
@@ -324,7 +325,7 @@ function folderExportSelectedCsv(){
   if(!rows.length){ toast(i18t('reg_nothing_selected'),'err'); return; }
   const esc=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
   const head=['ID','Name','Counterparty','Type','Value stream',`Value (${jxCurrency()})`,'Status','Last action','Expiry'];
-  const body=rows.map(c=>[c.id,c.name,c.counterparty||'',cKind(c),FOLDERS[c.folder]?.name||'',csvValueCell(c),statusLabel(c.status),c.lastAction||'',c.expiry||''].map(esc).join(','));
+  const body=rows.map(c=>[(window.contractRef?contractRef(c):c.id),c.name,c.counterparty||'',cKind(c),FOLDERS[c.folder]?.name||'',csvValueCell(c),statusLabel(c.status),c.lastAction||'',c.expiry||''].map(esc).join(','));
   const csv=[head.map(esc).join(','),...body].join('\n');
   const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
   const a=document.createElement('a'); a.href=url; a.download=`hati-${FOLDERS[state.folderId]?.id||'folder'}-selection.csv`; a.click(); URL.revokeObjectURL(url);
@@ -933,18 +934,22 @@ function regState(){
 const NEGO_BANDS=[
   {k:'you',  tone:'amber',  get label(){ return i18t('ngl_band_you'); }},
   {k:'them', tone:'gray',   get label(){ return i18t('ngl_band_them'); }},
+  /* WITH THEM FOR SIGNATURE (26 Sep 2026): the agreed words were handed over
+     and the signed copy has not come back. Its own group, because nothing in
+     it is an answer to wait for — it is a signature and a file to expect. */
+  {k:'out',  tone:'steel',  get label(){ return i18t('ngl_band_out'); }},
   {k:'clear',tone:'green',  get label(){ return i18t('ngl_band_clear'); }},
 ];
-const NEGO_BAND_DOT={amber:'var(--st-amber-dot)',gray:'var(--color-neutral-400)',green:'var(--st-green-dot)'};
+const NEGO_BAND_DOT={amber:'var(--st-amber-dot)',gray:'var(--color-neutral-400)',steel:'var(--st-steel-dot)',green:'var(--st-green-dot)'};
 /* Partition, never re-sort inside a group: whatever order the register's own
    sort produced is preserved within each band, which is what makes "Sort" mean
    something on this page. Stamped on the record the way regGroupFamilies
    stamps _famKids, so the renderer does not have to ask twice. */
 function negoGroupByMove(cs){
-  const buckets={you:[],them:[],clear:[]};
+  const buckets={you:[],them:[],out:[],clear:[]};
   for(const c of cs){
     const m=(typeof window.negWhoseMove==='function')?window.negWhoseMove(c):{k:'clear',n:0};
-    c._ngBand=m.k; c._ngN=m.n;
+    c._ngBand=m.why==='handover'?'out':m.k; c._ngN=m.n;
     (buckets[m.k]||buckets.clear).push(c);
   }
   return NEGO_BANDS.reduce((out,b)=>out.concat(buckets[b.k]||[]),[]);
@@ -952,7 +957,7 @@ function negoGroupByMove(cs){
 /* How many rows each band holds IN THE SET ON SCREEN. The bands count the
    filtered view — see the note the page prints when a filter is on. */
 function negoBandCounts(cs){
-  const n={you:0,them:0,clear:0};
+  const n={you:0,them:0,out:0,clear:0};
   cs.forEach(c=>{ n[c._ngBand===undefined?'clear':c._ngBand]=(n[c._ngBand]||0)+1; });
   return n;
 }
@@ -1077,7 +1082,9 @@ const REG_CMP={
      there is nothing to press; on Negotiations it is whose move, which is the
      very thing the bands above it already group by. */
   ref:(a,b)=>{
-    const A=regRefParts(a.id), B=regRefParts(b.id);
+    /* sorted by the reference a person reads: a working file that took its
+       contract number sorts among the contracts */
+    const A=regRefParts(window.contractRef?contractRef(a):a.id), B=regRefParts(window.contractRef?contractRef(b):b.id);
     if(A[0]!==B[0]) return A[0]<B[0]?-1:1;
     return A[1]-B[1]; },
   party:(a,b)=>{
@@ -1404,8 +1411,15 @@ function regFiltered(){
      for an exposure searches by. `partiesMatch` derives the pair where nothing
      is stored, so on every contract on file it answers what the counterparty
      test answered and the result set does not move. */
-  if(q) cs=cs.filter(c=>((c.name||'')+' '+(c.counterparty||'')+' '+(c.id||'')).toLowerCase().includes(q)
+  if(q) cs=cs.filter(c=>((c.name||'')+' '+(c.counterparty||'')+' '+(c.id||'')+' '+(c.contractNo||'')).toLowerCase().includes(q)
     || (typeof partiesMatch==='function' && partiesMatch(c,q)));
+  /* ---- A WORKING FILE LIVES ON NEGOTIATIONS (26 Sep 2026) ----
+     Until its signed copy is filed it is not a contract yet, so it is off this
+     list — except where a person SEARCHED for it, or another page sent a named
+     set that holds it: then it is found, and its row says where it lives
+     (CELL.stage). The Negotiations page lists it from the day it is opened. */
+  if(regScope()!=='negotiations' && !q && !(R.only&&Array.isArray(R.only.ids)) && window.contractIsWorkingFile)
+    cs=cs.filter(c=>!contractIsWorkingFile(c));
   // Per-member folder/stream access: a restricted member only ever sees the
   // streams an admin granted them (admins are always unrestricted).
   const acc=(typeof userFolderAccess==='function')?userFolderAccess():'*';
@@ -1667,6 +1681,8 @@ function negoMoveSay(c){
      them to a column of their own drafting. See negWhoseMove. */
   if(m.why==='unsent') return out('you',MINE,i18tn('ng_not_sent_yet',m.n,{n:m.n}));
   if(m.k==='you') return out('you',MINE,i18tn('ng_needs_you',m.n,{n:m.n}));
+  if(m.why==='handover') return out('them',i18t('ngl_move_theirs'),
+    i18t('ho_move_say',{who:c.counterparty||i18t('ng_door_them'),wait:window.handoverWaitWords?handoverWaitWords(c):''}));
   if(m.k==='them') return out('them',i18t('ngl_move_theirs'),
     i18t('ng_door_with',{who:c.counterparty||i18t('ng_door_them')}));
   const none=i18t('ngl_move_none');
@@ -1803,14 +1819,17 @@ function regRowsHtml(cs){
     const pyTag=pyMore?`<span class="reg-py-n" title="${esc(pyAll)}">+${pyMore}</span>`:'';
     const mv=regMoveWord(c);
     const CELL={};
-    CELL.mk=`<td class="reg-mk">${c.id}</td>`;
+    CELL.mk=`<td class="reg-mk">${esc((window.contractRef?contractRef(c):c.id))}</td>`;
     /* IN THE INSPECTOR'S LIST WHOSE MOVE RIDES THE STAGE — "In review · your
        move" — because the Move column is not drawn there. The one-word
        reading is the same (regMoveWord); only where it is printed moves. */
     const insOn=regInspecting();
     const stageMove=(!neg&&insOn&&mv&&mv.k!=='clear')
       ? `<span class="ins-mv is-${mv.k}">· ${esc(i18t(mv.k==='you'?'ins_your_move':'ins_their_move'))}</span>` : '';
-    CELL.stage=`<td style="white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:6px;min-width:0;max-width:100%">${window.questionDot?questionDot(c.id):''}${window.contractStatusDotHtml?contractStatusDotHtml(c):(window.contractStatusChip?contractStatusChip(c):statusChip(c.status))}${stageMove}</span></td>`;
+    /* A WORKING FILE FOUND BY A SEARCH HERE SAYS WHERE IT LIVES (26 Sep 2026). */
+    const lives=(!neg&&window.contractIsWorkingFile&&contractIsWorkingFile(c))
+      ? `<span class="ins-mv" style="color:var(--color-neutral-600)">· ${esc(i18t('ho_lives_nego'))}</span>` : '';
+    CELL.stage=`<td style="white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:6px;min-width:0;max-width:100%">${window.questionDot?questionDot(c.id):''}${window.contractStatusDotHtml?contractStatusDotHtml(c):(window.contractStatusChip?contractStatusChip(c):statusChip(c.status))}${stageMove}${lives}</span></td>`;
     CELL.move=neg ? (insOn&&typeof insMoveCellHtml==='function'
         ? `<td style="white-space:nowrap">${insMoveCellHtml(c)}</td>`
         : `<td style="text-align:right;white-space:nowrap">${negoMovePillHtml(c)}</td>`)
@@ -1832,7 +1851,7 @@ function regRowsHtml(cs){
        floor: "names print &, never &amp;"). */
     CELL.counterparty=`<td class="reg-cell-title" style="${c._famChild?'padding-left:30px':''}" title="${esc(pyAll||cpName)} · ${regTitleOf(c)} · ${esc(kindRound)}">
         <span style="display:flex;align-items:center;gap:9px;min-width:0">
-        <span class="reg-title" style="min-width:0;flex:1;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:var(--t-body);font-weight:var(--w-body)" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc(c.parentId)}">↳ </span>`:''}${esc(cpName)}${pyTag}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:var(--w-body);font-size:var(--t-body);font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
+        <span class="reg-title" style="min-width:0;flex:1;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:var(--t-body);font-weight:var(--w-body)" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc((()=>{ const pc=c.parentId&&getContract(c.parentId); return pc&&window.contractRef?contractRef(pc):c.parentId; })())}">↳ </span>`:''}${esc(cpName)}${pyTag}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:var(--w-body);font-size:var(--t-body);font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
         </span><span class="reg-sub">${regTitleOf(c)}</span>
       </td>`;
     /* THE KIND AND THE ROUND ARE A COLUMN ON THE NEGOTIATIONS SEAT ALONE,
@@ -2063,7 +2082,7 @@ function regExportCsv(){
   if(!rows.length){ toast(i18t('reg_nothing_to_export'),'err'); return; }
   const esc=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
   const head=['ID','Name','Counterparty','Type','Category','Folder',`Value (${jxCurrency()})`,'Status','Last action','Expiry'];
-  const body=rows.map(c=>[c.id,c.name,c.counterparty||'',cKind(c),(c.metadata&&c.metadata.category)||'',FOLDERS[c.folder]?.name||'',csvValueCell(c),statusLabel(c.status),c.lastAction||'',c.expiry||''].map(esc).join(','));
+  const body=rows.map(c=>[(window.contractRef?contractRef(c):c.id),c.name,c.counterparty||'',cKind(c),(c.metadata&&c.metadata.category)||'',FOLDERS[c.folder]?.name||'',csvValueCell(c),statusLabel(c.status),c.lastAction||'',c.expiry||''].map(esc).join(','));
   const csv=[head.map(esc).join(','),...body].join('\n');
   const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
   const a=document.createElement('a'); a.href=url; a.download='hati-register.csv'; a.click(); URL.revokeObjectURL(url);
@@ -3206,7 +3225,7 @@ function ftsSearch(q){
       const r=await api('search?q='+encodeURIComponent(q)+'&limit=12');
       if(!r.hits||!r.hits.length){ box.innerHTML=`<div style="padding:10px var(--s-3);font-size:var(--t-meta);color:var(--color-neutral-600)">${i18t('reg_no_fulltext')}</div>`; box.classList.remove('hidden'); return; }
       box.innerHTML=r.hits.map(h=>`<button data-fts-open="${h.id}" style="display:block;width:100%;text-align:left;padding:var(--s-2) var(--s-3);border:0;border-bottom:1px solid var(--color-divider);background:none;cursor:pointer;font:inherit">
-        <div style="font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(h.name||h.id)} <span style="font-family:var(--font-mono);font-size:var(--t-label);color:var(--color-neutral-500)">${h.id}</span></div>
+        <div style="font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(h.name||h.id)} <span style="font-family:var(--font-mono);font-size:var(--t-label);color:var(--color-neutral-500)">${esc(h.contractNo||h.id)}</span></div>
         ${h.snippet?`<div style="font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px">${h.snippet.replace(/</g,'&lt;').replace(/\[/g,'<mark style="background:var(--st-amber-bg);border-radius:var(--radius);padding:0 2px">').replace(/\]/g,'</mark>')}</div>`:(h.counterparty?`<div style="font-size:var(--t-label);color:var(--color-neutral-500)">${h.counterparty}</div>`:'')}
       </button>`).join('');
       box.classList.remove('hidden');

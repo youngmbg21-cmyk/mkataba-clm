@@ -427,7 +427,7 @@ function negoTimelineScreenHtml(c, f = {}, opts = {}){
       .ht .ht-redline del{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
       .ht .ht-note{font-size:var(--t-label);color:var(--color-neutral-700);margin-top:var(--s-1);border-left:2px solid var(--color-divider);padding-left:var(--s-2)}
     </style>
-    <h3>Negotiation history — ${_ne(c.name || c.id)}</h3>
+    <h3>Negotiation history — ${_ne(c.name || (window.contractRef ? contractRef(c) : c.id))}</h3>
     <p class="ht-sub">${all.length} event${all.length === 1 ? '' : 's'}, oldest first. Labels read as they were when each event happened.</p>
     <div class="ht-filters">
       ${sel('ht-f-clauseId', 'Clause', uniq(all.map(e => [e.clauseId || '', e.clauseLabel || ''])), f.clauseId)}
@@ -499,7 +499,7 @@ async function negoHistoryExportRun(c){
   if (!window.negoIntegrityReport) return;
   const r = await negoIntegrityReport(c);
   const html = negoHistoryExportHtml(c, r);
-  if (window.downloadFile) downloadFile(`${c.id}-negotiation-history.html`, html, 'text/html');
+  if (window.downloadFile) downloadFile(`${(window.contractRef ? contractRef(c) : c.id)}-negotiation-history.html`, html, 'text/html');
   if (window.toast) toast(`History exported — the report carries its own verification result (${r.ok ? 'verified' : 'FAILED'})`);
 }
 /* THE SAME REPORT, HANDED TO THE PRINTER INSTEAD OF TO THE DISK.
@@ -617,7 +617,7 @@ function negoHistoryExportHtml(c, report){
   const sigs = (c.signatures || []).map(s =>
     `<li>${_ne(s.name || '')}${s.title ? `, ${_ne(s.title)}` : ''} — ${_ne(s.party || '')}${s.verified === false ? ' (NOT independently verified)' : s.method ? ` (${_ne(s.method)})` : ''}</li>`).join('');
   return `<!doctype html><html><head><meta charset="utf-8">
-<title>Negotiation history — ${_ne(c.name || c.id)}</title>
+<title>Negotiation history — ${_ne(c.name || (window.contractRef ? contractRef(c) : c.id))}</title>
 <style>
   body{font:13px/1.55 Georgia,serif;color:#1c2126;max-width:760px;margin:32px auto;padding:0 18px}
   h1{font-size:21px;margin:0 0 2px} .sub{color:#5a6470;font-size:13px;margin:0 0 18px}
@@ -644,8 +644,8 @@ function negoHistoryExportHtml(c, report){
   .ht-note{font-size:12px;color:#3c454e;margin-top:4px;border-left:2px solid #cdd4da;padding-left:8px}
   @media print{ body{margin:10mm auto} }
 </style></head><body>
-<h1>Negotiation history — ${_ne(c.name || c.id)}</h1>
-<p class="sub">${_ne(c.id)} · between ${_ne(_ngOurParty(c) || 'the owner')} and ${_ne(c.counterparty || 'the counterparty')}
+<h1>Negotiation history — ${_ne(c.name || (window.contractRef ? contractRef(c) : c.id))}</h1>
+<p class="sub">${_ne((window.contractRef ? contractRef(c) : c.id))} · between ${_ne(_ngOurParty(c) || 'the owner')} and ${_ne(c.counterparty || 'the counterparty')}
  · ${ev.length} events, oldest first · generated ${_ne(String(report.at).slice(0, 19).replace('T', ' '))} UTC by HaTi CLM</p>
 <div class="integrity">
   <b>${report.ok ? '✓ Record verified' : '✗ Integrity check FAILED'}</b> — ${_ne(report.detail)}<br>
@@ -948,7 +948,7 @@ function negoDocHtml(c, opts){
   const title = (window.TEMPLATES && c.template && TEMPLATES[c.template] && TEMPLATES[c.template].name)
     || c.name || 'Contract';
   const meta = [c.counterparty ? `Between ${(_ngOurParty(c) || 'this workspace')} and ${c.counterparty}` : null,
-    c.id, baseline ? 'Baseline · the wording this round is measured against'
+    (window.contractRef ? contractRef(c) : c.id), baseline ? 'Baseline · the wording this round is measured against'
       : `Round ${negoRound(c)} · proposed redline`].filter(Boolean).join(' · ');
 
   /* Every clause carries its own heading, rebuilt from num and title on this
@@ -1883,7 +1883,7 @@ function rlPaginate(host, c){
   host.querySelectorAll('.rl-paper').forEach(sheet => {
     if (sheet.closest('.ce-paperwrap')) return;
     pagesWatch(sheet, { mode: 'work', gap: window.PG_GAP, corners: true,
-      name: window.pagesLetterheadName ? pagesLetterheadName(c) : '', ref: c.id || '' });
+      name: window.pagesLetterheadName ? pagesLetterheadName(c) : '', ref: (window.contractRef ? contractRef(c) : c.id) || '' });
   });
 }
 
@@ -1947,7 +1947,7 @@ function negoCompareDocHtml(c, cmp, whichSide){
   }).join('');
   return `<article class="nego-doc">
     <h1>${_ne(title)}</h1>
-    <div class="nego-meta">${_ne([c.id, v ? v.label : '', v && v.sub ? v.sub : ''].filter(Boolean).join(' · '))}</div>
+    <div class="nego-meta">${_ne([(window.contractRef ? contractRef(c) : c.id), v ? v.label : '', v && v.sub ? v.sub : ''].filter(Boolean).join(' · '))}</div>
     ${body || `<p style="color:var(--n-ink-soft)">${i18t('ng_version_no_wording')}</p>`}
   </article>`;
 }
@@ -1971,7 +1971,7 @@ function negoCleanDocHtml(c, whichSide){
   const title = (window.TEMPLATES && c.template && TEMPLATES[c.template] && TEMPLATES[c.template].name)
     || c.name || 'Contract';
   const open = negoChanges(c).filter(x => x.status === 'pending' && !x.withdrawn).length;
-  const meta = [c.id,
+  const meta = [(window.contractRef ? contractRef(c) : c.id),
     left ? `Round ${negoRound(c)} · the wording as it stands today`
       : `Round ${negoRound(c)} · as it would read with ${open ? `all ${open} open change${open === 1 ? '' : 's'}` : 'every change'} agreed`,
   ].filter(Boolean).join(' · ');
@@ -2822,8 +2822,8 @@ function negoRoomHtml(c, opts = {}){
   /* The owner reads a workspace path; the counterparty reads a contract. Our
      template code and internal naming are filing structure, not theirs. */
   const path = side === 'counterparty'
-    ? `${c.name || c.id || 'Contract'}${c.id ? ' · ' + c.id : ''}`
-    : `${c.id || ''}${c.template ? ' · ' + c.template : ''}${c.name ? ' · ' + c.name : ''}`;
+    ? `${c.name || (window.contractRef ? contractRef(c) : c.id) || 'Contract'}${c.id ? ' · ' + (window.contractRef ? contractRef(c) : c.id) : ''}`
+    : `${(window.contractRef ? contractRef(c) : c.id) || ''}${c.template ? ' · ' + c.template : ''}${c.name ? ' · ' + c.name : ''}`;
   const statusChip = String(c.status || 'Draft');
   return `<div class="nego-room" id="nego-room" role="region" aria-label="${i18t('ng_negotiation_room')}">
     <header class="nego-topbar">
@@ -7685,7 +7685,7 @@ function rlBoardMemoText(c){
   if (typeof window.ladderBoard !== 'function') return '';
   const rows = ladderBoard(c, 'owner');
   const f = (n, u) => n == null ? '—' : `${n}${u ? ' ' + u : ''}`;
-  return `${i18t('ng_board')} · ${c.name || c.id} · ${c.counterparty || ''}\n` + rows.map(r =>
+  return `${i18t('ng_board')} · ${c.name || (window.contractRef ? contractRef(c) : c.id)} · ${c.counterparty || ''}\n` + rows.map(r =>
     `- ${r.label || r.clauseId}: ${i18t('ng_board_col_ours').toLowerCase()} ${f(r.ourFig, r.unit)} / ${
       i18t('ng_board_col_theirs').toLowerCase()} ${f(r.theirFig, r.unit)} / ${i18t('ng_board_col_gap').toLowerCase()} ${
       r.dist != null ? f(r.dist, r.unit) : (r.theirs ? i18t('ng_board_gap_words') : i18t('ng_board_gap_none'))} / ${r.state}`).join('\n');
@@ -8522,7 +8522,14 @@ function negoRoundLine(c){
    argument is exactly what the design refused. */
 const NEGO_DEAD_STATUS = new Set(['Signed', 'Declined']);
 function negoIsLive(c){
-  if (!c || !c.negotiation) return false;
+  if (!c) return false;
+  /* ---- A WORKING FILE LIVES HERE (26 Sep 2026, redline here, sign there) ----
+     Opened to be negotiated and signed on their side, it is listed on
+     Negotiations from the day it is opened — before a change is filed — until
+     its signed copy is filed, including while it is out with them. outsideListed
+     asks the shelf, the dead statuses and the seal itself. */
+  if (window.outsideListed && outsideListed(c)) return true;
+  if (!c.negotiation) return false;
   if (c.archived) return false;      // the shelf argues with nobody (WO-5)
   if (NEGO_DEAD_STATUS.has(c.status)) return false;
   return Array.isArray(c.changes) && c.changes.length > 0;
@@ -8609,6 +8616,9 @@ let _rlShowingList = false;
    RAW rather than through negoChanges(), which would start a negotiation on
    every contract it was asked about. */
 function negWhoseMove(c){
+  /* OUT WITH THEM FOR SIGNATURE: the move is theirs, and it is a signature,
+     not an answer — nothing here is waiting to be decided (26 Sep 2026). */
+  if (window.handoverActive && handoverActive(c)) return { k: 'them', n: 0, why: 'handover' };
   const needs = negoNeedsYouIds(c).length;
   if (needs) return { k: 'you', n: needs };
   const open = (Array.isArray(c && c.changes) ? c.changes : [])
@@ -8784,7 +8794,7 @@ function negoMemo(c){
     ? c.negotiation.round : null;
 
   return {
-    id: (c && c.id) || '', name: (c && c.name) || '', counterparty: (c && c.counterparty) || '',
+    id: (c && (window.contractRef ? contractRef(c) : c.id)) || '', name: (c && c.name) || '', counterparty: (c && c.counterparty) || '',
     round, at: new Date().toISOString(),
     agreed: cap(agreed), open: cap(open), gave: cap(gave), blocking,
     /* The four counts are of the WHOLE population, so a memo that had to cap a
@@ -10517,10 +10527,10 @@ function rlStartLivePoll(c){
         if (i >= 0){ state.contracts[i] = fresh; if(window.familyIndexDirty) familyIndexDirty(); }
         if (rlEditorOpen()){
           _rlLivePending = true;
-          if (window.toast) toast(i18t('ng_live_held_for_editor', { id }), 'warn');
+          if (window.toast) toast(i18t('ng_live_held_for_editor', { id: window.contractRef ? contractRef(fresh) : id }), 'warn');
         } else {
           renderRedline();
-          if (window.toast) toast(`Updated just now — new activity on ${id}`);
+          if (window.toast) toast(`Updated just now — new activity on ${window.contractRef ? contractRef(fresh) : id}`);
         }
       }
     }catch(_){ /* transient — the next tick retries */ }
@@ -13579,16 +13589,16 @@ function rlOwnerOpenTotal(){
    eviction rules cannot be skipped. */
 function rlJumpHtml(c){
   const list = (typeof state === 'object' && state && Array.isArray(state.contracts)) ? state.contracts : [];
-  const rows = list.map(x => ({ id: x.id, n: rlOwnerOpenActions(x), cp: x.counterparty || '' }))
+  const rows = list.map(x => ({ id: x.id, ref: window.contractRef ? contractRef(x) : x.id, n: rlOwnerOpenActions(x), cp: x.counterparty || '' }))
     .filter(e => e.n > 0 || e.id === c.id)
     .sort((a, b) => b.n - a.n || String(a.id).localeCompare(String(b.id)));
-  if (!rows.some(e => e.id === c.id)) rows.unshift({ id: c.id, n: 0, cp: c.counterparty || '' });
+  if (!rows.some(e => e.id === c.id)) rows.unshift({ id: c.id, ref: (window.contractRef ? contractRef(c) : c.id), n: 0, cp: c.counterparty || '' });
   /* The counterparty rides last on each line — the number is still the handle,
      the name is the reminder of who is on the other side. The control is 9ch
      wider than it was to make room; whatever does not fit is clipped. */
   return `<select id="rl-contract-jump" class="rl-jump" aria-label="${i18t('ng_awaiting_action')}"
       title="${i18t('ng_every_awaiting')}">${
-    rows.map(e => `<option value="${_nea(e.id)}"${e.id === c.id ? ' selected' : ''}>${_ne(e.id)} &middot; ${e.n} awaiting${e.cp ? ` &middot; ${_ne(e.cp)}` : ''}</option>`).join('')}</select>`;
+    rows.map(e => `<option value="${_nea(e.id)}"${e.id === c.id ? ' selected' : ''}>${_ne(e.ref || e.id)} &middot; ${e.n} awaiting${e.cp ? ` &middot; ${_ne(e.cp)}` : ''}</option>`).join('')}</select>`;
 }
 
 /* ============================================================
@@ -16059,7 +16069,7 @@ function rlChatPanelHtml(c, opts = {}){
   return `<div class="rl-np rl-chat" data-rl-chat="${_nea(c.id)}">
     <div class="rl-np-which is-static">
       <span class="t">
-        <span class="id">${_ne(c.id)}${c.name ? ` <em>· ${_ne(c.name)}</em>` : ''}</span>
+        <span class="id">${_ne((window.contractRef ? contractRef(c) : c.id))}${c.name ? ` <em>· ${_ne(c.name)}</em>` : ''}</span>
         <span class="s">${i18tn('ng_chat_n', all.length, { n: all.length })}</span>
       </span>
     </div>

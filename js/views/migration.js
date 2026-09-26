@@ -470,7 +470,7 @@ async function migBuildAndSave(ctx){
   c._loaded=true; c._light=false; c._v=0;
   // A human chose to file this as an amendment of an existing agreement.
   if(link&&link.parentId) applyParentLink(c, link.parentId, link.relation||'amendment',
-    link.note||`Linked at import — flagged as a possible duplicate of ${link.parentId}`, u);
+    link.note||`Linked at import — flagged as a possible duplicate of ${(window.contractRef?contractRef(getContract(link.parentId)||{id:link.parentId}):link.parentId)}`, u);
   else if(ctx.suggest){
     // suggest, never auto-link: the proposal and the human's decision are two
     // separate audit entries, so the trail never claims a person confirmed
@@ -521,7 +521,7 @@ async function migResolveDuplicate(i, action, parentId, relation){
   const step=(st,note)=>{ q.status=st; if(note!=null) q.note=note; renderMigQueue(); };
   if(action==='skip'){
     delete M.pending[i];
-    step('skipped', 'left out — matched '+(q.dupes||[]).map(d=>d.id).join(', '));
+    step('skipped', 'left out — matched '+(q.dupes||[]).map(d=>(window.contractRef?contractRef(getContract(d.id)||{id:d.id}):d.id)).join(', '));
     renderMigration(); return;
   }
   step('extracting','importing…');
@@ -532,7 +532,7 @@ async function migResolveDuplicate(i, action, parentId, relation){
     migIndexContract(c, p.upload);
     delete M.pending[i];
     q.id=c.id;
-    step('saved', action==='link' ? `imported and linked to ${parentId}` : 'imported anyway');
+    step('saved', action==='link' ? `imported and linked to ${(window.contractRef?contractRef(getContract(parentId)||{id:parentId}):parentId)}` : 'imported anyway');
     await migDrawAllowanceDoc();
     if(API_MODE()){ try{ await flushSaves(); }catch(e){} }
     updateSidebarCounts(); renderMigration();
@@ -601,7 +601,7 @@ async function migProcessFiles(fileList, opts={}){
         // "identical to null" is meaningless, and silently dropping this copy
         // means skipping the parked row loses both — so remember the row.
         if(hit){ q.dupes=[{ id:hit, kind:'exact', distance:0 }];
-          step('duplicate','identical to '+hit+' — skipped'); }
+          step('duplicate','identical to '+(window.contractRef?contractRef(getContract(hit)||{id:hit}):hit)+' — skipped'); }
         else { q.deferredTo=byHashRow.get(fileHash);
           step('duplicate','identical to '+(q.deferredTo!=null?files[q.deferredTo].name:'an earlier file')+' in this batch — skipped'); }
         dupes++; continue; }
@@ -720,7 +720,7 @@ async function openMigReview(c, opts={}){
   const src=(c.upload&&c.upload.textSource)||(c.migration&&c.migration.textSource);
   if(isOcrText(src)) capConfidenceForOcr(meta);
   openMetaReview(meta, m=>{ applyReviewedMeta(c,m); updateSidebarCounts();
-    if(opts.onDone) opts.onDone(true); else renderMigration(); toast(`${c.id} confirmed`); },
+    if(opts.onDone) opts.onDone(true); else renderMigration(); toast(`${(window.contractRef?contractRef(c):c.id)} confirmed`); },
     { saveLabel:opts.saveLabel||'Confirm & save', onCancel:()=>{ if(opts.onDone) opts.onDone(false); },
       ocrNotice: isOcrText(src)?ocrProvenanceLine(c.upload||{}):'' });
 }
@@ -789,7 +789,7 @@ function migExportSheet(){
   const head=['ID','File','Name','Counterparty','Contract type','Stream','Status',`Value (${jxCurrency()})`,'Currency','Effective date','Expiry date','Renewal','Notice (days)','Governing law','Payment terms','Category','Retention (%)','Retention release (days)','Warranty (months)','Our liability','Price changes','Needs review','Low-confidence fields'];
   const body=rows.map(c=>{ const m=c.metadata||{}, conf=m.confidence||{};
     const low=Object.keys(conf).filter(k=>conf[k]==='low').join('; ');
-    return [c.id, c.upload&&c.upload.fileName||'', c.name, c.counterparty||'', m.contractType||'',
+    return [(window.contractRef?contractRef(c):c.id), c.upload&&c.upload.fileName||'', c.name, c.counterparty||'', m.contractType||'',
       FOLDERS[c.folder]?.name||'', statusLabel(c.status), isMonetary(c)?(c.value||0):'', m.currency||'',
       m.effectiveDate||'', m.expiryDate||c.expiry||'', m.renewalType||'', m.noticePeriodDays||'',
       m.governingLaw||'', m.paymentTerms||'', m.category||'', m.retentionPct||'', m.retentionReleaseDays||'',
@@ -814,7 +814,7 @@ async function migImportSheet(file){
   const g=(r,i)=>i>=0?String(r[i]||'').trim():'';
   let updated=0, missed=0;
   for(const r of rows.slice(1)){
-    const c=getContract(g(r,iId)); if(!c||!c.migration){ missed++; continue; }
+    const ref=g(r,iId), c=(state.contracts||[]).find(x=>x.id===ref||x.contractNo===ref); if(!c||!c.migration){ missed++; continue; }
     const m=Object.assign({}, c.metadata||{});
     m.confidence=Object.assign({}, m.confidence||{});
     const set=(k,v)=>{ if(v!==''){ m[k]=v; m.confidence[k]='high'; } };
@@ -928,7 +928,7 @@ function renderMigQueue(){
            <div style="display:flex;align-items:center;gap:9px">
             <span ${active?'class="scan-pulse"':''} style="width:7px;height:7px;border-radius:50%;background:${s.c};flex:none"></span>
             <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${migEsc(q.name)}</span>
-            ${q.id?`<button data-open="${q.id}" style="border:0;background:none;cursor:pointer;font-family:var(--font-mono);font-size:var(--t-label);color:var(--accent-ink-700);padding:0">${q.id}</button>`:''}
+            ${q.id?`<button data-open="${q.id}" style="border:0;background:none;cursor:pointer;font-family:var(--font-mono);font-size:var(--t-label);color:var(--accent-ink-700);padding:0">${(window.contractRef?contractRef(getContract(q.id)||{id:q.id}):q.id)}</button>`:''}
             <span style="flex:none;font-size:var(--t-label);font-weight:var(--w-strong);color:${s.c}">${s.t}</span>
             ${q.note?`<span style="flex:none;font-size:var(--t-label);color:var(--color-neutral-600);max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${migEsc(q.note)}">${migEsc(q.note)}</span>`:''}
            </div>
@@ -951,11 +951,11 @@ function migDupeRowHtml(q, i){
   const pending = q.status==='dupe' && (M.pending||{})[i];
   const hit=d=>{ const c=getContract(d.id);
     return `<span style="display:inline-flex;align-items:center;gap:5px;font-size:var(--t-label);color:var(--color-neutral-700);background:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius);padding:2px 7px">
-      <b style="font-family:var(--font-mono)">${d.id}</b>
+      <b style="font-family:var(--font-mono)">${(window.contractRef&&c?contractRef(c):d.id)}</b>
       <span style="max-width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${migEsc(c?c.name:'')}</span>
       <span style="color:var(--color-neutral-500)">${DUP_LABEL[d.kind]}${d.distance!=null&&d.kind!=='exact'&&d.kind!=='text'?` · distance ${d.distance}`:''}</span></span>`; };
   const btn='font:inherit;font-size:var(--t-label);font-weight:var(--w-strong);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:3px 9px;cursor:pointer';
-  const parentOpts=q.dupes.map(d=>`<option value="${d.id}">${d.id}</option>`).join('');
+  const parentOpts=q.dupes.map(d=>`<option value="${d.id}">${(window.contractRef?contractRef(getContract(d.id)||{id:d.id}):d.id)}</option>`).join('');
   return `<div style="margin:5px 0 3px var(--s-4);display:flex;flex-direction:column;gap:5px">
     <div style="display:flex;flex-wrap:wrap;gap:5px">${q.dupes.map(hit).join('')}${q.dupeTotal>q.dupes.length?`<span style="font-size:var(--t-label);color:var(--color-neutral-500);align-self:center">+${q.dupeTotal-q.dupes.length} more</span>`:''}</div>
     ${pending?`<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px">
@@ -1131,9 +1131,9 @@ function renderMigration(){
               ${cs.map(c=>{ const m=c.metadata||{};
                 const need=c.migration.needsReview;
                 return `<tr data-row="${c.id}" style="cursor:pointer">
-                <td style="padding-left:var(--s-3);font-family:var(--font-mono);font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap">${c.id}</td>
+                <td style="padding-left:var(--s-3);font-family:var(--font-mono);font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap">${(window.contractRef?contractRef(c):c.id)}</td>
                 <td style="max-width:250px">
-                  <span style="display:block;font-weight:var(--w-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.parentId?`<span style="color:var(--color-neutral-500);font-family:var(--font-mono);font-size:var(--t-label)">↳ ${RELATION_LABEL[c.relation]||'Amendment'} of ${c.parentId} · </span>`:''}${migEsc(c.name)}</span>
+                  <span style="display:block;font-weight:var(--w-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.parentId?`<span style="color:var(--color-neutral-500);font-family:var(--font-mono);font-size:var(--t-label)">↳ ${RELATION_LABEL[c.relation]||'Amendment'} of ${(window.contractRef?contractRef(getContract(c.parentId)||{id:c.parentId}):c.parentId)} · </span>`:''}${migEsc(c.name)}</span>
                   <span style="display:block;font-size:var(--t-label);color:${c.counterparty?'var(--color-neutral-600)':'var(--st-ruby-fg)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${migEsc(c.counterparty)||'No counterparty'} · ${migEsc((c.upload&&c.upload.fileName)||'')}</span>
                 </td>
                 <td style="font-size:var(--t-meta);color:var(--color-neutral-700);white-space:nowrap">${streamLabel(c)}</td>

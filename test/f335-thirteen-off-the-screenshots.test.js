@@ -322,7 +322,10 @@ describe('f335 (8) — a hold is a per-person grant, and it is on the row menu',
   });
   test('THE REASON IS ON THE ROW, cut with the whole of it on the hover', () => {
     assert.match(CORE, /const HOLD_WHY_ROW = \d+/, 'the cut is one number');
-    const m = /const contractStatusDotHtml = c => \{([\s\S]{0,700}?)\n\};/.exec(CORE);
+    /* RE-POINTED 26 Sep 2026 — PIN THE REGION: this read at most 700 characters, and
+       the dress grew two branches for a contract with the other side for signature. The
+       region is the builder itself, to its own closing brace. */
+    const m = /const contractStatusDotHtml = c => \{([\s\S]*?)\n\};/.exec(CORE);
     assert.ok(m, 'the row dress exists');
     assert.match(m[1], /holdWhyShort\(c\)/, 'the row prints the reason');
     assert.match(m[1], /title="\$\{_holdEsc\(full\)\}"/, 'and the hover carries the whole of it');

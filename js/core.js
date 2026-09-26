@@ -1059,7 +1059,7 @@ async function deleteContract(id){
   }
   const label=(c.name||c.id).split(' —')[0];
   if(!await confirmDialog({ title:`Delete “${c.name}”?`,
-      message:`This permanently removes ${c.id} and its history from the workspace. This cannot be undone.`,
+      message:`This permanently removes ${(window.contractRef?contractRef(c):c.id)} and its history from the workspace. This cannot be undone.`,
       confirmLabel:'Delete permanently', danger:true })) return false;
   if(API_MODE()){ try{ await api('contracts/'+id,'DELETE'); }catch(e){ toast(i18t('co_delete_failed')+e.message,'err'); return false; } }
   const idx=state.contracts.findIndex(x=>x.id===id);
@@ -1269,7 +1269,7 @@ async function saveContract(c){
   // a merge, not a reload, so the caller's own changes are never discarded.
   if(c._light && !c._loaded){
     try{ await restoreHeavyFields(c); }
-    catch(e){ toast(`Could not load ${c.id}'s history before saving — the change was not written`,'err'); return; }
+    catch(e){ toast(`Could not load ${(window.contractRef?contractRef(c):c.id)}'s history before saving — the change was not written`,'err'); return; }
   }
   /* `_raisedBy` / `_raisedAt` ride down with a LIGHT row so the dashboard can
      ask who raised a contract without the audit trail it was stripped of. They
@@ -1338,13 +1338,13 @@ async function saveContract(c){
       if(state.activeId===c.id){
         const keepMine=await confirmDialog({
           get title(){ return i18t('co_just_changed'); },
-          message:'Someone else saved a change to '+c.id+' while you were editing. Your change has not been saved. Keep yours and overwrite theirs, or discard yours and load their version?',
+          message:'Someone else saved a change to '+(window.contractRef?contractRef(c):c.id)+' while you were editing. Your change has not been saved. Keep yours and overwrite theirs, or discard yours and load their version?',
           confirmLabel:'Keep mine & save', cancelLabel:'Load theirs', danger:true });
         if(keepMine){ if(fresh) c._v=fresh._v; await saveContract(c); return; }
         if(fresh){ Object.assign(c,fresh); c._v=fresh._v; c._loaded=true; c._light=false; if(typeof renderWorkspace==='function') renderWorkspace(); }
         toast(i18t('co_loaded_server_version'),'err');
       } else {
-        toast(c.id+' changed on the server — your edit is kept but not yet saved. Open it and save again to keep your version.','err');
+        toast((window.contractRef?contractRef(c):c.id)+' changed on the server — your edit is kept but not yet saved. Open it and save again to keep your version.','err');
       }
     } else toast(i18t('co_save_failed')+e.message,'err');
   }
@@ -2126,12 +2126,14 @@ function openFromHash(){
   if(!m) return false;
   const id=decodeURIComponent(m[1]), tab=String(m[2]||'').toLowerCase();
   try{ history.replaceState(null,'',location.pathname+location.search); }catch(_){ location.hash=''; }
-  const c=(state.contracts||[]).find(x=>x&&x.id===id);
+  /* A link may carry the working reference or the contract number the file
+     took when it was filed; both open the one file (26 Sep 2026). */
+  const c=(state.contracts||[]).find(x=>x&&(x.id===id||(x.contractNo&&x.contractNo===id)));
   /* A contract this person cannot see is not an error to explain away: the
      server filters their bootstrap (folderScopeFor), so "not here" and "not
      yours" look the same from the browser and must read the same. */
   if(!c){ if(window.toast) toast(i18t('co_open_link_gone',{id}),'err'); return false; }
-  state.activeId=id; state.selId=id;
+  state.activeId=c.id; state.selId=c.id;
   setView('workspace');
   /* The tab is asked for AFTER the room exists, through the room's own router —
      never by writing its private state from out here. An unknown tab name is
@@ -3429,6 +3431,20 @@ function sealString(c){
      records sealed before this change have no frozen name and fall back to the
      live global exactly as before, so their verification is unchanged. */
   const firstParty=(c.execution&&c.execution.firstParty)||FIRST_PARTY;
+  /* ---- v3: SIGNED THEIR WAY AND FILED HERE (26 Sep 2026) ----
+     The seal binds the SIGNED COPY's own fingerprint — not the file uploaded
+     at the start, which is what a paper filing used to bind — and the
+     fingerprint of the agreed wording it was checked against, the day it was
+     signed and how. The contract number is not in it: the server gives the
+     number in the very save that carries this seal. v1 and v2 are untouched,
+     so every seal made before still verifies. */
+  if(Number(c.sealVersion||0)>=3 && c.execution && c.execution.method==='outside'){
+    const sc=c.signedCopy||{};
+    return JSON.stringify({ v:3, id:c.id, firstParty, counterparty:c.counterparty, value:c.value, valueType:c.valueType,
+      content:'signed:'+((sc.file&&sc.file.sha256)||c.execution.fileHash||''),
+      agreed:(c.handover&&c.handover.agreedHash)||'', signedOn:c.execution.signedOn||'',
+      via:c.execution.via||'', filedAt:c.execution.at||'' });
+  }
   const base={ id:c.id, firstParty, counterparty:c.counterparty,
     value:c.value, valueType:c.valueType, content, signedAt:c.execution?.at||'' };
   // Seal v2 folds every signature MARK (its hash) into the seal, so the visible
@@ -3447,7 +3463,19 @@ async function verifySeal(c){
      executed outside HaTi and imported — and it was the only one that printed
      nothing, so on the commonest kind of sealed record the button was silent. */
   if(c.hash==='MIGRATED'){ toast(i18t('co_seal_migrated',{h:(c.upload?.fileHash||'').slice(0,16)}),'ok'); return; }
-  if(!isUpload(c)){
+  /* v3: the signed copy itself is read back and hashed again, so a file
+     swapped in the store under an untouched record is caught too. */
+  const v3=Number(c.sealVersion||0)>=3 && c.execution && c.execution.method==='outside';
+  if(v3){
+    const f=(c.signedCopy&&c.signedCopy.file)||{};
+    let url=f.dataUrl||null;
+    if(!url && f.fileId && API_MODE()){
+      try{ const r=await api('files/'+encodeURIComponent(f.fileId)); url=r&&(r.dataUrl||r.data)||null; }
+      catch(_){ toast(i18t('co_seal_copy_unread'),'err'); return; }
+    }
+    if(!url){ toast(i18t('co_seal_copy_unread'),'err'); return; }
+    if(await sha256(url)!==f.sha256){ toast(i18t('co_seal_mismatch_copy'),'err'); return; }
+  } else if(!isUpload(c)){
     if(!c.execution?.html){ toast(i18t('co_no_snapshot'),'err'); return; }
     const th=await sha256(execHashInput(c.execution));
     if(th!==c.execution.textHash){ toast(i18t('co_seal_mismatch_text'),'err'); return; }
@@ -3497,13 +3525,34 @@ function downloadFile(name, content, type='application/json'){
   a.download=name; a.click(); URL.revokeObjectURL(a.href);
 }
 function downloadEvidence(c){
-  downloadFile(`${c.id}-evidence-pack.json`, JSON.stringify({
+  /* SIGNED THEIR WAY AND FILED HERE (26 Sep 2026): the signed copy is the
+     document of record, and the pack names it — the copy, the certificate
+     where one came, the word check against the agreed version, the approvals
+     the handover used and the handover itself. The old paper door filed a
+     scan the pack never mentioned; that is the gap this closes. */
+  const outside=!!(c.execution&&c.execution.method==='outside');
+  const sc=c.signedCopy||null, ho=c.handover||null;
+  downloadFile(`${(window.contractRef?contractRef(c):c.id)}-evidence-pack.json`, JSON.stringify({
     generatedAt:nowISO(), platform:'HaTi CLM', org:FIRST_PARTY,
     // a migrated contract was signed elsewhere — citing the e-signature Act
     // here would claim HaTi took a signature it never took
     legalBasis: isExternallyExecuted(c)
       ? 'Executed outside HaTi and migrated in as a record. No electronic signature was taken in HaTi; the signatures are on the original document.'
+      : outside
+      ? 'Signed outside HaTi, the other side\'s way, and filed here. No electronic signature was taken in HaTi; the signatures are on the signed copy, which is the document of record. The agreed version and the negotiation are how its wording was reached.'
       : jxEsignature(),
+    signedCopy: outside&&sc ? {
+      file:{ name:(sc.file&&sc.file.name)||null, sha256:(sc.file&&sc.file.sha256)||null, fileId:(sc.file&&sc.file.fileId)||null },
+      certificate: sc.certificate ? { name:sc.certificate.name||null, sha256:sc.certificate.sha256||null, fileId:sc.certificate.fileId||null } : null,
+      via: sc.via||null, signedOn: sc.signedOn||null, signers: sc.signers||[],
+      filedBy: (sc.by&&sc.by.name)||null, filedAt: sc.at||null,
+      wordCheck: sc.compare||null, acceptedDifference: sc.differs||null,
+      approvalsUsed: sc.approvalsUsed||[] } : null,
+    handover: outside&&ho ? { at:ho.at||null, by:(ho.by&&ho.by.name)||null, how:ho.how||null,
+      agreedVersion:ho.version||null, agreedSha256:ho.agreedHash||null, agreedWords:ho.agreedWords||null,
+      file:{ name:(ho.file&&ho.file.name)||null, fileId:(ho.file&&ho.file.fileId)||null },
+      sentTo:(ho.to&&ho.to.email)||null, channel:ho.channel||null, signatory:(ho.signatory&&ho.signatory.name)||null,
+      checks:(ho.checks||[]).map(x=>({ at:x.at, by:x.by&&x.by.name, file:x.fileName, line:x.result&&x.result.line })) } : null,
     disclosure:'Government IPRS identity verification and CAK-accredited PKI signatures are not yet integrated.',
     /* THE AGREEMENT IS ONLY AS WELL PROVED AS ITS LEAST-PROVED SIGNATURE, so
        this is the WEAKEST rung and not the best one — the flattering reading
@@ -3516,7 +3565,7 @@ function downloadEvidence(c){
           batch:(c.migration&&c.migration.batch)||null,
           get note(){ return i18t('co_executed_on_note'); } }
       : null,
-    contract:{ id:c.id, name:c.name, type:cKind(c), counterparty:c.counterparty,
+    contract:{ id:c.id, contractNo:c.contractNo||null, name:c.name, type:cKind(c), counterparty:c.counterparty,
       value:c.value, valueType:c.valueType, status:c.status },
     /* A MACHINE-READABLE MOMENT (J-5.1). This exported c.signedAt — a display
        string in the EXPORTER's language — so the same contract signed by the
@@ -3528,7 +3577,7 @@ function downloadEvidence(c){
       signedOn:(typeof window.contractSignedAt==='function'?contractSignedAt(c):null),
       signedLabel:contractSignedLabel(c),
       sealedTextSha256:c.execution?.textHash||null,
-      sealedFileSha256:isUpload(c)?(c.upload?.fileHash||null):null,
+      sealedFileSha256:(outside&&sc&&sc.file)?(sc.file.sha256||null):isUpload(c)?(c.upload?.fileHash||null):null,
       sealedText:isUpload(c)?null:normText(c.execution?.html||''),
       uploadedFile:isUpload(c)?{ name:c.upload?.fileName, size:c.upload?.size }:null },
     // `capacity` is the whole point of a signature block and was missing from
@@ -3775,6 +3824,11 @@ const shareMessageText=(c,link,msg,expiresAt)=>
 function defaultSharePurpose(c){
   if(!c) return 'sign';
   if(c.status==='Signed') return 'sign';
+  /* A FILE THEY SIGN (26 Sep 2026) is never sent to be signed on a HaTi link:
+     it goes out to be argued over, or — while it is out with them — to be
+     read. */
+  if(typeof signRouteOf==='function' && signRouteOf(c)==='outside')
+    return (typeof handoverActive==='function' && handoverActive(c)) ? 'view' : 'negotiate';
   /* Read c.changes directly rather than through negoChanges: this is asked of
      contracts loaded as summaries, and a read must not stamp clause ids into a
      document (see negoAlignment for the same care). */
@@ -3941,10 +3995,19 @@ function sharePurposePickerHtml(c, sel, o={}){
      consequence of the answer they have actually given, and reads it in one
      line instead of scanning three. The cards are kept for the two-screen
      shape, which still exists behind the quiet door. */
+  /* ---- WHAT A FILE THEY SIGN CANNOT BE SENT FOR (26 Sep 2026) ----
+     Never a signing link — the agreed words go out as a Word file from the
+     Signing tab — and, while they are out with them, no round either: the
+     words are locked. Greyed with the reason, never hidden; the server refuses
+     both too. */
+  const theySign=typeof signRouteOf==='function' && !!c && signRouteOf(c)==='outside' && c.status!=='Signed';
+  const out=theySign && typeof handoverActive==='function' && handoverActive(c);
+  const shut=k=>theySign&&(k==='sign'||(k==='negotiate'&&out))
+    ? ` disabled aria-disabled="true" title="${esc(i18t(k==='sign'?'ho_share_no_sign':'ho_share_no_round'))}"` : '';
   if(o.compact){
     const seg=(k)=>{ const on=sel===k, m=SHARE_PURPOSE_COPY[k];
-      return `<button type="button" data-share-purpose="${k}" data-share-purpose-seg="1" aria-pressed="${on?'true':'false'}"
-        style="flex:1;height:var(--ctl-h);padding:0 var(--s-1);font:inherit;font-family:var(--font-heading);font-size:var(--t-body);font-weight:var(--w-label);white-space:nowrap;cursor:pointer;
+      return `<button type="button" data-share-purpose="${k}" data-share-purpose-seg="1" aria-pressed="${on?'true':'false'}"${shut(k)}
+        style="flex:1;height:var(--ctl-h);padding:0 var(--s-1);font:inherit;font-family:var(--font-heading);font-size:var(--t-body);font-weight:var(--w-label);white-space:nowrap;cursor:pointer;${shut(k)?'opacity:.5;cursor:default;':''}
         border:1px solid ${on?'var(--color-accent)':'var(--btn-edge)'};background:${on?'var(--color-accent)':'var(--color-surface)'};
         color:${on?'#fff':'var(--color-neutral-700)'};border-radius:var(--radius)">${m.label}</button>`; };
     const m=SHARE_PURPOSE_COPY[sel]||SHARE_PURPOSE_COPY.negotiate;
@@ -3961,8 +4024,8 @@ function sharePurposePickerHtml(c, sel, o={}){
     </div>`;
   }
   const btn=(k)=>{ const on=sel===k, m=SHARE_PURPOSE_COPY[k];
-    return `<button type="button" data-share-purpose="${k}" aria-pressed="${on?'true':'false'}"
-      style="flex:1;min-width:190px;text-align:left;cursor:pointer;font:inherit;border-radius:var(--radius);padding:10px var(--s-3);
+    return `<button type="button" data-share-purpose="${k}" aria-pressed="${on?'true':'false'}"${shut(k)}
+      style="flex:1;min-width:190px;text-align:left;cursor:pointer;font:inherit;border-radius:var(--radius);padding:10px var(--s-3);${shut(k)?'opacity:.5;cursor:default;':''}
       border:1.5px solid ${on?'var(--color-accent)':'var(--color-divider)'};
       background:${on?'var(--color-accent-100)':'var(--color-surface)'}">
       <span style="display:flex;align-items:center;gap:7px">
@@ -4726,6 +4789,9 @@ function buildSharePayload(c, docHash, who, opts){
        as false — the server still refuses, in words. */
     signingOpen: window.signingRouteOpen ? !!signingRouteOpen(c) : undefined,
     contract:{ id:c.id, name:c.name, template:c.template, source:c.source||null,
+      /* THE REFERENCE THEY READ (26 Sep 2026): a working file's contract
+         number, once it has one. The id stays the key the response names. */
+      contractNo:c.contractNo||undefined,
       /* THE MARKS ALREADY TAKEN travel with the copy. The owner signing first
          is a fact of the document — a counterparty reading a copy with no
          record of it saw a bare "pending execution" placeholder and could not
@@ -6937,7 +7003,7 @@ function openImportModal(c){
     if(note) note.textContent=i18t('co_import_reading',{name:f.name});
     try{
       await ensureFull(c);
-      if((c.execution&&c.execution.at)||isExternallyExecuted(c)) throw new Error(i18t('co_import_executed',{id:c.id}));
+      if((c.execution&&c.execution.at)||isExternallyExecuted(c)) throw new Error(i18t('co_import_executed',{id:(window.contractRef?contractRef(c):c.id)}));
       const bytes=new Uint8Array(await f.arrayBuffer());
       if(!window.negoImportReturnedDocx) throw new Error('The Word reader is not loaded on this page');
       const res=await negoImportReturnedDocx(c, bytes, {});
@@ -7016,7 +7082,7 @@ async function applyResponse(c, r, opts={}){
   // re-open. A stale or replayed link must not be able to flip a signed
   // contract to Declined or bolt another signature onto a sealed record.
   if((c.execution && c.execution.at) || isExternallyExecuted(c)){
-    if(!opts.background) toast(`${c.id} is already executed — a share response cannot change it. Record an amendment instead.`,'err');
+    if(!opts.background) toast(`${(window.contractRef?contractRef(c):c.id)} is already executed — a share response cannot change it. Record an amendment instead.`,'err');
     return false;
   }
   const currentHash=await sha256(canonicalDoc(c));
@@ -7032,7 +7098,7 @@ async function applyResponse(c, r, opts={}){
      Refused the same way an out-of-order signature is refused above: return
      false so nothing is written and the response stays visible as pending. */
   if(docChanged && (r.action==='sign' || r.action==='accept' || r.action==='ready')){
-    if(!opts.background) toast(`${r.name||'The counterparty'} responded to an earlier copy of ${c.id} — the wording changed after their link was sent, so their ${r.action==='sign'?'signature':'response'} was NOT applied. Reshare the current version so they respond to the document you actually have.`,'err');
+    if(!opts.background) toast(`${r.name||'The counterparty'} responded to an earlier copy of ${(window.contractRef?contractRef(c):c.id)} — the wording changed after their link was sent, so their ${r.action==='sign'?'signature':'response'} was NOT applied. Reshare the current version so they respond to the document you actually have.`,'err');
     return false;
   }
   if(docChanged)
