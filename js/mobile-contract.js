@@ -47,10 +47,10 @@ function mContractHeadHtml(c){
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
         </button>
         <div style="flex:1;min-width:0">
-          <div style="font-size:var(--t-section);font-weight:var(--w-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${mEsc(c.name||c.id)}</div>
+          <div style="font-size:var(--t-section);font-weight:var(--w-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${mEsc(c.name||(window.contractRef?contractRef(c):c.id))}</div>
           <div style="display:flex;align-items:center;gap:var(--s-2);margin-top:1px">
             ${mPill(c)}
-            <span style="flex:1;min-width:0;font-size:var(--t-card);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${mEsc(c.id)} · ${mEsc(party)}</span>
+            <span style="flex:1;min-width:0;font-size:var(--t-card);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${mEsc(window.contractRef?contractRef(c):c.id)} · ${mEsc(party)}</span>
           </div>
           ${mDeskLineHtml(c)}
         </div>
@@ -383,7 +383,7 @@ function mTermsHtml(c){
     { get label(){ return i18t('me_price_review'); }, value:(typeof metaOptLabel==='function'&&md.priceReview)?metaOptLabel(md.priceReview):md.priceReview },
     { get label(){ return i18t('mc_governing_law'); }, value:md.governingLaw },
     { get label(){ return i18t('mc_filed_under'); }, value:(typeof FOLDERS==='object'&&FOLDERS[c.folder]&&FOLDERS[c.folder].name)||'' },
-    { get label(){ return i18t('mc_contract_id'); }, value:c.id },
+    { get label(){ return i18t('mc_contract_id'); }, value:(window.contractRef?contractRef(c):c.id) },
   ].filter(Boolean);
   const missing = rows.filter(r=>r.miss && !String(r.value||'').trim()).length;
   /* THE CONTRACT BRIEF, READ-ONLY (WO-2). The phone renders the cached memo
@@ -825,7 +825,7 @@ function mContractAct(k, btn){
     if(!c || typeof negoIntegrityReport!=='function') return;
     negoIntegrityReport(c).then(r=>{
       const html = (typeof negoHistoryExportHtml==='function') ? negoHistoryExportHtml(c, r) : '';
-      if(html && window.downloadFile) downloadFile(`${c.id}-negotiation-history.html`, html, 'text/html');
+      if(html && window.downloadFile) downloadFile(`${(window.contractRef?contractRef(c):c.id)}-negotiation-history.html`, html, 'text/html');
       if(window.toast) toast(`History exported — the report carries its own verification result (${r.ok?'verified':'FAILED'})`);
     }).catch(()=>{ if(window.toast) toast(i18t('mc_export_failed'),'err'); });
     return;
@@ -885,6 +885,10 @@ function mDoNextAction(kind){
   /* ---- THE DEAD PRESS, CLOSED ---- The head's green primary reads "Add
      signers" whenever the route is not open, and nothing here answered it. */
   if(kind==='add-signers'){ mOpenSheet('signers', { signersErr: '' }); return; }
+  /* A FILE THEY SIGN (26 Sep 2026): the handover builds the agreed Word file
+     and the filing reads a signed copy beside the agreed words — a computer's
+     work. Said, never a dead press. */
+  if(kind==='ho-hand'||kind==='ho-file'){ if(window.toast) toast(i18t('ho_on_computer'),'warn'); return; }
   if(kind==='share'){ mOpenShareSheet(); return; }
   if(kind==='terms'){ mS().tab='terms'; mRender(); if(window.toast) toast(i18t('mc_fill_on_computer')); return; }
   if(kind==='review'){

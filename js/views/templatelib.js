@@ -556,7 +556,7 @@ async function tplLibCreate(id, essentials) {
      creation site beside roomOpenOnTerms, because there is no single funnel
      for creating a contract. See contractArrived. */
   if(window.contractArrived) contractArrived(c);
-    toast(`${c.id} created from “${c.templateForm ? c.templateForm.templateName : 'template'}” — company details arrived pre-filled`);
+    toast(`${(window.contractRef ? contractRef(c) : c.id)} created from “${c.templateForm ? c.templateForm.templateName : 'template'}” — company details arrived pre-filled`);
     openWorkspace(c.id);
   } catch (e) { toast(e.message, 'err'); }
 }
@@ -901,6 +901,7 @@ async function openTemplateLibDetail(id) {
   }
   const CARD = 'background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius)';
   const fmtAt = iso => iso ? fmtDT(iso) : '—';
+  const srcC = t.sourceContractId ? (state.contracts || []).find(x => x.id === t.sourceContractId) : null;
   const st = TPLLIB_STATUS[t.status] || TPLLIB_STATUS.draft;
   const openDraft = versions.find(v => v.status === 'draft');
 
@@ -930,7 +931,7 @@ async function openTemplateLibDetail(id) {
           </div>
           <p style="margin:6px 0 0;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.55">${esc(t.description) || `<span style="color:var(--color-neutral-400)">${i18t('tl_no_description')}</span>`}</p>
           <p style="margin:var(--s-2) 0 0;font-size:var(--t-label);color:var(--color-neutral-500)">
-            ${esc(tplCategoryName(t.category))} · ${esc(TPLLIB_ORIGIN[t.origin] || '')}${t.sourceContractId ? ` (${esc(t.sourceContractId)})` : ''}
+            ${esc(tplCategoryName(t.category))} · ${esc(TPLLIB_ORIGIN[t.origin] || '')}${t.sourceContractId ? ` (${esc(window.contractRef && srcC ? contractRef(srcC) : t.sourceContractId)})` : ''}
             · ${t.contractsCreated} contract${t.contractsCreated === 1 ? '' : 's'} created${t.lastUsedAt ? ` · last used ${fmtAt(t.lastUsedAt)}` : ''}</p>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;flex:none">

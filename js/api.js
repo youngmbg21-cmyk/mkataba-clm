@@ -90,7 +90,7 @@ async function apiStream(path, body, onEvent){
 async function loadBootstrap(){
   const b=await api('bootstrap');
   REMOTE={ org:b.org, me:b.me, users:b.users };
-  uid=b.uid||uid; state.settings=b.settings||{}; state.totalCount=b.count||0; state.aiConfigured=!!b.aiConfigured;
+  uid=b.uid||uid; rlUid=Number(b.rlUid)||rlUid; state.settings=b.settings||{}; state.totalCount=b.count||0; state.aiConfigured=!!b.aiConfigured;
   /* ---- THE COMPANY'S OWN VALUE STREAMS JOIN FOLDERS HERE ----
      js/templates.js builds FOLDERS at module load, long before anybody has
      signed in, so the shared list cannot be read there — this is the first

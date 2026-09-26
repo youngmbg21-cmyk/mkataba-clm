@@ -479,7 +479,7 @@ async function intakeDraft(id){
         await loadIntake();
         if(window.updateSidebarCounts) updateSidebarCounts();
       }catch(_){ /* the draft exists either way; the queue catches up on reload */ }
-      toast(i18t('ik_drafted',{id:c.id}),'ok');
+      toast(i18t('ik_drafted',{id:(window.contractRef?contractRef(c):c.id)}),'ok');
     }
   });
 }

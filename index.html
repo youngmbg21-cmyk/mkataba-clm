@@ -6027,7 +6027,100 @@
   /* THE HELD FACE (the Compact ladder, 26 Sep 2026): the large rung in the
      secondary face — never the fill, so it never promises — with the quiet
      ink. It is still a door (signLandOnList), so it keeps a pointer. */
-  #sign-btn.sign-held{cursor:pointer;color:var(--color-neutral-700);}
+  #sign-btn.sign-held,#ho-hand.sign-held{cursor:pointer;color:var(--color-neutral-700);}
+  /* ---- REDLINE HERE, SIGN THERE (Young's go, 26 Sep 2026) ----
+     The Signing tab of a file THEY sign: who runs the signing, the handover
+     window, the waiting card, the word check and the signed copy of record.
+     Every value is a token; nothing here is a band (the waiting card stands
+     where the one list stood and wears its clothes, .kt-tri). */
+  .ho-route{border:1px solid var(--color-divider);border-radius:var(--radius);
+    background:var(--color-surface);padding:10px 12px;}
+  .ho-route-h{display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);
+    font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.08em;
+    text-transform:uppercase;color:var(--color-neutral-600);}
+  .ho-route-h .ui-link{text-transform:none;letter-spacing:0;font-size:var(--t-label);font-weight:var(--w-label);}
+  .ho-route-v{margin-top:4px;font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);}
+  .ho-route-say{margin:4px 0 0;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600);}
+  .ho-grid{display:grid;grid-template-columns:150px minmax(0,1fr);gap:12px 16px;align-items:start;
+    font-size:var(--t-body);color:var(--color-text);}
+  .ho-l{font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600);padding-top:3px;}
+  .ho-sub{font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600);margin-top:2px;}
+  .ho-how{display:grid;gap:6px;}
+  .ho-radio{display:flex;align-items:center;flex-wrap:wrap;gap:6px;cursor:pointer;}
+  .ho-lock{margin:var(--s-4) 0 0;padding:8px 10px;border-radius:var(--radius);
+    background:var(--color-neutral-100);font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-700);}
+  .ho-err{margin-top:var(--s-3);font-size:var(--t-label);color:var(--st-ruby-fg);}
+  .ho-card .kt-tri-head{flex-wrap:wrap;}
+  .ho-chip{flex:none;display:inline-flex;align-items:center;padding:1px 6px;border-radius:var(--radius);
+    font-size:var(--t-label);font-weight:var(--w-label);background:var(--st-steel-bg);color:var(--st-steel-fg);}
+  .ho-chip.is-partial{background:var(--st-green-bg);color:var(--st-green-fg);}
+  .ho-chip.is-stale{background:var(--st-amber-bg);color:var(--st-amber-fg);}
+  .ho-row{display:grid;grid-template-columns:118px minmax(0,1fr);gap:10px;padding:7px 0;
+    border-bottom:1px solid var(--color-divider);font-size:var(--t-label);line-height:1.5;}
+  .ho-row:last-of-type{border-bottom:0;}
+  .ho-k{color:var(--color-neutral-600);}
+  .ho-v{color:var(--color-text);min-width:0;overflow-wrap:anywhere;}
+  .ho-acts{display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;margin-top:10px;}
+  /* THE STILL-LIVE QUESTION is work owed, so it is amber and carries its two
+     answers; it is the only amber on this card. */
+  .ho-live{margin:9px 0 2px;padding:8px 10px;border:1px solid var(--st-amber-line);border-radius:var(--radius);
+    background:var(--st-amber-bg);color:var(--st-amber-fg);font-size:var(--t-label);line-height:1.5;}
+  .ho-live .ho-acts{margin-top:6px;}
+  .ho-res{margin-top:var(--s-3);}
+  .ho-res-h{font-weight:var(--w-strong);font-size:var(--t-body);}
+  .ho-res.is-same .ho-res-h{color:var(--st-green-fg);}
+  .ho-res.is-diff .ho-res-h{color:var(--st-ruby-fg);}
+  .ho-diffs{display:grid;gap:8px;margin-top:8px;max-height:44vh;overflow:auto;}
+  .ho-diff{border:1px solid var(--color-divider);border-radius:var(--radius);padding:8px 10px;
+    background:var(--color-surface);font-size:var(--t-label);line-height:1.55;}
+  .ho-diff-h{font-weight:var(--w-strong);color:var(--color-text);margin-bottom:4px;}
+  .ho-their{font-weight:var(--w-body);color:var(--color-neutral-600);}
+  .ho-diff-r{display:grid;grid-template-columns:62px minmax(0,1fr);gap:8px;}
+  .ho-diff-k{color:var(--color-neutral-600);}
+  .ho-diff-term{font-size:var(--t-label);color:var(--st-amber-fg);}
+  /* THE BLANKS THEY FILLED IN (26 Sep 2026): accepted without asking, so drawn
+     as a list in the page's own ink, never in the redline's colours — and
+     open, so every one is read before File is pressed. */
+  .ho-fills{margin-top:2px;}
+  .ho-fills > summary{cursor:pointer;width:max-content;max-width:100%;}
+  .ho-fill-list{display:grid;gap:3px;margin:4px 0 2px;max-height:30vh;overflow:auto;}
+  .ho-fill{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:8px;font-size:var(--t-label);line-height:1.5;}
+  .ho-fill-k{color:var(--color-neutral-600);overflow-wrap:anywhere;}
+  .ho-fill-v{color:var(--color-text);overflow-wrap:anywhere;}
+  /* The redline's own grammar: struck where the agreed words are not in their
+     copy, underlined where their copy has words the agreed version does not. */
+  .ho-del{color:var(--st-ruby-fg);text-decoration:line-through;}
+  .ho-ins{color:var(--st-green-fg);text-decoration:underline;}
+  .ho-file{display:grid;grid-template-columns:minmax(0,1fr) 440px;height:100%;min-height:0;}
+  .ho-file-l{min-height:0;overflow:auto;background:var(--color-bg);border-right:1px solid var(--color-divider);}
+  .ho-file-r{min-height:0;overflow:auto;padding:18px 20px;display:flex;flex-direction:column;gap:2px;}
+  .ho-copytext{padding:20px 24px;font-family:var(--font-doc);font-size:14px;line-height:1.6;color:var(--color-doc-text);
+    background:var(--color-doc-warm);min-height:100%;}
+  .ho-chk{display:grid;grid-template-columns:18px minmax(0,1fr);gap:8px;padding:9px 0;
+    border-bottom:1px solid var(--color-divider);font-size:var(--t-label);line-height:1.5;}
+  .ho-tick{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;
+    background:var(--st-green-bg);color:var(--st-green-fg);font-size:var(--t-micro);font-weight:var(--w-title);}
+  .ho-tick.is-warn{background:var(--st-amber-bg);color:var(--st-amber-fg);}
+  .ho-signers{display:grid;gap:3px;margin:5px 0;}
+  .ho-signer{display:flex;align-items:flex-start;gap:6px;cursor:pointer;}
+  .ho-dates{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 10px;margin-top:6px;}
+  .ho-dates label,.ho-via{display:grid;gap:3px;font-size:var(--t-label);color:var(--color-neutral-600);}
+  .ho-dates input{width:100%;min-width:0;}
+  .ho-via{margin-top:9px;}
+  .ho-file-foot{display:flex;align-items:flex-start;gap:var(--s-2);margin-top:auto;padding-top:var(--s-4);flex-wrap:wrap;}
+  #ho-f-acts{display:flex;flex-wrap:wrap;gap:var(--s-2);justify-content:flex-end;}
+  @media (max-width: 900px){ .ho-file{grid-template-columns:1fr;grid-template-rows:40vh auto;}
+    .ho-grid{grid-template-columns:1fr;gap:4px;} }
+  /* THE SIGNED COPY OF RECORD — drawn where the signature block is. */
+  .ho-ex{border:1px solid var(--color-divider);border-radius:var(--radius);padding:14px 16px;
+    background:var(--color-surface);font-family:var(--font-body);}
+  .ho-ex-h{display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);
+    font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);}
+  .ho-ex-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:10px;}
+  .ho-ex-k{font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600);}
+  .ho-ex-v{font-size:var(--t-label);color:var(--color-text);margin-top:2px;}
+  .ho-ex-fp{margin-top:10px;padding-top:10px;border-top:1px solid var(--color-divider);}
+  .ho-ex-fp code{display:block;font-family:var(--font-code);font-size:var(--t-label);overflow-wrap:anywhere;color:var(--color-text);margin-top:2px;}
   .hm-tri-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
     gap:10px;margin-top:10px;}
   .hm-tri-tile{border:1px solid var(--color-divider);padding:8px 10px;min-width:0;}

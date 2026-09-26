@@ -76,7 +76,10 @@ describe('f240 (1) — an alert names its contract once', () => {
     const rows = strip(APP).match(/data-alert-i="\$\{i\}"[\s\S]{0,1600}/)[0];
     assert.match(rows, /\$\{a\.name\?`<span[^`]*\$\{esc\(a\.name\)\}<\/span>`:''\}/,
       'an empty name must draw no line at all, never an empty one');
-    assert.match(rows, /\$\{esc\(a\.id\)\}/, 'the reference itself still prints');
+    /* RE-POINTED 26 Sep 2026 — a contract signed outside takes its number when it is
+       filed, so what a row PRINTS is `contractRef` (carried on the row as `ref`); the id
+       stays the row's key and is the fallback where no reference was carried. */
+    assert.match(rows, /\$\{esc\(a\.ref\|\|a\.id\)\}/, 'the reference itself still prints');
   });
 });
 

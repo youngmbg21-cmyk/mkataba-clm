@@ -520,7 +520,7 @@ function docDesignHeaderHtml(b, c, opts = {}) {
     if (c) {
       const eff = c.effectiveDate || (c.fields && c.fields.effDate);
       if (eff) facts.push(['Effective', String(eff)]);
-      if (c.id) facts.push(['Ref', String(c.id)]);
+      if (c.id) facts.push(['Ref', String((typeof window !== 'undefined' && window.contractRef) ? window.contractRef(c) : (c.contractNo || c.id))]);
       if (c.expiry) facts.push(['Expires', String(c.expiry)]);
     }
     const metaLine = facts.length ? `<div style="display:flex;gap:22px;margin-top:var(--s-3);padding-top:10px;border-top:1px dashed #cfd8dc;font-size:var(--t-label);color:${BR_SOFT}">
@@ -700,7 +700,7 @@ function docDesignCoverPageHtml(b, c) {
     ${between ? `<div style="font-size:var(--t-meta);color:${BR_SOFT};margin-top:10px">between ${between}</div>` : ''}
     <div style="width:52px;height:3px;background:${brAccent(b)};margin:26px auto"></div>
     <table style="margin:0 auto;border-collapse:collapse;font-size:var(--t-label);text-align:left">
-      ${c.id ? `<tr><td style="padding:3px 14px 3px 0;color:${BR_SOFT}">${BR_T('br_reference', 'Reference')}</td><td style="font-weight:var(--w-strong)">${BR_ESC(c.id)}</td></tr>` : ''}
+      ${c.id ? `<tr><td style="padding:3px 14px 3px 0;color:${BR_SOFT}">${BR_T('br_reference', 'Reference')}</td><td style="font-weight:var(--w-strong)">${BR_ESC((typeof window !== 'undefined' && window.contractRef) ? window.contractRef(c) : (c.contractNo || c.id))}</td></tr>` : ''}
       ${u.fileName ? `<tr><td style="padding:3px 14px 3px 0;color:${BR_SOFT}">${BR_T('br_original_file', 'Original file')}</td><td style="font-weight:var(--w-strong)">${BR_ESC(u.fileName)}</td></tr>` : ''}
       ${c.status ? `<tr><td style="padding:3px 14px 3px 0;color:${BR_SOFT}">Status</td><td style="font-weight:var(--w-strong)">${BR_ESC(c.status)}</td></tr>` : ''}
     </table>

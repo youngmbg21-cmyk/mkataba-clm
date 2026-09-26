@@ -29,6 +29,7 @@ const ROOT = path.join(__dirname, '..');
 const MODULES = [
   'js/i18n.js',         // first, as js/app.js loads it: every label reads through i18t()
   'js/jurisdiction.js', // then this: money and law read from it
+  'js/outside.js',     // contractRef and the handover's readings (26 Sep 2026)
   'js/richdoc.js',
   'js/clausemodel.js',
   'js/parties.js',   // who the agreement is between
@@ -47,6 +48,7 @@ const MODULES = [
   // docBody()/readOnlyDocHtml(), so stubbing it would mean asserting on my
   // rendering rather than the product's
   'js/views/contract.js',
+  'js/views/handover.js',   // the signed copy of record, drawn by signatureBlock on a contract filed from outside
   // the shared Negotiation component: the counterparty's page renders the SAME
   // file the owner's tab does, so it has to be on this stage too — and since
   // 21 Aug 2026 that is two files, the stylesheet first (see its own header).

@@ -167,7 +167,7 @@ function renderApprovalsPage(){
   const INS=(typeof insFits==='function')&&insFits()&&typeof insPaintPanel==='function';
   const apHead=[{t:'MK'},{t:i18t('reg_col_title')},{t:i18t('ap_pg_rule')},{t:i18t('ap_pg_asked_by')},{t:i18t('ap_pg_waiting')},...(money?[{t:i18t('reg_col_value'),right:true}]:[]),{t:''}];
   const apRowsHtml=ap.map(r=>`<tr data-ap-row="${esc(r.c.id)}">
-      <td class="mono">${esc(r.c.id)}</td>
+      <td class="mono">${esc(window.contractRef?contractRef(r.c):r.c.id)}</td>
       <td><span class="ap-name">${esc(r.c.name||'')}</span><span class="ap-sub">${esc(r.c.counterparty||'')}</span></td>
       <td>${esc(r.rule)}${r.mine?(r.ruleSub?`<span class="ap-sub">${esc(r.ruleSub)}</span>`:''):`<span class="ap-sub">${esc(r.notAsked?i18t('sa_pg_not_asked'):i18t('ap_pg_waiting_on',{who:r.waitsOn||'—'}))}</span>`}</td>
       <td>${esc(r.who||'—')}</td>
@@ -177,7 +177,7 @@ function renderApprovalsPage(){
     </tr>`);
   const sgHead=[{t:'MK'},{t:i18t('reg_col_title')},{t:i18t('ap_pg_what_waits')},...(money?[{t:i18t('reg_col_value'),right:true}]:[]),{t:''}];
   const sgRowsHtml=sg.map(r=>`<tr data-ap-row="${esc(r.c.id)}">
-      <td class="mono">${esc(r.c.id)}</td>
+      <td class="mono">${esc(window.contractRef?contractRef(r.c):r.c.id)}</td>
       <td><span class="ap-name">${esc(r.c.name||'')}</span><span class="ap-sub">${esc(r.c.counterparty||'')}</span></td>
       <td>${r.kind==='sign'?esc(i18tn('ap_pg_to_settle',r.n,{n:r.n})):esc(i18t('ap_pg_ready_sign',{who:r.by||r.c.counterparty||''}))}</td>
       ${money?`<td class="r mono">${apValueCell(r.c)}</td>`:''}
@@ -193,12 +193,12 @@ function renderApprovalsPage(){
   const insAp=ap.map(r=>{
     const waits=r.mine?(r.ruleSub||''):(r.notAsked?i18t('sa_pg_not_asked'):i18t('ap_pg_waiting_on',{who:r.waitsOn||'—'}));
     return `<tr data-ap-row="${esc(r.c.id)}" tabindex="-1">
-      <td class="mono">${esc(r.c.id)}</td>${ident(r.c)}
+      <td class="mono">${esc(window.contractRef?contractRef(r.c):r.c.id)}</td>${ident(r.c)}
       <td><span class="ap-name">${esc(r.rule)}</span><span class="ap-sub${r.idle>=3?' late':''}">${esc([waits,apWaitingText(r.idle)].filter(Boolean).join(' · '))}</span></td>
       ${money?`<td class="r mono">${apValueCell(r.c)}</td>`:''}
     </tr>`; });
   const insSg=sg.map(r=>`<tr data-ap-row="${esc(r.c.id)}" tabindex="-1">
-      <td class="mono">${esc(r.c.id)}</td>${ident(r.c)}
+      <td class="mono">${esc(window.contractRef?contractRef(r.c):r.c.id)}</td>${ident(r.c)}
       <td>${r.kind==='sign'?esc(i18tn('ap_pg_to_settle',r.n,{n:r.n})):esc(i18t('ap_pg_ready_sign',{who:r.by||r.c.counterparty||''}))}</td>
       ${money?`<td class="r mono">${apValueCell(r.c)}</td>`:''}
     </tr>`);

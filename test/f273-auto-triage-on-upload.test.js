@@ -863,7 +863,10 @@ describe('F273 — auto-triage on upload', () => {
        the product passes the name raw. */
     const HOME = strip(fs.readFileSync('js/views/home.js', 'utf8'));
     test('the name goes in raw', () => {
-      assert.match(HOME, /message:i18t\('tri_decline_msg',\{name:c\.name\|\|c\.id\}\)/);
+      /* RE-POINTED 26 Sep 2026 — where there is no name the dialog prints the contract's
+         REFERENCE, which is `contractRef` since a contract signed outside takes its number
+         when it is filed. Still raw: the claim is about escaping, not about which fallback. */
+      assert.match(HOME, /message:i18t\('tri_decline_msg',\{name:c\.name\|\|\(window\.contractRef\?contractRef\(c\):c\.id\)\}\)/);
       assert.ok(!/tri_decline_msg',\{name:esc\(/.test(HOME), 'never escaped twice');
     });
     test('and confirmDialog is still the thing that escapes it', () => {

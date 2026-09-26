@@ -656,7 +656,7 @@ function openSignApprovalDialog(c){
   try{ const ours=(typeof contractParty==='function')?contractParty(c):''; if(ours && !partiesShown.includes(ours)) partiesShown.unshift(ours); }catch(_){}
   openModal(`<div class="sa-dlg">
     <h3 class="sa-h">${e(i18t('sa_dlg_title'))}</h3>
-    <div class="sa-sub">${e([c.id,c.name,c.counterparty].filter(Boolean).join(' · '))}</div>
+    <div class="sa-sub">${e([(window.contractRef?contractRef(c):c.id),c.name,c.counterparty].filter(Boolean).join(' · '))}</div>
     ${needs}
     <div class="sa-box">
       <div class="sa-boxh">${e(i18t('sa_dlg_exactly',{who:apName}))}</div>
@@ -1612,6 +1612,11 @@ function signerRouteHtml(c, opts){
        line — an inline state, not a band. The counterparty's own send is
        greyed with the same sentence, because the server refuses the link. */
     let saHold=null; try{ saHold=signApprovalHoldsLinks(c); }catch(_){ saHold=null; }
+    /* A FILE THEY SIGN (26 Sep 2026): the route is who signs, and nothing
+       more — nobody's turn comes in HaTi, no link goes out, nobody is told it
+       is their turn. Our signatory is told to expect the document when it is
+       handed over. */
+    const theySign=!!(typeof signRouteOf==='function'&&signRouteOf(c)==='outside');
     const orgOf=s=>{ if(!manyParties) return '';
       try{ const p=partyOfSigner(c,s); return p&&p.name?p.name:''; }catch(_){ return ''; } };
     const node=(state,label)=>`<span class="h-7 w-7 grid place-items-center rounded-full text-[11px] font-700 z-10 shrink-0 border-2 ${
@@ -1630,7 +1635,7 @@ function signerRouteHtml(c, opts){
              byte-identical. Where two parties share a step BOTH read as their
              turn, which is what signing in any order means. */
           const isCur=(typeof signRowOpen==='function')?signRowOpen(c,s):(ns&&ns.id===s.id);
-          const st=s.signed?'done':isCur?'cur':'wait';
+          const st=s.signed?'done':(isCur&&!theySign)?'cur':'wait';
           const stepHead=stepLead(s,i);
           /* Behind an unsigned INTERNAL step, by ORDER — not the old blanket
              "any internal unsigned", which mislabelled a counterparty-FIRST
@@ -1658,6 +1663,7 @@ function signerRouteHtml(c, opts){
           })[nst]||null;
           const meta=s.signed
             ? `${ord(s.order)} · ${s.at?fmtDT(s.at):''}${s.signature&&s.signature.form?' · '+s.signature.form+' signature':''}`
+            : theySign ? `${ord(s.order)} · ${i18t(s.party==='counterparty'?'ho_row_theirs':'ho_row_ours')}`
             : saHold ? `${ord(s.order)} · ${i18t('sa_route_waits')}`
             : notice(s) ? notice(s)
             : ls==='opened' ? `${ord(s.order)} · contract opened — awaiting their signature`
@@ -1675,7 +1681,7 @@ function signerRouteHtml(c, opts){
              no "not sent yet", no stale email verdict — the meta line says the
              row waits, and that is the whole of it. */
           const badge=s.signed ? ''
-            : saHold ? ''
+            : (saHold||theySign) ? ''
             : nst==='notified' ? tag('bg-gold-100 text-gold-700','TOLD')
             : nst==='notify-failed' ? tag('bg-rose-50 text-rose-600','EMAIL FAILED')
             : nst==='no-address' ? tag('bg-rose-50 text-rose-600','NO ADDRESS')
@@ -1698,7 +1704,7 @@ function signerRouteHtml(c, opts){
                 ${badge}
               </div>
               <div class="text-[10px] font-mono text-ink/45 mt-0.5">${meta}</div>
-              ${(!s.signed&&s.party==='counterparty'&&(ls==='unsent'||ls==='failed')&&!gated&&canEdit())
+              ${(!s.signed&&!theySign&&s.party==='counterparty'&&(ls==='unsent'||ls==='failed')&&!gated&&canEdit())
                 ? `<button data-sp-send="${String(s.id).replace(/"/g,'&quot;')}"${saHold?` disabled aria-disabled="true" title="${esc1(saHold)}"`:''} class="ui-btn ui-btn-sm mt-1${saHold?' opacity-50 cursor-not-allowed':''}">${ls==='failed'?'Resend their signing link':'Email their signing link'}</button>`
                 : ''}
               ${''/* THE INTERNAL ROW'S OWN DOOR. A resend is a deliberate act
@@ -1707,7 +1713,7 @@ function signerRouteHtml(c, opts){
                      something: told (say it again), the email failed, and never
                      told. Not on 'no-address', where the fix is the route or the
                      team record and the row says so. */}
-              ${(!s.signed&&s.party!=='counterparty'&&canEdit()&&!saHold
+              ${(!s.signed&&!theySign&&s.party!=='counterparty'&&canEdit()&&!saHold
                  &&['notified','notify-failed','untold'].includes(nst))
                 ? `<button data-sp-notify="${String(s.id).replace(/"/g,'&quot;')}" class="ui-btn ui-btn-sm mt-1">${
                     nst==='untold'?'Tell them it is their turn'

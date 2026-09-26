@@ -1173,7 +1173,12 @@ describe('the awkward cases', () => {
       require('node:path').join(__dirname, '..', 'js/views/contract.js'), 'utf8')
       .replace(/\/\*[\s\S]*?\*\//g, '')
       .match(/function wsNextAction[\s\S]*?\n\}/)[0];
-    assert.match(na, /cpReadyToSign\(c\)[\s\S]{0,400}kind:'issue-signing'/,
+    /* RE-POINTED 26 Sep 2026 — PIN THE REGION, NOT A BYTE COUNT: this allowed 400
+       characters between the predicate and the act, and the same block now answers a
+       contract the other side signs their own way first (Hand over, never a signing
+       link). The claim is unchanged — the act sits INSIDE the block the predicate
+       opens, before that block's own closing brace. */
+    assert.match(na, /ready=cpReadyToSign\(c\);[\s\S]*?if\(ready\)\{(?:(?!\n    \}\n)[\s\S])*kind:'issue-signing'/,
       'the act is offered only where that predicate says yes');
 
     const hv = buildWorld({ homeView: true }).win;

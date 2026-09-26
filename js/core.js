@@ -40,6 +40,16 @@ Object.assign(window,{FIRST_PARTY,PORTAL_MODE,contractParty});
 
 window.uid = 100;
 const nextId = () => 'MK-' + (++uid);
+/* ---- A WORKING FILE'S REFERENCE (26 Sep 2026, redline here, sign there) ----
+   The other side's paper, uploaded to be negotiated here and signed by them,
+   is a working file until the signed copy is filed. It is keyed RL-012 from
+   its own counter, so a deal that dies never takes a contract number and the
+   Contracts list has no gaps; the number comes from the server at filing.
+   workingIdOf is js/outside.js's; the literal is the fallback for a stage
+   that does not carry it. */
+window.rlUid = 0;
+const nextWorkingId = () => (typeof workingIdOf === 'function')
+  ? workingIdOf(++rlUid) : 'RL-' + String(++rlUid).padStart(3, '0');
 const seedComments = () => ([
   { author:(typeof jxEg==='function'&&jxEg('reviewer'))||'Wanjiku Kamau', role:'Editor (Internal)', side:'internal',
     text:`Flagged clause 4 — please confirm the governing-law reference stays ${(typeof jxAdjective==='function'?jxAdjective():'Kenyan')}.`, ts:'2d ago' },
@@ -510,8 +520,32 @@ const EXPIRED_META = _stMeta('status_expired', 'Expired', 'var(--st-gray-dot)', 
    ladder says "where this contract has got to" and this one says "stop". */
 const HOLD_META = _stMeta('status_on_hold', 'On hold', 'var(--st-ruby-dot)', 'var(--st-ruby-bg)', 'var(--st-ruby-fg)', 'var(--st-ruby-line)');
 const PARTIAL_META = _stMeta('status_partially_signed', 'Partially signed', 'var(--st-amber-dot)', 'var(--st-amber-bg)', 'var(--st-amber-fg)', 'var(--st-amber-line)');
+/* ---- OUT WITH THEM FOR SIGNATURE (26 Sep 2026, redline here, sign there) ----
+   The agreed words were handed over as a Word file and are being signed on
+   their side. DERIVED, never stored, like Expired and Partially signed above:
+   the stored status stays what it was, so every filter and guard reads it as
+   before, and only what the reader is told changes. Amber, because a deal out
+   of our hands is still one somebody should be watching. */
+const HANDOVER_META = _stMeta('status_with_them', 'With them for signature', 'var(--st-amber-dot)', 'var(--st-amber-bg)', 'var(--st-amber-fg)', 'var(--st-amber-line)');
+const HANDOVER_META_SHORT = _stMeta('status_with_them_short', 'With them', 'var(--st-amber-dot)', 'var(--st-amber-bg)', 'var(--st-amber-fg)', 'var(--st-amber-line)');
+/* ...and a copy they have signed and we have not, kept as evidence. */
+const HANDOVER_SIGNED_META = _stMeta('status_they_signed', 'They have signed · waiting on ours', 'var(--st-amber-dot)', 'var(--st-amber-bg)', 'var(--st-amber-fg)', 'var(--st-amber-line)');
+const HANDOVER_SIGNED_META_SHORT = _stMeta('status_they_signed_short', 'They have signed', 'var(--st-amber-dot)', 'var(--st-amber-bg)', 'var(--st-amber-fg)', 'var(--st-amber-line)');
+const _hoOut = c => typeof handoverActive === 'function' && handoverActive(c);
+const _hoSigned = c => _hoOut(c) && typeof handoverStage === 'function' && handoverStage(c) === 'partial';
+/* How long it has been out, in the words a status can carry: "6 days", and at
+   the still-live question "62 days · still live?". Empty where nothing is out. */
+function handoverWaitWords(c){
+  if(!_hoOut(c)) return '';
+  const n=(typeof handoverDays==='function')?handoverDays(c):0;
+  const days=(typeof i18tn==='function')?i18tn('ho_days',n,{n}):`${n} day${n===1?'':'s'}`;
+  const stale=(typeof handoverStage==='function')&&handoverStage(c)==='stale';
+  return stale ? `${days} \u00b7 ${typeof i18t==='function'?i18t('ho_still_live_q'):'still live?'}` : days;
+}
 const contractStatusChip = c => contractOnHold(c)
   ? `<span class="badge" title="${i18t('hd_chip_title')}" style="background:${HOLD_META.bg};color:${HOLD_META.tx}">${HOLD_META.label}</span>`
+  : _hoOut(c)
+  ? `<span class="badge" title="${(_hoSigned(c)?HANDOVER_SIGNED_META:HANDOVER_META).label} \u00b7 ${handoverWaitWords(c)}" style="background:${HANDOVER_META.bg};color:${HANDOVER_META.tx}">${(_hoSigned(c)?HANDOVER_SIGNED_META_SHORT:HANDOVER_META_SHORT).label}</span>`
   : contractPartiallySigned(c)
   ? `<span class="badge" title="${typeof t==='function'?i18t('status_partially_signed_title'):"Sealed — awaiting the counterparty's signature. Copies go out when every party has signed."}" style="background:${PARTIAL_META.bg};color:${PARTIAL_META.tx}">${PARTIAL_META.label}</span>`
   : contractExpired(c)
@@ -550,13 +584,18 @@ const statusChip = s => { const m=STATUS_META[s]||STATUS_META.Draft;
    it. contractStatusChip keeps its own markup and its own SHORT word, which is
    a difference in length the two have always been allowed. */
 const contractStatusMeta = c => contractOnHold(c) ? HOLD_META
+  : _hoSigned(c) ? HANDOVER_SIGNED_META
+  : _hoOut(c) ? HANDOVER_META
   : contractPartiallySigned(c) ? PARTIAL_META
   : contractExpired(c) ? EXPIRED_META
   : cpReadyToSign(c) ? READY_META
   : (STATUS_META[c && c.status] || STATUS_META.Draft);
 const contractStatusTextHtml = c => {
   const m = contractStatusMeta(c);
-  return `<span class="room-stat" style="color:${m.tx}">${m.label}</span>`;
+  /* out with them, the head says for how long — "With them for signature ·
+     6 days" — because the wait is the fact a reader opens it to learn */
+  const wait = (m === HANDOVER_META || m === HANDOVER_SIGNED_META) ? handoverWaitWords(c) : '';
+  return `<span class="room-stat" style="color:${m.tx}">${m.label}${wait ? ` \u00b7 ${_holdEsc(wait)}` : ''}</span>`;
 };
 /* THE TABLE'S DRESS. The dot is what a scanned column needs — the shape the
    chip used to give it — and the word beside it is what stops the colour being
@@ -586,9 +625,11 @@ const holdWhyShort = c => {
 };
 const contractStatusDotHtml = c => {
   const m = contractStatusMeta(c);
-  const short = (m === READY_META) ? READY_META_SHORT : m;
-  const why = (m === HOLD_META) ? holdWhyShort(c) : '';
-  const full = (m === READY_META) ? m.label
+  const short = (m === READY_META) ? READY_META_SHORT
+    : (m === HANDOVER_META) ? HANDOVER_META_SHORT : (m === HANDOVER_SIGNED_META) ? HANDOVER_SIGNED_META_SHORT : m;
+  const why = (m === HOLD_META) ? holdWhyShort(c)
+    : (m === HANDOVER_META || m === HANDOVER_SIGNED_META) ? handoverWaitWords(c) : '';
+  const full = (m === READY_META || m === HANDOVER_META || m === HANDOVER_SIGNED_META) ? m.label
     : (m === HOLD_META && (c && c.hold && c.hold.why)) ? String(c.hold.why) : '';
   return `<span class="reg-stg" style="color:${m.tx}"${full?` title="${_holdEsc(full)}"`:''}`
     + `><i style="background:${m.dot}"></i>${short.label}${
@@ -1006,7 +1047,7 @@ function persist(c){
     if(c && c.id){ dirty.set(c.id,c); clearTimeout(saveTimer); saveTimer=setTimeout(flushSaves,400); }
     return;
   }
-  lsSet(LS.data, { uid, contracts:state.contracts, settings:state.settings, view:state.view, activeId:state.activeId, folderId:state.folderId });
+  lsSet(LS.data, { uid, rlUid, contracts:state.contracts, settings:state.settings, view:state.view, activeId:state.activeId, folderId:state.folderId });
 }
 /* Permanently delete a contract. Restricted to Draft / Under Review — executed
    (signed) and closed records are never destroyed. Returns true if deleted. */
@@ -1018,7 +1059,7 @@ async function deleteContract(id){
   }
   const label=(c.name||c.id).split(' —')[0];
   if(!await confirmDialog({ title:`Delete “${c.name}”?`,
-      message:`This permanently removes ${c.id} and its history from the workspace. This cannot be undone.`,
+      message:`This permanently removes ${(window.contractRef?contractRef(c):c.id)} and its history from the workspace. This cannot be undone.`,
       confirmLabel:'Delete permanently', danger:true })) return false;
   if(API_MODE()){ try{ await api('contracts/'+id,'DELETE'); }catch(e){ toast(i18t('co_delete_failed')+e.message,'err'); return false; } }
   const idx=state.contracts.findIndex(x=>x.id===id);
@@ -1228,7 +1269,7 @@ async function saveContract(c){
   // a merge, not a reload, so the caller's own changes are never discarded.
   if(c._light && !c._loaded){
     try{ await restoreHeavyFields(c); }
-    catch(e){ toast(`Could not load ${c.id}'s history before saving — the change was not written`,'err'); return; }
+    catch(e){ toast(`Could not load ${(window.contractRef?contractRef(c):c.id)}'s history before saving — the change was not written`,'err'); return; }
   }
   /* `_raisedBy` / `_raisedAt` ride down with a LIGHT row so the dashboard can
      ask who raised a contract without the audit trail it was stripped of. They
@@ -1268,8 +1309,19 @@ async function saveContract(c){
   if(Array.isArray(payload.rounds))
     payload.rounds=payload.rounds.map(r=>(r&&r.file&&r.file.fileId)?{...r, file:{...r.file, dataUrl:undefined}}:r);
   try{
-    const r=await api('contracts/'+c.id,'PUT',{ contract:payload, baseVersion:c._v||0, uid });
+    const r=await api('contracts/'+c.id,'PUT',{ contract:payload, baseVersion:c._v||0, uid, rlUid });
     c._v=r.version; c._loaded=true; c._light=false;
+    /* ---- THE NUMBER THE SERVER GAVE, TAKEN AS GIVEN (26 Sep 2026) ----
+       A working file takes its contract number in the save that files it, and
+       the server is the one that gives it. The line recording it is the
+       server's own, added here exactly as written so the append-only merge
+       sees one line and not two. The counters only ever go up. */
+    if(r && r.contractNo && !c.contractNo){
+      c.contractNo=r.contractNo;
+      if(r.numberedLine){ c.audit=Array.isArray(c.audit)?c.audit:[]; c.audit.push(r.numberedLine); }
+    }
+    if(r && Number(r.uid)>Number(uid||0)) uid=Number(r.uid);
+    if(r && Number(r.rlUid)>Number(rlUid||0)) rlUid=Number(r.rlUid);
     /* The save may have moved who is on the route, so the server's reading
        of the approvals it needs rides back with the answer. */
     if(r && Array.isArray(r.signNeeds)) c._signNeeds=r.signNeeds;
@@ -1286,13 +1338,13 @@ async function saveContract(c){
       if(state.activeId===c.id){
         const keepMine=await confirmDialog({
           get title(){ return i18t('co_just_changed'); },
-          message:'Someone else saved a change to '+c.id+' while you were editing. Your change has not been saved. Keep yours and overwrite theirs, or discard yours and load their version?',
+          message:'Someone else saved a change to '+(window.contractRef?contractRef(c):c.id)+' while you were editing. Your change has not been saved. Keep yours and overwrite theirs, or discard yours and load their version?',
           confirmLabel:'Keep mine & save', cancelLabel:'Load theirs', danger:true });
         if(keepMine){ if(fresh) c._v=fresh._v; await saveContract(c); return; }
         if(fresh){ Object.assign(c,fresh); c._v=fresh._v; c._loaded=true; c._light=false; if(typeof renderWorkspace==='function') renderWorkspace(); }
         toast(i18t('co_loaded_server_version'),'err');
       } else {
-        toast(c.id+' changed on the server — your edit is kept but not yet saved. Open it and save again to keep your version.','err');
+        toast((window.contractRef?contractRef(c):c.id)+' changed on the server — your edit is kept but not yet saved. Open it and save again to keep your version.','err');
       }
     } else toast(i18t('co_save_failed')+e.message,'err');
   }
@@ -1373,6 +1425,7 @@ function hydrate(){
   const d = lsGet(LS.data);
   if(d && Array.isArray(d.contracts)){
     uid = d.uid || uid;
+    rlUid = d.rlUid || rlUid;
     state.contracts = d.contracts.map(migrateContract);
     state.settings = d.settings || {};
     state.view = d.view || 'dashboard';
@@ -2073,12 +2126,14 @@ function openFromHash(){
   if(!m) return false;
   const id=decodeURIComponent(m[1]), tab=String(m[2]||'').toLowerCase();
   try{ history.replaceState(null,'',location.pathname+location.search); }catch(_){ location.hash=''; }
-  const c=(state.contracts||[]).find(x=>x&&x.id===id);
+  /* A link may carry the working reference or the contract number the file
+     took when it was filed; both open the one file (26 Sep 2026). */
+  const c=(state.contracts||[]).find(x=>x&&(x.id===id||(x.contractNo&&x.contractNo===id)));
   /* A contract this person cannot see is not an error to explain away: the
      server filters their bootstrap (folderScopeFor), so "not here" and "not
      yours" look the same from the browser and must read the same. */
   if(!c){ if(window.toast) toast(i18t('co_open_link_gone',{id}),'err'); return false; }
-  state.activeId=id; state.selId=id;
+  state.activeId=c.id; state.selId=c.id;
   setView('workspace');
   /* The tab is asked for AFTER the room exists, through the room's own router —
      never by writing its private state from out here. An unknown tab name is
@@ -3376,6 +3431,20 @@ function sealString(c){
      records sealed before this change have no frozen name and fall back to the
      live global exactly as before, so their verification is unchanged. */
   const firstParty=(c.execution&&c.execution.firstParty)||FIRST_PARTY;
+  /* ---- v3: SIGNED THEIR WAY AND FILED HERE (26 Sep 2026) ----
+     The seal binds the SIGNED COPY's own fingerprint — not the file uploaded
+     at the start, which is what a paper filing used to bind — and the
+     fingerprint of the agreed wording it was checked against, the day it was
+     signed and how. The contract number is not in it: the server gives the
+     number in the very save that carries this seal. v1 and v2 are untouched,
+     so every seal made before still verifies. */
+  if(Number(c.sealVersion||0)>=3 && c.execution && c.execution.method==='outside'){
+    const sc=c.signedCopy||{};
+    return JSON.stringify({ v:3, id:c.id, firstParty, counterparty:c.counterparty, value:c.value, valueType:c.valueType,
+      content:'signed:'+((sc.file&&sc.file.sha256)||c.execution.fileHash||''),
+      agreed:(c.handover&&c.handover.agreedHash)||'', signedOn:c.execution.signedOn||'',
+      via:c.execution.via||'', filedAt:c.execution.at||'' });
+  }
   const base={ id:c.id, firstParty, counterparty:c.counterparty,
     value:c.value, valueType:c.valueType, content, signedAt:c.execution?.at||'' };
   // Seal v2 folds every signature MARK (its hash) into the seal, so the visible
@@ -3394,7 +3463,19 @@ async function verifySeal(c){
      executed outside HaTi and imported — and it was the only one that printed
      nothing, so on the commonest kind of sealed record the button was silent. */
   if(c.hash==='MIGRATED'){ toast(i18t('co_seal_migrated',{h:(c.upload?.fileHash||'').slice(0,16)}),'ok'); return; }
-  if(!isUpload(c)){
+  /* v3: the signed copy itself is read back and hashed again, so a file
+     swapped in the store under an untouched record is caught too. */
+  const v3=Number(c.sealVersion||0)>=3 && c.execution && c.execution.method==='outside';
+  if(v3){
+    const f=(c.signedCopy&&c.signedCopy.file)||{};
+    let url=f.dataUrl||null;
+    if(!url && f.fileId && API_MODE()){
+      try{ const r=await api('files/'+encodeURIComponent(f.fileId)); url=r&&(r.dataUrl||r.data)||null; }
+      catch(_){ toast(i18t('co_seal_copy_unread'),'err'); return; }
+    }
+    if(!url){ toast(i18t('co_seal_copy_unread'),'err'); return; }
+    if(await sha256(url)!==f.sha256){ toast(i18t('co_seal_mismatch_copy'),'err'); return; }
+  } else if(!isUpload(c)){
     if(!c.execution?.html){ toast(i18t('co_no_snapshot'),'err'); return; }
     const th=await sha256(execHashInput(c.execution));
     if(th!==c.execution.textHash){ toast(i18t('co_seal_mismatch_text'),'err'); return; }
@@ -3444,13 +3525,34 @@ function downloadFile(name, content, type='application/json'){
   a.download=name; a.click(); URL.revokeObjectURL(a.href);
 }
 function downloadEvidence(c){
-  downloadFile(`${c.id}-evidence-pack.json`, JSON.stringify({
+  /* SIGNED THEIR WAY AND FILED HERE (26 Sep 2026): the signed copy is the
+     document of record, and the pack names it — the copy, the certificate
+     where one came, the word check against the agreed version, the approvals
+     the handover used and the handover itself. The old paper door filed a
+     scan the pack never mentioned; that is the gap this closes. */
+  const outside=!!(c.execution&&c.execution.method==='outside');
+  const sc=c.signedCopy||null, ho=c.handover||null;
+  downloadFile(`${(window.contractRef?contractRef(c):c.id)}-evidence-pack.json`, JSON.stringify({
     generatedAt:nowISO(), platform:'HaTi CLM', org:FIRST_PARTY,
     // a migrated contract was signed elsewhere — citing the e-signature Act
     // here would claim HaTi took a signature it never took
     legalBasis: isExternallyExecuted(c)
       ? 'Executed outside HaTi and migrated in as a record. No electronic signature was taken in HaTi; the signatures are on the original document.'
+      : outside
+      ? 'Signed outside HaTi, the other side\'s way, and filed here. No electronic signature was taken in HaTi; the signatures are on the signed copy, which is the document of record. The agreed version and the negotiation are how its wording was reached.'
       : jxEsignature(),
+    signedCopy: outside&&sc ? {
+      file:{ name:(sc.file&&sc.file.name)||null, sha256:(sc.file&&sc.file.sha256)||null, fileId:(sc.file&&sc.file.fileId)||null },
+      certificate: sc.certificate ? { name:sc.certificate.name||null, sha256:sc.certificate.sha256||null, fileId:sc.certificate.fileId||null } : null,
+      via: sc.via||null, signedOn: sc.signedOn||null, signers: sc.signers||[],
+      filedBy: (sc.by&&sc.by.name)||null, filedAt: sc.at||null,
+      wordCheck: sc.compare||null, acceptedDifference: sc.differs||null,
+      approvalsUsed: sc.approvalsUsed||[] } : null,
+    handover: outside&&ho ? { at:ho.at||null, by:(ho.by&&ho.by.name)||null, how:ho.how||null,
+      agreedVersion:ho.version||null, agreedSha256:ho.agreedHash||null, agreedWords:ho.agreedWords||null,
+      file:{ name:(ho.file&&ho.file.name)||null, fileId:(ho.file&&ho.file.fileId)||null },
+      sentTo:(ho.to&&ho.to.email)||null, channel:ho.channel||null, signatory:(ho.signatory&&ho.signatory.name)||null,
+      checks:(ho.checks||[]).map(x=>({ at:x.at, by:x.by&&x.by.name, file:x.fileName, line:x.result&&x.result.line })) } : null,
     disclosure:'Government IPRS identity verification and CAK-accredited PKI signatures are not yet integrated.',
     /* THE AGREEMENT IS ONLY AS WELL PROVED AS ITS LEAST-PROVED SIGNATURE, so
        this is the WEAKEST rung and not the best one — the flattering reading
@@ -3463,7 +3565,7 @@ function downloadEvidence(c){
           batch:(c.migration&&c.migration.batch)||null,
           get note(){ return i18t('co_executed_on_note'); } }
       : null,
-    contract:{ id:c.id, name:c.name, type:cKind(c), counterparty:c.counterparty,
+    contract:{ id:c.id, contractNo:c.contractNo||null, name:c.name, type:cKind(c), counterparty:c.counterparty,
       value:c.value, valueType:c.valueType, status:c.status },
     /* A MACHINE-READABLE MOMENT (J-5.1). This exported c.signedAt — a display
        string in the EXPORTER's language — so the same contract signed by the
@@ -3475,7 +3577,7 @@ function downloadEvidence(c){
       signedOn:(typeof window.contractSignedAt==='function'?contractSignedAt(c):null),
       signedLabel:contractSignedLabel(c),
       sealedTextSha256:c.execution?.textHash||null,
-      sealedFileSha256:isUpload(c)?(c.upload?.fileHash||null):null,
+      sealedFileSha256:(outside&&sc&&sc.file)?(sc.file.sha256||null):isUpload(c)?(c.upload?.fileHash||null):null,
       sealedText:isUpload(c)?null:normText(c.execution?.html||''),
       uploadedFile:isUpload(c)?{ name:c.upload?.fileName, size:c.upload?.size }:null },
     // `capacity` is the whole point of a signature block and was missing from
@@ -3722,6 +3824,11 @@ const shareMessageText=(c,link,msg,expiresAt)=>
 function defaultSharePurpose(c){
   if(!c) return 'sign';
   if(c.status==='Signed') return 'sign';
+  /* A FILE THEY SIGN (26 Sep 2026) is never sent to be signed on a HaTi link:
+     it goes out to be argued over, or — while it is out with them — to be
+     read. */
+  if(typeof signRouteOf==='function' && signRouteOf(c)==='outside')
+    return (typeof handoverActive==='function' && handoverActive(c)) ? 'view' : 'negotiate';
   /* Read c.changes directly rather than through negoChanges: this is asked of
      contracts loaded as summaries, and a read must not stamp clause ids into a
      document (see negoAlignment for the same care). */
@@ -3888,10 +3995,19 @@ function sharePurposePickerHtml(c, sel, o={}){
      consequence of the answer they have actually given, and reads it in one
      line instead of scanning three. The cards are kept for the two-screen
      shape, which still exists behind the quiet door. */
+  /* ---- WHAT A FILE THEY SIGN CANNOT BE SENT FOR (26 Sep 2026) ----
+     Never a signing link — the agreed words go out as a Word file from the
+     Signing tab — and, while they are out with them, no round either: the
+     words are locked. Greyed with the reason, never hidden; the server refuses
+     both too. */
+  const theySign=typeof signRouteOf==='function' && !!c && signRouteOf(c)==='outside' && c.status!=='Signed';
+  const out=theySign && typeof handoverActive==='function' && handoverActive(c);
+  const shut=k=>theySign&&(k==='sign'||(k==='negotiate'&&out))
+    ? ` disabled aria-disabled="true" title="${esc(i18t(k==='sign'?'ho_share_no_sign':'ho_share_no_round'))}"` : '';
   if(o.compact){
     const seg=(k)=>{ const on=sel===k, m=SHARE_PURPOSE_COPY[k];
-      return `<button type="button" data-share-purpose="${k}" data-share-purpose-seg="1" aria-pressed="${on?'true':'false'}"
-        style="flex:1;height:var(--ctl-h);padding:0 var(--s-1);font:inherit;font-family:var(--font-heading);font-size:var(--t-body);font-weight:var(--w-label);white-space:nowrap;cursor:pointer;
+      return `<button type="button" data-share-purpose="${k}" data-share-purpose-seg="1" aria-pressed="${on?'true':'false'}"${shut(k)}
+        style="flex:1;height:var(--ctl-h);padding:0 var(--s-1);font:inherit;font-family:var(--font-heading);font-size:var(--t-body);font-weight:var(--w-label);white-space:nowrap;cursor:pointer;${shut(k)?'opacity:.5;cursor:default;':''}
         border:1px solid ${on?'var(--color-accent)':'var(--btn-edge)'};background:${on?'var(--color-accent)':'var(--color-surface)'};
         color:${on?'#fff':'var(--color-neutral-700)'};border-radius:var(--radius)">${m.label}</button>`; };
     const m=SHARE_PURPOSE_COPY[sel]||SHARE_PURPOSE_COPY.negotiate;
@@ -3908,8 +4024,8 @@ function sharePurposePickerHtml(c, sel, o={}){
     </div>`;
   }
   const btn=(k)=>{ const on=sel===k, m=SHARE_PURPOSE_COPY[k];
-    return `<button type="button" data-share-purpose="${k}" aria-pressed="${on?'true':'false'}"
-      style="flex:1;min-width:190px;text-align:left;cursor:pointer;font:inherit;border-radius:var(--radius);padding:10px var(--s-3);
+    return `<button type="button" data-share-purpose="${k}" aria-pressed="${on?'true':'false'}"${shut(k)}
+      style="flex:1;min-width:190px;text-align:left;cursor:pointer;font:inherit;border-radius:var(--radius);padding:10px var(--s-3);${shut(k)?'opacity:.5;cursor:default;':''}
       border:1.5px solid ${on?'var(--color-accent)':'var(--color-divider)'};
       background:${on?'var(--color-accent-100)':'var(--color-surface)'}">
       <span style="display:flex;align-items:center;gap:7px">
@@ -4673,6 +4789,9 @@ function buildSharePayload(c, docHash, who, opts){
        as false — the server still refuses, in words. */
     signingOpen: window.signingRouteOpen ? !!signingRouteOpen(c) : undefined,
     contract:{ id:c.id, name:c.name, template:c.template, source:c.source||null,
+      /* THE REFERENCE THEY READ (26 Sep 2026): a working file's contract
+         number, once it has one. The id stays the key the response names. */
+      contractNo:c.contractNo||undefined,
       /* THE MARKS ALREADY TAKEN travel with the copy. The owner signing first
          is a fact of the document — a counterparty reading a copy with no
          record of it saw a bare "pending execution" placeholder and could not
@@ -6884,7 +7003,7 @@ function openImportModal(c){
     if(note) note.textContent=i18t('co_import_reading',{name:f.name});
     try{
       await ensureFull(c);
-      if((c.execution&&c.execution.at)||isExternallyExecuted(c)) throw new Error(i18t('co_import_executed',{id:c.id}));
+      if((c.execution&&c.execution.at)||isExternallyExecuted(c)) throw new Error(i18t('co_import_executed',{id:(window.contractRef?contractRef(c):c.id)}));
       const bytes=new Uint8Array(await f.arrayBuffer());
       if(!window.negoImportReturnedDocx) throw new Error('The Word reader is not loaded on this page');
       const res=await negoImportReturnedDocx(c, bytes, {});
@@ -6963,7 +7082,7 @@ async function applyResponse(c, r, opts={}){
   // re-open. A stale or replayed link must not be able to flip a signed
   // contract to Declined or bolt another signature onto a sealed record.
   if((c.execution && c.execution.at) || isExternallyExecuted(c)){
-    if(!opts.background) toast(`${c.id} is already executed — a share response cannot change it. Record an amendment instead.`,'err');
+    if(!opts.background) toast(`${(window.contractRef?contractRef(c):c.id)} is already executed — a share response cannot change it. Record an amendment instead.`,'err');
     return false;
   }
   const currentHash=await sha256(canonicalDoc(c));
@@ -6979,7 +7098,7 @@ async function applyResponse(c, r, opts={}){
      Refused the same way an out-of-order signature is refused above: return
      false so nothing is written and the response stays visible as pending. */
   if(docChanged && (r.action==='sign' || r.action==='accept' || r.action==='ready')){
-    if(!opts.background) toast(`${r.name||'The counterparty'} responded to an earlier copy of ${c.id} — the wording changed after their link was sent, so their ${r.action==='sign'?'signature':'response'} was NOT applied. Reshare the current version so they respond to the document you actually have.`,'err');
+    if(!opts.background) toast(`${r.name||'The counterparty'} responded to an earlier copy of ${(window.contractRef?contractRef(c):c.id)} — the wording changed after their link was sent, so their ${r.action==='sign'?'signature':'response'} was NOT applied. Reshare the current version so they respond to the document you actually have.`,'err');
     return false;
   }
   if(docChanged)
@@ -7809,4 +7928,4 @@ const END_STATES = [
 const endStateSays = k => { const x = END_STATES.find(e => e.k === k); return x ? x.says : ''; };
 Object.assign(window,{END_STATES,endStateSays});
 
-Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,READY_META,READY_META_SHORT,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,userById,verifySeal,waShareLink});
+Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,userById,verifySeal,waShareLink});

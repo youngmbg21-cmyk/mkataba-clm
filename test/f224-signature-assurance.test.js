@@ -138,7 +138,11 @@ describe('F224 — where it is written down', () => {
 
   test('the evidence pack states the rung, its basis, and whether it was inferred', () => {
     const core = read('js/core.js');
-    const pack = core.slice(core.indexOf('function downloadEvidence'), core.indexOf('function downloadEvidence') + 4200);
+    // PIN THE REGION, NOT A BYTE COUNT: this was a 4,200-character slice, and the pack
+    // grew a signed-copy section (26 Sep 2026) that pushed these three past it. The
+    // region is the function itself, up to the next top-level function.
+    const at = core.indexOf('function downloadEvidence');
+    const pack = core.slice(at, core.indexOf('\nfunction ', at + 10));
     for (const k of ['assuranceLabel', 'assuranceBasis', 'assuranceDerived'])
       assert.ok(pack.includes(k), 'the pack must carry ' + k);
     assert.match(pack, /The lowest assurance among the signatures below/,

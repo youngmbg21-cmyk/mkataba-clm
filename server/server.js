@@ -24,6 +24,13 @@ const { graphWhereHit } = require('../js/graphwhere.js');
    cannot come to different answers about whether a contract may be signed. */
 const { saNeeds, saState, saStamp, saShows, saDrift, saStarted, saMayDecide,
   SA_NOTE_MAX, SA_KEEP, SA_REMIND_WORKDAYS, SA_ESCALATE_WORKDAYS } = require('../js/signapproval.js');
+/* Redline here, sign there (26 Sep 2026): the working reference, the contract
+   number, the handover's clock and the word check. ONE reading for both hosts,
+   the signapproval.js pattern — the screen and this wall cannot disagree about
+   whether a file is out for signature or what its number is. */
+const { isWorkingId, contractRef, signRouteOf, handoverOf, handoverActive,
+  handoverReminderKey, handoverStillLiveDue, handoverDays, HANDOVER_FROZEN,
+  HANDOVER_LIVE_DAYS, SIGNED_VIA, outsideFileIds, outsideBlanksIn } = require('../js/outside.js');
 /* Look a string up in a specific language rather than "the current" one: there
    is no current language on a server writing to five recipients at once. */
 /* WHAT LANGUAGE DOES THIS RECIPIENT READ? A member of the workspace carries
@@ -445,12 +452,13 @@ function syncFts(c) {
 function upsertContract(c, version) {
   const j = JSON.stringify(c);
   const u = c.upload || {};
-  db.prepare(`INSERT INTO contracts (id,json,name,counterparty,folder,status,value,expiry,is_upload,seq,version,updated_at,text_fingerprint,simhash,parent_id,template_id,template_version_id)
-    VALUES (@id,@json,@name,@counterparty,@folder,@status,@value,@expiry,@is_upload,@seq,@version,@updated_at,@text_fingerprint,@simhash,@parent_id,@template_id,@template_version_id)
+  db.prepare(`INSERT INTO contracts (id,json,name,counterparty,folder,status,value,expiry,is_upload,seq,version,updated_at,text_fingerprint,simhash,parent_id,template_id,template_version_id,contract_no)
+    VALUES (@id,@json,@name,@counterparty,@folder,@status,@value,@expiry,@is_upload,@seq,@version,@updated_at,@text_fingerprint,@simhash,@parent_id,@template_id,@template_version_id,@contract_no)
     ON CONFLICT(id) DO UPDATE SET json=excluded.json, name=excluded.name, counterparty=excluded.counterparty,
       folder=excluded.folder, status=excluded.status, value=excluded.value, expiry=excluded.expiry,
       is_upload=excluded.is_upload, version=excluded.version, updated_at=excluded.updated_at,
       text_fingerprint=excluded.text_fingerprint, simhash=excluded.simhash, parent_id=excluded.parent_id,
+      contract_no=COALESCE(contracts.contract_no, excluded.contract_no),
       template_id=COALESCE(contracts.template_id, excluded.template_id),
       template_version_id=COALESCE(contracts.template_version_id, excluded.template_version_id)`).run({
     id: c.id, json: j, name: c.name || '', counterparty: c.counterparty || '', folder: c.folder || '',
@@ -465,6 +473,8 @@ function upsertContract(c, version) {
     // the value it keeps for life.
     template_id: c.libraryTemplateId || null,
     template_version_id: c.libraryTemplateVersionId || null,
+    /* write-once, like the template columns: a number, once given, is kept */
+    contract_no: c.contractNo || null,
   });
   syncFts(c);
 }
@@ -568,6 +578,12 @@ addColumnIfMissing('contracts', 'org_id', `TEXT NOT NULL DEFAULT '${WORKSPACE_ID
 addColumnIfMissing('contracts', 'text_fingerprint', 'TEXT');
 addColumnIfMissing('contracts', 'simhash', 'TEXT');
 addColumnIfMissing('contracts', 'parent_id', 'TEXT');
+/* THE CONTRACT NUMBER A WORKING FILE TAKES AT FILING (26 Sep 2026). A column
+   so "is this number taken" and "which file answers to MK-241" are one indexed
+   lookup rather than a scan of every record's JSON. NULL on every row that has
+   no number of its own — which is every MK record, whose id IS its number. */
+addColumnIfMissing('contracts', 'contract_no', 'TEXT');
+try { db.exec('CREATE INDEX IF NOT EXISTS idx_contracts_no ON contracts(contract_no)'); } catch (_) {}
 db.exec('CREATE INDEX IF NOT EXISTS idx_contracts_fingerprint ON contracts(text_fingerprint)');
 db.exec('CREATE INDEX IF NOT EXISTS idx_contracts_parent ON contracts(parent_id)');
 // why a message was refused, in the provider's own words (see sendEmail)
@@ -1458,6 +1474,222 @@ function srvSignApprovalMerge(prev, c, user) {
     list = list.filter(x => (n < drop && x.status !== 'pending') ? (n++, false) : true);
   }
   return { list };
+}
+
+/* ============================================================
+   REDLINE HERE, SIGN THERE — the server's half (26 Sep 2026)
+   ============================================================
+   js/outside.js is the reading, required at the top of this file; these are
+   the walls built on it, and the one route that writes a handover.
+
+   THE HANDOVER IS THIS ROUTE'S, NEVER A SAVE'S. `handover` and
+   `handoverHistory` are written by POST /api/contracts/:id/handover and by
+   nothing else, and the ordinary save keeps the STORED values — the clause
+   locks' own rule, borrowed. So no client can forge a handover, lift
+   one, or wind back a reminder by saving the record it happens to hold.
+
+   THE CONTRACT NUMBER IS THIS SERVER'S TO GIVE. A working file (RL-012) takes
+   its number in the save that FILES it, from the same counter every MK id
+   comes from, and keeps it for good: a save never sets it and never moves it. */
+
+/* ---- THE RULE-BASED APPROVALS, ASKED HERE TOO ----
+   The fifth fault in today's filing: "HaTi's server does not check those
+   approvals at all". approvalState (js/approvals.js) is the browser's reading
+   of the value / stream / kind / law / deviation rules; this is its twin, line
+   for line, and f381 runs both over the same contracts and requires the same
+   answer. Asked at the handover, which is the last moment HaTi can stop a
+   signature on this route. */
+function srvApprovalRules() {
+  const s = getSetting('appSettings') || {};
+  if (Array.isArray(s.approvalRules)) return s.approvalRules;
+  const legacy = s.approval || {};
+  const threshold = Number(legacy.threshold != null ? legacy.threshold : 5000000);
+  return threshold > 0 ? [{ id: 'r-spend', name: `Value ≥ ${threshold}`, order: 1,
+    cond: { type: 'value', op: '>=', value: threshold },
+    approver: { kind: 'role', role: legacy.approverRole === 'legal' ? 'legal' : 'admin' } }] : [];
+}
+function srvForeignLaw(c) {
+  const scan = c && c.scan;
+  const fromScan = !!(scan && (scan.findings || []).some(f => f && f.id === 't-law' && !(scan.dismissed || []).includes('t-law')));
+  const fromPb = !!(c && c.playbook && (c.playbook.verdicts || []).some(v => v && v.category === 'Governing law' && v.status === 'deviation'));
+  return fromScan || fromPb;
+}
+function srvHasDeviation(c) {
+  const vs = c && c.playbook && Array.isArray(c.playbook.verdicts) ? c.playbook.verdicts : null;
+  return !!(vs && vs.some(v => v && (v.status === 'deviation' || v.status === 'missing')));
+}
+function srvRuleMatches(rule, c) {
+  const cond = (rule && rule.cond) || {};
+  switch (cond.type) {
+    /* the unknown case ENGAGES the rule, as in the browser: an approval rule
+       is a safety net, so a currency with no rate on file means a human looks */
+    case 'value': { const h = fxHome(c); if (h.missing) return true;
+      return cond.op === '>=' ? h.v >= Number(cond.value) : h.v <= Number(cond.value); }
+    case 'folder': return c.folder === cond.value;
+    case 'kind': return (copilotContractKind(c) || '').toLowerCase().includes(String(cond.value || '').toLowerCase());
+    case 'foreignLaw': return srvForeignLaw(c);
+    case 'deviation': return srvHasDeviation(c);
+    default: return false;
+  }
+}
+/* approvalStamp's twin: the amount, and a cheap hash of the words. */
+function srvApprovalStamp(c) {
+  const doc = String((c && c.redlineText) || '') + '\u0000' + JSON.stringify((c && c.fields) || {})
+    + '\u0000' + String((c && c.upload && c.upload.fileHash) || '');
+  let h = 0; for (let i = 0; i < doc.length; i++) h = (h * 31 + doc.charCodeAt(i)) >>> 0;
+  return { value: Number((c && c.value) || 0), doc: h.toString(16) };
+}
+/* Every matched rule whose step is not a live approval: pending, refused, or
+   approved over a contract that has moved since. */
+function srvApprovalChainOpen(c) {
+  const rules = srvApprovalRules().filter(r => srvRuleMatches(r, c))
+    .sort((a, b) => (a.order || 99) - (b.order || 99));
+  const chain = Array.isArray(c && c.approvalChain) ? c.approvalChain : [];
+  const now = srvApprovalStamp(c);
+  const open = [];
+  for (const r of rules) {
+    const step = chain.find(p => p && p.ruleId === r.id);
+    if (!step || step.status !== 'approved') { open.push({ name: r.name, status: step ? (step.status || 'pending') : 'pending' }); continue; }
+    const st = step.stamp;
+    if (st && (Number(st.value || 0) !== now.value || String(st.doc || '') !== now.doc)) open.push({ name: r.name, status: 'stale' });
+  }
+  return open;
+}
+/* Every change decided: nothing waiting on an answer and nothing parked under
+   a counter nobody has answered. The browser asks the stricter reading as
+   well (negoSigningBlockers — are the answers AGREEMENT); the wall asks the
+   one it can read off the record without the change model. */
+function srvNegotiationOpen(c) {
+  return (Array.isArray(c && c.changes) ? c.changes : [])
+    .filter(x => x && (x.status === 'pending' || x.status === 'countered' || !x.status)).length;
+}
+/* Who may hand over and reopen: the lead where a desk is claimed and the
+   rule is on, an editor where nobody has claimed it, and an admin always. */
+function srvMayLeadHandover(c, u) {
+  if (!u) return false;
+  if (u.role === 'admin') return true;
+  if (deskRuleOn() && deskIsClaimed(c)) return deskSeatOf(c, u) === 'lead';
+  return true;
+}
+/* Who may accept a signed copy whose words differ: an admin, or somebody who
+   APPROVED this contract — the named approver or backup who said yes, or the
+   person who approved a rule step. Never simply the lead: a copy that differs
+   is not what the approver said yes to. */
+function srvMayAcceptDiffer(c, u) {
+  if (!u) return false;
+  if (u.role === 'admin') return true;
+  const id = String(u.id);
+  /* APPROVED ONLY — the browser's own reading (_hoApprovedBy) asks the same. A
+     request withdrawn while it waited was never a yes, and one withdrawn at a
+     reopen was a yes to wording that has since moved; neither may accept a copy. */
+  const sa = (Array.isArray(c && c.signApprovals) ? c.signApprovals : []).some(r => r
+    && r.status === 'approved'
+    && ((r.decidedBy && String(r.decidedBy.id) === id) || String(r.approverId || '') === id || String(r.backupId || '') === id));
+  const rule = (Array.isArray(c && c.approvalChain) ? c.approvalChain : []).some(s => s && s.status === 'approved'
+    && String(s.by || '') === String(u.name || ''));
+  const ho = handoverOf(c);
+  const used = !!(ho && Array.isArray(ho.approvals) && ho.approvals.some(a => a && String(a.byId || '') === id));
+  return sa || rule || used;
+}
+/* The day, in words people use, for a sentence in a mail. */
+const hoDay = iso => String(iso || '').slice(0, 10);
+/* Write the stored record from a route. JSON and updated_at, never the
+   version: the browser that pressed adopts what the route returns, and a
+   colleague's browser keeps the version it holds — the save keeps the stored
+   handover whatever it carries, so neither can lose it. */
+function hoWrite(id, c) {
+  db.prepare('UPDATE contracts SET json=?, updated_at=? WHERE id=?').run(JSON.stringify(c), now(), id);
+}
+/* The next contract number, from the one counter every MK id comes from, and
+   never one a record already answers to — as an id or as a number. */
+function srvNextContractNo() {
+  let n = Number(getSetting('uid')) || 100;
+  const taken = no => !!db.prepare('SELECT 1 FROM contracts WHERE id=? OR contract_no=?').get(no, no);
+  let no = '', guard = 0;
+  do { n += 1; no = 'MK-' + n; } while (taken(no) && guard++ < 1000);
+  setSetting('uid', n);
+  return no;
+}
+/* Our own people on this file: the lead, the desk, the signatory and whoever
+   approved it — members only, each once, and only those who can open the
+   contract. The one list every handover mail is sent to. NOT the Overview's
+   "Who else" list: naming somebody there sends them nothing, by the owner's
+   own wall (f354), so this server never reads it. */
+function hoPeople(c, opts) {
+  const o = opts || {};
+  const users = db.prepare('SELECT * FROM users').all();
+  const byId = new Map(users.map(u => [String(u.id), u]));
+  const out = new Map();
+  const add = (id, role) => {
+    const u = byId.get(String(id || ''));
+    if (!u || !/.+@.+\..+/.test(String(u.email || ''))) return;
+    if (o.skipId && String(u.id) === String(o.skipId)) return;
+    if (!inScope(folderScopeFor(u), c.folder)) return;
+    const was = out.get(String(u.id));
+    if (was) { if (!was.roles.includes(role)) was.roles.push(role); return; }
+    out.set(String(u.id), { u, roles: [role] });
+  };
+  if (c.owner && c.owner.id) add(c.owner.id, 'lead');
+  const d = deskOfRow(c);
+  if (d) { add(d.leadId, 'lead'); (d.contributors || []).forEach(p => add(p && p.id, 'contributor')); }
+  (Array.isArray(c.signerPlan) ? c.signerPlan : []).forEach(s => { if (s && s.party === 'internal' && s.memberId) add(s.memberId, 'signatory'); });
+  const ho = c.handover;
+  if (ho && ho.signatory && ho.signatory.id) add(ho.signatory.id, 'signatory');
+  (Array.isArray(c.signApprovals) ? c.signApprovals : []).forEach(r => { if (r && r.status === 'approved') add(r.approverId, 'approver'); });
+  (Array.isArray(c.approvalChain) ? c.approvalChain : []).forEach(s => {
+    if (s && s.status === 'approved' && s.by) { const u = users.find(x => x.name === s.by); if (u) add(u.id, 'approver'); } });
+  return [...out.values()];
+}
+/* The agreed Word file, kept in the files table so it can be sent again and
+   downloaded from their link. */
+function hoFileRow(fileId) {
+  if (!fileId) return null;
+  return db.prepare('SELECT id, name, mime, data FROM files WHERE id=?').get(String(fileId)) || null;
+}
+const HO_DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+async function hoMailFile(req, c, ho, to, note) {
+  const row = hoFileRow(ho.file && ho.file.fileId);
+  const b64 = row ? String(row.data || '').replace(/^data:[^,]*,/, '') : '';
+  if (!b64) return { sent: false, detail: 'The agreed Word file is not on the server any more, so nothing was sent.' };
+  const L = langForEmail(to.email);
+  const vars = { who: req.user.name || '', org: ((getSetting('org') || {}).name) || 'HaTi', name: c.name || contractRef(c),
+    them: to.name || '' };
+  const body = [
+    tFor(L, 'mail_ho_line', vars),
+    note ? `\n${tFor(L, 'mail_ho_note', { who: vars.who })}\n${String(note).slice(0, 1000)}` : '',
+    `\n${tFor(L, 'mail_ho_design')}`,
+    `\n${tFor(L, 'mail_ho_return', { who: vars.who })}`,
+    `\n${tFor(L, 'mail_ho_replies', { who: vars.who })}`,
+  ].filter(Boolean).join('\n');
+  return sendEmail(to.email, tFor(L, 'mail_ho_subject', vars), body,
+    `handover: ${contractRef(c)}`, { attachments: [{ filename: (ho.file && ho.file.name) || `${contractRef(c)}-agreed.docx`, content: b64 }] });
+}
+/* The same mail to our own people, with the one line their part asks of them. */
+async function hoTellPeople(req, c, kind, opts) {
+  const o = opts || {};
+  const list = hoPeople(c, { skipId: o.skipId });
+  const told = [];
+  const link = contractUrl(req, c.id, 'sign');
+  const cp = c.counterparty || '';
+  for (const p of list) {
+    const L = langForEmail(p.u.email);
+    const vars = { name: c.name || contractRef(c), ref: contractRef(c), them: cp, who: (req && req.user && req.user.name) || '',
+      days: o.days || '', no: c.contractNo || contractRef(c) };
+    const signatory = p.roles.includes('signatory');
+    const line = kind === 'hand'
+      ? tFor(L, signatory ? 'mail_ho_tell_signatory' : p.roles.includes('approver') ? 'mail_ho_tell_approver' : 'mail_ho_tell_team', vars)
+      : kind === 'partial' ? tFor(L, signatory ? 'mail_ho_partial_signatory' : 'mail_ho_partial_team', vars)
+      : kind === 'filed' ? tFor(L, 'mail_ho_filed_line', vars)
+      : kind === 'reopen' ? tFor(L, 'mail_ho_reopen_line', vars)
+      : '';
+    if (!line) continue;
+    const subject = tFor(L, `mail_ho_${kind === 'hand' ? 'tell' : kind}_subject`, vars);
+    const r = await sendEmail(p.u.email, subject,
+      `${tFor(L, 'mail_hello')} ${p.u.name || ''},\n\n${line}\n\n${tFor(L, 'mail_ho_open')}\n${link}\n\n${tFor(L, 'mail_automated_notice')}`,
+      `handover ${kind}: ${contractRef(c)} -> ${p.u.email}`);
+    told.push({ id: String(p.u.id), name: p.u.name || '', roles: p.roles, ...mailReport(r) });
+  }
+  return told;
 }
 
 /* Which of our unsent asks the gate has not been satisfied about. A cleared
@@ -2773,6 +3005,8 @@ app.get('/api/bootstrap', auth, (req, res) => {
       return p;
     }),
     uid: getSetting('uid') || 100,
+    /* the working-file counter (RL-012), beside the contract counter */
+    rlUid: Number(getSetting('rlUid')) || 0,
     settings,
     count: db.prepare(`SELECT COUNT(*) n FROM contracts ${whereOf(f.sql)}`).get(...f.args).n,
     aiConfigured: !!(getSetting('aiKey') || process.env.ANTHROPIC_API_KEY),
@@ -3038,7 +3272,7 @@ app.get('/api/activity', auth, (req, res) => {
     let c; try { c = JSON.parse(r.json); } catch (_) { continue; }
     const audit = Array.isArray(c.audit) ? c.audit : [];
     for (const a of audit.slice(-40)) {
-      feed.push({ id: c.id, name: c.name, action: a.action || '', detail: a.detail || '', at: a.at || '', user: a.user || '' });
+      feed.push({ id: c.id, contractNo: c.contractNo || undefined, name: c.name, action: a.action || '', detail: a.detail || '', at: a.at || '', user: a.user || '' });
     }
   }
   feed.sort((x, y) => Date.parse(y.at || 0) - Date.parse(x.at || 0));
@@ -3066,18 +3300,18 @@ app.get('/api/search', auth, (req, res) => {
   const snippets = canViewValues(req.user);
   if (!ftsOk) { // graceful fallback: LIKE over the indexed columns
     const like = '%' + likeEscape(q.toLowerCase()) + '%';
-    const w = whereOf("(lower(c.name) LIKE ? ESCAPE '\\' OR lower(c.counterparty) LIKE ? ESCAPE '\\')", fs.sql);
-    const rows = db.prepare(`SELECT c.id, c.name, c.counterparty FROM contracts c ${w} LIMIT ?`).all(like, like, ...fs.args, limit);
-    return res.json({ hits: rows.map(r => ({ id: r.id, name: r.name, counterparty: r.counterparty, snippet: '' })), fts: false, snippets });
+    const w = whereOf("(lower(c.name) LIKE ? ESCAPE '\\' OR lower(c.counterparty) LIKE ? ESCAPE '\\' OR lower(COALESCE(c.contract_no,'')) LIKE ? ESCAPE '\\')", fs.sql);
+    const rows = db.prepare(`SELECT c.id, c.contract_no, c.name, c.counterparty FROM contracts c ${w} LIMIT ?`).all(like, like, like, ...fs.args, limit);
+    return res.json({ hits: rows.map(r => ({ id: r.id, contractNo: r.contract_no || undefined, name: r.name, counterparty: r.counterparty, snippet: '' })), fts: false, snippets });
   }
   // sanitise into a prefix MATCH query (avoid FTS5 syntax errors on punctuation)
   const match = q.replace(/["']/g, ' ').split(/\s+/).filter(Boolean).map(t => t.replace(/[^\w]/g, '') + '*').filter(t => t.length > 1).join(' OR ');
   if (!match) return res.json({ hits: [], fts: true });
   try {
     const w = whereOf('contracts_fts MATCH ?', fs.sql);
-    const rows = db.prepare(`SELECT f.id, f.name, f.counterparty, snippet(contracts_fts,3,'[',']','…',12) AS snippet, bm25(contracts_fts) AS rank
+    const rows = db.prepare(`SELECT f.id, c.contract_no, f.name, f.counterparty, snippet(contracts_fts,3,'[',']','…',12) AS snippet, bm25(contracts_fts) AS rank
       FROM contracts_fts f JOIN contracts c ON c.id = f.id ${w} ORDER BY rank LIMIT ?`).all(match, ...fs.args, limit);
-    res.json({ hits: rows.map(r => ({ id: r.id, name: r.name, counterparty: r.counterparty, snippet: snippets ? r.snippet : '' })), fts: true, snippets });
+    res.json({ hits: rows.map(r => ({ id: r.id, contractNo: r.contract_no || undefined, name: r.name, counterparty: r.counterparty, snippet: snippets ? r.snippet : '' })), fts: true, snippets });
   } catch (e) { res.status(200).json({ hits: [], fts: true, error: 'search parse' }); }
 });
 
@@ -3322,6 +3556,10 @@ const EXECUTED_IMMUTABLE = [
      DIFFERENCE against the STORED record, which is not yet executed when that
      save arrives. */
   'signSpots',
+  /* THE SIGNED COPY IS WHAT WAS FILED (26 Sep 2026). It is written in the save
+     that files the contract and never after: swapping the file of record is
+     not an edit to a signed contract, it is a different contract. */
+  'signedCopy', 'contractNo', 'signRoute',
   /* ---- AND `renewalDecision` IS DELIBERATELY NOT ON THIS LIST (16 Sep 2026) ----
      THE ABSENCE IS LOAD-BEARING. A renewal decision is a FILING fact beside the
      status, exactly like `archived`, and every contract it is ever asked about
@@ -3460,6 +3698,18 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
      audit-trail guard further down. A brand-new contract has no stored map and
      starts with none. */
   if (prev && prev.locks) c.locks = prev.locks; else delete c.locks;
+  /* ---- AND THE HANDOVER AND THE CONTRACT NUMBER ARE NOT THIS ROUTE'S ----
+     (26 Sep 2026, redline here, sign there.) The handover is written by its
+     own route and the number by this server in the save that files the
+     contract, so the STORED values win on every save — a browser holding an
+     older copy cannot lift a handover, and no client can give itself a
+     number. A brand-new record starts with neither. */
+  if (prev && prev.handover) c.handover = prev.handover; else delete c.handover;
+  if (prev && prev.handoverHistory) c.handoverHistory = prev.handoverHistory; else delete c.handoverHistory;
+  if (prev && prev.contractNo) c.contractNo = prev.contractNo; else delete c.contractNo;
+  /* A new record may not take an id that is already somebody's number. */
+  if (!existing && db.prepare('SELECT 1 FROM contracts WHERE contract_no=?').get(String(c.id)))
+    return res.status(409).json({ error: `${c.id} is already in use as a contract number. Refresh the page and try again.`, idTaken: true });
 
   /* A member without can_view_values was sent a record with the money stripped
      out. Saving it back must not write those holes over the stored contract, so
@@ -3590,6 +3840,71 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
           + 'cannot be changed while the remaining signatures are outstanding. Restart the signing route to renegotiate, or record an amendment once it is executed.',
         immutable: changed, signedFreeze: true,
       });
+    }
+  }
+  /* ---------- WHO RUNS THE SIGNING MOVES ONLY BEFORE ANYBODY SIGNS ----------
+     (26 Sep 2026.) Once one person has signed in HaTi, the signing HaTi runs
+     has begun, and handing the words over to be signed somewhere else would
+     leave a half-signed record behind it. Asked as a DIFFERENCE against the
+     STORED record; the Signing tab stops offering the switch at the same
+     moment (outsideMayChangeRoute). */
+  if (prev && !isExecutedRow(prev) && String(prev.signRoute || '') !== String(c.signRoute || '') && anySignatureRow(prev))
+    return res.status(409).json({ error: `Signing has already started in HaTi on ${contractRef(prev)}, so who runs the signing cannot change now.`,
+      immutable: ['signRoute'], routeFreeze: true });
+  /* ---------- OUT WITH THEM FOR SIGNATURE, THE WORDS ARE LOCKED ----------
+     (26 Sep 2026, redline here, sign there.) Once the agreed words are handed
+     over, HaTi cannot stop a signature made somewhere else — so the one thing
+     it can still do is make sure the words it will check the signed copy
+     against do not move. The wording, the negotiation that reached it and the
+     value the approver said yes to, and the route itself. Asked of the STORED
+     record, so a save cannot lift the handover and move the words in one
+     request; the way to change them is to reopen, which is its own act. */
+  if (prev && handoverActive(prev)) {
+    const moved = HANDOVER_FROZEN.concat(['signRoute']).filter(k => stable(prev[k]) !== stable(c[k]));
+    if (moved.length) {
+      return res.status(409).json({
+        error: `${contractRef(prev)} has been handed over for signature, so its wording is locked `
+          + `(${moved.join(', ')}). Reopen the negotiation to change it.`,
+        immutable: moved, handoverFreeze: true });
+    }
+    /* …and nobody signs it in HaTi while it is out: the signing is theirs. */
+    const inApp = x => x && x.method === 'session-authenticated';
+    const had = (Array.isArray(prev.signatures) ? prev.signatures : []).filter(inApp).length;
+    if ((Array.isArray(c.signatures) ? c.signatures : []).filter(inApp).length > had)
+      return res.status(409).json({ error: `${contractRef(prev)} is out with them for signature. `
+        + 'It is signed where they sign it — file the signed copy when it comes back.', handoverFreeze: true });
+  }
+  /* ---------- A SIGNED COPY IS FILED THROUGH THE HANDOVER, OR NOT AT ALL ----------
+     The save that FILES a contract signed outside HaTi. Asked as a DIFFERENCE:
+     the stored record is not yet executed and this one is, off the platform.
+     THE OLD DOOR IS CLOSED: "Signed on paper instead? File the signed copy
+     here" filed a scan past the value approvals, the checks and the brief, and
+     this route never asked about any of them (the fifth fault the design
+     named). A signed copy now arrives only on a file that was handed over —
+     where every one of those was asked, here, at the handover. */
+  if (prev && !isExecutedRow(prev) && isExecutedRow(c) && c.execution && c.execution.offPlatform) {
+    if (!handoverActive(prev))
+      return res.status(409).json({ error: 'A contract signed outside HaTi is filed on the file that was handed over for signature. '
+        + 'Hand it over from the Signing tab first — that is where the approvals and the checks are asked.', handoverNeeded: true });
+    if (c.execution.method !== 'outside')
+      return res.status(400).json({ error: 'A signed copy is filed as signed outside HaTi.' });
+    if (!SIGNED_VIA.includes(String(c.execution.via || '')))
+      return res.status(400).json({ error: 'Say how it was signed — DocuSign, another e-signature, their own system, on paper, or another way.' });
+    const sc = c.signedCopy || {};
+    if (!sc.file || !hoFileRow(sc.file.fileId))
+      return res.status(400).json({ error: 'The signed copy has to be on the server before it is filed. Upload it again.' });
+    /* FILING NEEDS EVERY SIGNATURE (Phase 2): the person filing says the copy
+       carries every party's signature. A copy only some have signed is kept
+       on the handover and waits; it is never the contract of record. */
+    if (sc.everyone !== true)
+      return res.status(400).json({ error: 'A signed copy is filed once every party has signed it. Keep a part-signed copy on the waiting card instead.', everyone: false });
+    const cmp = sc.compare || null;
+    if (!cmp || cmp.same !== true) {
+      const d = sc.differs || null;
+      if (!d || !d.by || String(d.by.id) !== String(req.user.id) || !clean(d.why))
+        return res.status(403).json({ error: 'The signed copy does not match the agreed wording. Filing it anyway needs the approver or an admin, with a reason.', differs: true });
+      if (!srvMayAcceptDiffer(prev, req.user))
+        return res.status(403).json({ error: 'A signed copy whose words differ is accepted by the person who approved this contract, or by an admin — with a reason.', differs: true });
     }
   }
   /* ---------- WHICH DRAWER A CONTRACT IS FILED IN IS AN ADMIN'S TO CHANGE ----------
@@ -4178,8 +4493,26 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
       webhookQueue('contract.signed', () => ({ contractId: c.id, status: 'Signed' }));
     }
   }
+  /* ---- THE CONTRACT NUMBER, GIVEN HERE AND NOWHERE ELSE ----
+     A working file takes its number when it becomes a contract: in the save
+     that FILES it, or — where somebody decided HaTi runs the signing after
+     all — in the save that says so, because a contract signed in HaTi is
+     numbered from the day it is one. RL-012 stays the key for good. */
+  let numberedLine = null;
+  if (isWorkingId(c.id) && !c.contractNo && (isExecutedRow(c) || c.signRoute !== 'outside')) {
+    c.contractNo = srvNextContractNo();
+    /* returned as it was written, so the browser that pressed can add the very
+       same line and the append-only merge sees one line, not two */
+    numberedLine = { at: now(), user: 'System', action: 'Numbered',
+      detail: `Working file ${c.id} took contract number ${c.contractNo}` };
+    c.audit = (Array.isArray(c.audit) ? c.audit : []).concat([numberedLine]);
+  }
   upsertContract(c, next);
-  if (req.body.uid) setSetting('uid', req.body.uid);
+  /* THE COUNTERS ONLY EVER GO UP. A browser that bootstrapped an hour ago
+     carries an older count, and taking its word would hand the next file a
+     number somebody already has. */
+  if (req.body.uid) setSetting('uid', Math.max(Number(getSetting('uid')) || 100, Number(req.body.uid) || 0));
+  if (req.body.rlUid) setSetting('rlUid', Math.max(Number(getSetting('rlUid')) || 0, Number(req.body.rlUid) || 0));
   /* ---- WHOSE TURN IT IS MAY HAVE JUST CHANGED ----
      Two of the six rungs of the signing ladder land here and nowhere else: a
      route SAVED with an internal signer first (nothing was ever sent for that
@@ -4213,6 +4546,9 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
      roster, which a browser that is not an admin does not have. */
   const signNeeds = srvSignNeeds(c);
   res.json({ ok: true, version: next, signNeeds,
+    ...(c.contractNo ? { contractNo: c.contractNo } : {}),
+    ...(numberedLine ? { numberedLine } : {}),
+    uid: Number(getSetting('uid')) || 100, rlUid: Number(getSetting('rlUid')) || 0,
     ...(canViewValues(req.user) ? {} : { signState: srvSignStateTransport(c, signNeeds) }) });
 });
 
@@ -4259,6 +4595,9 @@ app.delete('/api/contracts/:id', auth, editor, (req, res) => {
   if (c && c.upload && c.upload.fileId) fileIds.push(c.upload.fileId);
   for (const d of (c && Array.isArray(c.documents) ? c.documents : []))
     if (d && d.fileId) fileIds.push(d.fileId);
+  /* and the files the outside route keeps: the agreed Word file, any copy
+     that came back (26 Sep 2026) */
+  outsideFileIds(c).forEach(id => { if (!fileIds.includes(id)) fileIds.push(id); });
 
   let revoked = 0;
   txn(() => {
@@ -4472,6 +4811,7 @@ app.post('/api/demo/clear', auth, admin, (req, res) => {
     if (c && c.seeded === true) doomed.push({ id: r.id, fileIds: [
       ...(c.upload && c.upload.fileId ? [c.upload.fileId] : []),
       ...((Array.isArray(c.documents) ? c.documents : []).filter(d => d && d.fileId).map(d => d.fileId)),
+      ...outsideFileIds(c),
     ] });
   }
   txn(() => {
@@ -7597,7 +7937,10 @@ function copilotOpenFindings(c) {
 // Parse one contract's stored json, scoped to the caller's org.
 function copilotGetJson(ctx, id) {
   if (!id) return null;
-  const r = db.prepare('SELECT json, folder FROM contracts WHERE id=? AND org_id=?').get(String(id), ctx.org);
+  /* By key, or by the contract number a working file took when its signed
+     copy was filed (26 Sep 2026): the model may name either. */
+  const r = db.prepare('SELECT json, folder FROM contracts WHERE id=? AND org_id=?').get(String(id), ctx.org)
+    || db.prepare('SELECT json, folder FROM contracts WHERE contract_no=? AND org_id=?').get(String(id).toUpperCase(), ctx.org);
   // Out of the caller's folder scope is indistinguishable from absent, here as
   // everywhere else — the model is told the contract was not found, so it
   // cannot report its existence back to the user.
@@ -7611,7 +7954,7 @@ function copilotCard(ctx, id) {
   if (!c) return null;
   const open = copilotOpenFindings(c);
   const card = {
-    id: c.id, name: c.name || c.id, counterparty: c.counterparty || '',
+    id: c.id, contractNo: c.contractNo || undefined, name: c.name || c.id, counterparty: c.counterparty || '',
     value: Number(c.value) || 0, valueType: c.valueType || 'standard',
     status: c.status || '', folder: c.folder || '', template: c.template || '',
     source: c.source || '', expiry: c.expiry || '', openFindings: open.length,
@@ -7634,7 +7977,7 @@ function copilotDetail(ctx, id) {
   const d = copilotDaysUntil(c.expiry);
   const body = contractFullBody(c);
   const detail = {
-    found: true, id: c.id, name: c.name || c.id, counterparty: c.counterparty || 'none',
+    found: true, id: c.id, contractNo: c.contractNo || undefined, name: c.name || c.id, counterparty: c.counterparty || 'none',
     folder: c.folder || '', template: c.template || '', isUpload: c.source === 'upload',
     value: Number(c.value) || 0, monetary: c.valueType !== 'none', valueType: c.valueType || 'standard',
     ...copilotMoneyOf(c),
@@ -7846,7 +8189,7 @@ function copilotList(ctx, filter = {}) {
   const off = Math.max(0, Math.floor(Number(filter.offset) || 0));
   const shown = cs.slice(off, off + 40).map(c => {
     const d = copilotDaysUntil(c.expiry);
-    const row = { id: c.id, name: c.name || c.id, counterparty: c.counterparty || '', folder: c.folder || '', status: c.status || '', value: Number(c.value) || 0, ...copilotMoneyOf(c), expiry: c.expiry || '', daysUntilExpiry: d, openFindings: copilotOpenFindings(c).length };
+    const row = { id: c.id, contractNo: c.contractNo || undefined, name: c.name || c.id, counterparty: c.counterparty || '', folder: c.folder || '', status: c.status || '', value: Number(c.value) || 0, ...copilotMoneyOf(c), expiry: c.expiry || '', daysUntilExpiry: d, openFindings: copilotOpenFindings(c).length };
     if (!ctx.money) copilotStripMoney(row);
     return row;
   });
@@ -7887,7 +8230,7 @@ function copilotCardOf(c, briefIds) {
   const read = !!((briefIds && briefIds.has(String(c.id))) || rv || (c.scan && Array.isArray(c.scan.findings)));
   let move = null;
   try { const n = copilotNegotiation(c); if (n && n.active) move = n.turn === 'counterparty' ? 'them' : 'you'; } catch (_) {}
-  return { id: c.id, name: c.name || c.id, counterparty: c.counterparty || '', folder: c.folder || '', kind: copilotContractKind(c),
+  return { id: c.id, contractNo: c.contractNo || undefined, name: c.name || c.id, counterparty: c.counterparty || '', folder: c.folder || '', kind: copilotContractKind(c),
     status: c.status || '', value: Number(c.value) || 0, expiry: c.expiry || '', signedAt: contractSignedOn(c) || '',
     overdue, offStandard, read, move, archived: !!c.archived };
 }
@@ -8385,7 +8728,7 @@ function graphSays(g) {
       if (num(f.overdue)) p.push(`${num(f.overdue)} overdue obligation${num(f.overdue) === 1 ? '' : 's'}`);
       if (num(f.offStandard) != null) p.push(num(f.offStandard) ? `${num(f.offStandard)} off standard` : 'on standard');
       if (f.unread) p.push('not read by Copilot');
-      return p.length ? `${cut(id, 40)}: ${p.join(', ')}` : ''; }).filter(Boolean);
+      return p.length ? `${cut(f.contractNo ? `${f.contractNo} (worked as ${id})` : id, 60)}: ${p.join(', ')}` : ''; }).filter(Boolean);
     const more = Object.keys(g.facts).length - ids.length + (num(g.factsOmitted) || 0);
     if (lines.length) t += `What the graph says about each contract: ${lines.join('; ')}${more > 0 ? `; and ${more} more not listed` : ''}. `;
   }
@@ -8448,7 +8791,7 @@ HOW TO WORK:
 - QUESTIONS ABOUT OBLIGATIONS, PROMISES, DELIVERABLES OR PAYMENTS DUE are answered from get_obligations (one contract, or the whole book, with "byBand" counts); QUESTIONS ABOUT WHO DID WHAT AND WHEN on a contract are answered from get_contract_history. Never infer either from the wording alone.
 - QUESTIONS ABOUT WHETHER A CONTRACT MATCHES OUR STANDARDS, POSITIONS OR PLAYBOOK: call check_against_playbook with the contract id and answer from its verdicts. If it returns noPlaybook, say plainly that no playbook is set up for this contract type — do not improvise one.
 - Reply in the language the user wrote their question in. This reader's interface language is ${(typeof ctx.lang === 'string' && ctx.lang.trim()) ? ctx.lang.trim().slice(0, 35) : 'English (en)'}. Contract quotes stay verbatim in their original language; your own words follow the user's.
-- Contract ids look like MK-103. THE NUMBER IN AN ID IS A COUNTER, NOT A COUNT: it only ever goes up, is never reused or rewound, and is spent by deleted contracts and abandoned drafts alike — so MK-397 says nothing about how many contracts exist. Count contracts from list_portfolio's "total", never from the highest id.
+- Contract ids look like MK-103. A working file — a contract negotiated here and signed on the other side's system — has an id like RL-012 until its signed copy is filed; then it also carries a contract number ("contractNo", MK-…), which is the reference people use: name it by that number. THE NUMBER IN AN ID IS A COUNTER, NOT A COUNT: it only ever goes up, is never reused or rewound, and is spent by deleted contracts and abandoned drafts alike — so MK-397 says nothing about how many contracts exist. Count contracts from list_portfolio's "total", never from the highest id.
 - MONEY: the workspace currency is ${orgJx().currency}; each contract states its OWN currency and its "value" is in that currency. Never add values across currencies and never convert by yourself — the tools carry converted figures ("valueInHomeCurrency", "valueTotalInHomeCurrency") and say what was left out for want of a rate ("valueLeftOut"); quote those, and say what was left out.
 - LEAD WITH THE ANSWER, not a list. Say what the data means (counts, totals, the standout item, what to watch) before naming contracts. Cite at most 3 of the most relevant contracts unless the user explicitly asks for the full list; for broad matches, summarize the aggregate and offer to list the rest or drill into one.
 - Always finish by calling deliver_answer exactly once. Cite the contracts you used. When you compared 2+ contracts, fill in the compare table.
@@ -9460,7 +9803,7 @@ function executedPdf(c) {
     y -= 18;
   }
   para(`${c.name || 'Contract'}`, { size: 15, font: F.bold, align: centeredHeads ? 'center' : null, after: 2 });
-  para(`${c.id}${c.counterparty ? ' · with ' + c.counterparty : ''} · Fully executed${sealWhen(c) ? ' · ' + sealWhen(c) : ''}`,
+  para(`${contractRef(c)}${c.counterparty ? ' · with ' + c.counterparty : ''} · Fully executed${sealWhen(c) ? ' · ' + sealWhen(c) : ''}`,
     { size: 8.5, color: '5c6a72', align: centeredHeads ? 'center' : null, after: 12 });
 
   // ---- the frozen sealed wording ----
@@ -9563,6 +9906,18 @@ function executedPdf(c) {
 
 function executedAttachment(c) {
   const esc = s => String(s == null ? '' : s).replace(/[&<>]/g, x => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[x]));
+  /* THE SIGNED COPY OF RECORD (26 Sep 2026): a contract signed outside HaTi —
+     or filed through the old paper door — goes out as the copy that was
+     signed, never as the file uploaded at the start. */
+  const signedId = (c.signedCopy && c.signedCopy.file && c.signedCopy.file.fileId)
+    || (c.execution && c.execution.offPlatform && c.execution.fileId) || null;
+  if (signedId) {
+    const f = hoFileRow(signedId);
+    const m = f && String(f.data || '').match(/^data:([^;]*);base64,(.*)$/s);
+    if (m && m[2] && m[2].length <= 14 * 1024 * 1024)
+      return { filename: String(f.name || contractRef(c) + ' — signed copy').slice(0, 120), content: m[2] };
+    return null;
+  }
   if (c.upload && c.upload.dataUrl) {
     const m = String(c.upload.dataUrl).match(/^data:([^;]*);base64,(.*)$/s);
     if (m && m[2] && m[2].length <= 14 * 1024 * 1024)
@@ -9573,7 +9928,7 @@ function executedAttachment(c) {
   const safeName = String(c.name || 'contract').replace(/[^\w\-. ]+/g, '').trim().slice(0, 60) || 'contract';
   try {
     const pdf = executedPdf(c);
-    return { filename: `${c.id} — Executed — ${safeName}.pdf`, content: pdf.toString('base64') };
+    return { filename: `${contractRef(c)} — Executed — ${safeName}.pdf`, content: pdf.toString('base64') };
   } catch (e) {
     console.warn('[distribute] PDF build failed for ' + c.id + ' (' + e.message + ') — attaching the styled HTML copy instead.');
     return executedAttachmentHtml(c);
@@ -9687,7 +10042,7 @@ ${footerHtml}
 </div>
 </body></html>`;
   const safeName = String(c.name || 'contract').replace(/[^\w\-. ]+/g, '').trim().slice(0, 60) || 'contract';
-  return { filename: `${c.id} — Executed — ${safeName}.html`, content: Buffer.from(doc, 'utf8').toString('base64') };
+  return { filename: `${contractRef(c)} — Executed — ${safeName}.html`, content: Buffer.from(doc, 'utf8').toString('base64') };
 }
 
 /* Distribution: email each party their copy of the executed contract. The
@@ -9824,6 +10179,333 @@ app.post('/api/contracts/:id/notify-signer', auth, editor, async (req, res) => {
     emailConfigured: EMAIL_ON(), notices: signerNoticesFor(req.params.id) });
 });
 
+/* ============================================================
+   THE HANDOVER — one route, every act on it (26 Sep 2026)
+   ============================================================
+   Redline here, sign there. Every act on a handed-over file comes through
+   here, because the handover is this route's to write and nothing else's:
+
+     hand     agree and hand over — the checks HaTi asks before a signature,
+              asked here, on the STORED record, at the last moment HaTi can
+              still stop one; then the words lock and the Word file goes
+     send     send the Word file again, to a corrected address
+     chase    ask them for the signed copy
+     check    record a check of their copy made before our signatory signs
+     partial  keep a copy they have signed and we have not, as evidence
+     live     "keep waiting", the answer to the 60-day question
+     reopen   they want a change: the lock lifts, the handover and the
+              approval are cancelled and kept in History
+     filed    after the filing save: tell the people on the file
+
+   ADDRESSES. The Word file goes to the person the lead names — they are
+   standing in the window looking at it, exactly as the send screen takes the
+   recipient it is given. Every OTHER mail here is to somebody the server
+   looks up: a colleague by member id, and a chase only ever to the address
+   the file was last sent to, never to one in the body.
+
+   A SEALED RECORD TAKES NO ACT but `filed`, and nothing here signs, seals or
+   numbers anything — the filing is the ordinary save, guarded as a
+   difference by PUT /api/contracts/:id. */
+const HO_ACTS = ['hand', 'send', 'chase', 'check', 'partial', 'sendback', 'live', 'reopen', 'filed'];
+const HO_NOTE_MAX = 1000;
+const HO_FILE_B64_MAX = 20 * 1024 * 1024;
+const HO_KEEP = 20;                         // sends, chases and checks kept on one handover
+const hoToday = () => new Date().toISOString().slice(0, 10);
+app.post('/api/contracts/:id/handover', auth, editor, async (req, res) => {
+  const b = req.body || {};
+  const act = String(b.act || '');
+  if (!HO_ACTS.includes(act)) return res.status(400).json({ error: 'Which act on the handover?' });
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  let c = {}; try { c = JSON.parse(row.json) || {}; } catch (_) { return res.status(409).json({ error: 'Contract not readable' }); }
+  const me = { id: req.user.id, name: req.user.name || '' };
+  const at = now();
+  const lines = [];
+  const say = (action, detail) => {
+    const l = { at, user: me.name || 'System', action, detail };
+    lines.push(l);
+    c.audit = (Array.isArray(c.audit) ? c.audit : []).concat([l]);
+  };
+  const done = extra => {
+    hoWrite(c.id, c);
+    res.json({ ok: true, handover: c.handover || null, handoverHistory: c.handoverHistory || null,
+      signApprovals: c.signApprovals || null, approvalChain: c.approvalChain || null, audit: lines, ...(extra || {}) });
+  };
+  const ref = contractRef(c);
+
+  /* ---- AFTER FILING: tell the people on the file ---- */
+  if (act === 'filed') {
+    if (!isExecutedRow(c) || !(c.execution && c.execution.method === 'outside'))
+      return res.status(409).json({ error: `${ref} is not filed as signed yet.` });
+    if (c.handover && c.handover.filedToldAt) return res.json({ ok: true, told: c.handover.told || [], already: true });
+    const told = await hoTellPeople(req, c, 'filed', { skipId: me.id });
+    /* the handover is part of the sealed record now, so the fact that people
+       were told rides the audit trail rather than a write into it */
+    say('Told', told.length
+      ? `Told ${told.map(t => t.name).join(', ')} that ${ref} is signed and filed`
+      : `Nobody else on ${ref} had an address to tell`);
+    return done({ told });
+  }
+  if (isExecutedRow(c)) return res.status(409).json({ error: `${ref} is already filed as signed.` });
+  if (c.hold && c.hold.at) return res.status(409).json({ error: `${ref} is on hold for a dispute. Release the hold first.` });
+
+  /* ---- AGREE AND HAND OVER ---- */
+  if (act === 'hand') {
+    if (signRouteOf(c) !== 'outside')
+      return res.status(409).json({ error: 'HaTi runs the signing on this contract. Choose "They run the signing" on the Signing tab first.' });
+    if (handoverOf(c)) return res.status(409).json({ error: `${ref} has already been handed over.` });
+    if (!srvMayLeadHandover(c, req.user))
+      return res.status(403).json({ error: `Only ${deskLeadName(c)} — or an admin — hands this over.` });
+    const openCh = srvNegotiationOpen(c);
+    if (openCh) return res.status(409).json({ error: `${openCh} change${openCh === 1 ? ' is' : 's are'} still open. Settle the negotiation first — every change decided, and the round closed.` });
+    const chain = srvApprovalChainOpen(c);
+    if (chain.length) return res.status(403).json({ error: `Internal approval is outstanding: “${chain[0].name}” is ${chain[0].status === 'stale' ? 'out of date — the contract changed after it was approved' : chain[0].status === 'rejected' ? 'refused' : 'waiting'}. HaTi cannot stop a signature made elsewhere, so it asks for approval here.`, approval: true });
+    const sa = srvSignApprovalRefusal(c);
+    if (sa) return res.status(403).json({ error: sa, signApproval: true });
+    const scr = signCheckRefusal(c);
+    if (scr) return res.status(403).json({ error: scr, signCheck: true });
+    /* HOW THEY AGREED: their Ready to sign on HaTi's link, read off the stored
+       record — or the lead's word that they confirmed by email, with the day. */
+    const how = b.how || {};
+    let howRec = null;
+    /* EVERY NEGOTIATING PARTY AGREES (Phase 2). Where more than one party
+       negotiated, one Ready to sign from one link cannot speak for the others,
+       so each one's agreement is said by name and day. */
+    const negotiating = srvPartiesNegotiating(c);
+    if (negotiating.length > 1) {
+      const said = Array.isArray(how.parties) ? how.parties : [];
+      const dayOf = p => { const x = said.find(s => s && String(s.id) === p.id); const d = String((x && x.at) || '').slice(0, 10);
+        return /^\d{4}-\d{2}-\d{2}$/.test(d) && d <= hoToday() ? d : ''; };
+      const missing = negotiating.filter(p => !dayOf(p));
+      if (missing.length) return res.status(400).json({
+        error: `Every party that negotiated has to have agreed. Say on which day each one confirmed: ${missing.map(p => p.name).join(', ')}.`,
+        parties: missing.map(p => p.id) });
+      const days = negotiating.map(p => ({ id: p.id, name: p.name, at: dayOf(p) }));
+      howRec = { kind: 'email', at: days.map(d => d.at).sort().pop(), parties: days };
+    } else if (how.kind === 'signal') {
+      const sig = c.negotiation && c.negotiation.ready && c.negotiation.ready.counterparty;
+      if (!sig) return res.status(400).json({ error: 'There is no Ready to sign from them on file. Tick that they confirmed by email, with the date.' });
+      howRec = { kind: 'signal', at: sig.at || null, name: clean(sig.name || sig.by || '').slice(0, 120) };
+    } else if (how.kind === 'email') {
+      const day = String(how.at || '').slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || day > hoToday())
+        return res.status(400).json({ error: 'Say on which day they confirmed by email — not a day that has not come yet.' });
+      howRec = { kind: 'email', at: day };
+    } else return res.status(400).json({ error: 'Say how they agreed: their Ready to sign on HaTi’s link, or by email with the date.' });
+    const f = b.file || {};
+    const b64 = typeof f.content === 'string' ? f.content.replace(/\s+/g, '') : '';
+    if (!b64) return res.status(400).json({ error: 'The agreed Word file did not arrive, so nothing was handed over.' });
+    if (b64.length > HO_FILE_B64_MAX) return res.status(413).json({ error: 'The agreed Word file is too large to keep.' });
+    /* THE FILE IS READ, NOT TRUSTED: it has to be a Word document, and the
+       words in it may not carry a blank — the browser's one list says so
+       first, and this is the wall behind it (tplZipEntry, the server's own
+       minimal Word reader; a paragraph end is kept as a line so a blank can
+       never be stitched across two paragraphs). */
+    const docXml = (() => { try { return tplZipEntry(Buffer.from(b64, 'base64'), 'word/document.xml'); } catch (_) { return null; } })();
+    if (!docXml) return res.status(400).json({ error: 'The agreed file is not a Word document, so nothing was handed over.' });
+    const blanks = outsideBlanksIn(tplXmlText(String(docXml).replace(/<\/w:p>/g, '\n')));
+    if (blanks.length) return res.status(409).json({ error: `The agreed words still carry ${blanks.length === 1 ? 'a blank' : blanks.length + ' blanks'}: ${blanks.slice(0, 4).join(', ')}${blanks.length > 4 ? ', …' : ''}. Fill ${blanks.length === 1 ? 'it' : 'them'} in through the negotiation before handing over.`, blanks });
+    const channel = b.channel === 'email' ? 'email' : 'download';
+    const to = { name: clean(b.to && b.to.name).slice(0, 120),
+      email: String((b.to && b.to.email) || '').trim().toLowerCase().slice(0, 200) };
+    if (channel === 'email' && !/.+@.+\..+/.test(to.email))
+      return res.status(400).json({ error: 'A valid email address is needed to email it from HaTi.' });
+    const fname = (clean(f.filename) || `${ref}-agreed.docx`).slice(0, 120);
+    const fileId = 'f_' + rid(10);
+    db.prepare('INSERT INTO files (id,name,mime,data,created_at) VALUES (?,?,?,?,?)')
+      .run(fileId, fname, HO_DOCX_MIME, `data:${HO_DOCX_MIME};base64,${b64}`, at);
+    /* OUR SIGNATORY, off the signing order — the row the lead chose, else the
+       first of ours. May be absent: the lead was told what skipping costs. */
+    const ours = (Array.isArray(c.signerPlan) ? c.signerPlan : []).filter(s => s && s.party === 'internal');
+    const pick = b.signatoryId ? ours.find(s => String(s.id) === String(b.signatoryId)) : ours[0];
+    const signatory = pick ? { id: String(pick.memberId || ''), rowId: String(pick.id || ''), name: clean(pick.name).slice(0, 120),
+      title: clean(pick.role).slice(0, 120) } : null;
+    /* THE APPROVALS THIS HANDOVER USED, as they stood — so the filing can say
+       "used at the handover, 17 Sep" whatever happens to a rule afterwards. */
+    const approvals = [];
+    (Array.isArray(c.signApprovals) ? c.signApprovals : []).filter(r => r && r.status === 'approved').forEach(r =>
+      approvals.push({ kind: 'person', byId: String((r.decidedBy && r.decidedBy.id) || ''), by: (r.decidedBy && r.decidedBy.name) || r.approverName || '', at: r.decidedAt || null }));
+    (Array.isArray(c.approvalChain) ? c.approvalChain : []).filter(s => s && s.status === 'approved').forEach(s =>
+      approvals.push({ kind: 'rule', name: clean(s.name).slice(0, 120), by: s.by || '', at: s.at || null }));
+    c.handover = { at, by: me,
+      round: c.negotiation && typeof c.negotiation.round === 'number' ? c.negotiation.round : null,
+      version: Number(b.version) || null,
+      agreedHash: clean(b.agreedHash).slice(0, 80), agreedWords: Math.max(0, Number(b.agreedWords) || 0),
+      how: howRec, signatory, signatorySkipped: !signatory, to, channel,
+      file: { name: fname, fileId, size: Math.round(b64.length * 3 / 4) },
+      sends: [], chases: [], checks: [], partial: null, live: null, approvals, told: [] };
+    let report = null;
+    if (channel === 'email') report = mailReport(await hoMailFile(req, c, c.handover, to, clean(b.note).slice(0, HO_NOTE_MAX)));
+    c.handover.sends.push({ at, by: me, to, channel, ...(report || {}) });
+    /* THE WORD FILE GOES TO EACH PARTY (Phase 2): one mail per address, each
+       recorded, each said — a mail that did not go is not a party told. */
+    const also = channel === 'email' && Array.isArray(b.also) ? b.also.slice(0, 8) : [];
+    for (const a of also) {
+      const t = { name: clean(a && a.name).slice(0, 120), email: String((a && a.email) || '').trim().toLowerCase().slice(0, 200),
+        partyId: clean(a && a.partyId).slice(0, 40) };
+      if (!/.+@.+\..+/.test(t.email) || t.email === to.email) continue;
+      const r2 = mailReport(await hoMailFile(req, c, c.handover, t, clean(b.note).slice(0, HO_NOTE_MAX)));
+      c.handover.sends.push({ at, by: me, to: t, channel, ...r2 });
+    }
+    say('Handed over', `Agreed wording handed over for signature by ${me.name} — `
+      + (channel === 'email'
+        ? `emailed as a Word file to ${c.handover.sends.map(x => `${x.to.email}${x.emailSent ? '' : ' (not delivered: see the outbox)'}`).join(', ')}`
+        : 'downloaded as a Word file for the lead to send')
+      + `. They agreed ${howRec.kind === 'signal' ? 'with Ready to sign on HaTi’s link'
+        : howRec.parties ? `— ${howRec.parties.map(p => `${p.name} on ${p.at}`).join(', ')}` : `by email on ${howRec.at}`}`
+      + `. Signs for us: ${signatory ? signatory.name : 'not named'}. The wording is locked until it is filed or the negotiation is reopened.`);
+    hoWrite(c.id, c);
+    c.handover.told = await hoTellPeople(req, c, 'hand', { skipId: me.id });
+    return done(report || {});
+  }
+
+  const ho = handoverOf(c);
+  if (!ho) return res.status(409).json({ error: `${ref} is not out for signature.` });
+
+  /* ---- SEND THE WORD FILE AGAIN ---- */
+  if (act === 'send') {
+    const to = { name: clean(b.to && b.to.name).slice(0, 120),
+      email: String((b.to && b.to.email) || '').trim().toLowerCase().slice(0, 200) };
+    if (!/.+@.+\..+/.test(to.email)) return res.status(400).json({ error: 'A valid email address is needed to send it again.' });
+    const report = mailReport(await hoMailFile(req, c, ho, to, clean(b.note).slice(0, HO_NOTE_MAX)));
+    ho.sends = (Array.isArray(ho.sends) ? ho.sends : []).concat([{ at, by: me, to, channel: 'email', ...report }]).slice(-HO_KEEP);
+    ho.to = to;
+    say('Sent again', `Agreed wording sent again as a Word file to ${to.email} by ${me.name}${report.emailSent ? '' : ' (not delivered: see the outbox)'}`);
+    return done(report);
+  }
+
+  /* ---- CHASE THEM FOR THE SIGNED COPY ----
+     To the address the file was last sent to, and no other: the obligation
+     chase's own rule. A handover that was downloaded and sent by hand has no
+     address on file until one is sent from here, and says so. */
+  if (act === 'chase') {
+    if (b.email || b.to || b.address)
+      return res.status(400).json({ error: 'A chase goes to the address the agreed wording was sent to. Send it again to a new address instead.' });
+    const last = (Array.isArray(ho.sends) ? ho.sends : []).filter(x => x && x.to && /.+@.+\..+/.test(x.to.email || '')).pop();
+    const to = last ? last.to : (ho.to && /.+@.+\..+/.test(ho.to.email || '') ? ho.to : null);
+    if (!to) return res.json({ ok: false, reason: 'no-address', emailSent: false, emailConfigured: EMAIL_ON(), outbox: false,
+      emailError: 'The agreed wording was downloaded and sent by hand, so HaTi has no address to chase. Send it again from here to give it one.' });
+    const L = langForEmail(to.email);
+    const vars = { name: c.name || ref, who: me.name, day: hoDay(ho.at), them: to.name || '' };
+    const r = await sendEmail(to.email, tFor(L, 'mail_ho_chase_subject', vars),
+      `${tFor(L, 'mail_hello')}${to.name ? ' ' + to.name : ''},\n\n${tFor(L, 'mail_ho_chase_line', vars)}\n\n${tFor(L, 'mail_ho_replies', { who: me.name })}`,
+      `handover chase: ${ref}`);
+    const report = mailReport(r);
+    ho.chases = (Array.isArray(ho.chases) ? ho.chases : []).concat([{ at, by: me, to, ...report }]).slice(-HO_KEEP);
+    say('Chased', `Asked ${to.email} for the signed copy${report.emailSent ? '' : ' (not delivered: see the outbox)'}`);
+    return done(report);
+  }
+
+  /* ---- A CHECK OF THEIR COPY, MADE BEFORE OUR SIGNATORY SIGNS ----
+     The comparison runs in the browser that read the file; this records what
+     it found, who ran it and the file's fingerprint. Never a gate. */
+  if (act === 'check') {
+    const r = b.result || {};
+    const rec = { at, by: me, fileName: clean(b.fileName).slice(0, 160), sha256: clean(b.sha256).slice(0, 80),
+      same: r.same === true, unrelated: r.unrelated === true,
+      changed: Math.max(0, Number(r.changedCount) || 0), missing: Math.max(0, Number(r.missingCount) || 0),
+      inserted: Math.max(0, Number(r.inserted) || 0), line: clean(r.line).slice(0, 300) };
+    ho.checks = (Array.isArray(ho.checks) ? ho.checks : []).concat([rec]).slice(-HO_KEEP);
+    say('Checked before signing', `${me.name} checked their copy “${rec.fileName || 'a file'}” before it was signed: ${rec.line || (rec.same ? 'same wording as agreed' : 'the wording differs')}`);
+    return done({ check: rec });
+  }
+
+  /* ---- A COPY THEY HAVE SIGNED AND WE HAVE NOT ----
+     Kept as evidence, said on the file, and our signatory is told. Nothing is
+     filed until the copy with every signature arrives. */
+  if (act === 'partial') {
+    const fileId = String(b.fileId || '');
+    if (!hoFileRow(fileId)) return res.status(400).json({ error: 'The copy has to be on the server first. Upload it again.' });
+    /* A DIFFERENCE ACCEPTED ON A COPY ONLY THEY HAVE SIGNED (decision 7): by
+       the approver or an admin, with a reason — the same people and the same
+       rule as a difference accepted at filing. Nothing is filed. */
+    let differs = null;
+    if (b.differs) {
+      const why = clean(b.differs.why).slice(0, 600);
+      if (!why) return res.status(400).json({ error: 'Say why the difference is accepted.' });
+      if (!srvMayAcceptDiffer(c, req.user))
+        return res.status(403).json({ error: 'A difference in the words is accepted by the person who approved this contract, or by an admin — with a reason.', differs: true });
+      differs = { by: { id: String(req.user.id), name: me.name, role: req.user.role || '' }, why, at, line: clean(b.differs.line).slice(0, 300) };
+    }
+    ho.partial = { at, by: me, fileId, fileName: clean(b.fileName).slice(0, 160), sha256: clean(b.sha256).slice(0, 80),
+      signedBy: (Array.isArray(b.signedBy) ? b.signedBy : []).map(x => clean(x).slice(0, 120)).filter(Boolean).slice(0, 12),
+      signedOn: /^\d{4}-\d{2}-\d{2}$/.test(String(b.signedOn || '')) ? String(b.signedOn) : '',
+      same: b.same === true && !differs, differs };
+    say('They have signed', `${me.name} kept a copy ${ho.partial.signedBy.length ? ho.partial.signedBy.join(', ') + ' signed' : 'they signed'}`
+      + ` (“${ho.partial.fileName || 'a file'}”) as evidence. It is waiting on our signature.`
+      + (differs ? ` Its words differ from the agreed version, and ${me.name} accepted the difference: “${differs.why}”.` : ''));
+    hoWrite(c.id, c);
+    const told = await hoTellPeople(req, c, 'partial', { skipId: me.id });
+    return done({ told });
+  }
+
+  /* ---- THE WORDS DIFFER: SEND IT BACK, OR HOLD IT AND RAISE IT ----
+     The differences named, to the address the file was last sent to — the
+     chase's own rule. Nothing is filed and the file keeps waiting. Where both
+     sides have already signed there is nothing to send back: the copy is kept
+     as the evidence of what was signed, and the same differences are raised. */
+  if (act === 'sendback') {
+    const lines = (Array.isArray(b.lines) ? b.lines : []).map(x => clean(x).slice(0, 1200)).filter(Boolean).slice(0, 40);
+    if (!lines.length) return res.status(400).json({ error: 'There is no difference to send back.' });
+    const both = b.both === true;
+    if (both) {
+      const fileId = String(b.fileId || '');
+      if (!hoFileRow(fileId)) return res.status(400).json({ error: 'The copy has to be on the server first. Upload it again.' });
+      ho.held = { at, by: me, fileId, fileName: clean(b.fileName).slice(0, 160), sha256: clean(b.sha256).slice(0, 80) };
+    }
+    const last = (Array.isArray(ho.sends) ? ho.sends : []).filter(x => x && x.to && /.+@.+\..+/.test(x.to.email || '')).pop();
+    const to = last ? last.to : null;
+    let report = { emailSent: false, emailConfigured: EMAIL_ON(), outbox: false,
+      emailError: 'The agreed wording was downloaded and sent by hand, so HaTi has no address to write to. Send them the differences yourself.' };
+    if (to) {
+      const L = langForEmail(to.email);
+      const vars = { name: c.name || ref, who: me.name, day: hoDay(ho.at) };
+      report = mailReport(await sendEmail(to.email, tFor(L, both ? 'mail_ho_raise_subject' : 'mail_ho_back_subject', vars),
+        `${tFor(L, 'mail_hello')}${to.name ? ' ' + to.name : ''},\n\n${tFor(L, both ? 'mail_ho_raise_line' : 'mail_ho_back_line', vars)}\n\n${lines.join('\n\n')}\n\n${tFor(L, 'mail_ho_replies', { who: me.name })}`,
+        `handover ${both ? 'raise' : 'send back'}: ${ref}`));
+    }
+    ho.sendbacks = (Array.isArray(ho.sendbacks) ? ho.sendbacks : []).concat([{ at, by: me, both, n: lines.length, to: to || null, ...report }]).slice(-HO_KEEP);
+    say(both ? 'Raised' : 'Sent back', `${me.name} ${both ? 'held the signed copy and raised' : 'sent back'} ${lines.length} difference${lines.length === 1 ? '' : 's'} from the agreed wording`
+      + (to ? ` to ${to.email}${report.emailSent ? '' : ' (not delivered: see the outbox)'}` : ' — no address on file, so nothing was emailed') + '. Nothing was filed.');
+    return done(report);
+  }
+
+  /* ---- STILL LIVE? KEEP WAITING ---- */
+  if (act === 'live') {
+    ho.live = { keptAt: at, keptBy: me };
+    say('Still live', `${me.name} said the deal is still live after ${handoverDays(c)} days — HaTi will ask again in ${HANDOVER_LIVE_DAYS} days`);
+    return done();
+  }
+
+  /* ---- REOPEN THE NEGOTIATION ---- */
+  if (act === 'reopen') {
+    if (!srvMayLeadHandover(c, req.user))
+      return res.status(403).json({ error: `Only ${deskLeadName(c)} — or an admin — reopens this negotiation.` });
+    const why = clean(b.why).slice(0, 600);
+    const was = { ...ho, cancelledAt: at, cancelledBy: me, why };
+    c.handoverHistory = (Array.isArray(c.handoverHistory) ? c.handoverHistory : []).concat([was]).slice(-HO_KEEP);
+    delete c.handover;
+    /* THE APPROVAL IS CANCELLED WITH IT: the words are about to move, and an
+       approval of the version that went out is not an approval of the next.
+       A personal approval is withdrawn (the need goes back to unasked); a rule
+       step goes back to waiting. Both are kept on the record as they were. */
+    let nSa = 0, nRule = 0;
+    (Array.isArray(c.signApprovals) ? c.signApprovals : []).forEach(r => {
+      if (r && (r.status === 'approved' || r.status === 'pending')) { r.status = 'withdrawn'; r.withdrawnBy = 'reopen'; r.withdrawnAt = at; nSa++; } });
+    if (Array.isArray(c.approvalChain)) c.approvalChain = c.approvalChain.map(s => {
+      if (s && s.status === 'approved') { nRule++; return { ...s, status: 'pending', by: null, at: null, comment: null, stamp: null,
+        was: { by: s.by || null, at: s.at || null } }; }
+      return s; });
+    say('Reopened', `${me.name} reopened the negotiation${why ? ` — “${why}”` : ''}. The handover of ${hoDay(was.at)} was cancelled`
+      + ((nSa + nRule) ? ` and the approval with it (${nSa + nRule} to ask again)` : '')
+      + '. Their link says this version was withdrawn.');
+    hoWrite(c.id, c);
+    const told = await hoTellPeople(req, c, 'reopen', { skipId: me.id });
+    return done({ told });
+  }
+  return res.status(400).json({ error: 'Which act on the handover?' });
+});
+
 /* ---- CHASING THE OTHER SIDE FOR SOMETHING THEY OWE (J-2.3) ----
 
    THE RECORD IS THE BROWSER'S; THIS IS ONLY THE KNOCK ON THE DOOR. `chasedAt`
@@ -9864,7 +10546,7 @@ app.post('/api/contracts/:id/chase', auth, editor, async (req, res) => {
       emailSent: false, emailConfigured: EMAIL_ON(), outbox: false,
       emailError: 'There is no email address on file for the counterparty, so no message was sent. Add one on Key terms.' });
   const L = langForEmail(to);
-  const vars = { desc: o.desc || '', name: c.name || c.id, id: c.id, due: o.due || '' };
+  const vars = { desc: o.desc || '', name: c.name || contractRef(c), id: contractRef(c), due: o.due || '' };
   /* ---- A DATE THAT DOES NOT EXIST IS NOT WRITTEN INTO A SENTENCE ----
      The line reads "...which was due on {due}. Could you let us know where it
      stands?", and an obligation with no date produced "due on ." in a message
@@ -10079,18 +10761,18 @@ async function saSendApprovalMail(req, c, r, kind, recipients, extra) {
     const decider = (r.decidedBy && r.decidedBy.name) || '';
     let subject = '', lines = [];
     if (kind === 'ask') {
-      subject = tFor(L, 'mail_sa_ask_subject', { name: cName, id: c.id });
-      lines = [tFor(L, 'mail_sa_ask_line', { who: asker }), '', `${cName} (${c.id})`, saMailFacts(c, u),
+      subject = tFor(L, 'mail_sa_ask_subject', { name: cName, id: contractRef(c) });
+      lines = [tFor(L, 'mail_sa_ask_line', { who: asker }), '', `${cName} (${contractRef(c)})`, saMailFacts(c, u),
         ...(r.note ? ['', tFor(L, 'mail_sa_note', { who: asker, note: r.note })] : []),
         '', tFor(L, 'mail_sa_open'), link, '', tFor(L, 'mail_sa_rule')];
     } else if (kind === 'remind') {
       subject = tFor(L, 'mail_sa_remind_subject', { name: cName });
       lines = [tFor(L, 'mail_sa_remind_line', { who: asker, date: String(r.askedAt || '').slice(0, 10) }), '',
-        `${cName} (${c.id})`, saMailFacts(c, u), '', tFor(L, 'mail_sa_open'), link];
+        `${cName} (${contractRef(c)})`, saMailFacts(c, u), '', tFor(L, 'mail_sa_open'), link];
     } else if (kind === 'escalate') {
       subject = tFor(L, 'mail_sa_esc_subject', { name: cName, n: extra && extra.days });
       lines = [tFor(L, 'mail_sa_esc_line', { who: asker, approver: r.approverName || 'an admin', n: extra && extra.days }), '',
-        `${cName} (${c.id})`, saMailFacts(c, u), '', tFor(L, 'mail_sa_open'), link];
+        `${cName} (${contractRef(c)})`, saMailFacts(c, u), '', tFor(L, 'mail_sa_open'), link];
     } else if (r.status === 'approved') {
       subject = tFor(L, 'mail_sa_ok_subject', { name: cName });
       lines = [tFor(L, 'mail_sa_ok_line', { who: decider }), ...(r.decision ? ['', `“${r.decision}”`] : []), '', tFor(L, 'mail_at_open'), link];
@@ -10181,6 +10863,55 @@ async function runSignApprovalReminders() {
   return { checked: rows.length, sent };
 }
 
+
+/* ---- THE WAIT, CHASED BY THE CLOCK (26 Sep 2026) ----
+   Redline here, sign there: once the agreed words are out with them, the lead
+   is reminded after HANDOVER_REMIND_WORKDAYS working days and then once a
+   week, and after HANDOVER_LIVE_DAYS with nothing back is asked whether the
+   deal is still live. The clock is js/outside.js's — the bell reads the same
+   one — and each reminder is sent once, keyed on the handover it belongs to,
+   so a reopen and a second handover start a clock of their own. */
+function hoLeadOf(c, users) {
+  const d = deskOfRow(c);
+  const id = (d && d.leadId && !d.closedAt) ? d.leadId : (c.owner && c.owner.id) || (c.handover && c.handover.by && c.handover.by.id);
+  return users.find(u => String(u.id) === String(id || '')) || null;
+}
+async function runHandoverReminders(nowMs) {
+  const rows = db.prepare(`SELECT id, folder, json FROM contracts WHERE status!='Signed' AND status!='Declined' AND json LIKE '%"handover"%'`).all();
+  if (!rows.length) return { checked: 0, sent: 0 };
+  const users = db.prepare('SELECT * FROM users').all();
+  let sent = 0;
+  const once = key => {
+    if (db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(key)) return false;
+    db.prepare('INSERT INTO reminders (rkey,created_at) VALUES (?,?)').run(key, now());
+    return true;
+  };
+  for (const row of rows) {
+    let c; try { c = JSON.parse(row.json) || {}; } catch (_) { continue; }
+    const ho = handoverOf(c);
+    if (!ho || !handoverActive(c) || c.archived || (c.hold && c.hold.at)) continue;
+    const lead = hoLeadOf(c, users);
+    if (!lead || !/.+@.+\..+/.test(String(lead.email || '')) || !inScope(folderScopeFor(lead), row.folder)) continue;
+    const L = langForEmail(lead.email);
+    const days = handoverDays(c, nowMs);
+    const vars = { name: c.name || contractRef(c), ref: contractRef(c), them: c.counterparty || '', days, day: hoDay(ho.at) };
+    const link = contractUrl(null, c.id, 'sign');
+    const mail = async (kind, tag) => {
+      const partial = !!(ho.partial && ho.partial.at);
+      const line = kind === 'live' ? tFor(L, 'mail_ho_live_line', vars)
+        : tFor(L, partial ? 'mail_ho_remind_partial' : 'mail_ho_remind_line', vars);
+      const r = await sendEmail(lead.email, tFor(L, `mail_ho_${kind}_subject`, vars),
+        `${tFor(L, 'mail_hello')} ${lead.name || ''},\n\n${line}\n\n${tFor(L, 'mail_ho_open')}\n${link}\n\n${tFor(L, 'mail_automated_notice')}`,
+        tag);
+      if (r && r.sent !== false) sent++;
+    };
+    const key = handoverReminderKey(c, nowMs);
+    if (key && once(`ho:${c.id}:${ho.at}:${key}`)) await mail('remind', `handover reminder: ${contractRef(c)}`);
+    if (handoverStillLiveDue(c, nowMs) && once(`ho:${c.id}:${ho.at}:live:${(ho.live && ho.live.keptAt) || ''}`))
+      await mail('live', `handover still live?: ${contractRef(c)}`);
+  }
+  return { checked: rows.length, sent };
+}
 /* ---------- THE NEGOTIATION MEMO, MAILED TO A COLLEAGUE ----------
    (owner-asked 9 Sep 2026: "We need to bring back the send to a colleague
    button.")
@@ -10674,6 +11405,7 @@ function fileInScope(scope, fileId) {
     const ids = [];
     if (c.upload && c.upload.fileId) ids.push(c.upload.fileId);
     for (const d of (Array.isArray(c.documents) ? c.documents : [])) if (d && d.fileId) ids.push(d.fileId);
+    ids.push(...outsideFileIds(c));
     if (!ids.includes(fileId)) continue;
     referenced = true;
     if (inScope(scope, r.folder)) { allowed = true; break; }
@@ -10695,6 +11427,7 @@ app.get('/api/files/orphans', auth, admin, (req, res) => {
       const c = JSON.parse(r.json);
       if (c.upload && c.upload.fileId) referenced.add(c.upload.fileId);
       for (const d of (Array.isArray(c.documents) ? c.documents : [])) if (d && d.fileId) referenced.add(d.fileId);
+      outsideFileIds(c).forEach(id => referenced.add(id));
     } catch (_) {}
   }
   const rows = db.prepare('SELECT id,name,mime,length(data) AS bytes,created_at FROM files').all()
@@ -10708,6 +11441,7 @@ app.delete('/api/files/orphans', auth, admin, (req, res) => {
       const c = JSON.parse(r.json);
       if (c.upload && c.upload.fileId) referenced.add(c.upload.fileId);
       for (const d of (Array.isArray(c.documents) ? c.documents : [])) if (d && d.fileId) referenced.add(d.fileId);
+      outsideFileIds(c).forEach(id => referenced.add(id));
     } catch (_) {}
   }
   let n = 0;
@@ -11107,6 +11841,10 @@ async function notifyInternalSignerTurn(req, contractId, opts = {}) {
        outstanding (23 Sep 2026) — nobody signs until it is given. The notice
        waits, and the save that gives the approval announces the turn. */
     if (srvSignApprovalRefusal(rt.contract)) return { ok: false, reason: 'awaiting-approval' };
+    /* A FILE THEY SIGN (26 Sep 2026) is never signed here, so nobody is told
+       it is their turn to sign in HaTi. Our signatory is told to expect the
+       document at the handover instead (hoTellPeople). */
+    if (signRouteOf(rt.contract || {}) === 'outside') return { ok: false, reason: 'they-sign' };
     const next = rt.plan.find(s => !rt.signedRow(s));
     if (!next) return { ok: false, reason: 'route-complete' };
     /* A NAMED SIGNER, OR WHOEVER IS UP. The resend button names its row, and
@@ -11325,6 +12063,21 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
      quietly handing them something else would be a link that does not do what
      the screen said, discovered a round later. An executed contract is exempt:
      its copy still travels on a Sign link and there is nothing left to sign. */
+  /* ---- A FILE THEY SIGN IS NOT SIGNED ON A HaTi LINK (26 Sep 2026) ----
+     Where they run the signing, the agreed words leave as a Word file from the
+     Signing tab and the signing is theirs, so a signing link is never issued;
+     and while the words are out with them, no round goes out either — the
+     words are locked until the negotiation is reopened. Read off the STORED
+     contract. Asked before "nobody named to sign", which is a question about a
+     signing this contract does not have. */
+  if (rvStored && !contractIsExecuted(shareId) && signRouteOf(rvStored) === 'outside') {
+    if (purp === 'sign') return res.status(409).json({
+      error: `They run the signing on ${contractRef(rvStored)}: the agreed words are handed over as a Word file from the Signing tab, not signed on a HaTi link.`,
+      theySign: true });
+    if (purp === 'negotiate' && handoverActive(rvStored)) return res.status(409).json({
+      error: `${contractRef(rvStored)} is out with them for signature, so its words are locked. Reopen the negotiation from the Signing tab to send another round.`,
+      handedOver: true });
+  }
   if (purp === 'sign' && !signingRouteOpen(shareId) && !contractIsExecuted(shareId))
     return res.status(409).json({
       error: 'Nobody has been named to sign this contract, so a signing link cannot be issued. '
@@ -11727,6 +12480,20 @@ app.get('/api/shares/overview', auth, (req, res) => {
    this. The three signals are the same three the negotiation model uses, and
    for the same reason — a seal, an execution stamp or the status, any one of
    which means the wording has stopped moving. */
+/* What the other side may know about a handover: that the agreed wording was
+   handed over on a day, as a file with a name — or that the version handed
+   over was withdrawn. Null where there has never been one. */
+function shareHandoverFact(contractId) {
+  if (!contractId) return null;
+  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(contractId);
+  if (!row) return null;
+  let c; try { c = JSON.parse(row.json); } catch (_) { return null; }
+  const ho = handoverOf(c);
+  if (ho) return { at: ho.at, fileName: (ho.file && ho.file.name) || '', live: handoverActive(c) };
+  const past = Array.isArray(c.handoverHistory) ? c.handoverHistory : [];
+  const last = past[past.length - 1];
+  return last && last.cancelledAt ? { withdrawnAt: last.cancelledAt, at: last.at } : null;
+}
 function contractExecution(contractId) {
   if (!contractId) return null;
   const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(contractId);
@@ -11887,6 +12654,13 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
        — but their page has to be able to say that the wording is final, or it
        goes on inviting redlines on a sealed contract. */
     executed: contractExecution(s.contract_id),
+    /* ---- THE AGREED WORDS WERE HANDED OVER (26 Sep 2026) ----
+       Read live, like `executed` beside it: once the lead hands the agreed
+       wording over as a Word file, this page turns read-only and offers that
+       file; after a reopen it says the version was withdrawn. The day and the
+       file's name, and nothing else — who approved it, who signs for us and
+       how it was chased are ours. */
+    handover: shareHandoverFact(s.contract_id),
     /* The row's purpose, which is what the SENDER chose. The payload carries a
        purpose too, but that one falls back to a reading of the change set when
        nobody stated one — see buildSharePayload. W6 needs the choice. */
@@ -12482,6 +13256,25 @@ app.post('/api/shares/:token/verify-otp', rlOtp, rlOtpToken, (req, res) => {  //
   res.json({ ok: true, verify });
 });
 
+/* THE AGREED WORD FILE, FROM THEIR OWN LINK (26 Sep 2026). While the
+   agreed wording is out with them the link offers the very file the handover
+   sent — so a colleague of theirs who never got the email can still take it.
+   Only while the handover stands: a withdrawn version is not served. */
+app.get('/api/shares/:token/handover-file', rlShare, (req, res) => {
+  const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
+  if (!s || s.revoked_at || shareExpired(s)) return res.status(404).json({ error: 'Share link not found or expired' });
+  if (shareIsHistory(s)) return res.status(404).json({ error: 'Nothing to download on this link' });
+  const row = s.contract_id ? db.prepare('SELECT json FROM contracts WHERE id=?').get(s.contract_id) : null;
+  let c = null; try { c = row ? JSON.parse(row.json) : null; } catch (_) { c = null; }
+  const ho = c ? handoverOf(c) : null;
+  const f = ho ? hoFileRow(ho.file && ho.file.fileId) : null;
+  if (!f) return res.status(404).json({ error: 'There is no agreed Word file on this link.' });
+  const b64 = String(f.data || '').replace(/^data:[^,]*,/, '');
+  const buf = Buffer.from(b64, 'base64');
+  res.setHeader('Content-Type', f.mime || HO_DOCX_MIME);
+  res.setHeader('Content-Disposition', `attachment; filename="${String(f.name || 'agreed.docx').replace(/[^\w.\- ]+/g, '_')}"`);
+  res.send(buf);
+});
 app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: counterparty responds
   const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
@@ -12509,6 +13302,15 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
      decline are each as impossible on an executed contract as a second
      signature, and each was being stored and then silently discarded. See
      contractExecution above. */
+  /* OUT FOR SIGNATURE, THE LINK READS ONLY (26 Sep 2026): the agreed words
+     were handed over as a Word file to be signed on their side, so nothing
+     answered here can change them — the way to change them is for the sender
+     to reopen the negotiation, which lifts this. */
+  const hoFact = shareHandoverFact(s.contract_id);
+  if (hoFact && hoFact.live) return res.status(409).json({
+    error: 'The agreed wording was handed over as a Word file on ' + String(hoFact.at).slice(0, 10)
+      + ' to be signed on your side. Nothing more can be answered on this link — ask the sender to reopen the negotiation if something has to change.',
+    handedOver: hoFact.at });
   const done = contractExecution(s.contract_id);
   if (done) return res.status(409).json({
     error: 'This contract has been executed and sealed'
@@ -13149,7 +13951,7 @@ function runReminders() {
       const ms = [90, 60, 30].find(m => days === m);
       const who = ownerOf(full, c.folder);
       if (ms != null && !lapsing) {
-        const vars = { n: ms, name: c.name, id: c.id, cp: c.counterparty || '', expiry };
+        const vars = { n: ms, name: c.name, id: contractRef(full.id ? full : c), cp: c.counterparty || '', expiry };
         const link = contractUrl(null, c.id);
         const mk = a => {
           const L = who && a === who.email ? (who.lang || I18N_DEFAULT) : langForEmail(a);
@@ -13174,7 +13976,7 @@ function runReminders() {
         const ddIso = isoDay(dd); const ddDays = daysTo(ddIso);
         const dms = [14, 7, 1].find(m => ddDays === m);
         if (dms != null && !decided) {
-          const dvars = { n: dms, name: c.name, id: c.id, notice, expiry, decide: ddIso };
+          const dvars = { n: dms, name: c.name, id: contractRef(full.id ? full : c), notice, expiry, decide: ddIso };
           const dlink = contractUrl(null, c.id);
           const dmk = a => {
             const L = who && a === who.email ? (who.lang || I18N_DEFAULT) : langForEmail(a);
@@ -13218,7 +14020,7 @@ function runReminders() {
         if (od === 0) {
           const prev = (full.obligations || []).find(x => x && String(x.id) === String(o.after || ''));
           const to = obligationRecipient((c.owner && c.owner.name) || '');
-          const vars = { desc: o.desc, name: c.name, id: c.id, due, step: (prev && prev.desc) || '' };
+          const vars = { desc: o.desc, name: c.name, id: contractRef(full.id ? full : c), due, step: (prev && prev.desc) || '' };
           const link = contractUrl(null, c.id);
           const held = a => {
             const L = to && a === to.email ? (to.lang || I18N_DEFAULT) : langForEmail(a);
@@ -13239,7 +14041,7 @@ function runReminders() {
           // one vars object for subject AND line — the subject carries {desc}
           // always and {days} on the escalation, and a template var only half
           // supplied prints itself literally
-          const vars = { desc: o.desc, name: c.name, id: c.id, due,
+          const vars = { desc: o.desc, name: c.name, id: contractRef(full.id ? full : c), due,
             days: -od, assignee: who.name || o.assignee };
           return {
             subject: tFor(L, `mail_ob_${key}_subject`, vars),
@@ -13259,7 +14061,7 @@ function runReminders() {
         if (od === -4 && fireTo(`${c.id}:ob:${okey}:escalate`, admins, oMail('esc'), `obligation escalated: ${c.name}`)) queued++;
       } else if (od === -1 && fire(`${c.id}:ob:${okey}:overdue`,
         `Obligation overdue: ${c.name}`,
-        `The obligation "${o.desc}" on "${c.name}" (${c.id}) was due ${due} and is now overdue${o.assignee ? ` (assigned to ${o.assignee})` : ''}.`,
+        `The obligation "${o.desc}" on "${c.name}" (${contractRef(full.id ? full : c)}) was due ${due} and is now overdue${o.assignee ? ` (assigned to ${o.assignee})` : ''}.`,
         `obligation overdue: ${c.name}`)) queued++;
     });
   }
@@ -13271,7 +14073,9 @@ app.post('/api/reminders/run', auth, admin, async (req, res) => {
   const out = runReminders();
   let signApproval = null;
   try { signApproval = await runSignApprovalReminders(); } catch (e) { signApproval = { error: (e && e.message) || String(e) }; }
-  res.json({ ...(out || {}), signApproval });
+  let handover = null;
+  try { handover = await runHandoverReminders(); } catch (e) { handover = { error: (e && e.message) || String(e) }; }
+  res.json({ ...(out || {}), signApproval, handover });
 });
 /* ---------- THE DAILY BRIEF (WO-3, WORKORDER-gap-map.md) ----------
    Once a day, per member, ONE email listing what needs THEM — and on a quiet
@@ -13652,6 +14456,19 @@ function reminderSweep() {
           'system', 'sign approval reminder failure', now());
     } catch (_) {}
   });
+  /* THE HANDOVER'S OWN REMINDERS (26 Sep 2026) ride the same timer under
+     their OWN catch and note — the M-6 lesson once more. Async, started and
+     left to finish; its dedupe rows make a second run the same day silent. */
+  Promise.resolve().then(() => runHandoverReminders()).catch(e => {
+    const msg = (e && e.message) || String(e);
+    console.warn('[handover] reminder sweep failed:', msg);
+    try {
+      db.prepare('INSERT INTO outbox (id,to_addr,subject,body,sent,provider,dev_hint,created_at) VALUES (?,?,?,?,0,?,?,?)')
+        .run('ho_' + rid(6), 'admin', 'Handover reminders did not run',
+          `HaTi could not send this cycle's reminders about contracts out with the other side for signature.\n\nReason: ${msg}`,
+          'system', 'handover reminder failure', now());
+    } catch (_) {}
+  });
   /* The daily brief rides the same timer under its OWN catch: neither sweep
      may take the other down, and its failure is recorded where an admin can
      see it — the M-6 lesson, applied on arrival rather than after the first
@@ -13785,7 +14602,7 @@ function buildMonthlyReport(month) {
     const exp = dateOnly((c.metadata && c.metadata.expiryDate) || r.expiry || null);
     if (!exp) continue;
     const d = daysTo(exp);
-    if (d >= 0 && d <= 90) expiring.push({ name: r.name, id: r.id, exp, d });
+    if (d >= 0 && d <= 90) expiring.push({ name: r.name, id: contractRef(c && c.id ? c : r), exp, d });
   }
   expiring.sort((a, b) => a.d - b.d);
   let overdueOb = 0;

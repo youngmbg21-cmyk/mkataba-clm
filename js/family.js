@@ -114,8 +114,8 @@ function linkError(child, parentId){
   if(parentId===child.id) return 'A contract cannot be its own parent.';
   const parent=getContract(parentId);
   if(!parent) return 'That parent agreement no longer exists.';
-  if(parent.parentId) return `${parent.id} is itself an amendment of ${parent.parentId}. Link to the master agreement instead — HaTi keeps families one level deep on purpose.`;
-  if(familyChildren(child.id).length) return `${child.id} already has ${familyChildren(child.id).length} amendment(s) of its own, so it is a master agreement. Move those first if it should become an amendment.`;
+  if(parent.parentId) return `${(window.contractRef?contractRef(parent):parent.id)} is itself an amendment of ${(window.contractRef?contractRef(getContract(parent.parentId)||{id:parent.parentId}):parent.parentId)}. Link to the master agreement instead — HaTi keeps families one level deep on purpose.`;
+  if(familyChildren(child.id).length) return `${(window.contractRef?contractRef(child):child.id)} already has ${familyChildren(child.id).length} amendment(s) of its own, so it is a master agreement. Move those first if it should become an amendment.`;
   return null;
 }
 /* Apply the link to a contract object (does NOT persist — callers do, so this
@@ -317,16 +317,16 @@ function familyCheck(c){
   const parent=order[0].doc;
   const rows=order.slice(1).map(e=>{
     const a=familyAgreement(parent, e.doc);
-    return { id:e.doc.id, name:e.doc.name, signed:e.signed,
+    return { id:e.doc.id, ref:(window.contractRef?contractRef(e.doc):e.doc.id), name:e.doc.name, signed:e.signed,
       moved:a.moved.map(t=>({ k:t.k, label:t.label })), comparable:a.comparable };
   });
   /* WHO GOVERNS EACH MOVED TERM: walked in order, so the last document to
      move a term is the one that holds it. An unsigned document is named but
      does not take the term -- it has not displaced anything yet. */
   const holder=new Map();
-  rows.forEach(r=>{ if(!r.signed) return; r.moved.forEach(m=>holder.set(m.k,{ label:m.label, id:r.id })); });
+  rows.forEach(r=>{ if(!r.signed) return; r.moved.forEach(m=>holder.set(m.k,{ label:m.label, id:r.id, ref:r.ref })); });
   return { order, rows,
-    moved:[...holder.entries()].map(([k,v])=>({ k, label:v.label, id:v.id })),
+    moved:[...holder.entries()].map(([k,v])=>({ k, label:v.label, id:v.id, ref:v.ref })),
     unsigned:rows.filter(r=>!r.signed).map(r=>r.id),
     comparable:rows.reduce((n,r)=>n+r.comparable,0) };
 }
@@ -442,12 +442,12 @@ function openLinkModal(c, onDone, opts={}){
         <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">${mode==='child'?i18t('fa_link_parent'):i18t('fa_link_existing')}</h3></div>
       <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3);line-height:1.55">${mode==='child'
         ? i18t('fa_link_parent_sub')
-        : `Attach an existing document to <b>${_famEsc(c.id)}</b> as an amendment. Families are one level deep: an amendment cannot itself have amendments.`}</p>
+        : `Attach an existing document to <b>${_famEsc(window.contractRef?contractRef(c):c.id)}</b> as an amendment. Families are one level deep: an amendment cannot itself have amendments.`}</p>
       ${suggested.length?`<div style="border:1px solid var(--color-divider);background:var(--st-steel-bg);border-radius:var(--radius);padding:9px 11px;margin-bottom:var(--s-3)">
         <div style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink);margin-bottom:5px">${i18t('fa_hati_suggests')}</div>
         ${suggested.map(x=>`<label style="display:flex;align-items:flex-start;gap:var(--s-2);font-size:var(--t-meta);padding:3px 0;cursor:pointer">
           <input type="radio" name="lk-sug" value="${_famAttr(x.id)}" style="margin-top:3px;accent-color:var(--color-accent)"/>
-          <span><b style="font-family:var(--font-mono)">${_famEsc(x.id)}</b> ${_famEsc(x.c.name)}
+          <span><b style="font-family:var(--font-mono)">${_famEsc(window.contractRef?contractRef(x.c):x.id)}</b> ${_famEsc(x.c.name)}
           <span style="display:block;color:var(--color-neutral-600)">${_famEsc(x.why||'')}</span></span></label>`).join('')}
       </div>`:''}
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${mode==='child'?'Parent agreement':'Document to attach'}</span>
@@ -468,9 +468,9 @@ function openLinkModal(c, onDone, opts={}){
   const results=document.getElementById('lk-results');
   const draw=(q)=>{
     const t=String(q||'').toLowerCase();
-    const list=candidates.filter(x=>!t || (x.name+' '+(x.counterparty||'')+' '+x.id).toLowerCase().includes(t)).slice(0,40);
+    const list=candidates.filter(x=>!t || (x.name+' '+(x.counterparty||'')+' '+x.id+' '+(x.contractNo||'')).toLowerCase().includes(t)).slice(0,40);
     results.innerHTML=list.length?list.map(x=>`<button type="button" data-lk-pick="${_famAttr(x.id)}" style="display:flex;width:100%;gap:var(--s-2);align-items:baseline;text-align:left;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent);background:${picked===x.id?'var(--color-accent-100)':'none'};padding:6px 9px;cursor:pointer;font:inherit;font-size:var(--t-meta)">
-        <b style="font-family:var(--font-mono);flex:none">${_famEsc(x.id)}</b>
+        <b style="font-family:var(--font-mono);flex:none">${_famEsc(window.contractRef?contractRef(x):x.id)}</b>
         <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_famEsc(x.name)}</span>
         <span style="flex:none;color:var(--color-neutral-600)">${_famEsc(x.counterparty||'')}</span></button>`).join('')
       :`<div style="padding:var(--s-2) 9px;font-size:var(--t-meta);color:var(--color-neutral-600)">${i18t('fa_no_matching')}</div>`;
@@ -482,7 +482,7 @@ function openLinkModal(c, onDone, opts={}){
   document.getElementById('lk-cancel').addEventListener('click',closeModal);
   document.getElementById('lk-standalone')?.addEventListener('click',()=>{
     logLinkDecision(c, false); persist(c); closeModal();
-    toast(`${c.id} confirmed as a standalone agreement`); if(onDone) onDone();
+    toast(`${(window.contractRef?contractRef(c):c.id)} confirmed as a standalone agreement`); if(onDone) onDone();
   });
   document.getElementById('lk-save').addEventListener('click',()=>{
     const err=document.getElementById('lk-err');
@@ -497,7 +497,7 @@ function openLinkModal(c, onDone, opts={}){
     const parent=getContract(parentId); if(parent) persist(parent);
     closeModal();
     const w=RELATION_LABEL[child.relation].toLowerCase();
-    toast(`${child.id} filed as ${_famAn(w)} ${w} of ${parentId}`);
+    toast(`${(window.contractRef?contractRef(child):child.id)} filed as ${_famAn(w)} ${w} of ${(window.contractRef&&parent?contractRef(parent):parentId)}`);
     if(onDone) onDone(); else if(typeof setView==='function') setView(state.view||'workspace');
   });
 }
@@ -515,7 +515,7 @@ function openLinkModal(c, onDone, opts={}){
 function familyPrecedenceLineHtml(c){
   let k; try{ k=familyCheck(c); }catch(_){ return ''; }
   if(!k||k.order.length<2) return '';
-  const names=k.moved.map(m=>`<b>${_famEsc(m.id)}</b> ${_famEsc(String(m.label).toLowerCase())}`);
+  const names=k.moved.map(m=>`<b>${_famEsc(m.ref||m.id)}</b> ${_famEsc(String(m.label).toLowerCase())}`);
   const rule=i18t('fa_prec_rule');
   const holds=names.length?` ${i18t('fa_prec_holds')} ${names.join(', ')}.`:` ${i18t('fa_prec_none')}`;
   return `<p class="fam-prec" style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:0 0 var(--s-2);line-height:1.55">${rule}${holds}</p>`;
@@ -532,11 +532,11 @@ function familyCheckReport(c){
   k.rows.forEach(r=>{
     const when=r.signed?'':` (${i18t('fa_check_unsigned')})`;
     out.push(r.moved.length
-      ? `${r.id}${when} — ${i18t('fa_agree_moves',{ terms:r.moved.map(m=>String(m.label).toLowerCase()).join(', ') })}`
-      : `${r.id}${when} — ${r.comparable?i18t('fa_agree_yes'):i18t('fa_agree_unknown')}`);
+      ? `${r.ref||r.id}${when} — ${i18t('fa_agree_moves',{ terms:r.moved.map(m=>String(m.label).toLowerCase()).join(', ') })}`
+      : `${r.ref||r.id}${when} — ${r.comparable?i18t('fa_agree_yes'):i18t('fa_agree_unknown')}`);
   });
   if(k.moved.length) out.push('', i18t('fa_check_inforce') + ' ' +
-    k.moved.map(m=>`${String(m.label).toLowerCase()} → ${m.id}`).join(', '));
+    k.moved.map(m=>`${String(m.label).toLowerCase()} → ${m.ref||m.id}`).join(', '));
   return out.join('\n');
 }
 function renderFamilySection(c,opts){
@@ -555,7 +555,7 @@ function renderFamilySection(c,opts){
      document above it. A parent row is not compared with itself. */
   const signed=x=>{ try{ return (window.contractSignedLabel&&contractSignedLabel(x))||''; }catch(_){ return ''; } };
   const row=(x,note,against)=>`<button type="button" data-fam-open="${_famAttr(x.id)}" style="display:flex;width:100%;gap:var(--s-2);align-items:baseline;text-align:left;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;padding:6px 0;cursor:pointer;font:inherit;font-size:var(--t-meta);color:inherit">
-      <b style="font-family:var(--font-mono);font-size:var(--t-label);color:var(--accent-ink-700);flex:none">${_famEsc(x.id)}</b>
+      <b style="font-family:var(--font-mono);font-size:var(--t-label);color:var(--accent-ink-700);flex:none">${_famEsc(window.contractRef?contractRef(x):x.id)}</b>
       <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_famEsc(x.name)}</span>
       ${signed(x)?`<span style="flex:none;font-size:var(--t-label);color:var(--color-neutral-600)">${_famEsc(signed(x))}</span>`:''}
       ${against?`<span style="flex:none;font-size:var(--t-label);color:${familyAgreement(against,x).moved.length?'var(--st-amber-fg)':'var(--color-neutral-600)'};max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${_famAttr(familyAgreeLine(against,x))}">${_famEsc(familyAgreeLine(against,x))}</span>`:''}
@@ -603,17 +603,17 @@ function renderFamilySection(c,opts){
            ("a addendum", "a annex") and Swedish en/ett by the noun's own
            gender, and the seven relations split both ways. Read as a filing
            designation — "filed as Addendum of MK-1042" — neither needs one. */
-        ? `<p style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:0 0 var(--s-2);line-height:1.55">${i18t('fa_filed_as')} <b>${_famEsc(RELATION_LABEL[c.relation]||'Amendment')}</b> of <b>${_famEsc(parent.id)}</b>${c.relationNote?` — ${_famEsc(c.relationNote)}`:''}. It does not count as a separate agreement in the KPIs, and its renewal reminder fires on the parent.</p>
+        ? `<p style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:0 0 var(--s-2);line-height:1.55">${i18t('fa_filed_as')} <b>${_famEsc(RELATION_LABEL[c.relation]||'Amendment')}</b> of <b>${_famEsc(window.contractRef?contractRef(parent):parent.id)}</b>${c.relationNote?` — ${_famEsc(c.relationNote)}`:''}. It does not count as a separate agreement in the KPIs, and its renewal reminder fires on the parent.</p>
            <div class="fam-list">${row(parent,'parent agreement')}</div>`
         : kids.length
-        ? `<p style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:0 0 var(--s-2);line-height:1.55">${i18t('fa_this_is_a')} ${i18tn('fa_master_with',kids.length,{n:kids.length})} The family counts as <b>one agreement · ${kids.length+1} documents</b>.${from?` The live expiry <b>${_famEsc(eff)}</b> comes from <b>${_famEsc(from.id)}</b>, not from this document's own date${ownExpiry(c)?` of ${_famEsc(ownExpiry(c))}`:''}.`:''}</p>
-           ${prop?`<p style="font-size:var(--t-meta);color:var(--st-amber-fg);margin:0 0 var(--s-2);line-height:1.55">${i18t('fa_proposed_term',{date:_famEsc(prop.date),id:_famEsc(prop.id)})}</p>`:''}
+        ? `<p style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:0 0 var(--s-2);line-height:1.55">${i18t('fa_this_is_a')} ${i18tn('fa_master_with',kids.length,{n:kids.length})} The family counts as <b>one agreement · ${kids.length+1} documents</b>.${from?` The live expiry <b>${_famEsc(eff)}</b> comes from <b>${_famEsc(window.contractRef?contractRef(from):from.id)}</b>, not from this document's own date${ownExpiry(c)?` of ${_famEsc(ownExpiry(c))}`:''}.`:''}</p>
+           ${prop?`<p style="font-size:var(--t-meta);color:var(--st-amber-fg);margin:0 0 var(--s-2);line-height:1.55">${i18t('fa_proposed_term',{date:_famEsc(prop.date),id:_famEsc(window.contractRef?contractRef(prop.from):prop.id)})}</p>`:''}
            <div class="fam-list">${kids.map(k=>row(k, `${RELATION_LABEL[k.relation]||'Amendment'}${ownExpiry(k)?' · term to '+ownExpiry(k):''}`, c)).join('')}</div>`
         : `<p style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:0 0 var(--s-2);line-height:1.55">${i18t('fa_standalone_desc')}</p>`}
       ${(suggested.length&&!c.parentId&&!c.linkConfirmed)?`
         <div style="margin-top:10px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:var(--radius);padding:9px 11px">
           <div style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--st-amber-fg);margin-bottom:3px">${i18t('fa_reads_like_amendment')}</div>
-          <div style="font-size:var(--t-meta);color:var(--st-amber-fg);line-height:1.5">${i18t('fa_hati_proposed',{ids:suggested.map(s=>`<b>${_famEsc(s.id)}</b>`).join(', ')})} <b>${i18t('fa_nothing_linked')}</b>${i18t('fa_confirm_or_standalone')}</div>
+          <div style="font-size:var(--t-meta);color:var(--st-amber-fg);line-height:1.5">${i18t('fa_hati_proposed',{ids:suggested.map(s=>`<b>${_famEsc(window.contractRef?contractRef(getContract(s.id)):s.id)}</b>`).join(', ')})} <b>${i18t('fa_nothing_linked')}</b>${i18t('fa_confirm_or_standalone')}</div>
           ${canEdit()?`<div style="display:flex;gap:6px;margin-top:var(--s-2)"><button id="fam-confirm" style="${btn};border-color:var(--color-accent);color:var(--accent-ink)">${i18t('fa_review_suggestion')}</button>
             <button id="fam-standalone" style="${btn}">${i18t('fa_its_standalone')}</button></div>`:''}
         </div>`:''}
@@ -638,7 +638,7 @@ function renderFamilySection(c,opts){
   });
   document.getElementById('fam-unlink')?.addEventListener('click',()=>unlinkContract(c, again));
   document.getElementById('fam-standalone')?.addEventListener('click',()=>{
-    logLinkDecision(c,false); persist(c); toast(`${c.id} confirmed as a standalone agreement`); again();
+    logLinkDecision(c,false); persist(c); toast(`${(window.contractRef?contractRef(c):c.id)} confirmed as a standalone agreement`); again();
     if(typeof updateSidebarCounts==='function') updateSidebarCounts();
   });
 }
@@ -875,7 +875,7 @@ function openCreateAmendmentModal(parent, onDone, opts){
     <div style="padding:20px 22px">
       <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:6px"><span style="color:var(--color-accent)">${icon('filenew','w-4 h-4')}</span>
         <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">${i18t('fa_create_amendment')}</h3></div>
-      <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3);line-height:1.55">${i18t('fa_create_sub',{ref:`<b>${_famEsc(parent.id)} ${_famEsc(parent.name||'')}</b>`})}</p>
+      <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3);line-height:1.55">${i18t('fa_create_sub',{ref:`<b>${_famEsc(window.contractRef?contractRef(parent):parent.id)} ${_famEsc(parent.name||'')}</b>`})}</p>
 
       <label style="display:block;margin-bottom:10px"><span style="${LBL}">${i18t('fa_kind_q')}</span>
         <select id="am-rel" style="${SEL}">${CONTRACT_RELATIONS.map(r=>
@@ -950,7 +950,7 @@ function openCreateAmendmentModal(parent, onDone, opts){
       skeleton: !!$('am-skeleton').checked });
     if(made.error){ err.textContent=made.error; return; }
     closeModal();
-    toast(i18t('fa_created',{ id:made.contract.id, pid:parent.id,
+    toast(i18t('fa_created',{ id:(window.contractRef?contractRef(made.contract):made.contract.id), pid:(window.contractRef?contractRef(parent):parent.id),
       rel:(RELATION_LABEL[made.contract.relation]||'Amendment').toLowerCase() }));
     if(typeof updateSidebarCounts==='function') updateSidebarCounts();
     if(onDone) onDone(made.contract);
@@ -961,13 +961,13 @@ function openCreateAmendmentModal(parent, onDone, opts){
 async function unlinkContract(c, onDone){
   if(!canEdit()){ toast(i18t('fa_viewers_no_change'),'err'); return; }
   if(!c.parentId) return;
-  if(!await confirmDialog({ title:`Unlink ${c.id}?`,
-    message:`It becomes a standalone agreement again. ${c.parentId}'s renewal date will go back to its own expiry.`,
+  if(!await confirmDialog({ title:`Unlink ${(window.contractRef?contractRef(c):c.id)}?`,
+    message:`It becomes a standalone agreement again. ${(window.contractRef?contractRef(getContract(c.parentId)||{id:c.parentId}):c.parentId)}'s renewal date will go back to its own expiry.`,
     confirmLabel:'Unlink', danger:true })) return;
   const was=c.parentId;
   clearParentLink(c); persist(c);
   const p=getContract(was); if(p) persist(p);
-  toast(`${c.id} unlinked`);
+  toast(`${(window.contractRef?contractRef(c):c.id)} unlinked`);
   if(onDone) onDone(); else if(typeof setView==='function') setView(state.view||'workspace');
 }
 

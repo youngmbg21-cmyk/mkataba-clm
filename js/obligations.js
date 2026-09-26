@@ -2113,7 +2113,7 @@ function renderObligationsList(){
         <span class="obw-txt">
           <span class="obw-what${o.band === 'waiting' ? ' is-wait' : ''}"
             title="${_obEsc(o.desc || '')}">${_obEsc(o.desc || '')}</span>
-          <span class="obw-meta">${_obEsc(o.cname || o.cid)} &middot; ${_obEsc(o.cid)}${
+          <span class="obw-meta">${_obEsc(o.cname || (window.contractRef && o._c ? contractRef(o._c) : o.cid))} &middot; ${_obEsc(window.contractRef && o._c ? contractRef(o._c) : o.cid)}${
             step ? ' &middot; ' + _obEsc(i18t('ob_step_n', { n: step.n, of: step.of })) : ''}${
             o.band === 'waiting' && step ? ' &middot; ' + _obEsc(i18t('ob_waiting_on', { n: step.n - 1 })) : ''}</span>
         </span></span></td>

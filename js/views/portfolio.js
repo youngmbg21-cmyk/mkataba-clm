@@ -725,7 +725,7 @@ const pfStartSource = c => ((c.metadata&&c.metadata.effectiveDate)||(c.fields&&c
    are not allowed. `money.visible` and `measure` on the panel say which of the
    two the numbers are, so nobody reads a headcount as shillings. */
 const pfWho = (c, extra) => Object.assign(
-  { id:c.id, name:c.name||c.id, counterparty:c.counterparty||'' }, extra||{});
+  { id:c.id, ...(c.contractNo?{contractNo:c.contractNo}:{}), name:c.name||(window.contractRef?contractRef(c):c.id), counterparty:c.counterparty||'' }, extra||{});
 /* The two cross-filters, said out loud: a panel narrowed to one category is
    answering a narrower question than the reader may remember asking. */
 function pfScopeOf(){

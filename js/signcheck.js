@@ -506,7 +506,7 @@ const SIGN_STAGE_OF = {
   'standards-read': 'read', standard: 'read', obligations: 'read',
   record: 'read', risk: 'read',
   approval: 'people', signapproval: 'people', turn: 'people', signers: 'people', spots: 'people',
-  cap: 'people', folder: 'people',
+  cap: 'people', folder: 'people', 'ho-signatory': 'people', 'ho-blanks': 'paper',
   brief: 'sign', 'brief-read': 'sign',
 };
 const signStageOf = kind => SIGN_STAGE_OF[String(kind || '')] || 'paper';
@@ -629,6 +629,17 @@ function signReadiness(c, opts){
      the signer nothing to point at. */
   (_scCall('signApprovalSettledRows', c) || []).forEach(r => rows.push({
     kind: 'signapproval', key: r.rowKey, sa: r, stage: signStageOf('signapproval'), holds: false, settled: true }));
+  /* ---- WHO SIGNS FOR US, ON THE OUTSIDE ROUTE (26 Sep 2026, decision 5) ----
+     Asked, and it may be skipped: HOLDS NOTHING, because stopping a handover
+     over an internal fact would be the wrong trade — but it is a row, so the
+     cost of skipping is said where the reader is looking. Settled once a row
+     of ours is on the signing order. Before the handover only; after it the
+     waiting card says who signs. */
+  if (_scCall('signRouteOf', c) === 'outside' && !_scCall('handoverActive', c)) {
+    const who = _scCall('outsideSignatory', c) || null;
+    rows.push({ kind: 'ho-signatory', key: 'ho-signatory', who, stage: signStageOf('ho-signatory'),
+      holds: false, settled: !!who });
+  }
   /* THE LIGHT LIST: a register row carries no wording (HEAVY strips an
      upload's text), so the two rows that hash the wording — "the review is
      about earlier wording", "the wording moved since the obligations were

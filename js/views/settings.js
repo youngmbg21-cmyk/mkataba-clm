@@ -613,7 +613,10 @@ function stSearchHits(q){
   if(!words.length) return [];
   return stPanelKeys(null).filter(k=>{
     const p=SET_PANELS[k];
-    let hay=[p.title(), p.sub?p.sub():'', i18t('st_tab_'+p.tab), i18t('st_grp_'+stGroupKeyOf(k))].join(' ');
+    /* `find`: the words of a setting that shares another's drawer, so the box
+       finds it by what it says (the signing route inside the signing check). */
+    let hay=[p.title(), p.sub?p.sub():'', i18t('st_tab_'+p.tab), i18t('st_grp_'+stGroupKeyOf(k)),
+      p.find?[].concat(p.find()).join(' '):''].join(' ');
     const st=stStateOf(k);
     if(st && st.text) hay+=' '+String(st.text).replace(/<[^>]*>/g,' ');
     hay=hay.toLowerCase();
@@ -2373,8 +2376,21 @@ const SET_PANELS={
     sub:()=>i18t('sc_set_sub'),
     state(){ const g=(window.signCheckGate?signCheckGate():'off');
       return { dot:g==='off'?'off':'ok', text:`${i18t('sc_set_title')} — ${i18t('sc_set_'+g)}` }; },
-    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('sc_set_sub')}</p><div id="sc-gate-panel"></div>`; },
-    wire(){ renderSignCheckGatePanel(); },
+    /* ---- AND WHO RUNS THE SIGNING ON AN UPLOAD (26 Sep 2026, decision 3) ----
+       The answer ticked by default when somebody uploads the other side's
+       contract: we sign it in HaTi, or they sign it their way and we file the
+       signed copy. Two answers, and the factory one is what every upload did
+       before the question existed, so nothing moves on the day of the deploy.
+       IN THIS DRAWER, NOT A ROW OF ITS OWN: it is the same kind of rule — how a
+       contract gets to signed — and a row of its own made this group five long,
+       where the page's own rule is that no group is a wall (settings-groups 1c).
+       `find` puts its words in the search, so it is found by what it says. */
+    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('sc_set_sub')}</p><div id="sc-gate-panel"></div>`
+      + `<div class="ho-set-route" style="margin-top:18px;padding-top:14px;border-top:1px solid var(--color-divider)">`
+      + `<div style="font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text);margin-bottom:4px">${i18t('ho_set_title')}</div>`
+      + `<p class="st-note" style="margin-bottom:10px">${i18t('ho_set_sub')}</p><div id="ho-route-panel"></div></div>`; },
+    find:()=>[i18t('ho_set_title'), i18t('ho_set_sub')],
+    wire(){ renderSignCheckGatePanel(); renderSignRouteDefaultPanel(); },
   },
 
   desk:{
@@ -4725,6 +4741,28 @@ function renderSignCheckGatePanel(){
     if(window.saveSettings) saveSettings();
     toast(i18t('sc_set_saved'));
     renderSignCheckGatePanel();
+  }));
+}
+/* The default answer to the upload's "who runs the signing?" — two radios,
+   written on change. A non-admin is shown the state and cannot move it. */
+function renderSignRouteDefaultPanel(){
+  const host=document.getElementById('ho-route-panel'); if(!host) return;
+  const admin=isAdmin();
+  const now=(state.settings&&state.settings.signRouteDefault)==='outside'?'outside':'inside';
+  const row=k=>`<label style="display:flex;gap:9px;align-items:flex-start;font-size:var(--t-meta);line-height:1.5;margin-bottom:9px;cursor:${admin?'pointer':'not-allowed'}">
+    <input type="radio" name="ho-route" value="${k}"${now===k?' checked':''}${admin?'':' disabled'} style="margin-top:2px"/>
+    <span><span style="font-weight:var(--w-strong);color:var(--color-text)">${i18t(k==='outside'?'ho_route_out':'ho_route_in')}</span>
+    <span style="display:block;color:var(--color-neutral-600);line-height:1.5;margin-top:2px">${i18t(k==='outside'?'ho_route_out_d':'ho_set_in_d')}</span></span>
+  </label>`;
+  host.innerHTML=['inside','outside'].map(row).join('');
+  if(!admin) return;
+  host.querySelectorAll('input[name="ho-route"]').forEach(r=>r.addEventListener('change',()=>{
+    if(!r.checked) return;
+    state.settings=state.settings||{};
+    state.settings.signRouteDefault=r.value==='outside'?'outside':'inside';
+    if(window.saveSettings) saveSettings();
+    toast(i18t('ho_set_saved'),'ok');
+    renderSignRouteDefaultPanel();
   }));
 }
 function renderDeskRulePanel(){

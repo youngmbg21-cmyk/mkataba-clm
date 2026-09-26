@@ -1012,7 +1012,7 @@ function mRender(){
       <button class="m-head-btn" data-m-act="leave-redline" aria-label="${i18t('m_back_to_contract')}" style="color:var(--accent-ink-700)">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
       </button>
-      <span class="m-backbar-name">${mEsc(c ? (c.name||c.id) : 'Negotiation')}</span>
+      <span class="m-backbar-name">${mEsc(c ? (c.name||(window.contractRef?contractRef(c):c.id)) : 'Negotiation')}</span>
       <button class="m-head-btn" data-m-act="copilot-open" aria-label="${i18t('m_open_copilot')}" style="color:var(--accent-ink-700);position:relative">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l1.6 4.6 4.6 1.6-4.6 1.6L12 15l-1.6-4.7L5.8 8.7l4.6-1.6L12 2.5z"/></svg>
         <span data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:6px;right:6px;width:10px;height:10px;border-radius:50%;background:var(--st-amber-dot)"></span>

@@ -172,7 +172,13 @@ test('F347 — the second five images', async t => {
     assert.match(TRI, /contractOpenFieldNames\(c\)/);
     assert.match(TRI, /\(fillNone === 'form' && openNames\.length\)\s*\n?\s*\? openNames\.slice\(0, 3\)/,
       'the first few, by name');
-    assert.match(TRI, /i18tn\('tri_fill_left', fl\.left/, 'and the filled branch keeps its own tail');
+    /* RE-POINTED IN PLACE 26 Sep 2026: the tail's count is still the note's
+       own `fl.left`, now carried in `left` so the one reading of who fills
+       an upload's blanks can correct it after the signing route moves (see
+       uploadBlanksTheirs). The claim — the filled branch keeps its tail — is
+       unchanged; the spelling it was pinned by is what moved. */
+    assert.match(TRI, /let left = fl\.left \|\| 0;/, 'the tail starts from the note\'s own count');
+    assert.match(TRI, /i18tn\('tri_fill_left', left, \{ n: left \}\)/, 'and the filled branch keeps its own tail');
   });
 
   /* ═══════ 4. WHAT COPILOT READ ═══════ */
