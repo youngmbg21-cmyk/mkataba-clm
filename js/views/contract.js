@@ -11025,8 +11025,11 @@ function docReadSig(c){
    re-read document draw NOTHING rather than shunt every note one clause along.
    Silence is the only safe failure here — a note beside the wrong clause is
    worse than no note at all. */
-function docReadAnchors(c, items){
-  const list=docReadSheet(c);
+function docReadAnchors(c, items, sheet){
+  /* `sheet` is the walk the CALLER already made (docReadPaint makes one per
+     paint and hands it to everything that needs it). Absent, the walk is made
+     here, which is what every other caller has always had. */
+  const list=Array.isArray(sheet)?sheet:docReadSheet(c);
   const out=[];
   (items||[]).forEach(it=>{
     const i=Number(it&&it.i);
@@ -11411,7 +11414,14 @@ function docReadPaint(c){
     if(face) layer.style.setProperty('--dr-face',face);
     else layer.style.removeProperty('--dr-face');
   }catch(_){}
-  const pairs=docReadAnchors(c, docReadItems(c));
+  /* ---- ONE WALK OF THE SHEET PER PAINT (26 Sep 2026) ----
+     The pairing, the "moved" count, the clauses still to come and the mirror
+     all ask the same question — what clauses are painted on this paper — and
+     each used to walk the whole canvas for itself: three walks of a 300-clause
+     contract every second and a half while a reading was running. Walked once
+     here and handed to all four, so they also cannot disagree. */
+  const sheet=docReadSheet(c)||[];
+  const pairs=docReadAnchors(c, docReadItems(c), sheet);
   /* ONCE PER PAINT, never per entry: `rlPbFindClause` walks every clause for
      every quote, so asking it inside the map would be O(clauses x findings) on
      every repaint of a 200-clause contract. */
@@ -11431,7 +11441,7 @@ function docReadPaint(c){
      READING of them — four checks that count the readings on a page found the
      mirrors among them the moment the two shared a class. Anything asking
      "how many clauses came back" must never have to know about this. */
-  const front=docReadFront(c,pairs);
+  const front=docReadFront(c,sheet);
   /* HOW MANY CLAUSES THIS EDITION CAN NO LONGER SPEAK FOR. Zero where the
      wording has not moved — the signature is over exactly what was sent — so
      an unchanged contract draws nothing and the caption is what it always was.
@@ -11448,7 +11458,6 @@ function docReadPaint(c){
   try{
     const sig=running?'':docReadSig(c);
     if(sig&&c._readSig&&c._readSig!==sig){
-      const sheet=docReadSheet(c)||[];
       moved=Math.max(0,sheet.filter(x=>x&&x.kind!=='front').length-pairs.length);
       if(!moved) moved=1;
     }
@@ -11462,7 +11471,7 @@ function docReadPaint(c){
   const waits=[];
   if(running){
     const got=new Set(docReadItems(c).map(it=>Number(it&&it.i)));
-    try{ (docReadSheet(c)||[]).forEach((row,k)=>{ if(row&&row.el&&!got.has(k)) waits.push({k,row}); }); }catch(_){ }
+    try{ sheet.forEach((row,k)=>{ if(row&&row.el&&!got.has(k)) waits.push({k,row}); }); }catch(_){ }
   }
   /* ---- THE SWITCH'S TWO FACTS, READ ONCE PER PAINT ----
      How many of the clauses on screen carry a promise, and whether the reader
@@ -11708,6 +11717,33 @@ function docReadPaint(c){
      would walk the mirror off the bottom of the page it is mirroring. The
      floor still holds within the mirror, so they can never overlap. */
   front.forEach((f,i)=>place(f.el, inner.querySelector(`[data-doc-read-front="${i}"]`), 0));
+  /* ---- AND THE COPY NEVER RUNS UNDER THE FIRST CLAUSE (26 Sep 2026) ----
+     This column is narrower than the paper, so a recital or a contents page
+     wraps onto more lines here than it does there, and the floor is reset
+     below so the first reading keeps its own clause's line (the 15 Sep
+     ruling). Together those drew the tail of a long preamble UNDER the first
+     entry. Where the copy would reach the first clause it is cut at a whole
+     line above it and fades out — the mirror is context, and its unabridged
+     original is the column immediately to the left — so nothing in this column
+     is ever drawn on top of anything else. */
+  const firstRow=sheet.find(r=>r&&r.el);
+  if(front.length&&firstRow){
+    const limit=Math.round(firstRow.el.getBoundingClientRect().top - base) - 4;
+    front.forEach((f,i)=>{
+      const el=inner.querySelector(`[data-doc-read-front="${i}"]`);
+      if(!el) return;
+      const top=parseFloat(el.style.top)||0;
+      if(top+el.offsetHeight<=limit) return;
+      let lh=0;
+      try{ lh=parseFloat(getComputedStyle(el).lineHeight)||0; }catch(_){ lh=0; }
+      const room=limit-top;
+      const keep=lh>0?Math.floor(room/lh)*lh:room;
+      if(keep<=0||(lh>0&&keep<lh)){ el.style.display='none'; return; }
+      el.style.maxHeight=keep+'px';
+      el.style.overflow='hidden';
+      el.classList.add('is-cut');
+    });
+  }
   /* AND THE MIRROR NEVER PUSHES A READING DOWN. The floor is reset before the
      entries are placed, because "level with its own clause, to the pixel" is
      the promise this column exists to keep and the mirror is only context: a
@@ -11850,10 +11886,11 @@ function docReadShape(el){
    number apiece, so nothing a computed style could carry reaches the markup
    unchecked.
 
-   AND ONLY WHERE THERE IS A BOUNDARY TO MIRROR UP TO. With no paired clause at
-   all there is no "until the clauses begin", and mirroring would silently
-   draw a second copy of the whole contract; the partial foot is what that case
-   already has to say for itself. */
+   AND ONLY WHERE THERE IS A BOUNDARY TO MIRROR UP TO. A paper with no clause
+   on it has no "until the clauses begin", and mirroring would silently draw a
+   second copy of the whole contract. The boundary is the FIRST CLAUSE ON THE
+   PAPER — see the note over docReadFront for why it is not the first clause
+   that has been read. */
 const DOC_READ_FRONT_MAX=200;
 const DOC_READ_ALIGN=new Set(['center','right']);
 const DOC_READ_CASE=new Set(['uppercase','lowercase','capitalize','small-caps']);
@@ -11919,10 +11956,28 @@ function docReadMirrorToc(el,text){
   if(!head) return null;
   return {head,n};
 }
-function docReadFront(c,pairs){
+/* ---- THE BOUNDARY IS THE FIRST CLAUSE ON THE PAPER, NEVER THE FIRST ONE
+   THAT HAPPENS TO HAVE COME BACK (Young reported it 26 Sep 2026: "when the
+   translation to plain English comes up, the words reading still display
+   beneath the translation so they are on top of each other") ----
+   `rows` is the sheet (docReadSheet): the clauses in paper order. The
+   boundary used to be the first PAIRED clause, which is the same place once an
+   edition is whole — and a different one while a long contract is being read
+   in pieces. Three pages are read at once, so page 2 can land before page 1;
+   the first pair was then clause 61, and every block above it — the WORDING of
+   clauses 1 to 60 — was copied into this column as "front matter", with a
+   "Reading…" drawn on top of each one. MEASURED on a 130-clause contract with
+   its first page held back: 104 lines drawn over each other.
+   The front matter is exactly what the sheet does NOT hold, so it ends where
+   the sheet's first row begins, whatever has or has not been read. A clause is
+   never mirrored: it gets its reading, its "Reading…", or nothing. Any array
+   of rows carrying `.el` in paper order is accepted, so a caller holding the
+   pairs still gets an honest boundary for that list. */
+function docReadFront(c,rows){
   const canvas=document.getElementById('doc-canvas');
-  if(!canvas||!pairs||!pairs.length) return [];
-  const stop=pairs[0].el;
+  const first=Array.isArray(rows)?rows.find(r=>r&&r.el):null;
+  if(!canvas||!first) return [];
+  const stop=first.el;
   let els=[];
   try{
     /* ---- AND THE PAPER'S HEAD IS MIRRORED, THOUGH IT IS FURNITURE TO THE

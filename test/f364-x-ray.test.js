@@ -353,7 +353,10 @@ describe('f364 (9) Format A', () => {
   });
   test('[wall] docReadAnchors still walks (items||[]) — silence is the safe failure', () => {
     const a = region('docReadAnchors');
-    assert.ok(/function docReadAnchors\(c,\s*items\)/.test(a), 'items is its second parameter');
+    /* RE-POINTED 26 Sep 2026: a THIRD, optional parameter carries the sheet
+       the painter already walked (one walk per paint); the claim is unchanged —
+       items is still the second parameter. */
+    assert.ok(/function docReadAnchors\(c,\s*items(?:,\s*sheet)?\)/.test(a), 'items is its second parameter');
     assert.ok(/\(items\|\|\[\]\)\.forEach/.test(a),
       'a caller that forgets gets an empty pairing rather than a wrong one — which is ' +
       'exactly why this fault was silent for as long as it was');

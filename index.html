@@ -3425,6 +3425,13 @@
      the float so the row's height is its own, and the tail sits at the wall. */
   .doc-read-mirror > p.hati-toc{ overflow:hidden; }
   .doc-read-mirror .hati-toc-n{ float:right; padding-left:1.2em; }
+  /* A COPY CUT SHORT ABOVE THE FIRST CLAUSE FADES OUT (26 Sep 2026) rather
+     than stopping on a hard edge that reads like the end of the paragraph.
+     docReadPaint sets the height on a whole line; this only says there is
+     more, and the whole of it is the paper twelve pixels to the left. */
+  .doc-read-mirror.is-cut{
+    -webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 1.6em),transparent);
+    mask-image:linear-gradient(to bottom,#000 calc(100% - 1.6em),transparent); }
   /* The clause's own number, and it is the PAPER'S — read off the sheet, never
      asked of the model — which is what lets it be printed as a citation. */
   .doc-read-note .dr-n{ color:var(--accent-ink); font-variant-numeric:tabular-nums; }
