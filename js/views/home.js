@@ -1115,9 +1115,9 @@ function triageRowHtml(it){
       ${head}
       <div class="hm-tri-tiles">${tiles}</div>
       <div class="hm-tri-acts">
-        <button type="button" class="hm-tri-b is-p" data-tri-act="redline:${esc(it.cid)}">${esc(i18t('tri_a_redline'))}</button>
-        <button type="button" class="hm-tri-b" data-tri-act="brief:${esc(it.cid)}">${esc(i18t('tri_a_brief'))}</button>
-        <button type="button" class="hm-tri-b is-plain" data-tri-act="decline:${esc(it.cid)}">${esc(i18t('tri_a_decline'))}</button>
+        <button type="button" class="${hmRowBtnCls('is-p')}" data-tri-act="redline:${esc(it.cid)}">${esc(i18t('tri_a_redline'))}</button>
+        <button type="button" class="${hmRowBtnCls('')}" data-tri-act="brief:${esc(it.cid)}">${esc(i18t('tri_a_brief'))}</button>
+        <button type="button" class="${hmRowBtnCls('is-plain')}" data-tri-act="decline:${esc(it.cid)}">${esc(i18t('tri_a_decline'))}</button>
       </div>
     </div>`;
 }
@@ -1145,13 +1145,33 @@ const fmtDDay=iso=>{ const t=Date.parse((iso||'')+'T00:00:00'); return isNaN(t)?
 
    IT BORROWS THE ACT ROW triage's card already had rather than declaring a
    second one that agrees today: one rule, two wearers, named in index.html. */
+/* ---- ONE SIZE FOR A ROW'S BUTTONS ON HOME (Young, 26 Sep 2026: "the buttons
+   should be the same size and likely the size of the needs your decision
+   card") ----
+   MEASURED: Needs your decision's verb is the ladder's row rung — 22px, 12px,
+   medium, 8px of padding. Prepared for you's were .hm-tri-b, a hand-sized
+   family the Compact ladder missed: 28px, 13px, weight 600, 12px of padding,
+   and the lead act FILLED on every row, which is the ladder's own rule broken
+   (one filled button per area; a repeated row's main act takes the accent's
+   ink). Two rows of one family, a card apart, in two sizes.
+   THE LADDER'S OWN CLASSES, NOT A FOURTH COPY OF ITS BOX: the row rung for
+   every verb, the accent's ink for the lead act and the ladder's text button
+   for Put away, which is its "Dismiss". .hm-tri-b and the is-p / is-plain marks
+   stay on the element as hooks and carry no box of their own (index.html).
+   ONE READING FOR BOTH ROWS THAT DRAW THEM — the desk's and the dormant
+   triage row's — so the one that has no caller today cannot come back in the
+   old size. */
+function hmRowBtnCls(cls){
+  const base=cls==='is-plain'?'ui-link':'ui-btn ui-btn-sm'+(cls==='is-p'?' ui-btn-accent':'');
+  return base+' hm-tri-b'+(cls?' '+cls:'');
+}
 function deskRowHtml(it){
   const NOCP=i18t('home_no_counterparty');
   const who=esc(it.who||NOCP);
   /* THE KIND AND THE OBLIGATION TRAVEL ON THE BUTTON. The key is the desk's
      own dismissal token and its shape belongs to deskKeyOf; a handler that
      split it back apart would be a second reading of that shape. */
-  const B=(act,label,cls)=>`<button type="button" class="hm-tri-b${cls?' '+cls:''}"
+  const B=(act,label,cls)=>`<button type="button" class="${hmRowBtnCls(cls)}"
       data-desk-act="${esc(act)}" data-desk-cid="${esc(it.cid)}" data-desk-key="${esc(it.key)}"
       data-desk-kind="${esc(it.kind)}"${it.ob?` data-desk-ob="${esc(it.ob.id)}"`:''}
       >${esc(label)}</button>`;

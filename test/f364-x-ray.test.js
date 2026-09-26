@@ -506,7 +506,13 @@ describe('f364 (9) Format A', () => {
     const m = INDEX.match(/\.doc-read-seg button \+ button\{([^}]+)\}/);
     assert.ok(m, 'the rule exists');
     assert.ok(/border-left:1px solid/.test(m[1]), 'a 1px left edge on each button after the first');
-    assert.ok(/var\(--accent-ink\)/.test(m[1]), 'reading the frame’s own token');
+    /* RE-POINTED IN PLACE, 26 Sep 2026: the claim is that the seam reads the
+       FRAME's own token, and the frame moved from --accent-ink to the one light
+       grey button edge (the button work order's third item). Asked as the
+       relation now, so it cannot pin a colour the owner has since changed. */
+    const frame = (INDEX.match(/\.doc-read-seg\{[^}]*border:1px solid var\((--[a-z0-9-]+)\)/) || [])[1];
+    assert.ok(frame, 'the frame draws its edge from a token');
+    assert.ok(new RegExp('var\\(' + frame + '\\)').test(m[1]), 'reading the frame’s own token');
     assert.ok(!/#[0-9a-f]{3,8}\b/i.test(m[1]), 'and naming no colour of its own');
   });
   test('it is between EVERY pair, not only the unlit ones', () => {

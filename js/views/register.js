@@ -2428,7 +2428,15 @@ function renderRegister(opts){
          hosts a pop-up is a fact about the row builder and belongs there — a
          selector that has to guess will guess wrong the day a second pop-up is
          added. */
-      .reg-table td.reg-cell-menu{overflow:visible;text-overflow:clip}
+      .reg-table td.reg-cell-menu{overflow:visible;text-overflow:clip;padding:0 2px}
+      ${''/* ---- AND IT TAKES LESS SIDE PADDING THAN A TEXT CELL (26 Sep 2026, the
+             button work order's first item) ----
+             Its column is 3% of the table, which is 28px at a 1024 window, and
+             the ordinary cell padding round a 22px square came to 35 — the
+             square was cut. A cell that holds one icon button has no words to
+             keep off its neighbour, so 2px a side is enough and the square fits
+             at every width the page draws at. The column keeps its percentage,
+             so the widths still sum to 100 and the table never scrolls sideways. */}
       .reg-table td > span{vertical-align:middle}
       /* The stage, as a dot and a word. The dot is the shape a scanned column
          needs; the word is what stops the colour being the only carrier. BOTH

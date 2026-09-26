@@ -437,7 +437,7 @@ function portfolioFrameHtml(){
   const nudge = uncounted.length ? `
     <div style="display:flex;gap:11px;align-items:flex-start;flex-wrap:wrap;margin-bottom:10px;padding:10px 13px;border-radius:var(--radius);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);color:var(--st-amber-fg);font-size:var(--t-meta);line-height:1.55">
       <span style="flex:1;min-width:220px"><b>${i18t('pf_uncounted_head',{n:uncounted.length})}</b> ${i18t('pf_uncounted_body')}</span>
-      ${(typeof canEdit!=='function'||canEdit())?`<button data-pf-fixcats style="flex:none;display:inline-flex;align-items:center;min-height:var(--ctl-h-sm);border:1px solid currentColor;background:none;color:inherit;border-radius:var(--radius);padding:0 var(--pad-ctl-x-sm);font:inherit;font-family:var(--font-heading);font-size:var(--t-meta);font-weight:var(--w-label);cursor:pointer">${i18t('pf_uncounted_fix')}</button>`:''}
+      ${(typeof canEdit!=='function'||canEdit())?`<button data-pf-fixcats style="flex:none;display:inline-flex;align-items:center;min-height:var(--ctl-h-sm);border:1px solid var(--btn-edge);background:none;color:inherit;border-radius:var(--radius);padding:0 var(--pad-ctl-x-sm);font:inherit;font-family:var(--font-heading);font-size:var(--t-meta);font-weight:var(--w-label);cursor:pointer">${i18t('pf_uncounted_fix')}</button>`:''}
     </div>` : '';
 
   return `<style>
