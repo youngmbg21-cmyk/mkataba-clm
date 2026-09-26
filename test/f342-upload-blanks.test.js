@@ -27,6 +27,10 @@
    58 claims, 56 of them red against the commit before this work. The two that
    pass are named CONTROLS: a rule that was already there and has to survive.
 
+   SECTIONS (7) AND (8), 26 Sep 2026 — a file they sign: 14 claims, 11 of them
+   red against the commit before that work (f4d1604). 7g and 8d are CONTROLS
+   and 7h is a WALL: all three hold on both sides.
+
    Run: node --test test/f342-upload-blanks.test.js */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
@@ -481,5 +485,150 @@ describe('f342 (6) bounds, and the file itself', () => {
     assert.ok(m, 'no filled state');
     assert.ok(/--st-amber/.test(m[1]), 'unanswered is amber');
     assert.ok(!/--st-green|--st-ruby/.test(m[1] + m[2]), 'green and red are the redline\'s');
+  });
+});
+
+/* ═══════ 7. A FILE THEY SIGN (Young, 26 Sep 2026) ═══════
+   *"if the contract is being signed out of hati and the contract is simply
+   being used to negotiate the clauses, these fields are irrelevant I would
+   presume."* On that route what they receive is the agreed WORDING as a Word
+   file, and an answer typed here is a working note that is never written into
+   it — so the panel, the marks, the count and the arrival read stand down
+   together, through the one gate, and nothing typed is thrown away.
+
+   Every claim that an empty reading would satisfy is GATED on the same
+   contract answering on HaTi's own route first (`gate`), or a stage that read
+   nothing at all would pass them. Two are named CONTROLS and one is a WALL:
+   they hold on both sides of this change. */
+const THEIRS = { signRoute: 'outside' };
+describe('f342 (7) a file they sign — the blanks are theirs to fill', () => {
+  test('7a ONE READING: uploadBlanksTheirs is true only for an upload they sign', () => {
+    haveFile();
+    const { win, c } = stage(THEIRS);
+    assert.equal(typeof win.uploadBlanksTheirs, 'function', 'uploadBlanksTheirs is not published');
+    assert.equal(win.uploadBlanksTheirs(c), true, 'an upload on their signing route');
+    assert.equal(win.uploadBlanksTheirs(stage().c), false, 'an upload HaTi signs');
+    /* OUR OWN PAPER IS NOT THEIRS: a drafted contract's blanks are written
+       into the words that are handed over, so they still matter on this route. */
+    assert.equal(win.uploadBlanksTheirs(Object.assign({}, c, { source: 'template' })), false,
+      'a drafted contract on their route keeps its blanks');
+  });
+  test('7b the gate stands down, so every reader of it does', () => {
+    const { win: w0, c: c0 } = stage();
+    gate(w0, c0, 'the same upload must be read on HaTi\'s own route');
+    const { win, c } = stage(THEIRS);
+    assert.equal(win.uploadBlanksLive(c), false, 'uploadBlanksLive');
+    assert.equal(win.contractHasBlanks(c), false, 'contractHasBlanks');
+    assert.equal(win.contractBlanks(c).length, 0, 'contractBlanks — the panel\'s list');
+    assert.equal(win.contractBlanksOpen(c).length, 0, 'contractBlanksOpen — the count and the arrival fill');
+    assert.equal(win.uploadBlanksRead(c).length, 0, 'uploadBlanksRead');
+    assert.equal(win.uploadBlankSeq(c).length, 0, 'uploadBlankSeq — what the marks are painted from');
+    assert.equal(win.uploadBlanksOver(c), 0, 'uploadBlanksOver');
+  });
+  test('7c the gate asks the one reading, and after the counterparty\'s wall', () => {
+    const ub = fnBody(UB_CODE, 'uploadBlanksLive');
+    assert.ok(ub, 'uploadBlanksLive not found');
+    assert.ok(/if\(uploadBlanksTheirs\(c\)\) return false;/.test(ub), 'uploadBlanksLive must ask uploadBlanksTheirs');
+    const th = fnBody(UB_CODE, 'uploadBlanksTheirs');
+    assert.ok(th, 'uploadBlanksTheirs not found');
+    assert.ok(/signRouteOf\(c\) === 'outside'/.test(th), 'the route is js/outside.js\'s own reading');
+    assert.ok(/c\.signRoute === 'outside'/.test(th), 'with the literal as the fallback where that file is absent');
+  });
+  test('7d and on a stage without js/outside.js the literal still answers', () => {
+    const { win, c } = stage(THEIRS);
+    win.signRouteOf = undefined;
+    assert.equal(win.uploadBlanksTheirs(c), true);
+    assert.equal(win.uploadBlanksLive(c), false);
+  });
+  test('7e THE REASON IS "theirs", never "upload" — whose sentence says HaTi cannot read them', () => {
+    const { win, c } = stage(THEIRS);
+    assert.equal(win.contractBlanksNone(c), 'theirs');
+    assert.ok(Array.from(win.BLANK_NONE_REASONS).includes('theirs'), 'the list of reasons names it');
+  });
+  test('7f A READING, NEVER A DELETE: switched back, the blanks return with their answers', () => {
+    const { win, c } = stage(THEIRS);
+    c.fields.up_insert_company_name = 'Kijani Foods Ltd';
+    assert.equal(win.contractBlanks(c).length, 0, 'STAGE: their route must hide the blanks');
+    assert.equal(c.fields.up_insert_company_name, 'Kijani Foods Ltd', 'the answer is still on the record');
+    delete c.signRoute;
+    const bs = gate(win, c, 'switched back to HaTi\'s own signing');
+    assert.ok(bs.some(b => b.key === 'up_insert_company_name'), 'the named blank is back');
+    assert.ok(!win.contractBlanksOpen(c).some(b => b.key === 'up_insert_company_name'),
+      'and it is counted as answered, because the answer was kept');
+  });
+  test('7g CONTROL — an upload HaTi signs is exactly what it was', () => {
+    const { win, c } = stage();
+    assert.equal(win.uploadBlanksLive(c), true);
+    assert.equal(win.contractBlanksNone(c), null, 'there IS something to fill');
+    assert.ok(win.contractBlanks(c).length >= 3);
+  });
+  test('7h WALL — the handover still refuses a placeholder written into the words', () => {
+    /* The form beside the wording stands down; the wording itself does not.
+       "[Insert Company Name]" handed over is "[Insert Company Name]" agreed. */
+    const { win } = stage(THEIRS);
+    const found = win.outsideBlanksIn('This Agreement is made between [Insert Company Name] and the Supplier.');
+    assert.equal(Array.from(found).join('|'), '[Insert Company Name]');
+  });
+  test('7i both new sentences are in BOTH books', () => {
+    for(const k of ['tri_t_fill_theirs', 'tri_fill_theirs'])
+      assert.equal((I18N.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k + ' is not in both books');
+  });
+});
+
+/* THE ARRIVAL TILE says the same thing the panel's absence says, and asks the
+   route LIVE both ways: the route can move after the arrival reading ran. */
+function tileStage(over, fill){
+  const { win } = buildWorld({ blanks: true, templates: true, triage: true });
+  const c = Object.assign({
+    id: 'MK-701', name: 'Supply Agreement', status: 'Under Review', source: 'upload',
+    format: 'rich', redlineText: WORDING, fields: {}, audit: [], metadata: {},
+    upload: { fileName: 'supply.docx', mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
+    triage: { at: '2026-09-26T09:00:00.000Z', steps: { fill } },
+  }, over || {});
+  win.state = win.state || { contracts: [], settings: {} };
+  win.state.contracts = [c];
+  const tile = () => win.triageTiles(c).find(x => x.key === 'fill');
+  return { win, c, tile };
+}
+describe('f342 (8) the arrival tile on a file they sign', () => {
+  test('8a a note written on their route reads as theirs: its own head, its own sentence, no tick', () => {
+    const { win, tile } = tileStage(THEIRS, { ok: true, filled: [], left: 0, none: 'theirs' });
+    const t = tile();
+    assert.ok(t, 'no fill tile');
+    assert.equal(t.headKey, 'tri_t_fill_theirs', 'the head says whose they are');
+    assert.equal(t.none, 'theirs', 'a steel tile, never the tick');
+    assert.equal(t.detail, win.i18t('tri_fill_theirs'));
+  });
+  test('8b an older note that counted blanks reads as theirs once the route has moved to them', () => {
+    const { win: w0, tile: t0 } = tileStage({}, { ok: true, filled: [], left: 29, none: null });
+    assert.match(String(t0().detail), /29/, 'STAGE: on HaTi\'s own route the note\'s open count is the tail');
+    const { tile } = tileStage(THEIRS, { ok: true, filled: [], left: 29, none: null });
+    const t = tile();
+    assert.equal(t.headKey, 'tri_t_fill_theirs', 'the route is asked live, not read off the note');
+    assert.ok(!/29/.test(String(t.detail)), 'no count of blanks nobody here fills: ' + t.detail);
+    void w0;
+  });
+  test('8c and a note written as theirs is not believed once the route has moved back', () => {
+    const { win, tile } = tileStage({}, { ok: true, filled: [], left: 0, none: 'theirs' });
+    const t = tile();
+    assert.notEqual(t.headKey, 'tri_t_fill_theirs', 'a recorded "theirs" is no longer true');
+    const open = win.contractBlanksOpen(win.state.contracts[0]).length;
+    assert.ok(open >= 3, 'STAGE: the blanks are open again');
+    assert.ok(String(t.detail).includes(String(open)), 'the blanks are counted as they stand now: ' + t.detail);
+  });
+  test('8d CONTROL — a note on HaTi\'s own route reads exactly as it did', () => {
+    const { win, tile } = tileStage({}, { ok: true, filled: [], left: 0, none: 'none' });
+    const t = tile();
+    assert.equal(t.headKey, 'tri_t_fill_none');
+    assert.equal(t.detail, win.i18t('tri_fill_nothing'));
+  });
+  test('8e what Copilot filled before a switch stays named; only the open count goes', () => {
+    const fill = { ok: true, filled: ['Insert Company Name'], left: 3, none: null };
+    const { tile: t0 } = tileStage({}, fill);
+    assert.match(String(t0().detail), /3/, 'STAGE: on HaTi\'s own route the tail counts what is open');
+    const { tile } = tileStage(THEIRS, fill);
+    const t = tile();
+    assert.match(String(t.detail), /Insert Company Name/, 'what happened is still said: ' + t.detail);
+    assert.ok(!/\b3\b/.test(String(t.detail)), 'no count of blanks nobody here fills: ' + t.detail);
   });
 });

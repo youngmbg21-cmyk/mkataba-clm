@@ -6877,6 +6877,7 @@ const STRINGS = {
        opposite pieces of news and read identically as a green tick. */
     tri_t_fill_none: 'No open fields to fill',
     tri_t_fill_panel: 'Open fields are on the panel',
+    tri_t_fill_theirs: 'Open fields are theirs to fill',
     /* ---- WHY A READING DID NOT HAPPEN, worded for a tile (21 Sep 2026).
        The four kinds the server's error already carries, said the way a
        reader can act on them; the technical sentence rides the hover. */
@@ -6889,6 +6890,7 @@ const STRINGS = {
     tri_fill_upload: 'This is an uploaded document — HaTi cannot read its blanks yet.',
     tri_fill_nego: 'This contract is in negotiation — the wording is the negotiation\u2019s now.',
     tri_fill_nothing: 'Every field on this contract is already answered.',
+    tri_fill_theirs: 'They run the signing, so the blanks are filled in their own copy.',
     /* The two arrows on the arrival strip. A title, not a line on the tile:
        the arrow is the sign and the words would be the second line this strip
        reserves for what was FOUND. */
@@ -14896,6 +14898,7 @@ const STRINGS = {
     tri_t_fill_no: 'Tomma fält inte ifyllda',
     tri_t_fill_none: 'Inga tomma fält att fylla i',
     tri_t_fill_panel: 'Tomma fält finns i panelen',
+    tri_t_fill_theirs: 'Tomma fält fylls i av dem',
     tri_why_nokey: 'Copilot har ingen API-nyckel ännu — en administratör lägger till en under Team och inställningar.',
     tri_why_ratelimit: 'Copilot nådde sin hastighetsgräns. Försök igen om några minuter.',
     tri_why_spend: 'Den dagliga Copilot-budgeten är slut. En administratör kan höja den.',
@@ -14905,6 +14908,7 @@ const STRINGS = {
     tri_fill_upload: 'Det här är ett uppladdat dokument \u2014 HaTi kan ännu inte läsa dess tomma fält.',
     tri_fill_nego: 'Det här avtalet förhandlas \u2014 ordalydelsen tillhör förhandlingen nu.',
     tri_fill_nothing: 'Varje fält i det här avtalet är redan besvarat.',
+    tri_fill_theirs: 'De sköter underskriften, så de tomma fälten fylls i på deras egen kopia.',
     tri_go_brief: 'Läs avtalssammanfattningen',
     tri_go_oblig: 'Öppna åtagandena',
     tri_go_playbook: 'Öppna genomgången mot spelboken',

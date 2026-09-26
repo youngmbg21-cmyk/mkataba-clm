@@ -400,6 +400,38 @@ function upNodesOf(root){
   return out;
 }
 
+/* ---- A FILE THEY SIGN HAS NO BLANKS FOR US TO FILL (Young, 26 Sep 2026) ----
+   "if the contract is being signed out of hati and the contract is simply
+   being used to negotiate the clauses, these fields are irrelevant I would
+   presume." That is right, for a reason the panel's own heading already says on
+   its hover: an answer here is a WORKING NOTE on our screen and is never
+   written into their document. On this route what they receive is the agreed
+   WORDING as a Word file (outsideAgreedHtml — the negotiation's body, never
+   these answers), and the blanks are filled in their own copy, in their own
+   design, when they sign it. A form whose answers go nowhere is worse than no
+   form: a reader who fills in twenty-nine boxes believes the file carries
+   them.
+
+   ONE READING. The gate below asks it, so the panel, the marks, the count and
+   the arrival read stand down together; contractBlanksNone asks it so the
+   arrival tile says WHY rather than "HaTi cannot read its blanks yet", which
+   would be false — it can, and it does not ask. signRouteOf is js/outside.js's
+   and that file is not on every stage, so the literal is the fallback, the
+   reading signRouteOf itself makes.
+
+   A READING, NEVER A DELETE: answers already typed stay on the record, and a
+   contract switched back to HaTi's own signing finds them where it left them.
+   AND NOT THE HANDOVER'S OWN CHECK: a placeholder written into the agreed
+   words ("[insert amount]") still holds the handover (outsideBlanksOf),
+   because whatever is in the file is what they sign. That is a question
+   about the WORDING; this is a form beside it. */
+function uploadBlanksTheirs(c){
+  if(!c) return false;
+  try{ if(!(typeof isUpload === 'function' && isUpload(c))) return false; }catch(_){ return false; }
+  try{ return (typeof signRouteOf === 'function') ? signRouteOf(c) === 'outside' : c.signRoute === 'outside'; }
+  catch(_){ return c.signRoute === 'outside'; }
+}
+
 /* ---- MAY THIS UPLOAD'S BLANKS BE FILLED NOW ----
    ONE READING, and the panel, the marks and contractHasBlanks all ask it, so
    none of them can draw when the others stand down.
@@ -410,11 +442,13 @@ function upNodesOf(root){
 
    The walls past `isUpload` are docFillable's own, for docFillable's own
    reasons: a sealed record takes no working note, a Viewer types nothing, and
-   the counterparty's page is not where our blanks are answered. */
+   the counterparty's page is not where our blanks are answered. And since
+   26 Sep 2026 a file THEY sign, which is uploadBlanksTheirs, above. */
 function uploadBlanksLive(c){
   if(!c) return false;
   try{ if(!(typeof isUpload === 'function' && isUpload(c))) return false; }catch(_){ return false; }
   if(typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE) return false;
+  if(uploadBlanksTheirs(c)) return false;
   if(c.status === 'Signed') return false;
   try{ if(typeof canEdit === 'function' && !canEdit()) return false; }catch(_){ }
   try{ if(typeof uploadWordingEdited === 'function' && uploadWordingEdited(c)) return false; }catch(_){ }
@@ -644,6 +678,6 @@ if(typeof window !== 'undefined') Object.assign(window, {
   UP_BLANK_MAX, UP_KEY_MAX, UP_LEAD_WORDS, UP_SKIP_SEL, UP_MARK_CLASS, UP_MADE_ATTR,
   upFieldClass, upFieldSel, upFieldNameAttr, UP_WORD_STOCK, upStockPrompt,
   upFold, upLabel, upLead, upHits, upNodeHits, upKeyMint, upWalk, upNodesFrom, upNodesOf, upEntities,
-  uploadBlanksLive, uploadWordingSource, uploadBlanksRead, uploadBlanksOver, uploadBlankSeq,
+  uploadBlanksTheirs, uploadBlanksLive, uploadWordingSource, uploadBlanksRead, uploadBlanksOver, uploadBlankSeq,
   uploadBlanksClear, uploadBlanksPaint, uploadBlankPaint,
 });
