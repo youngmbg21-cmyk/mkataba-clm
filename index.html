@@ -6078,6 +6078,15 @@
   .ho-diff-r{display:grid;grid-template-columns:62px minmax(0,1fr);gap:8px;}
   .ho-diff-k{color:var(--color-neutral-600);}
   .ho-diff-term{font-size:var(--t-label);color:var(--st-amber-fg);}
+  /* THE BLANKS THEY FILLED IN (26 Sep 2026): accepted without asking, so drawn
+     as a list in the page's own ink, never in the redline's colours — and
+     open, so every one is read before File is pressed. */
+  .ho-fills{margin-top:2px;}
+  .ho-fills > summary{cursor:pointer;width:max-content;max-width:100%;}
+  .ho-fill-list{display:grid;gap:3px;margin:4px 0 2px;max-height:30vh;overflow:auto;}
+  .ho-fill{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:8px;font-size:var(--t-label);line-height:1.5;}
+  .ho-fill-k{color:var(--color-neutral-600);overflow-wrap:anywhere;}
+  .ho-fill-v{color:var(--color-text);overflow-wrap:anywhere;}
   /* The redline's own grammar: struck where the agreed words are not in their
      copy, underlined where their copy has words the agreed version does not. */
   .ho-del{color:var(--st-ruby-fg);text-decoration:line-through;}
