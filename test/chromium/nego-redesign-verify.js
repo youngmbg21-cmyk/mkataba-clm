@@ -791,9 +791,17 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       JSON.stringify({ between: checks.gapIn, afterMore: checks.gapToMore, shareToMore: checks.gapShareMore }));
     /* ONE RUNG with every other button in the row: a second height would make
        this one row read as two. */
-    check('13 at the row\'s own rung, and the glyph is what grew',
-      checks.wrap && checks.more && checks.wrap.h === checks.more.h && checks.glyph >= 18,
-      JSON.stringify({ check: checks.wrap && checks.wrap.h, more: checks.more && checks.more.h, glyph: checks.glyph }));
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the Compact ladder, Young picked it):
+       the glyph grew to a hand-set 18 on 15 Sep so a 16px mark would not look
+       lost in its box. The ladder gives every icon in an everyday button ONE
+       size, the rung's own (--btn-ic, 14), so the claim is asked as that
+       relation — the box is the row's rung and the mark is the rung's icon —
+       read live, never typed. */
+    const btnIc = await page.evaluate(() => { const e = document.createElement('i'); e.style.width = 'var(--btn-ic)'; e.style.display = 'block';
+      document.body.appendChild(e); const v = Math.round(e.getBoundingClientRect().width); e.remove(); return v; });
+    check('13 at the row\'s own rung, and the glyph is the rung\'s icon size',
+      checks.wrap && checks.more && checks.wrap.h === checks.more.h && btnIc > 0 && checks.glyph === btnIc,
+      JSON.stringify({ check: checks.wrap && checks.wrap.h, more: checks.more && checks.more.h, glyph: checks.glyph, btnIc }));
     /* THE EDGE IS THE WORKSPACE'S ACCENT — green on teal, blue on navy —
        measured as the RELATION (it is mixed from the brand's own token), never
        as a colour this file types out. */

@@ -312,8 +312,14 @@ const SEED_UNSENT = async () => {
     check('3b and nothing on it is filled — the row leads by position',
       Array.isArray(acts) && acts.every(b => b.bg === 'rgba(0, 0, 0, 0)' || b.bg === surfaceBg),
       Array.isArray(acts) ? acts.map(b => [b.text, b.bg]) : acts);
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the Compact ladder, Young picked it):
+       "not bold" was measured as "at most 400", which was the row's weight that
+       day. Every button label is ONE weight now — the medium label weight, 500
+       — so the claim is asked as what it always said: the row speaks at one
+       weight, and that weight is not bold (bold is 600 and up here). */
     check('3c nothing else in the row is either',
-      Array.isArray(acts) && acts.every(b => Number(b.weight) <= 400),
+      Array.isArray(acts) && acts.length > 0 && new Set(acts.map(b => b.weight)).size === 1
+      && acts.every(b => Number(b.weight) < 600),
       Array.isArray(acts) ? acts.map(b => [b.text, b.weight]) : acts);
     check('3d the row still reads as one control — one height, one size',
       Array.isArray(acts) && new Set(acts.map(b => b.h)).size === 1
