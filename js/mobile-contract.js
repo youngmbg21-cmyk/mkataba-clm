@@ -885,6 +885,10 @@ function mDoNextAction(kind){
   /* ---- THE DEAD PRESS, CLOSED ---- The head's green primary reads "Add
      signers" whenever the route is not open, and nothing here answered it. */
   if(kind==='add-signers'){ mOpenSheet('signers', { signersErr: '' }); return; }
+  /* A FILE THEY SIGN (26 Sep 2026): the handover builds the agreed Word file
+     and the filing reads a signed copy beside the agreed words — a computer's
+     work. Said, never a dead press. */
+  if(kind==='ho-hand'||kind==='ho-file'){ if(window.toast) toast(i18t('ho_on_computer'),'warn'); return; }
   if(kind==='share'){ mOpenShareSheet(); return; }
   if(kind==='terms'){ mS().tab='terms'; mRender(); if(window.toast) toast(i18t('mc_fill_on_computer')); return; }
   if(kind==='review'){

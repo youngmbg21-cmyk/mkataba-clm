@@ -2377,6 +2377,22 @@ const SET_PANELS={
     wire(){ renderSignCheckGatePanel(); },
   },
 
+  /* ---- WHO RUNS THE SIGNING ON AN UPLOAD (26 Sep 2026, decision 3) ----
+     The answer ticked by default when somebody uploads the other side's
+     contract: we sign it in HaTi, or they sign it their way and we file the
+     signed copy. Two answers, and the factory one is what every upload did
+     before the question existed, so nothing moves on the day of the deploy. A
+     setting that writes on change, like every gate beside it. */
+  signroute:{
+    tab:'platform', group:'agreement', mandatory:false,
+    title:()=>i18t('ho_set_title'),
+    sub:()=>i18t('ho_set_sub'),
+    state(){ const v=(state.settings&&state.settings.signRouteDefault)==='outside'?'outside':'inside';
+      return { dot:'ok', text:`${i18t('ho_set_title')} — ${i18t(v==='outside'?'ho_route_out':'ho_route_in')}` }; },
+    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('ho_set_sub')}</p><div id="ho-route-panel"></div>`; },
+    wire(){ renderSignRouteDefaultPanel(); },
+  },
+
   desk:{
     tab:'platform', group:'agreement', mandatory:false,
     title:()=>i18t('st_p_desk'),
@@ -4725,6 +4741,28 @@ function renderSignCheckGatePanel(){
     if(window.saveSettings) saveSettings();
     toast(i18t('sc_set_saved'));
     renderSignCheckGatePanel();
+  }));
+}
+/* The default answer to the upload's "who runs the signing?" — two radios,
+   written on change. A non-admin is shown the state and cannot move it. */
+function renderSignRouteDefaultPanel(){
+  const host=document.getElementById('ho-route-panel'); if(!host) return;
+  const admin=isAdmin();
+  const now=(state.settings&&state.settings.signRouteDefault)==='outside'?'outside':'inside';
+  const row=k=>`<label style="display:flex;gap:9px;align-items:flex-start;font-size:var(--t-meta);line-height:1.5;margin-bottom:9px;cursor:${admin?'pointer':'not-allowed'}">
+    <input type="radio" name="ho-route" value="${k}"${now===k?' checked':''}${admin?'':' disabled'} style="margin-top:2px"/>
+    <span><span style="font-weight:var(--w-strong);color:var(--color-text)">${i18t(k==='outside'?'ho_route_out':'ho_route_in')}</span>
+    <span style="display:block;color:var(--color-neutral-600);line-height:1.5;margin-top:2px">${i18t(k==='outside'?'ho_route_out_d':'ho_set_in_d')}</span></span>
+  </label>`;
+  host.innerHTML=['inside','outside'].map(row).join('');
+  if(!admin) return;
+  host.querySelectorAll('input[name="ho-route"]').forEach(r=>r.addEventListener('change',()=>{
+    if(!r.checked) return;
+    state.settings=state.settings||{};
+    state.settings.signRouteDefault=r.value==='outside'?'outside':'inside';
+    if(window.saveSettings) saveSettings();
+    toast(i18t('ho_set_saved'),'ok');
+    renderSignRouteDefaultPanel();
   }));
 }
 function renderDeskRulePanel(){

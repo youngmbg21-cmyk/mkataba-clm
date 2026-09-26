@@ -40,6 +40,16 @@ Object.assign(window,{FIRST_PARTY,PORTAL_MODE,contractParty});
 
 window.uid = 100;
 const nextId = () => 'MK-' + (++uid);
+/* ---- A WORKING FILE'S REFERENCE (26 Sep 2026, redline here, sign there) ----
+   The other side's paper, uploaded to be negotiated here and signed by them,
+   is a working file until the signed copy is filed. It is keyed RL-012 from
+   its own counter, so a deal that dies never takes a contract number and the
+   Contracts list has no gaps; the number comes from the server at filing.
+   workingIdOf is js/outside.js's; the literal is the fallback for a stage
+   that does not carry it. */
+window.rlUid = 0;
+const nextWorkingId = () => (typeof workingIdOf === 'function')
+  ? workingIdOf(++rlUid) : 'RL-' + String(++rlUid).padStart(3, '0');
 const seedComments = () => ([
   { author:(typeof jxEg==='function'&&jxEg('reviewer'))||'Wanjiku Kamau', role:'Editor (Internal)', side:'internal',
     text:`Flagged clause 4 — please confirm the governing-law reference stays ${(typeof jxAdjective==='function'?jxAdjective():'Kenyan')}.`, ts:'2d ago' },
@@ -510,8 +520,32 @@ const EXPIRED_META = _stMeta('status_expired', 'Expired', 'var(--st-gray-dot)', 
    ladder says "where this contract has got to" and this one says "stop". */
 const HOLD_META = _stMeta('status_on_hold', 'On hold', 'var(--st-ruby-dot)', 'var(--st-ruby-bg)', 'var(--st-ruby-fg)', 'var(--st-ruby-line)');
 const PARTIAL_META = _stMeta('status_partially_signed', 'Partially signed', 'var(--st-amber-dot)', 'var(--st-amber-bg)', 'var(--st-amber-fg)', 'var(--st-amber-line)');
+/* ---- OUT WITH THEM FOR SIGNATURE (26 Sep 2026, redline here, sign there) ----
+   The agreed words were handed over as a Word file and are being signed on
+   their side. DERIVED, never stored, like Expired and Partially signed above:
+   the stored status stays what it was, so every filter and guard reads it as
+   before, and only what the reader is told changes. Amber, because a deal out
+   of our hands is still one somebody should be watching. */
+const HANDOVER_META = _stMeta('status_with_them', 'With them for signature', 'var(--st-amber-dot)', 'var(--st-amber-bg)', 'var(--st-amber-fg)', 'var(--st-amber-line)');
+const HANDOVER_META_SHORT = _stMeta('status_with_them_short', 'With them', 'var(--st-amber-dot)', 'var(--st-amber-bg)', 'var(--st-amber-fg)', 'var(--st-amber-line)');
+/* ...and a copy they have signed and we have not, kept as evidence. */
+const HANDOVER_SIGNED_META = _stMeta('status_they_signed', 'They have signed · waiting on ours', 'var(--st-amber-dot)', 'var(--st-amber-bg)', 'var(--st-amber-fg)', 'var(--st-amber-line)');
+const HANDOVER_SIGNED_META_SHORT = _stMeta('status_they_signed_short', 'They have signed', 'var(--st-amber-dot)', 'var(--st-amber-bg)', 'var(--st-amber-fg)', 'var(--st-amber-line)');
+const _hoOut = c => typeof handoverActive === 'function' && handoverActive(c);
+const _hoSigned = c => _hoOut(c) && typeof handoverStage === 'function' && handoverStage(c) === 'partial';
+/* How long it has been out, in the words a status can carry: "6 days", and at
+   the still-live question "62 days · still live?". Empty where nothing is out. */
+function handoverWaitWords(c){
+  if(!_hoOut(c)) return '';
+  const n=(typeof handoverDays==='function')?handoverDays(c):0;
+  const days=(typeof i18tn==='function')?i18tn('ho_days',n,{n}):`${n} day${n===1?'':'s'}`;
+  const stale=(typeof handoverStage==='function')&&handoverStage(c)==='stale';
+  return stale ? `${days} \u00b7 ${typeof i18t==='function'?i18t('ho_still_live_q'):'still live?'}` : days;
+}
 const contractStatusChip = c => contractOnHold(c)
   ? `<span class="badge" title="${i18t('hd_chip_title')}" style="background:${HOLD_META.bg};color:${HOLD_META.tx}">${HOLD_META.label}</span>`
+  : _hoOut(c)
+  ? `<span class="badge" title="${(_hoSigned(c)?HANDOVER_SIGNED_META:HANDOVER_META).label} \u00b7 ${handoverWaitWords(c)}" style="background:${HANDOVER_META.bg};color:${HANDOVER_META.tx}">${(_hoSigned(c)?HANDOVER_SIGNED_META_SHORT:HANDOVER_META_SHORT).label}</span>`
   : contractPartiallySigned(c)
   ? `<span class="badge" title="${typeof t==='function'?i18t('status_partially_signed_title'):"Sealed — awaiting the counterparty's signature. Copies go out when every party has signed."}" style="background:${PARTIAL_META.bg};color:${PARTIAL_META.tx}">${PARTIAL_META.label}</span>`
   : contractExpired(c)
@@ -550,13 +584,18 @@ const statusChip = s => { const m=STATUS_META[s]||STATUS_META.Draft;
    it. contractStatusChip keeps its own markup and its own SHORT word, which is
    a difference in length the two have always been allowed. */
 const contractStatusMeta = c => contractOnHold(c) ? HOLD_META
+  : _hoSigned(c) ? HANDOVER_SIGNED_META
+  : _hoOut(c) ? HANDOVER_META
   : contractPartiallySigned(c) ? PARTIAL_META
   : contractExpired(c) ? EXPIRED_META
   : cpReadyToSign(c) ? READY_META
   : (STATUS_META[c && c.status] || STATUS_META.Draft);
 const contractStatusTextHtml = c => {
   const m = contractStatusMeta(c);
-  return `<span class="room-stat" style="color:${m.tx}">${m.label}</span>`;
+  /* out with them, the head says for how long — "With them for signature ·
+     6 days" — because the wait is the fact a reader opens it to learn */
+  const wait = (m === HANDOVER_META || m === HANDOVER_SIGNED_META) ? handoverWaitWords(c) : '';
+  return `<span class="room-stat" style="color:${m.tx}">${m.label}${wait ? ` \u00b7 ${_holdEsc(wait)}` : ''}</span>`;
 };
 /* THE TABLE'S DRESS. The dot is what a scanned column needs — the shape the
    chip used to give it — and the word beside it is what stops the colour being
@@ -586,9 +625,11 @@ const holdWhyShort = c => {
 };
 const contractStatusDotHtml = c => {
   const m = contractStatusMeta(c);
-  const short = (m === READY_META) ? READY_META_SHORT : m;
-  const why = (m === HOLD_META) ? holdWhyShort(c) : '';
-  const full = (m === READY_META) ? m.label
+  const short = (m === READY_META) ? READY_META_SHORT
+    : (m === HANDOVER_META) ? HANDOVER_META_SHORT : (m === HANDOVER_SIGNED_META) ? HANDOVER_SIGNED_META_SHORT : m;
+  const why = (m === HOLD_META) ? holdWhyShort(c)
+    : (m === HANDOVER_META || m === HANDOVER_SIGNED_META) ? handoverWaitWords(c) : '';
+  const full = (m === READY_META || m === HANDOVER_META || m === HANDOVER_SIGNED_META) ? m.label
     : (m === HOLD_META && (c && c.hold && c.hold.why)) ? String(c.hold.why) : '';
   return `<span class="reg-stg" style="color:${m.tx}"${full?` title="${_holdEsc(full)}"`:''}`
     + `><i style="background:${m.dot}"></i>${short.label}${
@@ -1006,7 +1047,7 @@ function persist(c){
     if(c && c.id){ dirty.set(c.id,c); clearTimeout(saveTimer); saveTimer=setTimeout(flushSaves,400); }
     return;
   }
-  lsSet(LS.data, { uid, contracts:state.contracts, settings:state.settings, view:state.view, activeId:state.activeId, folderId:state.folderId });
+  lsSet(LS.data, { uid, rlUid, contracts:state.contracts, settings:state.settings, view:state.view, activeId:state.activeId, folderId:state.folderId });
 }
 /* Permanently delete a contract. Restricted to Draft / Under Review — executed
    (signed) and closed records are never destroyed. Returns true if deleted. */
@@ -1268,8 +1309,19 @@ async function saveContract(c){
   if(Array.isArray(payload.rounds))
     payload.rounds=payload.rounds.map(r=>(r&&r.file&&r.file.fileId)?{...r, file:{...r.file, dataUrl:undefined}}:r);
   try{
-    const r=await api('contracts/'+c.id,'PUT',{ contract:payload, baseVersion:c._v||0, uid });
+    const r=await api('contracts/'+c.id,'PUT',{ contract:payload, baseVersion:c._v||0, uid, rlUid });
     c._v=r.version; c._loaded=true; c._light=false;
+    /* ---- THE NUMBER THE SERVER GAVE, TAKEN AS GIVEN (26 Sep 2026) ----
+       A working file takes its contract number in the save that files it, and
+       the server is the one that gives it. The line recording it is the
+       server's own, added here exactly as written so the append-only merge
+       sees one line and not two. The counters only ever go up. */
+    if(r && r.contractNo && !c.contractNo){
+      c.contractNo=r.contractNo;
+      if(r.numberedLine){ c.audit=Array.isArray(c.audit)?c.audit:[]; c.audit.push(r.numberedLine); }
+    }
+    if(r && Number(r.uid)>Number(uid||0)) uid=Number(r.uid);
+    if(r && Number(r.rlUid)>Number(rlUid||0)) rlUid=Number(r.rlUid);
     /* The save may have moved who is on the route, so the server's reading
        of the approvals it needs rides back with the answer. */
     if(r && Array.isArray(r.signNeeds)) c._signNeeds=r.signNeeds;
@@ -1373,6 +1425,7 @@ function hydrate(){
   const d = lsGet(LS.data);
   if(d && Array.isArray(d.contracts)){
     uid = d.uid || uid;
+    rlUid = d.rlUid || rlUid;
     state.contracts = d.contracts.map(migrateContract);
     state.settings = d.settings || {};
     state.view = d.view || 'dashboard';
@@ -7809,4 +7862,4 @@ const END_STATES = [
 const endStateSays = k => { const x = END_STATES.find(e => e.k === k); return x ? x.says : ''; };
 Object.assign(window,{END_STATES,endStateSays});
 
-Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,READY_META,READY_META_SHORT,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,userById,verifySeal,waShareLink});
+Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,userById,verifySeal,waShareLink});

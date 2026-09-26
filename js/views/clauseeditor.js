@@ -1433,7 +1433,8 @@ function clauseEditorRefusal(c, opts = {}){
   if (!c) return _cet('ce_no_contract');
   if (opts.side === 'counterparty') return _cet('ce_owner_only');
   if (opts.readonly) return _cet('ce_read_only');
-  try{ if (window.negoWordingFrozen && negoWordingFrozen(c)) return _cet('ce_wording_frozen'); }catch(_){}
+  try{ if (window.negoWordingFrozen && negoWordingFrozen(c))
+    return _cet(window.negoHandedOver && negoHandedOver(c) && !(window.negoExecuted && negoExecuted(c)) ? 'ce_handed_over' : 'ce_wording_frozen'); }catch(_){}
   /* THE DESK, ASKED DIRECTLY. rlMayRedline is the negotiation view's own
      reading of exactly this and is deliberately not published to window, so
      this asks the same question of the same predicate rather than reaching for

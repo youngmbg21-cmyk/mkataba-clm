@@ -318,7 +318,17 @@ function negoAnySignature(c){
   if (Array.isArray(c.signatures) && c.signatures.length) return true;
   return (Array.isArray(c.signerPlan) ? c.signerPlan : []).some(s => s && s.signed);
 }
-const negoWordingFrozen = c => negoExecuted(c) || negoAnySignature(c);
+/* ---- AND WHILE THE AGREED WORDS ARE OUT WITH THEM (26 Sep 2026) ----
+   Redline here, sign there: once the agreed wording is handed over as a Word
+   file, it is being signed where HaTi cannot see it, and the signed copy will
+   be checked against exactly these words. The server refuses a save that
+   moves them (HANDOVER_FROZEN); this is the same lock at the funnel, so every
+   door onto the wording says so before the press. The way out is to reopen
+   the negotiation, which lifts it. Read through window: js/outside.js is not
+   on every stage this file is. */
+const negoHandedOver = c => !!(typeof window !== 'undefined' && typeof window.handoverActive === 'function'
+  && window.handoverActive(c));
+const negoWordingFrozen = c => negoExecuted(c) || negoAnySignature(c) || negoHandedOver(c);
 /* ---- MAY A NEGOTIATION BE OPENED OR STARTED ON THIS CONTRACT (Young ruled
    11 Sep 2026: "If a contract has been executed, the start negotiating button
    should be greyed out and therefore locked out from the negotiate page.") ----
@@ -334,6 +344,7 @@ const negoWordingFrozen = c => negoExecuted(c) || negoAnySignature(c);
    negoChanges, which would create a negotiation on the way to saying no. */
 function negoMayStart(c){
   if (!c) return { ok: false, why: 'none' };
+  if (negoHandedOver(c) && !negoExecuted(c)) return { ok: false, why: 'handover' };
   if (negoWordingFrozen(c)) return { ok: false, why: 'sealed' };
   if (c.archived) return { ok: false, why: 'archived' };
   return { ok: true, why: '' };
@@ -344,7 +355,8 @@ function negoMayStartLine(c){
   const r = negoMayStart(c);
   if (r.ok) return '';
   const t = (typeof i18t === 'function') ? i18t : k => k;
-  return r.why === 'archived' ? t('ng_start_archived') : t('ng_start_sealed');
+  return r.why === 'archived' ? t('ng_start_archived')
+    : r.why === 'handover' ? t('ng_start_handover') : t('ng_start_sealed');
 }
 
 /* ---------- THE NUMBERING OF AN EXECUTED CONTRACT IS FINAL ----------
@@ -1324,7 +1336,7 @@ async function negoFileChange(c, draft, opts = {}){
        clause" — a different and untrue diagnosis, whose stated remedy (fix the
        clause reference) cannot work. The clause matched perfectly; the contract
        is locked because somebody has signed. */
-    const why = i18t(negoExecuted(c) ? 'ne_executed_amend' : 'ne_signed_frozen');
+    const why = i18t(negoExecuted(c) ? 'ne_executed_amend' : negoHandedOver(c) ? 'ne_handed_over' : 'ne_signed_frozen');
     negoLastRefusal = why;
     if (!opts.quiet && window.toast) toast(why, 'err');
     return null;
@@ -2768,7 +2780,7 @@ function negoResolve(c, id, status, opts = {}){
        clause" — a different and untrue diagnosis, whose stated remedy (fix the
        clause reference) cannot work. The clause matched perfectly; the contract
        is locked because somebody has signed. */
-    const why = i18t(negoExecuted(c) ? 'ne_executed_amend' : 'ne_signed_frozen');
+    const why = i18t(negoExecuted(c) ? 'ne_executed_amend' : negoHandedOver(c) ? 'ne_handed_over' : 'ne_signed_frozen');
     negoLastRefusal = why;
     if (!opts.quiet && window.toast) toast(why, 'err');
     return null;
@@ -5045,7 +5057,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoExecuted, negoNumberingLocked, negoNumberingGaps, executedDivergence, negoExecutedText,
   negoBrokenRefs, negoAllRefs, negoActorLabel,
   negoRenumberBlocked, negoRenumberPlan, negoRenumberApply, negoTimeline, negoIntegrityReport, negoLiveNumbered,
-  negoAnySignature, negoWordingFrozen, negoMayStart, negoMayStartLine, negoInit, negoStampContract, negoFreshenBaseline, negoBaseText, negoBaseBody, negoRound,
+  negoAnySignature, negoHandedOver, negoWordingFrozen, negoMayStart, negoMayStartLine, negoInit, negoStampContract, negoFreshenBaseline, negoBaseText, negoBaseBody, negoRound,
   negoChanges, negoChangeById, negoPending, negoOpenChanges,
   negoNextId, negoHashInput, negoHash, negoIssue, negoIssuances, negoShortHash,
   verifyChangeChain, negoVerifyCached, negoRefreshVerification, negoInvalidateVerification,

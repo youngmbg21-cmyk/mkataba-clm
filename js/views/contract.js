@@ -1622,13 +1622,57 @@ function uploadConfirmHtml(ext, meta){
         <div class="grid sm:grid-cols-2 gap-2 up-grid" style="margin-top:10px">${extras.map(extraFld).join('')}</div>
       </details>`:''}
       ${ext&&readCount?`<p style="margin:0 0 10px;font-size:var(--t-label);color:var(--color-neutral-600)">Everything ✦ came from the document${meta&&meta._source==='ai'?', read by Copilot':', pattern-matched'}. Nothing is saved until you press <b>${i18t('ct_file_contract')}</b>.</p>`:''}
+      ${uploadRouteHtml(ext)}
       ${triageOptInHtml(ext)}
       <div class="flex items-center gap-2">
         <button id="up-back" class="ui-btn">${icon('arrowLeft')}Another file</button>
         <span style="flex:1"></span>
         <button id="up-cancel-2" class="ui-btn">${i18t('act_cancel')}</button>
-        <button id="up-go" class="ui-btn ui-btn-primary">${icon('check2','w-3.5 h-3.5')} ${i18t('ct_file_contract')}</button>
+        <button id="up-go" class="ui-btn ui-btn-primary">${icon('check2','w-3.5 h-3.5')} <span id="up-go-word">${i18t(ext&&uploadRouteDefault()==='outside'?'ho_start_redlining':'ct_file_contract')}</span></button>
       </div>`;
+}
+/* ============================================================
+   WHO RUNS THE SIGNING — the upload's one new question
+   (26 Sep 2026, redline here, sign there — decision 3)
+   ============================================================
+   Asked HERE because this is where a person knows whose paper it is: the
+   other side's contract, to be negotiated in HaTi and signed their way. The
+   answer decides what the file IS — a working file keyed RL-012 that takes its
+   contract number when the signed copy is filed, or an ordinary contract
+   numbered today — and the Signing tab can show the right things from the
+   start. It can still change there until the handover.
+
+   AN ADMIN CHOOSES WHICH ANSWER IS TICKED. The factory default is "We sign in
+   HaTi", which is what every upload did before this question existed, so the
+   morning after the deploy an upload behaves exactly as it did the night
+   before. The segmented control is the product's own (.doc-read-seg) and a
+   pressed half says so with aria-pressed. A signed contract that was never
+   negotiated here is not this route at all; the quiet link says where it goes. */
+function uploadRouteDefault(){
+  const v=(state&&state.settings&&state.settings.signRouteDefault)||'';
+  return v==='outside'?'outside':'inside';
+}
+function uploadRouteHtml(ext){
+  if(!ext) return '';
+  const def=uploadRouteDefault();
+  const seg=k=>`<button type="button" data-up-route="${k}" aria-pressed="${def===k}">${esc(i18t(k==='outside'?'ho_route_out':'ho_route_in'))}</button>`;
+  return `<div id="up-route" data-route="${def}" class="up-route" style="margin:0 0 12px;padding-top:12px;border-top:1px solid var(--color-divider)">
+    <div style="font-size:var(--t-meta);font-weight:var(--w-strong);margin-bottom:6px">${esc(i18t('ho_route_q'))}</div>
+    <div class="doc-read-seg" role="group" aria-label="${esc(i18t('ho_route_q'))}">${seg('outside')}${seg('inside')}</div>
+    <p id="up-route-say" style="margin:6px 0 0;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5">${esc(i18t(def==='outside'?'ho_route_out_d':'ho_route_in_d'))}</p>
+    <button type="button" id="up-route-import" class="ui-link" style="margin-top:4px;font-size:var(--t-label)">${esc(i18t('ho_import_instead'))}</button>
+  </div>`;
+}
+function wireUploadRoute(){
+  const box=document.getElementById('up-route'); if(!box) return;
+  box.querySelectorAll('[data-up-route]').forEach(b=>b.addEventListener('click',()=>{
+    const k=b.getAttribute('data-up-route')==='outside'?'outside':'inside';
+    box.dataset.route=k;
+    box.querySelectorAll('[data-up-route]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+    const say=document.getElementById('up-route-say'); if(say) say.textContent=i18t(k==='outside'?'ho_route_out_d':'ho_route_in_d');
+    const word=document.getElementById('up-go-word'); if(word) word.textContent=i18t(k==='outside'?'ho_start_redlining':'ct_file_contract');
+  }));
+  document.getElementById('up-route-import')?.addEventListener('click',()=>{ closeModal(); setView('migration'); });
 }
 /* ---- AUTO-TRIAGE'S ONE QUESTION, AND IT IS ASKED HERE (owner-ruled 9 Sep
    2026) ----
@@ -1791,6 +1835,7 @@ async function runUploadPipeline(file){
   s1.classList.add('hidden');
   s2.classList.remove('hidden');
   bindFolderSelect(document.getElementById('up-folder'));
+  wireUploadRoute();
   document.getElementById('up-go').addEventListener('click',submitUpload);
   document.getElementById('up-cancel-2').addEventListener('click',closeModal);
   document.getElementById('up-back').addEventListener('click',()=>{
@@ -1831,6 +1876,10 @@ async function submitUpload(){
      reading that did not happen is a card they notice is missing. */
   const triageBox=document.getElementById('up-triage');
   const wantTriage=!!(triageBox&&triageBox.checked);
+  /* WHO RUNS THE SIGNING, read before the dialog goes. Absent (a stage with no
+     box) is the old answer: HaTi runs it. */
+  const routeBox=document.getElementById('up-route');
+  const outside=!!(routeBox&&routeBox.dataset.route==='outside');
   btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">${i18t('ct_filing')}</span>`;
   // API mode: store bytes on the server and keep only a reference in the
   // synced record. Done HERE, not in the pipeline — a person who read the
@@ -1840,7 +1889,9 @@ async function submitUpload(){
       upload.fileId=r.id; }catch(e){ /* fall back to inline bytes */ }
   }
   const u=currentUser();
-  const c={ id:nextId(), name, party:party||undefined, counterparty:cp, counterpartyEmail:cpEmail||undefined, value, status: cp?'Under Review':'Draft',
+  /* A WORKING FILE takes its working reference, RL-012, and no contract
+     number: that comes from the server when the signed copy is filed. */
+  const c={ id:outside?nextWorkingId():nextId(), name, party:party||undefined, counterparty:cp, counterpartyEmail:cpEmail||undefined, value, status: cp?'Under Review':'Draft',
     template:null, source:'upload', folder, valueType:vtype,
     lastAction:todayStr(), expiry, hash:null, signedAt:null, signatory:u?.name||'Authorized signatory',
     compliance:{},
@@ -1848,6 +1899,11 @@ async function submitUpload(){
     fields:{}, scan:null,
     audit:[{at:nowISO(),user:u?.name||'System',action:'Uploaded',detail:`Received “${file.name}” (${Math.round(file.size/1024)} KB)${extractedText.length>200?`, ${extractedText.length.toLocaleString()} chars extracted`:', no text extracted'}`}],
     signatures:[], upload };
+  if(outside){
+    c.signRoute='outside';
+    c.audit.push({ at:nowISO(), user:u?.name||'System', action:'Signing route',
+      detail:`Opened as working file ${c.id}: negotiated in HaTi, then handed over as a Word file for ${cp||'the other side'} to sign their way. It takes its contract number when the signed copy is filed.` });
+  }
   // The audit trail must say the text was machine-read from a scan — a reader
   // months from now has no other way to know the dates were never typed.
   if(isOcrText(textSource)) c.audit.push({ at:nowISO(), user:u?.name||'System', action:'OCR',
@@ -1918,7 +1974,7 @@ async function submitUpload(){
   state.activeId=c.id;
   persist(c);
   closeModal();
-  toast(i18t('ct_uploaded_filed_in')+FOLDERS[folder].name);
+  toast(outside ? i18t('ho_working_opened',{id:c.id}) : i18t('ct_uploaded_filed_in')+FOLDERS[folder].name, outside?'ok':undefined);
   setView('workspace');
   renderSideFolders();
   /* ---- AND THEN IT IS READ, IF THE READER LEFT THE BOX TICKED ----
@@ -3622,6 +3678,12 @@ function externalExecutionBlock(c){
 }
 function signatureBlock(c){
   const locked=c.status==='Signed';
+  /* A SIGNED COPY FILED HERE (26 Sep 2026), or through the old paper door:
+     the record shows the SIGNED copy, its fingerprint and a way to open it —
+     not the migration wording and the file uploaded at the start, which is
+     what both of those used to draw. */
+  if(locked && c.execution && (c.execution.method==='outside'||c.execution.method==='paper') && window.outsideExecutionBlock)
+    return outsideExecutionBlock(c);
   if(locked && isExternallyExecuted(c)) return externalExecutionBlock(c);
   if(locked){
     const hashDisplay=c.hash&&c.hash!=='PRE-SEEDED'?c.hash:('sample-'+generatePseudo(c.id).slice(0,32));
@@ -3738,6 +3800,16 @@ function wsNextAction(c){
   if(c.status==='Signed') return { get label(){ return i18t('ct_evidence_pack'); }, ic:'download', guide:'Executed &amp; sealed.', kind:'evidence' };
   if(c.status==='Declined') return null;
   if(!canEdit()) return null;
+  /* ---- A FILE THEY SIGN (26 Sep 2026, redline here, sign there) ----
+     The last two rungs are the handover and the filing of the signed copy —
+     never a signing link, a signer to add or a seal to apply, none of which
+     happens here. While the words are out, filing what comes back is the one
+     act left, and it outranks everything below it. */
+  const theySign=!!(window.signRouteOf&&signRouteOf(c)==='outside');
+  if(theySign && window.handoverActive && handoverActive(c))
+    return { get label(){ return i18t('ho_file_btn'); }, ic:'upload', kind:'ho-file',
+      get guide(){ return i18t('ho_guide_out',{ them:c.counterparty||i18t('ct_the_counterparty_cap'),
+        wait:window.handoverWaitWords?handoverWaitWords(c):'' }); } };
   const hasTerms=c.counterparty&&(!isMonetary(c)||Number(c.value)>0);
   const appr=(window.approvalState?approvalState(c):{ok:true});
   /* THE OTHER SIDE IS WAITING ON YOU, and that outranks everything below.
@@ -3785,6 +3857,8 @@ function wsNextAction(c){
     if(ready){
       let sig=null; try{ sig=window.negoReadySignal?negoReadySignal(c,'counterparty'):null; }catch(_){ sig=null; }
       const who=(sig&&sig.by)||c.counterparty||i18t('ct_the_counterparty_cap');
+      if(theySign) return { get label(){ return hoHeadLabel(c); }, ic:'send', kind:'ho-hand',
+        get guide(){ return i18t('ho_guide_ready',{ who }); } };
       return { get label(){ return i18t('ct_issue_signing_link'); }, ic:'send', kind:'issue-signing',
         guide:`${who} has said they are ready to sign. Nothing is signed yet.` };
     }
@@ -3942,6 +4016,8 @@ function wsNextAction(c){
      because it is genuinely earlier: without it the page told a reader to go
      to the Signing tab and sign, on a contract where the Sign button, the
      share dialog and the server would all have refused. */
+  if(theySign) return { get label(){ return hoHeadLabel(c); }, ic:'send', kind:'ho-hand',
+    get guide(){ return i18t('ho_guide_hand'); } };
   if(window.signingRouteOpen && !signingRouteOpen(c))
     return { get label(){ return i18t('ct_add_signers'); }, ic:'users', kind:'add-signers',
       get guide(){ return i18t('ct_name_who_signs_guide',{ them:c.counterparty||i18t('ct_a_counterparty') }); } };
@@ -3958,8 +4034,15 @@ function wsNextAction(c){
    from renderSignButton, the one paint every act ends in. */
 function signPaintHeadLabel(c){
   const na=document.getElementById('ws-next-action');
-  if(!na||na.getAttribute('data-na')!=='sign') return;
+  if(!na) return;
+  if(na.getAttribute('data-na')==='ho-hand'){ na.innerHTML=`${icon('send','w-3.5 h-3.5')} ${esc(hoHeadLabel(c))}`; return; }
+  if(na.getAttribute('data-na')!=='sign') return;
   na.innerHTML=`${icon('finger','w-3.5 h-3.5')} ${esc(signHeadLabel(c))}`;
+}
+/* The handover's own word, quoting the same one reading Sign quotes. */
+function hoHeadLabel(c){
+  let n=0; try{ n=window.signReadiness?signReadiness(c).n:0; }catch(_){ n=0; }
+  return n?i18tn('ho_btn_to_settle',n,{n}):i18t('ho_hand_btn');
 }
 /* The head's word for the act, quoting the one reading: the count of what
    holds, or plainly "Sign". */
@@ -4089,6 +4172,19 @@ function wireActionBar(c){
     if(kind==='issue-signing'){ issueSigningAct(c); return; }
     if(kind==='share'){ openShareModal(c); return; }
     if(kind==='terms'){ focusKeyTerms(c); return; }
+    /* A FILE THEY SIGN: the handover and the filing are the Signing tab's own
+       acts, pressed from here as its own button presses them — one act, two
+       doors (26 Sep 2026). */
+    if(kind==='ho-hand'||kind==='ho-file'){
+      const go=()=>{
+        if(kind==='ho-file'){ if(window.openOutsideFiling) openOutsideFiling(c); return; }
+        let holds=0; try{ holds=window.signReadiness?signReadiness(c).n:0; }catch(_){ holds=0; }
+        if(holds){ signLandOnList(c); return; }
+        if(window.openHandoverWindow) openHandoverWindow(c);
+      };
+      if(_wsTab==='sign'){ go(); return; }
+      roomGoTab(c,'sign'); setTimeout(go,180); return;
+    }
     /* The reading rung: put the document in front of them and open the Checks
        card's own panel, rather than leaving "run the checks" as an instruction
        to go and find something. */
@@ -12837,8 +12933,12 @@ function wireDocCanvas(c){
      The places to sign — and the "Sign here" on the parties' lines — are
      drawn where signing happens and nowhere else. */
   const _signCopy=docCopyOf(c)==='sign';
-  if(_signCopy&&window.signSpotsPaint) signSpotsPaint(c);
-  if(_signCopy&&!docSealedCopy(c)&&window.pagesSignFlags){
+  /* …AND NOT ON A FILE THEY SIGN (26 Sep 2026): the signing happens in their
+     own design, somewhere HaTi is not, so "Sign here" on HaTi's page would be
+     a promise this page cannot keep. */
+  const _theySign=!!(window.signRouteOf&&signRouteOf(c)==='outside');
+  if(_signCopy&&!_theySign&&window.signSpotsPaint) signSpotsPaint(c);
+  if(_signCopy&&!_theySign&&!docSealedCopy(c)&&window.pagesSignFlags){
     const cv=document.getElementById('doc-canvas');
     if(cv) pagesSignFlags(cv, PORTAL_MODE?1:0);
   }
@@ -13714,17 +13814,31 @@ function renderSignButton(c){
     renderSignSide(c);
     return;
   }
+  /* ---- THEY RUN THE SIGNING (26 Sep 2026, redline here, sign there) ----
+     On a file they sign, this tab is the handover and then the wait: the one
+     filled button is Hand over for signing, and after it File the signed copy.
+     js/views/handover.js draws both, reading the same one list this button
+     reads, so the two routes cannot disagree about what is ready. */
+  if(window.renderOutsideSign && window.signRouteOf && signRouteOf(c)==='outside'){ renderOutsideSign(c); return; }
   if(!canEdit()){
     wrap.innerHTML=`<div class="text-center text-[11px] text-brand-800/65 py-2">${i18t('ct_viewer_no_signing')}</div>`;
     return;
   }
   // The other way a deal ends. Offered once the wording is settled, because
   // until then there is nothing to have signed on paper.
-  const paperRoute = !((window.negoSigningBlockers ? negoSigningBlockers(c).length
-      : (window.unresolvedRedlines && unresolvedRedlines(c))))
-    ? `<button id="sign-paper" type="button" class="ui-link" style="display:flex;width:100%;justify-content:center;margin:8px 0 0">${i18t('ct_signed_on_paper_q')}</button>`
+  /* ---- "SIGNED ON PAPER INSTEAD?" IS NOW THE ROUTE ITSELF (26 Sep 2026) ----
+     The old door filed a scan past the value approvals, the checks and the
+     brief, and the server never asked about any of them (the fifth fault the
+     design named). A contract they sign their way — on paper, in DocuSign, in
+     their own system — is HANDED OVER first, where every one of those is
+     asked, and its signed copy is filed through the check of its words. The
+     link says so and switches the route; it is offered for as long as the
+     route can still change: nobody has signed and nothing is handed over. */
+  const paperRoute = (window.outsideMayChangeRoute && outsideMayChangeRoute(c))
+    ? `<button id="sign-paper" type="button" class="ui-link" style="display:flex;width:100%;justify-content:center;margin:8px 0 0">${i18t('ho_they_sign_q')}</button>`
     : '';
-  const wirePaper = () => document.getElementById('sign-paper')?.addEventListener('click',()=>openPaperSignatureModal(c));
+  const wirePaper = () => document.getElementById('sign-paper')?.addEventListener('click',()=>{
+    if(window.outsideSetRoute) outsideSetRoute(c,'outside'); });
   const appr=approvalState(c);
   const ns=nextSigner(c), planned=signerPlan(c).length>0;
   /* ---- THE BUTTON ASKS EXACTLY WHAT THE HANDLER ASKS ----
@@ -14087,6 +14201,8 @@ function signRowTitle(c,r){
     case 'blanks': return t('sc_row_blanks');
     case 'fields': return t('sc_row_fields');
     case 'spots': return t('sc_row_spots');
+    case 'ho-signatory': return t(r.settled?'ho_sig_row':'ho_sig_row_none');
+    case 'ho-blanks': return t('ho_blanks_row');
     default: return String(r.short||r.label||r.kind);
   }
 }
@@ -14221,7 +14337,17 @@ function signCheckCardHtml(c){
         }
         break; }
       case 'signers': acts.push(verb('data-sc-signers','1','ct_add_signers')); break;
+      /* OUR SIGNATORY, ON THE OUTSIDE ROUTE: asked and never held. Unnamed,
+         the row says what skipping costs; named, it says who. The door is the
+         signing order's own — the row lands on the card that owns the act. */
+      case 'ho-signatory':
+        if(r.settled) why=i18t('ho_sig_named',{who:(r.who&&r.who.name)||'',title:(r.who&&r.who.role)||''}).replace(/\s·\s$/,'');
+        else { why=i18t('ho_sig_cost'); acts.push(verb('data-sc-signers','1','ho_name_signatory')); }
+        break;
       case 'negotiation': why=r.label; acts.push(verb('data-sc-nego','1','sc_open_nego')); break;
+      /* A blank in the agreed words is filled by proposing the words — the
+         negotiation's job, on their paper as on ours. */
+      case 'ho-blanks': why=r.label; acts.push(verb('data-sc-blanks','nego','sc_open_nego')); break;
       case 'counterparty': case 'value': why=r.label; acts.push(verb('data-sc-fix',r.kind,'sc_fill_btn')); break;
       case 'placeholders': case 'fields': why=r.label; acts.push(verb('data-sc-docs','1','sc_open_doc')); break;
       /* ---- AN EMPTY BOX: THE DOOR THAT CAN STILL FILL IT (23 Sep 2026) ----
@@ -14382,7 +14508,7 @@ function signCheckCardHtml(c){
      THE HEAD DRAWS NO CONTROL: it carried this one and nothing else. */
   return `<section id="sign-check" class="kt-tri sc-ready${busy?' is-busy':''}">
     <div class="kt-tri-head">
-      <span class="kt-tri-t">${esc(i18t(busy?'sc_head_busy':'sc_ready_head'))}${counts?` <span class="sc-counts">${esc(counts)}</span>`:''}</span>
+      <span class="kt-tri-t">${esc(i18t(busy?'sc_head_busy':(window.signRouteOf&&signRouteOf(c)==='outside'?'ho_ready_head':'sc_ready_head')))}${counts?` <span class="sc-counts">${esc(counts)}</span>`:''}</span>
     </div>
     ${openRows||settledRows?`<div class="sc-finds">${openRows}${settledRows}</div>`
       :`<div class="sc-find-w sc-clear">${esc(i18t('sc_head_clear'))}</div>`}
@@ -14545,7 +14671,10 @@ function renderSignSide(c){
     ${''/* THE CHECK, ABOVE THE GATE AND THE ORDER: it is about whether this
            wording should be signed at all, which is a question that comes
            before who signs it and in what order. */}
-    ${signCheckCardHtml(c)}
+    ${''/* OUT WITH THEM (26 Sep 2026): the list was asked at the handover; what
+           this column says now is where the wait stands and what can be done
+           about it. js/views/handover.js draws the card. */}
+    ${(window.handoverActive&&handoverActive(c)&&window.outsideWaitCardHtml)?outsideWaitCardHtml(c):signCheckCardHtml(c)}
     ${chain?`<section style="${CARD}"><h6 style="${H};margin-bottom:9px">${i18t('ct_approval_gate')}</h6>${chain}</section>`:''}
     <section id="signing-order" style="${CARD}">
       <div style="display:flex;align-items:center;gap:9px;margin-bottom:9px">
@@ -14560,16 +14689,17 @@ function renderSignSide(c){
              sentence describing an arrangement that does not exist is how
              somebody sends a contract out believing it can be signed. */}
       ${route||`<p style="margin:0 0 10px;font-size:var(--t-meta);line-height:1.55;color:var(--st-amber-fg)">${
-        esc(i18t('ct_no_route_blocks',{them:c.counterparty||i18t('ct_a_counterparty')}))}</p>`}
+        esc((window.signRouteOf&&signRouteOf(c)==='outside')?i18t('ho_sig_row_none'):i18t('ct_no_route_blocks',{them:c.counterparty||i18t('ct_a_counterparty')}))}</p>`}
       ${may?`<button id="sp-add-signer" class="ui-btn ui-btn-sm" style="width:100%;justify-content:center;margin-top:${route?'8px':'0'}">${icon('users','w-3.5 h-3.5')} ${plan.length?'Add or reorder signers':'Add signers'}</button>`:''}
-      ${may?`<p style="margin:7px 0 0;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-500)">Internal signers sign here; each counterparty signer gets their own link, held until every internal signature is in. The seal lands with the last one.</p>`:''}
+      ${may?`<p style="margin:7px 0 0;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-500)">${(window.signRouteOf&&signRouteOf(c)==='outside')?esc(i18t('ho_order_note')):'Internal signers sign here; each counterparty signer gets their own link, held until every internal signature is in. The seal lands with the last one.'}</p>`:''}
     </section>
     ${''/* ---- AND THE PLACES ON THE PAPER, UNDER THE ORDER THEY BELONG TO (J-1)
            A spot belongs to a row on the signing order (D-2), so the list of
            spots reads directly under that order and not somewhere else in the
            column. It draws nothing when there is nothing to say. */}
-    ${window.signSpotsCardHtml?signSpotsCardHtml(c,{CARD,H,may}):''}`;
+    ${(window.signSpotsCardHtml&&!(window.signRouteOf&&signRouteOf(c)==='outside'))?signSpotsCardHtml(c,{CARD,H,may}):''}`;
   host.querySelector('#sp-add-signer')?.addEventListener('click',()=>openSignerPlanEditor(c));
+  if(window.wireOutsideWait) wireOutsideWait(c, host.querySelector('#ho-wait'));
   /* ---- THE CHECK'S ACTS, BOUND IN THE ONE PAINT OF THIS HOST ----
      Each press repaints the column AND the Sign button, because both read the
      same answer: the card says what is open and the button refuses while the
@@ -15237,6 +15367,20 @@ function signBlockers(c){
   /* `extra` is additive: the empty-box row carries WHICH boxes (`fields`), so
      the Overview can mark the one it owns and the row can choose its door. */
   const add=(key,label,short,extra)=>out.push({ key, label, short, ...(extra||{}) });
+  /* ---- THE SAME LIST HOLDS THE HANDOVER (26 Sep 2026, redline here, sign
+     there) ----
+     Where THEY run the signing, what this list holds is the handover, not a
+     signature in HaTi — it is the last moment HaTi can still stop one. So it
+     asks everything it asks before a signature, less the four questions about
+     a signing HaTi will not run: whose turn it is, both sides' signers, the
+     places on the paper, and the reader's own signing limit — which become
+     OUR SIGNATORY's limit and folders, read off the signing order, because
+     that is who will sign. One list, so the button, the card and the server's
+     reading of "is it ready" cannot drift. */
+  const outside=!!(window.signRouteOf && signRouteOf(c)==='outside');
+  const sigUser=outside ? (()=>{ const row=window.outsideSignatory?outsideSignatory(c):null;
+    const id=row&&row.memberId; const us=(typeof getUsers==='function'?getUsers():[])||[];
+    return id?us.find(x=>x&&String(x.id)===String(id))||null:null; })() : null;
   /* ---- A CONTRACT IN DISPUTE IS NOT SIGNED (upgrade 8, 18 Sep 2026) ----
      FIRST in the list, because it is the one blocker that is not about this
      contract being ready — it is about it being evidence. The server refuses
@@ -15277,7 +15421,7 @@ function signBlockers(c){
   /* WHOSE TURN IT IS. A counterparty step is collected on their own link, so
      the in-app button has nothing to do — which the panel has always said and
      the handler has always refused. */
-  try{
+  if(!outside) try{
     const plan=(window.signerPlan?signerPlan(c):[]);
     const ns=(window.nextSigner?nextSigner(c):null);
     if(plan.length && ns && ns.party!=='internal')
@@ -15307,7 +15451,7 @@ function signBlockers(c){
      a route, and the head's own next act says "Add signers". The in-app Sign
      button was the one door that did not ask, so it joins the list here —
      one row, holding, with the editor as its verb on the readiness card. */
-  try{
+  if(!outside) try{
     if(window.signingRouteMissing && signingRouteMissing(c))
       add('signers', i18t('ct_no_route_blocks',{them:c.counterparty||i18t('ct_a_counterparty')}), i18t('sc_short_signers'));
   }catch(_){}
@@ -15318,6 +15462,20 @@ function signBlockers(c){
       : b.key==='value'?'add the contract value'
       : b.key==='blanks'?i18t('sc_short_blanks') : 'fill the blanks in the wording',
       Array.isArray(b.fields)?{ fields:b.fields.slice() }:null);
+  /* ---- A BLANK STILL IN THE AGREED WORDS (26 Sep 2026, redline here, sign
+     there) ----
+     "[amount]" handed over is "[amount]" agreed. On the inside route their
+     paper's brackets are theirs (contractPlaceholders refuses an upload by
+     name); on this route the words we hand over ARE the agreement, and once
+     they have them HaTi cannot stop a signature. So a blank holds the
+     handover, named, and the way forward is the negotiation — the words are
+     proposed and agreed there, like any other change. */
+  if(outside && !(window.handoverActive&&handoverActive(c))) try{
+    const bl=window.outsideBlanksOf?outsideBlanksOf(c):[];
+    if(bl.length) add('ho-blanks',
+      i18tn('ho_blanks_hold',bl.length,{n:bl.length,list:bl.slice(0,4).join(', ')+(bl.length>4?', …':'')}),
+      i18t('ho_blanks_short'), { blanks:bl.slice() });
+  }catch(_){}
   try{
     if(c.templateForm && window.templateFormProblems){
       const probs=templateFormProblems(c.templateForm);
@@ -15334,7 +15492,7 @@ function signBlockers(c){
      NEVER the desk and never the review gate — those two came OFF this list on
      12 Aug 2026 for their own reasons and this is not them coming back. */
   try{
-    const cap=(window.signCapBlocker)?signCapBlocker(c):null;
+    const cap=(window.signCapBlocker)?(outside?(sigUser?signCapBlocker(c,sigUser):null):signCapBlocker(c)):null;
     if(cap) add(cap.key, cap.label, cap.short);
   }catch(_){}
   /* ---- AND WHICH FOLDERS THEY MAY SIGN IN ----
@@ -15343,14 +15501,14 @@ function signBlockers(c){
      rights; this is the second one, and it also answers null until an admin
      turns its own default-OFF switch on. */
   try{
-    const fb=(window.signFolderBlocker)?signFolderBlocker(c):null;
+    const fb=(window.signFolderBlocker)?(outside?(sigUser?signFolderBlocker(c,sigUser):null):signFolderBlocker(c)):null;
     if(fb) add(fb.key, fb.label, fb.short);
   }catch(_){}
   /* ---- AND THE PLACES ON THE PAPER THAT STILL NEED THIS READER (J-1, D-3) ----
      It joins THIS list rather than becoming a gate of its own, so the disabled
      button and the refusal read the same sentence. MINE ONLY: a spot waiting on
      the other side is not a reason this reader cannot sign. */
-  try{
+  if(!outside) try{
     const sp=signSpotBlocker(c);
     if(sp) add(sp.key, sp.label, sp.short);
   }catch(_){}
