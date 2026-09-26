@@ -19244,3 +19244,18 @@ Noticed, not fixed
 - home.js keeps emailSetupLineHtml, which nothing calls; its "Set it up" is still the old underlined amber text.
 - The wizard's streams picker (kept whole and dormant) still draws "← All streams" as a typed arrow; nothing opens it.
 - The Compare dialog's mode switch sets its own padding (5px) and sits at about 26px; it was not in the review's list.
+
+## Run 26 Sep 2026 — three button inconsistencies written up as a work order, and three designs for the two lists (no code)
+
+- On the owner's word, over three screenshots (Approvals & signing, Home, the Document tab): "Put these in a work job to be fixed. Prior to fixing these, I first need you to give me examples of how we can improve the design for the contracts and negotiations contract lists design ... No coding yet". Nothing in the product changed.
+- Work order WORKORDER-button-consistency.md, measured in a real browser on the merged tree (bddd8e1): (1) a button's words never wrap: "Open the gate" breaks onto two lines (88 x 31) once long titles squeeze its column to 116px, "Value >= SEK 5M" breaks beside it and the Value column is clipped; the cause is white-space:normal on every button family and no floor on a column that holds buttons. (2) Home's Prepared for you verbs are a hand-sized family the Compact ladder missed (28px, 13px, weight 600, filled on every row) beside Needs your decision's 22px row verbs. (3) Three outline colours in one control row, read pixel by pixel off the owner's own screenshot (navy on the view switch, #CBD3D0 on Export and Open Negotiate, #E2E7E5 on the text-size stepper), and the full list by colour across the app. Order 1 -> 3 -> 2, to be built before the chosen list design.
+- Three designs for the Contracts and Negotiations lists, following the design-options habit, drawn full size beside today's pages photographed on the same sample book (Swedish market so money reads SEK, an owner on every contract, a signed day on every executed one, six negotiations waiting on us and three with the other side): Ledger (one calm line per contract, the table's tools on the table), Worklist (grouped by the next step, with counts, values and a verb per row), Inspector (the list with a facts panel beside it). Recommended Ledger. Published as the private page "Contract List Options". Waiting on the owner's pick.
+
+Noticed, not fixed
+- The Contracts head says "29 agreements" (it leaves out the declined contract) while the All tab under it says 30.
+- On the Contracts table at 1180 wide the row-menu cell is 28px and its button 35px, so the menu button is cut.
+- The Obligations page's dropdowns draw the light #E2E7E5 edge while dialog fields draw --field-line.
+- The Negotiations page shows the Contracts page's quick views (Expiring <= 90 days, Term already ended, Auto-renewing soon, Overdue obligations, Archived); none of them applies to a negotiation.
+- The Negotiations table cuts "Round 1" to "Roun..." in its Type · Round column at 1440 wide.
+- The shell bar names that page "Negotiate" while the page's own title says "Negotiations".
+- The &amp; double-escape in the Contracts and Negotiations rows (logged 25 Sep) is still there.
