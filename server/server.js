@@ -8862,6 +8862,10 @@ function normalizeDeliver(input, cx) {
      because the id is still true even when the quote is not, and dropping the
      card would hide which contract the answer leaned on. */
   let quoteDrops = 0;
+  /* The wording the browser sent under wholeDoc (see the chat routes): a
+     drafted contract's paper exists only where it is painted, and a quote
+     from it is checked against the copy the model actually read. */
+  const sent = (cx && typeof cx.sentText === 'string' && cx.sentText) ? quoteNorm(cx.sentText) : '';
   for (const c of citations) {
     if (!c.quote) continue;
     const nq = quoteNorm(c.quote);
@@ -8870,6 +8874,7 @@ function normalizeDeliver(input, cx) {
     const cj = copilotGetJson(cx, c.id);
     const body = cj ? quoteNorm(contractFullBody(cj)) : '';
     if (body.includes(nq)) continue;
+    if (sent && sent.includes(nq)) continue;
     c.quote = '';
     c.quoteDropped = true;
     quoteDrops++;
@@ -8934,6 +8939,16 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
       return { role: m.role, content: m.content.slice(0, cap) };
     });
   if (!convo.length || convo[convo.length - 1].role !== 'user') return res.status(400).json({ error: 'the last message must be from the user' });
+  /* ---- A QUOTE IS CHECKED AGAINST WHAT THE MODEL WAS SHOWN (26 Sep 2026, the
+     graph's Analyze contract) ----
+     Under wholeDoc the last message CARRIES the wording the browser painted —
+     for a drafted contract that is template paper this server never renders
+     (contractFullBody holds no copy of it), so a quote copied from it word for
+     word verified against nothing and was dropped. normalizeDeliver reads this
+     beside the stored body: a quote has to appear in one or the other, and the
+     browser then finds it on the painted paper or draws nothing. The wall
+     stands; it was measuring the wrong copy. */
+  if (wholeDoc) cx.sentText = convo[convo.length - 1].content;
 
   const system = buildCopilotSystem(context, cx);
   const working = convo.slice();
@@ -9240,6 +9255,16 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
       return { role: m.role, content: m.content.slice(0, cap) };
     });
   if (!convo.length || convo[convo.length - 1].role !== 'user') return res.status(400).json({ error: 'the last message must be from the user' });
+  /* ---- A QUOTE IS CHECKED AGAINST WHAT THE MODEL WAS SHOWN (26 Sep 2026, the
+     graph's Analyze contract) ----
+     Under wholeDoc the last message CARRIES the wording the browser painted —
+     for a drafted contract that is template paper this server never renders
+     (contractFullBody holds no copy of it), so a quote copied from it word for
+     word verified against nothing and was dropped. normalizeDeliver reads this
+     beside the stored body: a quote has to appear in one or the other, and the
+     browser then finds it on the painted paper or draws nothing. The wall
+     stands; it was measuring the wrong copy. */
+  if (wholeDoc) cx.sentText = convo[convo.length - 1].content;
 
   // From here on the response is an event stream — errors travel as events.
   res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });

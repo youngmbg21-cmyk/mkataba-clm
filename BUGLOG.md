@@ -19424,3 +19424,20 @@ Deliberately left alone (said to the owner)
 
 Noticed, not fixed
 - f387 (2e) and (4c) count days from the clock: the fixture builds its dates with setDate on "now" and slices the UTC day, so "in 45 days" / "in 30 days" read one day short in the evening (29 against 30 at 20:40 UTC). Same at main.
+
+## Run 26 Sep 2026 (night) — Analyze contract on the Contract Graph
+
+- On the owner's word, over the "Analyze on the Graph" page (Sheet, Pinned, Focus, then "all three in one"): "Build the all in one option and merge to main. Start from the latest main." Built on claude/optimistic-curie-fself4 from main (e985b16).
+- Built: the Intelligence panel's card carries three doors — Analyze contract (filled), Open workspace, Compare. Analyze puts the contract's read-only working copy where the nodes were (the graph is covered, never rebuilt; the paper is hidden, never torn down); the column's strip carries a Graph | Paper switch, the reference, the pins count with Clear, Focus and Open workspace; the panel's questions go out with the contract's wording behind them (the clause editor's whole-contract shape) and the box says which contract, its hover the cost; every verbatim passage the server keeps comes back as a chip under the answer, pins the words on the paper (a numbered disc in the margin, amber where the words are an obligation's own recorded quote) and lights them; a pin press finds its answer in the panel; the X-ray's own map runs beside the paper with the answers' clauses in steel; Focus folds the page head away (written on the element, since the head states its display inline); Escape leaves it; the panel's bin ends the analysis with the conversation. Every widening additive: docSheetHtml(c, o), docReadSheet(c, root), docXrayRows(c, root), scrollToQuote(quote, opts), scanCanvas naming #ig-canvas third, docXraySpineRows published.
+- The server had one thing wrong that no drawing showed: a citation's quote was verified against the stored body only, and a drafted contract's template paper is never stored, so every quote from it was dropped and no pin could land there. Under wholeDoc both chat routes now hand the wording the model was shown to the check (cx.sentText); a quote in neither is still dropped. Proved on MK-A2 (template paper) in the browser file.
+- Found only on the rendered page: docXraySpineRows was not published, so the map drew nothing; the head's inline display defeated the Focus rule; the map strip had no width (the Document tab writes it on the element); three buttons overflowed the card and Compare was cut off. All four fixed.
+- Gates: lint 0 errors, 178 warnings (unchanged). Full suite: 4 claims failed — f277 (1) and (10), f387 (2e) and (4c) — the same four that fail on main (f277's two re-run at main's code: red there; f387's two count days from the clock, logged last run). f392: 35 claims, 33 red at the parent (two named walls pass on both). analyze-on-the-graph-verify: 26 checks, 26 pass on the real app against a scripted provider; red at the parent because the door does not exist there. insights-panels-verify 84/84, two-copies-verify 28/28, runway-and-xray-verify 42/42 unchanged. f364 (4) re-pointed in place (the walk's optional root).
+
+Deliberately left alone (said to the owner)
+- A second Analyze on another contract starts a fresh paper and the first paper's pins go with it; pins live for the sitting — keeping one is a note, which already exists.
+- The Document tab's highlight menu and the clause editor's Copilot keep their own doors onto "ask about this wording"; this is a second door on the graph page, asked for by name.
+- Focus was drawn as a full-window layer and built as a fold of the page's own head — the drawing's cost, not paid.
+
+Noticed, not fixed
+- f277 (1) and (10) are red at the parent (the switch has three positions since X-ray; the layer's surface token) and left red.
+- On a paper where the same passage appears twice, the pin lands on the first; the risk scan's own finder has the same reading.

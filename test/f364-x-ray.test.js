@@ -165,7 +165,10 @@ describe('f364 (3) placement is certainty about one clause', () => {
    ==========================================================================*/
 describe('f364 (4) the two positions see the same clauses', () => {
   test('the map reads docReadSheet, which is what the edition pairs against', () => {
-    assert.ok(/docReadSheet==='function'\)\?docReadSheet\(c\)/.test(region('docXrayRows')));
+    /* Re-pointed 26 Sep 2026: the walk takes an optional root (the graph's
+       Analyze contract hands it its own canvas); the claim is the READING it
+       asks, not the argument list. */
+    assert.ok(/docReadSheet==='function'\)\?docReadSheet\(c(?:, ?root)?\)/.test(region('docXrayRows')));
   });
   test('the share is worked out once, off that one walk', () => {
     const f = region('docXrayRows');

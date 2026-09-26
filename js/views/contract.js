@@ -2911,18 +2911,25 @@ function docSignPaperParts(b){
   const sheet=frame ? (all.match(/--doc-design-accent:[^;]*;/)||[''])[0] : all;
   return { sheet, frame };
 }
-function docSheetHtml(c){
-  const mode=docCopyOf(c);
+/* `o` (26 Sep 2026, the graph's Analyze contract) is ADDITIVE — the room
+   passes none and gets exactly what it got: `copy` names the copy where the
+   caller is not on a tab ('work' for a reading copy off the room), `canvasId`
+   the article's id (the room keeps #doc-canvas; the graph's paper is
+   #ig-canvas, so scanCanvas can tell the two apart), `readOnly` the projection
+   whatever docFillable says (a reading copy is never typed in). */
+function docSheetHtml(c, o){
+  o=o||{};
+  const mode=o.copy||docCopyOf(c);
   const up=isUpload(c);
   const b=(!up&&window.resolveDocBranding)?resolveDocBranding(c):null;
   if(mode==='work'){
-    const body=docFillable(c)?docBody(c):readOnlyDocHtml(docBody(c));
+    const body=(!o.readOnly&&docFillable(c))?docBody(c):readOnlyDocHtml(docBody(c));
     const accent=(b&&window.docDesignPaperStyle)?((docDesignPaperStyle(b).match(/--doc-design-accent:[^;]*;/)||[''])[0]):'';
     /* The design's TYPEFACE comes (docDesignBodyAttr); its structure and its
        page decorations do not — the working copy looks the same whatever the
        design, apart from the typeface. */
     return `<div class="blueprint pg-sheet pg-work" data-copy="work"${b&&window.docDesignBodyAttr?docDesignBodyAttr(b):''} style="padding:34px var(--s-10) 44px;max-width:var(--doc-sheet-max,${DOC_PAGE_W}px);margin:0 auto;border-radius:0;${accent}">
-      <article id="doc-canvas" class="doc-surface" style="background:transparent">${body}</article>
+      <article id="${o.canvasId||'doc-canvas'}" class="doc-surface" style="background:transparent">${body}</article>
     </div>`;
   }
   return signCopySheetHtml(c);
@@ -10833,8 +10840,11 @@ const _docReadLead=el=>{
    that was nothing but a number is the number again — printed, that is the
    reported duplication. */
 const _docReadName=t=>{ const s=String(t||'').trim(); return /[A-Za-zÀ-ÿ]/.test(s)?s:''; };
-function docReadSheet(c){
-  const canvas=document.getElementById('doc-canvas');
+/* `root` (26 Sep 2026, the graph's Analyze contract) is ADDITIVE: the walk
+   reads the canvas it is handed, and #doc-canvas where it is handed none —
+   every older caller passes none. */
+function docReadSheet(c, root){
+  const canvas=root||document.getElementById('doc-canvas');
   if(!canvas) return [];
   const name=_docReadNorm(c&&c.name);
   /* WHERE THE LAST ROW STOPS: the first piece of furniture that FOLLOWS it in
@@ -12283,8 +12293,8 @@ function docXrayClauseId(row){
    they cannot print three different answers about the same clause. It borrows
    docReadSheet — the painted page as the plain-English column already reads
    it — so the two positions of the switch see exactly the same clauses. */
-function docXrayRows(c){
-  const rows=(typeof docReadSheet==='function')?docReadSheet(c):[];
+function docXrayRows(c, root){
+  const rows=(typeof docReadSheet==='function')?docReadSheet(c, root):[];
   const out=rows.map((r,i)=>{
     const marks=docXrayMarks(c,r);
     return { i, el:r.el, row:r, words:_xrWords(docXrayRowText(r)), marks, tone:docXrayTone(marks),
@@ -16067,7 +16077,7 @@ Object.assign(window,{paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,
   DOC_XRAY_QUOTE_MIN,docXrayPlace,docXrayMarks,docXrayTone,docXrayClauseId,docXrayRows,
   XR_GRADES,XR_SEV_GRADE,docXrayBriefWatch,docXrayBriefOdd,docXrayRowText,docXrayWide,docXrayMarkHtml,
   XR_WD_MAX,XR_WD_WORDS,XR_WD_SIDES,XR_WD_CHIPS,XR_WD_BAL,XR_MODAL_RE,XR_RIGHT_RE,XR_LIMIT_RE,XR_BOTH_RE,xrSentences,xrClauseBlocks,xrPartyNames,xrSideByName,xrActOf,xrPlaceObligations,docXrayWho,docXrayWhoHtml,xrWhoChip,xrWhoTracked,
-  docXrayLabel,docXraySpineHtml,docXraySegH,XR_SEG_MIN,XR_SEG_MAX,docXrayFollow,docXrayPanelHtml,docXrayPaint,docXrayWire,
+  docXrayLabel,docXraySpineHtml,docXraySpineRows,docXraySegH,XR_SEG_MIN,XR_SEG_MAX,docXrayFollow,docXrayPanelHtml,docXrayPaint,docXrayWire,
   docReadSheet,docReadClauses,docReadSig,docReadAnchors,docReadSwitchHtml,docReadPaint,docReadSync,
   docReadFront,docReadMirrorStyle,docReadMirrorToc,
   docReadRun,wireDocRead});
