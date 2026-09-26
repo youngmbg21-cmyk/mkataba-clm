@@ -4624,6 +4624,10 @@ function renderRenewalSection(c){
     const b=ev.currentTarget; b.disabled=true; b.textContent=i18t('ct_working');
     const had=!!c._renewalAdvice;
     const r=await runRenewalAdvice(c,{force:had});
+    /* The note is stored on its own contract; where the reader has opened
+       another one meanwhile, this card is not repainted over theirs (26 Sep
+       2026, the overnight clean-up — see contractOnScreen). */
+    if(window.contractOnScreen && !contractOnScreen(c)) return;
     renderRenewalSection(c);
     if(!r&&!had){ const b2=document.querySelector('[data-rn-ask]'); if(b2){ b2.disabled=false; b2.textContent=i18t('rn_ask'); } }
   });

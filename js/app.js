@@ -2600,11 +2600,15 @@ function activityPanelHtml(){
           <span class="live-ping" style="width:6px;height:6px;border-radius:50%;background:var(--st-green-dot);"></span>${i18t('ap_scope_workspace')}
         </div>
         ${feed.length?feed.map(a=>`
-          <button data-sel-act="${a.id}" style="display:flex;gap:9px;width:100%;padding:7px 2px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
+          <button data-sel-act="${esc(a.id)}" style="display:flex;gap:9px;width:100%;padding:7px 2px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
             <span style="width:8px;height:8px;border-radius:50%;background:${CAT_DOT[a.cat]};flex:none;margin-top:var(--s-1);"></span>
-            <span style="flex:1;min-width:0;">
-              <span style="display:block;font-size:var(--t-meta);line-height:1.4;">${a.txt}</span>
-              <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-500);margin-top:1px;font-family:var(--font-mono);">${a.ref||a.id} · ${a.when}</span>
+            <span style="flex:1;min-width:0;">${/* THE TRAIL IS STORED TEXT AND IS PRINTED AS TEXT (26 Sep 2026, the
+                 overnight clean-up): a line's detail carries whatever a
+                 colleague typed — an obligation's wording, a clause name — and
+                 printed raw, an <img onerror> in it ran in the admin's session
+                 the moment the panel opened (measured). */''}
+              <span style="display:block;font-size:var(--t-meta);line-height:1.4;">${esc(a.txt)}</span>
+              <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-500);margin-top:1px;font-family:var(--font-mono);">${esc(a.ref||a.id)} · ${esc(a.when)}</span>
             </span>
           </button>`).join(''):`<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:var(--s-3) 2px;">${i18t('ap_no_activity')}</div>`}
       </div>`;

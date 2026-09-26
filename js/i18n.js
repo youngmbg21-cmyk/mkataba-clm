@@ -4716,6 +4716,7 @@ const STRINGS = {
     ob_f_due_90: '90 days',
     ob_none_match: 'Nothing matches these filters. Clear them to see the whole book.',
     ob_open_contract: 'Open',
+    ob_found_elsewhere: 'The obligations scan on {ref} has finished — {n} to review',
     /* ---- THE WORKLIST READS AS A TABLE (M-6) ---- */
     ob_col_what: 'Obligation',
     ob_col_side: 'Side',
@@ -13360,6 +13361,7 @@ const STRINGS = {
     ob_f_due_90: '90 dagar',
     ob_none_match: 'Inget matchar dessa filter. Rensa dem för att se hela boken.',
     ob_open_contract: 'Öppna',
+    ob_found_elsewhere: 'Åtagandeskanningen av {ref} är klar — {n} att granska',
     ob_col_what: 'Skyldighet',
     ob_col_side: 'Sida',
     ob_col_who: 'Vem',

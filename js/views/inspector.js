@@ -204,7 +204,11 @@ function insReads(c){
    light list strips `audit`, and "nothing has happened" is a claim this
    panel may only make once it has read the record. */
 function insLatest(c){
-  if (!c || !Array.isArray(c.audit)) return null;
+  /* A LIGHT ROW IS NOT AN EMPTY TRAIL (26 Sep 2026, the overnight clean-up):
+     migrateContract gives every row an `audit: []` to stand on, so asking only
+     "is it an array" answered "nothing recorded yet" for every contract the
+     list had not loaded — and never loaded it (measured). */
+  if (!c || !Array.isArray(c.audit) || (c._light && !c._loaded)) return null;
   return c.audit.filter(Boolean).slice()
     .sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')))
     .slice(0, INS_LATEST)

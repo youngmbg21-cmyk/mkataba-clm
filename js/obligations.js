@@ -831,7 +831,18 @@ function openObligationForm(c, seed){
     document.getElementById('of-doc-wrap')?.classList.toggle('hidden', !e.target.checked); });
   document.getElementById('of-cancel').addEventListener('click',closeModal);
   document.getElementById('of-save').addEventListener('click',()=>{
-    const o={ id:seed.id||('ob_'+Math.abs((Date.parse(nowISO())+(c.obligations||[]).length)).toString(36)),
+    /* ---- AN EDIT KEEPS WHAT THE FORM DOES NOT OWN (26 Sep 2026, the
+       overnight clean-up) ----
+       This built a FRESH object and put it in the old one's place, so editing
+       the wording of an obligation somebody had already chased and completed
+       erased when it was done, by whom and why, when it was chased and by whom,
+       its series and where it came from (measured: "Completed date unknown").
+       The fields this form draws are written below as before; every other key
+       on the record rides through. */
+    const OWNS=new Set(['_i','id','desc','due','recurring','party','assignee','status','quote','after','amount','doc']);
+    const kept={};
+    if(seed._i!=null) Object.keys(seed).forEach(k=>{ if(!OWNS.has(k)) kept[k]=seed[k]; });
+    const o={ ...kept, id:seed.id||('ob_'+Math.abs((Date.parse(nowISO())+(c.obligations||[]).length)).toString(36)),
       desc:document.getElementById('of-desc').value.trim(), due:document.getElementById('of-due').value,
       recurring:document.getElementById('of-recur').value,
       party,
@@ -945,6 +956,20 @@ function openObligationForm(c, seed){
    two doors do not read the same word (one is a card row, one is a tab act),
    and a helper that put one word back on both would rename the other. */
 const OB_FIND_DOORS = ['ob-find', 'obt-find'];
+/* ---- ONE SCAN PER CONTRACT AT A TIME (26 Sep 2026, the overnight clean-up) ----
+   The busy state lived only on the button, and the Obligations tab draws its
+   button fresh on every arrival — so a reader who pressed Find obligations,
+   looked at the Document tab and came back found it live again, and a second
+   press paid for a second scan of the same contract (measured). The contract
+   remembers that a scan is running; a door drawn meanwhile is drawn busy, and
+   the funnel refuses a second start. */
+const _obFinding = new Set();
+const obFinding = c => !!c && _obFinding.has(String(c.id));
+function obFindDoorHtml(c, inner){
+  return obFinding(c)
+    ? `<button type="button" id="obt-find" class="ui-btn" disabled aria-busy="true" data-ob-was="${_obEsc(inner)}"><span class="ob-spin" aria-hidden="true"></span>${_obEsc(i18t('ob_scanning'))}</button>`
+    : `<button type="button" id="obt-find" class="ui-btn">${inner}</button>`;
+}
 function obFindBusy(on){
   OB_FIND_DOORS.forEach(id => {
     const b = document.getElementById(id); if(!b) return;
@@ -976,6 +1001,8 @@ async function runFindObligations(c){
   const held = (typeof window!=='undefined' && typeof window.triageHeldObligations==='function')
     ? triageHeldObligations(c) : [];
   if(held.length){ openObligationsReview(c, held); return; }
+  if(obFinding(c)){ obFindBusy(true); return; }
+  _obFinding.add(String(c.id));
   obFindBusy(true);
   /* AND IT STOPS SPINNING WHATEVER HAPPENS. A refusal deep in the reader — no
      key, a provider saying no, a document too short — must not leave a button
@@ -983,7 +1010,13 @@ async function runFindObligations(c){
      wearing a working one's clothes. */
   let found = [];
   try{ found = await extractObligations(c) || []; }
-  finally{ obFindBusy(false); }
+  finally{
+    _obFinding.delete(String(c.id));
+    /* The doors on screen belong to the contract on screen: they stop
+       spinning unless THAT contract's own scan is still running. */
+    const onScreen = (state && state.activeId != null) ? { id: state.activeId } : null;
+    if(!onScreen || !obFinding(onScreen)) obFindBusy(false);
+  }
   /* ---- THE CONTRACT REMEMBERS THAT IT WAS READ (J-2.2) ----
      "No obligations tracked" and "nobody has looked" were the same screen, and
      the Insights obligations page named that as one of its two blind spots.
@@ -999,6 +1032,22 @@ async function runFindObligations(c){
   const _obText = isUpload(c) ? (c.upload&&c.upload.extractedText)||''
     : (window.contractPlainText?contractPlainText(c):'');
   if(_obText && _obText.length>=OBLIG_TEXT_MIN){ obligationsReadStamp(c, _obText); persist(c); }
+  /* ---- THE ANSWER STAYS WITH ITS OWN CONTRACT (26 Sep 2026, the overnight
+     clean-up) ----
+     A scan takes seconds. A reader who opened another contract meanwhile got
+     THIS contract's list painted under the other one's header and this
+     contract's review window over it, whose Add then wrote here and painted
+     there (measured). Where the reader has moved on, nothing is painted and
+     no window opens; they are told, with the way back to review it. */
+  if(window.contractOnScreen && !contractOnScreen(c)){
+    const ref=(window.contractRef?contractRef(c):c.id);
+    toast(i18t('ob_found_elsewhere',{ ref, n:found.length }),'warn',found.length?{ action:{ label:i18t('ob_open_contract'),
+      onClick:()=>{ if(window.openWorkspace) openWorkspace(c.id);
+        setTimeout(()=>{ const live=(window.getContract&&getContract(c.id))||c;
+          if(window.roomGoTab) try{ roomGoTab(live,'oblig'); }catch(_){}
+          openObligationsReview(live, found); }, 0); } } }:undefined);
+    return;
+  }
   renderObligationsSection(c);
   if(window.roomPaintObligations) roomPaintObligations(c);
   /* AND IT MUST SAY SO OUT LOUD, WITH A WAY FORWARD. This was a BARE toast
@@ -1544,7 +1593,7 @@ function roomObligationsHtml(c){
       ${moneyLine}
       ${editable ? `<span class="obt-acts">
         <button type="button" id="obt-add" class="ui-btn">${_obEsc(i18t('ob_add'))}</button>
-        <button type="button" id="obt-find" class="ui-btn">${_obEsc(i18t('ob_find'))}</button>
+        ${obFindDoorHtml(c, _obEsc(i18t('ob_find')))}
       </span>` : ''}
     </div>`;
 
@@ -2642,7 +2691,8 @@ function obligationReminderSay(o, c){
    it has read the record. Newest first. */
 const OB_HIST_VERBS = { Added:'ob_h_added', Updated:'ob_h_updated', Completed:'ob_h_done', Reopened:'ob_h_reopened', Chased:'ob_h_chased' };
 function obligationHistory(o, c){
-  if(!c || !Array.isArray(c.audit)) return null;
+  /* A light row is not an empty trail — see insLatest (26 Sep 2026). */
+  if(!c || !Array.isArray(c.audit) || (c._light && !c._loaded)) return null;
   const desc = String((o && o.desc) || '').trim();
   if(!desc) return [];
   return c.audit.filter(a => a && a.action === 'Obligation').map(a => {
@@ -3036,7 +3086,7 @@ function roomObligationsInspector(c, host){
       <span class="facts">${facts}</span>
       <span class="sp"></span>
       ${editable ? `<button type="button" id="obt-add" class="ui-btn">${plus}${_obEsc(i18t('ob_add'))}</button>
-      <button type="button" id="obt-find" class="ui-btn">${find}${_obEsc(i18t('ob_find'))}</button>` : ''}
+      ${obFindDoorHtml(c, find + _obEsc(i18t('ob_find')))}` : ''}
     </div>
     <div class="ins-body">
       <section class="ins-card" aria-label="${_obEsc(i18t('tab_obligations'))}">
@@ -3163,7 +3213,7 @@ async function obligationChase(cid, obId, opts){
 Object.assign(window,{obligationIsDoc,obligationDocUntil,obligationDocFile,obligationDocState,
   OB_DOC_SOON_DAYS,contractDocuments,contractDocsLapsed,contractDocsMissing,
   obligationAfter,obligationPrev,obligationBlocked,obligationChain,obligationChains,obligationStepNo,obligationRoll,
-  obligationAlreadyOn,obligationRequireDoc,obFindBusy,OB_FIND_DOORS,obligationAmount,obligationHasAmount,obligationBandTotal,obligationMoneyVisible,obligationMoneyText,
+  obligationAlreadyOn,obligationRequireDoc,obFindBusy,obFinding,OB_FIND_DOORS,obligationAmount,obligationHasAmount,obligationBandTotal,obligationMoneyVisible,obligationMoneyText,
   OB_WINDOWS,OB_WIN_ORDER,obligationWindow,obWinTone,obDay,obligationRelWords,obInitials,obShortName,obRepeatsWord,obDocSay,
   obligationDueSay,obWhoCellHtml,obAmountCellHtml,obwHomeSum,obMoneyWords,obPageLine2,obligationFactsLine,obligationStatusSay,
   obligationReminderSay,obligationHistory,obligationStampHistory,obHistoryHtml,obChainSectionHtml,obDocSectionHtml,obWordingSectionHtml,

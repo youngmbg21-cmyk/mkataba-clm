@@ -719,7 +719,16 @@ function negoRenumberApply(c, opts = {}){
    round, outcome. */
 function negoTimeline(c, f = {}){
   if (!c) return [];
-  negoInit(c);
+  /* READING MUST NOT WRITE (26 Sep 2026, the overnight clean-up). This read
+     the rounds through negoInit, which CREATES a negotiation where there is
+     none — and the History tab asks it on every visit. On a signed contract
+     that never had one (imported or migrated signed paper) the visit wrote
+     `negotiation` and `changes` onto the record, the server froze both at
+     signature, and every later save of that contract was refused: an
+     obligation added a minute later was gone after a reload (measured). The
+     rounds and the changes are read RAW, as every count over the book reads
+     them; a record with no negotiation has had nothing proposed. */
+  const neg = c.negotiation || null;
   const ev = [];
   const otherSide = s => s === 'owner' ? 'counterparty' : 'owner';
   const pushChange = (ch, roundN) => {
@@ -743,13 +752,13 @@ function negoTimeline(c, f = {}){
         outcome: 'withdrawn',
         text: `${ch.withdrawn.by || ch.author || 'The proposer'} withdrew #${ch.id} — the ask came off the table`, ch });
   };
-  for (const r of (c.negotiation.rounds || [])){
+  for (const r of ((neg && neg.rounds) || [])){
     for (const ch of (r.changes || [])) pushChange(ch, r.n);
     ev.push({ kind: 'round-closed', at: r.at || '', actor: '', side: '', outcome: '',
       round: r.n, clauseId: null, clauseLabel: '',
       text: `Round ${r.n} closed — the agreed wording became the baseline for round ${r.n + 1}` });
   }
-  for (const ch of negoChanges(c)) pushChange(ch, c.negotiation.round);
+  for (const ch of (Array.isArray(c.changes) ? c.changes : [])) pushChange(ch, (neg && typeof neg.round === 'number') ? neg.round : 1);
   /* The beats that come off the audit trail. The prose is the entry's own —
      it was written in the house register at the moment of the act — and the
      kind is read from the action (or, for renumbering, from the X3 data). */

@@ -2066,7 +2066,12 @@ function triageAndPaint(c, opts){
          codebase's most repeated defect. All three live in THIS file, so a
          bare call cannot be wrong and there is no window question to get
          right. The host check is the real guard: a tab nobody is on costs
-         nothing. */
+         nothing.
+         AND A HOST ON SCREEN MAY BELONG TO ANOTHER CONTRACT (26 Sep 2026, the
+         overnight clean-up): the reading takes seconds, so the room showing
+         now may be a different contract's — asked of contractOnScreen, the
+         one reading every slow result asks. */
+      if(window.contractOnScreen && !contractOnScreen(x)) return;
       if(document.getElementById('checks-card')) renderChecksCard(x);
       if(document.getElementById('kt-rows')) renderKeyTerms(x);
       if(document.getElementById('kt-side')) renderKeyTermsSide(x);
@@ -3061,7 +3066,13 @@ function docRepaintSheet(c){
   try{ wireDocumentSync(c); }catch(_){}
   wireDocCanvas(c);
   try{ wireDocCopilotSel(c); }catch(_){}
-  try{ wireFieldLink(c); }catch(_){}
+  /* THE PANEL'S OWN PRESS ON THE PAPER'S BLANKS IS RE-ARMED TOO (26 Sep 2026,
+     the overnight clean-up): a company-standard draft's blanks answer a click
+     through a listener armed on the canvas when the fill panel is drawn — and
+     this swaps the canvas, so after a visit to the Signing tab a blank took no
+     press at all (measured). paintContractForm is the one function that draws
+     the panel and arms the paper; it also re-arms the field link. */
+  try{ paintContractForm(c); }catch(_){ try{ wireFieldLink(c); }catch(__){} }
 }
 /* THE PAGES. Called from wireDocCanvas, AFTER anything that adds height to
    the paper (the places to sign) and BEFORE anything that measures it (Plain
@@ -6879,15 +6890,32 @@ function wireKtBriefCard(c,opts){
      on screen. */
   const after=opts&&typeof opts.after==='function'?opts.after:null;
   const list=[...document.querySelectorAll('[data-kt-brief]')]; if(!list.length) return;
-  list.forEach(b=>b.addEventListener('click',async()=>{
+  /* ---- ONE PRESS, ONE PAID CALL (26 Sep 2026, the overnight clean-up) ----
+     This runs from two painters and one of them runs on every Overview
+     keystroke, and it bound a fresh listener to every button still on the page
+     each time — so a single press of Write the brief sent one request per
+     paint the button had survived (measured: ten requests, six paid calls,
+     after typing a value). Each element is bound ONCE, and the press reads the
+     contract and the repaint handed over by the LATEST wiring, so a button that
+     outlives a render still acts for what is on screen now. */
+  list.forEach(b=>{ b._ktBrief={c,after}; });
+  list.forEach(b=>{ if(b.dataset.ktBriefBound) return; b.dataset.ktBriefBound='1'; b.addEventListener('click',async()=>{
+    const {c,after}=b._ktBrief||{};
+    if(!c) return;
     if(b.getAttribute('data-kt-brief')==='open') return openCheckPanel(c,'brief');
     if(!window.runContractBrief) return;
+    if(b.disabled) return;
     const word=b.textContent;
     b.disabled=true; b.textContent=i18t('ct_working');
     try{
       /* force, because a rewrite of a brief already on file must not be
          answered out of the cache with the same partial memo. */
       const r=await runContractBrief(c,{force:!!c._brief});
+      /* THE ANSWER LANDS ON ITS OWN CONTRACT, NEVER ON THE ONE OPEN NOW (26 Sep
+         2026, the overnight clean-up): the brief is stored on `c` either way;
+         where the reader has moved on, nothing here repaints another
+         contract's page or opens this contract's panel over it. */
+      if(!(window.contractOnScreen?contractOnScreen(c):String(state.activeId)===String(c.id))){ b.disabled=false; b.textContent=word; return; }
       /* The column repaints so the card states what it now holds; the panel
          opens only where a brief actually arrived — a dead panel over a failed
          read is the fault the renewal card was just corrected for. */
@@ -6902,7 +6930,7 @@ function wireKtBriefCard(c,opts){
       try{ if(after) after(); }catch(_){}
       if(r) openCheckPanel(c,'brief');
     }catch(e){ b.disabled=false; b.textContent=word; }
-  }));
+  }); });
 }
 /* THE ONE NAMED DOOR ONTO REPAINTING THE OVERVIEW'S SIDE, published so
    obligationSurfacesChanged can reach it: a required document is an ordinary
@@ -6989,6 +7017,8 @@ function renderKeyTermsSide(c){
   host.querySelectorAll('[data-ov-doc-chase]').forEach(b=>b.addEventListener('click',async()=>{
     if(!window.obligationChase) return;
     await obligationChase(c.id, b.getAttribute('data-ov-doc-chase'));
+    /* Its own contract, never the one open now (see contractOnScreen). */
+    if(window.contractOnScreen && !contractOnScreen(c)) return;
     renderKeyTermsSide(c);
   }));
   host.querySelector('[data-ov-doc-add]')?.addEventListener('click',()=>{
@@ -8331,6 +8361,10 @@ function wireChecksCard(c){
           if(!window.runPlaybookReview) throw new Error('unavailable');
           const res=await runPlaybookReview(c);
           if(res){ c.playbook=res; logAudit(c,'Playbook',`Reviewed against ${res.label} — ${deviationSummary(c).dev} deviation(s), ${deviationSummary(c).miss} missing`); persist(c); }
+          /* The review is stored on its own contract either way; where the
+             reader has opened another one meanwhile, nothing here paints over
+             it (26 Sep 2026, the overnight clean-up — see contractOnScreen). */
+          if(window.contractOnScreen && !contractOnScreen(c)) return;
           renderChecksCard(c);
           if(window.renderSignButton) renderSignButton(c);
           openCheckPanel(c,'playbook');
@@ -9045,6 +9079,8 @@ function wireRoomChecks(){
         if(!window.runPlaybookReview) throw new Error('unavailable');
         const res=await runPlaybookReview(c);
         if(res){ c.playbook=res; logAudit(c,'Playbook',`Reviewed against ${res.label} — ${deviationSummary(c).dev} deviation(s), ${deviationSummary(c).miss} missing`); persist(c); }
+        /* Its own contract, never the one open now — see contractOnScreen. */
+        if(window.contractOnScreen && !contractOnScreen(c)) return;
         openCheckPanel(c,'playbook'); return;
       }
       if(kind==='oblig'){
@@ -9794,7 +9830,22 @@ function wireRoomHead(c){
       const open=menu.classList.toggle('hidden');
       btn.setAttribute('aria-expanded',open?'false':'true'); });
     menu.addEventListener('click',()=>setTimeout(shut,0));
-    document.addEventListener('click',ev=>{ if(!menu.contains(ev.target)&&ev.target!==btn) shut(); });
+    /* ---- THE PRESS OUTSIDE THE MENU IS HEARD ONCE, NOT ONCE PER PAINT (26 Sep
+       2026, the overnight clean-up) ----
+       This added a fresh listener to the DOCUMENT every time the head was
+       drawn — every room render, every repaint of the negotiate page — and each
+       one held the head it was drawn with, so the old pages could never be
+       freed (measured: thousands of detached nodes after a dozen renders). One
+       listener, armed once, finds the menu that is on the page at the press
+       (roomPaintHistory's own _moreWired pattern). */
+    if(!document._wsMoreOutsideWired){
+      document._wsMoreOutsideWired=true;
+      document.addEventListener('click',ev=>{
+        const m=document.getElementById('ws-more-menu'), b=document.getElementById('ws-more');
+        if(!m||!b||m.classList.contains('hidden')) return;
+        if(!m.contains(ev.target)&&!b.contains(ev.target)){ m.classList.add('hidden'); b.setAttribute('aria-expanded','false'); }
+      });
+    }
   }
   /* ONE HANDLER, TWO DESTINATIONS, decided by what the head drew rather than by
      what state.view happens to say — the workbench and the contract page share
@@ -14832,7 +14883,10 @@ function renderSignSide(c){
      `after` repaints THIS card, because a brief that lands settles a row on
      it and the list must say so without the reader leaving the tab. */
   try{ wireKtBriefCard(c,{ after:scAgain }); }catch(_){}
-  host.querySelectorAll('[data-sc-run]').forEach(b=>b.addEventListener('click',()=>runSignCheck(c,{ after:scAgain })));
+  /* #sc-run carries data-sc-run too and is bound above — so the sweep leaves
+     it out, or one press of Run the check ran it TWICE (26 Sep 2026, the
+     overnight clean-up; measured). */
+  host.querySelectorAll('[data-sc-run]:not(#sc-run)').forEach(b=>b.addEventListener('click',()=>runSignCheck(c,{ after:scAgain })));
   /* The brief's own row reads it alone rather than pressing the whole stage:
      a reader who wants the summary re-written should not be made to pay for
      the playbook and the obligations as well. */

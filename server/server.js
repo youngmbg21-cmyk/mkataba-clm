@@ -372,8 +372,22 @@ function auditDatesOf(c) {
     lastAt: (last && last.at) || null,
   };
 }
+/* ---- WHAT A BROWSER HOLDS FOR ONE SITTING IS NEVER THE RECORD (26 Sep 2026,
+   the overnight clean-up) ----
+   The negotiate page fetches a contract's messages once per sitting and marks
+   it (`_messages`, `_msgFetch`, `_shareFetch`); the pre-signature check and the
+   arrival read mark a run in flight (`_signChecking`, `_triaging`). The save
+   copied every key, so all five were STORED — and the next sitting loaded them
+   back: the page saw "already fetched" and skipped the fetch, painting a copy
+   of the notes as old as the last save until the poller caught up, and a check
+   interrupted by a reload stayed "running" for good (measured). Dropped on the
+   way in and on the way out, so a record already carrying them is clean the
+   next time anybody reads it. */
+const SITTING_KEYS = ['_messages', '_msgFetch', '_shareFetch', '_signChecking', '_triaging'];
+const dropSittingKeys = c => { if (c && typeof c === 'object') for (const k of SITTING_KEYS) delete c[k]; return c; };
 const HEAVY = c => { // strip the big fields for list/index responses
   const x = { ...c };
+  dropSittingKeys(x);
   if (x.execution) x.execution = { ...x.execution, html: undefined };
   if (x.upload) x.upload = { ...x.upload, dataUrl: undefined, extractedText: undefined };
   /* THE STORED OWNER WINS. `_raisedBy` was the stop-gap that made the
@@ -3386,7 +3400,7 @@ app.get('/api/contracts/:id', auth, (req, res) => {
   // 403 here would confirm the contract, its id and its existence to someone
   // who is not allowed to know any of that.
   if (!r || !inScope(folderScopeFor(req.user), r.folder)) return res.status(404).json({ error: 'Contract not found' });
-  const c = JSON.parse(r.json); c._v = r.version;
+  const c = dropSittingKeys(JSON.parse(r.json)); c._v = r.version;
   const out = visibleContract(c, req.user);
   /* APPROVAL BEFORE SIGNING (23 Sep 2026): who on this contract needs a named
      approval, read with the whole roster — a colleague's rule is an admin-only
@@ -3715,6 +3729,7 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   if (Number(baseVersion || 0) !== cur) return res.status(409).json({ error: 'Version conflict — this contract changed on the server', version: cur });
   const next = cur + 1;
   const c = { ...contract }; delete c._v; delete c._light; delete c._loaded; delete c._valuesHidden;
+  dropSittingKeys(c);   // one sitting's marks are never the record (see SITTING_KEYS)
   // _brief is GET-time transport off the briefs table (WO-2) — a client that
   // echoes it back must not get it stored into the record, where it would
   // shadow the real cache and ride saves it was never part of.
@@ -9419,7 +9434,7 @@ app.get('/api/export/workspace.zip', auth, admin, (req, res) => {
   const scope = folderScopeFor(req.user);
   const f = scopeFrag(scope);
   const contracts = db.prepare(`SELECT json FROM contracts ${whereOf(f.sql)} ORDER BY seq`).all(...f.args)
-    .map(r => visibleContract(JSON.parse(r.json), req.user));
+    .map(r => visibleContract(dropSittingKeys(JSON.parse(r.json)), req.user));
   const users = db.prepare('SELECT id,name,email,role,created_at FROM users').all();  // no salt/hash
   const settings = getSetting('appSettings') || {};
   const files = [

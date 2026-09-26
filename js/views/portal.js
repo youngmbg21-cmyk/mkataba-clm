@@ -4845,10 +4845,13 @@ function exportPDF(c, opts){
      document — the seal box, the audit trail — is HaTi describing its own part
      in the contract, and on a document we did not execute we had none. */
   const marks=printIsHatiExecuted(c) && record;
+  /* The trail is stored text and is printed as text (26 Sep 2026, the
+     overnight clean-up): its lines carry what colleagues typed, and this page
+     is written into a window that runs in our own origin. */
   const audit=(c.audit||[]).map(e=>`
-    <tr><td style="padding:3px 10px 3px 0;white-space:nowrap;color:#5F6D6B;">${fmtDT(e.at)}</td>
-    <td style="padding:3px 10px 3px 0;font-weight:var(--w-strong);">${e.action}</td>
-    <td style="padding:3px 0;">${e.detail} <span style="color:#5F6D6B;">(${e.user})</span></td></tr>`).join('');
+    <tr><td style="padding:3px 10px 3px 0;white-space:nowrap;color:#5F6D6B;">${esc(fmtDT(e.at))}</td>
+    <td style="padding:3px 10px 3px 0;font-weight:var(--w-strong);">${esc(e.action)}</td>
+    <td style="padding:3px 0;">${esc(e.detail)} <span style="color:#5F6D6B;">(${esc(e.user)})</span></td></tr>`).join('');
   // The masthead, the audit trail and the contract now share one family — the
   // platform runs on the design's two faces throughout. The contract is still a
   // document surface and still carries the document ink, measure and leading,
@@ -4951,7 +4954,12 @@ function metrics(){
 }
 async function refreshStats(){
   if(!API_MODE()) return;
-  try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
+  /* THE SIDEBAR READS THESE FIGURES TOO (26 Sep 2026, the overnight clean-up):
+     the Contracts door prints serverStats.total, and nothing repainted it when
+     the figures landed — so archiving or deleting a contract left the door one
+     step behind the page until the next navigation (measured). */
+  try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard();
+    if(window.updateSidebarCounts) updateSidebarCounts(); }catch(e){}
 }
 
 Object.assign(window,{portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
