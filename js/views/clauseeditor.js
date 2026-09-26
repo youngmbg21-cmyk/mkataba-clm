@@ -2424,6 +2424,14 @@ function ceGoClause(clauseId, extra){
 
    THE FALLBACK IS ALWAYS THE OLD SENTENCE, never nothing: a guard that says
    less because a lookup failed is worse than the guard that prompted this. */
+/* ---- THE TWO VOTES ARE DRAWN MARKS, NOT EMOJI (26 Sep 2026, the overnight
+   clean-up) ---- The Compact ladder's rule is "drawn icons only"; these two were
+   written as HTML entities, which the sweep for literal emoji did not catch.
+   Hairline, in the button's own ink (currentColor), 14px like every other
+   mark on a button. */
+const CE_THUMB_PATH = '<path d="M2 7.5h3V14H2z"/><path d="M5 7.5 7.8 2.6c.9 0 1.9.8 1.6 2L9 7h4.1c.9 0 1.5.8 1.3 1.6l-1.1 4.5c-.2.6-.6.9-1.2.9H5"/>';
+const CE_THUMB_UP = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" aria-hidden="true">${CE_THUMB_PATH}</svg>`;
+const CE_THUMB_DOWN = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" aria-hidden="true"><g transform="rotate(180 8 8)">${CE_THUMB_PATH}</g></svg>`;
 function clauseEditorLeaveAsk(){
   const tail = _cet('ce_leave_body');
   const bits = [];
@@ -2437,7 +2445,10 @@ function clauseEditorLeaveAsk(){
       .replace(/\s+/g, ' ').trim();
     if (raw.length > 3){
       const cut = raw.length > CE_LEAVE_SNIP ? raw.slice(0, CE_LEAVE_SNIP - 1).trim() + '\u2026' : raw;
-      bits.push(_cet('ce_leave_lost', { words: cut }));
+      /* The sentence closes the quote with its own full stop, so the draft's
+         own is taken off first — "…by notice.”." (26 Sep 2026, the overnight
+         clean-up). */
+      bits.push(_cet('ce_leave_lost', { words: cut.replace(/[.!?]+$/, '') }));
     }
   }catch(_){}
   bits.push(tail);
@@ -3668,7 +3679,12 @@ function ceRenderFoot(){
 /* Below this the say span is showing an ellipsis and a letter or two, which is
    not a sentence — about eight characters of the label size. See ceSay. */
 const CE_SAY_MIN_W = 60;
-function ceSay(msg){
+function ceSay(msg, kind){
+  /* `kind` is the toast's kind where the row has no room: a refusal is 'warn'
+     (the default, every older caller), a confirmation is 'ok' — "Applied to
+     the wording below." arrived as an AMBER box (26 Sep 2026, the overnight
+     clean-up; measured). */
+  const tk = kind === 'ok' ? 'ok' : 'warn';
   const el = _ceQ('#ce-say'); if (!el) return;
   clearTimeout(_ceSayTimer);
   el.textContent = msg; el.classList.add('is-on');
@@ -3685,9 +3701,21 @@ function ceSay(msg){
      moves nothing: a transient line, gone by itself, the same words. Chosen by
      MEASUREMENT of this span rather than by a breakpoint, so a font, a zoom or
      a longer word set cannot put the sentence in the wrong place. */
-  let w = 0;
-  try{ w = el.getBoundingClientRect().width; }catch(_){ w = 0; }
-  if (w < CE_SAY_MIN_W && typeof toast === 'function') toast(msg, 'warn');
+  const measure = () => { try{ return el.getBoundingClientRect().width; }catch(_){ return 0; } };
+  const w = measure();
+  if (w >= CE_SAY_MIN_W || typeof toast !== 'function') return;
+  /* A ZERO IS NOT AN ANSWER on a page that has not been laid out yet: the
+     ladder's "Write it into the clause" can speak the moment the editor
+     mounts. Where the ROW itself measures nothing, asked again on the next
+     frame; a row with width and no room left for the span is the ordinary
+     case and goes to the toast at once. */
+  let rowW = 0;
+  try{ rowW = el.parentElement ? el.parentElement.getBoundingClientRect().width : 0; }catch(_){ rowW = 0; }
+  if (w === 0 && rowW === 0 && typeof requestAnimationFrame === 'function'){
+    requestAnimationFrame(() => { if (el.isConnected && el.textContent === msg && measure() < CE_SAY_MIN_W) toast(msg, tk); });
+    return;
+  }
+  toast(msg, tk);
 }
 
 
@@ -3763,7 +3791,7 @@ function ceApply(text, label, opts = {}){
      will not keep, and a repaint is the only thing that tells the truth. */
   if (opts.keepView && !opts.repaint){ cePaintStat(); ceRenderFoot(); ceMarksMount(); }
   else { ceRenderPaper(); ceRenderFoot(); ceRenderHead(); }
-  if (!opts.quiet) ceSay(_cet('ce_applied'));
+  if (!opts.quiet) ceSay(_cet('ce_applied'), 'ok');
   return true;
 }
 /* ---- IS THERE TYPING THE STEP STACK HAS NOT TAKEN YET? ----
@@ -3805,7 +3833,7 @@ function ceUndo(){
   _ceStep -= 1;
   ceRestoreStep();
   ceRenderPaper(); ceRenderFoot(); ceRenderHead();
-  ceSay(_cet('ce_stepped_back', { label: _ceSteps[_ceStep].label }));
+  ceSay(_cet('ce_stepped_back', { label: _ceSteps[_ceStep].label }), 'ok');
 }
 /* ---- AND FORWARD AGAIN ----
    The stack has always held the steps ahead of where the reader is standing —
@@ -3819,7 +3847,7 @@ function ceRedo(){
   _ceStep += 1;
   ceRestoreStep();
   ceRenderPaper(); ceRenderFoot(); ceRenderHead();
-  ceSay(_cet('ce_stepped_forward', { label: _ceSteps[_ceStep].label }));
+  ceSay(_cet('ce_stepped_forward', { label: _ceSteps[_ceStep].label }), 'ok');
 }
 /* A step is the draft as it stood, and the draft has two halves — so stepping
    is restoring both. A step recorded before the heading joined the stack
@@ -3835,7 +3863,7 @@ function ceDiscard(){
   _ceSteps = [{ label: _cet('ce_step_stands'), text: _ceBase, head: _ceHeadBase }];
   _ceStep = 0; _ceText = _ceBase; _ceHead = _ceHeadBase; _ceSavedAt = null;
   ceRenderPaper(); ceRenderFoot(); ceRenderHead();
-  ceSay(_cet('ce_discarded'));
+  ceSay(_cet('ce_discarded'), 'ok');
 }
 
 /* ============================================================================
@@ -4117,10 +4145,10 @@ function ceCardHtml(card, i, j){
       <span class="g"></span>
       <button type="button" class="ce-vote${vote === 'up' ? ' is-on' : ''}" data-ce-vote="${i}:${j}:up"
         aria-pressed="${vote === 'up' ? 'true' : 'false'}"
-        title="${_ceea(_cet('ce_vote_up'))}" aria-label="${_ceea(_cet('ce_vote_up'))}">&#128077;</button>
+        title="${_ceea(_cet('ce_vote_up'))}" aria-label="${_ceea(_cet('ce_vote_up'))}">${CE_THUMB_UP}</button>
       <button type="button" class="ce-vote${vote === 'down' ? ' is-on' : ''}" data-ce-vote="${i}:${j}:down"
         aria-pressed="${vote === 'down' ? 'true' : 'false'}"
-        title="${_ceea(_cet('ce_vote_down'))}" aria-label="${_ceea(_cet('ce_vote_down'))}">&#128078;</button>
+        title="${_ceea(_cet('ce_vote_down'))}" aria-label="${_ceea(_cet('ce_vote_down'))}">${CE_THUMB_DOWN}</button>
     </div>
   </div>`;
 }
@@ -4566,7 +4594,7 @@ async function ceAddMissingClause(it, words, btn){
      and their place on the page are untouched — ceRenderPaper keeps the scroll
      and ceApply is what owns the box. */
   ceFiled(_ceC);
-  ceSay(_cet('ce_scan_added', { name: String((it.v && it.v.category) || '') }));
+  ceSay(_cet('ce_scan_added', { name: String((it.v && it.v.category) || '') }), 'ok');
   return true;
 }
 /* The one sentence, and it does NOT re-derive why. runPlaybookReview owns the
@@ -6039,7 +6067,7 @@ function ceWirePage(page){
         }
         break; }
       case 'ladder-note': {
-        if (_ceLadderReply && _ceLadderReply.note){ _ceHeldNote = _ceLadderReply.note; ceSay(_cet('ce_lc_kept')); }
+        if (_ceLadderReply && _ceLadderReply.note){ _ceHeldNote = _ceLadderReply.note; ceSay(_cet('ce_lc_kept'), 'ok'); }
         break; }
       case 'ladder-accept': {
         /* THE CARD'S OWN ACCEPT, pressed on the page behind: one door. */

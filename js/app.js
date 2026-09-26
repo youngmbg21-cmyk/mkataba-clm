@@ -383,7 +383,12 @@ function paintShellTitle(view){
      crumb there, so writing the page's name over it threw the adopted button
      away (measured: the negotiate page read "Contract Workspace" and the
      head's crumb row was gone with it). Any other view still repaints. */
-  if((view==='redline'||view==='workspace')&&el.classList.contains('is-crumb')&&el.querySelector('#ws-back')) return;
+  /* …BUT ONLY WHILE A CONTRACT IS ON THE BENCH (26 Sep 2026, the overnight
+     clean-up): the Negotiations LIST is view 'redline' too, and it kept the
+     last contract's crumb in the bar — a live button that opened that
+     contract's Document tab from a page about all of them (measured). */
+  const held=view!=='redline' || (typeof window.redlineHeldId==='function' && !!window.redlineHeldId());
+  if(held&&(view==='redline'||view==='workspace')&&el.classList.contains('is-crumb')&&el.querySelector('#ws-back')) return;
   el.classList.remove('is-crumb');
   el.textContent=shellTitleFor(view);
 }
@@ -873,6 +878,11 @@ function setView(view){
   // any other view always lands on the full screen with its exits visible
   if(view==='redline' && state.view!=='redline' && window.rlResetFocus) rlResetFocus();
   if(!_sameView && typeof window.docViewLeave==='function'){ try{ window.docViewLeave(); }catch(_){} }
+  /* The contract room shows state.activeId; a notes drawer open on another
+     contract closes before the page is drawn (see notesPanelFollow). The
+     negotiate page asks the same from rlCardForgetPins, where it learns which
+     contract it is showing. */
+  if(view==='workspace'||view==='doc') notesPanelFollow(state.activeId);
   state.view=view;
   try{
     if(view==='dashboard') renderDashboard();
@@ -2495,6 +2505,22 @@ function notesPanelShowing(contractId, changeId){
     &&String(was.contractId||'')===String(contractId||'')
     &&String(was.changeId==null?'':was.changeId)===String(changeId==null?'':changeId));
 }
+/* ---- THE NOTES DRAWER BELONGS TO ONE CONTRACT (26 Sep 2026, the overnight
+   clean-up) ----
+   The drawer has no scrim by design, so the rail stays live under it — and
+   opening ANOTHER contract left it showing the first one's thread. Change ids
+   count up separately in each contract, so its head read "CHG-001 · 1.
+   Payment" on both; a note typed there was filed on the first contract and, in
+   the External room, delivered to the first contract's counterparty
+   (measured). The drawer now closes the moment a different contract is on
+   screen, which also drops its pin, its reply box and its open key
+   (rlNotesPanelClosed, through applyPanelLayout). */
+function notesPanelFollow(contractId){
+  if(!state.panelOpen || panelFace()!=='notes') return;
+  const nf=state.notesFor||{};
+  if(contractId==null || String(nf.contractId||'')===String(contractId)) return;
+  closeContextPanel();
+}
 function openNotesPanel(contractId, changeId, o){
   if(!contractId) return;
   const force=!!(o&&o.force);
@@ -3314,6 +3340,6 @@ if (typeof window !== 'undefined' && window.addEventListener){
   window.addEventListener('afterprint', clearPrintRoot);
 }
 
-Object.assign(window,{printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,notesPanelShowing,
+Object.assign(window,{printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,notesPanelShowing,notesPanelFollow,
   buildAlerts,alertCount,updateAlertBadge,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,brandNow,darkNow,setBrand,setDark,toggleDark,applyAppearance,paintAppearance,brandPickerVisible,BRANDS,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
 Object.assign(window,{BP});

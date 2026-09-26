@@ -6156,6 +6156,7 @@ const STRINGS = {
     ne_only_drafter_retract: 'Only the side that drafted this can retract it',
     ne_retract_decided: 'This change already has an answer, so it can\'t be retracted',
     ne_retract_already_sent: 'This change has already gone to the other side, so it can\'t be retracted — withdraw it instead',
+    ne_retract_in_review: 'This change is with a colleague for review — it can be discarded once the review is handed back or cancelled',
 
     // ---- the market, in Settings ----
     set_market: "Where you operate",
@@ -8020,7 +8021,7 @@ const STRINGS = {
     dir_note: 'This list is for reading. Roles, job titles and what each person may do are set by an admin on Settings & Rules.',
     pg_workspace: 'Contract Workspace',
     pg_open_from_register: 'open a contract from the register',
-    pg_negotiate: 'Negotiate',
+    pg_negotiate: 'Negotiations',   /* the LIST's name in the bar — the rail's door and the page's own heading say it (26 Sep 2026, it said "Negotiate" under a page called Negotiations) */
     pg_new_contract: '+ New contract',
 
     // ---- sidebar doors and the status card ----
@@ -14688,6 +14689,7 @@ const STRINGS = {
     ne_only_drafter_retract: 'Endast parten som skrev detta kan återkalla det',
     ne_retract_decided: 'Den här ändringen har redan fått ett svar och kan därför inte återkallas',
     ne_retract_already_sent: 'Den här ändringen har redan gått till motparten och kan därför inte återkallas — dra tillbaka den i stället',
+    ne_retract_in_review: 'Den här ändringen granskas av en kollega — den kan kasseras när granskningen har lämnats tillbaka eller avbrutits',
 
     // ---- marknaden, under Inställningar ----
     set_market: "Var ni är verksamma",
@@ -16406,7 +16408,7 @@ const STRINGS = {
     dir_note: 'Den här listan är till för att läsas. Roller, befattningar och vad varje person får göra ställs in av en administratör under Inställningar och regler.',
     pg_workspace: 'Avtalsarbetsyta',
     pg_open_from_register: 'öppna ett avtal från avtalslistan',
-    pg_negotiate: 'Förhandla',
+    pg_negotiate: 'Förhandlingar',
     pg_new_contract: '+ Nytt avtal',
 
     // ---- sidebar doors and the status card ----

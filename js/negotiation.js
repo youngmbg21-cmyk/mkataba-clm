@@ -3048,6 +3048,16 @@ function negoRetractDraft(c, id, opts = {}){
     if (window.toast) toast(i18t('ne_retract_already_sent'), 'err');
     return null;
   }
+  /* ---- NOT WHILE A COLLEAGUE HAS IT (26 Sep 2026, the overnight clean-up) ----
+     Once a reviewer cleared a colleague's draft, their row offered Discard on
+     it, and one press deleted the requester's work while the review stayed
+     open listing a change that no longer existed (measured). A change inside
+     an open review is the review's until it is handed back; the server refuses
+     the same save. */
+  if (side === 'owner' && window.reviewInOpen && reviewInOpen(c, ch)){
+    if (window.toast) toast(i18t('ne_retract_in_review'), 'err');
+    return null;
+  }
   const i = c.changes.findIndex(x => x && x.id === id);
   if (i < 0) return null;
   c.changes.splice(i, 1);

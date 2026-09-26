@@ -4463,6 +4463,27 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
         return res.status(403).json({ error: `Only ${(rv.reviewer || {}).name || 'the reviewer'} can rule on #${ch.id}.` });
     }
 
+    /* 3b. A CHANGE AN OPEN REVIEW COVERS STAYS ON THE RECORD (26 Sep 2026, the
+       overnight clean-up). A reviewer who had cleared a colleague's draft was
+       offered Discard on it, and the save that removed it was accepted — the
+       review stayed open listing a change that no longer existed (measured).
+       Asked as a DIFFERENCE: a change that was on the record, is covered by a
+       review still open after this save, and is on the record nowhere now —
+       neither in the live list nor in a closed round. */
+    {
+      const nowIds = new Set((Array.isArray(c.changes) ? c.changes : []).map(x => String(x && x.id)));
+      for (const r of ((c.negotiation && Array.isArray(c.negotiation.rounds)) ? c.negotiation.rounds : []))
+        for (const x of (Array.isArray(r && r.changes) ? r.changes : [])) nowIds.add(String(x && x.id));
+      for (const [id, before] of wasOpen){
+        const after = nowAll.get(id);
+        if (!after || after.status !== 'open') continue;
+        for (const cid of (Array.isArray(before.changeIds) ? before.changeIds : [])){
+          if (prevCh.has(String(cid)) && !nowIds.has(String(cid)))
+            return res.status(403).json({ error: `#${cid} is in internal review ${id}, which is still open — it cannot be discarded until the review is handed back or cancelled.` });
+        }
+      }
+    }
+
     /* 4. A REVIEWER DOES NOT ANSWER THE COUNTERPARTY. Accepting their ask
        settles it and travels on the next round, which is precisely what
        somebody holding a colleague's clause does not do here. Their own two
