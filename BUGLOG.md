@@ -19410,3 +19410,17 @@ Noticed, not fixed
 - obligations-tab-verify fails its band-heading check and amount-and-window-verify stops on "sel.options is not iterable", on main as on the branch.
 - keeps-your-place-verify stops at the Templates section on the overview wall that was deleted on 19 Sep (#tpl-ov-cards), so its later checks never run; same on main.
 - The server answers /favicon.ico with a 404 and index.html names no icon, so every page load logs one failed request in the browser console. Same on main.
+
+## Run 26 Sep 2026 (late night) — every party but ours on the right-hand panel
+
+- On the owner's word: "For contracts that have multiple parties, all the parties apart from the owner should be listed on the right panels. MK-430 as an example has another party in the contract as well but they are not listed on the right panels." Built on claude/hati-button-review-9x2sbo, level with main (0e93de1).
+- Measured first, at the parent, on a staged contract between us, a customer and a guarantor: the panel's heading read "SAP East Africa+1" on Contracts, Negotiations and Approvals & signing, with the guarantor only on the hover; Our standards' departures panel printed the customer alone.
+- Built: the panel's heading lists every outside party, one line each, with the word the paper calls that party beside the name and the whole line on the hover; the same lines sit under the contract's name on Our standards' departures panel. One reading (insParties — the parties module's own partiesTheirs, asked only where there is more than one outside party) and one drawing (insPartiesHtml). Our own side is never listed. A two-party contract draws exactly what it drew. The list rows keep their "+1".
+- Gates: lint 0 errors, 178 warnings (unchanged). Full suite 9,446 tests, 4 failed — f277 (1) and (10), f387 (2) and (4), the same four that fail on main (both files re-run at main's code today: the same claims fail). f391: 14 claims, 12 red at the parent (2a is the control, 2d a wall). every-party-verify: 16/16; at the parent 10 red, printing "SAP East Africa+1" (the stage, the control, three walls and the error sweep pass on both). inspector-verify 32/32, four-inspectors-verify 30/30, standards-page-verify 43/43. The heading's accessible name was measured in Chromium ("SAP East Africa Customer Nordkust Holding ASA Guarantor") before deciding no extra spacing was needed between the name and its role.
+
+Deliberately left alone (said to the owner)
+- The obligation panels ("We owe X this" / "X owes us this") and the contract panel's "from X" / "sent to X" lines still name one party: an obligation and a proposed change record no party, so listing every party there would claim what the record does not hold.
+- The list rows keep their short "+1"; the ask was about the panels.
+
+Noticed, not fixed
+- f387 (2e) and (4c) count days from the clock: the fixture builds its dates with setDate on "now" and slices the UTC day, so "in 45 days" / "in 30 days" read one day short in the evening (29 against 30 at 20:40 UTC). Same at main.
