@@ -296,11 +296,42 @@ function insMenuItemHtml(a){
   return `<button type="button" data-act="${esc(a.k)}"${a.says ? ` title="${esc(a.says)}"` : ''} class="reg-act${a.ruby ? ' danger' : ''}" style="display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;font:inherit;font-size:var(--t-meta);text-align:left;padding:6px 9px;border-radius:var(--radius);cursor:pointer;color:${a.ruby ? 'var(--st-ruby-fg)' : 'inherit'}">${
     a.icon && typeof icon === 'function' ? icon(a.icon, 'w-3.5 h-3.5') : ''}${esc(a.label)}</button>`;
 }
+/* ---- EVERY PARTY BUT OURS, LISTED (Young ruled it 26 Sep 2026) ----
+   "For contracts that have multiple parties, all the parties apart from the
+   owner should be listed on the right panels." The head printed the first
+   outside party with a "+1" beside it and kept the rest on the hover, so a
+   guarantor or a third signatory never reached the panel a reader was looking
+   at — the one screen whose job is to say what a contract is.
+
+   THE READING IS js/parties.js's OWN: partiesTheirs, the list every "which
+   party" control in the product offers, and our own side is never on it. It is
+   asked only where there IS more than one outside party (partiesMulti, the
+   multi-party build's own rule for every control it added), so an ordinary
+   two-party contract draws exactly the markup it drew yesterday. EMPTY MEANS
+   "draw the counterparty as before", never "there is nobody". */
+function insParties(c){
+  try {
+    if (typeof partiesMulti !== 'function' || typeof partiesTheirs !== 'function' || !partiesMulti(c)) return [];
+    return partiesTheirs(c).filter(p => p && p.name);
+  } catch (_) { return []; }
+}
+/* ONE LINE PER PARTY, and the word the paper calls them beside it where one is
+   recorded (partyLine's own content — a name and a role and no more). No cap:
+   a contract holds at most PARTY_MAX parties and the panel scrolls, and a list
+   that stopped short would be the same silence this fixes. Both panels that
+   describe a contract draw it — the list's own head here, and Our standards'
+   departures panel under the contract's name. */
+function insPartiesHtml(list){
+  return (list || []).map(p => {
+    const line = (typeof partyLine === 'function') ? partyLine(p) : (p.role ? p.name + ' · ' + p.role : p.name);
+    return `<span class="ins-cp-p" data-ins-party title="${esc(line)}"><span class="ins-cp-n">${esc(p.name)}</span>${
+      p.role ? `<span class="ins-cp-r">${esc(p.role)}</span>` : ''}</span>`;
+  }).join('');
+}
 /* The head: which contract, where it stands, and the page's own verbs. */
 function insHeadHtml(c, o){
   let kind = ''; try { kind = (typeof cKind === 'function') ? cKind(c) : ''; } catch (_) { kind = ''; }
-  let py = '', pyAll = '';
-  try { if (typeof partiesLead === 'function'){ const L = partiesLead(c); if (L && L.more){ py = `+${L.more}`; pyAll = L.all.join(' · '); } } } catch (_) {}
+  const many = insParties(c);
   const cp = c.counterparty || '—';
   const title = String((c.name && c.name.trim()) || '');
   const status = (typeof contractStatusDotHtml === 'function') ? contractStatusDotHtml(c)
@@ -310,7 +341,9 @@ function insHeadHtml(c, o){
     return ` <span class="ins-mv is-${m.k}">· ${esc(i18t(m.k === 'you' ? 'ins_your_move' : 'ins_their_move'))}</span>`; })() : '';
   return `<div class="ins-h">
     <div class="ins-eb"><span class="ins-ref">${esc(window.contractRef ? contractRef(c) : c.id)}</span>${kind ? ` · ${esc(kind)}` : ''}</div>
-    <h2 class="ins-cp" title="${esc(pyAll || cp)}"><span class="ins-cp-n">${esc(cp)}</span>${py ? `<span class="reg-py-n" title="${esc(pyAll)}">${esc(py)}</span>` : ''}</h2>
+    ${many.length
+      ? `<h2 class="ins-cp is-many">${insPartiesHtml(many)}</h2>`
+      : `<h2 class="ins-cp" title="${esc(cp)}"><span class="ins-cp-n">${esc(cp)}</span></h2>`}
     ${title ? `<div class="ins-sub" title="${esc(title)}">${esc(title)}</div>` : ''}
     <div class="ins-st">${status}${mv}</div>
     ${insActsHtml(o.acts, o.menuHtml, i18t('ins_more', { id: (window.contractRef ? contractRef(c) : c.id) }))}
@@ -602,6 +635,6 @@ function insWatchWidth(){
 Object.assign(window, { INS_MIN_W, INS_ASKS_MAX, INS_LATEST, INS_READ_TONE,
   insForce, insFits, insSelected, insSelect, insPick, insFacts, insMove, insMoveCellHtml,
   insTable, insReads, insLatest, insSecHtml, insFactsHtml, insTableHtml, insReadsHtml, insLatestHtml,
-  insHeadHtml, insPanelHtml, insPanelEmptyHtml, insPaintPanel, insCloseMenu, insMarkRow, insListWire,
+  insHeadHtml, insParties, insPartiesHtml, insPanelHtml, insPanelEmptyHtml, insPaintPanel, insCloseMenu, insMarkRow, insListWire,
   insListOff, insWatchWidth, insActsHtml, insMenuItemHtml, insItemHeadHtml, INS_TONE, insKvHtml, insChipHtml, insViewTabsHtml,
   INS_PAGE_REPAINT });

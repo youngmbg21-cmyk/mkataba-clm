@@ -3272,10 +3272,15 @@ function sdDevPanelOpts(c, d){
   const may=(typeof canEdit==='function'&&canEdit());
   const ai=!!((typeof API_MODE==='function')&&API_MODE()&&state.aiConfigured);
   const menu=may?insMenuItemHtml({ k:'check', label:i18t('sd_check_again'), icon:'refresh', says:i18t(ai?'sd_check_ai':'sd_check_rules') }):'';
+  /* EVERY PARTY BUT OURS under the contract's name (26 Sep 2026) — the list
+     panel's own reading and its own lines (insParties / insPartiesHtml), so a
+     multi-party contract names them all here too; two parties draw exactly
+     the counterparty they drew. */
+  const many=(typeof insParties==='function')?insParties(c):[];
   return {
     item:{ id:c.id }, host:'sd-panel-dev',
     head:{ eyebrow:`<span class="ins-ref">${esc(sdRef(c))}</span>${kind?' · '+esc(kind):''} · ${esc(stage)}`, title:c.name||'',
-      sub:esc(c.counterparty||''), tone:legal?'ruby':'amber', status, acts, menuHtml:menu, moreAria:i18t('reg_more_actions') },
+      sub:many.length?insPartiesHtml(many):esc(c.counterparty||''), tone:legal?'ruby':'amber', status, acts, menuHtml:menu, moreAria:i18t('reg_more_actions') },
     acts, body,
     onMenu:act=>{ if(act==='check') sdCheckAgain(c); },
   };
