@@ -1689,7 +1689,7 @@ function tbContractCardHtml() {
   const hit = cov ? cov.rows.filter(r => r.state === 'hit').length : 0;
   const neg = (_tb.negotiated || []).filter(x => !D.neg.includes(x.clauseId));
   const grp = (label, n) => `<div class="n" style="margin-top:10px">${label}<span class="g"></span><span class="chip lib">${n}</span></div>`;
-  let html = `<div class="tb-ai"><p class="t">${esc(i18t('tb_k_lead', { id: st.contractId || '' }))}</p><div class="tb-card tb-first">`;
+  let html = `<div class="tb-ai"><p class="t">${esc(i18t('tb_k_lead', { id: st.contractRef || st.contractId || '' }))}</p><div class="tb-card tb-first">`;
   html += grp(i18t('tb_k_taken'), taken.length);
   html += taken.length ? `<ul class="tb-rows">${taken.map(t => `<li><span class="g"><span class="w">${esc(t.value)}</span> → <span class="tb-bl">${esc(t.label)}</span>
       <span class="sub" style="font-family:inherit">${i18tn('tb_c_places', t.places, { n: t.places })}</span></span>

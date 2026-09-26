@@ -247,6 +247,14 @@ function saWorkdays(fromIso, toMs){
    a counterparty's signed response on top. */
 function saStarted(c, extra){
   if (extra && extra.responded) return true;
+  /* ---- A HANDOVER IS THE APPROVAL BEING USED (26 Sep 2026) ----
+     On the outside route HaTi cannot stop a signature made elsewhere, so the
+     approval is asked for at the last point it still can — the handover — and
+     from then on it has done its work: it does not lapse while the copy is out
+     with them, however long their signing takes. A reopen cancels the handover
+     (and withdraws the approval with it), which is what brings the question
+     back. */
+  if (c && c.handover && c.handover.at && !c.handover.cancelledAt) return true;
   return Array.isArray(c && c.signatures) && c.signatures.length > 0;
 }
 /* The request that stands for one need: the LAST one filed for its approver.

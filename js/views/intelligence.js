@@ -23,7 +23,7 @@ function buildGraph(){
   const trunc=(s,n=24)=>s.length>n?s.slice(0,n-1)+'\u2026':s;
   // contract nodes
   state.contracts.forEach(c=>{
-    nodes.push({ id:c.id, type:'contract', c, label:trunc(c.name), sub:c.id+' \u00b7 '+(c.value?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):'\u2014'),
+    nodes.push({ id:c.id, type:'contract', c, label:trunc(c.name), sub:(window.contractRef?contractRef(c):c.id)+' \u00b7 '+(c.value?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):'\u2014'),
       kind:c.folder, bar:STATUS_BAR[c.status], w:0,h:0,x:0,y:0 });
   });
   // party nodes (aggregate)
@@ -210,7 +210,7 @@ function graphDependents(id){
   const order={family:0,chain:1,party:2};
   const deps=Object.keys(kinds).map(cid=>({id:cid, kind:kinds[cid], c:getContract(cid)})).filter(d=>d.c)
     .sort((a,b)=>(order[a.kind]-order[b.kind])||String(a.id).localeCompare(String(b.id)));
-  const out=Object.assign({},empty,{ contracts:deps.map(d=>({id:d.id, name:d.c.name||d.id, kind:d.kind})),
+  const out=Object.assign({},empty,{ contracts:deps.map(d=>({id:d.id, name:d.c.name||(window.contractRef?contractRef(d.c):d.id), kind:d.kind})),
     amendments:deps.filter(d=>d.kind==='family').length, calloffs:deps.filter(d=>d.kind==='chain').length, party:deps.filter(d=>d.kind==='party').length });
   const cs=deps.map(d=>d.c);
   const money=(typeof canViewValues!=='function')||canViewValues();
@@ -537,7 +537,7 @@ function graphCopilotContext(){
     (state.contracts||[]).forEach(c=>{ if(!graphLiveContract(c)) return; const f=graphNodeFacts(c);
       if(f.decideDays==null&&!f.whose&&!f.overdue&&f.offStandard==null&&!f.unread) return;
       if(n>=GRAPH_CTX_FACTS_MAX){ omitted++; return; } n++;
-      facts[c.id]={ decideDays:f.decideDays, missed:f.missed, whose:f.whose, overdue:f.overdue, overdueValue:f.overdueValue, offStandard:f.offStandard, unread:f.unread }; });
+      facts[c.id]={ ...(c.contractNo?{contractNo:c.contractNo}:{}), decideDays:f.decideDays, missed:f.missed, whose:f.whose, overdue:f.overdue, overdueValue:f.overdueValue, offStandard:f.offStandard, unread:f.unread }; });
     if(n){ out.facts=facts; if(omitted) out.factsOmitted=omitted; } }catch(_){}
   try{ const lenses=graphLensesNow(); if(lenses.length) out.lenses=lenses; }catch(_){}
   return Object.keys(out).length?out:null;
@@ -838,7 +838,7 @@ async function intelAsk(qRaw){
   intel.history.push({role:'user', text:q});
   intel.busy=true; renderIntelDock(); updateIntelNote();
   try{
-    const idHits=(q.match(/MK-\d+/gi)||[]).length;
+    const idHits=(q.match(/(?:MK|RL)-\d+/gi)||[]).length;
     if(IG_COMPLIANCE_RE.test(q))                        await intelComplianceScan(q);
     else if(/\bcompare\b/i.test(q) || idHits>=2)        await intelChatAsk(q);
     else if(IG_TEMPLATE_RE.test(q))                     await intelTemplateAsk(q);
@@ -977,7 +977,7 @@ function graphSaysMore(own, note, line){
   const fold=x=>String(x||'').replace(/\s+/g,' ').trim().toLowerCase().replace(/[.!]+$/,'');
   if(fold(s)===fold(note)||fold(s)===fold(line)) return false;
   if(/^(regrouped|done|grouped|clustered|showing|highlighted)\b/i.test(s)) return false;
-  return /\bMK-\d+/i.test(s) || s.split(/\s+/).length>=6;
+  return /\b(?:MK|RL)-\d+/i.test(s) || s.split(/\s+/).length>=6;
 }
 function intelGraphApply(q, res, opts){
   res=res||{}; opts=opts||{};
@@ -1142,7 +1142,8 @@ function intelPushChatResult(res){
 // With no Copilot key, comparisons still work via the deterministic local table;
 // other free-form questions get a clear nudge instead of silence.
 async function intelChatAsk(q){
-  const ids=(String(q).match(/MK-\d+/gi)||[]).map(s=>s.toUpperCase()).filter((v,i,a)=>a.indexOf(v)===i);
+  const ids=(String(q).match(/(?:MK|RL)-\d+/gi)||[]).map(s=>s.toUpperCase())
+    .map(r=>{ const x=(state.contracts||[]).find(y=>y.id===r||y.contractNo===r); return x?x.id:r; }).filter((v,i,a)=>a.indexOf(v)===i);
   if(!(typeof copilotAvailable==='function' && copilotAvailable())){
     if(ids.length>=2 && typeof localCompareData==='function'){
       const cmp=localCompareData(ids);
@@ -1205,7 +1206,7 @@ async function intelComplianceScan(q){
       <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px;flex-wrap:wrap">
         <button data-ig-ws="${r.c.id}" data-ig-hoverid="${r.c.id}" title="Open ${igEsc(r.c.name)}" style="font-size:var(--t-body);font-weight:var(--w-strong);color:var(--accent-ink);background:none;border:0;padding:0;cursor:pointer;text-align:left">${igEsc(r.c.name)}</button>
         ${sevPill(r.worst)}
-        <span style="font-size:var(--t-label);color:var(--color-neutral-500);font-family:var(--font-mono)">${igEsc(r.c.id)}</span>
+        <span style="font-size:var(--t-label);color:var(--color-neutral-500);font-family:var(--font-mono)">${igEsc(window.contractRef?contractRef(r.c):r.c.id)}</span>
       </div>
       <ul style="margin:0;padding-left:var(--s-4);font-size:var(--t-meta);color:var(--color-neutral-700);line-height:1.45">${items}</ul>${more}
     </div>`;
@@ -1222,8 +1223,8 @@ function intelAIExplain(id){
   if(!(typeof copilotAvailable==='function' && copilotAvailable())) return;   // facts card already shown by igExplain
   intel.busy=true; renderIntelDock();
   copilotAsk(
-    [{role:'user', content:`Give a brief, risk-focused briefing on contract ${id} (${c.name}) — what it is, its status and value, and the most important thing to watch. 3 sentences max.`}],
-    { view:'intel', activeContractId:id, activeContractName:c.name }, null, IG_QUIET,
+    [{role:'user', content:`Give a brief, risk-focused briefing on contract ${c.contractNo||id}${c.contractNo?' (worked as '+id+')':''} (${c.name}) — what it is, its status and value, and the most important thing to watch. 3 sentences max.`}],
+    { view:'intel', activeContractId:id, activeContractName:c.name, ...(c.contractNo?{activeContractNo:c.contractNo}:{}) }, null, IG_QUIET,
   ).then(res=>{ intel.busy=false; intelPushChatResult(res); rebuildIntelGraph(); renderIntelDock(); igPaintIds([id]); })
     .catch(e=>{ intel.busy=false; intel.history.push({role:'assistant', err:true,
       text:'Couldn’t generate an insight for '+igEsc(c.name)+' — '+igEsc(e.message||String(e))}); renderIntelDock(); });
@@ -1243,7 +1244,7 @@ function intelToggleCompare(id){
 async function intelRunCompare(){
   const ids=intel.compareSel.slice();
   if(ids.length<2){ if(typeof toast==='function') toast(i18t('int_stage_two'),'err'); return; }
-  const names=ids.map(id=>getContract(id)?.name||id);
+  const names=ids.map(id=>getContract(id)?.name||(window.contractRef?contractRef(getContract(id)||{id}):id));
   intel.history.push({role:'user', text:'Compare '+names.join(', ')});
   intel.compareSel=[]; intel.busy=true; renderIntelDock();
   const localFallback=(prefix)=>{
@@ -1253,7 +1254,7 @@ async function intelRunCompare(){
   };
   try{
     if(typeof copilotAvailable==='function' && copilotAvailable()){
-      const res=await copilotAsk([{role:'user', content:'Compare these contracts side by side: '+ids.join(', ')+'. Cover value, term/expiry, payment terms, key risks and open findings.'}], { view:'intel' }, null, IG_QUIET);
+      const res=await copilotAsk([{role:'user', content:'Compare these contracts side by side: '+ids.map(id=>{ const x=getContract(id); return x&&x.contractNo?x.contractNo+' (worked as '+id+')':id; }).join(', ')+'. Cover value, term/expiry, payment terms, key risks and open findings.'}], { view:'intel' }, null, IG_QUIET);
       intelPushChatResult(res);
     } else {
       localFallback(`Side-by-side from your live contract data. <span class="text-[11px] text-amber-700">${i18t('int_add_key')}</span>`);
@@ -1300,7 +1301,7 @@ function buildGraphModel(){
       if(node.crowded) node.sub+=' · '+i18t('int_cliff_crowded'); }
     nodes.push(node); });
   cs.forEach(c=>{ const g=groupLabelOf(c,groupBy,override);
-    nodes.push({id:c.id, kind:'contract', c, label:c.name, sub:c.id+(isMonetary(c)&&c.value?' · '+(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):''), group:g, dot:STATUS_DOT[c.status]||'var(--st-gray-dot)',
+    nodes.push({id:c.id, kind:'contract', c, label:c.name, sub:(window.contractRef?contractRef(c):c.id)+(isMonetary(c)&&c.value?' · '+(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):''), group:g, dot:STATUS_DOT[c.status]||'var(--st-gray-dot)',
       hit: highlight&&act.ids.has(c.id), mut: highlight&&!act.ids.has(c.id), badge: act.badges?.[c.id]||null});
     edges.push({from:'hub:'+g, to:c.id, kind:groupBy==='counterparty'?'party':'group', w:graphLinkWidth(linkV[c.id],vmax)});   // hub -> contract: arrows fan outward; width is value
   });
@@ -1958,7 +1959,7 @@ function intelFrictionStats(filter){
         ours?oursRej++:theirsRej++; if(ours) cp.rej++;
         if(!ch.withdrawn){ deadlocks++;
           /* Named, not just counted — "See the six" has to have six to show. */
-          if(deadlockList.length<12) deadlockList.push({ id:c.id, name:String(c.name||c.id),
+          if(deadlockList.length<12) deadlockList.push({ id:c.id, name:String(c.name||(window.contractRef?contractRef(c):c.id)),
             clause:(_igClauseName(ch.clauseLabel||ch.headingText||'')||'a clause').slice(0,60) });
         }
       }
@@ -2408,7 +2409,7 @@ function exposureData(){
       let best=null, bv=-1;
       hits.forEach(c=>{ const h=(typeof fxHome==='function')?fxHome(c):{v:Number(c.value||0),missing:false};
         const v=(h&&!h.missing)?(h.v||0):0; if(v>bv){ bv=v; best=c; } });
-      if(best) worst = { id:best.id, name:best.name||'', who:best.counterparty||'' };
+      if(best) worst = { id:best.id, ref:(window.contractRef?contractRef(best):best.id), name:best.name||'', who:best.counterparty||'' };
     }
     return { k:kind.k, title:kind.title, sub:kind.sub, n:hits.length,
       ids:hits.map(c=>c.id), value:m.sum, left:m.left, worst };
@@ -2492,7 +2493,7 @@ function exposureHtml(){
         lead?'var(--t-section)':'var(--t-body)'};font-weight:var(--w-strong);white-space:nowrap;line-height:var(--lh-tight);color:${ink}">${d.money?e(money(r.value)):''}${
         (d.money&&r.left)?`<span title="${e(i18t('int_exp_left_out',{n:r.left}))}" style="color:var(--st-amber-fg);font-weight:var(--w-body);font-size:var(--t-body)"> *</span>`:''}</td>
       <td style="padding:13px var(--s-3);font-size:var(--t-body);color:var(--color-neutral-700)">${
-        r.worst ? e(r.worst.who || r.worst.name || r.worst.id) : '&mdash;'}</td>
+        r.worst ? e(r.worst.who || r.worst.name || r.worst.ref || r.worst.id) : '&mdash;'}</td>
       <td style="padding:13px 0;text-align:right;white-space:nowrap">${
         r.n ? `<button data-exp-go="${e(r.k)}" type="button" class="ui-link">${
           e(i18t('int_exp_see_all'))}</button>` : ''}</td>
@@ -3378,9 +3379,9 @@ function intelPayTermsHtml(){
   const page = Math.min(Math.max(1, intel.ptPage || 1), pages);
   const shown = rows.slice((page - 1) * _ptPageSize, page * _ptPageSize);
 
-  const rowHtml = r => `<button data-pt-open="${E(r.id)}" title="${E(r.name || r.id)}"
+  const rowHtml = r => `<button data-pt-open="${E(r.id)}" title="${E(r.name || r.ref || r.id)}"
       style="display:grid;grid-template-columns:${PT_COLS};gap:4px 14px;align-items:baseline;width:100%;text-align:left;border:0;background:none;padding:8px 0;${RULE};font:inherit;cursor:pointer">
-    ${cell(E(r.id), 'font-family:var(--font-mono);font-size:var(--t-label);color:var(--accent-ink);font-weight:var(--w-title)')}
+    ${cell(E(r.ref || r.id), 'font-family:var(--font-mono);font-size:var(--t-label);color:var(--accent-ink);font-weight:var(--w-title)')}
     ${cell(E(r.counterparty || r.name), 'font-size:var(--t-meta);color:var(--color-text)')}
     ${cell(E(streamOf(r)), 'font-size:var(--t-label);color:var(--color-neutral-600)')}
     ${cell(i18t(r.side === 'customer' ? 'pt_side_cust' : 'pt_side_supp'), `font-size:var(--t-label);color:${r.side === 'customer' ? OB_OURS : OB_THEIRS}`)}
@@ -3442,7 +3443,7 @@ function igMiniCard(id, extra){
     ${extra||''}<span class="h-6 w-6 shrink-0 grid place-items-center rounded-lg bg-brand-50 text-brand-500">${icon(cIcon(c),'w-3 h-3')}</span>
     <span class="min-w-0 flex-1">
       <span class="block truncate text-[12px] font-medium text-brand-900">${igEsc(c.name)}</span>
-      <span class="block text-[10px] font-mono text-ink/45">${c.id}${isMonetary(c)&&c.value?' · '+(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):''} · ${statusLabel(c.status)}</span>
+      <span class="block text-[10px] font-mono text-ink/45">${(window.contractRef?contractRef(c):c.id)}${isMonetary(c)&&c.value?' · '+(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):''} · ${statusLabel(c.status)}</span>
     </span>
   </button>`;
 }
@@ -3464,7 +3465,7 @@ function igExplainCard(id){
     <div class="flex items-center gap-2 mb-1.5">
       <span class="h-7 w-7 shrink-0 grid place-items-center rounded-lg bg-brand-50 text-brand-500">${icon(cIcon(c),'w-3.5 h-3.5')}</span>
       <div class="min-w-0"><div class="text-[12.5px] font-600 text-brand-900 truncate">${igEsc(c.name)}</div>
-      <div class="text-[10px] font-mono text-ink/45">${c.id}</div></div>
+      <div class="text-[10px] font-mono text-ink/45">${(window.contractRef?contractRef(c):c.id)}</div></div>
     </div>
     ${row('Type',igEsc(cKind(c)))}
     ${row('Counterparty',igEsc(c.counterparty||'—'))}
@@ -3545,7 +3546,7 @@ function renderIntelDock(){
     </div>`:''}
     ${intel.compareSel.length?`
     <div class="px-3.5 py-2 border-t border-hair shrink-0 flex items-center gap-2 bg-brand-50/40">
-      <span class="text-[11px] text-brand-800/70 flex-1 min-w-0 truncate">${i18t('int_comparing')} <b class="text-brand-900">${intel.compareSel.length}</b>: ${intel.compareSel.map(id=>igEsc(getContract(id)?.name||id)).join(', ')}</span>
+      <span class="text-[11px] text-brand-800/70 flex-1 min-w-0 truncate">${i18t('int_comparing')} <b class="text-brand-900">${intel.compareSel.length}</b>: ${intel.compareSel.map(id=>igEsc(getContract(id)?.name||(window.contractRef?contractRef(getContract(id)||{id}):id))).join(', ')}</span>
       <button id="igd-cmp-clear" class="text-[10.5px] font-600 text-ink/50 hover:text-ink">${i18t('int_clear')}</button>
       <button id="igd-cmp-run" class="ui-btn ui-btn-sm${intel.compareSel.length<2?'':' ui-btn-primary'}" title="${intel.compareSel.length<2?'Tap “+ Compare” on one more node first':'Run the side-by-side comparison'}">${intel.compareSel.length<2?'Pick 1 more…':'Compare '+intel.compareSel.length}</button>
     </div>`:''}
@@ -3601,7 +3602,7 @@ function renderIntelDock(){
   dock.querySelectorAll('[data-ig-deps]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
     const id=b.getAttribute('data-ig-deps'); const d=graphDependents(id);
     if(!d.contracts.length||typeof regShowOnly!=='function') return;
-    regShowOnly(d.contracts.map(x=>x.id), i18t('int_dep_list_label',{id})); }));
+    regShowOnly(d.contracts.map(x=>x.id), i18t('int_dep_list_label',{id:(window.contractRef?contractRef(getContract(id)||{id}):id)})); }));
   // node-driven comparison: stage/unstage a contract, run or clear the tray
   dock.querySelectorAll('[data-ig-cmp]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); intelToggleCompare(b.getAttribute('data-ig-cmp')); }));
   document.getElementById('igd-cmp-clear')?.addEventListener('click',()=>{ intel.compareSel=[]; igPaintIds(null); renderIntelDock(); });

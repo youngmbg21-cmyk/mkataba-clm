@@ -289,10 +289,10 @@ function insHeadHtml(c, o){
   }).join('');
   const more = o.menuHtml ? `<span class="ins-more-wrap">
       <button type="button" class="ui-btn ui-btn-icon ins-more" data-ins-more aria-haspopup="true" aria-expanded="false"
-        title="${esc(i18t('reg_more_actions'))}" aria-label="${esc(i18t('ins_more', { id: c.id }))}">${typeof icon === 'function' ? icon('more') : ''}</button>
+        title="${esc(i18t('reg_more_actions'))}" aria-label="${esc(i18t('ins_more', { id: (window.contractRef ? contractRef(c) : c.id) }))}">${typeof icon === 'function' ? icon('more') : ''}</button>
       <div class="ins-menu" data-ins-menu hidden>${o.menuHtml}</div></span>` : '';
   return `<div class="ins-h">
-    <div class="ins-eb"><span class="ins-ref">${esc(c.id)}</span>${kind ? ` · ${esc(kind)}` : ''}</div>
+    <div class="ins-eb"><span class="ins-ref">${esc(window.contractRef ? contractRef(c) : c.id)}</span>${kind ? ` · ${esc(kind)}` : ''}</div>
     <h2 class="ins-cp" title="${esc(pyAll || cp)}"><span class="ins-cp-n">${esc(cp)}</span>${py ? `<span class="reg-py-n" title="${esc(pyAll)}">${esc(py)}</span>` : ''}</h2>
     ${title ? `<div class="ins-sub" title="${esc(title)}">${esc(title)}</div>` : ''}
     <div class="ins-st">${status}${mv}</div>

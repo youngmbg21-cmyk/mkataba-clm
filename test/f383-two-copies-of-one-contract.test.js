@@ -391,7 +391,11 @@ describe('F383 (6) the wiring — every screen that draws the contract draws pag
   test('5A: the places to sign are painted on the signing copy and on nothing else', () => {
     const wire = region(ROOM, 'wireDocCanvas');
     assert.match(wire, /const _signCopy=docCopyOf\(c\)==='sign';/);
-    assert.match(wire, /if\(_signCopy&&window\.signSpotsPaint\) signSpotsPaint\(c\);/);
+    /* RE-POINTED 26 Sep 2026 — and not on a contract the other side signs their own
+       way: nobody signs it in HaTi, so no place to sign may be drawn on it (a "Sign here"
+       tab on a page nobody can sign here is a promise the product cannot keep). */
+    assert.match(wire, /const _theySign=!!\(window\.signRouteOf&&signRouteOf\(c\)==='outside'\);/);
+    assert.match(wire, /if\(_signCopy&&!_theySign&&window\.signSpotsPaint\) signSpotsPaint\(c\);/);
   });
   test('the pages are made AFTER the places to sign and BEFORE Plain English measures them', () => {
     const wire = region(ROOM, 'wireDocCanvas');

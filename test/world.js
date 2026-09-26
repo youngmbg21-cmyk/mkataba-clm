@@ -37,6 +37,10 @@ const ROOT = path.join(__dirname, '..');
 const MODULES = [
   'js/i18n.js',         // first, as js/app.js loads it: every label reads through t()
   'js/jurisdiction.js', // then this: money and law read from it
+  /* Redline here, sign there (26 Sep 2026): contractRef and the handover's
+     readings. A pure module, published by name and read by every view that
+     prints a contract's reference — so it is on every stage, before them. */
+  'js/outside.js',
   'js/graphwhere.js',   // the graph's `where` predicate, one for both hosts (Copilot audit phase 4)
   'js/section.js',      // the section grammar: a pure builder, read by five views
   'js/richdoc.js',
@@ -81,6 +85,7 @@ const MODULES = [
    needs something living in that file — paper execution, for one — asks for it
    and accepts the heavier stage; every other test keeps the light one. */
 const CONTRACT_VIEW = 'js/views/contract.js';
+const HANDOVER_VIEW = 'js/views/handover.js';
 /* js/pages.js — the page-maker (25 Sep 2026): a contract drawn as pages. */
 const PAGES = 'js/pages.js';
 /* js/ocr.js — the scanning path (buildWorld({ocr:true})). It sits beside the
@@ -464,7 +469,9 @@ function buildWorld(opts = {}) {
      so a stage without it draws the one long sheet it always drew. */
   if ((opts.negotiationView || opts.contractView) && !files.includes(PAGES)) files.push(PAGES);
   if (opts.negotiationView) files.push(...NEGOTIATION_VIEW);
-  if (opts.contractView) files.push(CONTRACT_VIEW);
+  /* js/views/handover.js rides with the contract view: the Signing tab of a
+     file THEY sign is drawn there, and contract.js reaches it through window. */
+  if (opts.contractView) files.push(CONTRACT_VIEW, HANDOVER_VIEW);
   if (opts.metadata && !files.includes(METADATA)) files.push(METADATA);
   if (opts.participants && !files.includes(PARTICIPANTS)) files.push(PARTICIPANTS);
   if (opts.ocr) files.push(OCR);

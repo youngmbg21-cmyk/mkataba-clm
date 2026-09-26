@@ -130,7 +130,11 @@ function currentKpiSel(){ const s=getKpiSel(); return (s.length?s:DEFAULT_KPI_SE
    arithmetic — and writes nothing. */
 function hmMySignings(cs){
   const meNow=(typeof currentUser==='function')?currentUser():null;
-  return (meNow&&window.nextSigner&&window.signReadiness)?(cs||[]).filter(c=>c.status!=='Signed'&&c.status!=='Declined'&&!c.archived).map(c=>{
+  /* A file THEY sign (26 Sep 2026) is never signed here, so it is never one
+     of this reader's signings: its handover is on the Signing tab, and what is
+     owed while it is out rides the bell (the `handover` alert). */
+  return (meNow&&window.nextSigner&&window.signReadiness)?(cs||[]).filter(c=>c.status!=='Signed'&&c.status!=='Declined'&&!c.archived
+    &&!(window.signRouteOf&&signRouteOf(c)==='outside')).map(c=>{
     let ns=null; try{ ns=nextSigner(c); }catch(_){ ns=null; }
     if(!ns||ns.party==='counterparty'||ns.signed) return null;
     const mine=(ns.memberId&&String(ns.memberId)===String(meNow.id))
@@ -166,7 +170,7 @@ function readyToSignRowsHtml(items){
             <span style="display:block;font-size:var(--t-meta);font-weight:var(--w-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.c.name)}</span>
             <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.sig.by||r.c.counterparty||'They')} signalled ready — nothing is signed yet</span>
           </span>
-          <span style="font-size:var(--t-label);font-weight:var(--w-strong);font-family:var(--font-mono);color:var(--st-green-fg);flex:none">issue link</span>
+          <span style="font-size:var(--t-label);font-weight:var(--w-strong);font-family:var(--font-mono);color:var(--st-green-fg);flex:none">${(window.signRouteOf&&signRouteOf(r.c)==='outside')?esc(i18t('ho_hand_verb')):'issue link'}</span>
         </button>`).join('')}
     </div>`;
 }
@@ -1268,7 +1272,7 @@ function triageSubHead(c){
   const t=(typeof triageOf==='function')?triageOf(c):null;
   const f=(c&&c.upload&&c.upload.name)||'';
   const who=(t&&t.by)||'';
-  return [f,who?i18t('tri_by',{who}):'',c.id].filter(Boolean).join(' · ');
+  return [f,who?i18t('tri_by',{who}):'',(window.contractRef?contractRef(c):c.id)].filter(Boolean).join(' · ');
 }
 /* ---- NEEDS YOUR DECISION — ONE READING (Young ruled 25 Sep 2026) ----
    The list the card draws, lifted out of renderDashboard when the card came
@@ -1351,7 +1355,7 @@ function hmDecisionItems(S, deskRows){
     ...(waitingLongest||[]).map(x=>({
       cid:x.c.id, urgent:x.idle>=30,
       txt:i18t('home_waiting_on_review',{name:strong(x.c.name)}),
-      meta:`${esc(x.c.counterparty||i18t('home_no_counterparty'))} · ${esc(x.c.id)}`,
+      meta:`${esc(x.c.counterparty||i18t('home_no_counterparty'))} · ${esc(window.contractRef?contractRef(x.c):x.c.id)}`,
       tag:i18t('home_idle_days',{n:x.idle}),
       verb:i18t('act_open'),
     })),
@@ -1766,7 +1770,7 @@ function renderDashboard(){
            ESCAPES it, so escaping here too would show a contract called
            "Smith & Co" as "Smith &amp; Co" in the one dialog that asks
            somebody to decline it. Every other caller passes it raw. */
-        message:i18t('tri_decline_msg',{name:c.name||c.id}),
+        message:i18t('tri_decline_msg',{name:c.name||(window.contractRef?contractRef(c):c.id)}),
         confirm:i18t('tri_a_decline'), danger:true });
       if(!ok) return;
       c.status='Declined'; c.lastAction=todayStr();

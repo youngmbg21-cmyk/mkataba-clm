@@ -217,7 +217,7 @@ function payTermsData(){
        of the gap is nil, which is a fact about its size, not about whether it
        is on bad terms. */
     const away = Math.max(0, s === 'customer' ? d - std : std - d);
-    const row = { id:c.id, name:(c.name || c.id || ''), counterparty:(c.counterparty || ''),
+    const row = { id:c.id, ref:(window.contractRef?contractRef(c):c.id), name:(c.name || (window.contractRef?contractRef(c):c.id) || ''), counterparty:(c.counterparty || ''),
                   gapAway:away, disadvantage:away > 0,
                   /* THE STREAM IS CARRIED AS ITS ID, never as a name. The label
                      is a view's job (FOLDERS lives with the screens), and a
@@ -347,7 +347,7 @@ function payTermsData(){
     .map(r => Object.assign({}, r, gapOf[r.id] || { gapDays:0 }))
     .sort((a, b) => (b.gapDays - a.gapDays) || (b.value - a.value) || String(a.id).localeCompare(String(b.id)));
 
-  const named = cs => cs.map(c => ({ id:c.id, name:(c.name || c.id || ''), counterparty:(c.counterparty || '') }));
+  const named = cs => cs.map(c => ({ id:c.id, name:(c.name || (window.contractRef?contractRef(c):c.id) || ''), counterparty:(c.counterparty || '') }));
 
   return {
     panel:'payment_terms',

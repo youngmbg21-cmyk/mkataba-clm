@@ -34,7 +34,7 @@ function pipeCard(c){
   return `
     <div data-card="${c.id}" class="q-card" style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:10px var(--s-3);cursor:pointer;display:flex;flex-direction:column;gap:4px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
-        <span style="font-family:var(--font-mono);font-size:var(--t-label);color:var(--color-neutral-600)">${c.id}</span>
+        <span style="font-family:var(--font-mono);font-size:var(--t-label);color:var(--color-neutral-600)">${(window.contractRef?contractRef(c):c.id)}</span>
         <span style="background:${rp.bg};color:${rp.fg};font-size:var(--t-label);font-weight:var(--w-strong);letter-spacing:.03em;padding:1px var(--s-2);border-radius:var(--radius);font-variant-numeric:tabular-nums;flex:none">R ${r}</span>
       </div>
       <div style="font-size:var(--t-body);font-weight:var(--w-strong);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cPrimary(c)}</div>
