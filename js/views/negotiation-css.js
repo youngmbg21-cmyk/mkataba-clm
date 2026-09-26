@@ -1452,7 +1452,8 @@ function redlineLayoutCss(){
     background:none;text-decoration:underline}
   .redline-page .rl-needs-dot{width:8px;height:8px;border-radius:var(--radius);background:var(--st-amber-dot);
     flex:none;animation:none}
-  .redline-page .rl-needs-go{color:var(--color-neutral-400)}
+  .redline-page .rl-needs-go{display:inline-flex;align-items:center;color:var(--color-neutral-400)}
+  .redline-page .rl-needs-go svg{width:var(--btn-ic);height:var(--btn-ic)}
   /* ---- THE FLOATING NOTICES ----
      Bottom-right, over the page, never a band above the contract. See the note
      at the markup for why. Capped so a long sentence cannot become a panel,
@@ -1760,7 +1761,8 @@ function redlineLayoutCss(){
      34px and 12-13px against a head row of 28px and 14px directly above them,
      so the page carried two control heights and two control sizes one under
      the other. The rung, the size and the weight are the head row's own now —
-     .ui-btn-lg is --ctl-h at --t-body, weight 400 — and ONLY A SHADED SEGMENT
+     then .ui-btn-lg, --ctl-h at --t-body, weight 400; the weight moved with
+     the Compact ladder, see the last paragraph — and ONLY A SHADED SEGMENT
      IS BOLD, which is what marks the live half of a pair once the row reads at
      one weight.
 
@@ -1775,9 +1777,17 @@ function redlineLayoutCss(){
      head-row pin one page along records why: a rule naming today's controls is
      one the next control walks past, and a row at two sizes is what was
      reported. rlFitTabRow's fold ladder measures this row in pixels and is
-     unchanged; it is re-measured in control-row-folds-verify. */
+     unchanged; it is re-measured in control-row-folds-verify.
+
+     THE ROW'S ONE WEIGHT IS THE LABEL WEIGHT since the Compact ladder (Young
+     picked it 26 Sep 2026): every button label is medium, so the resting
+     half of a switch, the stepper's two presses and the needs chip read at
+     500 beside the buttons, and the shaded half is still the one that
+     stands out. Left at 400 they would have made this one row two weights
+     again, which is the thing this rule was written to stop. The stepper's
+     readout is a figure, not a press, and keeps the body weight. */
   .redline-page .rl-head .rl-type-step{height:var(--ctl-h);padding:0 3px}
-  .redline-page .rl-head .rl-type-step button,
+  .redline-page .rl-head .rl-type-step button{font-size:var(--t-body);font-weight:var(--w-label)}
   .redline-page .rl-head .rl-type-step .rl-type-out{font-size:var(--t-body);font-weight:var(--w-body)}
   .redline-page .rl-head .rl-segwrap:not(.rl-readwrap){height:var(--ctl-h)}
   ${''/* THE HEIGHT CAME OUT OF THIS RULE ON 19 Sep 2026, and it is the cause
@@ -1791,10 +1801,10 @@ function redlineLayoutCss(){
          gap 3 top / 3 bottom before, 0 and 0 after. Fixed by taking the stale
          declaration out, never by out-weighting it. */}
   .redline-page .rl-head .rl-segwrap:not(.rl-readwrap) .rl-seg{
-    font-size:var(--t-body);font-weight:var(--w-body)}
+    font-size:var(--t-body);font-weight:var(--w-label)}
   .redline-page .rl-head .rl-segwrap:not(.rl-readwrap) .rl-seg.on{font-weight:var(--w-title)}
   .redline-page .rl-head .rl-livelist{font-size:var(--t-body);font-weight:var(--w-label)}
-  .redline-page .rl-head .rl-needs{font-size:var(--t-body)}
+  .redline-page .rl-head .rl-needs{font-size:var(--t-body);font-weight:var(--w-label)}
   ${''/* THE PURPLE CAME OFF (owner-asked 20 Aug 2026, off a screenshot of the
         row): the two review buttons wear the "N needs you" chip's own
         neutral clothes — surface, hairline, quiet ink — and keep their bold
@@ -5858,7 +5868,12 @@ function redlineLayoutCss(){
          so the four read as one row, and is NOT a fourth reading — it never
          takes the .on face, because the board is a window and not a mode the
          paper is in. */}
-  .redline-page .rl-boardseg{align-self:center;color:var(--accent-ink);font-weight:var(--w-title)}
+  ${''/* AND ITS SIZE IS THE TABS' TOO (the Compact ladder, 26 Sep 2026): it
+         took the base segment's 12px and 26px from .rl-seg while the tabs
+         beside it read 13px at the label weight. One text size and one weight
+         in one row, on the everyday rung; the lit face keeps the bold. */}
+  .redline-page .rl-boardseg{align-self:center;color:var(--accent-ink);font-size:var(--t-body);
+    font-weight:var(--w-label);height:var(--ctl-h)}
   .redline-page .rl-boardseg:hover{background:var(--color-surface)}
 
 
@@ -5911,7 +5926,7 @@ function redlineLayoutCss(){
   /* ---- THE DEAL BOARD PAGE (14 Sep 2026) ---- the grid steps aside for it */
   .redline-page.rl-board-on #rl-grid,.redline-page.rl-board-on .rl-turnwrap{display:none}
   .redline-page .rl-boardpage{flex:1 1 auto;min-height:0;overflow:auto;padding:16px 24px 40px}
-  .redline-page .rl-boardseg.on{background:var(--accent-fill);color:#fff}
+  .redline-page .rl-boardseg.on{background:var(--accent-fill);color:#fff;font-weight:var(--w-title)}
   .db-sum{display:flex;gap:18px;flex-wrap:wrap;font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 12px;align-items:center}
   .db-sum b{color:var(--color-text);font-size:var(--t-card);font-weight:var(--w-strong)}
   .db-sum .sp{flex:1}

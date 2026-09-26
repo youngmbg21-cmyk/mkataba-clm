@@ -1345,9 +1345,8 @@ function reviewBannerHtml(c, opts = {}){
      off me. A reader with none of those gets no banner. */
   const rows = [];
   let tone = 'amber';
-  const act = (id, label) => `<button type="button" data-rv-act="${id}"
-    style="flex:none;font:inherit;font-size:var(--t-label);font-weight:var(--w-title);cursor:pointer;border-radius:var(--radius);padding:var(--s-1) 10px;
-    border:1.5px solid currentColor;background:transparent;color:inherit">${_rvE(label)}</button>`;
+  const act = (id, label) => `<button type="button" data-rv-act="${id}" class="ui-btn ui-btn-sm"
+    style="flex:none;border-color:currentColor;background:transparent;color:inherit">${_rvE(label)}</button>`;
   const line = (body, button) => `<div style="display:flex;align-items:flex-start;gap:10px;width:100%">
     <span style="flex:1;min-width:0">${body}</span>${button || ''}</div>`;
 
@@ -1621,9 +1620,7 @@ function reviewAskModalHtml(c, opts = {}){
     <div style="border:1px solid var(--color-divider);border-radius:var(--radius);padding:11px 13px;background:var(--color-bg);margin-bottom:14px">
       <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:6px">
         <span style="flex:1;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)">${_rvE(i18t('rv_in_scope'))}</span>
-        ${scope.all.length > 1 ? `<button type="button" id="rv-pick-all"
-          style="border:0;background:none;padding:0;font:inherit;font-size:var(--t-label);font-weight:var(--w-strong);
-          color:var(--color-accent);cursor:pointer;text-decoration:underline;text-underline-offset:2px">${_rvE(i18t('rv_pick_none'))}</button>` : ''}
+        ${scope.all.length > 1 ? `<button type="button" id="rv-pick-all" class="ui-link">${_rvE(i18t('rv_pick_none'))}</button>` : ''}
       </div>
       ${scope.ours.length ? `<div style="font-size:var(--t-label);font-weight:var(--w-title);color:var(--color-text);margin:var(--s-1) 0 2px">${_rvE(i18tn('rv_scope_ours', scope.ours.length, { n: scope.ours.length }))}</div>
         <ul style="list-style:none;margin:0;padding:0">${scope.ours.map(row).join('')}</ul>` : ''}

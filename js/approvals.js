@@ -1261,7 +1261,10 @@ function openSignerPlanEditor(c, opts){
   // People directory (imported contacts + team members) → drives name auto-fill.
   const people=(typeof orgDirectory==='function')?orgDirectory():[];
   const dirList=`<datalist id="sp-dir-names">${people.map(p=>`<option value="${(p.name||p.email||'').replace(/"/g,'&quot;')}">${[p.title,p.email].filter(Boolean).join(' · ').replace(/"/g,'&quot;')}</option>`).join('')}</datalist>`;
-  const IN='rounded-lg border border-inputln bg-white px-2 py-1.5 text-[12px]';
+  /* ONE BOX HEIGHT (the Compact ladder, 26 Sep 2026): the row's selects and
+     the step number are text boxes, so they sit on the field rung beside the
+     22px move buttons instead of their own 32-33px. */
+  const IN='rounded-lg border border-inputln bg-white ui-fld';
   const memberOpts=s=>`<option value="">${i18t('ap_pick_member')}</option>`+members.map(u=>`<option value="${u.id}" ${s.memberId===u.id?'selected':''}>${(u.name||u.email).replace(/</g,'&lt;')}</option>`).join('');
   const esc1=v=>String(v==null?'':v).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
   /* WHICH COMPANY THIS PERSON SIGNS FOR. Drawn only where there is more than
@@ -1311,7 +1314,7 @@ function openSignerPlanEditor(c, opts){
     <p class="text-xs text-ink/60 mb-3">${i18t('ap_route_line')}</p>
     ${dirList}
     <div id="sp-rows">${plan.map(row).join('')||`<div class="text-[12px] text-ink/50 mb-2">${i18t('ap_no_signers')}</div>`}</div>
-    <button id="sp-add" class="ui-link mb-2">${plusLed(i18t('ap_add_signer'))}</button>
+    <button id="sp-add" class="ui-link mb-2">${(typeof window!=='undefined'&&window.plusLed?window.plusLed(i18t('ap_add_signer')):i18t('ap_add_signer'))}</button>
     ${''/* ---- BOTH SIDES, COUNTED WHILE YOU TYPE ----
            The rule is that a route names somebody on each side, and a rule a
            form only mentions when it refuses is a rule the form is keeping to
@@ -1618,7 +1621,7 @@ function signerRouteHtml(c, opts){
     html+=`<div class="${bare?'':'rounded-xl border border-line bg-white p-3 mb-2'}">
       ${bare?'':`<div class="flex items-center gap-2 mb-2"><span class="text-[11px] font-600 text-ink">${i18t('ap_signature_progress')}</span>
         <span class="text-[9.5px] font-mono px-1.5 py-0.5 rounded-full ${signedCount===sorted.length?'bg-brand-50 text-brand-600':'bg-gold-50 text-gold-700'}">${i18t('ap_n_signed',{done:signedCount,total:sorted.length})}</span>
-        ${canEdit()&&c.status!=='Signed'?`<button id="sp-edit" class="ml-auto text-[10px] font-600 text-brand-600 hover:text-brand-800">edit route</button>`:''}</div>`}
+        ${canEdit()&&c.status!=='Signed'?`<button id="sp-edit" type="button" class="ui-link" style="margin-left:auto">edit route</button>`:''}</div>`}
       <div class="relative">
         ${sorted.map((s,i)=>{
           /* ---- WHOSE TURN IS A STEP, NOT A ROW (22 Sep 2026) ----

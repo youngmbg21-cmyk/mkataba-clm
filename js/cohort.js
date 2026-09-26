@@ -92,7 +92,7 @@ function cohortButtonHtml(){
   if(typeof canEdit==='function' && !canEdit()) return '';
   return `<span style="position:relative;display:inline-flex">
     <button id="reg-cohort" type="button" class="ui-btn" aria-haspopup="true" aria-expanded="false"
-      title="${_coEsc(i18t('co_h_title'))}">${_coEsc(i18tn('co_h_button',n,{n}))} <span aria-hidden="true" style="opacity:.7">&#9662;</span></button>
+      title="${_coEsc(i18t('co_h_title'))}">${_coEsc(i18tn('co_h_button',n,{n}))}${(typeof icon==='function')?icon('chevD','w-3.5 h-3.5'):''}</button>
     <div id="reg-cohort-menu" role="menu" hidden
       style="display:none;position:absolute;right:0;top:calc(100% + 6px);z-index:40;min-width:270px;
         background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);

@@ -325,7 +325,7 @@ function ikClockHtml(r){
     ${ikFactHtml(i18t('ik_f_with'), r.assignee&&r.assignee.name?esc(r.assignee.name):'', 'ink')}
     ${ikFactHtml(i18t('ik_f_promised'), p?esc(p.text):'', p?p.tone:'ink')}
     ${url?`<button data-ik-track="${esc(r.id)}" title="${esc(i18t('ik_track_title'))}"
-      style="border:0;background:none;font:inherit;font-size:var(--t-meta);color:var(--accent-ink);cursor:pointer;padding:0;margin-top:15px;white-space:nowrap">${esc(i18t('ik_track'))}</button>`:''}
+      class="ui-link" style="margin-top:15px">${esc(i18t('ik_track'))}</button>`:''}
   </div>`;
 }
 

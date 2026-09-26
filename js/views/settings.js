@@ -3425,7 +3425,7 @@ function stEngineBodyHtml(){
           <input id="ai-key" type="password" placeholder="sk-ant-…" style="${window.RV_FLD||ST_INPUT}"/></label>
         <button id="ai-key-save" style="${ST_BTN}">${i18t('set_save_key')}</button>
       </div>
-      <button id="ai-key-clear" disabled aria-disabled="true" style="margin-top:6px;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--st-ruby-dot);background:none;border:0;cursor:default;opacity:.5;padding:0">${i18t('set_remove_key')}</button>
+      <button id="ai-key-clear" type="button" disabled aria-disabled="true" class="ui-link ui-link-danger" style="margin-top:6px;cursor:default;opacity:.5">${i18t('set_remove_key')}</button>
       <p class="st-note" style="margin-top:var(--s-3)">${i18t('set_local_mode_note')}</p>
       ${''/* THE ACCEPTANCE READING IS DRAWN HERE TOO, and that is the one-builder
              rule rather than a convenience: it counts the book in the browser and
@@ -3442,7 +3442,7 @@ function stEngineBodyHtml(){
         <input id="ai-key" type="password" placeholder="sk-ant-…" style="${window.RV_FLD||ST_INPUT}"/></label>
       <button id="ai-key-save" style="${ST_BTN}">${i18t('set_save_key')}</button>
     </div>
-    <button id="ai-key-clear" disabled aria-disabled="true" style="margin-top:6px;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--st-ruby-dot);background:none;border:0;cursor:default;opacity:.5;padding:0">${i18t('set_remove_key')}</button>
+    <button id="ai-key-clear" type="button" disabled aria-disabled="true" class="ui-link ui-link-danger" style="margin-top:6px;cursor:default;opacity:.5">${i18t('set_remove_key')}</button>
 
     <div class="st-sec st-sec-top">
       <div style="font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text)">${i18t('set_spend_today')}</div>
@@ -4436,7 +4436,7 @@ function renderPlaybookView(){
       <span style="font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text)">${i18t('set_playbook_by_type')}</span>
       ${canEditPb?`<span style="margin-left:auto;display:flex;gap:var(--s-2)">
         <button id="pb-add" class="ui-btn ui-btn-sm ui-btn-primary">${icon('plus','w-3 h-3')} ${i18t('set_add_type')}</button>
-        <button id="pb-reset" style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600);background:none;border:0;cursor:pointer">${i18t('set_reset_defaults2')}</button>
+        <button id="pb-reset" type="button" class="ui-link">${i18t('set_reset_defaults2')}</button>
       </span>`:''}
     </div>
     ${baseCard}${typeCards}
@@ -4474,10 +4474,10 @@ function openPlaybookEditor(key){
       <input id="pb-f-match" value="${PB_ATTR(e.match.join(', '))}" placeholder="${esc(i18t('set_ph_eg_keywords'))}" style="${inp}"></label>
     <div style="font-size:var(--t-label);color:var(--color-neutral-600);background:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius);padding:7px 9px;margin-bottom:var(--s-3)">${i18t('set_inherited_baseline')} <span style="display:inline-flex;flex-wrap:wrap;gap:var(--s-1);vertical-align:middle">${inherited.positions.map(pbPosChip).join('')}${inherited.ranges.map(pbRangeChip).join('')}</span></div>`:''}
 
-    <div style="display:flex;align-items:center;margin:0 0 6px"><span style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text)">${isBase?i18t('set_positions'):i18t('set_positions_for_type')}</span><button id="pb-add-pos" class="ui-link" style="margin-left:auto">${plusLed(i18t('set_add_position'))}</button></div>
+    <div style="display:flex;align-items:center;margin:0 0 6px"><span style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text)">${isBase?i18t('set_positions'):i18t('set_positions_for_type')}</span><button id="pb-add-pos" class="ui-link" style="margin-left:auto">${(typeof window!=='undefined'&&window.plusLed?window.plusLed(i18t('set_add_position')):i18t('set_add_position'))}</button></div>
     <div id="pb-pos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px"></div>
 
-    <div style="display:flex;align-items:center;margin:0 0 6px"><span style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text)">${i18t('set_numeric_limits')}</span><button id="pb-add-rng" class="ui-link" style="margin-left:auto">${plusLed(i18t('set_add_limit'))}</button></div>
+    <div style="display:flex;align-items:center;margin:0 0 6px"><span style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text)">${i18t('set_numeric_limits')}</span><button id="pb-add-rng" class="ui-link" style="margin-left:auto">${(typeof window!=='undefined'&&window.plusLed?window.plusLed(i18t('set_add_limit')):i18t('set_add_limit'))}</button></div>
     <div id="pb-rng-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:var(--s-4)"></div>
 
     <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
@@ -4772,7 +4772,7 @@ async function loadSessions(){
       return `<div style="display:flex;align-items:center;gap:var(--s-2);border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);padding:7px 10px">
         <span style="min-width:0"><span style="font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text)">${dev}${s.current?` <span style="font-size:var(--t-figure);font-family:var(--font-mono);color:var(--accent-ink-700)">${i18t('set_this_device')}</span>`:''}</span>
         <span style="display:block;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-neutral-500)">${s.ip||'—'} · ${i18t('set_last_seen',{when:s.lastSeen?fmtDT(s.lastSeen):'—'})}</span></span>
-        ${s.current?'':`<button data-sess-revoke="${s.id}" style="margin-left:auto;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--st-ruby-dot);background:none;border:0;cursor:pointer">${i18t('set_revoke')}</button>`}
+        ${s.current?'':`<button data-sess-revoke="${s.id}" type="button" class="ui-link ui-link-danger" style="margin-left:auto">${i18t('set_revoke')}</button>`}
       </div>`; }).join('')}</div>`:`<p style="font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('set_no_active_sessions')}</p>`;
     host.querySelectorAll('[data-sess-revoke]').forEach(b=>b.addEventListener('click',async()=>{
       try{ await api('sessions/'+b.getAttribute('data-sess-revoke'),'DELETE'); toast(i18t('set_t_session_revoked')); loadSessions(); }

@@ -1629,7 +1629,7 @@ function tbPlaybookLaneHtml(cov) {
     else {
       const empty = secs.find(s => { const t = tbKindOf(s.head); return t && t.category === r.category; });
       door = empty ? `<button type="button" data-tb-cover-draft="${empty.k}" data-tb-note="${esc(r.note || '')}">${i18t('tb_draft_this')}</button>`
-                   : `<button type="button" data-tb-cover-add="${esc(r.category)}">${plusLed(i18t('tb_pb_add_section'))}</button>`;
+                   : `<button type="button" data-tb-cover-add="${esc(r.category)}">${(typeof window!=='undefined'&&window.plusLed?window.plusLed(i18t('tb_pb_add_section')):i18t('tb_pb_add_section'))}</button>`;
     }
     const st = r.state === 'dev' ? `${i18t('tb_pb_reads_fig', { n: r.figure })} · ${r.op} ${r.want}` : r.state === 'hit' ? i18t('tb_met') : i18t('tb_not_yet_written');
     return `<li><i class="d ${r.state === 'hit' ? 'ok' : r.state}"></i><span class="g">${esc(r.category)}${r.escalate ? ` · ${i18t('tb_pb_legal')}` : ''}</span><span class="st ${r.state === 'hit' ? 'ok' : r.state}">${st}</span>${door}

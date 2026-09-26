@@ -349,7 +349,7 @@ function openWizard(preTid, prefill){
        neither can draw a different contract from the same answers. */
     const _pv = (typeof fillPreviewFits==='function') && fillPreviewFits();
     openModal(`<div style="padding:22px var(--s-6);">
-      <button id="wz-back" style="font-size:var(--t-label);color:var(--accent-ink-700);font-weight:var(--w-strong);font-family:var(--font-mono);background:none;border:0;cursor:pointer;margin-bottom:var(--s-2);padding:0;">← templates</button>
+      <button id="wz-back" type="button" class="ui-link" style="margin-bottom:var(--s-2)">${(typeof icon==='function')?icon('chevL','w-3.5 h-3.5'):''}templates</button>
       <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;color:var(--color-text);margin:0 0 3px;">${t.kind}</h3>
       <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-4);line-height:1.5;">${t.blurb||''}</p>
       <div id="wz-cols" style="display:grid;grid-template-columns:${_pv?'minmax(0,1fr) minmax(0,1fr)':'minmax(0,1fr)'};gap:var(--s-4);align-items:start">

@@ -1504,7 +1504,7 @@ function openUploadModal(){
         <input id="up-file" type="file" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg" class="hidden"/>
         <div id="up-steps" class="hidden" style="margin-top:var(--s-3)"></div>
         <div style="display:flex;align-items:center;gap:var(--s-2);margin-top:14px">
-          <button id="up-bulk" style="border:0;background:none;padding:0;font:inherit;font-size:var(--t-label);color:var(--color-neutral-600);cursor:pointer" title="${i18t('ct_bulk_importer')}">${i18t('ct_whole_catalogue')} <u>${i18t('ct_import_many')}</u></button>
+          <button id="up-bulk" type="button" class="ui-link" title="${i18t('ct_bulk_importer')}">${i18t('ct_whole_catalogue')} ${i18t('ct_import_many')}</button>
           <span style="flex:1"></span>
           <button id="up-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         </div>
@@ -6016,7 +6016,7 @@ function ktPartiesBlockHtml(c, opts={}){
   const bare = !!opts.bare;
   const shown = rows;
   const add = (mayEdit && !bare)
-    ? `<button type="button" class="py-add" data-py-add="1">${plusLed(esc(i18t('py_add')))}</button>` : '';
+    ? `<button type="button" class="py-add" data-py-add="1">${(typeof window!=='undefined'&&window.plusLed?window.plusLed(esc(i18t('py_add'))):esc(i18t('py_add')))}</button>` : '';
   if(!shown.length) return '';
   const n = rows.filter(p => p.side !== PARTY_SIDE_OURS).length + 1;
   /* THE NOTE THAT SAYS THE RECORD AND THE PAPER DISAGREE ABOUT THE NAME stays
@@ -12530,7 +12530,7 @@ function docXrayWhoHtml(who){
         <span class="doc-xr-wdc">${esc(l.cite || '')}</span>
         ${l.ob ? `<span class="doc-xr-wdo">${esc(xrWhoTracked(l.ob))}</span>` : ''}</button>`).join('')
     + (more > 0 ? `<div class="doc-xr-q doc-xr-wdmore">${esc(i18tn('xr_wd_more', more, { n: more }))}</div>` : '')
-    + (tracked ? `<button type="button" class="ui-btn doc-xr-wdgo" data-xr-ob="1" title="${esc(i18t('xr_wd_go_title'))}">${esc(i18t('xr_wd_go'))} <span aria-hidden="true">→</span></button>` : '');
+    + (tracked ? `<button type="button" class="ui-btn doc-xr-wdgo" data-xr-ob="1" title="${esc(i18t('xr_wd_go_title'))}">${esc(i18t('xr_wd_go'))}${(typeof icon==='function')?icon('chevR','w-3.5 h-3.5'):''}</button>` : '');
   return docXraySecHtml(head, body, 'is-who');
 }
 
@@ -13711,7 +13711,7 @@ function renderSignButton(c){
   // until then there is nothing to have signed on paper.
   const paperRoute = !((window.negoSigningBlockers ? negoSigningBlockers(c).length
       : (window.unresolvedRedlines && unresolvedRedlines(c))))
-    ? `<button id="sign-paper" class="mt-2 w-full text-center text-[11px] text-brand-800/70 hover:text-brand-900 underline decoration-dotted underline-offset-2 py-1.5 transition">${i18t('ct_signed_on_paper_q')}</button>`
+    ? `<button id="sign-paper" type="button" class="ui-link" style="display:flex;width:100%;justify-content:center;margin:8px 0 0">${i18t('ct_signed_on_paper_q')}</button>`
     : '';
   const wirePaper = () => document.getElementById('sign-paper')?.addEventListener('click',()=>openPaperSignatureModal(c));
   const appr=approvalState(c);

@@ -424,7 +424,7 @@ function renderScanSection(c){
   } else {
     const list = open.filter(x=>scanUI.filter==='all'||x.sev===scanUI.filter);
     const counts = s => open.filter(x=>x.sev===s).length;
-    const chip = (key,label)=>`<button data-scan-filter="${key}" class="text-[10px] px-2 py-0.5 rounded-full border font-medium transition ${scanUI.filter===key?'bg-brand-900 text-white border-brand-900':'bg-white text-brand-700 border-brand-200 hover:border-brand-400'}">${label}</button>`;
+    const chip = (key,label)=>`<button data-scan-filter="${key}" class="rounded-full border transition ${scanUI.filter===key?'bg-brand-900 text-white border-brand-900':'bg-white text-brand-700 border-brand-200 hover:border-brand-400'}" style="display:inline-flex;align-items:center;min-height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);font:inherit;font-family:var(--font-heading);font-size:var(--t-meta);font-weight:var(--w-label);cursor:pointer">${label}</button>`;
     const cards = list.length ? list.map(x=>{
       const sm=SEV_META[x.sev], exp=scanUI.expanded.has(x.id);
       return `
@@ -443,9 +443,9 @@ function renderScanSection(c){
           <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/65 mb-0.5">${i18t('ai_suggested_fix')}</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.fix}</p></div>
           <div class="flex items-center gap-2 pt-1">
             ${(findingQuote(x)||(x.anchor&&x.anchor!=='doc'&&document.querySelector(`#doc-canvas [data-anchor="${x.anchor}"]`)))
-              ? `<button data-scan-goto="${x.anchor}" data-scan-id="${x.id}" class="flex items-center gap-1 text-[11px] font-medium text-brand-600 hover:text-brand-800 transition">${icon('target','w-3 h-3')} ${i18t('ai_go_to_wording')}</button>`
+              ? `<button data-scan-goto="${x.anchor}" data-scan-id="${x.id}" type="button" class="ui-link">${icon('target','w-3.5 h-3.5')}${i18t('ai_go_to_wording')}</button>`
               : `<span class="text-[11px] text-brand-800/45">${i18t('ai_whole_document')}</span>`}
-            <button data-scan-dismiss="${x.id}" class="ml-auto text-[11px] font-medium text-brand-800/65 hover:text-brand-800 transition">${i18t('ai_dismiss')}</button>
+            <button data-scan-dismiss="${x.id}" type="button" class="ui-link" style="margin-left:auto">${i18t('ai_dismiss')}</button>
           </div>
         </div>`:''}
       </div>`;
@@ -1087,7 +1087,7 @@ const aiCards = (list, opts) => {
   if(!list.length) return work;
   if(list.length<=3) return `<div class="space-y-1.5">${list.map(aiContractCard).join('')}</div>${work}`;
   return `<div class="space-y-1.5">${list.slice(0,3).map(aiContractCard).join('')}</div>
-    <details class="mt-1.5"><summary class="cursor-pointer select-none text-[11px] font-600 text-brand-600 hover:text-brand-800">${i18tn('ai_show_all',list.length,{n:list.length})}</summary>
+    <details class="mt-1.5"><summary class="ui-link select-none">${i18tn('ai_show_all',list.length,{n:list.length})}${(typeof icon==='function')?icon('chevD','w-3.5 h-3.5'):''}</summary>
       <div class="space-y-1.5 mt-1.5">${list.slice(3).map(aiContractCard).join('')}</div></details>${work}`;
 };
 

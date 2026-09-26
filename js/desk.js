@@ -1136,7 +1136,7 @@ function deskSheetHtml(c){
         ${r.why ? `<span class="dk-row-sub" title="${_dkE(r.why)}">“${_dkE(_dkClamp(r.why, 120))}”</span>` : ''}
       </span>
       <span style="display:flex;gap:6px;flex:none">
-        <button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-dk-approve="${_dkE(r.id)}">${_dkE(i18t('dk_approve_btn'))}</button>
+        <button type="button" class="ui-btn ui-btn-sm ui-btn-accent" data-dk-approve="${_dkE(r.id)}">${_dkE(i18t('dk_approve_btn'))}</button>
         <button type="button" class="ui-btn ui-btn-sm" data-dk-decline="${_dkE(r.id)}">${_dkE(i18t('dk_decline_btn'))}</button>
       </span></div>`).join('')}` : ''}
 

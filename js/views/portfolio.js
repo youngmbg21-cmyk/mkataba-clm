@@ -110,8 +110,8 @@ function pfChipsHtml(){
   if(!chips.length) return '';
   return `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
     <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${i18t('pf_focused_on')}</span>
-    ${chips.map(c=>`<button data-pf-unfilter="${c.k}" style="display:inline-flex;align-items:center;gap:6px;border:0;border-radius:var(--radius);padding:3px 10px;font:inherit;font-size:var(--t-label);font-weight:var(--w-title);cursor:pointer;background:var(--color-accent);color:#fff">${pfEsc(c.l)}${icon('x','w-3 h-3')}</button>`).join('')}
-    <button data-pf-clear style="border:0;background:none;cursor:pointer;font:inherit;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink-700);text-decoration:underline">${i18t('reg_clear')}</button>
+    ${chips.map(c=>`<button data-pf-unfilter="${c.k}" type="button" style="display:inline-flex;align-items:center;gap:4px;border:0;border-radius:var(--radius);min-height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);font:inherit;font-family:var(--font-heading);font-size:var(--t-meta);font-weight:var(--w-label);cursor:pointer;background:var(--color-accent);color:#fff">${pfEsc(c.l)}${icon('x','w-3 h-3')}</button>`).join('')}
+    <button data-pf-clear type="button" class="ui-link">${i18t('reg_clear')}</button>
   </div>`;
 }
 

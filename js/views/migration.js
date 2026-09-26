@@ -1145,7 +1145,7 @@ function renderMigration(){
                   ${isOcrText(c.migration.textSource)?`<span style="display:block;font-size:var(--t-label);color:var(--st-amber-fg)" title="${migEsc(ocrProvenanceLine(c.upload||c.migration))}">machine-read from a scan${c.migration.ocrSkippedPages?` · ${c.migration.ocrSkippedPages} page${c.migration.ocrSkippedPages===1?'':'s'} skipped`:''}</span>`:''}</td>
                 <td style="text-align:right;padding-right:var(--s-3);white-space:nowrap" onclick="event.stopPropagation()">
                   ${(c.linkSuggestions&&c.linkSuggestions.length&&!c.parentId&&!c.linkConfirmed&&canEdit())?`<button data-mig-link="${c.id}" class="ui-btn ui-btn-sm" style="border-color:var(--color-accent);color:var(--accent-ink)">${i18t('mig_col_link')}</button>`:''}
-                  ${need&&canEdit()?`<button data-mig-review="${c.id}" class="ui-btn ui-btn-sm ui-btn-primary">${i18t('mig_review')}</button>`:''}
+                  ${need&&canEdit()?`<button data-mig-review="${c.id}" class="ui-btn ui-btn-sm ui-btn-accent">${i18t('mig_review')}</button>`:''}
                   <button data-open="${c.id}" class="ui-btn ui-btn-sm">${i18t('mig_open')}</button>
                 </td>
               </tr>`; }).join('')}

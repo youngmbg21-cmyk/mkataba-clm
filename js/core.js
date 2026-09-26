@@ -2977,8 +2977,11 @@ function openModal(html, opts={}){
      its second paint and would otherwise leave the first panel's listeners
      behind. See dragDialog above for the rules it keeps. */
   if(_modalDrag){ try{ _modalDrag(); }catch(e){} _modalDrag=null; }
+  if(_modalPin){ try{ _modalPin(); }catch(e){} _modalPin=null; }
   if(panel){ _modalOpener = document.activeElement; _modalRelease = trapFocus(panel);
-    _modalDrag = (typeof dragDialog==='function') ? dragDialog(panel) : null; }
+    _modalDrag = (typeof dragDialog==='function') ? dragDialog(panel) : null;
+    /* A panel given a height runs its own layout and its own scroller. */
+    if(!opts.height) _modalPin = dlgPinFoot(panel); }
   // Esc closes, exactly like the scrim click — some modals (Compare, share)
   // otherwise strand keyboard users with no visible way out
   document.addEventListener('keydown',function esc(e){
@@ -3006,7 +3009,59 @@ async function closeModalGuarded(){
     if(ok===false) return; }
   closeModal();
 }
-let _modalOpener=null, _modalRelease=null, _modalDrag=null;
+let _modalOpener=null, _modalRelease=null, _modalDrag=null, _modalPin=null;
+/* ---- A DIALOG'S BUTTONS STAY IN VIEW WHILE ITS BODY SCROLLS (the Compact
+   ladder, 26 Sep 2026 — rule 8 of the button review: "always in view while the
+   body scrolls") ----
+   Ninety dialogs each build their own foot, so the foot is FOUND rather than
+   written ninety times: the last row in the panel that holds a ui-btn and
+   nothing but buttons (an empty spacer allowed), with nothing readable after
+   it. It is marked data-dlg-foot and the sheet pins it to the panel's bottom
+   edge. A dialog that fits never notices — sticky only acts once the panel
+   scrolls — and data-scrolls on the panel is what adds the hairline above a
+   pinned foot. A dialog that already carries .dlg-foot (the Send dialog) is
+   left as it is. Re-found on every change to the panel's content, because a
+   dialog that steps (the Send dialog's kinds, an import's stages) repaints its
+   own body without opening a second time. Returns its own release, which
+   openModal and closeModal call like the trap's and the drag's. */
+function dlgFootOf(panel){
+  const isBtn = k => k.tagName==='BUTTON' || (k.tagName==='A' && k.classList.contains('ui-btn'));
+  const quiet = k => (k.tagName==='SPAN' || k.tagName==='DIV') && !k.textContent.trim()
+    && !k.querySelector('button,input,select,textarea,a');
+  const rows=[...panel.querySelectorAll('div')].filter(d=>{
+    const kids=[...d.children];
+    return kids.length && kids.some(k=>isBtn(k) && k.classList.contains('ui-btn'))
+      && kids.every(k=>isBtn(k)||quiet(k));
+  });
+  for(let i=rows.length-1;i>=0;i--){
+    const row=rows[i];
+    if(!row.getClientRects().length) continue;          // a hidden step's foot is not the foot
+    for(let el=row; el && el!==panel; el=el.parentElement)
+      for(let s=el.nextElementSibling; s; s=s.nextElementSibling)
+        if(s.getClientRects().length && s.textContent.trim()) return null;
+    return row;
+  }
+  return null;
+}
+function dlgPinFoot(panel){
+  if(typeof window==='undefined' || typeof MutationObserver!=='function') return null;
+  const later = window.requestAnimationFrame ? f=>window.requestAnimationFrame(f) : f=>setTimeout(f,16);
+  let queued=false;
+  const paint=()=>{ queued=false;
+    if(!panel.isConnected) return;
+    if(!panel.querySelector('.dlg-foot')){
+      const was=panel.querySelector('[data-dlg-foot]'), foot=dlgFootOf(panel);
+      if(was && was!==foot) was.removeAttribute('data-dlg-foot');
+      if(foot && !foot.hasAttribute('data-dlg-foot')) foot.setAttribute('data-dlg-foot','');
+    }
+    panel.toggleAttribute('data-scrolls', panel.scrollHeight > panel.clientHeight + 1);
+  };
+  const soon=()=>{ if(queued) return; queued=true; later(paint); };
+  paint();
+  const mo=new MutationObserver(soon); mo.observe(panel,{childList:true,subtree:true});
+  window.addEventListener('resize',soon);
+  return ()=>{ mo.disconnect(); window.removeEventListener('resize',soon); };
+}
 /* TWO THINGS ON THE WAY OUT, and both were added on the same day by different
    hands: the guard is cleared so it cannot outlive its dialog, and focus goes
    back where it came from — without which a keyboard user is dropped at the
@@ -3019,6 +3074,7 @@ function closeModal(){
      for a modal that never got a trap (one with no [role=dialog] panel). */
   if(_modalRelease){ try{ _modalRelease(); }catch(e){} _modalRelease=null; }
   if(_modalDrag){ try{ _modalDrag(); }catch(e){} _modalDrag=null; }
+  if(_modalPin){ try{ _modalPin(); }catch(e){} _modalPin=null; }
   document.getElementById('modal-root').innerHTML='';
   try{ if(_modalOpener && _modalOpener.isConnected) _modalOpener.focus({preventScroll:true}); }catch(e){}
   _modalOpener=null;
@@ -4310,7 +4366,7 @@ function quickSendStepHtml(c, pre, purpose, warns){
     ${w.length?`<div style="display:flex;gap:7px;align-items:flex-start;margin:0 0 10px;font-size:var(--t-label);line-height:1.55;color:var(--st-amber-fg)"><span style="flex:none;display:inline-flex;margin-top:1px">${icon('alert','w-3.5 h-3.5')}</span><span>Worth checking: ${esc(w.slice(0,2).join(' '))}${w.length>2?' …':''}</span></div>`:''}
     <div id="qs-result" style="margin:0 0 var(--s-1)"></div>
     <div style="margin-top:10px;display:flex;align-items:center;gap:var(--s-2);">
-      <button id="qs-details" class="ui-btn" title="${i18t('co_full_form')}">${i18t('co_change_details')}</button>
+      <button id="qs-details" class="ui-btn" title="${i18t('co_full_form')}">${i18t('co_change_details')}${(typeof icon==='function')?icon('chevD','w-3.5 h-3.5'):''}</button>
       <span style="flex:1"></span>
       <button id="qs-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <button id="qs-send" class="ui-btn ui-btn-primary">${icon('send','w-3.5 h-3.5')} ${i18t('co_send_it')}</button>
@@ -6708,9 +6764,9 @@ async function renderSharesSection(c){
           ${s.responseBy?`<div style="font-size:var(--t-label);color:var(--color-neutral-700);margin-top:3px">by ${esc(s.responseBy)}</div>`:''}
           <div style="font-size:var(--t-label);color:var(--color-neutral-600);font-family:var(--font-mono);margin-top:3px">${meta}</div>
           ${(live(s)&&canEdit())?`<div style="display:flex;gap:10px;margin-top:5px">
-            <button data-sh-copy="${s.token}" style="border:0;background:none;padding:0;font:inherit;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink-700);cursor:pointer">${i18t('co_copy_link')}</button>
-            ${s.channel==='email'?`<button data-sh-resend="${s.token}" style="border:0;background:none;padding:0;font:inherit;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink-700);cursor:pointer">${i18t('co_resend')}</button>`:''}
-            <button data-sh-revoke="${s.token}" style="border:0;background:none;padding:0;font:inherit;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--st-ruby-dot);cursor:pointer">${i18t('co_revoke')}</button>
+            <button data-sh-copy="${s.token}" type="button" class="ui-link">${i18t('co_copy_link')}</button>
+            ${s.channel==='email'?`<button data-sh-resend="${s.token}" type="button" class="ui-link">${i18t('co_resend')}</button>`:''}
+            <button data-sh-revoke="${s.token}" type="button" class="ui-link ui-link-danger">${i18t('co_revoke')}</button>
           </div>`:''}
         </div>`; }).join('')}
     </div></div>`;

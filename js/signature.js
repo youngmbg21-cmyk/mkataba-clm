@@ -78,7 +78,7 @@ function openSignaturePad(opts={}){
           <!-- DRAW -->
           <div data-sig-pane="draw">
             <canvas id="sig-canvas" width="${SIG_W}" height="${SIG_H}" style="width:100%;height:auto;border:1.5px dashed ${C};border-radius:var(--radius);background:var(--color-bg);touch-action:none;cursor:crosshair;display:block"></canvas>
-            <button id="sig-clear" style="margin-top:var(--s-2);font:inherit;font-size:var(--t-label);color:${N6};background:none;border:0;cursor:pointer;">Clear</button>
+            <button id="sig-clear" type="button" class="ui-link" style="margin-top:var(--s-2)">Clear</button>
           </div>
           <!-- TYPE -->
           <div data-sig-pane="type" style="display:none">

@@ -99,8 +99,8 @@ function renderFolder(){
       <div id="fold-selbar" class="flex hidden items-center justify-between" style="gap:var(--s-3);border:1px solid var(--color-accent-800);background:var(--color-accent-800);color:#fff;border-radius:var(--radius);padding:var(--s-2) var(--s-3)">
         <span id="fold-sel-count" style="font-size:var(--t-meta);font-weight:var(--w-strong)">${i18t('reg_n_selected',{n:0})}</span>
         <div style="display:flex;align-items:center;gap:var(--s-2)">
-          <button id="fold-export" style="display:inline-flex;align-items:center;gap:6px;border:0;background:rgba(255,255,255,.16);color:#fff;border-radius:var(--radius);padding:5px 10px;font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);cursor:pointer">${icon('download','w-3.5 h-3.5')} Export CSV</button>
-          <button id="fold-clear" style="border:0;background:none;color:rgba(255,255,255,.72);padding:5px var(--s-2);font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);cursor:pointer">${i18t('reg_clear')}</button>
+          <button id="fold-export" type="button" style="display:inline-flex;align-items:center;gap:var(--btn-gap);border:0;background:rgba(255,255,255,.16);color:#fff;border-radius:var(--radius);min-height:var(--ctl-h);padding:0 var(--pad-ctl-x);font:inherit;font-family:var(--font-heading);font-size:var(--t-body);font-weight:var(--w-label);cursor:pointer">${icon('download','w-3.5 h-3.5')} Export CSV</button>
+          <button id="fold-clear" type="button" style="display:inline-flex;align-items:center;border:0;background:none;color:rgba(255,255,255,.72);border-radius:var(--radius);min-height:var(--ctl-h);padding:0 var(--pad-ctl-x);font:inherit;font-family:var(--font-heading);font-size:var(--t-body);font-weight:var(--w-label);cursor:pointer">${i18t('reg_clear')}</button>
         </div>
       </div>
 
@@ -275,7 +275,7 @@ function folderRowsHtml(cs){
       <td style="text-align:center;white-space:nowrap">${window.shareLinkCell?shareLinkCell(c.id):''}</td>
       <td style="text-align:right;padding-right:var(--s-3);white-space:nowrap">${window.questionDot?questionDot(c.id):''}${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</td>
     </tr>`; }).join('') + (cs.length>shown
-      ? `<tr><td colspan="8" style="padding:0"><button id="folder-more" style="width:100%;padding:11px;font-size:var(--t-body);font-weight:var(--w-strong);color:var(--accent-ink-700);background:none;border:0;border-top:1px solid var(--color-divider);cursor:pointer">Show ${Math.min(FOLDER_PAGE,cs.length-shown)} more · ${cs.length-shown} remaining</button></td></tr>`
+      ? `<tr><td colspan="8" style="padding:0"><button id="folder-more" type="button" class="ui-link" style="display:flex;width:100%;justify-content:center;margin:0;min-height:40px;border-radius:0;border-top:1px solid var(--color-divider)">Show ${Math.min(FOLDER_PAGE,cs.length-shown)} more · ${cs.length-shown} remaining</button></td></tr>`
       : '');
 }
 function folderSelCount(){ const s=state.folderSel||{}; return Object.keys(s).filter(k=>s[k]).length; }
@@ -835,7 +835,7 @@ function regSetMode(k){ _regMode=(k==='board')?'board':'table'; }
    ONE BUILDER AND ONE WIRING, so the two callers cannot draw or arm it
    differently. */
 function regClearHtml(){
-  return regNarrowed() ? `<button id="reg-clear-filters" style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink-700);background:none;border:0;cursor:pointer;padding:2px var(--s-1)">${i18t('reg_clear')}</button>` : '';
+  return regNarrowed() ? `<button id="reg-clear-filters" type="button" class="ui-link">${i18t('reg_clear')}</button>` : '';
 }
 function regPaintClear(){
   const slot=document.getElementById('reg-clear-slot'); if(!slot) return;

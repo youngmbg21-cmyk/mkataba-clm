@@ -2647,7 +2647,7 @@ function renderTemplatesPage(){
              this page, inert in both books. */}
       ${canManage?`<button id="tpl-new" class="ui-btn ui-btn-primary" ${
         ((typeof newPaperBlocked==='function'&&newPaperBlocked())?` disabled title="${esc(i18t('np_refused'))+' '+esc(i18t('np_refused_ask'))}"`:'')
-      }>${plusLed(i18t('lib_new_template'))}</button>`:''}
+      }>${(typeof window!=='undefined'&&window.plusLed?window.plusLed(i18t('lib_new_template')):i18t('lib_new_template'))}</button>`:''}
     </div>
     <div class="st-tabs" role="tablist" style="margin-bottom:14px">
       ${''/* "Templates overview" was HERE and is gone (19 Sep 2026). See the

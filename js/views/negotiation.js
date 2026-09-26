@@ -2845,7 +2845,7 @@ function negoRoomHtml(c, opts = {}){
               landing. The f49 test that asserted it has been rewritten to
               assert the opposite, rather than worked around. */}
         ${negoRoomHasExit(opts) ? `<button class="nego-exit" id="nego-exit" title="${i18t('ng_leave_room')}">
-          <span aria-hidden="true">←</span> Doc
+          ${(typeof icon==='function')?icon('chevL','w-3.5 h-3.5'):''}Doc
         </button>
         <span class="sep" aria-hidden="true">›</span>` : ''}
         <span class="path">${side === 'counterparty' ? '' : 'Contract Workspace '}${_ne(path)}</span>
@@ -9827,7 +9827,7 @@ function renderRedline(){
                    button reading "0 need you" has nothing to do. */}
             ${needsYou.length ? `<button type="button" data-rl-needsyou="${_nea(needsYou[0])}" class="rl-needs"
               title="${_nea(i18t('ng_needs_you_title'))}"><span class="rl-needs-dot"></span>${
-              i18tn('ng_needs_you', needsYou.length, { n: needsYou.length })}<span class="rl-needs-go">&rarr;</span></button>` : ''}
+              i18tn('ng_needs_you', needsYou.length, { n: needsYou.length })}<span class="rl-needs-go">${(typeof icon==='function')?icon('chevR','w-3.5 h-3.5'):''}</span></button>` : ''}
           </div>
           <div class="rl-actions">
             ${''/* ---- THE TEXT SIZE, WHICH THIS PAGE NEVER HAD ----
@@ -14326,19 +14326,23 @@ async function rlOpenPlaybookReview(c, again){
              the one that deleted six sub-clauses — steps back to an ordinary
              button that ASKS how much of the clause it would replace. On an
              ADD landing nothing moves: there is no clause to narrow to and
-             our own wording is exactly what belongs. */}
+             our own wording is exactly what belongs.
+             THE LEAD WEARS THE ACCENT'S INK, NOT ITS FILL (the Compact ladder,
+             26 Sep 2026): this window lists one card per finding, and one
+             filled button per card made a dialog of ten filled buttons. The
+             lead is still the one press that stands out of its row. */}
       <button data-pbr-skip="${i}" class="ui-btn ui-btn-sm">${i18t('ng_skip')}</button>
-      ${it.preferred ? `<button data-pbr-go="${i}" class="ui-btn ui-btn-sm${it.fit ? '' : ' ui-btn-primary'}" title="${_nea(i18t(it.fit ? 'ng_file_preferred_whole_title' : 'ng_file_preferred_title'))}">${i18t('ng_file_preferred')}</button>` : ''}
+      ${it.preferred ? `<button data-pbr-go="${i}" class="ui-btn ui-btn-sm${it.fit ? '' : ' ui-btn-accent'}" title="${_nea(i18t(it.fit ? 'ng_file_preferred_whole_title' : 'ng_file_preferred_title'))}">${i18t('ng_file_preferred')}</button>` : ''}
       ${it.fallback ? `<button data-pbr-fb="${i}" class="ui-btn ui-btn-sm" title="${i18t('ng_file_fallback_title')}">${i18t('ng_file_fallback')}</button>` : ''}
-      ${it.draft ? `<button data-pbr-draft="${i}" class="ui-btn ui-btn-sm${(it.fit && it.fit.kind === 'draft') ? ' ui-btn-primary' : ''}" title="${_nea(i18t('ng_file_draft_title'))}">${i18t('ng_file_draft')}</button>` : ''}
-      ${(it.fit && it.fit.kind === 'figure') ? `<button data-pbr-fit="${i}" class="ui-btn ui-btn-sm ui-btn-primary" title="${_nea(i18t('ng_file_fit_title'))}">${i18t('ng_file_fit')}</button>` : ''}
+      ${it.draft ? `<button data-pbr-draft="${i}" class="ui-btn ui-btn-sm${(it.fit && it.fit.kind === 'draft') ? ' ui-btn-accent' : ''}" title="${_nea(i18t('ng_file_draft_title'))}">${i18t('ng_file_draft')}</button>` : ''}
+      ${(it.fit && it.fit.kind === 'figure') ? `<button data-pbr-fit="${i}" class="ui-btn ui-btn-sm ui-btn-accent" title="${_nea(i18t('ng_file_fit_title'))}">${i18t('ng_file_fit')}</button>` : ''}
     </div>`}
   </div>`;
   openModal(`<div style="padding:20px var(--s-6);max-height:calc(100vh - 80px);overflow-y:auto">
     <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;margin:0 0 var(--s-1)">&#10022; ${i18tn('ng_playbook_review',items.length,{n:items.length})}</h2>
     <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 14px;line-height:1.55">${aligned} position${aligned === 1 ? '' : 's'} aligned${rlPbCheckedLine(rev) ? ' &middot; ' + _ne(rlPbCheckedLine(rev)) : ''}${rev.source === 'ai' ? ' &middot; Copilot-assisted review' : ' &middot; rule-based review'}. A proposal files as an ordinary fingerprinted change only when you press it — nothing applies itself. <b>${i18t('ng_preferred')}</b> ${i18t('ng_opening_position')} <b>fallback</b> ${i18t('ng_concession_allowed')} ${i18t('ng_draft_is_copilots')}</p>
     ${items.map(itemHtml).join('')}
-    <div style="display:flex;justify-content:flex-end"><button id="pbr-close" class="ui-btn">${i18t('act_close')}</button></div>
+    <div class="dlg-foot"><button id="pbr-close" class="ui-btn">${i18t('act_close')}</button></div>
   </div>`, { maxWidth: '780px' });
   const root = document.getElementById('modal-root') || document;
   const settle = (i, text, tone) => {

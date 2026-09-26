@@ -698,11 +698,14 @@ describe('f245 (17) — the four faults reported off the screenshots', () => {
     assert.ok(rule, 'the way out has its own rule');
     assert.ok(!/width:28px/.test(rule[0]),
       'the fixed square is gone — the box takes the word\'s width');
-    assert.ok(/height:28px/.test(rule[0]),
-      'and the height is UNTOUCHED: the ask was about being readable, not bigger');
-    /* BOLD BECAUSE IT IS FILLED — the owner's own rule for a control row
-       (10 Sep 2026: "Only the shaded buttons should bold"). */
-    assert.ok(/font-weight:var\(--w-strong\)/.test(rule[0]), 'the filled act is bold');
+    /* RE-POINTED 26 Sep 2026 (the Compact ladder): the height is the everyday
+       rung's TOKEN rather than a typed 28 — still 28, still not bigger — and
+       the weight is the one label weight every button carries. The 10 Sep
+       ruling "only the shaded buttons should bold" is about the lit half of a
+       two-way switch; a button says it is the main one by its fill. */
+    assert.ok(/height:var\(--ctl-h\)/.test(rule[0]),
+      'and the height is the everyday rung: the ask was about being readable, not bigger');
+    assert.ok(/font-weight:var\(--w-label\)/.test(rule[0]), 'one label weight, the fill says it leads');
     /* ON THE LADDER, never a fraction: this product draws no half-pixel type. */
     assert.ok(/font-size:var\(--t-body\)/.test(rule[0]), 'and its size is a token');
     /* ONE LINE WHATEVER THE LANGUAGE — the strip is a nowrap row, so a label

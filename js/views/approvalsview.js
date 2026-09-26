@@ -132,7 +132,7 @@ function renderApprovalsPage(){
       ${tab==='approvals'?apTableHtml(apHead,apRowsHtml,i18t('ap_pg_none_approvals')):apTableHtml(sgHead,sgRowsHtml,i18t('ap_pg_none_sign'))}
       <div class="ap-foot">
         <span>${esc(i18tn('ap_pg_foot',n,{n}))}</span>
-        ${(typeof isAdmin==='function'&&isAdmin()&&typeof openSettingsAt==='function')?`<button type="button" class="ui-btn ui-btn-plain" data-ap-rules>${esc(i18t('ap_pg_rules'))} ↗</button>`:''}
+        ${(typeof isAdmin==='function'&&isAdmin()&&typeof openSettingsAt==='function')?`<button type="button" class="ui-btn ui-btn-plain" data-ap-rules>${esc(i18t('ap_pg_rules'))}${(typeof icon==='function')?icon('chevR','w-3.5 h-3.5'):''}</button>`:''}
       </div>
     </section>
   </div>`;

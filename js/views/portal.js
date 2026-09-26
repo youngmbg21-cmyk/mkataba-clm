@@ -130,7 +130,7 @@ function portalRevisedBanner(){
         <span style="display:block;font-size:var(--t-card);font-weight:var(--w-strong);color:var(--st-amber-fg)">${headline}</span>
         <span style="display:block;font-size:var(--t-meta);color:var(--color-neutral-600);font-family:var(--font-mono)">${sub}</span>
       </span>
-      <button id="pt-see-changes" style="flex:none;font:inherit;font-size:var(--t-body);font-weight:var(--w-strong);border:0;border-radius:var(--radius);padding:9px var(--s-4);cursor:pointer;background:var(--st-amber-dot);color:#fff">${i18t('po_see_what_changed')}</button>
+      <button id="pt-see-changes" type="button" class="ui-btn" style="flex:none;border-color:var(--st-amber-dot);background:var(--st-amber-dot);color:#fff">${i18t('po_see_what_changed')}</button>
       <button id="pt-revised-dismiss" title="${i18t('po_mark_read_wont_come_back')}"
         aria-label="${i18t('po_mark_read_dismiss')}"
         style="flex:none;width:var(--ctl-h);height:var(--ctl-h);display:grid;place-items:center;border:1px solid var(--st-amber-line);background:transparent;color:var(--st-amber-fg);border-radius:var(--radius);cursor:pointer;padding:0;line-height:1">${icon('x','w-3.5 h-3.5')}</button>
@@ -1046,7 +1046,7 @@ function portalClauseEditorHtml(c){
         ${edited?`<div style="margin-top:6px;font-size:var(--t-label);color:var(--st-amber-fg);display:flex;align-items:center;gap:7px;flex-wrap:wrap">
           <span>${i18t('po_you_changed_this')}</span>
           ${PORTAL_CLAUSE_NOTES[u.i]?`<span style="color:var(--color-neutral-700);font-size:var(--t-label)">“${esc(PORTAL_CLAUSE_NOTES[u.i])}”</span>`:''}
-          <button data-cl-undo="${u.i}" style="border:0;background:none;padding:0;font:inherit;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--st-amber-fg);cursor:pointer;text-decoration:underline">${i18t('po_undo')}</button></div>`:''}
+          <button data-cl-undo="${u.i}" type="button" class="ui-link">${i18t('po_undo')}</button></div>`:''}
       </div>`;
   }).join('');
   const n=Object.keys(PORTAL_CLAUSE_EDITS).length;
@@ -3695,7 +3695,7 @@ function renderSharePortal(p, opts={}){
           </div>
           <div style="padding:14px 22px;border-top:1px solid var(--color-divider);display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--color-bg)">
             <span id="pt-redline-count" style="font-size:var(--t-meta);color:var(--color-neutral-600)">${i18t('po_name_from_panel')}</span>
-            <button id="pt-plain-toggle" style="border:0;background:none;padding:0;font:inherit;font-size:var(--t-meta);color:var(--accent-ink-700);cursor:pointer;text-decoration:underline">${i18t('po_edit_whole_doc')}</button>
+            <button id="pt-plain-toggle" type="button" class="ui-link">${i18t('po_edit_whole_doc')}</button>
             <span style="flex:1"></span>
             <button id="pt-redline-submit" class="ui-btn ui-btn-primary">${i18t('po_submit_edits')}</button>
           </div>
@@ -3776,8 +3776,7 @@ function renderSharePortal(p, opts={}){
         </div>`:''}
         <div style="display:flex;flex-direction:column;gap:var(--s-2);">
           <button id="pt-sign" class="ui-btn ui-btn-lg ui-btn-primary" style="width:100%">${icon('finger','w-4 h-4')} ${i18t('po_sign_this_contract')}</button>
-          <button id="pt-other-toggle" aria-expanded="false" aria-controls="pt-other"
-            style="width:100%;background:none;border:0;padding:6px 0;font:inherit;font-size:var(--t-meta);color:var(--accent-ink-700);cursor:pointer;text-align:center;text-decoration:underline">${i18t('po_not_ready_sign')}</button>
+          <button id="pt-other-toggle" type="button" aria-expanded="false" aria-controls="pt-other" class="ui-link" style="display:flex;width:100%;justify-content:center;margin:0">${i18t('po_not_ready_sign')}</button>
           <div id="pt-other" class="hidden" style="display:flex;flex-direction:column;gap:9px;border-top:1px solid var(--color-divider);padding-top:11px">
             ${''/* ---- A BUTTON THAT OPENS NOTHING IS WORSE THAN NO BUTTON ----
                    "Change the wording yourself" opens #portal-redline, and W6
@@ -4462,7 +4461,7 @@ async function portalSignUnverified(p, info){
       <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--st-amber-fg);margin-bottom:5px;">${icon('alert','w-3.5 h-3.5')} Signing without an email check</div>
       <p style="font-size:var(--t-meta);color:var(--st-amber-fg);margin:0 0 10px;line-height:1.55;">${i18t('po_cannot_verify',{email:esc(info.email),how:i18t('po_not_independently_verified')})}</p>
       <button id="pt-unver-go" class="ui-btn ui-btn-lg ui-btn-primary" style="width:100%">${icon('finger','w-4 h-4')} ${i18t('po_sign_anyway')}</button>
-      <button id="pt-unver-cancel" style="margin-top:6px;width:100%;background:none;border:0;font-size:var(--t-label);color:var(--color-neutral-600);cursor:pointer;font-family:var(--font-body);">${i18t('act_cancel')}</button>
+      <button id="pt-unver-cancel" type="button" class="ui-link" style="display:flex;width:100%;justify-content:center;margin:6px 0 0">${i18t('act_cancel')}</button>
     </div>`;
   document.getElementById('pt-unver-cancel').addEventListener('click',()=>{ box.innerHTML=''; portalSetIdle(); });
   document.getElementById('pt-unver-go').addEventListener('click',async()=>{
@@ -4528,7 +4527,7 @@ async function portalStartOtp(p, info){
       ${emailSent?'':`<p style="margin:0 0 var(--s-2);font-size:var(--t-label);border-radius:var(--radius);background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border:1px solid color-mix(in srgb,var(--st-amber-dot) 30%,transparent);color:var(--st-amber-fg);padding:6px 10px;line-height:1.5;">${esc(emailWhy||i18t('po_code_not_sent_generic'))} ${i18t('po_ask_sender_for_code',{who:esc((PORTAL_OPTS.payload&&PORTAL_OPTS.payload.sharedBy)||i18t('po_the_sender'))})}</p>`}
       <input id="pt-otp" inputmode="numeric" maxlength="6" placeholder="______" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:var(--s-2) 11px;text-align:center;font-size:18px;font-family:var(--font-mono);letter-spacing:.4em;color:var(--color-text);outline:none;"/>
       <button id="pt-otp-go" class="ui-btn ui-btn-lg ui-btn-primary" style="margin-top:var(--s-2);width:100%">${icon('finger','w-4 h-4')} ${i18t('po_verify_and_sign')}</button>
-      <button id="pt-otp-resend" style="margin-top:6px;width:100%;background:none;border:0;font-size:var(--t-label);color:var(--color-neutral-600);cursor:pointer;font-family:var(--font-body);">${i18t('po_resend_code')}</button>
+      <button id="pt-otp-resend" type="button" class="ui-link" style="display:flex;width:100%;justify-content:center;margin:6px 0 0">${i18t('po_resend_code')}</button>
     </div>`;
   document.getElementById('pt-otp-go').addEventListener('click',()=>portalVerifyAndSign(p, info));
   /* L1: a 30-second cooldown on Resend, with a live countdown, so rapid taps do

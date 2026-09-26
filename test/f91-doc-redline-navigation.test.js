@@ -369,8 +369,14 @@ describe('F91 (1,2) — the Doc page header and its sub-navigation', () => {
        morning's pass and is bordered now — the level between, which is what
        .ui-btn's base carries. The claim this line protects is unchanged: it is
        not a second FILLED act. */
-    assert.match(s, /id="ws-new" data-page-new class="ui-btn ui-btn-lg room-new"/,
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the Compact ladder): ui-btn-lg used to
+       mean "a head-row button" and is the LARGE rung now, so the head's
+       buttons wear the base .ui-btn — the same outlined level, one height with
+       Share and More beside it. The claim is unchanged: not a second fill. */
+    assert.match(s, /id="ws-new" data-page-new class="ui-btn room-new"/,
       'Draft new agreement is an outlined verb, not a second fill');
+    assert.doesNotMatch(s, /id="ws-new" data-page-new class="[^"]*ui-btn-primary/,
+      'and never filled');
     /* Only on the Document tab — but ALWAYS on it. */
     assert.match(end, /_wsTab!=='docs'/);
     /* ---- IT MUST NOT HIDE ITSELF ANY MORE ----

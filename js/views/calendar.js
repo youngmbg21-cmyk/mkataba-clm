@@ -888,7 +888,7 @@ function calStyleCss(){ return `
          switch's are spans. ONE rule dresses both, or the two segments
          standing beside each other would not match. */}
   .cal-seg span,.cal-seg a,.cal-seg button{display:flex;align-items:center;height:100%;padding:0 var(--pad-ctl-x);font-size:var(--t-body);
-    color:var(--color-neutral-600);cursor:pointer;border:0;background:none;font-family:inherit}
+    font-weight:var(--w-label);color:var(--color-neutral-600);cursor:pointer;border:0;background:none;font-family:inherit}
   /* accent-700, not the lighter step: white on accent-600 measures 3.74:1 and
      this is 13px. The darker step reads in both workspace accents. */
   .cal-seg span.on,.cal-seg a.on,.cal-seg button.on{background:var(--color-accent-700);color:#fff;font-weight:var(--w-title)}

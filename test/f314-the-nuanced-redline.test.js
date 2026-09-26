@@ -306,12 +306,22 @@ describe('f314 (4) — the batch never pastes, and says what it left', () => {
     assert.match(VIEW, /\[data-pbr-fb\]'\)\.forEach\(b => askThenFile\(b, 'data-pbr-fb'/, 'so does the fallback');
   });
 
+  /* RE-POINTED IN PLACE 26 Sep 2026 (the Compact ladder, Young picked it).
+     The claim is which press LEADS, and that did not move. What moved is how
+     a lead is dressed: the window draws one card per finding, so a filled
+     button on each made one dialog carry many — rule 4 of the button review
+     says one filled button per area, and in repeated rows the main act takes
+     the accent's ink instead. Every press is on the small rung (22) too, the
+     rung for buttons inside rows and cards. */
   test('the primary press follows the lead, so preview and first button cannot disagree', () => {
-    assert.match(VIEW, /data-pbr-fit="\$\{i\}" class="ui-btn ui-btn-primary"/, 'a figure gets its own primary press');
-    assert.match(VIEW, /data-pbr-draft="\$\{i\}" class="ui-btn\$\{\(it\.fit && it\.fit\.kind === 'draft'\) \? ' ui-btn-primary' : ''\}/,
+    assert.match(VIEW, /data-pbr-fit="\$\{i\}" class="ui-btn ui-btn-sm ui-btn-accent"/, 'a figure gets its own leading press');
+    assert.match(VIEW, /data-pbr-draft="\$\{i\}" class="ui-btn ui-btn-sm\$\{\(it\.fit && it\.fit\.kind === 'draft'\) \? ' ui-btn-accent' : ''\}/,
       'a fitted draft promotes the draft button');
-    assert.match(VIEW, /data-pbr-go="\$\{i\}" class="ui-btn\$\{it\.fit \? '' : ' ui-btn-primary'\}/,
+    assert.match(VIEW, /data-pbr-go="\$\{i\}" class="ui-btn ui-btn-sm\$\{it\.fit \? '' : ' ui-btn-accent'\}/,
       'and the stand-alone clause steps back wherever a fit exists');
+    const card = VIEW.slice(VIEW.indexOf('data-pbr-verbs='), VIEW.indexOf('data-pbr-verbs=') + 3000);
+    assert.ok(!/data-pbr-(go|draft|fit|fb|skip)="\$\{i\}" class="[^"]*ui-btn-primary/.test(card),
+      'and no finding\'s press is filled');
   });
 
   test('the clause editor\'s scan rail offers the same four wordings under the same names', () => {
