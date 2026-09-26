@@ -175,6 +175,10 @@ const check = (name, ok, detail) => {
           return g; })(),
         secHeadMin: (() => { const sh = document.querySelector('.na-sec-h');
           return sh ? Math.round(sh.getBoundingClientRect().height) : null; })(),
+        /* The text box's own height, resolved live — the rung the heading row
+           is floored at (min-height:var(--field-h)). */
+        fieldH: (() => { const e = document.createElement('div'); e.style.height = 'var(--field-h)';
+          document.body.appendChild(e); const v = Math.round(e.getBoundingClientRect().height); e.remove(); return v; })(),
         /* RE-POINTED IN PLACE 22 Sep 2026 — proposal C: the cards became a
            rail of rows, so the gap is measured from the last ROW of a shelf
            to the heading of the next. The CLAIM is the relation and it is
@@ -220,9 +224,14 @@ const check = (name, ok, detail) => {
        other, which is what "so close to overlapping" was about. RE-POINTED IN
        PLACE 22 Sep 2026 — the 12px card gap became the rail's own row gap, so
        the RELATION is read off the stylesheet rather than typed. */
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the Compact ladder): the head row's
+       floor was typed as 32, which was the text box's height that day. The
+       rule it guards reads var(--field-h) — the heading row is at least one
+       box tall, so the select in it is not crushed — and boxes are 28 since
+       the Compact ladder, so the floor is read live rather than typed. */
     check('3d and the heading row stands clear of the rows above it',
-      P.rows > 0 && P.realGap != null && P.secGap != null && P.realGap >= P.secGap && P.secHeadMin >= 32,
-      `rows→heading ${P.realGap}px against the ${P.secGap}px boundary · head row ${P.secHeadMin}px`);
+      P.rows > 0 && P.realGap != null && P.secGap != null && P.realGap >= P.secGap && P.fieldH > 0 && P.secHeadMin >= P.fieldH,
+      `rows→heading ${P.realGap}px against the ${P.secGap}px boundary · head row ${P.secHeadMin}px against a ${P.fieldH}px box`);
 
     /* A DROPDOWN ON A PAGE THAT IS NOT THE CONTRACTS FILTER BAR draws HaTi's
        own list — which is the whole of the owner's third ask. */
