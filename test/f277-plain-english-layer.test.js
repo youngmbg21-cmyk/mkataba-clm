@@ -815,8 +815,14 @@ describe('f277 (10) the edition is a facing page', () => {
   /* LEVEL WITH ITS OWN CLAUSE is what makes this a parallel reading; stepping
      down is what keeps that promise honest when it cannot be kept exactly. */
   test('an entry steps down rather than overlapping the one above', () => {
-    const at = CONTRACT_JS.indexOf('let floor=0, bottom=0;');
-    assert.ok(at > 0, 'the stepping exists');
+    /* ---- RE-POINTED 26 Sep 2026 (the overnight clean-up): the placing READS
+       every clause top and entry height first and WRITES every top last — one
+       layout instead of one per entry (~510ms of a ~550ms repaint on a
+       300-clause contract). The order and the arithmetic are unchanged, so the
+       claims below are the same claims asked of the new shape: the region runs
+       from where the order is built to the line that measures the last entry. */
+    const at = CONTRACT_JS.indexOf('const seq=[];');
+    assert.ok(at > 0 && CONTRACT_JS.indexOf('let floor=0, bottom=0', at) > at, 'the stepping exists');
     /* THE REGION, NEVER A BYTE COUNT — this file has paid for that once
        already (f277 (13)): the placing runs from the floor to the line that
        measures the last entry, and a comment added inside it must not push the
@@ -828,13 +834,13 @@ describe('f277 (10) the edition is a facing page', () => {
        twice, because a mirrored block takes the paper's own spacing and an
        ENTRY takes DOC_READ_GAP. The claim is the same: an entry steps down by
        its own height plus the gap rather than sitting on the one above. */
-    assert.ok(/floor=top\+el\.offsetHeight\+gap;/.test(css), 'by its own height plus a gap');
-    assert.ok(/data-doc-read-note[\s\S]{0,40}DOC_READ_GAP\)/.test(css),
+    assert.ok(/floor=top\+x\.h\+x\.gap;/.test(css), 'by its own height plus a gap');
+    assert.ok(/data-doc-read-note[\s\S]{0,80}gap:DOC_READ_GAP\}/.test(css),
       'and an entry\'s gap is DOC_READ_GAP');
     /* AND A READING IS NEVER PUSHED BY A MIRROR: the floor is reset between
        the two passes, so "level with its own clause, to the pixel" survives a
        title page whose copy runs a little taller than the paper. */
-    assert.ok(/floor=0;\s*\n\s*pairs\.forEach/.test(css), 'the floor is reset before the entries');
+    assert.ok(/if\(inFront&&!x\.front\)\{ inFront=false; floor=0; \}/.test(css), 'the floor is reset before the entries');
   });
 });
 

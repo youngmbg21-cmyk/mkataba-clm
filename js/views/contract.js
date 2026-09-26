@@ -10887,7 +10887,12 @@ function docReadSheet(c, root){
   /* A WRAPPER THAT MERELY CONTAINS the numbered paragraph is not the clause —
      the paragraph inside it is. Anchoring the outer one would put the entry
      above its own wording and swallow every clause after it. */
-  rows=rows.filter((r,i)=>!rows.some((o,j)=>j!==i&&r.el.contains(o.el)));
+  /* IN ONE PASS, NOT ONE PER PAIR (26 Sep 2026). The list is in document order
+     (querySelectorAll's own), and in document order everything inside an
+     element comes straight after it — so a row holds another row exactly when
+     it holds the row NEXT to it. Asking every row about every other row was
+     ~800,000 checks per walk on a 300-clause contract. */
+  rows=rows.filter((r,i)=>!(rows[i+1]&&r.el.contains(rows[i+1].el)));
   const out=[];
   rows.forEach((row,i)=>{
     const own=String(row.el.textContent||'').replace(/\s+/g,' ').trim();
@@ -11011,8 +11016,10 @@ const docReadClauses=c=>docReadSheet(c).map(r=>({num:r.num,heading:r.heading,tex
    from its own cache without spending anything if it turns out to agree. FNV-1a
    because this is an equality check and nothing more: it is never stored, never
    travels, and attests to nothing. */
-function docReadSig(c){
-  const rows=docReadClauses(c);
+function docReadSig(c,sheet){
+  /* The painter hands over the walk it already made; the rows carry the same
+     num, heading and text docReadClauses sends, so the signature is the same. */
+  const rows=Array.isArray(sheet)?sheet:docReadClauses(c);
   if(!rows.length) return '';
   const src=rows.map(r=>r.num+'\u0001'+r.heading+'\u0001'+r.text).join('\u0002');
   let h=0x811c9dc5;
@@ -11456,7 +11463,7 @@ function docReadPaint(c){
   const running=docReadRunning(c);
   const prog=(running&&c._readings&&c._readings.running)?c._readings:null;
   try{
-    const sig=running?'':docReadSig(c);
+    const sig=running?'':docReadSig(c,sheet);
     if(sig&&c._readSig&&c._readSig!==sig){
       moved=Math.max(0,sheet.filter(x=>x&&x.kind!=='front').length-pairs.length);
       if(!moved) moved=1;
@@ -11699,69 +11706,97 @@ function docReadPaint(c){
      overlapping where the plain wording runs past the clause above it. Level is
      what makes this a parallel reading — 3.3 beside 3.3 — and the step is what
      keeps that promise honest when it cannot be kept exactly. */
-  let floor=0, bottom=0;
-  /* The mirrored front matter hangs by the same rule and shares the same
-     floor, so a long contents list steps down rather than sitting under the
-     first clause's entry. */
-  const place=(src,el,gap)=>{
-    if(!el) return;
-    let top=Math.round(src.getBoundingClientRect().top - base);
-    if(top<floor) top=floor;
-    el.style.top=top+'px';
-    floor=top+el.offsetHeight+gap;
-    bottom=floor;
-  };
+  /* ---- READ EVERYTHING, THEN WRITE EVERYTHING (26 Sep 2026) ----
+     Each entry used to be placed in turn: read its clause's top, write its
+     own top, read its own height — and a write followed by a read makes the
+     browser lay the whole page out again before it can answer. On a
+     300-clause contract that was ~600 full layouts, MEASURED at ~510ms of a
+     ~550ms repaint, and while a reading runs the column repaints every 1.5s:
+     the page stuck for a third of every second and a half. An entry's height
+     does not depend on where it sits, so every clause top and every entry
+     height is read first (one layout), the places are worked out in plain
+     arithmetic, and every top is written last. What is placed where is
+     exactly what the one-at-a-time loop placed. */
+  /* The order is the promise: the mirror first (no gap between its blocks),
+     then the clauses in PAPER order — a "Reading…" and a reading interleaved
+     by their row, so the two can never overlap. */
+  const seq=[];
   /* NO GAP BETWEEN MIRRORED BLOCKS. DOC_READ_GAP is the breathing room between
      two READINGS of two different clauses; the front matter's own lines are
      already spaced by the paper they are copied from, and adding 18px to each
      would walk the mirror off the bottom of the page it is mirroring. The
      floor still holds within the mirror, so they can never overlap. */
-  front.forEach((f,i)=>place(f.el, inner.querySelector(`[data-doc-read-front="${i}"]`), 0));
-  /* ---- AND THE COPY NEVER RUNS UNDER THE FIRST CLAUSE (26 Sep 2026) ----
-     This column is narrower than the paper, so a recital or a contents page
-     wraps onto more lines here than it does there, and the floor is reset
-     below so the first reading keeps its own clause's line (the 15 Sep
-     ruling). Together those drew the tail of a long preamble UNDER the first
-     entry. Where the copy would reach the first clause it is cut at a whole
-     line above it and fades out — the mirror is context, and its unabridged
-     original is the column immediately to the left — so nothing in this column
-     is ever drawn on top of anything else. */
-  const firstRow=sheet.find(r=>r&&r.el);
-  if(front.length&&firstRow){
-    const limit=Math.round(firstRow.el.getBoundingClientRect().top - base) - 4;
-    front.forEach((f,i)=>{
-      const el=inner.querySelector(`[data-doc-read-front="${i}"]`);
-      if(!el) return;
-      const top=parseFloat(el.style.top)||0;
-      if(top+el.offsetHeight<=limit) return;
-      let lh=0;
-      try{ lh=parseFloat(getComputedStyle(el).lineHeight)||0; }catch(_){ lh=0; }
-      const room=limit-top;
-      const keep=lh>0?Math.floor(room/lh)*lh:room;
-      if(keep<=0||(lh>0&&keep<lh)){ el.style.display='none'; return; }
-      el.style.maxHeight=keep+'px';
-      el.style.overflow='hidden';
-      el.classList.add('is-cut');
-    });
-  }
-  /* AND THE MIRROR NEVER PUSHES A READING DOWN. The floor is reset before the
-     entries are placed, because "level with its own clause, to the pixel" is
-     the promise this column exists to keep and the mirror is only context: a
-     title page whose copy runs a few pixels taller than the paper it copies
-     must not cost the first clause its place. MEASURED — sharing one floor put
-     the first reading 28px below the clause it reads. */
+  front.forEach((f,i)=>{
+    const el=inner.querySelector(`[data-doc-read-front="${i}"]`);
+    if(el) seq.push({src:f.el, el, gap:0, front:true});
+  });
   /* The clauses still to come are placed in the SAME pass, in paper order, so
      a "Reading…" and a reading can never overlap. */
   let w=0;
   const waitsUpTo=i=>{
     while(w<waits.length&&waits[w].k<i){
-      place(waits[w].row.el, inner.querySelector(`[data-doc-read-wait="${waits[w].k}"]`), DOC_READ_GAP);
+      const el=inner.querySelector(`[data-doc-read-wait="${waits[w].k}"]`);
+      if(el) seq.push({src:waits[w].row.el, el, gap:DOC_READ_GAP});
       w++;
     }
   };
-  floor=0;
-  pairs.forEach((p,n)=>{ waitsUpTo(Number(p.it&&p.it.i)); place(p.el, inner.querySelector(`[data-doc-read-note="${n}"]`), DOC_READ_GAP); });
+  pairs.forEach((p,n)=>{
+    waitsUpTo(Number(p.it&&p.it.i));
+    const el=inner.querySelector(`[data-doc-read-note="${n}"]`);
+    if(el) seq.push({src:p.el, el, gap:DOC_READ_GAP});
+  });
   waitsUpTo(Infinity);
+  /* ---- THE READS ---- */
+  const firstRow=sheet.find(r=>r&&r.el);
+  const firstTop=firstRow?Math.round(firstRow.el.getBoundingClientRect().top - base):null;
+  seq.forEach(x=>{
+    x.want=Math.round(x.src.getBoundingClientRect().top - base);
+    x.h=x.el.offsetHeight;
+    if(x.front){ try{ x.lh=parseFloat(getComputedStyle(x.el).lineHeight)||0; }catch(_){ x.lh=0; } }
+  });
+  /* ---- THE ARITHMETIC ----
+     EACH ENTRY SITS LEVEL WITH ITS OWN CLAUSE, and steps DOWN rather than
+     overlapping where the plain wording runs past the clause above it. Level is
+     what makes this a parallel reading — 3.3 beside 3.3 — and the step is what
+     keeps that promise honest when it cannot be kept exactly. */
+  let floor=0, bottom=0, inFront=true;
+  seq.forEach(x=>{
+    /* AND THE MIRROR NEVER PUSHES A READING DOWN. The floor is reset before the
+       entries are placed, because "level with its own clause, to the pixel" is
+       the promise this column exists to keep and the mirror is only context: a
+       title page whose copy runs a few pixels taller than the paper it copies
+       must not cost the first clause its place. MEASURED — sharing one floor put
+       the first reading 28px below the clause it reads. */
+    if(inFront&&!x.front){ inFront=false; floor=0; }
+    let top=x.want;
+    if(top<floor) top=floor;
+    x.top=top;
+    floor=top+x.h+x.gap;
+    bottom=floor;
+  });
+  /* ---- THE WRITES ---- */
+  seq.forEach(x=>{ x.el.style.top=x.top+'px'; });
+  /* ---- AND THE COPY NEVER RUNS UNDER THE FIRST CLAUSE (26 Sep 2026) ----
+     This column is narrower than the paper, so a recital or a contents page
+     wraps onto more lines here than it does there, and the floor is reset
+     above so the first reading keeps its own clause's line (the 15 Sep
+     ruling). Together those drew the tail of a long preamble UNDER the first
+     entry. Where the copy would reach the first clause it is cut at a whole
+     line above it and fades out — the mirror is context, and its unabridged
+     original is the column immediately to the left — so nothing in this column
+     is ever drawn on top of anything else. */
+  if(firstTop!=null){
+    const limit=firstTop-4;
+    seq.forEach(x=>{
+      if(!x.front||x.top+x.h<=limit) return;
+      const room=limit-x.top;
+      const keep=x.lh>0?Math.floor(room/x.lh)*x.lh:room;
+      if(keep<=0||(x.lh>0&&keep<x.lh)){ x.el.style.display='none'; return; }
+      x.el.style.maxHeight=keep+'px';
+      x.el.style.overflow='hidden';
+      x.el.classList.add('is-cut');
+    });
+  }
   const lastEl=pairs.length?pairs[pairs.length-1].el.getBoundingClientRect().bottom-base:0;
   const last=Math.max(lastEl,bottom);
   const overEl=inner.querySelector('.doc-read-over:not(.doc-read-partial)');
@@ -11995,7 +12030,9 @@ function docReadFront(c,rows){
   }catch(_){ return []; }
   /* The innermost block only — a wrapper that merely CONTAINS the line is not
      the line, and mirroring both would print the front matter twice. */
-  els=els.filter((el,i)=>!els.some((o,j)=>j!==i&&el.contains(o)));
+  /* One pass: in document order a wrapper's contents follow it directly, so
+     it contains another block exactly when it contains the next one. */
+  els=els.filter((el,i)=>!(els[i+1]&&el.contains(els[i+1])));
   let base=0;
   try{
     const paper=canvas.querySelector('.doc-surface')||canvas;

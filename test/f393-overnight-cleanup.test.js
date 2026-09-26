@@ -74,11 +74,41 @@ describe('f393 (1) Plain English — one walk, an honest boundary, no overlap', 
 
   test('the copied front matter is cut at a whole line above the first clause, and fades', () => {
     const p = PAINT();
-    assert.match(p, /const limit=Math\.round\(firstRow\.el\.getBoundingClientRect\(\)\.top - base\) - 4;/,
+    assert.match(p, /const firstTop=firstRow\?Math\.round\(firstRow\.el\.getBoundingClientRect\(\)\.top - base\):null;/,
       'the limit is the first clause\'s own top, in the column\'s coordinates');
-    assert.match(p, /const keep=lh>0\?Math\.floor\(room\/lh\)\*lh:room;/, 'a WHOLE line, never half a glyph');
-    assert.match(p, /el\.classList\.add\('is-cut'\)/, 'and the cut is marked');
+    assert.match(p, /const limit=firstTop-4;/);
+    assert.match(p, /const keep=x\.lh>0\?Math\.floor\(room\/x\.lh\)\*x\.lh:room;/, 'a WHOLE line, never half a glyph');
+    assert.match(p, /x\.el\.classList\.add\('is-cut'\)/, 'and the cut is marked');
     assert.match(HTML, /\.doc-read-mirror\.is-cut\{[^}]*mask-image:linear-gradient/, 'a cut copy fades rather than stopping on a hard edge');
+  });
+
+  /* ---- AND A REPAINT NO LONGER STALLS THE PAGE ----
+     MEASURED on a 300-clause contract: ~550ms a repaint, ~510ms of it the
+     placing loop forcing a fresh layout for every entry; the column repaints
+     every 1.5s while a reading runs. Now ~90ms. */
+  test('every top and height is READ before any top is WRITTEN — one layout, not one per entry', () => {
+    const p = PAINT();
+    assert.ok(!/const place=/.test(p), 'the one-at-a-time placer is gone');
+    const reads = p.indexOf('x.h=x.el.offsetHeight;');
+    const writes = p.indexOf("seq.forEach(x=>{ x.el.style.top=x.top+'px'; });");
+    assert.ok(reads > 0 && writes > reads, 'all the reads, then all the writes');
+    assert.match(p, /if\(inFront&&!x\.front\)\{ inFront=false; floor=0; \}/,
+      '[control] and the mirror still never pushes a reading down (the 15 Sep ruling)');
+  });
+
+  test('a row holds another exactly when it holds the NEXT one — one pass, not every pair', () => {
+    const sh = code(region(CT, 'docReadSheet'));
+    assert.match(sh, /rows=rows\.filter\(\(r,i\)=>!\(rows\[i\+1\]&&r\.el\.contains\(rows\[i\+1\]\.el\)\)\);/);
+    assert.ok(!/rows\.some\(\(o,j\)=>j!==i&&r\.el\.contains/.test(sh), 'the every-pair check is gone');
+    const fr = code(region(CT, 'docReadFront'));
+    assert.match(fr, /els=els\.filter\(\(el,i\)=>!\(els\[i\+1\]&&el\.contains\(els\[i\+1\]\)\)\);/);
+  });
+
+  test('the "moved" signature is taken off the walk the painter already made', () => {
+    assert.match(PAINT(), /const sig=running\?'':docReadSig\(c,sheet\);/);
+    const sig = code(region(CT, 'docReadSig'));
+    assert.match(sig, /const rows=Array\.isArray\(sheet\)\?sheet:docReadClauses\(c\);/,
+      '[wall] and every other caller still signs exactly what is sent');
   });
 
   test('[wall] the reading sent to the route does not move by a byte', () => {
