@@ -19318,3 +19318,7 @@ Noticed, not fixed
 - The data protection standard's name is built from the market's law and reads "the GDPR (Regulation (EU) 2016/679) compliance" in a Swedish workspace.
 - The Negotiation playbook tab draws a limit and a position of the same name as two chips ("Liability cap" twice on the supply and services books).
 - Portfolio deviations shows the first 8 contracts with departures and says nothing about the rest (22 in the sample).
+
+## Run 26 Sep 2026 — Inspector chosen for the Requests page (no code)
+
+- On the owner's word: "I choose Inspector for the Requests page too. No coding yet." The private page "Obligations, Standards, Requests" now shows only the Inspector design for Requests (with today's photo to compare, from both chairs), beside the Inspector designs for Our standards, the Obligations page and the contract's Obligations tab. Board and Two Desks are gone from the page. Three small questions stay open for the owner and are listed on the page: "Take it over" asking first on a request a colleague holds; a held request shown as being worked on; and where the helping sentence for people who ask should live. No product code changed.
