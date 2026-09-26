@@ -52,6 +52,10 @@ import './views/weekly.js';       // the weekly review: five slots, three sizes,
 import './views/healthreport.js'; // the Portfolio Health Report: deterministic document, opened by button or by Copilot
 import './views/portal.js';
 import './views/home.js';
+/* The list inspector: one contract's facts beside the Contracts, Negotiations
+   and Approvals lists (Young picked it 26 Sep 2026). Loaded before the three
+   pages that draw it; it publishes its names and asks theirs through window. */
+import './views/inspector.js';
 import './views/approvalsview.js'; // Approvals & signing: a door onto two readings Home already makes (20 Sep 2026)
 import './views/register.js';
 import './ocr.js';

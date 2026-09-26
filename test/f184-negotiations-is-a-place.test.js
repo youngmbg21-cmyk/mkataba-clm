@@ -504,7 +504,10 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
        key list, never a typed count, so the next column costs no edit here. */
     assert.equal(heads.length, b.win.REG_COL_KEYS_NEGO.length);
     assert.ok(!heads.some(h => /Value stream/i.test(h)), 'no value stream column on this page');
-    assert.equal(heads[0], 'MK');
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the list options' floor: "plain
+       column names") — the reference's head says "Ref", read as the book's own
+       word rather than typed, so a rewording costs no edit here. */
+    assert.equal(heads[0], b.win.i18t('reg_col_ref'));
     /* The last one is a STATE rather than an action. */
     const last = heads[heads.length - 1];
     assert.match(last, /Whose move/i);

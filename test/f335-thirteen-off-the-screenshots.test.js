@@ -168,11 +168,20 @@ describe('f335 (4) — one door onto the playbook read, never two and never none
 });
 
 describe('f335 (5) — the seat switch wears the Contract View switch clothes', () => {
-  test('the box takes --accent-ink, the token with a night answer', () => {
+  /* REVERSED IN PLACE, 26 Sep 2026 (the button work order's third item, Young:
+     "some buttons have dark outlines when the common approach is a light grey
+     outline"). This claim pinned the box to --accent-ink because that was the
+     Contract View switch's edge on 19 Sep; the owner has since ringed that edge
+     as one of the dark ones, and both boxes read the one light grey edge,
+     --btn-edge, now. What it was really about — THE PAIR MOVES TOGETHER — is
+     kept as the relation below: the seat switch reads whatever the Contract
+     View switch reads. The grey hairline it retired stays retired: the edge is
+     the shared token, never a divider colour typed on this box. */
+  test('the box takes the Contract View switch\'s own edge token, --btn-edge', () => {
     const at = NCSS.indexOf('.redline-page .rl-actions .rl-segwrap,');
     assert.ok(at > 0, 'the shared rule is still written once');
-    const block = NCSS.slice(at, at + 700);
-    assert.match(block, /border:1px solid var\(--accent-ink\)/, 'the outline is the accent');
+    const block = NCSS.slice(at, NCSS.indexOf('}', at) + 1);
+    assert.match(block, /border:1px solid var\(--btn-edge\)/, 'the outline is the one button edge');
     assert.ok(!/border:1px solid var\(--color-divider\)/.test(block),
       'and the grey hairline is gone');
   });
@@ -183,13 +192,18 @@ describe('f335 (5) — the seat switch wears the Contract View switch clothes', 
   });
   test('IT IS A RELATION: the Contract View switch is what it is matched to', () => {
     /* Not a colour typed twice. If .doc-read-seg ever moves, this claim is
-       what says the pair must move together. */
-    const seg = HTML.slice(HTML.indexOf('.doc-read-seg{'), HTML.indexOf('.doc-read-seg{') + 400);
-    assert.match(seg, /border:1px solid var\(--accent-ink\)/,
-      'the control being matched still uses that token');
+       what says the pair must move together. Asked as the RELATION since
+       26 Sep 2026: whatever token the matched control's box reads, this box
+       reads too. */
+    const seg = HTML.slice(HTML.indexOf('.doc-read-seg{'), HTML.indexOf('}', HTML.indexOf('.doc-read-seg{')) + 1);
+    const tokOf = s => (s.match(/border:1px solid var\((--[a-z0-9-]+)\)/) || [])[1];
+    const at = NCSS.indexOf('.redline-page .rl-actions .rl-segwrap,');
+    const mine = NCSS.slice(at, NCSS.indexOf('}', at) + 1);
+    assert.ok(tokOf(seg), 'the control being matched draws its box from a token');
+    assert.equal(tokOf(mine), tokOf(seg), 'and the seat switch reads the same one');
   });
   test('and the clause panel moves with it, which is why the rule is shared', () => {
-    assert.match(NCSS, /\.redline-page \.rl-cp-head \.rl-segwrap\{[^}]*--accent-ink/,
+    assert.match(NCSS, /\.redline-page \.rl-cp-head \.rl-segwrap\{[^}]*--btn-edge/,
       'History | + notes is named in the same rule, as f236 pins');
   });
 });

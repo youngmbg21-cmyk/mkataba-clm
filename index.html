@@ -1364,7 +1364,28 @@
      and a grey button is the thing this product has been told three times reads
      as furniture. Recorded as a divergence from the reference, which draws both
      on --field-line. */
-  :root{ --btn-edge:var(--rule-strong); }
+  /* ---- ONE LIGHT GREY EDGE ON EVERY OUTLINED CONTROL (Young, 26 Sep 2026, off
+     the Document tab's control row: "some buttons have dark outlines when the
+     common approach is a light grey outline") ----
+     MEASURED OFF THE OWNER'S OWN SCREENSHOT, pixel by pixel on each control's
+     top edge: THREE edges in one row — navy on the view switch, #CBD3D0 on
+     Export and Open Negotiate, #E2E7E5 on the text-size stepper. He boxed the
+     first two as the dark ones and left the stepper, so the light grey is the
+     stepper's, and this token is it.
+     EVERY BUTTON-LIKE CONTROL AT REST READS THIS AND NONE NAMES A COLOUR:
+     buttons, icon squares, steppers, switches, filter chips. A switch keeps
+     this edge and these dividers, and its lit half is FILLED — the fill says
+     which half is on, the outline no longer tries to. Hover may take the
+     accent; rest never does. The ink stays the accent's, which is what keeps a
+     light-edged button from reading as furniture (the 17 Aug lesson).
+     NOT A FIELD'S EDGE: a text box or a dropdown keeps --field-line, because
+     that edge is what tells a reader where to type and WCAG 1.4.11 asks 3:1 for
+     it. A button's words already identify it, so its edge carries no such duty.
+     THE NIGHT ANSWER IS NOT THE DAY'S TOKEN FOLLOWED INTO THE DARK: --rule is
+     #26302E at night and all but vanishes on the dark ground, so the dark edge
+     stays the visible #36423F it was (--rule-strong's night value). */
+  :root{ --btn-edge:var(--color-divider); }
+  html.dark{ --btn-edge:var(--rule-strong); }
   /* ---- SAID TO A SCREEN READER, DRAWN FOR NOBODY ---- (25 Aug 2026)
      A keyboard affordance nobody is told about is one nobody uses, and some
      of those sentences have no visible home — the KPI row's Alt+Arrow reorder
@@ -1383,7 +1404,9 @@
        14px/1.2 label computes to 30.8px — 2.8px TALLER than .ui-btn-lg's fixed
        28, under a source comment calling the large one the larger. A rung plus
        horizontal-only padding is what stops a control inventing a half-rung
-       box. min-height rather than height, so a two-line label still grows. */
+       box. min-height rather than height, so a control carrying something
+       taller than a line of words still grows — a label itself never takes a
+       second line (see A BUTTON'S WORDS NEVER WRAP below). */
     min-height:var(--ctl-h);padding:0 var(--pad-ctl-x);
     transition:background var(--dur-1),border-color var(--dur-1),color var(--dur-1);}
   /* ONE ICON SIZE PER RUNG (the Compact ladder, 26 Sep 2026). The call sites
@@ -1421,6 +1444,26 @@
   .ui-link.ui-link-danger{color:var(--st-ruby-fg);}
   .ui-link.ui-link-danger:hover{background:color-mix(in srgb,var(--st-ruby-fg) 8%,transparent);}
   .ui-link.ui-link-danger:disabled{color:var(--color-neutral-400);}
+  /* A BUTTON'S WORDS NEVER WRAP (Young, 26 Sep 2026, off the Approvals & signing
+     page: "buttons should never wrap text"). MEASURED: "Open the gate" broke onto
+     two lines, 88 x 31, once long contract titles squeezed its column to 116px —
+     every button family carried the browser's white-space:normal, so any label
+     whose container got narrower than its words broke them.
+     ONE LIST OF EVERY FAMILY THAT DRAWS A LABELLED BUTTON, said once, found by
+     sweeping every page, the room's five tabs, the Negotiate page and the main
+     dialogs for a button with short words and nothing block-level inside it.
+     A family added tomorrow joins this list; f386 reads it and the browser
+     sweep is the net for one that did not. White-space inherits, so a switch
+     (.reg-seg, .cal-seg) is named by its wrapper and every half follows.
+     A container that is too narrow now gives the squeeze to something else: an
+     auto-layout table sizes a column to a nowrap label by itself, a fixed one
+     states a floor on its button column, a flex row of buttons wraps whole
+     buttons. NOT IN IT, ON PURPOSE: a card or a row that happens to be a button
+     (Home's map blocks, the Insights category rows, the New agreement doors, a
+     decision row) — those are two lines by design and none is a labelled
+     button. */
+  :is(.ui-btn,.ui-link,.hm-rverb,.hm-tri-b,.hm-cz,.sc-stage-act,.cg,.sec-f-n,.reg-chip,.reg-seg,.cal-seg,.cal-link,
+      .tpl-btn-xs,.std-open,.sh-theme,.nav-section-head,.rl-btn,.rl-livelist,.rl-pb-btn){white-space:nowrap;}
   /* A ONE-LINE BOX IS THE BUTTON'S HEIGHT (the Compact ladder, 26 Sep 2026 —
      rule 2 of the button review: a button, a text box and a dropdown placed
      side by side are one height). For the forms still written in the older
@@ -1527,7 +1570,7 @@
      base class, which is the point — the base IS the outlined level since 22
      Aug 2026. Kept as a name because ~40 call sites use it and a class that
      agrees with the base is cheaper than a sweep that might miss one. */
-  .ui-btn-secondary{color:var(--accent-ink-700);border-color:color-mix(in srgb,var(--accent-solid) 45%,transparent);}
+  .ui-btn-secondary{color:var(--accent-ink-700);border-color:var(--btn-edge);}
   .ui-btn-secondary:hover{background:color-mix(in srgb,var(--accent-solid) 9%,transparent);border-color:var(--accent-solid);}
   .ui-btn:disabled{opacity:.45;cursor:not-allowed;}
 
@@ -2321,20 +2364,25 @@
      come apart again. The fallback is today's measured 35px, for the one
      reader that never runs script. */
   .ngl-band > td{ padding:0!important; border-bottom:0!important;
-    background:var(--color-bg); position:sticky; top:var(--reg-head-h,35px); z-index:2; }
+    background:var(--color-surface); position:sticky; top:var(--reg-head-h,35px); z-index:2; }
   .reg-table tbody tr.ngl-band:hover{ background:none; }
-  .ngl-band-in{ display:flex; align-items:center; gap:9px; padding:7px var(--s-4);
-    border-top:1px solid var(--color-divider); border-bottom:1px solid var(--color-divider); }
+  .ngl-band-in{ display:flex; align-items:center; gap:8px; padding:9px var(--s-3) 7px;
+    border-bottom:1px solid var(--color-divider); }
   .ngl-band-dot{ width:8px; height:8px; border-radius:50%; flex:none; }
-  .ngl-band-k{ font-size:var(--t-micro); font-weight:var(--w-title); letter-spacing:.09em; text-transform:uppercase;
-    color:var(--color-neutral-600); }
-  /* NO BOX (21 Sep 2026). The reference writes the count into the heading —
-     "WAITING ON YOU · 3" — and a pill round it is a second shape for a fact
-     the words already carry. It keeps the heading's own ink and caps so the
-     line reads as one thing, and the mono numerals so a column of bands
-     lines up. */
-  .ngl-band-n{ font-family:var(--font-mono); font-size:var(--t-micro); font-weight:var(--w-title);
-    letter-spacing:.09em; color:var(--color-neutral-600); }
+  /* ---- A GROUP IS NAMED IN ORDINARY WORDS (Young picked the Inspector
+     drawing, 26 Sep 2026) ---- "Waiting on you 6": the group's name in the
+     page's own ink at the row's size and the strong weight, and its count
+     beside it in the quiet ink. It REVERSES 21 Sep's small capitals the way
+     the column heads were reversed, on the owner's later drawing — a band is
+     a heading over rows, and the heads above it are words now. The band still
+     sits on the list's own white, pinned under the head, one rule below it. */
+  .ngl-band-k{ font-size:var(--t-body); font-weight:var(--w-strong); letter-spacing:0; text-transform:none;
+    color:var(--color-text); }
+  /* NO BOX (21 Sep 2026), and no middle dot since 26 Sep: the count reads
+     beside the words in the quiet ink, the mono numerals kept so a column of
+     bands lines up. */
+  .ngl-band-n{ font-family:var(--font-mono); font-size:var(--t-body); font-weight:var(--w-label);
+    letter-spacing:0; color:var(--color-neutral-600); }
   /* ---- ITS TITLE STARTS WHERE EVERY OTHER PAGE'S DOES (owner-asked 25 Aug
      2026: "the distance between the edge at the top and the header should be
      the same across all pages") ----
@@ -3165,7 +3213,7 @@
      raw ramp because white on accent-600 measures 3.74:1, and the ink is
      --accent-ink, the one accent token with a night answer. */
   .doc-read-seg{ display:inline-flex; flex:none; overflow:hidden; height:var(--ctl-h);
-    border:1px solid var(--accent-ink); border-radius:var(--radius); }
+    border:1px solid var(--btn-edge); border-radius:var(--radius); }
   .doc-read-seg button{ display:grid; place-items:center; height:100%; padding:0 12px;
     border:0; background:none; font:inherit; font-size:var(--t-body);
     font-weight:var(--w-label); color:var(--accent-ink); white-space:nowrap; cursor:pointer; }
@@ -3191,9 +3239,14 @@
      beside the filled half is tidier at rest and MOVES THE FURNITURE as the
      lit half moves, which is the one thing this product does not do.
      (0,1,2) against the base rule's (0,1,1), so it wins on weight and needs no
-     override of last resort; the aria-pressed rule is (0,2,1) and sets no border. */
+     override of last resort; the aria-pressed rule is (0,2,1) and sets no border.
+     ---- AND THE BOX AND THE SEAMS ARE THE ONE LIGHT GREY EDGE (26 Sep 2026) ----
+     The frame was the accent ink and the seams the accent at 45%; the owner
+     boxed this switch as one of the dark outlines. Both read --btn-edge now,
+     like every button beside it. The lit half is still FILLED, which is what
+     says which position is on — the frame was never needed to say it. */
   .doc-read-seg button + button{
-    border-left:1px solid color-mix(in srgb, var(--accent-ink) 45%, transparent); }
+    border-left:1px solid var(--btn-edge); }
 
   /* ---- THE READINGS, IN THE COLUMN THE CARDS OCCUPY ----
      One note per clause, held at its clause's own top and moved with the paper
@@ -5108,7 +5161,7 @@
   .hm-sec-sub{font-size:var(--t-label);color:var(--color-neutral-600);flex:none;margin-right:auto;}
   .hm-sec .hm-sec-sub+.hm-rule{display:none;}
   .hm-big .hm-s{margin:0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;align-self:baseline;}
-  .hm-rverb{flex:none;display:inline-flex;align-items:center;height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);border:1px solid var(--rule-strong);border-radius:var(--radius);
+  .hm-rverb{flex:none;display:inline-flex;align-items:center;height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);border:1px solid var(--btn-edge);border-radius:var(--radius);
     background:var(--color-surface);font-size:var(--t-meta);font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;}
   .hm-row:hover .hm-rverb{border-color:var(--color-accent);color:var(--accent-ink);}
   /* ---- THE BUTTON DOES NOT ANCHOR THE ROW'S BASELINE (25 Aug 2026) ----
@@ -5987,7 +6040,11 @@
   .hm-tri-chip.is-ok{background:var(--st-green-bg);color:var(--st-green-fg);}
   .hm-tri-chip.is-warn{background:var(--st-amber-bg);color:var(--st-amber-fg);}
   .hm-tri-chip.is-no{background:var(--st-ruby-bg);color:var(--st-ruby-fg);}
-  .hm-tri-acts,.hm-desk-acts{display:flex;gap:var(--s-2);margin-top:10px;flex-wrap:wrap;}
+  /* align-items:center (26 Sep 2026): a flex row STRETCHES every item to its
+     tallest, and the text button's 24px target made the row's bordered verbs
+     24 too — measured, 2px taller than the decision card's 22 they are meant
+     to match. Centred, each keeps its own rung. */
+  .hm-tri-acts,.hm-desk-acts{display:flex;align-items:center;gap:var(--s-2);margin-top:10px;flex-wrap:wrap;}
   /* ---- PREPARED FOR YOU KEEPS ITS VERBS IN A COLUMN AT THE RIGHT (Young
      ruled 21 Sep 2026, ringing exactly that column) ----
      The reference draws every desk row as text · verbs on ONE line, and the
@@ -6011,13 +6068,17 @@
   .hm-dk-tag.is-neg{background:var(--st-ruby-bg);color:var(--st-ruby-fg);}
   .hm-row.is-desk .hm-desk-head{flex:1 1 320px;min-width:0;}
   .hm-row.is-desk .hm-desk-acts{flex:none;margin-top:0;margin-left:auto;justify-content:flex-end;}
-  .hm-tri-b{display:inline-flex;align-items:center;justify-content:center;
-    min-height:var(--ctl-h);padding:0 12px;font:inherit;font-size:var(--t-body);
-    font-weight:var(--w-strong);border-radius:var(--radius);cursor:pointer;
-    background:transparent;color:var(--accent-ink);
-    border:1px solid color-mix(in srgb,var(--accent-solid) 45%,transparent);}
-  .hm-tri-b.is-p{background:var(--accent-fill);color:#fff;border-color:var(--accent-fill);}
-  .hm-tri-b.is-plain{border-color:transparent;color:var(--color-neutral-500);}
+  /* ---- NO BOX OF ITS OWN (Young, 26 Sep 2026: "the buttons should be the same
+     size and likely the size of the needs your decision card") ----
+     This was a hand-sized family the Compact ladder missed — 28px, 13px, weight
+     600, 12px of padding, the lead act FILLED on every row — one card above
+     Needs your decision's 22px verbs. The rows now wear the ladder's own classes
+     (hmRowBtnCls in js/views/home.js: the row rung, the accent's ink for the
+     lead act, the text button for Put away), so this class is a HOOK and states
+     no height, size, weight, padding, face or edge: written here, any of them
+     would beat the ladder by coming later in the sheet, and it would be the
+     fourth copy of one button. */
+  .hm-tri-b{flex:none;}
   .hm-tri-b:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:1px;}
   /* ---- THE OVERNIGHT DESK (idea 19, owner-ruled 9 Sep 2026) ----
      A row of the same family as the list below it, so the two read as one
@@ -6942,6 +7003,10 @@
   /* The register carries seven columns and a pager, so it needs its floor a
      little earlier than the rest — but still only where it cannot fit. */
   @media (max-width:1099px){ #reg-scroll>table{min-width:760px;} }
+  /* THE INSPECTOR'S LIST CARRIES NO FLOOR (26 Sep 2026): four columns sized to
+     fit beside the panel, drawn only where they do (INS_MIN_W). A floor meant
+     for the nine-column table pushed its value column out of sight. */
+  #reg-scroll>table.reg-table.is-ins{min-width:0;}
 
   /* ---- ANCHORED POPOVERS STAY ON SCREEN ----
      Row menus and the export menu are position:absolute with a fixed width, so
@@ -7186,7 +7251,7 @@
     font-size:var(--t-meta);line-height:1.5;color:var(--color-text);resize:vertical;}
   .rl-np-act{display:flex;margin-top:var(--s-2);}
   .rl-np-send{font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);
-    height:28px;padding:0 12px;border:1px solid color-mix(in srgb,var(--color-accent) 45%,transparent);
+    height:28px;padding:0 12px;border:1px solid var(--btn-edge);
     background:none;color:var(--accent-ink);cursor:pointer;}
   .rl-np-foot.out .rl-np-send{background:var(--accent-fill);border-color:var(--accent-fill);color:#fff;}
   .rl-np-send:hover{filter:brightness(1.06);}
@@ -8386,7 +8451,7 @@
      is exactly what a date is. ONE class, both columns, so they cannot drift. */
   .reg-table .reg-day{font-family:var(--font-mono);font-size:var(--t-label);font-weight:var(--w-body);
     font-variant-numeric:tabular-nums;color:var(--color-neutral-600);}
-  .reg-filterbar .reg-chip{position:relative;flex-direction:row;align-items:center;gap:5px;height:var(--ctl-h);padding:0 var(--pad-ctl-x);border:1px solid var(--rule-strong);border-radius:999px;background:var(--color-surface);color:var(--color-neutral-700);font-size:var(--t-body);font-weight:var(--w-label);white-space:nowrap;cursor:pointer;}
+  .reg-filterbar .reg-chip{position:relative;flex-direction:row;align-items:center;gap:5px;height:var(--ctl-h);padding:0 var(--pad-ctl-x);border:1px solid var(--btn-edge);border-radius:999px;background:var(--color-surface);color:var(--color-neutral-700);font-size:var(--t-body);font-weight:var(--w-label);white-space:nowrap;cursor:pointer;}
   /* NOTHING DECORATIVE TAKES THE PRESS. The funnel mark, the word and the
      caret all sit over the control, and a press on any of them has to reach
      it — MEASURED, a press on the caret landed on the <label>, which opens
@@ -8452,9 +8517,9 @@
   .reg-dash{color:var(--color-neutral-400);}
   .page-facts{font-size:var(--t-body);color:var(--color-neutral-600);margin-top:3px;line-height:1.4;}
   .page-facts:empty{display:none;}
-  .reg-seg{display:inline-flex;align-items:stretch;height:var(--ctl-h);border:1px solid var(--color-divider);border-radius:var(--radius);overflow:hidden;background:var(--color-surface);align-self:flex-end;flex:none;}
+  .reg-seg{display:inline-flex;align-items:stretch;height:var(--ctl-h);border:1px solid var(--btn-edge);border-radius:var(--radius);overflow:hidden;background:var(--color-surface);align-self:flex-end;flex:none;}
   .reg-seg button{border:0;background:transparent;font:inherit;font-size:var(--t-body);font-weight:var(--w-label);color:var(--color-neutral-600);padding:0 var(--pad-ctl-x);cursor:pointer;white-space:nowrap;}
-  .reg-seg button + button{border-left:1px solid var(--color-divider);}
+  .reg-seg button + button{border-left:1px solid var(--btn-edge);}
   .reg-seg button:hover{background:var(--surface-2);color:var(--color-text);}
   .reg-seg button.on,.reg-seg button[aria-pressed="true"]{background:var(--accent-fill);color:#fff;font-weight:var(--w-strong);}
   .reg-seg button:focus-visible{outline:2px solid var(--accent-solid);outline-offset:-2px;}
@@ -8465,6 +8530,104 @@
   .reg-table th.reg-th-sort.active{color:var(--accent-ink);}
   .reg-board-wrap .board-cols{flex:1;min-height:0;}
   .reg-board-wrap .pipe-col{min-height:200px;}
+
+  /* ═══ THE LIST INSPECTOR (Young picked it by name, 26 Sep 2026, off the
+     "Contract List Options" page, option 3) ═══════════════════════════════
+     The panel beside the Contracts, Negotiations and Approvals lists. ONE
+     SHEET FOR ALL THREE PAGES — js/views/inspector.js builds the panel for
+     each of them, so its dressing lives here rather than in any one page's
+     injected style. Every value is a token: the card is the platform's own
+     (the 8px card corner, the hairline, the surface), the head names the
+     contract at the drawer head's rung, labels are the micro caps, and the
+     tones are the product's ruby / amber / green. --ins-panel-w is the
+     panel's width at every window the shape is drawn at: never under 340
+     (INS_MIN_W in the script is derived from that floor), never over 400. */
+  :root{ --ins-panel-w:clamp(340px,28vw,400px); }
+  .ins-panel{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-sm);min-height:0;overflow:auto;overscroll-behavior:contain;font-size:var(--t-body);color:var(--color-text);}
+  .ins-h{padding:18px 20px 16px;border-bottom:1px solid var(--color-divider);}
+  .ins-eb{font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ins-eb .ins-ref{font-family:var(--font-mono);font-variant-numeric:tabular-nums;}
+  .ins-cp{margin:4px 0 0;font-size:var(--t-section);font-weight:var(--w-title);letter-spacing:-.01em;line-height:1.25;color:var(--color-text);
+    display:flex;align-items:center;gap:4px;min-width:0;}
+  .ins-cp-n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ins-sub{color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ins-st{display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap;min-width:0;}
+  .ins-mv{font-weight:var(--w-label);white-space:nowrap;}
+  .ins-mv.is-you{color:var(--st-amber-fg);}
+  .ins-mv.is-them{color:var(--color-neutral-600);}
+  .ins-acts{display:flex;align-items:center;gap:var(--btn-group-gap);margin-top:14px;flex-wrap:wrap;}
+  .ins-more-wrap{position:relative;display:inline-flex;}
+  .ins-menu{position:absolute;right:0;top:calc(100% + 4px);z-index:30;width:200px;padding:var(--s-1);display:flex;flex-direction:column;
+    background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);
+    box-shadow:0 10px 28px color-mix(in srgb,var(--color-text) 16%,transparent);}
+  .ins-menu[hidden]{display:none;}
+  .ins-menu .reg-act:hover{background:var(--nav-well);}
+  .ins-facts{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px 16px;margin:0;padding:16px 20px;border-bottom:1px solid var(--color-divider);}
+  .ins-facts > div{min-width:0;}
+  .ins-facts dt{font-size:var(--t-micro);text-transform:uppercase;letter-spacing:.09em;color:var(--color-neutral-600);font-weight:var(--w-body);}
+  .ins-facts dd{margin:3px 0 0;font-weight:var(--w-title);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ins-facts dd.none{color:var(--color-neutral-500);font-weight:var(--w-body);}
+  .ins-facts dd .sub{font-weight:var(--w-body);color:var(--color-neutral-600);}
+  .ins-facts dd .sub.is-amber{color:var(--st-amber-fg);font-weight:var(--w-label);}
+  .ins-facts dd .sub.is-ruby{color:var(--st-ruby-fg);font-weight:var(--w-label);}
+  .ins-sec{padding:14px 20px;border-bottom:1px solid var(--color-divider);}
+  .ins-sec:last-child{border-bottom:0;}
+  .ins-sec h3{margin:0 0 8px;font-size:var(--t-meta);font-weight:var(--w-title);color:var(--color-text);display:flex;gap:6px;align-items:baseline;}
+  .ins-sec h3 .n{color:var(--color-neutral-600);font-weight:var(--w-label);}
+  .ins-ask{padding:8px 0;border-top:1px solid var(--rule);min-width:0;}
+  .ins-ask:first-of-type{border-top:0;padding-top:0;}
+  .ins-ask b{display:block;font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ins-ask span{display:block;color:var(--color-neutral-600);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .ins-ask em{display:block;font-style:normal;color:var(--color-neutral-600);font-size:var(--t-meta);margin-top:1px;}
+  .ins-ask em .over{color:var(--st-amber-fg);font-weight:var(--w-label);}
+  .ins-read{display:grid;grid-template-columns:auto minmax(0,1fr);gap:7px 10px;align-items:center;}
+  .ins-read span{min-width:0;color:var(--color-neutral-700);}
+  .ins-read span b{font-weight:var(--w-label);color:var(--color-text);}
+  .ins-dot{width:16px;height:16px;border-radius:50%;display:grid;place-items:center;font-style:normal;color:#fff;box-sizing:border-box;
+    border:1.5px solid var(--rule-strong);background:transparent;}
+  .ins-dot.is-green{background:var(--st-green-dot);border-color:var(--st-green-dot);}
+  .ins-dot.is-amber{background:var(--st-amber-dot);border-color:var(--st-amber-dot);}
+  .ins-dot.is-ruby{background:var(--st-ruby-dot);border-color:var(--st-ruby-dot);}
+  .ins-dot svg{width:10px;height:10px;}
+  .ins-log{margin:0;padding:0;list-style:none;}
+  .ins-log li{display:flex;gap:10px;padding:4px 0;color:var(--color-text);min-width:0;}
+  .ins-log li .t{min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .ins-log li .w{margin-left:auto;flex:none;color:var(--color-neutral-600);font-size:var(--t-meta);white-space:nowrap;}
+  .ins-note{margin:0;color:var(--color-neutral-600);font-size:var(--t-meta);}
+  .ins-empty{border-bottom:0;padding:28px 20px;}
+  /* A VIEW WITH NOTHING IN IT STAYS QUIET (26 Sep 2026, the list options'
+     floor): its count is not printed and the word reads in the quiet ink.
+     500 is the faintest a WORD may read here (400 fails AA as text). */
+  .reg-vtab.is-zero{color:var(--color-neutral-500);}
+  /* A KEY AND ITS VALUE INSIDE A PANEL SECTION — the approval's own facts
+     on the Approvals page's panel. The facts grid's own dress, without its
+     padding and rule, because it sits inside a section that has both. */
+  .ins-kv{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px 16px;margin:0;}
+  .ins-kv > div{min-width:0;}
+  .ins-kv dt{font-size:var(--t-micro);text-transform:uppercase;letter-spacing:.09em;color:var(--color-neutral-600);font-weight:var(--w-body);}
+  .ins-kv dd{margin:3px 0 0;font-weight:var(--w-title);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ins-kv dd.late{color:var(--st-ruby-fg);}
+  .ins-holds{margin-top:6px;}
+  /* THE APPROVALS PAGE IN THE INSPECTOR'S SHAPE: the page owns its height
+     like the register, the list's card and the panel scroll inside
+     themselves, and the selected row wears the register's own mark. */
+  .ap-page.is-ins{height:var(--view-h);box-sizing:border-box;}
+  .ap-body.is-ins{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) var(--ins-panel-w);gap:14px;}
+  .ap-body.is-ins .ap-card{min-height:0;overflow:auto;display:flex;flex-direction:column;}
+  .ap-body.is-ins .ap-card > .ap-table{flex:none;}
+  .ap-body.is-ins .ap-foot{margin-top:auto;position:sticky;bottom:0;background:var(--color-surface);}
+  .ap-table.ap-ins{table-layout:fixed;}
+  .ap-table.ap-ins th{position:sticky;top:0;z-index:1;background:var(--color-surface);text-transform:none;letter-spacing:0;
+    font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600);}
+  .ap-table.ap-ins td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ap-table.ap-ins .ap-name,.ap-table.ap-ins .ap-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ap-table .ap-sub.late{color:var(--st-ruby-fg);}
+  .ap-table tbody tr[data-ap-row]:focus{outline:none;}
+  .ap-table tbody tr[data-ap-row]:focus-visible td{box-shadow:inset 0 2px 0 var(--focus-color),inset 0 -2px 0 var(--focus-color);}
+  .ap-table tbody tr.is-sel td{background:color-mix(in srgb,var(--color-accent) 8%,transparent);}
+  .ap-table tbody tr.is-sel td:first-child{box-shadow:inset 2px 0 0 var(--accent-solid);}
+  .ap-table tbody tr.is-sel td.mono{color:var(--accent-ink);}
 
   /* ═══ THE CONTRACT ROOM'S HEAD CARD (20 Sep 2026, step 4 of the redesign
      order) — ONE builder, roomHeadHtml, dresses both heads, so every rule

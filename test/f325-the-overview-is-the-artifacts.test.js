@@ -155,7 +155,11 @@ describe('f325 (3) the edit posture is this sitting\'s, and nobody else\'s', () 
 });
 
 describe('f325 (4) what Copilot read borrows every count', () => {
-  const B = fnBody(CONTRACT, 'ktReadingsRowsHtml');
+  /* RE-POINTED IN PLACE 26 Sep 2026 (the list inspector): the Overview's readings
+     are COUNTED in ktReadingsRows and DRAWN in ktReadingsRowsHtml, split so the
+     panel beside the lists reads the same rows — the claim is about the two
+     together, which is the one place the readings live. */
+  const B = (fnBody(CONTRACT, 'ktReadingsRows') || '') + (fnBody(CONTRACT, 'ktReadingsRowsHtml') || '');
   test('the table is five readings', () => {
     assert.ok(B, 'the builder is there');
     for (const k of ['ov_r_brief', 'ov_r_playbook', 'ov_r_oblig', 'ov_r_scan', 'ov_r_plain'])

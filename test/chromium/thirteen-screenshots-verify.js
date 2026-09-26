@@ -86,9 +86,24 @@ const check = (name, ok, detail) => {
        30px wide; the other filters on that bar sit near 180. */
     /* RE-POINTED (21 Sep 2026): the control is a chip and its select sits
        inside the pill, so the width a reader can hit is the chip's. */
-    const holdChip = await page.evaluate(() => { const e = document.getElementById('reg-hold'); const c = e && e.closest('.reg-chip');
-      return c ? +c.getBoundingClientRect().width.toFixed(1) : (e ? +e.getBoundingClientRect().width.toFixed(1) : 0); });
-    check('1c and it has a real width', holdChip > 90, `${holdChip}px (select ${hold.w}px)`);
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the list Inspector drawing): the chips
+       lost their leading funnel mark, which the drawing does not draw, so
+       every chip is ~14px narrower and "On hold" measures 77.6px — plainly a
+       control a reader can hit. The typed 90 was the width WITH that mark.
+       What this claim protects is that the control is not collapsed to a
+       minimum box (the report: under 30px), which is a RELATION: its own
+       words are whole, and it is no narrower than the Stage chip beside it,
+       drawn by the same builder with a shorter word. */
+    const holdChip = await page.evaluate(() => {
+      const e = document.getElementById('reg-hold'); const c = e && e.closest('.reg-chip');
+      const s = document.getElementById('reg-stage-sel'); const sc = s && s.closest('.reg-chip');
+      const words = c && c.querySelector('.reg-f-l');
+      return { w: c ? +c.getBoundingClientRect().width.toFixed(1) : (e ? +e.getBoundingClientRect().width.toFixed(1) : 0),
+        stage: sc ? +sc.getBoundingClientRect().width.toFixed(1) : 0,
+        whole: !!words && words.scrollWidth <= words.clientWidth + 0.5 }; });
+    check('1c and it has a real width — its words whole, no narrower than the Stage chip beside it',
+      holdChip.w > 0 && holdChip.stage > 0 && holdChip.whole && holdChip.w >= holdChip.stage,
+      `${holdChip.w}px against Stage ${holdChip.stage}px · words whole ${holdChip.whole} (select ${hold.w}px)`);
     await page.screenshot({ path: path.join(OUT, '01-hold-filter.png') });
 
     /* IT NARROWS. A control that draws and does nothing is the same fault in

@@ -49,7 +49,18 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   await page.waitForTimeout(1600);
   await page.evaluate(() => setView('register'));
   await page.waitForTimeout(900);
-  await page.evaluate(() => document.querySelector('#reg-tbody [data-row]').click());
+  /* RE-POINTED IN PLACE 26 Sep 2026 (the list Inspector): on a window this
+     wide the Contracts list SELECTS on a press and OPENS on the second one —
+     a double-click, Enter, or the panel's own button. The claims below are
+     about the room's head, not about the door, so the contract is opened the
+     way the list now opens it; where the page draws its full table (a
+     narrower window) the one press still opens and the double-click is never
+     needed. */
+  await page.evaluate(() => {
+    const row = document.querySelector('#reg-tbody [data-row]');
+    row.click();
+    if (state.view === 'register') row.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
+  });
   await page.waitForTimeout(1400);
 
   const folded = () => page.evaluate(() => {

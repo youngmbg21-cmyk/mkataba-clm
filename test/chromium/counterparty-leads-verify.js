@@ -35,6 +35,14 @@ const check = (name, ok, detail) => {
     await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go');
     await page.waitForTimeout(3000);
+    /* THE FULL TABLES ARE STAGED (re-pointed in place 26 Sep 2026): from
+       about a 1104 window both pages draw the list Inspector — four columns
+       and a panel — which inspector-verify measures, including that the
+       columns the two seats share are cut identically there too. This file
+       measures the FULL tables' balance, which both pages still draw at every
+       narrower window; insForce(false) is the page's own stage door onto
+       them, in memory for this sitting (the page loads once). */
+    await page.evaluate(() => { if (window.insForce) insForce(false); });
 
     /* ============ 1 · CONTRACTS: THE COUNTERPARTY LEADS ============ */
     await page.evaluate(() => setView('register'));
@@ -121,8 +129,14 @@ const check = (name, ok, detail) => {
        actually experiences. */
     /* FIVE since 24 Sep 2026: the owner took the value stream column off both
        seats (filter kept), and its width went back to the counterparty on both. */
-    const shared = ['MK', 'Counterparty', 'Value', 'Expiry date', 'Status'];
-    const wOf = (l, n) => { const x = l.find(y => y.t.toLowerCase() === n.toLowerCase()); return x ? x.w : null; };
+    /* PAIRED BY THE COLUMN'S OWN KEY, NOT ITS WORDS (re-pointed in place 26
+       Sep 2026): the headings became plain words on both seats — Ref,
+       Counterparty and agreement, Stage, Ends — the list options' floor, and
+       a pairing by heading text found nothing to pair. The sort key each head
+       carries is the column's identity, the way 11d of contracts-page-verify
+       has always paired them. */
+    const shared = ['ref', 'party', 'value', 'expiry', 'stage'];
+    const wOf = (l, n) => { const x = l.find(y => y.sort === n); return x ? x.w : null; };
     const pairs = shared.map(n => [n, wOf(C.ths || [], n), wOf(N.ths || [], n)]);
     /* A NAMED CONTROL for the same reason: this invariant held before this
        change and has to go on holding through it. */

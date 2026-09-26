@@ -129,6 +129,14 @@ const HELPERS = `(() => {
     const sweep = async where => { const g = await page.evaluate(() => window.__m.glyphs()); g.forEach(x => glyphHits.push(where + ' · ' + x)); };
 
     /* ════════ 1. THE CONTRACTS PAGE ════════ */
+    /* THE FULL TABLE IS STAGED (re-pointed in place 26 Sep 2026): from about
+       a 1104 window the page draws the list Inspector, whose rows carry no
+       menu — it moved into the panel beside them, an ordinary icon button —
+       and inspector-verify measures that shape. 1c/1d are about the ROW's
+       menu, which the full table still draws at every narrower window;
+       insForce(false) is the page's own stage door onto it, in memory, and
+       is handed back after this section. */
+    await page.evaluate(() => { if (window.insForce) insForce(false); });
     await page.evaluate(() => { try { regSetScope(null); } catch (e) {} setView('register'); });
     await page.waitForTimeout(1400);
     await page.screenshot({ path: path.join(OUT, '01-contracts.png') });
@@ -152,6 +160,7 @@ const HELPERS = `(() => {
     ok('1d and a press half a pixel outside its drawn box still reaches it (a 24px target)',
       !!c1.edge && c1.edge.above && c1.edge.below, JSON.stringify(c1.edge));
     await sweep('contracts');
+    await page.evaluate(() => { if (window.insForce) insForce(null); });
 
     /* ════════ 2. THE CONTRACT ROOM'S HEAD (Overview) ════════ */
     await page.evaluate(id => openWorkspace(id), ids.rev);

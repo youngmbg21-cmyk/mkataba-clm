@@ -78,6 +78,11 @@ test('f301 (5) both drawn doors ask the reading where they are BUILT, and the pa
   const paint = nego.slice(nego.indexOf('function renderRedline('));
   assert.match(paint.slice(0, 6000), /negoMayStart\(c\)/, 'the page asks on its own paint');
   const reg = read('js/views/register.js');
-  const openRow = reg.slice(reg.indexOf('const openRow='));
-  assert.match(openRow.slice(0, 900), /negoMayStart\(/, 'the Negotiations row lands on the contract where it cannot open the negotiation');
+  /* RE-POINTED IN PLACE 26 Sep 2026 (the list inspector): what opening a row
+     means is regOpenRow now — one answer for the row press, Enter, a
+     double-click and the panel's own button — so the reading is asked there,
+     and the table's own opener hands it on rather than keeping a copy. */
+  const openRowFn = reg.slice(reg.indexOf('function regOpenRow('));
+  assert.match(openRowFn.slice(0, openRowFn.indexOf('\n}')), /negoMayStart\(/, 'the Negotiations row lands on the contract where it cannot open the negotiation');
+  assert.match(reg, /const openRow=el=>regOpenRow\(/, 'and the table\'s row press asks that one opener');
 });

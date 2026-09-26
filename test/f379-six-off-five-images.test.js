@@ -67,7 +67,11 @@ test('F379 — six off five images', async t => {
     assert.ok(win.REG_CMP.stream, 'and its comparator is still there');
   });
   await t.test('(1d) a group heading spans the seat\'s own column count, never a literal', () => {
-    assert.match(REG, /<tr class="ngl-band" role="presentation"><td role="presentation" colspan="\$\{REG_COL_KEYS_NEGO\.length\}">/);
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the list inspector): the span is
+       regColKeys(), the paint's own column list — the seat's seven, or the
+       inspector's four — which is still "the seat's own count, never a
+       literal". */
+    assert.match(REG, /<tr class="ngl-band" role="presentation"><td role="presentation" colspan="\$\{regColKeys\(\)\.length\}">/);
   });
 
   /* ═══════ 2 + 3. HOME — REVERTED THE SAME DAY ═══════

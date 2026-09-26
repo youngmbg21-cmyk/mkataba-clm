@@ -1389,7 +1389,7 @@ function redlineLayoutCss(){
      here and reused verbatim by the Doc tab's toolbar (contract.js calls
      redlineLayoutCss() first), so the two strips render the same control. */
   .rl-type-step{display:flex;align-items:center;gap:var(--s-1);flex:none;
-    background:var(--color-neutral-100);border:1px solid var(--color-divider);padding:var(--s-1);border-radius:var(--radius)}
+    background:var(--color-neutral-100);border:1px solid var(--btn-edge);padding:var(--s-1);border-radius:var(--radius)}
   .rl-type-step button{width:24px;height:24px;flex:none;display:inline-grid;place-items:center;
     background:#fff;border:1px solid var(--color-divider);border-radius:var(--radius);cursor:pointer;
     font:inherit;font-size:var(--t-label);font-weight:var(--w-title);color:var(--color-neutral-700);line-height:1;
@@ -1398,7 +1398,7 @@ function redlineLayoutCss(){
   .rl-type-step button:disabled{opacity:.4;cursor:not-allowed}
   .rl-type-step .rl-type-out{min-width:34px;text-align:center;font-family:var(--font-mono);
     font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700)}
-  html.dark .rl-type-step{background:rgba(148,163,184,.14);border-color:rgba(148,163,184,.28)}
+  html.dark .rl-type-step{background:rgba(148,163,184,.14);border-color:var(--btn-edge)}
   /* NEUTRAL-300 IS A SURFACE AT NIGHT, NOT AN INK. In dark it answers #475569,
      which is the same shade this ramp uses for panel borders - so the stepper's
      own glyphs measured 2.36:1 on the page ground where AA wants 4.5, and the
@@ -1810,7 +1810,7 @@ function redlineLayoutCss(){
         neutral clothes — surface, hairline, quiet ink — and keep their bold
         word. Tokens, so the dark theme comes free and the violet dark
         override went with the violet. */}
-  .redline-page .rl-pb-btn{flex:none;border:1px solid var(--color-divider);background:var(--color-surface);
+  .redline-page .rl-pb-btn{flex:none;border:1px solid var(--btn-edge);background:var(--color-surface);
     color:var(--color-neutral-700);
     border-radius:var(--radius);padding:6px 11px;font:inherit;font-size:var(--t-meta);font-weight:var(--w-title);cursor:pointer;
     transition:background var(--dur-1),border-color var(--dur-1),color var(--dur-1)}
@@ -4654,7 +4654,7 @@ function redlineLayoutCss(){
     writing-mode:vertical-rl;white-space:nowrap;
     display:flex;align-items:center;gap:6px;
     font:inherit;font-size:var(--t-label);font-weight:var(--w-title);cursor:pointer;
-    padding:9px 6px 9px 5px;border:1px solid var(--color-divider);border-left:0;
+    padding:9px 6px 9px 5px;border:1px solid var(--btn-edge);border-left:0;
     border-radius:var(--radius);background:var(--color-surface);color:var(--color-text);
     box-shadow:var(--shadow-md);transition:background var(--dur-1),padding var(--dur-1);
   }
@@ -5348,7 +5348,7 @@ function redlineLayoutCss(){
   .redline-page #ws-head .room-acts button:not(.ui-btn-primary){font-weight:var(--w-label)}
 
   .redline-page #ws-head .rl-pb-btn{background:none;
-    border:1px solid color-mix(in srgb,var(--accent-solid) 50%,transparent);
+    border:1px solid var(--btn-edge);
     color:var(--accent-ink);font-weight:var(--w-label);box-shadow:none}
   .redline-page #ws-head .rl-pb-btn:hover:not(:disabled){
     background:color-mix(in srgb,var(--accent-solid) 8%,transparent)}
@@ -5457,7 +5457,7 @@ function redlineLayoutCss(){
      which is one class heavier than the base's own dark rule and later
      besides. */
   .rl-type-step{height:28px;padding:0;gap:0;background:var(--color-surface);
-    border:1px solid var(--color-divider);align-self:center}
+    border:1px solid var(--btn-edge);align-self:center}
   .rl-type-step button{width:26px;height:26px;background:none;border:0;
     color:var(--color-neutral-600);font-size:var(--t-label)}
   .rl-type-step button:hover{background:var(--color-neutral-100);border:0}
@@ -5511,9 +5511,19 @@ function redlineLayoutCss(){
          take the full height, which is why its fill has always reached the
          edge. Copying the mechanism rather than the measurement is what keeps
          the two from drifting the next time either is retuned. */}
+  ${''/* ---- THE BOX AND THE SEAM ARE THE ONE LIGHT GREY EDGE (26 Sep 2026, the
+         button work order's third item: "some buttons have dark outlines when
+         the common approach is a light grey outline") ----
+         The frame was the accent ink, the same dark outline the owner boxed on
+         the Document tab's switch, and the two halves met with no seam at all
+         where neither was lit. It reads --btn-edge now, with a seam between the
+         halves in the same grey, exactly as .doc-read-seg does; the lit half
+         still fills, which is what says which chair you are in. */}
   .redline-page .rl-actions .rl-segwrap,
   .redline-page .rl-cp-head .rl-segwrap{height:28px;padding:0;gap:0;background:var(--color-surface);
-    border:1px solid var(--accent-ink);align-self:center;overflow:hidden}
+    border:1px solid var(--btn-edge);align-self:center;overflow:hidden}
+  .redline-page .rl-actions .rl-segwrap .rl-seg + .rl-seg,
+  .redline-page .rl-cp-head .rl-segwrap .rl-seg + .rl-seg{border-left:1px solid var(--btn-edge)}
   .redline-page .rl-actions .rl-segwrap .rl-seg,
   .redline-page .rl-cp-head .rl-segwrap .rl-seg{height:100%;padding:0 var(--s-3);font-size:var(--t-meta);
     box-shadow:none;background:none;color:var(--accent-ink);border-radius:0}

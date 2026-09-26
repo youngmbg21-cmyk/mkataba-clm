@@ -53,6 +53,13 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
      So the honest question is whether the bar is TALLER THAN ONE ROW OF ITS
      OWN CONTENT. If it wraps, its height is roughly a multiple of its tallest
      child; if it does not, the two are the same. */
+  /* RE-POINTED IN PLACE 26 Sep 2026 (the list Inspector): the bar became the
+     top row of the list's own card and carries that card's inset (10px above
+     and below, a hairline under it), so its BOX is 49px round a 28px row and
+     the old division read 49/28 as two lines on a bar whose every chip sits at
+     one top (measured). The question this counter always meant is the
+     CONTENT's height against one row of it — the bar's own padding and
+     border are not a line. */
   const barLines = () => page.evaluate(() => {
     const bar = document.querySelector('.reg-filterbar');
     if (!bar) return -1;
@@ -61,7 +68,10 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
       .filter(r => r.width > 0 && r.height > 0);
     if (!kids.length) return -1;
     const tallest = Math.max(...kids.map(r => r.height));
-    return Math.max(1, Math.round(bar.getBoundingClientRect().height / tallest));
+    const cs = getComputedStyle(bar);
+    const inner = bar.getBoundingClientRect().height - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)
+      - parseFloat(cs.borderTopWidth) - parseFloat(cs.borderBottomWidth);
+    return Math.max(1, Math.round(inner / tallest));
   });
 
   console.log('\n1 · the default bar is exactly what shipped before');

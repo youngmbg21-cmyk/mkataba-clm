@@ -881,7 +881,7 @@ function calStyleCss(){ return `
          AND THE HALVES STRETCH, which is `.doc-read-seg`'s own mechanism and
          the answer the seat switch took on 19 Sep 2026; never a second set of
          heights, which would have to be kept in step with this one for ever. */}
-  .cal-seg{display:inline-flex;align-items:stretch;border:1px solid var(--color-divider);height:var(--ctl-h);
+  .cal-seg{display:inline-flex;align-items:stretch;border:1px solid var(--btn-edge);height:var(--ctl-h);
     border-radius:var(--radius);overflow:hidden;flex:none;align-self:center}
   ${''/* The view switch's halves are anchors (the seg builder's own markup,
          so the keyboard door and the handler are unchanged); the scope
@@ -892,6 +892,11 @@ function calStyleCss(){ return `
   /* accent-700, not the lighter step: white on accent-600 measures 3.74:1 and
      this is 13px. The darker step reads in both workspace accents. */
   .cal-seg span.on,.cal-seg a.on,.cal-seg button.on{background:var(--color-accent-700);color:#fff;font-weight:var(--w-title)}
+  ${''/* ONE LIGHT GREY EDGE, AND A SEAM BETWEEN THE HALVES IN THE SAME GREY (26 Sep
+         2026, the button work order's third item) — the box and the seams read
+         --btn-edge like every switch beside it. The child combinator keeps the
+         count inside a half from ever being taken for a half. */}
+  .cal-seg > :is(span,a,button) + :is(span,a,button){border-left:1px solid var(--btn-edge)}
   .cal-seg a .c{font-size:var(--t-micro);font-variant-numeric:tabular-nums;opacity:.85}
   .cal-sel{display:inline-flex;align-items:center;gap:2px;flex:none;align-self:center}
   .cal-sel button{border:0;background:none;font:inherit;font-size:var(--t-body);color:var(--color-text);

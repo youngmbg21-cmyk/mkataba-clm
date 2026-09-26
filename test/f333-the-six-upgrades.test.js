@@ -148,7 +148,9 @@ describe('f333 (5) the contract type the record already holds', () => {
       'a count of departures with no book behind it reads the same whether the right standards were applied or the wrong ones');
     /* THE NAME THE REVIEW STAMPED, never re-resolved — re-asking resolvePlaybook
        would print today's book beside yesterday's verdicts. */
-    assert.ok(!/resolvePlaybook\(/.test(CT.slice(CT.indexOf('function ktReadingsRowsHtml'), CT.indexOf('function ktDocsRowsHtml'))),
+    /* RE-POINTED IN PLACE 26 Sep 2026: the rows are counted in ktReadingsRows,
+       one function above the drawing, so the region starts there. */
+    assert.ok(!/resolvePlaybook\(/.test(CT.slice(CT.indexOf('function ktReadingsRows('), CT.indexOf('function ktDocsRowsHtml'))),
       'the row must not resolve a book of its own');
     const PB = read('js/playbook.js');
     /* RE-POINTED IN PLACE (fix 3, 23 Sep 2026): the review stamps the label of

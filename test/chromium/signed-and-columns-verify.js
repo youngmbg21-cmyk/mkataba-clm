@@ -48,6 +48,13 @@ const check = (name, ok, detail) => {
     await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go');
     await page.waitForTimeout(3000);
+    /* THE FULL TABLE IS STAGED (re-pointed in place 26 Sep 2026): from about a
+       1104 window the page draws the list Inspector — four columns, the
+       Signed and Ends facts in its panel — which inspector-verify measures.
+       This file is about the FULL table's Signed column and its draggable
+       widths, which the page still draws at every narrower window;
+       insForce(false) is its own stage door, in memory for this sitting. */
+    await page.evaluate(() => { if (window.insForce) insForce(false); });
 
     /* A signed contract with a real execution stamp, so the column has
        something true to print — and one with nothing, so the em-dash does. */
@@ -74,8 +81,12 @@ const check = (name, ok, detail) => {
        the relation to the seat's own key list, never a count. */
     const nKeys = await page.evaluate(() => REG_COL_KEYS.length);
     check('the Contracts head draws one column per key', head.n === nKeys, JSON.stringify(head.text));
+    /* RE-POINTED IN PLACE 26 Sep 2026: the expiry column says "Ends" — plain
+       column names, the list options' floor — so it is found by its own
+       sort key (the column's identity), never by its words. */
     const iSig = head.text.findIndex(t => /^Signed$/i.test(t));
-    const iExp = head.text.findIndex(t => /Expiry/i.test(t));
+    const iExp = await page.evaluate(() => [...document.querySelectorAll('.reg-table thead th')]
+      .findIndex(t => t.getAttribute('data-reg-sort') === 'expiry'));
     check('Signed is drawn, and immediately before Expiry',
       iSig >= 0 && iExp === iSig + 1, `signed@${iSig} expiry@${iExp}`);
     check('and it is a painted box, not merely present',

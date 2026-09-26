@@ -366,12 +366,16 @@ describe('f328 (5) a day is a day, and nothing prints NaN', () => {
     assert.match(b, /const dot=ktDayDot/, 'the 13 Sep NaN cannot come back through this row');
   });
   test('and the table reads the day, not the sentence', () => {
-    const b = fnBody(CONTRACT, 'ktReadingsRowsHtml');
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the list inspector): the Overview's readings
+     are COUNTED in ktReadingsRows and DRAWN in ktReadingsRowsHtml, split so the
+     panel beside the lists reads the same rows — the claim is about the two
+     together, which is the one place the readings live. */
+    const b = fnBody(CONTRACT, 'ktReadingsRows');
     assert.match(b, /when: \(c&&c\.scan&&c\.scan\.on\)\|\|''/);
     assert.ok(!/c\.scan\.at/.test(b), 'the sentence never reaches the formatter again');
   });
   test('every other row on that table already hands it an ISO day', () => {
-    const b = fnBody(CONTRACT, 'ktReadingsRowsHtml');
+    const b = fnBody(CONTRACT, 'ktReadingsRows');
     for (const src of ['c._brief.at', 'c.playbook.checkedAt', 'c.obligationsReadAt', 'c._readings.at'])
       assert.ok(b.replace(/\s+/g, '').includes(src.replace(/\s+/g, '')),
         src + ' is still what its row reads');

@@ -123,6 +123,13 @@ const RUNWAY = 'js/runway.js';
    door therefore needs this file on the floor beside js/views/negotiation.js;
    everything else keeps the lighter stage. */
 const REGISTER_VIEW = 'js/views/register.js';
+/* The list inspector (26 Sep 2026): the panel beside the Contracts,
+   Negotiations and Approvals lists. It rides the register option because the
+   register asks it by name. A node stage has no layout, so its width reading
+   answers "too narrow" and the register draws its full table exactly as every
+   test written before it asserts — a test about the panel forces the shape
+   with insForce(true). */
+const INSPECTOR_VIEW = 'js/views/inspector.js';
 /* The contract family: a master agreement and its amendments, and — since
    14 Aug 2026 — writing a new amendment from blank paper
    (buildWorld({family:true})). */
@@ -718,6 +725,7 @@ function buildWorld(opts = {}) {
       renewalDecisionDate: win.renewalDecisionDate || (() => null),
       obState: win.obState || (() => 'open'),
     });
+    files.push(INSPECTOR_VIEW);
     files.push(REGISTER_VIEW);
   }
   for (const rel of files) {

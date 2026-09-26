@@ -342,11 +342,23 @@ const SEED_UNSENT = async () => {
       bar.length === 0 || bar.every(x => Number(x.w) >= 600), bar);
 
     /* ================================================ 5 — THE TWO LISTS */
+    /* BOTH SHAPES, NAMED APART (26 Sep 2026, the list Inspector): at this
+       width the pages draw the Inspector — four columns and a panel — and
+       below about a 1104 window the full table. The rules here are about a
+       ROW, whichever shape draws it, so each list is measured twice: first
+       the full table (the stage's own door, insForce(false)) under the check
+       names this file always used, so a comparison with an older build still
+       pairs by name; then the Inspector under a "5i-" name of its own. The
+       full table's date cells at 12px — red here and at the parent, logged —
+       stay in view that way rather than dropping out because the default
+       shape has no date column. */
+    for (const [shape, force] of [['', false], ['i', true]]) {
+    await page.evaluate(f => { if (window.insForce) insForce(f); }, force);
     for (const [label, go] of [['contracts', () => setView('register')],
       ['negotiations', () => openNegotiations({ list: true })]]) {
       await page.evaluate(fn => eval('(' + fn + ')()'), go.toString());
       await pause(1800);
-      await page.screenshot({ path: path.join(OUT, `03-${label}.png`) });
+      await page.screenshot({ path: path.join(OUT, `03${shape}-${label}.png`) });
 
       const rows = await page.evaluate(() => {
         const tbody = document.getElementById('reg-tbody');
@@ -368,13 +380,21 @@ const SEED_UNSENT = async () => {
         const th = [...document.querySelectorAll('#reg-tbody, .reg-table thead th')]
           .filter(e => e.tagName === 'TH')
           .map(e => ({ w: getComputedStyle(e).fontWeight, s: getComputedStyle(e).fontSize }));
-        const bands = [...tbody.querySelectorAll('.ngl-band-k, .ngl-band-n')]
+        const bands = [...tbody.querySelectorAll('.ngl-band-k')]
           .map(e => getComputedStyle(e).fontWeight);
-        return { cells, th, bands, n: trs.length };
+        const bandN = [...tbody.querySelectorAll('.ngl-band-n')]
+          .map(e => getComputedStyle(e).fontWeight);
+        /* The design's own label rung, read live, so the heading claim below
+           is a relation to the ladder rather than a typed weight. */
+        const probe = document.createElement('span');
+        probe.style.cssText = 'position:absolute;left:-9999px;font-weight:var(--w-label);font-size:var(--t-label)';
+        document.body.appendChild(probe);
+        const label = { w: getComputedStyle(probe).fontWeight, s: getComputedStyle(probe).fontSize }; probe.remove();
+        return { cells, th, bands, bandN, label, n: trs.length };
       });
 
-      if (rows.absent) { check(`5-${label} the table draws`, false, rows); continue; }
-      check(`5-${label}a the table draws rows`, rows.n > 0, { rows: rows.n });
+      if (rows.absent) { check(`5${shape}-${label} the table draws`, false, rows); continue; }
+      check(`5${shape}-${label}a the table draws rows`, rows.n > 0, { rows: rows.n });
 
       /* THE DOCUMENT KIND IS THE ONE DELIBERATE EXCEPTION (owner-chosen, having
          been shown it at the row's size). Everything else is one size.
@@ -394,7 +414,7 @@ const SEED_UNSENT = async () => {
       const KIND = /reg-kind|reg-sub|reg-typecell/;
       const body = rows.cells.filter(c => !KIND.test(c.cls));
       const sizes = [...new Set(body.map(c => c.size))];
-      check(`5-${label}b every cell but the document kind is ONE size`,
+      check(`5${shape}-${label}b every cell but the document kind is ONE size`,
         sizes.length === 1, { sizes, offenders: body.filter(c => c.size !== sizes[0])
           .slice(0, 4).map(c => [c.txt, c.size, c.cls]) });
 
@@ -413,34 +433,48 @@ const SEED_UNSENT = async () => {
       const weights = [...new Set(body.map(c => Number(c.weight)))].sort((a, b) => a - b);
       const titles = body.filter(c => /reg-title/.test(c.cls));
       const others = body.filter(c => !/reg-title/.test(c.cls));
-      check(`5-${label}c the row carries at most two weights, and the title has the heavier`,
+      check(`5${shape}-${label}c the row carries at most two weights, and the title has the heavier`,
         weights.length <= 2 && titles.length > 0
           && others.every(c => Number(c.weight) <= Math.min(...titles.map(t => Number(t.weight)))),
         { weights, title: titles.slice(0, 1).map(c => [c.txt, c.weight]),
           heavyOthers: others.filter(c => Number(c.weight) > 400).slice(0, 4).map(c => [c.txt, c.weight, c.cls]) });
-      check(`5-${label}c2 and nothing on a row is heavier than the column heading`,
+      check(`5${shape}-${label}c2 and nothing on a row is heavier than the column heading`,
         rows.th.length > 0 && body.every(c => Number(c.weight) <= Math.min(...rows.th.map(t => Number(t.w)))),
         { rowMax: Math.max(...body.map(c => Number(c.weight))),
           headMin: rows.th.length ? Math.min(...rows.th.map(t => Number(t.w))) : null });
 
       const kind = rows.cells.filter(c => /reg-kind/.test(c.cls));
-      check(`5-${label}d the document kind stays SMALLER than the row`,
+      check(`5${shape}-${label}d the document kind stays SMALLER than the row`,
         kind.length === 0 || kind.every(c => parseFloat(c.size) < parseFloat(sizes[0])),
         { kind: kind.slice(0, 2).map(c => c.size), row: sizes[0] });
 
       /* THE COLOURS ARE THE WHOLE CONDITION ON FLATTENING THE TYPE. */
       const inks = [...new Set(body.map(c => c.color))];
-      check(`5-${label}e the rows still carry several inks, not one`,
+      check(`5${shape}-${label}e the rows still carry several inks, not one`,
         inks.length >= 3, inks);
 
-      check(`5-${label}f the column headings keep their weight`,
-        rows.th.length > 0 && rows.th.every(t => Number(t.w) >= 600),
-        rows.th.slice(0, 3));
+      /* RE-POINTED IN PLACE 26 Sep 2026 (the list Inspector drawing the owner
+         picked): its column headings are plain words at 12px medium —
+         `.lt th{font-size:12px;font-weight:500}` — a quiet label over the
+         rows rather than the redesign's bold micro caps. What this claim
+         always protected is that a heading is not LOST among the rows; 5c2
+         holds that nothing on a row outweighs it, and this holds it to the
+         design's own label rung, read live, on both shapes. */
+      check(`5${shape}-${label}f the column headings sit on the design's label rung, in plain words`,
+        rows.th.length > 0 && rows.th.every(t => t.w === rows.label.w && t.s === rows.label.s),
+        { th: rows.th.slice(0, 3), label: rows.label });
 
+      /* RE-POINTED IN PLACE 26 Sep 2026: a group's NAME keeps the strong
+         weight and its COUNT reads lighter than the name — the drawing's
+         `tr.grp td{font-weight:600}` over `.n{font-weight:500}`. */
       if (label === 'negotiations')
-        check('5-negotiationsg the group headings keep theirs too',
-          rows.bands.length > 0 && rows.bands.every(w => Number(w) >= 600), rows.bands);
+        check(`5${shape}-negotiationsg the group headings keep theirs, and the count reads lighter than the name`,
+          rows.bands.length > 0 && rows.bands.every(w => Number(w) >= 600)
+            && rows.bandN.every(w => Number(w) < Math.min(...rows.bands.map(Number))),
+          { name: rows.bands, count: rows.bandN });
     }
+    }
+    await page.evaluate(() => { if (window.insForce) insForce(null); });
 
     check('no page errors anywhere in this run', errors.length === 0, errors.slice(0, 3));
   } catch (e) {

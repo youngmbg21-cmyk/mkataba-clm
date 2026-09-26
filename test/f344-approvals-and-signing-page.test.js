@@ -71,10 +71,14 @@ test('4 the count on the door is the rows on the page, amber above zero', () => 
 test('5 every sentence is in BOTH books', () => {
   const keys = [...VIEW.matchAll(/i18tn?\('([a-z_]+)'/g)].map(m => m[1]);
   assert.ok(keys.length > 10);
+  /* RE-POINTED IN PLACE 26 Sep 2026 (the list inspector): a PLURAL is a key
+     this file asks through i18tn — read off the call, never a typed list of
+     three names, so a counted sentence added to the page costs no edit here. */
+  const plurals = new Set([...VIEW.matchAll(/i18tn\('([a-z_]+)'/g)].map(m => m[1]));
   for (const lang of ['en', 'sv']) {
     const book = I18N.slice(I18N.indexOf(lang === 'en' ? '  en: {' : '  sv: {'));
     for (const k of new Set(keys)) {
-      const plural = /ap_pg_(days|to_settle|foot)$/.test(k);
+      const plural = plurals.has(k);
       const ok = plural ? book.includes(k + '_one:') && book.includes(k + '_other:') : book.includes('    ' + k + ':');
       assert.ok(ok, `${k} missing in ${lang}`);
     }

@@ -3892,7 +3892,7 @@ function sharePurposePickerHtml(c, sel, o={}){
     const seg=(k)=>{ const on=sel===k, m=SHARE_PURPOSE_COPY[k];
       return `<button type="button" data-share-purpose="${k}" data-share-purpose-seg="1" aria-pressed="${on?'true':'false'}"
         style="flex:1;height:var(--ctl-h);padding:0 var(--s-1);font:inherit;font-family:var(--font-heading);font-size:var(--t-body);font-weight:var(--w-label);white-space:nowrap;cursor:pointer;
-        border:1px solid ${on?'var(--color-accent)':'var(--color-divider)'};background:${on?'var(--color-accent)':'var(--color-surface)'};
+        border:1px solid ${on?'var(--color-accent)':'var(--btn-edge)'};background:${on?'var(--color-accent)':'var(--color-surface)'};
         color:${on?'#fff':'var(--color-neutral-700)'};border-radius:var(--radius)">${m.label}</button>`; };
     const m=SHARE_PURPOSE_COPY[sel]||SHARE_PURPOSE_COPY.negotiate;
     return `<div id="share-purpose" style="margin:0 0 14px">

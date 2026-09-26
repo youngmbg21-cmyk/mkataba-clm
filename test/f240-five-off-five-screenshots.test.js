@@ -284,9 +284,17 @@ describe('f240 (5) — the rows read at one size and one weight', () => {
        IT IS STILL THE ROW'S TEAL HANDLE — one rung darker, not a new colour —
        and that is what this asks: the token, and that it is an accent ink
        rather than a neutral. */
+    /* REVERSED IN PLACE 26 Sep 2026 — the owner picked the Inspector drawing,
+       whose floor says "the reference stops being link-blue; the whole row is
+       the way in". The reference reads the row's own quiet ink now, never an
+       accent, and the accent is kept for the SELECTED row, where it marks the
+       contract the panel describes. Asked as the two relations, not a hex. */
     const mk = css.match(/\.reg-mk\{[\s\S]*?\}/)[0];
-    assert.match(mk, /color:var\(--accent-ink-700\)/,
-      'the reference is still the row’s teal handle, at the rung that clears AA');
+    assert.match(mk, /color:var\(--color-neutral-600\)/,
+      'the reference reads the row’s quiet ink, not a link’s');
+    assert.doesNotMatch(mk, /accent/, 'no accent on a resting reference');
+    assert.match(css, /tr\.is-sel \.reg-mk\{color:var\(--accent-ink\)\}/,
+      'the accent marks the selected row’s reference only');
     assert.match(rowsFn, /renDateColor/, 'the expiry still carries its urgency colour');
     assert.match(rowsFn, /\$\{renColor\}/, 'and so does the countdown');
     /* REVERSED IN PLACE 24 Sep 2026: the stream tick lived in the stream
@@ -404,10 +412,19 @@ describe('f240 (5) — the rows read at one size and one weight', () => {
   });
 
   test('and the headers are what still tell a heading from a row', () => {
-    assert.match(css.match(/\.reg-table th\{[\s\S]*?\}/)[0], /font-weight:var\(--w-title\)/);
-    for (const cls of ['ngl-band-k', 'ngl-band-n'])
-      assert.match(IDX.match(new RegExp('\\.' + cls + '\\{[\\s\\S]*?\\}'))[0],
-        /font-weight:var\(--w-title\)/, cls + ' is a heading, not a row');
+    /* RE-POINTED IN PLACE 26 Sep 2026 — the Inspector drawing: the column heads
+       are ordinary words at the label size in the secondary ink, and a group
+       heading is the row's size at the strong weight. The CLAIM is unchanged:
+       nothing reads as a row. A head is told apart by being smaller AND in the
+       secondary ink AND heavier than the row's body weight; a group's name by
+       its weight. Asked as relations, never as the old uppercase. */
+    const th = css.match(/\.reg-table th\{[\s\S]*?\}/)[0];
+    const rowSize = tokenPx(css.match(/\.reg-table\{[^}]*(font-size:[^;}]+)/)[1]);
+    assert.ok(tokenPx(th.match(/font-size:[^;}]+/)[0]) < rowSize, 'a head is set smaller than the row');
+    assert.match(th, /color:var\(--color-neutral-600\)/, 'in the secondary ink');
+    assert.doesNotMatch(th, /font-weight:var\(--w-body\)/, 'and never at the row’s own weight');
+    const k = IDX.match(/\.ngl-band-k\{[\s\S]*?\}/)[0];
+    assert.match(k, /font-weight:var\(--w-(strong|title)\)/, 'a group heading is heavier than a row');
   });
 });
 
