@@ -679,7 +679,7 @@ function renderAIStyleToggle(){
   const host=document.getElementById('ai-style'); if(!host) return;
   const on=aiStyle();
   const btn=(k,label,hint)=>`<button data-ai-style="${k}" title="${hint}"
-    class="px-2.5 py-1 text-[11px] font-600 transition" style="border-radius:var(--radius);border:1px solid ${on===k?'transparent':'var(--color-divider)'};background:${on===k?'var(--color-accent)':'transparent'};color:${on===k?'#fff':'var(--color-neutral-600)'}">${label}</button>`;
+    class="transition" style="display:inline-flex;align-items:center;min-height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);font:inherit;font-family:var(--font-heading);font-size:var(--t-meta);font-weight:var(--w-label);cursor:pointer;border-radius:var(--radius);border:1px solid ${on===k?'transparent':'var(--color-divider)'};background:${on===k?'var(--color-accent)':'transparent'};color:${on===k?'#fff':'var(--color-neutral-600)'}">${label}</button>`;
   host.innerHTML = btn('plain',i18t('ai_style_plain'),i18t('ai_style_plain_hint'))
     + btn('legal',i18t('ai_style_legal'),i18t('ai_style_legal_hint'));
   host.querySelectorAll('[data-ai-style]').forEach(b=>b.addEventListener('click',()=>{
@@ -1051,10 +1051,9 @@ function aiWorklistHtml(list, opts){
      everything draws the door onto the full register, not a set narrowed to
      the few contracts it happened to cite. No figure on the button — the
      count is in the answer and in the page's own head. */
-  if(opts && opts.wholeBook) return `<div class="mt-1.5"><button type="button" class="ai-worklist"
+  if(opts && opts.wholeBook) return `<div class="mt-1.5"><button type="button" class="ai-worklist ui-link"
     data-ai-worklist-all="1" title="${esc(i18t('ai_open_contracts_title'))}"
-    style="border:0;background:none;padding:0;font:inherit;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink);cursor:pointer"
-    >${esc(i18t('ai_open_contracts'))} &rarr;</button></div>`;
+    >${esc(i18t('ai_open_contracts'))}${icon('chevR','w-3.5 h-3.5')}</button></div>`;
   if(!Array.isArray(list) || list.length < AI_WORKLIST_MIN) return '';
   const ids = list.map(c=>c&&c.id).filter(Boolean);
   if(ids.length < AI_WORKLIST_MIN) return '';
@@ -1070,11 +1069,10 @@ function aiWorklistHtml(list, opts){
   /* esc() escapes quotes as well as angle brackets — its own note says so,
      because these values land inside attributes. A contract id is minted as
      MK-<n> and carries no space, which is what lets the set travel as one. */
-  return `<div class="mt-1.5"><button type="button" class="ai-worklist"
+  return `<div class="mt-1.5"><button type="button" class="ai-worklist ui-link"
     data-ai-worklist="${esc(ids.join(' '))}" data-ai-worklist-label="${esc(label)}"
     title="${esc(i18t('ai_worklist_title'))}"
-    style="border:0;background:none;padding:0;font:inherit;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink);cursor:pointer"
-    >${esc(i18t('ai_worklist'))} &rarr;</button></div>`;
+    >${esc(i18t('ai_worklist'))}${icon('chevR','w-3.5 h-3.5')}</button></div>`;
 }
 /* Card lists lead with at most 3; the rest sit behind a "Show all" expander so
    a broad question reads as an answer, not a wall of cards.
@@ -3429,9 +3427,9 @@ function aiProposalCardHtml(p){
     ${done
       ? `<div style="font-size:var(--t-label);font-weight:var(--w-strong);border-radius:var(--radius);padding:5px 9px;background:${tone[0]};color:${tone[1]}">${tone[2]}</div>`
       : `<div style="display:flex;gap:7px;flex-wrap:wrap">
-          <button class="ui-btn ui-btn-primary" data-ai-prop-apply="${e(p.id)}" style="font-size:var(--t-meta);padding:5px 11px">${i18t('ai_apply_redline')}</button>
-          <button class="ui-btn" data-ai-prop-decline="${e(p.id)}" style="font-size:var(--t-meta);padding:5px 11px">${i18t('ai_decline')}</button>
-          <button class="ui-btn" data-ai-prop-edit-btn="${e(p.id)}" style="font-size:var(--t-meta);padding:5px 11px">${p.editing ? 'Done editing' : 'Edit'}</button>
+          <button class="ui-btn ui-btn-sm ui-btn-primary" data-ai-prop-apply="${e(p.id)}">${i18t('ai_apply_redline')}</button>
+          <button class="ui-btn ui-btn-sm" data-ai-prop-decline="${e(p.id)}">${i18t('ai_decline')}</button>
+          <button class="ui-btn ui-btn-sm" data-ai-prop-edit-btn="${e(p.id)}">${p.editing ? 'Done editing' : 'Edit'}</button>
         </div>`}
   </div>`;
 }
@@ -4246,7 +4244,7 @@ function renderBriefSection(c){
     ${briefReadFootHtml(c)}
     <div style="display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:10px;border-top:1px solid var(--color-divider)">
       <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${i18t('br_written',{date:when,name:_aiEsc(b.by||'Copilot')})}</span>
-      ${mayRemake?`<button class="ui-btn" data-brief-remake style="margin-left:auto;font-size:var(--t-label);padding:var(--s-1) 10px">${i18t('br_rewrite')}</button>`:''}
+      ${mayRemake?`<button class="ui-btn ui-btn-sm" data-brief-remake style="margin-left:auto">${i18t('br_rewrite')}</button>`:''}
     </div>`;
   /* ---- SAYING YOU HAVE READ IT (Young ruled 21 Sep 2026) ----
      The one writer is briefMarkRead; this presses it, saves and repaints the
@@ -4486,7 +4484,7 @@ function renewalCardHtml(c){
      buttons; the acts row below places them. */
   const decideRow=asking?`
     <span style="font-size:var(--t-label);font-weight:var(--w-strong);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);flex:none">${i18t('rn_what_decided')}</span>
-    ${ANS.map(a=>`<button class="ui-btn" data-rn-decide="${a}" style="font-size:var(--t-label);padding:5px 11px">${_aiEsc(i18t('rn_ans_'+a))}</button>`).join('')}`:'';
+    ${ANS.map(a=>`<button class="ui-btn ui-btn-sm" data-rn-decide="${a}">${_aiEsc(i18t('rn_ans_'+a))}</button>`).join('')}`:'';
   /* THE DECIDED READING. The deadline is not taken off the screen — it moves
      into the quiet line underneath, where it says what stopped and the one
      thing that would start it again. */
@@ -4536,9 +4534,9 @@ function renewalCardHtml(c){
     `}
     <div style="display:flex;flex-direction:row;align-items:center;gap:7px;flex-wrap:wrap;margin-top:9px;flex:none">
       ${settled?'':decideRow}
-      ${settled&&may?`<button class="ui-btn" data-rn-change style="font-size:var(--t-label);padding:5px 11px">${i18t('rn_change')}</button>`:''}
-      ${!settled&&may?`<button class="ui-btn" data-rn-ask title="${_aiEsc(i18t('rn_not_asked'))}" style="font-size:var(--t-label);padding:5px 11px">${a?i18t('rn_again'):i18t('rn_ask')}</button>`:''}
-      ${may?`<button class="ui-btn" data-rn-start style="font-size:var(--t-label);padding:5px 11px">${i18t('rn_start')}</button>`:''}
+      ${settled&&may?`<button class="ui-btn ui-btn-sm" data-rn-change>${i18t('rn_change')}</button>`:''}
+      ${!settled&&may?`<button class="ui-btn ui-btn-sm" data-rn-ask title="${_aiEsc(i18t('rn_not_asked'))}">${a?i18t('rn_again'):i18t('rn_ask')}</button>`:''}
+      ${may?`<button class="ui-btn ui-btn-sm" data-rn-start>${i18t('rn_start')}</button>`:''}
       ${''/* ---- SERVE A NOTICE (S6, 16 Sep 2026) ----
              The third act, and the one the other two cannot do: renewing and
              re-negotiating both start paper, and this ENDS it. Drawn only
@@ -4547,7 +4545,7 @@ function renewalCardHtml(c){
              compose would be a dead press. Read through `window` with a guard:
              the card draws on stages where js/notice.js is not loaded. */}
       ${(may&&typeof window.noticeMayDraft==='function'&&noticeMayDraft(c))
-        ?`<button class="ui-btn" data-rn-notice style="font-size:var(--t-label);padding:5px 11px">${i18t('nt_act')}</button>`:''}
+        ?`<button class="ui-btn ui-btn-sm" data-rn-notice>${i18t('nt_act')}</button>`:''}
       ${''/* ---- AND WHETHER IT WAS SERVED (21 Sep 2026, the process review's
              fourth item) ---- HaTi drafts the letter and a PERSON serves it,
              and until now nothing ever recorded that they had: the clock kept
@@ -4557,7 +4555,7 @@ function renewalCardHtml(c){
              beside the act it follows; once served it says so instead. */}
       ${(may&&typeof window.noticeServed==='function'&&typeof window.noticeMayDraft==='function'
          &&(noticeServed(c)||noticeMayDraft(c)))
-        ?`<button class="ui-btn" data-rn-served style="font-size:var(--t-label);padding:5px 11px">${
+        ?`<button class="ui-btn ui-btn-sm" data-rn-served>${
           i18t(noticeServed(c)?'nt_served_edit':'nt_served_act')}</button>`:''}
     </div>
     ${(typeof window.noticeServedLine==='function'&&noticeServed(c))
@@ -4584,7 +4582,7 @@ function renderRenewalSection(c){
     host.innerHTML=`<section id="renewal-section" class="kt-side-card" style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius);padding:13px 15px">
       <h6 style="margin:0 0 6px;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading)">${_aiEsc(i18t('rn_title'))}</h6>
       <p style="margin:0 0 9px;font-size:var(--t-meta);line-height:1.55;color:var(--st-amber-fg)">${_aiEsc(i18t('rn_card_broken'))}</p>
-      <button class="ui-btn" data-rn-ask style="font-size:var(--t-label);padding:5px 11px">${_aiEsc(i18t('rn_try_again'))}</button>
+      <button class="ui-btn ui-btn-sm" data-rn-ask>${_aiEsc(i18t('rn_try_again'))}</button>
     </section>`;
   }
   host.querySelector('[data-rn-ask]')?.addEventListener('click',async ev=>{

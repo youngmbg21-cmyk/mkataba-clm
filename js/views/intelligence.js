@@ -566,7 +566,7 @@ function igDependentsHtml(id){
   return `<div class="mt-2 pt-2" style="border-top:1px solid var(--color-divider)" data-ig-deps-block="${igEsc(id)}">
     <div class="text-[10px] uppercase tracking-wider text-ink/45 mb-1">${i18t('int_if_ends')}</div>
     ${lines.join('')}
-    <button data-ig-deps="${igEsc(id)}" class="mt-1.5 text-[11.5px] font-600" style="color:var(--accent-ink)">${i18t('int_dep_see_list')}</button>
+    <button data-ig-deps="${igEsc(id)}" class="ui-link" style="margin-top:6px">${i18t('int_dep_see_list')}${icon('chevR','w-3.5 h-3.5')}</button>
   </div>`;
 }
 window.intel = { groupBy:'folder', groups:null /*{id:label} override from Copilot*/,
@@ -2034,7 +2034,9 @@ function intelFrictionHtml(){
     <b style="color:var(--color-text)">${f?i18t('int_nothing_matches'):i18t('int_no_negotiations')}</b><br/>${f?i18t('int_clear_filters'):i18t('int_once_contracts')}</div></div>`;
   const hrs=ms=>{ if(ms==null) return null; const h=ms/3600000; return h<1?'&lt;1h':h<48?Math.round(h)+'h':Math.round(h/24)+'d'; };
   const RULE='border-bottom:1px solid var(--color-divider)';
-  const LINK='display:inline-block;margin-top:6px;font-size:var(--t-meta);font-weight:var(--w-title);color:var(--accent-ink-700);cursor:pointer;background:none;border:0;padding:0;font-family:inherit';
+  /* THE TEXT BUTTON'S ONE LOOK (the Compact ladder, 26 Sep 2026): accent,
+     medium, a real target, and a drawn arrow where the press goes somewhere. */
+  const LINK='display:inline-flex;align-items:center;gap:4px;min-height:var(--tap-min);margin-top:6px;font-size:var(--t-body);font-weight:var(--w-label);color:var(--accent-ink);cursor:pointer;background:none;border:0;padding:0;font-family:inherit';
 
   /* ---- left: the three sentences ---- */
   const top=st.clauses[0]||null;
@@ -2046,19 +2048,19 @@ function intelFrictionHtml(){
     `of negotiations get stuck on <b>${igEsc(top.label)}</b>${top.extra!=null&&top.extra>0
       ?` — and when they do, the deal takes <b>${top.extra.toFixed(1)} more round${top.extra>=1.95?'s':''}</b>. It is the single change worth making to your standard paper.`
       :` — contested more than any other clause${top.extra!=null&&top.extra<0?', though the fights there tend to settle quickly':''}.`}
-    <br><button data-igf-standards style="${LINK}">${i18t('int_open_clause_std')}</button>`):'';
+    <br><button data-igf-standards style="${LINK}">${i18t('int_open_clause_std')}${icon('chevR','w-3.5 h-3.5')}</button>`):'';
   const dl=st.deadlockList;
   const dealCount=new Set(dl.map(x=>x.id)).size;
   const deadHero=hero(String(st.deadlocks), st.deadlocks?'var(--st-amber-fg,#b45309)':'var(--color-text)',
     st.deadlocks
       ?`change${st.deadlocks===1?' is':'s are'} <b>${i18t('int_refused_open')}</b> — nobody withdrew ${st.deadlocks===1?'it':'them'}, so ${dealCount===1?'one deal is':dealCount+' deals are'} waiting on a decision somebody has to make.
-        <br><button data-igf-deadlocks style="${LINK}">See the ${st.deadlocks<=12?['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve'][st.deadlocks]:st.deadlocks} →</button>
+        <br><button data-igf-deadlocks style="${LINK}">See the ${st.deadlocks<=12?['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve'][st.deadlocks]:st.deadlocks}${icon('chevR','w-3.5 h-3.5')}</button>
         <div id="igf-deadlist" class="hidden" style="margin-top:var(--s-2)">${dl.map(x=>`<button data-igf-open="${igEsc(x.id)}" style="display:flex;gap:var(--s-2);width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;font-size:var(--t-meta);padding:var(--s-1) 0;color:var(--color-neutral-700)"><b style="color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px">${igEsc(x.name)}</b><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${igEsc(x.clause)}</span><span style="margin-left:auto;color:var(--accent-ink-700);font-weight:var(--w-title);white-space:nowrap">open →</span></button>`).join('')}</div>`
       :`changes are refused and still open — every refusal on the book has been answered or withdrawn. Nothing is deadlocked.`);
   const sl=st.slowest;
   const slowHero=(sl&&st.counterparties.length>1)?hero(sl.avgRounds.toFixed(1),'var(--color-text)',
     `rounds per deal with <b>${igEsc(sl.name)}</b>, against ${st.avgRounds.toFixed(1)} across the book — the slowest counterparty you negotiate with${sl.acceptUs!=null?`, and they accept <b>${pct(sl.acceptUs)}%</b> of what you ask`:''}.
-     ${f&&f.counterparty===sl.name?'':`<br><button data-igf-cp="${igEsc(sl.name)}" style="${LINK}">Filter the page to ${igEsc(sl.name)} →</button>`}`):'';
+     ${f&&f.counterparty===sl.name?'':`<br><button data-igf-cp="${igEsc(sl.name)}" style="${LINK}">Filter the page to ${igEsc(sl.name)}${icon('chevR','w-3.5 h-3.5')}</button>`}`):'';
   /* ---- THE FOUR FIGURES ARE KPI CARDS (Young ruled it 19 Sep 2026: "make
      the highlighted KPIs to be KPI cards") ----
      Same four readings, same four labels, same order — only the dress moved,
@@ -2200,7 +2202,7 @@ function intelFrictionCopilotHtml(st){
   }else if(ai&&ai.err&&ai.key===key){
     body=`<div style="display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap">
       <span style="font-size:var(--t-meta);color:var(--st-ruby-fg)">${igEsc(ai.err)}</span>
-      <button id="igf-ai-ask" style="border:0;background:none;cursor:pointer;font:inherit;font-size:var(--t-meta);font-weight:var(--w-title);color:var(--accent-ink-700)">${i18t('int_try_again')}</button>
+      <button id="igf-ai-ask" class="ui-link">${i18t('int_try_again')}${icon('chevR','w-3.5 h-3.5')}</button>
     </div>`;
   }else{
     const stale=!!(ai&&ai.html);
@@ -3473,8 +3475,8 @@ function igExplainCard(id){
     ${igFactRowsHtml(c)}
     ${igDependentsHtml(c.id)}
     <div class="mt-2 flex items-center gap-1.5">
-      <button data-ig-ws="${c.id}" class="flex-1 rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11.5px] font-600 hover:bg-brand-800 transition">${i18t('int_open_workspace')}</button>
-      <button data-ig-cmp="${c.id}" class="rounded-lg border ${intel.compareSel.includes(c.id)?'border-brand-500 bg-brand-50 text-brand-700':'border-brand-200 text-brand-700 hover:border-brand-400'} px-2.5 py-1.5 text-[11.5px] font-600 transition" title="${i18t('int_stage_for_compare')}">${intel.compareSel.includes(c.id)?'✓ Comparing':'+ Compare'}</button>
+      <button data-ig-ws="${c.id}" class="ui-btn ui-btn-sm ui-btn-primary flex-1">${i18t('int_open_workspace')}${icon('chevR','w-3.5 h-3.5')}</button>
+      <button data-ig-cmp="${c.id}" class="ui-btn ui-btn-sm${intel.compareSel.includes(c.id)?' ui-btn-accent':''}" aria-pressed="${intel.compareSel.includes(c.id)?'true':'false'}" title="${i18t('int_stage_for_compare')}">${intel.compareSel.includes(c.id)?`${icon('check2')}Comparing`:`${icon('plus')}Compare`}</button>
     </div>
   </div>`;
 }
@@ -3518,18 +3520,18 @@ function renderIntelDock(){
         return b.live
           ?`<span title="${igEsc(b.hint)}" class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-600 text-white" style="background:var(--color-accent-800,#2c455d)">✦ ${igEsc(b.label)}</span>`
           :`<span title="${igEsc(b.hint)}" class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-600" style="background:var(--st-amber-bg);color:var(--st-amber-fg)">○ Basic mode</span>`; })()}
-      ${intel.history.length?`<button id="igd-history-clear" title="${i18t('int_clear_conversation')}" class="h-6 w-6 grid place-items-center rounded-lg text-ink/40 hover:text-rose-600 hover:bg-brand-50 transition">${icon('trash','w-3.5 h-3.5')}</button>`:''}
-      <button id="igd-expand" title="${intel.dockWide?'Shrink the panel':'Expand the panel'}" class="h-6 w-6 grid place-items-center rounded-lg text-ink/40 hover:text-ink hover:bg-brand-50 transition">${intel.dockWide
+      ${intel.history.length?`<button id="igd-history-clear" title="${i18t('int_clear_conversation')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon" aria-label="${i18t('int_clear_conversation')}">${icon('trash','w-3.5 h-3.5')}</button>`:''}
+      <button id="igd-expand" title="${intel.dockWide?'Shrink the panel':'Expand the panel'}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${intel.dockWide
         ?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 17l5-5-5-5"/><path d="M6 17l5-5-5-5"/></svg>'
         :'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-5-5 5-5"/><path d="M18 17l-5-5 5-5"/></svg>'}</button>
-      <button id="igd-collapse" title="${i18t('int_collapse_panel')}" class="h-6 w-6 grid place-items-center rounded-lg text-ink/40 hover:text-ink hover:bg-brand-50 transition text-[13px]">›</button>
+      <button id="igd-collapse" title="${i18t('int_collapse_panel')}" aria-label="${i18t('int_collapse_panel')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon('chevR')}</button>
     </div>
     ${intel.lenses.length?`
     <div class="px-3.5 py-2 border-b border-hair shrink-0 flex flex-wrap items-center gap-1.5">
       ${intel.lenses.map(l=>`
         <span data-lens-hover="${l.id}" class="ig-lens inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] font-mono cursor-pointer ${l.on?'border-brand-500 bg-brand-50 text-brand-700':'border-line bg-white text-ink/40'}">
           <button data-lens-toggle="${l.id}" title="${l.on?'Lens on — click to ignore':'Lens off — click to apply'}">${igEsc(l.label)} · ${l.ids.length}</button>
-          <button data-lens-x="${l.id}" title="${i18t('int_remove_lens')}" class="hover:text-rose-600">✕</button>
+          <button data-lens-x="${l.id}" title="${i18t('int_remove_lens')}" aria-label="${i18t('int_remove_lens')}" class="hover:text-rose-600" style="display:inline-grid;place-items:center">${icon('x','w-3 h-3')}</button>
         </span>`).join('')}
       <button id="igd-clear" class="text-[10.5px] font-600 text-brand-600 hover:text-brand-800 ml-auto">${i18t('int_clear_all')}</button>
     </div>`:''}
@@ -3545,11 +3547,11 @@ function renderIntelDock(){
     <div class="px-3.5 py-2 border-t border-hair shrink-0 flex items-center gap-2 bg-brand-50/40">
       <span class="text-[11px] text-brand-800/70 flex-1 min-w-0 truncate">${i18t('int_comparing')} <b class="text-brand-900">${intel.compareSel.length}</b>: ${intel.compareSel.map(id=>igEsc(getContract(id)?.name||id)).join(', ')}</span>
       <button id="igd-cmp-clear" class="text-[10.5px] font-600 text-ink/50 hover:text-ink">${i18t('int_clear')}</button>
-      <button id="igd-cmp-run" class="rounded-lg px-2.5 py-1 text-[11px] font-600 transition ${intel.compareSel.length<2?'bg-brand-100 text-brand-500':'bg-brand-600 text-white hover:bg-brand-700'}" title="${intel.compareSel.length<2?'Tap “+ Compare” on one more node first':'Run the side-by-side comparison'}">${intel.compareSel.length<2?'Pick 1 more…':'Compare '+intel.compareSel.length}</button>
+      <button id="igd-cmp-run" class="ui-btn ui-btn-sm${intel.compareSel.length<2?'':' ui-btn-primary'}" title="${intel.compareSel.length<2?'Tap “+ Compare” on one more node first':'Run the side-by-side comparison'}">${intel.compareSel.length<2?'Pick 1 more…':'Compare '+intel.compareSel.length}</button>
     </div>`:''}
     <div class="p-3 border-t border-hair shrink-0 relative">
       <input id="igd-input" placeholder="${i18t('int_ask_portfolio')}" class="w-full rounded-xl border border-inputln bg-white pl-3.5 pr-16 py-2.5 text-[13px] outline-none focus:border-brand-600 focus:ring-[3px] focus:ring-[rgba(11,122,95,.1)] transition"/>
-      <button id="igd-go" class="absolute right-[18px] top-1/2 -translate-y-1/2 rounded-lg bg-brand-600 text-white px-3 py-1.5 text-[11px] font-600 hover:bg-brand-700 transition">${i18t('int_ask')}</button>
+      <button id="igd-go" class="ui-btn ui-btn-sm ui-btn-primary absolute right-[18px] top-1/2 -translate-y-1/2">${i18t('int_ask')}</button>
     </div>`;
   const feed=document.getElementById('igd-feed'); feed.scrollTop=feed.scrollHeight;
   // charts in dock answers come back to life after every repaint
@@ -3658,7 +3660,7 @@ function openPartyModal(name){
         <div class="font-display font-600 text-brand-900 truncate">${name}</div>
         <div class="text-[11px] font-mono text-brand-800/65">${own.length} agreements \u00b7 ${fmtMoney(val)} exposure \u00b7 relationship neighborhood</div>
       </div>
-      <button id="pm-close" class="h-8 w-8 grid place-items-center rounded-lg hover:bg-brand-50 text-brand-400 hover:text-brand-800 transition">${icon('x')}</button>
+      <button id="pm-close" class="ui-btn ui-btn-plain ui-btn-icon">${icon('x')}</button>
     </div>
     <svg viewBox="0 0 ${W} ${H}" class="w-full bg-canvas/60">
       ${edges.map((e,i)=>`<path class="mlink" d="M${e.s.x} ${e.s.y} L${e.t.x} ${e.t.y}"/>

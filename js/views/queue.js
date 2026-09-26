@@ -47,7 +47,7 @@ function pipeCard(c){
 }
 function pipeColumnInner(col, list){
   const shown=list.slice(0,PIPE_CAP);
-  const more=list.length>PIPE_CAP?`<button data-pipe-more="${col.k}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:6px 9px;font:inherit;font-size:var(--t-label);font-weight:var(--w-body);color:var(--accent-ink-700);cursor:pointer">+${list.length-PIPE_CAP} more in Register →</button>`:'';
+  const more=list.length>PIPE_CAP?`<button data-pipe-more="${col.k}" class="ui-btn ui-btn-sm ui-btn-accent" style="width:100%">+${list.length-PIPE_CAP} more in Register${icon('chevR')}</button>`:'';
   const empty=list.length?'':`<div style="border:1px dashed var(--color-divider);border-radius:var(--radius);padding:22px 10px;text-align:center;font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('queue_nothing_here')}</div>`;
   return shown.map(pipeCard).join('')+empty+more;
 }

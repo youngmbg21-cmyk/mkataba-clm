@@ -505,8 +505,8 @@ function openContractEssentials(opts){
      answer step and the saved-template fill — so the declaration is stated
      ONCE here and read through `window` by the other two, with the literal as
      the fallback for a stage that has not loaded this file. */
-  const ST = 'width:100%;min-height:var(--field-h,36px);border:1px solid var(--color-divider);'
-    + 'background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font:inherit;font-size:var(--t-body);outline:none;color:inherit';
+  const ST = 'width:100%;height:var(--field-h,28px);border:1px solid var(--color-divider);'
+    + 'background:var(--color-surface);border-radius:var(--radius);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none;color:inherit';
   const input = f => {
     /* A value stream is the product's own list, with its "+ New value stream"
        sentinel — see the wizard for the pair. */

@@ -384,10 +384,15 @@ function clauseEditorCss(){
      bigger, and this control's own height is a decision somebody else made.
      BOLD BECAUSE IT IS FILLED, which is the owner's own rule for a control row
      (10 Sep 2026: "Only the shaded buttons should bold"). */
-  .ce-exit{flex:none; height:28px; display:inline-flex; align-items:center; gap:6px;
+  .ce-exit{flex:none; height:var(--ctl-h); display:inline-flex; align-items:center; gap:var(--btn-gap);
     background:var(--accent-ink); border:1px solid var(--accent-ink); color:#fff;
-    cursor:pointer; padding:0 10px; border-radius:var(--radius); font:inherit;
-    font-size:var(--t-body); font-weight:var(--w-strong); line-height:1}
+    cursor:pointer; padding:0 var(--pad-ctl-x); border-radius:var(--radius); font:inherit;
+    font-size:var(--t-body); font-weight:var(--w-label); line-height:1}
+  ${''/* MEDIUM, LIKE EVERY OTHER BUTTON (the Compact ladder, 26 Sep 2026):
+         the fill says it is the way out; the weight no longer has to. The
+         10 Sep ruling "only the shaded buttons should bold" is about the lit
+         half of a two-way switch, and those still bold. */}
+  .ce-exit > svg{width:var(--btn-ic); height:var(--btn-ic); flex:none}
   /* ONE LINE, WHATEVER THE LANGUAGE. Swedish is the longer word and the strip
      is a nowrap row, so a label allowed to break would grow the bar's height
      rather than the button's width. */
@@ -404,7 +409,7 @@ function clauseEditorCss(){
   .ce-rail .ce-lane{flex:1; min-height:0}
   .ce-railfoot{flex:none; display:flex; align-items:center; justify-content:flex-end; gap:var(--s-2);
     padding:9px 14px; border-top:1px solid var(--color-divider); background:var(--color-surface)}
-  .ce-railfoot button{height:30px; padding:0 14px; font:inherit; font-size:var(--t-meta); font-weight:var(--w-strong);
+  .ce-railfoot button{height:var(--ctl-h); padding:0 var(--pad-ctl-x); font:inherit; font-size:var(--t-body); font-weight:var(--w-label);
     background:var(--color-surface); color:var(--color-text); border:1px solid var(--color-divider)}
   .ce-railfoot button.p{background:var(--color-accent-700); border-color:var(--accent-ink-700);
     color:#fff}
@@ -450,9 +455,9 @@ function clauseEditorCss(){
      rail do not — a zoom that grew the furniture would be a text-size stepper
      wearing a percentage. */
   .ce-paperwrap .rl-doc{zoom:var(--ce-zoom, 1)}
-  .ce-zoom{flex:none; display:flex; align-items:center; height:26px;
+  .ce-zoom{flex:none; display:flex; align-items:center; height:var(--ctl-h); box-sizing:border-box;
     border:1px solid var(--color-divider); background:var(--color-surface)}
-  .ce-zoom button{width:24px; height:24px; background:none; border:0; padding:0;
+  .ce-zoom button{width:var(--ctl-h-sm); height:var(--ctl-h-sm); background:none; border:0; padding:0;
     font:inherit; font-size:var(--t-meta); color:var(--color-text); cursor:pointer}
   .ce-zoom button[disabled]{opacity:.35; cursor:default}
   .ce-zoom .out{font-family:var(--font-mono); font-size:var(--t-micro);
@@ -619,8 +624,10 @@ function clauseEditorCss(){
     flex-wrap:wrap; min-height:48px}
   .ce-foot .draft{font-size:var(--t-label); color:var(--color-neutral-600)}
   .ce-foot .draft b{font-weight:var(--w-title); color:var(--color-text); font-variant-numeric:tabular-nums}
-  .ce-foot .undo{background:none; border:0; font:inherit; font-size:var(--t-label); font-weight:var(--w-title);
-    color:var(--accent-ink); padding:2px 0}
+  .ce-foot .undo{background:none; border:0; font:inherit; font-size:var(--t-label); font-weight:var(--w-label);
+    color:var(--accent-ink); padding:0 4px; margin:0 -4px; min-height:var(--tap-min); display:inline-flex; align-items:center;
+    border-radius:var(--radius); cursor:pointer}
+  .ce-foot .undo:hover:not([disabled]){background:color-mix(in srgb,var(--accent-solid) 10%,transparent)}
   .ce-foot .undo[disabled]{color:var(--color-neutral-500)}
   .ce-foot .g{flex:1; min-width:8px}
 
@@ -731,7 +738,7 @@ function clauseEditorCss(){
   .ce-card .pv del{color:var(--st-ruby-fg); text-decoration:line-through}
   .ce-card .pv ins{color:var(--st-green-fg); text-decoration:none; font-weight:var(--w-strong)}
   .ce-card .av{display:flex; gap:var(--s-2); margin-top:9px; flex-wrap:wrap; align-items:center}
-  .ce-card .av button{height:26px; padding:0 11px; font:inherit; font-size:var(--t-label); font-weight:var(--w-strong);
+  .ce-card .av button{height:var(--ctl-h-sm); padding:0 var(--pad-ctl-x-sm); font:inherit; font-size:var(--t-meta); font-weight:var(--w-label);
     background:var(--color-surface); color:var(--accent-ink); border:1px solid var(--color-divider)}
   .ce-card .av button.p{background:var(--color-accent-700); border-color:var(--accent-ink-700);
     color:#fff}
@@ -794,7 +801,7 @@ function clauseEditorCss(){
     color:var(--color-neutral-600)}
   .ce-rule .filed{font-size:var(--t-label); font-weight:var(--w-strong); color:var(--st-green-fg)}
   .ce-rule .av{display:flex; gap:var(--s-2); margin-top:9px; flex-wrap:wrap}
-  .ce-rule .av button{height:26px; padding:0 11px; font:inherit; font-size:var(--t-label); font-weight:var(--w-strong);
+  .ce-rule .av button{height:var(--ctl-h-sm); padding:0 var(--pad-ctl-x-sm); font:inherit; font-size:var(--t-meta); font-weight:var(--w-label);
     background:var(--color-surface); color:var(--accent-ink); border:1px solid var(--color-divider)}
   .ce-rule .av button:hover{border-color:var(--accent-solid)}
 
@@ -806,7 +813,7 @@ function clauseEditorCss(){
   .ce-chips{flex:none; display:flex; gap:6px; flex-wrap:wrap;
     padding:0 14px 9px; background:var(--color-surface)}
   .ce-chips:empty{padding:0}
-  .ce-chips button{flex:none; height:25px; padding:0 9px; font:inherit; font-size:var(--t-label);
+  .ce-chips button{flex:none; height:var(--ctl-h-sm); padding:0 var(--pad-ctl-x-sm); font:inherit; font-size:var(--t-meta); font-weight:var(--w-label);
     white-space:nowrap; background:var(--color-surface); color:var(--color-neutral-600);
     border:1px solid var(--color-divider)}
   .ce-chips button:hover{color:var(--color-text); border-color:var(--accent-solid)}
@@ -820,10 +827,10 @@ function clauseEditorCss(){
     white-space:pre-wrap; overflow-wrap:break-word; background:var(--color-surface);
     border:1px solid var(--color-divider); color:var(--color-text); outline:none}
   .ce-ask textarea:focus{box-shadow:var(--focus)}
-  .ce-ask button{flex:none; display:inline-grid; place-items:center; width:32px; height:32px;
+  .ce-ask button{flex:none; display:inline-grid; place-items:center; width:var(--ctl-h); height:var(--ctl-h);
     padding:0; background:var(--color-accent-700); border:1px solid var(--color-accent-700);
     color:#fff}
-  .ce-ask button svg{width:17px; height:17px; display:block}
+  .ce-ask button svg{width:var(--btn-ic); height:var(--btn-ic); display:block}
   .ce-ask button:hover{background:var(--accent-ink); border-color:var(--accent-ink)}
 
   /* ---- the reason is asked as a STEP, in HaTi's own words ---- */
@@ -892,7 +899,7 @@ function clauseEditorCss(){
     color:var(--accent-ink)}
   .ce-scope .eb b{font-weight:var(--w-title)}
   .ce-scope .eb .g{flex:1; min-width:4px}
-  .ce-scope .x{flex:none; width:20px; height:20px; display:inline-grid; place-items:center; padding:0;
+  .ce-scope .x{flex:none; width:var(--ctl-h-sm); height:var(--ctl-h-sm); display:inline-grid; place-items:center; padding:0; border-radius:var(--radius);
     font:inherit; font-size:var(--t-label); background:none; border:0;
     color:var(--color-neutral-600); cursor:pointer}
   .ce-scope .x:hover{color:var(--color-text)}
@@ -5120,7 +5127,7 @@ function ceRenderScope(){
   if (!box) return;
   const where = (sel && sel.loose) ? _cet('ce_scope_words') : (ceClauseLabel(ceClause()) || _cet('ce_this_clause'));
   const off = `<button type="button" class="x" data-ce-act="scope-off"
-        title="${_ceea(_cet('ce_scope_to_contract'))}" aria-label="${_ceea(_cet('ce_scope_to_contract'))}">&#10005;</button>`;
+        title="${_ceea(_cet('ce_scope_to_contract'))}" aria-label="${_ceea(_cet('ce_scope_to_contract'))}">${window.icon ? icon('x','w-3.5 h-3.5') : '&#10005;'}</button>`;
   if (state === 'contract'){
     const name = String((_ceC && _ceC.name) || '').trim();
     box.innerHTML = `<div class="ce-scope is-whole">

@@ -191,12 +191,12 @@ function discussPanelHtml(opts){
     <div style="border-top:1px solid var(--color-divider);padding-top:var(--s-3)">
       <label style="display:block;margin-bottom:7px">
         <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:var(--s-1)">${i18t('di_what_about')}</span>
-        <select id="${idp}-topic" style="width:100%;font:inherit;font-size:var(--t-meta);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 9px;color:inherit">${options}</select>
+        <select id="${idp}-topic" style="width:100%;font:inherit;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);color:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">${options}</select>
       </label>
       <textarea id="${idp}-body" rows="2" placeholder="${e(i18t('di_ph_would_you'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:var(--s-2) 11px;font:inherit;font-size:var(--t-body);outline:none;resize:vertical"></textarea>
       <div style="display:flex;align-items:center;gap:9px;margin-top:var(--s-2);flex-wrap:wrap">
         <span style="flex:1;min-width:140px;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.45">${i18t('di_sends_message')}</span>
-        <button id="${idp}-send" class="ui-btn ui-btn-primary" style="flex:none;font-size:var(--t-meta);padding:7px 14px">${i18t('di_send')}</button>
+        <button id="${idp}-send" class="ui-btn ui-btn-primary" style="flex:none">${i18t('di_send')}</button>
       </div>
       <div id="${idp}-out" style="margin-top:9px"></div>
     </div>`;
@@ -241,7 +241,7 @@ function discussPointReplyHtml(topic, messages, opts){
     <div style="display:flex;gap:6px;align-items:center;margin-top:var(--s-2);flex-wrap:wrap">
       <textarea data-point-body="${e(idp)}" class="chat-field" rows="1" placeholder="${e(placeholder || 'Reply on this point — a sentence, not a redraft')}"
         style="flex:1;min-width:150px;border:1px solid var(--color-divider);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-meta);background:var(--color-surface);outline:none"></textarea>
-      <button data-point-send="${e(idp)}" data-point-topic="${e(topic)}" data-point-label="${e((opts&&opts.label)||'')}" class="ui-btn" style="flex:none;font-size:var(--t-label);padding:6px var(--s-3)">${i18t('di_send')}</button>
+      <button data-point-send="${e(idp)}" data-point-topic="${e(topic)}" data-point-label="${e((opts&&opts.label)||'')}" class="ui-btn" style="flex:none">${i18t('di_send')}</button>
     </div>
     <div data-point-out="${e(idp)}" style="margin-top:6px"></div>
     ${on.length && !theirTurn ? `<div style="margin-top:5px;font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('di_sent_waiting')}</div>` : ''}`;
@@ -347,11 +347,10 @@ function discussDiscardBtnHtml(change, opts){
   if (!discussIsDiscardable(change)) return '';
   const e = window.esc || (s => String(s == null ? '' : s));
   const id = e(change.id);
-  return `<button type="button" class="discuss-discard ui-btn" data-discuss-discard="${id}"
+  return `<button type="button" class="discuss-discard ui-btn ui-btn-sm ui-btn-danger" data-discuss-discard="${id}"
     title="${e(i18t('di_discard_title',{id}))}"
     aria-label="${e(i18t('di_discard_aria',{id}))}"
-    style="margin-left:auto;flex:none;font-size:var(--t-label);padding:3px var(--s-2);line-height:1.4;
-      border:1px solid rgba(143,50,43,.28);background:rgba(244,63,94,.08);color:var(--st-ruby-fg);border-radius:var(--radius);cursor:pointer">🗑️ Discard</button>`;
+    style="margin-left:auto;flex:none">${window.icon ? icon('trash') : ''}Discard</button>`;
 }
 
 /* Wire every Discard on the page. The three steps are in this order for a

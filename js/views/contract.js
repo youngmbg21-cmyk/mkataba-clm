@@ -7,7 +7,7 @@
    A received document is stored as a file and wrapped in the same
    review → scan → sign → audit workflow as generated contracts.
    ============================================================ */
-const upField=(id,label,ph,type='text')=>`<label class="block"><span class="text-xs font-medium text-brand-800/70">${label}</span><input id="${id}" type="${type}" placeholder="${ph}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400"/></label>`;
+const upField=(id,label,ph,type='text')=>`<label class="block"><span class="text-xs font-medium text-brand-800/70">${label}</span><input id="${id}" type="${type}" placeholder="${ph}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas ui-fld outline-none focus:border-brand-400"/></label>`;
 
 /* ---------- document text extraction (client-side, no external service) ----------
    A small PDF reader built on the browser's DecompressionStream: it walks the
@@ -1506,7 +1506,7 @@ function openUploadModal(){
         <div style="display:flex;align-items:center;gap:var(--s-2);margin-top:14px">
           <button id="up-bulk" style="border:0;background:none;padding:0;font:inherit;font-size:var(--t-label);color:var(--color-neutral-600);cursor:pointer" title="${i18t('ct_bulk_importer')}">${i18t('ct_whole_catalogue')} <u>${i18t('ct_import_many')}</u></button>
           <span style="flex:1"></span>
-          <button id="up-cancel" class="rounded-lg border border-brand-200 px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 transition">${i18t('act_cancel')}</button>
+          <button id="up-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         </div>
       </div>
       <div id="up-step-2" class="hidden">${uploadConfirmHtml(null,null)}</div>
@@ -1567,7 +1567,7 @@ function uploadConfirmHtml(ext, meta){
   const fld=(id,label,opts={})=>{
     const read=!!opts.read;
     return cell(`${label}${read?MARK:''}`,
-      `<input id="${id}" type="${opts.type||'text'}" value="${attr(opts.value||'')}" placeholder="${attr(opts.ph||'')}"${opts.list?` list="${opts.list}"`:''} class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400"${read?' style="border-color:var(--color-accent);background:var(--st-steel-bg)"':''}/>`,
+      `<input id="${id}" type="${opts.type||'text'}" value="${attr(opts.value||'')}" placeholder="${attr(opts.ph||'')}"${opts.list?` list="${opts.list}"`:''} class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas ui-fld outline-none focus:border-brand-400"${read?' style="border-color:var(--color-accent);background:var(--st-steel-bg)"':''}/>`,
       `${read?found(opts.foundKey||''):''}${opts.sub?`<span style="display:block;margin-top:2px;font-size:var(--t-label);color:var(--color-neutral-600)">${opts.sub}</span>`:''}`);
   };
   const fileBase=ext?String(ext.file.name||'').replace(/\.[^.]+$/,''):'';
@@ -1587,10 +1587,10 @@ function uploadConfirmHtml(ext, meta){
   const extraFld=f=>{
     const v=m[f.k];
     if(f.type==='select') return cell(`${f.label}${MARK}`,
-      `<select data-umf="${f.k}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400">
+      `<select data-umf="${f.k}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas ui-fld outline-none focus:border-brand-400">
         ${f.opts.map(o=>`<option value="${o}" ${v===o?'selected':''}>${typeof metaOptLabel==='function'?metaOptLabel(o):o}</option>`).join('')}</select>`, found(f.k));
     return cell(`${f.label}${MARK}`,
-      `<input data-umf="${f.k}" type="${f.type==='date'?'date':f.type==='num'?'number':'text'}" value="${attr(v)}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400"/>`, found(f.k));
+      `<input data-umf="${f.k}" type="${f.type==='date'?'date':f.type==='num'?'number':'text'}" value="${attr(v)}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas ui-fld outline-none focus:border-brand-400"/>`, found(f.k));
   };
   return `
       <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('sparkle','w-4 h-4')}</span>
@@ -1608,9 +1608,9 @@ function uploadConfirmHtml(ext, meta){
       </div>
       <div class="grid sm:grid-cols-2 gap-2 mb-3 up-grid">
         ${cell(i18t('ct_file_under'),
-          `<select id="up-folder" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2.5 text-sm outline-none focus:border-brand-400">${folderOptionsHtml(null, false)}</select>`)}
+          `<select id="up-folder" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas ui-fld outline-none focus:border-brand-400">${folderOptionsHtml(null, false)}</select>`)}
         ${cell(i18t('ct_value_type'),
-          `<select id="up-vtype" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2.5 text-sm outline-none focus:border-brand-400">
+          `<select id="up-vtype" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas ui-fld outline-none focus:border-brand-400">
             <option value="estimated">${i18t('ct_estimated_value')}</option><option value="fixed">${i18t('ct_fixed_value')}</option><option value="none">Non-monetary</option></select>`)}
       </div>
       <div class="grid sm:grid-cols-2 gap-2 mb-3 up-grid">
@@ -1624,10 +1624,10 @@ function uploadConfirmHtml(ext, meta){
       ${ext&&readCount?`<p style="margin:0 0 10px;font-size:var(--t-label);color:var(--color-neutral-600)">Everything ✦ came from the document${meta&&meta._source==='ai'?', read by Copilot':', pattern-matched'}. Nothing is saved until you press <b>${i18t('ct_file_contract')}</b>.</p>`:''}
       ${triageOptInHtml(ext)}
       <div class="flex items-center gap-2">
-        <button id="up-back" class="rounded-lg border border-brand-200 px-3 py-2 text-sm text-brand-700 hover:bg-brand-50 transition">← Another file</button>
+        <button id="up-back" class="ui-btn">${icon('arrowLeft')}Another file</button>
         <span style="flex:1"></span>
-        <button id="up-cancel-2" class="rounded-lg border border-brand-200 px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 transition">${i18t('act_cancel')}</button>
-        <button id="up-go" class="flex items-center gap-2 rounded-lg bg-brand-900 text-white px-4 py-2 text-sm font-medium hover:bg-brand-800 transition">${icon('check2','w-3.5 h-3.5')} ${i18t('ct_file_contract')}</button>
+        <button id="up-cancel-2" class="ui-btn">${i18t('act_cancel')}</button>
+        <button id="up-go" class="ui-btn ui-btn-primary">${icon('check2','w-3.5 h-3.5')} ${i18t('ct_file_contract')}</button>
       </div>`;
 }
 /* ---- AUTO-TRIAGE'S ONE QUESTION, AND IT IS ASKED HERE (owner-ruled 9 Sep
@@ -2334,7 +2334,7 @@ function uploadDocBody(c){
   const previewHead = canPreview ? `
     <div class="flex items-center justify-between gap-2 mb-2">
       <div class="text-[11px] font-600 uppercase tracking-[0.14em] text-brand-800/60">${i18t('ct_document_preview')}</div>
-      <button type="button" data-expand-doc class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-2.5 py-1.5 text-[11px] font-600 text-brand-700 hover:border-brand-400 hover:text-brand-900 transition">${icon('expand','w-3.5 h-3.5')} Expand</button>
+      <button type="button" data-expand-doc class="ui-btn ui-btn-sm">${icon('expand','w-3.5 h-3.5')} Expand</button>
     </div>` : '';
   const preview = previewHead + (((isPdf&&!pdfLaidOut)||isText)
     ? `<iframe id="uploaded-doc-frame" src="${fileUrl}" class="w-full h-[calc(100vh-235px)] min-h-[560px] rounded-xl border border-brand-100 bg-white elev-1" title="${i18t('ct_uploaded_document')}"></iframe>`
@@ -2501,7 +2501,7 @@ function uploadDocBody(c){
       })()}
       <span style="flex:1 1 auto"></span>
       <a href="${fileUrl}" download="${(u.fileName||'contract').replace(/"/g,'')}" class="ui-btn" style="font-size:var(--t-label);padding:var(--s-1) 9px;display:inline-flex;align-items:center;gap:5px;flex:none">${icon('download','w-3.5 h-3.5')} Download original</a>
-      ${canEdit()?`<button type="button" data-reread class="ui-btn" style="font-size:var(--t-label);padding:var(--s-1) 9px;display:inline-flex;align-items:center;gap:5px;flex:none" title="${i18t('ct_read_original_again')}">${icon('history','w-3.5 h-3.5')} Re-read document</button>`:''}
+      ${canEdit()?`<button type="button" data-reread class="ui-btn ui-btn-sm" style="display:inline-flex;align-items:center;flex:none" title="${i18t('ct_read_original_again')}">${icon('history','w-3.5 h-3.5')} Re-read document</button>`:''}
     </div>`}
     <!-- Everything above is the owner's own handling of the file: the Word
          round-trip control, who uploaded it and when, and how well the text
@@ -2689,7 +2689,7 @@ function openDocReader(url, name, mime){
         </div>
         <div class="flex items-center gap-2 shrink-0">
           <a href="${url}" download="${(name||'contract').replace(/"/g,'')}" class="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-600 text-brand-700 hover:bg-brand-50 transition">${icon('download','w-3.5 h-3.5')} Download</a>
-          <button type="button" data-close-reader class="inline-flex items-center gap-1.5 rounded-lg bg-brand-900 text-white px-3 py-2 text-xs font-600 hover:bg-brand-800 transition">${icon('close','w-3.5 h-3.5')} ${i18t('ct_close')}</button>
+          <button type="button" data-close-reader class="ui-btn ui-btn-primary">${icon('close','w-3.5 h-3.5')} ${i18t('ct_close')}</button>
         </div>
       </div>
       ${body}
@@ -4566,7 +4566,7 @@ function wsTabRowEndHtml(c){
   const may = window.negoMayStart ? negoMayStart(c) : { ok: true };
   const why = may.ok ? '' : (window.negoMayStartLine ? negoMayStartLine(c) : '');
   const door=`<button type="button" id="ws-to-nego" class="ui-btn${needs?' ws-to-nego-due':''}"
-    style="flex:none;font-size:var(--t-body)"${may.ok?'':' disabled'}
+    style="flex:none"${may.ok?'':' disabled'}
     title="${esc(may.ok?i18t('ct_open_negotiate_title'):why)}"${may.ok?'':` aria-label="${esc(label+' — '+why)}"`}>${label}</button>`;
   /* ---- EXPORT AND FOCUS ARE ON THE CONTROL ROW (the redesign's second pass,
      21 Sep 2026; the reference frame draws both between the stepper and the
@@ -6016,7 +6016,7 @@ function ktPartiesBlockHtml(c, opts={}){
   const bare = !!opts.bare;
   const shown = rows;
   const add = (mayEdit && !bare)
-    ? `<button type="button" class="py-add" data-py-add="1">${esc(i18t('py_add'))}</button>` : '';
+    ? `<button type="button" class="py-add" data-py-add="1">${plusLed(esc(i18t('py_add')))}</button>` : '';
   if(!shown.length) return '';
   const n = rows.filter(p => p.side !== PARTY_SIDE_OURS).length + 1;
   /* THE NOTE THAT SAYS THE RECORD AND THE PAPER DISAGREE ABOUT THE NAME stays
@@ -6464,10 +6464,10 @@ function ktOverviewTermsHtml(c,opts={}){
      refile-a-contract-verify caught the hour this card was redrawn. */
   const mayMove=(typeof mayReFile==='function')&&mayReFile()&&!PORTAL_MODE;
   const dealEd=ed&&ovEditing(dealK), recEd=(ed||mayMove)&&ovEditing(recK);
-  const editBtn=(k,on)=>ed?`<button type="button" class="ui-btn" style="font-size:var(--t-label);padding:5px 11px" data-ov-edit="${esc(k)}">${
+  const editBtn=(k,on)=>ed?`<button type="button" class="ui-btn ui-btn-sm" data-ov-edit="${esc(k)}">${
     esc(on?i18t('ov_edit_done'):i18t('ov_edit_details'))}</button>`:'';
   const fill=(ed&&readable)
-    ? `<button id="kt-fill" class="ui-btn" style="font-size:var(--t-label);padding:5px 12px" title="${
+    ? `<button id="kt-fill" class="ui-btn ui-btn-sm" title="${
         i18t('ct_read_out_details')}">${icon('sparkle','w-3 h-3')} ${i18t('ct_fill_from_doc')}</button>`
     : '';
   /* ---- THE ARTIFACT'S SHAPE IS THE RESTING SHAPE (17 Sep 2026) ----
@@ -6522,7 +6522,7 @@ function ktOverviewTermsHtml(c,opts={}){
      ktStreamRowHtml's, with its admin guard, its 'Re-filed' audit line and its
      own repaint; this button opens the rows that hold it and puts the reader
      on it. One act, one handler, one wall. */
-  const moveBtn=mayMove?`<button type="button" class="ui-btn" style="font-size:var(--t-label);padding:5px 11px" data-ov-move-stream="${esc(recK)}">${
+  const moveBtn=mayMove?`<button type="button" class="ui-btn ui-btn-sm" data-ov-move-stream="${esc(recK)}">${
     esc(i18t('ov_move_stream'))}</button>`:'';
   /* ---- WHO THE AGREEMENT IS BETWEEN IS ITS OWN NAMED SECTION (Young
      reported it 22 Sep 2026: *"i do not see the changes in the overview
@@ -6548,7 +6548,7 @@ function ktOverviewTermsHtml(c,opts={}){
   const pyList=(typeof contractParties==='function')?(()=>{ try{ return contractParties(c)||[]; }catch(_){ return []; } })():[];
   const pyBody=ktPartiesBlockHtml(c,{mayEdit:ed,bare:true});
   const pyAdd=(ed&&!pyLocked&&!PORTAL_MODE)
-    ?`<button type="button" class="ui-btn" style="font-size:var(--t-label);padding:5px 11px" data-py-add="1">${
+    ?`<button type="button" class="ui-btn ui-btn-sm" data-py-add="1">${
       esc(i18t('py_add'))}</button>`:'';
   const parties=pyBody?sectionHtml({
     key:pyK, title:i18t('py_parties'), open:true,
@@ -6594,7 +6594,7 @@ function ktOverviewTermsHtml(c,opts={}){
        the text and "+ Add someone" sat on the card's edge). sectionHtml leaves
        the inset to its caller, and this caller never gave one. */
     body:`<div class="sec-body"><div id="kt-people">${people}</div>${ovAddressBookHtml(addrs)}</div>`,
-    acts: (ed&&anySigner)?`<button type="button" class="ui-btn" style="font-size:var(--t-label);padding:5px 11px" data-ov-signers="1">${
+    acts: (ed&&anySigner)?`<button type="button" class="ui-btn ui-btn-sm" data-ov-signers="1">${
       esc(i18t('ppl_open_signers'))}</button>`:'' }):'';
   return deal+alsoSec+parties+record+peopleSec;
 }
@@ -6642,7 +6642,7 @@ function riskCardHtml(c){
            invisible alone at the foot of a paragraph. It takes the accent
            outline the design already keeps for a secondary act — the same
            treatment, and the same restraint, as Add obligation beside it. */}
-    <button id="kt-gocheck" class="ui-btn ob-btn-add" style="font-size:var(--t-meta);padding:5px 11px">${i18t('ct_go_to_checks')}</button>`;
+    <button id="kt-gocheck" class="ui-btn ui-btn-sm ob-btn-add">${i18t('ct_go_to_checks')}${icon('chevR','w-3.5 h-3.5')}</button>`;
   const tone=r.score>=60?'var(--st-ruby-fg)':r.score>=35?'var(--st-amber-fg)':'var(--st-green-fg)';
   const bg=r.score>=60?'var(--st-ruby-bg)':r.score>=35?'var(--st-amber-bg)':'var(--st-green-bg)';
   return `<div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:9px">
@@ -6715,9 +6715,9 @@ function ktBriefCardHtml(c,CARD,opts){
      rather than a sentence pointing somewhere else. */
   const cut=!!(v&&c._brief&&c._brief.truncated);
   const act=v
-    ? `<button type="button" data-kt-brief="open" class="ui-btn" style="font-size:var(--t-label);padding:5px 11px">${i18t('br_open')}</button>`
-      +(cut&&may?`<button type="button" data-kt-brief="run" class="ui-btn" style="font-size:var(--t-label);padding:5px 11px">${i18t('br_rewrite')}</button>`:'')
-    : (may?`<button type="button" data-kt-brief="run" class="ui-btn" style="font-size:var(--t-label);padding:5px 11px">${i18t('br_write')}</button>`:'');
+    ? `<button type="button" data-kt-brief="open" class="ui-btn ui-btn-sm">${i18t('br_open')}</button>`
+      +(cut&&may?`<button type="button" data-kt-brief="run" class="ui-btn ui-btn-sm">${i18t('br_rewrite')}</button>`:'')
+    : (may?`<button type="button" data-kt-brief="run" class="ui-btn ui-btn-sm">${i18t('br_write')}</button>`:'');
   /* flex-direction:row said out loud: the column's own `.kt-side-card > div`
      rule makes every direct child a flex COLUMN, which stacks a head row's
      title and pill and reads as centred. Same reason on the renewal card. */
@@ -6826,7 +6826,7 @@ function renderKeyTermsSide(c){
       summary:ktDocsSummary(c),
       chip:docsLapsed?{ text:i18tn('ov_doc_chip',docsLapsed,{n:docsLapsed}), tone:'ruby' }:null,
       body:ktDocsRowsHtml(c),
-      acts:(typeof canEdit==='function'&&!canEdit())?'':`<button type="button" class="ui-btn" style="font-size:var(--t-label);padding:5px 11px" data-ov-doc-add>${esc(i18t('ov_doc_add'))}</button>` }):'')
+      acts:(typeof canEdit==='function'&&!canEdit())?'':`<button type="button" class="ui-btn ui-btn-sm" data-ov-doc-add>${esc(i18t('ov_doc_add'))}</button>` }):'')
     +sectionHtml({ key:OV_KEY(c,'related'), title:i18t('ov_related'), open:false,
       summary:i18t('ov_related_sum'),
       body:`<section id="family-section" class="kt-side-card empty:hidden"></section>` })
@@ -7160,13 +7160,12 @@ function roomHistoryHtml(c,f={}){
              it is in — "Detailed" tells you nothing about which way you are
              about to go. */}
       <button id="hist-detail" class="ui-btn" aria-pressed="${_histDetail?'true':'false'}"
-        title="${esc(_histDetail?i18t('ct_hist_back_short'):i18t('ct_hist_print_wording'))}"
-        style="font-size:var(--t-label);padding:var(--s-1) 10px">${_histDetail?i18t('ct_hist_hide_wording'):i18t('ct_hist_show_wording')}</button>
+        title="${esc(_histDetail?i18t('ct_hist_back_short'):i18t('ct_hist_print_wording'))}">${_histDetail?i18t('ct_hist_hide_wording'):i18t('ct_hist_show_wording')}</button>
       <div style="position:relative">
         <button id="hist-more" class="ui-btn" aria-haspopup="true" aria-expanded="false"
           title="${esc(i18t('ct_hist_more_title'))}"
-          style="font-size:var(--t-label);padding:var(--s-1) 10px;display:inline-flex;align-items:center;gap:5px">
-          <span aria-hidden="true" style="font-size:var(--t-body);line-height:1">&#8943;</span>${i18t('ct_more')}<span aria-hidden="true">&#9662;</span></button>
+          style="display:inline-flex;align-items:center">
+          ${icon('more')}${i18t('ct_more')}${icon('chevD')}</button>
         <div id="hist-more-menu" class="room-menu hidden" style="min-width:250px">
           <button type="button" id="ht-verify">${icon('shield','w-3.5 h-3.5')}Verify integrity<span class="mnote">${i18t('ct_recompute_fingerprints')}</span></button>
           <button type="button" id="ht-export">${icon('download','w-3.5 h-3.5')}${i18t('ct_export_history')}<span class="mnote">${i18t('ct_standalone_file')}</span></button>
@@ -7200,7 +7199,7 @@ function roomHistoryFiltersHtml(c,f){
     ${sel('side','Side',[['owner','Ours'],['counterparty','Theirs']])}
     ${sel('round','Round',uniq(all.filter(e=>e.round!=null&&e.round!=='').map(e=>[e.round,'Round '+e.round])))}
     ${sel('outcome','Outcome',[['accepted','Accepted'],['rejected','Rejected'],['pending','Pending'],['withdrawn','Withdrawn']])}
-    <button id="ht-clear" class="ui-btn" style="align-self:flex-end;font-size:var(--t-label);padding:5px 10px">${i18t('ct_clear2')}</button>
+    <button id="ht-clear" class="ui-btn" style="align-self:flex-end">${i18t('ct_clear2')}</button>
   </div>`;
 }
 function roomVersionsHtml(c){
@@ -7209,7 +7208,7 @@ function roomVersionsHtml(c){
     ${vs.length?vs.map((v,i)=>`<div class="check-row" style="border-top:${i?'1px solid var(--color-divider)':'0'}">
       <span class="ci">${icon('file','w-3.5 h-3.5')}</span>
       <span class="cn">v${v.n} ${i===0?'· current':''}<span style="display:block;font-weight:var(--w-body);font-size:var(--t-label);color:var(--color-neutral-500)">${esc(String(v.label||'Saved'))} · ${window.fmtDT?fmtDT(v.at):esc(String(v.at||'').slice(0,10))}</span></span>
-      <button class="ui-btn" data-hist-compare="${v.n}" style="flex:none;font-size:var(--t-label);padding:var(--s-1) 10px">${i18t('ct_compare')}</button>
+      <button class="ui-btn ui-btn-sm" data-hist-compare="${v.n}" style="flex:none">${i18t('ct_compare')}</button>
     </div>`).join('')
     :`<p style="margin:0;font-size:var(--t-meta);line-height:1.55;color:var(--color-neutral-600)">${i18t('ct_no_saved_versions')}</p>`}`;
 }
@@ -7491,7 +7490,7 @@ function openNegoProposeModal(c){
           <textarea id="nego-prop-text" spellcheck="false" style="width:100%;min-height:52vh;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:14px var(--s-4);font:inherit;font-family:var(--font-mono);font-size:var(--t-body);line-height:1.8;outline:none;resize:vertical">${esc(base)}</textarea>
           <label style="display:block;margin-top:var(--s-3)">
             <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:5px">${i18t('ct_why_asking')}</span>
-            <input id="nego-prop-why" type="text" placeholder="${esc(i18t('ct_ph_reason'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:9px 11px;font:inherit;font-size:var(--t-body);outline:none"/>
+            <input id="nego-prop-why" type="text" placeholder="${esc(i18t('ct_ph_reason'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/>
           </label>
         </div>
       </div>
@@ -7714,7 +7713,7 @@ function blankFormSectionsOf(c){
 }
 
 function blankFormInputHtml(b){
-  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:6px 9px;font:inherit;font-size:var(--t-meta);outline:none';
+  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
   const type = b.type === 'date' ? 'date' : (b.type === 'number' ? 'number' : 'text');
   return `<input type="${type}" data-blankf="${esc(b.key)}" value="${esc(b.value)}"
     placeholder="${esc(b.ph||'')}" style="${INP}">`;
@@ -8048,7 +8047,8 @@ function checksRowsHtml(c){
        names; the browser files that read the row read them. */
     const state=!v?'is-none':v.tone==='bad'?'is-bad':v.tone==='warn'?'is-warn':v.tone==='steel'?'is-steel':'is-ok';
     const mark=!v?'·':v.tone==='ok'?'✓':v.tone==='steel'?'·':'!';
-    const verb=!v?'Run &rarr;':v.held?esc(v.label):i18t('act_open');
+    /* A DRAWN ARROW, never a typed one (the Compact ladder, 26 Sep 2026). */
+    const verb=!v?`Run ${icon('chevR','w-3.5 h-3.5')}`:v.held?esc(v.label):i18t('act_open');
     return `<div class="check-row ${state}"><span class="ci" aria-hidden="true">${mark}</span>
       <span class="ct"><span class="cn">${name}</span><span class="cs">${v?esc(v.label):i18t('ct_check_not_run')}</span></span>
       <button class="cg" data-check="${kind}" title="${esc(v?i18t('ct_see_found'):i18t('ct_run_check'))}">${verb}</button></div>`;
@@ -9127,7 +9127,7 @@ function roomHeadHtml(c,opts={}){
   if(opts.primary===undefined){
     const na=(!locked&&may&&window.wsNextAction)?wsNextAction(c):null;
     primary=locked
-      ? `<button id="ws-evidence" class="ui-btn ui-btn-lg">${icon('download','w-3.5 h-3.5')} Evidence pack</button>`
+      ? `<button id="ws-evidence" class="ui-btn">${icon('download','w-3.5 h-3.5')} Evidence pack</button>`
       /* A next action may have no button of its own — see wsNextAction's
          intent-to-sign branch. It still answers the status line; it just does
          not earn the head's lead slot. */
@@ -9136,7 +9136,7 @@ function roomHeadHtml(c,opts={}){
          22 Aug flat head for exactly one act): the reference fills the send
          and nothing else on the row. Only that kind; every other next act
          keeps its outline, so a page still carries at most one filled act. */
-      : (na && !na.noButton) ? `<button id="ws-next-action" data-na="${na.kind}" class="ui-btn ui-btn-lg${na.kind==='share'?' ui-btn-primary':''}">${icon(na.ic,'w-3.5 h-3.5')} ${na.label}</button>`
+      : (na && !na.noButton) ? `<button id="ws-next-action" data-na="${na.kind}" class="ui-btn${na.kind==='share'?' ui-btn-primary':''}">${icon(na.ic,'w-3.5 h-3.5')} ${na.label}</button>`
       : '';
   }
   /* ---- DRAFT NEW AGREEMENT SITS AFTER THE CONTRACT'S OWN NEXT ACT ----
@@ -9156,7 +9156,7 @@ function roomHeadHtml(c,opts={}){
      its own (Publish Round) and is a working surface, not a landing — offering
      to start a different agreement mid-round is noise. */
   const newBtn=(opts.primary===undefined&&may&&!(typeof PORTAL_MODE!=='undefined'&&PORTAL_MODE))
-    ? `<button id="ws-new" data-page-new class="ui-btn ui-btn-lg room-new">${icon('plus','w-3.5 h-3.5')} ${i18t('home_draft_new')}</button>`
+    ? `<button id="ws-new" data-page-new class="ui-btn room-new">${icon('plus','w-3.5 h-3.5')} ${i18t('home_draft_new')}</button>`
     : '';
   /* ---- THE WAY OUT OF A NEGOTIATION IS BACK TO ITS AGREEMENT ----
      The negotiation screen carries no room tabs (owner's call, 12 Aug 2026), so
@@ -9397,9 +9397,9 @@ function roomHeadHtml(c,opts={}){
              purple buttons fold, without the button changing identity — its
              id, its title and its textContent-based tests are untouched. */}
       <div style="position:relative;flex:none">
-        <button id="ws-more" class="ui-btn ui-btn-lg ws-more-btn" aria-haspopup="true" aria-expanded="false"
+        <button id="ws-more" class="ui-btn ws-more-btn" aria-haspopup="true" aria-expanded="false"
           title="${i18t('ct_everything_else')}">
-          <span aria-hidden="true" style="font-size:var(--t-card);line-height:1">&#8943;</span>
+          ${icon('more')}
           <span class="ws-more-word">${i18t('ct_more')}</span>
           <span class="ws-more-caret" aria-hidden="true">${icon('chevD','w-3 h-3')}</span></button>
         ${''/* WRITTEN OUT, not built by a loop. Every id below is the id the
@@ -9509,7 +9509,7 @@ function roomHeadHtml(c,opts={}){
              (the owner's own screenshot of it asked only for the borders), so
              this is a per-page choice rather than a rewrite of both. */}
       ${opts.primaryFirst?(typeof opts.primary==='string'?opts.primary:primary):''}
-      ${may?`<button id="ws-share" class="ui-btn ui-btn-lg" title="${esc(i18t('ct_share_with_cp'))}">${icon('share','w-3.5 h-3.5')} ${i18t('ct_share')}</button>`:''}
+      ${may?`<button id="ws-share" class="ui-btn" title="${esc(i18t('ct_share_with_cp'))}">${icon('share','w-3.5 h-3.5')} ${i18t('ct_share')}</button>`:''}
       ${opts.primaryFirst?'':(opts.primary===false?'':(typeof opts.primary==='string'?opts.primary:primary))}
       ${newBtn}
       ${''/* ---- THE THREE CHECKS, AT THE END OF THE ROW THAT OWNS THEM
@@ -9756,7 +9756,7 @@ function renderWorkspace(){
         <div class="mx-auto h-14 w-14 grid place-items-center rounded-2xl bg-white border border-brand-100 text-brand-300 mb-4">${icon('file','w-7 h-7')}</div>
         <h2 class="font-display font-600 text-lg text-brand-900">${i18t('ct_no_contract_open')}</h2>
         <p class="text-sm text-brand-800/70 mt-1">${i18t('ct_open_folder_or_template')}</p>
-        <button onclick="setView('dashboard')" class="mt-5 inline-flex items-center gap-2 rounded-lg bg-brand-900 text-white px-4 py-2.5 text-sm font-medium hover:bg-brand-800 transition">${icon('grid')} ${i18t('ct_go_to_dashboard')}</button>
+        <button onclick="setView('dashboard')" class="ui-btn ui-btn-lg ui-btn-primary mt-5">${icon('grid')} ${i18t('ct_go_to_dashboard')}</button>
       </div>
     </div>`;
     setActiveNav('workspace'); return;
@@ -10065,9 +10065,13 @@ function renderWorkspace(){
             ${(typeof canEdit==='function' && !canEdit()) ? '' : `
             <div style="margin-top:var(--s-3);padding-top:11px;border-top:1px solid var(--color-divider)">
               <div style="font-size:var(--t-label);color:var(--color-neutral-500);margin-bottom:7px">${i18t('ct_commenting_as')} <span style="font-weight:var(--w-strong);color:var(--color-text)">${currentUser()?.name||'you'}</span> · internal</div>
-              <div style="display:flex;gap:7px">
-                <textarea id="comment-input" class="chat-field" rows="1" placeholder="${i18t('ct_add_comment')}" title="${i18t('ct_internal_to_team')}" style="flex:1;min-width:0;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:var(--s-2) 11px;font-size:var(--t-meta);outline:none"></textarea>
-                <button id="comment-send" class="ui-btn ui-btn-primary" style="width:36px;height:36px;padding:0;flex:none;border-radius:var(--radius)">${icon('send','w-4 h-4')}</button>
+              ${''/* THE BOX IS THE BUTTON'S HEIGHT (the Compact ladder, 26 Sep
+                     2026): one line of it is the everyday rung, and the send
+                     square beside it sits on its last line as it grows rather
+                     than stretching with it. */}
+              <div style="display:flex;align-items:flex-end;gap:var(--btn-gap)">
+                <textarea id="comment-input" class="chat-field" rows="1" placeholder="${i18t('ct_add_comment')}" title="${i18t('ct_internal_to_team')}" style="flex:1;min-width:0;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);min-height:var(--field-h);padding:var(--field-pad-y) var(--pad-ctl-x);font-size:var(--t-body);line-height:var(--field-lh);outline:none"></textarea>
+                <button id="comment-send" class="ui-btn ui-btn-icon ui-btn-primary" style="flex:none">${icon('send','w-4 h-4')}</button>
               </div>
             </div>`}
           </section>
@@ -13677,8 +13681,8 @@ function renderSignButton(c){
     wrap.innerHTML=`
       <div class="flex items-center justify-center gap-2 rounded-xl bg-brand-50 border border-brand-200 text-brand-700 py-3 text-sm font-medium">${icon('check2')} Executed &amp; sealed</div>
       <div class="mt-2 grid grid-cols-2 gap-2">
-        <button id="verify-seal" class="flex items-center justify-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 py-2 text-xs font-medium hover:bg-brand-50 transition">${icon('shield','w-3.5 h-3.5')} Verify seal</button>
-        <button id="evidence-dl" class="flex items-center justify-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 py-2 text-xs font-medium hover:bg-brand-50 transition">${icon('download','w-3.5 h-3.5')} Evidence pack</button>
+        <button id="verify-seal" class="ui-btn">${icon('shield','w-3.5 h-3.5')} Verify seal</button>
+        <button id="evidence-dl" class="ui-btn">${icon('download','w-3.5 h-3.5')} Evidence pack</button>
       </div>
       ${distributionPanelHtml(c)}`;
     document.getElementById('verify-seal').addEventListener('click',()=>verifySeal(c));
@@ -13777,7 +13781,7 @@ function renderSignButton(c){
      print. Once an order exists the panel shows the route itself, with its own
      "edit route" — so this appears exactly while it is still a live choice. */
   const signerRoute = !planned&&canEdit()&&c.status!=='Signed'
-    ? `<button id="sp-setup" class="w-full flex items-center justify-center gap-2 rounded-xl border border-brand-200 bg-white py-2.5 mb-2.5 text-[12.5px] font-600 text-brand-700 hover:bg-brand-50 hover:border-brand-300 transition">
+    ? `<button style="width:100%;margin-bottom:10px" id="sp-setup" class="ui-btn">
         ${icon('users','w-4 h-4')} Set a multi-signer order…
       </button>
       <p class="mb-3 text-[10.5px] text-center text-brand-800/60 leading-relaxed">${i18t('ct_more_than_one_signatory')}</p>`
@@ -13793,7 +13797,7 @@ function renderSignButton(c){
     ${''/* NOT disabled while something holds: the press is a DOOR onto the
            first open row (signLandOnList), which is the one thing a reader
            facing a refusal needs. It keeps the held face so it never promises. */}
-    <button id="sign-btn" data-sign-holds="${holdsN}"${saAsk?' data-sa-ask-btn="1"':''} title="${esc(signTitle)}" class="w-full flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold transition ${ready||saAsk?'bg-brand-900 text-white hover:bg-brand-800 shadow-lg shadow-brand-900/20':'bg-brand-100 text-brand-800/70 sign-held'}">
+    <button id="sign-btn" data-sign-holds="${holdsN}"${saAsk?' data-sa-ask-btn="1"':''} title="${esc(signTitle)}" class="ui-btn ui-btn-lg ${ready||saAsk?'ui-btn-primary':'sign-held'}" style="width:100%">
       ${icon(saAsk?'share':'finger','w-[18px] h-[18px]')} ${esc(signLabel)}
     </button>
     ${ready?`<p class="mt-2 text-[11px] text-center text-brand-800/65">Freezes the exact text, applies a tamper-evident SHA-256 seal${planned?' when the last signer signs':''}.</p>`
@@ -14546,7 +14550,7 @@ function renderSignSide(c){
              somebody sends a contract out believing it can be signed. */}
       ${route||`<p style="margin:0 0 10px;font-size:var(--t-meta);line-height:1.55;color:var(--st-amber-fg)">${
         esc(i18t('ct_no_route_blocks',{them:c.counterparty||i18t('ct_a_counterparty')}))}</p>`}
-      ${may?`<button id="sp-add-signer" class="ui-btn" style="width:100%;justify-content:center;font-size:var(--t-meta);padding:7px var(--s-3);margin-top:${route?'8px':'0'}">${icon('users','w-3.5 h-3.5')} ${plan.length?'Add or reorder signers':'Add signers'}</button>`:''}
+      ${may?`<button id="sp-add-signer" class="ui-btn ui-btn-sm" style="width:100%;justify-content:center;margin-top:${route?'8px':'0'}">${icon('users','w-3.5 h-3.5')} ${plan.length?'Add or reorder signers':'Add signers'}</button>`:''}
       ${may?`<p style="margin:7px 0 0;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-500)">Internal signers sign here; each counterparty signer gets their own link, held until every internal signature is in. The seal lands with the last one.</p>`:''}
     </section>
     ${''/* ---- AND THE PLACES ON THE PAPER, UNDER THE ORDER THEY BELONG TO (J-1)
@@ -15098,8 +15102,8 @@ function signSpotsCardHtml(c, o){
         title="${esc(kind + (who ? ' · ' + who : ''))}">${esc(kind)}${who ? ` <span style="color:var(--color-neutral-600)">&middot; ${esc(who)}</span>` : ''}</span>
       <span style="flex:none;font-size:var(--t-label);color:${s.image ? 'var(--st-green-fg)' : 'var(--color-neutral-600)'}">${
         esc(s.image ? i18t('ct_spot_marked') : i18t('ct_spot_waiting'))}</span>
-      ${may ? `<button type="button" data-spot-del="${esc(s.id)}" class="ui-btn-plain"
-        style="flex:none;font-size:var(--t-label);padding:2px 6px" title="${esc(i18t('ct_spot_remove_title'))}">&times;</button>` : ''}
+      ${may ? `<button type="button" data-spot-del="${esc(s.id)}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon"
+        style="flex:none" title="${esc(i18t('ct_spot_remove_title'))}" aria-label="${esc(i18t('ct_spot_remove_title'))}">${icon('x')}</button>` : ''}
     </li>`;
   };
   /* THE SIGNER IS CHOSEN, NEVER GUESSED. A spot belongs to a row on the
@@ -15111,9 +15115,9 @@ function signSpotsCardHtml(c, o){
   const prop = pr => `<li style="display:flex;align-items:center;gap:var(--s-2);padding:6px 0;border-top:1px solid var(--color-divider)">
       <span style="flex:1;min-width:0;font-size:var(--t-meta);overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
         title="${esc(pr.label || '')}">${esc(pr.label || i18t('ct_spot_signature'))}</span>
-      <select data-spot-who="${pr.index}" style="flex:none;max-width:44%;font-size:var(--t-label);padding:2px 4px">${opts}</select>
-      <button type="button" data-spot-add="${pr.index}" data-spot-kind="${esc(pr.kind)}" class="ui-btn"
-        style="flex:none;font-size:var(--t-label);padding:3px 8px">${esc(i18t('ct_spot_add'))}</button>
+      <select data-spot-who="${pr.index}" style="flex:none;max-width:44%;height:var(--ctl-h-sm);padding:0 var(--field-pad-x);font-size:var(--t-meta)">${opts}</select>
+      <button type="button" data-spot-add="${pr.index}" data-spot-kind="${esc(pr.kind)}" class="ui-btn ui-btn-sm"
+        style="flex:none">${esc(i18t('ct_spot_add'))}</button>
     </li>`;
   return `<section style="${CARD}">
     <div style="display:flex;align-items:center;gap:9px;margin-bottom:2px">
@@ -15133,8 +15137,8 @@ function signSpotsCardHtml(c, o){
         <li style="display:flex;align-items:center;gap:var(--s-2);padding:6px 0;border-top:1px solid var(--color-divider)">
           <span style="flex:1;min-width:0;font-size:var(--t-meta);color:var(--color-neutral-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${
             esc(s.kind === 'initials' ? i18t('ct_spot_initials') : i18t('ct_spot_signature'))}</span>
-          <button type="button" data-spot-del="${esc(s.id)}" class="ui-btn-plain"
-            style="flex:none;font-size:var(--t-label);padding:2px 6px" title="${esc(i18t('ct_spot_remove_title'))}">&times;</button>
+          <button type="button" data-spot-del="${esc(s.id)}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon"
+            style="flex:none" title="${esc(i18t('ct_spot_remove_title'))}" aria-label="${esc(i18t('ct_spot_remove_title'))}">${icon('x')}</button>
         </li>`).join('')}</ul>` : ''}
     ${props.length ? `<p style="margin:9px 0 0;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600)">${
       i18tn('ct_spots_found', props.length, { n: props.length })}</p>
@@ -15183,7 +15187,7 @@ function signWalkHtml(c){
   if(!mine.length) return '';
   const left = mine.filter(s => !s.image).length;
   const at = mine.length - left + 1;
-  return `<button type="button" id="ws-walk" class="ui-btn" style="font-size:var(--t-label);padding:3px var(--s-2)"
+  return `<button type="button" id="ws-walk" class="ui-btn"
     title="${i18t(left ? 'ct_walk_title' : 'ct_walk_done_title')}">${
     left ? i18t('ct_walk', { at, n: mine.length }) : i18t('ct_walk_done')}</button>`;
 }
@@ -15569,9 +15573,9 @@ function openPaperSignatureModal(c){
         <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;margin:0">${i18t('ct_signed_on_paper')}</h2></div>
       <p style="font-size:var(--t-body);color:var(--color-neutral-700);margin:0 0 var(--s-3);line-height:1.55">${i18t('ct_paper_sig_line')}</p>
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono)">${i18t('ct_date_signed')}</span>
-        <input id="ps-date" type="date" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none"/></label>
+        <input id="ps-date" type="date" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono)">${i18t('ct_note_optional')}</span>
-        <input id="ps-note" type="text" placeholder="${esc(i18t('ct_ph_signed_note'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none"/></label>
+        <input id="ps-note" type="text" placeholder="${esc(i18t('ct_ph_signed_note'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>
       <label style="display:block"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono)">${i18t('ct_the_signed_copy')}</span>
         <input id="ps-file" type="file" accept=".pdf,image/*" style="width:100%;font-size:var(--t-body)"/></label>
       <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:var(--s-4)">
@@ -15809,7 +15813,7 @@ function distributionPanelHtml(c){
       <div class="text-[10.5px] text-ink/60 mb-2">${ex.fully
         ? 'Email a sealed copy of the executed contract to every party for their records — the platform keeps the master copy.'
         : `Held: only <b>${(ex.ourName||'one party').replace(/</g,'&lt;')}</b> has signed, so the copy is not going out. Both parties have to sign before the contract is shared. Sending now delivers a progress notice — who has signed, who has not — with no copy and no seal in it.`}</div>
-      <button id="dist-send" class="w-full flex items-center justify-center gap-1.5 rounded-lg ${ex.fully?'bg-brand-900 text-white hover:bg-brand-800':'border border-line text-brand-700 hover:bg-brand-50'} py-2 text-[11.5px] font-600">${icon('share','w-3.5 h-3.5')} ${ex.fully
+      <button style="width:100%" id="dist-send" class="${ex.fully?'ui-btn ui-btn-primary':'ui-btn'}">${icon('share','w-3.5 h-3.5')} ${ex.fully
         ? 'Send signed copies to all parties'
         : 'Send a progress notice to all parties'}</button>
     </div>`;
@@ -15826,7 +15830,7 @@ function distributionPanelHtml(c){
       <span class="text-[9px] font-mono text-ink/45 ml-auto">${d.at?fmtDT(d.at):''}</span></div>
     ${rows||`<div class="text-[10.5px] text-ink/50">${i18t('ct_no_recipients')}</div>`}
     ${d.error?`<div class="text-[10px] text-rose-600 mt-1">${String(d.error).replace(/</g,'&lt;')}</div>`:''}
-    ${canEdit()?`<button id="dist-send" class="mt-2 w-full flex items-center justify-center gap-1.5 rounded-lg border border-line text-brand-700 py-1.5 text-[11px] font-600 hover:bg-brand-50">${icon('share','w-3 h-3')} Send again</button>`:''}
+    ${canEdit()?`<button style="width:100%;margin-top:var(--s-2)" id="dist-send" class="ui-btn ui-btn-sm">${icon('share','w-3 h-3')} Send again</button>`:''}
     ${!API_MODE()?`<div class="text-[9.5px] text-ink/45 mt-1.5">${i18t('ct_static_mode_email')}</div>`:''}
   </div>`;
 }

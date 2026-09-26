@@ -1086,11 +1086,11 @@ function renderPlaybookSection(c){
             <span style="display:block;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_pbEsc(x.name||'Clause')}</span>
             <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-500)">${clauseInsertNote(x.where)}${x.by?' &middot; '+_pbEsc(x.by):''}${x.at?' &middot; '+fmtDT(x.at):''}</span>
           </span>
-          <button data-pb-jump="${i}" class="ui-btn" style="flex:none;font-size:var(--t-label);padding:3px 9px">${i18t('pb_show_me')}</button>
+          <button data-pb-jump="${i}" class="ui-btn ui-btn-sm" style="flex:none">${i18t('pb_show_me')}</button>
         </div>`).join('')}
       </div>`:''}
       ${editable?`<div style="margin-top:10px">
-        <button id="pb-run" class="ui-btn" style="font-size:var(--t-meta);padding:5px 11px;display:inline-flex;align-items:center;gap:6px">${icon('readpaper','w-3 h-3')} ${r?'Re-run':'Run'} playbook review</button>
+        <button id="pb-run" class="ui-btn ui-btn-sm" style="display:inline-flex;align-items:center">${icon('readpaper','w-3 h-3')} ${r?'Re-run':'Run'} playbook review</button>
       </div>`:''}
     </div>`;
   /* Expand/collapse is a repaint of this card only — the same shape the Scan
@@ -1430,7 +1430,7 @@ function openClausePicker(c, opts){
             <span class="text-[12.5px] font-600 text-ink">${cl.name}</span>
             ${stop
               ? `<span class="ml-auto text-[11px] font-600 text-ink/55" title="${_pbEsc(stop.message)}">${i18t('ng_dup_clause_here')}</span>`
-              : `<button data-cl-ins="${cl.id}" class="ml-auto rounded-lg bg-brand-600 text-white px-2.5 py-1 text-[11px] font-600 hover:bg-brand-700">${i18t('pb_insert')}</button>`}</div>
+              : `<button data-cl-ins="${cl.id}" class="ui-btn ui-btn-sm ui-btn-accent ml-auto">${i18t('pb_insert')}</button>`}</div>
           ${''/* The wording opens on a press (the pop-up diet, 13 Sep 2026):
                  the reader picks by name, then reads. */}
           <details class="mt-1"><summary class="text-[11px] text-ink/55 cursor-pointer">${i18t('pb_read_wording')}</summary>
@@ -1438,7 +1438,7 @@ function openClausePicker(c, opts){
           ${stop?`<div class="mt-1 text-[11px] text-ink/55">${_pbEsc(stop.message)}</div>`:''}
         </div>`; }).join('')}
       </div>
-      <div class="flex justify-end mt-4"><button id="cp-close" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_close')}</button></div>
+      <div class="flex justify-end mt-4"><button id="cp-close" class="ui-btn">${i18t('act_close')}</button></div>
     </div>`);
   document.getElementById('cp-close').addEventListener('click',closeModal);
   /* ---- NO DEFAULT, AND THAT IS THE POINT (owner-asked 10 Sep 2026) ----

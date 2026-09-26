@@ -736,9 +736,9 @@ function openObligationForm(c, seed){
         <textarea id="of-desc" rows="3" class="of-desc mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500">${(seed.desc||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')}</textarea></label>
       <div class="grid grid-cols-2 gap-3 mb-2.5">
         <label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_due_date')}</span>
-          <input id="of-due" type="date" value="${seed.due||''}" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500"/></label>
+          <input id="of-due" type="date" value="${seed.due||''}" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500"/></label>
         <label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_recurring')}</span>
-          <select id="of-recur" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500">${OBLIG_RECUR.map(([k,l])=>`<option value="${k}" ${seed.recurring===k?'selected':''}>${l}</option>`).join('')}</select></label>
+          <select id="of-recur" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500">${OBLIG_RECUR.map(([k,l])=>`<option value="${k}" ${seed.recurring===k?'selected':''}>${l}</option>`).join('')}</select></label>
       </div>
       ${''/* ---- COMES AFTER: THE ONE DOOR ONTO THE ORDER (L-5) ----
               The render drew an "Edit the order" button on the chain head as
@@ -756,7 +756,7 @@ function openObligationForm(c, seed){
         const sibs = ((c && c.obligations) || []).filter(o => o && o.id && (seed._i == null || o !== (c.obligations || [])[seed._i]));
         if(!sibs.length) return '';
         return `<label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_after')}</span>
-          <select id="of-after" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500">
+          <select id="of-after" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500">
             <option value="">${_obEsc(i18t('ob_after_none'))}</option>
             ${sibs.map(o => `<option value="${_obEsc(o.id)}"${String(seed.after || '') === String(o.id) ? ' selected' : ''}>${_obEsc(o.desc || o.id)}</option>`).join('')}
           </select>
@@ -785,9 +785,9 @@ function openObligationForm(c, seed){
         <span class="text-[11px] font-600 text-ink/70">${_obEsc(i18t('ob_is_doc'))}</span></label>
       <div id="of-doc-wrap" class="grid grid-cols-2 gap-3 mb-2.5 ${obligationIsDoc(seed)?'':'hidden'}">
         <label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_doc_file')}</span>
-          <input id="of-doc-file" type="text" value="${((seed.doc&&seed.doc.file)||'').replace(/"/g,'&quot;')}" placeholder="${_obEsc(i18t('ob_doc_file_ph'))}" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500"/></label>
+          <input id="of-doc-file" type="text" value="${((seed.doc&&seed.doc.file)||'').replace(/"/g,'&quot;')}" placeholder="${_obEsc(i18t('ob_doc_file_ph'))}" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500"/></label>
         <label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_doc_until')}</span>
-          <input id="of-doc-until" type="date" value="${(seed.doc&&seed.doc.until)||''}" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500"/></label>
+          <input id="of-doc-until" type="date" value="${(seed.doc&&seed.doc.until)||''}" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500"/></label>
       </div>
       ${obligationMoneyVisible() ? `<label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_amount')}</span>
         <span class="of-amt mt-1"><i>${_obEsc(typeof window.contractCurrency==='function'?contractCurrency(c):'')}</i><input id="of-amount" type="number" min="0" step="any" inputmode="decimal" value="${seed.amount!=null&&seed.amount!==''?String(seed.amount).replace(/"/g,'&quot;'):''}" placeholder="${_obEsc(i18t('ob_amount_ph'))}"/></span>
@@ -802,12 +802,12 @@ function openObligationForm(c, seed){
             return `<button type="button" data-of-party="${k}" class="rounded-lg border px-3 py-2 text-[12.5px] font-600 transition ${on?'border-brand-500 bg-brand-50 text-brand-700':'border-line bg-white text-ink/70 hover:bg-slate-50'}">${k==='theirs'?((c.counterparty||'').replace(/</g,'&lt;')||l):l}</button>`; }).join('')}
         </div></div>
       <label id="of-assignee-wrap" class="block mb-4 ${seed.party==='theirs'?'hidden':''}"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_assign_to')}</span>
-        <input id="of-assignee" list="of-members" value="${(seed.assignee||'').replace(/"/g,'&quot;')}" placeholder="Team member" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500"/>
+        <input id="of-assignee" list="of-members" value="${(seed.assignee||'').replace(/"/g,'&quot;')}" placeholder="Team member" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500"/>
         <datalist id="of-members">${members.map(m=>`<option value="${m}">`).join('')}</datalist></label>
       <p id="of-theirs-note" class="mb-4 text-[11px] text-ink/55 leading-relaxed ${seed.party==='theirs'?'':'hidden'}">This is something ${(c.counterparty||'the counterparty').replace(/</g,'&lt;')} owes. It appears on your calendar and dashboard as something to chase rather than something to do.</p>
       <div class="flex justify-end gap-2">
-        <button id="of-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_cancel')}</button>
-        <button id="of-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${i18t('act_save')}</button>
+        <button id="of-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+        <button id="of-save" class="ui-btn ui-btn-primary">${i18t('act_save')}</button>
       </div>
     </div>`);
   let party=(seed.party==='theirs')?'theirs':'ours';
@@ -1100,12 +1100,12 @@ function openObligationsReview(c, found){
             : (o.quote?`<span class="block text-[10px] text-ink/50 italic mt-0.5">&ldquo;${o.quote.replace(/</g,'&lt;')}&rdquo;</span>`:'')}</span></label>`).join('')}
       </div>
       <div class="flex justify-end gap-2">
-        <button id="or-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_cancel')}</button>
+        <button id="or-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         ${''/* THE BUTTON COUNTS WHAT WILL ACTUALLY BE ADDED, so a press on a
                second scan that finds nothing new says so before it is pressed
                rather than afterwards. Its LABEL is written by obPaintAdd and
                never here — see the note on that painter. */}
-        <button id="or-add" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700 disabled:opacity-50"></button>
+        <button id="or-add" class="ui-btn ui-btn-primary"></button>
       </div>
     </div>`);
   /* ---- THE COUNT FOLLOWS THE TICKS, LIVE (owner-reported 1 Sep 2026) ----
@@ -1862,16 +1862,16 @@ function openObligationDone(c, i){
       <p class="text-[12px] text-ink/60 mb-4">${_obEsc(o.desc || '')}</p>
       <label class="block mb-3"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_done_when')}</span>
         <input id="od-at" type="date" value="${today}" max="${today}"
-          class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500"/>
+          class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500"/>
         <span class="mt-1 block text-[11px] text-ink/55">${i18t('ob_done_when_why')}</span></label>
       <label class="block mb-4"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_done_note')}</span>
         <input id="od-note" maxlength="${OB_NOTE_MAX}" placeholder="${_obEsc(i18t('ob_done_note_ph'))}"
-          class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500"/></label>
+          class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500"/></label>
       ${next ? `<p id="od-next" class="mb-4 rounded-lg border border-line bg-slate-50 px-3 py-2 text-[12px] text-ink/70">${
         _obEsc(i18t('ob_done_next', { date: next.due }))}</p>` : ''}
       <div class="flex justify-end gap-2">
-        <button id="od-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_cancel')}</button>
-        <button id="od-go" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${i18t('ob_done_go')}</button>
+        <button id="od-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+        <button id="od-go" class="ui-btn ui-btn-primary">${i18t('ob_done_go')}</button>
       </div>
     </div>`);
   document.getElementById('od-cancel')?.addEventListener('click', closeModal);

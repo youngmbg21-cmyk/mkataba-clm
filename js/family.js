@@ -433,7 +433,7 @@ function openLinkModal(c, onDone, opts={}){
   // `mode` is 'child' (pick a parent for c) or 'parent' (pick a child to attach to c)
   const mode = opts.mode || (c.parentId ? 'child' : 'child');
   const suggested = (c.linkSuggestions||[]).map(s=>({ ...s, c:getContract(s.id) })).filter(x=>x.c);
-  const relSel = `<select id="lk-rel" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px var(--s-2);font:inherit;font-size:var(--t-body)">
+  const relSel = `<select id="lk-rel" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
       ${CONTRACT_RELATIONS.map(r=>`<option value="${r.k}" ${(c.relationGuess||c.relation||'amendment')===r.k?'selected':''}>${r.label} — ${r.blurb}</option>`).join('')}</select>`;
   const candidates = state.contracts.filter(x=>x.id!==c.id && (mode==='child' ? !x.parentId : (!x.parentId||x.parentId===c.id)));
   openModal(`
@@ -451,11 +451,11 @@ function openLinkModal(c, onDone, opts={}){
           <span style="display:block;color:var(--color-neutral-600)">${_famEsc(x.why||'')}</span></span></label>`).join('')}
       </div>`:''}
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${mode==='child'?'Parent agreement':'Document to attach'}</span>
-        <input id="lk-search" placeholder="${i18t('fa_search_register')}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none"/>
+        <input id="lk-search" placeholder="${i18t('fa_search_register')}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/>
         <div id="lk-results" class="scroll-thin" style="max-height:180px;overflow-y:auto;border:1px solid var(--color-divider);border-top:0;border-radius:var(--radius)"></div></label>
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('fa_relationship')}</span>${relSel}</label>
       <label style="display:block;margin-bottom:14px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('fa_note_optional')}</span>
-        <input id="lk-note" placeholder="${_famEsc(i18t('fa_ph_link_note'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none"/></label>
+        <input id="lk-note" placeholder="${_famEsc(i18t('fa_ph_link_note'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>
       <div id="lk-err" style="font-size:var(--t-label);color:var(--st-ruby-fg);min-height:15px;margin-bottom:var(--s-2)"></div>
       <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
         ${(mode==='child'&&suggested.length)?`<button id="lk-standalone" class="ui-btn">${i18t('fa_standalone')}</button>`:''}
@@ -574,7 +574,7 @@ function renderFamilySection(c,opts){
      neither: families are one level deep, so the only act on it is Unlink. */
   const acts=[];
   if(canEdit() && !parent){
-    acts.push(`<button id="fam-create" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:5px 11px">${icon('file-plus','w-3 h-3')} ${i18t('fa_create_amendment')}</button>`);
+    acts.push(`<button id="fam-create" class="ui-btn ui-btn-sm ui-btn-primary">${icon('filenew','w-3 h-3')} ${i18t('fa_create_amendment')}</button>`);
     acts.push(`<button id="fam-add" style="${btn}">${i18t('fa_link_existing')}</button>`);
     if(!kids.length) acts.push(`<button id="fam-link" style="${btn}">${i18t('fa_link_parent')}</button>`);
   }

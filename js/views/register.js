@@ -92,7 +92,7 @@ function renderFolder(){
         </label>
         <div style="position:relative">
           <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--color-neutral-500);display:inline-flex">${icon('search','w-3.5 h-3.5')}</span>
-          <input id="folder-search" value="${(state.folderQuery||'').replace(/"/g,'&quot;')}" type="text" placeholder="${i18t('reg_search_folder')}" style="width:230px;max-width:60vw;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:6px 9px 6px 30px;font:inherit;font-size:var(--t-meta);outline:none;color:inherit">
+          <input id="folder-search" value="${(state.folderQuery||'').replace(/"/g,'&quot;')}" type="text" placeholder="${i18t('reg_search_folder')}" style="width:230px;max-width:60vw;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;outline:none;color:inherit;height:var(--field-h);padding:0 var(--field-pad-x) 0 30px;font-size:var(--field-size)">
         </div>
       </div>
 
@@ -1130,7 +1130,7 @@ function regViewTabsHtml(R){
   const tab=(k,label)=>{ const on=(R.view||'')===(k||'');
     return `<button type="button" role="tab" class="reg-vtab${on?' on':''}" data-reg-view="${k}" aria-selected="${on?'true':'false'}">${esc(label)}${count(k)}</button>`; };
   const saved=neg?'':regSavedViews().map(v=>{ const on=regSavedMatches(v,R);
-    return `<span class="reg-vtab reg-vtab-saved${on?' on':''}" role="tab" aria-selected="${on?'true':'false'}"><button type="button" data-reg-saved="${esc(v.name)}" title="${esc(i18t('reg_saved_view_title'))}">${esc(v.name)}</button><button type="button" class="x" data-reg-saved-x="${esc(v.name)}" title="${esc(i18t('reg_forget_view_title'))}" aria-label="${esc(i18t('reg_forget_view_title'))}">×</button></span>`; }).join('');
+    return `<span class="reg-vtab reg-vtab-saved${on?' on':''}" role="tab" aria-selected="${on?'true':'false'}"><button type="button" data-reg-saved="${esc(v.name)}" title="${esc(i18t('reg_saved_view_title'))}">${esc(v.name)}</button><button type="button" class="x" data-reg-saved-x="${esc(v.name)}" title="${esc(i18t('reg_forget_view_title'))}" aria-label="${esc(i18t('reg_forget_view_title'))}">${icon('x','w-3.5 h-3.5')}</button></span>`; }).join('');
   const save=neg?'':`<span class="reg-views-end"><button type="button" id="reg-save-view" class="reg-vtab-act" title="${esc(i18t('reg_save_view_msg'))}">${esc(i18t('reg_save_view'))}</button></span>`;
   return `<div class="reg-views" role="tablist" aria-label="${esc(i18t('reg_quick_filters'))}" title="${esc(i18t('reg_quick_filters_title'))}">${
     tab('',i18t('reg_tab_all'))}${REG_VIEWS.map(v=>tab(v.k,v.label)).join('')}${saved}${save}</div>`;
@@ -1588,7 +1588,7 @@ function regRowsHtml(cs){
     const line = filtered ? i18t('reg_none_match') : i18t('reg_none_yet');
     const sub  = filtered ? i18t('reg_widen') : i18t('reg_create_from_template');
     const btn  = filtered
-      ? `<button id="reg-empty-clear" class="ui-btn" style="font-size:var(--t-meta);padding:6px 14px">${i18t('reg_clear_all_filters')}</button>`
+      ? `<button id="reg-empty-clear" class="ui-btn">${i18t('reg_clear_all_filters')}</button>`
       /* The same act as the header's, so the same button — see pageActionHtml. */
       : `<button id="reg-empty-new" class="hm-primary">${
           icon('plus','w-3.5 h-3.5',2)} ${i18t('home_draft_new')}</button>`;
@@ -1726,7 +1726,11 @@ function regRowsHtml(cs){
        column, and actBtns asks readings (contractOnHold) that a stage drawing
        only that seat need not carry — f184 caught the unconditional build. */
     CELL.acts=neg?'':`<td class="reg-cell-menu" style="position:relative;text-align:right;white-space:nowrap" onclick="event.stopPropagation()">
-        <button data-menu="${c.id}" style="border:0;background:none;cursor:pointer;padding:0 var(--s-1);line-height:var(--row-line-1);color:var(--color-neutral-600);font-size:var(--t-body);letter-spacing:1px;vertical-align:middle" title="${i18t('reg_more_actions')}">⋯</button>
+        ${''/* THE ROW MENU IS A SMALL ICON SQUARE (the Compact ladder, 26 Sep
+               2026): a typed "⋯" at text size was 22 × 20 pressable, under
+               the 24 × 24 floor. The small rung is 22 drawn and 24 pressable,
+               quiet (no edge until pointed at), its name on the hover. */}
+        <button data-menu="${c.id}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon reg-row-more" title="${i18t('reg_more_actions')}" aria-label="${i18t('reg_more_actions')}">${icon('more')}</button>
         <div data-menu-pop="${c.id}" style="display:none;position:absolute;right:8px;top:34px;z-index:30;width:180px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:var(--radius);padding:var(--s-1);flex-direction:column;text-align:left">${actBtns(c)}</div>
       </td>`;
     /* ---- THE `name` COLUMN IS GONE FROM BOTH SEATS (21 Sep 2026) ----
@@ -2045,7 +2049,7 @@ function renderRegister(opts){
         background:var(--st-steel-bg);border:1px solid var(--st-steel-line);color:var(--st-steel-fg)">
       <span>${esc(R.only.label||i18t('reg_only_fallback'))}</span>
       <button id="reg-only-clear" title="${esc(i18t('reg_only_clear'))}" aria-label="${esc(i18t('reg_only_clear'))}"
-        style="border:0;background:none;font:inherit;font-size:var(--t-body);line-height:1;color:inherit;cursor:pointer;padding:0 3px;opacity:.7">&times;</button>
+        style="border:0;background:none;font:inherit;line-height:1;color:inherit;cursor:pointer;padding:0 3px;opacity:.7;display:inline-grid;place-items:center">${icon('x','w-3.5 h-3.5')}</button>
     </span>`:'';
   /* ---- AND THE LOCKED ONE, WHICH SAYS WHAT THE PAGE IS ----
      It wears the accent like the chip above it and carries a padlock, and it
@@ -2550,7 +2554,7 @@ function renderRegister(opts){
         ${''/* THE DOOR TO THE REST. A link rather than a button, because it
                opens a chooser rather than acting on the list — the same
                weight Fiori gives it. */}
-        <button id="reg-adapt" type="button" class="reg-chip reg-chip-btn" title="${esc(i18t('reg_adapt_title'))}">+ ${esc(i18t('reg_adapt'))}</button>
+        <button id="reg-adapt" type="button" class="reg-chip reg-chip-btn" title="${esc(i18t('reg_adapt_title'))}">${icon('plus','w-3.5 h-3.5')}${esc(i18t('reg_adapt'))}</button>
         <span id="reg-clear-slot">${regClearHtml()}</span>
         <span style="flex:1;min-width:8px"></span>
         ${''/* ---- SORT IS STACKED LIKE THE OTHER FIVE (owner-asked 25 Aug 2026:

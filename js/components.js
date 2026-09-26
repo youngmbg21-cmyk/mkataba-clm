@@ -71,6 +71,14 @@ const ICONS = {
   scan:'<path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/>',
   readpaper:'<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h5"/><path d="M14 3v5h5"/><circle cx="16.5" cy="15.5" r="3.5"/><path d="m21.5 20.5-2.5-2.5"/>',
   chevD:'<path d="m6 9 6 6 6-6"/>',
+  /* THE OTHER THREE MARKS A BUTTON USED TO TYPE (the Compact ladder, 26 Sep
+     2026): an up chevron beside the down one, and the three dots of a menu
+     that holds the rest. A typed "⋯" or "↑" prints at the reader's text size
+     in the text face; these are drawn, so they sit at the rung's icon size in
+     the same hairline as every other symbol on the button. */
+  chevU:'<path d="m18 15-6-6-6 6"/>',
+  chevL:'<path d="m15 18-6-6 6-6"/>',
+  more:'<circle cx="5" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.4" fill="currentColor" stroke="none"/>',
   target:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
   trend:'<path d="M22 7 13.5 15.5 8.5 10.5 2 17"/><path d="M16 7h6v6"/>',
   network:'<circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5V12m0 0-5.2 5m5.2-5 5.2 5"/>',
@@ -99,10 +107,17 @@ const ICONS = {
   pencil:'<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>',
 };
 const icon = (n,cls='w-4 h-4',sw=1.6)=>`<svg xmlns="http://www.w3.org/2000/svg" class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${ICONS[n]||''}</svg>`;
+/* A LABEL THAT OPENS WITH A TYPED "+" (the Compact ladder, 26 Sep 2026 —
+   rule 5 of the button review: drawn icons only, no typed plus signs). The
+   dictionary keeps its words; the button draws the plus at the rung's icon
+   size, in the same hairline as every other mark on it. Takes and returns
+   HTML, so it is handed text that is already escaped. */
+const plusLed = html => { const s = String(html == null ? '' : html);
+  return /^\+\s*/.test(s) ? icon('plus','w-3.5 h-3.5') + s.replace(/^\+\s*/, '') : s; };
 document.querySelectorAll('[data-ic]').forEach(el=>el.outerHTML=icon(el.getAttribute('data-ic'), el.getAttribute('data-ic-cls')||'w-4 h-4'));
 document.querySelectorAll('[data-ic-big]').forEach(el=>el.innerHTML=icon(el.getAttribute('data-ic-big'),'w-[18px] h-[18px]'));
 
-Object.assign(window,{ICONS,icon});
+Object.assign(window,{ICONS,icon,plusLed});
 /* ============================================================
    SHARED: contract row (compact list item, used everywhere)
    ============================================================ */

@@ -110,7 +110,7 @@ function pfChipsHtml(){
   if(!chips.length) return '';
   return `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
     <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${i18t('pf_focused_on')}</span>
-    ${chips.map(c=>`<button data-pf-unfilter="${c.k}" style="display:inline-flex;align-items:center;gap:6px;border:0;border-radius:var(--radius);padding:3px 10px;font:inherit;font-size:var(--t-label);font-weight:var(--w-title);cursor:pointer;background:var(--color-accent);color:#fff">${pfEsc(c.l)} ✕</button>`).join('')}
+    ${chips.map(c=>`<button data-pf-unfilter="${c.k}" style="display:inline-flex;align-items:center;gap:6px;border:0;border-radius:var(--radius);padding:3px 10px;font:inherit;font-size:var(--t-label);font-weight:var(--w-title);cursor:pointer;background:var(--color-accent);color:#fff">${pfEsc(c.l)}${icon('x','w-3 h-3')}</button>`).join('')}
     <button data-pf-clear style="border:0;background:none;cursor:pointer;font:inherit;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink-700);text-decoration:underline">${i18t('reg_clear')}</button>
   </div>`;
 }
@@ -379,7 +379,7 @@ function pfFindings(){
       <span style="min-width:0;flex:1">
         <b style="display:block;font-size:var(--t-meta);font-weight:var(--w-title)">${pfEsc(f.title||i18t('pf_a_finding'))}</b>
         <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${pfEsc(c.name)}${pfWeight(c)>0?' · '+pfEsc(pfMoney(pfWeight(c))):''}</span></span>
-      <span style="flex:none;font-size:var(--t-label);font-weight:var(--w-title);color:var(--accent-ink-700)">${i18t('pf_open_arrow')}</span></button>`;
+      <span style="flex:none;display:inline-flex;align-items:center;gap:2px;font-size:var(--t-meta);font-weight:var(--w-label);color:var(--accent-ink)">${i18t('pf_open_arrow')}${icon('chevR','w-3.5 h-3.5')}</span></button>`;
   }).join('')}</div>`;
   return pfCard(i18t('pf_needs_attention'), `${items.length} ${i18t('pf_open_findings')}`, body,
     pfFindingsFoot(page, pages, items.length));
@@ -437,7 +437,7 @@ function portfolioFrameHtml(){
   const nudge = uncounted.length ? `
     <div style="display:flex;gap:11px;align-items:flex-start;flex-wrap:wrap;margin-bottom:10px;padding:10px 13px;border-radius:var(--radius);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);color:var(--st-amber-fg);font-size:var(--t-meta);line-height:1.55">
       <span style="flex:1;min-width:220px"><b>${i18t('pf_uncounted_head',{n:uncounted.length})}</b> ${i18t('pf_uncounted_body')}</span>
-      ${(typeof canEdit!=='function'||canEdit())?`<button data-pf-fixcats style="flex:none;border:1px solid currentColor;background:none;color:inherit;border-radius:var(--radius);padding:5px 11px;font:inherit;font-size:var(--t-meta);font-weight:var(--w-title);cursor:pointer">${i18t('pf_uncounted_fix')}</button>`:''}
+      ${(typeof canEdit!=='function'||canEdit())?`<button data-pf-fixcats style="flex:none;display:inline-flex;align-items:center;min-height:var(--ctl-h-sm);border:1px solid currentColor;background:none;color:inherit;border-radius:var(--radius);padding:0 var(--pad-ctl-x-sm);font:inherit;font-family:var(--font-heading);font-size:var(--t-meta);font-weight:var(--w-label);cursor:pointer">${i18t('pf_uncounted_fix')}</button>`:''}
     </div>` : '';
 
   return `<style>

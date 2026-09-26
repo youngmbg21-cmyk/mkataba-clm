@@ -436,10 +436,10 @@ function negoTimelineScreenHtml(c, f = {}, opts = {}){
                                   ['counterparty', theirChair ? 'Ours' : 'Theirs']], f.side)}
       ${sel('ht-f-round', 'Round', uniq(all.filter(e => e.round != null && e.round !== '').map(e => [e.round, 'Round ' + e.round])), f.round)}
       ${sel('ht-f-outcome', 'Outcome', [['accepted', 'Accepted'], ['rejected', 'Rejected'], ['pending', 'Pending'], ['withdrawn', 'Withdrawn']], f.outcome)}
-      <button id="ht-clear" class="ui-btn" style="align-self:flex-end;font-size:var(--t-label);padding:5px 10px">${i18t('ng_clear')}</button>
+      <button id="ht-clear" class="ui-btn" style="align-self:flex-end">${i18t('ng_clear')}</button>
       <span style="flex:1"></span>
-      <button id="ht-verify" class="ui-btn" style="align-self:flex-end;font-size:var(--t-label);padding:5px 10px" title="${i18t('ng_recompute_title')}">${i18t('ng_verify_integrity')}</button>
-      <button id="ht-export" class="ui-btn" style="align-self:flex-end;font-size:var(--t-label);padding:5px 10px" title="${i18t('ng_report_title')}">${i18t('ng_export_history')}</button>
+      <button id="ht-verify" class="ui-btn" style="align-self:flex-end" title="${i18t('ng_recompute_title')}">${i18t('ng_verify_integrity')}</button>
+      <button id="ht-export" class="ui-btn" style="align-self:flex-end" title="${i18t('ng_report_title')}">${i18t('ng_export_history')}</button>
     </div>
     <div id="ht-verify-result"></div>
     <div id="ht-list">${list.length
@@ -718,8 +718,8 @@ function negoRenumberPreviewHtml(c, plan){
       : `<div class="text-[11.5px] text-ink/50">${i18t('ng_none_cite')}</div>`}
     ${leftAlone}
     <div class="flex justify-end gap-2 mt-4">
-      <button id="renum-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_cancel')}</button>
-      <button id="renum-apply" class="rounded-lg bg-brand-900 text-white px-4 py-2 text-sm font-600 hover:bg-brand-800">${i18tn('ng_renumber',plan.headings.length,{n:plan.headings.length})}</button>
+      <button id="renum-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      <button id="renum-apply" class="ui-btn ui-btn-primary">${i18tn('ng_renumber',plan.headings.length,{n:plan.headings.length})}</button>
     </div>
   </div>`;
 }
@@ -2106,10 +2106,10 @@ function negoHeadHtml(c, opts){
              reader can see what would be there and read why it is not. */}
       ${canAct ? (() => { const bs = negoBulkState(c, side, canAct); return `
         <button id="nego-all-acc" class="ui-btn"${bs.acc.ok ? '' : ' disabled aria-disabled="true"'}
-          title="${_ne(bs.acc.why || i18t('ng_accept_nonrisk_title'))}" style="flex:none;font-size:var(--t-meta);padding:5px 11px;border-color:var(--st-green-fg);color:var(--st-green-fg)">${i18t('ng_accept_all_nonrisk')}</button>
-        <button id="nego-all-rej" class="ui-btn"${bs.rej.ok ? '' : ' disabled aria-disabled="true"'}
-          title="${_ne(bs.rej.why || i18t('ng_reject_all_title'))}" style="flex:none;font-size:var(--t-meta);padding:5px 11px;border-color:var(--st-ruby-dot);color:var(--st-ruby-dot)">${i18t('ng_reject_all_cp')}</button>`; })() : ''}
-      ${side === 'owner' ? `<button id="nego-export" class="ui-btn" style="flex:none;font-size:var(--t-meta);padding:5px 11px"
+          title="${_ne(bs.acc.why || i18t('ng_accept_nonrisk_title'))}" style="flex:none;border-color:var(--st-green-fg);color:var(--st-green-fg)">${i18t('ng_accept_all_nonrisk')}</button>
+        <button id="nego-all-rej" class="ui-btn ui-btn-danger"${bs.rej.ok ? '' : ' disabled aria-disabled="true"'}
+          title="${_ne(bs.rej.why || i18t('ng_reject_all_title'))}" style="flex:none">${i18t('ng_reject_all_cp')}</button>`; })() : ''}
+      ${side === 'owner' ? `<button id="nego-export" class="ui-btn" style="flex:none"
         title="${p.pending ? 'Pending changes must be resolved first' : 'Export the agreed wording'}"${p.pending ? ' disabled' : ''}>${i18t('ng_export_clean_pdf')}</button>` : ''}
     </div>
     ${ready ? negoReadyHtml(c, opts) : ''}`;
@@ -3459,7 +3459,7 @@ async function negoAiPropose(c, ctx){
   pop.setAttribute('aria-label', action.label.replace(/^\S+\s/, ''));
   pop.innerHTML = `
     <header><b>${e(action.label)}</b><span style="flex:1"></span>
-      <button type="button" data-ai-x class="ui-btn" style="font-size:var(--t-label);padding:3px 9px">${i18t('act_close')}</button></header>
+      <button type="button" data-ai-x class="ui-btn ui-btn-sm">${i18t('act_close')}</button></header>
     <div class="nego-aiwait"><span class="nego-aispin"></span>${i18t('ng_reading_clause')}</div>`;
   document.body.appendChild(pop);
   const place = () => {
@@ -3594,8 +3594,8 @@ async function negoAiPropose(c, ctx){
   pop.insertBefore(body, pop.querySelector('header').nextSibling);
   const foot = document.createElement('footer');
   foot.innerHTML = `
-    ${canApply ? `<button type="button" data-ai-apply class="ui-btn ui-btn-primary" style="font-size:var(--t-meta)">${i18t('ng_apply_redline')}</button>` : ''}
-    <button type="button" data-ai-cancel class="ui-btn" style="font-size:var(--t-meta)">${i18t('act_cancel')}</button>
+    ${canApply ? `<button type="button" data-ai-apply class="ui-btn ui-btn-primary">${i18t('ng_apply_redline')}</button>` : ''}
+    <button type="button" data-ai-cancel class="ui-btn">${i18t('act_cancel')}</button>
     <span style="flex:1"></span>
     <span style="font-family:var(--n-font-ui);font-size:var(--t-label);color:var(--n-ink-soft);align-self:center">${i18t('ng_nothing_changed_yet')}</span>`;
   pop.appendChild(foot);
@@ -6494,7 +6494,7 @@ function rlCpHeadDoorHtml(c, cl, side, opts = {}){
     ? ladderTop(ladderRungs(c, id)) : null; }catch(_){ top = null; }
   return `<button type="button" class="ui-btn rl-cp-hd-edit" data-rl-cp-editor-row="${_nea(id)}"
     data-rl-cp-editor-change="${_nea(top ? top.id : '')}" title="${_nea(i18t('ng_cp_copilot_title'))}">${
-    window.icon ? icon('edit', 'w-3 h-3') : ''}${_ne(i18t('ng_cp_copilot'))}</button>`;
+    window.icon ? icon('pencil', 'w-3 h-3') : ''}${_ne(i18t('ng_cp_copilot'))}</button>`;
 }
 function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
   const editable = opts.editable !== false;
@@ -9275,7 +9275,7 @@ function renderNegotiationsList(host){
       <section class="ngl-empty">
         <h3>${i18t('ng_door_none')}</h3>
         <p>${i18t('ng_door_none_how')}</p>
-        <button type="button" data-ngl-register class="ui-btn ui-btn-primary" style="padding:var(--s-2) var(--s-4)">${i18t('ng_open_register')}</button>
+        <button type="button" data-ngl-register class="ui-btn ui-btn-lg ui-btn-primary">${i18t('ng_open_register')}</button>
       </section>
     </div>`;
     el.querySelectorAll('[data-ngl-register]').forEach(b => b.addEventListener('click', () => {
@@ -9582,7 +9582,7 @@ function renderRedline(){
           const st = reviewState(c);
           const label = st.phase === 'yours' ? i18t('rv_head_return') : i18t('rv_head_ask');
           return `<button type="button" data-rl-review class="rl-pb-btn"
-            data-rv-phase="${_nea(st.phase)}"${deadAttrs || ` title="${_nea(i18t('rv_head_title'))}"`}>&#128100;<span class="rl-word"> ${_ne(label)}</span></button>`;
+            data-rv-phase="${_nea(st.phase)}"${deadAttrs || ` title="${_nea(i18t('rv_head_title'))}"`}>${icon('users','w-3.5 h-3.5')}<span class="rl-word">${_ne(label)}</span></button>`;
         })() : ''}
   `;
   const mayMenu = !_rvPosture && (typeof canEdit !== 'function' || canEdit());
@@ -13879,7 +13879,7 @@ function rlPrepareRowHtml(c, preview){
   const dead = preview ? 'ng_preview_dead' : frozen ? 'ng_prepare_dead_frozen' : !readable ? 'ng_prepare_dead_unreadable' : null;
   return `<button type="button" data-rl-prepare${dead ? ' disabled aria-disabled="true" data-rl-dead="1"' : ''}
         title="${_nea(i18t(dead || 'ng_prepare_title'))}"
-      ><span aria-hidden="true">&#9998;</span>${i18t('ng_prepare')}</button>`;
+      ><span aria-hidden="true">${icon('pencil','w-3.5 h-3.5')}</span>${i18t('ng_prepare')}</button>`;
 }
 /* ---------- THE EMPTY CHANGE COLUMN'S TWO DOORS (Young asked 12 Sep 2026) ----------
    Drawn only where redlineChangeCardsHtml has already decided this reader may
@@ -13917,7 +13917,7 @@ function rlEmptyColumnActsHtml(c, opts = {}, side = 'owner'){
   const toEditor = rlEditorTakesIt(side, opts);
   const edit = `<button type="button" class="rl-empty-edit" data-rl-edit-first="${toEditor ? 'editor' : 'panel'}"
       title="${_nea(i18t('ng_empty_edit_title'))}"
-    ><span aria-hidden="true">&#9998;</span>${i18t('ng_empty_edit')}</button>`;
+    >${icon('pencil','w-3.5 h-3.5')}${i18t('ng_empty_edit')}</button>`;
   /* ONE LINE, UNDER THE BUTTONS, SAYING WHAT THE FIRST ONE SPENDS AND THAT
      NOTHING TRAVELS. It is not a band: it explains the control it sits under
      and it is drawn only on the one screen that has nothing else on it. */
@@ -14327,11 +14327,11 @@ async function rlOpenPlaybookReview(c, again){
              button that ASKS how much of the clause it would replace. On an
              ADD landing nothing moves: there is no clause to narrow to and
              our own wording is exactly what belongs. */}
-      <button data-pbr-skip="${i}" class="ui-btn" style="font-size:var(--t-label);padding:var(--s-1) 11px">${i18t('ng_skip')}</button>
-      ${it.preferred ? `<button data-pbr-go="${i}" class="ui-btn${it.fit ? '' : ' ui-btn-primary'}" style="font-size:var(--t-label);padding:var(--s-1) 11px" title="${_nea(i18t(it.fit ? 'ng_file_preferred_whole_title' : 'ng_file_preferred_title'))}">${i18t('ng_file_preferred')}</button>` : ''}
-      ${it.fallback ? `<button data-pbr-fb="${i}" class="ui-btn" style="font-size:var(--t-label);padding:var(--s-1) 11px" title="${i18t('ng_file_fallback_title')}">${i18t('ng_file_fallback')}</button>` : ''}
-      ${it.draft ? `<button data-pbr-draft="${i}" class="ui-btn${(it.fit && it.fit.kind === 'draft') ? ' ui-btn-primary' : ''}" style="font-size:var(--t-label);padding:var(--s-1) 11px" title="${_nea(i18t('ng_file_draft_title'))}">${i18t('ng_file_draft')}</button>` : ''}
-      ${(it.fit && it.fit.kind === 'figure') ? `<button data-pbr-fit="${i}" class="ui-btn ui-btn-primary" style="font-size:var(--t-label);padding:var(--s-1) 11px" title="${_nea(i18t('ng_file_fit_title'))}">${i18t('ng_file_fit')}</button>` : ''}
+      <button data-pbr-skip="${i}" class="ui-btn ui-btn-sm">${i18t('ng_skip')}</button>
+      ${it.preferred ? `<button data-pbr-go="${i}" class="ui-btn ui-btn-sm${it.fit ? '' : ' ui-btn-primary'}" title="${_nea(i18t(it.fit ? 'ng_file_preferred_whole_title' : 'ng_file_preferred_title'))}">${i18t('ng_file_preferred')}</button>` : ''}
+      ${it.fallback ? `<button data-pbr-fb="${i}" class="ui-btn ui-btn-sm" title="${i18t('ng_file_fallback_title')}">${i18t('ng_file_fallback')}</button>` : ''}
+      ${it.draft ? `<button data-pbr-draft="${i}" class="ui-btn ui-btn-sm${(it.fit && it.fit.kind === 'draft') ? ' ui-btn-primary' : ''}" title="${_nea(i18t('ng_file_draft_title'))}">${i18t('ng_file_draft')}</button>` : ''}
+      ${(it.fit && it.fit.kind === 'figure') ? `<button data-pbr-fit="${i}" class="ui-btn ui-btn-sm ui-btn-primary" title="${_nea(i18t('ng_file_fit_title'))}">${i18t('ng_file_fit')}</button>` : ''}
     </div>`}
   </div>`;
   openModal(`<div style="padding:20px var(--s-6);max-height:calc(100vh - 80px);overflow-y:auto">
@@ -18707,7 +18707,7 @@ function rlQueueHtml(c, opts = {}){
     aria-hidden="${open ? 'false' : 'true'}" aria-label="${i18t('ng_this_rounds_queue')}">
     <div class="rl-q-head">
       <button type="button" id="rl-q-min" class="rl-q-min" data-rl-q-close="1" aria-expanded="${open ? 'true' : 'false'}"
-        title="${_nea(i18t('ng_queue_close_title'))}" aria-label="${_nea(i18t('ng_queue_close_title'))}">&times;</button>
+        title="${_nea(i18t('ng_queue_close_title'))}" aria-label="${_nea(i18t('ng_queue_close_title'))}">${icon('x','w-3.5 h-3.5')}</button>
       <p class="rl-q-label">${i18t('ng_this_rounds_queue')}</p>
       <div class="rl-q-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"
         aria-label="${_nea(i18t('ng_decided_round_aria',{done:p.done,total:p.total}))}"><span style="width:${pct}%"></span></div>
@@ -18986,7 +18986,7 @@ function rlClausePanelHtml(bodies){
     aria-hidden="${open ? 'false' : 'true'}" aria-label="${_nea(i18t('ng_cp_open_title'))}">
     <div class="rl-cp-head">
       <button type="button" id="rl-cp-min" class="rl-cp-min" data-rl-cp-close="1"
-        title="${_nea(i18t('ng_cp_close_title'))}" aria-label="${_nea(i18t('ng_cp_close_title'))}">&times;</button>
+        title="${_nea(i18t('ng_cp_close_title'))}" aria-label="${_nea(i18t('ng_cp_close_title'))}">${icon('x','w-3.5 h-3.5')}</button>
       <p class="rl-cp-label">${i18t(lad ? 'ng_cp_ladder' : 'ng_cp_edit')}</p>
       ${rlCpSegsHtml()}
       ${rlCpTypeStepHtml()}

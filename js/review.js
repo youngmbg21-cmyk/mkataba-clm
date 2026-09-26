@@ -1448,8 +1448,8 @@ function reviewBannerHtml(c, opts = {}){
     <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:9px">${rows.join('')}</span>
     <button type="button" data-rv-act="rv-clear" aria-label="${_rvE(i18t('rv_clear_banner'))}"
       title="${_rvE(i18t('rv_clear_banner'))}"
-      style="flex:none;align-self:flex-start;font:inherit;font-size:var(--t-card);line-height:1;cursor:pointer;
-      border:0;background:transparent;color:inherit;opacity:.65;padding:1px 2px;margin:-1px -3px 0 2px">&times;</button></div>`;
+      style="flex:none;align-self:flex-start;font:inherit;line-height:1;cursor:pointer;display:inline-grid;place-items:center;
+      border:0;background:transparent;color:inherit;opacity:.65;padding:1px 2px;margin:-1px -3px 0 2px">${(typeof window!=='undefined'&&window.icon)?window.icon('x','w-3.5 h-3.5'):'&times;'}</button></div>`;
 }
 function reviewWhen(at){
   if (!at) return '';
@@ -1483,7 +1483,7 @@ function reviewWhen(at){
    var(--field-*), so a change to the field's height or padding moves this
    dialog and every form beside it in the same edit. The string being written
    twice costs nothing the tokens do not already prevent. */
-const RV_FLD = 'width:100%;min-height:var(--field-h);border:1px solid var(--field-line);background:var(--color-surface);border-radius:var(--radius);padding:var(--field-pad-y) var(--field-pad-x);font-size:var(--field-size);font-family:var(--font-body);color:var(--color-text);line-height:var(--field-lh);';
+const RV_FLD = 'width:100%;height:var(--field-h);border:1px solid var(--field-line);background:var(--color-surface);border-radius:var(--radius);padding:var(--field-pad-y) var(--field-pad-x);font-size:var(--field-size);font-family:var(--font-body);color:var(--color-text);line-height:var(--field-lh);';
 const RV_LBL = 'display:block;font-size:var(--field-label-size);font-weight:var(--field-label-weight);color:var(--color-neutral-600);margin-bottom:var(--field-label-gap);font-family:var(--font-body);letter-spacing:var(--ls-base);';
 
 /* ---- AND THE DIALOGS LOOK LIKE THE PRODUCT'S DIALOGS ----
@@ -1593,7 +1593,7 @@ function reviewAskModalHtml(c, opts = {}){
           style="${RV_FLD}padding-right:30px"/>
         <button type="button" id="rv-who-caret" tabindex="-1" aria-label="${_rvE(i18t('rv_who_show_all'))}"
           style="position:absolute;right:1px;top:1px;bottom:1px;width:28px;border:0;background:transparent;
-          cursor:pointer;color:var(--color-neutral-600);font-size:var(--t-label);line-height:1">&#9662;</button>
+          cursor:pointer;color:var(--color-neutral-600);line-height:1;display:grid;place-items:center">${(typeof window!=='undefined'&&window.icon)?window.icon('chevD','w-3.5 h-3.5'):'&#9662;'}</button>
         <ul id="rv-who-list" role="listbox" hidden
           style="list-style:none;margin:2px 0 0;padding:0;position:absolute;left:0;right:0;top:100%;z-index:5;
           max-height:212px;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);
@@ -1608,7 +1608,7 @@ function reviewAskModalHtml(c, opts = {}){
       border:1px solid var(--st-amber-line);border-radius:var(--radius);padding:9px 11px;margin-bottom:var(--s-3);line-height:1.5">${_rvE(i18t('rv_no_colleagues'))}</div>`}
 
     <label for="rv-note" style="${RV_LBL}">${_rvE(i18t('rv_note_label'))}</label>
-    <textarea id="rv-note" rows="3" style="${RV_FLD}margin-bottom:var(--s-3);resize:vertical"
+    <textarea id="rv-note" rows="3" style="${RV_FLD}height:auto;margin-bottom:var(--s-3);resize:vertical"
       placeholder="${_rvE(i18t('rv_note_ph'))}"></textarea>
 
     <label for="rv-due" style="${RV_LBL}">${_rvE(i18t('rv_due_label'))}</label>
@@ -1969,7 +1969,7 @@ function openReviewReturnModal(c, opts = {}){
         ${unmarked ? `<div style="color:var(--st-ruby-fg);margin-top:5px"><b>${unmarked}</b> ${_rvE(i18t('rv_tally_unmarked'))}</div>` : ''}
       </div>
       <label style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${_rvE(i18t('rv_return_note_label'))}</label>
-      <textarea id="rv-rnote" rows="3" style="${RV_FLD}resize:vertical" placeholder="${_rvE(i18t('rv_return_note_ph'))}"></textarea>
+      <textarea id="rv-rnote" rows="3" style="${RV_FLD}height:auto;resize:vertical" placeholder="${_rvE(i18t('rv_return_note_ph'))}"></textarea>
     </div>
     <div class="rvd-foot">
       <button id="rv-rcancel" class="ui-btn">${_rvE(i18t('act_cancel'))}</button>
@@ -1994,7 +1994,7 @@ function openReviewNoteModal(c, changeId, opts = {}){
   window.openModal(`
     ${reviewDialogHeadHtml('&#9998;', i18t('rv_note_title_modal', { id: changeId }), i18t('rv_note_sub'))}
     <div class="rvd-body">
-      <textarea id="rv-cnote" rows="4" style="${RV_FLD}resize:vertical">${_rvE((cur && cur.note) || '')}</textarea>
+      <textarea id="rv-cnote" rows="4" style="${RV_FLD}height:auto;resize:vertical">${_rvE((cur && cur.note) || '')}</textarea>
     </div>
     <div class="rvd-foot">
       <button id="rv-ccancel" class="ui-btn">${_rvE(i18t('act_cancel'))}</button>
