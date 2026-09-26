@@ -19322,3 +19322,7 @@ Noticed, not fixed
 ## Run 26 Sep 2026 — Inspector chosen for the Requests page (no code)
 
 - On the owner's word: "I choose Inspector for the Requests page too. No coding yet." The private page "Obligations, Standards, Requests" now shows only the Inspector design for Requests (with today's photo to compare, from both chairs), beside the Inspector designs for Our standards, the Obligations page and the contract's Obligations tab. Board and Two Desks are gone from the page. Three small questions stay open for the owner and are listed on the page: "Take it over" asking first on a request a colleague holds; a held request shown as being worked on; and where the helping sentence for people who ask should live. No product code changed.
+
+## Run 26 Sep 2026 — the three Requests rulings (no code)
+
+- On the owner's word: "Yes to all three." Ruled for the Requests page when it is built: (1) on a request a colleague already holds, "Pick it up" becomes "Take it over" and asks before moving it; (2) a request somebody holds shows as being worked on, not "Waiting"; (3) the sentence for people who ask ("Describe what you need in plain words…") moves from under the page title to the top of the Ask for a contract window. All three are drawn in the private page "Obligations, Standards, Requests" (the ask window and the take-over question open from the picture). No product code changed; the owner's earlier "No coding yet" stands.
