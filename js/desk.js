@@ -1319,4 +1319,9 @@ Object.assign(window, {
   deskWireChip, deskOpenFromChip,
   deskSheetHtml, openDeskSheet, openDeskHandover, openDeskJoinAsk,
   DESK_STALE_DAYS, deskAnnouncement, deskWaitingSince, deskStale, deskStaleInboxFor, deskLedBy,
+  /* The working-day walk the quiet clock counts with, published under a name
+     of its own (26 Sep 2026) so the list inspector's "past your standard" line
+     asks THIS walk rather than keeping a second one — two walks disagree
+     about a bank holiday the day one of them is changed. */
+  deskWorkingDaysBetween: _dkWorkingDaysBetween,
 });

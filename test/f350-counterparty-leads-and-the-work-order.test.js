@@ -63,7 +63,13 @@ describe('f350 (1) — the counterparty leads and the title sits under it', () =
        readings each is built from, never of the words. */
     const leadHalf = cp.slice(lead, sub), subHalf = cp.slice(sub);
     assert.match(leadHalf, /esc\(cpName\)/, 'the counterparty leads');
-    assert.match(subHalf, /esc\(regTitleOf\(c\)\)/, 'and the contract name follows');
+    /* REVERSED IN PLACE 26 Sep 2026 — this pinned `esc(regTitleOf(c))`, which
+       was the bug: regTitleOf already escapes, so a second esc printed "&amp;"
+       wherever a title held an ampersand (the list options' floor: "names
+       print &, never &amp;"). The title is interpolated as the reading hands
+       it over, and no second escape may come back — on the line OR the hover. */
+    assert.match(subHalf, /\$\{regTitleOf\(c\)\}/, 'and the contract name follows');
+    assert.ok(!/esc\(regTitleOf\(c\)\)/.test(cp), 'escaped once, never twice');
   });
 
   test('ONE reading of the kind and the round, and both seats spell it through that', () => {

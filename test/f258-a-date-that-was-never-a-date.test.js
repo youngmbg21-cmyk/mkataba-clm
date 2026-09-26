@@ -274,7 +274,12 @@ describe('f258 (4) — the column, the sort and the filter', () => {
     assert.ok(win.REG_COL_KEYS.includes('signed'), 'and Contracts does');
     assert.match(REG, /if\(k==='signed'\) return sortableTh\('signed'/, 'one head branch, reached by the key alone');
     assert.match(REG, /CELL\.signed=`<td style="white-space:nowrap">\$\{regSignedCell\(c\)\}<\/td>`/, 'one cell');
-    assert.match(REG, /\(neg\?REG_COL_KEYS_NEGO:REG_COL_KEYS\)\.map\(k=>CELL\[k\]\|\|''\)/, 'emitted by the seat\'s keys');
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the list inspector): the row is emitted
+       by regColKeys — the ONE reading of which columns a paint draws, the
+       seat's full list or the inspector's four — and neither Negotiations list
+       names a signed column. */
+    assert.match(REG, /regColKeys\(\)\.map\(k=>CELL\[k\]\|\|''\)/, 'emitted by the paint\'s own keys');
+    assert.ok(!win.REG_COL_KEYS_NEGO_INS.includes('signed'), 'nor does the inspector\'s Negotiations list');
     assert.match(REG, /\$\{\(!neg&&BAR\.includes\('signed'\)\)\?selFilter\('reg-signed'/);
   });
 
@@ -364,11 +369,17 @@ describe('f258 (5) — the columns are draggable, like a spreadsheet', () => {
 
   test('the head takes its widths from the ONE list, and carries the grip', () => {
     assert.match(REG, /const COLW=regColWidths\(\);/);
-    assert.match(REG, /const colAt=\(extra=''\)=>\{ const i=_colN\+\+; return `width:\$\{COLW\[i\]\}%/);
-    assert.ok(!/width:\d+%/.test(REG.slice(REG.indexOf('<th style="${colAt()}">MK'), REG.indexOf('</tr>', REG.indexOf('<th style="${colAt()}">MK')))),
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the list inspector): in the full table
+       a head still takes its width off the ONE list; in the inspector's shape
+       three short columns hold pixels (REG_INS_COL_PX) and the counterparty
+       takes the rest — and no head carries a grip there, because four columns,
+       one of them the give, have nothing worth dragging. */
+    assert.match(REG, /const colAt=\(extra='',k\)=>\{ const i=_colN\+\+;[\s\S]{0,160}return `width:\$\{COLW\[i\]\}%/);
+    assert.match(REG, /if\(INS\)\{ const px=REG_INS_COL_PX\[k\];/, 'the inspector\'s widths are its own list');
+    assert.ok(!/width:\d+%/.test(REG.slice(REG.indexOf('regColKeys().map(k=>{'), REG.indexOf('</tr>', REG.indexOf('regColKeys().map(k=>{')))),
       'no column head still types a width of its own');
-    assert.match(REG, /const gripFor=i=>\(i>=COLW\.length-1\) \? '' :/,
-      'the LAST column carries no grip — it has nothing to its right to trade with');
+    assert.match(REG, /const gripFor=i=>\(INS\|\|i>=COLW\.length-1\) \? '' :/,
+      'the LAST column carries no grip — it has nothing to its right to trade with — and the inspector\'s list none');
   });
 
   test('a press on the grip is a drag and NEVER a sort', () => {

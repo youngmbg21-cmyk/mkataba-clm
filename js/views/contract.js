@@ -6268,10 +6268,14 @@ function ktRecordFactsHtml(c,opts={}){
    Each row works out its own, beside the figure it is about, so the tone and
    the sentence can never disagree. */
 const OV_READ_TONE={ yes:'green', no:'', stale:'amber', look:'amber', bad:'ruby' };
-function ktReadingsRowsHtml(c){
-  /* The one printer, and its whole story is beside it — see ktDayDot. The scan
-     stamps `on` beside `at` now, so it has a day to give. */
-  const dot=iso=>esc(ktDayDot(iso));
+/* ---- COUNTING IS NOT DRAWING (26 Sep 2026, the list inspector) ----
+   The five rows are worked out here and drawn by ktReadingsRowsHtml below.
+   They were one function until the Contracts, Negotiations and Approvals
+   lists grew a panel that prints the same five readings beside the list, and
+   the drawing that was chosen says of that panel "both must always read from
+   one place". This is that one place: the Overview's table and the panel ask
+   ktReadingsRows, and neither keeps a copy. Published. */
+function ktReadingsRows(c){
   /* IS THIS READING OLDER THAN THE WORDING? (21 Sep 2026, the process
      review's second item.) A round lands, the wording moves, and until now
      three of these five rows went on reporting what they found in a document
@@ -6350,6 +6354,13 @@ function ktReadingsRowsHtml(c){
   rows.push({ k:'plain', name:i18t('ov_r_plain'),
     said: read?i18t('ov_r_ready'):i18t('ov_r_none'),
     when: (c&&c._readings&&c._readings.at)||'', state:read?'yes':'no', tab:'docs' });
+  return rows;
+}
+function ktReadingsRowsHtml(c){
+  /* The one printer, and its whole story is beside it — see ktDayDot. The scan
+     stamps `on` beside `at` now, so it has a day to give. */
+  const dot=iso=>esc(ktDayDot(iso));
+  const rows=ktReadingsRows(c);
 
   /* A COLOUR IS NOT A SENTENCE. `stale` was already an amber tone on this
      table and nothing said what the amber meant, so the words are added HERE,
@@ -15875,7 +15886,7 @@ Object.assign(window,{paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,
      I walked it on re-rendered the workspace, which measures on the way in. */
   layoutDocResizer,renderSignButton,renderSignSide,roomFactsHtml,signBlockHtml,signReadinessCardHtml,signRowTitle,signWhyShort,SIGN_WHY_WORDS,signLandOnList,signCheckEscalate,signCheckTake,signRiskDismiss,signConsentStamp,signHeadLabel,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,reviewReturnedRound,docWorkingTextNoteHtml,docNothingWrittenHtml,docHasNoWording,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
-  ROOM_TABS,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomCurrentTab,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,histWhen,roomVersionsHtml,docFillable,ktDayDot,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,tplFormOpenFields,openCheckPanel,roomHeadHtml,wireRoomHead,
+  ROOM_TABS,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomCurrentTab,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,histWhen,roomVersionsHtml,docFillable,ktDayDot,ktReadingsRows,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,tplFormOpenFields,openCheckPanel,roomHeadHtml,wireRoomHead,
   DOC_SEL_ACTIONS,wireDocCopilotSel,docAiRead,docSelKill,
   /* idea 7 — the plain-English layer. Published because a name read through
      window from another module, or from a test stage, is silence when it is

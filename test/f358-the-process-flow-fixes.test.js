@@ -113,7 +113,12 @@ describe('f358 (2) a round lands and the readings say they are behind', () => {
     assert.ok(/signCheckBriefAt\(c\)/.test(fn));
   });
   test('2f all three rows on the Overview can say it, and the words are there', () => {
-    const rows = code((CT.match(/function ktReadingsRowsHtml\(c\)\{[\s\S]*?\n\}/) || [''])[0]);
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the list inspector): the Overview's readings
+     are COUNTED in ktReadingsRows and DRAWN in ktReadingsRowsHtml, split so the
+     panel beside the lists reads the same rows — the claim is about the two
+     together, which is the one place the readings live. */
+    const rows = code((CT.match(/function ktReadingsRows\(c\)\{[\s\S]*?\n\}/) || [''])[0])
+      + code((CT.match(/function ktReadingsRowsHtml\(c\)\{[\s\S]*?\n\}/) || [''])[0]);
     assert.ok((rows.match(/rdStale\(/g) || []).length >= 3, 'brief, playbook and obligations');
     assert.ok(/ov_r_before_round/.test(rows), 'a colour is not a sentence');
     assert.equal((EN.match(/\n    ov_r_before_round:/g) || []).length, 2);

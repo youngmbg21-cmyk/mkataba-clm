@@ -178,6 +178,30 @@ function regDotDate(iso){
   const loc=(typeof langLocale==='function')?langLocale():'en-GB';
   return d.toLocaleDateString(loc,{day:'2-digit',month:'short',year:'numeric'});
 }
+/* ---- WHEN A TERM ENDS, SAID PLAINLY (26 Sep 2026, the list options' floor) ----
+   The column printed "· 186 d" after every date — shorthand a reader had to
+   decode, on rows where the number said nothing (an end six months off is not
+   news). The drawing the owner chose says it: "a date shows how many days are
+   left only when the end is within 90 days". So the day, then — inside the
+   renewal window only — "in 45 days" in words; "ended" once it has passed;
+   and nothing beside a far date. `far` carries "months away" for the one home
+   with room to say it (the list inspector's panel).
+   ONE READING, TWO READERS: this column and the panel, so a term's end is
+   never worded two ways on one screen. Tone: ruby for ended or under 30 days,
+   amber inside the window — the colours this cell already used. */
+const REG_SOON_DAYS = 90;
+function regEndsSay(iso){
+  const s=String(iso||'').slice(0,10);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+  const day=regDotDate(s);
+  const d=(typeof daysUntil==='function')?daysUntil(s):null;
+  if(d==null||!isFinite(d)) return { day, sub:'', tone:'' };
+  if(d<0)  return { day, sub:i18t('reg_ended'), tone:'ruby' };
+  if(d===0) return { day, sub:i18t('reg_ends_today'), tone:'ruby' };
+  if(d<=REG_SOON_DAYS) return { day, sub:i18tn('reg_ends_in',d,{n:d}), tone:d<30?'ruby':'amber' };
+  const m=Math.max(1,Math.round(d/30.4));
+  return { day, sub:'', tone:'', far:i18tn('reg_ends_months',m,{n:m}) };
+}
 /* ---- WHEN A CONTRACT WAS SIGNED, ON THE PAGE YOU SCAN (J-5.1) ----
    Owner-asked 31 Aug 2026: *"If I am in 2029 and i want to find a contract
    that was signed in 2021, how would i find it?"* — and, measured, there was
@@ -608,6 +632,30 @@ const REG_COL_KEYS_NEGO = ['mk','counterparty','kind','value','expiry','stage','
    nobody's table shifts a column left. */
 const REG_COL_W         = [6,39,11,7,9,7,13,5,3];
 const REG_COL_W_NEGO    = [6,39,14,9,13,11,8];
+/* ═══ THE INSPECTOR'S LIST (Young picked it by name, 26 Sep 2026, off the
+   "Contract List Options" page — see js/views/inspector.js) ═══════════════
+   Beside the panel the list carries FOUR columns: the reference, the
+   counterparty over the agreement, where it stands, and what it is worth.
+   Owner, signed, ends and the row's menu move into the panel, one contract at
+   a time — the narrower list is the design's own named cost. On Negotiations
+   the third column is whose move, with the fact behind it ("Yours · 3
+   changes", "Theirs · 5 days").
+   BELOW INS_MIN_W, IN BOARD MODE, AND ON A STAGE WITH NO INSPECTOR the seat's
+   full table is drawn exactly as the two lists above say.
+   THE WIDTHS ARE PIXELS HERE, NOT SHARES, and there are no grips: three short
+   columns hold their size and the counterparty takes whatever is left, which
+   is what "the column with the give" has always meant on this table. */
+const REG_COL_KEYS_INS      = ['mk','counterparty','stage','value'];
+const REG_COL_KEYS_NEGO_INS = ['mk','counterparty','move','value'];
+const REG_INS_COL_PX = { mk:84, stage:216, move:184, value:124 };
+function regInspecting(){ return regMode()!=='board' && typeof insFits==='function' && insFits(); }
+/* THE ONE READING OF WHICH COLUMNS THIS PAINT DRAWS — the head, the rows, an
+   empty row's span and a band's span all ask it, so a column can never sit
+   under the wrong heading whichever shape the page is in. */
+function regColKeys(){
+  const neg=regScope()==='negotiations', ins=regInspecting();
+  return neg ? (ins?REG_COL_KEYS_NEGO_INS:REG_COL_KEYS_NEGO) : (ins?REG_COL_KEYS_INS:REG_COL_KEYS);
+}
 /* A column may not be dragged to nothing. A PIXEL floor rather than a percent
    one, because 4% is 51px on a laptop and 77px on a wide monitor — the same
    reasoning that made the divider's own limits pixels. Converted against the
@@ -1126,9 +1174,13 @@ function regApplySaved(name){
 }
 function regViewTabsHtml(R){
   const neg=regScope()==='negotiations';
-  const count=k=>{ const n=regViewCount(k); return n==null?'':`<span class="n">${n}</span>`; };
-  const tab=(k,label)=>{ const on=(R.view||'')===(k||'');
-    return `<button type="button" role="tab" class="reg-vtab${on?' on':''}" data-reg-view="${k}" aria-selected="${on?'true':'false'}">${esc(label)}${count(k)}</button>`; };
+  /* A VIEW WITH NOTHING IN IT STAYS QUIET (26 Sep 2026, the list options'
+     floor): no count and the quiet ink. Five tabs each printing "0" were five
+     boxes saying nothing is there, which the quieter word already says. The
+     count that IS printed is still the press's own reading (regViewCount). */
+  const tab=(k,label)=>{ const on=(R.view||'')===(k||''); const n=regViewCount(k);
+    const zero=n===0&&!on;
+    return `<button type="button" role="tab" class="reg-vtab${on?' on':''}${zero?' is-zero':''}" data-reg-view="${k}" aria-selected="${on?'true':'false'}">${esc(label)}${(n==null||n===0)?'':`<span class="n">${n}</span>`}</button>`; };
   const saved=neg?'':regSavedViews().map(v=>{ const on=regSavedMatches(v,R);
     return `<span class="reg-vtab reg-vtab-saved${on?' on':''}" role="tab" aria-selected="${on?'true':'false'}"><button type="button" data-reg-saved="${esc(v.name)}" title="${esc(i18t('reg_saved_view_title'))}">${esc(v.name)}</button><button type="button" class="x" data-reg-saved-x="${esc(v.name)}" title="${esc(i18t('reg_forget_view_title'))}" aria-label="${esc(i18t('reg_forget_view_title'))}">${icon('x','w-3.5 h-3.5')}</button></span>`; }).join('');
   const save=neg?'':`<span class="reg-views-end"><button type="button" id="reg-save-view" class="reg-vtab-act" title="${esc(i18t('reg_save_view_msg'))}">${esc(i18t('reg_save_view'))}</button></span>`;
@@ -1143,7 +1195,13 @@ function regHeadFactsHtml(){
   const book=state.contracts.filter(c=>!c.archived&&c.status!=='Declined'&&!c.parentId);
   const n=(state.serverStats&&state.serverStats.total!=null&&Number(state.serverStats.total)>state.contracts.length)
     ? Number(state.serverStats.total) : book.length;
-  const parts=[i18tn('reg_agreements',n,{n:n.toLocaleString(jxLocale())})];
+  /* "29 LIVE", NOT "29 AGREEMENTS" (26 Sep 2026, the list options' floor).
+     The head said agreements while the All tab under it said 30, and both
+     were right about different things with nothing saying which: this counts
+     the live book (no declined, no archived, an amendment counted with its
+     agreement) and All counts every row the list holds. The word now says
+     what is counted — the Negotiations head's own word for it. */
+  const parts=[i18tn('ngl_n_live',n,{n:n.toLocaleString(jxLocale())})];
   if(typeof canViewValues!=='function'||canViewValues()){
     const v=regAggregate(book);
     const miss=(window.fxMissing?fxMissing(book):[]);
@@ -1195,11 +1253,15 @@ function regFooterText(cs, opts){
   const fam=familyCounts(cs);
   const B=x=>`<b style="color:var(--color-text)">${x}</b>`;
   const famNote=fam.amendments?` · ${i18tn('reg_agreements',fam.agreements,{n:B(fam.agreements.toLocaleString(jxLocale()))})} · ${i18t('reg_documents',{n:B(fam.documents.toLocaleString(jxLocale()))})}`:'';
-  const R=regState();
   /* Neither the amendment fold nor the page counter belongs on a list that
      never pages and groups by something else entirely. */
   const neg=regScope()==='negotiations';
-  const flatBtn=neg?'':` · <button type="button" id="reg-flat" style="border:0;background:none;font:inherit;font-size:inherit;color:var(--accent-ink-700);text-decoration:underline;cursor:pointer;padding:0">${R.flat?i18t('reg_group_amendments'):i18t('reg_show_flat')}</button>`;
+  /* THE AMENDMENT FOLD LEFT THE FOOT FOR THE DISPLAY MENU (26 Sep 2026, the
+     Inspector drawing): it changes how the list is drawn, which is what that
+     menu holds, and the foot is the count and the pager. Same flag (R.flat),
+     same repaint; `reg_group_amendments` and `reg_show_flat` are STALE as
+     visible text, inert in both books. */
+  const flatBtn='';
   const pageNote=(neg||board)?'':` · ${i18t('reg_page_of',{p,n})}`;
   return `${i18t('reg_showing',{start:B(start.toLocaleString(jxLocale())),end:B(end.toLocaleString(jxLocale())),n:B(cs.length.toLocaleString(jxLocale()))})}${totalNote}${neg?'':famNote}${pageNote}${(typeof canViewValues==='function'&&!canViewValues())?'':` · ${i18t('reg_aggregate')} ${B(fmtMoneyShort(regAggregate(cs)))}`}${flatBtn}`;
 }
@@ -1453,6 +1515,68 @@ function regEndAct(c, k){
   }
   openWorkspace(c.id);   /* decline — completed inside the contract, as before */
 }
+/* ---- THE ROW'S MENU, AS MARKUP — ONE BUILDER, TWO HOMES (26 Sep 2026) ----
+   The full table's ⋯ and the list inspector's panel draw the same rows, so a
+   verb added tomorrow reaches both and neither can drift. THE SENTENCE RIDES
+   THE HOVER, which is this product's own answer for a fact about the
+   machinery: the three that end a contract carry one line each saying what
+   they do, from END_STATES, so the menu and any other home cannot word them
+   differently. A `when` that asks a reading the stage does not carry answers
+   "not offered" rather than throwing through the page. */
+function regRowActsHtml(c){
+  return REG_ROW_ACTIONS.filter(a=>{ try{ return !a.when||a.when(c); }catch(_){ return false; } }).map(a=>`<button data-act="${a.k}" data-id="${c.id}"${a.says?` title="${esc(a.says)}"`:''} class="reg-act${a.ruby?' danger':''}" style="display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;font:inherit;font-size:var(--t-meta);text-align:left;padding:6px 9px;border-radius:var(--radius);cursor:pointer;color:${a.ruby?'var(--st-ruby-fg)':'inherit'}">${window.icon?icon(a.ic,'w-3.5 h-3.5'):''}${a.label}</button>`).join('');
+}
+/* ---- WHAT EACH ROW-MENU VERB PRESSES — one dispatcher, two homes ----
+   Lifted out of the table's wiring so the panel's ⋯ presses exactly what the
+   row's ⋯ presses. Nothing here is new; every branch is the one the row menu
+   always ran. */
+function regRunRowAct(act, id){
+  const c=getContract(id); if(!c) return;
+  if(act==='open') openWorkspace(id);
+  else if(act==='share') openShareModal(c);
+  else if(act==='scan') runScanFor(c);
+  else if(act==='archive'||act==='restore'){
+    if(window.contractSetArchived) contractSetArchived(c,act==='archive').then(ok=>{ if(ok) regRepaint(); });
+  }
+  /* THE REASON IS COMPULSORY, so the press asks for it before anything is
+     written — `contractSetHold` refuses an empty one, and a dialog is the
+     only honest way to collect it. Releasing needs none. Both go through the
+     one act; nothing here writes to the record. */
+  else if(act==='hold'||act==='release'){
+    if(!window.contractSetHold) return;
+    if(act==='release'){ contractSetHold(c,false,'').then(ok=>{ if(ok) regRepaint(); }); return; }
+    if(!window.promptDialog) return;
+    Promise.resolve(promptDialog({ title:i18t('hd_ask_title'), message:i18t('hd_ask_msg'),
+      placeholder:i18t('hd_ask_ph'), confirmLabel:i18t('hd_hold'), multiline:true }))
+      .then(why=>{ if(why==null) return;
+        contractSetHold(c,true,why).then(ok=>{ if(ok) regRepaint(); }); });
+  }
+  else if(act==='delete') deleteContract(id).then(ok=>{ if(ok){
+    /* The reader was three pages down when they pressed Delete; the row goes,
+       the place stays. renderRegister() rebuilds the whole view and hard-resets
+       R.page to 1, and the table scrolls inside #reg-scroll (not the outer
+       #content-scroll) — so repaint only the body, which keeps the current page
+       (clamping just if this page emptied), and put #reg-scroll back where it was. */
+    const sc=document.getElementById('reg-scroll'); const top=sc?sc.scrollTop:0;
+    renderRegisterBody();
+    const sc2=document.getElementById('reg-scroll');
+    if(sc2){ sc2.scrollTop=top;
+      if(typeof requestAnimationFrame==='function') requestAnimationFrame(()=>{ sc2.scrollTop=top; }); }
+  } });
+  else openWorkspace(id); // Export PDF / Decline & close are completed inside the workspace
+}
+/* ---- WHAT OPENING A ROW MEANS — one answer for the row press, Enter, a
+   double-click and the panel's own button ----
+   On the Negotiations page a row opens the NEGOTIATION; everywhere else the
+   CONTRACT. A row that cannot open the negotiation (sealed or archived paper,
+   per negoMayStart) opens the contract instead — the row landing somewhere
+   true rather than pressing a wall. */
+function regOpenRow(id, negoRow){
+  const cRow=(typeof getContract==='function')?getContract(id):null;
+  const mayNego=!cRow||!window.negoMayStart||negoMayStart(cRow).ok;
+  if(negoRow&&mayNego&&window.openRedlineWorkbench) openRedlineWorkbench(id);
+  else selectContract(id);
+}
 /* THE ROW'S PRIMARY VERB.
    Not one generic "Open" down the column — each row offers the thing that
    stage actually calls for: a contract in review is opened to be argued over,
@@ -1560,20 +1684,21 @@ function negoMovePillHtml(c){
    is generated during render rather than being a member of the filtered set, so
    the footer's "showing 1–8 of 8" can never count one. */
 function negoBandRowHtml(band, n){
-  /* THE SEAT'S OWN COUNT, NEVER A LITERAL: a band only ever draws on the
-     Negotiations seat, so it spans REG_COL_KEYS_NEGO. It read a literal 8, and
-     when the stream column left that seat (24 Sep 2026) the band would have
-     spanned one column more than the table draws. */
+  /* THE PAINT'S OWN COUNT, NEVER A LITERAL: a band spans whatever columns
+     this paint draws (regColKeys) — the seat's full seven, or the list
+     inspector's four. It read a literal 8, and when the stream column left
+     that seat (24 Sep 2026) the band would have spanned one column more than
+     the table draws. */
   /* ---- THE COUNT IS PART OF THE HEADING (21 Sep 2026, Young: the four pages
      must look exactly like the artifact) ---- the reference writes
      "WAITING ON YOU · 3" as one line; HaTi boxed the number in a pill beside
      it, which is a second shape for a fact the words are already carrying.
      Same reading, same element, same class, no box. */
-  return `<tr class="ngl-band" role="presentation"><td role="presentation" colspan="${REG_COL_KEYS_NEGO.length}">
+  return `<tr class="ngl-band" role="presentation"><td role="presentation" colspan="${regColKeys().length}">
     <div class="ngl-band-in" role="heading" aria-level="3">
       <span class="ngl-band-dot" style="background:${NEGO_BAND_DOT[band.tone]}" aria-hidden="true"></span>
       <span class="ngl-band-k">${esc(band.label)}</span>
-      <span class="ngl-band-n">· ${n}</span>
+      <span class="ngl-band-n">${n}</span>
     </div></td></tr>`;
 }
 function regRowsHtml(cs){
@@ -1595,7 +1720,7 @@ function regRowsHtml(cs){
     /* THIS SHAPE IS NOW THE PRODUCT'S — it was the one screen that had a
        designed empty state, and emptyStateHtml is it, extracted so the other
        six can be it too. Read through window: this is a module. */
-    return `<tr><td colspan="${(neg?REG_COL_KEYS_NEGO:REG_COL_KEYS).length}" style="padding:var(--s-12) var(--s-3);text-align:center">${
+    return `<tr><td colspan="${regColKeys().length}" style="padding:var(--s-12) var(--s-3);text-align:center">${
       typeof window.emptyStateHtml==='function'
         ? window.emptyStateHtml({ icon:'list', title:line, sub, action:btn })
         : `<div style="max-width:340px;margin:0 auto"><div style="font-size:var(--t-card);font-weight:var(--w-strong)">${line}</div>`
@@ -1604,56 +1729,40 @@ function regRowsHtml(cs){
   }
   const p=regCurPage(cs); const size=regPageSize(); const start=(p-1)*size;
   const pageRows=cs.slice(start, start+size);
-  /* THREE BANDS, IN FIXED ORDER, EACH WITH ITS OWN COUNT — and an empty one is
-     information ("Waiting on you · 0" is worth reading), which is why they are
-     drawn off the fixed list rather than off the rows that happen to exist.
-     Three bands over NOTHING is not information, and that case never reaches
-     here: with no live negotiation at all the page draws its empty state
-     instead of a table (see renderNegotiationsList). */
+  /* THE BANDS THAT HAVE ROWS, IN FIXED ORDER, EACH WITH ITS OWN COUNT.
+     ---- AN EMPTY GROUP IS NOT DRAWN (26 Sep 2026, the list options' floor —
+     "empty groups are not drawn") ---- this REVERSES "an empty one is
+     information": a heading over nothing read as a broken list, and the page
+     head already says how many are waiting on you. The order is still the
+     fixed one — a band is drawn where its first row is, never re-sorted. */
   const bandN=neg?negoBandCounts(pageRows):null;
-  let bandAt=neg?0:-1;
+  const drawn=new Set();
   const bandsBefore=k=>{
-    if(!neg) return '';
-    let out='';
-    while(bandAt<NEGO_BANDS.length && NEGO_BANDS[bandAt].k!==k){
-      out+=negoBandRowHtml(NEGO_BANDS[bandAt],bandN[NEGO_BANDS[bandAt].k]||0); bandAt++;
-    }
-    if(bandAt<NEGO_BANDS.length){ out+=negoBandRowHtml(NEGO_BANDS[bandAt],bandN[k]||0); bandAt++; }
-    return out;
+    if(!neg||drawn.has(k)) return '';
+    const b=NEGO_BANDS.find(x=>x.k===k)||NEGO_BANDS[NEGO_BANDS.length-1];
+    drawn.add(k);
+    return negoBandRowHtml(b,bandN[b.k]||0);
   };
-  const bandsAfter=()=>{
-    let out='';
-    while(neg && bandAt<NEGO_BANDS.length){
-      out+=negoBandRowHtml(NEGO_BANDS[bandAt],bandN[NEGO_BANDS[bandAt].k]||0); bandAt++;
-    }
-    return out;
-  };
+  const bandsAfter=()=>'';
   let lastBand=null;
-  /* THE SENTENCE RIDES THE HOVER, which is this product's own answer for a
-     fact about the machinery: the three that end a contract carry one line
-     each saying what they do, from END_STATES, so the menu and any other home
-     cannot word them differently. */
-  const actBtns=c=>REG_ROW_ACTIONS.filter(a=>!a.when||a.when(c)).map(a=>`<button data-act="${a.k}" data-id="${c.id}"${a.says?` title="${esc(a.says)}"`:''} class="reg-act${a.ruby?' danger':''}" style="display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;font:inherit;font-size:var(--t-meta);text-align:left;padding:6px 9px;border-radius:var(--radius);cursor:pointer;color:${a.ruby?'var(--st-ruby-fg)':'inherit'}">${window.icon?icon(a.ic,'w-3.5 h-3.5'):''}${a.label}</button>`).join('');
+  const actBtns=regRowActsHtml;
   return pageRows.map((c,i)=>{
     const eff=effectiveExpiry(c);
-    const din=eff?daysUntil(eff):null;
-    const renDate=eff?regDotDate(eff):'—';   // the artifact's "30 Jun 2027" shape
-    const renIn=din==null?'':(din<0?i18t('reg_days_over',{n:Math.abs(din)}):i18t('reg_in_days',{n:din}));
-    // urgency colour: red under 30 days (and overdue), gold under 90, else neutral
-    const renUrgent=din!=null&&din<30, renSoon=din!=null&&din>=30&&din<=90;
-    /* ---- ONE COLOUR PER EXPIRY CELL (the black ink, 24 Aug 2026) ----
-       The date and its "· N d" suffix are one fact read as one glance, and
-       the design draws the whole cell in one colour. HaTi drew the date in the
-       primary ink and the suffix in the LABEL ink, so an ordinary row carried
-       two greys inside a single cell — and the suffix was 14px text sitting on
-       the secondary shade, which this product's own four-shades rule reserves
-       for 11–13px. Urgent and soon already agreed (both halves ruby, both
-       amber); only the ordinary branch disagreed, and it now matches the date
-       beside it. THE URGENCY TONES ARE UNTOUCHED — the whole point of the cell
-       is that ruby and amber still mean what they mean. */
-    const renColor=din==null?'transparent':(renUrgent?'var(--st-ruby-fg)':renSoon?'var(--st-amber-fg)':'var(--color-neutral-700)');
-    const renDateColor=renUrgent?'var(--st-ruby-fg)':renSoon?'var(--st-amber-fg)':'var(--color-neutral-700)';
-    const val=!isMonetary(c)?'n/m':(c.value?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):'—');
+    /* ---- THE END OF THE TERM, IN WORDS, AND ONLY WHEN IT IS NEAR (26 Sep
+       2026) ---- regEndsSay is the one reading (the panel asks it too): the
+       day, then "in 45 days" inside the renewal window, "ended" once passed,
+       and nothing beside a far date. ONE COLOUR PER CELL still holds (the
+       black ink, 24 Aug 2026): ruby and amber mean what they always meant, and
+       an ordinary date reads in the cell's own ink. */
+    const ends=eff?regEndsSay(eff):null;
+    const renDate=ends?ends.day:(eff?regDotDate(eff):'—');
+    const renIn=ends?ends.sub:'';
+    const renDateColor=ends&&ends.tone==='ruby'?'var(--st-ruby-fg)':ends&&ends.tone==='amber'?'var(--st-amber-fg)':'var(--color-neutral-700)';
+    const renColor=renDateColor;
+    /* "NON-MONETARY", NOT "n/m" (26 Sep 2026, the list options' floor):
+       shorthand a reader had to decode, on the one cell whose whole job is to
+       be read at a glance. The word is the book's own (reg_non_monetary_word). */
+    const val=!isMonetary(c)?esc(i18t('reg_non_monetary_word')):(c.value?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):'—');
     /* The band header for the group this row opens, drawn once, ahead of it. */
     let band='';
     if(neg && c._ngBand!==lastBand){ band=bandsBefore(c._ngBand); lastBand=c._ngBand; }
@@ -1690,8 +1799,16 @@ function regRowsHtml(cs){
     const mv=regMoveWord(c);
     const CELL={};
     CELL.mk=`<td class="reg-mk">${c.id}</td>`;
-    CELL.stage=`<td style="white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:6px">${window.questionDot?questionDot(c.id):''}${window.contractStatusDotHtml?contractStatusDotHtml(c):(window.contractStatusChip?contractStatusChip(c):statusChip(c.status))}</span></td>`;
-    CELL.move=neg ? `<td style="text-align:right;white-space:nowrap">${negoMovePillHtml(c)}</td>`
+    /* IN THE INSPECTOR'S LIST WHOSE MOVE RIDES THE STAGE — "In review · your
+       move" — because the Move column is not drawn there. The one-word
+       reading is the same (regMoveWord); only where it is printed moves. */
+    const insOn=regInspecting();
+    const stageMove=(!neg&&insOn&&mv&&mv.k!=='clear')
+      ? `<span class="ins-mv is-${mv.k}">· ${esc(i18t(mv.k==='you'?'ins_your_move':'ins_their_move'))}</span>` : '';
+    CELL.stage=`<td style="white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:6px;min-width:0;max-width:100%">${window.questionDot?questionDot(c.id):''}${window.contractStatusDotHtml?contractStatusDotHtml(c):(window.contractStatusChip?contractStatusChip(c):statusChip(c.status))}${stageMove}</span></td>`;
+    CELL.move=neg ? (insOn&&typeof insMoveCellHtml==='function'
+        ? `<td style="white-space:nowrap">${insMoveCellHtml(c)}</td>`
+        : `<td style="text-align:right;white-space:nowrap">${negoMovePillHtml(c)}</td>`)
       : `<td style="white-space:nowrap">${mv?negoMovePillHtml(c):'<span class="reg-dash">—</span>'}</td>`;
     CELL.owner=`<td style="white-space:nowrap">${regOwnerCell(c)}</td>`;
     /* ---- THE ROW'S IDENTITY IS TWO LINES, AND THE COUNTERPARTY LEADS ----
@@ -1704,10 +1821,14 @@ function regRowsHtml(cs){
           title, the kind and the round, in that order — which is what keeps
           contracts-page-verify 1e true on the seat that draws no kind
           column. */
-    CELL.counterparty=`<td class="reg-cell-title" style="${c._famChild?'padding-left:30px':''}" title="${esc(pyAll||cpName)} · ${esc(regTitleOf(c))} · ${esc(kindRound)}">
+    /* regTitleOf ALREADY ESCAPES — it is the published markup reading — so
+       it is interpolated as it comes. Escaping it again printed "&amp;" on the
+       page wherever a title held an ampersand (26 Sep 2026, the list options'
+       floor: "names print &, never &amp;"). */
+    CELL.counterparty=`<td class="reg-cell-title" style="${c._famChild?'padding-left:30px':''}" title="${esc(pyAll||cpName)} · ${regTitleOf(c)} · ${esc(kindRound)}">
         <span style="display:flex;align-items:center;gap:9px;min-width:0">
         <span class="reg-title" style="min-width:0;flex:1;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:var(--t-body);font-weight:var(--w-body)" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc(c.parentId)}">↳ </span>`:''}${esc(cpName)}${pyTag}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:var(--w-body);font-size:var(--t-body);font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
-        </span><span class="reg-sub">${esc(regTitleOf(c))}</span>
+        </span><span class="reg-sub">${regTitleOf(c)}</span>
       </td>`;
     /* THE KIND AND THE ROUND ARE A COLUMN ON THE NEGOTIATIONS SEAT ALONE,
           built only where it is drawn (the `acts` column's own rule): a round
@@ -1719,7 +1840,7 @@ function regRowsHtml(cs){
           the `name` column's reason below. regStreamName stays: the sort by
           stream (in the dropdown) still reads it, and the CSV export keeps
           its own Folder column. */
-    CELL.value=`<td style="text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:var(--w-body);white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}">${val}</td>`;
+    CELL.value=`<td style="text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:var(--w-body);white-space:nowrap;${isMonetary(c)?'':'font-family:inherit;color:var(--color-neutral-600)'}"${isMonetary(c)?'':` title="${esc(i18t('reg_non_monetary'))}"`}>${val}</td>`;
     CELL.signed=`<td style="white-space:nowrap">${regSignedCell(c)}</td>`;
     CELL.expiry=`<td style="white-space:nowrap"><span class="reg-day" style="color:${renDateColor}">${renDate}</span>${renIn?` <span class="reg-day" style="color:${renColor}">· ${renIn}</span>`:''}</td>`;
     /* Built only on the seat that draws it: the Negotiations seat has no ⋯
@@ -1742,7 +1863,7 @@ function regRowsHtml(cs){
           label, and sorting by title is still offered there. */
     return band + `
     <tr data-row="${c.id}"${neg?' data-nego-row="1"':''} tabindex="${i===0?0:-1}"
-      style="cursor:pointer;animation-delay:${Math.min(i,14)*22}ms">${(neg?REG_COL_KEYS_NEGO:REG_COL_KEYS).map(k=>CELL[k]||'').join('')}
+      style="cursor:pointer;animation-delay:${Math.min(i,14)*22}ms">${regColKeys().map(k=>CELL[k]||'').join('')}
     </tr>`;
   }).join('')
     /* Any band with no rows under it still gets its header and its zero — and
@@ -1757,12 +1878,91 @@ function renderRegisterBody(){
      every search keystroke, sort and pager press, and rows that replay their
      fade-in per keystroke read as a flickering table. One intro, then still. */
   const tb=document.getElementById('reg-tbody'); if(tb){ tb.innerHTML=regRowsHtml(cs); wireRegRows(); }
-  const sh=document.getElementById('reg-showing'); if(sh){ sh.innerHTML=regFooterText(cs);
-    document.getElementById('reg-flat')?.addEventListener('click',()=>{ const R=regState(); R.flat=!R.flat; renderRegisterBody(); }); }
+  /* The fold's control is in the Display menu, which a body repaint does not
+     rebuild — so it is wired once, by the full render, never here. */
+  const sh=document.getElementById('reg-showing'); if(sh){ sh.innerHTML=regFooterText(cs); }
   const pgr=document.getElementById('reg-pager'); if(pgr){ pgr.innerHTML=regPager(cs); wireRegPager(); }
   /* The search narrows from the shell bar, which repaints only this body — so
      the way back has to follow it here rather than waiting for a full render. */
   regPaintClear();
+  /* A body repaint can take the chosen contract off the page (a search, a page
+     turn): the panel follows the list, never the other way round. */
+  regInsPaint();
+}
+/* ═══ THE LIST INSPECTOR ON THIS PAGE (26 Sep 2026) ═══════════════════════
+   The seat's own verbs, handed to the one panel builder (js/views/inspector.js).
+   OPEN IS NOT A NEW DOOR: "Open contract" is the row press the full table
+   makes (selectContract), "Open negotiation" is the Negotiations row's own
+   (regOpenRow), and the ⋯ is the row menu (regRowActsHtml / regRunRowAct).
+   One filled button per page — Draft new agreement, in the head — so the
+   panel's lead act wears the accent INK on the white face, the ladder's own
+   answer for a main act that is not the page's one. */
+function regInsSeat(){ return regScope()==='negotiations' ? 'negotiations' : 'contracts'; }
+function regInsActs(c){
+  if(!c) return [];
+  const neg=regScope()==='negotiations';
+  let mayNego=true; try{ mayNego=!window.negoMayStart||negoMayStart(c).ok; }catch(_){ mayNego=true; }
+  const started=!!(c.negotiation&&Array.isArray(c.changes));
+  const openC={ k:'open', label:i18t('ins_open_contract'), run:x=>selectContract(x.id) };
+  const openN={ k:'nego', label:i18t('ins_open_nego'), run:x=>regOpenRow(x.id,true) };
+  if(neg) return mayNego ? [Object.assign({kind:'accent'},openN), openC] : [Object.assign({kind:'accent'},openC)];
+  return (started&&mayNego&&typeof openRedlineWorkbench==='function')
+    ? [Object.assign({kind:'accent'},openC), openN] : [Object.assign({kind:'accent'},openC)];
+}
+function regInsPaint(){
+  const tb=document.getElementById('reg-tbody'); if(!tb) return;
+  if(!regInspecting()||typeof insPaintPanel!=='function'){ if(typeof insListOff==='function') insListOff(tb); return; }
+  const seat=regInsSeat();
+  const idOf=r=>r.getAttribute('data-row');
+  const id=insPick(seat,[...tb.querySelectorAll('[data-row]')].map(idOf));
+  insMarkRow(tb,'[data-row]',idOf,id);
+  const paint=pid=>{
+    const c=pid?getContract(pid):null;
+    let menu=''; if(c){ try{ menu=regRowActsHtml(c); }catch(_){ menu=''; } }
+    insPaintPanel({ seat, c, acts:regInsActs(c), menuHtml:menu,
+      onMenu:(act,cid)=>regRunRowAct(act,cid),
+      moveSuffix:true,
+      /* On Negotiations what is on the table leads — it is what that page is
+         for; on Contracts the facts lead. The drawing's own order. */
+      order:seat==='negotiations'?['table','facts','reads','latest']:['facts','table','reads','latest'],
+      empty:i18t('ins_none_rows') });
+  };
+  paint(id);
+  insListWire(tb,{ rowSel:'[data-row]', idOf,
+    onSelect:pid=>{ insSelect(seat,pid); insMarkRow(tb,'[data-row]',idOf,pid); paint(pid); },
+    onOpen:(pid,row)=>regOpenRow(pid,!!(row&&row.getAttribute('data-nego-row'))) });
+}
+/* ═══ DISPLAY (26 Sep 2026, the Inspector drawing) ═════════════════════════
+   One menu for what changes how the list is DRAWN and nothing about what is in
+   it: Table · Board, the row density, and whether amendments sit under their
+   agreement. They were two segments on the bar and a link in the foot; beside
+   the panel the bar has room for neither, and the foot is the count. Every
+   control inside is the one it replaced — same attribute, same store, same
+   repaint. The button opens and closes it; Escape and a press outside close
+   it. Table · Board and the fold are never drawn on the Negotiations seat, for
+   the reasons regMode and the foot give. */
+function regDisplayHtml(neg){
+  const R=regState();
+  const board=regMode()==='board';
+  const parts=[];
+  if(!neg) parts.push(`<div class="reg-dp-h">${esc(i18t('reg_display_show_as'))}</div>${
+    regSegHtml('data-reg-mode',[['table',i18t('reg_mode_table')],['board',i18t('reg_mode_board')]],regMode(),i18t('reg_mode_title'))}`);
+  if(!board) parts.push(`<div class="reg-dp-h">${esc(i18t('reg_density'))}</div>${
+    regSegHtml('data-reg-density',Object.keys(REG_DENSITY).map(k=>[k,i18t('reg_density_'+k)]),regDensity(),i18t('reg_density_title'))}`);
+  if(!neg&&!board){
+    const on=!R.flat;
+    parts.push(`<button type="button" id="reg-flat" class="reg-dp-row" aria-pressed="${on?'true':'false'}"><span class="reg-dp-ck${on?' on':''}" aria-hidden="true">${
+      on&&typeof icon==='function'?icon('check2','',2.4):''}</span><span>${esc(i18t('reg_nest_amendments'))}</span></button>`);
+  }
+  return `<span class="reg-display">
+    <button type="button" id="reg-display" class="reg-chip reg-chip-btn" aria-haspopup="true" aria-expanded="false" aria-controls="reg-display-pop" title="${esc(i18t('reg_display_title'))}">${
+      typeof icon==='function'?icon('columns','w-3.5 h-3.5'):''}${esc(i18t('reg_display'))}</button>
+    <div id="reg-display-pop" class="reg-display-pop" role="group" aria-label="${esc(i18t('reg_display'))}" hidden>${parts.join('')}</div>
+  </span>`;
+}
+function regCloseDisplay(){
+  const pop=document.getElementById('reg-display-pop'); if(pop&&!pop.hidden) pop.hidden=true;
+  const b=document.getElementById('reg-display'); if(b) b.setAttribute('aria-expanded','false');
 }
 function regCloseMenus(){ document.querySelectorAll('#reg-tbody [data-menu-pop]').forEach(m=>m.style.display='none'); }
 function wireRegRows(){
@@ -1770,19 +1970,14 @@ function wireRegRows(){
      page, where a row opens the NEGOTIATION. Same table, same builder, one
      different destination, decided off the row's own attribute rather than off
      the scope flag so a row can never disagree with the page that drew it. */
-  const openRow=el=>{
-    const id=el.getAttribute('data-row');
-    /* A ROW IS NOT GREYED — a table row that cannot open the negotiation
-       (sealed or archived paper, per negoMayStart) opens the CONTRACT instead,
-       which is where that row lands on the Contracts page; the negotiation's
-       record is on its History tab. The funnel would refuse anyway; this is
-       the row landing somewhere true rather than pressing a wall. */
-    const cRow=(typeof getContract==='function')?getContract(id):null;
-    const mayNego=!cRow||!window.negoMayStart||negoMayStart(cRow).ok;
-    if(el.getAttribute('data-nego-row')&&mayNego&&window.openRedlineWorkbench) openRedlineWorkbench(id);
-    else selectContract(id);
-  };
-  document.querySelectorAll('#reg-tbody [data-row]').forEach(el=>el.addEventListener('click',()=>openRow(el)));
+  /* WHAT OPENING MEANS IS regOpenRow — one answer for the row press, Enter,
+     a double-click and the list inspector's own button. A row that cannot
+     open the negotiation opens the contract; see regOpenRow. */
+  const openRow=el=>regOpenRow(el.getAttribute('data-row'), !!el.getAttribute('data-nego-row'));
+  /* IN THE INSPECTOR'S SHAPE A PRESS SELECTS, and the list's own hands are
+     insListWire's (regInsPaint arms them); the row press that opens is bound
+     only where the page draws its full table. */
+  if(!regInspecting()) document.querySelectorAll('#reg-tbody [data-row]').forEach(el=>el.addEventListener('click',()=>openRow(el)));
 
   /* ═══ ARROW KEYS THROUGH THE LIST — the single biggest "this feels fast"
      signal, and the one every benchmark has and HaTi did not ═══════════════
@@ -1808,6 +2003,9 @@ function wireRegRows(){
   if(tbody && !tbody.dataset.regKeysBound){
     tbody.dataset.regKeysBound='1';
     tbody.addEventListener('keydown',e=>{
+      /* The inspector's own keys answer in its shape (insListWire): a press
+         is answered once, never by both. */
+      if(tbody.getAttribute('data-ins-on')==='1') return;
       const row=e.target.closest && e.target.closest('[data-row]');
       if(!row) return;
       /* A control INSIDE the row owns its own keys — the ⋯ menu button and
@@ -1840,40 +2038,7 @@ function wireRegRows(){
   // ⋯ popover: toggle one open at a time
   document.querySelectorAll('#reg-tbody [data-menu]').forEach(btn=>btn.addEventListener('click',e=>{ e.stopPropagation(); const id=btn.getAttribute('data-menu'); const pop=document.querySelector('#reg-tbody [data-menu-pop="'+id+'"]'); const open=pop&&pop.style.display==='flex'; regCloseMenus(); if(pop&&!open) pop.style.display='flex'; }));
   document.querySelectorAll('#reg-tbody [data-act]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); regCloseMenus();
-    const id=b.getAttribute('data-id'), act=b.getAttribute('data-act'), c=getContract(id); if(!c) return;
-    if(act==='open') openWorkspace(id);
-    else if(act==='share') openShareModal(c);
-    else if(act==='scan') runScanFor(c);
-
-    else if(act==='archive'||act==='restore'){
-      if(window.contractSetArchived) contractSetArchived(c,act==='archive').then(ok=>{ if(ok) regRepaint(); });
-    }
-    /* THE REASON IS COMPULSORY, so the press asks for it before anything is
-       written — `contractSetHold` refuses an empty one, and a dialog is the
-       only honest way to collect it. Releasing needs none. Both go through the
-       one act; nothing here writes to the record. */
-    else if(act==='hold'||act==='release'){
-      if(!window.contractSetHold) return;
-      if(act==='release'){ contractSetHold(c,false,'').then(ok=>{ if(ok) regRepaint(); }); return; }
-      if(!window.promptDialog) return;
-      Promise.resolve(promptDialog({ title:i18t('hd_ask_title'), message:i18t('hd_ask_msg'),
-        placeholder:i18t('hd_ask_ph'), confirmLabel:i18t('hd_hold'), multiline:true }))
-        .then(why=>{ if(why==null) return;
-          contractSetHold(c,true,why).then(ok=>{ if(ok) regRepaint(); }); });
-    }
-    else if(act==='delete') deleteContract(id).then(ok=>{ if(ok){
-      /* The reader was three pages down when they pressed Delete; the row goes,
-         the place stays. renderRegister() rebuilds the whole view and hard-resets
-         R.page to 1, and the table scrolls inside #reg-scroll (not the outer
-         #content-scroll) — so repaint only the body, which keeps the current page
-         (clamping just if this page emptied), and put #reg-scroll back where it was. */
-      const sc=document.getElementById('reg-scroll'); const top=sc?sc.scrollTop:0;
-      renderRegisterBody();
-      const sc2=document.getElementById('reg-scroll');
-      if(sc2){ sc2.scrollTop=top;
-        if(typeof requestAnimationFrame==='function') requestAnimationFrame(()=>{ sc2.scrollTop=top; }); }
-    } });
-    else openWorkspace(id); // Export PDF / Decline & close are completed inside the workspace
+    regRunRowAct(b.getAttribute('data-act'), b.getAttribute('data-id'));
   }));
   // empty-state actions
   document.getElementById('reg-empty-clear')?.addEventListener('click',()=>{ const R=regState(); R.query=''; R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.category='all'; R.signed='all'; R.payterms='all'; R.docs='all'; R.hold='all'; R.only=null; R.page=1; const cs=document.getElementById('cmd-search'); if(cs) cs.value=''; regRepaint(); });
@@ -1916,6 +2081,10 @@ function renderRegister(opts){
   const neg=regScope()==='negotiations';
   const R=regState(); R.page=1;
   const cs=regFiltered();
+  /* WHICH SHAPE THIS PAINT DRAWS — the list inspector's, or the full table —
+     asked ONCE and recorded on the page (data-ins), so a width that crosses
+     the line repaints it (insWatchWidth) and nothing in one paint disagrees. */
+  const INS=regInspecting();
   const headHtml=typeof o.head==='function' ? o.head(cs) : (o.head||'');
   /* A select left on `appearance:auto` is drawn by the platform, and the
      platform draws it with a hard dark edge and a square corner whatever the
@@ -1994,7 +2163,11 @@ function renderRegister(opts){
        state) and where the caller asks for it always (Sort). At rest the chip
        is the word alone — the reference's own shape. */
     const face=((active||show)&&pick)?`${word} <b>${pick}</b>`:word;
-    return `<label class="reg-f reg-chip${active?' on':''}${show?' reg-chip-show':''}" title="${esc(title)}">${icon('filter','w-3 h-3')}<span class="reg-f-l">${face}</span><select id="${id}" class="reg-chip-sel" title="${esc(title)}">${opts}</select></label>`;
+    /* THE WORD AND ITS CARET, NO FUNNEL (26 Sep 2026, the Inspector drawing:
+       "Stage ⌄"). The bar sits on the list's own card now, beside the panel,
+       and the funnel on every chip cost the row the width it no longer has;
+       the caret (drawn by the sheet) already says the chip opens. */
+    return `<label class="reg-f reg-chip${active?' on':''}${show?' reg-chip-show':''}" title="${esc(title)}"><span class="reg-f-l">${face}</span><select id="${id}" class="reg-chip-sel" title="${esc(title)}">${opts}</select></label>`;
   };
   const stageOpts=REG_STAGES.map(s=>`<option value="${s.k}" ${R.stage===s.k?'selected':''}>${s.label}</option>`).join('');
   const typeOpts=regTypes().map(t=>`<option value="${t.k}" ${R.type===t.k?'selected':''}>${t.label}</option>`).join('');
@@ -2075,9 +2248,14 @@ function renderRegister(opts){
     .map(s=>`<option value="${s.k}" ${R.sort===s.k?'selected':''}>${s.label}</option>`).join('');
   // Clickable, sortable column header: shows a dim ↕ when inactive and a solid
   // ▲/▼ for the active sort direction. Clicking toggles asc/desc (see wiring below).
+  /* A SORT ARROW ONLY ON THE COLUMN THE LIST IS SORTED BY (26 Sep 2026, the
+     list options' floor). A dim ↕ on every other head was eight marks saying
+     "this can be sorted", which the pointer and the hover already say; one
+     arrow now answers the only question worth a mark — which way is it
+     sorted. The heads still sort on a press, by keyboard too. */
   const sortCaret=key=>R.sort===key
     ? `<span style="margin-left:var(--s-1);font-size:var(--t-figure);color:var(--accent-ink-700)">${R.dir===1?'▲':'▼'}</span>`
-    : `<span class="reg-sort-idle" style="margin-left:var(--s-1);font-size:var(--t-figure);color:var(--color-neutral-400)">↕</span>`;
+    : '';
   /* ---- A COLUMN HEAD IS A CONTROL, SO IT TAKES THE KEYBOARD ---- (25 Aug 2026)
      It carried a click, a pointer cursor and aria-sort — everything except a
      way to press it without a mouse. role="button" and a tab stop are what
@@ -2092,12 +2270,17 @@ function renderRegister(opts){
      buys. The last column gets none — it has nothing to its right. */
   const COLW=regColWidths();
   let _colN=0;
-  const gripFor=i=>(i>=COLW.length-1) ? '' :
+  /* IN THE INSPECTOR'S SHAPE the three short columns hold a width in pixels
+     and the counterparty takes the rest — and there are no grips: four
+     columns, one of them the give, have nothing worth dragging. */
+  const gripFor=i=>(INS||i>=COLW.length-1) ? '' :
     `<span class="reg-grip" data-reg-grip="${i}" role="separator" aria-orientation="vertical" tabindex="0"
        title="${esc(i18t('reg_col_drag'))}" aria-label="${esc(i18t('reg_col_drag'))}"></span>`;
-  const colAt=(extra='')=>{ const i=_colN++; return `width:${COLW[i]}%;${extra}`; };
-  const sortableTh=(key,label,extra='')=>{ const i=_colN;
-    return `<th class="reg-th-sort${R.sort===key?' active':''}" data-reg-sort="${key}" role="button" tabindex="0" title="${i18t('reg_sort_by',{col:label})}" aria-sort="${R.sort===key?(R.dir===1?'ascending':'descending'):'none'}" style="cursor:pointer;user-select:none;${colAt(extra)}">${label}${sortCaret(key)}${gripFor(i)}</th>`; };
+  const colAt=(extra='',k)=>{ const i=_colN++;
+    if(INS){ const px=REG_INS_COL_PX[k]; return `${px?`width:${px}px;`:''}${extra}`; }
+    return `width:${COLW[i]}%;${extra}`; };
+  const sortableTh=(key,label,extra='',k)=>{ const i=_colN;
+    return `<th class="reg-th-sort${R.sort===key?' active':''}" data-reg-sort="${key}" role="button" tabindex="0" title="${i18t('reg_sort_by',{col:label})}" aria-sort="${R.sort===key?(R.dir===1?'ascending':'descending'):'none'}" style="cursor:pointer;user-select:none;${colAt(extra,k)}">${label}${sortCaret(key)}${gripFor(i)}</th>`; };
   const catActive=!!(R.category&&R.category!=='all');
   /* ---- THE SIGNED FILTER'S OWN OPTIONS (J-5.1) ----
      "This year" and "Last year" lead, then the years this book was actually
@@ -2205,7 +2388,7 @@ function renderRegister(opts){
          a 4px grey band the full width of the page.
          The bottom stays a typed 14 — it is the gap above the table, not a
          join with anything. */}
-  <div class="view-enter${neg?' ngl-page':''}" style="height:var(--view-h);box-sizing:border-box;padding:var(--page-pad-t) var(--page-pad-x) 14px;display:flex;flex-direction:column">
+  <div class="view-enter${neg?' ngl-page':''}" data-ins-page="register" data-ins="${INS?'1':'0'}" style="height:var(--view-h);box-sizing:border-box;padding:var(--page-pad-t) var(--page-pad-x) 14px;display:flex;flex-direction:column">
     <style>
       /* ---- THE PROTOTYPE'S TABLE ----
          The reference is a rounded card with an uppercase 10px header band, p-4
@@ -2295,9 +2478,17 @@ function renderRegister(opts){
          which sheet won. The size is the reference's own micro rung; the
          ink stays HaTi's secondary rather than the reference's third,
          because the owner asked for less faint grey, not more. */
-      .reg-table th{text-align:left;font-size:var(--t-micro);font-weight:var(--w-title);
-        text-transform:uppercase;letter-spacing:.06em;
-        color:var(--color-neutral-500);padding:var(--s-2) var(--pad-row-x);
+      ${''/* ---- AND SENTENCE CASE AGAIN (Young picked the Inspector drawing,
+             26 Sep 2026) ---- the list options' floor: "plain column names,
+             and a sort arrow only on the column the list is sorted by". The
+             drawing's heads are ordinary words at the label size and weight
+             in the secondary ink, so the capitals and their tracking go —
+             this REVERSES 21 Sep's uppercase on the owner's later word, as
+             that ruling reversed 24 Aug's. The heads stay the heads by being
+             the one row set apart by a rule, not by shouting. */}
+      .reg-table th{text-align:left;font-size:var(--t-label);font-weight:var(--w-label);
+        text-transform:none;letter-spacing:0;
+        color:var(--color-neutral-600);padding:var(--s-2) var(--pad-row-x);
         border-bottom:1px solid var(--color-divider);white-space:nowrap;
         background:var(--color-surface)}
       /* ---- THE ROW IS THE DENSITY LEVER ----
@@ -2355,8 +2546,14 @@ function renderRegister(opts){
          pixels of height. It is the one place in a row where a size difference
          is carrying something. */
       .reg-table{--reg-row-h:36px}   /* the fallback; regDensityVars overrides it per render */
+      ${''/* THE REFERENCE IS NOT A LINK (26 Sep 2026, the list options' floor:
+             "the reference stops being link-blue; the whole row is the way
+             in"). It was the accent ink on every row, which read as a column
+             of links that each did the same thing as the row around them. The
+             row's own quiet ink now, and the accent only on the SELECTED row,
+             where it marks which contract the panel is describing. */}
       .reg-mk{font-family:var(--font-mono);font-size:var(--t-body);font-weight:var(--w-body);
-        color:var(--accent-ink-700);white-space:nowrap;font-variant-numeric:tabular-nums}
+        color:var(--color-neutral-600);white-space:nowrap;font-variant-numeric:tabular-nums}
       /* The status chip, flattened HERE and not at .badge — that class dresses
          every card, list and panel in the product, and this is a decision about
          a table row. The wash and the ink are untouched. */
@@ -2471,21 +2668,61 @@ function renderRegister(opts){
              15 both failed on it within the hour.
              --surface-2 draws on menus and drawers instead, where "a layer
              above the page" is the whole reading and no ruling covers it. */}
-      .reg-band{background:var(--color-surface);border-bottom:1px solid var(--color-divider);
-        margin:calc(var(--page-pad-t) * -1) calc(var(--page-pad-x) * -1) 0;
-        padding:var(--page-pad-t) var(--page-pad-x) 10px;
-        display:flex;flex-direction:column;gap:var(--s-2)}
-      /* AND THE PAGE'S NAME IS ON THE BAND WITH IT. The title, its sentence and
-         the one act are drawn by the SHELL into #page-head, which is a sibling
-         ABOVE #content and cannot be wrapped from in here — so it is painted
-         rather than moved. This rule lives in the register's own <style>, which
-         is injected with the register's markup and goes with it, so no other
-         view ever sees it: the page after this one gets its grey back with
-         nothing to remember. The two boxes butt exactly (the head's bottom IS
-         the content's top, measured), and the head runs 10px wider because it
-         sits outside the scroller — that 10px is the scrollbar gutter. */
-      #page-head{background:var(--color-surface)}
-      /* ---- AND THE BAND REACHES THE SCREEN'S EDGE (owner-reported 25 Aug
+      ${''/* ---- THE BAND IS ON THE PAGE GROUND NOW (Young picked the
+             Inspector drawing, 26 Sep 2026) ---- it held the head, the views
+             and the filters on one white ground bleeding to the screen's edge
+             (24–25 Aug, "make it one card"). The drawing puts the name and the
+             views on the page and the filters on the list's own card, which is
+             that ruling's point in the new shape: the filters and the rows
+             they narrow are one card. The class stays for what is still in
+             it, and so does #page-head's own ground — this sheet no longer
+             paints it white. */}
+      .reg-band{display:flex;flex-direction:column;gap:var(--s-2)}
+      ${''/* THE BODY: the list's card alone, or the card with the panel beside
+             it (the inspector's shape). Both columns scroll inside
+             themselves, so the page itself never does. */}
+      .reg-body{flex:1;min-height:0;display:flex;flex-direction:column}
+      .reg-body.is-ins{display:grid;grid-template-columns:minmax(0,1fr) var(--ins-panel-w,380px);gap:14px}
+      .reg-card{background:var(--color-surface);box-shadow:var(--shadow-sm);flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+      .reg-card > .reg-filterbar{flex:none;padding:10px 12px;border-bottom:1px solid var(--color-divider)}
+      ${''/* ONE LINE BESIDE THE PANEL, TOO (the owner's standing ruling for this
+             bar). The list's card is narrower there, so the one chip with a
+             long value — Sort, which always says what it sorts by — gives way
+             first: it starts from a short basis, grows back to its own width
+             where there is room, and cuts its value with an ellipsis where
+             there is not (the whole value is on its hover). Only then would
+             the row wrap. */}
+      .reg-body.is-ins .reg-filterbar .reg-chip-show{flex:1 1 128px;max-width:max-content;min-width:0}
+      .reg-body.is-ins .reg-filterbar .reg-chip-show .reg-f-l{min-width:0;flex:0 1 auto}
+      ${''/* THE SELECTED ROW (the inspector's shape): the accent's own wash and
+             a 2px accent edge at the row's start — the drawing's own mark — so
+             the reader can always tell which contract the panel describes.
+             color-mix, not a light-only tint, so it has a night answer. */}
+      .reg-table tbody tr.is-sel td{background:color-mix(in srgb,var(--color-accent) 8%,transparent)}
+      .reg-table tbody tr.is-sel td:first-child{box-shadow:inset 2px 0 0 var(--accent-solid)}
+      .reg-table tbody tr.is-sel .reg-mk{color:var(--accent-ink)}
+      ${''/* THE DISPLAY MENU: a card that hangs under its button at the bar's
+             right, the platform's own dropdown dress (the corner, the hairline,
+             the shadow), above the table's sticky head. */}
+      .reg-display{position:relative;flex:none}
+      .reg-display-pop{position:absolute;right:0;top:calc(100% + 6px);z-index:40;min-width:250px;
+        background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);
+        box-shadow:0 10px 28px color-mix(in srgb,var(--color-text) 16%,transparent);
+        padding:10px 12px 8px;display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+      .reg-display-pop[hidden]{display:none}
+      .reg-dp-h{font-size:var(--t-micro);text-transform:uppercase;letter-spacing:.09em;color:var(--color-neutral-600);margin-top:2px}
+      .reg-display-pop .reg-seg{align-self:flex-start}
+      .reg-dp-row{display:flex;align-items:center;gap:8px;border:0;background:none;font:inherit;font-size:var(--t-body);
+        color:var(--color-text);padding:6px 0 2px;cursor:pointer;text-align:left;min-height:var(--tap-min);white-space:nowrap}
+      .reg-dp-ck{width:14px;height:14px;border:1px solid var(--rule-strong);border-radius:var(--radius);display:inline-grid;place-items:center;flex:none;color:#fff}
+      .reg-dp-ck.on{background:var(--accent-fill);border-color:var(--accent-fill)}
+      .reg-dp-ck svg{width:10px;height:10px}
+      .reg-dp-row:focus-visible{outline:2px solid var(--accent-solid);outline-offset:2px;border-radius:var(--radius)}
+      /* HISTORY SINCE 26 SEP 2026 — the band paints no ground any more (see
+         .reg-band above). What still stands of the note below is the gutter:
+         this view owns its height, so VIEW_OWNS_HEIGHT still takes the
+         scrollbar channel off it.
+         ---- AND THE BAND REACHES THE SCREEN'S EDGE (owner-reported 25 Aug
          2026, off two screenshots: "remove the separation strip in the top two
          cards and make it one card just like in the negotiations page", and
          "the top white cards should cover all the way to the end of the
@@ -2525,18 +2762,27 @@ function renderRegister(opts){
       .reg-th-sort:hover .reg-sort-idle{color:var(--accent-ink-700)}
       .reg-th-sort.active{color:var(--accent-ink)!important}
     </style>
-    <div style="display:flex;flex-direction:column;gap:var(--s-2);flex:1;min-height:0">
-      ${''/* THE BAND — the page's own name, its filters and its search on one
-             white ground, with the table's card below it on the page grey. */}
+    <div style="display:flex;flex-direction:column;gap:var(--s-3);flex:1;min-height:0">
+      ${''/* ---- THE PAGE'S NAME AND ITS VIEWS SIT ON THE PAGE, AND THE FILTERS
+             SIT ON THE LIST (Young picked the Inspector drawing, 26 Sep 2026)
+             ---- The drawing puts the title, its facts line and the view tabs
+             on the page ground, and the filter bar INSIDE the list's own card
+             as its top row — the tools that narrow a table sit on that table.
+             This REVERSES the white band of 24–25 Aug ("make it one card");
+             that ruling's point survives in the new shape — the filters and
+             the rows they narrow are one card — and the band's class stays
+             for the two things still in it. THE VIEWS ARE NEVER DRAWN ON THE
+             NEGOTIATIONS SEAT: "Ending in 90 days" and "Archived" are
+             questions about the book, not about a live negotiation. */}
       <div class="reg-band">
       ${headHtml}
-      ${BAR.includes('view')?regViewTabsHtml(R):''}
-      <!-- THE ONE FILTER BAR: stage · stream · quick filter · category · renewal ·
-           clear,
-           then sort, full-text search (server mode) and the export — a single
-           compact strip where three tiers of pills used to stack, so the table
-           itself starts above the fold. -->
-      <div class="reg-filterbar" style="display:flex;flex-wrap:wrap;gap:var(--s-2) 10px;align-items:flex-end">
+      ${(!neg&&BAR.includes('view'))?regViewTabsHtml(R):''}
+      </div>
+      <div class="reg-body${INS?' is-ins':''}">
+      <section class="blueprint bp-round reg-card${regMode()==='board'?' reg-board-wrap':''}">
+      <!-- THE ONE FILTER BAR: the chosen filters, More filters, Clear, then
+           Sort and Display — one row on the list's own card. -->
+      <div class="reg-filterbar" style="display:flex;flex-wrap:wrap;gap:var(--s-2);align-items:center">
         ${lockChip}
         ${onlyChip}
         ${ftsBlock}
@@ -2598,8 +2844,14 @@ function renderRegister(opts){
                dropdown says one. Same three densities (regSetDensity), same
                store, same repaint. Table · Board is never drawn on the
                Negotiations seat — see regMode. */}
-        ${neg?'':regSegHtml('data-reg-mode',[['table',i18t('reg_mode_table')],['board',i18t('reg_mode_board')]],regMode(),i18t('reg_mode_title'))}
-        ${regMode()==='board'?'':regSegHtml('data-reg-density',Object.keys(REG_DENSITY).map(k=>[k,i18t('reg_density_'+k)]),regDensity(),i18t('reg_density_title'))}
+        ${''/* ---- TABLE · BOARD, COZY · COMPACT AND THE AMENDMENT FOLD ARE ONE
+               DISPLAY MENU (26 Sep 2026, the Inspector drawing) ----
+               They change how the list is DRAWN, never what is in it, and as
+               two segments they no longer fit on the list's own card beside
+               the filters — the bar is one row by the owner's standing ruling.
+               Same segments (regSegHtml), same stores, same repaints; one more
+               press away, which the drawing named. */}
+        ${regDisplayHtml(neg)}
         ${''/* ---- AND NO NOTE UNDER THE SORT (M-5) ----
                Owner-reported in the same breath: *"remove the 'sorts within
                each group' writing."* It said that sorting on this page runs
@@ -2610,10 +2862,8 @@ function renderRegister(opts){
                key removed from one and not the other is how a screen ends up
                half-English. */}
       </div>
-      </div>
 
       ${regMode()==='board'?`
-      <section class="blueprint bp-round reg-board-wrap" style="background:var(--color-surface);box-shadow:var(--shadow-sm);flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden">
         <div id="reg-scroll" style="flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;padding:var(--s-3)">
           ${(typeof pipeBoardHtml==='function')?pipeBoardHtml(cs,{legend:false}):''}
         </div>
@@ -2627,14 +2877,11 @@ function renderRegister(opts){
                  beside its colour bar, which is the fact the key explained.
                  My Queue — a separate page drawing the same board, and not
                  named — keeps its key: `legend:false` is asked only here. */}
-        </div>
-      </section>`:`
-      <section class="blueprint bp-round" style="background:var(--color-surface);box-shadow:var(--shadow-sm);flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden">
-
+        </div>`:`
         <div id="reg-scroll" style="flex:1;min-height:0;overflow:auto">
           <!-- The whole density mode rides on ONE element as three custom
                properties, so nothing below has to know which mode is on. -->
-          <table class="reg-table" data-reg-density="${regDensity()}" style="${regDensityVars(regDensity())}">
+          <table class="reg-table${INS?' is-ins':''}" data-reg-density="${regDensity()}" style="${regDensityVars(regDensity())}">
             <thead>
               <!-- THE PROTOTYPE'S SEVEN, with the tracking number added in front.
                    Sorting is kept on the four columns that carried it before —
@@ -2685,23 +2932,28 @@ function renderRegister(opts){
                 ${''/* THE HEAD IS EMITTED IN THE SEAT'S OWN KEY ORDER (second
                        pass, 21 Sep 2026), exactly as the row is, so the two
                        cannot disagree about which column is which. */}
-                ${(neg?REG_COL_KEYS_NEGO:REG_COL_KEYS).map(k=>{
-                  if(k==='mk') return sortableTh('ref','MK');
-                  if(k==='counterparty') return sortableTh('party',i18t('reg_col_counterparty'));
+                ${''/* ---- PLAIN COLUMN NAMES (26 Sep 2026, the list options' floor)
+                       ---- "Ref" not "MK", "Stage" not "Status", "Owner" not
+                       "Own", "Ends" not "Expiry date", and the head that
+                       holds two lines names both. In sentence case — see the
+                       head's own rule in the style above. */}
+                ${regColKeys().map(k=>{
+                  if(k==='mk') return sortableTh('ref',i18t('reg_col_ref'),'',k);
+                  if(k==='counterparty') return sortableTh('party',i18t('reg_col_party'),'',k);
                   /* The head names the LEADING line, and the press sorts by
                          it: the counterparty is what a reader scans down this
                          column. Sorting by title is still offered — in the
                          sort dropdown, which has carried a sort with no column
                          of its own (`risk`) since it was built. */
-                  if(k==='kind') return sortableTh('kind',i18t('reg_col_type_round'));
-                  if(k==='value') return sortableTh('value',i18t('reg_col_value'),'text-align:right');
-                  if(k==='signed') return sortableTh('signed',i18t('reg_col_signed'));
-                  if(k==='expiry') return sortableTh('expiry',i18t('reg_col_expiry'));
-                  if(k==='stage') return sortableTh('stage',i18t('reg_col_status'));
-                  if(k==='move') return neg ? (()=>{ const i=_colN; return `<th style="text-align:right;${colAt()}">${i18t('ngl_col_move')}${gripFor(i)}</th>`; })()
-                    : sortableTh('move',i18t('reg_col_move'));
-                  if(k==='owner') return sortableTh('owner',i18t('reg_col_owner'));
-                  return (()=>{ const i=_colN; return `<th style="text-align:right;${colAt()}">${gripFor(i)}</th>`; })();
+                  if(k==='kind') return sortableTh('kind',i18t('reg_col_type_round'),'',k);
+                  if(k==='value') return sortableTh('value',i18t('reg_col_value'),'text-align:right',k);
+                  if(k==='signed') return sortableTh('signed',i18t('reg_col_signed'),'',k);
+                  if(k==='expiry') return sortableTh('expiry',i18t('reg_col_ends'),'',k);
+                  if(k==='stage') return sortableTh('stage',i18t('reg_col_stage'),'',k);
+                  if(k==='move') return neg ? (()=>{ const i=_colN; return `<th style="${INS?'':'text-align:right;'}${colAt('',k)}">${i18t('ngl_col_move')}${gripFor(i)}</th>`; })()
+                    : sortableTh('move',i18t('ngl_col_move'),'',k);
+                  if(k==='owner') return sortableTh('owner',i18t('reg_col_owner_word'),'',k);
+                  return (()=>{ const i=_colN; return `<th style="text-align:right;${colAt('',k)}">${gripFor(i)}</th>`; })();
                 }).join('')}
               </tr>
             </thead>
@@ -2731,13 +2983,27 @@ function renderRegister(opts){
                  books. The Board view's key went the same day (the Board branch
                  above), and later that day the stream COLUMN itself went too
                  (see REG_COL_KEYS) — the Stream filter stays. */}
-        </div>
-      </section>`}
+        </div>`}
+      </section>
+      ${''/* THE PANEL — js/views/inspector.js paints it (regInsPaint), and it is
+             drawn only in the inspector's shape. */}
+      ${INS?`<aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside>`:''}
+      </div>
     </div>
   </div>`;
 
   wireRegRows();
   wireRegPager();
+  regInsPaint();
+  if(typeof insWatchWidth==='function') insWatchWidth();
+  {
+    const dBtn=document.getElementById('reg-display'), dPop=document.getElementById('reg-display-pop');
+    dBtn?.addEventListener('click',e=>{ e.stopPropagation(); if(!dPop) return;
+      const open=dPop.hidden; dPop.hidden=!open; dBtn.setAttribute('aria-expanded',open?'true':'false');
+      if(open){ const f=dPop.querySelector('button'); if(f) f.focus({preventScroll:true}); } });
+    dPop?.addEventListener('keydown',e=>{ if(e.key!=='Escape') return; e.stopPropagation(); regCloseDisplay(); dBtn&&dBtn.focus({preventScroll:true}); });
+    document.getElementById('reg-flat')?.addEventListener('click',()=>{ const R=regState(); R.flat=!R.flat; regRepaint(); });
+  }
   const si=document.getElementById('reg-search');
   if(si){
     si.addEventListener('input',()=>{ R.query=si.value; R.page=1; renderRegisterBody(); if(API_MODE()) ftsSearch(si.value); });
@@ -2760,6 +3026,7 @@ function renderRegister(opts){
       const live=document.getElementById('reg-search');
       if(box&&!box.contains(e.target)&&e.target!==live) box.classList.add('hidden');
       if(!e.target.closest('[data-menu-pop]')&&!e.target.closest('[data-menu]')) regCloseMenus();
+      if(!e.target.closest('.reg-display')) regCloseDisplay();
     });
   }
   /* ---- "ADAPT FILTERS" ----
@@ -2939,6 +3206,9 @@ function ftsSearch(q){
 }
 Object.assign(window,{regSignedOn,regSignedYear,regSignedYears,regSignedCell,
   REG_COL_KEYS,REG_COL_KEYS_NEGO,REG_COL_W,REG_COL_W_NEGO,REG_COL_MIN_PX,
+  /* the list inspector (26 Sep 2026) */
+  REG_COL_KEYS_INS,REG_COL_KEYS_NEGO_INS,REG_INS_COL_PX,regInspecting,regColKeys,regInsSeat,regInsActs,regInsPaint,
+  regRowActsHtml,regRunRowAct,regOpenRow,regDisplayHtml,regCloseDisplay,REG_SOON_DAYS,regEndsSay,
   regColWidths,regColSetWidths,regColReset,regColDefaults,regColTrade,regColApply,regWireColResize,
   REG_CMP,REG_SORT_DEFDIR,regBlanksLast,regStreamName,regRefParts,regNarrowed,regClearHtml,regPaintClear,
   REG_BAR_FILTERS,REG_BAR_DEFAULT,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,regViewCount,REG_SAVED_KEY,REG_SAVED_FIELDS,regSavedViews,regSaveView,regForgetView,regApplySaved,regSavedMatches,regHeadFactsHtml,regPaintHeadFacts,regMoveWord,regOwnerCell,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regMode,regSetMode,regViewTabsHtml,regSegHtml,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,regEndAct,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,negoMoveSay,regShowOnly,regPaintCohort,renderRegister,renderRegisterBody,wireRegRows,

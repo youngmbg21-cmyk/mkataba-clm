@@ -105,8 +105,11 @@ describe('F97 — one builder, so the two tables cannot disagree', () => {
        Stream FILTER stays (f379 pins it). The two builder claims below are
        about every head and still stand. */
     assert.ok(!/sortableTh\('stream',/.test(reg), 'the register draws no value-stream head');
-    assert.match(reg, /const sortableTh=\(key,label,extra=''\)=>\{[\s\S]{0,400}gripFor\(i\)/);
-    assert.match(reg, /const colAt=\(extra=''\)=>\{ const i=_colN\+\+; return `width:\$\{COLW\[i\]\}%/);
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the list inspector): the builder takes
+       the column's key as well, so the inspector's shape can hand a head its
+       pixel width; the full table's heads still take theirs off the one list. */
+    assert.match(reg, /const sortableTh=\(key,label,extra='',k\)=>\{[\s\S]{0,400}gripFor\(i\)/);
+    assert.match(reg, /const colAt=\(extra='',k\)=>\{ const i=_colN\+\+;[\s\S]{0,160}return `width:\$\{COLW\[i\]\}%/);
   });
 
   /* ONE LEGEND, AND IT IS THE FOLDER PAGE'S. Both tables used to carry it. The
@@ -178,8 +181,11 @@ describe('F97 — one builder, so the two tables cannot disagree', () => {
          the seat's own answer. */
       /* '8' is the FOLDER page's own table (the stream drawer), which is not
          the register and keeps its eight. */
-      assert.ok(v === '8' || v === '${(neg?REG_COL_KEYS_NEGO:REG_COL_KEYS).length}'
-        || v === '${REG_COL_KEYS_NEGO.length}',
+      /* RE-POINTED IN PLACE 26 Sep 2026 (the list inspector): a full-width row
+       spans regColKeys(), the ONE reading of which columns this paint draws —
+       the seat's full list, or the inspector's four. Still the table's own
+       count, never a literal. */
+      assert.ok(v === '8' || v === '${regColKeys().length}',
         `a full-width row spans ${v}, which is not a count either table draws`);
     }
     /* THE BAND ROW IS THE NEGOTIATIONS SEAT'S OWN — it only ever draws there.
@@ -188,10 +194,11 @@ describe('F97 — one builder, so the two tables cannot disagree', () => {
        have spanned a column the table no longer draws. It reads the seat's own
        key list now, which is the relation this was always claiming. */
     const band = reg.slice(reg.indexOf('function negoBandRowHtml'));
-    assert.match(band.slice(0, band.indexOf('\n}')), /colspan="\$\{REG_COL_KEYS_NEGO\.length\}"/);
+    assert.match(band.slice(0, band.indexOf('\n}')), /colspan="\$\{regColKeys\(\)\.length\}"/);
     /* And the register's own empty row follows the seat rather than a number. */
-    /* The seat's own key list is the count since 21 Sep 2026. */
-    assert.match(reg, /colspan="\$\{\(neg\?REG_COL_KEYS_NEGO:REG_COL_KEYS\)\.length\}"/);
+    /* The seat's own key list is the count since 21 Sep 2026 — asked through
+       regColKeys since 26 Sep, so the inspector's shape spans its own four. */
+    assert.match(reg, /colspan="\$\{regColKeys\(\)\.length\}"/);
   });
 });
 

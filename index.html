@@ -2364,20 +2364,25 @@
      come apart again. The fallback is today's measured 35px, for the one
      reader that never runs script. */
   .ngl-band > td{ padding:0!important; border-bottom:0!important;
-    background:var(--color-bg); position:sticky; top:var(--reg-head-h,35px); z-index:2; }
+    background:var(--color-surface); position:sticky; top:var(--reg-head-h,35px); z-index:2; }
   .reg-table tbody tr.ngl-band:hover{ background:none; }
-  .ngl-band-in{ display:flex; align-items:center; gap:9px; padding:7px var(--s-4);
-    border-top:1px solid var(--color-divider); border-bottom:1px solid var(--color-divider); }
+  .ngl-band-in{ display:flex; align-items:center; gap:8px; padding:9px var(--s-3) 7px;
+    border-bottom:1px solid var(--color-divider); }
   .ngl-band-dot{ width:8px; height:8px; border-radius:50%; flex:none; }
-  .ngl-band-k{ font-size:var(--t-micro); font-weight:var(--w-title); letter-spacing:.09em; text-transform:uppercase;
-    color:var(--color-neutral-600); }
-  /* NO BOX (21 Sep 2026). The reference writes the count into the heading —
-     "WAITING ON YOU · 3" — and a pill round it is a second shape for a fact
-     the words already carry. It keeps the heading's own ink and caps so the
-     line reads as one thing, and the mono numerals so a column of bands
-     lines up. */
-  .ngl-band-n{ font-family:var(--font-mono); font-size:var(--t-micro); font-weight:var(--w-title);
-    letter-spacing:.09em; color:var(--color-neutral-600); }
+  /* ---- A GROUP IS NAMED IN ORDINARY WORDS (Young picked the Inspector
+     drawing, 26 Sep 2026) ---- "Waiting on you 6": the group's name in the
+     page's own ink at the row's size and the strong weight, and its count
+     beside it in the quiet ink. It REVERSES 21 Sep's small capitals the way
+     the column heads were reversed, on the owner's later drawing — a band is
+     a heading over rows, and the heads above it are words now. The band still
+     sits on the list's own white, pinned under the head, one rule below it. */
+  .ngl-band-k{ font-size:var(--t-body); font-weight:var(--w-strong); letter-spacing:0; text-transform:none;
+    color:var(--color-text); }
+  /* NO BOX (21 Sep 2026), and no middle dot since 26 Sep: the count reads
+     beside the words in the quiet ink, the mono numerals kept so a column of
+     bands lines up. */
+  .ngl-band-n{ font-family:var(--font-mono); font-size:var(--t-body); font-weight:var(--w-label);
+    letter-spacing:0; color:var(--color-neutral-600); }
   /* ---- ITS TITLE STARTS WHERE EVERY OTHER PAGE'S DOES (owner-asked 25 Aug
      2026: "the distance between the edge at the top and the header should be
      the same across all pages") ----
@@ -6998,6 +7003,10 @@
   /* The register carries seven columns and a pager, so it needs its floor a
      little earlier than the rest — but still only where it cannot fit. */
   @media (max-width:1099px){ #reg-scroll>table{min-width:760px;} }
+  /* THE INSPECTOR'S LIST CARRIES NO FLOOR (26 Sep 2026): four columns sized to
+     fit beside the panel, drawn only where they do (INS_MIN_W). A floor meant
+     for the nine-column table pushed its value column out of sight. */
+  #reg-scroll>table.reg-table.is-ins{min-width:0;}
 
   /* ---- ANCHORED POPOVERS STAY ON SCREEN ----
      Row menus and the export menu are position:absolute with a fixed width, so
@@ -8521,6 +8530,104 @@
   .reg-table th.reg-th-sort.active{color:var(--accent-ink);}
   .reg-board-wrap .board-cols{flex:1;min-height:0;}
   .reg-board-wrap .pipe-col{min-height:200px;}
+
+  /* ═══ THE LIST INSPECTOR (Young picked it by name, 26 Sep 2026, off the
+     "Contract List Options" page, option 3) ═══════════════════════════════
+     The panel beside the Contracts, Negotiations and Approvals lists. ONE
+     SHEET FOR ALL THREE PAGES — js/views/inspector.js builds the panel for
+     each of them, so its dressing lives here rather than in any one page's
+     injected style. Every value is a token: the card is the platform's own
+     (the 8px card corner, the hairline, the surface), the head names the
+     contract at the drawer head's rung, labels are the micro caps, and the
+     tones are the product's ruby / amber / green. --ins-panel-w is the
+     panel's width at every window the shape is drawn at: never under 340
+     (INS_MIN_W in the script is derived from that floor), never over 400. */
+  :root{ --ins-panel-w:clamp(340px,28vw,400px); }
+  .ins-panel{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-sm);min-height:0;overflow:auto;overscroll-behavior:contain;font-size:var(--t-body);color:var(--color-text);}
+  .ins-h{padding:18px 20px 16px;border-bottom:1px solid var(--color-divider);}
+  .ins-eb{font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ins-eb .ins-ref{font-family:var(--font-mono);font-variant-numeric:tabular-nums;}
+  .ins-cp{margin:4px 0 0;font-size:var(--t-section);font-weight:var(--w-title);letter-spacing:-.01em;line-height:1.25;color:var(--color-text);
+    display:flex;align-items:center;gap:4px;min-width:0;}
+  .ins-cp-n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ins-sub{color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ins-st{display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap;min-width:0;}
+  .ins-mv{font-weight:var(--w-label);white-space:nowrap;}
+  .ins-mv.is-you{color:var(--st-amber-fg);}
+  .ins-mv.is-them{color:var(--color-neutral-600);}
+  .ins-acts{display:flex;align-items:center;gap:var(--btn-group-gap);margin-top:14px;flex-wrap:wrap;}
+  .ins-more-wrap{position:relative;display:inline-flex;}
+  .ins-menu{position:absolute;right:0;top:calc(100% + 4px);z-index:30;width:200px;padding:var(--s-1);display:flex;flex-direction:column;
+    background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);
+    box-shadow:0 10px 28px color-mix(in srgb,var(--color-text) 16%,transparent);}
+  .ins-menu[hidden]{display:none;}
+  .ins-menu .reg-act:hover{background:var(--nav-well);}
+  .ins-facts{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px 16px;margin:0;padding:16px 20px;border-bottom:1px solid var(--color-divider);}
+  .ins-facts > div{min-width:0;}
+  .ins-facts dt{font-size:var(--t-micro);text-transform:uppercase;letter-spacing:.09em;color:var(--color-neutral-600);font-weight:var(--w-body);}
+  .ins-facts dd{margin:3px 0 0;font-weight:var(--w-title);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ins-facts dd.none{color:var(--color-neutral-500);font-weight:var(--w-body);}
+  .ins-facts dd .sub{font-weight:var(--w-body);color:var(--color-neutral-600);}
+  .ins-facts dd .sub.is-amber{color:var(--st-amber-fg);font-weight:var(--w-label);}
+  .ins-facts dd .sub.is-ruby{color:var(--st-ruby-fg);font-weight:var(--w-label);}
+  .ins-sec{padding:14px 20px;border-bottom:1px solid var(--color-divider);}
+  .ins-sec:last-child{border-bottom:0;}
+  .ins-sec h3{margin:0 0 8px;font-size:var(--t-meta);font-weight:var(--w-title);color:var(--color-text);display:flex;gap:6px;align-items:baseline;}
+  .ins-sec h3 .n{color:var(--color-neutral-600);font-weight:var(--w-label);}
+  .ins-ask{padding:8px 0;border-top:1px solid var(--rule);min-width:0;}
+  .ins-ask:first-of-type{border-top:0;padding-top:0;}
+  .ins-ask b{display:block;font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ins-ask span{display:block;color:var(--color-neutral-600);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .ins-ask em{display:block;font-style:normal;color:var(--color-neutral-600);font-size:var(--t-meta);margin-top:1px;}
+  .ins-ask em .over{color:var(--st-amber-fg);font-weight:var(--w-label);}
+  .ins-read{display:grid;grid-template-columns:auto minmax(0,1fr);gap:7px 10px;align-items:center;}
+  .ins-read span{min-width:0;color:var(--color-neutral-700);}
+  .ins-read span b{font-weight:var(--w-label);color:var(--color-text);}
+  .ins-dot{width:16px;height:16px;border-radius:50%;display:grid;place-items:center;font-style:normal;color:#fff;box-sizing:border-box;
+    border:1.5px solid var(--rule-strong);background:transparent;}
+  .ins-dot.is-green{background:var(--st-green-dot);border-color:var(--st-green-dot);}
+  .ins-dot.is-amber{background:var(--st-amber-dot);border-color:var(--st-amber-dot);}
+  .ins-dot.is-ruby{background:var(--st-ruby-dot);border-color:var(--st-ruby-dot);}
+  .ins-dot svg{width:10px;height:10px;}
+  .ins-log{margin:0;padding:0;list-style:none;}
+  .ins-log li{display:flex;gap:10px;padding:4px 0;color:var(--color-text);min-width:0;}
+  .ins-log li .t{min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .ins-log li .w{margin-left:auto;flex:none;color:var(--color-neutral-600);font-size:var(--t-meta);white-space:nowrap;}
+  .ins-note{margin:0;color:var(--color-neutral-600);font-size:var(--t-meta);}
+  .ins-empty{border-bottom:0;padding:28px 20px;}
+  /* A VIEW WITH NOTHING IN IT STAYS QUIET (26 Sep 2026, the list options'
+     floor): its count is not printed and the word reads in the quiet ink.
+     500 is the faintest a WORD may read here (400 fails AA as text). */
+  .reg-vtab.is-zero{color:var(--color-neutral-500);}
+  /* A KEY AND ITS VALUE INSIDE A PANEL SECTION — the approval's own facts
+     on the Approvals page's panel. The facts grid's own dress, without its
+     padding and rule, because it sits inside a section that has both. */
+  .ins-kv{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px 16px;margin:0;}
+  .ins-kv > div{min-width:0;}
+  .ins-kv dt{font-size:var(--t-micro);text-transform:uppercase;letter-spacing:.09em;color:var(--color-neutral-600);font-weight:var(--w-body);}
+  .ins-kv dd{margin:3px 0 0;font-weight:var(--w-title);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ins-kv dd.late{color:var(--st-ruby-fg);}
+  .ins-holds{margin-top:6px;}
+  /* THE APPROVALS PAGE IN THE INSPECTOR'S SHAPE: the page owns its height
+     like the register, the list's card and the panel scroll inside
+     themselves, and the selected row wears the register's own mark. */
+  .ap-page.is-ins{height:var(--view-h);box-sizing:border-box;}
+  .ap-body.is-ins{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) var(--ins-panel-w);gap:14px;}
+  .ap-body.is-ins .ap-card{min-height:0;overflow:auto;display:flex;flex-direction:column;}
+  .ap-body.is-ins .ap-card > .ap-table{flex:none;}
+  .ap-body.is-ins .ap-foot{margin-top:auto;position:sticky;bottom:0;background:var(--color-surface);}
+  .ap-table.ap-ins{table-layout:fixed;}
+  .ap-table.ap-ins th{position:sticky;top:0;z-index:1;background:var(--color-surface);text-transform:none;letter-spacing:0;
+    font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600);}
+  .ap-table.ap-ins td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ap-table.ap-ins .ap-name,.ap-table.ap-ins .ap-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ap-table .ap-sub.late{color:var(--st-ruby-fg);}
+  .ap-table tbody tr[data-ap-row]:focus{outline:none;}
+  .ap-table tbody tr[data-ap-row]:focus-visible td{box-shadow:inset 0 2px 0 var(--focus-color),inset 0 -2px 0 var(--focus-color);}
+  .ap-table tbody tr.is-sel td{background:color-mix(in srgb,var(--color-accent) 8%,transparent);}
+  .ap-table tbody tr.is-sel td:first-child{box-shadow:inset 2px 0 0 var(--accent-solid);}
+  .ap-table tbody tr.is-sel td.mono{color:var(--accent-ink);}
 
   /* ═══ THE CONTRACT ROOM'S HEAD CARD (20 Sep 2026, step 4 of the redesign
      order) — ONE builder, roomHeadHtml, dresses both heads, so every rule

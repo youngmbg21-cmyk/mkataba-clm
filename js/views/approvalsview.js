@@ -98,10 +98,73 @@ function apTableHtml(head, rows, empty){
   if(!rows.length) return `<div class="ap-empty">${esc(empty)}</div>`;
   return `<table class="ap-table"><thead><tr>${head.map(h=>`<th${h.right?' class="r"':''}>${esc(h.t)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>`;
 }
+/* ═══ THE LIST INSPECTOR ON THIS PAGE (Young asked for it 26 Sep 2026, with
+   the Contracts and Negotiations lists) ═════════════════════════════════════
+   The same shape as those two pages: a narrower list, one contract's facts in
+   a panel beside it, a press to select and a second press — the panel's own
+   button, Enter, a double-click — to open. js/views/inspector.js draws the
+   panel and owns the keys; this page hands it the contract, its own section
+   and its own verbs.
+   IT STILL DECIDES NOTHING. The panel's lead act is this page's own verb —
+   apOpenSigning, the Signing tab where the gate and the Sign button are — and
+   "Open contract" is the register's own open. approveContract,
+   rejectApprovalStep and signDocument are still not called from this file. */
+function apInsSeat(tab){ return tab==='signatures'?'signatures':'approvals'; }
+function apLeadHtml(tab, r){
+  if(!r) return '';
+  const kv=(label,val,cls)=>`<div><dt>${esc(label)}</dt><dd${cls?` class="${cls}"`:''}${val?` title="${esc(val)}"`:''}>${val?esc(val):'—'}</dd></div>`;
+  if(tab==='approvals'){
+    const waits=r.notAsked?i18t('sa_pg_not_asked'):(r.waitsOn||'');
+    return insSecHtml(i18t('ins_ap_sec'),'',`<dl class="ins-kv">${
+      kv(i18t('ap_pg_rule'),r.rule&&r.rule!=='—'?r.rule:'')}${
+      kv(i18t('ins_ap_waits'),waits)}${
+      kv(i18t('ap_pg_asked_by'),r.who||'')}${
+      kv(i18t('ap_pg_waiting'),apWaitingText(r.idle),r.idle>=3?'late':'')}</dl>${
+      r.ruleSub?`<p class="ins-note" style="margin-top:8px">${esc(r.ruleSub)}</p>`:''}`,'ins-lead');
+  }
+  /* WHAT STANDS BETWEEN THIS READER AND SIGNING, borrowed from the Signing
+     tab's own list (signReadiness) — the first three holds, then a count. A
+     light record says so rather than guessing (`light`, the list's own rule). */
+  if(r.kind==='ready') return insSecHtml(i18t('ins_sg_sec'),'',`<p class="ins-note">${esc(i18t('ap_pg_ready_sign',{who:r.by||r.c.counterparty||''}))}</p>`,'ins-lead');
+  let holds=[];
+  try{ if(typeof signReadiness==='function') holds=(signReadiness(r.c,{light:!!r.c._light}).holds||[]); }catch(_){ holds=[]; }
+  const say=h=>String(h.short||h.label||h.title||'').trim();
+  const list=holds.map(say).filter(Boolean);
+  return insSecHtml(i18t('ins_sg_sec'),'',`<p class="ins-note">${esc(i18tn('ap_pg_to_settle',r.n,{n:r.n}))}</p>${
+    list.length?`<ul class="ins-log ins-holds">${list.slice(0,3).map(t=>`<li><span class="t" title="${esc(t)}">${esc(t)}</span></li>`).join('')}</ul>${
+      list.length>3?`<p class="ins-note">${esc(i18tn('ins_more_asks',list.length-3,{n:list.length-3}))}</p>`:''}`:''}`,'ins-lead');
+}
+function apInsActs(tab, r){
+  if(!r) return [];
+  const lead=tab==='approvals'
+    ? { k:'gate', kind:'accent', label:r.mine?i18t('ap_pg_open_gate'):i18t('ap_pg_open'), title:i18t('ap_pg_gate_title'), run:c=>apOpenSigning(c.id) }
+    : { k:'sign', kind:'accent', label:i18t('ap_pg_open_signing'), title:i18t('ap_pg_sign_title'), run:c=>apOpenSigning(c.id) };
+  return [lead, { k:'open', label:i18t('ins_open_contract'), run:c=>selectContract(c.id) }];
+}
+function apInsPaint(tab, rows){
+  const tb=document.querySelector('.ap-table tbody');
+  const seat=apInsSeat(tab);
+  const idOf=tr=>tr.getAttribute('data-ap-row');
+  const id=insPick(seat, tb?[...tb.querySelectorAll('[data-ap-row]')].map(idOf):[]);
+  if(tb) insMarkRow(tb,'[data-ap-row]',idOf,id);
+  const paint=pid=>{
+    const r=rows.find(x=>x.c.id===pid)||null;
+    insPaintPanel({ seat, c:r?r.c:null, acts:apInsActs(tab,r), lead:apLeadHtml(tab,r), moveSuffix:false,
+      order:['lead','facts','reads','latest'],
+      empty:tab==='approvals'?i18t('ap_pg_none_approvals'):i18t('ap_pg_none_sign') });
+  };
+  paint(id);
+  if(tb) insListWire(tb,{ rowSel:'[data-ap-row]', idOf,
+    onSelect:pid=>{ insSelect(seat,pid); insMarkRow(tb,'[data-ap-row]',idOf,pid); paint(pid); },
+    onOpen:pid=>apOpenSigning(pid) });
+}
 function renderApprovalsPage(){
   const tab=apTab();
   const ap=apApprovalRows(), sg=apSignatureRows();
   const money=!(typeof canViewValues==='function'&&!canViewValues());
+  /* WHICH SHAPE — asked once, recorded on the page (data-ins) so a width
+     that crosses the line repaints it. */
+  const INS=(typeof insFits==='function')&&insFits()&&typeof insPaintPanel==='function';
   const apHead=[{t:'MK'},{t:i18t('reg_col_title')},{t:i18t('ap_pg_rule')},{t:i18t('ap_pg_asked_by')},{t:i18t('ap_pg_waiting')},...(money?[{t:i18t('reg_col_value'),right:true}]:[]),{t:''}];
   const apRowsHtml=ap.map(r=>`<tr data-ap-row="${esc(r.c.id)}">
       <td class="mono">${esc(r.c.id)}</td>
@@ -120,26 +183,58 @@ function renderApprovalsPage(){
       ${money?`<td class="r mono">${apValueCell(r.c)}</td>`:''}
       <td class="r"><button type="button" class="ui-btn ui-btn-sm ap-go" data-ap-open="${esc(r.c.id)}" title="${esc(i18t('ap_pg_sign_title'))}">${esc(i18t('ap_pg_open_signing'))}</button></td>
     </tr>`);
+  /* ---- THE INSPECTOR'S LIST: four columns, the verbs in the panel ----
+     The reference, the counterparty over the agreement (the register's own
+     identity cell, so the three lists read alike), what waits, and the value.
+     The row's Open button moves to the panel — it is the panel's lead act —
+     and nothing a person could press is lost. */
+  const ident=c=>`<td><span class="ap-name">${esc(c.counterparty||'—')}</span><span class="ap-sub">${esc(c.name||'')}</span></td>`;
+  const insHead=[{t:i18t('reg_col_ref'),w:84},{t:i18t('reg_col_party')},{t:tab==='approvals'?i18t('ins_col_approval'):i18t('ap_pg_what_waits'),w:250},...(money?[{t:i18t('reg_col_value'),right:true,w:124}]:[])];
+  const insAp=ap.map(r=>{
+    const waits=r.mine?(r.ruleSub||''):(r.notAsked?i18t('sa_pg_not_asked'):i18t('ap_pg_waiting_on',{who:r.waitsOn||'—'}));
+    return `<tr data-ap-row="${esc(r.c.id)}" tabindex="-1">
+      <td class="mono">${esc(r.c.id)}</td>${ident(r.c)}
+      <td><span class="ap-name">${esc(r.rule)}</span><span class="ap-sub${r.idle>=3?' late':''}">${esc([waits,apWaitingText(r.idle)].filter(Boolean).join(' · '))}</span></td>
+      ${money?`<td class="r mono">${apValueCell(r.c)}</td>`:''}
+    </tr>`; });
+  const insSg=sg.map(r=>`<tr data-ap-row="${esc(r.c.id)}" tabindex="-1">
+      <td class="mono">${esc(r.c.id)}</td>${ident(r.c)}
+      <td>${r.kind==='sign'?esc(i18tn('ap_pg_to_settle',r.n,{n:r.n})):esc(i18t('ap_pg_ready_sign',{who:r.by||r.c.counterparty||''}))}</td>
+      ${money?`<td class="r mono">${apValueCell(r.c)}</td>`:''}
+    </tr>`);
+  const insTable=(rows,empty)=>rows.length
+    ? `<table class="ap-table ap-ins"><colgroup>${insHead.map(h=>`<col${h.w?` style="width:${h.w}px"`:''}>`).join('')}</colgroup><thead><tr>${insHead.map(h=>`<th${h.right?' class="r"':''}>${esc(h.t)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>`
+    : `<div class="ap-empty">${esc(empty)}</div>`;
   const n=tab==='approvals'?ap.length:sg.length;
   const tabBtn=(k,label,count)=>`<button type="button" class="st-tab${tab===k?' on':''}" data-ap-tab="${k}" role="tab" aria-selected="${tab===k?'true':'false'}">${esc(label)}${count?` <span class="ap-n">${count}</span>`:''}</button>`;
-  document.getElementById('content').innerHTML=`
-  <div class="view-enter ap-page">
-    <div class="st-tabs" role="tablist">
-      ${tabBtn('approvals',i18t('ap_pg_tab_approvals'),ap.length)}
-      ${tabBtn('signatures',i18t('ap_pg_tab_signatures'),sg.length)}
-    </div>
-    <section class="ap-card">
-      ${tab==='approvals'?apTableHtml(apHead,apRowsHtml,i18t('ap_pg_none_approvals')):apTableHtml(sgHead,sgRowsHtml,i18t('ap_pg_none_sign'))}
+  const body=INS
+    ? (tab==='approvals'?insTable(insAp,i18t('ap_pg_none_approvals')):insTable(insSg,i18t('ap_pg_none_sign')))
+    : (tab==='approvals'?apTableHtml(apHead,apRowsHtml,i18t('ap_pg_none_approvals')):apTableHtml(sgHead,sgRowsHtml,i18t('ap_pg_none_sign')));
+  const card=`<section class="ap-card">
+      ${body}
       <div class="ap-foot">
         <span>${esc(i18tn('ap_pg_foot',n,{n}))}</span>
         ${(typeof isAdmin==='function'&&isAdmin()&&typeof openSettingsAt==='function')?`<button type="button" class="ui-btn ui-btn-plain" data-ap-rules>${esc(i18t('ap_pg_rules'))}${(typeof icon==='function')?icon('chevR','w-3.5 h-3.5'):''}</button>`:''}
       </div>
-    </section>
+    </section>`;
+  document.getElementById('content').innerHTML=`
+  <div class="view-enter ap-page${INS?' is-ins':''}" data-ins-page="approvals" data-ins="${INS?'1':'0'}">
+    <div class="st-tabs" role="tablist">
+      ${tabBtn('approvals',i18t('ap_pg_tab_approvals'),ap.length)}
+      ${tabBtn('signatures',i18t('ap_pg_tab_signatures'),sg.length)}
+    </div>
+    ${INS?`<div class="ap-body is-ins">${card}<aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div>`:card}
   </div>`;
   document.querySelectorAll('[data-ap-tab]').forEach(b=>b.addEventListener('click',()=>{ apSetTab(b.getAttribute('data-ap-tab')); renderApprovalsPage(); }));
-  document.querySelectorAll('[data-ap-open]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); apOpenSigning(b.getAttribute('data-ap-open')); }));
-  document.querySelectorAll('[data-ap-row]').forEach(tr=>tr.addEventListener('click',()=>apOpenSigning(tr.getAttribute('data-ap-row'))));
   document.querySelector('[data-ap-rules]')?.addEventListener('click',()=>openSettingsAt('platform','approvals'));
+  if(INS){
+    apInsPaint(tab, tab==='approvals'?ap:sg);
+    if(typeof insWatchWidth==='function') insWatchWidth();
+  } else {
+    document.querySelectorAll('[data-ap-open]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); apOpenSigning(b.getAttribute('data-ap-open')); }));
+    document.querySelectorAll('[data-ap-row]').forEach(tr=>tr.addEventListener('click',()=>apOpenSigning(tr.getAttribute('data-ap-row'))));
+  }
   setActiveNav('approvals');
 }
-Object.assign(window,{AP_TABS,apTab,apSetTab,apSaWaiting,apApprovalRows,apSignatureRows,approvalsDoorCount,renderApprovalsPage,apOpenSigning});
+Object.assign(window,{AP_TABS,apTab,apSetTab,apSaWaiting,apApprovalRows,apSignatureRows,approvalsDoorCount,renderApprovalsPage,apOpenSigning,
+  apInsSeat,apLeadHtml,apInsActs,apInsPaint});
