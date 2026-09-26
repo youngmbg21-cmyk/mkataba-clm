@@ -16,8 +16,10 @@
 
    Every claim is GATED on the thing it measures being on the page, so a build
    without the feature REPORTS its failures rather than timing out. Controls
-   pass on both sides by design and are named. AT THE PARENT (486b7b0) 27 of
-   31 FAIL — the page has no panel, a press opens the contract, the heads
+   pass on both sides by design and are named. AT THE PARENT (486b7b0) 28 of
+   32 FAIL (2e was added after the first build; at 3cc28b1, that build, it is
+   the one failure — the counterparty column 504px on Contracts and 536px on
+   Negotiations) — the page has no panel, a press opens the contract, the heads
    read "MK | Counterparty | Status | Move | …", the page prints "&amp;" and
    "n/m" (1i and 1j are the drawing's floor, and they bite), the head says
    "29 agreements", three buttons are filled. The four that pass are the
@@ -94,6 +96,7 @@ const ok = (name, good, detail) => {
     const shape = await page.evaluate(() => ({
       ins: document.querySelector('[data-ins-page]') ? document.querySelector('[data-ins-page]').getAttribute('data-ins') : null,
       heads: [...document.querySelectorAll('.reg-table thead th')].map(t => t.textContent.replace(/[▲▼↕]/g, '').trim()),
+      widths: [...document.querySelectorAll('.reg-table thead th')].map(t => +t.getBoundingClientRect().width.toFixed(1)),
       panel: !!document.getElementById('ins-panel'),
       sel: (document.querySelector('#reg-tbody tr.is-sel') || { getAttribute: () => null }).getAttribute('data-row'),
       pid: (document.getElementById('ins-panel') || { getAttribute: () => null }).getAttribute('data-ins-id'),
@@ -213,6 +216,7 @@ const ok = (name, good, detail) => {
     const ng = await page.evaluate(() => ({
       ins: document.querySelector('[data-ins-page]')?.getAttribute('data-ins'),
       heads: [...document.querySelectorAll('.reg-table thead th')].map(t => t.textContent.replace(/[▲▼↕]/g, '').trim()),
+      widths: [...document.querySelectorAll('.reg-table thead th')].map(t => +t.getBoundingClientRect().width.toFixed(1)),
       moves: [...document.querySelectorAll('#reg-tbody tr[data-row] .ngl-w')].map(x => x.textContent.trim()),
       bands: [...document.querySelectorAll('#reg-tbody .ngl-band-k')].map(x => x.textContent.trim()),
       views: !!document.querySelector('.reg-views'),
@@ -225,6 +229,14 @@ const ok = (name, good, detail) => {
     ok('2c only the groups that have rows are drawn, and no Contracts views', !ng.bands.includes('Nothing outstanding') && !ng.views, ng.bands.join(' | '));
     ok('2d the panel leads with what is on the table', ng.first === 'ins-sec ins-table' && /Round \d+ · \d+/.test(ng.table) && /from .+ · \d+ days?/.test(ng.table),
       `${ng.first} · ${ng.table.replace(/\s+/g, ' ').slice(0, 120)}`);
+    /* BALANCE ACROSS THE TWO PAGES, as the full tables have kept it since 21
+       Sep: the reference, the counterparty and the value are cut identically
+       in pixels, so a reader moving between the pages sees the same edges.
+       Red at 3cc28b1, where whose move was narrower than a stage and the
+       counterparty 32px wider on this seat. */
+    const shared = [0, 1, 3].map(i => [shape.widths && shape.widths[i], ng.widths && ng.widths[i]]);
+    ok('2e the columns both pages share are cut identically, in pixels — reference, counterparty, value',
+      shared.every(([a, b]) => a > 0 && b > 0 && Math.abs(a - b) <= 0.5), shared.map(([a, b]) => `${a}/${b}`).join(' · '));
     await page.screenshot({ path: path.join(OUT, '2-negotiations-1440.png') });
 
     /* ================= 3 · APPROVALS & SIGNING ================= */

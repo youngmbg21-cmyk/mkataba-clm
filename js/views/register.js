@@ -644,10 +644,15 @@ const REG_COL_W_NEGO    = [6,39,14,9,13,11,8];
    full table is drawn exactly as the two lists above say.
    THE WIDTHS ARE PIXELS HERE, NOT SHARES, and there are no grips: three short
    columns hold their size and the counterparty takes whatever is left, which
-   is what "the column with the give" has always meant on this table. */
+   is what "the column with the give" has always meant on this table.
+   THE THIRD COLUMN IS ONE WIDTH ON BOTH SEATS (26 Sep 2026), so the three
+   columns the two pages share — the reference, the counterparty, the value —
+   are cut identically in pixels, the full tables' own relation since 21 Sep
+   ("balance is key": a reader moving between the pages sees the same
+   edges). Whose move is shorter than a stage and simply has more air. */
 const REG_COL_KEYS_INS      = ['mk','counterparty','stage','value'];
 const REG_COL_KEYS_NEGO_INS = ['mk','counterparty','move','value'];
-const REG_INS_COL_PX = { mk:84, stage:216, move:184, value:124 };
+const REG_INS_COL_PX = { mk:84, stage:216, move:216, value:124 };
 function regInspecting(){ return regMode()!=='board' && typeof insFits==='function' && insFits(); }
 /* THE ONE READING OF WHICH COLUMNS THIS PAINT DRAWS — the head, the rows, an
    empty row's span and a band's span all ask it, so a column can never sit

@@ -201,14 +201,27 @@ const HELPERS = `(() => {
       await page.setViewportSize({ width: W, height: 820 });
       await page.evaluate(() => setView('approvals'));
       await page.waitForTimeout(1200); await load();
+      /* RE-POINTED IN PLACE 26 Sep 2026 (the list Inspector): from about a
+         1104 window the page draws a list and a panel, and the row buttons
+         MOVE into the panel as its lead act — "Open the gate" is drawn once,
+         for the chosen row. The claim is where the words are drawn, so it
+         reads the row buttons where there are rows of them and the panel's
+         lead act where there is a panel. The panel's is the everyday rung, so
+         its one-line height is that rung read live (--ctl-h), never the row
+         rung's 26. */
       const r = await page.evaluate(() => { const b = window.__b;
-        const go = [...document.querySelectorAll('.ap-go')].filter(b.vis);
-        return { n: go.length, bad: go.filter(x => b.lines(x) > 1 || x.getBoundingClientRect().height > 26).map(x => b.label(x) + ':' + Math.round(x.getBoundingClientRect().height)) }; });
+        const rung = (() => { const e = document.createElement('i'); e.style.cssText = 'position:absolute;left:-9999px;display:block;height:var(--ctl-h)';
+          document.body.appendChild(e); const h = e.getBoundingClientRect().height; e.remove(); return h; })();
+        const rows = [...document.querySelectorAll('.ap-go')].filter(b.vis).map(x => ({ x, max: 26 }));
+        const lead = [...document.querySelectorAll('#ins-panel [data-ins-act="gate"]')].filter(b.vis).map(x => ({ x, max: rung + 1 }));
+        const go = rows.concat(lead);
+        return { n: go.length, where: lead.length ? 'panel' : 'rows',
+          bad: go.filter(g => b.lines(g.x) > 1 || g.x.getBoundingClientRect().height > g.max).map(g => b.label(g.x) + ':' + Math.round(g.x.getBoundingClientRect().height)) }; });
       squeeze.push({ W, ...r });
       if (W === 1024) await page.screenshot({ path: path.join(OUT, '03-approvals-1024.png') });
     }
     ok('1a the Approvals page\'s "Open the gate" stays one line under long titles, at 1024 to 1440',
-      squeeze.every(s => s.n > 0 && s.bad.length === 0), squeeze.map(s => `${s.W}: ${s.n} buttons${s.bad.length ? ' — ' + s.bad.join(', ') : ''}`).join(' · '));
+      squeeze.every(s => s.n > 0 && s.bad.length === 0), squeeze.map(s => `${s.W}: ${s.n} in the ${s.where}${s.bad.length ? ' — ' + s.bad.join(', ') : ''}`).join(' · '));
 
     await page.setViewportSize({ width: 1024, height: 820 });
     const wrapped = [];

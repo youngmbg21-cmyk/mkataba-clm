@@ -11,9 +11,9 @@
    names with one sort arrow, a quiet reference, quiet empty views, no empty
    groups, no Contracts views on Negotiations, one filled button per page.
 
-   RED AT THE PARENT (486b7b0): 31 of 33, MEASURED in a worktree at that
-   commit (2k was added after the first build and is also red at 3cc28b1,
-   its own parent). The two that pass are named: 5c is a [wall] (the Approvals page
+   RED AT THE PARENT (486b7b0): 32 of 34, MEASURED in a worktree at that
+   commit (2k and 3d were added after the first build and are also red at
+   3cc28b1, their own parent). The two that pass are named: 5c is a [wall] (the Approvals page
    decides nothing, on both sides by design) and 5d a [control] (below the
    width line the old table and its row buttons are still there). 1b and 2i
    are the panel's own "reading must not write" and fail at the parent only
@@ -304,6 +304,20 @@ describe('f387 (3) the Negotiations list in the inspector’s shape', () => {
     assert.ok(b.$('#ins-panel [data-ins-act="nego"]').classList.contains('ui-btn-accent'), 'accent ink, never a second filled button');
     b.$('#reg-tbody tr[data-row="MK-7"]').dispatchEvent(evt(b.win, 'dblclick'));
     assert.deepEqual(b.calls.pop(), ['nego', 'MK-7']);
+  });
+
+  test('3d the columns the two seats share are cut identically — the third column is one width on both', () => {
+    /* The full tables' own relation since 21 Sep ("balance is key"): a reader
+       moving between Contracts and Negotiations sees the same edges. In the
+       inspector's shape three columns are fixed and the counterparty takes
+       the rest, so the counterparty is identical on both seats only if the
+       third column is. Red at 3cc28b1 (stage 216, move 184). */
+    const b = world([fixture('MK-9')], { ins: true });
+    const px = b.win.REG_INS_COL_PX;
+    assert.ok(px && px.stage > 0, 'the widths are published');
+    assert.equal(px.move, px.stage, 'whose move takes the stage column\'s width');
+    const keys = [...b.win.REG_COL_KEYS_INS, ...b.win.REG_COL_KEYS_NEGO_INS];
+    for (const k of keys) if (k !== 'counterparty') assert.ok(px[k] > 0, k + ' holds a pixel width; only the counterparty gives');
   });
 });
 

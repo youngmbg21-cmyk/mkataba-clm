@@ -78,6 +78,14 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go');
     await page.waitForTimeout(2400);
+    /* THE FULL TABLE IS STAGED (re-pointed in place 26 Sep 2026): from about a
+       1104 window the Negotiations page draws the list Inspector — a press
+       SELECTS and the panel follows, whose move carries the fact behind it —
+       which inspector-verify measures. This file is about the list's own
+       door, its bands, its one-word cell and a press that OPENS, which is the
+       full table's behaviour at every narrower window; insForce(false) is
+       the page's own stage door onto it, in memory (the page loads once). */
+    await page.evaluate(() => { if (window.insForce) insForce(false); });
 
     /* ---- 1. THE DOOR IS IN THE SIDEBAR, SECOND ---- */
     const door = await page.evaluate(seen => {
@@ -281,14 +289,22 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       /* RE-POINTED IN PLACE 24 Sep 2026: seven since the value stream column
          left both seats — the count is the seat's own key list (list.keys),
          and the LAST column is still whose move. */
-      list.cols.length === list.keys && list.cols[0] === 'MK' && /Whose move/i.test(list.cols[list.cols.length - 1] || ''),
+      /* RE-POINTED IN PLACE 26 Sep 2026: the reference column says "Ref" —
+         plain column names, the list options' floor, on both shapes. */
+      list.cols.length === list.keys && list.cols[0] === 'Ref' && /Whose move/i.test(list.cols[list.cols.length - 1] || ''),
       list.cols.join(' | '));
-    check('three bands, in fixed order, each a full-width row of its own',
-      list.bands.length === 3
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the list options' floor: "empty groups
+       are not drawn"): a band is drawn only where it has rows, still in the
+       fixed order and still a full-width row of its own. This stage has one
+       live negotiation, waiting on this reader, so the one band is Waiting on
+       you — asked of the ORDER the three always keep, never a count of three. */
+    const BAND_ORDER = [/Waiting on you/i, /other side/i, /Nothing outstanding/i];
+    const bandAt = b => BAND_ORDER.findIndex(re => re.test(b.k || ''));
+    check('the bands with rows, in fixed order, each a full-width row of its own — and no empty one',
+      list.bands.length >= 1
         && /Waiting on you/i.test(list.bands[0].k || '')
-        && /other side/i.test(list.bands[1].k || '')
-        && /Nothing outstanding/i.test(list.bands[2].k || '')
-        && list.bands.every(b => b.w > 400),
+        && list.bands.every((b, i) => bandAt(b) >= 0 && (i === 0 || bandAt(b) > bandAt(list.bands[i - 1])))
+        && list.bands.every(b => b.w > 400 && Number(String(b.n || '').replace(/\D/g, '')) > 0),
       list.bands.map(b => `${b.k} ${b.n} ${b.w}px`).join(' · '));
     check('and a band is not a row — nothing to press, nothing to open',
       list.bands.every(b => b.role === 'presentation' && b.press === 0 && !b.row),

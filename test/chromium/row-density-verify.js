@@ -52,7 +52,15 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
      every claim below is asked of the segments instead of the select. */
   const live  = () => page.evaluate(() => { const b = document.querySelector('button[data-reg-density][aria-pressed="true"]');
                                             return b ? b.getAttribute('data-reg-density') : null; });
-  const set   = async v => { await page.click(`button[data-reg-density="${v}"]`); await page.waitForTimeout(450); };
+  /* RE-POINTED IN PLACE 26 Sep 2026 (the list Inspector drawing): the three
+     segments moved into ONE Display menu beside Sort, with Table · Board and
+     the amendment fold — the same buttons, the same attribute, the same store
+     and repaint — so a press opens the menu first, exactly as a reader's does.
+     Pressing a segment repaints the page, which draws the menu shut again. */
+  const set   = async v => {
+    const shut = await page.evaluate(() => { const p = document.getElementById('reg-display-pop'); return !p || p.hidden; });
+    if (shut && await page.$('#reg-display')) await page.click('#reg-display');
+    await page.click(`button[data-reg-density="${v}"]`); await page.waitForTimeout(450); };
 
   console.log('\n1 · the control');
   ok('drawn', await page.evaluate(() => !!document.querySelector('button[data-reg-density]')));

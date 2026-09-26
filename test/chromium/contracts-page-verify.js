@@ -49,6 +49,14 @@ const check = (name, ok, detail) => {
     await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go');
     await page.waitForTimeout(3000);
+    /* THE FULL TABLE IS STAGED (re-pointed in place 26 Sep 2026): from about
+       a 1104 window the page draws the list Inspector — four columns, a panel
+       beside them, a press that SELECTS — which inspector-verify measures.
+       Everything here is about the FULL table (its columns, its row menu, its
+       widths, its sorts), which the page still draws at every narrower
+       window; insForce(false) is the page's own stage door onto it, held in
+       memory for this sitting. The page loads once, so it holds for the file. */
+    await page.evaluate(() => { if (window.insForce) insForce(false); });
     await page.evaluate(() => setView('register'));
     await page.waitForTimeout(1500);
     await page.screenshot({ path: path.join(OUT, '01-contracts.png') });
@@ -246,7 +254,16 @@ const check = (name, ok, detail) => {
       check('7a with nothing live it draws its empty card, not a bare table', neg.empty);
     }
 
-    /* ============ 8. THE FILTER AREA IS ONE WHITE BAND ============ */
+    /* ============ 8. THE FILTERS SIT ON THE LIST'S OWN CARD ============
+       REVERSED IN PLACE 26 Sep 2026 (Young picked the list Inspector drawing,
+       option 3 of "Contract List Options"): the drawing puts the page's name,
+       its facts line and the views on the PAGE GROUND, and the filter bar
+       INSIDE the list's own white card as its top row — the tools that narrow
+       a table sit on that table. That reverses the white band of 24–25 Aug
+       ("make it one card"), whose four claims stood here. Its point survives
+       in the new shape and is what is asked now: the filters and the rows
+       they narrow are ONE card, with no seam between them, and the card sits
+       on the page's own inset, level with the page's name. */
     await page.evaluate(() => setView('register'));
     await page.waitForTimeout(1500);
     const band = await page.evaluate(() => {
@@ -254,22 +271,34 @@ const check = (name, ok, detail) => {
         const r = e.getBoundingClientRect(), c = getComputedStyle(e);
         return { top: Math.round(r.top), bottom: Math.round(r.bottom),
           left: Math.round(r.left), w: Math.round(r.width), bg: c.backgroundColor }; };
+      const paint = v => { const d = document.createElement('div'); d.style.background = 'var(' + v + ')';
+        document.body.appendChild(d); const c = getComputedStyle(d).backgroundColor; d.remove(); return c; };
       const f = [...document.querySelectorAll('.reg-f')];
+      const h1 = document.querySelector('#page-head h1');
+      const range = h1 ? (() => { const r = document.createRange(); r.selectNodeContents(h1); return r.getBoundingClientRect(); })() : null;
       return { head: box('#page-head'), band: box('.reg-band'), body: box('.reg-table'),
+        card: box('.reg-card'), bar: box('.reg-card > .reg-filterbar'),
+        surface: paint('--color-surface'), ground: paint('--color-bg'),
+        titleLeft: range ? Math.round(range.left) : null,
         first: f.length ? (f[0].querySelector('.reg-f-l') || {}).textContent : null,
         tops: f.map(x => Math.round(x.getBoundingClientRect().top)),
         search: !!document.querySelector('.reg-f #reg-search') };
     });
-    check('8a the filter area is a WHITE band, not the page ground',
-      band.band && band.band.bg === 'rgb(255, 255, 255)', band.band && band.band.bg);
-    check('8b the page name sits on that same band',
-      band.head && band.head.bg === 'rgb(255, 255, 255)', band.head && band.head.bg);
-    /* NO GREY BETWEEN THEM — two white boxes with a gap is two bands, which is
-       exactly what the design does not draw. */
-    check('8c and there is no grey seam between the two',
-      band.band.top <= band.head.bottom, `head ends ${band.head.bottom}, band starts ${band.band.top}`);
-    check('8d the band bleeds to the page edge, like the room head does',
-      band.band.left === band.head.left, `${band.band.left} vs ${band.head.left}`);
+    check('8a the filter bar is the top row of the list\'s own white card',
+      !!band.bar && !!band.card && Math.abs(band.bar.top - band.card.top) <= 1 && band.card.bg === band.surface,
+      band.card ? `card ${band.card.bg} (surface ${band.surface}) · bar at ${band.bar && band.bar.top}, card at ${band.card.top}` : 'no card');
+    const clear = c => c === 'rgba(0, 0, 0, 0)' || c === 'transparent' || c === band.ground;
+    check('8b the page name and its views sit on the page ground, not on a band',
+      !!band.head && !!band.band && clear(band.head.bg) && clear(band.band.bg),
+      `head ${band.head && band.head.bg} · band ${band.band && band.band.bg} · ground ${band.ground}`);
+    /* NO SEAM BETWEEN THE FILTERS AND THE ROWS THEY NARROW — the old band's
+       point, asked of the one card that now carries both. */
+    check('8c and there is no seam between the filters and the rows they narrow',
+      !!band.bar && !!band.body && band.body.top - band.bar.bottom <= 1,
+      band.bar && band.body ? `bar ends ${band.bar.bottom}, table starts ${band.body.top}` : 'missing');
+    check('8d the card sits on the page\'s own inset, level with the page\'s name',
+      !!band.card && band.titleLeft != null && Math.abs(band.card.left - band.titleLeft) <= 1,
+      `card ${band.card && band.card.left} · name ${band.titleLeft}`);
 
     /* ---- REVERSED IN PLACE 31 Aug 2026 (N-3) ----
        This asserted that search was the row's FIRST labelled filter rather than
@@ -457,7 +486,12 @@ const check = (name, ok, detail) => {
        and it is asked of the controls that are still there. */
     /* RE-POINTED (21 Sep 2026): a resting chip wears the redesign's hairline,
        --rule-strong, and what tells it from a button is its PILL shape. */
-    const ruleStrong = await page.evaluate(RESOLVE, '--rule-strong');
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the three button fixes, Young: "some
+       buttons have dark outlines when the common approach is a light grey
+       outline"): every outlined control reads ONE edge token, --btn-edge,
+       which is the light grey by day — the chips included. The variable
+       keeps its old name so 12d and 12e below read the same resting edge. */
+    const ruleStrong = await page.evaluate(RESOLVE, '--btn-edge');
     check('12a a resting filter wears the hairline, the redesign\'s own neutral',
       rest.stage && rest.stage.bc === ruleStrong && rest.type.bc === ruleStrong,
       `${rest.stage && rest.stage.bc} · token ${ruleStrong}`);
@@ -726,12 +760,32 @@ const check = (name, ok, detail) => {
       const sc = document.getElementById('content-scroll');
       const head = box('#page-head'), band = box('.reg-band');
       if (!band) return null;
+      /* RE-POINTED IN PLACE 26 Sep 2026 (the list Inspector drawing): the
+         page's name sits on the page ground now and the ONE card is the
+         list's — its filter bar over its rows — so the column of pixels is
+         walked just inside THAT card's right edge, from the top of the bar to
+         the bottom of the column heads: one colour, the card's own surface,
+         owned by the card all the way down, is the 25 Aug complaint ("a grey
+         gap in the card") asked of the card that exists. */
+      const card = document.querySelector('.reg-card');
+      const thead = document.querySelector('.reg-table thead');
+      const cr = card ? card.getBoundingClientRect() : null;
+      const hb = thead ? thead.getBoundingClientRect().bottom : null;
       const cols = [], owners = [];
-      for (let y = (head && head.height !== 0 ? head.top : band.top) + 2; y < band.bottom - 2; y += 6){
-        const p = atPoint(innerWidth - 3, y); cols.push(p.c); owners.push(p.own);
+      if (cr && hb) for (let y = cr.top + 2; y < hb - 2; y += 4){
+        const top = document.elementFromPoint(cr.right - 3, y);
+        let n = top, c = 'rgba(0, 0, 0, 0)';
+        while (n && c === 'rgba(0, 0, 0, 0)'){ c = getComputedStyle(n).backgroundColor; n = n.parentElement; }
+        cols.push(c); owners.push(top && top.closest('.reg-card') ? '.reg-card' : 'OTHER');
       }
-      const surface = getComputedStyle(document.querySelector('.reg-band')).backgroundColor;
+      const surface = card ? getComputedStyle(card).backgroundColor : null;
+      /* What is painted behind the page's name, at the head's right. */
+      const probe = document.createElement('div'); probe.style.background = 'var(--color-bg)';
+      document.body.appendChild(probe); const ground = getComputedStyle(probe).backgroundColor; probe.remove();
+      const hp = head ? atPoint(Math.min(head.right, innerWidth) - 3, head.top + 4) : null;
       return { headRight: head && head.right, bandRight: band.right, win: innerWidth,
+        headPaint: hp ? hp.c : null, ground,
+        card: !!card, cardRight: cr ? Math.round(cr.right) : null, cardTop: cr ? Math.round(cr.top) : null,
         gutter: sc.offsetWidth - sc.clientWidth, surface,
         owners: [...new Set(owners)],
         colours: [...new Set(cols)], samples: cols.length };
@@ -747,11 +801,12 @@ const check = (name, ok, detail) => {
       await page.evaluate(go);
       await page.waitForTimeout(1700);
       const e = await page.evaluate(EDGE);
-      check(`15 ${name}: the white band reaches the window's own edge`,
-        !!e && e.bandRight === e.win, e ? `band ${e.bandRight} of ${e.win}` : 'no band');
-      check(`15 ${name}: and the head ends on the same edge, so it reads as one card`,
-        !!e && e.headRight === e.bandRight, e ? `head ${e.headRight} · band ${e.bandRight}` : '-');
-      check(`15 ${name}: nothing but the band's own surface down the last column of pixels`,
+      check(`15 ${name}: the list is one card, drawn inside the page (its filters and its rows)`,
+        !!e && e.card && e.cardRight < e.win, e ? `card ends ${e.cardRight} of ${e.win}` : 'no band');
+      check(`15 ${name}: and the page's name is not on a card of its own — it sits on the page ground`,
+        !!e && !!e.headPaint && e.headPaint === e.ground && e.headPaint !== e.surface,
+        e ? `behind the name ${e.headPaint} · ground ${e.ground} · card ${e.surface}` : '-');
+      check(`15 ${name}: nothing but the card's own surface down its edge, from the filters to the column heads`,
         !!e && e.samples > 6 && e.colours.length === 1 && e.colours[0] === e.surface
           && !e.owners.includes('OTHER'),
         e ? `${e.samples} samples · ${e.colours.join(' | ')} vs surface ${e.surface}`
@@ -772,19 +827,24 @@ const check = (name, ok, detail) => {
        SO IT IS ASKED SHORT AS WELL AS TALL, and asked as PAINT: walk the rows
        between the head's bottom and the band's top and require every one of
        them to be owned by one or the other. */
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the list Inspector drawing): the head
+       and the views sit on the page ground now, with the page's own gap
+       between them by design, and the ONE card is the list's — its filter
+       bar over its rows. So the join asked at every window height is the one
+       that card has to keep: the filters and the column heads meet with no
+       gap, and every row of pixels between them belongs to the card. */
     const JOIN = () => {
       const colAt = (x, y) => { const t = document.elementFromPoint(x, y);
         let n = t, c = 'rgba(0, 0, 0, 0)';
         while (n && c === 'rgba(0, 0, 0, 0)'){ c = getComputedStyle(n).backgroundColor; n = n.parentElement; }
-        const own = t && t.closest('#page-head, .reg-band');
-        return { c, own: own ? (own.id ? '#' + own.id : '.reg-band') : 'OTHER' }; };
+        return { c, own: t && t.closest('.reg-card') ? '.reg-card' : 'OTHER' }; };
       const r = s => { const e = document.querySelector(s); return e ? e.getBoundingClientRect() : null; };
-      const head = r('#page-head'), band = r('.reg-band');
-      if (!head || !band) return null;
+      const bar = r('.reg-card > .reg-filterbar'), thead = r('.reg-table thead');
+      if (!bar || !thead) return null;
       const rows = [];
-      for (let y = Math.round(head.bottom) - 3; y <= Math.round(band.top) + 3; y++)
+      for (let y = Math.round(bar.bottom) - 3; y <= Math.round(thead.top) + 3; y++)
         rows.push(colAt(500, y));
-      return { gap: Math.round((band.top - head.bottom) * 10) / 10,
+      return { gap: Math.round((thead.top - bar.bottom) * 10) / 10,
         padT: getComputedStyle(document.documentElement).getPropertyValue('--page-pad-t').trim(),
         strangers: rows.filter(x => x.own === 'OTHER').length, rows: rows.length };
     };
@@ -796,8 +856,8 @@ const check = (name, ok, detail) => {
       await page.evaluate(() => setView('register'));
       await page.waitForTimeout(1500);
       const j = await page.evaluate(JOIN);
-      check(`15b at ${H}px tall the head and the band meet with no gap`,
-        !!j && j.gap <= 0 && j.strangers === 0,
+      check(`15b at ${H}px tall the filters and the rows meet with no gap, inside the list's one card`,
+        !!j && j.gap <= 0.5 && j.strangers === 0,
         j ? `--page-pad-t ${j.padT} · gap ${j.gap}px · ${j.strangers} of ${j.rows} rows painted by neither`
           : 'nothing to measure');
     }

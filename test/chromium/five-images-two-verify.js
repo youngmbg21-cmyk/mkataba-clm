@@ -47,6 +47,13 @@ const ok = (name, good, detail) => {
     await page.waitForTimeout(3200);
 
     /* ════════ 1. THE TABLE'S DATES, AND THE RAIL ════════ */
+    /* THE FULL TABLE IS STAGED (re-pointed in place 26 Sep 2026): from about a
+       1104 window the page draws the list Inspector, whose four columns carry
+       no date — the Signed and Ends facts moved into its panel, where the
+       drawing sets them as plain values — and inspector-verify measures that.
+       1b/1c are about the TABLE's two date columns, which the page still draws
+       at every narrower window; insForce(false) is its own stage door. */
+    await page.evaluate(() => { if (window.insForce) insForce(false); });
     await page.evaluate(() => setView('register'));
     await page.waitForTimeout(1400);
     await page.screenshot({ path: path.join(OUT, '01-contracts.png') });
