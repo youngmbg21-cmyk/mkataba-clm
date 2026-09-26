@@ -4696,7 +4696,7 @@ function printExecutionBlock(c){
     <td style="vertical-align:top;padding:0 10px 10px 0;width:50%;">
       <div style="border:1px solid var(--color-divider);border-radius:var(--radius);padding:9px 11px;">
         <div style="font-size:var(--t-figure);letter-spacing:.08em;text-transform:uppercase;color:#5F6D6B;margin-bottom:3px;">${esc(partyLabel(s))}</div>
-        ${s.image?`<img src="${s.image}" alt="" style="height:38px;max-width:190px;object-fit:contain;display:block;margin:2px 0 5px;"/>`:''}
+        ${(window.sigImageSrc?sigImageSrc(s.image):'')?`<img src="${sigImageSrc(s.image)}" alt="" style="height:38px;max-width:190px;object-fit:contain;display:block;margin:2px 0 5px;"/>`:''}
         <div style="font-weight:var(--w-strong);font-size:var(--t-meta);">${esc(s.name||'—')}${cap(s)?', '+esc(cap(s)):''}</div>
         <div style="font-size:var(--t-label);color:#5F6D6B;line-height:1.5;">${esc([s.email,s.form?s.form+' signature':s.method,s.at?fmtDT(s.at):''].filter(Boolean).join(' · '))}</div>
       </div>

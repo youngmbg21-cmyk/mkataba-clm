@@ -1804,6 +1804,30 @@ function visibleContract(c, user, moneyKeys) {
 }
 
 const app = express();
+/* ---- A ROUTE THAT FAILS ANSWERS; IT NEVER TAKES THE SERVER DOWN (26 Sep 2026,
+   the overnight clean-up) ----
+   Express 4 ignores the promise an `async` handler returns. This file has 38 of
+   them and every one does work outside its own try — so one failed database
+   write (the SQLite lock held past busy_timeout, a full disk) became an
+   unhandled rejection and Node EXITED: every user lost the server until it
+   restarted (measured: the process ended with code 1). Every handler that
+   returns a promise now has its rejection handed to next(), where the error
+   handler at the foot of this file answers in a sentence. A synchronous throw
+   was already caught by Express; that path is unchanged. `app.get(name)` with a
+   single argument is Express's settings reader and is passed straight through. */
+for (const verb of ['get', 'post', 'put', 'patch', 'delete', 'all']) {
+  const orig = app[verb].bind(app);
+  app[verb] = function (route, ...handlers) {
+    if (verb === 'get' && arguments.length === 1) return orig(route);
+    return orig(route, ...handlers.map(h => (typeof h === 'function' && h.length < 4)
+      ? function (req, res, next) {
+          const out = h(req, res, next);
+          if (out && typeof out.then === 'function') out.then(undefined, next);
+          return out;
+        }
+      : h));
+  };
+}
 /* C-1: TRUST EXACTLY THE HOPS WE OWN, NOT THE WHOLE HEADER.
    `trust proxy: true` trusts every entry in X-Forwarded-For, which means the
    left-most value — the one the *client* supplies — becomes req.ip. An attacker
@@ -4188,6 +4212,11 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
       if (e) return e === String(me.email || '').trim().toLowerCase();
       return String((x && x.name) || '').trim() === String(me.name || '').trim();
     };
+    /* The same wall as the public respond route (see sigImageOk): a save that
+       ADDS a signature — of any method — must carry a real image or none. */
+    const addedAny = (Array.isArray(c.signatures) ? c.signatures : []).filter(x => x && !before.has(sigKey(x)));
+    if (addedAny.some(x => !sigImageOk(x.image)))
+      return res.status(400).json({ error: 'A signature image on this save could not be read — sign again.' });
     const forged = added.find(x => !mine(x));
     if (forged) {
       return res.status(403).json({
@@ -12190,6 +12219,17 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
     if (!signerRow) return res.status(400).json({ error: 'That signer is not on this contract\'s signing route' });
     if (signerRow.party !== 'counterparty')
       return res.status(400).json({ error: 'Internal signers sign in the app — only a counterparty signer gets a bound link' });
+    /* A LINK BOUND TO ONE SIGNER GOES TO THAT SIGNER'S ADDRESS (overnight audit,
+       26 Sep 2026). The row is what an incoming signature is recorded against,
+       so a link bound to Grace and mailed to somebody else let that person's
+       signature complete Grace's step — and the one-time code, which goes to
+       the address on the SHARE, went to them too. Where the route carries an
+       address, a different typed address is refused; where it carries none,
+       the typed address is the only way to reach them and stands (the dialog
+       says "add one, or type the address below"). */
+    const rowMail = String(signerRow.email || '').trim().toLowerCase();
+    if (rowMail && email && email !== rowMail)
+      return res.status(409).json({ error: 'That signing link is for a signer with a different email address — change the signer on the signing route first' });
     signerId = String(signerRow.id);
     signerPlanAll = rt.plan;
     const turn = signerTurn(shareId, signerId);
@@ -13333,6 +13373,20 @@ app.get('/api/shares/:token/handover-file', rlShare, (req, res) => {
   res.setHeader('Content-Disposition', `attachment; filename="${String(f.name || 'agreed.docx').replace(/[^\w.\- ]+/g, '_')}"`);
   res.send(buf);
 });
+/* ---- A SIGNATURE IMAGE IS AN IMAGE, AND NOTHING ELSE (26 Sep 2026, the
+   overnight clean-up) ---- The respond route is PUBLIC — anyone holding a link
+   reaches it — and it stored `signatureImage` exactly as sent. Every screen
+   that draws a signature printed that value into an <img src="…">, so a
+   "signature" of `data:image/png;base64,AA" onerror="…` ran script in the
+   OWNER's signed-in session the moment they opened the contract (measured).
+   The pad only ever makes a PNG data URL (canvas.toDataURL), so this refuses
+   anything that is not a base64 image, bounds its size, and keeps the form to
+   the pad's own three words. The screens escape it as well: two walls. */
+const SIG_IMAGE_MAX = 600000;
+const SIG_IMAGE_RE = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/;
+const sigImageOk = v => v == null || v === ''
+  || (typeof v === 'string' && v.length <= SIG_IMAGE_MAX && SIG_IMAGE_RE.test(v));
+const SIG_FORMS = ['draw', 'type', 'upload'];
 app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: counterparty responds
   const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
@@ -13383,6 +13437,9 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
      — the third, and quietest, of the three reasons their Send did nothing. */
   if (r.kind !== 'hati-response' || !['sign','accept','changes','decline','decisions','ready'].includes(r.action) || !r.name)
     return res.status(400).json({ error: 'Invalid response' });
+  if (!sigImageOk(r.signatureImage))
+    return res.status(400).json({ error: 'The signature image could not be read — draw or type your signature again.' });
+  if (r.signatureForm != null && !SIG_FORMS.includes(r.signatureForm)) r.signatureForm = null;
   /* ---- A REVIEW LINK CANNOT SIGN, AND THIS IS WHERE THAT BECOMES TRUE ----
      The share dialog promises it in words — "Nothing can be signed on this
      link" — and the browser keeps the promise: a negotiate link opens the
@@ -16638,6 +16695,31 @@ app.use('/vendor', express.static(path.join(__dirname, '..', 'vendor'), {
   maxAge: '30d', immutable: true,
 }));
 app.use('/sample-contracts', express.static(path.join(__dirname, '..', 'sample-contracts')));
+
+/* ---- EVERY FAILURE ANSWERS IN JSON, AND NEVER WITH OUR INSIDES (26 Sep 2026,
+   the overnight clean-up) ----
+   There was no error handler, so a body that could not be parsed, a body over
+   the size limit and a route that threw all answered with Express's own HTML
+   page — a stack trace with this server's file paths in it — and the browser's
+   api() could only say "Request failed (413)". Registered LAST, after every
+   route and static tree, which is what makes it the error handler. The detail
+   goes to the server log; the reader gets a sentence. */
+app.use((err, req, res, next) => {
+  const status = Number(err && (err.status || err.statusCode)) || 500;
+  if (status >= 500) console.error(`[server] ${req.method} ${req.originalUrl}:`, (err && err.stack) || err);
+  if (res.headersSent) return next(err);
+  const say = status === 413 ? 'That is too large to send in one go.'
+    : (err && err.type === 'entity.parse.failed') ? 'The request could not be read — please try again.'
+    : status >= 500 ? 'Something went wrong on the server. Please try again in a moment.'
+    : ((err && err.expose && err.message) ? String(err.message) : 'The request could not be completed.');
+  res.status(status).json({ error: say });
+});
+/* AND A PROMISE NOBODY WAITED ON IS LOGGED, NOT FATAL. The wrapper above covers
+   every route; this is the last line for anything else (a timer's sweep, a
+   fire-and-forget send) so one stray rejection cannot end the process. */
+process.on('unhandledRejection', e => {
+  console.error('[server] unhandled rejection:', (e && e.stack) || e);
+});
 
 // Log the port actually bound, not the one requested — with PORT=0 the OS
 // picks one, and "which port is it on?" should not need a second guess.

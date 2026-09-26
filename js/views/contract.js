@@ -3716,11 +3716,15 @@ function signatureBlock(c){
        question in a dispute and the record has always held it silently. */
     const asWord=s=>{ const a=(typeof signatureAssurance==='function')?signatureAssurance(s,c):null;
       return a&&a.rung?`<span title="${esc(String(a.rung.basis))}">${esc(String(a.rung.label))}${a.derived?'*':''}</span>`:''; };
-    const sub=s=>`<div class="text-[10px] text-brand-800/65 font-normal leading-snug">${[s.email,s.form?s.form+' signature':s.method,asWord(s),s.at?fmtDT(s.at):''].filter(Boolean).join(' · ')}</div>`;
-    const card=s=>`<div class="rounded-lg bg-white border border-brand-100 p-2.5">
+    /* EVERY STORED VALUE ON A SIGNATURE IS ESCAPED, and the image is drawn only
+       where it IS one (sigImageSrc) — a counterparty's signature arrives down a
+       public route (26 Sep 2026, the overnight clean-up). asWord's span is
+       markup of this file's own and is the one part left as it is. */
+    const sub=s=>`<div class="text-[10px] text-brand-800/65 font-normal leading-snug">${[esc(s.email||''),s.form?esc(s.form)+' signature':esc(s.method||''),asWord(s),s.at?esc(fmtDT(s.at)):''].filter(Boolean).join(' · ')}</div>`;
+    const card=s=>{ const img=(window.sigImageSrc?sigImageSrc(s.image):''); return `<div class="rounded-lg bg-white border border-brand-100 p-2.5">
       <div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-1 flex items-center gap-1">${icon(s.party==='counterparty'?'users':'finger','w-3 h-3')} ${partyLabel(s)}</div>
-      ${s.image?`<img src="${s.image}" alt="signature of ${(s.name||'').replace(/"/g,'')}" style="height:40px;max-width:190px;object-fit:contain;margin:2px 0 5px"/>`:''}
-      <div class="font-medium text-brand-700">${(s.name||'').replace(/</g,'&lt;')}${signatureCapacity(s)?', '+signatureCapacity(s).replace(/</g,'&lt;'):''}</div>${sub(s)}</div>`;
+      ${img?`<img src="${img}" alt="signature of ${esc(s.name||'')}" style="height:40px;max-width:190px;object-fit:contain;margin:2px 0 5px"/>`:''}
+      <div class="font-medium text-brand-700">${(s.name||'').replace(/</g,'&lt;')}${signatureCapacity(s)?', '+signatureCapacity(s).replace(/</g,'&lt;'):''}</div>${sub(s)}</div>`; };
     const sigList = sigs.length ? sigs.map(card).join('')
       : `<div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/60 text-xs">${c.signatory?('Signed by '+c.signatory):'Not recorded'}</div></div>`;
     return `
@@ -3758,11 +3762,13 @@ function signatureBlock(c){
   if(sofar.length){
     const partyLabel=s=> s.party==='counterparty'?'Counterparty' : s.party==='first'?'First party' : (s.role||'Signer');
     const cap=s=>(window.signatureCapacity?signatureCapacity(s):(s.title||''))||'';
-    const card=s=>`<div class="rounded-lg bg-white border border-brand-100 p-2.5">
+    /* Escaped, and the image drawn only where it is one — see the executed
+       card above. */
+    const card=s=>{ const img=(window.sigImageSrc?sigImageSrc(s.image):''); return `<div class="rounded-lg bg-white border border-brand-100 p-2.5">
       <div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-1">${partyLabel(s)}</div>
-      ${s.image?`<img src="${s.image}" alt="signature of ${(s.name||'').replace(/"/g,'')}" style="height:40px;max-width:190px;object-fit:contain;margin:2px 0 5px"/>`:''}
+      ${img?`<img src="${img}" alt="signature of ${esc(s.name||'')}" style="height:40px;max-width:190px;object-fit:contain;margin:2px 0 5px"/>`:''}
       <div class="font-medium text-brand-700">${(s.name||'').replace(/</g,'&lt;')}${cap(s)?', '+cap(s).replace(/</g,'&lt;'):''}</div>
-      <div class="text-[10px] text-brand-800/65 font-normal leading-snug">${[s.email,s.form?s.form+' signature':s.method,s.at?fmtDT(s.at):''].filter(Boolean).join(' · ')}</div></div>`;
+      <div class="text-[10px] text-brand-800/65 font-normal leading-snug">${esc([s.email,s.form?s.form+' signature':s.method,s.at?fmtDT(s.at):''].filter(Boolean).join(' · '))}</div></div>`; };
     return `
     <div class="mt-8 rounded-xl border border-brand-200 bg-brand-50/30 p-5" data-anchor="sig">
       <div class="flex items-center gap-2"><span class="text-sm font-semibold text-brand-800/80">${i18t('ct_sigs_so_far')}</span>
@@ -13889,8 +13895,8 @@ function signBlockHtml(c){
     : done ? `<span class="pill-x" style="background:var(--st-amber-bg);color:var(--st-amber-fg)">${i18t('ct_of_n_signed',{done,total:boxes.length})}</span>`
     : `<span class="pill-x" style="background:var(--st-amber-bg);color:var(--st-amber-fg)">${i18t('ct_awaiting_signature')}</span>`;
   const box=b=>`<div class="sig-box${b.signed?' is-signed':''}">
-      <div class="sig-mark">${b.image
-        ? `<img src="${b.image}" alt="${esc(i18t('ct_signature_of',{who:b.name}))}"/>`
+      <div class="sig-mark">${(window.sigImageSrc?sigImageSrc(b.image):'')
+        ? `<img src="${sigImageSrc(b.image)}" alt="${esc(i18t('ct_signature_of',{who:b.name}))}"/>`
         : b.signed ? `<span class="sig-name">${esc(b.name||'Signed')}</span>`
         : `<span class="sig-none">${i18t('ct_not_yet_signed')}</span>`}</div>
       <div class="sig-who">${i18t('ct_for')} <b>${esc(b.org)}</b>${b.name?`<br>${esc(b.name)}${b.role?' · '+esc(b.role):''}`:''}${

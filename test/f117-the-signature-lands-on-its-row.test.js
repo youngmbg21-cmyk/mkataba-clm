@@ -121,12 +121,39 @@ describe('f117 — the bound row is the row', () => {
       'the trail states exactly what is and is not claimed');
   });
 
+  /* RE-POINTED IN PLACE (overnight audit, 26 Sep 2026). The response used to
+     carry an address made from the name ("their.md@n.se") while the step names
+     "md@n.se" — two different people by address, and the claim passed because
+     next-in-order took the step whoever signed. An unbound response still
+     takes the next row; it now takes it where the addresses AGREE (or where
+     either side has none), so the claim is asked with the step's own address.
+     The case the old fixture was really exercising is the claim below it. */
   test('an unbound response — a pre-W7 link, a static-mode code — still takes the next row', async () => {
     const { w } = loadCore();
     const c = contract();
-    const ok = await w.applyResponse(c, signResponse(null, 'Their MD'));
+    const ok = await w.applyResponse(c, signResponse(null, 'Their MD', { email: 'md@n.se' }));
     assert.equal(ok, true);
     assert.equal(c.signerPlan.find(s => s.id === 'S3').signed, true,
       'next-in-order is all an unbound response carries, and it keeps working');
+  });
+
+  test('…but never onto a step that names somebody else\'s address — kept, named, no step marked', async () => {
+    const { w } = loadCore();
+    const c = contract();
+    const ok = await w.applyResponse(c, signResponse(null, 'Their MD', { email: 'someone.else@elsewhere.se' }));
+    assert.equal(ok, true, 'a real signature is evidence — it is not thrown away');
+    assert.equal(c.signatures.length, 1);
+    assert.equal(c.signerPlan.find(s => s.id === 'S3').signed, false,
+      'the MD\'s step is not completed by a signature from another address');
+    assert.match(c.audit.map(a => a.detail).join(' '), /someone\.else@elsewhere\.se[\s\S]*no step was marked signed/,
+      'the trail names the address and says no step was marked');
+  });
+
+  test('an unbound response with NO address, or a step with none, is all there is to go on — as before', async () => {
+    const { w } = loadCore();
+    const c = contract();
+    c.signerPlan.find(s => s.id === 'S3').email = '';
+    assert.equal(await w.applyResponse(c, signResponse(null, 'Their MD', { email: 'whoever@n.se' })), true);
+    assert.equal(c.signerPlan.find(s => s.id === 'S3').signed, true, 'a step with no address takes the next signature');
   });
 });

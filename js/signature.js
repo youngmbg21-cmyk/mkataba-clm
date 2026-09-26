@@ -95,7 +95,7 @@ function openSignaturePad(opts={}){
           </div>
           <!-- SAVED -->
           ${saved?`<div data-sig-pane="saved" style="display:none">
-            <div style="height:${SIG_H}px;border:1.5px solid ${C};border-radius:var(--radius);background:var(--color-bg);display:grid;place-items:center;overflow:hidden"><img src="${saved.image}" alt="${i18t('si_saved_signature')}" style="max-width:90%;max-height:80%"/></div>
+            <div style="height:${SIG_H}px;border:1.5px solid ${C};border-radius:var(--radius);background:var(--color-bg);display:grid;place-items:center;overflow:hidden"><img src="${window.sigImageSrc?sigImageSrc(saved.image):''}" alt="${i18t('si_saved_signature')}" style="max-width:90%;max-height:80%"/></div>
             <div style="font-size:var(--t-label);color:${N6};margin-top:var(--s-2);font-family:var(--font-mono)">${i18t('si_your_adopted',{form:saved.form})}</div>
           </div>`:''}
         </div>

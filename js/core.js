@@ -1099,6 +1099,16 @@ function isArchived(c){ return !!(c&&c.archived); }
    exactly as they did. It outranks all three, because a held contract's stage
    is not the interesting fact about it. */
 function contractOnHold(c){ return !!(c && c.hold && c.hold.at); }
+/* ---- A SIGNATURE IMAGE IS DRAWN ONLY IF IT IS ONE (26 Sep 2026, the
+   overnight clean-up) ---- The ONE reading every screen asks before putting a
+   stored signature into <img src>: a base64 image data URL, or nothing. A
+   counterparty's signature arrives down a PUBLIC route, and a value such as
+   `data:image/png;base64,AA" onerror="…` printed raw ran script in the owner's
+   session (measured). The server refuses those now too (sigImageOk); this is
+   the second wall, and it also covers every record stored before tonight.
+   The characters a base64 image can hold cannot close an attribute. */
+const SIG_IMAGE_SRC_RE=/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/;
+function sigImageSrc(v){ return (typeof v==='string' && SIG_IMAGE_SRC_RE.test(v)) ? v : ''; }
 async function contractSetHold(c,on,why){
   /* THE GRANT, NOT canEdit (19 Sep 2026): freezing a contract is no longer an
      everyday editor's act. The server's mayHoldRow is the wall; this refuses
@@ -5570,7 +5580,7 @@ let _shareOpenSeq = 0;
    ABORTED BEFORE THE FILL, never left behind: the listener sits on #modal-root
    and the fill only replaces the panel's contents, so a surviving copy would
    handle every later press a second time alongside the real handlers. */
-function shareWireOpening(pending, c, get, set, signal){
+function shareWireOpening(pending, c, get, set, signal, alive){
   const root = document.getElementById('modal-root');
   if (!root || !root.addEventListener) return;
   const fold = kind => {
@@ -5579,6 +5589,14 @@ function shareWireOpening(pending, c, get, set, signal){
     root.querySelector('#share-step-2')?.classList.toggle('hidden', kind);
   };
   root.addEventListener('click', e => {
+    /* A LISTENER FROM AN ABANDONED OPENING STANDS DOWN (26 Sep 2026, the
+       overnight clean-up). #modal-root outlives every dialog, and an opening
+       left by Escape or by a second press on Share returned before its abort —
+       so its listener answered the NEXT dialog's purpose presses, redrew the
+       buttons without their live handler, and the screen said Negotiate while
+       the link went out as Sign (measured). Asked of the opening's own number;
+       openShareModal also aborts it on every way out. */
+    if (typeof alive === 'function' && !alive()) return;
     const t = e.target;
     if (!t || !t.closest) return;
     const card = t.closest('[data-share-kind]');
@@ -5811,12 +5829,13 @@ async function openShareModal(c, opts={}){
   shareWireOpening(_pending, c, () => purposeSel,
     k => { purposeSel = k === 'history' ? 'history'
       : SHARE_PURPOSE(k) || (SHARE_PURPOSE(opts.purpose) || defaultSharePurpose(c)); },
-    _openAbort ? _openAbort.signal : null);
+    _openAbort ? _openAbort.signal : null, () => _openSeq === _shareOpenSeq);
   // A share copies the contract out of the building, so it must be copied
   // whole: a record loaded for a list view carries neither its uploaded file's
   // bytes nor its round history, and both are things the payload publishes.
   try{ await ensureFull(c); }catch(_){}
-  if(_superseded()) return;
+  /* EVERY WAY OUT TAKES THE OPENING'S LISTENER WITH IT (see shareWireOpening). */
+  if(_superseded()){ if(_openAbort) _openAbort.abort(); return; }
   const docHash=await sha256(canonicalDoc(c));
   // E2: snapshot the exact text being sent so a returned redline diffs cleanly.
   if(c.status!=='Signed'){ const v=captureVersion(c,'Shared for review',null,{auto:true}); if(v) persist(c); }
@@ -5867,7 +5886,7 @@ async function openShareModal(c, opts={}){
   // fields open already filled rather than filling themselves a moment later
   // under the user's cursor.
   const priorShares=await contractShares(c);
-  if(_superseded()) return;
+  if(_superseded()){ if(_openAbort) _openAbort.abort(); return; }
   const pre=shareModalPrefill(priorShares, c);
   /* THE BOX AND THE ROW ARE ONE ANSWER. Where the prefill came off the signing
      route, the row it came from opens already chosen, so the link is bound to
@@ -6251,6 +6270,18 @@ async function openShareModal(c, opts={}){
        text, which is where the note goes. */
     if((ch==='email'||ch==='word') && !/.+@.+\..+/.test(email)){ toast(i18t('co_enter_recipient_email'),'err'); return false; }
     if(ch==='whatsapp' && phone.replace(/\D/g,'').length<9){ toast(i18t('co_enter_whatsapp'),'err'); return false; }
+    /* A LINK BOUND TO ONE SIGNER GOES TO THAT SIGNER'S ADDRESS (overnight
+       audit, 26 Sep 2026). The row said "this link" while the box held
+       somebody else's address, and whoever held that address signed Grace's
+       step. The server refuses it too (the wall); saying it HERE keeps the
+       dialog open on the one screen that has the way forward — the signing
+       route's own Edit button sits beside the rows. A row with no address is
+       waiting for the one typed here, and stands. */
+    if(purposeSel==='sign' && signerSel && email){
+      const row=(typeof signerPlan==='function'?signerPlan(c):[]).find(x=>x&&String(x.id)===String(signerSel));
+      const rowMail=String((row&&row.email)||'').trim().toLowerCase();
+      if(rowMail && email.trim().toLowerCase()!==rowMail){ toast(i18t('srv_signer_other_address'),'err'); return false; }
+    }
     /* A SIGNING LINK IS NOT AN ACKNOWLEDGEABLE RISK.
 
        Everything else on the readiness list is the sender's call — a missing
@@ -7180,7 +7211,20 @@ async function applyResponse(c, r, opts={}){
          neither carries a binding, and next-in-order is all there is to go
          on. Bound links never come through here. */
       const ns=window.nextSigner?nextSigner(c):null;
-      if(ns && ns.party==='counterparty'){ ns.signed=true; ns.at=r.at; ns.by=r.name; ns.signature=sig; }
+      /* …BUT NEVER ONTO A STEP THAT NAMES SOMEBODY ELSE (overnight audit,
+         26 Sep 2026). An unbound Sign link sent to a second address put that
+         person's signature on the next counterparty's step, whoever it named.
+         Where the step carries an address and the signature carries a
+         different one, the signature is kept as evidence and the gap is named
+         — the bound-row-gone branch's own rule — rather than guessed onto a
+         step. A step with no address, or a signature with none, is all there
+         is to go on, as before. */
+      const nsMail=String((ns&&ns.email)||'').trim().toLowerCase();
+      const rMail=String(r.email||'').trim().toLowerCase();
+      if(ns && ns.party==='counterparty'){
+        if(!nsMail || !rMail || nsMail===rMail){ ns.signed=true; ns.at=r.at; ns.by=r.name; ns.signature=sig; }
+        else routeNote=` — NOTE: this signature came from ${r.email}, which is not the address on the next signing step (${ns.name||'the next signer'}); the signature is recorded, and no step was marked signed`;
+      }
     }
     c.comments.push({ author:r.name, role:'Counterparty — Signed', side:'external', text:r.comment||'Approved and signed via secure share link.', at:r.at, ts:fmtDT(r.at) });
     // r.verified===false means the server could not send a code, so nothing
@@ -7928,4 +7972,4 @@ const END_STATES = [
 const endStateSays = k => { const x = END_STATES.find(e => e.k === k); return x ? x.says : ''; };
 Object.assign(window,{END_STATES,endStateSays});
 
-Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,userById,verifySeal,waShareLink});
+Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,sigImageSrc,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,userById,verifySeal,waShareLink});
