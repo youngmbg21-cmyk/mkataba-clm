@@ -19302,3 +19302,19 @@ Noticed, not fixed
 Noticed, not fixed
 - The contract's Obligations tab does not show when a required document ends (only the Overview's "Documents they must hold" does), does not show that an obligation was chased, and offers no Chase.
 - On that tab a paid chain step's chip ("Paid 2026-08-14") repeats the date printed in the column beside it.
+
+## Run 26 Sep 2026 — Obligations tab chosen, Our standards in the Inspector design, three Requests designs (no code)
+
+- On the owner's word: "I choose inspector for the tab too so update the artifact with inspector but also add to the artifact all the 3 tabs in the our stands page to have inspector design as well. Finally, provide me with 3 different options of how to design the Requests page. The current design does not use the space effectively. No coding." The private page, now titled "Obligations, Standards, Requests", shows: three Requests designs (Inspector, Board, Two Desks) beside today's photo, each from two chairs (a drafter and a colleague who only asks), with a comparison table, the page checklist and one recommendation (Inspector); Our standards drawn in the Inspector design on all three tabs, linked to each other, beside today's photos; and the Inspector designs already chosen for the Obligations page and tab. Staged on the sample book with HaTi's own rule-based standards check and eleven requests written as the server stores them. No product code changed.
+
+Noticed, not fixed
+- No screen ever marks a request "Being drafted": the status exists and the route accepts it, but no button sends it, so a request somebody is working on still says "Waiting" beside their name.
+- "Waiting to be picked up (N)" on the Requests page counts every open request, including ones somebody already holds.
+- "Pick it up" on a request a colleague holds moves it to the presser without asking or saying so.
+- The Requests queue is newest first, so a request past its promised date can sit last.
+- A request you asked for yourself is printed twice for an editor: in the queue and under "What you have asked for".
+- A declined request's clock reads "done in 24 hours" (the same words as a drafted one).
+- The standards check asks every contract about payment terms, because the baseline's 45-day limit applies to every book: both NDAs and all three leases in the sample report payment terms as missing and marked for Legal.
+- The data protection standard's name is built from the market's law and reads "the GDPR (Regulation (EU) 2016/679) compliance" in a Swedish workspace.
+- The Negotiation playbook tab draws a limit and a position of the same name as two chips ("Liability cap" twice on the supply and services books).
+- Portfolio deviations shows the first 8 contracts with departures and says nothing about the rest (22 in the sample).
