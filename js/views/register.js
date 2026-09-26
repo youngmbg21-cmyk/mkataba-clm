@@ -1902,7 +1902,12 @@ function regInsActs(c){
   if(!c) return [];
   const neg=regScope()==='negotiations';
   let mayNego=true; try{ mayNego=!window.negoMayStart||negoMayStart(c).ok; }catch(_){ mayNego=true; }
-  const started=!!(c.negotiation&&Array.isArray(c.changes));
+  /* STARTED MEANS A CHANGE IS ON IT — the Document tab's own reading
+     (wsTabRowEndHtml, "Start negotiating" vs "Open Negotiate"), never merely a
+     negotiation object: opening a contract can leave an empty one behind, and
+     the panel offered "Open negotiation" on a contract nobody had argued
+     (measured on the night screenshot, 26 Sep 2026). Two doors, one answer. */
+  const started=!!(c.negotiation&&Array.isArray(c.changes)&&c.changes.length);
   const openC={ k:'open', label:i18t('ins_open_contract'), run:x=>selectContract(x.id) };
   const openN={ k:'nego', label:i18t('ins_open_nego'), run:x=>regOpenRow(x.id,true) };
   if(neg) return mayNego ? [Object.assign({kind:'accent'},openN), openC] : [Object.assign({kind:'accent'},openC)];

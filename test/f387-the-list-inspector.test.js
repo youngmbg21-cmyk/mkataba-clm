@@ -11,8 +11,9 @@
    names with one sort arrow, a quiet reference, quiet empty views, no empty
    groups, no Contracts views on Negotiations, one filled button per page.
 
-   RED AT THE PARENT (486b7b0): 30 of 32, MEASURED in a worktree at that
-   commit. The two that pass are named: 5c is a [wall] (the Approvals page
+   RED AT THE PARENT (486b7b0): 31 of 33, MEASURED in a worktree at that
+   commit (2k was added after the first build and is also red at 3cc28b1,
+   its own parent). The two that pass are named: 5c is a [wall] (the Approvals page
    decides nothing, on both sides by design) and 5d a [control] (below the
    width line the old table and its row buttons are still there). 1b and 2i
    are the panel's own "reading must not write" and fail at the parent only
@@ -38,7 +39,6 @@ const INS = read('js/views/inspector.js');
 const REG = read('js/views/register.js');
 const AP = read('js/views/approvalsview.js');
 const APP = read('js/app.js');
-const IDX = read('index.html');
 const I18N = read('js/i18n.js');
 const DESK = read('js/desk.js');
 const CT = read('js/views/contract.js');
@@ -225,6 +225,26 @@ describe('f387 (2) the Contracts list in the inspector’s shape', () => {
     b.win.renderRegister();
     for (const id of ['MK-2', 'MK-3']) b.$(`#reg-tbody tr[data-row="${id}"]`).dispatchEvent(evt(b.win, 'click'));
     assert.ok(b.list.every(c => !c.negotiation), 'no record gained a negotiation by being looked at');
+  });
+
+  test('2k Open negotiation is offered where the Document tab says Open Negotiate — a change is on it', () => {
+    /* Opening a contract can leave an EMPTY negotiation on the record, and the
+       Document tab calls that "Start negotiating" (wsTabRowEndHtml reads
+       c.changes.length). The panel may not call it an open negotiation: two
+       doors onto one question, one answer. Red at 3cc28b1, where the panel
+       asked only whether a negotiation object existed. */
+    const opened = fixture('MK-4', { counterparty: 'Opened Only', negotiation: { round: 1, turn: 'owner' }, changes: [] });
+    const argued = fixture('MK-5', { counterparty: 'Argued', negotiation: { round: 1, turn: 'owner' },
+      changes: [{ id: 'CHG-9', status: 'pending', authorSide: 'counterparty', clauseId: 'c1', clauseLabel: '1. Term',
+        summary: 'One year', seq: 1, createdAt: new Date().toISOString() }] });
+    const b = world([opened, argued], { ins: true });
+    b.win.renderRegister();
+    const acts = id => { b.$(`#reg-tbody tr[data-row="${id}"]`).dispatchEvent(evt(b.win, 'click'));
+      return b.$$('#ins-panel [data-ins-act]').map(x => x.getAttribute('data-ins-act')); };
+    assert.deepEqual(acts('MK-4'), ['open'], 'an empty negotiation is not an open one');
+    assert.deepEqual(acts('MK-5'), ['open', 'nego'], 'one with a change on it is, second to the contract');
+    assert.match(code(CT), /const started=!!\(c\.negotiation&&Array\.isArray\(c\.changes\)&&c\.changes\.length\);/,
+      '[control] the Document tab still reads it this way — the relation this claim holds the panel to');
   });
 
   test('2j below the line the page keeps its full table, and a press opens as it always did', () => {
