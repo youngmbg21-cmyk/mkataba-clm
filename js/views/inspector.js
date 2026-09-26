@@ -270,6 +270,32 @@ function insLatestHtml(c, st){
   }
   return insSecHtml(i18t('ins_latest'), '', body, 'ins-latest');
 }
+/* THE PAGE'S OWN VERBS AND ITS ⋯, as one row. Lifted out of the contract's
+   head (26 Sep 2026) so a panel describing something that is not a contract —
+   an obligation, a standard, a book, a request — carries the SAME buttons in
+   the same row: one builder, so the clothes cannot drift. The markup is the
+   head's own, byte for byte. An act may be drawn DEAD with its reason on the
+   hover (`disabled` + `title`): a verb that cannot work today still says why,
+   the product's own rule for what it can know before the press. */
+function insActsHtml(list, menuHtml, moreAria){
+  const acts = (list || []).map(a => {
+    const cls = a.kind === 'accent' ? 'ui-btn ui-btn-accent' : (a.kind === 'plain' ? 'ui-btn ui-btn-plain' : 'ui-btn');
+    return `<button type="button" class="${cls}" data-ins-act="${esc(a.k)}"${a.title ? ` title="${esc(a.title)}"` : ''}${a.disabled ? ' disabled' : ''}${a.attrs ? ' ' + a.attrs : ''}>${
+      a.icon && typeof icon === 'function' ? icon(a.icon, 'w-3.5 h-3.5') : ''}${esc(a.label)}</button>`;
+  }).join('');
+  const more = menuHtml ? `<span class="ins-more-wrap">
+      <button type="button" class="ui-btn ui-btn-icon ins-more" data-ins-more aria-haspopup="true" aria-expanded="false"
+        title="${esc(i18t('reg_more_actions'))}" aria-label="${esc(moreAria || i18t('reg_more_actions'))}">${typeof icon === 'function' ? icon('more') : ''}</button>
+      <div class="ins-menu" data-ins-menu hidden>${menuHtml}</div></span>` : '';
+  return (acts || more) ? `<div class="ins-acts">${acts}${more}</div>` : '';
+}
+/* One row of the ⋯ menu, in the row menu's own markup (regRowActsHtml), so
+   the menus on every page are one menu. `ruby` marks the act that throws
+   something away; `says` rides the hover. */
+function insMenuItemHtml(a){
+  return `<button type="button" data-act="${esc(a.k)}"${a.says ? ` title="${esc(a.says)}"` : ''} class="reg-act${a.ruby ? ' danger' : ''}" style="display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;font:inherit;font-size:var(--t-meta);text-align:left;padding:6px 9px;border-radius:var(--radius);cursor:pointer;color:${a.ruby ? 'var(--st-ruby-fg)' : 'inherit'}">${
+    a.icon && typeof icon === 'function' ? icon(a.icon, 'w-3.5 h-3.5') : ''}${esc(a.label)}</button>`;
+}
 /* The head: which contract, where it stands, and the page's own verbs. */
 function insHeadHtml(c, o){
   let kind = ''; try { kind = (typeof cKind === 'function') ? cKind(c) : ''; } catch (_) { kind = ''; }
@@ -282,22 +308,65 @@ function insHeadHtml(c, o){
   const mv = o.moveSuffix ? (() => { const m = insMove(c);
     if (!m || m.k === 'clear') return '';
     return ` <span class="ins-mv is-${m.k}">· ${esc(i18t(m.k === 'you' ? 'ins_your_move' : 'ins_their_move'))}</span>`; })() : '';
-  const acts = (o.acts || []).map(a => {
-    const cls = a.kind === 'accent' ? 'ui-btn ui-btn-accent' : (a.kind === 'plain' ? 'ui-btn ui-btn-plain' : 'ui-btn');
-    return `<button type="button" class="${cls}" data-ins-act="${esc(a.k)}"${a.title ? ` title="${esc(a.title)}"` : ''}>${
-      a.icon && typeof icon === 'function' ? icon(a.icon, 'w-3.5 h-3.5') : ''}${esc(a.label)}</button>`;
-  }).join('');
-  const more = o.menuHtml ? `<span class="ins-more-wrap">
-      <button type="button" class="ui-btn ui-btn-icon ins-more" data-ins-more aria-haspopup="true" aria-expanded="false"
-        title="${esc(i18t('reg_more_actions'))}" aria-label="${esc(i18t('ins_more', { id: (window.contractRef ? contractRef(c) : c.id) }))}">${typeof icon === 'function' ? icon('more') : ''}</button>
-      <div class="ins-menu" data-ins-menu hidden>${o.menuHtml}</div></span>` : '';
   return `<div class="ins-h">
     <div class="ins-eb"><span class="ins-ref">${esc(window.contractRef ? contractRef(c) : c.id)}</span>${kind ? ` · ${esc(kind)}` : ''}</div>
     <h2 class="ins-cp" title="${esc(pyAll || cp)}"><span class="ins-cp-n">${esc(cp)}</span>${py ? `<span class="reg-py-n" title="${esc(pyAll)}">${esc(py)}</span>` : ''}</h2>
     ${title ? `<div class="ins-sub" title="${esc(title)}">${esc(title)}</div>` : ''}
     <div class="ins-st">${status}${mv}</div>
-    ${(acts || more) ? `<div class="ins-acts">${acts}${more}</div>` : ''}
+    ${insActsHtml(o.acts, o.menuHtml, i18t('ins_more', { id: (window.contractRef ? contractRef(c) : c.id) }))}
   </div>`;
+}
+/* ---- THE HEAD FOR ANYTHING THAT IS NOT A CONTRACT (26 Sep 2026) ----
+   The same five rows in the same classes: what it is (the eyebrow), its name,
+   one line about it, where it stands (a dot in its own tone and the words),
+   and the verbs. THE TITLE WRAPS TO TWO LINES (`is-item`): an obligation or a
+   standard is named in a sentence, and a one-line cut would hide the half
+   that says what it is. Every argument but the title is caller-built HTML —
+   the caller escapes, because each needs its own mono reference or ruby
+   word inside the line. */
+const INS_TONE = ['ruby', 'amber', 'steel', 'green', 'gray'];
+function insItemHeadHtml(o){
+  const opt = o || {};
+  const tone = INS_TONE.includes(opt.tone) ? opt.tone : '';
+  return `<div class="ins-h">
+    ${opt.eyebrow ? `<div class="ins-eb">${opt.eyebrow}</div>` : ''}
+    <h2 class="ins-cp is-item" title="${esc(opt.title || '')}">${esc(opt.title || '—')}</h2>
+    ${opt.sub ? `<div class="ins-sub is-item">${opt.sub}</div>` : ''}
+    ${opt.status ? `<div class="ins-st">${tone ? `<i class="ins-dot2 is-${tone}" aria-hidden="true"></i>` : ''}<span class="ins-st-t">${opt.status}</span></div>` : ''}
+    ${insActsHtml(opt.acts, opt.menuHtml, opt.moreAria)}
+  </div>`;
+}
+/* ---- ONE FILTER CHIP, THE CONTRACTS PAGE'S OWN (26 Sep 2026) ----
+   The same markup the register's chips wear — the word, the chosen value
+   beside it where it is narrowing, and an invisible <select> across the whole
+   chip — so the clothes under `.reg-filterbar` dress it on every page and
+   selectMenuSweep draws HaTi's own list for it. `attr`/`key` name the data
+   attribute the page's own listener reads. */
+function insChipHtml(o){
+  const on = String(o.cur) !== String(o.def);
+  const pick = ((o.opts || []).find(x => String(x[0]) === String(o.cur)) || [])[1] || '';
+  const face = (on && pick) ? `${esc(o.label)} <b>${esc(pick)}</b>` : esc(o.label);
+  return `<label class="reg-f reg-chip${on ? ' on' : ''}" title="${esc(o.title || o.label)}"><span class="reg-f-l">${face}</span><select class="reg-chip-sel" ${o.attr}="${esc(o.key)}" title="${esc(o.title || o.label)}">${
+    (o.opts || []).map(([v, l]) => `<option value="${esc(v)}"${String(v) === String(o.cur) ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></label>`;
+}
+/* ---- THE VIEW TABS, THE CONTRACTS PAGE'S OWN ROW ----
+   `.reg-views` / `.reg-vtab`, the count in its pill, a view with nothing in
+   it quiet and uncounted — one control on every page. */
+function insViewTabsHtml(o){
+  return `<div class="reg-views" role="tablist"${o.label ? ` aria-label="${esc(o.label)}"` : ''}>${(o.views || []).map(v => {
+    const on = String(v.k) === String(o.cur);
+    return `<button type="button" role="tab" class="reg-vtab${on ? ' on' : ''}${!v.n && !on ? ' is-zero' : ''}" ${o.attr}="${esc(v.k)}" aria-selected="${on ? 'true' : 'false'}">${
+      esc(v.label)}${v.n ? `<span class="n">${esc(String(v.n))}</span>` : ''}</button>`; }).join('')}</div>`;
+}
+/* A FACTS GRID FOR ANYTHING: label over value, an em-dash for silence, a
+   `wide` fact takes the whole row and may wrap. The contract's own grid
+   (insFactsHtml) is this shape with its own six readings. */
+function insKvHtml(facts){
+  return `<dl class="ins-facts">${(facts || []).filter(Boolean).map(f => {
+    const none = !f.v && f.v !== 0;
+    return `<div${f.wide ? ' class="wide"' : ''}${f.k ? ` data-ins-fact="${esc(f.k)}"` : ''}><dt>${esc(f.label)}</dt><dd${none ? ' class="none"' : ''}${
+      !none && f.plain ? ` title="${esc(f.plain)}"` : ''}>${none ? '—' : f.v}</dd></div>`;
+  }).join('')}</dl>`;
 }
 /* The whole panel. `o.order` names the sections after the head, in order:
    'lead' (a page's own section, handed in as HTML), 'table', 'facts',
@@ -323,19 +392,30 @@ function insPanelEmptyHtml(msg){
    the listener is bound once PER ELEMENT and reads what to do off the element
    at press time (_ins) — a listener that captured a contract would act on the
    one that was selected when it was bound. */
+/* ---- A PANEL FOR ANY ITEM (26 Sep 2026) ----
+   `o.item` beside `o.c`: an obligation, a standard, a book or a request, with
+   its head (`o.head`, insItemHeadHtml's options) and its body (`o.body`, the
+   sections, caller-built) handed in whole. The listener is the same one: an
+   act presses `run(item)` and the ⋯ presses `onMenu(act, item.id)`. `o.host`
+   names a panel element other than #ins-panel — the contract's Obligations
+   tab draws its panel inside the room, beside the room's own chrome. */
 function insPaintPanel(o){
-  const host = (typeof document !== 'undefined') ? document.getElementById('ins-panel') : null;
-  if (!host) return;
   const opt = o || {};
+  const host = (typeof document !== 'undefined') ? document.getElementById(opt.host || 'ins-panel') : null;
+  if (!host) return;
   host._ins = opt;
   const c = opt.c || null;
-  host.innerHTML = c ? insPanelHtml(c, opt) : insPanelEmptyHtml(opt.empty);
-  if (c) host.setAttribute('data-ins-id', c.id); else host.removeAttribute('data-ins-id');
+  const item = c ? null : (opt.item || null);
+  host.innerHTML = c ? insPanelHtml(c, opt)
+    : item ? (insItemHeadHtml(opt.head || {}) + (opt.body || ''))
+    : insPanelEmptyHtml(opt.empty);
+  const selId = c ? c.id : (item ? String(item.id == null ? '' : item.id) : '');
+  if (selId) host.setAttribute('data-ins-id', selId); else host.removeAttribute('data-ins-id');
   if (!host.dataset.insBound){
     host.dataset.insBound = '1';
     host.addEventListener('click', e => {
       const cur = host._ins || {};
-      const cc = cur.c;
+      const cc = cur.c || cur.item;
       const moreBtn = e.target.closest && e.target.closest('[data-ins-more]');
       if (moreBtn){
         e.stopPropagation();
@@ -370,9 +450,11 @@ function insPaintPanel(o){
   }
   if (typeof document !== 'undefined' && !document._insOutsideWired){
     document._insOutsideWired = true;
+    /* EVERY PANEL ON THE PAGE, not only #ins-panel: the contract's
+       Obligations tab paints its own (26 Sep 2026). */
     document.addEventListener('click', e => {
-      const h = document.getElementById('ins-panel');
-      if (h && !(e.target.closest && e.target.closest('.ins-more-wrap'))) insCloseMenu(h);
+      if (e.target.closest && e.target.closest('.ins-more-wrap')) return;
+      document.querySelectorAll('.ins-panel').forEach(h => insCloseMenu(h));
     });
   }
   /* THE TRAIL IS NOT ON THE LIGHT LIST. The record is read once, and the
@@ -478,6 +560,20 @@ function insListOff(tbody){ if (tbody) tbody.setAttribute('data-ins-on', '0'); }
    the side rail folds or floats, and only the first of those fires a resize.
    The page records which shape it painted (data-ins); a repaint happens only
    when the answer now differs, so an ordinary resize costs nothing. */
+/* WHICH PAINTER EACH PAGE ANSWERS TO, by name — ONE LIST, so a page that
+   takes the Inspector joins it here rather than growing another branch. The
+   names are asked through window at the moment of the resize, because not
+   every page's module is on every stage. The contract's Obligations tab lives
+   inside the room and repaints for whichever contract the room holds. */
+const INS_PAGE_REPAINT = {
+  register: 'regRepaint',
+  approvals: 'renderApprovalsPage',
+  obligations: 'obwRepaint',
+  intake: 'renderIntake',
+  playbook: 'renderPlaybookPage',
+  oblig: () => { const c = (typeof getContract === 'function' && typeof state !== 'undefined') ? getContract(state.activeId) : null;
+    if (c && typeof roomPaintObligations === 'function') roomPaintObligations(c); },
+};
 function insWatchWidth(){
   if (typeof document === 'undefined' || document._insWidthWired) return;
   const el = document.getElementById('content');
@@ -492,8 +588,9 @@ function insWatchWidth(){
     if (insFits() === was) return;
     const k = page.getAttribute('data-ins-page');
     try {
-      if (k === 'register' && typeof regRepaint === 'function') regRepaint();
-      else if (k === 'approvals' && typeof renderApprovalsPage === 'function') renderApprovalsPage();
+      const p = INS_PAGE_REPAINT[k];
+      if (typeof p === 'function') p();
+      else if (p && typeof window[p] === 'function') window[p]();
     } catch (err) { if (typeof console !== 'undefined') console.warn('inspector: repaint on resize failed', err); }
   };
   const later = () => { if (queued) return; queued = true;
@@ -506,4 +603,5 @@ Object.assign(window, { INS_MIN_W, INS_ASKS_MAX, INS_LATEST, INS_READ_TONE,
   insForce, insFits, insSelected, insSelect, insPick, insFacts, insMove, insMoveCellHtml,
   insTable, insReads, insLatest, insSecHtml, insFactsHtml, insTableHtml, insReadsHtml, insLatestHtml,
   insHeadHtml, insPanelHtml, insPanelEmptyHtml, insPaintPanel, insCloseMenu, insMarkRow, insListWire,
-  insListOff, insWatchWidth });
+  insListOff, insWatchWidth, insActsHtml, insMenuItemHtml, insItemHeadHtml, INS_TONE, insKvHtml, insChipHtml, insViewTabsHtml,
+  INS_PAGE_REPAINT });

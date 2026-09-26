@@ -84,6 +84,29 @@ const DEFAULT_PLAYBOOK = {
     positions:[ { category:'Confidentiality', pos:'required', clause:'cl-conf', escalate:false } ],
     ranges:[] },
 };
+/* THE WORDS A BUILT-IN BOOK IS CHOSEN BY — ONE LIST, TWO READERS (26 Sep
+   2026). playbookKeyFor matches a contract's TYPE against these patterns, in
+   this order; the Our standards page prints what they say on the book's own
+   panel ("Chosen for contracts whose type mentions …"), so the sentence on the
+   screen cannot drift from the rule it describes. Each pattern is written out
+   whole because the server's copilotPlaybookKey keeps the same four and f133
+   holds the two files to the same text. A stem is what is MATCHED
+   (`manufactur` meets manufacturing and manufacturer alike); PB_STEM_SAYS is
+   only how a stem is SPELLED for a reader, and changes no match. */
+const PB_TYPE_PATTERNS = [
+  ['nda',      'nda|non-disclosure'],
+  ['lease',    'lease'],
+  ['services', 'professional|marketing|services|advisory|agency'],
+  ['supply',   'supply|packaging|raw material|manufactur|co-pack|distribut|warehous|freight|logistics|retail'],
+];
+const PB_TYPE_RES = PB_TYPE_PATTERNS.map(([key, src]) => [key, new RegExp(src)]);
+const PB_STEM_SAYS = { nda:'NDA', manufactur:'manufacturing', 'co-pack':'co-packing', distribut:'distribution', warehous:'warehousing' };
+/* The words a reader would write for one built-in book, or null for a book
+   that is not one of the four. */
+function pbTypeWords(key){
+  const hit = PB_TYPE_PATTERNS.find(x => x[0] === key);
+  return hit ? hit[1].split('|').map(w => PB_STEM_SAYS[w] || w) : null;
+}
 // Map a contract kind/folder to a playbook key.
 function playbookKeyFor(c){
   /* ---- THE TYPE DECIDES, AND ONLY THEN THE VALUE STREAM (upgrade 5) ----
@@ -130,11 +153,8 @@ function playbookKeyFor(c){
       if(key==='_default'||!p||!Array.isArray(p.match)||!p.match.length) continue;
       if(p.match.some(w=>{ w=String(w||'').toLowerCase().trim(); return w && (k.includes(w)||f===w); })) return key; }
   }catch(_){}
-  // 2. the built-in patterns, asked of the TYPE alone
-  if(/nda|non-disclosure/.test(k)) return 'nda';
-  if(/lease/.test(k)) return 'lease';
-  if(/professional|marketing|services|advisory|agency/.test(k)) return 'services';
-  if(/supply|packaging|raw material|manufactur|co-pack|distribut|warehous|freight|logistics|retail/.test(k)) return 'supply';
+  // 2. the built-in patterns, asked of the TYPE alone, in PB_TYPE_PATTERNS' order
+  for(const [key, re] of PB_TYPE_RES) if(re.test(k)) return key;
   // 3. a type that was read and matched nothing takes the baseline
   if(said) return '_default';
   // 4. the value stream, for a contract whose type nobody read
@@ -1452,4 +1472,4 @@ function openClausePicker(c, opts){
   document.querySelectorAll('[data-cl-ins]').forEach(b=>b.addEventListener('click',()=>{ const cl=clauseById(b.getAttribute('data-cl-ins')); closeModal(); if(onPick) onPick(cl); }));
 }
 
-Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,pbCarryDecisions,PB_TEXT_MIN,playbookText,PB_RANGE_READERS,pbRangeRead,PB_QUOTE_MIN,PB_QUOTE_LEAD,pbClauseBlocks,pbQuoteBlock,pbSwapBlock,pbPositionFigure,pbFitWording,pbFitInto,pbUnquotedLoss,pbClauseHeadWords,pbDropRepeatedHeading,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,pbStandardsFor,pbStandardsSent,PB_SETTLED_STATUSES,pbVerdictOpen,pbAlignVerdicts,pbReviewComplete,pbReviewUsable,playbookReviewHeuristic,runPlaybookReview,playbookStale,playbookHashOf,deviationSummary,renderPlaybookSection,pbProposedClauses,applyClauseRedline,pbShowInsert,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});
+Object.assign(window,{PB_TYPE_PATTERNS,PB_STEM_SAYS,pbTypeWords,DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,pbCarryDecisions,PB_TEXT_MIN,playbookText,PB_RANGE_READERS,pbRangeRead,PB_QUOTE_MIN,PB_QUOTE_LEAD,pbClauseBlocks,pbQuoteBlock,pbSwapBlock,pbPositionFigure,pbFitWording,pbFitInto,pbUnquotedLoss,pbClauseHeadWords,pbDropRepeatedHeading,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,pbStandardsFor,pbStandardsSent,PB_SETTLED_STATUSES,pbVerdictOpen,pbAlignVerdicts,pbReviewComplete,pbReviewUsable,playbookReviewHeuristic,runPlaybookReview,playbookStale,playbookHashOf,deviationSummary,renderPlaybookSection,pbProposedClauses,applyClauseRedline,pbShowInsert,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});

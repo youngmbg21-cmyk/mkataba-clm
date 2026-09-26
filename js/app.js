@@ -260,6 +260,10 @@ const PAGE_ACTIONS = {
   pipeline: ['new'],
   reports:  ['export'],
 };
+/* WHICH PAGES PAINT THEIR OWN HEAD SLOTS, and the painter each one answers
+   to, by name — asked through window, because not every page's module is on
+   every stage. */
+const PAGE_HEAD_PAINT = { obligations:'obwPaintHead', intake:'ikPaintHead', playbook:'pbPaintHead' };
 function pageActionHtml(kind){
   if(kind==='export') return `<button data-page-export class="ui-btn" title="${i18t('ap_export_working_set')}">`+
     `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:-2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>${i18t('ap_export')}</button>`;
@@ -469,7 +473,13 @@ function renderPageHeader(view){
      DIVERGES FROM THE DESIGN REFERENCE, which draws a subtitle on every screen
      header. Recorded as the owner's ruling, twice made, not as drift. */
   const [t]=commandMeta(view);
-  const acts=(PAGE_ACTIONS[view]||[]).map(pageActionHtml).join('');
+  /* A PAGE THAT PAINTS ITS OWN FACTS LINE AND ITS OWN VERBS INTO THE HEADER
+     (26 Sep 2026: Obligations, Requests and Our standards took the Inspector).
+     Two EMPTY slots, filled by the page's painter — the register's own idiom
+     (#reg-head-facts, #reg-cohort-slot) — because both change on a repaint
+     with no view change: a filter moves the facts, a tab moves the verbs. */
+  const slots=PAGE_HEAD_PAINT[view]?`<span id="page-head-acts" style="display:contents"></span>`:'';
+  const acts=(PAGE_ACTIONS[view]||[]).map(pageActionHtml).join('')+slots;
   /* THE HEADER LINES UP WITH THE PAGE UNDER IT. It padded to 20px while the
      eleven view bodies beneath it padded to 16, 18, 20 or 0 — so on 10 of the
      11 screens that use this shared header, the page TITLE and the content
@@ -531,12 +541,15 @@ function renderPageHeader(view){
                paints (regPaintHeadFacts), because the number changes on a
                repaint with no view change. */}
         ${view==='register'?'<div id="reg-head-facts" class="page-facts"></div>':''}
+        ${PAGE_HEAD_PAINT[view]?'<div id="page-head-facts" class="page-facts"></div>':''}
       </div>
       ${acts?`<div style="display:flex;align-items:center;gap:var(--s-2);flex:none">${acts}</div>`:''}
     </div>`;
   /* The header is painted AFTER the view, so the register's first paint found
      no slot; ask the register to fill it now that the slot exists. */
   if(view==='register'&&typeof window.regPaintHeadFacts==='function'){ try{ regPaintHeadFacts(); }catch(_){} }
+  /* …and the same for every page on the list below. */
+  if(PAGE_HEAD_PAINT[view]&&typeof window[PAGE_HEAD_PAINT[view]]==='function'){ try{ window[PAGE_HEAD_PAINT[view]](); }catch(_){} }
   syncViewHeight();
 }
 /* The full-height views size themselves against this rather than a constant,

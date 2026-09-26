@@ -467,6 +467,12 @@ function obligationSurfacesChanged(){
      calendar above: its numbers are computed during a render, and ticking an
      obligation off is not a screen switch. */
   if(window.state && state.view==='dashboard' && window.renderDashboard) renderDashboard();
+  /* AND THE OBLIGATIONS PAGE ITSELF (26 Sep 2026). Its panel carries Mark
+     done, so completing an obligation now happens ON this page, and a page
+     that went on showing the row as outstanding would be a surface that stayed
+     stale — the one thing this funnel exists to stop. Through obwRepaint, so
+     the reader keeps their place in the list. */
+  if(window.state && state.view==='obligations' && window.obwRepaint) obwRepaint();
   /* AND THE CHECKS CARD, which counts them on its own row since 14 Aug 2026
      ("6 tracked"). Same reasoning again, and the reason this function exists:
      one count, many surfaces, refreshed from ONE place rather than from each of
@@ -1681,6 +1687,27 @@ function roomObligationsHtml(c){
 function roomPaintObligations(c){
   const host = document.getElementById('ws-obligations-pane');
   if(!host || !c) return;
+  /* ---- THE INSPECTOR WHERE THE WIDTH HOLDS IT (26 Sep 2026) ----
+     The host is the room's card and carries its dress inline; the Inspector
+     draws its own two cards (the list and the panel), so the host sheds the
+     dress and fills the pane while the shape is drawn, and takes it back
+     exactly as it was when the window is too narrow for it. The marker is
+     what insWatchWidth reads to repaint on a width that crosses the line. */
+  if(host.dataset.obtStyle == null) host.dataset.obtStyle = host.getAttribute('style') || '';
+  host.setAttribute('data-ins-page', 'oblig');
+  const INS = typeof window.insFits === 'function' && insFits() && typeof window.insPaintPanel === 'function';
+  host.setAttribute('data-ins', INS ? '1' : '0');
+  host.classList.toggle('is-ins', INS);
+  if(INS){
+    host.setAttribute('style', 'width:100%;min-height:0');
+    /* A REPAINT KEEPS THE READER'S PLACE: this runs on every completion, and
+       the list and the panel each scroll inside themselves. */
+    const was = ['obt-scroll', 'obt-panel'].map(id => { const el = document.getElementById(id); return el ? el.scrollTop : null; });
+    roomObligationsInspector(c, host);
+    ['obt-scroll', 'obt-panel'].forEach((id, n) => { const el = document.getElementById(id); if(el && was[n] != null) el.scrollTop = was[n]; });
+    return;
+  }
+  host.setAttribute('style', host.dataset.obtStyle);
   host.innerHTML = roomObligationsHtml(c);
   const obs = c.obligations || [];
   /* THROUGH THE ONE VERB. toggleObligation is what the calendar, the dashboard
@@ -1938,49 +1965,81 @@ const OBW_DUE   = [['all','ob_f_due_all'],['7','ob_f_due_7'],['30','ob_f_due_30'
    which carries the contract's id, name and counterparty on each row, so a
    list spanning contracts can name who owes a "theirs" without looking the
    contract up again and cannot name the wrong one. */
-function obwRows(f){
-  f = f || obwFilters();
-  const live = new Set((state.contracts || [])
-    .filter(c => c && c.status !== 'Declined' && !c.archived).map(c => c.id));
-  const scoped = new Set((state.contracts || [])
-    .filter(c => !window.canAccessFolder || canAccessFolder(c.folder)).map(c => c.id));
-  return allObligations()
-    .filter(o => live.has(o.cid) && scoped.has(o.cid))
+/* ---- THE BOOK, READ ONCE PER PAINT (26 Sep 2026) ----
+   Every live, in-scope obligation with its contract riding along and its
+   readings made once: the state, the band, the window. It replaced a walk that
+   looked every row's contract up in the whole book twice — at three thousand
+   contracts that is millions of comparisons for one paint, and the Inspector
+   asks this for every view's count. Iterated in the book's own order, so a
+   caller that sorts gets exactly the order it always got. */
+function obwBook(){
+  /* ONE LOOK-UP PER CONTRACT, NOT PER ROW (the performance audit's lesson):
+     the live, in-scope contracts are put in a map once, and every row finds
+     its record there. */
+  const live = new Map();
+  (state.contracts || []).forEach(c => {
+    if(c && c.status !== 'Declined' && !c.archived && (!window.canAccessFolder || canAccessFolder(c.folder)))
+      live.set(c.id, c);
+  });
+  /* `_i` is where the row sits on its contract, for an obligation old enough
+     to carry no id. allObligations walks each contract's list in order, so a
+     count per contract IS that index. */
+  const at = new Map();
+  const out = [];
+  allObligations().forEach(o => {
+    const i = at.get(o.cid) || 0; at.set(o.cid, i + 1);
+    const c = live.get(o.cid);
+    if(!c) return;
+    const due = obligationDue(o);
     /* THE CONTRACT RIDES ALONG (J-5.2). An amount is stated in the CONTRACT'S
        own currency and converted through the CONTRACT'S own record, so this
-       page needs the record rather than the id — and looking it up per row per
-       repaint is the same lookup done four times. Underscored because it is
+       page needs the record rather than the id. Underscored because it is
        transport: nothing writes it back, and it is stripped by the spread
        every consumer already does. */
-    .map(o => ({ ...o, st: obState(o), band: obligationBand(o, (state.contracts || []).find(x => x.id === o.cid)),
-      _c: (state.contracts || []).find(x => x.id === o.cid) || null,
-      days: obligationDue(o) ? daysUntil(obligationDue(o)) : null }))
-    .filter(o => {
-      if(f.state === 'open' && o.st === 'done') return false;
-      if(f.state === 'overdue' && o.st !== 'overdue') return false;
-      if(f.state === 'done' && o.st !== 'done') return false;
-      /* ---- ONE MORE OPTION IN A CONTROL THAT IS ALREADY THERE (L-3) ----
-         "What is held up across the whole book?" had no answer and needed no
-         new page to get one. Read off the BAND rather than re-deriving it, so
-         the cut and the heading it lands under cannot disagree. */
-      if(f.state === 'waiting' && o.band !== 'waiting') return false;
-      if(f.side === 'ours' && obligationIsTheirs(o)) return false;
-      if(f.side === 'theirs' && !obligationIsTheirs(o)) return false;
-      if(f.whose === 'mine' && !obligationIsMine(o)) return false;
-      if(f.whose === 'none' && !!obligationReminderTo(o)) return false;
-      if(f.folder !== 'all'){
-        const c = (state.contracts || []).find(x => x.id === o.cid);
-        if(!c || c.folder !== f.folder) return false;
-      }
-      if(f.due !== 'all'){
-        /* A DATELESS OBLIGATION IS NOT IN A DUE WINDOW. Nothing is ever sent
-           about one and no window can contain it; dropping it here is what
-           makes "due in 7 days" mean the same thing on this page as it does
-           in the bell. */
-        if(o.days == null || o.days > Number(f.due)) return false;
-      }
-      return true;
-    })
+    out.push({ ...o, st: obState(o), band: obligationBand(o, c), win: obligationWindow(o, c),
+      _c: c, _i: i, days: due ? daysUntil(due) : null });
+  });
+  return out;
+}
+/* EVERY FILTER, AS ONE PREDICATE, so the list, each view's count and the
+   door that narrows to a view ask one question. */
+function obwPass(o, f){
+  if(f.state === 'open' && o.st === 'done') return false;
+  /* OVERDUE MEANS LATE WORK SOMEBODY COULD HAVE DONE (26 Sep 2026). It asked
+     obState, so a step held back by an earlier one — late by the calendar and
+     by nobody's fault — was counted overdue here while the sidebar's own door
+     (obligationsDoorCount) and the group heading below both called it
+     waiting: a door reading 1 opened a list of 2. The window is the reading
+     both of those already agree with. */
+  if(f.state === 'overdue' && o.win !== 'overdue') return false;
+  if(f.state === 'done' && o.st !== 'done') return false;
+  /* ---- ONE MORE OPTION IN A CONTROL THAT IS ALREADY THERE (L-3) ----
+     "What is held up across the whole book?" had no answer and needed no
+     new page to get one. Read off the BAND rather than re-deriving it, so
+     the cut and the heading it lands under cannot disagree. */
+  if(f.state === 'waiting' && o.band !== 'waiting') return false;
+  if(f.side === 'ours' && obligationIsTheirs(o)) return false;
+  if(f.side === 'theirs' && !obligationIsTheirs(o)) return false;
+  if(f.whose === 'mine' && !obligationIsMine(o)) return false;
+  /* NOBODY OWNS IT IS A FACT ABOUT OUR SIDE (26 Sep 2026, the owner's
+     drawing). An obligation of theirs has no owner here by design — nobody on
+     our side owes it — so counting it under "Nobody owns it" filled the cut
+     with rows nobody could give an owner to. */
+  if(f.whose === 'none' && (obligationIsTheirs(o) || !!obligationReminderTo(o))) return false;
+  if(f.folder !== 'all' && !(o._c && o._c.folder === f.folder)) return false;
+  if(f.due !== 'all'){
+    /* A DATELESS OBLIGATION IS NOT IN A DUE WINDOW. Nothing is ever sent
+       about one and no window can contain it; dropping it here is what
+       makes "due in 7 days" mean the same thing on this page as it does
+       in the bell. */
+    if(o.days == null || o.days > Number(f.due)) return false;
+  }
+  return true;
+}
+function obwRows(f){
+  f = f || obwFilters();
+  return obwBook()
+    .filter(o => obwPass(o, f))
     .sort((a, b) => {
       const r = OBLIG_BANDS.findIndex(x => x[0] === a.band) - OBLIG_BANDS.findIndex(x => x[0] === b.band);
       if(r) return r;
@@ -2059,6 +2118,15 @@ function obwRepaint(){
 function renderObligationsList(){
   const host = document.getElementById('content');
   if(!host) return;
+  /* THE INSPECTOR WHERE THE WIDTH HOLDS IT (26 Sep 2026). Below INS_MIN_W the
+     table below is drawn exactly as before, because a panel squeezed beside a
+     list too narrow for its columns cuts both. */
+  if(typeof window.insFits === 'function' && insFits() && typeof window.insPaintPanel === 'function'){
+    renderObligationsInspector(host);
+    return;
+  }
+  _obwHeadFacts = '';
+  obwPaintHead();
   const f = obwFilters();
   const rows = obwRows(f);
   const folders = (window.visibleFolders ? visibleFolders() : (window.FOLDERS || []));
@@ -2143,19 +2211,9 @@ function renderObligationsList(){
      in the product, and where a rate is missing the row is LEFT OUT and the
      figure says so — the standing rule that a silent trim on a money headline
      is the fault the insights panels were rebuilt to stop. */
-  const homeSum = list => {
-    let sum = 0, missing = {};
-    for(const o of list){
-      const n = obligationAmount(o);
-      if(n === null) continue;
-      if(typeof window.fxHome === 'function' && o._c){
-        const h = fxHome({ ...o._c, value: n });
-        if(h && h.missing){ missing[h.code || '?'] = (missing[h.code || '?'] || 0) + 1; continue; }
-        sum += (h && typeof h.v === 'number') ? h.v : n;
-      } else sum += n;
-    }
-    return { sum, missing };
-  };
+  /* THE ONE CONVERTER, lifted out (26 Sep 2026) so the Inspector's group
+     headings sum through the very same function this foot does. */
+  const homeSum = obwHomeSum;
   const banded = OBLIG_BANDS.map(([k, key]) => {
     const mine = rows.filter(r => r.band === k);
     if(!mine.length) return '';
@@ -2196,7 +2254,7 @@ function renderObligationsList(){
         { n: left.reduce((a, [, n]) => a + n, 0), codes: left.map(([code]) => code).join(', ') }))}</i>` : ''}</div>`;
   })();
 
-  host.innerHTML = `<div class="obw-page">
+  host.innerHTML = `<div class="obw-page" data-ins-page="obligations" data-ins="0">
     <div class="obw-card">
       <div class="obw-head">
         ${''/* THE HEADLINE NAMES WHAT IT IS COUNTING. `ob_head_open` reads
@@ -2285,6 +2343,725 @@ function renderObligationsList(){
     obligationChase(b.getAttribute('data-obw-cid'), b.getAttribute('data-obw-chase'));
   }));
   if(window.setActiveNav) setActiveNav('obligations');
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   THE INSPECTOR ON THE OBLIGATIONS PAGE AND ON THE CONTRACT'S TAB
+   (Young ruled 26 Sep 2026, off the "Obligations, Standards, Requests" page:
+   the Inspector for the page, and the Inspector for the tab)
+   ════════════════════════════════════════════════════════════════════════
+   The list says what is due when, the panel beside it says everything HaTi
+   knows about the one obligation chosen: its wording, its chain, the document
+   it asks for, who is reminded and when, and what has happened to it. A press
+   selects, a second press — the panel's own button, Enter, a double-click —
+   opens the contract on its Obligations tab. ONE BUILDER FOR BOTH HOMES: the
+   page and the tab draw the same rows and the same panel, and differ only in
+   what the page adds (the contract the obligation sits on) and what the tab
+   adds (the tab's own verbs: Edit, Reopen, Remove).
+
+   IT COUNTS NOTHING OF ITS OWN. obState decides overdue, obligationBlocked
+   decides waiting, obligationStepNo names the step, obligationReminderTo
+   decides who is told, obligationDocState reads the document, and the money
+   goes through the one converter every other total uses. The one new reading
+   is WHEN, below — and it is new because the owner's drawing asked for due
+   windows the book did not have.
+
+   NOT BELOW INS_MIN_W, AND NOT ON THE PHONE: there both keep the list they
+   always drew (renderObligationsList's own table, roomObligationsHtml's
+   bands), and a width that crosses the line repaints (insWatchWidth). */
+
+/* ---- WHEN IT FALLS DUE, IN SEVEN PILES — the one reading of the windows ----
+   The owner's drawing groups by how soon, not by calendar month: a promise
+   due on the 1st of next month is closer than one due on the 28th of this
+   one. `obligationBand` (this month · later) is UNTOUCHED and still answers
+   for the phone's own tab and for Copilot's byBand, which this build does not
+   reach. A HELD-BACK STEP IS 'waiting' whatever its date says, the same
+   precedence obligationBand gives it: nobody could have done it, so it is not
+   late by anybody's fault. */
+const OB_WINDOWS = [
+  ['overdue', 'ob_w_overdue', 'ruby'],
+  ['week',    'ob_w_week',    'amber'],
+  ['month',   'ob_w_month',   'steel'],
+  ['later',   'ob_w_later',   'gray'],
+  ['nodate',  'ob_w_nodate',  'gray'],
+  ['waiting', 'ob_w_waiting', 'steel'],
+  ['done',    'ob_w_done',    'green'],
+];
+const OB_WIN_ORDER = OB_WINDOWS.map(w => w[0]);
+const OB_WEEK_DAYS = 7, OB_MONTH_DAYS = 30;
+function obligationWindow(o, c){
+  if(obState(o) === 'done') return 'done';
+  if(c && obligationBlocked(o, c)) return 'waiting';
+  const due = obligationDue(o);
+  if(!due) return 'nodate';
+  const d = (typeof daysUntil === 'function') ? daysUntil(due) : null;
+  if(d == null || !isFinite(d)) return 'nodate';
+  if(d < 0) return 'overdue';
+  if(d <= OB_WEEK_DAYS) return 'week';
+  if(d <= OB_MONTH_DAYS) return 'month';
+  return 'later';
+}
+const obWinTone = k => ((OB_WINDOWS.find(w => w[0] === k) || [])[2]) || 'gray';
+
+/* ---- SMALL WORDS ---- */
+/* A day as a reader says it: "5 Sep", with the year only where it is not this
+   year — in the reader's own language (langLocale), never a typed month. */
+function obDay(iso, long){
+  const s = String(iso || '').slice(0, 10);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(s)) return '';
+  const d = new Date(s + 'T00:00:00');
+  if(isNaN(d.getTime())) return '';
+  const loc = (typeof langLocale === 'function') ? langLocale() : 'en-GB';
+  const same = d.getFullYear() === new Date().getFullYear();
+  try{ return d.toLocaleDateString(loc, (long || !same) ? { day:'numeric', month:'short', year:'numeric' } : { day:'numeric', month:'short' }); }
+  catch(_){ return s; }
+}
+/* How far off a date is, in words: late, today, days, months, years. */
+function obligationRelWords(days){
+  const d = Number(days);
+  if(!isFinite(d)) return '';
+  if(d < 0) return i18tn('ob_rel_late', -d, { n: -d });
+  if(d === 0) return i18t('ob_rel_today');
+  if(d <= 90) return i18tn('ob_rel_in_days', d, { n: d });
+  const m = Math.round(d / 30.44);
+  if(m < 24) return i18tn('ob_rel_in_months', m, { n: m });
+  const y = Math.round(d / 365.25);
+  return i18tn('ob_rel_in_years', y, { n: y });
+}
+const _obCap = s => { const t = String(s || ''); return t ? t.charAt(0).toUpperCase() + t.slice(1) : t; };
+/* The people named on a row, as the list prints them: initials in a disc and
+   "Amina O." beside them. */
+function obInitials(name){
+  return String(name || '').trim().split(/\s+/).filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+}
+function obShortName(name){
+  const p = String(name || '').trim().split(/\s+/).filter(Boolean);
+  return p.length > 1 ? `${p[0]} ${p[p.length - 1][0]}.` : (p[0] || '');
+}
+/* How often it recurs, in the panel's words and in the row's. */
+const OB_REPEAT_KEY = { monthly:'ob_rep_monthly', quarterly:'ob_rep_quarterly', annual:'ob_rep_annual' };
+function obRepeatsWord(o, low){
+  const k = OB_REPEAT_KEY[String((o && o.recurring) || 'none')];
+  if(!k) return low ? '' : i18t('ob_rep_once');
+  return i18t(low ? k + '_low' : k);
+}
+/* THE DOCUMENT, SHORT (for a row) AND WHOLE (for the panel). Read through
+   obligationDocState, the one reading the Overview and the filter share. */
+function obDocSay(o, whole){
+  const st = obligationDocState(o);
+  if(!st) return null;
+  const until = obligationDocUntil(o);
+  const d = until && typeof daysUntil === 'function' ? daysUntil(until) : null;
+  if(st === 'lapsed') return { cls:'ins-late', t: whole ? i18tn('ob_doc_lapsed_long', Math.max(1, -d || 1), { date: obDay(until), n: Math.max(1, -d || 1) }) : i18t('ob_doc_lapsed_short') };
+  if(st === 'soon') return { cls:'ins-soon', t: whole ? i18tn('ob_doc_soon_long', Math.max(0, d || 0), { date: obDay(until), n: Math.max(0, d || 0) }) : i18t('ob_doc_soon_short', { date: obDay(until) }) };
+  if(st === 'missing') return { cls:'ins-soon', t: i18t(whole ? 'ob_doc_missing_long' : 'ob_doc_missing_short') };
+  return { cls:'ins-ok', t: until ? (whole ? i18t('ob_doc_held_long', { date: obDay(until, true) }) : i18t('ob_doc_held_short')) : i18t(whole ? 'ob_doc_onfile_long' : 'ob_doc_held_short') };
+}
+
+/* ---- THE DUE COLUMN: the day, and what it means today ---- */
+function obligationDueSay(o, c){
+  const w = obligationWindow(o, c);
+  if(w === 'done') return { day: o.completedAt ? obDay(o.completedAt) : i18t('ob_done_unknown'), sub: i18t('ob_due_done'), cls:'ins-ok' };
+  const due = obligationDue(o);
+  if(w === 'waiting'){
+    const s = obligationStepNo(o, c);
+    return { day: due ? obDay(due) : i18t('ob_no_date_cap'),
+      sub: s ? i18t('ob_waiting_on_low', { n: s.n - 1 }) : i18t('ob_w_waiting'), cls:'ins-wait' };
+  }
+  if(w === 'nodate'){
+    const doc = obDocSay(o);
+    return { day: i18t('ob_no_date_cap'), sub: doc ? doc.t : '', cls: doc ? doc.cls : '' };
+  }
+  const d = daysUntil(due);
+  return { day: obDay(due), sub: obligationRelWords(d), cls: d < 0 ? 'ins-late' : (d <= OB_WEEK_DAYS ? 'ins-soon' : '') };
+}
+/* ---- THE WHOSE COLUMN ----
+   Theirs is theirs; ours names the colleague HaTi will remind, and where it
+   can remind nobody the row says NOBODY in amber — the one fact on this page
+   a reader has to act on before anything goes wrong. */
+function obWhoCellHtml(o){
+  if(obligationIsTheirs(o)) return `<span class="ins-quiet">${_obEsc(i18t('ob_side_theirs'))}</span>`;
+  const m = obligationReminderTo(o);
+  if(!m){
+    const typed = String((o && o.assignee) || '').trim();
+    return `<span class="ins-nobody" title="${_obEsc(typed ? i18t('ob_no_owner_title') : i18t('ob_no_owner_none'))}">${_obEsc(i18t('ob_nobody'))}</span>`;
+  }
+  return `<span class="ins-who"><i class="ins-av" aria-hidden="true">${_obEsc(obInitials(m.name))}</i><span title="${_obEsc(m.name || '')}">${_obEsc(obShortName(m.name))}</span></span>`;
+}
+function obAmountCellHtml(o, c){
+  return obligationHasAmount(o)
+    ? `<span class="ins-amt">${_obEsc(obligationMoneyText(obligationAmount(o), c || o._c || o))}</span>`
+    : `<span class="ins-quiet">&mdash;</span>`;
+}
+/* ---- A CROSS-CONTRACT SUM CONVERTS, AND SAYS WHAT IT LEFT OUT ----
+   Lifted out of the table below so the page's group headings and its head
+   line sum through the very same converter: two rows on this page can be in
+   two currencies, so a bare sum would add shillings to euros. A row whose
+   currency has no rate on file is LEFT OUT and counted, never guessed. */
+function obwHomeSum(list){
+  let sum = 0; const missing = {};
+  for(const o of (list || [])){
+    const n = obligationAmount(o);
+    if(n === null) continue;
+    if(typeof window.fxHome === 'function' && o._c){
+      const h = fxHome({ ...o._c, value: n });
+      if(h && h.missing){ missing[h.code || '?'] = (missing[h.code || '?'] || 0) + 1; continue; }
+      sum += (h && typeof h.v === 'number') ? h.v : n;
+    } else sum += n;
+  }
+  return { sum, missing };
+}
+/* WHAT A LIST OF OBLIGATIONS ADDS UP TO, IN THE FOUR DIRECTIONS MONEY MOVES.
+   Money we owe is never added to money owed to us — the owner's drawing says
+   them apart, and a single total would be a number that means nothing. With
+   `c` the list is one contract's and is stated in that contract's own
+   currency; without it the list crosses contracts and is converted. Empty
+   where the reader may not see money or where there is none to state. */
+function obMoneyWords(list, c){
+  if(!obligationMoneyVisible()) return { text:'', left:0, codes:[] };
+  const sum = c ? (l => ({ sum: obligationBandTotal(l), missing: {} })) : obwHomeSum;
+  const fmt = c ? (n => obligationMoneyText(n, c)) : (n => (typeof window.fmtMoneyShort === 'function' ? fmtMoneyShort(n) : String(n)));
+  const rows = list || [];
+  const open = rows.filter(x => obState(x) !== 'done'), done = rows.filter(x => obState(x) === 'done');
+  const parts = [
+    ['ob_mw_owe',  sum(open.filter(x => !obligationIsTheirs(x)))],
+    ['ob_mw_owed', sum(open.filter(obligationIsTheirs))],
+    ['ob_mw_paid', sum(done.filter(x => !obligationIsTheirs(x)))],
+    ['ob_mw_got',  sum(done.filter(obligationIsTheirs))],
+  ];
+  let left = 0; const codes = new Set();
+  parts.forEach(([, h]) => Object.entries(h.missing || {}).forEach(([code, n]) => { left += n; codes.add(code); }));
+  return { text: parts.filter(([, h]) => h.sum).map(([k, h]) => i18t(k, { amt: fmt(h.sum) })).join(' · '), left, codes: [...codes] };
+}
+function obMoneyLeftHtml(m){
+  return m && m.left ? ` <span class="ins-quiet">· ${_obEsc(i18tn('ob_total_left_out', m.left, { n: m.left, codes: m.codes.join(', ') }))}</span>` : '';
+}
+
+/* ---- THE ROW'S SECOND LINE ----
+   On the page it names where the obligation lives (the counterparty, the
+   contract's reference, the step it is in the chain); on the tab, where the
+   contract is already on screen, it says the facts instead — who owns it, the
+   step, how often, the document, when it was chased, who closed it. */
+function obPageLine2(o, c){
+  const bits = [ _obEsc(o.counterparty || (c && c.counterparty) || ''),
+    _obEsc(window.contractRef && c ? contractRef(c) : (o.cid || (c && c.id) || '')) ].filter(Boolean);
+  const s = obligationStepNo(o, c);
+  if(s) bits.push(_obEsc(i18t('ob_step_low', { n: s.n, of: s.of })));
+  return bits.join(' · ');
+}
+function obligationFactsLine(o, c, withWho){
+  const bits = [];
+  const done = obState(o) === 'done';
+  if(withWho && !obligationIsTheirs(o)){
+    const m = obligationReminderTo(o);
+    bits.push(m ? _obEsc(obShortName(m.name)) : `<span class="ins-nobody">${_obEsc(i18t('ob_nobody_low'))}</span>`);
+  }
+  const s = obligationStepNo(o, c);
+  if(s) bits.push(_obEsc(i18t('ob_step_low', { n: s.n, of: s.of })));
+  const rep = obRepeatsWord(o, true);
+  if(rep) bits.push(_obEsc(rep));
+  const doc = done ? null : obDocSay(o);
+  if(doc) bits.push(`<span class="${doc.cls}">${_obEsc(doc.t)}</span>`);
+  if(o.chasedAt && !done) bits.push(_obEsc(i18t('ob_chased_short', { date: obDay(o.chasedAt) })));
+  if(done && o.completedBy) bits.push(_obEsc(i18t('ob_done_by', { who: o.completedBy })));
+  return bits.length ? bits.join(' · ') : _obEsc(i18t(obligationDue(o) ? 'ob_once' : 'ob_any_time'));
+}
+
+/* ---- WHERE IT STANDS, IN THE PANEL'S STATUS LINE ---- */
+function obligationStatusSay(o, c){
+  const w = obligationWindow(o, c);
+  const s = obligationStepNo(o, c);
+  const due = obligationDue(o);
+  const d = due ? daysUntil(due) : null;
+  let html;
+  if(w === 'done'){
+    html = _obEsc(i18t('ob_st_done', { date: o.completedAt ? obDay(o.completedAt) : i18t('ob_done_unknown') }))
+      + (o.completedBy ? ` <span class="x">${_obEsc(i18t('ob_st_by', { who: o.completedBy }))}</span>` : '');
+  } else if(w === 'overdue'){
+    html = `<span class="ins-late">${_obEsc(i18tn('ob_st_overdue', -d, { n: -d }))}</span>`;
+  } else if(w === 'waiting'){
+    html = `<span class="ins-wait">${_obEsc(s ? i18t('ob_waiting_on', { n: s.n - 1 }) : i18t('ob_w_waiting'))}</span>`;
+  } else if(w === 'nodate'){
+    html = _obEsc(i18t('ob_no_date_cap'));
+  } else {
+    const when = obligationRelWords(d);
+    html = d <= OB_WEEK_DAYS ? `<span class="ins-soon">${_obEsc(_obCap(when))}</span>` : _obEsc(i18t('ob_st_due', { when }));
+  }
+  if(o.chasedAt && w !== 'done') html += ` <span class="x">· ${_obEsc(i18t('ob_chased_short', { date: obDay(o.chasedAt) }))}</span>`;
+  if(s && w !== 'done') html += ` <span class="x">· ${_obEsc(i18t('ob_step_low', { n: s.n, of: s.of }))}</span>`;
+  return { tone: obWinTone(w), html };
+}
+
+/* ---- WHO IS REMINDED, AND WHEN — the sweep's own rules, said out loud ----
+   MIRRORS runReminders (server/server.js) milestone for milestone, the same
+   way the Insights obligations page mirrors it: an owner who resolves to a
+   member is told seven days before, on the day and the day after, and the
+   admins are brought in four days late; where nobody resolves — theirs, or
+   ours with no colleague HaTi can write to — the admins get ONE note the day
+   after; a step held back by an earlier one fires none of those, and on its
+   due day the contract's owner (or the admins) is told once that it is held;
+   an obligation with no date is never reminded about at all. "Next" is the
+   first milestone still ahead, so the sentence is true on the day it is read. */
+function _obPlusDays(iso, n){
+  const d = new Date(String(iso).slice(0, 10) + 'T00:00:00');
+  if(isNaN(d.getTime())) return '';
+  d.setDate(d.getDate() + n);
+  return isoDay(d);
+}
+function obligationReminderSay(o, c){
+  if(obState(o) === 'done') return _obEsc(i18t('ob_rem_done'));
+  const due = obligationDue(o);
+  const d = due ? daysUntil(due) : null;
+  const next = steps => {
+    const hit = steps.find(([k]) => d + k >= 0);
+    return hit ? ' ' + _obEsc(i18t('ob_rem_next', { date: obDay(_obPlusDays(due, hit[0])), who: hit[1] })) : ' ' + _obEsc(i18t('ob_rem_none_left'));
+  };
+  const admins = i18t('ob_rem_admins');
+  if(c && obligationBlocked(o, c)){
+    const s = obligationStepNo(o, c);
+    const ownerName = (typeof window.contractOwnerName === 'function' && contractOwnerName(c)) || '';
+    const owner = ownerName ? obligationReminderTo({ assignee: ownerName }) : null;
+    return _obEsc(i18t('ob_rem_held', { n: s ? s.n - 1 : '', who: owner ? (owner.name || ownerName) : admins }));
+  }
+  if(!due) return _obEsc(i18t('ob_rem_nodate'));
+  if(obligationIsTheirs(o)){
+    return _obEsc(i18t('ob_rem_theirs', { cp: o.counterparty || (c && c.counterparty) || i18t('ob_side_theirs') })) + next([[1, admins]])
+      + ` <span class="x">${_obEsc(i18t('ob_rem_chase_hint'))}</span>`;
+  }
+  const m = obligationReminderTo(o);
+  if(!m) return `<span class="ins-nobody">${_obEsc(i18t('ob_rem_nobody'))}</span> ${_obEsc(i18t('ob_rem_nobody_more'))}` + next([[1, admins]]);
+  const first = String(m.name || '').trim().split(/\s+/)[0] || m.name || '';
+  return _obEsc(i18t('ob_rem_owned', { who: m.name || first })) + next([[-7, first], [0, first], [1, first], [4, admins]]);
+}
+
+/* ---- WHAT HAS HAPPENED TO IT, off the contract's own trail ----
+   Read RAW and matched on the obligation's own words, the way every writer in
+   this file phrases its line ("Completed: …", "Chased: …"). NULL — not an
+   empty list — where the record has no trail on it yet: the light list strips
+   `audit`, and "nothing has happened" is a claim this panel may only make once
+   it has read the record. Newest first. */
+const OB_HIST_VERBS = { Added:'ob_h_added', Updated:'ob_h_updated', Completed:'ob_h_done', Reopened:'ob_h_reopened', Chased:'ob_h_chased' };
+function obligationHistory(o, c){
+  if(!c || !Array.isArray(c.audit)) return null;
+  const desc = String((o && o.desc) || '').trim();
+  if(!desc) return [];
+  return c.audit.filter(a => a && a.action === 'Obligation').map(a => {
+    const t = String(a.detail || '');
+    const m = /^(Added|Updated|Completed|Reopened|Chased): /.exec(t);
+    if(!m) return null;
+    const rest = t.slice(m[0].length);
+    if(!rest.startsWith(desc)) return null;
+    const after = rest.slice(desc.length);
+    if(after && !/^\s*(\(|—|$)/.test(after)) return null;
+    return { t: i18t(OB_HIST_VERBS[m[1]], { who: a.user || '' }), at: a.at || '' };
+  }).filter(Boolean).sort((a, b) => String(b.at).localeCompare(String(a.at)));
+}
+/* Where the trail is not on the record yet, the obligation's own stamps say
+   what they can: when it was chased and when it was closed. */
+function obligationStampHistory(o){
+  const out = [];
+  if(o && o.completedAt) out.push({ t: i18t('ob_h_done', { who: o.completedBy || '' }), at: o.completedAt });
+  if(o && o.chasedAt) out.push({ t: i18t('ob_h_chased', { who: o.chasedBy || '' }), at: o.chasedAt });
+  return out.sort((a, b) => String(b.at).localeCompare(String(a.at)));
+}
+function obHistoryHtml(o, c, st){
+  let list = obligationHistory(o, c), note = '';
+  if(list === null){
+    list = obligationStampHistory(o);
+    note = i18t(st === 'failed' ? 'ins_latest_failed' : (st === 'none' ? 'ob_h_none' : 'ins_latest_loading'));
+  }
+  const body = list.length
+    ? `<ul class="ins-log">${list.map(l => `<li><span class="t">${_obEsc(l.t)}</span><span class="w">${_obEsc(obDay(l.at) || '')}</span></li>`).join('')}</ul>`
+    : '';
+  return insSecHtml(i18t('ob_sec_history'), '', body + (note && !(list.length && st === 'none') ? `<p class="ins-note">${_obEsc(note)}</p>` : (!list.length ? `<p class="ins-note">${_obEsc(i18t('ob_h_none'))}</p>` : '')), 'ins-hist');
+}
+
+/* ---- THE CHAIN, THE DOCUMENT, THE WORDING ---- */
+function obChainSectionHtml(o, c){
+  const ch = obligationChain(o, c);
+  if(!ch.length) return '';
+  const money = obligationMoneyVisible();
+  const roll = obligationRoll(ch);
+  const me = String((o && o.id) || '');
+  const rows = ch.map((x, i) => {
+    const w = obligationWindow(x, c);
+    const tick = typeof icon === 'function' ? icon('check2', '', 2.4) : '';
+    const mk = w === 'done' ? `<span class="mk is-ok">${tick}</span>` : w === 'overdue' ? '<span class="mk is-bad"></span>' : w === 'waiting' ? '<span class="mk is-hold"></span>' : '<span class="mk"></span>';
+    const due = obligationDue(x);
+    const sub = w === 'done' ? i18t('ob_chain_paid', { date: x.completedAt ? obDay(x.completedAt) : i18t('ob_done_unknown') })
+      : w === 'overdue' ? `<span class="ins-late">${_obEsc(obligationRelWords(daysUntil(due)))}</span>`
+      : w === 'waiting' ? i18t('ob_chain_waiting', { date: due ? obDay(due) : i18t('ob_no_date') })
+      : (due ? i18t('ob_chain_due', { date: obDay(due) }) : i18t('ob_no_date_cap'));
+    return `<li class="${String(x.id || '') === me ? 'is-me' : ''}">${mk}<span class="t"><b title="${_obEsc(x.desc || '')}">${i + 1}. ${_obEsc(x.desc || '')}</b><span>${w === 'overdue' ? sub : _obEsc(sub)}</span></span><span class="m">${
+      money && obligationHasAmount(x) ? _obEsc(obligationMoneyText(obligationAmount(x), c)) : ''}</span></li>`;
+  }).join('');
+  const rt = money && roll.committed ? `<span class="rt">${_obEsc(i18t('ob_paid_of', { paid: obligationMoneyText(roll.paid, c), all: obligationMoneyText(roll.committed, c) }))}</span>` : '';
+  return `<section class="ins-sec ins-chain"><h3>${_obEsc(i18t('ob_chain'))}<span class="n">${_obEsc(i18tn('ob_chain_steps', ch.length, { n: ch.length }))}</span>${rt}</h3><ol class="ins-ch">${rows}</ol></section>`;
+}
+function obDocSectionHtml(o){
+  const doc = obDocSay(o, true);
+  if(!doc) return '';
+  const file = obligationDocFile(o);
+  const fi = typeof icon === 'function' ? icon('file') : '';
+  return `<section class="ins-sec ins-docsec"><h3>${_obEsc(i18t('ob_sec_doc'))}</h3><div class="ins-docf"><span class="fi" aria-hidden="true">${fi}</span><div><b title="${_obEsc(file)}">${
+    _obEsc(file || i18t('ob_doc_nothing'))}</b><span class="${doc.cls}">${_obEsc(doc.t)}</span></div></div></section>`;
+}
+function obWordingSectionHtml(o){
+  const q = String((o && o.quote) || '').trim();
+  const arrow = typeof icon === 'function' ? icon('chevR', 'w-3.5 h-3.5') : '';
+  if(!q) return insSecHtml(i18t('ob_sec_wording'), '', `<p class="ins-note">${_obEsc(i18t('ob_no_quote'))}</p>`, 'ins-wording');
+  return insSecHtml(i18t('ob_sec_wording'), '', `<blockquote class="ins-q">“${_obEsc(q)}”</blockquote>
+    <button type="button" class="ui-link" data-ob-show>${_obEsc(i18t('ob_show_in_contract'))}${arrow}</button>`, 'ins-wording');
+}
+
+/* ---- "SHOW IT IN THE CONTRACT": the risk scan's own "take me to these words" ----
+   The Document tab, then scrollToQuote — never a second finder. The canvas is
+   painted a moment after the tab is pressed, so the words are asked for on a
+   BOUNDED wait (focusKeyTerms' own idiom) and a failure is SAID, with the way
+   forward, rather than landing the reader at the top of the paper in silence. */
+const OB_SHOW_TRIES = 14, OB_SHOW_MS = 70;
+function obligationShowInContract(cid, quote){
+  const c = window.getContract ? getContract(cid) : null;
+  if(!c) return;
+  const inRoom = (typeof state !== 'undefined') && state.view === 'workspace' && String(state.activeId) === String(cid);
+  if(!inRoom && window.openWorkspace) openWorkspace(cid);
+  let n = 0;
+  const tryIt = () => {
+    n++;
+    const live = window.getContract ? getContract(cid) : c;
+    if(n === 1 && window.roomGoTab){ try{ roomGoTab(live, 'docs'); }catch(_){} }
+    let ok = false;
+    try{ ok = !!(typeof window.scrollToQuote === 'function' && window.scanCanvas && scanCanvas() && scrollToQuote(quote)); }catch(_){ ok = false; }
+    if(ok) return;
+    if(n < OB_SHOW_TRIES) setTimeout(tryIt, OB_SHOW_MS);
+    else if(window.toast) toast(i18t('ob_show_nofind'), 'warn');
+  };
+  setTimeout(tryIt, inRoom ? 0 : 90);
+}
+
+/* ---- WHERE THE ROW IS ON THE RECORD, AT THE PRESS ----
+   By id, never by a remembered index — the list may have moved since the row
+   was drawn. An obligation with no id (older, hand-made) falls back to the
+   index the row was drawn at. */
+function obKeyOf(cid, o, i){ return `${cid}::${(o && o.id) ? o.id : '#' + i}`; }
+function obLocate(key){
+  const k = String(key || '');
+  const cut = k.indexOf('::');
+  if(cut < 0) return null;
+  const cid = k.slice(0, cut), rest = k.slice(cut + 2);
+  const c = window.getContract ? getContract(cid) : null;
+  if(!c) return null;
+  const list = c.obligations || [];
+  let i = rest.startsWith('#') ? Number(rest.slice(1)) : list.findIndex(o => o && String(o.id) === rest);
+  if(!(i >= 0 && i < list.length) || !list[i]) return null;
+  if(!rest.startsWith('#') && String(list[i].id) !== rest) return null;
+  return { c, o: list[i], i };
+}
+
+/* ---- THE VERBS, and every one is a door that already existed ----
+   Mark done opens the completion window (openObligationDone), Chase asks and
+   then emails (obligationChase), Reopen presses toggleObligation, Edit opens
+   the obligation form, Remove asks first and then does what the tab's remove
+   always did. A THEIRS OBLIGATION CAN STILL BE MARKED DONE — the owner's
+   drawing led with Chase and drew nothing else, which would have taken away
+   the one way to record that they delivered; it is kept as a second verb. */
+function obPanelActs(o, c, i, ctx){
+  const may = (typeof canEdit !== 'function') || canEdit();
+  const w = obligationWindow(o, c);
+  const theirs = obligationIsTheirs(o);
+  const acts = [];
+  const done = { k:'done', label: i18t('ob_mark_done'), icon:'check2', run: () => { const h = obLocate(obKeyOf(c.id, o, i)); if(h) openObligationDone(h.c, h.i); } };
+  if(may && w !== 'done'){
+    if(theirs){
+      acts.push({ k:'chase', kind:'accent', label: i18t('ob_chase'), icon:'send', title: i18t('ob_chase_title'), run: () => obligationChase(c.id, o.id) });
+      acts.push(done);
+    } else acts.push(Object.assign(done, { kind: w === 'waiting' ? '' : 'accent' }));
+  }
+  if(ctx === 'tab'){
+    if(may && w === 'done') acts.push({ k:'reopen', label: i18t('ob_reopen_cap'), run: () => { const h = obLocate(obKeyOf(c.id, o, i)); if(h) toggleObligation(h.c, h.i, { from:'obligations tab' }); } });
+    if(may) acts.push({ k:'edit', label: i18t('ob_edit_cap'), icon:'pencil', run: () => { const h = obLocate(obKeyOf(c.id, o, i)); if(h) openObligationForm(h.c, { ...h.o, _i: h.i }); } });
+  } else {
+    acts.push({ k:'open', label: i18t('ins_open_contract'), run: () => obOpenContract(c.id) });
+  }
+  return acts;
+}
+async function obligationRemove(c, i){
+  const o = (c && c.obligations || [])[i];
+  if(!o) return false;
+  if(typeof canEdit === 'function' && !canEdit()){ toast(i18t('ob_viewers_no_change'), 'err'); return false; }
+  const ok = (typeof confirmDialog !== 'function') ? true : await confirmDialog({ title: i18t('ob_remove_title'),
+    message: i18t('ob_remove_msg', { desc: o.desc || '' }), confirmLabel: i18t('ob_remove_go'), danger: true });
+  if(!ok) return false;
+  const at = (c.obligations || []).indexOf(o);
+  if(at < 0) return false;
+  c.obligations.splice(at, 1);
+  logAudit(c, 'Obligation', `Removed: ${o.desc}`);
+  persist(c);
+  if(window.renderObligationsSection) renderObligationsSection(c);
+  obligationSurfacesChanged();
+  return true;
+}
+function obOpenContract(cid){
+  if(!window.openWorkspace) return;
+  openWorkspace(cid);
+  const c = window.getContract ? getContract(cid) : null;
+  if(c && window.roomGoTab) try{ roomGoTab(c, 'oblig'); }catch(_){}
+}
+
+/* ---- THE PANEL: one builder, two homes ---- */
+function obPanelOpts(o, c, i, ctx){
+  const theirs = obligationIsTheirs(o);
+  const st = obligationStatusSay(o, c);
+  const money = obligationMoneyVisible();
+  const m = theirs ? null : obligationReminderTo(o);
+  const typed = String((o && o.assignee) || '').trim();
+  const whose = theirs
+    ? _obEsc(ctx === 'page' ? i18t('ob_whose_theirs_cp', { cp: o.counterparty || c.counterparty || '' }) : i18t('ob_side_theirs'))
+    : (m ? _obEsc(i18t('ob_whose_ours', { who: m.name || typed })) : `<span class="ins-nobody">${_obEsc(i18t(typed ? 'ob_whose_ours_unknown' : 'ob_whose_ours_nobody', { who: typed }))}</span>`);
+  const due = obligationDue(o);
+  const facts = [
+    { k:'due', label: i18t('ob_fact_due'), v: due ? _obEsc(obDay(due, true)) : '' },
+    money ? { k:'amount', label: i18t('ob_amount'), v: obligationHasAmount(o) ? _obEsc(obligationMoneyText(obligationAmount(o), c)) : '' } : null,
+    { k:'whose', label: i18t('ob_f_whose'), v: whose },
+    { k:'repeats', label: i18t('ob_f_repeats'), v: _obEsc(obRepeatsWord(o)) },
+  ];
+  if(ctx === 'page'){
+    let owner = ''; try{ owner = (typeof window.contractOwnerName === 'function' && contractOwnerName(c)) || ''; }catch(_){ owner = ''; }
+    let stream = ''; try{ stream = (typeof window.regStreamName === 'function') ? regStreamName(c) : ((window.FOLDERS && FOLDERS[c.folder] && FOLDERS[c.folder].name) || ''); }catch(_){ stream = ''; }
+    facts.push({ k:'contract', label: i18t('ob_f_contract'), v: _obEsc(c.name || ''), wide: true },
+      { k:'stream', label: i18t('ins_f_stream'), v: _obEsc(stream) },
+      { k:'owner', label: i18t('ob_f_owner'), v: _obEsc(owner) });
+  }
+  let kind = ''; try{ kind = (typeof window.cKind === 'function') ? cKind(c) : ''; }catch(_){ kind = ''; }
+  const ref = _obEsc(window.contractRef ? contractRef(c) : c.id);
+  const eyebrow = ctx === 'page'
+    ? `<span class="ins-ref">${ref}</span>${kind ? ' · ' + _obEsc(kind) : ''}`
+    : `${_obEsc(theirs ? i18t('ob_side_theirs') : i18t('ob_side_ours'))} · ${_obEsc(obRepeatsWord(o))}`;
+  const sub = theirs ? _obEsc(i18t('ob_sub_theirs', { cp: o.counterparty || c.counterparty || i18t('ob_side_theirs') }))
+    : _obEsc(i18t('ob_sub_ours', { cp: c.counterparty || i18t('ob_side_theirs') }));
+  const may = (typeof canEdit !== 'function') || canEdit();
+  const menuHtml = (ctx === 'tab' && may) ? insMenuItemHtml({ k:'remove', label: i18t('ob_remove_cap'), icon:'trash', ruby:true, says: i18t('ob_remove_says') }) : '';
+  const acts = obPanelActs(o, c, i, ctx);
+  return {
+    item: { id: obKeyOf(c.id, o, i) },
+    head: { eyebrow, title: o.desc || '', sub, tone: st.tone, status: st.html,
+      acts, menuHtml, moreAria: i18t('reg_more_actions') },
+    acts,
+    body: insKvHtml(facts) + obDocSectionHtml(o) + obChainSectionHtml(o, c) + obWordingSectionHtml(o)
+      + insSecHtml(i18t('ob_sec_reminders'), '', `<p class="ins-p">${obligationReminderSay(o, c)}</p>`, 'ins-rem')
+      + obHistoryHtml(o, c),
+    onMenu: act => { if(act === 'remove'){ const h = obLocate(obKeyOf(c.id, o, i)); if(h) obligationRemove(h.c, h.i); } },
+  };
+}
+/* Paint the panel for one obligation, and wire the two presses inside its
+   body that are not verbs in its head (Show it in the contract). The trail
+   is read once where it is not on the record, and only the History section
+   moves when it lands — a reader who arrowed on in the meantime is not
+   thrown back (the contract panel's own rule for Latest). */
+function obPaintPanel(hostId, o, c, i, ctx, emptyMsg){
+  if(!o || !c){ insPaintPanel({ host: hostId, empty: emptyMsg }); return; }
+  const opts = obPanelOpts(o, c, i, ctx);
+  insPaintPanel(Object.assign({ host: hostId }, opts));
+  const host = document.getElementById(hostId);
+  if(!host) return;
+  host.querySelector('[data-ob-show]')?.addEventListener('click', () => obligationShowInContract(c.id, o.quote || ''));
+  if(obligationHistory(o, c) !== null) return;
+  const api = (typeof API_MODE === 'function') && API_MODE();
+  const key = opts.item.id;
+  const paintHist = st => {
+    if(!host.isConnected || !host._ins || !host._ins.item || host._ins.item.id !== key) return;
+    const sec = host.querySelector('.ins-hist'); if(!sec) return;
+    const live = window.getContract ? (getContract(c.id) || c) : c;
+    const h = obLocate(key);
+    const wrap = document.createElement('div');
+    wrap.innerHTML = obHistoryHtml(h ? h.o : o, live, st);
+    if(wrap.firstElementChild) sec.replaceWith(wrap.firstElementChild);
+  };
+  if(!api || typeof ensureFull !== 'function'){ paintHist('none'); return; }
+  Promise.resolve().then(() => ensureFull(c)).then(() => paintHist(null)).catch(() => paintHist('failed'));
+}
+
+/* ---- THE LIST: grouped by when, the money each group adds up to ----
+   `ctx` 'page' names the contract on each row's second line; 'tab' says the
+   row's own facts, because the contract is the page it sits on. */
+function obListHtml(rows, ctx, c1){
+  const money = obligationMoneyVisible();
+  const cols = [
+    { t: i18t('ob_col_when'), w: 132 },
+    { t: i18t('ob_col_what') },
+    { t: i18t('ob_f_whose'), w: 132 },
+    ...(money ? [{ t: i18t('ob_amount'), w: 112, r: true }] : []),
+  ];
+  const tr = r => {
+    const c = r._c || c1;
+    const due = obligationDueSay(r, c);
+    const line2 = ctx === 'page' ? obPageLine2(r, c) : obligationFactsLine(r, c, false);
+    return `<tr data-ins-row data-ob-key="${_obEsc(r._key)}" tabindex="-1">
+      <td><span class="ins-c2"><b>${_obEsc(due.day)}</b><span class="${due.cls}">${_obEsc(due.sub)}</span></span></td>
+      <td><span class="ins-c2"><b title="${_obEsc(r.desc || '')}">${_obEsc(r.desc || '')}</b><span>${line2}</span></span></td>
+      <td>${obWhoCellHtml(r)}</td>
+      ${money ? `<td class="r">${obAmountCellHtml(r, c)}</td>` : ''}
+    </tr>`;
+  };
+  let body = '';
+  for(const [k, key, tone] of OB_WINDOWS){
+    const g = rows.filter(r => r.win === k);
+    if(!g.length) continue;
+    const mw = obMoneyWords(g, ctx === 'tab' ? c1 : null);
+    body += `<tr class="ins-grp" data-ob-win="${k}"><td colspan="${cols.length}"><span class="ins-g"><i class="ins-dot2 is-${tone}" aria-hidden="true"></i>${_obEsc(i18t(key))}<span class="n">${g.length}</span>${
+      mw.text || mw.left ? `<span class="ins-g-r">${_obEsc(mw.text)}${obMoneyLeftHtml(mw)}</span>` : ''}</span></td></tr>` + g.map(tr).join('');
+  }
+  return { cols, body };
+}
+function obTableHtml(cols, body){
+  return `<table class="ins-lt ob-lt"><colgroup>${cols.map(c => `<col${c.w ? ` style="width:${c.w}px"` : ''}>`).join('')}</colgroup><thead><tr>${
+    cols.map(c => `<th${c.r ? ' class="r"' : ''}>${_obEsc(c.t)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
+}
+const obByWhen = (a, b) => {
+  const r = OB_WIN_ORDER.indexOf(a.win) - OB_WIN_ORDER.indexOf(b.win);
+  if(r) return r;
+  if(a.win === 'done') return String(b.completedAt || '').localeCompare(String(a.completedAt || ''));
+  if(a.days == null && b.days == null) return 0;
+  if(a.days == null) return 1; if(b.days == null) return -1;
+  return a.days - b.days;
+};
+
+/* ---- THE PAGE'S VIEWS ARE THE STATE FILTER, AS TABS ----
+   The same five cuts the State dropdown offered (OBW_STATE), drawn where the
+   owner's drawing draws them; `f.state` is still the one value, so every door
+   that lands here narrowed (obwGoFiltered) lands on the matching tab. */
+const OBW_VIEWS = [['open','ob_v_out'],['overdue','ob_v_over'],['waiting','ob_v_wait'],['done','ob_v_done'],['all','ob_v_all']];
+const OBW_CHIPS = ['whose', 'side', 'folder', 'due'];
+/* THE HEAD'S FACTS LINE: what the list on screen adds up to — never one sum of
+   both directions — or, where the reader may not see money, how much of it
+   there is. Painted into the shared header's slot, because it changes on a
+   repaint with no view change (the register's own reason). */
+let _obwHeadFacts = '';
+function obwPaintHead(){
+  const el = (typeof document !== 'undefined') ? document.getElementById('page-head-facts') : null;
+  if(el) el.innerHTML = _obwHeadFacts;
+}
+function renderObligationsInspector(host){
+  const f = obwFilters();
+  const book = obwBook();
+  const rows = book.filter(r => obwPass(r, f)).sort(obByWhen);
+  const narrowing = obwNarrowing(f).filter(k => k !== 'state');
+  const folders = (window.visibleFolders ? visibleFolders() : Object.values(window.FOLDERS || {}));
+  const opt = (list) => list.map(([k, key]) => [k, i18t(key)]);
+  const chips = [
+    insChipHtml({ attr:'data-obw-f', key:'whose', label: i18t('ob_f_whose'), cur: f.whose, def: OBW_DEF.whose, opts: opt(OBW_WHOSE) }),
+    insChipHtml({ attr:'data-obw-f', key:'side', label: i18t('ob_f_side'), cur: f.side, def: OBW_DEF.side, opts: opt(OBW_SIDE) }),
+    insChipHtml({ attr:'data-obw-f', key:'folder', label: i18t('ob_f_folder'), cur: f.folder, def: OBW_DEF.folder,
+      opts: [['all', i18t('ob_f_folder_all')], ...folders.map(x => [x.id, x.name])] }),
+    insChipHtml({ attr:'data-obw-f', key:'due', label: i18t('ob_f_due'), cur: f.due, def: OBW_DEF.due, opts: opt(OBW_DUE) }),
+  ].join('') + (narrowing.length ? `<button type="button" id="obw-clear" class="ui-link" data-obw-clear title="${_obEsc(i18tn('ob_clear_on', narrowing.length, { n: narrowing.length }))}">${
+    _obEsc(i18tn('ob_clear_n', narrowing.length, { n: narrowing.length }))}</button>` : '');
+  const views = insViewTabsHtml({ attr:'data-obw-view', cur: f.state, label: i18t('ob_views_label'),
+    views: OBW_VIEWS.map(([k, key]) => ({ k, label: i18t(key), n: book.filter(r => obwPass(r, { ...f, state: k })).length })) });
+  rows.forEach(r => { r._key = obKeyOf(r.cid, r, r._i); });
+  const { cols, body } = obListHtml(rows, 'page');
+  const empty = `<tr class="ins-empty"><td colspan="${cols.length}">${_obEsc(i18t(narrowing.length ? 'ob_none_match_short' : 'ob_none_here'))}${
+    narrowing.length ? `<br><button type="button" class="ui-link" data-obw-clear style="margin-top:8px">${_obEsc(i18t('ob_clear_filters'))}</button>` : ''}</td></tr>`;
+  const mw = obMoneyWords(rows);
+  const late = rows.filter(r => r.win === 'overdue').length, held = rows.filter(r => r.win === 'waiting').length;
+  _obwHeadFacts = obligationMoneyVisible()
+    ? (mw.text ? _obEsc(_obCap(mw.text)) + obMoneyLeftHtml(mw) : _obEsc(i18t('ob_no_money_here')) + obMoneyLeftHtml(mw))
+    : [ i18tn('ob_head_open', rows.filter(r => r.st !== 'done').length, { n: rows.filter(r => r.st !== 'done').length }),
+        late ? i18tn('ob_head_overdue', late, { n: late }) : '', held ? i18tn('ob_head_waiting', held, { n: held }) : '' ].filter(Boolean).map(_obEsc).join(' · ');
+  host.innerHTML = `<div class="view-enter ins-page obw-ins" data-ins-page="obligations" data-ins="1">
+    ${views}
+    <div class="ins-body">
+      <section class="ins-card" aria-label="${_obEsc(i18t('nav_obligations'))}">
+        <div class="ins-bar reg-filterbar">${chips}</div>
+        <div class="ins-scroll" id="obw-scroll">${obTableHtml(cols, rows.length ? body : empty)}</div>
+        <div class="ins-foot"><span>${_obEsc(i18t('ob_showing', { n: rows.length, of: book.length }))}</span></div>
+      </section>
+      <aside id="ins-panel" class="ins-panel" aria-label="${_obEsc(i18t('ob_panel_label'))}"></aside>
+    </div>
+  </div>`;
+  obwPaintHead();
+  host.querySelectorAll('[data-obw-view]').forEach(b => b.addEventListener('click', () => { f.state = b.getAttribute('data-obw-view'); obwRepaint(); }));
+  host.querySelectorAll('[data-obw-f]').forEach(sel => sel.addEventListener('change', () => { f[sel.getAttribute('data-obw-f')] = sel.value; obwRepaint(); }));
+  host.querySelectorAll('[data-obw-clear]').forEach(b => b.addEventListener('click', () => { OBW_CHIPS.forEach(k => { f[k] = OBW_DEF[k]; }); obwRepaint(); }));
+  const tb = host.querySelector('.ob-lt tbody');
+  const idOf = t => t.getAttribute('data-ob-key');
+  const byKey = new Map(rows.map(r => [r._key, r]));
+  const id = insPick('obligations', rows.map(r => r._key));
+  if(tb) insMarkRow(tb, '[data-ins-row]', idOf, id);
+  const paint = k => { const r = byKey.get(k); const hit = r ? obLocate(k) : null;
+    obPaintPanel('ins-panel', hit ? hit.o : null, hit ? hit.c : null, hit ? hit.i : -1, 'page', i18t('ob_panel_none')); };
+  paint(id);
+  if(tb) insListWire(tb, { rowSel:'[data-ins-row]', idOf,
+    onSelect: k => { insSelect('obligations', k); insMarkRow(tb, '[data-ins-row]', idOf, k); paint(k); },
+    onOpen: k => { const r = byKey.get(k); if(r) obOpenContract(r.cid); } });
+  if(typeof insWatchWidth === 'function') insWatchWidth();
+  if(window.setActiveNav) setActiveNav('obligations');
+}
+
+/* ---- THE CONTRACT'S TAB, IN THE SAME SHAPE ----
+   A switch in place of the page's views (Outstanding · Completed · All, each
+   with its count), the tab's facts in one sentence, and Add and Find at the
+   right — the tab's own two verbs, unchanged, under their own ids. The view
+   is per contract, per sitting, in memory. */
+const OBT_VIEWS = [['open','ob_v_out'],['done','ob_v_done'],['all','ob_v_all']];
+const _obtView = {};
+function obtView(cid){ const v = _obtView[cid]; return OBT_VIEWS.some(x => x[0] === v) ? v : 'open'; }
+function roomObligationsInspector(c, host){
+  const obs = c.obligations || [];
+  const editable = (typeof canEdit === 'function') ? canEdit() : false;
+  const view = obtView(c.id);
+  const all = obs.map((o, i) => ({ ...o, cid: c.id, counterparty: c.counterparty || '', st: obState(o),
+    win: obligationWindow(o, c), days: obligationDue(o) ? daysUntil(obligationDue(o)) : null, _c: c, _i: i, _key: obKeyOf(c.id, o, i) }));
+  const pass = (r, v) => v === 'all' ? true : v === 'done' ? r.st === 'done' : r.st !== 'done';
+  const rows = all.filter(r => pass(r, view)).sort(obByWhen);
+  const open = all.filter(r => r.st !== 'done');
+  const over = open.filter(r => r.win === 'overdue').length, wait = open.filter(r => r.win === 'waiting').length;
+  const money = obligationMoneyVisible();
+  const owe = money ? obligationBandTotal(open.filter(r => !obligationIsTheirs(r))) : 0;
+  const paid = money ? obligationBandTotal(all.filter(r => r.st === 'done' && !obligationIsTheirs(r))) : 0;
+  const facts = [
+    over ? `<span class="ins-late">${_obEsc(i18tn('ob_head_overdue', over, { n: over }))}</span>` : '',
+    wait ? _obEsc(i18tn('ob_tf_waiting', wait, { n: wait })) : '',
+    owe ? _obEsc(i18t('ob_tf_owe', { amt: '\u0000' })).replace('\u0000', `<b>${_obEsc(obligationMoneyText(owe, c))}</b>`) : '',
+    paid ? _obEsc(i18t('ob_tf_paid', { amt: '\u0000' })).replace('\u0000', `<b>${_obEsc(obligationMoneyText(paid, c))}</b>`) : '',
+  ].filter(Boolean).join(' · ');
+  const seg = `<span class="reg-seg" role="group" aria-label="${_obEsc(i18t('ob_views_label'))}">${OBT_VIEWS.map(([k, key]) =>
+    `<button type="button" class="${view === k ? 'on' : ''}" data-obt-view="${k}" aria-pressed="${view === k ? 'true' : 'false'}">${_obEsc(i18t(key))}<span class="n">${all.filter(r => pass(r, k)).length}</span></button>`).join('')}</span>`;
+  const plus = typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : '';
+  const find = typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : '';
+  const { cols, body } = obListHtml(rows, 'tab', c);
+  const empty = `<tr class="ins-empty"><td colspan="${cols.length}">${_obEsc(i18t(obs.length ? 'ob_none_here' : 'ob_none_tracked'))}</td></tr>`;
+  host.innerHTML = `<div class="obt-line">
+      ${seg}
+      <span class="facts">${facts}</span>
+      <span class="sp"></span>
+      ${editable ? `<button type="button" id="obt-add" class="ui-btn">${plus}${_obEsc(i18t('ob_add'))}</button>
+      <button type="button" id="obt-find" class="ui-btn">${find}${_obEsc(i18t('ob_find'))}</button>` : ''}
+    </div>
+    <div class="ins-body">
+      <section class="ins-card" aria-label="${_obEsc(i18t('tab_obligations'))}">
+        <div class="ins-scroll" id="obt-scroll">${obTableHtml(cols, rows.length ? body : empty)}</div>
+      </section>
+      <aside id="obt-panel" class="ins-panel" aria-label="${_obEsc(i18t('ob_panel_label'))}"></aside>
+    </div>`;
+  host.querySelectorAll('[data-obt-view]').forEach(b => b.addEventListener('click', () => { _obtView[c.id] = b.getAttribute('data-obt-view'); roomPaintObligations(c); }));
+  host.querySelector('#obt-add')?.addEventListener('click', () => openObligationForm(c));
+  host.querySelector('#obt-find')?.addEventListener('click', () => runFindObligations(c));
+  const seat = 'oblig:' + c.id;
+  const tb = host.querySelector('.ob-lt tbody');
+  const idOf = t => t.getAttribute('data-ob-key');
+  const id = insPick(seat, rows.map(r => r._key));
+  if(tb) insMarkRow(tb, '[data-ins-row]', idOf, id);
+  const paint = k => { const hit = k ? obLocate(k) : null;
+    obPaintPanel('obt-panel', hit ? hit.o : null, hit ? hit.c : null, hit ? hit.i : -1, 'tab', i18t('ob_panel_none')); };
+  paint(id);
+  if(tb) insListWire(tb, { rowSel:'[data-ins-row]', idOf,
+    onSelect: k => { insSelect(seat, k); insMarkRow(tb, '[data-ins-row]', idOf, k); paint(k); },
+    /* A SECOND PRESS ON THE TAB OPENS THE EDITOR: the contract is already the
+       page, so the obligation's own form is what "open" can still mean. A
+       reader without edit rights has nothing further to open. */
+    onOpen: k => { const hit = obLocate(k); if(hit && (typeof canEdit !== 'function' || canEdit())) openObligationForm(hit.c, { ...hit.o, _i: hit.i }); } });
+  if(typeof insWatchWidth === 'function') insWatchWidth();
 }
 
 /* ---- CHASING THEM (J-2.3) ----
@@ -2387,4 +3164,9 @@ Object.assign(window,{obligationIsDoc,obligationDocUntil,obligationDocFile,oblig
   OB_DOC_SOON_DAYS,contractDocuments,contractDocsLapsed,contractDocsMissing,
   obligationAfter,obligationPrev,obligationBlocked,obligationChain,obligationChains,obligationStepNo,obligationRoll,
   obligationAlreadyOn,obligationRequireDoc,obFindBusy,OB_FIND_DOORS,obligationAmount,obligationHasAmount,obligationBandTotal,obligationMoneyVisible,obligationMoneyText,
+  OB_WINDOWS,OB_WIN_ORDER,obligationWindow,obWinTone,obDay,obligationRelWords,obInitials,obShortName,obRepeatsWord,obDocSay,
+  obligationDueSay,obWhoCellHtml,obAmountCellHtml,obwHomeSum,obMoneyWords,obPageLine2,obligationFactsLine,obligationStatusSay,
+  obligationReminderSay,obligationHistory,obligationStampHistory,obHistoryHtml,obChainSectionHtml,obDocSectionHtml,obWordingSectionHtml,
+  obligationShowInContract,obKeyOf,obLocate,obPanelActs,obligationRemove,obOpenContract,obPanelOpts,obPaintPanel,obListHtml,obTableHtml,
+  OBW_VIEWS,OBW_CHIPS,obwBook,obwPass,obwPaintHead,renderObligationsInspector,OBT_VIEWS,obtView,roomObligationsInspector,
   OBLIG_RECUR,OBLIG_BANDS,OBLIG_TEXT_MIN,OB_NOTE_MAX,OBW_WHOSE,OBW_STATE,OBW_SIDE,OBW_DUE,obwFilters,obwNarrowing,obwRows,obwGoFiltered,obligationsDoorCount,renderObligationsList,obwRepaint,obligationSeriesOpenAt,obligationChase,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationIsMine,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,RENEWAL_ANSWERS,renewalQuestionOf,renewalDecisionOf,renewalDecisionStale,renewalDecided,renewalNoticeTo,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});

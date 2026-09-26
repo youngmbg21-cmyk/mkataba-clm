@@ -71,6 +71,11 @@ const SAME_IN_BOTH = new Set([
   'ct_fact_copilot',      // 'Copilot' — the product's own name, on the contract head's fact row (second pass, 21 Sep 2026)
   'st_grp_copilot',       // 'Copilot' — the product's own name again, now as a
                           // group heading on the settings list (18 Sep 2026)
+  /* OUR STANDARDS IN THE INSPECTOR (26 Sep 2026): 'standard' is the same word
+     in Swedish, singular and in a column head, 'Copilot' is the product's own
+     name, and '{figure} {unit}' is two slots whose unit is already translated
+     (sd_unit_days / _months / _years). */
+  'sd_h_standards_one', 'sd_col_standard', 'sd_c_std', 'sd_copilot', 'sd_fb_fig',
   'ng_blanks_these',      // '{names}.' — a slot and a full stop, and the field
                           // labels inside it are already in the reader's own
                           // language. It is a key rather than punctuation

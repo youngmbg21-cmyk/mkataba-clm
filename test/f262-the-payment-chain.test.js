@@ -325,7 +325,9 @@ describe('f262 (8) — the worklist bands, filters and names the step', () => {
   test('the State filter offers the waiting cut, read off the BAND', () => {
     assert.ok(Array.from(win.OBW_STATE).some(x => x[0] === 'waiting'),
       'one more option in a control that is already there');
-    const fn = OB_CODE.match(/function obwRows\(f\)\{[\s\S]*?\n\}/)[0];
+    /* RE-POINTED IN PLACE 26 Sep 2026: every filter is ONE predicate now
+       (obwPass), asked by the list and by each view's count alike. */
+    const fn = OB_CODE.match(/function obwPass\(o, f\)\{[\s\S]*?\n\}/)[0];
     assert.match(fn, /f\.state === 'waiting' && o\.band !== 'waiting'/,
       'the cut and the heading it lands under cannot disagree');
   });

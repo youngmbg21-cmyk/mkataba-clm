@@ -82,6 +82,12 @@ const SEED = () => {
     await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go');
     await pause(2400);
+    /* THE CLASSIC SHAPE, STAGED (26 Sep 2026). This file measures the page as
+       it draws below INS_MIN_W — the rows it was written for. At this window
+       the page draws the Inspector since the owner chose it for all three
+       tabs; that shape is measured in four-inspectors-verify. insForce is the
+       page's own stage door, never stored. */
+    await page.evaluate(() => { if (typeof insForce === 'function') insForce(false); });
     await page.evaluate(SEED);
     await pause(1400);
     await page.screenshot({ path: path.join(OUT, '01-standards.png'), fullPage: true });

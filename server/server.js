@@ -7647,6 +7647,13 @@ app.post('/api/mailroom', rlMailroom, express.json({ limit: '32mb' }), (req, res
    application's stylesheet, so every value in it is a literal. */
 const TRACK_STAGE = {
   open:      { word: 'Waiting to be picked up', tone: '#9a6b12', bg: '#fdf4e3' },
+  /* A REQUEST SOMEBODY HOLDS IS BEING WORKED ON (Young ruled 26 Sep 2026, the
+     second of the Requests rulings). Its status is still `open` — holding a
+     request moves who has it, not where it has got to — so "waiting to be
+     picked up" told the person who asked that nobody had, while a colleague
+     was working on it. The same reading as the page's own (intakeStatusKey):
+     derived, never stored, and it sends no mail. */
+  held:      { word: 'Being worked on',         tone: '#2f5d8a', bg: '#eef3f9' },
   accepted:  { word: 'Being drafted',           tone: '#2f5d8a', bg: '#eef3f9' },
   done:      { word: 'Drafted',                 tone: '#3f6f5e', bg: '#edf5f1' },
   declined:  { word: 'Declined',                tone: '#b0453c', bg: '#fbeeed' },
@@ -7654,7 +7661,7 @@ const TRACK_STAGE = {
 };
 function trackPageHtml(r) {
   const e = s => String(s == null ? '' : s).replace(/[&<>"]/g, x => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[x]));
-  const st = TRACK_STAGE[r.status] || TRACK_STAGE.open;
+  const st = TRACK_STAGE[(r.status === 'open' && r.assignee_id) ? 'held' : r.status] || TRACK_STAGE.open;
   const day = d => { if (!d) return ''; try { return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }); } catch (_) { return String(d).slice(0, 10); } };
   const row = (k, v) => v ? `<tr><td style="padding:5px 18px 5px 0;color:#5F6D6B;white-space:nowrap">${e(k)}</td><td style="padding:5px 0;color:#1B2A28">${e(v)}</td></tr>` : '';
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
