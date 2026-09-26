@@ -19294,3 +19294,11 @@ Noticed, not fixed
 - Every obligation the other side owes carries "Nobody owns this" beside the counterparty's name, on the worklist and on the contract's Obligations tab; the tag reads a missing colleague, which is true of every "theirs" obligation.
 - The worklist and the contract's Obligations tab print due and completion dates as raw 2026-09-20 strings rather than through the one day printer.
 - "Due this month" is the calendar month (one reading, both surfaces): at the month's end it covers a few days, and something due in five days sits under "Later" beside a 2029 date.
+
+## Run 26 Sep 2026 — Obligations: Inspector chosen for the page, three choices for the contract's tab (no code)
+
+- On the owner's word: "I choose inspector but do not build it yet. Rebuild the artifact with only inspector included but then provide 3 choices of how the obligations on the contracts obligations tab would look like. No coding." The private page "Obligations Page Options" now shows the chosen Inspector for the page and, for the tab, today's photo plus Inspector, Two Sides and Timeline, with a comparison table, the page checklist and one recommendation (Inspector). No product code changed.
+
+Noticed, not fixed
+- The contract's Obligations tab does not show when a required document ends (only the Overview's "Documents they must hold" does), does not show that an obligation was chased, and offers no Chase.
+- On that tab a paid chain step's chip ("Paid 2026-08-14") repeats the date printed in the column beside it.
