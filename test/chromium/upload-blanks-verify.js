@@ -25,7 +25,14 @@
    are new.
 
    39 checks, 29 of them red against the commit before this work (section 8 is
-   item 9's third shape, added 20 Sep 2026 — 10 checks, all 10 red there). The three
+   item 9's third shape, added 20 Sep 2026 — 10 checks, all 10 red there).
+   SECTION 9 (26 Sep 2026) is a file THEY sign: the Signing tab's own door is
+   pressed and the panel, the marks and the arrival tile stand down, then come
+   back with the answer kept. 10 checks, 3 red against the commit before it
+   (9b, 9c, 9g — it prints "5 boxes · heading Blanks in this document", the
+   owner's report). 9a is the GATE; 9d–9f and 9h–9j are CONTROLS: they hold
+   on both sides — before, because nothing ever went away; after, as the
+   proof that standing down deletes nothing, moves nothing, and comes back. The three
    that pass are a named GATE and two named CONTROLS. Every claim an empty
    page would satisfy is gated, because "nothing is marked here" is true of a
    build that marks nothing anywhere.
@@ -369,6 +376,108 @@ const CONTRACT = (id, over) => Object.assign({
       offF.missing ? 'painter absent'
         : offF.off.length + ' blocks · off ' + offF.off.slice(0, 3).join(' ')
           + ' · on ' + offF.on.slice(0, 3).join(' '));
+
+    /* ============ 9. A FILE THEY SIGN HAS NO BLANKS FOR US TO FILL ============
+       (Young, 26 Sep 2026: "if the contract is being signed out of hati and
+       the contract is simply being used to negotiate the clauses, these
+       fields are irrelevant I would presume.") On that route what they
+       receive is the agreed WORDING as a Word file, and an answer typed in
+       this panel is a working note that never reaches it.
+
+       DRIVEN THROUGH THE PRODUCT'S OWN DOOR on the Signing tab, on the SAME
+       document section 1 measured marked and section 4 answered: switched to
+       their signing, the panel and every mark stand down and the arrival
+       tile says whose blanks they are; switched back through the route
+       card's own link, both return and the answer is where it was left.
+       GATED on section 1 having drawn marks and a panel on this very
+       contract, or "nothing is drawn" passes on a build that draws nothing
+       anywhere. */
+    await openRoom(page, up.id);
+    const m9 = await page.evaluate(SEEN);
+    const drew9 = m9.markKeys.length >= 4 && m9.boxKeys.length >= 4;
+    /* The first line of THEIR wording, measured on the page: the right-hand
+       column changes and the paper may not move because of it. */
+    const inkOf = () => page.evaluate(() => {
+      const w = document.querySelector('#doc-canvas [data-upwording]');
+      const el = w && w.querySelector('h1,h4,p');
+      return el ? Math.round(el.getBoundingClientRect().top) : null;
+    });
+    const ink0 = await inkOf();
+    /* AN ARRIVAL NOTE THAT COUNTED THE BLANKS, as a reading on HaTi's own
+       route would have written it — the tile has to follow the route LIVE. */
+    const openNow = await page.evaluate(() => {
+      const c = getContract(state.activeId);
+      const n = (window.contractBlanksOpen ? contractBlanksOpen(c) : []).length;
+      c.triage = { at: new Date().toISOString(),
+        steps: { fill: { ok: true, filled: [], left: n, none: null } } };
+      return n;
+    });
+    const tileHead = async () => {
+      await page.click('#ws-tabs [data-ws-tab="terms"]').catch(() => {});
+      await page.waitForTimeout(1200);
+      return page.evaluate(() => [...document.querySelectorAll('#kt-triage .kt-tri-tile')]
+        .map(t => ((t.querySelector('.kt-tri-hw') || {}).textContent || '').trim()
+          + ' :: ' + ((t.querySelector('.kt-tri-td') || {}).textContent || '').trim())
+        .find(x => /open fields/i.test(x)) || '');
+    };
+    const tile0 = await tileHead();
+    const pressRoute = async (sel) => {
+      await page.click('#ws-tabs [data-ws-tab="sign"]').catch(() => {});
+      await page.waitForTimeout(1400);
+      const there = await page.evaluate(x => !!document.querySelector(x), sel);
+      if (!there) return false;
+      await page.click(sel);
+      await page.waitForTimeout(600);
+      if (await page.evaluate(() => !!document.getElementById('cf-ok'))) await page.click('#cf-ok');
+      await page.waitForTimeout(2000);
+      return true;
+    };
+    const toTheirs = await pressRoute('#sign-paper');
+    const route1 = await page.evaluate(() => (getContract(state.activeId) || {}).signRoute || 'inside');
+    check('9a GATE — the Signing tab\'s own door moved this contract to their signing',
+      toTheirs && route1 === 'outside' && drew9,
+      (toTheirs ? 'pressed' : 'no #sign-paper door') + ' · route ' + route1
+        + ' · marked before: ' + m9.markKeys.length + ', boxes before: ' + m9.boxKeys.length);
+    const tile1 = await tileHead();
+    await page.click('#ws-tabs [data-ws-tab="docs"]').catch(() => {});
+    await page.waitForTimeout(1600);
+    const t9 = await page.evaluate(SEEN);
+    const ok9 = drew9 && route1 === 'outside';
+    check('9b THEIR SIGNING: no blanks panel beside their paper',
+      ok9 && t9.boxKeys.length === 0 && !/Blanks in this document/i.test(t9.panelHead),
+      ok9 ? (t9.boxKeys.length + ' boxes · heading "' + (t9.panelHead || '') + '"') : 'GATE not met');
+    check('9c and no placeholder is marked on their wording',
+      ok9 && t9.wording && t9.markKeys.length === 0,
+      ok9 ? (t9.wording ? (t9.markKeys.join(', ') || 'none') : 'no wording drawn') : 'GATE not met');
+    check('9d CONTROL — the wording itself is untouched, byte for byte',
+      ok9 && t9.stored === m9.stored && /\[Insert Company Name\]/.test(t9.stored),
+      ok9 ? (t9.stored === m9.stored ? 'byte-identical' : 'THE WORDING MOVED') : 'GATE not met');
+    const ink1 = await inkOf();
+    check('9e CONTROL — THE CONTRACT DOES NOT MOVE: its first line sits where it sat',
+      ok9 && ink0 != null && ink1 === ink0, 'first line ' + ink0 + ' → ' + ink1);
+    const kept = await page.evaluate(() => ((getContract(state.activeId) || {}).fields || {}).up_insert_company_name);
+    check('9f CONTROL — the answer typed before is still on the record', ok9 && kept === 'Highland Corporate Ltd',
+      String(kept));
+    check('9g the arrival tile says whose blanks they are, not how many are open',
+      ok9 && openNow > 0 && /theirs to fill/i.test(tile1) && !new RegExp('\\b' + openNow + '\\b').test(tile1),
+      'before: "' + tile0 + '" · after: "' + tile1 + '"');
+    /* AND BACK, through the route card's own link — the other half of one
+       door, not a second one. */
+    const toOurs = await pressRoute('[data-ho-route="inside"]');
+    const route2 = await page.evaluate(() => (getContract(state.activeId) || {}).signRoute || 'inside');
+    await page.click('#ws-tabs [data-ws-tab="docs"]').catch(() => {});
+    await page.waitForTimeout(1600);
+    const b9 = await page.evaluate(SEEN);
+    check('9h CONTROL — switched back to HaTi\'s own signing, the panel returns with every box',
+      ok9 && toOurs && route2 === 'inside' && b9.boxKeys.join('|') === m9.boxKeys.join('|'),
+      (toOurs ? 'pressed' : 'no link back') + ' · route ' + route2 + ' · ' + b9.boxKeys.length + ' boxes');
+    check('9i CONTROL — and the marks return, printing the answer that was kept',
+      ok9 && b9.markKeys.join('|') === m9.markKeys.join('|')
+        && b9.markText.filter(x => x === 'Highland Corporate Ltd').length === 2,
+      b9.markText.join(' | '));
+    const tile2 = await tileHead();
+    check('9j CONTROL — and the arrival tile counts the open blanks again',
+      ok9 && !/theirs to fill/i.test(tile2) && /still open/i.test(tile2), '"' + tile2 + '"');
 
     check('7a CONTROL — no page error anywhere in the run', errors.length === 0, errors.join(' | ') || 'none');
   } finally {

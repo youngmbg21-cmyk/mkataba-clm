@@ -125,7 +125,12 @@ const TRIAGE_HEADS = {
                  "No open fields to fill" over a body saying "fills in from its
                  own panel" is a tile contradicting itself twelve pixels apart.
                  `none` is the honest emptiness; `form` is the pointer. */
-              none: 'tri_t_fill_none', form: 'tri_t_fill_panel' },
+              none: 'tri_t_fill_none', form: 'tri_t_fill_panel',
+              /* AND A THIRD SINCE 26 SEP 2026: an upload the other side signs
+                 their way has blanks, and they are filled in THEIR copy — so
+                 "No open fields to fill" would be false and so would a tick.
+                 See uploadBlanksTheirs. */
+              theirs: 'tri_t_fill_theirs' },
   filed:    { ok: 'tri_t_filed',  no: 'tri_t_filed',     ing: 'tri_t_filed' },
 };
 /* IS IT STILL READING? `_triaging` is set for the life of the run and deleted
@@ -282,11 +287,28 @@ function triageTiles(c){
      asked of the record answers correctly for every contract on file with no
      migration. Absent on both sides, the tile behaves exactly as it did. */
   let fillNone = (fl.ok && !names.length) ? (fl.none || null) : null;
-  if (fl.ok && !names.length && !fl.none && !fl.left && typeof contractBlanksNone === 'function'){
+  let left = fl.left || 0;
+  /* ---- WHOSE BLANKS THEY ARE IS ASKED LIVE, BOTH WAYS (26 Sep 2026) ----
+     Who runs the signing can change after this reading ran — until the
+     handover it is one press on the Signing tab — and the panel beside this
+     tile asks it live (uploadBlanksLive), so the tile does too. Switched to
+     their signing, the note's open count is about blanks nobody here fills;
+     switched back, a recorded "theirs" is no longer true, and the blanks are
+     counted as they stand now rather than read as filled. What Copilot DID
+     fill before a switch stays named — it happened; only the open count,
+     which is a claim about now, is dropped. */
+  if (fl.ok && typeof uploadBlanksTheirs === 'function'){
+    if (uploadBlanksTheirs(c)){ left = 0; if (!names.length) fillNone = 'theirs'; }
+    else if (fillNone === 'theirs'){
+      fillNone = null;
+      try{ left = (typeof contractBlanksOpen === 'function') ? contractBlanksOpen(c).length : 0; }catch(_){ left = 0; }
+    }
+  }
+  if (fl.ok && !names.length && !fillNone && !left && typeof contractBlanksNone === 'function'){
     try{ fillNone = contractBlanksNone(c); }catch(_){ fillNone = null; }
   }
   const NONE_WHY = { form: 'tri_fill_form', upload: 'tri_fill_upload',
-                     nego: 'tri_fill_nego', none: 'tri_fill_nothing' };
+                     nego: 'tri_fill_nego', none: 'tri_fill_nothing', theirs: 'tri_fill_theirs' };
   /* ---- "OPEN FIELDS ARE ON THE PANEL" HAS TO SAY WHICH (Young reported it
      21 Sep 2026: "the open fields is not sharing anything meaningful") ----
      The `form` reason said *"This contract fills in from its own panel on the
@@ -310,7 +332,7 @@ function triageTiles(c){
       ? ((typeof i18t === 'function') ? i18t(NONE_WHY[fillNone] || NONE_WHY.none) : '')
       : fl.ok
       ? [names.slice(0, 3).join(' · '),
-         fl.left ? ((typeof i18tn === 'function') ? i18tn('tri_fill_left', fl.left, { n: fl.left }) : '') : '']
+         left ? ((typeof i18tn === 'function') ? i18tn('tri_fill_left', left, { n: left }) : '') : '']
         .filter(Boolean).join(' — ')
       : (fl.why || ''),
     /* WHAT THE NUMBER IS ABOUT FOLLOWS WHAT THE TILE SAYS: where the head

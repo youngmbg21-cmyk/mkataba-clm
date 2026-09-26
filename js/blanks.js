@@ -111,7 +111,7 @@ function contractHasBlanks(c){
    gate on whether the blanks PANEL draws — widening this could never make two
    panels draw on one contract, which is the trap paintContractForm exists to
    avoid. */
-const BLANK_NONE_REASONS = ['form', 'upload', 'nego', 'none'];
+const BLANK_NONE_REASONS = ['form', 'upload', 'nego', 'none', 'theirs'];
 function contractBlanksNone(c){
   if(!c) return 'none';
   /* A COMPANY-STANDARD CONTRACT IS NOT "NOTHING TO FILL" — it declares its own
@@ -140,6 +140,12 @@ function contractBlanksNone(c){
      the wording really is not ours to fill in. */
   try{
     if(typeof isUpload === 'function' && isUpload(c)){
+      /* THEIR SIGNING, THEIR BLANKS (26 Sep 2026) — see uploadBlanksTheirs.
+         Asked FIRST: contractHasBlanks is false on this route by that very
+         reading, and falling through would answer `upload`, whose sentence
+         says HaTi cannot read these blanks. It can; on this route it does
+         not ask, because they are filled in the other side's own copy. */
+      if(typeof uploadBlanksTheirs === 'function' && uploadBlanksTheirs(c)) return 'theirs';
       if(!contractHasBlanks(c)) return 'upload';
       return contractBlanksOpen(c).length ? null : 'none';
     }
