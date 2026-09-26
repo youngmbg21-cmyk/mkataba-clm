@@ -19283,3 +19283,14 @@ Noticed, not fixed
 - flat-rows 2d/2e/2f, the four browser files that stop on the same driver error on both versions (counterparty-reading-and-more, keeps-your-place, reopen-a-refusal, six-round-audit) and the other main-red files are unchanged.
 - theme-tokens-verify: red on 20 of 40 screens on both versions and NOT re-recorded. The uncut set difference against main is exactly this work's own: fix 3 takes #CBD3D0 off calendar and templates (light), the text-size stepper's own night edge rgba(148,163,184,.28) off the Document tab, Negotiate and Signing (dark), and the view switch's 45% accent seam off Home, the Document tab and Signing (light and dark); the Inspector adds the selected row's 8% accent tint on the Contracts page and, at night, drops #1B2221 there — the resting count pill, which a quick view with nothing in it no longer draws.
 - (Correction to the Gates line above) Twelve files, not eleven, had failures that were this work's own — the twelve named there; row-density stopped on a press it could no longer make rather than failing a check, which is why a count by failing check names reads eleven.
+
+## Run 26 Sep 2026 — the Obligations page, three designs to choose from (no code)
+
+- On the owner's word: "give me a render in artifact of the obligations page but keeping the same format as the inspector design then add 2 rival designs as well. No coding". Published as the private page "Obligations Page Options": today's page photographed, then Inspector, Two Ledgers and Week Board drawn full size on one sample book (22 obligations on 12 signed contracts), with a comparison table, the page checklist and one recommendation (Inspector). No product code changed.
+
+Noticed, not fixed
+- The Obligations worklist adds money we owe to money owed to us: each band's sum and the foot's Committed, Outstanding and Overdue figures add both directions (on the sample book "Overdue SEK 10.54M" is SEK 6.80M owed to us plus SEK 3.74M we owe).
+- The worklist foot's "Paid" always reads SEK 0 when the page opens, because the page opens on outstanding obligations only.
+- Every obligation the other side owes carries "Nobody owns this" beside the counterparty's name, on the worklist and on the contract's Obligations tab; the tag reads a missing colleague, which is true of every "theirs" obligation.
+- The worklist and the contract's Obligations tab print due and completion dates as raw 2026-09-20 strings rather than through the one day printer.
+- "Due this month" is the calendar month (one reading, both surfaces): at the month's end it covers a few days, and something due in five days sits under "Later" beside a 2029 date.
