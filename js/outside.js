@@ -290,6 +290,99 @@ function ohChunks(text){
   });
   return out;
 }
+/* ---- A BLANK THEY FILLED IN IS NOT A CHANGE (Young ruled 26 Sep 2026: "yes,
+   accept the filled-in blanks without asking") ----
+   The agreed words may leave a blank for the other side to fill — a ruled
+   line for a date or a name, a bracketed placeholder, a Word fill-in box —
+   and the signed copy comes back with it filled. Words written WHERE A BLANK
+   STANDS are a fill, not a change: the paragraph reads as the same wording,
+   and every fill is listed on the result and kept on the record, so nothing
+   accepted is hidden. Nobody is asked to accept one.
+
+   WHAT A BLANK IS, IS THE UPLOAD PANEL'S OWN READING (upHits, upLabel and
+   upLead in js/uploadblanks.js): the same shapes, the same refusals and the
+   same names, so the blanks HaTi showed on their document are the blanks
+   whose fills it accepts, called what the panel called them. NARROWED by the
+   handover's own reading: a bracket that says what it is ("[Reserved]",
+   "[Signature]", "[Schedule 2]") is not a blank here (OH_NOT_BLANK) — words
+   put in its place are a change, whatever the panel offered.
+   Asked through the global: the panel's reader is a browser module, and the
+   word check runs only in the browser that read the file. Where it is not
+   loaded no blank is read and every fill reads as a change — the old answer,
+   which asks a person.
+
+   THREE WALLS keep a fill from being a door for new wording:
+     · it stands EXACTLY where the blank stood — between the agreed words on
+       either side of it, deleting none of them; a line that is only a blank
+       is pinned by the two agreed paragraphs around it instead, with nothing
+       else found between them, and a line of its own holds one line of fill;
+     · at most OH_FILL_MAX words a blank: a blank holds a fact — a date, a
+       name, an address — not a clause;
+     · a bracket naming itself is not a blank (above).
+   Words anywhere else still differ, whatever they say. Their copy is never
+   read for blanks: a bracket THEY added is words they added. */
+const OH_FILL_MAX = 20;
+function ohBlankHits(text){
+  const s = String(text == null ? '' : text);
+  let hits = [];
+  try { hits = (typeof upHits === 'function') ? upHits(s) : []; } catch (_) { hits = []; }
+  return (Array.isArray(hits) ? hits : []).filter(h => h && Number.isFinite(h.s) && Number.isFinite(h.e) && h.e > h.s
+    && (h.kind === 'rule' || !OH_NOT_BLANK.test(String(h.raw || '').trim())));
+}
+/* The name a blank goes by — the panel's: a placeholder by its own words, a
+   Word box by the name its file gave it or its own prompt, a ruled line by
+   the words in front of it. '' where it has none. */
+function ohBlankName(h, before){
+  try {
+    if (typeof upLabel !== 'function') return '';
+    if (h.kind === 'named') return upLabel(h.name);
+    if (h.kind === 'field'){
+      if (h.name) return upLabel(h.name);
+      const own = String(h.raw || '').replace(/\s+/g, ' ').trim();
+      if (/[A-Za-z]/.test(own) && !(typeof upStockPrompt === 'function' && upStockPrompt(own))) return upLabel(own);
+    }
+    return typeof upLead === 'function' ? upLabel(upLead(before)) : '';
+  } catch (_) { return ''; }
+}
+/* A line as chunks and words, with its blanks taken OUT of the words and
+   kept as gaps: `g` is how many of the line's words come before the blank.
+   The chunks keep the blank's own characters, so a line reads as written.
+   `fields` are the Word boxes the caller read off the markup — the one shape
+   the text cannot show — each found in the line by its own words. */
+function ohChunksBlanks(text, fields){
+  const s = String(text == null ? '' : text);
+  const hits = ohBlankHits(s).map(h => ({ ...h }));
+  let from = 0;
+  (Array.isArray(fields) ? fields : []).forEach(f => {
+    const t = String((f && f.text) || '').replace(/\s+/g, ' ').trim();
+    if (!t) return;
+    const at = s.indexOf(t, from);
+    if (at < 0) return;
+    hits.push({ s: at, e: at + t.length, raw: t, name: String((f && f.name) || ''), kind: 'field' });
+    from = at + t.length;
+  });
+  hits.sort((a, b) => a.s - b.s || a.e - b.e);
+  const cut = [];
+  for (const h of hits) if (!cut.length || h.s >= cut[cut.length - 1].e) cut.push(h);
+  if (!cut.length){ const ch = ohChunks(s); return { chunks: ch.chunks, words: ch.words, blanks: [] }; }
+  const out = { chunks: [], words: [], blanks: [] };
+  const add = seg => {
+    const ch = ohChunks(seg), base = out.chunks.length;
+    ch.chunks.forEach(x => out.chunks.push(x));
+    ch.words.forEach(w => out.words.push({ n: w.n, c: base + w.c }));
+  };
+  let at = 0;
+  cut.forEach(h => {
+    add(s.slice(at, h.s));
+    const raw = String(h.raw).replace(/\s+/g, ' ').trim();
+    out.blanks.push({ g: out.words.length, raw, kind: h.kind, name: ohBlankName(h, s.slice(0, h.s)),
+      own: ohChunks(raw).words.map(w => w.n) });
+    if (raw) out.chunks.push(raw);
+    at = h.e;
+  });
+  add(s.slice(at));
+  return out;
+}
 /* ---- WHAT IS PAGE FURNITURE, NOT WORDING ----
    A page number, a DocuSign envelope stamp, a line of underscores, and any
    line that comes back three times or more with its digits masked — a
@@ -316,25 +409,39 @@ function ohAgreedParas(agreed){
     ? agreed.map(x => (typeof x === 'string' ? { text: x } : (x || {})))
     : String(agreed || '').split(/\r?\n/).map(t => ({ text: t }));
   const out = [];
+  let found = 0;
   rows.forEach(r => {
     const st = ohStripMarker(String(r.text || '').trim());
-    const ch = ohChunks(st.rest);
-    if (!ch.words.length) return;
+    const ch = ohChunksBlanks(st.rest, r.fields);
+    const where = { group: r.group != null ? String(r.group) : '', label: r.label || '', marker: st.marker };
+    ch.blanks.forEach(b => Object.assign(b, where));
+    /* A LINE THAT IS ONLY A BLANK — "________" to sign on, "[Customer name]"
+       on a line of its own — has no words to be found by, so it is not a
+       paragraph. It keeps its place in the order, so what is written on it
+       can be told by the two paragraphs around it (outsideCompare). */
+    if (!ch.words.length){
+      if (ch.blanks.length) out.push({ text: st.rest, ...where, blankOnly: true, chunks: ch.chunks, words: [], blanks: ch.blanks });
+      return;
+    }
     /* A very long paragraph is compared in pieces, so one changed word in a
        wall of text reports the piece it is in rather than the whole wall —
        and so the alignment below stays cheap. */
     const PIECE = 400;
     if (ch.words.length <= PIECE * 2){
-      out.push({ text: st.rest, marker: st.marker, group: r.group != null ? String(r.group) : '', label: r.label || '',
-        title: !!r.title && !out.length, ...ch });
+      out.push({ text: st.rest, ...where, title: !!r.title && !found, ...ch });
+      found++;
       return;
     }
     for (let s = 0; s < ch.words.length; s += PIECE){
       const w = ch.words.slice(s, s + PIECE);
+      const e = s + w.length, last = e >= ch.words.length;
       const c0 = w[0].c, c1 = w[w.length - 1].c;
       const chunks = ch.chunks.slice(c0, c1 + 1);
-      out.push({ text: chunks.join(' '), marker: s ? '' : st.marker, group: r.group != null ? String(r.group) : '',
-        label: r.label || '', chunks, words: w.map(x => ({ n: x.n, c: x.c - c0 })) });
+      /* a blank on the seam between two pieces opens the second */
+      const blanks = ch.blanks.filter(b => b.g >= s && (b.g < e || (last && b.g === e))).map(b => ({ ...b, g: b.g - s }));
+      out.push({ text: chunks.join(' '), ...where, marker: s ? '' : st.marker,
+        chunks, words: w.map(x => ({ n: x.n, c: x.c - c0 })), blanks });
+      found++;
     }
   });
   return out;
@@ -382,11 +489,13 @@ function ohLcsOps(a, b){
 const OH_MARKERISH = new RegExp('^(?:\\d+|[a-z]|' + OH_ROMAN + '|clause|section|article|paragraph)$', 'i');
 /* A word the PDF split across a line ("agree- ment") or a hyphenated word
    joined ("non-exclusive" / "nonexclusive") is the same word. */
-function ohMendOps(ops, a, b){
+function ohMendOps(ops, a, b, blanks){
   const out = ops.slice();
-  // leading pure numbering
+  // leading pure numbering — never where a blank opens the paragraph: the
+  // words there are what was written in it, and are listed as a fill
   let k = 0;
-  while (k < out.length && out[k].t !== 'k'){
+  const opensOnBlank = Array.isArray(blanks) && blanks.some(x => x && x.g === 0);
+  while (!opensOnBlank && k < out.length && out[k].t !== 'k'){
     const run = []; let z = k;
     while (z < out.length && out[z].t !== 'k') run.push(out[z++]);
     const dels = run.filter(o => o.t === 'd'), ins = run.filter(o => o.t === 'i');
@@ -406,6 +515,37 @@ function ohMendOps(ops, a, b){
     s = e;
   }
   return out.filter(o => !o.drop);
+}
+/* THE FILLS IN ONE PARAGRAPH'S ALIGNMENT. A run of their words with none of
+   ours struck, standing at a gap where the agreed paragraph has a blank, and
+   no longer than the blanks there hold, is what they wrote in it: its ops
+   become 'f' — kept, for every reading below — and it is returned as a fill
+   (`js` are its words' places in `b`). A placeholder they left as it was is
+   the agreed wording, so it is kept and is not a fill. */
+const ohKept = op => op.t === 'k' || op.t === 'f';
+function ohFillOps(ops, a, b, blanks){
+  const list = Array.isArray(blanks) ? blanks : [];
+  if (!list.length) return { ops, fills: [] };
+  const out = ops.slice(), fills = [];
+  let ai = 0, s = 0;
+  while (s < out.length){
+    if (out[s].t === 'k'){ ai++; s++; continue; }
+    let e = s; while (e < out.length && out[e].t !== 'k') e++;
+    const run = out.slice(s, e);
+    const dels = run.filter(x => x.t === 'd').length;
+    const ins = run.filter(x => x.t === 'i');
+    const here = list.filter(x => x.g === ai);
+    if (!dels && ins.length && here.length && ins.length <= here.length * OH_FILL_MAX){
+      const words = ins.map(x => b[x.j]);
+      const own = here.reduce((acc, x) => acc.concat(x.own || []), []);
+      const leftAsIs = own.length === words.length && own.every((w, k) => w === words[k]);
+      for (let k = s; k < e; k++) out[k] = { ...out[k], t: 'f' };
+      if (!leftAsIs) fills.push({ g: ai, js: ins.map(x => x.j), blanks: here });
+    }
+    ai += dels;
+    s = e;
+  }
+  return { ops: out, fills };
 }
 /* Where in the signed stream a paragraph most probably sits, by the votes
    of its four-word shingles. Returns candidate start positions, best first. */
@@ -430,7 +570,10 @@ function ohCandidates(p, index, T){
 }
 function outsideCompare(agreed, signed, opts){
   const o = opts || {};
-  const paras = ohAgreedParas(agreed);
+  /* the agreed paragraphs, and — in their places — the lines that are only a
+     blank (ohAgreedParas); the paragraphs are what is looked for */
+  const items = ohAgreedParas(agreed);
+  const paras = items.filter(p => !p.blankOnly);
   const S = ohSignedStream(signed);
   const T = S.words;
   const Tn = T.map(x => x.n);
@@ -488,9 +631,14 @@ function outsideCompare(agreed, signed, opts){
     const p = paras[i];
     if (state[i]) return;
     const a = pn[i], m = a.length;
+    /* room for what may be written in its blanks: a fill is not an agreed
+       word, so the window is widened by what the blanks can hold — behind the
+       paragraph too, where one opens it */
+    const bl = p.blanks || [];
+    const room = bl.length * OH_FILL_MAX, before = bl.some(x => x.g === 0) ? OH_FILL_MAX : 0;
     let best = null;
     for (const s0 of ohCandidates(p, index, T)){
-      const ws = Math.max(0, s0 - Math.ceil(m / 2)), we = Math.min(T.length, s0 + Math.ceil(m * 1.5) + 4);
+      const ws = Math.max(0, s0 - Math.ceil(m / 2) - before), we = Math.min(T.length, s0 + Math.ceil(m * 1.5) + 4 + room);
       if (we <= ws) continue;
       /* only the free part of the window may be taken */
       const idx = []; for (let k = ws; k < we; k++) if (!claimed[k]) idx.push(k);
@@ -511,10 +659,12 @@ function outsideCompare(agreed, signed, opts){
     const spanIdx = best.idx.filter(k => (k >= kS || T[k].line === lS) && (k <= kE || T[k].line === lE));
     const b = spanIdx.map(k => Tn[k]);
     let ops = ohLcsOps(a, b).ops;
-    ops = ohMendOps(ops, a, b);
+    ops = ohMendOps(ops, a, b, bl);
+    const fx = ohFillOps(ops, a, b, bl);
+    ops = fx.ops;
     spanIdx.forEach(k => { claimed[k] = 1; });
-    if (ops.every(x => x.t === 'k')){ state[i] = { kind: 'same', idx: spanIdx }; return; }
-    state[i] = { kind: 'changed', idx: spanIdx, ops };
+    if (ops.every(ohKept)){ state[i] = { kind: 'same', idx: spanIdx, fills: fx.fills }; return; }
+    state[i] = { kind: 'changed', idx: spanIdx, ops, fills: fx.fills };
   });
   /* ---- WORDS ADDED ON THE SAME LINE AS A CLAUSE ARE PART OF IT ----
      An exact match proves the agreed words are there; it does not prove
@@ -538,10 +688,58 @@ function outsideCompare(agreed, signed, opts){
     if (paras[i].title) return;
     const idx = left.concat(Array.from({ length: st.e - st.s }, (_, j) => st.s + j), right);
     const a = pn[i], b = idx.map(k => Tn[k]);
-    const ops = ohMendOps(ohLcsOps(a, b).ops, a, b);
+    const bl = paras[i].blanks || [];
+    const fx = ohFillOps(ohMendOps(ohLcsOps(a, b).ops, a, b, bl), a, b, bl);
+    const ops = fx.ops;
     idx.forEach(k => { claimed[k] = 1; });
-    state[i] = ops.every(x => x.t === 'k') ? { kind: 'same', idx } : { kind: 'changed', idx, ops };
+    state[i] = ops.every(ohKept) ? { kind: 'same', idx, fills: fx.fills } : { kind: 'changed', idx, ops, fills: fx.fills };
   });
+  /* ---- WHAT IS WRITTEN WHERE A BLANK STANDS BETWEEN TWO PARAGRAPHS ----
+     A line that is only a blank, or a blank at the very end or start of a
+     paragraph whose fill ran onto a line of its own in their copy, has no
+     agreed words on one side of it to pin a fill by. So it is pinned by its
+     NEIGHBOURS: the words lying in their copy exactly between the two agreed
+     paragraphs around it — both found, in the agreed order, with nothing else
+     found between them — are what was written there. A blank holds at most
+     OH_FILL_MAX words and one line; more is text they added, and stays so. A
+     blank already filled on its own line takes nothing more.
+     ONLY A BLANK WITH A NAME is pinned this way. A ruled line with nothing to
+     name it is a line to SIGN on, not a blank to write in: what a signing
+     service prints there reads as it always has, and a sentence written on
+     it is a sentence they added. */
+  const spanOf = st => {
+    if (!st || st.kind === 'missing') return null;
+    if (st.idx && st.idx.length) return { s: st.idx[0], e: st.idx[st.idx.length - 1] + 1 };
+    return st.s != null ? { s: st.s, e: st.e } : null;
+  };
+  const filledAt = (i, g) => (state[i].fills || []).some(f => f.g === g);
+  const between = [];
+  {
+    let prev = -1, lines = [];
+    const at = new Map(paras.map((p, i) => [p, i]));
+    items.forEach(it => {
+      if (it.blankOnly){ lines = lines.concat(it.blanks); return; }
+      const i = at.get(it);
+      const st = state[i];
+      if (!st || st.kind === 'missing'){ prev = -1; lines = []; return; }
+      if (prev >= 0){
+        const blanks = (paras[prev].blanks || []).filter(x => x.g === pn[prev].length && !filledAt(prev, x.g))
+          .concat(lines, (paras[i].blanks || []).filter(x => x.g === 0 && !filledAt(i, 0)))
+          .filter(x => x && x.name);
+        const A = spanOf(state[prev]), B = spanOf(st);
+        if (blanks.length && A && B && A.e < B.s){
+          let clear = true;
+          const onLines = new Set();
+          for (let k = A.e; k < B.s; k++){ if (claimed[k]){ clear = false; break; } onLines.add(T[k].line); }
+          if (clear && B.s - A.e <= blanks.length * OH_FILL_MAX && onLines.size <= blanks.length){
+            const ks = []; for (let k = A.e; k < B.s; k++){ claimed[k] = 1; ks.push(k); }
+            between.push({ ks, blanks });
+          }
+        }
+      }
+      prev = i; lines = [];
+    });
+  }
   /* WHAT IS LEFT OVER in their copy. Inside the agreement — between the
      first and the last paragraph found — it is text they added, and it fails
      the check. Before and after it is a cover page, a signature block or a
@@ -585,7 +783,8 @@ function outsideCompare(agreed, signed, opts){
     if (st.kind === 'missing'){ missing.push({ i, group: p.group, label: p.label, marker: p.marker, agreed: p.text.slice(0, 2000) }); return; }
     if (st.kind !== 'changed') return;
     const keptA = new Set(), keptB = new Set();
-    st.ops.forEach(op => { if (op.t === 'k'){ keptA.add(op.i); keptB.add(op.j); } });
+    /* a fill is kept: what they wrote in a blank is not drawn as a change */
+    st.ops.forEach(op => { if (op.t === 'k'){ keptA.add(op.i); keptB.add(op.j); } else if (op.t === 'f') keptB.add(op.j); });
     const aWords = p.words.map((w, k) => ({ ...w, k }));
     const aRow = chunkRow(p.chunks, aWords, new Set(aWords.filter(w => keptA.has(w.k))), 'd');
     /* their side: the chunks the span covers, marked where a word is new */
@@ -606,8 +805,8 @@ function outsideCompare(agreed, signed, opts){
     const ops = st.ops;
     const seen = new Set();
     for (let s = 0; s < ops.length; s++){
-      if (ops[s].t === 'k') continue;
-      let e = s; while (e < ops.length && ops[e].t !== 'k') e++;
+      if (ohKept(ops[s])) continue;
+      let e = s; while (e < ops.length && !ohKept(ops[e])) e++;
       const run = ops.slice(s, e);
       const d = run.filter(x => x.t === 'd'), n = run.filter(x => x.t === 'i');
       if (d.length === 1 && n.length === 1){
@@ -620,6 +819,24 @@ function outsideCompare(agreed, signed, opts){
   const renamed = [...pairs.entries()].filter(([, n]) => n >= 2)
     .map(([k, n]) => { const [from, to] = k.split('\u0000'); return { from, to, n }; })
     .sort((x, y) => y.n - x.n).slice(0, 8);
+  /* ---- WHAT THEY WROTE IN THE BLANKS ----
+     In the order of their copy: the blank by the panel's name for it, what
+     it was in the agreed words, and what their copy says there. Listed on
+     the result and kept on the record — never counted as a difference. */
+  const fillText = ks => { const cs = []; ks.forEach(k => { const ci = T[k].c; if (cs[cs.length - 1] !== ci) cs.push(ci); });
+    return cs.map(ci => S.chunks[ci].s).join(' '); };
+  const fills = [];
+  const addFill = (ks, blanks) => {
+    if (!ks.length) return;
+    const b0 = blanks[0] || {};
+    fills.push({ at: ks[0], group: b0.group || '', label: b0.label || '', marker: b0.marker || '',
+      name: (blanks.find(x => x && x.name) || {}).name || '', blank: blanks.map(x => x.raw).join(' ').slice(0, 120),
+      text: fillText(ks).slice(0, 400), words: ks.length });
+  };
+  paras.forEach((p, i) => { const st = state[i];
+    if (st && st.idx && Array.isArray(st.fills)) st.fills.forEach(f => addFill(f.js.map(j => st.idx[j]), f.blanks)); });
+  between.forEach(x => addFill(x.ks, x.blanks));
+  fills.sort((x, y) => x.at - y.at).forEach(f => { delete f.at; });
   const sameParas = state.filter(s => s && s.kind === 'same').length;
   const matchedWords = paras.reduce((n, p, i) => n + (state[i] && state[i].kind !== 'missing' ? pn[i].length : 0), 0);
   const coverage = agreedWords ? matchedWords / agreedWords : 0;
@@ -639,20 +856,26 @@ function outsideCompare(agreed, signed, opts){
     inserted: inserted.slice(0, 20), around: around.slice(0, 20),
     aroundWords: around.reduce((n, r) => n + r.words, 0),
     renamed,
+    fills: fills.slice(0, OH_FILLS_SHOWN), fillCount: fills.length,
     words: { agreed: agreedWords, signed: T.length },
   };
 }
+const OH_FILLS_SHOWN = 60;
 /* One line of what the check found, for a trail line or a tile. English: it
-   is a RECORD (the rulebook's "a label that is also a record keeps English"). */
+   is a RECORD (the rulebook's "a label that is also a record keeps English").
+   The blanks they filled in are said on it, whichever way the words went —
+   accepted without asking, never without saying. */
 function outsideCompareLine(r){
   if (!r) return '';
   if (r.unrelated) return 'The copy has almost nothing in common with the agreed wording.';
-  if (r.same) return `Same wording as agreed — ${r.clauses} part${r.clauses === 1 ? '' : 's'} match.`;
+  const f = Number(r.fillCount) || 0;
+  const filled = f ? ` ${f} blank${f === 1 ? '' : 's'} filled in.` : '';
+  if (r.same) return `Same wording as agreed — ${r.clauses} part${r.clauses === 1 ? '' : 's'} match.${filled}`;
   const bits = [];
   if (r.changedCount) bits.push(`${r.changedCount} changed`);
   if (r.missingCount) bits.push(`${r.missingCount} missing`);
   if (r.inserted.length) bits.push(`${r.inserted.length} added between clauses`);
-  return `The wording differs from what was agreed: ${bits.join(', ')}.`;
+  return `The wording differs from what was agreed: ${bits.join(', ')}.${filled}`;
 }
 
 /* ============================================================
@@ -786,6 +1009,7 @@ const OUTSIDE_API = { WORKING_PREFIX, HANDOVER_REMIND_WORKDAYS, HANDOVER_REMIND_
   signRouteOf, handoverOf, handoverActive, outsideListed, ohWorkdays, ohAddWorkdays, handoverDays,
   handoverFirstReminderAt, handoverReminderKey, handoverNextReminderAt, handoverLiveFrom, handoverStillLiveDue,
   handoverStage, handoverLastCheck, outsideSignatory, outsideFileIds, ohStripMarker, ohNorm, ohChunks, ohAgreedParas, ohSignedStream, ohLcsOps,
+  OH_FILL_MAX, OH_FILLS_SHOWN, ohBlankHits, ohBlankName, ohChunksBlanks, ohFillOps,
   outsideCompare, outsideCompareLine, ohDates, outsideReadCopy, outsideStartsOnSignature, outsideBlanksIn };
 if (typeof window !== 'undefined') Object.assign(window, OUTSIDE_API);
 if (typeof module !== 'undefined' && module.exports) module.exports = OUTSIDE_API;

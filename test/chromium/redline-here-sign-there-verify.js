@@ -17,6 +17,13 @@
         filed — and the contract takes its number, printed everywhere a
         reference is.
      7  THE RECORD shows the signed copy, its fingerprint, and the seal checks.
+     8  THE BLANKS THEY FILLED IN (Young ruled 26 Sep 2026: "yes, accept the
+        filled-in blanks without asking"). A second file whose agreed words
+        leave three blanks comes back with them filled: the same wording, the
+        fills listed and kept, File as signed. Against the commit before that
+        work (e2d34ea) 8a0–8e fail — the screen there reads "3 differences from
+        the agreed wording" and offers only File with the difference and Hold;
+        the two stage lines pass on both.
 
    Everything is read off the RENDERED page. A section that cannot be staged
    reports its failure rather than timing out.
@@ -69,6 +76,29 @@ const AGREED = [
     const page = await ctx.newPage();
     page.on('pageerror', e => errors.push(e.message));
     const press = async (sel, timeout = 5000) => { await page.waitForSelector(sel, { timeout }); await page.click(sel); };
+    /* The one list, settled on the open file: a value, our signatory, a brief
+       read, and the three readings current — so the handover is the press. */
+    const stageReady = () => page.evaluate(async () => {
+      try {
+        const c = getContract(state.activeId);
+        await ensureFull(c);
+        const me = currentUser();
+        c.value = 120000; c.fields = { ...(c.fields || {}), value: '120000' };
+        c.signerPlan = [{ id: 'sg_me', party: 'internal', name: me.name, memberId: me.id, email: me.email, order: 1, signed: false, role: 'Head of Legal' }];
+        c._brief = { v: 1, at: new Date(Date.now() + 60000).toISOString(), by: 'Stage', truncated: false, data: {} };
+        if (window.briefMarkRead) briefMarkRead(c);
+        const hash = playbookHashOf(playbookText(c));
+        c.playbook = { label: 'Default', wordingHash: hash, verdicts: [] };
+        c.obligationsReadHash = hash; c.signCheck = { at: new Date().toISOString(), wordingHash: hash };
+        state.settings = { ...(state.settings || {}), approvalRules: [] };
+        persist(c); await flushSaves();
+        renderWorkspace();
+        await new Promise(r => setTimeout(r, 300));
+        roomGoTab(c, 'sign');
+        await new Promise(r => setTimeout(r, 700));
+        return { ok: true, n: signReadiness(c).n };
+      } catch (e) { return { ok: false, err: String(e && e.message) }; }
+    });
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.waitForTimeout(600);
     await page.fill('#li-email', 'admin@example.co.ke');
@@ -144,27 +174,7 @@ const AGREED = [
     check('3d the room\'s next step says the same', /Hand over/.test(tab.head), tab.head);
 
     /* ===== 4. AGREE AND HAND OVER ===== */
-    const staged = await page.evaluate(async () => {
-      try {
-        const c = getContract(state.activeId);
-        await ensureFull(c);
-        const me = currentUser();
-        c.value = 120000; c.fields = { ...(c.fields || {}), value: '120000' };
-        c.signerPlan = [{ id: 'sg_me', party: 'internal', name: me.name, memberId: me.id, email: me.email, order: 1, signed: false, role: 'Head of Legal' }];
-        c._brief = { v: 1, at: new Date(Date.now() + 60000).toISOString(), by: 'Stage', truncated: false, data: {} };
-        if (window.briefMarkRead) briefMarkRead(c);
-        const hash = playbookHashOf(playbookText(c));
-        c.playbook = { label: 'Default', wordingHash: hash, verdicts: [] };
-        c.obligationsReadHash = hash; c.signCheck = { at: new Date().toISOString(), wordingHash: hash };
-        state.settings = { ...(state.settings || {}), approvalRules: [] };
-        persist(c); await flushSaves();
-        renderWorkspace();
-        await new Promise(r => setTimeout(r, 300));
-        roomGoTab(c, 'sign');
-        await new Promise(r => setTimeout(r, 700));
-        return { ok: true, n: signReadiness(c).n };
-      } catch (e) { return { ok: false, err: String(e && e.message) }; }
-    });
+    const staged = await stageReady();
     check('4 · stage: nothing left on the list (value, signatory, brief, readings)', staged.ok && staged.n === 0, JSON.stringify(staged));
     /* the share the other side will read, made before the handover */
     const token = await page.evaluate(async id => {
@@ -276,6 +286,116 @@ const AGREED = [
       return root ? root.innerText.trim() : '';
     });
     check('7b the seal checks — over the signed copy itself', /valid/i.test(seal) && !/MISMATCH|cannot/i.test(seal), seal.slice(0, 160));
+
+    /* ===== 8. THE BLANKS THEY FILLED IN (Young ruled 26 Sep 2026: "yes, accept
+       the filled-in blanks without asking") =====
+       A second file whose agreed words leave three blanks — a delivery address
+       in the middle of a clause, a name and a date — comes back with all three
+       filled. The same wording, the fills listed on the screen and kept on the
+       record, and nobody asked to accept a difference. */
+    const AGREED_B = [
+      'SUPPLY AGREEMENT',
+      'This Agreement is made between Kijani Foods Ltd and Highland Corporate Ltd.',
+      '1. Term. This Agreement is effective from 1 October 2026 and continues until 30 September 2027.',
+      '2. Delivery. The Supplier shall deliver the Goods to: ______________________',
+      '3. Fees. The Customer shall pay the fees within thirty days of invoice.',
+      'For and on behalf of Kijani Foods Ltd',
+      'Name: ______________________',
+      'Date: ______________________',
+    ];
+    const fb = path.join(OUT, 'supply.docx');
+    fs.writeFileSync(fb, Buffer.from(mkDocx(AGREED_B.map(t => para(t)).join(''))));
+    await page.evaluate(() => { state.aiConfigured = false; openUploadModal(); });
+    await page.waitForTimeout(400);
+    await page.setInputFiles('#up-file', fb);
+    await page.waitForFunction(() => { const s2 = document.getElementById('up-step-2'); return s2 && !s2.classList.contains('hidden'); }, null, { timeout: 20000 }).catch(() => {});
+    await press('[data-up-route="outside"]');
+    await page.fill('#up-cp', 'Kijani Foods Ltd');
+    await page.click('#up-go');
+    await page.waitForTimeout(2500);
+    const RL2 = await page.evaluate(() => { const c = getContract(state.activeId); return c && c.signRoute === 'outside' ? c.id : ''; });
+    await page.evaluate(() => roomGoTab(getContract(state.activeId), 'sign'));
+    await page.waitForTimeout(700);
+    const staged2 = await stageReady();
+    check('8 · stage: a second working file, its list settled', /^RL-\d{3}$/.test(RL2) && RL2 !== RL && staged2.ok && staged2.n === 0, JSON.stringify({ RL2, staged2 }));
+    await press('#ho-hand');
+    await page.waitForTimeout(700);
+    await press('[data-ho-ch="download"]');
+    const dl2 = page.waitForEvent('download', { timeout: 15000 }).catch(() => null);
+    await press('#ho-go');
+    await dl2;
+    await page.waitForTimeout(1500);
+    const out2 = await page.evaluate(() => { const c = getContract(state.activeId); return !!(c.handover && c.handover.at); });
+    check('8 · stage: handed over with its blanks — a ruled line does not hold the handover', out2);
+    const signedB = path.join(OUT, 'supply-signed.docx');
+    fs.writeFileSync(signedB, Buffer.from(mkDocx([
+      para('KIJANI FOODS LTD — SUPPLY AGREEMENT'),
+      para('This Agreement is made between Kijani Foods Ltd and Highland Corporate Ltd.'),
+      para('§1 Term. This Agreement is effective from 1 October 2026 and continues until 30 September 2027.'),
+      para('§2 Delivery. The Supplier shall deliver the Goods to: Warehouse 4, Mombasa Road, Nairobi'),
+      para('§3 Fees. The Customer shall pay the fees within thirty days of invoice.'),
+      para('For and on behalf of Kijani Foods Ltd'),
+      para('Name: Wanjiru Kamau'),
+      para('Date: 29 September 2026'),
+      para('Signed for Kijani Foods Ltd: Wanjiru Kamau, 29 September 2026'),
+      para('Signed for Highland Corporate Ltd: Amina Otieno, 30 September 2026'),
+    ].join(''))));
+    /* The check our signatory runs before signing draws the same list, off the
+       same builder, in its own window — pressed through the waiting card. */
+    await press('[data-ho-act="check"]').catch(() => {});
+    await page.waitForSelector('#ho-fd-file', { timeout: 5000 }).catch(() => {});
+    await page.setInputFiles('#ho-fd-file', signedB).catch(() => {});
+    await page.click('#ho-fd-go', { timeout: 5000 }).catch(() => {});
+    await page.waitForSelector('#ho-fd-out .ho-res', { timeout: 15000 }).catch(() => {});
+    const chk = await page.evaluate(() => { const r = document.querySelector('#ho-fd-out .ho-res');
+      return r ? { same: r.classList.contains('is-same'), text: r.innerText.replace(/\s+/g, ' '),
+        rows: [...r.querySelectorAll('.ho-fills[open] .ho-fill')].length } : null; });
+    check('8a0 the check before we sign reads the filled blanks as the same wording and lists them',
+      chk && chk.same && chk.rows === 3 && /3 blanks they filled in/.test(chk.text), JSON.stringify(chk).slice(0, 220));
+    await page.click('#ho-fd-cancel').catch(() => {});
+    await page.waitForTimeout(400);
+    await page.evaluate(() => { state.aiConfigured = false; openUploadModal(); });
+    await page.waitForTimeout(400);
+    await page.setInputFiles('#up-file', signedB);
+    try { await page.waitForSelector('#ho-up-match', { timeout: 20000 }); } catch (_) {}
+    await page.click('[data-ho-up-file]', { timeout: 5000 }).catch(() => {});
+    await page.waitForSelector('.ho-file', { timeout: 15000 }).catch(() => {});
+    const scr = await page.evaluate(() => {
+      const r = document.querySelector('.ho-file-r');
+      const f = document.querySelector('.ho-file-r .ho-fills');
+      return { text: r ? r.innerText : '', open: !!(f && f.open),
+        rows: f ? [...f.querySelectorAll('.ho-fill')].map(x => x.innerText.replace(/\s+/g, ' ').trim()) : [],
+        file: !!document.querySelector('[data-ho-f="file"]'), accept: !!document.querySelector('[data-ho-f="accept"]'),
+        sendback: !!document.querySelector('[data-ho-f="sendback"]'), hold: !!document.querySelector('[data-ho-f="hold"]') };
+    });
+    await page.waitForTimeout(600);   // the window fades in; a picture of the fade shows two screens at once
+    await page.screenshot({ path: path.join(OUT, '8-filled-blanks.png') });
+    check('8a the filing screen reads the filled blanks as the same wording, and says how many were filled',
+      /Same wording as agreed/.test(scr.text) && /3 blanks they filled in/.test(scr.text), scr.text.slice(0, 200).replace(/\s+/g, ' '));
+    check('8b the list is open and names each blank with what their copy says there',
+      scr.open && scr.rows.length === 3 && scr.rows.some(t => /^Name Wanjiru Kamau$/.test(t)) && scr.rows.some(t => /^Date 29 September 2026$/.test(t))
+        && scr.rows.some(t => /Warehouse 4, Mombasa Road, Nairobi$/.test(t)), JSON.stringify(scr.rows));
+    check('8c the press is File as signed — nobody is asked to accept a difference, and nothing is sent back',
+      scr.file && !scr.accept && !scr.sendback && !scr.hold, JSON.stringify({ file: scr.file, accept: scr.accept, sendback: scr.sendback, hold: scr.hold }));
+    await page.selectOption('#ho-via', 'docusign').catch(() => {});
+    if (scr.file){ await page.click('[data-ho-f="file"]'); await page.waitForTimeout(3000); }
+    await page.evaluate(() => { const b = [...document.querySelectorAll('#modal-root button')].find(x => /cancel/i.test(x.textContent)); if (b) b.click(); });
+    await page.waitForTimeout(500);
+    const kept = await page.evaluate(async id => {
+      const c = getContract(id);
+      try { await ensureFull(c); } catch (_) {}
+      const sc = c.signedCopy || {}, cmpr = sc.compare || {};
+      const line = (c.audit || []).map(a => a && (a.detail || a.text || a.what || '')).find(t => /Executed outside HaTi|Signed copy filed/.test(t) || /blanks filled in/.test(t)) || '';
+      return { status: c.status, filled: cmpr.filled, fills: (cmpr.fills || []).map(x => x.name + ': ' + x.text), line: String(line) };
+    }, RL2);
+    check('8d filed, the record keeps what was written in each blank, and the trail says how many',
+      kept.status === 'Signed' && kept.filled === 3 && kept.fills.includes('Name: Wanjiru Kamau') && /3 blanks filled in/.test(kept.line), JSON.stringify(kept).slice(0, 300));
+    await page.evaluate(id => { openWorkspace(id); }, RL2);
+    await page.waitForTimeout(700);
+    await page.evaluate(() => roomGoTab(getContract(state.activeId), 'docs'));
+    await page.waitForTimeout(1200);
+    const rec2 = await page.evaluate(() => { const b = document.querySelector('.ho-ex'); return b ? b.innerText.replace(/\s+/g, ' ') : ''; });
+    check('8e the signed record says it: the same as the agreed version, three blanks they filled in', /3 blanks they filled in/.test(rec2), rec2.slice(0, 200));
 
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) {

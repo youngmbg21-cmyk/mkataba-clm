@@ -70,9 +70,26 @@ function outsideAgreedParas(c){
   d.innerHTML = html;
   const out = [];
   let head = '', group = 0;
-  d.querySelectorAll('h1,h2,h3,h4,h5,h6,p,li,tr').forEach(el => {
-    if (el.closest('li') && el.tagName !== 'LI' && el.closest('li') !== el) return;
-    if (el.tagName === 'P' && el.closest('li,td,th')) return;
+  /* WORD'S OWN FILL-IN BOXES (the upload panel's fourth shape, js/docx.js
+     marks them): the one blank the text cannot show, so it is read off the
+     markup here and handed to the word check by its own words — a box they
+     type over is a blank they filled (outsideCompare). A box with no words in
+     it is a ruled line in the text, which is what it is on the page. */
+  const fcls = (typeof RICH_WFIELD_CLASS === 'string' && RICH_WFIELD_CLASS) || 'hati-wfield';
+  const fname = (typeof RICH_WFIELD_NAME_ATTR === 'string' && RICH_WFIELD_NAME_ATTR) || 'data-wfield';
+  d.querySelectorAll('h1,h2,h3,h4,h5,h6,p,li,tr').forEach(el0 => {
+    if (el0.closest('li') && el0.tagName !== 'LI' && el0.closest('li') !== el0) return;
+    if (el0.tagName === 'P' && el0.closest('li,td,th')) return;
+    let el = el0;
+    const fields = [];
+    if (el0.querySelector('span.' + fcls)){
+      el = el0.cloneNode(true);
+      el.querySelectorAll('span.' + fcls).forEach(sp => {
+        const t = sp.textContent.replace(/\s+/g, ' ').trim();
+        if (!t) sp.textContent = ' ___ ';
+        else fields.push({ text: t, name: sp.getAttribute(fname) || '' });
+      });
+    }
     const text = (el.tagName === 'TR'
       ? Array.from(el.children).map(td => td.textContent.trim()).filter(Boolean).join(' \t ')
       : el.textContent).replace(/\s+/g, ' ').trim();
@@ -85,7 +102,8 @@ function outsideAgreedParas(c){
       && (el.tagName === 'H1' || (/[A-Z]/.test(text) && text === text.toUpperCase())
         || text.toLowerCase() === String(c.name || '').trim().toLowerCase());
     if (/^H[1-6]$/.test(el.tagName)){ head = text.slice(0, 80); group += 1; }
-    out.push({ text, title, group: String(group), label: [own, /^H[1-6]$/.test(el.tagName) ? '' : head].filter(Boolean).join(' · ') || head });
+    out.push({ text, title, group: String(group), label: [own, /^H[1-6]$/.test(el.tagName) ? '' : head].filter(Boolean).join(' · ') || head,
+      ...(fields.length ? { fields } : {}) });
   });
   return out;
 }
@@ -656,6 +674,20 @@ function outsideDiffHtml(r){
   if (more) items.push(`<div class="ho-sub">${_hoEsc(i18t('ho_more_diffs', { n: more }))}</div>`);
   return items.join('');
 }
+/* WHAT THEY WROTE IN THE BLANKS (Young ruled 26 Sep 2026: "yes, accept the
+   filled-in blanks without asking"). Not a difference, so never drawn as one
+   and never asked about — but never hidden either: a line under the result,
+   open, each blank by the name the upload panel gives it and what their copy
+   says there, so the person filing reads every one before pressing File. */
+function outsideFillsHtml(r){
+  const list = r && Array.isArray(r.fills) ? r.fills : [];
+  const n = (r && Number(r.fillCount)) || list.length;
+  if (!n) return '';
+  const more = Math.max(0, n - list.length);
+  return `<details class="ho-fills" open><summary class="ho-sub" title="${_hoEsc(i18t('ho_fills_title'))}">${_hoEsc(i18tn('ho_fills', n, { n }))}</summary>
+    <div class="ho-fill-list">${list.map(x => `<div class="ho-fill"><span class="ho-fill-k">${_hoEsc(x.name || x.label || x.marker || i18t('ho_fill_blank'))}</span><span class="ho-fill-v">${_hoEsc(x.text)}</span></div>`).join('')}
+    ${more ? `<div class="ho-sub">${_hoEsc(i18t('ho_more_diffs', { n: more }))}</div>` : ''}</div></details>`;
+}
 /* The one line a check says, in the reader's language. */
 function outsideCheckLine(r){
   if (!r) return '';
@@ -708,6 +740,7 @@ function _hoFileDialog(c, o){
         <div class="ho-res-h">${r.same ? '&#10003;' : '!'} ${_hoEsc(outsideCheckLine(r))}</div>
         ${r.ocr ? `<div class="ho-sub">${_hoEsc(i18t('ho_cmp_ocr'))}</div>` : ''}
         ${r.same ? '' : `<div class="ho-diffs">${outsideDiffHtml(r)}</div>`}
+        ${outsideFillsHtml(r)}
         ${(r.around || []).length ? `<div class="ho-sub">${_hoEsc(i18tn('ho_around_words', r.aroundWords, { n: r.aroundWords }))}</div>` : ''}
       </div>`;
     },
@@ -820,6 +853,7 @@ function _hoFilingScreen(c, read){
       <div class="ho-chk ${r.same ? '' : 'is-warn'}">${tick(r.same)}<div><b>${_hoEsc(outsideCheckLine(r))}</b>
         ${r.same ? `<div class="ho-sub">${_hoEsc(i18t('ho_design_fine'))}</div>` : ''}
         ${r.ocr ? `<div class="ho-sub">${_hoEsc(i18t('ho_cmp_ocr'))}</div>` : ''}
+        ${outsideFillsHtml(r)}
         ${(r.around || []).length ? `<div class="ho-sub">${_hoEsc(i18tn('ho_around_words', r.aroundWords, { n: r.aroundWords }))}</div>` : ''}</div></div>
       ${r.same ? '' : `<div class="ho-diffs">${outsideDiffHtml(r)}</div>`}
       <div class="ho-chk">${tick(theirsFound && oursFound)}<div><b>${_hoEsc(i18t('ho_who_signed'))}</b>
@@ -983,6 +1017,7 @@ async function outsideSendBack(c, r, o){
    renewal, notice and obligation reminders; the evidence pack gains the copy,
    the certificate, the comparison and the approval; and the contract takes
    its number — from the server, in the very save that files it. */
+const HO_FILLS_KEPT = 30;
 async function outsideFile(c, o){
   const me = _hoMe();
   const at = typeof nowISO === 'function' ? nowISO() : new Date().toISOString();
@@ -1002,7 +1037,13 @@ async function outsideFile(c, o){
     signedOn: o.dates.signed,
     compare: { same: !!cmp.same, unrelated: !!cmp.unrelated, clauses: cmp.clauses, changed: cmp.changedCount,
       missing: cmp.missingCount, inserted: (cmp.inserted || []).length, renamed: cmp.renamed || [],
-      line: outsideCompareLine(cmp), ocr: !!cmp.ocr, coverage: cmp.coverage },
+      line: outsideCompareLine(cmp), ocr: !!cmp.ocr, coverage: cmp.coverage,
+      /* what they wrote in the blanks, accepted without asking — so kept, by
+         name and words, where the record and the evidence pack read it; the
+         count is the whole count, the list its first HO_FILLS_KEPT */
+      filled: Number(cmp.fillCount) || 0,
+      fills: (cmp.fills || []).slice(0, HO_FILLS_KEPT).map(x => ({ name: x.name || x.label || '', blank: String(x.blank || '').slice(0, 120),
+        text: String(x.text || '').slice(0, 200) })) },
     differs: o.differs || null,
     /* the person filing says the copy carries every party's signature — the
        server files nothing without it */
@@ -1145,7 +1186,8 @@ function outsideExecutionBlock(c){
       ${cell(i18t('ho_ex_filed'), _hoEsc((sc && sc.by && sc.by.name) || ex.by || '—'), _hoEsc(typeof fmtDT === 'function' ? fmtDT((sc && sc.at) || ex.at) : ((sc && sc.at) || ex.at || '')))}
       ${cell(i18t('ho_ex_signed_on'), _hoEsc(_hoDay((sc && sc.signedOn) || ex.signedOn) || '—'), signers)}
       ${sc && sc.compare ? cell(i18t('ho_ex_words'), _hoEsc(sc.compare.same ? i18t('ho_ex_same') : i18t('ho_ex_differs')),
-        sc.differs ? _hoEsc(i18t('ho_ex_differs_by', { who: sc.differs.by && sc.differs.by.name, why: sc.differs.why })) : '') : ''}
+        sc.differs ? _hoEsc(i18t('ho_ex_differs_by', { who: sc.differs.by && sc.differs.by.name, why: sc.differs.why }))
+          : (Number(sc.compare.filled) ? _hoEsc(i18tn('ho_fills', Number(sc.compare.filled), { n: Number(sc.compare.filled) })) : '')) : ''}
     </div>
     <div class="ho-ex-fp"><div class="ho-ex-k">${_hoEsc(i18t('ho_ex_fp'))}</div><code>${_hoEsc(file.sha256 || '—')}</code>
       <div class="ho-sub">${_hoEsc(file.name || '')} ${file.fileId ? `<button type="button" class="ui-link" data-ho-open-file="${_hoEsc(file.fileId)}" data-ho-open-name="${_hoEsc(file.name || '')}">${_hoEsc(i18t('ho_open_copy'))}</button>` : ''}</div></div>
@@ -1168,6 +1210,6 @@ if (typeof window !== 'undefined') Object.assign(window, {
   wordAgreedFile, outsideMayChangeRoute, outsideSetRoute, outsideRouteCardHtml, renderOutsideSign,
   openHandoverWindow, outsideHandOver, outsideAdopt, outsideAct, outsideWaitCardHtml, wireOutsideWait,
   outsideOpenFile, outsideChase, openOutsideSendAgain, outsideReopen, outsideCloseDeal, outsideReadFile,
-  outsideDiffHtml, outsideCheckLine, openOutsideCheck, openOutsideFiling, outsideFiledBefore, outsidePartial,
+  outsideDiffHtml, outsideFillsHtml, HO_FILLS_KEPT, outsideCheckLine, openOutsideCheck, openOutsideFiling, outsideFiledBefore, outsidePartial,
   outsideSendBack, outsideFile, outsideExecutionBlock, HO_VIA_KEYS,
   outsideMatchUpload, outsideUploadOfferHtml, wireOutsideUploadOffer, HO_MATCH_MAX, HO_MATCH_MIN });
