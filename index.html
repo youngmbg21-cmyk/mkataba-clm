@@ -8645,6 +8645,17 @@
     display:flex;align-items:center;gap:4px;min-width:0;}
   .ins-cp-n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .ins-sub{color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  /* EVERY PARTY BUT OURS, ONE LINE EACH (Young ruled it 26 Sep 2026). A
+     multi-party contract's panel lists the parties rather than the first name
+     and a count, so the heading stops being one row and becomes a column. Each
+     line keeps the name's own cut (.ins-cp-n) with the whole line on its hover,
+     and the word the paper calls that party sits beside it in the quiet ink. The
+     same lines sit under the contract's name on Our standards' departures
+     panel, where they take that line's own quiet size. */
+  .ins-cp.is-many{display:block;}
+  .ins-cp-p{display:flex;align-items:baseline;gap:6px;min-width:0;}
+  .ins-cp-p + .ins-cp-p{margin-top:2px;}
+  .ins-cp-r{flex:none;font-size:var(--t-meta);font-weight:var(--w-label);letter-spacing:0;color:var(--color-neutral-600);white-space:nowrap;}
   .ins-st{display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap;min-width:0;}
   .ins-mv{font-weight:var(--w-label);white-space:nowrap;}
   .ins-mv.is-you{color:var(--st-amber-fg);}
