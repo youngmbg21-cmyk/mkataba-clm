@@ -333,6 +333,40 @@ const ROUTE = [
       !!opened && opened.status === 200 && opened.historyOnly === true && opened.purpose === 'history' && opened.wording === false,
       JSON.stringify(opened));
 
+    /* ---- 4c. A VIEW SEND NEVER RIDES A NEGOTIATION LINK (the owner's list,
+       27 Sep 2026: "Sending a read-only View link to someone who already holds
+       a negotiation link only refreshes their old link, so they can still
+       negotiate.") The same address holds a standing negotiation link here.
+       Red at the parent (3ee647b): no view link is made, and the reused link
+       still serves the negotiation. ---- */
+    await page.evaluate(() => { if (window.closeModal) closeModal(); });
+    await page.waitForTimeout(300);
+    await page.evaluate(id => openShareModal(getContract(id)), cid);
+    await page.waitForTimeout(1500);
+    const vBefore = await page.evaluate(async id => (await api('contracts/' + id + '/shares')).shares
+      .map(s => ({ token: s.token, purpose: s.purpose, email: s.recipientEmail })), cid);
+    const vHad = vBefore.find(s => s.purpose === 'negotiate' && s.email === GMAIL);
+    const viewSeg = await page.evaluate(() => { const b = document.querySelector('[data-share-purpose="view"]'); if (!b || b.disabled) return false; b.click(); return true; });
+    await page.waitForTimeout(300);
+    await page.evaluate(gmail => { document.getElementById('sh-email').value = gmail;
+      const d = document.getElementById('sh-durable'); if (d) d.checked = true; }, GMAIL);
+    await page.click('[data-share-ch="link"]');
+    await page.click('#share-send');
+    await page.waitForTimeout(1500);
+    const vAfter = await page.evaluate(async id => (await api('contracts/' + id + '/shares')).shares
+      .map(s => ({ token: s.token, purpose: s.purpose, email: s.recipientEmail })), cid);
+    check('4c. GATE — the address already holds a negotiation link, and View was chosen',
+      !!vHad && viewSeg, JSON.stringify({ had: !!vHad, viewSeg }));
+    const vMade = vAfter.find(s => s.purpose === 'view' && s.email === GMAIL && !vBefore.some(b => b.token === s.token));
+    check('4c. a View send makes its OWN view link', !!vMade,
+      JSON.stringify({ before: vBefore.map(s => s.purpose), after: vAfter.map(s => s.purpose) }));
+    const vOld = vHad ? await page.evaluate(async t => {
+      const r = await fetch('/api/shares/' + t); const j = await r.json();
+      return { status: r.status, purpose: j.purpose, viewOnly: !!j.viewOnly };
+    }, vHad.token) : null;
+    check('4c. and the negotiation link is untouched — it still negotiates, and the view link is view-only',
+      !!vOld && vOld.status === 200 && vOld.purpose !== 'view' && !vOld.viewOnly, JSON.stringify(vOld));
+
     /* ---- and by WORD FILE the record is the report (Young, 13 Sep 2026) ---- */
     await page.evaluate(() => { if (window.closeModal) closeModal(); });
     await page.waitForTimeout(300);

@@ -179,7 +179,14 @@ const CONTRACT = (id, over) => Object.assign({
      line the wording is the workspace's and nothing here may draw. */
   const edited = CONTRACT('MK-UB2', { name: 'Distribution Agreement (edited)',
     changes: [{ id: 'CHG-001', type: 'modify', clauseId: 'cl_1', status: 'pending' }] });
-  for (const c of [up, form, edited])
+  /* A RULED LINE INSIDE SQUARE BRACKETS (the owner's list, 27 Sep 2026: "Made
+     effective as of ["). Its own contract, so no count above moves. */
+  const bracketed = CONTRACT('MK-UB4', { name: 'Supply Agreement (bracketed date)', redlineText: [
+    '<h1>SUPPLY AGREEMENT</h1>',
+    '<h4>1. Parties</h4>',
+    '<p>This Agreement is made effective as of [________] between Kijani Foods Ltd and Highland Corporate Ltd.</p>',
+  ].join('') });
+  for (const c of [up, form, edited, bracketed])
     await W.admin.json('/api/contracts/' + c.id, { method: 'PUT', body: { contract: c, baseVersion: 0 } });
 
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
@@ -496,6 +503,18 @@ const CONTRACT = (id, over) => Object.assign({
       ok9 && !/theirs to fill/i.test(tile2)
         && (/still open/i.test(tile2) || (open2 > 0 && chip2 === String(open2))),
       '"' + tile2 + '" · chip ' + chip2 + ' · open ' + open2);
+
+    /* ============ 10. A BLANK'S NAME CARRIES NO STRAY "[" ============
+       Read off the drawn panel. Red at the parent (3ee647b), which prints the
+       label as "Made effective as of [". */
+    await openRoom(page, bracketed.id);
+    const s10 = await page.evaluate(SEEN);
+    check('10a GATE — the bracketed ruled line is asked for in the panel', s10.boxKeys.length >= 1,
+      s10.boxKeys.length + ' boxes: ' + s10.boxLabels.join(' | '));
+    check('10b its name carries no "[" and reads as the words in front of it',
+      s10.boxLabels.length >= 1 && s10.boxLabels.every(l => !/\[/.test(l))
+        && s10.boxLabels.some(l => /^Made effective as of\b/i.test(l)),
+      s10.boxLabels.join(' | '));
 
     check('7a CONTROL — no page error anywhere in the run', errors.length === 0, errors.join(' | ') || 'none');
   } finally {

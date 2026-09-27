@@ -496,7 +496,12 @@ describe('f264 (7) — one window for writing a note and one for reading it back
   test('our seat opens the dialog, not the drawer', () => {
     const wired = VIEW.match(/document\._rlNotesWired[\s\S]*?\n\}\n/)[0];
     assert.match(wired, /openChangeNoteDialog\(c, ch,/);
-    assert.match(wired, /const portal = !!\(window\.PORTAL_MODE && PORTAL_MODE\(\)\);/,
+    /* RE-POINTED IN PLACE (27 Sep 2026): this pinned
+       `!!(window.PORTAL_MODE && PORTAL_MODE())`, which THREW on their page —
+       PORTAL_MODE is the boolean true there, not a function (f401). The claim
+       is unchanged: their seat is told apart explicitly, now by the one
+       reading that takes the flag as either shape. */
+    assert.match(wired, /const portal = rlOnTheirPage\(\);/,
       'their seat is told apart explicitly rather than by whether a lookup '
       + 'happened to fail');
     assert.match(wired, /if \(window\.openNotesPanel\) openNotesPanel\(cid, id\);/,

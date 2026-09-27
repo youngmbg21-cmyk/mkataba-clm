@@ -2093,7 +2093,10 @@ function applyMetadata(c, m){
      reading, asked again here because a heuristic pass and an older server
      both reach this door. */
   try{ if(typeof window.metaUnleak==='function') m=window.metaUnleak(m).meta; }catch(_){}
-  c.metadata = m;
+  /* MERGED, NEVER REPLACED (27 Sep 2026) — see metaMergeReviewed
+     (js/metadata.js). A term typed on the Overview that this review did not
+     carry, or left empty, is kept. */
+  c.metadata = (typeof window.metaMergeReviewed==='function') ? window.metaMergeReviewed(c.metadata, m) : m;
   if(m.counterparty && !c.counterparty) c.counterparty=m.counterparty;
   if(m.value && !(Number(c.value)>0)){ c.value=Number(m.value)||0; if(c.valueType==='none') c.valueType='estimated'; }
   if(m.expiryDate && !c.expiry) c.expiry=m.expiryDate;
@@ -5279,8 +5282,34 @@ function ktFactReads(c){
     stream: (()=>{ try{ return (window.regStreamName?esc(regStreamName(c)||''):''); }catch(_){ return ''; } })()
   };
 }
+/* ---- THE TERMS A PAPER PRINTS FREEZE AT THE FIRST SIGNATURE, WHERE THE PAPER
+   IS DRAWN FROM THE RECORD (the owner's list, 27 Sep 2026) ----
+   "On contracts drafted from HaTi's built-in templates, the key terms can
+   still be changed after the first person signs, so the next signer could see
+   different paper." A contract with no stored wording has its paper BUILT
+   from the record each time it is drawn (docBody's template branch), so for
+   it the terms that paper prints are the wording, and they freeze with it at
+   the first signature. The server is the wall (recordDrawnPaper /
+   PAPER_TERMS_FROZEN, PUT /api/contracts/:id); this is the grey, so a box is
+   never offered that the save would refuse. Everything else on the Overview
+   stays open between signatures, as ruled. */
+const PAPER_TERM_KEYS=['party','counterparty','value','effDate','expiry'];
+function paperTermsFrozen(c){
+  if(!c || c.redlineText || (typeof isUpload==='function' && isUpload(c))
+    || (c.execution && c.execution.html) || c.status==='Signed') return false;
+  try{ return !!(window.negoAnySignature ? window.negoAnySignature(c)
+    : ((Array.isArray(c.signatures) && c.signatures.length) || (c.signerPlan||[]).some(x=>x&&x.signed))); }
+  catch(_){ return false; }
+}
+/* A printed term that has frozen: the read-out says so on its hover. */
+function paperTermFrozenRead(c,k,read){
+  if(!(PAPER_TERM_KEYS.includes(k) && paperTermsFrozen(c))) return read;
+  return `<span title="${esc(i18t('ov_paper_frozen'))}">${read}</span>`;
+}
 function ktTermsRowsHtml(c,opts={}){
   const ed=!!opts.editable;
+  const frozen=paperTermsFrozen(c);
+  const edK=k=>ed && !(frozen && PAPER_TERM_KEYS.includes(k));
   /* ---- ONE ROW BUILDER, TWO SECTIONS (16 Sep 2026) ----
      The Overview splits these rows between two named sections: the deal (what
      was agreed) and the record (who it is with and where it is filed). They are
@@ -5331,10 +5360,10 @@ function ktTermsRowsHtml(c,opts={}){
        the document has always said, so the read-out prints that name rather
        than a dash and says where it came from. */
     ['party', ktRowHtml('party', i18t('tf_our_party'),
-      R.party||`<span style="color:var(--color-neutral-500)">${esc((window.FIRST_PARTY)||'')}</span>`,
-      `<input data-kt="party" type="text" value="${(c.party||'').replace(/"/g,'&quot;')}" placeholder="${esc((window.FIRST_PARTY)||'')}" style="${KIN}"/>`, ed, 'pencil')],
-    ['counterparty', ktRowHtml('counterparty','Counterparty', R.counterparty||dash,
-      `<input data-kt="counterparty" type="text" value="${(c.counterparty||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ct_who_is_this_with')}" style="${KIN}"/>`, ed, 'pencil')],
+      paperTermFrozenRead(c,'party',R.party||`<span style="color:var(--color-neutral-500)">${esc((window.FIRST_PARTY)||'')}</span>`),
+      `<input data-kt="party" type="text" value="${(c.party||'').replace(/"/g,'&quot;')}" placeholder="${esc((window.FIRST_PARTY)||'')}" style="${KIN}"/>`, edK('party'), 'pencil')],
+    ['counterparty', ktRowHtml('counterparty','Counterparty', paperTermFrozenRead(c,'counterparty',R.counterparty||dash),
+      `<input data-kt="counterparty" type="text" value="${(c.counterparty||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ct_who_is_this_with')}" style="${KIN}"/>`, edK('counterparty'), 'pencil')],
     /* ---- THEIR EMAIL, ON THE ROW UNDER THEIR NAME ----
        This was a banner across the top of the negotiation asking for it. The
        address is a fact about the counterparty, exactly like the name directly
@@ -5358,16 +5387,16 @@ function ktTermsRowsHtml(c,opts={}){
        the row is absent when they agree, because a row repeating the line above
        it is furniture. */
     ['cpRouteEmail', ktRouteEmailRowHtml(c)],
-    ['value', ktRowHtml('value','Contract value', `<span style="font-family:var(--font-mono)">${money}</span>`,
+    ['value', ktRowHtml('value','Contract value', paperTermFrozenRead(c,'value',`<span style="font-family:var(--font-mono)">${money}</span>`),
       `<span style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
          <span style="font-size:var(--t-label);color:var(--color-neutral-500);flex:none">${jxCurrency()}</span>
          <input data-kt="value" type="text" inputmode="numeric" value="${isMonetary(c)&&c.value?Number(c.value).toLocaleString(jxLocale()):''}" placeholder="0" ${isMonetary(c)?'':'disabled'} style="${KIN};font-family:var(--font-mono)"/>
          <label style="display:flex;align-items:center;gap:5px;font-size:var(--t-label);color:var(--color-neutral-600);flex:none;white-space:nowrap">
-           <input data-kt="nonmonetary" type="checkbox" ${!isMonetary(c)?'checked':''} style="width:14px;height:14px;accent-color:var(--color-accent)"/>none</label></span>`, ed)],
-    ['effDate', ktRowHtml('effDate','Effective', day(c.fields&&c.fields.effDate),
-      `<input data-kt="effDate" type="date" value="${(c.fields&&c.fields.effDate)||''}" style="${KIN}"/>`, ed, 'calendar')],
-    ['expiry', ktRowHtml('expiry','Expiry', day(c.expiry),
-      `<input data-kt="expiry" type="date" value="${c.expiry||''}" style="${KIN}"/>`, ed, 'calendar')],
+           <input data-kt="nonmonetary" type="checkbox" ${!isMonetary(c)?'checked':''} style="width:14px;height:14px;accent-color:var(--color-accent)"/>none</label></span>`, edK('value'))],
+    ['effDate', ktRowHtml('effDate','Effective', paperTermFrozenRead(c,'effDate',day(c.fields&&c.fields.effDate)),
+      `<input data-kt="effDate" type="date" value="${(c.fields&&c.fields.effDate)||''}" style="${KIN}"/>`, edK('effDate'), 'calendar')],
+    ['expiry', ktRowHtml('expiry','Expiry', paperTermFrozenRead(c,'expiry',day(c.expiry)),
+      `<input data-kt="expiry" type="date" value="${c.expiry||''}" style="${KIN}"/>`, edK('expiry'), 'calendar')],
     /* ---- THE NOTICE PERIOD, WHICH IS THE DATE THAT ACTUALLY MATTERS ----
        (16 Sep 2026.) Every renewal reading in the product counts back from the
        expiry by metadata.noticePeriodDays — renewalDecisionDate, renewalWindow,
@@ -5981,6 +6010,10 @@ function ovFieldNoteHtml(mark,k){
   return `<span class="sec-f-n" title="${esc(say)}">${esc(i18t('ov_paper_differs'))}</span>`;
 }
 function ktFieldCell(c,k,edit,marks){
+  /* A PRINTED TERM THAT HAS FROZEN IS NOT A BOX (27 Sep 2026) — see
+     paperTermsFrozen. Its read-out says why on the hover. */
+  const frozenTerm=PAPER_TERM_KEYS.includes(k) && paperTermsFrozen(c);
+  if(frozenTerm) edit=false;
   const m=(c&&c.metadata)||{};
   const R=ktFactReads(c);
   const opt=v=>{ const t=String(v==null?'':v).trim();
@@ -6030,6 +6063,7 @@ function ktFieldCell(c,k,edit,marks){
     }
   } })();
   if(!cell) return null;
+  if(frozenTerm) cell[1]=paperTermFrozenRead(c,k,cell[1]);
   if(!marks) return cell;
   const mark=ovFieldMarkOf(marks,k);
   return [cell[0], cell[1], cell[2]||'', (mark&&mark.holds)?'amber':(cell[3]||''),
@@ -16324,7 +16358,7 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,roomHeadRefresh,
+Object.assign(window,{PAPER_TERM_KEYS,paperTermsFrozen,paperTermFrozenRead,paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,roomHeadRefresh,
   /* TWO COPIES OF ONE CONTRACT (25 Sep 2026): the sheet's builders and the
      signing copy's controls. The other side's signing link draws the signing
      copy through signCopySheetHtml, so it must be on this list — a name read

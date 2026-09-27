@@ -62,11 +62,15 @@ describe('f314 one save at a time', () => {
     const fn = CORE.match(/async function flushSaves\(\)\{[\s\S]*?\n\}/)[0];
     assert.match(fn, /if\(_flushing\)\{\n\s*_flushAgain=true;/,
       'a second call joins the first rather than racing it');
-    assert.match(fn, /for\(const c of items\)\{ await saveContract\(c\); \}/,
+    /* RE-POINTED IN PLACE (27 Sep 2026, the owner's list): each save now marks
+       its contract as OUT while it is (the `_saving` set — contractSavePending
+       reads it, so opening a contract never undoes an edit on its way). The
+       claim is unchanged: one after another, awaited in turn. */
+    assert.match(fn, /for\(const c of items\)\{ try\{ await saveContract\(c\); \} finally \{ _saving\.delete\(c\.id\); \} \}/,
       'and the saves inside one flush are still one after another');
     assert.match(fn, /while\(_flushAgain && dirty\.size\)/,
       'the loop goes round for anything dirtied while it ran — so a caller awaiting it still gets its own record written');
-    assert.match(fn, /finally \{ _flushing=false; \}/, 'and the flag is cleared even where a save threw');
+    assert.match(fn, /finally \{ _flushing=false; _saving\.clear\(\); \}/, 'and the flag is cleared even where a save threw');
   });
 
   test('(2b) THE LATCH IS A BOOLEAN, so an EMPTY flush cannot jam it shut for ever', () => {

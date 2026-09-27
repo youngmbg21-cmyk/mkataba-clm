@@ -697,7 +697,13 @@ async function migProcessFiles(fileList, opts={}){
 
 /* ---------- review flow (human confirms the machine's guesses) ---------- */
 function applyReviewedMeta(c, m){
-  c.metadata=m;
+  /* MERGED, NEVER REPLACED (27 Sep 2026) — see metaMergeReviewed
+     (js/metadata.js): a key this review did not carry, or left empty, keeps
+     the answer already on file. */
+  c.metadata=(typeof window.metaMergeReviewed==='function') ? window.metaMergeReviewed(c.metadata, m) : m;
+  /* The copies onto the record below read the REVIEW's own answers, as they
+     always did: only what a person just confirmed moves the counterparty, the
+     value and the dates. */
   if(m.counterparty) c.counterparty=m.counterparty;
   if(m.value!=null&&Number(m.value)>0){ c.value=Number(m.value); if(c.valueType==='none') c.valueType='estimated'; }
   if(m.expiryDate) c.expiry=m.expiryDate;

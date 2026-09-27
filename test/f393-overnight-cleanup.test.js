@@ -136,7 +136,7 @@ describe('f393 (2) the server refuses what it should, and keeps what it should',
     const next = typeof patch === 'function' ? patch(full) : { ...full, ...patch };
     return client.raw('/api/contracts/' + id, { method: 'PUT', body: { contract: next, baseVersion } });
   };
-  before(async () => { h = await startHati(); W = await seedWorkspace(h); });
+  before(async () => { h = await startHati(); W = await seedWorkspace(h, { approvalRules: [] }); });
   after(async () => { if (h) await h.stop(); });
 
   test('2a a link bound to one signer is refused to another address', async () => {
@@ -409,8 +409,12 @@ describe('f393 (6) words in the reader\'s language', () => {
   test('a ruled line\'s LABEL drops a stray bracket and a list marker; its KEY does not move', () => {
     const U = read('js/uploadblanks.js');
     const n = Number(/const UP_LEAD_WORDS = (\d+)/.exec(U)[1]);
-    const name = new Function('UP_LEAD_WORDS', /function upLeadName\(before\)\{[\s\S]*?\n\}/.exec(U)[0] + ';return upLeadName;')(n);
+    /* RE-POINTED IN PLACE (27 Sep 2026): the label is now read off the KEY'S
+       OWN PHRASE (so it can only lose words, never gain one — "Made effective
+       as of [" had to become "Made effective as of", not "Is made effective
+       as of"), so the two bodies are loaded together. */
     const lead = new Function('UP_LEAD_WORDS', /function upLead\(before\)\{[\s\S]*?\n\}/.exec(U)[0] + ';return upLead;')(n);
+    const name = new Function('UP_LEAD_WORDS', 'upLead', /function upLeadName\(before\)\{[\s\S]*?\n\}/.exec(U)[0] + ';return upLeadName;')(n, lead);
     assert.equal(name('the Company (registration number '), 'registration number');
     assert.equal(name('(a) Address: '), 'Address');
     assert.equal(lead('the Company (registration number '), 'the Company (registration number',
@@ -488,7 +492,12 @@ describe('f393 (9) the trail loaders, and the outbox', () => {
   test('and that loader also brings what only the single-record route carries — the brief, the edition, who approves', () => {
     /* It marks the record loaded, after which the room never asks again:
        measured, a contract chosen in the list opened with no brief. */
-    const r = code(region(read('js/core.js'), 'restoreHeavyFields'));
+    /* RE-POINTED IN PLACE (27 Sep 2026, the owner's list, r24): the merge was
+       lifted out whole into fillHeavyFrom so ensureFull can ask the same rule
+       for an edit typed while its read was out. restoreHeavyFields is the
+       fetch and that call; the claim reads the merge where it now lives. */
+    assert.match(code(region(read('js/core.js'), 'restoreHeavyFields')), /fillHeavyFrom\(c, full\);/);
+    const r = code(region(read('js/core.js'), 'fillHeavyFrom'));
     assert.match(r, /k\.charAt\(0\)==='_' && k!=='_v' && k!=='_light' && k!=='_loaded' && c\[k\]===undefined\) c\[k\]=full\[k\];/);
     assert.ok(r.indexOf("c[k]=full[k]") < r.indexOf('c._loaded=true'), 'copied before the record is called loaded');
   });

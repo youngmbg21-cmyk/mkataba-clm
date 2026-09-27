@@ -297,7 +297,10 @@ function pageActionHtml(kind){
 
    Everything else is a list or a tool with no name of its own, and says who it
    is here. */
-const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'templates', 'calendar'];
+/* 'brain' joined 27 Sep 2026 (Young: "Make the brain page fill the whole
+   screen"): the shell bar already says Brain and the stage card names its own
+   view, so the page title was the one row between the brain and the screen. */
+const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'templates', 'calendar', 'brain'];
 /* ---- WHOSE PAGE OWNS ITS OWN HEIGHT, AND THEREFORE NEEDS NO SCROLLBAR
    RESERVED (owner-reported 25 Aug 2026, off three screenshots of the top-right
    corner: "the top card on the right corner … is leaving space in the corner.
@@ -323,7 +326,9 @@ const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'templates', 'cal
    (js/views/templatebuilder.js, tbGutter) is drawn under Templates and has
    been --view-h tall since 14 Sep 2026 — on while it is up, off on its own
    two ways out; a setView recomputes it here exactly as before. */
-const VIEW_OWNS_HEIGHT = ['workspace', 'redline', 'calendar', 'intel', 'register'];
+/* 'brain' joined 27 Sep 2026 with the same ruling: the stage is exactly the
+   room below the shell bar, so nothing is left over and the page never scrolls. */
+const VIEW_OWNS_HEIGHT = ['workspace', 'redline', 'calendar', 'intel', 'register', 'brain'];
 /* The class carries the fact; index.html carries the rule. Painted from
    renderPageHeader, which runs on EVERY view change — including onto a view
    that is not on the list, which is what takes the class back off again. */
@@ -1810,7 +1815,7 @@ function buildAlerts(){
        calendar days left with the card. */
     (D.myStaleDesks||[]).forEach(x=>{ const st=x.stale||{};
       const sub=[st.days!=null?i18t('dk_stale_tag',{n:st.days}):'',
-        st.n?i18tn('dk_stale_sub',st.n,{n:st.n,who:(st.lead&&st.lead.name)||''}):''].filter(Boolean).join(' · ');
+        st.n?(window.deskStaleSub?deskStaleSub(st):i18tn('dk_stale_sub',st.n,{n:st.n,who:(st.lead&&st.lead.name)||''})):''].filter(Boolean).join(' · ');
       push('desk-quiet',x.c,
         i18t('dk_stale_card',{who:x.c.counterparty||i18t('home_no_counterparty')}),
         ()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(x.c.id); else openWorkspace(x.c.id); },

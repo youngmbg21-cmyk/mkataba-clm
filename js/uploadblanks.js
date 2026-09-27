@@ -180,26 +180,40 @@ function upLead(before){
    upLead above is what a ruled line's KEY is minted from, and it stays exactly
    as it was — a blank somebody has already answered is found again by that
    key, and a new reading would orphan the answer. This is the LABEL: the same
-   phrase, less two things that are not its name. An open bracket is where the
-   name starts — "the Company (registration number ______)" asks for a
-   registration number, and the label read "the Company (registration number",
-   a bracket opened and never closed. And a list marker in front ("(a)
-   Address:") is numbering. */
+   phrase, less the things in it that are not its name. It is READ OFF THE
+   KEY'S OWN PHRASE, so a label can only ever lose words, never gain one the
+   key did not show.
+
+   An open ROUND bracket is where the name starts — "the Company
+   (registration number ______)" asks for a registration number, and the
+   label read "the Company (registration number", a bracket opened and never
+   closed. A list marker in front ("(a) Address:") is numbering.
+
+   AN OPEN SQUARE BRACKET IS NOT PART OF THE NAME EITHER (the owner's list,
+   27 Sep 2026: "Made effective as of ["). A ruled line written INSIDE
+   brackets — "as of [______]" — leaves the opening bracket in front of the
+   line, and the round-bracket rule never looked at it. The two differ on
+   purpose: a round bracket is a parenthetical that NAMES the gap, while a
+   square bracket is the drafter's CONTAINER for the gap ("Price: [USD ___]"
+   still asks for a price), so the words BEFORE it are the name and the words
+   inside answer only where nothing stands before it. */
 function upLeadName(before){
-  let s = String(before == null ? '' : before).replace(/[\s\u00a0]+/g, ' ');
-  s = s.replace(/\[[^\]]*\]|\{\{[^}]*\}\}|_{3,}/g, ' ');
-  const cut = s.search(/[^.;!?]*$/);
-  if(cut > 0) s = s.slice(cut);
+  let s = upLead(before);
+  const LETTER = /[A-Za-z\u00C0-\u024F]/;
   const stack = [];
-  for(let i = 0; i < s.length; i++){ if(s[i] === '(') stack.push(i); else if(s[i] === ')' && stack.length) stack.pop(); }
+  for(let i = 0; i < s.length; i++){
+    const ch = s[i];
+    if(ch === '(' || ch === '[') stack.push({ i, ch });
+    else if((ch === ')' || ch === ']') && stack.length && stack[stack.length - 1].ch === (ch === ')' ? '(' : '[')) stack.pop();
+  }
   if(stack.length){
-    const at = stack[stack.length - 1];
-    const inside = s.slice(at + 1);
-    s = /[A-Za-z\u00C0-\u024F]/.test(inside) ? inside : s.slice(0, at);
+    const top = stack[stack.length - 1], at = top.i;
+    const inside = s.slice(at + 1), front = s.slice(0, at);
+    if(top.ch === '(') s = LETTER.test(inside) ? inside : front;
+    else s = LETTER.test(front) ? front : (LETTER.test(inside) ? inside : front);
   }
   s = s.replace(/^\s*(?:\([a-z0-9]{1,4}\)|[a-z0-9]{1,4}\)|\d+(?:\.\d+)*\.?)\s+/i, '');
-  const words = s.replace(/[:;,.\-–—(]+\s*$/, ' ').trim().split(' ').filter(Boolean);
-  return words.slice(-UP_LEAD_WORDS).join(' ');
+  return s.replace(/[:;,.\-–—(\[]+\s*$/, ' ').trim().split(' ').filter(Boolean).join(' ');
 }
 
 /* ---- THE MATCHER ----

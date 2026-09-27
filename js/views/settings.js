@@ -4435,7 +4435,26 @@ function pbPosChip(pos){
   const hard=pos.pos==='required'||pos.pos==='forbidden';
   return `<span style="font-size:var(--t-label);font-family:var(--font-mono);border-radius:var(--radius);padding:2px 9px;${hard?'background:var(--st-ruby-bg);color:var(--st-ruby-fg)':'background:var(--st-steel-bg);color:var(--st-steel-fg)'}">${PB_ESC(pos.category)}${pos.escalate?' ⚑':''}</span>`;
 }
-const pbRangeChip = rg => `<span style="font-size:var(--t-label);font-family:var(--font-mono);border-radius:var(--radius);padding:2px 9px;background:var(--st-amber-bg);color:var(--st-amber-fg)">${PB_ESC(rg.label)} ${rg.op} ${rg.value}${rg.escalate?' ⚑':''}</span>`;
+const pbRangeChip = rg => `<span style="font-size:var(--t-label);font-family:var(--font-mono);border-radius:var(--radius);padding:2px 9px;${rg.hard?'background:var(--st-ruby-bg);color:var(--st-ruby-fg)':'background:var(--st-amber-bg);color:var(--st-amber-fg)'}">${PB_ESC(rg.label)} ${rg.op} ${rg.value}${rg.escalate?' ⚑':''}</span>`;
+/* ---- ONE CHIP PER STANDARD (the owner's list, 27 Sep 2026) ----
+   A book that holds a limit AND a position of the same name ("Liability cap"
+   on the supply and services books) drew two chips of that name. The wide
+   page says each standard once (stdBookLines); here the position folds into
+   its limit's chip — the figure is the more exact fact — keeping the stance's
+   tone where it is hard and the flag where either carries one. Names are
+   matched as the wide page matches them: trimmed, case folded. */
+function pbBookChipsHtml(positions, ranges){
+  const norm = x => String(x == null ? '' : x).trim().toLowerCase();
+  const byName = new Map();
+  (positions || []).forEach(p => { if (p && p.category && !byName.has(norm(p.category))) byName.set(norm(p.category), p); });
+  const limits = new Set((ranges || []).map(r => norm(r && r.label)));
+  const posChips = (positions || []).filter(p => !(p && limits.has(norm(p.category)))).map(pbPosChip);
+  const rangeChips = (ranges || []).map(r => {
+    const p = r && byName.get(norm(r.label));
+    return pbRangeChip(p ? { ...r, escalate: !!(r.escalate || p.escalate), hard: p.pos === 'required' || p.pos === 'forbidden' } : r);
+  });
+  return posChips.join('') + rangeChips.join('');
+}
 function renderPlaybookView(){
   if(typeof pbInsMounted==='function'&&pbInsMounted()){ renderPlaybookPage(); return; }
   const pv=document.getElementById('playbook-view'); if(!pv) return;
@@ -4453,7 +4472,7 @@ function renderPlaybookView(){
         </span>`:''}
       </div>
       ${baseline?`<div style="font-size:var(--t-label);color:var(--accent-ink);margin-bottom:7px">${i18t('set_default_positions')}</div>`:''}
-      <div style="display:flex;flex-wrap:wrap;gap:5px">${positions.map(pbPosChip).join('')}${ranges.map(pbRangeChip).join('')||(positions.length?'':`<span style="font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('set_no_positions')}</span>`)}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px">${pbBookChipsHtml(positions,ranges)||(positions.length||ranges.length?'':`<span style="font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('set_no_positions')}</span>`)}</div>
     </div>`;
   const baseCard=card('_default',i18t('set_all_contracts_baseline'), base.positions||[], base.ranges||[], false, true);
   const typeCards=Object.keys(pb).filter(k=>k!=='_default').map(k=>{ const rp=resolvePlaybook(k); return card(k, pb[k].label||k, rp.positions, rp.ranges, true); }).join('');

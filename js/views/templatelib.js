@@ -534,6 +534,11 @@ function tplLibNewContract(id, prefill, ho) {
 async function tplLibCreate(id, essentials) {
   try {
     const r = await api(`templates/${id}/contracts`, 'POST', essentials ? {
+      /* WHO WE ARE AND WHICH SIDE OF THE MONEY (the owner's list, 27 Sep
+         2026): both are asked on this form and neither was sent, so the
+         contract fell back to the workspace's own name. */
+      party: essentials.party || '',
+      side: essentials.side || '',
       counterparty: essentials.counterparty || '',
       counterpartyEmail: essentials.cpemail || '',
       value: essentials.value || '',

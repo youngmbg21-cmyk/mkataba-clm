@@ -252,7 +252,11 @@ describe('f195 — the screens', () => {
    THE SERVER IS THE WALL
    ============================================================ */
 let h, W;
-before(async () => { h = await startHati(); W = await seedWorkspace(h); });
+/* RE-POINTED IN PLACE (27 Sep 2026, the owner's list): the SERVER now enforces the
+   approval rules, and a workspace with none saved has the legacy default (an
+   admin's approval from 5,000,000) — every fixture is above it. This file is
+   about the signing cap, not approvals, so the workspace states it has none. */
+before(async () => { h = await startHati(); W = await seedWorkspace(h, { approvalRules: [] }); });
 after(async () => { await h.stop(); });
 
 /* Sign the way the app signs: add a session-authenticated entry to
@@ -267,7 +271,9 @@ async function trySign(client, id, extra = {}) {
   Object.assign(full, extra);
   return client.raw('/api/contracts/' + id, { method: 'PUT', body: { contract: full, baseVersion } });
 }
-const setSwitch = on => W.admin.json('/api/settings', { method: 'PUT', body: { signCap: { on } } });
+/* A settings save replaces the whole blob, so it restates the workspace's
+   (empty) approval rules — as the product's own saveSettings does. */
+const setSwitch = on => W.admin.json('/api/settings', { method: 'PUT', body: { signCap: { on }, approvalRules: [] } });
 
 describe('f195 — the server refuses, and only when it is told to', () => {
   test('the limit round-trips through the route in all three states', async () => {
@@ -327,7 +333,11 @@ describe('f195 — the server refuses, and only when it is told to', () => {
        signing anything. */
     const full = await W.unrestricted.json('/api/contracts/MK-A2');
     const baseVersion = full._v; delete full._v;
-    full.counterparty = 'Nandi Dairy Co-operative';
+    /* RE-POINTED IN PLACE (27 Sep 2026, the owner's list): the counterparty's name
+       is printed on this paper (drawn from the record), and since a signature has
+       now landed on it that term is frozen with the wording — correctly. The
+       ordinary save edits a key term the paper does not print instead. */
+    full.metadata = { ...(full.metadata || {}), noticePeriodDays: 60 };
     const r = await W.unrestricted.raw('/api/contracts/MK-A2', { method: 'PUT', body: { contract: full, baseVersion } });
     assert.equal(r.status, 200);
   });

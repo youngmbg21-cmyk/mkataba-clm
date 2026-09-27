@@ -272,11 +272,16 @@ describe('f262 (6) — the money splits four ways and the four agree', () => {
     }
   });
 
-  test('the tab head asks obligationRoll and draws nothing where there is no money', () => {
+  /* RE-POINTED IN PLACE (27 Sep 2026, the owner's list): "paid X of Y" added
+     money we owe to money owed to us. The tab's money line says each direction
+     apart (obMoneyWords, the wide tab's own reading, in this contract's own
+     currency) — and still draws nothing where there is nothing to say.
+     obligationRoll itself is untouched and still pinned above. */
+  test('the tab head says each direction apart and draws nothing where there is no money', () => {
     const fn = OB_CODE.slice(OB_CODE.indexOf('function roomObligationsHtml'));
-    assert.match(fn.slice(0, 3000), /const roll = obligationRoll\(obs\)/);
-    assert.match(fn.slice(0, 3000), /money && roll\.committed/,
-      'a line reading "0 paid of 0" is furniture');
+    assert.match(fn.slice(0, 3000), /const mw = money \? obMoneyWords\(obs, c\) : null;/);
+    assert.match(fn.slice(0, 3000), /\(mw && mw\.text\)/,
+      'a line reading nothing is furniture');
   });
 });
 
@@ -339,14 +344,19 @@ describe('f262 (8) — the worklist bands, filters and names the step', () => {
     assert.match(fn, /ob_waiting_on/);
   });
 
-  test('the foot grew from one figure to four, through the SAME homeSum', () => {
+  /* RE-POINTED IN PLACE (27 Sep 2026, the owner's list): the four figures
+     each added money we owe to money owed to us, and "Paid" read 0 on the
+     page's opening view (it shows what is outstanding). The foot says what the
+     wide page's head says — each direction apart, through obMoneyWords, which
+     sums through obwHomeSum, the one converter — and keeps "on this page" and
+     what it left out. */
+  test('the foot says each direction apart, through the one converter', () => {
     const fn = OB_CODE.slice(OB_CODE.indexOf('function renderObligationsList'));
     const foot = fn.slice(fn.indexOf('const foot = (() =>'), fn.indexOf('host.innerHTML'));
-    for (const k of ['ob_roll_committed', 'ob_roll_paid', 'ob_roll_outstanding', 'ob_roll_overdue'])
-      assert.ok(foot.includes(k), k);
-    /* Split once through one function, so paid + outstanding IS the total by
-       construction rather than by three separate sums agreeing. */
-    assert.equal((foot.match(/homeSum\(/g) || []).length, 4, 'one arithmetic, four cuts');
+    assert.match(foot, /const mw = obMoneyWords\(rows\);/, 'one reading for the whole list');
+    for (const k of ['ob_roll_committed', 'ob_roll_outstanding', 'ob_roll_overdue'])
+      assert.ok(!foot.includes(k), 'no netted figure: ' + k);
+    assert.match(OB_CODE.slice(OB_CODE.indexOf('function obMoneyWords')), /obwHomeSum/, 'converted through the one converter');
     assert.ok(foot.includes("i18t('ob_total')"),
       '"on this page" is kept — these are the rows the filters left');
     assert.ok(foot.includes('ob_total_left_out'), 'and it still says what it left out');

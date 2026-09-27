@@ -377,7 +377,14 @@ const FIXTURES = [
      restricted — legal, folder A only, sees values
      novalues   — legal, unrestricted folders, values hidden
    Returns the three signed-in clients plus their user records. */
-async function seedWorkspace(h, { contracts = FIXTURES } = {}) {
+/* `approvalRules` (27 Sep 2026): the workspace's approval rules, stated. Left
+   out, the workspace has none saved, and the legacy default applies — a
+   contract of 5,000,000 or more needs an admin's approval before anyone signs
+   it, on the screen AND, since the owner's list of 27 Sep, on the server. Every
+   fixture below is above that line, so a test that signs one and is not about
+   approval rules says `approvalRules: []` — "this workspace has none" — rather
+   than silently relying on the server not asking. */
+async function seedWorkspace(h, { contracts = FIXTURES, approvalRules } = {}) {
   const admin = h.client('admin');
   await admin.json('/api/setup', { method: 'POST', body: {
     org: 'Highland Corporate Ltd', name: 'Amina Otieno', email: 'admin@example.co.ke',
@@ -400,6 +407,7 @@ async function seedWorkspace(h, { contracts = FIXTURES } = {}) {
 
   await admin.json('/api/settings', { method: 'PUT', body: {
     folderAccess: { [restricted.user.id]: [FOLDER_A] },
+    ...(Array.isArray(approvalRules) ? { approvalRules } : {}),
   } });
   await admin.json('/api/users/' + novalues.user.id, { method: 'PATCH', body: { canViewValues: false } });
 

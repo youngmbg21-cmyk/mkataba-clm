@@ -83,6 +83,11 @@ const check = (name, pass, detail) => {
          button counts it (owner-reported 13 Sep 2026). */
       c.compliance = {};
       state.settings = { ...(state.settings || {}), approvalRules: [] };
+      /* RE-POINTED IN PLACE (27 Sep 2026, the owner's list, r1): the approval
+         rules are a wall on the SERVER now, so "no rules" is staged where the
+         rule is enforced too — the admin's own Settings save — or the
+         signature this section presses is refused by the server. */
+      await saveSettings();
       persist(c); await flushSaves();
       openWorkspace(c.id);
       await new Promise(r => setTimeout(r, 500));
@@ -226,6 +231,11 @@ const check = (name, pass, detail) => {
       c.changes = []; delete c.negotiation;
       c.compliance = {};
       state.settings = { ...(state.settings || {}), approvalRules: [] };
+      /* RE-POINTED IN PLACE (27 Sep 2026, the owner's list, r1): the approval
+         rules are a wall on the SERVER now, so "no rules" is staged where the
+         rule is enforced too — the admin's own Settings save — or the
+         signature this section presses is refused by the server. */
+      await saveSettings();
       persist(c); await flushSaves();
       openWorkspace(c.id); roomGoTab(c, 'sign');
       await new Promise(r => setTimeout(r, 900));
