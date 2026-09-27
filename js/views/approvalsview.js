@@ -130,7 +130,7 @@ function apLeadHtml(tab, r){
   try{ if(typeof signReadiness==='function') holds=(signReadiness(r.c,{light:!!r.c._light}).holds||[]); }catch(_){ holds=[]; }
   const say=h=>String(h.short||h.label||h.title||'').trim();
   const list=holds.map(say).filter(Boolean);
-  return insSecHtml(i18t('ins_sg_sec'),'',`<p class="ins-note">${esc(i18tn('ap_pg_to_settle',r.n,{n:r.n}))}</p>${
+  return insSecHtml(i18t('ins_sg_sec'),'',`<p class="ins-note">${esc(r.n?i18tn('ap_pg_to_settle',r.n,{n:r.n}):i18t('ap_pg_ready_to_sign'))}</p>${
     list.length?`<ul class="ins-log ins-holds">${list.slice(0,3).map(t=>`<li><span class="t" title="${esc(t)}">${esc(t)}</span></li>`).join('')}</ul>${
       list.length>3?`<p class="ins-note">${esc(i18tn('ins_more_asks',list.length-3,{n:list.length-3}))}</p>`:''}`:''}`,'ins-lead');
 }
@@ -179,7 +179,7 @@ function renderApprovalsPage(){
   const sgRowsHtml=sg.map(r=>`<tr data-ap-row="${esc(r.c.id)}">
       <td class="mono">${esc(window.contractRef?contractRef(r.c):r.c.id)}</td>
       <td><span class="ap-name">${esc(r.c.name||'')}</span><span class="ap-sub">${esc(r.c.counterparty||'')}</span></td>
-      <td>${r.kind==='sign'?esc(i18tn('ap_pg_to_settle',r.n,{n:r.n})):esc(i18t('ap_pg_ready_sign',{who:r.by||r.c.counterparty||''}))}</td>
+      <td>${r.kind==='sign'?esc(r.n?i18tn('ap_pg_to_settle',r.n,{n:r.n}):i18t('ap_pg_ready_to_sign')):esc(i18t('ap_pg_ready_sign',{who:r.by||r.c.counterparty||''}))}</td>
       ${money?`<td class="r mono">${apValueCell(r.c)}</td>`:''}
       <td class="r"><button type="button" class="ui-btn ui-btn-sm ap-go" data-ap-open="${esc(r.c.id)}" title="${esc(i18t('ap_pg_sign_title'))}">${esc(i18t('ap_pg_open_signing'))}</button></td>
     </tr>`);
@@ -199,7 +199,7 @@ function renderApprovalsPage(){
     </tr>`; });
   const insSg=sg.map(r=>`<tr data-ap-row="${esc(r.c.id)}" tabindex="-1">
       <td class="mono">${esc(window.contractRef?contractRef(r.c):r.c.id)}</td>${ident(r.c)}
-      <td>${r.kind==='sign'?esc(i18tn('ap_pg_to_settle',r.n,{n:r.n})):esc(i18t('ap_pg_ready_sign',{who:r.by||r.c.counterparty||''}))}</td>
+      <td>${r.kind==='sign'?esc(r.n?i18tn('ap_pg_to_settle',r.n,{n:r.n}):i18t('ap_pg_ready_to_sign')):esc(i18t('ap_pg_ready_sign',{who:r.by||r.c.counterparty||''}))}</td>
       ${money?`<td class="r mono">${apValueCell(r.c)}</td>`:''}
     </tr>`);
   const insTable=(rows,empty)=>rows.length

@@ -579,13 +579,18 @@ function openOutsideSendAgain(c){
     const to = { name: (document.getElementById('ho-sa-name').value || '').trim(), email: (document.getElementById('ho-sa-email').value || '').trim() };
     const errEl = document.getElementById('ho-sa-err');
     if (!/.+@.+\..+/.test(to.email)){ errEl.textContent = i18t('ho_need_email'); errEl.hidden = false; return; }
-    e.currentTarget.disabled = true;
+    /* THE BUTTON IS HELD BEFORE THE AWAIT (26 Sep 2026, the overnight
+       clean-up): an event's currentTarget is null once the handler has
+       yielded, so the catch below threw on it — the refusal was never shown
+       and the button stayed dead (measured). */
+    const btn = e.currentTarget;
+    if (btn) btn.disabled = true;
     try {
       const r = await outsideAct(c, 'send', { to });
       closeModal();
       if (typeof toast === 'function') toast(r && r.emailSent ? i18t('ho_done_email', { to: to.email }) : i18t('ho_done_outbox', { to: to.email }), r && r.emailSent ? 'ok' : 'warn');
       _hoAfterAct(c);
-    } catch (err) { e.currentTarget.disabled = false; errEl.textContent = (err && err.message) || String(err); errEl.hidden = false; }
+    } catch (err) { if (btn) btn.disabled = false; errEl.textContent = (err && err.message) || String(err); errEl.hidden = false; }
   });
 }
 async function outsideReopen(c){

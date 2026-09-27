@@ -15602,6 +15602,21 @@ function signBlockers(c){
     if(plan.length && ns && ns.party!=='internal')
       add('turn',`The next signature is ${ns.name}'s, and they sign on their own link — not here.`,
         `waiting on ${ns.name}`);
+    /* …AND AN INTERNAL STEP IS SIGNED BY THE PERSON IT NAMES (26 Sep 2026, the
+       overnight clean-up). The button stayed live for any colleague, the pad
+       recorded the step's name, and the server refused the save as a
+       signature made in somebody else's name — after the page had drawn it as
+       signed (measured). Matched the server's way: the member first, then the
+       address, then the name. */
+    else if(plan.length && ns && ns.party==='internal'){
+      const me=(typeof currentUser==='function')?currentUser():null;
+      const mail=x=>String(x||'').trim().toLowerCase();
+      const mine=!!me && (ns.memberId ? String(ns.memberId)===String(me.id)
+        : ns.email ? mail(ns.email)===mail(me.email)
+        : String(ns.name||'').trim()===String(me.name||'').trim());
+      if(me && !mine) add('turn',`The next signature is ${ns.name}'s — they sign it themselves, signed in as themselves.`,
+        `waiting on ${ns.name}`);
+    }
   }catch(_){}
   /* THE NEGOTIATION. A signature freezes the wording, and it does not go on top
      of an argument that is still running. */

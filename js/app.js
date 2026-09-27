@@ -883,6 +883,14 @@ function setView(view){
      negotiate page asks the same from rlCardForgetPins, where it learns which
      contract it is showing. */
   if(view==='workspace'||view==='doc') notesPanelFollow(state.activeId);
+  /* A SIDE PANEL IS ABOUT THE PAGE IT WAS OPENED FROM (26 Sep 2026, the
+     overnight clean-up): the brief, the memo and the check panels open beside
+     one contract and sat on over the next page — one contract's brief over the
+     Contracts list, or over another contract (measured). A navigation to a
+     different page takes it down; a repaint of the same page does not. */
+  { const sp=document.getElementById('side-panel');
+    if(sp && typeof closeModal==='function' && (!_sameView
+      || ((view==='workspace'||view==='doc') && sp.dataset.cid && String(sp.dataset.cid)!==String(state.activeId)))){ try{ closeModal(); }catch(_){} } }
   state.view=view;
   try{
     if(view==='dashboard') renderDashboard();
@@ -2983,7 +2991,7 @@ function wireShell(){
     setNavDrawer(!(nav&&nav.classList.contains('open')));
   });
   document.getElementById('nav-scrim')?.addEventListener('click',closeNavDrawer);
-  document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeNavDrawer(); });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape' && !document.querySelector('[data-top-overlay]')) closeNavDrawer(); });
 
   // command-bar search → register filter
   const search=document.getElementById('cmd-search');
@@ -3132,6 +3140,11 @@ function wireShell(){
        so this stands down while either of those is up. */
     if(document.getElementById('ai-panel')?.classList.contains('open')) return;
     if(document.getElementById('modal-root')?.firstChild) return;
+    /* …and a question on top of it (confirmDialog, promptDialog) is the layer
+       Escape belongs to (26 Sep 2026, the overnight clean-up): answering "Send
+       this to Nandi Dairy?" with Escape also shut the drawer and threw the
+       note being written away (measured). */
+    if(document.querySelector('[data-top-overlay]')) return;
     closeContextPanel();
   });
   // sidebar → icon rail, and back

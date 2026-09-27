@@ -588,7 +588,23 @@ async function signApprovalRemind(c, reqId){
     live.reminded=(Array.isArray(live.reminded)?live.reminded:[]).concat([{ at:nowISO(), by:((currentUser()||{}).name)||'' }]).slice(-10);
     persist(c);
     toast(i18t('sa_reminded_toast',{who:live.approverName||i18t('sa_admins')}),'ok');
-  } else toast((out&&out.error)||i18t('sa_remind_nomail'),'warn');
+  } else if(out&&out.outbox&&!out.failed){
+    /* THE OUTBOX IS HONEST DELIVERY, NOT FAILURE: the reminder is written and
+       waits there, and the server counts it as today's reminder. Said the way
+       the ask itself says it. */
+    live.reminded=(Array.isArray(live.reminded)?live.reminded:[]).concat([{ at:nowISO(), by:((currentUser()||{}).name)||'' }]).slice(-10);
+    persist(c);
+    toast(i18t('sa_reminded_toast_outbox',{who:live.approverName||i18t('sa_admins')}),'warn');
+  } else {
+    /* WHAT HAPPENED, IN ITS OWN WORDS (26 Sep 2026, the overnight clean-up):
+       this read `out.error`, which nothing ever sets, so "already reminded
+       today" and "email is off here" both came out as the same vague sentence
+       (measured). A refusal says the server's reason; a send that did not
+       leave says which of the product's delivery states it is in. */
+    const why=(out&&out.failed&&out.emailError) ? out.emailError
+      : (out ? saDeliveryWords(saNoticeOf(out)) : '');
+    toast(why ? i18t('sa_remind_not_sent',{why}) : i18t('sa_remind_nomail'),'warn');
+  }
   saRepaint(c);
   return !!(out&&out.emailSent);
 }

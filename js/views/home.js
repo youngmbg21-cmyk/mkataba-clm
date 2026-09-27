@@ -141,7 +141,12 @@ function hmMySignings(cs){
       || (!!ns.email&&!!meNow.email&&String(ns.email).toLowerCase()===String(meNow.email).toLowerCase());
     if(!mine) return null;
     let n=0; try{ n=signReadiness(c,{ light:!!(c._light&&!c._loaded) }).n; }catch(_){ n=0; }
-    return n?{ c, n }:null;
+    /* A SIGNATURE WITH NOTHING IN ITS WAY IS STILL OWED (26 Sep 2026, the
+       overnight clean-up): this dropped every row where nothing holds — the
+       ONE case where the reader could sign right now — so the bell listed it
+       and Home and the Approvals & signing page did not (measured). n is what
+       the row says, and zero is "ready". */
+    return { c, n };
   }).filter(Boolean):[];
 }
 function readyToSignItems(cs){
@@ -1340,7 +1345,7 @@ function hmDecisionItems(S, deskRows){
        signReadiness's, the same the Signing tab and the head quote. */
     ...mySignings.map(x=>({
       cid:x.c.id, urgent:false,
-      txt:i18t('home_sign_row',{n:x.n,name:strong(x.c.name)}),
+      txt:x.n?i18t('home_sign_row',{n:x.n,name:strong(x.c.name)}):i18t('home_sign_row_ready',{name:strong(x.c.name)}),
       meta:esc(x.c.counterparty||i18t('home_no_counterparty')),
       tag:i18t('home_sign_tag'),
       verb:i18t('home_verb_sign'),

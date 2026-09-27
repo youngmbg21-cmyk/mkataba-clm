@@ -703,7 +703,13 @@ const PORTAL_ACTIONS=['pt-sign','pt-accept','pt-redline','pt-changes','pt-declin
      the real buttons stand where it stood, so they take the duty directly. A
      door that still LOOKS live while the request is in flight is the second
      and third press this list exists to remove. */
-  'pt-nego-ready','pt-nego-decline'];
+  'pt-nego-ready','pt-nego-decline',
+  /* THE LAST PRESS BEFORE A SIGNATURE TRAVELS (26 Sep 2026, the overnight
+     clean-up): "Sign anyway", "Verify & sign" and "Try signing again" were
+     not on this list, so a double press sent the signature twice — the second
+     refused as "already submitted", printed over a signature that had in fact
+     gone (measured). */
+  'pt-unver-go','pt-otp-go','pt-sign-retry'];
 function portalActionButtons(){
   return PORTAL_ACTIONS.map(id=>document.getElementById(id)).filter(Boolean);
 }
@@ -2045,7 +2051,7 @@ function wirePortalNotes(){
     if(t.closest('#pt-notes-close')||t.closest('#pt-notes-scrim')){ portalNotesClose(); return; }
     if(t.closest('#pt-notes-door')){ ev.preventDefault(); portalOpenNotes({}); }
   });
-  document.addEventListener('keydown', ev => { if(ev.key==='Escape') portalNotesClose(); });
+  document.addEventListener('keydown', ev => { if(ev.key==='Escape' && !document.querySelector('[data-top-overlay]')) portalNotesClose(); });
 }
 /* THE ONE READING of the sentence naming this reader's party. Null on every
    ordinary link, where PORTAL_PARTY is absent. The other parties are named
@@ -3065,7 +3071,7 @@ function wirePortalAlerts(c, p){
     }
   });
   document.addEventListener('keydown', ev => {
-    if(ev.key==='Escape') portalAlertsClose();
+    if(ev.key==='Escape' && !document.querySelector('[data-top-overlay]')) portalAlertsClose();
   });
 }
 function portalAlertsStyle(){
@@ -4582,11 +4588,16 @@ async function portalStartOtp(p, info){
 async function portalVerifyAndSign(p, info){
   const codeVal=fval('pt-otp');
   if(!/^\d{6}$/.test(codeVal)){ toast(i18t('po_enter_6_digit'),'err'); return; }
+  /* ONE PRESS AT A TIME, from the moment the code is sent to be checked (see
+     PORTAL_ACTIONS). A wrong code gives the buttons back. */
+  const _otpBtn=document.getElementById('pt-otp-go');
+  if(_otpBtn&&_otpBtn.disabled) return;
+  portalSetBusy('pt-otp-go', i18t('po_sending'));
   let verify;
   // no email in the body: the server verified the address IT chose (W8), and
   // possession of the code is the whole proof
   try{ const v=await api('shares/'+PORTAL_OPTS.token+'/verify-otp','POST',{ code:codeVal }); verify=v.verify; }
-  catch(e){ toast(e.message,'err'); return; }
+  catch(e){ portalSetIdle(); toast(e.message,'err'); return; }
   const response={ v:1, kind:'hati-response', id:p.contract.id, docHash:p.docHash, action:'sign',
     name:info.name, title:info.title, email:info.email, comment:info.comment, verify, at:nowISO(),
     templateValues:portalTemplateValues(p),
@@ -4600,6 +4611,8 @@ async function portalVerifyAndSign(p, info){
      already-verified signature), instead of a toast that scrolls away while the
      success panel never appears. */
   const submitSigned=async()=>{
+    const _retry=document.getElementById('pt-sign-retry');
+    if(_retry){ if(_retry.disabled) return; portalSetBusy('pt-sign-retry', i18t('po_sending')); }
     try{
       await api('shares/'+PORTAL_OPTS.token+'/respond','POST',response);
       portalSetDone('pt-sign','Signed and sent');

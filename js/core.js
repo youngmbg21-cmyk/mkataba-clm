@@ -1379,6 +1379,25 @@ async function saveContract(c){
       } else {
         toast((window.contractRef?contractRef(c):c.id)+' changed on the server — your edit is kept but not yet saved. Open it and save again to keep your version.','err');
       }
+    } else if(e && (e.status===400 || e.status===403 || e.status===409)){
+      /* ---- A REFUSED SAVE PUTS THE PAGE BACK TO WHAT IS ON FILE (26 Sep 2026,
+         the overnight clean-up) ----
+         The server's walls refuse a save WHOLE — a signature in somebody
+         else's name, a change a review still covers, an executed record. The
+         page used to keep the refused change, so every later save carried it
+         again and was refused again: an ordinary edit minutes later was lost
+         without the reader knowing why (measured). The reason is said, the
+         record on file is loaded back, and the page is drawn from it, so what
+         the reader sees is what is saved. */
+      let fresh=null; try{ fresh=await api('contracts/'+c.id); }catch(_){}
+      if(fresh){
+        Object.assign(c,fresh); c._v=fresh._v; c._loaded=true; c._light=false;
+        try{
+          if(window.contractOnScreen && contractOnScreen(c) && typeof renderWorkspace==='function') renderWorkspace();
+          else if(state.view==='redline' && window.redlineHeldId && String(redlineHeldId())===String(c.id) && window.renderRedline) renderRedline();
+        }catch(_){}
+      }
+      toast(i18t('co_save_refused',{why:e.message}),'err');
     } else toast(i18t('co_save_failed')+e.message,'err');
   }
 }
@@ -1997,10 +2016,18 @@ async function doSetup(){
   startApp();
   toast(`Workspace "${name}" created — karibu!`);
 }
+/* ONE SIGN-IN AT A TIME (26 Sep 2026, the overnight clean-up): a double
+   press on Sign in ran the whole start twice — two bootstraps and a second set
+   of the app's repeating refreshes, which then ran for the life of the page
+   (measured). The press is held until the first answer is in. */
+let _loginBusy=false;
 async function doLogin(){
+  if(_loginBusy) return;
   const email=fval('li-email').toLowerCase(), pass=document.getElementById('li-pass').value;
   const err=document.getElementById('li-err');
   if(REMOTE){
+    _loginBusy=true;
+    const go=document.getElementById('li-go'); if(go) go.disabled=true;
     try{
       const r=await api('login','POST',{ email, password:pass });
       // two-step sign-in (WO-6): a correct password earned a ticket, not a
@@ -2010,6 +2037,7 @@ async function doLogin(){
       startApp();
       toast(`Karibu tena, ${REMOTE.me.name.split(' ')[0]}`);
     }catch(e){ err.textContent=e.message; err.classList.remove('hidden'); }
+    finally{ _loginBusy=false; const g=document.getElementById('li-go'); if(g) g.disabled=false; }
     return;
   }
   const u=getUsers().find(x=>x.email===email);
@@ -2117,7 +2145,11 @@ function startApp(){
       window.addEventListener('focus',()=>pollNow('focus'));
       document.addEventListener('visibilitychange',()=>{ if(!document.hidden) pollNow('visible'); });
     }
-    setInterval(refreshShareOverview,60000); setInterval(refreshWaitingQuestions,60000); setInterval(refreshAiUsage,30000);
+    /* Armed ONCE for the life of the page — a second start (a double press on
+       Sign in, or signing in again after signing out) used to add a second
+       set of these three and every one of them ran twice from then on. */
+    if(!window._refreshTimersArmed){ window._refreshTimersArmed=true;
+      setInterval(refreshShareOverview,60000); setInterval(refreshWaitingQuestions,60000); setInterval(refreshAiUsage,30000); }
     window.loadAdviceRequests&&loadAdviceRequests().then(()=>{ updateSidebarCounts(); if(state.view==='advice') renderAdviceDesk(); }).catch(()=>{});
     window.loadIntake&&loadIntake().then(()=>{ updateSidebarCounts(); if(state.view==='intake') renderIntake(); }).catch(()=>{});
     /* AND THE INTAKE LANES RUN ON THEIR OWN BEAT (21 Sep 2026): they used to
@@ -3198,8 +3230,13 @@ function openSidePanel(html, opts={}){
     <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:10px var(--s-3) 18px;">${html}</div>
   </aside>`;
   document.getElementById('side-panel-x').addEventListener('click',closeModal);
+  /* The contract it was opened beside, so a navigation to another contract can
+     take it down (see setView, 26 Sep 2026). */
+  try{ const sp=document.getElementById('side-panel'); if(sp && state.activeId!=null) sp.dataset.cid=String(state.activeId); }catch(_){}
   document.addEventListener('keydown',function esc(e){
     if(e.key!=='Escape'){ if(!document.getElementById('side-panel')) document.removeEventListener('keydown',esc); return; }
+    /* A question on top of the panel owns this Escape (see confirmDialog). */
+    if(document.querySelector('[data-top-overlay]')) return;
     document.removeEventListener('keydown',esc); closeModal();
   });
   return root;
@@ -3221,7 +3258,12 @@ function confirmDialog(opts={}){
   const danger=!!opts.danger;
   const esc=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   return new Promise(resolve=>{
-    const prev=document.getElementById('confirm-overlay'); if(prev) prev.remove();
+    /* A QUESTION REPLACED BY ANOTHER IS ANSWERED "NO", never left hanging
+       (26 Sep 2026, the overnight clean-up): removing it took its buttons away
+       while its caller went on waiting for an answer that could never come —
+       and anything that caller held (a leave guard's latch) stayed held. */
+    const prev=document.getElementById('confirm-overlay');
+    if(prev){ if(typeof prev._settle==='function') prev._settle(false); else prev.remove(); }
     const ov=document.createElement('div');
     ov.id='confirm-overlay';
     /* Marks this as the layer Escape belongs to while it is up — openModal's own
@@ -3264,6 +3306,7 @@ function confirmDialog(opts={}){
       if(release){ try{ release(); }catch(_){} }
       if(undrag){ try{ undrag(); }catch(_){} }
       ov.remove(); document.removeEventListener('keydown',onKey); resolve(val); };
+    ov._settle=done;
     /* ENTER DOES NOT CONFIRM FROM HERE (fixed 25 Aug 2026, by the UI audit).
        This handler sits on DOCUMENT and used to answer Enter with done(true),
        so it fired whatever the keyboard was actually on: tab to Cancel, press
@@ -3301,7 +3344,10 @@ function promptDialog(opts={}){
   const cancelLabel=opts.cancelLabel||i18t('act_cancel');
   const esc=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   return new Promise(resolve=>{
-    const prev=document.getElementById('prompt-overlay'); if(prev) prev.remove();
+    /* Replaced, the earlier question is answered "cancelled" — see
+       confirmDialog. */
+    const prev=document.getElementById('prompt-overlay');
+    if(prev){ if(typeof prev._settle==='function') prev._settle(null); else prev.remove(); }
     const ov=document.createElement('div');
     ov.id='prompt-overlay';
     ov.setAttribute('data-top-overlay','1');   /* see confirmDialog above */
@@ -3346,6 +3392,7 @@ function promptDialog(opts={}){
       if(release){ try{ release(); }catch(_){} }
       if(undrag){ try{ undrag(); }catch(_){} }
       ov.remove(); document.removeEventListener('keydown',onKey,true); resolve(val); };
+    ov._settle=done;
     function onKey(e){
       if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); done(null); }
       /* Enter submits a one-line field and types a newline in a multiline one,

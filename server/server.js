@@ -1952,7 +1952,17 @@ function rlKeyFor(bucket, req, keyFn) {
 /* Record one attempt against a bucket. Split out of the middleware so a route
    can decide AFTER it knows the outcome whether the attempt was worth counting
    (see rlAuth / rlNoteAuthFailure below). */
+/* EACH BUCKET'S OWN WINDOW, for the sweep below (26 Sep 2026, the overnight
+   clean-up). The sweep kept one hour of every bucket, and the one bucket with
+   a DAY's window — sending links — lost its older hits every ten minutes, so
+   "100 a day" was about a hundred an HOUR (measured: 2,100 allowed in a day). */
+const rlWindows = new Map();
+const rlNoteWindow = (key, windowMs) => {
+  const b = String(key).split(':')[0];
+  if (!(rlWindows.get(b) >= windowMs)) rlWindows.set(b, windowMs);
+};
 function rlRecord(key, windowMs) {
+  rlNoteWindow(key, windowMs);
   const nowMs = Date.now();
   const arr = (rlHits.get(key) || []).filter(t => nowMs - t < windowMs);
   arr.push(nowMs); rlHits.set(key, arr);
@@ -1961,6 +1971,7 @@ function rateLimit(bucket, max, windowMs, opts = {}) {
   const limitOf = typeof max === 'function' ? max : () => max;
   const keyFn = opts.keyFn;
   const message = opts.message || 'Too many attempts — please wait and try again';
+  rlNoteWindow(bucket + ':', windowMs);
   return (req, res, next) => {
     const key = rlKeyFor(bucket, req, keyFn);
     const nowMs = Date.now();
@@ -1977,7 +1988,9 @@ function rateLimit(bucket, max, windowMs, opts = {}) {
   };
 }
 // periodic cleanup so the map cannot grow unbounded
-setInterval(() => { const nowMs = Date.now(); for (const [k, arr] of rlHits) { const keep = arr.filter(t => nowMs - t < 3600000); if (keep.length) rlHits.set(k, keep); else rlHits.delete(k); } }, 600000).unref?.();
+setInterval(() => { const nowMs = Date.now(); for (const [k, arr] of rlHits) {
+  const win = Math.max(3600000, rlWindows.get(String(k).split(':')[0]) || 0);
+  const keep = arr.filter(t => nowMs - t < win); if (keep.length) rlHits.set(k, keep); else rlHits.delete(k); } }, 600000).unref?.();
 /* A SIGN-IN LIMITER COUNTS WRONG GUESSES, NOT PEOPLE ARRIVING AT WORK
    (audit finding, 2026-08-14 — reproduced before it was touched: with a fresh
    workspace and ten members each typing their CORRECT password once, the tenth
@@ -13336,6 +13349,13 @@ app.post('/api/shares/:token/otp', rlOtp, rlOtpToken, async (req, res) => {     
      read-only token — and it was already true of view links. */
   if (refuseIfViewOnly(s, res)) return;
   if (refuseIfAdvice(s, res)) return;
+  /* A LINK THAT CAN NO LONGER SIGN MAKES NO SIGNING CODE (26 Sep 2026, the
+     overnight clean-up). The respond route has always refused a revoked, an
+     expired and an already-answered one-shot link; this route did not, so a
+     link withdrawn by the sender could still make the server email a signing
+     code to its address (measured). Same three questions, same answers. */
+  if (s.revoked_at || shareExpired(s)) return res.status(410).json({ error: 'This share link is no longer active' });
+  if (s.response && !s.durable) return res.status(409).json({ error: 'A response was already submitted for this link' });
   const invited = String(s.recipient_email || '').toLowerCase();
   if (!/.+@.+\..+/.test(invited))
     /* No recorded address means there is nothing this check could verify
@@ -13365,6 +13385,12 @@ app.post('/api/shares/:token/otp', rlOtp, rlOtpToken, async (req, res) => {     
   res.json({ ok: true, ...mailReportPublic(mailed), sentTo: invited });
 });
 app.post('/api/shares/:token/verify-otp', rlOtp, rlOtpToken, (req, res) => {  // public: verify the code
+  /* …and a code minted before the link was withdrawn verifies nothing once it
+     has been (see the note on /otp above). */
+  const sh = db.prepare('SELECT revoked_at, expires_at, response, durable FROM shares WHERE token=?').get(req.params.token);
+  if (!sh) return res.status(404).json({ error: 'Share link not found or expired' });
+  if (sh.revoked_at || shareExpired(sh)) return res.status(410).json({ error: 'This share link is no longer active' });
+  if (sh.response && !sh.durable) return res.status(409).json({ error: 'A response was already submitted for this link' });
   const row = db.prepare('SELECT * FROM share_otp WHERE token=?').get(req.params.token);
   const { code } = req.body || {};
   /* The typed email is no longer part of the check — the server chose the
