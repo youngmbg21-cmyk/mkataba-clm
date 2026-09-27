@@ -1361,7 +1361,7 @@ function hmDecisionItems(S, deskRows){
        which the side panel's checklist asks too); fmtDDay is this page's one
        day printer. */
     ...(myReviews||[]).map(x=>({
-      cid:x.c.id, urgent:hmReviewLate(x.rv),
+      kind:'review', cid:x.c.id, urgent:hmReviewLate(x.rv),
       txt:esc(i18t('rv_home_title'))+' — '+strong(x.c.name),
       meta:`${esc(i18t('rv_home_from',{who:x.rv.by}))} · ${esc(i18tn('rv_home_sub',x.st.total,{n:x.st.total}))}`,
       tag:x.rv.due?fmtDDay(String(x.rv.due)):i18t('rv_home_open'),
@@ -1370,7 +1370,7 @@ function hmDecisionItems(S, deskRows){
     /* A QUIET DEAL: the counterparty is already waiting, and every day this
        sits here is a day they are not being answered. */
     ...(myStaleDesks||[]).map(x=>({
-      cid:x.c.id, urgent:true,
+      kind:'quiet', cid:x.c.id, urgent:true,
       txt:esc(i18t('dk_stale_card',{who:x.c.counterparty||i18t('home_no_counterparty')}))+' — '+strong(x.c.name),
       meta:esc(i18tn('dk_stale_sub',x.stale.n,{n:x.stale.n,who:(x.stale.lead&&x.stale.lead.name)||''})),
       tag:i18t('dk_stale_tag',{n:x.stale.days}),
@@ -1380,7 +1380,7 @@ function hmDecisionItems(S, deskRows){
        waiting on one answer from this reader by name, the shape of every
        other row here. */
     ...(myJoinAsks||[]).map(x=>({
-      cid:x.c.id, urgent:false,
+      kind:'join', cid:x.c.id, urgent:false,
       txt:esc(i18t('dk_join_card',{who:(x.req&&x.req.name)||''}))+' — '+strong(x.c.name),
       meta:(x.req&&x.req.why)?`\u201c${esc(x.req.why)}\u201d`:esc(x.c.counterparty||i18t('home_no_counterparty')),
       tag:i18t('dk_ask_tag'),
@@ -1389,7 +1389,7 @@ function hmDecisionItems(S, deskRows){
     /* YOUR SIGNATURE, AND WHAT STANDS BEFORE IT — the number is
        signReadiness's, the same the Signing tab and the head quote. */
     ...mySignings.map(x=>({
-      cid:x.c.id, urgent:false,
+      kind:'sign', cid:x.c.id, urgent:false,
       txt:x.n?i18t('home_sign_row',{n:x.n,name:strong(x.c.name)}):i18t('home_sign_row_ready',{name:strong(x.c.name)}),
       meta:esc(x.c.counterparty||i18t('home_no_counterparty')),
       tag:i18t('home_sign_tag'),
@@ -1403,7 +1403,7 @@ function hmDecisionItems(S, deskRows){
        contract somebody else owns still rings in the bell inside thirty days,
        and still shows on the Map and the calendar. */
     ...(decisions||[]).filter(x=>!deskIds.has(x.c.id)&&owns(x.c)).map(x=>({
-      cid:x.c.id, urgent:x.d<=HM_SOON_DAYS,
+      kind:'renewal', cid:x.c.id, urgent:x.d<=HM_SOON_DAYS,
       txt:i18t('home_renew_or_exit',{name:strong(x.c.name)}),
       meta:i18t('home_decide_by',{who:esc(x.c.counterparty||i18t('home_no_counterparty')),when:fmtDDay(x.dd)}),
       tag:x.d===0?i18t('home_today'):i18t('home_in_days',{n:x.d}),
@@ -1470,18 +1470,24 @@ function needsYouOf(c){
    review, and the Signing tab for a signature — the places the bell's rows
    already open. A renewal lands on the Overview, where the renewal card
    records the decision, and a request to join opens the sheet where the lead
-   lets them in (the bell opens both only as far as the contract). */
+   lets them in.
+   THREE HOMES PRESS IT (Young: "Yes, make them go straight to the right
+   place", 27 Sep 2026): the checklist's buttons, Home's "Needs your decision"
+   rows and the bell's renewal and join rows, which opened the contract on
+   whatever tab it last showed. It answers whether it found the contract, so a
+   caller can fall back to plain opening rather than leave a press dead. */
 function needsYouGo(kind, id){
   const c=(typeof getContract==='function')?getContract(id):null;
-  if(!c) return;
+  if(!c) return false;
   if(kind==='quiet'||kind==='review'){
     if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); else openWorkspace(c.id);
-    return;
+    return true;
   }
   openWorkspace(c.id);
-  if(kind==='sign'){ if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} return; }
-  if(kind==='renewal'){ if(window.roomGoTab) try{ roomGoTab(c,'terms'); }catch(_){} return; }
+  if(kind==='sign'){ if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} return true; }
+  if(kind==='renewal'){ if(window.roomGoTab) try{ roomGoTab(c,'terms'); }catch(_){} return true; }
   if(kind==='join'){ if(window.openDeskSheet) try{ openDeskSheet(c); }catch(_){} }
+  return true;
 }
 
 /* ---- TWO ROWS, WHATEVER THE SCREEN (Young ruled 25 Sep 2026) ----
@@ -1730,7 +1736,7 @@ function renderDashboard(){
   const ddShown=decisionItems.slice(0,HM_DD_ROWS);
   const ddRowsHtml=ddShown.length
     ? `<div class="hm-rows" id="hm-dd-rows">${ddShown.map(it=>`
-        <button type="button" class="hm-row ${it.urgent?'is-neg':'is-crit'}" data-sel="${esc(it.cid)}">
+        <button type="button" class="hm-row ${it.urgent?'is-neg':'is-crit'}" data-sel="${esc(it.cid)}" data-dd-kind="${esc(it.kind||'')}">
           <span class="hm-rdot" aria-hidden="true"></span>
           <span class="hm-rb"><span class="hm-rt">${it.txt}</span><span class="hm-rm">${it.meta}</span></span>
           <span class="hm-rtag">${esc(it.tag)}</span>
@@ -1935,12 +1941,22 @@ function renderDashboard(){
   });
   if(window.wireEmailSetupBanner) wireEmailSetupBanner();
   /* ---- NEEDS YOUR DECISION'S TWO PRESSES ----
-     A ROW OPENS ITS CONTRACT, as it always did. "See all" opens Contracts
-     narrowed to every contract on the list — the rows are contracts waiting
-     on this reader, so the door stays in Contracts; the bell owns the wider
-     "everything owed to you". Scoped to the card, so no other [data-sel] on
-     a page this module draws can answer. */
-  document.querySelectorAll('#hm-dd-rows [data-sel]').forEach(el=>el.addEventListener('click',()=>selectContract(el.getAttribute('data-sel'))));
+     A ROW GOES STRAIGHT TO WHERE ITS ITEM IS ANSWERED (27 Sep 2026, Young:
+     "Yes, make them go straight to the right place"). It opened the contract
+     on whatever tab that contract last showed, so a signature landed on the
+     Document tab and the reader went looking for Signing. The row carries its
+     kind — the side panel checklist's own five — and presses that checklist's
+     one door, needsYouGo, so the two cannot come to disagree about where a
+     review or a renewal is answered. A row with no kind, or a contract the
+     door cannot find, still opens the contract: a press is never dead.
+     "See all" opens Contracts narrowed to every contract on the list — the
+     rows are contracts waiting on this reader, so the door stays in
+     Contracts; the bell owns the wider "everything owed to you". Scoped to
+     the card, so no other [data-sel] on a page this module draws can answer. */
+  document.querySelectorAll('#hm-dd-rows [data-sel]').forEach(el=>el.addEventListener('click',()=>{
+    const id=el.getAttribute('data-sel'), kind=el.getAttribute('data-dd-kind')||'';
+    if(!(NEEDS_YOU_ORDER.includes(kind) && needsYouGo(kind, id))) selectContract(id);
+  }));
   document.querySelector('[data-hm-go="needsyou"]')?.addEventListener('click',e=>{
     e.stopPropagation();
     const ids=decisionItems.map(x=>x.cid).filter(Boolean);

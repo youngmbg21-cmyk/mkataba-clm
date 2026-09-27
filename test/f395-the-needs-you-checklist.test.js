@@ -22,6 +22,11 @@
         the hover, the signature names the Signing tab's first thing
      6  every button is one door (needsYouGo), wired in the panel's listener
      7  the words in both books, the clothes in HaTi's sheet, the names published
+     8  THE OTHER TWO HOMES GO THROUGH THE SAME DOOR (Young, 27 Sep 2026: "Yes,
+        make them go straight to the right place"): every row on Home's card
+        carries its kind and a press lands exactly where the checklist's button
+        for that kind lands; the bell's request-to-join row and its two renewal
+        rows the same; a press the door cannot answer still opens the contract
 
    RED AT THE PARENT (c8a049d), measured in a worktree: 25 of 26 FAIL. The
    one that passed there was 1d, a [wall] saying Home's card still listed its
@@ -29,6 +34,10 @@
    Young said yes to the card listing the checklist's own five: measured, at
    c8a049d all 26 FAIL and at a007cdb (the checklist) only 1d does. The card's
    behaviour is DRIVEN in f382 (3); 1d holds the source to the same shape.
+   Section 8 (27 Sep 2026, the same day) measured at ba092e2, in a worktree:
+   5 of its 7 FAIL there; 8d and 8f pass on both sides and are the named
+   CONTROLS — a press the door cannot answer opened the contract before this
+   change and must still open it after.
    ============================================================ */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
@@ -46,6 +55,7 @@ const AP = read('js/views/approvalsview.js');
 const CSS = read('index.html');
 const I18N = read('js/i18n.js');
 const CORE = read('js/core.js');
+const APP = read('js/app.js');
 /* One function's own region: from its declaration to the next top-level one. */
 function fnOf(src, name){
   const at = src.indexOf('function ' + name + '(');
@@ -367,5 +377,148 @@ describe('f395 (7) — the words, the clothes, the names', () => {
       assert.match(pub(HOME), new RegExp('\\b' + n + '\\b'), n);
     for (const n of ['insNeedsHtml', 'insNeedWords', 'INS_NEED_VERB', 'INS_NEED_GO'])
       assert.match(pub(INS), new RegExp('\\b' + n + '\\b'), n);
+  });
+});
+
+describe('f395 (8) — Home\'s rows and the bell\'s rows go through the same door', () => {
+  /* Every destination below is the one the checklist's own button reaches for
+     that kind — asked of needsYouGo itself in the same world, never typed out
+     twice — so the claim is the RELATION: the row and the button agree. */
+  const LOG = win => {
+    const log = [];
+    win.openRedlineWorkbench = id => log.push('nego:' + id);
+    win.openWorkspace = id => log.push('room:' + id);
+    win.selectContract = id => log.push('select:' + id);
+    win.roomGoTab = (x, k) => log.push('tab:' + k);
+    win.openDeskSheet = x => log.push('desk:' + x.id);
+    return log;
+  };
+  const doorFor = (win, log, kind, id) => { log.length = 0; win.needsYouGo(kind, id); return log.join(','); };
+  const owned = () => contract({ id: 'MK-143', status: 'Signed', expiry: day(64), owner: { id: ME.id, name: ME.name },
+    metadata: { expiryDate: day(64), noticePeriodDays: 30 }, desk: { renewal: day(-1), notice: day(-1) } });
+  /* One world per kind, so the card's two rows are that kind's row alone. */
+  const stageFor = kind => {
+    const win = world();
+    const c = kind === 'renewal' ? owned() : contract();
+    win.state.contracts = [c];
+    win.state.view = 'dashboard';
+    win.metrics = () => ({ totalValue: 0, pending: 0, signed: 0, declined: 0, drafts: 0 });
+    sources(win, {
+      quiet: kind === 'quiet' ? { [c.id]: { days: 7, since: day(-9), n: 3, lead: { name: ME.name } } } : null,
+      review: kind === 'review' ? { [c.id]: { rv: { by: 'Amina Otieno', due: day(5) }, st: { total: 2 } } } : null,
+      join: kind === 'join' ? { [c.id]: { name: 'Peter Kamau', why: '', at: day(-2) } } : null,
+      sign: kind === 'sign' ? { [c.id]: { n: 1, holds: [] } } : null,
+    });
+    if (!win.document.getElementById('content')) {
+      const el = win.document.createElement('div'); el.id = 'content'; win.document.body.appendChild(el);
+    }
+    return { win, c };
+  };
+  const KINDS = ['quiet', 'review', 'join', 'sign', 'renewal'];
+
+  test('8a the door says whether it sent the reader anywhere — true for each kind, false for a contract that is not there', () => {
+    const win = world();
+    assert.ok(has(win, 'needsYouGo'), 'needsYouGo is published');
+    win.state.contracts = [contract()];
+    LOG(win);
+    assert.equal(KINDS.map(k => win.needsYouGo(k, 'MK-149')).join(','), 'true,true,true,true,true');
+    assert.equal(win.needsYouGo('renewal', 'MK-000'), false, 'nothing found, nothing opened — and it says so');
+  });
+  test('8b every row on Home\'s card carries its kind, one of the checklist\'s five', () => {
+    const win = world();
+    assert.ok(has(win, 'hmDecisionItems') && Array.isArray(win.NEEDS_YOU_ORDER), 'hmDecisionItems and NEEDS_YOU_ORDER are published');
+    const c = contract();
+    sources(win, { sign: { 'MK-149': { n: 1, holds: [] } } });
+    const S = { cs: [c], fmtDDay: x => String(x), me: ME,
+      myReviews: [{ c, rv: { by: 'Amina Otieno', due: null }, st: { total: 2 } }],
+      myStaleDesks: [{ c, stale: { days: 7, n: 3, lead: { name: ME.name } } }],
+      myJoinAsks: [{ c, req: { name: 'Peter Kamau', why: '' } }],
+      decisions: [{ c: owned(), d: 34, dd: day(34) }] };
+    const kinds = win.hmDecisionItems(S, []).map(x => x.kind);
+    assert.equal(kinds.slice().sort().join(','), KINDS.slice().sort().join(','), 'the five kinds, one row each: ' + kinds.join(','));
+    assert.ok(kinds.every(k => win.NEEDS_YOU_ORDER.includes(k)), 'every one is a kind the door answers');
+  });
+  test('8c pressing a row on Home\'s card lands exactly where the checklist\'s button for that kind lands', () => {
+    const got = [];
+    for (const kind of KINDS) {
+      const { win, c } = stageFor(kind);
+      const log = LOG(win);
+      win.renderDashboard();
+      const rows = [...win.document.querySelectorAll('#hm-dd-rows [data-sel]')];
+      assert.equal(rows.length, 1, kind + ': one row on the card');
+      /* THE PRESS IS ASKED FIRST, so at the parent this fails on the defect
+         the owner saw — the row opened the contract, not the place. */
+      log.length = 0;
+      rows[0].click();
+      const pressed = log.join(',');
+      got.push(kind + '=' + pressed);
+      assert.equal(pressed, doorFor(win, log, kind, c.id), kind + ': the row and the checklist\'s button agree');
+      assert.equal(rows[0].getAttribute('data-dd-kind'), kind, kind + ': the row says which kind it is');
+    }
+    assert.ok(!got.some(x => /select:/.test(x)), 'no row fell back to plain opening: ' + got.join(' | '));
+  });
+  test('8d [control] a row the door cannot answer still opens its contract — a press is never dead', () => {
+    const { win, c } = stageFor('renewal');
+    const log = LOG(win);
+    win.renderDashboard();
+    const row = win.document.querySelector('#hm-dd-rows [data-sel]');
+    assert.ok(row, 'the renewal row is drawn');
+    win.getContract = () => null;
+    log.length = 0;
+    row.click();
+    assert.equal(log.join(','), 'select:' + c.id, 'the contract the door could not find is still opened');
+  });
+
+  /* ---- THE BELL ----
+     buildAlerts lives in js/app.js, which this stage does not load. It is
+     LIFTED out whole, with the two names it reads at module scope (the kind
+     table and its rank), and run over slices handed in — so the rows under
+     test are the real rows and their presses the real presses. */
+  const bellWorld = () => {
+    const win = world();
+    const c = contract({ status: 'Signed' });
+    win.state.contracts = [c];
+    const kindsAt = APP.indexOf('const ALERT_KINDS = [');
+    const kindsEnd = APP.indexOf('\n];', kindsAt) + 3;
+    const rankAt = APP.indexOf('const alertRank = ');
+    const rankEnd = APP.indexOf(';\n', APP.indexOf('return i<0', rankAt)) + 2;
+    assert.ok(kindsAt > 0 && rankAt > 0, 'the kind table and its rank are in js/app.js');
+    win.eval(APP.slice(kindsAt, kindsEnd).replace('const ALERT_KINDS', 'window.ALERT_KINDS') + '\n'
+      + APP.slice(rankAt, rankEnd).replace('const alertRank', 'window.alertRank') + '\n'
+      + fnOf(APP, 'buildAlerts') + ';window.buildAlerts=buildAlerts;');
+    win.hmDashSlices = () => ({ myApprovals: [], myStaleDesks: [],
+      myJoinAsks: [{ c, req: { name: 'Peter Kamau', why: '' } }],
+      decisions: [{ c, d: 10 }], expiring: [{ c, d: 20 }] });
+    return { win, c };
+  };
+  test('8e the bell\'s request to join and its two renewal rows land where the checklist\'s buttons land', () => {
+    const { win, c } = bellWorld();
+    const log = LOG(win);
+    const rows = win.buildAlerts().filter(a => a.kind === 'desk-join' || a.kind === 'renewal');
+    assert.equal(rows.map(a => a.kind).join(','), 'desk-join,renewal,renewal', 'the join row, the decision and the ending');
+    const want = { 'desk-join': doorFor(win, log, 'join', c.id), renewal: doorFor(win, log, 'renewal', c.id) };
+    for (const a of rows) {
+      log.length = 0;
+      a.go();
+      assert.equal(log.join(','), want[a.kind], a.kind + ': the bell and the checklist\'s button agree');
+    }
+  });
+  test('8f [control] with the door not on the stage, the bell\'s rows still open the contract', () => {
+    const { win, c } = bellWorld();
+    const log = LOG(win);
+    /* ASSIGNED, never deleted: a function declared by a loaded script is a
+       global the window will not let go of, and `delete` fails in silence. */
+    win.needsYouGo = undefined;
+    const rows = win.buildAlerts().filter(a => a.kind === 'desk-join' || a.kind === 'renewal');
+    assert.equal(rows.length, 3);
+    assert.equal(rows.map(a => { log.length = 0; a.go(); return log.join(','); }).join(' | '),
+      ['room:' + c.id, 'room:' + c.id, 'room:' + c.id].join(' | '));
+  });
+  test('8g the door is asked ONCE per press, in one helper, and never beside a second copy of the destination', () => {
+    const f = code(fnOf(APP, 'buildAlerts'));
+    assert.ok(/const bellGo=\(kind,c\)=>/.test(f), 'one helper');
+    assert.equal((f.match(/bellGo\('renewal',x\.c\)/g) || []).length, 2, 'both renewal rows press it');
+    assert.equal((f.match(/bellGo\('join',x\.c\)/g) || []).length, 1, 'the join row presses it');
+    assert.ok(!/\(\)=>openWorkspace\(x\.c\.id\)\)\)/.test(f), 'no renewal row keeps a plain opening of its own');
   });
 });
