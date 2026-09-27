@@ -140,7 +140,7 @@ function hmMySignings(cs){
     const mine=(ns.memberId&&String(ns.memberId)===String(meNow.id))
       || (!!ns.email&&!!meNow.email&&String(ns.email).toLowerCase()===String(meNow.email).toLowerCase());
     if(!mine) return null;
-    let n=0; try{ n=signReadiness(c,{ light:!!(c._light&&!c._loaded) }).n; }catch(_){ n=0; }
+    let n=0; try{ n=(window.signReadinessFor?signReadinessFor(c):signReadiness(c,{ light:!!(c._light&&!c._loaded) })).n; }catch(_){ n=0; }
     /* A SIGNATURE WITH NOTHING IN ITS WAY IS STILL OWED (26 Sep 2026, the
        overnight clean-up): this dropped every row where nothing holds — the
        ONE case where the reader could sign right now — so the bell listed it

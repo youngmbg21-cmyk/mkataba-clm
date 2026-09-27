@@ -310,8 +310,12 @@ describe('f311 (5) — upstream quotes the same number', () => {
     assert.match(strip(CONTRACT), /if\(holds\)\{ signLandOnList\(c\); return; \}/);
   });
   test('the bell\'s signature row and Home\'s decision row read it, light where the record is', () => {
-    assert.match(strip(APP), /signReadiness\(c,\{ light:!!\(c\._light&&!c\._loaded\) \}\)\.n/);
-    assert.match(strip(HOME), /signReadiness\(c,\{ light:!!\(c\._light&&!c\._loaded\) \}\)\.n/);
+    /* RE-POINTED IN PLACE (27 Sep 2026, the overnight run, s5): both read
+       through signReadinessFor, which answers LIGHT exactly as before and
+       loads the owed row whole once, so the count becomes the Signing tab's.
+       The light fallback stays for a stage without the loader. */
+    assert.match(strip(APP), /signReadinessFor\(c\)\.n:\(window\.signReadiness\?signReadiness\(c,\{ light:!!\(c\._light&&!c\._loaded\) \}\)\.n/);
+    assert.match(strip(HOME), /signReadinessFor\(c\):signReadiness\(c,\{ light:!!\(c\._light&&!c\._loaded\) \}\)\)\.n/);
     /* RE-POINTED IN PLACE 24 Sep 2026: Home's decision row left the page with
        its card (Young: "instead of needs your decision, delete it and replace
        with prepared for you"). The reading above is hmMySignings' own, and the

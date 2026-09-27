@@ -1567,7 +1567,9 @@ function srvRuleMatches(rule, c) {
     case 'value': { const h = fxHome(c); if (h.missing) return true;
       return cond.op === '>=' ? h.v >= Number(cond.value) : h.v <= Number(cond.value); }
     case 'folder': return c.folder === cond.value;
-    case 'kind': return (copilotContractKind(c) || '').toLowerCase().includes(String(cond.value || '').toLowerCase());
+    /* the browser's twin: the type the record holds (copilotContractType), so
+       an upload is matched by what it is, not as "External Document" */
+    case 'kind': return (copilotContractType(c) || '').toLowerCase().includes(String(cond.value || '').toLowerCase());
     case 'foreignLaw': return srvForeignLaw(c);
     case 'deviation': return srvHasDeviation(c);
     default: return false;
@@ -3981,8 +3983,21 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     }
   }
   if (prev && isExecutedRow(prev)) {
+    /* ---- THE IMPORT REVIEW OF PAPER SIGNED ELSEWHERE (the owner's list,
+       27 Sep 2026) ----
+       A contract imported as already signed is sealed on arrival with its
+       reading unconfirmed, and the one save that confirms that reading — a
+       person checking what the machine read off the signed file — was refused
+       here for ever, so the import could never finish. ONE save is let
+       through: the stored record is a migration still waiting for review, and
+       this save is the one that confirms it. Only what the review writes may
+       move; the file, the seal, the signatures and the status never. */
+    const migReview = prev.hash === 'MIGRATED' && prev.migration && prev.migration.needsReview === true
+      && c.migration && c.migration.needsReview === false;
+    const MIG_REVIEW_MAY = new Set(['metadata', 'counterparty', 'value', 'valueType', 'expiry', 'fields']);
     const changed = EXECUTED_IMMUTABLE.filter(k => stable(prev[k]) !== stable(c[k])
-      && !(SEAL_ACQUIRABLE.has(k) && isEmptyish(prev[k])));
+      && !(SEAL_ACQUIRABLE.has(k) && isEmptyish(prev[k]))
+      && !(migReview && MIG_REVIEW_MAY.has(k)));
     if (changed.length) {
       return res.status(409).json({
         error: `${req.params.id} is executed — ${changed.join(', ')} cannot be changed after signature. Record an amendment instead.`,

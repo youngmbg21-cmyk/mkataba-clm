@@ -14523,6 +14523,7 @@ function signRowTitle(c,r){
     case 'brief-read': return t(r.settled?'sc_brief_read_done':'sc_brief_read');
     case 'standards-read': return t(r.stale?'sc_std_stale':'sc_std_unread');
     case 'obligations': return t(r.never?'sc_ob_unread':'sc_ob_head');
+    case 'oblig-gaps': return t('sc_obgap_head');
     case 'record': return i18t('sc_rec_head',{field:t('sc_f_'+r.field)});
     case 'risk': return String(r.title||'');
     case 'approval': return t('sc_row_approval');
@@ -14624,6 +14625,9 @@ function signCheckCardHtml(c){
         if(r.never){ why=i18t('sc_ob_never_w'); acts.push(`<button type="button" data-sc-run="1">${esc(i18t('sc_run'))}</button>`); }
         else { why=i18t('sc_ob_moved_w'); acts.push(verb('data-sc-oblig','1','sc_ob_btn')); }
         break;
+      case 'oblig-gaps':
+        why=[r.dateless?i18tn('sc_obgap_nodate',r.dateless,{n:r.dateless}):'', r.ownerless?i18tn('sc_obgap_noowner',r.ownerless,{n:r.ownerless}):''].filter(Boolean).join(' ');
+        acts.push(verb('data-sc-obtab','1','sc_obgap_btn')); break;
       case 'record':
         if(r.settled) why=i18t('sc_kept_by',{who:r.kept.by||i18t('sc_somebody'),when:day(r.kept.at)});
         else { why=i18t('sc_rec_w',{record:shown(r,r.record)||i18t('sc_blank'),paper:shown(r,r.paper)});
@@ -15013,7 +15017,7 @@ function renderSignSide(c){
     <section id="signing-order" style="${CARD}">
       <div style="display:flex;align-items:center;gap:9px;margin-bottom:9px">
         <h6 style="${H};flex:1">${i18t('ct_signing_order')}</h6>
-        ${plan.length?`<span class="pill-x" style="background:var(--color-neutral-100);color:var(--color-neutral-600)">${plan.filter(s=>s.signed).length} of ${plan.length} signed</span>`:''}
+        ${plan.length?`<span class="pill-x" style="background:var(--color-neutral-100);color:var(--color-neutral-600)">${esc(i18t('ct_n_of_m_signed',{n:plan.filter(s=>s.signed).length,m:plan.length}))}</span>`:''}
       </div>
       ${''/* ---- NO ROUTE IS NOT AN ASSUMPTION ANY MORE ----
              This read "One signature each side is assumed — us first, then
@@ -15024,8 +15028,8 @@ function renderSignSide(c){
              somebody sends a contract out believing it can be signed. */}
       ${route||`<p style="margin:0 0 10px;font-size:var(--t-meta);line-height:1.55;color:var(--st-amber-fg)">${
         esc((window.signRouteOf&&signRouteOf(c)==='outside')?i18t('ho_sig_row_none'):i18t('ct_no_route_blocks',{them:c.counterparty||i18t('ct_a_counterparty')}))}</p>`}
-      ${may?`<button id="sp-add-signer" class="ui-btn ui-btn-sm" style="width:100%;justify-content:center;margin-top:${route?'8px':'0'}">${icon('users','w-3.5 h-3.5')} ${plan.length?'Add or reorder signers':'Add signers'}</button>`:''}
-      ${may?`<p style="margin:7px 0 0;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-500)">${(window.signRouteOf&&signRouteOf(c)==='outside')?esc(i18t('ho_order_note')):'Internal signers sign here; each counterparty signer gets their own link, held until every internal signature is in. The seal lands with the last one.'}</p>`:''}
+      ${may?`<button id="sp-add-signer" class="ui-btn ui-btn-sm" style="width:100%;justify-content:center;margin-top:${route?'8px':'0'}">${icon('users','w-3.5 h-3.5')} ${esc(i18t(plan.length?'ct_add_reorder_signers':'ct_add_signers'))}</button>`:''}
+      ${may?`<p style="margin:7px 0 0;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-500)">${(window.signRouteOf&&signRouteOf(c)==='outside')?esc(i18t('ho_order_note')):esc(i18t('ct_route_order_note'))/* true of every route, including one where they sign first (27 Sep 2026) */}</p>`:''}
     </section>
     ${''/* ---- AND THE PLACES ON THE PAPER, UNDER THE ORDER THEY BELONG TO (J-1)
            A spot belongs to a row on the signing order (D-2), so the list of
@@ -15079,6 +15083,7 @@ function renderSignSide(c){
     ()=>signCheckAccept(c,Number(b.getAttribute('data-sc-accept')),scAgain)));
   host.querySelectorAll('[data-sc-clause]').forEach(b=>b.addEventListener('click',
     ()=>signCheckOpenClause(c,Number(b.getAttribute('data-sc-clause')))));
+  host.querySelector('[data-sc-obtab]')?.addEventListener('click',()=>{ if(window.roomGoTab) roomGoTab(c,'oblig'); });
   host.querySelector('[data-sc-oblig]')?.addEventListener('click',()=>{
     if(window.runFindObligations) Promise.resolve(runFindObligations(c,{})).then(scAgain,scAgain); });
   /* THE FIELD RIDES THE ATTRIBUTE and always did — `r.field` on a record
@@ -15888,7 +15893,8 @@ function signBlockMessage(c, list){
   const fields=bl.filter(x=>READINESS_FIELD_KEYS.includes(x.key));
   const other=bl.filter(x=>!READINESS_FIELD_KEYS.includes(x.key));
   return [ other.map(x=>x.label).join(' '),
-    fields.length ? fields.map(x=>x.label).join(' ')+' Fill these in on Key terms, or in the document, before signing.' : ''
+    /* The tab is the Overview, and the sentence is the reader's language (27 Sep 2026). */
+    fields.length ? fields.map(x=>x.label).join(' ')+' '+i18t('sc_fill_on_overview') : ''
   ].filter(Boolean).join(' ').trim();
 }
 async function signDocument(c){
@@ -15913,7 +15919,7 @@ async function signDocument(c){
      blockers it is actually true of. */
   if(window.signBlockers){
     const bl=signBlockers(c);
-    if(bl.length){ toast(`Not signed — ${signBlockMessage(c,bl)}`,'err'); return; }
+    if(bl.length){ toast(i18t('sc_not_signed',{why:signBlockMessage(c,bl)}),'err'); return; }
   }
   /* ---- WHAT USED TO STAND HERE, AND WHERE IT WENT ----
      Three separate refusals in a row — the unsettled negotiation (E2-T5, a

@@ -518,7 +518,7 @@ function signCheckRowHolds(row, gate){
 const SIGN_STAGES = ['paper', 'read', 'people', 'sign'];
 const SIGN_STAGE_OF = {
   negotiation: 'paper', fields: 'paper', placeholders: 'paper', blanks: 'paper', docs: 'paper',
-  'standards-read': 'read', standard: 'read', obligations: 'read',
+  'standards-read': 'read', standard: 'read', obligations: 'read', 'oblig-gaps': 'read',
   record: 'read', risk: 'read',
   approval: 'people', signapproval: 'people', turn: 'people', signers: 'people', spots: 'people',
   cap: 'people', folder: 'people', 'ho-signatory': 'people', 'ho-blanks': 'paper',
@@ -578,6 +578,13 @@ function signCheckRows(c, r){
   if (rd.obligations.unread === true || rd.obligations.unread == null)
     rows.push({ kind: 'obligations', key: 'obligations', never: rd.obligations.unread == null,
       settled: false, escalate: false });
+  /* PROMISES NO REMINDER WILL REACH (the owner's list, 27 Sep 2026). The
+     check counted obligations with no date and with nobody the reminder can
+     reach, and showed neither. A NOTED row — it never holds a signature; the
+     Obligations tab is where it is answered. */
+  if (rd.obligations.dateless || rd.obligations.ownerless)
+    rows.push({ kind: 'oblig-gaps', key: 'oblig-gaps', dateless: rd.obligations.dateless || 0,
+      ownerless: rd.obligations.ownerless || 0, settled: false, escalate: false });
   rd.record.rows.filter(x => x.agrees === false).forEach(x => rows.push({
     kind: 'record', key: 'rec:' + x.field, field: x.field, record: x.record, paper: x.paper,
     kept: x.kept, settled: !!x.kept, escalate: false }));
@@ -771,6 +778,30 @@ function signFieldMarks(c){
   return out;
 }
 
+/* ---- THE SAME COUNT ON HOME, THE BELL AND THE SIGNING TAB (the owner's
+   list, 27 Sep 2026) ----
+   A light register row cannot answer the three rows that hash the wording,
+   so Home, the bell and the Approvals page printed fewer "to settle" than
+   the Signing tab beside them. Those surfaces list only the signatures owed
+   by THIS reader — a handful — so each such record is loaded whole once, in
+   the background, and the surfaces repaint when it lands. Until then the
+   light count stands, as before; after, the numbers are the same number. */
+const _scLoading = new Set();
+function signReadinessFor(c){
+  const light = !!(c && c._light && !c._loaded);
+  if (light && c.id != null && !_scLoading.has(String(c.id)) && typeof window !== 'undefined'
+    && typeof window.restoreHeavyFields === 'function') {
+    _scLoading.add(String(c.id));
+    Promise.resolve().then(() => window.restoreHeavyFields(c)).then(() => {
+      if (!c._loaded) return;
+      try { if (window.state && window.state.view === 'dashboard' && typeof window.renderDashboard === 'function') window.renderDashboard(); } catch (_) {}
+      try { if (window.state && window.state.view === 'approvals' && typeof window.renderApprovalsPage === 'function') window.renderApprovalsPage(); } catch (_) {}
+      try { if (typeof window.updateAlertBadge === 'function') window.updateAlertBadge(); } catch (_) {}
+    }).catch(() => {});
+  }
+  return signReadiness(c, { light });
+}
+if (typeof window !== 'undefined') Object.assign(window, { signReadinessFor });
 if (typeof window !== 'undefined') Object.assign(window, {
   SIGN_FIELD_OF, SIGN_BOX_FIELD, signFieldMarks,
   briefReadKey, briefReadOf, briefReadBy, briefMarkRead, briefReadWho, signCheckBriefStands,

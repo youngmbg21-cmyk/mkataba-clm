@@ -1875,7 +1875,7 @@ function buildAlerts(){
          number the Signing tab's button and the head carry. Read LIGHT where
          the record is a register row, so the two hash-based rows are never
          guessed off stripped wording. */
-      let n=0; try{ n=window.signReadiness?signReadiness(c,{ light:!!(c._light&&!c._loaded) }).n:0; }catch(_){ n=0; }
+      let n=0; try{ n=window.signReadinessFor?signReadinessFor(c).n:(window.signReadiness?signReadiness(c,{ light:!!(c._light&&!c._loaded) }).n:0); }catch(_){ n=0; }
       push('signature',c,i18t('al_signature'),
         ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} },
         n?{ sub:i18tn('al_sign_sub',n,{n}) }:undefined);

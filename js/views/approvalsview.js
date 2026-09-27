@@ -127,7 +127,7 @@ function apLeadHtml(tab, r){
      light record says so rather than guessing (`light`, the list's own rule). */
   if(r.kind==='ready') return insSecHtml(i18t('ins_sg_sec'),'',`<p class="ins-note">${esc(i18t('ap_pg_ready_sign',{who:r.by||r.c.counterparty||''}))}</p>`,'ins-lead');
   let holds=[];
-  try{ if(typeof signReadiness==='function') holds=(signReadiness(r.c,{light:!!r.c._light}).holds||[]); }catch(_){ holds=[]; }
+  try{ if(typeof window.signReadinessFor==='function') holds=(window.signReadinessFor(r.c).holds||[]); else if(typeof signReadiness==='function') holds=(signReadiness(r.c,{light:!!r.c._light}).holds||[]); }catch(_){ holds=[]; }
   const say=h=>String(h.short||h.label||h.title||'').trim();
   const list=holds.map(say).filter(Boolean);
   return insSecHtml(i18t('ins_sg_sec'),'',`<p class="ins-note">${esc(r.n?i18tn('ap_pg_to_settle',r.n,{n:r.n}):i18t('ap_pg_ready_to_sign'))}</p>${

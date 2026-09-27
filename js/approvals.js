@@ -38,7 +38,11 @@ function ruleMatches(rule, c){
       if(h.missing) return true;
       const v=h.v; return cond.op==='>='? v>=Number(cond.value) : v<=Number(cond.value); }
     case 'folder': return c.folder===cond.value;
-    case 'kind': return (cKind(c)||'').toLowerCase().includes(String(cond.value||'').toLowerCase());
+    /* THE TYPE THE RECORD HOLDS (the owner's list, 27 Sep 2026): cKind reads
+       "External Document" on every upload, so a rule set up by type never
+       reached uploaded paper. contractTypeRead is the one reading the playbook
+       asks — the curated kind, else the type read off the document. */
+    case 'kind': return ((window.contractTypeRead?contractTypeRead(c):cKind(c))||'').toLowerCase().includes(String(cond.value||'').toLowerCase());
     case 'foreignLaw': return contractForeignLaw(c);
     case 'deviation': return contractHasDeviation(c);
     default: return false;
@@ -245,13 +249,14 @@ function approveContract(c, comment){
        only a personal approval is mailed), so the sentence may not say it does
        (26 Sep 2026, the overnight clean-up). They find it on their own
        Approvals page and bell. */
-    toast(done?'All approvals complete — signing unlocked':'Step approved — the next approver finds it on their Approvals page');
+    /* 'ok', and in the reader's language (27 Sep 2026): bare, it printed nothing. */
+    toast(i18t(done?'ap_all_approved':'ap_step_approved_next'),'ok');
     return;
   }
   const mine=signApprovalDecidable(c);
   if(mine.length) return signApprovalDecide(c, mine[0].req.id, 'approved', comment);
-  if(!st.next){ toast(i18t('ap_chain_complete')); return; }
-  toast(`This step needs ${approverLabelOf(st.next.approver)}`,'err');
+  if(!st.next){ toast(i18t('ap_chain_complete'),'ok'); return; }
+  toast(i18t('ap_step_needs',{who:approverLabelOf(st.next.approver)}),'err');
 }
 function rejectApprovalStep(c, comment){
   const st=approvalState(c); if(!st.required) return;
@@ -264,13 +269,13 @@ function rejectApprovalStep(c, comment){
       +(comment?` — “${String(comment).slice(0,500)}”`:'')
       +' — the contract goes back to its owner to revise and resubmit');
     persist(c); renderSignButton(c); renderAuditSection(c);
-    toast(i18t('ap_step_rejected'));
+    toast(i18t('ap_step_rejected'),'ok');
     return;
   }
   const mine=signApprovalDecidable(c);
   if(mine.length) return signApprovalDecide(c, mine[0].req.id, 'refused', comment);
   if(!st.next) return;
-  toast(`This step needs ${approverLabelOf(st.next.approver)}`,'err');
+  toast(i18t('ap_step_needs',{who:approverLabelOf(st.next.approver)}),'err');
 }
 /* THE WAY OUT OF A REFUSAL.
 
@@ -301,7 +306,7 @@ function resubmitApproval(c, note){
     +(note?` — “${String(note).slice(0,500)}”`:'')
     +` · now waiting on ${back.map(s=>approverLabelOf(s.approver)).join(', ')}`);
   persist(c); renderSignButton(c); renderAuditSection(c);
-  toast(`Sent back for approval — waiting on ${approverLabelOf(back[0].approver)}`);
+  toast(i18t('ap_sent_back_waiting',{who:approverLabelOf(back[0].approver)}),'ok');
   return true;
 }
 
@@ -1203,7 +1208,7 @@ function openSigningLockedNotice(c, opts){
       get cancelLabel(){ return i18t('act_cancel'); } });
     if(!ok) return;
     signingRestart(c); persist(c); closeModal();
-    toast(i18t('ap_restart_done'));
+    toast(i18t('ap_restart_done'),'ok');
     if(back) back(); else if(window.renderWorkspace) renderWorkspace();
   });
 }
