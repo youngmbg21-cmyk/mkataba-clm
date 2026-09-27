@@ -143,7 +143,11 @@ describe('f259 (5) — the totals ride what is already on the screen', () => {
   test('a band’s sum sits in the heading that already carries its count', () => {
     /* No new box, no new panel, no band — the cheapest channel that carries
        the fact. */
-    assert.match(OB_CODE, /<div class="obt-band">\$\{_obEsc\(i18t\(key\)\)\}<b>\$\{mine\.length\}<\/b>\$\{\s*money && sum \? `<i class="obt-bandsum">/);
+    /* RE-POINTED IN PLACE (27 Sep 2026, the owner's list): the sum still rides
+       the heading that carries the count — and it says each direction apart
+       (obMoneyWords), because one figure added money we owe to money owed to
+       us. The claim about WHERE it sits is unchanged. */
+    assert.match(OB_CODE, /<div class="obt-band">\$\{_obEsc\(i18t\(key\)\)\}<b>\$\{mine\.length\}<\/b>\$\{\s*bandMw && bandMw\.text \? `<i class="obt-bandsum">/);
     assert.match(OB_CODE, /<tr class="obw-band"><td colspan="\$\{money \? 6 : 5\}">/,
       'and the worklist band spans the column count it actually draws');
   });

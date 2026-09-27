@@ -157,9 +157,15 @@ const SEEN = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
 
     /* "NOBODY OWNS THIS" — the cheapest fix in the whole job, and it must be
        on the row it is true of and on no other. Two obligations name a
-       stranger; only the one still open can still be chased. */
-    check('"nobody owns this" draws once — on the open orphan, not the closed one',
-      pane.unowned === 1, `${pane.unowned} found`);
+       stranger; only the one still open can still be chased.
+       RE-POINTED IN PLACE (27 Sep 2026, the owner's list): both of them are
+       obligations the OTHER SIDE owes, and one of theirs always has an owner —
+       them. This claim asserted the tag on theirs, which is the fault the
+       owner reported ("every obligation the other side owes carries 'Nobody
+       owns this' beside the counterparty's name"). It is drawn on OUR
+       unowned duty only (f411 3a; narrow-pages-verify 1b). */
+    check('"nobody owns this" is never drawn on an obligation they owe — open or closed',
+      pane.unowned === 0, `${pane.unowned} found`);
 
     /* ============ 3. COMPLETING GOES THROUGH THE ONE VERB ================
        Since J-2.2 the press asks two questions first — the day it was done and

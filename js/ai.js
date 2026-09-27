@@ -1928,6 +1928,12 @@ function _localToolRun(name,a){
       if(onTheirPage) return { error:'not available on this page' };
     }
     if(name==='get_obligations'){
+      /* "thisMonth" is the CALENDAR month here, as the server's twin reads it
+         (copilotObligationRow). obligationBand's month is the next 30 days since
+         27 Sep 2026 — a reading for the page — and Copilot's two hosts must go
+         on answering alike, so this names the calendar month itself. */
+      const _obCalMonth=due=>{ const d=new Date(String(due||'')+'T00:00:00'), n=new Date();
+        return !!due&&!isNaN(d)&&d.getFullYear()===n.getFullYear()&&d.getMonth()===n.getMonth(); };
       if(typeof allObligations!=='function'||typeof obState!=='function') return { error:'the obligations module is not loaded in this window' };
       const money=(typeof canViewValues!=='function')||canViewValues();
       let src=allObligations();
@@ -1935,7 +1941,7 @@ function _localToolRun(name,a){
       else { const live=new Set(cs.filter(c=>c.status!=='Declined'&&!c.archived).map(c=>c.id)); src=src.filter(o=>live.has(o.cid)); }
       const rows=src.map(o=>{ const c=byId(o.cid)||{}; const st=obState(o); const band=(typeof obligationBand==='function')?obligationBand(o,c):st; const due=(typeof obligationDue==='function')?obligationDue(o):(o.due||null);
         const row={ contractId:o.cid, contractName:o.cname||c.name||o.cid, id:o.id||null, description:String(o.desc||'').slice(0,300), due, daysUntilDue:due?_daysTo(due):null, state:st,
-          band:band==='done'?'done':band==='waiting'?'waiting':band==='overdue'?'overdue':band==='month'?'thisMonth':'later',
+          band:band==='done'?'done':band==='waiting'?'waiting':band==='overdue'?'overdue':_obCalMonth(due)?'thisMonth':'later',
           whose:(typeof obligationIsTheirs==='function'&&obligationIsTheirs(o))?'theirs':'ours', owner:(typeof obligationOwner==='function')?obligationOwner(o,c):(o.assignee||'unassigned'),
           heldBehind:(typeof obligationBlocked==='function'&&obligationBlocked(o,c))?(o.after||null):null,
           completedAt:o.completedAt||null, completedBy:o.completedBy||null, chasedAt:o.chasedAt||null, chasedBy:o.chasedBy||null };

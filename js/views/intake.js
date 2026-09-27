@@ -180,6 +180,11 @@ function intakePromise(r){
   if(stopped){
     const mins=intakeMinutes(r);
     if(mins==null) return null;
+    /* A DECLINED OR WITHDRAWN REQUEST WAS NOT DONE (the owner's list, 27 Sep
+       2026): its clock read "done in 24 hours", the same words as one drafted.
+       The wide page's own words (intakePromiseSay), and no green. */
+    if(r.status==='declined'||r.status==='withdrawn')
+      return { k:'done', tone:'ink', text:i18t(r.status==='declined'?'ik_declined_after':'ik_withdrawn_after',{t:ikTookWords(mins)}) };
     return { k:'done', tone:'green', text: mins<60
       ? i18tn('ik_done_min',mins,{n:mins})
       : (mins<1440 ? i18tn('ik_done_hour',Math.round(mins/60),{n:Math.round(mins/60)})
@@ -633,7 +638,24 @@ function renderIntake(){
     return;
   }
   _ikHead={ facts:'', acts:'' }; ikPaintHead();
-  const mine=intakeMine(), queue=intakeQueue();
+  /* ---- THE QUEUE, AS THE WIDE PAGE READS IT (the owner's list, 27 Sep 2026) ----
+     Three faults on this page, each already answered on the wide one:
+     · a request you asked for yourself was printed twice for an editor — in
+       the queue and under "What you have asked for". The queue is the
+       colleagues' requests (its own empty line says so); yours are below,
+       with every act the row carries;
+     · the queue was newest first, so one past its promised date could sit
+       last. It is in the wide page's order: past its promise, then nobody
+       holds it (oldest first), then being worked on (intakeStage, ikSort);
+     · "Waiting to be picked up (N)" counted every open request, including
+       ones somebody already holds. N is the ones nobody holds
+       (intakeStatusKey), and the rest of the list is counted beside it. */
+  const me=currentUser();
+  const mine=intakeMine();
+  const IK_RANK=IK_GROUPS.map(g=>g[0]);
+  const queue=intakeQueue().filter(r=>!(me&&r.by&&r.by.id===me.id))
+    .sort((a,b)=>(IK_RANK.indexOf(intakeStage(a))-IK_RANK.indexOf(intakeStage(b)))||ikSort(a,b));
+  const waiting=queue.filter(r=>intakeStatusKey(r)==='open').length, held=queue.length-waiting;
   /* ONE SHAPE FOR "NOTHING HERE" (25 Aug 2026) — it was a bare paragraph, one
      of seven different treatments of the same state across the product.
      Read through window: this is a module. */
@@ -665,9 +687,10 @@ function renderIntake(){
               and the median is over what actually finished this month. A
               median below IK_MEDIAN_MIN draws nothing — a middle value of one
               is a number dressed as a statistic. */}
-        <h3 style="font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading);margin:0 0 9px">${i18t('ik_queue_head',{n:queue.length})}<span style="font-weight:var(--w-body);color:var(--color-neutral-600)">${
+        <h3 style="font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading);margin:0 0 9px">${i18t('ik_queue_head',{n:waiting})}<span style="font-weight:var(--w-body);color:var(--color-neutral-600)">${
           (()=>{ const over=intakePastDue(queue); const med=intakeMedianDays(_intake.list||[]);
-            const bits=[]; if(over) bits.push(i18tn('ik_past_due',over,{n:over}));
+            const bits=[]; if(held) bits.push(i18tn('ik_head_held',held,{n:held}));
+            if(over) bits.push(i18tn('ik_past_due',over,{n:over}));
             if(med!=null) bits.push(i18t('ik_median',{n:med}));
             return bits.length?' · '+bits.map(esc).join(' · '):''; })()}</span></h3>
         <div style="display:flex;flex-direction:column;gap:9px">${queue.length?queue.map(r=>ikRowHtml(r)).join(''):empty(i18t('ik_queue_empty'))}</div>

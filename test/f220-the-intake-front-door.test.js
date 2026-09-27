@@ -325,9 +325,15 @@ describe('F220 — the requester is told what happened', () => {
   });
 
   test('the decline dialog promises the email only where mail is actually delivering', () => {
+    /* RE-POINTED IN PLACE (27 Sep 2026, the owner's list): this took the FIRST
+       "status==='declined'" in the file and 900 bytes after it, and the
+       promise reading above the dialog now names a declined request too, so
+       the window landed in the wrong function. PIN THE REGION: the dialog is
+       intakeSetStatus's own. */
     const src = read('js/views/intake.js');
-    const i = src.indexOf("status==='declined'");
-    const near = src.slice(i, i + 900);
+    const at = src.indexOf('async function intakeSetStatus(');
+    const i = src.indexOf("status==='declined'", at);
+    const near = src.slice(i, src.indexOf('\n}', i));
     assert.match(near, /ik_decline_emails/, 'it says where the words go');
     assert.match(near, /emailOff\(\)/, 'and stands down with no provider configured');
     assert.match(near, /emailFailing\(\)/, 'and where the provider is refusing');

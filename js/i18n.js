@@ -4185,6 +4185,8 @@ const STRINGS = {
     ik_head_open_other: "{n} open",
     ik_head_nobody_one: "{n} nobody holds",
     ik_head_nobody_other: "{n} nobody holds",
+    ik_head_held_one: "{n} being worked on",
+    ik_head_held_other: "{n} being worked on",
     ik_head_over_one: "{n} past its promise",
     ik_head_over_other: "{n} past their promise",
     ik_head_asker_one: "You have {n} request open",
@@ -4680,7 +4682,7 @@ const STRINGS = {
 
     // ---- the Obligations tab (J-2.1) ----
     ob_band_overdue: 'Overdue',
-    ob_band_month: 'Due this month',
+    ob_band_month: 'Due in the next 30 days',
     ob_band_later: 'Later',
     /* ---- THE PAYMENT CHAIN (L, 31 Aug 2026) ---- */
     ob_band_waiting: 'Waiting on an earlier step',
@@ -13452,6 +13454,8 @@ const STRINGS = {
     ik_head_open_other: "{n} öppna",
     ik_head_nobody_one: "{n} som ingen håller i",
     ik_head_nobody_other: "{n} som ingen håller i",
+    ik_head_held_one: "{n} som någon arbetar med",
+    ik_head_held_other: "{n} som någon arbetar med",
     ik_head_over_one: "{n} över sitt löfte",
     ik_head_over_other: "{n} över sina löften",
     ik_head_asker_one: "Du har {n} öppen förfrågan",
@@ -13912,7 +13916,7 @@ const STRINGS = {
 
     // ---- fliken Åtaganden (J-2.1) ----
     ob_band_overdue: 'Försenade',
-    ob_band_month: 'Förfaller denna månad',
+    ob_band_month: 'Förfaller inom 30 dagar',
     ob_band_later: 'Senare',
     /* ---- BETALNINGSKEDJAN (L, 31 aug 2026) ---- */
     ob_band_waiting: 'Väntar på ett tidigare steg',
