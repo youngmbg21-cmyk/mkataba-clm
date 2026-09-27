@@ -34,7 +34,8 @@ Most important first. This order is a first draft; change it any time by telling
 7. ✅ **Company standard template**
    We paste our own consulting agreement into the template builder, make its three fill-in places blanks, file it and publish it; then draft a contract from it and fill its blanks. Carries one known problem (see the report).
 
-8. ⬜ **Add a colleague and control which contracts they can see**
+8. ✅ **Add a colleague and control which contracts they can see**
+   We file two contracts in two value streams and add a colleague who may see only one. She sees that contract and nothing else, and a link to the other does not open it; when we widen her access, both are there.
 
 9. ⬜ **Obligations**
    Add one, mark it done, and chase the other side.

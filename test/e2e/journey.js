@@ -194,8 +194,12 @@ async function signUp(page, hati, o) {
   ]);
 }
 
-async function draftNda(page, o) {
-  return inParts(o, 'Draft a Mutual NDA with Juno Logistics Ltd from HaTi\'s templates', [
+/* `o.with` drafts it with another company ({company, email}); `o.stream` files
+   it under another value stream (the name as the box shows it). */
+async function draftNda(page, o = {}) {
+  const them = o.with || THEM;
+  return inParts(o, 'Draft a Mutual NDA with ' + them.company + ' from HaTi\'s templates'
+    + (o.stream ? ', filed under ' + o.stream : ''), [
     ['Press "+ Draft new agreement", then "Draft from HaTi"', async () => {
       await page.locator('#side-nav [data-view="dashboard"]').click();   // "Home", where the button is
       await page.locator('#hero-draft').click();                 // "+ Draft new agreement"
@@ -203,15 +207,16 @@ async function draftNda(page, o) {
     }],
     ['Pick the NDA and answer its questions: who it is with, their email, the end date', async () => {
       await page.locator('[data-wz-tid="ND"]').click();          // "NDA" in the list of templates
-      await page.locator('#wz-counterparty').fill(THEM.company); // Counterparty
-      await page.locator('#wz-cpemail').fill(THEM.email);        // Their email
+      await page.locator('#wz-counterparty').fill(them.company); // Counterparty
+      await page.locator('#wz-cpemail').fill(them.email);        // Their email
       await page.locator('#wz-expiry').fill(yearsFromToday(2));  // End / expiry date
+      if (o.stream) await page.locator('#wz-folder').selectOption({ label: o.stream });   // Value stream
     }],
     ['Press "Create draft" — the new contract opens as a draft', async () => {
       await page.locator('#na-create').click();
       const head = page.locator('#ws-head');
       await expect(head, 'the contract\'s name ("' + NDA + '") is at the top').toContainText(NDA);
-      await expect(head, 'the top says who it is with ("' + THEM.company + '")').toContainText(THEM.company);
+      await expect(head, 'the top says who it is with ("' + them.company + '")').toContainText(them.company);
       await expect(head, 'the top says it is still being drafted ("Drafting")').toContainText('Drafting');
     }],
   ]);
@@ -292,7 +297,7 @@ async function addColleague(page, hati, who, { role = 'legal', streams = '*' } =
   if (streams === '*') await page.locator('#tm-access').selectOption('*');  // every folder
   else {
     await page.locator('#tm-access').selectOption('pick');                 // only the folders ticked
-    for (const name of streams) await page.locator('.st-drawer label', { hasText: name }).locator('input').check();
+    for (const name of streams) await page.locator('#st-drawer label', { hasText: name }).locator('input[data-tm-folder]').check();
   }
   await page.locator('#st-dsave').click();                          // "Save & close"
   await expect(page.locator('#content'), who.name + ' is listed among the people').toContainText(who.name);
