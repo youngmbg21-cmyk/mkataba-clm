@@ -19,6 +19,11 @@
 # filesystem is wiped on every deploy and all contracts/accounts are lost. The
 # `disk` below provides that permanent storage and HATI_DATA points the app at
 # it — together they keep data across deploys and restarts.
+#
+# NODE_ENV=production tells the server it is running live (Young said yes,
+# 27 Sep 2026). Express then keeps its own development behaviour out of
+# answers, and the build's `npm install` skips the three packages only the
+# tests use (eslint, jsdom, playwright-core) — the server needs express alone.
 services:
   - type: web
     name: hati-clm
@@ -34,6 +39,8 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "22"
+      - key: NODE_ENV
+        value: production
       - key: HTTPS
         value: "true"
       - key: HATI_DATA

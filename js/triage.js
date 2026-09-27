@@ -323,7 +323,9 @@ function triageTiles(c){
     try{ fillNone = contractBlanksNone(c); }catch(_){ fillNone = null; }
   }
   const NONE_WHY = { form: 'tri_fill_form', upload: 'tri_fill_upload',
-                     nego: 'tri_fill_nego', none: 'tri_fill_nothing', theirs: 'tri_fill_theirs' };
+                     nego: 'tri_fill_nego', none: 'tri_fill_nothing', theirs: 'tri_fill_theirs',
+                     /* A signed contract (27 Sep 2026) — see contractBlanksNone. */
+                     sealed: 'tri_fill_sealed' };
   /* ---- "OPEN FIELDS ARE ON THE PANEL" HAS TO SAY WHICH (Young reported it
      21 Sep 2026: "the open fields is not sharing anything meaningful") ----
      The `form` reason said *"This contract fills in from its own panel on the
@@ -512,7 +514,13 @@ async function triageRun(c, opts = {}){
          back the same way. api() no longer toasts one for a quiet caller — see
          its own note — so carrying it here is what stops a suppressed box
          becoming a silent trim. */
-      const o = { quiet: true };
+      /* `fresh` IS A PERSON ASKING FOR EVERY READING AGAIN — a renewal's
+         Decide (roomReadOnArrival, 27 Sep 2026). The brief is the one reading
+         here with a cache (the server keeps it per wording), so without
+         `force` it would hand back the brief it already had and the reader
+         would be looking at last month's date under "read again". The other
+         three always ask afresh. Absent on every other caller. */
+      const o = { quiet: true, force: !!opts.fresh };
       const r = (typeof runContractBrief === 'function')
         ? await runContractBrief(c, o) : { error: triageAbsent() };
       if (r && r.error) t.steps.brief = triageFail(r.error);

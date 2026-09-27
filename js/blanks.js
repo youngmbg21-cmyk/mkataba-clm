@@ -111,7 +111,7 @@ function contractHasBlanks(c){
    gate on whether the blanks PANEL draws — widening this could never make two
    panels draw on one contract, which is the trap paintContractForm exists to
    avoid. */
-const BLANK_NONE_REASONS = ['form', 'upload', 'nego', 'none', 'theirs'];
+const BLANK_NONE_REASONS = ['form', 'upload', 'nego', 'none', 'theirs', 'sealed'];
 function contractBlanksNone(c){
   if(!c) return 'none';
   /* A COMPANY-STANDARD CONTRACT IS NOT "NOTHING TO FILL" — it declares its own
@@ -150,6 +150,15 @@ function contractBlanksNone(c){
       return contractBlanksOpen(c).length ? null : 'none';
     }
   }catch(_){ return 'upload'; }
+  /* A SIGNED CONTRACT IS NOT "IN NEGOTIATION" (27 Sep 2026). Stored wording
+     read as "the wording is the negotiation's now", which is true of a deal
+     still being argued and false of one that is signed — and a signed
+     contract's Overview started showing it the day a renewal's Decide began
+     reading the contract again. The wording is final, and the tile says so.
+     negoWordingFrozen is the one reading of that (executed, any signature, or
+     handed over), asked through window; the status is the fallback on a stage
+     without the change model. */
+  try{ if(c.status === 'Signed' || (typeof negoWordingFrozen === 'function' && negoWordingFrozen(c))) return 'sealed'; }catch(_){}
   if(c.redlineText) return 'nego';
   if(!contractHasBlanks(c)) return 'none';
   /* It looked, and every blank is answered. The honest "none". */

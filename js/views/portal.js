@@ -2956,13 +2956,20 @@ function portalAlerts(c, p){
     if (replied.length) push('reply', 'gray', i18tn('pa_reply', replied.length, { n:replied.length }),
       () => portalGoToChange(replied[0].id));
   }
-  /* 5. THEY ARE WAITING FOR YOU TO SIGN — only where this page actually offers
-        the act, read off the button's own gate rather than recomputed. A
+  /* 5. YOU CAN TELL THEM YOU ARE READY TO SIGN — only where this page actually
+        offers the act, read off the button's own gate rather than recomputed. A
         second copy of negoAlignment here would be free to disagree with the
-        button an inch below it. */
+        button an inch below it.
+        THE ROW SAYS WHAT ITS PRESS DOES (Young said yes, 27 Sep 2026). It read
+        "They are waiting for you to sign", which is not true — nobody asked
+        them to sign, and the press does not sign: it presses their own Ready to
+        sign button, which tells us they are ready. So the row is that button's
+        OWN sentence, the words on its hover, asked by key: one act, one
+        sentence, and the two cannot drift. pa_ready_to_sign is INERT in both
+        books. */
   const ready = document.getElementById('pt-nego-ready');
   if (ready && !ready.disabled && !waiting.length && !held)
-    push('sign', 'green', i18t('pa_ready_to_sign'), () => ready.click());
+    push('sign', 'green', i18t('po_ready_tell_title'), () => ready.click());
   /* 6. WHEN THE LINK DIES. A fact, stated once, and only when it is close —
         no door, because there is nothing on this page that changes it. */
   const exp = PORTAL_OPTS.share && PORTAL_OPTS.share.expiresAt;

@@ -1483,6 +1483,13 @@ function needsYouGo(kind, id){
     if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); else openWorkspace(c.id);
     return true;
   }
+  /* A RENEWAL IS DECIDED ON TODAY'S READING (Young, 27 Sep 2026: "the 5
+     checks … should run all over again so that you can see what they say
+     before you go through the steps of deciding"). Registered BEFORE the room
+     opens and spent by the Overview when it paints — roomReadOnArrival says
+     why it is not started here. Every home that presses this door inherits it:
+     the checklist's Decide, Home's renewal row and the bell's renewal rows. */
+  if(kind==='renewal' && window.roomReadOnArrival) try{ roomReadOnArrival(c.id); }catch(_){}
   openWorkspace(c.id);
   if(kind==='sign'){ if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} return true; }
   if(kind==='renewal'){ if(window.roomGoTab) try{ roomGoTab(c,'terms'); }catch(_){} return true; }
@@ -1736,7 +1743,7 @@ function renderDashboard(){
   const ddShown=decisionItems.slice(0,HM_DD_ROWS);
   const ddRowsHtml=ddShown.length
     ? `<div class="hm-rows" id="hm-dd-rows">${ddShown.map(it=>`
-        <button type="button" class="hm-row ${it.urgent?'is-neg':'is-crit'}" data-sel="${esc(it.cid)}" data-dd-kind="${esc(it.kind||'')}">
+        <button type="button" class="hm-row ${it.urgent?'is-neg':'is-crit'}" data-sel="${esc(it.cid)}" data-dd-kind="${esc(it.kind||'')}"${it.kind==='renewal'?` title="${esc(i18t('ins_need_go_terms'))}"`:''}>
           <span class="hm-rdot" aria-hidden="true"></span>
           <span class="hm-rb"><span class="hm-rt">${it.txt}</span><span class="hm-rm">${it.meta}</span></span>
           <span class="hm-rtag">${esc(it.tag)}</span>
