@@ -21878,3 +21878,15 @@ Tests: f394, explorer-verify; insights-panels-verify 15e re-pointed (a legend ro
 **MEASURED.** The browser file stages every kind through the product's own acts (the desk claimed deliberately, a real review request, a real signing route, a renewal on an owned contract, a join request on the desk) and presses every button. At the parent 21 of 25 checks fail; three had first passed there vacuously (a panel with no checklist does not grow sideways, leaves out an unowned renewal and leaves the signature out) and were gated on the row having been drawn. At night the head reads 6:1.
 
 Tests: f395 (26 claims, 25 red at the parent), inspector-checklist-verify (25 checks, 21 red at the parent).
+
+### AND HOME'S CARD LISTS THE SAME FIVE (Young: yes, 27 Sep 2026)
+
+Asked the same evening whether Home's "Needs your decision" should match the checklist, the owner said yes. Until then the card listed two things the checklist never did. **"Waiting on review"** was every contract in the book sitting at Under Review, longest first — a queue nobody owns, naming nothing the reader has to do; on the sample book it was all twelve of the card's rows. **A renewal** was listed on every reader's card, whoever owned the contract.
+
+**THE CHANGE IS TWO LINES IN ONE FUNCTION.** `hmDecisionItems` stops reading `waitingLongest` and asks the renewal source `owns(x.c)` — `contractOwnedBy(c, me)`, the very question `needsYouOf` asks. The slice itself stays: the phone's own list (`mNeedsYou`) reads it and was not part of the ask. The bell still rings for every renewal inside thirty days, and the Map and the calendar still count them, so an unowned renewal is not lost — it is off the one list that is about the reader by name.
+
+**MEASURED ON THE SAMPLE BOOK** (a fresh workspace, the sample ticked): before, 12 items, every one "Waiting on review"; after, none, and the card says "Nothing to decide — you're all caught up." No sample contract has an owner (they are raised by 'System', which the owner readings refuse on purpose), so no renewal there can be anybody's.
+
+**THE TESTS THAT STAGED THE OLD ROWS WERE RE-POINTED, NOT DELETED.** f382 (3) staged five contracts in review to get five rows; it stages five renewal decisions the reader owns now, each put away from the desk — without that stamp the desk draws the nearest renewal and the one-door rule takes it off the card, which silently made every count one short on the first try. f381's one row was MK-4 in review and is MK-1's owned renewal. home-page-verify 11 stamps the reader as owner of its two renewals (the seeded book is owned by nobody, so every "it is on the list" claim would have been false for an unrelated reason) and 12 stages owned renewals instead of idle reviews. f274's filter regex and f395's 1d wall were re-pointed in place — 1d was a wall for exactly one commit, "Home's card is unchanged", and is reversed.
+
+**RED AT a007cdb**: f382 (3)'s three new claims and home-page-verify 12h / 12i. 12i2 is the control: the same renewal owned by the reader IS on the list, so 12i was the owner question and not a renewal the reading could not see.

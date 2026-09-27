@@ -7785,6 +7785,10 @@ const STRINGS = {
     home_docs_other: '{n} docs',
     home_more_arrow: '+ {n} more →',
     home_renew_or_exit: 'Renew or exit — {name}',
+    /* home_waiting_on_review and home_idle_days are STALE ON THE FACE since
+       27 Sep 2026 — Home's "Needs your decision" stopped listing contracts
+       sitting in review (it lists the side panel checklist's five kinds).
+       Kept INERT in both books. */
     home_waiting_on_review: 'Waiting on review — {name}',
     home_decide_by: '{who} · decide by {when}',
     home_today: 'today',
@@ -16244,6 +16248,8 @@ const STRINGS = {
     home_docs_other: '{n} dokument',
     home_more_arrow: '+ {n} till →',
     home_renew_or_exit: 'Förnya eller avsluta — {name}',
+    /* home_waiting_on_review och home_idle_days: STALE ON THE FACE sedan
+       27 Sep 2026 (see the English book). Kept INERT in both books. */
     home_waiting_on_review: 'Väntar på granskning — {name}',
     home_decide_by: '{who} · beslut senast {when}',
     home_today: 'i dag',

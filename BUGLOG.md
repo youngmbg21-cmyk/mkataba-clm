@@ -19504,3 +19504,20 @@ Noticed, not fixed
 - "The other side is waiting on us" (deskStaleInboxFor) needs an open desk, and a desk opens only when somebody on our side files a change or claims it. A negotiation where only the other side has filed never counts as waiting on us — on Home, in the bell or in the checklist.
 - renewalDecisionsDue in js/obligations.js has no caller, and its first condition does nothing.
 - Still waiting for a "go" from the 27 Sep answers: the alert for "Accept the wording", their bell's "They are waiting for you to sign" wording, NODE_ENV=production in render.yaml.
+
+## Run 27 Sep 2026 (late evening) — Home's "Needs your decision" lists the checklist's five kinds
+
+- On the owner's word: "Yes" to "should Home's 'Needs your decision' card drop the 'Waiting on review' rows and the renewals of contracts you do not own, so it matches the new checklist". Built on claude/platform-bugs-cleanup-u80mhu, on top of the checklist (a007cdb).
+- Built: the card no longer lists every contract sitting in review, and lists a renewal only for the person who owns the contract (the same ownership question the checklist asks). The review queue is still worked out for the phone's own list, which was not part of the ask. The two sentences that row used are left inert in both books.
+- Measured on a fresh workspace with the sample portfolio: before, the card held 12 items, every one "Waiting on review"; after, none, and it says "Nothing to decide — you're all caught up." No sample contract has an owner, so no renewal there is anybody's.
+- Tests re-pointed in place (the ones that staged contracts in review to fill the card): f382 (3) stages renewal decisions the reader owns, put away from the desk (otherwise the desk draws the nearest one and the one-door rule takes it off the card); f381's one card row is an owned renewal; f274's filter check reads the new owner question; f395 1d (a wall saying "Home's card is unchanged") is reversed; home-page-verify 11 stamps the reader as owner of its two renewals and 12 stages owned renewals.
+- Gates: lint 0 errors, 178 warnings (unchanged). f382 22/22 (three new claims red at a007cdb, one control). f395 26/26 (1d red at a007cdb). f274, f381, f3, f363 green. home-page-verify 66/66 (12h and 12i red at a007cdb; 12i2 is the control; everything else passes on both). inspector-checklist-verify 25/25, runway-and-xray-verify 42/42, renewal-decision-verify 24/25 (6b red before and after, logged 17 Sep).
+- Full suite: 9,585 tests, 9,583 pass; the 2 that fail are f277 (1) and (10), red on main before this session (logged 26 Sep) and left red.
+
+Deliberately left alone (said to the owner)
+- The phone's own "needs you" list still shows contracts sitting in review and every renewal due. It is a separate screen and was not asked about.
+- Question 2 from the checklist run (should Home's rows and the bell's renewal and join rows open the exact place, as the checklist's buttons do?) — the owner did not follow it; asked again in plain words, nothing built.
+
+Noticed, not fixed
+- No sample-portfolio contract has an owner (they are raised by "System", which the owner readings refuse on purpose), so in a sample workspace no renewal ever appears on Home's card or in the checklist.
+- white-band-and-tabs-verify: 5-ref, 5a and "the journey ran to the end" fail — the Insights tabs are not found. The same three fail at a007cdb, before this change.

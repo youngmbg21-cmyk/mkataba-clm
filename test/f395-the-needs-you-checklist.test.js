@@ -24,8 +24,11 @@
      7  the words in both books, the clothes in HaTi's sheet, the names published
 
    RED AT THE PARENT (c8a049d), measured in a worktree: 25 of 26 FAIL. The
-   one that passes is the [wall] 1d — Home's card still lists its six kinds;
-   this change narrowed nothing on Home.
+   one that passed there was 1d, a [wall] saying Home's card still listed its
+   six kinds — and it is REVERSED IN PLACE the same day (27 Sep 2026), when
+   Young said yes to the card listing the checklist's own five: measured, at
+   c8a049d all 26 FAIL and at a007cdb (the checklist) only 1d does. The card's
+   behaviour is DRIVEN in f382 (3); 1d holds the source to the same shape.
    ============================================================ */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
@@ -105,10 +108,20 @@ describe('f395 (1) — one reading, and it is Home\'s', () => {
     assert.ok(/const decisions=cs\.map\(c=>hmRenewalDue\(c\)\)\.filter\(Boolean\)/.test(slices), 'decisions from hmRenewalDue');
     assert.ok(!/renewalDecided\|\|/.test(slices), 'the inline copy of the question is gone from the slices');
   });
-  test('1d [wall] Home\'s card still lists its six kinds — the checklist narrowed nothing on Home', () => {
+  /* REVERSED IN PLACE the same day (27 Sep 2026). For one commit this was a
+     [wall] — "Home's card still lists its six kinds; the checklist narrowed
+     nothing on Home". Then Young said yes to the card listing the SAME five
+     kinds as the checklist: "Waiting on review" left it (every contract
+     sitting in review, a queue nobody owns and a line the checklist never
+     had), and a renewal is a row only for the contract's owner — the question
+     needsYouOf asks. */
+  test('1d Home\'s card lists the checklist\'s five kinds, and asks the checklist\'s ownership question of a renewal', () => {
     const card = code(fnOf(HOME, 'hmDecisionItems'));
-    for (const src of ['myReviews', 'myStaleDesks', 'myJoinAsks', 'mySignings', 'decisions', 'waitingLongest'])
-      assert.ok(card.includes(src), 'the card still reads ' + src);
+    for (const src of ['myReviews', 'myStaleDesks', 'myJoinAsks', 'mySignings', 'decisions'])
+      assert.ok(card.includes(src), 'the card reads ' + src);
+    assert.ok(!card.includes('waitingLongest'), 'and no longer reads the review queue nobody owns');
+    assert.ok(/\.filter\(x=>!deskIds\.has\(x\.c\.id\)&&owns\(x\.c\)\)/.test(card), 'a renewal row is asked whether the reader owns it');
+    assert.ok(/contractOwnedBy\(c, me\)/.test(card), 'and that is contractOwnedBy, asked as the checklist asks it');
   });
 });
 

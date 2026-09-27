@@ -376,8 +376,8 @@ function hmDashSlices(){
      handed out with the slices below. */
   const rdd=window.renewalDecisionDate||(()=>null);
   const decisions=cs.map(c=>hmRenewalDue(c)).filter(Boolean).sort((a,b)=>a.d-b.d);
-  /* Paper that has sat in review, longest first — the other half of what a
-     person has to decide about, alongside the renewals. */
+  /* Paper that has sat in review, longest first. THE PHONE'S LIST READS IT;
+     the desktop card stopped reading it on 27 Sep 2026 (see hmDecisionItems). */
   const waitingLongest=cs.filter(c=>c.status==='Under Review').map(c=>({c,idle:idleOf(c)})).sort((a,b)=>b.idle-a.idle);
   const highRisk=cs.filter(c=>c.status!=='Declined').map(c=>({c,r:contractRisk(c)})).filter(x=>x.r>=60).sort((a,b)=>b.r-a.r);
   // Awaiting counterparty = contracts that are OUT with a counterparty and not
@@ -1323,7 +1323,11 @@ function hmReviewLate(rv){
    make. */
 function hmDecisionItems(S, deskRows){
   const SL=S||hmDashSlices();
-  const { cs, myReviews, myStaleDesks, myJoinAsks, decisions, waitingLongest, fmtDDay } = SL;
+  const { cs, myReviews, myStaleDesks, myJoinAsks, decisions, fmtDDay } = SL;
+  /* THE SAME OWNERSHIP QUESTION THE CHECKLIST ASKS (needsYouOf): nobody
+     signed in owns nothing, so a page with no reader draws no renewal. */
+  const me=SL.me||((typeof currentUser==='function')?currentUser():null);
+  const owns=c=>!!(me&&typeof contractOwnedBy==='function'&&contractOwnedBy(c, me));
   const shown=deskRows||((typeof deskItems==='function'&&typeof deskShown==='function')?deskShown(deskItems(cs)):[]);
   /* ONLY THE RENEWAL SOURCE IS FILTERED, and that is the whole precision of the
      one-door rule: a colleague waiting on your review is a different subject
@@ -1391,20 +1395,26 @@ function hmDecisionItems(S, deskRows){
       tag:i18t('home_sign_tag'),
       verb:i18t('home_verb_sign'),
     })),
-    ...(decisions||[]).filter(x=>!deskIds.has(x.c.id)).map(x=>({
+    /* A RENEWAL IS ASKED OF THE PERSON WHO OWNS THE CONTRACT (27 Sep 2026,
+       Young: yes to "the card lists the same five kinds as the side panel's
+       checklist"). The checklist offers a renewal only where contractOwnedBy
+       says the reader owns the contract; this card asked nothing and put
+       every renewal in the book in front of every reader. A renewal of a
+       contract somebody else owns still rings in the bell inside thirty days,
+       and still shows on the Map and the calendar. */
+    ...(decisions||[]).filter(x=>!deskIds.has(x.c.id)&&owns(x.c)).map(x=>({
       cid:x.c.id, urgent:x.d<=HM_SOON_DAYS,
       txt:i18t('home_renew_or_exit',{name:strong(x.c.name)}),
       meta:i18t('home_decide_by',{who:esc(x.c.counterparty||i18t('home_no_counterparty')),when:fmtDDay(x.dd)}),
       tag:x.d===0?i18t('home_today'):i18t('home_in_days',{n:x.d}),
       verb:i18t('home_verb_decide'),
     })),
-    ...(waitingLongest||[]).map(x=>({
-      cid:x.c.id, urgent:x.idle>=30,
-      txt:i18t('home_waiting_on_review',{name:strong(x.c.name)}),
-      meta:`${esc(x.c.counterparty||i18t('home_no_counterparty'))} · ${esc(window.contractRef?contractRef(x.c):x.c.id)}`,
-      tag:i18t('home_idle_days',{n:x.idle}),
-      verb:i18t('act_open'),
-    })),
+    /* "WAITING ON REVIEW" LEFT THE CARD THE SAME DAY. It was every contract in
+       the book sitting at Under Review, longest first — a queue nobody owns,
+       naming nothing this reader has to do, so the checklist beside the
+       contract never had a line for it. The slice stays in hmDashSlices: the
+       phone's own list still reads it. home_waiting_on_review and
+       home_idle_days are INERT in both books. */
   ];
   return decisionItems;
 }
