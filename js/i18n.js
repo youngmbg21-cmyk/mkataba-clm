@@ -8756,6 +8756,8 @@ const STRINGS = {
     dk_stale_card: '{who} has been waiting on us',
     dk_stale_sub_one: '1 proposal of theirs is unanswered · led by {who}',
     dk_stale_sub_other: '{n} proposals of theirs are unanswered · led by {who}',
+    dk_stale_sub_nolead_one: '1 proposal of theirs is unanswered · nobody on our side has taken it yet',
+    dk_stale_sub_nolead_other: '{n} proposals of theirs are unanswered · nobody on our side has taken them yet',
     dk_stale_tag: '{n} days',
     dk_set_stale: 'Flag a negotiation when the counterparty has waited this many working days',
     /* The one sentence about our side that ever reaches theirs. */
@@ -17686,6 +17688,8 @@ const STRINGS = {
     dk_stale_card: '{who} har väntat på oss',
     dk_stale_sub_one: '1 av deras förslag är obesvarat · leds av {who}',
     dk_stale_sub_other: '{n} av deras förslag är obesvarade · leds av {who}',
+    dk_stale_sub_nolead_one: '1 av deras förslag är obesvarat · ingen på vår sida har tagit det än',
+    dk_stale_sub_nolead_other: '{n} av deras förslag är obesvarade · ingen på vår sida har tagit dem än',
     dk_stale_tag: '{n} dagar',
     dk_set_stale: 'Flagga en förhandling när motparten har väntat så här många arbetsdagar',
     dk_cp_notice: '{who} hanterar nu det här avtalet hos oss.',

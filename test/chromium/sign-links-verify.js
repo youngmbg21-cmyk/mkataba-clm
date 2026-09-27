@@ -51,7 +51,12 @@ const ROUTE = [
 
 (async () => {
   const h = await startHati();
-  await seedWorkspace(h);
+  /* RE-POINTED IN PLACE (27 Sep 2026, the owner's list, r1): this file is about
+     sign links, not approval rules, and every fixture is over the legacy
+     5,000,000 default — which the SERVER now enforces, so the signing link
+     section 3 mints and the executed record staged below were refused. The
+     workspace states it has no rules (the helper's own note says why). */
+  await seedWorkspace(h, { approvalRules: [] });
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 1000 } });
   const page = await ctx.newPage();
@@ -346,11 +351,6 @@ const ROUTE = [
          real blocker and correctly on the list. Cleared here so the last claim
          is about the EMPTY list rather than about approvals. */
       state.settings = { ...(state.settings || {}), approvalRules: [] };
-      /* RE-POINTED IN PLACE (27 Sep 2026, the owner's list, r1): the approval
-         rules are a wall on the SERVER now, so "no rules" is staged where the
-         rule is enforced too — the admin's own Settings save — or the
-         signature this section presses is refused by the server. */
-      await saveSettings();
       /* RE-POINTED 23 Sep 2026 (signing without the facts): an EMPTY BOX in
          HaTi's own paper holds a signature now (the `blanks` row), and this
          fixture's template boxes were never filled — a real blocker, correctly
