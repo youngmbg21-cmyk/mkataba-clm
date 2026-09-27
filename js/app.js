@@ -58,6 +58,7 @@ import './views/home.js';
    pages that draw it; it publishes its names and asks theirs through window. */
 import './views/inspector.js';
 import './views/approvalsview.js'; // Approvals & signing: a door onto two readings Home already makes (20 Sep 2026)
+import './views/agents.js';        // Copilot's work: the five agents, every one a reading of work HaTi already does (27 Sep 2026)
 import './views/register.js';
 import './ocr.js';
 import './dedupe.js';
@@ -182,6 +183,7 @@ function commandMeta(view){
     case 'advice':    return [i18t('nav_advice_desk'), i18t('pg_advice_sub')];
     case 'obligations': return [i18t('nav_obligations'), ''];
     case 'approvals': return [i18t('nav_approvals'), ''];
+    case 'agents':    return [i18t('nav_agents'), ''];
     case 'intake':    return [i18t('nav_intake'), i18t('pg_intake_sub')];
     // Named to match the nav item exactly. One feature answering to two names
     // is one name too many for a reader trying to describe where they were.
@@ -263,7 +265,7 @@ const PAGE_ACTIONS = {
 /* WHICH PAGES PAINT THEIR OWN HEAD SLOTS, and the painter each one answers
    to, by name — asked through window, because not every page's module is on
    every stage. */
-const PAGE_HEAD_PAINT = { obligations:'obwPaintHead', intake:'ikPaintHead', playbook:'pbPaintHead' };
+const PAGE_HEAD_PAINT = { obligations:'obwPaintHead', intake:'ikPaintHead', playbook:'pbPaintHead', agents:'agPaintHead' };
 function pageActionHtml(kind){
   if(kind==='export') return `<button data-page-export class="ui-btn" title="${i18t('ap_export_working_set')}">`+
     `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:-2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>${i18t('ap_export')}</button>`;
@@ -665,6 +667,9 @@ function updateSidebarCounts(){
     /* WHAT WAITS ON THIS READER'S YES OR SIGNATURE — the rows the Approvals &
        signing page draws, so the door and the page cannot disagree. */
     approvals: (typeof approvalsDoorCount==='function')?approvalsDoorCount():0,
+    /* WHAT COPILOT HAS READY FOR A PERSON TO LOOK AT — the page head's own
+       number (agentsDoorCount), so the door and the page cannot disagree. */
+    agents: (typeof agentsDoorCount==='function')?agentsDoorCount():0,
     /* obligationDue, not `.slice(0,10)`: slicing ten characters off "31 March
        2027" produces "31 March 2", which is not a date either — the count
        simply left out every obligation whose date a person had typed. */
@@ -684,7 +689,7 @@ function updateSidebarCounts(){
   /* Tone of the count pill: teal = size of the portfolio, amber = items
      waiting on a person. A zero drops to neutral so an amber tag never cries
      wolf over an empty queue. */
-  const NAV_COUNT_TONE={register:'teal',calendar:'amber',migration:'amber',pipeline:'amber',advice:'amber',negotiations:'amber',intake:'amber',obligations:'amber',approvals:'amber'};
+  const NAV_COUNT_TONE={register:'teal',calendar:'amber',migration:'amber',pipeline:'amber',advice:'amber',negotiations:'amber',intake:'amber',obligations:'amber',approvals:'amber',agents:'amber'};
   document.querySelectorAll('[data-count]').forEach(el=>{
     const k=el.getAttribute('data-count'); const v=counts[k];
     el.textContent=(v==null||v==='')?'':Number(v).toLocaleString(jxLocale());
@@ -734,7 +739,7 @@ function updateSidebarCounts(){
 /* ============================================================ SHELL VIEW SWITCH */
 const VIEW_LABEL = { dashboard:'Home', folder:'this value stream', intel:'Insights',
   calendar:'Calendar', reports:'Reports', register:'Contracts', migration:'Import contracts',
-  pipeline:'Pipeline', advice:'Advice desk', intake:'Requests', obligations:'Obligations', approvals:'Approvals & signing', templates:'Templates', playbook:'Our standards',
+  pipeline:'Pipeline', advice:'Advice desk', intake:'Requests', obligations:'Obligations', approvals:'Approvals & signing', agents:"Copilot's work", templates:'Templates', playbook:'Our standards',
   team:'Team & settings', directory:'People', workspace:'the contract workspace',
   redline:'Negotiations' };
 
@@ -904,6 +909,7 @@ function setView(view){
     else if(view==='advice') renderAdviceDesk();
     else if(view==='obligations') renderObligationsList();
     else if(view==='approvals') renderApprovalsPage();
+    else if(view==='agents') renderAgentsPage();
     else if(view==='intake') renderIntake();
     else if(view==='templates') renderTemplatesPage();
     else if(view==='playbook') renderPlaybookPage();

@@ -19609,3 +19609,21 @@ Noticed, not fixed
 - The Signing order card's own foot line is hard-coded English and says each counterparty link is "held until every internal signature is in" — untrue for a route where they sign first; "Add or reorder signers", "Add signers" and "N of M signed" beside it are hard-coded English too.
 - f258 (4) and f267 (17) are red on main at 5409902: both pin the Contracts page's Clear button as setting each filter back by hand, which the fresh-filters change replaced with one reading. That run's log says only f277 was red.
 - button-consistency-verify "2-stage" and "2a" are red at 5409902: Home shows no decision row in the file's staging ("8 desk verbs · 0 decision verbs"), though the file was 17/17 earlier on 27 Sep.
+
+## Run 27 Sep 2026 — Copilot's work: the agents
+
+- On the owner's word, after the "Work Board Options" artifact: "Build the agents idea, merge to main then move it to be after the home page then move insights to below calendar." Built on claude/happy-thompson-6puam1 from main (231b9fc).
+- Built: a Work door "Copilot's work" onto five agents — Their round came back, Renewals, New paper, Late promises, Archive import. Each shows what it does, when it runs, who reviews it and who pays, its steps with a count at each, what is ready for review, and what finished in the last 14 days. A review panel on each item carries only acts that already exist (the negotiation, the notice letter, the chase, put away, mark as read, the brief, the Overview, the import page). The rail count is the page head's "N ready for review".
+- It is a reading over the product's own readings (negoNeedsYouIds + redlinePlan, deskItems, triageCards, c.migration). No route, no store, no spend. Accept, refuse and counter are not offered; answering is the negotiation page's.
+- Tests: f399 23 claims (all red at 231b9fc). agents-page-verify 29 checks in a real browser, every panel button pressed (all but the stage and the error sweep red at 231b9fc). f148 SAME_IN_BOTH gained ag_k_import.
+- Gates: lint 0 errors, 178 warnings (unchanged). Browser: agents-page-verify 29/29, nav-floats-verify 67/67, keyboard-reach-verify 37/37, pages-read-alike-verify 52/52, laptops-verify 21/21; type-and-symbols-verify 48/49 fails the same check at 231b9fc.
+- Full suite: 9,691 tests, 9,685 pass; the 6 that fail — f258 (4), f267 (17), f277 (1), f277 (10), f387 (2) 2e, f387 (4) 4c — fail identically at 231b9fc and were left red.
+
+Deliberately left out (said to the owner)
+- "Send back with a note" (a model redoing work with nobody's press behind it), the Mine/Everyone switch, a spent-today figure, and the phone.
+
+Noticed, not fixed
+- Putting away a notice row (on Home's desk or on Copilot's work) brings back the plain renewal row for the same contract: deskItems' hasNotice only sees rows that are not put away.
+- desknight.js calls obligationBlocked(c, o) but the function takes (o, c), so the desk can offer a chase on a step that is still held back by a payment chain.
+- f387 (2) 2e and f387 (4) 4c are red at 231b9fc and were not in the last run's list (they read the end of a term in words; likely a date boundary).
+- type-and-symbols-verify "each one is painted at the size the sheet asks for" is red at 231b9fc (nine marks at 14x14).
