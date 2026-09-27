@@ -53,6 +53,7 @@ const M = {
   missing: 'Error: the email carries her personal signing link\n\nexpect(received).toBeTruthy()\n\nReceived: undefined',
   value: 'Error: the email\'s subject asks her to sign\n\nexpect(received).toContain(expected) // indexOf\n\nExpected substring: "sign"\nReceived string:    "Your document is ready"',
   overLines: 'Error: the Sign button no longer says "to settle"\n\nexpect(locator).not.toContainText(expected) failed\n\nLocator: locator(\'#sign-btn\')\nExpected substring: not "to settle"\nReceived string: "\n       Sign — 1 to settle\n    "\nTimeout: 15000ms\n\nCall log:\n  - the Sign button no longer says "to settle" locator(\'#sign-btn\') with timeout 15000ms\n  - waiting for locator(\'#sign-btn\')\n',
+  strict: 'Error: her own wording is in the column, ready to send\n\nexpect(locator).toContainText(expected) failed\n\nLocator: locator(\'#rl-side [data-nego-card]\').filter({ hasText: \'4. Termination\' })\nExpected substring: "Notice may also be given by e-mail."\nError: strict mode violation: locator(\'#rl-side [data-nego-card]\').filter({ hasText: \'4. Termination\' }) resolved to 2 elements:\n    1) <article class="rl-card" data-nego-card="CHG-004">…</article>\n    2) <article class="rl-card" data-nego-card="CHG-003">…</article>\n\nCall log:\n  - waiting for locator(\'#rl-side [data-nego-card]\').filter({ hasText: \'4. Termination\' })\n',
   testTimeout: 'Test timeout of 120000ms exceeded.',
   noChrome: 'Error: browserType.launch: Failed to launch chromium because executable doesn\'t exist at /nonexistent/chrome',
   noServer: 'Error: server exited: node:fs:1370\n  const result = binding.mkdir(\n\nError: ENOTDIR: not a directory, mkdir \'/dev/null/nope\'',
@@ -92,6 +93,12 @@ describe('f395 (2) explain(): what Playwright says, turned into what a person re
     const x = explain(M.overLines);
     assert.equal(x.should, 'the Sign button no longer says "to settle"');
     assert.equal(x.instead, 'The screen showed: "Sign — 1 to settle"');
+  });
+  test('two things where the check expected one is said as that, not as the check\'s own sentence twice', () => {
+    const x = explain(M.strict);
+    assert.equal(x.should, 'her own wording is in the column, ready to send');
+    assert.match(x.instead, /^It found 2 things on the screen that fit the description, where it expected one/);
+    assert.match(x.instead, /a job for the check, not for HaTi/);
   });
   test('something that was not there, and something that was there but hidden, are told apart', () => {
     assert.equal(explain(M.notFound).instead, 'It was not on the screen at all.');

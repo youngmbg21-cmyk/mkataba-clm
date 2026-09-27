@@ -19,8 +19,8 @@ Most important first. This order is a first draft; change it any time by telling
 2. ✅ **Both sides sign → the contract is sealed as signed**
    Their signer signs on her own page with a code HaTi emails her; our signer settles what HaTi asks before a signature (Copilot's readings, the brief) and signs inside HaTi. The contract reads Executed, its seal names both signatures, and both sides are emailed the signed PDF. Carries one known problem (see the report).
 
-3. ⬜ **A negotiation round**
-   We change a clause and send it. The other side accepts, rejects or counters on their page, and their answer reaches us.
+3. ✅ **A negotiation round**
+   We change three clauses and send them. The other side accepts one, turns one down with a reason and counters the third on their page, and their answers reach us.
 
 4. ⬜ **Review before sending**
    A colleague clears or holds our changes. A held change never goes to the other side.

@@ -191,7 +191,12 @@ function explain(err, failStep) {
      because it found something: say so. Otherwise quote what was there. */
   const found = /^(nothing|no)\b/i.test(out.should) ? 'It found: '
     : onScreen ? 'The screen showed: ' : 'It was: ';
-  if (/^Error: element\(s\) not found/m.test(msg)) {
+  const many = /strict mode violation: .* resolved to (\d+) elements/.exec(msg);
+  if (many) {
+    out.instead = 'It found ' + many[1] + ' things on the screen that fit the description, where it expected one, '
+      + 'so it could not tell which to check. Usually the check needs pointing more precisely (a job for the '
+      + 'check, not for HaTi) — unless something now appears twice that should appear once.';
+  } else if (/^Error: element\(s\) not found/m.test(msg)) {
     out.instead = 'It was not on the screen at all.';
   } else if (recv === 'hidden') {
     out.instead = 'It was on the page, but hidden.';

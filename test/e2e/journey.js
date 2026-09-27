@@ -252,6 +252,33 @@ async function sendForSignature(page, hati, o) {
   ]);
 }
 
+/* The Negotiate page for the contract on screen. */
+async function openNegotiatePage(page) {
+  await page.locator('#ws-tabs [data-ws-tab="docs"]').click();   // "Document" tab
+  await page.locator('#ws-to-nego').click();                       // "Start negotiating"
+  await expect(page.locator('.rl-clause').first(),
+    'the Negotiate page shows the agreement, clause by clause').toBeVisible();
+}
+
+/* Proposes one change the way a person does: the clause's own pencil opens
+   the clause editor, a sentence is typed at the end of the clause, and the
+   pencil again ("Done") files it. HaTi then offers to add a note; this skips
+   it, closes the notes and leaves the editor. */
+async function proposeASentence(page, clause, sentence) {
+  await page.locator('.rl-clause', { hasText: clause }).locator('[data-rl-cp-editor]').click();  // the clause's pencil
+  await page.locator('#ce-clausebody').click();                    // into the clause's wording
+  await page.keyboard.press('Control+End');                        // to the end of it
+  await page.keyboard.type(' ' + sentence);
+  await page.locator('#clause-editor .rl-cp-pill-done').click();   // the pencil again: "Done"
+  await expect(page.locator('#context-panel'),
+    'HaTi files the change to "' + clause + '" and offers to add a note to it').toContainText(clause);
+  await page.locator('[data-rl-np-unpin]').click();                // "Skip" the note
+  await page.locator('#panel-close').click();                      // close the notes
+  await page.locator('[data-ce-act="close"]').click();              // "Exit" the clause editor
+  await expect(page.locator('#rl-side [data-nego-card]', { hasText: clause }),
+    'the change to "' + clause + '" is listed beside the agreement').toBeVisible();
+}
+
 /* Opens a link the way the other side would: a separate browser, nobody
    signed in. Close it with `.close()`. */
 async function openAsThem(browser, link, nothingBroke, who = 'her page') {
@@ -288,5 +315,5 @@ function mailTo(hati, address) {
 
 module.exports = {
   test, expect, US, THEM, NDA, yearsFromToday, watchForCrashes, inParts, mailTo, KNOWN, knownProblem,
-  signUp, draftNda, nameSignersTheyFirst, sendForSignature, openAsThem,
+  signUp, draftNda, nameSignersTheyFirst, sendForSignature, openAsThem, openNegotiatePage, proposeASentence,
 };
