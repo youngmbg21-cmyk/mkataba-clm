@@ -7,6 +7,7 @@
     "start": "node server/server.js",
     "lint": "eslint .",
     "test": "node --test test/*.test.js",
+    "test:e2e": "playwright test",
     "test:browser": "node test/chromium/redline-verify.js",
     "test:selection": "node test/chromium/selection-verify.js",
     "test:parity": "node test/chromium/parity-verify.js",
@@ -41,6 +42,7 @@
     "express": "^4.19.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "eslint": "^9.39.5",
     "jsdom": "^29.1.1",
     "playwright-core": "^1.62.0"

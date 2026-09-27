@@ -96,6 +96,16 @@ THE OWNER'S OWN WORDS, 24 Aug 2026. They sit ABOVE the Bug Fix Rules because the
 - `node test/chromium/run-all.js` runs the whole browser set (four at a time) — what CI runs, not what you run while working. A file expected to fail is named in KNOWN_RED **with its reason**, printed on every run. **Take a file off that list the day it goes green.**
 - **A TEST WHOSE ANSWER DEPENDS ON THE DAY IT RUNS IS WORSE THAN NO TEST.** Fixture dates carrying a calendar claim are built with `monthSpan(off)` or quarter boundaries, never by counting days from today (f183 was red 264 days of 730). Faking node's clock does NOT move jsdom's — rule out the instrument before believing the finding.
 
+## THE END-TO-END JOURNEY — PLAYWRIGHT'S OWN RUNNER (owner-asked 27 Sep 2026)
+
+*"Set up Playwright and write one test for the most important user flow: sign up → create a contract → send for signature."*
+- `@playwright/test` (devDependency, matched to playwright-core) + `playwright.config.js` at the root, `testDir: './test/e2e'` and NOTHING wider (Playwright's default match would sweep up every node `*.test.js`). `npm run test:e2e`; `npx playwright show-report`. Not in CI and not in run-all.js — test/chromium stays the project's own harness. Its output folders are gitignored.
+- **IT STARTS FROM AN EMPTY SERVER AND PRESSES ONLY WHAT A PERSON PRESSES**: sign-up through the screen, no seeded workspace, no `page.evaluate` into the app. (134 of the 163 test/chromium scripts seed a workspace through the API first — right for measuring a screen, not for proving a journey.)
+- **EACH TEST STARTS ITS OWN EMPTY SERVER** — the `hati` fixture is `startHatiWithMail`, so the sign-up screen always appears and the stand-in provider records what "sent" means. No `webServer` in the config, on purpose.
+- `signup-to-signature.spec.js` presses what a person presses: #su-* → #hero-draft → `[data-nd-door="draft"]` → the NDA → #na-create → Signing tab → #sp-add-signer → #ws-share → Sign → #share-send → #cf-ok; then ONE email to their signer, the link on this server, the link opening on #pt-sign. Its end date is worked out from today.
+- **THEIR SIGNER GOES FIRST BY THE ARROW AND THE STEP BOX**: the arrow moves a row and not its step number (BUGLOG), and with our side first the link is correctly HELD, so nothing would be emailed.
+Tests: test/e2e/signup-to-signature.spec.js (5 of 5 in a row; red with the provider refusing, red with Share unwired).
+
 ## STANDING LESSONS — the defect classes this codebase has paid for repeatedly
 
 Each of these is recorded at length in docs/MAP-HISTORY.md; they are collected here because a new section keeps rediscovering them.
