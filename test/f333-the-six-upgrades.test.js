@@ -415,7 +415,11 @@ describe('f333 (9) two clauses to an outside adviser', () => {
     assert.match(CORE, /if\(payloadObj\.purpose==='advise'\)\{/);
     assert.match(CORE, /'#share-advise \.asl-cl:checked'/);
     assert.match(CORE, /if\(!ids\.length\)\{ toast\(i18t\('asl_pick_a_clause'\),'err'\); return false; \}/);
-    assert.match(CORE, /payloadObj\.purpose!=='advise' && email\)/,
+    /* RE-POINTED IN PLACE (27 Sep 2026): the reuse no longer lists the kinds it
+       refuses one by one — it reuses ONLY a negotiation link, and only for a
+       negotiation send (f406), which keeps this claim and closes the View case
+       the old list let through. */
+    assert.match(CORE, /\(payloadObj\.purpose\|\|'negotiate'\)==='negotiate' && email\)/,
       'and an advice payload is never PUT onto a standing negotiate link');
     /* THE WORD CHANNEL ATTACHES THE WHOLE CONTRACT, which is exactly what this
        purpose exists not to send — a file walks around the payload's

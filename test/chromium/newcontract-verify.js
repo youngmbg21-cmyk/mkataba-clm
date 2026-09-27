@@ -82,12 +82,22 @@ const FORM = () => {
   await page.fill('#ce-value', '2500000');
   await page.fill('#ce-effDate', '2026-09-01');
   await page.fill('#ce-expiry', '2027-08-31');
+  /* WHO WE ARE AND WHICH SIDE (the owner's list, 27 Sep 2026): both asked on
+     this form and both dropped by the create call, so the contract fell back
+     to the workspace's own name. A subsidiary is typed over the prefill. */
+  const askedParty = await page.evaluate(() => !!document.getElementById('ce-party') && !!document.getElementById('ce-side'));
+  if (askedParty) {
+    await page.fill('#ce-party', 'Highland Logistics (K) Ltd');
+    await page.selectOption('#ce-side', 'supplier');
+  }
   await page.click('#ce-create');
   await page.waitForTimeout(1800);
   const made = await page.evaluate(() => {
     const c = window.state.contracts[0];
     return c ? { id: c.id, cp: c.counterparty, em: c.counterpartyEmail, val: c.value,
-      exp: c.expiry, eff: (c.fields || {}).effDate, n: window.state.contracts.length } : null;
+      exp: c.expiry, eff: (c.fields || {}).effDate, n: window.state.contracts.length,
+      party: c.party || null, ours: window.contractParty ? contractParty(c) : null,
+      side: ((c.metadata || {}).category) || null } : null;
   });
   check('company standard template: the draft is created', made && made.n === before + 1, made ? made.id : 'none');
   check('company standard template: the counterparty lands on the contract',
@@ -98,6 +108,12 @@ const FORM = () => {
     made && Number(made.val) === 2500000, made && String(made.val));
   check('company standard template: the dates land on the contract',
     made && made.eff === '2026-09-01' && made.exp === '2027-08-31', made && `${made.eff} → ${made.exp}`);
+  check('company standard template: GATE — the form asks who we are and which side', askedParty);
+  check('company standard template: WHO WE ARE lands on the contract, and the contract names it',
+    !!made && made.party === 'Highland Logistics (K) Ltd' && made.ours === 'Highland Logistics (K) Ltd',
+    made && `party=${made.party} · contractParty=${made.ours}`);
+  check('company standard template: WHICH SIDE OF THE MONEY lands on the contract',
+    !!made && made.side === 'supplier', made && `category=${made.side}`);
 
   /* ---------- 2. SKIP still creates the draft ---------- */
   await page.evaluate(() => window.setView('templates'));

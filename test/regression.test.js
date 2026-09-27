@@ -12,7 +12,9 @@ const { startHati, seedWorkspace, fixtureContract, FOLDER_A, nameASigner } = req
 let h, W, viewer;
 before(async () => {
   h = await startHati();
-  W = await seedWorkspace(h);
+  W = await seedWorkspace(h, { approvalRules: [] }); /* approvalRules: [] (27 Sep 2026) — the server now enforces the approval rules
+     before signing; every fixture is above the legacy 5,000,000 default and this
+     file is not about approval rules. See seedWorkspace. */
   /* Signing is opened by NAMING who signs (11 Aug 2026): until a counterparty
      signer is on the route, the respond route refuses action:'sign' outright
      and the two signature tests below could never reach the rules they are

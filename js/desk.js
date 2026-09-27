@@ -567,20 +567,47 @@ function _dkWorkingDaysBetween(a, b){
   return n;
 }
 const DESK_STALE_DAYS = 5;
+/* ---- AND WHERE NOBODY ON OUR SIDE HAS PICKED IT UP (the owner's list,
+   27 Sep 2026) ----
+   "The other side is waiting on us" needed an open desk, and a desk opens only
+   when somebody on our side files a change or claims it. So a negotiation where
+   only THEY have filed — the one where they are most plainly waiting — never
+   counted as waiting on us: not on Home, not in the bell, not in the side
+   panel's checklist. Such a negotiation now counts too, on the same clock and
+   the same standard. It is not live once it is signed, declined or on the
+   archive shelf (negoIsLive's own rule), and a desk that was CLOSED is not
+   "unclaimed". Read off c.changes RAW: negoPending initialises a negotiation,
+   and a reading drawn across the whole book may not write. */
+function _dkUnclaimedWaiting(c){
+  if (!c || deskIsOpen(c)) return [];
+  const d = deskOf(c);
+  if (d && d.closedAt) return [];
+  if (c.archived || c.status === 'Signed' || c.status === 'Declined') return [];
+  return (Array.isArray(c.changes) ? c.changes : [])
+    .filter(x => x && x.authorSide === 'counterparty' && x.status === 'pending');
+}
+/* Their asks still waiting on an answer: the desk's own reading where a desk is
+   open, the raw one above where nobody has picked the negotiation up. */
+function _dkTheirPending(c){
+  if (!c) return [];
+  if (!deskIsOpen(c)) return _dkUnclaimedWaiting(c);
+  return (window.negoPending ? window.negoPending(c) : [])
+    .filter(x => x && x.authorSide === 'counterparty' && x.status === 'pending');
+}
 function deskWaitingSince(c){
-  if (!c || !deskIsOpen(c)) return null;
+  if (!c) return null;
   /* `createdAt` is the change model's own field for when an ask was raised —
      `at` is the option name the callers pass in and is not what ends up on the
      record. Reading the wrong one answered "nobody is waiting" on every
      contract, silently, which is the exact failure this clock exists to catch. */
   const when = x => String((x && (x.createdAt || x.at)) || '');
-  const pend = (window.negoPending ? window.negoPending(c) : [])
-    .filter(x => x && x.authorSide === 'counterparty' && x.status === 'pending' && when(x));
+  const pend = _dkTheirPending(c).filter(x => when(x));
   if (!pend.length) return null;
   return pend.map(when).sort()[0];
 }
 /* Null when the deal is moving. An object when it is not, and it names the lead
-   because the answer to "why is this quiet" is almost always "ask them". */
+   because the answer to "why is this quiet" is almost always "ask them" — or
+   says there is nobody to ask (`unclaimed`), which is the sharper answer. */
 function deskStale(c, nowISO){
   const since = deskWaitingSince(c);
   if (!since) return null;
@@ -588,8 +615,17 @@ function deskStale(c, nowISO){
   const limit = Number(deskCfg().staleDays || DESK_STALE_DAYS);
   if (days < limit) return null;
   const lead = deskLead(c) || { name: '' };
-  return { days, since, lead, n: (window.negoPending ? window.negoPending(c) : [])
-    .filter(x => x && x.authorSide === 'counterparty' && x.status === 'pending').length };
+  return { days, since, lead, unclaimed: !deskIsOpen(c), n: _dkTheirPending(c).length };
+}
+/* THE ONE SENTENCE under a quiet negotiation, for Home's card and the bell:
+   who leads it, or that nobody on our side has taken it yet — never "led by"
+   with no name after it. */
+function deskStaleSub(st){
+  if (!st || !st.n) return '';
+  const who = (st.lead && st.lead.name) || '';
+  return (st.unclaimed || !who)
+    ? i18tn('dk_stale_sub_nolead', st.n, { n: st.n })
+    : i18tn('dk_stale_sub', st.n, { n: st.n, who });
 }
 /* Every quiet negotiation this person is answerable for. The lead's own, and
    every one of them for an admin — somebody has to be able to see the whole
@@ -601,8 +637,17 @@ function deskStaleInboxFor(cs, u, nowISO){
   if (!me) return [];
   const out = [];
   (cs || []).forEach(c => {
-    if (!deskIsOpen(c)) return;
-    if (!(deskIsLead(c, me) || _dkIsAdmin(me))) return;
+    if (deskIsOpen(c)){
+      if (!(deskIsLead(c, me) || _dkIsAdmin(me))) return;
+    } else {
+      /* NOBODY LEADS IT, so the person answerable is whoever the contract
+         belongs to (contractOwnedBy, the one reading) — and every admin, as
+         for a desk. Not every editor: a reminder addressed to everybody is
+         read by nobody. */
+      if (!_dkUnclaimedWaiting(c).length) return;
+      const owns = !!(window.contractOwnedBy && window.contractOwnedBy(c, me));
+      if (!(owns || _dkIsAdmin(me))) return;
+    }
     const s = deskStale(c, nowISO);
     if (s) out.push({ c, stale: s });
   });
@@ -1318,7 +1363,7 @@ Object.assign(window, {
   deskCardByHtml, deskCardInsteadHtml,
   deskWireChip, deskOpenFromChip,
   deskSheetHtml, openDeskSheet, openDeskHandover, openDeskJoinAsk,
-  DESK_STALE_DAYS, deskAnnouncement, deskWaitingSince, deskStale, deskStaleInboxFor, deskLedBy,
+  DESK_STALE_DAYS, deskAnnouncement, deskWaitingSince, deskStale, deskStaleSub, deskStaleInboxFor, deskLedBy,
   /* The working-day walk the quiet clock counts with, published under a name
      of its own (26 Sep 2026) so the list inspector's "past your standard" line
      asks THIS walk rather than keeping a second one — two walks disagree

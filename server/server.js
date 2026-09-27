@@ -1583,6 +1583,84 @@ function srvApprovalChainOpen(c) {
   }
   return open;
 }
+/* ---- THE APPROVAL RULES ARE A WALL, NOT ONLY A SCREEN (the owner's list,
+   27 Sep 2026) ----
+   "Approval rules — for example 'above a set value the finance director must
+   approve', a foreign governing law, or a playbook departure — are only
+   enforced on screen. The server never checks them, so a request sent
+   straight to the server could send a signing link or sign without them."
+   The named-person approval (js/signapproval.js) already had its wall; the
+   rule chain had it only at the hand-over. These are the rest of it, asked at
+   every door that starts signing and at every save that decides a step.
+
+   srvApprovalChainOpenOf asks the rules of BOTH records a save compares — so a
+   save that lowers the value in the same breath as it signs is still held by
+   the rule the stored value engaged — and reads the decisions off the NEW
+   record, whose decisions srvApprovalDecisionRefusal has already checked were
+   made by the people entitled to make them. */
+function srvApprovalChainOpenOf(c, prev) {
+  const rules = srvApprovalRules().filter(r => srvRuleMatches(r, c) || (prev && srvRuleMatches(r, prev)))
+    .sort((a, b) => (a.order || 99) - (b.order || 99));
+  const chain = Array.isArray(c && c.approvalChain) ? c.approvalChain : [];
+  const now = srvApprovalStamp(c);
+  const open = [];
+  for (const r of rules) {
+    const step = chain.find(p => p && p.ruleId === r.id);
+    if (!step || step.status !== 'approved') { open.push({ name: r.name, status: step ? (step.status || 'pending') : 'pending' }); continue; }
+    const st = step.stamp;
+    if (st && (Number(st.value || 0) !== now.value || String(st.doc || '') !== now.doc)) open.push({ name: r.name, status: 'stale' });
+  }
+  return open;
+}
+/* The sentence a refusal says, for the owner's side. The counterparty is
+   never told an approval exists — their door says only "not ready". */
+function srvApprovalChainRefusal(c, prev) {
+  const open = srvApprovalChainOpenOf(c, prev);
+  if (!open.length) return null;
+  const s = open[0];
+  if (s.status === 'rejected') return `The approval step “${s.name}” was refused. Revise the contract and send it back for approval from the Signing tab.`;
+  if (s.status === 'stale') return `This contract changed after “${s.name}” was approved, so it has to be approved again before anyone signs it.`;
+  return `This contract needs its approval step “${s.name}” before anyone signs it.`;
+}
+/* userCanApprove's twin (js/approvals.js): a named member by name, an admin
+   step by an admin, a legal step by legal or an admin, anything else by that
+   role. */
+function srvUserCanApprove(a, u) {
+  if (!u || !a) return false;
+  if (a.kind === 'member') return String(a.name || '') === String(u.name || '');
+  if (a.role === 'admin') return u.role === 'admin';
+  if (a.role === 'legal') return u.role === 'legal' || u.role === 'admin';
+  return u.role === a.role;
+}
+/* A DECISION ON A STEP IS THE DECIDER'S, asked as a DIFFERENCE against the
+   stored chain. A step that MOVES to approved or refused must be the caller's
+   to decide — the approver the RULE names, read from the workspace's rules
+   and never from the step the client sent — recorded in the caller's own
+   name, and decided in the chain's order. A move back to pending is a
+   resubmission, the owner's act, and the route's own editor gate covers it. */
+function srvApprovalDecisionRefusal(prev, c, u) {
+  const rules = srvApprovalRules();
+  const before = new Map(((prev && prev.approvalChain) || []).filter(x => x && x.ruleId).map(x => [String(x.ruleId), x]));
+  const after = ((c && c.approvalChain) || []).filter(x => x && x.ruleId);
+  const matched = rules.filter(r => srvRuleMatches(r, c)).sort((a, b) => (a.order || 99) - (b.order || 99));
+  for (const s of after) {
+    const was = before.get(String(s.ruleId)) || {};
+    const moved = String(s.status || '') !== String(was.status || '') || String(s.by || '') !== String(was.by || '')
+      || String(s.at || '') !== String(was.at || '');
+    if (!moved || (s.status !== 'approved' && s.status !== 'rejected')) continue;
+    const rule = rules.find(r => r && r.id === s.ruleId);
+    if (!rule) continue;                     // a step no rule asks for unlocks nothing
+    if (!srvUserCanApprove(rule.approver || {}, u))
+      return `Only the approver the rule names can decide the approval step “${rule.name}”.`;
+    if (String(s.by || '') !== String((u && u.name) || ''))
+      return `An approval step is recorded in the name of the person who decides it.`;
+    const i = matched.findIndex(r => r.id === rule.id);
+    const first = i > 0 ? matched.slice(0, i).find(r => {
+      const st = after.find(x => x.ruleId === r.id); return !st || st.status !== 'approved'; }) : null;
+    if (first) return `The approval steps are decided in order — “${first.name}” comes first.`;
+  }
+  return null;
+}
 /* Every change decided: nothing waiting on an answer and nothing parked under
    a counter nobody has answered. The browser asks the stricter reading as
    well (negoSigningBlockers — are the answers AGREEMENT); the wall asks the
@@ -3707,6 +3785,21 @@ const anySignatureRow = c => !!(c && (
    nothing else. A subset of EXECUTED_IMMUTABLE, so a record that goes on to be
    executed only ever gains protection, never trades one rule for another. */
 const SIGNED_WORDING_FROZEN = ['body', 'redlineText', 'format', 'upload'];
+/* A PAPER BUILT FROM THE RECORD (27 Sep 2026): no stored wording, not an
+   upload, not yet frozen into an execution copy — the browser's docBody then
+   draws the template (HaTi's own, or the fallback) off the record itself.
+   PAPER_TERMS_FROZEN is what that paper prints; `effDate` and `expiry` are read
+   the way docTermSpan reads them (the record's own field, else what the
+   reading found), because that is the day the paper shows. */
+const recordDrawnPaper = c => !!(c && !c.redlineText && c.source !== 'upload' && !(c.execution && c.execution.html));
+const PAPER_TERMS_FROZEN = ['template', 'fields', 'counterparty', 'value', 'party', 'effDate', 'expiry'];
+function paperTerm(c, k){
+  const m = (c && c.metadata) || {};
+  if (k === 'effDate') return String(((c && c.fields) || {}).effDate || m.effectiveDate || '').trim();
+  if (k === 'expiry') return String((c && c.expiry) || m.expiryDate || '').trim();
+  if (k === 'value') return Number((c && c.value) || 0);
+  return c ? c[k] : undefined;
+}
 
 /* THE SEAL MAY BE ACQUIRED ONCE, AND NEVER CHANGED AFTER.
    Widening isExecutedRow to include the status caught a case it should not: a
@@ -3906,7 +3999,21 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
        moving, not that the contract stops working." Taking the signature, filling
        in Key terms while the second signer is waited on, and every additive fact
        stay open, so nothing an SME does between two signatures is refused. */
-    const changed = SIGNED_WORDING_FROZEN.filter(k => stable(prev[k]) !== stable(c[k]));
+    const changed = SIGNED_WORDING_FROZEN.filter(k => stable(prev[k]) !== stable(c[k]))
+      /* ---- AND WHERE THE PAPER IS DRAWN FROM THE RECORD, THE TERMS IT PRINTS
+         (the owner's list, 27 Sep 2026) ----
+         "On contracts drafted from HaTi's built-in templates, the key terms
+         can still be changed after the first person signs, so the next signer
+         could see different paper." Such a contract stores no wording: its
+         paper is BUILT from the record each time it is drawn — the template's
+         blanks (fields), who they are and what it is worth (both printed in
+         its clauses), who we are, and the term's two days. So for that paper
+         those ARE the wording, by this list's own definition ("every store the
+         document itself is drawn from"), and they freeze with it. Once the
+         wording is stored (a negotiation, an edit) the list above is the
+         whole of it again and Key terms stay open between signatures, as
+         ruled. */
+      .concat(recordDrawnPaper(prev) ? PAPER_TERMS_FROZEN.filter(k => stable(paperTerm(prev, k)) !== stable(paperTerm(c, k))) : []);
     if (changed.length) {
       return res.status(409).json({
         error: `${req.params.id} has already been signed by one party — the wording (${changed.join(', ')}) `
@@ -4414,7 +4521,16 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     if (addsSig || marksRow || seals) {
       const refusal = srvSignApprovalRefusal(prev);
       if (refusal) return res.status(403).json({ error: refusal, signApproval: true });
+      /* AND THE APPROVAL RULES (27 Sep 2026) — see srvApprovalChainOpenOf. */
+      const ruled = srvApprovalChainRefusal(c, prev);
+      if (ruled) return res.status(403).json({ error: ruled, approvalRule: true });
     }
+  }
+  /* A STEP'S DECISION IS ITS APPROVER'S (27 Sep 2026) — asked as a difference;
+     a save that moves no decision passes untouched. */
+  if (prev) {
+    const bad = srvApprovalDecisionRefusal(prev, c, req.user);
+    if (bad) return res.status(403).json({ error: bad, approvalRule: true });
   }
 
   /* ---------- THE INTERNAL REVIEW, GUARDED ON THE WAY IN ----------
@@ -4681,6 +4797,47 @@ app.get('/api/activation', auth, admin, (req, res) => {
    be left in the database with nothing pointing at it, and any live share link
    must stop working, or the counterparty keeps a working link to a contract the
    owner believes is gone. */
+/* ---- WHAT GOES WITH A DELETED CONTRACT (the owner's list, 27 Sep 2026) ----
+   "Deleting a contract still leaves some of its sharing records behind: the
+   other side's messages, signer notices, responses and earlier versions of
+   what was shared." Each of those is its own table, keyed on the contract or
+   on one of its links, and the delete route removed only the readings. This
+   is the ONE list, asked inside the caller's transaction by both doors that
+   delete a contract (the delete route and the sample clear-out).
+
+   THE LINK ROWS THEMSELVES STAY, REVOKED, AND EMPTY. A link somebody still
+   holds must go on answering "withdrawn by the sender" rather than "not
+   found", and the owner's share overview keeps the row as history — so the
+   row keeps who it went to and when, and loses what it CARRIED: the copy of
+   the contract (payload, which also holds any answers typed into a template
+   form), the last answer (response) and the sender's note (message). Nothing
+   reads a revoked row's payload: every public route answers 410 first, and
+   shareState answers 'revoked' before it looks at anything else.
+
+   Returns how many links were newly revoked, which the route reports. */
+function forgetContractRecords(id){
+  const tokens = db.prepare('SELECT token FROM shares WHERE contract_id=?').all(id).map(r => r.token);
+  for (const t of tokens){
+    db.prepare('DELETE FROM share_responses WHERE token=?').run(t);
+    db.prepare('DELETE FROM share_payload_history WHERE token=?').run(t);
+    db.prepare('DELETE FROM share_otp WHERE token=?').run(t);
+  }
+  const r = db.prepare("UPDATE shares SET revoked_at=? WHERE contract_id=? AND revoked_at IS NULL").run(now(), id);
+  db.prepare("UPDATE shares SET payload='{}', response=NULL, message=NULL WHERE contract_id=?").run(id);
+  db.prepare('DELETE FROM share_messages WHERE contract_id=?').run(id);
+  db.prepare('DELETE FROM signer_notices WHERE contract_id=?').run(id);
+  db.prepare('DELETE FROM engagement WHERE contract_id=?').run(id);
+  db.prepare('DELETE FROM briefs WHERE contract_id=?').run(id);
+  db.prepare('DELETE FROM renewal_advice WHERE contract_id=?').run(id);
+  /* The plain-English readings kept a clause at a time (fix 6) are a reading
+     of THIS contract's wording and go with it — and so does the whole edition
+     beside them (26 Sep 2026, the overnight clean-up: the rows went and the
+     cached edition, the same reading kept whole, stayed behind for ever). */
+  db.prepare('DELETE FROM clause_reading_rows WHERE contract_id=?').run(id);
+  db.prepare('DELETE FROM clause_readings WHERE contract_id=?').run(id);
+  return r.changes || 0;
+}
+
 app.delete('/api/contracts/:id', auth, editor, (req, res) => {
   const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
   if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
@@ -4700,18 +4857,8 @@ app.delete('/api/contracts/:id', auth, editor, (req, res) => {
 
   let revoked = 0;
   txn(() => {
-    const r = db.prepare("UPDATE shares SET revoked_at=? WHERE contract_id=? AND revoked_at IS NULL").run(now(), req.params.id);
-    revoked = r.changes || 0;
+    revoked = forgetContractRecords(req.params.id);
     for (const fid of fileIds) db.prepare('DELETE FROM files WHERE id=?').run(fid);
-    db.prepare('DELETE FROM briefs WHERE contract_id=?').run(req.params.id);
-    db.prepare('DELETE FROM renewal_advice WHERE contract_id=?').run(req.params.id);
-    /* The plain-English readings kept a clause at a time (fix 6) are a reading
-       of THIS contract's wording and go with it. */
-    db.prepare('DELETE FROM clause_reading_rows WHERE contract_id=?').run(req.params.id);
-    /* AND THE WHOLE EDITION BESIDE THEM (26 Sep 2026, the overnight
-       clean-up): the rows went with the contract and the cached edition —
-       the same reading, kept whole — stayed behind for ever. */
-    db.prepare('DELETE FROM clause_readings WHERE contract_id=?').run(req.params.id);
     db.prepare('DELETE FROM contracts WHERE id=?').run(req.params.id);
   });
   _storedBytes = null;   // H-8: recompute the storage total after removing files
@@ -4919,7 +5066,9 @@ app.post('/api/demo/clear', auth, admin, (req, res) => {
   }
   txn(() => {
     for (const d of doomed) {
-      db.prepare("UPDATE shares SET revoked_at=? WHERE contract_id=? AND revoked_at IS NULL").run(now(), d.id);
+      /* The same list the delete route asks (27 Sep 2026): a sample cleared
+         out left its messages, notices, answers and readings behind. */
+      forgetContractRecords(d.id);
       for (const fid of d.fileIds) db.prepare('DELETE FROM files WHERE id=?').run(fid);
       db.prepare('DELETE FROM contracts WHERE id=?').run(d.id);
     }
@@ -12089,6 +12238,10 @@ async function notifyInternalSignerTurn(req, contractId, opts = {}) {
        outstanding (23 Sep 2026) — nobody signs until it is given. The notice
        waits, and the save that gives the approval announces the turn. */
     if (srvSignApprovalRefusal(rt.contract)) return { ok: false, reason: 'awaiting-approval' };
+    /* Nor while an approval RULE step is open before signing has begun
+       (27 Sep 2026) — the save that signs would be refused. */
+    if (!saStarted(rt.contract || {}, { responded: srvSaResponded(contractId) }) && srvApprovalChainOpenOf(rt.contract || {}).length)
+      return { ok: false, reason: 'awaiting-approval' };
     /* A FILE THEY SIGN (26 Sep 2026) is never signed here, so nobody is told
        it is their turn to sign in HaTi. Our signatory is told to expect the
        document at the handover instead (hoTellPeople). */
@@ -12341,6 +12494,11 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
     let stored = null; try { stored = row ? JSON.parse(row.json) : null; } catch (_) { stored = null; }
     const held = stored ? srvSignApprovalRefusal(stored) : null;
     if (held) return res.status(409).json({ error: held, signApproval: true });
+    /* AND THE APPROVAL RULES (27 Sep 2026): a signing link would let the other
+       side sign first and go round an open step. Not once signing has begun —
+       the rules are asked at the start of signing, as the save's own are. */
+    const ruled = (stored && !saStarted(stored, { responded: srvSaResponded(shareId) })) ? srvApprovalChainRefusal(stored) : null;
+    if (ruled) return res.status(409).json({ error: ruled, approvalRule: true });
   }
   /* ---- THE SHARE BUTTON REACHES THE ROUTE (auto-bind) ----
      Only the route's own issued links used to carry the signer binding, so a
@@ -13303,6 +13461,20 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
      with whatever the book's state says. */
   if (payload.purpose === 'history')
     return res.status(409).json({ error: 'This link carries the contract and cannot be turned into a history link. Send the negotiation history on its own link.' });
+  /* ---- AND NO OTHER KIND EITHER (the owner's list, 27 Sep 2026) ----
+     "Sending a read-only View link to someone who already holds a negotiation
+     link only refreshes their old link, so they can still negotiate." The row
+     decides what its reader may do, so a copy that STATES a different kind —
+     a view copy onto a negotiation link, a negotiation copy onto a signing or
+     adviser link — would tell the sender one thing and the reader another.
+     Asked of the purpose the sender CHOSE (purposeChosen), never of the one
+     buildSharePayload infers from the change set: a round with nothing
+     proposed infers 'sign', and a round send states nothing, so that case
+     passes exactly as before. */
+  const stated = ['sign', 'negotiate', 'view', 'history', 'advise'].includes(payload.purposeChosen) ? payload.purposeChosen : null;
+  if (stated && stated !== sharePurposeOf(s))
+    return res.status(409).json({ error: `This link was made to ${sharePurposeOf(s)} and cannot carry a ${stated} copy. Send the ${stated} copy on its own link.`,
+      purpose: sharePurposeOf(s), stated });
   /* ---- A SILENT REFRESH IS A DIFFERENT ACT FROM SENDING A ROUND ----
 
      Two things want to write a payload, and only one of them is a message to
@@ -13685,7 +13857,10 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
   if (r.action === 'sign') {
     const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(s.contract_id);
     let stored = null; try { stored = row ? JSON.parse(row.json) : null; } catch (_) { stored = null; }
-    if (stored && srvSignApprovalRefusal(stored))
+    /* The approval RULES too (27 Sep 2026), in the same neutral words: an open
+       step is the sender's business. Asked only while signing has not begun. */
+    if (stored && (srvSignApprovalRefusal(stored)
+      || (!saStarted(stored, { responded: srvSaResponded(s.contract_id) }) && srvApprovalChainOpenOf(stored).length)))
       return res.status(409).json({
         error: 'This contract is not ready to be signed yet. The sender will let you know when it is — '
           + 'you can still read it and comment in the meantime.',
@@ -16066,6 +16241,17 @@ app.post('/api/templates/:id/contracts', auth, editor, (req, res) => {
        Every one is optional: "Skip for now" sends none and this reduces to
        exactly the blanks it produced before. */
     counterparty: clean(b.counterparty).slice(0, 120),
+    /* ---- WHO WE ARE ON THIS ONE (the owner's list, 27 Sep 2026) ----
+       The form asks it beside who THEY are, and this route never read it: the
+       answer was dropped and the contract fell back to the workspace's own
+       name wherever contractParty(c) is read — the Overview, the signature
+       boxes, the paper's head and foot, the sealed record. Absent where the
+       box was left empty, exactly as on every other door (applyTemplateValues
+       writes c.party only for a value), so contractParty still falls back
+       there. The standard's OWN pre-filled blanks ({{org.…}}) are left as they
+       were: they are visible, editable fields on the Fill panel, and the pane
+       beside the questions draws them from the same resolution. */
+    ...(clean(b.party) ? { party: clean(b.party).slice(0, 120) } : {}),
     counterpartyEmail: /.+@.+\..+/.test(String(b.counterpartyEmail || '')) ? clean(b.counterpartyEmail).slice(0, 160) : '',
     value: Number(b.value) > 0 ? Number(b.value) : 0,
     /* ---- A VALUE LEFT EMPTY IS NOT "NO MONEY PASSES" (Young's go, 23 Sep 2026) ----
@@ -16114,6 +16300,11 @@ app.post('/api/templates/:id/contracts', auth, editor, (req, res) => {
       const m = { confidence: {} };
       const put = (k, v) => { m[k] = v; m.confidence[k] = 'high'; };
       if (clean(b.counterparty)) put('counterparty', clean(b.counterparty).slice(0, 120));
+      if (clean(b.party)) put('party', clean(b.party).slice(0, 120));
+      /* WHICH SIDE OF THE MONEY WE ARE ON — the same field, the same two
+         answers, the upload path and applyTemplateValues write ("Neither"
+         writes nothing, so the extractor may still fill it later). */
+      if (b.side === 'customer' || b.side === 'supplier') put('category', b.side);
       if (Number(b.value) > 0) put('value', Number(b.value));
       if (/^\d{4}-\d{2}-\d{2}$/.test(String(b.effDate || ''))) put('effectiveDate', String(b.effDate));
       if (/^\d{4}-\d{2}-\d{2}$/.test(String(b.expiry || ''))) put('expiryDate', String(b.expiry));

@@ -1810,7 +1810,7 @@ function buildAlerts(){
        calendar days left with the card. */
     (D.myStaleDesks||[]).forEach(x=>{ const st=x.stale||{};
       const sub=[st.days!=null?i18t('dk_stale_tag',{n:st.days}):'',
-        st.n?i18tn('dk_stale_sub',st.n,{n:st.n,who:(st.lead&&st.lead.name)||''}):''].filter(Boolean).join(' · ');
+        st.n?(window.deskStaleSub?deskStaleSub(st):i18tn('dk_stale_sub',st.n,{n:st.n,who:(st.lead&&st.lead.name)||''})):''].filter(Boolean).join(' · ');
       push('desk-quiet',x.c,
         i18t('dk_stale_card',{who:x.c.counterparty||i18t('home_no_counterparty')}),
         ()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(x.c.id); else openWorkspace(x.c.id); },

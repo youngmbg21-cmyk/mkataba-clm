@@ -274,7 +274,7 @@ describe('f375 (7) the server is the wall', () => {
 
   before(async () => {
     h = await startHati();
-    W = await seedWorkspace(h);
+    W = await seedWorkspace(h, { approvalRules: [] }); /* the NAMED approval is under test here, not the rule chain — see seedWorkspace (27 Sep 2026) */
     adminId = (await W.admin.json('/api/bootstrap')).me.id;
     U1 = W.users.unrestricted; R1 = W.users.restricted; N1 = W.users.novalues;
     /* The lead and the named signer on two folder-A contracts. */

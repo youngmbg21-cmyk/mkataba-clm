@@ -435,10 +435,19 @@ describe('f305 phase 8 — get_obligations and get_contract_history, read-only, 
     assert.ok(!('amount' in win._localToolRun('get_obligations', { id: 'MK-1' }).obligations[0]));
     const h = win._localToolRun('get_contract_history', { id: 'MK-1' });
     assert.equal(h.events[0].action, 'Shared'); assert.equal(h.redacted, 1);
+    /* RE-POINTED IN PLACE (27 Sep 2026): this stage used to stub PORTAL_MODE as
+       a FUNCTION, which is the one shape the product never gives it — js/core.js
+       declares it false and their page sets it true. Staged as a function it
+       passed on the very code that threw "PORTAL_MODE is not a function" on
+       their page. The product's shape is asked first; the function shape stays
+       as a second case, because the reading takes either. */
+    win.PORTAL_MODE = true;
+    assert.ok(win._localToolRun('get_obligations', {}).error, 'their page (a boolean) gets an answer, not a throw');
+    assert.ok(win._localToolRun('get_contract_history', { id: 'MK-1' }).error);
     win.PORTAL_MODE = () => true;
     assert.ok(win._localToolRun('get_obligations', {}).error);
     assert.ok(win._localToolRun('get_contract_history', { id: 'MK-1' }).error);
-    assert.match(AI, /if\(window\.PORTAL_MODE&&PORTAL_MODE\(\)\) return \{ error:'not available on this page' \};/);
+    assert.match(AI, /if\(onTheirPage\) return \{ error:'not available on this page' \};/);
   });
   test('WALLS: no tool writes, the caps named in the order are untouched', () => {
     for (const fn of ['copilotObligations', 'copilotHistory', 'copilotList', 'copilotSearch']) {

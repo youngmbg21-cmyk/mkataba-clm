@@ -11711,7 +11711,12 @@ function rlWireClauseTools(c, host, opts){
       try { opts.onRetract(c, chId); } catch (_){ /* a page that cannot forget must not take the act down */ }
     }
     if (window.persist) persist(c);
-    if (window.toast) toast(`#${chId} retracted — it was never sent, so nothing left your desk`);
+    /* A SENT ASK WHOSE UNSENT REVISION WAS THROWN AWAY IS STILL ON THE RECORD
+       (27 Sep 2026) — the engine put the wording on the table back — and the
+       sentence says that rather than "it was never sent". */
+    const kept = Array.isArray(c.changes) && c.changes.some(x => x && x.id === chId);
+    if (window.toast) toast(kept ? i18t('ng_retract_revision', { id: chId })
+      : `#${chId} retracted — it was never sent, so nothing left your desk`, 'ok');
     again();
   }));
 }
@@ -16710,6 +16715,20 @@ function openChangeNoteDialog(c, ch, opts = {}){
   });
 }
 
+/* ---- ARE WE ON THEIR PAGE (27 Sep 2026) ----
+   PORTAL_MODE is a BOOLEAN — js/core.js declares it false and their page sets
+   it true. Four places below called it as a FUNCTION behind a short-circuit,
+   which never ran on our seat and THREW on theirs: pressing a numbered comment
+   marker in their margin did nothing but log "PORTAL_MODE is not a function".
+   This is the one reading here, and it takes the flag as either shape, as
+   rlLadderContract and rlCpNarrowSeat already do (a stage may stub it as a
+   function). */
+function rlOnTheirPage(){
+  if (typeof window === 'undefined') return false;
+  const p = window.PORTAL_MODE;
+  try{ return !!(typeof p === 'function' ? p() : p); }catch(_){ return false; }
+}
+
 /* ---------- DOOR 1: A COMMENT ON THE WORDS SOMEBODY SELECTED ----------
    The paper's highlight offers Ask Copilot and Comment (rlPaperSelOffer);
    Comment arrives here with the clause and the exact words. The note's HOME
@@ -16723,7 +16742,7 @@ function rlNoteFromSelection(c, sel, opts = {}){
   const home = window.negoNoteHomeFor ? negoNoteHomeFor(c, sel.clauseId) : null;
   const pin = { contractId: c.id, clauseId: String(sel.clauseId), quote: String(sel.quote),
     changeId: home ? home.id : null, room: side === 'counterparty' ? 'external' : 'internal' };
-  const theirs = side === 'counterparty' || !!(window.PORTAL_MODE && PORTAL_MODE());
+  const theirs = side === 'counterparty' || rlOnTheirPage();
   if (theirs){
     if (typeof opts.openNotes !== 'function') return false;
     rlNotesPin(pin);
@@ -16831,7 +16850,7 @@ function rlPaperSelOffer(ctx){
   const { c, opts, side, text, clauseId, rect } = ctx;
   if (!c || !text || !rect) return false;
   if (opts && opts.preview) return false;
-  const theirs = side === 'counterparty' || !!(window.PORTAL_MODE && PORTAL_MODE());
+  const theirs = side === 'counterparty' || rlOnTheirPage();
   const acts = [];
   /* THREE VERBS (Young, 11 Sep 2026, evening): Ask Copilot is a question and
      touches nothing; Edit with Copilot opens the editor with the words in
@@ -17053,7 +17072,7 @@ if (typeof document !== 'undefined' && !document._rlNoteMarksWired){
        takes the drawer down; pressed on another thread it swaps, which is what
        a reader asking to see that note means. Their page answers the same
        question through its own aside (portalOpenNotes toggles on the key). */
-    if (window.PORTAL_MODE && PORTAL_MODE()){
+    if (rlOnTheirPage()){
       _rlNpFocusKey = key;
       if (typeof window.portalOpenNotes === 'function' && !portalOpenNotes({ key, changeId: home })) _rlNpFocusKey = null;
       return;
@@ -19193,7 +19212,7 @@ if (typeof document !== 'undefined' && !document._rlNotesWired){
        there would be typed and lost. Their press falls through to exactly what
        it did before. */
     if (!cid || !id) return;
-    const portal = !!(window.PORTAL_MODE && PORTAL_MODE());
+    const portal = rlOnTheirPage();
     const c = (!portal && window.state && Array.isArray(state.contracts))
       ? state.contracts.find(x => x && String(x.id) === String(cid)) : null;
     const ch = (c && window.negoChangeById) ? negoChangeById(c, id) : null;

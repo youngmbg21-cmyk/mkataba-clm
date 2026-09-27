@@ -1552,16 +1552,18 @@ function obligationBand(o, c){
   if(st === 'overdue') return 'overdue';
   const due = obligationDue(o);
   if(!due) return 'later';
-  /* LOCAL MIDNIGHT, the convention every other date reading in this file uses
-     (renewalDecisionDate and obligationNextDue both write it out). A bare
-     `new Date('2026-08-01')` is parsed as UTC midnight, so at any negative
-     offset the month comparison shifts by a day and an obligation due on the
-     1st bands as `later`. This is the reading BOTH the contract's tab and the
-     worklist share, so they were wrong together. */
-  const d = new Date(String(due) + 'T00:00:00'), now = new Date();
-  if(isNaN(d)) return 'later';
-  return (d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth())
-    ? 'month' : 'later';
+  /* ---- "SOON" IS THE NEXT 30 DAYS, NOT THE CALENDAR MONTH (the owner's list,
+     27 Sep 2026) ----
+     This band was the calendar month: at the month's end it covered a few
+     days, and something due in five days sat under "Later" beside a 2029
+     date. It is the wide pages' own cutoff now (OB_MONTH_DAYS, read through
+     daysUntil exactly as obligationWindow reads it), and the heading says so.
+     One reading, and BOTH narrow surfaces — the worklist and the contract's
+     tab — and the phone's tab share it, so they move together. Copilot's
+     "thisMonth" stays the calendar month its server twin answers (js/ai.js). */
+  const d = (typeof daysUntil === 'function') ? daysUntil(due) : null;
+  if(d == null || !isFinite(d)) return 'later';
+  return (d >= 0 && d <= OB_MONTH_DAYS) ? 'month' : 'later';
 }
 
 /* ---- WHAT THE TAB SAYS ABOUT ITSELF ----
@@ -1604,10 +1606,13 @@ function roomObligationsHtml(c){
      that carries the fact and it costs the page no height. Drawn only where
      the reader may see money AND there is money to state — a line reading
      "0 paid of 0" is furniture. */
-  const roll = obligationRoll(obs);
-  const moneyLine = (money && roll.committed)
-    ? `<span class="obt-paid">${_obEsc(i18t('ob_paid_of', {
-        paid: obligationMoneyText(roll.paid, c), all: obligationMoneyText(roll.committed, c) }))}</span>` : '';
+  /* ---- AND IT IS NEVER NETTED (the owner's list, 27 Sep 2026) ----
+     "paid X of Y" added money we owe to money owed to us. The wide tab's own
+     reading says each direction apart (obMoneyWords, in this contract's own
+     currency); a direction with nothing in it is not said. */
+  const mw = money ? obMoneyWords(obs, c) : null;
+  const moneyLine = (mw && mw.text)
+    ? `<span class="obt-paid">${_obEsc(_obCap(mw.text))}</span>` : '';
   const head = `<div class="obt-head">
       ${obs.length ? `<span class="obt-cap">${_obEsc(i18tn('ob_head_open', st.open, { n: st.open }))}</span>` : ''}
       ${st.overdue ? `<span class="obt-over">${_obEsc(i18tn('ob_head_overdue', st.overdue, { n: st.overdue }))}</span>` : ''}
@@ -1634,8 +1639,17 @@ function roomObligationsHtml(c){
        Only where a reminder could still matter: a completed obligation is
        nobody's to chase, and saying so there would be noise on the one band
        that needs none. */
-    const unowned = (s !== 'done' && !obligationReminderTo(o))
+    /* ONLY ON OURS (the owner's list, 27 Sep 2026): an obligation the other
+       side owes always has an owner — them — and the tag read a missing
+       colleague on every one of theirs. */
+    const unowned = (!theirs && s !== 'done' && !obligationReminderTo(o))
       ? `<span class="obt-unowned" title="${_obEsc(i18t('ob_no_owner_title'))}">${_obEsc(i18t('ob_no_owner'))}</span>` : '';
+    /* WHAT THE WIDE TAB SAYS ON THE ROW, SAID HERE TOO: when a document they
+       must hold ends (obDocSay, the one reading the Overview asks), and that
+       it was chased — and Chase itself on theirs, through the one act. */
+    const doc = s === 'done' ? null : obDocSay(o);
+    const chase = (editable && theirs && s !== 'done' && o.id)
+      ? `<button type="button" data-obt-chase="${_obEsc(o.id)}">${_obEsc(i18t('ob_chase'))}</button>` : '';
     return `<div class="obt-row" data-obt-row="${_obEsc(o.id || '')}">
       <span class="obt-dot obt-dot-${s}" aria-hidden="true"></span>
       <div class="obt-body">
@@ -1646,6 +1660,8 @@ function roomObligationsHtml(c){
           ${o.recurring && o.recurring !== 'none'
             ? `<span>${_obEsc(obRecurLabel(o.recurring))}</span>` : ''}
           ${unowned}
+          ${doc ? `<span class="${doc.cls}">${_obEsc(doc.t)}</span>` : ''}
+          ${s !== 'done' && o.chasedAt ? `<span>${_obEsc(i18t('ob_chased_short', { date: obDay(o.chasedAt) || o.chasedAt }))}</span>` : ''}
           ${s === 'done' && o.completedBy ? `<span>${_obEsc(i18t('ob_done_by', { who: o.completedBy }))}</span>` : ''}
         </div>
         ${s === 'done' && o.completedNote ? `<div class="obt-quote">${_obEsc(o.completedNote)}</div>` : ''}
@@ -1663,9 +1679,10 @@ function roomObligationsHtml(c){
       ${money ? `<span class="obt-amt${obligationHasAmount(o) ? '' : ' is-none'}">${
         obligationHasAmount(o) ? _obEsc(obligationMoneyText(obligationAmount(o), c)) : '&mdash;'}</span>` : ''}
       <span class="obt-due">${_obEsc(s === 'done'
-        ? (o.completedAt || i18t('ob_done_unknown'))
-        : (due || i18t('ob_no_date')))}</span>
+        ? (o.completedAt ? (obDay(o.completedAt) || o.completedAt) : i18t('ob_done_unknown'))
+        : (due ? (obDay(due) || due) : i18t('ob_no_date')))}</span>
       ${editable ? `<span class="obt-verbs">
+        ${chase}
         <button type="button" data-obt-toggle="${i}">${_obEsc(o.status === 'done' ? i18t('ob_reopen') : i18t('ob_done'))}</button>
         <button type="button" data-obt-edit="${i}">${_obEsc(i18t('ob_edit'))}</button>
         <button type="button" data-obt-del="${i}" class="is-del">${_obEsc(i18t('ob_remove'))}</button>
@@ -1685,7 +1702,7 @@ function roomObligationsHtml(c){
   chains.forEach(ch => ch.forEach(o => inChain.add(String(o.id || ''))));
 
   const chainHtml = chains.map(ch => {
-    const roll = obligationRoll(ch);
+    const chainMw = money ? obMoneyWords(ch, c) : null;
     let paid = 0, over = 0, wait = 0;
     ch.forEach(o => { if(obState(o) === 'done') paid++;
       else if(obligationBlocked(o, c)) wait++;
@@ -1693,7 +1710,7 @@ function roomObligationsHtml(c){
     const head = `<div class="obt-chain-hd">
         <span class="t">${_obEsc(i18t('ob_chain'))}</span>
         <span class="s">${_obEsc(i18t('ob_chain_sub', { n: ch.length, paid, overdue: over, waiting: wait }))}</span>
-        ${money && roll.committed ? `<i>${_obEsc(obligationMoneyText(roll.committed, c))}</i>` : ''}
+        ${chainMw && chainMw.text ? `<i>${_obEsc(_obCap(chainMw.text))}</i>` : ''}
       </div>`;
     return head + ch.map((o, n) => {
       const i = obs.indexOf(o);
@@ -1702,8 +1719,11 @@ function roomObligationsHtml(c){
       /* THE STATE IN ONE WORD, AND THE ROW SAYS WHAT IT WAITS ON. Colour is
          never the only carrier here: a blocked step is set back, its
          connector is dashed AND its chip names the step it waits on. */
+      /* "Paid", and the day stays in its own column beside it (the chip said
+         "Paid 2026-08-14" next to the very same date — the owner's list,
+         27 Sep 2026). */
       const chip = done
-        ? `<span class="obt-chip is-done">${_obEsc(i18t('ob_chain_paid', { date: o.completedAt || i18t('ob_done_unknown') }))}</span>`
+        ? `<span class="obt-chip is-done">${_obEsc(i18t('ob_roll_paid'))}</span>`
         : blocked
         ? `<span class="obt-chip is-wait">${_obEsc(i18t('ob_waiting_on', { n: n }))}</span>`
         : obState(o) === 'overdue'
@@ -1724,8 +1744,8 @@ function roomObligationsHtml(c){
         ${chip}
         ${money ? `<span class="obt-amt${obligationHasAmount(o) ? '' : ' is-none'}">${
           obligationHasAmount(o) ? _obEsc(obligationMoneyText(obligationAmount(o), c)) : '&mdash;'}</span>` : ''}
-        <span class="obt-due">${_obEsc(done ? (o.completedAt || i18t('ob_done_unknown'))
-          : (obligationDue(o) || i18t('ob_no_date')))}</span>
+        <span class="obt-due">${_obEsc(done ? (o.completedAt ? (obDay(o.completedAt) || o.completedAt) : i18t('ob_done_unknown'))
+          : (obligationDue(o) ? (obDay(obligationDue(o)) || obligationDue(o)) : i18t('ob_no_date')))}</span>
         ${editable && i >= 0 ? `<span class="obt-verbs">
           <button type="button" data-obt-toggle="${i}">${_obEsc(done ? i18t('ob_reopen') : i18t('ob_done'))}</button>
           <button type="button" data-obt-edit="${i}">${_obEsc(i18t('ob_edit'))}</button>
@@ -1742,9 +1762,9 @@ function roomObligationsHtml(c){
     /* THE SUM RIDES THE HEADING THAT ALREADY CARRIES A COUNT — no new box, no
        new panel, no band. The cheapest channel that carries the fact. Drawn
        only where there is money in that band to sum. */
-    const sum = obligationBandTotal(mine);
+    const bandMw = money ? obMoneyWords(mine.map(r => r.o), c) : null;
     return `<div class="obt-band">${_obEsc(i18t(key))}<b>${mine.length}</b>${
-      money && sum ? `<i class="obt-bandsum">${_obEsc(obligationMoneyText(sum, c))}</i>` : ''}</div>`
+      bandMw && bandMw.text ? `<i class="obt-bandsum">${_obEsc(_obCap(bandMw.text))}</i>` : ''}</div>`
       + mine.map(row).join('');
   }).join('');
 
@@ -1807,6 +1827,9 @@ function roomPaintObligations(c){
     roomPaintObligations(c);
     obligationSurfacesChanged();
   }));
+  /* CHASE, through the one act the worklist and the wide tab press. */
+  host.querySelectorAll('[data-obt-chase]').forEach(b => b.addEventListener('click', () =>
+    obligationChase(c.id, b.getAttribute('data-obt-chase'))));
   host.querySelector('#obt-add')?.addEventListener('click', () => openObligationForm(c));
   host.querySelector('#obt-find')?.addEventListener('click', () => runFindObligations(c));
 }
@@ -2213,7 +2236,8 @@ function renderObligationsList(){
   const row = o => {
     const theirs = obligationIsTheirs(o);
     const step = obligationStepNo(o, o._c);
-    const unowned = (o.st !== 'done' && !obligationReminderTo(o))
+    /* ONLY ON OURS — see the contract's tab (the owner's list, 27 Sep 2026). */
+    const unowned = (!theirs && o.st !== 'done' && !obligationReminderTo(o))
       ? `<span class="obt-unowned" title="${_obEsc(i18t('ob_no_owner_title'))}">${_obEsc(i18t('ob_no_owner'))}</span>` : '';
     /* CHASING IS ONE ACT ON A THEIRS OBLIGATION and is drawn nowhere else: on
        ours there is nobody to chase, and on a finished one there is nothing to
@@ -2268,9 +2292,9 @@ function renderObligationsList(){
       ${money ? `<td class="obw-amt${obligationHasAmount(o) ? '' : ' is-none'}">${
         obligationHasAmount(o) ? _obEsc(obligationMoneyText(obligationAmount(o), o._c || o)) : '&mdash;'}</td>` : ''}
       <td class="obw-when">${_obEsc(o.st === 'done'
-        ? (o.completedAt || i18t('ob_done_unknown'))
-        : (o.due || i18t('ob_no_date')))}${
-        o.chasedAt ? `<span class="obw-chased" title="${_obEsc(i18t('ob_chased_on', { date: o.chasedAt, who: o.chasedBy || '' }))}">${_obEsc(i18t('ob_chased'))}</span>` : ''}</td>
+        ? (o.completedAt ? (obDay(o.completedAt) || o.completedAt) : i18t('ob_done_unknown'))
+        : (o.due ? (obDay(o.due) || o.due) : i18t('ob_no_date')))}${
+        o.chasedAt ? `<span class="obw-chased" title="${_obEsc(i18t('ob_chased_on', { date: obDay(o.chasedAt) || o.chasedAt, who: o.chasedBy || '' }))}">${_obEsc(i18t('ob_chased'))}</span>` : ''}</td>
       <td class="obw-acts">${chase}<button type="button" data-obw-open="${_obEsc(o.cid)}">${_obEsc(i18t('ob_open_contract'))}</button></td>
     </tr>`;
   };
@@ -2282,47 +2306,36 @@ function renderObligationsList(){
      in the product, and where a rate is missing the row is LEFT OUT and the
      figure says so — the standing rule that a silent trim on a money headline
      is the fault the insights panels were rebuilt to stop. */
-  /* THE ONE CONVERTER, lifted out (26 Sep 2026) so the Inspector's group
-     headings sum through the very same function this foot does. */
-  const homeSum = obwHomeSum;
+  /* THE ONE CONVERTER is obwHomeSum, which obMoneyWords asks per direction —
+     the very function the wide page's group headings sum through. */
   const banded = OBLIG_BANDS.map(([k, key]) => {
     const mine = rows.filter(r => r.band === k);
     if(!mine.length) return '';
-    const h = money ? homeSum(mine) : null;
+    /* EACH DIRECTION APART (the owner's list, 27 Sep 2026): one figure per
+       band added money we owe to money owed to us. */
+    const mw = money ? obMoneyWords(mine) : null;
     return `<tr class="obw-band"><td colspan="${money ? 6 : 5}">${_obEsc(i18t(key))}<b>${mine.length}</b>${
-      h && h.sum ? `<i class="obw-bandsum">${_obEsc(window.fmtMoneyShort ? fmtMoneyShort(h.sum) : String(h.sum))}</i>` : ''}</td></tr>`
+      mw && mw.text ? `<i class="obw-bandsum">${_obEsc(_obCap(mw.text))}</i>` : ''}</td></tr>`
       + mine.map(row).join('');
   }).join('');
   /* ONE TOTAL AT THE FOOT, over every row on the page. Drawn only where there
-     is money to state; a foot reading nothing is furniture. */
+     is money to state; a foot reading nothing is furniture.
+     ---- EACH DIRECTION APART, AND NO "PAID 0" (the owner's list, 27 Sep 2026) ----
+     The foot said Committed · Paid · Outstanding · Overdue, and each of those
+     added money we owe to money owed to us — "Overdue SEK 10.54M" was SEK
+     6.80M owed to us plus SEK 3.74M we owe. And "Paid" read 0 whenever the
+     page showed only what is outstanding, which is how it opens. It says what
+     the wide page's head says (obMoneyWords, converted; a direction with
+     nothing in it is not said) and what it left out for want of a rate.
+     "ON THIS PAGE" IS KEPT: these are the rows the filters left. */
   const foot = (() => {
     if(!money) return '';
-    const h = homeSum(rows);
-    const left = Object.entries(h.missing);
-    if(!h.sum && !left.length) return '';
-    /* ---- COMMITTED AGAINST PAID, AND IT IS THIS LINE GROWN (L-3) ----
-       This foot already said "Total on this page" over converted money and
-       already stated what it left out for want of a rate. So the whole
-       committed-against-paid reading needed NO new screen, no panel and no
-       band — only three more figures on a line that was already here, which
-       is the cheapest channel that carries the fact.
-       SPLIT THROUGH THE SAME homeSum, so the four cannot disagree with each
-       other or with the band sums above them: paid + outstanding IS the total,
-       by construction, because they are the same rows partitioned once.
-       "ON THIS PAGE" IS KEPT AND IS LOAD-BEARING — these are the rows the
-       filters left, not the whole book, and the wording has always said so. */
-    const money4 = window.fmtMoneyShort ? fmtMoneyShort : String;
-    const paid = homeSum(rows.filter(r => r.st === 'done')).sum;
-    const over = homeSum(rows.filter(r => r.band === 'overdue')).sum;
-    const out  = homeSum(rows.filter(r => r.st !== 'done')).sum;
+    const mw = obMoneyWords(rows);
+    if(!mw.text && !mw.left) return '';
     return `<div class="obw-total">
       <span>${_obEsc(i18t('ob_total'))}</span>
-      <span class="obw-m"><i>${_obEsc(i18t('ob_roll_committed'))}</i><b>${_obEsc(money4(h.sum))}</b></span>
-      <span class="obw-m"><i>${_obEsc(i18t('ob_roll_paid'))}</i><b class="is-ok">${_obEsc(money4(paid))}</b></span>
-      <span class="obw-m"><i>${_obEsc(i18t('ob_roll_outstanding'))}</i><b>${_obEsc(money4(out))}</b></span>
-      ${over ? `<span class="obw-m"><i>${_obEsc(i18t('ob_roll_overdue'))}</i><b class="is-bad">${_obEsc(money4(over))}</b></span>` : ''}
-      ${left.length ? `<i class="obw-left">${_obEsc(i18tn('ob_total_left_out', left.reduce((a, [, n]) => a + n, 0),
-        { n: left.reduce((a, [, n]) => a + n, 0), codes: left.map(([code]) => code).join(', ') }))}</i>` : ''}</div>`;
+      <span class="obw-m"><b>${_obEsc(mw.text ? _obCap(mw.text) : i18t('ob_no_money_here'))}</b></span>
+      ${mw.left ? `<i class="obw-left">${_obEsc(i18tn('ob_total_left_out', mw.left, { n: mw.left, codes: mw.codes.join(', ') }))}</i>` : ''}</div>`;
   })();
 
   host.innerHTML = `<div class="obw-page" data-ins-page="obligations" data-ins="0">

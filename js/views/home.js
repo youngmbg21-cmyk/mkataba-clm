@@ -1376,7 +1376,7 @@ function hmDecisionItems(S, deskRows){
     ...(myStaleDesks||[]).map(x=>({
       kind:'quiet', cid:x.c.id, urgent:true,
       txt:esc(i18t('dk_stale_card',{who:x.c.counterparty||i18t('home_no_counterparty')}))+' — '+strong(x.c.name),
-      meta:esc(i18tn('dk_stale_sub',x.stale.n,{n:x.stale.n,who:(x.stale.lead&&x.stale.lead.name)||''})),
+      meta:esc(window.deskStaleSub?deskStaleSub(x.stale):i18tn('dk_stale_sub',x.stale.n,{n:x.stale.n,who:(x.stale.lead&&x.stale.lead.name)||''})),
       tag:i18t('dk_stale_tag',{n:x.stale.days}),
       verb:i18t('act_open'),
     })),

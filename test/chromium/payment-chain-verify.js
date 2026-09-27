@@ -175,8 +175,13 @@ const day = off => { const d = new Date(); d.setDate(d.getDate() + off);
     check('overdue is the one genuinely late step', /^1 overdue$/.test(head.over.t), head.over.t);
     check('and the two that are held say so, in their own words',
       /^2 waiting$/.test(head.wait.t), head.wait && head.wait.t);
-    check('the money line is committed against paid, in the contract’s own money',
-      /KES/.test(head.paid.t) && /paid of/.test(head.paid.t), head.paid && head.paid.t);
+    /* RE-POINTED IN PLACE (27 Sep 2026, the owner's list): "X paid of Y" added
+       money we owe to money owed to us. The line says each direction apart
+       (obMoneyWords, the wide tab's own reading), still in the contract's own
+       money and still on the head's one line (the claim below). */
+    check('the money line says each direction apart, in the contract’s own money',
+      /KES/.test(head.paid.t) && !/paid of/.test(head.paid.t) && /we owe|they owe us|we paid|they paid us/i.test(head.paid.t),
+      head.paid && head.paid.t);
     check('THE HEAD IS STILL ONE LINE — the feature cost the page no height',
       head.rows <= 52 && [head.cap, head.over, head.wait, head.paid]
         .every(x => Math.abs(x.top - head.cap.top) <= 4),
@@ -282,8 +287,12 @@ const day = off => { const d = new Date(); d.setDate(d.getDate() + off);
     });
     check('the waiting band draws, after Later and before Completed',
       wl.bands.some(b => /Waiting on an earlier step/i.test(b)), wl.bands.join(' | '));
-    check('the foot grew from one figure to four',
-      wl.ms.length >= 3 && /Committed/.test(wl.ms[0]) && wl.ms.some(m => /Paid/.test(m)),
+    /* RE-POINTED IN PLACE (27 Sep 2026, the owner's list): the four figures
+       each added money we owe to money owed to us, and "Paid" read 0 whenever
+       the page showed only what is outstanding — its opening view. The foot
+       says what the wide page's head says: each direction apart. */
+    check('the foot says each direction apart — no netted "Committed", no "Paid 0"',
+      wl.ms.length >= 1 && !wl.ms.some(m => /Committed/.test(m)) && wl.ms.some(m => /KES/.test(m) && /we owe|they owe us|we paid|they paid us/i.test(m)),
       wl.ms.join(' · '));
     /* ONE LINE IS A RELATION, NOT A CEILING: every pair sits on one baseline
        AND is no taller than a single line of its own text. A typed height

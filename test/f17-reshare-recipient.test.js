@@ -317,7 +317,12 @@ describe('F17 — the round refreshes the link they already hold', () => {
     /* The region, not a byte count (13 Sep 2026): the predicate gained a
        comment and a kind test, and a 700-byte window stopped short of it. */
     const dlg = src.slice(src.indexOf('const wantDurable='), src.indexOf('      try{', src.indexOf('const wantDurable=')));
-    assert.match(dlg, /standingShares\(priorShares\)/, 'it shares the predicate');
+    /* RE-POINTED IN PLACE (27 Sep 2026, the owner's list): the dialog reuses a
+       standing NEGOTIATION link only — standingNegotiation is standingShares
+       narrowed to that kind — because a View send reused whatever link the
+       address held and the holder could still negotiate. */
+    assert.match(dlg, /standingNegotiation\(priorShares\)/, 'it shares the predicate, narrowed to negotiation links');
+    assert.match(src, /function standingNegotiation\(shares\)\{ return standingShares\(shares\)\.filter/, 'and that narrowing IS standingShares');
     assert.ok(!/standingShareFor/.test(dlg), 'but not the round send\'s fallback');
     assert.match(dlg, /recipientEmail/, 'the typed address is the match');
     /* AND THE SAME KIND OF LINK (Young, 13 Sep 2026): a history payload written
@@ -327,9 +332,11 @@ describe('F17 — the round refreshes the link they already hold', () => {
        break broke on a change that never touched the rule. PIN THE RELATION —
        the purposes that may never be refreshed onto somebody else's standing
        link — not the whitespace between them. */
-    for (const p of ['sign', 'history', 'advise'])
-      assert.match(dlg, new RegExp("payloadObj\\.purpose!=='" + p + "'"),
-        p + ' always gets its own link: refreshing a standing contract link with it would change what the holder can do');
+    /* RE-POINTED IN PLACE AGAIN (27 Sep 2026): the three exclusions became
+       one inclusion — only a NEGOTIATION send reuses a link — so sign, history,
+       advise AND view each get their own link, by construction. */
+    assert.match(dlg, /\(payloadObj\.purpose\|\|'negotiate'\)==='negotiate'/,
+      'only a negotiation send reuses a standing link: refreshing one with any other kind would change what the holder can do');
   });
 });
 

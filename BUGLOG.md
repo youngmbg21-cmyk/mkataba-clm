@@ -19676,3 +19676,23 @@ Built: the Brain page, js/brainmap.js, GET /api/brain, f400, brain-page-verify. 
 - type-and-symbols-verify: "each one is painted at the size the sheet asks for" is red at origin/main 972d681 too (icons paint 14x14), same result with and without this change.
 - white-band-and-tabs-verify: 5-ref, 5a and "the journey ran to the end" are red at origin/main 972d681 too (the Insights tabs are not found), same with and without this change.
 - npm test: six tests are red at origin/main 972d681 and identical with this change — f258 (4) "Clear clears it", f267 (17) "Clear puts it back", f277 (1) "no ring, no band, no strip", f277 (10) "the layer is a white sheet", f387 (2) "2e the facts", f387 (4) "4c the end of the term".
+
+## Run 27 Sep 2026 (evening) — the owner's open items: twelve fixes
+
+- On the owner's word, after the open-items list ("HaTi Open Items", v2): "Fix the most serious and worth my attention then merge to main". Built on claude/beautiful-davinci-4d3cs9, level with main 01bf6cc.
+- Fixed: approval rules are enforced by the server (a signing save, a signing link, their signature and the internal signer's turn notice are held while a rule step is open; only the approver the rule names decides a step, in their own name, in order). Built-in template papers freeze their printed terms at the first signature. Discard on a revised, already-sent change restores the sent version instead of deleting it. A contract from a company standard keeps who we are and which side of the money. Confirming a key-terms review merges and never erases a typed term. A View link can no longer refresh someone's negotiation link. Deleting a contract takes its sharing records with it. Opening a contract never undoes an edit still on its way to the server. The other side's comment markers open. "Waiting on us" counts a negotiation nobody on our side has picked up (for its owner and admins). No stray "[" in a blank's name. The narrow (below 1040px) Obligations page and tab, Requests and Our standards pages get the fixes the wide shapes had: money by direction and no "Paid 0", the next-30-days band, dates in words, "Nobody owns this" on our duties only, Chase and the document's end on the tab, the Requests queue order and count, a declined request that says so, one chip per standard.
+- Tests: f401–f411 (78 claims; 59 red at main, the other 19 named controls and walls); browser: their-markers, review-keeps-typed-terms, discard-keeps-sent, paper-terms-frozen, opening-keeps-your-edit (8, 4 red at main), waiting-on-us-no-desk (7, 4 red), narrow-pages (16, 13 red). Re-pointed in place, reason beside each: f118, f123, f205, f220, f259, f262, f264, f305, f333, f375, f388, f393, regression, sign-links-verify, signing-flow-verify, obligations-tab-verify, payment-chain-verify, share-recipient-verify, upload-blanks-verify, newcontract-verify.
+
+Deliberately left alone (said to the owner)
+- The server enforces the legacy default approval rule (an admin's approval from 5,000,000) where a workspace has saved no rules, exactly as the screen already did.
+- The full browser set was not re-run on the final version (the owner asked to finish); every browser file touching the changed screens was run on it and compared with main's run of the same day.
+
+Noticed, not fixed
+- A Discard followed by any later filing can leave the fingerprint chain unverifiable (verifyChangeChain).
+- A deleted contract's revoked link rows keep the recipient's name and address for the share overview.
+- The import queue's "Re-run" (migRerunAi) still replaces a draft's metadata wholesale.
+- Home counts a quiet negotiation's wait in working days (e.g. 42) where the side panel's checklist counts calendar days (60) for the same ask.
+- The wide Obligations panel's chain section still prints "X paid of Y" over one chain.
+- The phone's home screen does not list quiet negotiations at all.
+- metadata-carried-verify expects 16 fields and finds 25; redline-verify stops at section 17 — both on main as on this branch.
+- Gates: lint 0 errors, 178 warnings (unchanged). Full suite, run once: 9,831 tests, 16 failed — 6 fail on main too (f258 (4), f267 (17), f277 (1), f277 (10), f387 (2) 2e, f387 (4) 4c); the other 10 were older tests this run's fixes made stale — F17 (the dialog reuses a negotiation link only), f314 (2) (the flush marks each save as out), f195 and f197 (they sign fixtures over the legacy 5,000,000 rule, and their settings saves replace the whole blob; and two "ordinary saves" edited the counterparty on a record-drawn paper after a signature, which is now frozen) — re-pointed in place with the reason beside each and re-run on their own, all passing. The suite was not run a second time (only test files changed after it).

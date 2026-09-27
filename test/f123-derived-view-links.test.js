@@ -19,7 +19,9 @@ describe('f123 — derived view links', () => {
 
   before(async () => {
     h = await startHati();
-    W = await seedWorkspace(h);
+    W = await seedWorkspace(h, { approvalRules: [] }); /* approvalRules: [] (27 Sep 2026) — the server now enforces the approval rules
+     before signing; every fixture is above the legacy 5,000,000 default and this
+     file is not about approval rules. See seedWorkspace. */
     parent = await W.admin.json('/api/shares', { method: 'POST', body: {
       payload: payload(), channel: 'email', durable: true, purpose: 'negotiate',
       recipient: { name: 'Erik Lindqvist', email: 'erik@nordfrakt.se' }, expiryDays: 7 } });
