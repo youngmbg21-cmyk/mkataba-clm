@@ -7,7 +7,7 @@
    waiting on her, with each answer where it belongs.
 
    Run it:  npm run test:e2e -- -g "negotiation round" */
-const { test, expect, US, THEM, watchForCrashes, openAsThem, mailTo,
+const { test, expect, THEM, watchForCrashes, openAsThem, mailTo,
   signUp, draftNda, openNegotiatePage, proposeASentence } = require('./journey');
 
 /* The three changes, and Grace's reason for turning one down. */
