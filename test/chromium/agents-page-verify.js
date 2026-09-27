@@ -18,6 +18,10 @@
    without the feature REPORTS its failures rather than timing out.
    AT THE PARENT (231b9fc) every check but the stage and the page-error sweep
    FAILS: there is no door, no page and no panel to press.
+   AND AT a0f7cae (27 Sep 2026, "fix the two problems you found") 3c, 8c and
+   8d FAIL: a letter put away let the plain renewal row back in its place,
+   and a step held back in a payment chain was offered for chasing. 3c0, 8b
+   and 8e are the controls and pass on both sides.
 
    Run: node test/chromium/agents-page-verify.js */
 const fs = require('node:fs');
@@ -161,14 +165,27 @@ const ok = (name, good, detail) => {
     ok('3b "Read the letter" opens the notice letter — the renewal card\'s own dialog', letter);
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
     if (await openFirst()) await act('away');
-    /* THE NOTICE LEAVES; the desk's own renewal row for the same contract may
-       then stand in its place — that is deskItems' rule (a notice put away is
-       not the decision), so the claim is about the NOTICE, read on both pages. */
-    const away = await page.evaluate(() => ({
-      stamped: !!(getContract('MK-143').desk && getContract('MK-143').desk.notice),
-      here: agentsData().agents.renew.ready.filter(x => x.cid === 'MK-143' && x.kind === 'notice').length,
-      home: deskItems().filter(x => x.cid === 'MK-143' && x.kind === 'notice').length }));
-    ok('3c "Put away" writes the desk\'s own stamp; the notice leaves this page AND Home\'s desk', away.stamped && away.here === 0 && away.home === 0, JSON.stringify(away));
+    /* REVERSED IN PLACE 27 Sep 2026 (Young: "fix the two problems you
+       found"). This said the desk's plain renewal row "may then stand in its
+       place" and asked only about the NOTICE — which is the fault itself: the
+       reader had just cleared this contract, and the same subject walked back
+       in under another name. The claim is the CONTRACT now, on both pages,
+       and on what each page DRAWS as well as what it reads. RED at the parent
+       (a0f7cae), which prints here:1 · drawn:1 — the renewal row. 3c0 is the
+       CONTROL: the renewal reading still answers for this contract, so the
+       absence is the fix and never a stage that stopped qualifying. */
+    const away = await page.evaluate(() => {
+      const w = renewalWindow(getContract('MK-143'));
+      return {
+        inWindow: !!(w && w.inWindow && !w.decided),
+        stamped: !!(getContract('MK-143').desk && getContract('MK-143').desk.notice),
+        here: agentsData().agents.renew.ready.filter(x => x.cid === 'MK-143').length,
+        drawn: document.querySelectorAll('#ag-main [data-ag-key^="desk:MK-143:"]').length,
+        home: deskItems().filter(x => x.cid === 'MK-143').length };
+    });
+    ok('3c0 CONTROL — the renewal decision is still open on this contract', away.inWindow, JSON.stringify(away));
+    ok('3c "Put away" writes the desk\'s own stamp, and the contract leaves this page AND Home\'s desk — no renewal row in its place',
+      away.stamped && away.here === 0 && away.drawn === 0 && away.home === 0, JSON.stringify(away));
 
     /* ---- 4. new paper ---- */
     await pick('paper');
@@ -224,6 +241,45 @@ const ok = (name, good, detail) => {
     /* ---- 8. the door count follows the work ---- */
     const after = await page.evaluate(() => ({ rail: (document.querySelector('[data-count="agents"]') || {}).textContent || '', ready: agentsData().ready }));
     ok('8a with work done, the count went down and the door and the page still agree', after.rail === String(after.ready) && after.ready < 5, JSON.stringify(after));
+
+    /* ---- 8b–8e. a step held back in a payment chain is not chased (27 Sep 2026) ----
+       Young: "fix the two problems you found". The desk asked the chain
+       reading with its arguments the wrong way round, so it never once
+       answered "held": a late step whose earlier payment had not happened was
+       offered for chasing on both pages that read the desk. Staged on Kabras:
+       our deposit first, their delivery after it. 8b is the GATE (the real
+       chain reading answers "held" and the step is overdue); 8c and 8d are
+       RED at the parent (a0f7cae); 8e is the CONTROL — once the deposit is
+       paid through the product's own act, the same step IS offered. */
+    const held = await page.evaluate(() => {
+      const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
+      const k = getContract('MK-131');
+      k.obligations = (k.obligations || []).concat([
+        { id: 'ob_dep', desc: 'Pay the stock deposit', due: day(-12), party: 'ours' },
+        { id: 'ob_held', desc: 'Deliver the Q4 stock', due: day(-5), party: 'theirs', after: 'ob_dep' }]);
+      persist(k);
+      const o = k.obligations.find(x => x.id === 'ob_held');
+      return { blocked: obligationBlocked(o, k), st: obState(o) };
+    });
+    ok('8b GATE — the chain reading answers "held" and the step is overdue', held.blocked === true && held.st === 'overdue', JSON.stringify(held));
+    await back();
+    await pick('late');
+    const heldHere = await page.evaluate(() => ({
+      ready: agentsData().agents.late.ready.filter(x => x.ob && x.ob.id === 'ob_held').length,
+      drawn: document.querySelectorAll('#ag-main [data-ag-key="desk:MK-131:chase:ob_held"]').length }));
+    ok('8c Copilot\'s work does not offer to chase a step nobody could have done yet', heldHere.ready === 0 && heldHere.drawn === 0, JSON.stringify(heldHere));
+    await page.evaluate(() => setView('dashboard')); await page.waitForTimeout(900);
+    const heldHome = await page.evaluate(() => ({
+      read: deskItems().filter(x => x.kind === 'chase' && x.ob && x.ob.id === 'ob_held').length,
+      drawn: document.querySelectorAll('.hm-row.is-desk [data-desk-ob="ob_held"]').length }));
+    ok('8d nor does Home\'s Prepared for you', heldHome.read === 0 && heldHome.drawn === 0, JSON.stringify(heldHome));
+    await page.evaluate(() => toggleObligationById('MK-131', 'ob_dep')); await page.waitForTimeout(400);
+    await back();
+    await pick('late');
+    const freed = await page.evaluate(() => ({
+      ready: agentsData().agents.late.ready.filter(x => x.ob && x.ob.id === 'ob_held').length,
+      drawn: document.querySelectorAll('#ag-main [data-ag-key="desk:MK-131:chase:ob_held"]').length }));
+    ok('8e CONTROL — once our deposit is marked paid, the same step IS offered, on the page', freed.ready === 1 && freed.drawn === 1, JSON.stringify(freed));
 
     /* ---- 9. a narrow window and the dark theme ---- */
     await page.setViewportSize({ width: 1024, height: 800 });

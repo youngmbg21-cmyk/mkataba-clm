@@ -129,11 +129,19 @@ function deskItems(list){
        somebody has knocked, and knocking again the next morning is the product
        nagging on the customer's behalf. Not one held back by a step before it
        in a payment chain, because nobody could have done it yet. */
+    /* THE OBLIGATION FIRST, THE CONTRACT SECOND — obligationBlocked(o, c),
+       the order every other caller in the product uses (27 Sep 2026: Young,
+       "fix the two problems you found"). This line read (c, o), so the reading
+       looked for a payment-chain pointer ON THE CONTRACT, found none, and
+       answered "not held" for every step: a late step whose earlier payment
+       had not happened yet was offered for chasing on Home's desk and on the
+       Copilot's work page. The guard existed and never once fired — the
+       always-false costume of this codebase's commonest fault. */
     for(const o of (Array.isArray(c.obligations) ? c.obligations : [])){
       if(!o || o.chasedAt) continue;
       if(typeof obligationIsTheirs === 'function' && !obligationIsTheirs(o)) continue;
       if(typeof obState === 'function' ? obState(o) !== 'overdue' : true) continue;
-      if(typeof obligationBlocked === 'function' && obligationBlocked(c, o)) continue;
+      if(typeof obligationBlocked === 'function' && obligationBlocked(o, c)) continue;
       const due = (typeof obligationDue === 'function') ? obligationDue(o) : (o.due || null);
       const late = due ? -(dU(due) || 0) : 0;
       if(!(late >= DESK_CHASE_LATE)) continue;
@@ -181,9 +189,15 @@ function deskItems(list){
        letter is still drafted (a late notice is often still worth sending)
        and the DIALOG says so, but the desk stops leading with it — a morning
        list is about what can still be changed today. */
+    /* WHETHER THE LETTER IS READY AND WHETHER ITS ROW WAS PUT AWAY ARE TWO
+       FACTS, and the renewal row below needs the first one (27 Sep 2026).
+       It used to ask only whether a notice ROW had been pushed — and a row
+       put away is never pushed — so see `noticeReady` there. */
+    let noticeReady = false;
     if(typeof noticeDraft === 'function'){
       const nd = noticeDraft(c);
       if(nd && nd.ok && !nd.late && !nd.predatesRecord){
+        noticeReady = true;
         const it = { kind:'notice', cid:c.id, c, days:nd.days, urgent:nd.days<=14,
           who:c.counterparty||'', noticeKind:nd.kind, by:nd.decideBy, ends:nd.expiry,
           notice:nd.notice };
@@ -206,7 +220,23 @@ function deskItems(list){
        a desk of three, pushing a genuinely different kind off it — which is
        exactly the crowding deskShown exists to prevent.
        THE SHARPER ONE WINS, and it is the one carrying the act. */
-    const hasNotice = out.some(x => x.kind === 'notice' && x.cid === c.id);
+    /* ---- AND PUTTING IT AWAY PUTS THE SUBJECT AWAY (27 Sep 2026) ----
+       Young: "fix the two problems you found". This asked whether a notice
+       row was IN `out`, and a notice put away is never pushed there — so
+       pressing Put away on the letter brought the plain renewal row back in
+       its place, about the very contract the reader had just cleared off the
+       desk (Home's Prepared for you and the Copilot's work page both read
+       this). The two rows are one subject, so:
+       - the renewal row stands down wherever the letter is READY, drawn or
+         put away — the sharper form wins even when it is not on screen;
+       - and wherever the letter was PUT AWAY at all, even once it has stopped
+         being ready (its decision date passing is exactly when the renewal
+         row would otherwise walk back in). DISMISSED IS DISMISSED.
+       Nothing is lost: the decision is still on the Map, the Calendar and
+       the contract's own renewal card (and on Home's own list for the
+       contract's owner), as for every row put away. The key is deskKeyOf's
+       own, never a second spelling of it. */
+    const hasNotice = noticeReady || deskDismissed(c, deskKeyOf({ kind:'notice' }));
     const w = (typeof renewalWindow === 'function') ? renewalWindow(c) : null;
     /* A RENEWAL THAT HAS BEEN ANSWERED IS NOT WORK PREPARED FOR ANYBODY (16 Sep
        2026). The answer rides on renewalWindow for exactly this reason — the

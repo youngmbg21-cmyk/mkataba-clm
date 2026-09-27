@@ -17491,6 +17491,21 @@ CONTROLS that pass either way** — an empty book must draw no desk at all, and
 dismissing the desk's renewal must put that same contract INTO the decisions
 list, which is what proves 11h was a filter rather than an empty list).
 
+
+### A letter put away keeps its renewal row away, and a held step is not chased (27 Sep 2026)
+
+Found while building the Copilot's work page, which reads this desk whole, and fixed on Young's word: *"fix the two problems you found."*
+
+**The put-away notice.** A contract inside its renewal window with a notice period on file carries two possible desk rows about one decision: the notice (the letter is written and ready) and the plain renewal row. Since 16 Sep the rule was "one contract, one row about its renewal decision — the sharper one wins", written as `const hasNotice = out.some(x => x.kind === 'notice' && x.cid === c.id)`. But a notice the reader put away is never pushed into `out`, so the moment somebody pressed Put away on the letter the check answered "no notice" and the renewal row walked back in its place — about the very contract they had just cleared. Measured in a real browser on the sample book: after Put away on Sendy's letter, the Copilot's work page drew `desk:MK-143:renewal` and Home's desk reading carried it.
+
+The fix separates two facts: whether the letter is READY (`noticeReady`, set whether or not its row is drawn) and whether it was PUT AWAY (`deskDismissed(c, deskKeyOf({ kind:'notice' }))`). The renewal row stands down on either. The second half matters on the day the decision date passes: the letter stops leading then (a morning list is about what can still be changed), and without it the renewal row would reappear exactly then as "decision date passed" — the desk nagging about a subject the reader had put away. DISMISSED IS DISMISSED. Nothing is lost: the decision is still on the Map, the Calendar, the renewal card, and on Home's own list for the owner.
+
+**The held step.** The chase row's guard read `obligationBlocked(c, o)`; the function is `obligationBlocked(o, c)`, as every other caller writes it. With the arguments swapped it looked for a payment-chain pointer (`after`) on the CONTRACT, found none, and answered "not held" every time — the guard existed and never once fired. So a late delivery of theirs, waiting on a deposit of ours that had not been paid, was offered for chasing on Home and on the Copilot's work page. Measured: `ready:1 · drawn:1` on the page, one row on Home.
+
+**Left as it was, deliberately.** The Obligations list, its side panel and the phone still draw a Chase button on a held-back step. That is a person's own press on a row already sitting in the "waiting" band, not a suggestion HaTi prepared; hiding it is the owner's call.
+
+Tests: f274 (10) — five claims red at a0f7cae, five named controls that pass on both sides (the chain reading answers "held"; once the deposit is done the step IS chased; a ready letter still keeps the renewal row off; past the decision date the renewal row really takes over; reading still writes nothing). f399 4i/4j red at a0f7cae. agents-page-verify 3c (reversed in place — it said the renewal row "may then stand in its place", which was the fault), 8c and 8d red at a0f7cae; 3c0, 8b and 8e are the controls.
+
 ## THE RENEWAL NOTE IS WRITTEN BEFORE ANYBODY ARRIVES (Young ruled 9 Sep 2026)
 
 *"why cant we build the overnight feature then?"* — and the answer was that ONE

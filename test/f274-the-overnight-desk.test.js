@@ -505,4 +505,101 @@ describe('F274 — the overnight desk', () => {
         'nor a night shift the product does not yet run');
     });
   });
+  /* --------------------------------------------------------------- */
+  /* ---- 10 — TWO FAULTS FOUND BUILDING THE COPILOT'S WORK PAGE ----
+     Young, 27 Sep 2026: "fix the two problems you found". Both surfaces that
+     read this desk — Home's Prepared for you and the Copilot's work page —
+     inherited them. Every claim here is RED at the parent (a0f7cae) except
+     the ones named CONTROL, which pass on both sides and prove the stage
+     reaches the reading the fix relies on, so an absence below is the fix and
+     never a stage that could not answer. */
+  describe('10 — a held-back step is not chased, and a letter put away stays away', () => {
+    /* A PAYMENT CHAIN: our deposit first, their delivery after it. Their step
+       is past its date, but nobody could have done it yet. */
+    const chained = () => {
+      const s = stage();
+      s.byId('MK-1').obligations = [
+        { id: 'o0', desc: 'Pay the stock deposit', due: day(-10), party: 'ours', status: 'open' },
+        { id: 'o1', desc: 'Deliver the stock', due: day(-4), party: 'theirs', status: 'open', after: 'o0' }];
+      return s;
+    };
+    test('10a CONTROL — the chain reading answers "held", and the step is overdue', () => {
+      const { win, byId } = chained();
+      const c = byId('MK-1'), o1 = c.obligations[1];
+      assert.equal(typeof win.obligationBlocked, 'function', 'the payment chain is on the stage');
+      assert.equal(win.obligationBlocked(o1, c), true, 'the step before it is not done');
+      assert.equal(win.obState(o1), 'overdue', 'so the only thing between it and a chase is the held-step guard');
+    });
+    test('10b a late step held back by an earlier one is NOT offered for chasing', () => {
+      const { win } = chained();
+      const chase = win.deskItems().filter(x => x.kind === 'chase');
+      assert.equal(chase.length, 0,
+        'nobody could have delivered yet — offering to chase them is the product accusing them of our own delay');
+    });
+    test('10c CONTROL — once the earlier step is done, the same step IS chased', () => {
+      const { win, byId } = chained();
+      byId('MK-1').obligations[0].status = 'done';
+      const chase = win.deskItems().filter(x => x.kind === 'chase');
+      assert.equal(chase.map(x => x.ob.id).join(','), 'o1', 'the guard is about the chain, never about the obligation');
+    });
+    test('10d the guard names the obligation first, as every other caller does', () => {
+      assert.match(DESK_CODE, /obligationBlocked\(o, c\)/);
+      assert.ok(!/obligationBlocked\(c, o\)/.test(DESK_CODE),
+        '(c, o) looked for the chain pointer ON THE CONTRACT, found none, and answered "not held" every time');
+    });
+
+    /* A NOTICE READY TO SERVE — f323's own fixture: in force, ending in 40
+       days, 30 days' notice, so the letter can be written and is not late. */
+    const withNotice = o => {
+      const { win } = buildWorld({ notice: true, desk: true });
+      const c = Object.assign({
+        id: 'MK-N', name: 'Modern Trade Listing', counterparty: 'Naivas Supermarkets', status: 'Signed',
+        audit: [{ at: '2024-01-01T00:00:00.000Z', user: 'x', action: 'Created' }],
+        expiry: day(40), metadata: { expiryDate: day(40), noticePeriodDays: 30, renewalType: 'auto-renew',
+          effectiveDate: '2025-07-24', currency: 'KES' } }, o || {});
+      win.state.contracts = [c];
+      return { win, c };
+    };
+    const rowsOf = (win, id) => [...win.deskItems()].filter(x => x.cid === id).map(x => x.kind).join(',');
+    test('10e CONTROL — the letter is ready, so the renewal row stands down (the 16 Sep rule)', () => {
+      const { win } = withNotice();
+      assert.equal(typeof win.noticeDraft, 'function', 'the notice desk is on the stage');
+      assert.equal(rowsOf(win, 'MK-N'), 'notice', 'one contract, one row about its renewal decision');
+    });
+    test('10f putting the letter away does not bring the renewal row back in its place', () => {
+      const { win, c } = withNotice();
+      assert.equal(win.deskDismiss(c, 'notice'), true);
+      assert.equal(rowsOf(win, 'MK-N'), '',
+        'the reader just cleared this contract off the desk — the same subject may not walk back in under another name');
+    });
+    test('10g CONTROL — past the decision date the letter stops leading and the renewal row takes over', () => {
+      /* Ending in 20 days with 30 days' notice: the decision date passed ten
+         days ago, so the letter is LATE and off the desk, and the decision
+         row is the designed hand-over. This proves the renewal row really
+         qualifies on this contract, so 10h's absence is the fix. */
+      const { win } = withNotice({ expiry: day(20), metadata: { expiryDate: day(20), noticePeriodDays: 30,
+        renewalType: 'auto-renew', effectiveDate: '2025-07-24', currency: 'KES' } });
+      assert.equal(rowsOf(win, 'MK-N'), 'renewal');
+    });
+    test('10h a letter put away keeps the renewal row away even once its date has passed', () => {
+      const { win, c } = withNotice({ expiry: day(20), metadata: { expiryDate: day(20), noticePeriodDays: 30,
+        renewalType: 'auto-renew', effectiveDate: '2025-07-24', currency: 'KES' } });
+      c.desk = { notice: new Date().toISOString() };
+      assert.equal(rowsOf(win, 'MK-N'), '', 'DISMISSED IS DISMISSED — the desk is a stack prepared once, not a queue that nags');
+    });
+    test('10i the renewal row asks whether the letter was READY, never whether its row was drawn', () => {
+      assert.ok(!/out\.some\(x => x\.kind === 'notice'/.test(DESK_CODE),
+        'a row put away is never in `out`, so asking `out` is what let the renewal row back in');
+      assert.match(DESK_CODE, /deskDismissed\(c, deskKeyOf\(\{ kind:'notice' \}\)\)/,
+        'and the put-away question uses deskKeyOf’s own key, never a second spelling of it');
+    });
+    test('10j CONTROL — reading still writes nothing: the only stamp is the one the reader pressed', () => {
+      const { win, c } = withNotice();
+      win.deskDismiss(c, 'notice');
+      const before = JSON.stringify(c);
+      win.deskItems(); win.deskShown(win.deskItems());
+      assert.equal(JSON.stringify(c), before, 'standing the renewal row down stamps nothing of its own');
+    });
+  });
 });
+

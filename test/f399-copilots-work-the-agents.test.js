@@ -243,6 +243,30 @@ describe('f399 (4) — the readings', () => {
     assert.equal(win.agentsData(win.state.contracts).agents.late.ready.length, 0);
     assert.equal(win.deskItems(win.state.contracts).filter(x => x.kind === 'chase').length, 0, 'and off Home\'s desk too — one stamp');
   });
+  /* TWO FAULTS THIS PAGE INHERITED FROM THE DESK IT READS (Young, 27 Sep
+     2026: "fix the two problems you found"). Both are RED at the parent
+     (a0f7cae); f274 section 10 pins the reading, these pin the page. */
+  test('4i a late step held back by an earlier payment-chain step is not ready under Late promises', async () => {
+    const { win, late } = await staged();
+    late.obligations.push({ id: 'ob0', desc: 'Pay the stock deposit', due: day(-12), party: 'ours' },
+      { id: 'ob3', desc: 'Deliver the Q4 stock', due: day(-5), party: 'theirs', after: 'ob0' });
+    assert.equal(win.obligationBlocked(late.obligations[3], late), true, 'the stage: their step waits on ours');
+    const L = win.agentsData(win.state.contracts).agents.late;
+    assert.equal(J(L.ready.map(x => x.ob.id)), 'ob1', 'nobody could have delivered yet, so there is nobody to chase');
+  });
+  test('4j putting the letter away takes the contract off Renewals — no renewal row stands in its place', async () => {
+    const { buildWorld, supplyContract } = require('./world');
+    const { win } = buildWorld({ negotiationView: true, copilotRead: true, desk: true, agents: true, notice: true });
+    const c = supplyContract({ id: 'MK-N1', status: 'Signed', counterparty: 'Naivas Supermarkets',
+      audit: [{ at: '2024-01-01T00:00:00.000Z', user: 'x', action: 'Created' }],
+      expiry: day(40), metadata: { expiryDate: day(40), noticePeriodDays: 30, renewalType: 'auto-renew' } });
+    win.state.contracts = [c];
+    const rn = win.agentsData(win.state.contracts).agents.renew.ready;
+    assert.equal(J(rn.map(x => x.kind)), 'notice', 'the stage: the letter is ready and leads');
+    assert.equal(win.deskDismiss(c, rn[0].deskKey), true);
+    assert.equal(win.agentsData(win.state.contracts).agents.renew.ready.length, 0,
+      'the reader cleared this contract — a plain renewal row may not take the letter\'s place');
+  });
 });
 
 describe('f399 (5) — the page, drawn', () => {
