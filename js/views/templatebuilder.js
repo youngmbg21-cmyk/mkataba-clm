@@ -665,7 +665,7 @@ function tbBlankCandidates() {
           const from = Math.max(0, hit.s - 30);
           const pre = String(node.text || '').slice(from, hit.s).replace(/^\S*\s/, '');
           if (!pre.trim()) return;
-          add(pre + hit.raw, 'line', typeof upLabel === 'function' ? upLabel(typeof upLead === 'function' ? upLead(pre) : pre) : pre.trim());
+          add(pre + hit.raw, 'line', typeof upLabel === 'function' ? upLabel(typeof upLeadName === 'function' ? upLeadName(pre) : typeof upLead === 'function' ? upLead(pre) : pre) : pre.trim());
           return;
         }
         /* A {{marker}} IS ALREADY A BLANK HERE — it is the builder's own

@@ -1,6 +1,21 @@
 // HaTi — E3 obligations + renewal decisions. Globals window-attached.
 
 const OBLIG_RECUR = [['none','One-off'],['monthly','Monthly'],['quarterly','Quarterly'],['annual','Annual']];
+/* THE WORD FOR HOW OFTEN, IN THE READER'S LANGUAGE (26 Sep 2026, the
+   overnight clean-up). OBLIG_RECUR is the RECORD's list — its keys are what is
+   stored and its English is the fallback — and it froze its words at load, so
+   the obligation form, the Checks card and the worklist printed "Quarterly" to
+   a Swedish reader while Insights, twelve pixels of navigation away, said
+   "Kvartalsvis" through int_ob_rep_*. Those keys are the words; this is the one
+   reading of them. */
+const OB_RECUR_KEY = { none:'ob_recur_none', monthly:'int_ob_rep_monthly', quarterly:'int_ob_rep_quarterly', annual:'int_ob_rep_annual' };
+function obRecurLabel(k){
+  const en = (OBLIG_RECUR.find(r => r[0] === k) || [])[1];
+  const key = OB_RECUR_KEY[k];
+  if(!key) return en || String(k || '');
+  try{ const t = (typeof i18t === 'function') ? i18t(key) : ''; return (t && t !== key) ? t : (en || String(k)); }
+  catch(_){ return en || String(k); }
+}
 
 /* ---- A DATE FIELD IS NOT ALWAYS A DATE ----
 
@@ -658,7 +673,7 @@ function renderObligationsSection(c){
             <span class="ob-due ml-auto shrink-0 font-mono">${o.due||'no date'}</span>
           </div>
           <div class="ob-meta mt-1 flex items-center gap-2">
-            ${o.recurring&&o.recurring!=='none'?`<span>${(OBLIG_RECUR.find(r=>r[0]===o.recurring)||[])[1]}</span>·`:''}
+            ${o.recurring&&o.recurring!=='none'?`<span>${_obEsc(obRecurLabel(o.recurring))}</span>·`:''}
             ${''/* Ours or theirs, said on the row rather than inferred from a
                    name. "Wanjiku Kamau" reads as a job; "Kabras Sugar" beside
                    it would read as one too unless the row says which it is. */}
@@ -702,11 +717,13 @@ function renderObligationsSection(c){
   host.querySelectorAll('[data-ob-edit]').forEach(b=>b.addEventListener('click',()=>{
     const i=Number(b.getAttribute('data-ob-edit'));
     openObligationForm(c, { ...obs[i], _i:i }); }));
+  /* ONE ACT, AND IT ASKS FIRST (26 Sep 2026, the overnight clean-up). This
+     row removed the obligation on the press, while the Obligations tab's
+     Remove asks "Remove this obligation?" first — two doors onto one act
+     disagreeing about whether a press can lose a promise. Both are
+     obligationRemove now, which asks, writes the trail line and repaints. */
   host.querySelectorAll('[data-ob-del]').forEach(b=>b.addEventListener('click',()=>{
-    const o=obs[Number(b.getAttribute('data-ob-del'))];
-    obs.splice(Number(b.getAttribute('data-ob-del')),1);
-    if(o) logAudit(c,'Obligation',`Removed: ${o.desc}`);
-    persist(c); renderObligationsSection(c); obligationSurfacesChanged(); }));
+    obligationRemove(c, Number(b.getAttribute('data-ob-del'))); }));
   document.getElementById('ob-add')?.addEventListener('click',()=>openObligationForm(c));
   document.getElementById('ob-find')?.addEventListener('click',()=>runFindObligations(c));
 }
@@ -744,7 +761,7 @@ function openObligationForm(c, seed){
         <label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_due_date')}</span>
           <input id="of-due" type="date" value="${seed.due||''}" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500"/></label>
         <label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_recurring')}</span>
-          <select id="of-recur" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500">${OBLIG_RECUR.map(([k,l])=>`<option value="${k}" ${seed.recurring===k?'selected':''}>${l}</option>`).join('')}</select></label>
+          <select id="of-recur" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500">${OBLIG_RECUR.map(([k])=>`<option value="${k}" ${seed.recurring===k?'selected':''}>${_obEsc(obRecurLabel(k))}</option>`).join('')}</select></label>
       </div>
       ${''/* ---- COMES AFTER: THE ONE DOOR ONTO THE ORDER (L-5) ----
               The render drew an "Edit the order" button on the chain head as
@@ -1622,7 +1639,7 @@ function roomObligationsHtml(c){
           <span class="obt-side obt-side-${theirs ? 'them' : 'us'}">${_obEsc(theirs ? i18t('ob_side_theirs') : i18t('ob_side_ours'))}</span>
           <span>${_obEsc(obligationOwner(o, c))}</span>
           ${o.recurring && o.recurring !== 'none'
-            ? `<span>${_obEsc((OBLIG_RECUR.find(x => x[0] === o.recurring) || [])[1] || o.recurring)}</span>` : ''}
+            ? `<span>${_obEsc(obRecurLabel(o.recurring))}</span>` : ''}
           ${unowned}
           ${s === 'done' && o.completedBy ? `<span>${_obEsc(i18t('ob_done_by', { who: o.completedBy }))}</span>` : ''}
         </div>
@@ -3219,4 +3236,4 @@ Object.assign(window,{obligationIsDoc,obligationDocUntil,obligationDocFile,oblig
   obligationReminderSay,obligationHistory,obligationStampHistory,obHistoryHtml,obChainSectionHtml,obDocSectionHtml,obWordingSectionHtml,
   obligationShowInContract,obKeyOf,obLocate,obPanelActs,obligationRemove,obOpenContract,obPanelOpts,obPaintPanel,obListHtml,obTableHtml,
   OBW_VIEWS,OBW_CHIPS,obwBook,obwPass,obwPaintHead,renderObligationsInspector,OBT_VIEWS,obtView,roomObligationsInspector,
-  OBLIG_RECUR,OBLIG_BANDS,OBLIG_TEXT_MIN,OB_NOTE_MAX,OBW_WHOSE,OBW_STATE,OBW_SIDE,OBW_DUE,obwFilters,obwNarrowing,obwRows,obwGoFiltered,obligationsDoorCount,renderObligationsList,obwRepaint,obligationSeriesOpenAt,obligationChase,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationIsMine,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,RENEWAL_ANSWERS,renewalQuestionOf,renewalDecisionOf,renewalDecisionStale,renewalDecided,renewalNoticeTo,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});
+  OBLIG_RECUR,obRecurLabel,OBLIG_BANDS,OBLIG_TEXT_MIN,OB_NOTE_MAX,OBW_WHOSE,OBW_STATE,OBW_SIDE,OBW_DUE,obwFilters,obwNarrowing,obwRows,obwGoFiltered,obligationsDoorCount,renderObligationsList,obwRepaint,obligationSeriesOpenAt,obligationChase,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationIsMine,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,RENEWAL_ANSWERS,renewalQuestionOf,renewalDecisionOf,renewalDecisionStale,renewalDecided,renewalNoticeTo,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});

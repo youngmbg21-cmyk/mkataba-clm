@@ -329,7 +329,12 @@ describe('f265 · a move is not an act', () => {
 
   test('and the ways out of a dialog are untouched', () => {
     const core = read('js/core.js');
-    assert.match(core, /_modalRelease = trapFocus\(panel\)/, 'the keyboard still stays inside it');
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the overnight clean-up): the trap now
+       takes the opener as an argument — read before a replacing dialog tears
+       the old panel out, so the second of two dialogs hands focus back to the
+       button that started the first. The claim is the same claim: a trap is
+       still armed on every dialog panel. */
+    assert.match(core, /_modalRelease = trapFocus\(panel(, \{ opener \})?\)/, 'the keyboard still stays inside it');
     /* RE-POINTED IN PLACE 26 Sep 2026 (the Compact ladder): the claim was an
        ORDER — the drag is released before the markup goes — pinned as two
        lines standing next to each other. A third release (the pinned dialog

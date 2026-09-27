@@ -7934,10 +7934,9 @@ function rlPaintFocusBtn(){
   const face = b => {
     b.classList.toggle('on', _rlFocus);
     b.setAttribute('aria-pressed', _rlFocus ? 'true' : 'false');
-    b.setAttribute('aria-label', _rlFocus ? 'Exit focus mode' : 'Enter focus mode');
-    b.title = _rlFocus
-      ? 'Exit focus mode — bring the header back'
-      : 'Focus mode — hide the header and give the space to the document and the changes';
+    /* In the reader's language (26 Sep 2026, the overnight clean-up). */
+    b.setAttribute('aria-label', _rlFocus ? i18t('ct_exit_focus') : i18t('po_focus_mode'));
+    b.title = _rlFocus ? i18t('ct_exit_focus') : i18t('ct_focus_mode');
   };
   document.querySelectorAll('[data-rl-focus]').forEach(face);
   /* THE HEAD'S BUTTON IS PAINTED BY WHICHEVER PAGE OWNS IT, and the scope is

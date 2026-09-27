@@ -304,6 +304,21 @@ function triageTiles(c){
       try{ left = (typeof contractBlanksOpen === 'function') ? contractBlanksOpen(c).length : 0; }catch(_){ left = 0; }
     }
   }
+  /* ---- A TILE WITH FIELDS STILL OPEN IS NOT A TICK (26 Sep 2026, the
+     overnight clean-up) ----
+     The run filled some and left some, and the tile read "Open fields filled
+     in" with a tick over "3 still open" — the head claiming the job done in
+     the same breath as its own detail saying it was not (and with nothing
+     filled at all, a tick over a count of zero). Where fields are still open
+     NOW, the tile says what the form's tile says: they are on the panel,
+     which ones, and how many — steel, never green. Asked live, so a blank
+     answered since this ran is not "still open". */
+  if (fl.ok && left > 0 && !fillNone){
+    let open = null;
+    try{ open = (typeof contractOpenFieldNames === 'function') ? contractOpenFieldNames(c) : null; }catch(_){ open = null; }
+    if (open && open.length) fillNone = 'form';
+    else if (open) left = 0;
+  }
   if (fl.ok && !names.length && !fillNone && !left && typeof contractBlanksNone === 'function'){
     try{ fillNone = contractBlanksNone(c); }catch(_){ fillNone = null; }
   }

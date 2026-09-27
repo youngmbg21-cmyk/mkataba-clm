@@ -1381,6 +1381,7 @@ function portalSaveHeld(){
 function portalLoadHeld(){
   PORTAL_NEGO_DECISIONS={}; PORTAL_NEGO_WITHDRAWN={}; PORTAL_NEGO_PROPOSED={};
   const t=PORTAL_OPTS&&PORTAL_OPTS.token; if(!t) return;
+  portalLoadSent();
   try{
     const raw=localStorage.getItem(PORTAL_HELD_KEY(t)); if(!raw) return;
     const held=JSON.parse(raw);
@@ -1393,6 +1394,50 @@ function portalLoadHeld(){
        Those links are live on the server and listed in the owner's panel; the
        copy this page kept was only ever for drawing a panel that is gone. */
   }catch(e){ PORTAL_NEGO_DECISIONS={}; PORTAL_NEGO_WITHDRAWN={}; PORTAL_NEGO_PROPOSED={}; }
+}
+/* ---- AND WHAT WAS SENT SURVIVES A RELOAD (26 Sep 2026, the overnight
+   clean-up) ----
+   PORTAL_NEGO_SENT lived only in memory, and Send clears the held store. So a
+   reader who answered, sent and reloaded before the owner's browser had
+   collected the answer met the change as "Awaiting you" again, with Accept and
+   Reject live — and a second, different answer was posted on top of the first
+   and applied after it, leaving two "decided" lines on the owner's trail.
+   Measured: two responses waiting, the change ending "rejected".
+
+   Kept per link beside the held store, for the same month, and only ANSWERS
+   and WITHDRAWALS: their ids are the owner's own. A proposal is not kept here
+   — the owner's copy re-files it under an id of its own, so a remembered one
+   could never be matched to its filed twin and would draw twice; a proposal
+   sent again is caught by the owner's side as a duplicate anyway.
+
+   It is dropped the moment the record catches up (portalNegoContract), and not
+   read at all once the server says the last answer from this link has been
+   applied — from then on the copy of the link IS the record, and a memory kept
+   past that point would hide a change the owner reopened afterwards. */
+const PORTAL_SENT_KEY = t => `hati.negoSent.${t}`;
+function portalSaveSent(){
+  const t=PORTAL_OPTS&&PORTAL_OPTS.token; if(!t) return;
+  try{
+    const any=Object.keys(PORTAL_NEGO_SENT).length || Object.keys(PORTAL_NEGO_WITHDRAWN_SENT).length;
+    if(!any){ localStorage.removeItem(PORTAL_SENT_KEY(t)); return; }
+    localStorage.setItem(PORTAL_SENT_KEY(t), JSON.stringify({ v:1, at:Date.now(),
+      decisions:PORTAL_NEGO_SENT, withdrawn:PORTAL_NEGO_WITHDRAWN_SENT }));
+  }catch(e){ /* a browser that will not remember is not a reason to stop */ }
+}
+function portalLoadSent(){
+  const t=PORTAL_OPTS&&PORTAL_OPTS.token; if(!t) return;
+  /* A sitting that has sent something already knows what it sent. */
+  if(Object.keys(PORTAL_NEGO_SENT).length || Object.keys(PORTAL_NEGO_WITHDRAWN_SENT).length) return;
+  try{
+    const lr=PORTAL_OPTS.lastResponse;
+    if(lr && lr.applied===true){ localStorage.removeItem(PORTAL_SENT_KEY(t)); return; }
+    const raw=localStorage.getItem(PORTAL_SENT_KEY(t)); if(!raw) return;
+    const sent=JSON.parse(raw);
+    if(!sent || sent.v!==1) return;
+    if(!sent.at || (Date.now()-sent.at)>PORTAL_HELD_TTL){ localStorage.removeItem(PORTAL_SENT_KEY(t)); return; }
+    PORTAL_NEGO_SENT=sent.decisions&&typeof sent.decisions==='object'?sent.decisions:{};
+    PORTAL_NEGO_WITHDRAWN_SENT=sent.withdrawn&&typeof sent.withdrawn==='object'?sent.withdrawn:{};
+  }catch(e){ PORTAL_NEGO_SENT={}; PORTAL_NEGO_WITHDRAWN_SENT={}; }
 }
 /* Sent, or overtaken by the record — either way it is no longer a draft. */
 function portalDropHeld(){
@@ -1515,6 +1560,17 @@ function portalNegoContract(p){
   PORTAL_NEGO_FILED={};
   for(const x of (Array.isArray(src.changes)?src.changes:[]))
     if(x&&x.id) PORTAL_NEGO_FILED[x.id]=x.status||'pending';
+  /* A SENT ANSWER THE RECORD NOW CARRIES IS NOT MEMORY ANY MORE — it is the
+     record, and it is let go (and so is one whose change the copy of the link
+     no longer holds: its round has closed). See portalSaveSent. */
+  { let moved=false;
+    const gone=new Set((Array.isArray(src.changes)?src.changes:[]).filter(x=>x&&x.id&&x.withdrawn).map(x=>x.id));
+    for(const id of Object.keys(PORTAL_NEGO_SENT)){
+      const f=PORTAL_NEGO_FILED[id], sent=PORTAL_NEGO_SENT[id];
+      if(f===undefined || (sent && f===sent.status)){ delete PORTAL_NEGO_SENT[id]; moved=true; } }
+    for(const id of Object.keys(PORTAL_NEGO_WITHDRAWN_SENT))
+      if(PORTAL_NEGO_FILED[id]===undefined || gone.has(id)){ delete PORTAL_NEGO_WITHDRAWN_SENT[id]; moved=true; }
+    if(moved) portalSaveSent(); }
   // a decision taken on this page but not yet sent is shown as taken
   for(const ch of c.changes){
     // sent first, then held — a decision taken again after sending wins
@@ -4095,6 +4151,7 @@ async function portalRespond(p, action, extra){
       for(const pr of proposed) PORTAL_NEGO_PROPOSED_SENT[pr.id]={ ...PORTAL_NEGO_PROPOSED[pr.id] };
       PORTAL_NEGO_DECISIONS={}; PORTAL_NEGO_WITHDRAWN={}; PORTAL_NEGO_PROPOSED={};
       portalDropHeld();                        // it has gone; it is not a draft any more
+      portalSaveSent();                        // and what went is remembered past a reload
       if(action==='ready') PORTAL_READY_SENT=true;
       const n=decisions.length, np=proposed.length;
       /* What actually went, named. "2 decisions sent" was the only sentence
@@ -4123,7 +4180,13 @@ async function portalRespond(p, action, extra){
       /* Repaint, so the room shows the decisions as sent rather than still
          waiting to be. The room is their page — there is nowhere else for the
          outcome to appear. */
-      wirePortalNego(portalNegoContract(p), p);   // repaint the workbench with the fresh record
+      /* AND THE BELL, in the same breath (26 Sep 2026, the overnight
+         clean-up): it went on saying "1 decision is held on this page —
+         press Send" after the send, over a Send that had nothing left to
+         send, until something else repainted it. */
+      const fresh=portalNegoContract(p);
+      wirePortalNego(fresh, p);   // repaint the workbench with the fresh record
+      if(window.portalPaintAlerts) try{ portalPaintAlerts(fresh, p); }catch(_){}
     }catch(e){
       portalSetIdle();
       toast(e.message||(action==='ready'?'Could not send':'Could not send your decisions'),'err');

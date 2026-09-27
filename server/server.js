@@ -4708,6 +4708,10 @@ app.delete('/api/contracts/:id', auth, editor, (req, res) => {
     /* The plain-English readings kept a clause at a time (fix 6) are a reading
        of THIS contract's wording and go with it. */
     db.prepare('DELETE FROM clause_reading_rows WHERE contract_id=?').run(req.params.id);
+    /* AND THE WHOLE EDITION BESIDE THEM (26 Sep 2026, the overnight
+       clean-up): the rows went with the contract and the cached edition —
+       the same reading, kept whole — stayed behind for ever. */
+    db.prepare('DELETE FROM clause_readings WHERE contract_id=?').run(req.params.id);
     db.prepare('DELETE FROM contracts WHERE id=?').run(req.params.id);
   });
   _storedBytes = null;   // H-8: recompute the storage total after removing files
@@ -7686,6 +7690,12 @@ app.post('/api/mailroom', rlMailroom, express.json({ limit: '32mb' }), (req, res
     try { bytes = Buffer.from(String((f && f.content) || ''), 'base64'); } catch (_) { bytes = null; }
     if (!bytes || !bytes.length) { skipped.push({ name, why: 'empty' }); continue; }
     if (bytes.length > MAILROOM_MAX_BYTES) { skipped.push({ name, why: 'over ' + Math.round(MAILROOM_MAX_BYTES / 1048576) + ' MB' }); continue; }
+    const dataUrl = `data:${type || 'application/octet-stream'};base64,${bytes.toString('base64')}`;
+    /* THE STORAGE CEILING HOLDS FOR MAIL TOO: POST /api/files refuses past it,
+       and a document that arrives by email is stored in the same table. Said,
+       never silent — it rides `skipped` with every other refusal. */
+    if (STORAGE_MAX_BYTES > 0 && storedBytes() + dataUrl.length > STORAGE_MAX_BYTES) {
+      skipped.push({ name, why: 'document storage is full' }); continue; }
     /* THE SAME COUNTER EVERY OTHER SERVER-MINTED REFERENCE USES, so a
        mailroom document takes its place in the book's own numbering and
        nothing can collide with it. */
@@ -7693,6 +7703,10 @@ app.post('/api/mailroom', rlMailroom, express.json({ limit: '32mb' }), (req, res
     setSetting('uid', String(uid));
     const id = 'MK-' + uid;
     const at = now();
+    const fileId = 'f_' + rid(10);
+    db.prepare('INSERT INTO files (id,name,mime,data,created_at) VALUES (?,?,?,?,?)')
+      .run(fileId, name || 'document', type || '', dataUrl, at);
+    if (_storedBytes != null) _storedBytes += dataUrl.length;
     /* ---- AND NO CLAIM ABOUT MONEY EITHER (Young's go, 23 Sep 2026) ----
        This carried valueType 'none', which is not "nobody has said" but "no
        money passes under this paper" — a claim about a document nobody has
@@ -7704,9 +7718,18 @@ app.post('/api/mailroom', rlMailroom, express.json({ limit: '32mb' }), (req, res
       status: 'Draft', template: null, source: 'upload', folder, lastAction: at.slice(0, 10),
       expiry: null, hash: null, signedAt: null, signatory: null, compliance: {},
       fields: {}, scan: null, comments: [], signatures: [], obligations: [],
-      upload: { name: name || 'document', size: bytes.length, type,
-        sha256: crypto.createHash('sha256').update(bytes).digest('hex'),
-        data: bytes.toString('base64'), at },
+      /* THE BROWSER'S OWN UPLOAD SHAPE (26 Sep 2026, the overnight
+         clean-up). This wrote `{name, type, sha256, data}` — a shape no
+         screen reads — so a document that arrived by email filed a contract
+         whose Document tab could not open the file: the room reads
+         `fileName`, `mime` and the bytes through `fileId`. The bytes go where
+         every other upload's go (the files table, counted against the
+         storage ceiling), and `fileHash` is taken the way the browser takes
+         it — over the data URL — so a seal made later binds the same value
+         either way. */
+      upload: { fileName: name || 'document', mime: type || '', size: bytes.length,
+        fileHash: crypto.createHash('sha256').update(dataUrl, 'utf8').digest('hex'),
+        fileId, uploadedAt: at, uploadedBy: 'Mailroom', extractedText: '', textChars: 0, textSource: '' },
       /* THE QUEUE'S OWN SHAPE, so the migration page needs to learn nothing
          new: it is a document that needs review and has not been read. */
       migration: { batch: 'mailroom', importedAt: at, importedBy: 'Mailroom',
@@ -10049,10 +10072,18 @@ function executedAttachment(c) {
       return { filename: String(f.name || contractRef(c) + ' — signed copy').slice(0, 120), content: m[2] };
     return null;
   }
-  if (c.upload && c.upload.dataUrl) {
-    const m = String(c.upload.dataUrl).match(/^data:([^;]*);base64,(.*)$/s);
+  /* THE UPLOADED FILE IS IN THE FILES TABLE ON A SERVER (26 Sep 2026, the
+     overnight clean-up). The browser takes `dataUrl` off every upload it has
+     stored as a file before it saves (saveContract), so on a server this
+     branch never saw the bytes and an executed upload went out with no
+     attachment at all. Read where the bytes are; and the browser names the
+     file `fileName` — `name` was only ever the mailroom's spelling. */
+  if (c.upload && (c.upload.dataUrl || c.upload.fileId)) {
+    let src = c.upload.dataUrl || '';
+    if (!src && c.upload.fileId) { const f = hoFileRow(c.upload.fileId); src = (f && f.data) || ''; }
+    const m = String(src).match(/^data:([^;]*);base64,(.*)$/s);
     if (m && m[2] && m[2].length <= 14 * 1024 * 1024)
-      return { filename: String(c.upload.name || c.id + ' — executed file').slice(0, 120), content: m[2] };
+      return { filename: String(c.upload.fileName || c.upload.name || c.id + ' — executed file').slice(0, 120), content: m[2] };
     return null;
   }
   if (!(c.execution && c.execution.html)) return null;
@@ -11512,7 +11543,7 @@ app.post('/api/files', auth, editor, (req, res) => {
   if (!dataUrl || typeof dataUrl !== 'string') return res.status(400).json({ error: 'dataUrl required' });
   if (STORAGE_MAX_BYTES > 0 && storedBytes() + dataUrl.length > STORAGE_MAX_BYTES) {
     const mb = n => (n / (1024 * 1024)).toFixed(0);
-    return res.status(413).json({ error: `Document storage is full (${mb(storedBytes())} MB of ${mb(STORAGE_MAX_BYTES)} MB used). Ask an admin to remove unneeded uploads (Team & Settings → reclaim orphaned files) or raise the limit before uploading more.`, storageFull: true });
+    return res.status(413).json({ error: `Document storage is full (${mb(storedBytes())} MB of ${mb(STORAGE_MAX_BYTES)} MB used). Ask an admin to clear out uploads nothing uses any more, or to raise the limit, before uploading more.`, storageFull: true });
   }
   const id = 'f_' + rid(10);
   db.prepare('INSERT INTO files (id,name,mime,data,created_at) VALUES (?,?,?,?,?)')
@@ -11531,7 +11562,18 @@ app.post('/api/files', auth, editor, (req, res) => {
 function fileInScope(scope, fileId) {
   if (scopeIsAll(scope)) return true;
   let referenced = false, allowed = false;
-  for (const r of db.prepare('SELECT json, folder FROM contracts').all()) {
+  /* ASK ONLY THE CONTRACTS THAT CAN HOLD IT. This walked and parsed every
+     contract in the workspace on every file a scoped reader opened — on a
+     book of thousands, one preview parsed the whole book. A file id is `f_`
+     and hex, so a LIKE on the stored JSON is a SUPERSET of the contracts that
+     reference it (LIKE's `_` and its case-folding only ever widen it), and
+     the exact check below still decides. An id of any other shape falls back
+     to the whole walk. (26 Sep 2026, the overnight clean-up.) */
+  const narrow = /^[A-Za-z0-9_-]{3,64}$/.test(String(fileId || ''));
+  const rows = narrow
+    ? db.prepare('SELECT json, folder FROM contracts WHERE json LIKE ?').all('%' + fileId + '%')
+    : db.prepare('SELECT json, folder FROM contracts').all();
+  for (const r of rows) {
     let c; try { c = JSON.parse(r.json); } catch (_) { continue; }
     const ids = [];
     if (c.upload && c.upload.fileId) ids.push(c.upload.fileId);
@@ -11543,11 +11585,11 @@ function fileInScope(scope, fileId) {
   }
   return !referenced || allowed;
 }
-app.get('/api/files/:id', auth, (req, res) => {
-  const f = db.prepare('SELECT name,mime,data FROM files WHERE id=?').get(req.params.id);
-  if (!f || !fileInScope(folderScopeFor(req.user), req.params.id)) return res.status(404).json({ error: 'File not found' });
-  res.json({ name: f.name, mime: f.mime, dataUrl: f.data });
-});
+/* THE SWEEP IS REGISTERED BEFORE `/api/files/:id`. Written after it, a GET
+   of /api/files/orphans was answered by the file route with id "orphans" —
+   "File not found" — so the admin sweep this block promises had never once
+   been reachable. Express matches in the order routes are written. (26 Sep
+   2026, the overnight clean-up.) */
 /* A file id that no contract references is either an orphan from before the
    delete handler cleaned up, or a leak waiting to happen. Admin-only sweep so
    the customer can actually discharge a deletion request. */
@@ -11564,6 +11606,11 @@ app.get('/api/files/orphans', auth, admin, (req, res) => {
   const rows = db.prepare('SELECT id,name,mime,length(data) AS bytes,created_at FROM files').all()
     .filter(f => !referenced.has(f.id));
   res.json({ orphans: rows, bytes: rows.reduce((a, f) => a + (f.bytes || 0), 0) });
+});
+app.get('/api/files/:id', auth, (req, res) => {
+  const f = db.prepare('SELECT name,mime,data FROM files WHERE id=?').get(req.params.id);
+  if (!f || !fileInScope(folderScopeFor(req.user), req.params.id)) return res.status(404).json({ error: 'File not found' });
+  res.json({ name: f.name, mime: f.mime, dataUrl: f.data });
 });
 app.delete('/api/files/orphans', auth, admin, (req, res) => {
   const referenced = new Set();

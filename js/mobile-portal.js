@@ -71,6 +71,17 @@ const M_PORTAL_CSS = `
   .pw-page .ui-btn, .pv-page .ui-btn, .nego-card .ui-btn{
     min-height:44px!important; font-size:var(--t-card)!important; padding:0 14px!important;
   }
+  /* The redline rows are .rl-card now and their verbs are plain buttons, so
+     the rule above — written for the old .nego-card — never reached Accept,
+     Reject, Edit or a card's own Send: they drew 22px on a phone (measured,
+     26 Sep 2026, the overnight clean-up). The pencil on the paper keeps its
+     size, so the wording beside it does not move, and takes a thumb-sized
+     press area instead. */
+  .pw-page .rl-card-verbs > button, .pw-page .rl-open-btn,
+  .pw-page .rl-unsent-go, .pw-page .rl-send{
+    min-height:44px!important; font-size:var(--t-card)!important;
+  }
+  .pw-page .rl-cp-pill::after{ content:''; position:absolute; inset:-10px; }
   .pw-page input[type=text], .pw-page input[type=email], .pw-page textarea,
   .pv-page input, .pv-page textarea{ font-size:16px!important; }
 

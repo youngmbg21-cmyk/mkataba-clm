@@ -6240,6 +6240,7 @@ function openPartyEditor(c, id){
     persist(c); closeModal();
     if(typeof renderKeyTerms==='function') renderKeyTerms(c);
     if(typeof renderKeyTermsSide==='function') renderKeyTermsSide(c);
+    roomHeadRefresh(c);          // the head's Counterparty fact is the first party's name
     toast(i18t('py_saved'),'ok');
     return true;
   };
@@ -6268,8 +6269,12 @@ function openPartyEditor(c, id){
   document.getElementById('py-cancel')?.addEventListener('click',()=>closeModal());
   document.getElementById('py-del')?.addEventListener('click',async()=>{
     const gone=list[at]; if(!gone) return;
+    /* A QUESTION, ASKED BEFORE (26 Sep 2026, the overnight clean-up): this
+       asked in the past tense — "Removed Acme from the parties." — before
+       anything was removed, and passed `okText`, a name confirmDialog does not
+       read, so the button said "Confirm". */
     const ok=await confirmDialog({ title:i18t('py_remove'),
-      message:i18t('py_removed',{name:gone.name||'—'}), okText:i18t('py_remove'), danger:true });
+      message:i18t('py_remove_q',{name:gone.name||'—'}), confirmLabel:i18t('py_remove'), danger:true });
     if(!ok) return;
     write(list.filter((_,i)=>i!==at));
   });
@@ -7353,15 +7358,20 @@ function roomHistoryFiltersHtml(c,f){
     <select data-ht-filter="${k}">${`<option value="">${i18t('ct_all')}</option>`}${pairs.map(p=>
       `<option value="${esc(String(p[0]))}"${String(f[k]||'')===String(p[0])?' selected':''}>${esc(String(p[1]).slice(0,42))}</option>`).join('')}</select></label>`;
   return `<div class="hist-filters">
-    ${sel('clauseId','Clause',uniq(all.map(e=>[e.clauseId||'',e.clauseLabel||''])))}
-    ${sel('actor','Person',uniq(all.map(e=>[e.actor||'',e.actor||''])))}
+    ${''/* THE FILTERS SPEAK THE READER'S LANGUAGE (26 Sep 2026, the overnight
+           clean-up): the five labels and their fixed choices were English
+           literals, so a Swedish reader met "Clause / Person / Side / Round /
+           Outcome" and "Accepted" under a translated tab. The VALUES stay the
+           record's English keys — only what is printed moved. */}
+    ${sel('clauseId',i18t('ct_hf_clause'),uniq(all.map(e=>[e.clauseId||'',e.clauseLabel||''])))}
+    ${sel('actor',i18t('ct_hf_person'),uniq(all.map(e=>[e.actor||'',e.actor||''])))}
     ${''/* Plain words, and the words the chips above used to carry — "Owner
            side" was stiffer than anything else on the tab, and it is our own
            record we are reading. The counterparty's copy of this row says the
            same fact from THEIR chair (negoTimelineScreenHtml, seat option). */}
-    ${sel('side','Side',[['owner','Ours'],['counterparty','Theirs']])}
-    ${sel('round','Round',uniq(all.filter(e=>e.round!=null&&e.round!=='').map(e=>[e.round,'Round '+e.round])))}
-    ${sel('outcome','Outcome',[['accepted','Accepted'],['rejected','Rejected'],['pending','Pending'],['withdrawn','Withdrawn']])}
+    ${sel('side',i18t('ct_hf_side'),[['owner',i18t('ct_hf_ours')],['counterparty',i18t('ct_hf_theirs')]])}
+    ${sel('round',i18t('ct_hf_round'),uniq(all.filter(e=>e.round!=null&&e.round!=='').map(e=>[e.round,i18t('ct_round_n',{n:e.round})])))}
+    ${sel('outcome',i18t('ct_hf_outcome'),[['accepted',i18t('ct_hf_accepted')],['rejected',i18t('ct_hf_rejected')],['pending',i18t('ct_hf_pending')],['withdrawn',i18t('ct_hf_withdrawn')]])}
     <button id="ht-clear" class="ui-btn" style="align-self:flex-end">${i18t('ct_clear2')}</button>
   </div>`;
 }
@@ -8008,8 +8018,12 @@ function paintBlankFormCount(c){
   if(!out) return;
   const all = (typeof contractBlanks === 'function') ? contractBlanks(c).length : 0;
   const open = (typeof contractBlanksOpen === 'function') ? contractBlanksOpen(c).length : 0;
-  out.textContent = `${all - open}/${all}`;
-  out.style.color = open ? 'var(--st-amber-fg)' : 'var(--st-green-fg)';
+  /* THE SAME WORDS AND THE SAME INK AS THE FIRST PAINT (26 Sep 2026, the
+     overnight clean-up): this repaint wrote "3/7" in amber where the panel
+     had just drawn "3 of 7" in the quiet ink, so the count changed its own
+     shape on the first keystroke. One sentence, one pair of colours. */
+  out.textContent = i18t('bf_count_of', { filled: all - open, all });
+  out.style.color = open ? 'var(--color-neutral-600)' : 'var(--st-green-fg)';
 }
 
 /* ---- ONE SLOT, ONE DECISION ----
@@ -8835,9 +8849,12 @@ function wsFocusChip(){
   chip.id='ws-focus-out';
   chip.type='button';
   chip.className='ui-btn ui-btn-primary';
-  chip.title='Exit focus mode and bring the header back (Esc)';
+  /* In the reader's language (26 Sep 2026, the overnight clean-up): these
+     were English literals while the negotiate page's own chip said the same
+     thing through ng_exit_focus. One sentence, both pages. */
+  chip.title=i18t('ct_exit_focus_header');
   chip.style.cssText='position:fixed;right:18px;bottom:18px;z-index:70;font-size:var(--t-meta);padding:var(--s-2) 14px;box-shadow:var(--shadow-md)';
-  chip.innerHTML='Exit focus &middot; Esc';
+  chip.innerHTML=i18t('ng_exit_focus');
   chip.addEventListener('click',()=>{ _wsFocus=false; applyWsFocus(); });
   host.appendChild(chip);
 }
@@ -9756,6 +9773,56 @@ function roomHeadHtml(c,opts={}){
            owner asked for one size. */}
     ${roomFactsHtml(c)}
   </section>`;
+}
+/* ---- THE HEAD FOLLOWS THE RECORD (26 Sep 2026, the overnight clean-up) ----
+   The head is built once per render, and the Overview writes the facts it
+   prints — the name, the counterparty, the value, the dates — without a
+   render. So a reader who renamed the contract, or answered its value, read
+   the old name in the title and the crumb, the old value and term in the fact
+   row, until they left the contract and came back (measured: the head still
+   said KES 36,000,000 over a record holding 52,000,000, on every tab).
+
+   THE ROOM'S OWN RULE for a thing that changes underneath a head built once:
+   a paint, never a rebuild. The acts, the More menu and their listeners are
+   not touched — only the four pieces that carry record facts are swapped: the
+   title, the status word, the quiet line (its round slot is painted again by
+   its own painter) and the fact row, which keeps the reader's fold. The
+   crumb in the shell bar is re-said through the same reading it was built
+   with. Asked only while this contract is the one on screen. */
+function roomHeadRefresh(c){
+  try{
+    if(!c || (window.contractOnScreen && !contractOnScreen(c))) return;
+    const head=document.getElementById('ws-head'); if(!head) return;
+    const h1=head.querySelector('.room-name h1');
+    if(h1){
+      h1.title=String(c.name||'');
+      const tb=h1.querySelector('#ws-back-title');
+      (tb||h1).textContent=roomHeadTitle(c);
+    }
+    const st=document.getElementById('ws-status');
+    if(st) st.innerHTML=window.contractStatusTextHtml?contractStatusTextHtml(c)
+      :(window.contractStatusChip?contractStatusChip(c):esc(c.status||''));
+    const tmp=document.createElement('div');
+    const sub=head.querySelector('.room-headsub');
+    if(sub){
+      tmp.innerHTML=roomHeadSubHtml(c,{needs:!!sub.querySelector('#ws-round-needs-slot')});
+      const ns=tmp.firstElementChild;
+      if(ns){ sub.replaceWith(ns); if(ns.querySelector('#ws-round-needs-slot')) wsPaintRoundNeeds(c); }
+    }
+    const facts=document.getElementById('ws-facts');
+    if(facts){
+      tmp.innerHTML=roomFactsHtml(c);
+      const nf=tmp.firstElementChild;
+      if(nf){ if(facts.classList.contains('is-folded')) nf.classList.add('is-folded'); facts.replaceWith(nf); }
+    }
+    const who=`${(window.contractRef?contractRef(c):c.id)} · ${roomHeadTitle(c)||''}`;
+    const here=document.querySelector('#shell-title.is-crumb > .crumb-here:not(.crumb-layer)');
+    if(here){ here.textContent=who; here.title=who; }
+    else {
+      const word=document.querySelector('#shell-title.is-crumb [data-back="contract"] .crumb-word');
+      if(word) word.textContent=who;
+    }
+  }catch(_){ /* a head that cannot be repainted is still the head it was */ }
 }
 /* Opening and closing the "⋯". The items themselves are wired where they
    always were — ws-share, ws-import, ws-compare and the exports keep their
@@ -13649,6 +13716,7 @@ function wireKeyTerms(c){
         }
       }catch(_){}
       persist(c); renderAuditSection(c);
+      roomHeadRefresh(c);
     });
   });
   /* ---- BOUND ONCE, LIKE THE TWO BESIDE IT ----
@@ -13718,6 +13786,7 @@ function wireKeyTerms(c){
          itself, so the trail cannot name a field the product no longer has. */
       logAudit(c,'Edited',`Updated ${(window.metaEnName?metaEnName(key):key)}`);
       persist(c); renderAuditSection(c);
+      roomHeadRefresh(c);
     });
   });
   const fill=document.getElementById('kt-fill');
@@ -16196,7 +16265,7 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,
+Object.assign(window,{paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,roomHeadRefresh,
   /* TWO COPIES OF ONE CONTRACT (25 Sep 2026): the sheet's builders and the
      signing copy's controls. The other side's signing link draws the signing
      copy through signCopySheetHtml, so it must be on this list — a name read

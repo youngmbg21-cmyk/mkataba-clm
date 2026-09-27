@@ -483,9 +483,11 @@ function mApprovalsHtml(){
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s-3) 14px">
           <div><div class="m-note">${i18t('m_counterparty')}</div><div style="font-size:16px;font-weight:var(--w-body);margin-top:1px">${mEsc((typeof cParty==='function'?cParty(c):c.counterparty)||'—')}</div></div>
           <div><div class="m-note">${i18t('m_value')}</div><div style="font-size:16px;font-weight:var(--w-strong);margin-top:1px">${mEsc(mMoney(c))}</div></div>
-          <div style="grid-column:1 / -1"><div class="m-note">${requested&&requested.user?'Requested by':'Waiting'}</div><div style="font-size:16px;font-weight:var(--w-body);margin-top:1px">${
+          ${''/* In the reader's language (26 Sep 2026, the overnight clean-up):
+                 these four were English literals on a translated screen. */}
+          <div style="grid-column:1 / -1"><div class="m-note">${requested&&requested.user?i18t('m_appr_requested_by'):i18t('m_waiting')}</div><div style="font-size:16px;font-weight:var(--w-body);margin-top:1px">${
             [requested&&requested.user ? mEsc(requested.user) : '',
-             x.idle ? `${x.idle} day${x.idle===1?'':'s'} ago` : 'since today'].filter(Boolean).join(' · ')}</div></div>
+             x.idle ? mEsc(i18tn('m_days_ago',x.idle,{n:x.idle})) : mEsc(i18t('m_since_today'))].filter(Boolean).join(' · ')}</div></div>
         </div>
         ${saReq&&typeof saShowsLine==='function'?`<div style="margin-top:var(--s-3)"><div class="m-note">${i18t('sa_card_you_approve')}</div><div style="font-size:16px;margin-top:1px">${mEsc(saShowsLine(c,saReq.shows))}</div></div>`:''}
         ${saReq&&saReq.note?`<div style="margin-top:var(--s-3);border-left:3px solid var(--color-divider);padding:2px 0 2px 10px">“${mEsc(saReq.note)}”</div>`:''}
@@ -512,7 +514,7 @@ function mApprovalsHtml(){
   return `
     <div class="m-pagehead">
       <div class="m-title">${i18t('m_approvals')}</div>
-      <div class="m-sub">${items.length?`${items.length} contract${items.length===1?'':'s'} waiting on your sign-off`:'All caught up'}</div>
+      <div class="m-sub">${items.length?mEsc(i18tn('m_appr_waiting',items.length,{n:items.length})):mEsc(i18t('m_all_caught_up'))}</div>
     </div>
     <div class="m-scroll">
       <div style="margin:var(--s-4)">

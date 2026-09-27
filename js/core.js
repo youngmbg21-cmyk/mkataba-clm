@@ -3055,6 +3055,16 @@ const DLG_W = Object.freeze({ s: '400px', m: '520px', l: '640px', xl: '760px' })
   const DLG_TOPBAR = t => `background:linear-gradient(${t},${t}) top left/100% 3px no-repeat, var(--color-surface);`;
 function openModal(html, opts={}){
   const root=document.getElementById('modal-root');
+  /* ONE DIALOG REPLACING ANOTHER KEEPS THE FIRST ONE'S OPENER (26 Sep 2026,
+     the overnight clean-up). The opener was read AFTER the old panel had been
+     torn out, which is always <body> — so closing the second dialog dropped a
+     keyboard user at the top of the document instead of on the button that
+     started it. It is read before anything is replaced, and the old trap is
+     released first (it hands focus back to that same button, and the new
+     trap takes it from there). */
+  const replacing=!!(root && root.querySelector('[role="dialog"]'));
+  const opener=replacing ? _modalOpener : document.activeElement;
+  if(_modalRelease){ try{ _modalRelease(); }catch(e){} _modalRelease=null; }
   const maxw=opts.maxWidth||DLG_W.m;
   // Given an explicit height the panel becomes a fill-the-window shell: it stops
   // scrolling itself and whatever is inside takes charge of its own overflow.
@@ -3098,14 +3108,14 @@ function openModal(html, opts={}){
      behind. See dragDialog above for the rules it keeps. */
   if(_modalDrag){ try{ _modalDrag(); }catch(e){} _modalDrag=null; }
   if(_modalPin){ try{ _modalPin(); }catch(e){} _modalPin=null; }
-  if(panel){ _modalOpener = document.activeElement; _modalRelease = trapFocus(panel);
+  if(panel){ _modalOpener = opener; _modalRelease = trapFocus(panel, { opener });
     _modalDrag = (typeof dragDialog==='function') ? dragDialog(panel) : null;
     /* A panel given a height runs its own layout and its own scroller. */
     if(!opts.height) _modalPin = dlgPinFoot(panel); }
   // Esc closes, exactly like the scrim click — some modals (Compare, share)
   // otherwise strand keyboard users with no visible way out
-  document.addEventListener('keydown',function esc(e){
-    if(e.key!=='Escape'){ if(!document.getElementById('modal-scrim')) document.removeEventListener('keydown',esc); return; }
+  rootEscSet(function(e){
+    if(e.key!=='Escape') return;
     /* ---- AND ESCAPE BELONGS TO THE TOP LAYER ONLY ----
        confirmDialog and promptDialog append to <body> ABOVE this panel and
        register their own Escape afterwards — and two listeners on `document`
@@ -3115,9 +3125,24 @@ function openModal(html, opts={}){
        the same keystroke: the answer was honoured and ignored at once.
        While a top overlay is up, Escape is not ours. */
     if(document.querySelector('[data-top-overlay]')) return;
-    document.removeEventListener('keydown',esc); closeModalGuarded();
+    closeModalGuarded();
   });
   return root;
+}
+/* ---- ONE ESCAPE FOR #modal-root, OWNED HERE (26 Sep 2026, the overnight
+   clean-up) ----
+   Every open added its own listener on the document, which took itself off
+   only on the NEXT key press — measured, twenty dialogs opened and closed left
+   twenty listeners behind. Two faults hid in that: a side panel replaced by a
+   dialog left the panel's Escape in place, which closed the dialog straight
+   past its own "Discard these changes?"; and the dialog's own Escape took
+   itself off BEFORE asking that question, so after "Keep editing" Escape
+   stopped working altogether. The root now has one Escape at a time: opening
+   replaces it, closing removes it, and a declined guard leaves it armed. */
+let _rootEsc=null;
+function rootEscSet(fn){
+  if(_rootEsc){ document.removeEventListener('keydown',_rootEsc); _rootEsc=null; }
+  if(typeof fn==='function'){ _rootEsc=fn; document.addEventListener('keydown',fn); }
 }
 /* The guard the current modal registered, if any. One value because only one
    #modal-root panel is ever open; cleared on every close so it can never
@@ -3188,6 +3213,7 @@ function dlgPinFoot(panel){
    top of the document every time they dismiss a dialog. */
 function closeModal(){
   _modalGuard=null;
+  rootEscSet(null);
   /* RELEASE BEFORE THE MARKUP GOES. The trap restores focus to the opener, and
      an element cannot take focus once its panel has been torn out from under
      it — which is why this runs first and _modalOpener stays as the fallback
@@ -3233,11 +3259,11 @@ function openSidePanel(html, opts={}){
   /* The contract it was opened beside, so a navigation to another contract can
      take it down (see setView, 26 Sep 2026). */
   try{ const sp=document.getElementById('side-panel'); if(sp && state.activeId!=null) sp.dataset.cid=String(state.activeId); }catch(_){}
-  document.addEventListener('keydown',function esc(e){
-    if(e.key!=='Escape'){ if(!document.getElementById('side-panel')) document.removeEventListener('keydown',esc); return; }
+  rootEscSet(function(e){
+    if(e.key!=='Escape') return;
     /* A question on top of the panel owns this Escape (see confirmDialog). */
     if(document.querySelector('[data-top-overlay]')) return;
-    document.removeEventListener('keydown',esc); closeModal();
+    closeModal();
   });
   return root;
 }
@@ -3254,7 +3280,13 @@ function confirmDialog(opts={}){
   const title=opts.title||i18t('act_are_you_sure');
   const message=opts.message||'';
   const confirmLabel=opts.confirmLabel||i18t('act_confirm');
-  const cancelLabel=opts.cancelLabel||i18t('act_cancel');
+  /* ONE WAY OUT, AND A REPORT THAT KEEPS ITS LINES (26 Sep 2026, the
+     overnight clean-up). An explicit empty cancelLabel draws no Cancel — for a
+     dialog that only reports, where "Cancel" beside "Close" is two ways to do
+     one thing — and `multiline` keeps the message's own line breaks. The
+     family check asked for both under names this function never read, so its
+     report ran together as one paragraph over Cancel and Confirm. */
+  const cancelLabel=opts.cancelLabel===''?'':(opts.cancelLabel||i18t('act_cancel'));
   const danger=!!opts.danger;
   const esc=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   return new Promise(resolve=>{
@@ -3283,9 +3315,9 @@ function confirmDialog(opts={}){
           <span style="width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:var(--radius);background:${danger?'var(--red-tint,rgba(176,69,60,.1))':'var(--st-steel-bg)'};color:${danger?'var(--danger)':'var(--accent-ink-700)'}">${icon(danger?'alert':'shield','w-4 h-4')}</span>
           <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0;line-height:1.3;padding-top:5px">${esc(title)}</h3>
         </div>
-        ${message?`<p style="font-size:var(--t-body);color:var(--color-neutral-700);line-height:1.55;margin:0 0 var(--s-4);padding-left:46px">${esc(message)}</p>`:''}
+        ${message?`<p style="font-size:var(--t-body);color:var(--color-neutral-700);line-height:1.55;margin:0 0 var(--s-4);padding-left:46px${opts.multiline?';white-space:pre-line':''}">${esc(message)}</p>`:''}
         <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-          <button id="cf-cancel" class="ui-btn">${esc(cancelLabel)}</button>
+          ${cancelLabel?`<button id="cf-cancel" class="ui-btn">${esc(cancelLabel)}</button>`:''}
           <button id="cf-ok" class="ui-btn" style="background:${btnBg};border-color:${btnBg};color:${btnFg}">${esc(confirmLabel)}</button>
         </div>
       </div>`;
@@ -3321,7 +3353,7 @@ function confirmDialog(opts={}){
        Escape down for this one. */
     function onKey(e){ if(e.key==='Escape') done(false); }
     document.addEventListener('keydown',onKey);
-    ov.querySelector('#cf-cancel').addEventListener('click',()=>done(false));
+    ov.querySelector('#cf-cancel')?.addEventListener('click',()=>done(false));
     ov.querySelector('#cf-ok').addEventListener('click',()=>done(true));
     ov.addEventListener('click',e=>{ if(e.target===ov||e.target===ov.firstElementChild) done(false); });
     ov.querySelector('#cf-ok').focus();
