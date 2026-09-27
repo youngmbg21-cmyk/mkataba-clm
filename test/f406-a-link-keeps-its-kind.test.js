@@ -93,9 +93,11 @@ describe('f406 — the payload refresh keeps the row’s kind', () => {
     const SRC = fs.readFileSync(path.join(__dirname, '..', 'js/core.js'), 'utf8');
     /* The round's link choice, driven over a contact whose newest standing
        link is a VIEW link. */
-    const pick = ['shareIsStanding', 'standingShares', 'shareKindOf', 'standingNegotiation', 'standingShareFor']
+    /* answerableNegotiation joined 27 Sep 2026 (f412): the round's link is a
+       negotiation link they can still answer on. */
+    const pick = ['shareIsStanding', 'standingShares', 'shareKindOf', 'standingNegotiation', 'answerableNegotiation', 'standingShareFor']
       .map(n => { const i = SRC.indexOf('function ' + n + '('); const j = SRC.indexOf('\n}', i); return i >= 0 ? SRC.slice(i, j + 2) : ''; });
-    assert.ok(pick.every(Boolean), 'all five readings present');
+    assert.ok(pick.every(Boolean), 'all six readings present');
     const sp = /const SHARE_PURPOSE = [^\n]*\n/.exec(SRC)[0];
     const standingShareFor = new Function('nowISO', sp + pick.join('\n') + '; return standingShareFor;')(() => '2026-09-27T00:00:00Z');
     const shares = [
@@ -106,7 +108,7 @@ describe('f406 — the payload refresh keeps the row’s kind', () => {
     assert.equal(standingShareFor(shares, { email: 'erik@nordkust.se' }).token, 'neg');
     assert.equal(standingShareFor(shares, { email: 'lawyer@firm.se' }).token, 'neg', 'an adviser’s link is never the round’s link');
     assert.equal(standingShareFor(shares.slice(1), { email: 'erik@nordkust.se' }), null, 'no negotiation link, no reuse — a new link is made');
-    assert.match(SRC, /const reuse=\(wantDurable && \(payloadObj\.purpose\|\|'negotiate'\)==='negotiate' && email\)\s*\?\s*standingNegotiation\(priorShares\)/,
+    assert.match(SRC, /const reuse=\(wantDurable && \(payloadObj\.purpose\|\|'negotiate'\)==='negotiate' && email\)\s*\?\s*answerableNegotiation\(priorShares\)/,
       'the dialog reuses only for a negotiation send, and only a negotiation link');
     assert.match(SRC, /for\(const s of standingNegotiation\(shares\)\)\{\s*if\(!s \|\| s\.token===live\.token\) continue;/,
       'the round’s catch-up refreshes negotiation links only');

@@ -19724,3 +19724,21 @@ Noticed, not fixed (new tonight; each is on the page)
 - The toast after discarding a change that was never sent is an English literal ("#… retracted — it was never sent, so nothing left your desk"); only the kept-revision branch (ng_retract_revision) is translated.
 - A request turned into a contract keeps its contract_id after the contract is deleted; what the Requests page shows for it was not checked. (The activation log keeps its rows by design.)
 - obligations-tab-verify's band claim counts three headings. At main it passed only in the last three days of a month, when its "due in three days" obligation fell into the next calendar month; since the band became the next 30 days it fails every day. The right claim is four headings, named in order. It was already red before the twelve fixes and was left as it is; the run above re-pointed only the claim its change moved. Re-run tonight on main: 49 of 50; payment-chain-verify 36 of 36.
+
+## 27 Sep 2026 (night) — No link to sign: can they still answer, the sixth agent, the list that stays still
+
+- On the owner's "okay" to the plan. Built on claude/happy-thompson-6puam1 from e351a91.
+- Fixed: the Negotiations list filed a deal under "With the other side" whenever a change of ours was pending, having asked only whether a STANDING link sat on a share cache that only the negotiation page ever filled. A deal whose link had run out read "Theirs" on first look and after every reload; an unused one-time link read "No live copy" once opened. The server now answers (srvReach, the respond route's own question: an open standing link, an unused one-time link not overtaken, a Word file that really left; never read-only, history or adviser links) and it rides the list, the one-contract read, the share list and every send's answer as `_reach`. A round is never refreshed onto a link a signing link has retired (answerableNegotiation). New index on shares(contract_id, created_at): the book load had gone from 0.2s to 6s with the reading; 0.3s with it.
+- Built: the sixth agent "No link to sign", second in Copilot's work (a reply stuck with no live link; their signer's link ran out or was cancelled). Send a fresh link asks first, naming who; the list of agents is drawn once and stays still while the right side changes.
+- Tests: f412 (35 claims, 33 red at e351a91), no-link-to-sign-verify (23 checks, 16 red at e351a91). Re-pointed in place: f190, f399, F17, f406 (5), agents-page-verify, inspector-verify.
+- Gates: lint 0 errors, 178 warnings (unchanged). The five node files touched: 119/119. Full node suite, run once: 8 failed — F17 and f406 (5) were this change's (re-pointed, now pass); the other 6 are the same six as main (f258 (4), f267 (17), f277 (1), f277 (10), f387 (2), f387 (4)). Browser: no-link-to-sign 23/23, agents-page 49/49, inspector 32/32, clause-editor 290/290 (it failed once in the full run under load; alone it passes).
+- The full browser set was stopped at about 130 of 171 files at the owner's word (too slow). Of the files that failed, these were run on e351a91 and fail there too: amount-and-window, button-consistency, calendar-redesign, competing-redlines, contrast, copilot-band, counterparty-reading-and-more, home-page (the same one check), negotiations-door (the same two checks), flat-rows-and-alerts. Not compared, so not known either way: go-aheads, keeps-your-place, metadata-carried, name-tag-horizon, nego-redesign, negotiation-memo, obligations-tab, notes-two-rooms, panel-alerts-and-head, paper-beside-questions, paper-grows, payment-terms, portal-header-verbs, portfolio-frame, phone, redline, plain-english, renewal-decision, reopen-a-refusal, room-order-and-notices, selection.
+
+Deliberately left alone (said to the owner)
+- The answer is per contract, not per party: a multi-party deal where one party can still answer reads as live.
+- A link whose email failed still counts as live (the sender may have copied it).
+- A signing link that was answered but not signed is not listed ("ran out or cancelled" was the ask).
+- The two wording faults on "Their round came back" (logged earlier today) are untouched.
+
+Noticed, not fixed
+- home-page-verify "no page errors" is red at e351a91 too: a resource answers 403 while the page loads.

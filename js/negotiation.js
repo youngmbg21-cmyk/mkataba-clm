@@ -5063,22 +5063,33 @@ function negoMigrate(c){
    nothing", and reading the first as the second would invent a NEW untruth to
    replace the old one. 'unknown' says nothing and changes nothing.
 
-   shareIsStanding / standingShares (js/core.js) is the ONE predicate for
-   "durable, not revoked, not expired" — it is the client's reading of what the
-   payload-refresh route will actually accept. NOTE FOR THE NEXT READER: the
-   work order for this change said that test was still written out inline in
-   two places and asked for it to be named once. It was already named, on 12
-   August, by the MK-255 fix — both callers ask the one predicate, and there is
-   no third copy to fold in. Nothing to do, said out loud rather than silently
-   skipped. */
+   (27 Sep 2026: option A's "a STANDING link" was too narrow, and the reading
+   moved to the server — see the note directly below. shareIsStanding is still
+   the round send's predicate for "can this link be refreshed in place"; it is
+   no longer this function's.) */
+/* ---- AND "A LIVE COPY" MEANS ONE THEY CAN STILL ANSWER ON (Young ruled
+   27 Sep 2026, with the "No link to sign" agent) ----
+   This asked one thing — is a STANDING link on the share cache — and only of a
+   contract somebody had opened this sitting. Two faults, both measured: an
+   unused one-time link and a Word file read as "no copy" once looked up, and a
+   deal nobody had opened read as "unknown" and so as theirs, whatever their
+   link had become — the Negotiations list filed a deal whose link had run out
+   under "With the other side" for as long as it ran out.
+   THE ANSWER IS THE SERVER'S NOW, AND IT IS THE RESPOND ROUTE'S OWN QUESTION
+   (srvReach, server/server.js): would an answer sent on any of their copies
+   be accepted — an open self-updating link, a one-time link unused and not
+   overtaken, a Word file that really left for this round; never a read-only,
+   history or adviser link. It rides the list, the one-contract read, the share
+   list and every send's answer as `_reach` (reachTake, js/core.js, the one
+   writer), so this side keeps no second copy of the rule. Absent is still
+   'unknown' — local mode, and a deal with nothing pending, where nobody asks. */
 function negoTheirCopy(c){
   if (typeof window === 'undefined') return 'unknown';
   /* Their own page has no view of our links at all, and never should — asking
      from that seat could only ever produce a guess. */
   if (window.PORTAL_MODE) return 'unknown';
-  if (!window.sharesKnown || !window.standingShares) return 'unknown';
-  if (!sharesKnown(c)) return 'unknown';
-  return standingShares(cachedShares(c)).length ? 'live' : 'none';
+  const r = c && c._reach && c._reach.reply;
+  return (r === 'live' || r === 'none') ? r : 'unknown';
 }
 
 /* ---- A NAME ON A CARD IS A GLANCE, NOT A RECORD (owner-asked, 13 Aug 2026) ----

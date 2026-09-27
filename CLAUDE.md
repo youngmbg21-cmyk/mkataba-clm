@@ -115,8 +115,8 @@ Doc Lab is REMOVED — flag any doclab mention as stale. Line numbers drift: gre
 - A review is a chosen subset per CHANGE (`reviewOpenFor`, `reviewInOpen`); `reviewInPlay` is the one population; a spent review stops drawing. A reviewer is NARROWED while their ask is open (`rlActorHeld`, five canAct renderers; column and document fold to their clauses). One hand-back door: the toolbar.
 - Only `reviewAsk` and `reviewMark` initialise `c.review`. Reviewer corrections fold into the SAME change (`revisions[]`). A refusal is reopened by the side that GAVE it. Cards: ONE status slot (HELD ruby, OUT FOR REVIEW amber). Gate off → Send WARNS. Use HATI_FLD/HATI_LBL, never `ui-input`.
 - Server authority: `rvOpenList`/`rvWithheldIds`/`rvActorHeld`/`rvUnreviewedIds` off the STORED contract; POST /api/shares strips held changes. If browser and server disagree, f162 is right.
-- "Waiting on them" must be true: `negoTheirCopy(c)`, `negWhoseMove` asks `negoUnsentAsks` first. Which link is theirs: `shareIsStanding`, `standingShareFor` (round send only). Live catch-up: `refreshLiveShareQuietly`.
-Tests: f154–f159, f161, f162, f164, f186, f190, f17, f174.
+- "Waiting on them" must be true: `negoTheirCopy(c)` reads `_reach`, the SERVER'S `srvReach` (the respond route's own question: an open standing link, an unused one-time link not overtaken, a Word file that really left; never read-only/history/adviser), on the list, the record, the share list and every send's answer (`reachTake` the one writer, stripped on save both hosts); `negWhoseMove` asks `negoUnsentAsks` first. Which link is theirs: `standingShareFor` over `answerableNegotiation` (a link a signing link retired is skipped; the dialog's reuse too). Live catch-up: `refreshLiveShareQuietly`.
+Tests: f154–f159, f161, f162, f164, f186, f190, f17, f174, f412.
 
 ## THE OVERVIEW — ONE PAGE OF NAMED SECTIONS (was "Key terms")
 
@@ -449,9 +449,9 @@ LANGUAGE is the person's (js/i18n.js); MARKET is the company's (js/jurisdiction.
 - THE NOTICE DESK (js/notice.js): `noticeDraft` composes a letter, no model; `noticeBlockers` refuse rather than guess; HaTi drafts, a person serves; `noticeMarkServed` records it and is the renewal decision.
 - COHORT ACTIONS (js/cohort.js), MAILROOM (`POST /api/mailroom`, files, does not read), EXPOSURE (see Insights).
 - THE NEGOTIATION MEMO: no model, stamped clause names, `negoMemo`/`negoMemoHtml`/`negoMemoText`; sent to a colleague by member id.
-- COPILOT'S WORK (js/views/agents.js): five agents, a reading over readings, no route/store/spend; the door count equals the page's; presses only existing acts; loads a light record whole before showing a brief.
+- COPILOT'S WORK (js/views/agents.js): six agents, a reading over readings, no route/store/spend; the door count equals the page's; presses only existing acts; loads a light record whole before showing a brief. "No link to sign" sits second: `agLinkItems` (a reply stuck = `negWhoseMove` why 'nocopy'; a signer's link ran out/cancelled = `_reach.sign`; never outside-route or never-sent), "Link sent" = `_reach.fresh`; its fresh link ASKS FIRST then presses `resendRoundFresh` (Word rows never choose) or, on the Signing tab, `issueSigningAct`. The list is drawn once (`agShowAgent` repaints `#ag-main` only; the page owns its height).
 - THE BRAIN (js/views/brain.js, js/brainmap.js both hosts): read from the code (`brainRead`, `GET /api/brain`), words are keys (`brn_*`), writes nothing.
-Tests: f274, f322–f324, f344, f358, f390, f399, f400, agents-page-verify, brain-page-verify.
+Tests: f274, f322–f324, f344, f358, f390, f399, f400, f412, agents-page-verify, brain-page-verify, no-link-to-sign-verify.
 
 ## PERFORMANCE — THE BOOK IS WALKED ONCE
 

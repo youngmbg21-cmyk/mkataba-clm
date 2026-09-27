@@ -327,8 +327,11 @@ const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'templates', 'cal
    been --view-h tall since 14 Sep 2026 — on while it is up, off on its own
    two ways out; a setView recomputes it here exactly as before. */
 /* 'brain' joined 27 Sep 2026 with the same ruling: the stage is exactly the
-   room below the shell bar, so nothing is left over and the page never scrolls. */
-const VIEW_OWNS_HEIGHT = ['workspace', 'redline', 'calendar', 'intel', 'register', 'brain'];
+   room below the shell bar, so nothing is left over and the page never scrolls.
+   'agents' joined the same day (Young: the list of agents must not move when
+   an agent is pressed): Copilot's work is --view-h tall above 900px, its right
+   side scrolls inside itself and the list beside it stays put. */
+const VIEW_OWNS_HEIGHT = ['workspace', 'redline', 'calendar', 'intel', 'register', 'brain', 'agents'];
 /* The class carries the fact; index.html carries the rule. Painted from
    renderPageHeader, which runs on EVERY view change — including onto a view
    that is not on the list, which is what takes the class back off again. */
