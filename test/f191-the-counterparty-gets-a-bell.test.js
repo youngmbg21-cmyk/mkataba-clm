@@ -199,8 +199,12 @@ describe('f191 (5) — nothing internal ever leaks', () => {
 });
 
 describe('f191 (6) — both languages', () => {
+  /* RE-POINTED IN PLACE (27 Sep 2026): the sign row prints the Ready to sign
+     button's own sentence, po_ready_tell_title ("Tell them you are ready to
+     sign"), rather than pa_ready_to_sign ("They are waiting for you to sign"),
+     which was not true — Young said yes. The list is what the bell PRINTS. */
   const KEYS = ['pa_title', 'pa_close', 'pa_bell_title', 'pa_scope', 'pa_nothing',
-    'pa_nothing_sub', 'pa_wording_changed', 'pa_ready_to_sign', 'pa_expired',
+    'pa_nothing_sub', 'pa_wording_changed', 'po_ready_tell_title', 'pa_expired',
     'pa_executed', 'pa_superseded', 'pa_answered'];
   test('every sentence exists in English and in Swedish', () => {
     for (const k of KEYS)

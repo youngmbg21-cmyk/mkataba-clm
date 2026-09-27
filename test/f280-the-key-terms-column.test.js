@@ -110,8 +110,14 @@ test('f280 (2) and the PANE is the thing that scrolls', () => {
    WHAT THE CLAIM WAS REALLY ABOUT IS UNCHANGED AND IS WHAT IS PINNED: the note
    and the thing it describes must agree. */
 test('f280 (3) a brief that was cut short is recorded as done, and as partial', () => {
-  const step = TRIAGE.slice(TRIAGE.indexOf('const o = { quiet: true };'),
+  /* RE-POINTED IN PLACE (27 Sep 2026): the region began at the brief's own
+     option bag, `const o = { quiet: true };`, and a renewal's Decide gave that
+     bag a second key (`force`) — so indexOf found the NEXT step's bag and the
+     slice ran backwards into nothing. PIN THE REGION, NOT A LINE: the step is
+     bounded by its own heading and the next one's. */
+  const step = TRIAGE.slice(TRIAGE.indexOf('2 — THE BRIEF'),
                             TRIAGE.indexOf('3 — OUR STANDARDS'));
+  assert.ok(step.length > 200, 'the brief step\'s own region');
   assert.ok(/r\.truncated/.test(step),
     'the cut-short answer is still read off the brief the route returned');
   assert.ok(/ok: true, line: triageBriefLine\(r\)/.test(step),

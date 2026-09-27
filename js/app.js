@@ -1534,6 +1534,11 @@ const ALERT_KINDS = [
      this — three surfaces, one signal, one colour. They have finished; the
      next move is yours and it is one press. */
   { k:'cp-ready',    tone:'green', ic:'&#128077;'},
+  /* ---- THEY AGREED TO THE WORDING (Young said yes, 27 Sep 2026) ----
+     Their "Agree to the wording — but don't sign yet". The same kind of news
+     as the row above — they have done their part — so the same green and the
+     rank beside it; the next move is ours: send it for signature. */
+  { k:'cp-accepted', tone:'green', ic:'&#129309;'},
   { k:'negotiation', tone:'amber', ic:'&#9998;' },
   /* ---- TWO REMINDERS THAT LIVED ONLY ON HOME (24 Sep 2026) ----
      "Needs your decision" left Home on the owner's word, and two of its rows
@@ -1665,6 +1670,24 @@ function buildAlerts(){
       push('cp-ready',c,i18t('al_cp_ready'),
         ()=>{ if(window.openWorkspace) openWorkspace(c.id); if(theySign&&window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} },
         theySign?{ news, sub:i18t('ho_al_ready_sub') }:{ news });
+    });
+  }
+  /* 1'. THEY AGREED TO THE WORDING — cpAcceptedWording is the one reading
+        (js/core.js): it stands while nobody has signed and the wording has not
+        moved since. Where they have ALSO said they are ready to sign, the row
+        above says the stronger thing and this one stands down, so a contract
+        never draws two green rows for one piece of news. The door is the
+        Signing tab, because the next step is a signature, not another round. */
+  if(window.cpAcceptedWording){
+    cs.forEach(c=>{
+      let a=null; try{ a=cpAcceptedWording(c); }catch(_){ a=null; }
+      if(!a) return;
+      let ready=false; try{ ready=!!(window.cpReadyToSign && cpReadyToSign(c)); }catch(_){ ready=false; }
+      if(ready) return;
+      const who=String(a.by||'').trim()||c.counterparty||i18t('home_no_counterparty');
+      push('cp-accepted',c,i18t('al_cp_accepted'),
+        ()=>{ if(window.openWorkspace) openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} },
+        { sub:i18t('al_cp_accepted_sub',{ who }) });
     });
   }
   /* 1a. OUT WITH THEM FOR SIGNATURE, and something is owed (see the kind). */
@@ -1801,9 +1824,13 @@ function buildAlerts(){
         ()=>bellGo('join',x.c),
         (why||x.c.counterparty)?{ sub:why?'\u201c'+why+'\u201d':x.c.counterparty }:null); });
     /* 5. A renewal decision coming due. */
+    /* AND THE PRESS NOW SPENDS: a renewal's door has Copilot read the
+       contract again on arrival (roomReadOnArrival), so the row says so on its
+       hover — the checklist's Decide button's own sentence. */
+    const renewHint={ hint:i18t('ins_need_go_terms') };
     (D.decisions||[]).filter(x=>x.d<=30).forEach(x=>push('renewal',x.c,
       x.d===0?i18t('al_renewal_today'):i18tn('al_renewal_in',x.d,{n:x.d}),
-      ()=>bellGo('renewal',x.c)));
+      ()=>bellGo('renewal',x.c), renewHint));
     /* ---- THE BELL HAS TWO RENEWAL PUSHES, AND ONLY ONE IS THE DECISION ----
        (16 Sep 2026.) The line above reads `decisions`, which hmDashSlices now
        filters on a recorded answer. THIS one reads `expiring`, and it says
@@ -1815,7 +1842,7 @@ function buildAlerts(){
        same words; see runReminders. */
     const lapsed=c=>{ try{ const d=window.renewalDecisionOf&&renewalDecisionOf(c); return !!(d&&d.answer==='lapse'); }catch(_){ return false; } };
     (D.expiring||[]).filter(x=>x.d<=30&&!lapsed(x.c)).forEach(x=>push('renewal',x.c,
-      i18tn('al_expiring_in',x.d,{n:x.d}),()=>bellGo('renewal',x.c)));
+      i18tn('al_expiring_in',x.d,{n:x.d}),()=>bellGo('renewal',x.c), renewHint));
   }
   /* 5. A signature where it is actually THEIR turn. nextSigner is the route's
         own answer about whose turn it is; matching by member record first and
@@ -2683,7 +2710,7 @@ function alertsPanelHtml(){
           <span style="width:6px;height:6px;border-radius:50%;background:${rows.length?'var(--st-amber-dot)':'var(--st-green-dot)'};"></span>${i18t('ap_scope_you')}
         </div>
         ${rows.length?rows.map((a,i)=>`
-          <button data-alert-i="${i}" data-alert-kind="${a.kind}" class="al-row${a.tone==='green'?' al-good':''}${a.news?' al-news':''}" style="display:flex;gap:9px;width:100%;padding:9px 2px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
+          <button data-alert-i="${i}" data-alert-kind="${a.kind}"${a.hint?` title="${esc(a.hint)}"`:''} class="al-row${a.tone==='green'?' al-good':''}${a.news?' al-news':''}" style="display:flex;gap:9px;width:100%;padding:9px 2px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
             <span style="width:8px;height:8px;border-radius:50%;background:${ALERT_TONE[a.tone]};flex:none;margin-top:5px;"></span>
             <span style="flex:1;min-width:0;">
               <span class="al-t" style="display:block;font-size:var(--t-meta);line-height:1.4;font-weight:var(--w-strong);">${esc(a.text)}</span>

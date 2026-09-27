@@ -153,6 +153,8 @@ const STRINGS = {
     status_cp_ready: 'Counterparty ready to sign',
     status_cp_ready_short: 'Ready to sign',
     al_cp_ready: 'The counterparty is ready to sign',
+    al_cp_accepted: 'The counterparty agreed to the wording',
+    al_cp_accepted_sub: '{who} · not signed yet',
     /* A ROW, NOT A POP-UP (owner-asked 23 Aug 2026). Short, because the panel
        row prints the agreement and its reference on the two lines underneath —
        the toast this replaces had to carry all three in one sentence, which is
@@ -6723,6 +6725,8 @@ const STRINGS = {
     pa_wording_changed: 'The wording changed since you opened this',
     pa_reply_one: 'A reply arrived on a clause',
     pa_reply_other: 'Replies arrived on {n} clauses',
+    /* STALE (27 Sep 2026): their bell's sign row prints po_ready_tell_title, the
+       Ready to sign button's own sentence. Left inert, per the retirement rule. */
     pa_ready_to_sign: 'They are waiting for you to sign',
     pa_expires_one: 'This link expires tomorrow ({when})',
     pa_expires_other: 'This link expires on {when} — {n} days',
@@ -7347,6 +7351,7 @@ const STRINGS = {
     tri_fill_form: 'This contract fills in from its own panel on the right.',
     tri_fill_upload: 'The blanks in this uploaded document are not filled in here — it is signed, already being negotiated, or open to you for reading only.',
     tri_fill_nego: 'This contract is in negotiation — the wording is the negotiation\u2019s now.',
+    tri_fill_sealed: 'This contract is signed — its wording is final.',
     tri_fill_nothing: 'Every field on this contract is already answered.',
     tri_fill_theirs: 'They run the signing, so the blanks are filled in their own copy.',
     /* The two arrows on the arrival strip. A title, not a line on the tile:
@@ -8982,7 +8987,7 @@ const STRINGS = {
     ins_need_in_other: 'in {n} days',
     ins_need_go_nego: 'Opens the negotiation',
     ins_need_go_sign: 'Opens the Signing tab',
-    ins_need_go_terms: 'Opens the Overview, where the renewal is decided',
+    ins_need_go_terms: 'Opens the Overview and has Copilot read the contract again, so you decide on a fresh reading',
     ins_need_go_desk: 'Opens who works on this negotiation, where you answer the request',
     reg_col_ref: 'Ref',
     reg_col_party: 'Counterparty and agreement',
@@ -9352,6 +9357,8 @@ const STRINGS = {
     status_cp_ready: 'Motparten är redo att signera',
     status_cp_ready_short: 'Redo att signera',
     al_cp_ready: 'Motparten är redo att signera',
+    al_cp_accepted: 'Motparten har godkänt formuleringen',
+    al_cp_accepted_sub: '{who} · ännu inte undertecknat',
     al_answer_stuck: 'Ett svar från {who} väntar — tryck för att ladda om',
     al_answer_stuck_them: 'motparten',
     status_expired: 'Utgånget',
@@ -15288,6 +15295,7 @@ const STRINGS = {
     pa_wording_changed: 'Lydelsen har ändrats sedan du öppnade den här',
     pa_reply_one: 'Ett svar har kommit på en klausul',
     pa_reply_other: 'Svar har kommit på {n} klausuler',
+    /* STALE (27 Sep 2026) — see the English book. */
     pa_ready_to_sign: 'De väntar på att du ska skriva under',
     pa_expires_one: 'Länken går ut i morgon ({when})',
     pa_expires_other: 'Länken går ut {when} — {n} dagar',
@@ -15853,6 +15861,7 @@ const STRINGS = {
     tri_fill_form: 'Det här avtalet fylls i från sin egen panel till höger.',
     tri_fill_upload: 'De tomma fälten i det här uppladdade dokumentet fylls inte i här \u2014 det är undertecknat, redan under förhandling eller öppet för dig endast för läsning.',
     tri_fill_nego: 'Det här avtalet förhandlas \u2014 ordalydelsen tillhör förhandlingen nu.',
+    tri_fill_sealed: 'Det här avtalet är undertecknat \u2014 ordalydelsen är slutgiltig.',
     tri_fill_nothing: 'Varje fält i det här avtalet är redan besvarat.',
     tri_fill_theirs: 'De sköter underskriften, så de tomma fälten fylls i på deras egen kopia.',
     tri_go_brief: 'Läs avtalssammanfattningen',
@@ -17353,7 +17362,7 @@ const STRINGS = {
     ins_need_in_other: 'om {n} dagar',
     ins_need_go_nego: 'Öppnar förhandlingen',
     ins_need_go_sign: 'Öppnar fliken Undertecknande',
-    ins_need_go_terms: 'Öppnar Översikt, där förnyelsen beslutas',
+    ins_need_go_terms: 'Öppnar Översikt och låter Copilot läsa avtalet igen, så att du beslutar på en färsk läsning',
     ins_need_go_desk: 'Öppnar vilka som arbetar med förhandlingen, där du svarar på förfrågan',
     reg_col_ref: 'Referens',
     reg_col_party: 'Motpart och avtal',

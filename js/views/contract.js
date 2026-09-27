@@ -2048,7 +2048,7 @@ function triageAndPaint(c, opts){
      reading then answers honestly on the card, which beats silence. */
   const onServer = (API_MODE() && window.flushSaves) ? flushSaves() : Promise.resolve();
   Promise.resolve(onServer).catch(()=>{}).then(()=>{
-    try{ triageRun(c,{ onStep:x=>{
+    try{ triageRun(c,{ fresh:!!(opts&&opts.fresh), onStep:x=>{
       /* EVERY SURFACE THE READING JUST MOVED, and the side column is the one
          that was missing (owner-reported 9 Sep 2026: the Contract brief card
          still read "Not written yet" with the brief already on the record).
@@ -2076,6 +2076,14 @@ function triageAndPaint(c, opts){
       if(document.getElementById('kt-rows')) renderKeyTerms(x);
       if(document.getElementById('kt-side')) renderKeyTermsSide(x);
       if(document.getElementById('kt-triage-slot')) paintKtTriage(x);
+      /* AND THE HEAD'S COPILOT FACT (27 Sep 2026). It is a reading of the same
+         record — copilotRead asks for a brief, a standards pass or a risk scan
+         against the current wording — and it is built once per render, so it
+         went on saying "Not read yet" above a strip that had just said "Brief
+         written". Found the day a renewal's Decide began re-reading in front
+         of the reader. roomHeadRefresh is the head's own in-place repaint and
+         asks contractOnScreen itself. */
+      roomHeadRefresh(x);
     }}); }catch(e){ /* the card says what happened */ }
   });
 }
@@ -4447,6 +4455,29 @@ let _wsTabWant=null;
    and a flag set in one of them is a flag the other five never set. */
 const _wsNewDrafts=new Set();
 function roomOpenOnTerms(id){ if(id) _wsNewDrafts.add(String(id)); }
+/* ---- A RENEWAL IS DECIDED ON TODAY'S READING (Young, 27 Sep 2026) ----
+   *"when you click on decide and it takes you to the overview page, the 5
+   checks … should run all over again so that you can see what they say before
+   you go through the steps of deciding."* The door that takes a reader to a
+   renewal decision (needsYouGo's renewal) REGISTERS the ask here, and the
+   Overview SPENDS it when it paints — roomOpenOnTerms' own shape, one level
+   later, for the same reason that one gives: there is no single funnel for
+   "the room has arrived", and asking at the press would start the reading on
+   a register row the room is still loading in full. ensureFull copies the
+   server's record over the object when it lands, so a reading begun on the
+   light row would have its first answers overwritten by the stored ones.
+   SPENT ONLY ON A LOADED RECORD, and only inside ROOM_READ_AGAIN_MS of the
+   press — a press whose room never arrived must not start a paid reading the
+   next time somebody happens to open that Overview. */
+const _wsReadAgain=new Map();
+const ROOM_READ_AGAIN_MS=60000;
+function roomReadOnArrival(id){ if(id) _wsReadAgain.set(String(id), Date.now()); }
+function roomReadAgainDue(c){
+  if(!c || !_wsReadAgain.has(String(c.id))) return false;
+  if(c._light && !c._loaded) return false;
+  const at=_wsReadAgain.get(String(c.id)); _wsReadAgain.delete(String(c.id));
+  return (Date.now()-at)<=ROOM_READ_AGAIN_MS;
+}
 /* Which tab the room has settled on. `_wsTab` is a module-level `let`, so
    nothing outside this file can read it — which made the landing rule above
    untestable and, worse, unobservable from the workbench. One reader, no
@@ -4957,7 +4988,12 @@ function applyWsTabs(c){
      wireKtParties binds on the HOST rather than its children and carries its
      own flag, so the repaint underneath it cannot take it off. */
   if(_wsTab==='terms'){ renderKeyTermsSide(c); renderKeyTerms(c);
-    if(window.wireKtParties) wireKtParties(c); }
+    if(window.wireKtParties) wireKtParties(c);
+    /* A renewal's Decide asked for every reading again (roomReadOnArrival):
+       the whole arrival read, `fresh` so the brief is written anew rather
+       than handed back from its cache — see triageRun. After the paint, so
+       the strip it repaints is the one on screen. */
+    if(roomReadAgainDue(c)) triageAndPaint(c,{ again:true, fresh:true }); }
   /* The layer belongs to the Document tab alone, and the cards it covers have to
      be handed back on the way to any other tab (idea 7). */
   docReadPaint(c);
@@ -16303,7 +16339,7 @@ Object.assign(window,{paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,roomHeadRef
      I walked it on re-rendered the workspace, which measures on the way in. */
   layoutDocResizer,renderSignButton,renderSignSide,roomFactsHtml,signBlockHtml,signReadinessCardHtml,signRowTitle,signWhyShort,SIGN_WHY_WORDS,signLandOnList,signCheckEscalate,signCheckTake,signRiskDismiss,signConsentStamp,signHeadLabel,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,reviewReturnedRound,docWorkingTextNoteHtml,docNothingWrittenHtml,docHasNoWording,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
-  ROOM_TABS,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomCurrentTab,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,histWhen,roomVersionsHtml,docFillable,ktDayDot,ktReadingsRows,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,tplFormOpenFields,openCheckPanel,roomHeadHtml,wireRoomHead,
+  ROOM_TABS,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomReadOnArrival,roomReadAgainDue,ROOM_READ_AGAIN_MS,roomCurrentTab,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,histWhen,roomVersionsHtml,docFillable,ktDayDot,ktReadingsRows,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,tplFormOpenFields,openCheckPanel,roomHeadHtml,wireRoomHead,
   DOC_SEL_ACTIONS,wireDocCopilotSel,docAiRead,docSelKill,
   /* idea 7 — the plain-English layer. Published because a name read through
      window from another module, or from a test stage, is silence when it is

@@ -19537,3 +19537,20 @@ Deliberately left alone (said to the owner)
 Noticed, not fixed
 - The bell's review, quiet-negotiation and signature rows each carry their own copy of where to go, beside the checklist's door. They agree today; two copies of one destination is how two screens come to disagree.
 - Still waiting for a "go" from the 27 Sep answers: the alert for "Accept the wording", their bell's "They are waiting for you to sign" wording, NODE_ENV=production in render.yaml.
+
+## Run 27 Sep 2026 (late night) — the four go-aheads
+
+- On the owner's word: "Merge to main and it's a yes on the other 3" (the "Accept the wording" alert, their bell's signing row, NODE_ENV=production), and, over a screenshot of a renewal's Decide, "the 5 checks ... should run all over again so that you can see what they say before you go through the steps of deciding". Then "merge to main". The go-straight-there work was merged first (ce9cc59).
+- Built: NODE_ENV=production in render.yaml and DEPLOYMENT.md (nothing reads it; the server needs express alone, walled by a test). Their bell's signing row prints the Ready to sign button's own sentence ("Tell them you are ready to sign"). A green bell row when the other side agrees to the wording (cpAcceptedWording, one reading; opens the Signing tab). A renewal's Decide — and Home's renewal row and the bell's renewal rows, which press the same door — has the Overview run the whole arrival read again once the contract is loaded, the brief written afresh; the hover says so. On the way: a signed contract's open-fields box said "in negotiation" (now "signed — its wording is final"), and the head's Copilot fact stayed "Not read yet" above the fresh reading (now repainted).
+- Found by driving the first cut (65a4bde) and fixed before merging: the re-read's fill step wrote a signed template contract's fields; the server refused the save (409) and the refusal put the old record back over every reading of the run. The fill step now stands down on a signed contract.
+- Tests: f396 25 claims (21 red at ce9cc59; 4i red at 65a4bde too); go-aheads-verify 21 checks with both seats in real browsers (13 red at ce9cc59; 3g2, 3j, 3k red at 65a4bde). Re-pointed in place: f191 (6) (the bell's sentences), f280 (3) (its region began at a line this batch changed), home-page-verify 12f (its unsaved renewals are put back before the press, because the press now saves).
+- Gates: lint 0 errors, 178 warnings (unchanged). inspector-checklist-verify 33/33, auto-triage-verify 64/64, home-page-verify 66/66, alerts-and-activity-verify 21/21, counterparty-bell-verify 23/23, round-delivery-verify 34/34, upload-blanks-verify 49/49, blanks-panel-verify 37/37, overview-as-drawn-verify 65/65, ready-to-sign-signal-verify 26/26. seven-fixes-verify 31/36 (5b, 5c, 5f, 6e, 6f), renewal-decision-verify 24/25 (6b) and portal-header-verbs-verify 29/30 fail on exactly the same checks at ce9cc59.
+- Full suite: 9,617 tests, 9,615 pass; the 2 that fail are f277 (1) and (10), red on main before this session (logged 26 Sep) and left red.
+
+Deliberately left alone (said to the owner)
+- Plain English is not re-read by Decide: it is made by walking the Document tab's painted page. Opening the switch there reads it, and re-reads only what changed.
+- The accept answer's own toast in applyResponse is still a bare toast (prints nothing); the bell row is now what tells the reader.
+
+Noticed, not fixed
+- signCheckBriefAt reads `ch.at || ch.filedAt`, but filed changes carry `createdAt`, so it finds no date on any real change: the brief's "out of date" answer (and the new accepted-wording row's staleness) can never trip on real data. Fixing it would start holding signatures under the brief gate after every round — the owner's call.
+- seven-fixes-verify 5b/5c/5f/6e/6f still assert the strip as it stood on 20 Sep (two arrows, the obligations tile always going to the tab, a count-free "none" tile); later rulings changed all three. Red at ce9cc59 too.
