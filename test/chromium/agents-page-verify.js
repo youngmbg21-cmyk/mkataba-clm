@@ -115,6 +115,18 @@ const ok = (name, good, detail) => {
     ok('1e THE NUMBER ON THE DOOR IS THE NUMBER ON THE PAGE', head.rail === '5' && /^5 ready for review/.test(head.facts), `door ${head.rail} · head "${head.facts}"`);
     ok('1f it opens on the first agent with work ready', head.on === 'round', head.on);
     ok('1g no sideways scroll at 1440', head.over <= 0, head.over + 'px');
+    /* THE DOOR'S PLACE, read off the pixels (Young, 27 Sep 2026: "move it to
+       be after the home page then move insights to below calendar"). */
+    const railOrder = await page.evaluate(() => {
+      const items = [...document.querySelectorAll('#side-nav .nav-item[data-view]')]
+        .filter(b => getComputedStyle(b).display !== 'none')
+        .map(b => ({ v: b.getAttribute('data-view'), top: Math.round(b.getBoundingClientRect().top) }))
+        .sort((a, b) => a.top - b.top).map(x => x.v);
+      return items;
+    });
+    ok('1h the door is painted directly below Home, and Insights directly below Calendar',
+      railOrder[railOrder.indexOf('dashboard') + 1] === 'agents' && railOrder[railOrder.indexOf('calendar') + 1] === 'intel',
+      railOrder.slice(0, 9).join(' · '));
     await page.screenshot({ path: path.join(OUT, '1-round.png') });
 
     const openFirst = async () => { const it = await page.$('#ag-main [data-ag-open]'); if (!it) return false; await it.click(); await page.waitForTimeout(450); return !!(await page.$('#side-panel [data-ag-panel]')); };

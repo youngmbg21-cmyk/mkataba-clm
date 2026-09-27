@@ -58,13 +58,17 @@ test('F347 — the second five images', async t => {
     assert.match(CSS, /\.reg-table \.reg-day\{[^}]*font-size:var\(--t-label\)/);
   });
 
-  await t.test('(1c) Insights sits directly after Home in the rail markup', () => {
-    const rail = CSS.slice(CSS.indexOf('data-section="work"'));
-    const home = rail.indexOf('data-view="dashboard"');
-    const intel = rail.indexOf('data-view="intel"');
-    const reg = rail.indexOf('data-view="register"');
-    assert.ok(home >= 0 && intel > home && reg > intel,
-      'Home, then Insights, then Contracts — markup order is the whole of it');
+  /* REVERSED IN PLACE 27 Sep 2026 (Young: "move it to be after the home page
+     then move insights to below calendar"): Copilot's work took the place
+     directly after Home, and Insights moved below Calendar. Still markup
+     order and nothing else. */
+  await t.test('(1c) Copilot\'s work sits directly after Home, and Insights below Calendar, in the rail markup', () => {
+    const rail = CSS.slice(CSS.indexOf('data-section="work"'), CSS.indexOf('data-section="library"'));
+    const doors = [...rail.matchAll(/data-view="([a-z]+)" class="nav-item/g)].map(m => m[1]);
+    assert.equal(doors[doors.indexOf('dashboard') + 1], 'agents',
+      'Home, then Copilot\'s work — markup order is the whole of it');
+    assert.equal(doors[doors.indexOf('calendar') + 1], 'intel', 'and Insights directly below Calendar');
+    assert.equal(doors[doors.length - 1], 'intel', 'at the foot of the Work group');
   });
 
   await t.test('(1d) the density segment wears the artifact\'s own word', () => {
