@@ -56,7 +56,13 @@ describe('f243 · one authority, two editors', () => {
 
   test('and the phone asks the same one, guarded', () => {
     const mc = read('js/mobile-contract.js');
-    assert.match(mc, /saveSignerPlan\(c, \[st\.ours, st\.theirs\]\)/);
+    /* RE-POINTED IN PLACE, 27 Sep 2026: the phone hands the WHOLE route to the
+       one save, its two slots replacing their own rows. Handing over the two
+       slots alone dropped every other signer (while the sheet said they are
+       kept), and the save now asks whether every party that signs is named. */
+    assert.match(mc, /const why = saveSignerPlan\(c, rows\);/);
+    assert.match(mc, /\(st\.ours\.id && r\.id === st\.ours\.id\) \? \{ \.\.\.r, \.\.\.st\.ours \}/,
+      'the slot replaces its own row, in place');
     /* Read through window, because js/approvals.js is a separate module and a
        bare cross-module read throws — the always-false-guard family in its
        safe direction. */

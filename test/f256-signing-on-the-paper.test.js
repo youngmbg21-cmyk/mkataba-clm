@@ -571,7 +571,13 @@ describe('f256 (10) — a spot is reconciled against the document and the route'
        and reads each one as an INDEX. Ours carried a spot id, so removing a
        place threw. */
     const AP = fs.readFileSync(path.join(ROOT, 'js/approvals.js'), 'utf8');
-    assert.match(AP, /data-sp-del="\$\{i\}"/, 'the editor owns data-sp-del, keyed by index');
+    /* RE-POINTED IN PLACE, 27 Sep 2026: the Timeline window (Young's pick)
+       keeps the data-sp-* namespace, keyed by ROW ID now rather than by index,
+       and asks it only inside its own element — so the collision this guarded
+       against cannot come back from the editor's side either. */
+    assert.match(AP, /data-sp-row="\$\{r\.id\}"/, 'the editor owns data-sp-row, keyed by the row\'s id');
+    const win = AP.slice(AP.indexOf('function signerRouteWindow'), AP.indexOf('/* ---- approval + signer status panel'));
+    assert.ok(!/document\.querySelectorAll\('\[data-sp-/.test(win), 'and never asks the whole document for data-sp-*');
     const card = ROOM_SRC.slice(ROOM_SRC.indexOf('function signSpotsCardHtml'),
       ROOM_SRC.indexOf('function signSpotsPaint'));
     assert.ok(!/data-sp-(del|add|who|kind)=/.test(card),

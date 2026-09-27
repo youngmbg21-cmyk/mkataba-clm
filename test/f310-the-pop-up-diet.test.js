@@ -262,7 +262,11 @@ describe('f310 (2) — the other twenty-five: the retired sentences are not draw
     both('co_upload_word_tail', 'they sent back.');
     both('lib_bulk_line', 'Download the sheet, fill one row per contract, upload it back. Up to {n} rows.');
     both('tl_convert_line'); both('tl_new_standard_line');
-    both('ap_route_line', 'Signers sign in this order. The other side’s links open once every internal signature is in.');
+    /* RE-POINTED IN PLACE, 27 Sep 2026: the diet's short line said the other
+       side's links open once every internal signature is in, which is false on
+       a route where they sign first. The Timeline (Young's pick) says what is
+       true for every order. Still one line, still in both books. */
+    both('ap_route_line', 'Signing runs from the top step down. People in the same step sign in any order.');
     both('me_low_confidence', 'Low-confidence');
     both('set_grant_streams', 'Admins always keep full access.');
     both('pb_read_wording', 'Read the wording');
