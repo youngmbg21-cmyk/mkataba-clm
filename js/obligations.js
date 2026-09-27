@@ -488,6 +488,11 @@ function obligationSurfacesChanged(){
      stale — the one thing this funnel exists to stop. Through obwRepaint, so
      the reader keeps their place in the list. */
   if(window.state && state.view==='obligations' && window.obwRepaint) obwRepaint();
+  /* AND COPILOT'S WORK (27 Sep 2026). Its Late promises agent lists the chases
+     and its New paper panel lists the obligations auto-triage found, so a chase
+     sent or an obligation added anywhere has to reach it — through agRepaint,
+     which keeps the reader's place and does nothing off that page. */
+  if(window.state && state.view==='agents' && window.agRepaint) agRepaint();
   /* AND THE CHECKS CARD, which counts them on its own row since 14 Aug 2026
      ("6 tracked"). Same reasoning again, and the reason this function exists:
      one count, many surfaces, refreshed from ONE place rather than from each of

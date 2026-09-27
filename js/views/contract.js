@@ -8349,12 +8349,35 @@ function openCheckPanel(c,kind){
      a full-height column of nothing is a worse answer than a sentence. The
      Checks card only opens this once something HAS run, so this is a backstop
      rather than a normal path — but a panel that can open blank will. */
-  const host=document.getElementById(id);
-  if(host && !host.innerHTML.trim()){
-    host.innerHTML=`<p style="margin:0;font-size:var(--t-meta);line-height:1.6;color:var(--color-neutral-600)">
-      Nothing has been ${kind==='playbook'?'reviewed against the playbook':kind==='oblig'?'tracked on this contract':kind==='brief'?'briefed':'scanned'} on this contract yet.
-      Close this and press <b>${kind==='playbook'?i18t('ct_playbook_review'):kind==='oblig'?i18t('ob_obligations'):kind==='brief'?i18t('br_title'):i18t('ct_copilot_risk_scan')}</b> ${i18t('ct_in_checks_card')}</p>`;
+  const backstop=()=>{
+    const host=document.getElementById(id);
+    if(host && !host.innerHTML.trim()){
+      host.innerHTML=`<p style="margin:0;font-size:var(--t-meta);line-height:1.6;color:var(--color-neutral-600)">
+        Nothing has been ${kind==='playbook'?'reviewed against the playbook':kind==='oblig'?'tracked on this contract':kind==='brief'?'briefed':'scanned'} on this contract yet.
+        Close this and press <b>${kind==='playbook'?i18t('ct_playbook_review'):kind==='oblig'?i18t('ob_obligations'):kind==='brief'?i18t('br_title'):i18t('ct_copilot_risk_scan')}</b> ${i18t('ct_in_checks_card')}</p>`;
+    }
+  };
+  /* ---- THE BRIEF IS NOT ON THE LIGHT LIST (27 Sep 2026, Young: "the panel
+     comes up but it has no brief in it but when i go through the overview door
+     the brief works") ----
+     `_brief` rides only a single contract's own read, so a door that opens this
+     panel on a contract taken off the LIST — before the room has loaded it —
+     drew "Nothing has been briefed" over a brief that exists. THE FUNNEL LOADS
+     IT, so every door gets it right: restoreHeavyFields (the Inspector's loader,
+     which copies nothing over what is on screen), a loading line meanwhile, and
+     the panel filled when it lands — only while this panel is still open. */
+  if(kind==='brief' && !c._brief && c._light && !c._loaded && typeof restoreHeavyFields==='function'
+     && typeof API_MODE==='function' && API_MODE()){
+    const host=document.getElementById(id);
+    if(host) host.innerHTML=`<p style="margin:0;font-size:var(--t-meta);line-height:1.6;color:var(--color-neutral-600)">${i18t('ct_loading_contract')}</p>`;
+    Promise.resolve().then(()=>restoreHeavyFields(c)).catch(()=>{}).then(()=>{
+      if(!document.getElementById(id)) return;
+      if(window.renderBriefSection) renderBriefSection(c);
+      backstop();
+    });
+    return;
   }
+  backstop();
 }
 function wireChecksCard(c){
   const card=document.getElementById('checks-card'); if(!card) return;

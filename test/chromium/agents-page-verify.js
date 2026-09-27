@@ -22,12 +22,18 @@
    8d FAIL: a letter put away let the plain renewal row back in its place,
    and a step held back in a payment chain was offered for chasing. 3c0, 8b
    and 8e are the controls and pass on both sides.
+   AND AT faa8f95 (27 Sep 2026, "Read the brief" empty and the cards thinner
+   than the drawing) 1i, 2b2, 3a2, 5a2, 6a2 and 10a–10f FAIL: no foot, no
+   wording, no letter, no message, no names, and a brief panel that says
+   "Nothing has been briefed" over a brief that exists. The two section-10
+   stage lines are the gate.
 
    Run: node test/chromium/agents-page-verify.js */
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
 const { startHati } = require('../helpers');
+const { DatabaseSync } = require('node:sqlite');
 
 const OUT = process.env.HATI_SHOT_DIR || path.join(__dirname, 'shots', 'agents-page');
 const EXEC = process.env.CHROMIUM_BIN
@@ -137,6 +143,11 @@ const ok = (name, good, detail) => {
     const pick = async k => { const b = await page.$(`[data-ag-agent="${k}"]`); if (b) { await b.click(); await page.waitForTimeout(350); } return !!b; };
     const act = async a => { const b = await page.$(`#side-panel [data-ag-act="${a}"]`); if (!b) return false; await b.click(); await page.waitForTimeout(900); return true; };
 
+    /* ---- 1i. the card says when (Young, 27 Sep 2026: the cards were thinner
+       than the drawing). The round's card arrived nine days ago. RED at faa8f95. */
+    const foot = await page.evaluate(() => { const f = document.querySelector('#ag-main .ag-item .ag-foot'); return f ? f.textContent.replace(/\s+/g, ' ').trim() : null; });
+    ok('1i the card carries its own foot: when it arrived (and who it is for, where the record names one)', !!foot && /Arrived /.test(foot), String(foot));
+
     /* ---- 2. their round ---- */
     const steps = await page.evaluate(() => [...document.querySelectorAll('.ag-stp')].map(s => s.textContent.trim()));
     ok('2a the steps name where a person looks, and count what waits there', steps.some(s => /Your review\s*1/.test(s)), steps.join(' | '));
@@ -147,6 +158,14 @@ const ok = (name, good, detail) => {
         acts: [...p.querySelectorAll('[data-ag-act]')].map(b => b.getAttribute('data-ag-act')) } : null;
     });
     ok('2b the round\'s panel lists each ask with the co-pilot\'s answer', roundPanel && rp && rp.chg === 3 && rp.tags.length === 3, JSON.stringify(rp));
+    const words = await page.evaluate(async () => {
+      const d = document.querySelector('#side-panel details.ag-words'); if (!d) return null;
+      const n = document.querySelectorAll('#side-panel details.ag-words').length;
+      d.querySelector('summary').click(); await new Promise(r => setTimeout(r, 150));
+      const b = d.querySelector('.ag-words-b');
+      return { n, open: d.open, marks: b ? b.querySelectorAll('ins,del').length : 0, text: b ? b.textContent.trim().slice(0, 60) : '' };
+    });
+    ok('2b2 each ask carries THEIR WORDING one press away, drawn with its marks (RED at faa8f95)', !!words && words.n === 3 && words.open && words.marks > 0, JSON.stringify(words));
     ok('2c and it offers the negotiation, never a decision', !!rp && rp.acts.includes('nego') && !rp.acts.some(a => /accept|reject|counter/.test(a)), rp && rp.acts.join(','));
     await page.screenshot({ path: path.join(OUT, '2-round-panel.png') });
     if (roundPanel) await act('nego');
@@ -160,6 +179,8 @@ const ok = (name, good, detail) => {
     await pick('renew');
     const renewPanel = await openFirst();
     ok('3a a notice is ready under Renewals', renewPanel);
+    const letterOn = await page.evaluate(() => { const l = document.querySelector('#side-panel .ag-letter'); return l ? l.textContent.trim().slice(0, 40) : null; });
+    ok('3a2 the notice\'s panel carries THE LETTER itself, written from the record (RED at faa8f95)', !!letterOn && /^NOTICE OF/.test(letterOn), String(letterOn));
     if (renewPanel) await act('notice');
     const letter = await page.evaluate(() => !!document.getElementById('nt-close'));
     ok('3b "Read the letter" opens the notice letter — the renewal card\'s own dialog', letter);
@@ -190,8 +211,10 @@ const ok = (name, good, detail) => {
     /* ---- 4. new paper ---- */
     await pick('paper');
     const paperPanel = await openFirst();
-    const tiles = await page.evaluate(() => [...document.querySelectorAll('#side-panel .ag-tiles li')].length);
-    ok('4a what HaTi read on arrival is laid out tile by tile', paperPanel && tiles >= 3, tiles + ' tiles');
+    /* RE-POINTED IN PLACE 27 Sep 2026: the five tiles are each OPENED now —
+       a section under the tile's own head, carrying the reading itself. */
+    const tiles = await page.evaluate(() => [...document.querySelectorAll('#side-panel [data-ag-tile]')].length);
+    ok('4a what HaTi read on arrival is laid out reading by reading, under each tile\'s own head', paperPanel && tiles >= 3, tiles + ' sections');
     if (paperPanel) await act('seen');
     const seen = await page.evaluate(() => ({ seenAt: !!(getContract('MK-158').triage || {}).seenAt,
       ready: agentsData().agents.paper.ready.length, done: agentsData().agents.paper.done.map(x => x.cid) }));
@@ -203,6 +226,9 @@ const ok = (name, good, detail) => {
     await pick('late');
     const latePanel = await openFirst();
     ok('5a a late promise is ready, with the address it will go to', latePanel && /ops@kabras\.example/.test(await page.evaluate(() => (document.getElementById('side-panel') || {}).textContent || '')));
+    const mail = await page.evaluate(() => { const m = document.querySelector('#side-panel .ag-mail'); return m ? m.textContent.replace(/\s+/g, ' ').trim() : null; });
+    ok('5a2 the chase\'s panel carries THE MESSAGE it will send — its subject and its words (RED at faa8f95)',
+      !!mail && /A reminder about Deliver the Q3 stock report/.test(mail) && /Could you let us know where it stands\?/.test(mail), String(mail).slice(0, 160));
     if (latePanel) {
       const b = await page.$('#side-panel [data-ag-act="chase"]');
       if (b) { await b.click(); await page.waitForTimeout(500); }
@@ -222,6 +248,8 @@ const ok = (name, good, detail) => {
     const impPanel = await openFirst();
     const impText = await page.evaluate(() => (document.getElementById('side-panel') || {}).textContent || '');
     ok('6a the batch says how many there are, how many to check, how many could not be read', impPanel && /Contracts\s*3/i.test(impText) && /To check\s*2/i.test(impText), impText.replace(/\s+/g, ' ').slice(0, 160));
+    const named = await page.evaluate(() => [...document.querySelectorAll('#side-panel .ag-names li b')].map(b => b.textContent.trim()));
+    ok('6a2 the batch\'s panel NAMES the contracts — the one that could not be read and the ones to check (RED at faa8f95)', named.length >= 2, named.join(' | '));
     if (impPanel) await act('import');
     ok('6b "Open the import queue" lands on the import page', (await page.evaluate(() => state.view)) === 'migration');
 
@@ -295,6 +323,92 @@ const ok = (name, good, detail) => {
     });
     ok('9b the dark theme dresses the page (a dark card, light ink)', !!dark && !/255, 255, 255/.test(dark.bg) && /2[0-9]{2}/.test(dark.ink), JSON.stringify(dark));
     await page.screenshot({ path: path.join(OUT, '9-dark.png') });
+
+    /* ---- 10. THE BRIEF THAT OPENED EMPTY (Young, 27 Sep 2026: "for many cards
+       in there when i click on read brief, the panel comes up but it has no
+       brief in it but when i go through the overview door the brief works") ----
+       The page is drawn off the LIGHT list and the brief rides only a single
+       contract's own read, so the list's contracts carry "there is a brief" and
+       not the brief. Reproduced as it happens: a contract read on arrival with a
+       brief written, the page RELOADED so every contract is a light row again.
+       10d and 10f print the owner's report at faa8f95 ("Nothing has been
+       briefed"); 10a–10c are the opened readings; 10e is the one door onto
+       adding the obligations found. */
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.evaluate(() => { if (typeof setDark === 'function') setDark(false); });
+    const fresh = await page.evaluate(async () => {
+      const me = currentUser();
+      const used = new Set(['MK-149', 'MK-143', 'MK-131', 'MK-158']);
+      const pick = () => state.contracts.find(c => c && !used.has(c.id) && !c.migration && !c.archived && c.status !== 'Declined' && !c.triage);
+      const a = pick(); if (!a) return null; used.add(a.id);
+      const b = pick(); if (!b) return null;
+      a.triage = { at: new Date(Date.now() - 864e5).toISOString(), by: me.name, steps: {
+        brief: { ok: true, line: 'x' },
+        playbook: { ok: true, dev: 1, miss: 1, cats: ['Liability cap', 'Data protection'] },
+        oblig: { ok: true, found: [{ desc: 'Deliver the audit plan by 15 Jan', party: 'theirs' }, { desc: 'Pay the first fee part on signing', party: 'ours' }] } } };
+      a.playbook = { key: 'services', label: 'Services', source: 'ai', at: new Date().toISOString(), verdicts: [
+        { category: 'Liability cap', status: 'deviation', escalate: true, quote: 'Neither party’s liability under this Agreement is limited.', position: '≥ 12 months’ fees.' },
+        { category: 'Data protection', status: 'missing', position: 'A data protection clause naming the regulator.' },
+        { category: 'Governing law', status: 'aligned', quote: 'The laws of Kenya.', position: 'Kenya' }] };
+      persist(a); await flushSaves();
+      return { a: a.id, b: b.id };
+    });
+    ok('10 the stage: a contract read on arrival, and a second with only a brief', !!fresh, JSON.stringify(fresh));
+    if (fresh) {
+      const db = new DatabaseSync(path.join(h.dataDir, 'hati.db'));
+      const put = (id, overview) => db.prepare('INSERT OR REPLACE INTO briefs(contract_id,json,created_at) VALUES(?,?,?)').run(id, JSON.stringify({
+        at: new Date().toISOString(), inputHash: 'x', data: { overview, watchouts: [{ point: 'Fees rise if the scope grows', why: 'There is no cap on extra work.' }], unusual: [] } }), new Date().toISOString());
+      put(fresh.a, 'An engagement letter for the FY2026 external audit, billed in three parts.');
+      put(fresh.b, 'A supply agreement for packaging, renewed each year.');
+      db.close();
+      await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(2500);
+      const light = await page.evaluate(id => { const c = getContract(id); return c ? { light: !!c._light, loaded: !!c._loaded, hasBrief: !!c._hasBrief, brief: !!c._brief } : null; }, fresh.a);
+      ok('10 GATE — after the reload the contract is a LIGHT row that knows a brief exists and does not carry it', !!light && light.light && !light.loaded && light.hasBrief && !light.brief, JSON.stringify(light));
+      await page.evaluate(() => setView('agents')); await page.waitForTimeout(900);
+      await pick('paper');
+      const it = await page.$(`#ag-main [data-ag-key="read:${fresh.a}"]`);
+      if (it) { await it.click(); await page.waitForTimeout(1500); }
+      const opened = await page.evaluate(() => {
+        const t = k => { const x = document.querySelector(`#side-panel [data-ag-tile="${k}"]`); return x ? x.textContent.replace(/\s+/g, ' ').trim() : ''; };
+        return { brief: t('brief'), std: t('playbook'), obs: t('oblig'),
+          obsBtn: (document.querySelector('#side-panel [data-ag-act="obs"]') || {}).textContent || '' };
+      });
+      ok('10a the panel shows THE BRIEF itself once the whole record lands (RED at faa8f95)', /FY2026 external audit/.test(opened.brief) && /Why it matters/.test(opened.brief), opened.brief.slice(0, 140));
+      ok('10b and the departures, their words beside your standard (RED at faa8f95)',
+        /Liability cap/.test(opened.std) && /Their words/.test(opened.std) && /Your standard/.test(opened.std) && /1 other standard is met/.test(opened.std), opened.std.slice(0, 160));
+      ok('10c and the obligations found, whose each is, with one door onto adding them (RED at faa8f95)',
+        /Deliver the audit plan/.test(opened.obs) && /Theirs/.test(opened.obs) && /Review 2 obligations/.test(opened.obsBtn), opened.obs.slice(0, 120) + ' · ' + opened.obsBtn);
+      await page.screenshot({ path: path.join(OUT, '10-new-paper-panel.png') });
+      const rb = await page.$('#side-panel [data-ag-act="brief"]');
+      if (rb) { await rb.click(); await page.waitForTimeout(1800); }
+      const briefShown = await page.evaluate(() => { const s = document.getElementById('brief-section'); if (!s) return null; const x = s.cloneNode(true); x.querySelectorAll('style').forEach(n => n.remove()); return x.textContent.replace(/\s+/g, ' ').trim(); });
+      ok('10d "Read the brief" opens the brief, not an empty panel — the owner\'s report (RED at faa8f95)',
+        !!briefShown && /FY2026 external audit/.test(briefShown) && !/Nothing has been briefed/.test(briefShown), String(briefShown).slice(0, 140));
+      await page.screenshot({ path: path.join(OUT, '10-brief.png') });
+      await page.evaluate(() => { if (document.getElementById('side-panel')) closeModal(); setView('agents'); }); await page.waitForTimeout(900);
+      await pick('paper');
+      const it2 = await page.$(`#ag-main [data-ag-key="read:${fresh.a}"]`);
+      if (it2) { await it2.click(); await page.waitForTimeout(800); }
+      const ob = await page.$('#side-panel [data-ag-act="obs"]');
+      if (ob) { await ob.click(); await page.waitForTimeout(1200); }
+      const review = await page.evaluate(() => ({ dialog: !!document.getElementById('or-add'), text: ((document.getElementById('modal-root') || {}).textContent || '').replace(/\s+/g, ' ').slice(0, 120) }));
+      ok('10e "Review 2 obligations" opens the one review dialog, where each is ticked — nothing is added from the card (RED at faa8f95)', review.dialog, JSON.stringify(review));
+      await page.evaluate(() => { try { closeModal(); } catch (_){} });
+      /* THE FUNNEL: any door that opens the brief panel on a light row — here
+         pressed straight, with nothing loaded first. NOT FROM THE CONTRACTS
+         PAGE: its side panel loads the first row's record for its own reasons,
+         which made this pass at the parent for the wrong one (measured). The
+         gate asks that the row is still light at the moment of the press. */
+      await page.evaluate(() => setView('agents')); await page.waitForTimeout(700);
+      const stillLight = await page.evaluate(id => { const c = getContract(id); return !!(c && c._light && !c._loaded && c._hasBrief && !c._brief); }, fresh.b);
+      ok('10f GATE — the second contract is still a light row that carries no brief', stillLight);
+      await page.evaluate(id => openCheckPanel(getContract(id), 'brief'), fresh.b);
+      await page.waitForTimeout(1500);
+      const funnel = await page.evaluate(() => { const s = document.getElementById('brief-section'); if (!s) return null; const x = s.cloneNode(true); x.querySelectorAll('style').forEach(n => n.remove()); return x.textContent.replace(/\s+/g, ' ').trim(); });
+      ok('10f the brief panel\'s own funnel loads a light record first, whatever door opened it (RED at faa8f95)',
+        !!funnel && /supply agreement for packaging/.test(funnel), String(funnel).slice(0, 140));
+      await page.evaluate(() => { try { closeModal(); } catch (_){} });
+    }
   } catch (e) {
     ok('the run finished', false, String(e && e.stack || e).slice(0, 400));
   } finally {

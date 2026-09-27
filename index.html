@@ -1643,16 +1643,16 @@
      a deletion of ours inside an insertion of theirs is drawn nested: their
      tint kept, our strike over it. Scoped to the two sheets so the utility
      classes on every mark lose the fight by specificity, never by order. */
-  .rl-doc del.rl-them,.nego-doc del.rl-them,.rl-cp-src del.rl-them,.rl-col del.rl-them,.pv-sheet del.rl-them{background:transparent;color:var(--st-amber-fg)}
-  .rl-doc del.rl-us,.nego-doc del.rl-us,.rl-cp-src del.rl-us,.rl-col del.rl-us,.pv-sheet del.rl-us{background:transparent;color:var(--accent-ink)}
-  .rl-doc ins.rl-them,.nego-doc ins.rl-them,.rl-cp-src ins.rl-them,.rl-col ins.rl-them,.pv-sheet ins.rl-them{background:var(--st-amber-bg);color:var(--st-amber-fg)}
-  .rl-doc ins.rl-us,.nego-doc ins.rl-us,.rl-cp-src ins.rl-us,.rl-col ins.rl-us,.pv-sheet ins.rl-us{background:var(--st-steel-bg);color:var(--accent-ink)}
+  .rl-doc del.rl-them,.nego-doc del.rl-them,.rl-cp-src del.rl-them,.rl-col del.rl-them,.pv-sheet del.rl-them,.ag-words del.rl-them{background:transparent;color:var(--st-amber-fg)}
+  .rl-doc del.rl-us,.nego-doc del.rl-us,.rl-cp-src del.rl-us,.rl-col del.rl-us,.pv-sheet del.rl-us,.ag-words del.rl-us{background:transparent;color:var(--accent-ink)}
+  .rl-doc ins.rl-them,.nego-doc ins.rl-them,.rl-cp-src ins.rl-them,.rl-col ins.rl-them,.pv-sheet ins.rl-them,.ag-words ins.rl-them{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .rl-doc ins.rl-us,.nego-doc ins.rl-us,.rl-cp-src ins.rl-us,.rl-col ins.rl-us,.pv-sheet ins.rl-us,.ag-words ins.rl-us{background:var(--st-steel-bg);color:var(--accent-ink)}
   /* AN ADDED RUN IS UNDERLINED AND A STRUCK ONE IS STRUCK, so the colour can
      say WHO and the line still says WHAT (the artifact's grammar, 14 Sep 2026).
      Written on the sided classes only: a mark carrying neither side keeps the
      green/red it always had. */
-  .rl-doc ins.rl-them,.rl-doc ins.rl-us,.nego-doc ins.rl-them,.nego-doc ins.rl-us,.rl-cp-src ins.rl-them,.rl-cp-src ins.rl-us,.rl-col ins.rl-them,.rl-col ins.rl-us,.pv-sheet ins.rl-them,.pv-sheet ins.rl-us{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px;text-decoration-color:currentColor}
-  .rl-doc del.rl-them,.rl-doc del.rl-us,.nego-doc del.rl-them,.nego-doc del.rl-us,.rl-cp-src del.rl-them,.rl-cp-src del.rl-us,.rl-col del.rl-them,.rl-col del.rl-us,.pv-sheet del.rl-them,.pv-sheet del.rl-us{text-decoration:line-through;text-decoration-thickness:1.5px;text-decoration-color:currentColor}
+  .rl-doc ins.rl-them,.rl-doc ins.rl-us,.nego-doc ins.rl-them,.nego-doc ins.rl-us,.rl-cp-src ins.rl-them,.rl-cp-src ins.rl-us,.rl-col ins.rl-them,.rl-col ins.rl-us,.pv-sheet ins.rl-them,.pv-sheet ins.rl-us,.ag-words ins.rl-them,.ag-words ins.rl-us{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px;text-decoration-color:currentColor}
+  .rl-doc del.rl-them,.rl-doc del.rl-us,.nego-doc del.rl-them,.nego-doc del.rl-us,.rl-cp-src del.rl-them,.rl-cp-src del.rl-us,.rl-col del.rl-them,.rl-col del.rl-us,.pv-sheet del.rl-them,.pv-sheet del.rl-us,.ag-words del.rl-them,.ag-words del.rl-us{text-decoration:line-through;text-decoration-thickness:1.5px;text-decoration-color:currentColor}
   .rl-doc ins.rl-them>del.rl-us,.nego-doc ins.rl-them>del.rl-us,.rl-cp-src ins.rl-them>del.rl-us{background:transparent;color:var(--accent-ink)}
   .rl-doc ins.rl-us>del.rl-them,.nego-doc ins.rl-us>del.rl-them,.rl-cp-src ins.rl-us>del.rl-them{background:transparent;color:var(--st-amber-fg)}
   .rl-repl-on{font-size:var(--t-label);color:var(--color-neutral-600);margin:6px 0 0;font-style:italic;line-height:1.45}
@@ -9216,7 +9216,7 @@
      dialog's buttons, applied to the panel's own scroller. */
   .ag-panel{display:flex;flex-direction:column;gap:14px;min-height:100%;}
   .ag-p-head{display:grid;gap:2px;}
-  .ag-p-who{font-family:var(--font-heading);font-size:var(--t-section);font-weight:var(--w-title);color:var(--color-text);}
+  .ag-p-who{font-weight:var(--w-title);color:var(--color-text);}
   .ag-p-name{color:var(--color-neutral-600);}
   .ag-p-agent{font-size:var(--t-label);color:var(--color-neutral-600);}
   .ag-p-body{display:flex;flex-direction:column;gap:12px;flex:1;}
@@ -9250,9 +9250,77 @@
   .ag-tiles .b b{font-weight:var(--w-title);}
   .ag-tiles .b span{font-size:var(--t-label);color:var(--color-neutral-600);}
   .ag-tiles .n{font-family:var(--font-mono);font-size:var(--t-meta);color:var(--color-text);}
-  .ag-p-foot{display:grid;gap:8px;padding-top:12px;border-top:1px solid var(--color-divider);position:sticky;bottom:0;background:var(--color-surface);}
+  /* THE FOOT REACHES THE PANEL'S EDGE (27 Sep 2026). The side panel's scroller
+     carries 18px of bottom padding (openSidePanel, js/core.js) and a sticky foot
+     stops that far short of the edge, so once the panel held a whole letter the
+     wording scrolled through the gap UNDER the buttons. It sticks to the edge
+     and fills the gap with its own ground instead. */
+  .ag-p-foot{display:grid;gap:8px;padding-top:12px;padding-bottom:18px;border-top:1px solid var(--color-divider);position:sticky;bottom:-18px;background:var(--color-surface);}
   .ag-p-acts{display:flex;flex-wrap:wrap;align-items:center;gap:var(--btn-group-gap);}
   .ag-p-line{margin:0;font-size:var(--t-label);color:var(--color-neutral-600);}
+  /* ---- THE CARD'S FOOT AND THE PANEL'S CONTENTS (Young, 27 Sep 2026: "the
+     copilot cards are not comprehensive or detailed compared to the mock up in
+     the artifact") ----
+     The drawing's card foot (who it is for, and when) and its panel sections
+     (a small label over the letter, the message, the memo, the brief, the
+     departures, the obligations found). No band anywhere: every section sits
+     inside the panel that was already there. Every value a token. */
+  .ag-foot{display:flex;align-items:center;gap:6px;margin-top:6px;min-width:0;font-size:var(--t-label);color:var(--color-neutral-600);}
+  .ag-av{width:20px;height:20px;flex:none;border-radius:50%;display:inline-grid;place-items:center;background:var(--st-steel-bg);color:var(--accent-ink);font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:0;}
+  .ag-for,.ag-when{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ag-dot{color:var(--rule-strong);}
+  .ag-p-title{font-family:var(--font-heading);font-size:var(--t-section);font-weight:var(--w-title);line-height:1.3;color:var(--color-text);}
+  .ag-p-sub{display:flex;flex-wrap:wrap;gap:0 6px;min-width:0;color:var(--color-neutral-600);}
+  .ag-p-sub .ag-p-who{font-family:var(--font-body);font-size:var(--t-body);font-weight:var(--w-title);color:var(--color-text);}
+  .ag-p-sub .ag-p-name::before{content:"· ";color:var(--rule-strong);}
+  .ag-ps{display:grid;gap:8px;}
+  .ag-ps-h{margin:0;display:flex;align-items:center;gap:8px;font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);font-weight:var(--w-label);}
+  .ag-ps-h .d{width:7px;height:7px;flex:none;border-radius:50%;background:var(--color-neutral-500);}
+  .ag-ps-h.is-green .d{background:var(--st-green-dot);}
+  .ag-ps-h.is-amber .d{background:var(--st-amber-dot);}
+  .ag-ps-h.is-steel .d{background:var(--st-steel-dot);}
+  .ag-ps-h.is-live .d{background:var(--color-accent);}
+  .ag-ps-h .n{margin-left:auto;font-family:var(--font-mono);font-size:var(--t-meta);letter-spacing:0;color:var(--color-text);}
+  .ag-p-text,.ag-brief-o,.ag-memo-h{margin:0;line-height:1.6;color:var(--color-text);}
+  .ag-memo-h{font-weight:var(--w-title);}
+  .ag-p-sub2{margin:4px 0 0;font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600);}
+  .ag-p-note.is-amber{color:var(--st-amber-fg);}
+  .ag-panel .br-fig{font-weight:var(--w-title);color:var(--accent-ink);}
+  .ag-watch{list-style:none;margin:0;padding:0;display:grid;gap:6px;}
+  .ag-watch li{display:grid;gap:2px;padding:8px 10px;border-radius:var(--radius);background:var(--st-amber-bg);border-left:3px solid var(--st-amber-dot);color:var(--color-text);}
+  .ag-watch-w{font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600);}
+  .ag-watch-w b{color:var(--color-text);font-weight:var(--w-strong);}
+  .ag-dep{border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:10px 12px;display:grid;gap:6px;}
+  .ag-dep-h{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .ag-dep-h b{min-width:0;font-weight:var(--w-title);color:var(--color-text);}
+  .ag-dep dl{display:grid;grid-template-columns:104px minmax(0,1fr);gap:4px 10px;margin:0;font-size:var(--t-label);}
+  .ag-dep dt{color:var(--color-neutral-600);}
+  .ag-dep dd{margin:0;color:var(--color-text);overflow-wrap:anywhere;}
+  .ag-dep dd.w,.ag-quote,.ag-words-b{font-family:var(--font-doc);font-size:var(--t-body);line-height:1.6;}
+  .ag-quote{margin:0;padding:2px 10px;border-left:2px solid var(--rule-strong);color:var(--color-text);}
+  .ag-obs,.ag-names{list-style:none;margin:0;padding:0;}
+  .ag-obs li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:start;padding:7px 0;border-top:1px solid var(--color-divider);color:var(--color-text);}
+  .ag-names li{display:grid;gap:1px;padding:6px 0;border-top:1px solid var(--color-divider);color:var(--color-text);}
+  .ag-obs li:first-child,.ag-names li:first-child{border-top:0;}
+  .ag-names li span{font-size:var(--t-label);color:var(--color-neutral-600);overflow-wrap:anywhere;}
+  .ag-went{list-style:none;margin:0;padding:0;display:grid;gap:6px;}
+  .ag-went li{display:flex;align-items:flex-start;gap:8px;line-height:1.5;color:var(--color-text);}
+  .ag-went li::before{content:"";width:6px;height:6px;margin-top:7px;flex:none;border-radius:50%;background:var(--color-neutral-500);}
+  .ag-went li.is-green::before{background:var(--st-green-dot);}
+  .ag-went li.is-amber::before{background:var(--st-amber-dot);}
+  .ag-went li.is-ruby::before{background:var(--st-ruby-dot);}
+  .ag-asks{margin:0;padding-left:20px;display:grid;gap:4px;color:var(--color-text);}
+  .ag-letter{margin:0;white-space:pre-wrap;font-family:var(--font-doc);font-size:var(--t-body);line-height:1.7;color:var(--color-text);background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);padding:14px 16px;}
+  .ag-mail{border:1px solid var(--color-divider);border-radius:var(--radius);overflow:hidden;}
+  .ag-mail-h{display:grid;grid-template-columns:64px minmax(0,1fr);gap:4px 8px;margin:0;padding:10px 12px;border-bottom:1px solid var(--color-divider);font-size:var(--t-label);}
+  .ag-mail-h dt{color:var(--color-neutral-600);}
+  .ag-mail-h dd{margin:0;color:var(--color-text);overflow-wrap:anywhere;}
+  .ag-mail-b{padding:12px;white-space:pre-wrap;line-height:1.55;color:var(--color-text);}
+  .ag-words summary{width:max-content;cursor:pointer;font-size:var(--t-label);font-weight:var(--w-label);color:var(--accent-ink);}
+  .ag-words summary:focus-visible{outline:2px solid var(--focus-color);outline-offset:2px;}
+  .ag-words-b{margin-top:6px;padding:10px 12px;border-radius:var(--radius);background:var(--color-bg);color:var(--color-text);}
+  .ag-words-b p{margin:0 0 6px;}
+  .ag-words-b p:last-child{margin-bottom:0;}
 
   /* ═══ APPROVAL BEFORE SIGNING (23 Sep 2026) ═══════════════════════════
      The request window, the approver's own card at the top of the signing

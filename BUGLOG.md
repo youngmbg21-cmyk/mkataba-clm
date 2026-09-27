@@ -19634,3 +19634,23 @@ Noticed, not fixed
 - Moved: the side menu's Work group now reads Home, Copilot's work, Contracts, Negotiations, Approvals & signing, Obligations, Calendar, Insights. Markup order and nothing else: every door keeps its own data-view, the Insights "New" badge travelled inside its block, the svg colour rules are keyed on the attribute. The note beside the Insights door names the 21 Sep ruling it reverses.
 - Tests re-pointed in place: f338 (3a)(3f), f347 (1c), five-images-two-verify 1, four-off-the-screenshots-verify 3a/3c (both red on main since 21 Sep, still describing the 19 Sep place). Added: f399 (2d)(2e), agents-page-verify 1h (the painted order).
 - Gates: f338, f347, f399, f344, f148 green; in real browsers agents-page-verify 30/30, five-images-two-verify 26/26, four-off-the-screenshots-verify 31/31, nav-floats-verify 67/67, keyboard-reach-verify 37/37.
+
+## Run 27 Sep 2026 — the two desk faults, then Copilot's work: the empty brief and the fuller panels
+
+- On the owner's word: "fix the two problems you found", then "Fix this next: In the copilots work, for many cards in there when i click on read brief, the panel comes up but it has no brief in it but when i go through the overview door the brief works. Also, the copilot cards are not comprehensive or detailed compared to the mock up in the artifact." Built on claude/happy-thompson-6puam1 from a0f7cae.
+- Fixed (the two logged in the last run): putting a notice row away no longer brings the plain renewal row back for the same contract — the renewal row stands down where the letter is ready or was put away; and the desk's chase guard called obligationBlocked(c, o) where the function takes (o, c), so it never fired and a late step still waiting on an earlier unpaid step was offered for chasing. Both reached Home's Prepared for you and the Copilot's work page.
+- Fixed: "Read the brief" on Copilot's work opened an empty brief panel. The page reads the light list, where the brief is not carried; the whole record is now loaded first (restoreHeavyFields, one shared flight), and the brief panel's own funnel (openCheckPanel) loads a light record itself, so every door onto it gets the brief.
+- Built: the cards carry who each is for and when; the review panels carry the work itself — their wording per ask, the notice letter, how the contract went and the stored renewal memo, the brief with what is worth watching, the departures with their words beside your standard, the obligations found with one door onto adding them, the chase message as the route will write it, and the import's files by name. Nothing asks a model; no cost is shown (spend is booked per person and day, never per item).
+- Also fixed on that screen: the import panel said "Could not be read" twice; the panel's sticky foot stopped 18px short of the edge and a long letter scrolled under the buttons.
+- Tests: f274 (10) 10 claims (5 red at a0f7cae, 5 controls); f399 4i/4j red at a0f7cae and f399 (6) 10 claims red at faa8f95; agents-page-verify 49 checks — 3c reversed in place, 8b–8e added (8c/8d red at a0f7cae), 1i/2b2/3a2/5a2/6a2/10a–10f added (red at faa8f95), 4a re-pointed.
+- Gates: lint 0 errors, 178 warnings (unchanged). Browser: agents-page-verify 49/49, auto-triage-verify 64/64, signing-flow-verify 45/45, home-page-verify 66/66, five-images-verify 27/27, overview-as-drawn-verify 65/65. Full suite: 9,714 tests, 9,708 pass; the 6 that fail are the same six as the last run and fail at its parent.
+
+Deliberately left alone (said to the owner)
+- The Obligations list, its side panel and the phone still offer Chase on a step held back in a payment chain: that is a person's own press on a row already shown as waiting, not a suggestion HaTi prepared.
+
+Noticed, not fixed
+- c.desk holds two different things: the negotiation desk (js/desk.js: lead, contributors, join requests) and the overnight desk's put-away stamps (js/desknight.js). The keys do not collide today.
+- A put-away stamp on the overnight desk never expires, so a renewal (or notice) put away this year stays off the desk in every later renewal cycle of the same contract.
+- seven-fixes-verify 5b, 5c, 5f, 6e and 6f fail identically at faa8f95 and are not on run-all's KNOWN_RED list (5b still expects two arrows on the arrival strip; the standards tile became the third door on 21 Sep).
+- redline-verify 5 ("no menu follows a highlight") fails identically at faa8f95; renewal-decision-verify 6b fails identically at a0f7cae (already recorded red on 17 Sep).
+- The chase mail writes the due date as stored ("2026-09-21"), not in the reader's words; the panel shows exactly that because it mirrors the route.
