@@ -219,6 +219,8 @@ function explain(err, failStep) {
     out.instead = 'It found ' + recv + ' of them on the screen.';
   } else if (recv === 'hidden') {
     out.instead = 'It was on the page, but hidden.';
+  } else if (onScreen && (recvString === '""' || recv === '""')) {
+    out.instead = 'Nothing was showing there — it was empty.';
   } else if (recvString != null || (recv != null && recv !== 'undefined')) {
     out.instead = found + clip(recvString != null ? recvString : recv);
   } else if (recv === 'undefined') {

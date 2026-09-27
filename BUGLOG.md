@@ -19507,3 +19507,33 @@ Noticed, not fixed
 
 Noticed, not fixed
 - Nothing new this run. Still open from the run before: the journey check is not in tests.yml or run-all.js.
+
+## Run 27 Sep 2026 — all ten flows on the owner's list built as journeys (not merged to main)
+
+- Asked by the owner: "Yes, add the rule. Then build all the flows but do not merge to main yet". Built on claude/playwright-signup-contract-test-6dlnsw; NOT merged.
+- Built: the rule (a job that changes the app runs the flow check once at the end); nine more journeys, one per flow on test/e2e/FLOWS.md (both sides sign; a negotiation round; review before sending; approval before signing; upload read on arrival; a company standard; a colleague limited to one stream; obligations; requests), every flow now ticked; their shared parts in test/e2e/journey.js; a pretend Copilot that answers each reading by name; a "known problem" mark so a fault already noted is reported as known, worked round, and never read as a new break. No app code changed.
+- Gates: lint 0 errors, 178 warnings (unchanged). f395 41 of 41. Every journey green three runs running; all ten twice together and once more at the end: every run reached the end, nothing new broke. Proved to catch a real break: the obligations chase route made to fail (temporary, restored from git) stopped the Obligations journey at "Chase" and said so in plain words.
+
+Noticed, not fixed
+- When our signer opens HaTi from the "your turn to sign" email, the contract still says the other side has not signed ("0 of 2 signed", "Not your turn") until the page is reloaded; the signature is already recorded. Journey 2 carries it as a known problem.
+- After a round is sent, the open page keeps its 45-second checking beat until its next tick or a page change: schedulePolling() is re-asked on setView and on the tick only, so the promised 12-second watching starts up to 45 s late (measured 32 s for an accepted change to appear).
+- A refusal's reason ("This travels back with your decision, so they know what to do next") reaches us only on the History tab: the Negotiate page's redline row, its ladder and the notes drawer do not show it.
+- The redline row on a clause holding two figures shows a figure track nobody moved: after a counter on "4. Termination" that changed no number, the row read "R2 · theirs · 90 → 90 days".
+- On the other side's page, an ask they COUNTERED is labelled "Rejected · held" and then "Rejected", while the record (and our page) says it was superseded by their counter — the two pages tell the two sides different things about the same change.
+- "Send for review" never emails the reviewer: the handler closes the window (window.closeModal()) and only then reads the "Email them as well" tick (js/review.js, openReviewAskModal's send), so it always reads unticked — no email, and the page says "No email was sent — you chose to tell Brian Kamau yourself" though the box was ticked. Journey 4 carries it as a known problem.
+- Home's "Needs your decision" row "Reviews waiting on you" opens the contract on its Overview tab, not the Negotiate page where the review is done; the bell's row for the same review goes straight there.
+- After "Send all" with one change held back by the reviewer, the held change is listed under "With the counterparty" on our Negotiate page (and still after a reload), though it never reached them. The wall held; the column claims it was sent. Journey 4 carries it as a known problem.
+- The role choices in the person drawer read "Editor — edit &amp; sign": the "&" is escaped twice, so "&amp;" shows on the screen.
+- A colleague's Home says "Needs your decision — Nothing to decide, you're all caught up" while his bell and his email say a contract waits on his approval before anyone can sign. Journey 5 carries it as a known problem.
+- After the approver approves, the asker's open Signing tab keeps saying "Waiting on Brian Kamau's approval" until reloaded (the "Approved" email arrives straight away).
+- A HaTi email link (#contract=…&tab=…) pasted into a HaTi tab that is already open does nothing: the link is read only when the app starts (openFromHash in startApp) and nothing listens for a changed hash. From an email it opens a new tab, which works.
+- Right after an upload is filed and read on arrival, the contract's header still says "COPILOT Not read yet" while the strip under it says "HaTi read this contract"; only a reload puts the header right. Journey 6 carries it as a known problem.
+- Publishing a company standard built from pasted plain wording asks "Our standards expect 4 clauses this template does not have — Governing law, Data protection, Payment terms…", though the wording has "5. Governing Law" and a "shall pay" clause: the copy is read as having no headings, so no clause is matched to a standard. Journey 7 carries it as a known problem.
+- A company standard built by pasting wording that carries {{client_name}}-style blanks cannot be published: the builder treats the markers as blanks already but creates no fields for them, and only at the last publish step does HaTi refuse ("The wording still mentions “client_name” but no field with that name exists").
+- A company standard made by PASTING wording is described on its page as "Converted from an uploaded document" — nothing was uploaded.
+- Publishing a company standard toasts "No signature block — contracts from this template will have nowhere to sign", yet a contract drafted from it shows a signature block for both parties.
+- Chasing the other side before an obligation is due emails "…which was due on 2026-10-11. Could you let us know where it stands?" — past tense for a date still to come, and the date in machine form.
+- A new request never reaches legal while HaTi is open: the Requests page keeps showing "Nothing waiting" (even after leaving and coming back 20 seconds later) until a reload, and legal is not emailed or alerted. Journey 10 carries it as a known problem.
+- "Draft it" on a request asks Copilot which template fits but the server offers it only the first eight templates (/api/ai/template's `.slice(0, 8)` after a score that is equal for every built-in), so the NDA, Property Lease and Professional Services are never offered: a request for an NDA is answered "Copilot suggests Raw Material Supply Agreement". Journey 10 carries it as a known problem.
+- The same window reads the suggestion's reason as `top.why` (js/views/intake.js) while the route answers `reason`, so the one-line reason is never shown; the overall answer is shown instead.
+- Drafting from a request names the counterparty on the new contract after the page is drawn, so its header reads "COUNTERPARTY —" until a reload shows "Juno Logistics Ltd".

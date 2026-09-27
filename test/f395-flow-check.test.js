@@ -255,6 +255,11 @@ describe('f395 (3) the report: a headline, the steps, where it stopped', () => {
     assert.equal(x.should, 'his Home lists the approval');
     assert.match(x.instead, /^It found "Nothing to decide" on the screen: "….*Needs your decision Nothing to decide — you are all caught up\."$/);
   });
+  test('an empty place on the screen is said to be empty, not quoted as ""', () => {
+    const x = explain('Error: HaTi says the reminder went to grace@x.co\n\nexpect(locator).toContainText(expected) failed\n\n'
+      + 'Locator: locator(\'#toast-root\')\nExpected substring: "Reminder sent"\nReceived string: ""\nTimeout: 15000ms\n');
+    assert.equal(x.instead, 'Nothing was showing there — it was empty.');
+  });
   test('a count on the screen reads as a count', () => {
     const x = explain('Error: the held change is not listed\n\nexpect(locator).toHaveCount(expected) failed\n\nLocator: locator(\'#x\')\nExpected: 0\nReceived: 1\nTimeout: 5000ms\n');
     assert.equal(x.instead, 'It found 1 of them on the screen.');
