@@ -109,7 +109,15 @@ function wirePipeline(){
     const id=el.getAttribute('data-card');
     el.addEventListener('click',()=>selectContract(id));
   });
-  document.querySelectorAll('[data-pipe-more]').forEach(el=>el.addEventListener('click',()=>{ regState().stage=el.getAttribute('data-pipe-more'); regState().type='all'; regState().sel={}; setView('register'); }));
+  /* PRESSED ON MY QUEUE, "+N more" is a door from another page, and a door
+     lands on fresh filters (Young ruled 27 Sep 2026) — through the register's
+     one door, so nothing left on the Contracts page cuts the column it named.
+     On the Contracts page's own Board it is a press INSIDE the page and keeps
+     what it has always done. */
+  document.querySelectorAll('[data-pipe-more]').forEach(el=>el.addEventListener('click',()=>{
+    const k=el.getAttribute('data-pipe-more');
+    if(state.view!=='register' && window.regGoFiltered){ regGoFiltered({ stage:k }); return; }
+    regState().stage=k; regState().type='all'; regState().sel={}; setView('register'); }));
 }
 
 Object.assign(window,{PIPE_CAP,PIPE_COLS,pipeCard,pipeColumnInner,pipeBoardHtml,pipeColReset,renderPipeline,wirePipeline});

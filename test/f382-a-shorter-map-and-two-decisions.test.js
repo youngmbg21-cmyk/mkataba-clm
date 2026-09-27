@@ -20,7 +20,10 @@
      3. "Needs your decision" is back under Prepared for you: TWO rows, the
         first two of its one reading (hmDecisionItems), a head that counts the
         whole list, "See all" only where more wait than show, one line when
-        there is nothing, and no rail;
+        there is nothing, and no rail. SINCE 27 SEP 2026 it lists the side
+        panel's checklist's own five kinds: a contract sitting in review is no
+        longer a row, and a renewal is a row only for the contract's owner —
+        its stage re-pointed in place, and three claims added (red at a007cdb);
      4. the words are in both books and the dictionary no longer calls them
         stale. */
 const { test, describe } = require('node:test');
@@ -41,16 +44,45 @@ const i18n = require('../js/i18n.js');
 const FILES = ['js/obligations.js', 'js/desknight.js', 'js/views/home.js'];
 const day = n => { const d = new Date(); d.setDate(d.getDate() + n);
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
-/* Contracts sitting in review, each idle a different number of days — the
-   "Waiting on review" source, which takes every one, longest first. */
+/* Contracts sitting in review, each idle a different number of days. Until
+   27 Sep 2026 this was the card's own stage — the "Waiting on review" source
+   took every one, longest first — and that source LEFT the card that day, so
+   the Map's stages still use it and section 3 asks it to be ABSENT. */
 const inReview = n => Array.from({ length: n }, (_, i) => ({
   id: 'MK-' + (i + 1), name: 'Review ' + (i + 1), counterparty: 'Party ' + (i + 1),
   status: 'Under Review', value: 1e6, lastAction: day(-(10 + i * 7)), audit: [] }));
 const signedOne = () => ({ id: 'MK-S', name: 'Signed one', counterparty: 'Siginon', status: 'Signed',
   value: 5e6, expiry: day(300), metadata: { expiryDate: day(300) }, audit: [] });
-function world({ contracts = inReview(5), extra = {} } = {}) {
+/* ---- THE CARD'S STAGE SINCE 27 SEP 2026: renewal decisions the READER owns ----
+   The one source of the five a node stage can answer without a negotiation.
+   The reader is loadViews' own (test/dom.js); ownership is the REAL
+   contractOwnedBy, lifted out of core.js — a stand-in kinder than the real
+   function would turn the ownership claims into descriptions. The decision
+   day is the REAL renewalDecisionDate's (js/obligations.js is on this stage):
+   an expiry 40, 47, 54 … days out less a 30-day notice, so every decision
+   falls inside the card's 90-day window.
+   EVERY ONE IS PUT AWAY FROM THE DESK (`desk`, its own two row keys): the
+   desk draws the nearest renewal or notice itself, and a renewal it draws is
+   taken off this card by the one-door rule (f274) — so without the stamp the
+   nearest of them would leave every count here, quietly. */
+const READER = { id: 'u_test', name: 'Test User' };
+const OWNED_BY_SRC = (() => {
+  const at = CORE.indexOf('function contractOwnedBy(');
+  assert.ok(at >= 0, 'contractOwnedBy is in js/core.js');
+  const end = CORE.indexOf('\n}', at);
+  return CORE.slice(at, end + 2);
+})();
+const contractOwnedBy = new Function('return (' + OWNED_BY_SRC + ')')();
+const OWNS = { contractOwnedBy };
+const decide = (n, over = {}) => Array.from({ length: n }, (_, i) => Object.assign({
+  id: 'MK-R' + (i + 1), name: 'Renewal ' + (i + 1), counterparty: 'Party ' + (i + 1),
+  status: 'Signed', value: 1e6, expiry: day(40 + i * 7),
+  metadata: { expiryDate: day(40 + i * 7), noticePeriodDays: 30 },
+  desk: { renewal: day(-1), notice: day(-1) },
+  owner: { id: READER.id, name: READER.name }, audit: [] }, over));
+function world({ contracts = decide(5), extra = {} } = {}) {
   const sb = loadViews(FILES, { canViewValues: () => true,
-    state: { contracts, settings: {}, view: 'dashboard', serverStats: { total: contracts.length } }, ...extra });
+    state: { contracts, settings: {}, view: 'dashboard', serverStats: { total: contracts.length } }, ...OWNS, ...extra });
   sb.renderDashboard();
   return { sb, html: sb.document.getElementById('content').innerHTML };
 }
@@ -138,7 +170,7 @@ describe('F382 (3) — Needs your decision is back, two rows and nothing more', 
     const { sb } = world();
     assert.equal(typeof sb.hmDecisionItems, 'function', 'hmDecisionItems is published');
     assert.equal(sb.HM_DD_ROWS, 2);
-    assert.equal(sb.hmDecisionItems().length, 5, 'five contracts in review are five items');
+    assert.equal(sb.hmDecisionItems().length, 5, 'five renewal decisions the reader owns are five items');
   });
   test('exactly two rows are drawn, and they are the list\'s first two, in order', () => {
     const { sb, html } = world();
@@ -155,7 +187,7 @@ describe('F382 (3) — Needs your decision is back, two rows and nothing more', 
     assert.match(card, /data-hm-go="needsyou">See all 5/, 'and See all carries the same number');
   });
   test('with exactly two, See all is not drawn — it would open the list already on screen', () => {
-    const card = ddCard(world({ contracts: inReview(2) }).html);
+    const card = ddCard(world({ contracts: decide(2) }).html);
     assert.equal((card.match(/class="hm-row /g) || []).length, 2);
     assert.ok(!card.includes('data-hm-go="needsyou"'));
   });
@@ -171,7 +203,7 @@ describe('F382 (3) — Needs your decision is back, two rows and nothing more', 
        chases — the same stage f381 uses for its own wall. */
     const late = signedOne();
     late.obligations = [{ id: 'ob1', desc: 'Pay the August invoice', party: 'theirs', due: day(-6), status: 'open', amount: 2e6 }];
-    const cs = [late, ...inReview(3)];
+    const cs = [late, ...decide(3)];
     const { html } = world({ contracts: cs });
     const map = html.indexOf('id="hm-map"'), desk = html.indexOf('Prepared for you'), dd = html.indexOf('Needs your decision');
     assert.ok(map > 0 && desk > map && dd > desk, 'the Map, then prepared work, then the reader\'s own list');
@@ -183,9 +215,41 @@ describe('F382 (3) — Needs your decision is back, two rows and nothing more', 
     assert.ok(!/it\.kind==='triage'\?triageRowHtml/.test(HOME_CODE), 'no triage branch on the rows');
   });
   test('a row escapes a name once', () => {
-    const cs = inReview(1); cs[0].name = 'Smith & Co';
+    const cs = decide(1); cs[0].name = 'Smith & Co';
     const card = ddCard(world({ contracts: cs }).html);
     assert.ok(card.includes('Smith &amp; Co') && !card.includes('&amp;amp;'));
+  });
+
+  /* ---- THE SAME FIVE KINDS AS THE CHECKLIST (Young: yes, 27 Sep 2026) ----
+     The three claims below are RED at a007cdb, where the card listed every
+     contract sitting in review and every renewal in the book. The fourth is a
+     named CONTROL: the phone's own list still reads the review queue, so the
+     slice has to stay — deleting it would satisfy the first claim here and
+     break the phone. */
+  test('a contract sitting in review is not a row — that queue belongs to nobody by name', () => {
+    const { sb, html } = world({ contracts: inReview(3) });
+    assert.equal(sb.hmDecisionItems().length, 0, 'three contracts idle in review are no decision of this reader\'s');
+    const card = ddCard(html);
+    assert.ok(card.includes('class="hm-empty"') && !card.includes('hm-dd-rows'), 'so the card says there is nothing to decide');
+  });
+  test('[control] the phone\'s list still has its review queue', () => {
+    const { sb } = world({ contracts: inReview(3) });
+    assert.equal(sb.hmDashSlices().waitingLongest.map(x => x.c.id).join(','), 'MK-3,MK-2,MK-1',
+      'the slice stays, longest idle first — js/mobile-screens.js reads it');
+  });
+  test('a renewal is a row only for the person who owns the contract', () => {
+    const mine = decide(2);
+    const theirs = decide(2, { owner: { id: 'u_other', name: 'Amina Otieno' } }).map((c, i) => Object.assign(c, { id: 'MK-O' + (i + 1) }));
+    /* A LIGHT-LIST ROW names its raiser as transport and carries no owner —
+       contractOwnedBy's second reading, so it counts as the reader's too. */
+    const light = decide(1, { owner: undefined, _raisedBy: READER.name }).map(c => Object.assign(c, { id: 'MK-L1' }));
+    const { sb } = world({ contracts: [...mine, ...theirs, ...light] });
+    assert.equal(sb.hmDecisionItems().map(x => x.cid).sort().join(','), 'MK-L1,MK-R1,MK-R2',
+      'the reader\'s two and the one they raised — never the colleague\'s two');
+  });
+  test('nobody signed in owns nothing — no renewal rows', () => {
+    const { sb } = world({ contracts: decide(2), extra: { currentUser: () => null } });
+    assert.equal(sb.hmDecisionItems().length, 0);
   });
 });
 

@@ -11,6 +11,13 @@
      start returning a real number on the handsets that have one. -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>HaTi — Contract Lifecycle Management</title>
+<!-- THE TAB CARRIES THE PRODUCT'S OWN MARK (26 Sep 2026, the overnight
+     clean-up). With no icon named, every page load asked the server for
+     /favicon.ico and logged a 404 in the console — on every page, the one
+     error every audit probe printed. The rail's own mark (the "Ha" square),
+     drawn inline so there is no file to serve. A standalone image carries no
+     :root, so the colour is a literal: the teal brand's accent. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230E5F58'/%3E%3Ctext x='16' y='21.5' font-family='system-ui,-apple-system,Segoe UI,sans-serif' font-size='15' font-weight='600' fill='%23fff' text-anchor='middle'%3EHa%3C/text%3E%3C/svg%3E" />
 <script>
   // Apply the saved appearance BEFORE first paint. This runs ahead of the
   // stylesheet on purpose: set it any later and every visitor on Navy or Dark
@@ -1506,6 +1513,17 @@
      mouse half a pixel under the button landed on the cell behind it. */
   .ui-btn-sm{min-height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);font-size:var(--t-meta);gap:4px;position:relative;}
   .ui-btn-sm::after{content:"";position:absolute;inset:-2px;}
+  /* A SMALL BUTTON THAT ASKS TO BE PLACED KEEPS ITS PLACE (Young reported it
+     27 Sep 2026: "the green ask button is now poorly designed as far as
+     placing"). The rule above gives every small button position:relative to
+     anchor its press area, at the Tailwind utility's own weight and LATER in
+     the sheet — so a button that also carries `absolute` (the Explorer
+     panel's Ask, pinned inside the end of its box) lost the fight, fell out
+     of the box and landed under it at the left, half off the panel. MEASURED:
+     position relative, 52px below the box's centre line. Fixed by SCOPE, one
+     class heavier, never !important; an absolute box anchors the press area
+     just as well. */
+  .ui-btn-sm.absolute{position:absolute;}
   /* AN ICON THAT STANDS ALONE is a SQUARE of its rung — the same height as
      the buttons beside it, its name on the hover (rule 6 of the review). The
      icon keeps its rung's size; only the width is taken off the padding. */
@@ -3425,6 +3443,13 @@
      the float so the row's height is its own, and the tail sits at the wall. */
   .doc-read-mirror > p.hati-toc{ overflow:hidden; }
   .doc-read-mirror .hati-toc-n{ float:right; padding-left:1.2em; }
+  /* A COPY CUT SHORT ABOVE THE FIRST CLAUSE FADES OUT (26 Sep 2026) rather
+     than stopping on a hard edge that reads like the end of the paragraph.
+     docReadPaint sets the height on a whole line; this only says there is
+     more, and the whole of it is the paper twelve pixels to the left. */
+  .doc-read-mirror.is-cut{
+    -webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 1.6em),transparent);
+    mask-image:linear-gradient(to bottom,#000 calc(100% - 1.6em),transparent); }
   /* The clause's own number, and it is the PAPER'S — read off the sheet, never
      asked of the model — which is what lets it be printed as a citation. */
   .doc-read-note .dr-n{ color:var(--accent-ink); font-variant-numeric:tabular-nums; }
@@ -7138,6 +7163,63 @@
   .ig-node.hi .ig-chip{stroke:var(--color-accent);stroke-width:2;filter:drop-shadow(0 6px 14px rgba(43,43,45,.14))}
   .ig-node.dim{opacity:.22;transition:opacity var(--dur-1)}
   .ig-lab{pointer-events:none;font-size:var(--t-meta);font-family:var(--font-body)}
+  /* ---- ANALYZE CONTRACT — the paper in the graph's column (26 Sep 2026) ----
+     The strip is the column's own header (the switch, the reference, the
+     doors); the paper COVERS the stage the graph is drawn on, so the nodes
+     keep their layout underneath; the marks are the risk scan's own, held;
+     the pin is the comment marker's own disc. Every colour a token. */
+  .ig-strip{display:flex;align-items:center;gap:12px;height:36px;padding:0 14px;background:var(--color-surface);border-bottom:1px solid var(--color-divider);flex:none;min-width:0}
+  .ig-strip[hidden]{display:none}
+  .ig-sw{display:inline-flex;height:24px;border:1px solid var(--btn-edge);border-radius:var(--radius);overflow:hidden;background:var(--color-surface);flex:none}
+  .ig-sw button{height:100%;padding:0 10px;font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);color:var(--color-neutral-600);background:none;border:0;cursor:pointer;white-space:nowrap}
+  .ig-sw button + button{border-left:1px solid var(--btn-edge)}
+  .ig-sw button[aria-pressed="true"]{background:var(--accent-fill);color:#fff;font-weight:var(--w-strong)}
+  .ig-strip-ref{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:var(--t-body);color:var(--color-text);display:flex;align-items:center;gap:6px}
+  .ig-strip-ref b{font-weight:var(--w-label)}
+  .ig-strip-ref .q{color:var(--color-neutral-600)}
+  .ig-strip-dot{width:8px;height:8px;border-radius:50%;flex:none}
+  .ig-strip-sp{flex:1}
+  .ig-strip-pins{font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap}
+  .ig-paper{position:absolute;inset:0;z-index:3;background:var(--color-bg)}
+  .ig-paper[hidden]{display:none}
+  .ig-paper-wrap{position:relative;height:100%;display:flex;min-height:0}
+  .ig-paper-wrap .ig-spine[hidden]{display:none}
+  .ig-paper-scroll{flex:1;min-width:0;overflow:auto;padding:20px 24px 60px 44px;position:relative}
+  .ig-paper-scroll .pg-sheet{margin:0 auto}
+  /* The held mark: the scan's flash colours, but STILL — the reader is reading it. */
+  .ig-mark{background:var(--st-steel-bg);border-radius:var(--radius);box-shadow:0 0 0 2px var(--st-steel-bg)}
+  .ig-mark.ob{background:var(--st-amber-bg);box-shadow:0 0 0 2px var(--st-amber-bg)}
+  .ig-mark.is-on{box-shadow:0 0 0 2px var(--st-steel-bg),0 0 0 4px color-mix(in srgb,var(--color-accent) 35%,transparent)}
+  .ig-mark.ob.is-on{box-shadow:0 0 0 2px var(--st-amber-bg),0 0 0 4px color-mix(in srgb,var(--st-amber-dot) 55%,transparent)}
+  .ig-pinhost{position:relative}
+  .ig-pin{position:absolute;left:-30px;top:2px;width:18px;height:18px;box-sizing:border-box;padding:0;margin:0;border-radius:50%;border:1.5px solid var(--accent-fill);background:var(--st-steel-bg);color:var(--accent-ink);font-family:var(--font-body);font-size:10px;line-height:1;font-weight:var(--w-strong);font-variant-numeric:tabular-nums;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+  .ig-pin.ob{border-color:var(--st-amber-dot);background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .ig-pin:hover{box-shadow:0 0 0 3px color-mix(in srgb,var(--color-accent) 25%,transparent)}
+  .ig-cites{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .ig-cite{display:inline-flex;align-items:center;gap:5px;height:var(--ctl-h-sm);max-width:100%;padding:0 8px 0 5px;border:1px solid var(--btn-edge);border-radius:var(--radius);background:var(--color-surface);color:var(--accent-ink);font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);cursor:pointer}
+  .ig-cite .w{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ig-cite:hover{border-color:var(--accent-ink)}
+  .ig-cite.is-on{background:var(--color-accent-50);border-color:var(--accent-ink)}
+  .ig-cite-n{width:16px;height:16px;border-radius:50%;background:var(--st-steel-bg);color:var(--accent-ink);font-size:10px;font-weight:var(--w-strong);display:inline-grid;place-items:center;flex:none;font-variant-numeric:tabular-nums}
+  .ig-cite.ob .ig-cite-n{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .ig-nothing{margin-top:6px;font-size:var(--t-meta);color:var(--color-neutral-600);font-style:italic}
+  .ig-turn-on > div:last-child > div:first-child{box-shadow:0 0 0 3px color-mix(in srgb,var(--color-accent) 30%,transparent)}
+  /* FOCUS folds the page's head away — the paper takes the column's full
+     height; the shell and the panel stay (the 19 Sep 2026 focus ruling). The
+     head itself is folded on the element (it carries an inline display);
+     this rule takes the grouped-by line with it. */
+  #ig-page.ig-focus > #ig-note{display:none}
+  /* ---- THE DIVIDER BESIDE THE PANEL (27 Sep 2026) ----
+     The Document tab's and the Negotiate page's handle, the same values: a
+     14px press over the seam, a 4px grip in the quiet grey, the accent under
+     the pointer and while dragging, amber at a floor. */
+  .ig-resizer{position:absolute;top:0;bottom:0;width:14px;z-index:6;cursor:col-resize;
+    display:flex;align-items:center;justify-content:center;touch-action:none}
+  .ig-resizer[hidden]{display:none}
+  .ig-resizer span{width:4px;height:72px;border-radius:var(--radius);background:var(--color-neutral-300);transition:background var(--dur-1)}
+  .ig-resizer[data-at-limit] span{background:var(--st-amber-dot)}
+  .ig-resizer:hover span,.ig-resizer[data-drag] span,.ig-resizer:focus-visible span{background:var(--color-accent)}
+  .ig-resizer:focus-visible{outline:none}
   .ig-sub{pointer-events:none;font-size:var(--t-figure);font-family:var(--font-mono)}
   /* A-1: the node's third line and its hover card. A node Copilot has not read
      is faded — the chip alone, so its facts still read. The hover card is the
@@ -8661,6 +8743,28 @@
   .ins-mv.is-you{color:var(--st-amber-fg);}
   .ins-mv.is-them{color:var(--color-neutral-600);}
   .ins-acts{display:flex;align-items:center;gap:var(--btn-group-gap);margin-top:14px;flex-wrap:wrap;}
+  /* WHAT THIS CONTRACT NEEDS FROM YOU — THE CHECKLIST (Young picked it by
+     name, 27 Sep 2026). A frame in the worst row's colour, a head that counts,
+     one row per thing owed with its own button. Every colour is the product's
+     ruby or amber token, so the night theme is the tokens' own answer. The
+     button keeps the platform's one light edge and takes the row's colour on
+     its word only. The rows stay one line each; a cut line has its whole
+     words on the hover. */
+  .ins-need{--nd-bg:var(--st-amber-bg);--nd-fg:var(--st-amber-fg);--nd-line:var(--st-amber-line);--nd-dot:var(--st-amber-dot);
+    margin-top:14px;border:1px solid var(--nd-line);border-radius:var(--radius-lg);background:var(--color-surface);overflow:hidden;}
+  .ins-need.is-ruby,.ins-need-r.is-ruby{--nd-bg:var(--st-ruby-bg);--nd-fg:var(--st-ruby-fg);--nd-line:var(--st-ruby-line);--nd-dot:var(--st-ruby-dot);}
+  .ins-need-r.is-amber{--nd-bg:var(--st-amber-bg);--nd-fg:var(--st-amber-fg);--nd-line:var(--st-amber-line);--nd-dot:var(--st-amber-dot);}
+  .ins-need-h{display:flex;align-items:center;gap:6px;padding:8px 12px;background:var(--nd-bg);color:var(--nd-fg);border-bottom:1px solid var(--nd-line);
+    font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;}
+  .ins-need-h svg{flex:none;}
+  .ins-need-r{display:grid;grid-template-columns:8px minmax(0,1fr) auto;align-items:center;gap:0 10px;padding:10px 12px;}
+  .ins-need-r + .ins-need-r{border-top:1px solid var(--color-divider);}
+  .ins-need-dot{width:8px;height:8px;border-radius:50%;background:var(--nd-dot);}
+  .ins-need-b{min-width:0;}
+  .ins-need-t{font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ins-need-s{margin-top:2px;font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ins-need-s .late{color:var(--nd-fg);font-weight:var(--w-strong);}
+  .ins-need .ui-btn.ins-need-go{color:var(--nd-fg);}
   .ins-more-wrap{position:relative;display:inline-flex;}
   .ins-menu{position:absolute;right:0;top:calc(100% + 4px);z-index:30;width:200px;padding:var(--s-1);display:flex;flex-direction:column;
     background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);

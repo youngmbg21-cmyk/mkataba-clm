@@ -304,11 +304,28 @@ function triageTiles(c){
       try{ left = (typeof contractBlanksOpen === 'function') ? contractBlanksOpen(c).length : 0; }catch(_){ left = 0; }
     }
   }
+  /* ---- A TILE WITH FIELDS STILL OPEN IS NOT A TICK (26 Sep 2026, the
+     overnight clean-up) ----
+     The run filled some and left some, and the tile read "Open fields filled
+     in" with a tick over "3 still open" — the head claiming the job done in
+     the same breath as its own detail saying it was not (and with nothing
+     filled at all, a tick over a count of zero). Where fields are still open
+     NOW, the tile says what the form's tile says: they are on the panel,
+     which ones, and how many — steel, never green. Asked live, so a blank
+     answered since this ran is not "still open". */
+  if (fl.ok && left > 0 && !fillNone){
+    let open = null;
+    try{ open = (typeof contractOpenFieldNames === 'function') ? contractOpenFieldNames(c) : null; }catch(_){ open = null; }
+    if (open && open.length) fillNone = 'form';
+    else if (open) left = 0;
+  }
   if (fl.ok && !names.length && !fillNone && !left && typeof contractBlanksNone === 'function'){
     try{ fillNone = contractBlanksNone(c); }catch(_){ fillNone = null; }
   }
   const NONE_WHY = { form: 'tri_fill_form', upload: 'tri_fill_upload',
-                     nego: 'tri_fill_nego', none: 'tri_fill_nothing', theirs: 'tri_fill_theirs' };
+                     nego: 'tri_fill_nego', none: 'tri_fill_nothing', theirs: 'tri_fill_theirs',
+                     /* A signed contract (27 Sep 2026) — see contractBlanksNone. */
+                     sealed: 'tri_fill_sealed' };
   /* ---- "OPEN FIELDS ARE ON THE PANEL" HAS TO SAY WHICH (Young reported it
      21 Sep 2026: "the open fields is not sharing anything meaningful") ----
      The `form` reason said *"This contract fills in from its own panel on the
@@ -497,7 +514,13 @@ async function triageRun(c, opts = {}){
          back the same way. api() no longer toasts one for a quiet caller — see
          its own note — so carrying it here is what stops a suppressed box
          becoming a silent trim. */
-      const o = { quiet: true };
+      /* `fresh` IS A PERSON ASKING FOR EVERY READING AGAIN — a renewal's
+         Decide (roomReadOnArrival, 27 Sep 2026). The brief is the one reading
+         here with a cache (the server keeps it per wording), so without
+         `force` it would hand back the brief it already had and the reader
+         would be looking at last month's date under "read again". The other
+         three always ask afresh. Absent on every other caller. */
+      const o = { quiet: true, force: !!opts.fresh };
       const r = (typeof runContractBrief === 'function')
         ? await runContractBrief(c, o) : { error: triageAbsent() };
       if (r && r.error) t.steps.brief = triageFail(r.error);
@@ -587,8 +610,25 @@ async function triageRun(c, opts = {}){
        CHANGES the paper — see TRIAGE_STEPS. The record answers first and for
        free; a model is asked only about what is left, and only where there is
        a key. */
+    /* ---- A SIGNED CONTRACT'S BLANKS ARE NOT FILLED (27 Sep 2026) ----
+       A blank is a word on the page, and a signed contract's words are
+       final: the server refuses a save that changes `fields` on an executed
+       record (EXECUTED_IMMUTABLE). This step had only ever met drafts and
+       deals still being argued, until a renewal's Decide began reading
+       signed contracts again — and there the record answered first, wrote a
+       field, and the refused save took EVERY reading this run made down
+       with it (measured: 409 "fields cannot be changed after signature").
+       So the step stands down and says why, in the tile's own words —
+       contractBlanksNone's `sealed`. negoWordingFrozen is the one reading
+       (executed, any signature, handed over); the status is the fallback on
+       a stage without the change model. */
+    const frozen = (() => {
+      try{ return c.status === 'Signed' || (typeof negoWordingFrozen === 'function' && !!negoWordingFrozen(c)); }
+      catch(_){ return c.status === 'Signed'; }
+    })();
     try{
-      if (typeof runFillBlanks !== 'function') t.steps.fill = { ok: false, why: triageAbsent() };
+      if (frozen) t.steps.fill = { ok: true, filled: [], left: 0, none: 'sealed' };
+      else if (typeof runFillBlanks !== 'function') t.steps.fill = { ok: false, why: triageAbsent() };
       else {
         const f = await runFillBlanks(c, { quiet: true });
         t.steps.fill = f && f.error

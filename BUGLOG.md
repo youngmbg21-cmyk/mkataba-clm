@@ -19437,3 +19437,156 @@ Deliberately left alone (said to the owner)
 Noticed, not fixed
 - The Signing order card's foot line ("each counterparty signer gets their own link, held until every internal signature is in") describes an internal-first route; on a route where the other side signs first it reads wrong, as the window's own top line does. Only the window's line is in this round's designs.
 - When a route is empty and no person is on record for the other side, the editor fills their Name box with the company's name (the fallback to the contract's counterparty), and Save then counts it as a named signer.
+## Run 26 Sep 2026 (night) — Analyze contract on the Contract Graph
+
+- On the owner's word, over the "Analyze on the Graph" page (Sheet, Pinned, Focus, then "all three in one"): "Build the all in one option and merge to main. Start from the latest main." Built on claude/optimistic-curie-fself4 from main (e985b16).
+- Built: the Intelligence panel's card carries three doors — Analyze contract (filled), Open workspace, Compare. Analyze puts the contract's read-only working copy where the nodes were (the graph is covered, never rebuilt; the paper is hidden, never torn down); the column's strip carries a Graph | Paper switch, the reference, the pins count with Clear, Focus and Open workspace; the panel's questions go out with the contract's wording behind them (the clause editor's whole-contract shape) and the box says which contract, its hover the cost; every verbatim passage the server keeps comes back as a chip under the answer, pins the words on the paper (a numbered disc in the margin, amber where the words are an obligation's own recorded quote) and lights them; a pin press finds its answer in the panel; the X-ray's own map runs beside the paper with the answers' clauses in steel; Focus folds the page head away (written on the element, since the head states its display inline); Escape leaves it; the panel's bin ends the analysis with the conversation. Every widening additive: docSheetHtml(c, o), docReadSheet(c, root), docXrayRows(c, root), scrollToQuote(quote, opts), scanCanvas naming #ig-canvas third, docXraySpineRows published.
+- The server had one thing wrong that no drawing showed: a citation's quote was verified against the stored body only, and a drafted contract's template paper is never stored, so every quote from it was dropped and no pin could land there. Under wholeDoc both chat routes now hand the wording the model was shown to the check (cx.sentText); a quote in neither is still dropped. Proved on MK-A2 (template paper) in the browser file.
+- Found only on the rendered page: docXraySpineRows was not published, so the map drew nothing; the head's inline display defeated the Focus rule; the map strip had no width (the Document tab writes it on the element); three buttons overflowed the card and Compare was cut off. All four fixed.
+- Gates: lint 0 errors, 178 warnings (unchanged). Full suite: 4 claims failed — f277 (1) and (10), f387 (2e) and (4c) — the same four that fail on main (f277's two re-run at main's code: red there; f387's two count days from the clock, logged last run). f392: 35 claims, 33 red at the parent (two named walls pass on both). analyze-on-the-graph-verify: 26 checks, 26 pass on the real app against a scripted provider; red at the parent because the door does not exist there. insights-panels-verify 84/84, two-copies-verify 28/28, runway-and-xray-verify 42/42 unchanged. f364 (4) re-pointed in place (the walk's optional root).
+
+Deliberately left alone (said to the owner)
+- A second Analyze on another contract starts a fresh paper and the first paper's pins go with it; pins live for the sitting — keeping one is a note, which already exists.
+- The Document tab's highlight menu and the clause editor's Copilot keep their own doors onto "ask about this wording"; this is a second door on the graph page, asked for by name.
+- Focus was drawn as a full-window layer and built as a fold of the page's own head — the drawing's cost, not paid.
+
+Noticed, not fixed
+- f277 (1) and (10) are red at the parent (the switch has three positions since X-ray; the layer's surface token) and left red.
+- On a paper where the same passage appears twice, the pin lands on the first; the risk scan's own finder has the same reading.
+
+## Run 26–27 Sep 2026 (overnight) — the platform clean-up
+
+- On the owner's word: "review the entire platform for performance and functionality bugs that needs cleaning up … Check all the presses, the pops ups, the loading … then whatever bugs you find, fix them. Also review the process flows and fix any processes flaws. After fixing and merging to main, share an output of all the fixes you managed overnight." Built on claude/platform-bugs-cleanup-u80mhu from main (790b4d5).
+- Six audit passes (the contract room; the negotiate page and notes; signatures, sharing and the server; pop-ups and presses; Home, lists and counts; the other side's page and the phone). Every finding reproduced by a probe in a real browser or against a real server before a line moved, and measured again after.
+- The owner's example: Plain English's copied front matter stopped at the first PAIRED clause, and a later page of a long contract lands first, so every clause above it was copied in with a "Reading…" drawn over it; a long preamble in the narrower column also ran under the first reading. docReadFront now stops at the first clause on the paper; a cut copy stops at a whole line and fades; one walk per paint, reads before writes (~550ms → ~90ms a paint on 300 clauses).
+- Fixed (about seventy): see the commit messages and CLAUDE.md "THE OVERNIGHT CLEAN-UP". In short: pop-ups (one Escape for the dialog layer, a guarded dialog is never closed past its question, focus returns to the opener, a replaced question is answered, one Close on a report, phone sheets close on Escape, confirm labels the dialog actually reads); the contract room (opening a signed contract created a negotiation and every save was refused; Write the brief sent several paid requests; obligation edits erased completion/chase/series; slow results landed on the wrong contract; the header stayed stale after Overview edits; listener leaks; the fill counter and arrival strip); the negotiate page (notes drawer on the wrong contract; listener leak 125,000 → 3,700 nodes; discard inside an open review; counts; titles; clause-name format; toasts); signing and sending (a bound link to another address; a signature from another address completing somebody's step; crafted signature images; the send dialog's purpose; the colleague's turn; a refused save rolled back; ready-to-sign rows; the outbox read as a failure); their page (sent answers forgotten on reload and overwritten; bell; 22px phone buttons; one signature per press); the server (hold guards on every save; nudges after the deal; the review gate's field; company template categories; an async route's rejection; the daily cap's window; revoked-link codes; per-sitting keys stored on the record; the unused-file sweep unreachable; the mailroom's unreadable upload shape and the storage ceiling; the executed copy's attachment; clause_readings left after delete; a whole-book scan on every file read); language (History filters, focus buttons, repeat labels, phone approvals); blank labels (a stray bracket; keys untouched).
+- Found by the browser set on the way out (the whole set run on the branch, every red file re-run at unmodified main): five differences, all chased to a cause. The Inspector's new trail load used ensureFull, which copies the stored record over the one on screen (register-category-verify: a category set a moment before was gone; home-page-verify 3c: a staged status read back as the stored one) — it is restoreHeavyFields now, and the obligation history too. A probe then found that loader marks the record loaded without the single-record route's transport, so a contract chosen in the list opened with no brief; restoreHeavyFields now copies every underscored key the record lacks (which also closes the same hole in saveContract's light-row save). The outbox keeps its resend door beside IN OUTBOX. Re-pointed in place: signing-flow-verify 6 (its stage emptied the signing route of the contract section 4 had just signed — the server always refused that save with a 409, main kept the refused copy on screen and the section measured it; it now stages on an unsigned contract and asserts the stage landed), upload-blanks-verify 9j (it asked for the words "still open", the tick-over-"4 still open" contradiction removed tonight; it asks the chip against the live count now and stays a CONTROL on both sides), sign-links-verify 4 (the outbox wording).
+- Gates: lint 0 errors, 178 warnings (unchanged). Full suite 9,538 tests, 2 failed — f277 (1) and (10), the same two that fail on main. f393: 55 claims, 54 red at the parent (the one pass is a named wall). plain-english-no-overlap-verify: 12 checks, 5 red at the parent. Browser set, 155 files: 43 red on the branch's run, each red on the same checks at unmodified main (not re-run after the last loader change; the files that change reaches were): register-category-verify 16/16, home-page-verify 63/63, sign-links-verify 38/38, signing-flow-verify 45/45, upload-blanks-verify 49/49, inspector-verify 32/32, four-inspectors-verify 30/30, auto-triage-verify 64/64; plain-english-verify fails 10c and 17d, as on main.
+
+Deliberately left alone (said to the owner)
+- Home's "See all N" counts decision ITEMS; the Contracts list it opens counts CONTRACTS, so a contract with two decisions makes the numbers differ. f382 and home-page-verify 12c pin "See all carries the head's number", which was the 25 Sep ruling; the door-versus-list question is the owner's.
+- At 1024px (iPad landscape) the full Contracts table cuts the reference to "MK…" (cell 56px, text 42px + 24px padding) and the "Whose move" / "Owner" heads to "Whos…" / "O…". Same on main. The widths are a ruled design (REG_COL_W).
+- render.yaml does not set NODE_ENV=production. A deploy setting; left for a planned change rather than a night's edit.
+- "Open Negotiate" on the Document tab is the deliberate verb (nav_negotiations' note: a place and an act must not share a word).
+
+Noticed, not fixed
+- A counterparty's "accept the wording" answer is written to c.acceptance, the comments and the trail, and nothing reads c.acceptance; no alert tells the owner. Its toast in applyResponse is a bare toast (silent by the F95 rule).
+- Their bell's row "They are waiting for you to sign" points at their own Ready to sign button (portal.js, the `sign` row).
+- Deleting a contract revokes its shares and removes briefs, renewal advice and both readings tables, but share_messages, signer_notices, share_responses and share_payload_history rows stay.
+- The template converter stores the uploaded file and records its id nowhere, so the file is an orphan from the moment it is stored.
+- The bulk importer still stamps valueType 'none' on a value it did not read (deliberate, its review gate reads it; recorded 23 Sep).
+- f277 (1) and (10) are red on main (the switch has three positions since X-ray; the layer's surface token) and left red. f387 (2e)(4c) count days from the clock and read one day short in the evening UTC (logged last run).
+- plain-english-verify 10c and 17d fail on main as on the branch (see the browser gate above).
+- The phone's text-size stepper (26px), the reading switch (18px) and the queue row (35px) on the counterparty's phone page are under 44px; only the decision verbs were widened tonight.
+- ensureFull still copies the whole stored record over one with an unsaved change for its other callers (the room's first open, Copilot, the metadata review); tonight only the two list loaders were moved off it.
+
+## Run 27 Sep 2026 — Explorer: the name, the divider, the legend at rest
+
+- On the owner's word, after confirming the reading: "Let's just change the name to simply Explorer … bring the divider that is in the document and negotiate pages to the Explorer page as opposed to have the arrow button … the legend should always be closed as the resting state", then "Go". Built on claude/optimistic-curie-fself4 from main (0746c11).
+- Built: the Insights tab reads Explorer (Swedish Utforskaren); its key, the stored tab and Copilot's stable key are unchanged. A divider on the seam between the map (or a contract's paper) and the chat panel, dragged by the pointer's position, remembered as a width in this browser, resting at 380, stopping at 340 for the panel and 420 for the column with an amber grip at a floor; double-click, Home or Enter put it back; the arrow keys step it. The » widen button is gone; the › that folds the panel to a strip is kept, and folded the divider stands down. The legend is closed every time you arrive on the tab and stays as you left it while you are there.
+- Gates: lint 0 errors, 178 warnings (unchanged). Full suite: 2 claims failed — f277 (1) and (10) — both red on main before this run (logged 26 Sep). f394: 15 claims, 12 red at the parent (two controls and a wall pass on both). explorer-verify: 25/25 with a real drag; at the parent 22 red (two controls and the error sweep pass on both). insights-panels-verify 84/84 (15e re-pointed in place to open the legend with a press before measuring a row), analyze-on-the-graph-verify 26/26.
+
+Deliberately left alone (said to the owner)
+- The › fold button is kept: the divider cannot hide the panel, so without it there would be no way to give the map the whole width.
+
+Noticed, not fixed
+- Someone who had widened the panel with the old » opens at the resting 380 once; the old preference is not read.
+
+## Run 27 Sep 2026 (later) — the Explorer panel's Ask button back in its box
+
+- Reported by the owner after the Explorer run: "the green ask button is now poorly designed as far as placing". Measured first: the button computed position relative, sat 53px below the ask box's centre line and left of the box, half off the bottom of the panel.
+- Cause: the Compact button ladder (26 Sep 2026, 758818c) gives every small button position:relative to anchor its press area, at the same weight as the Tailwind "absolute" class and later in the sheet, so it won. The Explorer panel's Ask is the only small button in the product pinned with "absolute" (swept), so it was the only one moved. Not caused by the Explorer change; it shipped with the ladder and was noticed today.
+- Fixed by scope, one class heavier, never !important: `.ui-btn-sm.absolute{position:absolute;}` written after the ladder's rule. The button is back inside the box, centred on its line, 6px from its right edge, as designed.
+- Gates: lint 0 errors, 178 warnings (unchanged). f394 17/17 (two new claims; the placement claim red without the fix). explorer-verify 26/26 (new 2f measures the button as pixels; red without the fix, printing 53px off and 333px from the right edge). compact-ladder-verify 29/29, button-consistency-verify 17/17, insights-panels-verify 84/84, analyze-on-the-graph-verify 26/26.
+
+## Run 27 Sep 2026 (evening) — the side panel's "needs you" checklist
+
+- On the owner's word: "Implement checklist." — picked by name off the "Attention Banner Options" render (three designs drawn into the real Contracts page with the sample portfolio). Built on claude/platform-bugs-cleanup-u80mhu from main (c8a049d).
+- Built: a checklist in the contract side panel (Contracts, Negotiations, Approvals & signing), under the name block and above the status line. A head counts what is owed; one row per item — the other side waiting on us past the standard, a review asked of you, a colleague asking to join a negotiation you lead, your signature, a renewal decision on a contract you own — ruby when late, amber otherwise, each with its own button opening where the item is answered. Nothing owed draws nothing. The Approvals & signing page's signing panel leaves the signature out (its own lead already says it).
+- One reading with Home's card: the checklist asks Home's own sources of one contract. The renewal question and the review-lateness rule were lifted into one function each (hmRenewalDue, hmReviewLate, HM_SOON_DAYS) and Home's card asks them too; its output is unchanged.
+- Gates: lint 0 errors, 178 warnings (unchanged). f395 26/26 (25 red at the parent; the wall passes on both). inspector-checklist-verify 25/25 (21 red at the parent; the stage, two controls and the error sweep pass on both). The affected node files 1,059/1,059. inspector-verify 32/32, four-inspectors-verify 30/30 (one parallel run hit "database is locked"; 30/30 alone), every-party-verify 16/16, home-page-verify 63/63, button-consistency-verify 17/17, compact-ladder-verify 29/29. contrast-verify 30/33 and theme-tokens-verify 20/40 — the same failures as main, and the colour census output is byte-identical to main's. Swedish: every row one line (the longest cut, whole on the hover).
+- Full suite: 9,581 tests, 9,579 pass; the 2 that fail are f277 (1) and (10), red on main before this run (logged 26 Sep) and left red.
+
+Deliberately left alone (said to the owner)
+- Home's card still shows "Waiting on review" (every contract in review) and renewals of contracts the reader does not own; the checklist leaves both out. Whether Home should match is the owner's call.
+- Home's decision rows open the contract on its first tab, and the bell's renewal and join rows do too; the checklist's buttons open the exact place. Not aligned without the owner's word.
+- The render's tinted button edges were not built: the buttons keep the platform's one light edge (the 26 Sep rule), with the row's colour on the word.
+
+Noticed, not fixed
+- "The other side is waiting on us" (deskStaleInboxFor) needs an open desk, and a desk opens only when somebody on our side files a change or claims it. A negotiation where only the other side has filed never counts as waiting on us — on Home, in the bell or in the checklist.
+- renewalDecisionsDue in js/obligations.js has no caller, and its first condition does nothing.
+- Still waiting for a "go" from the 27 Sep answers: the alert for "Accept the wording", their bell's "They are waiting for you to sign" wording, NODE_ENV=production in render.yaml.
+
+## Run 27 Sep 2026 (late evening) — Home's "Needs your decision" lists the checklist's five kinds
+
+- On the owner's word: "Yes" to "should Home's 'Needs your decision' card drop the 'Waiting on review' rows and the renewals of contracts you do not own, so it matches the new checklist". Built on claude/platform-bugs-cleanup-u80mhu, on top of the checklist (a007cdb).
+- Built: the card no longer lists every contract sitting in review, and lists a renewal only for the person who owns the contract (the same ownership question the checklist asks). The review queue is still worked out for the phone's own list, which was not part of the ask. The two sentences that row used are left inert in both books.
+- Measured on a fresh workspace with the sample portfolio: before, the card held 12 items, every one "Waiting on review"; after, none, and it says "Nothing to decide — you're all caught up." No sample contract has an owner, so no renewal there is anybody's.
+- Tests re-pointed in place (the ones that staged contracts in review to fill the card): f382 (3) stages renewal decisions the reader owns, put away from the desk (otherwise the desk draws the nearest one and the one-door rule takes it off the card); f381's one card row is an owned renewal; f274's filter check reads the new owner question; f395 1d (a wall saying "Home's card is unchanged") is reversed; home-page-verify 11 stamps the reader as owner of its two renewals and 12 stages owned renewals.
+- Gates: lint 0 errors, 178 warnings (unchanged). f382 22/22 (three new claims red at a007cdb, one control). f395 26/26 (1d red at a007cdb). f274, f381, f3, f363 green. home-page-verify 66/66 (12h and 12i red at a007cdb; 12i2 is the control; everything else passes on both). inspector-checklist-verify 25/25, runway-and-xray-verify 42/42, renewal-decision-verify 24/25 (6b red before and after, logged 17 Sep).
+- Full suite: 9,585 tests, 9,583 pass; the 2 that fail are f277 (1) and (10), red on main before this session (logged 26 Sep) and left red.
+
+Deliberately left alone (said to the owner)
+- The phone's own "needs you" list still shows contracts sitting in review and every renewal due. It is a separate screen and was not asked about.
+- Question 2 from the checklist run (should Home's rows and the bell's renewal and join rows open the exact place, as the checklist's buttons do?) — the owner did not follow it; asked again in plain words, nothing built.
+
+Noticed, not fixed
+- No sample-portfolio contract has an owner (they are raised by "System", which the owner readings refuse on purpose), so in a sample workspace no renewal ever appears on Home's card or in the checklist.
+- white-band-and-tabs-verify: 5-ref, 5a and "the journey ran to the end" fail — the Insights tabs are not found. The same three fail at a007cdb, before this change.
+
+## Run 27 Sep 2026 (night) — Home's decision rows and the bell's renewal and join rows go straight to the place
+
+- On the owner's word: "Yes, make them go straight to the right place" — the question asked again in plain words at the end of the last run. Built on claude/platform-bugs-cleanup-u80mhu, on top of main (ba092e2).
+- Built: Home's "Needs your decision" rows, and the bell's "asked to join" row and both of its renewal rows, now open the exact place their item is answered — the same door the side panel checklist's buttons press (a review or a quiet negotiation opens the negotiation, a signature the Signing tab, a renewal the Overview, a join request the room with the sheet where the lead lets them in). They used to open the contract on whatever tab it last showed, usually the Document tab. The door now says whether it found the contract, so a press it cannot answer still opens the contract the plain way.
+- Tests: f395 (8) — seven claims (the card and the bell are built for real and every landing is compared with the checklist's own door), five red at ba092e2, two named controls. inspector-checklist-verify 8 — eight real presses on Home and the bell, each compared with where the checklist's button went earlier in the same run; all eight red at ba092e2, each landing on the Document tab with no sheet.
+- Gates: lint 0 errors, 178 warnings (unchanged; the two changed files carry the same three as before). f395 33/33. f187, f381, f382, f51, f83, f240, f253, f274, f3, f232, f48 green. inspector-checklist-verify 33/33. home-page-verify, alerts-and-activity-verify, ready-to-sign-signal-verify, runway-and-xray-verify, keyboard-reach-verify 37/37, nav-floats-verify 67/67, counterparty-bell-verify 23/23 — all green. flat-rows-and-alerts-verify 49/54, room-order-and-notices-verify 27/29, type-and-symbols-verify 48/49 and notes-two-rooms-verify 32/34 fail on exactly the same checks at ba092e2 (all logged before). panel-alerts-and-head-verify is on KNOWN_RED.
+- Full suite: 9,592 tests, 9,590 pass; the 2 that fail are f277 (1) and (10), red on main before this session (logged 26 Sep) and left red.
+
+Deliberately left alone (said to the owner)
+- The phone's own "needs you" list opens contracts its own way; it was not part of the ask.
+- The bell's review, quiet-negotiation and signature rows already landed in the right place, so they were not touched.
+
+Noticed, not fixed
+- The bell's review, quiet-negotiation and signature rows each carry their own copy of where to go, beside the checklist's door. They agree today; two copies of one destination is how two screens come to disagree.
+- Still waiting for a "go" from the 27 Sep answers: the alert for "Accept the wording", their bell's "They are waiting for you to sign" wording, NODE_ENV=production in render.yaml.
+
+## Run 27 Sep 2026 (late night) — the four go-aheads
+
+- On the owner's word: "Merge to main and it's a yes on the other 3" (the "Accept the wording" alert, their bell's signing row, NODE_ENV=production), and, over a screenshot of a renewal's Decide, "the 5 checks ... should run all over again so that you can see what they say before you go through the steps of deciding". Then "merge to main". The go-straight-there work was merged first (ce9cc59).
+- Built: NODE_ENV=production in render.yaml and DEPLOYMENT.md (nothing reads it; the server needs express alone, walled by a test). Their bell's signing row prints the Ready to sign button's own sentence ("Tell them you are ready to sign"). A green bell row when the other side agrees to the wording (cpAcceptedWording, one reading; opens the Signing tab). A renewal's Decide — and Home's renewal row and the bell's renewal rows, which press the same door — has the Overview run the whole arrival read again once the contract is loaded, the brief written afresh; the hover says so. On the way: a signed contract's open-fields box said "in negotiation" (now "signed — its wording is final"), and the head's Copilot fact stayed "Not read yet" above the fresh reading (now repainted).
+- Found by driving the first cut (65a4bde) and fixed before merging: the re-read's fill step wrote a signed template contract's fields; the server refused the save (409) and the refusal put the old record back over every reading of the run. The fill step now stands down on a signed contract.
+- Tests: f396 25 claims (21 red at ce9cc59; 4i red at 65a4bde too); go-aheads-verify 21 checks with both seats in real browsers (13 red at ce9cc59; 3g2, 3j, 3k red at 65a4bde). Re-pointed in place: f191 (6) (the bell's sentences), f280 (3) (its region began at a line this batch changed), home-page-verify 12f (its unsaved renewals are put back before the press, because the press now saves).
+- Gates: lint 0 errors, 178 warnings (unchanged). inspector-checklist-verify 33/33, auto-triage-verify 64/64, home-page-verify 66/66, alerts-and-activity-verify 21/21, counterparty-bell-verify 23/23, round-delivery-verify 34/34, upload-blanks-verify 49/49, blanks-panel-verify 37/37, overview-as-drawn-verify 65/65, ready-to-sign-signal-verify 26/26. seven-fixes-verify 31/36 (5b, 5c, 5f, 6e, 6f), renewal-decision-verify 24/25 (6b) and portal-header-verbs-verify 29/30 fail on exactly the same checks at ce9cc59.
+- Full suite: 9,617 tests, 9,615 pass; the 2 that fail are f277 (1) and (10), red on main before this session (logged 26 Sep) and left red.
+
+Deliberately left alone (said to the owner)
+- Plain English is not re-read by Decide: it is made by walking the Document tab's painted page. Opening the switch there reads it, and re-reads only what changed.
+- The accept answer's own toast in applyResponse is still a bare toast (prints nothing); the bell row is now what tells the reader.
+
+Noticed, not fixed
+- signCheckBriefAt reads `ch.at || ch.filedAt`, but filed changes carry `createdAt`, so it finds no date on any real change: the brief's "out of date" answer (and the new accepted-wording row's staleness) can never trip on real data. Fixing it would start holding signatures under the brief gate after every round — the owner's call.
+- seven-fixes-verify 5b/5c/5f/6e/6f still assert the strip as it stood on 20 Sep (two arrows, the obligations tile always going to the tab, a count-free "none" tile); later rulings changed all three. Red at ce9cc59 too.
+
+## Run 27 Sep 2026 (morning) — the wording's last-changed date
+
+- On the owner's word: "yes, fix the wording date and merge to main" — the "Noticed, not fixed" line from the four go-aheads run. Built on claude/platform-bugs-cleanup-u80mhu, on top of main (4f95c09).
+- Fixed: the reading of "when was wording last proposed on this contract" looked for dates called `at` and `filedAt`, and a filed change carries neither — it carries `createdAt` (and `updatedAt`, which a revision moves). So it found no date on any real contract. It now reads the two dates a change really carries, and keeps the old two for any record shaped that way.
+- What now works that never did: the brief reads as out of date once a round moves the wording, and the Before-you-sign list asks for it to be rewritten; a signer's "I have read the brief" lapses when the wording moves after it; the Overview's "out of date" markers can draw; the green "they agreed to the wording" bell row stands down if the wording moves after their yes. Accepted by the owner in advance: under the brief gate, a signature now waits for a fresh brief after a round.
+- Tests: f396 (5) — four claims that file their change through the product's one funnel (so the change carries the date the product really stamps); all four red at 4f95c09. Every older test of this reading staged `at`, the shape the product never produces, which is how it passed for a fortnight.
+- Gates: lint 0 errors, 178 warnings (unchanged). f396 29/29. In real browsers: signing-flow-verify 45/45, approval-before-signing-verify 34/34, redline-here-sign-there-verify 37/37, signing-without-the-facts-verify 26/26, inspector-checklist-verify 33/33, go-aheads-verify 21/21, auto-triage-verify 64/64, overview-as-drawn-verify 65/65, counterparty-leads-verify 32/32, thirteen-screenshots-verify 20/20, insights-panels-verify 84/84.
+- Full suite: 9,621 tests, 9,619 pass; the 2 that fail are f277 (1) and (10), red on main before this session (logged 26 Sep) and left red.
+
+Noticed, not fixed
+- A change the other side REFUSED still moves this date (the reading counts every filed change, refused or not). It can offer a brief rewrite nobody needed; it never hides one that was needed. Left as it was designed.
+
+## 27 Sep 2026 — A door from another page lands on fresh filters (Young)
+
+Fixed: a button on another page (Home's Map bars and See all, the calendar day, Insights rows, Copilot worklists, the shell search typed elsewhere, the phone tiles, My Queue's "+N more") opened Contracts on top of whatever filters were already set, so a named list could show 0 rows. One door now (regGoFiltered / regFiltersAtRest) clears every filter first; filters picked on the Contracts page still narrow further; both Clear buttons ask the same reading.
+Tests: f397 (17, 14 red at the parent), fresh-filters-verify (14, 7 red at the parent); f281 (3), f381 (5) re-pointed. Full suite: only f277 (1)(10) red, as before. negotiations-door-verify: two "room shows four tabs" checks red, about the room's tab row, not filters.
+
+### Noticed, not fixed
+- The phone's Clear filters clears query, stage, type, category, view and the named set only — not signed, payment terms, documents, on hold or renewal.
+- regNarrowed does not count the On hold filter, so Clear and the cohort act are missing when only On hold is set.
+- R.sel is written by My Queue's in-page "+N more" and read nowhere.
+- #reg-search handlers point at an element the page no longer draws.
+- negotiations-door-verify: "the room shows four tabs" (two checks) fails — the room draws five tabs.

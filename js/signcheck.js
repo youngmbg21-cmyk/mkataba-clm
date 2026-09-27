@@ -204,11 +204,26 @@ function signCheckRecord(c){
    refused moved no wording, and this will still offer a re-read. Offering a
    reading nobody needed costs one press; hiding one they did costs a signature
    over a summary of wording that is no longer there. */
+/* ---- THE DATE A FILED CHANGE REALLY CARRIES (Young: "yes, fix the wording
+   date", 27 Sep 2026) ----
+   This read `ch.at || ch.filedAt`, and negoFileChange stamps neither: a change
+   carries `createdAt` (and `updatedAt`, which a revision moves with it). So it
+   found no date on any real change and answered 0 — "we do not know" — for
+   every contract ever negotiated. The brief never read as out of date after a
+   round, the reading a signer is asked to confirm never lapsed, and the
+   Overview's "out of date" markers never drew. Every test of it staged `at`,
+   the shape the product does not produce, which is how it passed for a
+   fortnight. The newest of the four is taken; the older two stay for any
+   record shaped that way. */
+const BRIEF_AT_KEYS = ['createdAt', 'updatedAt', 'at', 'filedAt'];
 function signCheckBriefAt(c){
   let last = 0;
   const walk = list => (list || []).forEach(ch => {
-    const t = Date.parse(String((ch && (ch.at || ch.filedAt)) || '')) || 0;
-    if (t > last) last = t;
+    if (!ch) return;
+    for (const k of BRIEF_AT_KEYS){
+      const t = Date.parse(String(ch[k] || '')) || 0;
+      if (t > last) last = t;
+    }
   });
   walk(c && c.changes);
   const n = c && c.negotiation;

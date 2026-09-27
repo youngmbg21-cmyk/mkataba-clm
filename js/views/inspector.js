@@ -204,7 +204,11 @@ function insReads(c){
    light list strips `audit`, and "nothing has happened" is a claim this
    panel may only make once it has read the record. */
 function insLatest(c){
-  if (!c || !Array.isArray(c.audit)) return null;
+  /* A LIGHT ROW IS NOT AN EMPTY TRAIL (26 Sep 2026, the overnight clean-up):
+     migrateContract gives every row an `audit: []` to stand on, so asking only
+     "is it an array" answered "nothing recorded yet" for every contract the
+     list had not loaded — and never loaded it (measured). */
+  if (!c || !Array.isArray(c.audit) || (c._light && !c._loaded)) return null;
   return c.audit.filter(Boolean).slice()
     .sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')))
     .slice(0, INS_LATEST)
@@ -328,6 +332,99 @@ function insPartiesHtml(list){
       p.role ? `<span class="ins-cp-r">${esc(p.role)}</span>` : ''}</span>`;
   }).join('');
 }
+/* ---- WHAT THIS CONTRACT NEEDS FROM YOU — THE CHECKLIST (Young picked
+   "Checklist" by name, 27 Sep 2026, off the "Attention Banner Options" page) ----
+   *"a nicely designed banner in the contract's inspector side panel that
+   explains what attention is needed. It would sit right under the party names
+   and in color."* THE OWNER ASKED FOR THIS BAND BY NAME, and it passes both
+   halves of the test the rulebook asks of one: it says what the screen does
+   not (the status line says whose move it is, never what the move is or how
+   late), and every row is work owed by this reader with the press that does
+   it. NOTHING OWED DRAWS NOTHING — the panel is then exactly what it was.
+
+   THE READING IS HOME'S (needsYouOf, js/views/home.js) and so is every door
+   (needsYouGo); this draws and decides nothing. It sits under the name block
+   — the party names AND the agreement's own name, so the name is never split
+   — and above the status line. `skip` names kinds a page already says in its
+   own words: the Approvals & signing page's signing panel leads with what
+   stands before signing, so its checklist leaves the signature out.
+
+   The row's colour is its urgency (ruby late, amber owed), the frame takes the
+   worst row's, and a button wears the platform's one light edge (26 Sep 2026)
+   with the row's colour on its word. */
+const INS_NEED_VERB = { quiet: 'home_verb_answer', review: 'home_verb_review', join: 'home_verb_answer',
+  sign: 'home_verb_sign', renewal: 'home_verb_decide' };
+const INS_NEED_GO = { quiet: 'ins_need_go_nego', review: 'ins_need_go_nego', join: 'ins_need_go_desk',
+  sign: 'ins_need_go_sign', renewal: 'ins_need_go_terms' };
+/* One row's words: a title, and a line under it as HTML (`sub`) with the same
+   words plain on its hover (`plain`) — the line is cut to one line, never the
+   fact. Every number is a reading the panel already prints elsewhere: the
+   days an ask has waited are the asks table's own count (_insDaysSince), the
+   standard is the desk's, what stands before signing is the Signing tab's own
+   list and names (signReadiness, signRowTitle). */
+function insNeedWords(c, it){
+  const late = s => `<span class="late">${esc(s)}</span>`;
+  /* A part marked `hover` is said on the hover only: the line under a row is
+     one line, and what does not fit is the fact's detail, never the fact. */
+  const lineOf = parts => parts.filter(p => p && p.plain).reduce((acc, p) => ({
+    sub: p.hover ? acc.sub : (acc.sub ? acc.sub + ' · ' + p.html : p.html),
+    plain: acc.plain ? acc.plain + ' · ' + p.plain : p.plain }), { sub: '', plain: '' });
+  const bit = (text, isLate, hover) => ({ html: isLate ? late(text) : esc(text), plain: text, hover: !!hover });
+  const cp = c.counterparty || i18t('ng_door_them');
+  if (it.kind === 'quiet'){
+    const d = _insDaysSince(it.since);
+    let std = 0; try { std = (typeof deskCfg === 'function') ? Number(deskCfg().staleDays || 0) : 0; } catch (_) { std = 0; }
+    return Object.assign({ title: i18tn('ins_need_quiet', it.n || 1, { n: it.n || 1, who: cp }) },
+      lineOf([d == null ? null : bit(i18t('ins_need_waiting', { days: _insDaysWord(d) }), true),
+        std > 0 ? bit(i18t('ins_over', { n: std }), false, true) : null]));
+  }
+  if (it.kind === 'review'){
+    const day = _insDay(it.due);
+    return Object.assign({ title: it.n > 0 ? i18tn('ins_need_review', it.n, { n: it.n, who: it.who }) : i18t('ins_need_review_plain', { who: it.who }) },
+      lineOf([day ? bit(i18t(it.urgent ? 'ins_need_was_due' : 'ins_need_due', { day }), it.urgent) : bit(i18t('ins_need_no_due'))]));
+  }
+  if (it.kind === 'join'){
+    const when = _insWhen(it.at);
+    return Object.assign({ title: i18t('ins_need_join', { who: it.who }) },
+      lineOf([it.why ? bit('“' + it.why + '”') : (when ? bit(i18t('ins_need_asked', { day: when })) : null)]));
+  }
+  if (it.kind === 'sign'){
+    if (!it.n) return Object.assign({ title: i18t('ins_need_sign_ready') }, lineOf([bit(i18t('ins_need_sign_clear'))]));
+    let first = '';
+    try {
+      const rd = (typeof signReadiness === 'function') ? signReadiness(c, { light: !!(c._light && !c._loaded) }) : null;
+      const row = rd && (rd.holds || [])[0];
+      if (row) first = (typeof signRowTitle === 'function') ? String(signRowTitle(c, row) || '') : String(row.short || row.label || '');
+    } catch (_) { first = ''; }
+    return Object.assign({ title: i18tn('ins_need_sign', it.n, { n: it.n }) },
+      lineOf([first ? bit(first) : null, first && it.n > 1 ? bit(i18tn('ins_more_asks', it.n - 1, { n: it.n - 1 })) : null]));
+  }
+  if (it.kind === 'renewal'){
+    const day = _insDay(it.dd);
+    const inN = it.d === 0 ? i18t('ins_days_today') : i18tn('ins_need_in', it.d, { n: it.d });
+    return Object.assign({ title: i18t('ins_need_renew') },
+      lineOf([day ? bit(i18t('ins_need_decide_by', { day }), it.urgent) : null, bit(inN, it.urgent)]));
+  }
+  return { title: '', sub: '', plain: '' };
+}
+function insNeedsHtml(c, skip){
+  if (!c) return '';
+  let items = [];
+  try { items = (typeof needsYouOf === 'function') ? (needsYouOf(c) || []) : []; } catch (_) { items = []; }
+  const leave = new Set(skip || []);
+  items = items.filter(x => x && INS_NEED_VERB[x.kind] && !leave.has(x.kind));
+  if (!items.length) return '';
+  const tone = items.some(x => x.urgent) ? 'ruby' : 'amber';
+  const head = i18tn('ins_need_head', items.length, { n: items.length });
+  const rows = items.map(it => {
+    const w = insNeedWords(c, it);
+    return `<div class="ins-need-r is-${it.urgent ? 'ruby' : 'amber'}" data-ins-need-row="${esc(it.kind)}"><i class="ins-need-dot" aria-hidden="true"></i><div class="ins-need-b"><div class="ins-need-t" title="${esc(w.title)}">${esc(w.title)}</div>${
+      w.sub ? `<div class="ins-need-s" title="${esc(w.plain)}">${w.sub}</div>` : ''}</div><button type="button" class="ui-btn ui-btn-sm ins-need-go" data-ins-need="${esc(it.kind)}" title="${esc(i18t(INS_NEED_GO[it.kind]))}">${
+      esc(i18t(INS_NEED_VERB[it.kind]))}</button></div>`;
+  }).join('');
+  return `<section class="ins-need is-${tone}" aria-label="${esc(i18t('ins_need_label'))}"><div class="ins-need-h"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><use href="#i-flag"/></svg><span>${
+    esc(head)}</span></div>${rows}</section>`;
+}
 /* The head: which contract, where it stands, and the page's own verbs. */
 function insHeadHtml(c, o){
   let kind = ''; try { kind = (typeof cKind === 'function') ? cKind(c) : ''; } catch (_) { kind = ''; }
@@ -345,6 +442,7 @@ function insHeadHtml(c, o){
       ? `<h2 class="ins-cp is-many">${insPartiesHtml(many)}</h2>`
       : `<h2 class="ins-cp" title="${esc(cp)}"><span class="ins-cp-n">${esc(cp)}</span></h2>`}
     ${title ? `<div class="ins-sub" title="${esc(title)}">${esc(title)}</div>` : ''}
+    ${insNeedsHtml(c, o.needsSkip)}
     <div class="ins-st">${status}${mv}</div>
     ${insActsHtml(o.acts, o.menuHtml, i18t('ins_more', { id: (window.contractRef ? contractRef(c) : c.id) }))}
   </div>`;
@@ -467,6 +565,13 @@ function insPaintPanel(o){
         if (typeof cur.onMenu === 'function') cur.onMenu(inMenu.getAttribute('data-act'), cc.id);
         return;
       }
+      /* A CHECKLIST ROW'S BUTTON is the item's own door (needsYouGo), the
+         same one for every page that draws the panel. */
+      const need = e.target.closest && e.target.closest('[data-ins-need]');
+      if (need && cur.c){
+        if (typeof needsYouGo === 'function') needsYouGo(need.getAttribute('data-ins-need'), cur.c.id);
+        return;
+      }
       const act = e.target.closest && e.target.closest('[data-ins-act]');
       if (act && cc){
         const k = act.getAttribute('data-ins-act');
@@ -496,9 +601,17 @@ function insPaintPanel(o){
      back. A failure is SAID, never a silent empty "Latest". */
   if (c && insLatest(c) === null && !opt.latestState){
     const api = (typeof API_MODE === 'function') && API_MODE();
-    if (!api || typeof ensureFull !== 'function'){ insRepaintLatest(host, c, 'none'); return; }
+    /* ONLY WHAT THE LIST LEFT OUT (26 Sep 2026, the overnight clean-up):
+       ensureFull copies the server's whole record over this one, which also
+       overwrites any change still waiting to be saved — measured: a category
+       set a moment before was gone the instant the panel asked for its trail.
+       restoreHeavyFields is the product's own inverse of the list's stripper
+       and leaves everything already changed alone. */
+    const load = (typeof restoreHeavyFields === 'function') ? restoreHeavyFields
+      : (typeof ensureFull === 'function') ? ensureFull : null;
+    if (!api || !load){ insRepaintLatest(host, c, 'none'); return; }
     const id = c.id;
-    Promise.resolve().then(() => ensureFull(c)).then(() => {
+    Promise.resolve().then(() => load(c)).then(() => {
       if (!host.isConnected || !host._ins || !host._ins.c || host._ins.c.id !== id) return;
       insRepaintLatest(host, c, insLatest(c) === null ? 'none' : null);
     }).catch(() => {
@@ -635,6 +748,6 @@ function insWatchWidth(){
 Object.assign(window, { INS_MIN_W, INS_ASKS_MAX, INS_LATEST, INS_READ_TONE,
   insForce, insFits, insSelected, insSelect, insPick, insFacts, insMove, insMoveCellHtml,
   insTable, insReads, insLatest, insSecHtml, insFactsHtml, insTableHtml, insReadsHtml, insLatestHtml,
-  insHeadHtml, insParties, insPartiesHtml, insPanelHtml, insPanelEmptyHtml, insPaintPanel, insCloseMenu, insMarkRow, insListWire,
+  insHeadHtml, insParties, insPartiesHtml, insNeedsHtml, insNeedWords, INS_NEED_VERB, INS_NEED_GO, insPanelHtml, insPanelEmptyHtml, insPaintPanel, insCloseMenu, insMarkRow, insListWire,
   insListOff, insWatchWidth, insActsHtml, insMenuItemHtml, insItemHeadHtml, INS_TONE, insKvHtml, insChipHtml, insViewTabsHtml,
   INS_PAGE_REPAINT });

@@ -241,7 +241,11 @@ function approveContract(c, comment){
       +(was==='stale'?' · re-approved after the contract changed':was==='rejected'?' · previously refused':''));
     persist(c); renderSignButton(c); renderAuditSection(c);
     const done=approvalState(c).ok;
-    toast(done?'All approvals complete — signing unlocked':'Step approved — next approver notified');
+    /* NOTHING NOTIFIES THE NEXT APPROVER of a RULE step (no mail, no message —
+       only a personal approval is mailed), so the sentence may not say it does
+       (26 Sep 2026, the overnight clean-up). They find it on their own
+       Approvals page and bell. */
+    toast(done?'All approvals complete — signing unlocked':'Step approved — the next approver finds it on their Approvals page');
     return;
   }
   const mine=signApprovalDecidable(c);
@@ -584,7 +588,23 @@ async function signApprovalRemind(c, reqId){
     live.reminded=(Array.isArray(live.reminded)?live.reminded:[]).concat([{ at:nowISO(), by:((currentUser()||{}).name)||'' }]).slice(-10);
     persist(c);
     toast(i18t('sa_reminded_toast',{who:live.approverName||i18t('sa_admins')}),'ok');
-  } else toast((out&&out.error)||i18t('sa_remind_nomail'),'warn');
+  } else if(out&&out.outbox&&!out.failed){
+    /* THE OUTBOX IS HONEST DELIVERY, NOT FAILURE: the reminder is written and
+       waits there, and the server counts it as today's reminder. Said the way
+       the ask itself says it. */
+    live.reminded=(Array.isArray(live.reminded)?live.reminded:[]).concat([{ at:nowISO(), by:((currentUser()||{}).name)||'' }]).slice(-10);
+    persist(c);
+    toast(i18t('sa_reminded_toast_outbox',{who:live.approverName||i18t('sa_admins')}),'warn');
+  } else {
+    /* WHAT HAPPENED, IN ITS OWN WORDS (26 Sep 2026, the overnight clean-up):
+       this read `out.error`, which nothing ever sets, so "already reminded
+       today" and "email is off here" both came out as the same vague sentence
+       (measured). A refusal says the server's reason; a send that did not
+       leave says which of the product's delivery states it is in. */
+    const why=(out&&out.failed&&out.emailError) ? out.emailError
+      : (out ? saDeliveryWords(saNoticeOf(out)) : '');
+    toast(why ? i18t('sa_remind_not_sent',{why}) : i18t('sa_remind_nomail'),'warn');
+  }
   saRepaint(c);
   return !!(out&&out.emailSent);
 }
@@ -931,6 +951,7 @@ function signerLinkState(c, s){
      'signed'      — their mark is on the record
      'notified'    — the turn email went
      'notify-failed' — it was attempted and the provider refused it
+     'outbox'      — kept in the outbox: this server has no email provider
      'no-address'  — nowhere to write: they cannot be told at all
      'waiting'     — not their turn yet, so there is nothing to have sent
      'untold'      — it IS their turn and nothing has gone out
@@ -944,7 +965,14 @@ function signerNoticeState(c, s){
   if(s.signed) return 'signed';
   if(!(typeof API_MODE==='function' && API_MODE())) return 'unknown';
   const mine=signerNotices(c).filter(n=>n && String(n.signerId||'')===String(s.id));
-  if(mine.length) return mine.some(n=>n.sent) ? 'notified' : 'notify-failed';
+  /* ---- THE OUTBOX IS NOT A FAILURE (26 Sep 2026, the overnight clean-up) ----
+     A notice kept in the outbox because this server has no email provider was
+     read as a refusal and printed "EMAIL FAILED" on every contract with email
+     off — the product's own rule is that the outbox is honest delivery, not
+     failure. The server says which it was (`outbox`, off sendEmail's own
+     provider). */
+  if(mine.length) return mine.some(n=>n.sent) ? 'notified'
+    : mine.some(n=>n.outbox) ? 'outbox' : 'notify-failed';
   const ns=nextSigner(c);
   if(!ns || String(ns.id)!==String(s.id)) return 'waiting';
   /* NOWHERE TO WRITE IS A FACT, NOT A SILENT NO-OP. Both send paths used to do
@@ -1658,6 +1686,7 @@ function signerRouteHtml(c, opts){
           const notice=mine=>({
             notified:`${ord(mine.order)} · their turn now — told by email`,
             'notify-failed':`${ord(mine.order)} · their turn now — the email did not go, resend it below`,
+            outbox:`${ord(mine.order)} · their turn now — ${i18t('sp_notice_outbox')}`,
             'no-address':`${ord(mine.order)} · their turn now — no email address on file, so they cannot be told`,
             untold:`${ord(mine.order)} · their turn now — not told yet`,
           })[nst]||null;
@@ -1684,6 +1713,7 @@ function signerRouteHtml(c, opts){
             : (saHold||theySign) ? ''
             : nst==='notified' ? tag('bg-gold-100 text-gold-700','TOLD')
             : nst==='notify-failed' ? tag('bg-rose-50 text-rose-600','EMAIL FAILED')
+            : nst==='outbox' ? tag('bg-slate-100 text-ink/50','IN OUTBOX')
             : nst==='no-address' ? tag('bg-rose-50 text-rose-600','NO ADDRESS')
             : nst==='untold' ? tag('bg-gold-100 text-gold-700','SIGNING NOW')
             : ls==='opened' ? tag('bg-gold-100 text-gold-700','OPENED')
@@ -1713,11 +1743,14 @@ function signerRouteHtml(c, opts){
                      something: told (say it again), the email failed, and never
                      told. Not on 'no-address', where the fix is the route or the
                      team record and the row says so. */}
+              ${''/* An outbox notice keeps the door too: pressing it says, in
+                     words, where the email went — the outbox, while email is
+                     not set up — so it is a visible act, never a silent one. */}
               ${(!s.signed&&!theySign&&s.party!=='counterparty'&&canEdit()&&!saHold
-                 &&['notified','notify-failed','untold'].includes(nst))
+                 &&['notified','notify-failed','untold','outbox'].includes(nst))
                 ? `<button data-sp-notify="${String(s.id).replace(/"/g,'&quot;')}" class="ui-btn ui-btn-sm mt-1">${
                     nst==='untold'?'Tell them it is their turn'
-                    : nst==='notify-failed'?'Try the email again'
+                    : (nst==='notify-failed'||nst==='outbox')?'Try the email again'
                     : 'Remind them'}</button>`
                 : ''}
             </div></div>`; }).join('')}
@@ -1793,10 +1826,14 @@ function wireApprovalPanel(c){
     try{
       const r=await api('contracts/'+c.id+'/notify-signer','POST',{ signerId:id, force:true });
       const who=(r&&r.signer)||'They';
+      /* AN ACT THAT LEAVES THE BUILDING CONFIRMS ITSELF (the standing rule): a
+         sent email is 'ok' — it was a bare call, which prints nothing. With no
+         provider the notice is in the OUTBOX, which is honest delivery and not
+         a failure, so it warns rather than errs; a refusal still errs. */
       toast(r&&r.ok ? `${who} has been emailed — the link opens this contract on its Signing tab`
-        : `${who} could not be emailed${r&&r.emailConfigured===false
-            ? ' — email is not configured on this server (Team & Settings → Email)'
-            : (r&&r.detail?' — '+r.detail:'')}`, r&&r.ok?undefined:'err');
+        : r&&r.emailConfigured===false ? `${who}: ${i18t('sp_notice_outbox')}`
+        : `${who} could not be emailed${r&&r.detail?' — '+r.detail:''}`,
+        r&&r.ok ? 'ok' : (r&&r.emailConfigured===false ? 'warn' : 'err'));
     }catch(e){ toast((e&&e.message)||'The notice could not be sent','err'); }
     b.disabled=false; b.textContent=was;
     try{ if(typeof renderSharesSection==='function') await renderSharesSection(c); }catch(_){}

@@ -165,7 +165,10 @@ describe('f364 (3) placement is certainty about one clause', () => {
    ==========================================================================*/
 describe('f364 (4) the two positions see the same clauses', () => {
   test('the map reads docReadSheet, which is what the edition pairs against', () => {
-    assert.ok(/docReadSheet==='function'\)\?docReadSheet\(c\)/.test(region('docXrayRows')));
+    /* Re-pointed 26 Sep 2026: the walk takes an optional root (the graph's
+       Analyze contract hands it its own canvas); the claim is the READING it
+       asks, not the argument list. */
+    assert.ok(/docReadSheet==='function'\)\?docReadSheet\(c(?:, ?root)?\)/.test(region('docXrayRows')));
   });
   test('the share is worked out once, off that one walk', () => {
     const f = region('docXrayRows');
@@ -350,7 +353,10 @@ describe('f364 (9) Format A', () => {
   });
   test('[wall] docReadAnchors still walks (items||[]) — silence is the safe failure', () => {
     const a = region('docReadAnchors');
-    assert.ok(/function docReadAnchors\(c,\s*items\)/.test(a), 'items is its second parameter');
+    /* RE-POINTED 26 Sep 2026: a THIRD, optional parameter carries the sheet
+       the painter already walked (one walk per paint); the claim is unchanged —
+       items is still the second parameter. */
+    assert.ok(/function docReadAnchors\(c,\s*items(?:,\s*sheet)?\)/.test(a), 'items is its second parameter');
     assert.ok(/\(items\|\|\[\]\)\.forEach/.test(a),
       'a caller that forgets gets an empty pairing rather than a wrong one — which is ' +
       'exactly why this fault was silent for as long as it was');

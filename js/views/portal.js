@@ -703,7 +703,13 @@ const PORTAL_ACTIONS=['pt-sign','pt-accept','pt-redline','pt-changes','pt-declin
      the real buttons stand where it stood, so they take the duty directly. A
      door that still LOOKS live while the request is in flight is the second
      and third press this list exists to remove. */
-  'pt-nego-ready','pt-nego-decline'];
+  'pt-nego-ready','pt-nego-decline',
+  /* THE LAST PRESS BEFORE A SIGNATURE TRAVELS (26 Sep 2026, the overnight
+     clean-up): "Sign anyway", "Verify & sign" and "Try signing again" were
+     not on this list, so a double press sent the signature twice — the second
+     refused as "already submitted", printed over a signature that had in fact
+     gone (measured). */
+  'pt-unver-go','pt-otp-go','pt-sign-retry'];
 function portalActionButtons(){
   return PORTAL_ACTIONS.map(id=>document.getElementById(id)).filter(Boolean);
 }
@@ -1375,6 +1381,7 @@ function portalSaveHeld(){
 function portalLoadHeld(){
   PORTAL_NEGO_DECISIONS={}; PORTAL_NEGO_WITHDRAWN={}; PORTAL_NEGO_PROPOSED={};
   const t=PORTAL_OPTS&&PORTAL_OPTS.token; if(!t) return;
+  portalLoadSent();
   try{
     const raw=localStorage.getItem(PORTAL_HELD_KEY(t)); if(!raw) return;
     const held=JSON.parse(raw);
@@ -1387,6 +1394,50 @@ function portalLoadHeld(){
        Those links are live on the server and listed in the owner's panel; the
        copy this page kept was only ever for drawing a panel that is gone. */
   }catch(e){ PORTAL_NEGO_DECISIONS={}; PORTAL_NEGO_WITHDRAWN={}; PORTAL_NEGO_PROPOSED={}; }
+}
+/* ---- AND WHAT WAS SENT SURVIVES A RELOAD (26 Sep 2026, the overnight
+   clean-up) ----
+   PORTAL_NEGO_SENT lived only in memory, and Send clears the held store. So a
+   reader who answered, sent and reloaded before the owner's browser had
+   collected the answer met the change as "Awaiting you" again, with Accept and
+   Reject live — and a second, different answer was posted on top of the first
+   and applied after it, leaving two "decided" lines on the owner's trail.
+   Measured: two responses waiting, the change ending "rejected".
+
+   Kept per link beside the held store, for the same month, and only ANSWERS
+   and WITHDRAWALS: their ids are the owner's own. A proposal is not kept here
+   — the owner's copy re-files it under an id of its own, so a remembered one
+   could never be matched to its filed twin and would draw twice; a proposal
+   sent again is caught by the owner's side as a duplicate anyway.
+
+   It is dropped the moment the record catches up (portalNegoContract), and not
+   read at all once the server says the last answer from this link has been
+   applied — from then on the copy of the link IS the record, and a memory kept
+   past that point would hide a change the owner reopened afterwards. */
+const PORTAL_SENT_KEY = t => `hati.negoSent.${t}`;
+function portalSaveSent(){
+  const t=PORTAL_OPTS&&PORTAL_OPTS.token; if(!t) return;
+  try{
+    const any=Object.keys(PORTAL_NEGO_SENT).length || Object.keys(PORTAL_NEGO_WITHDRAWN_SENT).length;
+    if(!any){ localStorage.removeItem(PORTAL_SENT_KEY(t)); return; }
+    localStorage.setItem(PORTAL_SENT_KEY(t), JSON.stringify({ v:1, at:Date.now(),
+      decisions:PORTAL_NEGO_SENT, withdrawn:PORTAL_NEGO_WITHDRAWN_SENT }));
+  }catch(e){ /* a browser that will not remember is not a reason to stop */ }
+}
+function portalLoadSent(){
+  const t=PORTAL_OPTS&&PORTAL_OPTS.token; if(!t) return;
+  /* A sitting that has sent something already knows what it sent. */
+  if(Object.keys(PORTAL_NEGO_SENT).length || Object.keys(PORTAL_NEGO_WITHDRAWN_SENT).length) return;
+  try{
+    const lr=PORTAL_OPTS.lastResponse;
+    if(lr && lr.applied===true){ localStorage.removeItem(PORTAL_SENT_KEY(t)); return; }
+    const raw=localStorage.getItem(PORTAL_SENT_KEY(t)); if(!raw) return;
+    const sent=JSON.parse(raw);
+    if(!sent || sent.v!==1) return;
+    if(!sent.at || (Date.now()-sent.at)>PORTAL_HELD_TTL){ localStorage.removeItem(PORTAL_SENT_KEY(t)); return; }
+    PORTAL_NEGO_SENT=sent.decisions&&typeof sent.decisions==='object'?sent.decisions:{};
+    PORTAL_NEGO_WITHDRAWN_SENT=sent.withdrawn&&typeof sent.withdrawn==='object'?sent.withdrawn:{};
+  }catch(e){ PORTAL_NEGO_SENT={}; PORTAL_NEGO_WITHDRAWN_SENT={}; }
 }
 /* Sent, or overtaken by the record — either way it is no longer a draft. */
 function portalDropHeld(){
@@ -1509,6 +1560,17 @@ function portalNegoContract(p){
   PORTAL_NEGO_FILED={};
   for(const x of (Array.isArray(src.changes)?src.changes:[]))
     if(x&&x.id) PORTAL_NEGO_FILED[x.id]=x.status||'pending';
+  /* A SENT ANSWER THE RECORD NOW CARRIES IS NOT MEMORY ANY MORE — it is the
+     record, and it is let go (and so is one whose change the copy of the link
+     no longer holds: its round has closed). See portalSaveSent. */
+  { let moved=false;
+    const gone=new Set((Array.isArray(src.changes)?src.changes:[]).filter(x=>x&&x.id&&x.withdrawn).map(x=>x.id));
+    for(const id of Object.keys(PORTAL_NEGO_SENT)){
+      const f=PORTAL_NEGO_FILED[id], sent=PORTAL_NEGO_SENT[id];
+      if(f===undefined || (sent && f===sent.status)){ delete PORTAL_NEGO_SENT[id]; moved=true; } }
+    for(const id of Object.keys(PORTAL_NEGO_WITHDRAWN_SENT))
+      if(PORTAL_NEGO_FILED[id]===undefined || gone.has(id)){ delete PORTAL_NEGO_WITHDRAWN_SENT[id]; moved=true; }
+    if(moved) portalSaveSent(); }
   // a decision taken on this page but not yet sent is shown as taken
   for(const ch of c.changes){
     // sent first, then held — a decision taken again after sending wins
@@ -2045,7 +2107,7 @@ function wirePortalNotes(){
     if(t.closest('#pt-notes-close')||t.closest('#pt-notes-scrim')){ portalNotesClose(); return; }
     if(t.closest('#pt-notes-door')){ ev.preventDefault(); portalOpenNotes({}); }
   });
-  document.addEventListener('keydown', ev => { if(ev.key==='Escape') portalNotesClose(); });
+  document.addEventListener('keydown', ev => { if(ev.key==='Escape' && !document.querySelector('[data-top-overlay]')) portalNotesClose(); });
 }
 /* THE ONE READING of the sentence naming this reader's party. Null on every
    ordinary link, where PORTAL_PARTY is absent. The other parties are named
@@ -2894,13 +2956,20 @@ function portalAlerts(c, p){
     if (replied.length) push('reply', 'gray', i18tn('pa_reply', replied.length, { n:replied.length }),
       () => portalGoToChange(replied[0].id));
   }
-  /* 5. THEY ARE WAITING FOR YOU TO SIGN — only where this page actually offers
-        the act, read off the button's own gate rather than recomputed. A
+  /* 5. YOU CAN TELL THEM YOU ARE READY TO SIGN — only where this page actually
+        offers the act, read off the button's own gate rather than recomputed. A
         second copy of negoAlignment here would be free to disagree with the
-        button an inch below it. */
+        button an inch below it.
+        THE ROW SAYS WHAT ITS PRESS DOES (Young said yes, 27 Sep 2026). It read
+        "They are waiting for you to sign", which is not true — nobody asked
+        them to sign, and the press does not sign: it presses their own Ready to
+        sign button, which tells us they are ready. So the row is that button's
+        OWN sentence, the words on its hover, asked by key: one act, one
+        sentence, and the two cannot drift. pa_ready_to_sign is INERT in both
+        books. */
   const ready = document.getElementById('pt-nego-ready');
   if (ready && !ready.disabled && !waiting.length && !held)
-    push('sign', 'green', i18t('pa_ready_to_sign'), () => ready.click());
+    push('sign', 'green', i18t('po_ready_tell_title'), () => ready.click());
   /* 6. WHEN THE LINK DIES. A fact, stated once, and only when it is close —
         no door, because there is nothing on this page that changes it. */
   const exp = PORTAL_OPTS.share && PORTAL_OPTS.share.expiresAt;
@@ -3065,7 +3134,7 @@ function wirePortalAlerts(c, p){
     }
   });
   document.addEventListener('keydown', ev => {
-    if(ev.key==='Escape') portalAlertsClose();
+    if(ev.key==='Escape' && !document.querySelector('[data-top-overlay]')) portalAlertsClose();
   });
 }
 function portalAlertsStyle(){
@@ -4089,6 +4158,7 @@ async function portalRespond(p, action, extra){
       for(const pr of proposed) PORTAL_NEGO_PROPOSED_SENT[pr.id]={ ...PORTAL_NEGO_PROPOSED[pr.id] };
       PORTAL_NEGO_DECISIONS={}; PORTAL_NEGO_WITHDRAWN={}; PORTAL_NEGO_PROPOSED={};
       portalDropHeld();                        // it has gone; it is not a draft any more
+      portalSaveSent();                        // and what went is remembered past a reload
       if(action==='ready') PORTAL_READY_SENT=true;
       const n=decisions.length, np=proposed.length;
       /* What actually went, named. "2 decisions sent" was the only sentence
@@ -4117,7 +4187,13 @@ async function portalRespond(p, action, extra){
       /* Repaint, so the room shows the decisions as sent rather than still
          waiting to be. The room is their page — there is nowhere else for the
          outcome to appear. */
-      wirePortalNego(portalNegoContract(p), p);   // repaint the workbench with the fresh record
+      /* AND THE BELL, in the same breath (26 Sep 2026, the overnight
+         clean-up): it went on saying "1 decision is held on this page —
+         press Send" after the send, over a Send that had nothing left to
+         send, until something else repainted it. */
+      const fresh=portalNegoContract(p);
+      wirePortalNego(fresh, p);   // repaint the workbench with the fresh record
+      if(window.portalPaintAlerts) try{ portalPaintAlerts(fresh, p); }catch(_){}
     }catch(e){
       portalSetIdle();
       toast(e.message||(action==='ready'?'Could not send':'Could not send your decisions'),'err');
@@ -4582,11 +4658,16 @@ async function portalStartOtp(p, info){
 async function portalVerifyAndSign(p, info){
   const codeVal=fval('pt-otp');
   if(!/^\d{6}$/.test(codeVal)){ toast(i18t('po_enter_6_digit'),'err'); return; }
+  /* ONE PRESS AT A TIME, from the moment the code is sent to be checked (see
+     PORTAL_ACTIONS). A wrong code gives the buttons back. */
+  const _otpBtn=document.getElementById('pt-otp-go');
+  if(_otpBtn&&_otpBtn.disabled) return;
+  portalSetBusy('pt-otp-go', i18t('po_sending'));
   let verify;
   // no email in the body: the server verified the address IT chose (W8), and
   // possession of the code is the whole proof
   try{ const v=await api('shares/'+PORTAL_OPTS.token+'/verify-otp','POST',{ code:codeVal }); verify=v.verify; }
-  catch(e){ toast(e.message,'err'); return; }
+  catch(e){ portalSetIdle(); toast(e.message,'err'); return; }
   const response={ v:1, kind:'hati-response', id:p.contract.id, docHash:p.docHash, action:'sign',
     name:info.name, title:info.title, email:info.email, comment:info.comment, verify, at:nowISO(),
     templateValues:portalTemplateValues(p),
@@ -4600,6 +4681,8 @@ async function portalVerifyAndSign(p, info){
      already-verified signature), instead of a toast that scrolls away while the
      success panel never appears. */
   const submitSigned=async()=>{
+    const _retry=document.getElementById('pt-sign-retry');
+    if(_retry){ if(_retry.disabled) return; portalSetBusy('pt-sign-retry', i18t('po_sending')); }
     try{
       await api('shares/'+PORTAL_OPTS.token+'/respond','POST',response);
       portalSetDone('pt-sign','Signed and sent');
@@ -4696,7 +4779,7 @@ function printExecutionBlock(c){
     <td style="vertical-align:top;padding:0 10px 10px 0;width:50%;">
       <div style="border:1px solid var(--color-divider);border-radius:var(--radius);padding:9px 11px;">
         <div style="font-size:var(--t-figure);letter-spacing:.08em;text-transform:uppercase;color:#5F6D6B;margin-bottom:3px;">${esc(partyLabel(s))}</div>
-        ${s.image?`<img src="${s.image}" alt="" style="height:38px;max-width:190px;object-fit:contain;display:block;margin:2px 0 5px;"/>`:''}
+        ${(window.sigImageSrc?sigImageSrc(s.image):'')?`<img src="${sigImageSrc(s.image)}" alt="" style="height:38px;max-width:190px;object-fit:contain;display:block;margin:2px 0 5px;"/>`:''}
         <div style="font-weight:var(--w-strong);font-size:var(--t-meta);">${esc(s.name||'—')}${cap(s)?', '+esc(cap(s)):''}</div>
         <div style="font-size:var(--t-label);color:#5F6D6B;line-height:1.5;">${esc([s.email,s.form?s.form+' signature':s.method,s.at?fmtDT(s.at):''].filter(Boolean).join(' · '))}</div>
       </div>
@@ -4845,10 +4928,13 @@ function exportPDF(c, opts){
      document — the seal box, the audit trail — is HaTi describing its own part
      in the contract, and on a document we did not execute we had none. */
   const marks=printIsHatiExecuted(c) && record;
+  /* The trail is stored text and is printed as text (26 Sep 2026, the
+     overnight clean-up): its lines carry what colleagues typed, and this page
+     is written into a window that runs in our own origin. */
   const audit=(c.audit||[]).map(e=>`
-    <tr><td style="padding:3px 10px 3px 0;white-space:nowrap;color:#5F6D6B;">${fmtDT(e.at)}</td>
-    <td style="padding:3px 10px 3px 0;font-weight:var(--w-strong);">${e.action}</td>
-    <td style="padding:3px 0;">${e.detail} <span style="color:#5F6D6B;">(${e.user})</span></td></tr>`).join('');
+    <tr><td style="padding:3px 10px 3px 0;white-space:nowrap;color:#5F6D6B;">${esc(fmtDT(e.at))}</td>
+    <td style="padding:3px 10px 3px 0;font-weight:var(--w-strong);">${esc(e.action)}</td>
+    <td style="padding:3px 0;">${esc(e.detail)} <span style="color:#5F6D6B;">(${esc(e.user)})</span></td></tr>`).join('');
   // The masthead, the audit trail and the contract now share one family — the
   // platform runs on the design's two faces throughout. The contract is still a
   // document surface and still carries the document ink, measure and leading,
@@ -4951,7 +5037,12 @@ function metrics(){
 }
 async function refreshStats(){
   if(!API_MODE()) return;
-  try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
+  /* THE SIDEBAR READS THESE FIGURES TOO (26 Sep 2026, the overnight clean-up):
+     the Contracts door prints serverStats.total, and nothing repainted it when
+     the figures landed — so archiving or deleting a contract left the door one
+     step behind the page until the next navigation (measured). */
+  try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard();
+    if(window.updateSidebarCounts) updateSidebarCounts(); }catch(e){}
 }
 
 Object.assign(window,{portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,

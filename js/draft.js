@@ -219,7 +219,9 @@ async function draftRead(given){
   if(!say||!btn||!out) return;
   const sentence=String(say.value||'').trim();
   if(!sentence){ draftSay(out, i18t('dr_say_something')); say.focus(); return; }
-  const was=btn.textContent;
+  /* The button's MARKUP is kept, not its text: it carries Copilot's sparkle,
+     and restoring textContent put back the word without it (26 Sep 2026). */
+  const was=btn.innerHTML;
   btn.disabled=true; btn.textContent=i18t('ct_working'); out.innerHTML='';
   try{
     /* A CALLER MAY NAME THE LIST; otherwise it is read HERE, at the press.
@@ -242,7 +244,7 @@ async function draftRead(given){
     /* A refusal SAYS which — no key, a provider that said no, a rate limit —
        where the reader is looking, and leaves the sentence they typed alone. */
     draftSay(out, (e&&e.message)?String(e.message):i18t('dr_failed'));
-  }finally{ btn.disabled=false; btn.textContent=was; }
+  }finally{ btn.disabled=false; btn.innerHTML=was; }
 }
 /* ---- "NOTHING FITS" IS AN ANSWER, AND IT HAS TWO DOORS (upgrade 4) ----
    Built to the drawing, 18 Sep 2026. The refusal itself is unchanged and still

@@ -570,10 +570,20 @@ function igDependentsHtml(id){
   </div>`;
 }
 window.intel = { groupBy:'folder', groups:null /*{id:label} override from Copilot*/,
-  legendFolded:false /*the graph's legend, folded to its head — per sitting, in memory*/,
+  /* CLOSED AT REST (Young ruled 27 Sep 2026: "when you open the explorer page,
+     the legend should always be closed as the resting state"): folded to its
+     head on every ARRIVAL at the tab (renderIntel asks), opened by a press for
+     the rest of the visit, never stored. */
+  legendFolded:true /*the graph's legend, folded to its head — per visit, in memory*/,
   lenses:[] /*[{id,label,ids:[],on,action:'filter'|'highlight',badges:{id:txt}|null}]*/,
-  history:[] /*dock conversation: {role,text,cardIds?,ranked?,explainId?,compare?,err?}*/,
+  history:[] /*dock conversation: {role,text,cardIds?,ranked?,explainId?,compare?,err?,paperId?,quotes?}*/,
   compareSel:[] /*contract ids staged for a node-driven comparison*/,
+  /* ANALYZE CONTRACT (Young ruled 26 Sep 2026, "all three in one"): the one
+     contract whose paper sits where the nodes were. Per SITTING and in memory,
+     like every other cut on this page. {id, mode:'paper'|'graph', focus,
+     pins:[{n,turn,k,text,ob,lost}], seq, on:{turn,k}|null, words}. Null = no
+     contract has been analyzed; the panel's bin is what clears it. */
+  paper:null,
   frictionAI:null /*Copilot's read on the friction brief: {busy,key,html,at,err}*/,
   /* WHICH SLICE OF THE PAYMENT TERMS TABLE IS SHOWING (owner-asked 2 Sep 2026:
      "make the page interactive so that when you click on the graphs they filter
@@ -584,15 +594,102 @@ window.intel = { groupBy:'folder', groups:null /*{id:label} override from Copilo
   ptCut:{ side:null, bucket:null }, ptPage:1,
   cliffDays:0 /*A-4: the renewal cliff's scrubber, days ahead of today; per sitting*/,
   busy:false, dockOpen:true,
-  // Horizon-style leftward expand; the preference sticks per device.
-  dockWide:(()=>{ try{ return !!(typeof lsGet==='function'&&lsGet('hati.v1.intelWide')); }catch(_){ return false; } })(),
+  /* THE WIDEN BUTTON IS GONE (Young ruled 27 Sep 2026): "bring the divider
+     that is in the document and negotiate pages to the Explorer page as
+     opposed to have the arrow button". The panel's width is the divider's —
+     IG_SPLIT_KEY below. `dockWide` and its store (hati.v1.intelWide) are
+     STALE: nothing reads or writes them. */
   seq:1 };
-// Dock width: collapsed sliver, normal, or wide (capped so the graph always
-// keeps meaningful room; on narrow screens wide degrades gracefully).
+/* ---------- THE SPLIT, DRAGGED (Young ruled 27 Sep 2026) ----------
+   The Document tab's and the Negotiate page's divider, on this page: the
+   panel beside the map (or the paper) takes the width the reader drags it to,
+   remembered in this browser. It is the clause editor's mechanism — the
+   POINTER'S POSITION, never the distance travelled, with the grab offset kept
+   so the handle does not jump under the finger — and the Negotiate page's
+   resting rule: where nobody has chosen, the panel opens at a WIDTH
+   (IG_DOCK_W0, the panel's own resting width before this), because that is a
+   fact about the panel's cards and a fraction gives them a different number
+   on every monitor. What is stored is the PANEL'S width.
+   THE FLOORS WIN: the panel keeps IG_DOCK_MIN (its card's three doors on one
+   line), the column beside it IG_LEFT_MIN (the Document tab's own floor for a
+   contract column), and at a floor the grip goes amber, as on the other two
+   pages. A double-click, Home or Enter put it back; the arrows step it.
+   Folded to its strip (the › in the panel's head, kept), the divider stands
+   down: there is nothing to drag. */
+const IG_DOCK_W0 = 380, IG_DOCK_MIN = 340, IG_LEFT_MIN = 420, IG_DOCK_FOLDED = 46;
+const IG_SPLIT_KEY = 'hati.v1.igDockW';
+/* null = nobody has chosen, which is what lets the resting place be a width. */
+function _igDockPref(){
+  try{ const v=Number(localStorage.getItem(IG_SPLIT_KEY)); return (v>0&&isFinite(v))?Math.round(v):null; }catch(_){ return null; }
+}
+function _igDockSave(w){ try{ if(w==null) localStorage.removeItem(IG_SPLIT_KEY); else localStorage.setItem(IG_SPLIT_KEY,String(Math.round(w))); }catch(_){ } }
+/* The width the panel takes in a row `avail` wide: the reader's choice or the
+   resting width, clamped by both floors. Pure, so the stage can ask it. */
+function igDockClamp(want, avail){
+  let w=Number(want)||IG_DOCK_W0;
+  if(avail>0){
+    if(avail>=IG_LEFT_MIN+IG_DOCK_MIN) w=Math.min(Math.max(w,IG_DOCK_MIN), avail-IG_LEFT_MIN);
+    else w=Math.max(IG_DOCK_MIN, Math.min(w, avail));
+  } else w=Math.max(w,IG_DOCK_MIN);
+  return Math.round(w);
+}
 function igDockWidth(){
-  if(!intel.dockOpen) return 46;
-  if(!intel.dockWide) return 380;
-  return Math.max(380, Math.min(660, Math.round((window.innerWidth||1200)*0.45)));
+  if(!intel.dockOpen) return IG_DOCK_FOLDED;
+  const row=(typeof document!=='undefined')?document.getElementById('ig-row'):null;
+  return igDockClamp(_igDockPref()??IG_DOCK_W0, row?row.clientWidth:0);
+}
+/* THE ONE LAYOUT PASS: writes the panel's width and puts the handle on its
+   left edge. Every door calls this and nothing else writes the width. */
+function igFitSplit(){
+  const row=document.getElementById('ig-row'), dock=document.getElementById('ig-dock'), rez=document.getElementById('ig-resizer');
+  if(!row||!dock) return;
+  const w=igDockWidth();
+  dock.style.width=w+'px';
+  if(!rez) return;
+  if(!intel.dockOpen||!row.clientWidth){ rez.hidden=true; return; }
+  rez.hidden=false;
+  rez.style.right=(w-7)+'px';
+  const avail=row.clientWidth;
+  const atMin=w<=IG_DOCK_MIN, atMax=avail>=IG_LEFT_MIN+IG_DOCK_MIN&&w>=avail-IG_LEFT_MIN;
+  if(atMin||atMax) rez.setAttribute('data-at-limit',atMin?'min':'max'); else rez.removeAttribute('data-at-limit');
+  rez.setAttribute('aria-valuenow',String(w));
+}
+/* The map re-measures once the width has settled — the same reaction the
+   panel's fold has always had (igSyncDockWidth), never on every pointer move. */
+let _igSplitT=0;
+function igSplitSettle(){
+  if(_igSplitT) clearTimeout(_igSplitT);
+  _igSplitT=setTimeout(()=>{ _igSplitT=0; if(state.view==='intel'&&intel.tab==='map') rebuildIntelGraph(); },280);
+}
+function igWireSplit(){
+  const row=document.getElementById('ig-row'), dock=document.getElementById('ig-dock'), rez=document.getElementById('ig-resizer');
+  if(!row||!dock||!rez) return;
+  igFitSplit();
+  if(rez.dataset.igSplitBound) return;
+  rez.dataset.igSplitBound='1';
+  let grabDx=0;
+  const widthAt=x=>{ const r=row.getBoundingClientRect(); return igDockClamp(r.right-(x+grabDx), row.clientWidth); };
+  const onMove=e=>{ const x=(e.touches&&e.touches[0])?e.touches[0].clientX:e.clientX; _igDockSave(widthAt(x)); igFitSplit(); };
+  const onUp=()=>{ delete rez.dataset.drag; dock.style.transition='';
+    document.body.style.cursor=''; document.body.style.userSelect='';
+    window.removeEventListener('pointermove',onMove); window.removeEventListener('pointerup',onUp);
+    igSplitSettle(); };
+  rez.addEventListener('pointerdown',e=>{ e.preventDefault(); rez.dataset.drag='1';
+    const hb=rez.getBoundingClientRect(); grabDx=(hb.left+hb.width/2)-e.clientX;
+    /* The panel's width transition would make the handle trail the pointer. */
+    dock.style.transition='none';
+    document.body.style.cursor='col-resize'; document.body.style.userSelect='none';
+    window.addEventListener('pointermove',onMove); window.addEventListener('pointerup',onUp); });
+  rez.addEventListener('keydown',e=>{
+    if(e.key==='Home'||e.key==='Enter'){ e.preventDefault(); _igDockSave(null); igFitSplit(); igSplitSettle(); return; }
+    const step=Math.max(8,Math.round(row.clientWidth*0.02));
+    const d=e.key==='ArrowLeft'?step:e.key==='ArrowRight'?-step:0;   /* left widens the panel */
+    if(!d) return;
+    e.preventDefault(); _igDockSave(igDockClamp(igDockWidth()+d,row.clientWidth)); igFitSplit(); igSplitSettle();
+  });
+  rez.addEventListener('dblclick',()=>{ _igDockSave(null); igFitSplit(); igSplitSettle(); });
+  if(!window._igSplitResizeBound){ window._igSplitResizeBound=true;
+    window.addEventListener('resize',()=>{ if(state.view==='intel'&&intel.tab==='map') igFitSplit(); }); }
 }
 window.IG = null;      // live graph model
 window.intelRAF = 0;   // animation token
@@ -839,7 +936,11 @@ async function intelAsk(qRaw){
   intel.busy=true; renderIntelDock(); updateIntelNote();
   try{
     const idHits=(q.match(/(?:MK|RL)-\d+/gi)||[]).length;
-    if(IG_COMPLIANCE_RE.test(q))                        await intelComplianceScan(q);
+    /* THE QUESTIONS FOLLOW THE SWITCH (26 Sep 2026): with the paper up, every
+       question is about that contract and goes with its wording; on Graph the
+       box asks about the portfolio exactly as before. */
+    if(igPaperUp())                                     await igPaperAsk(q);
+    else if(IG_COMPLIANCE_RE.test(q))                   await intelComplianceScan(q);
     else if(/\bcompare\b/i.test(q) || idHits>=2)        await intelChatAsk(q);
     else if(IG_TEMPLATE_RE.test(q))                     await intelTemplateAsk(q);
     else if(IG_GRAPH_RE.test(q) && !IG_QA_RE.test(q))   await intelGraphAsk(q);
@@ -1689,7 +1790,7 @@ function renderIntel(){
          however tall the caption makes it. The caption keeps its ellipsis and
          is still hidden outright below 899px, so nothing is cut mid-word —
          it is trimmed with a "…" or not shown. Friction has no caption. -->
-    <header style="flex:none;display:flex;align-items:center;gap:0 14px;padding:0 var(--s-4);background:var(--color-surface);border-bottom:1px solid var(--color-divider)">
+    <header id="ig-head" style="flex:none;display:flex;align-items:center;gap:0 14px;padding:0 var(--s-4);background:var(--color-surface);border-bottom:1px solid var(--color-divider)">
       ${tabsHtml}
       ${''/* ════ THE MAP'S CAPTION IS GONE (Young ruled it 19 Sep 2026) ════
              "Remove this highlighted wording." It was a page explaining itself
@@ -1729,7 +1830,7 @@ function renderIntel(){
   }
   if(intel.tab==='friction'){
     /* THE CONTROL TOWER — full width, no pinned Copilot. The dock stays on
-       the Contract Graph, where its questions drive the map; here the levers
+       Explorer (the map tab), where its questions drive the map; here the levers
        are real controls on the page, and free-form probing goes through the
        regular Copilot launcher, whose snapshot carries these same KPIs. */
     document.getElementById('content').innerHTML=`
@@ -1809,25 +1910,45 @@ function renderIntel(){
     setActiveNav('intel');
     return;
   }
+  /* AN ARRIVAL FOLDS THE LEGEND; A REPAINT DOES NOT (27 Sep 2026). The map
+     already on screen is the tell: a press on the tab from another tab, or the
+     page reached from elsewhere, replaces a #content that holds no map, while a
+     repaint of this tab (a language change, the rail door pressed while here)
+     replaces the map itself and keeps the reader's choice. */
+  if(!document.getElementById('ig-svg')) intel.legendFolded=true;
+  /* ANALYZE CONTRACT (26 Sep 2026): the left column is a strip over a stage.
+     The strip (#ig-strip) is drawn only once a contract has been analyzed and
+     carries the Graph | Paper switch; the stage (#ig-gwrap) holds the graph
+     exactly as before, and the paper (#ig-paper) COVERS it — never replaces
+     it — so the nodes' layout, physics and fit survive a reader looking at
+     the paper. Both are painted by igPaintPaper. */
   document.getElementById('content').innerHTML = `
-  <div class="view-enter" style="height:var(--view-h);display:flex;flex-direction:column;min-height:0">
+  <div id="ig-page" class="view-enter" style="height:var(--view-h);display:flex;flex-direction:column;min-height:0">
     ${headerHtml}
     <div id="ig-note" style="flex:none;padding:0 var(--s-4) var(--s-1);font-size:var(--t-meta)"></div>
-    <div class="relative flex-1 min-h-0 bg-canvas flex" style="flex:1;min-height:0;display:flex;position:relative;background:var(--color-bg)">
-      <div class="relative flex-1 min-w-0" style="flex:1;min-width:0;position:relative">
+    <div id="ig-row" class="relative flex-1 min-h-0 bg-canvas flex" style="flex:1;min-height:0;display:flex;position:relative;background:var(--color-bg)">
+      <div class="relative flex-1 min-w-0" style="flex:1;min-width:0;position:relative;display:flex;flex-direction:column">
+        <div id="ig-strip" class="ig-strip" hidden></div>
+        <div id="ig-gwrap" style="flex:1;min-height:0;position:relative">
         <svg id="ig-svg" class="w-full h-full block cursor-grab" style="width:100%;height:100%;display:block"><defs>
           <marker id="ig-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#b7b7ba"></path></marker>
           <marker id="ig-arrowHi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--color-accent)"></path></marker>
         </defs><g id="ig-vp"><g id="ig-links"></g><g id="ig-nodes"></g></g></svg>
         <div id="ig-legend" class="absolute left-4 bottom-4 bg-white border border-line rounded-xl px-3 py-2.5 shadow-[0_6px_22px_-12px_rgba(60,40,10,.3)]"></div>
         <div class="absolute right-4 bottom-4 text-[11px] text-ink/40 bg-white border border-line rounded-lg px-2.5 py-1.5">${i18t('int_drag_nodes')}</div>
+        <div id="ig-paper" class="ig-paper" hidden></div>
+        </div>
       </div>
       <aside id="ig-dock" class="shrink-0 flex flex-col min-h-0 overflow-hidden" style="width:${igDockWidth()}px;background:var(--color-bg);border-left:1px solid var(--color-neutral-300);box-shadow:-10px 0 28px -20px rgba(43,43,45,.35);transition:width var(--dur-3) cubic-bezier(.22,.61,.36,1)"></aside>
+      <div id="ig-resizer" class="ig-resizer" role="separator" aria-orientation="vertical" tabindex="0" aria-valuemin="${IG_DOCK_MIN}"
+        aria-label="${igEsc(i18t('int_drag_width'))}" title="${igEsc(i18t('int_drag_width'))}"${intel.dockOpen?'':' hidden'}><span></span></div>
     </div>
   </div>`;
 
   renderIntelDock();
+  igWireSplit();
   rebuildIntelGraph();
+  igPaintPaper();
   // re-fit once layout settles so the fit uses the true viewport size
   requestAnimationFrame(()=>{ if(state.view==='intel'&&IG) igFitView(); });
 
@@ -3432,7 +3553,8 @@ function intelGoTab(k){
 /* ---- right-hand Copilot dock ---- */
 function igSyncDockWidth(){
   const dock=document.getElementById('ig-dock'); if(!dock) return;
-  dock.style.width=igDockWidth()+'px';
+  /* The divider's own pass: the width, and the handle shown or stood down. */
+  if(document.getElementById('ig-row')) igFitSplit(); else dock.style.width=igDockWidth()+'px';
   // the canvas flexes — re-measure and re-settle once the width transition lands
   setTimeout(()=>{ if(state.view==='intel') rebuildIntelGraph(); },280);
 }
@@ -3475,13 +3597,18 @@ function igExplainCard(id){
     ${row('Group',igEsc(groupLabelOf(c,intel.groupBy,intel.groups)))}
     ${igFactRowsHtml(c)}
     ${igDependentsHtml(c.id)}
-    <div class="mt-2 flex items-center gap-1.5">
-      <button data-ig-ws="${c.id}" class="ui-btn ui-btn-sm ui-btn-primary flex-1">${i18t('int_open_workspace')}${icon('chevR','w-3.5 h-3.5')}</button>
+    ${''/* THREE DOORS (Young ruled 26 Sep 2026): Analyze contract leads, because
+           reading is what this panel is for; Open workspace is the door to
+           work; Compare is untouched. The fill moved from Open workspace to
+           Analyze — one filled button per card. */}
+    <div class="mt-2 flex items-center gap-1.5" style="flex-wrap:wrap">
+      <button data-ig-analyze="${c.id}" class="ui-btn ui-btn-sm ui-btn-primary" style="flex:1 1 auto" title="${i18t('int_analyze_title')}">${icon('readpaper','w-3.5 h-3.5')}${i18t('int_analyze')}</button>
+      <button data-ig-ws="${c.id}" class="ui-btn ui-btn-sm" style="flex:1 1 auto">${i18t('int_open_workspace')}${icon('chevR','w-3.5 h-3.5')}</button>
       <button data-ig-cmp="${c.id}" class="ui-btn ui-btn-sm${intel.compareSel.includes(c.id)?' ui-btn-accent':''}" aria-pressed="${intel.compareSel.includes(c.id)?'true':'false'}" title="${i18t('int_stage_for_compare')}">${intel.compareSel.includes(c.id)?`${icon('check2')}Comparing`:`${icon('plus')}Compare`}</button>
     </div>
   </div>`;
 }
-function igMsgHTML(m){
+function igMsgHTML(m,i){
   if(m.role==='user')
     return `<div class="ai-msg flex justify-end"><div class="max-w-[85%] rounded-2xl rounded-br-md bg-brand-900 text-white px-3.5 py-2 text-[13px]">${igEsc(m.text)}</div></div>`;
   // Q&A answers stay text-only — the matching contracts are still highlighted on
@@ -3489,10 +3616,15 @@ function igMsgHTML(m){
   const body = m.ranked ? m.ranked.map((r,i)=>igRankCard(r,i)).join('')
     : m.explainId ? igExplainCard(m.explainId)
     : (m.compare && typeof aiCompareTable==='function' ? aiCompareTable(m.compare) : '');
-  return `<div class="ai-msg flex gap-2">
+  /* AN ANSWER ABOUT THE PAPER CARRIES ITS PASSAGES AS PRESSES (26 Sep 2026):
+     one chip per verbatim quote the server kept, numbered by its pin on the
+     paper; an answer that rests on no passage says so under its text, so a
+     silence is never mistaken for a jump that did not happen. */
+  const cites=(m.paperId&&Array.isArray(m.quotes))?igCitesHtml(m,i):'';
+  return `<div class="ai-msg flex gap-2"${Number.isInteger(i)?` data-ig-turn="${i}"`:''}>
     <div class="h-6 w-6 shrink-0 grid place-items-center rounded-lg bg-gold-500/15 text-gold-600 mt-0.5">${icon('sparkle','w-3 h-3')}</div>
     <div class="min-w-0 flex-1 space-y-1.5">
-      ${m.text?`<div class="rounded-2xl rounded-tl-md border px-3.5 py-2 text-[13px] leading-relaxed ${m.err?'bg-rose-50 border-rose-200 text-rose-800':'bg-canvas border-brand-100 text-brand-900'}">${m.text}</div>`:''}
+      ${m.text?`<div class="rounded-2xl rounded-tl-md border px-3.5 py-2 text-[13px] leading-relaxed ${m.err?'bg-rose-50 border-rose-200 text-rose-800':'bg-canvas border-brand-100 text-brand-900'}">${m.text}${cites}</div>`:''}
       ${body}
     </div>
   </div>`;
@@ -3507,6 +3639,14 @@ function renderIntelDock(){
     document.getElementById('igd-expand').addEventListener('click',()=>{ intel.dockOpen=true; renderIntelDock(); igSyncDockWidth(); });
     return;
   }
+  /* ---- WHAT THE READER IS TYPING SURVIVES A REPAINT (26 Sep 2026, the
+     overnight clean-up) ---- The dock is rebuilt when an answer lands, and the
+     box was rebuilt empty with it — so a question typed while the last answer
+     was still coming was lost twice over: pressing Enter emptied the box and
+     asked nothing (intelAsk refuses while busy), and the repaint then took
+     what was left. The words and the caret are carried across. */
+  const _was=document.getElementById('igd-input');
+  const _keep=_was?_was.value:'', _focus=!!(_was&&document.activeElement===_was);
   const msgs=intel.history.map(igMsgHTML).join('');
   const typing=intel.busy?`
     <div class="ai-msg flex gap-2">
@@ -3522,9 +3662,6 @@ function renderIntelDock(){
           ?`<span title="${igEsc(b.hint)}" class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-600 text-white" style="background:var(--color-accent-800,#2c455d)">✦ ${igEsc(b.label)}</span>`
           :`<span title="${igEsc(b.hint)}" class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-600" style="background:var(--st-amber-bg);color:var(--st-amber-fg)">○ Basic mode</span>`; })()}
       ${intel.history.length?`<button id="igd-history-clear" title="${i18t('int_clear_conversation')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon" aria-label="${i18t('int_clear_conversation')}">${icon('trash','w-3.5 h-3.5')}</button>`:''}
-      <button id="igd-expand" title="${intel.dockWide?'Shrink the panel':'Expand the panel'}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${intel.dockWide
-        ?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 17l5-5-5-5"/><path d="M6 17l5-5-5-5"/></svg>'
-        :'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-5-5 5-5"/><path d="M18 17l-5-5 5-5"/></svg>'}</button>
       <button id="igd-collapse" title="${i18t('int_collapse_panel')}" aria-label="${i18t('int_collapse_panel')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon('chevR')}</button>
     </div>
     ${intel.lenses.length?`
@@ -3551,7 +3688,10 @@ function renderIntelDock(){
       <button id="igd-cmp-run" class="ui-btn ui-btn-sm${intel.compareSel.length<2?'':' ui-btn-primary'}" title="${intel.compareSel.length<2?'Tap “+ Compare” on one more node first':'Run the side-by-side comparison'}">${intel.compareSel.length<2?'Pick 1 more…':'Compare '+intel.compareSel.length}</button>
     </div>`:''}
     <div class="p-3 border-t border-hair shrink-0 relative">
-      <input id="igd-input" placeholder="${i18t('int_ask_portfolio')}" class="w-full rounded-xl border border-inputln bg-white pl-3.5 pr-16 py-2.5 text-[13px] outline-none focus:border-brand-600 focus:ring-[3px] focus:ring-[rgba(11,122,95,.1)] transition"/>
+      ${''/* THE BOX SAYS WHICH CONTRACT IT ASKS ABOUT (26 Sep 2026): the reader's
+             own switch, read back on the control that carries it — never a
+             line above it. The cost of a question rides the hover. */}
+      <input id="igd-input" placeholder="${igEsc(igAskPlaceholder())}" title="${igEsc(igAskCost())}" class="w-full rounded-xl border border-inputln bg-white pl-3.5 pr-16 py-2.5 text-[13px] outline-none focus:border-brand-600 focus:ring-[3px] focus:ring-[rgba(11,122,95,.1)] transition"/>
       <button id="igd-go" class="ui-btn ui-btn-sm ui-btn-primary absolute right-[18px] top-1/2 -translate-y-1/2">${i18t('int_ask')}</button>
     </div>`;
   const feed=document.getElementById('igd-feed'); feed.scrollTop=feed.scrollHeight;
@@ -3562,13 +3702,14 @@ function renderIntelDock(){
   }
   // wiring
   document.getElementById('igd-collapse').addEventListener('click',()=>{ intel.dockOpen=false; renderIntelDock(); igSyncDockWidth(); });
-  // widen the dock leftward / shrink back; the graph re-fits automatically
-  document.getElementById('igd-expand')?.addEventListener('click',()=>{
-    intel.dockWide=!intel.dockWide;
-    try{ if(typeof lsSet==='function') lsSet('hati.v1.intelWide',intel.dockWide); }catch(_){}
-    renderIntelDock(); igSyncDockWidth();
-  });
-  const go=()=>{ const inp=document.getElementById('igd-input'); const v=inp.value; inp.value=''; intelAsk(v); };
+  /* The » widen button went on 27 Sep 2026 — the divider beside the panel is
+     the one way to set its width (igWireSplit). */
+  if(_keep){ const n=document.getElementById('igd-input'); if(n){ n.value=_keep; if(_focus){ try{ n.focus(); }catch(_){ } } } }
+  /* A question is only taken out of the box when it is really asked: while an
+     answer is still coming it stays where it was typed (see above). */
+  const go=()=>{ const inp=document.getElementById('igd-input'); const v=inp.value;
+    if(!String(v||'').trim()||intel.busy) return;
+    inp.value=''; intelAsk(v); };
   document.getElementById('igd-go').addEventListener('click',go);
   document.getElementById('igd-input').addEventListener('keydown',e=>{ if(e.key==='Enter') go(); });
   dock.querySelectorAll('[data-igsug]').forEach(b=>b.addEventListener('click',()=>intelAsk(b.getAttribute('data-igsug'))));
@@ -3596,6 +3737,12 @@ function renderIntelDock(){
     el.addEventListener('pointerleave',()=>igPaintIds(null));
   });
   dock.querySelectorAll('[data-ig-ws]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); openWorkspace(b.getAttribute('data-ig-ws')); }));
+  /* Analyze contract — the card's first door (26 Sep 2026) — and the passages
+     under an answer, each a press that puts those words in front of the
+     reader. */
+  dock.querySelectorAll('[data-ig-analyze]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); igAnalyze(b.getAttribute('data-ig-analyze')); }));
+  dock.querySelectorAll('[data-ig-cite]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
+    const [t,k]=String(b.getAttribute('data-ig-cite')||'').split(':').map(Number); igLight(t,k); }));
   /* "See the list" — the register's ONE door onto a named set, carrying the
      chip that says what the list is and the way back. Never a second list
      drawn in the dock. */
@@ -3610,7 +3757,10 @@ function renderIntelDock(){
   // clear the dock conversation (lenses are separate and survive on purpose)
   document.getElementById('igd-history-clear')?.addEventListener('click',()=>{
     // cleared immediately — no confirm prompt (lenses are separate and survive)
-    intel.history=[]; intel.compareSel=[]; igPaintIds(null); renderIntelDock();
+    /* AND THE ANALYSIS GOES WITH THE CONVERSATION (26 Sep 2026): the paper,
+       its pins and the strip are the conversation's — the bin is the one act
+       that ends them, so no second control was added for it. */
+    intel.history=[]; intel.compareSel=[]; intel.paper=null; igPaintPaper(); igPaintIds(null); renderIntelDock();
     if(typeof toast==='function') toast(i18t('int_conversation_deleted'));
   });
 }
@@ -3684,4 +3834,343 @@ function openPartyModal(name){
   modal.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',()=>{ closePartyModal(); openWorkspace(el.getAttribute('data-open')); }));
 }
 
+/* ============================================================
+   ANALYZE CONTRACT — THE PAPER IN THE GRAPH'S COLUMN
+   (Young ruled 26 Sep 2026: "Build the all in one option")
+   ============================================================
+   The card's first door puts one contract's paper where the nodes were, and
+   the panel's questions go with that contract's wording. An answer's verbatim
+   passages come back as presses; each leaves a numbered pin in the paper's
+   margin and lights its words; the X-ray map runs down the paper's side; and
+   Focus folds the page's head away so the paper takes the column's full
+   height. A Graph | Paper switch on the strip goes back and forth without
+   losing anything — the nodes are COVERED, never rebuilt, and the paper is
+   HIDDEN, never torn down.
+
+   WHAT IS BORROWED, so nothing here is a second reading:
+     docSheetHtml     the working copy's ONE builder (contract.js), asked for a
+                      read-only copy with its own canvas id;
+     pagesWatch       the page-maker the Document tab uses, same options;
+     scrollToQuote    the risk scan's own "take me to these words", asked to
+                      HOLD its mark (js/ai.js) — the pin is that mark;
+     docXrayRows      the X-ray's own clause map over this canvas, the
+                      answers' clauses joining it in steel;
+     contractPlainText this page's own reader of the wording it sends.
+   NO ROUTE, NO STORE, NO FIELD, NO WRITE: intel.paper lives for the sitting,
+   the record is never touched (f392 greps this block for the funnel's names),
+   and the wording travels only as the question's own message. */
+const IG_PAPER_RULE='Answer from THE WORDING below and from nothing else about this contract. In deliver_answer, cite this contract once per passage your answer rests on, with "quote" carrying that ONE continuous passage copied character for character from the wording — never joined, never paraphrased, at least a full clause or sentence. Where the answer rests on a duty (a payment, a notice, a delivery), quote the sentence that creates it. Name the article or clause each point comes from. If the wording says nothing on the point, say so and quote nothing.';
+const IG_QUOTE_LABEL_WORDS=7;
+function igPaperUp(){ return !!(intel.paper&&intel.paper.mode==='paper'&&getContract(intel.paper.id)); }
+function igPaperText(c){ return (typeof contractPlainText==='function')?contractPlainText(c):''; }
+function igPaperWords(c){ return igPaperText(c).split(/\s+/).filter(Boolean).length; }
+function igAskPlaceholder(){
+  const c=igPaperUp()?getContract(intel.paper.id):null;
+  return c?i18t('int_ask_contract',{ref:(window.contractRef?contractRef(c):c.id)}):i18t('int_ask_portfolio');
+}
+function igAskCost(){
+  const c=igPaperUp()?getContract(intel.paper.id):null;
+  if(!c) return '';
+  return i18t('int_ask_contract_cost',{ref:(window.contractRef?contractRef(c):c.id), n:Number(intel.paper.words||0).toLocaleString()});
+}
+/* The first door. A second Analyze on the same contract only puts the paper
+   back up; on another contract it starts a fresh paper — the pins are the
+   paper's own and go with it (said in the summary, not hidden). */
+async function igAnalyze(id){
+  const c=getContract(id); if(!c) return;
+  /* ---- THE WHOLE RECORD FIRST (26 Sep 2026, the overnight clean-up) ----
+     The book in memory is the LIGHT list, and the server's HEAVY strip takes
+     an upload's extracted text (and a sealed record's execution copy) off
+     every row of it. So a contract nobody had opened in this sitting drew an
+     empty paper, the ask box said "(0 words)", and every question came back
+     "This contract has no wording to read yet". intelTemplateAsk already
+     loads the whole record before it reads one; so does this. A failure
+     leaves what the light row has, which is what this did before. */
+  if(c._light&&!c._loaded&&typeof ensureFull==='function'){
+    try{ await ensureFull(c); }catch(_){ /* the light row stands */ }
+    const host=document.getElementById('ig-paper');
+    if(host&&host.dataset.for===c.id) delete host.dataset.for;
+    if(intel.paper&&intel.paper.id===id) intel.paper.words=igPaperWords(c);
+  }
+  if(!intel.paper||intel.paper.id!==id) intel.paper={ id, mode:'paper', focus:false, pins:[], seq:0, on:null, words:igPaperWords(c) };
+  else intel.paper.mode='paper';
+  if(!intel.dockOpen){ intel.dockOpen=true; igSyncDockWidth(); }
+  igPaintPaper(); renderIntelDock(); igPaintIds([id]);
+}
+function igQuoteLabel(text){
+  const w=String(text||'').replace(/\s+/g,' ').trim().split(' ');
+  return w.length>IG_QUOTE_LABEL_WORDS?w.slice(0,IG_QUOTE_LABEL_WORDS).join(' ')+'…':w.join(' ');
+}
+/* A passage that is an obligation's own recorded wording takes the amber pin —
+   amber is this product's word for work owed. Read off the record, never
+   guessed: an obligation with no quote lights nothing amber. */
+function igQuoteIsObligation(c,text){
+  const norm=s=>(typeof quoteNorm==='function')?quoteNorm(s):String(s||'').toLowerCase().replace(/\s+/g,' ').trim();
+  const nq=norm(text); if(nq.length<12) return false;
+  return ((c&&c.obligations)||[]).some(o=>{ if(!o||!o.quote) return false; const oq=norm(o.quote); return oq.length>=12&&(nq.includes(oq)||oq.includes(nq)); });
+}
+function igPinAdd(turn,k,qq){
+  const p=intel.paper; if(!p) return null;
+  let pin=p.pins.find(x=>x.turn===turn&&x.k===k);
+  if(pin) return pin;
+  pin={ n:++p.seq, turn, k, text:qq.text, ob:!!qq.ob, lost:false };
+  p.pins.push(pin);
+  return pin;
+}
+/* WHAT THE SERVER KEPT IS WHAT LANDS: normalizeDeliver has already dropped any
+   quote that is not in the wording the model was shown, so every quote here
+   is verbatim; the browser then finds it on the painted paper or marks the pin
+   `lost` and says so on the chip's hover. Only this contract's citations count. */
+function igPinsMint(c,res,turn){
+  const p=intel.paper; if(!p||!c||p.id!==c.id) return;
+  const m=intel.history[turn]; if(!m||m.role!=='assistant') return;
+  const seen=new Set();
+  const quotes=((res&&Array.isArray(res.citations))?res.citations:[])
+    .filter(x=>x&&String(x.id)===String(c.id)&&typeof x.quote==='string'&&x.quote.trim().length>=12)
+    .map(x=>x.quote.trim()).filter(t=>{ if(seen.has(t)) return false; seen.add(t); return true; });
+  m.paperId=c.id;
+  /* The server's own notice ("one quoted excerpt could not be matched…") is
+     already printed under the answer; the "nothing to show" line is for an
+     answer that quoted nothing, so one fact is never said twice. */
+  m.noticed=!!(res&&res.notice);
+  m.quotes=quotes.map(text=>({ text, ob:igQuoteIsObligation(c,text) }));
+  m.quotes.forEach((qq,k)=>igPinAdd(turn,k,qq));
+  if(m.quotes.length) igLight(turn,0); else igPaintPaper();
+}
+function igCitesHtml(m,i){
+  const p=intel.paper;
+  if(!m.quotes.length) return m.noticed?'':`<div class="ig-nothing">${igEsc(i18t('int_paper_nothing'))}</div>`;
+  return `<div class="ig-cites">${m.quotes.map((qq,k)=>{
+    const pin=(p&&p.id===m.paperId)?p.pins.find(x=>x.turn===i&&x.k===k):null;
+    const on=!!(p&&p.on&&p.on.turn===i&&p.on.k===k);
+    const title=pin&&pin.lost?i18t('int_cite_lost'):i18t('int_cite_show');
+    return `<button type="button" class="ig-cite${qq.ob?' ob':''}${on?' is-on':''}" data-ig-cite="${i}:${k}" title="${igEsc(title)}">${pin?`<span class="ig-cite-n">${pin.n}</span>`:''}<span class="w">${igEsc(igQuoteLabel(qq.text))}</span></button>`;
+  }).join('')}</div>`;
+}
+/* A press on a passage — the chip under an answer, or the answer landing —
+   puts the paper up if it is not, pins the words and lands the reader on them. */
+function igLight(turn,k,o){
+  const p=intel.paper; if(!p) return;
+  const m=intel.history[turn]; const qq=m&&Array.isArray(m.quotes)?m.quotes[k]:null; if(!qq) return;
+  if(p.mode!=='paper') p.mode='paper';
+  const pin=igPinAdd(turn,k,qq);
+  p.on={turn,k};
+  igPaintPaper();
+  document.querySelectorAll('#ig-dock .ig-cite.is-on').forEach(b=>b.classList.remove('is-on'));
+  const chip=document.querySelector(`#ig-dock .ig-cite[data-ig-cite="${turn}:${k}"]`); if(chip) chip.classList.add('is-on');
+  if(o&&o.scroll===false) return;
+  const canvas=document.getElementById('ig-canvas'), sc=document.getElementById('ig-paper-scroll');
+  const first=canvas&&pin?canvas.querySelector(`span.ig-mark[data-ig-pin="${pin.n}"]`):null;
+  if(first&&sc){ const r=first.getBoundingClientRect(), sr=sc.getBoundingClientRect();
+    sc.scrollTo({ top:Math.max(0,sc.scrollTop+(r.top-sr.top)-sc.clientHeight*0.35), behavior:'smooth' }); }
+}
+/* ---- the strip ---- */
+function igStripHtml(c,p){
+  const up=p.mode==='paper';
+  const ref=(window.contractRef?contractRef(c):c.id);
+  const dot=((typeof STATUS_META==='object'&&STATUS_META&&STATUS_META[c.status])||{}).dot||'var(--st-gray-dot)';
+  const st=(typeof statusLabel==='function')?statusLabel(c.status):(c.status||'');
+  const n=p.pins.length;
+  return `<div class="ig-sw" role="group" aria-label="${igEsc(i18t('int_paper_switch'))}">
+      <button type="button" data-ig-mode="graph" aria-pressed="${up?'false':'true'}">${igEsc(i18t('int_paper_graph'))}</button>
+      <button type="button" data-ig-mode="paper" aria-pressed="${up?'true':'false'}">${igEsc(i18t('int_paper_paper'))}</button>
+    </div>
+    <span class="ig-strip-ref" title="${igEsc(c.name)}"><span class="ig-strip-dot" style="background:${dot}"></span><b>${igEsc(ref)}</b><span class="q"> · </span>${igEsc(c.name)}<span class="q"> · ${igEsc(c.counterparty||'—')} · ${igEsc(st)}</span></span>
+    <span class="ig-strip-sp"></span>
+    ${up&&n?`<span class="ig-strip-pins">${igEsc(i18tn('int_pins',n,{n}))}</span><button type="button" class="ui-link" data-ig-pins-clear title="${igEsc(i18t('int_pins_clear_title'))}">${igEsc(i18t('int_pins_clear'))}</button>`:''}
+    ${up?`<button type="button" class="ui-btn ui-btn-sm" data-ig-focus aria-pressed="${p.focus?'true':'false'}" title="${igEsc(i18t(p.focus?'int_focus_exit_title':'int_focus_title'))}">${icon(p.focus?'x':'scan','w-3.5 h-3.5')}${igEsc(i18t(p.focus?'int_focus_exit':'int_focus'))}</button>`:''}
+    <button type="button" class="ui-btn ui-btn-sm" data-ig-ws="${c.id}">${igEsc(i18t('int_open_workspace'))}${icon('chevR','w-3.5 h-3.5')}</button>`;
+}
+function igStripWire(){
+  const strip=document.getElementById('ig-strip'); if(!strip||strip.dataset.igBound) return;
+  strip.dataset.igBound='1';
+  strip.addEventListener('click',e=>{
+    const p=intel.paper; if(!p) return;
+    const mode=e.target.closest('[data-ig-mode]');
+    if(mode){ p.mode=mode.getAttribute('data-ig-mode')==='paper'?'paper':'graph'; if(p.mode!=='paper') p.focus=false; igPaintPaper(); renderIntelDock(); return; }
+    if(e.target.closest('[data-ig-pins-clear]')){ p.pins=[]; p.on=null; igPaintPaper(); renderIntelDock(); return; }
+    if(e.target.closest('[data-ig-focus]')){ p.focus=!p.focus; igPaintPaper(); return; }
+    const ws=e.target.closest('[data-ig-ws]'); if(ws){ openWorkspace(ws.getAttribute('data-ig-ws')); }
+  });
+}
+/* ---- the paper ---- */
+function igPaperHtml(c){
+  let sheet='';
+  if(typeof docSheetHtml==='function') sheet=docSheetHtml(c,{ copy:'work', canvasId:'ig-canvas', readOnly:true });
+  else {
+    const body=(typeof docBody==='function')?docBody(c):'';
+    sheet=`<div class="blueprint pg-sheet pg-work" data-copy="work" style="padding:34px var(--s-10) 44px;max-width:var(--doc-sheet-max,860px);margin:0 auto;border-radius:0"><article id="ig-canvas" class="doc-surface" style="background:transparent">${(typeof readOnlyDocHtml==='function')?readOnlyDocHtml(body):body}</article></div>`;
+  }
+  return `<div class="ig-paper-wrap">
+    <div id="ig-spine" class="doc-xr-spine ig-spine" role="group" aria-label="${igEsc(i18t('xr_spine_label'))}" hidden></div>
+    <div id="ig-paper-scroll" class="ig-paper-scroll scroll-thin">${sheet}</div>
+  </div>`;
+}
+function igPaperPaginate(c){
+  const host=document.getElementById('ig-paper'); const sheet=host&&host.querySelector('.pg-sheet');
+  if(!sheet||!window.pagesWatch||sheet._pgRO) return;
+  try{ pagesWatch(sheet,{ mode:'work', gap:window.PG_GAP, corners:true,
+    name:window.pagesLetterheadName?pagesLetterheadName(c):'', ref:(window.contractRef?contractRef(c):c.id)||'' }); }catch(_){ }
+}
+/* THE ONE PAINTER: strip, paper, pins, map, focus. Called after every render
+   of the graph tab and after every act on the paper. A missing host (another
+   tab, a stage) is a no-op; a paper whose contract has gone is put away. */
+function igPaintPaper(){
+  const strip=document.getElementById('ig-strip'), host=document.getElementById('ig-paper'), page=document.getElementById('ig-page');
+  if(!strip||!host) return;
+  const p=intel.paper; const c=p?getContract(p.id):null;
+  if(!c){
+    intel.paper=null;
+    strip.hidden=true; strip.innerHTML='';
+    host.hidden=true; host.innerHTML=''; delete host.dataset.for;
+    if(page) page.classList.remove('ig-focus');
+    return;
+  }
+  strip.hidden=false; strip.innerHTML=igStripHtml(c,p); igStripWire();
+  const up=p.mode==='paper';
+  const focus=!!(up&&p.focus);
+  if(page) page.classList.toggle('ig-focus',focus);
+  /* WRITTEN ON THE ELEMENT: the head strip states display:flex inline, which
+     no sheet rule can outrank, so Focus folds it where its own declaration
+     lives and puts the markup's own value back — never !important. */
+  const head=document.getElementById('ig-head'); if(head) head.style.display=focus?'none':'flex';
+  if(!up){ host.hidden=true; return; }
+  if(host.dataset.for!==c.id){ host.innerHTML=igPaperHtml(c); host.dataset.for=c.id; igPaperWire(host); }
+  host.hidden=false;
+  igPaperPaginate(c);
+  igPinsPaint();
+  igStrandPaint(c);
+}
+function igPaperWire(host){
+  if(host.dataset.igBound) return; host.dataset.igBound='1';
+  /* A pin in the margin finds its answer in the panel. */
+  host.addEventListener('click',e=>{
+    const b=e.target.closest('button[data-ig-pin]'); if(!b) return;
+    const p=intel.paper; if(!p) return;
+    const pin=p.pins.find(x=>String(x.n)===b.getAttribute('data-ig-pin')); if(!pin) return;
+    p.on={turn:pin.turn,k:pin.k};
+    igPinsPaint();
+    document.querySelectorAll('#ig-dock .ig-cite.is-on').forEach(x=>x.classList.remove('is-on'));
+    const chip=document.querySelector(`#ig-dock .ig-cite[data-ig-cite="${pin.turn}:${pin.k}"]`); if(chip) chip.classList.add('is-on');
+    const turn=document.querySelector(`#igd-feed [data-ig-turn="${pin.turn}"]`);
+    if(turn){ turn.scrollIntoView({block:'center',behavior:'smooth'}); turn.classList.add('ig-turn-on'); setTimeout(()=>turn.classList.remove('ig-turn-on'),1400); }
+  });
+}
+/* Every pin's words lit on the paper, its number in the margin. Repainted whole
+   at every act: the marks are the risk scan's own held in place, and the walk
+   that places them reads the live text, so a re-walk after a re-layout lands
+   where the words now are. */
+function igPinsPaint(){
+  const p=intel.paper; const canvas=document.getElementById('ig-canvas'); if(!p||!canvas) return;
+  canvas.querySelectorAll('button.ig-pin').forEach(el=>el.remove());
+  canvas.querySelectorAll('.ig-pinhost').forEach(el=>el.classList.remove('ig-pinhost'));
+  canvas.querySelectorAll('span.ig-mark').forEach(mark=>{ const par=mark.parentNode; if(!par) return;
+    while(mark.firstChild) par.insertBefore(mark.firstChild,mark); par.removeChild(mark); });
+  canvas.normalize();
+  if(typeof scrollToQuote!=='function') return;
+  p.pins.forEach(pin=>{
+    pin.lost=!scrollToQuote(pin.text,{ root:canvas, hold:true, cls:'ig-mark'+(pin.ob?' ob':''), pin:pin.n, scroll:false });
+    if(pin.lost) return;
+    const first=canvas.querySelector(`span.ig-mark[data-ig-pin="${pin.n}"]`); if(!first) return;
+    const block=first.closest('p,li,h1,h2,h3,h4,h5,h6,td,div')||first.parentElement;
+    if(!block||!canvas.contains(block)||block===canvas) return;
+    block.classList.add('ig-pinhost');
+    const b=document.createElement('button'); b.type='button'; b.className='ig-pin'+(pin.ob?' ob':'');
+    b.setAttribute('data-ig-pin',String(pin.n)); b.title=i18t('int_pin_find'); b.textContent=String(pin.n);
+    block.appendChild(b);
+  });
+  if(p.on){ const pin=p.pins.find(x=>x.turn===p.on.turn&&x.k===p.on.k);
+    if(pin) canvas.querySelectorAll(`span.ig-mark[data-ig-pin="${pin.n}"]`).forEach(x=>x.classList.add('is-on')); }
+}
+/* ---- the map ---- */
+let _igStrandRows=[];
+function igStrandPaint(c){
+  const sp=document.getElementById('ig-spine'), canvas=document.getElementById('ig-canvas'), sc=document.getElementById('ig-paper-scroll');
+  if(!sp||!canvas) return;
+  if(typeof docXrayRows!=='function'||typeof docXraySpineHtml!=='function'||typeof docXraySpineRows!=='function'){ sp.hidden=true; return; }
+  let rows=[]; try{ rows=docXrayRows(c,canvas)||[]; }catch(_){ rows=[]; }
+  /* THE ANSWERS' CLAUSES JOIN THE MAP in steel: a pinned passage marks the
+     clause it sits in; the scan's and the playbook's marks keep their own
+     tones and outrank it (worst tone on top is the X-ray's own rule). */
+  canvas.querySelectorAll('span.ig-mark[data-ig-pin]').forEach(mk=>{
+    let row=null;
+    for(const r of rows){ const el=r.el; if(!el) continue;
+      if(el===mk||el.contains(mk)){ row=r; break; }
+      if(el.compareDocumentPosition(mk)&Node.DOCUMENT_POSITION_FOLLOWING) row=r; else break; }
+    if(row){ row.asked=true; if(!row.tone) row.tone='steel'; }
+  });
+  const marked=docXraySpineRows(rows);
+  sp.hidden=!marked.length;
+  if(!marked.length){ sp.innerHTML=''; _igStrandRows=[]; return; }
+  /* The strip's width is the Document tab's own number, written on the
+     element as that tab writes it (the sheet's rule states none). */
+  sp.style.width=(Number(window.DOC_XRAY_SPINE_W)||28)+'px';
+  sp.innerHTML=docXraySpineHtml(rows);
+  sp.querySelectorAll('.doc-xr-seg.is-on').forEach(b=>{ b.classList.remove('is-on'); b.setAttribute('aria-pressed','false'); });
+  _igStrandRows=rows.map(x=>x.el);
+  igStrandFollow();
+  if(sc&&!sc.dataset.igFollowBound){ sc.dataset.igFollowBound='1'; let raf=0;
+    sc.addEventListener('scroll',()=>{ if(raf) return; raf=requestAnimationFrame(()=>{ raf=0; igStrandFollow(); }); },{passive:true}); }
+  if(!sp.dataset.igBound){ sp.dataset.igBound='1';
+    sp.addEventListener('click',e=>{ const b=e.target.closest('[data-xr-seg]'); if(!b) return;
+      const el=_igStrandRows[Number(b.getAttribute('data-xr-seg'))]; const s=document.getElementById('ig-paper-scroll');
+      if(el&&s){ const r=el.getBoundingClientRect(), sr=s.getBoundingClientRect(); s.scrollTo({ top:Math.max(0,s.scrollTop+(r.top-sr.top)-16), behavior:'smooth' }); } }); }
+}
+function igStrandFollow(){
+  const sp=document.getElementById('ig-spine'), sc=document.getElementById('ig-paper-scroll');
+  if(!sp||sp.hidden||!sc||!_igStrandRows.length) return;
+  const top=sc.getBoundingClientRect().top+24;
+  let here=0;
+  _igStrandRows.forEach((el,i)=>{ try{ if(el&&el.getBoundingClientRect().top<=top) here=i; }catch(_){} });
+  sp.querySelectorAll('.doc-xr-seg.is-here').forEach(b=>b.classList.remove('is-here'));
+  let seg=null;
+  sp.querySelectorAll('[data-xr-seg]').forEach(b=>{ if(Number(b.getAttribute('data-xr-seg'))<=here) seg=b; });
+  if(!seg) return;
+  seg.classList.add('is-here');
+  const a=seg.offsetTop, b=a+seg.offsetHeight;
+  if(a<sp.scrollTop+8) sp.scrollTop=Math.max(0,a-8);
+  else if(b>sp.scrollTop+sp.clientHeight-8) sp.scrollTop=b-sp.clientHeight+8;
+}
+/* ---- the question, with the wording ---- */
+async function igPaperAsk(q){
+  const p=intel.paper; const c=p?getContract(p.id):null;
+  if(!c) return intelChatAsk(q);
+  /* No engine: intelChatAsk carries the one nudge this page gives for that. */
+  if(!(typeof copilotAvailable==='function'&&copilotAvailable())) return intelChatAsk(q);
+  /* The whole record, for the reason igAnalyze gives. */
+  if(c._light&&!c._loaded&&typeof ensureFull==='function'){ try{ await ensureFull(c); }catch(_){ } }
+  const ref=(window.contractRef?contractRef(c):c.id);
+  const wording=igPaperText(c);
+  if(!wording){ intel.history.push({role:'assistant', err:true, text:igEsc(i18t('int_paper_no_wording'))}); return; }
+  /* The history as the panel keeps it; the LAST turn — the question — goes
+     out with the wording behind it and the context saying so (wholeDoc lifts
+     that one message's cap to the document ceiling). The history itself keeps
+     only the questions, so a long sitting does not resend the contract eight
+     times over. */
+  const msgs=intelChatMessages();
+  const last=(msgs.length&&msgs[msgs.length-1].role==='user')?msgs.pop():{ role:'user', content:q };
+  msgs.push({ role:'user', content:`${last.content}\n\n${IG_PAPER_RULE}\n\n=== THE WORDING OF ${ref} (${c.name}) ===\n${wording}` });
+  try{
+    const res=await copilotAsk(msgs, { view:'intel', activeContractId:c.id, activeContractName:c.name, ...(c.contractNo?{activeContractNo:c.contractNo}:{}), wholeDoc:true }, null, IG_QUIET);
+    intelPushChatResult(res);
+    igPinsMint(c,res,intel.history.length-1);
+  }catch(e){
+    intel.history.push({role:'assistant', err:true, text:'Copilot error: '+igEsc(e.message||String(e))});
+  }
+}
+/* Escape leaves Focus, and only Focus: with nothing over the page and the
+   reader on this page. Armed once, at load. */
+if(typeof document!=='undefined'&&!document._igPaperKeys){
+  document._igPaperKeys=true;
+  document.addEventListener('keydown',e=>{
+    if(e.key!=='Escape') return;
+    const p=intel.paper; if(!p||!p.focus) return;
+    if(typeof state!=='undefined'&&state&&state.view!=='intel') return;
+    if(document.querySelector('[data-top-overlay]')) return;
+    const mr=document.getElementById('modal-root'); if(mr&&mr.children.length) return;
+    p.focus=false; igPaintPaper();
+  });
+}
+
+Object.assign(window,{IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igPaperAsk});
 Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,ptFitTable,ptPagerHtml,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});

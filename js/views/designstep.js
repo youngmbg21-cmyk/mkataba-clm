@@ -659,6 +659,12 @@ async function dsPublish() {
     toast(`v${r.versionNumber} published in ${docDesignById(_ds.b.designId).name}${
       st && st.id !== DEFAULT_STRUCTURE ? ' · ' + st.name : ''} — the team can create contracts from it now`);
     const tid = _ds.tid; _ds = null;
+    /* PUBLISHED IS ON THE SHELF AT ONCE (26 Sep 2026, the overnight clean-up):
+       the template cache the New agreement screen and "New contract" read was
+       still the pre-publish copy, so the new standard was missing from the one
+       and the other read its version as unpublished ("the wording could not be
+       read"). Refreshed before landing, so the detail page reads it too. */
+    if (typeof tplLibRefresh === 'function') { try { await tplLibRefresh(); } catch (_) { /* the page still opens */ } }
     openTemplateLibDetail(tid);
   } catch (e) {
     if (btn) { btn.disabled = false; btn.textContent = `Publish v${_ds.versionNumber}`; }

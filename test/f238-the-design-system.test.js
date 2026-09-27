@@ -503,7 +503,10 @@ describe('f238 — the design system has its other half', () => {
        trapFocus now, with nine homes. The claim is the same and is asked one
        layer up: this dialog uses the shared trap, and the shared trap is the
        thing that cycles Tab and hands focus back. */
-    assert.match(open, /trapFocus\(panel\)/, 'it uses the one shared trap');
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the overnight clean-up): openModal
+       now hands the trap its opener, read before a replacing dialog tears the
+       old panel out. Still the one shared trap, on the panel. */
+    assert.match(open, /trapFocus\(panel\b/, 'it uses the one shared trap');
     assert.match(core, /function trapFocus\(/, 'which is defined once');
     assert.match(core, /e\.key!=='Tab'/, 'Tab cycles inside it');
     assert.match(core, /_modalOpener/, 'and focus goes back where it came from');
@@ -531,7 +534,7 @@ describe('f238 — the design system has its other half', () => {
     /* NINE HOMES, named. A layer missing from this list is a layer Tab walks
        out of, and the only way to know is to look. */
     const homes = [
-      ['js/core.js',            /trapFocus\(panel\)/,                 'openModal'],
+      ['js/core.js',            /trapFocus\(panel\b/,                 'openModal'],
       ['js/core.js',            /trapFocus\(ov\.querySelector\('\[role="alertdialog"\]'\)/, 'confirmDialog'],
       ['js/core.js',            /trapFocus\(ov\.querySelector\('\[role="dialog"\]'\)/,      'promptDialog'],
       ['js/app.js',             /_panelTrap\s*=\s*trapFocus\(panel\)/, 'the alerts panel'],

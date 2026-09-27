@@ -347,6 +347,14 @@ function negoMayStart(c){
   if (negoHandedOver(c) && !negoExecuted(c)) return { ok: false, why: 'handover' };
   if (negoWordingFrozen(c)) return { ok: false, why: 'sealed' };
   if (c.archived) return { ok: false, why: 'archived' };
+  /* ---- A CONTRACT IN DISPUTE IS FROZEN, AND THE DOOR SAYS SO (26 Sep 2026,
+     the overnight clean-up) ---- The server refuses a save that moves a held
+     contract's wording or negotiation (the three refusals of upgrade 8), and
+     since tonight it asks that on EVERY save rather than only on a half-signed
+     one. So the door is shut here too, with the reason, rather than letting a
+     reader file a change the save will then refuse. The hold's own reading,
+     asked raw so a stage without js/core.js still answers. */
+  if (c.hold && c.hold.at) return { ok: false, why: 'held' };
   return { ok: true, why: '' };
 }
 /* The one sentence a shut door prints, by reason — the hover, the aria-label
@@ -356,6 +364,7 @@ function negoMayStartLine(c){
   if (r.ok) return '';
   const t = (typeof i18t === 'function') ? i18t : k => k;
   return r.why === 'archived' ? t('ng_start_archived')
+    : r.why === 'held' ? t('ng_start_held')
     : r.why === 'handover' ? t('ng_start_handover') : t('ng_start_sealed');
 }
 
@@ -710,7 +719,16 @@ function negoRenumberApply(c, opts = {}){
    round, outcome. */
 function negoTimeline(c, f = {}){
   if (!c) return [];
-  negoInit(c);
+  /* READING MUST NOT WRITE (26 Sep 2026, the overnight clean-up). This read
+     the rounds through negoInit, which CREATES a negotiation where there is
+     none — and the History tab asks it on every visit. On a signed contract
+     that never had one (imported or migrated signed paper) the visit wrote
+     `negotiation` and `changes` onto the record, the server froze both at
+     signature, and every later save of that contract was refused: an
+     obligation added a minute later was gone after a reload (measured). The
+     rounds and the changes are read RAW, as every count over the book reads
+     them; a record with no negotiation has had nothing proposed. */
+  const neg = c.negotiation || null;
   const ev = [];
   const otherSide = s => s === 'owner' ? 'counterparty' : 'owner';
   const pushChange = (ch, roundN) => {
@@ -734,13 +752,13 @@ function negoTimeline(c, f = {}){
         outcome: 'withdrawn',
         text: `${ch.withdrawn.by || ch.author || 'The proposer'} withdrew #${ch.id} — the ask came off the table`, ch });
   };
-  for (const r of (c.negotiation.rounds || [])){
+  for (const r of ((neg && neg.rounds) || [])){
     for (const ch of (r.changes || [])) pushChange(ch, r.n);
     ev.push({ kind: 'round-closed', at: r.at || '', actor: '', side: '', outcome: '',
       round: r.n, clauseId: null, clauseLabel: '',
       text: `Round ${r.n} closed — the agreed wording became the baseline for round ${r.n + 1}` });
   }
-  for (const ch of negoChanges(c)) pushChange(ch, c.negotiation.round);
+  for (const ch of (Array.isArray(c.changes) ? c.changes : [])) pushChange(ch, (neg && typeof neg.round === 'number') ? neg.round : 1);
   /* The beats that come off the audit trail. The prose is the entry's own —
      it was written in the house register at the moment of the act — and the
      kind is read from the action (or, for renumbering, from the X3 data). */
@@ -3028,6 +3046,16 @@ function negoRetractDraft(c, id, opts = {}){
     : negoUnsentAsks(c, side).some(x => x && x.id === id);
   if (!isUnsent){
     if (window.toast) toast(i18t('ne_retract_already_sent'), 'err');
+    return null;
+  }
+  /* ---- NOT WHILE A COLLEAGUE HAS IT (26 Sep 2026, the overnight clean-up) ----
+     Once a reviewer cleared a colleague's draft, their row offered Discard on
+     it, and one press deleted the requester's work while the review stayed
+     open listing a change that no longer existed (measured). A change inside
+     an open review is the review's until it is handed back; the server refuses
+     the same save. */
+  if (side === 'owner' && window.reviewInOpen && reviewInOpen(c, ch)){
+    if (window.toast) toast(i18t('ne_retract_in_review'), 'err');
     return null;
   }
   const i = c.changes.findIndex(x => x && x.id === id);

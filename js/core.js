@@ -513,6 +513,35 @@ function cpReadyToSign(c){
   let sig=null; try{ sig=window.negoReadySignal(c,'counterparty'); }catch(_){ sig=null; }
   return !!(sig && !sig.stale);
 }
+/* ---- THE OTHER SIDE AGREED TO THE WORDING (Young said yes, 27 Sep 2026) ----
+   "Agree to the wording — but don't sign yet" on their page files c.acceptance
+   (applyResponse): on the record, in the comments, on the trail — and nothing
+   told anybody, because the toast there is a bare one and prints nothing. The
+   bell reads THIS ONE predicate, the way it reads cpReadyToSign for readiness.
+   IT STANDS ONLY WHILE IT IS THE NEXT THING. Once anybody has signed (either
+   store — negoAnySignature), the contract is executed, declined or archived,
+   the work it pointed at is done or over. And an agreement to wording that has
+   since moved is not an agreement to what is on the table: when the one
+   reading of "the wording last moved" (signCheckBriefAt) is later than the
+   agreement, it stands down. A date nobody holds is "we do not know" and keeps
+   it — the same answer that reading gives the brief.
+   READING MUST NOT WRITE: c.acceptance, c.changes and c.negotiation are read
+   raw. The acceptance is on the LIGHT list (HEAVY strips neither it nor the
+   status), so the bell answers without opening the record. */
+function cpAcceptedWording(c){
+  const a = c && c.acceptance;
+  if(!a || !a.at) return null;
+  if(c.archived || c.status==='Declined' || c.status==='Signed') return null;
+  if(typeof window==='undefined') return a;
+  try{ if(typeof window.negoExecuted==='function' && window.negoExecuted(c)) return null; }catch(_){}
+  try{ if(typeof window.negoAnySignature==='function' && window.negoAnySignature(c)) return null; }catch(_){}
+  try{
+    const moved = (typeof window.signCheckBriefAt==='function') ? window.signCheckBriefAt(c) : 0;
+    const at = Date.parse(String(a.at)) || 0;
+    if(moved && at && moved > at) return null;
+  }catch(_){}
+  return a;
+}
 const READY_META = _stMeta('status_cp_ready', 'Counterparty ready to sign', 'var(--st-green-dot)', 'var(--st-green-bg)', 'var(--st-green-fg)', 'var(--st-green-line)');
 const READY_META_SHORT = _stMeta('status_cp_ready_short', 'Ready to sign', 'var(--st-green-dot)', 'var(--st-green-bg)', 'var(--st-green-fg)', 'var(--st-green-line)');
 const EXPIRED_META = _stMeta('status_expired', 'Expired', 'var(--st-gray-dot)', 'var(--st-gray-bg)', 'var(--st-gray-fg)', 'var(--st-gray-line)');
@@ -1067,6 +1096,11 @@ async function deleteContract(id){
   if(state.activeId===id) state.activeId=null;
   persist();
   if(window.updateSidebarCounts) updateSidebarCounts();
+  /* …and the server's own count, which the Contracts door, the page's head and
+     its "of N total" all print (see refreshStats). AWAITED, so the page the
+     caller repaints next is drawn from the figures after the delete, not before
+     it (measured: the list said 29 rows "of 30 total"). */
+  if(API_MODE() && window.refreshStats){ try{ await refreshStats(); }catch(_){} }
   toast(`${label} deleted`,'err');
   return true;
 }
@@ -1099,6 +1133,27 @@ function isArchived(c){ return !!(c&&c.archived); }
    exactly as they did. It outranks all three, because a held contract's stage
    is not the interesting fact about it. */
 function contractOnHold(c){ return !!(c && c.hold && c.hold.at); }
+/* ---- A SIGNATURE IMAGE IS DRAWN ONLY IF IT IS ONE (26 Sep 2026, the
+   overnight clean-up) ---- The ONE reading every screen asks before putting a
+   stored signature into <img src>: a base64 image data URL, or nothing. A
+   counterparty's signature arrives down a PUBLIC route, and a value such as
+   `data:image/png;base64,AA" onerror="…` printed raw ran script in the owner's
+   session (measured). The server refuses those now too (sigImageOk); this is
+   the second wall, and it also covers every record stored before tonight.
+   The characters a base64 image can hold cannot close an attribute. */
+const SIG_IMAGE_SRC_RE=/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/;
+function sigImageSrc(v){ return (typeof v==='string' && SIG_IMAGE_SRC_RE.test(v)) ? v : ''; }
+/* ---- IS THIS CONTRACT THE ONE ON SCREEN? (26 Sep 2026, the overnight
+   clean-up) ---- The ONE reading a slow result asks before it paints. A brief,
+   an obligations scan or a check started on one contract and finished after the
+   reader had opened another drew into the OTHER contract's page — A2's brief
+   keys on B2's Overview, A2's obligations under B2's header, A2's review
+   dialog over B2 (measured). The contract room is the page that shows one
+   contract; the result is still stored on its own contract either way. */
+function contractOnScreen(c){
+  return !!c && state.activeId!=null && String(state.activeId)===String(c.id)
+    && (state.view==='workspace'||state.view==='doc');
+}
 async function contractSetHold(c,on,why){
   /* THE GRANT, NOT canEdit (19 Sep 2026): freezing a contract is no longer an
      everyday editor's act. The server's mayHoldRow is the wall; this refuses
@@ -1300,6 +1355,13 @@ async function saveContract(c){
      approval before signing (23 Sep 2026) — read with the whole roster,
      which a reader who is not an admin cannot see. Transport, never record. */
   delete payload._signNeeds; delete payload._signState;
+  /* ONE SITTING'S MARKS ARE NEVER THE RECORD (26 Sep 2026, the overnight
+     clean-up): the fetched notes and their "already fetched" flags, and the two
+     in-flight flags. Stored, the next sitting skipped its fetch and a check
+     interrupted by a reload stayed "running" for good. The server drops them
+     too (SITTING_KEYS). */
+  delete payload._messages; delete payload._msgFetch; delete payload._shareFetch;
+  delete payload._signChecking; delete payload._triaging;
   if(payload.upload && payload.upload.fileId){ payload.upload={...payload.upload, dataUrl:undefined}; }
   // Word-review version files and the rounds that carried them follow the same
   // rule: once the bytes live in the files store, the synced JSON keeps only
@@ -1346,6 +1408,25 @@ async function saveContract(c){
       } else {
         toast((window.contractRef?contractRef(c):c.id)+' changed on the server — your edit is kept but not yet saved. Open it and save again to keep your version.','err');
       }
+    } else if(e && (e.status===400 || e.status===403 || e.status===409)){
+      /* ---- A REFUSED SAVE PUTS THE PAGE BACK TO WHAT IS ON FILE (26 Sep 2026,
+         the overnight clean-up) ----
+         The server's walls refuse a save WHOLE — a signature in somebody
+         else's name, a change a review still covers, an executed record. The
+         page used to keep the refused change, so every later save carried it
+         again and was refused again: an ordinary edit minutes later was lost
+         without the reader knowing why (measured). The reason is said, the
+         record on file is loaded back, and the page is drawn from it, so what
+         the reader sees is what is saved. */
+      let fresh=null; try{ fresh=await api('contracts/'+c.id); }catch(_){}
+      if(fresh){
+        Object.assign(c,fresh); c._v=fresh._v; c._loaded=true; c._light=false;
+        try{
+          if(window.contractOnScreen && contractOnScreen(c) && typeof renderWorkspace==='function') renderWorkspace();
+          else if(state.view==='redline' && window.redlineHeldId && String(redlineHeldId())===String(c.id) && window.renderRedline) renderRedline();
+        }catch(_){}
+      }
+      toast(i18t('co_save_refused',{why:e.message}),'err');
     } else toast(i18t('co_save_failed')+e.message,'err');
   }
 }
@@ -1418,6 +1499,19 @@ async function restoreHeavyFields(c){
     if(!c.upload.extractedText && full.upload.extractedText) c.upload={ ...c.upload, extractedText: full.upload.extractedText };
     if(!c.upload.dataUrl && full.upload.dataUrl)             c.upload={ ...c.upload, dataUrl: full.upload.dataUrl };
   }
+  /* …AND WHAT ONLY THE SINGLE-RECORD ROUTE CARRIES (27 Sep 2026, the overnight
+     clean-up). The brief, the renewal advice, the Plain English edition and
+     who must approve before signing ride GET /api/contracts/:id as transport
+     (`_brief`, `_renewalAdvice`, `_readings`, `_signNeeds`, `_signState`) and
+     never the list — and this marks the record loaded, after which the
+     contract room never asks for them (renderWorkspace loads only a record
+     that is not). Measured: a contract chosen in the list's side panel, whose
+     trail this fetched, opened with no brief. Every underscored key on that
+     answer is the server's own reading, never a person's edit, so copying one
+     this record does not already hold cannot overwrite anything typed here. */
+  Object.keys(full||{}).forEach(k=>{
+    if(k.charAt(0)==='_' && k!=='_v' && k!=='_light' && k!=='_loaded' && c[k]===undefined) c[k]=full[k];
+  });
   c._loaded=true; c._light=false;
   if(c._v==null) c._v=full._v;
 }
@@ -1964,10 +2058,18 @@ async function doSetup(){
   startApp();
   toast(`Workspace "${name}" created — karibu!`);
 }
+/* ONE SIGN-IN AT A TIME (26 Sep 2026, the overnight clean-up): a double
+   press on Sign in ran the whole start twice — two bootstraps and a second set
+   of the app's repeating refreshes, which then ran for the life of the page
+   (measured). The press is held until the first answer is in. */
+let _loginBusy=false;
 async function doLogin(){
+  if(_loginBusy) return;
   const email=fval('li-email').toLowerCase(), pass=document.getElementById('li-pass').value;
   const err=document.getElementById('li-err');
   if(REMOTE){
+    _loginBusy=true;
+    const go=document.getElementById('li-go'); if(go) go.disabled=true;
     try{
       const r=await api('login','POST',{ email, password:pass });
       // two-step sign-in (WO-6): a correct password earned a ticket, not a
@@ -1977,6 +2079,7 @@ async function doLogin(){
       startApp();
       toast(`Karibu tena, ${REMOTE.me.name.split(' ')[0]}`);
     }catch(e){ err.textContent=e.message; err.classList.remove('hidden'); }
+    finally{ _loginBusy=false; const g=document.getElementById('li-go'); if(g) g.disabled=false; }
     return;
   }
   const u=getUsers().find(x=>x.email===email);
@@ -2084,7 +2187,11 @@ function startApp(){
       window.addEventListener('focus',()=>pollNow('focus'));
       document.addEventListener('visibilitychange',()=>{ if(!document.hidden) pollNow('visible'); });
     }
-    setInterval(refreshShareOverview,60000); setInterval(refreshWaitingQuestions,60000); setInterval(refreshAiUsage,30000);
+    /* Armed ONCE for the life of the page — a second start (a double press on
+       Sign in, or signing in again after signing out) used to add a second
+       set of these three and every one of them ran twice from then on. */
+    if(!window._refreshTimersArmed){ window._refreshTimersArmed=true;
+      setInterval(refreshShareOverview,60000); setInterval(refreshWaitingQuestions,60000); setInterval(refreshAiUsage,30000); }
     window.loadAdviceRequests&&loadAdviceRequests().then(()=>{ updateSidebarCounts(); if(state.view==='advice') renderAdviceDesk(); }).catch(()=>{});
     window.loadIntake&&loadIntake().then(()=>{ updateSidebarCounts(); if(state.view==='intake') renderIntake(); }).catch(()=>{});
     /* AND THE INTAKE LANES RUN ON THEIR OWN BEAT (21 Sep 2026): they used to
@@ -2990,6 +3097,16 @@ const DLG_W = Object.freeze({ s: '400px', m: '520px', l: '640px', xl: '760px' })
   const DLG_TOPBAR = t => `background:linear-gradient(${t},${t}) top left/100% 3px no-repeat, var(--color-surface);`;
 function openModal(html, opts={}){
   const root=document.getElementById('modal-root');
+  /* ONE DIALOG REPLACING ANOTHER KEEPS THE FIRST ONE'S OPENER (26 Sep 2026,
+     the overnight clean-up). The opener was read AFTER the old panel had been
+     torn out, which is always <body> — so closing the second dialog dropped a
+     keyboard user at the top of the document instead of on the button that
+     started it. It is read before anything is replaced, and the old trap is
+     released first (it hands focus back to that same button, and the new
+     trap takes it from there). */
+  const replacing=!!(root && root.querySelector('[role="dialog"]'));
+  const opener=(replacing && _modalOpener) || document.activeElement;
+  if(_modalRelease){ try{ _modalRelease(); }catch(e){} _modalRelease=null; }
   const maxw=opts.maxWidth||DLG_W.m;
   // Given an explicit height the panel becomes a fill-the-window shell: it stops
   // scrolling itself and whatever is inside takes charge of its own overflow.
@@ -3033,14 +3150,14 @@ function openModal(html, opts={}){
      behind. See dragDialog above for the rules it keeps. */
   if(_modalDrag){ try{ _modalDrag(); }catch(e){} _modalDrag=null; }
   if(_modalPin){ try{ _modalPin(); }catch(e){} _modalPin=null; }
-  if(panel){ _modalOpener = document.activeElement; _modalRelease = trapFocus(panel);
+  if(panel){ _modalOpener = opener; _modalRelease = trapFocus(panel, { opener });
     _modalDrag = (typeof dragDialog==='function') ? dragDialog(panel) : null;
     /* A panel given a height runs its own layout and its own scroller. */
     if(!opts.height) _modalPin = dlgPinFoot(panel); }
   // Esc closes, exactly like the scrim click — some modals (Compare, share)
   // otherwise strand keyboard users with no visible way out
-  document.addEventListener('keydown',function esc(e){
-    if(e.key!=='Escape'){ if(!document.getElementById('modal-scrim')) document.removeEventListener('keydown',esc); return; }
+  rootEscSet(function(e){
+    if(e.key!=='Escape') return;
     /* ---- AND ESCAPE BELONGS TO THE TOP LAYER ONLY ----
        confirmDialog and promptDialog append to <body> ABOVE this panel and
        register their own Escape afterwards — and two listeners on `document`
@@ -3050,9 +3167,24 @@ function openModal(html, opts={}){
        the same keystroke: the answer was honoured and ignored at once.
        While a top overlay is up, Escape is not ours. */
     if(document.querySelector('[data-top-overlay]')) return;
-    document.removeEventListener('keydown',esc); closeModalGuarded();
+    closeModalGuarded();
   });
   return root;
+}
+/* ---- ONE ESCAPE FOR #modal-root, OWNED HERE (26 Sep 2026, the overnight
+   clean-up) ----
+   Every open added its own listener on the document, which took itself off
+   only on the NEXT key press — measured, twenty dialogs opened and closed left
+   twenty listeners behind. Two faults hid in that: a side panel replaced by a
+   dialog left the panel's Escape in place, which closed the dialog straight
+   past its own "Discard these changes?"; and the dialog's own Escape took
+   itself off BEFORE asking that question, so after "Keep editing" Escape
+   stopped working altogether. The root now has one Escape at a time: opening
+   replaces it, closing removes it, and a declined guard leaves it armed. */
+let _rootEsc=null;
+function rootEscSet(fn){
+  if(_rootEsc){ document.removeEventListener('keydown',_rootEsc); _rootEsc=null; }
+  if(typeof fn==='function'){ _rootEsc=fn; document.addEventListener('keydown',fn); }
 }
 /* The guard the current modal registered, if any. One value because only one
    #modal-root panel is ever open; cleared on every close so it can never
@@ -3123,6 +3255,7 @@ function dlgPinFoot(panel){
    top of the document every time they dismiss a dialog. */
 function closeModal(){
   _modalGuard=null;
+  rootEscSet(null);
   /* RELEASE BEFORE THE MARKUP GOES. The trap restores focus to the opener, and
      an element cannot take focus once its panel has been torn out from under
      it — which is why this runs first and _modalOpener stays as the fallback
@@ -3165,9 +3298,14 @@ function openSidePanel(html, opts={}){
     <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:10px var(--s-3) 18px;">${html}</div>
   </aside>`;
   document.getElementById('side-panel-x').addEventListener('click',closeModal);
-  document.addEventListener('keydown',function esc(e){
-    if(e.key!=='Escape'){ if(!document.getElementById('side-panel')) document.removeEventListener('keydown',esc); return; }
-    document.removeEventListener('keydown',esc); closeModal();
+  /* The contract it was opened beside, so a navigation to another contract can
+     take it down (see setView, 26 Sep 2026). */
+  try{ const sp=document.getElementById('side-panel'); if(sp && state.activeId!=null) sp.dataset.cid=String(state.activeId); }catch(_){}
+  rootEscSet(function(e){
+    if(e.key!=='Escape') return;
+    /* A question on top of the panel owns this Escape (see confirmDialog). */
+    if(document.querySelector('[data-top-overlay]')) return;
+    closeModal();
   });
   return root;
 }
@@ -3184,11 +3322,22 @@ function confirmDialog(opts={}){
   const title=opts.title||i18t('act_are_you_sure');
   const message=opts.message||'';
   const confirmLabel=opts.confirmLabel||i18t('act_confirm');
-  const cancelLabel=opts.cancelLabel||i18t('act_cancel');
+  /* ONE WAY OUT, AND A REPORT THAT KEEPS ITS LINES (26 Sep 2026, the
+     overnight clean-up). An explicit empty cancelLabel draws no Cancel — for a
+     dialog that only reports, where "Cancel" beside "Close" is two ways to do
+     one thing — and `multiline` keeps the message's own line breaks. The
+     family check asked for both under names this function never read, so its
+     report ran together as one paragraph over Cancel and Confirm. */
+  const cancelLabel=opts.cancelLabel===''?'':(opts.cancelLabel||i18t('act_cancel'));
   const danger=!!opts.danger;
   const esc=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   return new Promise(resolve=>{
-    const prev=document.getElementById('confirm-overlay'); if(prev) prev.remove();
+    /* A QUESTION REPLACED BY ANOTHER IS ANSWERED "NO", never left hanging
+       (26 Sep 2026, the overnight clean-up): removing it took its buttons away
+       while its caller went on waiting for an answer that could never come —
+       and anything that caller held (a leave guard's latch) stayed held. */
+    const prev=document.getElementById('confirm-overlay');
+    if(prev){ if(typeof prev._settle==='function') prev._settle(false); else prev.remove(); }
     const ov=document.createElement('div');
     ov.id='confirm-overlay';
     /* Marks this as the layer Escape belongs to while it is up — openModal's own
@@ -3208,9 +3357,9 @@ function confirmDialog(opts={}){
           <span style="width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:var(--radius);background:${danger?'var(--red-tint,rgba(176,69,60,.1))':'var(--st-steel-bg)'};color:${danger?'var(--danger)':'var(--accent-ink-700)'}">${icon(danger?'alert':'shield','w-4 h-4')}</span>
           <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0;line-height:1.3;padding-top:5px">${esc(title)}</h3>
         </div>
-        ${message?`<p style="font-size:var(--t-body);color:var(--color-neutral-700);line-height:1.55;margin:0 0 var(--s-4);padding-left:46px">${esc(message)}</p>`:''}
+        ${message?`<p style="font-size:var(--t-body);color:var(--color-neutral-700);line-height:1.55;margin:0 0 var(--s-4);padding-left:46px${opts.multiline?';white-space:pre-line':''}">${esc(message)}</p>`:''}
         <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-          <button id="cf-cancel" class="ui-btn">${esc(cancelLabel)}</button>
+          ${cancelLabel?`<button id="cf-cancel" class="ui-btn">${esc(cancelLabel)}</button>`:''}
           <button id="cf-ok" class="ui-btn" style="background:${btnBg};border-color:${btnBg};color:${btnFg}">${esc(confirmLabel)}</button>
         </div>
       </div>`;
@@ -3231,6 +3380,7 @@ function confirmDialog(opts={}){
       if(release){ try{ release(); }catch(_){} }
       if(undrag){ try{ undrag(); }catch(_){} }
       ov.remove(); document.removeEventListener('keydown',onKey); resolve(val); };
+    ov._settle=done;
     /* ENTER DOES NOT CONFIRM FROM HERE (fixed 25 Aug 2026, by the UI audit).
        This handler sits on DOCUMENT and used to answer Enter with done(true),
        so it fired whatever the keyboard was actually on: tab to Cancel, press
@@ -3245,7 +3395,7 @@ function confirmDialog(opts={}){
        Escape down for this one. */
     function onKey(e){ if(e.key==='Escape') done(false); }
     document.addEventListener('keydown',onKey);
-    ov.querySelector('#cf-cancel').addEventListener('click',()=>done(false));
+    ov.querySelector('#cf-cancel')?.addEventListener('click',()=>done(false));
     ov.querySelector('#cf-ok').addEventListener('click',()=>done(true));
     ov.addEventListener('click',e=>{ if(e.target===ov||e.target===ov.firstElementChild) done(false); });
     ov.querySelector('#cf-ok').focus();
@@ -3268,7 +3418,10 @@ function promptDialog(opts={}){
   const cancelLabel=opts.cancelLabel||i18t('act_cancel');
   const esc=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   return new Promise(resolve=>{
-    const prev=document.getElementById('prompt-overlay'); if(prev) prev.remove();
+    /* Replaced, the earlier question is answered "cancelled" — see
+       confirmDialog. */
+    const prev=document.getElementById('prompt-overlay');
+    if(prev){ if(typeof prev._settle==='function') prev._settle(null); else prev.remove(); }
     const ov=document.createElement('div');
     ov.id='prompt-overlay';
     ov.setAttribute('data-top-overlay','1');   /* see confirmDialog above */
@@ -3313,6 +3466,7 @@ function promptDialog(opts={}){
       if(release){ try{ release(); }catch(_){} }
       if(undrag){ try{ undrag(); }catch(_){} }
       ov.remove(); document.removeEventListener('keydown',onKey,true); resolve(val); };
+    ov._settle=done;
     function onKey(e){
       if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); done(null); }
       /* Enter submits a one-line field and types a newline in a multiline one,
@@ -5570,7 +5724,7 @@ let _shareOpenSeq = 0;
    ABORTED BEFORE THE FILL, never left behind: the listener sits on #modal-root
    and the fill only replaces the panel's contents, so a surviving copy would
    handle every later press a second time alongside the real handlers. */
-function shareWireOpening(pending, c, get, set, signal){
+function shareWireOpening(pending, c, get, set, signal, alive){
   const root = document.getElementById('modal-root');
   if (!root || !root.addEventListener) return;
   const fold = kind => {
@@ -5579,6 +5733,14 @@ function shareWireOpening(pending, c, get, set, signal){
     root.querySelector('#share-step-2')?.classList.toggle('hidden', kind);
   };
   root.addEventListener('click', e => {
+    /* A LISTENER FROM AN ABANDONED OPENING STANDS DOWN (26 Sep 2026, the
+       overnight clean-up). #modal-root outlives every dialog, and an opening
+       left by Escape or by a second press on Share returned before its abort —
+       so its listener answered the NEXT dialog's purpose presses, redrew the
+       buttons without their live handler, and the screen said Negotiate while
+       the link went out as Sign (measured). Asked of the opening's own number;
+       openShareModal also aborts it on every way out. */
+    if (typeof alive === 'function' && !alive()) return;
     const t = e.target;
     if (!t || !t.closest) return;
     const card = t.closest('[data-share-kind]');
@@ -5811,12 +5973,13 @@ async function openShareModal(c, opts={}){
   shareWireOpening(_pending, c, () => purposeSel,
     k => { purposeSel = k === 'history' ? 'history'
       : SHARE_PURPOSE(k) || (SHARE_PURPOSE(opts.purpose) || defaultSharePurpose(c)); },
-    _openAbort ? _openAbort.signal : null);
+    _openAbort ? _openAbort.signal : null, () => _openSeq === _shareOpenSeq);
   // A share copies the contract out of the building, so it must be copied
   // whole: a record loaded for a list view carries neither its uploaded file's
   // bytes nor its round history, and both are things the payload publishes.
   try{ await ensureFull(c); }catch(_){}
-  if(_superseded()) return;
+  /* EVERY WAY OUT TAKES THE OPENING'S LISTENER WITH IT (see shareWireOpening). */
+  if(_superseded()){ if(_openAbort) _openAbort.abort(); return; }
   const docHash=await sha256(canonicalDoc(c));
   // E2: snapshot the exact text being sent so a returned redline diffs cleanly.
   if(c.status!=='Signed'){ const v=captureVersion(c,'Shared for review',null,{auto:true}); if(v) persist(c); }
@@ -5867,7 +6030,7 @@ async function openShareModal(c, opts={}){
   // fields open already filled rather than filling themselves a moment later
   // under the user's cursor.
   const priorShares=await contractShares(c);
-  if(_superseded()) return;
+  if(_superseded()){ if(_openAbort) _openAbort.abort(); return; }
   const pre=shareModalPrefill(priorShares, c);
   /* THE BOX AND THE ROW ARE ONE ANSWER. Where the prefill came off the signing
      route, the row it came from opens already chosen, so the link is bound to
@@ -6251,6 +6414,18 @@ async function openShareModal(c, opts={}){
        text, which is where the note goes. */
     if((ch==='email'||ch==='word') && !/.+@.+\..+/.test(email)){ toast(i18t('co_enter_recipient_email'),'err'); return false; }
     if(ch==='whatsapp' && phone.replace(/\D/g,'').length<9){ toast(i18t('co_enter_whatsapp'),'err'); return false; }
+    /* A LINK BOUND TO ONE SIGNER GOES TO THAT SIGNER'S ADDRESS (overnight
+       audit, 26 Sep 2026). The row said "this link" while the box held
+       somebody else's address, and whoever held that address signed Grace's
+       step. The server refuses it too (the wall); saying it HERE keeps the
+       dialog open on the one screen that has the way forward — the signing
+       route's own Edit button sits beside the rows. A row with no address is
+       waiting for the one typed here, and stands. */
+    if(purposeSel==='sign' && signerSel && email){
+      const row=(typeof signerPlan==='function'?signerPlan(c):[]).find(x=>x&&String(x.id)===String(signerSel));
+      const rowMail=String((row&&row.email)||'').trim().toLowerCase();
+      if(rowMail && email.trim().toLowerCase()!==rowMail){ toast(i18t('srv_signer_other_address'),'err'); return false; }
+    }
     /* A SIGNING LINK IS NOT AN ACKNOWLEDGEABLE RISK.
 
        Everything else on the readiness list is the sender's call — a missing
@@ -7180,7 +7355,20 @@ async function applyResponse(c, r, opts={}){
          neither carries a binding, and next-in-order is all there is to go
          on. Bound links never come through here. */
       const ns=window.nextSigner?nextSigner(c):null;
-      if(ns && ns.party==='counterparty'){ ns.signed=true; ns.at=r.at; ns.by=r.name; ns.signature=sig; }
+      /* …BUT NEVER ONTO A STEP THAT NAMES SOMEBODY ELSE (overnight audit,
+         26 Sep 2026). An unbound Sign link sent to a second address put that
+         person's signature on the next counterparty's step, whoever it named.
+         Where the step carries an address and the signature carries a
+         different one, the signature is kept as evidence and the gap is named
+         — the bound-row-gone branch's own rule — rather than guessed onto a
+         step. A step with no address, or a signature with none, is all there
+         is to go on, as before. */
+      const nsMail=String((ns&&ns.email)||'').trim().toLowerCase();
+      const rMail=String(r.email||'').trim().toLowerCase();
+      if(ns && ns.party==='counterparty'){
+        if(!nsMail || !rMail || nsMail===rMail){ ns.signed=true; ns.at=r.at; ns.by=r.name; ns.signature=sig; }
+        else routeNote=` — NOTE: this signature came from ${r.email}, which is not the address on the next signing step (${ns.name||'the next signer'}); the signature is recorded, and no step was marked signed`;
+      }
     }
     c.comments.push({ author:r.name, role:'Counterparty — Signed', side:'external', text:r.comment||'Approved and signed via secure share link.', at:r.at, ts:fmtDT(r.at) });
     // r.verified===false means the server could not send a code, so nothing
@@ -7928,4 +8116,4 @@ const END_STATES = [
 const endStateSays = k => { const x = END_STATES.find(e => e.k === k); return x ? x.says : ''; };
 Object.assign(window,{END_STATES,endStateSays});
 
-Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,userById,verifySeal,waShareLink});
+Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,sigImageSrc,contractOnScreen,userById,verifySeal,waShareLink});

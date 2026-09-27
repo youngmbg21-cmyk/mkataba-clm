@@ -601,7 +601,14 @@ describe('f342 (8) the arrival tile on a file they sign', () => {
   });
   test('8b an older note that counted blanks reads as theirs once the route has moved to them', () => {
     const { win: w0, tile: t0 } = tileStage({}, { ok: true, filled: [], left: 29, none: null });
-    assert.match(String(t0().detail), /29/, 'STAGE: on HaTi\'s own route the note\'s open count is the tail');
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the overnight clean-up): a fill that
+       left fields open no longer reads as a tick with a count in its tail —
+       it reads as the form's own tile ("Open fields are on the panel"), which
+       names them and carries the count ON THE CHIP, counted live. The stage
+       claim is the same: on HaTi's own route the open fields are counted. */
+    const s0 = t0();
+    assert.ok(/29/.test(String(s0.detail)) || (s0.headKey === 'tri_t_fill_panel' && s0.count > 0),
+      'STAGE: on HaTi\'s own route the open fields are counted: ' + JSON.stringify(s0));
     const { tile } = tileStage(THEIRS, { ok: true, filled: [], left: 29, none: null });
     const t = tile();
     assert.equal(t.headKey, 'tri_t_fill_theirs', 'the route is asked live, not read off the note');
@@ -614,7 +621,9 @@ describe('f342 (8) the arrival tile on a file they sign', () => {
     assert.notEqual(t.headKey, 'tri_t_fill_theirs', 'a recorded "theirs" is no longer true');
     const open = win.contractBlanksOpen(win.state.contracts[0]).length;
     assert.ok(open >= 3, 'STAGE: the blanks are open again');
-    assert.ok(String(t.detail).includes(String(open)), 'the blanks are counted as they stand now: ' + t.detail);
+    /* RE-POINTED IN PLACE 26 Sep 2026: the count may ride the chip (see 8b). */
+    assert.ok(String(t.detail).includes(String(open)) || t.count === open,
+      'the blanks are counted as they stand now: ' + JSON.stringify(t));
   });
   test('8d CONTROL — a note on HaTi\'s own route reads exactly as it did', () => {
     const { win, tile } = tileStage({}, { ok: true, filled: [], left: 0, none: 'none' });
@@ -625,7 +634,10 @@ describe('f342 (8) the arrival tile on a file they sign', () => {
   test('8e what Copilot filled before a switch stays named; only the open count goes', () => {
     const fill = { ok: true, filled: ['Insert Company Name'], left: 3, none: null };
     const { tile: t0 } = tileStage({}, fill);
-    assert.match(String(t0().detail), /3/, 'STAGE: on HaTi\'s own route the tail counts what is open');
+    /* RE-POINTED IN PLACE 26 Sep 2026: the count may ride the chip (see 8b). */
+    const s0 = t0();
+    assert.ok(/3/.test(String(s0.detail)) || (s0.headKey === 'tri_t_fill_panel' && s0.count > 0),
+      'STAGE: on HaTi\'s own route what is open is counted: ' + JSON.stringify(s0));
     const { tile } = tileStage(THEIRS, fill);
     const t = tile();
     assert.match(String(t.detail), /Insert Company Name/, 'what happened is still said: ' + t.detail);

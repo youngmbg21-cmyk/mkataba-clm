@@ -112,7 +112,9 @@ describe('f345 (3) the card is the existing door\'s own form, and this file mint
        chosen door's own act and this file mints nothing itself. */
     assert.match(NA, /getElementById\('na-create'\)\?\.addEventListener\('click', goCreate\(\(\)=>api\.create\(\)\)\)/);
     assert.match(NA, /getElementById\('na-skip'\)\?\.addEventListener\('click', goCreate\(\(\)=>api\.skip\(\)\)\)/);
-    assert.match(NA, /const goCreate=fn=>\(\)=>\{ if\(!api\)/, 'and the wrapper still refuses without a door');
+    /* RE-POINTED 26 Sep 2026: the wrapper awaits the act, so a refused Create
+       can give the held people back to the screen. */
+    assert.match(NA, /const goCreate=fn=>async\(\)=>\{ if\(!api\)/, 'and the wrapper still refuses without a door');
   });
   test('each host form returns { create, skip, count } and keeps its own validation', () => {
     const ce = region(TF, 'openContractEssentials');

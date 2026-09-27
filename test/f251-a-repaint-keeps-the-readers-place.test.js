@@ -110,7 +110,11 @@ describe('F251 — a repaint keeps the reader\'s place', () => {
        markup long before it is wired. */
     const at = src.indexOf("querySelectorAll('[data-pf-find-page]')");
     assert.ok(at > -1, 'the pager is still wired in one place');
-    const handler = src.slice(at, at + 900);
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the overnight clean-up): the handler
+       grew a note and the page it steps FROM (the page on screen), and a
+       900-character slice stopped reaching its own end. PIN THE REGION: the
+       handler, to its own close. */
+    const handler = src.slice(at, src.indexOf('}));', at) + 4);
     assert.ok(/again\(\);/.test(handler), 'the pager goes through again()');
     assert.ok(!/renderIntel\(\);/.test(handler),
       'and not straight to renderIntel, which is how it escaped the funnel');

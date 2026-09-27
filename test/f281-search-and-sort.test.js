@@ -174,14 +174,28 @@ describe('f281 (2) — one reading of "is anything narrowing"', () => {
 
 describe('f281 (3) — the way back clears the query and the box', () => {
   test('both Clear controls empty the shell bar as well as the state', () => {
+    /* RE-POINTED IN PLACE 27 Sep 2026 (Young: a door from another page lands
+       on fresh filters). Both handlers wrote their own list of eleven filters,
+       `R.query=''` among them; they now ask the ONE reading every door asks,
+       regFiltersAtRest, and the one box-emptier, regSearchBoxClear. The claim
+       is unchanged and is asked of what those two DO, not of a literal. The
+       region is the handler's own, to its closing brace — never a byte count. */
     const src = REG;
     for (const anchor of ['reg-empty-clear', 'reg-clear-filters']){
       const at = src.indexOf("getElementById('" + anchor + "')");
       assert.ok(at > 0, anchor + ' is wired');
-      const body = src.slice(at, at + 460);
-      assert.match(body, /R\.query=''/, anchor + ' clears the query');
-      assert.match(body, /cmd-search/, anchor + " empties the shell bar's own box");
+      const body = src.slice(at, src.indexOf('});', at));
+      assert.match(body, /regFiltersAtRest\(/, anchor + ' asks the one reading of "nothing is narrowing"');
+      assert.match(body, /regSearchBoxClear\(\)/, anchor + " empties the shell bar's own box");
     }
+    const R = seed(); R.query = 'lease';
+    win.regFiltersAtRest(R);
+    assert.equal(R.query, '', 'and that reading clears the query');
+    const box = win.document.createElement('input'); box.id = 'cmd-search'; box.value = 'lease';
+    win.document.body.appendChild(box);
+    win.regSearchBoxClear();
+    assert.equal(box.value, '', "and the box-emptier empties the shell bar's box");
+    box.remove();
   });
 
   test('and it is PAINTED, because the search repaints only the body', () => {

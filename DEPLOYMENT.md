@@ -16,6 +16,7 @@ production deployment and workspace backup/restore.
 | Variable | Purpose |
 |---|---|
 | `PORT` | Port to listen on (default `3000`). |
+| `NODE_ENV` | **Set to `production` on a live server.** Tells Express it is running live, so none of its development behaviour reaches an answer, and makes `npm install` skip the test-only packages (the server needs `express` alone). render.yaml sets it. |
 | `HATI_DATA` | Directory for the SQLite database (default `server/data`). |
 | `APP_URL` | **Set this in production.** The public address of this deployment, e.g. `https://hati.example.com` (no trailing slash). Mail that HaTi composes on a *schedule* — obligation reminders, the daily/weekly brief, intake decisions and the nudge to a counterparty who has not opened a shared contract — has no incoming request to read the host from, so without `APP_URL` every link in it points at `http://localhost` and is dead for whoever receives it. The server prints a warning at start-up if it is missing. |
 | `HTTPS` / `TRUST_PROXY` | Set either to `true` when running behind a TLS proxy. Turns on the `Secure` cookie flag and HSTS. |
@@ -45,7 +46,7 @@ clm.example.co.ke {
 ```
 
 ```
-HATI_DATA=/var/lib/hati HTTPS=true PORT=3000 APP_URL=https://hati.example.com node server/server.js
+NODE_ENV=production HATI_DATA=/var/lib/hati HTTPS=true PORT=3000 APP_URL=https://hati.example.com node server/server.js
 ```
 
 Caddy provisions and renews the TLS certificate automatically. Because the app
@@ -79,6 +80,7 @@ Use a supervisor so the app restarts on crash/reboot — e.g. a systemd unit:
 ```
 # /etc/systemd/system/hati.service
 [Service]
+Environment=NODE_ENV=production
 Environment=HATI_DATA=/var/lib/hati
 Environment=HTTPS=true
 Environment=PORT=3000

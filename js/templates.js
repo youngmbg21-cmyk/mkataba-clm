@@ -493,8 +493,26 @@ function mintTemplateObligations(c){
   const specs=TEMPLATE_OBLIGATIONS[c.template];
   if(!Array.isArray(specs)||!specs.length) return 0;
   c.obligations=Array.isArray(c.obligations)?c.obligations:[];
+  /* ---- A TEMPLATE'S PROMISE IS MINTED ONCE (26 Sep 2026, the overnight
+     clean-up) ----
+     This runs on every Overview edit and asked only "is this wording already
+     on the list" — so an obligation a person REMOVED came back with the next
+     keystroke, and one whose wording they EDITED was added a second time
+     beside it (measured). `c.tplObMinted` names the promises already minted,
+     and a person's removal or rewording is final. A contract minted before the
+     mark existed is recognised by the template's own sentence with any number
+     in it, so it is not minted twice either. */
+  const minted=new Set(Array.isArray(c.tplObMinted)?c.tplObMinted.map(String):[]);
+  const before=minted.size;
+  const reEsc=x=>String(x).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
   let n=0;
   for(const spec of specs){
+    const key=String(spec.key||'');
+    if(key && minted.has(key)) continue;
+    if(key){
+      const was=new RegExp('^'+reEsc(spec.desc||'').replace(reEsc('{n}'),'\\d+')+'$');
+      if(c.obligations.some(x=>x&&x.origin==='template'&&was.test(String(x.desc||'')))){ minted.add(key); continue; }
+    }
     const due=templateObligationDue(c,spec);
     if(!due) continue;
     const f=(c&&c.fields)||{};
@@ -504,9 +522,11 @@ function mintTemplateObligations(c){
     const o={ id:'ob_t'+Math.random().toString(36).slice(2,8), desc, due,
       recurring:spec.recurring||'none', party:spec.party==='theirs'?'theirs':'ours',
       assignee:'', status:'open', quote:'', origin:'template' };
-    if(window.obligationAlreadyOn&&obligationAlreadyOn(c,o)) continue;
+    if(window.obligationAlreadyOn&&obligationAlreadyOn(c,o)){ if(key) minted.add(key); continue; }
     c.obligations.push(o); n++;
+    if(key) minted.add(key);
   }
+  if(minted.size!==before) c.tplObMinted=[...minted];
   return n;
 }
 

@@ -43,6 +43,9 @@ const SAME_IN_BOTH = new Set([
      too. The History tab's round column; its hover says the whole word in the
      reader's language (24 Sep 2026). */
   'ct_round_short',
+  /* "Person" is the same word in Swedish — the History tab's filter label
+     (26 Sep 2026, the overnight clean-up). */
+  'ct_hf_person',
   /* 'Version' is the same word in both languages — the row of the send-for-
      approval window that names which version is approved (23 Sep 2026). */
   'sa_dlg_version',

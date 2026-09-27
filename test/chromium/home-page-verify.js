@@ -499,6 +499,13 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       dd2.status = 'Signed'; dd2.parentId = null; dd2.archived = null;
       dd2.expiry = day(85);
       dd2.metadata = Object.assign({}, dd2.metadata, { expiryDate: day(85), noticePeriodDays: 30 });
+      /* BOTH RENEWALS ARE THE READER'S OWN (27 Sep 2026): "Needs your
+         decision" lists a renewal only for the contract's owner since that
+         day, and the seeded book is owned by nobody ('System' raised it) — so
+         without the stamp every "it is on the list" claim below would be
+         false for a reason that has nothing to do with the desk. */
+      const me = currentUser();
+      dd2.owner = { id: me.id, name: me.name };
       a.status = 'Signed'; a.counterparty = a.counterparty || 'Nordkust';
       a.counterpartyEmail = 'ops@nordkust.example';
       a.obligations = [{ id: 'ob-desk', desc: 'Quarterly volume report', due: day(-4),
@@ -508,6 +515,7 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
         steps: { playbook: { ok: true, dev: 2, miss: 1, cats: ['Payment terms', 'Liability'] } } };
       cc.status = 'Signed'; cc.parentId = null; cc.expiry = day(40);
       cc.metadata = Object.assign({}, cc.metadata, { expiryDate: day(40), noticePeriodDays: 30 });
+      cc.owner = { id: me.id, name: me.name };
       renderDashboard();
       return { chase: a.id, dev: b.id, ren: cc.id, ren2: dd2.id };
     });
@@ -726,14 +734,24 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     const dd = await page.evaluate(() => {
       const iso = n => { const d = new Date(); d.setDate(d.getDate() + n); const q = x => String(x).padStart(2, '0');
         return d.getFullYear() + '-' + q(d.getMonth() + 1) + '-' + q(d.getDate()); };
-      /* At least three on the list, so the cap has something to hold back:
-         contracts sitting in review are listed whole, longest idle first. */
+      /* At least three on the list, so the cap has something to hold back.
+         RE-POINTED IN PLACE 27 Sep 2026: this staged contracts sitting in
+         review, the "Waiting on review" source — which LEFT the card that day
+         (Young: yes to the card listing the side panel's checklist's five
+         kinds). It stages renewal decisions on contracts the READER owns
+         instead, each one inside the ninety-day window, and puts every staged
+         field back afterwards. */
       window.__s12 = [];
+      const me = currentUser();
       const onIt = () => new Set((window.hmDecisionItems ? hmDecisionItems() : []).map(x => x.cid));
-      const pool = state.contracts.filter(c => !c.archived && c.status !== 'Declined' && !onIt().has(c.id));
+      const pool = state.contracts.filter(c => !c.archived && c.status !== 'Declined' && !c.parentId && !onIt().has(c.id));
+      let k = 0;
       for (const c of pool) { if ((window.hmDecisionItems ? hmDecisionItems() : []).length >= 3) break;
-        window.__s12.push({ c, status: c.status, lastAction: c.lastAction });
-        c.status = 'Under Review'; c.lastAction = iso(-40); }
+        window.__s12.push({ c, was: JSON.parse(JSON.stringify({ status: c.status, expiry: c.expiry,
+          metadata: c.metadata, owner: c.owner || null })) });
+        c.status = 'Signed'; c.expiry = iso(45 + 6 * k);
+        c.metadata = Object.assign({}, c.metadata, { expiryDate: c.expiry, noticePeriodDays: 30 });
+        c.owner = { id: me.id, name: me.name }; k++; }
       renderDashboard();
       const list = window.hmDecisionItems ? hmDecisionItems() : [];
       const card = [...document.querySelectorAll('.hm-card')].find(x => /Needs your decision/.test((x.querySelector('h2') || {}).textContent || ''));
@@ -771,8 +789,20 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     await page.evaluate(() => { if (window.regState) regState().only = null; setView('dashboard'); });
     await page.waitForTimeout(900);
 
-    /* A row opens its own contract. */
+    /* A row opens its own contract.
+       THE STAGED FIELDS ARE PUT BACK BEFORE THE PRESS (27 Sep 2026). They are
+       a fiction held in memory for one render and never saved — and since
+       Young's word on the renewal's Decide, pressing a renewal row reads the
+       contract again, which SAVES it. Saving the fiction is what the server
+       rightly refused (409: an executed record's end date cannot change), and
+       the refusal was this file's page-error sweep going red. The row stays
+       in the DOM (nothing re-renders between the put-back and the press), so
+       the press still goes through the real door; the reading it starts is
+       over the stored record. 12g's own put-back, later, finds nothing left
+       to undo. */
     const firstId = await page.evaluate(() => { const r = document.querySelector('#hm-dd-rows .hm-row');
+      (window.__s12 || []).forEach(({ c, was }) => { c.status = was.status; c.expiry = was.expiry;
+        c.metadata = was.metadata; if (was.owner) c.owner = was.owner; else delete c.owner; });
       return r ? r.getAttribute('data-sel') : null; });
     if (firstId) await page.click('#hm-dd-rows .hm-row');
     await page.waitForTimeout(1200);
@@ -798,13 +828,67 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
         text: card ? ((card.querySelector('.hm-empty') || {}).textContent || '').trim() : '',
         left: (window.hmDecisionItems ? hmDecisionItems() : []).map(x => x.cid) };
       had.forEach(({ c, status }) => { c.status = status; });
-      (window.__s12 || []).forEach(({ c, status, lastAction }) => { c.status = status; c.lastAction = lastAction; });
+      (window.__s12 || []).forEach(({ c, was }) => { c.status = was.status; c.expiry = was.expiry;
+        c.metadata = was.metadata; if (was.owner) c.owner = was.owner; else delete c.owner; });
       delete window.__s12;
       renderDashboard();
       return out;
     });
     check('12g with nothing to decide, it says so in one line — no rows, no See all',
       none.list === 0 && none.empty && none.rows === 0 && !none.seeAll, JSON.stringify(none));
+
+    /* ---- THE SAME FIVE KINDS AS THE SIDE PANEL'S CHECKLIST (Young: yes,
+       27 Sep 2026) ----
+       Two things the card listed and the checklist never did, staged on one
+       real record each and put back. RED AT a007cdb: 12h's contract WAS a row
+       ("Waiting on review"), and 12i's colleague's renewal WAS on the list.
+       12i2 is the CONTROL that makes 12i mean something — the SAME contract,
+       owned by the reader, IS on the list, so 12i was the owner question and
+       not a renewal the reading could not see. */
+    const five = await page.evaluate(() => {
+      const iso = n => { const d = new Date(); d.setDate(d.getDate() + n); const q = x => String(x).padStart(2, '0');
+        return d.getFullYear() + '-' + q(d.getMonth() + 1) + '-' + q(d.getDate()); };
+      const onList = id => (window.hmDecisionItems ? hmDecisionItems() : []).some(x => x.cid === id);
+      const inRows = id => [...document.querySelectorAll('#hm-dd-rows [data-sel]')].some(b => b.getAttribute('data-sel') === id);
+      const live = state.contracts.filter(c => !c.archived && c.status !== 'Declined' && !c.parentId);
+      const [r, n] = live.filter(c => !onList(c.id));
+      if (!r || !n) return null;
+      const keep = c => JSON.parse(JSON.stringify({ status: c.status, lastAction: c.lastAction,
+        expiry: c.expiry, metadata: c.metadata, owner: c.owner || null, desk: c.desk || null }));
+      const put = (c, was) => { Object.assign(c, { status: was.status, lastAction: was.lastAction,
+        expiry: was.expiry, metadata: was.metadata });
+        if (was.owner) c.owner = was.owner; else delete c.owner;
+        if (was.desk) c.desk = was.desk; else delete c.desk; };
+      const wr = keep(r), wn = keep(n);
+      /* 12h — idle in review for forty days, the old row's own shape */
+      r.status = 'Under Review'; r.lastAction = iso(-40);
+      /* 12i — a renewal inside the window, owned by a colleague, and PUT AWAY
+         FROM THE DESK: it would be the nearest renewal on the book, the desk
+         would draw it, and the one-door rule would take it off the list for a
+         reason that is not the one under test. */
+      n.desk = Object.assign({}, n.desk, { renewal: iso(-1), notice: iso(-1) });
+      n.status = 'Signed'; n.expiry = iso(50);
+      n.metadata = Object.assign({}, n.metadata, { expiryDate: iso(50), noticePeriodDays: 30 });
+      const other = (typeof getUsers === 'function' ? getUsers() : []).find(u => u && u.id !== currentUser().id);
+      n.owner = { id: other ? other.id : 'u-colleague', name: other ? other.name : 'A colleague' };
+      renderDashboard();
+      const out = { review: { id: r.id, list: onList(r.id), row: inRows(r.id) },
+        theirs: { id: n.id, list: onList(n.id), row: inRows(n.id), owner: n.owner.name } };
+      n.owner = { id: currentUser().id, name: currentUser().name };
+      renderDashboard();
+      out.mine = { list: onList(n.id) };
+      put(r, wr); put(n, wn);
+      renderDashboard();
+      return out;
+    });
+    check('12h a contract that has sat in review is not on the list — that queue names nobody',
+      !!five && !five.review.list && !five.review.row,
+      five ? `${five.review.id}: on the list ${five.review.list} · a row ${five.review.row}` : 'could not stage');
+    check('12i a renewal on a contract a colleague owns is not on the list',
+      !!five && !five.theirs.list && !five.theirs.row,
+      five ? `${five.theirs.id} (owned by ${five.theirs.owner}): on the list ${five.theirs.list}` : 'could not stage');
+    check('12i2 …and the same renewal owned by the reader IS — so 12i was the owner question (control)',
+      !!five && five.mine.list === true, five ? `on the list ${five.mine.list}` : 'could not stage');
 
     check('no page errors', errors.length === 0, errors.slice(0, 2).join(' | ') || 'clean');
   } catch (e) {

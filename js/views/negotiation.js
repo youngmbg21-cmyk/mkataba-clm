@@ -3839,6 +3839,15 @@ function reviewConfirmSend(c, warn, handlers){
   });
 }
 
+/* The selection menu's two dismissals — a press outside it, Escape — at module
+   scope so wiring them holds no page (see wireNegotiationTab). */
+function _negoSelOutsideDown(e){
+  if (!e.target.closest || (!e.target.closest('.nego-selmenu') && !e.target.closest('.nego-aipop')))
+    _negoKillSelMenu();
+}
+function _negoSelEscKey(e){
+  if (e.key === 'Escape'){ _negoKillSelMenu(); _negoKillAiPop(); }
+}
 function wireNegotiationTab(c, opts = {}){
   const side = opts.side || 'owner';
   const host = document.getElementById(opts.hostId || 'nego-tab');
@@ -5003,13 +5012,18 @@ function wireNegotiationTab(c, opts = {}){
        what a press in the wording is for on this page. And a clause a
        colleague holds still says so: the lock sign is drawn at rest since
        15 Sep, so nothing has to be pressed to learn it. */
-    document.addEventListener('mousedown', e => {
-      if (!e.target.closest || (!e.target.closest('.nego-selmenu') && !e.target.closest('.nego-aipop')))
-        _negoKillSelMenu();
-    }, true);
-    document.addEventListener('keydown', e => {
-      if (e.key === 'Escape'){ _negoKillSelMenu(); _negoKillAiPop(); }
-    });
+    /* ---- ARMED ONCE, AT MODULE SCOPE (26 Sep 2026, the overnight clean-up) ----
+       These two were added to the DOCUMENT on every paint of this page — every
+       Accept, Reject, filing and seat switch — and a closure made here keeps
+       this whole paint's scope, the page included, alive for the life of the
+       tab (measured: 7,103 listeners and 124,994 nodes after a hundred paints,
+       268 and 3,716 bound once). They call only module functions, so they
+       live at module scope and are added the first time and never again. */
+    if (!document._negoSelKillWired){
+      document._negoSelKillWired = true;
+      document.addEventListener('mousedown', _negoSelOutsideDown, true);
+      document.addEventListener('keydown', _negoSelEscKey);
+    }
   }
   host.querySelectorAll('[data-nego-card]').forEach(card => {
     const id = card.getAttribute('data-nego-card');
@@ -7668,7 +7682,7 @@ function rlBoardSet(on){ _rlBoardOpen = !!on; }
 function rlBoardPaintTitle(){
   const el = (typeof document !== 'undefined') ? document.getElementById('shell-title') : null;
   if (!el) return;
-  if (_rlBoardOpen) el.textContent = i18t('ng_board');
+  if (_rlBoardOpen){ el.classList.remove('is-crumb'); el.textContent = i18t('ng_board'); }
   /* THE CRUMB, NOT THE PAGE NAME, once a contract is on the bench (second pass,
      21 Sep 2026): this paint runs AFTER wireRoomHead adopted #ws-back into
      the bar, and writing textContent over it threw the button away. Re-adopt;
@@ -7676,7 +7690,7 @@ function rlBoardPaintTitle(){
   else if (typeof window.shellCrumbAdopt === 'function' && window.getContract && typeof redlineHeldId === 'function' && redlineHeldId()
     && (document.querySelector('.room-head #ws-back') || document.getElementById('ws-back'))
     && shellCrumbAdopt(getContract(redlineHeldId()), document.querySelector('.room-head #ws-back') || document.getElementById('ws-back'))) { /* crumb painted */ }
-  else if (typeof window.shellTitleFor === 'function') el.textContent = shellTitleFor('redline');
+  else if (typeof window.shellTitleFor === 'function'){ el.classList.remove('is-crumb'); el.textContent = shellTitleFor('redline'); }
 }
 function rlBoardPageHtml(c){
   return `<div class="rl-boardpage" id="rl-boardpage">${dealBoardHtml(c, 'owner')}</div>`;
@@ -7920,10 +7934,9 @@ function rlPaintFocusBtn(){
   const face = b => {
     b.classList.toggle('on', _rlFocus);
     b.setAttribute('aria-pressed', _rlFocus ? 'true' : 'false');
-    b.setAttribute('aria-label', _rlFocus ? 'Exit focus mode' : 'Enter focus mode');
-    b.title = _rlFocus
-      ? 'Exit focus mode — bring the header back'
-      : 'Focus mode — hide the header and give the space to the document and the changes';
+    /* In the reader's language (26 Sep 2026, the overnight clean-up). */
+    b.setAttribute('aria-label', _rlFocus ? i18t('ct_exit_focus') : i18t('po_focus_mode'));
+    b.title = _rlFocus ? i18t('ct_exit_focus') : i18t('ct_focus_mode');
   };
   document.querySelectorAll('[data-rl-focus]').forEach(face);
   /* THE HEAD'S BUTTON IS PAINTED BY WHICHEVER PAGE OWNS IT, and the scope is
@@ -9269,6 +9282,11 @@ function renderNegotiationsList(host){
      inherits the reset rather than forgetting it. Before the innerHTML below,
      so rlSetFocus still finds the page it is taking the class off. */
   if (typeof rlFocusOn === 'function' && rlFocusOn()) rlSetFocus(false);
+  /* AND THE BAR SAYS WHICH PAGE THIS IS, not the last contract's crumb (26 Sep
+     2026, the overnight clean-up): the list paints into its own host without
+     setView, so nothing else repainted the bar. The held contract is already
+     let go on every path that arrives here. */
+  if (typeof rlBoardPaintTitle === 'function') rlBoardPaintTitle();
   const live = negoLiveList();
   /* ---- AN EMPTY GROUP IS INFORMATION; THREE OVER NOTHING IS NOT ----
      With no live negotiation anywhere, this is not a table that filtered to
@@ -10273,7 +10291,13 @@ function renderRedline(){
            second batch sent while it was already theirs must not claim the
            table changed hands — see negoHandOver. */
         const moved = handed ? handed.moved !== false : false;
-        const turnLine = moved ? ' — it is now their turn' : '';
+        /* …AND ONLY WHERE THE PAGE AGREES (26 Sep 2026, the overnight
+           clean-up): a solo send with another draft still on the desk, or one
+           of their asks still undecided, moved the stamp while the fact row
+           beside this toast said the move was still ours — negWhoseMove is the
+           ONE reading of whose move it is, so the sentence asks it too. */
+        const theirsNow = (typeof negWhoseMove === 'function') ? ((negWhoseMove(c) || {}).k === 'them') : moved;
+        const turnLine = (moved && theirsNow) ? ' — it is now their turn' : '';
         /* A SECOND LIVE LINK IS SAID ON SCREEN, not only in the audit trail.
            This is the state reported on MK-255: the round published, the owner
            was told it had gone, and the counterparty reloaded the URL they
@@ -10320,9 +10344,12 @@ function renderRedline(){
           ? `${window.reshareStrandedLine ? reshareStrandedLine(to) : 'A NEW link was created for ' + to + '.'}${turnLine ? ' It is now their turn.' : ''}`
           : delivered
           ? `Sent to ${to}${turnLine}${keptLine}`
+          /* A sentence that ends in a full stop loses it before a tail is
+             joined on — "not emailed. — 1 other draft" read as two broken
+             sentences (26 Sep 2026, the overnight clean-up). */
           : standing
-          ? `${i18t('ng_round_sent_standing', { who: to })}${turnLine}${keptLine}`
-          : `${i18t('ng_published_not_emailed', { who: to })}${turnLine}${keptLine}`,
+          ? `${(turnLine || keptLine) ? i18t('ng_round_sent_standing', { who: to }).replace(/\.\s*$/, '') : i18t('ng_round_sent_standing', { who: to })}${turnLine}${keptLine}`
+          : `${(turnLine || keptLine) ? i18t('ng_published_not_emailed', { who: to }).replace(/\.\s*$/, '') : i18t('ng_published_not_emailed', { who: to })}${turnLine}${keptLine}`,
           (delivered || standing) ? 'ok' : 'warn',
           (!delivered && !standing && link) ? { action: { label: i18t('ng_copy_link'),
             onClick: () => { try{ navigator.clipboard.writeText(link); }catch(e){}
@@ -11197,6 +11224,10 @@ function rlCardForgetPins(contractId){
      drawing nothing. */
   if (typeof rlClearReadAt === 'function') rlClearReadAt();
   _rlBoardOpen = false;
+  /* AND THE NOTES DRAWER DOES NOT STAY ON THE LAST CONTRACT (26 Sep 2026, the
+     overnight clean-up): a note typed there was filed on the other contract,
+     and in the External room sent to the other counterparty. */
+  if (id && typeof window.notesPanelFollow === 'function') window.notesPanelFollow(id);
 }
 /* The verbs reduced to which ACTIONS are on offer, ignoring the ids inside them
    so that a clause being renamed underneath a card does not count as a state
@@ -14509,6 +14540,18 @@ function rlDeltaOps(ops){
 /* WHICH CHANGES GET A CARD, as one answer. The stack and the tab pill both
    read it, because a pill that counts something narrower than the list it
    labels is a pill that says "nothing arrived" over four cards. */
+/* ---- A PARKED ASK FOLDS UNDER ITS COUNTER — the ONE rule (the artifact's
+   column, 14 Sep 2026; made one rule 26 Sep 2026) ----
+   One row per argument: the counter's row carries the whole track and the
+   ladder behind it, so the ask it stands on is not a second row saying the
+   same thing without verbs. Kept where its counter is NOT drawn on this seat
+   (an unsent counter read from the other chair) — there the parked ask is
+   still the live thing. Asked by the column AND by redlineCardIds, which is
+   what the counts above it are drawn from. */
+function _rlFoldedUnderCounter(x, all, hidden){
+  return !!(_rlIsParked(x) && x.counteredBy && (all || []).some(y => y && y.id === x.counteredBy
+    && !(hidden && hidden.has(y.id)) && (_rlIsLive(y) || _rlIsParked(y))));
+}
 function redlineCardIds(c, opts = {}){
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   const all = (typeof negoChanges === 'function') ? negoChanges(c) : [];
@@ -14528,7 +14571,11 @@ function redlineCardIds(c, opts = {}){
        that ignored the filter would label a column it was not describing.
        Not applied to a reviewer's narrowed column: opts.countAll lets the
        chips ask for the unfiltered totals they print. */
-    && (opts.countAll || rlCardFilterPass(x, side)));
+    && (opts.countAll || rlCardFilterPass(x, side))
+    /* AND THE SAME FOLD (26 Sep 2026, the overnight clean-up): the list folds
+       a parked ask under its counter and this did not, so "Redlines 3" and
+       "Redlined 3" sat over two rows (measured). One rule, two askers. */
+    && !_rlFoldedUnderCounter(x, all, hidden));
   /* THE SAME ORDER THE STACK DRAWS. This function is the stack's own predicate
      and it is also what the pill counts — so it sorts as well as filters, or
      the two lists would agree about the population and disagree about the
@@ -15427,6 +15474,15 @@ function rlNpClauseLabel(c, clauseId){
   let cl = null;
   try { cl = negoClauseById(c, id); } catch (e){ cl = null; }
   if (!cl) return '';
+  /* ONE CLAUSE-NAME FORMAT ON SCREEN (26 Sep 2026, the overnight clean-up):
+     this built "Clause 3 · Confidentiality" by hand, a format retired on
+     15 Sep, while the same drawer's change head read "1. Payment" — two
+     spellings a few pixels apart. The record's own label, presented through
+     clauseNameShown, as every other screen does. */
+  if (window.clauseLabel && window.clauseNameShown){
+    const shown = clauseNameShown(clauseLabel(cl));
+    if (shown) return shown;
+  }
   const num = cl.num ? i18t('ng_np_clause_n', { n: cl.num }) : '';
   const raw = String(cl.title || cl.headingText || '').trim();
   const name = raw ? (window.clauseNameShown ? clauseNameShown(raw) : raw) : '';
@@ -16899,6 +16955,28 @@ function rlRepaintNoteMarks(c, opts = {}){
   document.querySelectorAll('.rl-doc').forEach(d => { if (d.parentElement) roots.add(d.parentElement); });
   let n = 0;
   roots.forEach(root => { try { n += rlPaintNoteMarks(root, c, opts) || 0; } catch (e){} });
+  /* ---- AND EACH ROW'S COUNT, IN THE SAME BREATH (26 Sep 2026, the overnight
+     clean-up) ----
+     Posting, replying, Done and Delete all end here — and the count on the
+     change's own row was drawn once with the page, so it kept saying "1" over
+     a thread of three until something repainted the column, and a change's
+     first note got no count (and so no door) at all (measured). Each of our
+     rows is redrawn through rlCardNotesCountHtml, the one builder; the press on
+     it is delegated at module load, so a count drawn here is a live door. */
+  try {
+    const list = Array.isArray(c.changes) ? c.changes : [];
+    document.querySelectorAll('article.rl-card-d[data-nego-card]').forEach(card => {
+      const id = card.getAttribute('data-nego-card');
+      const ch = list.find(x => x && String(x.id) === String(id)); if (!ch) return;
+      const row = card.querySelector('.rl-card-metarow'); if (!row) return;
+      const old = row.querySelector('.rl-card-notes');
+      const html = rlCardNotesCountHtml(c, ch, opts, 'owner');
+      if (!html){ if (old) old.remove(); return; }
+      const tmp = document.createElement('div'); tmp.innerHTML = html;
+      const fresh = tmp.firstElementChild; if (!fresh) return;
+      if (old) old.replaceWith(fresh); else row.appendChild(fresh);
+    });
+  } catch (e){}
   return n;
 }
 /* One note by its key, wherever it lives — the contract's own thread or any
@@ -17164,7 +17242,7 @@ function redlineChangeCardsHtml(c, opts = {}){
        is not a second row saying the same thing without verbs. Kept where
        its counter is NOT drawn on this seat (an unsent counter read from the
        other chair) — there the parked ask is still the live thing. */
-    && !(_rlIsParked(x) && x.counteredBy && all.some(y => y && y.id === x.counteredBy && !hidden.has(y.id) && (_rlIsLive(y) || _rlIsParked(y))))),
+    && !_rlFoldedUnderCounter(x, all, hidden)),
     /* AND THE SAME ORDER, from the same function AND WITH THE SAME BAND
        READING: the piles first, still-open work before settled inside each.
        Passing bandOpts here is what stops the pill and this column agreeing
@@ -17851,10 +17929,13 @@ function redlineChangeCardsHtml(c, opts = {}){
         && window.reviewSeatShowsReview && reviewSeatShowsReview(opts)
         && !(window.reviewInOpen && reviewInOpen(c, ch)))
       verbs.push(`<button class="rl-edit" data-rl-ask-review="${_nea(ch.id)}"
-        title="${_nea(i18t('rv_held_ask_again_title'))}">&#128100; ${i18t('rv_held_ask_again')}</button>`);
+        title="${_nea(i18t('rv_held_ask_again_title'))}">${i18t('rv_held_ask_again')}</button>`);
     /* Taking your own draft off the table is not sending it, so a hold does not
        stand in the way — and it is the other honest answer to a refusal. */
-    if (editable && (mineUnsent || rvHeld)) verbs.push(`<button class="rl-rej" data-rl-retract="${_nea(ch.id)}"
+    /* …but not while it is inside an open review (26 Sep 2026, the overnight
+       clean-up): a reviewer's row offered Discard on the colleague's draft
+       they had just cleared, and one press deleted it under an open review. */
+    if (editable && (mineUnsent || rvHeld) && !(window.reviewInOpen && reviewInOpen(c, ch))) verbs.push(`<button class="rl-rej" data-rl-retract="${_nea(ch.id)}"
         title="${_nea(i18t('ng_retract_title',{who:c.counterparty || i18t('ng_the_counterparty')}))}">${i18t('ng_retract')}</button>`);
     /* The one verb on this card that reaches the other company, so the one the
        reviewer's posture takes away. Retract above stays: taking your own draft

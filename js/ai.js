@@ -300,8 +300,12 @@ function runScan(c){
    would scroll to wording the reader cannot see. */
 function scanCanvas(){
   if(typeof document==='undefined') return null;
+  /* THE GRAPH'S PAPER IS THE THIRD (26 Sep 2026, Analyze contract): the
+     Explorer tab (the map) mounts a reading copy where its nodes were, and no other
+     contract surface is on that page. */
   return document.getElementById('doc-canvas')
       || document.getElementById('rl-doc')
+      || document.getElementById('ig-canvas')
       || null;
 }
 function scanGoTo(c, id, anchorHint){
@@ -532,8 +536,19 @@ function clearQuoteMarks(){
   }
   for(const el of root.querySelectorAll('.anchor-flash')) el.classList.remove('anchor-flash');
 }
-function scrollToQuote(quote){
-  const root=scanCanvas();
+/* `opts` (26 Sep 2026, the graph's Analyze contract) is ADDITIVE — every older
+   caller passes none and gets the flash exactly as before:
+     root    the canvas to walk (default: scanCanvas());
+     hold    keep the mark — no six-second removal, no inline flash colours,
+             dressed by `cls` instead (the pins on the graph's paper);
+     cls     the mark's class (default 'anchor-flash');
+     pin     stamped on every mark as data-ig-pin, so a caller can find the
+             marks it made;
+     scroll  false leaves the scroll position alone (a re-paint of marks that
+             are already there must not move the reader). */
+function scrollToQuote(quote, opts){
+  const o=opts||{};
+  const root=o.root||scanCanvas();
   const needle=quoteNorm(quote).trim();
   if(!root||needle.length<12) return false;
 
@@ -603,31 +618,34 @@ function scrollToQuote(quote){
       r.setEnd(g.node, Math.min(rawE,g.node.nodeValue.length));
       if(r.collapsed) continue;
       const mark=document.createElement('span');
-      mark.className='anchor-flash';
-      mark.style.cssText='background:var(--st-amber-bg);border-radius:var(--radius);box-shadow:0 0 0 2px var(--st-amber-bg)';
+      mark.className=o.cls||'anchor-flash';
+      if(!o.hold) mark.style.cssText='background:var(--st-amber-bg);border-radius:var(--radius);box-shadow:0 0 0 2px var(--st-amber-bg)';
+      if(o.pin!=null) mark.setAttribute('data-ig-pin',String(o.pin));
       r.surroundContents(mark);
       marks.push(mark);
     }catch(_){ /* a malformed node is skipped, not fatal */ }
   }
   if(!marks.length) return false;
-
   /* Centre the first mark by adjusting every scrollable ancestor directly.
      scrollIntoView is unreliable here: the document sits inside a zoom wrapper
      and sometimes inside a nested reading pane, and either can make it land at
      the top. Rect deltas are visual pixels on both sides, so dividing by the
      ancestor's own render scale keeps the sum right even under zoom. */
-  const target=marks[0];
-  let a=target.parentElement;
-  while(a){
-    if(a.scrollHeight>a.clientHeight+8){
-      const ar=a.getBoundingClientRect(), er=target.getBoundingClientRect();
-      const scale=(a.offsetWidth?ar.width/a.offsetWidth:1)||1;
-      a.scrollTop += ((er.top-ar.top)/scale) - a.clientHeight/2 + (er.height/scale)/2;
+  if(o.scroll!==false){
+    const target=marks[0];
+    let a=target.parentElement;
+    while(a){
+      if(a.scrollHeight>a.clientHeight+8){
+        const ar=a.getBoundingClientRect(), er=target.getBoundingClientRect();
+        const scale=(a.offsetWidth?ar.width/a.offsetWidth:1)||1;
+        a.scrollTop += ((er.top-ar.top)/scale) - a.clientHeight/2 + (er.height/scale)/2;
+      }
+      a=a.parentElement;
     }
-    a=a.parentElement;
+    const er=target.getBoundingClientRect();
+    if(er.top<0||er.bottom>window.innerHeight) window.scrollBy({top:er.top-window.innerHeight/2});
   }
-  const er=target.getBoundingClientRect();
-  if(er.top<0||er.bottom>window.innerHeight) window.scrollBy({top:er.top-window.innerHeight/2});
+  if(o.hold) return true;
   setTimeout(()=>{ for(const mark of marks){ const p=mark.parentNode; if(!p) continue;
     while(mark.firstChild) p.insertBefore(mark.firstChild,mark);
     p.removeChild(mark); p.normalize(); } }, 6000);
@@ -1246,7 +1264,9 @@ let _aiPendingBlocks = null;
    nothing is worse than one that throws. */
 function aiLastAsk(){
   const h = (typeof ai === 'object' && ai && Array.isArray(ai.history)) ? ai.history : [];
-  for (let i = h.length - 1; i >= 0; i--) if (h[i] && h[i].role === 'user') return String(h[i].text || '');
+  /* The question as TYPED where it was kept (a typed question's `text` is its
+     escaped copy for the feed — see aiSubmit). */
+  for (let i = h.length - 1; i >= 0; i--) if (h[i] && h[i].role === 'user') return String(h[i].raw != null ? h[i].raw : (h[i].text || ''));
   return '';
 }
 function aiFmt(raw){
@@ -1294,7 +1314,7 @@ function aiChatMessages(){
   const strip=s=>String(s||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
   return ai.history
     .filter(m=>(m.role==='user'||m.role==='assistant') && m.text && !m.err)
-    .map(m=>({ role:m.role, content:strip(m.text) }))
+    .map(m=>({ role:m.role, content:(m.raw!=null?String(m.raw).trim():strip(m.text)) }))
     /* FOURTEEN TURNS, NOT EIGHT (audit phase 6, a judgement call): eight
        forgot a contract named four questions ago. Fourteen is about two more
        rounds of question-and-answer with tools between, and the cached
@@ -3812,7 +3832,14 @@ async function aiSubmit(){
   /* Back to one line, or the next question is typed into the hole the last one
      grew to. */
   if(window.chatFieldReset) chatFieldReset(inp); else inp.value='';
-  aiPush('user',{text:q});
+  /* ---- WHAT THE READER TYPED IS WORDS, NEVER MARKUP (26 Sep 2026, the
+     overnight clean-up) ---- The feed draws a user bubble's `text` as HTML,
+     because the two seeded doors (a clause action from the Document tab and
+     the negotiate page) hand it their own escaped markup. A question typed
+     here went in raw, so "<img onerror=…>" ran in the reader's own page and a
+     question about "<b>X</b>" lost its words. Escaped for the feed; the raw
+     question is kept beside it and is what goes to the model. */
+  aiPush('user',{text:esc(q), raw:q});
   ai.busy=true;
   /* A live proposal owns the next sentence. Anything typed while a card is open
      is a note about that card — nobody opens a rewrite of clause 7 and then
@@ -4597,6 +4624,10 @@ function renderRenewalSection(c){
     const b=ev.currentTarget; b.disabled=true; b.textContent=i18t('ct_working');
     const had=!!c._renewalAdvice;
     const r=await runRenewalAdvice(c,{force:had});
+    /* The note is stored on its own contract; where the reader has opened
+       another one meanwhile, this card is not repainted over theirs (26 Sep
+       2026, the overnight clean-up — see contractOnScreen). */
+    if(window.contractOnScreen && !contractOnScreen(c)) return;
     renderRenewalSection(c);
     if(!r&&!had){ const b2=document.querySelector('[data-rn-ask]'); if(b2){ b2.disabled=false; b2.textContent=i18t('rn_ask'); } }
   });

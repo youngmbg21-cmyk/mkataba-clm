@@ -372,8 +372,22 @@ function auditDatesOf(c) {
     lastAt: (last && last.at) || null,
   };
 }
+/* ---- WHAT A BROWSER HOLDS FOR ONE SITTING IS NEVER THE RECORD (26 Sep 2026,
+   the overnight clean-up) ----
+   The negotiate page fetches a contract's messages once per sitting and marks
+   it (`_messages`, `_msgFetch`, `_shareFetch`); the pre-signature check and the
+   arrival read mark a run in flight (`_signChecking`, `_triaging`). The save
+   copied every key, so all five were STORED — and the next sitting loaded them
+   back: the page saw "already fetched" and skipped the fetch, painting a copy
+   of the notes as old as the last save until the poller caught up, and a check
+   interrupted by a reload stayed "running" for good (measured). Dropped on the
+   way in and on the way out, so a record already carrying them is clean the
+   next time anybody reads it. */
+const SITTING_KEYS = ['_messages', '_msgFetch', '_shareFetch', '_signChecking', '_triaging'];
+const dropSittingKeys = c => { if (c && typeof c === 'object') for (const k of SITTING_KEYS) delete c[k]; return c; };
 const HEAVY = c => { // strip the big fields for list/index responses
   const x = { ...c };
+  dropSittingKeys(x);
   if (x.execution) x.execution = { ...x.execution, html: undefined };
   if (x.upload) x.upload = { ...x.upload, dataUrl: undefined, extractedText: undefined };
   /* THE STORED OWNER WINS. `_raisedBy` was the stop-gap that made the
@@ -592,6 +606,12 @@ addColumnIfMissing('outbox', 'detail', 'TEXT');
 // few wrong guesses regardless of where the guesses come from — defence in
 // depth that does not depend on IP-based rate limiting alone.
 addColumnIfMissing('share_otp', 'attempts', 'INTEGER NOT NULL DEFAULT 0');
+/* WHERE AN INTERNAL SIGNER'S TURN NOTICE WENT (26 Sep 2026, the overnight
+   clean-up): sendEmail's own `provider` — 'resend', 'outbox', or the refusal.
+   Without it a notice queued because this server has no email provider read as
+   "EMAIL FAILED" on the signing order, against the product's own rule that the
+   outbox is honest delivery, not failure. NULL on every row written before. */
+addColumnIfMissing('signer_notices', 'provider', 'TEXT');
 /* ---- THE REQUESTS QUEUE GETS A CLOCK, A HOLDER AND A WAY TO BE FOLLOWED
    (S4 + S5 + S3 of HaTi's Next Fifteen, 16 Sep 2026) ----
    Four columns, all nullable, all absent on every request on file — so a
@@ -1231,7 +1251,15 @@ function rvGateApplies(c, u){
   if (g.when === 'value') return Number((c && c.value) || 0) >= g.value;
   /* 'deviation' — the playbook says this contract is off-piste. */
   const pb = c && c.playbook;
-  return !!(pb && Array.isArray(pb.verdicts) && pb.verdicts.some(v => v && v.verdict === 'deviation'));
+  /* ---- THE STORED FIELD IS `status` (26 Sep 2026, the overnight clean-up) ----
+     This read `v.verdict === 'deviation'`, a field no review has ever written —
+     runPlaybookReview and the overnight pass both store `status` — so a gate set
+     to "when the contract departs from our standards" never held anything on
+     the server. It now asks what the browser's twin asks (contractHasDeviation →
+     deviationSummary): a departure OR a standard that is missing. `verdict` is
+     still read, for any record written that way by hand. */
+  return !!(pb && Array.isArray(pb.verdicts) && pb.verdicts.some(v => v
+    && (v.status === 'deviation' || v.status === 'missing' || v.verdict === 'deviation')));
 }
 /* ============================================================
    THE CHECK BEFORE SIGNING — THE SERVER'S HALF (13 Sep 2026, phase 5)
@@ -1790,6 +1818,30 @@ function visibleContract(c, user, moneyKeys) {
 }
 
 const app = express();
+/* ---- A ROUTE THAT FAILS ANSWERS; IT NEVER TAKES THE SERVER DOWN (26 Sep 2026,
+   the overnight clean-up) ----
+   Express 4 ignores the promise an `async` handler returns. This file has 38 of
+   them and every one does work outside its own try — so one failed database
+   write (the SQLite lock held past busy_timeout, a full disk) became an
+   unhandled rejection and Node EXITED: every user lost the server until it
+   restarted (measured: the process ended with code 1). Every handler that
+   returns a promise now has its rejection handed to next(), where the error
+   handler at the foot of this file answers in a sentence. A synchronous throw
+   was already caught by Express; that path is unchanged. `app.get(name)` with a
+   single argument is Express's settings reader and is passed straight through. */
+for (const verb of ['get', 'post', 'put', 'patch', 'delete', 'all']) {
+  const orig = app[verb].bind(app);
+  app[verb] = function (route, ...handlers) {
+    if (verb === 'get' && arguments.length === 1) return orig(route);
+    return orig(route, ...handlers.map(h => (typeof h === 'function' && h.length < 4)
+      ? function (req, res, next) {
+          const out = h(req, res, next);
+          if (out && typeof out.then === 'function') out.then(undefined, next);
+          return out;
+        }
+      : h));
+  };
+}
 /* C-1: TRUST EXACTLY THE HOPS WE OWN, NOT THE WHOLE HEADER.
    `trust proxy: true` trusts every entry in X-Forwarded-For, which means the
    left-most value — the one the *client* supplies — becomes req.ip. An attacker
@@ -1900,7 +1952,17 @@ function rlKeyFor(bucket, req, keyFn) {
 /* Record one attempt against a bucket. Split out of the middleware so a route
    can decide AFTER it knows the outcome whether the attempt was worth counting
    (see rlAuth / rlNoteAuthFailure below). */
+/* EACH BUCKET'S OWN WINDOW, for the sweep below (26 Sep 2026, the overnight
+   clean-up). The sweep kept one hour of every bucket, and the one bucket with
+   a DAY's window — sending links — lost its older hits every ten minutes, so
+   "100 a day" was about a hundred an HOUR (measured: 2,100 allowed in a day). */
+const rlWindows = new Map();
+const rlNoteWindow = (key, windowMs) => {
+  const b = String(key).split(':')[0];
+  if (!(rlWindows.get(b) >= windowMs)) rlWindows.set(b, windowMs);
+};
 function rlRecord(key, windowMs) {
+  rlNoteWindow(key, windowMs);
   const nowMs = Date.now();
   const arr = (rlHits.get(key) || []).filter(t => nowMs - t < windowMs);
   arr.push(nowMs); rlHits.set(key, arr);
@@ -1909,6 +1971,7 @@ function rateLimit(bucket, max, windowMs, opts = {}) {
   const limitOf = typeof max === 'function' ? max : () => max;
   const keyFn = opts.keyFn;
   const message = opts.message || 'Too many attempts — please wait and try again';
+  rlNoteWindow(bucket + ':', windowMs);
   return (req, res, next) => {
     const key = rlKeyFor(bucket, req, keyFn);
     const nowMs = Date.now();
@@ -1925,7 +1988,9 @@ function rateLimit(bucket, max, windowMs, opts = {}) {
   };
 }
 // periodic cleanup so the map cannot grow unbounded
-setInterval(() => { const nowMs = Date.now(); for (const [k, arr] of rlHits) { const keep = arr.filter(t => nowMs - t < 3600000); if (keep.length) rlHits.set(k, keep); else rlHits.delete(k); } }, 600000).unref?.();
+setInterval(() => { const nowMs = Date.now(); for (const [k, arr] of rlHits) {
+  const win = Math.max(3600000, rlWindows.get(String(k).split(':')[0]) || 0);
+  const keep = arr.filter(t => nowMs - t < win); if (keep.length) rlHits.set(k, keep); else rlHits.delete(k); } }, 600000).unref?.();
 /* A SIGN-IN LIMITER COUNTS WRONG GUESSES, NOT PEOPLE ARRIVING AT WORK
    (audit finding, 2026-08-14 — reproduced before it was touched: with a fresh
    workspace and ten members each typing their CORRECT password once, the tenth
@@ -3348,7 +3413,7 @@ app.get('/api/contracts/:id', auth, (req, res) => {
   // 403 here would confirm the contract, its id and its existence to someone
   // who is not allowed to know any of that.
   if (!r || !inScope(folderScopeFor(req.user), r.folder)) return res.status(404).json({ error: 'Contract not found' });
-  const c = JSON.parse(r.json); c._v = r.version;
+  const c = dropSittingKeys(JSON.parse(r.json)); c._v = r.version;
   const out = visibleContract(c, req.user);
   /* APPROVAL BEFORE SIGNING (23 Sep 2026): who on this contract needs a named
      approval, read with the whole roster — a colleague's rule is an admin-only
@@ -3677,6 +3742,7 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   if (Number(baseVersion || 0) !== cur) return res.status(409).json({ error: 'Version conflict — this contract changed on the server', version: cur });
   const next = cur + 1;
   const c = { ...contract }; delete c._v; delete c._light; delete c._loaded; delete c._valuesHidden;
+  dropSittingKeys(c);   // one sitting's marks are never the record (see SITTING_KEYS)
   // _brief is GET-time transport off the briefs table (WO-2) — a client that
   // echoes it back must not get it stored into the record, where it would
   // shadow the real cache and ride saves it was never part of.
@@ -3752,38 +3818,14 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     return res.status(400).json({ error: 'A renewal decision must name the person recording it, and carry the deadline it answers.' });
   }
 
-  if (prev && isExecutedRow(prev)) {
-    const changed = EXECUTED_IMMUTABLE.filter(k => stable(prev[k]) !== stable(c[k])
-      && !(SEAL_ACQUIRABLE.has(k) && isEmptyish(prev[k])));
-    if (changed.length) {
-      return res.status(409).json({
-        error: `${req.params.id} is executed — ${changed.join(', ')} cannot be changed after signature. Record an amendment instead.`,
-        immutable: changed,
-      });
-    }
-  } else if (prev && anySignatureRow(prev)) {
-    /* ---------- AND THE WORDING FREEZES AT THE FIRST SIGNATURE, HERE TOO ----------
-       (launch audit, 21 Aug 2026.) The rule is owner-ruled and already stated in
-       CLAUDE.md — the wording freezes at the FIRST signature, not the last — and
-       it was enforced ONLY in the browser, at negoFileChange and negoResolve
-       (negoWordingFrozen, js/negotiation.js). The guard above engages only once
-       the record is FULLY executed, so on a route with more than one signer
-       there was a window — first mark taken, status still Under Review, no seal
-       — in which a raw save could rewrite the document. The first signer's mark
-       then stood over wording they had never seen, and their stored signature
-       kept the docHash of text the record no longer held.
-
-       This is the same "the browser is cosmetics, the server is the wall" class
-       the legal audit closed for the desk rule, the review wall, the signing cap
-       and the reserved signing step; the wording freeze simply never got its
-       half. ASKED AS A DIFFERENCE, like every guard on this route.
-
-       THE WORDING ONLY, deliberately — mirroring the browser's own scope, whose
-       comment says it out loud: "Numbering, obligations, the audit trail and the
-       signature-taking itself are unaffected — the point is that the words stop
-       moving, not that the contract stops working." Taking the signature, filling
-       in Key terms while the second signer is waited on, and every additive fact
-       stay open, so nothing an SME does between two signatures is refused. */
+  /* ---- MOVED OUT OF THE HALF-SIGNED BRANCH (26 Sep 2026, the overnight
+     clean-up) ---- These two guards were written INSIDE the `else if (prev &&
+     anySignatureRow(prev))` block below, so they ran only in the narrow window
+     where somebody had signed and not everybody had: on an UNSIGNED contract
+     and on an EXECUTED one — the two a dispute is almost always about — an
+     editor without the grant could put a hold on or take it off, and a held,
+     unsigned contract's wording could still be moved by a save. They now run
+     on every save, before the signing rules, exactly as their own note says. */
   /* ---------- A CONTRACT IN DISPUTE IS FROZEN (upgrade 8, 18 Sep 2026) ----------
      When a dispute starts the wording stops being a working document and
      becomes evidence. THREE REFUSALS, asked as a difference like every guard on
@@ -3832,7 +3874,38 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
       });
     }
   }
+  if (prev && isExecutedRow(prev)) {
+    const changed = EXECUTED_IMMUTABLE.filter(k => stable(prev[k]) !== stable(c[k])
+      && !(SEAL_ACQUIRABLE.has(k) && isEmptyish(prev[k])));
+    if (changed.length) {
+      return res.status(409).json({
+        error: `${req.params.id} is executed — ${changed.join(', ')} cannot be changed after signature. Record an amendment instead.`,
+        immutable: changed,
+      });
+    }
+  } else if (prev && anySignatureRow(prev)) {
+    /* ---------- AND THE WORDING FREEZES AT THE FIRST SIGNATURE, HERE TOO ----------
+       (launch audit, 21 Aug 2026.) The rule is owner-ruled and already stated in
+       CLAUDE.md — the wording freezes at the FIRST signature, not the last — and
+       it was enforced ONLY in the browser, at negoFileChange and negoResolve
+       (negoWordingFrozen, js/negotiation.js). The guard above engages only once
+       the record is FULLY executed, so on a route with more than one signer
+       there was a window — first mark taken, status still Under Review, no seal
+       — in which a raw save could rewrite the document. The first signer's mark
+       then stood over wording they had never seen, and their stored signature
+       kept the docHash of text the record no longer held.
 
+       This is the same "the browser is cosmetics, the server is the wall" class
+       the legal audit closed for the desk rule, the review wall, the signing cap
+       and the reserved signing step; the wording freeze simply never got its
+       half. ASKED AS A DIFFERENCE, like every guard on this route.
+
+       THE WORDING ONLY, deliberately — mirroring the browser's own scope, whose
+       comment says it out loud: "Numbering, obligations, the audit trail and the
+       signature-taking itself are unaffected — the point is that the words stop
+       moving, not that the contract stops working." Taking the signature, filling
+       in Key terms while the second signer is waited on, and every additive fact
+       stay open, so nothing an SME does between two signatures is refused. */
     const changed = SIGNED_WORDING_FROZEN.filter(k => stable(prev[k]) !== stable(c[k]));
     if (changed.length) {
       return res.status(409).json({
@@ -4167,6 +4240,11 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
       if (e) return e === String(me.email || '').trim().toLowerCase();
       return String((x && x.name) || '').trim() === String(me.name || '').trim();
     };
+    /* The same wall as the public respond route (see sigImageOk): a save that
+       ADDS a signature — of any method — must carry a real image or none. */
+    const addedAny = (Array.isArray(c.signatures) ? c.signatures : []).filter(x => x && !before.has(sigKey(x)));
+    if (addedAny.some(x => !sigImageOk(x.image)))
+      return res.status(400).json({ error: 'A signature image on this save could not be read — sign again.' });
     const forged = added.find(x => !mine(x));
     if (forged) {
       return res.status(403).json({
@@ -4398,6 +4476,27 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
         return res.status(403).json({ error: `Only ${(rv.reviewer || {}).name || 'the reviewer'} can rule on #${ch.id}.` });
     }
 
+    /* 3b. A CHANGE AN OPEN REVIEW COVERS STAYS ON THE RECORD (26 Sep 2026, the
+       overnight clean-up). A reviewer who had cleared a colleague's draft was
+       offered Discard on it, and the save that removed it was accepted — the
+       review stayed open listing a change that no longer existed (measured).
+       Asked as a DIFFERENCE: a change that was on the record, is covered by a
+       review still open after this save, and is on the record nowhere now —
+       neither in the live list nor in a closed round. */
+    {
+      const nowIds = new Set((Array.isArray(c.changes) ? c.changes : []).map(x => String(x && x.id)));
+      for (const r of ((c.negotiation && Array.isArray(c.negotiation.rounds)) ? c.negotiation.rounds : []))
+        for (const x of (Array.isArray(r && r.changes) ? r.changes : [])) nowIds.add(String(x && x.id));
+      for (const [id, before] of wasOpen){
+        const after = nowAll.get(id);
+        if (!after || after.status !== 'open') continue;
+        for (const cid of (Array.isArray(before.changeIds) ? before.changeIds : [])){
+          if (prevCh.has(String(cid)) && !nowIds.has(String(cid)))
+            return res.status(403).json({ error: `#${cid} is in internal review ${id}, which is still open — it cannot be discarded until the review is handed back or cancelled.` });
+        }
+      }
+    }
+
     /* 4. A REVIEWER DOES NOT ANSWER THE COUNTERPARTY. Accepting their ask
        settles it and travels on the next round, which is precisely what
        somebody holding a colleague's clause does not do here. Their own two
@@ -4609,6 +4708,10 @@ app.delete('/api/contracts/:id', auth, editor, (req, res) => {
     /* The plain-English readings kept a clause at a time (fix 6) are a reading
        of THIS contract's wording and go with it. */
     db.prepare('DELETE FROM clause_reading_rows WHERE contract_id=?').run(req.params.id);
+    /* AND THE WHOLE EDITION BESIDE THEM (26 Sep 2026, the overnight
+       clean-up): the rows went with the contract and the cached edition —
+       the same reading, kept whole — stayed behind for ever. */
+    db.prepare('DELETE FROM clause_readings WHERE contract_id=?').run(req.params.id);
     db.prepare('DELETE FROM contracts WHERE id=?').run(req.params.id);
   });
   _storedBytes = null;   // H-8: recompute the storage total after removing files
@@ -7587,6 +7690,12 @@ app.post('/api/mailroom', rlMailroom, express.json({ limit: '32mb' }), (req, res
     try { bytes = Buffer.from(String((f && f.content) || ''), 'base64'); } catch (_) { bytes = null; }
     if (!bytes || !bytes.length) { skipped.push({ name, why: 'empty' }); continue; }
     if (bytes.length > MAILROOM_MAX_BYTES) { skipped.push({ name, why: 'over ' + Math.round(MAILROOM_MAX_BYTES / 1048576) + ' MB' }); continue; }
+    const dataUrl = `data:${type || 'application/octet-stream'};base64,${bytes.toString('base64')}`;
+    /* THE STORAGE CEILING HOLDS FOR MAIL TOO: POST /api/files refuses past it,
+       and a document that arrives by email is stored in the same table. Said,
+       never silent — it rides `skipped` with every other refusal. */
+    if (STORAGE_MAX_BYTES > 0 && storedBytes() + dataUrl.length > STORAGE_MAX_BYTES) {
+      skipped.push({ name, why: 'document storage is full' }); continue; }
     /* THE SAME COUNTER EVERY OTHER SERVER-MINTED REFERENCE USES, so a
        mailroom document takes its place in the book's own numbering and
        nothing can collide with it. */
@@ -7594,6 +7703,10 @@ app.post('/api/mailroom', rlMailroom, express.json({ limit: '32mb' }), (req, res
     setSetting('uid', String(uid));
     const id = 'MK-' + uid;
     const at = now();
+    const fileId = 'f_' + rid(10);
+    db.prepare('INSERT INTO files (id,name,mime,data,created_at) VALUES (?,?,?,?,?)')
+      .run(fileId, name || 'document', type || '', dataUrl, at);
+    if (_storedBytes != null) _storedBytes += dataUrl.length;
     /* ---- AND NO CLAIM ABOUT MONEY EITHER (Young's go, 23 Sep 2026) ----
        This carried valueType 'none', which is not "nobody has said" but "no
        money passes under this paper" — a claim about a document nobody has
@@ -7605,9 +7718,18 @@ app.post('/api/mailroom', rlMailroom, express.json({ limit: '32mb' }), (req, res
       status: 'Draft', template: null, source: 'upload', folder, lastAction: at.slice(0, 10),
       expiry: null, hash: null, signedAt: null, signatory: null, compliance: {},
       fields: {}, scan: null, comments: [], signatures: [], obligations: [],
-      upload: { name: name || 'document', size: bytes.length, type,
-        sha256: crypto.createHash('sha256').update(bytes).digest('hex'),
-        data: bytes.toString('base64'), at },
+      /* THE BROWSER'S OWN UPLOAD SHAPE (26 Sep 2026, the overnight
+         clean-up). This wrote `{name, type, sha256, data}` — a shape no
+         screen reads — so a document that arrived by email filed a contract
+         whose Document tab could not open the file: the room reads
+         `fileName`, `mime` and the bytes through `fileId`. The bytes go where
+         every other upload's go (the files table, counted against the
+         storage ceiling), and `fileHash` is taken the way the browser takes
+         it — over the data URL — so a seal made later binds the same value
+         either way. */
+      upload: { fileName: name || 'document', mime: type || '', size: bytes.length,
+        fileHash: crypto.createHash('sha256').update(dataUrl, 'utf8').digest('hex'),
+        fileId, uploadedAt: at, uploadedBy: 'Mailroom', extractedText: '', textChars: 0, textSource: '' },
       /* THE QUEUE'S OWN SHAPE, so the migration page needs to learn nothing
          new: it is a document that needs review and has not been read. */
       migration: { batch: 'mailroom', importedAt: at, importedBy: 'Mailroom',
@@ -8862,6 +8984,10 @@ function normalizeDeliver(input, cx) {
      because the id is still true even when the quote is not, and dropping the
      card would hide which contract the answer leaned on. */
   let quoteDrops = 0;
+  /* The wording the browser sent under wholeDoc (see the chat routes): a
+     drafted contract's paper exists only where it is painted, and a quote
+     from it is checked against the copy the model actually read. */
+  const sent = (cx && typeof cx.sentText === 'string' && cx.sentText) ? quoteNorm(cx.sentText) : '';
   for (const c of citations) {
     if (!c.quote) continue;
     const nq = quoteNorm(c.quote);
@@ -8870,6 +8996,7 @@ function normalizeDeliver(input, cx) {
     const cj = copilotGetJson(cx, c.id);
     const body = cj ? quoteNorm(contractFullBody(cj)) : '';
     if (body.includes(nq)) continue;
+    if (sent && sent.includes(nq)) continue;
     c.quote = '';
     c.quoteDropped = true;
     quoteDrops++;
@@ -8934,6 +9061,16 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
       return { role: m.role, content: m.content.slice(0, cap) };
     });
   if (!convo.length || convo[convo.length - 1].role !== 'user') return res.status(400).json({ error: 'the last message must be from the user' });
+  /* ---- A QUOTE IS CHECKED AGAINST WHAT THE MODEL WAS SHOWN (26 Sep 2026, the
+     graph's Analyze contract) ----
+     Under wholeDoc the last message CARRIES the wording the browser painted —
+     for a drafted contract that is template paper this server never renders
+     (contractFullBody holds no copy of it), so a quote copied from it word for
+     word verified against nothing and was dropped. normalizeDeliver reads this
+     beside the stored body: a quote has to appear in one or the other, and the
+     browser then finds it on the painted paper or draws nothing. The wall
+     stands; it was measuring the wrong copy. */
+  if (wholeDoc) cx.sentText = convo[convo.length - 1].content;
 
   const system = buildCopilotSystem(context, cx);
   const working = convo.slice();
@@ -9240,6 +9377,16 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
       return { role: m.role, content: m.content.slice(0, cap) };
     });
   if (!convo.length || convo[convo.length - 1].role !== 'user') return res.status(400).json({ error: 'the last message must be from the user' });
+  /* ---- A QUOTE IS CHECKED AGAINST WHAT THE MODEL WAS SHOWN (26 Sep 2026, the
+     graph's Analyze contract) ----
+     Under wholeDoc the last message CARRIES the wording the browser painted —
+     for a drafted contract that is template paper this server never renders
+     (contractFullBody holds no copy of it), so a quote copied from it word for
+     word verified against nothing and was dropped. normalizeDeliver reads this
+     beside the stored body: a quote has to appear in one or the other, and the
+     browser then finds it on the painted paper or draws nothing. The wall
+     stands; it was measuring the wrong copy. */
+  if (wholeDoc) cx.sentText = convo[convo.length - 1].content;
 
   // From here on the response is an event stream — errors travel as events.
   res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
@@ -9344,7 +9491,7 @@ app.get('/api/export/workspace.zip', auth, admin, (req, res) => {
   const scope = folderScopeFor(req.user);
   const f = scopeFrag(scope);
   const contracts = db.prepare(`SELECT json FROM contracts ${whereOf(f.sql)} ORDER BY seq`).all(...f.args)
-    .map(r => visibleContract(JSON.parse(r.json), req.user));
+    .map(r => visibleContract(dropSittingKeys(JSON.parse(r.json)), req.user));
   const users = db.prepare('SELECT id,name,email,role,created_at FROM users').all();  // no salt/hash
   const settings = getSetting('appSettings') || {};
   const files = [
@@ -9925,10 +10072,18 @@ function executedAttachment(c) {
       return { filename: String(f.name || contractRef(c) + ' — signed copy').slice(0, 120), content: m[2] };
     return null;
   }
-  if (c.upload && c.upload.dataUrl) {
-    const m = String(c.upload.dataUrl).match(/^data:([^;]*);base64,(.*)$/s);
+  /* THE UPLOADED FILE IS IN THE FILES TABLE ON A SERVER (26 Sep 2026, the
+     overnight clean-up). The browser takes `dataUrl` off every upload it has
+     stored as a file before it saves (saveContract), so on a server this
+     branch never saw the bytes and an executed upload went out with no
+     attachment at all. Read where the bytes are; and the browser names the
+     file `fileName` — `name` was only ever the mailroom's spelling. */
+  if (c.upload && (c.upload.dataUrl || c.upload.fileId)) {
+    let src = c.upload.dataUrl || '';
+    if (!src && c.upload.fileId) { const f = hoFileRow(c.upload.fileId); src = (f && f.data) || ''; }
+    const m = String(src).match(/^data:([^;]*);base64,(.*)$/s);
     if (m && m[2] && m[2].length <= 14 * 1024 * 1024)
-      return { filename: String(c.upload.name || c.id + ' — executed file').slice(0, 120), content: m[2] };
+      return { filename: String(c.upload.fileName || c.upload.name || c.id + ' — executed file').slice(0, 120), content: m[2] };
     return null;
   }
   if (!(c.execution && c.execution.html)) return null;
@@ -11388,7 +11543,7 @@ app.post('/api/files', auth, editor, (req, res) => {
   if (!dataUrl || typeof dataUrl !== 'string') return res.status(400).json({ error: 'dataUrl required' });
   if (STORAGE_MAX_BYTES > 0 && storedBytes() + dataUrl.length > STORAGE_MAX_BYTES) {
     const mb = n => (n / (1024 * 1024)).toFixed(0);
-    return res.status(413).json({ error: `Document storage is full (${mb(storedBytes())} MB of ${mb(STORAGE_MAX_BYTES)} MB used). Ask an admin to remove unneeded uploads (Team & Settings → reclaim orphaned files) or raise the limit before uploading more.`, storageFull: true });
+    return res.status(413).json({ error: `Document storage is full (${mb(storedBytes())} MB of ${mb(STORAGE_MAX_BYTES)} MB used). Ask an admin to clear out uploads nothing uses any more, or to raise the limit, before uploading more.`, storageFull: true });
   }
   const id = 'f_' + rid(10);
   db.prepare('INSERT INTO files (id,name,mime,data,created_at) VALUES (?,?,?,?,?)')
@@ -11407,7 +11562,18 @@ app.post('/api/files', auth, editor, (req, res) => {
 function fileInScope(scope, fileId) {
   if (scopeIsAll(scope)) return true;
   let referenced = false, allowed = false;
-  for (const r of db.prepare('SELECT json, folder FROM contracts').all()) {
+  /* ASK ONLY THE CONTRACTS THAT CAN HOLD IT. This walked and parsed every
+     contract in the workspace on every file a scoped reader opened — on a
+     book of thousands, one preview parsed the whole book. A file id is `f_`
+     and hex, so a LIKE on the stored JSON is a SUPERSET of the contracts that
+     reference it (LIKE's `_` and its case-folding only ever widen it), and
+     the exact check below still decides. An id of any other shape falls back
+     to the whole walk. (26 Sep 2026, the overnight clean-up.) */
+  const narrow = /^[A-Za-z0-9_-]{3,64}$/.test(String(fileId || ''));
+  const rows = narrow
+    ? db.prepare('SELECT json, folder FROM contracts WHERE json LIKE ?').all('%' + fileId + '%')
+    : db.prepare('SELECT json, folder FROM contracts').all();
+  for (const r of rows) {
     let c; try { c = JSON.parse(r.json); } catch (_) { continue; }
     const ids = [];
     if (c.upload && c.upload.fileId) ids.push(c.upload.fileId);
@@ -11419,11 +11585,11 @@ function fileInScope(scope, fileId) {
   }
   return !referenced || allowed;
 }
-app.get('/api/files/:id', auth, (req, res) => {
-  const f = db.prepare('SELECT name,mime,data FROM files WHERE id=?').get(req.params.id);
-  if (!f || !fileInScope(folderScopeFor(req.user), req.params.id)) return res.status(404).json({ error: 'File not found' });
-  res.json({ name: f.name, mime: f.mime, dataUrl: f.data });
-});
+/* THE SWEEP IS REGISTERED BEFORE `/api/files/:id`. Written after it, a GET
+   of /api/files/orphans was answered by the file route with id "orphans" —
+   "File not found" — so the admin sweep this block promises had never once
+   been reachable. Express matches in the order routes are written. (26 Sep
+   2026, the overnight clean-up.) */
 /* A file id that no contract references is either an orphan from before the
    delete handler cleaned up, or a leak waiting to happen. Admin-only sweep so
    the customer can actually discharge a deletion request. */
@@ -11440,6 +11606,11 @@ app.get('/api/files/orphans', auth, admin, (req, res) => {
   const rows = db.prepare('SELECT id,name,mime,length(data) AS bytes,created_at FROM files').all()
     .filter(f => !referenced.has(f.id));
   res.json({ orphans: rows, bytes: rows.reduce((a, f) => a + (f.bytes || 0), 0) });
+});
+app.get('/api/files/:id', auth, (req, res) => {
+  const f = db.prepare('SELECT name,mime,data FROM files WHERE id=?').get(req.params.id);
+  if (!f || !fileInScope(folderScopeFor(req.user), req.params.id)) return res.status(404).json({ error: 'File not found' });
+  res.json({ name: f.name, mime: f.mime, dataUrl: f.data });
 });
 app.delete('/api/files/orphans', auth, admin, (req, res) => {
   const referenced = new Set();
@@ -11783,8 +11954,13 @@ function signerTurnEmail({ signer, plan, payload, link, expiresAt, senderLang })
       refused email is a row saying so with a resend beside it. */
 function signerNoticesFor(contractId) {
   try {
-    return db.prepare(`SELECT id, signer_id AS signerId, email, sent, detail, by_user AS by, kind,
-      created_at AS at FROM signer_notices WHERE contract_id=? ORDER BY created_at ASC`).all(contractId);
+    return db.prepare(`SELECT id, signer_id AS signerId, email, sent, detail, by_user AS by, kind, provider,
+      created_at AS at FROM signer_notices WHERE contract_id=? ORDER BY created_at ASC`).all(contractId)
+      /* `outbox`: the notice was kept in the outbox because no provider was set
+         up — the stored provider, else (a row written before it was recorded)
+         the sentence this file itself writes for exactly that case. */
+      .map(n => ({ ...n, outbox: !n.sent && (n.provider === 'outbox'
+        || (!n.provider && /in the outbox/i.test(String(n.detail || '')))) }));
   } catch (_) { return []; }
 }
 /* WHERE A COLLEAGUE'S POST GOES. The row is off the stored contract; the member
@@ -11881,10 +12057,10 @@ async function notifyInternalSignerTurn(req, contractId, opts = {}) {
     const detail = r.sent ? null
       : String(r.detail || (EMAIL_ON() ? 'The email provider refused the message.'
         : 'Email is not configured on this server — the message is in the outbox.')).slice(0, 300);
-    db.prepare(`INSERT INTO signer_notices (id,contract_id,signer_id,email,sent,detail,by_user,kind,created_at)
-      VALUES (?,?,?,?,?,?,?,?,?)`).run('sn_' + rid(8), contractId, String(row.id), to.email,
+    db.prepare(`INSERT INTO signer_notices (id,contract_id,signer_id,email,sent,detail,by_user,kind,created_at,provider)
+      VALUES (?,?,?,?,?,?,?,?,?,?)`).run('sn_' + rid(8), contractId, String(row.id), to.email,
       r.sent ? 1 : 0, detail, (req && req.user && req.user.name) || null,
-      opts.force ? 'resend' : 'turn', now());
+      opts.force ? 'resend' : 'turn', now(), String(r.provider || '').slice(0, 40) || null);
     return { ok: !!r.sent, reason: r.sent ? 'sent' : 'send-failed', detail,
       signer: row.name || null, email: to.email, addressFrom: to.from };
   } catch (e) {
@@ -12139,6 +12315,17 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
     if (!signerRow) return res.status(400).json({ error: 'That signer is not on this contract\'s signing route' });
     if (signerRow.party !== 'counterparty')
       return res.status(400).json({ error: 'Internal signers sign in the app — only a counterparty signer gets a bound link' });
+    /* A LINK BOUND TO ONE SIGNER GOES TO THAT SIGNER'S ADDRESS (overnight audit,
+       26 Sep 2026). The row is what an incoming signature is recorded against,
+       so a link bound to Grace and mailed to somebody else let that person's
+       signature complete Grace's step — and the one-time code, which goes to
+       the address on the SHARE, went to them too. Where the route carries an
+       address, a different typed address is refused; where it carries none,
+       the typed address is the only way to reach them and stands (the dialog
+       says "add one, or type the address below"). */
+    const rowMail = String(signerRow.email || '').trim().toLowerCase();
+    if (rowMail && email && email !== rowMail)
+      return res.status(409).json({ error: 'That signing link is for a signer with a different email address — change the signer on the signing route first' });
     signerId = String(signerRow.id);
     signerPlanAll = rt.plan;
     const turn = signerTurn(shareId, signerId);
@@ -13209,6 +13396,13 @@ app.post('/api/shares/:token/otp', rlOtp, rlOtpToken, async (req, res) => {     
      read-only token — and it was already true of view links. */
   if (refuseIfViewOnly(s, res)) return;
   if (refuseIfAdvice(s, res)) return;
+  /* A LINK THAT CAN NO LONGER SIGN MAKES NO SIGNING CODE (26 Sep 2026, the
+     overnight clean-up). The respond route has always refused a revoked, an
+     expired and an already-answered one-shot link; this route did not, so a
+     link withdrawn by the sender could still make the server email a signing
+     code to its address (measured). Same three questions, same answers. */
+  if (s.revoked_at || shareExpired(s)) return res.status(410).json({ error: 'This share link is no longer active' });
+  if (s.response && !s.durable) return res.status(409).json({ error: 'A response was already submitted for this link' });
   const invited = String(s.recipient_email || '').toLowerCase();
   if (!/.+@.+\..+/.test(invited))
     /* No recorded address means there is nothing this check could verify
@@ -13238,6 +13432,12 @@ app.post('/api/shares/:token/otp', rlOtp, rlOtpToken, async (req, res) => {     
   res.json({ ok: true, ...mailReportPublic(mailed), sentTo: invited });
 });
 app.post('/api/shares/:token/verify-otp', rlOtp, rlOtpToken, (req, res) => {  // public: verify the code
+  /* …and a code minted before the link was withdrawn verifies nothing once it
+     has been (see the note on /otp above). */
+  const sh = db.prepare('SELECT revoked_at, expires_at, response, durable FROM shares WHERE token=?').get(req.params.token);
+  if (!sh) return res.status(404).json({ error: 'Share link not found or expired' });
+  if (sh.revoked_at || shareExpired(sh)) return res.status(410).json({ error: 'This share link is no longer active' });
+  if (sh.response && !sh.durable) return res.status(409).json({ error: 'A response was already submitted for this link' });
   const row = db.prepare('SELECT * FROM share_otp WHERE token=?').get(req.params.token);
   const { code } = req.body || {};
   /* The typed email is no longer part of the check — the server chose the
@@ -13282,6 +13482,20 @@ app.get('/api/shares/:token/handover-file', rlShare, (req, res) => {
   res.setHeader('Content-Disposition', `attachment; filename="${String(f.name || 'agreed.docx').replace(/[^\w.\- ]+/g, '_')}"`);
   res.send(buf);
 });
+/* ---- A SIGNATURE IMAGE IS AN IMAGE, AND NOTHING ELSE (26 Sep 2026, the
+   overnight clean-up) ---- The respond route is PUBLIC — anyone holding a link
+   reaches it — and it stored `signatureImage` exactly as sent. Every screen
+   that draws a signature printed that value into an <img src="…">, so a
+   "signature" of `data:image/png;base64,AA" onerror="…` ran script in the
+   OWNER's signed-in session the moment they opened the contract (measured).
+   The pad only ever makes a PNG data URL (canvas.toDataURL), so this refuses
+   anything that is not a base64 image, bounds its size, and keeps the form to
+   the pad's own three words. The screens escape it as well: two walls. */
+const SIG_IMAGE_MAX = 600000;
+const SIG_IMAGE_RE = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/;
+const sigImageOk = v => v == null || v === ''
+  || (typeof v === 'string' && v.length <= SIG_IMAGE_MAX && SIG_IMAGE_RE.test(v));
+const SIG_FORMS = ['draw', 'type', 'upload'];
 app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: counterparty responds
   const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
@@ -13332,6 +13546,9 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
      — the third, and quietest, of the three reasons their Send did nothing. */
   if (r.kind !== 'hati-response' || !['sign','accept','changes','decline','decisions','ready'].includes(r.action) || !r.name)
     return res.status(400).json({ error: 'Invalid response' });
+  if (!sigImageOk(r.signatureImage))
+    return res.status(400).json({ error: 'The signature image could not be read — draw or type your signature again.' });
+  if (r.signatureForm != null && !SIG_FORMS.includes(r.signatureForm)) r.signatureForm = null;
   /* ---- A REVIEW LINK CANNOT SIGN, AND THIS IS WHERE THAT BECOMES TRUE ----
      The share dialog promises it in words — "Nothing can be signed on this
      link" — and the browser keeps the promise: a negotiate link opens the
@@ -13768,6 +13985,18 @@ function runShareNudges() {
     if (shareExpired(s)) continue;
     const sentAt = Date.parse(s.sent_at || s.created_at);
     if (!Number.isFinite(sentAt) || Date.now() - sentAt < SHARE_NUDGE_DAYS * 86400000) continue;
+    /* ---- A REMINDER ABOUT A DEAL THAT IS OVER IS NOT SENT (26 Sep 2026, the
+       overnight clean-up) ---- "is waiting for your review" went to an
+       unopened link three days on whatever had happened to the contract since:
+       signed, closed, archived, deleted, or frozen for a dispute. The stored
+       contract is asked, never the payload the link was minted with. Nothing
+       is stamped for a skipped one — `reminded_at` means a reminder went. */
+    let cur = null;
+    try {
+      const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(String(s.contract_id));
+      cur = row ? JSON.parse(row.json) : null;
+    } catch (_) { cur = null; }
+    if (!cur || isExecutedRow(cur) || cur.status === 'Declined' || cur.archived || (cur.hold && cur.hold.at)) continue;
     let p = {}; try { p = JSON.parse(s.payload) || {}; } catch (_) {}
     const cName = (p.contract && p.contract.name) || s.contract_id || 'a contract';
     sendEmail(s.recipient_email, `Reminder: "${cName}" is waiting for your review`,
@@ -15057,6 +15286,18 @@ const TPL_SOURCE_TYPES = ['docx', 'pdf_digital', 'pdf_scanned'];
 const TPL_IS_SCANNED = st => st === 'pdf_scanned';
 
 const TPL_CATEGORIES = ['sales', 'procurement', 'employment', 'nda', 'other'];
+/* ---- A CATEGORY IS ONE OF HaTi'S FIVE OR ONE THE COMPANY ADDED (26 Sep 2026,
+   the overnight clean-up) ---- Settings has let a company keep its own list of
+   template categories since 17 Sep (PUT /api/settings/filing stores them under
+   appSettings.templateCategories), and every picker offers them — but the three
+   routes that file a template checked the five built-ins alone: a create filed
+   the company's own category as 'other' without a word, and an edit answered
+   "Unknown category". One reading, three routes. */
+function tplCategoryOk(v) {
+  if (TPL_CATEGORIES.includes(v)) return true;
+  const s = getSetting('appSettings') || {};
+  return Array.isArray(s.templateCategories) && s.templateCategories.some(c => c && c.id === v);
+}
 const TPL_ORIGINS = ['upload', 'saved_from_contract', 'built_in_hati'];
 
 /* The field library — the fixed catalogue of field types the whole feature is
@@ -15167,7 +15408,7 @@ app.post('/api/templates', auth, paperMaker, passwordCurrent, (req, res) => {
   const b = req.body || {};
   const name = clean(b.name).slice(0, 160);
   if (!name) return res.status(400).json({ error: 'A template needs a name' });
-  const category = TPL_CATEGORIES.includes(b.category) ? b.category : 'other';
+  const category = tplCategoryOk(b.category) ? b.category : 'other';
   const origin = TPL_ORIGINS.includes(b.origin) ? b.origin : 'built_in_hati';
   /* A stream is optional and stays optional: absent is the honest answer for a
      template nobody has filed, and the picker has a folder for exactly that. */
@@ -15213,7 +15454,7 @@ app.patch('/api/templates/:id', auth, templateManager, passwordCurrent, (req, re
   if (b.name !== undefined) { const n = clean(b.name).slice(0, 160); if (!n) return res.status(400).json({ error: 'A template needs a name' }); sets.push('name=?'); args.push(n); }
   if (b.description !== undefined) { sets.push('description=?'); args.push(clean(b.description).slice(0, 2000)); }
   if (b.category !== undefined) {
-    if (!TPL_CATEGORIES.includes(b.category)) return res.status(400).json({ error: 'Unknown category' });
+    if (!tplCategoryOk(b.category)) return res.status(400).json({ error: 'Unknown category' });
     sets.push('category=?'); args.push(b.category);
   }
   /* FILING A TEMPLATE IS NOT ACCESS CONTROL, and this route deliberately does
@@ -16359,7 +16600,7 @@ app.post('/api/templates/upload', auth, paperMaker, passwordCurrent, rlAiDeep, a
          — both already stored, one line down — and templateProvenanceHtml is
          what draws it. An undescribed template is honestly undescribed, and
          the browser's naCardSub says what it is from its category instead. */
-      .run(tid, WORKSPACE_ID, name, '', TPL_CATEGORIES.includes(b.category) ? b.category : 'other', tplFolderOf(b.folder), req.user.name, now(), now(),
+      .run(tid, WORKSPACE_ID, name, '', tplCategoryOk(b.category) ? b.category : 'other', tplFolderOf(b.folder), req.user.name, now(), now(),
         sourceType, isPdf ? pdf.pageCount : null);
     const v = tplNewVersion(tid, 1);
     vid = v.id;
@@ -16563,6 +16804,31 @@ app.use('/vendor', express.static(path.join(__dirname, '..', 'vendor'), {
   maxAge: '30d', immutable: true,
 }));
 app.use('/sample-contracts', express.static(path.join(__dirname, '..', 'sample-contracts')));
+
+/* ---- EVERY FAILURE ANSWERS IN JSON, AND NEVER WITH OUR INSIDES (26 Sep 2026,
+   the overnight clean-up) ----
+   There was no error handler, so a body that could not be parsed, a body over
+   the size limit and a route that threw all answered with Express's own HTML
+   page — a stack trace with this server's file paths in it — and the browser's
+   api() could only say "Request failed (413)". Registered LAST, after every
+   route and static tree, which is what makes it the error handler. The detail
+   goes to the server log; the reader gets a sentence. */
+app.use((err, req, res, next) => {
+  const status = Number(err && (err.status || err.statusCode)) || 500;
+  if (status >= 500) console.error(`[server] ${req.method} ${req.originalUrl}:`, (err && err.stack) || err);
+  if (res.headersSent) return next(err);
+  const say = status === 413 ? 'That is too large to send in one go.'
+    : (err && err.type === 'entity.parse.failed') ? 'The request could not be read — please try again.'
+    : status >= 500 ? 'Something went wrong on the server. Please try again in a moment.'
+    : ((err && err.expose && err.message) ? String(err.message) : 'The request could not be completed.');
+  res.status(status).json({ error: say });
+});
+/* AND A PROMISE NOBODY WAITED ON IS LOGGED, NOT FATAL. The wrapper above covers
+   every route; this is the last line for anything else (a timer's sweep, a
+   fire-and-forget send) so one stray rejection cannot end the process. */
+process.on('unhandledRejection', e => {
+  console.error('[server] unhandled rejection:', (e && e.stack) || e);
+});
 
 // Log the port actually bound, not the one requested — with PORT=0 the OS
 // picks one, and "which port is it on?" should not need a second guess.

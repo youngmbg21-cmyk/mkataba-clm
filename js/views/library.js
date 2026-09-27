@@ -130,9 +130,14 @@ function buildFromCustomTemplate(t, values, opts){
   /* AND COPILOT READS IT (Young ruled 17 Sep 2026) — registered at every
      creation site beside roomOpenOnTerms, because there is no single funnel
      for creating a contract. See contractArrived. */
-  if(window.contractArrived) contractArrived(c);
   state.activeId=c.id; state.selId=c.id;
+  /* SAVED FIRST, THEN READ (26 Sep 2026, the overnight clean-up): the
+     reading's first step is flushSaves(), which can only save what persist()
+     has queued — called after contractArrived, the queue was still empty, the
+     brief reached the server before the contract did, and every draft made
+     here was stamped "No brief — Contract not found" (never retried). */
   persist(c);
+  if(window.contractArrived) contractArrived(c);
   toast(`Draft created from “${t.name}”`);
   setView('workspace');
   return c;
@@ -1446,10 +1451,16 @@ function tplPageRows(){
   const lib=(typeof tplLibAll==='function')?tplLibAll():{list:[],canManage:false};
   for(const t of lib.list){
     const draft=t.status!=='published';
+    /* THE ONE PRESENTING READING (26 Sep 2026): a category the company added
+       in Settings is named by tplCategoryName, never looked up in the five
+       built-ins alone — or this row printed "Company paper" while the picker
+       beside it named the category. */
+    const catName=(typeof tplCategoryName==='function'&&t.category)?tplCategoryName(t.category)
+      :((typeof TPLLIB_CATEGORIES!=='undefined'&&TPLLIB_CATEGORIES[t.category])||null);
     rows.push({ kind:'company', id:t.id, name:t.name, draft,
-      sub:`${(typeof TPLLIB_CATEGORIES!=='undefined'&&TPLLIB_CATEGORIES[t.category])||'Company paper'}${draft?' · not published':''}`,
+      sub:`${catName||'Company paper'}${draft?' · not published':''}`,
       stream:null, get origin(){ return i18t('lib_grp_company'); },
-      category:(typeof TPLLIB_CATEGORIES!=='undefined'&&TPLLIB_CATEGORIES[t.category])||null,
+      category:catName||null,
       version:t.publishedVersion?('v'+t.publishedVersion):null,
       /* A DATE IS LABELLED WITH WHAT IT IS. The overview prints it beside the
          version, and "12 Aug 2026" on its own is a fact nobody can read —
@@ -2769,18 +2780,24 @@ function renderPlaybookPage(){
   const INS=(typeof insFits==='function'&&insFits()&&typeof insPaintPanel==='function');
 
   // portfolio deviations (from the existing playbook review results)
-  const devRows=state.contracts
+  /* A CAP IS A FACT, NEVER A SILENT TRIM (26 Sep 2026, the overnight
+     clean-up): the list stops at eight and now says how many it left out. And
+     every stored value on a row is printed as text — a contract's name and its
+     counterparty are what somebody typed. */
+  const devAll=state.contracts
     .map(c=>({c, s:(window.deviationSummary?deviationSummary(c):null)}))
     .filter(x=>x.s&&(x.s.dev+x.s.miss)>0)
-    .sort((a,b)=>(b.s.dev+b.s.miss)-(a.s.dev+a.s.miss)).slice(0,8);
+    .sort((a,b)=>(b.s.dev+b.s.miss)-(a.s.dev+a.s.miss));
+  const devRows=devAll.slice(0,8);
+  const devMore=devAll.length-devRows.length;
   const devHtml=devRows.length?devRows.map(x=>`
-    <button data-dev-open="${x.c.id}" style="display:flex;align-items:center;gap:var(--s-2);width:100%;padding:6px 2px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
+    <button data-dev-open="${esc(x.c.id)}" style="display:flex;align-items:center;gap:var(--s-2);width:100%;padding:6px 2px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
       <span style="flex:1;min-width:0">
-        <span style="display:block;font-size:var(--t-meta);font-weight:var(--w-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${x.c.name}</span>
-        <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600)">${(window.contractRef?contractRef(x.c):x.c.id)} · ${x.c.counterparty||'—'}</span>
+        <span style="display:block;font-size:var(--t-meta);font-weight:var(--w-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(x.c.name||'')}</span>
+        <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600)">${esc(window.contractRef?contractRef(x.c):x.c.id)} · ${esc(x.c.counterparty||'—')}</span>
       </span>
       <span class="badge" style="background:var(--st-amber-bg);color:var(--st-amber-fg);flex:none">${x.s.dev+x.s.miss} deviation${x.s.dev+x.s.miss===1?'':'s'}</span>
-    </button>`).join('')
+    </button>`).join('')+(devMore>0?`<p class="dev-more" style="font-size:var(--t-label);color:var(--color-neutral-600);margin:6px 2px 0">${esc(i18t('st_attention_more',{n:devMore}))}</p>`:'')
     :`<p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0;line-height:1.6">${i18t('lib_no_deviations')} <b>${i18t('lib_copilot_review')}</b> ${i18t('lib_from_workspace')}</p>`;
 
   const tab=pbPageTab();

@@ -633,7 +633,7 @@ function renderFamilySection(c,opts){
     if(!body) return;
     if(window.confirmDialog) confirmDialog({
       title:i18t('fa_check_family'), message:body, multiline:true,
-      confirmText:i18t('ct_close')||'Close', cancelText:'' });
+      confirmLabel:i18t('ct_close')||'Close', cancelLabel:'' });
     else if(window.toast) toast(body,'ok');
   });
   document.getElementById('fam-unlink')?.addEventListener('click',()=>unlinkContract(c, again));

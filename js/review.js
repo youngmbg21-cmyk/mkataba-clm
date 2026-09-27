@@ -969,7 +969,13 @@ function reviewGateApplies(c, u){
    one read. `ok` is the only thing a caller has to obey; the rest is so the
    refusal can be explained in a sentence instead of a shrug. */
 function reviewGate(c){
-  const unsent = (window.negoUnsentAsks ? window.negoUnsentAsks(c, 'owner') : []);
+  /* READING MUST NOT WRITE (26 Sep 2026, the overnight clean-up):
+     negoUnsentAsks reads through negoInit, which creates a negotiation — and
+     this gate is asked by every paint of the Signing tab. A contract with no
+     negotiation and nothing filed has nothing unsent, so it is not asked there;
+     see negoTimeline for what the write cost on a signed record. */
+  const filed = !!(c && (c.negotiation || (Array.isArray(c.changes) && c.changes.length)));
+  const unsent = (filed && window.negoUnsentAsks) ? window.negoUnsentAsks(c, 'owner') : [];
   const held = unsent.filter(reviewHeld);
   const sendable = unsent.filter(x => !reviewHeld(x));
   const open = reviewOpenList(c);

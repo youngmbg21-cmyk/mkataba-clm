@@ -78,8 +78,13 @@ describe('f263 (1) — the scan says it is working, at every door', () => {
     /* A refusal deep in the reader — no key, a provider saying no, a document
        too short — must not leave a button disabled and spinning for the life of
        the page, which is a dead screen wearing a working one's clothes. */
+    /* RE-POINTED IN PLACE (26 Sep 2026, the overnight clean-up): the finally
+       now also lets go of the contract's own in-flight mark (one scan per
+       contract — a second press on a redrawn button paid for a second scan),
+       and stops the spin unless the contract ON SCREEN is still scanning.
+       The claim is unchanged: the stop is in the finally. */
     const fn = OB.match(/async function runFindObligations\(c\)\{[\s\S]*?\n\}/)[0];
-    assert.match(fn, /try\{ found = await extractObligations\(c\)[\s\S]{0,40}?\}\n\s*finally\{ obFindBusy\(false\); \}/,
+    assert.match(fn, /try\{ found = await extractObligations\(c\)[\s\S]{0,40}?\}\n\s*finally\{[\s\S]*?_obFinding\.delete\(String\(c\.id\)\);[\s\S]*?obFindBusy\(false\);[\s\S]*?\n\s*\}/,
       'the stop is in a finally, not on the happy path');
   });
 

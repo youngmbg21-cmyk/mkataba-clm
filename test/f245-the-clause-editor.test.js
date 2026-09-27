@@ -1991,7 +1991,10 @@ describe('f245 (18) — the Changes tab is gone, and Redlined shows redlines', (
       'through the page\'s one display naming');
     assert.match(CODE, /function ceClauseLabel\(cl\)\{[\s\S]{0,320}negoClauseLabel\(cl\)/,
       'and that names the clause through the product\'s own clauseLabel');
-    assert.match(CODE, /_cet\('ce_leave_lost', \{ words: cut \}\)/,
+    /* RE-POINTED IN PLACE (26 Sep 2026, the overnight clean-up): the quote
+       loses the draft's own closing mark first, because the sentence closes
+       the quotation with its own — "…by notice.”." printed two full stops. */
+    assert.match(CODE, /_cet\('ce_leave_lost', \{ words: cut\.replace\(\/\[\.!\?\]\+\$\/, ''\) \}\)/,
       'and quotes back what is not filed');
     assert.match(CODE, /window\.richToText \? richToText\(_ceText \|\| ''\) : ''/,
       'read through the ONE text projection this codebase has');
