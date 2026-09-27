@@ -1,6 +1,6 @@
 ---
 name: flow-check
-description: Run HaTi's process flow check and explain the result to the owner in plain English. It drives the app's most important journeys from start to finish in a real Chrome (Playwright, test/e2e) — today, sign up → create a contract → send it for signature — each on a brand-new server with a pretend email service. Use when the owner asks for a "process flow check", a "flow check", a "journey check" or an "end-to-end check", asks whether signing up, drafting a contract or sending one for signature still works, or types /flow-check (optionally naming one journey).
+description: Run HaTi's process flow check and explain the result to the owner in plain English. It drives the app's most important journeys from start to finish in a real Chrome (Playwright, test/e2e) — today, sign up → create a contract → send it for signature — each on a brand-new server with a pretend email service. Use when the owner asks for a "process flow check", a "flow check", a "journey check" or an "end-to-end check", asks whether signing up, drafting a contract or sending one for signature still works, asks which flows are on the list (or to add, move or remove one), or types /flow-check (optionally naming one journey).
 argument-hint: "[which journey — leave empty to check them all]"
 allowed-tools: Bash(npm run test:e2e) Bash(npm run test:e2e *) Bash(npx playwright test *)
 ---
@@ -14,6 +14,14 @@ The owner is not a developer. They ask for this check to find out, in plain Engl
 - All journeys: `npm run test:e2e`
 - One journey: if the owner named one (after /flow-check, or in their own words), first run `npx playwright test --list` to see the journeys by name, then `npm run test:e2e -- -g "<a few words from that journey's name>"`.
 - If they ask about a journey that has no check yet, do not run something else in its place: tell them which journeys exist and offer to write a check for the one they asked about.
+
+## The list of flows
+
+The owner's list lives in `test/e2e/FLOWS.md`: every flow, most important first, ✅ where a saved check exists and ⬜ where it does not yet. The owner does not keep it in their head — you do.
+- "Which flows are on the list?": read it and answer from it, built and not yet, in order.
+- "Add / move / take off …": edit the list, keep the numbering in order, and say what changed.
+- "Build the next flow": the first ⬜ is the next one. Building a check is a separate job from running them.
+- When a new check is built, tick its flow ✅ in the same change, with the check's own name word for word. f395 fails where a built journey is missing from the list or not ticked.
 
 Give the command up to five minutes (a 300000 ms time limit — the default two minutes can cut a longer run short); a journey usually takes well under one. Each journey starts its own brand-new, empty copy of HaTi with a pretend email service, so no real data is touched and nobody real is emailed — say so if they ask.
 
@@ -54,4 +62,5 @@ Rules:
 - This is a check, not a repair. Change nothing unless the owner asks.
 - Do not run it again to make a failure go away. The one exception: when HaTi's server or Chrome would not start, you may run it once more — then say that you did, and what happened both times.
 - If NOTHING WAS CHECKED, tell them which journeys exist and ask which one they meant.
+- If the flow they asked about is on the list but still ⬜, say it is on the list and not built yet, and offer to build it.
 - Say exactly what the report says. Never call a journey fine when it did not get to the end.

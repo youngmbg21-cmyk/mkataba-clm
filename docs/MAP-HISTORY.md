@@ -21886,3 +21886,11 @@ Tests: test/e2e/signup-to-signature.spec.js.
 **PROVED WHERE THE OWNER LOOKS.** A fresh headless session on the repo listed `flow-check` among its skills. Asked "Run a process flow check", it ran the journey and answered "all good" in two plain sentences. With the app's "Email sent" text changed to "Email queued" for the trial (restored from git afterwards), it named the step, quoted the screen, checked the pretend inbox and said the email really went — a reworded message, not a broken feature — and offered to update the check. f395: 24 claims, 22 red at the parent; the two that pass are controls.
 
 Tests: f395, test/e2e/signup-to-signature.spec.js.
+
+### AND THE OWNER DOES NOT HAVE TO REMEMBER THE LIST (owner-asked 27 Sep 2026, the same day)
+
+**THE ASK.** *"How do i remember this list of flows"* — the ten journeys Claude had proposed, one built. **THE ANSWER IS THAT THE OWNER DOES NOT**: the list is a file in the project, `test/e2e/FLOWS.md`, most important first, ✅ where a saved check exists and ⬜ where not, with the words to ask Claude written at its top ("Which flows are on the list?", "Build the next flow on the list"). The skill reads it and keeps it; a fresh session finds it on disk rather than in anybody's memory. The order is a first draft the owner has not ruled on, and the file says so.
+
+**A LIST THAT DRIFTS FROM THE CHECKS IS WORSE THAN NO LIST.** f395 (6) reads the journey titles off every spec file and the ticked names off the list and requires the two to agree both ways: a built journey the list does not tick, and a tick with no journey behind it, each fail. Proved by breaking the list both ways and restoring it (the file is untracked until committed, so it was restored from a copy, never from git). Nothing in the app moved; the only test that reads the rulebook (f256) asks for a heading this change did not touch.
+
+Tests: f395 (6).

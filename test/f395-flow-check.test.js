@@ -14,7 +14,10 @@
        carries its sentence, every journey says what it checks — a check
        without its sentence would reach the owner as "toBeVisible";
      · the SKILL (.claude/skills/flow-check) is what Claude follows when the
-       owner asks: run it, read it, answer plainly, change nothing.
+       owner asks: run it, read it, answer plainly, change nothing;
+     · the LIST (test/e2e/FLOWS.md) is what the owner does not have to
+       remember: every flow, ✅ where a check exists — and it may not
+       disagree with the checks that really exist (section 6).
 
    No browser here — the real runs are the verification. Red at the parent
    (abc4e32): none of the three existed and the journey's checks carried no
@@ -273,5 +276,45 @@ describe('f395 (5) the skill Claude follows when the owner asks', () => {
   test('a check is not a repair, and a failure is not re-run away', () => {
     assert.match(SKILL, /Change nothing unless the owner asks/);
     assert.match(SKILL, /Do not run it again to make a failure go away/);
+  });
+});
+
+/* The titles the journeys are really called, off every spec file. */
+function journeyTitles() {
+  const dir = path.join(ROOT, 'test', 'e2e');
+  const specs = fs.existsSync(dir) ? fs.readdirSync(dir).filter(f => /\.spec\.js$/.test(f)) : [];
+  const out = [];
+  for (const f of specs) {
+    const src = code(read('test/e2e/' + f));
+    for (const m of src.matchAll(/^test\(\s*(['"])((?:\\.|(?!\1).)*)\1/mg)) out.push(m[2].replace(/\\(.)/g, '$1'));
+  }
+  return out;
+}
+
+describe('f395 (6) the list of flows is the owner\'s memory, and it cannot drift from the checks', () => {
+  const LIST = read('test/e2e/FLOWS.md');
+  const ticked = LIST.split('\n').filter(l => /✅/.test(l) && /\*\*[^*]+\*\*/.test(l))
+    .map(l => (/\*\*([^*]+)\*\*/.exec(l) || [])[1]).filter(Boolean);
+  test('the list exists, says what ✅ and ⬜ mean, and holds flows still to build', () => {
+    assert.ok(LIST.length > 0, 'test/e2e/FLOWS.md exists');
+    assert.match(LIST, /✅ = built/);
+    assert.match(LIST, /⬜ = not built yet/);
+    assert.ok(/^\s*\d+\. ⬜ /m.test(LIST), 'at least one flow is still waiting to be built');
+  });
+  test('every journey that really exists is on the list, ticked, under its own name', () => {
+    const titles = journeyTitles();
+    assert.ok(titles.length >= 1);
+    for (const t of titles) assert.ok(ticked.includes(t), '"' + t + '" is a built check, so the list ticks it by that name');
+  });
+  test('no flow is ticked without a check behind it', () => {
+    const titles = journeyTitles();
+    assert.ok(ticked.length >= 1);
+    for (const t of ticked) assert.ok(titles.includes(t), '"' + t + '" is ticked, so a journey of that name exists');
+  });
+  test('the skill sends Claude to the list, and says to tick a flow when its check is built', () => {
+    const SKILL = read('.claude/skills/flow-check/SKILL.md');
+    assert.match(SKILL, /test\/e2e\/FLOWS\.md/);
+    assert.match(SKILL, /tick its flow ✅ in the same change/);
+    assert.match((/^description:\s*(.*)$/m.exec(SKILL) || [])[1] || '', /which flows are on the list/);
   });
 });
