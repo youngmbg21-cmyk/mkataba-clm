@@ -95,6 +95,16 @@ function deepestFailure(steps, real = true) {
   return found;
 }
 
+/* THE OWNER'S ORDER. The journeys are reported in the order of the owner's
+   list (test/e2e/FLOWS.md, most important first) — not the order the files
+   happen to sort in. A journey not on the list comes after, in file order. */
+function ownersOrder(file = path.join(__dirname, 'FLOWS.md')) {
+  let text = '';
+  try { text = fs.readFileSync(file, 'utf8'); } catch (_) { return []; }
+  return text.split('\n').filter(l => /^\s*\d+\.\s/.test(l))
+    .map(l => (/\*\*([^*]+)\*\*/.exec(l) || [])[1]).filter(Boolean);
+}
+
 /* What one journey's run amounts to, in the report's own words:
    'passed', 'known' (it got to the end, and only known problems happened),
    'broken', 'flaky' or 'skipped'. */
@@ -205,6 +215,7 @@ function explain(err, failStep) {
 class PlainEnglishReporter {
   constructor(options = {}) {
     this.outputFile = options.outputFile || null;
+    this.listFile = options.listFile || undefined;   // the owner's list; FLOWS.md beside this file
     this.done = [];
     this.globalErrors = [];
     this.began = 0;
@@ -253,9 +264,18 @@ class PlainEnglishReporter {
   }
 
   /* `npx playwright test --list`: the journeys there are, by name. */
+  /* Where a journey sits: its place on the owner's list, else after them all
+     in the order Playwright planned. */
+  rank(t) {
+    if (!this.listed) this.listed = ownersOrder(this.listFile);
+    const onList = this.listed.indexOf(t.title);
+    const planned = (this.planned || []).indexOf(t);
+    return onList >= 0 ? onList : 1000 + (planned < 0 ? 1000 : planned);
+  }
+
   printList() {
     console.log('\nJourneys the process flow check can run (' + this.planned.length + '):');
-    for (const t of this.planned) {
+    for (const t of [...this.planned].sort((a, b) => this.rank(a) - this.rank(b))) {
       console.log('  • ' + t.title);
       const what = (t.annotations || []).find(a => a.type === 'what it checks');
       if (what && what.description) console.log('      ' + what.description);
@@ -308,7 +328,7 @@ class PlainEnglishReporter {
     }
 
     /* In the order the journeys are written, not the order they finished. */
-    const order = t => { const i = (this.planned || []).indexOf(t); return i < 0 ? Infinity : i; };
+    const order = t => this.rank(t);
     for (const { test, result: r } of [...this.done].sort((a, b) => order(a.test) - order(b.test))) {
       out.push('');
       out.push(...this.journey(test, r));

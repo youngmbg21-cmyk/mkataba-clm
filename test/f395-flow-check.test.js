@@ -237,6 +237,22 @@ describe('f395 (3) the report: a headline, the steps, where it stopped', () => {
     assert.match(printed, /✅ ALL GOOD — the journey worked\.\n✨ 1 known problem did not happen this time — it may have been fixed \(see below\)\./);
     assert.match(printed, /✨ \*\*A known problem did not happen this time:\*\* Opening HaTi from the email shows an older copy until reloaded\.\nIf it has been fixed, the "known problem" mark can come off this journey\./);
   });
+  test('journeys on the owner\'s list are reported in the list\'s order, most important first', () => {
+    const list = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'f395-list-')), 'FLOWS.md');
+    fs.writeFileSync(list, '1. ✅ **Sign up → send**\n2. ✅ **Both sides sign**\n');
+    const later = journey('Both sides sign', 'expected', {}), first = journey('Sign up → send', 'expected', {});
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'f395-'));
+    const log = console.log; const lines = [];
+    console.log = (...x) => lines.push(x.join(' '));
+    try {
+      const r = new Reporter({ listFile: list });
+      r.onBegin({ projects: [{ outputDir: dir }] }, { allTests: () => [later.test, first.test] });
+      r.onTestEnd(later.test, later.result); r.onTestEnd(first.test, first.result);
+      r.onEnd({ status: 'passed' });
+    } finally { console.log = log; fs.rmSync(dir, { recursive: true, force: true }); fs.rmSync(path.dirname(list), { recursive: true, force: true }); }
+    const text = lines.join('\n');
+    assert.ok(text.indexOf('## ✅ Sign up → send') < text.indexOf('## ✅ Both sides sign'), 'the list\'s first flow is reported first');
+  });
   test('journeys are reported in the order they are written, not the order they finished', () => {
     const a = journey('A first', 'expected', {}), b = journey('B second', 'expected', {});
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'f395-'));
