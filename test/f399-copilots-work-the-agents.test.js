@@ -72,7 +72,14 @@ describe('f399 (1) — the walls', () => {
     for (const act of ['openRedlineWorkbench(', 'openNoticeDialog(', 'obligationChase(', 'deskDismiss(', 'triageAck(',
       'openCheckPanel(', 'roomGoTab(', 'openWorkspace('])
       assert.ok(CODE.includes(act), act + ' — the act\'s own home is what the panel presses');
-    assert.ok(!/confirmDialog\(/.test(CODE), 'the chase asks for itself — obligationChase carries its own question');
+    /* RE-POINTED 27 Sep 2026: the sixth agent's fresh link ASKS FIRST, by the
+       owner's word ("asks first, showing who it goes to") — the acts it presses
+       do not ask. The chase still asks for itself: no question is written
+       anywhere but that one press. */
+    const asks = CODE.split('confirmDialog(').length - 1;
+    const fresh = CODE.slice(CODE.indexOf('async function agFreshLink('));
+    assert.equal(asks, fresh.split('confirmDialog(').length - 1, 'every question on the page is the fresh link\'s');
+    assert.ok(asks >= 1, 'and the fresh link asks');
   });
 });
 
@@ -122,7 +129,7 @@ describe('f399 (3) — both books carry every word the page prints', () => {
     assert.deepEqual(missing, [], 'a key missing from one book leaves a screen half in the other language');
   });
   test('3b every agent has its name, what it does, when it runs, who reviews, who pays and its idle line', () => {
-    for (const k of ['round', 'renew', 'paper', 'late', 'import'])
+    for (const k of ['round', 'link', 'renew', 'paper', 'late', 'import'])
       for (const s of ['', '_does', '_runs', '_who', '_pays', '_idle'])
         assert.match(I18N, new RegExp('\\n\\s*ag_' + k + s + ':'), 'ag_' + k + s);
   });
@@ -288,13 +295,14 @@ describe('f399 (4) — the readings', () => {
 });
 
 describe('f399 (5) — the page, drawn', () => {
-  test('5a five agents, the page opens on the first with work ready, cards are doors', async () => {
+  /* SIX since 27 Sep 2026: "No link to sign" sits second (f412). */
+  test('5a six agents, the page opens on the first with work ready, cards are doors', async () => {
     const { win } = await staged();
     const doc = win.document;
     let host = doc.getElementById('content');
     if (!host){ host = doc.createElement('div'); host.id = 'content'; doc.body.appendChild(host); }
     win.renderAgentsPage();
-    assert.equal(host.querySelectorAll('[data-ag-agent]').length, 5);
+    assert.equal(host.querySelectorAll('[data-ag-agent]').length, 6);
     const on = host.querySelector('.ag-row.on');
     assert.equal(on && on.getAttribute('data-ag-agent'), 'round', 'the first agent with something ready');
     assert.ok(host.querySelectorAll('#ag-main [data-ag-open]').length >= 2, 'every ready item is a press');

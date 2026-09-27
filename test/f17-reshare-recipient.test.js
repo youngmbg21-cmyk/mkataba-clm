@@ -321,8 +321,14 @@ describe('F17 — the round refreshes the link they already hold', () => {
        standing NEGOTIATION link only — standingNegotiation is standingShares
        narrowed to that kind — because a View send reused whatever link the
        address held and the holder could still negotiate. */
-    assert.match(dlg, /standingNegotiation\(priorShares\)/, 'it shares the predicate, narrowed to negotiation links');
-    assert.match(src, /function standingNegotiation\(shares\)\{ return standingShares\(shares\)\.filter/, 'and that narrowing IS standingShares');
+    /* RE-POINTED IN PLACE AGAIN (27 Sep 2026, "No link to sign"): and only a
+       negotiation link they can still ANSWER on — answerableNegotiation is
+       standingNegotiation less a link a signing link has retired (the share
+       list's own `answersBack`, f412), so a fresh send never lands on a copy
+       nobody can reply through. */
+    assert.match(dlg, /answerableNegotiation\(priorShares\)/, 'it shares the predicate, narrowed to negotiation links they can answer on');
+    assert.match(src, /function answerableNegotiation\(shares\)\{ return standingNegotiation\(shares\)\.filter/, 'and that narrowing IS standingNegotiation');
+    assert.match(src, /function standingNegotiation\(shares\)\{ return standingShares\(shares\)\.filter/, 'which IS standingShares');
     assert.ok(!/standingShareFor/.test(dlg), 'but not the round send\'s fallback');
     assert.match(dlg, /recipientEmail/, 'the typed address is the match');
     /* AND THE SAME KIND OF LINK (Young, 13 Sep 2026): a history payload written

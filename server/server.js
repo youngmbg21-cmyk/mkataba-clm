@@ -923,6 +923,13 @@ addColumnIfMissing('shares', 'signer_id', 'TEXT');
    token is recorded so the child's life is bound to it — a derived ticket is
    strictly weaker than the ticket it came from, and dies with it. */
 addColumnIfMissing('shares', 'parent_token', 'TEXT');
+/* ---- A CONTRACT'S LINKS ARE READ BY CONTRACT (27 Sep 2026) ----
+   The list now asks, of every live deal on a page, whether the other side can
+   still answer (srvReach) — and each question it borrows (shareSuperseded,
+   shareRetiredBySigning) finds a contract's links by `contract_id`. With no
+   index that was a walk of the whole table, payloads and all, per question:
+   MEASURED on a 1,200-contract book, loading it went from 0.2s to 6s. */
+db.exec('CREATE INDEX IF NOT EXISTS idx_shares_contract ON shares(contract_id, created_at)');
 addColumnIfMissing('users', 'prefs', 'TEXT');   // per-user notification opt-ins
 /* Value visibility is a RIGHT, not a preference, so it is a column on the user
    row rather than a key in the client-writable appSettings blob (see SUMMARY.md
@@ -3396,6 +3403,11 @@ app.get('/api/contracts', auth, (req, res) => {
     }
     rows.forEach(c => { const v = adv.get(String(c.id)); if (v) c._renewalPrep = v; });
   }
+  /* ---- CAN THE OTHER SIDE STILL ANSWER (27 Sep 2026) ----
+     The list's bands and the agents page ask it of every live deal on first
+     look, and the light list carries no links — so the server reads them, for
+     this page's own deals and in ONE query (srvReachForRows). */
+  srvReachForRows(rows);
   res.json({ total, offset, limit, rows });
 });
 
@@ -3532,6 +3544,9 @@ app.get('/api/contracts/:id', auth, (req, res) => {
      already governs it. */
   const pe = db.prepare('SELECT json FROM clause_readings WHERE contract_id=?').get(req.params.id);
   if (pe) { try { out._readings = JSON.parse(pe.json); } catch (_) {} }
+  /* Whether the other side can still answer, and their signer still sign —
+     the list's own reading, fresh for the one contract (srvReach). */
+  try { out._reach = srvReach(c); } catch (_) {}
   res.json(out);
 });
 
@@ -3843,6 +3858,7 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   delete c._renewalAdvice;   // W2-4: transport too, off its own table
   delete c._readings;        // idea 7: the plain-English layer, off its own table
   delete c._signNeeds; delete c._signState;   // approval before signing: read here, never stored
+  delete c._reach;           // can they still answer: read off the links, never stored (srvReach)
 
   let prev = null;
   if (existing) { try { prev = JSON.parse(existing.json); } catch (_) { prev = null; } }
@@ -12590,7 +12606,8 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
       return res.json({ ok: true, token: existing.token, link: exLink, reused: true,
         expiresAt: existing.expires_at, channel: existing.channel || ch, durable: false,
         signerId, heldForTurn, heldFor, emailSent: exSent, emailConfigured: EMAIL_ON(), emailError: exErr,
-        alreadySentAt: (!exSent && existing.sent_at) ? existing.sent_at : null });
+        alreadySentAt: (!exSent && existing.sent_at) ? existing.sent_at : null,
+        reach: srvReachOf(shareId) });
     }
   }
   db.prepare(`INSERT INTO shares (token,payload,created_at,contract_id,recipient_name,recipient_email,recipient_phone,channel,message,created_by,expires_at,durable,purpose,signer_id,party_id)
@@ -12751,7 +12768,10 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
     /* What the wall took out of the envelope, reported rather than left silent:
        a sender told "sent" about a round one change lighter has been misled. */
     withheldByReview: req.rvStripped || undefined,
-    emailSent, emailConfigured: EMAIL_ON(), emailError });
+    emailSent, emailConfigured: EMAIL_ON(), emailError,
+    /* What the other side can do now — the browser takes it (reachTake), so a
+       deal that was stuck stops reading as stuck the moment its link goes. */
+    reach: srvReachOf(shareId) });
 });
 
 app.get('/api/shares/pending', auth, (req, res) => {         // owner side: responses to apply
@@ -13162,6 +13182,193 @@ function shareSuperseded(s) {
   return null;
 }
 
+/* ============================================================================
+   CAN THE OTHER SIDE STILL ANSWER — AND CAN THEIR SIGNER STILL SIGN?
+   (Young ruled 27 Sep 2026, over "Their round came back": "Fix it and build a
+   sixth agent" — the agent is "No link to sign", js/views/agents.js)
+   ============================================================================
+   The Negotiations list said "With the other side" about a deal whenever a
+   change of ours was pending — and the only thing the browser asked before
+   saying so was whether a STANDING (self-updating) link existed, and only for
+   a contract somebody had opened this sitting. So an unused one-time link and
+   a Word file read as "no copy" once looked up, and every deal nobody had
+   opened read as theirs whatever their link had become. A deal whose link had
+   run out sat under "With the other side" for weeks, waiting on people who
+   could not answer.
+
+   THE QUESTION IS THE RESPOND ROUTE'S OWN, asked in its own order, off its own
+   predicates — revoked, expired, a one-time link already answered, overtaken
+   (shareSuperseded, or a signing link retiring a standing one) — so "they can
+   answer" here means exactly "an answer sent now would be accepted". A Word
+   file is the one row whose LINK never travelled: it counts where the file
+   really left (`sent_at`) and has not been overtaken, and a file does not
+   expire. Read-only, history and adviser links never carry an answer back.
+
+   THE SERVER WORKS IT OUT, for the list and for one contract, because only it
+   holds the rows — the light list carries no links at all — and the browser
+   holds no second copy of the rule: `_reach` is transport (stripped on save,
+   both hosts), read by negoTheirCopy and by the agent, and refreshed by every
+   send's answer.
+   MULTI-PARTY, said out loud: this is one answer per CONTRACT — any outside
+   party's live copy makes it 'live'. A per-party answer was not asked for. */
+const REACH_RECENT_DAYS = 14;   // "Link sent" looks back this far — the agents page's own window
+/* The columns a fate is read from — never the payload, which is the whole
+   contract and is fetched only where a wording comparison needs it. */
+const REACH_COLS = `token, contract_id, created_at, created_by, channel, durable, purpose, signer_id,
+  party_id, recipient_name, recipient_email, sent_at, expires_at, revoked_at, responded_at,
+  (response IS NOT NULL) AS answered`;
+/* What happened to one link, in the respond route's order. `open` means an
+   answer (or a signature) sent on it now would be accepted; anything else
+   names why not, and when. A light row is completed from the table only where
+   the wording has to be compared. */
+function shareFate(s) {
+  if (!s) return null;
+  if (s.revoked_at) return { how: 'revoked', at: s.revoked_at };
+  const answered = ('response' in s) ? !!s.response : !!s.answered;
+  if ((s.channel || 'link') === 'word') {
+    if (!s.sent_at) return { how: 'undelivered', at: s.created_at || null };
+  } else {
+    if (shareExpired(s)) return { how: 'expired', at: s.expires_at || null };
+    if (!s.durable && answered) return { how: 'answered', at: s.responded_at || null };
+  }
+  let stale = null;
+  if (s.durable) stale = shareRetiredBySigning(s);
+  else {
+    const full = ('payload' in s) ? s : (db.prepare('SELECT * FROM shares WHERE token=?').get(s.token) || s);
+    stale = shareSuperseded(full);
+  }
+  if (stale) return { how: stale.reason === 'signing-link-issued' ? 'signing' : 'overtaken', at: stale.at || null };
+  return { how: 'open', at: null };
+}
+/* Can an ANSWER to our round come back on this row? A negotiation copy only. */
+const shareAnswersBack = s => !!s && sharePurposeOf(s) === 'negotiate' && shareFate(s).how === 'open';
+const reachUserName = id => {
+  if (!id) return '';
+  try { const u = db.prepare('SELECT name FROM users WHERE id=?').get(id); return (u && u.name) || ''; } catch (_) { return ''; }
+};
+const reachWho = s => ({ to: String((s && (s.recipient_name || s.recipient_email)) || ''),
+  email: String((s && s.recipient_email) || '') });
+const reachRecent = iso => { const t = Date.parse(String(iso || '')); return isFinite(t) && Date.now() - t <= REACH_RECENT_DAYS * 86400000; };
+const reachExecuted = c => !!c && (c.status === 'Signed' || !!c.hash || !!(c.execution && c.execution.at));
+/* Is this contract one the question is asked of at all — a live deal with a
+   change of ours or theirs still pending, or a signing route still waiting on
+   somebody on their side? Everything else leaves `_reach` absent, which every
+   reader takes as "we do not know" (the negoTheirCopy rule). */
+function srvReachWanted(c) {
+  if (!c || c.archived || c.status === 'Declined' || reachExecuted(c)) return false;
+  const pending = Array.isArray(c.changes) && c.changes.some(x => x && x.status === 'pending' && !x.withdrawn);
+  if (pending) return true;
+  return Array.isArray(c.signerPlan) && c.signerPlan.some(s => s && s.party === 'counterparty' && !s.signed);
+}
+/* THE ONE READING. `rows` may be handed in (the list reads every contract's
+   links in one query), newest first. Returns
+     reply  'live' | 'none'  — can an answer to our round still come back?
+     last   the newest negotiation copy and what became of it (only where
+            reply is 'none'; null where none was ever sent)
+     sign   the signer on their side whose turn it is and whose signing link
+            ran out or was cancelled (null where nobody is stuck — including
+            where no signing link was ever sent, which is the Signing tab's
+            own business, and a contract they sign outside HaTi)
+     fresh  a working link that went out in the last fortnight to a deal whose
+            earlier link had stopped working — "Link sent", the agent's last
+            step — one per kind at most. */
+function srvReach(c, opts = {}) {
+  if (!c || !c.id) return null;
+  const rows = Array.isArray(opts.rows) ? opts.rows
+    : db.prepare(`SELECT ${REACH_COLS} FROM shares WHERE contract_id=? ORDER BY created_at DESC`).all(String(c.id));
+  const out = { reply: 'none', last: null, sign: null, fresh: [] };
+  /* ---- THE REPLY HALF ---- a standing link first (cheap), then the rest,
+     newest first, stopping at the first that answers back. */
+  const nego = rows.filter(s => sharePurposeOf(s) === 'negotiate');
+  const fates = new Map();
+  const fateOf = s => { if (!fates.has(s.token)) fates.set(s.token, shareFate(s)); return fates.get(s.token); };
+  const open = nego.filter(s => s.durable).find(s => fateOf(s).how === 'open')
+    || nego.filter(s => !s.durable).find(s => fateOf(s).how === 'open') || null;
+  if (open) {
+    out.reply = 'live';
+    /* "LINK SENT" MEANS THIS LINK IS WHAT GAVE THEM THEIR WAY BACK: it is
+       recent, nothing else of theirs answers back, and the copy before it had
+       stopped working for a reason of its own — ran out, cancelled, already
+       used, never delivered. A copy that was merely OVERTAKEN was replaced by
+       this very link (or by a signing link), so the deal was never stuck. */
+    if (reachRecent(open.created_at) && !nego.some(s => s.token !== open.token && fateOf(s).how === 'open')) {
+      const before = nego.find(s => String(s.created_at || '') < String(open.created_at || ''));
+      const was = before ? fateOf(before).how : null;
+      if (['expired', 'revoked', 'answered', 'undelivered'].includes(was))
+        out.fresh.push({ kind: 'reply', at: open.created_at, ...reachWho(open), by: reachUserName(open.created_by),
+          word: (open.channel || 'link') === 'word', was });
+    }
+  } else if (nego.length) {
+    const s = nego[0], f = fateOf(s);
+    out.last = { how: f.how, at: f.at, ...reachWho(s), sentAt: s.sent_at || s.created_at || null,
+      word: (s.channel || 'link') === 'word' };
+  } else {
+    /* Nothing they could ever answer on — say what they were sent instead, if
+       anything: a read-only copy is the commonest way a round "goes out" and
+       cannot come back. */
+    const other = rows.find(s => ['view', 'history', 'advise'].includes(sharePurposeOf(s)));
+    if (other) out.last = { how: 'readonly', at: other.created_at || null, ...reachWho(other),
+      sentAt: other.sent_at || other.created_at || null, word: false };
+  }
+  /* ---- THE SIGNING HALF ---- a counterparty signer whose TURN has come
+     (signerTurn, the respond route's own reading of the route), and the links
+     that could carry their signature: bound to their row, or unbound and
+     addressed to them. A route never sent is not stuck; a file they sign
+     outside HaTi never has a link; a sealed contract has nothing left to sign. */
+  if (signRouteOf(c) !== 'outside' && !reachExecuted(c) && Array.isArray(c.signerPlan)) {
+    const signs = rows.filter(s => sharePurposeOf(s) === 'sign');
+    const theirs = c.signerPlan.filter(s => s && s.id != null && s.party === 'counterparty' && !s.signed);
+    const stuck = [];
+    if (signs.length) for (const row of theirs) {
+      let turn = null;
+      try { turn = signerTurn(c.id, row.id); } catch (_) { turn = null; }
+      if (!turn || !turn.ok) continue;
+      const mail = String(row.email || '').trim().toLowerCase();
+      const mine = signs.filter(s => String(s.signer_id || '') === String(row.id)
+        || (!s.signer_id && mail && String(s.recipient_email || '').trim().toLowerCase() === mail));
+      if (!mine.length) continue;
+      const live = mine.find(s => fateOf(s).how === 'open');
+      if (live) {
+        const dead = mine.find(s => s.token !== live.token && String(s.created_at || '') < String(live.created_at || '')
+          && ['expired', 'revoked'].includes(fateOf(s).how));
+        if (dead && reachRecent(live.created_at) && !out.fresh.some(x => x.kind === 'sign'))
+          out.fresh.push({ kind: 'sign', at: live.created_at, ...reachWho(live), by: reachUserName(live.created_by),
+            signer: String(row.name || ''), was: fateOf(dead).how });
+        continue;
+      }
+      const f = fateOf(mine[0]);
+      if (f.how === 'expired' || f.how === 'revoked') stuck.push({ row, s: mine[0], f });
+    }
+    if (stuck.length) {
+      const x = stuck[0];
+      out.sign = { how: x.f.how, at: x.f.at, ...reachWho(x.s), sentAt: x.s.sent_at || x.s.created_at || null,
+        signer: String(x.row.name || ''), signerEmail: String(x.row.email || ''), n: stuck.length };
+    }
+  }
+  return out;
+}
+/* The list's twin: every wanted contract on one page, their links in ONE
+   query. Written onto the rows as `_reach`. */
+function srvReachForRows(rows) {
+  const want = (rows || []).filter(srvReachWanted);
+  if (!want.length) return;
+  const ids = want.map(c => String(c.id));
+  const by = new Map();
+  for (const s of db.prepare(`SELECT ${REACH_COLS} FROM shares WHERE contract_id IN (${ids.map(() => '?').join(',')})
+      ORDER BY created_at DESC`).all(...ids)) {
+    const k = String(s.contract_id);
+    if (!by.has(k)) by.set(k, []);
+    by.get(k).push(s);
+  }
+  for (const c of want) {
+    try { c._reach = srvReach(c, { rows: by.get(String(c.id)) || [] }); } catch (_) {}
+  }
+}
+/* One contract, off the stored record — what a send's answer carries back. */
+function srvReachOf(contractId) {
+  try { const c = srvStoredContract(contractId); return c ? srvReach(c) : null; } catch (_) { return null; }
+}
+
 /* A durable link is refreshed in place, so its earlier copies are not other
    share rows — they are its own payload history. The baseline is the most
    recent earlier copy this reader actually opened whose wording differs from
@@ -13222,7 +13429,16 @@ app.get('/api/contracts/:id/shares', auth, (req, res) => {   // owner side: shar
      counterparty row is answered by their share. An internal row has no share,
      so its answer travels here — one fetch, one cache, and no chance of the two
      halves of one card disagreeing because they asked at different moments. */
-  res.json({ shares: rows.map(shareInfo), signerNotices: signerNoticesFor(req.params.id) });
+  /* WHETHER EACH STANDING LINK CAN STILL CARRY AN ANSWER BACK, and whether the
+     contract as a whole can (27 Sep 2026). A standing link a signing link has
+     retired still opens and still takes a refreshed copy, but nothing sent on
+     it is accepted — so a round refreshed onto it would reach nobody. The
+     round send and the share dialog read `answersBack` and mint a fresh link
+     instead; `reach` is srvReach, the one reading. */
+  const stored = srvStoredContract(req.params.id);
+  res.json({ shares: rows.map(s => { const x = shareInfo(s); if (s.durable) x.answersBack = shareAnswersBack(s); return x; }),
+    signerNotices: signerNoticesFor(req.params.id),
+    reach: stored ? srvReach(stored, { rows }) : null });
 });
 
 /* ---------- discussion: talking about a point without proposing wording ----------
@@ -13534,7 +13750,7 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
   res.json({ ok: true, token: s.token, link, channel: s.channel || 'link', silent,
     notifySkipped: !silent && !notify,
     recipientEmail: s.recipient_email || null, recipientPhone: s.recipient_phone || null,
-    emailSent, emailConfigured: EMAIL_ON(), emailError });
+    emailSent, emailConfigured: EMAIL_ON(), emailError, reach: srvReachOf(s.contract_id) });
 });
 
 /* ---------- WP-1.6: A NEGOTIATE HOLDER MINTS A VIEW LINK ----------
@@ -13573,7 +13789,8 @@ app.post('/api/shares/:token/revoke', auth, editor, (req, res) => {
   if (!s || (s.contract_id && !idInScope(folderScopeFor(req.user), s.contract_id))) return res.status(404).json({ error: 'Share not found' });
   if (s.response && !s.durable) return res.status(409).json({ error: 'This share already has a response — it cannot be revoked' });
   if (!s.revoked_at) db.prepare('UPDATE shares SET revoked_at=? WHERE token=?').run(now(), s.token);
-  res.json({ ok: true });
+  /* Cancelling a link can leave them with no way to answer — said back at once. */
+  res.json({ ok: true, reach: srvReachOf(s.contract_id) });
 });
 
 app.post('/api/shares/:token/resend', auth, editor, rlShareSend, async (req, res) => {
@@ -15229,7 +15446,11 @@ app.post('/api/shares/:token/applied', auth, editor, (req, res) => {
   const responseId = Number((req.body || {}).responseId);
   if (responseId) db.prepare('UPDATE share_responses SET applied=1 WHERE id=? AND token=?').run(responseId, req.params.token);
   else db.prepare('UPDATE shares SET applied=1 WHERE token=?').run(req.params.token);
-  res.json({ ok: true });
+  /* An answer on a ONE-TIME link spends it: whether they can answer the next
+     round is read again here, where the owner's browser learns the answer
+     landed (srvReach). */
+  const cid = (db.prepare('SELECT contract_id FROM shares WHERE token=?').get(req.params.token) || {}).contract_id;
+  res.json({ ok: true, reach: (cid && idInScope(folderScopeFor(req.user), cid)) ? srvReachOf(cid) : null });
 });
 
 /* ============================================================
