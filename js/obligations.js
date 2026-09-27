@@ -3214,16 +3214,21 @@ async function obligationChase(cid, obId, opts){
   const { c, o } = hit;
   if(typeof canEdit === 'function' && !canEdit()){ if(!_quiet) toast(i18t('ob_viewers_no_change'), 'err'); return _no(i18t('ob_viewers_no_change')); }
   if(!obligationIsTheirs(o)){ if(!_quiet) toast(i18t('ob_chase_ours'), 'err'); return _no(i18t('ob_chase_ours')); }
+  /* THE FIRMER, SECOND CHASE (27 Sep 2026, Late promises): the same act, the
+     route's own `firm` words, and a stamp of its own — the first chase's day
+     stays what it was, because the firmer message quotes it. */
+  const firm = !!_o.firm && !!o.chasedAt;
   const ok = (_o.confirm === false) ? true : await confirmDialog({
-    title: i18t('ob_chase_title'),
-    message: i18t('ob_chase_body', { who: c.counterparty || i18t('ob_side_theirs'), desc: o.desc || '' }),
+    title: i18t(firm ? 'ob_chase_firm_title' : 'ob_chase_title'),
+    message: i18t(firm ? 'ob_chase_firm_body' : 'ob_chase_body', { who: c.counterparty || i18t('ob_side_theirs'), desc: o.desc || '' }),
     confirmLabel: i18t('ob_chase_go') });
   if(!ok) return _no(i18t('act_cancel'));
-  o.chasedAt = isoDay(new Date());
   let by = '';
   try{ by = String(((typeof currentUser === 'function') && currentUser() || {}).name || ''); }catch(_){ by = ''; }
-  o.chasedBy = by;
-  logAudit(c, 'Obligation', `Chased: ${o.desc} — ${c.counterparty || 'the counterparty'}`);
+  if(firm){ o.chaseFirmAt = isoDay(new Date()); o.chaseFirmBy = by; }
+  else { o.chasedAt = isoDay(new Date()); o.chasedBy = by; }
+  if(firm) logAudit(c, 'Obligation', `Chased again, more firmly: ${o.desc} — ${c.counterparty || 'the counterparty'}`);
+  else logAudit(c, 'Obligation', `Chased: ${o.desc} — ${c.counterparty || 'the counterparty'}`);
   persist(c);
   obligationSurfacesChanged();
   if(state.view === 'obligations') obwRepaint();
@@ -3236,7 +3241,7 @@ async function obligationChase(cid, obId, opts){
   }
   let mail = { ok:true, o, sent:false, outbox:false, error:'', to:'' };
   try{
-    const r = await api(`contracts/${encodeURIComponent(cid)}/chase`, 'POST', { obligationId: obId }, _quiet?{quiet:true}:undefined);
+    const r = await api(`contracts/${encodeURIComponent(cid)}/chase`, 'POST', firm ? { obligationId: obId, firm: true } : { obligationId: obId }, _quiet?{quiet:true}:undefined);
     if(r && r.emailSent){ mail.sent = true; mail.to = r.to || ''; if(!_quiet) toast(i18t('ob_chase_sent', { to: r.to || '' }), 'ok'); }
     else if(r && r.outbox){ mail.outbox = true; if(!_quiet) toast(i18t('ob_chase_outbox'), 'warn'); }
     else { mail.error = String((r && r.emailError) || i18t('ob_chase_failed')); if(!_quiet) toast(mail.error, 'warn'); }

@@ -276,18 +276,19 @@ describe('F275 (3) — the lift, the desk and the words', () => {
     assert.match(fn, /if \(!owner\)/, 'and no owner means no call at all');
   });
 
-  test('it rides the same timer as the other two sweeps, under its own catch', () => {
+  test('it runs on the agents\' clock, under its own catch', () => {
     const s = read('server/server.js');
     const at = s.indexOf('function reminderSweep()');
     const fn = s.slice(at, s.indexOf('setTimeout(reminderSweep', at));
     assert.match(fn, /runReminders\(\)/);
     assert.match(fn, /runDailyBriefs\(\)/);
-    assert.match(fn, /runRenewalPrep/, 'the third sweep is on the beat');
-    /* THREE SWEEPS, THREE ADMIN-VISIBLE NOTES. That is the M-6 lesson stated as
-       a claim rather than as a count of the word "catch": what has to be true is
-       that each sweep's failure is recorded where an admin will see it, and that
-       no sweep can take another down with it. */
-    for (const tag of ['reminder sweep failure', 'daily brief failure', 'renewal prep failure'])
+    /* RE-POINTED 27 Sep 2026 (f413): the renewal preparation is the Renewals
+       agent now, on the agents' own clock (agentScheduleTick → runAgent), and
+       its failure is the agent run's own admin-visible note. */
+    assert.ok(!/runRenewalPrep/.test(fn), 'it left this beat');
+    assert.match(s, /if \(k === 'renew'\) return \(\) => runRenewalPrep\(\);/, 'the agents\' clock runs it');
+    assert.match(s, /'agent run failure'/, 'under its own catch, with its own note');
+    for (const tag of ['reminder sweep failure', 'daily brief failure'])
       assert.ok(fn.includes(tag), 'a sweep that fails silently is the fault this exists to close: ' + tag);
   });
 

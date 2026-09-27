@@ -44,6 +44,10 @@ before(async () => {
      one screen that files a scan with NOBODY LOOKING AT IT — the upload popup
      puts the extracted fields in front of a person before anything is saved,
      and a batch of two hundred does not. */
+  /* The needs-a-human rule lives in js/migread.js since 27 Sep 2026 (the
+     server reads imported contracts too), and js/app.js loads it first. */
+  runFileInContext(path.join(__dirname, '..', 'js', 'migread.js'),
+    w.dom.getInternalVMContext(), 'js/migread.js');
   runFileInContext(path.join(__dirname, '..', 'js', 'views', 'migration.js'),
     w.dom.getInternalVMContext(), 'js/views/migration.js');
 });

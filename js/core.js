@@ -1357,6 +1357,9 @@ async function saveContract(c){
      memo riding every row. Same rule: transport, never record. */
   delete payload._renewalPrep;
   delete payload._renewalAdvice;
+  /* _roundPrep is Copilot's prepared answers to their round (27 Sep 2026),
+     off its own server table — transport, never the record. */
+  delete payload._roundPrep;
   delete payload._signedAt; delete payload._lastAuditAt;
   /* _signNeeds is the server's reading of who on this contract needs a named
      approval before signing (23 Sep 2026) — read with the whole roster,

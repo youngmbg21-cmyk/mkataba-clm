@@ -9305,6 +9305,17 @@
   .ag-memo-h{font-weight:var(--w-title);}
   .ag-p-sub2{margin:4px 0 0;font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600);}
   .ag-p-note.is-amber{color:var(--st-amber-fg);}
+  /* ---- THE AGENTS DO THE WORK (27 Sep 2026) ---- the runs table's cost
+     column, a run's subject beside why it ran, Copilot's prepared answer
+     under an ask of theirs, and the one small box that sends work back. */
+  .ag-runs .c{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;}
+  .ag-sub{font-size:var(--t-label);color:var(--color-neutral-600);}
+  .ag-prep{display:grid;gap:6px;margin-top:6px;padding:8px 10px;border-radius:var(--radius);background:var(--surface-2);}
+  .ag-prep-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .ag-sb{display:grid;gap:6px;justify-items:start;}
+  .ag-sb-box{display:grid;gap:6px;width:100%;}
+  .ag-sb-box[hidden]{display:none;}
+  .ag-sb-acts{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
   .ag-panel .br-fig{font-weight:var(--w-title);color:var(--accent-ink);}
   .ag-watch{list-style:none;margin:0;padding:0;display:grid;gap:6px;}
   .ag-watch li{display:grid;gap:2px;padding:8px 10px;border-radius:var(--radius);background:var(--st-amber-bg);border-left:3px solid var(--st-amber-dot);color:var(--color-text);}

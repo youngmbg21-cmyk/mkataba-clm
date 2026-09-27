@@ -76,10 +76,14 @@ describe('f399 (1) — the walls', () => {
        owner's word ("asks first, showing who it goes to") — the acts it presses
        do not ask. The chase still asks for itself: no question is written
        anywhere but that one press. */
+    /* AND RUN NOW (27 Sep 2026, f413): an admin's press that spends Copilot
+       money asks first and says who pays — the only other question here. */
     const asks = CODE.split('confirmDialog(').length - 1;
     const fresh = CODE.slice(CODE.indexOf('async function agFreshLink('));
-    assert.equal(asks, fresh.split('confirmDialog(').length - 1, 'every question on the page is the fresh link\'s');
-    assert.ok(asks >= 1, 'and the fresh link asks');
+    const runNow = CODE.slice(CODE.indexOf('async function agRunNowPress('), CODE.indexOf('\n}', CODE.indexOf('async function agRunNowPress(')));
+    assert.equal(asks, (fresh.split('confirmDialog(').length - 1) + (runNow.split('confirmDialog(').length - 1),
+      'every question on the page is the fresh link\'s or Run now\'s');
+    assert.ok(asks >= 2, 'and both ask');
   });
 });
 
@@ -400,7 +404,9 @@ describe('f399 (6) — the cards and panels are as full as the drawing, off the 
     assert.match(m.body, /automated notice from HaTi CLM\.$/);
     /* THE RELATION, NOT THE WORDS: the route composes from these keys and these
        facts, so a change to either side has to be made to both. */
-    const at = SRV.indexOf("app.post('/api/contracts/:id/chase'");
+    /* RE-POINTED 27 Sep 2026: the route's message is srvChaseSend, lifted out
+       so the firmer chase is the same message with its own keys. */
+    const at = SRV.indexOf('async function srvChaseSend(');
     const route = SRV.slice(at, SRV.indexOf('\napp.', at + 10));
     for (const k of ['mail_ob_chase_subject', 'mail_ob_chase_line', 'mail_ob_chase_line_nodate', 'mail_hello', 'mail_automated_notice'])
       assert.ok(route.includes(k), k + ' is the route\'s own key');
