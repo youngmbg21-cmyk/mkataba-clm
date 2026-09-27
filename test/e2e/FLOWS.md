@@ -25,8 +25,8 @@ Most important first. This order is a first draft; change it any time by telling
 4. ✅ **Review before sending**
    We add a colleague and ask him to review two changes; he clears one and holds the other back. Only the cleared change reaches the other side. Carries two known problems (see the report).
 
-5. ⬜ **Approval before signing**
-   A named person has to say yes before anyone can sign.
+5. ✅ **Approval before signing**
+   An admin rules that her contracts need a named colleague's yes. Sending for signature is refused until he approves; then it goes. Carries one known problem (see the report).
 
 6. ⬜ **Upload a contract the other side sent → Copilot reads it**
 

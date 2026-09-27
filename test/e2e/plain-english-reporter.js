@@ -197,6 +197,18 @@ function explain(err, failStep) {
   const found = /^(nothing|no)\b/i.test(out.should) ? 'It found: '
     : onScreen ? 'The screen showed: ' : 'It was: ';
   const many = /strict mode violation: .* resolved to (\d+) elements/.exec(msg);
+  /* A check that something is NOT on the screen found it: quote it with the
+     words around it, not the first 240 characters of the page. */
+  const notThere = /^Expected substring: not "(.*)"$/m.exec(msg);
+  if (notThere && recvString) {
+    const hay = recvString.replace(/^"|"$/g, ''), i = hay.indexOf(notThere[1]);
+    if (i >= 0) {
+      const from = Math.max(0, i - 60), to = Math.min(hay.length, i + notThere[1].length + 60);
+      out.instead = 'It found "' + notThere[1] + '" on the screen: "' + (from ? '…' : '')
+        + hay.slice(from, to).trim() + (to < hay.length ? '…' : '') + '"';
+      return out;
+    }
+  }
   if (many) {
     out.instead = 'It found ' + many[1] + ' things on the screen that fit the description, where it expected one, '
       + 'so it could not tell which to check. Usually the check needs pointing more precisely (a job for the '

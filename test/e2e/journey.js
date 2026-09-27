@@ -357,6 +357,15 @@ async function knownProblem(check, workRound) {
   if (test.info().errors.length > before && workRound) await workRound();
 }
 
+/* A link in an email opens in a NEW tab of that person's browser, as it does
+   when they click it (HaTi reads such a link as it starts up). */
+async function openEmailLink(page, link, nothingBroke, who) {
+  const tab = await page.context().newPage();
+  if (nothingBroke) nothingBroke.watch(tab, who || 'a tab opened from an email');
+  await tab.goto(link);
+  return tab;
+}
+
 /* Every email the pretend provider received for one address, newest last. */
 function mailTo(hati, address) {
   return hati.mail.sent.filter(m => m.to === address);
@@ -364,6 +373,6 @@ function mailTo(hati, address) {
 
 module.exports = {
   test, expect, US, THEM, NDA, BRIAN, yearsFromToday, watchForCrashes, inParts, mailTo, KNOWN, knownProblem, softPoll,
-  addColleague, signInFirstTime,
+  addColleague, signInFirstTime, openEmailLink,
   signUp, draftNda, nameSignersTheyFirst, sendForSignature, openAsThem, openNegotiatePage, proposeASentence,
 };

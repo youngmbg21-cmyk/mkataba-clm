@@ -92,7 +92,8 @@ describe('f395 (2) explain(): what Playwright says, turned into what a person re
   test('a button\'s words that arrive over several lines are quoted whole, not as a lone quotation mark', () => {
     const x = explain(M.overLines);
     assert.equal(x.should, 'the Sign button no longer says "to settle"');
-    assert.equal(x.instead, 'The screen showed: "Sign — 1 to settle"');
+    /* (A "not" check since 27 Sep: it names what it found, then the words round it.) */
+    assert.equal(x.instead, 'It found "to settle" on the screen: "Sign — 1 to settle"');
   });
   test('two things where the check expected one is said as that, not as the check\'s own sentence twice', () => {
     const x = explain(M.strict);
@@ -232,6 +233,14 @@ describe('f395 (3) the report: a headline, the steps, where it stopped', () => {
     })] });
     assert.match(printed, /✓ 1\. Send it\n\s+✓ An email goes out/);
     assert.doesNotMatch(printed, /✗/);
+  });
+  test('something found that should not be there is quoted with the words around it', () => {
+    const page = 'Good morning, Brian Acme Kenya Ltd · Kenya · 27 September 2026 Draft new agreement Where your contracts stand '
+      + 'one active contract and a lot more words here before we get to it. Needs your decision Nothing to decide — you are all caught up.';
+    const x = explain('Error: [known problem] his Home lists the approval\n\nexpect(locator).not.toContainText(expected) failed\n\n'
+      + 'Locator: locator(\'#content\')\nExpected substring: not "Nothing to decide"\nReceived string: "' + page + '"\nTimeout: 3000ms\n');
+    assert.equal(x.should, 'his Home lists the approval');
+    assert.match(x.instead, /^It found "Nothing to decide" on the screen: "….*Needs your decision Nothing to decide — you are all caught up\."$/);
   });
   test('a count on the screen reads as a count', () => {
     const x = explain('Error: the held change is not listed\n\nexpect(locator).toHaveCount(expected) failed\n\nLocator: locator(\'#x\')\nExpected: 0\nReceived: 1\nTimeout: 5000ms\n');
