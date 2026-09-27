@@ -7198,6 +7198,17 @@
      head itself is folded on the element (it carries an inline display);
      this rule takes the grouped-by line with it. */
   #ig-page.ig-focus > #ig-note{display:none}
+  /* ---- THE DIVIDER BESIDE THE PANEL (27 Sep 2026) ----
+     The Document tab's and the Negotiate page's handle, the same values: a
+     14px press over the seam, a 4px grip in the quiet grey, the accent under
+     the pointer and while dragging, amber at a floor. */
+  .ig-resizer{position:absolute;top:0;bottom:0;width:14px;z-index:6;cursor:col-resize;
+    display:flex;align-items:center;justify-content:center;touch-action:none}
+  .ig-resizer[hidden]{display:none}
+  .ig-resizer span{width:4px;height:72px;border-radius:var(--radius);background:var(--color-neutral-300);transition:background var(--dur-1)}
+  .ig-resizer[data-at-limit] span{background:var(--st-amber-dot)}
+  .ig-resizer:hover span,.ig-resizer[data-drag] span,.ig-resizer:focus-visible span{background:var(--color-accent)}
+  .ig-resizer:focus-visible{outline:none}
   .ig-sub{pointer-events:none;font-size:var(--t-figure);font-family:var(--font-mono)}
   /* A-1: the node's third line and its hover card. A node Copilot has not read
      is faded — the chip alone, so its facts still read. The hover card is the

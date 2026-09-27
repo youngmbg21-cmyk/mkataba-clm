@@ -812,6 +812,12 @@ const QUESTION = 'why do I have a big workload runway today?';
       intel.groupBy = 'folder'; intel.lenses = []; intel.groups = null; intel.history = []; intel.tab = 'map'; renderIntel();
     });
     await page.waitForTimeout(1500);
+    /* RE-POINTED 27 Sep 2026: the legend is CLOSED at rest on every arrival at
+       the tab (Young: "the legend should always be closed as the resting
+       state"), so 15e — which measures a legend row as pixels — opens it with
+       the reader's own press first. */
+    await page.evaluate(() => { const b = document.querySelector('#ig-legend [data-ig-legend-fold]'); if (b && b.getAttribute('aria-expanded') === 'false') b.click(); });
+    await page.waitForTimeout(250);
     const flow = await page.evaluate(() => {
       const F = (typeof graphStreamFlow === 'function') ? graphStreamFlow() : null;
       const hubs = IG.nodes.filter(n => n.kind === 'hub').map(h => {

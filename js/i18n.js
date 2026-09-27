@@ -833,6 +833,7 @@ const STRINGS = {
     int_open_workspace: 'Open workspace',
     /* ANALYZE CONTRACT on the Contract Graph (26 Sep 2026) */
     int_analyze: 'Analyze contract',
+    int_drag_width: 'Drag to set how wide the panel is · double-click to reset',
     int_analyze_title: 'Read the paper here and ask about it',
     int_paper_switch: 'Graph or paper',
     int_paper_graph: 'Graph',
@@ -6904,7 +6905,8 @@ const STRINGS = {
     rep_choose_metric: 'Choose the metric this card follows',
     rep_choose_chart: 'Choose the chart this card follows',
     int_negotiation_friction: 'Negotiation Friction',
-    int_contract_graph: 'Contract Graph',
+    /* The tab is EXPLORER since 27 Sep 2026 (Young: "Let's just change the name to simply Explorer"); the key keeps its old name, as tab keys do. */
+    int_contract_graph: 'Explorer',
     /* ---- THE EXPOSURE REGISTER (S10, 16 Sep 2026) ----
        Every row is a COUNT with a door on it, and there is deliberately no
        score: a rating a lawyer cannot derive is worse than a number they can
@@ -8026,7 +8028,7 @@ const STRINGS = {
     pg_queue: 'My Queue',
     pg_queue_sub: 'drag between lifecycle stages · signing runs through the workspace',
     pg_advice_sub: 'customer advice, review & drafting requests · published rates and a transparent turnaround promise',
-    pg_insights_sub: 'portfolio frame · negotiation friction · Copilot contract graph',
+    pg_insights_sub: 'portfolio frame · negotiation friction · Copilot explorer',
     pg_calendar: 'Renewal Calendar & Obligations',
     pg_calendar_sub: 'expiry, renewal-decision deadlines and obligations — surfaced automatically from every contract',
     pg_import_sub: 'bulk-import an existing portfolio · Copilot extraction with human review',
@@ -9943,6 +9945,7 @@ const STRINGS = {
     int_open_workspace: 'Öppna arbetsytan',
     /* ANALYSERA AVTALET på avtalsgrafen (26 sep 2026) */
     int_analyze: 'Analysera avtalet',
+    int_drag_width: 'Dra för att ställa in panelens bredd · dubbelklicka för att återställa',
     int_analyze_title: 'Läs dokumentet här och ställ frågor om det',
     int_paper_switch: 'Graf eller dokument',
     int_paper_graph: 'Graf',
@@ -15434,7 +15437,7 @@ const STRINGS = {
     rep_choose_metric: 'Välj vilket nyckeltal kortet följer',
     rep_choose_chart: 'Välj vilket diagram kortet följer',
     int_negotiation_friction: 'Förhandlingsfriktion',
-    int_contract_graph: 'Avtalsgraf',
+    int_contract_graph: 'Utforskaren',
     int_exposure: 'Exponering',
     int_exp_head: 'Vad som kan skada er',
     int_exp_head_sub: 'varje rad öppnar avtalen bakom den',
@@ -16440,7 +16443,7 @@ const STRINGS = {
     pg_queue: 'Min kö',
     pg_queue_sub: 'dra mellan livscykelns steg · undertecknandet sker i arbetsytan',
     pg_advice_sub: 'rådgivning, granskning och upprättande på kundens begäran · publicerade priser och ett tydligt löfte om handläggningstid',
-    pg_insights_sub: 'portföljramen · förhandlingsfriktion · Copilots avtalsgraf',
+    pg_insights_sub: 'portföljramen · förhandlingsfriktion · Copilots utforskare',
     pg_calendar: 'Förnyelsekalender och åtaganden',
     pg_calendar_sub: 'utgång, sista dag för förnyelsebeslut och åtaganden — hämtas automatiskt ur varje avtal',
     pg_import_sub: 'massimportera ett befintligt bestånd · extrahering av Copilot med manuell granskning',

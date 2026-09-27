@@ -19467,3 +19467,15 @@ Noticed, not fixed
 - plain-english-verify 10c and 17d fail on main as on the branch (see the browser gate above).
 - The phone's text-size stepper (26px), the reading switch (18px) and the queue row (35px) on the counterparty's phone page are under 44px; only the decision verbs were widened tonight.
 - ensureFull still copies the whole stored record over one with an unsaved change for its other callers (the room's first open, Copilot, the metadata review); tonight only the two list loaders were moved off it.
+
+## Run 27 Sep 2026 — Explorer: the name, the divider, the legend at rest
+
+- On the owner's word, after confirming the reading: "Let's just change the name to simply Explorer … bring the divider that is in the document and negotiate pages to the Explorer page as opposed to have the arrow button … the legend should always be closed as the resting state", then "Go". Built on claude/optimistic-curie-fself4 from main (0746c11).
+- Built: the Insights tab reads Explorer (Swedish Utforskaren); its key, the stored tab and Copilot's stable key are unchanged. A divider on the seam between the map (or a contract's paper) and the chat panel, dragged by the pointer's position, remembered as a width in this browser, resting at 380, stopping at 340 for the panel and 420 for the column with an amber grip at a floor; double-click, Home or Enter put it back; the arrow keys step it. The » widen button is gone; the › that folds the panel to a strip is kept, and folded the divider stands down. The legend is closed every time you arrive on the tab and stays as you left it while you are there.
+- Gates: lint 0 errors, 178 warnings (unchanged). Full suite: 2 claims failed — f277 (1) and (10) — both red on main before this run (logged 26 Sep). f394: 15 claims, 12 red at the parent (two controls and a wall pass on both). explorer-verify: 25/25 with a real drag; at the parent 22 red (two controls and the error sweep pass on both). insights-panels-verify 84/84 (15e re-pointed in place to open the legend with a press before measuring a row), analyze-on-the-graph-verify 26/26.
+
+Deliberately left alone (said to the owner)
+- The › fold button is kept: the divider cannot hide the panel, so without it there would be no way to give the map the whole width.
+
+Noticed, not fixed
+- Someone who had widened the panel with the old » opens at the resting 380 once; the old preference is not read.
