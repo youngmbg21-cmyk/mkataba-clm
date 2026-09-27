@@ -6,6 +6,8 @@ import './templates.js';
 import './jurisdiction.js'; // where this workspace operates: law, money, which statute checks apply
 import './outside.js';     // redline here, sign there: the working reference, the contract number and the word check (26 Sep 2026)
 import './graphwhere.js';   // the graph's structured filter, one predicate for both hosts (Copilot audit phase 4)
+import './roundprep.js';    // Their round came back: one key for an ask of theirs, both hosts (27 Sep 2026)
+import './migread.js';      // Archive import: what an imported contract's reading decides, both hosts (27 Sep 2026)
 import './section.js';      // the section grammar: one way of grouping a screen (16 Sep 2026)
 import './core.js';
 /* Who the agreement is BETWEEN: the legal entities on the paper, which is
@@ -60,7 +62,8 @@ import './views/inspector.js';
 import './views/approvalsview.js'; // Approvals & signing: a door onto two readings Home already makes (20 Sep 2026)
 import './brainmap.js';           // the Brain's catalogue and its reader of the code, one for both hosts (27 Sep 2026)
 import './views/brain.js';         // the Brain: HaTi as a network of neurons, read from its own code (27 Sep 2026)
-import './views/agents.js';        // Copilot's work: the five agents, every one a reading of work HaTi already does (27 Sep 2026)
+import './agentruns.js';           // Copilot's agents' engine room: runs, settings, the page's quiet refresh (27 Sep 2026)
+import './views/agents.js';        // Copilot's work: the six agents — what each found, prepared and did (27 Sep 2026)
 import './views/register.js';
 import './ocr.js';
 import './dedupe.js';

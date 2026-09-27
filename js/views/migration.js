@@ -19,7 +19,8 @@ const MIG_MAX_FILES = 25;                        // realistic cap per batch (mem
 // Drag-and-drop bypasses `accept`, so migProcessFiles() also sniffs the bytes
 // (detectWordFile) as the backstop.
 const MIG_ACCEPT = '.pdf,.docx,.txt,.png,.jpg,.jpeg';
-const MIG_CRITICAL = ['counterparty','contractType','effectiveDate','expiryDate','value'];
+/* MIG_CRITICAL, folderFromType and the needs-a-human rule live in
+   js/migread.js now (27 Sep 2026): the server reads imported contracts too. */
 
 /* Session-scoped batch state (queue rows + manifest live in memory; every
    saved contract carries its own durable c.migration block, so the register
@@ -197,21 +198,6 @@ function migParseFolder(v){
   for(const f of Object.values(FOLDERS)){ if(f.id===t || f.name.toLowerCase().includes(t) || t.includes(f.id)) return f.id; }
   return folderFromType(t);
 }
-/* Route a contract-type phrase to a value-stream folder (order matters:
-   "equipment lease" must land in mfg before the generic "lease" → corp). */
-function folderFromType(typeStr){
-  const t=String(typeStr||'').toLowerCase();
-  if(!t) return null;
-  if(/equipment|machin|plant\s*lease|forklift/.test(t)) return 'mfg';
-  if(/co-?pack|toll|manufactur|production/.test(t)) return 'mfg';
-  if(/raw material|ingredient|commodity|packag|bottle|carton|supply agreement|procure/.test(t)) return 'proc';
-  if(/warehous|cold[\s-]?chain|3pl|freight|logistic|transport|distribution(?!\s*agreement)|haul/.test(t)) return 'dist';
-  if(/distributor|retail|listing|route.to.market|e-?commerce|sales/.test(t)) return 'sales';
-  if(/marketing|media|agency|advertis|sponsor|activation|brand|influencer/.test(t)) return 'mktg';
-  if(/nda|non.disclosure|confidential|lease|tenanc|audit|legal|professional|consult|advisory|insurance|software|licen[cs]e|saas|it\s|employment/.test(t)) return 'corp';
-  return null;
-}
-
 /* ---------- manifest (the customer's own checklist) ---------- */
 async function migLoadManifest(file){
   const M=migState();
@@ -378,7 +364,6 @@ async function migExtract(text, seed){
 }
 /* Does the extraction need a human? Any critical field missing or low-conf. */
 function migNeedsReview(meta, c){
-  const conf=(meta&&meta.confidence)||{};
   /* A MACHINE-READ SCAN ALWAYS NEEDS A HUMAN, ONCE — and until 22 Aug 2026 it
      did not, which made the whole honesty chapter of DESIGN-ocr.md a label
      with nothing behind it.
@@ -402,13 +387,7 @@ function migNeedsReview(meta, c){
      gets the right answer. It says a human must look ONCE, not for ever —
      applyReviewedMeta clears the flag the moment somebody confirms. */
   const src=(c&&c.upload&&c.upload.textSource)||(c&&c.migration&&c.migration.textSource)||'';
-  if(isOcrText(src)) return true;
-  return MIG_CRITICAL.some(k=>{
-    const v=meta?meta[k]:null;
-    if(k==='value' && c.valueType==='none') return false;
-    if(v==null||v===''||(k==='value'&&!(Number(v)>0))) return true;
-    return conf[k]==='low';
-  });
+  return migReadNeedsReview(meta, { valueNone: !!(c && c.valueType==='none'), ocr: isOcrText(src) });
 }
 
 /* ---------- build + save one migrated contract ----------
@@ -1215,4 +1194,4 @@ function renderMigration(){
   setActiveNav('migration');
 }
 
-Object.assign(window,{MIG_CRITICAL,migAllowanceHtml,migBuildAndSave,migIndexContract,migDrawAllowanceDoc,migResolveDuplicate,migDupeRowHtml,migWireDupes,migEstimate,migConfirmEstimate,migLoadAiState,migGuessPages,applyReviewedMeta,folderFromType,migContracts,migExportSheet,migGates,migImportSheet,migLoadManifest,migLoadUnfinished,migDismissBatch,migUnfinishedHtml,migDateOrder,migParseDate,migParseValue,migNeedsReview,migProcessFiles,migReviewAll,migRerunAi,migState,openMigReview,parseCsv,renderMigration});
+Object.assign(window,{migAllowanceHtml,migBuildAndSave,migIndexContract,migDrawAllowanceDoc,migResolveDuplicate,migDupeRowHtml,migWireDupes,migEstimate,migConfirmEstimate,migLoadAiState,migGuessPages,applyReviewedMeta,migContracts,migExportSheet,migGates,migImportSheet,migLoadManifest,migLoadUnfinished,migDismissBatch,migUnfinishedHtml,migDateOrder,migParseDate,migParseValue,migNeedsReview,migProcessFiles,migReviewAll,migRerunAi,migState,openMigReview,parseCsv,renderMigration});
