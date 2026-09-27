@@ -142,7 +142,10 @@ describe('f306 (3) — one range reader, two callers', () => {
     assert.match(PB, /if\(p\.range&&p\.range\.key==='liabilityMonths'\)\{ const r=p\.range, m=pbRangeRead\(r\.key,t\);/);
     /* ONE home, so the two screens cannot drift: each pattern appears exactly
        once in the file, inside the reader. */
-    const pay = PB.match(/within\\s\+\(\\d\{1,3\}\)/g) || [];
+    /* RE-POINTED 27 Sep 2026 (the owner's list, c2): the figure is PB_FIG now,
+       which reads "thirty (30) days" too; the payment pattern still lives in
+       exactly one place in this file. */
+    const pay = PB.match(/'within\\\\s\+' \+ PB_FIG/g) || [];
     assert.equal(pay.length, 1, 'the payment pattern lives in exactly one place');
   });
 
@@ -419,7 +422,9 @@ describe('f306 (9) — every failure speaks, and every string is in both books',
 
   test('an answer that is not wording is kept as an answer, not filed', () => {
     const at = TB.indexOf('async function tbDraft');
-    const body = TB.slice(at, at + 2200);
+    /* THE REGION, NOT A BYTE COUNT (re-pointed 27 Sep 2026): the function grew
+       a line (t6) and its answer branch slid past a fixed 2,200 characters. */
+    const body = TB.slice(at, TB.indexOf('\n}\n', at));
     assert.match(body, /if \(!String\(made\.proposedText \|\| ''\)\.trim\(\)\)/);
     assert.match(body, /answered:/);
     assert.ok(!/answered[\s\S]{0,200}_tb\.blocks/.test(body), 'nothing reaches the record on that branch');

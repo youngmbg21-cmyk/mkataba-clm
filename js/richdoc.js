@@ -557,7 +557,11 @@ function richToText(html){
   const flush=()=>{ const t=buf.replace(/[ \t]+/g,' ').trim(); if(t) lines.push(t); buf=''; };
   (function walk(node, path, ulDepth){
     for(const ch of Array.from(node.childNodes)){
-      if(ch.nodeType===3){ buf+=ch.nodeValue.replace(/\s+/g,' '); continue; }
+      /* A NON-BREAKING SPACE IS A CHARACTER THE FILE CHOSE (the owner's list,
+         27 Sep 2026): Word pads a box with a run of them, and collapsing it
+         made the stored body's text differ from the file's own. Ordinary
+         whitespace still folds; a run of U+00A0 is kept as written. */
+      if(ch.nodeType===3){ buf+=ch.nodeValue.replace(/[^\S\u00a0]+/g,' '); continue; }
       if(ch.nodeType!==1) continue;
       const tag=ch.tagName;
       if(tag==='BR'){ flush(); continue; }

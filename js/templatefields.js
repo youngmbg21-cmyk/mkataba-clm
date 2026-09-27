@@ -340,7 +340,7 @@ function createBulkFromTemplate(t, rows, opts={}){
          everything, so a bulk run of NDAs came out marked as carrying money and
          every screen that asks isMonetary believed it — including the share
          dialog, which then refused to send until a value nobody owed was set. */
-      folder:FOLDERS[t.folder]?t.folder:'corp', valueType:t.valueType||'estimated',
+      folder:FOLDERS[t.folder]?t.folder:'corp', valueType:t.builtin?(t.valueType||'estimated'):templateValueType(t),
       lastAction:todayStr(), hash:null, signedAt:null, signatory:u?.name||'Authorized signatory',
       compliance:{iprs:false,pki:false}, expiry:null,
       comments:[{author:'System',role:'Automation',side:'internal',
@@ -380,7 +380,24 @@ function createBulkFromTemplate(t, rows, opts={}){
   return made;
 }
 
-Object.assign(window,{TPL_FIELD_TYPES,TPL_MAPS,TPL_BLANK,TPL_BULK_MAX,tplMapLabel,tplKeyOk,tplKeyFrom,
+/* ---- WHETHER A SAVED TEMPLATE'S CONTRACTS CARRY MONEY (the owner's list,
+   27 Sep 2026) ----
+   Every contract made from a saved template was stamped 'estimated', so an NDA
+   saved as a company standard asked for a value nobody owed. The template's
+   own answer wins where it gives one. Where it is silent, a template with a
+   blank that fills the VALUE carries money; one with no such blank whose own
+   name or type says it is a confidentiality agreement does not. Anything else
+   stays 'estimated' — an absence is not read as "no money". */
+const TPL_NO_MONEY_RE = /\b(?:nda|non[-\s]?disclosure|confidentiality)\b/i;
+function templateValueType(t){
+  if(!t) return 'estimated';
+  if(t.valueType) return t.valueType;
+  let fs=[]; try{ fs=templateFields(t)||[]; }catch(_){ fs=[]; }
+  if(fs.some(f=>f&&f.maps==='value')) return 'estimated';
+  const says=[t.kind,t.contractType,t.type,t.name].filter(Boolean).join(' ');
+  return TPL_NO_MONEY_RE.test(says) ? 'none' : 'estimated';
+}
+Object.assign(window,{TPL_FIELD_TYPES,TPL_MAPS,TPL_BLANK,TPL_BULK_MAX,templateValueType,TPL_NO_MONEY_RE,tplMapLabel,tplKeyOk,tplKeyFrom,
   templateFields,templateBody,templateFormat,fillTemplateBody,bodyPlaceholders,detectBlanks,guessFieldShape,
   convertDetectedBlanks,validateField,normaliseDateInput,isRealDate,coerceField,applyTemplateValues,
   bulkTemplateCsv,parseBulkCsv,createBulkFromTemplate});
@@ -743,7 +760,7 @@ function fillPreviewContract(kind, o){
       base.counterparty = cpF ? String((o.values||{})[cpF.key] || '') : '';
       base.name = t.name + (base.counterparty ? ' \u2014 ' + base.counterparty : '');
       base.party = String(o.party || '').trim() || undefined;
-      base.template = null; base.source = 'template'; base.valueType = 'estimated';
+      base.template = null; base.source = 'template'; base.valueType = templateValueType(o.t);
       base.redlineText = fillTemplateBody(templateBody(t), o.values || {}, fmt);
       base.format = fmt;
       applyTemplateValues(base, fs, o.values || {});

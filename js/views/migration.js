@@ -766,6 +766,19 @@ async function migRerunAi(){
     const meta=await migExtract(text, c.counterparty?{counterparty:c.counterparty}:null);
     if(meta._source!=='ai') break;
     if(isOcrText((c.upload&&c.upload.textSource)||(c.migration&&c.migration.textSource))) capConfidenceForOcr(meta);
+    /* A CORRECTION SURVIVES THE RE-RUN (the owner's list, 27 Sep 2026): this
+       replaced the whole reading, so a value typed in through the review sheet
+       or given by the manifest — both stamped 'high' — was lost to Copilot's.
+       This contract was read only by the pattern-matcher, whose own answers are
+       'low'; a 'high' here is somebody's word, and it stays. */
+    const was=(c.metadata&&typeof c.metadata==='object')?c.metadata:{};
+    const wasConf=(was.confidence&&typeof was.confidence==='object')?was.confidence:{};
+    meta.confidence=Object.assign({}, meta.confidence||{});
+    for(const [k,lvl] of Object.entries(wasConf)){
+      if(lvl!=='high'||was[k]==null||was[k]==='') continue;
+      meta[k]=was[k]; meta.confidence[k]='high';
+      if(was.sourceSpans&&was.sourceSpans[k]!=null){ meta.sourceSpans=Object.assign({}, meta.sourceSpans||{}); meta.sourceSpans[k]=was.sourceSpans[k]; }
+    }
     c.metadata=meta;
     if(meta.counterparty&&!c.counterparty) c.counterparty=meta.counterparty;
     if(meta.value&&!(Number(c.value)>0)){ c.value=Number(meta.value)||0; if(c.valueType==='none') c.valueType='estimated'; }

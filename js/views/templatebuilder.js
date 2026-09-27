@@ -340,7 +340,14 @@ function tbCoverage(blocks, category) {
   const R = resolvePlaybook(tbPbKey(category));
   const bs = blocks || (_tb && _tb.blocks) || [];
   const secs = tbSections(bs).map(s => ({ s, t: tbKindOf(s.head), text: tbSectionText(s, bs) }));
-  const find = category => secs.find(x => x.t && x.t.category === category && x.text) || null;
+  /* A POSITION OUTSIDE THE SIX KINDS IS FOUND BY ITS OWN NAME (the owner's
+     list, 27 Sep 2026): "Stamp duty" has no clause kind, so no section could
+     ever be its kind and the row stayed open over a template that had the
+     section. A section whose heading names the position covers it too. */
+  const norm = v => String(v || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const named = (x, category) => { const c = norm(category), h = norm(x.s && x.s.head);
+    return !!(c && h && (h === c || (' ' + h + ' ').includes(' ' + c + ' '))); };
+  const find = category => secs.find(x => x.text && ((x.t && x.t.category === category) || named(x, category))) || null;
   const rows = [];
   (R.positions || []).forEach(p => {
     const hit = find(p.category);
@@ -954,6 +961,10 @@ async function tbDraft(k, said, o = {}) {
   try {
     const made = await copilotPropose({
       template: true, heading: sec.head, instruction: said,
+      /* WHAT IT MUST SETTLE — the outline's own line for this section, shown
+         on the rail and never sent (the owner's list, 27 Sep 2026). The
+         prompt has always had its place (copilotProposeTemplate, o.intent). */
+      intent: (_tb.intent && _tb.intent[sec.k]) || '',
       kind: (_tb.template && _tb.template.category) || '',
       party: (window.ORG_BRANDING && ORG_BRANDING.companyName) || '',
       passage: before,
@@ -2015,6 +2026,10 @@ function tbPaint(opts = {}) {
         <span id="tb-head" class="tb-head">${tbHeadHtml()}</span>
         <span id="tb-dirtyslot" style="display:flex;align-items:center;gap:var(--s-2);min-width:0">${tbDirtyHtml()}</span>
         <span style="flex:1"></span>
+        ${''/* BELOW 1024 THE RAIL IS NOT DRAWN, AND ITS ADD FIELD WENT WITH IT (the
+               owner's list, 27 Sep 2026). The same act, in the strip, only while
+               the rail is away — one door on screen at a time. */}
+        ${tbRailFits() ? '' : `<button id="tb-addfield-strip" type="button" class="ui-btn tb-act">${icon('plus', 'w-3 h-3')}<span class="w"> ${i18t('tl_add_field')}</span></button>`}
         <button id="tb-save" class="ui-btn tb-act" title="${esc(i18t('tb_save_draft'))}" aria-label="${esc(i18t('tb_save_draft'))}">${icon('check2', 'w-3.5 h-3.5')}<span class="w"> ${i18t('tb_save_draft')}</span></button>
         <button id="tb-publish" class="ui-btn ui-btn-primary tb-act">Publish v${_tb.versionNumber}</button>
       </div>
@@ -2031,6 +2046,7 @@ function tbPaint(opts = {}) {
       aria-label="${esc(i18t('ng_drag_width'))}" title="${esc(i18t('ng_drag_width'))}"><span></span></div>
   </div>`;
   tbPaintPaper(); tbPaintRail(); tbWire(); tbPaintBranding();
+  document.getElementById('tb-addfield-strip')?.addEventListener('click', () => tbFieldModal(null));
   tbRestoreScroll(held);
   tbGutter(true);
 }

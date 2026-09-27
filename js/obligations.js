@@ -1273,8 +1273,13 @@ function openObligationsReview(c, found){
           aiTraceRefuse(c, id, i18t('ob_trace_untick'));
       });
     }catch(_){}
-    logAudit(c,'Obligation',`Added ${n} obligation${n===1?'':'s'} from Copilot scan`
+    /* NOTHING ADDED IS NOT AN ADDITION (the owner's list, 27 Sep 2026): the
+       trail read "Added 0 obligations … already on the contract". It says what
+       happened, and a press that changed nothing and skipped nothing writes no
+       line at all. */
+    if(n) logAudit(c,'Obligation',`Added ${n} obligation${n===1?'':'s'} from Copilot scan`
       +(skipped?` — ${skipped} already on the contract`:''));
+    else if(skipped) logAudit(c,'Obligation',`Nothing added from Copilot scan — the ${skipped===1?'one it found is':skipped+' it found are'} already on the contract`);
     persist(c); closeModal(); renderObligationsSection(c); obligationSurfacesChanged();
     if(window.roomPaintObligations) roomPaintObligations(c);
     /* AND IT SAYS SO OUT LOUD. A bare toast prints NOTHING in this product, so
@@ -2780,7 +2785,11 @@ function obChainSectionHtml(o, c){
     return `<li class="${String(x.id || '') === me ? 'is-me' : ''}">${mk}<span class="t"><b title="${_obEsc(x.desc || '')}">${i + 1}. ${_obEsc(x.desc || '')}</b><span>${w === 'overdue' ? sub : _obEsc(sub)}</span></span><span class="m">${
       money && obligationHasAmount(x) ? _obEsc(obligationMoneyText(obligationAmount(x), c)) : ''}</span></li>`;
   }).join('');
-  const rt = money && roll.committed ? `<span class="rt">${_obEsc(i18t('ob_paid_of', { paid: obligationMoneyText(roll.paid, c), all: obligationMoneyText(roll.committed, c) }))}</span>` : '';
+  /* MONEY BY DIRECTION, the narrow page's own words (obMoneyWords, the owner's
+     list, 27 Sep 2026): "0 paid of 90,000" before anything was paid, and the
+     one heading left on the old wording. Nothing to say, nothing drawn. */
+  const mw = money ? obMoneyWords(ch, c) : null;
+  const rt = mw && mw.text ? `<span class="rt">${_obEsc(mw.text)}</span>` : '';
   return `<section class="ins-sec ins-chain"><h3>${_obEsc(i18t('ob_chain'))}<span class="n">${_obEsc(i18tn('ob_chain_steps', ch.length, { n: ch.length }))}</span>${rt}</h3><ol class="ins-ch">${rows}</ol></section>`;
 }
 function obDocSectionHtml(o){

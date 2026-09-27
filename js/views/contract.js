@@ -3067,12 +3067,25 @@ function signCopyFit(sheet){
 /* THE ONE REPAINT OF THE SHEET — both rebuild sites, and the Document ↔
    Signing tab change, which swaps one copy for the other. The listeners that
    live on the canvas element are re-armed here because the element is new. */
+/* WHAT THE PAPER WAS DRAWN FROM (the owner's list, 27 Sep 2026): a term typed
+   on the Overview reached a built-in template's paper only after a full
+   repaint, because arriving on the Document tab repainted the sheet only when
+   the COPY changed. The facts a drawn paper prints are summed here; a sheet
+   drawn from different facts is redrawn on arrival. Cheap: a string, no walk. */
+function docSheetSig(c){
+  if(!c) return '';
+  try{
+    return JSON.stringify([c.fields||null,c.counterparty||'',c.value==null?'':c.value,c.party||'',c.effDate||'',
+      c.expiry||'',c.template||'',c.name||'',c.valueType||'',c.currency||'']);
+  }catch(_){ return ''; }
+}
 function docRepaintSheet(c){
   const host=document.getElementById('doc-sheet-host');
   if(!host||!c) return;
   const old=host.querySelector('.pg-sheet');
   if(old&&window.pagesUnwatch) pagesUnwatch(old);
   host.setAttribute('data-copy',docCopyOf(c));
+  host.setAttribute('data-sheet-sig',docSheetSig(c));
   host.innerHTML=docSheetHtml(c);
   try{ wireDocumentSync(c); }catch(_){}
   wireDocCanvas(c);
@@ -4874,6 +4887,7 @@ function wsPaintTabRowEnd(c){
      (duty-marks-verify 0b caught it: a press, no call, no reading). */
   wireDocRead(c,end);
 }
+let _wsTabApplied=null;   /* the tab applyWsTabs last painted — "arrived" is a change of it */
 function applyWsTabs(c){
   const keys=ROOM_TABS.map(t=>t[0]);
   if(!keys.includes(_wsTab)) _wsTab='docs';
@@ -4920,8 +4934,13 @@ function applyWsTabs(c){
      contract shows the signed copy on both, so nothing is swapped. */
   if(_wsTab==='docs'||_wsTab==='sign'){
     const host=document.getElementById('doc-sheet-host');
-    if(host&&host.getAttribute('data-copy')!==docCopyOf(c)) docRepaintSheet(c);
+    /* The facts are compared only on ARRIVAL from another tab: a blank being
+       typed into on the paper itself must never be redrawn under the caret. */
+    const arrived=_wsTabApplied!==_wsTab;
+    if(host&&(host.getAttribute('data-copy')!==docCopyOf(c)
+      ||(arrived&&host.hasAttribute('data-sheet-sig')&&host.getAttribute('data-sheet-sig')!==docSheetSig(c)))) docRepaintSheet(c);
   }
+  _wsTabApplied=_wsTab;
   /* THE STRIP DESCRIBES THE TAB YOU ARE ON, so it is repainted when the tab
      changes. It was drawn once per workspace render, which meant whichever tab
      happened to be current at render time kept describing the room for as long
@@ -7129,7 +7148,8 @@ function renderKeyTermsSide(c){
    the story. Versions sit beside it, because "what changed between these two
    dates" is asked in the same breath as "what happened", and until now the only
    way to compare two versions was a menu on another tab. */
-const HIST_KIND={ proposed:{mark:'✎',tone:'var(--color-accent)'}, decided:{mark:'✓',tone:'var(--st-green-dot)'},
+/* The proposal ring wears the accent's INK, which lightens after dark; the plain accent sank into the night surface (the owner's list, 27 Sep 2026). */
+const HIST_KIND={ proposed:{mark:'✎',tone:'var(--accent-ink)'}, decided:{mark:'✓',tone:'var(--st-green-dot)'},
   withdrawn:{mark:'↩',tone:'var(--color-neutral-400)'}, 'round-closed':{mark:'⊘',tone:'var(--st-steel-dot)'},
   system:{mark:'·',tone:'var(--color-neutral-400)'} };
 /* ---- A REFUSAL IS NOT GREEN (24 Aug 2026) ----
@@ -10318,7 +10338,7 @@ function renderWorkspace(){
                  so the tab change can swap one for the other — see
                  docRepaintSheet. The parties' lines at the foot are still not
                  drawn here: every body ends with signatureBlock. */}
-          <div id="doc-sheet-host" data-copy="${docCopyOf(c)}">${docSheetHtml(c)}</div>
+          <div id="doc-sheet-host" data-copy="${docCopyOf(c)}" data-sheet-sig="${esc(docSheetSig(c))}">${docSheetHtml(c)}</div>
           </div>
         </div>
       </section>
@@ -10873,7 +10893,10 @@ const DOC_READ_HEADS='h1,h2,h3,h4';
    carried 743 characters ending "…IPRS identity and CAK-accredited PKI are on
    the roadmap", and the edition printed it back as the reading of Governing
    Law. Both execution blocks wear `.seal-in`. */
-const DOC_READ_FURNITURE='.rl-paper-head,.rl-paper-foot,header,.seal-in';
+/* A DESIGN'S COVER PAGE IS FURNITURE TOO (the owner's list, 27 Sep 2026): it
+   is the design's title block, and a cover set with headings was walked as
+   clauses and sent to Copilot as wording. */
+const DOC_READ_FURNITURE='.rl-paper-head,.rl-paper-foot,header,.seal-in,[data-doc-design-cover]';
 /* ---- THE OTHER SHAPE OF PAPER, AND IT IS THE COMMONER ONE ----
    A contract drawn from PLAIN TEXT — every received document, and every
    working text a negotiation has stored — is laid out by documentTextHtml,
@@ -12147,7 +12170,9 @@ function docReadShape(el){
    PAPER — see the note over docReadFront for why it is not the first clause
    that has been read. */
 const DOC_READ_FRONT_MAX=200;
-const DOC_READ_ALIGN=new Set(['center','right']);
+/* JUSTIFIED TOO (the owner's list, 27 Sep 2026): an opening block the paper
+   sets justified came across ragged-right beside it. */
+const DOC_READ_ALIGN=new Set(['center','right','justify']);
 const DOC_READ_CASE=new Set(['uppercase','lowercase','capitalize','small-caps']);
 function docReadMirrorStyle(el,base){
   let cs=null;
@@ -12288,8 +12313,14 @@ function docReadSwitchHtml(c){
     ${''/* NEVER GREYED WHILE IT READS (fix 6): the column is open and says how
            far it has got, so the half that opened it stays lit and pressable —
            a second press joins the reading already running. */}
-    <button type="button" data-doc-read="1" aria-pressed="${on}"
-      title="${esc(i18t('ct_read_plain_title'))}">${esc(i18t('ct_read_plain'))}</button>
+    ${''/* NOT CONNECTED IS KNOWN BEFORE THE PRESS (the owner's list, 27 Sep
+           2026): the press used to open nothing and flash a passing pop-up.
+           Where the server says Copilot is not connected and no reading is
+           held, the half is greyed and says why on its own hover — a reading
+           already held still opens, since it costs nothing. */}
+    ${(()=>{ const dead=typeof API_MODE==='function'&&API_MODE()&&typeof state!=='undefined'&&state&&state.aiConfigured===false&&!docReadHeld(c);
+      return `<button type="button" data-doc-read="1" aria-pressed="${on}"${dead?' disabled aria-disabled="true"':''}
+      title="${esc(i18t(dead?'ct_read_no_ai':'ct_read_plain_title'))}">${esc(i18t('ct_read_plain'))}</button>`; })()}
     <button type="button" data-doc-read="2" aria-pressed="${xr}"
       title="${esc(i18t('xr_switch_title'))}">${esc(i18t('xr_switch'))}</button>
   </div>`;
@@ -13179,7 +13210,24 @@ function docXrayWire(c){
         return;
       }
       const b=e.target&&e.target.closest&&e.target.closest('[data-xr-seg]');
-      if(!b) return;
+      /* ---- A PRESS ON THE PAPER PICKS ITS CLAUSE (the owner's list, 27 Sep
+         2026) ----
+         The map draws only the marked clauses, so an unmarked one could be
+         the panel's subject only by being first, and Who does what was out of
+         reach for every other. A plain press on a clause in the paper makes it
+         the panel's clause; the paper does not move (the reader is already
+         there), and a press that ends a highlight picks nothing. */
+      if(!b){
+        if(!docXrayOn()||!host.contains(e.target)||host.id!=='doc-paper-col') return;
+        try{ const sel=window.getSelection&&window.getSelection(); if(sel&&!sel.isCollapsed) return; }catch(_){}
+        const cur=(typeof getContract==='function'&&c&&getContract(c.id))||c;
+        const rows=docXrayRows(cur);
+        const at=rows.findIndex(r=>r&&r.el&&r.el.contains&&r.el.contains(e.target));
+        if(at<0||at===_docXrayPick) return;
+        _docXrayPick=at;
+        docXrayPaint(cur);
+        return;
+      }
       const i=Number(b.getAttribute('data-xr-seg'));
       if(!Number.isInteger(i)) return;
       _docXrayPick=i;

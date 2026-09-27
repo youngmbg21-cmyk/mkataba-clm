@@ -299,10 +299,13 @@ function heuristicExtract(text){
   const gl = t.match(/govern(?:ed|ing)[^.]*\blaws?\s+of\s+([A-Z][A-Za-z &]+?)[.,\n)]/i);
   if(gl) set(m,'governingLaw',gl[1].trim().replace(/\s+the\s+$/i,''),'low');
   // payment terms
-  const pay = t.match(/\bwithin\s+(\d{1,3})\s+days\b[^.]*\b(?:invoice|payment|delivery)\b/i) || t.match(/\b(?:net|payment terms?)\s*[:\-]?\s*(\d{1,3})\s*days\b/i);
+  /* ONE READING OF "WHAT COUNTS AS 30 DAYS" (the owner's list, 27 Sep 2026):
+     the playbook's reader, which reads "thirty (30) days"; this copy did not. */
+  const pay = (typeof window!=='undefined'&&typeof window.pbRangeRead==='function') ? window.pbRangeRead('paymentDays', t)
+    : (t.match(/\bwithin\s+(?:[a-z]+(?:[\s-][a-z]+)?\s+)?\(?(\d{1,3})\)?\s+days\b[^.]*\b(?:invoice|payment|delivery)\b/i) || t.match(/\b(?:net|payment terms?)\s*[:\-]?\s*(?:[a-z]+(?:[\s-][a-z]+)?\s+)?\(?(\d{1,3})\)?\s*days\b/i));
   if(pay) set(m,'paymentTerms',pay[1]+' days','low');
   // notice period
-  const notice = t.match(/\b(\d{1,3})\s+(?:days|months?)['’]?\s+(?:written\s+)?notice\b/i);
+  const notice = t.match(/\(?\b(\d{1,3})\)?\s+(?:days|months?)['’]?\s+(?:prior\s+)?(?:written\s+)?notice\b/i);
   if(notice){ let d=Number(notice[1]); if(/month/i.test(notice[0])) d*=30; set(m,'noticePeriodDays',d,'low'); }
   // renewal
   if(/automatically\s+renew|auto-?renew/i.test(t)) set(m,'renewalType','auto-renew','low');

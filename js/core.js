@@ -2085,7 +2085,7 @@ async function doSetup(){
   saveUsers([admin]);
   lsSet(LS.session,{ userId:admin.id, at:nowISO() });
   if(!document.getElementById('su-sample').checked) state.contracts=[];
-  else state.contracts=sampleContracts();   // same reason as the server branch above
+  else state.contracts=sampleContracts().map(c=>(c.owner?c:Object.assign(c,{ owner:{ id:admin.id, name:admin.name } })));   // same reason as the server branch above; the founder owns the sample book (the owner's list, 27 Sep 2026)
   persist();
   startApp();
   toast(`Workspace "${name}" created — karibu!`);

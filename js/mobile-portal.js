@@ -82,6 +82,12 @@ const M_PORTAL_CSS = `
     min-height:44px!important; font-size:var(--t-card)!important;
   }
   .pw-page .rl-cp-pill::after{ content:''; position:absolute; inset:-10px; }
+  /* THE THREE STILL UNDER A THUMB (the owner's list, 27 Sep 2026): the text-size
+     stepper, the reading switch and the queue's rows drew at their desktop
+     size here. Each is a thumb target now; what they say does not change. */
+  .pw-page .rl-type-step button, .pw-page [data-rl-type]{ min-height:44px!important; min-width:44px!important; }
+  .pw-page [data-rl-read]{ min-height:44px!important; font-size:var(--t-card)!important; }
+  .pw-page .rl-q-row{ min-height:48px!important; font-size:var(--t-card)!important; }
   .pw-page input[type=text], .pw-page input[type=email], .pw-page textarea,
   .pv-page input, .pv-page textarea{ font-size:16px!important; }
 

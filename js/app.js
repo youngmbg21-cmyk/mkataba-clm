@@ -827,6 +827,23 @@ function viewLayersClosed(view){
      layer, and a reader mid-sentence must never be asked whether they meant to
      leave a page nobody asked to leave. Same view in, layer untouched. */
   if(state.view === view) return true;
+  /* THE DESIGN STEP (js/views/designstep.js) paints over the page too, and its
+     choices are lost on the way out — so it is asked the same way. */
+  if(typeof window!=='undefined' && window.designStepOpen && designStepOpen()){
+    if(_leavingCe || !(window.designStepDirty && designStepDirty()) || !window.confirmDialog){
+      if(window.designStepClose) designStepClose();
+    } else {
+      confirmDialog({ title:i18t('ds_leave_title'), message:i18t('ds_leave_body'),
+        confirmLabel:i18t('ds_leave_go'), cancelLabel:i18t('act_cancel'), danger:true })
+        .then(ok=>{
+          if(!ok) return;
+          if(window.designStepClose) designStepClose();
+          _leavingCe = true;
+          try{ setView(view); } finally { _leavingCe = false; }
+        }).catch(()=>{});
+      return false;
+    }
+  }
   if(!(typeof window!=='undefined' && window.clauseEditorOpen && clauseEditorOpen())) return true;
   if(_leavingCe) return true;
   if(!(window.clauseEditorDirty && clauseEditorDirty())){
@@ -922,7 +939,12 @@ function setView(view){
     else if(view==='intake') renderIntake();
     else if(view==='templates') renderTemplatesPage();
     else if(view==='playbook') renderPlaybookPage();
-    else if(view==='team') renderTeam();
+    /* ON THE PHONE THE SETTINGS PAGE IS NOT BUILT BEHIND THE SCENES (the
+       owner's list, 27 Sep 2026): the phone draws its own screens, and the
+       desktop's four tabs and every drawer were being built underneath where
+       nobody could see them. Widening the window repaints this view (mSync →
+       setView), so the page is built the moment it can be seen. */
+    else if(view==='team'){ if(!(window.mPhone && window.mAppActive && mPhone() && mAppActive())) renderTeam(); }
     else if(view==='directory') renderDirectory();
     else if(view==='redline') renderRedline();
     else if(view==='workspace'||view==='doc') renderWorkspace();
@@ -1134,7 +1156,7 @@ function createFromTemplate(tid, opts){
   const quiet = !!(opts && opts.quiet);
   if(!canEdit()){ toast(i18t('ap_viewers_no_create'),'err'); return null; }
   const t=TEMPLATES[tid], u=currentUser();
-  const c={ id:nextId(), name:t.name+' (Draft)', counterparty:'', value:0, status:'Draft',
+  const c={ id:nextId(), name:t.name,   /* no "(Draft)": see createFromTemplate (the owner's list, 27 Sep 2026) */ counterparty:'', value:0, status:'Draft',
     template:tid, folder:t.folder,
     lastAction:todayStr(),
     hash:null, signedAt:null, signatory:u?.name||'Authorized signatory',

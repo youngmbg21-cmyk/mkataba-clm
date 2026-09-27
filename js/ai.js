@@ -588,12 +588,18 @@ function scrollToQuote(quote, opts){
   }
   // shorter and shorter prefixes: extraction and rendering can disagree about
   // trailing punctuation, and half a sentence still lands the reader there
+  /* `o.nth` — THE NTH COPY OF THE SAME WORDS (the owner's list, 27 Sep 2026):
+     a passage a contract repeats was always found at its first copy. 0 (the
+     default) is exactly the old search; a caller that wants every copy asks
+     1, 2… until the answer is false. */
+  const nth=Math.max(0, Number(o.nth)||0);
   let at=-1, len=0;
   for(const take of [needle.length, 160, 90, 50, 24]){
     if(take>needle.length) continue;
     const probe=needle.slice(0,take).trim();
     if(probe.length<12) break;
     at=flat.indexOf(probe);
+    for(let k=0;k<nth&&at>=0;k++) at=flat.indexOf(probe, at+probe.length);
     if(at>=0){ len=probe.length; break; }
   }
   if(at<0) return false;
@@ -2198,22 +2204,36 @@ async function aiLocalClaude(messages, context){
    applies it against the live workspace and returns the same shape as the
    server /ai/graph endpoint and the local graphInterpret fallback:
    { visibleIds, groupBy, groups, note, action, badges, answer }. */
+/* ---- THE SAME VOCABULARY, AND THE CARDS, IN LOCAL MODE TOO (the owner's
+   list, 27 Sep 2026) ----
+   With a key held in the browser this asked the model for an older, narrower
+   filter (folder · status · kind · counterparty · expiry · a minimum value)
+   and showed it no contract at all, so "the ones where they owe us a move" or
+   "signed last quarter" could not be answered. It now speaks the graph's own
+   `where` (GRAPH_WHERE_KEYS, applied by graphWhereIds over graphCopilotCard —
+   the server's list_portfolio applies the same predicate) and is shown the
+   same cards, capped at GRAPH_ASK_CAP. The older keys are still read, mapped
+   onto `where`, so a reply in the old shape still lands. */
 async function aiLocalGraph(qRaw){
   const key=_localAiKey(); if(!key) throw new Error('needsKey');
   const q=String(qRaw||'');
   const folders=Object.values(FOLDERS).map(f=>`${f.id} = ${f.name}`).join('; ');
-  const kinds=[...new Set((state.contracts||[]).map(c=>cKind(c)))].slice(0,24).join(', ');
-  const sys=`You convert a user's command about a contract-portfolio map into a filter. Respond with ONLY a JSON object — no prose, no code fence.
-Value streams (return the id on the left): ${folders}.
-Statuses: Draft, Under Review, Signed, Declined. Contract types present: ${kinds}.
-All keys optional; omit any that isn't implied:
-{"folder":"<value-stream id>","status":"<status>","kind":"<type substring>","counterparty":"<party name substring>","expiryDays":<int: expiring within N days>,"valueMin":<number, contract currency>,"groupBy":"${(typeof GRAPH_GROUP_KEYS!=='undefined'&&Array.isArray(GRAPH_GROUP_KEYS))?GRAPH_GROUP_KEYS.join('|'):'folder|counterparty|status|valueBand|kind'}","action":"filter|highlight","note":"<short human label>"}
-Guidance: "customer/client/sales" → folder sales; "supplier/sourcing/procurement" → folder proc; "logistics/3PL/warehousing/distribution" → folder dist; "manufacturing/production/co-packing" → folder mfg; "marketing/brand/agency/media" → folder mktg; "corporate/legal/compliance/NDA/lease" → folder corp. "highlight" → action highlight; "only/just/filter" → action filter.
-Examples: "highlight the customer contracts" → {"folder":"sales","action":"highlight","note":"Sales & Route-to-Market"}. "show me the supplier nodes" → {"folder":"proc","action":"filter","note":"Procurement & Raw Materials"}. "group by customer" → {"groupBy":"counterparty","note":"Grouped by customer"}.`;
+  const keys=(Array.isArray(window.GRAPH_WHERE_KEYS)?window.GRAPH_WHERE_KEYS:[]).join(', ');
+  const cap=Number(window.GRAPH_ASK_CAP)||150;
+  const cards=(state.contracts||[]).filter(c=>!c.archived).slice(0,cap)
+    .map(c=>typeof window.graphCopilotCard==='function'?window.graphCopilotCard(c):{ id:c.id, name:c.name, counterparty:c.counterparty||'', status:c.status||'' });
+  const sys=`You convert a user's command about a contract-portfolio map into a filter over the cards below. Respond with ONLY a JSON object — no prose, no code fence.
+Value streams: ${folders}.
+Shape (all keys optional; omit any that isn't implied):
+{"where":{<any of: ${keys}>},"groupBy":"${(typeof GRAPH_GROUP_KEYS!=='undefined'&&Array.isArray(GRAPH_GROUP_KEYS))?GRAPH_GROUP_KEYS.join('|'):'folder|counterparty|status|valueBand|kind'}","action":"filter|highlight","note":"<short human label>"}
+where: status/folder/kind/counterparty are a string or a list of strings (folder by name); valueAbove/valueBelow numbers in the contract's currency; expiringWithinDays an integer; signedFrom/signedTo YYYY-MM-DD; overdueObligations/offStandard/notRead/archived booleans; move "you" or "them".
+"highlight" → action highlight; "only/just/filter" → action filter.
+Today is ${typeof todayISO==='function'?todayISO():new Date().toISOString().slice(0,10)}.
+CARDS (${cards.length}${(state.contracts||[]).length>cards.length?' of '+(state.contracts||[]).length:''}): ${JSON.stringify(cards)}`;
   const r=await fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',
     headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:LOCAL_AI_MODEL,max_tokens:250,system:sys,messages:[{role:'user',content:q}]}),
+    body:JSON.stringify({model:LOCAL_AI_MODEL,max_tokens:400,system:sys,messages:[{role:'user',content:q}]}),
   });
   if(r.status===401) throw new Error('The saved Copilot key was rejected (401) — re-check it in Team & Settings.');
   if(r.status===429) throw new Error('Rate limited by the Copilot provider — wait a moment and try again.');
@@ -2222,18 +2242,20 @@ Examples: "highlight the customer contracts" → {"folder":"sales","action":"hig
   const txt=(d.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
   const m=txt.match(/\{[\s\S]*\}/); if(!m) return null;
   let s; try{ s=JSON.parse(m[0]); }catch(_){ return null; }
-  let cs=(state.contracts||[]).slice(); let filtered=false;
-  if(s.folder){ cs=cs.filter(c=>c.folder===s.folder); filtered=true; }
-  if(s.status){ cs=cs.filter(c=>c.status===s.status); filtered=true; }
-  if(s.kind){ const k=String(s.kind).toLowerCase(); cs=cs.filter(c=>cKind(c).toLowerCase().includes(k)); filtered=true; }
-  if(s.counterparty){ const k=String(s.counterparty).toLowerCase(); cs=cs.filter(c=>(c.counterparty||'').toLowerCase().includes(k)); filtered=true; }
-  if(s.valueMin){ cs=cs.filter(c=>Number(c.value||0)>=Number(s.valueMin)); filtered=true; }
-  if(s.expiryDays!=null){ const n=Number(s.expiryDays); cs=cs.filter(c=>c.expiry&&c.status!=='Declined'&&!c.archived&&daysUntil(c.expiry)>=0&&daysUntil(c.expiry)<=n); filtered=true; }
+  const where=Object.assign({}, (s.where&&typeof s.where==='object')?s.where:{});
+  /* The older shape, mapped: a folder id is named as its stream. */
+  if(s.folder&&where.folder==null) where.folder=(FOLDERS[s.folder]&&FOLDERS[s.folder].name)||s.folder;
+  if(s.status&&where.status==null) where.status=s.status;
+  if(s.kind&&where.kind==null) where.kind=s.kind;
+  if(s.counterparty&&where.counterparty==null) where.counterparty=s.counterparty;
+  if(s.valueMin!=null&&where.valueAbove==null) where.valueAbove=s.valueMin;
+  if(s.expiryDays!=null&&where.expiringWithinDays==null) where.expiringWithinDays=s.expiryDays;
+  const ids=(Object.keys(where).length&&typeof window.graphWhereIds==='function')?window.graphWhereIds(where):null;
   const note=s.note||'Copilot filter';
-  const vis=filtered?cs:null;
+  const vis=ids?ids.map(id=>getContract(id)).filter(Boolean):null;
   const answer = vis===null
     ? (s.groupBy?'Regrouped the graph.':"I couldn't turn that into a map filter — try naming a value stream, status, type, party or expiry window.")
-    : (vis.length ? `${vis.length} contract${vis.length===1?'':'s'} match (${note}). Largest: ${vis.slice().sort((a,b)=>Number(b.value||0)-Number(a.value||0))[0].name}.`
+    : (vis.length ? `${vis.length} contract${vis.length===1?'':'s'} match (${note}).`
                   : `No contracts match (${note}).`);
   return { visibleIds: vis&&vis.length?vis.map(c=>c.id):null, groupBy:s.groupBy||null, groups:null, note, action:(s.action==='highlight'?'highlight':'filter'), badges:null, answer };
 }
@@ -2270,7 +2292,8 @@ function updateAiBrainPill(){
    server's notice under the answer, so the toast would be the same sentence
    twice (owner-asked 11 Sep 2026, off the Insights dock). The notice still
    rides back on the answer; a quiet caller MUST print it where the reader is
-   looking. Not offered on the streaming path: no quiet caller streams. */
+   looking. The streaming path takes it too (27 Sep 2026): the main panel
+   streams, and prints the notice under its answer. */
 async function copilotAsk(messages, context, onEvent, opts){
   if(typeof API_MODE==='function' && API_MODE() && state.aiConfigured){
     /* Streamed when the caller can render it (onEvent) — progress + tokens as
@@ -2279,7 +2302,7 @@ async function copilotAsk(messages, context, onEvent, opts){
        mid-stream) falls back to one plain /api/ai/chat call, transparently:
        the user still gets an answer, just un-streamed. */
     if(onEvent && typeof apiStream==='function'){
-      try{ return await apiStream('ai/chat/stream',{ messages, context }, onEvent); }
+      try{ return await apiStream('ai/chat/stream',{ messages, context }, onEvent, opts); }
       catch(e){ /* fall through to the request/response contract */ }
     }
     return await api('ai/chat','POST',{ messages, context }, opts);
@@ -3935,7 +3958,9 @@ async function aiSubmit(){
        translates everything else it says. */
     let res=null;
     try{
-      res=await copilotAsk(aiChatMessages(), aiChatContext(), aiStreamRenderer());
+      /* QUIET: aiRenderServerAnswer prints the notice under the answer, so the
+         pop-up was the same sentence twice (the owner's list, 27 Sep 2026). */
+      res=await copilotAsk(aiChatMessages(), aiChatContext(), aiStreamRenderer(), { quiet:true });
     }catch(e){ finish(aiDegrade(q,e,true)); return; }
     try{
       finish(aiRenderServerAnswer(res));

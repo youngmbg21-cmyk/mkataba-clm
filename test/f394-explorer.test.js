@@ -68,7 +68,11 @@ describe('f394 (2) the » is gone; the › is kept', () => {
     assert.match(d.slice(0, d.indexOf('const msgs=')), /id="igd-expand"[\s\S]*?intel\.dockOpen=true/);
   });
   test('the widen state and its store are gone from the page\'s state', () => {
-    assert.doesNotMatch(code(IG), /dockWide|hati\.v1\.intelWide/);
+    /* RE-POINTED 27 Sep 2026 (the owner's list, c17): the old store is READ
+       ONCE, inside _igDockPref, to carry a widened panel's choice across, and
+       then removed — nothing else names it, and the state keeps no dockWide. */
+    const rest = code(IG).replace(code(region(IG, '_igDockPref')), '');
+    assert.doesNotMatch(rest, /dockWide|hati\.v1\.intelWide/);
   });
 });
 
@@ -109,7 +113,10 @@ describe('f394 (3) the divider is the other two pages\' own', () => {
   test('what is stored is the panel\'s WIDTH, under its own key, and nothing but the divider writes it', () => {
     assert.match(IG, /const IG_SPLIT_KEY = 'hati\.v1\.igDockW';/);
     const writes = (code(IG).match(/_igDockSave\(/g) || []).length;
-    assert.ok(writes >= 4 && writes === (code(region(IG, 'igWireSplit')).match(/_igDockSave\(/g) || []).length + 1, 'every write is inside the wiring (plus the definition)');
+    /* RE-POINTED 27 Sep 2026 (c17): plus the one-time carry of the old widen
+       choice, inside _igDockPref. */
+    assert.ok(writes >= 5 && writes === (code(region(IG, 'igWireSplit')).match(/_igDockSave\(/g) || []).length
+      + (code(region(IG, '_igDockPref')).match(/_igDockSave\(/g) || []).length + 1, 'every write is inside the wiring or the one-time carry (plus the definition)');
   });
   test('the one layout pass: the width, the handle on the seam, stood down when folded', () => {
     const f = code(region(IG, 'igFitSplit'));

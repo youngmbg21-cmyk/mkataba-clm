@@ -55,6 +55,17 @@ function mNeedsYou(D){
       i18t('m_waiting_your_approval') + (whoName?i18t('m_requested_by',{who:whoName}):''), 'var(--st-amber-fg)');
   });
 
+  /* ---- THEY HAVE BEEN WAITING ON US (the owner's list, 27 Sep 2026) ----
+     Home's first decision on the desktop — a negotiation where the other side
+     has waited past the standard — was not on the phone at all. The same slice
+     (hmDashSlices' myStaleDesks, the desk's own reading), in the same words. */
+  (D.myStaleDesks||[]).forEach(x=>{
+    const st = x.stale||{};
+    push(x.c,'var(--st-amber-dot)',
+      i18t('dk_stale_card',{who:x.c.counterparty||i18t('home_no_counterparty')})+(st.days!=null?' · '+i18t('dk_stale_tag',{n:st.days}):''),
+      'var(--st-amber-fg)');
+  });
+
   /* The counterparty is waiting on an answer. wsNextAction is the authority on
      whether that is true — the same authority the desktop's own action bar
      uses — so the phone cannot come to a different conclusion about whose turn
@@ -104,6 +115,11 @@ function mKpiHtml(D){
       <span class="m-kpi-label">${mEsc(k.label)}</span>
       <span class="m-kpi-val" style="color:${fg}">${k.val}</span>
       <span class="m-kpi-sub">${k.delta}</span>
+      ${''/* THE PAYMENT-TERMS SPLIT RIDES TOO (the owner's list, 27 Sep 2026): the
+             tile's one number carries two directions and only the sub-line says
+             which is which (home.js, payterms). Drawn where a tile has one and
+             says something the count does not — the split, not a second count. */}
+      ${id==='payterms'&&k.sub?`<span class="m-kpi-sub">${mEsc(k.sub)}</span>`:''}
     </button>`;
   }).join('');
   return `<div class="m-kpi-grid">${cards}</div>`;
@@ -578,7 +594,14 @@ function mScreenAct(k, btn){
     /* `only` too — a set sent to the register from another screen is a filter
        like any other, and the phone builds no calendar to have sent one, so
        this is the only door it has out of one inherited across a resize. */
-    if(R){ R.query=''; R.stage='all'; R.type='all'; R.category='all'; R.view=null; R.only=null; R.page=1; }
+    /* EVERY FILTER, THROUGH THE DESKTOP'S OWN RESTING STATE (the owner's list,
+       27 Sep 2026): five filters were left on — signed, payment terms,
+       documents, on hold, renewal — because this listed them by hand.
+       regFiltersAtRest walks the bar's own list, query and `only` included. */
+    if(R){
+      if(typeof window.regFiltersAtRest==='function') window.regFiltersAtRest(R);
+      else { R.query=''; R.stage='all'; R.type='all'; R.category='all'; R.view=null; R.only=null; R.page=1; }
+    }
     mRender(); return;
   }
   if(k==='new-wizard'){ mCloseSheet(); if(window.openWizard) openWizard(); return; }

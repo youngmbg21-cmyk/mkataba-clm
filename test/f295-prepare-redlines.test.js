@@ -109,7 +109,11 @@ describe('f295 — the one door and its gate', () => {
   test('the floor is named once in js/playbook.js and the runner reads it', () => {
     assert.ok(/const PB_TEXT_MIN=120;/.test(PB));
     assert.ok(/function playbookText\(c\)/.test(PB));
-    assert.ok(/async function runPlaybookReview\(c,opts=\{\}\)\{\s*const text = playbookText\(c\);\s*if\(!text \|\| text\.length<PB_TEXT_MIN\)/.test(PB), 'one reading, two readers');
+    /* RE-POINTED 27 Sep 2026 (the owner's list, n18): a light row is loaded
+       whole before "no readable text" is said, so the reading is taken again
+       after the load — the same reading, the same floor. */
+    assert.ok(/async function runPlaybookReview\(c,opts=\{\}\)\{\s*let text = playbookText\(c\);/.test(PB), 'one reading');
+    assert.ok(/text = playbookText\(c\);\s*\}\s*if\(!text \|\| text\.length<PB_TEXT_MIN\)/.test(PB), 'two readers, one floor');
     assert.ok(/PB_TEXT_MIN,playbookText,/.test(PB), 'both published');
   });
   /* RE-POINTED 12 Sep 2026, IN PLACE. This pinned the SINGULAR query, which

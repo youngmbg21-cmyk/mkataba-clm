@@ -620,7 +620,23 @@ const IG_DOCK_W0 = 380, IG_DOCK_MIN = 340, IG_LEFT_MIN = 420, IG_DOCK_FOLDED = 4
 const IG_SPLIT_KEY = 'hati.v1.igDockW';
 /* null = nobody has chosen, which is what lets the resting place be a width. */
 function _igDockPref(){
-  try{ const v=Number(localStorage.getItem(IG_SPLIT_KEY)); return (v>0&&isFinite(v))?Math.round(v):null; }catch(_){ return null; }
+  try{ const v=Number(localStorage.getItem(IG_SPLIT_KEY)); if(v>0&&isFinite(v)) return Math.round(v); }catch(_){ return null; }
+  /* THE OLD WIDEN BUTTON'S CHOICE IS CARRIED ACROSS ONCE (the owner's list,
+     27 Sep 2026): someone who had widened the panel opened at the default
+     width the first time after the divider replaced the button. The old
+     choice is read once, turned into the width it gave (45% of the window,
+     380–660, the button's own arithmetic), stored as a width and retired. */
+  try{
+    const wide=(typeof lsGet==='function')?lsGet('hati.v1.intelWide'):localStorage.getItem('hati.v1.intelWide');
+    if(wide!=null){
+      try{ localStorage.removeItem('hati.v1.intelWide'); }catch(_){}
+      if(wide&&wide!=='false'){
+        const w=Math.max(380, Math.min(660, Math.round((window.innerWidth||1200)*0.45)));
+        _igDockSave(w); return w;
+      }
+    }
+  }catch(_){}
+  return null;
 }
 function _igDockSave(w){ try{ if(w==null) localStorage.removeItem(IG_SPLIT_KEY); else localStorage.setItem(IG_SPLIT_KEY,String(Math.round(w))); }catch(_){ } }
 /* The width the panel takes in a row `avail` wide: the reader's choice or the
@@ -903,9 +919,11 @@ function graphInterpret(qRaw){
   if(pureGroup){ /* nothing narrows */ }
   else if(has('expir','renew','lapse','ending',' end ','coming to an end','ends in','end in','end within')){
     const horizon=parseHorizonDays(q)??90;
-    vis=cs.filter(c=>c.expiry&&c.status!=='Declined'&&!c.archived&&daysUntil(c.expiry)>=0&&daysUntil(c.expiry)<=horizon);
+    /* The AMENDED end date (_gExpiryDay → effectiveExpiry), the same the
+       Copilot card and the server read (the owner's list, 27 Sep 2026). */
+    vis=cs.filter(c=>{ const e=_gExpiryDay(c); return e&&c.status!=='Declined'&&!c.archived&&daysUntil(e)>=0&&daysUntil(e)<=horizon; });
     note='Expiring ≤ '+(horizon%30===0&&horizon>=30?Math.round(horizon/30)+'mo':horizon+' days');
-    badges={}; vis.forEach(c=>badges[c.id]='ends in '+daysUntil(c.expiry)+'d');
+    badges={}; vis.forEach(c=>badges[c.id]='ends in '+daysUntil(_gExpiryDay(c))+'d');
     action='highlight';
   }
   else if(has('lease')) { vis=kindHit('lease'); note='Leases'; }
@@ -1128,7 +1146,7 @@ function intelGraphApply(q, res, opts){
     intel.history.push({ role:'assistant', text:igEsc(i18t('int_group_refused',{ list:GRAPH_GROUPINGS.map(g=>g.label.toLowerCase()).join(', ') })), cardIds:[] });
     return { refused:true, groupBy:null, ids:null };
   }
-  if(groupBy){ intel.groupBy=groupBy; intel.groups=groups; }
+  if(groupBy){ intel.groupBy=groupBy; intel.groups=groups; igPaintGroupSelect(); }
   const action=res.action==='highlight'?'highlight':'filter';
   if(ids&&ids.length)
     addLens({ label:res.note||ids.length+' matches', ids, action, badges:res.badges||null });
@@ -1629,10 +1647,20 @@ function igClamp(n,dx,dy){ const hw=n.w/2+2,hh=n.h/2+2,sx=dx?hw/Math.abs(dx):1e9
    page header and was never told when a typed command regrouped the map, so
    it went on saying "Value stream" over expiry hubs — the control and the
    caption disagreeing about what the product had done. Painted on every
-   rebuild for a grouping the dropdown carries; a Copilot grouping has no
-   option and the caption is its one carrier. */
+   rebuild for a grouping the dropdown carries.
+   ---- AND FOR COPILOT'S OWN (the owner's list, 27 Sep 2026) ----
+   A Copilot grouping had no option, so the menu went on naming the reader's
+   last pick over Copilot's hubs. It gets a row of its own while it is live,
+   named as the caption names it (graphGroupingWord), and loses it after. */
 function igPaintGroupSelect(){
   const sel=document.getElementById('ig-group'); if(!sel) return;
+  const has=sel.querySelector('option[value="custom"]');
+  if(intel.groupBy==='custom'){
+    if(!has){ const o=document.createElement('option'); o.value='custom';
+      o.textContent=graphGroupingWord('custom').replace(/^./,ch=>ch.toUpperCase()); sel.insertBefore(o, sel.firstChild); }
+    sel.value='custom'; return;
+  }
+  if(has) has.remove();
   if(GRAPH_GROUP_KEYS.includes(intel.groupBy) && sel.value!==intel.groupBy) sel.value=intel.groupBy;
 }
 function rebuildIntelGraph(){
@@ -1830,6 +1858,8 @@ function renderIntel(){
       ${intel.tab==='map'?`<label style="display:flex;align-items:center;gap:var(--s-2);font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);flex:none">Group by
         <span style="position:relative;display:inline-flex;align-items:center">
           <select id="ig-group" style="appearance:none;-webkit-appearance:none;-moz-appearance:none;border:1.5px solid var(--color-accent);background:var(--st-steel-bg);color:var(--st-steel-fg);font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-body);letter-spacing:0;text-transform:none;padding:5px 26px 5px 11px;border-radius:var(--radius);cursor:pointer;outline:none">
+            ${''/* Copilot's own grouping gets its row here too — see igPaintGroupSelect. */}
+            ${intel.groupBy==='custom'?`<option value="custom" selected>${graphGroupingWord('custom').replace(/^./,ch=>ch.toUpperCase())}</option>`:''}
             ${groupOpts.map(([k,l])=>`<option value="${k}" ${intel.groupBy===k?'selected':''}>${l}</option>`).join('')}
           </select>
           <span style="position:absolute;right:9px;pointer-events:none;color:var(--color-accent);font-size:var(--t-figure)">▼</span>
@@ -2005,6 +2035,7 @@ function renderIntel(){
   }
 
   // controls
+  /* Leaving Copilot's grouping takes its row away (igPaintGroupSelect, on the rebuild). */
   document.getElementById('ig-group').addEventListener('change',e=>{ intel.groupBy=e.target.value; intel.groups=null; rebuildIntelGraph(); });
   document.querySelectorAll('[data-ig-tab]').forEach(b=>b.addEventListener('click',()=>{ intel.tab=b.getAttribute('data-ig-tab'); renderIntel(); }));
 
@@ -3615,7 +3646,7 @@ function igExplainCard(id){
     ${row('Counterparty',igEsc(c.counterparty||'—'))}
     ${row('Value',isMonetary(c)&&c.value?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):'Non-monetary')}
     ${row('Status',statusLabel(c.status))}
-    ${row('Expiry',c.expiry?(c.expiry+(d!=null?(d>=0?` · ${i18t('int_in_days',{n:d})}`:` · ${i18t('int_lapsed')}`):'')):'—')}
+    ${row('Expiry',eff?(eff+(d!=null?(d>=0?` · ${i18t('int_in_days',{n:d})}`:` · ${i18t('int_lapsed')}`):'')):'—')}
     ${row('Group',igEsc(groupLabelOf(c,intel.groupBy,intel.groups)))}
     ${igFactRowsHtml(c)}
     ${igDependentsHtml(c.id)}
@@ -4082,6 +4113,7 @@ function igPaperWire(host){
    at every act: the marks are the risk scan's own held in place, and the walk
    that places them reads the live text, so a re-walk after a re-layout lands
    where the words now are. */
+const IG_PIN_COPIES_MAX=6;   // copies of one repeated passage lit per pin — a cap on drawing, never on finding the first
 function igPinsPaint(){
   const p=intel.paper; const canvas=document.getElementById('ig-canvas'); if(!p||!canvas) return;
   canvas.querySelectorAll('button.ig-pin').forEach(el=>el.remove());
@@ -4093,6 +4125,12 @@ function igPinsPaint(){
   p.pins.forEach(pin=>{
     pin.lost=!scrollToQuote(pin.text,{ root:canvas, hold:true, cls:'ig-mark'+(pin.ob?' ob':''), pin:pin.n, scroll:false });
     if(pin.lost) return;
+    /* WORDS THE CONTRACT REPEATS ARE LIT WHEREVER THEY STAND (the owner's list,
+       27 Sep 2026): the answer does not say which copy it read, and pinning the
+       first alone claimed it did. Every copy is lit; the number sits on the first. */
+    for(let k=1;k<IG_PIN_COPIES_MAX;k++){
+      if(!scrollToQuote(pin.text,{ root:canvas, hold:true, cls:'ig-mark'+(pin.ob?' ob':''), pin:pin.n, scroll:false, nth:k })) break;
+    }
     const first=canvas.querySelector(`span.ig-mark[data-ig-pin="${pin.n}"]`); if(!first) return;
     const block=first.closest('p,li,h1,h2,h3,h4,h5,h6,td,div')||first.parentElement;
     if(!block||!canvas.contains(block)||block===canvas) return;

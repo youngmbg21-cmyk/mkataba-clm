@@ -697,15 +697,21 @@ function _dxFieldName(raw){
 /* Where a content control that is SHOWING ITS PLACEHOLDER keeps its content,
    as character ranges into this paragraph. A control that has been answered is
    not listed, so its wording is never marked.
-   A control nested inside another reads as the outer one's content — rare in
-   contract drafting, and the honest cost of one lazy match rather than a
-   parser. */
+   A CONTROL NESTED INSIDE ANOTHER IS ITS OWN (the owner's list, 27 Sep 2026):
+   a lazy match closed the outer control at the inner one's end tag, so the
+   inner box read as the outer one's content. The tags are paired as a stack,
+   each control is judged on its own properties, and where two marked ranges
+   nest the innermost stands — that is the box somebody fills. */
 function docxPlaceholderRanges(para){
-  const out = [];
-  const re = /<w:sdt\b[\s\S]*?<\/w:sdt>/g;
+  const all = [];
+  const tag = /<(\/?)w:sdt(?=[\s>\/])[^>]*?(\/?)>/g;
+  const open = [];
   let m;
-  while((m = re.exec(para))){
-    const whole = m[0];
+  while((m = tag.exec(para))){
+    if(m[2] === '/') continue;                 // a self-closed control holds nothing
+    if(!m[1]){ open.push(m.index); continue; }
+    const start = open.pop(); if(start == null) continue;
+    const whole = para.slice(start, m.index + m[0].length);
     const pr = (whole.match(/<w:sdtPr\b[\s\S]*?<\/w:sdtPr>/) || [''])[0];
     if(!/<w:showingPlcHdr\b/.test(pr)) continue;
     const a = whole.indexOf('<w:sdtContent');
@@ -713,9 +719,10 @@ function docxPlaceholderRanges(para){
     if(a < 0 || b < 0 || b <= a) continue;
     const alias = (pr.match(/<w:alias\b[^>]*w:val="([^"]*)"/) || [])[1]
       || (pr.match(/<w:tag\b[^>]*w:val="([^"]*)"/) || [])[1] || '';
-    out.push([m.index + a, m.index + b, _dxFieldName(alias)]);
+    all.push([start + a, start + b, _dxFieldName(alias)]);
   }
-  return out;
+  const out = all.filter(r => !all.some(o => o !== r && o[0] >= r[0] && o[1] <= r[1]));
+  return out.sort((x, y) => x[0] - y[0]);
 }
 
 function docxRunsHtml(para, opts){

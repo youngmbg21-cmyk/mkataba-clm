@@ -598,10 +598,24 @@ function mShareSheetHtml(){
     : s.share==='negotiate'
       ? 'No code is needed to read or answer on a negotiation link — every reply is recorded against the address it was sent to.'
       : 'No code, no reply channel. A read-only link can be opened and printed and nothing else.';
+  /* ---- WHAT IS WORTH CHECKING, BEFORE IT LEAVES (the owner's list, 27 Sep
+     2026) ----
+     The desktop's send screen lists what the record is missing before the
+     press (readinessPanelHtml); the phone sent blind. The SAME reading
+     (contractReadiness), folded to a count and opened on a tap, the way the
+     desktop folds its notes. It reads; it decides nothing. */
+  const mc = mContract();
+  let probs = [];
+  try{ probs = (mc && typeof window.contractReadiness==='function') ? (window.contractReadiness(mc)||[]) : []; }catch(_){ probs = []; }
+  const ready = probs.length ? `<details class="m-card" style="margin-top:var(--s-3);padding:11px 14px;background:var(--st-amber-bg);border:1px solid var(--st-amber-line)">
+      <summary style="cursor:pointer;font-size:16px;font-weight:var(--w-strong);color:var(--st-amber-fg)">${mEsc(i18tn('co_worth_checking_n', probs.length, { n: probs.length }))}</summary>
+      <ul style="margin:8px 0 0;padding-left:18px;font-size:15px;line-height:1.6;color:var(--st-amber-fg)">${probs.map(x=>`<li>${mEsc(x.label)}</li>`).join('')}</ul>
+    </details>` : '';
   return `
     <div class="m-grab"></div>
     <div class="m-sheet-title">${i18t('mc_share_link')}</div>
     <div class="m-sheet-note">One link, one purpose. A negotiation link can't sign, a signing link can't redline, a read-only link can do nothing at all.</div>
+    ${ready}
     <div style="display:flex;flex-direction:column;gap:var(--s-2)">${kinds}</div>
     <div class="m-card m-list" style="margin-top:var(--s-3);background:var(--color-bg)">
       <div style="display:flex;align-items:center;gap:var(--s-3);padding:13px 14px">

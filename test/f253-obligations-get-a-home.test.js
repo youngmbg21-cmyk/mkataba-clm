@@ -295,7 +295,9 @@ describe('f253 (4) — "nobody owns this", and it is the server’s own reading'
 
   test('it still MIRRORS the server, which is the authority', () => {
     const SRV = read('server/server.js');
-    const fn = SRV.match(/function obligationRecipient\(assignee\)[\s\S]*?\n\}/)[0];
+    /* RE-POINTED 27 Sep 2026 (the owner's list, r13): the server also asks the
+       contract's stream, so a reminder never reaches someone who may not see it. */
+    const fn = SRV.match(/function obligationRecipient\(assignee(?:, folder)?\)[\s\S]*?\n\}/)[0];
     assert.match(fn, /LOWER\(email\)=\?/, 'email first');
     assert.match(fn, /LOWER\(name\)=\?/, 'then name');
     assert.match(fn, /\/\.\+@\.\+\\\.\.\+\/\.test/, 'and only where there is an address');

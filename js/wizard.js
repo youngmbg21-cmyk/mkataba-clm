@@ -450,7 +450,7 @@ function createFromWizard(tid, vars, opts){
      then re-typed, in the workspace, a fact they had already given the wizard.
      Uploads have always recorded it (js/views/contract.js); the two
      template-born paths now agree with them. */
-  const c={ id:nextId(), name:t.name+(cp?' — '+cp:' (Draft)'), counterparty:cp,
+  const c={ id:nextId(), name:t.name+(cp?' — '+cp:''),   /* no "(Draft)" in a name: the stage says it, and a name outlives the stage (the owner's list, 27 Sep 2026) */ counterparty:cp,
     value: 0, status:'Draft', template:tid, folder:t.folder,
     lastAction:todayStr(), hash:null, signedAt:null, signatory:u?.name||'Authorized signatory', compliance:{iprs:false,pki:false},
     comments:[{author:'System',role:'Automation',side:'internal',text:`Drafted via the guided wizard from Template ${tid} (${t.kind}). What you typed is filed as contract data — the register, filters and reports pick it up without re-keying.`,ts:fmtDT(nowISO())}],

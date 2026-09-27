@@ -372,10 +372,15 @@ function insNeedWords(c, it){
   const bit = (text, isLate, hover) => ({ html: isLate ? late(text) : esc(text), plain: text, hover: !!hover });
   const cp = c.counterparty || i18t('ng_door_them');
   if (it.kind === 'quiet'){
-    const d = _insDaysSince(it.since);
+    /* WORKING DAYS, THE STANDARD'S OWN UNIT, and the desk's own count
+       (deskStale's `days`) — Home's tag reads the same number (the owner's
+       list, 27 Sep 2026). A row with no count falls back to calendar days. */
+    const wd = (it.days != null && Number.isFinite(Number(it.days))) ? Number(it.days) : null;
+    const d = wd == null ? _insDaysSince(it.since) : null;
     let std = 0; try { std = (typeof deskCfg === 'function') ? Number(deskCfg().staleDays || 0) : 0; } catch (_) { std = 0; }
+    const said = wd != null ? i18tn('ins_work_days', wd, { n: wd }) : (d == null ? null : _insDaysWord(d));
     return Object.assign({ title: i18tn('ins_need_quiet', it.n || 1, { n: it.n || 1, who: cp }) },
-      lineOf([d == null ? null : bit(i18t('ins_need_waiting', { days: _insDaysWord(d) }), true),
+      lineOf([said == null ? null : bit(i18t('ins_need_waiting', { days: said }), true),
         std > 0 ? bit(i18t('ins_over', { n: std }), false, true) : null]));
   }
   if (it.kind === 'review'){

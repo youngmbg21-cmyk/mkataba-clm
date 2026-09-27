@@ -899,6 +899,10 @@ function calStyleCss(){ return `
          count inside a half from ever being taken for a half. */}
   .cal-seg > :is(span,a,button) + :is(span,a,button){border-left:1px solid var(--btn-edge)}
   .cal-seg a .c{font-size:var(--t-micro);font-variant-numeric:tabular-nums;opacity:.85}
+  ${''/* THE LIT HALF'S COUNT WEARS THE LIT HALF'S INK (the owner's list, 27 Sep
+         2026): it kept the resting grey on the dark fill — 1.73:1 by day,
+         measured by contrast-verify. Scoped by the lit class, never !important. */}
+  .cal-seg a.on .c,.cal-seg span.on .c,.cal-seg button.on .c{color:#fff;opacity:1}
   .cal-sel{display:inline-flex;align-items:center;gap:2px;flex:none;align-self:center}
   .cal-sel button{border:0;background:none;font:inherit;font-size:var(--t-body);color:var(--color-text);
     cursor:pointer;padding:0 var(--s-2);line-height:1.2;display:inline-flex;align-items:center;min-height:var(--tap-min);border-radius:var(--radius)}
@@ -1000,7 +1004,10 @@ function calStyleCss(){ return `
          bar's centre line does not — 9 + 14/2 and 12 + 8/2 are both 16, which
          is where the expiry tick and the notice nip are already placed, so
          nothing else on the row had to be re-measured. */}
-  .cal-hz-bar{position:absolute;left:0;top:12px;height:8px;opacity:.9;border-radius:999px}
+  ${''/* A FLOOR OF 8px, a dot (the owner's list, 27 Sep 2026): a contract ending
+         in a day or two drew a bar too thin to see, the one row that most
+         needed seeing. */}
+  .cal-hz-bar{position:absolute;left:0;top:12px;height:8px;min-width:8px;opacity:.9;border-radius:999px}
   .cal-hz-bar.is-beyond{border-radius:999px 0 0 999px}
   .cal-hz-end{position:absolute;top:6px;width:2px;height:20px;background:var(--color-text);
     transform:translateX(-1px)}

@@ -43,7 +43,10 @@ async function api(path, method='GET', body, opts){
   }
   // The server folds a `notice` into an Copilot response when the input was
   // shortened or the configured model was rejected — surface it to the user.
-  if(data&&data.notice&&!(opts&&opts.quiet)&&typeof toast==='function') toast(data.notice,'err');
+  /* A NOTICE IS NOT A FAILURE (the owner's list, 27 Sep 2026): the answer came
+     back and the notice says something about it — that its input was cut, say.
+     It was painted red as though the call had failed. */
+  if(data&&data.notice&&!(opts&&opts.quiet)&&typeof toast==='function') toast(data.notice,'warn');
   return data;
 }
 /* SSE POST for the streaming Copilot chat. Deliberately its OWN helper: api()
@@ -54,7 +57,7 @@ async function api(path, method='GET', body, opts){
    failure (route missing, non-stream response, parse error, network cut
    mid-stream, server error event) throws, and the caller falls back to the
    plain endpoint transparently. */
-async function apiStream(path, body, onEvent){
+async function apiStream(path, body, onEvent, opts){
   const res=await fetch('api/'+path,{ method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify(body), credentials:'same-origin' });
@@ -84,7 +87,7 @@ async function apiStream(path, body, onEvent){
   }
   if(!final) throw new Error('stream ended without a final answer');
   // same notice surfacing as api() — the two paths must feel identical
-  if(final.notice&&typeof toast==='function') toast(final.notice,'err');
+  if(final.notice&&!(opts&&opts.quiet)&&typeof toast==='function') toast(final.notice,'warn');
   return final;
 }
 async function loadBootstrap(){

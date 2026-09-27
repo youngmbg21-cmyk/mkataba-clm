@@ -69,9 +69,12 @@ test('f297 (2) …and every one of them prints the notice where the reader is lo
 test('f297 (3) copilotAsk forwards opts to api(), and api() reads opts.quiet as "no toast, nothing else"', () => {
   assert.match(AI, /async function copilotAsk\(messages, context, onEvent, opts\)/);
   assert.match(AI, /return await api\('ai\/chat','POST',\{ messages, context \}, opts\);/);
-  // the streaming path is deliberately untouched — no quiet caller streams
-  assert.match(AI, /apiStream\('ai\/chat\/stream',\{ messages, context \}, onEvent\)/);
-  assert.match(API, /if\(data&&data\.notice&&!\(opts&&opts\.quiet\)&&typeof toast==='function'\) toast\(data\.notice,'err'\);/);
+  /* RE-POINTED 27 Sep 2026 (the owner's list, c5): the streaming path takes
+     opts too — the main panel streams and prints its notice inline — and a
+     notice is a caution, never a failure, so it pops up in amber. */
+  assert.match(AI, /apiStream\('ai\/chat\/stream',\{ messages, context \}, onEvent, opts\)/);
+  assert.match(API, /if\(data&&data\.notice&&!\(opts&&opts\.quiet\)&&typeof toast==='function'\) toast\(data\.notice,'warn'\);/);
+  assert.match(API, /if\(final\.notice&&!\(opts&&opts\.quiet\)&&typeof toast==='function'\) toast\(final\.notice,'warn'\);/);
 });
 
 test('f297 (4) on the real page an answer carrying a notice draws it under the answer, escaped, and pushes nothing else', () => {
@@ -90,10 +93,11 @@ test('f297 (4) on the real page an answer carrying a notice draws it under the a
   assert.ok(!/text-amber-700/.test(plain.text), 'no notice, no line');
 });
 
-test('f297 (5) CONTROL — the main Copilot panel was not in the ask: its call passes no quiet flag and its own inline line stands', () => {
-  const calls = copilotCalls(AI).filter(c => !c.startsWith('copilotAsk(messages, context, onEvent'));
-  assert.ok(calls.length >= 1);
-  for (const c of calls) assert.ok(!/IG_QUIET|quiet/.test(c), 'the main panel still gets the toast:\n' + c);
+/* REVERSED 27 Sep 2026 (the owner's list, c5: "Copilot notices appear twice in
+   the main Copilot panel"). The main panel's chat now asks quietly too, because
+   it prints the same notice under its answer; the inline line still stands. */
+test('f297 (5) the main Copilot panel asks quietly, and its own inline line stands', () => {
+  assert.match(AI, /res=await copilotAsk\(aiChatMessages\(\), aiChatContext\(\), aiStreamRenderer\(\), \{ quiet:true \}\);/);
   assert.match(AI, /if\(res\.notice\) text\+=`<div class="text-\[11px\] text-amber-700 mt-2 leading-relaxed">/,
     'its own inline line is untouched');
 });

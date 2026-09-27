@@ -183,7 +183,9 @@ describe('F382 (3) — Needs your decision is back, two rows and nothing more', 
   });
   test('the head counts the whole list, and See all opens the rest', () => {
     const card = ddCard(world().html);
-    assert.match(card, /<span class="hm-sec-sub">5 items · sorted by what closes first<\/span>/, 'the head counts all five');
+    /* RE-POINTED 27 Sep 2026 (the owner's list, h4): the order is by kind, a
+       colleague waiting leading, so the sub-line says that. The count is the claim. */
+    assert.match(card, /<span class="hm-sec-sub">5 items · anyone waiting on you first<\/span>/, 'the head counts all five');
     assert.match(card, /data-hm-go="needsyou">See all 5/, 'and See all carries the same number');
   });
   test('with exactly two, See all is not drawn — it would open the list already on screen', () => {

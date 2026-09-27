@@ -4428,7 +4428,10 @@ function renderClauseLibrary(){
   host.querySelectorAll('[data-std-pos]').forEach(b=>b.addEventListener('click',()=>
     document.querySelector('[data-pb-tab="playbook"]')?.click()));
   host.querySelectorAll('[data-cl-edit]').forEach(b=>b.addEventListener('click',()=>openClauseEditor(Number(b.getAttribute('data-cl-edit')))));
-  host.querySelectorAll('[data-cl-del]').forEach(b=>b.addEventListener('click',()=>{ const i=Number(b.getAttribute('data-cl-del')); const lib2=clauseLibrary().slice(); lib2.splice(i,1); saveClauseLibrary(lib2); stdSetOpenClause(null); renderClauseLibrary(); toast(i18t('set_t_clause_removed')); }));
+  /* ONE REMOVE, AND IT ASKS (the owner's list, 27 Sep 2026): this row deleted
+     at once — with a bare toast that printed nothing — while the side panel's
+     Remove asked first. Both press stdRemoveClause now. */
+  host.querySelectorAll('[data-cl-del]').forEach(b=>b.addEventListener('click',()=>{ stdRemoveClause(Number(b.getAttribute('data-cl-del'))); }));
   document.getElementById('cl-add')?.addEventListener('click',()=>openClauseEditor(-1));
   renderPrecedentPanel();
   renderStandardsDraft();

@@ -451,7 +451,9 @@ async function intakeSuggestTemplate(r){
   if(!cands.length) return null;
   if(!(typeof API_MODE==='function'&&API_MODE())||!state.aiConfigured) return null;
   try{
-    const res=await api('ai/template','POST',{ query:`${r.title}\n\n${r.need}`, candidates:cands });
+    /* `templates`, not `candidates`: see the route — a template id is not a
+       contract id, and a stream-limited member's shelf was dropped whole. */
+    const res=await api('ai/template','POST',{ query:`${r.title}\n\n${r.need}`, templates:cands });
     const top=(res&&Array.isArray(res.ranked)&&res.ranked[0])||null;
     return top&&top.id&&TEMPLATES[top.id] ? { id:top.id, why:top.why||res.answer||'' } : null;
   }catch(_){ return null; }

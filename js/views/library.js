@@ -82,7 +82,7 @@ function buildFromCustomTemplate(t, values, opts){
   const cpEmail=String((opts&&opts.counterpartyEmail)||'').trim();
   // The mapped counterparty field is the counterparty — recorded, not only
   // spelled into the title. See js/wizard.js for the fault this closes.
-  const c={ id:nextId(), name:t.name+(cp?' — '+cp:' (Draft)'), counterparty:cp,
+  const c={ id:nextId(), name:t.name+(cp?' — '+cp:''),   /* no "(Draft)" in a name: the stage says it, and a name outlives the stage (the owner's list, 27 Sep 2026) */ counterparty:cp,
     /* Our own entity on this agreement. Blank is not an error — contractParty
        falls back to the workspace, which is what the paper said before this
        question existed. */
@@ -93,7 +93,7 @@ function buildFromCustomTemplate(t, values, opts){
        one rung added on top (18 Sep 2026). */
     template:null, source:'template',
     folder:(opts&&FOLDERS[opts.folder]) ? opts.folder : (FOLDERS[t.folder]?t.folder:'corp'),
-    valueType:'estimated',
+    valueType:(typeof window.templateValueType==='function')?window.templateValueType(t):'estimated',   /* the template's own answer (the owner's list, 27 Sep 2026) */
     lastAction:todayStr(), hash:null, signedAt:null, signatory:u?.name||'Authorized signatory',
     compliance:{iprs:false,pki:false},
     comments:[{author:'System',role:'Automation',side:'internal',

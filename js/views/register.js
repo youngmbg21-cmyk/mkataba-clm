@@ -912,11 +912,12 @@ function wireRegClear(){
 function regNarrowed(R){
   const st = R || regState();
   const q = (regScope()==='negotiations') ? '' : String(st.query||'').trim();
-  return !!(q || st.stage!=='all' || st.type!=='all' || st.view
-    || (st.renewal && st.renewal!=='all') || (st.category && st.category!=='all')
-    || (st.signed && st.signed!=='all') || (st.payterms && st.payterms!=='all')
-    || (st.docs && st.docs!=='all')
-    || st.only);
+  /* EVERY BAR FILTER, ASKED THROUGH ITS OWN PREDICATE (the owner's list, 27
+     Sep 2026): this listed the filters by hand and On hold was missed, so a
+     list narrowed by it alone drew no Clear and no "Do this to these". One
+     predicate per filter (regFilterActive) means a filter added to the bar is
+     a narrowing here the day it is added. */
+  return !!(q || REG_BAR_FILTERS.some(f=>regFilterActive(f.k, st)) || st.only);
 }
 
 function regSetScope(k){ REG_SCOPE = (k === 'negotiations') ? 'negotiations' : null; }
@@ -2321,8 +2322,10 @@ function renderRegister(opts){
      every dropdown beside it narrows within this set. */
   const onlyChip=R.only?`<span id="reg-only-chip" title="${esc(i18t('reg_only_title'))}"
       style="display:inline-flex;align-items:center;gap:7px;font-size:var(--t-meta);font-weight:var(--w-strong);border-radius:var(--radius);padding:5px 6px 5px 10px;
-        background:var(--st-steel-bg);border:1px solid var(--st-steel-line);color:var(--st-steel-fg)">
-      <span>${esc(R.only.label||i18t('reg_only_fallback'))}</span>
+        background:var(--st-steel-bg);border:1px solid var(--st-steel-line);color:var(--st-steel-fg);max-width:320px;min-width:0">
+      ${''/* A WIDTH LIMIT, THE WHOLE LABEL ON THE HOVER (the owner's list, 27 Sep
+             2026): a long label pushed the filters onto a second line. */}
+      <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(R.only.label||i18t('reg_only_fallback'))}">${esc(R.only.label||i18t('reg_only_fallback'))}</span>
       <button id="reg-only-clear" title="${esc(i18t('reg_only_clear'))}" aria-label="${esc(i18t('reg_only_clear'))}"
         style="border:0;background:none;font:inherit;line-height:1;color:inherit;cursor:pointer;padding:0 3px;opacity:.7;display:inline-grid;place-items:center">${icon('x','w-3.5 h-3.5')}</button>
     </span>`:'';

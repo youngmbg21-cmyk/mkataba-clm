@@ -236,7 +236,9 @@ describe('f305 phase 4 — list_portfolio speaks the graph\'s fourteen keys thro
     assert.match(IG, /function graphWhereIds\(where\)\{[\s\S]{0,900}?graphWhereNarrow\(where, GRAPH_WHERE_KEYS\)[\s\S]{0,900}?graphWhereHit\(graphCopilotCard\(c\), w, reads\)/);
     assert.ok(!/const hit=k=>\{/.test(IG), 'the graph view\'s own copy of the rules is gone');
     assert.match(SERVER, /const \{ graphWhereHit \} = require\('\.\.\/js\/graphwhere\.js'\);/);
-    assert.match(SERVER, /graphWhereHit\(copilotCardOf\(c, briefs\), w, \{ daysUntil: copilotDaysUntil/);
+    /* RE-POINTED 27 Sep 2026 (the owner's list, c8): the card reads the end date
+       a signed amendment set (effOf), the browser's own reading. */
+    assert.match(SERVER, /graphWhereHit\(copilotCardOf\(c, briefs, effOf\), w, \{ daysUntil: copilotDaysUntil/);
     assert.match(SERVER, /where: GRAPH_WHERE_SCHEMA,\n\s+offset:/, 'list_portfolio takes the schema');
     assert.match(SERVER, /where: GRAPH_WHERE_SCHEMA,\n\s+action:/, 'and the graph tool takes the same one');
     assert.match(read('js/app.js'), /import '\.\/graphwhere\.js';/, 'on the product\'s own script list');

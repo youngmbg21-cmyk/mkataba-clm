@@ -59,7 +59,8 @@ test('f414 (n7 n8) the Word writer: each change its own author, HTML characters 
 });
 
 test('f414 (n9) "Why they asked" reads the reason, never the provenance', () => {
-  const { negoReasonOf } = require('../js/negotiation.js');
+  const at = NM.indexOf('const NEGO_PROVENANCE_RE');
+  const negoReasonOf = new Function(NM.slice(at, NM.indexOf('\n', NM.indexOf('const negoReasonOf'))) + '; return negoReasonOf;')();
   assert.equal(negoReasonOf({ note: 'Copilot — Edit' }), '');
   assert.equal(negoReasonOf({ note: 'We need longer' }), 'We need longer');
   assert.equal(negoReasonOf({ why: 'Cash flow', note: 'Copilot — Edit' }), 'Cash flow');

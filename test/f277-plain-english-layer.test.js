@@ -1816,7 +1816,9 @@ describe('f277 (20) Part D', () => {
     assert.equal(rows[0].text, 'Kenyan law applies.', 'the last clause stops at the card');
     assert.ok(!/SHA-256|example\.com|Sealed/.test(JSON.stringify(rows)), 'not a byte of the card is sent');
     const src = _f277rd('js/views/contract.js');
-    assert.match(src, /const DOC_READ_FURNITURE='\.rl-paper-head,\.rl-paper-foot,header,\.seal-in';/);
+    /* RE-POINTED 27 Sep 2026 (the owner's list, c13): a design's cover page
+       joined the list; the seal card is still on it. */
+    assert.match(src, /const DOC_READ_FURNITURE='\.rl-paper-head,\.rl-paper-foot,header,\.seal-in,\[data-doc-design-cover\]';/);
   });
 
   test('D-3a the sealed paper’s flat classes follow the sheet on screen — a screen rule, the markup untouched', () => {

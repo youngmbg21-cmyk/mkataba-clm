@@ -316,11 +316,17 @@ function pbReviewUsable(c){
    It returns the match object the heuristic already used — [0] is the quote and
    [1] the figure — so its callers are unchanged, and null where the wording says
    nothing, which is not the same as saying zero. */
+/* "THIRTY (30) DAYS" IS THE COMMONEST WAY A CONTRACT WRITES A FIGURE (the
+   owner's list, 27 Sep 2026) and none of these read it: the word before the
+   bracket stopped every pattern. PB_FIG is the figure as contracts write it —
+   an optional number in words, then the digits, bracketed or not — and [1] is
+   still the digits, so every caller reads the same group. */
+const PB_FIG = '(?:[a-z]+(?:[\\s-][a-z]+)?\\s+)?\\(?(\\d{1,3})\\)?';
 const PB_RANGE_READERS = {
-  paymentDays: t => t.match(/within\s+(\d{1,3})\s+days?\b[^.]*\b(?:invoice|payment|delivery)/i)
-                 || t.match(/\b(?:net|payment terms?)\s*[:\-]?\s*(\d{1,3})\s*days/i),
-  liabilityMonths: t => t.match(/(\d{1,3})\s+months?[^.]*\b(?:fees|liabilit)/i)
-                     || t.match(/liab[^.]*?(\d{1,3})\s+months/i),
+  paymentDays: t => t.match(new RegExp('within\\s+' + PB_FIG + '\\s*(?:calendar\\s+|business\\s+)?days?\\b[^.]*\\b(?:invoice|payment|delivery)', 'i'))
+                 || t.match(new RegExp('\\b(?:net|payment terms?)\\s*[:\\-]?\\s*' + PB_FIG + '\\s*days', 'i')),
+  liabilityMonths: t => t.match(new RegExp('\\(?(\\d{1,3})\\)?\\s+months?[^.]*\\b(?:fees|liabilit)', 'i'))
+                     || t.match(/liab[^.]*?\(?(\d{1,3})\)?\s+months/i),
 };
 function pbRangeRead(key, text){
   const f = PB_RANGE_READERS[key]; if(!f) return null;

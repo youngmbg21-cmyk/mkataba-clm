@@ -3948,6 +3948,10 @@
     padding:2px 7px; white-space:nowrap; }
   .py-chip-ours{ background:var(--st-gray-bg); color:var(--st-gray-fg); }
   .py-chip-inv{ background:var(--color-accent-50); color:var(--accent-ink); }
+  /* AT NIGHT THE INK LIGHTENS AND THIS GROUND DID NOT (the owner's list, 27 Sep
+     2026): 1.96:1, measured by contrast-verify. The night ground is the steel
+     wash every other chip on this row already wears after dark. */
+  html.dark .py-chip-inv{ background:var(--st-steel-bg); }
   .py-chip-inv[data-inv="sign"]{ background:var(--st-steel-bg); color:var(--st-steel-fg); }
   .py-chip-inv[data-inv="none"]{ background:var(--st-gray-bg); color:var(--st-gray-fg); }
   /* The involvement picker in the party dialog: one row per answer, the
@@ -4392,7 +4396,10 @@
   #obw-clear.is-on{ border-color:var(--accent-solid); color:var(--accent-ink); }
   #obw-clear.is-on b{ font-weight:var(--w-title); }
   #obw-clear:disabled{ opacity:.5; cursor:default; }
-  .obw-f select{ font:inherit; font-size:var(--field-size); border:1px solid var(--color-divider);
+  /* THE FIELDS' OWN EDGE (the owner's list, 27 Sep 2026): the divider grey was
+     lighter than every other box on the page; --field-line is the one a
+     control's boundary wears (3:1). */
+  .obw-f select{ font:inherit; font-size:var(--field-size); border:1px solid var(--field-line);
     border-radius:var(--radius); height:var(--field-h); padding:0 var(--field-pad-x); background:var(--color-surface);
     color:var(--color-text); width:100%; min-width:0; }
   .obw-filters #obw-clear{ flex:none; }
@@ -6266,7 +6273,10 @@
   /* THE KIND'S TAG, at the left of the row, in the reference's own shape: a
      micro-caps chip that takes the ROW's tone rather than a table of its own,
      so it can never say something the row's dot does not. */
-  .hm-dk-tag{flex:none;display:inline-flex;align-items:center;height:18px;padding:0 6px;
+  /* ONE WIDTH FOR EVERY KIND (the owner's list, 27 Sep 2026): "Read" and
+     "Notice" were different widths, so the row titles started at different
+     places. The widest word in either book ("Påminnelse") sets it, centred. */
+  .hm-dk-tag{flex:none;display:inline-flex;align-items:center;justify-content:center;min-width:11ch;height:18px;padding:0 6px;
     border-radius:var(--radius);font-size:var(--t-micro);font-weight:var(--w-strong);
     letter-spacing:.02em;background:var(--st-steel-bg);color:var(--color-neutral-700);}
   .hm-dk-tag.is-crit{background:var(--st-amber-bg);color:var(--st-amber-fg);}
@@ -7058,7 +7068,11 @@
   /* The contract-essentials form asked by every creation path. Two columns
      where there is room, one where there is not — the same rule every other
      grid on the page follows. */
-  @media (max-width:639px){ .ce-grid{grid-template-columns:minmax(0,1fr)!important;} }
+  /* EVERY FORM GRID STACKS, NOT THE BASIC FORM ALONE (the owner's list, 27 Sep
+     2026): the wizard's, the saved template's and the preview's forms wear
+     .field-grid and stayed two columns on a phone. The !important is this
+     rule's own, as before: the grid's columns are an inline style. */
+  @media (max-width:639px){ .ce-grid, .field-grid{grid-template-columns:minmax(0,1fr)!important;} }
 
   /* ---- AND A FIELD MAY NOT GROW PAST ITS COLUMN (Young reported it 20 Sep
      2026, of the End date and Value stream boxes overlapping) ----

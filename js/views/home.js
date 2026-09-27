@@ -1453,7 +1453,7 @@ function needsYouOf(c){
   const out=[];
   const take=fn=>{ try{ fn(); }catch(_){ /* a missing source adds nothing */ } };
   take(()=>(window.deskStaleInboxFor?deskStaleInboxFor(one, me):[]).forEach(x=>{ const s=x.stale||{};
-    out.push({ kind:'quiet', urgent:true, n:s.n||0, since:s.since||null }); }));
+    out.push({ kind:'quiet', urgent:true, n:s.n||0, since:s.since||null, days:(s.days!=null?s.days:null) }); }));
   take(()=>(window.reviewInboxFor?reviewInboxFor(one, me):[]).forEach(x=>{ const rv=x.rv||{};
     out.push({ kind:'review', urgent:hmReviewLate(rv), who:rv.by||'', n:(x.st&&x.st.total)||0, due:rv.due||null }); }));
   take(()=>(window.deskJoinInboxFor?deskJoinInboxFor(one, me):[]).forEach(x=>{ const r=x.req||{};

@@ -51,8 +51,23 @@ async function openDesignStep(opts) {
     step: 1,
     focus: false,
   };
+  /* What the screen opened with, so "has anything been chosen" is a
+     comparison rather than a flag every control must remember to raise. */
+  _ds.seedSig = JSON.stringify(seed);
   dsPaint({ resetScroll: true });
 }
+/* ---- LEAVING THE STEP ASKS WHEN THERE IS SOMETHING TO LOSE (the owner's
+   list, 27 Sep 2026) ----
+   A sidebar press left this screen and dropped the design choices without a
+   word. The shell's one leave guard (viewLayersClosed, js/app.js) now asks
+   this step too: open, and changed from what it opened with. Leaving closes it. */
+function designStepOpen(){ return !!_ds; }
+function designStepDirty(){
+  if (!_ds) return false;
+  try { dsHarvest(); } catch (_) {}
+  return JSON.stringify(_ds.b) !== _ds.seedSig || !!String(_ds.changeNote || '').trim();
+}
+function designStepClose(){ _ds = null; }
 
 /* The document the preview dresses. Publish mode renders the REAL draft —
    blocks and fields exactly as the builder holds them; settings mode shows a
@@ -654,10 +669,13 @@ async function dsPublish() {
           logoPosition: _ds.b.logoPosition, accentColor: _ds.b.accentColor };
     const r = await api(`templates/${_ds.tid}/versions/${_ds.vid}/publish`, 'POST',
       { changeNote: _ds.changeNote.trim(), design });
-    (r.warnings || []).forEach(w => toast(w, 'err'));
+    /* THE VERSION PUBLISHED, so a warning about it is a caution, never a
+       failure — they arrived in red over a success (the owner's list, 27 Sep
+       2026). And the success itself says so: a bare toast prints nothing. */
+    (r.warnings || []).forEach(w => toast(w, 'warn'));
     const st = docStructureById(_ds.b.structureId);
     toast(`v${r.versionNumber} published in ${docDesignById(_ds.b.designId).name}${
-      st && st.id !== DEFAULT_STRUCTURE ? ' · ' + st.name : ''} — the team can create contracts from it now`);
+      st && st.id !== DEFAULT_STRUCTURE ? ' · ' + st.name : ''} — the team can create contracts from it now`, 'ok');
     const tid = _ds.tid; _ds = null;
     /* PUBLISHED IS ON THE SHELF AT ONCE (26 Sep 2026, the overnight clean-up):
        the template cache the New agreement screen and "New contract" read was
@@ -692,4 +710,4 @@ async function dsSaveDefault() {
    steps (js/views/negotiation.js rlSetDocType), and so the shell's resize
    handler reaches it. */
 if (typeof addEventListener === 'function') addEventListener('resize', () => { if (_ds) dsApplyZoom(); });
-Object.assign(window, { openDesignStep, dsApplyZoom });
+Object.assign(window, { openDesignStep, dsApplyZoom, designStepOpen, designStepDirty, designStepClose });

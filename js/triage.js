@@ -256,7 +256,7 @@ function triageTiles(c){
       cut: !!(hasBrief && brief && (brief.truncated
         || (b.ok && b.cut && b.line && b.line === triageBriefLine(brief)))) });
 
-  const p = s.playbook || {};
+  const p = triagePlaybookNow(c, s.playbook || {});
   add('playbook', p.ok ? (p.cats && p.cats.length ? p.cats.join(', ') : '') : (p.why || ''),
     p.ok ? (p.dev || 0) + (p.miss || 0) : null);
 
@@ -408,6 +408,20 @@ function triageFiledLine(c){
   return [f, who].filter(Boolean).join(' · ');
 }
 
+/* THE STANDARDS TILE READS THE CHECK AS IT STANDS NOW (the owner's list,
+   27 Sep 2026): it printed the count its arrival run stored, so after a
+   re-check on the Checks card the two disagreed. Where the step succeeded and
+   the record carries a standards check, the count and the names are read off
+   c.playbook with the Checks card's own arithmetic (deviationSummary); a step
+   that failed keeps its own reason. */
+function triagePlaybookNow(c, p){
+  if (!p || !p.ok || !c || !c.playbook || !Array.isArray(c.playbook.verdicts)) return p || {};
+  const sum = (typeof deviationSummary === 'function') ? deviationSummary(c) : null;
+  if (!sum) return p;
+  const cats = c.playbook.verdicts.filter(v => v && (v.status === 'deviation' || v.status === 'missing'))
+    .map(v => v.category).filter(Boolean);
+  return Object.assign({}, p, { dev: sum.dev || 0, miss: sum.miss || 0, cats: cats.slice(0, 4) });
+}
 /* The one-line summary the collapsed row and the register both read. Built from
    the SAME step record the tiles are, so the two can never disagree about what
    was found. */
@@ -416,8 +430,9 @@ function triageLine(c){
   const s = t.steps || {}, bits = [];
   const T = (k, n, o) => (typeof i18tn === 'function') ? i18tn(k, n, o)
     : (typeof i18t === 'function' ? i18t(k + '_other', o) : '');
-  if (s.playbook && s.playbook.ok){
-    const bad = (s.playbook.dev || 0) + (s.playbook.miss || 0);
+  const pNow = triagePlaybookNow(c, s.playbook || {});
+  if (pNow.ok){
+    const bad = (pNow.dev || 0) + (pNow.miss || 0);
     /* THE PRODUCT'S OWN PHRASE FOR THIS NUMBER. checkVerdict has called
        deviations-plus-missing "N to look at" since the Checks card was built,
        and it is the honest one: a standard the contract is SILENT about has
@@ -750,6 +765,16 @@ function contractArrived(c, opts){
      named three colleagues on. A bulk import claims nothing: nobody stood at
      that screen. */
   if (c && !o.bulk){ try{ if (typeof participantsClaim === 'function') participantsClaim(c); }catch(_){} }
+  /* ---- A BUILT-IN TEMPLATE'S OWN PROMISES, ON ARRIVAL (the owner's list,
+     27 Sep 2026) ----
+     They were minted only by an Overview edit, so a draft made in one pass
+     through the wizard carried none of them until somebody touched a field.
+     Minted here too — the same writer, which mints each promise once and
+     never brings back one a person removed; a promise whose date is still
+     unknown waits for the field that gives it, as before. */
+  if (c && !o.bulk && c.template && typeof mintTemplateObligations === 'function'){
+    try{ if (mintTemplateObligations(c) && typeof persist === 'function') persist(c); }catch(_){}
+  }
   if (!c || o.bulk) return false;
   if (typeof triageAndPaint !== 'function') return false;
   if (!triageApplies(c)) return false;

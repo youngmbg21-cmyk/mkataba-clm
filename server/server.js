@@ -2961,7 +2961,11 @@ app.post('/api/setup', rlSetup, (req, res) => {
   if (data && Array.isArray(data.contracts)) {   // seed per-contract
     let seq = 0;
     txn(() => {
-      for (const c of data.contracts) { c._seq = ++seq; upsertContract(c, 1); }
+      /* THE SAMPLE BOOK BELONGS TO WHOEVER MADE THE WORKSPACE (the owner's
+         list, 27 Sep 2026): no sample had an owner, and renewals are owed by
+         name — so a sample workspace never showed one on Home or in the
+         checklist. A contract that already names an owner keeps it. */
+      for (const c of data.contracts) { if (c && !c.owner) c.owner = { id: u.id, name: u.name }; c._seq = ++seq; upsertContract(c, 1); }
       setSetting('uid', data.uid || 100);
       if (data.settings) setSetting('appSettings', data.settings);
       seqCounter = seq;
@@ -3462,15 +3466,41 @@ app.get('/api/search', auth, (req, res) => {
     const rows = db.prepare(`SELECT c.id, c.contract_no, c.name, c.counterparty FROM contracts c ${w} LIMIT ?`).all(like, like, like, ...fs.args, limit);
     return res.json({ hits: rows.map(r => ({ id: r.id, contractNo: r.contract_no || undefined, name: r.name, counterparty: r.counterparty, snippet: '' })), fts: false, snippets });
   }
-  // sanitise into a prefix MATCH query (avoid FTS5 syntax errors on punctuation)
-  const match = q.replace(/["']/g, ' ').split(/\s+/).filter(Boolean).map(t => t.replace(/[^\w]/g, '') + '*').filter(t => t.length > 1).join(' OR ');
+  /* sanitise into a prefix MATCH query (avoid FTS5 syntax errors on punctuation).
+     A TERM WITH PUNCTUATION IN IT IS A PHRASE (the owner's list, 27 Sep 2026):
+     "MK-201" was squeezed to one token "MK201", which the index never holds —
+     it tokenises the wording as "mk" "201". Its parts are asked for side by
+     side, the last as a prefix. */
+  const match = q.replace(/["']/g, ' ').split(/\s+/).filter(Boolean).map(t => {
+    const parts = t.split(/[^\w]+/).filter(Boolean);
+    if (!parts.length) return '';
+    return parts.length > 1 ? '"' + parts.join(' ') + '"*' : parts[0] + '*';
+  }).filter(t => t.replace(/[^\w]/g, '').length > 1).join(' OR ');
   if (!match) return res.json({ hits: [], fts: true });
+  /* AND A REFERENCE IS LOOKED UP AS A REFERENCE: the index does not carry the
+     id or the contract number, so a reference typed here is matched against
+     both (whole, case-blind) and leads the list, in the reader's own scope. */
+  const refWant = q.trim().toLowerCase();
+  let refRows = [];
+  if (/^[\w][\w\-\/.]{1,40}$/.test(refWant) && /\d/.test(refWant)) {
+    try {
+      const wr = whereOf("(lower(c.id) = ? OR lower(COALESCE(c.contract_no,'')) = ?)", fs.sql);
+      refRows = db.prepare(`SELECT c.id, c.contract_no, c.name, c.counterparty FROM contracts c ${wr} LIMIT 5`).all(refWant, refWant, ...fs.args);
+    } catch (_) { refRows = []; }
+  }
   try {
     const w = whereOf('contracts_fts MATCH ?', fs.sql);
     const rows = db.prepare(`SELECT f.id, c.contract_no, f.name, f.counterparty, snippet(contracts_fts,3,'[',']','…',12) AS snippet, bm25(contracts_fts) AS rank
       FROM contracts_fts f JOIN contracts c ON c.id = f.id ${w} ORDER BY rank LIMIT ?`).all(match, ...fs.args, limit);
-    res.json({ hits: rows.map(r => ({ id: r.id, contractNo: r.contract_no || undefined, name: r.name, counterparty: r.counterparty, snippet: snippets ? r.snippet : '' })), fts: true, snippets });
-  } catch (e) { res.status(200).json({ hits: [], fts: true, error: 'search parse' }); }
+    const seen = new Set(refRows.map(r => r.id));
+    const hits = refRows.map(r => ({ id: r.id, contractNo: r.contract_no || undefined, name: r.name, counterparty: r.counterparty, snippet: '' }))
+      .concat(rows.filter(r => !seen.has(r.id)).map(r => ({ id: r.id, contractNo: r.contract_no || undefined, name: r.name, counterparty: r.counterparty, snippet: snippets ? r.snippet : '' })))
+      .slice(0, limit);
+    res.json({ hits, fts: true, snippets });
+  } catch (e) {
+    if (refRows.length) return res.json({ hits: refRows.map(r => ({ id: r.id, contractNo: r.contract_no || undefined, name: r.name, counterparty: r.counterparty, snippet: '' })), fts: true, snippets });
+    res.status(200).json({ hits: [], fts: true, error: 'search parse' });
+  }
 });
 
 // E6-T2: Copilot semantic search — answer a portfolio question with quoted evidence.
@@ -5890,7 +5920,17 @@ app.post('/api/ai/ocr', auth, rlAiOcr, aiFeature('ocr'), aiBudgetGuard, async (r
 app.post('/api/ai/template', auth, rlAiLight, aiFeature('template'), aiBudgetGuard, capAiInput, scopeAiPortfolio, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
-  const { query, candidates } = req.body || {};
+  /* LIBRARY TEMPLATES ARE NOT CONTRACTS (the owner's list, 27 Sep 2026): the
+     Requests page sends its template shelf, and scopeAiPortfolio read those
+     ids as contract ids — for a member limited to some value streams none
+     matched, every candidate was dropped and the suggestion never came. The
+     shelf rides as `templates`, which carries names and blurbs the member's
+     own page already holds, and is not a contract to scope. */
+  const { query } = req.body || {};
+  const candidates = (Array.isArray(req.body && req.body.templates) && req.body.templates.length)
+    ? req.body.templates.filter(t => t && t.id).slice(0, 60).map(t => ({ id: String(t.id), name: String(t.name || ''),
+        kind: String(t.kind || ''), text: String(t.blurb || '').slice(0, 2000) }))
+    : (req.body || {}).candidates;
   if (!query || !Array.isArray(candidates) || !candidates.length)
     return res.status(400).json({ error: 'query and candidates are required' });
   // stage 1 — metadata shortlist, capped at 8
@@ -5898,7 +5938,7 @@ app.post('/api/ai/template', auth, rlAiLight, aiFeature('template'), aiBudgetGua
     .filter(c => c && c.id)
     .map(c => ({ c, s: (c.status === 'Signed' ? 3 : 0) + (Number(c.value || 0) > 0 ? 1 : 0) + Math.min(2, String(c.text || '').length / 2000) }))
     .sort((a, b) => b.s - a.s)
-    .slice(0, 8)
+    .slice(0, candidates === (req.body || {}).candidates ? 8 : 24)   // a shelf is short blurbs, not clause text
     .map(x => x.c);
   const today = new Date().toISOString().slice(0, 10);
   const tool = {
@@ -6253,11 +6293,26 @@ app.post('/api/ai/extract', auth, rlAiLight, aiFeature('extract'), aiBudgetGuard
         disputes: { type: 'string', description: 'Where and how a dispute is settled, e.g. "SCC arbitration, Stockholm", "Courts of Kenya", "Mediation then ICC arbitration, London". Empty if the contract does not say. This is not the same as governingLaw, which is the law that applies; a contract often names one country\'s law and another country\'s forum.' },
         assignment: { type: 'string', enum: ['consent', 'free', 'prohibited', 'unclear'],
           description: 'May a party hand this agreement to somebody else? "consent" = only with the other side\'s agreement (the commonest). "free" = either side may assign without asking. "prohibited" = assignment is not allowed at all. "unclear" if the document does not settle it. A clause that lets a party assign to a group company but not otherwise is "consent".' },
+        /* ---- THE SIX COPILOT NEVER LOOKED FOR (the owner's list, 27 Sep 2026) ----
+           The Overview and the exposure register have recorded these since 16
+           Sep (S2, S10), and the reading never asked for them — so they could
+           only be typed by hand and Exposure undercounted. Same words and the
+           same closed lists as the record's own fields (js/metadata.js). */
+        volumeRebate: { type: 'string', description: 'Any volume rebate, in the contract\'s own terms including its threshold, e.g. "3% over 120,000 t". Empty if there is none.' },
+        rebateTiers: { type: 'string', description: 'The rebate ladder if there are several tiers, in the contract\'s own terms, e.g. "2% over 50,000 t; 3% over 120,000 t". Empty if there is no ladder.' },
+        rejectionWindowDays: { type: 'number', description: 'Days the buyer has to reject a delivery or report a shortage or non-conforming goods, converted to days. 0 if none is stated.' },
+        exclusivity: { type: 'string', enum: ['exclusive', 'nonexclusive', 'unclear'],
+          description: 'Is the appointment or supply exclusive? "exclusive" if the contract grants exclusivity (sole distributor, exclusive supply). "nonexclusive" if it says so. "unclear" if it does not settle it.' },
+        indemnityCapped: { type: 'string', enum: ['capped', 'uncapped', 'none', 'unclear'],
+          description: 'Is the indemnity limited? "capped" if the indemnity has a stated ceiling. "uncapped" if an indemnity is given with no limit. "none" if the contract has no indemnity. "unclear" if it does not settle it.' },
+        terminateForConvenience: { type: 'string', enum: ['yes', 'no', 'unclear'],
+          description: 'May a party end the agreement without cause (for convenience, on notice)? "yes" or "no"; "unclear" if the document does not settle it.' },
         confidence: { type: 'object', properties: {
           counterparty: conf, contractType: conf, category: conf, effectiveDate: conf, expiryDate: conf, value: conf,
           renewalType: conf, noticePeriodDays: conf, governingLaw: conf, paymentTerms: conf,
           retentionPct: conf, retentionReleaseDays: conf, warrantyMonths: conf, liabilityCapped: conf, priceReview: conf,
           confidentiality: conf, disputes: conf, assignment: conf,
+          volumeRebate: conf, rebateTiers: conf, rejectionWindowDays: conf, exclusivity: conf, indemnityCapped: conf, terminateForConvenience: conf,
         }, description: 'Per-field confidence.' },
         // Source spans turn the confirm step from a leap of faith into a
         // glance: the review screen shows the phrase each value came from,
@@ -6267,6 +6322,7 @@ app.post('/api/ai/extract', auth, rlAiLight, aiFeature('extract'), aiBudgetGuard
           currency: span, renewalType: span, noticePeriodDays: span, governingLaw: span, paymentTerms: span,
           retentionPct: span, retentionReleaseDays: span, warrantyMonths: span, liabilityCapped: span, priceReview: span,
           confidentiality: span, disputes: span, assignment: span,
+          volumeRebate: span, rebateTiers: span, rejectionWindowDays: span, exclusivity: span, indemnityCapped: span, terminateForConvenience: span,
         }, description: 'For each field you filled in, the short verbatim phrase it came from.' },
       },
       required: ['confidence'],
@@ -8545,8 +8601,11 @@ function copilotList(ctx, filter = {}) {
      predicate (js/graphwhere.js), over the server's reading of each record. */
   const w = graphWhereClean(filter.where);
   const wantShelf = !!filter.archived || !!(w && w.archived === true);
+  /* The amended end date is read over the whole readable book, before the
+     shelf is set aside — a signed amendment is what moves the parent's end. */
+  const effOf = w ? copilotEffExpiryOf(cs) : null;
   if (!wantShelf) cs = cs.filter(c => !c.archived);
-  if (w) { const briefs = copilotBriefIds(ctx); cs = cs.filter(c => graphWhereHit(copilotCardOf(c, briefs), w, { daysUntil: copilotDaysUntil, folderIdOf: () => '' })); }
+  if (w) { const briefs = copilotBriefIds(ctx); cs = cs.filter(c => graphWhereHit(copilotCardOf(c, briefs, effOf), w, { daysUntil: copilotDaysUntil, folderIdOf: () => '' })); }
   if (filter.status) cs = cs.filter(c => (c.status || '') === filter.status);
   if (filter.folder) cs = cs.filter(c => (c.folder || '') === filter.folder);
   // A minimum-value filter is itself a way to read values by binary search, so
@@ -8599,7 +8658,18 @@ function copilotObState(o) {
   const n = d ? copilotDaysUntil(d) : null;
   return (n != null && n < 0) ? 'overdue' : 'open';
 }
-function copilotCardOf(c, briefIds) {
+/* THE END DATE A SIGNED AMENDMENT SET (the owner's list, 27 Sep 2026): the
+   graph's "expiring" read the ORIGINAL end date on the server while the
+   browser's card read the amended one (effectiveExpiry). effExpiryReader is the
+   one family-aware reading; it is handed the records it already has. */
+function copilotEffExpiryOf(list) {
+  const rows = (list || []).map(c => ({ id: c.id, parent_id: c.parentId || null, status: c.status || '', expiry: c.expiry || null }));
+  const parsed = new Map((list || []).map(c => [c.id, c]));
+  const { eff } = effExpiryReader(rows, parsed);
+  const byId = new Map(rows.map(r => [r.id, r]));
+  return c => { const r = byId.get(c.id); return r ? (eff(r) || '') : ''; };
+}
+function copilotCardOf(c, briefIds, effOf) {
   const obs = Array.isArray(c.obligations) ? c.obligations : [];
   const overdue = obs.filter(o => copilotObState(o) === 'overdue').length;
   const rv = c.playbook && Array.isArray(c.playbook.verdicts) ? c.playbook.verdicts : null;
@@ -8608,7 +8678,7 @@ function copilotCardOf(c, briefIds) {
   let move = null;
   try { const n = copilotNegotiation(c); if (n && n.active) move = n.turn === 'counterparty' ? 'them' : 'you'; } catch (_) {}
   return { id: c.id, contractNo: c.contractNo || undefined, name: c.name || c.id, counterparty: c.counterparty || '', folder: c.folder || '', kind: copilotContractKind(c),
-    status: c.status || '', value: Number(c.value) || 0, expiry: c.expiry || '', signedAt: contractSignedOn(c) || '',
+    status: c.status || '', value: Number(c.value) || 0, expiry: (effOf && effOf(c)) || c.expiry || '', signedAt: contractSignedOn(c) || '',
     overdue, offStandard, read, move, archived: !!c.archived };
 }
 /* ---- OBLIGATIONS AND THE TRAIL (phase 8) ----
@@ -9645,7 +9715,15 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
      is booked by the stream reader, and the turn is still logged. */
   const ac = new AbortController();
   let clientGone = false;
-  res.on('close', () => { if (!res.writableEnded) { clientGone = true; ac.abort(); } });
+  /* A HEARTBEAT WHILE THE MODEL THINKS (the owner's list, 27 Sep 2026): a
+     strict proxy cuts a connection that says nothing for a minute, and a slow
+     answer said nothing — the browser then fell back to a second, unstreamed
+     ask that could be paid for twice. An SSE comment line every 15 seconds
+     keeps the line open; the reader skips frames that carry no data. */
+  const beat = setInterval(() => { try { res.write(': keep-alive\n\n'); } catch (_) {} }, 15000);
+  if (typeof beat.unref === 'function') beat.unref();
+  res.on('close', () => { clearInterval(beat); if (!res.writableEnded) { clientGone = true; ac.abort(); } });
+  res.on('finish', () => clearInterval(beat));
 
   const system = buildCopilotSystem(context, cx);
   const working = convo.slice();
@@ -10956,7 +11034,17 @@ app.post('/api/contracts/:id/chase', auth, editor, async (req, res) => {
       emailSent: false, emailConfigured: EMAIL_ON(), outbox: false,
       emailError: 'There is no email address on file for the counterparty, so no message was sent. Add one on Key terms.' });
   const L = langForEmail(to);
-  const vars = { desc: o.desc || '', name: c.name || contractRef(c), id: contractRef(c), due: o.due || '' };
+  /* THE DAY IN WORDS, IN THE READER'S LANGUAGE (the owner's list, 27 Sep
+     2026): the message printed the stored "2026-09-21". A calendar day is read
+     as that day (UTC, so no time zone moves it); anything unreadable is left
+     as written rather than guessed at. */
+  const dueWords = (() => {
+    const iso = String(o.due || '').slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return o.due || '';
+    try { return new Date(iso + 'T00:00:00Z').toLocaleDateString(L === 'sv' ? 'sv-SE' : 'en-GB',
+      { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }); } catch (_) { return iso; }
+  })();
+  const vars = { desc: o.desc || '', name: c.name || contractRef(c), id: contractRef(c), due: dueWords };
   /* ---- A DATE THAT DOES NOT EXIST IS NOT WRITTEN INTO A SENTENCE ----
      The line reads "...which was due on {due}. Could you let us know where it
      stands?", and an obligation with no date produced "due on ." in a message
