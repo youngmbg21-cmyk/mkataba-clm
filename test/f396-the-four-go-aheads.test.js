@@ -21,8 +21,14 @@
         things the re-read put in front of a reader for the first time: a
         signed contract's open-fields tile said "in negotiation", and the head's
         Copilot fact went on saying "Not read yet" above the fresh reading
+     5  THE WORDING'S LAST DATE IS THE ONE A FILED CHANGE CARRIES (Young: "yes,
+        fix the wording date"): createdAt, never the `at` every older test
+        staged — so the brief goes out of date after a round, a signer's read
+        of it lapses, and the other side's agreement stands down
 
-   RED AT THE PARENT (ce9cc59), measured in a worktree: 21 of 25 FAIL there.
+   RED AT THE PARENT (ce9cc59), measured in a worktree, for sections 1–4: 21
+   of 25 FAIL there. Section 5 was added after that merge and is measured
+   against its own parent, 4f95c09: all four of its claims FAIL there.
    The four that pass are 1c and 2c [wall] and 1d and 2b [control] — named so
    a green run on them is never read as a finding. 3g first passed there
    VACUOUSLY (a bell with no such row "stands down" too) and is gated on the
@@ -32,7 +38,7 @@ const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { buildWorld } = require('./world');
+const { buildWorld, supplyContract } = require('./world');
 
 const ROOT = path.join(__dirname, '..');
 const read = rel => { try { return fs.readFileSync(path.join(ROOT, rel), 'utf8'); } catch (_) { return ''; } };
@@ -361,5 +367,61 @@ describe('f396 (4) — a renewal\'s Decide reads the contract again', () => {
     assert.match(bell, /const renewHint=\{ hint:i18t\('ins_need_go_terms'\) \}/, 'one hint for the bell');
     assert.equal((bell.match(/bellGo\('renewal',x\.c\), renewHint\)/g) || []).length, 2, 'both renewal rows carry it');
     assert.match(code(fnOf(APP, 'alertsPanelHtml')), /a\.hint\?` title="\$\{esc\(a\.hint\)\}"`:''/, 'and the bell prints a row\'s hint as its hover');
+  });
+});
+
+describe('f396 (5) — the wording\'s last date is the one a filed change carries', () => {
+  /* (Young: "yes, fix the wording date", 27 Sep 2026.) Every test of this
+     reading staged a change carrying `at` — the shape the product does not
+     produce — so it passed while answering 0 on every real contract. These
+     file their change through the ONE funnel, as every route does. RED at
+     4f95c09 (the main before the fix), measured in a worktree, except the
+     [control] halves named inline. */
+  const RICH = '<h2>1. Payment</h2><p>Payment shall be made within thirty (30) days of invoice.</p>'
+    + '<h2>2. Insurance</h2><p>The Supplier shall maintain cover of not less than KES 20,000,000.</p>';
+  const stage = () => {
+    const { win } = buildWorld({ signcheck: true });
+    const src = fnBody(CORE, 'cpAcceptedWording');
+    if (src && !has(win, 'cpAcceptedWording')) win.eval(src + ';window.cpAcceptedWording=cpAcceptedWording;');
+    const c = supplyContract({ redlineText: RICH, format: 'rich' });
+    win.negoInit(c);
+    return { win, c, cl: win.negoClauseList(c)[0].clauseId };
+  };
+  const file = s => s.win.negoEditClause(s.c, s.cl,
+    '<p>Payment shall be made within forty-five (45) days of invoice.</p>', { side: 'owner', author: 'Amina Otieno' });
+  const at = ms => new Date(Date.now() + ms).toISOString();
+
+  test('5a a change filed through the one funnel is found, and the date is its own createdAt', async () => {
+    const s = stage();
+    assert.ok(has(s.win, 'signCheckBriefAt'), 'the reading is published');
+    assert.equal(s.win.signCheckBriefAt(s.c), 0, '[control] nothing filed, nothing dated');
+    const ch = await file(s);
+    assert.ok(ch && ch.createdAt, 'the funnel stamps createdAt');
+    assert.ok(!ch.at && !ch.filedAt, 'and neither of the names this reading used to look for');
+    assert.equal(s.win.signCheckBriefAt(s.c), Date.parse(ch.createdAt));
+  });
+  test('5b a brief written before the filing is out of date; one written after it stands', async () => {
+    const s = stage();
+    s.c._brief = { at: at(-60000), by: 'Copilot', data: { overview: 'A supply agreement.' } };
+    await file(s);
+    assert.equal(s.win.signCheckBrief(s.c).stale, true, 'the round moved the wording after the brief');
+    s.c._brief = { at: at(60000), by: 'Copilot', data: { overview: 'A supply agreement.' } };
+    assert.equal(s.win.signCheckBrief(s.c).stale, false, 'a brief written after it stands');
+  });
+  test('5c the Overview\'s out-of-date marker and a signer\'s read of the brief follow it', async () => {
+    const s = stage();
+    s.c._brief = { at: at(-60000), by: 'Copilot', data: { overview: 'A supply agreement.' } };
+    const readBefore = s.win.briefReadKey(s.c);
+    assert.ok(readBefore, '[control] a brief with a date can be read');
+    await file(s);
+    assert.equal(s.win.readingStale(s.c, 'brief'), true, 'the Overview says the brief is behind');
+    assert.notEqual(s.win.briefReadKey(s.c), readBefore, 'a read of the brief before the round no longer counts');
+  });
+  test('5d the other side\'s agreement stands down once wording is filed after it', async () => {
+    const s = stage();
+    s.c.acceptance = { by: 'Grace Njeri', at: at(-60000) };
+    assert.ok(s.win.cpAcceptedWording(s.c), '[control] it stands before anything is filed');
+    await file(s);
+    assert.equal(s.win.cpAcceptedWording(s.c), null, 'and not once wording was proposed after it');
   });
 });
