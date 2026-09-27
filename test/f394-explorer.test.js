@@ -135,3 +135,15 @@ describe('f394 (4) the legend is closed at rest, on every arrival', () => {
     assert.ok(!/localStorage[^\n]*legendFolded|legendFolded[^\n]*localStorage/.test(IG));
   });
 });
+
+describe('f394 (5) the Ask button keeps its place in the box', () => {
+  test('a small button that asks to be placed is placed — one class heavier than the rule that gives every small button position:relative', () => {
+    const rel = HTML.indexOf('.ui-btn-sm{min-height:var(--ctl-h-sm)');
+    const fix = HTML.indexOf('.ui-btn-sm.absolute{position:absolute;}');
+    assert.ok(rel > 0 && fix > rel, 'the fix is written after the rule it outranks');
+    assert.doesNotMatch(HTML.slice(fix, fix + 60), /!important/);
+  });
+  test('[control] the Ask button still asks for its place with the utility it always carried', () => {
+    assert.match(IG, /id="igd-go" class="ui-btn ui-btn-sm ui-btn-primary absolute right-\[18px\] top-1\/2 -translate-y-1\/2"/);
+  });
+});
