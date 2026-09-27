@@ -22,7 +22,7 @@
         signed contract's open-fields tile said "in negotiation", and the head's
         Copilot fact went on saying "Not read yet" above the fresh reading
 
-   RED AT THE PARENT (ce9cc59), measured in a worktree: 20 of 24 FAIL there.
+   RED AT THE PARENT (ce9cc59), measured in a worktree: 21 of 25 FAIL there.
    The four that pass are 1c and 2c [wall] and 1d and 2b [control] — named so
    a green run on them is never read as a finding. 3g first passed there
    VACUOUSLY (a bell with no such row "stands down" too) and is gated on the
@@ -326,6 +326,30 @@ describe('f396 (4) — a renewal\'s Decide reads the contract again', () => {
     assert.ok(Array.from(win.BLANK_NONE_REASONS).includes('sealed'), 'the list of reasons names it');
     assert.ok(valOf(EN, 'tri_fill_sealed') && valOf(SV, 'tri_fill_sealed'), 'the sentence is in both books');
     assert.match(code(fnOf(TRIAGE, 'triageTiles')), /sealed: 'tri_fill_sealed'/, 'and the tile prints it');
+  });
+  /* ---- AND THE FILL STEP STANDS DOWN ON A SIGNED CONTRACT ----
+     Found by driving the first cut of this batch (65a4bde): the re-read's
+     fill step answered a signed contract's blanks from the record, the server
+     refused the save (409 — `fields` is locked on an executed record) and the
+     refusal put the old record back over every reading of the run. RED at
+     65a4bde and at ce9cc59 alike (neither stands the step down). */
+  test('4i on a signed contract the fill step writes nothing and says why; on a live deal it still runs', async () => {
+    const { win } = buildWorld({ triage: true });
+    const TEXT = 'The Buyer shall pay each undisputed invoice within sixty (60) days of receipt. '
+      + 'The Supplier shall maintain insurance for the term. This Agreement is governed by the laws of Kenya. ';
+    const mk = status => ({ id: 'MK-9' + status.length, name: 'Supply', counterparty: 'Sendy Ltd', status, source: 'upload',
+      folder: 'proc', owner: { id: 'u1', name: 'Wanjiru Kamau' }, audit: [], obligations: [], comments: [], fields: {},
+      upload: { name: 's.docx', extractedText: TEXT } });
+    const ran = [];
+    win.runFillBlanks = async c => { ran.push(c.status); c.fields.effDate = '2026-09-27'; return { filled: [{ key: 'effDate', label: 'Start date' }], left: [] }; };
+    const signed = mk('Signed');
+    const t = await win.triageRun(signed, { fresh: true });
+    assert.equal(ran.join(','), '', 'the fill reading is not run on a signed contract');
+    assert.equal(JSON.stringify(signed.fields), '{}', 'and not one field is written');
+    assert.equal(t && t.steps.fill && t.steps.fill.none, 'sealed', 'the tile is told why — the wording is final');
+    const live = mk('Under Review');
+    await win.triageRun(live, {});
+    assert.equal(ran.join(','), 'Under Review', '[control] a deal still being argued is filled as before');
   });
   test('4h when the readings land, the head\'s Copilot fact is repainted with them', () => {
     const f = code(fnOf(CONTRACT, 'triageAndPaint'));

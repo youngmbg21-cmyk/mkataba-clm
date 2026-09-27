@@ -34,14 +34,17 @@
    that pass are the staging lines (the link, 1a, 1b — their agreement did
    reach our record before this change; nothing SAID so — and 3a), 3c
    [control] (the renewal's door landed on the Overview since earlier that
-   day), 3g [wall] and the page-error sweep. 3h is gated on 3d's stamp, so it
-   cannot pass over a reading that never ran.
+   day) and the page-error sweep. 3h is gated on 3d's stamp, so it cannot
+   pass over a reading that never ran. AND AT 65a4bde, the first cut of this
+   batch, 3g2, 3j and 3k are RED: the re-read's fill step wrote a signed
+   contract's fields on the SECOND reading (Home's row), the server refused
+   the save, and the refusal put the old record back over the reading.
 
    Run: node test/chromium/go-aheads-verify.js */
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
-const { startHati, seedWorkspace, nameASigner, fixtureContract, FIXTURES, FOLDER_A, FIXTURE_BODY_A1 } = require('../helpers');
+const { startHati, seedWorkspace, nameASigner, fixtureContract, FIXTURES, FOLDER_A } = require('../helpers');
 
 const OUT = process.env.HATI_SHOT_DIR || path.join(__dirname, 'shots', 'go-aheads');
 const EXEC = process.env.CHROMIUM_BIN
@@ -58,7 +61,12 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
-  const renewal = { ...fixtureContract('MK-R9', 'Primary Distribution — Nairobi to Coast', 'Sendy Ltd', FOLDER_A, 12000000, 'Signed', FIXTURE_BODY_A1),
+  /* DRAWN FROM ONE OF HaTi'S OWN TEMPLATES, with no stored wording — the
+     shape a signed contract made in the product has, and the one that broke:
+     its blanks are read off the template, the fill step answered them from
+     the record, and the save of a signed contract's `fields` was refused,
+     taking every reading of the run down with it (3g). */
+  const renewal = { ...fixtureContract('MK-R9', 'Primary Distribution — Nairobi to Coast', 'Sendy Ltd', FOLDER_A, 12000000, 'Signed'),
     expiry: day(64), metadata: { value: 12000000, currency: 'KES', expiryDate: day(64), noticePeriodDays: 30 },
     owner: { name: 'Amina Otieno' } };
   const W = await seedWorkspace(h, { contracts: [...FIXTURES, renewal] });
@@ -212,7 +220,11 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
     ok('3f the standards check and the obligations were asked again too',
       asked.some(x => /\/api\/ai\/playbook$/.test(x.url)) && asked.some(x => /\/api\/ai\/obligations$/.test(x.url)),
       asked.map(x => x.url).filter(u => /\/api\/ai\//.test(u)).join(' '));
-    ok('3g [wall] the record took it — no save refused on a signed contract', refused.length === 0, refused.join(' | '));
+    /* GATED on a reading having happened: at ce9cc59 nothing read the contract
+       at all, and "nothing was refused" would be true of a reading that never
+       ran. The refusal itself is caught across the whole run by 3k. */
+    ok('3g the record took it — no save refused on a signed contract drawn from a template', refused.length === 0 && !!after && !!after.triageAt,
+      refused.join(' | ') || (after && after.triageAt ? 'saved' : 'nothing was read'));
     /* What the reader is looking at once the readings have landed: the strip's
        open-fields tile on a SIGNED contract, and the head's Copilot fact —
        each was wrong the first time a signed contract was read again. */
@@ -261,6 +273,11 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
     ok('3j and pressing it reads the contract again, on the Overview', !!again && again.tab === 'terms' && !!again.triageAt && Date.parse(again.triageAt) >= home2 - 1000,
       JSON.stringify(again));
 
+    /* AND ACROSS THE WHOLE RUN. The second re-read (Home's row) is where the
+       first cut of this batch broke: the fill step wrote a signed contract's
+       fields, the server refused the save, and the refusal put the old record
+       back — so the reading the reader had just watched was thrown away. */
+    ok('3k no save was refused anywhere on the way', refused.length === 0, refused.join(' | '));
     ok('4 no page errors on the way', errs.length === 0, errs.join(' | '));
   } catch (e) {
     ok('the run finished', false, String(e && e.stack || e).slice(0, 400));

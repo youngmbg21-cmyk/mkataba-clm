@@ -789,8 +789,20 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     await page.evaluate(() => { if (window.regState) regState().only = null; setView('dashboard'); });
     await page.waitForTimeout(900);
 
-    /* A row opens its own contract. */
+    /* A row opens its own contract.
+       THE STAGED FIELDS ARE PUT BACK BEFORE THE PRESS (27 Sep 2026). They are
+       a fiction held in memory for one render and never saved — and since
+       Young's word on the renewal's Decide, pressing a renewal row reads the
+       contract again, which SAVES it. Saving the fiction is what the server
+       rightly refused (409: an executed record's end date cannot change), and
+       the refusal was this file's page-error sweep going red. The row stays
+       in the DOM (nothing re-renders between the put-back and the press), so
+       the press still goes through the real door; the reading it starts is
+       over the stored record. 12g's own put-back, later, finds nothing left
+       to undo. */
     const firstId = await page.evaluate(() => { const r = document.querySelector('#hm-dd-rows .hm-row');
+      (window.__s12 || []).forEach(({ c, was }) => { c.status = was.status; c.expiry = was.expiry;
+        c.metadata = was.metadata; if (was.owner) c.owner = was.owner; else delete c.owner; });
       return r ? r.getAttribute('data-sel') : null; });
     if (firstId) await page.click('#hm-dd-rows .hm-row');
     await page.waitForTimeout(1200);

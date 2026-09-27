@@ -610,8 +610,25 @@ async function triageRun(c, opts = {}){
        CHANGES the paper — see TRIAGE_STEPS. The record answers first and for
        free; a model is asked only about what is left, and only where there is
        a key. */
+    /* ---- A SIGNED CONTRACT'S BLANKS ARE NOT FILLED (27 Sep 2026) ----
+       A blank is a word on the page, and a signed contract's words are
+       final: the server refuses a save that changes `fields` on an executed
+       record (EXECUTED_IMMUTABLE). This step had only ever met drafts and
+       deals still being argued, until a renewal's Decide began reading
+       signed contracts again — and there the record answered first, wrote a
+       field, and the refused save took EVERY reading this run made down
+       with it (measured: 409 "fields cannot be changed after signature").
+       So the step stands down and says why, in the tile's own words —
+       contractBlanksNone's `sealed`. negoWordingFrozen is the one reading
+       (executed, any signature, handed over); the status is the fallback on
+       a stage without the change model. */
+    const frozen = (() => {
+      try{ return c.status === 'Signed' || (typeof negoWordingFrozen === 'function' && !!negoWordingFrozen(c)); }
+      catch(_){ return c.status === 'Signed'; }
+    })();
     try{
-      if (typeof runFillBlanks !== 'function') t.steps.fill = { ok: false, why: triageAbsent() };
+      if (frozen) t.steps.fill = { ok: true, filled: [], left: 0, none: 'sealed' };
+      else if (typeof runFillBlanks !== 'function') t.steps.fill = { ok: false, why: triageAbsent() };
       else {
         const f = await runFillBlanks(c, { quiet: true });
         t.steps.fill = f && f.error
