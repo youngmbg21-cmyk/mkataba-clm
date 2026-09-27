@@ -3051,7 +3051,15 @@ function wireShell(){
          that page's filters and then open a register that had never heard of
          it." Same door, same fix, one line. */
       if(window.regSetScope){ regSetScope(null); }
-      if(window.regState){ const R=regState(); R.query=q; R.page=1; }
+      if(window.regState){ const R=regState();
+        /* TYPED ON ANOTHER PAGE, IT IS A DOOR, AND A DOOR LANDS ON FRESH
+           FILTERS (Young ruled 27 Sep 2026): the stage or the named set left
+           from an earlier visit would otherwise cut the search's results. Typed
+           while Contracts is on screen it narrows inside what is there, as
+           every filter on the page does. The box itself is kept — it holds
+           what the reader is typing. */
+        if(state.view!=='register' && window.regFiltersAtRest) regFiltersAtRest(R);
+        R.query=q; R.page=1; }
       if(state.view!=='register'){ setView('register'); }
       else if(window.renderRegisterBody){ renderRegisterBody(); }
       const rs=document.getElementById('reg-search'); if(rs&&rs!==search) rs.value=q;

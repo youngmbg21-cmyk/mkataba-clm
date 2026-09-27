@@ -1036,9 +1036,13 @@ function hmMapWire(el, d){
        putting it back and the stage is written into the Negotiations seat and
        a Contracts list opens that never heard of it (regShowOnly's own reason,
        and the shell search's own fix). And the number on the door is the whole
-       book's, so a named set left over from an earlier door is let go. */
-    if(kind==='stage'){ if(window.regSetScope) regSetScope(null);
-      const r=regState(); r.type='all'; r.sel={}; r.view=null; r.only=null; r.page=1; r.stage=arg; setView('register'); return; }
+       book's, so a named set left over from an earlier door is let go.
+       AND EVERY OTHER FILTER WITH IT (Young ruled 27 Sep 2026: a door from
+       another page lands on fresh filters). This branch cleared five by hand,
+       so a category or a search left on the Contracts page still cut the list
+       under a door that had counted the whole book; regGoFiltered is the
+       register's one door, and it puts the seat back and clears them all. */
+    if(kind==='stage'){ if(window.regGoFiltered) regGoFiltered({ stage:arg }); return; }
     if(kind==='month'){ const M=d.months[Number(arg)]; if(!M) return;
       let name=''; try{ name=new Date(M.y,M.m,1).toLocaleDateString(langLocale(),{month:'long',year:'numeric'}); }catch(_){}
       only(M.ids,i18t('home_map_ending_in',{month:name})); return; }
@@ -1968,7 +1972,10 @@ function renderDashboard(){
     e.stopPropagation();
     const ids=decisionItems.map(x=>x.cid).filter(Boolean);
     if(window.regShowOnly && ids.length){ regShowOnly(ids,i18t('home_needs_decision')); return; }
-    const r=regState(); r.type='all'; r.sel={}; r.view=null; r.stage='all'; setView('register');
+    /* Nothing on the list to name: the whole book, on fresh filters, through
+       the register's one door (27 Sep 2026) rather than a short list of its
+       own. */
+    if(window.regGoFiltered) regGoFiltered({});
   });
   /* THE MAP'S DOORS AND ITS SWITCH, one delegated listener on the card. */
   hmMapWire(document.getElementById('hm-map'), mapD);

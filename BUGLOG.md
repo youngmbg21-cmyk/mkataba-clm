@@ -19566,3 +19566,15 @@ Noticed, not fixed
 
 Noticed, not fixed
 - A change the other side REFUSED still moves this date (the reading counts every filed change, refused or not). It can offer a brief rewrite nobody needed; it never hides one that was needed. Left as it was designed.
+
+## 27 Sep 2026 — A door from another page lands on fresh filters (Young)
+
+Fixed: a button on another page (Home's Map bars and See all, the calendar day, Insights rows, Copilot worklists, the shell search typed elsewhere, the phone tiles, My Queue's "+N more") opened Contracts on top of whatever filters were already set, so a named list could show 0 rows. One door now (regGoFiltered / regFiltersAtRest) clears every filter first; filters picked on the Contracts page still narrow further; both Clear buttons ask the same reading.
+Tests: f397 (17, 14 red at the parent), fresh-filters-verify (14, 7 red at the parent); f281 (3), f381 (5) re-pointed. Full suite: only f277 (1)(10) red, as before. negotiations-door-verify: two "room shows four tabs" checks red, about the room's tab row, not filters.
+
+### Noticed, not fixed
+- The phone's Clear filters clears query, stage, type, category, view and the named set only — not signed, payment terms, documents, on hold or renewal.
+- regNarrowed does not count the On hold filter, so Clear and the cohort act are missing when only On hold is set.
+- R.sel is written by My Queue's in-page "+N more" and read nowhere.
+- #reg-search handlers point at an element the page no longer draws.
+- negotiations-door-verify: "the room shows four tabs" (two checks) fails — the room draws five tabs.

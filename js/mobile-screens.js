@@ -656,7 +656,6 @@ function mWireScreen(root){
     const D = mSlices(); const id = b.getAttribute('data-m-kpi');
     const kpi = D && D.KPI_CATALOG[id];
     const go = kpi && kpi.go;
-    const R = (typeof regState==='function') ? regState() : null;
     /* ---- EVERY TILE OPENS THE LIST BEHIND ITS NUMBER (26 Sep 2026, the
        overnight clean-up) ----
        This read only the register's own filters, so every tile whose number
@@ -667,11 +666,19 @@ function mWireScreen(root){
        list; a set of contracts narrows Contracts to exactly those, through the
        register's own named-set filter; a desk-only page gets the phone's
        honest "open this on a computer" screen. */
+    /* ---- AND IT LANDS ON FRESH FILTERS (Young ruled 27 Sep 2026) ----
+       A tile is a door from another screen. Each branch here cleared its own
+       short list — the stage and the quick filter, never the stream, the
+       category or the search — so a filter left on the Contracts screen went on
+       cutting the list under a tile that had counted the whole book. The
+       register's one door clears them all; `open:false` because this screen
+       opens itself. */
+    const land = patch => {
+      if(typeof regGoFiltered==='function') regGoFiltered(patch, { open:false });
+    };
     const onlyIds = (ids, label) => {
-      if(!R) return;
-      if(typeof regSetScope==='function') regSetScope(null);
       const list = Array.from(new Set((ids||[]).filter(Boolean)));
-      R.stage='all'; R.view=null; R.only = list.length ? { ids:list, label:String(label||'') } : null; R.page=1;
+      land({ only: list.length ? { ids:list, label:String(label||'') } : null });
     };
     if(go && go.nav==='redline'){ mGo('negotiations'); return; }
     if(go && go.nav){ mGo('handoff', { deskView:go.nav }); return; }
@@ -689,7 +696,7 @@ function mWireScreen(root){
       onlyIds(list.map(o=>o.cid), kpi.label);
       mGo('contracts'); return;
     }
-    if(R && go){ R.only=null; R.stage = go.stage||'all'; R.view = go.view||null; if(go.sort) R.sort=go.sort; R.page=1; }
+    if(go) land(Object.assign({ stage: go.stage||'all', view: go.view||null }, go.sort ? { sort: go.sort } : {}));
     mGo('contracts');
   }));
 

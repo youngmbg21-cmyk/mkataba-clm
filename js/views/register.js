@@ -900,11 +900,12 @@ function wireRegClear(){
   /* CLEAR CLEARS THE QUERY AND THE BOX THAT HOLDS IT. Emptying the state alone
      would leave the shell bar still reading "lease" over a list it was no
      longer narrowing — the control saying one thing and the table another. */
+  /* AND IT CLEARS EXACTLY WHAT A DOOR FROM ANOTHER PAGE CLEARS (27 Sep 2026):
+     regFiltersAtRest is the one reading of "nothing is narrowing", read off
+     the filter catalogue — this used to be its own list of eleven. */
   document.getElementById('reg-clear-filters')?.addEventListener('click',()=>{
-    const R=regState();
-    R.query=''; R.stage='all'; R.type='all'; R.view=null; R.renewal='all';
-    R.category='all'; R.signed='all'; R.payterms='all'; R.docs='all'; R.hold='all'; R.only=null; R.page=1;
-    const cs=document.getElementById('cmd-search'); if(cs) cs.value='';
+    regFiltersAtRest(regState());
+    regSearchBoxClear();
     regRepaint();
   });
 }
@@ -974,20 +975,72 @@ function negoBandCounts(cs){
    back is on the same chip. A list silently showing two of a hundred and
    thirty-nine contracts is indistinguishable from a broken register.
 
-   It is an ordinary filter in every other respect — the stage, stream and
-   category dropdowns still narrow further inside it, Clear clears it with the
-   rest, and it survives navigation exactly as they do. */
+   It is an ordinary filter in every other respect ON THE PAGE — the stage,
+   stream and category dropdowns still narrow further inside it, Clear clears it
+   with the rest, and it survives navigation exactly as they do. What it no
+   longer does is ARRIVE on top of filters left from an earlier visit: see the
+   door below. */
+/* ---- A DOOR FROM ANOTHER PAGE LANDS ON THE LIST IT NAMED, AND NOTHING ELSE
+   (Young ruled 27 Sep 2026) ----
+   *"When you have chosen a new filter from outside the page and you are landed
+   to the results, the previous filters should not be there."* His journey:
+   Home's stage bar opened Contracts on Stage · Drafting; back on Home, "See all"
+   on Needs your decision opened its named set INSIDE that stage, so the list
+   showed the drafts on it and hid the rest — a door that said one number
+   landing on a smaller one, the fault the Map's own note forbids.
+
+   EVERY DOOR HAD WRITTEN ITS OWN SHORT LIST OF WHAT TO CLEAR, and each list was
+   short of the next filter somebody added: this one cleared nothing but the
+   named set, the Map's stage door five filters, the phone's tiles three, the
+   shell search none. So there is ONE reading of "nothing is narrowing", and it
+   is DERIVED FROM THE FILTER CATALOGUE (REG_BAR_FILTERS) — a filter added
+   tomorrow is cleared by every door, and by Clear, without anybody remembering
+   to list it. The query, the named set and the page go with them. SORT,
+   DIRECTION, DENSITY AND THE AMENDMENT FOLD ARE KEPT: they are how the reader
+   LOOKS at a list, not what is on it.
+
+   The rest value is 'all' for every filter but the quick-filter tab, whose rest
+   is "no tab lit" (null) — the two Clear buttons have always written exactly
+   that, and they ask this now, so a door and Clear cannot disagree about what
+   "no filter" means.
+
+   A FILTER CHOSEN ON THE PAGE STILL NARROWS FURTHER. The rule is about
+   ARRIVING: the chips, the tabs and the search box typed while the list is on
+   screen keep everything else, exactly as before. */
+const REG_FILTER_REST = { view: null };
+function regFiltersAtRest(R){
+  R = R || regState();
+  REG_BAR_FILTERS.forEach(f=>{
+    R[f.k] = Object.prototype.hasOwnProperty.call(REG_FILTER_REST, f.k) ? REG_FILTER_REST[f.k] : 'all';
+  });
+  R.query=''; R.only=null; R.page=1;
+  return R;
+}
+/* The shell bar's box lives above every page and no page repaints it, so a
+   query taken off the state has to be taken out of the box by hand — Clear's
+   own rule: the control may not say one thing and the table another. */
+function regSearchBoxClear(){
+  const b=document.getElementById('cmd-search'); if(b) b.value='';
+}
+/* THE ONE DOOR, obwGoFiltered's twin on the Obligations page (which learned
+   the same lesson on 31 Aug: "a named door could land a reader on whatever
+   narrowing they had left behind an hour earlier with nothing saying why").
+   The seat goes back to Contracts FIRST, before the state is read — a door
+   pressed from the Negotiations page would otherwise write its answer into
+   that page's filters and open a register that had never heard of it.
+   `open:false` is for a caller that opens the page itself (the phone). */
+function regGoFiltered(patch, opts){
+  regSetScope(null);
+  const R=regFiltersAtRest(regState());
+  if(patch) Object.assign(R, patch);
+  regSearchBoxClear();
+  if(opts && opts.open===false) return R;
+  if(typeof setView==='function') setView('register'); else renderRegister();
+  return R;
+}
 function regShowOnly(ids, label){
   const list=Array.from(new Set((ids||[]).filter(Boolean)));
-  /* A named set is always sent to CONTRACTS. The scope is cleared before the
-     state is read, or a calendar day pressed while the reader happened to be on
-     the Negotiations page would write its answer into that page's filters and
-     then open a register that had never heard of it. */
-  regSetScope(null);
-  const R=regState();
-  R.only=list.length?{ ids:list, label:String(label||'') }:null;
-  R.page=1;
-  if(typeof setView==='function') setView('register'); else renderRegister();
+  regGoFiltered({ only: list.length ? { ids:list, label:String(label||'') } : null });
 }
 /* The category list has ONE source: the metadata field that records it. Add
    a category there and it reaches this filter and the phone's chips without
@@ -2089,7 +2142,8 @@ function wireRegRows(){
     regRunRowAct(b.getAttribute('data-act'), b.getAttribute('data-id'));
   }));
   // empty-state actions
-  document.getElementById('reg-empty-clear')?.addEventListener('click',()=>{ const R=regState(); R.query=''; R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.category='all'; R.signed='all'; R.payterms='all'; R.docs='all'; R.hold='all'; R.only=null; R.page=1; const cs=document.getElementById('cmd-search'); if(cs) cs.value=''; regRepaint(); });
+  /* The empty state's Clear asks the same one reading as the bar's. */
+  document.getElementById('reg-empty-clear')?.addEventListener('click',()=>{ regFiltersAtRest(regState()); regSearchBoxClear(); regRepaint(); });
   document.getElementById('reg-empty-new')?.addEventListener('click',e=>{ e.stopPropagation(); const nb=document.getElementById('cmd-new'); if(window.openNewMenu){ openNewMenu(e.currentTarget); } else if(nb){ nb.click(); } });
 }
 /* Exports what the register is showing — every row the current filters, search
@@ -3259,5 +3313,5 @@ Object.assign(window,{regSignedOn,regSignedYear,regSignedYears,regSignedCell,
   regRowActsHtml,regRunRowAct,regOpenRow,regDisplayHtml,regCloseDisplay,REG_SOON_DAYS,regEndsSay,
   regColWidths,regColSetWidths,regColReset,regColDefaults,regColTrade,regColApply,regWireColResize,
   REG_CMP,REG_SORT_DEFDIR,regBlanksLast,regStreamName,regRefParts,regNarrowed,regClearHtml,regPaintClear,
-  REG_BAR_FILTERS,REG_BAR_DEFAULT,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,regViewCount,REG_SAVED_KEY,REG_SAVED_FIELDS,regSavedViews,regSaveView,regForgetView,regApplySaved,regSavedMatches,regHeadFactsHtml,regPaintHeadFacts,regPaintViewCounts,regMoveWord,regOwnerCell,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regMode,regSetMode,regViewTabsHtml,regSegHtml,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,regEndAct,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,negoMoveSay,regShowOnly,regPaintCohort,renderRegister,renderRegisterBody,wireRegRows,
+  REG_BAR_FILTERS,REG_BAR_DEFAULT,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,regViewCount,REG_SAVED_KEY,REG_SAVED_FIELDS,regSavedViews,regSaveView,regForgetView,regApplySaved,regSavedMatches,regHeadFactsHtml,regPaintHeadFacts,regPaintViewCounts,regMoveWord,regOwnerCell,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regMode,regSetMode,regViewTabsHtml,regSegHtml,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,regEndAct,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,negoMoveSay,regShowOnly,REG_FILTER_REST,regFiltersAtRest,regSearchBoxClear,regGoFiltered,regPaintCohort,renderRegister,renderRegisterBody,wireRegRows,
   regScope,regSetScope,regRepaint,regPageSize,regFitBandOffset,NEGO_BANDS,NEGO_BAND_DOT,negoGroupByMove,negoBandCounts,negoMovePillHtml,negoBandRowHtml});

@@ -234,11 +234,18 @@ describe('F381 (5) — every figure is a door, and a zero is not one', () => {
     /* The count is the whole live book's, so the door may not write into the
        Negotiations seat's filters or keep an earlier named set narrowing the
        list — asked of the handler's own region, the stage branch alone. */
+    /* RE-POINTED IN PLACE 27 Sep 2026 (Young: "When you have chosen a new
+       filter from outside the page and you are landed to the results, the
+       previous filters should not be there"). The branch cleared five filters
+       by hand and now presses the register's ONE door, regGoFiltered, which
+       clears them all. Both claims stand, asked of the door where they live. */
     const b = fnBody(HOME, 'hmMapWire');
     const stage = b.slice(b.indexOf("if(kind==='stage')"), b.indexOf("if(kind==='month')"));
     assert.ok(stage.length > 20, 'the stage branch is found');
-    assert.match(stage, /regSetScope\(null\)[\s\S]*regState\(\)/, 'the seat is put back BEFORE the state is read');
-    assert.match(stage, /\.only=null/, 'an earlier named set is let go');
+    assert.match(stage, /regGoFiltered\(\{\s*stage:arg\s*\}\)/, "the branch presses the register's one door with its stage");
+    const REGV = read('js/views/register.js');
+    assert.match(fnBody(REGV, 'regGoFiltered'), /regSetScope\(null\)[\s\S]*regState\(\)/, 'the seat is put back BEFORE the state is read');
+    assert.match(fnBody(REGV, 'regFiltersAtRest'), /R\.only\s*=\s*null/, 'an earlier named set is let go');
   });
   test('a stage with nothing in it is drawn and is not a door', () => {
     const cs = book().filter(c => c.status !== 'Draft');
