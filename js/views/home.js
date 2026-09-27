@@ -370,20 +370,14 @@ function hmDashSlices(){
   // amendment says, and an amendment is not itself an expiring agreement
   const expiring=agreementsIn(cs).map(c=>({c,e:effectiveExpiry(c)})).filter(x=>x.e&&x.c.status!=='Declined')
     .map(x=>({c:x.c,d:dU(x.e),e:x.e})).filter(x=>x.d>=0&&x.d<=90).sort((a,b)=>a.d-b.d);
-  // renewal decisions due (expiry − notice period), within 90 days, live contracts only
+  /* Renewal decisions due, one contract at a time in hmRenewalDue — the side
+     panel's checklist asks the very same question of the one contract it
+     shows (27 Sep 2026), so the question lives in one place. `rdd` is still
+     handed out with the slices below. */
   const rdd=window.renewalDecisionDate||(()=>null);
-  /* ---- A RENEWAL SOMEBODY HAS ANSWERED IS NOT A DECISION DUE (16 Sep 2026) ----
-     THIS IS THE SECOND READING OF THE SAME QUESTION and it is why the predicate
-     is a published function rather than a condition written twice: the card and
-     the overnight desk ask renewalWindow, this list asks renewalDecisionDate
-     directly — and the alerts panel reads THIS list, so a decision recorded on
-     the card had to reach the bell through here or the two would disagree.
-     `renewalDecision` is an ordinary field and survives HEAVY by construction,
-     so a light row answers this as well as a whole one. */
-  const decided=window.renewalDecided||(()=>false);
-  const decisions=cs.filter(c=>c.status!=='Declined'&&!decided(c)).map(c=>{ const dd=rdd(c); return dd?{c,dd,d:dU(dd)}:null; }).filter(x=>x&&x.d>=0&&x.d<=90).sort((a,b)=>a.d-b.d);
-  /* Paper that has sat in review, longest first — the other half of what a
-     person has to decide about, alongside the renewals. */
+  const decisions=cs.map(c=>hmRenewalDue(c)).filter(Boolean).sort((a,b)=>a.d-b.d);
+  /* Paper that has sat in review, longest first. THE PHONE'S LIST READS IT;
+     the desktop card stopped reading it on 27 Sep 2026 (see hmDecisionItems). */
   const waitingLongest=cs.filter(c=>c.status==='Under Review').map(c=>({c,idle:idleOf(c)})).sort((a,b)=>b.idle-a.idle);
   const highRisk=cs.filter(c=>c.status!=='Declined').map(c=>({c,r:contractRisk(c)})).filter(x=>x.r>=60).sort((a,b)=>b.r-a.r);
   // Awaiting counterparty = contracts that are OUT with a counterparty and not
@@ -1281,6 +1275,44 @@ function triageSubHead(c){
   const who=(t&&t.by)||'';
   return [f,who?i18t('tri_by',{who}):'',(window.contractRef?contractRef(c):c.id)].filter(Boolean).join(' · ');
 }
+/* ---- ONE CONTRACT'S RENEWAL DECISION, IF ONE IS DUE (27 Sep 2026) ----
+   Lifted out of hmDashSlices, where it was written inline over the whole
+   book, so the side panel's checklist asks the same question of the one
+   contract it shows. Due means the notice deadline (the expiry less the notice
+   period, family-aware) falls in the next 90 days and nobody has recorded an
+   answer. {c, dd, d} or null; it reads and never writes.
+   ---- A RENEWAL SOMEBODY HAS ANSWERED IS NOT A DECISION DUE (16 Sep 2026) ----
+   THIS IS THE SECOND READING OF THE SAME QUESTION and it is why the predicate
+   is a published function rather than a condition written twice: the card and
+   the overnight desk ask renewalWindow, this asks renewalDecisionDate
+   directly — and the alerts panel reads hmDashSlices' list, built from this,
+   so a decision recorded on the card reaches the bell through here.
+   `renewalDecision` is an ordinary field and survives HEAVY by construction,
+   so a light row answers this as well as a whole one. */
+function hmRenewalDue(c){
+  if(!c||c.status==='Declined') return null;
+  const decided=window.renewalDecided||(()=>false);
+  if(decided(c)) return null;
+  const rdd=window.renewalDecisionDate||(()=>null);
+  const dd=rdd(c);
+  if(!dd) return null;
+  const dU=window.daysUntil||(iso=>Math.ceil((new Date(iso+'T00:00:00')-Date.now())/86400000));
+  const d=dU(dd);
+  return (d>=0&&d<=90)?{c,dd,d}:null;
+}
+/* A renewal decision inside this many days is urgent — ruby rather than
+   amber. One number for Home's card and the side panel's checklist. */
+const HM_SOON_DAYS = 30;
+/* A review past the day it was asked for by. TODAY IS THE READER'S OWN DAY
+   (26 Sep 2026, the overnight clean-up): "overdue" was asked against the UTC
+   day, so for three hours every evening in Nairobi a review due tomorrow read
+   as late — todayISO is the one local reading. */
+function hmReviewLate(rv){
+  if(!rv||!rv.due) return false;
+  const today=(typeof todayISO==='function')?todayISO()
+    :new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
+  return String(rv.due)<today;
+}
 /* ---- NEEDS YOUR DECISION — ONE READING (Young ruled 25 Sep 2026) ----
    The list the card draws, lifted out of renderDashboard when the card came
    back: COUNTING IS NOT DRAWING, and the card's rows, the count in its head,
@@ -1291,7 +1323,11 @@ function triageSubHead(c){
    make. */
 function hmDecisionItems(S, deskRows){
   const SL=S||hmDashSlices();
-  const { cs, myReviews, myStaleDesks, myJoinAsks, decisions, waitingLongest, fmtDDay } = SL;
+  const { cs, myReviews, myStaleDesks, myJoinAsks, decisions, fmtDDay } = SL;
+  /* THE SAME OWNERSHIP QUESTION THE CHECKLIST ASKS (needsYouOf): nobody
+     signed in owns nothing, so a page with no reader draws no renewal. */
+  const me=SL.me||((typeof currentUser==='function')?currentUser():null);
+  const owns=c=>!!(me&&typeof contractOwnedBy==='function'&&contractOwnedBy(c, me));
   const shown=deskRows||((typeof deskItems==='function'&&typeof deskShown==='function')?deskShown(deskItems(cs)):[]);
   /* ONLY THE RENEWAL SOURCE IS FILTERED, and that is the whole precision of the
      one-door rule: a colleague waiting on your review is a different subject
@@ -1321,10 +1357,11 @@ function hmDecisionItems(S, deskRows){
        2026, the overnight clean-up): "overdue" was asked against the UTC day
        — so for three hours every evening in Nairobi a review due tomorrow read
        as late, and one due today read as not — and the tag printed the raw
-       "2026-09-30". todayISO is the one local reading; fmtDDay is this page's
-       one day printer. */
+       "2026-09-30". todayISO is the one local reading (asked in hmReviewLate,
+       which the side panel's checklist asks too); fmtDDay is this page's one
+       day printer. */
     ...(myReviews||[]).map(x=>({
-      cid:x.c.id, urgent:!!(x.rv.due&&String(x.rv.due)<((typeof todayISO==='function')?todayISO():new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10))),
+      cid:x.c.id, urgent:hmReviewLate(x.rv),
       txt:esc(i18t('rv_home_title'))+' — '+strong(x.c.name),
       meta:`${esc(i18t('rv_home_from',{who:x.rv.by}))} · ${esc(i18tn('rv_home_sub',x.st.total,{n:x.st.total}))}`,
       tag:x.rv.due?fmtDDay(String(x.rv.due)):i18t('rv_home_open'),
@@ -1358,22 +1395,93 @@ function hmDecisionItems(S, deskRows){
       tag:i18t('home_sign_tag'),
       verb:i18t('home_verb_sign'),
     })),
-    ...(decisions||[]).filter(x=>!deskIds.has(x.c.id)).map(x=>({
-      cid:x.c.id, urgent:x.d<=30,
+    /* A RENEWAL IS ASKED OF THE PERSON WHO OWNS THE CONTRACT (27 Sep 2026,
+       Young: yes to "the card lists the same five kinds as the side panel's
+       checklist"). The checklist offers a renewal only where contractOwnedBy
+       says the reader owns the contract; this card asked nothing and put
+       every renewal in the book in front of every reader. A renewal of a
+       contract somebody else owns still rings in the bell inside thirty days,
+       and still shows on the Map and the calendar. */
+    ...(decisions||[]).filter(x=>!deskIds.has(x.c.id)&&owns(x.c)).map(x=>({
+      cid:x.c.id, urgent:x.d<=HM_SOON_DAYS,
       txt:i18t('home_renew_or_exit',{name:strong(x.c.name)}),
       meta:i18t('home_decide_by',{who:esc(x.c.counterparty||i18t('home_no_counterparty')),when:fmtDDay(x.dd)}),
       tag:x.d===0?i18t('home_today'):i18t('home_in_days',{n:x.d}),
       verb:i18t('home_verb_decide'),
     })),
-    ...(waitingLongest||[]).map(x=>({
-      cid:x.c.id, urgent:x.idle>=30,
-      txt:i18t('home_waiting_on_review',{name:strong(x.c.name)}),
-      meta:`${esc(x.c.counterparty||i18t('home_no_counterparty'))} · ${esc(window.contractRef?contractRef(x.c):x.c.id)}`,
-      tag:i18t('home_idle_days',{n:x.idle}),
-      verb:i18t('act_open'),
-    })),
+    /* "WAITING ON REVIEW" LEFT THE CARD THE SAME DAY. It was every contract in
+       the book sitting at Under Review, longest first — a queue nobody owns,
+       naming nothing this reader has to do, so the checklist beside the
+       contract never had a line for it. The slice stays in hmDashSlices: the
+       phone's own list still reads it. home_waiting_on_review and
+       home_idle_days are INERT in both books. */
   ];
   return decisionItems;
+}
+
+/* ============================================================
+   WHAT THIS CONTRACT NEEDS FROM YOU — THE SIDE PANEL'S CHECKLIST
+   (Young picked "Checklist" by name, 27 Sep 2026, off the "Attention Banner
+   Options" page)
+   ============================================================
+   *"a nicely designed banner in the contract's inspector side panel that
+   explains what attention is needed … right under the party names and in
+   color."* ONE CONTRACT, AND ONLY WHAT IS OWED BY THIS READER BY NAME: the
+   other side waiting on us past the standard, a review asked of you, a
+   colleague asking to join a negotiation you lead, your signature, and a
+   renewal decision on a contract you own.
+
+   EVERY SOURCE IS HOME'S OWN FUNCTION, asked of a one-contract list —
+   deskStaleInboxFor, reviewInboxFor, deskJoinInboxFor, hmMySignings,
+   hmRenewalDue — and lateness is Home's own too (hmReviewLate, HM_SOON_DAYS),
+   so the checklist and Home's card cannot disagree about an item they both
+   show. TWO OF HOME'S ITEMS ARE DELIBERATELY NOT HERE: a contract merely
+   sitting in review names nobody, and a renewal on a contract somebody else
+   owns is theirs to decide. The drawing is inspector.js's (insNeedsHtml).
+   READING MUST NOT WRITE: every source reads, and a source a stage does not
+   load says nothing rather than throwing. */
+const NEEDS_YOU_ORDER = ['quiet','review','join','sign','renewal'];
+function needsYouOf(c){
+  if(!c || c.archived) return [];
+  const me=(typeof currentUser==='function')?currentUser():null;
+  if(!me) return [];
+  const one=[c];
+  const out=[];
+  const take=fn=>{ try{ fn(); }catch(_){ /* a missing source adds nothing */ } };
+  take(()=>(window.deskStaleInboxFor?deskStaleInboxFor(one, me):[]).forEach(x=>{ const s=x.stale||{};
+    out.push({ kind:'quiet', urgent:true, n:s.n||0, since:s.since||null }); }));
+  take(()=>(window.reviewInboxFor?reviewInboxFor(one, me):[]).forEach(x=>{ const rv=x.rv||{};
+    out.push({ kind:'review', urgent:hmReviewLate(rv), who:rv.by||'', n:(x.st&&x.st.total)||0, due:rv.due||null }); }));
+  take(()=>(window.deskJoinInboxFor?deskJoinInboxFor(one, me):[]).forEach(x=>{ const r=x.req||{};
+    out.push({ kind:'join', urgent:false, who:r.name||'', why:r.why||'', at:r.at||null }); }));
+  take(()=>hmMySignings(one).forEach(x=>out.push({ kind:'sign', urgent:false, n:x.n||0 })));
+  take(()=>{ const r=hmRenewalDue(c);
+    if(r && typeof contractOwnedBy==='function' && contractOwnedBy(c, me))
+      out.push({ kind:'renewal', urgent:r.d<=HM_SOON_DAYS, dd:r.dd, d:r.d }); });
+  /* THE MOST URGENT LEADS, then the order above; a tie keeps its source's
+     order, so two rows of one kind never swap places between paints. */
+  const rank=k=>NEEDS_YOU_ORDER.indexOf(k);
+  return out.map((x,i)=>({x,i}))
+    .sort((a,b)=>(Number(b.x.urgent)-Number(a.x.urgent))||(rank(a.x.kind)-rank(b.x.kind))||(a.i-b.i))
+    .map(o=>o.x);
+}
+/* ---- WHERE EACH ONE IS ANSWERED ----
+   One door per kind. The negotiation for their waiting redlines and for a
+   review, and the Signing tab for a signature — the places the bell's rows
+   already open. A renewal lands on the Overview, where the renewal card
+   records the decision, and a request to join opens the sheet where the lead
+   lets them in (the bell opens both only as far as the contract). */
+function needsYouGo(kind, id){
+  const c=(typeof getContract==='function')?getContract(id):null;
+  if(!c) return;
+  if(kind==='quiet'||kind==='review'){
+    if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); else openWorkspace(c.id);
+    return;
+  }
+  openWorkspace(c.id);
+  if(kind==='sign'){ if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} return; }
+  if(kind==='renewal'){ if(window.roomGoTab) try{ roomGoTab(c,'terms'); }catch(_){} return; }
+  if(kind==='join'){ if(window.openDeskSheet) try{ openDeskSheet(c); }catch(_){} }
 }
 
 /* ---- TWO ROWS, WHATEVER THE SCREEN (Young ruled 25 Sep 2026) ----
@@ -1844,5 +1952,5 @@ function renderDashboard(){
   setActiveNav('dashboard');
 }
 
-Object.assign(window,{renderDashboard,hmDashSlices,hmDecisionItems,HM_DD_ROWS,hmStageTone,hmMySignings,hmMapData,hmMapInnerHtml,hmMapWire,hmMeasure,hmSetMeasure,hmOwed,hmSecHtml,HM_MAP_MONTHS,HM_MAP_STAGES,copilotRead,copilotCoverage,gsSteps,gettingStartedHtml,gsIsSeed,
+Object.assign(window,{renderDashboard,hmDashSlices,hmDecisionItems,HM_DD_ROWS,hmRenewalDue,HM_SOON_DAYS,hmReviewLate,needsYouOf,NEEDS_YOU_ORDER,needsYouGo,hmStageTone,hmMySignings,hmMapData,hmMapInnerHtml,hmMapWire,hmMeasure,hmSetMeasure,hmOwed,hmSecHtml,HM_MAP_MONTHS,HM_MAP_STAGES,copilotRead,copilotCoverage,gsSteps,gettingStartedHtml,gsIsSeed,
   KPI_META,currentKpiSel,setKpiSel,kpiCatalogOrder,DEFAULT_KPI_SEL,KPI_MAX,kpiAtMax,readyToSignItems});

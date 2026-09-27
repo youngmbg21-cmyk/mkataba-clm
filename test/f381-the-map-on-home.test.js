@@ -47,8 +47,17 @@ const book = () => ([
   { id: 'MK-4', name: 'Retail', counterparty: 'Naivas', status: 'Under Review', value: 7e6, audit: [] },
   { id: 'MK-5', name: 'Closed one', counterparty: 'Tuskys', status: 'Declined', value: 9e6, audit: [] },
 ]);
+/* THE REAL owner check, lifted out of core.js (this stage does not load it):
+   the decisions card asks it of every renewal since 27 Sep 2026, and a
+   stand-in kinder than the real function would describe rather than measure. */
+const CORE = read('js/core.js');
+const contractOwnedBy = (() => {
+  const at = CORE.indexOf('function contractOwnedBy(');
+  assert.ok(at >= 0, 'contractOwnedBy is in js/core.js');
+  return new Function('return (' + CORE.slice(at, CORE.indexOf('\n}', at) + 2) + ')')();
+})();
 function world({ money = true, contracts = book(), stored = null } = {}) {
-  const sb = loadViews(FILES, { canViewValues: () => money,
+  const sb = loadViews(FILES, { canViewValues: () => money, contractOwnedBy,
     state: { contracts, settings: {}, view: 'dashboard', serverStats: { total: contracts.length } } });
   if (stored) sb.localStorage.setItem('hati.v1.homeMeasure.u_test', stored);
   sb.renderDashboard();
@@ -72,7 +81,16 @@ describe('F381 (1) — Home is the greeting, the Map and Prepared for you', () =
      still gone, which is the half of the old claim that holds. f382 pins the
      two rows. */
   test('the Map is drawn, the tiles and Choose tiles are not, and the decisions card is back without its rail', () => {
-    const { html } = world();
+    /* RE-POINTED IN PLACE 27 Sep 2026: the card's one row on this book was
+       MK-4's "Waiting on review", which LEFT the card that day (Young: yes to
+       the card listing the side panel's checklist's five kinds). The row is
+       MK-1's renewal decision now — owned by the reader (loadViews' own) and
+       put away from the desk, which would otherwise draw it and the one-door
+       rule take it off this card. */
+    const cs = book();
+    cs[0].owner = { id: 'u_test', name: 'Test User' };
+    cs[0].desk = { renewal: day(-1), notice: day(-1) };
+    const { html } = world({ contracts: cs });
     assert.ok(html.includes('id="hm-map"'), 'the Map is on the page');
     assert.ok(html.includes('hm-card hm-map'), 'in the card shell every Home card wears');
     assert.ok(!html.includes('data-kpi-id'), 'no KPI tile is drawn on the desktop');

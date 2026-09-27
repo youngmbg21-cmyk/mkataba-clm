@@ -8743,6 +8743,28 @@
   .ins-mv.is-you{color:var(--st-amber-fg);}
   .ins-mv.is-them{color:var(--color-neutral-600);}
   .ins-acts{display:flex;align-items:center;gap:var(--btn-group-gap);margin-top:14px;flex-wrap:wrap;}
+  /* WHAT THIS CONTRACT NEEDS FROM YOU — THE CHECKLIST (Young picked it by
+     name, 27 Sep 2026). A frame in the worst row's colour, a head that counts,
+     one row per thing owed with its own button. Every colour is the product's
+     ruby or amber token, so the night theme is the tokens' own answer. The
+     button keeps the platform's one light edge and takes the row's colour on
+     its word only. The rows stay one line each; a cut line has its whole
+     words on the hover. */
+  .ins-need{--nd-bg:var(--st-amber-bg);--nd-fg:var(--st-amber-fg);--nd-line:var(--st-amber-line);--nd-dot:var(--st-amber-dot);
+    margin-top:14px;border:1px solid var(--nd-line);border-radius:var(--radius-lg);background:var(--color-surface);overflow:hidden;}
+  .ins-need.is-ruby,.ins-need-r.is-ruby{--nd-bg:var(--st-ruby-bg);--nd-fg:var(--st-ruby-fg);--nd-line:var(--st-ruby-line);--nd-dot:var(--st-ruby-dot);}
+  .ins-need-r.is-amber{--nd-bg:var(--st-amber-bg);--nd-fg:var(--st-amber-fg);--nd-line:var(--st-amber-line);--nd-dot:var(--st-amber-dot);}
+  .ins-need-h{display:flex;align-items:center;gap:6px;padding:8px 12px;background:var(--nd-bg);color:var(--nd-fg);border-bottom:1px solid var(--nd-line);
+    font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;}
+  .ins-need-h svg{flex:none;}
+  .ins-need-r{display:grid;grid-template-columns:8px minmax(0,1fr) auto;align-items:center;gap:0 10px;padding:10px 12px;}
+  .ins-need-r + .ins-need-r{border-top:1px solid var(--color-divider);}
+  .ins-need-dot{width:8px;height:8px;border-radius:50%;background:var(--nd-dot);}
+  .ins-need-b{min-width:0;}
+  .ins-need-t{font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ins-need-s{margin-top:2px;font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ins-need-s .late{color:var(--nd-fg);font-weight:var(--w-strong);}
+  .ins-need .ui-btn.ins-need-go{color:var(--nd-fg);}
   .ins-more-wrap{position:relative;display:inline-flex;}
   .ins-menu{position:absolute;right:0;top:calc(100% + 4px);z-index:30;width:200px;padding:var(--s-1);display:flex;flex-direction:column;
     background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);

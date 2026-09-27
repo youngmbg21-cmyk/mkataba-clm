@@ -291,7 +291,11 @@ describe('F274 — the overnight desk', () => {
        reader's own list. The eviction lives in hmDecisionItems now (the list
        lifted into one reading), which the page hands its own desk rows. */
     test('Home filters the renewal source by the desk, and only that source', () => {
-      assert.match(HOME_CODE, /\.\.\.\(decisions\|\|\[\]\)\.filter\(x=>!deskIds\.has\(x\.c\.id\)\)\.map\(/,
+      /* RE-POINTED IN PLACE 27 Sep 2026: the same filter also asks whether the
+         reader owns the contract now (the card lists the side panel's
+         checklist's five kinds, and the checklist offers a renewal only to its
+         owner). The desk half is unchanged and is still the first question. */
+      assert.match(HOME_CODE, /\.\.\.\(decisions\|\|\[\]\)\.filter\(x=>!deskIds\.has\(x\.c\.id\)&&owns\(x\.c\)\)\.map\(/,
         'the renewal rows are the ones that move');
       /* AND IT IS BUILT FROM THE ROWS ON SCREEN. Handed deskAll it evicted
          every qualifying renewal while drawing one, so the rest were on
@@ -300,7 +304,10 @@ describe('F274 — the overnight desk', () => {
       assert.match(HOME_CODE, /deskCids\(shown\)/, 'only what is drawn may evict anything');
       assert.match(HOME_CODE, /hmDecisionItems\(SL, deskRows\)/, 'and the page hands over the rows it drew');
       assert.ok(!/deskCids\(deskAll\)/.test(HOME_CODE), 'never the whole list');
-      for (const other of ['myReviews', 'myStaleDesks', 'myJoinAsks', 'waitingLongest'])
+      /* waitingLongest left this list on 27 Sep 2026 — the review queue is no
+         longer a source on the card, so "never evicted" would be true of
+         nothing. The phone still reads that slice; the card does not. */
+      for (const other of ['myReviews', 'myStaleDesks', 'myJoinAsks'])
         assert.ok(!new RegExp(other + '(\\|\\|\\[\\])?\\)?\\.filter\\(x=>!deskIds').test(HOME_CODE),
           other + ' is a different subject and is never evicted by the desk');
     });
