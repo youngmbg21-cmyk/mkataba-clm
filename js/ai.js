@@ -301,7 +301,7 @@ function runScan(c){
 function scanCanvas(){
   if(typeof document==='undefined') return null;
   /* THE GRAPH'S PAPER IS THE THIRD (26 Sep 2026, Analyze contract): the
-     Contract Graph mounts a reading copy where its nodes were, and no other
+     Explorer tab (the map) mounts a reading copy where its nodes were, and no other
      contract surface is on that page. */
   return document.getElementById('doc-canvas')
       || document.getElementById('rl-doc')

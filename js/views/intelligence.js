@@ -570,7 +570,11 @@ function igDependentsHtml(id){
   </div>`;
 }
 window.intel = { groupBy:'folder', groups:null /*{id:label} override from Copilot*/,
-  legendFolded:false /*the graph's legend, folded to its head — per sitting, in memory*/,
+  /* CLOSED AT REST (Young ruled 27 Sep 2026: "when you open the explorer page,
+     the legend should always be closed as the resting state"): folded to its
+     head on every ARRIVAL at the tab (renderIntel asks), opened by a press for
+     the rest of the visit, never stored. */
+  legendFolded:true /*the graph's legend, folded to its head — per visit, in memory*/,
   lenses:[] /*[{id,label,ids:[],on,action:'filter'|'highlight',badges:{id:txt}|null}]*/,
   history:[] /*dock conversation: {role,text,cardIds?,ranked?,explainId?,compare?,err?,paperId?,quotes?}*/,
   compareSel:[] /*contract ids staged for a node-driven comparison*/,
@@ -590,15 +594,102 @@ window.intel = { groupBy:'folder', groups:null /*{id:label} override from Copilo
   ptCut:{ side:null, bucket:null }, ptPage:1,
   cliffDays:0 /*A-4: the renewal cliff's scrubber, days ahead of today; per sitting*/,
   busy:false, dockOpen:true,
-  // Horizon-style leftward expand; the preference sticks per device.
-  dockWide:(()=>{ try{ return !!(typeof lsGet==='function'&&lsGet('hati.v1.intelWide')); }catch(_){ return false; } })(),
+  /* THE WIDEN BUTTON IS GONE (Young ruled 27 Sep 2026): "bring the divider
+     that is in the document and negotiate pages to the Explorer page as
+     opposed to have the arrow button". The panel's width is the divider's —
+     IG_SPLIT_KEY below. `dockWide` and its store (hati.v1.intelWide) are
+     STALE: nothing reads or writes them. */
   seq:1 };
-// Dock width: collapsed sliver, normal, or wide (capped so the graph always
-// keeps meaningful room; on narrow screens wide degrades gracefully).
+/* ---------- THE SPLIT, DRAGGED (Young ruled 27 Sep 2026) ----------
+   The Document tab's and the Negotiate page's divider, on this page: the
+   panel beside the map (or the paper) takes the width the reader drags it to,
+   remembered in this browser. It is the clause editor's mechanism — the
+   POINTER'S POSITION, never the distance travelled, with the grab offset kept
+   so the handle does not jump under the finger — and the Negotiate page's
+   resting rule: where nobody has chosen, the panel opens at a WIDTH
+   (IG_DOCK_W0, the panel's own resting width before this), because that is a
+   fact about the panel's cards and a fraction gives them a different number
+   on every monitor. What is stored is the PANEL'S width.
+   THE FLOORS WIN: the panel keeps IG_DOCK_MIN (its card's three doors on one
+   line), the column beside it IG_LEFT_MIN (the Document tab's own floor for a
+   contract column), and at a floor the grip goes amber, as on the other two
+   pages. A double-click, Home or Enter put it back; the arrows step it.
+   Folded to its strip (the › in the panel's head, kept), the divider stands
+   down: there is nothing to drag. */
+const IG_DOCK_W0 = 380, IG_DOCK_MIN = 340, IG_LEFT_MIN = 420, IG_DOCK_FOLDED = 46;
+const IG_SPLIT_KEY = 'hati.v1.igDockW';
+/* null = nobody has chosen, which is what lets the resting place be a width. */
+function _igDockPref(){
+  try{ const v=Number(localStorage.getItem(IG_SPLIT_KEY)); return (v>0&&isFinite(v))?Math.round(v):null; }catch(_){ return null; }
+}
+function _igDockSave(w){ try{ if(w==null) localStorage.removeItem(IG_SPLIT_KEY); else localStorage.setItem(IG_SPLIT_KEY,String(Math.round(w))); }catch(_){ } }
+/* The width the panel takes in a row `avail` wide: the reader's choice or the
+   resting width, clamped by both floors. Pure, so the stage can ask it. */
+function igDockClamp(want, avail){
+  let w=Number(want)||IG_DOCK_W0;
+  if(avail>0){
+    if(avail>=IG_LEFT_MIN+IG_DOCK_MIN) w=Math.min(Math.max(w,IG_DOCK_MIN), avail-IG_LEFT_MIN);
+    else w=Math.max(IG_DOCK_MIN, Math.min(w, avail));
+  } else w=Math.max(w,IG_DOCK_MIN);
+  return Math.round(w);
+}
 function igDockWidth(){
-  if(!intel.dockOpen) return 46;
-  if(!intel.dockWide) return 380;
-  return Math.max(380, Math.min(660, Math.round((window.innerWidth||1200)*0.45)));
+  if(!intel.dockOpen) return IG_DOCK_FOLDED;
+  const row=(typeof document!=='undefined')?document.getElementById('ig-row'):null;
+  return igDockClamp(_igDockPref()??IG_DOCK_W0, row?row.clientWidth:0);
+}
+/* THE ONE LAYOUT PASS: writes the panel's width and puts the handle on its
+   left edge. Every door calls this and nothing else writes the width. */
+function igFitSplit(){
+  const row=document.getElementById('ig-row'), dock=document.getElementById('ig-dock'), rez=document.getElementById('ig-resizer');
+  if(!row||!dock) return;
+  const w=igDockWidth();
+  dock.style.width=w+'px';
+  if(!rez) return;
+  if(!intel.dockOpen||!row.clientWidth){ rez.hidden=true; return; }
+  rez.hidden=false;
+  rez.style.right=(w-7)+'px';
+  const avail=row.clientWidth;
+  const atMin=w<=IG_DOCK_MIN, atMax=avail>=IG_LEFT_MIN+IG_DOCK_MIN&&w>=avail-IG_LEFT_MIN;
+  if(atMin||atMax) rez.setAttribute('data-at-limit',atMin?'min':'max'); else rez.removeAttribute('data-at-limit');
+  rez.setAttribute('aria-valuenow',String(w));
+}
+/* The map re-measures once the width has settled — the same reaction the
+   panel's fold has always had (igSyncDockWidth), never on every pointer move. */
+let _igSplitT=0;
+function igSplitSettle(){
+  if(_igSplitT) clearTimeout(_igSplitT);
+  _igSplitT=setTimeout(()=>{ _igSplitT=0; if(state.view==='intel'&&intel.tab==='map') rebuildIntelGraph(); },280);
+}
+function igWireSplit(){
+  const row=document.getElementById('ig-row'), dock=document.getElementById('ig-dock'), rez=document.getElementById('ig-resizer');
+  if(!row||!dock||!rez) return;
+  igFitSplit();
+  if(rez.dataset.igSplitBound) return;
+  rez.dataset.igSplitBound='1';
+  let grabDx=0;
+  const widthAt=x=>{ const r=row.getBoundingClientRect(); return igDockClamp(r.right-(x+grabDx), row.clientWidth); };
+  const onMove=e=>{ const x=(e.touches&&e.touches[0])?e.touches[0].clientX:e.clientX; _igDockSave(widthAt(x)); igFitSplit(); };
+  const onUp=()=>{ delete rez.dataset.drag; dock.style.transition='';
+    document.body.style.cursor=''; document.body.style.userSelect='';
+    window.removeEventListener('pointermove',onMove); window.removeEventListener('pointerup',onUp);
+    igSplitSettle(); };
+  rez.addEventListener('pointerdown',e=>{ e.preventDefault(); rez.dataset.drag='1';
+    const hb=rez.getBoundingClientRect(); grabDx=(hb.left+hb.width/2)-e.clientX;
+    /* The panel's width transition would make the handle trail the pointer. */
+    dock.style.transition='none';
+    document.body.style.cursor='col-resize'; document.body.style.userSelect='none';
+    window.addEventListener('pointermove',onMove); window.addEventListener('pointerup',onUp); });
+  rez.addEventListener('keydown',e=>{
+    if(e.key==='Home'||e.key==='Enter'){ e.preventDefault(); _igDockSave(null); igFitSplit(); igSplitSettle(); return; }
+    const step=Math.max(8,Math.round(row.clientWidth*0.02));
+    const d=e.key==='ArrowLeft'?step:e.key==='ArrowRight'?-step:0;   /* left widens the panel */
+    if(!d) return;
+    e.preventDefault(); _igDockSave(igDockClamp(igDockWidth()+d,row.clientWidth)); igFitSplit(); igSplitSettle();
+  });
+  rez.addEventListener('dblclick',()=>{ _igDockSave(null); igFitSplit(); igSplitSettle(); });
+  if(!window._igSplitResizeBound){ window._igSplitResizeBound=true;
+    window.addEventListener('resize',()=>{ if(state.view==='intel'&&intel.tab==='map') igFitSplit(); }); }
 }
 window.IG = null;      // live graph model
 window.intelRAF = 0;   // animation token
@@ -1739,7 +1830,7 @@ function renderIntel(){
   }
   if(intel.tab==='friction'){
     /* THE CONTROL TOWER — full width, no pinned Copilot. The dock stays on
-       the Contract Graph, where its questions drive the map; here the levers
+       Explorer (the map tab), where its questions drive the map; here the levers
        are real controls on the page, and free-form probing goes through the
        regular Copilot launcher, whose snapshot carries these same KPIs. */
     document.getElementById('content').innerHTML=`
@@ -1819,6 +1910,12 @@ function renderIntel(){
     setActiveNav('intel');
     return;
   }
+  /* AN ARRIVAL FOLDS THE LEGEND; A REPAINT DOES NOT (27 Sep 2026). The map
+     already on screen is the tell: a press on the tab from another tab, or the
+     page reached from elsewhere, replaces a #content that holds no map, while a
+     repaint of this tab (a language change, the rail door pressed while here)
+     replaces the map itself and keeps the reader's choice. */
+  if(!document.getElementById('ig-svg')) intel.legendFolded=true;
   /* ANALYZE CONTRACT (26 Sep 2026): the left column is a strip over a stage.
      The strip (#ig-strip) is drawn only once a contract has been analyzed and
      carries the Graph | Paper switch; the stage (#ig-gwrap) holds the graph
@@ -1829,7 +1926,7 @@ function renderIntel(){
   <div id="ig-page" class="view-enter" style="height:var(--view-h);display:flex;flex-direction:column;min-height:0">
     ${headerHtml}
     <div id="ig-note" style="flex:none;padding:0 var(--s-4) var(--s-1);font-size:var(--t-meta)"></div>
-    <div class="relative flex-1 min-h-0 bg-canvas flex" style="flex:1;min-height:0;display:flex;position:relative;background:var(--color-bg)">
+    <div id="ig-row" class="relative flex-1 min-h-0 bg-canvas flex" style="flex:1;min-height:0;display:flex;position:relative;background:var(--color-bg)">
       <div class="relative flex-1 min-w-0" style="flex:1;min-width:0;position:relative;display:flex;flex-direction:column">
         <div id="ig-strip" class="ig-strip" hidden></div>
         <div id="ig-gwrap" style="flex:1;min-height:0;position:relative">
@@ -1843,10 +1940,13 @@ function renderIntel(){
         </div>
       </div>
       <aside id="ig-dock" class="shrink-0 flex flex-col min-h-0 overflow-hidden" style="width:${igDockWidth()}px;background:var(--color-bg);border-left:1px solid var(--color-neutral-300);box-shadow:-10px 0 28px -20px rgba(43,43,45,.35);transition:width var(--dur-3) cubic-bezier(.22,.61,.36,1)"></aside>
+      <div id="ig-resizer" class="ig-resizer" role="separator" aria-orientation="vertical" tabindex="0" aria-valuemin="${IG_DOCK_MIN}"
+        aria-label="${igEsc(i18t('int_drag_width'))}" title="${igEsc(i18t('int_drag_width'))}"${intel.dockOpen?'':' hidden'}><span></span></div>
     </div>
   </div>`;
 
   renderIntelDock();
+  igWireSplit();
   rebuildIntelGraph();
   igPaintPaper();
   // re-fit once layout settles so the fit uses the true viewport size
@@ -3453,7 +3553,8 @@ function intelGoTab(k){
 /* ---- right-hand Copilot dock ---- */
 function igSyncDockWidth(){
   const dock=document.getElementById('ig-dock'); if(!dock) return;
-  dock.style.width=igDockWidth()+'px';
+  /* The divider's own pass: the width, and the handle shown or stood down. */
+  if(document.getElementById('ig-row')) igFitSplit(); else dock.style.width=igDockWidth()+'px';
   // the canvas flexes — re-measure and re-settle once the width transition lands
   setTimeout(()=>{ if(state.view==='intel') rebuildIntelGraph(); },280);
 }
@@ -3561,9 +3662,6 @@ function renderIntelDock(){
           ?`<span title="${igEsc(b.hint)}" class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-600 text-white" style="background:var(--color-accent-800,#2c455d)">✦ ${igEsc(b.label)}</span>`
           :`<span title="${igEsc(b.hint)}" class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-600" style="background:var(--st-amber-bg);color:var(--st-amber-fg)">○ Basic mode</span>`; })()}
       ${intel.history.length?`<button id="igd-history-clear" title="${i18t('int_clear_conversation')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon" aria-label="${i18t('int_clear_conversation')}">${icon('trash','w-3.5 h-3.5')}</button>`:''}
-      <button id="igd-expand" title="${intel.dockWide?'Shrink the panel':'Expand the panel'}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${intel.dockWide
-        ?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 17l5-5-5-5"/><path d="M6 17l5-5-5-5"/></svg>'
-        :'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-5-5 5-5"/><path d="M18 17l-5-5 5-5"/></svg>'}</button>
       <button id="igd-collapse" title="${i18t('int_collapse_panel')}" aria-label="${i18t('int_collapse_panel')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon('chevR')}</button>
     </div>
     ${intel.lenses.length?`
@@ -3604,12 +3702,8 @@ function renderIntelDock(){
   }
   // wiring
   document.getElementById('igd-collapse').addEventListener('click',()=>{ intel.dockOpen=false; renderIntelDock(); igSyncDockWidth(); });
-  // widen the dock leftward / shrink back; the graph re-fits automatically
-  document.getElementById('igd-expand')?.addEventListener('click',()=>{
-    intel.dockWide=!intel.dockWide;
-    try{ if(typeof lsSet==='function') lsSet('hati.v1.intelWide',intel.dockWide); }catch(_){}
-    renderIntelDock(); igSyncDockWidth();
-  });
+  /* The » widen button went on 27 Sep 2026 — the divider beside the panel is
+     the one way to set its width (igWireSplit). */
   if(_keep){ const n=document.getElementById('igd-input'); if(n){ n.value=_keep; if(_focus){ try{ n.focus(); }catch(_){ } } } }
   /* A question is only taken out of the box when it is really asked: while an
      answer is still coming it stays where it was typed (see above). */
@@ -4078,5 +4172,5 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
   });
 }
 
-Object.assign(window,{IG_PAPER_RULE,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igPaperAsk});
+Object.assign(window,{IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igPaperAsk});
 Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,ptFitTable,ptPagerHtml,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});

@@ -21842,3 +21842,17 @@ Tests: f392 (35 claims, 33 red at the parent), analyze-on-the-graph-verify (26 c
 **LEFT FOR THE OWNER, said in the run's summary and the log.** "See all N" on Home counts items while the list it opens counts contracts; the reference column is cut at 1024px wide (the widths are a ruled design); the other side's "accept the wording" answer is recorded but read by no screen; the bell row says "They are waiting for you to sign" where the act is their own readiness.
 
 Tests: f393 (55 claims, 54 red at the parent 790b4d5; the one pass is a named wall), with the probes kept in the run's scratchpad.
+
+## EXPLORER — THE NAME, THE DIVIDER, THE LEGEND AT REST (Young ruled 27 Sep 2026)
+
+**THE ASK.** *"Let's just change the name to simply Explorer. Also, I need for you to bring the divider that is in the document and negotiate pages to the Explorer page as opposed to have the arrow button that is on the chatbot that expands and closes the chat window. Finally, when you open the explorer page, the legend should always be closed as the resting state."* Asked to confirm first; the one reading put back was which arrow — the panel's head carried two, » (widen/shrink) and › (fold to a strip). The recommendation was to remove » and keep ›, because a divider on the other two pages cannot hide a panel completely, so without › there is no way to give the map the whole width. The owner said go.
+
+**THE NAME.** "Explorer" over three alternatives offered the day before (Contract Explorer, Contract Map, keep it). Only the tab's word moved: its key, the stored tab and Copilot's stable key are untouched, so no link and no conversation breaks. Swedish "Utforskaren", the definite form, as a tab name reads.
+
+**THE DIVIDER, AND WHICH OF THE THREE IT COPIES.** The Document tab drags by distance travelled and stores a fraction; the Negotiate page stores a fraction but rests at a width; the clause editor drags by the pointer's position with a grab offset. The panel here is a fixed-purpose column whose cards were drawn at 380px, so it takes the Negotiate page's resting rule (a WIDTH, the panel's own) and the clause editor's drag (the handle stays under the finger — the Negotiate page once fell hundreds of pixels behind the cursor because its drag and its layout divided by different widths, which a stored width cannot do). The floors are the Document tab's column floor (420) and a panel floor at which the card's three doors still sit on one line (340). The panel's own width transition made the handle trail the pointer, so a drag turns it off.
+
+**THE LEGEND.** It was per sitting: open it once and it stayed open until a reload. Now it folds on every ARRIVAL. The tell is whether a map is already on screen when the tab paints: an arrival (from another tab, or the page from elsewhere) replaces a page with no map; a repaint of the tab (a language change, the rail door pressed while here) replaces the map itself and keeps the reader's choice. No hook in setView, so the rule that nothing in app.js names the legend (f298) still holds.
+
+**MEASURED.** A real drag of 160px widens the panel by 160px and moves the handle by 160px; far right stops at 340 with an amber grip, far left leaves the column 420; the paper beside the panel follows the drag (828px → 678px sheet). With the paper up the handle is on top and pressable.
+
+Tests: f394, explorer-verify; insights-panels-verify 15e re-pointed (a legend row is measured as pixels, so it opens the legend with a press first).
