@@ -52,6 +52,7 @@ const M = {
   length: 'Error: exactly one email reached grace@junologistics.co.ke\n\n' + ESC + '[2mexpect(' + ESC + '[22m' + ESC + '[31mreceived' + ESC + '[39m' + ESC + '[2m).' + ESC + '[22mtoHaveLength' + ESC + '[2m(' + ESC + '[22m' + ESC + '[32mexpected' + ESC + '[39m' + ESC + '[2m)' + ESC + '[22m\n\nExpected length: ' + ESC + '[32m1' + ESC + '[39m\nReceived length: ' + ESC + '[31m0' + ESC + '[39m\nReceived array:  ' + ESC + '[31m[]' + ESC + '[39m',
   missing: 'Error: the email carries her personal signing link\n\nexpect(received).toBeTruthy()\n\nReceived: undefined',
   value: 'Error: the email\'s subject asks her to sign\n\nexpect(received).toContain(expected) // indexOf\n\nExpected substring: "sign"\nReceived string:    "Your document is ready"',
+  overLines: 'Error: the Sign button no longer says "to settle"\n\nexpect(locator).not.toContainText(expected) failed\n\nLocator: locator(\'#sign-btn\')\nExpected substring: not "to settle"\nReceived string: "\n       Sign — 1 to settle\n    "\nTimeout: 15000ms\n\nCall log:\n  - the Sign button no longer says "to settle" locator(\'#sign-btn\') with timeout 15000ms\n  - waiting for locator(\'#sign-btn\')\n',
   testTimeout: 'Test timeout of 120000ms exceeded.',
   noChrome: 'Error: browserType.launch: Failed to launch chromium because executable doesn\'t exist at /nonexistent/chrome',
   noServer: 'Error: server exited: node:fs:1370\n  const result = binding.mkdir(\n\nError: ENOTDIR: not a directory, mkdir \'/dev/null/nope\'',
@@ -86,6 +87,11 @@ describe('f395 (2) explain(): what Playwright says, turned into what a person re
     const x = explain(M.manyLines);
     assert.match(x.instead, /^The screen showed: \/MK-131 · Mutual Non-Disclosure Agreement · Draft$/);
     assert.doesNotMatch(x.detail, /^[+-]\s*$/m, 'the detail drops the empty comparison lines');
+  });
+  test('a button\'s words that arrive over several lines are quoted whole, not as a lone quotation mark', () => {
+    const x = explain(M.overLines);
+    assert.equal(x.should, 'the Sign button no longer says "to settle"');
+    assert.equal(x.instead, 'The screen showed: "Sign — 1 to settle"');
   });
   test('something that was not there, and something that was there but hidden, are told apart', () => {
     assert.equal(explain(M.notFound).instead, 'It was not on the screen at all.');
@@ -182,6 +188,55 @@ describe('f395 (3) the report: a headline, the steps, where it stopped', () => {
     assert.match(printed, /\*\*What happened instead:\*\* The screen showed: "Not delivered/);
     assert.match(printed, /A picture of the screen when it stopped: test-results\/j\/test-failed-1\.png/);
   });
+  /* ---- A KNOWN PROBLEM IS NOT A NEW BREAK (27 Sep 2026) ----
+     A journey meets a fault already written down, checks the right behaviour
+     softly (its sentence marked "[known problem]"), works round it and carries
+     on. Playwright calls that run failed; the owner must be told it got to the
+     end, that the known problem is still there — and never be told a new
+     break is an old one. */
+  const KNOWN_MSG = 'Error: [known problem] as soon as the page opens, the signing order shows Grace has signed ("1 of 2 signed")\n\n'
+    + 'expect(locator).toContainText(expected) failed\n\nLocator: locator(\'#signing-order\')\nExpected substring: "1 of 2 signed"\n'
+    + 'Received string:    "Signing order 0 of 2 signed"\nTimeout: 8000ms\n';
+  const known = (extra = {}, notes = []) => {
+    const j = journey('Both sides sign', 'unexpected', Object.assign({
+      status: 'failed', duration: 41000,
+      steps: [step('1. Get it to Grace'), step('3. Amina settles', [
+        step('Open the link in her email', [{ category: 'expect', title: '[known problem] as soon as the page opens, the signing order shows Grace has signed', steps: [], error: { message: KNOWN_MSG } }], { message: KNOWN_MSG }),
+        step('Open the brief')], { message: KNOWN_MSG }), step('4. Amina signs')],
+      errors: [{ message: KNOWN_MSG }],
+    }, extra));
+    j.test.annotations.push({ type: 'known problem', description: 'Opening HaTi from the email shows an older copy until reloaded.' }, ...notes);
+    return j;
+  };
+  test('a known problem, still there: the journey got to the end, and the report says which problem it was', () => {
+    const { printed } = fakeRun({ status: 'failed', tests: [known()] });
+    assert.match(printed, /⚠️ {2}EVERY JOURNEY GOT TO THE END — but 1 known problem is still there \(noted before, not fixed yet; nothing new broke\)\./);
+    assert.match(printed, /## ⚠️ {2}Both sides sign {3}\(got to the end, took 41 seconds\)/);
+    assert.match(printed, /⚠ 3\. Amina settles\n\s+⚠ Open the link in her email\n\s+✓ Open the brief\n\s+✓ 4\. Amina signs/);
+    assert.match(printed, /\*\*A known problem, still there:\*\* Opening HaTi from the email shows an older copy until reloaded\./);
+    assert.match(printed, /\*\*What should have happened:\*\* as soon as the page opens, the signing order shows Grace has signed \("1 of 2 signed"\)/);
+    assert.match(printed, /\*\*What happened instead:\*\* The screen showed: "Signing order 0 of 2 signed"/);
+    assert.doesNotMatch(printed, /SOMETHING IS BROKEN|did not run|✗|\[known problem\]/, 'nothing reads as a new break, and the mark itself is never shown');
+  });
+  test('a new break beside a known problem is still a break — and it is the one explained', () => {
+    const { printed } = fakeRun({ status: 'failed', tests: [known({
+      steps: [step('1. Get it to Grace'), step('3. Amina settles', [
+        step('Open the link in her email', [], { message: KNOWN_MSG }),
+        step('Open the brief', [], { message: M.notFound })], { message: M.notFound })],
+      errors: [{ message: KNOWN_MSG }, { message: M.notFound }],
+    })] });
+    assert.match(printed, /❌ SOMETHING IS BROKEN — 1 of 1 journey did not get to the end\.\n\s+\(1 known problem is still there too — noted before, not new\.\)/);
+    assert.match(printed, /✗ 3\. Amina settles\n\s+⚠ Open the link in her email\n\s+✗ Open the brief/);
+    assert.match(printed, /\*\*Where it stopped:\*\* 3\. Amina settles › Open the brief/);
+    assert.match(printed, /\*\*What should have happened:\*\* the Share button is on the screen/);
+  });
+  test('a known problem that did not happen says so, so its mark can come off', () => {
+    const j = known({ status: 'passed', errors: [], steps: [step('1. Get it to Grace')] });
+    j.test.outcome = () => 'expected';
+    const { printed } = fakeRun({ tests: [j] });
+    assert.match(printed, /✅ ALL GOOD — the journey worked\.\n✨ 1 known problem did not happen this time — it may have been fixed \(see below\)\./);
+    assert.match(printed, /✨ \*\*A known problem did not happen this time:\*\* Opening HaTi from the email shows an older copy until reloaded\.\nIf it has been fixed, the "known problem" mark can come off this journey\./);
+  });
   test('journeys are reported in the order they are written, not the order they finished', () => {
     const a = journey('A first', 'expected', {}), b = journey('B second', 'expected', {});
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'f395-'));
@@ -211,7 +266,7 @@ describe('f395 (3) the report: a headline, the steps, where it stopped', () => {
 /* Every expect(...) in a journey, read with its brackets balanced. */
 function expectCalls(src) {
   const out = [];
-  const re = /\bexpect(?:\.soft)?\(/g;
+  const re = /\bexpect(?:\.soft|\.poll)?\(/g;
   let m;
   while ((m = re.exec(src))) {
     let i = m.index + m[0].length, depth = 1, q = null, comma = false;
@@ -231,13 +286,19 @@ function expectCalls(src) {
 describe('f395 (4) every journey is written to be read', () => {
   const dir = path.join(ROOT, 'test', 'e2e');
   const specs = fs.existsSync(dir) ? fs.readdirSync(dir).filter(f => /\.spec\.js$/.test(f)) : [];
+  /* THE SHARED PARTS ARE READ TOO (27 Sep 2026): the steps more than one
+     journey takes live in test/e2e/journey.js, and a check there fails in
+     front of the owner exactly as one in a journey does. Every .js file in
+     the folder but the reporter itself. */
+  const shared = fs.existsSync(dir) ? fs.readdirSync(dir)
+    .filter(f => /\.js$/.test(f) && !/\.spec\.js$/.test(f) && f !== 'plain-english-reporter.js') : [];
   test('[control] there is at least one journey to check', () => {
     assert.ok(specs.length >= 1);
   });
   test('every check carries its sentence — what should be true, in words', () => {
-    for (const f of specs) {
+    for (const f of [...specs, ...shared]) {
       const calls = expectCalls(code(read('test/e2e/' + f)));
-      assert.ok(calls.length > 0, f + ' checks something');
+      if (specs.includes(f)) assert.ok(calls.length > 0, f + ' checks something');
       const bare = calls.filter(c => !c.said).map(c => c.text.slice(0, 80));
       assert.deepEqual(bare, [], f + ': a check without its sentence reaches the owner as the matcher\'s name');
     }
@@ -273,6 +334,11 @@ describe('f395 (5) the skill Claude follows when the owner asks', () => {
     assert.match(SKILL, /test-results\/flow-check\.md/);
     assert.match(SKILL, /No file paths, line numbers, code or technical words/);
   });
+  test('it tells a known problem from a new break, and says when one seems fixed', () => {
+    assert.match(SKILL, /EVERY JOURNEY GOT TO THE END/);
+    assert.match(SKILL, /known problem/);
+    assert.match(SKILL, /did not happen this time/);
+  });
   test('a check is not a repair, and a failure is not re-run away', () => {
     assert.match(SKILL, /Change nothing unless the owner asks/);
     assert.match(SKILL, /Do not run it again to make a failure go away/);
@@ -299,7 +365,12 @@ describe('f395 (6) the list of flows is the owner\'s memory, and it cannot drift
     assert.ok(LIST.length > 0, 'test/e2e/FLOWS.md exists');
     assert.match(LIST, /✅ = built/);
     assert.match(LIST, /⬜ = not built yet/);
-    assert.ok(/^\s*\d+\. ⬜ /m.test(LIST), 'at least one flow is still waiting to be built');
+    /* Every flow on the list says which it is. (Until 27 Sep 2026 this asked
+       that one flow was still waiting to be built — true the day the list was
+       written, and false the day the last one is.) */
+    const flows = LIST.split('\n').filter(l => /^\s*\d+\.\s/.test(l));
+    assert.ok(flows.length >= 1, 'the list names its flows');
+    for (const l of flows) assert.match(l, /^\s*\d+\. (✅|⬜) \*\*[^*]+\*\*/, 'each flow is marked ✅ or ⬜ and named in bold: ' + l.trim());
   });
   test('every journey that really exists is on the list, ticked, under its own name', () => {
     const titles = journeyTitles();

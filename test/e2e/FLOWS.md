@@ -16,7 +16,8 @@ Most important first. This order is a first draft; change it any time by telling
 1. ✅ **Sign up → create a contract → send it for signature**
    A new company signs up, drafts an NDA from HaTi's templates, names who signs on each side and sends it for signature by email. It then checks the email really reached the other side, and that the link in it opens the agreement ready to sign.
 
-2. ⬜ **Both sides sign → the contract is sealed as signed**
+2. ✅ **Both sides sign → the contract is sealed as signed**
+   Their signer signs on her own page with a code HaTi emails her; our signer settles what HaTi asks before a signature (Copilot's readings, the brief) and signs inside HaTi. The contract reads Executed, its seal names both signatures, and both sides are emailed the signed PDF. Carries one known problem (see the report).
 
 3. ⬜ **A negotiation round**
    We change a clause and send it. The other side accepts, rejects or counters on their page, and their answer reaches us.

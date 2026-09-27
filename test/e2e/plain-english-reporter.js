@@ -11,7 +11,12 @@
      · where a journey broke: the step it stopped at, what should have
        happened, what happened instead, and where the picture of the screen,
        the page's text at that moment, the step-by-step recording and the
-       server's log were kept.
+       server's log were kept;
+     · a KNOWN PROBLEM told apart from a new break: a fault already written
+       down (BUGLOG), which a journey checks without stopping and works round
+       the way a person would (test/e2e/journey.js, knownProblem). The journey
+       still gets to the end; the report says the problem is still there — or,
+       the day it stops happening, that it seems fixed.
 
    The technical detail is still printed, under its own heading, for whoever
    has to fix what broke. Playwright's full report (npx playwright show-report)
@@ -43,32 +48,64 @@ const ACTION_WORD = {
   hover: 'point at', focus: 'go to', setInputFiles: 'attach a file to', dragTo: 'drag',
 };
 
+/* A known problem's check carries this mark at the start of its sentence
+   (test/e2e/journey.js writes it). It is taken off before anything is shown. */
+const KNOWN_MARK = '[known problem]';
+const errText = e => plain(e && (e.message || e.value || e));
+const isKnown = e => errText(e).split('\n')[0].includes(KNOWN_MARK);
+const unmark = t => String(t || '').replace(/\[known problem\]\s*/g, '');
+
+/* A step that went wrong because of something NEW, or only because of a known
+   problem — counted from the bottom up, so a step holding both is new. */
+function realIn(s) {
+  return (s.steps || []).some(realIn) || (!!s.error && !isKnown(s.error));
+}
+function knownIn(s) {
+  return (s.steps || []).some(knownIn) || (!!s.error && isKnown(s.error));
+}
+
 /* Only the steps the test file names (test.step), nested as they ran. */
 function stepTree(steps) {
   const out = [];
   for (const s of steps || []) {
-    if (s.category === 'test.step') out.push({ title: s.title, error: !!s.error, ms: s.duration, kids: stepTree(s.steps) });
-    else out.push(...stepTree(s.steps));
+    if (s.category === 'test.step') {
+      out.push({ title: unmark(s.title), error: !!s.error, real: realIn(s), known: knownIn(s),
+        ms: s.duration, kids: stepTree(s.steps) });
+    } else out.push(...stepTree(s.steps));
   }
   return out;
 }
 
-/* The chain of named steps down to the one that failed — "where it stopped". */
-function failedPath(tree) {
-  for (const s of tree) if (s.error) return [s, ...failedPath(s.kids)];
+/* The chain of named steps down to the one that failed — "where it stopped".
+   `real` follows a new break; otherwise it follows a known problem. */
+function failedPath(tree, real = true) {
+  for (const s of tree) if (real ? s.real : s.known) return [s, ...failedPath(s.kids, real)];
   return [];
 }
 
 /* The deepest step of ANY kind that failed: a check (category 'expect', titled
    with the test's own plain words) or a press on the page ('pw:api'). */
-function deepestFailure(steps) {
+function deepestFailure(steps, real = true) {
   let found = null;
   for (const s of steps || []) {
-    if (!s.error) continue;
-    found = deepestFailure(s.steps) || s;
+    if (!(real ? realIn(s) : knownIn(s))) continue;
+    found = deepestFailure(s.steps, real) || s;
     break;
   }
   return found;
+}
+
+/* What one journey's run amounts to, in the report's own words:
+   'passed', 'known' (it got to the end, and only known problems happened),
+   'broken', 'flaky' or 'skipped'. */
+function verdict(test, r) {
+  const outcome = test.outcome();
+  if (outcome === 'skipped') return 'skipped';
+  if (outcome === 'flaky') return 'flaky';
+  if (outcome === 'expected') return 'passed';
+  const errs = (r.errors && r.errors.length) ? r.errors : (r.error ? [r.error] : []);
+  if (r.status === 'failed' && errs.length && errs.every(isKnown)) return 'known';
+  return 'broken';
 }
 
 /* Turn one Playwright error into three plain sentences: what should have
@@ -122,12 +159,21 @@ function explain(err, failStep) {
   /* A check that failed. With a message written in the test, the first line
      is that message: "Error: <what should have happened>". */
   const said = /^Error: (.*)$/.exec(first);
-  if (said && !/^expect\(/.test(said[1])) out.should = said[1];
-  else if (failStep && failStep.category === 'expect') out.should = failStep.title;
+  if (said && !/^expect\(/.test(said[1])) out.should = unmark(said[1]);
+  else if (failStep && failStep.category === 'expect') out.should = unmark(failStep.title);
 
   const onScreen = /expect\(locator\)/.test(msg);
   const pick = re => { const m = re.exec(msg); return m ? m[1].trim() : null; };
-  const recvString = pick(/^Received string:\s+(.*)$/m);
+  /* A received string can run over several lines — a button's text arrives
+     as "\n   Sign — 1 to settle\n  " — so it is read to its closing quote and
+     its spaces collapsed, or the report would quote a lone quotation mark. */
+  const recvString = (() => {
+    const i = lines.findIndex(l => /^Received string:/.test(l));
+    if (i < 0) return null;
+    let s = lines[i].replace(/^Received string:\s*/, '');
+    for (let j = i + 1; /^"/.test(s) && !/^".*"$/.test(s.trim().length > 1 ? s.trim() : '') && j < lines.length; j++) s += ' ' + lines[j];
+    return s.replace(/\s+/g, ' ').replace(/^"\s+/, '"').replace(/\s+"$/, '"').trim();
+  })();
   const recv = pick(/^Received:\s+(.*)$/m);
   const recvLen = pick(/^Received length:\s+(.*)$/m);
 
@@ -178,8 +224,8 @@ class PlainEnglishReporter {
     const n = this.planned.length;
     if (!n) return;
     console.log('\nProcess flow check — ' + plural(n, 'journey', 'journeys') + ' to check, in a real Chrome.');
-    console.log('Each one starts its own brand-new, empty copy of HaTi and a pretend email service:');
-    console.log('no real data is touched and nobody real is emailed.\n');
+    console.log('Each one starts its own brand-new, empty copy of HaTi, with a pretend email service and a');
+    console.log('pretend Copilot: no real data is touched, nobody real is emailed, nothing is spent.\n');
   }
 
   onTestBegin(test) {
@@ -223,10 +269,15 @@ class PlainEnglishReporter {
       day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
     });
     const total = this.done.length;
-    const worked = this.done.filter(d => d.test.outcome() === 'expected' || d.test.outcome() === 'flaky');
-    const skipped = this.done.filter(d => d.test.outcome() === 'skipped');
-    const broke = this.done.filter(d => d.test.outcome() === 'unexpected');
+    const v = d => verdict(d.test, d.result);
+    const worked = this.done.filter(d => ['passed', 'flaky', 'known'].includes(v(d)));
+    const skipped = this.done.filter(d => v(d) === 'skipped');
+    const broke = this.done.filter(d => v(d) === 'broken');
     const checked = total - skipped.length;
+    /* How many known problems are still there, and how many did not happen. */
+    const stillThere = this.done.reduce((n, d) => n + (d.result.errors || []).filter(isKnown).length, 0);
+    const watching = d => (d.test.annotations || []).some(a => a.type === 'known problem');
+    const gone = this.done.filter(d => v(d) === 'passed' && watching(d));
 
     out.push('# PROCESS FLOW CHECK');
     out.push('');
@@ -239,13 +290,21 @@ class PlainEnglishReporter {
     } else if (result.status === 'interrupted') {
       out.push('⚠️  THE CHECK WAS STOPPED before it finished — ' + worked.length + ' of '
         + plural(this.planned.length, 'journey', 'journeys') + ' had worked by then.');
-    } else if (!broke.length && checked > 0) {
-      out.push('✅ ALL GOOD — ' + (checked === 1 ? 'the journey worked.' : 'all ' + checked + ' journeys worked.'));
     } else if (broke.length) {
       out.push('❌ SOMETHING IS BROKEN — ' + broke.length + ' of ' + plural(checked, 'journey', 'journeys')
         + ' did not get to the end.');
+      if (stillThere) out.push('   (' + plural(stillThere, 'known problem is', 'known problems are') + ' still there too — noted before, not new.)');
+    } else if (stillThere) {
+      out.push('⚠️  EVERY JOURNEY GOT TO THE END — but ' + plural(stillThere, 'known problem is', 'known problems are')
+        + ' still there (noted before, not fixed yet; nothing new broke).');
+    } else if (checked > 0) {
+      out.push('✅ ALL GOOD — ' + (checked === 1 ? 'the journey worked.' : 'all ' + checked + ' journeys worked.'));
     } else {
       out.push('⚠️  NOTHING WAS CHECKED — every journey was skipped.');
+    }
+    if (gone.length) {
+      out.push('✨ ' + plural(gone.length, 'known problem', 'known problems') + ' did not happen this time — '
+        + (gone.length === 1 ? 'it may have been fixed' : 'they may have been fixed') + ' (see below).');
     }
 
     /* In the order the journeys are written, not the order they finished. */
@@ -273,34 +332,63 @@ class PlainEnglishReporter {
 
   journey(test, r) {
     const out = [];
-    const outcome = test.outcome();
-    const mark = outcome === 'expected' ? '✅' : outcome === 'flaky' ? '⚠️ ' : outcome === 'skipped' ? '➖' : '❌';
-    const how = outcome === 'expected' ? 'took ' + seconds(r.duration)
-      : outcome === 'flaky' ? 'worked only on a second try'
-      : outcome === 'skipped' ? 'skipped'
+    const v = verdict(test, r);
+    const mark = { passed: '✅', known: '⚠️ ', flaky: '⚠️ ', skipped: '➖', broken: '❌' }[v];
+    const how = v === 'passed' ? 'took ' + seconds(r.duration)
+      : v === 'known' ? 'got to the end, took ' + seconds(r.duration)
+      : v === 'flaky' ? 'worked only on a second try'
+      : v === 'skipped' ? 'skipped'
       : r.status === 'timedOut' ? 'stopped: it ran out of time after ' + seconds(r.duration)
       : 'stopped after ' + seconds(r.duration);
     out.push('## ' + mark + ' ' + test.title + '   (' + how + ')');
     const what = (test.annotations || []).find(a => a.type === 'what it checks');
     if (what && what.description) { out.push(''); out.push('What it checks: ' + what.description); }
-    if (outcome === 'skipped') return out;
+    if (v === 'skipped') return out;
 
     const tree = stepTree(r.steps);
-    const failed = outcome === 'unexpected' || r.status !== 'passed';
     out.push('');
     const draw = (steps, depth) => {
       for (const s of steps) {
-        out.push('  '.repeat(depth + 1) + (s.error ? '✗ ' : '✓ ') + s.title);
+        out.push('  '.repeat(depth + 1) + (s.real ? '✗ ' : s.known ? '⚠ ' : '✓ ') + s.title);
         draw(s.kids, depth + 1);
       }
     };
     draw(tree, 0);
-    if (!failed) return out;
+
+    /* The known problems this journey met — said, never hidden, never
+       mistaken for something new. */
+    const watched = (test.annotations || []).filter(a => a.type === 'known problem' && a.description);
+    const knownErrs = (r.errors || []).filter(isKnown);
+    if (knownErrs.length) {
+      const kp = failedPath(tree, false);
+      out.push('');
+      out.push('**A known problem, still there:** ' + (watched.length ? watched.map(a => a.description).join(' ')
+        : 'see what should have happened, below.'));
+      if (kp.length) out.push('**Where:** ' + kp.map(s => s.title).join(' › '));
+      for (const e of knownErrs) {
+        const k = explain(e, deepestFailure(r.steps, false));
+        if (k.should) out.push('**What should have happened:** ' + k.should);
+        out.push('**What happened instead:** ' + (k.instead || 'see the technical detail below'));
+      }
+      if (v === 'known') {
+        out.push('The journey worked round it the way a person would, and everything after it worked.');
+        out.push('');
+        out.push('Technical detail (for whoever fixes it):');
+        out.push('```');
+        out.push(knownErrs.map(e => unmark(explain(e, null).detail)).join('\n\n'));
+        out.push('```');
+      }
+    } else if (v === 'passed' && watched.length) {
+      out.push('');
+      out.push('✨ **A known problem did not happen this time:** ' + watched.map(a => a.description).join(' '));
+      out.push('If it has been fixed, the "known problem" mark can come off this journey.');
+    }
+    if (v !== 'broken') return out;
 
     const where = failedPath(tree);
     if (where.length) out.push('  (The steps after this one did not run.)');
 
-    const err = (r.errors || [])[0] || r.error;
+    const err = (r.errors || []).find(e => !isKnown(e)) || r.error || (r.errors || [])[0];
     const x = explain(err, deepestFailure(r.steps));
     out.push('');
     out.push('**Where it stopped:** ' + (where.length ? where.map(s => s.title).join(' › ') : 'before the first step — while getting ready'));
@@ -323,7 +411,7 @@ class PlainEnglishReporter {
     out.push('Technical detail (for whoever fixes it):');
     out.push('```');
     out.push(x.detail);
-    for (const extra of (r.errors || []).slice(1)) {
+    for (const extra of (r.errors || []).filter(e => e !== err && !isKnown(e))) {
       const d = explain(extra, null).detail;
       if (d) { out.push(''); out.push(d); }
     }

@@ -1,6 +1,6 @@
 ---
 name: flow-check
-description: Run HaTi's process flow check and explain the result to the owner in plain English. It drives the app's most important journeys from start to finish in a real Chrome (Playwright, test/e2e) — today, sign up → create a contract → send it for signature — each on a brand-new server with a pretend email service. Use when the owner asks for a "process flow check", a "flow check", a "journey check" or an "end-to-end check", asks whether signing up, drafting a contract or sending one for signature still works, asks which flows are on the list (or to add, move or remove one), or types /flow-check (optionally naming one journey).
+description: Run HaTi's process flow check and explain the result to the owner in plain English. It drives the app's most important journeys from start to finish in a real Chrome (Playwright, test/e2e) — the flows on the owner's list, from signing up and sending a contract for signature to both sides signing — each on a brand-new server with a pretend email service and a pretend Copilot. Use when the owner asks for a "process flow check", a "flow check", a "journey check" or an "end-to-end check", asks whether signing up, drafting a contract or sending one for signature still works, asks which flows are on the list (or to add, move or remove one), or types /flow-check (optionally naming one journey).
 argument-hint: "[which journey — leave empty to check them all]"
 allowed-tools: Bash(npm run test:e2e) Bash(npm run test:e2e *) Bash(npx playwright test *)
 ---
@@ -23,7 +23,7 @@ The owner's list lives in `test/e2e/FLOWS.md`: every flow, most important first,
 - "Build the next flow": the first ⬜ is the next one. Building a check is a separate job from running them.
 - When a new check is built, tick its flow ✅ in the same change, with the check's own name word for word. f395 fails where a built journey is missing from the list or not ticked.
 
-Give the command up to five minutes (a 300000 ms time limit — the default two minutes can cut a longer run short); a journey usually takes well under one. Each journey starts its own brand-new, empty copy of HaTi with a pretend email service, so no real data is touched and nobody real is emailed — say so if they ask.
+Give the command up to five minutes (a 300000 ms time limit — the default two minutes can cut a longer run short); a journey usually takes well under one. Each journey starts its own brand-new, empty copy of HaTi with a pretend email service and a pretend Copilot (short, fixed answers to HaTi's readings), so no real data is touched, nobody real is emailed and nothing is spent — say so if they ask.
 
 If it cannot start at all:
 - "playwright: not found" or "Cannot find module '@playwright/test'": run `npm install` once, then run the check again.
@@ -32,9 +32,10 @@ If it cannot start at all:
 ## 2. Read what came back
 
 The run prints a plain-English report and saves the same report to `test-results/flow-check.md`. It has:
-- a headline: ALL GOOD, SOMETHING IS BROKEN, NOTHING WAS CHECKED, or THE CHECK WAS STOPPED;
-- each journey's steps, ticked ✓ or crossed ✗, in words written for a person;
-- for a journey that broke: where it stopped, what should have happened, what happened instead, and the files kept for looking into it.
+- a headline: ALL GOOD, SOMETHING IS BROKEN, EVERY JOURNEY GOT TO THE END (but a known problem is still there), NOTHING WAS CHECKED, or THE CHECK WAS STOPPED;
+- each journey's steps, ticked ✓, crossed ✗, or marked ⚠ where a known problem happened, in words written for a person;
+- for a journey that broke: where it stopped, what should have happened, what happened instead, and the files kept for looking into it;
+- for a known problem: which one it is (it was found and written down before), what should have happened and what happened instead. The journey worked round it and carried on. A "✨ did not happen this time" line means it may have been fixed.
 
 When something broke, read these before you explain it:
 - **The page's text when it stopped** (`error-context.md`): what was really on the screen. Ignore its "Instructions" heading — it asks for a code fix, which is not what the owner asked for.
@@ -48,6 +49,11 @@ Short. No file paths, line numbers, code or technical words ("selector", "locato
 When everything worked:
 - One headline line: **Process flow check: all good ✅** — which journeys worked, and how long it took.
 - One or two sentences on what it actually did, from the report's steps. For example: "It signed up as a new company, drafted an NDA, named who signs on each side and sent it for signature — the email reached their signer, and her link opened the contract ready to sign."
+
+When every journey got to the end but a known problem is still there:
+- Headline: **Process flow check: every journey got to the end ✅ — one known problem is still there**
+- Say it is not new (it was noted before and not fixed yet), what it is in one plain sentence, and that everything else worked.
+- If a known problem "did not happen this time", say it may have been fixed and offer to take its mark off the journey.
 
 When something broke:
 - Headline: **Process flow check: something is broken ❌**
