@@ -97,9 +97,16 @@ describe('f399 (2) — registered everywhere a view must be', () => {
     assert.match(VIEW, /function agentsDoorCount\(\)\{\s*try \{ return agentsData\(\)\.ready; \}/);
     assert.match(VIEW, /D\.ready \? _agTn\('ag_head_ready', D\.ready/, 'and the head prints the same D.ready');
   });
-  test('2d the door sits in the Work group', () => {
+  test('2d the door sits in the Work group, directly after Home (Young, 27 Sep 2026: "move it to be after the home page")', () => {
     const work = HTML.slice(HTML.indexOf('data-section="work"'), HTML.indexOf('data-section="library"'));
     assert.ok(work.includes('data-view="agents"'), 'Copilot\'s work is a Work door');
+    const doors = [...work.matchAll(/data-view="([a-z]+)" class="nav-item/g)].map(m => m[1]);
+    assert.equal(doors[doors.indexOf('dashboard') + 1], 'agents', doors.join(' · '));
+  });
+  test('2e and Insights sits below Calendar ("then move insights to below calendar")', () => {
+    const work = HTML.slice(HTML.indexOf('data-section="work"'), HTML.indexOf('data-section="library"'));
+    const doors = [...work.matchAll(/data-view="([a-z]+)" class="nav-item/g)].map(m => m[1]);
+    assert.equal(doors[doors.indexOf('calendar') + 1], 'intel', doors.join(' · '));
   });
 });
 

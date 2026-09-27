@@ -144,11 +144,18 @@ describe('f338 (3) — markup order, and nothing else', () => {
      reasoning above is kept because it is what makes this safe rather than a
      swing back, and what has NOT changed is what those claims were really
      about — the move is markup order and nothing else. */
-  test('3a Insights sits directly after Home; Requests is Library', () => {
-    assert.ok(at('dashboard') > 0 && at('intel') > at('dashboard'),
-      'Home leads Insights in the markup');
-    assert.ok(at('register') > at('intel'), 'and Insights leads Contracts');
-    assert.equal(grp('intel'), 'work', 'Insights is an everyday door now');
+  /* ---- REVERSED IN PLACE AGAIN, 27 Sep 2026 (Young: "move it to be after
+     the home page then move insights to below calendar") ---- The place
+     directly after Home went to Copilot's work, and Insights closes the Work
+     group below Calendar. It is still an everyday door, and the move is still
+     markup order and nothing else. */
+  test('3a Insights sits below Calendar, at the foot of Work; Copilot\'s work sits directly after Home; Requests is Library', () => {
+    assert.ok(at('calendar') > 0 && at('intel') > at('calendar'),
+      'Calendar leads Insights in the markup');
+    assert.ok(at('templates') > at('intel'), 'and Insights is the last Work door, before Library begins');
+    assert.equal(grp('intel'), 'work', 'Insights is an everyday door');
+    const doors = [...nav.matchAll(/data-view="([a-z]+)" class="nav-item/g)].map(m => m[1]);
+    assert.equal(doors[doors.indexOf('dashboard') + 1], 'agents', 'Copilot\'s work is the door directly after Home');
     assert.equal(grp('intake'), 'library', 'Requests is a Library door');
   });
   test('3b Work leads Library — Obligations (Work) is drawn before Templates (Library)', () => {
@@ -177,11 +184,14 @@ describe('f338 (3) — markup order, and nothing else', () => {
     assert.ok(!/nav-item:nth-child\(\d\) svg/.test(HTML),
       'a rule keyed on place would dress whatever moved into it');
   });
+  /* RE-POINTED IN PLACE 27 Sep 2026 to the third move's own record — the
+     rule is unchanged: the note beside the markup names the ruling and the
+     one it reverses. */
   test('3f and the move is recorded where the markup is', () => {
-    assert.match(HTML, /INSIGHTS SITS DIRECTLY AFTER HOME \(Young ruled 21 Sep 2026/);
+    assert.match(HTML, /INSIGHTS SITS BELOW CALENDAR \(Young ruled 27 Sep 2026/);
     /* THE REVERSAL NAMES WHAT IT REVERSES, or the next reader repeats the
        argument from scratch. */
-    assert.match(HTML, /REVERSES 19 Sep's "Insights sits after Obligations"/);
+    assert.match(HTML, /REVERSES 21 Sep's\s+"Insights\s+sits directly after Home"/);
     assert.match(HTML, /THIS IS MARKUP ORDER AND NOTHING ELSE/);
   });
 });

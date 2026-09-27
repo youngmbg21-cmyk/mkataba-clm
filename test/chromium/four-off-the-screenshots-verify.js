@@ -234,14 +234,21 @@ const SEED = () => {
        after Obligations (Work) as the 19 Sep ask wanted, but Requests
        (Library) now sits between them and Obligations leads Templates. The
        painted order is still the claim, read off the pixels. */
-    check('3a · Insights is painted after Obligations, with Requests (Library) between them',
-      iOb >= 0 && iIn > iOb && iRq > iOb && iRq < iIn, nav.order.join(' · '));
+    /* RE-POINTED IN PLACE 27 Sep 2026 (Young: "move insights to below
+       calendar"). These two had been red since 21 Sep, when Insights moved up
+       to sit after Home; they described the 19-20 Sep place. Insights now
+       closes the Work group below Calendar, so it is painted after Obligations
+       and Calendar and BEFORE Library's Templates and Requests — the painted
+       order is still the claim, read off the pixels. */
+    const iCa = nav.order.indexOf('calendar');
+    check('3a · Insights is painted after Obligations and directly after Calendar, before Library',
+      iOb >= 0 && iIn > iOb && iIn === iCa + 1 && iTp > iIn && iRq > iIn, nav.order.join(' · '));
     check('3b · and Work leads Library — Obligations is painted before Templates',
       iTp >= 0 && iOb < iTp, nav.order.join(' · '));
     check('3c · painted top-to-bottom in that order, never merely in the source',
-      nav.tops[iOb] < nav.tops[iTp] && nav.tops[iTp] < nav.tops[iRq]
-      && nav.tops[iRq] < nav.tops[iIn],
-      [iOb, iTp, iRq, iIn].map(i => nav.order[i] + '@' + nav.tops[i]));
+      nav.tops[iOb] < nav.tops[iCa] && nav.tops[iCa] < nav.tops[iIn]
+      && nav.tops[iIn] < nav.tops[iTp] && nav.tops[iTp] < nav.tops[iRq],
+      [iOb, iCa, iIn, iTp, iRq].map(i => nav.order[i] + '@' + nav.tops[i]));
     check('3d · the keyboard walks it in the same order it is painted',
       await page.evaluate(async () => {
         const items = [...document.querySelectorAll('#side-nav .nav-item[data-view]')];

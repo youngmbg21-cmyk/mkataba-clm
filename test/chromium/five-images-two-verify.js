@@ -58,11 +58,15 @@ const ok = (name, good, detail) => {
     await page.waitForTimeout(1400);
     await page.screenshot({ path: path.join(OUT, '01-contracts.png') });
 
-    /* THE RAIL'S ORDER IS A RELATION, not a position: Insights comes
-       immediately after Home, whatever else is added around them. */
+    /* THE RAIL'S ORDER IS A RELATION, not a position.
+       REVERSED IN PLACE 27 Sep 2026 (Young: "move it to be after the home page
+       then move insights to below calendar"): Copilot's work comes immediately
+       after Home, and Insights immediately after Calendar, whatever else is
+       added around them. */
     const rail = await page.$$eval('#side-nav [data-view]', els => els.map(e => e.getAttribute('data-view')));
-    ok('1 Insights sits directly after Home',
-      rail.indexOf('intel') === rail.indexOf('dashboard') + 1, rail.slice(0, 4).join(' → '));
+    ok('1 Copilot\'s work sits directly after Home, and Insights directly after Calendar',
+      rail.indexOf('agents') === rail.indexOf('dashboard') + 1 && rail.indexOf('intel') === rail.indexOf('calendar') + 1,
+      rail.slice(0, 9).join(' → '));
 
     /* A DATE IS DATA: the artifact sets both columns in the figure face at the
        label size and says `30 Jun 2027`. MEASURED side by side against

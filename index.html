@@ -9602,33 +9602,21 @@
                  glyph reads heavier than an outline one beside it, which is a
                  fix for a mismatch that no longer exists now the whole column
                  is one hairline set. A pie also said "statistics", and the
-                 door it opens is Home; Insights two rows below is the one that
-                 charts anything. -->
+                 door it opens is Home; Insights, at the foot of this group, is
+                 the one that charts anything. -->
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-home"/></svg>
             <span style="flex:1;" data-i18n="nav_home">Home</span>
           </button>
-          <!-- INSIGHTS SITS DIRECTLY AFTER HOME (Young ruled 21 Sep 2026).
-               THIS REVERSES 19 Sep's "Insights sits after Obligations", whose
-               reasoning is kept because it is what makes this safe rather than
-               a swing back: that ruling moved a page you READ out of the middle
-               of the run of pages you WORK IN, and it is still out of the
-               middle — it now LEADS them. Home says what is on your desk this
-               morning and Insights says what the whole book is doing, so the
-               two questions a reader asks before doing anything sit together
-               at the top of the column.
-
-               THIS IS MARKUP ORDER AND NOTHING ELSE, exactly as it was then.
-               No handler, no route, no state and no count moved: every door
-               still carries its own data-view, the "New" badge travels inside
-               this block, and the four svg colour rules are keyed on
-               [data-view="intel"] rather than on position, so they follow it
-               here. The keyboard order is the markup order, so tabbing the
-               column reads in this order too. -->
-          <button data-view="intel" class="nav-item" title="Insights — how your portfolio is behaving" data-i18n-title="nav_insights_title">
+          <!-- COPILOT'S WORK — THE AGENTS (Young ruled 27 Sep 2026: "Build the
+               agents idea", then "move it to be after the home page"). Five
+               named jobs HaTi already does, each with what is ready for a
+               person to look at. Its count is what is ready for review, the
+               page head's own number. It takes the place directly after Home
+               that Insights held from 21 to 27 Sep 2026. -->
+          <button data-view="agents" class="nav-item" title="Copilot's work — what the agents have ready for you to review" data-i18n-title="nav_agents_title">
             <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-insight"/></svg>
-            <span style="flex:1;" data-i18n="nav_insights">Insights</span><span id="nav-intel-new" class="nav-count" data-tone="teal" hidden
-              title="Newly unlocked — your portfolio is big enough for Insights to say something" data-i18n-title="nav_insights_new_title" data-i18n="nav_new_badge">New</span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-spark"/></svg>
+            <span style="flex:1;" data-i18n="nav_agents">Copilot&rsquo;s work</span><span class="nav-count" data-count="agents"></span>
           </button>
           <button data-view="register" class="nav-item" title="Contracts — every contract lives here; open one for its document, negotiation and signing" data-i18n-title="nav_contracts_title">
             <span class="nav-rail"></span>
@@ -9659,15 +9647,6 @@
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-check"/></svg>
             <span style="flex:1;" data-i18n="nav_approvals">Approvals &amp; signing</span><span class="nav-count" data-count="approvals"></span>
           </button>
-          <!-- COPILOT'S WORK — THE AGENTS (Young ruled 27 Sep 2026: "Build the
-               agents idea"). Five named jobs HaTi already does, each with what
-               is ready for a person to look at. Its count is what is ready for
-               review, the page head's own number. -->
-          <button data-view="agents" class="nav-item" title="Copilot's work — what the agents have ready for you to review" data-i18n-title="nav_agents_title">
-            <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-spark"/></svg>
-            <span style="flex:1;" data-i18n="nav_agents">Copilot&rsquo;s work</span><span class="nav-count" data-count="agents"></span>
-          </button>
           <!-- THE OBLIGATIONS WORKLIST (J-2.3, owner-asked 29 Aug 2026).
                In the EVERYDAY group, beside the Calendar, because it answers the
                question the calendar cannot: the calendar says what falls in
@@ -9684,6 +9663,26 @@
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-cal"/></svg>
             <span style="flex:1;" data-i18n="nav_calendar">Calendar</span><span class="nav-count" data-count="calendar"></span>
+          </button>
+          <!-- INSIGHTS SITS BELOW CALENDAR (Young ruled 27 Sep 2026: "move
+               insights to below calendar", in the same breath as putting
+               Copilot's work directly after Home). THIS REVERSES 21 Sep's
+               "Insights sits directly after Home", which had itself reversed
+               19 Sep's "after Obligations"; the reasoning of both moves is
+               kept in docs/MAP-HISTORY.md. It stays in the Work group.
+
+               THIS IS MARKUP ORDER AND NOTHING ELSE, exactly as it was then.
+               No handler, no route, no state and no count moved: every door
+               still carries its own data-view, the "New" badge travels inside
+               this block, and the four svg colour rules are keyed on
+               [data-view="intel"] rather than on position, so they follow it
+               here. The keyboard order is the markup order, so tabbing the
+               column reads in this order too. -->
+          <button data-view="intel" class="nav-item" title="Insights — how your portfolio is behaving" data-i18n-title="nav_insights_title">
+            <span class="nav-rail"></span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-insight"/></svg>
+            <span style="flex:1;" data-i18n="nav_insights">Insights</span><span id="nav-intel-new" class="nav-count" data-tone="teal" hidden
+              title="Newly unlocked — your portfolio is big enough for Insights to say something" data-i18n-title="nav_insights_new_title" data-i18n="nav_new_badge">New</span>
           </button>
         </div>
       </div>

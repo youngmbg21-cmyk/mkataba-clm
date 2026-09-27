@@ -19627,3 +19627,10 @@ Noticed, not fixed
 - desknight.js calls obligationBlocked(c, o) but the function takes (o, c), so the desk can offer a chase on a step that is still held back by a payment chain.
 - f387 (2) 2e and f387 (4) 4c are red at 231b9fc and were not in the last run's list (they read the end of a term in words; likely a date boundary).
 - type-and-symbols-verify "each one is painted at the size the sheet asks for" is red at 231b9fc (nine marks at 14x14).
+
+## Run 27 Sep 2026 — Copilot's work moves under Home, Insights under Calendar
+
+- On the owner's word, the second half of the same order: "then move it to be after the home page then move insights to below calendar." Built on claude/happy-thompson-6puam1 from main (98293fe, the agents page's merge).
+- Moved: the side menu's Work group now reads Home, Copilot's work, Contracts, Negotiations, Approvals & signing, Obligations, Calendar, Insights. Markup order and nothing else: every door keeps its own data-view, the Insights "New" badge travelled inside its block, the svg colour rules are keyed on the attribute. The note beside the Insights door names the 21 Sep ruling it reverses.
+- Tests re-pointed in place: f338 (3a)(3f), f347 (1c), five-images-two-verify 1, four-off-the-screenshots-verify 3a/3c (both red on main since 21 Sep, still describing the 19 Sep place). Added: f399 (2d)(2e), agents-page-verify 1h (the painted order).
+- Gates: f338, f347, f399, f344, f148 green; in real browsers agents-page-verify 30/30, five-images-two-verify 26/26, four-off-the-screenshots-verify 31/31, nav-floats-verify 67/67, keyboard-reach-verify 37/37.
