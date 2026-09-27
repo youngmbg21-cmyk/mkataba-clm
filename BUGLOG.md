@@ -19486,3 +19486,21 @@ Noticed, not fixed
 - Cause: the Compact button ladder (26 Sep 2026, 758818c) gives every small button position:relative to anchor its press area, at the same weight as the Tailwind "absolute" class and later in the sheet, so it won. The Explorer panel's Ask is the only small button in the product pinned with "absolute" (swept), so it was the only one moved. Not caused by the Explorer change; it shipped with the ladder and was noticed today.
 - Fixed by scope, one class heavier, never !important: `.ui-btn-sm.absolute{position:absolute;}` written after the ladder's rule. The button is back inside the box, centred on its line, 6px from its right edge, as designed.
 - Gates: lint 0 errors, 178 warnings (unchanged). f394 17/17 (two new claims; the placement claim red without the fix). explorer-verify 26/26 (new 2f measures the button as pixels; red without the fix, printing 53px off and 333px from the right edge). compact-ladder-verify 29/29, button-consistency-verify 17/17, insights-panels-verify 84/84, analyze-on-the-graph-verify 26/26.
+
+## Run 27 Sep 2026 (evening) — the side panel's "needs you" checklist
+
+- On the owner's word: "Implement checklist." — picked by name off the "Attention Banner Options" render (three designs drawn into the real Contracts page with the sample portfolio). Built on claude/platform-bugs-cleanup-u80mhu from main (c8a049d).
+- Built: a checklist in the contract side panel (Contracts, Negotiations, Approvals & signing), under the name block and above the status line. A head counts what is owed; one row per item — the other side waiting on us past the standard, a review asked of you, a colleague asking to join a negotiation you lead, your signature, a renewal decision on a contract you own — ruby when late, amber otherwise, each with its own button opening where the item is answered. Nothing owed draws nothing. The Approvals & signing page's signing panel leaves the signature out (its own lead already says it).
+- One reading with Home's card: the checklist asks Home's own sources of one contract. The renewal question and the review-lateness rule were lifted into one function each (hmRenewalDue, hmReviewLate, HM_SOON_DAYS) and Home's card asks them too; its output is unchanged.
+- Gates: lint 0 errors, 178 warnings (unchanged). f395 26/26 (25 red at the parent; the wall passes on both). inspector-checklist-verify 25/25 (21 red at the parent; the stage, two controls and the error sweep pass on both). The affected node files 1,059/1,059. inspector-verify 32/32, four-inspectors-verify 30/30 (one parallel run hit "database is locked"; 30/30 alone), every-party-verify 16/16, home-page-verify 63/63, button-consistency-verify 17/17, compact-ladder-verify 29/29. contrast-verify 30/33 and theme-tokens-verify 20/40 — the same failures as main, and the colour census output is byte-identical to main's. Swedish: every row one line (the longest cut, whole on the hover).
+- Full suite: 9,581 tests, 9,579 pass; the 2 that fail are f277 (1) and (10), red on main before this run (logged 26 Sep) and left red.
+
+Deliberately left alone (said to the owner)
+- Home's card still shows "Waiting on review" (every contract in review) and renewals of contracts the reader does not own; the checklist leaves both out. Whether Home should match is the owner's call.
+- Home's decision rows open the contract on its first tab, and the bell's renewal and join rows do too; the checklist's buttons open the exact place. Not aligned without the owner's word.
+- The render's tinted button edges were not built: the buttons keep the platform's one light edge (the 26 Sep rule), with the row's colour on the word.
+
+Noticed, not fixed
+- "The other side is waiting on us" (deskStaleInboxFor) needs an open desk, and a desk opens only when somebody on our side files a change or claims it. A negotiation where only the other side has filed never counts as waiting on us — on Home, in the bell or in the checklist.
+- renewalDecisionsDue in js/obligations.js has no caller, and its first condition does nothing.
+- Still waiting for a "go" from the 27 Sep answers: the alert for "Accept the wording", their bell's "They are waiting for you to sign" wording, NODE_ENV=production in render.yaml.
