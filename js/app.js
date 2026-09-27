@@ -58,6 +58,8 @@ import './views/home.js';
    pages that draw it; it publishes its names and asks theirs through window. */
 import './views/inspector.js';
 import './views/approvalsview.js'; // Approvals & signing: a door onto two readings Home already makes (20 Sep 2026)
+import './brainmap.js';           // the Brain's catalogue and its reader of the code, one for both hosts (27 Sep 2026)
+import './views/brain.js';         // the Brain: HaTi as a network of neurons, read from its own code (27 Sep 2026)
 import './views/agents.js';        // Copilot's work: the five agents, every one a reading of work HaTi already does (27 Sep 2026)
 import './views/register.js';
 import './ocr.js';
@@ -183,6 +185,7 @@ function commandMeta(view){
     case 'advice':    return [i18t('nav_advice_desk'), i18t('pg_advice_sub')];
     case 'obligations': return [i18t('nav_obligations'), ''];
     case 'approvals': return [i18t('nav_approvals'), ''];
+    case 'brain':     return [i18t('nav_brain'), ''];
     case 'agents':    return [i18t('nav_agents'), ''];
     case 'intake':    return [i18t('nav_intake'), i18t('pg_intake_sub')];
     // Named to match the nav item exactly. One feature answering to two names
@@ -739,7 +742,7 @@ function updateSidebarCounts(){
 /* ============================================================ SHELL VIEW SWITCH */
 const VIEW_LABEL = { dashboard:'Home', folder:'this value stream', intel:'Insights',
   calendar:'Calendar', reports:'Reports', register:'Contracts', migration:'Import contracts',
-  pipeline:'Pipeline', advice:'Advice desk', intake:'Requests', obligations:'Obligations', approvals:'Approvals & signing', agents:"Copilot's work", templates:'Templates', playbook:'Our standards',
+  pipeline:'Pipeline', advice:'Advice desk', intake:'Requests', obligations:'Obligations', approvals:'Approvals & signing', agents:"Copilot's work", brain:'the Brain', templates:'Templates', playbook:'Our standards',
   team:'Team & settings', directory:'People', workspace:'the contract workspace',
   redline:'Negotiations' };
 
@@ -909,6 +912,7 @@ function setView(view){
     else if(view==='advice') renderAdviceDesk();
     else if(view==='obligations') renderObligationsList();
     else if(view==='approvals') renderApprovalsPage();
+    else if(view==='brain') renderBrainPage();
     else if(view==='agents') renderAgentsPage();
     else if(view==='intake') renderIntake();
     else if(view==='templates') renderTemplatesPage();

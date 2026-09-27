@@ -19668,3 +19668,11 @@ Deliberately left alone (said to the owner)
 
 Noticed, not fixed
 - A signed record saved to the server without the fields the page adds on load (for example `rounds`) refuses every later save from the browser with a 409, because the load step adds `rounds: []` and the server reads that as a change to a frozen field. Seen only on hand-built test records; every record the product itself files passes through that load step first.
+
+## 27 Sep 2026 — The Brain page (a page before Home)
+Built: the Brain page, js/brainmap.js, GET /api/brain, f400, brain-page-verify. No defects left in the Brain's own code after the browser run (the one fault found — the page asked for /api/api/brain — was fixed before merge).
+
+### Noticed, not fixed
+- type-and-symbols-verify: "each one is painted at the size the sheet asks for" is red at origin/main 972d681 too (icons paint 14x14), same result with and without this change.
+- white-band-and-tabs-verify: 5-ref, 5a and "the journey ran to the end" are red at origin/main 972d681 too (the Insights tabs are not found), same with and without this change.
+- npm test: six tests are red at origin/main 972d681 and identical with this change — f258 (4) "Clear clears it", f267 (17) "Clear puts it back", f277 (1) "no ring, no band, no strip", f277 (10) "the layer is a white sheet", f387 (2) "2e the facts", f387 (4) "4c the end of the term".
