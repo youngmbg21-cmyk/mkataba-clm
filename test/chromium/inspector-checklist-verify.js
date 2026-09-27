@@ -29,6 +29,16 @@
    signature out — each true of a panel with no checklist) and are gated on
    the row they speak about having been drawn.
 
+   SECTION 8 (Young, 27 Sep 2026: "Yes, make them go straight to the right
+   place") presses Home's "Needs your decision" rows and the bell's renewal and
+   request-to-join rows and compares each landing with the one the checklist's
+   own button reached earlier in this run. To reach every kind it puts
+   Carrefour on the shelf, opens a desk on Kabras with a join request, puts the
+   Sendy renewal away from Prepared for you and moves its dates — all through
+   the product's own acts. AT THE PARENT (ba092e2), measured in a worktree:
+   all 8 of section 8 FAIL, each landing on the contract's Document tab with
+   no sheet — the defect the owner saw — and nothing else moves.
+
    Run: node test/chromium/inspector-checklist-verify.js */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -266,7 +276,126 @@ const ok = (name, good, detail) => {
     await page.screenshot({ path: path.join(OUT, '7-night.png') });
     await page.evaluate(() => { if (typeof setDark === 'function') setDark(false); });
 
-    ok('8 no page errors on the way', errs.length === 0, errs.join(' | '));
+    /* ================= 8 · HOME'S ROWS AND THE BELL'S ROWS GO WHERE THE BUTTONS WENT =================
+       (Young, 27 Sep 2026: "Yes, make them go straight to the right place".)
+       Every landing below is compared with the one the checklist's own button
+       reached in section 3/4 — a RELATION, never a destination typed out twice.
+       BEFORE EVERY PRESS the room is opened on another contract, because the
+       room remembers its tab per contract: without that, a row that only
+       opened the contract would land on Signing because section 3 left it
+       there, and the claim would pass on the fault. */
+    const landOf = g => g.view === 'redline' ? 'negotiate:' + g.held
+      : g.view + ':' + g.id + ':' + g.tab + (g.sheet ? ':sheet' : '');
+    const want = (g, id) => landOf(Object.assign({}, g, { id, held: id }));
+    const elsewhere = async () => {
+      await page.evaluate(() => { try { closeModal(); } catch (_) {} openWorkspace('MK-150'); });
+      await page.waitForTimeout(700);
+    };
+    const landing = () => page.evaluate(() => ({ view: state.view, id: state.activeId,
+      held: (typeof redlineHeldId === 'function') ? redlineHeldId() : null,
+      tab: (typeof roomCurrentTab === 'function') ? roomCurrentTab() : null,
+      sheet: !!document.getElementById('dk-close') }));
+    const homeRows = async () => {
+      await page.evaluate(() => setView('dashboard')); await page.waitForTimeout(1100);
+      return page.evaluate(() => [...document.querySelectorAll('#hm-dd-rows [data-sel]')].map(b => ({
+        id: b.getAttribute('data-sel'), text: b.innerText.replace(/\s+/g, ' ').trim().slice(0, 90) })));
+    };
+    const pressHome = async i => {
+      await elsewhere();
+      const rows = await homeRows();
+      const b = (await page.$$('#hm-dd-rows [data-sel]'))[i];
+      if (!b) return { row: null, g: null, rows };
+      await b.click(); await page.waitForTimeout(1300);
+      return { row: rows[i], g: await landing(), rows };
+    };
+
+    /* 8a–8b: as staged, the card's two rows are the Carrefour review and the
+       Carrefour negotiation gone quiet (reviews lead, then quiet deals). */
+    const h1 = await pressHome(0);
+    ok('8a Home\'s review row opens the negotiation on that contract — where the checklist\'s Review button went',
+      !!h1.row && h1.row.id === 'MK-149' && /^Review/i.test(h1.row.text) && landOf(h1.g) === want(g2, 'MK-149'),
+      h1.row ? `${h1.row.text} → ${landOf(h1.g)} · button went ${landOf(g2)}` : 'no row: ' + JSON.stringify(h1.rows));
+    const h2 = await pressHome(1);
+    ok('8b Home\'s quiet-negotiation row opens the negotiation too — where the checklist\'s Answer button went',
+      !!h2.row && h2.row.id === 'MK-149' && landOf(h2.g) === want(g1, 'MK-149'),
+      h2.row ? `${h2.row.text} → ${landOf(h2.g)} · button went ${landOf(g1)}` : 'no row: ' + JSON.stringify(h2.rows));
+
+    /* 8c–8d: Carrefour put on the shelf (the card reads live contracts only),
+       and a colleague asking to join a negotiation this reader leads on
+       Kabras — so the card's two rows are the join request and our signature. */
+    await page.evaluate(() => {
+      const me = currentUser();
+      getContract('MK-149').archived = { at: new Date().toISOString(), by: me.name };
+      const k = getContract('MK-131');
+      deskOpen(k, { lead: me, by: me });
+      const d = deskOf(k);
+      d.joinRequests = [{ id: 'u-peter', name: 'Peter Kamau', email: 'peter@example.co.ke',
+        at: new Date(Date.now() - 2 * 864e5).toISOString(), why: 'I handle the Kabras account', status: 'pending' }];
+    });
+    const h3 = await pressHome(0);
+    ok('8c Home\'s request-to-join row opens the contract with the sheet where the lead lets them in — where the checklist\'s button went',
+      !!h3.row && h3.row.id === 'MK-131' && /Peter Kamau/.test(h3.row.text) && landOf(h3.g) === want(g5, 'MK-131'),
+      h3.row ? `${h3.row.text} → ${landOf(h3.g)} · button went ${landOf(g5)}` : 'no row: ' + JSON.stringify(h3.rows));
+    await page.keyboard.press('Escape').catch(() => {});
+    const h4 = await pressHome(1);
+    ok('8d Home\'s signature row opens that contract on its Signing tab — where the checklist\'s Sign button went',
+      !!h4.row && h4.row.id === 'MK-158' && landOf(h4.g) === want(g3, 'MK-158'),
+      h4.row ? `${h4.row.text} → ${landOf(h4.g)} · button went ${landOf(g3)}` : 'no row: ' + JSON.stringify(h4.rows));
+
+    /* 8e: the join request answered, so the card is our signature and the
+       Sendy renewal — with the Sendy renewal put away from Prepared for you
+       through the product's own act (deskDismiss), because a renewal the desk
+       draws is taken off this card by the one-door rule (f274). */
+    await page.evaluate(() => { deskOf(getContract('MK-131')).joinRequests = [];
+      const r = getContract('MK-143'); deskDismiss(r, 'renewal'); deskDismiss(r, 'notice'); });
+    const h5 = await pressHome(1);
+    ok('8e Home\'s renewal row opens that contract on its Overview — where the checklist\'s Decide button went',
+      !!h5.row && h5.row.id === 'MK-143' && landOf(h5.g) === want(g4, 'MK-143'),
+      h5.row ? `${h5.row.text} → ${landOf(h5.g)} · button went ${landOf(g4)}` : 'no row: ' + JSON.stringify(h5.rows));
+    await page.screenshot({ path: path.join(OUT, '8-home-renewal-landed.png') });
+
+    /* 8f–8h: THE BELL. Its renewal row rings inside thirty days, so the Sendy
+       decision is brought to ten days out; the join request comes back. */
+    const pressBell = async (kind, ref) => {
+      await elsewhere();
+      await page.click('#hdr-notify'); await page.waitForTimeout(700);
+      const rows = await page.$$('#context-panel [data-alert-i]');
+      let hit = null;
+      for (const r of rows) {
+        const k = await r.getAttribute('data-alert-kind');
+        const t = (await r.innerText()).replace(/\s+/g, ' ');
+        if (k === kind && t.includes(ref)) { hit = { el: r, text: t.trim().slice(0, 90) }; break; }
+      }
+      if (!hit) return { row: null, g: null };
+      await hit.el.click(); await page.waitForTimeout(1300);
+      return { row: hit.text, g: await landing() };
+    };
+    await page.evaluate(() => {
+      const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
+      const r = getContract('MK-143'); r.expiry = day(40); r.metadata = Object.assign({}, r.metadata, { expiryDate: day(40), noticePeriodDays: 30 });
+      deskOf(getContract('MK-131')).joinRequests = [{ id: 'u-peter', name: 'Peter Kamau', email: 'peter@example.co.ke',
+        at: new Date(Date.now() - 2 * 864e5).toISOString(), why: 'I handle the Kabras account', status: 'pending' }];
+    });
+    const b1 = await pressBell('renewal', 'MK-143');
+    ok('8f the bell\'s renewal-decision row opens that contract on its Overview — where the checklist\'s Decide button went',
+      !!b1.row && landOf(b1.g) === want(g4, 'MK-143'), b1.row ? `${b1.row} → ${landOf(b1.g)} · button went ${landOf(g4)}` : 'no bell row for MK-143');
+    const b2 = await pressBell('desk-join', 'MK-131');
+    ok('8g the bell\'s request-to-join row opens the contract with the sheet where the lead lets them in',
+      !!b2.row && landOf(b2.g) === want(g5, 'MK-131'), b2.row ? `${b2.row} → ${landOf(b2.g)} · button went ${landOf(g5)}` : 'no bell row for MK-131');
+    await page.keyboard.press('Escape').catch(() => {});
+    /* The bell's OTHER renewal row: an agreement ending inside thirty days,
+       past its notice deadline, so it is no longer a decision but still rings. */
+    await page.evaluate(() => {
+      const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
+      const r = getContract('MK-143'); r.expiry = day(20); r.metadata = Object.assign({}, r.metadata, { expiryDate: day(20), noticePeriodDays: 30 });
+      deskOf(getContract('MK-131')).joinRequests = [];
+    });
+    const b3 = await pressBell('renewal', 'MK-143');
+    ok('8h the bell\'s "ends in N days" row goes to the same place — the Overview, where the renewal card is',
+      !!b3.row && /20 days/.test(b3.row) && landOf(b3.g) === want(g4, 'MK-143'), b3.row ? `${b3.row} → ${landOf(b3.g)}` : 'no bell row for MK-143');
+    await page.evaluate(() => { delete getContract('MK-149').archived; });
+
+    ok('9 no page errors on the way', errs.length === 0, errs.join(' | '));
   } catch (e) {
     ok('the run finished', false, String(e && e.stack || e).slice(0, 400));
   } finally {

@@ -19521,3 +19521,19 @@ Deliberately left alone (said to the owner)
 Noticed, not fixed
 - No sample-portfolio contract has an owner (they are raised by "System", which the owner readings refuse on purpose), so in a sample workspace no renewal ever appears on Home's card or in the checklist.
 - white-band-and-tabs-verify: 5-ref, 5a and "the journey ran to the end" fail — the Insights tabs are not found. The same three fail at a007cdb, before this change.
+
+## Run 27 Sep 2026 (night) — Home's decision rows and the bell's renewal and join rows go straight to the place
+
+- On the owner's word: "Yes, make them go straight to the right place" — the question asked again in plain words at the end of the last run. Built on claude/platform-bugs-cleanup-u80mhu, on top of main (ba092e2).
+- Built: Home's "Needs your decision" rows, and the bell's "asked to join" row and both of its renewal rows, now open the exact place their item is answered — the same door the side panel checklist's buttons press (a review or a quiet negotiation opens the negotiation, a signature the Signing tab, a renewal the Overview, a join request the room with the sheet where the lead lets them in). They used to open the contract on whatever tab it last showed, usually the Document tab. The door now says whether it found the contract, so a press it cannot answer still opens the contract the plain way.
+- Tests: f395 (8) — seven claims (the card and the bell are built for real and every landing is compared with the checklist's own door), five red at ba092e2, two named controls. inspector-checklist-verify 8 — eight real presses on Home and the bell, each compared with where the checklist's button went earlier in the same run; all eight red at ba092e2, each landing on the Document tab with no sheet.
+- Gates: lint 0 errors, 178 warnings (unchanged; the two changed files carry the same three as before). f395 33/33. f187, f381, f382, f51, f83, f240, f253, f274, f3, f232, f48 green. inspector-checklist-verify 33/33. home-page-verify, alerts-and-activity-verify, ready-to-sign-signal-verify, runway-and-xray-verify, keyboard-reach-verify 37/37, nav-floats-verify 67/67, counterparty-bell-verify 23/23 — all green. flat-rows-and-alerts-verify 49/54, room-order-and-notices-verify 27/29, type-and-symbols-verify 48/49 and notes-two-rooms-verify 32/34 fail on exactly the same checks at ba092e2 (all logged before). panel-alerts-and-head-verify is on KNOWN_RED.
+- Full suite: 9,592 tests, 9,590 pass; the 2 that fail are f277 (1) and (10), red on main before this session (logged 26 Sep) and left red.
+
+Deliberately left alone (said to the owner)
+- The phone's own "needs you" list opens contracts its own way; it was not part of the ask.
+- The bell's review, quiet-negotiation and signature rows already landed in the right place, so they were not touched.
+
+Noticed, not fixed
+- The bell's review, quiet-negotiation and signature rows each carry their own copy of where to go, beside the checklist's door. They agree today; two copies of one destination is how two screens come to disagree.
+- Still waiting for a "go" from the 27 Sep answers: the alert for "Accept the wording", their bell's "They are waiting for you to sign" wording, NODE_ENV=production in render.yaml.
