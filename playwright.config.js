@@ -3,8 +3,15 @@
    the same buttons a person presses.
 
      Run them:          npm run test:e2e
+     One journey:       npm run test:e2e -- -g "sign up"
+     List them:         npx playwright test --list
      See the results:   npx playwright show-report
      Watch them run:    npm run test:e2e -- --headed
+
+   WHAT A RUN PRINTS IS PLAIN ENGLISH (test/e2e/plain-english-reporter.js),
+   saved again to test-results/flow-check.md: this is the "process flow check"
+   the owner asks Claude for (.claude/skills/flow-check). Playwright's own
+   listing is one flag away: npm run test:e2e -- --reporter=list
 
    These are not the browser checks in test/chromium — those are the project's
    own scripts, one screen each, run by test/chromium/run-all.js. The tests here
@@ -32,7 +39,7 @@ module.exports = defineConfig({
   expect: { timeout: 15_000 },
   /* No automatic retries: a journey that fails once has found something. */
   retries: 0,
-  reporter: [['list'], ['html', { open: 'never' }]],
+  reporter: [['./test/e2e/plain-english-reporter.js'], ['html', { open: 'never' }]],
   use: {
     browserName: 'chromium',
     viewport: { width: 1440, height: 900 },
@@ -40,6 +47,10 @@ module.exports = defineConfig({
        the failure can be SEEN in the report rather than guessed at. */
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
+    /* A button that never appears fails in fifteen seconds with "it never
+       appeared", not after the whole two minutes. */
+    actionTimeout: 15_000,
+    navigationTimeout: 30_000,
     launchOptions: CHROME ? { executablePath: CHROME } : {},
   },
 });
