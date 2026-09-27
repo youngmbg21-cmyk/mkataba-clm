@@ -274,7 +274,11 @@ describe('f385 (8) text boxes are the everyday height', () => {
     assert.match(read('js/review.js'), /const RV_FLD = 'width:100%;height:var\(--field-h\);/);
     assert.match(read('js/wizard.js'), /const WZ_ST='width:100%;height:var\(--field-h,28px\);/);
     assert.match(rule('.ui-fld'), /height:var\(--field-h\)/);
-    assert.match(read('js/approvals.js'), /const IN='rounded-lg border border-inputln bg-white ui-fld';/, 'the signing order\'s boxes');
+    /* RE-POINTED IN PLACE, 27 Sep 2026: the Signing route window was rebuilt as
+       the Timeline (Young picked it by name), and its boxes are the one shared
+       field style rather than a class of their own — so they read --field-h
+       through HATI_FLD, which is pinned on the first line of this test. */
+    assert.match(read('js/approvals.js'), /const FLD=\(typeof HATI_FLD==='string'\)\?HATI_FLD:'';/, 'the signing route\'s boxes');
     assert.match(rule('.of-amt'), /height:var\(--field-h\)/, 'and a box with a currency in front of it');
   });
 });

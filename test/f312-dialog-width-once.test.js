@@ -94,8 +94,13 @@ describe('f312 (2) — no dialog states a second width on its inner box', () => 
   /* The padding rule (24 on every side) is a GEOMETRY and is measured on the two
      dialogs the owner photographed in dialog-balance-verify; dialogs that never
      carried a second width keep their own padding and are not swept here. */
+  /* RE-POINTED 27 Sep 2026: the Signing route window was redrawn as a
+     timeline (Young picked it by name) and now also names itself to a screen
+     reader (openModal's own `label`). The claim is unchanged — the rung is
+     named ON THE FRAME, the large one — so it is asked with the label allowed
+     beside it rather than pinning the old call byte for byte. */
   test('the one dialog wider than a short form names its rung on the frame', () => {
-    assert.match(read('js/approvals.js'), /<\/div>`, \{ maxWidth: DLG_W\.l \}\);/);
+    assert.match(read('js/approvals.js'), /<\/div>`, \{ maxWidth: DLG_W\.l(?:, label: i18t\('ap_signing_route'\))? \}\);/);
   });
 });
 

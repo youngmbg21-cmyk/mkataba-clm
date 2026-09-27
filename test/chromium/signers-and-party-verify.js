@@ -366,7 +366,15 @@ const contract = () => ({
       channel: 'link', recipient: { name: 'Juno', email: 'juno@example.co.ke' }, purpose: 'sign' } });
     check('and the server issues the signing link', nowOk.status === 200, String(nowOk.status));
 
-    /* ---------- 5b. THE EDITOR ASKS FOR BOTH SIDES ---------- */
+    /* ---------- 5b. THE EDITOR ASKS FOR BOTH SIDES ----------
+       RE-POINTED 27 Sep 2026 to the Timeline window (Young picked it by name).
+       The rows are cards on a line of steps; the side tally is gone — what a
+       side is missing is said on its own card as you type, and a refusal is
+       said in the window beside Save. "Fills in what the record already knows"
+       is REVERSED IN HALF by the owner's second answer that day ("Save refuses
+       when the only name for a party is the company's"): the old claim passed
+       on the company's name standing in their box as a person. Their box now
+       opens empty, with the record's address and the question that fills it. */
     const editor = await page.evaluate(async () => {
       if (window.closeModal) closeModal();
       /* A contract with no route at all — the state the editor is opened in. */
@@ -375,37 +383,50 @@ const contract = () => ({
         metadata: {}, audit: [], comments: [], signatures: [], signerPlan: [] };
       openSignerPlanEditor(c, { onDone() {} });
       await new Promise(r => setTimeout(r, 400));
-      const rows = [...document.querySelectorAll('[data-sp-row]')];
-      const partyOf = i => (document.querySelector(`[data-sp-party="${i}"]`) || {}).value;
-      const nameOf = i => (document.querySelector(`[data-sp-name="${i}"]`) || {}).value;
-      const out = { rows: rows.length, parties: rows.map((_, i) => partyOf(i)),
-        names: rows.map((_, i) => nameOf(i)),
-        tally: (document.getElementById('sp-tally') || {}).innerText || '' };
-      /* Empty one side and try to save: the refusal must name which. */
-      const cpIdx = out.parties.indexOf('counterparty');
-      const el = document.querySelector(`[data-sp-name="${cpIdx}"]`);
-      if (el) { el.value = ''; el.dispatchEvent(new Event('input', { bubbles: true })); }
-      out.tallyAfter = (document.getElementById('sp-tally') || {}).innerText || '';
-      document.getElementById('sp-save').click();
+      const w = document.getElementById('sr-win');
+      const cards = w ? [...w.querySelectorAll('[data-sp-row]')] : [];
+      const sideOf = el => el.querySelector('.sr-for.us') ? 'internal' : 'counterparty';
+      const nameOf = el => { const b = el.querySelector('[data-sp-f="name"]');
+        return b ? b.value : ((el.querySelector('.sr-who b') || {}).textContent || ''); };
+      const emailOf = el => { const b = el.querySelector('[data-sp-f="email"]');
+        return b ? b.value : ((el.querySelector('.sr-who span') || {}).textContent || ''); };
+      const out = { win: !!w, rows: cards.length, parties: cards.map(sideOf),
+        names: cards.map(nameOf), emails: cards.map(emailOf) };
+      const their = cards.find(el => sideOf(el) === 'counterparty');
+      const hintOf = () => { const h = their && their.querySelector('[data-sp-hint$=":name"]');
+        return h && !h.hidden ? h.textContent : ''; };
+      out.hint = hintOf();
+      /* Type a person, then empty the box again: the question goes, and comes
+         back, on their own card — the window is not repainted under the caret. */
+      const box = their && their.querySelector('[data-sp-f="name"]');
+      if (box) { box.value = 'Grace Njeri'; box.dispatchEvent(new Event('input', { bubbles: true })); }
+      out.hintTyped = hintOf();
+      if (box) { box.value = ''; box.dispatchEvent(new Event('input', { bubbles: true })); }
+      out.hintAfter = hintOf();
+      const save = document.getElementById('sp-save');
+      if (save) save.click();
       await new Promise(r => setTimeout(r, 400));
       out.saved = Array.isArray(c.signerPlan) && c.signerPlan.length;
-      out.stillOpen = !!document.getElementById('sp-save');
-      out.said = document.body.innerText;
+      out.stillOpen = !!document.getElementById('sr-win');
+      out.said = (document.getElementById('sr-say') || {}).innerText || '';
       if (window.closeModal) closeModal();
       return out;
     });
     check('the editor opens with a slot for each side rather than an empty list',
-      editor.rows === 2 && editor.parties.includes('internal') && editor.parties.includes('counterparty'),
+      editor.win && editor.rows === 2 && editor.parties.includes('internal') && editor.parties.includes('counterparty'),
       editor.rows + ' rows: ' + editor.parties.join(', '));
-    check('and fills in what the record already knows',
-      editor.names.some(n => /Amina/.test(n)) && editor.names.some(n => /Juno/.test(n)),
-      editor.names.join(' | '));
-    check('it counts each side while you type',
-      /Our side/i.test(editor.tally) && /Their side/i.test(editor.tally),
-      editor.tally.replace(/\s+/g, ' ').slice(0, 60));
-    check('and saving with one side empty is refused, naming the side',
-      !editor.saved && editor.stillOpen && /Name who signs for/i.test(editor.said),
-      editor.saved ? 'it saved a one-sided route' : 'refused');
+    check('and fills in what the record already knows — never the company as their person',
+      editor.win && editor.names.some(n => /Amina/.test(n))
+        && editor.names[editor.parties.indexOf('counterparty')] === ''
+        && editor.emails[editor.parties.indexOf('counterparty')] === 'juno@example.co.ke',
+      editor.names.join(' | ') + ' · ' + editor.emails.join(' | '));
+    check('it says what their side is missing, on their card, while you type',
+      editor.hint === 'Who signs for Juno Limited?' && editor.hintTyped === ''
+        && editor.hintAfter === 'Who signs for Juno Limited?',
+      [editor.hint, editor.hintTyped, editor.hintAfter].join(' → '));
+    check('and saving with one side empty is refused in the window, naming the party',
+      !editor.saved && editor.stillOpen && /Name who signs for Juno Limited/.test(editor.said),
+      editor.saved ? 'it saved a one-sided route' : editor.said.slice(0, 80));
 
     /* ---------- 5c. THE SERVER REFUSES A ROUTE CHANGE AFTER A SIGNATURE ---------- */
     const signedDoc = await W.admin.json('/api/contracts/MK-SP1');

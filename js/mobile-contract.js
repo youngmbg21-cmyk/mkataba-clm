@@ -661,6 +661,13 @@ function mSignersState(c){
   const theirs = plan.find(x => x && x.party === 'counterparty');
   const me = (typeof currentUser === 'function' && currentUser()) || null;
   const them = (typeof counterpartyContact === 'function' ? counterpartyContact(c) : null) || {};
+  /* THEIR SLOT NEVER OPENS ON THE COMPANY'S NAME (27 Sep 2026) — the desktop
+     window's own rule, asked through the same reading. It fell back to the
+     contract's counterparty, and a company in a box that asks for a person is
+     now a refusal on Save. */
+  const isCo = n => typeof window.signerIsCompany === 'function'
+    && window.signerIsCompany(c, { party: 'counterparty', name: n });
+  const theirName = them.name && !isCo(them.name) ? them.name : '';
   s.signersFor = c.id;
   s.signers = {
     ours: { id: mine && mine.id, party: 'internal',
@@ -669,7 +676,7 @@ function mSignersState(c){
       role: (mine && mine.role) || '',
       memberId: (mine && mine.memberId) || (me ? me.id : '') },
     theirs: { id: theirs && theirs.id, party: 'counterparty',
-      name: (theirs && theirs.name) || them.name || c.counterparty || '',
+      name: (theirs && theirs.name) || theirName,
       email: (theirs && theirs.email) || them.email || c.counterpartyEmail || '',
       role: (theirs && theirs.role) || '', memberId: '' },
   };
@@ -722,7 +729,20 @@ function mSignersSave(){
   if(typeof window.saveSignerPlan !== 'function'){
     s.signersErr = i18t('mc_signers_unavailable'); mRender(); return;
   }
-  const why = saveSignerPlan(c, [st.ours, st.theirs]);
+  /* THE WHOLE ROUTE GOES TO THE ONE SAVE (27 Sep 2026). This handed over the
+     two slots alone, and every other signer on the route was dropped — while
+     the sheet told the reader they "are kept exactly as they are" — and a
+     counterparty-first route came back ours-first. The save now also asks
+     whether every party that signs has somebody named, so a route cut to two
+     rows would be refused over a guarantor it still names. The two slots
+     replace their own rows, in place; everything else is handed back as it
+     was. */
+  const route = (c.signerPlan || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+  const rows = route.map(r => (st.ours.id && r.id === st.ours.id) ? { ...r, ...st.ours }
+    : (st.theirs.id && r.id === st.theirs.id) ? { ...r, ...st.theirs } : r);
+  if (!st.ours.id) rows.unshift(st.ours);
+  if (!st.theirs.id) rows.push(st.theirs);
+  const why = saveSignerPlan(c, rows);
   if(why){ s.signersErr = why; mRender(); return; }
   s.signersErr = ''; s.signers = null; s.signersFor = null;
   mCloseSheet();

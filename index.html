@@ -1492,6 +1492,92 @@
      dialog that fits looks exactly as it did. */
   .modal-in [data-dlg-foot]{position:sticky;bottom:0;z-index:2;background:var(--color-surface);}
   .modal-in[data-scrolls] [data-dlg-foot]{box-shadow:0 -1px 0 var(--color-divider);padding-top:10px;padding-bottom:10px;}
+  /* ═══ THE SIGNING ROUTE IS A TIMELINE (Young ruled it 27 Sep 2026) ═══════════
+     The route drawn as it will run: numbered steps down a line, the people who
+     sign at each step inside it — the Signing order card's own shape, made
+     editable. Every value is a token, so the brands and the night answer by
+     themselves. The window builds this in js/approvals.js (signerRouteWindow). */
+  .sr-steps{position:relative;}
+  .sr-step{position:relative;padding:0 0 14px 36px;}
+  .sr-step::before{content:"";position:absolute;left:11px;top:27px;bottom:-1px;width:2px;background:var(--rule);}
+  .sr-node{position:absolute;left:0;top:0;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;
+    background:color-mix(in srgb,var(--accent-fill) 10%,var(--color-surface));
+    border:1.5px solid color-mix(in srgb,var(--accent-fill) 45%,var(--color-surface));color:var(--accent-ink);
+    font-size:var(--t-meta);font-weight:var(--w-strong);font-variant-numeric:tabular-nums;}
+  .sr-sh{display:flex;align-items:center;gap:6px;min-height:24px;margin-bottom:var(--s-2);}
+  .sr-sn{font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);}
+  .sr-any{font-size:var(--t-meta);color:var(--color-neutral-600);}
+  .sr-cards{display:flex;flex-direction:column;gap:var(--s-2);}
+  .sr-card{border:1px solid var(--color-divider);border-radius:var(--radius-lg);background:var(--color-surface);}
+  .sr-card.is-rest{display:flex;align-items:center;gap:10px;padding:8px 6px 8px 10px;min-height:52px;cursor:pointer;}
+  .sr-card.is-rest:hover{border-color:var(--rule-strong);}
+  .sr-card.is-open{padding:10px 12px 12px;border-color:var(--rule-strong);}
+  .sr-av{width:28px;height:28px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:var(--t-micro);
+    font-weight:var(--w-strong);letter-spacing:.02em;background:var(--surface-2);color:var(--color-neutral-600);}
+  /* Tints MIXED from the surface, not the accent ramp: the ramp has no night
+     answer, and a pale mint disc on the dark ground is the thing to avoid. */
+  .sr-av.us{background:color-mix(in srgb,var(--accent-fill) 16%,var(--color-surface));color:var(--accent-ink);}
+  .sr-who{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;text-align:left;background:none;border:0;
+    padding:0;cursor:pointer;color:inherit;font:inherit;border-radius:var(--radius);}
+  .sr-who:focus-visible{outline:2px solid var(--accent-fill);outline-offset:3px;}
+  .sr-who b{max-width:100%;font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .sr-who > span{max-width:100%;font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .sr-am,.sr-hint{color:var(--st-amber-fg);}
+  .sr-for{font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:210px;}
+  .sr-for.us{color:var(--accent-ink);}
+  .sr-ch{display:flex;align-items:center;gap:8px;min-width:0;}
+  .sr-ch .sr-for{flex:1;max-width:none;font-weight:var(--w-label);}
+  .sr-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px 12px;margin-top:6px;}
+  .sr-f{min-width:0;}
+  .sr-wide{grid-column:1 / -1;}
+  .sr-hint{font-size:var(--t-meta);line-height:1.4;margin-top:4px;}
+  .sr-cf{display:flex;justify-content:flex-end;margin-top:10px;}
+  .sr-mwrap{position:relative;display:inline-flex;flex:none;}
+  .sr-addwrap{margin-top:6px;}
+  .sr-win .sr-addto{font-size:var(--t-meta);color:var(--color-neutral-600);gap:4px;}
+  .sr-win .sr-addto:hover{color:var(--accent-ink);}
+  .sr-misses{position:relative;}
+  .sr-misses:not(:empty)::before{content:"";position:absolute;left:11px;top:-1px;bottom:0;width:2px;background:var(--rule);}
+  .sr-miss{position:relative;margin:0 0 14px 36px;padding:9px 10px 9px 12px;display:flex;align-items:center;gap:10px;
+    border:1px dashed var(--st-amber-line);border-radius:var(--radius-lg);background:var(--color-surface);}
+  .sr-miss > span{flex:1;min-width:0;color:var(--st-amber-fg);font-size:var(--t-body);font-weight:var(--w-label);}
+  .sr-end{position:relative;padding-left:36px;min-height:28px;display:flex;align-items:center;}
+  .sr-end .sr-node{top:2px;background:var(--color-surface);border-style:dashed;border-color:var(--rule-strong);color:var(--color-neutral-500);}
+  .sr-end .sr-addwrap{margin-top:0;}
+  /* ONE SMALL MENU: the Inspector's own card (.ins-menu), wider for its words,
+     and opened to the left or upward where the window has no room. */
+  .sr-win .sr-menu{width:252px;}
+  .sr-win .sr-menu.left{left:0;right:auto;}
+  .sr-win .sr-menu.up{top:auto;bottom:calc(100% + 4px);}
+  .sr-mh{padding:6px 9px 4px;font-size:var(--t-micro);font-weight:var(--w-label);text-transform:uppercase;letter-spacing:.09em;color:var(--color-neutral-500);}
+  .sr-mhr{border:0;border-top:1px solid var(--color-divider);margin:4px 2px;}
+  .sr-mi{display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;font:inherit;font-size:var(--t-meta);
+    text-align:left;padding:6px 9px;border-radius:var(--radius);cursor:pointer;color:var(--color-text);}
+  .sr-mi:hover:not(:disabled),.sr-mi:focus-visible{background:var(--color-neutral-100);outline:none;}
+  .sr-mi:disabled{color:var(--color-neutral-400);cursor:default;}
+  .sr-mi svg{flex:none;color:var(--color-neutral-600);}
+  .sr-mi.danger,.sr-mi.danger svg{color:var(--st-ruby-fg);}
+  .sr-mi-sp{width:14px;flex:none;}
+  .sr-mi-tx{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .sr-mi-on{margin-left:auto;display:inline-flex;color:var(--accent-ink);}
+  .sr-mi-on svg{color:var(--accent-ink);}
+  /* THE COLLEAGUE PICKER: the team, by name, email or title. */
+  .sr-cb{position:relative;}
+  .sr-cbl{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:31;min-width:260px;max-height:220px;overflow:auto;padding:4px;
+    background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);
+    box-shadow:0 10px 28px color-mix(in srgb,var(--color-text) 16%,transparent);}
+  .sr-cbi{display:flex;align-items:center;gap:8px;width:100%;padding:5px 8px;border:0;background:none;border-radius:var(--radius);
+    cursor:pointer;text-align:left;color:inherit;font:inherit;}
+  .sr-cbi:hover,.sr-cbi.on{background:var(--color-neutral-100);}
+  .sr-cbt{min-width:0;}
+  .sr-cbt b{display:block;font-size:var(--t-body);font-weight:var(--w-label);color:var(--color-text);}
+  .sr-cbt small{display:block;font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .sr-cbn{padding:8px;font-size:var(--t-meta);color:var(--color-neutral-600);}
+  /* THE REFUSAL IS SAID BESIDE THE BUTTON, and follows the typing. */
+  .sr-say{flex:1 1 220px;margin-right:auto;min-width:0;display:flex;gap:6px;align-items:flex-start;
+    font-size:var(--t-meta);line-height:1.45;font-weight:var(--w-label);color:var(--st-ruby-fg);}
+  .sr-say:empty{display:none;}
+  .sr-say svg{flex:none;margin-top:1px;}
   /* ---- LARGE IS LARGE (the Compact ladder, 26 Sep 2026) ----
      This class used to mean "a head-row button": the same height as the base,
      only lighter (weight 400), and eight head-row buttons wore it. With one

@@ -1207,6 +1207,95 @@ function openSigningLockedNotice(c, opts){
     if(back) back(); else if(window.renderWorkspace) renderWorkspace();
   });
 }
+/* ---- A ROUTE NAMES PEOPLE WHO CAN BE REACHED: THREE MORE REFUSALS ----
+   (Young ruled them 27 Sep 2026.) The "Signing Route Options" page ended on
+   three questions and the owner answered each one yes — "1, Yes. 2, Yes,
+   3, Yes":
+     1 · a person who signs for the other side has an email. Their signing
+         link is sent to it, and a route saved without one is a route whose
+         link has nowhere to go;
+     2 · the name on their side is a PERSON. The owner's own NDA carried
+         "Juno Logistics Ltd" as its signer — the company, with no title and
+         no address — and the count under it said their side was done;
+     3 · every party that signs has somebody named, a guarantor included.
+         Only "a name on each side" was asked, so a guarantor could be left
+         off a route and nothing said so.
+   ONE READING, TWO ASKERS: saveSignerPlan refuses on it, which is where both
+   editors (this file's window and the phone's sheet) reach it, and the window
+   draws its hints and the sentence beside its Save from the same reading, so
+   what the screen says and what Save does cannot disagree.
+
+   THE COMPANY RULE IS ASKED PER PARTY, which is the owner's own question:
+   refused when the ONLY name a party has is a company's. A company's name
+   standing beside a real person is still flagged on its card, and still needs
+   an address like every other row, but it is not a party left unsigned.
+
+   It reads the rows it is handed and the contract's parties, and writes
+   nothing. js/parties.js is asked through its published names and a stage
+   without it falls back to the record's own counterparty, so the rule still
+   holds where the parties module is not loaded (the phone's own tests). */
+const SIGNER_EMAIL_RE = /.+@.+\..+/;   // the shape distributionRecipients already asks
+function srFold(v){ return String(v==null?'':v).toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim(); }
+/* The outside parties that SIGN — both involvements, never `none`. A contract
+   whose parties module is not on the stage answers with its own counterparty. */
+function srSigningParties(c){
+  try{ if(typeof partiesSigning==='function') return partiesSigning(c)||[]; }catch(_){}
+  const nm=String((c&&c.counterparty)||'').trim();
+  return nm ? [{ id:'py_them', name:nm }] : [];
+}
+/* Which outside party a row signs for — partyOfSigner's own answer, which is
+   the first outside party wherever a row names none. */
+function srPartyOf(c, s){
+  if(!s || s.party!=='counterparty') return null;
+  try{ if(typeof partyOfSigner==='function') return partyOfSigner(c, s); }catch(_){}
+  return srSigningParties(c)[0] || null;
+}
+/* IS THIS NAME A COMPANY RATHER THAN A PERSON? Any outside party's name, or
+   the record's own counterparty, after folding case and punctuation. Asked of
+   the other side's rows only — the question the owner answered. */
+function signerIsCompany(c, s){
+  if(!s || s.party!=='counterparty') return false;
+  const n=srFold(s.name); if(!n) return false;
+  let names=[c && c.counterparty];
+  try{ if(typeof partiesTheirs==='function') names=names.concat(partiesTheirs(c).map(p=>p && p.name)); }catch(_){}
+  return names.some(x=>x && srFold(x)===n);
+}
+function signerHasEmail(s){ return SIGNER_EMAIL_RE.test(String((s&&s.email)||'').trim()); }
+/* The first thing that stops this route being saved, beyond the two sides:
+   {why, partyId, rowId, field} or null. `rows` are the route as it would be
+   saved — rows with no name are not signers and are not asked about. */
+function signerPlanRefusal(c, rows){
+  const theirs=(rows||[]).filter(s=>s && String(s.name||'').trim() && s.party==='counterparty');
+  const signing=srSigningParties(c);
+  const rowsFor=p=>theirs.filter(s=>{ const q=srPartyOf(c, s); return !!q && q.id===p.id; });
+  for(const p of signing)
+    if(!rowsFor(p).length) return { why:i18t('ap_need_party',{ party:p.name }), partyId:p.id };
+  for(const p of signing){
+    const r=rowsFor(p);
+    if(r.every(s=>signerIsCompany(c, s)))
+      return { why:i18t('ap_need_person',{ party:p.name }), partyId:p.id, rowId:r[0].id, field:'name' };
+  }
+  const noMail=theirs.find(s=>!signerHasEmail(s));
+  if(noMail) return { why:i18t('ap_need_their_email',{ name:String(noMail.name).trim() }), rowId:noMail.id, field:'email' };
+  return null;
+}
+/* WHY THIS ROUTE CANNOT BE SAVED, in the words Save uses, or null. The side
+   rule first — A ROUTE WITH ONE SIDE ON IT IS NOT A ROUTE, named by the side
+   that is missing — then the three above. saveSignerPlan asks it before it
+   writes; the window asks it while the reader types, so a refusal already on
+   screen follows what they fix. */
+function signerPlanWhy(c, out){
+  const named=(out||[]).filter(s=>s && String(s.name||'').trim());
+  const ourN=named.filter(s=>s.party!=='counterparty').length;
+  const theirN=named.filter(s=>s.party==='counterparty').length;
+  if(!ourN || !theirN){
+    return i18t(!ourN&&!theirN?'ap_need_both_sides'
+      :!ourN?'ap_need_our_side':'ap_need_their_side',
+      { them:c.counterparty||i18t('ct_a_counterparty') });
+  }
+  const more=signerPlanRefusal(c, named);
+  return more ? more.why : null;
+}
 /* ---- SAVING A SIGNING ROUTE: ONE AUTHORITY, TWO EDITORS (23 Aug 2026) ----
    The phone gained a signer picker of its own, and the one thing it must NOT
    gain is a second copy of what saving a route means. This is that meaning,
@@ -1236,13 +1325,8 @@ function saveSignerPlan(c, rows){
       ...(Number.isFinite(step)&&step>=1?{step:Math.floor(step)}:{}),
       ...(s.partyId?{partyId:String(s.partyId)}:{}),
       signed:prior?!!prior.signed:false, at:prior?prior.at:null, by:prior?prior.by:null, signature:prior?prior.signature:null }); });
-  const ourN=out.filter(s=>s.party!=='counterparty').length;
-  const theirN=out.filter(s=>s.party==='counterparty').length;
-  if(!ourN || !theirN){
-    return i18t(!ourN&&!theirN?'ap_need_both_sides'
-      :!ourN?'ap_need_our_side':'ap_need_their_side',
-      { them:c.counterparty||i18t('ct_a_counterparty') });
-  }
+  const why=signerPlanWhy(c, out);
+  if(why) return why;
   c.signerPlan=out;
   logAudit(c,'Signing route',`Set ${out.length} signer(s) in order`);
   persist(c);
@@ -1263,7 +1347,7 @@ function openSignerPlanEditor(c, opts){
      uses on the stream picker. A PLAN THAT EXISTS IS NEVER TOUCHED: somebody
      arranged it, and an order is a decision. saveSignerPlan below stays the
      one authority on naming signers; this only fills the form. */
-  const plan=(c.signerPlan||[]).slice();
+  const plan=(c.signerPlan||[]).slice().sort((a,b)=>(a.order||0)-(b.order||0));
   if(!plan.length && typeof participantSignerRows==='function'){
     try{ participantSignerRows(c).forEach(r=>plan.push({ ...r,
       id:'sg_'+Math.random().toString(36).slice(2,7), order:plan.length+1, signed:false })); }catch(_){}
@@ -1275,143 +1359,414 @@ function openSignerPlanEditor(c, opts){
      two sides. It now opens with a slot for each, filled in as far as the
      record can fill them — the person doing this is usually one of the two
      names, and the other is on the contract. Both are ordinary rows: editable,
-     removable, and reorderable exactly like any other. */
+     removable, and reorderable exactly like any other.
+
+     THEIR SLOT NEVER OPENS ON THE COMPANY'S NAME (27 Sep 2026). It fell back
+     to the contract's counterparty, so a new route's other signer read
+     "Juno Logistics Ltd" — a company in a box that asks for a person — and the
+     route counted it as named. The slot opens on the person the record knows,
+     or empty with the question that fills it. */
   if(!plan.length){
     const me=(typeof currentUser==='function' && currentUser())||null;
     const them=(typeof counterpartyContact==='function'?counterpartyContact(c):null)||{};
+    const theirName=them.name && !signerIsCompany(c, { party:'counterparty', name:them.name }) ? them.name : '';
     plan.push({ party:'internal', name:me?me.name:'', email:me?me.email:'',
       role:(me&&typeof signerTitle==='function'?signerTitle(me):'')||'',
       memberId:me?me.id:'' });
-    plan.push({ party:'counterparty', name:them.name||c.counterparty||'',
+    plan.push({ party:'counterparty', name:theirName,
       email:them.email||c.counterpartyEmail||'', role:'', memberId:'' });
   }
-  const members=(getUsers()||[]).filter(u=>u.role!=='viewer');
-  // People directory (imported contacts + team members) → drives name auto-fill.
-  const people=(typeof orgDirectory==='function')?orgDirectory():[];
-  const dirList=`<datalist id="sp-dir-names">${people.map(p=>`<option value="${(p.name||p.email||'').replace(/"/g,'&quot;')}">${[p.title,p.email].filter(Boolean).join(' · ').replace(/"/g,'&quot;')}</option>`).join('')}</datalist>`;
-  /* ONE BOX HEIGHT (the Compact ladder, 26 Sep 2026): the row's selects and
-     the step number are text boxes, so they sit on the field rung beside the
-     22px move buttons instead of their own 32-33px. */
-  const IN='rounded-lg border border-inputln bg-white ui-fld';
-  const memberOpts=s=>`<option value="">${i18t('ap_pick_member')}</option>`+members.map(u=>`<option value="${u.id}" ${s.memberId===u.id?'selected':''}>${(u.name||u.email).replace(/</g,'&lt;')}</option>`).join('');
+  signerRouteWindow(c, plan, back);
+}
+
+/* ============================================================================
+   THE SIGNING ROUTE IS A TIMELINE  (Young ruled it 27 Sep 2026)
+
+   "Create render options for this pop up. The current design is frankly very
+   poor." Three designs were drawn working on the real Signing tab and the
+   owner picked this one by name: "1, Yes. 2, Yes, 3, Yes. Then build
+   timeline". The full story is in docs/MAP-HISTORY.md under this heading.
+
+   THE ROUTE IS DRAWN AS IT WILL RUN: numbered steps down a line, the people
+   who sign at each step inside it. It has the shape of the Signing order card
+   on the same tab, so the route reads the same before and after Save.
+   - ONE WAY TO SET THE ORDER. Position is the order; there is no Step box
+     beside a numbered badge. People in one step sign in any order — the
+     model's own `step`, written for every row so nothing is left to derive.
+   - A PERSON WHO IS COMPLETE RESTS AS ONE LINE; a person with something
+     missing opens. The section grammar's rule ("open what is acted on")
+     applied to a card, which is what took the clutter out.
+   - OUR SIGNER IS PICKED ONCE, by name or email, from the team, and their
+     title and email fill in. There is no colleague list beside a name box
+     saying the same name.
+   - EVERY BOX KEEPS ITS LABEL once it is filled (HATI_LBL above HATI_FLD).
+   - ADDING SOMEONE ASKS WHO THEY SIGN FOR, and a party with nobody named is
+     an empty place with the button that fills it — the list's own state, not
+     a band.
+   - A REFUSAL IS SAID IN THE WINDOW, beside the button, and it follows the
+     reader's typing (signerPlanWhy). The toast that faded is gone.
+   - THE TOOLS ON A PERSON ARE ONE QUIET ⋯ MENU — move up, move down, sign at
+     the same time as the step above or on a step of their own, which party
+     they sign for, remove — and Alt+↑/↓ does the moving from the keyboard.
+   - saveSignerPlan IS STILL THE ONE AUTHORITY, and the phone's sheet reaches
+     it too. Everything here is how the route is drawn and asked for.
+   The window's own queries are asked of its own element (#sr-win), never the
+   document, so no data-sp-* control elsewhere can be read as one of its own.
+   ========================================================================== */
+function signerRouteWindow(c, plan, back){
   const esc1=v=>String(v==null?'':v).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
-  /* WHICH COMPANY THIS PERSON SIGNS FOR. Drawn only where there is more than
-     one outside party to choose between — on an ordinary contract the row's
-     own "counterparty" already names the one there is, and a picker with a
-     single option is a control that decides nothing. */
-  const partyOpts=(s,i)=>{
-    if(typeof partiesMulti!=='function' || !partiesMulti(c) || s.party!=='counterparty') return '';
-    const rows=partiesTheirs(c);
-    const cur=String(s.partyId||'');
-    return `<select data-sp-partyid="${i}" class="${IN}">${
-      rows.map(p=>`<option value="${esc1(p.id)}"${p.id===cur?' selected':''}>${esc1(p.name)}</option>`).join('')}</select>`;
+  const FLD=(typeof HATI_FLD==='string')?HATI_FLD:'';
+  const LBL=(typeof HATI_LBL==='string')?HATI_LBL:'';
+  const WARN='border-color:var(--st-amber-line);';
+  const ic=(n,cls)=>icon(n,cls||'w-3.5 h-3.5');
+  const ini=n=>String(n||'').trim().split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase()||'·';
+  const newId=()=>'sg_'+Math.random().toString(36).slice(2,7);
+  let multi=false; try{ multi=(typeof partiesMulti==='function') && partiesMulti(c); }catch(_){ multi=false; }
+  const usName=(typeof partyOurName==='function' && partyOurName(c))
+    || (typeof contractParty==='function' && contractParty(c)) || i18t('mc_our_side');
+  /* WHO A ROW MAY SIGN FOR: us, and every outside party that signs. A key is
+     'us' or the party's own id — the id partyOfSigner answers for a row. */
+  const theirParties=srSigningParties(c);
+  const choices=[{ key:'us', name:usName, us:true }].concat(theirParties.length
+    ? theirParties.map(p=>({ key:p.id, name:p.name, us:false }))
+    : [{ key:'py_them', name:c.counterparty||i18t('ct_a_counterparty'), us:false }]);
+  const keyOf=r=>r.party!=='counterparty' ? 'us' : (((srPartyOf(c,r)||{}).id) || choices[1].key);
+  const nameOfKey=k=>(choices.find(x=>x.key===k)||{}).name || (k==='us'?usName:(c.counterparty||i18t('ct_a_counterparty')));
+  const members=(getUsers()||[]).filter(u=>u && u.role!=='viewer');
+  const titleOf=u=>(u && typeof signerTitle==='function' ? signerTitle(u) : '')||'';
+  // People directory (imported contacts + team members) → the other side's name box suggests from it.
+  const people=(typeof orgDirectory==='function')?orgDirectory():[];
+  const dirList=`<datalist id="sp-dir-names">${people.map(p=>`<option value="${esc1(p.name||p.email||'')}">${esc1([p.title,p.email].filter(Boolean).join(' · '))}</option>`).join('')}</datalist>`;
+
+  /* The working route. Every row carries an id (a new row's is minted now and
+     kept) and a step, read through signStepOf and renumbered 1..n. `from` is the
+     colleague whose record filled the title, so picking somebody else replaces a
+     title that came from the last pick and leaves a typed one alone. */
+  const rows=plan.map((s,i)=>({ id:s.id||newId(), party:s.party==='counterparty'?'counterparty':'internal',
+    name:String(s.name||''), role:String(s.role||''), email:String(s.email||''),
+    memberId:s.party==='counterparty'?'':String(s.memberId||''), partyId:s.partyId?String(s.partyId):'',
+    step:(typeof signStepOf==='function')?signStepOf({ step:s.step, order:s.order||i+1 }):(i+1),
+    ord:i, from:s.party==='counterparty'?'':String(s.memberId||'') }));
+  const norm=()=>{
+    const steps=[...new Set(rows.map(r=>r.step))].sort((a,b)=>a-b);
+    const at=new Map(steps.map((v,i)=>[v,i+1]));
+    rows.forEach(r=>{ r.step=at.get(r.step); });
+    rows.sort((a,b)=>a.step-b.step || a.ord-b.ord);
+    rows.forEach((r,i)=>{ r.ord=i; });
   };
-  const row=(s,i)=>`<div class="rounded-xl border border-line bg-slate-50/60 p-2.5 mb-2" data-sp-row="${i}">
-      <div class="flex items-center gap-2 mb-1.5">
-        <span class="h-5 w-5 grid place-items-center rounded-full bg-brand-600 text-white text-[10px] font-700">${i+1}</span>
-        <select data-sp-party="${i}" class="${IN}">
-          <option value="internal" ${s.party==='internal'?'selected':''}>${i18t('ap_internal')}</option>
-          <option value="counterparty" ${s.party==='counterparty'?'selected':''}>${i18t('ap_counterparty')}</option></select>
-        <span data-sp-member-wrap="${i}" class="${s.party==='counterparty'?'hidden':''}">
-          <select data-sp-member="${i}" class="${IN}">${memberOpts(s)}</select></span>
-        ${''/* ---- WHICH STEP, AND WHICH PARTY (22 Sep 2026) ----
-               The step box is an ordinary number: two rows given the same
-               number sign in any order, and the next step opens when they are
-               both done. It DEFAULTS TO THE ROW'S OWN PLACE, so a route
-               arranged without touching it is the strict queue it has always
-               been. The party picker is drawn only on a contract with more
-               than one outside party, where "counterparty" no longer names
-               one company. */}
-        <label class="flex items-center gap-1 text-[10px] text-ink/50">${esc1(i18t('py_step_n',{n:''}).trim())}
-          <input data-sp-step="${i}" type="number" min="1" max="20" value="${
-            (typeof signStepOf==='function')?signStepOf({step:s.step,order:i+1}):(i+1)}"
-            class="${IN}" style="width:52px;text-align:center"/></label>
-        ${partyOpts(s,i)}
-        <div class="ml-auto flex items-center gap-1">
-          <button data-sp-up="${i}" ${i===0?'disabled':''} class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon" title="${i18t('tb_move_up')}" aria-label="${i18t('tb_move_up')}">${icon('chevU')}</button>
-          <button data-sp-down="${i}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon" title="${i18t('tb_move_down')}" aria-label="${i18t('tb_move_down')}">${icon('chevD')}</button>
-          <button data-sp-del="${i}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon ui-btn-danger ml-1" title="${i18t('act_remove')}" aria-label="${i18t('act_remove')}">${icon('x')}</button></div>
-      </div>
-      <div class="grid grid-cols-3 gap-2">
-        <input data-sp-name="${i}" list="sp-dir-names" value="${(s.name||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ap_name')}" class="${IN}"/>
-        <input data-sp-role="${i}" value="${(s.role||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ap_title_eg')}" class="${IN}"/>
-        <input data-sp-email="${i}" value="${(s.email||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ap_email')}" class="${IN}"/>
-      </div></div>`;
-  openModal(`<div class="p-6">
+  const stepsOf=()=>{ const out=[];
+    rows.forEach(r=>{ let g=out.find(x=>x.n===r.step); if(!g){ g={ n:r.step, rows:[] }; out.push(g); } g.rows.push(r); });
+    return out; };
+  norm();
+  /* WHAT A PERSON STILL NEEDS, in words — the card's hints and its resting line. */
+  const needs=r=>{ const o={}; const nm=r.name.trim();
+    if(r.party==='counterparty'){
+      if(!nm) o.name=i18t('ap_sr_who_for',{ party:nameOfKey(keyOf(r)) });
+      else if(signerIsCompany(c, r)) o.name=i18t('ap_sr_is_company');
+      if(!signerHasEmail(r)) o.email=i18t('ap_sr_email_theirs');
+    } else {
+      if(!nm) o.name=i18t('ap_sr_pick');
+      else if(!signerHasEmail(r)) o.email=i18t('ap_sr_email_ours');
+    }
+    return o; };
+  const open=new Set(rows.filter(r=>Object.keys(needs(r)).length).map(r=>r.id));
+  const rowsOut=()=>{ norm(); return rows.map(r=>({ id:r.id, party:r.party, name:r.name.trim(), role:r.role.trim(),
+    email:r.email.trim(), memberId:r.party==='internal'?r.memberId:'', step:r.step,
+    ...(r.party==='counterparty' && r.partyId ? { partyId:r.partyId } : {}) })); };
+  let say='';
+
+  /* ---- DRAWING ---- */
+  const fld=(r,f,label,wide)=>{
+    const key=f==='title'?'role':f;
+    const n=f==='title'?'':(needs(r)[f]||'');
+    const id=`sp-${key}-${r.id}`;
+    const v=esc1(r[key]);
+    const box=(f==='name' && r.party!=='counterparty')
+      ? `<div class="sr-cb"><input id="${id}" data-sp-f="name" data-sp-id="${r.id}" data-sp-combo value="${v}" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sp-cbl-${r.id}" placeholder="${esc1(i18t('ap_sr_name_ph'))}" style="${FLD}${n?WARN:''}"></div>`
+      : `<input id="${id}" data-sp-f="${key}" data-sp-id="${r.id}" value="${v}" autocomplete="off"${f==='name'?' list="sp-dir-names"':''}${f==='email'?' type="email" inputmode="email"':''} style="${FLD}${n&&f==='name'?WARN:''}">`;
+    return `<div class="sr-f${wide?' sr-wide':''}"><label for="${id}" style="${LBL}">${esc1(label)}</label>${box}${
+      f==='title'?'':`<div class="sr-hint" data-sp-hint="${r.id}:${key}"${n?'':' hidden'}>${esc1(n)}</div>`}</div>`;
+  };
+  const moreBtn=r=>{ const who=r.name.trim()||i18t('ap_sr_this_signer'); const lab=esc1(i18t('ap_sr_more_for',{ name:who }));
+    return `<span class="sr-mwrap"><button type="button" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon" data-sp-menu="${r.id}" aria-haspopup="menu" aria-expanded="false" aria-label="${lab}" title="${lab}">${ic('more')}</button></span>`; };
+  const card=r=>{
+    const k=keyOf(r), us=k==='us', forTx=esc1(i18t('ap_sr_for',{ party:nameOfKey(k) }));
+    if(!open.has(r.id)){
+      const n=needs(r);
+      const sub=n.name ? `<span class="sr-am">${esc1(n.name)}</span>`
+        : [r.role.trim()?esc1(r.role):'', r.email.trim()?esc1(r.email):(n.email?`<span class="sr-am">${esc1(i18t('ap_sr_no_email'))}</span>`:'')].filter(Boolean).join(' · ');
+      const who=r.name.trim();
+      return `<div class="sr-card is-rest" data-sp-row="${r.id}">
+        <span class="sr-av${us?' us':''}" aria-hidden="true">${esc1(ini(who))}</span>
+        <button type="button" class="sr-who" data-sp-edit="${r.id}" aria-label="${esc1(i18t('ap_sr_edit_who',{ name:who||i18t('ap_sr_this_signer') }))}"><b>${who?esc1(who):`<span class="sr-am">${esc1(i18t('ap_sr_nobody_named'))}</span>`}</b><span>${sub}</span></button>
+        <span class="sr-for${us?' us':''}" title="${forTx}">${forTx}</span>${moreBtn(r)}</div>`;
+    }
+    return `<div class="sr-card is-open" data-sp-row="${r.id}">
+      <div class="sr-ch"><span class="sr-for${us?' us':''}">${forTx}</span>${moreBtn(r)}</div>
+      <div class="sr-grid">${fld(r,'name',i18t('ap_name'))}${fld(r,'title',i18t('ap_sr_title'))}${fld(r,'email',i18t('ap_email'),true)}</div>
+      <div class="sr-cf"><button type="button" class="ui-btn ui-btn-sm" data-sp-done="${r.id}">${esc1(i18t('act_done'))}</button></div></div>`;
+  };
+  /* A party with no row at all is an empty place carrying the act that fills
+     it. A row somebody started is its own card, asking its own question. */
+  const missHtml=()=>choices.filter(ch=>!rows.some(r=>keyOf(r)===ch.key)).map(ch=>
+    `<div class="sr-miss" data-sp-miss="${esc1(ch.key)}"><span>${esc1(i18t('ap_sr_nobody_for',{ party:ch.name }))}</span><button type="button" class="ui-btn ui-btn-sm" data-sp-addfor="${esc1(ch.key)}">${ic('plus')}${esc1(i18t('ap_sr_add_who'))}</button></div>`).join('');
+  const bodyHtml=()=>{
+    norm();
+    return stepsOf().map(g=>`<section class="sr-step" data-sr-step="${g.n}">
+        <span class="sr-node" aria-hidden="true">${g.n}</span>
+        <div class="sr-sh"><span class="sr-sn">${esc1(i18t('py_step_n',{ n:g.n }))}</span>${g.rows.length>1?`<span class="sr-any">· ${esc1(i18t('ap_sr_any'))}</span>`:''}</div>
+        <div class="sr-cards">${g.rows.map(card).join('')}</div>
+        <span class="sr-mwrap sr-addwrap"><button type="button" class="ui-link sr-addto" data-sp-add="${g.n}" aria-haspopup="menu" aria-expanded="false">${ic('plus')}${esc1(i18t('ap_sr_add_to_step',{ n:g.n }))}</button></span></section>`).join('')
+      + `<div class="sr-misses" id="sr-misses">${missHtml()}</div>
+      <div class="sr-end"><span class="sr-node" aria-hidden="true">${ic('plus','w-3 h-3')}</span><span class="sr-mwrap sr-addwrap"><button type="button" class="ui-btn ui-btn-sm" data-sp-add="new" aria-haspopup="menu" aria-expanded="false">${esc1(i18t('ap_sr_add_step'))}</button></span></div>`;
+  };
+
+  openModal(`<div class="p-6 sr-win" id="sr-win">
     <h3 class="font-serif font-600 text-lg text-ink mb-1">${i18t('ap_signing_route')}</h3>
     <p class="text-xs text-ink/60 mb-3">${i18t('ap_route_line')}</p>
     ${dirList}
-    <div id="sp-rows">${plan.map(row).join('')||`<div class="text-[12px] text-ink/50 mb-2">${i18t('ap_no_signers')}</div>`}</div>
-    <button id="sp-add" class="ui-link mb-2">${(typeof window!=='undefined'&&window.plusLed?window.plusLed(i18t('ap_add_signer')):i18t('ap_add_signer'))}</button>
-    ${''/* ---- BOTH SIDES, COUNTED WHILE YOU TYPE ----
-           The rule is that a route names somebody on each side, and a rule a
-           form only mentions when it refuses is a rule the form is keeping to
-           itself. This says where the route stands after every keystroke, so
-           the refusal below is a confirmation rather than a surprise. */}
-    <div id="sp-tally" class="mb-4 text-[11.5px] leading-relaxed"></div>
-    <div class="flex justify-end gap-2"><button id="sp-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-      <button id="sp-save" class="ui-btn ui-btn-primary">${i18t('ap_save_route')}</button></div>
-  </div>`, { maxWidth: DLG_W.l });
-  /* Named rows only, on both counts: a blank row is discarded on save (see
-     `if(!s.name) return` below), so counting it here would promise a route the
-     save is about to refuse. */
-  const tally=()=>{
-    const el=document.getElementById('sp-tally'); if(!el) return;
-    const named=p=>plan.filter(s=>s && String(s.name||'').trim() && (p==='counterparty'
-      ? s.party==='counterparty' : s.party!=='counterparty')).length;
-    const ours=named('internal'), theirs=named('counterparty');
-    const ok=ours>0 && theirs>0;
-    const line=(n,label)=>`<span style="color:${n?'var(--st-green-fg)':'var(--st-amber-fg)'};font-weight:var(--w-strong)">${n?'✓':'○'} ${esc(label)}</span>`;
-    el.innerHTML=`${line(ours,i18tn('ap_our_side_n',ours,{n:ours}))} &nbsp;·&nbsp; ${
-      line(theirs,i18tn('ap_their_side_n',theirs,{n:theirs}))}`
-      + (ok?'':`<div style="color:var(--color-neutral-600);margin-top:3px">${esc(i18t('ap_both_sides_needed'))}</div>`);
+    <div class="sr-steps" id="sr-steps">${bodyHtml()}</div>
+    <div class="dlg-foot sr-foot"><span class="sr-say" id="sr-say" role="alert"></span>
+      <button id="sp-cancel" type="button" class="ui-btn">${i18t('act_cancel')}</button>
+      <button id="sp-save" type="button" class="ui-btn ui-btn-primary">${i18t('ap_save_route')}</button></div>
+  </div>`, { maxWidth: DLG_W.l, label: i18t('ap_signing_route') });
+  const win=document.getElementById('sr-win'); if(!win) return;
+  const panel=win.closest('[role="dialog"]');
+  const q=sel=>win.querySelector(sel);
+
+  let menuAt=null, combo=null;
+  const closeMenu=()=>{ win.querySelectorAll('.sr-menu').forEach(m=>m.remove());
+    if(menuAt){ menuAt.setAttribute('aria-expanded','false'); menuAt=null; } };
+  const comboHide=()=>{ if(!combo) return; combo.box.remove(); combo.input.setAttribute('aria-expanded','false'); combo=null; };
+  const paintSay=()=>{ const s=q('#sr-say'); if(!s) return;
+    const html=say?`${icon('alert','w-3.5 h-3.5')}<span>${esc1(say)}</span>`:'';
+    if(s.innerHTML!==html) s.innerHTML=html; };
+  const repaint=focusSel=>{
+    closeMenu(); comboHide();
+    const top=panel?panel.scrollTop:0;
+    const host=q('#sr-steps'); if(!host) return;
+    host.innerHTML=bodyHtml();
+    paintSay();
+    if(panel) panel.scrollTop=top;
+    if(focusSel){ const el=q(focusSel); if(el){ try{ el.focus({ preventScroll:false }); }catch(_){ el.focus(); } } }
   };
-  const rerow=()=>{ document.getElementById('sp-rows').innerHTML=plan.map(row).join('')||''; wire(); tally(); };
-  const readRow=idx=>{ const g=sel=>document.querySelector(`[data-sp-${sel}="${idx}"]`);
-    const step=g('step')?Number(g('step').value):NaN;
-    return { party:g('party').value, name:g('name').value.trim(), role:g('role').value.trim(), email:g('email').value.trim(),
-      memberId:g('member')?g('member').value:'',
-      ...(Number.isFinite(step)&&step>=1?{step:Math.floor(step)}:{}),
-      ...(g('partyid')?{partyId:g('partyid').value}:{}) }; };
-  const syncPlanFromDom=()=>{ document.querySelectorAll('[data-sp-row]').forEach(r=>{ const i=Number(r.getAttribute('data-sp-row')); Object.assign(plan[i], readRow(i)); }); };
-  const wire=()=>{
-    document.querySelectorAll('[data-sp-del]').forEach(b=>b.addEventListener('click',()=>{ syncPlanFromDom(); plan.splice(Number(b.getAttribute('data-sp-del')),1); rerow(); }));
-    document.querySelectorAll('[data-sp-up]').forEach(b=>b.addEventListener('click',()=>{ syncPlanFromDom(); const i=Number(b.getAttribute('data-sp-up')); if(i>0){ [plan[i-1],plan[i]]=[plan[i],plan[i-1]]; rerow(); } }));
-    document.querySelectorAll('[data-sp-down]').forEach(b=>b.addEventListener('click',()=>{ syncPlanFromDom(); const i=Number(b.getAttribute('data-sp-down')); if(i<plan.length-1){ [plan[i+1],plan[i]]=[plan[i],plan[i+1]]; rerow(); } }));
-    document.querySelectorAll('[data-sp-party]').forEach(sel=>sel.addEventListener('change',()=>{ syncPlanFromDom(); rerow(); }));
-    document.querySelectorAll('[data-sp-member]').forEach(sel=>sel.addEventListener('change',()=>{
-      syncPlanFromDom();                       // capture any typed values first
-      const i=Number(sel.getAttribute('data-sp-member')), u=userById(sel.value);
-      if(u){ plan[i].memberId=u.id; plan[i].name=u.name; plan[i].email=u.email;
-        // This field is labelled "Title (e.g. CFO)" — it is the capacity the
-        // person signs in. It used to fall back to their Admin/Legal/Viewer
-        // permission level, which is how "Admin" ended up on signature blocks.
-        if(!plan[i].role) plan[i].role=(typeof signerTitle==='function'?signerTitle(u):'')||''; }
-      else { plan[i].memberId=''; }
-      rerow(); }));
-    // Auto-populate: typing or selecting a directory name fills the empty Title
-    // and Email fields for that signer (never overwrites values already entered).
-    document.querySelectorAll('[data-sp-name]').forEach(inp=>inp.addEventListener('change',()=>{
-      const i=Number(inp.getAttribute('data-sp-name'));
-      const p=(typeof directoryLookup==='function')&&directoryLookup(inp.value);
-      if(!p) return;
-      const roleEl=document.querySelector(`[data-sp-role="${i}"]`), emailEl=document.querySelector(`[data-sp-email="${i}"]`);
-      if(p.title && roleEl && !roleEl.value.trim()) roleEl.value=p.title;
-      if(p.email && emailEl && !emailEl.value.trim()) emailEl.value=p.email;
-    }));
+  /* TYPING NEVER REPAINTS THE WINDOW: only the hints, the empty places and the
+     sentence beside Save follow it, so the caret stays where it is. */
+  const live=()=>{
+    win.querySelectorAll('[data-sp-hint]').forEach(h=>{
+      const [id,f]=h.getAttribute('data-sp-hint').split(':');
+      const r=rows.find(x=>x.id===id); if(!r) return;
+      const n=needs(r)[f]||'';
+      h.hidden=!n; if(h.textContent!==n) h.textContent=n;
+      if(f==='name'){ const box=q(`[data-sp-f="name"][data-sp-id="${id}"]`);
+        if(box) box.style.borderColor=n?'var(--st-amber-line)':'var(--field-line)'; }
+    });
+    const m=q('#sr-misses'); if(m){ const h=missHtml(); if(m.innerHTML!==h) m.innerHTML=h; }
+    if(say){ say=signerPlanWhy(c, rowsOut())||''; paintSay(); }
   };
-  document.getElementById('sp-add').addEventListener('click',()=>{ syncPlanFromDom(); plan.push({party:'internal',name:'',role:'',email:'',memberId:''}); rerow(); });
-  /* The tally follows typing, not just structural changes — a name typed into
-     an existing row is the commonest way a side stops being empty. */
-  document.getElementById('sp-rows')?.addEventListener('input',()=>{ syncPlanFromDom(); tally(); });
-  wire(); tally();
+
+  /* ---- THE ⋯ MENU AND THE ADD MENUS: one small menu, inside the window ---- */
+  const openMenu=(btn, items, left)=>{
+    const was=menuAt; closeMenu(); comboHide();
+    if(was===btn) return;                       // the press that opened it closes it
+    const wrap=btn.closest('.sr-mwrap'); if(!wrap) return;
+    const m=document.createElement('div');
+    m.className='ins-menu sr-menu'+(left?' left':''); m.setAttribute('role','menu');
+    m.innerHTML=items.map(it=>it.hr ? '<hr class="sr-mhr">'
+      : it.head ? `<div class="sr-mh">${esc1(it.head)}</div>`
+      : `<button type="button" role="${it.radio?'menuitemradio':'menuitem'}"${it.radio?` aria-checked="${it.on?'true':'false'}"`:''} class="sr-mi${it.danger?' danger':''}" data-sp-do="${it.act}" data-sp-for="${esc1(it.id)}"${it.arg!=null?` data-sp-arg="${esc1(it.arg)}"`:''}${it.keys?` aria-keyshortcuts="${it.keys}"`:''}${it.disabled?' disabled':''}>${
+          it.icon?ic(it.icon):'<span class="sr-mi-sp" aria-hidden="true"></span>'}<span class="sr-mi-tx">${esc1(it.label)}</span>${it.radio&&it.on?`<span class="sr-mi-on">${ic('check2')}</span>`:''}</button>`).join('');
+    wrap.appendChild(m);
+    btn.setAttribute('aria-expanded','true'); menuAt=btn;
+    /* A menu that would run under the pinned foot opens upward instead. */
+    if(panel){ const foot=panel.querySelector('.dlg-foot');
+      const limit=(foot?foot.getBoundingClientRect().top:panel.getBoundingClientRect().bottom)-4;
+      const mr=m.getBoundingClientRect(), br=btn.getBoundingClientRect(), pr=panel.getBoundingClientRect();
+      if(mr.bottom>limit && br.top-pr.top>mr.height+8) m.classList.add('up'); }
+    const first=m.querySelector('.sr-mi:not(:disabled)'); if(first) first.focus();
+  };
+  const rowMenu=id=>{
+    norm(); const r=rows.find(x=>x.id===id); if(!r) return [];
+    const steps=stepsOf(); const g=steps.find(x=>x.n===r.step);
+    const alone=g.rows.length===1, first=r.step===1, last=r.step===steps.length;
+    const items=[];
+    if(!open.has(id)) items.push({ label:i18t('ap_sr_edit'), act:'edit', id, icon:'pencil' });
+    items.push({ label:i18t('tb_move_up'), act:'up', id, icon:'chevU', disabled:alone&&first, keys:'Alt+ArrowUp' });
+    items.push({ label:i18t('tb_move_down'), act:'down', id, icon:'chevD', disabled:alone&&last, keys:'Alt+ArrowDown' });
+    if(alone && !first) items.push({ label:i18t('ap_sr_join',{ n:r.step-1 }), act:'join', id, icon:'link' });
+    if(!alone) items.push({ label:i18t('ap_sr_split'), act:'split', id, icon:'minus' });
+    items.push({ hr:true }, { head:i18t('ap_sr_signs_for') });
+    choices.forEach(ch=>items.push({ label:ch.name, act:'side', id, arg:ch.key, radio:true, on:keyOf(r)===ch.key }));
+    items.push({ hr:true }, { label:i18t('act_remove'), act:'remove', id, icon:'trash', danger:true });
+    return items;
+  };
+  const addMenu=step=>[{ head:i18t(step==='new'?'ap_sr_who_next':'ap_sr_who_with') }]
+    .concat(choices.map(ch=>({ label:i18t('ap_sr_for',{ party:ch.name }), act:'add', id:String(step), arg:ch.key })));
+  const addRow=(key, stepArg)=>{
+    norm();
+    const n=stepArg==='new' ? stepsOf().length+1 : Number(stepArg);
+    const r={ id:newId(), party:key==='us'?'internal':'counterparty', name:'', role:'', email:'', memberId:'',
+      partyId:(key!=='us' && multi)?key:'', step:n, ord:rows.length+.5, from:'' };
+    rows.push(r); open.add(r.id); norm();
+    repaint(`[data-sp-f="name"][data-sp-id="${r.id}"]`);
+  };
+  /* MOVING. Up: a person sharing a step leaves it for a step of their own just
+     above; a person alone swaps places with the step above. Down mirrors it.
+     The same four moves the options page drew, and Alt+↑/↓ asks the same two. */
+  const move=(r, act)=>{
+    norm(); const g=stepsOf().find(x=>x.n===r.step); const alone=!!g && g.rows.length===1;
+    if(act==='up') r.step = alone ? r.step-1.5 : r.step-0.5;
+    if(act==='down') r.step = alone ? r.step+1.5 : r.step+0.5;
+    if(act==='join') r.step = r.step-1;
+    if(act==='split') r.step = r.step+0.5;
+    norm();
+  };
+  const doMenu=(act, id, arg)=>{
+    if(act==='add'){ closeMenu(); addRow(arg, id); return; }
+    const r=rows.find(x=>x.id===id); if(!r){ closeMenu(); return; }
+    if(act==='edit'){ open.add(id); repaint(`[data-sp-f="name"][data-sp-id="${id}"]`); return; }
+    if(act==='remove'){ rows.splice(rows.indexOf(r),1); open.delete(id); norm(); if(say) say=signerPlanWhy(c, rowsOut())||''; repaint('[data-sp-add="new"]'); return; }
+    if(act==='side'){
+      if(arg==='us'){ r.party='internal'; r.partyId=''; }
+      else { r.party='counterparty'; r.memberId=''; r.from=''; r.partyId=multi?arg:''; }
+      open.add(r.id);
+      if(say) say=signerPlanWhy(c, rowsOut())||'';
+      repaint(`[data-sp-f="name"][data-sp-id="${id}"]`); return;
+    }
+    move(r, act);
+    repaint(`[data-sp-row="${id}"] [data-sp-menu]`);
+  };
+
+  /* ---- THE COLLEAGUE PICKER: the team by name, email or title ---- */
+  const comboShow=input=>{
+    comboHide();
+    const t=srFold(input.value);
+    const list=members.filter(u=>!t || srFold([u.name,u.email,titleOf(u)].join(' ')).includes(t)).slice(0,8);
+    const box=document.createElement('div');
+    box.className='sr-cbl'; box.id='sp-cbl-'+input.getAttribute('data-sp-id'); box.setAttribute('role','listbox');
+    box.innerHTML=`<div class="sr-mh">${esc1(i18t('ap_sr_team'))}</div>`+(list.length ? list.map((u,i)=>
+      `<button type="button" role="option" class="sr-cbi${i===0?' on':''}" data-sp-pick="${esc1(u.id)}" tabindex="-1" aria-selected="${i===0?'true':'false'}"><span class="sr-av us" aria-hidden="true">${esc1(ini(u.name))}</span><span class="sr-cbt"><b>${esc1(u.name||u.email)}</b><small>${esc1([titleOf(u),u.email].filter(Boolean).join(' · '))}</small></span></button>`).join('')
+      : `<div class="sr-cbn">${esc1(i18t('ap_sr_no_match'))}</div>`);
+    input.parentNode.appendChild(box); input.setAttribute('aria-expanded','true');
+    combo={ input, box, i:0 };
+  };
+  const comboPick=(uid, input)=>{
+    const u=(typeof userById==='function')?userById(uid):members.find(x=>String(x.id)===String(uid));
+    const id=input.getAttribute('data-sp-id'); const r=rows.find(x=>x.id===id); if(!u || !r) return;
+    const was=(typeof userById==='function')?userById(r.memberId||r.from):null;
+    r.memberId=u.id; r.from=u.id; r.name=u.name||''; r.email=u.email||'';
+    if(!r.role.trim() || (was && r.role===titleOf(was))) r.role=titleOf(u);
+    comboHide();
+    if(say) say=signerPlanWhy(c, rowsOut())||'';
+    repaint(`[data-sp-f="role"][data-sp-id="${id}"]`);
+  };
+
+  /* ---- ONE LISTENER PER KIND, ON THE WINDOW ITSELF ---- */
+  win.addEventListener('mousedown', e=>{
+    const p=e.target.closest && e.target.closest('[data-sp-pick]');
+    if(p && combo){ e.preventDefault(); comboPick(p.getAttribute('data-sp-pick'), combo.input); }
+  });
+  win.addEventListener('click', e=>{
+    const t=e.target;
+    const mi=t.closest('.sr-mi');
+    if(mi){ if(!mi.disabled) doMenu(mi.getAttribute('data-sp-do'), mi.getAttribute('data-sp-for'), mi.getAttribute('data-sp-arg')); return; }
+    if(!t.closest('.sr-menu') && !t.closest('[data-sp-menu],[data-sp-add]')) closeMenu();
+    if(!t.closest('.sr-cb')) comboHide();
+    const b=t.closest('[data-sp-menu],[data-sp-add],[data-sp-addfor],[data-sp-edit],[data-sp-done]');
+    if(!b){
+      /* The whole resting card is the way in, not only its name. */
+      const rest=t.closest('.sr-card.is-rest');
+      if(rest && !t.closest('button')){ const id=rest.getAttribute('data-sp-row'); open.add(id); repaint(`[data-sp-f="name"][data-sp-id="${id}"]`); }
+      return;
+    }
+    if(b.hasAttribute('data-sp-menu')){ openMenu(b, rowMenu(b.getAttribute('data-sp-menu'))); return; }
+    if(b.hasAttribute('data-sp-add')){ openMenu(b, addMenu(b.getAttribute('data-sp-add')), true); return; }
+    if(b.hasAttribute('data-sp-addfor')){ addRow(b.getAttribute('data-sp-addfor'), 'new'); return; }
+    if(b.hasAttribute('data-sp-edit')){ const id=b.getAttribute('data-sp-edit'); open.add(id); repaint(`[data-sp-f="name"][data-sp-id="${id}"]`); return; }
+    if(b.hasAttribute('data-sp-done')){ const id=b.getAttribute('data-sp-done'); open.delete(id); repaint(`[data-sp-edit="${id}"]`); return; }
+  });
+  win.addEventListener('input', e=>{
+    const el=e.target; const f=el.getAttribute && el.getAttribute('data-sp-f'), id=el.getAttribute && el.getAttribute('data-sp-id');
+    if(!f || !id) return;
+    const r=rows.find(x=>x.id===id); if(!r) return;
+    r[f]=el.value;
+    /* A name that no longer names the colleague it was picked from is a typed name. */
+    if(f==='name' && r.memberId){ const u=(typeof userById==='function')?userById(r.memberId):null; if(!u || u.name!==el.value) r.memberId=''; }
+    if(el.hasAttribute('data-sp-combo')) comboShow(el);
+    live();
+  });
+  /* Typing or choosing a directory name fills the empty Title and Email for
+     that signer — never over values already entered. */
+  win.addEventListener('change', e=>{
+    const el=e.target; if(!el.getAttribute || el.getAttribute('data-sp-f')!=='name') return;
+    const id=el.getAttribute('data-sp-id'); const r=rows.find(x=>x.id===id); if(!r) return;
+    const p=(typeof directoryLookup==='function') && directoryLookup(el.value); if(!p) return;
+    const roleEl=q(`[data-sp-f="role"][data-sp-id="${id}"]`), emailEl=q(`[data-sp-f="email"][data-sp-id="${id}"]`);
+    if(p.title && !r.role.trim()){ r.role=p.title; if(roleEl) roleEl.value=p.title; }
+    if(p.email && !r.email.trim()){ r.email=p.email; if(emailEl) emailEl.value=p.email; }
+    live();
+  });
+  win.addEventListener('focusin', e=>{
+    const el=e.target;
+    if(el.hasAttribute && el.hasAttribute('data-sp-combo')){ if(!combo || combo.input!==el) comboShow(el); }
+    else if(combo && !(el.closest && el.closest('.sr-cb'))) comboHide();
+  });
+  win.addEventListener('keydown', e=>{
+    /* ESCAPE CLOSES THE SMALLEST THING OPEN. The dialog's own Escape listens on
+       the document, so stopping it here keeps the window up while a list or a
+       menu is the thing being closed. */
+    if(e.key==='Escape'){
+      if(combo){ comboHide(); e.stopPropagation(); return; }
+      if(menuAt){ const a=menuAt; closeMenu(); try{ a.focus(); }catch(_){} e.stopPropagation(); return; }
+      return;
+    }
+    if(combo && (e.key==='ArrowDown' || e.key==='ArrowUp')){
+      e.preventDefault(); const opts=[...combo.box.querySelectorAll('.sr-cbi')]; if(!opts.length) return;
+      combo.i=(combo.i+(e.key==='ArrowDown'?1:-1)+opts.length)%opts.length;
+      opts.forEach((o,i)=>{ o.classList.toggle('on',i===combo.i); o.setAttribute('aria-selected',i===combo.i?'true':'false'); });
+      return;
+    }
+    if(combo && e.key==='Enter'){ const o=combo.box.querySelectorAll('.sr-cbi')[combo.i];
+      if(o){ e.preventDefault(); comboPick(o.getAttribute('data-sp-pick'), combo.input); } return; }
+    const menu=e.target.closest && e.target.closest('.sr-menu');
+    if(menu && (e.key==='ArrowDown' || e.key==='ArrowUp')){
+      e.preventDefault(); const items=[...menu.querySelectorAll('.sr-mi:not(:disabled)')];
+      const i=items.indexOf(document.activeElement);
+      const n=items[(i+(e.key==='ArrowDown'?1:-1)+items.length)%items.length]; if(n) n.focus(); return;
+    }
+    if(e.altKey && (e.key==='ArrowUp' || e.key==='ArrowDown')){
+      const cardEl=e.target.closest && e.target.closest('[data-sp-row]'); if(!cardEl) return;
+      e.preventDefault();
+      const id=cardEl.getAttribute('data-sp-row'); const r=rows.find(x=>x.id===id); if(!r) return;
+      norm(); const steps=stepsOf(); const g=steps.find(x=>x.n===r.step); const alone=!!g && g.rows.length===1;
+      if(e.key==='ArrowUp' && alone && r.step===1) return;
+      if(e.key==='ArrowDown' && alone && r.step===steps.length) return;
+      const f=e.target.getAttribute && e.target.getAttribute('data-sp-f');
+      move(r, e.key==='ArrowUp'?'up':'down');
+      repaint(f ? `[data-sp-f="${f}"][data-sp-id="${id}"]` : (open.has(id) ? `[data-sp-row="${id}"] [data-sp-menu]` : `[data-sp-edit="${id}"]`));
+    }
+  });
+
   document.getElementById('sp-cancel').addEventListener('click',()=>{ closeModal(); if(back) back(); });
   document.getElementById('sp-save').addEventListener('click',()=>{
-    syncPlanFromDom();
     /* The rule lives in saveSignerPlan and is shared with the phone's picker.
-       This decides only HOW to say a refusal — a toast, here. */
+       This decides only HOW a refusal is said: in the window, beside Save,
+       and on the place that answers it. */
+    const plan=rowsOut();
     const why=saveSignerPlan(c, plan);
-    if(why){ toast(why,'err'); return; }
+    if(why){
+      say=why;
+      const hit=signerPlanRefusal(c, plan.filter(s=>s.name));
+      if(hit && hit.rowId){ open.add(hit.rowId); repaint(`[data-sp-f="${hit.field||'name'}"][data-sp-id="${hit.rowId}"]`); return; }
+      /* A side or a party with nobody named: the empty place that fills it,
+         or the unnamed card somebody already started for it. */
+      repaint();
+      const place=(hit && hit.partyId && q(`[data-sp-miss="${hit.partyId}"] [data-sp-addfor]`)) || q('.sr-miss [data-sp-addfor]');
+      if(place){ place.focus(); return; }
+      const blank=rows.find(r=>!r.name.trim());
+      if(blank){ open.add(blank.id); repaint(`[data-sp-f="name"][data-sp-id="${blank.id}"]`); }
+      return;
+    }
     closeModal();
     if(back) back(); else renderWorkspace();
     toast(i18t('ap_route_saved'),'ok');
@@ -1855,7 +2210,7 @@ function wireApprovalPanel(c){
    "have they seen it" — it reads shares.first_opened_at, which is stamped once
    on the first real open and never re-counted. */
 
-Object.assign(window,{signStepOf,signSteps,signStepIndex,signStepDone,signStepOpen,signRowOpen,signStepNow,signOpenRows,overseerCfg,saveOverseerCfg,overseerEnforced,overseerFor,OVERSEER_STEP_ID,approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,saveSignerPlan,approvalPanelHtml,approvalChainHtml,APPROVAL_CLEAR_SAYS,approvalClearRows,approvalClearHtml,signerRouteHtml,wireApprovalPanel,
+Object.assign(window,{signStepOf,signSteps,signStepIndex,signStepDone,signStepOpen,signRowOpen,signStepNow,signOpenRows,overseerCfg,saveOverseerCfg,overseerEnforced,overseerFor,OVERSEER_STEP_ID,approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,saveSignerPlan,signerRouteWindow,signerPlanWhy,signerPlanRefusal,signerIsCompany,signerHasEmail,approvalPanelHtml,approvalChainHtml,APPROVAL_CLEAR_SAYS,approvalClearRows,approvalClearHtml,signerRouteHtml,wireApprovalPanel,
   signApprovalLegacyOn,signApprovalNeeds,signApprovalStateOf,saStepName,saMoney,saDriftWords,SA_CHAIN_STATUS,saChainStep,
   signApprovalDecidable,signApprovalWaitsOn,SA_PAPER_KEYS,signApprovalPaperHolds,signApprovalRequestable,signApprovalRound,
   saFmtDay,saWhen,saShowsLine,signApprovalNotify,saNoticeOf,saDeliveryWords,signApprovalRequest,signApprovalDecide,

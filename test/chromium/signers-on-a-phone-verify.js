@@ -122,7 +122,17 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       theirName: v('theirs.name'), theirEmail: v('theirs.email') };
   });
   check('our side is filled from the signed-in member', !!pre.ourName, pre.ourName);
-  check("and theirs from the contract's own counterparty", !!pre.theirName, pre.theirName);
+  /* REVERSED IN PLACE 27 Sep 2026. This asked that their slot arrive filled
+     from the contract's own counterparty — which is the COMPANY, standing in a
+     box that asks for a person. The owner's ruling that day ("Save refuses when
+     the only name for a party is the company's") made that a refusal on Save,
+     so the slot now opens on a person the record knows, or empty so the reader
+     is asked. Asked through the product's own reading, signerIsCompany. */
+  const theirIsCo = await page.evaluate(({ id, n }) => typeof window.signerIsCompany !== 'function' ? null
+    : !!window.signerIsCompany(window.getContract(id), { party: 'counterparty', name: n }), { id: cid, n: pre.theirName });
+  check("and theirs never on the company's own name — a person the record knows, or empty",
+    theirIsCo === false || (theirIsCo !== null && pre.theirName === ''),
+    `"${pre.theirName}" · company: ${theirIsCo}`);
 
   /* ---------- 3 · ONE SIDE ALONE IS REFUSED, AND THE TYPING SURVIVES ---------- */
   await page.fill('[data-m-signer="theirs.name"]', '');

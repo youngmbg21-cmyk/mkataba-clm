@@ -19425,6 +19425,18 @@ Deliberately left alone (said to the owner)
 Noticed, not fixed
 - f387 (2e) and (4c) count days from the clock: the fixture builds its dates with setDate on "now" and slices the UTC day, so "in 45 days" / "in 30 days" read one day short in the evening (29 against 30 at 20:40 UTC). Same at main.
 
+## Run 27 Sep 2026 — three designs for the Signing route window
+
+- On the owner's word, over a screenshot of the window: "Create render options for this pop up. The current design is frankly very poor." A design question, so nothing was built: three options drawn working on the real Signing tab, with today's window photographed on the same two contracts (the owner's NDA, MK-160, and a distributor contract with a guarantor, MK-147), published privately as "Signing Route Options".
+- Measured first, at main (e985b16): today's window draws 9 or 10 controls on every person (20 on a two-person route, 30 with a guarantor); on the NDA the Name box on their side holds the company's name with no title or email while the count under it reads "Their side: 1 signer"; the top line says the other side's links open once every internal signature is in, which is false on a route where they sign first.
+- The three: Timeline (the route as numbered steps; a finished person rests as one line, a person with something missing opens), Signature page (a block per party, our side on the left and theirs on the right, each saying when that party signs), Ledger (one line per signer, a step column). Recommended: Timeline. Three questions put to the owner: should Save refuse a signer on their side with no email, a company's name standing in for a person, and a guarantor with nobody named.
+
+Deliberately left alone (said to the owner)
+- Nothing is built until the owner picks one by name.
+
+Noticed, not fixed
+- The Signing order card's foot line ("each counterparty signer gets their own link, held until every internal signature is in") describes an internal-first route; on a route where the other side signs first it reads wrong, as the window's own top line does. Only the window's line is in this round's designs.
+- When a route is empty and no person is on record for the other side, the editor fills their Name box with the company's name (the fallback to the contract's counterparty), and Save then counts it as a named signer.
 ## Run 26 Sep 2026 (night) — Analyze contract on the Contract Graph
 
 - On the owner's word, over the "Analyze on the Graph" page (Sheet, Pinned, Focus, then "all three in one"): "Build the all in one option and merge to main. Start from the latest main." Built on claude/optimistic-curie-fself4 from main (e985b16).
@@ -19578,3 +19590,22 @@ Tests: f397 (17, 14 red at the parent), fresh-filters-verify (14, 7 red at the p
 - R.sel is written by My Queue's in-page "+N more" and read nowhere.
 - #reg-search handlers point at an element the page no longer draws.
 - negotiations-door-verify: "the room shows four tabs" (two checks) fails — the room draws five tabs.
+
+## Run 27 Sep 2026 — the signing route is a timeline
+
+- On the owner's word, answering the options page: "1, Yes. 2, Yes, 3, Yes. Then build timeline and merge to main. Start from the latest main". Built on claude/hati-button-review-9x2sbo on top of main (5409902).
+- Built: the Signing route window redrawn as the Timeline design — numbered steps down one line ("signs in any order" where two share a step), position as the only order (no Step box, no side dropdown), a complete person resting as one line that names who they sign for, a person missing something opening with the reason on their own card, our signer picked once from the team (title and email fill in), one menu per person (edit, move up, move down, sign with the step above or on a step of their own, which party they sign for, remove), Alt+Up/Down to move, an empty place with its own button for a party with nobody named, and the refusal said in the window beside Save with the caret put in the box that answers it.
+- Three new Save rules, in the one save both editors use: a signer on their side needs a real email address; the company's own name is not a person; every party that signs (a guarantor included) needs somebody named. The side rule's words are unchanged and it still runs first.
+- Found and fixed on the way: the phone's signer sheet handed the save its two slots only, so saving on a phone deleted every other signer (a guarantor's included) and put ours first, while the sheet said the others were kept; it now hands the whole route back with its two slots replaced in place. Both shells opened their slot on the company's name; it now opens on a person the record knows, or empty with the question.
+- Tests: f398 30 claims (24 red at 5409902; the six that pass there are named controls and walls). signing-route-timeline-verify 37 checks (34 red at 5409902; the stage, 6a and the error sweep pass on both; 2d gated after it passed there for the wrong reason). Re-pointed in place: f243, f256, f310, f312 (2), f385 (8); signers-and-party-verify 5b (4 checks, all red at 5409902; the "fills in what the record knows" claim reversed in half — it passed on the company's name standing in as a person); signers-on-a-phone-verify (their slot, reversed; prints "Naivas Supermarkets" at 5409902).
+- Gates: lint 0 errors, 178 warnings (unchanged). In real browsers: signing-route-timeline-verify 37/37, signers-on-a-phone-verify 23/23, sign-links-verify 38/38, approval-before-signing-verify 34/34, share-recipient-verify 49/49, signing-flow-verify 45/45, signing-without-the-facts-verify 26/26, redline-here-sign-there-verify 37/37, two-copies-verify 28/28, dialog-balance-verify 18/18, compact-ladder-verify 29/29, keyboard-reach-verify 37/37, window-drag-verify 16/16. signers-and-party-verify 48/49, signing-on-paper-verify 20/22, phone-verify 68/69 and button-consistency-verify 15/17 fail on exactly the same checks at 5409902.
+- Full suite: 9,668 tests, 9,664 pass; the 4 that fail — f258 (4), f267 (17), f277 (1), f277 (10) — fail identically at 5409902 and were left red.
+
+Deliberately left alone (said to the owner)
+- The server does not check a route's contents, exactly as it never checked the side rule: the new rules are the browser's.
+- Our side's email is not required: a colleague is told inside the app.
+
+Noticed, not fixed
+- The Signing order card's own foot line is hard-coded English and says each counterparty link is "held until every internal signature is in" — untrue for a route where they sign first; "Add or reorder signers", "Add signers" and "N of M signed" beside it are hard-coded English too.
+- f258 (4) and f267 (17) are red on main at 5409902: both pin the Contracts page's Clear button as setting each filter back by hand, which the fresh-filters change replaced with one reading. That run's log says only f277 was red.
+- button-consistency-verify "2-stage" and "2a" are red at 5409902: Home shows no decision row in the file's staging ("8 desk verbs · 0 decision verbs"), though the file was 17/17 earlier on 27 Sep.
