@@ -19676,3 +19676,10 @@ Built: the Brain page, js/brainmap.js, GET /api/brain, f400, brain-page-verify. 
 - type-and-symbols-verify: "each one is painted at the size the sheet asks for" is red at origin/main 972d681 too (icons paint 14x14), same result with and without this change.
 - white-band-and-tabs-verify: 5-ref, 5a and "the journey ran to the end" are red at origin/main 972d681 too (the Insights tabs are not found), same with and without this change.
 - npm test: six tests are red at origin/main 972d681 and identical with this change — f258 (4) "Clear clears it", f267 (17) "Clear puts it back", f277 (1) "no ring, no band, no strip", f277 (10) "the layer is a white sheet", f387 (2) "2e the facts", f387 (4) "4c the end of the term".
+
+## 27 Sep 2026 — question: does "Their round came back" show every negotiation waiting on you
+- Answered, no code changed. Measured on four staged negotiations: the Negotiations page's "Waiting on you" held 4; Copilot's work showed 2 cards (the other side's changes waiting), 1 in its "Done recently" table (our own change, never sent) and 1 nowhere (sent, but they hold no live link).
+
+Noticed, not fixed
+- Copilot's work, "Their round came back": the "Done recently" table and the "Answered, not sent" step count every negotiation holding an unsent change of ours, and word it "Answered · N counters not sent yet" even where nothing of theirs was answered and nothing is a counter (a first draft of our own).
+- The same rows are not held to that table's "in the last 14 days" window (agRoundDone has no date filter), so an unsent change of any age sits under "Done recently".
