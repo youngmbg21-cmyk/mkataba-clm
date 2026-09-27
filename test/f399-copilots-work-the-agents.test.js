@@ -267,6 +267,24 @@ describe('f399 (4) — the readings', () => {
     assert.equal(win.agentsData(win.state.contracts).agents.renew.ready.length, 0,
       'the reader cleared this contract — a plain renewal row may not take the letter\'s place');
   });
+  /* A PUT-AWAY BELONGS TO THE SUBJECT IT PUT AWAY (Young, 27 Sep 2026:
+     "Once you put an item away on 'Prepared for you', it never comes back,
+     even for the same contract's renewal next year"). RED at the parent
+     (8f330c7); f274 section 11 pins the reading, this pins the page. */
+  test('4k a renewal put away last year is ready again on Renewals when this year\'s comes round', async () => {
+    const { win, supplyContract } = world();
+    const me = win.currentUser ? win.currentUser() : { id: 'u', name: 'U' };
+    const c = supplyContract({ id: 'MK-R3', status: 'Signed', counterparty: 'Renew MK-R3',
+      owner: { id: me.id, name: me.name }, expiry: day(64 - 365), metadata: { expiryDate: day(64 - 365), noticePeriodDays: 30 } });
+    win.state.contracts = [c];
+    const last = win.agentsData(win.state.contracts).agents.renew.ready;
+    assert.equal(J(last.map(x => x.cid)), 'MK-R3', 'the stage: last year\'s renewal was ready');
+    assert.equal(win.deskDismiss(c, last[0].deskKey), true, 'and was put away');
+    assert.equal(win.agentsData(win.state.contracts).agents.renew.ready.length, 0, 'and stayed away');
+    c.expiry = day(64); c.metadata = { expiryDate: day(64), noticePeriodDays: 30 };
+    assert.equal(J(win.agentsData(win.state.contracts).agents.renew.ready.map(x => x.cid)), 'MK-R3',
+      'the contract ran on, and this year\'s renewal is a different decision');
+  });
 });
 
 describe('f399 (5) — the page, drawn', () => {

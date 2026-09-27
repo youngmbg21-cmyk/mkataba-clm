@@ -601,5 +601,208 @@ describe('F274 — the overnight desk', () => {
       assert.equal(JSON.stringify(c), before, 'standing the renewal row down stamps nothing of its own');
     });
   });
+
+  /* --------------------------------------------------------------- */
+  /* ---- 11 — A PUT-AWAY BELONGS TO THE SUBJECT IT PUT AWAY ----
+     Young, 27 Sep 2026: "Once you put an item away on 'Prepared for you', it
+     never comes back, even for the same contract's renewal next year." The
+     stamp was a bare moment under the row's KEY, and the key names the KIND
+     ('renewal'), never WHICH renewal — so a renewal put away once was put
+     away for the life of the contract. Both surfaces that read this desk,
+     Home's Prepared for you and the Copilot's work page, inherited it.
+
+     THE CLOCK CANNOT BE MOVED HERE (faking node's clock does not move
+     jsdom's), so "next year" is staged the way it really arrives: the record
+     changes under the stamp — the term is renewed and ends a year later, the
+     paper is read again, the deadline is moved — or the stamp on file is
+     dated before this year's window opened.
+
+     Every claim is RED at the parent (8f330c7) except those named CONTROL or
+     WALL, which pass on both sides: they prove the stage reaches the readings
+     the subject is read through, and that a row put away THIS time round
+     still stays away — dismissed is dismissed, for that subject. */
+  describe('11 — a put-away belongs to the subject it put away', () => {
+    const moment = n => new Date(Date.now() + n * 86400000).toISOString();
+    const kinds = (win, id) => [...win.deskItems()].filter(x => x.cid === id).map(x => x.kind).join(',');
+    /* Section 10's letter fixture, on a contract of its own. */
+    const letter = o => {
+      const { win } = buildWorld({ notice: true, desk: true });
+      const c = Object.assign({
+        id: 'MK-N', name: 'Modern Trade Listing', counterparty: 'Naivas Supermarkets', status: 'Signed',
+        audit: [{ at: '2024-01-01T00:00:00.000Z', user: 'x', action: 'Created' }],
+        expiry: day(40), metadata: { expiryDate: day(40), noticePeriodDays: 30, renewalType: 'auto-renew',
+          effectiveDate: '2025-07-24', currency: 'KES' } }, o || {});
+      win.state.contracts = [c];
+      return { win, c };
+    };
+    const lateLetter = { expiry: day(20), metadata: { expiryDate: day(20), noticePeriodDays: 30,
+      renewalType: 'auto-renew', effectiveDate: '2025-07-24', currency: 'KES' } };
+
+    test('11a CONTROL — the stage reaches every reading a subject is read through', () => {
+      const { win } = stage();
+      for (const n of ['renewalQuestionOf', 'renewalDecisionDate', 'triageOf', 'obligationDue'])
+        assert.equal(typeof win[n], 'function', n + ' is on the stage');
+      assert.equal(kinds(win, 'MK-3'), 'renewal', 'the renewal really qualifies, so an absence below is the put-away');
+      assert.equal(kinds(win, 'MK-2'), 'deviations', 'and so does the paper');
+      assert.equal(kinds(win, 'MK-1'), 'chase', 'and so does the late promise');
+    });
+
+    /* THE OWNER'S CASE, through the product's own act. */
+    test('11b put away last year, the same contract’s renewal is back on the desk this year', () => {
+      const { win, byId } = stage();
+      const c = byId('MK-3');
+      /* LAST YEAR: the term ended a year ago, and nobody decided. */
+      c.expiry = day(40 - 365); c.metadata = { noticePeriodDays: 30, expiryDate: day(40 - 365) };
+      assert.equal(kinds(win, 'MK-3'), 'renewal', 'the stage: last year’s renewal was on the desk');
+      assert.equal(win.deskDismiss(c, 'renewal'), true, 'and the reader put it away');
+      assert.equal(kinds(win, 'MK-3'), '', 'and it stayed away');
+      /* THE CONTRACT RAN ON: its term now ends inside this year’s window. */
+      c.expiry = day(40); c.metadata = { noticePeriodDays: 30, expiryDate: day(40) };
+      assert.equal(kinds(win, 'MK-3'), 'renewal',
+        'this year’s renewal is a different decision, and it is prepared again');
+    });
+
+    test('11c CONTROL — within one renewal, a row put away stays away however often it is asked', () => {
+      const { win, byId } = stage();
+      const c = byId('MK-3');
+      assert.equal(win.deskDismiss(c, 'renewal'), true);
+      for (let i = 0; i < 3; i++)
+        assert.equal(kinds(win, 'MK-3'), '', 'dismissed is dismissed — for that subject');
+      assert.equal(win.deskDismiss(c, 'renewal'), false, 'and a second press refuses: it is already away');
+    });
+
+    /* THE SAME RULE A RECORDED DECISION FOLLOWS: correct the notice period
+       and the deadline is a different one, so the answer lapses. Putting a
+       row away is the weaker act and may not outlive the stronger one. */
+    test('11d a corrected notice period is a different deadline, as it is for a recorded decision', () => {
+      const { win, byId } = stage();
+      const c = byId('MK-3');
+      win.deskDismiss(c, 'renewal');
+      c.metadata = { noticePeriodDays: 60, expiryDate: day(40) };
+      assert.equal(kinds(win, 'MK-3'), 'renewal', 'the decision now falls thirty days earlier');
+    });
+
+    test('11e the stamp says what it was about, as well as when', () => {
+      const { win, byId } = stage();
+      const c = byId('MK-3');
+      win.deskDismiss(c, 'renewal');
+      const v = c.desk.renewal;
+      assert.equal(typeof v, 'object', 'a moment AND a subject, never a bare moment');
+      assert.equal(v.on, win.deskSubjectOf(c, 'renewal'), 'the subject is the one reading’s answer');
+      assert.equal(v.on, day(40) + '|30', 'the renewal question: the expiry and the notice period');
+      assert.ok(!Number.isNaN(Date.parse(v.at)), 'and the moment it was put away');
+    });
+
+    /* A STAMP ALREADY ON FILE is a bare moment, read by its date: this
+       year's renewal (decision in ten days) has been on the desk since its
+       window opened eighty days ago. */
+    test('11f a stamp on file from last year no longer holds this year', () => {
+      const { win, byId } = stage();
+      byId('MK-3').desk = { renewal: moment(-300) };
+      assert.equal(kinds(win, 'MK-3'), 'renewal',
+        'it was put away before this renewal could have been on the desk at all');
+    });
+    test('11g CONTROL — a stamp on file from inside this year’s window is honoured', () => {
+      const { win, byId } = stage();
+      byId('MK-3').desk = { renewal: moment(-10) };
+      assert.equal(kinds(win, 'MK-3'), '', 'the reader cleared it this time round');
+    });
+
+    /* THE LETTER IS ON THE SAME RENEWAL QUESTION. */
+    test('11h a letter put away for last year’s renewal does not hold this year’s letter back', () => {
+      const { win, c } = letter();
+      c.desk = { notice: { at: moment(-330), on: day(40 - 365) + '|30' } };
+      assert.equal(kinds(win, 'MK-N'), 'notice', 'this year’s letter is written and on the desk');
+    });
+    test('11i nor does it stand this year’s renewal row down once this year’s letter is late', () => {
+      const { win, c } = letter(lateLetter);
+      c.desk = { notice: moment(-330) };
+      assert.equal(kinds(win, 'MK-N'), 'renewal', 'a bare moment from last year’s window stands nothing down');
+    });
+    test('11j CONTROL — a letter put away THIS year still keeps its renewal row away (section 10)', () => {
+      const { win, c } = letter(lateLetter);
+      c.desk = { notice: moment(-20) };
+      assert.equal(kinds(win, 'MK-N'), '', 'inside this window: dismissed is dismissed');
+      const d = letter(lateLetter);
+      d.c.desk = { notice: { at: moment(-20), on: day(20) + '|30' } };
+      assert.equal(kinds(d.win, 'MK-N'), '', 'and a stamp that names this renewal holds whatever its date');
+    });
+
+    /* PAPER THEY SENT: a fresh reading of new wording is new work. */
+    test('11k a fresh reading of new paper is a new row', () => {
+      const { win, byId } = stage();
+      const c = byId('MK-2');
+      assert.equal(win.deskDismiss(c, 'deviations'), true);
+      assert.equal(kinds(win, 'MK-2'), '', 'put away, it stays away while the reading is the same');
+      c.triage = { at: new Date().toISOString(), seenAt: null,
+        steps: { playbook: { ok: true, dev: 1, miss: 0, cats: ['Liability'] } } };
+      assert.equal(kinds(win, 'MK-2'), 'deviations', 'the wording moved and HaTi read it again');
+    });
+    test('11l a stamp on file from before this reading was made is an earlier reading’s', () => {
+      const { win, byId } = stage();
+      byId('MK-2').desk = { deviations: moment(-5) };
+      assert.equal(kinds(win, 'MK-2'), 'deviations');
+    });
+    test('11m CONTROL — one made after it is honoured', () => {
+      const { win, byId } = stage();
+      byId('MK-2').desk = { deviations: moment(0) };
+      assert.equal(kinds(win, 'MK-2'), '');
+    });
+
+    /* A LATE PROMISE: the obligation is in the key already; the date is
+       what tells a moved deadline from the one put away. */
+    test('11n a promise given more time, and late on that too, is a new row', () => {
+      const { win, byId } = stage();
+      const o = byId('MK-1').obligations[0];
+      o.due = day(-20);
+      assert.equal(win.deskDismiss(byId('MK-1'), 'chase:o1'), true);
+      assert.equal(kinds(win, 'MK-1'), '', 'put away, it stays away while the date is the same');
+      o.due = day(-3);
+      assert.equal(kinds(win, 'MK-1'), 'chase', 'they were given until three days ago, and are late on that too');
+    });
+    test('11o a stamp on file from before the promise fell due is about an earlier date', () => {
+      const { win, byId } = stage();
+      byId('MK-1').desk = { 'chase:o1': moment(-30) };
+      assert.equal(kinds(win, 'MK-1'), 'chase', 'the row could not have been on the desk thirty days ago');
+    });
+    test('11p CONTROL — one made since it fell late is honoured', () => {
+      const { win, byId } = stage();
+      byId('MK-1').desk = { 'chase:o1': moment(-1) };
+      assert.equal(kinds(win, 'MK-1'), '');
+    });
+
+    test('11q a put-away left over from an earlier subject does not refuse the next press', () => {
+      const { win, byId } = stage();
+      const c = byId('MK-3');
+      c.desk = { renewal: moment(-300) };
+      assert.equal(win.deskDismiss(c, 'renewal'), true, 'last year’s stamp is not this year’s');
+      assert.equal(c.desk.renewal.on, day(40) + '|30', 'the stamp now names this year’s renewal');
+      assert.equal(kinds(win, 'MK-3'), '');
+    });
+
+    test('11r WALL — reading writes nothing, even over a stamp that no longer holds', () => {
+      const { win, byId, cs } = stage();
+      byId('MK-3').desk = { renewal: moment(-300) };
+      const before = JSON.stringify(cs);
+      win.deskShown(win.deskItems());
+      assert.equal(JSON.stringify(cs), before, 'a stale stamp stays where it is until a person presses Put away');
+    });
+
+    test('11s the subject is read through the product’s own readings, and the one writer stamps it', () => {
+      const i = DESK_CODE.indexOf('function deskSubjectOf');
+      assert.ok(i > 0, 'one reading of what a put-away is about');
+      const body = DESK_CODE.slice(i, DESK_CODE.indexOf('\nfunction ', i + 10));
+      for (const n of ['renewalQuestionOf(c)', 'triageOf(c)', 'obligationDue(o)'])
+        assert.ok(body.includes(n), n + ' — never a second copy of the rule');
+      assert.match(DESK_CODE, /function deskDismiss[\s\S]*?on: deskSubjectOf\(c, key\)/, 'the one writer stamps it');
+      assert.match(DESK, /Object\.assign\(window,[\s\S]*\bdeskSubjectOf\b/, 'and it is published');
+    });
+
+    test('11t CONTROL — every door still presses the one writer with a contract and a key', () => {
+      assert.match(HOME_CODE, /deskDismiss\(c,key\)/, 'Home’s Put away');
+      assert.match(HOME_CODE, /deskDismiss\(it\.c,it\.key\)/, 'Home’s Put away all');
+      assert.match(strip(read('js/views/agents.js')), /deskDismiss\(c, it\.deskKey\)/, 'the Copilot’s work page');
+    });
+  });
 });
 

@@ -19654,3 +19654,17 @@ Noticed, not fixed
 - seven-fixes-verify 5b, 5c, 5f, 6e and 6f fail identically at faa8f95 and are not on run-all's KNOWN_RED list (5b still expects two arrows on the arrival strip; the standards tile became the third door on 21 Sep).
 - redline-verify 5 ("no menu follows a highlight") fails identically at faa8f95; renewal-decision-verify 6b fails identically at a0f7cae (already recorded red on 17 Sep).
 - The chase mail writes the due date as stored ("2026-09-21"), not in the reader's words; the panel shows exactly that because it mirrors the route.
+
+## Run 27 Sep 2026 — a put-away on Prepared for you belongs to what it put away
+
+- On the owner's word: "Fix this then merge to main: Once you put an item away on 'Prepared for you', it never comes back, even for the same contract's renewal next year." Built on claude/happy-thompson-6puam1 from 8f330c7.
+- Fixed (logged in the last run): the overnight desk's put-away stamp named the KIND of row, never which renewal, reading or date, so a renewal put away once was put away for every later renewal of the same contract; the same held for a notice letter, a fresh reading of new paper and a promise given more time. The stamp now records what it was about ({at, on}): a renewal and a notice are the renewal question (expiry and notice period, the same thing a recorded renewal decision is tied to), paper is the reading's date, a late promise its due date. A put-away holds while that is unchanged and lets the row back when it changes. Stamps already on file are read by their date: honoured if made while this cycle's row could be on screen, otherwise treated as last cycle's. Home's Put away, Put away all and the Copilot's work page all reach it through the one writer, unchanged.
+- Tests: f274 (11) 20 claims (13 red at 8f330c7, 7 controls and walls); f399 4k red at 8f330c7; new browser file desk-comes-back-verify, 14 checks walking the owner's case with the browser's clock (3a, 3b, 3c, 3e red at 8f330c7, which shows nothing prepared in May 2028).
+- Gates: lint 0 errors, 178 warnings (unchanged). Browser: desk-comes-back-verify 14/14, home-page-verify 66/66, agents-page-verify 49/49, inspector-checklist-verify 33/33, go-aheads-verify 21/21. Full suite: 9,735 tests, 9,729 pass; the 6 that fail are the same six as the last two runs (f258 (4), f267 (17), f277 (1), f277 (10), f387 (2) 2e, f387 (4) 4c).
+
+Deliberately left alone (said to the owner)
+- HaTi does not roll an auto-renewing term forward by itself, and a signed record's end date can only move by a signed amendment or renewal. So "next year's" renewal comes back once the record says the term moved; until then it is the same unanswered question, and a row put away against it stays away.
+- A stamp written before today cannot say what it was about. If a deadline moved inside one renewal window under such a stamp, the row stays away (the safe direction); new stamps do not have this gap.
+
+Noticed, not fixed
+- A signed record saved to the server without the fields the page adds on load (for example `rounds`) refuses every later save from the browser with a 409, because the load step adds `rounds: []` and the server reads that as a change to a frozen field. Seen only on hand-built test records; every record the product itself files passes through that load step first.
