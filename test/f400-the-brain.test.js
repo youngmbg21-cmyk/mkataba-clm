@@ -110,6 +110,28 @@ describe('f400 (2b) — the page fills the whole screen (Young, 27 Sep 2026)', (
   });
 });
 
+describe('f400 (2e) — a drag turns the brain the way the finger goes (Young, 27 Sep 2026)', () => {
+  test('2e the side facing you moves right when the pointer moves right, and down when it moves down', () => {
+    const pj = (VIEW.match(/function brPj\(x, y, z\)\{[\s\S]*?\n\}/) || [''])[0];
+    const mv = (VIEW.match(/b\.rot\s*([+-])=\s*dx\s*\*\s*([\d.]+)/) || []);
+    const tv = (VIEW.match(/b\.tiltOff\s*\+\s*dy\s*\*\s*([\d.]+)/) || []);
+    assert.ok(pj && mv[1] && tv[1], 'the projection and both drag lines are found');
+    const _br = { W: 800, H: 600, CY: .5, panX: 0, panY: 0, SC: 1 };
+    const brPj = new Function('_br', pj + '; return brPj;')(_br);
+    const at = (rot, tilt) => { _br.cR = Math.cos(rot); _br.sR = Math.sin(rot); _br.cT = Math.cos(tilt); _br.sT = Math.sin(tilt); };
+    const turn = (rot, dx) => mv[1] === '-' ? rot - dx * Number(mv[2]) : rot + dx * Number(mv[2]);
+    for (const rot0 of [-1.05, 0, .8]){
+      at(rot0, .3);
+      // the point on the side facing the reader: largest depth of a ring round the middle
+      let front = null; for (let a = 0; a < 6.28; a += .01){ const p = [Math.cos(a) * 100, 0, Math.sin(a) * 100], q = brPj(...p); if (!front || q[3] > front.q[3]) front = { p, q }; }
+      at(turn(rot0, 20), .3);
+      assert.ok(brPj(...front.p)[0] > front.q[0], 'dragging right moves the facing side right (turn ' + rot0 + ')');
+      at(rot0, .3 + 20 * Number(tv[1]));
+      assert.ok(brPj(...front.p)[1] > front.q[1], 'dragging down moves the facing side down (turn ' + rot0 + ')');
+    }
+  });
+});
+
 describe('f400 (3) — the reading, over this repository', () => {
   const map = B ? B.brainRead(files()) : null;
   test('3a every named part is found in the code, with its file and line', () => {
