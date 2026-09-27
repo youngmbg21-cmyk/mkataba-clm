@@ -277,7 +277,10 @@ function agImportBatches(cs){
 function agImportItems(batches){
   return batches.filter(g => g.review > 0).map(g => ({ agent: 'import', kind: 'import', key: 'import:' + g.batch,
     batch: g.batch, n: g.cs.length, review: g.review, blocked: g.blocked, at: g.at, by: g.by,
-    tone: g.blocked ? 'amber' : '' }));
+    /* The batch's own contracts ride along so the review panel can NAME the
+       ones that could not be read and the ones still to check (27 Sep 2026)
+       — the counts alone were the whole panel. */
+    cs: g.cs, tone: g.blocked ? 'amber' : '' }));
 }
 function agImportDone(batches){
   return batches.filter(g => g.review === 0 && _agRecent(g.at)).map(g => ({ agent: 'import', kind: 'filed',
@@ -431,7 +434,8 @@ function agCardParts(it){
   } else if (it.kind === 'read'){
     kind = _agT('desk_kind_read');
     sum = (typeof triageLine === 'function' ? triageLine(c) : '') || _agT('ag_read_nothing');
-    urg = it.at ? _agT('ag_read_at', { date: _agDay(it.at) }) : '';
+    /* The day it was read is on the card's foot now (agWhen), beside who it is
+       for — printed here too it would be one fact twice on one card. */
   } else if (it.kind === 'reading'){
     kind = _agT('desk_kind_read');
     sum = _agT('ag_reading_now');
@@ -449,6 +453,60 @@ function agCardParts(it){
   }
   return { kind, who, name, sum, urg };
 }
+/* ---- WHO IT IS FOR, AND WHEN — the card's foot (Young, 27 Sep 2026: "the
+   copilot cards are not comprehensive or detailed compared to the mock up in
+   the artifact") ----
+   The drawing's foot is an avatar, a time and a cost. The first two are facts
+   the record holds and are drawn; THE COST IS NOT, because HaTi books Copilot
+   spend per person and per day, never per item — a figure here would be one
+   this product invented. Each agent's head already says who pays.
+   WHO IT IS FOR is the agent's own "Reviewed by" fact, read off the record:
+   the negotiation's lead where the desk is claimed, whoever filed the paper,
+   whoever started the import — and the contract's owner otherwise. Nobody
+   named, nobody printed. */
+const _agInitials = n => String(n || '').trim().split(/\s+/).filter(Boolean).slice(0, 2).map(w => w.charAt(0)).join('').toUpperCase();
+const _agFirst = n => String(n || '').trim().split(/\s+/)[0] || '';
+function agForName(it){
+  const c = it && it.c;
+  let n = '';
+  try {
+    if (it.kind === 'import' || it.kind === 'importing') n = String(it.by || '');
+    else if (it.kind === 'answer' && typeof deskLead === 'function'){ const l = deskLead(c); n = (l && l.name) || ''; }
+    else if (it.kind === 'read' || it.kind === 'reading'){
+      const t = (typeof triageOf === 'function') ? triageOf(c) : (c && c.triage);
+      n = (t && t.by) || '';
+    }
+    if (!n && c && typeof contractOwnerName === 'function') n = contractOwnerName(c) || '';
+  } catch (_){ n = ''; }
+  return String(n || '').trim();
+}
+/* "For you" where it is the reader's own, the full name on the hover. */
+function agForWords(name, full){
+  if (!name) return '';
+  let me = '';
+  try { me = String(((typeof currentUser === 'function') && currentUser() || {}).name || ''); } catch (_){ me = ''; }
+  if (me && me.trim().toLowerCase() === name.trim().toLowerCase()) return _agT('ag_for_you');
+  return _agT('ag_for', { who: full ? name : _agFirst(name) });
+}
+/* WHEN, where the record carries a day for this item. A notice and a renewal
+   carry theirs on the card's urgency line already, so they print none here. */
+function agWhen(it){
+  if (it.kind === 'answer') return it.since ? _agT('ag_w_arrived', { date: _agDay(it.since) }) : '';
+  if (it.kind === 'read') return it.at ? _agT('ag_read_at', { date: _agDay(it.at) }) : '';
+  if (it.kind === 'chase'){
+    const o = it.ob || {};
+    const due = (typeof obligationDue === 'function') ? obligationDue(o) : (o.due || '');
+    return due ? _agT('ag_w_was_due', { date: _agDay(due) }) : '';
+  }
+  if (it.kind === 'import') return it.at ? _agT('ag_w_imported', { date: _agDay(it.at) }) : '';
+  return '';
+}
+function agFootHtml(it){
+  const who = agForName(it), when = agWhen(it);
+  if (!who && !when) return '';
+  return `<span class="ag-foot">${who ? `<span class="ag-av" aria-hidden="true">${_agE(_agInitials(who))}</span><span class="ag-for" title="${_agE(agForWords(who, true))}">${_agE(agForWords(who))}</span>` : ''}${
+    who && when ? '<span class="ag-dot" aria-hidden="true">·</span>' : ''}${when ? `<span class="ag-when">${_agE(when)}</span>` : ''}</span>`;
+}
 function agCardHtml(it){
   const p = agCardParts(it);
   const working = it.kind === 'reading' || it.kind === 'importing';
@@ -461,7 +519,8 @@ function agCardHtml(it){
       <span class="ag-item-top"><span class="ag-kind">${_agE(p.kind)}</span>${it.c ? `<span class="ag-ref">${_agE(ref)}</span>` : ''}</span>
       ${head}
       ${p.sum ? `<span class="ag-sum">${_agE(p.sum)}</span>` : ''}
-      ${p.urg ? `<span class="ag-urg${it.tone ? ' is-' + it.tone : ''}">${_agE(p.urg)}</span>` : ''}`;
+      ${p.urg ? `<span class="ag-urg${it.tone ? ' is-' + it.tone : ''}">${_agE(p.urg)}</span>` : ''}
+      ${agFootHtml(it)}`;
   /* A READING IN FLIGHT IS NOT A DOOR: there is nothing to review yet, and a
      press that opened an empty panel would be a dead control dressed as a
      live one. */
@@ -623,80 +682,354 @@ function agKv(rows){
   return `<dl class="ag-kv">${rows.filter(r => r && r[1] != null && r[1] !== '').map(([k, v]) =>
     `<div><dt>${_agE(k)}</dt><dd>${_agE(v)}</dd></div>`).join('')}</dl>`;
 }
+/* ---- THE PANEL IS AS FULL AS THE DRAWING, AND EVERY LINE IS THE RECORD'S
+   (Young, 27 Sep 2026: "the copilot cards are not comprehensive or detailed
+   compared to the mock up in the artifact") ----
+   The first build drew each item as a handful of facts and pointed at the page
+   where the rest lived. The drawing's panel carries the work itself — the
+   letter, the message, the memo, the brief, the departures, the obligations
+   found — and every one of those is ALREADY ON THE RECORD in HaTi: noticeDraft
+   writes the letter, the chase route's own dictionary keys write the message,
+   the renewal memo and the brief are stored, the standards review and the
+   obligations auto-triage found are kept on the contract. So each is drawn
+   here from the reading that owns it. NOTHING IS ASKED OF A MODEL, NOTHING IS
+   WRITTEN, and every act is still the product's own door.
+   WHAT THE DRAWING HAD AND THIS STILL DOES NOT: a cost per item (HaTi books
+   spend per person and per day, never per item), editing the letter or the
+   message in the panel (the letter's own dialog and the chase route are the
+   doors), and answering an ask here (the negotiation page is). */
+const AG_WATCH_MAX = 4;     // watchouts drawn from the brief, then counted
+const AG_DEP_MAX = 6;       // departures drawn from the standards review, then counted
+const AG_OBS_MAX = 8;       // obligations drawn from what auto-triage holds, then counted
+const AG_LIST_MAX = 8;      // names drawn from an import batch, then counted
+const AG_QUOTE_MAX = 240;   // a quoted passage is cut here — it is the quote a reading rests on, not the clause
+
+/* A PANEL SECTION is a small label over what it says — the drawing's own
+   `.lbl`, never a band. Empty content draws nothing. */
+function agSecHtml(label, inner, attrs){
+  if (!inner) return '';
+  return `<section class="ag-ps"${attrs || ''}><h4 class="ag-ps-h">${_agE(label)}</h4>${inner}</section>`;
+}
+const _agMore = n => n > 0 ? `<p class="ag-p-note">${_agE(_agTn('ag_more', n, { n }))}</p>` : '';
+const _agCut = (s, n) => { const t = String(s || '').trim(); return t.length > n ? t.slice(0, n).trimEnd() + '…' : t; };
+
+/* ---- THE RECORD, WHOLE, BEFORE ANYTHING READS WHAT ONLY IT CARRIES ----
+   The page is drawn off the LIGHT list, and the brief and the renewal memo ride
+   only a single contract's own read (`_brief`, `_renewalAdvice` — transport).
+   So "Read the brief" opened an EMPTY panel from here (Young reported it
+   27 Sep 2026: "the panel comes up but it has no brief in it but when i go
+   through the overview door the brief works" — the Overview loads the record
+   first). The loader is restoreHeavyFields, the Inspector's own and never
+   ensureFull: it adds what the row lacks and copies nothing over what is on
+   screen. ONE flight per contract, shared by the panel and the brief door. */
+const _agLoads = new Map();
+function agLoadWhole(c){
+  if (!c || !c._light || c._loaded || typeof restoreHeavyFields !== 'function'
+    || typeof API_MODE !== 'function' || !API_MODE()) return null;
+  const id = String(c.id);
+  if (_agLoads.has(id)) return _agLoads.get(id);
+  const p = Promise.resolve().then(() => restoreHeavyFields(c)).catch(() => {})
+    .then(() => { _agLoads.delete(id); });
+  _agLoads.set(id, p);
+  return p;
+}
+const agLoading = c => !!(c && _agLoads.has(String(c.id)));
+
 function agPanelBody(it){
-  const c = it.c;
-  if (it.kind === 'answer'){
-    const t = it.tally || {};
-    const chip = (v, n) => n ? `<span class="ag-tag ${AG_TONE[(window.RLP_VERDICTS && RLP_VERDICTS[v] && RLP_VERDICTS[v].tone) || 'steel']}">${
-      _agE(((window.RLP_VERDICTS && RLP_VERDICTS[v]) ? RLP_VERDICTS[v].label : v) + ' ' + n)}</span>` : '';
-    const name = r => {
-      const raw = r.clause || '';
-      try { return (typeof negoClauseName === 'function') ? negoClauseName(raw) : ((typeof clauseNameShown === 'function') ? clauseNameShown(raw) : raw); }
-      catch (_){ return raw; }
-    };
-    const rows = (it.plan || []).map(r => {
-      const v = (window.RLP_VERDICTS && RLP_VERDICTS[r.verdict]) || { label: r.verdict, tone: 'steel' };
-      return `<div class="ag-chg">
-          <div class="ag-chg-t"><b>${_agE(name(r) || _agT('ng_this_clause'))}</b><span class="ag-tag ${AG_TONE[v.tone] || 'is-steel'}">${_agE(v.label)}</span></div>
-          ${r.summary ? `<div class="ag-chg-ask">${_agE(_agT('ag_they_ask', { what: r.summary }))}</div>` : ''}
-          ${(r.why || []).length ? `<div class="ag-chg-why">${(r.why || []).map(w => _agE(w)).join(' ')}</div>` : ''}
-          ${r.precedent ? `<div class="ag-chg-prec">${_agE(r.precedent)}</div>` : ''}
-        </div>`;
-    }).join('');
-    /* An ask the plan could not reach (a stage without js/redlineplan.js) is
-       COUNTED rather than dropped: the reader is told how many are waiting. */
-    const missing = Math.max(0, it.n - (it.plan || []).length);
-    return `<p class="ag-p-meta">${_agE(_agT('ag_round_meta', { r: it.round, date: _agDay(it.since) }))}</p>
-      <div class="ag-tally"><b>${_agE(_agTn('ag_changes', it.n, { n: it.n }))}</b>${chip('accept', t.accept)}${chip('push', t.push)}${chip('escalate', t.escalate)}${chip('review', t.review)}</div>
-      <p class="ag-p-note">${_agE(_agT('ag_round_rests'))}</p>
-      <div class="ag-chgs">${rows}</div>
-      ${missing ? `<p class="ag-p-note">${_agE(_agTn('ag_round_unread', missing, { n: missing }))}</p>` : ''}`;
-  }
-  if (it.kind === 'notice'){
-    return agKv([
-      [_agT('ag_f_must_go'), _agDay(it.by)],
-      [_agT('ag_f_notice'), it.notice ? _agTn('desk_days', it.notice, { n: it.notice }) : ''],
-      [_agT('ag_f_ends'), _agDay(it.ends)],
-      [_agT('ag_f_days_left'), _agTn('desk_days', it.days, { n: it.days })],
-    ]) + `<p class="ag-p-note">${_agE(_agT('ag_notice_note'))}</p>`;
-  }
-  if (it.kind === 'renewal'){
-    return agKv([
-      [_agT('ag_f_decide_by'), _agDay(it.w && it.w.decideBy)],
-      [_agT('ag_f_notice'), (it.w && it.w.notice) ? _agTn('desk_days', it.w.notice, { n: it.w.notice }) : _agT('ag_none_recorded')],
-      [_agT('ag_f_memo'), it.memo ? _agT(it.prepared ? 'ag_memo_night' : 'ag_memo_you') : _agT('ag_memo_none')],
-      [_agT('ag_f_look'), it.flags ? _agTn('desk_ren_flags', it.flags, { n: it.flags }) : _agT('ag_none_found')],
-    ]) + `<p class="ag-p-note">${_agE(_agT(it.memo ? 'ag_renew_note_memo' : 'ag_renew_note'))}</p>`;
-  }
-  if (it.kind === 'read'){
-    let tiles = [];
-    try { tiles = (typeof triageTiles === 'function') ? triageTiles(c) : []; } catch (_){ tiles = []; }
-    const tone = x => x.working ? 'is-live' : x.none ? 'is-steel' : x.ok ? 'is-green' : 'is-amber';
-    return `<p class="ag-p-meta">${_agE(it.at ? _agT('ag_read_at', { date: _agDay(it.at) }) : '')}</p>
-      <ul class="ag-tiles">${tiles.map(x => `<li class="${tone(x)}"><span class="d" aria-hidden="true"></span><span class="b"><b>${
-        _agE(_agT(x.headKey))}</b>${x.detail ? `<span>${_agE(x.detail)}</span>` : ''}</span>${x.count != null ? `<span class="n">${_agE(String(x.count))}</span>` : ''}</li>`).join('')}</ul>`;
-  }
-  if (it.kind === 'chase'){
-    const o = it.ob || {};
-    const due = (typeof obligationDue === 'function') ? obligationDue(o) : (o.due || '');
-    return agKv([
-      [_agT('ag_f_what'), o.desc || ''],
-      [_agT('ag_f_was_due'), _agDay(due)],
-      [_agT('ag_f_late'), _agTn('desk_days', it.days, { n: it.days })],
-      [_agT('ag_f_to'), it.noAddress ? _agT('desk_chase_noaddr') : String((c && c.counterpartyEmail) || '')],
-    ]) + `<p class="ag-p-note">${_agE(_agT(it.noAddress ? 'ag_chase_noaddr_note' : 'ag_chase_note'))}</p>`;
-  }
-  if (it.kind === 'import'){
-    return agKv([
-      [_agT('ag_f_imported'), _agDay(it.at)],
-      [_agT('ag_f_by'), it.by || ''],
-      [_agT('ag_f_contracts'), String(it.n)],
-      [_agT('ag_f_to_check'), String(it.review)],
-      [_agT('ag_f_unread'), it.blocked ? String(it.blocked) : ''],
-    ]) + `<p class="ag-p-note">${_agE(_agT('ag_import_note'))}</p>`;
-  }
+  if (it.kind === 'answer') return agAnswerBody(it);
+  if (it.kind === 'notice') return agNoticeBody(it);
+  if (it.kind === 'renewal') return agRenewalBody(it);
+  if (it.kind === 'read') return agReadBody(it);
+  if (it.kind === 'chase') return agChaseBody(it);
+  if (it.kind === 'import') return agImportBody(it);
   return '';
 }
+
+/* ---- THEIR ROUND: every ask, the co-pilot's answer, and THEIR WORDING one
+   press away ---- */
+function agAnswerBody(it){
+  const c = it.c;
+  const t = it.tally || {};
+  const chip = (v, n) => n ? `<span class="ag-tag ${AG_TONE[(window.RLP_VERDICTS && RLP_VERDICTS[v] && RLP_VERDICTS[v].tone) || 'steel']}">${
+    _agE(((window.RLP_VERDICTS && RLP_VERDICTS[v]) ? RLP_VERDICTS[v].label : v) + ' ' + n)}</span>` : '';
+  const name = r => {
+    const raw = r.clause || '';
+    try { return (typeof negoClauseName === 'function') ? negoClauseName(raw) : ((typeof clauseNameShown === 'function') ? clauseNameShown(raw) : raw); }
+    catch (_){ return raw; }
+  };
+  const byId = new Map((Array.isArray(c && c.changes) ? c.changes : []).filter(Boolean).map(x => [String(x.id), x]));
+  const rows = (it.plan || []).map(r => {
+    const v = (window.RLP_VERDICTS && RLP_VERDICTS[r.verdict]) || { label: r.verdict, tone: 'steel' };
+    /* THEIR WORDING is drawn by rlChangeWordingHtml, the ONE builder for "what
+       this change proposed", from our chair — in a native <details>, so it
+       needs no listener and a press repaints nothing. */
+    let words = '';
+    const ch = byId.get(String(r.id));
+    if (ch && typeof rlChangeWordingHtml === 'function'){ try { words = rlChangeWordingHtml(ch, { side: 'owner' }); } catch (_){ words = ''; } }
+    return `<div class="ag-chg">
+        <div class="ag-chg-t"><b>${_agE(name(r) || _agT('ng_this_clause'))}</b><span class="ag-tag ${AG_TONE[v.tone] || 'is-steel'}">${_agE(v.label)}</span></div>
+        ${r.summary ? `<div class="ag-chg-ask">${_agE(_agT('ag_they_ask', { what: r.summary }))}</div>` : ''}
+        ${(r.why || []).length ? `<div class="ag-chg-why">${(r.why || []).map(w => _agE(w)).join(' ')}</div>` : ''}
+        ${r.precedent ? `<div class="ag-chg-prec">${_agE(r.precedent)}</div>` : ''}
+        ${words ? `<details class="ag-words"><summary>${_agE(_agT('ag_show_wording'))}</summary><div class="ag-words-b">${words}</div></details>` : ''}
+      </div>`;
+  }).join('');
+  /* An ask the plan could not reach (a stage without js/redlineplan.js) is
+     COUNTED rather than dropped: the reader is told how many are waiting. */
+  const missing = Math.max(0, it.n - (it.plan || []).length);
+  /* WHICH BOOK OF YOUR STANDARDS it was measured against — the playbook's own
+     name for it, the one the co-pilot read. */
+  let book = '';
+  try { if (typeof resolvePlaybook === 'function' && typeof playbookKeyFor === 'function'){ const pb = resolvePlaybook(playbookKeyFor(c)); book = (pb && pb.label) || ''; } } catch (_){ book = ''; }
+  return `<p class="ag-p-meta">${_agE(_agT('ag_round_meta', { r: it.round, date: _agDay(it.since) }))}${book ? ' · ' + _agE(_agT('ag_round_book', { book })) : ''}</p>
+    <div class="ag-tally"><b>${_agE(_agTn('ag_changes', it.n, { n: it.n }))}</b>${chip('accept', t.accept)}${chip('push', t.push)}${chip('escalate', t.escalate)}${chip('review', t.review)}</div>
+    <p class="ag-p-note">${_agE(_agT('ag_round_rests'))}</p>
+    <div class="ag-chgs">${rows}</div>
+    ${missing ? `<p class="ag-p-note">${_agE(_agTn('ag_round_unread', missing, { n: missing }))}</p>` : ''}`;
+}
+
+/* ---- A NOTICE: the facts, why, and THE LETTER itself — noticeDraft's own
+   text, the words the letter's dialog copies. Written from the record. ---- */
+function agNoticeBody(it){
+  const c = it.c;
+  let nd = null;
+  try { nd = (typeof noticeDraft === 'function') ? noticeDraft(c) : null; } catch (_){ nd = null; }
+  const auto = it.noticeKind === 'non-renewal';
+  const facts = agKv([
+    [_agT('ag_f_ends'), _agDay(it.ends)],
+    [_agT('ag_f_notice'), it.notice ? _agTn('desk_days', it.notice, { n: it.notice }) : ''],
+    [_agT('ag_f_must_go'), it.by ? _agDay(it.by) + ' · ' + _agTn('desk_days', it.days, { n: it.days }) : ''],
+    [_agT('ag_f_renews'), _agT(auto ? 'ag_renews_yes' : 'ag_renews_no')],
+  ]);
+  let why = _agT(auto ? 'ag_nt_why_auto' : 'ag_nt_why_end', { who: (c && c.counterparty) || '', date: _agDay(auto ? it.by : it.ends) });
+  let d = null;
+  try { d = (typeof renewalDecisionOf === 'function') ? renewalDecisionOf(c) : null; } catch (_){ d = null; }
+  if (d && d.answer && !d.served) why += ' ' + _agT('ag_decided', { date: _agDay(d.at), what: _agT('rn_decided_' + d.answer) });
+  const letter = (nd && nd.ok && nd.text) ? `<pre class="ag-letter">${_agE(nd.text)}</pre><p class="ag-p-note">${_agE(_agT('ag_notice_note'))}</p>` : '';
+  return facts + agSecHtml(_agT('ag_s_why_notice'), `<p class="ag-p-text">${_agE(why)}</p>`) + agSecHtml(_agT('ag_s_letter'), letter);
+}
+
+/* ---- A RENEWAL: the facts, how it went, and Copilot's memo where one is
+   written ---- */
+function agRenewalBody(it){
+  const c = it.c, w = it.w || {};
+  let money = '';
+  try {
+    if (typeof canViewValues === 'function' && canViewValues() && (typeof isMonetary !== 'function' || isMonetary(c))
+      && Number(c && c.value) > 0 && typeof fmtMoneyOf === 'function') money = fmtMoneyOf(c);
+  } catch (_){ money = ''; }
+  const facts = agKv([
+    [_agT('ag_f_ends'), _agDay(w.expiry)],
+    [_agT('ag_f_renews'), _agT(w.auto ? 'ag_renews_yes' : 'ag_renews_no')],
+    [_agT('ag_f_decide_by'), w.decideBy ? _agDay(w.decideBy) + ' · ' + (it.days < 0 ? _agT('desk_ren_late') : _agTn('desk_days', it.days, { n: it.days })) : ''],
+    [_agT('ag_f_notice'), w.notice ? _agTn('desk_days', w.notice, { n: w.notice }) : _agT('ag_none_recorded')],
+    [_agT('ag_f_value'), money],
+    [_agT('ag_f_look'), it.flags ? _agTn('desk_ren_flags', it.flags, { n: it.flags }) : _agT('ag_none_found')],
+  ]);
+  return facts + agSecHtml(_agT('ag_s_how_went'), agHowWentHtml(c)) + agMemoHtml(it);
+}
+/* HOW IT WENT is the contract's own obligations, read by the readings that own
+   them: kept on their date (obligationOnTime — null where either date is
+   missing, and then not counted), and late now (obState, a held-back step not
+   counted, the worklist's own rule). Nothing to say, no section. */
+function agHowWentHtml(c){
+  const obs = (Array.isArray(c && c.obligations) ? c.obligations : []).filter(Boolean);
+  let met = 0, late = 0, overdue = 0;
+  for (const o of obs){
+    let r = null; try { r = (typeof obligationOnTime === 'function') ? obligationOnTime(o) : null; } catch (_){ r = null; }
+    if (r === true) met++; else if (r === false) late++;
+    let st = ''; try { st = (typeof obState === 'function') ? obState(o) : ''; } catch (_){ st = ''; }
+    let held = false; try { held = (typeof obligationBlocked === 'function') && !!obligationBlocked(o, c); } catch (_){ held = false; }
+    if (st === 'overdue' && !held) overdue++;
+  }
+  const rows = [];
+  if (met + late) rows.push([late ? 'amber' : 'green', _agT('ag_went_ontime', { n: met, m: met + late })]);
+  if (overdue) rows.push(['ruby', _agTn('ag_went_overdue', overdue, { n: overdue })]);
+  if (!rows.length) return '';
+  return `<ul class="ag-went">${rows.map(([t, x]) => `<li class="is-${t}">${_agE(x)}</li>`).join('')}</ul>`;
+}
+/* COPILOT'S MEMO is the renewal adviser's own stored answer — its headline,
+   its reasons, what to push on — and never a new call. */
+function agMemoHtml(it){
+  const c = it.c;
+  const a = c && c._renewalAdvice;
+  const d = a && a.data;
+  if (d && (d.headline || (Array.isArray(d.because) && d.because.length))){
+    const because = (Array.isArray(d.because) ? d.because : []).filter(Boolean).slice(0, 5);
+    const push = (Array.isArray(d.pushOn) ? d.pushOn : []).filter(Boolean).slice(0, 5);
+    return agSecHtml(_agT('ag_s_memo'), `${d.headline ? `<p class="ag-memo-h">${_agE(d.headline)}</p>` : ''}
+      ${because.length ? `<ul class="ag-went">${because.map(x => `<li>${_agE(x)}</li>`).join('')}</ul>` : ''}
+      ${push.length ? `<p class="ag-p-sub2">${_agE(_agT('ag_memo_push'))}</p><ol class="ag-asks">${push.map(x => `<li>${_agE(x)}</li>`).join('')}</ol>` : ''}
+      ${d.watchIf ? `<p class="ag-p-note">${_agE(_agT('ag_memo_watch', { what: d.watchIf }))}</p>` : ''}
+      ${a.at ? `<p class="ag-p-note">${_agE(_agT(a.overnight ? 'ag_memo_by_night' : 'ag_memo_by_you', { date: _agDay(a.at) }))}</p>` : ''}`);
+  }
+  if (it.memo && agLoading(c)) return agSecHtml(_agT('ag_s_memo'), `<p class="ag-p-note">${_agE(_agT('ct_loading_contract'))}</p>`);
+  return `<p class="ag-p-note">${_agE(_agT(it.memo ? 'ag_renew_note_memo' : 'ag_renew_note'))}</p>`;
+}
+
+/* ---- NEW PAPER: the arrival strip's five readings, each OPENED — the brief,
+   the departures, the obligations found — under the tile's own head ---- */
+function agReadBody(it){
+  const c = it.c;
+  let tiles = [];
+  try { tiles = (typeof triageTiles === 'function') ? triageTiles(c) : []; } catch (_){ tiles = []; }
+  const tone = x => x.working ? 'is-live' : x.none ? 'is-steel' : x.ok ? 'is-green' : 'is-amber';
+  const head = x => `<h4 class="ag-ps-h ag-ps-tile ${tone(x)}" title="${_agE(x.hint || '')}"><span class="d" aria-hidden="true"></span><span class="t">${
+    _agE(_agT(x.headKey))}</span>${x.count != null ? `<span class="n">${_agE(String(x.count))}</span>` : ''}</h4>`;
+  const plain = x => x.detail ? `<p class="ag-p-text">${_agE(x.detail)}</p>` : '';
+  const parts = tiles.map(x => {
+    let inner = '';
+    if (x.key === 'brief') inner = agBriefInner(c);
+    else if (x.key === 'playbook') inner = agStandardsInner(c);
+    else if (x.key === 'oblig') inner = agHeldInner(c);
+    return `<section class="ag-ps" data-ag-tile="${_agE(x.key)}">${head(x)}${inner || plain(x)}</section>`;
+  });
+  const file = (c && c.upload && (c.upload.fileName || c.upload.name)) || '';
+  return (file ? `<p class="ag-p-meta">${_agE(_agT('ag_read_file', { file }))}</p>` : '') + parts.join('');
+}
+/* THE BRIEF as it was written: the overview, then what is worth watching and
+   why. Only the whole record carries it — until that lands, the section says
+   it is loading rather than drawing a brief that is not there. */
+function agBriefInner(c){
+  const b = c && c._brief, d = b && b.data;
+  if (!d) return (c && c._hasBrief && agLoading(c)) ? `<p class="ag-p-note">${_agE(_agT('ct_loading_contract'))}</p>` : '';
+  const mark = s => (typeof briefMark === 'function') ? briefMark(String(s || '')) : _agE(s);
+  const watch = (Array.isArray(d.watchouts) ? d.watchouts : []).filter(w => w && w.point);
+  const shown = watch.slice(0, AG_WATCH_MAX);
+  return `${d.overview ? `<p class="ag-brief-o">${mark(d.overview)}</p>` : ''}
+    ${shown.length ? `<ul class="ag-watch">${shown.map(w => `<li><span class="ag-watch-p">${mark(w.point)}</span>${
+      w.why ? `<span class="ag-watch-w"><b>${_agE(_agT('xr_why'))}</b> ${mark(w.why)}</span>` : ''}</li>`).join('')}</ul>` : ''}
+    ${_agMore(watch.length - shown.length)}
+    ${b.truncated ? `<p class="ag-p-note is-amber">${_agE(_agT('ag_brief_cut'))}</p>` : ''}`;
+}
+/* THE DEPARTURES are the stored standards review's open verdicts — their words
+   (the quote the review rests on) beside your standard. A met standard is
+   counted, never listed. */
+function agStandardsInner(c){
+  const r = c && c.playbook;
+  const vs = (r && Array.isArray(r.verdicts)) ? r.verdicts.filter(Boolean) : [];
+  if (!vs.length) return '';
+  const isOpen = v => (typeof pbVerdictOpen === 'function') ? pbVerdictOpen(v) : !['aligned', 'ok', 'na'].includes(String(v.status || ''));
+  const open = vs.filter(isOpen);
+  const shown = open.slice(0, AG_DEP_MAX);
+  const tag = v => v.escalate ? ['is-ruby', _agT('ag_dep_legal')]
+    : String(v.status) === 'missing' ? ['is-amber', _agT('ag_dep_missing')] : ['is-amber', _agT('ag_dep_departs')];
+  const cards = shown.map(v => {
+    const [t, w] = tag(v);
+    const q = _agCut(v.quote, AG_QUOTE_MAX);
+    return `<div class="ag-dep"><div class="ag-dep-h"><b>${_agE(v.category || '')}</b><span class="ag-tag ${t}">${_agE(w)}</span></div>
+      <dl>${q ? `<dt>${_agE(_agT('ag_dep_theirs'))}</dt><dd class="w">“${_agE(q)}”</dd>` : ''}${
+        v.position ? `<dt>${_agE(_agT('ag_dep_std'))}</dt><dd>${_agE(v.position)}</dd>` : ''}</dl></div>`;
+  }).join('');
+  const met = vs.length - open.length;
+  return `${cards}${_agMore(open.length - shown.length)}${met ? `<p class="ag-p-note">${_agE(_agTn('ag_dep_met', met, { n: met }))}</p>` : ''}`;
+}
+/* THE OBLIGATIONS FOUND are what auto-triage HOLDS for this contract, less any
+   already on it (triageHeldObligations — the reading the Obligations tab's own
+   Find asks). None is added from here: the foot's button opens the one review
+   dialog where each is ticked. */
+function agHeldInner(c){
+  let held = [];
+  try { held = (typeof triageHeldObligations === 'function') ? triageHeldObligations(c) : []; } catch (_){ held = []; }
+  held = held.filter(x => x && x.desc);
+  if (!held.length) return '';
+  const shown = held.slice(0, AG_OBS_MAX);
+  return `<ul class="ag-obs">${shown.map(o => {
+      const theirs = String(o.party || '') === 'theirs';
+      return `<li><span>${_agE(o.desc)}</span><span class="ag-tag ${theirs ? 'is-amber' : 'is-steel'}">${_agE(_agT(theirs ? 'ag_whose_theirs' : 'ag_whose_ours'))}</span></li>`;
+    }).join('')}</ul>${_agMore(held.length - shown.length)}<p class="ag-p-note">${_agE(_agT('ag_obs_note'))}</p>`;
+}
+function agHeldCount(c){
+  try { return ((typeof triageHeldObligations === 'function') ? triageHeldObligations(c) : []).filter(x => x && x.desc).length; }
+  catch (_){ return 0; }
+}
+
+/* ---- A LATE PROMISE: the facts, where it comes from, and THE MESSAGE the
+   chase will send ---- */
+function agChaseBody(it){
+  const c = it.c, o = it.ob || {};
+  const due = (typeof obligationDue === 'function') ? obligationDue(o) : (o.due || '');
+  let amount = '';
+  try {
+    const n = (typeof obligationAmount === 'function') ? obligationAmount(o) : null;
+    if (n != null && typeof canViewValues === 'function' && canViewValues() && typeof obligationMoneyText === 'function') amount = obligationMoneyText(n, c);
+  } catch (_){ amount = ''; }
+  const owner = ((typeof contractOwnerName === 'function') && contractOwnerName(c)) || '';
+  const facts = agKv([
+    [_agT('ag_f_what'), o.desc || ''],
+    [_agT('ag_f_was_due'), due ? _agDay(due) + ' · ' + _agTn('desk_late', it.days, { n: it.days }) : ''],
+    [_agT('ag_f_whose'), _agT('ag_whose_theirs_named', { who: (c && c.counterparty) || '' })],
+    [_agT('ag_f_owner_here'), owner],
+    [_agT('ag_f_amount'), amount],
+  ]);
+  const quote = _agCut(o.quote, AG_QUOTE_MAX);
+  return facts
+    + (quote ? agSecHtml(_agT('ag_s_source'), `<p class="ag-quote">“${_agE(quote)}”</p>`) : '')
+    + agSecHtml(_agT('ag_s_message'), it.noAddress ? '' : agChaseMailHtml(c, o))
+    + `<p class="ag-p-note">${_agE(_agT(it.noAddress ? 'ag_chase_noaddr_note' : 'ag_chase_note'))}</p>`;
+}
+/* THE MESSAGE, AS THE ROUTE WILL WRITE IT: POST /api/contracts/:id/chase's own
+   dictionary keys, its own facts ({desc}, {name}, {id}, {due} — the due date
+   as stored) and its own language rule (the recipient's, where the address is
+   a colleague's, else the workspace default). So what is shown is what goes,
+   bar the link, which the route adds only where a link to the agreement
+   stands — said on the box's hover. */
+function agChaseMail(c, o){
+  const S = (typeof window !== 'undefined' && window.STRINGS) || null;
+  if (!S || !c) return null;
+  const to = String(c.counterpartyEmail || '').trim();
+  let L = (typeof window !== 'undefined' && window.I18N_DEFAULT) || 'en';
+  try {
+    const u = ((typeof getUsers === 'function') ? getUsers() : []).find(x => x && String(x.email || '').trim().toLowerCase() === to.toLowerCase());
+    if (u && u.lang && S[u.lang]) L = u.lang;
+  } catch (_){}
+  const T = (k, v) => {
+    let x = S[L] && S[L][k];
+    if (x == null) x = (S.en || {})[k];
+    if (x == null) return '';
+    return v ? String(x).replace(/\{(\w+)\}/g, (m, y) => (v[y] == null ? m : String(v[y]))) : String(x);
+  };
+  const ref = _agRef(c);
+  const vars = { desc: (o && o.desc) || '', name: c.name || ref, id: ref, due: (o && o.due) || '' };
+  const line = T((o && o.due) ? 'mail_ob_chase_line' : 'mail_ob_chase_line_nodate', vars);
+  return { to, subject: T('mail_ob_chase_subject', vars), body: `${T('mail_hello')},\n\n${line}\n\n${T('mail_automated_notice')}` };
+}
+function agChaseMailHtml(c, o){
+  const m = agChaseMail(c, o);
+  if (!m) return '';
+  return `<div class="ag-mail" title="${_agE(_agT('ag_mail_link_note'))}"><dl class="ag-mail-h"><dt>${_agE(_agT('ag_mail_to'))}</dt><dd>${_agE(m.to)}</dd><dt>${
+    _agE(_agT('ag_mail_subject'))}</dt><dd>${_agE(m.subject)}</dd></dl><div class="ag-mail-b">${_agE(m.body)}</div></div>`;
+}
+
+/* ---- AN IMPORT BATCH: the counts, and the contracts NAMED — the ones that
+   could not be read and the ones waiting to be checked ---- */
+function agImportBody(it){
+  const cs = Array.isArray(it.cs) ? it.cs : [];
+  /* The count of files that could not be read is NOT a fact here: the section
+     below names each of them, and the two side by side said one thing twice. */
+  const facts = agKv([
+    [_agT('ag_f_imported'), _agDay(it.at)],
+    [_agT('ag_f_by'), it.by || ''],
+    [_agT('ag_f_contracts'), String(it.n)],
+    [_agT('ag_f_to_check'), String(it.review)],
+  ]);
+  /* EACH BY THE FILE SOMEBODY IMPORTED — the name they would recognise, and
+     the import page's own — with whose contract it is and its title beside. */
+  const file = c => String((c && c.upload && c.upload.fileName) || '');
+  const label = c => file(c) || String((c && c.name) || '') || _agRef(c);
+  const second = c => [c && c.counterparty, file(c) ? (c && c.name) : ''].filter(Boolean).join(' · ');
+  const list = arr => {
+    const shown = arr.slice(0, AG_LIST_MAX);
+    return `<ul class="ag-names">${shown.map(c => `<li><b>${_agE(label(c))}</b>${second(c) ? `<span>${_agE(second(c))}</span>` : ''}</li>`).join('')}</ul>${_agMore(arr.length - shown.length)}`;
+  };
+  const unread = cs.filter(c => c && c.migration && c.migration.blocked);
+  const check = cs.filter(c => c && c.migration && c.migration.needsReview && !c.migration.blocked);
+  return facts
+    + (unread.length ? agSecHtml(_agT('ag_s_unread'), list(unread) + `<p class="ag-p-note">${_agE(_agT('ag_unread_note'))}</p>`) : '')
+    + (check.length ? agSecHtml(_agT('ag_s_to_check'), list(check)) : '')
+    + `<p class="ag-p-note">${_agE(_agT('ag_import_note'))}</p>`;
+}
+
 /* THE ACTS — each the product's own, pressing the same function its own home
    presses. The lead act is the ladder's filled button (one per area), the
    rest secondary, and putting away is the ladder's text button. */
@@ -708,13 +1041,38 @@ function agPanelActs(it){
   if (it.kind === 'renewal') return B('overview', _agT('ag_a_renewal'), 'lead') + (ed ? B('away', _agT('desk_discard'), 'link') : '');
   if (it.kind === 'read'){
     const hasBrief = !!(it.c && (it.c._brief || it.c._hasBrief));
-    return B('overview', _agT('ag_a_overview'), 'lead') + (hasBrief ? B('brief', _agT('ag_a_brief'), '') : '')
-      + (ed ? B('seen', _agT('ag_a_seen'), 'link') : '');
+    /* THE OBLIGATIONS FOUND have one door onto being added — the review dialog
+       runFindObligations opens on the list auto-triage holds — and it is drawn
+       only where something is held and the reader may add it. */
+    const obs = ed ? agHeldCount(it.c) : 0;
+    return B('overview', _agT('ag_a_overview'), 'lead') + (obs ? B('obs', _agTn('ag_a_obs', obs, { n: obs }), '') : '')
+      + (hasBrief ? B('brief', _agT('ag_a_brief'), '') : '') + (ed ? B('seen', _agT('ag_a_seen'), 'link') : '');
   }
   if (it.kind === 'chase') return (it.noAddress || !ed ? '' : B('chase', _agT('desk_chase_send'), 'lead'))
     + B('oblig', _agT('ag_a_oblig'), it.noAddress ? 'lead' : '') + (ed ? B('away', _agT('desk_discard'), 'link') : '');
   if (it.kind === 'import') return B('import', _agT('ag_a_import'), 'lead');
   return '';
+}
+/* THE PANEL'S HEAD is the drawing's: what the work IS, whose contract, and
+   which agent did it, when, for whom. */
+function agPanelTitle(it){
+  if (it.kind === 'answer') return _agT('ag_pt_answer', { n: it.round || 1 });
+  if (it.kind === 'notice') return _agT(it.noticeKind === 'non-renewal' ? 'ag_pt_nonren' : 'ag_pt_term');
+  if (it.kind === 'renewal') return _agT('ag_pt_renewal');
+  if (it.kind === 'read') return _agT('ag_pt_read');
+  if (it.kind === 'chase') return _agT('ag_pt_chase');
+  if (it.kind === 'import') return _agT('ag_pt_import');
+  return '';
+}
+function agPanelHeadHtml(it){
+  const p = agCardParts(it);
+  const title = agPanelTitle(it);
+  const who = agForName(it), when = agWhen(it);
+  const meta = [_agT('ag_' + it.agent), when, who ? agForWords(who, true) : ''].filter(Boolean).map(_agE).join(' · ');
+  const sub = it.c
+    ? `<div class="ag-p-sub"><b class="ag-p-who">${_agE(p.who)}</b>${p.name ? `<span class="ag-p-name">${_agE(p.name)}</span>` : ''}</div>`
+    : `<div class="ag-p-sub"><b class="ag-p-who">${_agE(_agT('ag_batch', { b: it.batch }))}</b></div>`;
+  return `<div class="ag-p-head">${title ? `<div class="ag-p-title">${_agE(title)}</div>` : ''}${sub}<div class="ag-p-agent">${meta}</div></div>`;
 }
 let _agOpenKey = null;
 function agOpenItem(key){
@@ -723,11 +1081,8 @@ function agOpenItem(key){
   _agOpenKey = key;
   const p = agCardParts(it);
   const title = it.c ? [p.kind, _agRef(it.c)].filter(Boolean).join(' · ') : p.kind;
-  const head = it.c
-    ? `<div class="ag-p-head"><div class="ag-p-who">${_agE(p.who)}</div><div class="ag-p-name">${_agE(p.name)}</div><div class="ag-p-agent">${_agE(_agT('ag_' + it.agent))}</div></div>`
-    : `<div class="ag-p-head"><div class="ag-p-who">${_agE(_agT('ag_batch', { b: it.batch }))}</div><div class="ag-p-agent">${_agE(_agT('ag_' + it.agent))}</div></div>`;
   openSidePanel(`<div class="ag-panel" data-ag-panel="${_agE(key)}">
-      ${head}
+      ${agPanelHeadHtml(it)}
       <div class="ag-p-body">${agPanelBody(it)}</div>
       <div class="ag-p-foot"><div class="ag-p-acts">${agPanelActs(it)}</div>
         <p class="ag-p-line">${_agE(_agT('ag_panel_line'))}</p></div>
@@ -737,6 +1092,20 @@ function agOpenItem(key){
     const b = ev.target && ev.target.closest ? ev.target.closest('[data-ag-act]') : null;
     if (b) agRunAct(key, b.getAttribute('data-ag-act'));
   });
+  /* THE RECORD, WHOLE (see agLoadWhole): the panel draws at once off the list
+     and fills in what only the whole record carries when it lands — the
+     Inspector's own idiom — repainting its own body and acts, and only while
+     it is still the panel that is open. */
+  const load = agLoadWhole(it.c);
+  if (load) load.then(() => agPanelRefresh(key));
+}
+function agPanelRefresh(key){
+  const panel = document.querySelector('[data-ag-panel]');
+  if (!panel || panel.getAttribute('data-ag-panel') !== key) return;
+  const it = agFind(key);
+  if (!it) return;
+  const b = panel.querySelector('.ag-p-body'); if (b) b.innerHTML = agPanelBody(it);
+  const a = panel.querySelector('.ag-p-acts'); if (a) a.innerHTML = agPanelActs(it);
 }
 async function agRunAct(key, act){
   const it = agFind(key);
@@ -748,10 +1117,27 @@ async function agRunAct(key, act){
   if (act === 'import') return agGo('import');
   if (act === 'notice'){ if (c && typeof openNoticeDialog === 'function') openNoticeDialog(c); return; }
   if (act === 'brief'){
-    if (typeof closeModal === 'function') try { closeModal(); } catch (_){}
     if (!c) return;
+    /* THE BRIEF IS NOT ON THE LIST, so the whole record is loaded BEFORE the
+       panel that shows it opens — the reason the Overview's door always worked
+       and this one did not. The room then finds it loaded and asks nothing. */
+    const load = agLoadWhole(c);
+    if (load) await load;
+    if (typeof closeModal === 'function') try { closeModal(); } catch (_){}
     if (typeof selectContract === 'function') selectContract(c.id);
     if (typeof openCheckPanel === 'function') setTimeout(() => { try { openCheckPanel(getContract(c.id) || c, 'brief'); } catch (_){} }, 0);
+    return;
+  }
+  if (act === 'obs'){
+    if (!c || typeof runFindObligations !== 'function') return;
+    /* THE ONE DOOR ONTO ADDING THEM: runFindObligations offers the list
+       auto-triage already holds, in the same review dialog the Obligations tab
+       opens — nothing is added without a tick and nothing is paid for twice.
+       The record is whole first, so the add saves what is on screen. */
+    const load = agLoadWhole(c);
+    if (load) await load;
+    if (typeof closeModal === 'function') try { closeModal(); } catch (_){}
+    try { await runFindObligations(c); } catch (_){}
     return;
   }
   if (act === 'away'){
@@ -785,4 +1171,6 @@ async function agRunAct(key, act){
 Object.assign(window, { AG_KEYS, AG_DEF, AG_RECENT_DAYS, AG_DONE_MAX, agSel, agSetSel, agBook, agentsData, agentsDoorCount,
   agRoundItems, agRoundDone, agRenewItems, agRenewDone, agLateItems, agLateDone, agPaperItems, agPaperWorking, agPaperDone,
   agImportBatches, agImportItems, agImportDone, agImportWorking, agFind, agCardParts, agCardHtml, agPageHtml, agListHtml,
-  agStepsHtml, agFactsHtml, agPanelBody, agPanelActs, agOpenItem, agRunAct, agPaintHead, agRepaint, renderAgentsPage });
+  agStepsHtml, agFactsHtml, agPanelBody, agPanelActs, agOpenItem, agRunAct, agPaintHead, agRepaint, renderAgentsPage,
+  agForName, agWhen, agFootHtml, agPanelTitle, agPanelHeadHtml, agLoadWhole, agChaseMail, agHowWentHtml, agMemoHtml,
+  agBriefInner, agStandardsInner, agHeldInner, agPanelRefresh });

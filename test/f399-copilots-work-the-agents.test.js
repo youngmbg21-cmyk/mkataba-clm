@@ -243,6 +243,48 @@ describe('f399 (4) — the readings', () => {
     assert.equal(win.agentsData(win.state.contracts).agents.late.ready.length, 0);
     assert.equal(win.deskItems(win.state.contracts).filter(x => x.kind === 'chase').length, 0, 'and off Home\'s desk too — one stamp');
   });
+  /* TWO FAULTS THIS PAGE INHERITED FROM THE DESK IT READS (Young, 27 Sep
+     2026: "fix the two problems you found"). Both are RED at the parent
+     (a0f7cae); f274 section 10 pins the reading, these pin the page. */
+  test('4i a late step held back by an earlier payment-chain step is not ready under Late promises', async () => {
+    const { win, late } = await staged();
+    late.obligations.push({ id: 'ob0', desc: 'Pay the stock deposit', due: day(-12), party: 'ours' },
+      { id: 'ob3', desc: 'Deliver the Q4 stock', due: day(-5), party: 'theirs', after: 'ob0' });
+    assert.equal(win.obligationBlocked(late.obligations[3], late), true, 'the stage: their step waits on ours');
+    const L = win.agentsData(win.state.contracts).agents.late;
+    assert.equal(J(L.ready.map(x => x.ob.id)), 'ob1', 'nobody could have delivered yet, so there is nobody to chase');
+  });
+  test('4j putting the letter away takes the contract off Renewals — no renewal row stands in its place', async () => {
+    const { buildWorld, supplyContract } = require('./world');
+    const { win } = buildWorld({ negotiationView: true, copilotRead: true, desk: true, agents: true, notice: true });
+    const c = supplyContract({ id: 'MK-N1', status: 'Signed', counterparty: 'Naivas Supermarkets',
+      audit: [{ at: '2024-01-01T00:00:00.000Z', user: 'x', action: 'Created' }],
+      expiry: day(40), metadata: { expiryDate: day(40), noticePeriodDays: 30, renewalType: 'auto-renew' } });
+    win.state.contracts = [c];
+    const rn = win.agentsData(win.state.contracts).agents.renew.ready;
+    assert.equal(J(rn.map(x => x.kind)), 'notice', 'the stage: the letter is ready and leads');
+    assert.equal(win.deskDismiss(c, rn[0].deskKey), true);
+    assert.equal(win.agentsData(win.state.contracts).agents.renew.ready.length, 0,
+      'the reader cleared this contract — a plain renewal row may not take the letter\'s place');
+  });
+  /* A PUT-AWAY BELONGS TO THE SUBJECT IT PUT AWAY (Young, 27 Sep 2026:
+     "Once you put an item away on 'Prepared for you', it never comes back,
+     even for the same contract's renewal next year"). RED at the parent
+     (8f330c7); f274 section 11 pins the reading, this pins the page. */
+  test('4k a renewal put away last year is ready again on Renewals when this year\'s comes round', async () => {
+    const { win, supplyContract } = world();
+    const me = win.currentUser ? win.currentUser() : { id: 'u', name: 'U' };
+    const c = supplyContract({ id: 'MK-R3', status: 'Signed', counterparty: 'Renew MK-R3',
+      owner: { id: me.id, name: me.name }, expiry: day(64 - 365), metadata: { expiryDate: day(64 - 365), noticePeriodDays: 30 } });
+    win.state.contracts = [c];
+    const last = win.agentsData(win.state.contracts).agents.renew.ready;
+    assert.equal(J(last.map(x => x.cid)), 'MK-R3', 'the stage: last year\'s renewal was ready');
+    assert.equal(win.deskDismiss(c, last[0].deskKey), true, 'and was put away');
+    assert.equal(win.agentsData(win.state.contracts).agents.renew.ready.length, 0, 'and stayed away');
+    c.expiry = day(64); c.metadata = { expiryDate: day(64), noticePeriodDays: 30 };
+    assert.equal(J(win.agentsData(win.state.contracts).agents.renew.ready.map(x => x.cid)), 'MK-R3',
+      'the contract ran on, and this year\'s renewal is a different decision');
+  });
 });
 
 describe('f399 (5) — the page, drawn', () => {
@@ -280,5 +322,168 @@ describe('f399 (5) — the page, drawn', () => {
     const acts = win.agPanelActs(it);
     assert.match(acts, /data-ag-act="nego"/, 'answering is on the negotiation page');
     assert.ok(!/accept|reject|counter/i.test(acts.replace(/data-ag-act="[a-z]+"/g, '')), 'no decision is taken here');
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   f399 (6) — THE FULLER CARDS AND PANELS, AND THE BRIEF THAT OPENED EMPTY
+   (Young, 27 Sep 2026: "for many cards in there when i click on read brief,
+   the panel comes up but it has no brief in it but when i go through the
+   overview door the brief works. Also, the copilot cards are not
+   comprehensive or detailed compared to the mock up in the artifact.")
+   Every claim is RED at the parent (faa8f95): the foot, the titles, the
+   letter, the message, the opened readings and the loader do not exist there.
+   ═══════════════════════════════════════════════════════════════════════════ */
+const SRV = R('server/server.js');
+const CT = R('js/views/contract.js');
+const OB = R('js/obligations.js');
+describe('f399 (6) — the cards and panels are as full as the drawing, off the record', () => {
+  test('6a every card says who it is for and when, off the record — and nobody named is nobody printed', async () => {
+    const { win, paper, late } = await staged();
+    assert.equal(typeof win.agFootHtml, 'function', 'the card has a foot');
+    paper.triage.by = 'Young Mbagaya';
+    const P = win.agentsData(win.state.contracts).agents.paper.ready[0];
+    const foot = win.agFootHtml(P);
+    assert.match(foot, /class="ag-av"[^>]*>YM</, 'the initials of whoever filed it');
+    assert.match(foot, /For Young/, 'and who it is for, by first name');
+    assert.match(foot, /Read /, 'and the day HaTi read it');
+    assert.equal(win.agCardParts(P).urg, '', 'the day is said once — on the foot, never twice on one card');
+    late.owner = undefined;
+    const L = win.agentsData(win.state.contracts).agents.late.ready[0];
+    const lf = win.agFootHtml(L);
+    assert.ok(!/ag-av/.test(lf), 'a contract with no owner names nobody');
+    assert.match(lf, /Was due /, 'and still says when the promise was due');
+    assert.ok(!/\$|KES|cost/i.test(foot + lf), 'no cost: HaTi books spend per person and per day, never per item');
+  });
+  test('6b the panel says what the work IS', async () => {
+    const { win } = world();
+    assert.equal(win.agPanelTitle({ kind: 'notice', noticeKind: 'non-renewal' }), 'Non-renewal notice');
+    assert.equal(win.agPanelTitle({ kind: 'notice', noticeKind: 'termination' }), 'Termination notice');
+    assert.equal(win.agPanelTitle({ kind: 'answer', round: 3 }), 'Suggested answers to round 3');
+    assert.equal(win.agPanelTitle({ kind: 'chase' }), 'Chase a late promise');
+  });
+  test('6c a notice\'s panel carries THE LETTER — noticeDraft\'s own text, written from the record', () => {
+    const { buildWorld, supplyContract } = require('./world');
+    const { win } = buildWorld({ negotiationView: true, copilotRead: true, desk: true, agents: true, notice: true });
+    const c = supplyContract({ id: 'MK-N2', status: 'Signed', counterparty: 'Naivas Supermarkets',
+      audit: [{ at: '2024-01-01T00:00:00.000Z', user: 'x', action: 'Created' }],
+      expiry: day(40), metadata: { expiryDate: day(40), noticePeriodDays: 30, renewalType: 'auto-renew' } });
+    win.state.contracts = [c];
+    const it = win.agentsData(win.state.contracts).agents.renew.ready.find(x => x.kind === 'notice');
+    assert.ok(it, 'the stage: the letter is ready');
+    const body = win.agPanelBody(it);
+    const d = win.noticeDraft(c);
+    assert.ok(d && d.ok && d.text, 'the stage: the letter can be written');
+    const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    assert.match(body, /class="ag-letter"/, 'the letter is on the panel');
+    assert.ok(body.includes(esc(d.text.split('\n')[0])), 'and it is the draft\'s own words, not a second composition');
+    assert.match(body, /Why this notice/, 'with why');
+    assert.match(body, /renews by itself unless Naivas Supermarkets has your notice/, 'said from the record');
+  });
+  test('6d a chase\'s panel carries THE MESSAGE — the chase route\'s own keys, facts and language rule', async () => {
+    const { win } = await staged();
+    const L = win.agentsData(win.state.contracts).agents.late.ready[0];
+    const m = win.agChaseMail(L.c, L.ob);
+    assert.equal(m.to, 'ops@kabras.example');
+    assert.equal(m.subject, 'A reminder about Deliver the Q3 stock report');
+    assert.ok(m.body.startsWith('Hello,'), 'the route\'s greeting');
+    assert.match(m.body, /This is a reminder about "Deliver the Q3 stock report" under our agreement ".+" \(MK-SUP-3\), which was due on \d{4}-\d{2}-\d{2}\./,
+      'the route\'s line, with the due date AS STORED — which is what the route writes');
+    assert.match(m.body, /automated notice from HaTi CLM\.$/);
+    /* THE RELATION, NOT THE WORDS: the route composes from these keys and these
+       facts, so a change to either side has to be made to both. */
+    const at = SRV.indexOf("app.post('/api/contracts/:id/chase'");
+    const route = SRV.slice(at, SRV.indexOf('\napp.', at + 10));
+    for (const k of ['mail_ob_chase_subject', 'mail_ob_chase_line', 'mail_ob_chase_line_nodate', 'mail_hello', 'mail_automated_notice'])
+      assert.ok(route.includes(k), k + ' is the route\'s own key');
+    assert.match(route, /name: c\.name \|\| contractRef\(c\), id: contractRef\(c\), due: o\.due \|\| ''/);
+    assert.match(route, /langForEmail\(to\)/);
+    assert.match(CODE, /vars = \{ desc: \(o && o\.desc\) \|\| '', name: c\.name \|\| ref, id: ref, due: \(o && o\.due\) \|\| '' \}/, 'the page\'s facts mirror them');
+    const body = win.agPanelBody(L);
+    assert.match(body, /class="ag-mail"/);
+    assert.match(body, /Whose promise/);
+  });
+  test('6e new paper\'s panel OPENS the readings: the brief, the departures, the obligations found', async () => {
+    const { win, paper } = await staged();
+    paper.playbook = { verdicts: [
+      { category: 'Liability cap', status: 'deviation', escalate: true, quote: 'Neither party\'s liability is limited.', position: '≥ 12 months\' fees.' },
+      { category: 'Data protection', status: 'missing', position: 'A data protection clause.' },
+      { category: 'Governing law', status: 'aligned', quote: 'The laws of Kenya.', position: 'Kenya' }] };
+    paper.triage.steps.oblig = { ok: true, found: [{ desc: 'Deliver the audit plan', party: 'theirs' }, { desc: 'Pay the first fee part', party: 'ours' }] };
+    paper._brief = { at: iso(-1), data: { overview: 'An audit engagement for FY2026.', watchouts: [{ point: 'Fees rise with scope', why: 'No cap on extra work.' }] } };
+    const it = win.agentsData(win.state.contracts).agents.paper.ready[0];
+    const body = win.agPanelBody(it);
+    assert.match(body, /An audit engagement for FY2026\./, 'the brief as it was written');
+    assert.match(body, /Fees rise with scope/, 'and what is worth watching');
+    assert.match(body, /Why it matters/, 'and why');
+    assert.equal((body.match(/class="ag-dep"/g) || []).length, 2, 'the two open standards, each drawn — the met one is not');
+    assert.match(body, /Their words[\s\S]*Neither party(&#39;|')s liability is limited\./, 'their words, quoted');
+    assert.match(body, /Your standard[\s\S]*12 months/, 'beside your standard');
+    assert.match(body, /Needs Legal/, 'escalated where the review said so');
+    assert.match(body, /1 other standard is met\./, 'a met standard is counted, never listed');
+    assert.match(body, /Deliver the audit plan[\s\S]*Theirs/, 'the obligations found, whose each is');
+    const acts = win.agPanelActs(it);
+    assert.match(acts, /data-ag-act="obs"[^>]*>Review 2 obligations</, 'with the one door onto adding them');
+    assert.match(CODE, /if \(act === 'obs'\)[\s\S]*?runFindObligations\(c\)/, 'which is runFindObligations — the review dialog, where each is ticked');
+  });
+  test('6f a renewal\'s panel carries how it went and Copilot\'s stored memo — never a new call', async () => {
+    const { win, supplyContract } = world();
+    const me = win.currentUser();
+    const c = supplyContract({ id: 'MK-R9', status: 'Signed', counterparty: 'Krones East Africa', owner: { id: me.id, name: me.name },
+      expiry: day(64), metadata: { expiryDate: day(64), noticePeriodDays: 30 },
+      obligations: [
+        { id: 'a', desc: 'Service visit Q1', due: day(-60), party: 'theirs', status: 'done', completedAt: day(-61) },
+        { id: 'b', desc: 'Service visit Q2', due: day(-30), party: 'theirs', status: 'done', completedAt: day(-20) },
+        { id: 'c', desc: 'Pay the Q3 fee', due: day(-3), party: 'ours', status: 'open' }] });
+    c._renewalAdvice = { at: iso(-1), overnight: true, data: { verdict: 'renegotiate', headline: 'Renew, and ask for faster repairs.',
+      because: ['Three breakdowns this year.'], pushOn: ['A repair time of 24 hours.'], watchIf: 'Repairs get faster.' } };
+    win.state.contracts = [c];
+    const it = win.agentsData(win.state.contracts).agents.renew.ready.find(x => x.cid === 'MK-R9');
+    assert.ok(it, 'the stage: the renewal is ready');
+    const body = win.agPanelBody(it);
+    assert.match(body, /Renews by itself/);
+    assert.match(body, /1 of 2 obligations were met on their date\./, 'how it went, off the obligations\' own readings');
+    assert.match(body, /1 obligation is overdue now\./);
+    assert.match(body, /Renew, and ask for faster repairs\./, 'the memo\'s headline');
+    assert.match(body, /Three breakdowns this year\./, 'its reasons');
+    assert.match(body, /A repair time of 24 hours\./, 'what to push on');
+    assert.match(body, /Written overnight/, 'and who wrote it');
+    assert.ok(!/copilotAsk\(|\/api\/ai/.test(CODE), 'the memo is read, never asked for');
+  });
+  test('6g an import\'s panel NAMES the file that could not be read and the ones to check — and says the count once', async () => {
+    const { win } = await staged();
+    const it = win.agentsData(win.state.contracts).agents.import.ready[0];
+    const body = win.agPanelBody(it);
+    assert.match(body, /Could not be read[\s\S]*Imported A/, 'the unreadable one, by name');
+    assert.match(body, /Read, and waiting for you to check[\s\S]*Imported B/, 'the one waiting, by name');
+    assert.equal((body.match(/Could not be read/g) || []).length, 1, 'said once, not as a count beside the list');
+  });
+  test('6h "Read the brief" loads the whole record BEFORE it opens the panel — one shared flight', async () => {
+    assert.match(CODE, /if \(act === 'brief'\)\{[\s\S]*?const load = agLoadWhole\(c\);[\s\S]*?await load;[\s\S]*?selectContract\(c\.id\)/,
+      'the brief rides only the single record\'s read, so it is fetched first');
+    const { win } = world();
+    let calls = 0;
+    win.restoreHeavyFields = async c => { calls++; c._loaded = true; c._light = false; c._brief = { data: { overview: 'X' } }; };
+    const c = { id: 'MK-L1', _light: true };
+    const p1 = win.agLoadWhole(c), p2 = win.agLoadWhole(c);
+    assert.ok(p1 && p1 === p2, 'the panel and the brief door share one flight');
+    await p1;
+    assert.equal(calls, 1);
+    assert.equal(c._brief.data.overview, 'X');
+    assert.equal(win.agLoadWhole(c), null, 'a record already whole is not asked again');
+    assert.match(CODE, /restoreHeavyFields/, 'the Inspector\'s loader, which copies nothing over what is on screen');
+    assert.ok(!/ensureFull\(/.test(CODE), 'never ensureFull');
+  });
+  test('6i every door onto the brief panel gets it: the panel\'s own funnel loads a light record first', () => {
+    const at = CT.indexOf('function openCheckPanel(c,kind){');
+    const fn = CT.slice(at, CT.indexOf('\nfunction ', at + 10));
+    assert.match(fn, /kind==='brief' && !c\._brief && c\._light && !c\._loaded && typeof restoreHeavyFields==='function'/);
+    assert.match(fn, /restoreHeavyFields\(c\)[\s\S]*renderBriefSection\(c\)[\s\S]*backstop\(\)/, 'then draws the brief, and only then the "nothing briefed" line');
+    assert.match(fn, /ct_loading_contract/, 'saying it is loading meanwhile');
+  });
+  test('6j a chase sent or an obligation added anywhere reaches this page', () => {
+    const at = OB.indexOf('function obligationSurfacesChanged(){');
+    const fn = OB.slice(at, OB.indexOf('\nfunction ', at + 10));
+    assert.match(fn, /state\.view==='agents' && window\.agRepaint\) agRepaint\(\)/);
   });
 });

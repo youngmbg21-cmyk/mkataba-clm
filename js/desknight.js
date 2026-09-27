@@ -76,27 +76,136 @@ const DESK_KINDS = ['notice', 'chase', 'deviations', 'renewal'];
 const DESK_CHASE_LATE = 1;
 
 /* ---- DISMISSING A ROW ----
-   c.desk is a map from ROW KEY to the day it was put away, and it is ABSENT on
-   every record already on file — which is the whole migration story. One shape
-   for all three kinds: the key is the kind, or the kind and the obligation
-   where a contract can carry several.
+   c.desk is a map from ROW KEY to the put-away, and it is ABSENT on every
+   record already on file — which is the whole migration story. One shape for
+   every kind: the key is the kind, or the kind and the obligation where a
+   contract can carry several. Since 27 Sep 2026 the value says what was put
+   away as well as when (`{ at, on }` — see A PUT-AWAY BELONGS TO THE SUBJECT
+   IT PUT AWAY, below); a value written before then is a bare moment, and it
+   is read by its date.
 
-   DISMISSED IS DISMISSED. A row put away does not come back tomorrow, because
-   the desk's promise is that it is a stack of things prepared ONCE, not a
-   queue that nags. Nothing is lost by putting one away: the renewal is still in
-   "Needs your decision" (since 24 Sep 2026: on the Map) and on the Calendar,
-   the late promise is still on the
+   DISMISSED IS DISMISSED — for the subject it was about. A row put away does
+   not come back tomorrow, because the desk's promise is that it is a stack of
+   things prepared ONCE, not a queue that nags. Nothing is lost by putting one
+   away: the renewal is still in "Needs your decision" (since 24 Sep 2026: on
+   the Map) and on the Calendar, the late promise is still on the
    Obligations worklist, and the deviations are still on the contract's own
    page. */
 const deskKeyOf = it => (it && it.ob) ? (it.kind + ':' + it.ob.id) : (it && it.kind) || '';
-const deskDismissed = (c, key) => !!(c && c.desk && c.desk[key]);
 
+/* ---- A PUT-AWAY BELONGS TO THE SUBJECT IT PUT AWAY (27 Sep 2026) ----
+   Young: "Once you put an item away on 'Prepared for you', it never comes
+   back, even for the same contract's renewal next year." The stamp was a
+   bare moment filed under the row's KEY, and the key names the KIND —
+   'renewal' — never WHICH renewal. So a renewal put away this June was put
+   away for every June after it, on a contract that was still running, and
+   the same was true of a letter, a fresh reading and a moved deadline.
+
+   THE STAMP NOW SAYS WHAT IT WAS ABOUT — `{ at, on }` — and it holds only
+   while the subject is still the same one. The subject is each kind's own
+   deadline or reading, read through the reading that already decides it and
+   never a second copy of that rule:
+   - A RENEWAL AND A NOTICE are about one renewal question: the expiry and
+     the notice period, renewalQuestionOf's own shape. That is exactly what a
+     recorded renewal DECISION is stamped against — a decision lapses when the
+     question moves — and putting a row away is the weaker act of the two, so
+     it may not outlive the stronger one. The notice is on the same question
+     because it is the letter that answers it.
+   - PAPER THEY SENT is about one reading: triage's own `at`. A fresh reading
+     of new wording is new work, and it is a new row.
+   - A LATE PROMISE is about one due date. Its obligation is already named in
+     the key, and a repeating duty opens each next instance under a new id
+     (obligationNextInstance), so the date is what tells a MOVED deadline from
+     the one that was put away.
+   Where a subject cannot be read (no expiry, no reading, no date), it is ''
+   and it matches '' — which is the old behaviour, exactly.
+
+   DISMISSED IS DISMISSED — for that subject. The desk is still a stack
+   prepared once rather than a queue that nags: nothing comes back tomorrow
+   because a day passed, only because the thing it was about has changed. */
+function deskSubjectOf(c, key){
+  const k = String(key || '');
+  const cut = k.indexOf(':');
+  const kind = cut < 0 ? k : k.slice(0, cut);
+  if(kind === 'renewal' || kind === 'notice'){
+    const q = (typeof renewalQuestionOf === 'function') ? renewalQuestionOf(c) : null;
+    return (q && q.expiry) ? (q.expiry + '|' + q.notice) : '';
+  }
+  if(kind === 'deviations'){
+    const t = (typeof triageOf === 'function') ? triageOf(c) : null;
+    return String((t && t.at) || '');
+  }
+  if(kind === 'chase'){
+    const id = cut < 0 ? '' : k.slice(cut + 1);
+    const o = (Array.isArray(c && c.obligations) ? c.obligations : []).find(x => x && String(x.id) === id);
+    const due = o ? ((typeof obligationDue === 'function') ? obligationDue(o) : (o.due || '')) : '';
+    return String(due || '');
+  }
+  return '';
+}
+
+/* ---- A STAMP WRITTEN BEFORE 27 SEP 2026 IS A BARE MOMENT ----
+   Every one already on file says WHEN it was put away and nothing about
+   what it was about, and there is no migration: it is read by its date. A
+   row can only be put away while it is on screen, so a stamp made before
+   this subject's row could first be drawn belongs to an EARLIER one:
+   - a renewal or a notice is drawn from the day its window opens,
+     RENEWAL_WINDOW_DAYS before the decision date (renewalWindow's own
+     arithmetic, which counts to local midnight);
+   - paper they sent is drawn from the moment it was read;
+   - a late promise is drawn from the day after it fell due (DESK_CHASE_LATE).
+   A stamp made on or after that moment is honoured — the safe direction for
+   something the reader cleared this time round, and it only mis-reads the
+   rare deadline moved WITHIN a window, where the row stays away. One made
+   before it is last cycle's, and no longer holds. A moment that cannot be
+   read, or a subject with no date to count from, is honoured exactly as it
+   always was. */
+function deskStampHolds(c, key, stamp){
+  const t = Date.parse(String(stamp || ''));
+  if(Number.isNaN(t)) return true;
+  const k = String(key || '');
+  const cut = k.indexOf(':');
+  const kind = cut < 0 ? k : k.slice(0, cut);
+  const midnight = (iso, plus) => {
+    const d = new Date(String(iso) + 'T00:00:00');
+    if(Number.isNaN(d.getTime())) return null;
+    d.setDate(d.getDate() + plus);
+    return d.getTime();
+  };
+  let from = null;
+  if(kind === 'renewal' || kind === 'notice'){
+    const by = (typeof renewalDecisionDate === 'function') ? renewalDecisionDate(c) : null;
+    const span = (typeof RENEWAL_WINDOW_DAYS === 'number') ? RENEWAL_WINDOW_DAYS : 90;
+    if(by) from = midnight(by, -span);
+  } else if(kind === 'deviations'){
+    const t0 = (typeof triageOf === 'function') ? triageOf(c) : null;
+    const read = Date.parse(String((t0 && t0.at) || ''));
+    if(!Number.isNaN(read)) from = read;
+  } else if(kind === 'chase'){
+    const due = deskSubjectOf(c, k);
+    if(due) from = midnight(due, DESK_CHASE_LATE);
+  }
+  return from == null || t >= from;
+}
+
+function deskDismissed(c, key){
+  const v = (c && c.desk && key) ? c.desk[key] : null;
+  if(!v) return false;
+  if(typeof v === 'object') return String(v.on == null ? '' : v.on) === deskSubjectOf(c, key);
+  return deskStampHolds(c, key, v);
+}
+
+/* THE ONE WRITER, and every door still calls it with (contract, key) —
+   Home's Put away and Put away all, the Copilot's work page — so none of
+   them learns what a subject is. A stamp that is still in force refuses a
+   second press; one left over from an earlier subject is replaced. */
 function deskDismiss(c, key){
   if(!c || !key) return false;
   if(typeof canEdit === 'function' && !canEdit()) return false;
   if(!c.desk || typeof c.desk !== 'object') c.desk = {};
-  if(c.desk[key]) return false;
-  c.desk[key] = (typeof nowISO === 'function') ? nowISO() : new Date().toISOString();
+  if(deskDismissed(c, key)) return false;
+  c.desk[key] = { at: (typeof nowISO === 'function') ? nowISO() : new Date().toISOString(),
+    on: deskSubjectOf(c, key) };
   if(typeof persist === 'function') persist(c);
   return true;
 }
@@ -129,11 +238,19 @@ function deskItems(list){
        somebody has knocked, and knocking again the next morning is the product
        nagging on the customer's behalf. Not one held back by a step before it
        in a payment chain, because nobody could have done it yet. */
+    /* THE OBLIGATION FIRST, THE CONTRACT SECOND — obligationBlocked(o, c),
+       the order every other caller in the product uses (27 Sep 2026: Young,
+       "fix the two problems you found"). This line read (c, o), so the reading
+       looked for a payment-chain pointer ON THE CONTRACT, found none, and
+       answered "not held" for every step: a late step whose earlier payment
+       had not happened yet was offered for chasing on Home's desk and on the
+       Copilot's work page. The guard existed and never once fired — the
+       always-false costume of this codebase's commonest fault. */
     for(const o of (Array.isArray(c.obligations) ? c.obligations : [])){
       if(!o || o.chasedAt) continue;
       if(typeof obligationIsTheirs === 'function' && !obligationIsTheirs(o)) continue;
       if(typeof obState === 'function' ? obState(o) !== 'overdue' : true) continue;
-      if(typeof obligationBlocked === 'function' && obligationBlocked(c, o)) continue;
+      if(typeof obligationBlocked === 'function' && obligationBlocked(o, c)) continue;
       const due = (typeof obligationDue === 'function') ? obligationDue(o) : (o.due || null);
       const late = due ? -(dU(due) || 0) : 0;
       if(!(late >= DESK_CHASE_LATE)) continue;
@@ -181,9 +298,15 @@ function deskItems(list){
        letter is still drafted (a late notice is often still worth sending)
        and the DIALOG says so, but the desk stops leading with it — a morning
        list is about what can still be changed today. */
+    /* WHETHER THE LETTER IS READY AND WHETHER ITS ROW WAS PUT AWAY ARE TWO
+       FACTS, and the renewal row below needs the first one (27 Sep 2026).
+       It used to ask only whether a notice ROW had been pushed — and a row
+       put away is never pushed — so see `noticeReady` there. */
+    let noticeReady = false;
     if(typeof noticeDraft === 'function'){
       const nd = noticeDraft(c);
       if(nd && nd.ok && !nd.late && !nd.predatesRecord){
+        noticeReady = true;
         const it = { kind:'notice', cid:c.id, c, days:nd.days, urgent:nd.days<=14,
           who:c.counterparty||'', noticeKind:nd.kind, by:nd.decideBy, ends:nd.expiry,
           notice:nd.notice };
@@ -206,7 +329,26 @@ function deskItems(list){
        a desk of three, pushing a genuinely different kind off it — which is
        exactly the crowding deskShown exists to prevent.
        THE SHARPER ONE WINS, and it is the one carrying the act. */
-    const hasNotice = out.some(x => x.kind === 'notice' && x.cid === c.id);
+    /* ---- AND PUTTING IT AWAY PUTS THE SUBJECT AWAY (27 Sep 2026) ----
+       Young: "fix the two problems you found". This asked whether a notice
+       row was IN `out`, and a notice put away is never pushed there — so
+       pressing Put away on the letter brought the plain renewal row back in
+       its place, about the very contract the reader had just cleared off the
+       desk (Home's Prepared for you and the Copilot's work page both read
+       this). The two rows are one subject, so:
+       - the renewal row stands down wherever the letter is READY, drawn or
+         put away — the sharper form wins even when it is not on screen;
+       - and wherever the letter was PUT AWAY at all, even once it has stopped
+         being ready (its decision date passing is exactly when the renewal
+         row would otherwise walk back in). DISMISSED IS DISMISSED.
+       Nothing is lost: the decision is still on the Map, the Calendar and
+       the contract's own renewal card (and on Home's own list for the
+       contract's owner), as for every row put away. The key is deskKeyOf's
+       own, never a second spelling of it.
+       AND ONLY FOR THIS RENEWAL (27 Sep 2026): deskDismissed asks whether the
+       letter put away was about the SAME renewal question, so a letter put
+       away last year stands nothing down this year. */
+    const hasNotice = noticeReady || deskDismissed(c, deskKeyOf({ kind:'notice' }));
     const w = (typeof renewalWindow === 'function') ? renewalWindow(c) : null;
     /* A RENEWAL THAT HAS BEEN ANSWERED IS NOT WORK PREPARED FOR ANYBODY (16 Sep
        2026). The answer rides on renewalWindow for exactly this reason — the
@@ -309,5 +451,5 @@ function deskCids(items){
   return s;
 }
 
-Object.assign(window, { DESK_KINDS, DESK_MAX, DESK_CHASE_LATE, deskKeyOf, deskDismissed, deskDismiss,
+Object.assign(window, { DESK_KINDS, DESK_MAX, DESK_CHASE_LATE, deskKeyOf, deskSubjectOf, deskDismissed, deskDismiss,
   deskLive, deskItems, deskShown, deskCids });
