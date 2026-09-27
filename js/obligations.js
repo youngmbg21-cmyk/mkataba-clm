@@ -2944,8 +2944,11 @@ function obPaintPanel(hostId, o, c, i, ctx, emptyMsg){
     wrap.innerHTML = obHistoryHtml(h ? h.o : o, live, st);
     if(wrap.firstElementChild) sec.replaceWith(wrap.firstElementChild);
   };
-  if(!api || typeof ensureFull !== 'function'){ paintHist('none'); return; }
-  Promise.resolve().then(() => ensureFull(c)).then(() => paintHist(null)).catch(() => paintHist('failed'));
+  /* Only what the list left out — see insLatest's loader (26 Sep 2026). */
+  const load = (typeof restoreHeavyFields === 'function') ? restoreHeavyFields
+    : (typeof ensureFull === 'function') ? ensureFull : null;
+  if(!api || !load){ paintHist('none'); return; }
+  Promise.resolve().then(() => load(c)).then(() => paintHist(null)).catch(() => paintHist('failed'));
 }
 
 /* ---- THE LIST: grouped by when, the money each group adds up to ----

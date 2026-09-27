@@ -459,3 +459,49 @@ describe('f393 (8) Home', () => {
     assert.match(code(H), /home_sign_row_ready/);
   });
 });
+
+/* ==========================================================================
+   (9) A LOOK AT THE TRAIL MAY NOT UNDO AN EDIT, AND THE OUTBOX IS NOT A FAILURE
+   The Inspector asked the server for a light row's trail — and the loader it
+   used, ensureFull, copies the server's WHOLE record over the one on screen:
+   a category set a moment before was gone the instant the panel asked for its
+   history, and a status set a moment before read back as the stored one
+   (measured: register-category-verify and home-page-verify 3c). The loader is
+   the product's own inverse of the list's stripper, which fills in only what
+   the list left out. And a turn notice kept in the outbox (no email provider)
+   printed "EMAIL FAILED" — the outbox is honest delivery, not failure.
+   Pixels: register-category-verify, home-page-verify 3c, sign-links-verify 4.
+   ========================================================================== */
+describe('f393 (9) the trail loaders, and the outbox', () => {
+  const INS = read('js/views/inspector.js');
+  const OB = read('js/obligations.js');
+  const AP = read('js/approvals.js');
+  test('the Inspector asks for a light row\'s trail, not "nothing recorded yet"', () => {
+    assert.match(code(region(INS, 'insLatest')), /\(c\._light && !c\._loaded\)\) return null;/);
+  });
+  test('and loads it with restoreHeavyFields, which leaves an unsaved change alone', () => {
+    const p = code(region(INS, 'insPaintPanel'));
+    assert.match(p, /const load = \(typeof restoreHeavyFields === 'function'\) \? restoreHeavyFields/);
+    assert.match(p, /\.then\(\(\) => load\(c\)\)/);
+    assert.ok(!/\.then\(\(\) => ensureFull\(c\)\)/.test(p), 'never the loader that copies the whole record over');
+  });
+  test('and that loader also brings what only the single-record route carries — the brief, the edition, who approves', () => {
+    /* It marks the record loaded, after which the room never asks again:
+       measured, a contract chosen in the list opened with no brief. */
+    const r = code(region(read('js/core.js'), 'restoreHeavyFields'));
+    assert.match(r, /k\.charAt\(0\)==='_' && k!=='_v' && k!=='_light' && k!=='_loaded' && c\[k\]===undefined\) c\[k\]=full\[k\];/);
+    assert.ok(r.indexOf("c[k]=full[k]") < r.indexOf('c._loaded=true'), 'copied before the record is called loaded');
+  });
+  test('the obligation history loads the same way', () => {
+    assert.match(code(OB), /const load = \(typeof restoreHeavyFields === 'function'\) \? restoreHeavyFields/);
+    assert.ok(!/\.then\(\(\) => ensureFull\(c\)\)\.then\(\(\) => paintHist\(null\)\)/.test(code(OB)));
+  });
+  test('a turn notice kept in the outbox is its own state, not a failure', () => {
+    assert.match(code(region(AP, 'signerNoticeState')), /mine\.some\(n=>n\.outbox\) \? 'outbox' : 'notify-failed'/);
+  });
+  test('the route says so, and keeps the door to send it again', () => {
+    const r = code(region(AP, 'signerRouteHtml'));
+    assert.match(r, /nst==='outbox' \? tag\('bg-slate-100 text-ink\/50','IN OUTBOX'\)/);
+    assert.match(r, /\['notified','notify-failed','untold','outbox'\]\.includes\(nst\)/);
+  });
+});

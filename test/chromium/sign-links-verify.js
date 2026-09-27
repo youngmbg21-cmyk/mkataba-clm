@@ -245,9 +245,16 @@ const ROUTE = [
     });
     check('the internal turn notice is recorded server-side and reaches the card',
       noticed.notices === 1, `${noticed.notices} notice(s)`);
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the overnight clean-up): with no
+       provider configured the notice is KEPT IN THE OUTBOX — the product's own
+       rule is that the outbox is honest delivery, not failure ("SENT MUST MEAN
+       SENT"), and the row used to print "EMAIL FAILED" over every contract on a
+       server with email off. The claim is the same claim: the row says the
+       email did not reach them, and why. */
     check('the row says the email did not go — no provider is configured here',
-      /the email did not go/i.test(noticed.text), noticed.meta.join(' | ').slice(0, 120));
-    check('and the row carries the badge that says so', /EMAIL FAILED/.test(noticed.text));
+      /waiting in the outbox/i.test(noticed.text) && !/EMAIL FAILED/.test(noticed.text),
+      noticed.meta.join(' | ').slice(0, 160));
+    check('and the row carries the badge that says so', /IN OUTBOX/.test(noticed.text));
     check('there is something to press about it', noticed.resend,
       'a resend is a deliberate act with a visible result, never a silent retry');
     check('the counterparty row does NOT get the internal door',

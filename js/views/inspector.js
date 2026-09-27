@@ -500,9 +500,17 @@ function insPaintPanel(o){
      back. A failure is SAID, never a silent empty "Latest". */
   if (c && insLatest(c) === null && !opt.latestState){
     const api = (typeof API_MODE === 'function') && API_MODE();
-    if (!api || typeof ensureFull !== 'function'){ insRepaintLatest(host, c, 'none'); return; }
+    /* ONLY WHAT THE LIST LEFT OUT (26 Sep 2026, the overnight clean-up):
+       ensureFull copies the server's whole record over this one, which also
+       overwrites any change still waiting to be saved — measured: a category
+       set a moment before was gone the instant the panel asked for its trail.
+       restoreHeavyFields is the product's own inverse of the list's stripper
+       and leaves everything already changed alone. */
+    const load = (typeof restoreHeavyFields === 'function') ? restoreHeavyFields
+      : (typeof ensureFull === 'function') ? ensureFull : null;
+    if (!api || !load){ insRepaintLatest(host, c, 'none'); return; }
     const id = c.id;
-    Promise.resolve().then(() => ensureFull(c)).then(() => {
+    Promise.resolve().then(() => load(c)).then(() => {
       if (!host.isConnected || !host._ins || !host._ins.c || host._ins.c.id !== id) return;
       insRepaintLatest(host, c, insLatest(c) === null ? 'none' : null);
     }).catch(() => {

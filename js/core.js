@@ -1470,6 +1470,19 @@ async function restoreHeavyFields(c){
     if(!c.upload.extractedText && full.upload.extractedText) c.upload={ ...c.upload, extractedText: full.upload.extractedText };
     if(!c.upload.dataUrl && full.upload.dataUrl)             c.upload={ ...c.upload, dataUrl: full.upload.dataUrl };
   }
+  /* …AND WHAT ONLY THE SINGLE-RECORD ROUTE CARRIES (27 Sep 2026, the overnight
+     clean-up). The brief, the renewal advice, the Plain English edition and
+     who must approve before signing ride GET /api/contracts/:id as transport
+     (`_brief`, `_renewalAdvice`, `_readings`, `_signNeeds`, `_signState`) and
+     never the list — and this marks the record loaded, after which the
+     contract room never asks for them (renderWorkspace loads only a record
+     that is not). Measured: a contract chosen in the list's side panel, whose
+     trail this fetched, opened with no brief. Every underscored key on that
+     answer is the server's own reading, never a person's edit, so copying one
+     this record does not already hold cannot overwrite anything typed here. */
+  Object.keys(full||{}).forEach(k=>{
+    if(k.charAt(0)==='_' && k!=='_v' && k!=='_light' && k!=='_loaded' && c[k]===undefined) c[k]=full[k];
+  });
   c._loaded=true; c._light=false;
   if(c._v==null) c._v=full._v;
 }

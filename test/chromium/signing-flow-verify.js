@@ -209,8 +209,15 @@ const check = (name, pass, detail) => {
        Staged on a fresh contract with NOBODY named to sign, which is the state
        the owner photographed.
        ============================================================ */
+    /* RE-POINTED 27 Sep 2026 (the overnight clean-up): this stage used to fall
+       back to MK-A2 — the contract section 4 has just SIGNED — and emptying the
+       signing route on a signed contract is refused by the server (409, "the
+       signing route cannot be changed"). The page used to keep the refused
+       change and this section measured it; a refused save now puts the page
+       back to what is on file, which is the product being right. So the stage
+       uses a contract nobody has signed, and says so if the state did not land. */
     const st6 = await page.evaluate(async () => {
-      const c = getContract('MK-A3') || getContract('MK-A2');
+      const c = getContract('MK-B2') || state.contracts.find(x => x.id !== 'MK-A2' && x.status !== 'Signed');
       if (!c) return { error: 'no contract' };
       /* NOBODY NAMED, and no brief — the reported screen exactly. */
       c.signerPlan = []; delete c._brief; delete c._hasBrief;
@@ -222,6 +229,10 @@ const check = (name, pass, detail) => {
       persist(c); await flushSaves();
       openWorkspace(c.id); roomGoTab(c, 'sign');
       await new Promise(r => setTimeout(r, 900));
+      /* ASSERT THE STATE YOU CREATED BEFORE YOU ATTACK IT: a refused save
+         would have put the signers back. */
+      const now = getContract(c.id);
+      if ((now.signerPlan || []).length) return { error: 'the stage did not land — the signing route is still ' + now.signerPlan.length + ' long' };
       return { id: c.id };
     });
     if (st6.error){ check('6 the stage drew a contract', false, st6.error); }

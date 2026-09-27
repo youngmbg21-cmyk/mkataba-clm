@@ -1743,12 +1743,11 @@ function signerRouteHtml(c, opts){
                      something: told (say it again), the email failed, and never
                      told. Not on 'no-address', where the fix is the route or the
                      team record and the row says so. */}
-              ${''/* An outbox notice is offered the resend only once email IS set
-                     up — while it is not, pressing it would only add a second
-                     copy to the outbox. */}
+              ${''/* An outbox notice keeps the door too: pressing it says, in
+                     words, where the email went — the outbox, while email is
+                     not set up — so it is a visible act, never a silent one. */}
               ${(!s.signed&&!theySign&&s.party!=='counterparty'&&canEdit()&&!saHold
-                 &&(['notified','notify-failed','untold'].includes(nst)
-                   ||(nst==='outbox'&&!(typeof emailOff==='function'&&emailOff()))))
+                 &&['notified','notify-failed','untold','outbox'].includes(nst))
                 ? `<button data-sp-notify="${String(s.id).replace(/"/g,'&quot;')}" class="ui-btn ui-btn-sm mt-1">${
                     nst==='untold'?'Tell them it is their turn'
                     : (nst==='notify-failed'||nst==='outbox')?'Try the email again'
