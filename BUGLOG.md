@@ -19424,3 +19424,16 @@ Deliberately left alone (said to the owner)
 
 Noticed, not fixed
 - f387 (2e) and (4c) count days from the clock: the fixture builds its dates with setDate on "now" and slices the UTC day, so "in 45 days" / "in 30 days" read one day short in the evening (29 against 30 at 20:40 UTC). Same at main.
+
+## Run 27 Sep 2026 — three designs for the Signing route window
+
+- On the owner's word, over a screenshot of the window: "Create render options for this pop up. The current design is frankly very poor." A design question, so nothing was built: three options drawn working on the real Signing tab, with today's window photographed on the same two contracts (the owner's NDA, MK-160, and a distributor contract with a guarantor, MK-147), published privately as "Signing Route Options".
+- Measured first, at main (e985b16): today's window draws 9 or 10 controls on every person (20 on a two-person route, 30 with a guarantor); on the NDA the Name box on their side holds the company's name with no title or email while the count under it reads "Their side: 1 signer"; the top line says the other side's links open once every internal signature is in, which is false on a route where they sign first.
+- The three: Timeline (the route as numbered steps; a finished person rests as one line, a person with something missing opens), Signature page (a block per party, our side on the left and theirs on the right, each saying when that party signs), Ledger (one line per signer, a step column). Recommended: Timeline. Three questions put to the owner: should Save refuse a signer on their side with no email, a company's name standing in for a person, and a guarantor with nobody named.
+
+Deliberately left alone (said to the owner)
+- Nothing is built until the owner picks one by name.
+
+Noticed, not fixed
+- The Signing order card's foot line ("each counterparty signer gets their own link, held until every internal signature is in") describes an internal-first route; on a route where the other side signs first it reads wrong, as the window's own top line does. Only the window's line is in this round's designs.
+- When a route is empty and no person is on record for the other side, the editor fills their Name box with the company's name (the fallback to the contract's counterparty), and Save then counts it as a named signer.
