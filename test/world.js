@@ -222,6 +222,15 @@ const UPLOAD_BLANKS = 'js/uploadblanks.js';
    prove nothing about the product. The option brings all three, in js/app.js's
    own order: the obligations model, then triage, then the desk. */
 const DESKNIGHT = 'js/desknight.js';
+/* Copilot's work — the agents (buildWorld({agents:true})). A reading over
+   the product's own readings: the negotiation's needs-you list and the redline
+   co-pilot's plan, the overnight desk, auto-triage, the renewal decision and
+   the import record. It asks every one of them through `typeof`, so the option
+   loads ONLY the page and the caller names the floors it stands on
+   (negotiationView, copilotRead, desk) — a stage without them gets the page's
+   honest "nothing waiting" rather than a throw. Loaded LAST, js/app.js's own
+   order: the page reads everything and nothing reads the page. */
+const AGENTS_VIEW = 'js/views/agents.js';
 /* Obligations and renewal decisions (buildWorld({obligations:true})). */
 const OBLIGATIONS = 'js/obligations.js';
 const SIGNCHECK = 'js/signcheck.js';
@@ -735,6 +744,7 @@ function buildWorld(opts = {}) {
     files.push(INSPECTOR_VIEW);
     files.push(REGISTER_VIEW);
   }
+  if (opts.agents) files.push(AGENTS_VIEW);
   for (const rel of files) {
     const abs = path.join(ROOT, rel);
     if (!fs.existsSync(abs)) continue;            // docxwrite.js arrives with fix 3
