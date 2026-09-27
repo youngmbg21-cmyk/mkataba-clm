@@ -11750,7 +11750,7 @@ function rlWireClauseTools(c, host, opts){
        sentence says that rather than "it was never sent". */
     const kept = Array.isArray(c.changes) && c.changes.some(x => x && x.id === chId);
     if (window.toast) toast(kept ? i18t('ng_retract_revision', { id: chId })
-      : `#${chId} retracted — it was never sent, so nothing left your desk`, 'ok');
+      : i18t('ng_retract_never_sent', { id: chId }), 'ok');
     again();
   }));
 }

@@ -12,11 +12,11 @@
 let _tb = null; // { tid, vid, template, versionNumber, blocks[], fields[], dirty }
 
 const TB_BLOCK_META = {
-  heading:         { get label(){ return i18t('tb_heading'); },          tip: 'A section title — never editable by contract creators' },
-  fixed_text:      { get label(){ return i18t('tb_fixed_wording'); },    tip: 'Clauses and boilerplate — read-only on every contract' },
-  field_group:     { get label(){ return i18t('tb_wording_blanks'); }, tip: 'Text with {{field}} placeholders users fill per deal' },
-  signature_block: { get label(){ return i18t('tb_signature_block'); },  tip: 'Name + title + signature, wired into the signing flow' },
-  branding:        { get label(){ return i18t('tb_branding_header'); },  tip: 'Logo and company details from the org profile' },
+  heading:         { get label(){ return i18t('tb_heading'); },          get tip(){ return i18t('tb_tip_heading'); } },
+  fixed_text:      { get label(){ return i18t('tb_fixed_wording'); },    get tip(){ return i18t('tb_tip_fixed'); } },
+  field_group:     { get label(){ return i18t('tb_wording_blanks'); }, get tip(){ return i18t('tb_tip_blanks'); } },
+  signature_block: { get label(){ return i18t('tb_signature_block'); },  get tip(){ return i18t('tb_tip_sign'); } },
+  branding:        { get label(){ return i18t('tb_branding_header'); },  get tip(){ return i18t('tb_tip_branding'); } },
 };
 
 /* ═══════ THE DRAFT IS KEPT WHEN YOU PRESS ANYTHING ELSE (17 Sep 2026) ═══════
@@ -174,7 +174,7 @@ async function openTemplateBuilder(tid, vid, opts = {}) {
     t = await api('templates/' + tid);
     v = await api(`templates/${tid}/versions/${vid}`);
   } catch (e) { toast(e.message, 'err'); return; }
-  if (v.version.status !== 'draft') { toast(`v${v.version.versionNumber} is ${v.version.status} — only a draft can be edited`, 'err'); return; }
+  if (v.version.status !== 'draft') { toast(i18t('tb_not_draft', { n: v.version.versionNumber, status: v.version.status }), 'err'); return; }
   _tb = {
     tid, vid, template: t.template, versionNumber: v.version.versionNumber,
     /* `_k` IS A CLIENT KEY AND NEVER TRAVELS. A section's ask box, its answer
@@ -1751,7 +1751,7 @@ function tbBlanksLaneHtml() {
        (the fields card carried it since Phase D; the Blanks tab carries it now). */
     const conf = f.detectionConfidence !== 'manual' && !f.humanReviewed
       ? `<span class="st" style="color:${f.detectionConfidence === 'low' ? 'var(--st-ruby-fg)' : 'var(--st-amber-fg)'}" title="${i18t('tb_detected_unreviewed')}">${esc(f.detectionConfidence)} confidence</span>` : '';
-    return `<li><span class="tb-bl">${esc(f.label || f.fieldKey)}</span>${f.required ? '<span class="st" style="color:var(--st-ruby-fg)" title="Required">*</span>' : ''}${conf}<span class="g"></span>
+    return `<li><span class="tb-bl">${esc(f.label || f.fieldKey)}</span>${f.required ? `<span class="st" style="color:var(--st-ruby-fg)" title="${esc(i18t('tb_req_title'))}">*</span>` : ''}${conf}<span class="g"></span>
       <button type="button" data-tb-fcopy="${i}" title="${i18t('tb_copy_placeholder')}" aria-label="${i18t('tb_copy_placeholder')}">${icon('copy','w-3.5 h-3.5')}</button><button type="button" data-tb-fedit="${i}">${i18t('act_edit')}</button><button type="button" class="x" data-tb-fdel="${i}" title="${i18t('act_remove')}" aria-label="${i18t('act_remove')}">${icon('x','w-3.5 h-3.5')}</button>
       <span class="sub">{{${esc(f.fieldKey)}}} · ${esc(lib.label)}${f.control === 'guided' ? ` · guided (${f.options.length})` : ''}${f.defaultValue ? ' · default set' : ''} · ${uses ? i18tn('tb_in_blocks', uses, { n: uses }) : `<span style="color:var(--st-amber-fg)">${i18t('tb_unplaced')}</span>`}</span></li>`;
   }).join('');
@@ -2417,7 +2417,7 @@ function tbWire() {
     if ((b = hit('[data-tb-fcopy]'))) {
       const f = _tb.fields[Number(b.getAttribute('data-tb-fcopy'))]; const ph = `{{${f.fieldKey}}}`;
       if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ph);
-      toast(`${ph} copied — paste it into the wording`, 'ok'); return;
+      toast(i18t('tb_ph_copied', { ph }), 'ok'); return;
     }
     if ((b = hit('[data-tb-fdel]'))) {
       const i = Number(b.getAttribute('data-tb-fdel')); const f = _tb.fields[i];
@@ -2552,10 +2552,10 @@ function tbFieldModal(index, presetKey) {
     `<option value="${k}"${f.fieldType === k ? ' selected' : ''}>${v.label}</option>`).join('');
   openModal(`
     <div style="padding:24px">
-      <h3 style="margin:0 0 14px;font-family:var(--font-heading);font-size:16px;font-weight:var(--w-title)">${index != null ? 'Edit field' : 'Add field'}</h3>
+      <h3 style="margin:0 0 14px;font-family:var(--font-heading);font-size:16px;font-weight:var(--w-title)">${i18t(index != null ? 'tb_field_edit' : 'tb_field_add')}</h3>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <label><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tb_label')}</span>
-          <input id="tbf-label" style="${INP}" maxlength="200" value="${esc(f.label)}" placeholder="e.g. KRA PIN"></label>
+          <input id="tbf-label" style="${INP}" maxlength="200" value="${esc(f.label)}" placeholder="${esc(i18t('tb_ph_label'))}"></label>
         <label><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tb_type')}</span>
           <select id="tbf-type" style="${INP}">${types}</select></label>
       </div>
@@ -2573,10 +2573,10 @@ function tbFieldModal(index, presetKey) {
         <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tb_approved_options')} <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">${i18t('tb_one_per_line')}</span></span>
         <textarea id="tbf-options" style="${INP};height:auto;padding:var(--field-pad-y) var(--field-pad-x);min-height:64px">${esc(f.options.join('\n'))}</textarea></label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
-        <label><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tb_default_value')} <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">(supports {{org.…}})</span></span>
+        <label><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tb_default_value')} <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">${esc(i18t('tb_supports_org'))}</span></span>
           <input id="tbf-default" style="${INP}" maxlength="2000" value="${esc(f.defaultValue)}" placeholder="e.g. {{org.company_name}}"></label>
         <label><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tb_section')} <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">${i18t('tb_groups_form')}</span></span>
-          <input id="tbf-section" style="${INP}" maxlength="200" value="${esc(f.section)}" placeholder="e.g. Company information"></label>
+          <input id="tbf-section" style="${INP}" maxlength="200" value="${esc(f.section)}" placeholder="${esc(i18t('tb_ph_section'))}"></label>
       </div>
       <label style="display:block;margin-top:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tb_help_text')}</span>
         <input id="tbf-help" style="${INP}" maxlength="1000" value="${esc(f.helpText)}" placeholder="${i18t('tb_shown_under_input')}"></label>
@@ -2584,7 +2584,7 @@ function tbFieldModal(index, presetKey) {
         <span style="font-size:var(--t-label);color:var(--color-neutral-500);font-family:var(--font-mono)" id="tbf-keyprev">${f.fieldKey ? `{{${esc(f.fieldKey)}}}` : ''}</span>
         <div style="display:flex;gap:var(--s-2)">
           <button class="ui-btn" onclick="closeModal()">${i18t('act_cancel')}</button>
-          <button id="tbf-save" class="ui-btn ui-btn-primary">${index != null ? 'Save field' : 'Add field'}</button>
+          <button id="tbf-save" class="ui-btn ui-btn-primary">${i18t(index != null ? 'tb_field_save' : 'tb_field_add')}</button>
         </div>
       </div>
     </div>`);
@@ -2634,13 +2634,13 @@ async function tbPaintBranding() {
           ${b.logoUrl ? `<img src="${b.logoUrl}" alt="logo" style="max-width:100%;max-height:100%">` : `<span style="font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('tb_no_logo')}</span>`}
         </div>
         <input type="file" id="tb-logo-file" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="display:none">
-        <button id="tb-logo-btn" class="ui-btn ui-btn-sm">${icon('upload', 'w-3 h-3')} ${b.logoUrl ? 'Replace logo' : 'Upload logo'}</button>
+        <button id="tb-logo-btn" class="ui-btn ui-btn-sm">${icon('upload', 'w-3 h-3')} ${i18t(b.logoUrl ? 'tb_logo_replace' : 'tb_logo_upload')}</button>
       </div>
       <div style="min-width:260px;flex:1;display:grid;grid-template-columns:1fr 1fr;gap:var(--s-2)">
         <input id="tb-b-name" style="${INP}" placeholder="${i18t('tb_company_name')}" value="${esc(b.companyName)}">
         <input id="tb-b-reg" style="${INP}" placeholder="${i18t('tb_reg_number')}" value="${esc(b.registrationNumber)}">
         <input id="tb-b-addr" style="${INP};grid-column:1/-1" placeholder="${i18t('tb_reg_address')}" value="${esc(b.address)}">
-        <input id="tb-b-footer" style="${INP};grid-column:1/-1" placeholder="Footer text (e.g. Registered in ${jxName()} · C.123456)" value="${esc(b.defaultFooterText)}">
+        <input id="tb-b-footer" style="${INP};grid-column:1/-1" placeholder="${esc(i18t('tb_ph_footer', { where: jxName() }))}" value="${esc(b.defaultFooterText)}">
         <div style="grid-column:1/-1;display:flex;justify-content:flex-end">
           <button id="tb-b-save" class="ui-btn ui-btn-sm">${i18t('tb_save_branding')}</button>
         </div>

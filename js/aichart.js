@@ -973,7 +973,7 @@ function aiChartHtml(block){
   if (kind === 'custom'){
     const r = aiCustomConfig(spec);
     if (r.error) return aiChartNote(r.error);
-    if (r.empty) return aiChartNote('There is no data in your portfolio for that chart yet.');
+    if (r.empty) return aiChartNote(_acT('ac_no_data','There is no data in your portfolio for that chart yet.'));
     block.config = r.config;
     return aiChartCard(title, `<div class="ai-chart-canvas"><canvas></canvas></div>`, block.key);
   }
@@ -983,7 +983,7 @@ function aiChartHtml(block){
   if (kind === 'breakdown'){
     const r = aiBreakdownConfig(spec);
     if (r.error) return aiChartNote(r.error);
-    if (r.empty) return aiChartNote('There is no data in your portfolio for that chart yet.');
+    if (r.empty) return aiChartNote(_acT('ac_no_data','There is no data in your portfolio for that chart yet.'));
     block.config = r.config;
     return aiChartCard(title || r.title, `<div class="ai-chart-canvas"><canvas></canvas></div>`, block.key);
   }
@@ -991,7 +991,7 @@ function aiChartHtml(block){
   if (!recipe) return aiChartNote(`“${kind}” is not a chart HaTi knows how to draw.`);
   let cfg = null;
   try{ cfg = recipe(); }catch(e){ cfg = null; }
-  if (!cfg) return aiChartNote('There is no data in your portfolio for that chart yet.');
+  if (!cfg) return aiChartNote(_acT('ac_no_data','There is no data in your portfolio for that chart yet.'));
   block.config = cfg;
   return aiChartCard(title, `<div class="ai-chart-canvas"><canvas></canvas></div>`, block.key);
 }
@@ -1010,7 +1010,7 @@ async function aiHydrateCharts(blocks){
          a half-deployed build, a stale cache, a static host not serving
          /vendor — and telling the reader to check their connection sends them
          to look in the one place the fault is not. */
-      if (host) host.innerHTML = aiChartNote('The chart tool did not load, so this chart could not be drawn. The figures behind it are unaffected.');
+      if (host) host.innerHTML = aiChartNote(_acT('ac_tool_missing','The chart tool did not load, so this chart could not be drawn. The figures behind it are unaffected.'));
     }
     return;
   }
@@ -1020,7 +1020,7 @@ async function aiHydrateCharts(blocks){
     if (!canvas) continue;
     aiChartDestroy(b.key);
     try{ AI_CHARTS.set(b.key, new Chart(canvas.getContext('2d'), b.config)); }
-    catch(e){ host.innerHTML = aiChartNote('That chart could not be drawn.'); }
+    catch(e){ host.innerHTML = aiChartNote(_acT('ac_not_drawn','That chart could not be drawn.')); }
   }
 }
 

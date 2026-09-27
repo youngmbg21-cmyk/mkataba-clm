@@ -759,7 +759,7 @@ function mWireScreen(root){
        approval reaches approveContract exactly as it always did. */
     const noteBox = root.querySelector('#m-appr-note');
     const note = noteBox ? String(noteBox.value||'').trim() : '';
-    try{ approveContract(c, note||undefined); }catch(e){ if(window.toast) toast(e.message||'Could not approve','err'); }
+    try{ approveContract(c, note||undefined); }catch(e){ if(window.toast) toast(e.message||i18t('m_could_not_approve'),'err'); }
     s.apprOpen=null; s.apprNote=''; mRender();
   }));
   root.querySelectorAll('[data-m-reject]').forEach(b=>b.addEventListener('click',()=>{
@@ -771,7 +771,7 @@ function mWireScreen(root){
     const c = getContract(b.getAttribute('data-m-reject-send'));
     if(!c) return;
     try{ rejectApprovalStep(c, String(why).trim()); }
-    catch(e){ if(window.toast) toast(e.message||'Could not reject','err'); }
+    catch(e){ if(window.toast) toast(e.message||i18t('m_could_not_reject'),'err'); }
     s.apprReject=null; s.apprOpen=null; s.apprWhy=''; s.apprErr=false;
     mRender();
   }));

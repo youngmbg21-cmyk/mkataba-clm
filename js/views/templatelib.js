@@ -11,9 +11,12 @@
 // keeps no local copy beyond the render cache below, so the library reads the
 // same for every member of the org.
 
+/* IN THE READER'S LANGUAGE (the owner's list, 27 Sep 2026): per-key getters,
+   read when shown (THE GETTER TRAP); the stored thing is the id, never the word. */
 const TPLLIB_CATEGORIES = {
-  sales: 'Sales', procurement: 'Procurement', employment: 'Employment',
-  nda: 'NDA', other: 'Other',
+  get sales(){ return i18t('tl_cat_sales'); }, get procurement(){ return i18t('tl_cat_procurement'); },
+  get employment(){ return i18t('tl_cat_employment'); }, get nda(){ return i18t('tl_cat_nda'); },
+  get other(){ return i18t('tl_cat_misc'); },
 };
 /* ---- AND CATEGORIES ARE A LIST A COMPANY KEEPS, NOT FIVE WORDS IN THE CODE
    (Young ruled 17 Sep 2026) ---- The five above stay literals: they are the

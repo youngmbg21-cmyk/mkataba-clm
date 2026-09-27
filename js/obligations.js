@@ -650,7 +650,8 @@ function renderObligationsSection(c){
         <span class="ml-auto text-[10px] font-mono text-ink/60">${obs.length}</span>
       </div>
       ${dd?`<div class="mb-3 rounded-lg border ${daysUntil(dd)<0?'border-rose-200 bg-rose-50':'border-gold-500/25 bg-gold-500/8'} px-3 py-2 text-[11px]">
-        <span class="font-600 text-ink">Renewal decision by ${dd}</span> <span class="text-ink/60">· ${daysUntil(dd)<0?'passed':daysUntil(dd)+' days'}${c.metadata&&c.metadata.noticePeriodDays?` (expiry ${(c.metadata.expiryDate||c.expiry)} − ${c.metadata.noticePeriodDays}d notice)`:''}</span></div>`:''}
+        ${''/* In the reader's language, the days in words (the owner's list, 27 Sep 2026). */}
+        <span class="font-600 text-ink">${_obEsc(i18t('ob_rn_by',{date:obDay(dd)}))}</span> <span class="text-ink/60">· ${_obEsc(daysUntil(dd)<0?i18t('ob_rn_passed'):i18tn('ob_rn_days',daysUntil(dd),{n:daysUntil(dd)}))}${c.metadata&&c.metadata.noticePeriodDays?' '+_obEsc(i18t('ob_rn_notice',{expiry:obDay(c.metadata.expiryDate||c.expiry),n:c.metadata.noticePeriodDays})):''}</span></div>`:''}
       ${''/* ---- THE LIST IS BOUNDED, AND THE ROWS ARE LEGIBLE ----
              Both reported together (Young, 10 Aug 2026): "make the obligations
              card be a set size which obligations are scrollable within", and

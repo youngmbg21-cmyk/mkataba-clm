@@ -1504,9 +1504,9 @@ async function settingsSavePerson(existing){
   const holdTo = holdBox ? !!holdBox.checked : null;
   const holdChanged = holdTo!==null && holdTo!==stHoldOn(target);
   if(valuesChanged && valuesTo===false){
-    const ok=await confirmDialog({ title:`Hide contract values from ${target.name}?`,
-      message:'They will stop seeing amounts on the register, on a contract, in exports, in the dashboard metrics and in anything they ask the Copilot. They keep their folder access and everything else. You can turn this back on at any time.',
-      confirmLabel:'Hide values' });
+    const ok=await confirmDialog({ title:i18t('st_hide_values_q',{who:target.name}),
+      message:i18t('st_hide_values_msg'),
+      confirmLabel:i18t('st_hide_values_go') });
     if(!ok) return;
   }
   if(API_MODE()){
@@ -1615,7 +1615,7 @@ async function settingsRemoveMember(u){
       +led.slice(0,5).map(c=>c.name).join(', ')+(led.length>5?`, +${led.length-5}`:'')
       +`\n${i18t('dk_leaver_sub')}`;
   }
-  if(!await confirmDialog({title:`Remove ${t.name}?`, message:`${t.name} will lose access to this workspace. You can re-invite them later.${oversees}${leads}`, confirmLabel:'Remove member', danger:true})) return;
+  if(!await confirmDialog({title:i18t('st_remove_member_q',{who:t.name}), message:`${i18t('st_remove_member_msg',{who:t.name})}${oversees}${leads}`, confirmLabel:i18t('st_remove_member_go'), danger:true})) return;
   if(API_MODE()){
     try{ await api('users/'+t.id,'DELETE'); REMOTE.users=REMOTE.users.filter(x=>x.id!==t.id); }
     catch(e){ stDrawerRefuse(e.message); return; }
@@ -3154,7 +3154,7 @@ function stPaintDirectory(){
     rd.readAsText(f); e.target.value='';
   });
   document.getElementById('dir-clear')?.addEventListener('click',async()=>{
-    if(!await confirmDialog({title:'Clear the directory?', message:'Removes all imported contacts. Team members are not affected.', confirmLabel:'Clear directory', danger:true})) return;
+    if(!await confirmDialog({title:i18t('st_dir_clear_q'), message:i18t('st_dir_clear_msg'), confirmLabel:i18t('st_dir_clear_go'), danger:true})) return;
     state.settings=state.settings||{}; state.settings.directory=[]; await saveSettings();
     toast(i18t('set_t_dir_cleared')); stPaintDirectory();
   });
@@ -3168,14 +3168,14 @@ function stWireBackup(){
     rd.onload=async()=>{ let b;
       try{ b=JSON.parse(rd.result); if(b.kind!=='hati-backup'||!b.org||!b.users) throw new Error('bad'); }
       catch(err){ stDrawerRefuse(i18t('set_t_bad_backup')); return; }
-      if(!await confirmDialog({title:'Restore from backup?', message:'Restoring replaces this workspace, its users and contracts with the backup. The current data will be overwritten.', confirmLabel:'Restore backup', danger:true})) return;
+      if(!await confirmDialog({title:i18t('st_restore_q'), message:i18t('st_restore_msg'), confirmLabel:i18t('st_restore_go'), danger:true})) return;
       lsSet(LS.org,b.org); saveUsers(b.users); if(b.data) lsSet(LS.data,b.data);
       localStorage.removeItem(LS.session); location.reload();
     };
     rd.readAsText(f);
   });
   document.getElementById('bk-reset')?.addEventListener('click',async()=>{
-    if(await confirmDialog({title:'Erase this workspace?', message:'This permanently erases the workspace, all users and contracts stored in this browser. This cannot be undone.', confirmLabel:'Erase everything', danger:true})){
+    if(await confirmDialog({title:i18t('st_erase_q'), message:i18t('st_erase_msg'), confirmLabel:i18t('st_erase_go'), danger:true})){
       Object.values(LS).forEach(k=>localStorage.removeItem(k)); location.reload();
     }
   });
@@ -3747,9 +3747,9 @@ function stWireEngine(){
     catch(e){ stDrawerRefuse(e.message); }
   });
   document.getElementById('ai-key-clear')?.addEventListener('click',async()=>{
-    if(!await confirmDialog({title:'Remove the stored Copilot key?',
+    if(!await confirmDialog({title:i18t('st_key_remove_q'),
         message:_aiEnvKey?i18t('set_key_remove_to_env'):i18t('set_key_remove_msg'),
-        confirmLabel:'Remove key', danger:true})) return;
+        confirmLabel:i18t('st_key_remove_go'), danger:true})) return;
     try{ await api('ai/config','PUT',{ clear:true }); toast(i18t('set_key_removed'),'ok'); refreshAiCfg(); }catch(e){ stDrawerRefuse(e.message); }
   });
   document.getElementById('ai-limits-save')?.addEventListener('click',async()=>{
@@ -3773,9 +3773,10 @@ function stWireEngine(){
   document.getElementById('ai-allow-open')?.addEventListener('click',async()=>{
     const b=allowBody();
     if(!(b.budget>0)&&!(b.docs>0)){ stDrawerRefuse(i18t('set_set_budget')); return; }
-    if(!await confirmDialog({title:'Open an onboarding allowance?',
-      message:`Bulk import and OCR will draw on ${b.budget>0?'$'+b.budget.toFixed(2):'no money cap'}${b.docs>0?` and ${b.docs} documents`:''} instead of the daily budget, until it runs out.`,
-      confirmLabel:'Open allowance'})) return;
+    if(!await confirmDialog({title:i18t('st_allow_open_q'),
+      message:i18t('st_allow_open_msg',{ what:(b.budget>0?'$'+b.budget.toFixed(2):i18t('st_allow_no_cap'))
+        +(b.docs>0?i18t('st_allow_docs',{n:b.docs}):'') }),
+      confirmLabel:i18t('st_allow_open_go')})) return;
     try{ await api('ai/allowance','PUT',{ open:true, ...b }); toast(i18t('set_allowance_opened')); refreshAiCfg(); }
     catch(e){ stDrawerRefuse(e.message); }
   });
@@ -3784,7 +3785,7 @@ function stWireEngine(){
     catch(e){ stDrawerRefuse(e.message); }
   });
   document.getElementById('ai-allow-close')?.addEventListener('click',async()=>{
-    if(!await confirmDialog({title:'Close the onboarding allowance?', message:'Migration and OCR will go back to drawing on the daily budget.', confirmLabel:'Close allowance', danger:true})) return;
+    if(!await confirmDialog({title:i18t('st_allow_close_q'), message:i18t('st_allow_close_msg'), confirmLabel:i18t('st_allow_close_go'), danger:true})) return;
     try{ await api('ai/allowance','PUT',{ close:true }); toast(i18t('set_allowance_closed')); refreshAiCfg(); }
     catch(e){ stDrawerRefuse(e.message); }
   });
@@ -3801,7 +3802,7 @@ function stWireEngine(){
     catch(e){ stDrawerRefuse(e.message); }
   });
   document.getElementById('ai-rates-reset')?.addEventListener('click',async()=>{
-    if(!await confirmDialog({title:'Reset the rate table?', message:'Every model goes back to the prices HaTi ships with. Past spend already recorded is not re-priced.', confirmLabel:'Reset rates', danger:true})) return;
+    if(!await confirmDialog({title:i18t('st_rates_reset_q'), message:i18t('st_rates_reset_msg'), confirmLabel:i18t('st_rates_reset_go'), danger:true})) return;
     try{ await api('ai/config','PUT',{ rates:{} }); toast(i18t('set_rate_reset')); refreshAiCfg(); }
     catch(e){ stDrawerRefuse(e.message); }
   });

@@ -2522,8 +2522,10 @@ function uploadDocBody(c){
       <span style="min-width:0;overflow:hidden;text-overflow:ellipsis">${esc(u.uploadedBy||'—')}${u.uploadedAt?` · ${fmtDT(u.uploadedAt)}`:''}</span>
       <span style="opacity:.5;flex:none">·</span>
       <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;color:${u.textChars>200&&!isOcrText(u.textSource)?'var(--color-neutral-600)':'var(--st-amber-fg)'}">${u.textChars>200
-        ? `${Number(u.textChars).toLocaleString()} characters ${isOcrText(u.textSource)?`machine-read from ${u.ocrPages||'the'} scanned page${u.ocrPages===1?'':'s'}`:'read'}`
-        : 'Text not machine-readable'}</span>
+        ? esc((()=>{ const n=Number(u.textChars).toLocaleString(); /* in the reader's language (the owner's list, 27 Sep 2026) */
+            if(!isOcrText(u.textSource)) return i18t('ct_up_chars_read',{n});
+            return u.ocrPages ? i18tn('ct_up_ocr',u.ocrPages,{n,p:u.ocrPages}) : i18t('ct_up_ocr_some',{n}); })())
+        : esc(i18t('ct_up_not_readable'))}</span>
       ${''/* ---- WHAT THE STRUCTURE READ SAYS, ON THE STRIP THAT ALREADY
            CARRIES HOW WELL THE FILE WAS READ (J-3.1, D-4) ----
            NO BAND AND NO BANNER: the standing rule, and this line's neighbour
@@ -3852,7 +3854,7 @@ function frozenDocBody(c){
    of the open contract so the single most useful verb is never buried in the
    rich workspace. Returns {label, ic, guide, kind} or null. */
 function wsNextAction(c){
-  if(c.status==='Signed') return { get label(){ return i18t('ct_evidence_pack'); }, ic:'download', guide:'Executed &amp; sealed.', kind:'evidence' };
+  if(c.status==='Signed') return { get label(){ return i18t('ct_evidence_pack'); }, ic:'download', get guide(){ return i18t('ct_g_sealed'); }, kind:'evidence' };
   if(c.status==='Declined') return null;
   if(!canEdit()) return null;
   /* ---- A FILE THEY SIGN (26 Sep 2026, redline here, sign there) ----
@@ -3892,7 +3894,7 @@ function wsNextAction(c){
        and how many decisions. */
     return { get label(){ return i18t('ct_review_changes'); }, ic:'history', kind:'review-changes',
       noButton:true,
-      guide:`${c.counterparty||'The counterparty'} is waiting on you — ${n} ${openRds?`round${n===1?'':'s'}`:`change${n===1?'':'s'}`} to decide.` };
+      get guide(){ return i18tn(openRds?'ct_g_wait_rounds':'ct_g_wait_changes', n, { n, who:c.counterparty||i18t('ct_the_counterparty_cap') }); } };
   }
   /* ---- THEY HAVE SAID THEY ARE READY (owner-asked 23 Aug 2026) ----
      The readiness card used to float over this page carrying the one act it
@@ -3915,7 +3917,7 @@ function wsNextAction(c){
       if(theySign) return { get label(){ return hoHeadLabel(c); }, ic:'send', kind:'ho-hand',
         get guide(){ return i18t('ho_guide_ready',{ who }); } };
       return { get label(){ return i18t('ct_issue_signing_link'); }, ic:'send', kind:'issue-signing',
-        guide:`${who} has said they are ready to sign. Nothing is signed yet.` };
+        get guide(){ return i18t('ct_g_ready',{ who }); } };
     }
   }
   /* THEY HAVE SIGNED AND WE HAVE NOT, and nothing on this page said so.
@@ -3933,7 +3935,7 @@ function wsNextAction(c){
   if(cpSigned && !weSigned && !(c.execution&&c.execution.at)){
     const who=(c.signatures.find(s=>s.party==='counterparty')||{}).name||c.counterparty||'The counterparty';
     return { get label(){ return signHeadLabel(c); }, ic:'finger', kind:'sign',
-      guide:`${who} has signed. Your signature is the only thing left.` };
+      get guide(){ return i18t('ct_g_they_signed',{ who }); } };
   }
   if(c.status==='Draft'){
     /* ---- AND THIS RUNG DRAWS NO BUTTON EITHER (owner-asked 9 Sep 2026:
@@ -3957,7 +3959,7 @@ function wsNextAction(c){
        ct_complete_key_terms is what the machinery would print. */
     if(!hasTerms) return { get label(){ return i18t('ct_complete_key_terms'); }, ic:'pencil',
       noButton:true,
-      guide:'Add the counterparty and value to move this forward.', kind:'terms' };
+      get guide(){ return i18t('ct_g_terms'); }, kind:'terms' };
     /* ---- READ IT BEFORE YOU SEND IT ----
        The rung between "the facts are in" and "send it out" was missing, so a
        draft went straight from Key terms to the counterparty with nothing
@@ -3985,8 +3987,8 @@ function wsNextAction(c){
     if(window.checkVerdict && !checkVerdict(c,'risk') && !checkVerdict(c,'playbook'))
       return { get label(){ return i18t('ct_read_through_checks'); }, ic:'scan', kind:'checks',
         noButton:true,
-        guide:'The facts are in. Read the wording and run the checks before it goes out.' };
-    return { get label(){ return i18t('ct_send_for_review'); }, ic:'check2', guide:'Key terms are set and the checks have run — move it into review.', kind:'review' };
+        get guide(){ return i18t('ct_g_read_checks'); } };
+    return { get label(){ return i18t('ct_send_for_review'); }, ic:'check2', get guide(){ return i18t('ct_g_review'); }, kind:'review' };
   }
   /* A LIVE NEGOTIATION IS NOT "READY TO SIGN".
 
@@ -4023,10 +4025,10 @@ function wsNextAction(c){
     return theirTurn
       ? { get label(){ return i18t('ct_open_negotiation'); }, ic:'history', kind:'review-changes',
           noButton:true,
-          guide:`It is with ${who}. Nothing needs you until they answer.` }
+          get guide(){ return i18t('ct_g_with_them',{ who }); } }
       : { get label(){ return i18t('ct_open_negotiation'); }, ic:'history', kind:'review-changes',
           noButton:true,
-          guide:`Your turn — ${mine||'some'} change${mine===1?'':'s'} still open with ${who}.` };
+          get guide(){ return mine ? i18tn('ct_g_your_turn', mine, { n:mine, who }) : i18t('ct_g_your_turn_some',{ who }); } };
   }
   // Under Review
   /* ---- "SEND TO COUNTERPARTY" IS GONE (Young ruled 23 Sep 2026: "send to
@@ -4080,7 +4082,7 @@ function wsNextAction(c){
      It sent the reader to a tick-box that no longer exists. The head's Sign
      says how much stands in the way — "Sign · 3 to settle" — and lands on the
      readiness list; when nothing does, it signs. One kind, one door. */
-  return { get label(){ return signHeadLabel(c); }, ic:'finger', guide:'Approved and ready — apply the sealed signature.', kind:'sign' };
+  return { get label(){ return signHeadLabel(c); }, ic:'finger', get guide(){ return i18t('ct_g_sign'); }, kind:'sign' };
 }
 /* THE HEAD FOLLOWS THE LIST: the head is built once per render and never by
    a tab change, so after an act on the Signing tab moves the count, its Sign
@@ -8988,7 +8990,7 @@ function applyWsFocus(){
        elements, and textContent replaces every child with one text node. This
        runs on every render, so Focus mode was the one line in the menu with no
        symbol beside it and no hint after it, from the moment it was built. */
-    b.innerHTML=`${icon('scan','w-3.5 h-3.5')}${_wsFocus?'Exit focus mode':'Focus mode'}<span class="mnote">${i18t('ct_esc_to_leave')}</span>`;
+    b.innerHTML=`${icon('scan','w-3.5 h-3.5')}${esc(i18t(_wsFocus?'ct_menu_exit_focus':'ct_menu_focus'))}<span class="mnote">${i18t('ct_esc_to_leave')}</span>`;
     b.title=_wsFocus?i18t('ct_exit_focus'):i18t('ct_focus_mode');
   }
   /* THE SECOND DOOR IS THE SAME DOOR (19 Sep 2026): the head's own button says

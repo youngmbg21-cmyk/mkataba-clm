@@ -58,8 +58,11 @@ const INDUSTRY_TEMPLATES={
   distribution: ['WH','FF','DA','ND'],
   retail:       ['RL','DA','LE','ND'],
 };
-const INDUSTRY_LABEL={ services:'Services & professional', manufacturing:'Manufacturing & production',
-  distribution:'Distribution & logistics', retail:'Retail & consumer trade' };
+/* IN THE READER'S LANGUAGE (the owner's list, 27 Sep 2026), read at the
+   moment each is shown — per-key getters, never a literal frozen at load
+   (THE GETTER TRAP). The KEYS stay English: they are the stored setting. */
+const INDUSTRY_LABEL={ get services(){ return i18t('wz_lob_services'); }, get manufacturing(){ return i18t('wz_lob_manufacturing'); },
+  get distribution(){ return i18t('wz_lob_distribution'); }, get retail(){ return i18t('wz_lob_retail'); } };
 /* Validated on read: a stored value the table no longer knows is no industry
    at all, not a crash in the picker. */
 function workspaceIndustry(){ const v=state.settings&&state.settings.industry; return INDUSTRY_TEMPLATES[v]?v:null; }

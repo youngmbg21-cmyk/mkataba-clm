@@ -1895,8 +1895,8 @@ function portalNegoFootHtml(p){
   const words=PORTAL_FOOT_COMPACT?'':`
     <span style="flex:1;min-width:150px;display:grid;gap:2px">
       <span style="font-size:var(--t-meta);color:${n?'var(--st-amber-fg)':'var(--color-neutral-600)'}">
-        ${n?`<b>${n} decision${n===1?'':'s'} ready to send.</b> Nothing has reached ${esc((p&&p.org)||'the sender')} yet.`
-          :'Your decisions are held here until you send them. Comments send immediately and change nothing.'}
+        ${n?`<b>${esc(i18tn('pt_ready_n', n, { n }))}</b> ${esc(i18t('pt_nothing_reached', { who: (p&&p.org)||i18t('pt_the_sender') }))}`
+          :esc(i18t('pt_decisions_held'))}
       </span>
       ${readyOk||spent?'':`<span id="pt-ready-why" style="font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600)">${esc(whyNot)}</span>`}
     </span>`;
