@@ -19696,3 +19696,10 @@ Noticed, not fixed
 - The phone's home screen does not list quiet negotiations at all.
 - metadata-carried-verify expects 16 fields and finds 25; redline-verify stops at section 17 — both on main as on this branch.
 - Gates: lint 0 errors, 178 warnings (unchanged). Full suite, run once: 9,831 tests, 16 failed — 6 fail on main too (f258 (4), f267 (17), f277 (1), f277 (10), f387 (2) 2e, f387 (4) 4c); the other 10 were older tests this run's fixes made stale — F17 (the dialog reuses a negotiation link only), f314 (2) (the flush marks each save as out), f195 and f197 (they sign fixtures over the legacy 5,000,000 rule, and their settings saves replace the whole blob; and two "ordinary saves" edited the counterparty on a record-drawn paper after a signature, which is now frozen) — re-pointed in place with the reason beside each and re-run on their own, all passing. The suite was not run a second time (only test files changed after it).
+
+## Run — The Brain fills the whole screen (27 Sep 2026)
+
+Defects found: none new. The Brain page joins the views that own their height and their head; the stage fills the room below the shell bar.
+
+### Noticed, not fixed
+- Full suite: 6 failures (f258, f267, f277, f387), identical by name at unmodified main ae80fcb2 — pre-existing.

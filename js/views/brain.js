@@ -623,9 +623,10 @@ async function brLoadMap(){
 function brEnsureCss(){
   if (document.getElementById('brain-css')) return;
   const css = [
-    '.br-root{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px;align-items:stretch}',
-    '.br-stagecard{background:#04191A;border-radius:var(--radius-lg,8px);overflow:hidden;border:1px solid #0E2C29;display:flex;flex-direction:column;min-width:0}',
-    '.br-stage{position:relative;height:clamp(440px,calc(100vh - 210px),760px);background:radial-gradient(ellipse at 52% 44%,#0B312C 0%,#05201D 45%,#021011 100%)}',
+    /* THE WHOLE SCREEN (Young, 27 Sep 2026): the page is exactly --view-h tall — the shell's own measured room below the bar (js/app.js, VIEW_OWNS_HEIGHT) — and the stage takes whatever the card has left, so nothing is left over at the bottom and nothing scrolls. */
+    '.br-root{display:grid;grid-template-columns:minmax(0,1fr) 360px;grid-template-rows:minmax(0,1fr);gap:12px;align-items:stretch;height:var(--view-h);box-sizing:border-box;padding:12px var(--page-pad-x,16px);min-height:0}',
+    '.br-stagecard{background:#04191A;border-radius:var(--radius-lg,8px);overflow:hidden;border:1px solid #0E2C29;display:flex;flex-direction:column;min-width:0;min-height:0}',
+    '.br-stage{position:relative;flex:1 1 auto;min-height:0;background:radial-gradient(ellipse at 52% 44%,#0B312C 0%,#05201D 45%,#021011 100%)}',
     '.br-stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}',
     '.br-stage canvas.is-drag{cursor:grabbing}',
     '.br-ov-tl{position:absolute;left:16px;top:14px;pointer-events:none;display:flex;flex-direction:column;gap:2px;max-width:70%}',
@@ -707,7 +708,7 @@ function brEnsureCss(){
     '.br-upd b{font-size:13.5px;font-weight:600;color:var(--color-text)}',
     '.br-upd-2{font-size:12px;color:var(--color-neutral-600)}',
     '.br-upd-note,.br-pfoot{font-size:12px;color:var(--color-neutral-500);margin:8px 0 0}',
-    '@media (max-width:1100px){.br-root{grid-template-columns:minmax(0,1fr)}.br-panel{height:auto;min-height:0;max-height:70vh}}',
+    '@media (max-width:1100px){.br-root{grid-template-columns:minmax(0,1fr);grid-template-rows:auto;height:auto;min-height:var(--view-h)}.br-stagecard{height:calc(var(--view-h) - 24px)}.br-panel{height:auto;min-height:0;max-height:70vh}}',
     '@media (max-width:760px){.br-bar .hint{display:none}.br-seg kbd{display:none}.br-cap-in{max-width:none}}'
   ].join('\n');
   const st = document.createElement('style'); st.id = 'brain-css'; st.textContent = css; document.head.appendChild(st);
