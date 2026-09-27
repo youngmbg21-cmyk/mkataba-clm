@@ -21856,3 +21856,25 @@ Tests: f393 (55 claims, 54 red at the parent 790b4d5; the one pass is a named wa
 **MEASURED.** A real drag of 160px widens the panel by 160px and moves the handle by 160px; far right stops at 340 with an amber grip, far left leaves the column 420; the paper beside the panel follows the drag (828px → 678px sheet). With the paper up the handle is on top and pressable.
 
 Tests: f394, explorer-verify; insights-panels-verify 15e re-pointed (a legend row is measured as pixels, so it opens the legend with a press first).
+
+## WHAT THIS CONTRACT NEEDS FROM YOU — THE CHECKLIST (Young picked "Checklist" by name, 27 Sep 2026)
+
+**HOW IT CAME ABOUT.** The owner asked what Home's "Needs your decision" card means ("What attention needs to be paid to?") after a report that its "See all N" counted items while the list it opened counted contracts. The answer was six kinds of row, two of which (a contract merely sitting in review, and every renewal in the book) name nobody. The owner's reply was a different idea: *"What about adding a nicely designed banner in the contract's inspector side panel that explains what attention is needed. It would sit right under the party names and in color. Render how this may look like."* Three designs were drawn into the real Contracts page with the sample portfolio — Explained, Checklist, One line — on four example contracts, and the owner said *"Implement checklist."*
+
+**ONE READING, AND IT IS HOME'S.** The checklist is not a second list of "things that need you". `needsYouOf(c)` asks Home's own five sources of a one-contract list, and Home's own lateness rules, so for any item both show, the two screens say the same thing. Two things were lifted out of Home to make that true without copying: the renewal-decision question (it was written inline over the whole book inside hmDashSlices; `hmRenewalDue` answers it for one contract and the slices are now built from it) and the review-lateness rule (`hmReviewLate`, with the 30-day renewal threshold as `HM_SOON_DAYS`). Home's card output is unchanged, byte for byte.
+
+**WHAT IS DELIBERATELY LEFT OUT.** A contract sitting in review is not something anyone owes by name, and a renewal on a contract somebody else owns is theirs to decide. Home's card still shows both — that is the owner's call, asked at the end of the run, not made on the way past.
+
+**WHERE IT SITS.** "Right under the party names" was built as under the whole name block — the party names and the agreement's own name — and above the status line, so the contract's name is never split in two by a coloured card. Said to the owner.
+
+**ONE NUMBER FOR ONE THING ON ONE SCREEN.** The red row's "Waiting 9 days" is the asks table's own count further down the same panel (calendar days since the oldest of their asks), not the desk flag's working-day count, which would have printed a second number for the same wait. The five-working-day standard is the same words the table prints, and rides the hover: the first build printed it on the line and the line was cut off at every laptop width.
+
+**THE DOORS.** Each button opens where its item is answered: their redlines and a review → the negotiation (the bell's own doors); a signature → the Signing tab; a renewal → the Overview, where the renewal card records it; a request to join → the room with the desk sheet open. Home's rows open the contract generally, and the bell opens renewal and join rows generally; neither was changed, and the owner was asked whether they should follow.
+
+**THE APPROVALS & SIGNING PAGE.** Its signing panel leads with "what stands before signing", so its checklist leaves the signature out (`needsSkip`). The other kinds still draw there.
+
+**THE CLOTHES.** The owner's Checklist render had buttons with tinted edges; they keep the platform's one light edge (26 Sep 2026) and take the row's colour on the word only. The rows are one line each; everything cut is on the hover.
+
+**MEASURED.** The browser file stages every kind through the product's own acts (the desk claimed deliberately, a real review request, a real signing route, a renewal on an owned contract, a join request on the desk) and presses every button. At the parent 21 of 25 checks fail; three had first passed there vacuously (a panel with no checklist does not grow sideways, leaves out an unowned renewal and leaves the signature out) and were gated on the row having been drawn. At night the head reads 6:1.
+
+Tests: f395 (26 claims, 25 red at the parent), inspector-checklist-verify (25 checks, 21 red at the parent).

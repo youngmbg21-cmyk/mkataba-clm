@@ -149,7 +149,11 @@ function apInsPaint(tab, rows){
   if(tb) insMarkRow(tb,'[data-ap-row]',idOf,id);
   const paint=pid=>{
     const r=rows.find(x=>x.c.id===pid)||null;
+    /* THE CHECKLIST LEAVES OUT WHAT THIS PANEL ALREADY SAYS (27 Sep 2026):
+       on the signatures tab the lead section is "what stands before signing",
+       so a "Your signature" row above it would print it twice. */
     insPaintPanel({ seat, c:r?r.c:null, acts:apInsActs(tab,r), lead:apLeadHtml(tab,r), moveSuffix:false,
+      needsSkip:tab==='signatures'?['sign']:[],
       order:['lead','facts','reads','latest'],
       empty:tab==='approvals'?i18t('ap_pg_none_approvals'):i18t('ap_pg_none_sign') });
   };

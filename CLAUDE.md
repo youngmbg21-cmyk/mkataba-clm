@@ -41,7 +41,7 @@ THE OWNER'S OWN WORDS, 24 Aug 2026. They sit ABOVE the Bug Fix Rules because the
 
 **THE READER'S OWN CHOICE, READ BACK TO THEM, IS NEVER A BAND.** A control set to something SAYS so by being set to it. **THE SAP RULE**: spend the least attention that does the job — a transient confirmation for something that just happened, an inline state for what a control already carries, a strip only for context that changes what the reader can do, a blocking dialog only for a decision that cannot proceed without them. Amber that is always there stops being read.
 
-**WHAT STANDS**: the "N not sent" Send all (owner-asked by name — since 26 Aug the button alone, in the column head); the counterparty's wall line (decisions stay on their page until Send); a refusal's way forward on the same screen as the refusal.
+**WHAT STANDS**: the "N not sent" Send all (owner-asked by name — since 26 Aug the button alone, in the column head); the counterparty's wall line (decisions stay on their page until Send); a refusal's way forward on the same screen as the refusal; the side panel's "needs you" checklist (owner-picked by name, 27 Sep — see THE LIST INSPECTOR).
 
 **IT CUTS BOTH WAYS: DO NOT DELETE BANDS EITHER.** Removing one is as much a change as adding one — a line in BUGLOG.md and a sentence to the owner, never a fix on the way past.
 
@@ -2050,6 +2050,16 @@ Tests: f387 (34 claims, 32 red at the parent; a wall and a control pass on both;
 - **THE LIST ROWS KEEP THEIR "+1"** — the multi-party build's compact mark; the ask was the panels.
 - **NOT SWEPT, said out loud**: the obligation panels ("We owe X this") and the panel's "from X" / "sent to X" name ONE party because an obligation and a proposed change record none; listing all would claim what the record does not hold.
 Tests: f391 (14 claims, 12 red at the parent; 2a the control, 2d a wall), every-party-verify (16 checks in a real browser, 10 red at the parent, which prints "SAP East Africa+1"; the stage, the control 1f, the walls 1d/2b/4b and the error sweep pass on both).
+
+### WHAT THIS CONTRACT NEEDS FROM YOU — THE CHECKLIST (Young picked "Checklist" by name, 27 Sep 2026)
+
+*"a nicely designed banner in the contract's inspector side panel that explains what attention is needed … right under the party names and in color."* Picked off "Attention Banner Options"; A BAND THE OWNER ASKED FOR BY NAME (on WHAT STANDS).
+- **`needsYouOf(c)` (js/views/home.js) IS THE ONE READING**: Home's own sources asked of `[c]` — deskStaleInboxFor · reviewInboxFor · deskJoinInboxFor · hmMySignings · `hmRenewalDue` (lifted out of hmDashSlices, whose decisions are now built from it) — and Home's own lateness (`hmReviewLate`, `HM_SOON_DAYS` 30, asked by hmDecisionItems too). Late first, then `NEEDS_YOU_ORDER` (quiet · review · join · sign · renewal). **DELIBERATELY NOT HERE**: a contract merely sitting in review, and a renewal on a contract someone else owns (`contractOwnedBy`). **Home's card is unchanged** (f395 1d is the wall). READING MUST NOT WRITE.
+- **`insNeedsHtml(c, skip)` (js/views/inspector.js) draws and decides nothing**: in `insHeadHtml` under the name block (party names AND the agreement's name, never split) and above the status line, so all three contract panels draw it; nothing owed draws nothing. Frame in the worst row's tone, a head that counts, one row per item (dot, title, one line from `insNeedWords` — a part marked `hover` rides the hover only), one `ui-btn-sm` verb (Home's verb keys). **The Approvals & signing page's signatures tab passes `needsSkip:['sign']`** (its lead already says what stands before signing).
+- **EVERY NUMBER IS BORROWED**: the days their asks waited are the asks table's own (`_insDaysSince`), the standard is `ins_over` and rides the hover, the signature names the Signing tab's first thing (`signReadiness` + `signRowTitle`).
+- **`needsYouGo(kind, id)` IS THE ONE DOOR**, pressed by the panel's one listener (`[data-ins-need]`): quiet/review → the negotiation, sign → Signing tab, renewal → Overview, join → the room with `openDeskSheet`. Home's rows and the bell's renewal and join rows still open the contract generally — told to the owner, not changed.
+- Clothes: `.ins-need*` in HaTi's sheet, ruby/amber tokens only, the button keeps `--btn-edge` with the row's colour on its word. "Waiting on us" needs an open desk (the reading's own rule; logged).
+Tests: f395 (26 claims, 25 red at the parent), inspector-checklist-verify (25 checks, 21 red at the parent; the stage, two controls and the error sweep pass on both).
 
 ## REDLINE HERE, SIGN THERE — A FILE THEY SIGN (Young's go, 26 Sep 2026, every decision as recommended)
 
