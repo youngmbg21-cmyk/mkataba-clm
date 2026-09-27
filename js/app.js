@@ -1580,6 +1580,13 @@ const ALERT_KINDS = [
      the standard — and never between the quiet desk and the negotiation it is
      about (f381 pins that pair). */
   { k:'handover',    tone:'amber', ic:'&#128228;' },
+  /* ---- NO LINK TO SIGN (27 Sep 2026: "add it to the Alerts bell") ----
+     A deal whose other side cannot answer or sign because the link they hold
+     stopped working, or whose only link runs out in the next few days — to
+     the contract's owner (an admin where it has none). The same other-side-
+     sitting-on-it kind as the two above it, so it ranks beside them. Amber:
+     work owed. */
+  { k:'link',        tone:'amber', ic:'&#128279;' },
   { k:'review-mine', tone:'amber', ic:'&#128100;' },
   { k:'desk-join',   tone:'amber', ic:'&#128101;' },
   { k:'approval',    tone:'amber', ic:'&#9989;'  },
@@ -1864,6 +1871,31 @@ function buildAlerts(){
     const lapsed=c=>{ try{ const d=window.renewalDecisionOf&&renewalDecisionOf(c); return !!(d&&d.answer==='lapse'); }catch(_){ return false; } };
     (D.expiring||[]).filter(x=>x.d<=30&&!lapsed(x.c)).forEach(x=>push('renewal',x.c,
       i18tn('al_expiring_in',x.d,{n:x.d}),()=>bellGo('renewal',x.c), renewHint));
+  }
+  /* ---- NO LINK TO SIGN, ON THE BELL (27 Sep 2026) ----
+     BORROWED, NEVER DERIVED: agLinkItems is the agent's own reading, off the
+     server's (`_reach`), so the bell, the agent's page and the morning mail
+     name the same deals. Each row is a door onto that deal's panel on
+     Copilot's work, where the fresh link and "keep it working" are. */
+  if(me && window.agLinkItems){
+    let items=[]; try{ items=agLinkItems(cs)||[]; }catch(_){ items=[]; }
+    const admin=(typeof isAdmin==='function')&&isAdmin();
+    items.forEach(it=>{
+      const c=it.c; if(!c) return;
+      const mine=(window.contractOwnedBy&&contractOwnedBy(c,me)) || (!c.owner && admin);
+      if(!mine) return;
+      const X=it.soon||{};
+      const text=it.kind==='sign' ? i18t('al_link_sign',{who:(it.sign&&(it.sign.signer||it.sign.to))||''})
+        : it.kind==='party' ? i18t('al_link_party',{party:(it.party&&it.party.party)||''})
+        : it.kind==='soon' ? i18tn('al_link_soon',it.left||0,{n:it.left||0})
+        : it.kind==='soon-sign' ? i18tn('al_link_soon_sign',it.left||0,{n:it.left||0,who:X.signer||X.to||''})
+        : i18t('al_link_reply');
+      push('link',c,text,()=>{
+        if(typeof setView==='function') setView('agents');
+        if(window.agShowAgent) try{ agShowAgent('link'); }catch(_){}
+        if(window.agOpenItem) setTimeout(()=>{ try{ agOpenItem(it.key); }catch(_){} },0);
+      });
+    });
   }
   /* 5. A signature where it is actually THEIR turn. nextSigner is the route's
         own answer about whose turn it is; matching by member record first and

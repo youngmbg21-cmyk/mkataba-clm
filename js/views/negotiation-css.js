@@ -2173,6 +2173,15 @@ function redlineLayoutCss(){
      fact about the row rather than a second heading. */
   .rl-card-party{color:var(--color-neutral-600)}
   .rl-card-party:empty{display:none}
+  /* COPILOT'S PREPARED ANSWER (Their round came back, 27 Sep 2026): the
+     row's own rung, one line, the verdict a small word in its tone and the
+     reason elided — the whole of it rides the hover and the agent's panel. */
+  .rl-card-prep{display:flex;align-items:baseline;gap:6px;min-width:0;color:var(--color-neutral-600)}
+  .rl-card-prep .rl-prep-v{flex:none;font-weight:var(--w-strong)}
+  .rl-card-prep .rl-prep-v.is-accept{color:var(--st-green-fg)}
+  .rl-card-prep .rl-prep-v.is-counter{color:var(--st-amber-fg)}
+  .rl-card-prep .rl-prep-v.is-escalate{color:var(--st-ruby-fg)}
+  .rl-card-prep .rl-prep-why{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .rl-paper-foot.rl-foot-many{flex-wrap:wrap;gap:var(--s-6) var(--s-8)}
   .rl-paper-foot.rl-foot-many .rl-sigline{flex:1 1 200px}
   @media (max-width:560px){ .rl-paper-foot{flex-direction:column;gap:22px} }
@@ -3594,6 +3603,11 @@ function redlineLayoutCss(){
   .redline-page .rl-card-d > .rl-card-side{grid-column:1 / -1;grid-row:3;min-width:0;
     justify-content:flex-end;flex-wrap:wrap;row-gap:2px;margin-top:3px}
   .redline-page .rl-card-d .rl-card-face{flex-wrap:wrap;row-gap:2px}
+  ${''/* COPILOT'S PREPARED ANSWER (27 Sep 2026) takes a line of its own under
+         the row's second line, and the verbs step down one — every .rl-card-sum
+         is placed on row 2, so without this it was drawn on top of the first. */}
+  .redline-page .rl-card-d .rl-card-sum.rl-card-prep{grid-row:3}
+  .redline-page .rl-card-d:has(.rl-card-prep) > .rl-card-side{grid-row:4}
   ${''/* ---- AND THE STRIPS TAKE THE WHOLE WIDTH UNDER BOTH (15 Sep 2026) ----
          The sentences and the reviewer's verdict buttons that rode in the card
          body until Open went. Row 3 of this row's own grid, so they sit under

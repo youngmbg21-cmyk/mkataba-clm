@@ -490,7 +490,7 @@ describe('f413 (7) — the walls', () => {
     const view = code(R('js/views/agents.js'));
     for (const bad of ['api(', 'fetch(', '/api/']) assert.ok(!view.includes(bad), bad);
     const runs = R('js/agentruns.js');
-    assert.match(runs, /api\('agents\/status'\)/);
+    assert.match(runs, /api\('agents\/status'/);
     assert.match(R('js/app.js'), /import '\.\/agentruns\.js';[\s\S]*import '\.\/views\/agents\.js';/);
   });
 });

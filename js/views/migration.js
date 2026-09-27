@@ -362,6 +362,31 @@ async function migExtract(text, seed){
     for(const [k,v] of Object.entries(seed)){ if(v!=null&&v!==''){ meta[k]=v; meta.confidence[k]='high'; } } }
   return meta;
 }
+/* ---- COPILOT READS ON THE SERVER NOW (27 Sep 2026: "move the reading to the
+   server so it keeps going when you close the tab") ----
+   Where this server can read (a live Copilot engine, nothing gone wrong this
+   batch, Archive import switched on), each file is filed at once with what the
+   pattern matcher can tell and handed to the server's queue
+   (importQueueRead, js/agentruns.js), which reads it whether or not this tab
+   stays open, checks it against Our standards and emails whoever started the
+   batch when it is done. The question asked is the extract route's own; WHAT
+   TEXT is sent is still decided here, once (buildExtractionPayload). Thorough
+   mode reads section by section and stays in this tab, as it always did. */
+function migServerReads(){
+  const M=migState();
+  if(!(API_MODE() && state.aiConfigured && !M.aiDown && typeof importQueueRead==='function')) return false;
+  if(state.aiCfg&&state.aiCfg.limits&&state.aiCfg.limits.thoroughExtract) return false;
+  try{ const a=(typeof agentsStatus==='function')?agentsStatus():null; if(a&&a.agents&&a.agents.import&&a.agents.import.on===false) return false; }catch(_){}
+  return true;
+}
+/* What the pattern matcher can tell before Copilot reads it — the seed wins,
+   exactly as migExtract applies it. */
+function migExtractLocal(text, seed){
+  const meta=heuristicExtract(text); meta._source='heuristic';
+  if(seed){ meta.confidence=meta.confidence||{};
+    for(const [k,v] of Object.entries(seed)){ if(v!=null&&v!==''){ meta[k]=v; meta.confidence[k]='high'; } } }
+  return meta;
+}
 /* Does the extraction need a human? Any critical field missing or low-conf. */
 function migNeedsReview(meta, c){
   /* A MACHINE-READ SCAN ALWAYS NEEDS A HUMAN, ONCE — and until 22 Aug 2026 it
@@ -433,7 +458,10 @@ async function migBuildAndSave(ctx){
   if(isOcrText(textSource)) c.audit.push({ at:nowISO(), user:u?.name||'System', action:'OCR',
     detail:ocrProvenanceLine(upload) });
   c.migration={ batch, importedAt:nowISO(), importedBy:u?.name||'System',
-    needsReview: !meta || migNeedsReview(meta, c),
+    /* Handed to the server to read: a person checks it once Copilot has read
+       it, never before (the agent counts it as being read, not as waiting). */
+    needsReview: ctx.serverRead ? true : (!meta || migNeedsReview(meta, c)),
+    ...(ctx.serverRead ? { reading:'queued' } : {}),
     // `no-text` may only fire AFTER OCR has been attempted and failed
     blocked: readable?null:'no-text',
     textSource, ocrPages: ocr?ocr.pages:0, ocrSkippedPages: ocr?ocr.skippedPages:0,
@@ -553,7 +581,7 @@ async function migProcessFiles(fileList, opts={}){
   await syncBatch('start');
   renderMigQueue(); migWireCancel();
   const u=currentUser();
-  let saved=0, dupes=0, errors=0, words=0, ocrDocs=0, flagged=0, ocrErrors=0, ocrLastError='';
+  let saved=0, dupes=0, errors=0, words=0, ocrDocs=0, flagged=0, ocrErrors=0, ocrLastError='', serverQueued=0;
   const byHashRow=new Map();
   for(let i=0;i<files.length;i++){
     if(!M.running){ M.queue.slice(i).forEach(q=>{ if(q.status==='waiting') q.status='cancelled'; }); break; }
@@ -617,7 +645,13 @@ async function migProcessFiles(fileList, opts={}){
         if(manifest.currency) seed.currency=manifest.currency; }
       let meta=null;
       const readable=extractedText&&extractedText.length>200;
-      if(readable){
+      const serverRead=!!readable && migServerReads();
+      if(serverRead){
+        step('matching');
+        meta=migExtractLocal(extractedText, seed);
+        if(isOcrText(textSource)) capConfidenceForOcr(meta);
+      }
+      else if(readable){
         step(M.aiDown||!API_MODE()||!state.aiConfigured?'matching':'ai');
         meta=await migExtract(extractedText, seed);
         // OCR'd text never yields a high-confidence field without a human
@@ -645,13 +679,37 @@ async function migProcessFiles(fileList, opts={}){
         flagged++; continue;
       }
       const c=await migBuildAndSave({ file, mime, dataUrl, manifest, meta, upload, ocr,
-        textSource, readable, extractedText, batch, u, link: opts.link,
+        textSource, readable, extractedText, batch, u, link: opts.link, serverRead,
         // propose a parent when this reads like an amendment AND the
         // counterparty matches — a human confirms on the review screen
         suggest: looksLikeAmendment(file.name, extractedText) });
       q.id=c.id; saved++;
       migIndexContract(c, upload); byHash.set(upload.fileHash, c.id);
-      await migDrawAllowanceDoc();
+      if(serverRead){
+        /* ON FILE FIRST, then queued: the server reads the contract it holds. */
+        let queued=false;
+        try{
+          await flushSaves();
+          const r=await importQueueRead([{ contractId:c.id, batch, text:buildExtractionPayload(extractedText).text,
+            seed, ocr:isOcrText(textSource),
+            folderAuto: !(manifest&&manifest.folder) && M.defaults.folder==='auto',
+            allowance: !!(M.allowance&&M.allowance.open) }]);
+          queued=!!(r&&Array.isArray(r.queued)&&r.queued.includes(c.id));
+        }catch(e){ queued=false; }
+        if(queued){ serverQueued++; step('saved', i18t('mig_reading_server')); continue; }
+        /* The server could not take it: read it here, as before, so nothing is
+           left half-filed. */
+        M.aiDown=true;
+        try{
+          const m2=await migExtract(extractedText, seed);
+          if(isOcrText(textSource)) capConfidenceForOcr(m2);
+          c.metadata=m2;
+          c.migration={ ...c.migration, reading:undefined, needsReview:migNeedsReview(m2, c), aiSource:m2._source||'heuristic' };
+          delete c.migration.reading;
+          persist(c);
+        }catch(_){}
+      }
+      else await migDrawAllowanceDoc();
       step('saved', readable?(c.migration.needsReview?'needs review':'complete'):'no readable text — enter details manually');
     }catch(e){ errors++; step('error', e.message||'failed'); }
   }
@@ -670,6 +728,7 @@ async function migProcessFiles(fileList, opts={}){
   M.cancelled=M.queue.some(q=>q.status==='cancelled');
   await syncBatch(M.cancelled?'stopped':'finished');
   M.ocrError=ocrErrors?ocrLastError:'';
+  if(serverQueued) toast(i18tn('mig_server_toast', serverQueued, { n:serverQueued, batch }), 'ok');
   toast(`Batch ${batch}${M.cancelled?' stopped':''}: ${saved} imported${ocrDocs?`, ${ocrDocs} read by OCR`:''}${ocrErrors?`, ${ocrErrors} scan${ocrErrors===1?'':'s'} could not be read (${ocrLastError})`:''}${flagged?`, ${flagged} possible duplicate${flagged===1?'':'s'} waiting for your call`:''}${dupes?`, ${dupes} identical file${dupes===1?'':'s'} skipped`:''}${words?`, ${words} Word file${words===1?'':'s'} refused (save as PDF)`:''}${errors?`, ${errors} failed`:''}${M.cancelled?`, ${M.queue.filter(q=>q.status==='cancelled').length} cancelled`:''}`);
   renderMigration();
 }
@@ -690,7 +749,7 @@ function applyReviewedMeta(c, m){
      nowhere — see metaEffDateOnto (js/metadata.js). Overwriting, like the
      expiry above it: a person has just confirmed this very value. */
   if(typeof metaEffDateOnto==='function') metaEffDateOnto(c, m, { overwrite: true });
-  if(c.migration){ c.migration.needsReview=false; c.migration.blocked=null; }
+  if(c.migration){ c.migration.needsReview=false; c.migration.blocked=null; delete c.migration.reading; }   // a person's check ends Copilot's wait (runImportQueue leaves it)
   c.lastAction=todayStr();
   logAudit(c,'Migration review',`Extracted details confirmed by ${currentUser()?.name||'reviewer'}`);
   persist(c);

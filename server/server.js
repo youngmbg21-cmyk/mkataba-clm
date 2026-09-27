@@ -15844,7 +15844,7 @@ async function runImportQueue() {
     if (!c) { bump('gone'); finish('failed', 'the contract is no longer there'); continue; }
     /* A PERSON'S CONFIRMATION WINS. Where somebody already checked this
        contract's details while it waited, their answers stand. */
-    if (c.migration && c.migration.needsReview === false && c.migration.reviewedAt) { bump('alreadyChecked'); finish('done', 'already checked'); continue; }
+    if (c.migration && c.migration.needsReview === false) { bump('alreadyChecked'); finish('done', 'already checked'); continue; }
     c.metadata = { ...(c.metadata || {}), ...meta };
     if (!String(c.counterparty || '').trim() && meta.counterparty) c.counterparty = String(meta.counterparty);
     if (!(Number(c.value) > 0) && Number(meta.value) > 0) { c.value = Number(meta.value); c.valueType = 'estimated'; }
@@ -16215,7 +16215,7 @@ app.get('/api/agents/status', auth, (req, res) => {
   const sh = db.prepare(`SELECT COUNT(*) AS n, MAX(created_at) AS c, MAX(responded_at) AS r, MAX(revoked_at) AS v,
     SUM(CASE WHEN response IS NOT NULL AND applied=0 THEN 1 ELSE 0 END) AS p FROM shares`).get();
   const stamp = [upd.t || '', upd.n, (last && last.t) || '', sh.n, sh.c || '', sh.r || '', sh.v || '', sh.p || 0, aiToday()].join('|');
-  res.json({ agents: out, auto: agentsAuto(), stamp, money });
+  res.json({ agents: out, auto: agentsAuto(), stamp, at: upd.t || '', money });
 });
 /* RUN NOW — an admin's press on a clock-driven agent (the drawing's "Run now"
    on the quarter-end renewals), the round agent over every deal waiting, or
