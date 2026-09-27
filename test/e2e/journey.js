@@ -27,13 +27,30 @@ function copilotAnswer(tool, prompt) {
     || doc.match(/[^.\n]*\bshall\b[^.\n]*\bconfidential[^.\n]*\./i)
     || doc.match(/[^.\n]*\bshall\b[^.\n]{10,160}\./i) || [''])[0].trim().slice(0, 190);
   switch (tool) {
-    case 'contract_brief':
+    case 'file_contract': {
+      /* The facts on an uploaded document's first screen, read off the words
+         the way the real reading would — each with the phrase it came from. */
+      const firm = (doc.match(/\b[A-Z][A-Za-z&.]*(?:\s[A-Z][A-Za-z&.]*)*\s(?:Ltd|Limited|PLC)\b/g) || [])
+        .find(n => !/Acme/.test(n)) || '';
+      const kes = /KES\s?([\d,]+)/.exec(doc);
+      const law = /laws of (?:the )?(?:Republic of )?([A-Z]\w+)/.exec(doc);
+      const pay = /within ([a-z]+ \(\d+\) days of receipt)/.exec(doc);
+      const meta = { counterparty: firm, category: firm ? 'supplier' : 'other', confidence: 'high', sourceSpans: {} };
+      if (firm) meta.sourceSpans.counterparty = firm;
+      if (kes) { meta.value = Number(kes[1].replace(/,/g, '')); meta.currency = 'KES'; meta.sourceSpans.value = kes[0]; }
+      if (law) { meta.governingLaw = law[1]; meta.sourceSpans.governingLaw = law[0]; }
+      if (pay) { meta.paymentTerms = pay[1]; meta.sourceSpans.paymentTerms = pay[0]; }
+      return meta;
+    }
+    case 'contract_brief': {
+      const kes = /KES\s?[\d,]+/.exec(doc);
       return {
-        overview: 'A mutual non-disclosure agreement: each side keeps the other side\'s confidential information secret.',
+        overview: 'What this agreement is, between whom, and what each side has to do — in plain words.',
         term: { start: 'On signature', end: 'As stated in the agreement', notice: '' },
-        money: { value: 'No money changes hands', paymentTerms: '' },
+        money: { value: kes ? kes[0] : 'No money changes hands', paymentTerms: '' },
         watchouts: [], unusual: [],
       };
+    }
     case 'playbook_review': {
       /* One answer per standard it was asked about, word for word: "meets it". */
       let pb = {};
@@ -41,8 +58,12 @@ function copilotAnswer(tool, prompt) {
       const asked = [...(pb.positions || []), ...(pb.ranges || [])];
       return { verdicts: asked.map(p => ({ category: p.category, status: 'aligned', quote: '', position: p.pos || '' })) };
     }
-    case 'list_obligations':
-      return { obligations: [{ desc: 'Keep the other side\'s confidential information secret', due: '', recurring: 'none', quote: promise }] };
+    case 'list_obligations': {
+      const found = [{ desc: 'Keep the other side\'s confidential information secret', due: '', recurring: 'none', quote: promise }];
+      const pays = doc.match(/[^.\n]*\bshall pay\b[^.\n]*\./i);
+      if (pays) found.push({ desc: 'Pay each invoice on time', due: '', recurring: 'none', quote: pays[0].trim().slice(0, 190) });
+      return { obligations: found };
+    }
     case 'deliver_answer':
       return { answer: 'stubbed answer', citations: [] };
     default:
@@ -373,6 +394,6 @@ function mailTo(hati, address) {
 
 module.exports = {
   test, expect, US, THEM, NDA, BRIAN, yearsFromToday, watchForCrashes, inParts, mailTo, KNOWN, knownProblem, softPoll,
-  addColleague, signInFirstTime, openEmailLink,
+  addColleague, signInFirstTime, openEmailLink, startCopilotStandIn,
   signUp, draftNda, nameSignersTheyFirst, sendForSignature, openAsThem, openNegotiatePage, proposeASentence,
 };

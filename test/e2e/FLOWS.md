@@ -28,7 +28,8 @@ Most important first. This order is a first draft; change it any time by telling
 5. ✅ **Approval before signing**
    An admin rules that her contracts need a named colleague's yes. Sending for signature is refused until he approves; then it goes. Carries one known problem (see the report).
 
-6. ⬜ **Upload a contract the other side sent → Copilot reads it**
+6. ✅ **Upload a contract the other side sent → Copilot reads it**
+   We upload a supply agreement they sent. The first screen shows what Copilot read out of it; once filed, HaTi reads the whole contract (a brief, a check against Our standards, the promises it makes) and we add those promises to its obligations. Carries one known problem (see the report).
 
 7. ⬜ **Company standard template**
    Build it, publish it, and draft a contract from it.
