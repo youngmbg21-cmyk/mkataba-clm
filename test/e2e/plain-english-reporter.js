@@ -58,9 +58,14 @@ const unmark = t => String(t || '').replace(/\[known problem\]\s*/g, '');
 /* A step that went wrong because of something NEW, or only because of a known
    problem — counted from the bottom up, so a step holding both is new. */
 function realIn(s) {
+  /* A check that waits (expect.poll, toPass) records each try as a step of its
+     own; only the check's own outcome counts, never a try that failed on the
+     way to passing. */
+  if (s.category === 'expect') return !!s.error && !isKnown(s.error);
   return (s.steps || []).some(realIn) || (!!s.error && !isKnown(s.error));
 }
 function knownIn(s) {
+  if (s.category === 'expect') return !!s.error && isKnown(s.error);
   return (s.steps || []).some(knownIn) || (!!s.error && isKnown(s.error));
 }
 
@@ -89,7 +94,7 @@ function deepestFailure(steps, real = true) {
   let found = null;
   for (const s of steps || []) {
     if (!(real ? realIn(s) : knownIn(s))) continue;
-    found = deepestFailure(s.steps, real) || s;
+    found = (s.category === 'expect' ? null : deepestFailure(s.steps, real)) || s;
     break;
   }
   return found;
@@ -198,6 +203,8 @@ function explain(err, failStep) {
       + 'check, not for HaTi) — unless something now appears twice that should appear once.';
   } else if (/^Error: element\(s\) not found/m.test(msg)) {
     out.instead = 'It was not on the screen at all.';
+  } else if (/toHaveCount/.test(msg) && /^\d+$/.test(recv || '')) {
+    out.instead = 'It found ' + recv + ' of them on the screen.';
   } else if (recv === 'hidden') {
     out.instead = 'It was on the page, but hidden.';
   } else if (recvString != null || (recv != null && recv !== 'undefined')) {

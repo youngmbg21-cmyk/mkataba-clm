@@ -109,6 +109,10 @@ const US = { company: 'Acme Kenya Ltd', name: 'Amina Otieno', title: 'Head of Le
 const THEM = { company: 'Juno Logistics Ltd', signer: 'Grace Njeri', title: 'Director',
   email: 'grace@junologistics.co.ke' };
 const NDA = 'Mutual Non-Disclosure Agreement';
+/* A colleague Amina adds: an Editor, on a temporary password she chooses,
+   which he replaces with his own the first time he signs in. */
+const BRIAN = { name: 'Brian Kamau', title: 'Legal Counsel', email: 'brian@acme.co.ke',
+  temporary: 'temporary-pass-1', password: 'brians-own-pass-1' };
 
 /* A date N years from TODAY, worked out when the journey runs, so it never
    goes stale. (A date typed in here would one day be in the past.) */
@@ -172,6 +176,7 @@ async function signUp(page, hati, o) {
 async function draftNda(page, o) {
   return inParts(o, 'Draft a Mutual NDA with Juno Logistics Ltd from HaTi\'s templates', [
     ['Press "+ Draft new agreement", then "Draft from HaTi"', async () => {
+      await page.locator('#side-nav [data-view="dashboard"]').click();   // "Home", where the button is
       await page.locator('#hero-draft').click();                 // "+ Draft new agreement"
       await page.locator('[data-nd-door="draft"]').click();      // "Draft from HaTi" (not upload)
     }],
@@ -252,6 +257,47 @@ async function sendForSignature(page, hati, o) {
   ]);
 }
 
+/* Adds a colleague on Team & settings → People → "Add member", the way an
+   admin does. `access` '*' is every value stream; a list of stream names ticks
+   only those. The invitation email is checked on the way. */
+async function addColleague(page, hati, who, { role = 'legal', streams = '*' } = {}) {
+  await page.locator('#side-nav [data-view="team"]').click();     // "Team & settings"
+  await page.locator('#st-add-person').click();                     // "Add member"
+  await page.locator('#tm-name').fill(who.name);
+  await page.locator('#tm-email').fill(who.email);
+  await page.locator('#tm-title').fill(who.title);
+  await page.locator('#tm-pass').fill(who.temporary);               // the temporary password
+  await page.locator(`input[name="tm-role-r"][value="${role}"]`).check();   // Editor, Viewer or Admin
+  if (streams === '*') await page.locator('#tm-access').selectOption('*');  // every folder
+  else {
+    await page.locator('#tm-access').selectOption('pick');                 // only the folders ticked
+    for (const name of streams) await page.locator('.st-drawer label', { hasText: name }).locator('input').check();
+  }
+  await page.locator('#st-dsave').click();                          // "Save & close"
+  await expect(page.locator('#content'), who.name + ' is listed among the people').toContainText(who.name);
+  await expect.poll(() => mailTo(hati, who.email).some(m => /added to/.test(m.subject)),
+    { message: 'an email tells ' + who.name + ' he has been added' }).toBe(true);
+}
+
+/* A colleague's first sign-in, in his own browser: the temporary password,
+   then a password of his own. Hands back his page. */
+async function signInFirstTime(browser, hati, who, nothingBroke) {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  if (nothingBroke) nothingBroke.watch(page, who.name.split(' ')[0] + '\'s page');
+  await page.goto(hati.base + '/');
+  await page.locator('#li-email').fill(who.email);
+  await page.locator('#li-pass').fill(who.temporary);
+  await page.locator('#li-go').click();                             // "Sign in"
+  await expect(page.locator('#cp-go'), 'HaTi asks him to choose his own password first').toBeVisible();
+  await page.locator('#cp-current').fill(who.temporary);
+  await page.locator('#cp-new').fill(who.password);
+  await page.locator('#cp-again').fill(who.password);
+  await page.locator('#cp-go').click();                             // "Set my password"
+  await expect(page.locator('.hm-greet h1'), 'Home greets him by name').toContainText(who.name.split(' ')[0]);
+  return { page, close: () => context.close() };
+}
+
 /* The Negotiate page for the contract on screen. */
 async function openNegotiatePage(page) {
   await page.locator('#ws-tabs [data-ws-tab="docs"]').click();   // "Document" tab
@@ -302,6 +348,9 @@ async function openAsThem(browser, link, nothingBroke, who = 'her page') {
        come off.
    f395 (4): a soft check is only ever a known problem's. */
 const KNOWN = '[known problem] ';
+/* The soft form of expect.poll, for a known problem that has to wait for
+   something (an email, say). Only ever used with KNOWN. */
+const softPoll = (fn, opts) => expect.configure({ soft: true }).poll(fn, opts);
 async function knownProblem(check, workRound) {
   const before = test.info().errors.length;
   await check(KNOWN);
@@ -314,6 +363,7 @@ function mailTo(hati, address) {
 }
 
 module.exports = {
-  test, expect, US, THEM, NDA, yearsFromToday, watchForCrashes, inParts, mailTo, KNOWN, knownProblem,
+  test, expect, US, THEM, NDA, BRIAN, yearsFromToday, watchForCrashes, inParts, mailTo, KNOWN, knownProblem, softPoll,
+  addColleague, signInFirstTime,
   signUp, draftNda, nameSignersTheyFirst, sendForSignature, openAsThem, openNegotiatePage, proposeASentence,
 };

@@ -225,6 +225,18 @@ describe('f395 (3) the report: a headline, the steps, where it stopped', () => {
     assert.match(printed, /\*\*What happened instead:\*\* The screen showed: "Signing order 0 of 2 signed"/);
     assert.doesNotMatch(printed, /SOMETHING IS BROKEN|did not run|✗|\[known problem\]/, 'nothing reads as a new break, and the mark itself is never shown');
   });
+  test('a check that waited and then passed is not drawn as a failure', () => {
+    const tries = [{ category: 'expect', title: 'try', steps: [], error: { message: 'Error: not yet' } }];
+    const { printed } = fakeRun({ tests: [journey('Waits', 'expected', {
+      steps: [step('1. Send it', [step('An email goes out', [{ category: 'expect', title: 'an email reached her', steps: tries }])])],
+    })] });
+    assert.match(printed, /✓ 1\. Send it\n\s+✓ An email goes out/);
+    assert.doesNotMatch(printed, /✗/);
+  });
+  test('a count on the screen reads as a count', () => {
+    const x = explain('Error: the held change is not listed\n\nexpect(locator).toHaveCount(expected) failed\n\nLocator: locator(\'#x\')\nExpected: 0\nReceived: 1\nTimeout: 5000ms\n');
+    assert.equal(x.instead, 'It found 1 of them on the screen.');
+  });
   test('a new break beside a known problem is still a break — and it is the one explained', () => {
     const { printed } = fakeRun({ status: 'failed', tests: [known({
       steps: [step('1. Get it to Grace'), step('3. Amina settles', [
@@ -287,9 +299,8 @@ describe('f395 (3) the report: a headline, the steps, where it stopped', () => {
 });
 
 /* Every expect(...) in a journey, read with its brackets balanced. */
-function expectCalls(src) {
+function expectCalls(src, re = /\bexpect(?:\.soft|\.poll)?\(/g) {
   const out = [];
-  const re = /\bexpect(?:\.soft|\.poll)?\(/g;
   let m;
   while ((m = re.exec(src))) {
     let i = m.index + m[0].length, depth = 1, q = null, comma = false;
@@ -325,6 +336,17 @@ describe('f395 (4) every journey is written to be read', () => {
       const bare = calls.filter(c => !c.said).map(c => c.text.slice(0, 80));
       assert.deepEqual(bare, [], f + ': a check without its sentence reaches the owner as the matcher\'s name');
     }
+  });
+  test('a soft check is only ever a known problem\'s, marked so the report can tell it from a new break', () => {
+    let soft = 0;
+    for (const f of [...specs, ...shared]) {
+      const calls = expectCalls(code(read('test/e2e/' + f)), /\b(?:expect\.soft|softPoll)\(/g)
+        .filter(c => !/^softPoll\(fn/.test(c.text));
+      soft += calls.length;
+      const unmarked = calls.filter(c => !/\bknown\b|KNOWN/.test(c.text)).map(c => c.text.slice(0, 90));
+      assert.deepEqual(unmarked, [], f + ': a soft check carries the known-problem mark');
+    }
+    assert.ok(soft >= 1, '[control] the journeys do use soft checks, so this claim bites');
   });
   test('every journey says what it checks, and names its steps', () => {
     for (const f of specs) {

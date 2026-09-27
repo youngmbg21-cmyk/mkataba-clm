@@ -22,8 +22,8 @@ Most important first. This order is a first draft; change it any time by telling
 3. ✅ **A negotiation round**
    We change three clauses and send them. The other side accepts one, turns one down with a reason and counters the third on their page, and their answers reach us.
 
-4. ⬜ **Review before sending**
-   A colleague clears or holds our changes. A held change never goes to the other side.
+4. ✅ **Review before sending**
+   We add a colleague and ask him to review two changes; he clears one and holds the other back. Only the cleared change reaches the other side. Carries two known problems (see the report).
 
 5. ⬜ **Approval before signing**
    A named person has to say yes before anyone can sign.
