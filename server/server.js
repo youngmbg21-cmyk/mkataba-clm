@@ -15656,7 +15656,7 @@ async function runRoundPrep(cid, { force = false } = {}) {
          really is, rather than a Counter press that fills in nothing. */
       const verdict = ans.verdict === 'counter' && !wording ? 'escalate' : ans.verdict;
       const rec = { v: 1, at: now(), verdict, why: String(ans.why || '').trim().slice(0, 600),
-        standard: String(ans.standard || '').trim().slice(0, 120), wording: wording.slice(0, 20000),
+        standard: String(ans.standard || '').trim().slice(0, 120), wording,
         clauseId: a.clauseId, source: resolved ? resolved.label : '' };
       db.prepare('INSERT INTO round_prep (contract_id,pkey,json,created_at) VALUES (?,?,?,?) ON CONFLICT(contract_id,pkey) DO UPDATE SET json=excluded.json, created_at=excluded.created_at')
         .run(String(c.id), a.pkey, JSON.stringify(rec), now());
@@ -15736,7 +15736,6 @@ db.exec(`CREATE TABLE IF NOT EXISTS import_queue (
   created_at TEXT NOT NULL, done_at TEXT);
   CREATE INDEX IF NOT EXISTS idx_import_queue_status ON import_queue(status, created_at);
   CREATE INDEX IF NOT EXISTS idx_import_queue_batch ON import_queue(batch);`);
-const IMPORT_TEXT_MAX = 200000;
 /* A scan's reading is never "high" — js/ocr.js capConfidenceForOcr, line for
    line (f413 runs both over the same answer). */
 function srvCapForOcr(meta) {
@@ -15762,7 +15761,7 @@ app.post('/api/import/read', auth, editor, (req, res) => {
   const queued = [];
   for (const it of items) {
     const id = String((it && it.contractId) || '');
-    const text = String((it && it.text) || '').slice(0, IMPORT_TEXT_MAX);
+    const text = String((it && it.text) || '');
     if (!id || text.length < 200 || !idInScope(scope, id)) continue;
     const qid = 'iq_' + rid(8);
     db.prepare(`INSERT INTO import_queue (id,contract_id,batch,text,seed,ocr,folder_auto,allowance,by_id,by_name,created_at)
@@ -15807,7 +15806,9 @@ async function runImportQueue() {
     }
     const who = { id: String(q.by_id || ''), name: q.by_name || String(q.by_id || '') };
     let r = null;
-    try { r = await aiExtractCall(key, { text: q.text }, { allowance: useAllowance, who }); } catch (e) { r = null; }
+    /* aiDocText is the ONE ceiling for one contract, and it says so in the
+       text where it cuts (A CAP IS A FACT). */
+    try { r = await aiExtractCall(key, { text: aiDocText(null, q.text) }, { allowance: useAllowance, who }); } catch (e) { r = null; }
     if (useAllowance) try { drawAllowance(0, 1); } catch (_) {}
     if (!r || !r.ok) { out.failed++; finish('failed', r && r.resp ? String(r.resp.error || r.resp.status || '').slice(0, 200) : 'no answer'); continue; }
     let seed = null; try { seed = q.seed ? JSON.parse(q.seed) : null; } catch (_) { seed = null; }
@@ -15937,7 +15938,7 @@ async function roundRedo(cid, pkey, note, who) {
   const wording = ans.verdict === 'counter' ? String(ans.wording || '').trim() : '';
   const rec = { v: 1, at: now(), verdict: ans.verdict === 'counter' && !wording ? 'escalate' : ans.verdict,
     why: String(ans.why || '').trim().slice(0, 600), standard: String(ans.standard || '').trim().slice(0, 120),
-    wording: wording.slice(0, 20000), clauseId: ask.clauseId, source: resolved ? resolved.label : '',
+    wording, clauseId: ask.clauseId, source: resolved ? resolved.label : '',
     sentBack: { note: String(note).slice(0, SENDBACK_NOTE_MAX), by: (who && who.name) || '' } };
   db.prepare('INSERT INTO round_prep (contract_id,pkey,json,created_at) VALUES (?,?,?,?) ON CONFLICT(contract_id,pkey) DO UPDATE SET json=excluded.json, created_at=excluded.created_at')
     .run(String(c.id), pkey, JSON.stringify(rec), now());
