@@ -204,7 +204,11 @@ function insReads(c){
    light list strips `audit`, and "nothing has happened" is a claim this
    panel may only make once it has read the record. */
 function insLatest(c){
-  if (!c || !Array.isArray(c.audit)) return null;
+  /* A LIGHT ROW IS NOT AN EMPTY TRAIL (26 Sep 2026, the overnight clean-up):
+     migrateContract gives every row an `audit: []` to stand on, so asking only
+     "is it an array" answered "nothing recorded yet" for every contract the
+     list had not loaded — and never loaded it (measured). */
+  if (!c || !Array.isArray(c.audit) || (c._light && !c._loaded)) return null;
   return c.audit.filter(Boolean).slice()
     .sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')))
     .slice(0, INS_LATEST)
@@ -496,9 +500,17 @@ function insPaintPanel(o){
      back. A failure is SAID, never a silent empty "Latest". */
   if (c && insLatest(c) === null && !opt.latestState){
     const api = (typeof API_MODE === 'function') && API_MODE();
-    if (!api || typeof ensureFull !== 'function'){ insRepaintLatest(host, c, 'none'); return; }
+    /* ONLY WHAT THE LIST LEFT OUT (26 Sep 2026, the overnight clean-up):
+       ensureFull copies the server's whole record over this one, which also
+       overwrites any change still waiting to be saved — measured: a category
+       set a moment before was gone the instant the panel asked for its trail.
+       restoreHeavyFields is the product's own inverse of the list's stripper
+       and leaves everything already changed alone. */
+    const load = (typeof restoreHeavyFields === 'function') ? restoreHeavyFields
+      : (typeof ensureFull === 'function') ? ensureFull : null;
+    if (!api || !load){ insRepaintLatest(host, c, 'none'); return; }
     const id = c.id;
-    Promise.resolve().then(() => ensureFull(c)).then(() => {
+    Promise.resolve().then(() => load(c)).then(() => {
       if (!host.isConnected || !host._ins || !host._ins.c || host._ins.c.id !== id) return;
       insRepaintLatest(host, c, insLatest(c) === null ? 'none' : null);
     }).catch(() => {

@@ -119,6 +119,20 @@ function contractParties(c){
        surface that draws this list draws us first. */
     const ours = rows.filter(r => r.side === PARTY_SIDE_OURS);
     const theirs = rows.filter(r => r.side !== PARTY_SIDE_OURS);
+    /* ---- AND THE RECORD'S COUNTERPARTY IS THE FIRST OUTSIDE PARTY, AS READ
+       (26 Sep 2026, the overnight clean-up) ----
+       Several doors write the counterparty's name or address straight onto
+       the record — The record's own row, the paper's field, "take the paper's
+       value" — without going through partiesSet. The list then still said the
+       old name, and the next edit of ANY party wrote it back over the rename
+       (measured). The record is what four hundred readings print, so where it
+       has something to say about the first outside party, this reading takes
+       it. Fresh row objects: nothing here writes. */
+    if(theirs.length){
+      const nm = _pyStr(c.counterparty, PARTY_NAME_MAX), em = _pyStr(c.counterpartyEmail, 200);
+      if(nm && theirs[0].name !== nm) theirs[0] = { ...theirs[0], name: nm };
+      if(em && theirs[0].email !== em) theirs[0] = { ...theirs[0], email: em };
+    }
     if(ours.length){
       const us = ours[0];
       if(!us.email) us.email = partyOurEmail(c);
@@ -309,8 +323,14 @@ function partiesSet(c, list){
      This single pair of lines is what keeps four hundred readings honest.
      Never remove it without moving all of them. */
   c.counterparty = theirs.length ? theirs[0].name : '';
+  /* THE ADDRESS FOLLOWS THE FIRST OUTSIDE PARTY TOO, EMPTY INCLUDED (26 Sep
+     2026, the overnight clean-up): removing the first party left ITS address
+     on the record, and Share proposed that address for the party that took
+     its place (measured). The list handed in is read off contractParties,
+     which carries the record's own address on the first row, so nothing a
+     person typed is lost by this. */
   if(theirs.length && theirs[0].email) c.counterpartyEmail = theirs[0].email;
-  else if(!theirs.length) delete c.counterpartyEmail;
+  else delete c.counterpartyEmail;
   return null;
 }
 

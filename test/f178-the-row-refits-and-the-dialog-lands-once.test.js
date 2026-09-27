@@ -137,7 +137,11 @@ describe('F178 — the share dialog arrives once, at its final size', () => {
   });
 
   test('the dialog is live from that first frame', () => {
-    assert.match(CORE, /function shareWireOpening\(pending, c, get, set, signal\)\{/,
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the overnight clean-up): the wiring
+       gained a sixth argument, `alive`, so a listener from an opening that was
+       abandoned for another stands down. The claim is unchanged: the first
+       frame is wired while the fetches are in flight. */
+    assert.match(CORE, /function shareWireOpening\(pending, c, get, set, signal(, alive)?\)\{/,
       'the cards and Next respond while the fetches are still in flight');
     assert.match(CORE, /pending\.next = true/, 'a press of Next is held');
     /* Re-pointed 13 Sep 2026: the kind question stopped being the screen every

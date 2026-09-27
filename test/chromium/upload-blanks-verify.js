@@ -476,8 +476,26 @@ const CONTRACT = (id, over) => Object.assign({
         && b9.markText.filter(x => x === 'Highland Corporate Ltd').length === 2,
       b9.markText.join(' | '));
     const tile2 = await tileHead();
+    /* RE-POINTED 27 Sep 2026 (the overnight clean-up): a tile with fields still
+       open used to draw a TICK over "N still open" — the head saying done in
+       the same breath as its own detail saying not. It now says the fields are
+       on the panel, names the first of them, and the NUMBER is in the chip (A
+       HEAD AND A COUNT ARE TWO FACTS, 21 Sep). So "counts the open blanks" is
+       asked of the chip against the live count; the old wording still passes,
+       which keeps this a CONTROL on both sides. */
+    const chip2 = await page.evaluate(() => {
+      const t = [...document.querySelectorAll('#kt-triage .kt-tri-tile')]
+        .find(x => /open fields/i.test(((x.querySelector('.kt-tri-hw') || {}).textContent || '')));
+      return t ? ((t.querySelector('.kt-tri-chip') || {}).textContent || '').trim() : '';
+    });
+    const open2 = await page.evaluate(() => {
+      const c = getContract(state.activeId);
+      return (window.contractBlanksOpen ? contractBlanksOpen(c) : []).length;
+    });
     check('9j CONTROL — and the arrival tile counts the open blanks again',
-      ok9 && !/theirs to fill/i.test(tile2) && /still open/i.test(tile2), '"' + tile2 + '"');
+      ok9 && !/theirs to fill/i.test(tile2)
+        && (/still open/i.test(tile2) || (open2 > 0 && chip2 === String(open2))),
+      '"' + tile2 + '" · chip ' + chip2 + ' · open ' + open2);
 
     check('7a CONTROL — no page error anywhere in the run', errors.length === 0, errors.join(' | ') || 'none');
   } finally {

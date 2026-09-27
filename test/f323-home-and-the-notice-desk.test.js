@@ -81,14 +81,21 @@ describe('f323 (2) the Mailroom files, and it does not read', () => {
     assert.match(SRV, /res\.json\(\{ ok: true, filed: filed\.length, ids: filed, skipped \}\)/);
   });
   test('2d it files; it does not read — no extractor, no OCR, no model on the server', () => {
-    const r = SRV.slice(SRV.indexOf('const MAILROOM_MAX_FILES'), SRV.indexOf("app.post('/api/mailroom'") + 4200)
+    /* RE-POINTED IN PLACE 26 Sep 2026 (the overnight clean-up): the route
+       grew — it stores the bytes in the files table where the room can open
+       them — and a slice of 4,200 characters stopped reaching its own end.
+       PIN THE REGION: the whole route, to its answer. */
+    const r = SRV.slice(SRV.indexOf('const MAILROOM_MAX_FILES'),
+      SRV.indexOf('res.json({ ok: true, filed: filed.length, ids: filed, skipped });') + 80)
       .replace(/\/\*[\s\S]*?\*\//g, ' ');
     assert.ok(!/extractWordText|extractPdf|runOcr|pdfReadPages|anthropicMessages/i.test(r),
       'a second extractor on the server is two readings of one document');
     assert.match(r, /blocked: 'unread'/, 'which is exactly what the queue is for');
   });
   test('2e nothing it creates is a contract anybody has agreed', () => {
-    const r = SRV.slice(SRV.indexOf('const MAILROOM_MAX_FILES'), SRV.indexOf("app.post('/api/mailroom'") + 4200);
+    /* RE-POINTED IN PLACE 26 Sep 2026: the whole route, to its answer (see 2d). */
+    const r = SRV.slice(SRV.indexOf('const MAILROOM_MAX_FILES'),
+      SRV.indexOf('res.json({ ok: true, filed: filed.length, ids: filed, skipped });') + 80);
     assert.match(r, /status: 'Draft'/);
     assert.match(r, /signatures: \[\]/);
     assert.match(r, /value: 0/);

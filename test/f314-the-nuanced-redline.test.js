@@ -450,8 +450,19 @@ describe('f314 (7) — the plain English column', () => {
     const i = CONTRACT.indexOf('function docReadFront');
     assert.ok(i > 0, 'there is one reading of what sits above the first clause');
     const body = CONTRACT.slice(i, CONTRACT.indexOf('function docReadSwitchHtml'));
-    assert.match(body, /if\(!canvas\|\|!pairs\|\|!pairs\.length\) return \[\]/,
-      'no paired clause, no boundary, nothing mirrored');
+    /* RE-POINTED 26 Sep 2026 (Young: "the words reading still display beneath
+       the translation so they are on top of each other"). The boundary was the
+       first PAIRED clause, and while a long contract is read in pieces a later
+       page lands first — so the wording of every clause above it was copied in
+       as "front matter" with a "Reading…" drawn on top. The boundary is the
+       first clause ON THE PAPER; the claim it protected is unchanged: no clause,
+       no boundary, nothing mirrored. */
+    assert.match(body, /const first=Array\.isArray\(rows\)\?rows\.find\(r=>r&&r\.el\):null;/,
+      'the boundary is the first clause the sheet holds');
+    assert.match(body, /if\(!canvas\|\|!first\) return \[\]/,
+      'no clause on the paper, no boundary, nothing mirrored');
+    assert.match(CONTRACT, /const front=docReadFront\(c,sheet\);/,
+      'and the painter hands it the SHEET, never the pairs');
     assert.match(body, /DOCUMENT_POSITION_PRECEDING/, 'only what comes BEFORE the first entry');
     assert.match(body, /DOC_READ_FURNITURE/, 'and never the paper\'s furniture');
   });

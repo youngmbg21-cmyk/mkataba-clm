@@ -11,6 +11,13 @@
      start returning a real number on the handsets that have one. -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>HaTi — Contract Lifecycle Management</title>
+<!-- THE TAB CARRIES THE PRODUCT'S OWN MARK (26 Sep 2026, the overnight
+     clean-up). With no icon named, every page load asked the server for
+     /favicon.ico and logged a 404 in the console — on every page, the one
+     error every audit probe printed. The rail's own mark (the "Ha" square),
+     drawn inline so there is no file to serve. A standalone image carries no
+     :root, so the colour is a literal: the teal brand's accent. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230E5F58'/%3E%3Ctext x='16' y='21.5' font-family='system-ui,-apple-system,Segoe UI,sans-serif' font-size='15' font-weight='600' fill='%23fff' text-anchor='middle'%3EHa%3C/text%3E%3C/svg%3E" />
 <script>
   // Apply the saved appearance BEFORE first paint. This runs ahead of the
   // stylesheet on purpose: set it any later and every visitor on Navy or Dark
@@ -3425,6 +3432,13 @@
      the float so the row's height is its own, and the tail sits at the wall. */
   .doc-read-mirror > p.hati-toc{ overflow:hidden; }
   .doc-read-mirror .hati-toc-n{ float:right; padding-left:1.2em; }
+  /* A COPY CUT SHORT ABOVE THE FIRST CLAUSE FADES OUT (26 Sep 2026) rather
+     than stopping on a hard edge that reads like the end of the paragraph.
+     docReadPaint sets the height on a whole line; this only says there is
+     more, and the whole of it is the paper twelve pixels to the left. */
+  .doc-read-mirror.is-cut{
+    -webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 1.6em),transparent);
+    mask-image:linear-gradient(to bottom,#000 calc(100% - 1.6em),transparent); }
   /* The clause's own number, and it is the PAPER'S — read off the sheet, never
      asked of the model — which is what lets it be printed as a citation. */
   .doc-read-note .dr-n{ color:var(--accent-ink); font-variant-numeric:tabular-nums; }

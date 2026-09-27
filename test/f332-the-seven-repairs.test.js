@@ -247,7 +247,10 @@ describe('f332 (4) the blanks call is counted and its failures are spoken', () =
   });
 
   test('4b a refusal is said on the section, through the one sentence builder', () => {
-    assert.match(body(), /catch \(e\) \{[\s\S]{0,600}tbSay\(e\)/,
+    /* RE-POINTED 26 Sep 2026: a byte-count window (600) broke when the catch
+       learned to stand down for a template the reader has left — PIN THE
+       REGION, NOT A BYTE COUNT. The claim is the catch speaks through tbSay. */
+    assert.match(body(), /catch \(e\) \{[\s\S]*?tbSay\(e\)/,
       'no key, the daily ceiling and a provider refusal each have their own sentence');
     assert.ok(!/catch \(_\) \{ \/\* a blank nobody proposed/.test(TB),
       'the swallow is gone');

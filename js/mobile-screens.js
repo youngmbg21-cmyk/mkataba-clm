@@ -290,6 +290,11 @@ function mContractsHtml(){
     </div>
     <div style="padding:0 var(--s-4) var(--s-6);text-align:center;font-size:var(--t-card);color:var(--color-neutral-600)">
       ${rows.length===total ? i18t('m_showing_all',{n:total}) : i18t('m_n_of_total_match',{n:rows.length,total})}
+      ${''/* A NAMED SET CARRIES ITS WAY BACK (26 Sep 2026): a Home tile can
+            now narrow this list to exactly the contracts behind its number,
+            and a chip cannot undo that — so where one is in force its name is
+            said and the way out is beside it. */}
+      ${(typeof regState==='function' && regState().only) ? `<div style="margin-top:var(--s-2)">${mEsc(regState().only.label||'')}</div><button class="m-btn m-btn-quiet" style="margin-top:var(--s-2)" data-m-act="clear-filters">${i18t('m_clear_all_filters')}</button>` : ''}
     </div>`
   : `
     <div class="m-card" style="margin:var(--s-4);padding:34px 20px;text-align:center">
@@ -478,9 +483,11 @@ function mApprovalsHtml(){
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s-3) 14px">
           <div><div class="m-note">${i18t('m_counterparty')}</div><div style="font-size:16px;font-weight:var(--w-body);margin-top:1px">${mEsc((typeof cParty==='function'?cParty(c):c.counterparty)||'—')}</div></div>
           <div><div class="m-note">${i18t('m_value')}</div><div style="font-size:16px;font-weight:var(--w-strong);margin-top:1px">${mEsc(mMoney(c))}</div></div>
-          <div style="grid-column:1 / -1"><div class="m-note">${requested&&requested.user?'Requested by':'Waiting'}</div><div style="font-size:16px;font-weight:var(--w-body);margin-top:1px">${
+          ${''/* In the reader's language (26 Sep 2026, the overnight clean-up):
+                 these four were English literals on a translated screen. */}
+          <div style="grid-column:1 / -1"><div class="m-note">${requested&&requested.user?i18t('m_appr_requested_by'):i18t('m_waiting')}</div><div style="font-size:16px;font-weight:var(--w-body);margin-top:1px">${
             [requested&&requested.user ? mEsc(requested.user) : '',
-             x.idle ? `${x.idle} day${x.idle===1?'':'s'} ago` : 'since today'].filter(Boolean).join(' · ')}</div></div>
+             x.idle ? mEsc(i18tn('m_days_ago',x.idle,{n:x.idle})) : mEsc(i18t('m_since_today'))].filter(Boolean).join(' · ')}</div></div>
         </div>
         ${saReq&&typeof saShowsLine==='function'?`<div style="margin-top:var(--s-3)"><div class="m-note">${i18t('sa_card_you_approve')}</div><div style="font-size:16px;margin-top:1px">${mEsc(saShowsLine(c,saReq.shows))}</div></div>`:''}
         ${saReq&&saReq.note?`<div style="margin-top:var(--s-3);border-left:3px solid var(--color-divider);padding:2px 0 2px 10px">“${mEsc(saReq.note)}”</div>`:''}
@@ -507,7 +514,7 @@ function mApprovalsHtml(){
   return `
     <div class="m-pagehead">
       <div class="m-title">${i18t('m_approvals')}</div>
-      <div class="m-sub">${items.length?`${items.length} contract${items.length===1?'':'s'} waiting on your sign-off`:'All caught up'}</div>
+      <div class="m-sub">${items.length?mEsc(i18tn('m_appr_waiting',items.length,{n:items.length})):mEsc(i18t('m_all_caught_up'))}</div>
     </div>
     <div class="m-scroll">
       <div style="margin:var(--s-4)">
@@ -647,9 +654,42 @@ function mWireScreen(root){
        the register already asking it — the same drill-through the desktop card
        performs, through the same filter state. */
     const D = mSlices(); const id = b.getAttribute('data-m-kpi');
-    const go = D && D.KPI_CATALOG[id] && D.KPI_CATALOG[id].go;
+    const kpi = D && D.KPI_CATALOG[id];
+    const go = kpi && kpi.go;
     const R = (typeof regState==='function') ? regState() : null;
-    if(R && go){ R.stage = go.stage||'all'; R.view = go.view||null; if(go.sort) R.sort=go.sort; R.page=1; }
+    /* ---- EVERY TILE OPENS THE LIST BEHIND ITS NUMBER (26 Sep 2026, the
+       overnight clean-up) ----
+       This read only the register's own filters, so every tile whose number
+       comes from somewhere else — Negotiations (one of the four at rest),
+       Obligations, Owed to us, Copilot coverage, Import, Payment terms — opened
+       the whole Contracts list, a list that could not show the number the tile
+       had just said (measured). A negotiation goes to the phone's negotiations
+       list; a set of contracts narrows Contracts to exactly those, through the
+       register's own named-set filter; a desk-only page gets the phone's
+       honest "open this on a computer" screen. */
+    const onlyIds = (ids, label) => {
+      if(!R) return;
+      if(typeof regSetScope==='function') regSetScope(null);
+      const list = Array.from(new Set((ids||[]).filter(Boolean)));
+      R.stage='all'; R.view=null; R.only = list.length ? { ids:list, label:String(label||'') } : null; R.page=1;
+    };
+    if(go && go.nav==='redline'){ mGo('negotiations'); return; }
+    if(go && go.nav){ mGo('handoff', { deskView:go.nav }); return; }
+    if(go && go.intelTab){ mGo('handoff', { deskView:'intel' }); return; }
+    if(go && go.copilot==='unread'){
+      const live = (state.contracts||[]).filter(c=>c && !c.archived && c.status!=='Declined');
+      onlyIds(live.filter(c=>!(window.copilotRead && copilotRead(c))).map(c=>c.id), kpi.label);
+      mGo('contracts'); return;
+    }
+    if(go && go.obligations && typeof openObligations==='function'){
+      const f = go.obligations;
+      let list = openObligations(f.due!=null ? Number(f.due) : undefined);
+      if(f.due!=null) list = list.filter(o=>o.days!=null);
+      if(f.side==='theirs' && typeof obligationIsTheirs==='function') list = list.filter(o=>obligationIsTheirs(o));
+      onlyIds(list.map(o=>o.cid), kpi.label);
+      mGo('contracts'); return;
+    }
+    if(R && go){ R.only=null; R.stage = go.stage||'all'; R.view = go.view||null; if(go.sort) R.sort=go.sort; R.page=1; }
     mGo('contracts');
   }));
 

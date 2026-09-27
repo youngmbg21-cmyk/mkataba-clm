@@ -1264,7 +1264,9 @@ let _aiPendingBlocks = null;
    nothing is worse than one that throws. */
 function aiLastAsk(){
   const h = (typeof ai === 'object' && ai && Array.isArray(ai.history)) ? ai.history : [];
-  for (let i = h.length - 1; i >= 0; i--) if (h[i] && h[i].role === 'user') return String(h[i].text || '');
+  /* The question as TYPED where it was kept (a typed question's `text` is its
+     escaped copy for the feed — see aiSubmit). */
+  for (let i = h.length - 1; i >= 0; i--) if (h[i] && h[i].role === 'user') return String(h[i].raw != null ? h[i].raw : (h[i].text || ''));
   return '';
 }
 function aiFmt(raw){
@@ -1312,7 +1314,7 @@ function aiChatMessages(){
   const strip=s=>String(s||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
   return ai.history
     .filter(m=>(m.role==='user'||m.role==='assistant') && m.text && !m.err)
-    .map(m=>({ role:m.role, content:strip(m.text) }))
+    .map(m=>({ role:m.role, content:(m.raw!=null?String(m.raw).trim():strip(m.text)) }))
     /* FOURTEEN TURNS, NOT EIGHT (audit phase 6, a judgement call): eight
        forgot a contract named four questions ago. Fourteen is about two more
        rounds of question-and-answer with tools between, and the cached
@@ -3830,7 +3832,14 @@ async function aiSubmit(){
   /* Back to one line, or the next question is typed into the hole the last one
      grew to. */
   if(window.chatFieldReset) chatFieldReset(inp); else inp.value='';
-  aiPush('user',{text:q});
+  /* ---- WHAT THE READER TYPED IS WORDS, NEVER MARKUP (26 Sep 2026, the
+     overnight clean-up) ---- The feed draws a user bubble's `text` as HTML,
+     because the two seeded doors (a clause action from the Document tab and
+     the negotiate page) hand it their own escaped markup. A question typed
+     here went in raw, so "<img onerror=…>" ran in the reader's own page and a
+     question about "<b>X</b>" lost its words. Escaped for the feed; the raw
+     question is kept beside it and is what goes to the model. */
+  aiPush('user',{text:esc(q), raw:q});
   ai.busy=true;
   /* A live proposal owns the next sentence. Anything typed while a card is open
      is a note about that card — nobody opens a rewrite of clause 7 and then
@@ -4615,6 +4624,10 @@ function renderRenewalSection(c){
     const b=ev.currentTarget; b.disabled=true; b.textContent=i18t('ct_working');
     const had=!!c._renewalAdvice;
     const r=await runRenewalAdvice(c,{force:had});
+    /* The note is stored on its own contract; where the reader has opened
+       another one meanwhile, this card is not repainted over theirs (26 Sep
+       2026, the overnight clean-up — see contractOnScreen). */
+    if(window.contractOnScreen && !contractOnScreen(c)) return;
     renderRenewalSection(c);
     if(!r&&!had){ const b2=document.querySelector('[data-rn-ask]'); if(b2){ b2.disabled=false; b2.textContent=i18t('rn_ask'); } }
   });

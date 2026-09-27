@@ -1226,6 +1226,22 @@ function regPaintHeadFacts(){
   const el=document.getElementById('reg-head-facts'); if(!el) return;
   el.innerHTML=regScope()==='negotiations'?'':regHeadFactsHtml();
 }
+/* THE VIEW TABS' COUNTS, REPAINTED IN PLACE (26 Sep 2026, the overnight
+   clean-up). A delete repaints only the body so the reader keeps their page —
+   and left "All 30" over a list of 29 (measured). The tabs are wired where the
+   page is built, so their buttons stay and only the count inside each moves;
+   the count is the press's own reading (regViewCount), as when it was drawn. */
+function regPaintViewCounts(){
+  const R=regState();
+  document.querySelectorAll('.reg-views button[data-reg-view]').forEach(b=>{
+    const k=b.getAttribute('data-reg-view')||'';
+    const n=regViewCount(k), on=(R.view||'')===k;
+    let span=b.querySelector('.n');
+    if(n==null||n===0){ if(span) span.remove(); }
+    else { if(!span){ span=document.createElement('span'); span.className='n'; b.appendChild(span); } span.textContent=String(n); }
+    b.classList.toggle('is-zero', n===0&&!on);
+  });
+}
 /* Whose move, for the Contracts row — null where no negotiation has started.
    READING MUST NOT WRITE: negoMoveSay runs negWhoseMove, which is safe over
    c.changes, but this asks the raw record first so a page of a hundred
@@ -1578,6 +1594,9 @@ function regRunRowAct(act, id){
        (clamping just if this page emptied), and put #reg-scroll back where it was. */
     const sc=document.getElementById('reg-scroll'); const top=sc?sc.scrollTop:0;
     renderRegisterBody();
+    /* …and the two counts above the list, which a body repaint does not
+       reach: the head's "N live" and the view tabs (see regPaintViewCounts). */
+    regPaintHeadFacts(); regPaintViewCounts();
     const sc2=document.getElementById('reg-scroll');
     if(sc2){ sc2.scrollTop=top;
       if(typeof requestAnimationFrame==='function') requestAnimationFrame(()=>{ sc2.scrollTop=top; }); }
@@ -3240,5 +3259,5 @@ Object.assign(window,{regSignedOn,regSignedYear,regSignedYears,regSignedCell,
   regRowActsHtml,regRunRowAct,regOpenRow,regDisplayHtml,regCloseDisplay,REG_SOON_DAYS,regEndsSay,
   regColWidths,regColSetWidths,regColReset,regColDefaults,regColTrade,regColApply,regWireColResize,
   REG_CMP,REG_SORT_DEFDIR,regBlanksLast,regStreamName,regRefParts,regNarrowed,regClearHtml,regPaintClear,
-  REG_BAR_FILTERS,REG_BAR_DEFAULT,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,regViewCount,REG_SAVED_KEY,REG_SAVED_FIELDS,regSavedViews,regSaveView,regForgetView,regApplySaved,regSavedMatches,regHeadFactsHtml,regPaintHeadFacts,regMoveWord,regOwnerCell,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regMode,regSetMode,regViewTabsHtml,regSegHtml,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,regEndAct,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,negoMoveSay,regShowOnly,regPaintCohort,renderRegister,renderRegisterBody,wireRegRows,
+  REG_BAR_FILTERS,REG_BAR_DEFAULT,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,regViewCount,REG_SAVED_KEY,REG_SAVED_FIELDS,regSavedViews,regSaveView,regForgetView,regApplySaved,regSavedMatches,regHeadFactsHtml,regPaintHeadFacts,regPaintViewCounts,regMoveWord,regOwnerCell,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regMode,regSetMode,regViewTabsHtml,regSegHtml,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,regEndAct,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,negoMoveSay,regShowOnly,regPaintCohort,renderRegister,renderRegisterBody,wireRegRows,
   regScope,regSetScope,regRepaint,regPageSize,regFitBandOffset,NEGO_BANDS,NEGO_BAND_DOT,negoGroupByMove,negoBandCounts,negoMovePillHtml,negoBandRowHtml});

@@ -175,6 +175,32 @@ function upLead(before){
   const words = s.replace(/[:;,.\-–—(]+\s*$/, ' ').trim().split(' ').filter(Boolean);
   return words.slice(-UP_LEAD_WORDS).join(' ');
 }
+/* ---- THE NAME A RULED LINE IS SHOWN UNDER (26 Sep 2026, the overnight
+   clean-up) ----
+   upLead above is what a ruled line's KEY is minted from, and it stays exactly
+   as it was — a blank somebody has already answered is found again by that
+   key, and a new reading would orphan the answer. This is the LABEL: the same
+   phrase, less two things that are not its name. An open bracket is where the
+   name starts — "the Company (registration number ______)" asks for a
+   registration number, and the label read "the Company (registration number",
+   a bracket opened and never closed. And a list marker in front ("(a)
+   Address:") is numbering. */
+function upLeadName(before){
+  let s = String(before == null ? '' : before).replace(/[\s\u00a0]+/g, ' ');
+  s = s.replace(/\[[^\]]*\]|\{\{[^}]*\}\}|_{3,}/g, ' ');
+  const cut = s.search(/[^.;!?]*$/);
+  if(cut > 0) s = s.slice(cut);
+  const stack = [];
+  for(let i = 0; i < s.length; i++){ if(s[i] === '(') stack.push(i); else if(s[i] === ')' && stack.length) stack.pop(); }
+  if(stack.length){
+    const at = stack[stack.length - 1];
+    const inside = s.slice(at + 1);
+    s = /[A-Za-z\u00C0-\u024F]/.test(inside) ? inside : s.slice(0, at);
+  }
+  s = s.replace(/^\s*(?:\([a-z0-9]{1,4}\)|[a-z0-9]{1,4}\)|\d+(?:\.\d+)*\.?)\s+/i, '');
+  const words = s.replace(/[:;,.\-–—(]+\s*$/, ' ').trim().split(' ').filter(Boolean);
+  return words.slice(-UP_LEAD_WORDS).join(' ');
+}
 
 /* ---- THE MATCHER ----
    Every placeholder in one run of text, in the order it is written, each with
@@ -290,6 +316,10 @@ function upWalk(nodes, onHit){
       const lead = h.kind === 'rule'
         ? (upLead(node.text.slice(0, h.s)) || upLead(node.lead || ''))
         : '';
+      /* The key is minted from `lead`; the label reads `leadName`. */
+      const leadName = h.kind === 'rule'
+        ? (upLeadName(node.text.slice(0, h.s)) || upLeadName(node.lead || ''))
+        : '';
       const key = upKeyMint(h, lead, state);
       if(!key) continue;
       const fresh = !state.keys.has(key);
@@ -300,7 +330,7 @@ function upWalk(nodes, onHit){
       state.keys.add(key);
       if(h.kind === 'rule') state.rules++;
       state.seq.push({ key, raw: h.raw });
-      if(typeof onHit === 'function') onHit({ key, hit: h, node, lead, fresh });
+      if(typeof onHit === 'function') onHit({ key, hit: h, node, lead, leadName, fresh });
     }
   }
   return state;
@@ -487,7 +517,7 @@ function uploadBlanksRead(c){
   const fields = (c && c.fields) || {};
   const out = [];
   const seen = new Set();
-  upWalk(nodes, ({ key, hit, node, lead, fresh }) => {
+  upWalk(nodes, ({ key, hit, node, lead, leadName, fresh }) => {
     if(!fresh || seen.has(key)) return;               // one box per question; the first wins
     seen.add(key);
     out.push({
@@ -500,7 +530,7 @@ function uploadBlanksRead(c){
       kind: 'upload',
       type: 'text',
       money: false,
-      label: (hit.kind === 'named' ? upLabel(hit.name) : upLabel(lead)) || '',
+      label: (hit.kind === 'named' ? upLabel(hit.name) : upLabel(leadName || lead)) || '',
       ph: hit.raw,
       value: String(fields[key] == null ? '' : fields[key]),
       section: (node && node.head) || '',
@@ -677,7 +707,7 @@ if(typeof window !== 'undefined') Object.assign(window, {
   UP_BRACKET_RE, UP_BRACE_RE, UP_RULE_RE, UP_MARKER_RE,
   UP_BLANK_MAX, UP_KEY_MAX, UP_LEAD_WORDS, UP_SKIP_SEL, UP_MARK_CLASS, UP_MADE_ATTR,
   upFieldClass, upFieldSel, upFieldNameAttr, UP_WORD_STOCK, upStockPrompt,
-  upFold, upLabel, upLead, upHits, upNodeHits, upKeyMint, upWalk, upNodesFrom, upNodesOf, upEntities,
+  upFold, upLabel, upLead, upLeadName, upHits, upNodeHits, upKeyMint, upWalk, upNodesFrom, upNodesOf, upEntities,
   uploadBlanksTheirs, uploadBlanksLive, uploadWordingSource, uploadBlanksRead, uploadBlanksOver, uploadBlankSeq,
   uploadBlanksClear, uploadBlanksPaint, uploadBlankPaint,
 });

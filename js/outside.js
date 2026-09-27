@@ -341,7 +341,10 @@ function ohBlankName(h, before){
       const own = String(h.raw || '').replace(/\s+/g, ' ').trim();
       if (/[A-Za-z]/.test(own) && !(typeof upStockPrompt === 'function' && upStockPrompt(own))) return upLabel(own);
     }
-    return typeof upLead === 'function' ? upLabel(upLead(before)) : '';
+    /* The NAME reading, not the key reading (see upLeadName) — this is what
+       the filled-blanks list prints. */
+    return typeof upLeadName === 'function' ? upLabel(upLeadName(before))
+      : typeof upLead === 'function' ? upLabel(upLead(before)) : '';
   } catch (_) { return ''; }
 }
 /* A line as chunks and words, with its blanks taken OUT of the words and

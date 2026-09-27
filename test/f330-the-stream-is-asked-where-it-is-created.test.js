@@ -171,7 +171,10 @@ describe('f330 (3) — converting a document files it', () => {
     assert.match(region, /INSERT INTO templates \(id,org_id,name,description,category,folder,/,
       'the row carries a folder now');
     assert.match(region, /tplFolderOf\(b\.folder\)/, 'read by the route that already had this question');
-    assert.match(region, /TPL_CATEGORIES\.includes\(b\.category\)/, 'and the category by its own list');
+    /* RE-POINTED 26 Sep 2026 (the overnight clean-up): the category is asked
+       of tplCategoryOk — HaTi's five OR one the company added in Settings — the
+       reading the create and edit routes ask too. Still "its own list". */
+    assert.match(region, /tplCategoryOk\(b\.category\)/, 'and the category by its own list');
   });
 });
 

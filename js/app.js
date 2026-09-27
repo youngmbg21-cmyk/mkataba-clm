@@ -383,7 +383,12 @@ function paintShellTitle(view){
      crumb there, so writing the page's name over it threw the adopted button
      away (measured: the negotiate page read "Contract Workspace" and the
      head's crumb row was gone with it). Any other view still repaints. */
-  if((view==='redline'||view==='workspace')&&el.classList.contains('is-crumb')&&el.querySelector('#ws-back')) return;
+  /* …BUT ONLY WHILE A CONTRACT IS ON THE BENCH (26 Sep 2026, the overnight
+     clean-up): the Negotiations LIST is view 'redline' too, and it kept the
+     last contract's crumb in the bar — a live button that opened that
+     contract's Document tab from a page about all of them (measured). */
+  const held=view!=='redline' || (typeof window.redlineHeldId==='function' && !!window.redlineHeldId());
+  if(held&&(view==='redline'||view==='workspace')&&el.classList.contains('is-crumb')&&el.querySelector('#ws-back')) return;
   el.classList.remove('is-crumb');
   el.textContent=shellTitleFor(view);
 }
@@ -873,6 +878,19 @@ function setView(view){
   // any other view always lands on the full screen with its exits visible
   if(view==='redline' && state.view!=='redline' && window.rlResetFocus) rlResetFocus();
   if(!_sameView && typeof window.docViewLeave==='function'){ try{ window.docViewLeave(); }catch(_){} }
+  /* The contract room shows state.activeId; a notes drawer open on another
+     contract closes before the page is drawn (see notesPanelFollow). The
+     negotiate page asks the same from rlCardForgetPins, where it learns which
+     contract it is showing. */
+  if(view==='workspace'||view==='doc') notesPanelFollow(state.activeId);
+  /* A SIDE PANEL IS ABOUT THE PAGE IT WAS OPENED FROM (26 Sep 2026, the
+     overnight clean-up): the brief, the memo and the check panels open beside
+     one contract and sat on over the next page — one contract's brief over the
+     Contracts list, or over another contract (measured). A navigation to a
+     different page takes it down; a repaint of the same page does not. */
+  { const sp=document.getElementById('side-panel');
+    if(sp && typeof closeModal==='function' && (!_sameView
+      || ((view==='workspace'||view==='doc') && sp.dataset.cid && String(sp.dataset.cid)!==String(state.activeId)))){ try{ closeModal(); }catch(_){} } }
   state.view=view;
   try{
     if(view==='dashboard') renderDashboard();
@@ -1120,9 +1138,14 @@ function createFromTemplate(tid, opts){
   /* AND COPILOT READS IT (Young ruled 17 Sep 2026) — registered at every
      creation site beside roomOpenOnTerms, because there is no single funnel
      for creating a contract. See contractArrived. */
-  if(window.contractArrived) contractArrived(c);
   if(!quiet){ state.activeId=c.id; state.selId=c.id; }
+  /* SAVED FIRST, THEN READ (26 Sep 2026, the overnight clean-up): the
+     reading's first step is flushSaves(), which can only save what persist()
+     has queued — called after contractArrived, the queue was still empty, the
+     brief reached the server before the contract did, and every draft made
+     here was stamped "No brief — Contract not found" (never retried). */
   persist(c);
+  if(window.contractArrived) contractArrived(c);
   if(!quiet){
     toast(`New ${t.kind} created and filed in ${FOLDERS[t.folder].name}`);
     setView('workspace');
@@ -2490,6 +2513,22 @@ function notesPanelShowing(contractId, changeId){
     &&String(was.contractId||'')===String(contractId||'')
     &&String(was.changeId==null?'':was.changeId)===String(changeId==null?'':changeId));
 }
+/* ---- THE NOTES DRAWER BELONGS TO ONE CONTRACT (26 Sep 2026, the overnight
+   clean-up) ----
+   The drawer has no scrim by design, so the rail stays live under it — and
+   opening ANOTHER contract left it showing the first one's thread. Change ids
+   count up separately in each contract, so its head read "CHG-001 · 1.
+   Payment" on both; a note typed there was filed on the first contract and, in
+   the External room, delivered to the first contract's counterparty
+   (measured). The drawer now closes the moment a different contract is on
+   screen, which also drops its pin, its reply box and its open key
+   (rlNotesPanelClosed, through applyPanelLayout). */
+function notesPanelFollow(contractId){
+  if(!state.panelOpen || panelFace()!=='notes') return;
+  const nf=state.notesFor||{};
+  if(contractId==null || String(nf.contractId||'')===String(contractId)) return;
+  closeContextPanel();
+}
 function openNotesPanel(contractId, changeId, o){
   if(!contractId) return;
   const force=!!(o&&o.force);
@@ -2595,11 +2634,15 @@ function activityPanelHtml(){
           <span class="live-ping" style="width:6px;height:6px;border-radius:50%;background:var(--st-green-dot);"></span>${i18t('ap_scope_workspace')}
         </div>
         ${feed.length?feed.map(a=>`
-          <button data-sel-act="${a.id}" style="display:flex;gap:9px;width:100%;padding:7px 2px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
+          <button data-sel-act="${esc(a.id)}" style="display:flex;gap:9px;width:100%;padding:7px 2px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
             <span style="width:8px;height:8px;border-radius:50%;background:${CAT_DOT[a.cat]};flex:none;margin-top:var(--s-1);"></span>
-            <span style="flex:1;min-width:0;">
-              <span style="display:block;font-size:var(--t-meta);line-height:1.4;">${a.txt}</span>
-              <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-500);margin-top:1px;font-family:var(--font-mono);">${a.ref||a.id} · ${a.when}</span>
+            <span style="flex:1;min-width:0;">${/* THE TRAIL IS STORED TEXT AND IS PRINTED AS TEXT (26 Sep 2026, the
+                 overnight clean-up): a line's detail carries whatever a
+                 colleague typed — an obligation's wording, a clause name — and
+                 printed raw, an <img onerror> in it ran in the admin's session
+                 the moment the panel opened (measured). */''}
+              <span style="display:block;font-size:var(--t-meta);line-height:1.4;">${esc(a.txt)}</span>
+              <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-500);margin-top:1px;font-family:var(--font-mono);">${esc(a.ref||a.id)} · ${esc(a.when)}</span>
             </span>
           </button>`).join(''):`<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:var(--s-3) 2px;">${i18t('ap_no_activity')}</div>`}
       </div>`;
@@ -2948,7 +2991,7 @@ function wireShell(){
     setNavDrawer(!(nav&&nav.classList.contains('open')));
   });
   document.getElementById('nav-scrim')?.addEventListener('click',closeNavDrawer);
-  document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeNavDrawer(); });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape' && !document.querySelector('[data-top-overlay]')) closeNavDrawer(); });
 
   // command-bar search → register filter
   const search=document.getElementById('cmd-search');
@@ -3097,6 +3140,11 @@ function wireShell(){
        so this stands down while either of those is up. */
     if(document.getElementById('ai-panel')?.classList.contains('open')) return;
     if(document.getElementById('modal-root')?.firstChild) return;
+    /* …and a question on top of it (confirmDialog, promptDialog) is the layer
+       Escape belongs to (26 Sep 2026, the overnight clean-up): answering "Send
+       this to Nandi Dairy?" with Escape also shut the drawer and threw the
+       note being written away (measured). */
+    if(document.querySelector('[data-top-overlay]')) return;
     closeContextPanel();
   });
   // sidebar → icon rail, and back
@@ -3305,6 +3353,6 @@ if (typeof window !== 'undefined' && window.addEventListener){
   window.addEventListener('afterprint', clearPrintRoot);
 }
 
-Object.assign(window,{printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,notesPanelShowing,
+Object.assign(window,{printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,notesPanelShowing,notesPanelFollow,
   buildAlerts,alertCount,updateAlertBadge,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,brandNow,darkNow,setBrand,setDark,toggleDark,applyAppearance,paintAppearance,brandPickerVisible,BRANDS,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
 Object.assign(window,{BP});

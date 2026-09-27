@@ -141,7 +141,12 @@ function hmMySignings(cs){
       || (!!ns.email&&!!meNow.email&&String(ns.email).toLowerCase()===String(meNow.email).toLowerCase());
     if(!mine) return null;
     let n=0; try{ n=signReadiness(c,{ light:!!(c._light&&!c._loaded) }).n; }catch(_){ n=0; }
-    return n?{ c, n }:null;
+    /* A SIGNATURE WITH NOTHING IN ITS WAY IS STILL OWED (26 Sep 2026, the
+       overnight clean-up): this dropped every row where nothing holds — the
+       ONE case where the reader could sign right now — so the bell listed it
+       and Home and the Approvals & signing page did not (measured). n is what
+       the row says, and zero is "ready". */
+    return { c, n };
   }).filter(Boolean):[];
 }
 function readyToSignItems(cs){
@@ -1270,7 +1275,9 @@ function deskRowHtml(it){
 }
 function triageSubHead(c){
   const t=(typeof triageOf==='function')?triageOf(c):null;
-  const f=(c&&c.upload&&c.upload.name)||'';
+  /* `fileName` is what an upload carries (26 Sep 2026, the overnight
+     clean-up); `name` was only ever the mailroom's old spelling. */
+  const f=(c&&c.upload&&(c.upload.fileName||c.upload.name))||'';
   const who=(t&&t.by)||'';
   return [f,who?i18t('tri_by',{who}):'',(window.contractRef?contractRef(c):c.id)].filter(Boolean).join(' · ');
 }
@@ -1310,11 +1317,17 @@ function hmDecisionItems(S, deskRows){
     /* REVIEWS LEAD, because they are the only item on this card that somebody
        is personally waiting on. A renewal date does not know your name; a
        colleague who sent you three redlines on Tuesday does. */
+    /* TODAY IS THE READER'S OWN DAY, AND THE DAY PRINTS AS A DAY (26 Sep
+       2026, the overnight clean-up): "overdue" was asked against the UTC day
+       — so for three hours every evening in Nairobi a review due tomorrow read
+       as late, and one due today read as not — and the tag printed the raw
+       "2026-09-30". todayISO is the one local reading; fmtDDay is this page's
+       one day printer. */
     ...(myReviews||[]).map(x=>({
-      cid:x.c.id, urgent:!!(x.rv.due&&String(x.rv.due)<new Date().toISOString().slice(0,10)),
+      cid:x.c.id, urgent:!!(x.rv.due&&String(x.rv.due)<((typeof todayISO==='function')?todayISO():new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10))),
       txt:esc(i18t('rv_home_title'))+' — '+strong(x.c.name),
       meta:`${esc(i18t('rv_home_from',{who:x.rv.by}))} · ${esc(i18tn('rv_home_sub',x.st.total,{n:x.st.total}))}`,
-      tag:x.rv.due?String(x.rv.due):i18t('rv_home_open'),
+      tag:x.rv.due?fmtDDay(String(x.rv.due)):i18t('rv_home_open'),
       verb:i18t('home_verb_review'),
     })),
     /* A QUIET DEAL: the counterparty is already waiting, and every day this
@@ -1340,7 +1353,7 @@ function hmDecisionItems(S, deskRows){
        signReadiness's, the same the Signing tab and the head quote. */
     ...mySignings.map(x=>({
       cid:x.c.id, urgent:false,
-      txt:i18t('home_sign_row',{n:x.n,name:strong(x.c.name)}),
+      txt:x.n?i18t('home_sign_row',{n:x.n,name:strong(x.c.name)}):i18t('home_sign_row_ready',{name:strong(x.c.name)}),
       meta:esc(x.c.counterparty||i18t('home_no_counterparty')),
       tag:i18t('home_sign_tag'),
       verb:i18t('home_verb_sign'),
@@ -1721,7 +1734,10 @@ function renderDashboard(){
          to introduce one. */
       const ok=await confirmDialog({ title:i18t('desk_discard_q'),
         message:i18t('desk_discard_msg'),
-        confirm:i18t('desk_discard_go') });
+        /* confirmLabel, the name confirmDialog reads — `confirm:` was ignored
+           and the button said a generic "Confirm" (26 Sep 2026, the overnight
+           clean-up). */
+        confirmLabel:i18t('desk_discard_go') });
       if(!ok) return;
       let n=0;
       for(const it of deskAll){ if(window.deskDismiss&&deskDismiss(it.c,it.key)) n++; }
@@ -1771,7 +1787,7 @@ function renderDashboard(){
            "Smith & Co" as "Smith &amp; Co" in the one dialog that asks
            somebody to decline it. Every other caller passes it raw. */
         message:i18t('tri_decline_msg',{name:c.name||(window.contractRef?contractRef(c):c.id)}),
-        confirm:i18t('tri_a_decline'), danger:true });
+        confirmLabel:i18t('tri_a_decline'), danger:true });
       if(!ok) return;
       c.status='Declined'; c.lastAction=todayStr();
       logAudit(c,'Declined','Declined from the triage card — not ours');

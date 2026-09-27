@@ -971,9 +971,17 @@ describe('f184 — the negotiation card is the contract workspace\'s', () => {
   test('ONE title reading on both heads, and the counterparty is not in it', () => {
     assert.ok(!/<h1>\$\{esc\(c\.name\)\}<\/h1>/.test(CT),
       'the room no longer prints the whole name — it said the counterparty twice');
-    /* The declaration reads the same as a call, so it is excluded by name. */
-    assert.equal((CT.match(/(?<!function )roomHeadTitle\(c\)/g) || []).length, 2,
+    /* The declaration reads the same as a call, so it is excluded by name.
+       RE-POINTED IN PLACE 26 Sep 2026 (the overnight clean-up): roomHeadRefresh
+       re-says the title after an Overview edit, through this SAME reading —
+       it is a repaint of the head, not a third head, so it is taken out
+       before the heads are counted. */
+    const headsOnly = CT.slice(0, CT.indexOf('function roomHeadRefresh('))
+      + CT.slice(CT.indexOf('\n}\n', CT.indexOf('function roomHeadRefresh(')));
+    assert.equal((headsOnly.match(/(?<!function )roomHeadTitle\(c\)/g) || []).length, 2,
       'both heads ask the same reading');
+    assert.match(CT.slice(CT.indexOf('function roomHeadRefresh(')), /roomHeadTitle\(c\)/,
+      'and the repaint asks it too, so a renamed contract reads the same way');
     assert.match(CT, /<h1 title="\$\{esc\(c\.name\)\}">\$\{esc\(roomHeadTitle\(c\)\)\}<\/h1>/,
       'and the whole name is never lost — it is the hover');
     /* THE TITLE STAYS A DOOR ON THE WORKBENCH. Nothing was asked about that,
@@ -989,7 +997,11 @@ describe('f184 — the negotiation card is the contract workspace\'s', () => {
        two shapes of one line and the reference draws one. */
     assert.match(id, /\$\{roomHeadSubHtml\(c,\{needs:!backC\}\)\}/, 'one call inside .room-id, for both heads');
     assert.match(CT.slice(CT.indexOf('function roomHeadSubHtml')), /class="room-sub room-headsub"/, 'and it wears .room-sub');
-    assert.equal((CT.match(/roomHeadSubHtml\(c/g) || []).length, 2, 'the definition and one call site');
+    /* RE-POINTED IN PLACE 26 Sep 2026: the repaint after an Overview edit
+       asks the same builder (see roomHeadTitle above) and is not counted. */
+    const noRepaint = CT.slice(0, CT.indexOf('function roomHeadRefresh('))
+      + CT.slice(CT.indexOf('\n}\n', CT.indexOf('function roomHeadRefresh(')));
+    assert.equal((noRepaint.match(/roomHeadSubHtml\(c/g) || []).length, 2, 'the definition and one call site');
   });
   test('the card is spaced like the room\'s, by the room\'s own tokens', () => {
     /* NOT sliced to the first closing brace: this file returns its CSS from a

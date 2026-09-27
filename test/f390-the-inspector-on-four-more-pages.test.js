@@ -154,7 +154,12 @@ describe('f390 (1) — the Obligations page: seven windows, one population, one 
   });
   test('1h Remove asks first, and a person\'s trail is read RAW, never initialised', () => {
     assert.match(fnOf(OB, 'obligationRemove'), /confirmDialog[\s\S]*splice/, 'the question comes before the cut');
-    assert.match(fnOf(OB, 'obligationHistory'), /if\(!c \|\| !Array\.isArray\(c\.audit\)\) return null;/,
+    /* RE-POINTED IN PLACE (26 Sep 2026, the overnight clean-up): the guard
+       pinned here answered "is it an array" — and migrateContract gives every
+       row an empty `audit` to stand on, so a LIGHT row read as a trail with
+       nothing on it. The guard now also asks whether the row is light and not
+       yet loaded, which is the case this claim was written about. */
+    assert.match(fnOf(OB, 'obligationHistory'), /if\(!c \|\| !Array\.isArray\(c\.audit\) \|\| \(c\._light && !c\._loaded\)\) return null;/,
       'where the light list stripped the trail it says so rather than claiming nothing happened');
   });
 });

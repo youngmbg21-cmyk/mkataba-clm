@@ -1146,6 +1146,24 @@ const M_SHEET_LABEL = {
 
 function mOpenSheet(k, extra){ Object.assign(mS(), extra||{}, {sheet:k}); mRender(); }
 function mCloseSheet(){ mS().sheet=null; mRender(); }
+/* ---- AND ESCAPE CLOSES A SHEET (26 Sep 2026, the overnight clean-up) ----
+   The sheet says it is a modal dialog and traps the keyboard inside it, and
+   then offered no key out: a tablet or a paired keyboard could only leave by
+   tabbing to the scrim. One listener, armed once, asked at the press. A
+   question on top (confirmDialog, promptDialog) and a desktop dialog in
+   #modal-root each own their own Escape, so the sheet stands down for both. */
+if(typeof document!=='undefined' && !document._mSheetEscWired){
+  document._mSheetEscWired=true;
+  document.addEventListener('keydown', e=>{
+    if(e.key!=='Escape') return;
+    let s=null; try{ s=mS(); }catch(_){ return; }
+    if(!s || !s.sheet || !document.querySelector('.m-sheet-wrap .m-sheet')) return;
+    if(document.querySelector('[data-top-overlay]')) return;
+    if(document.querySelector('#modal-root [role="dialog"]')) return;
+    e.preventDefault();
+    mCloseSheet();
+  });
+}
 
 /* Move to a screen. The desktop's own view moves with it where there is a
    twin, so the two shells never disagree about where the reader is. */
