@@ -384,7 +384,10 @@ function clauseEditorCss(){
      bigger, and this control's own height is a decision somebody else made.
      BOLD BECAUSE IT IS FILLED, which is the owner's own rule for a control row
      (10 Sep 2026: "Only the shaded buttons should bold"). */
-  .ce-exit{flex:none; height:var(--ctl-h); display:inline-flex; align-items:center; gap:var(--btn-gap);
+  ${''/* AS TALL AS THE TOOLS IT SITS BESIDE (the owner's list, 27 Sep 2026):
+         the writing bar's buttons are 34px (.rb-btn, index.html) and this was
+         the 28px control height, so the one way out sat short in its row. */}
+  .ce-exit{flex:none; height:34px; display:inline-flex; align-items:center; gap:var(--btn-gap);
     background:var(--accent-ink); border:1px solid var(--accent-ink); color:#fff;
     cursor:pointer; padding:0 var(--pad-ctl-x); border-radius:var(--radius); font:inherit;
     font-size:var(--t-body); font-weight:var(--w-label); line-height:1}
@@ -1298,7 +1301,14 @@ function ceRich(v){
   if (/<(p|div|ul|ol|li|h[1-4]|blockquote|pre|table|span|strong|em|u|s|b|i)\b/i.test(t)){
     return window.sanitizeRich ? sanitizeRich(t) : t;
   }
-  if (window.negoRichFromLines){ try{ return negoRichFromLines(t); }catch(_){} }
+  /* EVERY LINE HERE IS ALREADY A PARAGRAPH (the owner's list, 27 Sep 2026).
+     The lift below was written for text read out of a file, where a line
+     beginning in lower case is a wrapped line and joins the one above. In this
+     editor a line is a paragraph the reader can see, so cutting the start of
+     one left a lowercase remainder that was glued onto the paragraph above.
+     A blank line between each keeps every line its own block; list items and
+     headings are read exactly as before. */
+  if (window.negoRichFromLines){ try{ return negoRichFromLines(t.replace(/\n(?!\n)/g, '\n\n')); }catch(_){} }
   return '<p>' + _cee(t).replace(/\n/g, '</p><p>') + '</p>';
 }
 function ceWordCount(t){
@@ -3401,6 +3411,43 @@ function ceMarksSchedule(){
    below and the key step here. A struck run a selection swallows is back at
    the next paint — the record holds it. */
 /* Which struck run the point sits in, if any. */
+/* True where the keystroke was spent: a selection that covers at least one
+   struck run loses only its live words; the struck runs are left standing. */
+function ceSpanOverAtoms(box, sel, ev){
+  const it = String((ev && ev.inputType) || '');
+  if (!/^(insert|delete)/.test(it)) return false;
+  let r;
+  try { r = sel.getRangeAt(0); } catch (_) { return false; }
+  if (!box.contains(r.commonAncestorContainer)) return false;
+  const atoms = Array.from(box.querySelectorAll(`[${CE_MARK_ATTR}="del"]`))
+    .filter(a => { try { return r.intersectsNode(a); } catch (_) { return false; } });
+  if (!atoms.length) return false;
+  ev.preventDefault();
+  const start = r.startContainer, startOff = r.startOffset;
+  const live = ceLiveTextNodes(box).filter(n => { try { return r.intersectsNode(n); } catch (_) { return false; } });
+  let anchor = null, anchorOff = 0;
+  for (const n of live){
+    const from = (n === r.startContainer) ? r.startOffset : 0;
+    const to = (n === r.endContainer) ? r.endOffset : n.data.length;
+    if (to > from) n.deleteData(from, to - from);
+    if (!anchor){ anchor = n; anchorOff = from; }
+  }
+  try {
+    const at = document.createRange();
+    const inAtom = ceAtomAt(start);
+    if (anchor && !ceAtomAt(anchor)) at.setStart(anchor, Math.min(anchorOff, anchor.data.length));
+    else if (inAtom) at.setStartAfter(inAtom);
+    else at.setStart(start, startOff);
+    at.collapse(true);
+    sel.removeAllRanges(); sel.addRange(at);
+  } catch (_) {}
+  if (/^insert/.test(it) && ev.data != null){
+    try { document.execCommand('insertText', false, ev.data); } catch (_) {}
+  } else {
+    try { box.dispatchEvent(new Event('input', { bubbles: true })); } catch (_) {}
+  }
+  return true;
+}
 function ceAtomAt(node){
   const el = node ? (node.nodeType === 1 ? node : node.parentElement) : null;
   return (el && el.closest) ? el.closest(`[${CE_MARK_ATTR}="del"]`) : null;
@@ -5816,6 +5863,12 @@ function ceWirePage(page){
          to close the edit"): wording that arrives from a card drops out of
          typing so its marks are the first thing seen — the whole-clause card's
          own rule, now the passage card's too. */
+      /* A NOTE ABOUT THE DRAFTING IS NOT WORDING (the owner's list, 27 Sep
+         2026): the template builder refused it at the press and this Apply
+         did not, so a model's remark could land in the clause. One reading,
+         aiLooksConversational, and the builder's own sentence. */
+      if (typeof window.aiLooksConversational === 'function' && window.aiLooksConversational(String(card.text || ''))){
+        ceSay(i18t('tb_not_wording'), 'warn'); return; }
       if (card.passage) ceReplacePassage(card.passage, card.text, { keepView: false });
       else ceApply(card.text, _cet('ce_step_copilot'));
       /* WHAT THE DRAFT BECAME, so the funnel can later say whether the reader
@@ -6182,6 +6235,14 @@ function ceWirePage(page){
     if (!t || !t.closest || !t.closest('#ce-clausebody')) return;
     const box = _ceQ('#ce-clausebody');
     const sel = (typeof window.getSelection === 'function') ? window.getSelection() : null;
+    /* ---- TYPING OVER A SELECTION THAT CROSSES STRUCK WORDS (the owner's
+       list, 27 Sep 2026) ----
+       The browser deleted the whole selection, struck runs included, and they
+       came back only at the next paint — so the other side's struck words
+       vanished for a moment under the reader's hand. The live words in the
+       selection go; the struck runs stay where they are; the typed text lands
+       where the selection began. */
+    if (box && sel && sel.rangeCount && !sel.isCollapsed && ceSpanOverAtoms(box, sel, ev)) return;
     if (!box || !sel || !sel.rangeCount || !sel.isCollapsed) return;
     const atom = ceAtomAt(sel.anchorNode);
     if (!atom || !box.contains(atom)) return;

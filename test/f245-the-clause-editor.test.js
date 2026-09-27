@@ -248,7 +248,10 @@ describe('f245 (5) — sub-paragraph lines survive', () => {
      not the property it was written to protect. */
   test('line openers are read back into real numbering, on the way in', () => {
     assert.ok(/function ceRich\(/.test(CODE), 'ceRich is the one coercion');
-    assert.ok(/negoRichFromLines\(t\)/.test(CODE),
+    /* RE-POINTED 27 Sep 2026 (the owner's list, n4): each single line break
+       is made a paragraph break first, so deleting the start of a line no
+       longer merges what is left into the line above. Same reader, same t. */
+    assert.ok(/negoRichFromLines\(t\b/.test(CODE),
       'and it is what reads line openers back into real numbering');
   });
 
@@ -703,8 +706,11 @@ describe('f245 (17) — the four faults reported off the screenshots', () => {
        the weight is the one label weight every button carries. The 10 Sep
        ruling "only the shaded buttons should bold" is about the lit half of a
        two-way switch; a button says it is the main one by its fill. */
-    assert.ok(/height:var\(--ctl-h\)/.test(rule[0]),
-      'and the height is the everyday rung: the ask was about being readable, not bigger');
+    /* RE-POINTED 27 Sep 2026 (the owner's list, n22): "the Exit button is
+       shorter than the writing tools beside it". It is as tall as those tools
+       (.rb-btn's 34px), which is the row it sits in — not a new size. */
+    assert.ok(/height:34px/.test(rule[0]),
+      'and the height is the writing tools\' own, the row it sits in');
     assert.ok(/font-weight:var\(--w-label\)/.test(rule[0]), 'one label weight, the fill says it leads');
     /* ON THE LADDER, never a fraction: this product draws no half-pixel type. */
     assert.ok(/font-size:var\(--t-body\)/.test(rule[0]), 'and its size is a token');

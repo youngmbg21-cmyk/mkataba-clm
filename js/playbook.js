@@ -817,7 +817,15 @@ function pbCarryDecisions(prev, next){
   return next;
 }
 async function runPlaybookReview(c,opts={}){
-  const text = playbookText(c);
+  let text = playbookText(c);
+  /* A LIGHT ROW IS NOT AN EMPTY CONTRACT (the owner's list, 27 Sep 2026): in
+     server mode an upload's text is left off the list row, so the review said
+     "No readable clause text" until something else loaded the record. The
+     record is loaded whole once before that answer is given. */
+  if((!text || text.length<PB_TEXT_MIN) && c && !c._loaded && typeof window.ensureFull==='function'){
+    try{ await window.ensureFull(c); }catch(_){}
+    text = playbookText(c);
+  }
   if(!text || text.length<PB_TEXT_MIN){
     if(opts.quiet) return { error:i18t('pb_no_readable_clause') };
     toast(i18t('pb_no_readable_clause'),'err'); return null; }

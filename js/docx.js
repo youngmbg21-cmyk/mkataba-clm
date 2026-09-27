@@ -1689,12 +1689,27 @@ const DOCX_BLOCK_TAGS = /^(?:p|div|h[1-6]|li|tr|td|th|blockquote|section|article
    same. */
 const _dxSpace = t => String(t == null ? '' : t)
   .replace(/[^\S\t]+/g, ' ').replace(/ *\t */g, '\t');
+/* HTML'S OWN NAMED CHARACTERS (the owner's list, 27 Sep 2026): the markup this
+   writer reads is HTML, and HTML has names XML does not (&middot;, &nbsp;,
+   &mdash;…). decodeXmlEntities knows only XML's five, so the Word file printed
+   "&middot;" as seven characters under the title. The common ones are read
+   here; an unknown name is left as written. */
+const DOCX_HTML_NAMED = { nbsp: '\u00a0', middot: '\u00b7', mdash: '\u2014', ndash: '\u2013', hellip: '\u2026',
+  lsquo: '\u2018', rsquo: '\u2019', ldquo: '\u201c', rdquo: '\u201d', bull: '\u2022', copy: '\u00a9',
+  reg: '\u00ae', sect: '\u00a7', para: '\u00b6', times: '\u00d7', deg: '\u00b0', euro: '\u20ac',
+  pound: '\u00a3', rarr: '\u2192', larr: '\u2190', thinsp: '\u2009', ensp: '\u2002', emsp: '\u2003' };
+const _dxHtmlText = t => decodeXmlEntities(String(t).replace(/&([a-z]+);/gi, (m, n) =>
+  Object.prototype.hasOwnProperty.call(DOCX_HTML_NAMED, n) ? DOCX_HTML_NAMED[n] : m));
 function docxRunsFromHtml(html){
   const src = docxStripUiBadges(html);
   const paras = [];
   let cur = null;
   const fmt = { strong: 0, em: 0, u: 0 };
   let ins = 0, del = 0;
+  /* WHO MADE THIS MARK (the owner's list, 27 Sep 2026): an <ins>/<del> may say
+     whose change it is (data-author). The innermost mark that names someone
+     wins; one that names nobody falls back to the file's own author. */
+  const who = [];
   let list = [];                               // the ol/ul nesting, innermost last
   /* ---- THE SHAPE THE PARAGRAPH IS ALREADY WEARING (Young asked 10 Sep 2026) ----
      *"Can we also ensure that when exported to Microsoft Word, the structure is
@@ -1744,20 +1759,22 @@ function docxRunsFromHtml(html){
     const last = p.runs[p.runs.length - 1];
     const mark = ins > 0 ? 'ins' : del > 0 ? 'del' : 'keep';
     const bold = fmt.strong > 0, italic = fmt.em > 0, under = fmt.u > 0;
+    const author = mark === 'keep' ? '' : (who.filter(Boolean).pop() || '');
     if (last && last.mark === mark && last.bold === bold && last.italic === italic
-        && last.under === under){ last.text += text; return; }
-    p.runs.push({ mark, bold, italic, under, text });
+        && last.under === under && (last.author || '') === author){ last.text += text; return; }
+    p.runs.push(author ? { mark, bold, italic, under, text, author } : { mark, bold, italic, under, text });
   };
   const tag = /<(\/?)([a-zA-Z][\w:-]*)((?:"[^"]*"|'[^']*'|[^>])*?)(\/?)>/g;
   let i = 0, m;
   while ((m = tag.exec(src))){
-    push(decodeXmlEntities(_dxSpace(src.slice(i, m.index))));
+    push(_dxHtmlText(_dxSpace(src.slice(i, m.index))));
     i = m.index + m[0].length;
     const closing = m[1] === '/', name = m[2].toLowerCase(), selfClose = m[4] === '/';
     if (name === 'br'){ close(); open().forced = true; continue; }
-    if (name === 'ins'){ closing ? (ins = Math.max(0, ins - 1)) : ins++; continue; }
+    const authorOf = () => decodeXmlEntities((/\bdata-author\s*=\s*"([^"]*)"/i.exec(m[3] || '') || [])[1] || '').trim();
+    if (name === 'ins'){ closing ? (ins = Math.max(0, ins - 1), who.pop()) : (ins++, who.push(authorOf())); continue; }
     if (name === 'del' || name === 's' || name === 'strike'){
-      closing ? (del = Math.max(0, del - 1)) : del++; continue;
+      closing ? (del = Math.max(0, del - 1), who.pop()) : (del++, who.push(authorOf())); continue;
     }
     if (name === 'strong' || name === 'b'){ closing ? (fmt.strong = Math.max(0, fmt.strong - 1)) : fmt.strong++; continue; }
     if (name === 'em' || name === 'i'){ closing ? (fmt.em = Math.max(0, fmt.em - 1)) : fmt.em++; continue; }
@@ -1781,7 +1798,7 @@ function docxRunsFromHtml(html){
       continue;
     }
   }
-  push(decodeXmlEntities(_dxSpace(src.slice(i))));
+  push(_dxHtmlText(_dxSpace(src.slice(i))));
   close();
   return paras;
 }
@@ -1864,7 +1881,7 @@ function docxTrackedParagraphXml(p, state){
      us, on a document we sent them. */
   const runs = (p.runs || []).filter(r => r.text);
   if (runs.length && runs.every(r => r.mark === 'del'))
-    props.push(`<w:rPr><w:del w:id="${state.id++}" w:author="${_dxX(state.author)}" w:date="${state.date}"/></w:rPr>`);
+    props.push(`<w:rPr><w:del w:id="${state.id++}" w:author="${_dxX(runs[0].author || state.author)}" w:date="${state.date}"/></w:rPr>`);
   const brk = p.pageBreak ? '<w:r><w:br w:type="page"/></w:r>' : '';
   /* ---- THE NOTES GO OUT AS WORD COMMENTS, ON THE WORDS THEY ARE ABOUT ----
      (Young asked 11 Sep 2026.) A comment whose quoted words sit in this
@@ -1910,9 +1927,9 @@ function docxTrackedParagraphXml(p, state){
     if (!r.text) return '';
     ri += 1;
     const one = r.mark === 'ins'
-      ? `<w:ins w:id="${state.id++}" w:author="${_dxX(state.author)}" w:date="${state.date}">${_dxRun(r)}</w:ins>`
+      ? `<w:ins w:id="${state.id++}" w:author="${_dxX(r.author || state.author)}" w:date="${state.date}">${_dxRun(r)}</w:ins>`
       : r.mark === 'del'
-      ? `<w:del w:id="${state.id++}" w:author="${_dxX(state.author)}" w:date="${state.date}">${_dxRun(r)}</w:del>`
+      ? `<w:del w:id="${state.id++}" w:author="${_dxX(r.author || state.author)}" w:date="${state.date}">${_dxRun(r)}</w:del>`
       : _dxRun(r);
     return (pre[ri] ? pre[ri].join('') : '') + one + (post[ri] ? post[ri].join('') : '');
   }).join('');

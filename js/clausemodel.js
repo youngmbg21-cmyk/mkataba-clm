@@ -667,6 +667,11 @@ function clauseSegment(html){
     cur._body.push(el);
   }
   close();
+  /* A BANNER WITH NO CLAUSE AFTER IT (the owner's list, 27 Sep 2026) — the
+     document's closing section title — rode with nothing and was never drawn on
+     the Negotiate page. It stays the document's words: it rides on the last
+     clause as `sectionTailHtml`, drawn after it, never a door. */
+  if (pend.length && out.length) out[out.length - 1].sectionTailHtml = pend.join('');
 
   /* A document whose headings do not mark its clauses must not degrade to one
      clause holding everything — nor to zero. Each top-level block under the

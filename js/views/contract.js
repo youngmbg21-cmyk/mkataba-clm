@@ -4779,8 +4779,11 @@ function wsTabRowEndHtml(c){
 const docHasNoWording = c => !!(c && !isUpload(c) && c.redlineText
   && !String((window.docPlainText?docPlainText(c):'')||'').trim());
 function docNothingWrittenHtml(c){
-  const btn=(window.negoNeedsYouIds||c.changes&&c.changes.length)
-    ? i18t('ct_open_negotiate') : i18t('ct_start_negotiating');
+  /* THE BUTTON'S OWN WORD (the owner's list, 27 Sep 2026): this asked whether
+     a FUNCTION existed, which is always so, and said "Open Negotiate" beside a
+     button saying "Start negotiating". It asks the button's own question. */
+  const started=!!(c.negotiation&&Array.isArray(c.changes)&&c.changes.length);
+  const btn=started ? i18t('ct_open_negotiate') : i18t('ct_start_negotiating');
   return `<div class="rl-note-card" id="ws-blank-note">
     <div class="rl-note-k"><span class="rl-note-dot"></span>${i18t('fa_nothing_written')}</div>
     <p class="rl-note-t">${i18t('fa_nothing_written_t',{btn:esc(btn)})}</p>

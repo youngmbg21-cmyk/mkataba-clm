@@ -739,7 +739,7 @@ function negoTimeline(c, f = {}){
     ev.push({ ...base, kind: 'proposed', at: ch.createdAt || ch.at || '', actor: ch.author || '',
       side: ch.authorSide || '', outcome: ch.status === 'pending' && !ch.withdrawn ? 'pending' : '',
       text: `${ch.author || 'Someone'} (${sideWord}) proposed #${ch.id} — ${ch.summary || ch.changeType}`,
-      note: ch.why || ch.note || null, ch });
+      note: negoReasonOf(ch) || null, ch });
     if (ch.status === 'accepted' || ch.status === 'rejected')
       ev.push({ ...base, kind: 'decided', at: ch.resolvedAt || ch.createdAt || '',
         actor: ch.resolvedBy || '', side: otherSide(ch.authorSide), outcome: ch.status,
@@ -1150,6 +1150,11 @@ function negoKeepDiscarded(c, id, list){
   n.discarded = Array.isArray(n.discarded) ? n.discarded : [];
   for (const r of (list || [])) if (r && r.hash) n.discarded.push({ ...r, id, discardedAt: (window.nowISO ? window.nowISO() : new Date().toISOString()) });
 }
+/* THE REASON, NOT THE PROVENANCE (the owner's list, 27 Sep 2026): `ch.note` on
+   a Copilot-filed change is the machinery's label ("Copilot — Edit"), not a
+   reason anybody gave. Every "Why they asked" reads this one answer. */
+const NEGO_PROVENANCE_RE = /^Copilot\s+[—-]\s/;
+const negoReasonOf = ch => (ch && (ch.why || (ch.note && !NEGO_PROVENANCE_RE.test(String(ch.note)) ? ch.note : ''))) || '';
 const negoDiscardedHashes = c => new Set(((c && c.negotiation && c.negotiation.discarded) || []).map(d => d && d.hash).filter(Boolean));
 async function verifyChangeChain(c){
   negoInit(c);
@@ -5203,6 +5208,6 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoAdvanceRound, negoAllChanges, negoRevisionAt,
   negoChangeHtml, negoDiffHtml,
   negoIntakePath, negoNormalizeDocument, negoRichFromLines, negoMigrate,
-  negoKeepDiscarded, negoDiscardedHashes });
+  negoKeepDiscarded, negoDiscardedHashes, negoReasonOf });
 if (typeof module !== 'undefined' && module.exports) module.exports = {
   negoHashInput, negoShortHash };

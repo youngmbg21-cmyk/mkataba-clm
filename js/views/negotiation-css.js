@@ -352,7 +352,11 @@ function negoStyleHtml(){
     color:var(--n-ins-fg);font-weight:var(--w-title);text-indent:0}
   .nego-redline .rl-line-del::before{content:"−";position:absolute;left:-1.15em;
     color:var(--n-del-fg);font-weight:var(--w-title);text-indent:0}
-  .nego-redline .rl-marker{font-weight:var(--w-strong)}
+  /* The gutter number wears the wording's own weight (the owner's list, 27 Sep
+     2026): it was bold here and plain on the Negotiate page, so a number HaTi
+     pulled into the gutter looked like a heading only in the room. A number the
+     file itself set in bold keeps its <b>. */
+  .nego-redline .rl-marker{font-weight:inherit}
 
   /* ---- ins and del are ELEMENTS now ----
      The utility class names travel on them for hosts that have a utility
@@ -1279,8 +1283,11 @@ function redlineLayoutCss(){
      full-width, zero-height element sitting exactly between the two lines,
      which makes it the honest place for that rule. */
   .redline-page .rl-tabrow{flex-wrap:wrap;background:var(--color-surface);margin:0;padding:0 var(--s-6);
-    height:var(--rl-tabrow-h);gap:var(--s-3);align-items:stretch;box-shadow:inset 0 -1px var(--color-divider);
+    min-height:var(--rl-tabrow-h);gap:var(--s-3);align-items:stretch;box-shadow:inset 0 -1px var(--color-divider);
     border-bottom:0}
+  /* A FLOOR, NOT A CEILING (the owner's list, 27 Sep 2026): at a fixed height
+     a row that did wrap onto a second line spilled that line over the paper.
+     The fit ladder below still tightens it first, so one line stays 44px. */
   /* ---- BUT BEFORE IT WRAPS, IT TIGHTENS ----
      Reported off two laptops side by side (Young, 10 Aug 2026): on a ThinkPad
      the controls dropped to a second line below the tabs, and that line comes
@@ -1913,7 +1920,7 @@ function redlineLayoutCss(){
          height and squash the controls the row aligns to its full height. Both
          halves read the same two tokens, so neither can drift. */}
   .redline-page.rl-focus .rl-tabrow{padding-top:var(--page-pad-t);
-    height:calc(var(--rl-tabrow-h) + var(--page-pad-t))}
+    min-height:calc(var(--rl-tabrow-h) + var(--page-pad-t))}
   /* ---- EXCEPT ON THEIR PAGE, WHERE #rl-banner IS THE WALL LINE ----
      (15 Aug 2026, when focus mode reached the counterparty's seat.) On the
      owner's bench that banner is furniture and standing it down is the point.
@@ -2884,7 +2891,10 @@ function redlineLayoutCss(){
      token rather than typing 16 is what keeps it true the next time that
      measure moves. BOTH empty states wear this class: the genuinely-empty one
      and the filtered-empty one, so neither can drift from the other. */
-  .redline-page .rl-cards-empty{padding:6px var(--s-4);font-size:var(--t-meta);line-height:1.6;color:var(--color-neutral-500);
+  ${''/* 10px above and below, the rows' own (.rl-band + .rl-card-d): at 6px the
+         empty column's sentence sat tighter than any row it stands in for
+         (the owner's list, 27 Sep 2026). */}
+  .redline-page .rl-cards-empty{padding:10px var(--s-4);font-size:var(--t-meta);line-height:1.6;color:var(--color-neutral-500);
     display:flex;flex-direction:column;gap:6px}
   .redline-page .rl-cards-empty b{color:var(--color-text)}
   ${''/* ---- THE EMPTY COLUMN'S OWN TWO DOORS (Young asked 12 Sep 2026) ----

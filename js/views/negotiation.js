@@ -364,7 +364,11 @@ function negoTimelineEventHtml(c, e){
   const clause = e.clauseLabel
     ? `<span class="ht-clause" data-ht-clause="${_nea(e.clauseId || '')}">${_ne(e.clauseLabel)}</span>` : '';
   const body = e.kind === 'proposed' && e.ch
-    ? `<div class="ht-redline">${negoChangeHtml(e.ch)}</div>`
+    /* WHO PROPOSED IT RIDES ON THE MARKS (the owner's list, 27 Sep 2026): the
+       Word copy of this report credited every tracked change to the person
+       exporting it. Each mark now names its change's own author, which the
+       Word writer reads; on the page it is an unseen attribute. */
+    ? `<div class="ht-redline">${negoChangeHtml(e.ch).replace(/<(ins|del)\b/g, `<$1 data-author="${_nea(e.ch.author || '')}"`)}</div>`
       + (e.note ? `<div class="ht-note">Why they asked: ${_ne(e.note)}</div>` : '')
     : e.kind === 'decided' && e.reply
     ? `<div class="ht-note">${i18t('ng_reply_prefix',{text:_ne(e.reply)})}</div>`
@@ -885,6 +889,13 @@ function rlSectionHtml(cl){
   const html = cl && cl.sectionHtml;
   return html ? `<div class="rl-sect" data-nego-chrome>${html}</div>` : '';
 }
+/* The closing banner rides on the LAST clause (see clauseSegment) and is drawn
+   after the whole list, wherever the list was folded. */
+function rlSectionTailHtml(clauses){
+  const last = Array.isArray(clauses) && clauses.length ? clauses[clauses.length - 1] : null;
+  const html = last && last.sectionTailHtml;
+  return html ? `<div class="rl-sect is-tail" data-nego-chrome>${html}</div>` : '';
+}
 
 /* ---- WHOSE MARK, FROM THIS CHAIR (14 Sep 2026) ----
    'us' or 'them' relative to the READER, which is what the colours say. One
@@ -1233,7 +1244,7 @@ function negoDocHtml(c, opts){
     if (baseline) return own;
     const after = (insertsAfter.get(cl.clauseId) || []).map(insertBlock).join('');
     return own + after;
-  }).join('');
+  }).join('') + rlSectionTailHtml(clauses);
   const tail = baseline ? '' : orphanInserts.map(insertBlock).join('');
 
   /* ON THE WORKING PANE ONLY. The baseline is the wording this round is
@@ -1626,9 +1637,9 @@ function negoLiveCardsHtml(c, opts){
         ${(side !== 'counterparty' && ch.revisedBy && ch.revisedBy !== ch.author) ? `<div style="font-size:var(--t-label);color:var(--n-ink-soft);margin-bottom:7px"
           title="${_ne(i18t('ng_revised_title'))} — ${_ne(String(ch.revisedBy))} / ${_ne(String(ch.author))}"><span aria-hidden="true">&#9998;</span> ${
           i18t('ng_revised_by_after',{who:_ne(_liveShort(ch.revisedBy)),author:_ne(_liveShort(ch.author))})}</div>` : ''}
-        ${(ch.why || ch.note) ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:var(--radius);padding:6px 9px;margin-bottom:var(--s-2)">
+        ${negoReasonOf(ch) ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:var(--radius);padding:6px 9px;margin-bottom:var(--s-2)">
           <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--n-slate)">${i18t('ng_why_they_asked')}</span>
-          <span class="nego-why-clamp" style="font-size:var(--t-meta);line-height:1.5;color:var(--n-ink)">${_ne(ch.why || ch.note)}</span></div>` : ''}
+          <span class="nego-why-clamp" style="font-size:var(--t-meta);line-height:1.5;color:var(--n-ink)">${_ne(negoReasonOf(ch))}</span></div>` : ''}
         ${ch.reply ? `<div style="border-left:2px solid var(--n-line);padding:6px 9px;margin-bottom:var(--s-2);font-size:var(--t-meta);line-height:1.5;color:var(--n-ink)"><b>${i18t('ng_reply')}</b> ${_ne(ch.reply)}</div>` : ''}
         ${(() => { if (!window.reviewSeatShowsReview || !reviewSeatShowsReview(opts)) return '';
           const v = window.reviewOn ? reviewOn(ch) : null;
@@ -1790,9 +1801,9 @@ function negoHistoryCardHtml(c, ch, r, opts){
     <div style="font-size:var(--t-body);font-weight:var(--w-strong);line-height:1.45;margin-bottom:var(--s-1)">${_ne(ch.summary)}</div>
     <div style="font-size:var(--t-label);color:var(--n-ink-soft);margin-bottom:7px">${_ne(_neClause(ch.clauseLabel || ch.clauseId))}</div>
     <div style="font-size:var(--t-label);color:var(--n-ink-soft);margin-bottom:7px">${i18t('ng_author')} <b style="color:var(--n-ink);font-weight:var(--w-strong)">${_ne(ch.author)}</b></div>
-    ${(ch.why || ch.note) ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:var(--radius);padding:6px 9px;margin-bottom:var(--s-2)">
+    ${negoReasonOf(ch) ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:var(--radius);padding:6px 9px;margin-bottom:var(--s-2)">
       <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--n-slate)">${i18t('ng_why_they_asked')}</span>
-      <span class="nego-why-clamp" style="font-size:var(--t-meta);line-height:1.5;color:var(--n-ink)">${_ne(ch.why || ch.note)}</span></div>` : ''}
+      <span class="nego-why-clamp" style="font-size:var(--t-meta);line-height:1.5;color:var(--n-ink)">${_ne(negoReasonOf(ch))}</span></div>` : ''}
     ${ch.reply ? `<div style="border-left:2px solid var(--n-line);padding:6px 9px;margin-bottom:var(--s-2);font-size:var(--t-meta);line-height:1.5;color:var(--n-ink)"><b>${i18t('ng_reply')}</b> ${_ne(ch.reply)}</div>` : ''}
     <div class="nego-hash" title="${_ne(ch.hash || '')}"><span aria-hidden="true">🔒</span> SHA-256: ${_ne(negoShortHash(ch.hash))}</div>
     ${msgs.length ? `<div class="nego-past-thread">
@@ -1983,7 +1994,7 @@ function negoCleanDocHtml(c, whichSide){
        place that should show a flattened one. */
     return `${rlSectionHtml(cl)}<div class="nego-clause" id="${left ? 'nb' : 'nw'}-${negoDomId(cl.clauseId)}" data-clause="${_ne(cl.clauseId)}">
       ${label ? `<h2 data-nego-chrome>${_ne(label)}</h2>` : ''}${negoRichBody(cl)}</div>`;
-  }).join('');
+  }).join('') + rlSectionTailHtml(clauses);
   return `<article class="nego-doc">
     <h1>${_ne(title)}</h1>
     <div class="nego-meta">${_ne(meta)}</div>
@@ -3603,7 +3614,7 @@ async function negoAiPropose(c, ctx){
   foot.querySelector('[data-ai-cancel]').addEventListener('click', () => pop.remove());
   foot.querySelector('[data-ai-apply]')?.addEventListener('click', async () => {
     const btn = foot.querySelector('[data-ai-apply]');
-    btn.disabled = true; btn.textContent = 'Filing…';
+    btn.disabled = true; btn.textContent = i18t('ng_filing');
     try{
       /* Filed as a tracked change like any other proposal — same model, same
          fingerprint, same chain. A suggestion that arrived from a model is not
@@ -3613,15 +3624,19 @@ async function negoAiPropose(c, ctx){
       const ch = await negoEditClause(c, clauseId, html, {
         side, author: opts.by,
         note: `Copilot — ${action.label.replace(/^\S+\s/, '')}` });
-      if (!ch){ btn.disabled = false; btn.textContent = 'Apply redline';
-        if (window.toast) toast(i18t('ng_wording_matches')); return; }
+      /* THE REFUSAL SPEAKS (the owner's list, 27 Sep 2026): a bare toast prints
+         nothing, so a suggestion the funnel turned away left the reader with
+         a button that simply came back. The funnel's other guards say their
+         own sentence; the one that is silent is "nothing changed". */
+      if (!ch){ btn.disabled = false; btn.textContent = i18t('ng_apply_redline');
+        if (window.toast) toast(i18t('ng_wording_matches'), 'warn'); return; }
       if (opts.persist !== false && window.persist) persist(c);
-      if (window.toast) toast(`#${ch.id} filed from the Copilot — it is a proposal until the other side answers it`);
+      if (window.toast) toast(i18t('ng_ai_filed', { id: ch.id }), 'ok');
       pop.remove();
       if (typeof again === 'function') again();
     }catch(err){
-      btn.disabled = false; btn.textContent = 'Apply redline';
-      if (window.toast) toast(`Could not file that change: ${(err && err.message) || err}`, 'err');
+      btn.disabled = false; btn.textContent = i18t('ng_apply_redline');
+      if (window.toast) toast(i18t('ng_could_not_file') + ((err && err.message) || err), 'err');
     }
   });
 }
@@ -7181,12 +7196,25 @@ function rlLadderSectionHtml(c, cl, side, opts = {}){
    made a key read as a caution; the fact still carries it for anybody who
    needs it. The key is SHORTENED in both books rather than retired, because
    the first half is still drawn. */
-function rlMarkLegendHtml(side){
-  const me = side === 'counterparty' ? 'counterparty' : 'owner';
-  const item = (cls, key) => `<span><i class="rl-lg rl-lg-${cls}"></i>${_ne(i18t(key))}</span>`;
-  return `<p class="rl-legend">${item('us', 'ng_legend_you')}${
-    item('them', me === 'counterparty' ? 'ng_legend_them_cp' : 'ng_legend_them')}${
-    item('base', 'ng_legend_plain')}</p>`;
+/* ONE WORDING FOR THE KEY ON BOTH SEATS (the owner's list, 27 Sep 2026): the
+   control row named the parties and their page's key said "You / The other
+   side", so our preview of their seat and their real page disagreed. Both keys
+   now name the parties through rlLegendNames; the generic words are only the
+   fallback where a name is not on the record. */
+function rlLegendNames(c, side){
+  const cp = (c && c.counterparty) ? String(c.counterparty) : '';
+  const ours = (typeof window.contractParty === 'function' && contractParty(c))
+    || (typeof window.FIRST_PARTY === 'string' && FIRST_PARTY) || '';
+  return side === 'counterparty'
+    ? { us: cp || i18t('ng_legend_you'), them: ours || i18t('ng_legend_them_cp') }
+    : { us: ours || i18t('ng_legend_you'), them: cp || i18t('ng_legend_them') };
+}
+function rlMarkLegendHtml(side, c){
+  const nm = rlLegendNames(c, side);
+  const item = (cls, text) => `<span><i class="rl-lg rl-lg-${cls}"></i>${_ne(text)}</span>`;
+  return `<p class="rl-legend">${item('us', nm.us)}${
+    item('them', nm.them)}${
+    item('base', i18t('ng_legend_plain'))}</p>`;
 }
 /* ---- THE KEY, ON THE CONTROL ROW, NAMING THE PARTIES (Young, 21 Sep 2026:
    the reference draws it beside the readings as "▭ Nandi Dairy ▭ Highland")
@@ -7197,11 +7225,8 @@ function rlMarkLegendHtml(side){
    needs once, not on every paint. rlMarkLegendHtml is untouched and still
    draws the column's key on THEIR page. */
 function rlCtlLegendHtml(c, rowSide){
-  const cp = (c && c.counterparty) ? String(c.counterparty) : i18t('ng_legend_them');
-  const ours = (typeof window.contractParty === 'function' && contractParty(c))
-    || (typeof window.FIRST_PARTY === 'string' && FIRST_PARTY) || i18t('ng_legend_you');
-  const usName = rowSide === 'counterparty' ? cp : ours;
-  const themName = rowSide === 'counterparty' ? ours : cp;
+  const nm = rlLegendNames(c, rowSide);
+  const usName = nm.us, themName = nm.them;
   return `<span class="rl-ctl-legend" title="${_nea(i18t('ng_legend_plain'))}"><span><i class="rl-lg rl-lg-them"></i>${
     _ne(themName)}</span><span><i class="rl-lg rl-lg-us"></i>${_ne(usName)}</span></span>`;
 }
@@ -7608,11 +7633,20 @@ function rlScaleHtml(row){
      longer drawn is a sentence about nothing. .rl-sc-zone / ng_fig_zone are
      STALE; the key stays in both books, inert. */
   const zone = '';
-  const mark = (n, cls, key) => n == null ? '' : `<span class="rl-sc-mark rl-sc-${cls}" style="left:${pct(n)}%">${_ne(i18t(key, { n }))}</span>`;
+  /* TWO READINGS ON ONE NUMBER SHARE ONE DOT, AND SAY SO (the owner's list,
+     27 Sep 2026): they were drawn on top of each other and the one underneath
+     vanished. Marks on the same figure are gathered into one, its label
+     naming every reading ("30 std · 30 theirs"); the dot wears the first's
+     colour, in the order below. */
+  const marks = [[stdN, 'std', 'ng_fig_std'], [fbN, 'fb', 'ng_fig_fb'],
+    [row.theirFig, 'them', 'ng_fig_theirs'], [row.ourFig, 'you', 'ng_fig_yours']]
+    .filter(m => m[0] != null);
+  const byN = new Map();
+  for (const m of marks){ const k = String(m[0]); if (!byN.has(k)) byN.set(k, []); byN.get(k).push(m); }
+  const drawn = [...byN.values()].map(g => `<span class="rl-sc-mark rl-sc-${g[0][1]}${g.length > 1 ? ' is-shared' : ''}" style="left:${pct(g[0][0])}%"${
+    g.length > 1 ? ` data-rl-sc-shared="${g.length}"` : ''}>${_ne(g.map(m => i18t(m[2], { n: m[0] })).join(' · '))}</span>`).join('');
   const ticks = [0, hi / 2, hi].map(v => `<span class="rl-sc-tick" style="left:${pct(v)}%">${_ne(String(v))}</span>`).join('');
-  return `<div class="rl-scale"><div class="rl-sc-line">${zone}${
-    mark(stdN, 'std', 'ng_fig_std')}${mark(fbN, 'fb', 'ng_fig_fb')}${
-    mark(row.theirFig, 'them', 'ng_fig_theirs')}${mark(row.ourFig, 'you', 'ng_fig_yours')}${
+  return `<div class="rl-scale"><div class="rl-sc-line">${zone}${drawn}${
     base != null ? `<span class="rl-sc-mark rl-sc-grey rl-sc-below" style="left:${pct(base)}%">${_ne(i18t('ng_fig_agreed', { n: base }))}</span>` : ''}${ticks}</div></div>`;
 }
 /* THE FIGURE section: the scale, a number box and one press that writes the
@@ -11878,8 +11912,11 @@ function rlLayoutResizer(host){
      nothing on screen to say why, so the control read as broken exactly when
      somebody was pushing hardest at it. A splitter at its limit should look
      like one. */
-  const atMin = s.left <= RL_LEFT_MIN,
-    atMax = s.left >= s.avail - RL_RIGHT_MIN;
+  /* The stored fraction has its own ends (RL_FMIN/RL_FMAX) and those stopped
+     the handle BEFORE the pixel floors ever did, with this attribute off — so
+     a fraction pinned at either end is a limit too (the owner's list, 27 Sep). */
+  const atMin = s.left <= RL_LEFT_MIN || (frac != null && frac <= RL_FMIN),
+    atMax = s.left >= s.avail - RL_RIGHT_MIN || (frac != null && frac >= RL_FMAX);
   if (atMin || atMax) rez.setAttribute('data-rl-at-limit', atMin ? 'min' : 'max');
   else rez.removeAttribute('data-rl-at-limit');
   /* THE CONTRACT FOLLOWS THE DIVIDER IN THE SAME PASS. The observer below
@@ -12096,7 +12133,15 @@ function rlWireResizer(host){
        halves cannot describe different layouts if there is one description. */
     const avail = Math.max(1, _rlAvail(grid));
     const left = (x + grabDx) - r.left;
-    return clamp(left / avail);
+    /* AT THE LIMIT, THE CURSOR SAYS SO (the owner's list, 27 Sep 2026): the
+       handle just stopped, which read as stuck: the fraction's own ends never
+       lit the amber grip (see rlLayoutResizer). Past either end the pointer
+       becomes the one-way arrow — the only way it can still go — the way a
+       desktop window's edge answers at its minimum size. */
+    const raw = left / avail;
+    const lim = raw <= RL_FMIN ? 'min' : raw >= RL_FMAX ? 'max' : '';
+    document.body.style.cursor = lim === 'min' ? 'e-resize' : lim === 'max' ? 'w-resize' : 'col-resize';
+    return clamp(raw);
   };
   const onMove = e => {
     const x = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
@@ -12753,7 +12798,7 @@ function redlineDocHtml(c, opts = {}){
     </section>${after}`;
   };
   const body = clauses.filter(cl => !_rvOnly || _rvOnly.has(String(cl.clauseId)))
-    .map(cl => rlSectionHtml(cl) + drawClause(cl)).join('') + orphanInserts.map(insertBlock).join('');
+    .map(cl => rlSectionHtml(cl) + drawClause(cl)).join('') + rlSectionTailHtml(clauses) + orphanInserts.map(insertBlock).join('');
   /* ---- THE DOCUMENT'S OWN FRONT MATTER, NOT A LABEL ABOUT IT ----
      The Doc page opens with the contract's kicker line, its own title and the
      recital naming the parties and the key terms; the clause model calls all
@@ -12842,7 +12887,7 @@ function redlineDocHtml(c, opts = {}){
     ${front.bodyHtml ? `<div class="rl-recital" data-anchor="recital">${front.bodyHtml}</div>` : ''}${
       frontCl ? cpPush(frontCl, frontChs) : ''}`
     : `<header class="rl-paper-head">
-      <h3 class="rl-paper-title">${_ne((c.name || tmpl)).toUpperCase()}</h3>
+      <h3 class="rl-paper-title">${_ne(c.name || tmpl)}</h3>
       <p class="rl-paper-sub">${_ne(tmpl)}${lawHtml}</p>
     </header>`;
   /* nego-doc is required, not cosmetic: the Copilot selection menu (the three
@@ -14312,11 +14357,14 @@ async function rlOpenPlaybookReview(c, again){
      this window would start one. Asked once for the whole list rather than per
      row, and only where a negotiation already exists — which costs nothing,
      because negoDupClauseStop's own reading is guarded the same way. */
-  const dupClauses = (c && c.negotiation && typeof negoClauseList === 'function')
+  /* Asked FRESH at every call (the owner's list, 27 Sep 2026): it was read
+     once when the window opened, so a clause filed from this same window was
+     not "Already here" on its twin row until the window was reopened. */
+  const dupClausesNow = () => (c && c.negotiation && typeof negoClauseList === 'function')
     ? negoClauseList(c) : [];
   const dupStop = it => (!it || it.clauseId || !window.negoDupClauseStop) ? null
     : negoDupClauseStop(c, window.clauseHeadingFor
-        ? clauseHeadingFor(String((it.v && it.v.category) || ''), dupClauses)
+        ? clauseHeadingFor(String((it.v && it.v.category) || ''), dupClausesNow())
         : String((it.v && it.v.category) || ''));
   const itemHtml = (it, i) => `<div id="pbr-item-${i}" style="border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-3) 14px;margin-bottom:10px;background:var(--color-surface)">
     <div style="display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap">
@@ -14406,6 +14454,13 @@ async function rlOpenPlaybookReview(c, again){
     if (!ch){ if (window.toast) toast(i18t('ng_proposal_not_filed'), 'err'); b.disabled = false; return; }
     if (window.persist) persist(c);
     settle(i, `Filed as #${_ne(ch.id)} &#10003;`, 'var(--st-green-fg,#047857)');
+    /* Every row still open is asked again: a clause just filed may be the one
+       another row was offering to add. */
+    items.forEach((other, j) => {
+      if (j === i || !root.querySelector(`[data-pbr-verbs="${j}"] button`)) return;
+      const stop = dupStop(other);
+      if (stop) settle(j, `<b>${i18t('ng_dup_clause_here')}</b> &middot; ${_ne(stop.message)}`, 'var(--color-neutral-600)');
+    });
     if (again) again();
   };
   root.querySelectorAll('[data-pbr-fit]').forEach(b =>
@@ -18990,6 +19045,27 @@ function rlCpNarrowSeat(){
    and re-asking on every clause would make the switch a chore. Both seats get
    it, because the panel is shared markup and the counterparty's reply box
    lives behind the same face. */
+/* ---- A WINDOW THAT CROSSES THE LINE RESHAPES THE OPEN PANEL (the owner's
+   list, 27 Sep 2026) ----
+   Whether our seat's panel is the ladder only is asked when it opens
+   (rlCpNarrowSeat, ≥1024px). Dragging the window across that line left the
+   open panel in its old shape until something repainted. Armed once at load;
+   it only flips the same two things the opener flips, and only on a change. */
+let _rlCpNarrowWas = null;
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function'){
+  window.addEventListener('resize', () => {
+    const now = rlCpNarrowSeat();
+    if (now === _rlCpNarrowWas) return;
+    _rlCpNarrowWas = now;
+    if (typeof document === 'undefined') return;
+    document.querySelectorAll('#rl-cp.is-open').forEach(p => {
+      const lad = _rlCpLadder || now;
+      p.classList.toggle('is-ladder', lad);
+      const lab = p.querySelector('.rl-cp-label');
+      if (lab) lab.textContent = i18t(lad ? 'ng_cp_ladder' : 'ng_cp_edit');
+    });
+  });
+}
 let _rlCpNotes = false;
 function rlCpNotesOn(){ return _rlCpNotes; }
 function rlCpSetNotes(scope, on){
@@ -19717,7 +19793,7 @@ function redlinePanesHtml(c, opts = {}){
             ${''/* ON OUR PAGE THE KEY IS ON THE CONTROL ROW AND THE BAR AT THE
                    COLUMN'S FOOT since 21 Sep 2026 (the reference's placement —
                    see rlCtlLegendHtml and .rl-prog). Their page keeps both here. */}
-            ${p.total && window.PORTAL_MODE ? rlMarkLegendHtml(side) : ''}
+            ${p.total && window.PORTAL_MODE ? rlMarkLegendHtml(side, c) : ''}
             ${p.total && window.PORTAL_MODE ? `<div class="rl-idx-bar" role="img"
               aria-label="${_nea(i18t('ng_n_of_m_decided',{done:p.done,total:p.total}))}"><i
               style="width:${p.pct}%"></i></div>
