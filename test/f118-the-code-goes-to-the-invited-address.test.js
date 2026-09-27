@@ -39,7 +39,9 @@ describe('f118 — W8: the invited address, never a typed one', () => {
      Deliberately a DIFFERENT address from INVITED: the whole subject here is
      that the code follows the invitation on the share, and a route that
      happened to match would hide it. */
-  before(async () => { h = await startHati(); W = await seedWorkspace(h);
+  before(async () => { h = await startHati(); W = await seedWorkspace(h, { approvalRules: [] }); /* approvalRules: [] (27 Sep 2026) — the server now enforces the approval rules
+     before signing; every fixture is above the legacy 5,000,000 default and this
+     file is not about approval rules. See seedWorkspace. */
     await nameASigner(W.admin, 'MK-A2', { name: 'Their Board', email: 'board@nordfrakt.se' }); });
   after(async () => { await h.stop(); });
 

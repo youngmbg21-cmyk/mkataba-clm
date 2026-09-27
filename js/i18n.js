@@ -6477,6 +6477,8 @@ const STRINGS = {
     ne_retract_decided: 'This change already has an answer, so it can\'t be retracted',
     ne_retract_already_sent: 'This change has already gone to the other side, so it can\'t be retracted — withdraw it instead',
     ne_retract_in_review: 'This change is with a colleague for review — it can be discarded once the review is handed back or cancelled',
+    ng_retract_revision: '#{id}: the unsent revision was discarded — the wording already on the table stands again',
+    ov_paper_frozen: 'Signing has started — the terms printed on this paper are fixed until the signing route is restarted',
 
     // ---- the market, in Settings ----
     set_market: "Where you operate",
@@ -15590,6 +15592,8 @@ const STRINGS = {
     ne_retract_decided: 'Den här ändringen har redan fått ett svar och kan därför inte återkallas',
     ne_retract_already_sent: 'Den här ändringen har redan gått till motparten och kan därför inte återkallas — dra tillbaka den i stället',
     ne_retract_in_review: 'Den här ändringen granskas av en kollega — den kan kasseras när granskningen har lämnats tillbaka eller avbrutits',
+    ng_retract_revision: '#{id}: den ändring som inte hade skickats kasserades — lydelsen som redan ligger på bordet gäller igen',
+    ov_paper_frozen: 'Signeringen har börjat — villkoren som står i det här avtalet är låsta tills signeringsordningen startas om',
 
     // ---- marknaden, under Inställningar ----
     set_market: "Var ni är verksamma",

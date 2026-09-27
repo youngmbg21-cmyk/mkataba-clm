@@ -1296,6 +1296,12 @@ async function contractSetRenewalDecision(c, answer, why){
    before the repaint can reload over it; auto-triage needs the record on the
    server before it reads it back). */
 let _flushing=false, _flushDone=null, _flushAgain=false;
+/* The contracts whose save is OUT — taken off the queue and not yet answered.
+   `dirty` alone cannot say that: a flush empties it before the first PUT
+   leaves. contractSavePending reads both, so "is an edit to this contract
+   still on its way to the server" has one answer (see ensureFull). */
+const _saving=new Set();
+function contractSavePending(c){ return !!(c && c.id!=null && (dirty.has(c.id) || _saving.has(c.id))); }
 async function flushSaves(){
   if(_flushing){
     _flushAgain=true;
@@ -1309,9 +1315,10 @@ async function flushSaves(){
       do{
         _flushAgain=false;
         const items=[...dirty.values()]; dirty.clear();
-        for(const c of items){ await saveContract(c); }
+        items.forEach(c=>_saving.add(c.id));
+        for(const c of items){ try{ await saveContract(c); } finally { _saving.delete(c.id); } }
       } while(_flushAgain && dirty.size);
-    } finally { _flushing=false; }
+    } finally { _flushing=false; _saving.clear(); }
   })();
   try{ await _flushDone; }
   finally { refreshStats(); }  // keep portfolio KPIs current after status/value changes
@@ -1477,9 +1484,28 @@ async function saveOrgBranding(b){
 Object.assign(window,{refreshOrgBranding,saveOrgBranding});
 // Ensure a contract's full body (comments, audit, execution text, extracted text)
 // is loaded before we render its workspace.
+/* ---- OPENING A SCREEN NEVER UNDOES AN EDIT (the owner's list, 27 Sep 2026) ----
+   "Opening a contract can quietly undo a change you made a moment before."
+   This copies the stored record over the one on screen, and an edit waits
+   400ms in the save queue before it leaves: change a row's category and open
+   the contract inside that window, and the copy put the old category back
+   over the new one on the very object the queue then saved — the edit was
+   lost on the server too, with nothing said. Twenty-one screens load through
+   here, so it is fixed here, once:
+     · an edit still on its way (queued, or its save out) is SENT FIRST, so the
+       record read back carries it — and a save that lands has loaded the
+       record itself, so there is nothing left to read;
+     · a record somebody loaded or saved while the read was out is left alone;
+     · an edit typed WHILE the read was out keeps every field on screen and
+       takes from the stored record only what the list row never carried
+       (fillHeavyFrom — restoreHeavyFields' own rule).
+   With nothing pending, it is exactly what it was. */
 async function ensureFull(c){
   if(!API_MODE() || !c || c._loaded) return;
+  if(contractSavePending(c)){ try{ await flushSaves(); }catch(_){} if(c._loaded) return; }
   const full=await api('contracts/'+c.id);
+  if(c._loaded) return;
+  if(contractSavePending(c)){ fillHeavyFrom(c, full); _repairMetadata(c); return; }
   Object.assign(c, full); c._loaded=true; c._light=false; c._v=full._v;
   _repairMetadata(c);   /* the full record carries the metadata the light row did not — cleaned the same way */
 }
@@ -1491,6 +1517,12 @@ async function ensureFull(c){
 async function restoreHeavyFields(c){
   if(!API_MODE() || !c || c._loaded) return;
   const full=await api('contracts/'+c.id);
+  fillHeavyFrom(c, full);
+}
+/* The merge itself, shared with ensureFull for an edit typed while its read
+   was out: fill only what the list row lacks, never a field on screen. */
+function fillHeavyFrom(c, full){
+  if(!c || !full) return;
   if(!Array.isArray(c.audit)    || !c.audit.length)    c.audit    = full.audit    || [];
   if(!Array.isArray(c.comments) || !c.comments.length) c.comments = full.comments || [];
   if(c.execution && full.execution && !c.execution.html && full.execution.html)
@@ -5297,6 +5329,21 @@ function standingShares(shares){
   return (shares||[]).filter(shareIsStanding)
     .sort((a,b)=>String((b&&b.createdAt)||'').localeCompare(String((a&&a.createdAt)||'')));
 }
+/* ---- A LINK KEEPS THE KIND IT WAS MADE WITH (the owner's list, 27 Sep 2026) ----
+   "Sending a read-only View link to someone who already holds a negotiation
+   link only refreshes their old link, so they can still negotiate." What a
+   link LETS ITS READER DO is decided by the row's own purpose — the server
+   serves it that way — so putting a copy of a different kind onto it changes
+   nothing about what they can do, while the sender is told the new kind went.
+
+   shareKindOf is the one reading of a row's kind (a row made before purposes
+   existed is a negotiation, as the server reads it); standingNegotiation is
+   the only kind any send reuses. A view link is a snapshot the server never
+   refreshes, and sign, history and advise links are never the target of
+   another kind's copy — so a round goes on a negotiation link, and a send of
+   any other kind makes its own. */
+function shareKindOf(s){ return SHARE_PURPOSE(s && s.purpose) || 'negotiate'; }
+function standingNegotiation(shares){ return standingShares(shares).filter(s=>shareKindOf(s)==='negotiate'); }
 /* THE ONE A ROUND GOES ON. Only for the round send, where the question is
    "where is this negotiation happening" — NOT for the share dialog, where the
    sender has just typed a name and an address and may well mean somebody else.
@@ -5312,7 +5359,9 @@ function standingShares(shares){
    catch-up would have updated is stricter than the product's own behaviour a
    second earlier. */
 function standingShareFor(shares, contact){
-  const live=standingShares(shares);
+  /* A ROUND IS A NEGOTIATION ROUND: it goes on a negotiation link and no other
+     (27 Sep 2026) — see shareKindOf. */
+  const live=standingNegotiation(shares);
   if(!live.length) return null;
   const tok=contact&&contact.token;
   const byToken=tok?live.find(s=>s.token===tok):null;
@@ -5597,7 +5646,10 @@ async function reshareToLastRecipient(c, opts={}){
        email, no second audit line: these are copies being kept honest, not
        sends. Failures are swallowed for the reason refreshLiveShareQuietly
        gives: a link that could not be caught up must not fail the round. */
-    for(const s of standingShares(shares)){
+    /* NEGOTIATION LINKS ONLY (27 Sep 2026): this copy is the round, and a
+       signing, adviser or view link is not caught up with somebody else's
+       kind of copy — refreshLiveShareQuietly keeps those on their own. */
+    for(const s of standingNegotiation(shares)){
       if(!s || s.token===live.token) continue;
       try{ await api('shares/'+s.token+'/payload','PUT',{ payload, silent:true }); }catch(e){}
     }
@@ -6589,9 +6641,12 @@ async function openShareModal(c, opts={}){
          NEGOTIATE link would change what the person already holding that link
          can do, without them or the sender being told — the same reason sign
          and history are excluded. */
-      const reuse=(wantDurable && payloadObj.purpose!=='sign' && payloadObj.purpose!=='history'
-        && payloadObj.purpose!=='advise' && email)
-        ? standingShares(priorShares).find(s=>
+      /* ONLY A NEGOTIATION LINK, AND ONLY FOR A NEGOTIATION SEND (the owner's
+         list, 27 Sep 2026): a View send reused whatever standing link the
+         address held, so the person holding a negotiation link was "sent" a
+         view-only copy and could still negotiate. See shareKindOf. */
+      const reuse=(wantDurable && (payloadObj.purpose||'negotiate')==='negotiate' && email)
+        ? standingNegotiation(priorShares).find(s=>
             String(s.recipientEmail||'').trim().toLowerCase()===String(email).trim().toLowerCase())
         : null;
       /* Read at the PRESS, off the control the sender actually chose. */
@@ -8116,4 +8171,4 @@ const END_STATES = [
 const endStateSays = k => { const x = END_STATES.find(e => e.k === k); return x ? x.says : ''; };
 Object.assign(window,{END_STATES,endStateSays});
 
-Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,sigImageSrc,contractOnScreen,userById,verifySeal,waShareLink});
+Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,sigImageSrc,contractOnScreen,userById,verifySeal,waShareLink});

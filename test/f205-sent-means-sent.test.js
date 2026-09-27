@@ -26,7 +26,7 @@ const { startHatiWithMail, seedWorkspace } = require('./helpers.js');
 test('f205 — a refused welcome email is not reported as sent', async (t) => {
   const h = await startHatiWithMail();
   t.after(() => h.stop());
-  const W = await seedWorkspace(h);
+  const W = await seedWorkspace(h, { approvalRules: [] });
 
   /* Working provider first, so the difference is the provider and not the route. */
   h.mail.reset();
@@ -53,7 +53,7 @@ test('f205 — a refused welcome email is not reported as sent', async (t) => {
 test('f205 — a refused signing code tells the signer, without handing them our configuration', async (t) => {
   const h = await startHatiWithMail();
   t.after(() => h.stop());
-  const W = await seedWorkspace(h);
+  const W = await seedWorkspace(h, { approvalRules: [] });
   const { nameASigner } = require('./helpers.js');
   await nameASigner(W.admin, 'MK-A2');
 
@@ -88,7 +88,7 @@ test('f205 — a refused signing code tells the signer, without handing them our
 test('f205 — a password reset stays silent about who exists, and still records its failure', async (t) => {
   const h = await startHatiWithMail();
   t.after(() => h.stop());
-  const W = await seedWorkspace(h);
+  const W = await seedWorkspace(h, { approvalRules: [] });
 
   h.mail.setMode('refuse', { status: 403, message: 'The hati.test domain is not verified.' });
   const anon = h.client('anon');
@@ -119,7 +119,7 @@ test('f205 — a password reset stays silent about who exists, and still records
 test('f205 — the workspace can see that its mail is failing', async (t) => {
   const h = await startHatiWithMail();
   t.after(() => h.stop());
-  const W = await seedWorkspace(h);
+  const W = await seedWorkspace(h, { approvalRules: [] });
 
   /* CONFIGURED IS NOT DELIVERING. Both screens that report on email read only
      "is a provider configured", so a workspace whose domain was never verified
@@ -159,7 +159,7 @@ test('f205 — with no provider at all, nothing is called a failure', async (t) 
   const { startHati } = require('./helpers.js');
   const h = await startHati();
   t.after(() => h.stop());
-  const W = await seedWorkspace(h);
+  const W = await seedWorkspace(h, { approvalRules: [] });
 
   const ob = await W.admin.json('/api/outbox');
   assert.equal(ob.emailConfigured, false);

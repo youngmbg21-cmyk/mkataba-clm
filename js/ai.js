@@ -1922,7 +1922,10 @@ function _localToolRun(name,a){
        reading borrowed from js/obligations.js, nothing computed here, never
        on the counterparty's page. */
     if(name==='get_obligations'||name==='get_contract_history'){
-      if(window.PORTAL_MODE&&PORTAL_MODE()) return { error:'not available on this page' };
+      /* PORTAL_MODE is a BOOLEAN (js/core.js); called as a function it threw on
+         their page instead of answering. Read as either shape (27 Sep 2026). */
+      const onTheirPage=(()=>{ const p=window.PORTAL_MODE; try{ return !!(typeof p==='function'?p():p); }catch(_){ return false; } })();
+      if(onTheirPage) return { error:'not available on this page' };
     }
     if(name==='get_obligations'){
       if(typeof allObligations!=='function'||typeof obState!=='function') return { error:'the obligations module is not loaded in this window' };

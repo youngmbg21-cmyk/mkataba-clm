@@ -265,7 +265,7 @@ describe('f388 (7) the server is the wall', () => {
 
   before(async () => {
     h = await startHati();
-    W = await seedWorkspace(h);
+    W = await seedWorkspace(h, { approvalRules: [] });
     me = (await W.admin.json('/api/bootstrap')).me;
     U1 = W.users.unrestricted;
   });
@@ -584,7 +584,7 @@ describe('f388 (9) every party that negotiated agrees, and the file goes to each
     '1. Supply. The Supplier shall supply the goods set out in Schedule 1.'];
   before(async () => {
     h = await startHati();
-    W = await seedWorkspace(h);
+    W = await seedWorkspace(h, { approvalRules: [] });
     const c = { id: 'RL-001', name: 'Three-party supply', counterparty: 'Nordkust Industri AB', folder: 'proc', value: 120000,
       valueType: 'standard', status: 'Under Review', signRoute: 'outside', redlineText: LINES.join('\n'), format: 'text',
       upload: { fileName: 'x.docx', extractedText: LINES.join('\n') }, lastAction: '26 Sep 2026', fields: {}, metadata: { currency: 'KES' },

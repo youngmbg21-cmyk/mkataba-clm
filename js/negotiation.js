@@ -1599,7 +1599,13 @@ async function negoFileChange(c, draft, opts = {}){
       prevChangeHash: live.prevChangeHash, clauseId: live.clauseId, changeType: live.changeType,
       oldText: live.oldText, newText: live.newText, author: live.author,
       createdAt: live.createdAt, ops: live.ops, bodyHtml: live.bodyHtml,
-      summary: live.summary });
+      summary: live.summary,
+      /* And the three the fold below rewrites without recording (27 Sep
+         2026), so a Discard of an unsent revision can put the wording on the
+         table back EXACTLY — see negoRetractDraft. Absent on every revision
+         filed before; a restore then leaves those three as they stand. */
+      headingText: live.headingText, formattingOnly: !!live.formattingOnly,
+      revisedBy: live.revisedBy || null, revisedAt: live.revisedAt || null });
     live.changeType = draft.changeType;
     live.oldText = oldText;
     live.newText = newText;
@@ -3009,6 +3015,19 @@ function negoUnwithdraw(c, id, opts = {}){
    there is nothing to acknowledge and nobody to notify. A sent or decided
    change is refused here for the same reason Redline.removeChange refuses
    them: deleting what the other side is relying on rewrites history. */
+/* THE VERSION OF A CHANGE THAT WAS ON THE TABLE AT THE LAST HAND-OVER, where
+   the change has been revised since: the newest of its recorded revisions
+   filed at or before `turnAt`. Null where nothing was ever handed over, where
+   the change has no revisions, or where every revision is newer than the last
+   send. See the note in negoRetractDraft. */
+function negoSentVersionOf(c, ch){
+  const at = (c && c.negotiation && c.negotiation.turnAt) || null;
+  const revs = Array.isArray(ch && ch.revisions) ? ch.revisions : [];
+  if (!at || !revs.length) return null;
+  for (let i = revs.length - 1; i >= 0; i--)
+    if (revs[i] && String(revs[i].createdAt || '') <= String(at)) return { i, rev: revs[i] };
+  return null;
+}
 function negoRetractDraft(c, id, opts = {}){
   negoInit(c);
   const ch = negoChangeById(c, id);
@@ -3057,6 +3076,50 @@ function negoRetractDraft(c, id, opts = {}){
   if (side === 'owner' && window.reviewInOpen && reviewInOpen(c, ch)){
     if (window.toast) toast(i18t('ne_retract_in_review'), 'err');
     return null;
+  }
+  /* ---- A SENT ASK, REVISED SINCE, IS NOT A DRAFT (the owner's list,
+     27 Sep 2026) ----
+     "If you revise a change you have already sent, HaTi treats it as unsent.
+     Pressing Discard then deletes it completely and writes 'never sent' in the
+     audit trail — even though the other side has a copy." A revision is filed
+     at its own moment, so the change reads as unsent — which is TRUE of the
+     revision: the new wording has not left. What had left is the wording
+     before it, and that is what the other side is holding. So Discard throws
+     away what is unsent and nothing else: the revisions filed since the last
+     hand-over go, and the wording that was on the table comes back, as it was
+     filed, with its own fingerprint. A change nobody ever sent is discarded
+     whole, as before.
+     Asked only on our own reading of what is unsent — where the page holding
+     the drafts says (their link), its list is the authority, as above. */
+  const back = unsent ? null : negoSentVersionOf(c, ch);
+  if (back){
+    const dropped = ch.summary || ch.clauseLabel || ch.clauseId;
+    const rev = back.rev;
+    for (const k of ['seq', 'hash', 'hashV', 'prevChangeHash', 'clauseId', 'changeType', 'oldText', 'newText',
+      'author', 'createdAt', 'ops', 'bodyHtml', 'summary']) ch[k] = rev[k];
+    if ('headingText' in rev) ch.headingText = rev.headingText;
+    if ('formattingOnly' in rev) ch.formattingOnly = !!rev.formattingOnly;
+    if ('revisedBy' in rev){
+      if (rev.revisedBy){ ch.revisedBy = rev.revisedBy; ch.revisedAt = rev.revisedAt; }
+      else { delete ch.revisedBy; delete ch.revisedAt; }
+    }
+    ch.updatedAt = rev.createdAt;
+    ch.revisions = ch.revisions.slice(0, back.i);
+    /* THE CHAIN HEAD FOLLOWS THE RECORD. The discarded revisions were the
+       newest issuances; where nothing was issued after them, the head goes
+       back to the newest issuance still on the record, so the next filing
+       chains onto a hash that exists. */
+    const n = c.negotiation;
+    const left = negoIssuances(c);
+    const newest = left.length ? left[left.length - 1] : null;
+    if (newest && Number(newest.seq || 0) < Number(n.chainSeq || 0)
+      && !left.some(x => x.hash === n.chainHead)) n.chainHead = newest.hash;
+    negoInvalidateVerification(c);
+    const who = String(opts.by || (window.currentUser && window.currentUser()?.name) || 'System');
+    if (window.logAudit) logAudit(c, 'Negotiation',
+      `#${ch.id}: ${who} discarded the revision that had not been sent (“${dropped}”) — the wording already on the table stands again (“${ch.summary || ch.clauseLabel || ch.clauseId}”), and nothing was withdrawn from anyone`);
+    c.lastAction = window.todayStr ? window.todayStr() : c.lastAction;
+    return ch;
   }
   const i = c.changes.findIndex(x => x && x.id === id);
   if (i < 0) return null;

@@ -346,6 +346,11 @@ const ROUTE = [
          real blocker and correctly on the list. Cleared here so the last claim
          is about the EMPTY list rather than about approvals. */
       state.settings = { ...(state.settings || {}), approvalRules: [] };
+      /* RE-POINTED IN PLACE (27 Sep 2026, the owner's list, r1): the approval
+         rules are a wall on the SERVER now, so "no rules" is staged where the
+         rule is enforced too — the admin's own Settings save — or the
+         signature this section presses is refused by the server. */
+      await saveSettings();
       /* RE-POINTED 23 Sep 2026 (signing without the facts): an EMPTY BOX in
          HaTi's own paper holds a signature now (the `blanks` row), and this
          fixture's template boxes were never filled — a real blocker, correctly

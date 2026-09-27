@@ -221,6 +221,55 @@ function metaEffDateOnto(c, m, opts){
   c.fields.effDate = day;
   return true;
 }
+/* ---- A CONFIRMED REVIEW MERGES; IT NEVER REPLACES (the owner's list,
+   27 Sep 2026) ----
+   "Confirming a key-terms review replaces every recorded term. Anything typed
+   on the Overview that the review did not include is lost without warning."
+   Both confirm paths — applyMetadata (an upload's confirm, the settings
+   backfill) and the import queue's applyReviewedMeta — wrote the dialog's
+   answer over the whole record. The dialog carries only its own boxes, and a
+   backfill fills those boxes from a FRESH reading, so a term somebody typed
+   on the Overview was either dropped (a key the dialog does not draw: our
+   party, the template's own answers, the evidence of an older reading) or
+   blanked (a box the new reading could not fill — and the reviewer never saw
+   the typed value, so they cannot have meant to clear it).
+
+   THE ONE READING OF HOW A REVIEW LANDS, asked by both paths:
+     · a key the review did not carry survives, untouched;
+     · a box left EMPTY does not erase an answer already on file — empty is
+       '' or null, a number not above nought (what an empty number box
+       yields), or the honest "cannot tell" answers `unclear` / `unknown`,
+       which a person's typed answer outranks;
+     · anything else is what a person just confirmed, and it wins, with its
+       confidence;
+     · the evidence of what each value was read from is merged by key.
+   Returns a NEW object; the caller assigns it. */
+const META_NO_ANSWER = new Set(['unclear', 'unknown']);
+function metaIsBlankAnswer(v){
+  if(v == null) return true;
+  if(typeof v === 'number') return !(v > 0);
+  const t = String(v).trim();
+  return t === '' || META_NO_ANSWER.has(t);
+}
+function metaMergeReviewed(prev, m){
+  const old = (prev && typeof prev === 'object') ? prev : {};
+  const out = Object.assign({}, old);
+  const conf = Object.assign({}, (old.confidence && typeof old.confidence === 'object') ? old.confidence : {});
+  const mc = (m && m.confidence && typeof m.confidence === 'object') ? m.confidence : {};
+  for(const [k, v] of Object.entries(m || {})){
+    if(k === 'confidence') continue;
+    if(k === 'sourceSpans'){
+      out.sourceSpans = Object.assign({}, (old.sourceSpans && typeof old.sourceSpans === 'object') ? old.sourceSpans : {},
+        (v && typeof v === 'object') ? v : {});
+      continue;
+    }
+    if(metaIsBlankAnswer(v) && !metaIsBlankAnswer(old[k])) continue;
+    out[k] = v;
+    if(k in mc) conf[k] = mc[k]; else delete conf[k];
+  }
+  out.confidence = conf;
+  return out;
+}
 /* Kept because other modules read it directly. The values it holds are the
    same four renewal options, now answered by the one table above. */
 const RENEWAL_LABEL = { get 'auto-renew'(){ return metaOptLabel('auto-renew'); },
@@ -671,7 +720,12 @@ function openMetaReview(meta, onConfirm, opts={}){
     if(f.type==='select'){
       return `<label class="block"><span class="text-[11px] font-600 text-ink/70">${f.label}${badge(c[f.k])}</span>
         <select data-mf="${f.k}" class="mt-1 w-full rounded-lg border ${ring} ui-fld outline-none focus:border-brand-500">
-          ${f.opts.map(o=>`<option value="${o}" ${v===o?'selected':''}>${metaOptLabel(o)}</option>`).join('')}</select>${spanLine(f.k)}${checkLine(f.k)}</label>`;
+          ${/* NOTHING READ IS NOT THE FIRST ANSWER (27 Sep 2026). With no empty
+               choice, a term the reading could not find drew as the list's
+               first option — "customer", "auto-renew", "capped" — and Confirm
+               filed that as if a person had chosen it. Drawn only where
+               nothing was read, so a reading that found an answer draws the
+               list it always drew. */ v===''?'<option value="" selected>—</option>':''}${f.opts.map(o=>`<option value="${o}" ${v===o?'selected':''}>${metaOptLabel(o)}</option>`).join('')}</select>${spanLine(f.k)}${checkLine(f.k)}</label>`;
     }
     const it = f.type==='date'?'date':(f.type==='num'?'number':'text');
     return `<label class="block"><span class="text-[11px] font-600 text-ink/70">${f.label}${badge(c[f.k])}</span>
@@ -797,4 +851,4 @@ function contractGoverningLaw(c){
   return String((c&&c.metadata&&c.metadata.governingLaw)||'').replace(/\s+/g,' ').trim();
 }
 
-Object.assign(window,{contractGoverningLaw,META_FIELDS,CONTRACT_TYPE_FALLBACK,contractTypeKinds,META_PICK_OTHER,metaPickOptions,RENEWAL_LABEL,metaEnName,metaEffDateOnto,termAdd,metaReadTerm,metaCheckTerm,TERM_TOLERANCE_DAYS,META_OPT_LABEL,metaOptLabel,unitDays,heuristicExtract,buildExtractionPayload,thoroughChunks,mergeThorough,THOROUGH_CHUNK,EXTRACT_TERMS,aiExtractMetadata,extractMetadata,openMetaReview,runMetaBackfill});
+Object.assign(window,{contractGoverningLaw,META_FIELDS,metaMergeReviewed,metaIsBlankAnswer,CONTRACT_TYPE_FALLBACK,contractTypeKinds,META_PICK_OTHER,metaPickOptions,RENEWAL_LABEL,metaEnName,metaEffDateOnto,termAdd,metaReadTerm,metaCheckTerm,TERM_TOLERANCE_DAYS,META_OPT_LABEL,metaOptLabel,unitDays,heuristicExtract,buildExtractionPayload,thoroughChunks,mergeThorough,THOROUGH_CHUNK,EXTRACT_TERMS,aiExtractMetadata,extractMetadata,openMetaReview,runMetaBackfill});
