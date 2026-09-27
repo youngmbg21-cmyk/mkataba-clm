@@ -1513,6 +1513,17 @@
      mouse half a pixel under the button landed on the cell behind it. */
   .ui-btn-sm{min-height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);font-size:var(--t-meta);gap:4px;position:relative;}
   .ui-btn-sm::after{content:"";position:absolute;inset:-2px;}
+  /* A SMALL BUTTON THAT ASKS TO BE PLACED KEEPS ITS PLACE (Young reported it
+     27 Sep 2026: "the green ask button is now poorly designed as far as
+     placing"). The rule above gives every small button position:relative to
+     anchor its press area, at the Tailwind utility's own weight and LATER in
+     the sheet — so a button that also carries `absolute` (the Explorer
+     panel's Ask, pinned inside the end of its box) lost the fight, fell out
+     of the box and landed under it at the left, half off the panel. MEASURED:
+     position relative, 52px below the box's centre line. Fixed by SCOPE, one
+     class heavier, never !important; an absolute box anchors the press area
+     just as well. */
+  .ui-btn-sm.absolute{position:absolute;}
   /* AN ICON THAT STANDS ALONE is a SQUARE of its rung — the same height as
      the buttons beside it, its name on the hover (rule 6 of the review). The
      icon keeps its rung's size; only the width is taken off the padding. */

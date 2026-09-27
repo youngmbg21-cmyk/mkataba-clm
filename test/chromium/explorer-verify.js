@@ -106,6 +106,20 @@ const check = (name, pass, detail) => {
     const a5 = await legend();
     check('2e and via another tab: closed again', a5 && !a5.rowShown, JSON.stringify(a5));
 
+    /* ================= 2f. THE ASK BUTTON SITS IN ITS BOX =================
+       Young reported it 27 Sep 2026: "the green ask button is now poorly
+       designed as far as placing". A small button's own position:relative had
+       beaten the class that pins it inside the box, so it fell under the box
+       at the left, half off the panel. Measured as pixels: inside the box,
+       centred on its line, at the box's right end. */
+    const ask = await page.evaluate(() => {
+      const i = document.getElementById('igd-input').getBoundingClientRect(), r = document.getElementById('igd-go').getBoundingClientRect();
+      return { inside: r.left >= i.left && r.right <= i.right && r.top >= i.top && r.bottom <= i.bottom,
+        off: Math.round(Math.abs((r.top + r.bottom) / 2 - (i.top + i.bottom) / 2)), gapRight: Math.round(i.right - r.right) };
+    });
+    check('2f the Ask button sits inside the ask box, centred on its line, at the box\'s right end',
+      ask.inside && ask.off <= 1 && ask.gapRight >= 0 && ask.gapRight <= 12, JSON.stringify(ask));
+
     /* ================= 3. THE » IS GONE, THE › IS KEPT ===================== */
     const head = await page.evaluate(() => {
       const dock = document.getElementById('ig-dock');

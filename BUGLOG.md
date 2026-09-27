@@ -19479,3 +19479,10 @@ Deliberately left alone (said to the owner)
 
 Noticed, not fixed
 - Someone who had widened the panel with the old » opens at the resting 380 once; the old preference is not read.
+
+## Run 27 Sep 2026 (later) — the Explorer panel's Ask button back in its box
+
+- Reported by the owner after the Explorer run: "the green ask button is now poorly designed as far as placing". Measured first: the button computed position relative, sat 53px below the ask box's centre line and left of the box, half off the bottom of the panel.
+- Cause: the Compact button ladder (26 Sep 2026, 758818c) gives every small button position:relative to anchor its press area, at the same weight as the Tailwind "absolute" class and later in the sheet, so it won. The Explorer panel's Ask is the only small button in the product pinned with "absolute" (swept), so it was the only one moved. Not caused by the Explorer change; it shipped with the ladder and was noticed today.
+- Fixed by scope, one class heavier, never !important: `.ui-btn-sm.absolute{position:absolute;}` written after the ladder's rule. The button is back inside the box, centred on its line, 6px from its right edge, as designed.
+- Gates: lint 0 errors, 178 warnings (unchanged). f394 17/17 (two new claims; the placement claim red without the fix). explorer-verify 26/26 (new 2f measures the button as pixels; red without the fix, printing 53px off and 333px from the right edge). compact-ladder-verify 29/29, button-consistency-verify 17/17, insights-panels-verify 84/84, analyze-on-the-graph-verify 26/26.
