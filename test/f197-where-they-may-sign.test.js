@@ -130,7 +130,11 @@ describe('f197 — it is a separate list, and it only narrows', () => {
    THE SERVER
    ============================================================ */
 let h, W;
-before(async () => { h = await startHati(); W = await seedWorkspace(h); });
+/* RE-POINTED IN PLACE (27 Sep 2026, the owner's list): the SERVER now enforces the
+   approval rules, and a workspace with none saved has the legacy default (an
+   admin's approval from 5,000,000) — every fixture is above it. This file is
+   about which folders a person may sign in, not approvals, so the workspace states it has none. */
+before(async () => { h = await startHati(); W = await seedWorkspace(h, { approvalRules: [] }); });
 after(async () => { await h.stop(); });
 
 async function trySign(client, id) {
@@ -166,7 +170,7 @@ describe('f197 — the server keeps its own list and its own guard', () => {
     /* THE SWITCH RIDES THE BLOB, THE MAP DOES NOT — the same H-3 split
        folderAccess already has, so a stale general save cannot revert a
        restriction. The map was written through its own route above. */
-    await W.admin.json('/api/settings', { method: 'PUT', body: { signFolders: { on: true } } });
+    await W.admin.json('/api/settings', { method: 'PUT', body: { signFolders: { on: true }, approvalRules: [] } });
     const r = await trySign(W.restricted, 'MK-A2');
     assert.equal(r.status, 403);
     assert.match(r.json.error, /may not sign/i);
@@ -177,13 +181,17 @@ describe('f197 — the server keeps its own list and its own guard', () => {
     /* ASKED AS A DIFFERENCE. A member editing key terms is not signing. */
     const full = await W.restricted.json('/api/contracts/MK-A2');
     const baseVersion = full._v; delete full._v;
-    full.counterparty = 'Nandi Dairy Co-op';
+    /* RE-POINTED IN PLACE (27 Sep 2026, the owner's list): the counterparty's name
+       is printed on this paper (drawn from the record), and since a signature has
+       now landed on it that term is frozen with the wording — correctly. The
+       ordinary save edits a key term the paper does not print instead. */
+    full.metadata = { ...(full.metadata || {}), noticePeriodDays: 60 };
     const r = await W.restricted.raw('/api/contracts/MK-A2', { method: 'PUT', body: { contract: full, baseVersion } });
     assert.equal(r.status, 200);
   });
 
   test('and a general settings save does NOT wipe the map (H-3, again)', async () => {
-    await W.admin.json('/api/settings', { method: 'PUT', body: { signFolders: { on: true }, somethingElse: 1 } });
+    await W.admin.json('/api/settings', { method: 'PUT', body: { signFolders: { on: true }, somethingElse: 1, approvalRules: [] } });
     const r = await trySign(W.restricted, 'MK-A2');
     assert.equal(r.status, 403, 'the restriction survived a blob save that did not mention it');
   });
