@@ -57,7 +57,7 @@ const isoIn = off => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d
      admin, one nobody holds), and two of the admin's own (one live, one
      declined). */
   const ask = async (cl, title) => (await cl.json('/api/intake', { method: 'POST', body: { title, need: title + ' — please.' } })).request.id;
-  const rOld = await ask(colleague, 'Colleague: supply agreement for Nandi');
+  await ask(colleague, 'Colleague: supply agreement for Nandi');       // the one nobody holds
   const rHeld = await ask(colleague, 'Colleague: NDA for the auditors');
   const rOver = await ask(colleague, 'Colleague: lease renewal');
   const rMine = await ask(admin, 'Admin: services agreement');
