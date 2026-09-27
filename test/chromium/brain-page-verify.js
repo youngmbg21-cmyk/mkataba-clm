@@ -138,6 +138,16 @@ const ok = (name, good, detail) => {
         return { oy: getComputedStyle(p).overflowY, ph: Math.round(p.getBoundingClientRect().height), sh: Math.round(s.getBoundingClientRect().height), sc: p.scrollHeight > p.clientHeight }; });
       ok('7a the side panel scrolls inside the stage card\'s own height', pan.oy === 'auto' && Math.abs(pan.ph - pan.sh) <= 2 && pan.sc, JSON.stringify(pan));
 
+      /* ---- 7b. the whole screen (Young, 27 Sep 2026: "Make the brain page fill the whole screen") ---- */
+      for (const [vw, vh] of [[1440, 900], [1920, 1080], [1366, 1024]]){
+        await page.setViewportSize({ width: vw, height: vh }); await page.waitForTimeout(500);
+        const fit = await page.evaluate(() => { const sc = document.getElementById('content-scroll'), c = document.querySelector('.br-stagecard'), p = document.getElementById('br-panel'), h = document.getElementById('page-head');
+          const cb = c.getBoundingClientRect(), pb = p.getBoundingClientRect();
+          return { win: innerHeight, cardBot: Math.round(cb.bottom), panBot: Math.round(pb.bottom), head: Math.round(h.getBoundingClientRect().height), scroll: sc.scrollHeight - sc.clientHeight }; });
+        ok(`7b the stage and the panel reach the bottom of the screen with nothing to scroll (${vw}×${vh})`, fit.scroll === 0 && fit.head === 0 && fit.win - fit.cardBot <= 16 && fit.win - fit.panBot <= 16, JSON.stringify(fit));
+      }
+      await page.setViewportSize({ width: 1440, height: 900 }); await page.waitForTimeout(400);
+
       /* ---- 8. the code updates, read off the server ---- */
       await page.waitForFunction(() => !!document.querySelector('[data-br-upd]') || /could not/.test((document.getElementById('br-upds') || {}).textContent || ''), null, { timeout: 8000 }).catch(() => {});
       const upd = await page.$$eval('[data-br-upd]', b => b.map(x => x.textContent));

@@ -94,6 +94,22 @@ describe('f400 (2) — the door', () => {
   });
 });
 
+describe('f400 (2b) — the page fills the whole screen (Young, 27 Sep 2026)', () => {
+  test('2c it owns its height and its head: on VIEW_OWNS_HEIGHT and PAGE_OWNS_HEADER', () => {
+    const list = name => { const m = APP.match(new RegExp('const ' + name + " = \\[([^\\]]*)\\]")); return m ? m[1] : ''; };
+    assert.match(list('VIEW_OWNS_HEIGHT'), /'brain'/, 'the shell measures the room for it');
+    assert.match(list('PAGE_OWNS_HEADER'), /'brain'/, 'no title row between the shell bar and the brain');
+  });
+  test('2d the page is exactly --view-h tall and the stage takes what the card has left', () => {
+    const root = (VIEW.match(/'\.br-root\{[^']*'/) || [''])[0];
+    const stage = (VIEW.match(/'\.br-stage\{[^']*'/) || [''])[0];
+    assert.match(root, /height:var\(--view-h\)/, root);
+    assert.match(root, /grid-template-rows:minmax\(0,1fr\)/, root);
+    assert.match(stage, /flex:1 1 auto/, stage);
+    assert.doesNotMatch(stage, /100vh|clamp\(/, 'no guessed height from the window');
+  });
+});
+
 describe('f400 (3) — the reading, over this repository', () => {
   const map = B ? B.brainRead(files()) : null;
   test('3a every named part is found in the code, with its file and line', () => {
