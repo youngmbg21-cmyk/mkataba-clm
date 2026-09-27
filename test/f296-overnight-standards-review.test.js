@@ -140,7 +140,9 @@ describe('F296 — the overnight standards review, against a real server', () =>
     assert.ok(/aiPlaybookVerdicts\(key/.test(body), 'the route\'s own review');
     assert.ok(/COPILOT_PB_TEXT_MIN/.test(body) && /copilotContractWording\(c\)/.test(body), 'the browser\'s floor and the browser\'s reading, mirrored');
     assert.ok(!/negoFileChange|changes\.push|insertClause|changes:/.test(body), 'it files nothing');
-    assert.ok(/Promise\.resolve\(\)\.then\(runPlaybookPrep\)\.catch/.test(SRV), 'on the timer, under its own catch');
+    /* RE-POINTED IN PLACE (27 Sep 2026, r21): both overnight jobs now draw on
+       ONE allowance the sweep hands them, so the call passes it. */
+    assert.ok(/Promise\.resolve\(\)\.then\(\(\) => runPlaybookPrep\(nightly\)\)\.catch/.test(SRV), 'on the timer, under its own catch');
     assert.ok(/'Standards reviews were not prepared'/.test(SRV), 'with its own admin-visible note');
   });
 });

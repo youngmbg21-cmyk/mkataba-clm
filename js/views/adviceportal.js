@@ -12,7 +12,8 @@
      stages it has passed with timestamps, and the estimated
      feedback date promised at submission.
    ============================================================ */
-const pesc = s => String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+/* Quotes too, for the Advice desk's reason (27 Sep 2026). */
+const pesc = s => String(s==null?'':s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 /* `eta` is the server's promised feedback date per service and urgency. The
    portal no longer holds a queue count at all in server mode — the queue depth
    is an operational fact about the firm, and the visitor needs the date. */

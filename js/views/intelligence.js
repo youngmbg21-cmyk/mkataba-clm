@@ -694,6 +694,28 @@ function igWireSplit(){
 window.IG = null;      // live graph model
 window.intelRAF = 0;   // animation token
 const igEsc = s => String(s??'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+/* THE CHAT BUBBLE CLEANS WHAT IT DRAWS (the owner's list, 27 Sep 2026).
+   Every writer into intel.history was meant to escape its own text, and one
+   did not (the template ranking pushed the model's answer as written). The
+   bubble is the one place they all meet, so it is the wall: scripts, frames
+   and every event handler or javascript: link are taken out before drawing.
+   The formatter's own markup (bold, lists, tables, charts) passes. */
+const IG_UNSAFE_TAGS = 'script,style,iframe,object,embed,link,meta,base,form,input,textarea,select,button';
+function igSafeHtml(html){
+  const raw = String(html==null?'':html);
+  if(!/[<&]/.test(raw)) return raw;
+  if(typeof document==='undefined' || !document.createElement) return igEsc(raw);
+  const t = document.createElement('template'); t.innerHTML = raw;
+  t.content.querySelectorAll(IG_UNSAFE_TAGS).forEach(n => n.remove());
+  t.content.querySelectorAll('*').forEach(n => {
+    for(const a of Array.from(n.attributes)){
+      const nm = a.name.toLowerCase(), v = String(a.value||'').trim().toLowerCase();
+      if(nm.startsWith('on') || nm === 'srcdoc' || ((nm === 'href' || nm === 'src' || nm === 'xlink:href' || nm === 'action' || nm === 'formaction') && /^(javascript|vbscript|data:text)/.test(v.replace(/\s+/g,''))))
+        n.removeAttribute(a.name);
+    }
+  });
+  return t.innerHTML;
+}
 
 function valueBand(v){ v=Number(v||0); const c=jxCurrency(); if(!v) return 'Non-monetary'; if(v>=50e6) return `≥ ${c} 50M`; if(v>=10e6) return `${c} 10–50M`; if(v>=1e6) return `${c} 1–10M`; return `< ${c} 1M`; }
 /* ============================================================
@@ -1158,7 +1180,7 @@ async function intelTemplateAsk(q){
       await Promise.all(shortlist.map(c=>ensureFull(c).catch(()=>{})));
       const candidates=shortlist.map(c=>({id:c.id,name:c.name,kind:cKind(c),counterparty:c.counterparty||'',value:Number(c.value||0),status:c.status,expiry:c.expiry||'',text:contractPlainText(c)}));
       const res=await api('ai/template','POST',{query:q,candidates});
-      applyTemplateResult(res.ranked, res.answer); return;
+      applyTemplateResult(res.ranked, igFmtRich(res.answer||'').html); return;
     }catch(e){
       intel.history.push({role:'assistant', err:true,
         text:(/key|configure|401|model/i.test(e.message)?'The Copilot engine needs an API key for template analysis — here is a metadata-only ranking instead.':'Copilot template analysis failed ('+igEsc(e.message)+') — here is a metadata-only ranking instead.')});
@@ -1168,7 +1190,7 @@ async function intelTemplateAsk(q){
   const ranked=shortlist.slice(0,3).map(c=>({ id:c.id,
     reason:[c.status==='Signed'?'executed — battle-tested terms':'closest match on type', cKind(c), c.counterparty?('with '+c.counterparty):null].filter(Boolean).join(' · ') }));
   const top=getContract(ranked[0].id);
-  applyTemplateResult(ranked, `Closest template match on metadata: <b>${top?.name||'—'}</b>.${(API_MODE()&&!state.aiConfigured)||!API_MODE()?' Configure the Copilot engine for a clause-level comparison.':''}`);
+  applyTemplateResult(ranked, `Closest template match on metadata: <b>${igEsc(top?.name||'—')}</b>.${(API_MODE()&&!state.aiConfigured)||!API_MODE()?' Configure the Copilot engine for a clause-level comparison.':''}`);
 }
 function applyTemplateResult(ranked, answer){
   const badges={}; ranked.forEach((r,i)=>badges[r.id]='#'+(i+1));
@@ -3624,7 +3646,7 @@ function igMsgHTML(m,i){
   return `<div class="ai-msg flex gap-2"${Number.isInteger(i)?` data-ig-turn="${i}"`:''}>
     <div class="h-6 w-6 shrink-0 grid place-items-center rounded-lg bg-gold-500/15 text-gold-600 mt-0.5">${icon('sparkle','w-3 h-3')}</div>
     <div class="min-w-0 flex-1 space-y-1.5">
-      ${m.text?`<div class="rounded-2xl rounded-tl-md border px-3.5 py-2 text-[13px] leading-relaxed ${m.err?'bg-rose-50 border-rose-200 text-rose-800':'bg-canvas border-brand-100 text-brand-900'}">${m.text}${cites}</div>`:''}
+      ${m.text?`<div class="rounded-2xl rounded-tl-md border px-3.5 py-2 text-[13px] leading-relaxed ${m.err?'bg-rose-50 border-rose-200 text-rose-800':'bg-canvas border-brand-100 text-brand-900'}">${igSafeHtml(m.text)}${cites}</div>`:''}
       ${body}
     </div>
   </div>`;
@@ -4174,3 +4196,4 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
 
 Object.assign(window,{IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igPaperAsk});
 Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,ptFitTable,ptPagerHtml,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
+Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});

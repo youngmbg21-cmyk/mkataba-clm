@@ -92,7 +92,17 @@
   /* The one question a screen asks: does this value still carry a seam? */
   const metaHasSeam = hasSeam;
 
-  const API = { META_SEAM_RE, META_ABSENT_RE, META_NUMBER_KEYS, metaUnleak, metaHasSeam };
+  /* DOES THIS HISTORY LINE TALK ABOUT MONEY? (the owner's list, 27 Sep 2026)
+     Copilot's history reading hid money lines from a reader who may not see
+     values by six words and six currency codes, so "Rebate set to 3%",
+     "CHF 120,000" or "4.8 million" went through. ONE reading for both hosts:
+     money words, any currency symbol or common code, a figure written in
+     thousands (1,000 · 1 000 · 1.000), a run of five or more digits, or a
+     figure with a scale word. Coarse on purpose: a line is dropped whole. */
+  const MONEY_LINE_RE = /\b(?:values?|amounts?|prices?|pricing|fees?|worth|costs?|payments?|paid|pay|invoices?|sums?|totals?|rates?|deposits?|budgets?|discounts?|rebates?|penalt(?:y|ies)|currency)\b|[€$£¥₹₦]|\b(?:AED|AUD|BRL|CAD|CHF|CNY|DKK|ETB|EUR|GBP|GHS|HKD|INR|JPY|KES|NGN|NOK|NZD|RWF|SEK|SGD|TZS|UGX|USD|ZAR|ZMW)\b|\b\d{1,3}(?:[,\u00a0 .']\d{3})+\b|\b\d{5,}\b|\b\d+(?:[.,]\d+)?\s*(?:k|m|bn|mn|million|billion|thousand)\b/i;
+  const historyLineHasMoney = t => MONEY_LINE_RE.test(String(t || ''));
+
+  const API = { META_SEAM_RE, META_ABSENT_RE, META_NUMBER_KEYS, metaUnleak, metaHasSeam, MONEY_LINE_RE, historyLineHasMoney };
   if(typeof module !== 'undefined' && module.exports) module.exports = API;
   if(typeof window !== 'undefined') Object.assign(window, API);
 })(typeof globalThis !== 'undefined' ? globalThis : this);

@@ -3649,6 +3649,24 @@ async function verifySeal(c){
      executed outside HaTi and imported — and it was the only one that printed
      nothing, so on the commonest kind of sealed record the button was silent. */
   if(c.hash==='MIGRATED'){ toast(i18t('co_seal_migrated',{h:(c.upload?.fileHash||'').slice(0,16)}),'ok'); return; }
+  /* ---- A PAPER FILING'S SEAL IS ITS SCAN (the owner's list, 27 Sep 2026) ----
+     The old "Signed on paper" door set the seal to the scanned file's own
+     SHA-256 and kept no frozen text, so this check asked for a text snapshot
+     and a sealString that were never made, and called an untouched record
+     tampered. It reads the scan back, hashes it, and compares. */
+  if(c.execution && c.execution.method==='paper'){
+    const e=c.execution; let url=e.dataUrl||null;
+    if(!url && e.fileId && API_MODE()){
+      try{ const r=await api('files/'+encodeURIComponent(e.fileId)); url=r&&(r.dataUrl||r.data)||null; }
+      catch(_){ toast(i18t('co_seal_copy_unread'),'err'); return; }
+    }
+    if(!url){ toast(i18t('co_seal_copy_unread'),'err'); return; }
+    const ph=await sha256(url);
+    if(ph!==c.hash || (e.fileHash && ph!==e.fileHash)){ toast(i18t('co_seal_mismatch_copy'),'err'); return; }
+    const weakP=(typeof sha256IsReal==='function')&&!sha256IsReal();
+    toast(weakP ? `${i18t('co_seal_valid_paper')}. ${i18t('co_seal_weak')}` : i18t('co_seal_valid_paper'), weakP?'err':'ok');
+    return;
+  }
   /* v3: the signed copy itself is read back and hashed again, so a file
      swapped in the store under an untouched record is caught too. */
   const v3=Number(c.sealVersion||0)>=3 && c.execution && c.execution.method==='outside';
@@ -3722,11 +3740,18 @@ function downloadEvidence(c){
     generatedAt:nowISO(), platform:'HaTi CLM', org:FIRST_PARTY,
     // a migrated contract was signed elsewhere — citing the e-signature Act
     // here would claim HaTi took a signature it never took
-    legalBasis: isExternallyExecuted(c)
+    /* A PAPER FILING IS NOT A MIGRATION (27 Sep 2026): it was negotiated here
+       and signed on paper, and the pack names the scan it was sealed with. */
+    legalBasis: (c.execution&&c.execution.method==='paper')
+      ? 'Negotiated in HaTi and signed on paper, then filed here. No electronic signature was taken in HaTi; the signatures are on the scanned copy, which is retained here and whose SHA-256 is the seal.'
+      : isExternallyExecuted(c)
       ? 'Executed outside HaTi and migrated in as a record. No electronic signature was taken in HaTi; the signatures are on the original document.'
       : outside
       ? 'Signed outside HaTi, the other side\'s way, and filed here. No electronic signature was taken in HaTi; the signatures are on the signed copy, which is the document of record. The agreed version and the negotiation are how its wording was reached.'
       : jxEsignature(),
+    paperCopy: (c.execution&&c.execution.method==='paper') ? { name:c.execution.fileName||null,
+      sha256:c.execution.fileHash||c.hash||null, fileId:c.execution.fileId||null,
+      signedOn:c.execution.signedOn||null, filedBy:c.execution.by||null, filedAt:c.execution.at||null } : undefined,
     signedCopy: outside&&sc ? {
       file:{ name:(sc.file&&sc.file.name)||null, sha256:(sc.file&&sc.file.sha256)||null, fileId:(sc.file&&sc.file.fileId)||null },
       certificate: sc.certificate ? { name:sc.certificate.name||null, sha256:sc.certificate.sha256||null, fileId:sc.certificate.fileId||null } : null,
@@ -4895,6 +4920,10 @@ function buildSharePayload(c, docHash, who, opts){
          The number is enough for the check to say "not carried here" instead of
          "altered", and it publishes nothing. See verifyChangeChain. */
       revisionsOmitted:(Array.isArray(x.revisions)?x.revisions.length:0) || undefined,
+      /* And a link to a hash a Discard took off the table (27 Sep 2026): that
+         draft never left, so their copy is told the link is not carried here
+         rather than reading the chain as broken. */
+      prevNotCarried:(x.prevChangeHash && window.negoDiscardedHashes && negoDiscardedHashes(c).has(x.prevChangeHash)) || undefined,
       /* ONLY THE SHARED HALF OF THE THREAD TRAVELS. negoPostComment's own
          documentation promises that an internal note "reaches nobody by simply
          not being posted — there is no filter here to get wrong". That was true
@@ -4942,7 +4971,7 @@ function buildSharePayload(c, docHash, who, opts){
   const purposeChosen = SHARE_PURPOSE(opts&&opts.purpose) || null;
   const purpose = purposeChosen || (shareChanges.length?'negotiate':'sign');
   // written out longhand, not as shorthand: this list is read as a list
-  return { v:1, kind:'hati-share', org:org, sharedBy:sharedBy, at:nowISO(), docHash:docHash,
+  return shareAdviceNarrow({ v:1, kind:'hati-share', org:org, sharedBy:sharedBy, at:nowISO(), docHash:docHash,
     /* One courtesy sentence, on the round after the contact changed and on that
        round only. The entire visible consequence of everything the desk does. */
     leadNotice:leadNotice||undefined,
@@ -5104,7 +5133,27 @@ function buildSharePayload(c, docHash, who, opts){
       openPoints:(window.openPointsFor?openPointsFor(c):[]).length?openPointsFor(c):undefined,
       versions:shareVersions(c, org),
       redlineText:(opts&&opts.purpose==='advise')?undefined:(c.redlineText||undefined),
-      format:(opts&&opts.purpose==='advise')?undefined:(c.redlineText?docFormat(c.format):undefined) } };
+      format:(opts&&opts.purpose==='advise')?undefined:(c.redlineText?docFormat(c.format):undefined) } });
+}
+/* ---- AN ADVISER'S COPY IS AN ALLOW-LIST (the owner's list, 27 Sep 2026) ----
+   "An adviser link is meant to carry only the clauses you picked, but the copy
+   sent to the adviser's browser still holds the whole agreement's words, its
+   value and its other recorded terms." The builder above dropped redlineText
+   and format for this purpose and nothing else, so docText (every word),
+   viewBody (the whole rendered document), templateForm, fields, value, the
+   change list and every version travelled. What an adviser may read is built
+   here from nothing: the contract's name and parties, and the chosen clauses
+   as the wording. The server trims again on the way out (advicePayload). */
+const SHARE_ADVICE_KEEP = ['id','contractNo','name','counterparty','party','adviseOn'];
+function shareAdviceNarrow(out){
+  if(!out || out.purposeChosen!=='advise' || !out.contract) return out;
+  const k=out.contract, c={};
+  for(const f of SHARE_ADVICE_KEEP) if(k[f]!==undefined) c[f]=k[f];
+  c.redlineText=k.adviseBody||'';
+  c.adviseBody=k.adviseBody||'';
+  c.format='rich'; c.changes=[];
+  return { v:out.v, kind:out.kind, org:out.org, sharedBy:out.sharedBy, at:out.at, docHash:out.docHash,
+    purpose:'advise', purposeChosen:'advise', branding:k.branding||out.branding||undefined, contract:c };
 }
 /* ---- THE CLAUSES AN ADVISER WAS ASKED ABOUT, AND NOTHING ELSE ----
    Built through clauseSegment, the product's ONE splitter, so what the adviser
@@ -7730,6 +7779,12 @@ async function refreshLiveShareQuietly(c){
     if(!live.length) return;
     const docHash=await sha256(canonicalDoc(c));
     for(const s of live){
+      /* AN ADVISER'S LINK IS NOT CAUGHT UP (the owner's list, 27 Sep 2026).
+         Its copy is the clauses the sender picked; this rebuild has no clause
+         list, so it replaced that copy with one carrying no clauses at all.
+         The adviser was asked about the wording as it stood; a new question
+         is a new link. */
+      if(s && s.purpose==='advise') continue;
       /* The purpose the link was issued with is kept. A negotiation link that
          quietly became a signing link — or the reverse — would change what the
          reader is being asked to do without anybody deciding it. */
@@ -8171,4 +8226,4 @@ const END_STATES = [
 const endStateSays = k => { const x = END_STATES.find(e => e.k === k); return x ? x.says : ''; };
 Object.assign(window,{END_STATES,endStateSays});
 
-Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,sigImageSrc,contractOnScreen,userById,verifySeal,waShareLink});
+Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,sigImageSrc,contractOnScreen,userById,verifySeal,waShareLink});

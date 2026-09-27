@@ -1962,7 +1962,7 @@ function _localToolRun(name,a){
       const money=(typeof canViewValues!=='function')||canViewValues();
       const trail=Array.isArray(c.audit)?c.audit:[];
       let redacted=0;
-      const rows=trail.slice().reverse().filter(e=>e&&(e.at||e.action)).filter(e=>{ if(money) return true; if(/\b(value|amount|price|fee|worth|kes|usd|eur|gbp|sek|nok)\b/i.test(String(e.detail||'')+' '+String(e.action||''))){ redacted++; return false; } return true; })
+      const rows=trail.slice().reverse().filter(e=>e&&(e.at||e.action)).filter(e=>{ if(money) return true; if((window.historyLineHasMoney?window.historyLineHasMoney:(t=>/\b(value|amount|price|fee|worth|kes|usd|eur|gbp|sek|nok)\b/i.test(t)))(String(e.detail||'')+' '+String(e.action||''))){ redacted++; return false; } return true; })
         .slice(0,60).map(e=>({at:e.at||null,by:e.user||'',action:e.action||'',detail:String(e.detail||'').slice(0,300)}));
       return { id:c.id, name:c.name||c.id, found:true, total:trail.length, shown:rows.length, omitted:Math.max(0,trail.length-redacted-rows.length), redacted, events:rows,
         note:'The stored audit trail, newest first: who did what and when. "omitted" is the cap; "redacted" are lines about money withheld from a reader who may not see values.' };

@@ -385,20 +385,24 @@ describe('f262 (9) — the sweep holds a blocked step', () => {
 
   test('NONE of the four milestones fires for a held step', () => {
     const sweep = SRV.slice(SRV.indexOf('(full.obligations || []).forEach(o => {'));
-    const guard = sweep.slice(0, sweep.indexOf('const who = obligationRecipient(o.assignee)'));
+    const guard = sweep.slice(0, sweep.indexOf('const who = obligationRecipient(o.assignee, c.folder || null)'));
     assert.match(guard, /if \(srvObligationBlocked\(full, o\)\) \{/);
     assert.match(guard, /\n\s*return;\n\s*\}/, 'and it returns before any milestone');
     /* the four are BELOW the guard, so they are unreachable while it is held */
-    const after = sweep.slice(sweep.indexOf('const who = obligationRecipient(o.assignee)'));
+    const after = sweep.slice(sweep.indexOf('const who = obligationRecipient(o.assignee, c.folder || null)'));
     for (const k of [':soon', ':today', ':overdue', ':escalate']) assert.ok(after.includes(k), k);
   });
 
   test('the owner is told ONCE, with its own dedupe key', () => {
     const sweep = SRV.slice(SRV.indexOf('if (srvObligationBlocked(full, o))'));
-    const held = sweep.slice(0, sweep.indexOf('const who = obligationRecipient(o.assignee)'));
+    const held = sweep.slice(0, sweep.indexOf('const who = obligationRecipient(o.assignee, c.folder || null)'));
     assert.match(held, /od === 0/, 'on the day it comes due, not before');
     assert.match(held, /:held`/, 'its own key, so it is sent once');
-    assert.match(held, /c\.owner && c\.owner\.name/, 'to the owner, not to whoever owes it');
+    /* RE-POINTED IN PLACE (27 Sep 2026, the overnight run, h1): this pinned
+       `c.owner && c.owner.name` — c is the DATABASE ROW, which carries no
+       owner, so the mail always fell to the admins. The owner is read off the
+       stored record (full.owner), id first, name second. */
+    assert.match(held, /const ownerRec = full\.owner/, 'to the owner, not to whoever owes it');
     assert.match(held, /: admins/, 'and to the admins where no owner resolves');
     assert.match(held, /mail_ob_held_subject/);
   });

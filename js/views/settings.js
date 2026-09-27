@@ -3414,6 +3414,11 @@ function stAcceptanceHtml(){
    ONE READING, asked at every paint, so the sign and the wall cannot
    disagree. `undefined` is "not known yet" and is NOT "there is nothing to
    remove" -- a failed read must not claim an absence. */
+/* A COPILOT KEY LOOKS LIKE ONE (the owner's list, 27 Sep 2026). The browser
+   could fill a saved login password into this box, and Save stored it as the
+   key. A key is one word that starts "sk-ant-"; anything else is refused in
+   words, here and on the server (aiKeyShapeOk). */
+function aiKeyLooksRight(k){ return /^sk-ant-\S{4,}$/.test(String(k||'').trim()); }
 function stKeyRemovable(source){
   if(source==='settings') return { can:true, why:'' };
   if(source==='env') return { can:false, why:i18t('set_key_env_locked') };
@@ -3438,7 +3443,7 @@ function stEngineBodyHtml(){
     return `<div id="ai-cfg-status" style="font-size:var(--t-label);color:var(--color-neutral-700);margin-bottom:var(--s-2)">${i18t('set_checking')}</div>
       <div style="display:flex;gap:var(--s-2);align-items:flex-end">
         <label style="flex:1;min-width:0"><span style="${window.RV_LBL||''}">${i18t('set_api_key')}</span>
-          <input id="ai-key" type="password" placeholder="sk-ant-…" style="${window.RV_FLD||ST_INPUT}"/></label>
+          <input id="ai-key" type="password" autocomplete="new-password" data-lpignore="true" data-1p-ignore="true" spellcheck="false" placeholder="sk-ant-…" style="${window.RV_FLD||ST_INPUT}"/></label>
         <button id="ai-key-save" style="${ST_BTN}">${i18t('set_save_key')}</button>
       </div>
       <button id="ai-key-clear" type="button" disabled aria-disabled="true" class="ui-link ui-link-danger" style="margin-top:6px;cursor:default;opacity:.5">${i18t('set_remove_key')}</button>
@@ -3455,7 +3460,7 @@ function stEngineBodyHtml(){
     <div id="ai-cfg-status" style="font-size:var(--t-label);color:var(--color-neutral-700);margin-bottom:var(--s-2)">${i18t('set_checking')}</div>
     <div style="display:flex;gap:var(--s-2);align-items:flex-end">
       <label style="flex:1;min-width:0"><span style="${window.RV_LBL||''}">${i18t('set_api_key')}</span>
-        <input id="ai-key" type="password" placeholder="sk-ant-…" style="${window.RV_FLD||ST_INPUT}"/></label>
+        <input id="ai-key" type="password" autocomplete="new-password" data-lpignore="true" data-1p-ignore="true" spellcheck="false" placeholder="sk-ant-…" style="${window.RV_FLD||ST_INPUT}"/></label>
       <button id="ai-key-save" style="${ST_BTN}">${i18t('set_save_key')}</button>
     </div>
     <button id="ai-key-clear" type="button" disabled aria-disabled="true" class="ui-link ui-link-danger" style="margin-top:6px;cursor:default;opacity:.5">${i18t('set_remove_key')}</button>
@@ -3623,6 +3628,7 @@ function stWireEngine(){
     document.getElementById('ai-key-save')?.addEventListener('click',()=>{
       const inp=document.getElementById('ai-key'); const key=(inp?.value||'').trim();
       if(!key){ stDrawerRefuse(i18t('set_enter_key')); return; }
+      if(!aiKeyLooksRight(key)){ stDrawerRefuse(i18t('set_key_not_a_key')); return; }
       lsSet('hati.v1.aikey', key); inp.value='';
       stDrawerClearRefusal();
       toast(i18t('set_t_key_saved',{last4:key.slice(-4)})); refresh(); refreshAiIndicators();
@@ -3727,6 +3733,7 @@ function stWireEngine(){
   document.getElementById('ai-key-save')?.addEventListener('click',async()=>{
     const key=document.getElementById('ai-key').value.trim();
     if(!key){ stDrawerRefuse(i18t('set_enter_key')); return; }
+    if(!aiKeyLooksRight(key)){ stDrawerRefuse(i18t('set_key_not_a_key')); return; }
     try{ await api('ai/config','PUT',{ key }); document.getElementById('ai-key').value='';
       stDrawerClearRefusal(); toast(i18t('set_key_saved'),'ok'); refreshAiCfg(); }
     catch(e){ stDrawerRefuse(e.message); }
@@ -4884,4 +4891,4 @@ Object.assign(window,{renderTeam,stRepaintPanel,renderMyAccountPage,briefCadence
   stSigningSectionHtml,stSigningRead,stPaintLadder,stReviewSectionHtml,stReviewRead,stSignFolderHtml,stSignFolderRead,
   stOverseerSectionHtml,stOverseerRead,
   settingsMarketFactsHtml,settingsPaintShapeBoxes,settingsHeightsBefore,settingsHoldHeights,
-  stKeyRemovable,stPaintKeyClear});
+  stKeyRemovable,stPaintKeyClear,aiKeyLooksRight});

@@ -10,7 +10,9 @@
    lands on the request's history (which the customer's tracking
    page renders — the board IS the transparency promise).
    ============================================================ */
-const esc = s => String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+/* Quotes too (the owner's list, 27 Sep 2026): this page writes names into
+   attributes, and a name holding a quote mark closed the attribute early. */
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 window.adviceDrag=null;
 
 function adviceCard(r){

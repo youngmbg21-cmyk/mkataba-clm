@@ -1125,6 +1125,13 @@ function negoIssuances(c){
   };
   for (const r of (c.negotiation.rounds || [])) for (const ch of (r.changes || [])) take(ch);
   for (const ch of c.changes) take(ch);
+  /* AND WHAT A DISCARD TOOK OFF THE TABLE (the owner's list, 27 Sep 2026).
+     A later filing chains onto the hash that was newest when it was filed, and
+     that can be a draft or a revision somebody then discarded — the chain then
+     pointed at a hash no longer on the record, and verification reported the
+     record as broken. A discard now keeps what it discarded here, out of
+     sight and never sent, so the chain stays whole. */
+  for (const d of (c.negotiation.discarded || [])) out.push({ ...d, revision: true });
   return out.sort((a, b) => (a.seq || 0) - (b.seq || 0));
 }
 /* ---------- verification ----------
@@ -1136,6 +1143,14 @@ function negoIssuances(c){
    Reports the FIRST broken link by name rather than a bare false, because
    "something in this history does not verify" is not an actionable statement
    about a legal document. */
+/* The one writer of negotiation.discarded: issuances a Discard took off the
+   table, kept for the fingerprint chain only (see negoIssuances). */
+function negoKeepDiscarded(c, id, list){
+  const n = c && c.negotiation; if (!n) return;
+  n.discarded = Array.isArray(n.discarded) ? n.discarded : [];
+  for (const r of (list || [])) if (r && r.hash) n.discarded.push({ ...r, id, discardedAt: (window.nowISO ? window.nowISO() : new Date().toISOString()) });
+}
+const negoDiscardedHashes = c => new Set(((c && c.negotiation && c.negotiation.discarded) || []).map(d => d && d.hash).filter(Boolean));
 async function verifyChangeChain(c){
   negoInit(c);
   const list = negoIssuances(c);
@@ -1177,8 +1192,8 @@ async function verifyChangeChain(c){
        and the verdict says so. Everything else still is: the record's own
        fingerprint is recomputed and matched exactly as before, and a broken
        link the omission does not account for still fails. */
-    const notCarried = !isRevision && Number(iss.revisionsOmitted || 0) > 0;
-    if (notCarried) omitted += Number(iss.revisionsOmitted);
+    const notCarried = (!isRevision && Number(iss.revisionsOmitted || 0) > 0) || !!iss.prevNotCarried;
+    if (notCarried) omitted += Math.max(1, Number(iss.revisionsOmitted || 0));
     else if ((iss.prevChangeHash || null) !== expectPrev)
       return { ok: false, checked: list.length, failedAt: iss.id || null, seq: iss.seq || null,
         reason: 'broken-link',
@@ -1608,8 +1623,15 @@ async function negoFileChange(c, draft, opts = {}){
       revisedBy: live.revisedBy || null, revisedAt: live.revisedAt || null });
     live.changeType = draft.changeType;
     live.oldText = oldText;
+    /* A REVISION IN WORDS ALONE DROPS THE OLD MARKUP (the owner's list, 27 Sep
+       2026). Where new words arrived with no formatted body, the old body was
+       kept beside them, so the record said one thing in its text and another
+       in its markup and the paper drew the stale one. The markup is kept only
+       where the words did not move. */
+    const wordsMoved = String(live.newText || '') !== String(newText || '');
     live.newText = newText;
-    live.bodyHtml = draft.bodyHtml != null ? draft.bodyHtml : live.bodyHtml;
+    if (draft.bodyHtml != null) live.bodyHtml = draft.bodyHtml;
+    else if (wordsMoved) delete live.bodyHtml;
     live.headingText = headingText != null ? headingText : live.headingText;
     live.ops = ops;
     /* Recomputed on every revision: a formatting-only ask revised into a
@@ -3095,6 +3117,7 @@ function negoRetractDraft(c, id, opts = {}){
   if (back){
     const dropped = ch.summary || ch.clauseLabel || ch.clauseId;
     const rev = back.rev;
+    const cutTop = { ...ch, revisions: undefined };
     for (const k of ['seq', 'hash', 'hashV', 'prevChangeHash', 'clauseId', 'changeType', 'oldText', 'newText',
       'author', 'createdAt', 'ops', 'bodyHtml', 'summary']) ch[k] = rev[k];
     if ('headingText' in rev) ch.headingText = rev.headingText;
@@ -3104,6 +3127,7 @@ function negoRetractDraft(c, id, opts = {}){
       else { delete ch.revisedBy; delete ch.revisedAt; }
     }
     ch.updatedAt = rev.createdAt;
+    negoKeepDiscarded(c, ch.id, ch.revisions.slice(back.i + 1).concat([cutTop]));
     ch.revisions = ch.revisions.slice(0, back.i);
     /* THE CHAIN HEAD FOLLOWS THE RECORD. The discarded revisions were the
        newest issuances; where nothing was issued after them, the head goes
@@ -3124,6 +3148,7 @@ function negoRetractDraft(c, id, opts = {}){
   const i = c.changes.findIndex(x => x && x.id === id);
   if (i < 0) return null;
   c.changes.splice(i, 1);
+  negoKeepDiscarded(c, ch.id, (Array.isArray(ch.revisions) ? ch.revisions : []).concat([{ ...ch, revisions: undefined }]));
   /* A retracted counter lets go of what it parked — the asks under it come
      back as they stood, exactly as a refusal would bring them back. */
   negoBundleFollow(c, ch, 'rejected');
@@ -5177,6 +5202,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoHeldBackIds, negoHoldOthers, negoReleaseHold,
   negoAdvanceRound, negoAllChanges, negoRevisionAt,
   negoChangeHtml, negoDiffHtml,
-  negoIntakePath, negoNormalizeDocument, negoRichFromLines, negoMigrate });
+  negoIntakePath, negoNormalizeDocument, negoRichFromLines, negoMigrate,
+  negoKeepDiscarded, negoDiscardedHashes });
 if (typeof module !== 'undefined' && module.exports) module.exports = {
   negoHashInput, negoShortHash };

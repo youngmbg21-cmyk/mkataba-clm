@@ -737,6 +737,19 @@ function refuseIfViewOnly(s, res){
    point of the link — the advisor is being asked what they think of the marked
    text. The people are not: an outside reader gets the argument, not the
    arguers. */
+/* What an adviser's link may carry: the contract's name and parties and the
+   clauses the sender chose — as the wording, and nothing else. */
+function advicePayload(payload){
+  const c = (payload && payload.contract) || {};
+  const body = String(c.adviseBody || '');
+  return { v: payload.v || 1, kind: 'hati-share', purpose: 'advise', purposeChosen: 'advise',
+    org: payload.org || null, sharedBy: payload.sharedBy || null, at: payload.at || null,
+    branding: payload.branding || c.branding || undefined,
+    contract: { id: c.id || null, contractNo: c.contractNo || undefined, name: c.name || null,
+      counterparty: c.counterparty || null, party: c.party || undefined,
+      adviseOn: Array.isArray(c.adviseOn) ? c.adviseOn.slice(0, 200) : undefined,
+      adviseBody: body, redlineText: body, format: 'rich', changes: [] } };
+}
 function viewerPayload(payload, s){
   const c = (payload && payload.contract) || {};
   const out = { kind: 'hati-share', purpose: 'view', viewOnly: true };
@@ -4823,7 +4836,9 @@ function forgetContractRecords(id){
     db.prepare('DELETE FROM share_otp WHERE token=?').run(t);
   }
   const r = db.prepare("UPDATE shares SET revoked_at=? WHERE contract_id=? AND revoked_at IS NULL").run(now(), id);
-  db.prepare("UPDATE shares SET payload='{}', response=NULL, message=NULL WHERE contract_id=?").run(id);
+  /* ...and who they went to (the owner's list, 27 Sep 2026): a deleted
+     contract's links kept each recipient's name, address and number on file. */
+  db.prepare("UPDATE shares SET payload='{}', response=NULL, message=NULL, recipient_name='', recipient_email='', recipient_phone='' WHERE contract_id=?").run(id);
   db.prepare('DELETE FROM share_messages WHERE contract_id=?').run(id);
   db.prepare('DELETE FROM signer_notices WHERE contract_id=?').run(id);
   db.prepare('DELETE FROM engagement WHERE contract_id=?').run(id);
@@ -5524,6 +5539,10 @@ app.put('/api/ai/config', auth, admin, (req, res) => {
     rateLight, rateDeep, rateOcr, dailyLimit, maxChars, docChars, maxContracts,
     dailySpendLimit, estimateConfirmAt, ocrMaxPages, thoroughExtract, renewalPrep, renewalPrepMax, rates } = req.body || {};
   if (clear) { setSetting('aiKey', ''); return res.json({ ok: true, configured: !!process.env.ANTHROPIC_API_KEY }); }
+  /* A key is one word starting "sk-ant-" (27 Sep 2026): a browser-filled
+     login password must never be stored as the Copilot key. */
+  if (typeof key === 'string' && key.trim() && !/^sk-ant-\S{4,}$/.test(key.trim()))
+    return res.status(400).json({ error: 'That does not look like a Copilot key. A key starts with “sk-ant-”.' });
   if (typeof key === 'string' && key.trim()) setSetting('aiKey', key.trim());
   // Validate every supplied model string before storing; a blank clears that
   // override, a malformed value is rejected with a clear message.
@@ -8629,7 +8648,7 @@ function copilotHistory(ctx, id) {
        whole and counted, never trimmed to a number-shaped hole. */
     if (ctx.money) return true;
     const t = String(e.detail || '') + ' ' + String(e.action || '');
-    if (/\b(value|amount|price|fee|worth|kes|usd|eur|gbp|sek|nok)\b/i.test(t)) { redacted++; return false; }
+    if (historyLineHasMoney(t)) { redacted++; return false; }
     return true;
   }).slice(0, COPILOT_HIST_CAP).map(e => ({ at: e.at || null, by: e.user || '', action: e.action || '', detail: clip(e.detail, 300) }));
   return { id: c.id, name: c.name || c.id, found: true, total: trail.length, shown: rows.length, omitted: Math.max(0, trail.length - redacted - rows.length), redacted, events: rows,
@@ -13015,6 +13034,19 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
       executed: contractExecution(s.contract_id),
       share: { recipientName: s.recipient_name || '', expiresAt: s.expires_at || null } });
   }
+  /* ---- AN ADVISER'S LINK LEAVES WITH THE CHOSEN CLAUSES AND NOTHING ELSE ----
+     (the owner's list, 27 Sep 2026.) The payload was served whole, so an
+     adviser asked about two clauses received every word of the agreement, its
+     value and its terms in the data behind their page. The browser now builds
+     an adviser's copy as an allow-list; this is the wall behind it, and it
+     also narrows every adviser link stored before that. */
+  if (shareIsAdvice(s)){
+    let ap = null; try { ap = advicePayload(JSON.parse(s.payload)); } catch (_) {}
+    if (!ap) return res.status(500).json({ error: 'This link’s copy could not be read' });
+    return res.json({ payload: ap, purpose: 'advise', durable: !!s.durable, lastResponse: null,
+      messages: s.contract_id ? contractMessages(s.contract_id, { adviserToken: s.token }) : [],
+      share: { recipientName: s.recipient_name || '', expiresAt: s.expires_at || null } });
+  }
   /* ---- AND A HISTORY LINK LEAVES HERE, WITH ITS OWN ----
      Beside the view link rather than after the negotiate payload, for the
      reason stated above it: the safety of a reduced copy comes from never
@@ -13471,6 +13503,10 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
      buildSharePayload infers from the change set: a round with nothing
      proposed infers 'sign', and a round send states nothing, so that case
      passes exactly as before. */
+  /* AN ADVISER'S COPY IS THE CLAUSES CHOSEN WHEN IT WAS SENT (27 Sep 2026):
+     a catch-up that states no purpose carried no clause list and emptied it. */
+  if (shareIsAdvice(s) && payload.purposeChosen !== 'advise')
+    return res.status(409).json({ error: 'An adviser’s link keeps the clauses it was sent with. Send a new adviser link to ask about new wording.', purpose: 'advise' });
   const stated = ['sign', 'negotiate', 'view', 'history', 'advise'].includes(payload.purposeChosen) ? payload.purposeChosen : null;
   if (stated && stated !== sharePurposeOf(s))
     return res.status(409).json({ error: `This link was made to ${sharePurposeOf(s)} and cannot carry a ${stated} copy. Send the ${stated} copy on its own link.`,
@@ -14266,7 +14302,12 @@ function srvObligationBlocked(full, o) {
   const p = (full.obligations || []).find(x => x && String(x.id) === id);
   return !!p && p.status !== 'done';
 }
-function obligationRecipient(assignee) {
+/* folder, when given: A REMINDER NEVER REACHES SOMEONE WHO CANNOT OPEN THE
+   CONTRACT'S VALUE STREAM (the owner's list, 27 Sep 2026). The mail names the
+   contract and the promise; a member out of scope answers null, exactly as a
+   name that matches nobody, and the admins' day-after mail takes it — the
+   rule the daily brief and the mention route already keep. */
+function obligationRecipient(assignee, folder) {
   const q = String(assignee || '').trim().toLowerCase();
   if (!q) return null;
   let u = null;
@@ -14274,6 +14315,7 @@ function obligationRecipient(assignee) {
     u = db.prepare('SELECT * FROM users WHERE LOWER(email)=?').get(q);
     if (!u) u = db.prepare('SELECT * FROM users WHERE LOWER(name)=?').get(q);
   } catch (_) { u = null; }
+  if (u && folder !== undefined && !inScope(folderScopeFor(u), folder)) return null;
   if (u && /.+@.+\..+/.test(String(u.email || '')))
     return { email: u.email, name: u.name || assignee, lang: u.lang || null };
   return null;
@@ -14495,7 +14537,13 @@ function runReminders() {
       if (srvObligationBlocked(full, o)) {
         if (od === 0) {
           const prev = (full.obligations || []).find(x => x && String(x.id) === String(o.after || ''));
-          const to = obligationRecipient((c.owner && c.owner.name) || '');
+          /* THE OWNER IS ON THE RECORD, NOT THE ROW (the owner's list, 27 Sep
+             2026): this read the database row, which carries no owner, so the
+             mail always fell to the admins. The stored id first, the name second. */
+          const ownerRec = full.owner || {};
+          let ownerRow = null;
+          try { if (ownerRec.id != null) ownerRow = db.prepare('SELECT email FROM users WHERE id=?').get(ownerRec.id); } catch (_) {}
+          const to = obligationRecipient((ownerRow && ownerRow.email) || ownerRec.name || '', c.folder || null);
           const vars = { desc: o.desc, name: c.name, id: contractRef(full.id ? full : c), due, step: (prev && prev.desc) || '' };
           const link = contractUrl(null, c.id);
           const held = a => {
@@ -14509,7 +14557,7 @@ function runReminders() {
         }
         return;
       }
-      const who = obligationRecipient(o.assignee);
+      const who = obligationRecipient(o.assignee, c.folder || null);
       if (who) {
         const link = contractUrl(null, c.id);
         const oMail = key => a => {
@@ -14742,7 +14790,19 @@ const RENEWAL_PREP_DAYS = 90;   // the desk's own window — RENEWAL_WINDOW_DAYS
 const RENEWAL_PREP_MAX = 20;    // one night's ceiling, before the money ceiling
 const renewalPrepOn = () => getSetting('aiRenewalPrep') !== false;   // absent = on
 const renewalPrepMax = () => intSetting('aiRenewalPrepMax', 'AI_RENEWAL_PREP_MAX', RENEWAL_PREP_MAX);
-async function runRenewalPrep() {
+/* ONE NIGHTLY ALLOWANCE FOR BOTH OVERNIGHT JOBS (the owner's list, 27 Sep
+   2026). The renewal notes and the standards reviews each read the limit and
+   each counted only their own calls, so one night could spend twice the
+   setting. The sweep now hands both jobs ONE allowance ({ left }); a job run
+   by hand from Settings gets its own. prepTake(budget) answers whether a call
+   may be made and counts it. */
+const prepBudget = () => ({ left: renewalPrepMax() });
+function prepTake(budget) {
+  if (!budget) return true;
+  if (budget.left <= 0) return false;
+  budget.left--; return true;
+}
+async function runRenewalPrep(budget) {
   const out = { looked: 0, prepared: 0, skipped: {} };
   if (!renewalPrepOn()) return { ...out, off: true };
   const key = aiKey();
@@ -14785,6 +14845,7 @@ async function runRenewalPrep() {
     if (db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(rkey)) { bump('done'); continue; }
     const ceiling = aiDailySpendLimit();
     if (ceiling > 0 && aiSpendToday().cost >= ceiling) { out.ceiling = true; break; }
+    if (!prepTake(budget)) { out.cap = true; out.shared = true; break; }
     const kids = rows.filter(r => r.id === c.id || r.parent_id === c.id);
     const signals = renewalSignalsOf(c.id, full, kids, parsed);
     try {
@@ -14841,7 +14902,7 @@ app.post('/api/renewal-prep/run', auth, admin, async (req, res) => res.json(awai
    the ordinary record fields through the row's json — c.playbook and one
    'Playbook' audit line, which is what the review panel reads for "when" —
    and never on an executed record, which is not a candidate anyway. */
-async function runPlaybookPrep() {
+async function runPlaybookPrep(budget) {
   const out = { looked: 0, prepared: 0, skipped: {} };
   if (!renewalPrepOn()) return { ...out, off: true };
   const key = aiKey();
@@ -14867,6 +14928,7 @@ async function runPlaybookPrep() {
     if (!resolved) { bump('noPlaybook'); continue; }
     const ceiling = aiDailySpendLimit();
     if (ceiling > 0 && aiSpendToday().cost >= ceiling) { out.ceiling = true; break; }
+    if (!prepTake(budget)) { out.cap = true; out.shared = true; break; }
     try {
       const res = await aiPlaybookVerdicts(key, { text: aiDocText(null, wording), playbook: resolved, kind: copilotContractKind(c) },
         { feature: 'playbook', who: { id: String(owner.id), name: owner.name || String(owner.id) } });
@@ -14967,7 +15029,8 @@ function reminderSweep() {
      waits on Copilot), so it is started and left to finish: a renewal memo must
      never delay a renewal reminder. Its dedupe rows make a second run on the
      same day a no-op, so the 12-hour beat costs nothing. */
-  Promise.resolve().then(runRenewalPrep).catch(e => {
+  const nightly = prepBudget();   // ONE allowance for both jobs below
+  Promise.resolve().then(() => runRenewalPrep(nightly)).catch(e => {
     const msg = (e && e.message) || String(e);
     console.warn('[renewal-prep] sweep failed, no renewal notes were prepared this cycle:', msg);
     try {
@@ -14981,7 +15044,7 @@ function reminderSweep() {
      catch and its own note — the fourth application of the M-6 lesson. Async
      like the renewal prep, started and left to finish; its dedupe is the
      record itself, so a second run on the same day costs nothing. */
-  Promise.resolve().then(runPlaybookPrep).catch(e => {
+  Promise.resolve().then(() => runPlaybookPrep(nightly)).catch(e => {
     const msg = (e && e.message) || String(e);
     console.warn('[playbook-prep] sweep failed, no standards reviews were prepared this cycle:', msg);
     try {
@@ -15568,7 +15631,7 @@ function tplBlockRow(bl) {
    block reads byte-for-byte as it always did. */
 const tplBlockOut = bl => ({ id: bl.id, orderIndex: bl.order_index, blockType: bl.block_type, content: bl.content || '',
   ...(bl.format === 'rich' ? { format: 'rich' } : {}) });
-const { metaUnleak } = require(path.join(__dirname, '..', 'js', 'metaclean.js'));
+const { metaUnleak, historyLineHasMoney } = require(path.join(__dirname, '..', 'js', 'metaclean.js'));
 /* The design catalogue — the same file the browser renders from, so a
    designId this route accepts is a designId every surface can draw. */
 const { DOC_DESIGNS, DESIGN_LOGO_POSITIONS, normalizeDesignBranding,

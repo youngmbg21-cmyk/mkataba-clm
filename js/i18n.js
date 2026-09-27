@@ -5447,6 +5447,7 @@ const STRINGS = {
     set_pick_one_stream: 'Pick at least one stream, or choose All streams',
     set_could_not_save_access: 'Could not save access: ',
     set_enter_key: 'Enter a key to save',
+    set_key_not_a_key: 'That does not look like a Copilot key. A key starts with “sk-ant-”.',
     set_key_saved: 'Copilot engine key saved',
     set_model_saved: 'Model settings saved',
     set_key_removed: 'Copilot key removed',
@@ -5481,6 +5482,7 @@ const STRINGS = {
        own hash — were the two that said nothing at all, and the button read
        as dead on exactly the contracts it was pressed on most. */
     co_seal_valid_file: 'Seal valid — file and parties are intact',
+    co_seal_valid_paper: 'Seal valid — the signed paper copy is the one that was filed',
     co_seal_valid_text: 'Seal valid — sealed text, parties and value are intact',
     co_seal_migrated: "Migrated contract — executed outside HaTi. The uploaded file's own SHA-256 ({h}…) is the evidence of record",
     co_sample_presealed: 'Sample contract — sealed before evidence hashing existed',
@@ -14638,6 +14640,7 @@ const STRINGS = {
     set_pick_one_stream: 'Välj minst ett värdeflöde, eller välj Alla värdeflöden',
     set_could_not_save_access: 'Kunde inte spara åtkomst: ',
     set_enter_key: 'Ange en nyckel att spara',
+    set_key_not_a_key: 'Det ser inte ut som en Copilot-nyckel. En nyckel börjar med ”sk-ant-”.',
     set_key_saved: 'Copilot-motorns nyckel sparad',
     set_model_saved: 'Modellinställningarna sparade',
     set_key_removed: 'Copilot-nyckeln borttagen',
@@ -14666,6 +14669,7 @@ const STRINGS = {
     co_enter_work_email: 'Ange en giltig jobbe-postadress — den är din inloggning och din väg att återställa lösenordet',
     co_not_sealed: 'Dokumentet är inte förseglat ännu',
     co_seal_valid_file: 'Förseglingen är giltig — filen och parterna är oförändrade',
+    co_seal_valid_paper: 'Förseglingen är giltig — den undertecknade papperskopian är den som arkiverades',
     co_seal_valid_text: 'Förseglingen är giltig — den förseglade texten, parterna och värdet är oförändrade',
     co_seal_migrated: 'Migrerat avtal — undertecknat utanför HaTi. Den uppladdade filens egen SHA-256 ({h}…) är beviset i registret',
     co_sample_presealed: 'Exempelavtal — förseglat innan bevishashning fanns',
