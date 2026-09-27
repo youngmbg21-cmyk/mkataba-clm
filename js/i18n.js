@@ -1707,7 +1707,7 @@ const STRINGS = {
     ov_r_scan: 'Risk scan',
     ov_r_open_n_one: '{n} still open',
     ov_r_open_n_other: '{n} still open',
-    ov_r_plain: 'Plain English',
+    ov_r_plain: 'Plain View',
     ov_r_ready: 'Ready',
     ov_r_none: 'Not read yet',
     ov_r_open: 'Open',
@@ -1890,7 +1890,7 @@ const STRINGS = {
     ct_checks: 'Checks',
     /* ---- THE PLAIN-ENGLISH LAYER (idea 7) ---- */
     ct_read_contract: 'Contract View',
-    ct_read_plain: 'Plain English',
+    ct_read_plain: 'Plain View',
     ct_read_plain_title: 'A short plain-English reading of each clause, beside the wording it explains',
     ct_read_watch_pb: 'Your playbook disagrees with this clause ({what}). Open the standards check to see how.',
     ct_read_watch_scan: 'The risk scan raised a finding on this clause that is still open.',
@@ -8483,7 +8483,7 @@ const STRINGS = {
        fact the whole picture rests on and the one a reader cannot work out by
        looking. Where it is SET rides the hover: Team & settings owns it. */
     /* ---- X-RAY, the switch's third position (22 Sep 2026) ---- */
-    xr_switch: 'X-ray',
+    xr_switch: 'Risk View',
     xr_switch_title: 'The document as a map, and everything known about the clause you are looking at',
     xr_spine_label: 'Map of the document',
     xr_unnamed: 'This clause',
@@ -8496,7 +8496,7 @@ const STRINGS = {
        this contract (Young's ruling). Inert in both books. */
     xr_sec_wide: 'About this contract',
     xr_sec_argued: 'What has been argued',
-    xr_plain_none: 'No reading of this clause yet. Press Plain English to have one made.',
+    xr_plain_none: 'No reading of this clause yet. Press Plain View to have one made.',
     /* NOT "nothing to worry about". Silence here means nothing on the record
        mentions this clause, and a reader must not take that for approval. */
     xr_look_none: 'Nothing on the record mentions this clause. That is not the same as safe.',
@@ -11392,7 +11392,7 @@ const STRINGS = {
     ov_r_scan: 'Riskgenomsökning',
     ov_r_open_n_one: '{n} kvar att lösa',
     ov_r_open_n_other: '{n} kvar att lösa',
-    ov_r_plain: 'Klarspråk',
+    ov_r_plain: 'Enkel vy',
     ov_r_ready: 'Klar',
     ov_r_none: 'Inte läst än',
     ov_r_open: 'Öppna',
@@ -11565,7 +11565,7 @@ const STRINGS = {
     ct_checks: 'Kontroller',
     /* ---- KLARSPRÅKSLAGRET (idé 7) ---- */
     ct_read_contract: 'Avtalsvy',
-    ct_read_plain: 'Klarspråk',
+    ct_read_plain: 'Enkel vy',
     ct_read_plain_title: 'En kort förklaring av varje klausul på vanlig svenska, bredvid texten den gäller',
     ct_read_watch_pb: 'Er förhandlingsguide avviker från den här klausulen ({what}). Öppna standardkontrollen för att se hur.',
     ct_read_watch_scan: 'Riskgenomgången tog upp något i den här klausulen som fortfarande är öppet.',
@@ -17516,7 +17516,7 @@ const STRINGS = {
     home_dd_items_one: '{n} ärende',
     home_dd_items_other: '{n} ärenden',
     home_dd_sorted: 'sorterat efter vad som stänger först',
-    xr_switch: 'Röntgen',
+    xr_switch: 'Riskvy',
     xr_switch_title: 'Dokumentet som en karta, och allt som är känt om klausulen du tittar på',
     xr_spine_label: 'Karta över dokumentet',
     xr_unnamed: 'Den här klausulen',
@@ -17527,7 +17527,7 @@ const STRINGS = {
     xr_sec_look: 'Värt att titta på',
     xr_sec_wide: 'Om det här avtalet',
     xr_sec_argued: 'Vad som har förhandlats',
-    xr_plain_none: 'Ingen läsning av den här klausulen än. Tryck på Vanlig svenska för att få en.',
+    xr_plain_none: 'Ingen läsning av den här klausulen än. Tryck på Enkel vy för att få en.',
     xr_look_none: 'Inget i underlaget nämner den här klausulen. Det är inte samma sak som att den är ofarlig.',
     xr_m_brief: 'Sammanfattning',
     xr_m_odd: 'Ovanligt',
