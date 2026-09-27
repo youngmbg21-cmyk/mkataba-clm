@@ -31,8 +31,8 @@ Most important first. This order is a first draft; change it any time by telling
 6. ✅ **Upload a contract the other side sent → Copilot reads it**
    We upload a supply agreement they sent. The first screen shows what Copilot read out of it; once filed, HaTi reads the whole contract (a brief, a check against Our standards, the promises it makes) and we add those promises to its obligations. Carries one known problem (see the report).
 
-7. ⬜ **Company standard template**
-   Build it, publish it, and draft a contract from it.
+7. ✅ **Company standard template**
+   We paste our own consulting agreement into the template builder, make its three fill-in places blanks, file it and publish it; then draft a contract from it and fill its blanks. Carries one known problem (see the report).
 
 8. ⬜ **Add a colleague and control which contracts they can see**
 
