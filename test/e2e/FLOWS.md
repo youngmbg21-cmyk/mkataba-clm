@@ -40,5 +40,5 @@ Most important first. This order is a first draft; change it any time by telling
 9. ✅ **Obligations**
    We record one of our promises and mark it done, record one of theirs and chase them (the reminder reaches their address), and the Obligations page shows what is still owed.
 
-10. ⬜ **Requests**
-    Someone asks for a contract; legal accepts it and drafts it.
+10. ✅ **Requests**
+    A colleague who cannot draft asks for a contract; legal picks it up and drafts it from the right template, and the colleague is emailed and sees which contract it became.

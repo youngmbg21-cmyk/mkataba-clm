@@ -64,6 +64,17 @@ function copilotAnswer(tool, prompt) {
       if (pays) found.push({ desc: 'Pay each invoice on time', due: '', recurring: 'none', quote: pays[0].trim().slice(0, 190) });
       return { obligations: found };
     }
+    case 'recommend_template': {
+      /* Which template fits a request: the one whose name the request uses
+         ("NDA" reads as a non-disclosure agreement), else the first offered. */
+      let cands = [];
+      try { cands = JSON.parse(prompt.split('(JSON):\n')[1].split('\n\nJudge fit')[0]); } catch (_) {}
+      const asked = (prompt.match(/User request: "([\s\S]*?)"\n/) || ['', ''])[1];
+      const wantsNda = /\bNDA\b|non-disclosure|confidential/i.test(asked);
+      const pick = cands.find(c => wantsNda && /non-disclosure/i.test(c.name || '')) || cands[0];
+      return pick ? { ranked: [{ id: pick.id, reason: 'It fits what was asked for.' }],
+        answer: 'Use the ' + pick.name + ': it fits what was asked for.' } : { ranked: [], answer: '' };
+    }
     case 'deliver_answer':
       return { answer: 'stubbed answer', citations: [] };
     default:

@@ -226,6 +226,19 @@ describe('f395 (3) the report: a headline, the steps, where it stopped', () => {
     assert.match(printed, /\*\*What happened instead:\*\* The screen showed: "Signing order 0 of 2 signed"/);
     assert.doesNotMatch(printed, /SOMETHING IS BROKEN|did not run|✗|\[known problem\]/, 'nothing reads as a new break, and the mark itself is never shown');
   });
+  test('two known problems in one journey are listed one per line, each with where it showed', () => {
+    const MSG2 = 'Error: [known problem] Copilot suggests the NDA\n\nexpect(locator).toHaveText(expected) failed\n\n'
+      + 'Locator: locator(\'#ik-tpl\')\nExpected: "NDA"\nReceived: "Raw Material Supply Agreement"\nTimeout: 2000ms\n';
+    const j = known();
+    j.result.steps.push(step('5. Draft it', [{ category: 'expect', title: '[known problem] Copilot suggests the NDA', steps: [], error: { message: MSG2 } }], { message: MSG2 }));
+    j.result.errors.push({ message: MSG2 });
+    j.test.annotations.push({ type: 'known problem', description: 'Copilot suggests the wrong template.' });
+    const { printed } = fakeRun({ status: 'failed', tests: [j] });
+    assert.match(printed, /\*\*Known problems, still there:\*\*\n- Opening HaTi from the email shows an older copy until reloaded\.\n- Copilot suggests the wrong template\./);
+    assert.match(printed, /\*\*Where:\*\* 3\. Amina settles › Open the link in her email; and 5\. Draft it/);
+    assert.match(printed, /\*\*What happened instead:\*\* The screen showed: "Raw Material Supply Agreement"/);
+    assert.match(printed, /The journey worked round them the way a person would, and everything after them worked\./);
+  });
   test('a check that waited and then passed is not drawn as a failure', () => {
     const tries = [{ category: 'expect', title: 'try', steps: [], error: { message: 'Error: not yet' } }];
     const { printed } = fakeRun({ tests: [journey('Waits', 'expected', {

@@ -404,18 +404,31 @@ class PlainEnglishReporter {
     const watched = (test.annotations || []).filter(a => a.type === 'known problem' && a.description);
     const knownErrs = (r.errors || []).filter(isKnown);
     if (knownErrs.length) {
-      const kp = failedPath(tree, false);
+      /* Every place a known problem showed, deepest step first in each branch. */
+      const paths = [];
+      const walk = (steps, trail) => { for (const s of steps) {
+        if (!s.known) continue;
+        const below = (s.kids || []).filter(k => k.known);
+        if (below.length) walk(s.kids, trail.concat(s)); else paths.push(trail.concat(s));
+      } };
+      walk(tree, []);
+      const many = watched.length > 1 || knownErrs.length > 1;
       out.push('');
-      out.push('**A known problem, still there:** ' + (watched.length ? watched.map(a => a.description).join(' ')
+      if (!many) out.push('**A known problem, still there:** ' + (watched.length ? watched[0].description
         : 'see what should have happened, below.'));
-      if (kp.length) out.push('**Where:** ' + kp.map(s => s.title).join(' › '));
+      else {
+        out.push('**Known problems, still there:**');
+        for (const a of watched) out.push('- ' + a.description);
+      }
+      if (paths.length) out.push('**Where:** ' + paths.map(p => p.map(s => s.title).join(' › ')).join('; and '));
       for (const e of knownErrs) {
-        const k = explain(e, deepestFailure(r.steps, false));
+        const k = explain(e, knownErrs.length === 1 ? deepestFailure(r.steps, false) : null);
         if (k.should) out.push('**What should have happened:** ' + k.should);
         out.push('**What happened instead:** ' + (k.instead || 'see the technical detail below'));
       }
       if (v === 'known') {
-        out.push('The journey worked round it the way a person would, and everything after it worked.');
+        out.push('The journey worked round ' + (many ? 'them' : 'it') + ' the way a person would, and everything after '
+          + (many ? 'them' : 'it') + ' worked.');
         out.push('');
         out.push('Technical detail (for whoever fixes it):');
         out.push('```');
