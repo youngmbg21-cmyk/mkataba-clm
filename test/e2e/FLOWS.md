@@ -37,8 +37,8 @@ Most important first. This order is a first draft; change it any time by telling
 8. ✅ **Add a colleague and control which contracts they can see**
    We file two contracts in two value streams and add a colleague who may see only one. She sees that contract and nothing else, and a link to the other does not open it; when we widen her access, both are there.
 
-9. ⬜ **Obligations**
-   Add one, mark it done, and chase the other side.
+9. ✅ **Obligations**
+   We record one of our promises and mark it done, record one of theirs and chase them (the reminder reaches their address), and the Obligations page shows what is still owed.
 
 10. ⬜ **Requests**
     Someone asks for a contract; legal accepts it and drafts it.
