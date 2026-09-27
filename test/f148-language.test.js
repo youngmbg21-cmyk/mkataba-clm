@@ -35,6 +35,9 @@ const { STRINGS, I18N_DEFAULT, LANGUAGES } = i18n;
 /* Words that are legitimately identical in both languages, so an equal-to-
    English value is a real translation rather than a forgotten one. */
 const SAME_IN_BOTH = new Set([
+  /* The Brain (27 Sep 2026): "Zoom", "Copilot", "Hippocampus" and "Webhooks"
+     are the same word in Swedish. */
+  'brn_zoom_label', 'brn_r_ai', 'brn_rb_wall', 'brn_p_webhook',
   /* "Import" is the same word in Swedish — the kind on an Archive import
      card on the Copilot's work page (27 Sep 2026). */
   'ag_k_import',

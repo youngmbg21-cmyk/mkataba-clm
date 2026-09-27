@@ -5170,6 +5170,71 @@ const aiNotice = (req, out) => {
   return parts.length ? { notice: parts.join(' ') } : {};
 };
 
+/* ---- THE BRAIN READS THE CODE (Young ruled 27 Sep 2026: "for every code
+   update it should update brain automatically") ----
+   The Brain page's parts, links and "recent code updates" are READ from these
+   files, never drawn by hand. The reading is made on the FIRST request after
+   the server starts — which is every deploy, so every code update — and kept
+   for the life of the process (it takes under a second over js/ and server/).
+   Each reading is fingerprinted (brainKey); where the fingerprint moved since
+   the last one kept, the difference (brainDiff) is stored as a code update in
+   the `store` table, newest first, BRAIN_KEEP of them. The first reading on a
+   server is a baseline: nothing is called new. No contract data is touched;
+   the route answers only about the code, to a signed-in member. */
+const BRAIN = require('../js/brainmap.js');
+const BRAIN_KEEP = 12;
+let _brainNow = null;
+function brainGitInfo(){
+  try {
+    const out = require('child_process').execFileSync('git', ['log', '-1', '--format=%h%x09%cI%x09%s'],
+      { cwd: path.join(__dirname, '..'), timeout: 3000, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+    const [commit, committedAt, ...subject] = out.split('\t');
+    return commit ? { commit, committedAt: committedAt || '', subject: subject.join('\t').slice(0, 200) } : null;
+  } catch (_) { return null; }   // a deploy without git history still reads the code; it just cannot name the commit
+}
+function brainCodeFiles(){
+  const root = path.join(__dirname, '..');
+  const out = {};
+  const walk = rel => {
+    for (const e of fs.readdirSync(path.join(root, rel), { withFileTypes: true })){
+      const r = rel + '/' + e.name;
+      if (e.isDirectory()) walk(r);
+      else if (e.name.endsWith('.js')) out[r] = fs.readFileSync(path.join(root, r), 'utf8');
+    }
+  };
+  walk('js'); walk('server');
+  return out;
+}
+function brainNow(){
+  if (_brainNow) return _brainNow;
+  const map = BRAIN.brainRead(brainCodeFiles());
+  const key = BRAIN.brainKey(map);
+  let builds = getStore('brain.builds') || [];
+  if (!builds.length || builds[0].key !== key){
+    const last = getStore('brain.lastMap');
+    const diff = BRAIN.brainDiff(last && last.map ? last.map : null, map);
+    const git = brainGitInfo();
+    builds = [{
+      key, at: new Date().toISOString(),
+      commit: git ? git.commit : '', subject: git ? git.subject : '', committedAt: git ? git.committedAt : '',
+      parts: Object.values(map.parts).filter(p => p.found).length, edges: map.edges.length, published: map.published.length, diff
+    }, ...builds].slice(0, BRAIN_KEEP);
+    setStore('brain.builds', builds);
+    setStore('brain.lastMap', { key, map: { parts: map.parts, edges: map.edges, published: map.published } });
+  }
+  _brainNow = { map, builds };
+  return _brainNow;
+}
+app.get('/api/brain', auth, (req, res) => {
+  try {
+    const { map, builds } = brainNow();
+    res.json({ parts: map.parts, edges: map.edges, published: map.published.length, flowGaps: map.flowGaps, builds });
+  } catch (e) {
+    console.error('[brain] reading the code failed:', e && e.message);
+    res.status(500).json({ error: 'HaTi could not read its own code just now.' });
+  }
+});
+
 app.get('/api/ai/config', auth, (req, res) => {
   const k = aiKey();
   res.json({

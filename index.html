@@ -187,6 +187,7 @@
        this one. -->
   <symbol id="i-grid" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25"><rect x="2.3" y="2.3" width="4.7" height="4.7"/><rect x="9" y="2.3" width="4.7" height="4.7"/><rect x="2.3" y="9" width="4.7" height="4.7"/><rect x="9" y="9" width="4.7" height="4.7"/></symbol>
   <symbol id="i-file" viewBox="0 0 16 16"><path d="M3.6 2.4h6l2.8 2.8v8.4H3.6V2.4Z" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M9.4 2.6v2.8h2.8" fill="none" stroke="currentColor" stroke-width="1.3"/></symbol>
+  <symbol id="i-brain" viewBox="0 0 16 16"><path d="M8 3.2c-.6-1-2.4-1.2-3.3-.2-.9-.1-1.9.7-1.8 1.8-1 .4-1.4 1.6-.9 2.5-.6.8-.4 2 .5 2.5 0 1.1 1 1.9 2 1.7.5 1 1.9 1.4 2.9.8.4-.2.6-.6.6-1V3.2Zm0 0c.6-1 2.4-1.2 3.3-.2.9-.1 1.9.7 1.8 1.8 1 .4 1.4 1.6.9 2.5.6.8.4 2-.5 2.5 0 1.1-1 1.9-2 1.7-.5 1-1.9 1.4-2.9.8" fill="none" stroke="currentColor" stroke-linejoin="round"/><path d="M5.2 6.2h1.4l.8 1.4M10.8 6.2H9.4l-.8 1.4M5.4 9.2 6.8 8.6M10.6 9.2 9.2 8.6" fill="none" stroke="currentColor" stroke-linecap="round"/></symbol>
   <symbol id="i-home" viewBox="0 0 16 16"><path d="M2.4 7.4 8 2.8l5.6 4.6v6H2.4v-6Z" fill="none" stroke="currentColor" stroke-linejoin="round"/></symbol>
   <symbol id="i-folder" viewBox="0 0 16 16"><path d="M3.8 2.2h5.4l3 3v8.6H3.8V2.2Z" fill="none" stroke="currentColor" stroke-linejoin="round"/><path d="M9.2 2.4v3h3" fill="none" stroke="currentColor"/></symbol>
   <symbol id="i-nego" viewBox="0 0 16 16"><path d="M2.6 5.4h9.8M10 3.2l2.4 2.2L10 7.6M13.4 10.6H3.6M6 8.4 3.6 10.6 6 12.8" fill="none" stroke="currentColor" stroke-linejoin="round"/></symbol>
@@ -9663,6 +9664,16 @@
       <div class="nav-section open" data-section="work">
         <div class="nav-section-head static" data-i18n="nav_grp_work">Work</div>
         <div class="nav-section-body">
+          <!-- THE BRAIN (Young ruled 27 Sep 2026: "Put it as a page before
+               home"). HaTi drawn as a network of neurons, its parts and links
+               read from the code itself (js/views/brain.js, js/brainmap.js,
+               GET /api/brain). A door with no count: it is a picture of the
+               platform, not work owed. Home stays the page HaTi opens on. -->
+          <button data-view="brain" class="nav-item" title="HaTi Brain — how the platform works, read from its own code" data-i18n-title="nav_brain_title">
+            <span class="nav-rail"></span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-brain"/></svg>
+            <span style="flex:1;" data-i18n="nav_brain">Brain</span>
+          </button>
           <button data-view="dashboard" class="nav-item active" title="Home" data-i18n-title="nav_home_title">
             <span class="nav-rail"></span>
             <!-- A HOUSE, AND AT THE SAME 16px AS ITS NEIGHBOURS (22 Aug 2026).
