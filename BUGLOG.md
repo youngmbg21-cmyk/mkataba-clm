@@ -19554,3 +19554,15 @@ Deliberately left alone (said to the owner)
 Noticed, not fixed
 - signCheckBriefAt reads `ch.at || ch.filedAt`, but filed changes carry `createdAt`, so it finds no date on any real change: the brief's "out of date" answer (and the new accepted-wording row's staleness) can never trip on real data. Fixing it would start holding signatures under the brief gate after every round — the owner's call.
 - seven-fixes-verify 5b/5c/5f/6e/6f still assert the strip as it stood on 20 Sep (two arrows, the obligations tile always going to the tab, a count-free "none" tile); later rulings changed all three. Red at ce9cc59 too.
+
+## Run 27 Sep 2026 (morning) — the wording's last-changed date
+
+- On the owner's word: "yes, fix the wording date and merge to main" — the "Noticed, not fixed" line from the four go-aheads run. Built on claude/platform-bugs-cleanup-u80mhu, on top of main (4f95c09).
+- Fixed: the reading of "when was wording last proposed on this contract" looked for dates called `at` and `filedAt`, and a filed change carries neither — it carries `createdAt` (and `updatedAt`, which a revision moves). So it found no date on any real contract. It now reads the two dates a change really carries, and keeps the old two for any record shaped that way.
+- What now works that never did: the brief reads as out of date once a round moves the wording, and the Before-you-sign list asks for it to be rewritten; a signer's "I have read the brief" lapses when the wording moves after it; the Overview's "out of date" markers can draw; the green "they agreed to the wording" bell row stands down if the wording moves after their yes. Accepted by the owner in advance: under the brief gate, a signature now waits for a fresh brief after a round.
+- Tests: f396 (5) — four claims that file their change through the product's one funnel (so the change carries the date the product really stamps); all four red at 4f95c09. Every older test of this reading staged `at`, the shape the product never produces, which is how it passed for a fortnight.
+- Gates: lint 0 errors, 178 warnings (unchanged). f396 29/29. In real browsers: signing-flow-verify 45/45, approval-before-signing-verify 34/34, redline-here-sign-there-verify 37/37, signing-without-the-facts-verify 26/26, inspector-checklist-verify 33/33, go-aheads-verify 21/21, auto-triage-verify 64/64, overview-as-drawn-verify 65/65, counterparty-leads-verify 32/32, thirteen-screenshots-verify 20/20, insights-panels-verify 84/84.
+- Full suite: 9,621 tests, 9,619 pass; the 2 that fail are f277 (1) and (10), red on main before this session (logged 26 Sep) and left red.
+
+Noticed, not fixed
+- A change the other side REFUSED still moves this date (the reading counts every filed change, refused or not). It can offer a brief rewrite nobody needed; it never hides one that was needed. Left as it was designed.
