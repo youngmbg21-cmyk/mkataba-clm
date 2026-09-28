@@ -365,7 +365,7 @@ Tests: f207-D, f245 (26), clause-editor-verify 32–35, clause-door-verify.
 ## EDIT WITH COPILOT — THE CLAUSE EDITOR (js/views/clauseeditor.js)
 
 - A full-window page (z-index 38, below drawers; `clauseEditorFits` ≥1024; covers the page not the shell). The middle is the product's own canvas (`redlineDocHtml` with `opts.live`); the rail runs floor to ceiling with Copilot in a third. It FILES THROUGH `negoEditClause` AND NOTHING ELSE (f245 greps). Filing never closes the page; every door out of a draft asks (`ceLeaveGuard`, `clauseEditorLeaveAsk`).
-- `ceTypingRefusal()` is the one reading of "may this clause be typed in now". `ceRemovesWording(ch)` — a proposed deletion cannot be typed over. Save is one press; a note is offered after filing. `ceFiled(c)` repaints both screens. Done is the SAVE SYMBOL (`icon:'save'`, `rl-cp-pill-save`, hidden until `ce-typed`), Ctrl/⌘+S and a tick (`ceSaveFromSymbol`); `ce_pencil_done` inert.
+- `ceTypingRefusal()` is the one reading of "may this clause be typed in now". `ceRemovesWording(ch)` — a proposed deletion cannot be typed over. Save is one press; a note is offered after filing. `ceFiled(c)` repaints both screens. Done is the SAVE SYMBOL (`icon:'save'`, `rl-cp-pill-save`, hidden until `ce-typed`), Ctrl/⌘+S and a tick (`ceSaveFromSymbol`); `ce_pencil_done` inert. The foot's Save/Discard ask the box AS TYPED (`ceBoxNow` → `ceCanFile(d)`), repainted on input.
 - The rail: one scope card (`ceRenderScope`: whole clause · your words · a question · whole contract); verbs Ask (`'ask'`, no Apply) / Edit (`'edit'`, Apply into the box); Apply is the only thing that moves wording. `ceScanGroups` splits here (edit) from missing (add through `rlFilePlaybookProposal`); `ceCostLine` states what a press takes; the rail names its clause without growing the row. Tabs Suggestions · Ladder · Figure · Playbook scan; `ceLadderCardHtml` is worked out, never asked for.
 - The writing bar: `richBarHtml`, `RICH_BAR_TOOLS`; shape tools write CHARACTERS (`redlineSplitMarker`); colour door is a fixed class list (`RICH_MARK_CLASSES`; green and red not on it).
 - The front matter is a region (`CLAUSE_FRONT_ID='front'`); a clause's heading is part of the clause (`opts.headingText`, `negoHeadingAsk`, v5 fingerprint).
@@ -386,7 +386,7 @@ Tests: f248, f264, f266, f302–f304, f309, round-two-comments-verify, notes-two
 
 ## THE SPELL CHECK (js/spell.js)
 
-Both seats, no route: `spellSuspects` reads NEW words only (null = not checked); contract words, names, `SPELL_LEGAL` pass; non-English stands down. `vendor/en-words-1.txt` on first Save. Doors `ceSaveChecked`, `fileChecked`; nothing moves without a press. Tests: f422, their-side-verify.
+Both seats, no route: `spellSuspects` reads NEW words only (null = not checked); contract words (incl. a template contract's `negotiation.baselineText`, `spellContractText`), names, `SPELL_LEGAL` pass — but a capitalised slip of a term the contract capitalises is checked (`spellTermSlip`); non-English stands down. `vendor/en-words-1.txt` on first Save. Doors `ceSaveChecked`, `fileChecked`; nothing moves without a press. Tests: f422, f427, their-side-verify, their-edit-page-verify.
 
 ## THE SEND SCREEN
 

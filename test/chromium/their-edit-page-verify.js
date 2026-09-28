@@ -16,7 +16,9 @@
      4  a column press with unfiled typing asks "Leave this clause?"; leaving
         drops only the unfiled words and the press goes through;
      5  Exit gives their header back;
-     6  OUR seat: the same symbol, Ctrl+S and tick.
+     6  OUR seat: the same symbol, Ctrl+S and tick;
+     and, on both seats, Save and Discard are live while the caret is still in
+     the words (3a2, 6a2), and a misspelt defined term is caught (6e).
 
    Every driven half is GUARDED: a missing control reports FAIL rather than
    sitting out a long wait. Waits ask for the state, bounded. */
@@ -78,6 +80,15 @@ const clickInto = async (page, re) => {
   await page.keyboard.press('End');
   return true;
 };
+/* The foot's two buttons, read while the caret is still in the box — no
+   blur, no press: exactly what the reader sees mid-sentence. */
+const footNow = page => page.evaluate(() => {
+  const save = document.querySelector('#clause-editor [data-ce-act="save"]');
+  const discard = document.querySelector('#clause-editor [data-ce-act="discard"]');
+  const a = document.activeElement;
+  return { focused: !!(a && a.closest && a.closest('#ce-clausebody')), save: save ? save.disabled : null,
+    discard: discard ? discard.disabled : null, word: save ? save.textContent.trim() : '' };
+});
 const symbol = page => page.evaluate(() => {
   const b = document.querySelector('#clause-editor #ce-doc .rl-cp-pill-save');
   if (!b) return null;
@@ -109,6 +120,9 @@ const symbol = page => page.evaluate(() => {
     ourIn && !!ourRest && ourRest.vis === 'hidden', JSON.stringify(ourRest));
   await page.keyboard.type(' Paid promptly.');
   await until(page, () => document.getElementById('clause-editor').classList.contains('ce-typed'), null, 2000);
+  const ourFoot = await footNow(page);
+  check('6a2 our seat: while the caret is still in the words, Save and Discard are live, not grey',
+    ourFoot.focused && ourFoot.save === false && ourFoot.discard === false, JSON.stringify(ourFoot));
   const ourTyped = await symbol(page);
   check('6b …and shows once typed: a drawn disk, no word, named Save, the hover says the keys',
     !!ourTyped && ourTyped.vis === 'visible' && ourTyped.svg && ourTyped.word === '' && ourTyped.label === 'Save'
@@ -122,6 +136,17 @@ const symbol = page => page.evaluate(() => {
     ourTick && !ourAfter.dirty && !ourAfter.typed && ourAfter.filed, JSON.stringify({ tick: ourTick, ...ourAfter }));
   const ourTickGone = await until(page, () => !document.querySelector('#clause-editor .ce-saved-tick'), null, 3000);
   check('6d the tick goes by itself', ourTickGone);
+  /* A MISSPELT DEFINED TERM (Young, 28 Sep 2026: "fix the spelling error
+     issue as it is not working"): the fixture's paper says "the Provider"; a
+     capitalised slip of it used to pass as a name. */
+  await clickInto(page, /Late payments/);
+  await page.keyboard.type(' The Provdier pays.');
+  await page.keyboard.press('Control+s');
+  const spelt = await until(page, () => /Provdier/.test((document.getElementById('ce-spell') || {}).textContent || ''), null, 5000);
+  const spell = await page.evaluate(() => ({ list: ((document.getElementById('ce-spell') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
+    dirty: clauseEditorDirty(), save: ((document.querySelector('#clause-editor [data-ce-act="save"]') || {}).textContent || '').trim() }));
+  check('6e a capitalised slip of the contract\'s own term is caught, with the term as the suggestion, and nothing is filed',
+    spelt && /Provider/.test(spell.list) && spell.dirty && /as written/i.test(spell.save), JSON.stringify(spell));
   await page.evaluate(() => rlCloseClauseEditor());
 
   /* ---- 1 · their landing ---- */
@@ -187,6 +212,9 @@ const symbol = page => page.evaluate(() => {
   check('3a the symbol is out of sight before anything is typed', inTheirs && !!rest && rest.vis === 'hidden', JSON.stringify(rest));
   await page.keyboard.type(' Paid promptly.');
   await until(page, () => document.getElementById('clause-editor').classList.contains('ce-typed'), null, 2000);
+  const theirFoot = await footNow(page);
+  check('3a2 their seat: while the caret is still in the words, Save and Discard under the column are live',
+    theirFoot.focused && theirFoot.save === false && theirFoot.discard === false, JSON.stringify(theirFoot));
   const typed = await symbol(page);
   check('3b once typed it shows: a drawn disk, no word, "Save · Ctrl+S" on the hover',
     !!typed && typed.vis === 'visible' && typed.svg && typed.word === '' && typed.tip === 'Save · Ctrl+S', JSON.stringify(typed));

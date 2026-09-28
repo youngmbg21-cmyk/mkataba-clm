@@ -406,19 +406,24 @@ describe('f245 (7) — it files through the funnel and nothing else', () => {
      this asserts is the RELATION the claim was always about: the foot asks that
      one reading, and it is the two questions joined. Pin the relation, not the
      expression. */
+  /* RE-POINTED 28 Sep 2026 (Young: "fix the greyed Save button while
+     typing"): the foot asks the SAME reading of the box as typed
+     (ceCanFile(ceBoxNow())), and Discard its own question of the same draft,
+     so both wake as the words go in rather than on the blur. */
   test('the File button greys once the record has caught up', () => {
     const foot = CODE.match(/function ceRenderFoot\([\s\S]*?\n\}/)[0];
-    assert.match(foot, /const anyToFile = ceCanFile\(\);/,
+    assert.match(foot, /const now = ceBoxNow\(\);[\s\S]{0,200}?const anyToFile = ceCanFile\(now\);/,
       'with the page staying open, a just-filed draft still differs from what '
       + 'STANDS — so File asks whether the record already holds it, or it would '
       + 'sit live over a press the funnel refuses as proposing nothing');
-    const read = CODE.match(/const ceCanFile = [^\n]+/)[0];
-    assert.match(read, /_ceText !== _ceBase \|\| _ceHead !== _ceHeadBase/,
+    const read = CODE.match(/function ceCanFile\(d\)\{[\s\S]*?\n\}/)[0];
+    assert.match(read, /tx !== _ceBase \|\| hd !== _ceHeadBase/,
       'and that one reading is the two questions joined: the wording has moved '
       + 'from what STANDS…');
-    assert.match(read, /clauseEditorDirty\(\)/,
-      '…and there is something the RECORD does not already hold');
-    assert.match(foot, /\[discard, _cet\('ce_discard'\), moved\]/,
+    assert.match(read, /clauseEditorOpen\(\) && \(tx !== _ceOpenText \|\| hd !== _ceOpenHead\)/,
+      '…and there is something the RECORD does not already hold (clauseEditorDirty\'s question)');
+    assert.match(foot, /const liveMoved = now \? \(now\.text !== _ceBase \|\| now\.head !== _ceHeadBase\) : moved;/);
+    assert.match(foot, /\[discard, _cet\('ce_discard'\), liveMoved\]/,
       'Discard keeps its own question — has the wording moved from what stands, '
       + 'because that is what it puts back');
   });

@@ -442,10 +442,11 @@ describe('f264 (5) — the drawer reads the record for its shape', () => {
    ============================================================ */
 describe('f264 (6) — the gesture that means done, means done', () => {
   test('one reading answers for the pencil and for the File button', () => {
-    assert.match(CE, /const ceCanFile = \(\) => \(_ceText !== _ceBase \|\| _ceHead !== _ceHeadBase\) && clauseEditorDirty\(\);/,
+    /* RE-POINTED 28 Sep 2026: the reading takes the box as typed (see f245). */
+    assert.match(CE, /function ceCanFile\(d\)\{[\s\S]{0,120}?return \(tx !== _ceBase \|\| hd !== _ceHeadBase\)\s*&& clauseEditorOpen\(\) && \(tx !== _ceOpenText \|\| hd !== _ceOpenHead\);/,
       'the two questions joined: the wording has moved from what STANDS, and '
       + 'there is something the RECORD does not already hold');
-    assert.match(CE, /const anyToFile = ceCanFile\(\);/, 'the foot asks it');
+    assert.match(CE, /const anyToFile = ceCanFile\(now\);/, 'the foot asks it');
     assert.match(CE, /if \(_ceEditing && ceCanFile\(\)\)\{/,
       'and so does the pencil, so a pencil that files where the button is dead '
       + 'is not a thing that can happen');

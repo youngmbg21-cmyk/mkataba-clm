@@ -184,8 +184,16 @@ const clauseEditorDirty = () => clauseEditorOpen()
    dead, or the other way round, is not a thing that can happen. It is the two
    questions the foot's own note already spells out, joined: the wording has
    moved from what STANDS, and there is something the RECORD does not already
-   hold. */
-const ceCanFile = () => (_ceText !== _ceBase || _ceHead !== _ceHeadBase) && clauseEditorDirty();
+   hold.
+   AND IT CAN BE ASKED OF THE BOX AS TYPED (28 Sep 2026, Young: "fix the
+   greyed Save button while typing"): `d` is a draft read off the box
+   (ceBoxNow) before any blur; absent, the stored draft — the same answer as
+   before, clauseEditorDirty's own question written out. */
+function ceCanFile(d){
+  const tx = d ? d.text : _ceText, hd = d ? d.head : _ceHead;
+  return (tx !== _ceBase || hd !== _ceHeadBase)
+    && clauseEditorOpen() && (tx !== _ceOpenText || hd !== _ceOpenHead);
+}
 
 /* ============================================================================
    THE STYLESHEET
@@ -3882,8 +3890,13 @@ function ceRenderFoot(){
      greys the moment the record catches up with the box, which is the same
      rule this product applies everywhere — grey where it can know before the
      press. */
-  const anyToFile = ceCanFile();
-  [[discard, _cet('ce_discard'), moved], [save, label, anyToFile]].forEach(([b, word, on]) => {
+  /* ASKED OF THE BOX AS IT STANDS, typed words included (ceBoxNow), with the
+     same two questions: Discard is live where the words differ from what
+     STANDS; File where they also differ from what the record holds. */
+  const now = ceBoxNow();
+  const liveMoved = now ? (now.text !== _ceBase || now.head !== _ceHeadBase) : moved;
+  const anyToFile = ceCanFile(now);
+  [[discard, _cet('ce_discard'), liveMoved], [save, label, anyToFile]].forEach(([b, word, on]) => {
     if (!b) return;
     b.disabled = !(on && live);
     /* THE NOTE COMES AT SAVE, and the control says so (round four, item 7,
@@ -4022,6 +4035,22 @@ function ceApply(text, label, opts = {}){
    know about the typing, and Undo is a fact about the stack. So the two bar
    buttons ask this as well. OWNER-REPORTED 28 Aug 2026: Undo did nothing after
    typing, because it was greyed out. */
+/* ---- WHAT THE BOX HOLDS NOW, BEFORE THE BLUR (Young, 28 Sep 2026: "fix the
+   greyed Save button while typing") ----
+   _ceText follows the box only when it is pulled (a blur, a press), so the
+   foot's two buttons, asked off it, stayed grey for as long as the reader was
+   still typing. This is the box's own draft read as cePullText would read it,
+   WITHOUT writing it: null where nothing is being typed. */
+function ceBoxNow(){
+  if (!ceIsTyping()) return null;
+  try{
+    const headBox = _ceQ('#ce-clausehead');
+    const box = _ceQ('#ce-clausebody');
+    const raw = box ? ceBoxHtml(box) : null;
+    return { text: raw == null ? _ceText : (window.sanitizeRich ? sanitizeRich(raw) : raw),
+      head: headBox ? String(headBox.textContent || '').replace(/\s+/g, ' ').trim() : _ceHead };
+  }catch(_){ return null; }
+}
 function ceBoxDirty(){
   if (!ceIsTyping()) return false;
   try{
@@ -6494,6 +6523,9 @@ function ceWirePage(page){
     /* THE SAVE SYMBOL SHOWS ONCE SOMETHING IS TYPED (28 Sep 2026): filing,
        discarding or leaving takes the mark off. */
     page.classList.add('ce-typed');
+    /* AND THE FOOT'S SAVE AND DISCARD WAKE AS THE WORDS GO IN — patched in
+       place, so the button under a reader's finger keeps its identity. */
+    ceRenderFoot();
     /* ---- AND TYPING CLOSES THE STRIP, HAVING DONE NOTHING ----
        (29 Aug 2026.) With the strip live during typing, a reader who highlights
        a sentence and then simply carries on writing has answered the question

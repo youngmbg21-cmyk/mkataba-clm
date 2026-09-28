@@ -24391,3 +24391,13 @@ A clause with no marks still opens ready to type on arrival (the editor's "nothi
 
 Tests: f426 (red at the parent b258635 on every claim); their-edit-page-verify 18 (red at the parent: no symbol, no Edit, pencils on their paper). Re-pointed: f245 (the pencil press and label, the leave-guard count, the pencil's words), clause-editor-verify 11b/11f/11g (Edit is their door; the carried-over clause panel is shut before section 12 as the old 11g did) and 32c/32d2, ladder-verify 21b.
 Also re-pointed after the full run: f139 and f49 (their way into writing is the Edit button, no pencil on their paper) and f264 (6) (the pencil's filing order now lives in `ceSaveFromSymbol`).
+
+## THE SPELL CHECK — A MISSPELT DEFINED TERM; EDIT WITH COPILOT — SAVE LIVE WHILE TYPING (28 Sep 2026)
+
+Young: *"fix the greyed Save button while typing too And also fix the spelling error issue as it is not working"*.
+
+SAVE WHILE TYPING. The foot's Save and Discard asked `_ceText`, which follows the box only when pulled (a blur or a press), so both sat grey for as long as the caret was in the words — a dead-looking button over a live act (a press still worked, because the mousedown's blur pulled the text first). Now `ceBoxNow()` reads the box as `cePullText` would, writing nothing; `ceCanFile(d)` takes that draft (no argument = the old answer, clauseEditorDirty's question written out) and Discard asks its own question of the same draft; the typing listener calls `ceRenderFoot()` (patched in place, the button identity the 30 Aug fix rests on kept). f245 and f264 re-pointed from the literal `ceCanFile()` line.
+
+THE SPELLING. Driven in the REAL app (server, sign-in, module load): the list loads (200 on /vendor/en-words-1.txt) and flags lower-case slips. Two real gaps found: (1) a capitalised word inside a sentence was always a "name", so "the Suplier shall" — a slip of the contract's own defined term — was never checked; contracts are written in capitalised terms. `spellTermsFrom` collects the words the contract capitalises inside a sentence (possessives folded), `spellTermSlip` checks a capitalised word one slip (two for 7+ letters) from one of them; a new name is a slip of nothing and still passes (measured: Wanjiru, Kamau, Nairobi, Mandy, Lars pass). (2) A contract drawn from a template has no `redlineText`, so `spellKnownFrom` knew none of its words; `spellContractText` reads `c.negotiation.baselineText` raw (never negoInit).
+
+Tests: f427 (red at the parent 0088b26 on every claim); their-edit-page-verify 3a2, 6a2, 6e (red at the parent: Save grey mid-sentence on both seats; "Provdier" filed silently).

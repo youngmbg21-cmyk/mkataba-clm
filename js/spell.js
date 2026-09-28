@@ -23,7 +23,9 @@
      · a word in HaTi's short list of legal words the dictionary lacks
        (SPELL_LEGAL);
      · a number, a word with a digit in it, a reference like 4.2(a), an
-       acronym in capitals, and a capitalised word inside a sentence (a name).
+       acronym in capitals, and a capitalised word inside a sentence (a name)
+       — unless it is one slip from a term this contract capitalises
+       (spellTermSlip: "Suplier" for its "Supplier").
 
    IT STANDS DOWN ON A CONTRACT THAT IS NOT IN ENGLISH. Contract text is never
    translated (TWO LANGUAGES ≠ TWO MARKETS), so a Swedish agreement is typed
@@ -181,12 +183,20 @@ function _spellForms(w){
    Every word of its wording, its parties and its name. Read RAW off the
    record — c.redlineText, c.counterparty, c.party, c.name, c.parties — and
    never through a negotiation reader, because READING MUST NOT WRITE. */
+/* A contract drawn from a template has no redlineText: its wording is the
+   negotiation's baseline, read RAW (never negoInit — reading must not write).
+   Found 28 Sep 2026: on such a contract the check knew none of its words. */
+function spellContractText(c){
+  const n = c && c.negotiation;
+  return n ? String(n.baselineText || String(n.baselineBody || '').replace(/<[^>]*>/g, ' ')) : '';
+}
 function spellKnownFrom(c, more){
   const set = new Set();
   const add = t => spellWords(t).forEach(x => _spellForms(x.word).forEach(f => set.add(f)));
   if (c){
     const strip = h => String(h || '').replace(/<[^>]*>/g, ' ');
     add(strip(c.redlineText));
+    add(spellContractText(c));
     add(c.name); add(c.counterparty); add(c.party);
     if (Array.isArray(c.parties)) c.parties.forEach(p => { if (p) { add(p.name); add(p.role); } });
     if (typeof window !== 'undefined' && typeof window.FIRST_PARTY === 'string') add(window.FIRST_PARTY);
@@ -246,6 +256,35 @@ function spellSuggest(word, known){
   const cased = x => /^[A-Z]/.test(word) ? x[0].toUpperCase() + x.slice(1) : x;
   return pool.slice(0, SPELL_SUGGEST_MAX).map(cased);
 }
+/* ---- A CAPITALISED WORD IS A NAME — UNLESS IT IS A SLIP OF THIS CONTRACT'S
+   OWN TERM (Young, 28 Sep 2026: "fix the spelling error issue as it is not
+   working") ----
+   A capital inside a sentence was always read as a name and let through, and a
+   contract is written in capitalised defined terms: "the Suplier shall" was
+   never checked. The terms are the words THIS contract capitalises inside a
+   sentence (its Supplier, its Agreement, its parties); a capitalised word one
+   slip from one of them (two for a longer word) is checked like any other.
+   A new name nobody has used — a person, a place — is still let through,
+   because it is a slip of nothing the contract says. */
+function spellTermsFrom(c, before){
+  const set = new Set();
+  const add = t => spellWords(t).forEach(x => {
+    if (!x.opens && /^[A-Z][a-z]/.test(x.word)) _spellForms(x.word).forEach(f => set.add(f));
+  });
+  if (c){ add(String(c.redlineText || '').replace(/<[^>]*>/g, ' ')); add(spellContractText(c)); }
+  if (before) add(before);
+  return set;
+}
+function spellTermSlip(w, opens, terms){
+  if (opens || !terms || !terms.size || !/^[A-Z][a-z]/.test(w) || w.length < 4) return false;
+  if (/\d/.test(w) || /[À-ɏ]/.test(w)) return false;
+  const lw = w.toLowerCase();
+  if (terms.has(lw)) return false;
+  const one = _spellEdits1(lw);
+  for (const e of one) if (terms.has(e)) return true;
+  if (lw.length >= 7) for (const e of one) for (const f of _spellEdits1(e)) if (terms.has(f)) return true;
+  return false;
+}
 /* ---- THE ONE READING: WHICH NEW WORDS LOOK MISSPELT ----
    `before` — every word that was on the page when the reader began (the
    clause as it stands, the ask they are answering); `after` — what they are
@@ -258,13 +297,15 @@ function spellSuspects(before, after, c){
   const old = new Set(spellWords(before).map(x => x.word.toLowerCase()));
   if (!spellLooksEnglish(String(before || '') + ' ' + String(after || ''))) return [];
   const known = spellKnownFrom(c, before);
+  const terms = spellTermsFrom(c, before);
   const seen = new Set();
   const out = [];
   for (const x of spellWords(after)){
     const lw = x.word.toLowerCase();
     if (seen.has(lw) || old.has(lw)) continue;
     seen.add(lw);
-    if (spellSkips(x.word, x.opens) || spellIsWord(x.word, known)) continue;
+    if (spellIsWord(x.word, known)) continue;
+    if (spellSkips(x.word, x.opens) && !spellTermSlip(x.word, x.opens, terms)) continue;
     out.push({ word: x.word, suggestions: spellSuggest(x.word, known) });
   }
   return out;
@@ -364,12 +405,12 @@ function spellEnsureStyle(){
 if (typeof window !== 'undefined') Object.assign(window, {
   SPELL_WORDS_SRC, SPELL_ENGLISH_MIN, SPELL_SUGGEST_MAX, SPELL_LEGAL,
   spellLoadFrom, spellReady, spellState, spellLoad, spellWords, spellPlain, spellSkips, spellKnownFrom, spellIsWord,
-  spellLooksEnglish, spellSuggest, spellSuspects, spellLeave,
+  spellLooksEnglish, spellSuggest, spellSuspects, spellLeave, spellTermsFrom, spellTermSlip, spellContractText,
   spellFixText, spellFixHtml, spellFixNode, spellListHtml, spellEnsureStyle,
 });
 if (typeof module !== 'undefined' && module.exports) module.exports = {
   SPELL_WORDS_SRC, SPELL_ENGLISH_MIN, SPELL_SUGGEST_MAX, SPELL_LEGAL,
   spellLoadFrom, spellReady, spellState, spellLoad, spellWords, spellPlain, spellSkips, spellKnownFrom, spellIsWord,
-  spellLooksEnglish, spellSuggest, spellSuspects, spellLeave,
+  spellLooksEnglish, spellSuggest, spellSuspects, spellLeave, spellTermsFrom, spellTermSlip, spellContractText,
   spellFixText, spellFixHtml, spellFixNode, spellListHtml, spellEnsureStyle,
 };
