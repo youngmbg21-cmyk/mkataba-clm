@@ -922,6 +922,16 @@ function regNarrowed(R){
 
 function regSetScope(k){ REG_SCOPE = (k === 'negotiations') ? 'negotiations' : null; }
 const REG_STATE_DEF = () => ({query:'',stage:'all',type:'all',category:'all',signed:'all',payterms:'all',docs:'all',sort:'updated',dir:-1,page:1,sel:{},view:null,only:null});
+/* A REFRESH LANDS WHERE YOU WERE (Young, 28 Sep 2026): what this page keeps
+   across a reload, read by placeSave and put back by placeResume (js/app.js)
+   BEFORE the first paint. */
+function regPlace(){ return { scope:regScope(), st:{ ...regState() } }; }
+function regPlacePut(p){
+  if(!p) return;
+  regSetScope(p.scope);
+  const s={ ...REG_STATE_DEF(), ...(p.st||{}) };
+  if(regScope()==='negotiations') state.regNego=s; else state.reg=s;
+}
 function regState(){
   if(regScope()==='negotiations'){ if(!state.regNego) state.regNego=REG_STATE_DEF(); return state.regNego; }
   if(!state.reg) state.reg=REG_STATE_DEF(); return state.reg;
@@ -3309,7 +3319,7 @@ function ftsSearch(q){
     }catch(e){ box.classList.add('hidden'); }
   },220);
 }
-Object.assign(window,{regSignedOn,regSignedYear,regSignedYears,regSignedCell,
+Object.assign(window,{regPlace,regPlacePut,regSignedOn,regSignedYear,regSignedYears,regSignedCell,
   REG_COL_KEYS,REG_COL_KEYS_NEGO,REG_COL_W,REG_COL_W_NEGO,REG_COL_MIN_PX,
   /* the list inspector (26 Sep 2026) */
   REG_COL_KEYS_INS,REG_COL_KEYS_NEGO_INS,REG_INS_COL_PX,regInspecting,regColKeys,regInsSeat,regInsActs,regInsPaint,

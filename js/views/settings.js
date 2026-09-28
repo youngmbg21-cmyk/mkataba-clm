@@ -310,6 +310,11 @@ function settingsTab(){ return ST_TABS.includes(_stTab)?_stTab:'people'; }
    tab can be pressed from the bottom of seventeen panels — and a press that
    NAVIGATES may land at the top, which this one does: it is four different
    pages of settings and it already clears the search. */
+/* A REFRESH LANDS WHERE YOU WERE (Young, 28 Sep 2026): what this page keeps
+   across a reload, read by placeSave and put back by placeResume (js/app.js)
+   BEFORE the first paint. */
+function settingsPlace(){ return { tab:_stTab }; }
+function settingsPlacePut(p){ if(p&&ST_TABS.includes(p.tab)) _stTab=p.tab; }
 function settingsGoTab(k){ if(!ST_TABS.includes(k)) return; _stTab=k; _stQuery=''; renderTeam(); stLandTop(); }
 /* THE ONE NAMED DOOR IN. Everything that wants to land somewhere specific on
    this page goes through it, so there is one place that knows the page is
@@ -4956,7 +4961,7 @@ async function loadSessions(){
    the else branch and nobody catches it — the lesson rlPaperFootHtml taught
    this codebase for a year. openMyAccount and openSettingsAt are the two doors
    the shell calls; SET_PANELS and the readers beside it are what the tests read. */
-Object.assign(window,{renderTeam,stAgentsPaint,ST_AGENT_KEYS,AG_MONEY_NOTE_KEYS,stRepaintPanel,renderMyAccountPage,briefCadenceOf,BRIEF_EVERY_VALUES,renderPrecedentPanel,precedentAdopt,stdOpenPreferred,renderStandardsDraft,stdOpenClauseId,stdSetOpenClause,stdStanceChipHtml,stdFallbackChipHtml,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
+Object.assign(window,{renderTeam,settingsPlace,settingsPlacePut,stAgentsPaint,ST_AGENT_KEYS,AG_MONEY_NOTE_KEYS,stRepaintPanel,renderMyAccountPage,briefCadenceOf,BRIEF_EVERY_VALUES,renderPrecedentPanel,precedentAdopt,stdOpenPreferred,renderStandardsDraft,stdOpenClauseId,stdSetOpenClause,stdStanceChipHtml,stdFallbackChipHtml,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
   renderPlaybookView,openPlaybookEditor,pbRemoveType,pbResetPlaybook,stdRemoveClause,stdDraftSetOpen,
   renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions,
   openMyAccount,openSettingsAt,settingsGoTab,settingsTab,stLandTop,SET_PANELS,ST_TABS,SET_CLOSURES,ST_GROUPS,ST_ATTENTION_MAX,

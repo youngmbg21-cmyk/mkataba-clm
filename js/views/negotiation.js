@@ -8738,6 +8738,15 @@ let _rlDoorAsked = false;
    painted yet" — and those want opposite answers on a bare repaint. Per sitting,
    in memory: a reload is a first paint, which resolves through the door. */
 let _rlShowingList = false;
+/* A REFRESH LANDS WHERE YOU WERE (Young, 28 Sep 2026): the list, with its
+   search and filters, or the contract on the bench — read by placeSave and put
+   back by placeResume (js/app.js) before the first paint, as a bare repaint. */
+function rlPlace(){ return { list: _rlShowingList, held: _redlineHeldId || null, st: (_rlShowingList && state.regNego) ? { ...state.regNego } : null }; }
+function rlPlacePut(p){
+  if (!p) return;
+  if (p.list){ _rlShowingList = true; _redlineHeldId = null; if (p.st) state.regNego = { ...p.st }; }
+  else if (p.held){ _rlShowingList = false; _redlineHeldId = p.held; }
+}
 
 /* ---- WHOSE MOVE IS IT ON THIS AGREEMENT ----
    Three readings, one function, asked by every surface that draws the state:
@@ -20142,7 +20151,7 @@ if (typeof window !== 'undefined') Object.assign(window, { rlRoundPrepLineHtml,
      about rlPaperFootHtml, which was declared, called, and silently absent for a
      year because nobody put it here. */
   negoNeedsYouIds, negoNeedsYouTotal, negoRoundRead, negoRoundLine, negoIsLive, negoLiveList,
-  negoLastOpened, negoRememberOpened, openNegotiations,
+  negoLastOpened, negoRememberOpened, openNegotiations, rlPlace, rlPlacePut,
   renderNegotiationsList, negoListHeadHtml, negWhoseMove,NEGO_MEMO_MAX,NEGO_MEMO_SECTIONS,negoMemo,negoMemoHtml,negoMemoText,negoMemoWording,negoMemoRichHtml,MEMO_DOC,openNegoMemo,negoMemoRecipients,openNegoMemoShare,
   /* ---- rlPaperFootHtml WAS NEVER ON WINDOW, SO IT NEVER DREW ----
      Found while fixing the blank read-only copy (11 Aug 2026). signatureBlock

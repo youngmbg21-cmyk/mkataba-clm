@@ -1007,7 +1007,7 @@ function setView(view){
      PER BROWSER, NEVER PER ACCOUNT: this never travels to the server. */
   try{
     if(getOrg()&&!API_MODE()) persist();
-    else if(getOrg()) lsSet(LS.ui,{ view:state.view, activeId:state.activeId, folderId:state.folderId });
+    else if(getOrg()) lsSet(LS.ui,{ view:state.view, activeId:state.activeId, folderId:state.folderId, place:uiPlaceKept() });
   }catch(e){ try{ console.error('[hati] could not record where you are', e); }catch(_){} }
   /* A FAILING PAINT MUST NOT BE SILENT — six unguarded calls that could take a
      navigation down without a word is the fault underneath the fault. */
@@ -1104,6 +1104,98 @@ function keepScroll(fn){
   const put=()=>tops.forEach(([id,top])=>{ const el=document.getElementById(id); if(el) el.scrollTop=top; });
   put();
   if(typeof requestAnimationFrame==='function') requestAnimationFrame(put);
+}
+/* ---------- A REFRESH LANDS AT THE SAME SPOT (Young, 28 Sep 2026) ----------
+   "If you are on a specific page and you refresh the page, you should land at
+   the same exact spot you were in when you refreshed or reloaded the page."
+   The page itself was already kept (setView records it first). MEASURED at
+   5448c132 on eight pages: every one came back on the right page and lost
+   the rest — the tab inside it (room, Insights, Settings, Templates), the
+   list's filters, the Explorer's picture, and where the reader had scrolled.
+
+   ONE STORE: the place rides in LS.ui beside the page (`place`), per browser,
+   never per account, never to the server. Each page says what it keeps
+   through a pair it owns (PLACE_PARTS: a reader, and a writer run BEFORE the
+   first paint so nothing is drawn twice). The scroll is every scroller under
+   #content that carries an id, plus the shell's own — keepScroll's sweep.
+   Written when the page is left or hidden and a moment after a scroll, so a
+   crash still leaves a recent place. Put back only on the SAME page (and the
+   same contract), and the scroll is re-asserted for a bounded while because
+   a page fills in after its first paint (a contract's full record, the
+   paper's pages) — until the reader touches anything, which always wins. */
+const PLACE_PARTS={
+  register:['regPlace','regPlacePut'],
+  workspace:['roomPlace','roomPlacePut'], doc:['roomPlace','roomPlacePut'],
+  intel:['intelPlace','intelPlacePut'],
+  team:['settingsPlace','settingsPlacePut'],
+  templates:['tplPlace','tplPlacePut'],
+  calendar:['calPlace','calPlacePut'],
+  obligations:['obwPlace','obwPlacePut'],
+  redline:['rlPlace','rlPlacePut'],
+};
+const PLACE_ONE_CONTRACT=['workspace','doc','redline'];
+const PLACE_BACK_MS=6000, PLACE_BACK_EVERY=120, PLACE_SAVE_WAIT=250;
+function placeNow(){
+  const view=state.view; if(!view) return null;
+  const p={ view, id:PLACE_ONE_CONTRACT.includes(view)?(state.activeId||null):null, scroll:{} };
+  const part=PLACE_PARTS[view], get=part&&window[part[0]];
+  if(typeof get==='function'){ try{ p.part=get(); }catch(_){ p.part=null; } }
+  const sc=document.getElementById('content-scroll');
+  if(sc&&sc.scrollTop) p.scroll['content-scroll']=Math.round(sc.scrollTop);
+  const host=document.getElementById('content');
+  if(host&&host.querySelectorAll) host.querySelectorAll('[id]').forEach(el=>{ if(el.scrollTop) p.scroll[el.id]=Math.round(el.scrollTop); });
+  return p;
+}
+function placeSave(){
+  try{
+    if(!getOrg()) return;
+    const now=placeNow();
+    /* While a place is still being put back, its scroll is the truth — the
+       scrollers may not have filled in yet — and everything else is read now,
+       so a tab changed straight after a reload is still kept. */
+    if(now&&_placeBack&&_placeBack.view===now.view) now.scroll={ ...now.scroll, ..._placeBack.scroll };
+    const u=lsGet(LS.ui)||{};
+    lsSet(LS.ui,{ ...u, place:now });
+  }catch(_){}
+}
+/* The same page, and on a contract's pages the same contract — anything else
+   is somebody else's place and is ignored. */
+function placeFor(p){
+  if(!p||p.view!==state.view) return false;
+  return !PLACE_ONE_CONTRACT.includes(p.view)||String(p.id||'')===String(state.activeId||'');
+}
+function placeResume(){
+  const p=uiPlaceKept();
+  if(!placeFor(p)) return null;
+  const part=PLACE_PARTS[p.view], put=part&&window[part[1]];
+  if(typeof put==='function'&&p.part!=null){ try{ put(p.part); }catch(e){ try{ console.error('[hati] could not put back your place', e); }catch(_){} } }
+  return p;
+}
+let _placeBack=null;
+function placeScrollBack(p){
+  const want=Object.entries((p&&p.scroll)||{}); if(!want.length) return;
+  const t0=Date.now(); let stop=false;
+  const touched=()=>{ stop=true; };
+  const ev=['wheel','touchstart','pointerdown','keydown'];
+  ev.forEach(k=>window.addEventListener(k,touched,{ capture:true, once:true, passive:true }));
+  _placeBack=p;
+  const put=()=>{
+    if(!stop&&state.view===p.view&&Date.now()-t0<PLACE_BACK_MS){
+      want.forEach(([id,top])=>{ const el=document.getElementById(id); if(el&&Math.abs(el.scrollTop-top)>1) el.scrollTop=top; });
+      setTimeout(put,PLACE_BACK_EVERY); return;
+    }
+    _placeBack=null; ev.forEach(k=>window.removeEventListener(k,touched,{ capture:true }));
+  };
+  put();
+}
+/* Written when the page is left or hidden, and a moment after a scroll. */
+if(typeof window!=='undefined'&&!window._placeWired&&typeof window.addEventListener==='function'&&typeof document!=='undefined'&&typeof document.addEventListener==='function'){
+  window._placeWired=true;
+  window.addEventListener('pagehide',placeSave);
+  window.addEventListener('beforeunload',placeSave);
+  document.addEventListener('visibilitychange',()=>{ if(document.hidden) placeSave(); });
+  let _placeT=0;
+  document.addEventListener('scroll',()=>{ clearTimeout(_placeT); _placeT=setTimeout(placeSave,PLACE_SAVE_WAIT); },{ capture:true, passive:true });
 }
 /* ---------- HOW MANY ROWS FIT ON THE READER'S OWN SCREEN ----------
    (owner-reported 29 Aug 2026, off three screenshots: "pages are still not
@@ -3479,6 +3571,6 @@ if (typeof window !== 'undefined' && window.addEventListener){
   window.addEventListener('afterprint', clearPrintRoot);
 }
 
-Object.assign(window,{printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,notesPanelShowing,notesPanelFollow,
+Object.assign(window,{printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,notesPanelShowing,notesPanelFollow,
   buildAlerts,alertCount,updateAlertBadge,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,brandNow,darkNow,setBrand,setDark,toggleDark,applyAppearance,paintAppearance,brandPickerVisible,BRANDS,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
 Object.assign(window,{BP});

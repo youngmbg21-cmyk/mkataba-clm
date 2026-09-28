@@ -1069,9 +1069,13 @@ const fval = id => (document.getElementById(id)?.value||'').trim();
    change to a different contract can't be clobbered. Static mode keeps the
    single-blob localStorage model. */
 const dirty=new Map(); window.saveTimer=null;
+/* The place on the page (tab, filters, scroll) rides in the same store as the
+   page itself, and a write of the page keeps it — see placeSave (js/app.js). */
+const uiPlaceKept=()=>{ const u=lsGet(LS.ui); return (u&&u.place)||null; };
+Object.assign(window,{uiPlaceKept});
 function persist(c){
   if(API_MODE()){
-    lsSet(LS.ui,{ view:state.view, activeId:state.activeId, folderId:state.folderId });
+    lsSet(LS.ui,{ view:state.view, activeId:state.activeId, folderId:state.folderId, place:uiPlaceKept() });
     if(!canEdit()) return;              // server rejects viewer writes
     if(c && c.id){ dirty.set(c.id,c); clearTimeout(saveTimer); saveTimer=setTimeout(flushSaves,400); }
     return;
@@ -2220,7 +2224,9 @@ function startApp(){
      honest empty state when their contract or template is not loaded yet, so
      resuming there is safe — and losing a refresh mid-negotiation to the
      dashboard was the exact complaint this list caused. */
+  const _place=window.placeResume?placeResume():null;
   setView(['brain','dashboard','register','pipeline','advice','intake','obligations','approvals','folder','intel','calendar','reports','templates','playbook','workspace','team','directory','migration','redline','agents'].includes(state.view)?state.view:'dashboard');
+  if(_place&&window.placeScrollBack) placeScrollBack(_place);
   if(API_MODE()){ refreshStats(); refreshShareOverview(); refreshWaitingQuestions(); pollPendingResponses(); refreshAiUsage();
     schedulePolling();
     /* Coming back to the tab is when a person expects to be up to date. */
