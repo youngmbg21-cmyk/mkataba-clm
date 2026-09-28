@@ -178,12 +178,17 @@ describe('f247 · counting is not drawing', () => {
   });
 
   test('it borrows every reading and re-derives none', () => {
+    /* RE-POINTED 28 Sep 2026 (the Reminder Line): the per-obligation reading
+       moved into obReminderOf, the ONE predicate the count and the line both
+       ask, so "the counter" is that function and the data function together. */
+    const pred = bodyOf(IG_CODE, 'obReminderOf');
+    assert.ok(/obReminderOf\(o,\s*c\)/.test(data), 'the counter asks the one predicate');
     ['obligationDue', 'obState', 'obligationIsTheirs', 'daysUntil']
-      .forEach(f => assert.ok(new RegExp('\\b' + f + '\\b').test(data), 'must ask ' + f));
+      .forEach(f => assert.ok(new RegExp('\\b' + f + '\\b').test(data + pred), 'must ask ' + f));
     /* A second copy of "is this a date" or "is this overdue" is how two screens
        come to disagree about the same commitment. */
-    assert.ok(!/Date\.parse\(/.test(data), 'the counter parses a date itself');
-    assert.ok(!/new Date\([^)]*T00:00:00/.test(data), 'the counter does its own day arithmetic');
+    assert.ok(!/Date\.parse\(/.test(data + pred), 'the counter parses a date itself');
+    assert.ok(!/new Date\([^)]*T00:00:00/.test(data + pred), 'the counter does its own day arithmetic');
   });
 });
 
@@ -315,22 +320,32 @@ describe('f247 · the readings the panels rest on', () => {
     assert.equal(d.aheadOurs + d.aheadTheirs, d.ahead);
   });
 
-  test('the chase list is theirs only, soonest first, and names the counterparty', () => {
+  /* RE-POINTED 28 Sep 2026: the chase list went with the owner's pick of the
+     Reminder Line. What it answered -- what THEY owe us, and whether anybody on
+     our side watches it -- is the "They owe us" lanes now. */
+  test('their side is its own lanes, by the colleague watching it, and names the counterparty on the dot', () => {
     const { d } = stage();
-    assert.equal(d.chase.length, 1);
-    assert.equal(d.chase[0].name, 'Nordkust');
-    assert.equal(d.chase[0].n, 1);
+    assert.equal(d.lanes.theirs.length, 1, 'one lane: nobody on our side is named to chase');
+    const L = d.lanes.theirs[0];
+    assert.equal(L.named, false);
+    assert.equal(L.n, 1);
+    assert.equal(L.dots[0].cp, 'Nordkust', 'the dot says who owes it');
+    assert.equal(L.dots[0].told, false, 'and nobody is told');
   });
 
-  test('who is carrying what is OUR side only, unassigned first', () => {
+  /* RE-POINTED 28 Sep 2026: "who is carrying what" is the Reminder Line's
+     lanes for OUR side. "Unassigned first" was that panel's ruling; the
+     owner's approved drawing orders lanes the mail reaches, then nobody, then
+     names it cannot reach (f431 pins the order). */
+  test('who is carrying what is OUR side only, a lane per person', () => {
     const { d } = stage();
     /* There is no owner to group "theirs" by — this product holds no staff
        list for the counterparty and is not going to keep one. */
-    const names = d.owners.map(o => o.name);
+    const names = [...d.lanes.ours].map(L => L.name);
     assert.ok(!names.includes('Nordkust'));
     assert.ok(names.includes('Amina Otieno') && names.includes('Someone Who Left'));
-    const lost = d.owners.find(o => o.name === 'Someone Who Left');
-    assert.equal(lost.resolves, false, 'a name that is not a member keeps its own mark');
+    const lost = d.lanes.ours.find(L => L.name === 'Someone Who Left');
+    assert.equal(lost.owned, false, 'a name that is not a member keeps its own mark');
   });
 
   test('a repeating commitment counts as stopped only where nothing replaced it', () => {
@@ -340,13 +355,20 @@ describe('f247 · the readings the panels rest on', () => {
     assert.equal(d.repeatTotal, 1);
   });
 
-  test('row lists cap, and the overflow is counted rather than dropped', () => {
+  test('lanes cap, and the overflow is counted rather than dropped', () => {
+    /* RE-POINTED 28 Sep 2026: the row lists became lanes. Past OB_ROWS+1 the
+       rest share ONE lane that says how many people it holds -- and every one
+       of their obligations is still drawn on it. */
     assert.ok(/const OB_ROWS = 5;/.test(IG_CODE));
-    const { d } = stage();
-    assert.ok(d.chase.length <= 5);
-    assert.equal(typeof d.chaseMore, 'number');
-    assert.equal(typeof d.chaseMoreN, 'number');
-    assert.equal(typeof d.ownersMore, 'number');
+    const { win } = stage();
+    win.state.contracts[0].obligations = Array.from({ length: 9 }, (_, i) => ({ id: 'p' + i, desc: 'd' + i,
+      due: day(10 + i), assignee: 'Person ' + i, status: 'open', recurring: 'none' }));
+    const d = win.intelObligationsData();
+    assert.equal(d.lanes.ours.length, 6);
+    const more = d.lanes.ours[5];
+    assert.equal(more.key, 'more');
+    assert.equal(more.more, 4, 'the shared lane says how many people it holds');
+    assert.equal([...d.lanes.ours].reduce((s, L) => s + L.n, 0), 9, 'nothing is dropped');
   });
 
   test('an empty book draws the empty state rather than six empty panels', () => {
@@ -384,18 +406,23 @@ describe('f247 · it reads like the two tabs beside it', () => {
 
   test('colour never carries a reading on its own', () => {
     const html = bodyOf(IG_CODE, 'intelObligationsHtml');
-    /* Every chart on this page is drawn beside its own figure and every legend
-       spells its count out, so nothing rests on the hue. */
-    assert.ok(/role="img" aria-label=/.test(html), 'a chart must name itself for a reader who cannot see it');
-    assert.ok(/int_ob_90_key_ours/.test(html) && /int_ob_90_key_theirs/.test(html));
+    /* RE-POINTED 28 Sep 2026 (the Reminder Line): the one colour question is
+       "will anybody be told", and the SHAPE answers it too -- filled or hollow --
+       with the legend spelling both out and every dot carrying its sentence
+       for a reader who cannot see it. */
+    assert.ok(/role="group" aria-label=/.test(html), 'the line must name itself for a reader who cannot see it');
+    assert.ok(/aria-label="\$\{E\(say/.test(html), 'every dot says its own sentence');
+    assert.ok(/ob_rl_key_told/.test(html) && /ob_rl_key_silent/.test(html));
   });
 });
 
 describe('f247 · one language per screen', () => {
-  const keys = [...new Set([...IG.matchAll(/i18t(?:n)?\('(int_ob[a-z_0-9]*)'/g)].map(m => m[1]))];
+  /* RE-POINTED 28 Sep 2026: the Reminder Line's own words are ob_rl_; the
+     empty state keeps int_ob_. */
+  const keys = [...new Set([...IG.matchAll(/i18t(?:n)?\('((?:int_ob|ob_rl)[a-z_0-9]*)'/g)].map(m => m[1]))];
 
   test('every key the page uses exists in BOTH languages', () => {
-    assert.ok(keys.length > 60, 'expected the report to carry its own wording, got ' + keys.length);
+    assert.ok(keys.length > 40, 'expected the report to carry its own wording, got ' + keys.length);
     const twice = k => (I18N.match(new RegExp('^    ' + k + ':', 'gm')) || []).length === 2;
     /* i18tn takes a BASE key; the dictionary carries its _one and _other. */
     const missing = keys.filter(k => !twice(k) && !(twice(k + '_one') && twice(k + '_other')));

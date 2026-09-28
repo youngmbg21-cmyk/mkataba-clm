@@ -2079,7 +2079,28 @@ function obwFilters(){
    reading, so the button and the controls cannot say different things. */
 function obwNarrowing(f){
   f = f || obwFilters();
-  return Object.keys(OBW_DEF).filter(k => String(f[k]) !== String(OBW_DEF[k]));
+  return Object.keys(OBW_DEF).filter(k => String(f[k]) !== String(OBW_DEF[k]))
+    .concat(obwOnly(f) ? ['only'] : []);
+}
+/* ---- A SET SENT HERE FROM ANOTHER SCREEN (28 Sep 2026) ----
+   The Insights Reminder Line's figures are doors, and a door's number must
+   match the list behind it: "34 will reach nobody" has no filter of its own
+   here, so the door hands over the obligations it counted, keyed the list's
+   own way (obKeyOf). The register's `only` (regShowOnly) is the pattern — one
+   chip that is both the narrowing and the way out of it, and every control
+   beside it still narrows within the set. Per sitting like every filter here;
+   Clear takes it away. */
+function obwOnly(f){
+  const o = f && f.only;
+  if(!o || !Array.isArray(o.keys)) return null;
+  if(!o._set) Object.defineProperty(o, '_set', { value: new Set(o.keys), enumerable: false });
+  return o;
+}
+function obwOnlyChipHtml(f){
+  const o = obwOnly(f);
+  if(!o) return '';
+  const x = typeof icon === 'function' ? icon('x', 'w-3.5 h-3.5') : '';
+  return `<span class="obw-only" id="obw-only" title="${_obEsc(i18t('ob_rl_only_title'))}"><span class="obw-only-t" title="${_obEsc(o.label || '')}">${_obEsc(o.label || '')} · ${o.keys.length}</span><button type="button" data-obw-only-clear title="${_obEsc(i18t('ob_rl_only_clear'))}" aria-label="${_obEsc(i18t('ob_rl_only_clear'))}">${x}</button></span>`;
 }
 const OBW_STATE = [['open','ob_f_state_open'],['overdue','ob_f_state_over'],['waiting','ob_f_state_waiting'],
   ['done','ob_f_state_done'],['all','ob_f_state_all']];
@@ -2130,6 +2151,8 @@ function obwBook(){
 /* EVERY FILTER, AS ONE PREDICATE, so the list, each view's count and the
    door that narrows to a view ask one question. */
 function obwPass(o, f){
+  const only = obwOnly(f);
+  if(only && !only._set.has(obKeyOf(o.cid, o, o._i))) return false;
   if(f.state === 'open' && o.st === 'done') return false;
   /* OVERDUE MEANS LATE WORK SOMEBODY COULD HAVE DONE (26 Sep 2026). It asked
      obState, so a step held back by an earlier one — late by the calendar and
@@ -2395,6 +2418,7 @@ function renderObligationsList(){
         ${held && f.state !== 'waiting' ? `<span class="obt-wait">${_obEsc(i18tn('ob_head_waiting', held, { n: held }))}</span>` : ''}
       </div>
       <div class="obw-filters">
+        ${obwOnlyChipHtml(f)}
         ${obwSelect('whose', OBW_WHOSE, f.whose)}
         ${obwSelect('state', OBW_STATE, f.state)}
         ${obwSelect('side', OBW_SIDE, f.side)}
@@ -2445,6 +2469,7 @@ function renderObligationsList(){
     obwRepaint();
   }));
   host.querySelector('#obw-clear')?.addEventListener('click', () => { _obwF = null; obwRepaint(); });
+  host.querySelector('[data-obw-only-clear]')?.addEventListener('click', () => { f.only = null; obwRepaint(); });
   /* WHERE THE READER ENDS UP: the contract, on the tab this row is about. A row
      that opened the Document tab would make them hunt for what they pressed. */
   const go = cid => { if(window.openWorkspace){ openWorkspace(cid);
@@ -2938,8 +2963,15 @@ async function obligationRemove(c, i){
   obligationSurfacesChanged();
   return true;
 }
-function obOpenContract(cid){
+/* WITH A KEY IT OPENS THE OBLIGATION'S OWN PLACE (28 Sep 2026, the Insights
+   Reminder Line's dots): that row is picked on the tab before it paints, and
+   a tab left on Completed is put back on Outstanding, where an open one is. */
+function obOpenContract(cid, key){
   if(!window.openWorkspace) return;
+  if(key){
+    if(typeof window.insSelect === 'function') insSelect('oblig:' + cid, key);
+    if(_obtView[cid] === 'done') _obtView[cid] = 'open';
+  }
   openWorkspace(cid);
   const c = window.getContract ? getContract(cid) : null;
   if(c && window.roomGoTab) try{ roomGoTab(c, 'oblig'); }catch(_){}
@@ -3088,7 +3120,7 @@ function renderObligationsInspector(host){
   const narrowing = obwNarrowing(f).filter(k => k !== 'state');
   const folders = (window.visibleFolders ? visibleFolders() : Object.values(window.FOLDERS || {}));
   const opt = (list) => list.map(([k, key]) => [k, i18t(key)]);
-  const chips = [
+  const chips = obwOnlyChipHtml(f) + [
     insChipHtml({ attr:'data-obw-f', key:'whose', label: i18t('ob_f_whose'), cur: f.whose, def: OBW_DEF.whose, opts: opt(OBW_WHOSE) }),
     insChipHtml({ attr:'data-obw-f', key:'side', label: i18t('ob_f_side'), cur: f.side, def: OBW_DEF.side, opts: opt(OBW_SIDE) }),
     insChipHtml({ attr:'data-obw-f', key:'folder', label: i18t('ob_f_folder'), cur: f.folder, def: OBW_DEF.folder,
@@ -3122,7 +3154,8 @@ function renderObligationsInspector(host){
   obwPaintHead();
   host.querySelectorAll('[data-obw-view]').forEach(b => b.addEventListener('click', () => { f.state = b.getAttribute('data-obw-view'); obwRepaint(); }));
   host.querySelectorAll('[data-obw-f]').forEach(sel => sel.addEventListener('change', () => { f[sel.getAttribute('data-obw-f')] = sel.value; obwRepaint(); }));
-  host.querySelectorAll('[data-obw-clear]').forEach(b => b.addEventListener('click', () => { OBW_CHIPS.forEach(k => { f[k] = OBW_DEF[k]; }); obwRepaint(); }));
+  host.querySelectorAll('[data-obw-clear]').forEach(b => b.addEventListener('click', () => { OBW_CHIPS.forEach(k => { f[k] = OBW_DEF[k]; }); f.only = null; obwRepaint(); }));
+  host.querySelector('[data-obw-only-clear]')?.addEventListener('click', () => { f.only = null; obwRepaint(); });
   const tb = host.querySelector('.ob-lt tbody');
   const idOf = t => t.getAttribute('data-ob-key');
   const byKey = new Map(rows.map(r => [r._key, r]));
@@ -3314,4 +3347,4 @@ Object.assign(window,{obligationIsDoc,obligationDocUntil,obligationDocFile,oblig
   obligationReminderSay,obligationHistory,obligationStampHistory,obHistoryHtml,obChainSectionHtml,obDocSectionHtml,obWordingSectionHtml,
   obligationShowInContract,obKeyOf,obLocate,obPanelActs,obligationRemove,obOpenContract,obPanelOpts,obPaintPanel,obListHtml,obTableHtml,
   OBW_VIEWS,OBW_CHIPS,obwPlace,obwPlacePut,obwBook,obwPass,obwPaintHead,renderObligationsInspector,OBT_VIEWS,obtView,roomObligationsInspector,
-  OBLIG_RECUR,obRecurLabel,OBLIG_BANDS,OBLIG_TEXT_MIN,OB_NOTE_MAX,OBW_WHOSE,OBW_STATE,OBW_SIDE,OBW_DUE,obwFilters,obwNarrowing,obwRows,obwGoFiltered,obligationsDoorCount,renderObligationsList,obwRepaint,obligationSeriesOpenAt,obligationChase,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationOwnerTo,obligationIsMine,obligationRemindsMe,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,RENEWAL_ANSWERS,renewalQuestionOf,renewalDecisionOf,renewalDecisionStale,renewalDecided,renewalNoticeTo,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});
+  OBLIG_RECUR,obRecurLabel,OBLIG_BANDS,OBLIG_TEXT_MIN,OB_NOTE_MAX,OBW_WHOSE,OBW_STATE,OBW_SIDE,OBW_DUE,obwFilters,obwNarrowing,obwOnly,obwOnlyChipHtml,obwRows,obwGoFiltered,obligationsDoorCount,renderObligationsList,obwRepaint,obligationSeriesOpenAt,obligationChase,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationOwnerTo,obligationIsMine,obligationRemindsMe,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,RENEWAL_ANSWERS,renewalQuestionOf,renewalDecisionOf,renewalDecisionStale,renewalDecided,renewalNoticeTo,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});

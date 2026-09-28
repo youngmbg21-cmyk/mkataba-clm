@@ -365,11 +365,17 @@ describe('f254 (6) — the Insights page can see both now', () => {
     assert.equal(d.canSeeCompletedOn, true);
   });
 
-  test('and the footer stops listing a blind spot it can see', () => {
-    const html = IG_CODE.match(/const blind=`<section[\s\S]*?<\/section>`;/)[0];
-    assert.match(html, /d\.canSeeScan\?\[\]:/, 'drawn only while it is still true');
-    assert.match(html, /d\.canSeeCompletedOn\?\[\]:/);
-    assert.match(html, /int_ob_blind_3/, 'and the one that is deliberate stays');
+  /* RE-POINTED 28 Sep 2026: the owner's pick of the Reminder Line has no
+     footer. What this pinned still holds on the page as drawn: no blind spot
+     it can now see is listed, the uncounted are PRINTED on the on-time tile
+     rather than hidden, and the deliberate one — nobody owns a duty on THEIR
+     side — is said where it shows, on the lane for their side. */
+  test('and the page lists no blind spot it can see, and prints what it cannot count', () => {
+    const start = IG_CODE.indexOf('function intelObligationsHtml(');
+    const html = IG_CODE.slice(start, IG_CODE.indexOf('\nfunction ', start + 10));
+    assert.ok(!/int_ob_blind_[12]/.test(html), 'a closed blind spot is not drawn');
+    assert.match(html, /d\.ontime\.unknown\?i18t\('ob_rl_t_unknown'/, 'the ones that cannot answer are printed');
+    assert.match(html, /ob_rl_sub_nobody_theirs/, 'and their side says nobody on ours is named');
   });
 
   test('it BORROWS the reading rather than re-deriving it', () => {

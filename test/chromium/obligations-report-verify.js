@@ -11,16 +11,20 @@
       source of either half looked correct. So the press is DRIVEN and what
       arrives is read off the page.
 
-   2  DOES THE PAGE SAY WHAT IT COUNTED? Every headline figure on screen is
-      compared against the number intelObligationsData returned, so a panel
-      that quietly disagreed with its own data fails here.
+   2  DOES THE PAGE SAY WHAT IT COUNTED? Every figure on screen is compared
+      against the number intelObligationsData returned, so a tile that quietly
+      disagreed with its own data fails here — and the hollow dots are the
+      silent ones (RE-POINTED 28 Sep 2026 to the Reminder Line).
 
-   3  IS THE COLOUR TELLABLE APART, IN BOTH THEMES? Ours is the workspace
-      accent and theirs is amber — a pair that has to survive the teal
-      workspace, the navy one and the dark theme, which is exactly where this
-      product has been caught before. Measured as COMPUTED values.
+   3  IS THE COLOUR TELLABLE APART, IN BOTH THEMES? Will be reminded (a green
+      dot) against will reach nobody (a hollow ruby ring) — a pair that has to
+      survive the teal workspace, the navy one and the dark theme. Measured as
+      COMPUTED values.
 
    4  DOES IT FIT A LAPTOP? Measured at three widths, with no sideways scroll.
+
+   5  DOES EVERY DOOR LAND? A figure opens the Obligations list showing
+      exactly what it counted; a dot opens its own obligation, picked.
 
    Screenshots go to test/chromium/shots/obligations-report/.
    Run: node test/chromium/obligations-report-verify.js */
@@ -74,6 +78,7 @@ const apart = (a, b) => { const x = rgb(a), y = rgb(b);
         desc: 'A duty', due: '', recurring: 'none', assignee: '', status: 'open', quote: '' }, o);
       const mk = o => Object.assign({ valueType: 'standard', audit: [], folder: 'proc',
         rounds: [], obligations: [] }, o);
+      window.__seeded = state.contracts.slice();
       state.contracts = [
         mk({ id: 'MK-O1', name: 'Supply agreement', counterparty: 'Naivas', status: 'Signed',
           value: 9000000, expiry: day(300), obligations: [
@@ -151,56 +156,65 @@ const apart = (a, b) => { const x = rgb(a), y = rgb(b);
     check('1f · the live tab is bold', Number(landed.live) >= Number(landed.strong) && Number(landed.strong) >= 600,
       `${landed.live} (strong rung ${landed.strong})`);
 
-    /* ---- 2 · the page says what it counted ---- */
+    /* ---- 2 · the page says what it counted ----
+       RE-POINTED 28 Sep 2026 to the owner's pick, the Reminder Line: the hero,
+       the six cards and the chase list became one line and six tiles. What
+       this section asks is unchanged — every figure on screen is the number
+       the counter returned — and it now asks it of the tiles and the dots. */
     const d = await page.evaluate(() => intelObligationsData());
     const seen = await page.evaluate(() => {
       const host = document.getElementById('ig-oblig');
       const txt = el => (el ? (el.textContent || '').replace(/\s+/g, ' ').trim() : '');
-      const nums = sel => [...host.querySelectorAll(sel)].map(e => txt(e));
+      const tile = k => txt(host.querySelector(`[data-ob-rl-door="${k}"]`) ||
+        [...host.querySelectorAll('.ob-rl-tile')].find(t => t.getAttribute('data-ob-rl-door') === k));
       return {
         all: txt(host),
-        hero: txt(host.querySelector('section')),
-        panels: [...host.querySelectorAll('section')].length,
-        charts: [...host.querySelectorAll('[role="img"]')].map(e => e.getAttribute('aria-label')),
-        nums: nums('div'),
+        silent: tile('silent'), late: tile('late'), ahead: tile('ahead'), cover: tile('cover'),
+        sections: host.querySelectorAll('section').length,
+        tiles: host.querySelectorAll('.ob-rl-tile').length,
+        group: (host.querySelector('.ob-rl-grid') || {}).getAttribute ? host.querySelector('.ob-rl-grid').getAttribute('aria-label') : null,
+        dots: [...host.querySelectorAll('.ob-rl-dot')].map(e => ({ hollow: e.classList.contains('is-silent'), label: e.getAttribute('aria-label') })),
       };
     });
-    check('2a · the hero prints the silent count it computed',
-      new RegExp('(^|\\D)' + d.silent + '(\\D|$)').test(seen.hero), `${d.silent} · ${seen.hero.slice(0, 90)}`);
-    check('2b · every panel drew', seen.panels >= 7, seen.panels + ' sections');
-    check('2c · the overdue total is on the page',
-      seen.all.includes(String(d.overdue) + ' overdue'), d.overdue);
-    check('2d · the coverage split is on the page',
-      seen.all.includes(String(d.cover.withOb)) && seen.all.includes(String(d.cover.none)),
-      `${d.cover.withOb}/${d.cover.none}`);
-    check('2e · the ours/theirs legend spells its own counts out',
-      seen.all.includes('— ' + d.aheadOurs) && seen.all.includes('— ' + d.aheadTheirs),
-      `${d.aheadOurs}/${d.aheadTheirs}`);
+    check('2a · the "will reach nobody" tile prints the silent count it computed',
+      new RegExp('(^|\\D)' + d.silent + '(\\D|$)').test(seen.silent), `${d.silent} · ${seen.silent}`);
+    check('2b · the line and its six tiles drew', seen.sections === 1 && seen.tiles === 6,
+      `${seen.sections} section · ${seen.tiles} tiles`);
+    check('2c · the overdue total is on the Late tile',
+      new RegExp('(^|\\D)' + d.overdue + '(\\D|$)').test(seen.late), `${d.overdue} · ${seen.late}`);
+    check('2d · the coverage figures are on the page',
+      seen.cover.includes(String(d.cover.none)) && seen.cover.includes(String(d.cover.noneSigned) + ' signed'),
+      `${d.cover.none}/${d.cover.noneSigned} · ${seen.cover}`);
+    check('2e · the next-90-days tile spells ours and theirs out',
+      seen.ahead.includes('ours ' + d.aheadOurs) && seen.ahead.includes('theirs ' + d.aheadTheirs),
+      `${d.aheadOurs}/${d.aheadTheirs} · ${seen.ahead}`);
     check('2f · the declined and archived book is nowhere on the page',
       !seen.all.includes('Should not count'));
-    check('2g · every chart names itself for a reader who cannot see it',
-      seen.charts.length >= 4 && seen.charts.every(a => a && a.length > 10),
-      seen.charts.length + ' labelled');
+    check('2g · the line names itself, and every dot says its own sentence',
+      !!seen.group && seen.dots.length > 0 && seen.dots.every(x => x.label && x.label.length > 20),
+      `${seen.dots.length} dots`);
+    /* THE HOLLOW DOTS ARE THE HEADLINE — the one predicate's promise, read
+       off the page: every silent obligation with a day on the line is drawn
+       hollow, and nothing else is. */
+    const onLine = [...d.lanes.ours, ...d.lanes.theirs].flatMap(L => L.dots);
+    check('2h · the hollow dots are exactly the silent ones on the line',
+      seen.dots.filter(x => x.hollow).length === onLine.filter(x => !x.told).length
+        && seen.dots.length === onLine.length,
+      `${seen.dots.filter(x => x.hollow).length} hollow of ${seen.dots.length}`);
 
-    /* THE ROWS ADD UP TO MORE THAN THE HEADLINE, AND THE PAGE SAYS SO. This is
-       the one number on the report that looks like an arithmetic error and is
-       not: an obligation can fail two tests at once and the headline counts it
-       once. */
-    check('2h · the overlap between reasons is stated, not hidden',
-      d.silentOverlap === 0 || seen.all.includes('not ' + d.silent),
-      `sum ${d.reasonSum} vs ${d.silent}`);
-
-    /* ---- 3 · ours and theirs are tellable apart, in both themes ---- */
+    /* ---- 3 · told and not told are tellable apart, in both themes ----
+       RE-POINTED 28 Sep 2026: the page's one colour question is now "will
+       anybody be told" — a filled green dot against a hollow ruby ring — and
+       it must survive the dark theme and the navy workspace. Measured as
+       COMPUTED values. */
     const readPair = () => page.evaluate(() => {
       const host = document.getElementById('ig-oblig');
-      const dots = [...host.querySelectorAll('i')].map(e => getComputedStyle(e).backgroundColor);
-      const bars = [...host.querySelectorAll('span')]
-        .map(e => getComputedStyle(e).backgroundColor)
-        .filter(c => c && c !== 'rgba(0, 0, 0, 0)');
-      return { dots, bars, page: getComputedStyle(document.body).backgroundColor };
+      const told = host.querySelector('.ob-rl-dot.is-told'), sil = host.querySelector('.ob-rl-dot.is-silent');
+      return { dots: [told ? getComputedStyle(told).backgroundColor : '', sil ? getComputedStyle(sil).borderTopColor : ''],
+        page: getComputedStyle(document.body).backgroundColor };
     });
     const light = await readPair();
-    check('3a · light · ours and theirs are different colours',
+    check('3a · light · told and not told are different colours',
       light.dots.length >= 2 && apart(light.dots[0], light.dots[1]) > 40,
       `${light.dots[0]} vs ${light.dots[1]} — ${apart(light.dots[0], light.dots[1])}`);
     await page.screenshot({ path: path.join(OUT, 'report-light-1500.png'), fullPage: true });
@@ -216,9 +230,8 @@ const apart = (a, b) => { const x = rgb(a), y = rgb(b);
       `page ${dark.page}`);
     await page.screenshot({ path: path.join(OUT, 'report-dark-1500.png'), fullPage: true });
 
-    /* THE NAVY WORKSPACE MOVES THE ACCENT AND NOT THE AMBER, which is the whole
-       reason the pair is accent + amber rather than two accent-ish hues: the
-       calendar's own legend answered "green" twice for exactly this. */
+    /* THE NAVY WORKSPACE MOVES THE ACCENT, and neither status colour may be
+       the accent: green and ruby are fixed in every workspace. */
     await page.evaluate(() => { setDark(false); setBrand('navy'); });
     await page.waitForTimeout(700);
     const navy = await readPair();
@@ -245,22 +258,62 @@ const apart = (a, b) => { const x = rgb(a), y = rgb(b);
     await page.waitForTimeout(400);
     await page.screenshot({ path: path.join(OUT, 'report-1280.png'), fullPage: true });
 
-    /* ---- 5 · the chase list opens, and caps honestly ---- */
+    /* ---- 5 · every figure and dot is a door, and lands where it says ----
+       RE-POINTED 28 Sep 2026: the chase list this section opened went with the
+       owner's pick of the Reminder Line. What replaced it is a door on every
+       figure and dot, so the press is DRIVEN and what arrives is read off the
+       page: the list shows exactly the rows the figure counted, and a dot
+       opens its own obligation, picked, on its contract's Obligations tab. */
     await page.setViewportSize({ width: 1500, height: 1000 });
-    await page.waitForTimeout(400);
-    const chase = await page.evaluate(() => {
-      const s = document.querySelector('#ig-oblig details summary');
-      if (!s) return null;
-      s.click();
-      const rows = [...s.parentElement.querySelectorAll('tr')];
-      return { open: s.parentElement.open, rows: rows.length,
-        text: rows.map(r => (r.textContent || '').replace(/\s+/g, ' ').trim()) };
+    const waitFor = (fn, arg) => page.waitForFunction(fn, arg, { timeout: 10000 }).then(() => true, () => false);
+    const nobody = d.silent;
+    const tileLive = await page.evaluate(() => !!document.querySelector('#ig-oblig [data-ob-rl-door="silent"]'));
+    check('5a · the "will reach nobody" figure is a door', tileLive);
+    if (tileLive) {
+      await page.click('#ig-oblig [data-ob-rl-door="silent"]');
+      const landed5 = await waitFor(() => !!document.getElementById('obw-only'));
+      const list = await page.evaluate(() => ({
+        chip: ((document.getElementById('obw-only') || {}).textContent || '').trim(),
+        rows: document.querySelectorAll('[data-ins-row],[data-obw-row]').length }));
+      check('5b · it lands on the Obligations list showing exactly the ones it counted',
+        landed5 && list.rows === nobody, `${list.rows} rows for ${nobody} · chip "${list.chip}"`);
+      await page.screenshot({ path: path.join(OUT, 'door-list-1500.png') });
+      await page.click('[data-obw-only-clear]');
+      const cleared = await waitFor(() => !document.getElementById('obw-only'));
+      check('5c · the chip is also the way out of the narrowing', cleared);
+    }
+    /* A DOT OPENS ITS OBLIGATION IN ITS OWN PLACE. The report above is drawn
+       off records staged in the browser, which the server does not hold, so
+       this half stages its two promises on a contract the server really has. */
+    const real = await page.evaluate(() => {
+      const me = currentUser();
+      const day = off => { const x = new Date(); x.setDate(x.getDate() + off);
+        return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; };
+      const c = (window.__seeded || []).find(x => x.status === 'Signed');
+      if (!c) return null;
+      c.obligations = [
+        { id: 'rl-first', desc: 'A promise that sorts first', due: day(40), status: 'open', party: 'ours', assignee: me.name, recurring: 'none' },
+        { id: 'rl-target', desc: 'The promise this dot is', due: day(5), status: 'open', party: 'ours', assignee: me.name, recurring: 'none' }];
+      persist(c);
+      state.contracts = [c];
+      return c.id;
     });
-    check('5a · the chase list opens on a press', chase && chase.open, chase && chase.rows);
-    check('5b · it carries a header row so the figures are named',
-      chase && /Counterparty/i.test(chase.text[0] || ''), chase && chase.text[0]);
-    check('5c · it names the counterparties it counted',
-      chase && chase.text.join(' ').includes(d.chase[0].name), d.chase[0] && d.chase[0].name);
+    check('5d · a contract the server holds was staged', !!real, real);
+    if (real) {
+      await page.waitForTimeout(900);   // persist() is debounced at 400ms
+      await page.evaluate(() => { intel.tab = 'obligations'; setView('intel'); });
+      await waitFor(() => !!document.querySelector('#ig-oblig .ob-rl-dot'));
+      const key = await page.evaluate(() => {
+        const b = [...document.querySelectorAll('#ig-oblig .ob-rl-dot')].find(x => /The promise this dot is/.test(x.title || ''));
+        if (!b) return null;
+        const k = b.getAttribute('data-ob-rl-key'); b.click(); return k;
+      });
+      const picked = key ? await waitFor(k => !!document.querySelector(`[data-ob-key="${k}"].is-sel`), key) : false;
+      check('5e · a dot opens its obligation, picked, on the contract’s Obligations tab', picked, key);
+      await page.screenshot({ path: path.join(OUT, 'door-dot-1500.png') });
+    }
+    await page.evaluate(() => { intel.tab = 'obligations'; setView('intel'); });
+    await page.waitForTimeout(400);
 
     /* ---- 6 · an empty book says so rather than drawing six empty panels ---- */
     await page.evaluate(() => { state.contracts = []; renderIntel(); });

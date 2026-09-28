@@ -3064,6 +3064,7 @@ function renderIntel(){
       ${headerHtml}
       <div id="ig-oblig" class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;background:var(--color-bg);padding:9px 20px 14px">${intelObligationsHtml()}</div>
     </div>`;
+    intelObligationsWire(document.getElementById('ig-oblig'));
     document.querySelectorAll('[data-ig-tab]').forEach(b=>b.addEventListener('click',()=>{ intel.tab=b.getAttribute('data-ig-tab'); renderIntel(); }));
     setActiveNav('intel');
     return;
@@ -3919,6 +3920,55 @@ const OB_HORIZON = 90;        // the forward window — the renewal card's own 9
    reached wherever either resolves. The two lines above are THEIR side. */
 const OB_LAST_OWNED = -4, OB_LAST_UNOWNED = -1, OB_BRIEF_FLOOR = -30;
 const OB_LAST_OURS = -1;
+/* And the FIRST milestone, the same on both sweeps: seven days before the
+   date (runReminders' `od === 7`, runOurPromises' MILESTONE key 7). */
+const OB_FIRST_DAYS = 7;
+
+/* ---- WILL A REMINDER REACH THE PERSON WHO OWES THIS, EVER AGAIN? ----
+   THE ONE PREDICATE (28 Sep 2026, the Reminder Line). The page's headline
+   count and the line's hollow dots and green windows all ask THIS, per
+   obligation, so the picture and the figure cannot come to disagree about
+   who is told — a second copy of the rule is how that starts.
+   No readable date and nothing fires at all. Nobody the mail resolves to and
+   nothing ever reaches a person who owes it — the one admin note on day 1 is
+   a note to a bystander, not a reminder to an owner. Past the last milestone
+   and every mail has already gone. Who the mail resolves to is the server's
+   own lookup, mirrored in js/obligations.js: obligationReminderTo (the
+   sweep's obligationRecipient) for the assignee and, on OUR side only,
+   obligationOwnerTo (runOurPromises' contractOwnerRecipient) after it.
+   `first`..`last` is the window, in days before the date, in which the person
+   is written to: 7 before to the day after on ours; theirs runs on to the
+   admins' day-four mail, which is what keeps it counted as reached until then.
+   Read through window because this module draws on stages where
+   js/obligations.js is not loaded; without it nobody resolves, which
+   over-reports silence rather than under-reporting it — the safe direction on
+   a page whose whole subject is what goes unsaid. */
+function obReminderOf(o, c){
+  const raw=String((o&&o.due)||'').trim();
+  const due=(typeof obligationDue==='function')?obligationDue(o):(raw||null);
+  const od=due?daysUntil(due):null;
+  const theirs=(typeof obligationIsTheirs==='function')?obligationIsTheirs(o):((o&&o.party)==='theirs');
+  const ours=!theirs;
+  const typed=String((o&&o.assignee)||'').trim();
+  const mem=(typed&&typeof window.obligationReminderTo==='function')?obligationReminderTo({ assignee:typed }):null;
+  const owner=(!mem&&ours&&typeof window.obligationOwnerTo==='function')?obligationOwnerTo(c):null;
+  const owned=!!mem, reach=owned||!!owner;
+  const last=ours?OB_LAST_OURS:OB_LAST_OWNED;
+  const bad=(due==null);
+  const spent=(due!=null&&od!=null&&od<(ours?OB_LAST_OURS:owned?OB_LAST_OWNED:OB_LAST_UNOWNED));
+  const quiet=bad||!reach||(od!=null&&od<last);
+  const why=[];
+  if(quiet){
+    if(bad) why.push(raw?'unreadable':'nodate');
+    if(!reach){ if(!typed) why.push('noowner'); else why.push('gone'); }
+    if(spent) why.push('spent');
+  }
+  const to=mem||owner;
+  return { due, raw, od, ours, typed, owned, reach,
+    memberId: mem&&mem.id!=null?String(mem.id):'', memberName: mem?String(mem.name||typed):'',
+    to: mem?'assignee':(owner?'owner':null), toName: to?String(to.name||''):'',
+    first:OB_FIRST_DAYS, last, spent, quiet, why };
+}
 
 /* ═══ THE EXPOSURE REGISTER (S10, 16 Sep 2026) ═══════════════════════════
    *"A risk score out of 100 — every competitor has one and none can explain
@@ -4388,49 +4438,26 @@ function intelObligationsData(){
      doing has no deliverables, and an archived record is filed, not live. */
   const live=S.filter(c=>c&&c.status!=='Declined'&&!c.archived);
 
-  /* WHO THE MAIL WOULD REACH, resolved exactly as the server's
-     obligationRecipient does: email first, then name, case-insensitively, and
-     only where the member has an address to write to. The whole roster is in
-     every browser already (the reviewer picker and the approval rules need
-     it), so this needs no route — but it must stay the SAME reading, or the
-     page and the sweep disagree about who gets told. */
-  /* ---- ONE READING, RE-POINTED 29 Aug 2026 (J-2.1) ----
-     This page worked the resolution out for itself when it was built, and the
-     Obligations tab then needed the same answer. Two answers to "will anybody
-     be told" is exactly how a page comes to contradict the sweep that sends
-     the mail, so it is `obligationReminderTo` in js/obligations.js now — the
-     same rule, in one place, asked by both. Read through window because this
-     module draws on stages where that file is not loaded; without it the
-     fallback below answers "nobody resolves", which over-reports silence
-     rather than under-reporting it, and that is the safe direction on a page
-     whose whole subject is what goes unsaid. */
-  const resolves=a=>{
-    if(typeof window.obligationReminderTo!=='function') return false;
-    return !!obligationReminderTo({ assignee:a });
-  };
-
-  /* THE CONTRACT'S OWNER, AS OUR PROMISES WRITES TO THEM: the stored id
-     first, the name second, a member with an address (the server's
-     contractOwnerRecipient). */
-  const ownerReaches=c=>{
-    const ow=c&&c.owner; if(!ow) return false;
-    let us=[]; try{ us=(typeof window.getUsers==='function')?(getUsers()||[]):[]; }catch(_){ us=[]; }
-    const hit=ow.id!=null?us.find(u=>u&&String(u.id)===String(ow.id)):null;
-    if(hit) return /.+@.+\..+/.test(String(hit.email||'').trim());
-    return resolves(ow.name||'');
-  };
-  const dueOf=o=>(typeof obligationDue==='function')?obligationDue(o):(((o&&o.due)||null));
+  /* WHO THE MAIL WOULD REACH, AND WHEN, IS obReminderOf's — above, beside
+     the sweep's own milestones. It was worked out inline here until the
+     Reminder Line (28 Sep 2026) drew the same answer as dots and windows:
+     one predicate, asked once per obligation, feeds both the counts and the
+     picture, so the two cannot disagree about who is told. */
   const stateOf=o=>(typeof obState==='function')?obState(o):((o&&o.status)==='done'?'done':'open');
-  const isTheirs=o=>(typeof obligationIsTheirs==='function')?obligationIsTheirs(o):((o&&o.party)==='theirs');
+  /* THE KEY EVERY DOOR NARROWS BY is the Obligations list's own (obKeyOf), so
+     a figure here opens exactly the rows it counted. Absent on a stage without
+     js/obligations.js, where there is no list to open either. */
+  const keyOf=(c,o,i)=>(typeof window.obKeyOf==='function')?obKeyOf(c.id,o,i):null;
 
   let total=0, open=0, done=0, overdue=0, silent=0, reasonSum=0;
   const why={ nodate:0, unreadable:0, noowner:0, gone:0, spent:0 };
   const ages=[0,0,0,0];                    // 1–4 · 5–30 · 31–90 · 90+ days overdue
-  const months=new Map();                  // 'YYYY-MM' → {ours, theirs}
-  const chase=new Map();                   // counterparty → what they owe us
-  const owners=new Map();                  // our side, by the person carrying it
   const repeat={ monthly:0, quarterly:0, annual:0 };
   let repeatTotal=0, ahead=0, aheadOurs=0, aheadTheirs=0;
+  /* THE SETS BEHIND EVERY FIGURE — the keys a door narrows the Obligations
+     list to, and the contract ids for the one figure that counts contracts. */
+  const keys={ silent:[], overdue:[], ahead:[], ontime:[], stopped:[], ours:[], theirs:[] };
+  const coverIds=[];
   /* J-2.2: the record carries `obligationsReadAt` now, stamped by the scan and
      by nothing else, so the contracts with nothing on file finally split — one
      read and genuinely clear, one nobody has ever opened. ABSENCE IS "NO
@@ -4445,19 +4472,38 @@ function intelObligationsData(){
      because an inferred date is a guess wearing a fact's clothes. */
   const ontime={ on:0, late:0, unknown:0 };
 
+  /* ---- THE LANES (the Reminder Line, owner-picked 28 Sep 2026) ----
+     One lane per person carrying an obligation — on OUR side the colleague
+     who owes it, on THEIRS the colleague watching it — and one for nobody.
+     A person is one lane however their name was typed: the lane is keyed on
+     the member the mail resolves to, and on the typed name only where
+     nobody resolves. */
+  const lanes={ ours:new Map(), theirs:new Map() };
+  const laneOf=(side,r)=>{
+    const k=r.memberId?'u:'+r.memberId:(r.typed?'n:'+r.typed.toLowerCase():'');
+    let L=lanes[side].get(k);
+    if(!L){
+      L={ key:k, side, name:r.owned?r.memberName:r.typed, named:!!r.typed, owned:r.owned,
+        n:0, dots:[], later:[], nodate:[], keys:[], viaOwner:0, unreached:0, first:r.first, last:r.last };
+      lanes[side].set(k,L);
+    }
+    return L;
+  };
+
   live.forEach(c=>{
     const list=(c.obligations||[]);
     if(list.length) cover.withOb++;
     else {
-      cover.none++;
+      cover.none++; coverIds.push(c.id);
       if(c.obligationsReadAt) cover.noneClear++; else cover.noneUnknown++;
       if(c.status==='Signed') cover.noneSigned++;
       else if(c.status==='Under Review') cover.noneReview++;
       else if(c.status==='Draft') cover.noneDraft++;
       else cover.noneOther++;
     }
-    list.forEach(o=>{
+    list.forEach((o,i)=>{
       total++;
+      const key=keyOf(c,o,i);
       if(stateOf(o)==='done'){
         done++;
         /* ON TIME, LATE, OR UNANSWERABLE — obligationOnTime is the one reading
@@ -4467,6 +4513,7 @@ function intelObligationsData(){
            completion date would be the fault this whole page exists to name. */
         const ot=(typeof window.obligationOnTime==='function')?obligationOnTime(o):null;
         if(ot===true) ontime.on++; else if(ot===false) ontime.late++; else ontime.unknown++;
+        if(ot!=null&&key) keys.ontime.push(key);
         /* MARKED REPEATING, AND SINCE J-2.2 IT REALLY DOES REPEAT — completing
            an instance opens the next one on the same cadence. The reading is
            unchanged and is what makes that safe: a commitment counts as
@@ -4477,100 +4524,102 @@ function intelObligationsData(){
         if(cad!=='none'&&Object.prototype.hasOwnProperty.call(repeat,cad)){
           const d=String((o&&o.desc)||'').trim().toLowerCase();
           const alive=list.some(x=>x!==o&&String((x&&x.desc)||'').trim().toLowerCase()===d&&stateOf(x)!=='done');
-          if(!alive){ repeat[cad]++; repeatTotal++; }
+          if(!alive){ repeat[cad]++; repeatTotal++; if(key) keys.stopped.push(key); }
         }
         return;
       }
       open++;
-      const raw=String((o&&o.due)||'').trim();
-      const due=dueOf(o);
-      const od=due?daysUntil(due):null;
-      const named=!!String((o&&o.assignee)||'').trim();
-      const owned=resolves(o&&o.assignee);
-
-      /* ---- WILL A REMINDER REACH THE PERSON WHO OWES THIS, EVER AGAIN? ----
-         No readable date and nothing fires at all. Nobody the mail resolves to
-         and nothing ever reaches a person who owes it — the one admin note on
-         day 1 is a note to a bystander, not a reminder to an owner. Past the
-         last milestone and every mail has already gone. */
-      const bad=(due==null);
-      const ours=!isTheirs(o);
-      const reach=owned||(ours&&ownerReaches(c));
-      const last=ours?OB_LAST_OURS:OB_LAST_OWNED;
-      const spent=(due!=null&&od!=null&&od<(ours?OB_LAST_OURS:owned?OB_LAST_OWNED:OB_LAST_UNOWNED));
-      const quiet=bad||!reach||(od!=null&&od<last);
-      if(quiet){
+      const r=obReminderOf(o,c);
+      const od=r.od, due=r.due;
+      if(r.quiet){
         silent++;
-        const r=[];
-        if(bad) r.push(raw?'unreadable':'nodate');
-        if(!reach){ if(!named) r.push('noowner'); else if(!owned) r.push('gone'); }
-        if(spent) r.push('spent');
-        r.forEach(k=>{ why[k]++; });
-        reasonSum+=r.length;
+        r.why.forEach(k=>{ why[k]++; });
+        reasonSum+=r.why.length;
+        if(key) keys.silent.push(key);
       }
 
       if(due!=null&&od!=null&&od<0){
         overdue++;
+        if(key) keys.overdue.push(key);
         const a=-od;
         if(a<=4) ages[0]++; else if(a<=30) ages[1]++; else if(a<=90) ages[2]++; else ages[3]++;
       }
 
       if(due!=null&&od!=null&&od>=0&&od<=OB_HORIZON){
         ahead++;
-        const k=due.slice(0,7);
-        const m=months.get(k)||{key:k,ours:0,theirs:0};
-        if(isTheirs(o)){ m.theirs++; aheadTheirs++; } else { m.ours++; aheadOurs++; }
-        months.set(k,m);
-        if(isTheirs(o)){
-          const cp=String((c&&c.counterparty)||'').trim()||'—';
-          const e=chase.get(cp)||{name:cp,n:0,soonest:null,what:[]};
-          e.n++;
-          if(!e.soonest||due<e.soonest) e.soonest=due;
-          if(e.what.length<2&&(o&&o.desc)) e.what.push(String(o.desc));
-          chase.set(cp,e);
-        }
+        if(key) keys.ahead.push(key);
+        if(r.ours) aheadOurs++; else aheadTheirs++;
       }
 
-      /* WHO IS CARRYING WHAT is OUR side only: we hold no staff list for the
-         counterparty and are not going to keep one, so "theirs" has no owner
-         to group by — which is exactly why the chase list above exists. */
-      if(!isTheirs(o)){
-        const nm=String((o&&o.assignee)||'').trim();
-        const e=owners.get(nm)||{name:nm,n:0,over:0,resolves:nm?owned:false};
-        e.n++;
-        if(od!=null&&od<0) e.over++;
-        owners.set(nm,e);
-      }
+      /* ---- ONTO ITS LANE, AS A DOT THE PREDICATE ALREADY DECIDED ----
+         `told` IS `!quiet` and nothing else: a hollow dot is exactly an
+         obligation the headline counts. Undated ones are listed, not drawn —
+         there is no day to put them on. Past the horizon they are counted on
+         the lane and drawn on no day either. */
+      const side=r.ours?'ours':'theirs';
+      if(key) keys[side].push(key);
+      const L=laneOf(side,r);
+      L.n++;
+      if(key) L.keys.push(key);
+      if(!r.reach) L.unreached++;
+      else if(r.to==='owner') L.viaOwner++;
+      const dot={ key, cid:c.id, desc:String((o&&o.desc)||''), cp:String((o&&o.counterparty)||c.counterparty||''),
+        contract:String(c.name||''), due, raw:r.raw, od, told:!r.quiet, why:r.why.slice(),
+        to:r.to, toName:r.toName, typed:r.typed, ours:r.ours };
+      if(due==null) L.nodate.push(dot);
+      else if(od>OB_HORIZON) L.later.push(dot);
+      else L.dots.push(dot);
     });
   });
 
-  /* THE UNASSIGNED PILE SORTS FIRST ON PURPOSE: it is the only row on that
-     panel nobody is being emailed about. Everyone else by load, heaviest
-     first, and a name that no longer resolves keeps its place with its own
-     mark rather than being folded into "nobody". */
-  const ownerRows=[...owners.values()].sort((a,b)=>
-    (a.name?1:0)-(b.name?1:0) || b.n-a.n || String(a.name).localeCompare(String(b.name)));
-  const chaseRows=[...chase.values()].sort((a,b)=>
-    String(a.soonest||'9999').localeCompare(String(b.soonest||'9999')) || b.n-a.n);
-  const monthRows=[...months.values()].sort((a,b)=>a.key.localeCompare(b.key));
+  /* ---- THE WINDOW A LANE DRAWS IS THE PREDICATE'S OWN ----
+     Drawn only where EVERY obligation on the lane reaches somebody: a lane of
+     one colleague the sweep can write to, or of promises whose contracts'
+     owners all can be — so a hollow dot never sits in a window claiming that
+     person is emailed about it. `first`/`last` came off obReminderOf. */
+  /* THE APPROVED DRAWING'S ORDER, in both groups: the colleagues the mail
+     can reach, then nobody's pile, then names the mail cannot reach — so the
+     lanes read from "told" down to "told nobody". Heaviest first inside each,
+     so the one person carrying too much is the first of them read. A cap is
+     a fact: past OB_ROWS+1 lanes the rest share ONE lane that says how many
+     people it holds, and every dot is still drawn. */
+  const rank=l=>l.owned?0:(!l.named?1:2);
+  const laneRows=side=>{
+    const all=[...lanes[side].values()].sort((a,b)=>
+      rank(a)-rank(b) || b.n-a.n || String(a.name).localeCompare(String(b.name)));
+    const cap=OB_ROWS+1;
+    let rows=all;
+    if(all.length>cap){
+      const rest=all.slice(cap-1);
+      const m={ key:'more', side, name:'', named:true, owned:rest.every(l=>l.owned), more:rest.length,
+        n:0, dots:[], later:[], nodate:[], keys:[], viaOwner:0, unreached:0, first:rest[0].first, last:rest[0].last };
+      rest.forEach(l=>{ m.n+=l.n; m.dots.push(...l.dots); m.later.push(...l.later); m.nodate.push(...l.nodate);
+        m.keys.push(...l.keys); m.viaOwner+=l.viaOwner; m.unreached+=l.unreached; });
+      rows=all.slice(0,cap-1).concat([m]);
+    }
+    return rows.map(l=>Object.assign(l,{
+      band:(l.n>0&&l.unreached===0)?{ first:l.first, last:l.last }:null,
+      laterKeys:l.later.map(d=>d.key).filter(Boolean),
+      nodateKeys:l.nodate.map(d=>d.key).filter(Boolean),
+    }));
+  };
 
   return {
     contracts:live.length, total, open, done, overdue,
     silent, why, reasonSum, silentOverlap:Math.max(0,reasonSum-silent),
     ages, pastBoth:ages[2]+ages[3],
-    ahead, aheadOurs, aheadTheirs, months:monthRows,
-    chase:chaseRows.slice(0,OB_ROWS),
-    chaseMore:Math.max(0,chaseRows.length-OB_ROWS),
-    chaseMoreN:chaseRows.slice(OB_ROWS).reduce((s,r)=>s+r.n,0),
-    owners:ownerRows.slice(0,OB_ROWS+1),
-    ownersMore:Math.max(0,ownerRows.length-(OB_ROWS+1)),
-    repeat, repeatTotal, cover,
-    /* SAID OUT LOUD, not guessed: neither of these is on the record today. */
-    ontime,
+    ahead, aheadOurs, aheadTheirs, horizon:OB_HORIZON,
+    repeat, repeatTotal, cover, coverIds,
+    ontime, keys,
+    lanes:{ ours:laneRows('ours'), theirs:laneRows('theirs') },
+    /* The line's own furniture, read off the sweep's milestones rather than
+       typed into the renderer: where the daily brief lets go, and where the
+       first mail goes out. */
+    briefFloor:OB_BRIEF_FLOOR, firstDays:OB_FIRST_DAYS,
     /* BOTH CLOSED 29 Aug 2026 (J-2.2). They were `false` and said so on the
        cards; the fields exist now, so the panels are real. What is still not
-       on the record — who owns a duty on THEIR side — is deliberate and stays
-       in the footer. */
+       on the record — who owns a duty on THEIR side — is deliberate, and the
+       lane for their side says so ("nobody on our side named"). */
     canSeeScan:true, canSeeCompletedOn:true,
   };
 }
@@ -4603,16 +4652,18 @@ const obFlag=(txt,bg,fg)=>`<span style="font-size:var(--t-figure);font-weight:va
    so the pair stays tellable apart whichever brand is on; a second accent-ish
    hue would collapse into the accent in one of them, which is the trap the
    calendar's own legend already paid for once.
-   On the AGE chart colour answers a different question — is anything still
-   being sent? — so the first two bars are amber and the last two ruby, and the
-   line under them says where the cut falls. Every bar carries its own figure
-   and every legend spells the count out, so no reading rests on the hue. */
+   The pair is the payment-terms tab's now: since the Reminder Line (28 Sep
+   2026) the obligations page's one colour question is "will anybody be
+   told" — green filled, ruby hollow — and the SHAPE (filled or hollow) says
+   it too, so no reading rests on the hue. */
 /* A MONTH IS A WORD, so it follows the reader's LANGUAGE and not the market's
    (langLocale), and it carries its whole YEAR — "Jan" on an axis beside a
    calendar showing next January is two surfaces that read as though they
    disagree. portfolio.js's pfMonthLabel says the same thing and cannot be
    borrowed: it takes an OFFSET from this month, and these keys are calendar
-   months off the obligations themselves. */
+   months off the obligations themselves.
+   NO CALLER SINCE THE REMINDER LINE (28 Sep 2026), which prints DAYS through
+   obDay; kept published because it is a correct reading f247 still pins. */
 function obMonthLabel(key){
   const m=/^(\d{4})-(\d{2})$/.exec(String(key||''));
   if(!m) return String(key||'');
@@ -4622,9 +4673,32 @@ function obMonthLabel(key){
 }
 const OB_OURS='var(--accent-solid,var(--color-accent))';
 const OB_THEIRS='var(--st-amber-dot,#f59e0b)';
-const OB_REACHED='var(--st-amber-dot,#f59e0b)';
-const OB_UNREACHED='var(--st-ruby-dot,#e11d48)';
 
+/* ════ THE REMINDER LINE (owner-picked by name, 28 Sep 2026) ════════════════
+   *"Reminder Line"* off three drawn options (Silence First · Reminder Line ·
+   Who Owes What), then "build". Every open obligation is a dot on the day it
+   falls due, in a lane for the person carrying it — our colleague who owes
+   it, or the colleague watching what they owe us — and one lane for nobody.
+   A green window in a lane is when the reminder emails about a due date
+   sitting there go out; a hollow dot will never be emailed about; overdue
+   sits left of the Today line. Six tiles under it carry today's other
+   readings, each a door.
+
+   IT DRAWS AND COUNTS NOTHING. Every dot, window and figure is
+   intelObligationsData's, and hollow/filled and the window are obReminderOf's
+   — the ONE predicate the headline count asks too.
+
+   THE DESIGNER'S NAMED LIMIT, KEPT: why a dot is silent is only in its hover.
+   The hover says it in plain words (the reason, never a code), and so does
+   the dot's own label for a reader who cannot hover.
+
+   EVERY DOT AND FIGURE IS A DOOR, AND A ZERO IS NOT ONE. A dot opens its
+   obligation in its own place (the contract's Obligations tab, that row
+   picked — obOpenContract). A figure opens the Obligations list showing
+   exactly the obligations it counted (obwGoFiltered's `only`, keyed the list's
+   own way, obKeyOf), and "Nothing recorded" opens those contracts on the
+   Contracts list (regShowOnly). The sets are the ones this paint drew. */
+const _obRlDoors=new Map();
 function intelObligationsHtml(){
   const d=intelObligationsData();
   const E=igEsc;
@@ -4633,245 +4707,192 @@ function intelObligationsHtml(){
     <div style="max-width:560px;margin:var(--s-10) auto;text-align:center;color:var(--color-neutral-600);font-size:var(--t-body);line-height:1.6">
     <b style="color:var(--color-text)">${i18t('int_ob_none')}</b><br/>${i18t('int_ob_none_why')}</div></div>`;
 
-  /* ---- the hero: what is quiet, and why ---- */
-  const RULE='border-bottom:1px solid var(--color-divider)';
-  const reasons=[
-    ['nodate',    i18t('int_ob_r_nodate'),     i18t('int_ob_r_nodate_why')],
-    ['noowner',   i18t('int_ob_r_noowner'),    i18t('int_ob_r_noowner_why')],
-    ['spent',     i18t('int_ob_r_spent'),      i18t('int_ob_r_spent_why')],
-    ['gone',      i18t('int_ob_r_gone'),       i18t('int_ob_r_gone_why')],
-    ['unreadable',i18t('int_ob_r_unreadable'), i18t('int_ob_r_unreadable_why')],
-  ].map(([k,label,why])=>({k,label,why,v:d.why[k]||0}))
-   .filter(r=>r.v>0).sort((a,b)=>b.v-a.v);
-  const rmax=reasons.length?reasons[0].v:1;
-  const bar=(w,fill)=>`<span style="display:block;height:7px;margin-top:5px;border-radius:var(--radius);background:var(--color-neutral-100);overflow:hidden"><span style="display:block;height:100%;width:${Math.max(2,Math.round(w))}%;border-radius:var(--radius);background:${fill}"></span></span>`;
-  const reasonRows=reasons.map(r=>`<div style="display:grid;grid-template-columns:1fr 46px;gap:9px;align-items:center;padding:7px 0;${RULE}">
-    <span style="min-width:0"><span style="font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text)">${E(r.label)}</span>
-      <span style="font-size:var(--t-label);color:var(--color-neutral-600)"> — ${E(r.why)}</span>
-      ${bar(r.v/rmax*100, OB_UNREACHED)}</span>
-    <span style="text-align:right;font-size:var(--t-section);${OB_NUM}">${n(r.v)}</span></div>`).join('');
-  const heroShare=d.open?Math.round(d.silent/d.open*1000)/10:0;
-  const hero=`<section style="${OB_CARD};display:grid;grid-template-columns:minmax(260px,1fr) minmax(300px,1.35fr);gap:var(--s-3) 26px;padding:15px 17px">
-    <div style="min-width:0;max-width:46ch">
-      <div style="font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)">${i18t('int_ob_hero_k')}</div>
-      <div style="${OB_NUM};font-size:44px;line-height:1.02;margin:2px 0 6px;color:${d.silent?'var(--st-ruby-fg,#b91c1c)':'var(--color-text)'}">${n(d.silent)}</div>
-      <p style="font-size:var(--t-body);line-height:1.55;color:var(--color-neutral-800);margin:0">${
-        d.silent
-          ? i18t('int_ob_hero_say',{n:n(d.silent),total:n(d.open)})
-          : i18t('int_ob_hero_clear',{total:n(d.open)})}</p>
-      <div style="font-size:var(--t-label);color:var(--color-neutral-600);margin-top:8px;font-variant-numeric:tabular-nums">${
-        i18t('int_ob_hero_of',{pct:heroShare, open:n(d.open), contracts:n(d.contracts)})}</div>
+  /* ---- the doors: a set remembered under an id, pressed by the wire ---- */
+  _obRlDoors.clear();
+  const listDoor=typeof window.obwGoFiltered==='function';
+  const regDoor=typeof window.regShowOnly==='function';
+  const doorOf=(id,spec)=>{
+    const set=spec.kind==='contracts'?spec.ids:spec.keys;
+    if(!set||!set.length) return null;
+    if(spec.kind==='contracts'?!regDoor:!listDoor) return null;
+    _obRlDoors.set(id,spec);
+    return id;
+  };
+  /* A figure in a column: an em-dash for zero, a door otherwise. */
+  const figHtml=(id,v,keys,label,tip,ruby)=>{
+    if(!v) return '&mdash;';
+    const door=doorOf(id,{ kind:'obligations', keys, label, state:'open' });
+    return door
+      ? `<button type="button" class="ob-rl-fig${ruby?' is-ruby':''}" data-ob-rl-door="${door}" title="${E(tip)}">${n(v)}</button>`
+      : `<span title="${E(tip)}">${n(v)}</span>`;
+  };
+
+  /* ---- the line's scale: the report's own horizon either side of today ---- */
+  const H=d.horizon;
+  const X=off=>((Math.max(-H,Math.min(H,off))+H)/(2*H)*100);
+  /* A LOCAL day, like todayISO — never toISOString, which is UTC. */
+  const isoAt=off=>{ const t=new Date(); t.setHours(0,0,0,0); t.setDate(t.getDate()+off);
+    return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`; };
+  const dayWord=iso=>(typeof window.obDay==='function'&&obDay(iso))||(typeof regDotDate==='function'?regDotDate(iso):iso);
+  const pct=v=>Math.round(v*100)/100;
+
+  /* ---- a dot's hover: what it is, when, and who is told — or why nobody ---- */
+  const whyWords=dt=>dt.why.map(k=>
+      k==='nodate'?i18t('ob_rl_why_nodate')
+    : k==='unreadable'?i18t('ob_rl_why_unreadable',{ raw:dt.raw })
+    : k==='noowner'?i18t(dt.ours?'ob_rl_why_noowner_ours':'ob_rl_why_noowner_theirs')
+    : k==='gone'?i18t(dt.ours?'ob_rl_why_gone_ours':'ob_rl_why_gone_theirs',{ who:dt.typed })
+    : i18t('ob_rl_why_spent')).join('; ');
+  const dotSay=dt=>{
+    const head=[dt.desc, [dt.cp, dt.contract].filter(Boolean).join(' · ')].filter(Boolean).join(' — ');
+    const when=dt.od==null?i18t('ob_rl_dot_nodate')
+      : dt.od<0?i18tn('ob_rl_dot_late',-dt.od,{ date:dayWord(dt.due) })
+      : dt.od===0?i18t('ob_rl_dot_today')
+      : i18t('ob_rl_dot_due',{ date:dayWord(dt.due) });
+    const who=dt.told
+      ? i18t(dt.to==='owner'?'ob_rl_dot_to_owner':'ob_rl_dot_to',{ who:dt.toName })
+      : i18t('ob_rl_dot_silent',{ why:whyWords(dt) });
+    return `${head}\n${i18t(dt.ours?'ob_side_ours':'ob_side_theirs')} · ${when}\n${who}`;
+  };
+
+  /* ---- one lane ---- */
+  const ownerSays=L=>L.viaOwner===0?i18t('ob_rl_sub_owner_none')
+    : L.viaOwner===L.n?i18t('ob_rl_sub_owner_all')
+    : i18tn('ob_rl_sub_owner_some',L.viaOwner,{ n:n(L.viaOwner) });
+  const laneHtml=(L,idx)=>{
+    let name, sub, ruby=false;
+    if(L.key==='more'){ name=i18tn('ob_rl_more_people',L.more,{ n:n(L.more) }); sub=i18t('ob_rl_sub_more'); }
+    else if(!L.named){
+      name=i18t(L.side==='ours'?'ob_rl_nobody_ours':'ob_rl_nobody_theirs'); ruby=true;
+      sub=L.side==='ours'?ownerSays(L):i18t('ob_rl_sub_nobody_theirs');
+    } else {
+      name=L.side==='theirs'?i18t('ob_rl_chasing',{ who:L.name }):L.name;
+      ruby=!L.owned;
+      sub=L.owned?i18t('ob_rl_sub_member')
+        :i18t('ob_rl_sub_gone')+(L.side==='ours'&&L.viaOwner?' · '+ownerSays(L):'');
+    }
+    /* DOTS THAT WOULD TOUCH STACK, so two promises on one day are two dots. */
+    const lv=[];
+    const pos=L.dots.slice().sort((a,b)=>a.od-b.od).map(dt=>{
+      const x=X(dt.od); let k=0;
+      while(lv[k]!=null&&x-lv[k]<1.6) k++;
+      lv[k]=x; return { dt, x, k };
+    });
+    const h=36+(Math.max(1,lv.length)-1)*13;
+    const who=L.key==='more'?i18t('ob_rl_win_more')
+      : (L.side==='ours'&&!L.owned)?i18t('ob_rl_owner_word'):L.name;
+    const band=L.band?`<div class="ob-rl-past" style="width:${pct(X(L.band.last))}%" title="${E(i18t('ob_rl_past_tip'))}"></div>
+      <div class="ob-rl-win" style="left:${pct(X(L.band.last))}%;width:${pct(X(L.band.first)-X(L.band.last))}%"
+        title="${E(i18t(L.side==='ours'?'ob_rl_win_ours':'ob_rl_win_theirs',{ who, first:L.band.first, late:-L.band.last }))}"></div>`:'';
+    const dots=pos.map(({dt,x,k})=>{
+      const top=h/2+(k%2?1:-1)*Math.ceil(k/2)*13;
+      const say=dotSay(dt);
+      return dt.key&&typeof window.obOpenContract==='function'
+        ? `<button type="button" class="ob-rl-dot ${dt.told?'is-told':'is-silent'}" style="left:${pct(x)}%;top:${top}px"
+            data-ob-rl-key="${E(dt.key)}" data-ob-rl-cid="${E(dt.cid)}" title="${E(say)}" aria-label="${E(say.replace(/\n/g,'. '))}"></button>`
+        : `<span class="ob-rl-dot ${dt.told?'is-told':'is-silent'}" style="left:${pct(x)}%;top:${top}px" title="${E(say)}"></span>`;
+    }).join('');
+    const tag=`${L.side}:${idx}`;
+    const lbl=name;
+    return `<div class="ob-rl-row">
+      <span class="ob-rl-who${ruby?' is-ruby':''}"><span class="ob-rl-name">${E(name)}</span><small>${E(sub)}</small></span>
+      <div class="ob-rl-strip" style="height:${h}px">${band}
+        <div class="ob-rl-brief" style="left:${pct(X(d.briefFloor))}%"></div>
+        <div class="ob-rl-now" style="left:${pct(X(0))}%"></div>${dots}</div>
+      <span class="ob-rl-n">${figHtml('lane:'+tag+':later',L.later.length,L.laterKeys,i18t('ob_rl_only_later',{ who:lbl }),
+          i18tn('ob_rl_later_tip',L.later.length,{ n:n(L.later.length), date:dayWord(isoAt(H)) }))}</span>
+      <span class="ob-rl-n">${figHtml('lane:'+tag+':nodate',L.nodate.length,L.nodateKeys,i18t('ob_rl_only_nodate',{ who:lbl }),
+          i18tn('ob_rl_nodate_tip',L.nodate.length,{ n:n(L.nodate.length) }),true)}</span>
+      <span class="ob-rl-n is-total">${figHtml('lane:'+tag+':open',L.n,L.keys,i18t('ob_rl_only_lane',{ who:lbl }),i18t('ob_rl_door'))}</span>
+    </div>`;
+  };
+
+  /* ---- the ruler: today, and the day the daily brief lets go ---- */
+  const ticks=[...new Set([-H,-2*H/3,-H/3,0,H/3,2*H/3,H,d.briefFloor].map(Math.round))].sort((a,b)=>a-b);
+  const tickHtml=ticks.map(off=>{
+    const words=off===0?i18t('ob_rl_today')
+      : off===d.briefFloor?i18t('ob_rl_brief_stops',{ date:dayWord(isoAt(off)) })
+      : dayWord(isoAt(off));
+    const edge=off===-H?'transform:none':off===H?'transform:translateX(-100%)':'';
+    return `<span class="${off===0?'is-now':''}" style="left:${pct(X(off))}%;${edge}"${
+      off===d.briefFloor?` title="${E(i18tn('ob_rl_brief_tip',-d.briefFloor,{ n:-d.briefFloor }))}"`:''}>${E(words)}</span>`;
+  }).join('');
+  const groupHtml=(side,keyWord)=>{
+    const lanes=d.lanes[side];
+    if(!lanes.length) return '';
+    const total=lanes.reduce((s,L)=>s+L.n,0);
+    return `<div class="ob-rl-group">${E(i18t(keyWord))} · ${
+      figHtml('group:'+side,total,d.keys[side],i18t(keyWord),i18t('ob_rl_door'))}</div>`
+      +lanes.map((L,i)=>laneHtml(L,i)).join('');
+  };
+  const sw=(bg,edge)=>`<span class="ob-rl-sw" style="background:${bg};box-shadow:inset 0 0 0 1px ${edge}"></span>`;
+  const line=`<section style="${OB_CARD};padding:13px 17px 6px">
+    <div style="${OB_H}"><span style="${OB_TITLE}">${i18t('ob_rl_title')}</span>
+      <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${i18t('ob_rl_hint')}</span></div>
+    <div class="ob-rl-legend">
+      <span><span class="ob-rl-key is-told"></span>${i18t('ob_rl_key_told')}</span>
+      <span><span class="ob-rl-key is-silent"></span>${i18t('ob_rl_key_silent')}</span>
+      <span>${sw('var(--st-green-bg)','var(--st-green-dot)')}${i18t('ob_rl_key_window')}</span>
+      <span>${sw('var(--st-ruby-bg)','var(--st-ruby-dot)')}${i18t('ob_rl_key_past')}</span>
     </div>
-    <div style="min-width:0">
-      ${reasons.length?`<div style="display:flex;align-items:baseline;gap:var(--s-2)">
-        <span style="font-size:var(--t-body);font-weight:var(--w-title)">${i18t('int_ob_why_each')}</span>
-        <span style="${OB_HINT}">${i18t('int_ob_open_word')}</span></div>
-      <div role="img" aria-label="${E(i18t('int_ob_why_aria')+' '+reasons.map(r=>`${r.label}: ${r.v}`).join('; '))}" style="margin-top:var(--s-2)">${reasonRows}</div>
-      ${d.silentOverlap?`<p style="${OB_NOTE}">${i18t('int_ob_overlap',{sum:n(d.reasonSum),n:n(d.silent),over:n(d.silentOverlap)})}</p>`:''}`
-      :`<p style="${OB_LEAD};margin:0">${i18t('int_ob_all_reachable')}</p>`}
-    </div>
+    <div class="ob-rl-scroll scroll-thin" id="ob-rl-scroll"><div class="ob-rl-grid" role="group" aria-label="${E(i18t('ob_rl_aria'))}">
+      <div class="ob-rl-row is-head"><span></span><div class="ob-rl-ticks">${tickHtml}</div>
+        <span class="ob-rl-n">${i18t('ob_rl_col_later')}</span><span class="ob-rl-n">${i18t('ob_rl_col_nodate')}</span><span class="ob-rl-n">${i18t('ob_rl_col_open')}</span></div>
+      ${groupHtml('ours','ob_rl_ours')}${groupHtml('theirs','ob_rl_theirs')}
+    </div></div>
   </section>`;
 
-  /* ---- 1 · coverage, and the unknown inside it ---- */
-  const covRows=[
-    [i18t('int_ob_cov_signed'), i18t('int_ob_cov_signed_why'), d.cover.noneSigned, 'var(--st-ruby-fg,#b91c1c)'],
-    [i18t('int_ob_cov_review'), i18t('int_ob_cov_review_why'), d.cover.noneReview, 'var(--st-amber-fg,#b45309)'],
-    [i18t('int_ob_cov_draft'),  i18t('int_ob_cov_draft_why'),  d.cover.noneDraft,  'var(--color-text)'],
-    [i18t('int_ob_cov_rest'),  i18t('int_ob_cov_rest_why'),  d.cover.noneOther,  'var(--color-text)'],
-  ].filter(r=>r[2]>0).map(([t,w,v,c])=>`<tr>
-    <td style="padding:6px 0;${RULE};font-size:var(--t-meta)"><b>${E(t)}</b><br><span style="font-size:var(--t-label);color:var(--color-neutral-600)">${E(w)}</span></td>
-    <td style="padding:6px 0;${RULE};text-align:right;font-size:var(--t-card);${OB_NUM};color:${c}">${n(v)}</td></tr>`).join('');
-  const covPct=d.contracts?Math.round(d.cover.withOb/d.contracts*100):0;
-  /* THE FLAG GOES WITH THE BLIND SPOT (J-2.2). It said "Blind spot" because
-     nothing on the record told a contract read and clear from one nobody had
-     opened; `obligationsReadAt` does, so the card reports rather than confesses.
-     It is a FUNCTION of canSeeScan rather than a deletion, because what the
-     flag says is true again the moment that flag is false. */
-  const coverage=obCard(i18t('int_ob_cov_title'),
-    d.canSeeScan?'':obFlag(i18t('int_ob_flag_blind'),'var(--st-amber-bg,#fef3c7)','var(--st-amber-fg,#b45309)'),
-    `<p style="${OB_LEAD}">${i18t('int_ob_cov_lead')}</p>
-     <div role="img" aria-label="${E(i18t('int_ob_cov_aria',{total:n(d.contracts),withOb:n(d.cover.withOb),none:n(d.cover.none)}))}"
-       style="display:flex;height:26px;border-radius:var(--radius);overflow:hidden;background:var(--color-neutral-100)">
-       ${d.cover.withOb?`<span style="width:${covPct}%;min-width:2px;background:${OB_OURS};color:#fff;font-size:var(--t-label);font-weight:var(--w-title);display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap">${n(d.cover.withOb)}</span>`:''}
-       ${d.cover.none?`<span style="flex:1;min-width:2px;background:${OB_THEIRS};color:#3B2A05;font-size:var(--t-label);font-weight:var(--w-title);display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap">${n(d.cover.none)}</span>`:''}
-     </div>
-     <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:7px;font-size:var(--t-label);color:var(--color-neutral-600)">
-       <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:9px;height:9px;border-radius:var(--radius);background:${OB_OURS};display:inline-block"></i>${i18t('int_ob_cov_key_on')}</span>
-       <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:9px;height:9px;border-radius:var(--radius);background:${OB_THEIRS};display:inline-block"></i>${i18t('int_ob_cov_key_none')}</span>
-     </div>
-     ${d.cover.none?`<p style="${OB_NOTE}">${d.canSeeScan
-        ? i18t('int_ob_cov_split_known',{n:n(d.cover.none),clear:n(d.cover.noneClear),never:n(d.cover.noneUnknown)})
-        : i18t('int_ob_cov_split',{n:n(d.cover.none)})}</p>
-     <table style="border-collapse:collapse;width:100%;margin-top:8px">${covRows}</table>`:''}`,
-    d.cover.noneSigned?i18t('int_ob_cov_foot',{n:n(d.cover.noneSigned)}):i18t('int_ob_cov_foot_clear'));
-
-  /* ---- 2 · how long overdue, against the sweep's own thresholds ---- */
-  const amax=Math.max(...d.ages,1);
-  const ageCols=[
-    [i18t('int_ob_age_1'), i18t('int_ob_age_1_sub'), d.ages[0], OB_REACHED],
-    [i18t('int_ob_age_2'), i18t('int_ob_age_2_sub'), d.ages[1], OB_REACHED],
-    [i18t('int_ob_age_3'), i18t('int_ob_age_3_sub'), d.ages[2], OB_UNREACHED],
-    [i18t('int_ob_age_4'), i18t('int_ob_age_4_sub'), d.ages[3], OB_UNREACHED],
-  ].map(([k,sub,v,c])=>`<div style="display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0">
-    <div style="height:96px;display:flex;align-items:flex-end;width:100%;max-width:52px">
-      <span style="display:block;width:100%;height:${Math.max(3,Math.round(v/amax*96))}px;border-radius:var(--radius);background:${v?c:'var(--color-neutral-100)'}"></span></div>
-    <div style="font-size:var(--t-section);${OB_NUM}">${n(v)}</div>
-    <div style="font-size:var(--t-label);font-weight:var(--w-strong);text-align:center;line-height:1.3">${E(k)}<br><span style="font-weight:var(--w-body);color:var(--color-neutral-600)">${E(sub)}</span></div>
-  </div>`).join('');
-  const ageing=obCard(i18t('int_ob_age_title'), `<span style="${OB_HINT}">${i18tn('int_ob_overdue',d.overdue,{n:n(d.overdue)})}</span>`,
-    d.overdue
-      ? `<p style="${OB_LEAD}">${i18t('int_ob_age_lead')}</p>
-         <div role="img" aria-label="${E(i18t('int_ob_age_aria',{a:d.ages[0],b:d.ages[1],c:d.ages[2],e:d.ages[3]}))}"
-           style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s-3);align-items:end">${ageCols}</div>
-         <div style="display:flex;flex-direction:column;gap:3px;margin-top:12px;padding-top:9px;border-top:1px solid var(--color-divider);font-size:var(--t-label);color:var(--color-neutral-600)">
-           <span>${i18t('int_ob_age_mark4')}</span><span>${i18t('int_ob_age_mark30')}</span></div>`
-      : `<p style="${OB_LEAD};margin:0">${i18t('int_ob_age_clear')}</p>`,
-    d.pastBoth?i18t('int_ob_age_foot',{n:n(d.pastBoth)}):'');
-
-  /* ---- 3 · the next 90 days, ours against theirs ---- */
-  const mmax=Math.max(1,...d.months.map(m=>Math.max(m.ours,m.theirs)));
-  const monthCols=d.months.map(m=>{
-    const b=(v,fill)=>`<span style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;min-width:0">
-      <b style="font-size:var(--t-label);${OB_NUM};font-weight:var(--w-title)">${n(v)}</b>
-      <span style="display:block;width:100%;max-width:26px;height:${Math.max(3,Math.round(v/mmax*84))}px;border-radius:var(--radius);background:${v?fill:'var(--color-neutral-100)'}"></span></span>`;
-    return `<div style="display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0">
-      <div style="display:flex;align-items:flex-end;gap:5px;height:100px;width:100%;justify-content:center">${b(m.ours,OB_OURS)}${b(m.theirs,OB_THEIRS)}</div>
-      <div style="font-size:var(--t-label);font-weight:var(--w-strong);white-space:nowrap">${E(obMonthLabel(m.key))}</div></div>`;
-  }).join('');
-  const chaseRows=d.chase.map(r=>`<tr>
-    <td style="padding:6px 0;${RULE};font-size:var(--t-meta);font-weight:var(--w-strong)">${E(r.name)}</td>
-    <td style="padding:6px var(--s-2);${RULE};font-size:var(--t-label);color:var(--color-neutral-600)">${E(r.what.join(', '))}</td>
-    <td style="padding:6px 0;${RULE};font-size:var(--t-meta);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap">${E((typeof regDotDate==='function'&&r.soonest)?regDotDate(r.soonest):(r.soonest||'—'))}</td>
-    <td style="padding:6px 0 6px var(--s-2);${RULE};font-size:var(--t-meta);text-align:right;${OB_NUM}">${n(r.n)}</td></tr>`).join('');
-  const ahead=obCard(i18t('int_ob_90_title'), `<span style="${OB_HINT}">${i18t('int_ob_90_hint',{n:n(d.ahead)})}</span>`,
-    d.ahead
-      ? `<p style="${OB_LEAD}">${i18t('int_ob_90_lead')}</p>
-         <div role="img" aria-label="${E(i18t('int_ob_90_aria',{ours:n(d.aheadOurs),theirs:n(d.aheadTheirs)}))}"
-           style="display:grid;grid-template-columns:repeat(${Math.max(1,d.months.length)},1fr);gap:var(--s-3);align-items:end">${monthCols}</div>
-         <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:9px;font-size:var(--t-label);color:var(--color-neutral-600)">
-           <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:9px;height:9px;border-radius:var(--radius);background:${OB_OURS};display:inline-block"></i>${i18t('int_ob_90_key_ours',{n:n(d.aheadOurs)})}</span>
-           <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:9px;height:9px;border-radius:var(--radius);background:${OB_THEIRS};display:inline-block"></i>${i18t('int_ob_90_key_theirs',{n:n(d.aheadTheirs)})}</span>
-         </div>
-         ${d.chase.length?`<details style="margin-top:11px">
-           <summary style="cursor:pointer;font-size:var(--t-meta);font-weight:var(--w-title);color:var(--accent-ink-700)">${i18t('int_ob_90_chase',{n:n(d.aheadTheirs)})}</summary>
-           <div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;margin-top:6px">
-             <tr>${[i18t('int_ob_90_th_cp'),i18t('int_ob_90_th_what'),i18t('int_ob_90_th_soon'),i18t('int_ob_90_th_n')]
-               .map((t,i)=>`<th style="font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);text-align:${i>1?'right':'left'};padding:4px 0 4px ${i?'var(--s-2)':'0'};${RULE}">${E(t)}</th>`).join('')}</tr>${chaseRows}
-             ${d.chaseMore?`<tr><td colspan="4" style="padding:6px 0;font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('int_ob_90_more',{cp:n(d.chaseMore),n:n(d.chaseMoreN)})}</td></tr>`:''}
-           </table></div></details>`:''}`
-      : `<p style="${OB_LEAD};margin:0">${i18t('int_ob_90_none')}</p>`,'');
-
-  /* ---- 4 · who is carrying what ---- */
-  const omax=Math.max(1,...d.owners.map(o=>o.n));
-  const ownerRows=d.owners.map(o=>{
-    const nobody=!o.name, lost=!!o.name&&!o.resolves;
-    const label=nobody
-      ? `<span style="color:var(--st-ruby-fg,#b91c1c);font-weight:var(--w-strong)">${i18t('int_ob_own_nobody')}</span> <span style="color:var(--color-neutral-600)">— ${i18t('int_ob_own_nobody_why')}</span>`
-      : `<span style="font-weight:var(--w-strong)">${E(o.name)}</span>${lost?` <span style="color:var(--st-ruby-fg,#b91c1c)">— ${i18t('int_ob_own_gone_why')}</span>`:''}${o.over?` <span style="color:var(--color-neutral-600)">— ${i18t('int_ob_own_over',{n:n(o.over)})}</span>`:''}`;
-    return `<div style="display:grid;grid-template-columns:1fr 46px;gap:9px;align-items:center;padding:7px 0;${RULE}">
-      <span style="min-width:0"><span style="font-size:var(--t-meta);color:var(--color-text)">${label}</span>
-        ${bar(o.n/omax*100, (nobody||lost)?OB_UNREACHED:OB_OURS)}</span>
-      <span style="text-align:right;font-size:var(--t-card);${OB_NUM}">${n(o.n)}</span></div>`;
-  }).join('');
-  const load=obCard(i18t('int_ob_own_title'), `<span style="${OB_HINT}">${i18t('int_ob_own_hint')}</span>`,
-    d.owners.length
-      ? `<p style="${OB_LEAD}">${i18t('int_ob_own_lead')}</p>
-         <div role="img" aria-label="${E(i18t('int_ob_own_aria')+' '+d.owners.map(o=>`${o.name||i18t('int_ob_own_nobody')}: ${o.n}`).join('; '))}">${ownerRows}</div>
-         ${d.ownersMore?`<p style="${OB_NOTE}">${i18t('int_ob_own_more',{n:n(d.ownersMore)})}</p>`:''}`
-      : `<p style="${OB_LEAD};margin:0">${i18t('int_ob_own_none')}</p>`,'');
-
-  /* ---- 5 · marked repeating, never repeated ---- */
-  const repRows=[
-    ['quarterly', i18t('int_ob_rep_quarterly')],
-    ['monthly',   i18t('int_ob_rep_monthly')],
-    ['annual',    i18t('int_ob_rep_annual')],
-  ].map(([k,label])=>({k,label,v:d.repeat[k]||0})).filter(r=>r.v>0).sort((a,b)=>b.v-a.v);
-  const rpmax=repRows.length?repRows[0].v:1;
-  const repeating=obCard(i18t('int_ob_rep_title'),
-    d.repeatTotal?obFlag(i18t('int_ob_rep_flag',{n:n(d.repeatTotal)}),'var(--st-ruby-bg,#ffe4e6)','var(--st-ruby-fg,#b91c1c)'):'',
-    d.repeatTotal
-      ? `<p style="${OB_LEAD}">${i18t('int_ob_rep_lead')}</p>
-         <div role="img" aria-label="${E(i18t('int_ob_rep_aria')+' '+repRows.map(r=>`${r.label}: ${r.v}`).join('; '))}">${
-           repRows.map(r=>`<div style="display:grid;grid-template-columns:1fr 46px;gap:9px;align-items:center;padding:7px 0;${RULE}">
-             <span style="min-width:0"><span style="font-size:var(--t-meta);font-weight:var(--w-strong)">${E(r.label)}</span>
-               <span style="font-size:var(--t-label);color:var(--color-neutral-600)"> — ${i18t('int_ob_rep_why')}</span>
-               ${bar(r.v/rpmax*100, OB_THEIRS)}</span>
-             <span style="text-align:right;font-size:var(--t-card);${OB_NUM}">${n(r.v)}</span></div>`).join('')}</div>`
-      : `<p style="${OB_LEAD};margin:0">${i18t('int_ob_rep_none')}</p>`,
-    d.repeatTotal?i18t('int_ob_rep_foot'):'');
-
-  /* ---- 6 · the record this product does not keep ---- */
-  /* THE THIRD FLAG IS NEUTRAL AND THAT IS THE POINT. Amber says "look at this"
-     and ruby says "this is a loss"; this one says "the product does not keep
-     that field yet", which is neither. It also may not wear the accent —
-     --st-steel-* resolves to the workspace accent, and on this page the accent
-     already means OURS. */
-  /* ---- WERE THEY MET ON TIME (J-2.2) ----
-     This card was a confession: the record kept no completion date, so "done
-     on time" and "done three weeks late" were the same word on the same field.
-     It carries one now, and this counts ONLY the obligations that can answer.
-
-     THE UNCOUNTED ARE PRINTED, NOT HIDDEN. Every obligation ticked off before
-     that field existed has no date, and so does every one with no due date;
-     both are `unknown` and neither is guessed at. A rate quietly worked out
-     over the answerable half, with the rest dropped, is the silent-trim fault
-     this product refuses on money and on charts.
-
-     THE TWO COLOURS ARE THE PAGE'S OWN and are not the ours/theirs pair: on
-     time is the reached tone, late is the unreached one, which is the same
-     vocabulary the ageing chart beside it already uses. */
-  /* GREEN AND RUBY, NOT THE PAGE'S OTHER TWO PAIRS. Amber/ruby on the ageing
-     chart answers "is anything still being sent"; accent/amber answers "ours
-     or theirs". This card asks a third question — was it kept — and green for
-     kept is the product's own word for it, the same pair the Obligations tab's
-     own row dots use. A colour does one job per chart. */
-  const OT_ON='var(--st-green-dot,#10b981)', OT_LATE='var(--st-ruby-dot,#e11d48)';
-  const otAnswerable=d.ontime.on+d.ontime.late;
-  const otPct=otAnswerable?Math.round(d.ontime.on/otAnswerable*100):0;
-  const ontime=obCard(i18t('int_ob_time_title'),
-    d.canSeeCompletedOn?'':obFlag(i18t('int_ob_flag_field'),'var(--color-neutral-100)','var(--color-neutral-600)'),
-    `<p style="${OB_LEAD}">${i18t('int_ob_time_lead2')}</p>
-     ${otAnswerable?`
-     <div style="display:flex;align-items:baseline;gap:var(--s-2);margin-bottom:9px">
-       <span style="${OB_NUM};font-size:34px">${otPct}%</span>
-       <span style="font-size:var(--t-meta);color:var(--color-neutral-600)">${i18t('int_ob_time_on')}</span>
-     </div>
-     <div role="img" aria-label="${E(i18t('int_ob_time_aria',{on:n(d.ontime.on),late:n(d.ontime.late)}))}"
-       style="display:flex;height:26px;border-radius:var(--radius);overflow:hidden;background:var(--color-neutral-100)">
-       ${d.ontime.on?`<span style="width:${otPct}%;min-width:2px;background:${OT_ON};color:#fff;font-size:var(--t-label);font-weight:var(--w-title);display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap">${n(d.ontime.on)}</span>`:''}
-       ${d.ontime.late?`<span style="flex:1;min-width:2px;background:${OT_LATE};color:#fff;font-size:var(--t-label);font-weight:var(--w-title);display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap">${n(d.ontime.late)}</span>`:''}
-     </div>
-     <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:7px;font-size:var(--t-label);color:var(--color-neutral-600)">
-       <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:9px;height:9px;border-radius:var(--radius);background:${OT_ON};display:inline-block"></i>${i18t('int_ob_time_on')}</span>
-       <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:9px;height:9px;border-radius:var(--radius);background:${OT_LATE};display:inline-block"></i>${i18t('int_ob_time_late')}</span>
-     </div>`
-     :`<p style="${OB_NOTE};margin:0">${i18t('int_ob_time_none')}</p>`}
-     ${d.ontime.unknown?`<p style="${OB_NOTE}">${i18t('int_ob_time_unknown',{n:n(d.ontime.unknown)})}</p>`:''}`,'');
-
-  /* ---- the honest footer ---- */
-  const blind=`<section style="${OB_CARD};padding:15px 17px">
-    <div style="font-size:var(--t-body);font-weight:var(--w-title);letter-spacing:-.01em;margin-bottom:10px">${i18t('int_ob_blind_title')}</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:var(--s-3) 22px">
-      ${''/* TWO OF THESE THREE CLOSED ON 29 Aug 2026 (J-2.2) and are drawn only
-             while they are still true — a report that goes on listing a blind
-             spot it can now see is one nobody trusts about the third. The
-             wording is KEPT, not deleted: it is right again the day either
-             field stops being written. */}
-      ${[...(d.canSeeScan?[]:[[i18t('int_ob_blind_1'),i18t('int_ob_blind_1_why')]]),
-         ...(d.canSeeCompletedOn?[]:[[i18t('int_ob_blind_2'),i18t('int_ob_blind_2_why')]]),
-         [i18t('int_ob_blind_3'),i18t('int_ob_blind_3_why')]]
-        .map(([t,w])=>`<div style="min-width:0"><div style="font-size:var(--t-meta);font-weight:var(--w-title);margin-bottom:3px">${E(t)}</div><p style="${OB_NOTE};margin:0">${w}</p></div>`).join('')}
-    </div>
-    <p style="${OB_NOTE};padding-top:11px;margin-top:11px;border-top:1px solid var(--color-divider)">${i18t('int_ob_method')}</p>
-  </section>`;
+  /* ---- the six tiles: today's other readings, each a door ---- */
+  const tile=(id,spec,title,value,sub,tone,tip)=>{
+    const door=spec&&value?doorOf(id,spec):null;
+    const col=tone==='bad'?'var(--st-ruby-fg)':tone==='good'?'var(--st-green-fg)':tone==='warn'?'var(--st-amber-fg)':'var(--color-text)';
+    const inner=`<span class="ob-rl-tile-k">${E(title)}</span>
+      <span class="ob-rl-tile-n" style="color:${value?col:'var(--color-text)'}">${E(String(value))}</span>
+      <span class="ob-rl-tile-s">${E(sub)}</span>`;
+    return door
+      ? `<button type="button" class="ob-rl-tile" data-ob-rl-door="${door}" title="${E(tip||i18t('ob_rl_door'))}">${inner}</button>`
+      : `<div class="ob-rl-tile">${inner}</div>`;
+  };
+  const known=d.ontime.on+d.ontime.late;
+  const rep=[['monthly','ob_rl_t_rep_monthly'],['quarterly','ob_rl_t_rep_quarterly'],['annual','ob_rl_t_rep_annual']]
+    .filter(([k])=>d.repeat[k]).map(([k,key])=>i18t(key,{ n:n(d.repeat[k]) })).join(' · ');
+  const tiles=`<div class="ob-rl-tiles">
+    ${tile('silent',{ kind:'obligations', keys:d.keys.silent, label:i18t('ob_rl_t_silent'), state:'open' },
+      i18t('ob_rl_t_silent'), n(d.silent), i18t('ob_rl_t_silent_sub',{ open:n(d.open) }), 'bad', i18t('ob_rl_t_silent_tip'))}
+    ${tile('late',{ kind:'obligations', keys:d.keys.overdue, label:i18t('ob_rl_t_late'), state:'open' },
+      i18t('ob_rl_t_late'), n(d.overdue), i18t('ob_rl_t_late_sub',{ n:n(d.pastBoth) }), 'bad')}
+    ${tile('ahead',{ kind:'obligations', keys:d.keys.ahead, label:i18t('ob_rl_t_ahead',{ days:H }), state:'open' },
+      i18t('ob_rl_t_ahead',{ days:H }), n(d.ahead), i18t('ob_rl_t_ahead_sub',{ ours:n(d.aheadOurs), theirs:n(d.aheadTheirs) }), '')}
+    ${tile('ontime',{ kind:'obligations', keys:d.keys.ontime, label:i18t('ob_rl_t_ontime'), state:'done' },
+      i18t('ob_rl_t_ontime'), known?Math.round(d.ontime.on/known*100)+'%':'—',
+      [known?i18t('ob_rl_t_ontime_sub',{ on:n(d.ontime.on), known:n(known) }):i18t('ob_rl_t_ontime_none'),
+       d.ontime.unknown?i18t('ob_rl_t_unknown',{ n:n(d.ontime.unknown) }):''].filter(Boolean).join(' · '),
+      known?'good':'', i18t('ob_rl_t_ontime_tip'))}
+    ${tile('cover',{ kind:'contracts', ids:d.coverIds, label:i18t('ob_rl_t_cover') },
+      i18t('ob_rl_t_cover'), n(d.cover.none), i18t('ob_rl_t_cover_sub',{ n:n(d.cover.noneSigned) }), 'warn', i18t('ob_rl_t_cover_tip'))}
+    ${tile('stopped',{ kind:'obligations', keys:d.keys.stopped, label:i18t('ob_rl_t_rep'), state:'done' },
+      i18t('ob_rl_t_rep'), n(d.repeatTotal), rep||i18t('ob_rl_t_rep_none'), 'warn', i18t('ob_rl_t_rep_tip'))}
+  </div>`;
 
   return `<div id="ig-ob" style="display:flex;flex-direction:column;gap:var(--s-3);max-width:100%;margin:0 auto">
-    ${hero}
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:var(--s-3);align-items:stretch">
-      ${coverage}${ageing}${ahead}${load}${repeating}${ontime}
-    </div>
-    ${blind}
+    ${line}
+    ${tiles}
   </div>`;
+}
+/* ONE LISTENER PER PAINT: #ig-oblig is rebuilt by every renderIntel, so the
+   element this binds to is new each time and nothing is bound twice. */
+function intelObligationsWire(host){
+  if(!host) return;
+  host.addEventListener('click',ev=>{
+    const dot=ev.target.closest&&ev.target.closest('[data-ob-rl-key]');
+    if(dot){ if(typeof window.obOpenContract==='function') obOpenContract(dot.getAttribute('data-ob-rl-cid'), dot.getAttribute('data-ob-rl-key')); return; }
+    const b=ev.target.closest&&ev.target.closest('[data-ob-rl-door]');
+    if(!b) return;
+    const s=_obRlDoors.get(b.getAttribute('data-ob-rl-door'));
+    if(!s) return;
+    if(s.kind==='contracts') regShowOnly(s.ids, s.label);
+    else obwGoFiltered({ state:s.state||'open', only:{ keys:s.keys.slice(), label:s.label } });
+  });
 }
 /* ════════════════════════════════════════════════════════════════════════
    THE PAYMENT TERMS TAB (owner-ruled 2 Sep 2026)
@@ -6027,3 +6048,7 @@ Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SE
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
 Object.assign(window,{IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
+
+/* The Reminder Line (28 Sep 2026): the one reminder predicate, its first
+   milestone, and the tab's press wiring. */
+Object.assign(window,{obReminderOf,OB_FIRST_DAYS,intelObligationsWire});
