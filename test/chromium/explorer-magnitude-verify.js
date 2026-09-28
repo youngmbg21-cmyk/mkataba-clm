@@ -21,7 +21,9 @@
    zoomed, a lifted finger stopped the turn, 120 of 179 contracts were drawn
    with nothing saying so, each floor's contracts sat in thin piles (33–45% of
    the stage against 53–72% now), a quarter-end crowd stacked on one spot.
-   1a, 3a and 9a pass there too — they are what must not change.
+   1a, 3a and 9a pass there too — they are what must not change. Section 4
+   (every view moves; Turning / Still) is red there on 4a and 4c–4g; 4b, the
+   Brain's own turn, is what must not change.
 
    The stage already had touch-action:none before this; what a Safari on an
    iPad does beyond that cannot be driven from Chromium, so these claims
@@ -155,6 +157,39 @@ const check = (name, pass, detail) => {
       return { book: state.contracts.length, drawn: IG.nodes.filter(n => n.kind === 'contract').length, cap: INTEL_CAP, note: document.getElementById('ig-note').textContent.replace(/\s+/g, ' ') }; });
     check('3b past the limit the map draws the largest and the head line says so, with both numbers', big.drawn === big.cap && big.book > big.cap && big.note.includes(`Drawing the ${big.cap} largest of ${big.book} by value`), JSON.stringify(big).slice(0, 200));
     await page.screenshot({ path: path.join(OUT, '3b-limit-said.png') });
+
+    /* ================= 4. EVERY VIEW MOVES, AND ONE BUTTON STILLS IT =========
+       Young, 28 Sep 2026: "Why are floor, grid and timeline not on a moving
+       state at all times? Floor should be spinning just like brain and the
+       others should be moving. Also add a turning/still button like in the
+       brain page." Measured with the pointer OFF the map (pointing at it
+       holds it, as on the Brain) — on the camera, and on a dot as drawn. */
+    await page.evaluate(() => { state.contracts = state.contracts.filter(c => !/^MK-X/.test(c.id)); rebuildIntelGraph(); });
+    await page.mouse.move(2, 2);
+    const dotAt = () => page.evaluate(() => { const n = IG.nodes.find(x => x.kind === 'contract' && x.g.getBoundingClientRect().width); const r = n.g.querySelector('circle').getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top)]; });
+    /* a sway slows at each end before it comes back, so a swaying view is watched for longer */
+    const moves = async (v, key) => { await view(v); const a = await page.evaluate(k => intel.cam[k] || 0, key), d0 = await dotAt(); await page.waitForTimeout(key === 'sway' ? 4000 : 1500);
+      const b = await page.evaluate(k => intel.cam[k] || 0, key), d1 = await dotAt(); return { moved: Math.abs(b - a) > 0.02, dot: Math.hypot(d1[0] - d0[0], d1[1] - d0[1]) >= 2, a: +a.toFixed(3), b: +b.toFixed(3), d0, d1 }; };
+    const sp = await page.evaluate(() => { const b = document.getElementById('ig-spin'); return b ? { text: b.textContent.trim(), pressed: b.getAttribute('aria-pressed') } : null; });
+    check('4a the view bar carries the Brain page\'s button, and at rest it says Turning', !!sp && sp.text === 'Turning' && sp.pressed === 'true', JSON.stringify(sp));
+    await (await page.$('.ig-viewbar')).screenshot({ path: path.join(OUT, '4a-turning-button.png') });
+    const mB = await moves(0, 'rot'), mF = await moves(2, 'rotL'), mG = await moves(3, 'sway'), mT = await moves(4, 'sway');
+    check('4b the Brain still turns by itself', mB.moved && mB.dot, JSON.stringify(mB));
+    check('4c the Floors now turn by themselves, like the Brain', mF.moved && mF.dot, JSON.stringify(mF));
+    check('4d the Grid sways by itself', mG.moved && mG.dot, JSON.stringify(mG));
+    check('4e the Timeline sways by itself', mT.moved && mT.dot, JSON.stringify(mT));
+    if (!sp) { check('4f pressed, it says Still, and the Timeline and the Floors hold still', false, 'there is no Turning button'); check('4g pressed again, it says Turning and the Floors turn again', false, 'there is no Turning button'); }
+    else {
+    await page.click('#ig-spin');
+    const st = await page.evaluate(() => { const b = document.getElementById('ig-spin'); return { text: b.textContent.trim(), pressed: b.getAttribute('aria-pressed') }; });
+    await page.mouse.move(2, 2);
+    await until(() => Math.abs(intel.cam.sway || 0) < 0.002, null, 6000);
+    const sT = await moves(4, 'sway'), sF = await moves(2, 'rotL');
+    check('4f pressed, it says Still, and the Timeline and the Floors hold still', st.text === 'Still' && st.pressed === 'false' && !sT.moved && !sT.dot && !sF.moved && !sF.dot, JSON.stringify({ st, sT, sF }));
+    await page.click('#ig-spin'); await page.mouse.move(2, 2);
+    const again = await moves(2, 'rotL');
+    check('4g pressed again, it says Turning and the Floors turn again', again.moved && (await page.evaluate(() => document.getElementById('ig-spin').textContent.trim())) === 'Turning', JSON.stringify(again));
+    }
     check('9a no page errors', errors.length === 0, JSON.stringify(errors.slice(0, 3)));
   } catch (e) {
     check('the run finished', false, e.message);

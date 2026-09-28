@@ -114,11 +114,12 @@ const check = (name, pass, detail) => {
     await until(() => window.IG && IG.hubs && IG.hubs.length >= 3);
     await page.evaluate(() => { igRecipeSet({ ...igRecipeNow(), floorsBy: 'owner', view: 2 }); rebuildIntelGraph(); });
     await until(() => intel.cam.w[2] > 0.95);
-    await page.evaluate(() => { intel.cam.rotL = 0.7; });
+    /* held Still, so the angle is the reader's and the choice itself must come back too */
+    await page.evaluate(() => { igSetSpin(false); intel.cam.rotL = 0.7; });
     await page.waitForTimeout(300);
     await reload();
-    const ex = await until(() => window.intel && intel.tab === 'map' && window.IG && IG.floors ? { floorsBy: intel.floorsBy, view: intel.cam.view, rotL: Math.round(intel.cam.rotL * 100) / 100, floors: IG.floors.length } : null);
-    check('3b the Explorer comes back on the Floors, floors by owner, turned the way it was', !!ex && ex.floorsBy === 'owner' && ex.view === 2 && ex.rotL === 0.7, JSON.stringify(ex));
+    const ex = await until(() => window.intel && intel.tab === 'map' && window.IG && IG.floors ? { floorsBy: intel.floorsBy, view: intel.cam.view, rotL: Math.round(intel.cam.rotL * 100) / 100, spin: igbSpinning(), floors: IG.floors.length } : null);
+    check('3b the Explorer comes back on the Floors, floors by owner, turned the way it was, still Still', !!ex && ex.floorsBy === 'owner' && ex.view === 2 && ex.rotL === 0.7 && ex.spin === false, JSON.stringify(ex));
     await page.screenshot({ path: path.join(OUT, '3b-explorer-kept.png') });
 
     /* ================= 4. SETTINGS, TEMPLATES, CALENDAR ====================== */

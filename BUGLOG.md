@@ -19876,3 +19876,7 @@ Noticed, not fixed
 
 - FIXED: on a touch screen the Explorer could stop turning for good after a finger lift the page never heard (every later drag was read as a pinch); two fingers now twist and turn the map, and lifting one of two keeps the other turning. explorer-magnitude-verify 1b–1d.
 - FIXED: the map silently drew only 120 contracts (179 in the book); it now draws up to 300 and says so on its head line when a book is bigger. Floors, Grid and Timeline give every contract its own spot instead of piling them. explorer-magnitude-verify 2a–2d, 3b.
+
+## 28 Sep 2026 — Explorer: every view moves, Turning / Still
+
+- BUILT: Floors turns by itself like the Brain; Grid and Timeline sway gently; a Turning / Still button on the Explorer's view bar stops and starts it (the Brain page's own button). explorer-magnitude-verify 4a–4g.
