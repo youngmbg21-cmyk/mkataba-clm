@@ -90,6 +90,11 @@ function calSetAgendaDays(n){
    NEVER A SILENT TRIM — so past it the panel says how many of how many. */
 const CAL_AGENDA_ROWS = 40;
 
+/* A REFRESH LANDS WHERE YOU WERE (Young, 28 Sep 2026): what this page keeps
+   across a reload, read by placeSave and put back by placeResume (js/app.js)
+   BEFORE the first paint. */
+function calPlace(){ return { ...calState }; }
+function calPlacePut(p){ if(p) Object.keys(calState).forEach(k=>{ if(k in p) calState[k]=p[k]; }); }
 function calMonth(){ if(!calState.ym){ const d=new Date(); calState.ym={y:d.getFullYear(), m:d.getMonth()}; } return calState.ym; }
 function calView(){ return CAL_VIEWS.includes(calState.view)?calState.view:'month'; }
 function calScope(){ return calState.scope==='mine'?'mine':'all'; }
@@ -1349,7 +1354,7 @@ function openCalendarShare(evs){
   });
 }
 
-Object.assign(window,{calState,calMonth,calView,calScope,CAL_VIEWS,CAL_EVENT,CAL_PRIORITY,
+Object.assign(window,{calState,calPlace,calPlacePut,calMonth,calView,calScope,CAL_VIEWS,CAL_EVENT,CAL_PRIORITY,
   calendarEvents,calEventMine,calPeriod,calVisible,calDecisionsThisWeek,calWeekBounds,
   calToday,calChipText,calIcsFor,calUpcoming,calSummaryLines,calMonthGridHtml,calPanelHtml,
   CAL_AGENDA_DAYS,CAL_AGENDA_WINDOWS,CAL_AGENDA_ROWS,calAgendaDays,calSetAgendaDays,

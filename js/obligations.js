@@ -2064,6 +2064,11 @@ let _obwF = null;
    which is a cut, and a reading that compared against 'all' would report the
    page as filtered the moment it was drawn. */
 const OBW_DEF = { whose:'all', state:'open', side:'all', folder:'all', due:'all' };
+/* A REFRESH LANDS WHERE YOU WERE (Young, 28 Sep 2026): what this page keeps
+   across a reload, read by placeSave and put back by placeResume (js/app.js)
+   BEFORE the first paint. */
+function obwPlace(){ return { ...obwFilters() }; }
+function obwPlacePut(p){ if(p) _obwF={ ...OBW_DEF, ...p }; }
 function obwFilters(){
   if(!_obwF) _obwF = { ...OBW_DEF };
   return _obwF;
@@ -3308,5 +3313,5 @@ Object.assign(window,{obligationIsDoc,obligationDocUntil,obligationDocFile,oblig
   obligationDueSay,obWhoCellHtml,obAmountCellHtml,obwHomeSum,obMoneyWords,obPageLine2,obligationFactsLine,obligationStatusSay,
   obligationReminderSay,obligationHistory,obligationStampHistory,obHistoryHtml,obChainSectionHtml,obDocSectionHtml,obWordingSectionHtml,
   obligationShowInContract,obKeyOf,obLocate,obPanelActs,obligationRemove,obOpenContract,obPanelOpts,obPaintPanel,obListHtml,obTableHtml,
-  OBW_VIEWS,OBW_CHIPS,obwBook,obwPass,obwPaintHead,renderObligationsInspector,OBT_VIEWS,obtView,roomObligationsInspector,
+  OBW_VIEWS,OBW_CHIPS,obwPlace,obwPlacePut,obwBook,obwPass,obwPaintHead,renderObligationsInspector,OBT_VIEWS,obtView,roomObligationsInspector,
   OBLIG_RECUR,obRecurLabel,OBLIG_BANDS,OBLIG_TEXT_MIN,OB_NOTE_MAX,OBW_WHOSE,OBW_STATE,OBW_SIDE,OBW_DUE,obwFilters,obwNarrowing,obwRows,obwGoFiltered,obligationsDoorCount,renderObligationsList,obwRepaint,obligationSeriesOpenAt,obligationChase,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationOwnerTo,obligationIsMine,obligationRemindsMe,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,RENEWAL_ANSWERS,renewalQuestionOf,renewalDecisionOf,renewalDecisionStale,renewalDecided,renewalNoticeTo,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});

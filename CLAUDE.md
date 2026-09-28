@@ -96,6 +96,7 @@ For a DESIGN QUESTION (how should it look, a new look, a redesign — an exact i
 - **A DUPLICATE OBJECT KEY'S LAST LITERAL WINS** (i18n); lint's no-dupe-keys is the net. Retire a key by leaving it inert in BOTH books.
 - **A LISTENER ON A PAINTED ELEMENT IS BOUND ONCE** (dataset flag) or delegated on document at module load; a head rebuilt every render needs delegation, and a listener armed once resolves the LIVE element at press time.
 - **A DEAD BUTTON WEARING A LIVE ONE'S CLOTHES** is a fault: grey with the reason where HaTi can know before the press; speak where it cannot; assert greying BOTH ways.
+- **A REFRESH LANDS AT THE SAME SPOT** (owner's rule, 28 Sep 2026): page, contract, tab, filters, picture and scroll all come back. One store (`LS.ui.place`, `placeSave` on leave/hide/scroll, `placeResume` before the first paint, `placeScrollBack` bounded, the reader's hand wins). A page that holds its own tab, filter or picture adds a reader/writer pair to `PLACE_PARTS`; a scroller carries an id. Tests: refresh-keeps-your-spot-verify.
 - **A WAIT IN A BROWSER CHECK ASKS FOR THE STATE, BOUNDED** — never a fixed `pause()` before measuring (clause-editor-verify 33h flaked on a busy machine). A stage that signs or links a fixture ≥5M says `approvalRules: []`, or it measures the approval wall instead (go-aheads, home-page, two-copies).
 
 # THE MAP — what each area's rules are, the names that carry them, the tests
@@ -207,7 +208,7 @@ Signing cap (`signCapOf`, `signCapBlocker`), who is checked (review), sign folde
 - ONE HEADER TOP: the first glyph of every page header sits `--page-pad-t` below the bar (pages-read-alike-verify 8). A crumb lives in the bar (`shellCrumbAdopt` MOVES `#ws-back`; ask for `.room-head #ws-back`).
 - Brand and theme are two axes (`setBrand`/`setDark`, `applyAppearance`); the pre-paint script mirrors them line for line (f96).
 - A full-window layer comes down when the page changes (`viewLayersClosed` at the top of `setView`; asks `clauseEditorDirty`).
-- A refresh lands where you were (`setView` records first; `viewPaint`); a filter/sort/page press keeps the place (`keepScroll`, scrollers with ids).
+- A refresh lands where you were (`setView` records first; `viewPaint`); a filter/sort/page press keeps the place (`keepScroll`, scrollers with ids). See A REFRESH LANDS AT THE SAME SPOT.
 Tests: f187, f238, f240, f264, f96, f251, f284, nav-floats-verify, alerts-and-activity-verify, home-page-verify.
 
 ## THE PHONE

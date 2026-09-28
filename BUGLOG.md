@@ -19866,3 +19866,8 @@ Noticed, not fixed
 - FIXED: turning the Explorer's Floors, Grid and Timeline looked stuck — a drag that started on a contract left the rest of the map dimmed, and the Grid and Timeline stood upright so a turn only narrowed them. They now lie flat like the floors, turn and tip, and a turn lets go. explorer-recipe-verify 8b–8d.
 - BUILT: floors of anything by prompt ("floors of owners", "floors of value stream", "rows by stream", "stack by owner"); "reset" goes back to the stages on the floors. f427, explorer-recipe-verify 8a/8e/8f.
 - Noticed, not fixed: two test files share the number f426 and two share f427 (the Explorer ones and the spell-check ones) — both run; the numbers just collide.
+
+## 28 Sep 2026 — a refresh lands at the same spot (new rule)
+
+- BUILT: a reload now brings back the tab, the list's filters and search, the Explorer's picture, the Document tab's reading and the scroll position on every page, not just the page itself; a scroll the reader makes straight after the reload wins. refresh-keeps-your-spot-verify.
+- Noticed, not fixed: negotiations-door-verify still expects "four tabs" on the contract room, which has five; templates-tabs-verify 7c and keeps-your-place-verify stay red as listed in KNOWN_RED.
