@@ -4579,6 +4579,11 @@ function wireNegotiationTab(c, opts = {}){
     });
     /* A list about words the reader has since changed is about nothing. */
     holder.addEventListener('input', () => { if (spellList.length && spellFor !== spellNow()){ spellList = []; spellFor = null; spellPaint(); } });
+    /* THE RED UNDERLINE WHILE TYPING (Young, 28 Sep 2026): the Save's own
+       before and after, painted a beat behind the keys (js/spell.js). */
+    const spellMark = () => { if (window.spellUnderlineSoon) spellUnderlineSoon([holder, headEl].filter(Boolean), spellBefore, spellNow, c); };
+    holder.addEventListener('input', spellMark);
+    if (headEl) headEl.addEventListener('input', spellMark);
     const fileChecked = async () => {
       const st = (typeof window.spellState === 'function' && typeof window.spellSuspects === 'function')
         ? spellState() : 'absent';

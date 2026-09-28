@@ -386,7 +386,7 @@ Tests: f248, f264, f266, f302–f304, f309, round-two-comments-verify, notes-two
 
 ## THE SPELL CHECK (js/spell.js)
 
-Both seats, no route: `spellSuspects` reads NEW words only (null = not checked); contract words (incl. a template contract's `negotiation.baselineText`, `spellContractText`), names, `SPELL_LEGAL` pass — but a capitalised slip of a term the contract capitalises is checked (`spellTermSlip`); non-English stands down. `vendor/en-words-1.txt` on first Save. Doors `ceSaveChecked`, `fileChecked`; nothing moves without a press. Tests: f422, f427, their-side-verify, their-edit-page-verify.
+Both seats, no route: `spellSuspects` reads NEW words only (null = not checked); contract words (incl. a template contract's `negotiation.baselineText`, `spellContractText`), names, `SPELL_LEGAL` pass — but a capitalised slip of a term the contract capitalises is checked (`spellTermSlip`); non-English stands down. `vendor/en-words-1.txt` on first keystroke or Save. Doors `ceSaveChecked`, `fileChecked`; nothing moves without a press. WHILE TYPING a red wavy underline marks exactly what the Save would list (`spellUnderline`/`spellUnderlineSoon`, a CSS highlight `hati-spell`, nothing in the box; browser's own underline off where HaTi draws; `ceSpellBefore` shared with the Save). Tests: f422, f427, f428, their-side-verify, their-edit-page-verify.
 
 ## THE SEND SCREEN
 

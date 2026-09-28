@@ -18,7 +18,9 @@
      5  Exit gives their header back;
      6  OUR seat: the same symbol, Ctrl+S and tick;
      and, on both seats, Save and Discard are live while the caret is still in
-     the words (3a2, 6a2), and a misspelt defined term is caught (6e).
+     the words (3a2, 6a2), a misspelt defined term is caught (6e), and a
+     misspelt word is underlined in red while typing (3a3, 6f, 6g), in the
+     narrow window's clause panel too (7).
 
    Every driven half is GUARDED: a missing control reports FAIL rather than
    sitting out a long wait. Waits ask for the state, bounded. */
@@ -27,7 +29,7 @@ const fs = require('node:fs');
 const http = require('node:http');
 const { chromium } = require('playwright-core');
 
-const OUT = path.join(__dirname, 'shots', 'their-edit-page');
+const OUT = process.env.SHOTS_DIR || path.join(__dirname, 'shots', 'their-edit-page');
 const ROOT = path.join(__dirname, '..', '..');
 const EXEC = process.env.CHROMIUM_BIN
   || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
@@ -89,6 +91,16 @@ const footNow = page => page.evaluate(() => {
   return { focused: !!(a && a.closest && a.closest('#ce-clausebody')), save: save ? save.disabled : null,
     discard: discard ? discard.disabled : null, word: save ? save.textContent.trim() : '' };
 });
+/* HaTi's underline: the words its highlight covers, whether the browser's
+   own underline is off on the box, and whether the rule paints a wavy line. */
+const underlined = page => page.evaluate(() => {
+  const h = CSS.highlights && CSS.highlights.get('hati-spell');
+  const box = document.getElementById('ce-clausebody');
+  let wavy = false;
+  for (const sh of document.styleSheets){ let rs; try{ rs = sh.cssRules; }catch(_){ continue; }
+    for (const r of rs) if (/::highlight\(hati-spell\)/.test(r.selectorText || '') && /wavy/.test(r.cssText)) wavy = true; }
+  return { words: h ? [...h].map(r => r.toString()) : [], native: box ? box.spellcheck : null, wavy };
+});
 const symbol = page => page.evaluate(() => {
   const b = document.querySelector('#clause-editor #ce-doc .rl-cp-pill-save');
   if (!b) return null;
@@ -140,7 +152,12 @@ const symbol = page => page.evaluate(() => {
      issue as it is not working"): the fixture's paper says "the Provider"; a
      capitalised slip of it used to pass as a name. */
   await clickInto(page, /Late payments/);
-  await page.keyboard.type(' The Provdier pays.');
+  await page.keyboard.type(' The Provdier pays and recieves.');
+  const ul = await until(page, () => { const h = CSS.highlights && CSS.highlights.get('hati-spell'); return !!h && h.size >= 2; }, null, 5000);
+  const ulOur = await underlined(page);
+  await page.screenshot({ path: path.join(OUT, '06-underline-ours.png') });
+  check('6f our seat: while typing, the misspelt words carry HaTi\'s red underline — the same words the Save will list, nothing else',
+    ul && ulOur.words.join(',') === 'Provdier,recieves' && ulOur.native === false && ulOur.wavy, JSON.stringify(ulOur));
   await page.keyboard.press('Control+s');
   const spelt = await until(page, () => /Provdier/.test((document.getElementById('ce-spell') || {}).textContent || ''), null, 5000);
   const spell = await page.evaluate(() => ({ list: ((document.getElementById('ce-spell') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
@@ -148,6 +165,8 @@ const symbol = page => page.evaluate(() => {
   check('6e a capitalised slip of the contract\'s own term is caught, with the term as the suggestion, and nothing is filed',
     spelt && /Provider/.test(spell.list) && spell.dirty && /as written/i.test(spell.save), JSON.stringify(spell));
   await page.evaluate(() => rlCloseClauseEditor());
+  const ulGone = await page.evaluate(() => !(CSS.highlights && CSS.highlights.has('hati-spell')));
+  check('6g closing the page takes the underline with it', ulGone);
 
   /* ---- 1 · their landing ---- */
   await page.evaluate(() => window.SHOW_COUNTERPARTY());
@@ -215,6 +234,8 @@ const symbol = page => page.evaluate(() => {
   const theirFoot = await footNow(page);
   check('3a2 their seat: while the caret is still in the words, Save and Discard under the column are live',
     theirFoot.focused && theirFoot.save === false && theirFoot.discard === false, JSON.stringify(theirFoot));
+  const cleanUl = await underlined(page);
+  check('3a3 their seat: correctly spelt words carry no underline', cleanUl.words.length === 0 && cleanUl.native === false, JSON.stringify(cleanUl));
   const typed = await symbol(page);
   check('3b once typed it shows: a drawn disk, no word, "Save · Ctrl+S" on the hover',
     !!typed && typed.vis === 'visible' && typed.svg && typed.word === '' && typed.tip === 'Save · Ctrl+S', JSON.stringify(typed));
@@ -260,6 +281,28 @@ const symbol = page => page.evaluate(() => {
     cls: document.body.classList.contains('pw-editing'), head: getComputedStyle(document.querySelector('.pw-id')).display,
     panel: !!(window.rlCpOpenId && rlCpOpenId()) }));
   check('5 Exit closes the page and their header comes back', !out.ed && !out.cls && out.head !== 'none', JSON.stringify(out));
+
+  /* ---- 7 · the narrow window's clause panel underlines too ---- */
+  await page.setViewportSize({ width: 900, height: 900 });
+  await page.evaluate(() => window.SHOW_OWNER());
+  await until(page, () => !!document.querySelector('#rl-doc [data-rl-cp-open]'));
+  const opened7 = await page.evaluate(() => { const b = [...document.querySelectorAll('#rl-doc [data-rl-cp-open]')]
+    .find(x => x.getAttribute('data-rl-cp-open') !== 'front'); if (!b) return false; b.click(); return true; });
+  await until(page, () => !!document.querySelector('[data-rl-cp-edit]'), null, 3000);
+  await press(page, '[data-rl-cp-edit]');
+  const boxed7 = await until(page, () => !!document.querySelector('.nego-editing[contenteditable="true"]'), null, 3000);
+  if (opened7 && boxed7){
+    await page.evaluate(() => { const b = document.querySelector('.nego-editing[contenteditable="true"]');
+      const r = document.createRange(); r.selectNodeContents(b); r.collapse(false);
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); b.focus(); });
+    await page.keyboard.type(' The Provdier recieves.');
+  }
+  await until(page, () => { const h = CSS.highlights && CSS.highlights.get('hati-spell'); return !!h && h.size >= 2; }, null, 5000);
+  const ul7 = await page.evaluate(() => { const h = CSS.highlights && CSS.highlights.get('hati-spell');
+    const b = document.querySelector('.nego-editing[contenteditable="true"]');
+    return { words: h ? [...h].map(r => r.toString()) : [], native: b ? b.spellcheck : null }; });
+  check('7 on a narrow window the clause panel\'s box underlines the same way', opened7 && boxed7
+    && ul7.words.join(',') === 'Provdier,recieves' && ul7.native === false, JSON.stringify({ opened7, boxed7, ...ul7 }));
 
   await browser.close(); srv.close();
   const failed = results.filter(r => !r.pass).length;

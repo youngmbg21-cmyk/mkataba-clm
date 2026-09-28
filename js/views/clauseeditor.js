@@ -2371,6 +2371,7 @@ function rlCloseClauseEditor(opts = {}){
   }catch(_){}
   const page = document.getElementById('clause-editor');
   if (page){ try{ if (page._ceRo) page._ceRo.disconnect(); }catch(_){} page.remove(); }
+  try{ if (window.spellUnderlineClear) spellUnderlineClear(); }catch(_){}
   document.body.classList.remove('ce-open');
   document.body.classList.remove('pw-editing');
   try{ document.body.style.removeProperty('--pw-edit-foot'); }catch(_){}
@@ -3158,6 +3159,7 @@ function ceRenderPaper(){
     /* THE MARKS GO INTO THE BOX (14 Sep 2026), after it is in the document —
        the paint splits live text nodes, which markup cannot express. */
     if (typing) ceMarksMount({ fresh: true });
+    else { try{ ceSpellMark(false); }catch(_){} }
     ceRestoreScroll(host, keep);
   } finally { _ceRendering = false; }
   ceApplyZoom();
@@ -3563,6 +3565,7 @@ function ceMarksPaint(o = {}){
 function ceMarksMount(o){
   let ok = false;
   try{ ok = ceMarksPaint(o || {}); }catch(_){ ok = false; }
+  try{ ceSpellMark(false); }catch(_){}
   if (!ok){ ceTwinPaint(); return; }
   const twin = _ceQ('#ce-twin');
   if (twin) twin.remove();
@@ -5762,6 +5765,28 @@ function ceFiled(c){
    AN ABSENCE IS SAID: where the word list could not load, the page says the
    spelling was not checked, and files. It answers what ceFile answers. */
 const ceSpellKey = () => String(_ceText) + '\u0000' + String(_ceHead);
+/* What was on the page when the reader began — ONE reading, for the Save's
+   check and the underline both, so a word underlined is a word the Save stops
+   on. */
+function ceSpellBefore(){
+  return [ceWords(_ceBase), ceWords(ceWordingOf(_ceLead)), ceWords(_ceOpenText),
+    _ceHeadBase, _ceOpenHead].join('\n');
+}
+/* ---- THE RED UNDERLINE WHILE TYPING (Young, 28 Sep 2026) ----
+   The Save's own `after`, asked of the box as typed (ceBoxNow), painted by
+   js/spell.js as a highlight over the box: nothing in the box moves. Called a
+   beat after a keystroke, and at once after every mount of the box (the marks'
+   repaint replaces its text, so the underline is drawn again over the new). */
+function ceSpellAfter(){
+  const n = ceBoxNow();
+  return ceWords(n ? n.text : _ceText) + '\n' + String((n ? n.head : _ceHead) || '');
+}
+function ceSpellMark(soon){
+  if (typeof window.spellUnderline !== 'function') return;
+  if (!clauseEditorOpen() || !ceIsTyping()){ spellUnderlineClear(); return; }
+  const roots = [_ceQ('#ce-clausebody'), _ceQ('#ce-clausehead')].filter(Boolean);
+  (soon ? spellUnderlineSoon : spellUnderline)(roots, ceSpellBefore(), ceSpellAfter, _ceC);
+}
 async function ceSaveChecked(){
   const st = (typeof window.spellState === 'function' && typeof window.spellSuspects === 'function')
     ? spellState() : 'absent';
@@ -5771,9 +5796,7 @@ async function ceSaveChecked(){
     if (st === 'idle' || st === 'loading'){ await spellLoad(); if (!clauseEditorOpen()) return null; }
     if (spellState() !== 'ready') ceSay(_cet('spl_not_checked'));
     else {
-      const before = [ceWords(_ceBase), ceWords(ceWordingOf(_ceLead)), ceWords(_ceOpenText),
-        _ceHeadBase, _ceOpenHead].join('\n');
-      const sus = spellSuspects(before, ceWords(_ceText) + '\n' + String(_ceHead || ''), _ceC);
+      const sus = spellSuspects(ceSpellBefore(), ceWords(_ceText) + '\n' + String(_ceHead || ''), _ceC);
       if (sus && sus.length){
         _ceSpellList = sus; _ceSpellFor = ceSpellKey();
         ceRenderSpell(); ceRenderFoot();
@@ -6526,6 +6549,7 @@ function ceWirePage(page){
     /* AND THE FOOT'S SAVE AND DISCARD WAKE AS THE WORDS GO IN — patched in
        place, so the button under a reader's finger keeps its identity. */
     ceRenderFoot();
+    ceSpellMark(true);
     /* ---- AND TYPING CLOSES THE STRIP, HAVING DONE NOTHING ----
        (29 Aug 2026.) With the strip live during typing, a reader who highlights
        a sentence and then simply carries on writing has answered the question

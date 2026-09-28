@@ -398,8 +398,109 @@ function spellEnsureStyle(){
   .sp-fix{border:1px solid var(--color-accent-600); background:var(--color-surface); color:var(--accent-ink)}
   .sp-leave{border:1px solid transparent; background:none; color:var(--color-neutral-600)}
   .sp-fix:focus-visible,.sp-leave:focus-visible{outline:2px solid var(--color-accent-600); outline-offset:1px}
-  .sp-none{color:var(--color-neutral-600)}`;
+  .sp-none{color:var(--color-neutral-600)}
+  ::highlight(${SPELL_HL}){text-decoration:underline wavy var(--st-ruby-dot, #d92d20); text-decoration-skip-ink:none;
+    text-underline-offset:3px}`;
   document.head.appendChild(st);
+}
+
+/* ============================================================
+   THE RED UNDERLINE WHILE TYPING (Young, 28 Sep 2026: "yes add the red
+   underlines while typing too")
+   ============================================================
+   THE SAME READING AS THE SAVE. What is underlined is exactly what the Save
+   would list — spellSuspects over the same `before` and the box as it now
+   reads — so a word underlined is a word the Save will stop on, and a word
+   the Save lets through is never underlined. The browser's own underline is
+   switched off on a box HaTi underlines (it reads another dictionary, in the
+   reader's browser language, and the two would disagree on the same word).
+
+   IT TOUCHES NO WORDING AND NO LAYOUT. The marks are a CSS Custom Highlight
+   (CSS.highlights): ranges over the box's text, painted by the browser, never
+   an element in the box — so the draft the Save reads, the caret and the
+   redline paint are exactly as they were. A browser without highlights keeps
+   its own underline and the Save still checks.
+
+   A beat behind the typing (SPELL_UNDERLINE_MS), one box at a time; the word
+   list is fetched on the first keystroke instead of the first Save. Words
+   inside a struck run are not the reader's and are never marked. */
+const SPELL_HL = 'hati-spell';
+const SPELL_UNDERLINE_MS = 350;
+let _spellUlTimer = null;
+let _spellUlArgs = null;
+function spellUnderlineCan(){
+  return typeof CSS !== 'undefined' && !!CSS.highlights && typeof globalThis.Highlight === 'function';
+}
+function spellUnderlineClear(){
+  if (_spellUlTimer){ clearTimeout(_spellUlTimer); _spellUlTimer = null; }
+  _spellUlArgs = null;
+  try { if (spellUnderlineCan()) CSS.highlights.delete(SPELL_HL); } catch (_){}
+}
+/* The text a reader typed in these roots, as nodes: struck runs left out. */
+function _spellLiveNodes(roots){
+  const out = [];
+  (roots || []).forEach(root => {
+    if (!root || typeof document === 'undefined') return;
+    const walk = document.createTreeWalker(root, 4 /* NodeFilter.SHOW_TEXT */);
+    while (walk.nextNode()){
+      const t = walk.currentNode;
+      const el = t.parentElement;
+      if (el && el.closest && el.closest('del, [data-ce-mark="del"]')) continue;
+      out.push(t);
+    }
+  });
+  return out;
+}
+/* Paint now. `roots` the boxes; `before` and `after` EXACTLY what the Save
+   passes (what was on the page when the reader began; what it would file),
+   `after` as a string or a function asked at paint time; `c` the contract.
+   Answers how many words it marked (null: not able). A word split across
+   inline tags gets no mark rather than a wrong one. */
+function spellUnderline(roots, before, after, c){
+  if (!spellUnderlineCan() || !Array.isArray(roots)) return null;
+  const live = roots.filter(r => r && r.isConnected);
+  if (!live.length){ spellUnderlineClear(); return null; }
+  live.forEach(r => { if (r.spellcheck !== false) r.spellcheck = false; });
+  if (!_spellSet){ CSS.highlights.delete(SPELL_HL); return null; }
+  spellEnsureStyle();
+  const nodes = _spellLiveNodes(live);
+  const now = typeof after === 'function' ? after() : after;
+  const sus = spellSuspects(before, now, c) || [];
+  const bad = new Set(sus.map(x => String(x.word).toLowerCase()));
+  const ranges = [];
+  if (bad.size){
+    const re = /[A-Za-zÀ-ɏ][A-Za-zÀ-ɏ'\-]*[A-Za-zÀ-ɏ]|[A-Za-zÀ-ɏ]/g;
+    nodes.forEach(t => {
+      const text = String(t.nodeValue || '').replace(/[‘’]/g, "'");
+      let m;
+      re.lastIndex = 0;
+      while ((m = re.exec(text))){
+        let at = m.index;
+        m[0].split('-').forEach(part => {
+          const w = part.replace(/^'+|'+$/g, '');
+          const lead = part.indexOf(w);
+          if (w && bad.has(w.toLowerCase())){
+            const r = document.createRange();
+            r.setStart(t, at + lead); r.setEnd(t, at + lead + w.length);
+            ranges.push(r);
+          }
+          at += part.length + 1;
+        });
+      }
+    });
+  }
+  if (ranges.length) CSS.highlights.set(SPELL_HL, new globalThis.Highlight(...ranges));
+  else CSS.highlights.delete(SPELL_HL);
+  return ranges.length;
+}
+/* A beat behind the typing. The word list is asked for here, so the first
+   underline arrives as soon as it has loaded. */
+function spellUnderlineSoon(roots, before, after, c){
+  if (!spellUnderlineCan()) return;
+  _spellUlArgs = [roots, before, after, c];
+  if (!_spellSet && !_spellFailed) spellLoad().then(ok => { if (ok && _spellUlArgs) spellUnderline(..._spellUlArgs); });
+  if (_spellUlTimer) clearTimeout(_spellUlTimer);
+  _spellUlTimer = setTimeout(() => { _spellUlTimer = null; if (_spellUlArgs) spellUnderline(..._spellUlArgs); }, SPELL_UNDERLINE_MS);
 }
 
 if (typeof window !== 'undefined') Object.assign(window, {
@@ -407,10 +508,12 @@ if (typeof window !== 'undefined') Object.assign(window, {
   spellLoadFrom, spellReady, spellState, spellLoad, spellWords, spellPlain, spellSkips, spellKnownFrom, spellIsWord,
   spellLooksEnglish, spellSuggest, spellSuspects, spellLeave, spellTermsFrom, spellTermSlip, spellContractText,
   spellFixText, spellFixHtml, spellFixNode, spellListHtml, spellEnsureStyle,
+  SPELL_HL, SPELL_UNDERLINE_MS, spellUnderlineCan, spellUnderline, spellUnderlineSoon, spellUnderlineClear,
 });
 if (typeof module !== 'undefined' && module.exports) module.exports = {
   SPELL_WORDS_SRC, SPELL_ENGLISH_MIN, SPELL_SUGGEST_MAX, SPELL_LEGAL,
   spellLoadFrom, spellReady, spellState, spellLoad, spellWords, spellPlain, spellSkips, spellKnownFrom, spellIsWord,
   spellLooksEnglish, spellSuggest, spellSuspects, spellLeave, spellTermsFrom, spellTermSlip, spellContractText,
   spellFixText, spellFixHtml, spellFixNode, spellListHtml, spellEnsureStyle,
+  SPELL_HL, SPELL_UNDERLINE_MS, spellUnderlineCan, spellUnderline, spellUnderlineSoon, spellUnderlineClear,
 };

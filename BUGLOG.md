@@ -19850,3 +19850,7 @@ Noticed, not fixed
 
 - FIXED: the clause editor's Save and Discard were grey while the caret was still in the words (both seats); they now follow the typing. f427, their-edit-page-verify 3a2/6a2.
 - FIXED: the spelling check let a capitalised slip of the contract's own term through ("the Suplier shall"), and on a contract drawn from a template it knew none of the contract's words. f427, their-edit-page-verify 6e.
+
+## 28 Sep 2026 — red underline while typing
+
+- BUILT: misspelt words get a red wavy underline while typing, in the clause editor (both seats) and the narrow window's clause panel — the same words the Save would list; the browser's own underline is off on those boxes. f428, their-edit-page-verify 3a3/6f/6g/7.
