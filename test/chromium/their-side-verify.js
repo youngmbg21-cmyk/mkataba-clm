@@ -164,7 +164,15 @@ const press = (page, sel) => page.evaluate(s => { const el = document.querySelec
     const payload = buildSharePayload(c, { purpose: 'sign' });
     payload.purpose = 'sign'; payload.purposeChosen = 'sign';
     payload.contract.signatures = [{ party: 'first', name: 'Wanjiru Kamau', title: 'Director', at: '2026-09-27T11:02:00.000Z' }];
+    /* The whole signing order (Young, 28 Sep 2026), as the server sends it. */
     renderSharePortal(payload, { token: 't-sign', purpose: 'sign', emailConfigured: true,
+      signingOrder: [
+        { step: 1, rows: [{ side: 'ours', party: 'Highland Corporate Ltd', name: 'Wanjiru Kamau', title: 'Director',
+          signed: true, at: '2026-09-27T11:02:00.000Z', you: false }] },
+        { step: 2, rows: [{ side: 'theirs', party: 'Nordfrakt AB', name: 'Amina Wanjiru', title: 'CFO',
+          signed: false, at: null, you: true }] },
+        { step: 3, rows: [{ side: 'theirs', party: 'Nordfrakt AB', name: 'Lars Holm', title: 'CEO',
+          signed: false, at: null, you: false }] }],
       share: { purpose: 'sign', recipientName: 'Amina Wanjiru', recipientEmail: 'amina@nordfrakt.se' } });
   });
   await until(page, () => !!document.querySelector('.ps-stages'));
@@ -177,6 +185,21 @@ const press = (page, sel) => page.evaluate(s => { const el = document.querySelec
   check('5b the four stages', sign.stages === 4, sign.stages);
   check('5c the Sign button names the signer', /^Sign as Amina Wanjiru$/.test(sign.word), sign.word);
   check('5d the dark bar is gone; the head is the negotiation page\'s', !sign.dark);
+  const order = await page.evaluate(() => {
+    const steps = [...document.querySelectorAll('.ps-stages .ps-ostep')];
+    const seen = el => { const r = el.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + 12, r.top + r.height / 2);
+      return r.width > 0 && r.height > 0 && !!hit && el.contains(hit); };
+    if (steps[0]) steps[0].scrollIntoView({ block: 'center' });
+    return { n: steps.length, names: steps.map(s => (s.querySelector('b') || {}).textContent || ''),
+      now: steps.findIndex(s => s.classList.contains('is-now')),
+      turn: steps[1] ? /Your turn/.test(steps[1].textContent) : false,
+      painted: steps.length ? seen(steps[0]) : false };
+  });
+  check('5g the whole signing order is drawn, in order, with their own step in hand',
+    order.n === 3 && order.names.join('|') === 'Wanjiru Kamau|Amina Wanjiru|Lars Holm' && order.now === 1 && order.turn,
+    JSON.stringify(order));
+  check('5h and it is painted pixels, not a hidden box', order.painted);
   await page.screenshot({ path: path.join(OUT, '04-signing.png') });
   /* The parity fixture does not load the pad; the product does. */
   await page.addScriptTag({ url: '/js/signature.js' });

@@ -13185,6 +13185,44 @@ function shareHandoverFact(contractId) {
   const last = past[past.length - 1];
   return last && last.cancelledAt ? { withdrawnAt: last.cancelledAt, at: last.at } : null;
 }
+/* ---- THE SIGNING ORDER THEIR SIGNING PAGE DRAWS (Young, 28 Sep 2026:
+   "show the full planned order of signers") ----
+   The route used to reach their page as one boolean (signingOpen), because the
+   plan names colleagues AND THEIR ADDRESSES. The owner has now asked for the
+   order itself, so this sends the ORDER and nothing more: the step each person
+   signs in, their name, the capacity they sign in, which side they sign for,
+   whether and when they have signed, and which row this link is. NO EMAIL, no
+   member id, no signature image, no row id. Read LIVE from the stored contract
+   on every open, like `executed`, so a signature taken since the link went
+   out shows here without a new link. Only a SIGN link carries it. */
+function shareSigningOrder(s) {
+  if (!s || (s.purpose || '') !== 'sign') return null;
+  const rt = signerRouteFor(s.contract_id);
+  if (!rt) return null;
+  const parties = srvContractParties(rt.contract);
+  const ours = parties.find(p => p.side === 'ours');
+  const theirs = parties.filter(p => p.side !== 'ours');
+  const partyName = r => {
+    if (r.party !== 'counterparty') return (ours && ours.name) || '';
+    const hit = r.partyId ? theirs.find(p => p.id === String(r.partyId)) : null;
+    return ((hit || theirs[0]) || {}).name || '';
+  };
+  const byStep = new Map();
+  rt.plan.forEach(r => { const k = srvSignStep(r);
+    if (!byStep.has(k)) byStep.set(k, []); byStep.get(k).push(r); });
+  return [...byStep.keys()].sort((a, b) => a - b).map((k, i) => ({
+    step: i + 1,
+    rows: byStep.get(k).map(r => ({
+      side: r.party === 'counterparty' ? 'theirs' : 'ours',
+      party: partyName(r),
+      name: String(r.name || ''),
+      title: String(r.role || '') || null,
+      signed: !!rt.signedRow(r),
+      at: r.signed ? (r.at || null) : null,
+      you: !!s.signer_id && String(r.id) === String(s.signer_id),
+    })),
+  }));
+}
 function contractExecution(contractId) {
   if (!contractId) return null;
   const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(contractId);
@@ -13358,6 +13396,7 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
        — but their page has to be able to say that the wording is final, or it
        goes on inviting redlines on a sealed contract. */
     executed: contractExecution(s.contract_id),
+    signingOrder: shareSigningOrder(s),
     /* ---- THE AGREED WORDS WERE HANDED OVER (26 Sep 2026) ----
        Read live, like `executed` beside it: once the lead hands the agreed
        wording over as a Word file, this page turns read-only and offers that

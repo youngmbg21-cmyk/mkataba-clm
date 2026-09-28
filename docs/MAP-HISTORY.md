@@ -24313,3 +24313,15 @@ Re-pointed (each says "RE-POINTED/REVERSED/RETIRED 28 Sep 2026"): f274 (5, 8, 9,
 - **NOT FIXED, LOGGED:** editing an ask they had ALREADY SENT revises it in place (`revisions[]`), and their page's store only holds changes that have not arrived — so the revision vanishes on the next repaint with no Send. Proved on the untouched parent through their old panel door, so it predates this work; the Mirror only moved where their Edit lands.
 
 Tests: f422 (nine claims, all red at 2a034b9), their-side-verify (24 checks; at the parent 13 red and the rest unreachable, the two guards — 2c the paper did not move down, 5f no sideways scroll — green there too).
+
+## THE COUNTERPARTY'S PAGE — THEIR SIGNING PAGE SHOWS THE WHOLE SIGNING ORDER (Young, 28 Sep 2026)
+
+> *"show the full planned order of signers then merge to main"*
+
+The signing page built earlier the same day drew "who has signed" only, because the route never travelled: `buildSharePayload` reduces it to the `signingOpen` boolean, on the reasoning that the plan "names colleagues and their addresses, and none of that is the counterparty's to read". The owner has now asked for the order itself.
+
+What was built: the server reads the order LIVE off the STORED route on every open of a SIGN link (`shareSigningOrder`, beside `executed` in GET /api/shares/:token) and sends the ORDER and nothing more — step (renumbered from 1, `srvSignStep`), name, capacity (`role`), side (ours/theirs), the party signed for, signed and when, and which row this link is (`you`, from `shares.signer_id`). No email, no row id, no member id, no image. The payload is untouched, so the `signingOpen` reasoning still governs what a stored copy carries. Their page reads it through `portalRenderOpts` → `PORTAL_OPTS.signingOrder`, and `portalSignature` includes it so a signature landing repaints the page. `portalSigningOrderHtml` draws one line per step: signed (with the day), "Your turn" on their own row, "Signing now" beside them in the same step, "Waiting for the step before" after. A link with no order (not a sign link, an older server, no route) falls back to who has signed and "You · Your turn".
+
+Our signers are NAMED on their page before they sign (name and capacity). The dormant "not your turn yet" notice still names an internal holdup as the organisation, unchanged.
+
+Tests: f423 (red at the parent 73e48f0 on every claim but the fallback), their-side-verify 5g/5h.

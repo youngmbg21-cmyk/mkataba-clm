@@ -19803,3 +19803,10 @@ Noticed, not fixed
 - The clause editor on their page covers the whole window, because `ceFitToShell` has no shell to measure there; it still works, it is just larger than on ours.
 - portal-header-verbs-verify "the Send is ON TOP OF THE REDLINE CARDS" looks for the `.rl-unsent` band the owner removed on 26 Aug; red on unmodified main too; not changed.
 - counterparty-reading-and-more-verify times out at step 2 waiting for an "As agreed" reading tab the owner removed on 23 Sep; red on unmodified main too; not changed.
+
+## 28 Sep 2026 — Their signing page shows the whole signing order
+
+- Built (Young: "show the full planned order of signers"): their signing page's third stage lists every step of the signing route in order — name, capacity, the party signed for, signed and when, and their own turn — read live by the server off the stored route on each open of a sign link, never carrying an email address. A link with no route still shows who has signed.
+
+### Noticed, not fixed
+- test/audit/sim-d-server-attacks.audit.js stops with a HARNESS ERROR before any attack runs: its signing link is refused 409 by the "Value ≥ 5000000" approval rule (its fixture does not say `approvalRules: []`). Same on the commit before this change; not changed.

@@ -2127,12 +2127,13 @@ function wirePortalNotes(){
        openPortalHistory);
      2 THE READING — the signing copy beside this list is the copy both sides
        sign;
-     3 THE PEOPLE — WHO HAS SIGNED: the names, capacities and dates on
-       p.contract.signatures, which travel for exactly this (the 2 Aug field
-       report). OUR ROUTE DOES NOT TRAVEL and is not drawn: buildSharePayload
-       reduces it to one boolean on purpose — it names colleagues and their
-       addresses, none of which is theirs to read — so this stage says who has
-       signed and that it is their turn, and invents no order beyond that;
+     3 THE PEOPLE — THE WHOLE SIGNING ORDER (Young, 28 Sep 2026: "show the
+       full planned order of signers"): every step, who signs in it, for which
+       side, and who has signed and when, from `signingOrder`, which the SERVER
+       reads live off the stored route on every open (shareSigningOrder) —
+       names, capacities and order only, never an address. Where a link has no
+       order (not a sign link, an older server, no route) it falls back to who
+       has signed, off p.contract.signatures, and "You · Your turn";
      4 THE SIGNATURE — drawn by the page itself, around the controls it has
        always had.
 
@@ -2153,7 +2154,8 @@ function portalBeforeSignStagesHtml(c, p){
     : esc(i18tn('po_stage_wording_n',changes.length,{n:changes.length,
         how:(acc?i18t('po_stage_adopted',{n:acc}):'')+(rej?i18t('po_stage_not_taken',{n:rej}):'')}));
   const sigs=(Array.isArray(src.signatures)?src.signatures:[]).filter(s=>s&&s.name);
-  const people = (sigs.length
+  const order=portalSigningOrderHtml(executed);
+  const people = order ? order.html : (sigs.length
       ? sigs.map(s=>`<p class="ps-who"><b>${esc(s.name)}</b>${s.title?` &middot; ${esc(s.title)}`:''}<span class="ps-when ok">${
           esc(i18t('po_stage_signed_at',{at:s.at&&window.fmtDT?fmtDT(s.at):(s.at||'')}))}</span></p>`).join('')
       : `<p class="ps-line">${esc(i18t('po_stage_none_yet'))}</p>`)
@@ -2162,7 +2164,29 @@ function portalBeforeSignStagesHtml(c, p){
       `<p class="ps-line">${wording}</p>${changes.length?`<button id="pt-nego-open" type="button" class="ui-link ps-door"
         title="${i18t('po_every_change_oldest')}">${i18t('po_review_what_changed')}</button>`:''}`)
     + stage(2, executed, i18t('po_stage_read'), `<p class="ps-line">${esc(i18t('po_stage_read_line'))}</p>`)
-    + stage(3, executed, i18t('po_stage_people'), people);
+    + stage(3, executed || !!(order && order.done), i18t(order ? 'po_stage_order' : 'po_stage_people'), people);
+}
+/* The signing order as their page draws it: one numbered step per row group,
+   each person's name and capacity, the party they sign for, and where they
+   stand — signed (with the day), signing now, your turn, or waiting on the
+   step before. Null where the link carries no order. */
+function portalSigningOrderHtml(executed){
+  const steps=(PORTAL_OPTS&&Array.isArray(PORTAL_OPTS.signingOrder))?PORTAL_OPTS.signingOrder:null;
+  if(!steps||!steps.length||!steps.some(st=>st&&Array.isArray(st.rows)&&st.rows.length)) return null;
+  const nowIdx=executed?-1:steps.findIndex(st=>(st.rows||[]).some(r=>r&&!r.signed));
+  const row=(r,i)=>{
+    const where = r.signed
+      ? `<span class="ps-when ok">${esc(i18t('po_stage_signed_at',{at:r.at&&window.fmtDT?fmtDT(r.at):(r.at||'')}))}</span>`
+      : i===nowIdx
+      ? `<span class="ps-when now">${esc(i18t(r.you?'po_stage_your_turn':'po_stage_signing_now'))}</span>`
+      : `<span class="ps-when">${esc(i18t('po_stage_waiting'))}</span>`;
+    return `<p class="ps-who${r.you?' is-you':''}"><b>${esc(r.name||'')}</b>${r.title?` &middot; ${esc(r.title)}`:''}${
+      r.you?` <span class="ps-you">${esc(i18t('po_stage_you_mark'))}</span>`:''}${
+      r.party?`<span class="ps-party">${esc(i18t('po_stage_for',{party:r.party}))}</span>`:''}${where}</p>`;
+  };
+  const html=`<ol class="ps-order">${steps.map((st,i)=>`<li class="ps-ostep${i===nowIdx?' is-now':''}"><span class="ps-on" aria-label="${
+      esc(i18t('po_stage_step',{n:i+1}))}">${i+1}</span><div class="ps-orows">${(st.rows||[]).filter(Boolean).map(r=>row(r,i)).join('')}</div></li>`).join('')}</ol>`;
+  return { html, done: nowIdx===-1 };
 }
 /* The page's own dressing, beside the head it borrows from the negotiation
    page (portalWorkbenchStyle). Tokens only: this is the product's own page. */
@@ -2199,6 +2223,17 @@ function portalSignStyle(){
     .ps-who b{font-weight:var(--w-strong);}
     .ps-when{flex-basis:100%;font-size:var(--t-label);}
     .ps-when.ok{color:var(--st-green-fg);} .ps-when.now{color:var(--st-amber-fg);}
+    .ps-when{color:var(--color-neutral-600);}
+    .ps-order{list-style:none;margin:2px 0 0;padding:0;}
+    .ps-ostep{display:flex;gap:8px;padding:6px 0;border-top:1px solid var(--color-divider);}
+    .ps-ostep:first-child{border-top:0;padding-top:2px;}
+    .ps-on{flex:none;width:18px;text-align:right;font-size:var(--t-label);font-weight:var(--w-strong);
+      color:var(--color-neutral-600);font-variant-numeric:tabular-nums;line-height:1.9;}
+    .ps-ostep.is-now .ps-on{color:var(--st-amber-fg);}
+    .ps-orows{flex:1;min-width:0;}
+    .ps-orows .ps-who:first-child{margin-top:0;}
+    .ps-party{flex-basis:100%;font-size:var(--t-label);color:var(--color-neutral-600);}
+    .ps-you{font-size:var(--t-label);color:var(--color-neutral-600);}
     .ps-code{display:block;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600);text-align:center;}`;
   document.head.appendChild(el);
 }
@@ -2582,6 +2617,9 @@ function portalRenderOpts(token, d){
     executed:d.executed||null,
     /* Read live like `executed`: handed over as a Word file, or withdrawn. */
     handover:d.handover||null,
+    /* Read live like `executed`: the signing order, sign links only — see
+       shareSigningOrder on the server for what it carries and what it never does. */
+    signingOrder:Array.isArray(d.signingOrder)?d.signingOrder:null,
     emailConfigured:d.emailConfigured!==false, messages:d.messages||[],
     /* The server states it on the envelope as well as inside the payload, and
        the render reads whichever arrives — a reader who may do nothing must not
@@ -2616,6 +2654,8 @@ function portalSignature(d){
     `op${(c.openPoints||[]).length}`, `v${(c.versions||[]).length}`, `rd${(c.rounds||[]).length}`,
     d.executed?`x:${d.executed.at||'1'}`:'', d.superseded?`s:${d.superseded.at||'1'}`:'',
     d.handover?`h:${d.handover.live?1:0}:${d.handover.withdrawnAt||''}`:'',
+    /* A signature landing on the route moves the order their page draws. */
+    Array.isArray(d.signingOrder)?'so'+d.signingOrder.map(st=>(st.rows||[]).map(r=>r.signed?1:0).join('')).join('.'):'',
     d.responded?'r':'', String((d.messages||[]).length),
     String((d.share&&d.share.expiresAt)||''),
     /* THE ONE EXCEPTION TO "CONTENT ONLY", and it earns it. Whether the last
