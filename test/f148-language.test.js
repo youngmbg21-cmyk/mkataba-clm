@@ -38,6 +38,9 @@ const SAME_IN_BOTH = new Set([
   /* Explorer's legend (28 Sep 2026): "Status" is the same word in Swedish,
      now that the rows are a key and no longer say "click to filter". */
   'int_status_click',
+  /* The view recipe (28 Sep 2026): two sentences that are only their
+     placeholders. */
+  'int_did_role', 'int_did_compare',
   /* The Brain (27 Sep 2026): "Zoom", "Copilot", "Hippocampus" and "Webhooks"
      are the same word in Swedish. */
   'brn_zoom_label', 'brn_r_ai', 'brn_rb_wall', 'brn_p_webhook',

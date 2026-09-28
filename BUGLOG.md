@@ -19840,6 +19840,12 @@ Noticed, not fixed
 - Fixed on the way (found by the new check): a drag that started on selected words cancelled half-way through a turn.
 - Not built from the design: "Save this view".
 
+## 28 Sep 2026 — Explorer: the view recipe
+
+- Built (Young: "Let's go with this"): everything Explorer's map shows is now one recipe — which contracts, grouped by, floors by, columns by, colour, size, labels, sort / top N, compare, the timeline's date and the view — read back on the line above the map, with Undo and Save view beside it.
+- Fixed the reported fault: "divide the floors by payment terms" was sent to a reading of one contract because "payment terms" was on a word list. Questions are no longer sorted by word lists; the free built-in reader handles everyday requests in English and Swedish, and Copilot decides the rest (map, or a question about wording, which goes to the reading chat).
+- Built: every fact (now also liability cap, governing law, owner, open obligations, read or not) can narrow, group, make floors or columns, colour, size or label; unclear requests answer with two or three buttons; "of those", "instead", "same but" and "undo" build on what is showing; two new views, Grid and Timeline; saved views (kept in this browser); a phrase book of about 225 ways of asking, checked automatically.
+- Worth knowing: a wording question asked on Explorer now makes one small map call to Copilot before the reading chat answers it.
 ## 28 Sep 2026 — their Edit page and the save symbol
 
 - BUILT: counterparty landing has Edit at the top and no pencils on the paper; Edit opens the clause editor beside their live Redlines column (Discard / Save under it, header stood down, wall line kept); a column press with unsaved typing asks "Leave this clause?" and drops only the unsaved words. Done is now a save symbol on both seats (hidden until typing, hover "Save · Ctrl+S", Ctrl/⌘+S, a tick). f426, their-edit-page-verify.

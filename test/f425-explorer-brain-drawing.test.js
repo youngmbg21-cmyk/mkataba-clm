@@ -64,7 +64,7 @@ test('f425 (1) the drawing: a canvas under the nodes, the views and Fold all on 
   assert.match(r, /IGB_VIEWS\.map\(\(v,i\)=>`<button type="button" data-ig-view="\$\{i\}"/);
   assert.match(r, /id="ig-foldall"/);
   assert.match(r, /data-ig-zoom="out"/);
-  assert.match(IG, /const IGB_VIEWS=\['brain','wiring','floors'\];/);
+  assert.match(IG, /const IGB_VIEWS=\['brain','wiring','floors','grid','timeline'\];/, 'five views since the view recipe (f426)');
   const f = code(region(IG, 'igRender'));
   assert.match(f, /igbStep\(IG,dt\); igbWiring\(IG\);/);
   assert.match(f, /igbShade\(IG\); igbDraw\(IG,now\); igbPlace\(IG\);/);
@@ -138,7 +138,10 @@ test('f425 (6) Copilot steers the map: colour, size and show everything are read
   assert.equal(win.eval('intel.sizeBy'), 'obligations');
   assert.equal(await win.intelMapLocal('colour them by rainbow sparkles'), '');
   assert.equal(win.eval('intel.colourBy'), 'payterms', 'a colour the map cannot draw changes nothing, and says so');
-  assert.match(win.eval('intel.history[intel.history.length-1].text'), /group|value stream/i);
+  /* SINCE THE VIEW RECIPE (f426): the unknown fact is said, and the nearest
+     colours the map can draw come back as presses. */
+  assert.match(win.eval('intel.history[intel.history.length-1].text'), /does not know/i);
+  assert.ok(win.eval('intel.history[intel.history.length-1].choices.length') >= 2, 'the answer offers what the map can do');
   win.eval('intel.lenses=[{id:"l1",on:true,action:"filter",label:"x",ids:["A1"]}]; intel.groups={A1:"Z"};');
   assert.equal(await win.intelMapLocal('Show everything'), '');
   assert.equal(win.eval('intel.lenses.length'), 0); assert.equal(win.eval('intel.groups'), null);
