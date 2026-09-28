@@ -69,7 +69,7 @@ const PROBE = () => {
 
 (async () => {
   const h = await startHati();
-  const W = await seedWorkspace(h);
+  const W = await seedWorkspace(h, { approvalRules: [] });   // it issues a signing link on a seeded (≥5M) contract
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const errors = [];
 

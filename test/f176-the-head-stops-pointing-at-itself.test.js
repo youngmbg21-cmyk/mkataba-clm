@@ -38,6 +38,7 @@ const { buildWorld, supplyContract } = require('./world');
 
 const SRC = fs.readFileSync(
   path.join(__dirname, '..', 'js', 'views', 'contract.js'), 'utf8');
+const I18N_SRC = fs.readFileSync(path.join(__dirname, '..', 'js', 'i18n.js'), 'utf8');
 
 describe('F176 — the intent-to-sign step speaks without a button', () => {
   /* RE-POINTED 13 Sep 2026 (the signing flow rebuilt): the intent tick-box
@@ -74,9 +75,12 @@ describe('F176 — the intent-to-sign step speaks without a button', () => {
     assert.equal(wants.length, 2,
       'BOTH its answers decline the primary slot — theirs and ours; one of the '
       + 'two left drawing a button is the duplicate coming back on half the contracts');
-    assert.match(branch[0], /guide:`It is with/,
+    /* Re-pointed in place 28 Sep 2026: the guide is said in the reader's
+       language now (f416 l4), so the claim reads the key and its English. */
+    assert.match(branch[0], /get guide\(\)\{ return i18t\('ct_g_with_them'/,
       'and the guide still says whose move it is');
-    assert.match(branch[0], /guide:`Your turn/, 'in both directions');
+    assert.match(I18N_SRC, /ct_g_with_them: 'It is with \{who\}/, 'in words');
+    assert.match(branch[0], /i18tn\('ct_g_your_turn', mine/, 'in both directions');
   });
 
   test('and NO branch of this head draws that door — all three, not one', () => {
@@ -105,8 +109,9 @@ describe('F176 — the intent-to-sign step speaks without a button', () => {
     assert.ok(branch, 'the incomplete-terms branch is still there to be found');
     assert.match(branch[0], /kind:'terms'/, 'it is the state under test');
     assert.match(branch[0], /noButton:\s*true/, 'and it asks for no button of its own');
-    assert.match(branch[0], /guide:'Add the counterparty and value/,
+    assert.match(branch[0], /get guide\(\)\{ return i18t\('ct_g_terms'\); \}/,
       'while still saying what the next step actually is');
+    assert.match(I18N_SRC, /ct_g_terms: 'Add the counterparty and value/, 'in words');
     assert.match(branch[0], /i18t\('ct_complete_key_terms'\)/,
       'and it keeps its label — what the machinery would print, like its three siblings');
   });

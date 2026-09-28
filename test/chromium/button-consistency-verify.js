@@ -250,13 +250,21 @@ const HELPERS = `(() => {
     const staged = await page.evaluate(() => {
       const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
       const live = state.contracts.filter(c => !c.archived && c.status !== 'Declined' && c.status !== 'Signed');
-      const [a, b, cc] = live; if (!a || !b || !cc) return null;
+      const [a, b, cc, dd] = live; if (!a || !b || !cc || !dd) return null;
       a.status = 'Signed'; a.counterpartyEmail = 'ops@nordkust.example';
       a.obligations = [{ id: 'ob-desk', desc: 'Quarterly volume report', due: day(-4), party: 'theirs', status: 'open' }];
       b.source = 'upload';
       b.triage = { at: day(-1), seenAt: null, steps: { playbook: { ok: true, dev: 2, miss: 1, cats: ['Payment terms', 'Liability'] } } };
       cc.status = 'Signed'; cc.parentId = null; cc.expiry = day(40);
       cc.metadata = Object.assign({}, cc.metadata, { expiryDate: day(40), noticePeriodDays: 30 });
+      /* A SECOND RENEWAL, OWNED BY THE READER (re-pointed 27 Sep 2026, T3): the
+         desk shows one renewal and takes it off the decisions card (deskCids),
+         and a renewal is owed by name (contractOwnedBy) — so the decision row
+         needs a renewal of its own, on the reader's own contract. */
+      const me = (typeof currentUser === 'function') ? currentUser() : null;
+      dd.status = 'Signed'; dd.parentId = null; dd.expiry = day(55);
+      dd.metadata = Object.assign({}, dd.metadata, { expiryDate: day(55), noticePeriodDays: 30 });
+      if (me) dd.owner = { id: me.id, name: me.name };
       setView('dashboard');
       return true;
     });

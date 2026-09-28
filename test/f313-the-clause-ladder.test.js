@@ -544,7 +544,10 @@ describe('f313 — the clause ladder', () => {
     assert.ok(!/överenskomna/i.test(STRINGS.sv.ng_legend_plain), 'and gone in Swedish too');
     assert.match(STRINGS.en.ng_legend_plain, /last wording exchanged/, 'the fact still stands');
     const nego = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'negotiation.js'), 'utf8');
-    assert.match(nego, /item\('base', 'ng_legend_plain'\)/, 'drawn from the one key, still');
+    /* Re-pointed in place 28 Sep 2026: the legend's item now takes the words
+       (the two sides are drawn by NAME, rlLegendNames), so the key is looked up
+       at the call rather than inside item(). */
+    assert.match(nego, /item\('base', i18t\('ng_legend_plain'\)\)/, 'drawn from the one key, still');
 
     /* ---- THE THREE CHECKS MOVED UP (Young: "move the highlighted buttons up
        and to the right of the more button") ---- */

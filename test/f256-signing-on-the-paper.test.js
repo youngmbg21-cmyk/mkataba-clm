@@ -161,7 +161,10 @@ describe('f256 (3) — a mark is absent from the share payload', () => {
        words somebody thought of — but that the contract object is BUILT from
        named keys, so a new field cannot travel by accident. It is the same
        reasoning the webhook payload's own allow-list is written under. */
-    const m = CORE.match(/return \{ v:1, kind:'hati-share'[\s\S]*?\n  \};/);
+    /* Re-pointed in place 28 Sep 2026: the object is now handed through
+       shareAdviceNarrow (an adviser's copy is narrower still), so the region
+       runs from the object to the builder's own close. */
+    const m = CORE.match(/return (?:shareAdviceNarrow\()?\{ v:1, kind:'hati-share'[\s\S]*?\n\}/);
     assert.ok(m, 'the payload builder is findable');
     assert.ok(!m[0].includes('signSpots'),
       'a mark placed before execution never reaches the other side');

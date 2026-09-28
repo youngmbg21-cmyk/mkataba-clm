@@ -328,6 +328,12 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
     /* ---- 5. ALL DATES / MINE ---- */
     await page.click('[data-cal-view="month"]');
     await pause(700);
+    /* RE-POINTED IN PLACE 28 Sep 2026: the seeded contracts now record who
+       owns them, and the sign-in that seeds them owns them all, so "Mine"
+       rightly equals "All". Every other contract is handed to a colleague on
+       the page (a reading, never saved) so the cut has something to leave out. */
+    await page.evaluate(() => { state.contracts.forEach((c, i) => { if (i % 2) c.owner = { id: 'u-someone-else', name: 'Someone Else' }; }); renderCalendar(); });
+    await pause(500);
     const before = await page.evaluate(() => document.querySelectorAll('.cal-chip').length);
     await page.click('[data-cal-scope="mine"]');
     await pause(700);

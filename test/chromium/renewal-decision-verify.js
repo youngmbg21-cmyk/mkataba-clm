@@ -41,7 +41,10 @@ const check = (name, pass, detail) => {
 (async () => {
   fs.mkdirSync(SHOTS, { recursive: true });
   const h = await startHati();
-  await seedWorkspace(h);
+  /* The fixture seals a seeded contract (value ≥ 5M) on its first save; the
+     server holds that behind the approval rule, which is not what this file is
+     about (THE OWNER'S OPEN ITEMS rule for signing stages). */
+  await seedWorkspace(h, { approvalRules: [] });
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
   const errs = [];

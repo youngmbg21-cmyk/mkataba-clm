@@ -234,15 +234,22 @@ const day = off => { const d = new Date(); d.setDate(d.getDate() + off); return 
     await page.waitForTimeout(1400);
     await page.screenshot({ path: path.join(OUT, '05-calendar.png') });
     const cal0 = await page.evaluate(() => {
+      /* RE-POINTED 27 Sep 2026 (T3): the window is a SEGMENT since 21 Sep
+         (THE MAP: "Agenda window 14/30/60/90 as a segment"), id kept — its
+         value is the lit button's, its options are its buttons. */
       const sel = document.getElementById('cal-days');
-      return { sel: !!sel, value: sel && sel.value,
-        options: sel ? [...sel.options].map(o => ({ v: o.value, t: o.textContent.trim() })) : [],
+      const lit = sel && sel.querySelector('[data-cal-days].on');
+      return { sel: !!sel, value: lit && lit.getAttribute('data-cal-days'),
+        options: sel ? [...sel.querySelectorAll('[data-cal-days]')].map(o => ({ v: o.getAttribute('data-cal-days'), t: o.textContent.trim() })) : [],
         h5: !!document.querySelector('.cal-panel-head h5'),
         rows: document.querySelectorAll('#cal-agenda .cal-upn').length,
         count: (document.querySelector('.cal-cnt') || {}).textContent };
     });
-    check('the heading IS the control, and there is no title beside it',
-      cal0.sel && !cal0.h5, JSON.stringify({ sel: cal0.sel, h5: cal0.h5 }));
+    /* RE-POINTED 27 Sep 2026 (T3): REVERSED by the owner on 21 Sep ("the
+       calendar must look exactly like the artifact") — a heading AND a segment
+       of four numbers; one value (calAgendaDays) answers both. */
+    check('a heading names the window and the segment beside it changes it',
+      cal0.sel && cal0.h5, JSON.stringify({ sel: cal0.sel, h5: cal0.h5 }));
     check('four windows are offered, each naming its own',
       cal0.options.length === 4 && cal0.options.every(o => /14|30|60|90/.test(o.t)),
       JSON.stringify(cal0.options.map(o => o.t)));
@@ -265,12 +272,12 @@ const day = off => { const d = new Date(); d.setDate(d.getDate() + off); return 
       cal14 >= 1, String(cal14));
     const widened = await page.evaluate(() => {
       calSetAgendaDays(90);
-      return { value: (document.getElementById('cal-days') || {}).value,
+      const lit = document.querySelector('#cal-days [data-cal-days].on');
+      return { value: lit && lit.getAttribute('data-cal-days'),
         rows: document.querySelectorAll('#cal-agenda .cal-upn').length,
         count: (document.querySelector('.cal-cnt') || {}).textContent,
         empty: !!document.querySelector('#cal-agenda .cal-empty'),
-        heading: (document.getElementById('cal-days') || {}).selectedOptions
-          ? document.getElementById('cal-days').selectedOptions[0].textContent.trim() : '' };
+        heading: lit ? lit.textContent.trim() : '' };
     });
     await page.waitForTimeout(400);
     check('CHOOSING NINETY DAYS CHANGES WHAT THE LIST HOLDS — counted as rows',

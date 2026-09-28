@@ -411,7 +411,12 @@ const SEED_UNSENT = async () => {
          Negotiations seat now (`reg-typecell`), and the sub-line beside the
          counterparty carries the contract's name. Both read at the sub-line's
          own size, which is what this exception has always been about. */
-      const KIND = /reg-kind|reg-sub|reg-typecell/;
+      /* ---- AND THE OWNER'S BADGE (re-pointed in place 28 Sep 2026) ---- the
+         seeded contracts now record who owns them (the overnight run), so the
+         Owner column's initials badge (.reg-own, a 22px disc at the badge's own
+         size and weight) draws here for the first time. It is a mark, like the
+         kind, not a line of the row's text. */
+      const KIND = /reg-kind|reg-sub|reg-typecell|reg-own/;
       const body = rows.cells.filter(c => !KIND.test(c.cls));
       const sizes = [...new Set(body.map(c => c.size))];
       check(`5${shape}-${label}b every cell but the document kind is ONE size`,

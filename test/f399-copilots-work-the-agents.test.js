@@ -396,7 +396,9 @@ describe('f399 (6) — the cards and panels are as full as the drawing, off the 
     const route = SRV.slice(at, SRV.indexOf('\napp.', at + 10));
     for (const k of ['mail_ob_chase_subject', 'mail_ob_chase_line', 'mail_ob_chase_line_nodate', 'mail_hello', 'mail_automated_notice'])
       assert.ok(route.includes(k), k + ' is the route\'s own key');
-    assert.match(route, /name: c\.name \|\| contractRef\(c\), id: contractRef\(c\), due: o\.due \|\| ''/);
+    /* Re-pointed in place 28 Sep 2026: the due date is written in the letter's
+       language as words (dueWords), not the stored ISO day. */
+    assert.match(route, /name: c\.name \|\| contractRef\(c\), id: contractRef\(c\), due: dueWords/);
     assert.match(route, /langForEmail\(to\)/);
     assert.match(CODE, /vars = \{ desc: \(o && o\.desc\) \|\| '', name: c\.name \|\| ref, id: ref, due: \(o && o\.due\) \|\| '' \}/, 'the page\'s facts mirror them');
     const body = win.agPanelBody(L);

@@ -121,13 +121,16 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
         sub: (document.querySelector('.cal-hz-lab .m') || {}).textContent,
         monthCase: m ? getComputedStyle(m).textTransform : null,
         monthFace: m ? getComputedStyle(m).fontFamily.split(',')[0] : null,
+        /* The figures face is a token (--font-mono), which the type ruling made
+           Geist with tabular digits; the ruler follows the token, not a name. */
+        monoFace: getComputedStyle(document.documentElement).getPropertyValue('--font-mono').split(',')[0].trim(),
         ladEdge: getComputedStyle(document.querySelector('.cal-lad')).borderTopWidth };
     });
     ok('3 the five bands lead the table', !!hz && hz.ladFirst, hz && String(hz.ladFirst));
     ok('3b the caption bar is gone', !!hz && !hz.caption);
     ok('3c the months read as a ruler, not twelve column heads',
-      !!hz && hz.monthCase === 'none' && /Mono/i.test(hz.monthFace || ''),
-      hz && hz.monthCase + ' / ' + hz.monthFace);
+      !!hz && hz.monthCase === 'none' && !!hz.monthFace && hz.monthFace.replace(/["']/g, '') === (hz.monoFace || '').replace(/["']/g, ''),
+      hz && hz.monthCase + ' / ' + hz.monthFace + ' vs ' + hz.monoFace);
     ok('3d the agreement line is the artifact\'s order — who, then the reference',
       !!hz && /^[^·]+ · \w+-/.test(hz.sub || ''), hz && hz.sub);
     ok('3e each band is a card with its tone on the top edge',

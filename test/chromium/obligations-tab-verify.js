@@ -147,8 +147,13 @@ const SEEN = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
     })()`);
     check('the pane mounts and draws every obligation',
       pane.mounted && pane.rows === 4, `${pane.rows} rows`);
-    check('banded overdue · this month · later · completed, and no empty heading',
-      pane.bands.length === 3 && /Overdue/.test(pane.bands[0]),
+    /* RE-POINTED 27 Sep 2026 (T3): this counted three headings, which held
+       only in a month's last days (the "due in three days" row then fell into
+       the next calendar month); since the band became the next 30 days it
+       failed every day. The claim is the four, NAMED, in order. */
+    check('banded overdue · next 30 days · later · completed, and no empty heading',
+      pane.bands.length === 4 && /^Overdue/.test(pane.bands[0]) && /next 30 days/.test(pane.bands[1])
+        && /^Later/.test(pane.bands[2]) && /^Completed/.test(pane.bands[3]),
       pane.bands.join(' | '));
     check('ONE FULL-WIDTH CARD — it takes the room’s own measure',
       pane.box && pane.box.w > 700, `${pane.wide} of ${pane.pageWide}`);

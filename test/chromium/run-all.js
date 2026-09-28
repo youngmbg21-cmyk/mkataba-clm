@@ -80,6 +80,77 @@ const KNOWN_RED = {
     'WHAT IT NEEDS is whoever owns that render saying what B1\'s claims become ' +
     'now the cuts are options — everything else in the file (the alerts rows, ' +
     'the WORKING TEXT lid) is green and worth keeping.',
+  /* --- RED BEFORE THE OVERNIGHT RUN (28 Sep 2026), IDENTICALLY ---
+     Each file below failed with exactly these checks (or this throw) in a
+     worktree at unmodified main a837d09, before any of that night's work, so
+     none is a regression; each describes a screen that has moved since it was
+     written and needs re-pointing by someone who owns that screen. Listed so
+     the run is an alarm again rather than a list. Take a file off the day it
+     goes green. */
+  'calendar-redesign-verify.js':
+    'Red on main before 28 Sep 2026 (a837d09), the same way: 7 and it carries the period on screen and nothing else · 8 the dialog names colleagues, with the address it will write to · 8 and never offers the sender themselves.',
+  'competing-redlines-verify.js':
+    'Red on main before 28 Sep 2026 (a837d09), the same way: a legacy clause names BOTH asks in its panel.',
+  'counterparty-reading-and-more-verify.js':
+    'Red on main before 28 Sep 2026 (a837d09), the same way: throws: a TimeoutError waiting for a control.',
+  'flat-rows-and-alerts-verify.js':
+    'Red on main before 28 Sep 2026 (a837d09), the same way: 2d the filter sits under the caption, in the same head · 2e caption at the left, filter at the right · 2f the three cuts are all still there, and exactly one is live · 5-contractsb every cell but the document kind is ONE size · 5-negotiationsb every cell but the document kind is ONE size.',
+  'keeps-your-place-verify.js':
+    'Red on main before 28 Sep 2026 (a837d09), the same way: throws: Cannot read properties of null (reading \'getBoundingClientRect\').',
+  'nego-redesign-verify.js':
+    'Red on main before 28 Sep 2026 (a837d09), the same way: 1 with a hairline under it and the band measure inside it.',
+  'negotiation-memo-verify.js':
+    'Red on main before 28 Sep 2026 (a837d09), the same way: — 7f and it says where the message goes before it goes.',
+  'negotiations-door-verify.js':
+    'Red on main before 28 Sep 2026 (a837d09), the same way: the room shows four tabs · and the four tabs are back with it.',
+  'notes-two-rooms-verify.js':
+    'Red on main before 28 Sep 2026 (a837d09), the same way: and it sits between Copilot and the bell, where the owner ringed it · the run completed.',
+  'paper-beside-questions-verify.js':
+    'Red on main before 28 Sep 2026 (a837d09), the same way: 7c the questions are the same seven basic entries · 7g under 1000px the door is one column again, with the same questions.',
+  'paper-grows-verify.js':
+    'Red on main before 28 Sep 2026 (a837d09), the same way: 5d the pill and the ＋ open a real editor to measure · 6 the clause panel opens from the row, on screen.',
+  'payment-terms-verify.js':
+    'Red on main before 28 Sep 2026 (a837d09), the same way: 1a the row draws five tabs · 1c and before the contract graph.',
+  'phone-verify.js':
+    'Red on main before 28 Sep 2026 (a837d09), the same way: iPhone 14 (390): and offers no menu — no edits on the paper.',
+  'plain-english-verify.js':
+    'Red on main before 28 Sep 2026 (a837d09), the same way: — 10c and the walk reads it clause for clause, each with the paper\'s own number [13 rows:  · — 17d D-3a the sealed paper’s paragraphs follow the reader’s size on screen.',
+  'portal-header-verbs-verify.js':
+    'Red on main before 28 Sep 2026 (a837d09), the same way: the Send is ON TOP OF THE REDLINE CARDS, in their own column.',
+  'portfolio-frame-verify.js':
+    'Red on main before 28 Sep 2026 (a837d09), the same way: all six panels are drawn · clearing puts the whole page back · a member who cannot see values still gets all six panels.',
+  'renewal-decision-verify.js':
+    'Red on main before 28 Sep 2026 (a837d09), the same way: 6b and the nags start again on their own.',
+  'reopen-a-refusal-verify.js':
+    'Red on main before 28 Sep 2026 (a837d09), the same way: throws: getComputedStyle parameter 1 is not of type \'Element\'.',
+  'room-order-and-notices-verify.js':
+    'Red on main before 28 Sep 2026 (a837d09), the same way: nothing still awaiting an answer sits under a decided change · the All / Mine / Theirs cuts are untouched.',
+  'selection-verify.js':
+    'Red on main before 28 Sep 2026 (a837d09), the same way: 2 a cross-sub-clause drag offers nothing on the paper · 3 and the paper answers with nothing to press · 4 and the paper offers nothing on it either · 5 and nothing is offered or asked of the model · 6 and the page says nothing about a menu it no longer offers.',
+  'settled-ask-reopen-verify.js':
+    'Red on main before 28 Sep 2026 (a837d09), the same way: the adopted change has no card · IMAGE 2.',
+  'seven-fixes-verify.js':
+    'Red on main before 28 Sep 2026 (a837d09), the same way: 5b exactly two arrows, on the two Young named · 5c a tile with a door is a real button, a tile without one is not · 5f pressing the obligations tile lands on the obligations tab · 6e an older note with no reason is answered by a LIVE reading · 6f and it names the panel that DOES fill it.',
+  'signers-and-party-verify.js':
+    'Red on main before 28 Sep 2026 (a837d09), the same way: the picker offers a read-only link, not only Sign and Negotiate.',
+  'signing-on-paper-verify.js':
+    'Red on main before 28 Sep 2026 (a837d09), the same way: 4a the mark lands on the paper · the journey ran.',
+  'six-fixes-verify.js':
+    'Red on main before 28 Sep 2026 (a837d09), the same way: 4a a refresh returns you to the page you were on, on every page · 1d no verb wraps to a second line.',
+  'standard-paper-verify.js':
+    'Red on main before 28 Sep 2026 (a837d09), the same way: 4 the Edit pill on clause 8 opens the panel on clause 8 — · 4 and the ＋ opens the editor inside that panel · 4 and it holds clause 8 alone · 5 the panel offers the Copilot on that clause · 5 it hands over with no menu in between — · 5 the clause editor opens · and 2 more.',
+  'templates-tabs-verify.js':
+    'Red on main before 28 Sep 2026 (a837d09), the same way: 7c · …and they are the rail’s own two captions, read through one key each.',
+  'term-and-fields-verify.js':
+    'Red on main before 28 Sep 2026 (a837d09), the same way: every question a template asks has somewhere on its own page to print · the NDA form on screen shows no payment field · the term blank is drawn while the record has no end date · typing a term fills the empty end date the whole product runs off · and the clause then states the dates instead of the blank —.',
+  'theme-tokens-verify.js':
+    'Red on main before 28 Sep 2026 (a837d09), the same way: dashboard--light · register--light · calendar--light · templates--light · contract--light · keyterms--light · and 14 more.',
+  'tracked-changes-scroll-verify.js':
+    'Red on main before 28 Sep 2026 (a837d09), the same way: 2 and the contract still folds it.',
+  'type-and-symbols-verify.js':
+    'Red on main before 28 Sep 2026 (a837d09), the same way: and each one is painted at the size the sheet asks for .',
+  'upload-structure-verify.js':
+    'Red on main before 28 Sep 2026 (a837d09), the same way: 2a the four clause headings are PAINTED on the sheet · 2b each carries its resolved number.',
   /* --- retired feature, net kept for the restore --- */
   'copilot-band-verify.js':
     'THE BAND IT MEASURES NO LONGER DRAWS. WO-3, 24 Aug 2026, owner-asked: ' +

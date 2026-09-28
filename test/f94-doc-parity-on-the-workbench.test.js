@@ -118,7 +118,9 @@ describe('F94 (2) — the workbench canvas opens like the Doc page', () => {
   test('a document with no front matter keeps the label head', async () => {
     const p = await page({ contract: contractFixture({
       redlineText: '<h2>1. One</h2><p>alpha</p><h2>2. Two</h2><p>beta</p>' }) });
-    assert.match(p.$('#rl-doc .rl-paper-title').textContent, /RAW MATERIAL SUPPLY AGREEMENT — JUNO LIMITED/);
+    /* Re-pointed in place 28 Sep 2026: the title is the contract's name as it
+       was typed (the owner's list — the paper no longer shouts it in capitals). */
+    assert.match(p.$('#rl-doc .rl-paper-title').textContent, /Raw Material Supply Agreement — Juno Limited/);
     assert.ok(p.$('#rl-doc .rl-paper-sub'), 'the template/jurisdiction line stands in');
     assert.equal(p.$('#rl-doc .rl-recital'), null, 'no recital is invented');
   });

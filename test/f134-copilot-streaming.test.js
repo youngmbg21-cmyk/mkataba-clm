@@ -260,7 +260,10 @@ describe('the client half', () => {
   });
 
   test('copilotAsk falls back to the plain route and leaves local mode untouched', () => {
-    assert.match(AI_SRC, /apiStream\('ai\/chat\/stream',\{ messages, context \}, onEvent\)/,
+    /* Re-pointed in place 28 Sep 2026: the call now passes the asker's options
+       on (the main panel asks quietly, so a notice is said once, in its own
+       reply) — the claim is still that the server branch tries the stream. */
+    assert.match(AI_SRC, /apiStream\('ai\/chat\/stream',\{ messages, context \}, onEvent(, opts)?\)/,
       'the server branch tries the stream first');
     assert.match(AI_SRC, /fall through to the request\/response contract/,
       'and ANY stream failure falls back to the plain call');

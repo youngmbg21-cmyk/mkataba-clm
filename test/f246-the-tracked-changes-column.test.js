@@ -1071,7 +1071,9 @@ describe('f246 (8) — one ruled list, and the act at the head', () => {
      up on a rendered page is redline-verify's own measurement. */
   test('and so does the empty column — both of its states', () => {
     const empty = /\.redline-page \.rl-cards-empty\{([^}]*)\}/.exec(NCSS)[1];
-    assert.match(empty, /padding:6px var\(--s-4\)/,
+    /* The top and bottom grew to 10px on 28 Sep 2026 (the overnight run: the
+       empty column's words sat tight on the rule); the claim is the SIDE inset. */
+    assert.match(empty, /padding:\d+px var\(--s-4\)/,
       'the empty state insets by the same token as the head and the rows');
     assert.ok(!/padding:6px 2px/.test(empty),
       'the 2px it used to carry is gone, not overridden further down');
