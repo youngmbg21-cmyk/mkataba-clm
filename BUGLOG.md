@@ -19817,3 +19817,10 @@ Noticed, not fixed
 
 ### Noticed, not fixed
 - phone-verify "iPhone 14 (390): and offers no menu — no edits on the paper" fails: the selection menu still opens on the phone's paper. Same on 2a034b9 (before today's work); not changed.
+
+## 28 Sep 2026 — Explorer's Copilot text, second pass
+
+- Fixed (Young: "you have not decreased the font size in the copilot in the explorer page"): the Explorer Copilot panel's greeting, its title and an explained contract card's name were still 14px; all now 13px like the messages.
+
+### Noticed, not fixed
+- Explorer's Copilot panel prints an answer's markdown raw: a scripted answer "**Two contracts renew soon.**" shows its asterisks, and its "- " list items run into one line. The side panel draws the same answer in bold with a list. Not changed.

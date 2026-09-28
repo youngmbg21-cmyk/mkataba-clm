@@ -57,7 +57,12 @@ test('f424 (3) the question names the clause and its worst flag', () => {
 test('f424 (4) both chats\' text is the body size on the desktop, the phone untouched', () => {
   assert.equal((AI.match(/class="ai-bub /g) || []).length, 3, 'welcome, question, answer');
   assert.equal((IG.match(/class="ai-bub /g) || []).length, 2, 'question, answer');
-  const rule = /@media \(min-width:768px\)\{\s*\.ai-msg \.ai-bub\{font-size:var\(--t-body\);line-height:1\.55\}\s*#ai-panel #ai-input,#ig-dock #igd-input\{font-size:var\(--t-body\)\}\s*\}/;
+  /* AND EXPLORER'S GREETING, TITLE AND CARD NAME (Young, same day: "you have
+     not decreased the font size in the copilot in the explorer page"). */
+  assert.match(IG, /class="ig-welcome /);
+  assert.match(IG, /class="ig-dock-title /);
+  assert.match(IG, /class="ig-card-name /);
+  const rule = /@media \(min-width:768px\)\{\s*\.ai-msg \.ai-bub,#ig-dock \.ig-welcome\{font-size:var\(--t-body\);line-height:1\.55\}\s*#ig-dock \.ig-dock-title,#ig-dock \.ig-card-name\{font-size:var\(--t-body\)\}\s*#ai-panel #ai-input,#ig-dock #igd-input\{font-size:var\(--t-body\)\}\s*\}/;
   assert.match(HTML, rule);
   assert.doesNotMatch(HTML.match(rule)[0], /!important/);
 });

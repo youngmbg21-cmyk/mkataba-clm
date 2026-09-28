@@ -10156,9 +10156,15 @@
    question box at 14px with 1.625 line spacing (the generated sheet turns
    text-sm AND text-[13px] into 14px), against 13px (--t-body) everywhere else.
    Scoped, not !important: two classes beat the generated sheet's one. The
-   phone keeps its own larger sizes, so this is the desktop's only. */
+   phone keeps its own larger sizes, so this is the desktop's only.
+   AND THE GREETING (Young, same day: "you have not decreased the font size in
+   the copilot in the explorer page"): Explorer's panel shows its greeting
+   before any question, outside a message, at text-[12.5px] — which the
+   generated sheet also makes 14px. It takes the same size, and the panel's
+   title and the name on a contract card it explains the same size. */
 @media (min-width:768px){
-  .ai-msg .ai-bub{font-size:var(--t-body);line-height:1.55}
+  .ai-msg .ai-bub,#ig-dock .ig-welcome{font-size:var(--t-body);line-height:1.55}
+  #ig-dock .ig-dock-title,#ig-dock .ig-card-name{font-size:var(--t-body)}
   #ai-panel #ai-input,#ig-dock #igd-input{font-size:var(--t-body)}
 }
 #ai-feed .ai-p{margin:0 0 .5em}

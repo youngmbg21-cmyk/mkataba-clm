@@ -433,7 +433,7 @@ Tests: f53, f135, f229–f235, f305, f328, f367.
 - THE COMPACT BUTTON LADDER: `--ctl-h-sm` 22 / `--ctl-h` 28 / `--ctl-h-lg` 32; one label weight 500; text boxes the button's height (`--field-h`); `.ui-link` for text buttons; one filled button per area (`.ui-btn-accent` for repeated rows); drawn icons only (no emoji or typed arrows in a button — f385 sweeps); a button's words never wrap; one light grey edge `--btn-edge`.
 - Dialogs: `DLG_W` ladder; `openModal({maxWidth})`; no inner `max-width`; a 3px top rule (`DLG_TOPBAR`); buttons pinned in view (`dlgPinFoot`); `rootEscSet` is the one Escape; `trapFocus`; `dragDialog` moves pop-ups; `confirmDialog` options are confirmLabel/cancelLabel/danger/title/message/multiline only.
 - THE POP-UP DIET: anything a control already says GOES; machinery goes to the hover; one line for a first-timer stays; a cost stays by its button. Retire a sentence by not calling it (f310 sweeps).
-- Both Copilot chats' text and boxes are `--t-body` on the desktop (`.ai-msg .ai-bub`; the phone keeps its own). `emptyStateHtml` is the one empty state. The ladders (`--t-*`, `--s-*`, `--dur-*`…) have consumers. The sprite: `<use>` on a missing symbol paints nothing.
+- Both Copilot chats' text and boxes are `--t-body` on the desktop (`.ai-msg .ai-bub`; Explorer's `.ig-welcome`, `.ig-dock-title`, `.ig-card-name`; the phone keeps its own). `emptyStateHtml` is the one empty state. The ladders (`--t-*`, `--s-*`, `--dur-*`…) have consumers. The sprite: `<use>` on a missing symbol paints nothing.
 Tests: f238, f310, f312, f377, f385, f386, contrast-verify, compact-ladder-verify, button-consistency-verify, theme-tokens-verify.
 
 ## TWO LANGUAGES ≠ TWO MARKETS

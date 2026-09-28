@@ -24337,3 +24337,9 @@ DEPARTED FROM THE DRAWING: the drawing put an "About 4. Loss & Damage ×" chip a
 THE CHATS. MEASURED in a browser: the Copilot panel's bubbles and box and Explorer's dock bubbles and box all painted at 14px, line height 1.625 (22.75px), against --t-body 13px everywhere else — the generated Tailwind sheet maps both `text-sm` and `text-[13px]` to 14px, so Explorer's "13px" was never 13. Now `.ai-msg .ai-bub{font-size:var(--t-body);line-height:1.55}` and `#ai-panel #ai-input,#ig-dock #igd-input{font-size:var(--t-body)}` inside `@media (min-width:768px)`: two classes/ids beat the generated one-class rule without !important, and the phone (which sets its own larger sizes in js/mobile-copilot.js) is untouched. Measured after: 13px / 20.15px in both. The answer's own headings stay one step up (`#ai-feed .ai-h` at --t-card).
 
 Tests: f424 (red at the parent e3684de on every claim), analyze-on-the-graph-verify 2s1–2s8; f392 (7) re-pointed to the new call.
+
+## INSIGHTS — EXPLORER'S COPILOT TEXT, THE SECOND PASS (Young, 28 Sep 2026)
+
+> *"you have not decreased the font size in the copilot in the explorer page"*
+
+Right. The first pass sized the MESSAGES (`.ai-msg .ai-bub`) and measured them at 13px — but Explorer's panel, before any question, shows a greeting that is not a message (`text-[12.5px]`, which the generated sheet also makes 14px), under a 14px title, and an explained contract card's name was 14px too. MEASURED every text node in the panel at rest and after an answer: those three were the only 14px text left. Now `#ig-dock .ig-welcome` (with the bubbles' line height), `#ig-dock .ig-dock-title` and `#ig-dock .ig-card-name` take `--t-body`, desktop only; measured after: nothing in Explorer's panel above 13px. The side panel's title was already 13px. Tests: f424 (4) extended.

@@ -3657,7 +3657,7 @@ function igExplainCard(id){
   <div class="rounded-xl border border-brand-100 bg-white p-3" data-ig-hoverid="${c.id}">
     <div class="flex items-center gap-2 mb-1.5">
       <span class="h-7 w-7 shrink-0 grid place-items-center rounded-lg bg-brand-50 text-brand-500">${icon(cIcon(c),'w-3.5 h-3.5')}</span>
-      <div class="min-w-0"><div class="text-[12.5px] font-600 text-brand-900 truncate">${igEsc(c.name)}</div>
+      <div class="min-w-0"><div class="ig-card-name text-[12.5px] font-600 text-brand-900 truncate">${igEsc(c.name)}</div>
       <div class="text-[10px] font-mono text-ink/45">${(window.contractRef?contractRef(c):c.id)}</div></div>
     </div>
     ${row('Type',igEsc(cKind(c)))}
@@ -3727,7 +3727,7 @@ function renderIntelDock(){
   dock.innerHTML=`
     <div class="flex items-center gap-2 px-3.5 py-3 border-b border-hair shrink-0">
       <span class="text-gold-500">${icon('sparkle','w-4 h-4')}</span>
-      <span class="font-display font-700 text-[13px] text-ink flex-1">${i18t('int_intelligence_panel')}</span>
+      <span class="ig-dock-title font-display font-700 text-[13px] text-ink flex-1">${i18t('int_intelligence_panel')}</span>
       ${(()=>{ const b=(typeof copilotBrainInfo==='function')?copilotBrainInfo():{live:false,get label(){ return i18t('int_basic_mode'); },hint:''};
         return b.live
           ?`<span title="${igEsc(b.hint)}" class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-600 text-white" style="background:var(--color-accent-800,#2c455d)">✦ ${igEsc(b.label)}</span>`
@@ -3745,7 +3745,7 @@ function renderIntelDock(){
       <button id="igd-clear" class="text-[10.5px] font-600 text-brand-600 hover:text-brand-800 ml-auto">${i18t('int_clear_all')}</button>
     </div>`:''}
     <div id="igd-feed" class="flex-1 min-h-0 overflow-y-auto scroll-thin px-3.5 py-3 space-y-3" style="background:transparent">
-      ${msgs||`<div class="text-[12.5px] text-ink/50 leading-relaxed pt-2">${i18t('int_notebook_welcome')}</div>`}
+      ${msgs||`<div class="ig-welcome text-[12.5px] text-ink/50 leading-relaxed pt-2">${i18t('int_notebook_welcome')}</div>`}
       ${typing}
     </div>
     ${!intel.history.length?`
