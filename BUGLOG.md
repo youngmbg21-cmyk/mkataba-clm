@@ -19783,3 +19783,4 @@ Noticed, not fixed
 
 ### Noticed, not fixed
 - `deskRowHtml` in the Home view now has no caller (kept, not deleted, like the other retired builders).
+- runway-and-xray-verify 4a expects the Document tab switch to read Contract View · Plain English · X-ray, but the page says "Plain View" and "Risk View". Red on unmodified main (9f0296b8) too; not changed.
