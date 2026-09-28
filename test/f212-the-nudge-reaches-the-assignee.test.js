@@ -102,8 +102,20 @@ describe('F212 — obligation nudges route to the assignee', () => {
     assert.ok(/Försenat/.test(got[0].subject), 'overdue, in the member\'s Swedish');
   });
 
-  test('still open three days later, the admins are brought in by name', async () => {
-    await put('MK-OB-ESC', [{ id: 'ob_e', desc: 'Return the signed inspection log',
+  /* OUR PROMISE, FOUR DAYS LATE: NOBODY IS WRITTEN TO (owner-ruled 27 Sep
+     2026, "stop it" — Our promises reminds 7 before, on the day and the day
+     after, and the admins' day-four mail is gone for our side). */
+  test('our promise four days late brings nobody in — the day-four mail is stopped', async () => {
+    await put('MK-OB-ESC-OURS', [{ id: 'ob_eo', desc: 'Return the countersigned site plan',
+      due: isoDay(-4), status: 'open', assignee: MEMBER_NAME }]);
+    mail.reset();
+    assert.equal((await run()).status, 200);
+    await pause(500);
+    assert.equal(about('Return the countersigned site plan').length, 0, 'no escalation for our side');
+  });
+
+  test('THEIR promise still open three days later: the admins are brought in by name', async () => {
+    await put('MK-OB-ESC', [{ id: 'ob_e', desc: 'Return the signed inspection log', party: 'theirs',
       due: isoDay(-4), status: 'open', assignee: MEMBER_NAME }]);
     mail.reset();
     assert.equal((await run()).status, 200);

@@ -107,7 +107,7 @@ const ok = (name, good, detail) => {
        nothing in the sample book is stuck without a link — so its count is 0
        and the other five hold one each, as before. */
     ok('the stage: one of each kind of work, through the product\'s own acts',
-      !!staged && staged.ready === 5 && Object.entries(staged.per).every(([k, n]) => n === (k === 'link' ? 0 : 1)), JSON.stringify(staged));
+      !!staged && staged.ready === 5 && Object.entries(staged.per).every(([k, n]) => n === ((k === 'link' || k === 'ours') ? 0 : 1)), JSON.stringify(staged));
 
     /* ---- 1. the door ---- */
     const door = await page.$('[data-view="agents"]');
@@ -124,7 +124,8 @@ const ok = (name, good, detail) => {
     }));
     ok('1b a press on the door opens the page', head.view === 'agents', head.view);
     ok('1c the page names itself', /Copilot.s work/.test(head.title), head.title);
-    ok('1d six agents, in the drawing\'s order with "No link to sign" second', head.rows.join(',') === 'round,link,renew,paper,late,import', head.rows.join(','));
+    /* Seven since 27 Sep 2026: Our promises sits after Late promises. */
+    ok('1d seven agents, in the drawing\'s order with "No link to sign" second', head.rows.join(',') === 'round,link,renew,paper,late,ours,import', head.rows.join(','));
     ok('1e THE NUMBER ON THE DOOR IS THE NUMBER ON THE PAGE', head.rail === '5' && /^5 ready for review/.test(head.facts), `door ${head.rail} · head "${head.facts}"`);
     ok('1f it opens on the first agent with work ready', head.on === 'round', head.on);
     ok('1g no sideways scroll at 1440', head.over <= 0, head.over + 'px');

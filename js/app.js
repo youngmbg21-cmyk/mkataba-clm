@@ -1955,13 +1955,16 @@ function buildAlerts(){
 
      READ WITHOUT WRITING — c.obligations is read raw by every one of those
      functions, and this loop calls nothing that persists. */
-  if(window.openObligations && window.obligationIsMine){
+  /* OUR PROMISE WITH NOBODY NAMED IS THE CONTRACT OWNER'S (27 Sep 2026): the
+     row asks obligationRemindsMe, the same person the Our promises email
+     reaches. */
+  if(window.openObligations && window.obligationRemindsMe){
     const byId=new Map(cs.map(c=>[c.id,c]));
     let obs=[]; try{ obs=openObligations(7)||[]; }catch(_){ obs=[]; }
     obs.forEach(o=>{
       if(o.days==null) return;
       const c=byId.get(o.cid); if(!c) return;
-      if(!obligationIsMine(o)) return;
+      if(!obligationRemindsMe(o,c)) return;
       const d=String(o.desc||'');
       const desc=d.length>70?d.slice(0,69)+'\u2026':d;
       const text=o.days<0 ? i18t('al_ob_overdue',{desc})

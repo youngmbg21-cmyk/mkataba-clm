@@ -14894,6 +14894,29 @@ function effExpiryReader(rows, parsed) {
   };
   return { eff, ownExp, kidsOf };
 }
+/* THE CONTRACT'S OWNER, AS SOMEBODY TO WRITE TO — lifted out of runReminders
+   (27 Sep 2026) so the renewal mail and Our promises ask the same question the
+   same way: the stored id first, the name second, the address always LOOKED
+   UP (the open-relay rule), and an owner who cannot open the contract's value
+   stream answers null. */
+function contractOwnerRecipient(full, folder) {
+  const o = full && full.owner;
+  if (!o) return null;
+  let u = null;
+  try { if (o.id != null) u = db.prepare('SELECT * FROM users WHERE id=?').get(o.id); } catch (_) { u = null; }
+  const who = (u && /.+@.+\..+/.test(String(u.email || '')))
+    ? { email: u.email, name: u.name || o.name || '', lang: u.lang || null, row: u }
+    : null;
+  const fallback = who || (() => {
+    const r = obligationRecipient(o.name || '');
+    if (!r) return null;
+    let row = null;
+    try { row = db.prepare('SELECT * FROM users WHERE LOWER(email)=?').get(String(r.email).toLowerCase()); } catch (_) { row = null; }
+    return row ? { ...r, row } : null;
+  })();
+  if (!fallback || !fallback.row) return null;
+  return inScope(folderScopeFor(fallback.row), folder) ? fallback : null;
+}
 function runReminders() {
   // Share nudges go to counterparties, so they run regardless of admin setup.
   const nudged = runShareNudges();
@@ -14938,24 +14961,7 @@ function runReminders() {
      rule): the id finds a users row, and a name falls through to
      obligationRecipient, which is the same lookup the nudges make. An owner who
      cannot open the contract's value stream is not told it exists. */
-  const ownerOf = (full, folder) => {
-    const o = full && full.owner;
-    if (!o) return null;
-    let u = null;
-    try { if (o.id != null) u = db.prepare('SELECT * FROM users WHERE id=?').get(o.id); } catch (_) { u = null; }
-    const who = (u && /.+@.+\..+/.test(String(u.email || '')))
-      ? { email: u.email, name: u.name || o.name || '', lang: u.lang || null, row: u }
-      : null;
-    const fallback = who || (() => {
-      const r = obligationRecipient(o.name || '');
-      if (!r) return null;
-      let row = null;
-      try { row = db.prepare('SELECT * FROM users WHERE LOWER(email)=?').get(String(r.email).toLowerCase()); } catch (_) { row = null; }
-      return row ? { ...r, row } : null;
-    })();
-    if (!fallback || !fallback.row) return null;
-    return inScope(folderScopeFor(fallback.row), folder) ? fallback : null;
-  };
+  const ownerOf = contractOwnerRecipient;
   /* WHO KEEPS WHICH RUNG (owner-ruled 16 Sep 2026). The owner gets all six —
      90/60/30 to expiry and 14/7/1 to the decision date. The admins keep the
      LAST of each, 30 days and 1 day, as the escalation, which is the shape an
@@ -15057,6 +15063,11 @@ function runReminders() {
        so an already-reminded obligation is not re-fired by the upgrade. */
     (full.obligations || []).forEach(o => {
       if (o.status === 'done') return;
+      /* OUR PROMISES ARE AN AGENT'S NOW (27 Sep 2026, owner-ruled: "a
+         reminder of our obligations to the counterparty"): runOurPromises
+         keeps them, with the same keys, on its own clock and log. What stays
+         here is THEIR side — the colleague who watches a promise owed to us. */
+      if (String(o.party) !== 'theirs') return;
       // through the same normalisation: an obligation due "31 March 2027" gave
       // daysTo NaN, NaN never equals -1, and the overdue notice was never sent
       const due = dateOnly(o.due);
@@ -15138,7 +15149,11 @@ app.post('/api/reminders/run', auth, admin, async (req, res) => {
   try { signApproval = await runSignApprovalReminders(); } catch (e) { signApproval = { error: (e && e.message) || String(e) }; }
   let handover = null;
   try { handover = await runHandoverReminders(); } catch (e) { handover = { error: (e && e.message) || String(e) }; }
-  res.json({ ...(out || {}), signApproval, handover });
+  /* OUR PROMISES left this sweep for their own agent (27 Sep 2026); an admin's
+     "run the reminders" still runs them, logged on the agent as a Run now. */
+  let ours = null;
+  try { ours = await runAgent('ours', 'now', req.user, () => runOurPromises()); } catch (e) { ours = { error: (e && e.message) || String(e) }; }
+  res.json({ ...(out || {}), signApproval, handover, ours });
 });
 /* ---------- THE DAILY BRIEF (WO-3, WORKORDER-gap-map.md) ----------
    Once a day, per member, ONE email listing what needs THEM — and on a quiet
@@ -15668,6 +15683,101 @@ async function runLateChases() {
       for (const x of rows) db.prepare('INSERT OR IGNORE INTO reminders (rkey,created_at) VALUES (?,?)').run(x.rkey, now());
       out.told++;
     } else bump('mailFailed');
+  }
+  return out;
+}
+/* ============================================================================
+   OUR PROMISES — THE PERSON WHO OWES IT IS REMINDED (27 Sep 2026, owner-ruled:
+   "a reminder of our obligations to the counterparty. It reminds the owner of
+   the obligation one week before and if not checked as done a reminder the
+   day after. It should go into alerts and also send the owner an email." —
+   and "7 before, on the day, 1 after; stop" the admins' day-four mail)
+   ============================================================================
+   Every morning, for every promise OUR side owes (not theirs, not done):
+     · 7 days before its date, on the day, and the day after, ONE email to the
+       person who owes it — its assignee where that name is a member who can
+       open the contract's stream, else THE CONTRACT'S OWNER. Nobody at all →
+       the admins' day-after note, byte-identical to the one the sweep always
+       sent (f65), so nothing is quieter than it was.
+     · A step held back by an earlier one in a payment chain is not chased:
+       one note to the contract's owner on its day (the sweep's own rule).
+     · No mail to the admins on day four any more.
+   The reminder keys are the sweep's own (`<contract>:ob:<id>:soon|today|
+   overdue|held`), so a promise already reminded before the move is not
+   reminded again. Nothing reaches the other side; no Copilot call. */
+async function runOurPromises() {
+  const cfg = agentCfg('ours');
+  const out = { looked: 0, reminded: 0, skipped: {} };
+  if (!cfg.on) return { ...out, off: true };
+  const bump = k => { out.skipped[k] = (out.skipped[k] || 0) + 1; };
+  const admins = db.prepare("SELECT email FROM users WHERE role='admin'").all().map(u => u.email);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const daysTo = iso => Math.ceil((new Date(iso + 'T00:00:00') - today) / 86400000);
+  const MILESTONE = { 7: 'soon', 0: 'today', [-1]: 'overdue' };
+  const once = async (rkey, addrs, mk, tag) => {
+    if (!addrs.length) { bump('nobodyToTell'); return false; }
+    if (db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(rkey)) { bump('toldBefore'); return false; }
+    db.prepare('INSERT INTO reminders (rkey,created_at) VALUES (?,?)').run(rkey, now());
+    for (const a of addrs) { const m = mk(a); await sendEmail(a, m.subject, m.body, tag); }
+    out.reminded++;
+    return true;
+  };
+  for (const r of db.prepare("SELECT id,name,folder,json FROM contracts WHERE status!='Declined'").all()) {
+    let full = null; try { full = JSON.parse(r.json); } catch (_) { continue; }
+    if (!full || full.archived) continue;
+    const c = { id: r.id, name: r.name || full.name || '', folder: r.folder || null };
+    const ref = contractRef(full.id ? full : c);
+    const link = contractUrl(null, c.id);
+    for (const o of (Array.isArray(full.obligations) ? full.obligations : [])) {
+      if (!o || o.status === 'done' || String(o.party) === 'theirs') continue;
+      const due = dateOnly(o.due);
+      if (!due) continue;
+      const od = daysTo(due);
+      const okey = o.id || due;
+      if (od > 7 || od < -1) continue;
+      out.looked++;
+      const owner = contractOwnerRecipient(full, c.folder);
+      if (srvObligationBlocked(full, o)) {
+        if (od !== 0) continue;
+        const prev = (full.obligations || []).find(x => x && String(x.id) === String(o.after || ''));
+        const vars = { desc: o.desc, name: c.name, id: ref, due, step: (prev && prev.desc) || '' };
+        const held = a => {
+          const L = owner && a === owner.email ? (owner.lang || I18N_DEFAULT) : langForEmail(a);
+          return { subject: tFor(L, 'mail_ob_held_subject', vars),
+            body: `${tFor(L, 'mail_hello')},\n\n${tFor(L, 'mail_ob_held_line', vars)}`
+              + `\n\n${tFor(L, 'mail_ob_open')}\n${link}\n\n${tFor(L, 'mail_automated_notice')}` };
+        };
+        await once(`${c.id}:ob:${okey}:held`, owner ? [owner.email] : admins, held, `obligation held: ${c.name}`);
+        continue;
+      }
+      const stage = MILESTONE[od];
+      if (!stage) continue;
+      const who = obligationRecipient(o.assignee, c.folder) || owner;
+      if (!who) {
+        /* NOBODY OWNS IT AND NOBODY IS NAMED: the admins' day-after note, as
+           it always was. */
+        if (stage === 'overdue') {
+          await once(`${c.id}:ob:${okey}:overdue`, admins, () => ({ subject: `Obligation overdue: ${c.name}`,
+            body: `The obligation "${o.desc}" on "${c.name}" (${ref}) was due ${due} and is now overdue${o.assignee ? ` (assigned to ${o.assignee})` : ''}.` }),
+          `obligation overdue: ${c.name}`);
+        }
+        continue;
+      }
+      const key = stage === 'overdue' ? 'over' : stage;
+      const mk = a => {
+        const L = who.lang || I18N_DEFAULT;
+        const vars = { desc: o.desc, name: c.name, id: ref, due, days: -od, assignee: who.name || o.assignee };
+        return { subject: tFor(L, `mail_ob_${key}_subject`, vars),
+          body: `${tFor(L, 'mail_hello')}${who.name ? ' ' + who.name : ''},\n\n`
+            + tFor(L, `mail_ob_${key}_line`, vars)
+            + `\n\n${tFor(L, 'mail_ob_open')}\n${link}\n\n${tFor(L, 'mail_automated_notice')}` };
+      };
+      if (await once(`${c.id}:ob:${okey}:${stage}`, [who.email], mk, `obligation ${stage}: ${c.name}`) && stage === 'today') {
+        // W2-3: rides the mail's OWN dedupe, so an outside system is told
+        // exactly as often as the person is — once
+        webhookQueue('obligation.due', () => ({ contractId: c.id, obligationId: String(okey).slice(0, 64), due }));
+      }
+    }
   }
   return out;
 }
@@ -16210,17 +16320,18 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_agent_runs_agent ON agent_runs(agent, started_at);
   CREATE INDEX IF NOT EXISTS idx_agent_runs_day ON agent_runs(day, agent);
 `);
-const AGENT_KEYS = ['round', 'link', 'renew', 'paper', 'late', 'import'];
+const AGENT_KEYS = ['round', 'link', 'renew', 'paper', 'late', 'ours', 'import'];
 /* The four that run by the clock, and the hour each runs at by default: the
    overnight readings before anybody arrives, the chases and the link check at
    the start of the working day (the drawing's "every morning at 07:00"). */
-const AGENT_SCHEDULED = ['link', 'late', 'renew', 'paper'];
+const AGENT_SCHEDULED = ['link', 'late', 'ours', 'renew', 'paper'];
 const AGENT_DEFAULTS = {
   round:  { on: true, max: 25, limit: 3 },
   link:   { on: true, at: 7, soonDays: 3 },
   renew:  { on: true, max: RENEWAL_PREP_MAX, at: 2, limit: 2 },
   paper:  { on: true, max: RENEWAL_PREP_MAX, at: 2, limit: 3 },
   late:   { on: true, at: 7, secondAfter: 7 },
+  ours:   { on: true, at: 7 },
   import: { on: true, limit: 0 },
 };
 /* How many earlier runs the page is shown — A CAP IS A FACT: the route says
@@ -16304,13 +16415,14 @@ async function runAgent(k, trigger, who, fn, { subject = '' } = {}) {
 /* English names for the admin's note above — the page itself names them in
    the reader's language. */
 const AGENT_NAME_EN = { round: 'Their round came back', link: 'No link to sign', renew: 'Renewals',
-  paper: 'New paper', late: 'Late promises', import: 'Archive import' };
+  paper: 'New paper', late: 'Late promises', ours: 'Our promises', import: 'Archive import' };
 /* The runner each clock-driven agent presses, and Run now presses the same. */
 function agentRunner(k) {
   if (k === 'renew') return () => runRenewalPrep();
   if (k === 'paper') return () => runPlaybookPrep();
   if (k === 'link') return () => runLinkWatch();
   if (k === 'late') return () => runLateChases();
+  if (k === 'ours') return () => runOurPromises();
   if (k === 'round') return () => runRoundPrepAll();
   if (k === 'import') return () => runImportQueue();
   return null;

@@ -1357,6 +1357,27 @@ function obligationIsMine(o){
   const to = obligationReminderTo(o);
   return !!(to && String(to.id) === String(me.id));
 }
+/* ---- WHO THE REMINDER WRITES TO, ASKED BY THE BELL (27 Sep 2026) ----
+   Our promises (the server's runOurPromises) writes to the assignee where that
+   is a member who can open the contract's stream, and ELSE TO THE CONTRACT'S
+   OWNER — "the owner of the obligation" (owner-ruled). Their side keeps the
+   assignee alone (runReminders). The bell asks this rather than
+   obligationIsMine, so the row and the email reach the same person. The Mine
+   filter on the Obligations page still reads the assignee. */
+function obligationRemindsMe(o, c){
+  let me = null;
+  try{ me = (typeof currentUser === 'function') ? currentUser() : null; }catch(_){ me = null; }
+  if(!me) return false;
+  const to = obligationReminderTo(o);
+  if(to && (!c || typeof canAccessFolder !== 'function' || canAccessFolder(c.folder || '', to)))
+    return String(to.id) === String(me.id);
+  if(obligationIsTheirs(o) || !c || !c.owner) return false;
+  /* The owner as the server reads it: the stored id first, the name second —
+     never `_raisedBy`, which the email does not read. */
+  const ow = c.owner;
+  if(ow.id != null) return String(ow.id) === String(me.id);
+  return !!ow.name && String(ow.name).trim().toLowerCase() === String(me.name || '').trim().toLowerCase();
+}
 
 /* ---- FOUR BANDS, AND EVERY OBLIGATION LANDS IN EXACTLY ONE ----
    Overdue · due this month · later · completed. The last branch is a catch-all,
@@ -2683,10 +2704,11 @@ function obligationStatusSay(o, c){
 }
 
 /* ---- WHO IS REMINDED, AND WHEN — the sweep's own rules, said out loud ----
-   MIRRORS runReminders (server/server.js) milestone for milestone, the same
-   way the Insights obligations page mirrors it: an owner who resolves to a
-   member is told seven days before, on the day and the day after, and the
-   admins are brought in four days late; where nobody resolves — theirs, or
+   MIRRORS runReminders and runOurPromises (server/server.js) milestone for
+   milestone, the same way the Insights obligations page mirrors it: on our
+   side the assignee — else the contract's owner — is told seven days before,
+   on the day and the day after (no day-four mail since 27 Sep 2026); where
+   nobody resolves — theirs, or
    ours with no colleague HaTi can write to — the admins get ONE note the day
    after; a step held back by an earlier one fires none of those, and on its
    due day the contract's owner (or the admins) is told once that it is held;
@@ -2718,10 +2740,26 @@ function obligationReminderSay(o, c){
     return _obEsc(i18t('ob_rem_theirs', { cp: o.counterparty || (c && c.counterparty) || i18t('ob_side_theirs') })) + next([[1, admins]])
       + ` <span class="x">${_obEsc(i18t('ob_rem_chase_hint'))}</span>`;
   }
+  /* OUR SIDE IS OUR PROMISES' (runOurPromises, 27 Sep 2026): the assignee,
+     else the contract's owner, 7 days before, on the day and the day after —
+     and no day-four mail to the admins any more. */
   const m = obligationReminderTo(o);
-  if(!m) return `<span class="ins-nobody">${_obEsc(i18t('ob_rem_nobody'))}</span> ${_obEsc(i18t('ob_rem_nobody_more'))}` + next([[1, admins]]);
-  const first = String(m.name || '').trim().split(/\s+/)[0] || m.name || '';
-  return _obEsc(i18t('ob_rem_owned', { who: m.name || first })) + next([[-7, first], [0, first], [1, first], [4, admins]]);
+  const ow = m ? null : obligationOwnerTo(c);
+  if(!m && !ow) return `<span class="ins-nobody">${_obEsc(i18t('ob_rem_nobody'))}</span> ${_obEsc(i18t('ob_rem_nobody_more'))}` + next([[1, admins]]);
+  const who = m || ow;
+  const first = String(who.name || '').trim().split(/\s+/)[0] || who.name || '';
+  return _obEsc(i18t(m ? 'ob_rem_ours' : 'ob_rem_ours_owner', { who: who.name || first })) + next([[-7, first], [0, first], [1, first]]);
+}
+/* The contract's owner as a member HaTi can write to — the server's
+   contractOwnerRecipient: the stored id first, the name second. */
+function obligationOwnerTo(c){
+  const ow = c && c.owner;
+  if(!ow) return null;
+  let mem = [];
+  try{ mem = (typeof window.getUsers === 'function') ? (getUsers() || []) : []; }catch(_){ mem = []; }
+  const byId = ow.id != null ? mem.find(u => u && String(u.id) === String(ow.id)) : null;
+  if(byId) return /.+@.+\..+/.test(String(byId.email || '').trim()) ? byId : null;
+  return ow.name ? obligationReminderTo({ assignee: ow.name }) : null;
 }
 
 /* ---- WHAT HAS HAPPENED TO IT, off the contract's own trail ----
@@ -3271,4 +3309,4 @@ Object.assign(window,{obligationIsDoc,obligationDocUntil,obligationDocFile,oblig
   obligationReminderSay,obligationHistory,obligationStampHistory,obHistoryHtml,obChainSectionHtml,obDocSectionHtml,obWordingSectionHtml,
   obligationShowInContract,obKeyOf,obLocate,obPanelActs,obligationRemove,obOpenContract,obPanelOpts,obPaintPanel,obListHtml,obTableHtml,
   OBW_VIEWS,OBW_CHIPS,obwBook,obwPass,obwPaintHead,renderObligationsInspector,OBT_VIEWS,obtView,roomObligationsInspector,
-  OBLIG_RECUR,obRecurLabel,OBLIG_BANDS,OBLIG_TEXT_MIN,OB_NOTE_MAX,OBW_WHOSE,OBW_STATE,OBW_SIDE,OBW_DUE,obwFilters,obwNarrowing,obwRows,obwGoFiltered,obligationsDoorCount,renderObligationsList,obwRepaint,obligationSeriesOpenAt,obligationChase,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationIsMine,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,RENEWAL_ANSWERS,renewalQuestionOf,renewalDecisionOf,renewalDecisionStale,renewalDecided,renewalNoticeTo,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});
+  OBLIG_RECUR,obRecurLabel,OBLIG_BANDS,OBLIG_TEXT_MIN,OB_NOTE_MAX,OBW_WHOSE,OBW_STATE,OBW_SIDE,OBW_DUE,obwFilters,obwNarrowing,obwRows,obwGoFiltered,obligationsDoorCount,renderObligationsList,obwRepaint,obligationSeriesOpenAt,obligationChase,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationOwnerTo,obligationIsMine,obligationRemindsMe,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,RENEWAL_ANSWERS,renewalQuestionOf,renewalDecisionOf,renewalDecisionStale,renewalDecided,renewalNoticeTo,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});

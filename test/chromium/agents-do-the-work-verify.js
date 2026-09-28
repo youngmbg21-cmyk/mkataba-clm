@@ -76,7 +76,9 @@ const answer = body => {
     await put(soon);
     const late = fixtureContract('MK-DW3', 'Stock reporting', 'Savanna Foods Ltd', FOLDER_A, 900000, 'Signed', DOC);
     Object.assign(late, { owner, hash: 'x', counterpartyEmail: 'ops@savanna.example',
-      obligations: [{ id: 'o2', desc: 'Send the insurance certificate', party: 'theirs', due: day(-20), status: 'open', chasedAt: day(-10), chasedBy: 'Amina Otieno' }] });
+      obligations: [{ id: 'o2', desc: 'Send the insurance certificate', party: 'theirs', due: day(-20), status: 'open', chasedAt: day(-10), chasedBy: 'Amina Otieno' },
+        /* OUR PROMISES: ours, nobody named — the contract's owner is reminded. */
+        { id: 'o9', desc: 'Pay the storage deposit', party: 'ours', due: day(3), status: 'open' }] });
     await put(late);
     const ren = fixtureContract('MK-DW4', 'Cold room lease', 'Nandi Dairy', FOLDER_A, 900000, 'Signed', DOC);
     Object.assign(ren, { owner, hash: 'x', expiry: day(40), metadata: { expiryDate: day(40), noticePeriodDays: 10 } });
@@ -220,13 +222,36 @@ const answer = body => {
     await page.screenshot({ path: path.join(OUT, '6-bell.png') });
     await page.keyboard.press('Escape').catch(() => {});
 
+    /* ===== 8. OUR PROMISES: what we owe, and who the email reaches ===== */
+    await openAgent('ours');
+    const ours = await page.evaluate(() => {
+      const card = document.querySelector('[data-ag-open^="ours:MK-DW3"]');
+      return card ? card.textContent.replace(/\s+/g, ' ').trim() : null;
+    });
+    ok('8a Our promises shows what our side owes this week', !!ours && /Our promise/.test(ours) && /Pay the storage deposit/.test(ours) && /due in 3 days/.test(ours), ours);
+    if (ours) {
+      await page.click('[data-ag-open^="ours:MK-DW3"]');
+      await page.waitForTimeout(500);
+      const pan = await page.evaluate(() => {
+        const p = document.querySelector('.ag-panel, [data-ag-panel]');
+        const t = p ? p.textContent.replace(/\s+/g, ' ') : '';
+        return { t, lead: [...(p ? p.querySelectorAll('[data-ag-act]') : [])].map(b => b.getAttribute('data-ag-act')) };
+      });
+      ok('8b nobody named: the panel says the contract\'s owner is the one reminded, and opens the Obligations tab',
+        /Reminded/.test(pan.t) && /Amina Otieno/.test(pan.t) && pan.lead.join(',') === 'oblig', JSON.stringify(pan).slice(0, 400));
+      await page.screenshot({ path: path.join(OUT, '7-our-promises.png') });
+      await page.keyboard.press('Escape').catch(() => {});
+    }
+    const obBell = await page.evaluate(() => (window.buildAlerts ? buildAlerts() : []).filter(a => a.kind === 'obligation').map(a => a.text + ' · ' + a.id));
+    ok('8c the bell carries it to the owner too', obBell.some(t => /Pay the storage deposit/.test(t)), JSON.stringify(obBell));
+
     /* ===== 2. THE SETTINGS LIVE ON THE SETTINGS PAGE ===== */
     await openAgent('late');
     const door = await page.$('[data-ag-door="agentsettings"]');
     ok('2a an admin\'s agent page has a door to its settings', !!door);
     if (door) { await door.click(); await page.waitForTimeout(1500); }
     const panel = await page.evaluate(() => [...document.querySelectorAll('[data-st-agent]')].map(s => s.getAttribute('data-st-agent')));
-    ok('2b the Settings page lists all six agents', panel.join(',') === 'round,link,renew,paper,late,import', panel.join(','));
+    ok('2b the Settings page lists all seven agents', panel.join(',') === 'round,link,renew,paper,late,ours,import', panel.join(','));
     await page.screenshot({ path: path.join(OUT, '2-settings.png') });
     const saved = await page.evaluate(async () => {
       const row = document.querySelector('[data-st-agent="late"]'); if (!row) return null;

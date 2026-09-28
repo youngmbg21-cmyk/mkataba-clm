@@ -19769,3 +19769,10 @@ Noticed, not fixed
 - The import batch's closing toast is a bare toast(msg) with no kind, so it prints nothing (TOAST_KINDS); it was left as it is beside the new "being read on the server" toast.
 - Merged main (b993e1e, "Copilot's agents do the work") into the branch before merging back. r21 is now closed by main's own design: each overnight job is an agent with its own daily limit under the workspace ceiling (`agentMaySpend`), so the shared allowance built tonight was removed and f420 (7) re-pointed to it. The chase letter's date-in-words moved into main's `srvChaseSend` (firm chases too). Tonight's f412/f413 were renumbered f420/f421 (main took those numbers). The Plain English message now says Plain View, main's new name.
 - Noticed, not fixed: runway-and-xray-verify 4a still expects the third position to read "X-ray"; main renamed it "Risk View" (01f8c87) and the check fails the same way on main.
+
+## 28 Sep 2026 — Our promises: the seventh agent
+
+- Built: `runOurPromises` (agent `ours`) now sends OUR side's obligation emails — the assignee, else the contract's owner, 7 days before, on the day and the day after; the admins' day-four mail stopped for our side (owner-ruled). The bell, the obligation panel's reminder sentence and the Insights silence reading follow the same rule. Their side unchanged.
+
+### Noticed, not fixed
+- The obligation panel's sentence for THEIR promises (`ob_rem_theirs`) says "the admins are told once, the day after", but where a colleague is named as the assignee the sweep emails that colleague 7 days before, on the day, the day after, and the admins on day four. The sentence under-reports; not changed (not asked).

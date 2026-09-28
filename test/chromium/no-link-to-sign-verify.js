@@ -155,7 +155,8 @@ const inRound = (id, name, cp) => {
       ready: (typeof agentsData === 'function') ? agentsData().ready : null,
     }));
     ok('2a "No link to sign" is the sixth agent and sits second, under "Their round came back"',
-      lst.rows[0] === 'round' && lst.rows[1] === 'link' && lst.rows.length === 6 && lst.name === 'No link to sign', JSON.stringify(lst));
+      /* Seven agents since 27 Sep 2026 (Our promises); this one stays second. */
+      lst.rows[0] === 'round' && lst.rows[1] === 'link' && lst.rows.length === 7 && lst.name === 'No link to sign', JSON.stringify(lst));
     ok('2b the rail\'s door counts what is ready here, this agent\'s work included', lst.rail === String(lst.ready) && lst.ready >= 2,
       JSON.stringify({ rail: lst.rail, ready: lst.ready }));
     const agentRow = await page.$('[data-ag-agent="link"]');

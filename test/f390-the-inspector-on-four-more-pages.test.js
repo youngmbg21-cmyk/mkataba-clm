@@ -149,8 +149,11 @@ describe('f390 (1) — the Obligations page: seven windows, one population, one 
     assert.ok(say(c1, 'a3').includes(win.i18t('ob_rem_held', { n: 1, who: '' }).split('{')[0].slice(0, 10)),
       'a held step is held: nothing fires until the step before it is done');
     const src = fnOf(OB, 'obligationReminderSay');
-    assert.match(src, /\[\[-7, first\], \[0, first\], \[1, first\], \[4, admins\]\]/,
-      'seven days before, the day, the day after, then the admins four days late — runReminders\' own milestones');
+    /* Re-pointed 27 Sep 2026 (Our promises): seven days before, the day, the
+       day after — and no day-four mail to the admins any more. */
+    assert.match(src, /next\(\[\[-7, first\], \[0, first\], \[1, first\]\]\)/,
+      'seven days before, the day, the day after — runOurPromises\' own milestones');
+    assert.ok(!/\[4, admins\]/.test(src), 'the day-four admin mail is gone from our side');
   });
   test('1h Remove asks first, and a person\'s trail is read RAW, never initialised', () => {
     assert.match(fnOf(OB, 'obligationRemove'), /confirmDialog[\s\S]*splice/, 'the question comes before the cut');

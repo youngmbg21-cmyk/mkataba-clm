@@ -329,7 +329,9 @@ describe('f253 (5) — a registered alert kind, ranked', () => {
     assert.match(sweep, /if\(o\.days==null\) return;/,
       'nothing is ever sent about an undated obligation, so a row claiming a '
       + 'deadline would be the panel inventing one');
-    assert.match(sweep, /obligationIsMine\(o\)/, 'and only the reader’s own');
+    /* Re-pointed 27 Sep 2026 (Our promises): the reader's own is the person
+       the reminder EMAIL reaches — the assignee, else the contract's owner. */
+    assert.match(sweep, /obligationRemindsMe\(o,c\)/, 'and only the reader’s own');
   });
 
   test('BORROWED, NEVER DERIVED, and it writes nothing', () => {
@@ -354,6 +356,16 @@ describe('f253 (5) — a registered alert kind, ranked', () => {
     assert.equal(win.obligationIsMine({ assignee: 'Wanjiku Kamau' }), true);
     assert.equal(win.obligationIsMine({ assignee: 'Otieno Were' }), false);
     assert.equal(win.obligationIsMine({ assignee: '' }), false);
+  });
+
+  test('OUR promise with nobody named is the contract owner’s; theirs is nobody’s (Our promises)', () => {
+    const { win, c } = bench();
+    c.owner = { id: 'u1', name: 'Wanjiku Kamau' };
+    assert.equal(win.obligationRemindsMe({ assignee: '' }, c), true, 'nobody named → the owner');
+    assert.equal(win.obligationRemindsMe({ assignee: '', party: 'theirs' }, c), false, 'their side keeps the assignee alone');
+    assert.equal(win.obligationRemindsMe({ assignee: 'Otieno Were' }, c), false, 'a named member is theirs, not the owner’s');
+    c.owner = { id: 'u2', name: 'Otieno Were' };
+    assert.equal(win.obligationRemindsMe({ assignee: '' }, c), false, 'somebody else’s contract');
   });
 });
 

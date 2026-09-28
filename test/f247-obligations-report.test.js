@@ -72,8 +72,9 @@ function stage(){
     c('MK-1', { obligations: [
       /* REACHABLE — a date the product can read and somebody it can write to. */
       ob({ desc: 'Quarterly report', due: day(12), assignee: 'Amina Otieno', recurring: 'quarterly' }),
-      /* Overdue but still inside the sweep's last milestone: a mail is still to come. */
-      ob({ desc: 'Pay the invoice',  due: day(-2), assignee: 'Amina Otieno' }),
+      /* Overdue but still inside the sweep's last milestone: a mail is still to
+         come. Day 1, since Our promises (27 Sep 2026) ends our side there. */
+      ob({ desc: 'Pay the invoice',  due: day(-1), assignee: 'Amina Otieno' }),
       /* SILENT · every milestone spent. */
       ob({ desc: 'Rebate recon',     due: day(-12), assignee: 'Amina Otieno' }),
       /* SILENT · no date at all. */
@@ -189,6 +190,10 @@ describe('f247 · counting is not drawing', () => {
 describe('f247 · the silence test mirrors the sweep that actually sends', () => {
   test('the thresholds are named, and they are the ones the server fires on', () => {
     assert.ok(/const OB_LAST_OWNED = -4, OB_LAST_UNOWNED = -1, OB_BRIEF_FLOOR = -30;/.test(IG_CODE));
+    /* OUR side is runOurPromises (27 Sep 2026): 7 before, the day, the day after. */
+    assert.ok(/const OB_LAST_OURS = -1;/.test(IG_CODE));
+    assert.ok(/const MILESTONE = \{ 7: 'soon', 0: 'today', \[-1\]: 'overdue' \};/.test(SRV), 'Our promises moved its milestones');
+    assert.ok(/if \(String\(o\.party\) !== 'theirs'\) return;/.test(SRV), 'the sweep keeps only their side');
     /* Read off server/server.js, so a change to the sweep fails HERE rather
        than leaving the page quietly claiming the wrong thing. */
     assert.ok(/od === -4 && fireTo\(/.test(SRV), 'the escalation no longer fires on day 4');
@@ -229,6 +234,19 @@ describe('f247 · the silence test mirrors the sweep that actually sends', () =>
        invoice two days overdue, the live annual, and the two above. */
     assert.equal(d.open, 8);
     assert.ok(d.silent < d.open, 'everything cannot be silent');
+  });
+
+  /* OUR PROMISES (27 Sep 2026): our side with nobody reachable named goes to
+     the contract's OWNER, so it is not silent where the owner is a member —
+     and their side, which keeps the assignee alone, is unchanged. */
+  test('our promise with no reachable assignee reaches the contract owner', () => {
+    const { win, d } = stage();
+    assert.equal(d.why.gone, 1);
+    win.state.contracts[0].owner = { id: 'u1', name: 'Amina Otieno' };
+    const d2 = win.intelObligationsData();
+    assert.equal(d2.why.gone, 0, 'Send forecast now reaches the owner');
+    assert.equal(d2.why.noowner, 1, 'the "theirs" one with nobody named is still nobody’s');
+    assert.equal(d2.silent, d.silent - 1);
   });
 
   test('a member with no address to write to resolves to nobody', () => {

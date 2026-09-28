@@ -24276,3 +24276,18 @@ What the checks taught. Every browser file was run on the branch and diffed CHEC
 
 Noticed, not fixed: about fourteen bare toasts on the negotiation page, one in `dsSaveDefault`, several on the Word-compare path (q1 on the page); the 32 listed files need re-pointing by their screens' owners (q2).
 Tests: f414–f421 (the risks and signing files were f412/f413 until main took those numbers on the merge; r21 is now main's agent limits, `agentMaySpend`); go-aheads, home-page, two-copies, renewal-decision, phone, calendar-redesign, flat-rows-and-alerts, name-tag-horizon, redline, metadata-carried verify files.
+
+## THE AGENTS DO THE WORK — OUR PROMISES, THE SEVENTH AGENT (28 Sep 2026)
+
+The owner asked what "Late promises" was about and how it would know a promise was late, then redesigned the obligations reminder: *"Let's design it to be a reminder of our obligations to the counterparty. It's role is to reminds the owner of the obligation one week before and if not checked as done a reminder the day after. It should go into alerts and also send the owner an email."* Asked three questions — keep chasing the other side as its own agent (yes), keep the on-the-day email (yes: "7 before, on the day, 1 after"), keep the admins' email four days late ("stop it").
+
+What was built:
+- `runOurPromises` (server) is a scheduled agent (`ours`, `AGENT_DEFAULTS.ours = {on, at:7}`), logged in `agent_runs`, no Copilot spend. It takes OUR side's obligation emails out of `runReminders` (which now returns early unless `party === 'theirs'`). Same reminder keys (`<id>:ob:<okey>:soon|today|overdue|held`), so nothing already sent is sent again after the move.
+- Who is written to: the assignee where it resolves to a member who can open the stream, else the contract's owner (`contractOwnerRecipient`, lifted out of runReminders so the renewal mail and this ask one question). Nobody at all → the admins' old day-after note, byte-identical (f65).
+- The day-four admin escalation is gone for our side. THEIR side is unchanged (the colleague watching their promise still gets 7/0/-1 and the admins day four) — the owner's "stop it" was asked about our promises.
+- The bell's obligation row asks `obligationRemindsMe(o, c)` (assignee, else owner for ours), so the row and the email reach the same person. The Obligations page's Mine filter still reads the assignee alone (left alone on purpose; not asked).
+- The obligation panel's "who is reminded" sentence (`obligationReminderSay`) and the Insights silence reading (`OB_LAST_OURS = -1`, `ownerReaches`) were brought into line; `ob_rem_owned` retired inert in both books; `ob_rem_ours` / `ob_rem_ours_owner` new.
+- Copilot's work draws the seventh agent after Late promises: our promises due within 7 days or up to 30 days late (the daily brief's window), a held step excluded; the panel says who is reminded and opens the Obligations tab (THE ONE DOOR for marking done). Done recently = ours marked done in the window.
+- An admin's "Run the reminders" also runs Our promises, logged as a Run now.
+
+Tests: f413 (1a, 3o-a…c), f212 (our day four silent; their day four still escalates), f247, f253, f390, f399 5a; agents-do-the-work-verify 8a–8c, agents-page-verify, no-link-to-sign-verify.

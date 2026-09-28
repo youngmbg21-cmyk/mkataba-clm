@@ -4739,7 +4739,7 @@ function openApprovalRuleEditor(idx){
 /* ---- THE AGENTS' SETTINGS, DRAWN AND SAVED (see SET_PANELS.agents) ----
    Each row carries only the settings that agent has (the server's defaults
    say which), and its own Save — one agent's settings are one decision. */
-const ST_AGENT_KEYS=['round','link','renew','paper','late','import'];
+const ST_AGENT_KEYS=['round','link','renew','paper','late','ours','import'];
 async function stAgentsPaint(){
   const host=document.getElementById('st-agents-panel'); if(!host) return;
   if(typeof agentsStatusLoad!=='function'){ host.innerHTML=''; return; }

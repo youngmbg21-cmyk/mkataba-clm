@@ -2479,8 +2479,13 @@ const OB_HORIZON = 90;        // the forward window — the renewal card's own 9
    day, and the day after, and escalates to the admins on day 4. With no
    assignee that resolves it writes ONCE, to the admins, on day 1. Past the
    last of those, nothing about that obligation is ever sent again. The daily
-   brief carries an item until 30 days overdue and then drops it. */
+   brief carries an item until 30 days overdue and then drops it.
+   OUR SIDE IS AN AGENT'S NOW (runOurPromises, 27 Sep 2026): the assignee, ELSE
+   THE CONTRACT'S OWNER, 7 days before, on the day and the day after — and no
+   day-four mail. So for ours the last milestone is day 1 and a person is
+   reached wherever either resolves. The two lines above are THEIR side. */
 const OB_LAST_OWNED = -4, OB_LAST_UNOWNED = -1, OB_BRIEF_FLOOR = -30;
+const OB_LAST_OURS = -1;
 
 /* ═══ THE EXPOSURE REGISTER (S10, 16 Sep 2026) ═══════════════════════════
    *"A risk score out of 100 — every competitor has one and none can explain
@@ -2759,6 +2764,16 @@ function intelObligationsData(){
     return !!obligationReminderTo({ assignee:a });
   };
 
+  /* THE CONTRACT'S OWNER, AS OUR PROMISES WRITES TO THEM: the stored id
+     first, the name second, a member with an address (the server's
+     contractOwnerRecipient). */
+  const ownerReaches=c=>{
+    const ow=c&&c.owner; if(!ow) return false;
+    let us=[]; try{ us=(typeof window.getUsers==='function')?(getUsers()||[]):[]; }catch(_){ us=[]; }
+    const hit=ow.id!=null?us.find(u=>u&&String(u.id)===String(ow.id)):null;
+    if(hit) return /.+@.+\..+/.test(String(hit.email||'').trim());
+    return resolves(ow.name||'');
+  };
   const dueOf=o=>(typeof obligationDue==='function')?obligationDue(o):(((o&&o.due)||null));
   const stateOf=o=>(typeof obState==='function')?obState(o):((o&&o.status)==='done'?'done':'open');
   const isTheirs=o=>(typeof obligationIsTheirs==='function')?obligationIsTheirs(o):((o&&o.party)==='theirs');
@@ -2834,13 +2849,16 @@ function intelObligationsData(){
          day 1 is a note to a bystander, not a reminder to an owner. Past the
          last milestone and every mail has already gone. */
       const bad=(due==null);
-      const spent=(due!=null&&od!=null&&od<(owned?OB_LAST_OWNED:OB_LAST_UNOWNED));
-      const quiet=bad||!owned||(od!=null&&od<OB_LAST_OWNED);
+      const ours=!isTheirs(o);
+      const reach=owned||(ours&&ownerReaches(c));
+      const last=ours?OB_LAST_OURS:OB_LAST_OWNED;
+      const spent=(due!=null&&od!=null&&od<(ours?OB_LAST_OURS:owned?OB_LAST_OWNED:OB_LAST_UNOWNED));
+      const quiet=bad||!reach||(od!=null&&od<last);
       if(quiet){
         silent++;
         const r=[];
         if(bad) r.push(raw?'unreadable':'nodate');
-        if(!named) r.push('noowner'); else if(!owned) r.push('gone');
+        if(!reach){ if(!named) r.push('noowner'); else if(!owned) r.push('gone'); }
         if(spent) r.push('spent');
         r.forEach(k=>{ why[k]++; });
         reasonSum+=r.length;

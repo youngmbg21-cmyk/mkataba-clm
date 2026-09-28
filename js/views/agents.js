@@ -31,6 +31,10 @@
              come but whose signing link ran out or was cancelled. Read off
              `_reach`, the server's one reading of their links (srvReach); the
              fresh link is the round send, or the Signing tab's own act.
+     ours    Our promises (the SEVENTH, owner-ruled 27 Sep 2026) — what OUR side
+             owes, due this week or late; the server's runOurPromises emails
+             the assignee, else the contract's owner, 7 days before, on the day
+             and the day after. Marking it done is the Obligations tab's act.
    THE AGENTS DO THEIR WORK ON THE SERVER (Young ruled 27 Sep 2026: "implement
    all the fixes"): each runs by the clock, on an event or when started, and
    every run is logged with what it did, skipped and cost. THIS PAGE STILL
@@ -63,7 +67,7 @@
 
 /* The five, in the drawing's order. KEYS ARE STABLE ENGLISH; every word a
    reader sees is a dictionary key. */
-const AG_KEYS = ['round', 'link', 'renew', 'paper', 'late', 'import'];
+const AG_KEYS = ['round', 'link', 'renew', 'paper', 'late', 'ours', 'import'];
 /* What each agent is. `steps` are the drawing's own, and `review` is the index
    of the step where a person looks — everything before it is the agent's own
    work, the step after it is what is finished. `door` names where its rules
@@ -79,6 +83,11 @@ const AG_DEF = {
             steps: ['ag_st_read_it', 'ag_st_brief', 'ag_st_check_std', 'ag_st_find_ob', 'ag_st_review', 'ag_st_read_done'] },
   late:   { icon: 'flag',   review: 2, door: 'obligations',
             steps: ['ag_st_find_late', 'ag_st_draft_chase', 'ag_st_review', 'ag_st_sent'] },
+  /* OUR PROMISES (27 Sep 2026, owner-ruled) — the seventh: what OUR side owes,
+     and the person who owes it reminded by email 7 days before, on the day
+     and the day after (the server's runOurPromises). */
+  ours:   { icon: 'check',  review: 2, door: 'obligations',
+            steps: ['ag_st_find_ours', 'ag_st_remind_owner', 'ag_st_review', 'ag_st_kept'] },
   import: { icon: 'import', review: 2, door: 'import',
             steps: ['ag_st_read_files', 'ag_st_key_terms', 'ag_st_review', 'ag_st_filed'] },
 };
@@ -396,6 +405,44 @@ function agLateDone(cs){
   return out;
 }
 
+/* ---- OUR PROMISES ----
+   What OUR side owes, still open, due inside the week or late by no more than
+   the daily brief's own thirty days (`od <= 7 && od >= -30`, the server's
+   window) — the promises the reminder emails are about. A step held back by an
+   earlier one is nobody's work yet (obligationBlocked, the desk's own rule). */
+const AG_OURS_AHEAD = 7, AG_OURS_FLOOR = -30;
+function agOursItems(cs){
+  const out = [];
+  for (const c of cs){
+    for (const o of (Array.isArray(c.obligations) ? c.obligations : [])){
+      if (!o || (typeof obligationIsTheirs === 'function' ? obligationIsTheirs(o) : o.party === 'theirs')) continue;
+      if (typeof obState === 'function' ? obState(o) === 'done' : o.status === 'done') continue;
+      const due = (typeof obligationDue === 'function') ? obligationDue(o) : (o.due || null);
+      if (!due || typeof daysUntil !== 'function') continue;
+      const days = daysUntil(due);
+      if (days == null || days > AG_OURS_AHEAD || days < AG_OURS_FLOOR) continue;
+      if (typeof obligationBlocked === 'function' && obligationBlocked(o, c)) continue;
+      out.push({ agent: 'ours', kind: 'ours', key: 'ours:' + c.id + ':' + (o.id || due), cid: c.id, c, ob: o, due, days,
+        tone: days < 0 ? 'ruby' : days === 0 ? 'amber' : '' });
+    }
+  }
+  return out.sort((a, b) => a.days - b.days);
+}
+/* KEPT: one of ours marked done in the window, by whoever marked it —
+   obligationMarkDone's own stamp. */
+function agOursDone(cs){
+  const out = [];
+  for (const c of cs){
+    for (const o of (Array.isArray(c.obligations) ? c.obligations : [])){
+      if (!o || !o.completedAt || !_agRecent(o.completedAt)) continue;
+      if (typeof obligationIsTheirs === 'function' ? obligationIsTheirs(o) : o.party === 'theirs') continue;
+      out.push({ agent: 'ours', kind: 'kept', key: 'kept:' + c.id + ':' + (o.id || ''), cid: c.id, c, ob: o,
+        at: o.completedAt, by: o.completedBy || '' });
+    }
+  }
+  return out;
+}
+
 /* ---- NEW PAPER ----
    triageCards is the arrival strip's own population: read, and nobody has
    acknowledged it. A reading STILL RUNNING is work in flight (triageBusy), and
@@ -491,6 +538,7 @@ function agentsData(list){
     renew:  { ready: agRenewItems(desk), working: [], done: agRenewDone(cs) },
     paper:  { ready: agPaperItems(cs), working: agPaperWorking(cs), done: agPaperDone(cs) },
     late:   { ready: agLateItems(desk, cs), working: [], done: agLateDone(cs) },
+    ours:   { ready: agOursItems(cs), working: [], done: agOursDone(cs) },
     import: { ready: agImportItems(batches), working: agImportWorking(batches), done: agImportDone(batches) },
   };
   /* The finished lists are newest first, and bounded. */
@@ -621,7 +669,7 @@ function agNextWords(k){
 }
 /* WHAT A RUN DID, SKIPPED AND WHY — every word a dictionary key, every number
    the run's own report. A run that stopped says what stopped it. */
-const AG_RESULT_KEYS = ['prepared', 'read', 'ready', 'firm', 'stuck', 'soon', 'checked', 'needReview', 'told', 'failed'];
+const AG_RESULT_KEYS = ['prepared', 'read', 'ready', 'firm', 'stuck', 'soon', 'checked', 'needReview', 'told', 'reminded', 'failed'];
 const AG_STOPS = ['ceiling', 'agentLimit', 'cap', 'off', 'noKey', 'busy', 'gone', 'noStandards'];
 function agRunResultWords(run){
   if (!run) return '';
@@ -746,6 +794,10 @@ function agCardParts(it){
     const X = it.soon || {};
     sum = _agT(it.kind === 'soon-sign' ? 'ag_soon_sign' : 'ag_soon_reply', { who: X.signer || X.to || '', date: _agDay(X.ends) });
     urg = _agTn('ag_soon_left', it.left || 0, { n: it.left || 0 });
+  } else if (it.kind === 'ours'){
+    kind = _agT('ag_k_ours');
+    sum = String((it.ob && it.ob.desc) || '');
+    urg = it.days < 0 ? _agTn('desk_late', -it.days, { n: -it.days }) : it.days === 0 ? _agT('ag_ours_today') : _agTn('ag_ours_in', it.days, { n: it.days });
   } else if (it.kind === 'chase-firm'){
     kind = _agT('ag_k_chase_firm');
     sum = _agT('ag_firm_sum', { what: String((it.ob && it.ob.desc) || ''), date: _agDay(it.ob && it.ob.chasedAt) });
@@ -780,6 +832,12 @@ function agForName(it){
   try {
     if (it.kind === 'import' || it.kind === 'importing') n = String(it.by || '');
     else if (['answer', 'reply', 'party', 'soon'].includes(it.kind) && typeof deskLead === 'function'){ const l = deskLead(c); n = (l && l.name) || ''; }
+    else if (it.kind === 'ours'){
+      /* THE PERSON THE EMAIL REACHES: the assignee where that is a member,
+         else the contract's owner (below). */
+      const to = (typeof obligationReminderTo === 'function') ? obligationReminderTo(it.ob) : null;
+      n = (to && to.name) || '';
+    }
     else if (it.kind === 'read' || it.kind === 'reading'){
       const t = (typeof triageOf === 'function') ? triageOf(c) : (c && c.triage);
       n = (t && t.by) || '';
@@ -807,6 +865,7 @@ function agWhen(it){
     return due ? _agT('ag_w_was_due', { date: _agDay(due) }) : '';
   }
   if (it.kind === 'import') return it.at ? _agT('ag_w_imported', { date: _agDay(it.at) }) : '';
+  if (it.kind === 'ours') return it.due ? _agT(it.days < 0 ? 'ag_w_was_due' : 'ag_w_due', { date: _agDay(it.due) }) : '';
   /* WHO IT LAST WENT TO is the fact this card is about, so it takes the slot. */
   if (['reply', 'sign', 'party', 'soon', 'soon-sign'].includes(it.kind)){
     const L = it.kind === 'sign' ? it.sign : it.kind === 'party' ? it.party : (it.kind === 'soon' || it.kind === 'soon-sign') ? it.soon : it.last;
@@ -859,6 +918,9 @@ function agDoneRow(it){
   } else if (it.kind === 'chased' || it.kind === 'chased-firm'){
     what = [c.counterparty, _agRef(c)].filter(Boolean).join(' · ');
     result = _agT(it.kind === 'chased-firm' ? 'ag_done_chased_firm' : 'ag_done_chased', { what: (it.ob && it.ob.desc) || '' });
+  } else if (it.kind === 'kept'){
+    what = [c.counterparty, _agRef(c)].filter(Boolean).join(' · ');
+    result = _agT('ag_done_kept', { what: (it.ob && it.ob.desc) || '' });
   } else if (it.kind === 'filed'){
     what = _agT('ag_batch', { b: it.batch });
     result = _agTn('ag_done_filed', it.n, { n: it.n });
@@ -1131,6 +1193,7 @@ function agPanelBody(it){
   if (it.kind === 'import') return agImportBody(it);
   if (['reply', 'sign', 'party', 'soon', 'soon-sign'].includes(it.kind)) return agLinkBody(it);
   if (it.kind === 'chase-firm') return agChaseBody(it);
+  if (it.kind === 'ours') return agOursBody(it);
   return '';
 }
 
@@ -1425,6 +1488,30 @@ function agChaseBody(it){
     + agSecHtml(_agT('ag_s_message'), it.noAddress ? '' : agChaseMailHtml(c, o, it.kind === 'chase-firm'))
     + `<p class="ag-p-note">${_agE(_agT(it.noAddress ? 'ag_chase_noaddr_note' : 'ag_chase_note'))}</p>`;
 }
+/* ---- OUR PROMISE: what it is, when, who is reminded, and the rule ----
+   Marking it done is the Obligations tab's own act (openObligationDone, the
+   note and the stamp) — THE ONE DOOR — so this panel opens the tab. */
+function agOursBody(it){
+  const c = it.c, o = it.ob || {};
+  let amount = '';
+  try {
+    const n = (typeof obligationAmount === 'function') ? obligationAmount(o) : null;
+    if (n != null && typeof canViewValues === 'function' && canViewValues() && typeof obligationMoneyText === 'function') amount = obligationMoneyText(n, c);
+  } catch (_){ amount = ''; }
+  const when = it.days < 0 ? _agTn('desk_late', -it.days, { n: -it.days }) : it.days === 0 ? _agT('ag_ours_today') : _agTn('ag_ours_in', it.days, { n: it.days });
+  const who = agForName(it);
+  const facts = agKv([
+    [_agT('ag_f_what'), o.desc || ''],
+    [_agT('ag_f_due'), it.due ? _agDay(it.due) + ' · ' + when : ''],
+    [_agT('ag_f_whose'), _agT('ag_whose_ours')],
+    [_agT('ag_f_reminded'), who || _agT('ag_ours_admins')],
+    [_agT('ag_f_amount'), amount],
+  ]);
+  const quote = _agCut(o.quote, AG_QUOTE_MAX);
+  return facts
+    + (quote ? agSecHtml(_agT('ag_s_source'), `<p class="ag-quote">“${_agE(quote)}”</p>`) : '')
+    + `<p class="ag-p-note">${_agE(_agT('ag_ours_note'))}</p>`;
+}
 /* THE MESSAGE, AS THE ROUTE WILL WRITE IT: POST /api/contracts/:id/chase's own
    dictionary keys, its own facts ({desc}, {name}, {id}, {due} — the due date
    as stored) and its own language rule (the recipient's, where the address is
@@ -1552,6 +1639,7 @@ function agPanelActs(it){
       _agT(it.kind === 'soon-sign' ? 'ag_a_signing' : 'ct_open_negotiation'), ed ? '' : 'lead');
   if (it.kind === 'chase-firm') return (it.noAddress || !ed ? '' : B('chasefirm', _agT('ag_a_chase_firm'), 'lead'))
     + B('oblig', _agT('ag_a_oblig'), it.noAddress ? 'lead' : '');
+  if (it.kind === 'ours') return B('oblig', _agT('ag_a_oblig'), 'lead');
   return '';
 }
 /* THE PANEL'S HEAD is the drawing's: what the work IS, whose contract, and
@@ -1569,6 +1657,7 @@ function agPanelTitle(it){
   if (it.kind === 'soon') return _agT('ag_pt_soon');
   if (it.kind === 'soon-sign') return _agT('ag_pt_soon_sign');
   if (it.kind === 'chase-firm') return _agT('ag_pt_chase_firm');
+  if (it.kind === 'ours') return _agT('ag_pt_ours');
   return '';
 }
 function agPanelHeadHtml(it){

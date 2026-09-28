@@ -85,9 +85,10 @@ describe('f413 (1) — every agent is logged, limited and can be run', () => {
   });
   after(async () => { await h.stop(); await ai.stop(); });
 
-  test('1a the status names six agents, and in the harness nothing runs by the clock', async () => {
+  test('1a the status names seven agents, and in the harness nothing runs by the clock', async () => {
     const s = await W.admin.json('/api/agents/status');
-    assert.deepEqual(Object.keys(s.agents), ['round', 'link', 'renew', 'paper', 'late', 'import']);
+    assert.deepEqual(Object.keys(s.agents), ['round', 'link', 'renew', 'paper', 'late', 'ours', 'import']);
+    assert.equal(s.agents.ours.next.kind, 'paused', 'Our promises runs by the clock');
     assert.equal(s.auto, false, 'HATI_AGENTS_AUTO=off in test/helpers.js');
     assert.equal(s.agents.link.next.kind, 'paused');
     assert.equal(s.agents.round.next.kind, 'event');
@@ -311,6 +312,64 @@ describe('f413 (3) — late promises: prepared, told, never sent by itself', () 
 /* ============================================================
    4 — THEIR ROUND CAME BACK
    ============================================================ */
+/* ============================================================
+   3½ — OUR PROMISES (27 Sep 2026, owner-ruled: "7 before, on the day, 1
+   after", the admins' day-four mail stopped, nobody named → the owner)
+   ============================================================ */
+describe('f413 (3o) — our promises: the person who owes it is reminded', () => {
+  let h, W, owner;
+  before(async () => {
+    h = await startHati();
+    W = await seedWorkspace(h, { contracts: [], approvalRules: [] });
+    owner = W.users.unrestricted;
+    await W.admin.json('/api/contracts/MK-OP-1', { method: 'PUT', body: { baseVersion: 0, contract: {
+      ...fixtureContract('MK-OP-1', 'Cold store services', 'Kabras Sugar', FOLDER_A, 900000, 'Signed', DOC), hash: 'x',
+      counterpartyEmail: 'ops@kabras.example', owner: { id: owner.id, name: owner.name },
+      obligations: [
+        { id: 'p7', desc: 'Pay the deposit', party: 'ours', due: day(7), status: 'open' },
+        { id: 'p0', desc: 'Send the site plan', due: day(0), status: 'open' },
+        { id: 'p1', desc: 'Return the keys', party: 'ours', due: day(-1), status: 'open' },
+        { id: 'p4', desc: 'File the audit', party: 'ours', due: day(-4), status: 'open' },
+        { id: 'pd', desc: 'Already done', party: 'ours', due: day(-1), status: 'done' },
+        { id: 't1', desc: 'Their report', party: 'theirs', due: day(-1), status: 'open' },
+      ] } } });
+  });
+  after(async () => { await h.stop(); });
+
+  test('3o-a nobody named: the OWNER hears 7 before, on the day and the day after — never the other side, never day four', async () => {
+    const out = await W.admin.json('/api/agents/ours/run', { method: 'POST', body: {} });
+    assert.equal(out.reminded, 3, JSON.stringify(out));
+    const box = await outbox(W);
+    const to = m => (m.to_addr || m.to);
+    const mine = box.filter(m => to(m) === owner.email);
+    for (const re of [/Due in 7 days — Pay the deposit/, /Due today — Send the site plan/, /Overdue — Return the keys/])
+      assert.ok(mine.some(m => re.test(m.subject)), 'the owner is told: ' + re);
+    assert.ok(!box.some(m => /File the audit/.test(m.subject + (m.body || ''))), 'day four: nobody is written to');
+    assert.ok(!box.some(m => /Already done/.test(m.subject)), 'a promise kept is not reminded');
+    assert.ok(!box.some(m => /Their report/.test(m.subject)), 'their side is not this agent\'s');
+    assert.equal(box.filter(m => to(m) === 'ops@kabras.example').length, 0, 'NOTHING went to the other side');
+  });
+  test('3o-b a second run tells nobody twice, and the run is on the log', async () => {
+    const again = await W.admin.json('/api/agents/ours/run', { method: 'POST', body: {} });
+    assert.equal(again.reminded, 0); assert.equal(again.skipped.toldBefore, 3);
+    const s = await W.admin.json('/api/agents/status');
+    assert.ok(s.agents.ours.runs.length >= 2 && s.agents.ours.runs[0].trigger === 'now');
+  });
+  test('3o-c switched off, it reminds nobody — the sweep does not quietly do it instead', async () => {
+    await W.admin.json('/api/contracts/MK-OP-2', { method: 'PUT', body: { baseVersion: 0, contract: {
+      ...fixtureContract('MK-OP-2', 'Loading bay', 'Kabras Sugar', FOLDER_A, 900000, 'Signed', DOC), hash: 'x',
+      owner: { id: owner.id, name: owner.name },
+      obligations: [{ id: 'q7', desc: 'Pay the bay rent', party: 'ours', due: day(7), status: 'open' }] } } });
+    await W.admin.json('/api/agents/ours/settings', { method: 'PUT', body: { on: false } });
+    await W.admin.raw('/api/reminders/run', { method: 'POST', body: {} });
+    assert.ok(!(await outbox(W)).some(m => /Pay the bay rent/.test(m.subject)));
+    await W.admin.json('/api/agents/ours/settings', { method: 'PUT', body: { on: true } });
+    await W.admin.raw('/api/reminders/run', { method: 'POST', body: {} });
+    assert.ok((await outbox(W)).some(m => /Due in 7 days — Pay the bay rent/.test(m.subject) && (m.to_addr || m.to) === owner.email),
+      'an admin\'s "run the reminders" runs it too');
+  });
+});
+
 describe('f413 (4) — their round came back: Copilot prepares the answers on arrival', () => {
   let ai, h, W, owner, tok;
   const NEW = 'Invoices are payable within ninety (90) days.';
