@@ -25,6 +25,18 @@
      import  Archive import — the import queue's batches (c.migration), the
              contracts in each still waiting for somebody to confirm what was
              read.
+     link    No link to sign (the SIXTH, Young ruled it 27 Sep 2026, second in
+             the list) — a deal whose changes went out but whose other side has
+             no working link to answer on, and a deal whose signer's turn has
+             come but whose signing link ran out or was cancelled. Read off
+             `_reach`, the server's one reading of their links (srvReach); the
+             fresh link is the round send, or the Signing tab's own act.
+   THE AGENTS DO THEIR WORK ON THE SERVER (Young ruled 27 Sep 2026: "implement
+   all the fixes"): each runs by the clock, on an event or when started, and
+   every run is logged with what it did, skipped and cost. THIS PAGE STILL
+   TALKS TO NO ROUTE ITSELF — js/agentruns.js is its one door (agentsStatus,
+   agentRunNow, agentSendBack, shareKeepOpen, the quiet refresh), and f399 /
+   f413 7d grep this file for any other.
    IT IS A READING. NO ROUTE, NO STORE, NO FIELD, NO SPEND (f399 greps this
    file). Every count is borrowed from the function that already owns it, so
    this page cannot print a number the Negotiations list, Home's Prepared for
@@ -51,7 +63,7 @@
 
 /* The five, in the drawing's order. KEYS ARE STABLE ENGLISH; every word a
    reader sees is a dictionary key. */
-const AG_KEYS = ['round', 'renew', 'paper', 'late', 'import'];
+const AG_KEYS = ['round', 'link', 'renew', 'paper', 'late', 'import'];
 /* What each agent is. `steps` are the drawing's own, and `review` is the index
    of the step where a person looks — everything before it is the agent's own
    work, the step after it is what is finished. `door` names where its rules
@@ -59,6 +71,8 @@ const AG_KEYS = ['round', 'renew', 'paper', 'late', 'import'];
 const AG_DEF = {
   round:  { icon: 'nego',   review: 4, door: 'standards',
             steps: ['ag_st_read_theirs', 'ag_st_check_std', 'ag_st_past', 'ag_st_prepare', 'ag_st_review', 'ag_st_answered'] },
+  link:   { icon: 'out',    review: 2, door: null,
+            steps: ['ag_st_find_stuck', 'ag_st_check_link', 'ag_st_review', 'ag_st_link_sent'] },
   renew:  { icon: 'cal',    review: 3, door: 'settings',
             steps: ['ag_st_find_ends', 'ag_st_how_went', 'ag_st_memo', 'ag_st_review', 'ag_st_decided'] },
   paper:  { icon: 'file',   review: 4, door: null,
@@ -140,6 +154,14 @@ function agRoundItems(cs){
     const want = new Set(ids.map(String));
     let plan = [];
     try { plan = (typeof redlinePlan === 'function') ? redlinePlan(c).filter(r => want.has(String(r.id))) : []; } catch (_){ plan = []; }
+    /* ONE ANSWER PER ASK: where Copilot prepared one when their round arrived,
+       it is the answer the card and the panel carry — the co-pilot's quick
+       reading stands only where Copilot has not answered. */
+    const chById = new Map(c.changes.filter(Boolean).map(x => [String(x.id), x]));
+    plan = plan.map(r => {
+      const a = (typeof roundPrepOf === 'function') ? roundPrepOf(c, chById.get(String(r.id))) : null;
+      return a ? Object.assign({}, r, { verdict: AG_PREP_PLAN[a.verdict] || r.verdict, prepared: true }) : r;
+    });
     const tally = { accept: 0, push: 0, escalate: 0, review: 0 };
     plan.forEach(r => { if (tally[r.verdict] != null) tally[r.verdict]++; });
     /* HOW LONG THE OLDEST OF THEIR ASKS HAS WAITED, and whether that is past
@@ -151,7 +173,10 @@ function agRoundItems(cs){
     if (std > 0 && since && typeof deskWorkingDaysBetween === 'function'){
       try { over = deskWorkingDaysBetween(since, nowIso) >= std; } catch (_){ over = false; }
     }
-    out.push({ agent: 'round', kind: 'answer', key: 'answer:' + c.id, cid: c.id, c,
+    /* HOW MANY COPILOT HAS ALREADY ANSWERED — the answers it prepared when
+       their round arrived (runRoundPrep, js/roundprep.js), riding the list. */
+    const prepared = (typeof roundPrepOf === 'function') ? asks.filter(x => roundPrepOf(c, x)).length : 0;
+    out.push({ agent: 'round', kind: 'answer', key: 'answer:' + c.id, cid: c.id, c, prepared,
       n: ids.length, plan, tally, since, days: _agDaysSince(since), over, std,
       round: (c.negotiation && Number(c.negotiation.round)) || 1,
       tone: over ? 'amber' : '' });
@@ -181,6 +206,119 @@ function agRoundDone(cs){
   return out;
 }
 
+/* ---- NO LINK TO SIGN (Young ruled 27 Sep 2026: "Fix it and build a sixth
+   agent") ----
+   TWO KINDS OF STUCK, and both are the SERVER'S reading of the links (`_reach`,
+   srvReach) — the light list carries no links, and a second copy of the rule
+   here would be free to disagree with the respond route that enforces it.
+     reply  our changes went out, nothing of ours is unsent, nothing of theirs
+            waits on us — and no copy of theirs can carry an answer back.
+            negWhoseMove says exactly that as `why:'nocopy'`, the reading the
+            Negotiations list, the contract's head and the phone all ask, so
+            this list and the "Waiting on you · No live copy" rows are one set.
+     sign   their signer's turn has come and the signing link they hold ran out
+            or was cancelled. A route never sent is the Signing tab's business,
+            and a contract they sign OUTSIDE HaTi never has a link — the server
+            leaves both out, and so does this.
+   A deal in dispute is frozen, so what stops it is the dispute, not the link.
+   HOW LONG IT HAS BEEN STUCK counts from when the link stopped working, or
+   from when our round went out if that came later. */
+const AG_LINK_HOWS = new Set(['expired', 'revoked', 'answered', 'overtaken', 'signing', 'undelivered', 'readonly', 'bounced']);
+function agLinkItems(cs){
+  const out = [];
+  for (const c of cs){
+    const R = c && c._reach;
+    if (!R || typeof R !== 'object') continue;
+    if (typeof contractOnHold === 'function' && contractOnHold(c)) continue;
+    let move = null;
+    try { move = (typeof negoIsLive === 'function' && negoIsLive(c) && typeof negWhoseMove === 'function') ? negWhoseMove(c) : null; }
+    catch (_){ move = null; }
+    if (move && move.why === 'nocopy'){
+      const L = R.last || null;
+      const turnAt = (c.negotiation && c.negotiation.turnAt) || '';
+      const since = [L && L.at, turnAt].filter(Boolean).map(String).sort().pop() || '';
+      out.push({ agent: 'link', kind: 'reply', key: 'reply:' + c.id, cid: c.id, c, last: L, n: move.n || 0,
+        since, days: _agDaysSince(since), tone: 'amber' });
+    }
+    const S = R.sign || null;
+    const outside = (typeof signRouteOf === 'function') && signRouteOf(c) === 'outside';
+    /* A SIGNER CANNOT SIGN where their link ran out, was cancelled, was used up
+       without a signature, or its email was refused (27 Sep 2026: the two
+       blind spots closed). */
+    if (S && AG_SIGN_STUCK.includes(S.how) && !outside
+        && !(typeof negoExecuted === 'function' && negoExecuted(c))){
+      out.push({ agent: 'link', kind: 'sign', key: 'sign:' + c.id, cid: c.id, c, sign: S,
+        since: S.at || '', days: _agDaysSince(S.at), tone: 'amber' });
+    }
+    /* ONE PARTY OF SEVERAL WHO CANNOT ANSWER — the deal still reads live on the
+       list, because another party can; the agent names the one who cannot. */
+    for (const P of (Array.isArray(R.parties) ? R.parties : [])){
+      if (!P || !P.partyId) continue;
+      out.push({ agent: 'link', kind: 'party', key: 'party:' + c.id + ':' + P.partyId, cid: c.id, c, party: P,
+        since: P.at || P.sentAt || '', days: _agDaysSince(P.at || P.sentAt), tone: 'amber' });
+    }
+    /* A LINK ABOUT TO RUN OUT — before the deal is stuck, not after. An answer's
+       only while it is really their move. */
+    for (const X of (Array.isArray(R.soon) ? R.soon : [])){
+      if (!X || !X.token) continue;
+      if (X.kind === 'reply' && !(move && move.k === 'them')) continue;
+      if (X.kind === 'sign' && (outside || (typeof negoExecuted === 'function' && negoExecuted(c)))) continue;
+      out.push({ agent: 'link', kind: X.kind === 'sign' ? 'soon-sign' : 'soon', key: 'soon:' + c.id + ':' + X.kind, cid: c.id, c,
+        soon: X, since: X.ends || '', days: null, left: _agDaysLeft(X.ends), tone: '' });
+    }
+  }
+  /* WHAT IS ALREADY STUCK LEADS, longest first; a link still working follows,
+     the soonest to run out first. */
+  const soonish = it => it.kind === 'soon' || it.kind === 'soon-sign';
+  return out.sort((a, b) => (Number(soonish(a)) - Number(soonish(b)))
+    || (soonish(a) ? (a.left || 0) - (b.left || 0) : (b.days || 0) - (a.days || 0)));
+}
+const AG_SIGN_STUCK = ['expired', 'revoked', 'answered', 'bounced'];
+/* Whole days until an instant, never below zero. */
+function _agDaysLeft(iso){
+  const t = Date.parse(String(iso || ''));
+  return isFinite(t) ? Math.max(0, Math.ceil((t - Date.now()) / 86400000)) : null;
+}
+/* LINK SENT: the server names a working link that went out in the last
+   fortnight to a deal whose earlier link had stopped working (`fresh`) — by
+   whichever door it went, this page's or the negotiation's own. */
+function agLinkDone(cs){
+  const out = [];
+  for (const c of cs){
+    const F = (c && c._reach && Array.isArray(c._reach.fresh)) ? c._reach.fresh : [];
+    for (const f of F){
+      if (!f || !_agRecent(f.at)) continue;
+      out.push({ agent: 'link', kind: 'relinked', key: 'relinked:' + c.id + ':' + (f.kind || ''), cid: c.id, c,
+        at: f.at, by: f.by || '', fresh: f });
+    }
+  }
+  return out;
+}
+/* What became of their link, in one clause. */
+function agLinkHow(it){
+  const L = it.kind === 'sign' ? it.sign : it.kind === 'party' ? it.party : it.last;
+  if (!L) return _agT('ag_how_none');
+  if (!AG_LINK_HOWS.has(L.how)) return '';
+  const key = (it.kind === 'sign' ? 'ag_how_sign_' : 'ag_how_') + L.how;
+  return _agT(key, { when: agOnDay(L.at) });
+}
+/* "on 24 Sept", or "today" — a day said inside a sentence. */
+function agOnDay(iso){
+  const t = Date.parse(String(iso || ''));
+  if (!isFinite(t)) return '';
+  /* The reader's own calendar day, not "within 24 hours". */
+  return new Date(t).toDateString() === new Date().toDateString()
+    ? _agT('ag_on_today') : _agT('ag_on_day', { date: _agDay(iso) });
+}
+const agStuckWords = days => days == null ? ''
+  : days === 0 ? _agT('ag_stuck_today') : _agTn('ag_stuck_days', days, { n: days });
+/* Who it last went to — a name, with the address where the two differ. */
+function agSentTo(L){
+  if (!L) return '';
+  const name = String(L.to || '').trim(), mail = String(L.email || '').trim();
+  return (name && mail && name !== mail) ? `${name} (${mail})` : (name || mail);
+}
+
 /* ---- RENEWALS AND LATE PROMISES: the overnight desk, all of it ----
    Home draws AT MOST ONE OF EACH KIND; this page is the door onto the rest
    (desknight.js said the day would come). The same rows, the same keys, the
@@ -208,9 +346,39 @@ function agRenewDone(cs){
   }
   return out;
 }
-function agLateItems(desk){
+function agLateItems(desk, cs){
   return desk.filter(it => it.kind === 'chase').map(it => Object.assign({}, it, {
-    agent: 'late', key: 'desk:' + it.cid + ':' + it.key, deskKey: it.key, tone: 'ruby' }));
+    agent: 'late', key: 'desk:' + it.cid + ':' + it.key, deskKey: it.key, tone: 'ruby' }))
+    .concat(agLateFirmItems(cs || []));
+}
+/* ---- THE FIRMER CHASE (27 Sep 2026: "a firmer second one after a set number
+   of days") ----
+   A promise of theirs chased at least `secondAfter` days ago (the agent's own
+   setting, off the server's status; 7 where it has not said) and still not
+   done — the desk's own refusals otherwise: theirs, overdue, not held back by
+   an earlier step. The chase itself is a person's press (obligationChase with
+   `firm`), exactly as the first one is. */
+function agLateFirmItems(cs){
+  const out = [];
+  const a = agStatusOf('late');
+  const after = Number(a && a.secondAfter) || 7;
+  for (const c of cs){
+    if (!c || c.archived || (c.hold && c.hold.at)) continue;
+    for (const o of (Array.isArray(c.obligations) ? c.obligations : [])){
+      if (!o || !o.chasedAt) continue;
+      if (typeof obligationIsTheirs === 'function' && !obligationIsTheirs(o)) continue;
+      if (typeof obState === 'function' ? obState(o) !== 'overdue' : true) continue;
+      if (typeof obligationBlocked === 'function' && obligationBlocked(o, c)) continue;
+      const last = o.chaseFirmAt || o.chasedAt;
+      const since = _agDaysSince(last);
+      if (since == null || since < after) continue;
+      const due = (typeof obligationDue === 'function') ? obligationDue(o) : (o.due || null);
+      out.push({ agent: 'late', kind: 'chase-firm', key: 'firm:' + c.id + ':' + (o.id || ''), cid: c.id, c, ob: o,
+        days: due ? _agDaysSince(due) : 0, since: last, tone: 'ruby',
+        noAddress: !/.+@.+\..+/.test(String(c.counterpartyEmail || '').trim()) });
+    }
+  }
+  return out;
 }
 /* SENT: a chase stamped on the obligation in the last fortnight — chasedAt is
    written before anything leaves, by obligationChase itself. */
@@ -218,9 +386,11 @@ function agLateDone(cs){
   const out = [];
   for (const c of cs){
     for (const o of (Array.isArray(c.obligations) ? c.obligations : [])){
-      if (!o || !o.chasedAt || !_agRecent(o.chasedAt)) continue;
-      out.push({ agent: 'late', kind: 'chased', key: 'chased:' + c.id + ':' + (o.id || ''), cid: c.id, c, ob: o,
+      if (!o || !o.chasedAt) continue;
+      if (_agRecent(o.chasedAt)) out.push({ agent: 'late', kind: 'chased', key: 'chased:' + c.id + ':' + (o.id || ''), cid: c.id, c, ob: o,
         at: o.chasedAt, by: o.chasedBy || '' });
+      if (o.chaseFirmAt && _agRecent(o.chaseFirmAt)) out.push({ agent: 'late', kind: 'chased-firm', key: 'chasedfirm:' + c.id + ':' + (o.id || ''), cid: c.id, c, ob: o,
+        at: o.chaseFirmAt, by: o.chaseFirmBy || '' });
     }
   }
   return out;
@@ -265,10 +435,13 @@ function agImportBatches(cs){
     const m = c && c.migration;
     if (!m || typeof m !== 'object') continue;
     const b = String(m.batch || '—');
-    if (!by.has(b)) by.set(b, { batch: b, cs: [], review: 0, blocked: 0, at: '', by: '' });
+    if (!by.has(b)) by.set(b, { batch: b, cs: [], review: 0, blocked: 0, reading: 0, at: '', by: '' });
     const g = by.get(b);
     g.cs.push(c);
-    if (m.needsReview) g.review++;
+    /* STILL BEING READ ON THE SERVER (27 Sep 2026) is work in flight, not a
+       contract waiting for a person — its details are not in yet. */
+    if (m.reading === 'queued') g.reading++;
+    else if (m.needsReview) g.review++;
     if (m.blocked) g.blocked++;
     if (String(m.importedAt || '') > g.at){ g.at = String(m.importedAt || ''); g.by = String(m.importedBy || ''); }
   }
@@ -283,14 +456,23 @@ function agImportItems(batches){
     cs: g.cs, tone: g.blocked ? 'amber' : '' }));
 }
 function agImportDone(batches){
-  return batches.filter(g => g.review === 0 && _agRecent(g.at)).map(g => ({ agent: 'import', kind: 'filed',
+  return batches.filter(g => g.review === 0 && !g.reading && _agRecent(g.at)).map(g => ({ agent: 'import', kind: 'filed',
     key: 'filed:' + g.batch, batch: g.batch, n: g.cs.length, at: g.at, by: g.by }));
 }
-function agImportWorking(){
+function agImportWorking(batches){
   const M = (typeof state !== 'undefined' && state && state.mig) || null;
-  if (!M || !M.running || !Array.isArray(M.queue)) return [];
-  const done = M.queue.filter(q => q && q.status && q.status !== 'waiting').length;
-  return [{ agent: 'import', kind: 'importing', key: 'importing:' + (M.batch || ''), batch: M.batch || '', done, n: M.queue.length }];
+  const out = [];
+  if (M && M.running && Array.isArray(M.queue)){
+    const done = M.queue.filter(q => q && q.status && q.status !== 'waiting').length;
+    out.push({ agent: 'import', kind: 'importing', key: 'importing:' + (M.batch || ''), batch: M.batch || '', done, n: M.queue.length });
+  }
+  /* AND WHAT COPILOT IS STILL READING ON THE SERVER — carrying on whether or
+     not the tab that started it is open. */
+  for (const g of (batches || [])){
+    if (!g.reading || out.some(x => x.batch === g.batch)) continue;
+    out.push({ agent: 'import', kind: 'importing', key: 'importing:' + g.batch, batch: g.batch, done: g.cs.length - g.reading, n: g.cs.length, server: true });
+  }
+  return out;
 }
 
 /* ---- EVERYTHING, ONCE ----
@@ -305,10 +487,11 @@ function agentsData(list){
   const batches = agImportBatches(cs);
   const agents = {
     round:  { ready: agRoundItems(cs), working: [], done: agRoundDone(cs) },
+    link:   { ready: agLinkItems(cs), working: [], done: agLinkDone(cs) },
     renew:  { ready: agRenewItems(desk), working: [], done: agRenewDone(cs) },
     paper:  { ready: agPaperItems(cs), working: agPaperWorking(cs), done: agPaperDone(cs) },
-    late:   { ready: agLateItems(desk), working: [], done: agLateDone(cs) },
-    import: { ready: agImportItems(batches), working: agImportWorking(), done: agImportDone(batches) },
+    late:   { ready: agLateItems(desk, cs), working: [], done: agLateDone(cs) },
+    import: { ready: agImportItems(batches), working: agImportWorking(batches), done: agImportDone(batches) },
   };
   /* The finished lists are newest first, and bounded. */
   AG_KEYS.forEach(k => {
@@ -351,14 +534,47 @@ function agStatusLine(a){
   if (a.working.length) parts.push(_agTn('ag_n_working', a.working.length, { n: a.working.length }));
   return parts.length ? parts.join(' · ') : _agT('ag_idle');
 }
-function agRowHtml(k, a, on){
+/* A ROW'S INSIDE, apart from the row — so a repaint can change what a row
+   SAYS without replacing the row the reader is looking at (agPaintList). */
+function agRowInner(k, a){
   const def = AG_DEF[k];
-  return `<button type="button" class="ag-row${on ? ' on' : ''}" data-ag-agent="${k}" aria-current="${on ? 'true' : 'false'}">
-      <span class="ag-ic">${_agIc(def.icon)}</span>
+  return `<span class="ag-ic">${_agIc(def.icon)}</span>
       <span class="ag-rb"><span class="ag-nm">${_agE(_agT('ag_' + k))}</span><span class="ag-st">${
         a.working.length ? '<span class="ob-spin" aria-hidden="true"></span>' : ''}${_agE(agStatusLine(a))}</span></span>
-      ${a.ready.length ? `<span class="ag-pill" title="${_agE(_agT('ag_ready_title'))}">${a.ready.length}</span>` : '<span></span>'}
-    </button>`;
+      ${a.ready.length ? `<span class="ag-pill" title="${_agE(_agT('ag_ready_title'))}">${a.ready.length}</span>` : '<span></span>'}`;
+}
+function agRowHtml(k, a, on){
+  return `<button type="button" class="ag-row${on ? ' on' : ''}" data-ag-agent="${k}" aria-current="${on ? 'true' : 'false'}">${agRowInner(k, a)}</button>`;
+}
+/* ---- THE LIST IS DRAWN ONCE (Young ruled 27 Sep 2026: "make sure the
+   highlighted card stays stagnant and does not move when you click around
+   the different agents") ----
+   A press rebuilt the whole page — list and all — and put the scroll back
+   afterwards, so the column the reader was pressing in was torn out and
+   redrawn under their hand. Now the rows are the same elements for as long as
+   the page is up: this moves the highlight and rewrites what each row SAYS,
+   and never replaces a row. */
+function agPaintList(root, D, sel){
+  if (!root || !D) return;
+  root.querySelectorAll('[data-ag-agent]').forEach(b => {
+    const k = b.getAttribute('data-ag-agent');
+    const on = k === sel;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-current', on ? 'true' : 'false');
+    if (D.agents[k]) b.innerHTML = agRowInner(k, D.agents[k]);
+  });
+}
+/* A PRESS ON AN AGENT REPAINTS THE RIGHT SIDE ALONE, and lands at its top —
+   another agent is somewhere else to go. */
+function agShowAgent(k){
+  agSetSel(k);
+  const root = (typeof document !== 'undefined') ? document.querySelector('[data-ag-root]') : null;
+  if (!root){ renderAgentsPage(); return; }
+  const D = agentsData();
+  const sel = agSel(D);
+  agPaintList(root, D, sel);
+  const main = document.getElementById('ag-main');
+  if (main){ main.innerHTML = agPageHtml(sel, D); main.scrollTop = 0; }
 }
 function agListHtml(D, sel){
   return `<nav class="ag-list" aria-label="${_agE(_agT('ag_list_label'))}">
@@ -368,6 +584,59 @@ function agListHtml(D, sel){
 }
 /* THE FACTS, and each is true of THIS product: who looks, who pays, when it
    runs. A fact HaTi does not hold (a per-agent spend limit) is not printed. */
+/* ---- HOW THE AGENT IS DOING — the server's log, through js/agentruns.js
+   (agentsStatus). Absent (local mode, or before the first answer lands) the
+   page says what it always said. ---- */
+function agStatusOf(k){
+  try {
+    const s = (typeof agentsStatus === 'function') ? agentsStatus() : null;
+    return s && s.agents ? (s.agents[k] || null) : null;
+  } catch (_){ return null; }
+}
+function agMoneyShown(){
+  try { const s = (typeof agentsStatus === 'function') ? agentsStatus() : null; return !!(s && s.money); } catch (_){ return false; }
+}
+const _agHour = h => String(Number(h) || 0).padStart(2, '0') + ':00';
+/* "24 Sept 07:02" — a run is a moment, not a day. */
+function _agWhenTime(iso){
+  const t = Date.parse(String(iso || ''));
+  if (!isFinite(t)) return '';
+  let hm = '';
+  try { hm = new Date(t).toLocaleTimeString((typeof langLocale === 'function') ? langLocale() : undefined, { hour: '2-digit', minute: '2-digit' }); } catch (_){ hm = ''; }
+  return [_agDay(iso), hm].filter(Boolean).join(' ');
+}
+const _agUsd = n => '$' + (Number(n) || 0).toFixed(Number(n) > 0 && Number(n) < 0.01 ? 4 : 2);
+/* WHEN IT RUNS NEXT, in words. */
+function agNextWords(k){
+  const a = agStatusOf(k);
+  if (!a) return _agT('ag_' + k + '_runs');
+  const n = a.next || {};
+  if (n.kind === 'off') return _agT('ag_next_off');
+  if (n.kind === 'event') return _agT('ag_next_event');
+  if (n.kind === 'start') return _agT('ag_next_start');
+  if (n.kind === 'paused') return _agT('ag_next_paused');
+  if (n.kind === 'schedule')
+    return _agT(n.day === 'tomorrow' ? 'ag_next_tomorrow' : n.day === 'soon' ? 'ag_next_soon' : 'ag_next_today', { at: _agHour(n.at) });
+  return _agT('ag_' + k + '_runs');
+}
+/* WHAT A RUN DID, SKIPPED AND WHY — every word a dictionary key, every number
+   the run's own report. A run that stopped says what stopped it. */
+const AG_RESULT_KEYS = ['prepared', 'read', 'ready', 'firm', 'stuck', 'soon', 'checked', 'needReview', 'told', 'failed'];
+const AG_STOPS = ['ceiling', 'agentLimit', 'cap', 'off', 'noKey', 'busy', 'gone', 'noStandards'];
+function agRunResultWords(run){
+  if (!run) return '';
+  if (run.error) return _agT('ag_run_error', { why: String(run.error).slice(0, 120) });
+  const r = run.result || {};
+  const parts = [];
+  for (const k of AG_RESULT_KEYS) if (Number(r[k]) > 0) parts.push(_agTn('ag_rr_' + k, Number(r[k]), { n: Number(r[k]) }));
+  if (!parts.length) parts.push(_agT('ag_rr_nothing'));
+  const sk = (r.skipped && typeof r.skipped === 'object') ? Object.entries(r.skipped).filter(e => Number(e[1]) > 0) : [];
+  if (sk.length) parts.push(_agT('ag_rr_skipped', { list: sk.map(e => _agT('ag_skip_' + e[0]) + ' ' + e[1]).join(', ') }));
+  for (const w of AG_STOPS) if (r[w]) parts.push(_agT('ag_stop_' + w));
+  return parts.join(' · ');
+}
+/* The agents whose work Copilot does — the ones that spend. */
+const AG_SPENDS = ['round', 'renew', 'paper', 'import'];
 function agFactsHtml(k){
   const kv = (label, val) => `<div><dt>${_agE(label)}</dt><dd>${val}</dd></div>`;
   const door = AG_DEF[k].door;
@@ -377,10 +646,20 @@ function agFactsHtml(k){
     rules = `<button type="button" class="ui-link" data-ag-door="settings">${_agE(_agT('ag_door_settings'))}</button>`;
   else if (door === 'obligations') rules = `<button type="button" class="ui-link" data-ag-door="obligations">${_agE(_agT('ag_door_obligations'))}</button>`;
   else if (door === 'import') rules = `<button type="button" class="ui-link" data-ag-door="import">${_agE(_agT('ag_door_import'))}</button>`;
+  const a = agStatusOf(k);
+  const last = a && Array.isArray(a.runs) && a.runs[0];
+  let spent = '';
+  if (a && agMoneyShown() && AG_SPENDS.includes(k) && a.spentToday != null){
+    const lim = Number(a.cfg && a.cfg.limit) || 0;
+    spent = _agE(lim > 0 ? _agT('ag_spent_of', { n: _agUsd(a.spentToday), lim: _agUsd(lim) }) : _agT('ag_spent', { n: _agUsd(a.spentToday) }));
+  }
   return `<dl class="ag-facts">
-      ${kv(_agT('ag_f_runs'), _agE(_agT('ag_' + k + '_runs')))}
+      ${kv(_agT('ag_f_runs'), _agE(agNextWords(k)))}
+      ${a ? kv(_agT('ag_f_last'), last ? `<span data-ag-last="${k}">${_agE(_agWhenTime(last.finishedAt || last.at))} · ${_agE(agRunResultWords(last))}</span>`
+        : _agE(_agT('ag_never_ran'))) : ''}
       ${kv(_agT('ag_f_who'), _agE(_agT('ag_' + k + '_who')))}
       ${kv(_agT('ag_f_pays'), _agE(_agT('ag_' + k + '_pays')))}
+      ${spent ? kv(_agT('ag_f_spent'), spent) : ''}
       ${rules ? kv(_agT('ag_f_rules'), rules) : ''}
     </dl>`;
 }
@@ -450,8 +729,37 @@ function agCardParts(it){
   } else if (it.kind === 'importing'){
     kind = _agT('ag_k_import');
     sum = _agT('ag_importing', { done: it.done, n: it.n });
+  } else if (it.kind === 'reply'){
+    kind = _agT('ag_k_reply');
+    sum = [_agTn('ag_reply_out', it.n, { n: it.n }), agLinkHow(it)].filter(Boolean).join(' · ');
+    urg = agStuckWords(it.days);
+  } else if (it.kind === 'sign'){
+    kind = _agT('ag_k_sign');
+    sum = [agSignTurnWords(it, who), agLinkHow(it)].filter(Boolean).join(' · ');
+    urg = agStuckWords(it.days);
+  } else if (it.kind === 'party'){
+    kind = _agT('ag_k_party');
+    sum = [_agT('ag_party_stuck', { party: (it.party && it.party.party) || '' }), agLinkHow(it)].filter(Boolean).join(' · ');
+    urg = agStuckWords(it.days);
+  } else if (it.kind === 'soon' || it.kind === 'soon-sign'){
+    kind = _agT('ag_k_soon');
+    const X = it.soon || {};
+    sum = _agT(it.kind === 'soon-sign' ? 'ag_soon_sign' : 'ag_soon_reply', { who: X.signer || X.to || '', date: _agDay(X.ends) });
+    urg = _agTn('ag_soon_left', it.left || 0, { n: it.left || 0 });
+  } else if (it.kind === 'chase-firm'){
+    kind = _agT('ag_k_chase_firm');
+    sum = _agT('ag_firm_sum', { what: String((it.ob && it.ob.desc) || ''), date: _agDay(it.ob && it.ob.chasedAt) });
+    urg = _agTn('desk_late', it.days, { n: it.days }) + (it.noAddress ? ' · ' + _agT('desk_chase_noaddr') : '');
   }
+  if (it.kind === 'answer' && it.prepared) sum = [_agTn('ag_prepared_n', it.prepared, { n: it.prepared }), sum].join(' · ');
   return { kind, who, name, sum, urg };
+}
+/* Whose turn it is to sign, and how many more on the step are stuck with them. */
+function agSignTurnWords(it, fallback){
+  const S = it.sign || {};
+  const more = Math.max(0, (Number(S.n) || 1) - 1);
+  return _agT('ag_sign_turn', { who: S.signer || S.to || fallback || '' })
+    + (more ? ' ' + _agTn('ag_sign_turn_more', more, { n: more }) : '');
 }
 /* ---- WHO IT IS FOR, AND WHEN — the card's foot (Young, 27 Sep 2026: "the
    copilot cards are not comprehensive or detailed compared to the mock up in
@@ -471,7 +779,7 @@ function agForName(it){
   let n = '';
   try {
     if (it.kind === 'import' || it.kind === 'importing') n = String(it.by || '');
-    else if (it.kind === 'answer' && typeof deskLead === 'function'){ const l = deskLead(c); n = (l && l.name) || ''; }
+    else if (['answer', 'reply', 'party', 'soon'].includes(it.kind) && typeof deskLead === 'function'){ const l = deskLead(c); n = (l && l.name) || ''; }
     else if (it.kind === 'read' || it.kind === 'reading'){
       const t = (typeof triageOf === 'function') ? triageOf(c) : (c && c.triage);
       n = (t && t.by) || '';
@@ -499,6 +807,12 @@ function agWhen(it){
     return due ? _agT('ag_w_was_due', { date: _agDay(due) }) : '';
   }
   if (it.kind === 'import') return it.at ? _agT('ag_w_imported', { date: _agDay(it.at) }) : '';
+  /* WHO IT LAST WENT TO is the fact this card is about, so it takes the slot. */
+  if (['reply', 'sign', 'party', 'soon', 'soon-sign'].includes(it.kind)){
+    const L = it.kind === 'sign' ? it.sign : it.kind === 'party' ? it.party : (it.kind === 'soon' || it.kind === 'soon-sign') ? it.soon : it.last;
+    const to = L && String(L.to || L.email || '').trim();
+    return to ? _agT('ag_w_sent_to', { who: to }) : '';
+  }
   return '';
 }
 function agFootHtml(it){
@@ -542,12 +856,17 @@ function agDoneRow(it){
   } else if (it.kind === 'seen'){
     what = [c.counterparty, _agRef(c)].filter(Boolean).join(' · ');
     result = (typeof triageLine === 'function' ? triageLine(c) : '') || _agT('ag_done_read');
-  } else if (it.kind === 'chased'){
+  } else if (it.kind === 'chased' || it.kind === 'chased-firm'){
     what = [c.counterparty, _agRef(c)].filter(Boolean).join(' · ');
-    result = _agT('ag_done_chased', { what: (it.ob && it.ob.desc) || '' });
+    result = _agT(it.kind === 'chased-firm' ? 'ag_done_chased_firm' : 'ag_done_chased', { what: (it.ob && it.ob.desc) || '' });
   } else if (it.kind === 'filed'){
     what = _agT('ag_batch', { b: it.batch });
     result = _agTn('ag_done_filed', it.n, { n: it.n });
+  } else if (it.kind === 'relinked'){
+    const f = it.fresh || {};
+    what = [c.counterparty, _agRef(c)].filter(Boolean).join(' · ');
+    const to = f.signer || f.to || f.email || '';
+    result = _agT(f.kind === 'sign' ? 'ag_done_fresh_sign' : (f.word ? 'ag_done_fresh_word' : 'ag_done_fresh'), { who: to });
   }
   const door = it.kind === 'answered'
     ? `<button type="button" class="ui-link" data-ag-go="nego" data-ag-cid="${_agE(it.cid)}">${_agE(_agT('ag_send_there'))}</button>` : '';
@@ -568,10 +887,58 @@ function agDoneHtml(a){
    own: bringing in more files is the import page, bringing in a contract is
    the upload. The other three start by themselves and say so. */
 function agRunHtml(k){
-  if (k === 'import') return `<button type="button" class="ui-btn" data-ag-door="import">${_agE(_agT('ag_import_more'))}</button>`;
+  let out = '';
+  if (k === 'import') out += `<button type="button" class="ui-btn" data-ag-door="import">${_agE(_agT('ag_import_more'))}</button>`;
   if (k === 'paper' && typeof openUploadModal === 'function' && !(typeof canEdit === 'function' && !canEdit()))
-    return `<button type="button" class="ui-btn" data-ag-door="upload">${_agE(_agT('ag_upload'))}</button>`;
-  return `<span class="ag-self">${_agE(_agT('ag_runs_itself'))}</span>`;
+    out += `<button type="button" class="ui-btn" data-ag-door="upload">${_agE(_agT('ag_upload'))}</button>`;
+  /* RUN NOW AND THE SETTINGS ARE AN ADMIN'S (the drawing's "Run now"; the
+     rules live on the Settings page, never on this one). */
+  const a = agStatusOf(k);
+  const admin = typeof isAdmin === 'function' && isAdmin();
+  if (admin && a && a.on)
+    out += `<button type="button" class="ui-btn" data-ag-runnow="${k}"${a.running ? ' disabled aria-disabled="true"' : ''}>${
+      _agE(_agT(a.running ? 'ag_running' : 'ag_runnow'))}</button>`;
+  if (admin && a && typeof openSettingsAt === 'function')
+    out += `<button type="button" class="ui-link" data-ag-door="agentsettings">${_agE(_agT('ag_settings'))}</button>`;
+  return out || `<span class="ag-self">${_agE(_agT('ag_runs_itself'))}</span>`;
+}
+/* ---- EARLIER RUNS (the drawing's table): when, why it ran, what it did, who
+   pressed, and — to an admin — what it cost. Bounded, and what it left out is
+   counted (A CAP IS A FACT). ---- */
+function agRunsHtml(k){
+  const a = agStatusOf(k);
+  if (!a || !Array.isArray(a.runs) || !a.runs.length) return '';
+  const money = agMoneyShown();
+  const rows = a.runs.map(r => `<tr data-ag-run="${_agE(r.id)}">
+      <td class="w">${_agE(_agWhenTime(r.finishedAt || r.at))}</td>
+      <td>${_agE(_agT('ag_why_' + r.trigger))}${r.subject ? ` <span class="ag-sub">${_agE(r.subject)}</span>` : ''}</td>
+      <td>${_agE(agRunResultWords(r))}</td>
+      <td>${_agE(r.by || _agT('ag_by_hati'))}</td>
+      ${money ? `<td class="c">${_agE(r.cost != null ? _agUsd(r.cost) : '—')}</td>` : ''}</tr>`).join('');
+  return `<section class="ag-card ag-sec" aria-label="${_agE(_agT('ag_runs_head'))}" data-ag-runs="${k}">
+      <div class="ag-sec-h"><h3>${_agE(_agT('ag_runs_head'))}</h3></div>
+      <div class="ag-tbl-wrap"><table class="ag-runs"><thead><tr><th>${_agE(_agT('ag_th_when'))}</th><th>${_agE(_agT('ag_th_why'))}</th><th>${
+        _agE(_agT('ag_th_result'))}</th><th>${_agE(_agT('ag_th_by'))}</th>${money ? `<th class="c">${_agE(_agT('ag_th_cost'))}</th>` : ''}</tr></thead>
+      <tbody>${rows}</tbody></table></div>
+      ${a.more ? `<p class="ag-more">${_agE(_agTn('ag_runs_more', a.more, { n: a.more }))}</p>` : ''}
+    </section>`;
+}
+/* RUN NOW. Work Copilot does is paid for, so it asks first and says who pays;
+   the two that write only to colleagues run at once. */
+async function agRunNowPress(k){
+  if (typeof agentRunNow !== 'function') return;
+  if (AG_SPENDS.includes(k) && typeof confirmDialog === 'function'){
+    const ok = await confirmDialog({ title: _agT('ag_runnow_title', { name: _agT('ag_' + k) }),
+      message: _agT('ag_runnow_msg_' + k), confirmLabel: _agT('ag_runnow') });
+    if (!ok) return;
+  }
+  let r = null;
+  try { r = await agentRunNow(k); }
+  catch (e){ if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); return; }
+  if (typeof toast === 'function') toast(_agT('ag_runnow_done', { what: agRunResultWords({ result: r || {}, error: r && r.error }) }),
+    (r && (r.error || r.ceiling || r.agentLimit || r.noKey)) ? 'warn' : 'ok');
+  if (typeof agentsBeat === 'function') try { await agentsBeat(true); } catch (_){}
+  agRepaint();
 }
 function agPageHtml(k, D){
   const a = D.agents[k], def = AG_DEF[k];
@@ -587,7 +954,8 @@ function agPageHtml(k, D){
       ${items.length ? `<div class="ag-items">${items.map(agCardHtml).join('')}</div>`
         : `<p class="ag-empty">${_agE(_agT('ag_' + k + '_idle'))}</p>`}
     </section>
-    ${agDoneHtml(a)}`;
+    ${agDoneHtml(a)}
+    ${agRunsHtml(k)}`;
 }
 
 /* THE PAGE HEAD'S FACTS LINE — painted into the header's own slot, the
@@ -614,16 +982,32 @@ function renderAgentsPage(){
   agWire(host.querySelector('[data-ag-root]'));
   agPaintHead();
   if (typeof setActiveNav === 'function') setActiveNav('agents');
+  /* THE PAGE UPDATES ITSELF (js/agentruns.js): the first beat fetches how
+     each agent is and repaints once it lands; the watch asks again every half
+     minute while this page is on screen. */
+  if (typeof agentsWatch === 'function') agentsWatch();
+  if (typeof agentsBeat === 'function') agentsBeat(false).catch(() => {});
 }
-/* A REPAINT KEEPS THE READER'S PLACE: the page scroller and the list keep
-   their scroll, the way keepScroll does for the in-page filters. */
+/* A REPAINT KEEPS THE READER'S PLACE, and the list keeps its rows: after an
+   act the counts move, so every row's words are rewritten in place and the
+   right side is redrawn under its own scroll — never the page around them. */
 function agRepaint(){
   if (typeof state === 'undefined' || !state || state.view !== 'agents') return;
-  const sc = document.getElementById('content-scroll');
-  const top = sc ? sc.scrollTop : 0;
   _agData = null;
-  renderAgentsPage();
-  if (sc) sc.scrollTop = top;
+  const root = document.querySelector('[data-ag-root]');
+  if (!root){ renderAgentsPage(); }
+  else {
+    const sc = document.getElementById('content-scroll');
+    const top = sc ? sc.scrollTop : 0;
+    const main = document.getElementById('ag-main');
+    const mtop = main ? main.scrollTop : 0;
+    const D = agentsData();
+    const sel = agSel(D);
+    agPaintList(root, D, sel);
+    if (main){ main.innerHTML = agPageHtml(sel, D); main.scrollTop = mtop; }
+    if (sc) sc.scrollTop = top;
+    agPaintHead();
+  }
   if (typeof updateSidebarCounts === 'function') try { updateSidebarCounts(); } catch (_){}
 }
 /* ONE DELEGATED LISTENER PER ROOT, read off the element at press time. */
@@ -634,13 +1018,15 @@ function agWire(root){
     const t = ev.target && ev.target.closest ? ev.target : null;
     if (!t) return;
     const ag = t.closest('[data-ag-agent]');
-    if (ag){ agSetSel(ag.getAttribute('data-ag-agent')); agRepaint(); return; }
+    if (ag){ agShowAgent(ag.getAttribute('data-ag-agent')); return; }
     const op = t.closest('[data-ag-open]');
     if (op){ agOpenItem(op.getAttribute('data-ag-open')); return; }
     const go = t.closest('[data-ag-go]');
     if (go){ agGo(go.getAttribute('data-ag-go'), go.getAttribute('data-ag-cid')); return; }
     const door = t.closest('[data-ag-door]');
     if (door){ agDoor(door.getAttribute('data-ag-door')); return; }
+    const rn = t.closest('[data-ag-runnow]');
+    if (rn && !rn.disabled){ agRunNowPress(rn.getAttribute('data-ag-runnow')); return; }
   });
   /* The arrow keys walk the agents list, as a list of five should. */
   root.addEventListener('keydown', ev => {
@@ -649,13 +1035,14 @@ function agWire(root){
     ev.preventDefault();
     const i = AG_KEYS.indexOf(row.getAttribute('data-ag-agent'));
     const k = AG_KEYS[(i + (ev.key === 'ArrowDown' ? 1 : AG_KEYS.length - 1)) % AG_KEYS.length];
-    agSetSel(k); agRepaint();
+    agShowAgent(k);
     const next = document.querySelector(`[data-ag-agent="${k}"]`); if (next) next.focus();
   });
 }
 function agDoor(which){
   if (which === 'standards'){ if (typeof setView === 'function') setView('playbook'); return; }
   if (which === 'settings'){ if (typeof openSettingsAt === 'function') openSettingsAt('platform', 'copilot'); return; }
+  if (which === 'agentsettings'){ if (typeof openSettingsAt === 'function') openSettingsAt('platform', 'agents'); return; }
   if (which === 'obligations'){ if (typeof setView === 'function') setView('obligations'); return; }
   if (which === 'import'){ if (typeof setView === 'function') setView('migration'); return; }
   if (which === 'upload'){ if (typeof openUploadModal === 'function') openUploadModal(); return; }
@@ -670,7 +1057,7 @@ function agGo(where, cid){
   if (where === 'import'){ if (typeof setView === 'function') setView('migration'); return; }
   if (!c || typeof openWorkspace !== 'function') return;
   openWorkspace(cid);
-  const tab = where === 'oblig' ? 'oblig' : where === 'contract' ? null : 'terms';
+  const tab = where === 'oblig' ? 'oblig' : where === 'sign' ? 'sign' : where === 'contract' ? null : 'terms';
   if (tab && typeof roomGoTab === 'function') try { roomGoTab(getContract(cid), tab); } catch (_){}
 }
 
@@ -742,6 +1129,8 @@ function agPanelBody(it){
   if (it.kind === 'read') return agReadBody(it);
   if (it.kind === 'chase') return agChaseBody(it);
   if (it.kind === 'import') return agImportBody(it);
+  if (['reply', 'sign', 'party', 'soon', 'soon-sign'].includes(it.kind)) return agLinkBody(it);
+  if (it.kind === 'chase-firm') return agChaseBody(it);
   return '';
 }
 
@@ -769,9 +1158,10 @@ function agAnswerBody(it){
     return `<div class="ag-chg">
         <div class="ag-chg-t"><b>${_agE(name(r) || _agT('ng_this_clause'))}</b><span class="ag-tag ${AG_TONE[v.tone] || 'is-steel'}">${_agE(v.label)}</span></div>
         ${r.summary ? `<div class="ag-chg-ask">${_agE(_agT('ag_they_ask', { what: r.summary }))}</div>` : ''}
-        ${(r.why || []).length ? `<div class="ag-chg-why">${(r.why || []).map(w => _agE(w)).join(' ')}</div>` : ''}
+        ${(!r.prepared && (r.why || []).length) ? `<div class="ag-chg-why">${(r.why || []).map(w => _agE(w)).join(' ')}</div>` : ''}
         ${r.precedent ? `<div class="ag-chg-prec">${_agE(r.precedent)}</div>` : ''}
         ${words ? `<details class="ag-words"><summary>${_agE(_agT('ag_show_wording'))}</summary><div class="ag-words-b">${words}</div></details>` : ''}
+        ${agPrepHtml(c, ch)}
       </div>`;
   }).join('');
   /* An ask the plan could not reach (a stage without js/redlineplan.js) is
@@ -786,6 +1176,68 @@ function agAnswerBody(it){
     <p class="ag-p-note">${_agE(_agT('ag_round_rests'))}</p>
     <div class="ag-chgs">${rows}</div>
     ${missing ? `<p class="ag-p-note">${_agE(_agTn('ag_round_unread', missing, { n: missing }))}</p>` : ''}`;
+}
+
+/* ---- COPILOT'S PREPARED ANSWER TO ONE ASK (27 Sep 2026) ----
+   What Copilot made of their ask when their round arrived: accept, counter
+   (with the wording it would put back) or ask a colleague, with why and the
+   standard it rests on. NOTHING IS FILED FROM HERE — answering is the
+   negotiation page's own act, where Counter opens the clause editor with this
+   wording as a card to Apply. Send back asks Copilot again with a note. */
+const AG_PREP_TONE = { accept: 'is-green', counter: 'is-amber', escalate: 'is-ruby' };
+/* Copilot's three answers, in the co-pilot's own words for the card's tally. */
+const AG_PREP_PLAN = { accept: 'accept', counter: 'push', escalate: 'escalate' };
+function agPrepHtml(c, ch){
+  const a = (typeof roundPrepOf === 'function' && ch) ? roundPrepOf(c, ch) : null;
+  if (!a) return '';
+  const key = (typeof roundPrepKey === 'function') ? roundPrepKey(ch.clauseId, ch.newText) : '';
+  const ed = !(typeof canEdit === 'function' && !canEdit());
+  return `<div class="ag-prep" data-ag-prep="${_agE(key)}">
+      <div class="ag-prep-h"><span class="ag-tag ${AG_PREP_TONE[a.verdict] || 'is-steel'}">${_agE(_agT('ag_prep_' + a.verdict))}</span>${
+        a.standard ? `<span class="ag-sub">${_agE(_agT('ag_prep_rests', { what: a.standard }))}</span>` : ''}</div>
+      ${a.why ? `<p class="ag-p-text">${_agE(a.why)}</p>` : ''}
+      ${a.wording ? `<details class="ag-words"><summary>${_agE(_agT('ag_prep_wording'))}</summary><div class="ag-words-b">${_agE(a.wording)}</div></details>` : ''}
+      ${a.sentBack ? `<p class="ag-p-note">${_agE(_agT('ag_sent_back_by', { who: a.sentBack.by || '', note: a.sentBack.note || '' }))}</p>` : ''}
+      ${ed ? agSendBackHtml('round', key) : ''}
+    </div>`;
+}
+/* ---- SEND BACK WITH A NOTE: one small box under what is being sent back —
+   the note IS the confirmation, so no dialog asks again. ---- */
+function agSendBackHtml(agent, key){
+  return `<div class="ag-sb" data-ag-sb="${_agE(agent)}" data-ag-sb-key="${_agE(key || '')}">
+      <button type="button" class="ui-link" data-ag-sb-open>${_agE(_agT('ag_sendback'))}</button>
+      <div class="ag-sb-box" hidden>
+        <textarea class="ag-sb-note" rows="2" maxlength="600" style="${(typeof HATI_FLD === 'string') ? HATI_FLD : ''}height:auto;min-height:var(--field-h)"
+          placeholder="${_agE(_agT('ag_sendback_ph'))}" aria-label="${_agE(_agT('ag_sendback'))}"></textarea>
+        <div class="ag-sb-acts"><button type="button" class="ui-btn ui-btn-primary" data-ag-sb-go>${_agE(_agT('ag_sendback_go'))}</button>
+          <button type="button" class="ui-link" data-ag-sb-cancel>${_agE(_agT('act_cancel'))}</button>
+          <span class="ag-sub">${_agE(_agT('ag_sendback_cost'))}</span></div>
+      </div>
+    </div>`;
+}
+async function agSendBackPress(key, box){
+  const it = agFind(key);
+  if (!it || !box || typeof agentSendBack !== 'function') return;
+  const agent = box.getAttribute('data-ag-sb');
+  const note = String((box.querySelector('.ag-sb-note') || {}).value || '').trim();
+  if (!note){ if (typeof toast === 'function') toast(_agT('ag_sendback_empty'), 'warn'); return; }
+  const go = box.querySelector('[data-ag-sb-go]');
+  if (go){ go.disabled = true; go.textContent = _agT('ag_sendback_busy'); }
+  let r = null;
+  try { r = await agentSendBack(agent, { contractId: it.cid, key: box.getAttribute('data-ag-sb-key') || '', note }); }
+  catch (e){
+    if (go){ go.disabled = false; go.textContent = _agT('ag_sendback_go'); }
+    if (typeof toast === 'function') toast((e && e.message) || String(e), 'err');
+    return;
+  }
+  /* The new answer, where the route handed it back, is taken at once; the rest
+     comes with the page's own quiet refresh. */
+  const c = (typeof getContract === 'function' && getContract(it.cid)) || it.c;
+  if (c && r && r.advice) c._renewalAdvice = r.advice;
+  if (typeof agentsBeat === 'function') try { await agentsBeat(true); } catch (_){}
+  if (typeof toast === 'function') toast(_agT('ag_sendback_done'), 'ok');
+  agRepaint();
+  agPanelRefresh(key);
 }
 
 /* ---- A NOTICE: the facts, why, and THE LETTER itself — noticeDraft's own
@@ -861,7 +1313,9 @@ function agMemoHtml(it){
       ${because.length ? `<ul class="ag-went">${because.map(x => `<li>${_agE(x)}</li>`).join('')}</ul>` : ''}
       ${push.length ? `<p class="ag-p-sub2">${_agE(_agT('ag_memo_push'))}</p><ol class="ag-asks">${push.map(x => `<li>${_agE(x)}</li>`).join('')}</ol>` : ''}
       ${d.watchIf ? `<p class="ag-p-note">${_agE(_agT('ag_memo_watch', { what: d.watchIf }))}</p>` : ''}
-      ${a.at ? `<p class="ag-p-note">${_agE(_agT(a.overnight ? 'ag_memo_by_night' : 'ag_memo_by_you', { date: _agDay(a.at) }))}</p>` : ''}`);
+      ${a.at ? `<p class="ag-p-note">${_agE(_agT(a.overnight ? 'ag_memo_by_night' : 'ag_memo_by_you', { date: _agDay(a.at) }))}</p>` : ''}
+      ${a.sentBack ? `<p class="ag-p-note">${_agE(_agT('ag_sent_back_by', { who: a.sentBack.by || '', note: a.sentBack.note || '' }))}</p>` : ''}
+      ${(typeof canEdit === 'function' && !canEdit()) ? '' : agSendBackHtml('renew', '')}`);
   }
   if (it.memo && agLoading(c)) return agSecHtml(_agT('ag_s_memo'), `<p class="ag-p-note">${_agE(_agT('ct_loading_contract'))}</p>`);
   return `<p class="ag-p-note">${_agE(_agT(it.memo ? 'ag_renew_note_memo' : 'ag_renew_note'))}</p>`;
@@ -922,7 +1376,10 @@ function agStandardsInner(c){
         v.position ? `<dt>${_agE(_agT('ag_dep_std'))}</dt><dd>${_agE(v.position)}</dd>` : ''}</dl></div>`;
   }).join('');
   const met = vs.length - open.length;
-  return `${cards}${_agMore(open.length - shown.length)}${met ? `<p class="ag-p-note">${_agE(_agTn('ag_dep_met', met, { n: met }))}</p>` : ''}`;
+  const back = r.sentBack ? `<p class="ag-p-note">${_agE(_agT('ag_sent_back_by', { who: r.sentBack.by || '', note: r.sentBack.note || '' }))}</p>` : '';
+  const may = !(typeof canEdit === 'function' && !canEdit()) && !(typeof negoExecuted === 'function' && negoExecuted(c));
+  return `${cards}${_agMore(open.length - shown.length)}${met ? `<p class="ag-p-note">${_agE(_agTn('ag_dep_met', met, { n: met }))}</p>` : ''}${back}${
+    may ? agSendBackHtml('paper', '') : ''}`;
 }
 /* THE OBLIGATIONS FOUND are what auto-triage HOLDS for this contract, less any
    already on it (triageHeldObligations — the reading the Obligations tab's own
@@ -965,7 +1422,7 @@ function agChaseBody(it){
   const quote = _agCut(o.quote, AG_QUOTE_MAX);
   return facts
     + (quote ? agSecHtml(_agT('ag_s_source'), `<p class="ag-quote">“${_agE(quote)}”</p>`) : '')
-    + agSecHtml(_agT('ag_s_message'), it.noAddress ? '' : agChaseMailHtml(c, o))
+    + agSecHtml(_agT('ag_s_message'), it.noAddress ? '' : agChaseMailHtml(c, o, it.kind === 'chase-firm'))
     + `<p class="ag-p-note">${_agE(_agT(it.noAddress ? 'ag_chase_noaddr_note' : 'ag_chase_note'))}</p>`;
 }
 /* THE MESSAGE, AS THE ROUTE WILL WRITE IT: POST /api/contracts/:id/chase's own
@@ -974,7 +1431,7 @@ function agChaseBody(it){
    a colleague's, else the workspace default). So what is shown is what goes,
    bar the link, which the route adds only where a link to the agreement
    stands — said on the box's hover. */
-function agChaseMail(c, o){
+function agChaseMail(c, o, firm){
   const S = (typeof window !== 'undefined' && window.STRINGS) || null;
   if (!S || !c) return null;
   const to = String(c.counterpartyEmail || '').trim();
@@ -991,11 +1448,15 @@ function agChaseMail(c, o){
   };
   const ref = _agRef(c);
   const vars = { desc: (o && o.desc) || '', name: c.name || ref, id: ref, due: (o && o.due) || '' };
-  const line = T((o && o.due) ? 'mail_ob_chase_line' : 'mail_ob_chase_line_nodate', vars);
-  return { to, subject: T('mail_ob_chase_subject', vars), body: `${T('mail_hello')},\n\n${line}\n\n${T('mail_automated_notice')}` };
+  /* THE FIRMER ONE is the route's own `firm` keys, with the day the first went. */
+  if (firm) vars.first = String((o && o.chasedAt) || '').slice(0, 10);
+  const line = firm
+    ? T((o && o.due) ? 'mail_ob_chase_firm_line' : 'mail_ob_chase_firm_line_nodate', vars)
+    : T((o && o.due) ? 'mail_ob_chase_line' : 'mail_ob_chase_line_nodate', vars);
+  return { to, subject: T(firm ? 'mail_ob_chase_firm_subject' : 'mail_ob_chase_subject', vars), body: `${T('mail_hello')},\n\n${line}\n\n${T('mail_automated_notice')}` };
 }
-function agChaseMailHtml(c, o){
-  const m = agChaseMail(c, o);
+function agChaseMailHtml(c, o, firm){
+  const m = agChaseMail(c, o, firm);
   if (!m) return '';
   return `<div class="ag-mail" title="${_agE(_agT('ag_mail_link_note'))}"><dl class="ag-mail-h"><dt>${_agE(_agT('ag_mail_to'))}</dt><dd>${_agE(m.to)}</dd><dt>${
     _agE(_agT('ag_mail_subject'))}</dt><dd>${_agE(m.subject)}</dd></dl><div class="ag-mail-b">${_agE(m.body)}</div></div>`;
@@ -1030,6 +1491,31 @@ function agImportBody(it){
     + `<p class="ag-p-note">${_agE(_agT('ag_import_note'))}</p>`;
 }
 
+/* ---- NO LINK TO SIGN: what is stuck, what became of their link, who it last
+   went to and for how long — every one a fact the server read off the link
+   (srvReach), none of it guessed. ---- */
+function agLinkBody(it){
+  const cap = t => { const x = String(t || ''); return x ? x.charAt(0).toUpperCase() + x.slice(1) : ''; };
+  if (it.kind === 'soon' || it.kind === 'soon-sign'){
+    const X = it.soon || {};
+    return agKv([
+      [_agT('ag_f_situation'), _agT(it.kind === 'soon-sign' ? 'ag_soon_sign' : 'ag_soon_reply', { who: X.signer || X.to || '', date: _agDay(X.ends) })],
+      [_agT('ag_f_sent_to'), agSentTo(X)],
+      [_agT('ag_f_left'), _agTn('ag_stuck_n', it.left || 0, { n: it.left || 0 })],
+    ]) + `<p class="ag-p-note">${_agE(_agT('ag_keep_note'))}</p>`;
+  }
+  const L = it.kind === 'sign' ? it.sign : it.kind === 'party' ? it.party : it.last;
+  const facts = agKv([
+    [_agT('ag_f_situation'), it.kind === 'sign' ? agSignTurnWords(it, (it.c && it.c.counterparty) || '')
+      : it.kind === 'party' ? _agT('ag_party_stuck', { party: (it.party && it.party.party) || '' })
+      : _agTn('ag_reply_out', it.n, { n: it.n })],
+    [_agT('ag_f_link'), cap(agLinkHow(it))],
+    [_agT('ag_f_sent_to'), agSentTo(L)],
+    [_agT('ag_f_stuck'), it.days == null ? '' : _agTn('ag_stuck_n', it.days, { n: it.days })],
+  ]);
+  return facts + `<p class="ag-p-note">${_agE(_agT(it.kind === 'sign' ? 'ag_fresh_sign_note' : it.kind === 'party' ? 'ag_fresh_party_note' : 'ag_fresh_reply_note'))}</p>`;
+}
+
 /* THE ACTS — each the product's own, pressing the same function its own home
    presses. The lead act is the ladder's filled button (one per area), the
    rest secondary, and putting away is the ladder's text button. */
@@ -1051,6 +1537,21 @@ function agPanelActs(it){
   if (it.kind === 'chase') return (it.noAddress || !ed ? '' : B('chase', _agT('desk_chase_send'), 'lead'))
     + B('oblig', _agT('ag_a_oblig'), it.noAddress ? 'lead' : '') + (ed ? B('away', _agT('desk_discard'), 'link') : '');
   if (it.kind === 'import') return B('import', _agT('ag_a_import'), 'lead');
+  /* THE FRESH LINK, AND THE WAY ROUND IT WHERE THE PERSON IS WRONG — the send
+     screen for an answer, the Signing tab for a signature. Somebody who may not
+     send is shown where the work lives and nothing else. */
+  if (it.kind === 'reply') return ed ? B('fresh', _agT('ag_a_fresh'), 'lead') + B('sendscreen', _agT('ag_a_send_screen'), '')
+    : B('overview', _agT('ag_a_overview'), 'lead');
+  if (it.kind === 'sign') return (ed ? B('fresh', _agT('ag_a_fresh'), 'lead') : '') + B('signing', _agT('ag_a_signing'), ed ? '' : 'lead');
+  /* ONE PARTY OF SEVERAL: the send screen, with that party already chosen —
+     the round send picks the first party, and this is not the first. */
+  if (it.kind === 'party') return ed ? B('sendparty', _agT('ag_a_send_party'), 'lead') : B('overview', _agT('ag_a_overview'), 'lead');
+  /* A LINK ABOUT TO RUN OUT: the same link, given more time. */
+  if (it.kind === 'soon' || it.kind === 'soon-sign')
+    return (ed ? B('keepopen', _agT('ag_a_keep_open'), 'lead') : '') + B(it.kind === 'soon-sign' ? 'signing' : 'nego',
+      _agT(it.kind === 'soon-sign' ? 'ag_a_signing' : 'ct_open_negotiation'), ed ? '' : 'lead');
+  if (it.kind === 'chase-firm') return (it.noAddress || !ed ? '' : B('chasefirm', _agT('ag_a_chase_firm'), 'lead'))
+    + B('oblig', _agT('ag_a_oblig'), it.noAddress ? 'lead' : '');
   return '';
 }
 /* THE PANEL'S HEAD is the drawing's: what the work IS, whose contract, and
@@ -1062,6 +1563,12 @@ function agPanelTitle(it){
   if (it.kind === 'read') return _agT('ag_pt_read');
   if (it.kind === 'chase') return _agT('ag_pt_chase');
   if (it.kind === 'import') return _agT('ag_pt_import');
+  if (it.kind === 'reply') return _agT('ag_pt_reply');
+  if (it.kind === 'sign') return _agT('ag_pt_sign');
+  if (it.kind === 'party') return _agT('ag_pt_party', { party: (it.party && it.party.party) || '' });
+  if (it.kind === 'soon') return _agT('ag_pt_soon');
+  if (it.kind === 'soon-sign') return _agT('ag_pt_soon_sign');
+  if (it.kind === 'chase-firm') return _agT('ag_pt_chase_firm');
   return '';
 }
 function agPanelHeadHtml(it){
@@ -1089,8 +1596,16 @@ function agOpenItem(key){
     </div>`, { title, label: title, width: '520px' });
   const panel = document.querySelector('[data-ag-panel]');
   if (panel) panel.addEventListener('click', ev => {
-    const b = ev.target && ev.target.closest ? ev.target.closest('[data-ag-act]') : null;
-    if (b) agRunAct(key, b.getAttribute('data-ag-act'));
+    const t = ev.target && ev.target.closest ? ev.target : null;
+    if (!t) return;
+    const b = t.closest('[data-ag-act]');
+    if (b){ agRunAct(key, b.getAttribute('data-ag-act')); return; }
+    const sb = t.closest('[data-ag-sb]');
+    if (!sb) return;
+    const box = sb.querySelector('.ag-sb-box');
+    if (t.closest('[data-ag-sb-open]')){ if (box){ box.hidden = false; const n = box.querySelector('textarea'); if (n) n.focus(); } return; }
+    if (t.closest('[data-ag-sb-cancel]')){ if (box) box.hidden = true; return; }
+    if (t.closest('[data-ag-sb-go]')) agSendBackPress(_agOpenKey || key, sb);
   });
   /* THE RECORD, WHOLE (see agLoadWhole): the panel draws at once off the list
      and fills in what only the whole record carries when it lands — the
@@ -1115,6 +1630,51 @@ async function agRunAct(key, act){
   if (act === 'overview') return agGo('terms', it.cid);
   if (act === 'oblig') return agGo('oblig', it.cid);
   if (act === 'import') return agGo('import');
+  if (act === 'signing') return agGo('sign', it.cid);
+  if (act === 'fresh') return agFreshLink(key);
+  if (act === 'keepopen'){
+    if (!c || typeof shareKeepOpen !== 'function' || !it.soon) return;
+    let r = null;
+    try { r = await shareKeepOpen(c, it.soon.token); }
+    catch (e){ if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); return; }
+    if (typeof closeModal === 'function') try { closeModal(); } catch (_){}
+    if (typeof toast === 'function') toast(_agT('ag_kept_open', { date: _agDay(r && r.expiresAt) }), 'ok');
+    agRepaint();
+    return;
+  }
+  if (act === 'sendparty'){
+    if (!c || typeof openShareModal !== 'function') return;
+    if (typeof closeModal === 'function') try { closeModal(); } catch (_){}
+    const pid = it.party && it.party.partyId;
+    await openShareModal(c, { purpose: 'negotiate', handOver: true, onSent(){
+      if (typeof roundHandedOver === 'function') roundHandedOver(c);
+      agRepaint();
+    } });
+    /* THE PARTY IS CHOSEN on the dialog's own control, which says so and can be
+       changed — never guessed behind the reader's back. */
+    const sel = document.getElementById('sh-party-sel');
+    if (sel && pid){ sel.value = pid; try { sel.dispatchEvent(new Event('change', { bubbles: true })); } catch (_){} }
+    return;
+  }
+  if (act === 'chasefirm'){
+    if (typeof obligationChase !== 'function' || !it.ob) return;
+    await obligationChase(it.cid, it.ob.id, { firm: true });
+    const still = agFind(key);
+    if (!still && typeof closeModal === 'function') try { closeModal(); } catch (_){}
+    agRepaint();
+    return;
+  }
+  if (act === 'sendscreen'){
+    if (!c || typeof openShareModal !== 'function') return;
+    if (typeof closeModal === 'function') try { closeModal(); } catch (_){}
+    /* THE SEND SCREEN, AS THE NEGOTIATION'S OWN SEND OPENS IT: the round, a
+       hand-over, and the turn moved only once something has really gone. */
+    openShareModal(c, { purpose: 'negotiate', handOver: true, onSent(){
+      if (typeof roundHandedOver === 'function') roundHandedOver(c);
+      agRepaint();
+    } });
+    return;
+  }
   if (act === 'notice'){ if (c && typeof openNoticeDialog === 'function') openNoticeDialog(c); return; }
   if (act === 'brief'){
     if (!c) return;
@@ -1168,9 +1728,77 @@ async function agRunAct(key, act){
   }
 }
 
+/* ---- SEND A FRESH LINK: the product's own acts, and it asks first ----
+   AN ANSWER goes by the round send — reshareToLastRecipient, the one the
+   negotiation's own Send presses, with the desk, the reviewer and the review
+   gate asked inside it — to the person the round send itself would pick
+   (counterpartyContact), then the turn is handed over exactly as that Send
+   hands it (negoHandOver). The share list is read FIRST, which reads again
+   whether they can answer: somebody may have sent one in the meantime.
+   A FRESH LINK IS A LINK: a Word file is not one, and the round send has no
+   file to attach — so a Word row neither chooses who it goes to nor how.
+   The send and its hand-over are ONE published act (resendRoundFresh,
+   js/core.js), so nothing on this page stores anything of its own.
+   A SIGNATURE goes by the Signing tab's own act (issueSigningAct → the signing
+   route), run ON that tab: it repaints the room it lives in, and a named
+   approval still holds the links. Neither path writes anything of its own. */
+async function agFreshLink(key){
+  const it = agFind(key);
+  if (!it) return;
+  const c = ((typeof getContract === 'function') && getContract(it.cid)) || it.c;
+  if (!c || typeof confirmDialog !== 'function') return;
+  if (it.kind === 'reply'){
+    if (typeof resendRoundFresh !== 'function') return;
+    let shares = [];
+    try { shares = (typeof contractShares === 'function') ? (await contractShares(c)) || [] : []; } catch (_){ shares = []; }
+    if (typeof negoTheirCopy === 'function' && negoTheirCopy(c) === 'live'){
+      if (typeof closeModal === 'function') try { closeModal(); } catch (_){}
+      if (typeof toast === 'function') toast(_agT('ag_fresh_fixed'), 'ok');
+      agRepaint();
+      return;
+    }
+    const links = shares.filter(s => s && s.channel !== 'word');
+    const to = (typeof counterpartyContact === 'function') ? counterpartyContact(c, links) : null;
+    const ch = (to && to.channel) || 'email';
+    const reachable = !!to && ((ch === 'email' && to.email) || (ch === 'whatsapp' && to.phone) || ch === 'link');
+    if (!reachable){
+      if (typeof toast === 'function') toast(_agT('ag_fresh_nobody'), 'warn');
+      return agRunAct(key, 'sendscreen');
+    }
+    const who = agSentTo({ to: to.name || to.email || to.phone, email: to.email });
+    const ok = await confirmDialog({ title: _agT('ag_fresh_title'), message: _agT('ag_fresh_reply_ask', { who }),
+      confirmLabel: _agT('ag_a_fresh') });
+    if (!ok) return;
+    let out = null;
+    try { out = await resendRoundFresh(c, { shares: links }); }
+    catch (e){ if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); return; }
+    if (typeof closeModal === 'function') try { closeModal(); } catch (_){}
+    const sent = !!(out && out.delivered);
+    if (typeof toast === 'function') toast(_agT(sent ? 'ag_fresh_sent' : 'ag_fresh_made', { who }), sent ? 'ok' : 'warn');
+    agRepaint();
+    return;
+  }
+  if (it.kind === 'sign'){
+    if (typeof issueSigningAct !== 'function') return;
+    const S = it.sign || {};
+    const who = agSentTo({ to: S.signer || S.to, email: S.signerEmail || S.email });
+    const more = Math.max(0, (Number(S.n) || 1) - 1);
+    const ok = await confirmDialog({ title: _agT('ag_fresh_title'),
+      message: _agT('ag_fresh_sign_ask', { who }) + (more ? _agTn('ag_fresh_sign_more', more, { n: more }) : ''),
+      confirmLabel: _agT('ag_a_fresh') });
+    if (!ok) return;
+    agGo('sign', c.id);
+    setTimeout(() => { try { issueSigningAct(((typeof getContract === 'function') && getContract(c.id)) || c); } catch (_){} }, 0);
+  }
+}
+
 Object.assign(window, { AG_KEYS, AG_DEF, AG_RECENT_DAYS, AG_DONE_MAX, agSel, agSetSel, agBook, agentsData, agentsDoorCount,
   agRoundItems, agRoundDone, agRenewItems, agRenewDone, agLateItems, agLateDone, agPaperItems, agPaperWorking, agPaperDone,
   agImportBatches, agImportItems, agImportDone, agImportWorking, agFind, agCardParts, agCardHtml, agPageHtml, agListHtml,
   agStepsHtml, agFactsHtml, agPanelBody, agPanelActs, agOpenItem, agRunAct, agPaintHead, agRepaint, renderAgentsPage,
   agForName, agWhen, agFootHtml, agPanelTitle, agPanelHeadHtml, agLoadWhole, agChaseMail, agHowWentHtml, agMemoHtml,
-  agBriefInner, agStandardsInner, agHeldInner, agPanelRefresh });
+  agBriefInner, agStandardsInner, agHeldInner, agPanelRefresh,
+  agLinkItems, agLinkDone, agLinkHow, agLinkBody, agFreshLink, agSignTurnWords, agSentTo,
+  agRowInner, agPaintList, agShowAgent, agOnDay,
+  agStatusOf, agMoneyShown, agNextWords, agRunResultWords, agRunsHtml, agRunNowPress, AG_SPENDS, AG_SIGN_STUCK,
+  agLateFirmItems, agPrepHtml, agSendBackHtml, agSendBackPress, AG_PREP_TONE });

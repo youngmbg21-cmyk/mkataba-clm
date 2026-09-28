@@ -498,7 +498,11 @@ function brWireCanvas(cv){
     if (b.pinch && b.touches.size >= 2){ const n = brPinchState(); brZoomAt(n.d / b.pinch.d, n.mx, n.my); b.panX += n.mx - b.pinch.mx; b.panY += n.my - b.pinch.my; b.pinch = n; return; }
     if (b.drag){
       const dx = e.clientX - b.drag.x, dy = e.clientY - b.drag.y; b.drag.x = e.clientX; b.drag.y = e.clientY; b.drag.moved += Math.abs(dx) + Math.abs(dy);
-      if (b.drag.moved > 4){ b.rot += dx * .006; b.tiltOff = Math.max(-.5, Math.min(.8, b.tiltOff + dy * .004)); if (tip()) tip().hidden = true; }
+      /* THE FACE FOLLOWS THE FINGER (Young, 27 Sep 2026: "Why does it drag the
+         opposite way"): the side facing you sits at +z, and brPj puts it at
+         x1 = x·cos − z·sin, so a LARGER turn moves it LEFT — the turn has to
+         shrink as the pointer goes right. The tilt already followed it. */
+      if (b.drag.moved > 4){ b.rot -= dx * .006; b.tiltOff = Math.max(-.5, Math.min(.8, b.tiltOff + dy * .004)); if (tip()) tip().hidden = true; }
       return;
     }
     if (e.pointerType === 'touch') return;

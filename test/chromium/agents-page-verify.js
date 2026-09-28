@@ -103,8 +103,11 @@ const ok = (name, good, detail) => {
       const D = agentsData();
       return { ready: D.ready, per: Object.fromEntries(AG_KEYS.map(x => [x, D.agents[x].ready.length])) };
     });
+    /* RE-POINTED 27 Sep 2026: a SIXTH agent, "No link to sign" (f412), and
+       nothing in the sample book is stuck without a link — so its count is 0
+       and the other five hold one each, as before. */
     ok('the stage: one of each kind of work, through the product\'s own acts',
-      !!staged && staged.ready === 5 && Object.values(staged.per).every(n => n === 1), JSON.stringify(staged));
+      !!staged && staged.ready === 5 && Object.entries(staged.per).every(([k, n]) => n === (k === 'link' ? 0 : 1)), JSON.stringify(staged));
 
     /* ---- 1. the door ---- */
     const door = await page.$('[data-view="agents"]');
@@ -121,7 +124,7 @@ const ok = (name, good, detail) => {
     }));
     ok('1b a press on the door opens the page', head.view === 'agents', head.view);
     ok('1c the page names itself', /Copilot.s work/.test(head.title), head.title);
-    ok('1d five agents, in the drawing\'s order', head.rows.join(',') === 'round,renew,paper,late,import', head.rows.join(','));
+    ok('1d six agents, in the drawing\'s order with "No link to sign" second', head.rows.join(',') === 'round,link,renew,paper,late,import', head.rows.join(','));
     ok('1e THE NUMBER ON THE DOOR IS THE NUMBER ON THE PAGE', head.rail === '5' && /^5 ready for review/.test(head.facts), `door ${head.rail} · head "${head.facts}"`);
     ok('1f it opens on the first agent with work ready', head.on === 'round', head.on);
     ok('1g no sideways scroll at 1440', head.over <= 0, head.over + 'px');
@@ -264,7 +267,7 @@ const ok = (name, good, detail) => {
     await page.keyboard.press('ArrowDown'); await page.waitForTimeout(400);
     const kb = await page.evaluate(() => ({ on: (document.querySelector('.ag-row.on') || { getAttribute: () => null }).getAttribute('data-ag-agent'),
       focus: document.activeElement && document.activeElement.getAttribute('data-ag-agent') }));
-    ok('7b the arrow keys walk the agents list, and the focus follows', kb.on === 'renew' && kb.focus === 'renew', JSON.stringify(kb));
+    ok('7b the arrow keys walk the agents list, and the focus follows', kb.on === 'link' && kb.focus === 'link', JSON.stringify(kb));
 
     /* ---- 8. the door count follows the work ---- */
     const after = await page.evaluate(() => ({ rail: (document.querySelector('[data-count="agents"]') || {}).textContent || '', ready: agentsData().ready }));

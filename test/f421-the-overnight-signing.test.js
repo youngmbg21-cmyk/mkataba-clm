@@ -1,4 +1,4 @@
-/* f413 — THE OVERNIGHT RUN'S SIGNING ITEMS (the owner's list, 27 Sep 2026)
+/* f421 — THE OVERNIGHT RUN'S SIGNING ITEMS (the owner's list, 27 Sep 2026)
 
    s2  approving a rule step confirms itself ('ok', both languages) — bare, a
        toast prints nothing;
@@ -23,14 +23,14 @@ const R = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
 const APPROVALS = R('js/approvals.js'), SRV = R('server/server.js'), CONTRACT = R('js/views/contract.js'), I18N = R('js/i18n.js');
 const inBoth = k => (I18N.match(new RegExp('\\n    ' + k + ': ', 'g')) || []).length === 2;
 
-test('f413 (s2) approving a rule step confirms itself, in the reader’s language', () => {
+test('f421 (s2) approving a rule step confirms itself, in the reader’s language', () => {
   assert.match(APPROVALS, /toast\(i18t\(done\?'ap_all_approved':'ap_step_approved_next'\),'ok'\)/);
   assert.ok(!/toast\(done\?'All approvals complete/.test(APPROVALS), 'the bare English toast is gone');
   assert.ok(!/toast\(`This step needs/.test(APPROVALS));
   for (const k of ['ap_all_approved', 'ap_step_approved_next', 'ap_step_needs', 'ap_sent_back_waiting']) assert.ok(inBoth(k), k);
 });
 
-test('f413 (s4) a rule by type reads the type the record holds, on both hosts', () => {
+test('f421 (s4) a rule by type reads the type the record holds, on both hosts', () => {
   assert.match(APPROVALS, /case 'kind': return \(\(window\.contractTypeRead\?contractTypeRead\(c\):cKind\(c\)\)/);
   assert.match(SRV, /case 'kind': return \(copilotContractType\(c\) \|\| ''\)/);
   const w = buildWorld();
@@ -40,7 +40,7 @@ test('f413 (s4) a rule by type reads the type the record holds, on both hosts', 
   assert.equal(read({ metadata: { contractType: 'Distribution Agreement' } }), 'Distribution Agreement', 'an upload is its read type');
 });
 
-test('f413 (s5) the three surfaces read the owed signature through the loader', () => {
+test('f421 (s5) the three surfaces read the owed signature through the loader', () => {
   const SC = R('js/signcheck.js');
   assert.match(SC, /function signReadinessFor\(c\)\{/);
   assert.match(SC, /window\.restoreHeavyFields\(c\)/, 'loads the light row whole');
@@ -49,7 +49,7 @@ test('f413 (s5) the three surfaces read the owed signature through the loader', 
   assert.match(R('js/views/approvalsview.js'), /window\.signReadinessFor\(r\.c\)/);
 });
 
-test('f413 (s7) undated or unreachable promises are a noted row that never holds', () => {
+test('f421 (s7) undated or unreachable promises are a noted row that never holds', () => {
   const w = buildWorld({ signcheck: true, contractView: true });
   const { win } = w;
   const c = { id: 'MK-S7', name: 'Supply', counterparty: 'Acme', status: 'Under Review', fields: {}, metadata: {}, audit: [],
@@ -69,21 +69,21 @@ test('f413 (s7) undated or unreachable promises are a noted row that never holds
   for (const k of ['sc_obgap_head', 'sc_obgap_nodate_one', 'sc_obgap_noowner_other', 'sc_obgap_btn']) assert.ok(inBoth(k), k);
 });
 
-test('f413 (s8) the refusal names the Overview, in the reader’s language', () => {
+test('f421 (s8) the refusal names the Overview, in the reader’s language', () => {
   assert.ok(!/Fill these in on Key terms, or in the document/.test(CONTRACT.replace(/\/\*[\s\S]*?\*\//g, '')));
   assert.match(CONTRACT, /i18t\('sc_fill_on_overview'\)/);
   assert.match(CONTRACT, /toast\(i18t\('sc_not_signed',\{why:signBlockMessage\(c,bl\)\}\),'err'\)/);
   assert.ok(inBoth('sc_fill_on_overview') && inBoth('sc_not_signed'));
 });
 
-test('f413 (s11) the Signing order card is true of every route, and translated', () => {
+test('f421 (s11) the Signing order card is true of every route, and translated', () => {
   assert.ok(!/held until every internal signature is in/.test(CONTRACT));
   assert.match(CONTRACT, /i18t\('ct_n_of_m_signed',\{n:plan\.filter\(s=>s\.signed\)\.length,m:plan\.length\}\)/);
   assert.match(CONTRACT, /i18t\(plan\.length\?'ct_add_reorder_signers':'ct_add_signers'\)/);
   for (const k of ['ct_n_of_m_signed', 'ct_add_reorder_signers', 'ct_route_order_note']) assert.ok(inBoth(k), k);
 });
 
-describe('f413 (s9) the import review of paper signed elsewhere', () => {
+describe('f421 (s9) the import review of paper signed elsewhere', () => {
   let h, W;
   before(async () => { h = await startHati(); W = await seedWorkspace(h); });
   after(async () => { await h.stop(); });

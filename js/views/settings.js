@@ -2352,6 +2352,26 @@ const SET_PANELS={
     wire(){ document.getElementById('st-copilot-engine')?.addEventListener('click',()=>{ settingsGoTab('build'); stDrawerOpen('engine'); }); },
   },
 
+  /* ---- COPILOT'S AGENTS (27 Sep 2026: "implement all the fixes") ----
+     One row per agent: on or off, the hour it runs, how much it may do in one
+     run and spend in a day, and its own rule — No link to sign warns this many
+     days before a link runs out, Late promises readies the firmer chase this
+     many days after the first. RULES LIVE HERE, never on the agents' page
+     (THE CHEAPEST CHANNEL). Read and written through js/agentruns.js; the
+     server validates every value (PUT /api/agents/:k/settings). */
+  agents:{
+    tab:'platform', group:'copilot', mandatory:false,
+    title:()=>i18t('st_p_agents'),
+    sub:()=>i18t('st_p_agents_sub'),
+    state(){ const s=(typeof agentsStatus==='function')?agentsStatus():null;
+      if(!s||!s.agents) return { dot:'off', text:i18t('st_p_agents_sub') };
+      const all=Object.values(s.agents), on=all.filter(a=>a&&a.on).length;
+      return { dot:on?'ok':'off', text:i18t('st_agents_on',{ n:on, of:all.length }) }; },
+    find:()=>['round','link','renew','paper','late','import'].map(k=>i18t('ag_'+k)),
+    body(){ return `<div id="st-agents-panel"></div>`; },
+    wire(){ stAgentsPaint(); },
+  },
+
   review:{
     tab:'platform', group:'agreement', mandatory:false,
     title:()=>i18t('st_p_review'),
@@ -4716,6 +4736,59 @@ function openApprovalRuleEditor(idx){
    that is armed only if you remember to press Save is a gate that is off when
    it matters. saveReviewGateCfg is the single writer (js/review.js); this panel
    never touches state.settings itself. */
+/* ---- THE AGENTS' SETTINGS, DRAWN AND SAVED (see SET_PANELS.agents) ----
+   Each row carries only the settings that agent has (the server's defaults
+   say which), and its own Save — one agent's settings are one decision. */
+const ST_AGENT_KEYS=['round','link','renew','paper','late','import'];
+async function stAgentsPaint(){
+  const host=document.getElementById('st-agents-panel'); if(!host) return;
+  if(typeof agentsStatusLoad!=='function'){ host.innerHTML=''; return; }
+  host.innerHTML=`<p class="st-note">${esc(i18t('ct_loading_contract'))}</p>`;
+  const s=await agentsStatusLoad();
+  if(!document.getElementById('st-agents-panel')) return;
+  if(!s||!s.agents||!s.money){ host.innerHTML=`<p class="st-note">${esc(i18t('st_agents_admin'))}</p>`; return; }
+  const lab=t=>`<span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${esc(t)}</span>`;
+  const num=(k,f,v,min,max,step)=>`<label style="display:block;min-width:0">${lab(i18t('st_agents_f_'+f))}<input type="number" data-st-ag-f="${f}" min="${min}" max="${max}" step="${step||1}" value="${v==null?'':esc(String(v))}" style="${ST_INPUT}"/></label>`;
+  host.innerHTML=ST_AGENT_KEYS.map(k=>{
+    const a=s.agents[k]; if(!a) return '';
+    const cfg=a.cfg||{};
+    const f=[];
+    if('at' in cfg) f.push(`<label style="display:block;min-width:0">${lab(i18t('st_agents_f_at'))}<select data-st-ag-f="at" style="${ST_INPUT}">${
+      Array.from({length:24},(_,h)=>`<option value="${h}"${Number(cfg.at)===h?' selected':''}>${String(h).padStart(2,'0')}:00</option>`).join('')}</select></label>`);
+    if('max' in cfg) f.push(num(k,'max',cfg.max,1,500));
+    if('limit' in cfg) f.push(num(k,'limit',cfg.limit,0,1000,0.01));
+    if('soonDays' in cfg) f.push(num(k,'soonDays',cfg.soonDays,1,30));
+    if('secondAfter' in cfg) f.push(num(k,'secondAfter',cfg.secondAfter,1,90));
+    return `<section class="st-sec" data-st-agent="${k}" style="padding-top:12px;border-top:1px solid var(--color-divider);margin-top:12px">
+      <label style="display:flex;gap:9px;align-items:center;font-size:var(--t-meta);cursor:pointer">
+        <input type="checkbox" data-st-ag-f="on"${a.on?' checked':''}/>
+        <span style="font-weight:var(--w-strong);color:var(--color-text)">${esc(i18t('ag_'+k))}</span></label>
+      <p class="st-note" style="margin:4px 0 8px">${esc(i18t('ag_'+k+'_does'))}</p>
+      ${f.length?`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:9px">${f.join('')}</div>`:''}
+      <div style="display:flex;align-items:center;gap:10px;margin-top:9px;flex-wrap:wrap">
+        <button type="button" data-st-ag-save="${k}" style="${ST_BTN_SM}">${esc(i18t('act_save'))}</button>
+        ${AG_MONEY_NOTE_KEYS.includes(k)?`<span class="st-note" style="margin:0">${esc(i18t('st_agents_money_note'))}</span>`:''}
+      </div></section>`;
+  }).join('');
+  if(host.dataset.stAgWired) return;
+  host.dataset.stAgWired='1';
+  host.addEventListener('click',async ev=>{
+    const b=ev.target&&ev.target.closest?ev.target.closest('[data-st-ag-save]'):null;
+    if(!b) return;
+    const k=b.getAttribute('data-st-ag-save');
+    const row=host.querySelector(`[data-st-agent="${k}"]`); if(!row) return;
+    const patch={};
+    row.querySelectorAll('[data-st-ag-f]').forEach(el=>{
+      const f=el.getAttribute('data-st-ag-f');
+      patch[f]=el.type==='checkbox'?!!el.checked:el.value;
+    });
+    try{ await agentSaveCfg(k,patch); toast(i18t('st_agents_saved',{ name:i18t('ag_'+k) }),'ok'); }
+    catch(e){ toast((e&&e.message)||String(e),'err'); }
+    if(typeof stRepaintRow==='function') try{ stRepaintRow('agents'); }catch(_){}
+  });
+}
+/* The agents whose work Copilot does — the ones that spend within today's budget. */
+const AG_MONEY_NOTE_KEYS=['round','renew','paper','import'];
 function renderReviewGatePanel(){
   const host=document.getElementById('rv-gate-panel'); if(!host) return;
   const admin=isAdmin();
@@ -4883,7 +4956,7 @@ async function loadSessions(){
    the else branch and nobody catches it — the lesson rlPaperFootHtml taught
    this codebase for a year. openMyAccount and openSettingsAt are the two doors
    the shell calls; SET_PANELS and the readers beside it are what the tests read. */
-Object.assign(window,{renderTeam,stRepaintPanel,renderMyAccountPage,briefCadenceOf,BRIEF_EVERY_VALUES,renderPrecedentPanel,precedentAdopt,stdOpenPreferred,renderStandardsDraft,stdOpenClauseId,stdSetOpenClause,stdStanceChipHtml,stdFallbackChipHtml,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
+Object.assign(window,{renderTeam,stAgentsPaint,ST_AGENT_KEYS,AG_MONEY_NOTE_KEYS,stRepaintPanel,renderMyAccountPage,briefCadenceOf,BRIEF_EVERY_VALUES,renderPrecedentPanel,precedentAdopt,stdOpenPreferred,renderStandardsDraft,stdOpenClauseId,stdSetOpenClause,stdStanceChipHtml,stdFallbackChipHtml,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
   renderPlaybookView,openPlaybookEditor,pbRemoveType,pbResetPlaybook,stdRemoveClause,stdDraftSetOpen,
   renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions,
   openMyAccount,openSettingsAt,settingsGoTab,settingsTab,stLandTop,SET_PANELS,ST_TABS,SET_CLOSURES,ST_GROUPS,ST_ATTENTION_MAX,

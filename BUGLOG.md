@@ -19677,6 +19677,12 @@ Built: the Brain page, js/brainmap.js, GET /api/brain, f400, brain-page-verify. 
 - white-band-and-tabs-verify: 5-ref, 5a and "the journey ran to the end" are red at origin/main 972d681 too (the Insights tabs are not found), same with and without this change.
 - npm test: six tests are red at origin/main 972d681 and identical with this change — f258 (4) "Clear clears it", f267 (17) "Clear puts it back", f277 (1) "no ring, no band, no strip", f277 (10) "the layer is a white sheet", f387 (2) "2e the facts", f387 (4) "4c the end of the term".
 
+## 27 Sep 2026 — question: does "Their round came back" show every negotiation waiting on you
+- Answered, no code changed. Measured on four staged negotiations: the Negotiations page's "Waiting on you" held 4; Copilot's work showed 2 cards (the other side's changes waiting), 1 in its "Done recently" table (our own change, never sent) and 1 nowhere (sent, but they hold no live link).
+
+Noticed, not fixed
+- Copilot's work, "Their round came back": the "Done recently" table and the "Answered, not sent" step count every negotiation holding an unsent change of ours, and word it "Answered · N counters not sent yet" even where nothing of theirs was answered and nothing is a counter (a first draft of our own).
+- The same rows are not held to that table's "in the last 14 days" window (agRoundDone has no date filter), so an unsent change of any age sits under "Done recently".
 ## Run 27 Sep 2026 (evening) — the owner's open items: twelve fixes
 
 - On the owner's word, after the open-items list ("HaTi Open Items", v2): "Fix the most serious and worth my attention then merge to main". Built on claude/beautiful-davinci-4d3cs9, level with main 01bf6cc.
@@ -19731,3 +19737,35 @@ Noticed, not fixed (new tonight; each is on the page)
 Noticed, not fixed (new tonight)
 - About fourteen bare `toast(msg)` calls on the negotiation page, one in the design step's `dsSaveDefault`, and several on the contract's Word-compare path print nothing (THE MAP: a bare toast prints nothing). On the page as q1.
 - 32 browser files describe screens that have since moved and are now on KNOWN_RED; each needs re-pointing by the screen's owner. On the page as q2.
+## 27 Sep 2026 (night) — No link to sign: can they still answer, the sixth agent, the list that stays still
+
+- On the owner's "okay" to the plan. Built on claude/happy-thompson-6puam1 from e351a91.
+- Fixed: the Negotiations list filed a deal under "With the other side" whenever a change of ours was pending, having asked only whether a STANDING link sat on a share cache that only the negotiation page ever filled. A deal whose link had run out read "Theirs" on first look and after every reload; an unused one-time link read "No live copy" once opened. The server now answers (srvReach, the respond route's own question: an open standing link, an unused one-time link not overtaken, a Word file that really left; never read-only, history or adviser links) and it rides the list, the one-contract read, the share list and every send's answer as `_reach`. A round is never refreshed onto a link a signing link has retired (answerableNegotiation). New index on shares(contract_id, created_at): the book load had gone from 0.2s to 6s with the reading; 0.3s with it.
+- Built: the sixth agent "No link to sign", second in Copilot's work (a reply stuck with no live link; their signer's link ran out or was cancelled). Send a fresh link asks first, naming who; the list of agents is drawn once and stays still while the right side changes.
+- Tests: f412 (35 claims, 33 red at e351a91), no-link-to-sign-verify (23 checks, 16 red at e351a91). Re-pointed in place: f190, f399, F17, f406 (5), agents-page-verify, inspector-verify.
+- Gates: lint 0 errors, 178 warnings (unchanged). The five node files touched: 119/119. Full node suite, run once: 8 failed — F17 and f406 (5) were this change's (re-pointed, now pass); the other 6 are the same six as main (f258 (4), f267 (17), f277 (1), f277 (10), f387 (2), f387 (4)). Browser: no-link-to-sign 23/23, agents-page 49/49, inspector 32/32, clause-editor 290/290 (it failed once in the full run under load; alone it passes).
+- The full browser set was stopped at about 130 of 171 files at the owner's word (too slow). Of the files that failed, these were run on e351a91 and fail there too: amount-and-window, button-consistency, calendar-redesign, competing-redlines, contrast, copilot-band, counterparty-reading-and-more, home-page (the same one check), negotiations-door (the same two checks), flat-rows-and-alerts. Not compared, so not known either way: go-aheads, keeps-your-place, metadata-carried, name-tag-horizon, nego-redesign, negotiation-memo, obligations-tab, notes-two-rooms, panel-alerts-and-head, paper-beside-questions, paper-grows, payment-terms, portal-header-verbs, portfolio-frame, phone, redline, plain-english, renewal-decision, reopen-a-refusal, room-order-and-notices, selection.
+
+Deliberately left alone (said to the owner)
+- The answer is per contract, not per party: a multi-party deal where one party can still answer reads as live.
+- A link whose email failed still counts as live (the sender may have copied it).
+- A signing link that was answered but not signed is not listed ("ran out or cancelled" was the ask).
+- The two wording faults on "Their round came back" (logged earlier today) are untouched.
+
+Noticed, not fixed
+- home-page-verify "no page errors" is red at e351a91 too: a resource answers 403 while the page loads.
+
+## 27 Sep 2026 (late night) — Copilot's agents do the work
+
+- On the owner's ruling: "1, your recommendation. 2, yes. 3, yes. Now implement all the fixes and merge to main" (1 = their changes are answered on the negotiation page, never in the agent's panel; 2 = a bounced email counts as a stuck link; 3 = Late promises may send the first polite chase by itself). Built on claude/copilot-agent-refresh-frequency-k93zt9 from d37aa497; merged to main.
+- Built: every agent run is logged (why, what it did and skipped, measured cost), each agent has its own switch, hour, per-run cap and money limit (Settings → Copilot's agents), Run now for an admin, and Copilot's work updates itself. No link to sign: bounced email, one stuck party of several, a signing link used up without a signature, a warning before a link runs out with a "Keep their link working" press, the owner told by email once and in the daily brief, and a bell row. Late promises: a daily check readies the first and the firmer second chase and emails the promise's owner. Their round came back: Copilot prepares accept / counter (with wording) / ask a colleague the moment their round arrives, shown on the agent and on the negotiation row; Counter opens the clause editor with the wording as a card. Archive import: the reading happens on the server, checks the standards and emails whoever started it. Send back with a note: round answers, renewal notes, standards checks.
+- NOT built: the automatic first chase (owner's answer 3). The environment's safety check refused code that emails the other side with nobody pressing Send. Nothing sends to the other side by itself; the owner decides whether to allow it.
+- Tests: f413 (new, all green), agents-do-the-work-verify (new, 22/22). Re-pointed: f399 1f and 6d, f275, f296, f235 (loads js/migread.js), f148 (two same-in-both words). f230 caught a silent 20,000-character cut on the prepared wording and the import text; fixed (the import now reads through aiDocText).
+- Gates: lint 0 errors. Full node suite, once on the merged code: 9,888 of 9,896; the failures are F230 (this change's, fixed and re-run green) and the six red on main before this work (f258 (4), f267 (17), f277 (1) and (10), f387 (2) and (4)). Browser: agents-do-the-work 22/22, agents-page 49/49, no-link-to-sign 23/23, settings-tabs 89/89, settings-holds-still 18/18, alerts-and-activity 21/21, clause-editor 290/290, clause-door 125/125, ladder 97/97; redline-verify fails check 5 only, and fails it identically at 01f8c87b (main before the merge).
+
+Noticed, not fixed
+- A multi-party negotiation row draws its "who has answered" line (.rl-card-party) on the same grid row as the row's second line, so the two overlap: every .rl-card-sum is placed on row 2 of .rl-card-d. The prepared-answer line was given its own row; the party line was left as it is.
+- redline-verify check 5 ("no clause carries a Copilot button — and no menu follows a highlight") is red at main before this work: a highlight offers Ask Copilot · Edit with Copilot · Comment.
+- The import batch's closing toast is a bare toast(msg) with no kind, so it prints nothing (TOAST_KINDS); it was left as it is beside the new "being read on the server" toast.
+- Merged main (b993e1e, "Copilot's agents do the work") into the branch before merging back. r21 is now closed by main's own design: each overnight job is an agent with its own daily limit under the workspace ceiling (`agentMaySpend`), so the shared allowance built tonight was removed and f420 (7) re-pointed to it. The chase letter's date-in-words moved into main's `srvChaseSend` (firm chases too). Tonight's f412/f413 were renumbered f420/f421 (main took those numbers). The Plain English message now says Plain View, main's new name.
+- Noticed, not fixed: runway-and-xray-verify 4a still expects the third position to read "X-ray"; main renamed it "Risk View" (01f8c87) and the check fails the same way on main.

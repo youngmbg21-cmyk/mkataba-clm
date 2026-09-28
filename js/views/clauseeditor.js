@@ -2164,6 +2164,20 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
   /* The greeting goes in BEFORE the first paint rather than after it — drawing
      an empty lane and then filling it is two paints for one arrival. */
   _ceThread.push({ who: 'ai', greeting: true });
+  /* ---- THEIR ROUND CAME BACK: COPILOT'S PREPARED COUNTER LEADS THE RAIL
+     (27 Sep 2026) ---- Where Counter was pressed on an ask of theirs that
+     Copilot answered with a counter when their round arrived, that wording is
+     the first card — worked out already, nothing spent — and its Apply is the
+     one thing that moves words into the box. Filing is still this page's own
+     Save, through negoEditClause. */
+  try{
+    const ch = (opts && opts.changeId && window.negoChangeById) ? negoChangeById(_ceC, opts.changeId) : null;
+    const prep = (ch && ch.authorSide === 'counterparty' && ch.status === 'pending' && window.roundPrepOf) ? roundPrepOf(_ceC, ch) : null;
+    if (prep && prep.verdict === 'counter' && prep.wording)
+      _ceThread.push({ who: 'ai', text: String(prep.why || ''), read: [],
+        cards: [{ name: _cet('ce_prep_card'), chip: _cet('ce_chip_copilot'), chipTone: 'wait', line: '',
+          rests: prep.standard ? _cet('ag_prep_rests', { what: prep.standard }) : '', text: prep.wording, passage: null, prepared: true }] });
+  }catch(_){}
   ceRenderAll();
   /* The paper's Ask Copilot names the words it was pressed on; they go to
      the rail once the page is drawn. */

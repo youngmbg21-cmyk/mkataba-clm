@@ -87,41 +87,45 @@ describe('f190 (1) — one predicate for "is this link still standing"', () => {
 /* ============================================================
    2 — THREE ANSWERS FROM negoTheirCopy
    ============================================================
-   THE STAND-IN, said out loud: standingShares is stubbed here as a thin
-   durable-and-not-revoked filter. What this block is about is the three-answer
-   LOGIC and what the screens do with it; whether the predicate itself is right
-   is block 1's job, against the real module. */
+   RE-POINTED 27 Sep 2026 (Young: "Fix it and build a sixth agent"). The
+   answer is the SERVER'S now — srvReach, the respond route's own question —
+   and it rides the record as `_reach` (the list, the one-contract read, every
+   send's answer). This block stages that transport on the record, as the list
+   delivers it; what the server decides is f412's job, against a real server.
+   The old stand-in stubbed a share cache and counted STANDING links only —
+   which read an unused one-time link as "no copy", the fault f412 fixes. */
 function world(opts = {}){
   const w = buildWorld({ user: ME, negotiationView: true, ...opts });
   w.win.state = { settings: {}, contracts: [] };
   w.win.getUsers = () => [ME];
   return w;
 }
-function reach(win, mode, rows){
-  if (mode === 'unknown'){ win.sharesKnown = () => false; }
-  else win.sharesKnown = () => true;
-  win.cachedShares = () => rows || [];
-  win.standingShares = list => (list || []).filter(s => s && s.durable && !s.revokedAt);
+/* The server's answer, as it arrives on the record. 'unknown' is the absence
+   — a deal nobody has asked about (local mode, or nothing pending). */
+function reach(c, mode){
+  if (mode === 'unknown') delete c._reach;
+  else c._reach = { reply: mode, last: null, sign: null, fresh: [] };
 }
-const LIVE = [{ token: 'a', durable: 1 }];
-const DEAD = [{ token: 'a', durable: 1, revokedAt: '2026-08-01' }, { token: 'b', durable: 0 }];
 
 describe('f190 (2) — three answers, and the third one says nothing', () => {
-  test('a standing link is "live"', () => {
+  test('a copy they can answer on is "live"', () => {
     const { win } = world(); const c = contract();
-    reach(win, 'known', LIVE);
+    reach(c, 'live');
     assert.equal(win.negoTheirCopy(c), 'live');
   });
 
-  test('only revoked and one-shot links is "none"', () => {
+  test('no copy they can answer on is "none"', () => {
+    /* REVERSED 27 Sep 2026: this was "only revoked and ONE-SHOT links is
+       none" — and an UNUSED one-time link can be answered on. Which links
+       count is the server's reading now (f412 (1)). */
     const { win } = world(); const c = contract();
-    reach(win, 'known', DEAD);
+    reach(c, 'none');
     assert.equal(win.negoTheirCopy(c), 'none');
   });
 
   test('nobody has asked is "unknown", NOT "none"', () => {
     const { win } = world(); const c = contract();
-    reach(win, 'unknown', []);
+    reach(c, 'unknown');
     assert.equal(win.negoTheirCopy(c), 'unknown',
       'reading an unasked question as an answer would invent a new untruth');
   });
@@ -129,7 +133,7 @@ describe('f190 (2) — three answers, and the third one says nothing', () => {
   test('and their own page never answers at all', () => {
     /* Their copy has no view of our links and never should. */
     const { win } = world(); const c = contract();
-    reach(win, 'known', LIVE);
+    reach(c, 'live');
     win.PORTAL_MODE = true;
     assert.equal(win.negoTheirCopy(c), 'unknown');
     win.PORTAL_MODE = false;
@@ -179,7 +183,7 @@ describe('f190 (3) — the card stops claiming a wait it cannot verify', () => {
   test('WITH a live link it reads exactly as it did', async () => {
     const { win } = world();
     const { c, ch } = await refusedAskOfTheirs(win);
-    reach(win, 'known', LIVE);
+    reach(c, 'live');
     const html = openedCards(win, c, { side: 'owner' });
     const one = card(html, ch.id);
     assert.equal(stands(html), 'refused', 'one heading, and it says refused');
@@ -191,7 +195,7 @@ describe('f190 (3) — the card stops claiming a wait it cannot verify', () => {
   test('WITHOUT one it says what we actually know', async () => {
     const { win } = world();
     const { c, ch } = await refusedAskOfTheirs(win);
-    reach(win, 'known', DEAD);
+    reach(c, 'none');
     const html = openedCards(win, c, { side: 'owner' });
     const one = card(html, ch.id);
     /* THE STATE IS NOT DOUBLED. Refused is still where this change stands;
@@ -208,7 +212,7 @@ describe('f190 (3) — the card stops claiming a wait it cannot verify', () => {
        offer the act that clears it beside it. */
     const { win } = world();
     const { c, ch } = await refusedAskOfTheirs(win);
-    reach(win, 'known', DEAD);
+    reach(c, 'none');
     const one = card(openedCards(win, c, { side: 'owner' }), ch.id);
     assert.match(one, /data-rl-sendcopy/, 'the verb is on the card');
     assert.match(one, /Send a copy/);
@@ -224,7 +228,7 @@ describe('f190 (3) — the card stops claiming a wait it cannot verify', () => {
   test('"unknown" changes nothing at all', async () => {
     const { win } = world();
     const { c, ch } = await refusedAskOfTheirs(win);
-    reach(win, 'unknown', []);
+    reach(c, 'unknown');
     const one = card(openedCards(win, c, { side: 'owner' }), ch.id);
     assert.match(one, /waiting on them/i, 'the old wording stands where we do not know');
     assert.ok(!/data-rl-sendcopy/.test(one), 'and nothing is offered');
@@ -236,7 +240,7 @@ describe('f190 (3) — the card stops claiming a wait it cannot verify', () => {
        builder, so this is the check that the new branch cannot leak there. */
     const { win } = world();
     const { c, ch } = await refusedAskOfTheirs(win);
-    reach(win, 'known', DEAD);
+    reach(c, 'none');
     const one = card(openedCards(win, c,
       { side: 'counterparty', hiddenIds: [], org: 'Wanjiru Catering Ltd' }), ch.id);
     assert.match(one, /withdraw the ask or revise the wording/i, 'their move, unchanged');
@@ -249,13 +253,13 @@ describe('f190 (3) — the card stops claiming a wait it cannot verify', () => {
        <them> withdraws it" is the same claim in another renderer's words. */
     const { win } = world();
     const { c } = await refusedAskOfTheirs(win);
-    reach(win, 'known', DEAD);
+    reach(c, 'none');
     const html = win.negoLiveCardsHtml(c, { side: 'owner' });
     assert.match(html, /holds no live copy/);
     assert.ok(!/Erik L\. withdraws it/.test(html),
       'it no longer asks somebody to act on a copy they do not have');
 
-    reach(win, 'known', LIVE);
+    reach(c, 'live');
     const live = win.negoLiveCardsHtml(c, { side: 'owner' });
     assert.match(live, /withdraws it/, 'and with a live copy the old sentence stands');
   });
@@ -281,7 +285,7 @@ describe('f190 (4) — whose move it is, answered honestly', () => {
     const { win } = world();
     const c = await pendingAskOfTheirs(win);
     win.negoHandOver(c, { to: 'counterparty' });
-    reach(win, 'known', LIVE);
+    reach(c, 'live');
     const m = win.negWhoseMove(c);
     assert.equal(m.k, 'them');
     assert.equal(m.reach, 'live');
@@ -293,7 +297,7 @@ describe('f190 (4) — whose move it is, answered honestly', () => {
     const { win } = world();
     const c = await pendingAskOfTheirs(win);
     win.negoHandOver(c, { to: 'counterparty' });
-    reach(win, 'known', DEAD);
+    reach(c, 'none');
     const m = win.negWhoseMove(c);
     assert.equal(m.k, 'you');
     assert.equal(m.why, 'nocopy');
@@ -303,7 +307,7 @@ describe('f190 (4) — whose move it is, answered honestly', () => {
     const { win } = world();
     const c = await pendingAskOfTheirs(win);
     win.negoHandOver(c, { to: 'counterparty' });
-    reach(win, 'unknown', []);
+    reach(c, 'unknown');
     assert.equal(win.negWhoseMove(c).k, 'them');
   });
 
@@ -315,12 +319,12 @@ describe('f190 (4) — whose move it is, answered honestly', () => {
     w.win.state = { settings: {}, contracts: [] };
     const c = await pendingAskOfTheirs(w.win);
     w.win.negoHandOver(c, { to: 'counterparty' });
-    reach(w.win, 'known', DEAD);
+    reach(c, 'none');
     const pill = w.win.negoMovePillHtml(c);
     assert.match(pill, /No live copy/, 'it says what the move is');
     assert.ok(!/\d/.test(pill.replace(/[^>]*>/g, '')) || !/needs you/i.test(pill),
       'and it does not count decisions that do not exist');
-    reach(w.win, 'known', LIVE);
+    reach(c, 'live');
     assert.match(w.win.negoMovePillHtml(c), /Nordfrakt Logistik AB/,
       'and with a live copy it names them, as before');
   });
@@ -328,7 +332,7 @@ describe('f190 (4) — whose move it is, answered honestly', () => {
   test('nothing pending is still clear, whatever the links say', async () => {
     const { win } = world();
     const c = contract(); win.negoInit(c);
-    reach(win, 'known', DEAD);
+    reach(c, 'none');
     assert.equal(win.negWhoseMove(c).k, 'clear',
       'a settled negotiation is not "waiting on you to send a copy"');
   });

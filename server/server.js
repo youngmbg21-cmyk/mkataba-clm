@@ -936,6 +936,13 @@ addColumnIfMissing('shares', 'signer_id', 'TEXT');
    token is recorded so the child's life is bound to it — a derived ticket is
    strictly weaker than the ticket it came from, and dies with it. */
 addColumnIfMissing('shares', 'parent_token', 'TEXT');
+/* ---- A CONTRACT'S LINKS ARE READ BY CONTRACT (27 Sep 2026) ----
+   The list now asks, of every live deal on a page, whether the other side can
+   still answer (srvReach) — and each question it borrows (shareSuperseded,
+   shareRetiredBySigning) finds a contract's links by `contract_id`. With no
+   index that was a walk of the whole table, payloads and all, per question:
+   MEASURED on a 1,200-contract book, loading it went from 0.2s to 6s. */
+db.exec('CREATE INDEX IF NOT EXISTS idx_shares_contract ON shares(contract_id, created_at)');
 addColumnIfMissing('users', 'prefs', 'TEXT');   // per-user notification opt-ins
 /* Value visibility is a RIGHT, not a preference, so it is a column on the user
    row rather than a key in the client-writable appSettings blob (see SUMMARY.md
@@ -2204,6 +2211,18 @@ const AI_QUOTE_RULE = ' Quote ONE continuous run of text, copied character for c
    itself. One sentence, on the schema field AND in the prompt, so the two
    cannot drift apart; it takes the jurisdiction because half of what it fixes
    is naming the wrong country's law. */
+/* ---- SEND BACK WITH A NOTE (27 Sep 2026) ----
+   A colleague read what Copilot prepared and sent it back with a note. The
+   note and the earlier answer ride the SAME prompt the work was first done
+   with — one question, asked again with what was wrong with the first answer
+   — never a second prompt that could come to judge differently. */
+const SENDBACK_NOTE_MAX = 600;
+const sendBackPrompt = (note, before) => {
+  const n = String(note || '').trim().slice(0, SENDBACK_NOTE_MAX);
+  if (!n) return '';
+  return `\n\nA COLLEAGUE SENT YOUR EARLIER ANSWER BACK. Their note: "${n.replace(/"/g, "'")}". Take it into account and answer again; where the note states one of our positions, treat it as our standard.`
+    + (before ? `\nYOUR EARLIER ANSWER: ${String(typeof before === 'string' ? before : JSON.stringify(before)).slice(0, 4000)}` : '');
+};
 const AI_REDLINE_RULE = j => ` Write it as WORDING THE CONTRACT COULD CARRY — the clause exactly as it would be printed, in the register of the document you are reading. NEVER an instruction to a drafter: "Insert a clause addressing X" is a note about wording rather than wording, and this field is filed into the agreement verbatim. Write it under ${j} law and name only the statutes and regulators that apply there; never cite another jurisdiction's regime. For a DEVIATION — where the document already has wording on the point — return THAT CLAUSE'S OWN WORDING carrying the SMALLEST change that meets the position: keep every word that is not off-position, including the parties' defined names, the amounts, the dates and anything the two sides have plainly negotiated. Do not paste a generic clause over one the document already has, and do not rename a party the document has defined. For a MISSING position there is nothing to keep, so write the clause out in full. NEVER open with the clause's own heading or number: the document already prints them above the wording, and a reply that repeats them files the same words twice. If you cannot write the wording itself, leave this empty rather than describing what it would say.`;
 
 /* ONE CEILING FOR ONE CONTRACT, AND IT SAYS SO WHEN IT BITES.
@@ -2460,6 +2479,9 @@ const AI_FEATURE_LABEL = {
      unnamed feature lands in the Other bucket, which is the one number
      an admin goes looking for by name. */
   readings: 'Plain English',
+  /* Copilot's answers to the other side's round, prepared when it arrives
+     (Their round came back, 27 Sep 2026). */
+  round: 'Their round came back',
 };
 
 function aiSpendRows(day) {
@@ -2537,12 +2559,21 @@ function aiWho(req) {
   return { id: String(u.id), name: u.name || u.email || String(u.id) };
 }
 
+/* THE RUN IN PROGRESS, for the meter above (see COPILOT'S AGENTS below). */
+const { AsyncLocalStorage } = require('node:async_hooks');
+const agentRunCtx = new AsyncLocalStorage();
+
 /* Record one real Anthropic call. `countRequest` is false for OCR pages after
    the first: pages count toward SPEND (the honest measure) and toward
    ocrMaxPages, but a 20-page scan is one request, not twenty. */
 function recordAiSpend(feature, model, usage, { countRequest = true, allowance = false, who = null } = {}) {
   const f = AI_FEATURE_LABEL[feature] ? feature : 'other';
   const p = priceUsage(model, usage);
+  /* AN AGENT'S RUN KNOWS WHAT IT COST (27 Sep 2026): a call made inside
+     runAgent() adds its price to that run, and to no other — the context
+     follows the run's own awaits, so two agents running at once each count
+     only their own calls. */
+  try { const run = agentRunCtx.getStore(); if (run) run.cost += p.cost; } catch (_) {}
   try {
     upsertSpend.run(aiToday(), f, countRequest ? 1 : 0, 1, p.inT + p.cw + p.cr, p.outT, p.cw, p.cr, p.cost);
   } catch (e) { console.warn('[ai] could not write spend ledger:', e.message); }
@@ -3331,31 +3362,15 @@ app.get('/api/analytics', auth, (req, res) => {
 });
 
 // Paginated, filterable, searchable list of SUMMARY rows (heavy fields stripped).
-app.get('/api/contracts', auth, (req, res) => {
-  const { folder, status, q } = req.query;
-  const scope = folderScopeFor(req.user);
-  const money = canViewValues(req.user);
+/* ---- A LIST ROW, DECORATED (lifted out of GET /api/contracts on 27 Sep
+   2026 so the agents page's quiet refresh — GET /api/contracts/changed —
+   hands back rows EXACTLY as the list does: money masked where the reader
+   may not see it, and every transport word the list carries). ---- */
+function srvListDecorate(dbRows, user) {
+  const money = canViewValues(user);
   const moneyKeys = money ? null : moneyFieldKeys();
-  const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 50));
-  const offset = Math.max(0, Number(req.query.offset) || 0);
-  const where = [], args = {};
-  // A folder filter can only ever narrow the caller's scope, never widen it.
-  if (folder) {
-    if (!inScope(scope, folder)) return res.json({ total: 0, offset, limit, rows: [] });
-    where.push('folder=@folder'); args.folder = folder;
-  }
-  const fs = scopeFragNamed(scope);
-  if (fs.sql) { where.push(fs.sql); Object.assign(args, fs.args); }
-  if (status) { where.push('status=@status'); args.status = status; }
-  if (q) {
-    where.push("(lower(name) LIKE @q ESCAPE '\\' OR lower(counterparty) LIKE @q ESCAPE '\\' OR lower(id) LIKE @q ESCAPE '\\')");
-    args.q = '%' + likeEscape(String(q).toLowerCase()) + '%';
-  }
-  const w = where.length ? 'WHERE ' + where.join(' AND ') : '';
-  const total = db.prepare(`SELECT COUNT(*) n FROM contracts ${w}`).get(args).n;
   const saUsers = srvSaUsers();
-  const rows = db.prepare(`SELECT json, version FROM contracts ${w} ORDER BY seq DESC LIMIT @limit OFFSET @offset`)
-    .all({ ...args, limit, offset })
+  const rows = dbRows
     .map(r => { const c = JSON.parse(r.json); c._v = r.version;
       /* APPROVAL BEFORE SIGNING rides the list too (23 Sep 2026), read off
          the WHOLE record before any money is masked: Home, the bell and the
@@ -3412,7 +3427,84 @@ app.get('/api/contracts', auth, (req, res) => {
     }
     rows.forEach(c => { const v = adv.get(String(c.id)); if (v) c._renewalPrep = v; });
   }
+  /* ---- CAN THE OTHER SIDE STILL ANSWER (27 Sep 2026) ----
+     The list's bands and the agents page ask it of every live deal on first
+     look, and the light list carries no links — so the server reads them, for
+     this page's own deals and in ONE query (srvReachForRows). */
+  srvReachForRows(rows);
+  /* ---- AND COPILOT'S ANSWERS TO THEIR ROUND (27 Sep 2026) ----
+     The agents page and the negotiation list count them off the light list,
+     so they ride it too — only for this page's contracts that have any, and
+     only the answers to asks still on the table. */
+  if (pageIds.length) {
+    const has = new Set(db.prepare('SELECT DISTINCT contract_id FROM round_prep WHERE contract_id IN ' + inList(pageIds.length))
+      .all(...pageIds).map(x => String(x.contract_id)));
+    rows.forEach(c => { if (!has.has(String(c.id))) return; try { const rp = roundPrepFor(c); if (rp) c._roundPrep = rp; } catch (_) {} });
+  }
+  return rows;
+}
+app.get('/api/contracts', auth, (req, res) => {
+  const { folder, status, q } = req.query;
+  const scope = folderScopeFor(req.user);
+  const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 50));
+  const offset = Math.max(0, Number(req.query.offset) || 0);
+  const where = [], args = {};
+  // A folder filter can only ever narrow the caller's scope, never widen it.
+  if (folder) {
+    if (!inScope(scope, folder)) return res.json({ total: 0, offset, limit, rows: [] });
+    where.push('folder=@folder'); args.folder = folder;
+  }
+  const fs = scopeFragNamed(scope);
+  if (fs.sql) { where.push(fs.sql); Object.assign(args, fs.args); }
+  if (status) { where.push('status=@status'); args.status = status; }
+  if (q) {
+    where.push("(lower(name) LIKE @q ESCAPE '\\' OR lower(counterparty) LIKE @q ESCAPE '\\' OR lower(id) LIKE @q ESCAPE '\\')");
+    args.q = '%' + likeEscape(String(q).toLowerCase()) + '%';
+  }
+  const w = where.length ? 'WHERE ' + where.join(' AND ') : '';
+  const total = db.prepare(`SELECT COUNT(*) n FROM contracts ${w}`).get(args).n;
+  const dbRows = db.prepare(`SELECT json, version FROM contracts ${w} ORDER BY seq DESC LIMIT @limit OFFSET @offset`)
+    .all({ ...args, limit, offset });
+  const rows = srvListDecorate(dbRows, req.user);
   res.json({ total, offset, limit, rows });
+});
+/* ---- WHAT MOVED SINCE THE PAGE LAST LOOKED (27 Sep 2026: "the page
+   updates itself when something new arrives") ----
+   Copilot's work asks this when /api/agents/status's stamp moves: the rows
+   written after `since` (updated_at, the column every save writes), decorated
+   exactly as the list decorates them, at most a page of them — A CAP IS A
+   FACT: `more` says the page should reload the whole list instead. With
+   reach=1 it also re-reads whether the other side can still answer on EVERY
+   live deal in the reader's streams, because a link runs out with nothing
+   written anywhere — time passing is the change. */
+app.get('/api/contracts/changed', auth, (req, res) => {
+  const scope = folderScopeFor(req.user);
+  const since = String(req.query.since || '');
+  const where = [], args = {};
+  const fs = scopeFragNamed(scope);
+  if (fs.sql) { where.push(fs.sql); Object.assign(args, fs.args); }
+  const base = where.slice();
+  if (since) { where.push('updated_at > @since'); args.since = since; }
+  const w = where.length ? 'WHERE ' + where.join(' AND ') : '';
+  const LIMIT = 200;
+  const dbRows = db.prepare(`SELECT json, version FROM contracts ${w} ORDER BY updated_at DESC LIMIT ${LIMIT + 1}`).all(args);
+  const more = dbRows.length > LIMIT;
+  const rows = srvListDecorate(dbRows.slice(0, LIMIT), req.user);
+  const at = (db.prepare('SELECT MAX(updated_at) AS t FROM contracts').get() || {}).t || since;
+  let reach = null;
+  if (req.query.reach === '1') {
+    reach = {};
+    const bw = base.length ? 'WHERE ' + base.join(' AND ') : '';
+    const bargs = { ...args }; delete bargs.since;
+    const live = [];
+    for (const r of db.prepare(`SELECT json FROM contracts ${bw}`).all(bargs)) {
+      let c = null; try { c = JSON.parse(r.json); } catch (_) { continue; }
+      if (c && srvReachWanted(c)) live.push(c);
+    }
+    srvReachForRows(live);
+    for (const c of live) if (c._reach) reach[c.id] = c._reach;
+  }
+  res.json({ rows, more, at, reach });
 });
 
 // Whole-workspace activity feed. The client can't build this from the contract
@@ -3574,6 +3666,12 @@ app.get('/api/contracts/:id', auth, (req, res) => {
      already governs it. */
   const pe = db.prepare('SELECT json FROM clause_readings WHERE contract_id=?').get(req.params.id);
   if (pe) { try { out._readings = JSON.parse(pe.json); } catch (_) {} }
+  /* Whether the other side can still answer, and their signer still sign —
+     the list's own reading, fresh for the one contract (srvReach). */
+  try { out._reach = srvReach(c); } catch (_) {}
+  /* Copilot's prepared answers to their open asks — transport, never the
+     record, never to the other side (runRoundPrep). */
+  try { const rp = roundPrepFor(c); if (rp) out._roundPrep = rp; } catch (_) {}
   res.json(out);
 });
 
@@ -3887,6 +3985,8 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   delete c._renewalAdvice;   // W2-4: transport too, off its own table
   delete c._readings;        // idea 7: the plain-English layer, off its own table
   delete c._signNeeds; delete c._signState;   // approval before signing: read here, never stored
+  delete c._reach;           // can they still answer: read off the links, never stored (srvReach)
+  delete c._roundPrep;       // Copilot's prepared answers to their round: its own table (runRoundPrep)
 
   let prev = null;
   if (existing) { try { prev = JSON.parse(existing.json); } catch (_) { prev = null; } }
@@ -3901,6 +4001,22 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
      audit-trail guard further down. A brand-new contract has no stored map and
      starts with none. */
   if (prev && prev.locks) c.locks = prev.locks; else delete c.locks;
+  /* ---- A CHASE ALREADY SENT IS NOT UNDONE BY A SAVE (27 Sep 2026) ----
+     Late promises sends the first chase by itself and stamps it on the STORED
+     obligation; a browser holding the record from before would save it back
+     without the stamp, and tomorrow's run would chase again. A later stamp on
+     file wins, field by field — the same rule the locks follow above. */
+  if (prev && Array.isArray(prev.obligations) && Array.isArray(c.obligations)) {
+    const had = new Map(prev.obligations.filter(o => o && o.id != null).map(o => [String(o.id), o]));
+    for (const o of c.obligations) {
+      const p = o && o.id != null ? had.get(String(o.id)) : null;
+      if (!p) continue;
+      for (const [stamp, keys] of [['chasedAt', ['chasedAt', 'chasedBy', 'chaseAuto']], ['chaseFirmAt', ['chaseFirmAt', 'chaseFirmBy']]]) {
+        if (p[stamp] && String(p[stamp]) > String(o[stamp] || ''))
+          for (const k of keys) { if (p[k] !== undefined) o[k] = p[k]; else delete o[k]; }
+      }
+    }
+  }
   /* ---- AND THE HANDOVER AND THE CONTRACT NUMBER ARE NOT THIS ROUTE'S ----
      (26 Sep 2026, redline here, sign there.) The handover is written by its
      own route and the number by this server in the save that files the
@@ -4823,6 +4939,15 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
      the approvals it needs rides back with the answer — read with the whole
      roster, which a browser that is not an admin does not have. */
   const signNeeds = srvSignNeeds(c);
+  /* THEIR ROUND CAME BACK: a save that filed asks of theirs with no answer
+     prepared starts the agent on them (roundPrepKick asks whether any is
+     new; nothing is waited on). */
+  try {
+    const hadAsk = new Set((prev && Array.isArray(prev.changes) ? prev.changes : [])
+      .filter(x => x && x.authorSide === 'counterparty' && x.status === 'pending').map(x => String(x.id)));
+    if ((Array.isArray(c.changes) ? c.changes : []).some(x => x && x.authorSide === 'counterparty'
+        && x.status === 'pending' && !x.withdrawn && !hadAsk.has(String(x.id)))) roundPrepKick(c.id);
+  } catch (_) {}
   res.json({ ok: true, version: next, signNeeds,
     ...(c.contractNo ? { contractNo: c.contractNo } : {}),
     ...(numberedLine ? { numberedLine } : {}),
@@ -6214,11 +6339,11 @@ app.post('/api/ai/fill', auth, editor, rlAiLight, aiFeature('fill'), aiBudgetGua
    terms), each with a confidence level. The human always confirms before it
    is saved (client review panel); no key -> the client uses its heuristic
    fallback and never calls this. */
-app.post('/api/ai/extract', auth, rlAiLight, aiFeature('extract'), aiBudgetGuard, capAiInput, async (req, res) => {
-  const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
-  const { text, thorough, part, parts } = req.body || {};
-  if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
+/* ---------- Copilot metadata extraction: THE CALL ITSELF ----------
+   Lifted out of the route below on 27 Sep 2026 so Archive import's reading on
+   the server (runImportQueue) asks EXACTLY the question the route asks — one
+   prompt, one tool, one cleaning, one place. */
+async function aiExtractCall(key, { text, thorough, part, parts }, meter) {
   const today = new Date().toISOString().slice(0, 10);
   const conf = { type: 'string', enum: ['high', 'medium', 'low'], description: 'Confidence this field is correct.' };
   const span = { type: 'string', description: 'The SHORT verbatim phrase from the document this value came from (under 140 characters, copied exactly).' + AI_QUOTE_RULE + ' LEAVE THIS EMPTY wherever the field itself is empty or zero: "No retention provision in the contract" is not a quotation, it is a sentence about the contract, and this field holds only the contract\'s own words.' };
@@ -6344,29 +6469,39 @@ For every field you fill in, also return the short verbatim phrase it came from 
 
 DOCUMENT:
 ${String(text)}`;
+  // Thorough mode reads the whole agreement chunk by chunk — judgement work
+  // over partial context, so it runs on the deep tier.
+  const tier = thorough ? 'deep' : 'fast';
+  /* 1,500 was set when the answer had eleven fields. It has nineteen now,
+     each with a verbatim span beside it, and three are free text (21 Sep
+     2026) — at face value ~2,000 tokens, so 3,000 leaves the wrapper room.
+     Output is billed as used; an answer cut short costs the whole answer. */
+  const resp = await anthropicMessages(key, tier, { max_tokens: 3000, tools: [tool], tool_choice: { type: 'tool', name: 'file_contract' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'extract', allowance: !!(meter && meter.allowance), who: (meter && meter.who) || null });
+  if (!resp.ok) return { ok: false, resp };
+  const data = resp.data;
+  const block = (data.content || []).find(b => b.type === 'tool_use');
+  if (!block) return { ok: false, resp, noResult: true };
+  /* THE ANSWER IS CHECKED BEFORE IT LEAVES (23 Sep 2026): a field carrying
+     the model's own call syntax is cut at the seam, an answer written under
+     another field's name is moved there where that field is empty, and an
+     answer that only says the contract is silent is filed as silence. One
+     reading, js/metaclean.js, shared with the browser. */
+  const cleaned = metaUnleak(block.input || {}, Object.keys(tool.input_schema.properties || {}));
+  const out = cleaned.meta || {};
+  const sourceSpans = (out.sourceSpans && typeof out.sourceSpans === 'object') ? out.sourceSpans : null;
+  delete out.sourceSpans;
+  return { ok: true, resp, metadata: out, sourceSpans, tier };
+}
+app.post('/api/ai/extract', auth, rlAiLight, aiFeature('extract'), aiBudgetGuard, capAiInput, async (req, res) => {
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  const { text, thorough, part, parts } = req.body || {};
+  if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
   try {
-    // Thorough mode reads the whole agreement chunk by chunk — judgement work
-    // over partial context, so it runs on the deep tier.
-    const tier = thorough ? 'deep' : 'fast';
-    /* 1,500 was set when the answer had eleven fields. It has nineteen now,
-       each with a verbatim span beside it, and three are free text (21 Sep
-       2026) — at face value ~2,000 tokens, so 3,000 leaves the wrapper room.
-       Output is billed as used; an answer cut short costs the whole answer. */
-    const resp = await anthropicMessages(key, tier, { max_tokens: 3000, tools: [tool], tool_choice: { type: 'tool', name: 'file_contract' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'extract', allowance: req.aiAllowance, who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
-    const data = resp.data;
-    const block = (data.content || []).find(b => b.type === 'tool_use');
-    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
-    /* THE ANSWER IS CHECKED BEFORE IT LEAVES (23 Sep 2026): a field carrying
-       the model's own call syntax is cut at the seam, an answer written under
-       another field's name is moved there where that field is empty, and an
-       answer that only says the contract is silent is filed as silence. One
-       reading, js/metaclean.js, shared with the browser. */
-    const cleaned = metaUnleak(block.input || {}, Object.keys(tool.input_schema.properties || {}));
-    const out = cleaned.meta || {};
-    const sourceSpans = (out.sourceSpans && typeof out.sourceSpans === 'object') ? out.sourceSpans : null;
-    delete out.sourceSpans;
-    res.json({ metadata: out, sourceSpans, source: 'ai', tier, ...aiNotice(req, resp) });
+    const r = await aiExtractCall(key, { text, thorough, part, parts }, { allowance: req.aiAllowance, who: aiWho(req) });
+    if (!r.ok && r.noResult) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    if (!r.ok) return res.status(502).json({ error: 'Copilot provider error (' + r.resp.status + '): ' + String(r.resp.error).slice(0, 300) });
+    res.json({ metadata: r.metadata, sourceSpans: r.sourceSpans, source: 'ai', tier: r.tier, ...aiNotice(req, r.resp) });
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
 
@@ -8196,7 +8331,7 @@ function renewalSignalsOf(id, full, kids, parsed) {
    `overnight` is stamped on the stored advice — ABSENT on every advice already
    written, which is the whole migration story — so the desk can say whether the
    memo was waiting when the reader arrived or was run by somebody. */
-async function aiRenewalAdvice(key, { id, signals, doc, by, overnight }, meter) {
+async function aiRenewalAdvice(key, { id, signals, doc, by, overnight, note, before }, meter) {
   const tool = {
     name: 'renewal_advice',
     description: 'Recommend what to do about an agreement coming up for renewal.',
@@ -8215,7 +8350,7 @@ async function aiRenewalAdvice(key, { id, signals, doc, by, overnight }, meter) 
       required: ['verdict', 'headline', 'because'],
     },
   };
-  const prompt = `You are advising a business owner on an agreement coming up for renewal, under ${orgJx().adjective} law. Recommend renew, renegotiate or lapse, using ONLY the SIGNALS below and the wording — every date and figure there is computed from the record, so use them as given and never restate a date differently. Where the signals are too thin to justify a recommendation, answer 'unclear' and say what is missing rather than guessing. Do not draft any wording. Plain, everyday sentences.\n\nSIGNALS:\n${JSON.stringify(signals)}\n\nDOCUMENT:\n${doc}`;
+  const prompt = `You are advising a business owner on an agreement coming up for renewal, under ${orgJx().adjective} law. Recommend renew, renegotiate or lapse, using ONLY the SIGNALS below and the wording — every date and figure there is computed from the record, so use them as given and never restate a date differently. Where the signals are too thin to justify a recommendation, answer 'unclear' and say what is missing rather than guessing. Do not draft any wording. Plain, everyday sentences.${sendBackPrompt(note, before)}\n\nSIGNALS:\n${JSON.stringify(signals)}\n\nDOCUMENT:\n${doc}`;
   const resp = await anthropicMessages(key, 'deep', { max_tokens: 900, tools: [tool], tool_choice: { type: 'tool', name: 'renewal_advice' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'renewal', who: (meter && meter.who) || null });
   if (!resp.ok) return { ok: false, resp };
   const block = (resp.data.content || []).find(b => b.type === 'tool_use');
@@ -8225,6 +8360,7 @@ async function aiRenewalAdvice(key, { id, signals, doc, by, overnight }, meter) 
   const advice = { v: 1, at: now(), by: by || '', inputHash: sha(JSON.stringify(signals)), signals,
     truncated: !!resp.truncated, data: block.input || {} };
   if (overnight) advice.overnight = true;
+  if (note) advice.sentBack = { note: String(note).slice(0, SENDBACK_NOTE_MAX), by: by || '' };
   if (!resp.truncated)
     db.prepare('INSERT INTO renewal_advice (contract_id,json,created_at) VALUES (?,?,?) ON CONFLICT(contract_id) DO UPDATE SET json=excluded.json, created_at=excluded.created_at')
       .run(String(id), JSON.stringify(advice), now());
@@ -8274,7 +8410,7 @@ app.post('/api/ai/renewal', auth, editor, rlAiDeep, aiFeature('renewal'), aiBudg
 const PB_REVIEW_TOKENS_BASE = 1200, PB_REVIEW_TOKENS_EACH = 700, PB_REVIEW_TOKENS_MAX = 8000;
 const pbReviewTokens = n => Math.min(PB_REVIEW_TOKENS_MAX,
   PB_REVIEW_TOKENS_BASE + PB_REVIEW_TOKENS_EACH * Math.max(4, Number(n) || 0));
-async function aiPlaybookVerdicts(key, { text, playbook, kind }, meter) {
+async function aiPlaybookVerdicts(key, { text, playbook, kind, note, before }, meter) {
   /* Read BEFORE the tool, because the redline rule names the jurisdiction. */
   const J = orgJx();
   const tool = {
@@ -8304,7 +8440,7 @@ async function aiPlaybookVerdicts(key, { text, playbook, kind }, meter) {
      and the route says when it was cut short anyway. */
   const asked = (Array.isArray(playbook && playbook.positions) ? playbook.positions.length : 0)
     + (Array.isArray(playbook && playbook.ranges) ? playbook.ranges.length : 0);
-  const prompt = `You are a contracts reviewer practising under ${J.adjective} law. Judge the DOCUMENT against the PLAYBOOK for a ${kind || 'contract'}. For every playbook position and range, return EXACTLY ONE verdict, in the order given, with its category copied word for word (aligned / deviation / missing / na) with a verbatim quote where present — one continuous run of text copied exactly, never two passages joined with "..." — the preferred position, and — for deviations or missing items — a suggested redline in the preferred wording.${AI_REDLINE_RULE(J.adjective)} A position that carries a range is judged against that figure; a position that carries a standard wording is judged against that wording. Use na only where the standard has no occasion in this kind of document at all; a standard the document simply leaves out is missing. Mark escalate=true where the playbook flags Legal approval. Return via playbook_review.\n\nPLAYBOOK:\n${JSON.stringify(playbook || {})}\n\nDOCUMENT:\n${aiDocText(null, text)}`;
+  const prompt = `You are a contracts reviewer practising under ${J.adjective} law. Judge the DOCUMENT against the PLAYBOOK for a ${kind || 'contract'}. For every playbook position and range, return EXACTLY ONE verdict, in the order given, with its category copied word for word (aligned / deviation / missing / na) with a verbatim quote where present — one continuous run of text copied exactly, never two passages joined with "..." — the preferred position, and — for deviations or missing items — a suggested redline in the preferred wording.${AI_REDLINE_RULE(J.adjective)} A position that carries a range is judged against that figure; a position that carries a standard wording is judged against that wording. Use na only where the standard has no occasion in this kind of document at all; a standard the document simply leaves out is missing. Mark escalate=true where the playbook flags Legal approval. Return via playbook_review.${sendBackPrompt(note, before)}\n\nPLAYBOOK:\n${JSON.stringify(playbook || {})}\n\nDOCUMENT:\n${aiDocText(null, text)}`;
   const resp = await anthropicMessages(key, 'deep', { max_tokens: pbReviewTokens(asked), tools: [tool], tool_choice: { type: 'tool', name: 'playbook_review' }, messages: [{ role: 'user', content: prompt }] }, { feature: (meter && meter.feature) || 'playbook', who: (meter && meter.who) || null });
   if (!resp.ok) return { ok: false, resp };
   const block = (resp.data.content || []).find(b => b.type === 'tool_use');
@@ -11010,6 +11146,58 @@ app.post('/api/contracts/:id/handover', auth, editor, async (req, res) => {
    on the other side; ours is work, not a message, and mailing the counterparty
    about our own late report would be telling them something they should not
    hear from us by accident. */
+/* THE CHASE ITSELF — the message, the link, the send — lifted out of the
+   route below on 27 Sep 2026 so the Late promises agent's automatic first
+   chase is the SAME message a person's press sends, word for word. `firm`
+   is the second, firmer chase (Young ruled 27 Sep 2026): the same facts,
+   and the date the first went. The caller has checked the address. */
+async function srvChaseSend(req, c, o, to, { firm = false } = {}) {
+  const L = langForEmail(to);
+  /* THE DAY IN WORDS, IN THE READER'S LANGUAGE (the owner's list, 27 Sep
+     2026): the message printed the stored "2026-09-21". A calendar day is read
+     as that day (UTC, so no time zone moves it); anything unreadable is left
+     as written rather than guessed at. */
+  const dayWords = v => {
+    const iso = String(v || '').slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return v || '';
+    try { return new Date(iso + 'T00:00:00Z').toLocaleDateString(L === 'sv' ? 'sv-SE' : 'en-GB',
+      { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }); } catch (_) { return iso; }
+  };
+  const dueWords = dayWords(o.due);
+  const vars = { desc: o.desc || '', name: c.name || contractRef(c), id: contractRef(c), due: dueWords };
+  /* ---- A DATE THAT DOES NOT EXIST IS NOT WRITTEN INTO A SENTENCE ----
+     The line reads "...which was due on {due}. Could you let us know where it
+     stands?", and an obligation with no date produced "due on ." in a message
+     that leaves the building to a customer's counterparty. There is a second
+     sentence for that case rather than a blank in the first one; the worklist
+     draws Chase on a dated obligation and an undated one alike, and both are
+     legitimate things to ask about. */
+  if (firm) vars.first = dayWords(String(o.chasedAt || '').slice(0, 10));
+  const line = firm
+    ? tFor(L, o.due ? 'mail_ob_chase_firm_line' : 'mail_ob_chase_firm_line_nodate', vars)
+    : tFor(L, o.due ? 'mail_ob_chase_line' : 'mail_ob_chase_line_nodate', vars);
+  /* ---- THE LINK IS ONE THIS READER CAN OPEN, OR THERE IS NO LINK ----
+     This sent `#contract=<id>`, which openFromHash resolves against the
+     signed-in reader's own scoped bootstrap — on the far side of the sign-in
+     wall. The recipient here is the COUNTERPARTY: no account, no session, no
+     scope. They were handed a sign-in page. Every other counterparty-facing
+     mail in this product uses the share link they already hold, so this uses
+     the standing one where there is one — and where there is none it says
+     nothing, because a button that leads nowhere is worse than no button. The
+     launch audit closed this exact class once already. */
+  const st = db.prepare(
+    `SELECT token FROM shares WHERE contract_id=? AND revoked_at IS NULL AND durable=1
+       AND (expires_at IS NULL OR expires_at > ?) ORDER BY created_at DESC LIMIT 1`
+  ).get(c.id, new Date().toISOString());
+  const link = st && st.token ? shareUrl(req, st.token) : '';
+  const r = await sendEmail(to,
+    tFor(L, firm ? 'mail_ob_chase_firm_subject' : 'mail_ob_chase_subject', vars),
+    `${tFor(L, 'mail_hello')},\n\n${line}`
+      + (link ? `\n\n${tFor(L, 'mail_ob_chase_open')}\n${link}` : '')
+      + `\n\n${tFor(L, 'mail_automated_notice')}`,
+    `chase: ${c.name || c.id}`);
+  return r;
+}
 app.post('/api/contracts/:id/chase', auth, editor, async (req, res) => {
   const b = req.body || {};
   if (b.email || b.to || b.address)
@@ -11031,46 +11219,7 @@ app.post('/api/contracts/:id/chase', auth, editor, async (req, res) => {
     return res.json({ ok: false, reason: 'no-address', to: null,
       emailSent: false, emailConfigured: EMAIL_ON(), outbox: false,
       emailError: 'There is no email address on file for the counterparty, so no message was sent. Add one on Key terms.' });
-  const L = langForEmail(to);
-  /* THE DAY IN WORDS, IN THE READER'S LANGUAGE (the owner's list, 27 Sep
-     2026): the message printed the stored "2026-09-21". A calendar day is read
-     as that day (UTC, so no time zone moves it); anything unreadable is left
-     as written rather than guessed at. */
-  const dueWords = (() => {
-    const iso = String(o.due || '').slice(0, 10);
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return o.due || '';
-    try { return new Date(iso + 'T00:00:00Z').toLocaleDateString(L === 'sv' ? 'sv-SE' : 'en-GB',
-      { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }); } catch (_) { return iso; }
-  })();
-  const vars = { desc: o.desc || '', name: c.name || contractRef(c), id: contractRef(c), due: dueWords };
-  /* ---- A DATE THAT DOES NOT EXIST IS NOT WRITTEN INTO A SENTENCE ----
-     The line reads "...which was due on {due}. Could you let us know where it
-     stands?", and an obligation with no date produced "due on ." in a message
-     that leaves the building to a customer's counterparty. There is a second
-     sentence for that case rather than a blank in the first one; the worklist
-     draws Chase on a dated obligation and an undated one alike, and both are
-     legitimate things to ask about. */
-  const line = tFor(L, o.due ? 'mail_ob_chase_line' : 'mail_ob_chase_line_nodate', vars);
-  /* ---- THE LINK IS ONE THIS READER CAN OPEN, OR THERE IS NO LINK ----
-     This sent `#contract=<id>`, which openFromHash resolves against the
-     signed-in reader's own scoped bootstrap — on the far side of the sign-in
-     wall. The recipient here is the COUNTERPARTY: no account, no session, no
-     scope. They were handed a sign-in page. Every other counterparty-facing
-     mail in this product uses the share link they already hold, so this uses
-     the standing one where there is one — and where there is none it says
-     nothing, because a button that leads nowhere is worse than no button. The
-     launch audit closed this exact class once already. */
-  const st = db.prepare(
-    `SELECT token FROM shares WHERE contract_id=? AND revoked_at IS NULL AND durable=1
-       AND (expires_at IS NULL OR expires_at > ?) ORDER BY created_at DESC LIMIT 1`
-  ).get(c.id, new Date().toISOString());
-  const link = st && st.token ? shareUrl(req, st.token) : '';
-  const r = await sendEmail(to,
-    tFor(L, 'mail_ob_chase_subject', vars),
-    `${tFor(L, 'mail_hello')},\n\n${line}`
-      + (link ? `\n\n${tFor(L, 'mail_ob_chase_open')}\n${link}` : '')
-      + `\n\n${tFor(L, 'mail_automated_notice')}`,
-    `chase: ${c.name || c.id}`);
+  const r = await srvChaseSend(req, c, o, to, { firm: !!b.firm });
   res.json({ ok: true, to, ...mailReport(r) });
 });
 
@@ -12548,7 +12697,8 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
      the route every path goes through, like the review strip above. */
   if (payload.contract) { delete payload.contract._brief; delete payload.contract.brief;
     delete payload.contract._renewalAdvice;
-    delete payload.contract._readings; }        // idea 7: our plain-English reading of their paper is ours
+    delete payload.contract._readings;          // idea 7: our plain-English reading of their paper is ours
+    delete payload.contract._roundPrep; }       // Copilot's answers to their round are ours alone
   /* 'word' joined the list on 13 Sep 2026: the round travels as an attached
      .docx instead of a link. An unknown channel still falls back to 'link',
      which mints the URL and mails nothing. */
@@ -12710,7 +12860,8 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
       return res.json({ ok: true, token: existing.token, link: exLink, reused: true,
         expiresAt: existing.expires_at, channel: existing.channel || ch, durable: false,
         signerId, heldForTurn, heldFor, emailSent: exSent, emailConfigured: EMAIL_ON(), emailError: exErr,
-        alreadySentAt: (!exSent && existing.sent_at) ? existing.sent_at : null });
+        alreadySentAt: (!exSent && existing.sent_at) ? existing.sent_at : null,
+        reach: srvReachOf(shareId) });
     }
   }
   db.prepare(`INSERT INTO shares (token,payload,created_at,contract_id,recipient_name,recipient_email,recipient_phone,channel,message,created_by,expires_at,durable,purpose,signer_id,party_id)
@@ -12871,7 +13022,10 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
     /* What the wall took out of the envelope, reported rather than left silent:
        a sender told "sent" about a round one change lighter has been misled. */
     withheldByReview: req.rvStripped || undefined,
-    emailSent, emailConfigured: EMAIL_ON(), emailError });
+    emailSent, emailConfigured: EMAIL_ON(), emailError,
+    /* What the other side can do now — the browser takes it (reachTake), so a
+       deal that was stuck stops reading as stuck the moment its link goes. */
+    reach: srvReachOf(shareId) });
 });
 
 app.get('/api/shares/pending', auth, (req, res) => {         // owner side: responses to apply
@@ -13295,6 +13449,245 @@ function shareSuperseded(s) {
   return null;
 }
 
+/* ============================================================================
+   CAN THE OTHER SIDE STILL ANSWER — AND CAN THEIR SIGNER STILL SIGN?
+   (Young ruled 27 Sep 2026, over "Their round came back": "Fix it and build a
+   sixth agent" — the agent is "No link to sign", js/views/agents.js)
+   ============================================================================
+   The Negotiations list said "With the other side" about a deal whenever a
+   change of ours was pending — and the only thing the browser asked before
+   saying so was whether a STANDING (self-updating) link existed, and only for
+   a contract somebody had opened this sitting. So an unused one-time link and
+   a Word file read as "no copy" once looked up, and every deal nobody had
+   opened read as theirs whatever their link had become. A deal whose link had
+   run out sat under "With the other side" for weeks, waiting on people who
+   could not answer.
+
+   THE QUESTION IS THE RESPOND ROUTE'S OWN, asked in its own order, off its own
+   predicates — revoked, expired, a one-time link already answered, overtaken
+   (shareSuperseded, or a signing link retiring a standing one) — so "they can
+   answer" here means exactly "an answer sent now would be accepted". A Word
+   file is the one row whose LINK never travelled: it counts where the file
+   really left (`sent_at`) and has not been overtaken, and a file does not
+   expire. Read-only, history and adviser links never carry an answer back.
+
+   THE SERVER WORKS IT OUT, for the list and for one contract, because only it
+   holds the rows — the light list carries no links at all — and the browser
+   holds no second copy of the rule: `_reach` is transport (stripped on save,
+   both hosts), read by negoTheirCopy and by the agent, and refreshed by every
+   send's answer.
+   MULTI-PARTY, said out loud: this is one answer per CONTRACT — any outside
+   party's live copy makes it 'live'. A per-party answer was not asked for. */
+const REACH_RECENT_DAYS = 14;   // "Link sent" looks back this far — the agents page's own window
+/* The columns a fate is read from — never the payload, which is the whole
+   contract and is fetched only where a wording comparison needs it. */
+const REACH_COLS = `token, contract_id, created_at, created_by, channel, durable, purpose, signer_id,
+  party_id, recipient_name, recipient_email, sent_at, expires_at, revoked_at, responded_at, send_error,
+  (response IS NOT NULL) AS answered`;
+/* ---- A LINK WHOSE EMAIL WAS REFUSED NEVER REACHED THEM (Young ruled 27 Sep
+   2026: "yes" — a bounced email counts as stuck) ----
+   The provider refused the message and it was never sent again: `send_error`
+   set, `sent_at` empty. The link itself would still take an answer, but
+   nobody on their side holds it. A message kept in the OUTBOX because this
+   server has no email provider is NOT a bounce — the sender copies the link
+   by hand, and the outbox is honest delivery, never failure. A later send
+   that lands clears send_error, and the link counts again. */
+const shareBounced = s => !!s && (s.channel || 'link') === 'email' && !s.sent_at && !!s.send_error
+  && !/not configured on this server/i.test(String(s.send_error));
+/* What happened to one link, in the respond route's order. `open` means an
+   answer (or a signature) sent on it now would be accepted; anything else
+   names why not, and when. A light row is completed from the table only where
+   the wording has to be compared. */
+function shareFate(s) {
+  if (!s) return null;
+  if (s.revoked_at) return { how: 'revoked', at: s.revoked_at };
+  const answered = ('response' in s) ? !!s.response : !!s.answered;
+  if (shareBounced(s) && !(!s.durable && answered)) return { how: 'bounced', at: s.created_at || null };
+  if ((s.channel || 'link') === 'word') {
+    if (!s.sent_at) return { how: 'undelivered', at: s.created_at || null };
+  } else {
+    if (shareExpired(s)) return { how: 'expired', at: s.expires_at || null };
+    if (!s.durable && answered) return { how: 'answered', at: s.responded_at || null };
+  }
+  let stale = null;
+  if (s.durable) stale = shareRetiredBySigning(s);
+  else {
+    const full = ('payload' in s) ? s : (db.prepare('SELECT * FROM shares WHERE token=?').get(s.token) || s);
+    stale = shareSuperseded(full);
+  }
+  if (stale) return { how: stale.reason === 'signing-link-issued' ? 'signing' : 'overtaken', at: stale.at || null };
+  return { how: 'open', at: null };
+}
+/* Can an ANSWER to our round come back on this row? A negotiation copy only. */
+const shareAnswersBack = s => !!s && sharePurposeOf(s) === 'negotiate' && shareFate(s).how === 'open';
+const reachUserName = id => {
+  if (!id) return '';
+  try { const u = db.prepare('SELECT name FROM users WHERE id=?').get(id); return (u && u.name) || ''; } catch (_) { return ''; }
+};
+const reachWho = s => ({ to: String((s && (s.recipient_name || s.recipient_email)) || ''),
+  email: String((s && s.recipient_email) || '') });
+const reachRecent = iso => { const t = Date.parse(String(iso || '')); return isFinite(t) && Date.now() - t <= REACH_RECENT_DAYS * 86400000; };
+const reachExecuted = c => !!c && (c.status === 'Signed' || !!c.hash || !!(c.execution && c.execution.at));
+/* Is this contract one the question is asked of at all — a live deal with a
+   change of ours or theirs still pending, or a signing route still waiting on
+   somebody on their side? Everything else leaves `_reach` absent, which every
+   reader takes as "we do not know" (the negoTheirCopy rule). */
+function srvReachWanted(c) {
+  if (!c || c.archived || c.status === 'Declined' || reachExecuted(c)) return false;
+  const pending = Array.isArray(c.changes) && c.changes.some(x => x && x.status === 'pending' && !x.withdrawn);
+  if (pending) return true;
+  return Array.isArray(c.signerPlan) && c.signerPlan.some(s => s && s.party === 'counterparty' && !s.signed);
+}
+/* THE ONE READING. `rows` may be handed in (the list reads every contract's
+   links in one query), newest first. Returns
+     reply  'live' | 'none'  — can an answer to our round still come back?
+     last   the newest negotiation copy and what became of it (only where
+            reply is 'none'; null where none was ever sent)
+     sign   the signer on their side whose turn it is and whose signing link
+            ran out or was cancelled (null where nobody is stuck — including
+            where no signing link was ever sent, which is the Signing tab's
+            own business, and a contract they sign outside HaTi)
+     fresh  a working link that went out in the last fortnight to a deal whose
+            earlier link had stopped working — "Link sent", the agent's last
+            step — one per kind at most. */
+function srvReach(c, opts = {}) {
+  if (!c || !c.id) return null;
+  const rows = Array.isArray(opts.rows) ? opts.rows
+    : db.prepare(`SELECT ${REACH_COLS} FROM shares WHERE contract_id=? ORDER BY created_at DESC`).all(String(c.id));
+  const out = { reply: 'none', last: null, sign: null, fresh: [] };
+  /* ---- THE REPLY HALF ---- a standing link first (cheap), then the rest,
+     newest first, stopping at the first that answers back. */
+  const nego = rows.filter(s => sharePurposeOf(s) === 'negotiate');
+  const fates = new Map();
+  const fateOf = s => { if (!fates.has(s.token)) fates.set(s.token, shareFate(s)); return fates.get(s.token); };
+  const open = nego.filter(s => s.durable).find(s => fateOf(s).how === 'open')
+    || nego.filter(s => !s.durable).find(s => fateOf(s).how === 'open') || null;
+  if (open) {
+    out.reply = 'live';
+    /* "LINK SENT" MEANS THIS LINK IS WHAT GAVE THEM THEIR WAY BACK: it is
+       recent, nothing else of theirs answers back, and the copy before it had
+       stopped working for a reason of its own — ran out, cancelled, already
+       used, never delivered. A copy that was merely OVERTAKEN was replaced by
+       this very link (or by a signing link), so the deal was never stuck. */
+    if (reachRecent(open.created_at) && !nego.some(s => s.token !== open.token && fateOf(s).how === 'open')) {
+      const before = nego.find(s => String(s.created_at || '') < String(open.created_at || ''));
+      const was = before ? fateOf(before).how : null;
+      if (['expired', 'revoked', 'answered', 'undelivered', 'bounced'].includes(was))
+        out.fresh.push({ kind: 'reply', at: open.created_at, ...reachWho(open), by: reachUserName(open.created_by),
+          word: (open.channel || 'link') === 'word', was });
+    }
+  } else if (nego.length) {
+    const s = nego[0], f = fateOf(s);
+    out.last = { how: f.how, at: f.at, ...reachWho(s), sentAt: s.sent_at || s.created_at || null,
+      word: (s.channel || 'link') === 'word' };
+  } else {
+    /* Nothing they could ever answer on — say what they were sent instead, if
+       anything: a read-only copy is the commonest way a round "goes out" and
+       cannot come back. */
+    const other = rows.find(s => ['view', 'history', 'advise'].includes(sharePurposeOf(s)));
+    if (other) out.last = { how: 'readonly', at: other.created_at || null, ...reachWho(other),
+      sentAt: other.sent_at || other.created_at || null, word: false };
+  }
+  /* ---- EVERY PARTY THAT NEGOTIATES (27 Sep 2026, the blind spot closed) ----
+     `reply` stays ONE answer per contract — any party's live copy makes it
+     live, so the Negotiations list's bands are unchanged — but on a deal with
+     several parties at the table a party whose every copy has stopped
+     working is named here, and the agent lists it. A party that was never
+     sent a copy is the send screen's business, not a stuck link. */
+  let negParties = [];
+  try { negParties = srvPartiesNegotiating(c); } catch (_) { negParties = []; }
+  if (out.reply === 'live' && negParties.length > 1) {
+    const stuckP = [];
+    for (const p of negParties) {
+      const theirs = nego.filter(s => { const q = srvPartyOfShare(c, s); return q && q.id === p.id; });
+      if (!theirs.length || theirs.some(s => fateOf(s).how === 'open')) continue;
+      const s0 = theirs[0], f = fateOf(s0);
+      stuckP.push({ partyId: p.id, party: String(p.name || ''), how: f.how, at: f.at, ...reachWho(s0),
+        sentAt: s0.sent_at || s0.created_at || null, word: (s0.channel || 'link') === 'word' });
+    }
+    if (stuckP.length) out.parties = stuckP;
+  }
+  /* ---- A LINK ABOUT TO RUN OUT (27 Sep 2026: "warn before a link runs out")
+     ---- Said only where EVERY way back they hold ends inside the agent's
+     warning window (No link to sign's `soonDays`), so a deal with one link
+     ending and another open is not flagged. A Word file does not expire. */
+  const soonMs = (Number((agentCfg('link') || {}).soonDays) || 3) * 86400000;
+  const endsSoon = s => { const t = Date.parse(String((s && s.expires_at) || '')); return isFinite(t) && t > Date.now() && t - Date.now() <= soonMs; };
+  const soon = [];
+  if (out.reply === 'live' && !out.parties) {
+    const opens = nego.filter(s => fateOf(s).how === 'open');
+    if (opens.length && opens.every(s => (s.channel || 'link') !== 'word' && endsSoon(s))) {
+      const s0 = opens.slice().sort((a, b) => String(b.expires_at).localeCompare(String(a.expires_at)))[0];
+      soon.push({ kind: 'reply', token: s0.token, ends: s0.expires_at, ...reachWho(s0) });
+    }
+  }
+  /* ---- THE SIGNING HALF ---- a counterparty signer whose TURN has come
+     (signerTurn, the respond route's own reading of the route), and the links
+     that could carry their signature: bound to their row, or unbound and
+     addressed to them. A route never sent is not stuck; a file they sign
+     outside HaTi never has a link; a sealed contract has nothing left to sign. */
+  if (signRouteOf(c) !== 'outside' && !reachExecuted(c) && Array.isArray(c.signerPlan)) {
+    const signs = rows.filter(s => sharePurposeOf(s) === 'sign');
+    const theirs = c.signerPlan.filter(s => s && s.id != null && s.party === 'counterparty' && !s.signed);
+    const stuck = [];
+    if (signs.length) for (const row of theirs) {
+      let turn = null;
+      try { turn = signerTurn(c.id, row.id); } catch (_) { turn = null; }
+      if (!turn || !turn.ok) continue;
+      const mail = String(row.email || '').trim().toLowerCase();
+      const mine = signs.filter(s => String(s.signer_id || '') === String(row.id)
+        || (!s.signer_id && mail && String(s.recipient_email || '').trim().toLowerCase() === mail));
+      if (!mine.length) continue;
+      const live = mine.find(s => fateOf(s).how === 'open');
+      if (live && endsSoon(live) && !mine.some(s => s.token !== live.token && fateOf(s).how === 'open' && !endsSoon(s)))
+        soon.push({ kind: 'sign', token: live.token, ends: live.expires_at, ...reachWho(live),
+          signer: String(row.name || ''), signerEmail: String(row.email || '') });
+      if (live) {
+        const dead = mine.find(s => s.token !== live.token && String(s.created_at || '') < String(live.created_at || '')
+          && SIGN_STUCK_HOWS.includes(fateOf(s).how));
+        if (dead && reachRecent(live.created_at) && !out.fresh.some(x => x.kind === 'sign'))
+          out.fresh.push({ kind: 'sign', at: live.created_at, ...reachWho(live), by: reachUserName(live.created_by),
+            signer: String(row.name || ''), was: fateOf(dead).how });
+        continue;
+      }
+      const f = fateOf(mine[0]);
+      if (SIGN_STUCK_HOWS.includes(f.how)) stuck.push({ row, s: mine[0], f });
+    }
+    if (stuck.length) {
+      const x = stuck[0];
+      out.sign = { how: x.f.how, at: x.f.at, ...reachWho(x.s), sentAt: x.s.sent_at || x.s.created_at || null,
+        signer: String(x.row.name || ''), signerEmail: String(x.row.email || ''), n: stuck.length };
+    }
+  }
+  if (soon.length) out.soon = soon;
+  return out;
+}
+/* What leaves a signer with no way to sign: the link ran out, was cancelled,
+   was used up without a signature (a one-time link answered some other way —
+   the gap logged on 27 Sep), or its email was refused. */
+const SIGN_STUCK_HOWS = ['expired', 'revoked', 'answered', 'bounced'];
+/* The list's twin: every wanted contract on one page, their links in ONE
+   query. Written onto the rows as `_reach`. */
+function srvReachForRows(rows) {
+  const want = (rows || []).filter(srvReachWanted);
+  if (!want.length) return;
+  const ids = want.map(c => String(c.id));
+  const by = new Map();
+  for (const s of db.prepare(`SELECT ${REACH_COLS} FROM shares WHERE contract_id IN (${ids.map(() => '?').join(',')})
+      ORDER BY created_at DESC`).all(...ids)) {
+    const k = String(s.contract_id);
+    if (!by.has(k)) by.set(k, []);
+    by.get(k).push(s);
+  }
+  for (const c of want) {
+    try { c._reach = srvReach(c, { rows: by.get(String(c.id)) || [] }); } catch (_) {}
+  }
+}
+/* One contract, off the stored record — what a send's answer carries back. */
+function srvReachOf(contractId) {
+  try { const c = srvStoredContract(contractId); return c ? srvReach(c) : null; } catch (_) { return null; }
+}
+
 /* A durable link is refreshed in place, so its earlier copies are not other
    share rows — they are its own payload history. The baseline is the most
    recent earlier copy this reader actually opened whose wording differs from
@@ -13355,7 +13748,16 @@ app.get('/api/contracts/:id/shares', auth, (req, res) => {   // owner side: shar
      counterparty row is answered by their share. An internal row has no share,
      so its answer travels here — one fetch, one cache, and no chance of the two
      halves of one card disagreeing because they asked at different moments. */
-  res.json({ shares: rows.map(shareInfo), signerNotices: signerNoticesFor(req.params.id) });
+  /* WHETHER EACH STANDING LINK CAN STILL CARRY AN ANSWER BACK, and whether the
+     contract as a whole can (27 Sep 2026). A standing link a signing link has
+     retired still opens and still takes a refreshed copy, but nothing sent on
+     it is accepted — so a round refreshed onto it would reach nobody. The
+     round send and the share dialog read `answersBack` and mint a fresh link
+     instead; `reach` is srvReach, the one reading. */
+  const stored = srvStoredContract(req.params.id);
+  res.json({ shares: rows.map(s => { const x = shareInfo(s); if (s.durable) x.answersBack = shareAnswersBack(s); return x; }),
+    signerNotices: signerNoticesFor(req.params.id),
+    reach: stored ? srvReach(stored, { rows }) : null });
 });
 
 /* ---------- discussion: talking about a point without proposing wording ----------
@@ -13581,6 +13983,8 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
   if (!payload || payload.kind !== 'hati-share') return res.status(400).json({ error: 'Invalid share payload' });
   if (payload.contract && s.contract_id && payload.contract.id !== s.contract_id)
     return res.status(400).json({ error: 'That payload belongs to a different contract' });
+  /* Copilot's prepared answers to their round never reach them (runRoundPrep). */
+  if (payload.contract) delete payload.contract._roundPrep;
   /* ---- A LINK KEEPS THE KIND IT WAS MADE WITH ---- (Young, 13 Sep 2026.)
      What this route serves is decided by the ROW's purpose, never by the
      payload's — a history link hands out historyPayload, a contract link the
@@ -13671,7 +14075,7 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
   res.json({ ok: true, token: s.token, link, channel: s.channel || 'link', silent,
     notifySkipped: !silent && !notify,
     recipientEmail: s.recipient_email || null, recipientPhone: s.recipient_phone || null,
-    emailSent, emailConfigured: EMAIL_ON(), emailError });
+    emailSent, emailConfigured: EMAIL_ON(), emailError, reach: srvReachOf(s.contract_id) });
 });
 
 /* ---------- WP-1.6: A NEGOTIATE HOLDER MINTS A VIEW LINK ----------
@@ -13710,7 +14114,38 @@ app.post('/api/shares/:token/revoke', auth, editor, (req, res) => {
   if (!s || (s.contract_id && !idInScope(folderScopeFor(req.user), s.contract_id))) return res.status(404).json({ error: 'Share not found' });
   if (s.response && !s.durable) return res.status(409).json({ error: 'This share already has a response — it cannot be revoked' });
   if (!s.revoked_at) db.prepare('UPDATE shares SET revoked_at=? WHERE token=?').run(now(), s.token);
-  res.json({ ok: true });
+  /* Cancelling a link can leave them with no way to answer — said back at once. */
+  res.json({ ok: true, reach: srvReachOf(s.contract_id) });
+});
+
+/* ---- KEEP THEIR LINK WORKING (27 Sep 2026: "warn before a link runs out,
+   with a button to fix it early") ----
+   A link that is still OPEN is given more time — the same link, so nothing new
+   lands in their inbox and nothing they bookmarked stops working. Only a link
+   that could carry an answer or a signature now: a cancelled, spent or
+   already-ended link is replaced by a fresh one instead (its own door). The
+   new end is the standard length from today (SHARE_EXPIRY_DEFAULT_DAYS),
+   never shorter than what it had. Written on the contract's trail. */
+app.post('/api/shares/:token/extend', auth, editor, (req, res) => {
+  const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
+  if (!s || (s.contract_id && !idInScope(folderScopeFor(req.user), s.contract_id))) return res.status(404).json({ error: 'Share not found' });
+  if (s.revoked_at) return res.status(409).json({ error: 'This link was cancelled — send a fresh one instead.' });
+  if (shareExpired(s)) return res.status(409).json({ error: 'This link has already run out — send a fresh one instead.' });
+  if (s.response && !s.durable) return res.status(409).json({ error: 'This link has already been used — send a fresh one instead.' });
+  const days = Math.min(90, Math.max(1, Number((req.body || {}).days) || SHARE_EXPIRY_DEFAULT_DAYS));
+  const was = Date.parse(String(s.expires_at || '')) || 0;
+  const until = new Date(Math.max(was, Date.now() + days * 86400000)).toISOString();
+  db.prepare('UPDATE shares SET expires_at=? WHERE token=?').run(until, s.token);
+  try {
+    const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(s.contract_id);
+    if (row) {
+      const cj = JSON.parse(row.json);
+      cj.audit = (Array.isArray(cj.audit) ? cj.audit : []).concat([{ at: now(), user: req.user.name || 'System',
+        action: 'Shared', detail: `Link for ${s.recipient_name || s.recipient_email || 'the other side'} kept open until ${until.slice(0, 10)}` }]);
+      db.prepare('UPDATE contracts SET json=?, updated_at=? WHERE id=?').run(JSON.stringify(cj), now(), s.contract_id);
+    }
+  } catch (_) { /* the link is extended; a missing trail line must never undo it */ }
+  res.json({ ok: true, expiresAt: until, reach: srvReachOf(s.contract_id) });
 });
 
 app.post('/api/shares/:token/resend', auth, editor, rlShareSend, async (req, res) => {
@@ -14101,6 +14536,9 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
     }
   });
   notifyShareResponse(s, r);   // fire-and-forget: owner alert + counterparty receipt
+  /* THEIR ROUND CAME BACK — Copilot starts preparing our answers now, from
+     the answer as it arrived, whether or not anybody on our side is online. */
+  if (s.contract_id && r && Array.isArray(r.negoProposed) && r.negoProposed.length) roundPrepKick(s.contract_id);
   /* W2-3: the other side answered. The KIND of answer travels and nothing
      else — no wording, no decisions, no name — because this is a nudge to go
      and look, not a feed of what they said. */
@@ -14769,6 +15207,18 @@ function runDailyBriefs() {
       if (to) nextSignerEmail.set(r.id, String(to.email).toLowerCase());
     } catch (_) {}
   }
+  /* NO LINK TO SIGN rides the brief too (27 Sep 2026): each owner's stuck
+     deals, read once for the whole book (linkStuckBook — the agent's own
+     reading), every morning they stay stuck. */
+  const stuckByOwner = new Map();
+  try {
+    for (const { c, items } of linkStuckBook()) {
+      if (!items.length || c.archived || !c.owner || !c.owner.id) continue;
+      const k = String(c.owner.id);
+      if (!stuckByOwner.has(k)) stuckByOwner.set(k, []);
+      for (const it of items) stuckByOwner.get(k).push({ c, it });
+    }
+  } catch (_) {}
   let sent = 0;
   for (const u of members) {
     const every = briefCadence(u);
@@ -14785,7 +15235,9 @@ function runDailyBriefs() {
     const L = (u.lang && I18N_STRINGS[u.lang]) ? u.lang : I18N_DEFAULT;
     const isAdminU = u.role === 'admin';
     const uEmail = String(u.email).toLowerCase();
-    const S = { ob: [], rv: [], sign: [], exp: [], notice: [] };
+    const S = { ob: [], rv: [], sign: [], exp: [], notice: [], link: [] };
+    for (const x of (stuckByOwner.get(String(u.id)) || []))
+      if (inScope(scope, x.c.folder)) S.link.push({ line: linkStuckLine(L, x.c.name || x.c.id, x.it), id: x.c.id });
     for (const r of rows) {
       if (!inScope(scope, r.folder)) continue;
       const full = parsed.get(r.id) || {};
@@ -14827,7 +15279,7 @@ function runDailyBriefs() {
         }
       }
     }
-    const total = S.ob.length + S.rv.length + S.sign.length + S.exp.length + S.notice.length;
+    const total = S.ob.length + S.rv.length + S.sign.length + S.exp.length + S.notice.length + S.link.length;
     if (!total) continue;                                     // quiet days say nothing
     db.prepare('INSERT INTO reminders (rkey,created_at) VALUES (?,?)').run(rkey, now());
     const sec = (title, items) => items.length
@@ -14839,6 +15291,7 @@ function runDailyBriefs() {
       + sec(tFor(L, 'mail_db_ob'), S.ob) + sec(tFor(L, 'mail_db_rv'), S.rv)
       + sec(tFor(L, 'mail_db_sign'), S.sign) + sec(tFor(L, 'mail_db_exp'), S.exp)
       + sec(tFor(L, 'mail_db_notice'), S.notice)
+      + sec(tFor(L, 'mail_db_link'), S.link)
       + `${tFor(L, K.off)}\n\n${tFor(L, 'mail_automated_notice')}`;
     sendEmail(u.email, tFor(L, K.subject, { n: total }), body, every === 'weekly' ? 'weekly brief' : 'daily brief');
     sent++;
@@ -14891,24 +15344,12 @@ const RENEWAL_PREP_DAYS = 90;   // the desk's own window — RENEWAL_WINDOW_DAYS
 const RENEWAL_PREP_MAX = 20;    // one night's ceiling, before the money ceiling
 const renewalPrepOn = () => getSetting('aiRenewalPrep') !== false;   // absent = on
 const renewalPrepMax = () => intSetting('aiRenewalPrepMax', 'AI_RENEWAL_PREP_MAX', RENEWAL_PREP_MAX);
-/* ONE NIGHTLY ALLOWANCE FOR BOTH OVERNIGHT JOBS (the owner's list, 27 Sep
-   2026). The renewal notes and the standards reviews each read the limit and
-   each counted only their own calls, so one night could spend twice the
-   setting. The sweep now hands both jobs ONE allowance ({ left }); a job run
-   by hand from Settings gets its own. prepTake(budget) answers whether a call
-   may be made and counts it. */
-const prepBudget = () => ({ left: renewalPrepMax() });
-function prepTake(budget) {
-  if (!budget) return true;
-  if (budget.left <= 0) return false;
-  budget.left--; return true;
-}
 /* AN OUTAGE STOPS THE NIGHT, NOT EACH CONTRACT (the owner's list, 27 Sep
    2026): during a Copilot outage both sweeps called once for every waiting
    contract. Three failed calls in a row end that sweep for the night and say
    so (`outage`); one success resets the count. */
 const PREP_OUTAGE_STREAK = 3;
-async function runRenewalPrep(budget) {
+async function runRenewalPrep() {
   let streak = 0;
   const out = { looked: 0, prepared: 0, skipped: {} };
   if (!renewalPrepOn()) return { ...out, off: true };
@@ -14950,9 +15391,9 @@ async function runRenewalPrep(budget) {
     if (!owner) { bump('noOwner'); continue; }
     const rkey = `renewalprep:${c.id}:${decideBy}`;
     if (db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(rkey)) { bump('done'); continue; }
-    const ceiling = aiDailySpendLimit();
-    if (ceiling > 0 && aiSpendToday().cost >= ceiling) { out.ceiling = true; break; }
-    if (!prepTake(budget)) { out.cap = true; out.shared = true; break; }
+    /* The workspace's ceiling, then the agent's own limit (agentMaySpend). */
+    const stop = agentMaySpend('renew');
+    if (stop) { out[stop] = true; break; }
     const kids = rows.filter(r => r.id === c.id || r.parent_id === c.id);
     const signals = renewalSignalsOf(c.id, full, kids, parsed);
     try {
@@ -15009,13 +15450,16 @@ app.post('/api/renewal-prep/run', auth, admin, async (req, res) => res.json(awai
    the ordinary record fields through the row's json — c.playbook and one
    'Playbook' audit line, which is what the review panel reads for "when" —
    and never on an executed record, which is not a candidate anyway. */
-async function runPlaybookPrep(budget) {
+async function runPlaybookPrep() {
   let streak = 0;
   const out = { looked: 0, prepared: 0, skipped: {} };
-  if (!renewalPrepOn()) return { ...out, off: true };
+  /* New paper's OWN switch and cap now (27 Sep 2026) — it used to ride the
+     renewal switch, so turning renewal notes off stopped this too, unsaid. */
+  const cfg = agentCfg('paper');
+  if (!cfg.on) return { ...out, off: true };
   const key = aiKey();
   if (!key) return { ...out, noKey: true };
-  const cap = renewalPrepMax();
+  const cap = Number(cfg.max) || RENEWAL_PREP_MAX;
   const pb = workspacePlaybook();
   const rows = db.prepare("SELECT id,json FROM contracts WHERE status!='Declined' AND is_upload=1").all();
   const bump = k => { out.skipped[k] = (out.skipped[k] || 0) + 1; };
@@ -15034,9 +15478,8 @@ async function runPlaybookPrep(budget) {
     const pkey = pb ? copilotPlaybookKey(pb, c) : null;
     const resolved = pb ? copilotResolvePlaybook(pb, pkey) : null;
     if (!resolved) { bump('noPlaybook'); continue; }
-    const ceiling = aiDailySpendLimit();
-    if (ceiling > 0 && aiSpendToday().cost >= ceiling) { out.ceiling = true; break; }
-    if (!prepTake(budget)) { out.cap = true; out.shared = true; break; }
+    const stop = agentMaySpend('paper');
+    if (stop) { out[stop] = true; break; }
     try {
       const res = await aiPlaybookVerdicts(key, { text: aiDocText(null, wording), playbook: resolved, kind: copilotContractKind(c) },
         { feature: 'playbook', who: { id: String(owner.id), name: owner.name || String(owner.id) } });
@@ -15053,13 +15496,926 @@ async function runPlaybookPrep(budget) {
       cur.playbook = { key: pkey, label: resolved.label, verdicts: res.verdicts, source: 'ai', overnight: true, at: now() };
       cur.audit = (Array.isArray(cur.audit) ? cur.audit : []).concat([{ at: now(), user: 'HaTi', action: 'Playbook',
         detail: `Playbook review prepared overnight — ${res.verdicts.length} position${res.verdicts.length === 1 ? '' : 's'} checked (Copilot-assisted), charged to ${owner.name || owner.id}` }]);
-      db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(cur), r.id);
+      db.prepare('UPDATE contracts SET json=?, updated_at=? WHERE id=?').run(JSON.stringify(cur), now(), r.id);
       out.prepared++;
     } catch (e) { bump('failed'); if (++streak >= PREP_OUTAGE_STREAK) { out.outage = true; break; } }
   }
   return out;
 }
 app.post('/api/playbook-prep/run', auth, admin, async (req, res) => res.json(await runPlaybookPrep()));
+/* ============================================================================
+   NO LINK TO SIGN, BY THE CLOCK (Young ruled 27 Sep 2026: "we are notified
+   these contracts do not have a live link")
+   ============================================================================
+   The agent's page only ever knew about a stuck deal when somebody opened it.
+   Once a day this asks srvReach — the one reading — of every live deal, and
+   tells the contract's OWNER, once per stuck link, what is stuck and where to
+   fix it: the other side cannot answer our changes, one party of several
+   cannot, their signer's link is gone, or their only link is about to run
+   out. The same lines ride the daily brief (linkBriefLines). It sends no
+   link to the other side — a fresh link is a person's press.
+   ONCE PER STUCK LINK, not once a day: the reminders row is keyed on the
+   contract, the kind and WHEN the link stopped (or will stop), so a deal
+   that stays stuck is not mailed every morning, and a new stoppage is. */
+function linkStuckOf(c, R) {
+  const out = [];
+  if (!c || !R) return out;
+  if (c.hold && c.hold.at) return out;   // a dispute stops it, not the link
+  const ch = Array.isArray(c.changes) ? c.changes : [];
+  const ours = ch.some(x => x && x.status === 'pending' && !x.withdrawn && x.authorSide !== 'counterparty');
+  const theirs = ch.some(x => x && x.status === 'pending' && !x.withdrawn && x.authorSide === 'counterparty');
+  if (R.reply === 'none' && R.last && ours && !theirs)
+    out.push({ kind: 'reply', how: R.last.how, at: R.last.at || R.last.sentAt || '', to: R.last.to || R.last.email || '' });
+  for (const p of (R.parties || []))
+    out.push({ kind: 'party', how: p.how, at: p.at || p.sentAt || '', to: p.to || p.email || '', party: p.party || '', partyId: p.partyId });
+  if (R.sign) out.push({ kind: 'sign', how: R.sign.how, at: R.sign.at || R.sign.sentAt || '', to: R.sign.signer || R.sign.to || '' });
+  for (const s of (R.soon || []))
+    if (s.kind === 'sign' || (ours && !theirs))
+      out.push({ kind: s.kind === 'sign' ? 'soon-sign' : 'soon', at: s.ends || '', ends: s.ends || '', to: s.signer || s.to || s.email || '' });
+  return out;
+}
+/* One line of mail, in the reader's language. */
+function linkStuckLine(L, name, it) {
+  const day = String(it.at || '').slice(0, 10);
+  const how = tFor(L, 'mail_lw_how_' + (it.how || 'none'), { date: day });
+  if (it.kind === 'reply') return tFor(L, 'mail_lw_reply', { name, how, to: it.to });
+  if (it.kind === 'party') return tFor(L, 'mail_lw_party', { name, party: it.party || it.to, how });
+  if (it.kind === 'sign') return tFor(L, 'mail_lw_sign', { name, who: it.to, how });
+  if (it.kind === 'soon-sign') return tFor(L, 'mail_lw_soon_sign', { name, who: it.to, date: String(it.ends).slice(0, 10) });
+  return tFor(L, 'mail_lw_soon', { name, who: it.to, date: String(it.ends).slice(0, 10) });
+}
+/* Every stuck deal in the book, read once. */
+function linkStuckBook() {
+  const list = [];
+  for (const r of db.prepare("SELECT id,json FROM contracts WHERE status!='Declined'").all()) {
+    let c = null; try { c = JSON.parse(r.json); } catch (_) { continue; }
+    if (!c || !srvReachWanted(c)) continue;
+    let R = null; try { R = srvReach(c); } catch (_) { R = null; }
+    const items = linkStuckOf(c, R);
+    list.push({ c, items });
+  }
+  return list;
+}
+async function runLinkWatch() {
+  const out = { looked: 0, stuck: 0, soon: 0, told: 0, skipped: {} };
+  if (!agentCfg('link').on) return { ...out, off: true };
+  const bump = k => { out.skipped[k] = (out.skipped[k] || 0) + 1; };
+  const byOwner = new Map();
+  for (const { c, items } of linkStuckBook()) {
+    out.looked++;
+    if (!items.length) continue;
+    for (const it of items) { if (it.kind.startsWith('soon')) out.soon++; else out.stuck++; }
+    const owner = c.owner && c.owner.id ? c.owner : null;
+    if (!owner) { bump('noOwner'); continue; }
+    for (const it of items) {
+      const rkey = `linkwatch:${c.id}:${it.kind}:${it.partyId || ''}:${it.at || ''}`;
+      if (db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(rkey)) { bump('toldBefore'); continue; }
+      if (!byOwner.has(String(owner.id))) byOwner.set(String(owner.id), []);
+      byOwner.get(String(owner.id)).push({ c, it, rkey });
+    }
+  }
+  for (const [uid, rows] of byOwner) {
+    const u = db.prepare('SELECT * FROM users WHERE id=?').get(uid);
+    if (!u || !/.+@.+\..+/.test(String(u.email || ''))) { bump('noAddress'); continue; }
+    const L = (u.lang && I18N_STRINGS[u.lang]) ? u.lang : I18N_DEFAULT;
+    const lines = rows.map(x => `  • ${linkStuckLine(L, x.c.name || x.c.id, x.it)}\n    ${contractUrl(null, x.c.id, x.it.kind.includes('sign') ? 'sign' : null)}`);
+    const body = `${tFor(L, 'mail_hello')}${u.name ? ' ' + u.name : ''},\n\n${tFor(L, 'mail_lw_lead')}\n\n${lines.join('\n')}\n\n`
+      + `${tFor(L, 'mail_lw_where')}\n\n${tFor(L, 'mail_automated_notice')}`;
+    const r = await sendEmail(u.email, tFor(L, 'mail_lw_subject', { n: rows.length }), body, 'no link to sign');
+    /* THE OUTBOX IS DELIVERY: a message kept there because this server has no
+       provider has still been recorded where an admin reads it. Only a refusal
+       leaves the rows unmarked, so tomorrow tries again. */
+    if (r && (r.sent || r.provider === 'outbox' || !EMAIL_ON())) {
+      for (const x of rows) db.prepare('INSERT OR IGNORE INTO reminders (rkey,created_at) VALUES (?,?)').run(x.rkey, now());
+      out.told++;
+    } else bump('mailFailed');
+  }
+  return out;
+}
+/* ============================================================================
+   LATE PROMISES, BY THE CLOCK (27 Sep 2026: "a daily check drafts each chase,
+   a firmer second one after a set number of days, and the promise's owner is
+   told a chase is ready")
+   ============================================================================
+   Every morning, for every promise THE OTHER SIDE is late on (theirs, not
+   done, past its date, not held back by an earlier step in a payment chain —
+   the chase route's and the desk's own refusals):
+     · NEVER CHASED: the first, polite chase is ready.
+     · CHASED `secondAfter` days ago (the first, or a firm one since) and still
+       not done: a FIRMER chase is ready — the same facts, and the date the
+       first one went (srvChaseSend with `firm`).
+   Nothing is sent to the other side from here: the chase is a person's press
+   on the agent's page or the Obligations page, as it always was. What this
+   does is TELL the person who owns the promise here (its assignee, else the
+   contract's owner), by email, once per promise per stage — the reminders
+   table, keyed on the promise and the date its stage began — so a promise
+   that stays late is not mailed about every morning. */
+const LATE_TOO_OLD_DAYS = 90;   // a promise this late is a dispute, not a reminder
+const lateDays = (a, b) => Math.round((Date.parse(a + 'T00:00:00Z') - Date.parse(b + 'T00:00:00Z')) / 86400000);
+async function runLateChases() {
+  const cfg = agentCfg('late');
+  const out = { looked: 0, ready: 0, firm: 0, told: 0, skipped: {} };
+  if (!cfg.on) return { ...out, off: true };
+  const bump = k => { out.skipped[k] = (out.skipped[k] || 0) + 1; };
+  const today = aiToday();
+  const tell = new Map();          // person email → { who, rows }
+  const ownerOf = c => {
+    const oid = c && c.owner && c.owner.id;
+    if (!oid) return null;
+    const u = db.prepare('SELECT * FROM users WHERE id=?').get(String(oid));
+    return u && /.+@.+\..+/.test(String(u.email || '')) ? { email: u.email, name: u.name || '', lang: u.lang || null } : null;
+  };
+  for (const r of db.prepare("SELECT id,json FROM contracts WHERE status!='Declined'").all()) {
+    let c = null; try { c = JSON.parse(r.json); } catch (_) { continue; }
+    if (!c || c.archived || (c.hold && c.hold.at)) continue;
+    for (const o of (Array.isArray(c.obligations) ? c.obligations : [])) {
+      if (!o || String(o.party) !== 'theirs' || o.status === 'done') continue;
+      const due = dateOnly(o.due);
+      if (!due || due >= today) continue;
+      const late = lateDays(today, due);
+      if (late > LATE_TOO_OLD_DAYS) { bump('tooOld'); continue; }
+      if (srvObligationBlocked(c, o)) { bump('earlierStep'); continue; }
+      out.looked++;
+      let stage = 'first', since = due;
+      if (o.chasedAt) {
+        const last = dateOnly(o.chaseFirmAt) || dateOnly(o.chasedAt);
+        if (!last || lateDays(today, last) < (Number(cfg.secondAfter) || 7)) continue;
+        stage = 'firm'; since = last; out.firm++;
+      }
+      out.ready++;
+      const hasTo = /.+@.+\..+/.test(String(c.counterpartyEmail || '').trim());
+      if (!hasTo) bump('noAddress');
+      const rkey = `latechase:${stage}:${c.id}:${o.id}:${since}`;
+      if (db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(rkey)) { bump('toldBefore'); continue; }
+      const person = obligationRecipient(o.assignee) || ownerOf(c);
+      if (!person) { bump('nobodyToTell'); continue; }
+      const L = (person.lang && I18N_STRINGS[person.lang]) ? person.lang : I18N_DEFAULT;
+      const facts = { name: c.name || contractRef(c), desc: o.desc || '', days: late, first: String(o.chasedAt || '').slice(0, 10) };
+      const k = String(person.email).toLowerCase();
+      if (!tell.has(k)) tell.set(k, { who: person, rows: [] });
+      tell.get(k).rows.push({ rkey, line: tFor(L, !hasTo ? 'mail_lc_noaddr' : stage === 'firm' ? 'mail_lc_firm' : 'mail_lc_first', facts) });
+    }
+  }
+  for (const { who, rows } of tell.values()) {
+    const L = (who.lang && I18N_STRINGS[who.lang]) ? who.lang : I18N_DEFAULT;
+    const body = `${tFor(L, 'mail_hello')}${who.name ? ' ' + who.name : ''},\n\n${tFor(L, 'mail_lc_lead')}\n\n`
+      + rows.map(x => '  • ' + x.line).join('\n') + `\n\n${tFor(L, 'mail_lc_where')}`
+      + (APP_URL() ? `\n${APP_URL()}` : '') + `\n\n${tFor(L, 'mail_automated_notice')}`;
+    const mr = await sendEmail(who.email, tFor(L, 'mail_lc_subject', { n: rows.length }), body, 'late promises');
+    /* The outbox is delivery; only a refusal leaves the rows unmarked, so
+       tomorrow's run tries again. */
+    if (mr && (mr.sent || mr.provider === 'outbox')) {
+      for (const x of rows) db.prepare('INSERT OR IGNORE INTO reminders (rkey,created_at) VALUES (?,?)').run(x.rkey, now());
+      out.told++;
+    } else bump('mailFailed');
+  }
+  return out;
+}
+/* ============================================================================
+   THEIR ROUND CAME BACK — COPILOT PREPARES THE ANSWERS (27 Sep 2026: "when
+   their reply arrives, Copilot prepares accept / counter (with wording) /
+   escalate for each change, naming the standard it relies on. The answers
+   wait on the negotiation page, ready to press.")
+   ============================================================================
+   WHEN: the moment their answer reaches this server (the respond route) and
+   whenever a save files asks of theirs that have no answer yet (the PUT) —
+   so it is ready whether or not anybody's browser was open when they
+   replied — and on an admin's Run now, over every deal waiting.
+   WHAT: one Copilot call per contract, over every ask of theirs still on the
+   table with no prepared answer, against the workspace's standards for that
+   kind of contract. Each answer is accept, counter (with the clause wording
+   we would put back — the smallest change from THEIR words that meets our
+   standard) or escalate (a colleague must decide), with one sentence of why
+   and the standard it rests on.
+   WHERE IT GOES: its own table (round_prep), keyed by js/roundprep.js's
+   roundPrepKey — the clause and the words they proposed — never the record.
+   It rides GETs and the list as `_roundPrep` transport, stripped on save,
+   and never travels to the other side. NOTHING IS FILED: the negotiation
+   page draws the answer beside their ask, and Counter opens the clause
+   editor with the prepared wording as a card whose Apply is the only thing
+   that moves words — the funnel a person's edit uses, and no other.
+   WHO PAYS: the contract's owner (the renewal ruling). No owner, no call.
+   A CUT-SHORT ANSWER IS NOT KEPT, and each ask is tried at most once a day,
+   so a failing provider is not paid again on every save. */
+const { roundPrepKey, ROUND_PREP_VERDICTS } = require('../js/roundprep.js');
+db.exec(`CREATE TABLE IF NOT EXISTS round_prep (
+  contract_id TEXT NOT NULL, pkey TEXT NOT NULL, json TEXT NOT NULL, created_at TEXT NOT NULL,
+  PRIMARY KEY (contract_id, pkey));`);
+const ROUND_PREP_PER_CALL = 8;
+/* Every ask of theirs still on the table: the pending changes on the record,
+   and the proposals in an answer that has arrived but not yet been filed. */
+function roundAsksOf(c) {
+  const out = new Map();
+  const add = a => { const k = roundPrepKey(a.clauseId, a.newText); if (!out.has(k)) out.set(k, { ...a, pkey: k }); };
+  for (const x of (Array.isArray(c && c.changes) ? c.changes : [])) {
+    if (!x || x.authorSide !== 'counterparty' || x.status !== 'pending' || x.withdrawn) continue;
+    add({ clauseId: String(x.clauseId || ''), clauseLabel: x.clauseLabel || '', oldText: String(x.oldText || ''),
+      newText: String(x.newText == null ? '' : x.newText), why: x.why || '', type: x.changeType || 'modify' });
+  }
+  try {
+    /* A one-time link keeps its answer on the row; a standing link keeps every
+       round's answer in share_responses, each applied on its own. */
+    const waiting = db.prepare('SELECT response FROM shares WHERE contract_id=? AND response IS NOT NULL AND applied=0 AND durable=0').all(String(c.id))
+      .concat(db.prepare(`SELECT sr.response FROM share_responses sr JOIN shares s ON s.token=sr.token
+        WHERE s.contract_id=? AND sr.applied=0`).all(String(c.id)));
+    for (const r of waiting) {
+      let resp = null; try { resp = JSON.parse(r.response); } catch (_) { continue; }
+      for (const p of (Array.isArray(resp && resp.negoProposed) ? resp.negoProposed.slice(0, 200) : [])) {
+        if (!p || !p.clauseId) continue;
+        add({ clauseId: String(p.clauseId), clauseLabel: p.clauseLabel || '', oldText: String(p.oldText || ''),
+          newText: String(p.newText == null ? '' : p.newText), why: p.why || '', type: p.changeType || 'modify' });
+      }
+    }
+  } catch (_) {}
+  return [...out.values()];
+}
+/* The answers that belong to asks STILL on the table — the transport. */
+function roundPrepFor(c) {
+  if (!c || !c.id) return null;
+  const rows = db.prepare('SELECT pkey, json FROM round_prep WHERE contract_id=?').all(String(c.id));
+  if (!rows.length) return null;
+  const want = new Set(roundAsksOf(c).map(a => a.pkey));
+  const out = {};
+  for (const r of rows) { if (!want.has(r.pkey)) continue; try { out[r.pkey] = JSON.parse(r.json); } catch (_) {} }
+  return Object.keys(out).length ? out : null;
+}
+async function aiRoundAnswers(key, { asks, playbook, kind, party, counterparty, note, before }, meter) {
+  const J = orgJx();
+  const tool = {
+    name: 'round_answers',
+    description: 'Recommend how to answer each change the other side proposed.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        answers: { type: 'array', items: { type: 'object', properties: {
+          ask: { type: 'integer', description: 'The number of the ASK being answered, as given.' },
+          verdict: { type: 'string', enum: ROUND_PREP_VERDICTS,
+            description: 'accept = their change meets our standard or does no harm; counter = it goes too far and we put back wording that meets our standard; escalate = a colleague must decide (it crosses a line the standards say needs Legal, or the standards do not cover it and it matters).' },
+          why: { type: 'string', description: 'One plain sentence saying why, naming the standard or the fact in the wording it rests on.' },
+          standard: { type: 'string', description: 'The standards category it rests on, copied word for word, or empty where none applies.' },
+          wording: { type: 'string', description: 'Only for counter: the whole clause as we would put it back.' + AI_REDLINE_RULE(J.adjective)
+            + ' Start from THEIR proposed wording and change as little of it as meets the standard.' },
+        }, required: ['ask', 'verdict', 'why'] } },
+      },
+      required: ['answers'],
+    },
+  };
+  const list = asks.map((a, i) => `ASK ${i + 1} — ${a.clauseLabel || 'Clause ' + a.clauseId} (${a.type === 'deleteClause' ? 'they want it removed' : a.type === 'insertClause' ? 'a new clause they want added' : 'a change to the wording'})\nWHAT STANDS NOW:\n${a.oldText || '(nothing — a new clause)'}\nWHAT THEY PROPOSE:\n${a.newText || '(remove the clause)'}${a.why ? `\nTHEIR REASON: ${a.why}` : ''}`).join('\n\n');
+  const prompt = `You negotiate for ${party || 'our side'} under ${J.adjective} law, on a ${kind || 'contract'} with ${counterparty || 'the other side'}. The other side has proposed the changes below. For EACH ask, return exactly one answer — accept, counter or escalate — resting only on OUR STANDARDS below and the wording itself. Where the standards say nothing about an ask, say so in the why and judge it on its plain effect on us; never invent a standard. A counter carries the clause wording we would put back. Plain, everyday sentences. Return via round_answers.${sendBackPrompt(note, before)}\n\nOUR STANDARDS:\n${playbook ? JSON.stringify(playbook) : '(none written down for this kind of contract)'}\n\n${list}`;
+  const resp = await anthropicMessages(key, 'deep', { max_tokens: Math.min(8000, 900 + 700 * asks.length), tools: [tool],
+    tool_choice: { type: 'tool', name: 'round_answers' }, messages: [{ role: 'user', content: prompt }] },
+  { feature: 'round', who: (meter && meter.who) || null });
+  if (!resp.ok) return { ok: false, resp };
+  const block = (resp.data.content || []).find(b => b.type === 'tool_use');
+  if (!block) return { ok: false, resp, noResult: true };
+  return { ok: true, resp, answers: Array.isArray(block.input && block.input.answers) ? block.input.answers : [] };
+}
+async function runRoundPrep(cid, { force = false } = {}) {
+  const out = { looked: 0, prepared: 0, skipped: {} };
+  const bump = k => { out.skipped[k] = (out.skipped[k] || 0) + 1; };
+  if (!agentCfg('round').on) return { ...out, off: true };
+  const key = aiKey();
+  if (!key) return { ...out, noKey: true };
+  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(String(cid));
+  let c = null; try { c = row ? JSON.parse(row.json) : null; } catch (_) { c = null; }
+  if (!c || c.archived || reachExecuted(c)) { bump('notLive'); return out; }
+  const have = new Set(db.prepare('SELECT pkey FROM round_prep WHERE contract_id=?').all(String(c.id)).map(r => r.pkey));
+  const day = aiToday();
+  const asks = roundAsksOf(c).filter(a => force || !have.has(a.pkey));
+  out.looked = asks.length;
+  if (!asks.length) return out;
+  const owner = c.owner && c.owner.id ? c.owner : null;
+  if (!owner) { bump('noOwner'); return out; }
+  const todo = asks.filter(a => {
+    if (force) return true;
+    const tk = `roundprep:try:${c.id}:${a.pkey}:${day}`;
+    if (db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(tk)) { bump('triedToday'); return false; }
+    return true;
+  }).slice(0, Number(agentCfg('round').max) || 25);
+  const pb = workspacePlaybook();
+  const resolved = pb ? copilotResolvePlaybook(pb, copilotPlaybookKey(pb, c)) : null;
+  let party = '';
+  try { party = (srvContractParties(c).find(p => p.side === 'ours') || {}).name || ''; } catch (_) {}
+  for (let i = 0; i < todo.length; i += ROUND_PREP_PER_CALL) {
+    const stop = agentMaySpend('round');
+    if (stop) { out[stop] = true; break; }
+    const part = todo.slice(i, i + ROUND_PREP_PER_CALL);
+    for (const a of part) db.prepare('INSERT OR IGNORE INTO reminders (rkey,created_at) VALUES (?,?)').run(`roundprep:try:${c.id}:${a.pkey}:${day}`, now());
+    let r = null;
+    try {
+      r = await aiRoundAnswers(key, { asks: part, playbook: resolved, kind: copilotContractKind(c), party, counterparty: c.counterparty || '' },
+        { who: { id: String(owner.id), name: owner.name || String(owner.id) } });
+    } catch (e) { r = null; }
+    if (!r || !r.ok || r.resp.truncated) { bump(r && r.resp && r.resp.truncated ? 'cutShort' : 'failed'); continue; }
+    for (const ans of r.answers) {
+      const a = part[(Number(ans && ans.ask) || 0) - 1];
+      if (!a || !ROUND_PREP_VERDICTS.includes(ans.verdict)) continue;
+      const wording = ans.verdict === 'counter' ? String(ans.wording || '').trim() : '';
+      /* A COUNTER WITH NO WORDING IS NOT A COUNTER — said as the escalation it
+         really is, rather than a Counter press that fills in nothing. */
+      const verdict = ans.verdict === 'counter' && !wording ? 'escalate' : ans.verdict;
+      const rec = { v: 1, at: now(), verdict, why: String(ans.why || '').trim().slice(0, 600),
+        standard: String(ans.standard || '').trim().slice(0, 120), wording,
+        clauseId: a.clauseId, source: resolved ? resolved.label : '' };
+      db.prepare('INSERT INTO round_prep (contract_id,pkey,json,created_at) VALUES (?,?,?,?) ON CONFLICT(contract_id,pkey) DO UPDATE SET json=excluded.json, created_at=excluded.created_at')
+        .run(String(c.id), a.pkey, JSON.stringify(rec), now());
+      out.prepared++;
+    }
+  }
+  if (out.prepared) try { db.prepare('UPDATE contracts SET updated_at=? WHERE id=?').run(now(), String(c.id)); } catch (_) {}
+  return out;
+}
+/* RUN NOW: every live deal with an ask of theirs and no answer ready. */
+async function runRoundPrepAll() {
+  const out = { looked: 0, prepared: 0, contracts: 0, skipped: {} };
+  if (!agentCfg('round').on) return { ...out, off: true };
+  if (!aiKey()) return { ...out, noKey: true };
+  for (const r of db.prepare("SELECT id,json FROM contracts WHERE status!='Declined'").all()) {
+    let c = null; try { c = JSON.parse(r.json); } catch (_) { continue; }
+    if (!c || c.archived || reachExecuted(c) || !roundAsksOf(c).length) continue;
+    const one = await runRoundPrep(c.id);
+    out.looked += one.looked || 0; out.prepared += one.prepared || 0;
+    if (one.looked) out.contracts++;
+    for (const [k, n] of Object.entries(one.skipped || {})) out.skipped[k] = (out.skipped[k] || 0) + n;
+    for (const w of ['ceiling', 'agentLimit', 'noKey']) if (one[w]) { out[w] = true; }
+    if (out.ceiling || out.agentLimit) break;
+  }
+  return out;
+}
+/* THE EVENT: their answer arrived, or a save filed asks of theirs. Started
+   and left to finish — the request that caused it never waits on Copilot. */
+function roundPrepNeeded(cid) {
+  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(String(cid));
+  let c = null; try { c = row ? JSON.parse(row.json) : null; } catch (_) { return false; }
+  if (!c || c.archived || reachExecuted(c)) return false;
+  const have = new Set(db.prepare('SELECT pkey FROM round_prep WHERE contract_id=?').all(String(c.id)).map(r => r.pkey));
+  const day = aiToday();
+  return roundAsksOf(c).some(a => !have.has(a.pkey)
+    && !db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(`roundprep:try:${c.id}:${a.pkey}:${day}`));
+}
+function roundPrepKick(cid) {
+  if (!cid || !agentsAuto()) return;
+  try { if (!agentCfg('round').on || !aiKey() || !roundPrepNeeded(cid)) return; } catch (_) { return; }
+  setImmediate(() => { runAgent('round', 'event', null, () => runRoundPrep(String(cid)), { subject: String(cid) }).catch(() => {}); });
+}
+/* ============================================================================
+   ARCHIVE IMPORT READS ON THE SERVER (27 Sep 2026: "move the reading to the
+   server so it keeps going when you close the tab ... check each contract
+   against Our standards, and email whoever started the import when it's
+   done")
+   ============================================================================
+   The browser still does the quick local work of each file — reading the
+   bytes, the duplicate checks, the text (and a scan's machine-reading) — and
+   files each contract at once. The SLOW, PAID part, Copilot reading the text
+   for its key terms, used to happen in that same tab, one file after another,
+   and stopped the moment the tab closed. Now the browser hands each file's
+   text to this queue (POST /api/import/read) and the Archive import agent
+   reads them here, one after another, whether anybody is watching or not:
+     1. the SAME question the extract route asks (aiExtractCall);
+     2. the figures the file's own manifest row or the person gave WIN over a
+        guess (the seed, exactly as migExtract applies it), and a scan's
+        answers are never "high" (the OCR cap, mirrored below);
+     3. the reading is written onto the stored contract — its key terms, the
+        counterparty / value / end date where the file left them empty, the
+        stream where the stream was left to the type — and js/migread.js
+        decides whether a person has to check it (the browser's own rule);
+     4. the contract is checked against Our standards for its kind (the
+        overnight standards review's own call), where the workspace has any;
+     5. when the last file of a batch is read, the person who started it is
+        told by email: how many were read, how many need them.
+   WHO PAYS: whoever started the import (the drawing's "Whoever started it"),
+   through the onboarding allowance where one is open, else the day's budget
+   and this agent's own limit. A failed reading leaves the file filed with
+   what the browser could tell, marked for a person to check — never silent. */
+const MIG_READ = require('../js/migread.js');
+db.exec(`CREATE TABLE IF NOT EXISTS import_queue (
+  id TEXT PRIMARY KEY, contract_id TEXT NOT NULL, batch TEXT, text TEXT NOT NULL, seed TEXT, ocr INTEGER NOT NULL DEFAULT 0,
+  folder_auto INTEGER NOT NULL DEFAULT 0, allowance INTEGER NOT NULL DEFAULT 0,
+  by_id TEXT, by_name TEXT, status TEXT NOT NULL DEFAULT 'queued', note TEXT,
+  created_at TEXT NOT NULL, done_at TEXT);
+  CREATE INDEX IF NOT EXISTS idx_import_queue_status ON import_queue(status, created_at);
+  CREATE INDEX IF NOT EXISTS idx_import_queue_batch ON import_queue(batch);`);
+/* A scan's reading is never "high" — js/ocr.js capConfidenceForOcr, line for
+   line (f413 runs both over the same answer). */
+function srvCapForOcr(meta) {
+  if (!meta) return meta;
+  meta.confidence = meta.confidence || {};
+  for (const k of Object.keys(meta.confidence)) if (meta.confidence[k] === 'high') meta.confidence[k] = 'medium';
+  meta._ocrCapped = true;
+  return meta;
+}
+/* The seed wins, and is marked as certain — migExtract's own rule. */
+function srvSeedMeta(meta, seed) {
+  if (!seed || typeof seed !== 'object') return meta;
+  meta.confidence = meta.confidence || {};
+  for (const [k, v] of Object.entries(seed)) if (v != null && v !== '') { meta[k] = v; meta.confidence[k] = 'high'; }
+  return meta;
+}
+app.post('/api/import/read', auth, editor, (req, res) => {
+  const items = Array.isArray((req.body || {}).items) ? req.body.items.slice(0, 100) : [];
+  if (!items.length) return res.status(400).json({ error: 'Nothing to read.' });
+  if (!agentCfg('import').on) return res.status(409).json({ error: 'Archive import is switched off in its settings.', off: true });
+  if (!aiKey()) return res.status(409).json({ error: 'Copilot engine not configured', needsKey: true });
+  const scope = folderScopeFor(req.user);
+  const queued = [];
+  for (const it of items) {
+    const id = String((it && it.contractId) || '');
+    const text = String((it && it.text) || '');
+    if (!id || text.length < 200 || !idInScope(scope, id)) continue;
+    const qid = 'iq_' + rid(8);
+    db.prepare(`INSERT INTO import_queue (id,contract_id,batch,text,seed,ocr,folder_auto,allowance,by_id,by_name,created_at)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?)`).run(qid, id, String(it.batch || '').slice(0, 40), text,
+      it.seed && typeof it.seed === 'object' ? JSON.stringify(it.seed) : null, it.ocr ? 1 : 0, it.folderAuto ? 1 : 0,
+      it.allowance ? 1 : 0, String(req.user.id), req.user.name || req.user.email || '', now());
+    queued.push(id);
+  }
+  if (queued.length) {
+    const who = { id: String(req.user.id), name: req.user.name || req.user.email || String(req.user.id) };
+    setImmediate(() => { runAgent('import', 'start', who, () => runImportQueue()).catch(() => {}); });
+  }
+  res.json({ ok: true, queued });
+});
+/* What is still to read, for the import page and the agent — per batch. */
+app.get('/api/import/queue', auth, (req, res) => {
+  const rows = db.prepare(`SELECT batch, status, COUNT(*) AS n FROM import_queue
+    WHERE status IN ('queued','reading') OR done_at > ? GROUP BY batch, status`).all(new Date(Date.now() - 86400000).toISOString());
+  res.json({ rows });
+});
+async function runImportQueue() {
+  const out = { read: 0, needReview: 0, checked: 0, failed: 0, told: 0, skipped: {} };
+  const bump = k => { out.skipped[k] = (out.skipped[k] || 0) + 1; };
+  if (!agentCfg('import').on) return { ...out, off: true };
+  const key = aiKey();
+  if (!key) return { ...out, noKey: true };
+  const batches = new Set();
+  const pb = workspacePlaybook();
+  for (;;) {
+    const q = db.prepare("SELECT * FROM import_queue WHERE status='queued' ORDER BY created_at LIMIT 1").get();
+    if (!q) break;
+    db.prepare("UPDATE import_queue SET status='reading' WHERE id=?").run(q.id);
+    if (q.batch) batches.add(q.batch);
+    const finish = (status, note) => db.prepare('UPDATE import_queue SET status=?, note=?, done_at=? WHERE id=?').run(status, note || null, now(), q.id);
+    const useAllowance = !!q.allowance && !!allowanceLive();
+    const stop = useAllowance ? null : agentMaySpend('import');
+    if (stop) {
+      /* Everything still queued waits for tomorrow's budget rather than being
+         read by nobody: put this one back, and say why the run stopped. */
+      db.prepare("UPDATE import_queue SET status='queued' WHERE id=?").run(q.id);
+      out[stop] = true; break;
+    }
+    const who = { id: String(q.by_id || ''), name: q.by_name || String(q.by_id || '') };
+    let r = null;
+    /* aiDocText is the ONE ceiling for one contract, and it says so in the
+       text where it cuts (A CAP IS A FACT). */
+    try { r = await aiExtractCall(key, { text: aiDocText(null, q.text) }, { allowance: useAllowance, who }); } catch (e) { r = null; }
+    if (useAllowance) try { drawAllowance(0, 1); } catch (_) {}
+    if (!r || !r.ok) { out.failed++; finish('failed', r && r.resp ? String(r.resp.error || r.resp.status || '').slice(0, 200) : 'no answer'); continue; }
+    let seed = null; try { seed = q.seed ? JSON.parse(q.seed) : null; } catch (_) { seed = null; }
+    const meta = r.metadata || {};
+    if (r.sourceSpans) meta.sourceSpans = r.sourceSpans;
+    if (q.ocr) srvCapForOcr(meta);
+    srvSeedMeta(meta, seed);
+    meta._source = 'ai';
+    /* 4. OUR STANDARDS first, where the workspace has any for this kind —
+       asked before the record is read back, so everything below is written
+       in one synchronous step onto the copy as it stands at that moment and
+       no save made while Copilot was thinking can be lost. */
+    let peek = null;
+    try { const pr = db.prepare('SELECT json FROM contracts WHERE id=?').get(q.contract_id); peek = pr ? JSON.parse(pr.json) : null; } catch (_) { peek = null; }
+    if (!peek) { bump('gone'); finish('failed', 'the contract is no longer there'); continue; }
+    let standards = null;
+    if (pb && !(peek.playbook && Array.isArray(peek.playbook.verdicts) && peek.playbook.verdicts.length)) {
+      const probe = { ...peek, metadata: { ...(peek.metadata || {}), ...meta } };
+      const pkey = copilotPlaybookKey(pb, probe);
+      const resolved = copilotResolvePlaybook(pb, pkey);
+      const stop2 = useAllowance ? null : agentMaySpend('import');
+      if (resolved && !stop2 && q.text.length >= COPILOT_PB_TEXT_MIN) {
+        try {
+          const v = await aiPlaybookVerdicts(key, { text: aiDocText(null, q.text), playbook: resolved, kind: copilotContractKind(probe) },
+            { feature: 'playbook', who });
+          if (v.ok && !v.resp.truncated && Array.isArray(v.verdicts))
+            standards = { key: pkey, label: resolved.label, verdicts: v.verdicts, source: 'ai', overnight: true, at: now() };
+          else bump('standardsFailed');
+        } catch (_) { bump('standardsFailed'); }
+      } else if (!resolved) bump('noStandards');
+    }
+    const row = db.prepare('SELECT json, version FROM contracts WHERE id=?').get(q.contract_id);
+    let c = null; try { c = row ? JSON.parse(row.json) : null; } catch (_) { c = null; }
+    if (!c) { bump('gone'); finish('failed', 'the contract is no longer there'); continue; }
+    /* A PERSON'S CONFIRMATION WINS. Where somebody already checked this
+       contract's details while it waited, their answers stand. */
+    if (c.migration && c.migration.needsReview === false) { bump('alreadyChecked'); finish('done', 'already checked'); continue; }
+    c.metadata = { ...(c.metadata || {}), ...meta };
+    if (!String(c.counterparty || '').trim() && meta.counterparty) c.counterparty = String(meta.counterparty);
+    if (!(Number(c.value) > 0) && Number(meta.value) > 0) { c.value = Number(meta.value); c.valueType = 'estimated'; }
+    if (!c.expiry && meta.expiryDate) c.expiry = String(meta.expiryDate);
+    if (q.folder_auto) {
+      const f = MIG_READ.folderFromType(meta.contractType);
+      if (f && f !== c.folder) c.folder = f;
+    }
+    if (standards && !(c.playbook && Array.isArray(c.playbook.verdicts) && c.playbook.verdicts.length)) { c.playbook = standards; out.checked++; }
+    c.migration = { ...(c.migration || {}), reading: null, readAt: now(), aiSource: 'ai',
+      needsReview: MIG_READ.migReadNeedsReview(meta, { valueNone: c.valueType === 'none', ocr: !!q.ocr }) };
+    c.audit = (Array.isArray(c.audit) ? c.audit : []).concat([{ at: now(), user: 'HaTi', action: 'Migrated',
+      detail: `Key terms read by Copilot${q.by_name ? ` for ${q.by_name}` : ''}${c.migration.needsReview ? ' — waiting for somebody to check them' : ''}${standards ? `; checked against ${standards.label}` : ''}` }]);
+    /* A NEW VERSION, deliberately: this is new content on the record, and a
+       browser still holding the copy from before the reading must be told
+       (the save's own "changed on the server" question) rather than quietly
+       saving the unread copy back over it. */
+    upsertContract(c, row.version + 1);
+    out.read++;
+    if (c.migration.needsReview) out.needReview++;
+    finish('done');
+  }
+  /* 5. A BATCH WITH NOTHING LEFT TO READ TELLS WHOEVER STARTED IT — once. */
+  for (const b of batches) {
+    const left = db.prepare("SELECT COUNT(*) AS n FROM import_queue WHERE batch=? AND status IN ('queued','reading')").get(b).n;
+    if (left) continue;
+    const rkey = `importdone:${b}`;
+    if (db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(rkey)) continue;
+    const rows = db.prepare('SELECT contract_id, status, by_id FROM import_queue WHERE batch=?').all(b);
+    const byId = rows[0] && rows[0].by_id;
+    const u = byId ? db.prepare('SELECT * FROM users WHERE id=?').get(String(byId)) : null;
+    if (!u || !/.+@.+\..+/.test(String(u.email || ''))) { bump('nobodyToTell'); continue; }
+    let check = 0;
+    for (const x of rows) {
+      const cr = db.prepare('SELECT json FROM contracts WHERE id=?').get(x.contract_id);
+      try { const cj = cr ? JSON.parse(cr.json) : null; if (cj && cj.migration && cj.migration.needsReview) check++; } catch (_) {}
+    }
+    const read = rows.filter(x => x.status === 'done').length, failed = rows.filter(x => x.status === 'failed').length;
+    const L = (u.lang && I18N_STRINGS[u.lang]) ? u.lang : I18N_DEFAULT;
+    const body = `${tFor(L, 'mail_hello')}${u.name ? ' ' + u.name : ''},\n\n`
+      + tFor(L, 'mail_im_body', { batch: b, read, check }) + (failed ? '\n\n' + tFor(L, 'mail_im_failed', { n: failed }) : '')
+      + `\n\n${tFor(L, 'mail_im_where')}` + (APP_URL() ? `\n${APP_URL()}` : '') + `\n\n${tFor(L, 'mail_automated_notice')}`;
+    const mr = await sendEmail(u.email, tFor(L, 'mail_im_subject', { batch: b }), body, 'import read');
+    if (mr && (mr.sent || mr.provider === 'outbox')) {
+      db.prepare('INSERT OR IGNORE INTO reminders (rkey,created_at) VALUES (?,?)').run(rkey, now());
+      out.told++;
+    } else bump('mailFailed');
+  }
+  return out;
+}
+/* A queue left mid-read by a restart carries on at boot. */
+setTimeout(() => {
+  try {
+    db.prepare("UPDATE import_queue SET status='queued' WHERE status='reading'").run();
+    if (agentsAuto() && db.prepare("SELECT 1 FROM import_queue WHERE status='queued' LIMIT 1").get())
+      runAgent('import', 'start', null, () => runImportQueue()).catch(() => {});
+  } catch (_) {}
+}, 20 * 1000).unref?.();
+/* ============================================================================
+   SEND BACK WITH A NOTE (27 Sep 2026, from the "Work Board Options" drawing:
+   "tell Copilot what it got wrong and it redoes the work")
+   ============================================================================
+   Three things Copilot prepares can be sent back: an answer to one of their
+   asks (round), a renewal recommendation (renew) and the standards check on
+   new paper (paper). The note and Copilot's earlier answer go into the SAME
+   question the work was first done with (sendBackPrompt), and the new answer
+   takes the old one's place — for the round and the renewal in their own
+   tables, for the standards check on the record, as a new version with a line
+   on the trail. WHO PAYS: the person who sent it back — it is their press.
+   It is logged as a run of that agent ('sendback'), with its cost. */
+async function roundRedo(cid, pkey, note, who) {
+  const out = { prepared: 0, skipped: {} };
+  const key = aiKey(); if (!key) return { ...out, noKey: true };
+  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(String(cid));
+  let c = null; try { c = row ? JSON.parse(row.json) : null; } catch (_) { c = null; }
+  if (!c) return { ...out, gone: true };
+  const ask = roundAsksOf(c).find(a => a.pkey === pkey);
+  if (!ask) return { ...out, gone: true };
+  const stop = agentMaySpend('round'); if (stop) return { ...out, [stop]: true };
+  const prevRow = db.prepare('SELECT json FROM round_prep WHERE contract_id=? AND pkey=?').get(String(c.id), pkey);
+  let before = null; try { before = prevRow ? JSON.parse(prevRow.json) : null; } catch (_) { before = null; }
+  const pb = workspacePlaybook();
+  const resolved = pb ? copilotResolvePlaybook(pb, copilotPlaybookKey(pb, c)) : null;
+  let party = ''; try { party = (srvContractParties(c).find(p => p.side === 'ours') || {}).name || ''; } catch (_) {}
+  const r = await aiRoundAnswers(key, { asks: [ask], playbook: resolved, kind: copilotContractKind(c), party,
+    counterparty: c.counterparty || '', note, before: before ? { verdict: before.verdict, why: before.why, wording: before.wording } : null }, { who });
+  if (!r.ok || r.resp.truncated) return { ...out, failed: true };
+  const ans = r.answers.find(x => Number(x && x.ask) === 1) || r.answers[0];
+  if (!ans || !ROUND_PREP_VERDICTS.includes(ans.verdict)) return { ...out, failed: true };
+  const wording = ans.verdict === 'counter' ? String(ans.wording || '').trim() : '';
+  const rec = { v: 1, at: now(), verdict: ans.verdict === 'counter' && !wording ? 'escalate' : ans.verdict,
+    why: String(ans.why || '').trim().slice(0, 600), standard: String(ans.standard || '').trim().slice(0, 120),
+    wording, clauseId: ask.clauseId, source: resolved ? resolved.label : '',
+    sentBack: { note: String(note).slice(0, SENDBACK_NOTE_MAX), by: (who && who.name) || '' } };
+  db.prepare('INSERT INTO round_prep (contract_id,pkey,json,created_at) VALUES (?,?,?,?) ON CONFLICT(contract_id,pkey) DO UPDATE SET json=excluded.json, created_at=excluded.created_at')
+    .run(String(c.id), pkey, JSON.stringify(rec), now());
+  db.prepare('UPDATE contracts SET updated_at=? WHERE id=?').run(now(), String(c.id));
+  return { ...out, prepared: 1, answer: rec };
+}
+async function renewRedo(cid, note, who) {
+  const key = aiKey(); if (!key) return { noKey: true };
+  const stop = agentMaySpend('renew'); if (stop) return { [stop]: true };
+  const kids = db.prepare('SELECT id,name,counterparty,expiry,status,parent_id,json FROM contracts WHERE parent_id=? OR id=?').all(String(cid), String(cid));
+  const parsed = new Map();
+  for (const r of kids) { let f = {}; try { f = JSON.parse(r.json) || {}; } catch (_) {} parsed.set(r.id, f); }
+  const full = parsed.get(String(cid));
+  if (!full) return { gone: true };
+  const signals = renewalSignalsOf(String(cid), full, kids, parsed);
+  const prev = db.prepare('SELECT json FROM renewal_advice WHERE contract_id=?').get(String(cid));
+  let before = null; try { before = prev ? (JSON.parse(prev.json) || {}).data : null; } catch (_) { before = null; }
+  const r = await aiRenewalAdvice(key, { id: String(cid), signals, doc: aiDocText(null, contractFullBody(full)),
+    by: (who && who.name) || '', note, before }, { who });
+  if (!r.ok || r.resp.truncated) return { failed: true };
+  db.prepare('UPDATE contracts SET updated_at=? WHERE id=?').run(now(), String(cid));
+  return { prepared: 1, advice: r.advice };
+}
+async function paperRedo(cid, note, who) {
+  const key = aiKey(); if (!key) return { noKey: true };
+  const stop = agentMaySpend('paper'); if (stop) return { [stop]: true };
+  const pb = workspacePlaybook();
+  const row0 = db.prepare('SELECT json FROM contracts WHERE id=?').get(String(cid));
+  let c0 = null; try { c0 = row0 ? JSON.parse(row0.json) : null; } catch (_) { c0 = null; }
+  if (!c0) return { gone: true };
+  if (isExecutedRow(c0)) return { executed: true };
+  const pkey = pb ? copilotPlaybookKey(pb, c0) : null;
+  const resolved = pb ? copilotResolvePlaybook(pb, pkey) : null;
+  if (!resolved) return { noStandards: true };
+  const wording = copilotContractWording(c0);
+  if (wording.length < COPILOT_PB_TEXT_MIN) return { noText: true };
+  const before = (c0.playbook && Array.isArray(c0.playbook.verdicts))
+    ? c0.playbook.verdicts.map(v => ({ category: v.category, status: v.status })) : null;
+  const v = await aiPlaybookVerdicts(key, { text: aiDocText(null, wording), playbook: resolved, kind: copilotContractKind(c0), note, before },
+    { feature: 'playbook', who });
+  if (!v.ok || v.resp.truncated || !Array.isArray(v.verdicts)) return { failed: true };
+  /* Read back and written in one synchronous step, as a new version — the
+     import reading's rule. */
+  const row = db.prepare('SELECT json, version FROM contracts WHERE id=?').get(String(cid));
+  let c = null; try { c = row ? JSON.parse(row.json) : null; } catch (_) { c = null; }
+  if (!c || isExecutedRow(c)) return { gone: true };
+  c.playbook = { key: pkey, label: resolved.label, verdicts: v.verdicts, source: 'ai', at: now(),
+    sentBack: { note: String(note).slice(0, SENDBACK_NOTE_MAX), by: (who && who.name) || '' } };
+  c.audit = (Array.isArray(c.audit) ? c.audit : []).concat([{ at: now(), user: (who && who.name) || 'HaTi', action: 'Playbook',
+    detail: `Standards check sent back to Copilot with a note — "${String(note).slice(0, 200)}" — and done again (${v.verdicts.length} position${v.verdicts.length === 1 ? '' : 's'} checked)` }]);
+  upsertContract(c, row.version + 1);
+  return { prepared: 1, playbook: c.playbook, version: row.version + 1 };
+}
+app.post('/api/agents/:k/sendback', auth, editor, async (req, res) => {
+  const k = String(req.params.k);
+  if (!['round', 'renew', 'paper'].includes(k)) return res.status(400).json({ error: 'This agent’s work cannot be sent back.' });
+  const b = req.body || {};
+  const note = String(b.note || '').trim();
+  if (!note) return res.status(400).json({ error: 'Write a note saying what to change.' });
+  if (note.length > SENDBACK_NOTE_MAX) return res.status(400).json({ error: `Keep the note under ${SENDBACK_NOTE_MAX} characters.` });
+  const cid = String(b.contractId || '');
+  if (!cid || !idInScope(folderScopeFor(req.user), cid)) return res.status(404).json({ error: 'Contract not found' });
+  if (!aiKey()) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  const who = aiWho(req);
+  const go = k === 'round' ? () => roundRedo(cid, String(b.key || ''), note, who)
+    : k === 'renew' ? () => renewRedo(cid, note, who) : () => paperRedo(cid, note, who);
+  const out = await runAgent(k, 'sendback', who, go, { subject: cid });
+  if (out.busy) return res.status(409).json({ error: 'Copilot is already working on this one. Try again in a moment.', busy: true });
+  if (out.ceiling || out.agentLimit) return res.status(429).json({ error: out.ceiling
+    ? 'Today’s Copilot budget is used up, so it was not sent back. An admin can raise it in Settings.'
+    : 'This agent has spent its limit for today, so it was not sent back. An admin can raise it in its settings.', ...out });
+  if (out.gone) return res.status(409).json({ error: 'That is no longer waiting — it may have been answered already.', ...out });
+  if (out.failed || out.error) return res.status(502).json({ error: 'Copilot could not do it again just now. Nothing was changed — try again.', ...out });
+  if (out.noStandards) return res.status(409).json({ error: 'There are no standards written down for this kind of contract to check it against.', ...out });
+  res.json({ ok: true, ...out });
+});
+/* ============================================================================
+   COPILOT'S AGENTS — THE ENGINE ROOM (Young ruled 27 Sep 2026: "implement all
+   the fixes", over the agents review)
+   ============================================================================
+   Copilot's work drew six agents, and four of them only ever READ what was
+   already on the book: nothing started them, nothing recorded what they did,
+   and the page could not say when one last ran. This is the half that makes
+   them agents — the same shape the renewal preparation already had, given to
+   all six:
+     · A TRIGGER. Four run by the clock (AGENT_SCHEDULED, once a day at the
+       workspace hour an admin chose), one when the other side's round arrives
+       (round), one when a person starts it (import).
+     · A LOG. Every run is a row in agent_runs: when, why (schedule · now ·
+       event · start), who pressed, what it looked at, did, skipped and WHY,
+       and what it cost — measured by the meter itself (recordAiSpend adds each
+       call's price to the run whose context it runs in), never estimated.
+     · LIMITS. Each agent has its own switch, its own per-run cap and its own
+       money limit for the day, UNDER the workspace's ceiling, never over it.
+     · A FAILURE IS SAID. A run that throws is logged with its reason and drops
+       the same admin-visible note the sweeps drop (the M-6 lesson), under its
+       OWN catch, so no agent can take another down.
+   COPILOT PREPARES, A PERSON PRESSES. No agent sends anything to the other
+   side by itself: a chase, a fresh link, an answer to their round are all
+   prepared here and sent by somebody's press.
+   IN THE TEST HARNESS the clock and the events are off (HATI_AGENTS_AUTO=off,
+   set by test/helpers.js startHati) so no stage is changed underneath its own
+   assertions; a test that is about an agent turns it on or presses Run now. */
+db.exec(`
+  CREATE TABLE IF NOT EXISTS agent_runs (
+    id TEXT PRIMARY KEY, agent TEXT NOT NULL, trigger TEXT NOT NULL,
+    subject TEXT, by_id TEXT, by_name TEXT,
+    started_at TEXT NOT NULL, finished_at TEXT, day TEXT NOT NULL,
+    result TEXT, cost REAL NOT NULL DEFAULT 0, error TEXT);
+  CREATE INDEX IF NOT EXISTS idx_agent_runs_agent ON agent_runs(agent, started_at);
+  CREATE INDEX IF NOT EXISTS idx_agent_runs_day ON agent_runs(day, agent);
+`);
+const AGENT_KEYS = ['round', 'link', 'renew', 'paper', 'late', 'import'];
+/* The four that run by the clock, and the hour each runs at by default: the
+   overnight readings before anybody arrives, the chases and the link check at
+   the start of the working day (the drawing's "every morning at 07:00"). */
+const AGENT_SCHEDULED = ['link', 'late', 'renew', 'paper'];
+const AGENT_DEFAULTS = {
+  round:  { on: true, max: 25, limit: 3 },
+  link:   { on: true, at: 7, soonDays: 3 },
+  renew:  { on: true, max: RENEWAL_PREP_MAX, at: 2, limit: 2 },
+  paper:  { on: true, max: RENEWAL_PREP_MAX, at: 2, limit: 3 },
+  late:   { on: true, at: 7, secondAfter: 7 },
+  import: { on: true, limit: 0 },
+};
+/* How many earlier runs the page is shown — A CAP IS A FACT: the route says
+   how many more there were. */
+const AGENT_RUNS_SHOWN = 10;
+const agentsAuto = () => String(process.env.HATI_AGENTS_AUTO || '').toLowerCase() !== 'off';
+function agentCfg(k) {
+  const d = AGENT_DEFAULTS[k] || {};
+  const all = getSetting('agentCfg') || {};
+  const own = (all && typeof all === 'object' && all[k] && typeof all[k] === 'object') ? all[k] : {};
+  const cfg = { ...d, ...own };
+  /* THE RENEWAL SWITCH IS THE ONE IT ALWAYS WAS: Copilot engine's "Prepare
+     renewal notes" and this agent's switch are one setting, not two that can
+     disagree. */
+  if (k === 'renew') { cfg.on = renewalPrepOn(); cfg.max = renewalPrepMax(); }
+  return cfg;
+}
+function agentSetCfg(k, patch) {
+  if (k === 'renew') {
+    if (patch.on !== undefined) setSetting('aiRenewalPrep', !!patch.on);
+    if (patch.max !== undefined) setSetting('aiRenewalPrepMax', patch.max);
+    patch = { ...patch }; delete patch.on; delete patch.max;
+  }
+  const all = getSetting('agentCfg') || {};
+  all[k] = { ...(all[k] || {}), ...patch };
+  setSetting('agentCfg', all);
+}
+/* What this agent has spent today, the runs already finished plus the one in
+   flight — the money limit is asked of both. */
+function agentSpentToday(k) {
+  const r = db.prepare('SELECT COALESCE(SUM(cost),0) AS c FROM agent_runs WHERE agent=? AND day=?').get(k, aiToday());
+  return Number((r && r.c) || 0);
+}
+/* MAY THIS RUN SPEND AGAIN? null = yes; otherwise the reason it may not, in a
+   word the page translates. The workspace ceiling first (the owner's money),
+   then the agent's own limit. */
+function agentMaySpend(k) {
+  const ceiling = aiDailySpendLimit();
+  if (ceiling > 0 && aiSpendToday().cost >= ceiling) return 'ceiling';
+  const lim = Number(agentCfg(k).limit) || 0;
+  if (lim > 0) {
+    const run = agentRunCtx.getStore();
+    const inFlight = run && run.k === k ? run.cost : 0;
+    if (agentSpentToday(k) + inFlight >= lim) return 'agentLimit';
+  }
+  return null;
+}
+const _agentBusy = new Set();
+/* THE ONE WAY AN AGENT RUNS. `fn` returns its own report — looked, prepared,
+   sent, skipped:{why:n}, and the words cap/ceiling/agentLimit/off/noKey where
+   one of them stopped it — and this writes the row around it. One run of an
+   agent at a time per SUBJECT (the whole book, or one contract for the round),
+   so a Run now pressed during the scheduled run is told it is already going. */
+async function runAgent(k, trigger, who, fn, { subject = '' } = {}) {
+  const busyKey = k + ':' + (subject || '*');
+  if (_agentBusy.has(busyKey)) return { busy: true };
+  _agentBusy.add(busyKey);
+  const id = 'ar_' + rid(8);
+  db.prepare('INSERT INTO agent_runs (id,agent,trigger,subject,by_id,by_name,started_at,day) VALUES (?,?,?,?,?,?,?,?)')
+    .run(id, k, trigger, subject || null, who && who.id ? String(who.id) : null, who && who.name ? String(who.name) : null, now(), aiToday());
+  const run = { k, cost: 0 };
+  try {
+    const out = (await agentRunCtx.run(run, () => Promise.resolve().then(fn))) || {};
+    const cost = Math.round(run.cost * 1e6) / 1e6;
+    db.prepare('UPDATE agent_runs SET finished_at=?, result=?, cost=? WHERE id=?').run(now(), JSON.stringify(out), cost, id);
+    return { ...out, runId: id, cost };
+  } catch (e) {
+    const msg = (e && e.message) || String(e);
+    const cost = Math.round(run.cost * 1e6) / 1e6;
+    console.warn(`[agent:${k}] run failed:`, msg);
+    db.prepare('UPDATE agent_runs SET finished_at=?, error=?, cost=? WHERE id=?').run(now(), msg.slice(0, 500), cost, id);
+    try {
+      db.prepare('INSERT INTO outbox (id,to_addr,subject,body,sent,provider,dev_hint,created_at) VALUES (?,?,?,?,0,?,?,?)')
+        .run('ag_' + rid(6), 'admin', `A Copilot agent did not finish: ${AGENT_NAME_EN[k] || k}`,
+          `The "${AGENT_NAME_EN[k] || k}" agent stopped part-way through this run, so some of its work was not done.\n\nReason: ${msg}`,
+          'system', 'agent run failure', now());
+    } catch (_) {}
+    return { error: msg, runId: id, cost };
+  } finally { _agentBusy.delete(busyKey); }
+}
+/* English names for the admin's note above — the page itself names them in
+   the reader's language. */
+const AGENT_NAME_EN = { round: 'Their round came back', link: 'No link to sign', renew: 'Renewals',
+  paper: 'New paper', late: 'Late promises', import: 'Archive import' };
+/* The runner each clock-driven agent presses, and Run now presses the same. */
+function agentRunner(k) {
+  if (k === 'renew') return () => runRenewalPrep();
+  if (k === 'paper') return () => runPlaybookPrep();
+  if (k === 'link') return () => runLinkWatch();
+  if (k === 'late') return () => runLateChases();
+  if (k === 'round') return () => runRoundPrepAll();
+  if (k === 'import') return () => runImportQueue();
+  return null;
+}
+/* THE CLOCK, IN THE WORKSPACE'S OWN HOURS (AI_DAY_TZ, the ledger's day). */
+function agentLocalHour() {
+  try { return Number(new Intl.DateTimeFormat('en-GB', { hour: '2-digit', hour12: false, timeZone: AI_DAY_TZ }).format(new Date())) % 24; }
+  catch (_) { return new Date().getHours(); }
+}
+const agentRanOnScheduleToday = k => !!db.prepare("SELECT 1 FROM agent_runs WHERE agent=? AND trigger='schedule' AND day=? LIMIT 1").get(k, aiToday());
+function agentScheduleTick() {
+  if (!agentsAuto()) return;
+  const hour = agentLocalHour();
+  for (const k of AGENT_SCHEDULED) {
+    const cfg = agentCfg(k);
+    if (!cfg.on) continue;
+    if (hour < (Number(cfg.at) || 0) || agentRanOnScheduleToday(k)) continue;
+    const go = agentRunner(k);
+    if (go) runAgent(k, 'schedule', null, go).catch(() => {});
+  }
+}
+/* WHEN IT RUNS NEXT, said as the page will print it. */
+function agentNextRun(k) {
+  const cfg = agentCfg(k);
+  if (!cfg.on) return { kind: 'off' };
+  if (k === 'round') return { kind: 'event' };
+  if (k === 'import') return { kind: 'start' };
+  if (!agentsAuto()) return { kind: 'paused' };
+  const at = Number(cfg.at) || 0;
+  const today = !agentRanOnScheduleToday(k);
+  return { kind: 'schedule', at, day: today ? (agentLocalHour() >= at ? 'soon' : 'today') : 'tomorrow' };
+}
+function agentRunRow(r, money) {
+  let result = null; try { result = r.result ? JSON.parse(r.result) : null; } catch (_) {}
+  const row = { id: r.id, trigger: r.trigger, subject: r.subject || '', by: r.by_name || '', at: r.started_at,
+    finishedAt: r.finished_at || null, result, error: r.error || null };
+  if (money) row.cost = r.cost;
+  return row;
+}
+/* ---- THE PAGE'S ONE QUESTION: how is each agent, and has anything moved? ----
+   Every member may ask it — the agents' work is theirs to review. Money is an
+   admin's, as it is on /api/ai/spend: a colleague sees what ran and what it
+   did, never what it cost. `stamp` changes whenever something the page shows
+   may have moved (a contract written, a run finished, an answer arrived, the
+   day turned), so the page asks for fresh rows only when it has to. */
+app.get('/api/agents/status', auth, (req, res) => {
+  const money = req.user.role === 'admin';
+  const out = {};
+  for (const k of AGENT_KEYS) {
+    const cfg = agentCfg(k);
+    const rows = db.prepare('SELECT * FROM agent_runs WHERE agent=? ORDER BY started_at DESC LIMIT ?').all(k, AGENT_RUNS_SHOWN + 1);
+    const total = db.prepare('SELECT COUNT(*) AS n FROM agent_runs WHERE agent=?').get(k).n;
+    const runs = rows.slice(0, AGENT_RUNS_SHOWN).map(r => agentRunRow(r, money));
+    const a = { on: !!cfg.on, next: agentNextRun(k), running: [..._agentBusy].some(b => b.startsWith(k + ':')),
+      runs, more: Math.max(0, total - runs.length) };
+    if (k === 'late') a.secondAfter = Number(cfg.secondAfter) || 7;
+    if (money) { a.cfg = cfg; a.spentToday = agentSpentToday(k); }
+    out[k] = a;
+  }
+  const last = db.prepare('SELECT MAX(COALESCE(finished_at, started_at)) AS t FROM agent_runs').get();
+  const upd = db.prepare('SELECT MAX(updated_at) AS t, COUNT(*) AS n FROM contracts').get();
+  const sh = db.prepare(`SELECT COUNT(*) AS n, MAX(created_at) AS c, MAX(responded_at) AS r, MAX(revoked_at) AS v,
+    SUM(CASE WHEN response IS NOT NULL AND applied=0 THEN 1 ELSE 0 END) AS p FROM shares`).get();
+  const stamp = [upd.t || '', upd.n, (last && last.t) || '', sh.n, sh.c || '', sh.r || '', sh.v || '', sh.p || 0, aiToday()].join('|');
+  res.json({ agents: out, auto: agentsAuto(), stamp, at: upd.t || '', money });
+});
+/* RUN NOW — an admin's press on a clock-driven agent (the drawing's "Run now"
+   on the quarter-end renewals), the round agent over every deal waiting, or
+   nothing for the import (whose door is the import page). It runs the SAME
+   runner the clock runs, logged as 'now' with the admin's name, and waits for
+   it, so the answer is the run's own report. */
+app.post('/api/agents/:k/run', auth, admin, async (req, res) => {
+  const k = String(req.params.k);
+  if (!AGENT_KEYS.includes(k)) return res.status(404).json({ error: 'No such agent.' });
+  const go = agentRunner(k);
+  if (!go) return res.status(400).json({ error: 'This agent has nothing to run on its own.' });
+  if (!agentCfg(k).on) return res.status(409).json({ error: 'This agent is switched off. Switch it on in its settings first.' });
+  res.json(await runAgent(k, 'now', { id: req.user.id, name: req.user.name || req.user.email }, go));
+});
+/* AN AGENT'S SETTINGS — admin-only, validated, each key optional. */
+app.put('/api/agents/:k/settings', auth, admin, (req, res) => {
+  const k = String(req.params.k);
+  if (!AGENT_KEYS.includes(k)) return res.status(404).json({ error: 'No such agent.' });
+  const b = req.body || {}, patch = {}, bad = [];
+  const int = (name, min, max) => {
+    if (b[name] === undefined || b[name] === null || b[name] === '') return;
+    const n = Number(b[name]);
+    if (!Number.isFinite(n) || Math.floor(n) !== n || n < min || n > max) { bad.push(name); return; }
+    patch[name] = n;
+  };
+  if (b.on !== undefined) patch.on = !!b.on;
+  if (AGENT_SCHEDULED.includes(k)) int('at', 0, 23);
+  if ('max' in AGENT_DEFAULTS[k]) int('max', 1, 500);
+  if ('soonDays' in AGENT_DEFAULTS[k]) int('soonDays', 1, 30);
+  if ('secondAfter' in AGENT_DEFAULTS[k]) int('secondAfter', 1, 90);
+  if ('limit' in AGENT_DEFAULTS[k] && b.limit !== undefined && b.limit !== null && b.limit !== '') {
+    const n = Number(b.limit);
+    if (!Number.isFinite(n) || n < 0) bad.push('limit'); else patch.limit = Math.round(n * 1e4) / 1e4;   // the ledger's own precision (setMoney)
+  }
+  if (bad.length) return res.status(400).json({ error: 'Not a valid setting: ' + bad.join(', ') + '.' });
+  agentSetCfg(k, patch);
+  res.json({ ok: true, cfg: agentCfg(k) });
+});
+setInterval(agentScheduleTick, 5 * 60 * 1000).unref?.();
+setTimeout(agentScheduleTick, 45 * 1000).unref?.();
 /* Twice daily. The catch is deliberate — a sweep that throws must not take the
    process with it — but it used to be EMPTY, and that is how one malformed
    expiry switched every renewal reminder in a workspace off in perfect silence.
@@ -15132,38 +16488,12 @@ function reminderSweep() {
           'system', 'daily brief failure', now());
     } catch (_) {}
   }
-  /* THE RENEWAL PREPARATION RIDES THE SAME TIMER, under its OWN catch and with
-     its own admin-visible note — the third application of the M-6 lesson, and
-     the reason all three sweeps are written out rather than looped: no sweep
-     may take another down. It is the only one of the three that is ASYNC (it
-     waits on Copilot), so it is started and left to finish: a renewal memo must
-     never delay a renewal reminder. Its dedupe rows make a second run on the
-     same day a no-op, so the 12-hour beat costs nothing. */
-  const nightly = prepBudget();   // ONE allowance for both jobs below
-  Promise.resolve().then(() => runRenewalPrep(nightly)).catch(e => {
-    const msg = (e && e.message) || String(e);
-    console.warn('[renewal-prep] sweep failed, no renewal notes were prepared this cycle:', msg);
-    try {
-      db.prepare('INSERT INTO outbox (id,to_addr,subject,body,sent,provider,dev_hint,created_at) VALUES (?,?,?,?,0,?,?,?)')
-        .run('rp_' + rid(6), 'admin', 'Renewal notes were not prepared',
-          `HaTi could not prepare renewal notes this cycle, so any agreement coming up for renewal will have no note waiting on it.\n\nReason: ${msg}`,
-          'system', 'renewal prep failure', now());
-    } catch (_) {}
-  });
-  /* THE STANDARDS REVIEW ON INCOMING PAPER rides the same timer, under its OWN
-     catch and its own note — the fourth application of the M-6 lesson. Async
-     like the renewal prep, started and left to finish; its dedupe is the
-     record itself, so a second run on the same day costs nothing. */
-  Promise.resolve().then(() => runPlaybookPrep(nightly)).catch(e => {
-    const msg = (e && e.message) || String(e);
-    console.warn('[playbook-prep] sweep failed, no standards reviews were prepared this cycle:', msg);
-    try {
-      db.prepare('INSERT INTO outbox (id,to_addr,subject,body,sent,provider,dev_hint,created_at) VALUES (?,?,?,?,0,?,?,?)')
-        .run('pp_' + rid(6), 'admin', 'Standards reviews were not prepared',
-          `HaTi could not check incoming contracts against Our standards this cycle, so "Prepare redlines" will run the review itself when pressed.\n\nReason: ${msg}`,
-          'system', 'playbook prep failure', now());
-    } catch (_) {}
-  });
+  /* THE RENEWAL PREPARATION AND THE STANDARDS REVIEW ON INCOMING PAPER NO
+     LONGER RIDE THIS TIMER (27 Sep 2026). They are two of Copilot's agents
+     now — Renewals and New paper — and run on the agents' own clock
+     (agentScheduleTick), once a day at the hour an admin chose, through
+     runAgent: logged, costed, limited, and under their OWN catch with their
+     OWN admin-visible note ('agent run failure'), the M-6 lesson kept. */
 }
 // Run once shortly after boot so the health line has a recent result, then every 12h.
 setTimeout(reminderSweep, 30 * 1000).unref?.();
@@ -15402,7 +16732,11 @@ app.post('/api/shares/:token/applied', auth, editor, (req, res) => {
   const responseId = Number((req.body || {}).responseId);
   if (responseId) db.prepare('UPDATE share_responses SET applied=1 WHERE id=? AND token=?').run(responseId, req.params.token);
   else db.prepare('UPDATE shares SET applied=1 WHERE token=?').run(req.params.token);
-  res.json({ ok: true });
+  /* An answer on a ONE-TIME link spends it: whether they can answer the next
+     round is read again here, where the owner's browser learns the answer
+     landed (srvReach). */
+  const cid = (db.prepare('SELECT contract_id FROM shares WHERE token=?').get(req.params.token) || {}).contract_id;
+  res.json({ ok: true, reach: (cid && idInScope(folderScopeFor(req.user), cid)) ? srvReachOf(cid) : null });
 });
 
 /* ============================================================

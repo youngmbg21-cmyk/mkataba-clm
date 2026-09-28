@@ -82,10 +82,10 @@ const ok = (name, good, detail) => {
       await file(pickTwo[0], 'counterparty', 9);
       await file(pickTwo[1], 'owner', 4);
       pickTwo[1].negotiation.turnAt = new Date(Date.now() - 3 * 864e5).toISOString();
-      const id = pickTwo[1].id, _sk = window.sharesKnown, _cs = window.cachedShares, _ss = window.standingShares;
-      window.sharesKnown = c => (c && c.id === id) ? true : _sk(c);
-      window.cachedShares = c => (c && c.id === id) ? [{ token: 'stub-' + id, durable: true }] : _cs(c);
-      window.standingShares = l => (l || []).some(x => x && String(x.token || '').startsWith('stub-')) ? l : _ss(l);
+      /* "They can answer" is the SERVER'S reading since 27 Sep 2026 (srvReach,
+         f412), carried on the record as `_reach` — staged here as it arrives.
+         It stubbed a standing link on the share cache before. */
+      pickTwo[1]._reach = { reply: 'live', last: null, sign: null, fresh: [] };
       return { you: pickTwo[0].id, them: pickTwo[1].id, youCp: pickTwo[0].counterparty };
     });
     ok('the stage: two live negotiations, one waiting on us and one with them', !!staged, JSON.stringify(staged));

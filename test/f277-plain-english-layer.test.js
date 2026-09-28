@@ -90,7 +90,7 @@ describe('f277 (1) the switch reads Contract View then Plain English', () => {
     const html = win.docReadSwitchHtml(c);
     assert.ok(html, 'the switch draws on a contract with wording');
     const first = html.indexOf('Contract View');
-    const second = html.indexOf('Plain English');
+    const second = html.indexOf('Plain View');   // renamed from Plain English on main, 27 Sep 2026
     assert.ok(first > -1 && second > -1, 'both words are on it');
     assert.ok(first < second, 'Contract View comes FIRST — Young ruled the order');
     const pressed = html.match(/aria-pressed="true"/g) || [];

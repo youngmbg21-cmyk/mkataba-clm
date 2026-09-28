@@ -971,6 +971,8 @@ async function mShareCreate(){
     const payload = buildSharePayload(c, docHash, who, { purpose:s.share });
     const r = await api('shares','POST',{ payload, channel:'email', recipient:who,
       expiryDays: s.share==='view'?30:14, durable:s.share!=='sign', purpose:s.share });
+    /* Whether they can answer now — the desktop's one writer (reachTake). */
+    if(window.reachTake) reachTake(c, r);
     /* ---- THE PHONE IS A THIRD SEND DOOR, and it had the same gap ----
        (owner-reported 23 Aug 2026, on the desktop; found here by walking every
        door rather than only the one reported.) This sheet posts to /api/shares

@@ -283,6 +283,10 @@ async function startHati(env = {}) {
       ANTHROPIC_API_KEY: 'test-key-not-real',
       RESEND_API_KEY: '',                // never send real email
       MAPPER_TOKEN: '',
+      /* Copilot's agents act by the clock and on events in production; in a
+         test they wait to be asked (Run now, or a test that turns them on),
+         so no stage changes under its own assertions. */
+      HATI_AGENTS_AUTO: 'off',
       ...env,
     },
     stdio: ['ignore', 'pipe', 'pipe'],

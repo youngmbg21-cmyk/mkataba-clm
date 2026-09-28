@@ -6,6 +6,8 @@ import './templates.js';
 import './jurisdiction.js'; // where this workspace operates: law, money, which statute checks apply
 import './outside.js';     // redline here, sign there: the working reference, the contract number and the word check (26 Sep 2026)
 import './graphwhere.js';   // the graph's structured filter, one predicate for both hosts (Copilot audit phase 4)
+import './roundprep.js';    // Their round came back: one key for an ask of theirs, both hosts (27 Sep 2026)
+import './migread.js';      // Archive import: what an imported contract's reading decides, both hosts (27 Sep 2026)
 import './section.js';      // the section grammar: one way of grouping a screen (16 Sep 2026)
 import './core.js';
 /* Who the agreement is BETWEEN: the legal entities on the paper, which is
@@ -60,7 +62,8 @@ import './views/inspector.js';
 import './views/approvalsview.js'; // Approvals & signing: a door onto two readings Home already makes (20 Sep 2026)
 import './brainmap.js';           // the Brain's catalogue and its reader of the code, one for both hosts (27 Sep 2026)
 import './views/brain.js';         // the Brain: HaTi as a network of neurons, read from its own code (27 Sep 2026)
-import './views/agents.js';        // Copilot's work: the five agents, every one a reading of work HaTi already does (27 Sep 2026)
+import './agentruns.js';           // Copilot's agents' engine room: runs, settings, the page's quiet refresh (27 Sep 2026)
+import './views/agents.js';        // Copilot's work: the six agents — what each found, prepared and did (27 Sep 2026)
 import './views/register.js';
 import './ocr.js';
 import './dedupe.js';
@@ -327,8 +330,11 @@ const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'templates', 'cal
    been --view-h tall since 14 Sep 2026 — on while it is up, off on its own
    two ways out; a setView recomputes it here exactly as before. */
 /* 'brain' joined 27 Sep 2026 with the same ruling: the stage is exactly the
-   room below the shell bar, so nothing is left over and the page never scrolls. */
-const VIEW_OWNS_HEIGHT = ['workspace', 'redline', 'calendar', 'intel', 'register', 'brain'];
+   room below the shell bar, so nothing is left over and the page never scrolls.
+   'agents' joined the same day (Young: the list of agents must not move when
+   an agent is pressed): Copilot's work is --view-h tall above 900px, its right
+   side scrolls inside itself and the list beside it stays put. */
+const VIEW_OWNS_HEIGHT = ['workspace', 'redline', 'calendar', 'intel', 'register', 'brain', 'agents'];
 /* The class carries the fact; index.html carries the rule. Painted from
    renderPageHeader, which runs on EVERY view change — including onto a view
    that is not on the list, which is what takes the class back off again. */
@@ -1595,6 +1601,13 @@ const ALERT_KINDS = [
      the standard — and never between the quiet desk and the negotiation it is
      about (f381 pins that pair). */
   { k:'handover',    tone:'amber', ic:'&#128228;' },
+  /* ---- NO LINK TO SIGN (27 Sep 2026: "add it to the Alerts bell") ----
+     A deal whose other side cannot answer or sign because the link they hold
+     stopped working, or whose only link runs out in the next few days — to
+     the contract's owner (an admin where it has none). The same other-side-
+     sitting-on-it kind as the two above it, so it ranks beside them. Amber:
+     work owed. */
+  { k:'link',        tone:'amber', ic:'&#128279;' },
   { k:'review-mine', tone:'amber', ic:'&#128100;' },
   { k:'desk-join',   tone:'amber', ic:'&#128101;' },
   { k:'approval',    tone:'amber', ic:'&#9989;'  },
@@ -1879,6 +1892,31 @@ function buildAlerts(){
     const lapsed=c=>{ try{ const d=window.renewalDecisionOf&&renewalDecisionOf(c); return !!(d&&d.answer==='lapse'); }catch(_){ return false; } };
     (D.expiring||[]).filter(x=>x.d<=30&&!lapsed(x.c)).forEach(x=>push('renewal',x.c,
       i18tn('al_expiring_in',x.d,{n:x.d}),()=>bellGo('renewal',x.c), renewHint));
+  }
+  /* ---- NO LINK TO SIGN, ON THE BELL (27 Sep 2026) ----
+     BORROWED, NEVER DERIVED: agLinkItems is the agent's own reading, off the
+     server's (`_reach`), so the bell, the agent's page and the morning mail
+     name the same deals. Each row is a door onto that deal's panel on
+     Copilot's work, where the fresh link and "keep it working" are. */
+  if(me && window.agLinkItems){
+    let items=[]; try{ items=agLinkItems(cs)||[]; }catch(_){ items=[]; }
+    const admin=(typeof isAdmin==='function')&&isAdmin();
+    items.forEach(it=>{
+      const c=it.c; if(!c) return;
+      const mine=(window.contractOwnedBy&&contractOwnedBy(c,me)) || (!c.owner && admin);
+      if(!mine) return;
+      const X=it.soon||{};
+      const text=it.kind==='sign' ? i18t('al_link_sign',{who:(it.sign&&(it.sign.signer||it.sign.to))||''})
+        : it.kind==='party' ? i18t('al_link_party',{party:(it.party&&it.party.party)||''})
+        : it.kind==='soon' ? i18tn('al_link_soon',it.left||0,{n:it.left||0})
+        : it.kind==='soon-sign' ? i18tn('al_link_soon_sign',it.left||0,{n:it.left||0,who:X.signer||X.to||''})
+        : i18t('al_link_reply');
+      push('link',c,text,()=>{
+        if(typeof setView==='function') setView('agents');
+        if(window.agShowAgent) try{ agShowAgent('link'); }catch(_){}
+        if(window.agOpenItem) setTimeout(()=>{ try{ agOpenItem(it.key); }catch(_){} },0);
+      });
+    });
   }
   /* 5. A signature where it is actually THEIR turn. nextSigner is the route's
         own answer about whose turn it is; matching by member record first and

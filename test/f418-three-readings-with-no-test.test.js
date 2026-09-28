@@ -16,10 +16,13 @@ const R = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
 
 test('f418 (1) the import’s stream column: a stream by id or name, else the type decides, else nothing', () => {
   const MIG = R('js/views/migration.js');
-  const a = MIG.indexOf('function migParseFolder'), b = MIG.indexOf('\n}', MIG.indexOf('function folderFromType')) + 2;
+  /* On the merge (28 Sep 2026) the type reading moved to js/migread.js, which
+     the server shares; it is required from there. */
+  const { folderFromType } = require('../js/migread.js');
+  const a = MIG.indexOf('function migParseFolder'), b = MIG.indexOf('\n}', a) + 2;
   const FOLDERS = { proc: { id: 'proc', name: 'Procurement & Raw Materials' }, sales: { id: 'sales', name: 'Sales & Route-to-Market' },
     mfg: { id: 'mfg', name: 'Manufacturing & Production' }, corp: { id: 'corp', name: 'Corporate & Legal' } };
-  const parse = new Function('FOLDERS', MIG.slice(a, b) + '; return migParseFolder;')(FOLDERS);
+  const parse = new Function('FOLDERS', 'folderFromType', MIG.slice(a, b) + '; return migParseFolder;')(FOLDERS, folderFromType);
   assert.equal(parse('sales'), 'sales', 'the id itself');
   assert.equal(parse('Procurement'), 'proc', 'a name the stream carries');
   assert.equal(parse('Equipment lease'), 'mfg', 'an unknown stream falls to the type reading, which knows an equipment lease');

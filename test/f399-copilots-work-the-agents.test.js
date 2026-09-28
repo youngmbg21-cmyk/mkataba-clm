@@ -72,7 +72,18 @@ describe('f399 (1) — the walls', () => {
     for (const act of ['openRedlineWorkbench(', 'openNoticeDialog(', 'obligationChase(', 'deskDismiss(', 'triageAck(',
       'openCheckPanel(', 'roomGoTab(', 'openWorkspace('])
       assert.ok(CODE.includes(act), act + ' — the act\'s own home is what the panel presses');
-    assert.ok(!/confirmDialog\(/.test(CODE), 'the chase asks for itself — obligationChase carries its own question');
+    /* RE-POINTED 27 Sep 2026: the sixth agent's fresh link ASKS FIRST, by the
+       owner's word ("asks first, showing who it goes to") — the acts it presses
+       do not ask. The chase still asks for itself: no question is written
+       anywhere but that one press. */
+    /* AND RUN NOW (27 Sep 2026, f413): an admin's press that spends Copilot
+       money asks first and says who pays — the only other question here. */
+    const asks = CODE.split('confirmDialog(').length - 1;
+    const fresh = CODE.slice(CODE.indexOf('async function agFreshLink('));
+    const runNow = CODE.slice(CODE.indexOf('async function agRunNowPress('), CODE.indexOf('\n}', CODE.indexOf('async function agRunNowPress(')));
+    assert.equal(asks, (fresh.split('confirmDialog(').length - 1) + (runNow.split('confirmDialog(').length - 1),
+      'every question on the page is the fresh link\'s or Run now\'s');
+    assert.ok(asks >= 2, 'and both ask');
   });
 });
 
@@ -122,7 +133,7 @@ describe('f399 (3) — both books carry every word the page prints', () => {
     assert.deepEqual(missing, [], 'a key missing from one book leaves a screen half in the other language');
   });
   test('3b every agent has its name, what it does, when it runs, who reviews, who pays and its idle line', () => {
-    for (const k of ['round', 'renew', 'paper', 'late', 'import'])
+    for (const k of ['round', 'link', 'renew', 'paper', 'late', 'import'])
       for (const s of ['', '_does', '_runs', '_who', '_pays', '_idle'])
         assert.match(I18N, new RegExp('\\n\\s*ag_' + k + s + ':'), 'ag_' + k + s);
   });
@@ -288,13 +299,14 @@ describe('f399 (4) — the readings', () => {
 });
 
 describe('f399 (5) — the page, drawn', () => {
-  test('5a five agents, the page opens on the first with work ready, cards are doors', async () => {
+  /* SIX since 27 Sep 2026: "No link to sign" sits second (f412). */
+  test('5a six agents, the page opens on the first with work ready, cards are doors', async () => {
     const { win } = await staged();
     const doc = win.document;
     let host = doc.getElementById('content');
     if (!host){ host = doc.createElement('div'); host.id = 'content'; doc.body.appendChild(host); }
     win.renderAgentsPage();
-    assert.equal(host.querySelectorAll('[data-ag-agent]').length, 5);
+    assert.equal(host.querySelectorAll('[data-ag-agent]').length, 6);
     const on = host.querySelector('.ag-row.on');
     assert.equal(on && on.getAttribute('data-ag-agent'), 'round', 'the first agent with something ready');
     assert.ok(host.querySelectorAll('#ag-main [data-ag-open]').length >= 2, 'every ready item is a press');
@@ -392,7 +404,9 @@ describe('f399 (6) — the cards and panels are as full as the drawing, off the 
     assert.match(m.body, /automated notice from HaTi CLM\.$/);
     /* THE RELATION, NOT THE WORDS: the route composes from these keys and these
        facts, so a change to either side has to be made to both. */
-    const at = SRV.indexOf("app.post('/api/contracts/:id/chase'");
+    /* RE-POINTED 27 Sep 2026: the route's message is srvChaseSend, lifted out
+       so the firmer chase is the same message with its own keys. */
+    const at = SRV.indexOf('async function srvChaseSend(');
     const route = SRV.slice(at, SRV.indexOf('\napp.', at + 10));
     for (const k of ['mail_ob_chase_subject', 'mail_ob_chase_line', 'mail_ob_chase_line_nodate', 'mail_hello', 'mail_automated_notice'])
       assert.ok(route.includes(k), k + ' is the route\'s own key');

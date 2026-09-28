@@ -16768,6 +16768,19 @@ function openChangeNoteDialog(c, ch, opts = {}){
    This is the one reading here, and it takes the flag as either shape, as
    rlLadderContract and rlCpNarrowSeat already do (a stage may stub it as a
    function). */
+/* COPILOT'S PREPARED ANSWER, as the row's own quiet line — js/roundprep.js
+   finds it; nothing here decides or files anything. Never on their seat,
+   never on their page, never on a settled ask. */
+function rlRoundPrepLineHtml(c, ch, theirs, side){
+  if (!theirs || !ch || ch.status !== 'pending' || ch.withdrawn) return '';
+  if (side === 'counterparty' || rlOnTheirPage()) return '';
+  const a = (typeof roundPrepOf === 'function') ? roundPrepOf(c, ch) : null;
+  if (!a) return '';
+  const why = String(a.why || '').trim();
+  const tip = [why, a.standard ? i18t('ag_prep_rests', { what: a.standard }) : ''].filter(Boolean).join(' · ');
+  return `<div class="rl-card-sum rl-card-prep" data-rl-prep="${_nea(a.verdict)}"${tip ? ` title="${_nea(tip)}"` : ''}><span class="rl-prep-v is-${_nea(a.verdict)}">${
+    _ne(i18t('ag_prep_' + a.verdict))}</span>${why ? ` <span class="rl-prep-why">${_ne(why)}</span>` : ''}</div>`;
+}
 function rlOnTheirPage(){
   if (typeof window === 'undefined') return false;
   const p = window.PORTAL_MODE;
@@ -18375,6 +18388,12 @@ function redlineChangeCardsHtml(c, opts = {}){
          and the wording does not move until all of them have said yes. */
       const pyLine = (typeof negoPartyLine === 'function') ? negoPartyLine(c, ch) : null;
       const pySub = pyLine ? `<div class="rl-card-sum rl-card-party">${_ne(pyLine)}</div>` : '';
+      /* ---- WHAT COPILOT MADE OF THEIR ASK (27 Sep 2026, Their round came
+         back) ---- The answer it prepared when their round arrived, on OUR
+         seat only and only on an ask still on the table. A line on the row,
+         never a band: the verbs beside it are unchanged, and Counter opens the
+         clause editor with the prepared wording as a card to Apply. */
+      const prepSub = rlRoundPrepLineHtml(c, ch, theirs, side);
       /* ---- THE VERBS ON THE FACE (the artifact's row, 14 Sep 2026) ----
          Accept · Reject · Counter on an ask of theirs; Edit · Send · Discard
          on a draft of ours; Ladder on every row. THE WHOLE of `verbs` in that
@@ -18422,7 +18441,7 @@ function redlineChangeCardsHtml(c, opts = {}){
                   quiet, in the data face; the clause still leads. */}${
             who ? `<span class="rl-card-id">${_ne(ch.id)}</span>` : ''}${
             rlCardNotesCountHtml(c, ch, opts, side)}</div>
-          ${sub}${pySub}
+          ${sub}${pySub}${prepSub}
         </div>
         ${''/* ---- AND THE OPEN BUTTON IS GONE WITH THE BODY IT UNFOLDED
                (Young ruled 15 Sep 2026) ----
@@ -20061,7 +20080,7 @@ function redlineSyncProxies(host){
   });
 }
 
-if (typeof window !== 'undefined') Object.assign(window, {
+if (typeof window !== 'undefined') Object.assign(window, { rlRoundPrepLineHtml,
   renderRedline, redlineRoundLabel, redlineSyncProxies,
   rlToggleDiscussion, rlSideMode, rlSetSideMode, rlLayoutResizer, rlWireResizer, rlWireClauseTools,
   rlDocType, rlDocScale, rlSetDocType, rlTypeStepHtml, rlWireTypeStep,

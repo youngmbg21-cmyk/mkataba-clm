@@ -119,11 +119,15 @@ describe('F296 — the overnight standards review, against a real server', () =>
     assert.equal(out.prepared, 1, 'and it is retried');
   });
 
-  test('the same switch and the same cap as the renewal notes, and each bites', async () => {
-    await W.admin.json('/api/ai/config', { method: 'PUT', body: { renewalPrep: false } });
+  /* RE-POINTED 27 Sep 2026 (f413): the standards review on incoming paper is
+     the New paper agent now, with ITS OWN switch and cap on the agents'
+     settings — it used to ride the renewal notes' switch, so turning renewal
+     notes off stopped this too, unsaid. Each still bites. */
+  test('its own switch and its own cap, and each bites', async () => {
+    await W.admin.json('/api/agents/paper/settings', { method: 'PUT', body: { on: false } });
     const off = await W.admin.json('/api/playbook-prep/run', { method: 'POST' });
-    assert.equal(off.off, true, 'the one "spend while nobody is watching" switch stops it: ' + JSON.stringify(off));
-    await W.admin.json('/api/ai/config', { method: 'PUT', body: { renewalPrep: true, renewalPrepMax: 1 } });
+    assert.equal(off.off, true, 'the agent\'s own switch stops it: ' + JSON.stringify(off));
+    await W.admin.json('/api/agents/paper/settings', { method: 'PUT', body: { on: true, max: 1 } });
     await put('MK-PP-9', { owner: { id: owner.id, name: owner.name } });
     await put('MK-PP-10', { owner: { id: owner.id, name: owner.name } });
     ai.script(tu(VERDICTS), tu(VERDICTS));
@@ -135,14 +139,14 @@ describe('F296 — the overnight standards review, against a real server', () =>
     const r = await W.unrestricted.json('/api/playbook-prep/run', { method: 'POST' }).catch(e => ({ error: String(e) }));
     assert.ok(r && (r.error || r.status === 403), 'an editor cannot run it');
     const body = bodyOf(SRV, 'runPlaybookPrep');
-    assert.ok(/renewalPrepOn\(\)/.test(body) && /renewalPrepMax\(\)/.test(body), 'the renewal notes\' own switch and cap');
-    assert.ok(/aiDailySpendLimit\(\)/.test(body) && /aiSpendToday\(\)\.cost >= ceiling/.test(body), 'the daily ceiling asked by hand');
+    assert.ok(/agentCfg\('paper'\)/.test(body), 'the New paper agent\'s own switch and cap (re-pointed 27 Sep 2026)');
+    assert.ok(/agentMaySpend\('paper'\)/.test(body), 'the daily ceiling and the agent\'s own limit, asked before every call');
     assert.ok(/aiPlaybookVerdicts\(key/.test(body), 'the route\'s own review');
     assert.ok(/COPILOT_PB_TEXT_MIN/.test(body) && /copilotContractWording\(c\)/.test(body), 'the browser\'s floor and the browser\'s reading, mirrored');
     assert.ok(!/negoFileChange|changes\.push|insertClause|changes:/.test(body), 'it files nothing');
-    /* RE-POINTED IN PLACE (27 Sep 2026, r21): both overnight jobs now draw on
-       ONE allowance the sweep hands them, so the call passes it. */
-    assert.ok(/Promise\.resolve\(\)\.then\(\(\) => runPlaybookPrep\(nightly\)\)\.catch/.test(SRV), 'on the timer, under its own catch');
-    assert.ok(/'Standards reviews were not prepared'/.test(SRV), 'with its own admin-visible note');
+    /* On the agents' clock now, under runAgent's own catch and its own
+       admin-visible note (re-pointed 27 Sep 2026, f413). */
+    assert.ok(/if \(k === 'paper'\) return \(\) => runPlaybookPrep\(\);/.test(SRV), 'the agents\' clock runs it');
+    assert.ok(/'agent run failure'/.test(SRV), 'with its own admin-visible note');
   });
 });

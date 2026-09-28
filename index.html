@@ -9156,7 +9156,7 @@
      the status tones every other surface already uses for those three. */
   .ag-root{display:grid;grid-template-columns:272px minmax(0,1fr);gap:16px;align-items:start;padding:0 var(--page-pad-x) var(--s-4);}
   @media (max-width:900px){ .ag-root{grid-template-columns:minmax(0,1fr);} }
-  .ag-list{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;position:sticky;top:var(--s-3);}
+  .ag-list{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;}
   .ag-list-h{padding:10px 12px 8px;font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);font-weight:var(--w-label);}
   .ag-row{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;padding:10px 12px;border:0;border-top:1px solid var(--color-divider);background:transparent;text-align:left;cursor:pointer;font:inherit;color:var(--color-text);}
   .ag-row:hover{background:var(--surface-2);}
@@ -9170,6 +9170,25 @@
   .ag-st{display:flex;align-items:center;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .ag-pill{min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--st-amber-bg);color:var(--st-amber-fg);font-size:var(--t-micro);line-height:20px;font-weight:var(--w-strong);text-align:center;font-variant-numeric:tabular-nums;}
   .ag-main{min-width:0;display:flex;flex-direction:column;gap:12px;}
+  /* ---- THE LIST STAYS STILL (Young ruled 27 Sep 2026: "make sure the
+     highlighted card stays stagnant and does not move when you click around
+     the different agents") ----
+     MEASURED at the parent: the list sat 12px BELOW the cards at rest (it was
+     sticky at 12px on a root that starts at the scroller's own top), and every
+     press rebuilt the whole page, list included, under a restored scroll.
+     Now the page OWNS ITS HEIGHT (on VIEW_OWNS_HEIGHT, js/app.js): the right
+     side scrolls inside itself, the list is a column that does not move with
+     it, and a press repaints the right side alone (agShowAgent). Both columns
+     begin on the grid's first line, so they are level by construction.
+     THE COLUMN TAKES THE HEIGHT, THE CARD IN IT TAKES ITS CONTENT — shrink is
+     0, or a flex column squeezes the cards instead of scrolling (the Key terms
+     lesson). Below 901px the two stack and the page scrolls as before. */
+  @media (min-width:901px){
+    .ag-root{height:var(--view-h);box-sizing:border-box;grid-template-rows:minmax(0,1fr);}
+    .ag-list{max-height:100%;overflow:auto;}
+    .ag-main{height:100%;min-height:0;overflow:auto;padding-bottom:2px;scrollbar-width:thin;}
+    .ag-main > *{flex:none;}
+  }
   .ag-card{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);}
   .ag-head{padding:14px 16px;display:grid;gap:12px;}
   .ag-h-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
@@ -9300,6 +9319,17 @@
   .ag-memo-h{font-weight:var(--w-title);}
   .ag-p-sub2{margin:4px 0 0;font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600);}
   .ag-p-note.is-amber{color:var(--st-amber-fg);}
+  /* ---- THE AGENTS DO THE WORK (27 Sep 2026) ---- the runs table's cost
+     column, a run's subject beside why it ran, Copilot's prepared answer
+     under an ask of theirs, and the one small box that sends work back. */
+  .ag-runs .c{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;}
+  .ag-sub{font-size:var(--t-label);color:var(--color-neutral-600);}
+  .ag-prep{display:grid;gap:6px;margin-top:6px;padding:8px 10px;border-radius:var(--radius);background:var(--surface-2);}
+  .ag-prep-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .ag-sb{display:grid;gap:6px;justify-items:start;}
+  .ag-sb-box{display:grid;gap:6px;width:100%;}
+  .ag-sb-box[hidden]{display:none;}
+  .ag-sb-acts{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
   .ag-panel .br-fig{font-weight:var(--w-title);color:var(--accent-ink);}
   .ag-watch{list-style:none;margin:0;padding:0;display:grid;gap:6px;}
   .ag-watch li{display:grid;gap:2px;padding:8px 10px;border-radius:var(--radius);background:var(--st-amber-bg);border-left:3px solid var(--st-amber-dot);color:var(--color-text);}
