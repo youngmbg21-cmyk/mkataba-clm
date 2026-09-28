@@ -4579,6 +4579,11 @@ function wireNegotiationTab(c, opts = {}){
     });
     /* A list about words the reader has since changed is about nothing. */
     holder.addEventListener('input', () => { if (spellList.length && spellFor !== spellNow()){ spellList = []; spellFor = null; spellPaint(); } });
+    /* THE RED UNDERLINE WHILE TYPING (Young, 28 Sep 2026): the Save's own
+       before and after, painted a beat behind the keys (js/spell.js). */
+    const spellMark = () => { if (window.spellUnderlineSoon) spellUnderlineSoon([holder, headEl].filter(Boolean), spellBefore, spellNow, c); };
+    holder.addEventListener('input', spellMark);
+    if (headEl) headEl.addEventListener('input', spellMark);
     const fileChecked = async () => {
       const st = (typeof window.spellState === 'function' && typeof window.spellSuspects === 'function')
         ? spellState() : 'absent';
@@ -4880,6 +4885,11 @@ function wireNegotiationTab(c, opts = {}){
     const openEditor = (clauseId, extra) => !!(window.rlOpenClauseEditor
       && rlOpenClauseEditor(c, clauseId,
         { ...opts, side, again, by: opts && opts.by, typing: true, ...(extra || {}) }));
+    /* THE MOUNT'S OWN DOOR, for a host that draws its own Edit (their landing
+       page's header, 28 Sep 2026): the same reading as the row's Edit, with
+       this mount's contract and options — re-hung on every wiring, so it is
+       never a stale copy. */
+    host._rlOpenEditor = openEditor;
 
     /* ---- THE COPILOT BUTTON ON A CLAUSE ----
        Everything the selection path works out from a drag, worked out from the
@@ -6479,6 +6489,16 @@ function rlClauseEditPillHtml(cl, opts = {}){
      label an aria-label nobody sighted could read. Every other pencil is
      byte-identical. */
   const done = !!(pill && on);
+  /* ---- AND THE PRESSED ONE MAY BE A SAVE SYMBOL (Young picked "Symbol",
+     28 Sep 2026: "try making the save button … into a symbol of save") ----
+     A caller that says `icon:'save'` gets, on its PRESSED pencil only, a small
+     save symbol in a light box with no word beside it; the word is the hover
+     (`data-tip`, drawn by the stylesheet, since a native title waits a second)
+     and the aria-label. The clause editor asks for it on both seats. Every
+     other pencil is byte-identical. */
+  if (done && pill.icon === 'save')
+    return `<button type="button" class="rl-cp-pill rl-cp-pill-done rl-cp-pill-save" ${attr}="${id}"
+    aria-expanded="true" aria-label="${_nea(label)}" data-tip="${_nea(title)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h11l3 3v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><path d="M8 3v5h7V3"/><rect x="8" y="13" width="8" height="6" rx="1"/></svg></button>`;
   return `<button type="button" class="rl-cp-pill${done ? ' rl-cp-pill-done' : ''}" ${attr}="${id}"
     aria-expanded="${on ? 'true' : 'false'}"
     aria-label="${_nea(label)}"
@@ -12459,9 +12479,12 @@ function redlineDocHtml(c, opts = {}){
      pencil is pinned to the row's right edge by its own rule, so the chip
      lands beside the heading where the formatting chip already sits. */
   const baselineFor = cl => rlBaselineHtml(c, cl, side, { pill: opts.pill });
+  /* `noPaperPencil` (their landing page, Young ruled 28 Sep 2026): the paper
+     carries no pencil — the wording is typed in only after Edit — while a
+     caller's own pill (the editor's) is untouched. */
   const pillFor = cl => rlLadderChipHtml(c, cl, side, { pill: opts.pill })
-    + rlClauseEditPillHtml(cl, { c, editable, hasPanel, pill: opts.pill,
-    toEditor: editorTakesIt && !opts.pill });
+    + ((opts.noPaperPencil && !opts.pill) ? '' : rlClauseEditPillHtml(cl, { c, editable, hasPanel, pill: opts.pill,
+    toEditor: editorTakesIt && !opts.pill }));
   const cpPush = (cl, chs, cpOpts) => {
     if (!hasPanel) return '';
     /* The notes options ride through because the panel now renders each

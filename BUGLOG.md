@@ -19846,3 +19846,17 @@ Noticed, not fixed
 - Fixed the reported fault: "divide the floors by payment terms" was sent to a reading of one contract because "payment terms" was on a word list. Questions are no longer sorted by word lists; the free built-in reader handles everyday requests in English and Swedish, and Copilot decides the rest (map, or a question about wording, which goes to the reading chat).
 - Built: every fact (now also liability cap, governing law, owner, open obligations, read or not) can narrow, group, make floors or columns, colour, size or label; unclear requests answer with two or three buttons; "of those", "instead", "same but" and "undo" build on what is showing; two new views, Grid and Timeline; saved views (kept in this browser); a phrase book of about 225 ways of asking, checked automatically.
 - Worth knowing: a wording question asked on Explorer now makes one small map call to Copilot before the reading chat answers it.
+## 28 Sep 2026 — their Edit page and the save symbol
+
+- BUILT: counterparty landing has Edit at the top and no pencils on the paper; Edit opens the clause editor beside their live Redlines column (Discard / Save under it, header stood down, wall line kept); a column press with unsaved typing asks "Leave this clause?" and drops only the unsaved words. Done is now a save symbol on both seats (hidden until typing, hover "Save · Ctrl+S", Ctrl/⌘+S, a tick). f426, their-edit-page-verify.
+- Noticed, not fixed: in the clause editor the foot's "Save to CHG-xxx" stays greyed while the reader is still typing (the draft is read on blur), on both seats; the symbol and Ctrl+S read the box first, so they work.
+- Noticed, not fixed: portal-header-verbs-verify "Send on top of the redline cards" still fails as before this change.
+
+## 28 Sep 2026 — Save live while typing; a misspelt defined term is caught
+
+- FIXED: the clause editor's Save and Discard were grey while the caret was still in the words (both seats); they now follow the typing. f427, their-edit-page-verify 3a2/6a2.
+- FIXED: the spelling check let a capitalised slip of the contract's own term through ("the Suplier shall"), and on a contract drawn from a template it knew none of the contract's words. f427, their-edit-page-verify 6e.
+
+## 28 Sep 2026 — red underline while typing
+
+- BUILT: misspelt words get a red wavy underline while typing, in the clause editor (both seats) and the narrow window's clause panel — the same words the Save would list; the browser's own underline is off on those boxes. f428, their-edit-page-verify 3a3/6f/6g/7.

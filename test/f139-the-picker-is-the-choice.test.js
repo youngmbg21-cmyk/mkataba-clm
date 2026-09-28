@@ -174,7 +174,10 @@ describe('f139 — and the counterparty can redline on round one', () => {
     /* RE-POINTED 28 Sep 2026 (Young picked Mirror): at this width their pencil
        opens the clause editor (data-rl-cp-editor), as ours does; the panel's ＋
        is still drawn for a narrow window. */
-    assert.ok(/data-rl-cp-(open|editor)=/.test(v.html) && /data-rl-cp-edit/.test(v.html),
+    /* RE-POINTED AGAIN 28 Sep 2026 (Young: "the landing page should come with
+       a button at the top that says edit"): their paper draws no pencil; the
+       Edit button at the top is the door, with the rows' Edit / Counter. */
+    assert.ok(/id="pt-edit"/.test(v.html) && /data-rl-cp-edit/.test(v.html),
       'the counter-proposal route — this is what a counterparty could not reach');
     assert.ok(!/negotiation is closed on this link/i.test(v.html),
       'a round-one negotiation link must never say the negotiation is closed');

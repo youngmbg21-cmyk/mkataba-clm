@@ -23,7 +23,9 @@
      · a word in HaTi's short list of legal words the dictionary lacks
        (SPELL_LEGAL);
      · a number, a word with a digit in it, a reference like 4.2(a), an
-       acronym in capitals, and a capitalised word inside a sentence (a name).
+       acronym in capitals, and a capitalised word inside a sentence (a name)
+       — unless it is one slip from a term this contract capitalises
+       (spellTermSlip: "Suplier" for its "Supplier").
 
    IT STANDS DOWN ON A CONTRACT THAT IS NOT IN ENGLISH. Contract text is never
    translated (TWO LANGUAGES ≠ TWO MARKETS), so a Swedish agreement is typed
@@ -181,12 +183,20 @@ function _spellForms(w){
    Every word of its wording, its parties and its name. Read RAW off the
    record — c.redlineText, c.counterparty, c.party, c.name, c.parties — and
    never through a negotiation reader, because READING MUST NOT WRITE. */
+/* A contract drawn from a template has no redlineText: its wording is the
+   negotiation's baseline, read RAW (never negoInit — reading must not write).
+   Found 28 Sep 2026: on such a contract the check knew none of its words. */
+function spellContractText(c){
+  const n = c && c.negotiation;
+  return n ? String(n.baselineText || String(n.baselineBody || '').replace(/<[^>]*>/g, ' ')) : '';
+}
 function spellKnownFrom(c, more){
   const set = new Set();
   const add = t => spellWords(t).forEach(x => _spellForms(x.word).forEach(f => set.add(f)));
   if (c){
     const strip = h => String(h || '').replace(/<[^>]*>/g, ' ');
     add(strip(c.redlineText));
+    add(spellContractText(c));
     add(c.name); add(c.counterparty); add(c.party);
     if (Array.isArray(c.parties)) c.parties.forEach(p => { if (p) { add(p.name); add(p.role); } });
     if (typeof window !== 'undefined' && typeof window.FIRST_PARTY === 'string') add(window.FIRST_PARTY);
@@ -246,6 +256,35 @@ function spellSuggest(word, known){
   const cased = x => /^[A-Z]/.test(word) ? x[0].toUpperCase() + x.slice(1) : x;
   return pool.slice(0, SPELL_SUGGEST_MAX).map(cased);
 }
+/* ---- A CAPITALISED WORD IS A NAME — UNLESS IT IS A SLIP OF THIS CONTRACT'S
+   OWN TERM (Young, 28 Sep 2026: "fix the spelling error issue as it is not
+   working") ----
+   A capital inside a sentence was always read as a name and let through, and a
+   contract is written in capitalised defined terms: "the Suplier shall" was
+   never checked. The terms are the words THIS contract capitalises inside a
+   sentence (its Supplier, its Agreement, its parties); a capitalised word one
+   slip from one of them (two for a longer word) is checked like any other.
+   A new name nobody has used — a person, a place — is still let through,
+   because it is a slip of nothing the contract says. */
+function spellTermsFrom(c, before){
+  const set = new Set();
+  const add = t => spellWords(t).forEach(x => {
+    if (!x.opens && /^[A-Z][a-z]/.test(x.word)) _spellForms(x.word).forEach(f => set.add(f));
+  });
+  if (c){ add(String(c.redlineText || '').replace(/<[^>]*>/g, ' ')); add(spellContractText(c)); }
+  if (before) add(before);
+  return set;
+}
+function spellTermSlip(w, opens, terms){
+  if (opens || !terms || !terms.size || !/^[A-Z][a-z]/.test(w) || w.length < 4) return false;
+  if (/\d/.test(w) || /[À-ɏ]/.test(w)) return false;
+  const lw = w.toLowerCase();
+  if (terms.has(lw)) return false;
+  const one = _spellEdits1(lw);
+  for (const e of one) if (terms.has(e)) return true;
+  if (lw.length >= 7) for (const e of one) for (const f of _spellEdits1(e)) if (terms.has(f)) return true;
+  return false;
+}
 /* ---- THE ONE READING: WHICH NEW WORDS LOOK MISSPELT ----
    `before` — every word that was on the page when the reader began (the
    clause as it stands, the ask they are answering); `after` — what they are
@@ -258,13 +297,15 @@ function spellSuspects(before, after, c){
   const old = new Set(spellWords(before).map(x => x.word.toLowerCase()));
   if (!spellLooksEnglish(String(before || '') + ' ' + String(after || ''))) return [];
   const known = spellKnownFrom(c, before);
+  const terms = spellTermsFrom(c, before);
   const seen = new Set();
   const out = [];
   for (const x of spellWords(after)){
     const lw = x.word.toLowerCase();
     if (seen.has(lw) || old.has(lw)) continue;
     seen.add(lw);
-    if (spellSkips(x.word, x.opens) || spellIsWord(x.word, known)) continue;
+    if (spellIsWord(x.word, known)) continue;
+    if (spellSkips(x.word, x.opens) && !spellTermSlip(x.word, x.opens, terms)) continue;
     out.push({ word: x.word, suggestions: spellSuggest(x.word, known) });
   }
   return out;
@@ -357,19 +398,122 @@ function spellEnsureStyle(){
   .sp-fix{border:1px solid var(--color-accent-600); background:var(--color-surface); color:var(--accent-ink)}
   .sp-leave{border:1px solid transparent; background:none; color:var(--color-neutral-600)}
   .sp-fix:focus-visible,.sp-leave:focus-visible{outline:2px solid var(--color-accent-600); outline-offset:1px}
-  .sp-none{color:var(--color-neutral-600)}`;
+  .sp-none{color:var(--color-neutral-600)}
+  ::highlight(${SPELL_HL}){text-decoration:underline wavy var(--st-ruby-dot, #d92d20); text-decoration-skip-ink:none;
+    text-underline-offset:3px}`;
   document.head.appendChild(st);
+}
+
+/* ============================================================
+   THE RED UNDERLINE WHILE TYPING (Young, 28 Sep 2026: "yes add the red
+   underlines while typing too")
+   ============================================================
+   THE SAME READING AS THE SAVE. What is underlined is exactly what the Save
+   would list — spellSuspects over the same `before` and the box as it now
+   reads — so a word underlined is a word the Save will stop on, and a word
+   the Save lets through is never underlined. The browser's own underline is
+   switched off on a box HaTi underlines (it reads another dictionary, in the
+   reader's browser language, and the two would disagree on the same word).
+
+   IT TOUCHES NO WORDING AND NO LAYOUT. The marks are a CSS Custom Highlight
+   (CSS.highlights): ranges over the box's text, painted by the browser, never
+   an element in the box — so the draft the Save reads, the caret and the
+   redline paint are exactly as they were. A browser without highlights keeps
+   its own underline and the Save still checks.
+
+   A beat behind the typing (SPELL_UNDERLINE_MS), one box at a time; the word
+   list is fetched on the first keystroke instead of the first Save. Words
+   inside a struck run are not the reader's and are never marked. */
+const SPELL_HL = 'hati-spell';
+const SPELL_UNDERLINE_MS = 350;
+let _spellUlTimer = null;
+let _spellUlArgs = null;
+function spellUnderlineCan(){
+  return typeof CSS !== 'undefined' && !!CSS.highlights && typeof globalThis.Highlight === 'function';
+}
+function spellUnderlineClear(){
+  if (_spellUlTimer){ clearTimeout(_spellUlTimer); _spellUlTimer = null; }
+  _spellUlArgs = null;
+  try { if (spellUnderlineCan()) CSS.highlights.delete(SPELL_HL); } catch (_){}
+}
+/* The text a reader typed in these roots, as nodes: struck runs left out. */
+function _spellLiveNodes(roots){
+  const out = [];
+  (roots || []).forEach(root => {
+    if (!root || typeof document === 'undefined') return;
+    const walk = document.createTreeWalker(root, 4 /* NodeFilter.SHOW_TEXT */);
+    while (walk.nextNode()){
+      const t = walk.currentNode;
+      const el = t.parentElement;
+      if (el && el.closest && el.closest('del, [data-ce-mark="del"]')) continue;
+      out.push(t);
+    }
+  });
+  return out;
+}
+/* Paint now. `roots` the boxes; `before` and `after` EXACTLY what the Save
+   passes (what was on the page when the reader began; what it would file),
+   `after` as a string or a function asked at paint time; `c` the contract.
+   Answers how many words it marked (null: not able). A word split across
+   inline tags gets no mark rather than a wrong one. */
+function spellUnderline(roots, before, after, c){
+  if (!spellUnderlineCan() || !Array.isArray(roots)) return null;
+  const live = roots.filter(r => r && r.isConnected);
+  if (!live.length){ spellUnderlineClear(); return null; }
+  live.forEach(r => { if (r.spellcheck !== false) r.spellcheck = false; });
+  if (!_spellSet){ CSS.highlights.delete(SPELL_HL); return null; }
+  spellEnsureStyle();
+  const nodes = _spellLiveNodes(live);
+  const now = typeof after === 'function' ? after() : after;
+  const sus = spellSuspects(before, now, c) || [];
+  const bad = new Set(sus.map(x => String(x.word).toLowerCase()));
+  const ranges = [];
+  if (bad.size){
+    const re = /[A-Za-zÀ-ɏ][A-Za-zÀ-ɏ'\-]*[A-Za-zÀ-ɏ]|[A-Za-zÀ-ɏ]/g;
+    nodes.forEach(t => {
+      const text = String(t.nodeValue || '').replace(/[‘’]/g, "'");
+      let m;
+      re.lastIndex = 0;
+      while ((m = re.exec(text))){
+        let at = m.index;
+        m[0].split('-').forEach(part => {
+          const w = part.replace(/^'+|'+$/g, '');
+          const lead = part.indexOf(w);
+          if (w && bad.has(w.toLowerCase())){
+            const r = document.createRange();
+            r.setStart(t, at + lead); r.setEnd(t, at + lead + w.length);
+            ranges.push(r);
+          }
+          at += part.length + 1;
+        });
+      }
+    });
+  }
+  if (ranges.length) CSS.highlights.set(SPELL_HL, new globalThis.Highlight(...ranges));
+  else CSS.highlights.delete(SPELL_HL);
+  return ranges.length;
+}
+/* A beat behind the typing. The word list is asked for here, so the first
+   underline arrives as soon as it has loaded. */
+function spellUnderlineSoon(roots, before, after, c){
+  if (!spellUnderlineCan()) return;
+  _spellUlArgs = [roots, before, after, c];
+  if (!_spellSet && !_spellFailed) spellLoad().then(ok => { if (ok && _spellUlArgs) spellUnderline(..._spellUlArgs); });
+  if (_spellUlTimer) clearTimeout(_spellUlTimer);
+  _spellUlTimer = setTimeout(() => { _spellUlTimer = null; if (_spellUlArgs) spellUnderline(..._spellUlArgs); }, SPELL_UNDERLINE_MS);
 }
 
 if (typeof window !== 'undefined') Object.assign(window, {
   SPELL_WORDS_SRC, SPELL_ENGLISH_MIN, SPELL_SUGGEST_MAX, SPELL_LEGAL,
   spellLoadFrom, spellReady, spellState, spellLoad, spellWords, spellPlain, spellSkips, spellKnownFrom, spellIsWord,
-  spellLooksEnglish, spellSuggest, spellSuspects, spellLeave,
+  spellLooksEnglish, spellSuggest, spellSuspects, spellLeave, spellTermsFrom, spellTermSlip, spellContractText,
   spellFixText, spellFixHtml, spellFixNode, spellListHtml, spellEnsureStyle,
+  SPELL_HL, SPELL_UNDERLINE_MS, spellUnderlineCan, spellUnderline, spellUnderlineSoon, spellUnderlineClear,
 });
 if (typeof module !== 'undefined' && module.exports) module.exports = {
   SPELL_WORDS_SRC, SPELL_ENGLISH_MIN, SPELL_SUGGEST_MAX, SPELL_LEGAL,
   spellLoadFrom, spellReady, spellState, spellLoad, spellWords, spellPlain, spellSkips, spellKnownFrom, spellIsWord,
-  spellLooksEnglish, spellSuggest, spellSuspects, spellLeave,
+  spellLooksEnglish, spellSuggest, spellSuspects, spellLeave, spellTermsFrom, spellTermSlip, spellContractText,
   spellFixText, spellFixHtml, spellFixNode, spellListHtml, spellEnsureStyle,
+  SPELL_HL, SPELL_UNDERLINE_MS, spellUnderlineCan, spellUnderline, spellUnderlineSoon, spellUnderlineClear,
 };

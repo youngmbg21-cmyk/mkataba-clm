@@ -442,10 +442,11 @@ describe('f264 (5) — the drawer reads the record for its shape', () => {
    ============================================================ */
 describe('f264 (6) — the gesture that means done, means done', () => {
   test('one reading answers for the pencil and for the File button', () => {
-    assert.match(CE, /const ceCanFile = \(\) => \(_ceText !== _ceBase \|\| _ceHead !== _ceHeadBase\) && clauseEditorDirty\(\);/,
+    /* RE-POINTED 28 Sep 2026: the reading takes the box as typed (see f245). */
+    assert.match(CE, /function ceCanFile\(d\)\{[\s\S]{0,120}?return \(tx !== _ceBase \|\| hd !== _ceHeadBase\)\s*&& clauseEditorOpen\(\) && \(tx !== _ceOpenText \|\| hd !== _ceOpenHead\);/,
       'the two questions joined: the wording has moved from what STANDS, and '
       + 'there is something the RECORD does not already hold');
-    assert.match(CE, /const anyToFile = ceCanFile\(\);/, 'the foot asks it');
+    assert.match(CE, /const anyToFile = ceCanFile\(now\);/, 'the foot asks it');
     assert.match(CE, /if \(_ceEditing && ceCanFile\(\)\)\{/,
       'and so does the pencil, so a pencil that files where the button is dead '
       + 'is not a thing that can happen');
@@ -453,8 +454,12 @@ describe('f264 (6) — the gesture that means done, means done', () => {
 
   test('typing goes off only after the record moves', () => {
     const branch = CE.match(/const pencil = hit\('\[data-ce-pencil\]'\);[\s\S]*?\n      return; \}/)[0];
-    /* through the spelling list since 28 Sep 2026 — ceSaveChecked answers what ceFile answers */
-    assert.match(branch, /Promise\.resolve\(ceSaveChecked\(\)\)\.then\(ch => \{\s*\n\s*if \(!ch\) return;\s*\n\s*_ceEditing = false;/,
+    /* through the spelling list since 28 Sep 2026 — ceSaveChecked answers what ceFile answers.
+       RE-POINTED 28 Sep 2026 (the save symbol): the press hands to
+       ceSaveFromSymbol, which Ctrl/⌘+S shares, and the order is kept there. */
+    assert.match(branch, /if \(_ceEditing && ceCanFile\(\)\)\{ ceSaveFromSymbol\(pencil\); return; \}/);
+    const save = CE.match(/function ceSaveFromSymbol\(pencil\)\{[\s\S]*?\n\}\n/)[0];
+    assert.match(save, /Promise\.resolve\(ceSaveChecked\(\)\)\.then\(ch => \{\s*\n\s*if \(!ch\) return;\s*\n\s*_ceEditing = false;/,
       'turning the box read-only over wording the funnel has just REFUSED would '
       + 'hide the reader’s own work behind a page drawing the marks of a '
       + 'change that does not exist');
