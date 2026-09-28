@@ -313,7 +313,9 @@ describe('f392 (7) the map is the X-ray\'s own walk over this canvas', () => {
     const s = code(region(IG, 'igStrandPaint'));
     assert.match(s, /if\(!row\.tone\) row\.tone='steel';/);
     assert.match(s, /docXraySpineRows\(rows\)/);
-    assert.match(s, /docXraySpineHtml\(rows\)/);
+    /* RE-POINTED 28 Sep 2026 (Young picked "Ask" for this strip): the same
+       builder, now asked for the clause numbers on its blocks. */
+    assert.match(s, /docXraySpineHtml\(rows,\{ numbers:true \}\)/);
     assert.match(s, /window\.DOC_XRAY_SPINE_W/);
     assert.match(CT, /docXraySpineHtml,docXraySpineRows,/, 'the filter is published, so the graph file can ask it');
   });

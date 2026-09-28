@@ -19810,3 +19810,10 @@ Noticed, not fixed
 
 ### Noticed, not fixed
 - test/audit/sim-d-server-attacks.audit.js stops with a HARNESS ERROR before any attack runs: its signing link is refused 409 by the "Value ≥ 5000000" approval rule (its fixture does not say `approvalRules: []`). Same on the commit before this change; not changed.
+
+## 28 Sep 2026 — Explorer's strip asks, and the Copilot chats' text size
+
+- Built (Young: "implement ASK … the font in both copilot chatbots seem a bit big"): on Insights → Explorer the strip beside an analyzed contract shows clause numbers, a hover card with the clause, how serious and why, and a press lights the clause and puts a question about it in Copilot's box without sending it. Both Copilot chats (the side panel and Explorer's) now print messages and the question box at the product's 13px body size on the desktop; the phone is unchanged.
+
+### Noticed, not fixed
+- phone-verify "iPhone 14 (390): and offers no menu — no edits on the paper" fails: the selection menu still opens on the phone's paper. Same on 2a034b9 (before today's work); not changed.

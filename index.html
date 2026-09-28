@@ -7300,6 +7300,25 @@
   .ig-mark.is-on{box-shadow:0 0 0 2px var(--st-steel-bg),0 0 0 4px color-mix(in srgb,var(--color-accent) 35%,transparent)}
   .ig-mark.ob.is-on{box-shadow:0 0 0 2px var(--st-amber-bg),0 0 0 4px color-mix(in srgb,var(--st-amber-dot) 55%,transparent)}
   .ig-pinhost{position:relative}
+  /* ASK ON EXPLORER'S STRIP (28 Sep 2026): the clause's own number on its
+     block, a hover card saying what it is and why, and a moment's light on
+     the clause a press lands on. Amber takes dark ink: white on the amber dot
+     measured under 2:1. */
+  .ig-spine .doc-xr-num{font-family:var(--font-body);font-size:var(--t-figure);font-weight:var(--w-strong);line-height:1;color:#fff;font-variant-numeric:tabular-nums;max-width:100%;overflow:hidden;white-space:nowrap;pointer-events:none}
+  .ig-spine .doc-xr-seg.is-amber .doc-xr-num{color:#3B2503}
+  .ig-spine-tip{position:absolute;z-index:6;width:260px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;padding:9px 11px;background:var(--color-surface);color:var(--color-text);border:1px solid var(--color-divider);border-radius:var(--radius-md);box-shadow:var(--shadow-md);font-size:var(--t-meta);line-height:1.45;pointer-events:none}
+  .ig-spine-tip[hidden]{display:none}
+  .ig-tip-h{font-size:var(--t-body);font-weight:var(--w-strong)}
+  .ig-tip-g{align-self:flex-start;font-size:var(--t-label);font-weight:var(--w-label);border-radius:var(--radius-sm);padding:1px 6px;border:1px solid}
+  .ig-tip-g.is-ruby{background:var(--st-ruby-bg);color:var(--st-ruby-fg);border-color:var(--st-ruby-line)}
+  .ig-tip-g.is-amber{background:var(--st-amber-bg);color:var(--st-amber-fg);border-color:var(--st-amber-line)}
+  .ig-tip-g.is-steel{background:var(--st-steel-bg);color:var(--st-steel-fg);border-color:var(--st-steel-line)}
+  .ig-tip-m b{font-weight:var(--w-label)}
+  .ig-tip-more{color:var(--color-neutral-600)}
+  .ig-tip-go{color:var(--accent-ink);font-weight:var(--w-label)}
+  .ig-flash{animation:igFlash 1.6s ease-out}
+  @keyframes igFlash{0%{background-color:color-mix(in srgb,var(--color-accent) 18%,transparent)}100%{background-color:transparent}}
+  @media (prefers-reduced-motion: reduce){.ig-flash{animation:none;outline:2px solid color-mix(in srgb,var(--color-accent) 45%,transparent);outline-offset:2px}}
   .ig-pin{position:absolute;left:-30px;top:2px;width:18px;height:18px;box-sizing:border-box;padding:0;margin:0;border-radius:50%;border:1.5px solid var(--accent-fill);background:var(--st-steel-bg);color:var(--accent-ink);font-family:var(--font-body);font-size:10px;line-height:1;font-weight:var(--w-strong);font-variant-numeric:tabular-nums;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
   .ig-pin.ob{border-color:var(--st-amber-dot);background:var(--st-amber-bg);color:var(--st-amber-fg)}
   .ig-pin:hover{box-shadow:0 0 0 3px color-mix(in srgb,var(--color-accent) 25%,transparent)}
@@ -10131,6 +10150,17 @@
 <style>
 /* Copilot answers: markdown, tone markers and charts. Scoped to #ai-feed so a
    model's output can never restyle the application around it. */
+/* ---- THE CHATS' TEXT IS THE PRODUCT'S BODY SIZE (Young, 28 Sep 2026: "the
+   font in both copilot chatbots seem a bit big") ----
+   Measured in a browser: both Copilot chats printed their messages and their
+   question box at 14px with 1.625 line spacing (the generated sheet turns
+   text-sm AND text-[13px] into 14px), against 13px (--t-body) everywhere else.
+   Scoped, not !important: two classes beat the generated sheet's one. The
+   phone keeps its own larger sizes, so this is the desktop's only. */
+@media (min-width:768px){
+  .ai-msg .ai-bub{font-size:var(--t-body);line-height:1.55}
+  #ai-panel #ai-input,#ig-dock #igd-input{font-size:var(--t-body)}
+}
 #ai-feed .ai-p{margin:0 0 .5em}
 #ai-feed .ai-p:last-child{margin-bottom:0}
 #ai-feed .ai-h{font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-card);margin:.7em 0 .3em}

@@ -13040,12 +13040,18 @@ const docXraySegH = words => Math.round(XR_SEG_MIN
    the paper — the map is a list of where to look, not a picture of the whole
    agreement. Nothing marked, no map. */
 const docXraySpineRows = rows => (rows||[]).filter(x => x && x.tone);
-function docXraySpineHtml(rows){
+/* `opts.numbers` (Explorer only, Young picked "Ask", 28 Sep 2026): each block
+   carries its clause's own number, and the word-count hover gives way to the
+   page's own hover card. The Document tab calls it bare and is unchanged. */
+function docXraySpineHtml(rows, opts){
+  const o=opts||{};
   return docXraySpineRows(rows).map(x=>`<button type="button" class="doc-xr-seg${x.tone?' is-'+x.tone:''}${
       x.i===_docXrayPick?' is-on':''}" data-xr-seg="${x.i}"
       style="--xr-w:${docXraySegH(x.words)};min-height:${XR_SEG_MIN}px" aria-pressed="${x.i===_docXrayPick?'true':'false'}"
-      title="${esc(docXrayLabel(x)+' · '+i18tn('xr_words',x.words,{n:x.words}))}"
-      aria-label="${esc(docXrayLabel(x))}"><span class="doc-xr-dot"></span></button>`).join('');
+      ${o.numbers?'':`title="${esc(docXrayLabel(x)+' · '+i18tn('xr_words',x.words,{n:x.words}))}"`}
+      aria-label="${esc(docXrayLabel(x))}">${o.numbers&&x.cite
+        ?`<span class="doc-xr-num">${esc(String(x.cite).replace(/\.$/,''))}</span>`
+        :'<span class="doc-xr-dot"></span>'}</button>`).join('');
 }
 /* ---------- the panel ---------- */
 function docXraySecHtml(k,body,cls){

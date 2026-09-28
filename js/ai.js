@@ -965,7 +965,7 @@ function renderAIFeed(typing=false){
     feed.innerHTML=`<div class="ai-msg flex gap-2.5">
       <div class="h-7 w-7 shrink-0 grid place-items-center rounded-lg bg-gold-500/15 text-gold-600 mt-0.5">${icon('sparkle','w-3.5 h-3.5')}</div>
       <div class="max-w-[88%] space-y-2">
-        <div class="rounded-2xl rounded-tl-md bg-canvas border border-brand-100 px-4 py-2.5 text-sm text-brand-900 leading-relaxed">${aiWelcomeHtml()}</div>
+        <div class="ai-bub rounded-2xl rounded-tl-md bg-canvas border border-brand-100 px-4 py-2.5 text-sm text-brand-900 leading-relaxed">${aiWelcomeHtml()}</div>
       </div>
     </div>`;
     if(typeof aiChartSweep==='function') aiChartSweep();
@@ -973,7 +973,7 @@ function renderAIFeed(typing=false){
   }
   feed.innerHTML=ai.history.map(m=>{
     if(m.role==='user'){
-      return `<div class="ai-msg flex justify-end"><div class="max-w-[85%] rounded-2xl rounded-br-md bg-brand-900 text-white px-4 py-2.5 text-sm">${m.text}</div></div>`;
+      return `<div class="ai-msg flex justify-end"><div class="ai-bub max-w-[85%] rounded-2xl rounded-br-md bg-brand-900 text-white px-4 py-2.5 text-sm">${m.text}</div></div>`;
     }
     /* BUBBLE TWO. Drawn from the live record rather than from anything stored
        on the message, so a card that has since been applied, declined or
@@ -983,7 +983,7 @@ function renderAIFeed(typing=false){
     return `<div class="ai-msg flex gap-2.5">
       <div class="h-7 w-7 shrink-0 grid place-items-center rounded-lg bg-gold-500/15 text-gold-600 mt-0.5">${icon('sparkle','w-3.5 h-3.5')}</div>
       <div class="max-w-[88%] space-y-2">
-        ${m.text?`<div class="rounded-2xl rounded-tl-md bg-canvas border border-brand-100 px-4 py-2.5 text-sm text-brand-900 leading-relaxed">${m.text}</div>`:''}
+        ${m.text?`<div class="ai-bub rounded-2xl rounded-tl-md bg-canvas border border-brand-100 px-4 py-2.5 text-sm text-brand-900 leading-relaxed">${m.text}</div>`:''}
         ${proposal}
         ${m.cards?m.cards:''}
       </div>

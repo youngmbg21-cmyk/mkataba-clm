@@ -164,6 +164,74 @@ const deliver = (id, answer, citations) => ({ content: [{ type: 'tool_use', id, 
       `${pinned.spine} block(s) · strip ${pinned.spineW}px · left of sheet ${pinned.spineLeftOfSheet} · painted ${pinned.blockPainted}`);
     await page.screenshot({ path: path.join(OUT, '03-pinned.png') });
 
+    /* ================= 2i. ASK ON THE STRIP (Young picked it, 28 Sep 2026) ===
+       *"implement ASK"*: a block carries its clause number, its hover says what
+       the clause is and why it is flagged, and a press lands on the clause,
+       lights it, and puts a question naming the clause and its flag in the
+       box beside the paper — nothing is asked until the reader presses Ask.
+       Staged with ONE risk-scan finding on a clause the answer did not touch,
+       so a ruby block with a reason is on the strip. */
+    const staged = await page.evaluate(() => {
+      const c = getContract('MK-A2'); const canvas = document.getElementById('ig-canvas');
+      const rows = docXrayRows(c, canvas).filter(r => r.cite && !r.tone && r.words > 20);
+      const r = rows[Math.floor(rows.length / 2)] || rows[0]; if (!r) return { err: 'no clause to flag' };
+      const txt = String(r.row.text || '').replace(/\s+/g, ' ').trim();
+      const quote = txt.split(' ').slice(0, 9).join(' ');
+      c.scan = { findings: [{ id: 'f-ask', sev: 'high', title: 'Liability is capped far below the goods\' value', why: 'A loss could cost you most of it.', quote }], dismissed: [] };
+      igPaintPaper();
+      return { label: docXrayLabel(r), cite: String(r.cite).replace(/\.$/, '') };
+    });
+    check('2s1 stage: one clause carries a risk-scan finding', !staged.err, staged.err || staged.label);
+    const blk = await page.evaluate(cite => {
+      const sp = document.getElementById('ig-spine');
+      const b = [...sp.querySelectorAll('[data-xr-seg].is-ruby')][0];
+      const r = b && b.getBoundingClientRect();
+      const hit = r && document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return { found: !!b, num: b && (b.querySelector('.doc-xr-num') || {}).textContent, want: cite,
+        painted: !!(hit && b.contains(hit)), title: b && b.getAttribute('title'), i: b && b.getAttribute('data-xr-seg') };
+    }, staged.cite);
+    check('2s2 the flagged clause\'s block wears its clause number, painted', blk.found && blk.num === blk.want && blk.painted,
+      JSON.stringify(blk));
+    check('2s3 and the word-count hover is gone: the page\'s own card says it instead', blk.title == null, String(blk.title));
+    await page.hover(`#ig-spine [data-xr-seg="${blk.i}"]`);
+    await page.waitForFunction(() => { const t = document.getElementById('ig-spine-tip'); return t && !t.hidden; }, null, { timeout: 4000 }).catch(() => {});
+    const tip = await page.evaluate(() => { const t = document.getElementById('ig-spine-tip');
+      if (!t || t.hidden) return { shown: false };
+      const r = t.getBoundingClientRect();
+      return { shown: true, text: t.textContent.replace(/\s+/g, ' ').trim(), w: Math.round(r.width) }; });
+    check('2s4 the hover names the clause, how serious it is, and why it is flagged',
+      tip.shown && tip.text.includes(staged.label) && /Could hurt you/.test(tip.text) && /capped far below/.test(tip.text) && /ask Copilot/.test(tip.text),
+      tip.text || 'not shown');
+    await page.evaluate(() => { const i = document.getElementById('igd-input'); if (i) i.value = ''; });
+    const callsBefore = ai.calls.length;
+    await page.click(`#ig-spine [data-xr-seg="${blk.i}"]`);
+    await page.waitForFunction(() => { const i = document.getElementById('igd-input'); return i && i.value.length > 0; }, null, { timeout: 4000 }).catch(() => {});
+    const pressed = await page.evaluate(i => {
+      const inp = document.getElementById('igd-input');
+      const b = document.querySelector(`#ig-spine [data-xr-seg="${i}"]`);
+      return { q: inp && inp.value, focused: document.activeElement === inp,
+        on: !!(b && b.classList.contains('is-on')), lit: document.querySelectorAll('#ig-canvas .ig-flash').length,
+        tipHidden: !document.getElementById('ig-spine-tip') || document.getElementById('ig-spine-tip').hidden };
+    }, blk.i);
+    await page.waitForTimeout(700);
+    const landed = await page.evaluate(label => { const sc = document.getElementById('ig-paper-scroll');
+      const el = [...document.querySelectorAll('#ig-canvas *')].find(e => e.classList && e.classList.contains('ig-flash'));
+      const r = el && el.getBoundingClientRect(), sr = sc.getBoundingClientRect();
+      return { inView: !!(r && r.top >= sr.top - 2 && r.top < sr.bottom) }; }, staged.label);
+    check('2s5 a press puts a question naming the clause AND its flag in the box, ready to ask',
+      !!pressed.q && pressed.q.includes(staged.label) && /Risk scan/.test(pressed.q) && /capped far below/.test(pressed.q) && pressed.focused,
+      JSON.stringify(pressed.q));
+    check('2s6 and NOTHING WAS ASKED: no call left for the model', ai.calls.length === callsBefore, `${ai.calls.length - callsBefore} call(s)`);
+    check('2s7 the block is marked as picked, the clause is lit on the paper and in view, and the card went away',
+      pressed.on && pressed.lit >= 1 && landed.inView && pressed.tipHidden, JSON.stringify({ ...pressed, q: undefined, ...landed }));
+    await page.screenshot({ path: path.join(OUT, '03b-strip-ask.png') });
+    await page.evaluate(() => { const i = document.getElementById('igd-input'); if (i) i.value = 'my own question'; });
+    await page.click(`#ig-spine [data-xr-seg="${blk.i}"]`);
+    await page.waitForTimeout(300);
+    const kept = await page.evaluate(() => document.getElementById('igd-input').value);
+    check('2s8 a question the reader typed is never overwritten by a press', kept === 'my own question', kept);
+    await page.evaluate(() => { const i = document.getElementById('igd-input'); if (i) i.value = ''; });
+
     /* A pin in the margin finds its answer in the panel. */
     await page.evaluate(() => { const f = document.getElementById('igd-feed'); f.scrollTop = 0; });
     await page.click('#ig-canvas button.ig-pin[data-ig-pin="1"]');

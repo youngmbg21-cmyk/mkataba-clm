@@ -24325,3 +24325,15 @@ What was built: the server reads the order LIVE off the STORED route on every op
 Our signers are NAMED on their page before they sign (name and capacity). The dormant "not your turn yet" notice still names an internal holdup as the organisation, unchanged.
 
 Tests: f423 (red at the parent 73e48f0 on every claim but the fallback), their-side-verify 5g/5h.
+
+## INSIGHTS — EXPLORER'S STRIP ASKS, AND THE CHATS' TEXT SIZE (Young, 28 Sep 2026)
+
+> *"also you have the DNA but it has no function. What is the purpose for it and do we want to add one?"* — then, over three drawn options (Signpost · Ask · Remove, on Explorer's paper): *"implement ASK but I also want to state that the font in both copilot chatbots seem a bit big. We need to address that as well"*
+
+THE STRIP. On Explorer the map beside an analyzed contract only scrolled the paper; nothing on that page said why a clause was flagged (the reasons live in the Document tab's Risk View panel). Built: each block carries its clause's own number (`docXraySpineHtml(rows,{numbers:true})` — the Document tab still calls it bare, so its strip is unchanged); the word-count title gives way to a hover card (`igStrandTip`: the clause, its grade in words — Could hurt you · Worth a look · Worth knowing — its top two marks, "Press to go there and ask Copilot"); a press (`igStrandPress`) marks the block, lights the clause for a moment (`.ig-flash`), opens the dock if folded and puts `igStrandQuestion` in `#igd-input`: the clause, the worst mark's source and point, "What does this mean for us, and what should we ask for?" — because the model reads the wording, not our scan, playbook or brief. NOTHING IS SENT until Ask; the cost stays on the box's hover. A question the reader typed is never overwritten (only an empty box or the strip's own last question is filled).
+
+DEPARTED FROM THE DRAWING: the drawing put an "About 4. Loss & Damage ×" chip above the box. The 26 Sep ruling on that box says what it asks about is read back on the control itself, never a line above it, so the question names the clause instead and no chip was built.
+
+THE CHATS. MEASURED in a browser: the Copilot panel's bubbles and box and Explorer's dock bubbles and box all painted at 14px, line height 1.625 (22.75px), against --t-body 13px everywhere else — the generated Tailwind sheet maps both `text-sm` and `text-[13px]` to 14px, so Explorer's "13px" was never 13. Now `.ai-msg .ai-bub{font-size:var(--t-body);line-height:1.55}` and `#ai-panel #ai-input,#ig-dock #igd-input{font-size:var(--t-body)}` inside `@media (min-width:768px)`: two classes/ids beat the generated one-class rule without !important, and the phone (which sets its own larger sizes in js/mobile-copilot.js) is untouched. Measured after: 13px / 20.15px in both. The answer's own headings stay one step up (`#ai-feed .ai-h` at --t-card).
+
+Tests: f424 (red at the parent e3684de on every claim), analyze-on-the-graph-verify 2s1–2s8; f392 (7) re-pointed to the new call.

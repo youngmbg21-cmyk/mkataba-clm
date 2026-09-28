@@ -3681,7 +3681,7 @@ function igExplainCard(id){
 }
 function igMsgHTML(m,i){
   if(m.role==='user')
-    return `<div class="ai-msg flex justify-end"><div class="max-w-[85%] rounded-2xl rounded-br-md bg-brand-900 text-white px-3.5 py-2 text-[13px]">${igEsc(m.text)}</div></div>`;
+    return `<div class="ai-msg flex justify-end"><div class="ai-bub max-w-[85%] rounded-2xl rounded-br-md bg-brand-900 text-white px-3.5 py-2 text-[13px]">${igEsc(m.text)}</div></div>`;
   // Q&A answers stay text-only — the matching contracts are still highlighted on
   // the graph (igPaintIds), but we no longer append a card list under the answer.
   const body = m.ranked ? m.ranked.map((r,i)=>igRankCard(r,i)).join('')
@@ -3695,7 +3695,7 @@ function igMsgHTML(m,i){
   return `<div class="ai-msg flex gap-2"${Number.isInteger(i)?` data-ig-turn="${i}"`:''}>
     <div class="h-6 w-6 shrink-0 grid place-items-center rounded-lg bg-gold-500/15 text-gold-600 mt-0.5">${icon('sparkle','w-3 h-3')}</div>
     <div class="min-w-0 flex-1 space-y-1.5">
-      ${m.text?`<div class="rounded-2xl rounded-tl-md border px-3.5 py-2 text-[13px] leading-relaxed ${m.err?'bg-rose-50 border-rose-200 text-rose-800':'bg-canvas border-brand-100 text-brand-900'}">${igSafeHtml(m.text)}${cites}</div>`:''}
+      ${m.text?`<div class="ai-bub rounded-2xl rounded-tl-md border px-3.5 py-2 text-[13px] leading-relaxed ${m.err?'bg-rose-50 border-rose-200 text-rose-800':'bg-canvas border-brand-100 text-brand-900'}">${igSafeHtml(m.text)}${cites}</div>`:''}
       ${body}
     </div>
   </div>`;
@@ -4183,16 +4183,92 @@ function igStrandPaint(c){
   /* The strip's width is the Document tab's own number, written on the
      element as that tab writes it (the sheet's rule states none). */
   sp.style.width=(Number(window.DOC_XRAY_SPINE_W)||28)+'px';
-  sp.innerHTML=docXraySpineHtml(rows);
+  sp.innerHTML=docXraySpineHtml(rows,{ numbers:true });
   sp.querySelectorAll('.doc-xr-seg.is-on').forEach(b=>{ b.classList.remove('is-on'); b.setAttribute('aria-pressed','false'); });
   _igStrandRows=rows.map(x=>x.el);
+  _igStrandData=rows;
   igStrandFollow();
   if(sc&&!sc.dataset.igFollowBound){ sc.dataset.igFollowBound='1'; let raf=0;
-    sc.addEventListener('scroll',()=>{ if(raf) return; raf=requestAnimationFrame(()=>{ raf=0; igStrandFollow(); }); },{passive:true}); }
+    sc.addEventListener('scroll',()=>{ igStrandTip(null); if(raf) return; raf=requestAnimationFrame(()=>{ raf=0; igStrandFollow(); }); },{passive:true}); }
   if(!sp.dataset.igBound){ sp.dataset.igBound='1';
     sp.addEventListener('click',e=>{ const b=e.target.closest('[data-xr-seg]'); if(!b) return;
-      const el=_igStrandRows[Number(b.getAttribute('data-xr-seg'))]; const s=document.getElementById('ig-paper-scroll');
-      if(el&&s){ const r=el.getBoundingClientRect(), sr=s.getBoundingClientRect(); s.scrollTo({ top:Math.max(0,s.scrollTop+(r.top-sr.top)-16), behavior:'smooth' }); } }); }
+      const i=Number(b.getAttribute('data-xr-seg'));
+      const el=_igStrandRows[i]; const s=document.getElementById('ig-paper-scroll');
+      if(el&&s){ const r=el.getBoundingClientRect(), sr=s.getBoundingClientRect(); s.scrollTo({ top:Math.max(0,s.scrollTop+(r.top-sr.top)-16), behavior:'smooth' }); }
+      igStrandTip(null);
+      igStrandPress(sp, b, i); });
+    /* THE HOVER CARD: which clause, how serious, and why — the reason this
+       page never said anywhere before. Keyboard focus shows it too. */
+    const tipFor=e=>{ const b=e.target&&e.target.closest&&e.target.closest('[data-xr-seg]'); igStrandTip(b||null); };
+    sp.addEventListener('mouseover',tipFor);
+    sp.addEventListener('focusin',tipFor);
+    sp.addEventListener('mouseleave',()=>igStrandTip(null));
+    sp.addEventListener('focusout',()=>igStrandTip(null));
+    sp.addEventListener('scroll',()=>igStrandTip(null),{passive:true}); }
+}
+/* ---- ASK (Young picked it over Signpost and Remove, 28 Sep 2026) ----
+   *"implement ASK"*: a block on Explorer's strip carries its clause number,
+   says on the hover what it is and why it is flagged, and a press takes the
+   paper to the clause, lights it for a moment and puts a question about it in
+   Copilot's box beside the paper — NOTHING IS SENT AND NOTHING IS SPENT until
+   the reader presses Ask, the one door the box already has, with its cost on
+   the box's own hover as before.
+
+   The question NAMES THE CLAUSE AND ITS FLAG IN ITS OWN WORDS rather than a
+   label above the box (the 26 Sep ruling: the box says what it asks about on
+   the control itself, never a line above it), and it carries the flag because
+   the model reads the wording, not our scan, playbook or brief.
+
+   IT NEVER OVERWRITES WHAT THE READER TYPED: the box is filled only when it is
+   empty or still holds the strip's own last question. */
+let _igStrandData=[], _igStrandLastAsk='';
+const IG_GRADE_RANK=['ruby','amber','steel'];
+function igStrandTopMark(row){
+  const ms=((row&&row.marks)||[]).filter(Boolean).slice();
+  const rank=g=>{ const i=IG_GRADE_RANK.indexOf(g); return i<0?IG_GRADE_RANK.length:i; };
+  ms.sort((a,b)=>rank(a.grade)-rank(b.grade));
+  return ms[0]||null;
+}
+const igStrandPoint = m => m ? String(m.lead||m.say||'').trim().replace(/[.\s]+$/,'') : '';
+function igStrandQuestion(row){
+  const clause=(typeof docXrayLabel==='function')?docXrayLabel(row):String((row&&row.name)||'');
+  const m=igStrandTopMark(row), point=igStrandPoint(m);
+  return (m&&point)?i18t('int_strip_q',{ clause, tag:m.tag||'', point }):i18t('int_strip_q_bare',{ clause });
+}
+function igStrandPress(sp, b, i){
+  sp.querySelectorAll('.doc-xr-seg.is-on').forEach(x=>{ x.classList.remove('is-on'); x.setAttribute('aria-pressed','false'); });
+  b.classList.add('is-on'); b.setAttribute('aria-pressed','true');
+  const el=_igStrandRows[i];
+  if(el&&el.classList){ el.classList.remove('ig-flash'); void el.offsetWidth; el.classList.add('ig-flash');
+    clearTimeout(el._igFlash); el._igFlash=setTimeout(()=>el.classList.remove('ig-flash'),1700); }
+  const row=_igStrandData[i]; if(!row) return;
+  if(!intel.dockOpen){ intel.dockOpen=true; renderIntelDock(); igSyncDockWidth(); }
+  const inp=document.getElementById('igd-input'); if(!inp) return;
+  const had=String(inp.value||'');
+  if(had.trim() && had!==_igStrandLastAsk) return;
+  const q=igStrandQuestion(row);
+  inp.value=q; _igStrandLastAsk=q;
+  try{ inp.focus({ preventScroll:true }); inp.setSelectionRange(q.length,q.length); }catch(_){}
+}
+function igStrandTip(b){
+  const wrap=document.querySelector('#ig-paper .ig-paper-wrap');
+  let tip=document.getElementById('ig-spine-tip');
+  if(!b||!wrap){ if(tip) tip.hidden=true; return; }
+  const row=_igStrandData[Number(b.getAttribute('data-xr-seg'))]; if(!row){ if(tip) tip.hidden=true; return; }
+  if(!tip||tip.parentNode!==wrap){ if(tip) tip.remove(); tip=document.createElement('div'); tip.id='ig-spine-tip'; tip.className='ig-spine-tip'; tip.setAttribute('role','tooltip'); wrap.appendChild(tip); }
+  const g=IG_GRADE_RANK.includes(row.tone)?row.tone:'steel';
+  const ms=((row.marks)||[]).filter(Boolean);
+  const lines=ms.slice(0,2).map(m=>`<span class="ig-tip-m"><b>${igEsc(m.tag||'')}</b> ${igEsc(igStrandPoint(m))}</span>`).join('');
+  tip.innerHTML=`<span class="ig-tip-h">${igEsc(typeof docXrayLabel==='function'?docXrayLabel(row):(row.name||''))}</span>`
+    +`<span class="ig-tip-g is-${g}">${igEsc(i18t('int_grade_'+g))}</span>`
+    +(lines||(row.asked?`<span class="ig-tip-m">${igEsc(i18t('int_strip_asked'))}</span>`:''))
+    +(ms.length>2?`<span class="ig-tip-m ig-tip-more">${igEsc(i18tn('int_strip_more',ms.length-2,{ n:ms.length-2 }))}</span>`:'')
+    +`<span class="ig-tip-go">${igEsc(i18t('int_strip_go'))}</span>`;
+  tip.hidden=false;
+  const sp=b.closest('.ig-spine'); const wr=wrap.getBoundingClientRect(), br=b.getBoundingClientRect();
+  tip.style.left=((sp?sp.getBoundingClientRect().right:br.right)-wr.left+8)+'px';
+  const top=Math.max(4, Math.min(wrap.clientHeight-tip.offsetHeight-4, br.top-wr.top-4));
+  tip.style.top=top+'px';
 }
 function igStrandFollow(){
   const sp=document.getElementById('ig-spine'), sc=document.getElementById('ig-paper-scroll');
@@ -4250,6 +4326,6 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
   });
 }
 
-Object.assign(window,{IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igPaperAsk});
+Object.assign(window,{IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
 Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,ptFitTable,ptPagerHtml,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
