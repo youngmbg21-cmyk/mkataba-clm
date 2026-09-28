@@ -99,25 +99,29 @@ describe('F251 — a repaint keeps the reader\'s place', () => {
     assert.ok(/window\.keepScroll/.test(again), 'guarded on window, with a plain call as the fallback');
   });
 
-  test('4a · THE REPORTED BUTTON ACTUALLY ARRIVES AT THE FUNNEL', () => {
+  test('4a · EVERY FILTER ON THE PAGE ARRIVES AT THE FUNNEL', () => {
     /* The pager called renderIntel() DIRECTLY and so walked straight past
-       again() — which is exactly why it was the button the owner reported:
-       every filter beside it went through the one place and the pager did not.
-       A rule at a funnel only holds while everything really arrives there, and
-       that is worth a claim of its own rather than trusting the reading. */
+       again() — which is exactly why it was the button the owner reported.
+       RE-POINTED IN PLACE 28 Sep 2026: the pager went with its card (Young
+       ruled the Overview, "kill the bottom 3 cards"), so the claim is now the
+       rule it proved — EVERY filter press on the page arrives at again(),
+       the category, the stage (new) and the counterparty dot alike, and none
+       goes straight to renderIntel. A rule at a funnel only holds while
+       everything really arrives there. */
     const src = read('js/views/portfolio.js');
-    /* The HANDLER, not the first mention: the attribute is written in the
-       markup long before it is wired. */
-    const at = src.indexOf("querySelectorAll('[data-pf-find-page]')");
-    assert.ok(at > -1, 'the pager is still wired in one place');
-    /* RE-POINTED IN PLACE 26 Sep 2026 (the overnight clean-up): the handler
-       grew a note and the page it steps FROM (the page on screen), and a
-       900-character slice stopped reaching its own end. PIN THE REGION: the
-       handler, to its own close. */
-    const handler = src.slice(at, src.indexOf('}));', at) + 4);
-    assert.ok(/again\(\);/.test(handler), 'the pager goes through again()');
-    assert.ok(!/renderIntel\(\);/.test(handler),
-      'and not straight to renderIntel, which is how it escaped the funnel');
+    assert.ok(!/data-pf-find-page/.test(src), 'the pager is gone with its card');
+    const wire = src.slice(src.indexOf('function wirePortfolioFrame'), src.indexOf('/* ---------- OPEN LANDS ON THE FINDING'));
+    const bind = src.slice(src.indexOf('function pfBindCp'), src.indexOf('let _pfRiskRO'));
+    for (const [what, region, sel] of [['category', wire, "querySelectorAll('[data-pf-cat]')"],
+      ['stage', wire, "querySelectorAll('[data-pf-stage]')"], ['counterparty', bind, "querySelectorAll('[data-pf-cp]')"]]) {
+      const at = region.indexOf(sel);
+      assert.ok(at > -1, `the ${what} filter is wired`);
+      /* PIN THE REGION: the handler, to its own close. */
+      const ends = ['}));', '});'].map(e => region.indexOf(e, at)).filter(i => i > -1);
+      const handler = region.slice(at, Math.min(...ends) + 4);
+      assert.ok(/again\(\)/.test(handler), `the ${what} filter goes through again()`);
+      assert.ok(!/renderIntel\(\);/.test(handler), `and not straight to renderIntel`);
+    }
   });
 
   test('5 · an Insights FILTER keeps the place and a TAB deliberately does not', () => {
@@ -147,9 +151,15 @@ describe('F251 — a repaint keeps the reader\'s place', () => {
        press it holds a different set of rows. The behaviour falls out of keying
        on ids rather than needing a rule of its own, and this pins that it is
        the arrangement rather than an accident. */
+    /* RE-POINTED IN PLACE 28 Sep 2026: the findings list went with its card
+       (the Overview, Young's ruling), so the page no longer draws a scroller
+       of its own at all. The one id the Overview adds is the risk map's plot,
+       and it must stay a plain box — an id on a scroller is what keepScroll
+       restores, and a map redrawn at a new width has no "place" to keep. */
     const src = read('js/views/portfolio.js');
-    assert.ok(/pf-find-scroll/.test(src), 'the findings list is still a class-only scroller');
-    assert.ok(!/id="pf-find-scroll"/.test(src),
-      'giving the findings list an id would silently start restoring its offset across a new page of rows');
+    assert.ok(!/pf-find-scroll/.test(src), 'the findings list is gone with its card');
+    const plot = (src.match(/<div id="pf-risk-plot"[^>]*>/) || [''])[0];
+    assert.ok(plot, 'the map has its one host');
+    assert.ok(!/overflow/.test(plot), 'and it is not a scroller keepScroll would try to restore');
   });
 });

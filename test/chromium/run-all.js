@@ -117,8 +117,6 @@ const KNOWN_RED = {
     'Red on main before 28 Sep 2026 (a837d09), the same way: — 10c and the walk reads it clause for clause, each with the paper\'s own number [13 rows:  · — 17d D-3a the sealed paper’s paragraphs follow the reader’s size on screen.',
   'portal-header-verbs-verify.js':
     'Red on main before 28 Sep 2026 (a837d09), the same way: the Send is ON TOP OF THE REDLINE CARDS, in their own column.',
-  'portfolio-frame-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: all six panels are drawn · clearing puts the whole page back · a member who cannot see values still gets all six panels.',
   'renewal-decision-verify.js':
     'Red on main before 28 Sep 2026 (a837d09), the same way: 6b and the nags start again on their own.',
   'reopen-a-refusal-verify.js':

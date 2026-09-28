@@ -80,6 +80,16 @@ const check = (name, pass, detail) => {
       setView('intel');
     });
     await page.waitForTimeout(1800);
+    /* RE-POINTED IN PLACE 28 Sep 2026: the three cards that closed the
+       Portfolio page went (Young ruled the Overview, "kill the bottom 3
+       cards"), and ten findings a page were what made this book outrun the
+       window. The book is PROJECT work (retention, warranties) and the stage
+       now says the workspace does that work, so the project cards the page
+       draws for it — the workload runway, won and lost, money held back,
+       promises still live — are on screen and the page is long for the
+       reason a real one would be. */
+    await page.evaluate(() => { if (window.wsSet) wsSet(['standing', 'project'], 'job'); setView('intel'); });
+    await page.waitForTimeout(1200);
 
     /* WHICH ELEMENT SCROLLS IS ASKED, NOT ASSUMED — the whole defect was a
        helper that measured the wrong one. */
@@ -91,8 +101,10 @@ const check = (name, pass, detail) => {
       }
       return null;
     });
+    const sizes = await page.evaluate(() => ['ig-frame', 'content-scroll'].map(id => {
+      const el = document.getElementById(id); return el ? `${id} ${el.scrollHeight}/${el.clientHeight}` : id + ' none'; }).join(' · '));
     check('the Insights page scrolls inside its own element, not the shell',
-      scroller && scroller !== 'content-scroll', String(scroller));
+      scroller && scroller !== 'content-scroll', `${scroller} (${sizes})`);
 
     const scrollTo = async y => page.evaluate(([id, top]) => {
       const el = document.getElementById(id); el.scrollTop = top; return el.scrollTop;
@@ -112,19 +124,22 @@ const check = (name, pass, detail) => {
        perfectly. A dispatched click runs the same delegated handler a mouse
        does and touches nothing else.
 
-       THE NEXT ARROW, not the first button in the row — the previous one is
-       disabled on page 1. */
-    const hasPager = await page.evaluate(() =>
-      !!document.querySelector('[data-pf-find-page="next"]:not([disabled])'));
-    check('the pager the owner ringed is on the page', hasPager);
-    if (hasPager){
-      await page.evaluate(() =>
-        document.querySelector('[data-pf-find-page="next"]:not([disabled])').click());
+       THE PAGER THE OWNER RINGED IS GONE WITH ITS CARD (28 Sep 2026), so the
+       reported claim is carried by the Overview's new filter — a STAGE row,
+       which repaints the same page through the same again() the pager used. */
+    const hasStage = await page.evaluate(() => !!document.querySelector('[data-pf-stage]'));
+    check('a stage row, the Overview\'s own filter, is on the page', hasStage);
+    if (hasStage){
+      await page.evaluate(() => document.querySelector('[data-pf-stage]').click());
       await page.waitForTimeout(700);
+      const room = await page.evaluate(id => { const el = document.getElementById(id);
+        return el ? Math.max(0, el.scrollHeight - el.clientHeight) : 0; }, scroller);
       const after = await at();
-      await page.screenshot({ path: path.join(OUT, '02-after-pager.png') });
-      check('THE PAGER DOES NOT THROW THE READER TO THE TOP',
-        after > parked - 60, `${parked} → ${after}`);
+      await page.screenshot({ path: path.join(OUT, '02-after-stage.png') });
+      check('A FILTER PRESS DOES NOT THROW THE READER TO THE TOP',
+        after >= Math.min(parked, room) - 60, `${parked} → ${after} (room ${room})`);
+      await page.evaluate(() => { const c = document.querySelector('[data-pf-clear]'); if (c) c.click(); });
+      await page.waitForTimeout(500);
     }
 
     /* ---- AND IT IS NOT ONE BUTTON: every filter on that page is the same
