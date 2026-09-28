@@ -1307,8 +1307,13 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       dialogs: document.querySelectorAll('.nego-aipop, .lab-aipop').length,
       modals: document.querySelectorAll('#modal-root *').length };
   });
-  check('5 no clause carries a Copilot button — and no menu follows a highlight',
-    menu.noToolbar && !menu.open, `menu ${menu.open}, items ${JSON.stringify(menu.items)}`);
+  /* RE-POINTED 27 Sep 2026 (T3): THE MAP now says "Every highlight offers verbs
+     (rlPaperOfferFromRange): one clause → Ask · Edit · Comment". A clause still
+     carries no Copilot button of its own; a highlight inside one clause offers
+     exactly those three, in that order, and nothing else. */
+  check('5 no clause carries a Copilot button — and a highlight offers Ask · Edit · Comment',
+    menu.noToolbar && menu.open && JSON.stringify(menu.items) === JSON.stringify(['Ask Copilot', 'Edit with Copilot', 'Comment']),
+    `menu ${menu.open}, items ${JSON.stringify(menu.items)}`);
   check('5 but the wording still selects, so it can still be copied',
     menu.selected > 3, `${menu.selected} characters selected`);
   check('3 and a highlight opens no dialog either', menu.dialogs === 0 && menu.modals === 0);
@@ -1518,65 +1523,76 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
      Measured on the OWNER's bench, in both non-default readings, because the
      fault would be a control that looks alive and decides a change against a
      document the reader is not being shown. */
-  const readings = {};
-  for (const mode of ['agreed', 'proposed']){
-    await page.evaluate(m => { document.querySelector(`[data-rl-read="${m}"]`).click(); }, mode);
-    await pause(400);
-    readings[mode] = await page.evaluate(() => {
-      const pane = document.getElementById('rl-changes-col');
-      const cs = pane && getComputedStyle(pane);
-      const strip = document.querySelector('.rl-idx-reading');
-      const seen = el => { if (!el) return false; const r = el.getBoundingClientRect();
-        return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; };
-      return {
-        band: !!document.getElementById('rl-read-note'),
-        pills: document.querySelectorAll('.rl-clause .rl-cp-pill').length,
-        greyed: !!document.querySelector('.rl-side.is-reading'),
-        opacity: cs ? Number(cs.opacity) : 1,
-        inert: cs ? cs.pointerEvents : 'auto',
-        cards: document.querySelectorAll('#rl-changes .rl-card').length,
-        stripSeen: seen(strip),
-        /* the way out must be OUTSIDE the inert pane, or it is a button
-           nobody can press */
-        backLive: (() => { const b = document.querySelector('.rl-tabrow [data-rl-read="marks"]');
-          return !!b && getComputedStyle(b).pointerEvents !== 'none'
-            && !b.closest('#rl-changes-col'); })(),
-      };
-    });
+  /* THE TWO READINGS ARE NOT DRAWN ANY MORE (THE MAP: "Redlined only (As
+     agreed / With changes are not drawn; renderers kept)"). This section
+     pressed their tabs and threw on the missing button, so every section after
+     it never ran (the owner's list, 27 Sep 2026, T9). Where the tabs are not
+     offered that is the claim, and the file runs on; the day they come back,
+     the section below measures them again. */
+  const offered = await page.evaluate(() => !!document.querySelector('[data-rl-read="agreed"]'));
+  if (!offered){
+    check('17 the two readings are not offered — the page is Redlined only', true);
+  } else {
+    const readings = {};
+    for (const mode of ['agreed', 'proposed']){
+      await page.evaluate(m => { document.querySelector(`[data-rl-read="${m}"]`).click(); }, mode);
+      await pause(400);
+      readings[mode] = await page.evaluate(() => {
+        const pane = document.getElementById('rl-changes-col');
+        const cs = pane && getComputedStyle(pane);
+        const strip = document.querySelector('.rl-idx-reading');
+        const seen = el => { if (!el) return false; const r = el.getBoundingClientRect();
+          return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; };
+        return {
+          band: !!document.getElementById('rl-read-note'),
+          pills: document.querySelectorAll('.rl-clause .rl-cp-pill').length,
+          greyed: !!document.querySelector('.rl-side.is-reading'),
+          opacity: cs ? Number(cs.opacity) : 1,
+          inert: cs ? cs.pointerEvents : 'auto',
+          cards: document.querySelectorAll('#rl-changes .rl-card').length,
+          stripSeen: seen(strip),
+          /* the way out must be OUTSIDE the inert pane, or it is a button
+             nobody can press */
+          backLive: (() => { const b = document.querySelector('.rl-tabrow [data-rl-read="marks"]');
+            return !!b && getComputedStyle(b).pointerEvents !== 'none'
+              && !b.closest('#rl-changes-col'); })(),
+        };
+      });
+    }
+    for (const mode of ['agreed', 'proposed']){
+      const r = readings[mode];
+      check(`17 ${mode}: the band across the top of the contract is gone`, !r.band);
+      check(`17 ${mode}: no clause offers an edit`, r.pills === 0, `${r.pills} pencils`);
+      check(`17 ${mode}: the change column is greyed`,
+        r.greyed && r.opacity < 1, `opacity ${r.opacity}`);
+      check(`17 ${mode}: and it really refuses the press, not merely dims`,
+        r.inert === 'none', r.inert);
+      check(`17 ${mode}: the cards still draw, so the round's shape is readable`,
+        r.cards > 0, `${r.cards} cards`);
+      /* REVERSED IN PLACE 24 Aug 2026 (WO-14, owner-asked: "Just delete the
+         strip for now"). The STRIP of words went; the GREYING above stayed,
+         and it is the half that carries the claim — a column that refuses the
+         press is a column that has said a reading cannot be acted on.
+         THE WAY BACK IS NOT LOST, which is the condition on removing it: the
+         three reading tabs are drawn on every paint, they are where the reader
+         pressed to get here, and the strip's own button was a proxy for them.
+         Measured for the same two properties as before — pressable, and outside
+         the inert pane. */
+      check(`17 ${mode}: the strip of words is gone (WO-14)`, !r.stripSeen);
+      check(`17 ${mode}: and the way back is pressable, outside the inert pane`, r.backLive);
+    }
+    /* AND THE WAY BACK REALLY WORKS — pressed for real, not inferred. */
+    await page.evaluate(() => { document.querySelector('.rl-tabrow [data-rl-read="marks"]').click(); });
+    await pause(500);
+    const back = await page.evaluate(() => ({
+      mode: window.rlReadMode(),
+      greyed: !!document.querySelector('.rl-side.is-reading'),
+      pills: document.querySelectorAll('.rl-clause .rl-cp-pill').length,
+      inert: getComputedStyle(document.getElementById('rl-changes-col')).pointerEvents }));
+    check('17 pressing it lands back on the redline, with the column live again',
+      back.mode === 'marks' && !back.greyed && back.pills > 0 && back.inert !== 'none',
+      JSON.stringify(back));
   }
-  for (const mode of ['agreed', 'proposed']){
-    const r = readings[mode];
-    check(`17 ${mode}: the band across the top of the contract is gone`, !r.band);
-    check(`17 ${mode}: no clause offers an edit`, r.pills === 0, `${r.pills} pencils`);
-    check(`17 ${mode}: the change column is greyed`,
-      r.greyed && r.opacity < 1, `opacity ${r.opacity}`);
-    check(`17 ${mode}: and it really refuses the press, not merely dims`,
-      r.inert === 'none', r.inert);
-    check(`17 ${mode}: the cards still draw, so the round's shape is readable`,
-      r.cards > 0, `${r.cards} cards`);
-    /* REVERSED IN PLACE 24 Aug 2026 (WO-14, owner-asked: "Just delete the
-       strip for now"). The STRIP of words went; the GREYING above stayed,
-       and it is the half that carries the claim — a column that refuses the
-       press is a column that has said a reading cannot be acted on.
-       THE WAY BACK IS NOT LOST, which is the condition on removing it: the
-       three reading tabs are drawn on every paint, they are where the reader
-       pressed to get here, and the strip's own button was a proxy for them.
-       Measured for the same two properties as before — pressable, and outside
-       the inert pane. */
-    check(`17 ${mode}: the strip of words is gone (WO-14)`, !r.stripSeen);
-    check(`17 ${mode}: and the way back is pressable, outside the inert pane`, r.backLive);
-  }
-  /* AND THE WAY BACK REALLY WORKS — pressed for real, not inferred. */
-  await page.evaluate(() => { document.querySelector('.rl-tabrow [data-rl-read="marks"]').click(); });
-  await pause(500);
-  const back = await page.evaluate(() => ({
-    mode: window.rlReadMode(),
-    greyed: !!document.querySelector('.rl-side.is-reading'),
-    pills: document.querySelectorAll('.rl-clause .rl-cp-pill').length,
-    inert: getComputedStyle(document.getElementById('rl-changes-col')).pointerEvents }));
-  check('17 pressing it lands back on the redline, with the column live again',
-    back.mode === 'marks' && !back.greyed && back.pills > 0 && back.inert !== 'none',
-    JSON.stringify(back));
 
   /* ================================================================
      18. FOUR OFF FOUR SCREENSHOTS OF THIS COLUMN (owner-asked 26 Aug 2026)

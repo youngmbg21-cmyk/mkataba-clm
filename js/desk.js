@@ -620,6 +620,16 @@ function deskStale(c, nowISO){
 /* THE ONE SENTENCE under a quiet negotiation, for Home's card and the bell:
    who leads it, or that nobody on our side has taken it yet — never "led by"
    with no name after it. */
+/* HOW LONG THEY HAVE WAITED, ONE COUNT ON EVERY SURFACE (the owner's list,
+   27 Sep 2026): Home's tag printed the WORKING days the standard is measured
+   in (42) and the side panel's checklist the CALENDAR days since the ask (60)
+   for the same negotiation. The checklist's count is the asks table's own
+   (a ruling of that panel), so the calendar day is the one count printed
+   everywhere; the standard keeps its own unit and says so ("working days"). */
+function deskWaitDays(st){
+  const t = Date.parse(String((st && st.since) || ''));
+  return isFinite(t) ? Math.max(0, Math.floor((Date.now() - t) / 86400000)) : null;
+}
 function deskStaleSub(st){
   if (!st || !st.n) return '';
   const who = (st.lead && st.lead.name) || '';
@@ -1363,7 +1373,7 @@ Object.assign(window, {
   deskCardByHtml, deskCardInsteadHtml,
   deskWireChip, deskOpenFromChip,
   deskSheetHtml, openDeskSheet, openDeskHandover, openDeskJoinAsk,
-  DESK_STALE_DAYS, deskAnnouncement, deskWaitingSince, deskStale, deskStaleSub, deskStaleInboxFor, deskLedBy,
+  DESK_STALE_DAYS, deskAnnouncement, deskWaitingSince, deskStale, deskStaleSub, deskWaitDays, deskStaleInboxFor, deskLedBy,
   /* The working-day walk the quiet clock counts with, published under a name
      of its own (26 Sep 2026) so the list inspector's "past your standard" line
      asks THIS walk rather than keeping a second one — two walks disagree

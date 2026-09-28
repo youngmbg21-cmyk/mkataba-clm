@@ -904,13 +904,16 @@ const QUESTION = 'why do I have a big workload runway today?';
       dockNotice.role === 'assistant' && dockNotice.answerOnScreen && dockNotice.inHistory && dockNotice.onScreen, JSON.stringify(dockNotice));
     check('16b and nothing about it is in the pop-up tray', dockNotice.popped === false && dockNotice.toasts.length === 0,
       JSON.stringify(dockNotice.toasts));
-    /* CONTROL — the same answer through the main Copilot panel still pops. */
+    /* REVERSED 27 Sep 2026 (the owner's list, c5: "Copilot notices appear twice
+       in the main Copilot panel"): the main panel prints the notice under its
+       answer too, so it no longer pops — the same answer is said once. */
     scriptBadQuote();
     await page.evaluate(async () => { document.getElementById('toast-root').innerHTML = ''; openAI(); document.getElementById('ai-input').value = 'what does MK-P1 say about the term?'; await aiSubmit(); });
     await page.waitForTimeout(1200);
     const mainPop = await page.evaluate(() => [...document.querySelectorAll('#toast-root > *')].map(t => t.textContent.trim()));
-    check('16c CONTROL — the main Copilot panel was not in the ask and its pop-up still fires',
-      mainPop.some(t => /could not be matched/.test(t)), JSON.stringify(mainPop));
+    const mainLine = await page.evaluate(() => /could not be matched/.test((document.getElementById('ai-feed') || document.body).textContent));
+    check('16c the main Copilot panel says it once too: under its answer, and not in the pop-up tray',
+      mainLine && !mainPop.some(t => /could not be matched/.test(t)), JSON.stringify({ mainLine, mainPop }));
     await page.evaluate(() => { if (typeof closeAI === 'function') closeAI(); });
 
     /* ================= 17. THE LEGEND: ONE PRESS, ONE CHIP; AND IT FOLDS ==== */

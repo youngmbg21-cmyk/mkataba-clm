@@ -93,7 +93,9 @@ const PROBE = `(() => {
      are the one table, and a ring in any colour NOT on it is a ring nobody
      chose (the Tailwind preflight's own grey, for instance). */
   const tones = {};
-  for (const v of ['--color-accent', '--st-green-dot', '--st-ruby-dot', '--st-amber-dot',
+  /* RE-POINTED 27 Sep 2026 (the owner's list, h8): a proposal's ring wears the
+     accent's INK, which lightens after dark — the table's own entry changed. */
+  for (const v of ['--accent-ink', '--st-green-dot', '--st-ruby-dot', '--st-amber-dot',
     '--st-steel-dot', '--color-neutral-400']) tones[v] = bg(v);
   return { mounted: true, rows: out,
     cap: (pane.querySelector('.hist-cap') || {}).textContent || '',

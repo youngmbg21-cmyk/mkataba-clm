@@ -4937,9 +4937,15 @@ function applyWsTabs(c){
     const host=document.getElementById('doc-sheet-host');
     /* The facts are compared only on ARRIVAL from another tab: a blank being
        typed into on the paper itself must never be redrawn under the caret. */
+    /* …and only a record that is whole: a light list row redrawn here would be
+       drawn as the wrong paper (its upload and fields are not on it yet). A
+       redraw that fails leaves the sheet on screen rather than the tab. */
     const arrived=_wsTabApplied!==_wsTab;
-    if(host&&(host.getAttribute('data-copy')!==docCopyOf(c)
-      ||(arrived&&host.hasAttribute('data-sheet-sig')&&host.getAttribute('data-sheet-sig')!==docSheetSig(c)))) docRepaintSheet(c);
+    const whole=!(c._light&&!c._loaded);
+    if(host&&host.getAttribute('data-copy')!==docCopyOf(c)) docRepaintSheet(c);
+    else if(host&&arrived&&whole&&host.hasAttribute('data-sheet-sig')&&host.getAttribute('data-sheet-sig')!==docSheetSig(c)){
+      try{ docRepaintSheet(c); }catch(e){ try{ console.warn('[hati] the paper could not be redrawn', e); }catch(_){} }
+    }
   }
   _wsTabApplied=_wsTab;
   /* THE STRIP DESCRIBES THE TAB YOU ARE ON, so it is repainted when the tab

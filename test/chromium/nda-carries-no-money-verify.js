@@ -102,8 +102,11 @@ const check = (name, pass, detail) => {
 
     /* And the route that wrote it stops writing it. */
     const src = await page.evaluate(async () => (await (await fetch('/js/templatefields.js')).text()));
+    /* RE-POINTED 27 Sep 2026 (the owner's list, t2): a built-in still gives its
+       own answer, and a saved template is asked through templateValueType —
+       both ask the template, neither defaults. */
     check('bulk creation asks the template rather than defaulting',
-      /valueType:\s*t\.valueType/.test(src));
+      /valueType:t\.builtin\?\(t\.valueType\|\|'estimated'\):templateValueType\(t\)/.test(src));
 
     /* ---- 2: the share dialog, where it was reported ---- */
     const cid = await page.evaluate(() => {

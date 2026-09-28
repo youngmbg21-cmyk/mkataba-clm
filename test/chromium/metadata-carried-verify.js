@@ -120,7 +120,12 @@ const NEW = ['category', 'retentionPct', 'retentionReleaseDays', 'warrantyMonths
     await page.waitForTimeout(500);
 
     const card = await page.evaluate(CARD);
-    check('the review card offers all sixteen fields', card.fields.length === 16, `${card.fields.length} fields`);
+    /* RE-POINTED 27 Sep 2026 (the owner's list, T9): PIN THE RELATION, NOT THE
+       NUMBER. The card offers every recorded term, and there are more of them
+       than the sixteen this was written against (S2, S10, the three every
+       agreement has). It is the list's own length that is asked. */
+    const want = await page.evaluate(() => (window.META_FIELDS || []).length);
+    check('the review card offers every recorded field', want > 0 && card.fields.length === want, `${card.fields.length} of ${want} fields`);
     check('the six new fields are on it', NEW.every(k => card.fields.includes(k)),
       NEW.filter(k => !card.fields.includes(k)).join(', ') || 'all present');
     check('sixteen fields scroll rather than run off the dialog', card.scrolls);

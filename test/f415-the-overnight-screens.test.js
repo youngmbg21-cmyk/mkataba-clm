@@ -106,8 +106,9 @@ test('f415 (h2 h4 h6 h7 h8 h9 h10 h11 h12 h13 h14) Home and the pages around it'
   assert.ok(!/set_role_legal: 'Editor — edit &amp; sign'/.test(I18N));
   assert.match(SRV, /toLocaleDateString\(L === 'sv' \? 'sv-SE' : 'en-GB'/);
   assert.match(SRV, /if \(c && !c\.owner\) c\.owner = \{ id: u\.id, name: u\.name \}/);
-  assert.match(R('js/views/inspector.js'), /i18tn\('ins_work_days', wd, \{ n: wd \}\)/);
-  assert.ok(inBoth('ins_work_days_one') && inBoth('ins_work_days_other'));
+  assert.match(R('js/desk.js'), /function deskWaitDays\(st\)\{/);
+  for (const f of ['js/views/home.js', 'js/app.js', 'js/mobile-screens.js'])
+    assert.match(R(f), /deskWaitDays\(/, f + ' prints the one count');
   assert.match(OB, /const mw = money \? obMoneyWords\(ch, c\) : null;/);
 });
 

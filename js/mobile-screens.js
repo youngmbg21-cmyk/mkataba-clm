@@ -62,7 +62,7 @@ function mNeedsYou(D){
   (D.myStaleDesks||[]).forEach(x=>{
     const st = x.stale||{};
     push(x.c,'var(--st-amber-dot)',
-      i18t('dk_stale_card',{who:x.c.counterparty||i18t('home_no_counterparty')})+(st.days!=null?' · '+i18t('dk_stale_tag',{n:st.days}):''),
+      i18t('dk_stale_card',{who:x.c.counterparty||i18t('home_no_counterparty')})+((window.deskWaitDays&&deskWaitDays(st)!=null)?' · '+i18t('dk_stale_tag',{n:deskWaitDays(st)}):''),
       'var(--st-amber-fg)');
   });
 

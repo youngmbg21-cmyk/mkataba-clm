@@ -96,6 +96,7 @@ For a DESIGN QUESTION (how should it look, a new look, a redesign — an exact i
 - **A DUPLICATE OBJECT KEY'S LAST LITERAL WINS** (i18n); lint's no-dupe-keys is the net. Retire a key by leaving it inert in BOTH books.
 - **A LISTENER ON A PAINTED ELEMENT IS BOUND ONCE** (dataset flag) or delegated on document at module load; a head rebuilt every render needs delegation, and a listener armed once resolves the LIVE element at press time.
 - **A DEAD BUTTON WEARING A LIVE ONE'S CLOTHES** is a fault: grey with the reason where HaTi can know before the press; speak where it cannot; assert greying BOTH ways.
+- **A WAIT IN A BROWSER CHECK ASKS FOR THE STATE, BOUNDED** — never a fixed `pause()` before measuring (clause-editor-verify 33h flaked on a busy machine). A stage that signs or links a fixture ≥5M says `approvalRules: []`, or it measures the approval wall instead (go-aheads, home-page, two-copies).
 
 # THE MAP — what each area's rules are, the names that carry them, the tests
 
@@ -466,6 +467,10 @@ A slow answer lands on its own contract (`contractOnScreen`). Per-sitting marks 
 - DOCX writer (f288): hanging indent = `w:ind` + a left tab stop + a real tab; shape read off the markup (`hati-lv-N`, `rl-hang`, `hati-tight`, `hati-pb`, `hati-toc`); a paragraph is written only where it carries a visible character or is forced (`<br>`, page break). Fonts, page size, margins, headers, footers, images not carried.
 - `--page-measure` is `none` (the platform fills the monitor); the AGREEMENT keeps `--doc-sheet-max`. `rowsThatFit(el,rowH,min,max)` answers after the paint; a zero is not an answer; counting is never capped, only drawing.
 Tests: f252, f288, keeps-your-place-verify.
+
+## THE OVERNIGHT RUN (27–28 Sep 2026)
+
+One reason for "Why they asked" (`negoReasonOf`; Copilot's provenance label is never a reason). One colour key per seat (`rlLegendNames`). The Word writer credits each mark's `data-author`. A closing section banner rides the last clause (`sectionTailHtml`, `rlSectionTailHtml`). A saved template's money answer is `templateValueType(t)`. How long they have waited is `deskWaitDays(st)` on Home, the bell, the phone and the checklist (calendar days; the standard stays in working days). The paper is redrawn on arrival when `docSheetSig` moved (whole records only). The design step asks before it is left (`designStepOpen/Dirty/Close`, from `viewLayersClosed`). Overnight sweeps stop after `PREP_OUTAGE_STREAK` failed calls (`out.outage`). A signed record compares absent and empty as one (`isHollow`). Figures read "thirty (30) days" (`PB_FIG`). Tests: f414–f419; the three `-verify` stages above.
 
 ## THE OWNER'S OPEN ITEMS, FIXED (27 Sep 2026)
 

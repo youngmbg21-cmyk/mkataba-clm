@@ -80,7 +80,10 @@ const PAGES = sel => `(() => {
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
-  const W = await seedWorkspace(h);
+  /* No approval rules (re-pointed 27 Sep 2026): section 9 issues a signing link
+     on a fixture over 5,000,000, which the server now holds behind the legacy
+     default rule — the rulebook's line for a stage not about approvals. */
+  const W = await seedWorkspace(h, { approvalRules: [] });
   await nameASigner(W.admin, ID);
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });

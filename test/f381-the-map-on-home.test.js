@@ -278,7 +278,9 @@ describe('F381 (6) — the two reminders that lived only on the removed card rid
   });
   test('a quiet desk still says how long it has sat — the card\'s own tag leads its sub-line', () => {
     const b = fnBody(APP, 'buildAlerts');
-    assert.match(b, /i18t\('dk_stale_tag',\{n:st\.days\}\)/,
+    /* RE-POINTED 27 Sep 2026 (the owner's list, h13): the age is the one count
+       every surface prints (deskWaitDays — the checklist's own calendar days). */
+    assert.match(b, /i18t\('dk_stale_tag',\{n:\(window\.deskWaitDays&&deskWaitDays\(st\)!=null\)\?deskWaitDays\(st\):st\.days\}\)/,
       'the age the card printed as its tag rides the bell row');
   });
 });

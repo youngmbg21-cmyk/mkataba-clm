@@ -48,7 +48,10 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
-  await seedWorkspace(h);
+  /* No approval rules (re-pointed 27 Sep 2026): this stage marks a fixture over
+     5,000,000 signed in the browser, and the server now holds that behind the
+     legacy default rule — the rulebook's line for a stage not about approvals. */
+  await seedWorkspace(h, { approvalRules: [] });
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const errors = [];
 

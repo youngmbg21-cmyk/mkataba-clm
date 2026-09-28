@@ -69,7 +69,10 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
   const renewal = { ...fixtureContract('MK-R9', 'Primary Distribution — Nairobi to Coast', 'Sendy Ltd', FOLDER_A, 12000000, 'Signed'),
     expiry: day(64), metadata: { value: 12000000, currency: 'KES', expiryDate: day(64), noticePeriodDays: 30 },
     owner: { name: 'Amina Otieno' } };
-  const W = await seedWorkspace(h, { contracts: [...FIXTURES, renewal] });
+  /* RE-POINTED 27 Sep 2026: every fixture is over 5,000,000 and this stage signs
+     one, so it states no approval rules — the rulebook's own line for a stage
+     that is not about approvals (THE OWNER'S OPEN ITEMS, FIXED). */
+  const W = await seedWorkspace(h, { contracts: [...FIXTURES, renewal], approvalRules: [] });
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const errs = [];
   try {
