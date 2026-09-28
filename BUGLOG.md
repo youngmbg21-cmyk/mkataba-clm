@@ -19839,3 +19839,10 @@ Noticed, not fixed
 - Removed on the owner's ruling: the legend's status rows and a press on a group card no longer filter the map. The bottom-right "Drag nodes · scroll to zoom · click a card to explain" box is gone from the stage; its reworded words are the new view bar's hover. "Clear all" on the head line now reads "Show everything".
 - Fixed on the way (found by the new check): a drag that started on selected words cancelled half-way through a turn.
 - Not built from the design: "Save this view".
+
+## 28 Sep 2026 — Explorer: the view recipe
+
+- Built (Young: "Let's go with this"): everything Explorer's map shows is now one recipe — which contracts, grouped by, floors by, columns by, colour, size, labels, sort / top N, compare, the timeline's date and the view — read back on the line above the map, with Undo and Save view beside it.
+- Fixed the reported fault: "divide the floors by payment terms" was sent to a reading of one contract because "payment terms" was on a word list. Questions are no longer sorted by word lists; the free built-in reader handles everyday requests in English and Swedish, and Copilot decides the rest (map, or a question about wording, which goes to the reading chat).
+- Built: every fact (now also liability cap, governing law, owner, open obligations, read or not) can narrow, group, make floors or columns, colour, size or label; unclear requests answer with two or three buttons; "of those", "instead", "same but" and "undo" build on what is showing; two new views, Grid and Timeline; saved views (kept in this browser); a phrase book of about 225 ways of asking, checked automatically.
+- Worth knowing: a wording question asked on Explorer now makes one small map call to Copilot before the reading chat answers it.

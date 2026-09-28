@@ -894,13 +894,17 @@ const QUESTION = 'why do I have a big workload runway today?';
        where that notice lands — under the answer, and NOT in the toast tray.
        The main Copilot panel is the CONTROL: not in the ask, still pops. */
     const BAD_QUOTE = 'these words appear nowhere in that agreement at all';
-    const scriptBadQuote = () => { ai.reset(); ai.script(
+    /* RE-POINTED 28 Sep 2026 (the view recipe): Explorer no longer sorts a
+       question by word lists — Copilot decides first. So the dock's journey is
+       now two turns: the map tool says "wording", then the reading chat
+       answers. The main panel (the control) takes only the second. */
+    const scriptBadQuote = (dock) => { ai.reset(); if (dock) ai.script([{ type: 'tool_use', id: 'tu_k', name: 'render_graph', input: { kind: 'wording', note: '' } }]); ai.script(
       [{ type: 'tool_use', id: 'tu_q', name: 'deliver_answer',
         input: { answer: 'MK-P1 is a supply agreement — the term is stated in clause 3.', citations: [{ id: 'MK-P1', quote: BAD_QUOTE }] } }]); };
     await page.evaluate(() => { intelGoTab('map'); });
     await page.waitForTimeout(800);
     await page.evaluate(() => { document.getElementById('toast-root').innerHTML = ''; intel.history = []; });
-    scriptBadQuote();
+    scriptBadQuote(true);
     await page.evaluate(async () => { await intelAsk('what does MK-P1 say about the term?'); });
     await page.waitForTimeout(1200);
     const dockNotice = await page.evaluate(() => {
@@ -983,7 +987,11 @@ const QUESTION = 'why do I have a big workload runway today?';
     const expiryBuckets = await drive18(() => [...new Set(state.contracts.map(c => groupLabelOf(c, 'expiry', null)))].sort(), []);
     ai.reset(); ai.script([{ type: 'tool_use', id: 'tu_g', name: 'render_graph',
       input: { groupBy: 'custom', groups: {}, note: 'All contracts · clustered by expiration date', answer: 'Clustered by expiration date.' } }]);
-    await drive18(async () => { await intelAsk('cluster by expiration date'); }, null);
+    /* RE-POINTED 28 Sep 2026 (the view recipe): the free reader now answers
+       "cluster by expiration date" itself, for nothing (f427). What this
+       section proves is how the product JUDGES the model's answer, so the
+       sentence is sent to Copilot's map tool directly. */
+    await drive18(async () => { intel.history.push({ role: 'user', text: 'cluster by expiration date' }); await intelGraphAsk('cluster by expiration date'); rebuildIntelGraph(); renderIntelDock(); }, null);
     /* In the Brain view a card on the far side of the brain is turned away;
        the Wiring view faces every card to the reader, so the hubs are
        measured there (the brain drawing, 28 Sep 2026). */

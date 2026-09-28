@@ -76,7 +76,8 @@ const check = (name, pass, detail) => {
     });
     check('1a the map is one dark stage with a canvas under the nodes, the full size of the stage', /ig-brain/.test(stage.cls) && stage.canvas && stage.under && /gradient/.test(stage.bg), JSON.stringify(stage));
     check('1b the canvas is painted — the brain\'s tissue and the dots are pixels', stage.lit > 50, stage.lit);
-    check('1c the stage carries Brain · Wiring · Floors, the zoom and Fold all, and no "drag nodes" hint', stage.views.join('|') === 'Brain|Wiring|Floors' && stage.fold && !stage.oldHint, JSON.stringify(stage.views));
+    /* Five views since the view recipe (explorer-recipe-verify): Grid and Timeline joined. */
+    check('1c the stage carries Brain · Wiring · Floors · Grid · Timeline, the zoom and Fold all, and no "drag nodes" hint', stage.views.join('|') === 'Brain|Wiring|Floors|Grid|Timeline' && stage.fold && !stage.oldHint, JSON.stringify(stage.views));
     /* every contract has small words where they fit — measured as painted */
     const words = await page.evaluate(() => {
       const tags = IG.contracts.filter(n => n.tag.style.display !== 'none');
