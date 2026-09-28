@@ -7363,6 +7363,55 @@
   .ig-badge-txt{pointer-events:none;font-size:8px;font-weight:var(--w-title);font-family:var(--font-mono)}
   #ig-dock{transition:width var(--dur-3) cubic-bezier(.22,.61,.36,1)}
   .ig-lens{transition:background var(--dur-1),border-color var(--dur-1),color var(--dur-1)}
+  /* ---- EXPLORER — THE BRAIN DRAWING (28 Sep 2026, owner-approved) ----
+     The stage is one dark scene, like the Brain page's; every rule below is
+     scoped under .ig-brain so no other screen moves, and wins the old light
+     rules above by scope, never by !important. Literal colours: the canvas
+     under the words reads no tokens, and a word must wear its dot's colour. */
+  .ig-brain{background:radial-gradient(ellipse at 52% 44%,#0B312C 0%,#05201D 45%,#021011 100%);overflow:hidden}
+  .ig-brain #ig-cv{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;display:block}
+  /* A drag is a turn: the map's words are not selectable, or a drag that
+     starts on selected text becomes the browser's own text drag and cancels
+     the turn half-way (measured: a pointercancel after 13px). */
+  .ig-brain #ig-svg{position:absolute;inset:0;cursor:grab;user-select:none;-webkit-user-select:none}
+  .ig-brain #ig-svg.is-turning,.ig-brain #ig-svg.is-turning .ig-node{cursor:grabbing}
+  .ig-brain .ig-link{stroke:#8FB5AD;opacity:.3;stroke-width:1;transition:none}
+  .ig-brain .ig-link-family,.ig-brain .ig-link-chain{stroke:#A7E8D8;opacity:.75;stroke-width:1.4}
+  .ig-brain .ig-link-chain{stroke-dasharray:5 4}
+  .ig-brain .ig-link-party{stroke:#8FB5AD}
+  .ig-brain .ig-link.hi{stroke:#FFFFFF;opacity:.85}
+  .ig-brain .ig-link.dim{opacity:.05}
+  .ig-brain .ig-chip{fill:rgba(2,16,17,.5);stroke:none;filter:none;transition:none}
+  .ig-brain .ig-hub .ig-chip{fill:rgba(9,40,38,.95);stroke-width:1}
+  .ig-brain .ig-hub.folded .ig-chip{fill:rgba(12,52,48,.95)}
+  .ig-brain .ig-node.hi .ig-chip,.ig-brain .ig-node.hit .ig-chip{filter:none;stroke-width:1}
+  .ig-brain .ig-c.hi .ig-chip,.ig-brain .ig-c.hit .ig-chip{fill:rgba(9,40,38,.85)}
+  .ig-brain .ig-hub:hover .ig-chip,.ig-brain .ig-hub:focus-visible .ig-chip{stroke-width:1.5}
+  .ig-brain .ig-hub:focus-visible{outline:none}
+  .ig-brain .ig-lab{font-size:10px;font-weight:500;font-family:var(--font-body);fill:#E6F2EF}
+  .ig-brain .ig-hub .ig-lab{font-weight:600;letter-spacing:.04em;fill:#FFFFFF}
+  .ig-brain .ig-sub,.ig-brain .ig-facts{font-size:9px;font-family:var(--font-body);fill:#CFE3DE}
+  .ig-brain .ig-hub .ig-cp-line{fill:#8FB5AD}
+  .ig-brain .ig-num{font-size:9px;font-weight:600;font-family:var(--font-body);fill:#CFE3DE;pointer-events:none}
+  .ig-brain .ig-c .ig-lab,.ig-brain .ig-c .ig-facts,.ig-brain .ig-num{paint-order:stroke;stroke:rgba(2,16,17,.8);stroke-width:3px;stroke-linejoin:round}
+  .ig-brain .ig-badge-txt{font-size:9px;font-family:var(--font-body)}
+  .ig-brain .ig-node.dim{opacity:.3}
+  .ig-brain .igl{position:absolute;left:12px;bottom:12px;z-index:2;background:rgba(4,25,26,.9);border:1px solid rgba(160,220,210,.22);border-radius:var(--radius-lg);padding:8px 10px;min-width:150px;color:#CFE3DE}
+  .ig-brain .igl .igl-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px}
+  .ig-brain .igl .igl-head .ui-btn{color:#CFE3DE}
+  .ig-brain .igl .igl-k{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#8FB5AD;font-weight:600;margin-bottom:4px}
+  .ig-brain .igl .igl-gap{margin-top:8px}
+  .ig-brain .igl .igl-row{display:flex;align-items:center;gap:8px;font-size:12px;color:#CFE3DE;padding:1px 0}
+  .ig-brain .igl .igl-sw{width:9px;height:9px;border-radius:50%;flex:none}
+  .ig-brain .igl .igl-note{font-size:11px;color:#8FB5AD;max-width:190px}
+  .ig-brain .igl .igl-more{color:#8FB5AD}
+  .ig-brain .ig-viewbar{position:absolute;right:12px;bottom:12px;z-index:2;display:flex;align-items:center;gap:6px}
+  .ig-brain .ig-seg{display:inline-flex;align-items:center;border:1px solid rgba(160,220,210,.22);border-radius:var(--radius);overflow:hidden;background:rgba(4,25,26,.88)}
+  .ig-brain .ig-seg button{all:unset;cursor:pointer;height:var(--ctl-h-sm);padding:0 9px;font-size:12px;font-weight:500;color:#8FB5AD;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+  .ig-brain .ig-seg button:hover{color:#FFFFFF}
+  .ig-brain .ig-seg button[aria-pressed="true"]{background:rgba(56,205,184,.18);color:#FFFFFF}
+  .ig-brain .ig-seg button:focus-visible{outline:2px solid #F2B24C;outline-offset:-2px}
+  .ig-brain .ig-seg .ig-zv{min-width:40px;text-align:center;font-size:12px;color:#CFE3DE;font-variant-numeric:tabular-nums}
 
   /* inline editable fields (contract workspace) */
   .field{font-family:var(--font-mono);font-size:.95em;color:var(--st-steel-fg);background:var(--st-steel-bg);border:none;border-bottom:1.5px dashed var(--color-accent-400);padding:1px 6px;border-radius:var(--radius);min-width:90px;transition:background var(--dur-1),border-color var(--dur-1),box-shadow var(--dur-1);outline:none;}

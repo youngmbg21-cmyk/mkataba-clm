@@ -19832,3 +19832,10 @@ Noticed, not fixed
 
 ### Noticed, not fixed
 - plain-english-verify 10c ("the walk reads it clause for clause, each with the paper's own number") and 17d ("the sealed paper's paragraphs follow the reader's size") fail, and 1f expects "Plain English" where the switch says "Plain View". All three the same on 86260ee; not changed.
+
+## 28 Sep 2026 — Explorer draws a brain
+
+- Built (Young, the approved design): Explorer's map is now a dark stage with Brain · Wiring · Floors views that glide, a drag that turns every view, group cards that fold, two small lines beside every contract, and Copilot as the only way to narrow it (colour by, size by, outliers, walk through, show everything are worked out without spending). The Paper view after Analyze contract is unchanged.
+- Removed on the owner's ruling: the legend's status rows and a press on a group card no longer filter the map. The bottom-right "Drag nodes · scroll to zoom · click a card to explain" box is gone from the stage; its reworded words are the new view bar's hover. "Clear all" on the head line now reads "Show everything".
+- Fixed on the way (found by the new check): a drag that started on selected words cancelled half-way through a turn.
+- Not built from the design: "Save this view".

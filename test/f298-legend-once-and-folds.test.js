@@ -56,12 +56,17 @@ test('f298 (3) CONTROL — a different cut is still a second lens: another label
   assert.equal(win.eval('intel.lenses.length'), 4);
 });
 
-test('f298 (4) the rule lives in addLens, the one funnel — the legend press does not dedupe for itself', () => {
+test('f298 (4) the rule lives in addLens, the one funnel — and the legend is a KEY, not a door', () => {
   const body = IG.slice(IG.indexOf('function addLens('), IG.indexOf('function parseHorizonDays('));
   assert.match(body, /intel\.lenses\.find\(/, 'the dedupe is inside addLens');
+  /* REVERSED 28 Sep 2026 (the owner, the brain drawing: "remove all these
+     filters. the idea is the filters should come from asking a question in
+     copilot"). The status rows used to add a lens when pressed; now they only
+     say what each colour means. Copilot is the one way to narrow the map. */
   const legend = IG.slice(IG.indexOf('function renderIntelLegend('), IG.indexOf('const IG_SUGGESTIONS'));
-  assert.match(legend, /addLens\(\{label:statusLabel\(s\)/, 'the legend still goes through addLens');
-  assert.ok(!/lenses\.find|lenses\.some/.test(legend), 'and carries no dedupe of its own');
+  assert.ok(!/addLens\(/.test(legend), 'the legend adds no lens');
+  assert.ok(!/\[data-igstatus\][^\n]*addEventListener/.test(legend), 'and no status row listens for a press');
+  assert.ok(!/<button data-igstatus/.test(legend), 'a status row is not drawn as a button');
 });
 
 test('f298 (5) the legend no longer draws the paper sentence, and the key is inert in BOTH books', () => {

@@ -632,21 +632,28 @@ const QUESTION = 'why do I have a big workload runway today?';
       const read = id => { const n = IG.nodes.find(x => x.id === id); if (!n) return null;
         const sp = [...n.g.querySelectorAll('[data-ig-fact]')].map(t => ({ k: t.getAttribute('data-ig-fact'), text: t.textContent, fill: getComputedStyle(t).fill, w: Math.round(t.getBBox().width) }));
         const chip = n.g.querySelector('.ig-chip');
-        return { h: n.h, facts: sp, unread: n.g.classList.contains('unread'), chipOp: Number(getComputedStyle(chip).opacity), lines: n.g.querySelectorAll('text').length }; };
-      const amber = getComputedStyle(document.documentElement).getPropertyValue('--st-amber-fg').trim();
-      const ruby = getComputedStyle(document.documentElement).getPropertyValue('--st-ruby-fg').trim();
+        /* RE-POINTED 28 Sep 2026 (the brain drawing): a contract is a dot with
+           two small lines beside it — its number and name, then its value and
+           facts — so the facts ride the SECOND line, the one the money is on. */
+        const tag = n.g.querySelector('.ig-tag'), two = tag && tag.querySelector('.ig-facts');
+        return { facts: sp, unread: n.g.classList.contains('unread'), chipOp: Number(getComputedStyle(chip).opacity), lines: tag ? tag.querySelectorAll('text').length : 0,
+          onTwo: sp.length ? [...n.g.querySelectorAll('[data-ig-fact]')].every(t => two && two.contains(t)) : true }; };
+      /* The stage is a dark scene: amber and ruby are its own bright shades
+         of the same meaning (IGB_FACT_TONE), measured as painted. */
+      const amber = IGB_FACT_TONE.amber;
+      const ruby = IGB_FACT_TONE.ruby;
       const probe = document.createElement('span'); probe.style.color = amber; document.body.appendChild(probe); const amberRgb = getComputedStyle(probe).color;
       probe.style.color = ruby; const rubyRgb = getComputedStyle(probe).color; probe.remove();
       return { p6: read('MK-P6'), p1: read('MK-P1'), p4: read('MK-P4'), amberRgb, rubyRgb };
     });
-    check('12a MK-P6 carries a third line — what is late, and not read; MK-P1 carries its renewal clock',
-      facts.p6 && facts.p1 && facts.p6.facts.map(f => f.k).join(',') === 'overdue,unread' && facts.p6.lines === 3 && facts.p6.h > 40
+    check('12a MK-P6\'s second line says what is late, and not read; MK-P1\'s carries its renewal clock',
+      facts.p6 && facts.p1 && facts.p6.facts.map(f => f.k).join(',') === 'overdue,unread' && facts.p6.lines === 2 && facts.p6.onTwo
         && facts.p1.facts.map(f => f.k).join(',') === 'decide' && /45 d/.test(facts.p1.facts[0].text),
       JSON.stringify({ p6: facts.p6 && facts.p6.facts.map(f => f.k + ':' + f.text), p1: facts.p1 && facts.p1.facts.map(f => f.k + ':' + f.text) }));
     check('12b the clock is painted amber and the late promise ruby — measured, not read off a class',
       facts.p6 && facts.p1 && facts.p1.facts[0] && facts.p6.facts[0] && facts.p1.facts[0].fill === facts.amberRgb && facts.p6.facts[0].fill === facts.rubyRgb && facts.p6.facts.every(f => f.w > 10),
       facts.p1 && facts.p6 && `${(facts.p1.facts[0] || {}).fill} vs amber ${facts.amberRgb} · ${(facts.p6.facts[0] || {}).fill} vs ruby ${facts.rubyRgb}`);
-    check('12c an unread node is faded, a read one is not, and a node with nothing to say keeps two lines',
+    check('12c an unread node is faded, a read one is not, and a node with nothing to say still has its two lines',
       facts.p6 && facts.p4 && facts.p6.unread && facts.p6.chipOp < 0.7 && !facts.p4.unread && facts.p4.chipOp === 1 && facts.p4.facts.length === 0 && facts.p4.lines === 2,
       JSON.stringify({ p6: facts.p6 && { unread: facts.p6.unread, op: facts.p6.chipOp }, p4: facts.p4 && { unread: facts.p4.unread, op: facts.p4.chipOp, lines: facts.p4.lines } }));
     /* A REAL HOVER brings the card's rows up beside the node, not over it. */
@@ -713,16 +720,22 @@ const QUESTION = 'why do I have a big workload runway today?';
     check('13b the share bar\'s length IS the share — a second carrier beside the printed figure',
       hub.there && hub.bar && hub.share > 0 && Math.abs(hub.bar.w / hub.bar.track - hub.share) < 0.03,
       hub.bar && `${hub.bar.w}/${hub.bar.track} vs ${hub.share && hub.share.toFixed(3)}`);
-    /* A REAL PRESS on the party hub still narrows the graph to that party. */
+    /* REVERSED 28 Sep 2026 (the owner, the brain drawing: "remove all these
+       filters … the filters should come from asking a question in copilot").
+       A REAL PRESS on the party card FOLDS its contracts into it and narrows
+       nothing; a second press opens it again. */
     const narrowed = await page.evaluate(() => {
       const n = IG.nodes.find(x => x.kind === 'hub' && /naivas/i.test(x.label));
+      const was = !!n.folded;
       n.g.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      return { lenses: intel.lenses.map(l => l.label), shown: IG.nodes.filter(x => x.kind === 'contract').map(x => x.id).sort() };
+      const r = { was, folded: !!n.folded, lenses: intel.lenses.map(l => l.label), shown: IG.nodes.filter(x => x.kind === 'contract').map(x => x.id).sort() };
+      n.g.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      r.back = !!n.folded; return r;
     });
     await page.waitForTimeout(600);
     await page.screenshot({ path: path.join(OUT, '13-counterparty-hub.png') });
-    check('13c pressing the party hub narrows the graph to that party\'s contracts',
-      narrowed.lenses.some(l => /Naivas/.test(l)) && narrowed.shown.length >= 2 && narrowed.shown.includes('MK-P1') && narrowed.shown.includes('MK-P6'),
+    check('13c pressing the party card folds it and narrows nothing; a second press opens it',
+      narrowed.folded === !narrowed.was && narrowed.back === narrowed.was && narrowed.lenses.length === 0 && narrowed.shown.includes('MK-P1') && narrowed.shown.includes('MK-P6'),
       JSON.stringify(narrowed));
     await page.evaluate(() => { intel.lenses = []; intel.groupBy = 'folder'; intel.tab = 'frame'; setView('intel'); });
     await page.waitForTimeout(500);
@@ -762,7 +775,7 @@ const QUESTION = 'why do I have a big workload runway today?';
       const at = (typeof graphCliffAt === 'function') ? graphCliffAt(0) : { passed: [] };
       const want = h => { const ids = [...(IG.adj[h.id] || [])].filter(id => IG.byId[id] && IG.byId[id].kind === 'contract'); const p = ids.filter(id => at.passed.includes(id)).length; return `${p} passed · ${ids.length - p} ahead`; };
       return { labels: hubs.map(h => h.label), xs, inOrder: xs.every((x, i) => i === 0 || x > xs[i - 1]),
-        q1: q1 && sub(q1), thisQ: sub(q0), wantQ1: q1 && want(q1), wantQ0: want(q0), amber: getComputedStyle(document.documentElement).getPropertyValue('--st-amber-dot').trim(),
+        q1: q1 && sub(q1), thisQ: sub(q0), wantQ1: q1 && want(q1), wantQ0: want(q0), amber: IGB_FACT_TONE.amber,
         ctl: !!ctl && r.width > 100 && r.height > 0, inNote: !!ctl && !!note && note.contains(ctl), out: (document.getElementById('ig-cliff-out') || {}).textContent };
     });
     check('14a the quarter hubs sit left to right in time order',
@@ -830,9 +843,9 @@ const QUESTION = 'why do I have a big workload runway today?';
       const biggest = links.slice().sort((a, b) => vOf(b.to) - vOf(a.to))[0];
       const leg = document.getElementById('ig-legend'); const q = k => leg && leg.querySelector(`[data-ig-legend-flow="${k}"]`);
       const miss = F ? Object.values(F).reduce((a, S) => a + Object.values(S.missing || {}).reduce((x, y) => x + y, 0), 0) : 0, uns = F ? Object.values(F).reduce((a, S) => a + (S.unsided || 0), 0) : 0;
-      const g = k => getComputedStyle(document.documentElement).getPropertyValue(k).trim();
       return { F: !!F, hubs, links, biggest: biggest && { to: biggest.to, w: biggest.w }, legend: { head: leg ? leg.textContent : '', in: !!q('in') && q('in').getBoundingClientRect().height > 0, out: !!q('out'), left: q('left') ? q('left').textContent : null, miss, uns },
-        green: g('--st-green-dot'), ruby: g('--st-ruby-dot') };
+        /* The card's own shade of the sign (igbCardTone), on the dark stage. */
+        green: igbCardTone('var(--st-green-dot)'), ruby: igbCardTone('var(--st-ruby-dot)') };
     });
     const paint = async v => page.evaluate(a => { const p = document.createElement('span'); p.style.color = a; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return c; }, v);
     const green = await paint(flow.green), ruby = await paint(flow.ruby);
@@ -929,8 +942,11 @@ const QUESTION = 'why do I have a big workload runway today?';
        The fold is measured against the legend as it stands. */
     const lgBefore = await page.evaluate(() => document.getElementById('ig-legend').getBoundingClientRect().height);
     const chips = await page.evaluate(() => [...document.querySelectorAll('#ig-dock [data-lens-toggle]')].map(b => b.textContent.trim()));
-    check('17a three presses on a legend row leave exactly ONE lens chip on the dock',
-      chips.length === 1 && /Drafting/.test(chips[0]), JSON.stringify(chips));
+    /* REVERSED 28 Sep 2026: the legend is a KEY now, not a door — the owner
+       ruled the map's filters come from asking Copilot. Three real presses on
+       a status row leave NO chip at all. */
+    check('17a three presses on a legend row add no lens — the legend is a key, not a filter',
+      chips.length === 0, JSON.stringify(chips));
     check('17b and the legend no longer prints the paper sentence',
       !(await page.evaluate(() => /what the paper says/i.test(document.getElementById('ig-legend').textContent))));
     /* GUARDED: a build without the fold control has nothing to press, and a
@@ -948,7 +964,7 @@ const QUESTION = 'why do I have a big workload runway today?';
     await page.screenshot({ path: path.join(OUT, '17-legend-folded.png') });
     if (hasFold) { await page.click('#ig-legend [data-ig-legend-fold]'); await page.waitForTimeout(250); }
     const back = !hasFold ? { h: -1, expanded: null, chips: -1 } : await page.evaluate(() => ({ h: document.getElementById('ig-legend').getBoundingClientRect().height, expanded: document.getElementById('ig-legend').querySelector('[data-ig-legend-fold]').getAttribute('aria-expanded'), chips: document.querySelectorAll('#ig-dock [data-lens-toggle]').length }));
-    check('17d and a second press brings it back whole, with the lens untouched', Math.abs(back.h - lgBefore) < 2 && back.expanded === 'true' && back.chips === 1, JSON.stringify({ before: lgBefore, ...back }));
+    check('17d and a second press brings it back whole, with the lens untouched', Math.abs(back.h - lgBefore) < 2 && back.expanded === 'true' && back.chips === 0, JSON.stringify({ before: lgBefore, ...back }));
     await page.evaluate(() => { intel.lenses = []; rebuildIntelGraph(); renderIntelDock(); });
 
     /* ================= 18. THE MAP COPILOT KNOWS THE MAP (C-1, 11 Sep 2026) == */
@@ -968,7 +984,11 @@ const QUESTION = 'why do I have a big workload runway today?';
     ai.reset(); ai.script([{ type: 'tool_use', id: 'tu_g', name: 'render_graph',
       input: { groupBy: 'custom', groups: {}, note: 'All contracts · clustered by expiration date', answer: 'Clustered by expiration date.' } }]);
     await drive18(async () => { await intelAsk('cluster by expiration date'); }, null);
-    await page.waitForTimeout(1500);
+    /* In the Brain view a card on the far side of the brain is turned away;
+       the Wiring view faces every card to the reader, so the hubs are
+       measured there (the brain drawing, 28 Sep 2026). */
+    await drive18(() => { if (typeof igSetView === 'function') igSetView(1); }, null);
+    await page.waitForTimeout(2500);
     const g18 = await drive18(() => {
       const hubs = window.IG ? IG.nodes.filter(n => n.kind === 'hub') : [];
       const note = document.getElementById('ig-note');

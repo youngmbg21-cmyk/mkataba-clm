@@ -969,6 +969,105 @@ const IG_COMPLIANCE_RE=/\b(illegal|unlawful|non-?complian(?:t|ce)|red[-\s]?flags
 const IG_QA_RE=/\b(summar(?:y|ise|ize|ies)|quote|verbatim|explain|describe|read|clause|says?|state[sd]?|obligations?|payment terms?|governing law|liabilit\w*|termination|indemnit\w*|renewal terms?|brief(?:ing)?|what (?:does|do|is|are|kind|type)|tell me about|how much (?:is|does)|when does)\b/i;
 // manipulates the map rather than reading text → graph interpreter
 const IG_GRAPH_RE=/\b(group by|regroup|filter|show (?:only|all|me)|highlight|hide|cluster|colou?r by|which contracts? (?:end|expire|renew|are|match))\b/i;
+/* ============================================================
+   COPILOT STEERS THE MAP — the reader's own words, read here first
+   (the brain drawing, 28 Sep 2026)
+   ============================================================
+   With no filter doors on the map, Copilot is the way to narrow, group,
+   colour, size and walk it. Four commands are plain arithmetic over the
+   record and need no model, so they are read here and spend nothing:
+   COLOUR BY a grouping, SIZE BY value / open obligations / nothing, OUTLIERS
+   (each contract against its own value stream — never a risk score), and
+   WALK THROUGH (the set on the map, one at a time). SHOW EVERYTHING takes
+   every cut off. Anything else goes on to Copilot exactly as before; a
+   sentence that carries one of these and something more has this part done
+   here and the rest asked. Every answer says what was applied. */
+const GRAPH_OUTLIER_MIN=3, GRAPH_OUTLIER_X=3, GRAPH_OUTLIER_PAY_GAP=30, GRAPH_WALK_MAX=24;
+const _igMedian=a=>{ const b=a.slice().sort((x,y)=>x-y), m=b.length>>1; return b.length?(b.length%2?b[m]:(b[m-1]+b[m])/2):null; };
+/* THE OUTLIERS: a contract whose value is GRAPH_OUTLIER_X times its stream's
+   median or more, or which pays GRAPH_OUTLIER_PAY_GAP days or more slower
+   than its stream's median — each only where the stream has
+   GRAPH_OUTLIER_MIN contracts to measure against. Money obeys canViewValues;
+   a value with no rate home is left out, never guessed. */
+function graphOutliers(cs){
+  const list=(cs||state.contracts||[]), moneyOk=(typeof canViewValues!=='function')||canViewValues();
+  const by={}; list.forEach(c=>{ (by[c.folder||'_']||(by[c.folder||'_']=[])).push(c); });
+  const out={};
+  Object.values(by).forEach(group=>{
+    if(moneyOk){ const vals=[]; group.forEach(c=>{ if(typeof isMonetary==='function'&&!isMonetary(c)) return; if(!(Number(c.value||0)>0)) return;
+        const h=(typeof fxHome==='function')?fxHome(c):{ v:Number(c.value||0), missing:false }; if(!h.missing) vals.push([c,h.v]); });
+      if(vals.length>=GRAPH_OUTLIER_MIN){ const med=_igMedian(vals.map(x=>x[1]));
+        if(med>0) vals.forEach(([c,v])=>{ if(v>=med*GRAPH_OUTLIER_X) (out[c.id]||(out[c.id]=[])).push(i18t('int_outlier_value',{ x:Math.round(v/med*10)/10 })); }); } }
+    if(typeof payDays==='function'){ const ds=group.map(c=>[c,payDays(c)]).filter(x=>x[1]!=null);
+      if(ds.length>=GRAPH_OUTLIER_MIN){ const med=_igMedian(ds.map(x=>x[1]));
+        ds.forEach(([c,d])=>{ if(d>=med+GRAPH_OUTLIER_PAY_GAP) (out[c.id]||(out[c.id]=[])).push(i18t('int_outlier_pay',{ d, m:Math.round(med) })); }); } }
+  });
+  return Object.keys(out).map(id=>({ id, why:out[id] }));
+}
+/* The set a walk-through visits: what the map is showing (or what it has
+   highlighted), soonest decision first, then the largest; capped, and the
+   cap is said. */
+function graphWalkIds(){
+  const act=intelActive();
+  let cs=(IG&&IG.contracts?IG.contracts.map(n=>n.c):state.contracts).filter(Boolean);
+  if(act.ids&&act.action==='highlight') cs=cs.filter(c=>act.ids.has(c.id));
+  const dd=c=>{ const d=graphDecisionOf(c); return d.days==null?1e9:d.days; };
+  cs=cs.slice().sort((a,b)=>(dd(a)-dd(b))||(Number(b.value||0)-Number(a.value||0)));
+  return { ids:cs.slice(0,GRAPH_WALK_MAX).map(c=>c.id), total:cs.length };
+}
+const IG_COLOUR_RE=/\bcolou?r(?:ed)?\s+(?:(?:them|it|the\s+(?:map|dots|contracts|galaxy|brain))\s+)?by\s+([^,.;]+?)(?=\s+and\s+|[,.;]|$)/i;
+const IG_SIZE_RE=/\bsized?\s+(?:(?:them|it|the\s+(?:map|dots|contracts))\s+)?by\s+([^,.;]+?)(?=\s+and\s+|[,.;]|$)/i;
+const IG_OUTLIER_RE=/\boutliers?\b|\bunusual (?:ones|contracts)\b|\bstands? out\b/i;
+const IG_WALK_RE=/\bwalk (?:me |us )?through\b|\bone by one\b|\bone at a time\b/i;
+const IG_EVERYTHING_RE=/^(?:please\s+)?(?:show (?:me )?(?:everything|all(?: (?:the )?contracts)?|the whole (?:book|map))|reset(?: the map)?|clear(?: all| the map)?)[.!]?$/i;
+function igColourKeyOf(words){
+  const w=String(words||'').toLowerCase().trim();
+  if(/^(?:the\s+)?(?:status|stage|lifecycle)\b/.test(w)) return 'status';
+  return graphGroupCue('by '+w.replace(/^the\s+/,''));
+}
+function igSizeKeyOf(words){
+  const w=String(words||'').toLowerCase();
+  if(/value|money|amount|worth|size of the deal/.test(w)) return 'value';
+  if(/obligation|dut(?:y|ies)|promise|owed/.test(w)) return 'obligations';
+  if(/nothing|same|equal|uniform|one size/.test(w)) return 'same';
+  return null;
+}
+/* Returns the part of the sentence still to be asked of Copilot ('' when the
+   whole of it was done here), or null when none of it was for here. */
+async function intelMapLocal(q){
+  const say=text=>intel.history.push({ role:'assistant', text:igEsc(text) });
+  if(IG_EVERYTHING_RE.test(q.trim())){ intel.lenses=[]; intel.groups=null; intel.walk=null;
+    const t=(state.contracts||[]).length; say(i18t('int_did_showing',{ n:t, t })+'.'); return ''; }
+  let rest=q, did=false;
+  const cm=q.match(IG_COLOUR_RE);
+  if(cm){ const key=igColourKeyOf(cm[1]); did=true; rest=rest.replace(cm[0],' ');
+    if(key){ intel.colourBy=key; say(i18t('int_did_coloured',{ by:graphGroupingWord(key) })); }
+    else say(i18t('int_group_refused',{ list:GRAPH_GROUPINGS.map(g=>g.label.toLowerCase()).join(', ') })); }
+  const sm=q.match(IG_SIZE_RE);
+  if(sm){ const key=igSizeKeyOf(sm[1]); did=true; rest=rest.replace(sm[0],' ');
+    if(key){ intel.sizeBy=key; say(i18t('int_did_sized',{ by:i18t(IGB_SIZE_WORD[key]) })); } else say(i18t('int_size_refused')); }
+  const walk=IG_WALK_RE.test(q), outl=IG_OUTLIER_RE.test(q);
+  const all=re=>new RegExp(re.source,'gi');
+  if(walk) rest=rest.replace(all(IG_WALK_RE),' ');
+  if(outl) rest=rest.replace(all(IG_OUTLIER_RE),' ');
+  if(!did&&!walk&&!outl) return null;
+  const restRaw=rest.replace(/^\s*(?:and|then)\b/i,' ').replace(/\b(?:and|then)\s*$/i,' ').replace(/\s+/g,' ').trim();
+  rest=rest.replace(/\b(?:and|then|please|me|the|them|these|those|which|what|are|is|show|find|contracts?)\b/gi,' ').replace(/[?.!,;]/g,' ').replace(/\s+/g,' ').trim();
+  /* The rest of the sentence narrows the map first (Copilot's own reading);
+     a walk or an outlier count then runs over what is showing. */
+  if(rest.split(' ').filter(Boolean).length>=2&&(walk||outl)){ await intelGraphAsk(restRaw); rebuildIntelGraph(); rest=''; }
+  if(outl){ const act=intelActive(), cs=(state.contracts||[]).filter(c=>!(act.ids&&act.action==='filter')||act.ids.has(c.id));
+    const hits=graphOutliers(cs);
+    if(!hits.length) say(i18t('int_outliers_none'));
+    else { const badges={}; hits.forEach(h=>{ badges[h.id]=h.why[0]; });
+      addLens({ label:i18t('int_outliers_lens'), ids:hits.map(h=>h.id), action:'highlight', badges });
+      intel.history.push({ role:'assistant', text:igEsc(i18t('int_outliers_found',{ n:hits.length })), cardIds:hits.slice(0,5).map(h=>h.id), listIds:hits.map(h=>h.id), listTitle:i18t('int_outliers_lens') }); } }
+  if(walk){ rebuildIntelGraph(); const w=graphWalkIds();
+    if(!w.ids.length){ intel.walk=null; say(i18t('int_walk_none')); }
+    else { intel.walk={ ids:w.ids, clock:0, playing:true };
+      intel.history.push({ role:'assistant', text:igEsc(i18t('int_walk_start',{ n:w.ids.length })+(w.total>w.ids.length?' · '+i18t('int_walk_capped',{ n:w.ids.length, t:w.total }):'')), listIds:w.ids, listTitle:i18t(IG_TAB_LABEL.map) }); } }
+  return rest.split(' ').filter(Boolean).length>=2?restRaw:'';
+}
 async function intelAsk(qRaw){
   const q=(qRaw||'').trim();
   if(!q||intel.busy) return;
@@ -979,7 +1078,9 @@ async function intelAsk(qRaw){
     /* THE QUESTIONS FOLLOW THE SWITCH (26 Sep 2026): with the paper up, every
        question is about that contract and goes with its wording; on Graph the
        box asks about the portfolio exactly as before. */
-    if(igPaperUp())                                     await igPaperAsk(q);
+    const mapRest=igPaperUp()?null:await intelMapLocal(q);
+    if(mapRest!=null){ if(mapRest) await intelGraphAsk(mapRest); }
+    else if(igPaperUp())                                await igPaperAsk(q);
     else if(IG_COMPLIANCE_RE.test(q))                   await intelComplianceScan(q);
     else if(/\bcompare\b/i.test(q) || idHits>=2)        await intelChatAsk(q);
     else if(IG_TEMPLATE_RE.test(q))                     await intelTemplateAsk(q);
@@ -1175,7 +1276,7 @@ function intelGraphApply(q, res, opts){
   const ownHtml=own?(rich?aiRichText(own):igEsc(own)):'';
   if(!line) line=own?ownHtml:igEsc(res.note||'Done.');
   else if(graphSaysMore(own,res.note,parts[0])) line+=(rich?'':'<br>')+ownHtml;
-  intel.history.push({ role:'assistant', text:line, cardIds:(ids||[]).slice(0,5) });
+  intel.history.push({ role:'assistant', text:line, cardIds:(ids||[]).slice(0,5), listIds:(ids&&ids.length)?ids.slice():null, listTitle:res.note?String(res.note):null });
   return { refused:false, groupBy, ids };
 }
 
@@ -1467,7 +1568,401 @@ function buildGraphModel(){
   return { nodes, edges, capped, shown:cs.length, total:cs.length, edgeKinds:GRAPH_EDGE_KINDS.filter(k=>kinds.has(k)), linear:groupBy==='decision'&&!override, flow };
 }
 
-/* ---- physics + svg (adapted, light theme) ---- */
+/* ════════════════════════════════════════════════════════════════════════
+   EXPLORER — THE BRAIN DRAWING (owner-approved design, 28 Sep 2026)
+   ════════════════════════════════════════════════════════════════════════
+   The map keeps every reading it had — buildGraphModel's groups, contracts
+   and links, the lenses, Copilot's groupings — and changes only how they are
+   DRAWN and MOVED. Three views that glide into each other: BRAIN (the book as
+   a brain, each group a lobe), WIRING (the force layout the map always had,
+   laid flat) and FLOORS (one floor per stage, one column per group). Dragging
+   turns whichever view is showing, the wheel zooms, a double-click faces it
+   again. A group is a card carrying its money on paper; pressing the card
+   folds its contracts into it. THERE ARE NO FILTER DOORS ON THE MAP: Copilot
+   is the one way to narrow it (the owner, 28 Sep 2026).
+   The canvas under the SVG paints what carries no words (the brain's tissue,
+   the glow, the dots); the SVG on top keeps every node a real element with
+   its classes and marks, so hover, press, the lenses and the cliff work as
+   they always did. Story: docs/MAP-HISTORY.md, "EXPLORER — THE BRAIN DRAWING". */
+const SVG_NS='http://www.w3.org/2000/svg';
+const IGB_VIEWS=['brain','wiring','floors'];
+const IGB_VIEW_WORD={brain:'int_view_brain',wiring:'int_view_wiring',floors:'int_view_floors'};
+const IGB_TILT=[.2,.02,.36], IGB_SCALE=[1.3,1.05,.74], IGB_CY=[.52,.5,.47];
+const IGB_RX=.78, IGB_RY=.64, IGB_RZ=1.08, IGB_GOLD=2.39996;
+const IGB_TISSUE_N=2400;
+const IGB_FLOOR_Y=[.78,.26,-.26,-.78];
+const IGB_FLOOR_STATUS=['Draft','Under Review','Signed','Declined'];
+/* LITERAL COLOURS: the canvas reads no tokens, and the words over a dot must
+   wear the dot's own colour. The stage is one dark scene, like the Brain page. */
+const IGB_STATUS_COL={'Draft':'#A9C2BD','Under Review':'#F2B24C','Signed':'#62D291','Declined':'#F0726A'};
+const IGB_PALETTE=['#AC9CFA','#E0CB8F','#38CDB8','#86B8EA','#F09274','#A7E8D8','#9FB9C9','#E6A09A','#CFE3A0','#C9A0DC','#7FD1E8','#E8C07F'];
+const IGB_IDLE='#2F6C63', IGB_WALK='#F2B24C', IGB_OTHER='#9FB9C9';
+const IGB_FACT_TONE={amber:'#F2B24C',ruby:'#F0726A',ink:'#E6F2EF',mute:'#8FB5AD'};
+/* A group this small starts folded, where the map has more groups than
+   IGB_FOLD_MANY — the design's own rule, so a long tail of one-contract groups
+   does not bury the big ones. Folds are per sitting, in memory. */
+const IGB_FOLD_SMALL=3, IGB_FOLD_MANY=4;
+const IGB_ZOOM_MIN=.6, IGB_ZOOM_MAX=3.5, IGB_ZOOM_STEP=1.15;
+const IGB_TURN_RATE=.08;                       // radians a second, the brain's own slow turn
+const IGB_STEP_S=2.4, IGB_PULSE_S=.9;          // a walk-through: one contract every 2.4 s
+const IGB_LABEL_W=150;
+const IGB_SIZE_KEYS=['value','obligations','same'];
+const IGB_SIZE_WORD={value:'int_size_value',obligations:'int_size_obligations',same:'int_size_same'};
+/* THE SLOTS: where each group sits in the brain. The first nine are the
+   design's own lobes (the sixth is the cerebellum); a book with more groups
+   takes further directions off a golden spiral, so no group is merged away. */
+const IGB_SLOTS=[ {dir:[0,.2,-1]}, {dir:[0,.25,1]}, {dir:[1,-.3,.25]}, {dir:[0,1,-.05]}, {dir:[-1,-.3,.25]},
+  {cereb:true}, {dir:[.72,.72,-.35]}, {dir:[-.72,.72,-.35]}, {dir:[.55,.62,.6]} ];
+function igbSlot(i){
+  if(i<IGB_SLOTS.length) return IGB_SLOTS[i];
+  const k=i-IGB_SLOTS.length, y=.9-((k*.618)%1)*1.2, r=Math.sqrt(Math.max(0,1-y*y)), a=k*IGB_GOLD+.7;
+  return {dir:[Math.cos(a)*r, y, Math.sin(a)*r]};
+}
+const igbNorm=v=>{ const l=Math.hypot(v[0],v[1],v[2])||1; return [v[0]/l,v[1]/l,v[2]/l]; };
+function igbCortex(d,f){
+  d=igbNorm(d);
+  const k=1/Math.sqrt((d[0]/IGB_RX)**2+(d[1]/IGB_RY)**2+(d[2]/IGB_RZ)**2);
+  const fold=1+.045*Math.sin(9*d[0]+4*d[2])*Math.cos(7*d[1]+2*d[0]);
+  const p=[d[0]*k*f*fold, d[1]*k*f*fold, d[2]*k*f*fold];
+  if(p[1]<-.28) p[1]=-.28+(p[1]+.28)*.45;
+  if(Math.abs(p[0])<.06&&p[1]>.2) p[1]*=.93;
+  return p;
+}
+function igbBasis(d){ const a=Math.abs(d[1])<.9?[0,1,0]:[1,0,0];
+  const u=igbNorm([d[1]*a[2]-d[2]*a[1], d[2]*a[0]-d[0]*a[2], d[0]*a[1]-d[1]*a[0]]);
+  return [u, [d[1]*u[2]-d[2]*u[1], d[2]*u[0]-d[0]*u[2], d[0]*u[1]-d[1]*u[0]]]; }
+function igbRand(seed){ let s=seed||11; const rnd=()=>(s=(s*16807)%2147483647)/2147483647; return { rnd, gauss:()=>(rnd()+rnd()+rnd()-1.5)/1.5 }; }
+function igbHash(str){ let h=0; const s=String(str); for(let k=0;k<s.length;k++) h=(h*31+s.charCodeAt(k))>>>0; return h; }
+function igbHexA(h,a){ const n=parseInt(String(h).slice(1),16); return 'rgba('+(n>>16)+','+((n>>8)&255)+','+(n&255)+','+Math.max(0,Math.min(1,a))+')'; }
+const igbClamp01=x=>Math.max(0,Math.min(1,x));
+const igbStatusWord=st=>(typeof statusLabel==='function')?statusLabel(st):st;
+function igbTrim(s,n){ s=String(s==null?'':s); return s.length>n?s.slice(0,n-1)+'…':s; }
+function igbEl(tag,attrs,parent){ const e=document.createElementNS(SVG_NS,tag); if(attrs) for(const k in attrs) e.setAttribute(k,attrs[k]); if(parent) parent.appendChild(e); return e; }
+function igbFloorOf(status){ const i=IGB_FLOOR_STATUS.indexOf(status); if(i>=0) return i; return /expir|terminat|cancel|closed|declin/i.test(String(status||''))?3:1; }
+function igbReduced(){ try{ return !!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(_){ return false; } }
+/* THE CAMERA IS THE SITTING'S, in memory: a regroup or a new answer keeps the
+   view the reader chose and the way they turned it. Nothing stores it. */
+function igbCam(){
+  if(!intel.cam) intel.cam={ view:0, w:[1,0,0], rot:-1.4, tiltOff:0, rotW:0, tiltW:0, rotL:0, tiltL:0, zoom:1 };
+  return intel.cam;
+}
+/* The brain's tissue: faint dots that make its shape and are never
+   contracts. Seeded, so the brain is the same brain every time. */
+let _igbTissue=null;
+function igbTissue(){
+  if(_igbTissue) return _igbTissue;
+  const { rnd, gauss }=igbRand(11), out=[];
+  for(let i=0;i<IGB_TISSUE_N;i++){
+    const u=rnd(); let A, kind='cortex';
+    if(u<.74) A=igbCortex([gauss(),gauss(),gauss()], .86+rnd()*.16);
+    else if(u<.86){ const d=igbNorm([gauss(),gauss()*.8-.3,gauss()-.4]), f=.8+rnd()*.25; A=[d[0]*.46*f,-.46+d[1]*.22*f,-.72+d[2]*.3*f]; kind='cereb'; }
+    else if(u<.91){ const t=rnd(); A=[gauss()*.06,-.4-t*.62,-.34-t*.12]; kind='stem'; }
+    else A=igbCortex([gauss(),gauss(),gauss()], .35+rnd()*.45);
+    out.push({ A, kind, wa:rnd(), wb:rnd(), wt:rnd(), jx:gauss()*.03, jy:gauss()*.03,
+      L:[-1.62+rnd()*3.24, IGB_FLOOR_Y[Math.floor(rnd()*4)], -.5+rnd()], s:rnd(), ph:rnd()*6.283, sp:.4+rnd()*1.4 });
+  }
+  return (_igbTissue=out);
+}
+/* Money printed beside a dot: the contract's own currency, and only where
+   money may be seen. An empty string is "print nothing", never a zero. */
+function igbMoneyOf(c){
+  if(!c||(typeof canViewValues==='function'&&!canViewValues())) return '';
+  if(typeof isMonetary==='function'&&!isMonetary(c)) return '';
+  if(!(Number(c.value||0)>0)) return '';
+  return (typeof fmtMoneyShortOf==='function')?fmtMoneyShortOf(c):fmtMoneyShort(c.value);
+}
+/* PLACING THE BOOK. Groups biggest first, so the design's lobes go to the
+   groups with most in them; each contract on its lobe by a golden spiral; each
+   on its stage's floor in its group's column. A graph built over an old one
+   starts every node where it was, so a regroup GLIDES instead of jumping. */
+function igbLayout(G){
+  const hubs=G.nodes.filter(n=>n.kind==='hub');
+  const kidsOf=h=>[...(G.adj[h.id]||[])].map(id=>G.byId[id]).filter(n=>n&&n.kind==='contract');
+  hubs.forEach(h=>{ h.kids=kidsOf(h); });
+  const order=hubs.slice().sort((a,b)=>(b.kids.length-a.kids.length)||String(a.label).localeCompare(String(b.label)));
+  const folds=intel.folds||(intel.folds={});
+  const many=hubs.length>IGB_FOLD_MANY;
+  order.forEach((h,i)=>{
+    h.slot=igbSlot(i); h.col=IGB_PALETTE[i%IGB_PALETTE.length];
+    h.foldKey=(intel.groupBy||'')+'|'+h.label;
+    if(!(h.foldKey in folds)) folds[h.foldKey]=!intel.groups&&many&&h.kids.length<=IGB_FOLD_SMALL;
+    h.folded=!!folds[h.foldKey];
+    const d=h.slot.cereb?igbNorm([0,-.6,-.8]):igbNorm(h.slot.dir), [u,v]=igbBasis(d), crowd=Math.min(1,14/Math.max(14,h.kids.length));
+    h.hAt=h.slot.cereb?[0,-.5,-.78]:igbCortex(d,1.06);
+    h.kids.forEach((n,j)=>{ n.hub=h;
+      const a=(j+2)*IGB_GOLD, rr=.1+.055*Math.sqrt(j+1)*(.6+.4*crowd);
+      if(h.slot.cereb){ const r2=(.12+.045*Math.sqrt(j+1))*(.6+.4*crowd); n.At=[Math.cos(a)*r2*2.2, -.46+Math.sin(a)*.05, -.8+Math.sin(a)*r2]; }
+      else { const o=[u[0]*Math.cos(a)*rr+v[0]*Math.sin(a)*rr, u[1]*Math.cos(a)*rr+v[1]*Math.sin(a)*rr, u[2]*Math.cos(a)*rr+v[2]*Math.sin(a)*rr]; n.At=igbCortex([d[0]+o[0],d[1]+o[1],d[2]+o[2]],1.03); }
+    });
+  });
+  /* The floors: a timeline keeps its time order left to right, every other
+     grouping its size order. */
+  const cols=G.linear?hubs.slice().sort((a,b)=>(a.order??99)-(b.order??99)):order;
+  const N=cols.length, span=Math.min(3.2,.4*Math.max(1,N-1)), gap=N>1?span/(N-1):.4, cw=Math.min(.08,gap/4);
+  cols.forEach((h,k)=>{ const x=N>1?-span/2+gap*k:0, cells={};
+    h.hLt=[x,1.08,0];
+    h.kids.forEach(n=>{ const f=igbFloorOf(n.c&&n.c.status), c=(cells[f]=(cells[f]||0)+1)-1;
+      n.Lt=[x+((c%3)-1)*cw, IGB_FLOOR_Y[f], -.4+Math.floor(c/3)*.1]; }); });
+  const prev=G.prev&&G.prev.byId?G.prev.byId:{};
+  G.nodes.forEach(n=>{ const p=prev[n.id];
+    if(n.kind==='hub'){ n.hA=(p&&p.hA)?p.hA.slice():n.hAt.slice(); n.hL=(p&&p.hL)?p.hL.slice():n.hLt.slice();
+      n.fold=(p&&p.fold!=null)?p.fold:(n.folded?1:0); n.vis=p&&p.vis!=null?p.vis:0; }
+    else { if(!n.At){ n.At=[0,0,0]; n.Lt=[0,0,0]; }
+      n.A=(p&&p.A)?p.A.slice():n.At.slice(); n.L=(p&&p.L)?p.L.slice():n.Lt.slice(); n.r0=p&&p.r0||null; }
+    n.W3=[0,0,0]; });
+  G.hubs=order; G.contracts=G.nodes.filter(n=>n.kind==='contract');
+  /* The tissue takes the colour of the lobe it lies in. */
+  const lobes=order.filter(h=>!h.slot.cereb), cer=order.find(h=>h.slot.cereb)||null;
+  G.treg=igbTissue().map(d=>{
+    if(d.kind==='stem') return null;
+    if(d.kind==='cereb') return cer;
+    let best=null, bd=-9; const vv=igbNorm(d.A);
+    lobes.forEach(h=>{ const dd=igbNorm(h.slot.dir), dot=dd[0]*vv[0]+dd[1]*vv[1]+dd[2]*vv[2]; if(dot>bd){ bd=dot; best=h; } });
+    return bd>.35?best:null; });
+  igbColours(G); igbSizes(G);
+}
+/* COLOUR BY: status at rest; any grouping the map knows on Copilot's word.
+   Coloured by the grouping it is grouped by, the dots wear their card's colour. */
+function igbColours(G){
+  const key=GRAPH_GROUP_KEYS.includes(intel.colourBy)?intel.colourBy:'status';
+  G.colourKey=key;
+  if(key==='status'){ G.colourOf=n=>IGB_STATUS_COL[n.c&&n.c.status]||IGB_OTHER;
+    G.colourRows=IGB_FLOOR_STATUS.map(s=>({ k:s, label:igbStatusWord(s), col:IGB_STATUS_COL[s], status:s })); return; }
+  const labOf=n=>groupLabelOf(n.c,key,key===intel.groupBy?intel.groups:null);
+  const map=new Map();
+  if(key===intel.groupBy&&!intel.groups) G.hubs.forEach(h=>map.set(h.label,h.col));
+  else { const cnt={}; G.contracts.forEach(n=>{ const l=labOf(n); cnt[l]=(cnt[l]||0)+1; });
+    Object.keys(cnt).sort((a,b)=>(cnt[b]-cnt[a])||a.localeCompare(b)).forEach((l,i)=>map.set(l,IGB_PALETTE[i%IGB_PALETTE.length])); }
+  G.contracts.forEach(n=>{ n.colourLabel=labOf(n); });
+  G.colourOf=n=>map.get(n.colourLabel)||IGB_OTHER;
+  G.colourRows=[...map].map(([label,col])=>({ k:label, label, col }));
+}
+/* SIZE BY: value (in the home currency, one arithmetic), open obligations, or
+   one size. A viewer who may not see money gets one size, never a hint. */
+function igbSizes(G){
+  let key=IGB_SIZE_KEYS.includes(intel.sizeBy)?intel.sizeBy:'value';
+  const moneyOk=(typeof canViewValues!=='function')||canViewValues();
+  if(key==='value'&&!moneyOk) key='same';
+  G.sizeKey=key;
+  if(key==='value'){ let vmax=0; const v={};
+    G.contracts.forEach(n=>{ const c=n.c; if(!c||(typeof isMonetary==='function'&&!isMonetary(c))||!(Number(c.value||0)>0)) return;
+      const h=(typeof fxHome==='function')?fxHome(c):{ v:Number(c.value||0), missing:false }; if(h.missing) return; v[n.id]=h.v; vmax=Math.max(vmax,h.v); });
+    G.contracts.forEach(n=>{ n.rT=v[n.id]&&vmax?2.4+4.4*Math.sqrt(v[n.id]/vmax):2.4; }); }
+  else if(key==='obligations') G.contracts.forEach(n=>{ const k=((n.c&&n.c.obligations)||[]).filter(o=>o&&!o.completedAt&&!o.done).length; n.rT=2.4+Math.min(6,k*1.1); });
+  else G.contracts.forEach(n=>{ n.rT=3.4; });
+  G.contracts.forEach(n=>{ if(n.r0==null) n.r0=n.rT; });
+}
+/* The wiring is the force layout, laid flat and fitted to the stage. The fit
+   eases, so the drift of the physics never shakes the page. */
+function igbWiring(G){
+  if(!G.nodes.length) return;
+  let minX=1e9,maxX=-1e9,minY=1e9,maxY=-1e9;
+  G.nodes.forEach(n=>{ if(n.x<minX)minX=n.x; if(n.x>maxX)maxX=n.x; if(n.y<minY)minY=n.y; if(n.y>maxY)maxY=n.y; });
+  const U=Math.max(1,Math.min(G.W,G.H)*.36*IGB_SCALE[1]);
+  const X=Math.max(.4,(G.W/2-110)/U), Y=Math.max(.3,(G.H/2-60)/U);
+  const cx=(minX+maxX)/2, cy=(minY+maxY)/2, s=Math.max(1e-3,(maxX-minX)/2/X,(maxY-minY)/2/Y);
+  const b=G.wb; if(!b) G.wb={ cx, cy, s }; else { b.cx+=(cx-b.cx)*.08; b.cy+=(cy-b.cy)*.08; b.s+=(s-b.s)*.08; }
+  const w=G.wb;
+  G.nodes.forEach(n=>{ if(n._wz==null) n._wz=((igbHash(n.id)%100)/100-.5)*.16; n.W3[0]=(n.x-w.cx)/w.s; n.W3[1]=-(n.y-w.cy)/w.s; n.W3[2]=n._wz; });
+}
+function igbHeart(h,w){ return [h.hA[0]*w[0]+h.W3[0]*w[1]+h.hL[0]*w[2], h.hA[1]*w[0]+h.W3[1]*w[1]+h.hL[1]*w[2], h.hA[2]*w[0]+h.W3[2]*w[1]+h.hL[2]*w[2]]; }
+function igbMix(n,w){
+  const p=[n.A[0]*w[0]+n.W3[0]*w[1]+n.L[0]*w[2], n.A[1]*w[0]+n.W3[1]*w[1]+n.L[1]*w[2], n.A[2]*w[0]+n.W3[2]*w[1]+n.L[2]*w[2]];
+  const h=n.hub; if(!h) return p;
+  const f=h.fold*(1-w[2]); if(f<=0) return p;
+  const H=igbHeart(h,w); return [p[0]+(H[0]-p[0])*f, p[1]+(H[1]-p[1])*f, p[2]+(H[2]-p[2])*f];
+}
+/* THE PROJECTION — the Brain page's own: turn, tilt, a gentle perspective. */
+function igbProjector(G){
+  const cam=igbCam(), w=cam.w;
+  const rot=cam.rot*w[0]+cam.rotW*w[1]+(cam.rotL-.2)*w[2];
+  const tilt=(IGB_TILT[0]+cam.tiltOff)*w[0]+(IGB_TILT[1]+cam.tiltW)*w[1]+(IGB_TILT[2]+cam.tiltL)*w[2];
+  const SC=Math.max(1,Math.min(G.W,G.H))*.36*cam.zoom*(IGB_SCALE[0]*w[0]+IGB_SCALE[1]*w[1]+IGB_SCALE[2]*w[2]);
+  const c=Math.cos(rot), s=Math.sin(rot), ct=Math.cos(tilt), st=Math.sin(tilt), cy=G.H*(IGB_CY[0]*w[0]+IGB_CY[1]*w[1]+IGB_CY[2]*w[2]);
+  return p=>{ const x=p[0]*SC, y=p[1]*SC, z=p[2]*SC, x1=x*c-z*s, z1=x*s+z*c, y2=y*ct-z1*st, z2=y*st+z1*ct, f=1000/(1000-z2);
+    return [G.W/2+x1*f, cy-y2*f, f, z2/SC]; };
+}
+/* One step of time: the views glide, the nodes glide, the folds close and
+   open, the brain turns slowly unless the reader is holding or pointing at
+   it, and a walk-through moves on. */
+function igbStep(G,dt){
+  const cam=igbCam(), rm=igbReduced(), tgt=[0,0,0]; tgt[cam.view]=1;
+  const ease=rm?1:Math.min(1,dt*2.4), glide=rm?1:Math.min(1,dt*2.2), fe=rm?1:Math.min(1,dt*4), ve=rm?1:Math.min(1,dt*2);
+  cam.w=cam.w.map((v,i)=>v+(tgt[i]-v)*ease);
+  G.nodes.forEach(n=>{
+    if(n.kind==='hub'){ for(let i=0;i<3;i++){ n.hA[i]+=(n.hAt[i]-n.hA[i])*glide; n.hL[i]+=(n.hLt[i]-n.hL[i])*glide; }
+      n.fold+=((n.folded?1:0)-n.fold)*fe; n.vis+=(1-n.vis)*ve; }
+    else { for(let i=0;i<3;i++){ n.A[i]+=(n.At[i]-n.A[i])*glide; n.L[i]+=(n.Lt[i]-n.L[i])*glide; } n.r0+=(n.rT-n.r0)*Math.min(1,rm?1:dt*6); } });
+  if(!rm&&cam.view===0&&!G.turning&&!G.hover) cam.rot+=dt*IGB_TURN_RATE;
+  const wrap=a=>Math.atan2(Math.sin(a),Math.cos(a)); cam.rot=wrap(cam.rot); cam.rotW=wrap(cam.rotW); cam.rotL=wrap(cam.rotL);
+  const wk=intel.walk;
+  if(wk&&wk.playing){ wk.clock=Math.min(wk.ids.length*IGB_STEP_S+1, wk.clock+dt);
+    wk.ids.forEach((id,k)=>{ if(wk.clock>=k*IGB_STEP_S){ const n=G.byId[id]; if(n&&n.hub&&n.hub.folded) igFoldHub(n.hub,false); } });
+    const lit=Math.min(wk.ids.length, Math.floor((wk.clock-IGB_PULSE_S)/IGB_STEP_S)+1);
+    if(lit!==G._walkLit){ G._walkLit=lit; updateIntelNote(); } }
+}
+function igbWalkLit(id){ const wk=intel.walk; if(!wk) return -1; const k=wk.ids.indexOf(id); if(k<0) return -1; return wk.clock>=k*IGB_STEP_S+IGB_PULSE_S?k:-1; }
+/* THE CANVAS: floors, tissue, the glow round each group, the dots. Nothing
+   here carries a word a reader must read except the floors' own names. */
+function igbDraw(G,t){
+  const cv=G.cv, ctx=G.ctx; if(!cv||!ctx) return;
+  const W=G.W, H=G.H, dpr=Math.min(2,window.devicePixelRatio||1);
+  if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){ cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); }
+  ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H);
+  const w=igbCam().w, pj=G.pj, rm=igbReduced(), walking=!!intel.walk, zs=Math.sqrt(igbCam().zoom);
+  if(w[2]>.05){
+    IGB_FLOOR_Y.forEach((y,k)=>{ const a=pj([-1.7,y,-.5]), b=pj([1.7,y,-.5]), c=pj([1.7,y,.5]), d=pj([-1.7,y,.5]);
+      ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.lineTo(c[0],c[1]); ctx.lineTo(d[0],d[1]); ctx.closePath();
+      ctx.fillStyle='rgba(56,205,184,'+(.035*w[2])+')'; ctx.fill(); ctx.strokeStyle='rgba(56,205,184,'+(.16*w[2])+')'; ctx.lineWidth=1; ctx.stroke();
+      const st=IGB_FLOOR_STATUS[k], lab=String(igbStatusWord(st)).toUpperCase();
+      ctx.font='600 10px Geist, system-ui, sans-serif'; ctx.fillStyle=igbHexA(IGB_STATUS_COL[st],.9*w[2]);
+      ctx.fillText(lab, Math.max(6,d[0]-8-ctx.measureText(lab).width), d[1]+4); });
+    const cols=G.hubs.slice().sort((a,b)=>a.hLt[0]-b.hLt[0]);
+    cols.forEach((h,k)=>{ const q=pj([h.hL[0],-.78,.62]); ctx.font='600 9px Geist, system-ui, sans-serif'; ctx.fillStyle=igbHexA(h.col,.85*w[2]);
+      const lab=igbTrim(String(h.label).toUpperCase(),14); ctx.fillText(lab, q[0]-ctx.measureText(lab).width/2, q[1]+14+(k%2)*11); });
+  }
+  const T=igbTissue(), H0=G.hubs, nh=H0.length;
+  for(let i=0;i<T.length;i++){ const d=T[i];
+    let W3=[d.L[0],d.L[1],d.L[2]];
+    if(nh){ const ha=H0[Math.floor(d.wa*nh)], hb=H0[Math.floor(d.wb*nh)]; W3=[ha.W3[0]+(hb.W3[0]-ha.W3[0])*d.wt+d.jx, ha.W3[1]+(hb.W3[1]-ha.W3[1])*d.wt+d.jy, 0]; }
+    const p=[d.A[0]*w[0]+W3[0]*w[1]+d.L[0]*w[2], d.A[1]*w[0]+W3[1]*w[1]+d.L[1]*w[2], d.A[2]*w[0]+W3[2]*w[1]+d.L[2]*w[2]];
+    const q=pj(p), front=igbClamp01((q[3]+1.1)/2.2), reg=G.treg&&G.treg[i];
+    let a=(.2+front*.5)*(walking?.55:1)*(1-.45*w[1]);
+    if(!rm&&Math.sin(t*d.sp+d.ph)>.985) a=Math.min(1,a+.5);
+    const sz=(.9+d.s*1.3)*q[2]*zs;
+    ctx.fillStyle=igbHexA(reg?reg.col:IGB_IDLE,a); ctx.fillRect(q[0]-sz/2,q[1]-sz/2,sz,sz); }
+  const bw=1-w[2];
+  if(bw>.05) G.hubs.forEach(h=>{ if(h.fold>.95) return; const q=h.q, vis=(w[0]*igbClamp01((q[3]+.25)*2)+w[1])*h.vis;
+    igbGlow(ctx,q[0],q[1],50+6*Math.sqrt(h.kids.length),h.col,.1*bw*vis*(1-h.fold)); });
+  const P=G.contracts.slice().sort((a,b)=>a.q[3]-b.q[3]);
+  P.forEach(n=>{
+    if(n._fold>.95) return;
+    const q=n.q, a=n._a, r=n._r, lit=n._lit, cl=n.g.classList, col=G.colourOf(n), tw=rm?1:.85+.15*Math.sin(t*2+(n._ph||0));
+    igbGlow(ctx,q[0],q[1],r*(lit>=0?6:4.2),lit>=0?IGB_WALK:col,(lit>=0?.75:.42)*a*tw);
+    ctx.fillStyle=igbHexA(lit>=0?'#FFFFFF':col,a); ctx.beginPath(); ctx.arc(q[0],q[1],r,0,6.283); ctx.fill();
+    if(cl.contains('hi')||cl.contains('hit')||G.sel===n.id){ ctx.strokeStyle='rgba(230,242,239,'+(.9*Math.max(.4,a))+')'; ctx.lineWidth=1.3; ctx.beginPath(); ctx.arc(q[0],q[1],r+4,0,6.283); ctx.stroke(); }
+    if(n.badge&&a>.2){ ctx.save(); ctx.setLineDash([3,3]); ctx.strokeStyle='rgba(242,178,76,.95)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(q[0],q[1],r+6+(rm?0:Math.sin(t*3+(n._ph||0))),0,6.283); ctx.stroke(); ctx.restore(); } });
+  const wk=intel.walk;
+  if(wk){ const ids=wk.ids, at=id=>G.byId[id]&&G.byId[id].q;
+    ctx.lineWidth=1.2;
+    for(let i=1;i<ids.length;i++){ if(igbWalkLit(ids[i])<0) break; const a=at(ids[i-1]), b=at(ids[i]); if(!a||!b) continue;
+      ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.quadraticCurveTo((a[0]+b[0])/2,(a[1]+b[1])/2-40,b[0],b[1]); ctx.strokeStyle=igbHexA(IGB_WALK,.45); ctx.stroke(); }
+    const k=Math.floor(wk.clock/IGB_STEP_S), u=(wk.clock-k*IGB_STEP_S)/IGB_PULSE_S;
+    if(k<ids.length&&u>=0&&u<=1&&at(ids[k])){ const to=at(ids[k]), from=(k&&at(ids[k-1]))||[W/2,H*.52];
+      const mx=(from[0]+to[0])/2, my=(from[1]+to[1])/2-40, v=1-u, px=v*v*from[0]+2*v*u*mx+u*u*to[0], py=v*v*from[1]+2*v*u*my+u*u*to[1];
+      igbGlow(ctx,px,py,18,IGB_WALK,.95); ctx.fillStyle='#FFFFFF'; ctx.beginPath(); ctx.arc(px,py,2.2,0,6.283); ctx.fill(); } }
+}
+/* How strongly each contract shows this frame — folded into its card, dimmed
+   by a hover or a highlight, passed by the cliff, lit by a walk-through. Read
+   by the canvas AND by the words, so the two never disagree. */
+function igbShade(G){
+  const w=igbCam().w, walking=!!intel.walk, zs=Math.sqrt(igbCam().zoom);
+  G.contracts.forEach(n=>{
+    const q=n.q, fold=n.hub?n.hub.fold*(1-w[2]):0, cl=n.g.classList, lit=igbWalkLit(n.id), front=igbClamp01((q[3]+1.1)/2.2);
+    n._fold=fold; n._lit=lit; n._r=n.r0*q[2]*zs;
+    n._a=(walking&&lit<0?.3:1)*(cl.contains('dim')?.22:1)*(cl.contains('passed')?.3:1)*(cl.contains('mut')?.28:1)*(.45+front*.55)*(1-fold); });
+}
+function igbGlow(ctx,x,y,r,col,a){ if(!(r>0)||!(a>0)) return; const g=ctx.createRadialGradient(x,y,0,x,y,r); g.addColorStop(0,igbHexA(col,a)); g.addColorStop(1,igbHexA(col,0));
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,r,0,6.283); ctx.fill(); }
+/* THE WORDS: every group card where it faces the reader, then every contract's
+   two small lines where they fit without covering another; where they do not,
+   its number alone; where not even that fits, the dot speaks on hover. */
+function igbSet(el,k,v){ if(el['_'+k]!==v){ el['_'+k]=v; el.setAttribute(k,v); } }
+function igbShow(el,on){ const v=on?'':'none'; if(el._disp!==v){ el._disp=v; el.style.display=v; } }
+function igbPlace(G){
+  const w=igbCam().w, bw=1-w[2], W=G.W, H=G.H, placed=[], gap=2;
+  const inside=A=>A.x>=2&&A.y>=2&&A.x+A.w<=W-2&&A.y+A.h<=H-2;
+  const clash=A=>placed.some(B=>A.x<B.x+B.w+gap&&B.x<A.x+A.w+gap&&A.y<B.y+B.h+gap&&B.y<A.y+A.h+gap);
+  G.hubs.forEach(h=>{ const q=h.q, vis=(w[0]*igbClamp01((q[3]+.25)*2)+w[1])*bw*h.vis;
+    if(vis<.08){ igbShow(h.g,false); return; }
+    igbShow(h.g,true);
+    /* A card stays on the stage: near an edge it slides in rather than being
+       cut off under the panel or the rail. */
+    const x=Math.max(4,Math.min(W-h.w-4,q[0]-h.w/2)), y=Math.max(4,Math.min(H-h.h-4,q[1]-h.h/2));
+    h.box={ x, y, w:h.w, h:h.h };
+    igbSet(h.g,'transform',`translate(${Math.round(x)},${Math.round(y)})`);
+    igbSet(h.card,'opacity',Math.min(1,vis).toFixed(2));
+    placed.push(h.box); });
+  const order=G.contracts.filter(n=>n._fold<.95).sort((a,b)=>((b._lit>=0)-(a._lit>=0))||((G.sel===b.id)-(G.sel===a.id))
+    ||(b.g.classList.contains('hit')-a.g.classList.contains('hit'))||((!!b.badge)-(!!a.badge))||(b.q[3]-a.q[3]));
+  G.contracts.forEach(n=>{ if(!(n._fold<.95)) igbShow(n.g,false); });
+  order.forEach(n=>{
+    const q=n.q, r=n._r||3; igbShow(n.g,true);
+    igbSet(n.g,'transform',`translate(${Math.round(q[0])},${Math.round(q[1])})`);
+    igbSet(n.hitEl,'r',String(Math.max(8,Math.round(r+4))));
+    const quiet=n.g.classList.contains('mut')||n._fold>.5||n._a<.12;
+    let at=null;
+    if(!quiet){ const tw=n.tw, th=n.th;
+      for(const [x,y] of [[r+6,-11],[-r-6-tw,-11],[-tw/2,-r-5-th],[-tw/2,r+5]]){ const A={ x:q[0]+x, y:q[1]+y, w:tw, h:th }; if(inside(A)&&!clash(A)){ at=[x,y,A]; break; } } }
+    if(at){ placed.push(at[2]); igbShow(n.tag,true); igbShow(n.num,false); igbSet(n.tag,'transform',`translate(${Math.round(at[0])},${Math.round(at[1])})`);
+      igbSet(n.tag,'opacity',Math.max(.4,Math.min(1,n._a)).toFixed(2)); igbPaintWalkNo(n); return; }
+    igbShow(n.tag,false);
+    let at2=null;
+    if(!quiet){ const nw=n.nw, nh=11;
+      for(const [x,y] of [[r+4,-5],[-r-4-nw,-5],[-nw/2,-r-3-nh],[-nw/2,r+3]]){ const A={ x:q[0]+x, y:q[1]+y, w:nw, h:nh }; if(inside(A)&&!clash(A)){ at2=[x,y,A]; break; } } }
+    if(at2){ placed.push(at2[2]); igbShow(n.num,true); igbSet(n.num,'transform',`translate(${Math.round(at2[0])},${Math.round(at2[1])})`); igbSet(n.num,'opacity',Math.max(.4,Math.min(1,n._a)).toFixed(2)); }
+    else igbShow(n.num,false);
+  });
+  G.edges.forEach(e=>{ const s=e.s, t=e.t;
+    const gone=x=>x.kind==='contract'?!(x._fold<.95):(x.g._disp==='none');
+    if(gone(s)||gone(t)){ igbShow(e.el,false); return; }
+    const hubEdge=s.kind==='hub'||t.kind==='hub';
+    const a=hubEdge?bw*Math.min(s.kind==='hub'?s.vis:1,1)*(1-(t.hub?t.hub.fold:0)):1;
+    if(a<.04){ igbShow(e.el,false); return; }
+    igbShow(e.el,true); igbSet(e.el,'stroke-opacity',a.toFixed(2));
+    const cen=x=>(x.kind==='hub'&&x.box)?[x.box.x+x.box.w/2,x.box.y+x.box.h/2]:x.q;
+    const A=cen(s), B=cen(t);
+    igbSet(e.el,'d',hubEdge?`M${A[0].toFixed(1)},${A[1].toFixed(1)} L${B[0].toFixed(1)},${B[1].toFixed(1)}`
+      :`M${A[0].toFixed(1)},${A[1].toFixed(1)} Q${((A[0]+B[0])/2).toFixed(1)},${((A[1]+B[1])/2-24).toFixed(1)} ${B[0].toFixed(1)},${B[1].toFixed(1)}`); });
+}
+/* A walk-through numbers each contract it has reached, in its first line. */
+function igbPaintWalkNo(n){ const k=n._lit, v=k>=0?(k+1)+'  ':''; if(n.walkNo&&n.walkNo._t!==v){ n.walkNo._t=v; n.walkNo.textContent=v; } }
+/* PRESS A CARD TO FOLD IT: its contracts gather into it and the card says so.
+   The only writer of a fold; per sitting, in memory. */
+function igFoldHub(h,want){
+  if(!h||h.kind!=='hub') return;
+  h.folded=want==null?!h.folded:!!want;
+  (intel.folds||(intel.folds={}))[h.foldKey]=h.folded;
+  h.g.classList.toggle('folded',h.folded);
+  if(h.chev) h.chev.setAttribute('d',h.folded?'M-2,-4 L2,0 L-2,4':'M-4,-2 L0,2 L4,-2');
+  h.g.setAttribute('aria-expanded',h.folded?'false':'true');
+  igPaintFoldAll();
+}
+function igFoldAll(){
+  if(!IG||!IG.hubs) return;
+  const fold=IG.hubs.some(h=>!h.folded);
+  if(fold&&intel.walk) intel.walk=null;
+  IG.hubs.forEach(h=>igFoldHub(h,fold));
+  updateIntelNote();
+}
+function igPaintFoldAll(){
+  const b=document.getElementById('ig-foldall'); if(!b||!IG||!IG.hubs) return;
+  const t=i18t(IG.hubs.some(h=>!h.folded)?'int_fold_all':'int_open_all'); if(b.textContent!==t) b.textContent=t;
+}
+function igSetView(v){
+  const cam=igbCam(); cam.view=Math.max(0,Math.min(2,Number(v)||0));
+  document.querySelectorAll('[data-ig-view]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.getAttribute('data-ig-view'))===cam.view)));
+}
+function igSetZoom(z){
+  const cam=igbCam(); cam.zoom=Math.max(IGB_ZOOM_MIN,Math.min(IGB_ZOOM_MAX,Number(z)||1));
+  const el=document.getElementById('ig-zv'); if(el) el.textContent=Math.round(cam.zoom*100)+'%';
+}
+/* A double-click faces the view again: the turn, the tilt and the zoom. */
+function igFaceAgain(){
+  const cam=igbCam();
+  if(cam.view===0){ cam.rot=-1.4; cam.tiltOff=0; } else if(cam.view===1){ cam.rotW=0; cam.tiltW=0; } else { cam.rotL=0; cam.tiltL=0; }
+  igSetZoom(1);
+}
+/* THE SIDE FACING YOU FOLLOWS THE MOUSE, in every view — the Brain page's
+   own rule (a drag to the right brings the left side round to the front). */
+function igTurnBy(dx,dy){
+  const cam=igbCam();
+  if(cam.view===0){ cam.rot-=dx*.006; cam.tiltOff=Math.max(-.5,Math.min(.8,cam.tiltOff+dy*.004)); }
+  else if(cam.view===1){ cam.rotW-=dx*.006; cam.tiltW=Math.max(-1.1,Math.min(1.1,cam.tiltW+dy*.004)); }
+  else { cam.rotL-=dx*.006; cam.tiltL=Math.max(-.3,Math.min(.9,cam.tiltL+dy*.004)); }
+}
+
+/* ---- the graph: the model's nodes as real elements, placed by the brain ---- */
 function makeIntelGraph(model){
   const svg=document.getElementById('ig-svg'); if(!svg) return null;
   const gLinks=document.getElementById('ig-links'), gNodes=document.getElementById('ig-nodes'), vp=document.getElementById('ig-vp');
@@ -1475,7 +1970,8 @@ function makeIntelGraph(model){
   const W=svg.clientWidth||1000, H=svg.clientHeight||600;
   const nodes=model.nodes.map(n=>({...n})); const byId=Object.fromEntries(nodes.map(n=>[n.id,n]));
   const edges=model.edges.map(e=>({...e,s:byId[e.from],t:byId[e.to]})).filter(e=>e.s&&e.t);
-  // seed positions: hubs on a ring, contracts near their hub
+  /* THE WIRING'S SEED: groups on a ring, contracts near their group — the
+     force layout the map always had, which the Wiring view lays flat. */
   let seed=42; const rnd=()=>{seed=(seed*1103515245+12345)&0x7fffffff;return seed/0x7fffffff;};
   const hubs=nodes.filter(n=>n.kind==='hub');
   /* A-4: the renewal cliff is a TIMELINE, so its hubs seed on a line, in
@@ -1485,92 +1981,110 @@ function makeIntelGraph(model){
     sorted.forEach((h,i)=>{ h.x=W*(0.12+0.76*(sorted.length>1?i/(sorted.length-1):0.5)); h.y=H/2; h.vx=h.vy=0; h.timeline=true; }); }
   else hubs.forEach((h,i)=>{ const a=i/Math.max(1,hubs.length)*Math.PI*2; h.x=W/2+Math.cos(a)*Math.min(W,H)*0.28; h.y=H/2+Math.sin(a)*Math.min(W,H)*0.28; h.vx=h.vy=0; });
   nodes.filter(n=>n.kind==='contract').forEach(n=>{ const h=byId['hub:'+n.group]||{x:W/2,y:H/2}; n.x=h.x+(rnd()-.5)*120; n.y=h.y+(rnd()-.5)*120; n.vx=n.vy=0; });
-  nodes.forEach(n=>{ if(n.kind==='hub'){ n.w=Math.max(100,Math.min(196,n.label.length*7.8+32)); n.h=40; if(n.lines&&n.lines.length){ n.w=Math.max(n.w,236); n.h=(n.flow?47:34)+n.lines.length*13+(n.party&&n.party.share!=null?8:0); } } else {
-    n.facts=n.c?graphNodeFactLine(n.c):[]; n.unread=!!(n.c&&graphNodeFacts(n.c).unread);
-    n.w=Math.max(92,Math.min(190,n.label.length*6.3+26)); n.h=n.facts.length?54:(n.sub?40:30); } });
-  // svg build
-  /* A LINK SAYS WHAT KIND OF LINK IT IS, in its own dress: a family edge is
-     the solid accent, a chain edge dashed, a group edge the quiet neutral it
-     always was. The class is the only carrier of the kind, so the legend and
-     the line read the same rule. */
-  edges.forEach(e=>{ e.el=document.createElementNS('http://www.w3.org/2000/svg','path'); e.el.setAttribute('class','ig-link'+(e.kind&&e.kind!=='group'?' ig-link-'+e.kind:'')); if(e.kind&&e.kind!=='group') e.el.setAttribute('data-ig-link',e.kind); if(e.w){ e.el.style.strokeWidth=e.w+'px'; e.el.setAttribute('data-ig-w',e.w); } e.el.setAttribute('marker-end','url(#ig-arrow)'); gLinks.appendChild(e.el); });
-  // adjacency (undirected) for the hover-focus highlight
   const adj={}; nodes.forEach(n=>adj[n.id]=new Set()); edges.forEach(e=>{ adj[e.from].add(e.to); adj[e.to].add(e.from); });
-  nodes.forEach(n=>{
-    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
-    g.setAttribute('class','ig-node'+(n.mut?' mut':'')+(n.hit?' hit':'')+(n.unread?' unread':'')); n.g=g;
-    const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
-    rect.setAttribute('class','ig-chip'); rect.setAttribute('rx','10'); rect.setAttribute('width',n.w); rect.setAttribute('height',n.h);
-    /* A GROUP is not a contract, and in dark mode the old slate hub fill sat
-       a shade away from the contract chips — one field of near-identical
-       cards. Hubs now wear the brand's deep teal with an accent ring, in
-       both themes: the accent tokens re-map per theme, so the distinction
-       survives dark mode instead of fighting it. */
-    rect.style.fill = n.kind==='hub'?'var(--color-accent-800, #134e4a)':'var(--color-surface)';
-    if(n.kind==='hub'){ rect.style.stroke='var(--accent-solid, #14b8a6)'; rect.setAttribute('stroke-width','1.5'); }
-    g.appendChild(rect);
-    if(n.kind==='contract'&&n.c&&model.linear){ const d=graphDecisionOf(n.c); if(d.date) g.setAttribute('data-ig-decision',d.date); }
-    if(n.kind==='contract'){ const bar=document.createElementNS('http://www.w3.org/2000/svg','rect');
-      bar.setAttribute('x',0); bar.setAttribute('y',0); bar.setAttribute('width',5); bar.setAttribute('height',n.h); bar.setAttribute('rx',2.5); bar.setAttribute('fill',n.dot); bar.setAttribute('pointer-events','none'); g.appendChild(bar); }
-    const lab=document.createElementNS('http://www.w3.org/2000/svg','text');
-    lab.setAttribute('class','ig-lab'); lab.setAttribute('x',n.kind==='hub'?11:13); lab.setAttribute('y',n.sub?17:19);
-    lab.style.fill = n.kind==='hub'?'var(--color-accent-50)':'var(--color-text)'; lab.setAttribute('font-weight', n.kind==='hub'?'700':'600');
-    if(n.kind==='hub') lab.setAttribute('letter-spacing','.5');
-    /* Uppercase is the second distinguisher — colour alone is the one channel
-       a reader might not have. */
-    const labText=n.kind==='hub'?String(n.label).toUpperCase():n.label;
-    lab.textContent = labText.length>24?labText.slice(0,23)+'…':labText; g.appendChild(lab);
-    if(n.sub){ const sub=document.createElementNS('http://www.w3.org/2000/svg','text');
-      sub.setAttribute('class','ig-sub'); sub.setAttribute('x',n.kind==='hub'?11:13); sub.setAttribute('y',31);
-      sub.setAttribute('fill', n.kind==='hub'?(n.crowded?'var(--st-amber-dot)':'var(--color-accent-200)'):'#7a7a7d'); if(n.crowded) sub.setAttribute('font-weight','700'); sub.textContent=n.sub.length>26?n.sub.slice(0,25)+'…':n.sub; g.appendChild(sub); }
-    /* A-3: THE PARTY HUB — its lines under the name, and a share bar whose
-       length is the party's share of the book by value. The bar is a second
-       carrier beside the printed percentage, never the only one. */
-    if(n.kind==='hub'&&n.lines&&n.lines.length){
-      const y0=n.flow?44:31;   // a stream hub keeps its count line and puts the money under it
-      n.lines.forEach((l,i)=>{ const t=typeof l==='string'?l:l.text, fill=(typeof l==='string'?null:l.fill)||'var(--color-accent-200)';
-        const ln=document.createElementNS('http://www.w3.org/2000/svg','text');
-        ln.setAttribute('class','ig-sub ig-cp-line'); ln.setAttribute('data-ig-cp-line',i); if(n.flow) ln.setAttribute('data-ig-flow',i); ln.setAttribute('x',11); ln.setAttribute('y',y0+i*13); ln.setAttribute('fill',fill); ln.setAttribute('pointer-events','none');
-        ln.textContent=t.length>38?t.slice(0,37)+'…':t; g.appendChild(ln); });
-      if(n.party&&n.party.share!=null){ const y=31+n.lines.length*13-6, bw=n.w-22;
-        const tr=document.createElementNS('http://www.w3.org/2000/svg','rect'); tr.setAttribute('x',11); tr.setAttribute('y',y); tr.setAttribute('width',bw); tr.setAttribute('height',3); tr.setAttribute('rx',1.5); tr.setAttribute('fill','var(--color-accent-700)'); tr.setAttribute('pointer-events','none'); g.appendChild(tr);
-        const br=document.createElementNS('http://www.w3.org/2000/svg','rect'); br.setAttribute('class','ig-cp-share'); br.setAttribute('x',11); br.setAttribute('y',y); br.setAttribute('width',Math.max(2,Math.round(bw*Math.min(1,n.party.share)))); br.setAttribute('height',3); br.setAttribute('rx',1.5); br.setAttribute('fill','var(--color-accent-200)'); br.setAttribute('pointer-events','none'); g.appendChild(br); }
+  const G={ svg, vp, nodes, edges, byId, adj, W, H, view:{x:0,y:0,k:1}, dragging:null, dragMoved:false, linear:!!model.linear, prev:IG,
+    cv:document.getElementById('ig-cv'), ctx:null, sel:(IG&&IG.sel)||null, hover:null, turning:false };
+  try{ G.ctx=G.cv&&G.cv.getContext?G.cv.getContext('2d'):null; }catch(_){ G.ctx=null; }
+  igbLayout(G); G.prev=null;   // the old graph is read once, never held
+  /* A LINK SAYS WHAT KIND OF LINK IT IS, in its own dress: a family edge is
+     the solid accent, a chain edge dashed, a group edge the quiet line from a
+     card to its contract. The class is the only carrier of the kind, so the
+     legend and the line read the same rule; the width is the value's. */
+  edges.forEach(e=>{ e.el=document.createElementNS(SVG_NS,'path'); e.el.setAttribute('class','ig-link'+(e.kind&&e.kind!=='group'?' ig-link-'+e.kind:'')); if(e.kind&&e.kind!=='group') e.el.setAttribute('data-ig-link',e.kind); if(e.w){ e.el.style.strokeWidth=e.w+'px'; e.el.setAttribute('data-ig-w',e.w); } gLinks.appendChild(e.el); });
+  const kids=nodes.filter(n=>n.kind==='contract'), hubsFirst=nodes.filter(n=>n.kind==='hub');
+  /* Contracts first, cards over them: a card is never hidden under a dot's words. */
+  kids.concat(hubsFirst).forEach(n=>{
+    const g=igbEl('g',{ class:'ig-node '+(n.kind==='hub'?'ig-hub':'ig-c')+(n.mut?' mut':'')+(n.hit?' hit':'') }); n.g=g;
+    if(n.kind==='contract'){
+      n.facts=n.c?graphNodeFactLine(n.c):[]; n.unread=!!(n.c&&graphNodeFacts(n.c).unread);
+      if(n.unread) g.classList.add('unread');
+      n._ph=(igbHash(n.id)%628)/100;
+      /* The physics' footprint: about a label's size, so the wiring spaces
+         its contracts for their words. */
+      n.w=120; n.h=28;
+      if(model.linear&&n.c){ const d=graphDecisionOf(n.c); if(d.date) g.setAttribute('data-ig-decision',d.date); }
+      n.hitEl=igbEl('circle',{ class:'ig-dot-hit', r:10, cx:0, cy:0, fill:'transparent' },g);
+      const ref=(window.contractRef?contractRef(n.c):n.id), name=igbTrim(n.label,24), money=igbMoneyOf(n.c);
+      const tag=n.tag=igbEl('g',{ class:'ig-tag' },g);
+      const chip=igbEl('rect',{ class:'ig-chip', x:-4, y:-2, rx:3, height:27 },tag);
+      const l1=igbEl('text',{ class:'ig-lab', x:0, y:9 },tag);
+      n.walkNo=igbEl('tspan',{ fill:'#FFFFFF' },l1);
+      const r1=igbEl('tspan',{ 'font-weight':'700' },l1); r1.textContent=ref;
+      const n1=igbEl('tspan',{},l1); n1.textContent='  '+name;
+      const l2=igbEl('text',{ class:'ig-facts', x:0, y:21 },tag);
+      let twoLen=money.length;
+      const add=(txt,fill,k,bold)=>{ if(twoLen){ const sep=igbEl('tspan',{ fill:'#5E7C76' },l2); sep.textContent=' · '; twoLen+=3; }
+        const sp=igbEl('tspan',{ fill },l2); if(k) sp.setAttribute('data-ig-fact',k); if(bold) sp.setAttribute('font-weight','700'); sp.textContent=txt; twoLen+=txt.length; };
+      if(money){ const m=igbEl('tspan',{ fill:IGB_FACT_TONE.mute },l2); m.textContent=money; }
+      /* A-1: THE SECOND LINE — Copilot's badge first (an outlier's reason, an
+         annotation), else the reading the map is coloured by, else the
+         contract's own facts, each in its own tone. */
+      if(n.badge){ add(igbTrim(n.badge,40),IGB_FACT_TONE.amber,null,true); l2.lastChild.setAttribute('class','ig-badge-txt'); }
+      else if(intel.colourBy&&intel.colourBy!=='status'&&GRAPH_GROUP_KEYS.includes(intel.colourBy)&&n.c) add(igbTrim(groupLabelOf(n.c,intel.colourBy,intel.colourBy===intel.groupBy?intel.groups:null),30),IGB_FACT_TONE.ink);
+      else n.facts.slice(0,2).forEach(f=>add(f.text,IGB_FACT_TONE[f.tone]||IGB_FACT_TONE.ink,f.k,f.tone==='amber'||f.tone==='ruby'));
+      n.tw=Math.min(IGB_LABEL_W+30,Math.max((ref.length+2+name.length)*5.7,twoLen*5.1))+10; n.th=27;
+      chip.setAttribute('width',n.tw);
+      n.num=igbEl('text',{ class:'ig-num', x:0, y:9 },g); n.num.textContent=ref; n.nw=ref.length*5.6+2;
+      n.num.style.display='none'; n.num._disp='none';
+    } else {
+      const lines=(n.lines||[]);
+      n.w=lines.length?220:176;
+      let y=27; const ys=[];
+      if(n.sub) y+=12;
+      lines.forEach((l,i)=>ys.push(y+i*12));
+      const share=n.party&&n.party.share!=null;
+      n.h=(lines.length?ys[ys.length-1]:(n.sub?27:14))+(share?12:10);
+      g.setAttribute('role','button'); g.setAttribute('tabindex','0'); g.setAttribute('aria-expanded',n.folded?'false':'true');
+      if(n.folded) g.classList.add('folded');
+      const card=n.card=igbEl('g',{ class:'ig-card' },g);
+      igbEl('rect',{ class:'ig-chip', width:n.w, height:n.h, rx:4, stroke:n.col },card);
+      igbEl('rect',{ x:1, y:1, width:3, height:n.h-2, fill:n.col, 'pointer-events':'none' },card);
+      const lab=igbEl('text',{ class:'ig-lab', x:10, y:14 },card);
+      /* Uppercase is the second distinguisher — colour alone is the one channel
+         a reader might not have. */
+      lab.textContent=igbTrim(String(n.label).toUpperCase(),n.w>200?30:24);
+      n.chev=igbEl('path',{ class:'ig-fold', d:n.folded?'M-2,-4 L2,0 L-2,4':'M-4,-2 L0,2 L4,-2', transform:`translate(${n.w-12},10)`, fill:'none', stroke:'#CFE3DE', 'stroke-width':'1.4', 'pointer-events':'none' },card);
+      if(n.sub){ const sub=igbEl('text',{ class:'ig-sub', x:10, y:27 },card);
+        /* Inline, not an attribute: the stage's sheet sets every card line's ink,
+           and a presentation attribute loses to any sheet rule. */
+        if(n.crowded){ sub.style.fill=IGB_FACT_TONE.amber; sub.setAttribute('font-weight','700'); }
+        sub.textContent=igbTrim(n.sub,34); }
+      /* A-3 and A-5: a party card carries its lines and a share bar whose
+         length is the party's share of the book; a stream card its money in,
+         out and net, on paper. The renderer prints them and computes nothing. */
+      n.lines&&n.lines.forEach((l,i)=>{ const t=typeof l==='string'?l:l.text, fill=(typeof l==='string'?null:l.fill);
+        const ln=igbEl('text',{ class:'ig-sub ig-cp-line', 'data-ig-cp-line':i, x:10, y:ys[i], 'pointer-events':'none' },card);
+        if(fill) ln.style.fill=igbCardTone(fill);
+        if(n.flow) ln.setAttribute('data-ig-flow',i);
+        ln.textContent=t.length>38?t.slice(0,37)+'…':t; });
+      if(share){ const yb=(ys.length?ys[ys.length-1]:27)+5, bw=n.w-20;
+        igbEl('rect',{ x:10, y:yb, width:bw, height:3, rx:1.5, fill:'rgba(143,181,173,.25)', 'pointer-events':'none' },card);
+        igbEl('rect',{ class:'ig-cp-share', x:10, y:yb, width:Math.max(2,Math.round(bw*Math.min(1,n.party.share))), height:3, rx:1.5, fill:n.col, 'pointer-events':'none' },card); }
     }
-    /* A-1: THE THIRD LINE — at most three facts, each in its own tone, drawn
-       as separate spans so a fact's colour is its own and never the line's. */
-    if(n.facts&&n.facts.length){ const ft=document.createElementNS('http://www.w3.org/2000/svg','text');
-      ft.setAttribute('class','ig-facts'); ft.setAttribute('x',13); ft.setAttribute('y',45); ft.setAttribute('pointer-events','none');
-      const tone={amber:'var(--st-amber-fg)',ruby:'var(--st-ruby-fg)',ink:'var(--color-text)',mute:'var(--color-neutral-600)'};
-      n.facts.forEach((f,i)=>{ if(i){ const dot=document.createElementNS('http://www.w3.org/2000/svg','tspan'); dot.setAttribute('fill','var(--color-neutral-400)'); dot.textContent=' · '; ft.appendChild(dot); }
-        const sp=document.createElementNS('http://www.w3.org/2000/svg','tspan'); sp.setAttribute('data-ig-fact',f.k); sp.setAttribute('fill',tone[f.tone]||tone.ink); if(f.tone==='amber'||f.tone==='ruby') sp.setAttribute('font-weight','700'); sp.textContent=f.text; ft.appendChild(sp); });
-      g.appendChild(ft); }
-    if(n.badge){ // gold pill pinned to the chip's top-right corner (Copilot annotation)
-      const bt=n.badge.length>14?n.badge.slice(0,13)+'…':n.badge, bw=bt.length*5.4+12;
-      const br=document.createElementNS('http://www.w3.org/2000/svg','rect');
-      br.setAttribute('x',n.w-bw+8); br.setAttribute('y',-8); br.setAttribute('width',bw); br.setAttribute('height',15); br.setAttribute('rx',7.5);
-      br.setAttribute('fill','var(--st-amber-dot)'); br.style.stroke='var(--color-surface)'; br.setAttribute('stroke-width','1.5'); br.setAttribute('pointer-events','none'); g.appendChild(br);
-      const bl=document.createElementNS('http://www.w3.org/2000/svg','text');
-      bl.setAttribute('class','ig-badge-txt'); bl.setAttribute('x',n.w-bw+14); bl.setAttribute('y',2.5); bl.setAttribute('fill','#1d1f20');
-      bl.textContent=bt; g.appendChild(bl); }
     gNodes.appendChild(g);
-    g.addEventListener('pointerdown',e=>igStartDrag(e,n));
-    g.addEventListener('pointerenter',()=>{ if(IG&&!IG.dragging){ igPaint(n); igHoverShow(n); } });
-    g.addEventListener('pointerleave',()=>{ if(IG&&!IG.dragging){ igPaint(null); igHoverHide(); } });
+    g.addEventListener('pointerenter',()=>{ if(IG&&!IG.turning){ IG.hover=n; igPaint(n); if(n.kind==='contract') igHoverShow(n); } });
+    g.addEventListener('pointerleave',()=>{ if(IG){ IG.hover=null; if(!IG.turning){ igPaint(null); igHoverHide(); } } });
     g.addEventListener('click',e=>{ e.stopPropagation(); if(IG&&IG.dragMoved) return;
-      // contract -> explain it in the dock (workspace stays one click away in the card);
-      // hub -> keep only its group
-      if(n.kind==='contract') igExplain(n.id); else igFilterToGroup(n.label); });
+      /* A contract explains itself in the dock; a card FOLDS — a press on a
+         group is never a filter (the owner, 28 Sep 2026). */
+      if(n.kind==='contract') igExplain(n.id); else { igFoldHub(n); updateIntelNote(); } });
+    if(n.kind==='hub') g.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); igFoldHub(n); } });
   });
-  return { svg, vp, nodes, edges, byId, adj, W, H, view:{x:0,y:0,k:1}, dragging:null, dragMoved:false };
+  return G;
 }
-// hover-focus: highlight the card + its connections, dim the rest (mirrors the reference)
+/* A card's line may name a token colour for its figure (teal in, amber out);
+   on the dark card it wears the stage's own shade of the same meaning. */
+function igbCardTone(fill){ const f=String(fill);
+  if(/amber/.test(f)) return IGB_FACT_TONE.amber; if(/ruby|rose|red/.test(f)) return IGB_FACT_TONE.ruby;
+  if(/green/.test(f)) return IGB_STATUS_COL.Signed; return '#CFE3DE'; }
+// hover-focus: light the node and its connections, dim the rest
 function igPaint(focus){
   if(!IG) return;
   if(!focus){ IG.nodes.forEach(n=>n.g.classList.remove('hi','dim'));
-    IG.edges.forEach(e=>{ e.el.classList.remove('hi','dim'); e.el.setAttribute('marker-end','url(#ig-arrow)'); }); return; }
+    IG.edges.forEach(e=>e.el.classList.remove('hi','dim')); return; }
   const near=IG.adj[focus.id]||new Set();
   IG.nodes.forEach(n=>{ const on=n.id===focus.id||near.has(n.id); n.g.classList.toggle('hi',n.id===focus.id); n.g.classList.toggle('dim',!on); });
-  IG.edges.forEach(e=>{ const on=e.from===focus.id||e.to===focus.id; e.el.classList.toggle('hi',on); e.el.classList.toggle('dim',!on); e.el.setAttribute('marker-end',on?'url(#ig-arrowHi)':'url(#ig-arrow)'); });
+  IG.edges.forEach(e=>{ const on=e.from===focus.id||e.to===focus.id; e.el.classList.toggle('hi',on); e.el.classList.toggle('dim',!on); });
 }
 // two-way linking: light up an explicit set of contract ids (hover from the dock)
 function igPaintIds(ids){
@@ -1580,14 +2094,12 @@ function igPaintIds(ids){
   IG.nodes.forEach(n=>{ const on=set.has(n.id)||(n.kind==='hub'&&[...(IG.adj[n.id]||[])].some(id=>set.has(id)));
     n.g.classList.toggle('hi',set.has(n.id)); n.g.classList.toggle('dim',!on); });
   IG.edges.forEach(e=>{ const on=set.has(e.to)||set.has(e.from);
-    e.el.classList.toggle('hi',on); e.el.classList.toggle('dim',!on);
-    e.el.setAttribute('marker-end',on?'url(#ig-arrowHi)':'url(#ig-arrow)'); });
+    e.el.classList.toggle('hi',on); e.el.classList.toggle('dim',!on); });
 }
-function igFilterToGroup(label){ const ids=state.contracts.filter(c=>groupLabelOf(c,intel.groupBy,intel.groups)===label).map(c=>c.id);
-  addLens({label:'Group: '+label, ids, action:'filter'}); rebuildIntelGraph(); }
 // node click -> explain the contract inside the dock (Open workspace is the secondary action)
 function igExplain(id){
   const c=getContract(id); if(!c) return;
+  if(IG) IG.sel=id;
   if(!intel.dockOpen){ intel.dockOpen=true; igSyncDockWidth(); }
   intel.history.push({role:'assistant', explainId:id});
   renderIntelDock(); igPaintIds([id]);
@@ -1595,35 +2107,20 @@ function igExplain(id){
   // Copilot engine isn't configured — the facts card still stands on its own).
   intelAIExplain(id);
 }
-function igStartDrag(e,n){ e.stopPropagation(); igHoverHide(); IG.dragging=n; IG.dragMoved=false; n.g.setPointerCapture(e.pointerId);
-  const p=igToWorld(e.clientX,e.clientY); IG.dragOff={x:n.x-p.x,y:n.y-p.y};
-  const mv=ev=>{ if(!IG.dragging)return; const p=igToWorld(ev.clientX,ev.clientY); IG.dragging.x=p.x+IG.dragOff.x; IG.dragging.y=p.y+IG.dragOff.y; IG.dragging.vx=IG.dragging.vy=0; IG.dragMoved=true; };
-  const up=()=>{ IG.dragging=null; window.removeEventListener('pointermove',mv); window.removeEventListener('pointerup',up); setTimeout(()=>{if(IG)IG.dragMoved=false;},50); };
-  window.addEventListener('pointermove',mv); window.addEventListener('pointerup',up);
-}
 function igToWorld(cx,cy){ const r=IG.svg.getBoundingClientRect(); return {x:(cx-r.left-IG.view.x)/IG.view.k,y:(cy-r.top-IG.view.y)/IG.view.k}; }
 function igApplyView(){ IG.vp.setAttribute('transform',`translate(${IG.view.x},${IG.view.y}) scale(${IG.view.k})`); }
-// Zoom-to-fit: frame the whole graph so you land zoomed OUT (see everything),
-// then zoom in by choice. Measures the node bounding box and centres it in the
-// live viewport with padding. Clamped to the wheel-zoom range (0.35–2.4) and
-// capped at 1.05 so a tiny portfolio isn't blown up.
+/* FITTING IS MEASURING THE STAGE: the brain is drawn to the stage's own size
+   every frame, so a fit reads the size and leaves the reader's turn and zoom
+   alone. */
 function igFitView(){
-  if(!IG||!IG.nodes||!IG.nodes.length) return;
+  if(!IG||!IG.svg) return;
   const r=IG.svg.getBoundingClientRect();
-  const vw=r.width||IG.W||1000, vh=r.height||IG.H||600;
-  let minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9;
-  IG.nodes.forEach(n=>{ minX=Math.min(minX,n.x-n.w/2); maxX=Math.max(maxX,n.x+n.w/2);
-    minY=Math.min(minY,n.y-n.h/2); maxY=Math.max(maxY,n.y+n.h/2); });
-  const pad=64, gw=(maxX-minX)+pad*2, gh=(maxY-minY)+pad*2;
-  const k=Math.max(0.35,Math.min(1.05, Math.min(vw/gw, vh/gh)));
-  IG.view.k=k;
-  IG.view.x=(vw-(minX+maxX)*k)/2;
-  IG.view.y=(vh-(minY+maxY)*k)/2;
-  igApplyView();
+  if(r.width>0&&r.height>0){ IG.W=r.width; IG.H=r.height; }
+  IG.view={x:0,y:0,k:1}; igApplyView();
 }
 function igTick(){
   const {nodes,edges,W,H}=IG;
-  // ever-advancing clock → a tiny persistent drift so the graph never freezes
+  // ever-advancing clock → a tiny persistent drift so the wiring never freezes
   const t=(IG._t=(IG._t||0)+1)*0.02;
   for(let i=0;i<nodes.length;i++){ const a=nodes[i];
     for(let j=i+1;j<nodes.length;j++){ const b=nodes[j];
@@ -1634,7 +2131,6 @@ function igTick(){
     } }
   edges.forEach(e=>{ let dx=e.t.x-e.s.x,dy=e.t.y-e.s.y,d=Math.sqrt(dx*dx+dy*dy)||1; const f=(d-120)*0.02; dx/=d;dy/=d; e.s.vx+=dx*f;e.s.vy+=dy*f; e.t.vx-=dx*f;e.t.vy-=dy*f; });
   nodes.forEach((n,idx)=>{ n.vx+=(W/2-n.x)*0.0016; n.vy+=(H/2-n.y)*0.0016;
-    if(n===IG.dragging)return;
     /* A-4: a timeline hub keeps its place in time — the physics may not shuffle
        next year to the left of this quarter. */
     if(n.timeline){ n.vx=0; n.vy=(H/2-n.y)*0.08; n.y+=n.vy; return; }
@@ -1643,12 +2139,18 @@ function igTick(){
     n.vx+=Math.cos(t+n._ph)*0.05; n.vy+=Math.sin(t*1.07+n._ph*1.3)*0.05;
     n.vx*=0.86;n.vy*=0.86; n.vx=Math.max(-35,Math.min(35,n.vx));n.vy=Math.max(-35,Math.min(35,n.vy)); n.x+=n.vx;n.y+=n.vy; });
 }
+/* ONE FRAME: time moves on, every node is projected once, the canvas paints,
+   the words are placed. */
 function igRender(){
-  IG.nodes.forEach(n=>n.g.setAttribute('transform',`translate(${n.x-n.w/2},${n.y-n.h/2})`));
-  IG.edges.forEach(e=>{ const dx=e.t.x-e.s.x,dy=e.t.y-e.s.y,d=Math.sqrt(dx*dx+dy*dy)||1,nx=dx/d,ny=dy/d;
-    const a=igClamp(e.s,nx,ny), b=igClamp(e.t,-nx,-ny);
-    const mx=(a.x+b.x)/2, my=(a.y+b.y)/2, cx=mx-ny*16, cy=my+nx*16;   // gentle curve, like the reference
-    e.el.setAttribute('d',`M${a.x},${a.y} Q${cx},${cy} ${b.x},${b.y}`); });
+  if(!IG) return;
+  const now=((typeof performance!=='undefined'&&performance.now)?performance.now():Date.now())/1000;
+  const dt=IG._last==null?0:Math.min(.05,Math.max(0,now-IG._last)); IG._last=now;
+  if(IG.svg){ const r=IG.svg.getBoundingClientRect(); if(r.width>0&&r.height>0){ IG.W=r.width; IG.H=r.height; } }
+  igbStep(IG,dt); igbWiring(IG);
+  const w=igbCam().w; IG.pj=igbProjector(IG);
+  IG.hubs.forEach(h=>{ h.q=IG.pj(igbHeart(h,w)); });
+  IG.contracts.forEach(n=>{ n.q=IG.pj(igbMix(n,w)); });
+  igbShade(IG); igbDraw(IG,now); igbPlace(IG);
 }
 function igClamp(n,dx,dy){ const hw=n.w/2+2,hh=n.h/2+2,sx=dx?hw/Math.abs(dx):1e9,sy=dy?hh/Math.abs(dy):1e9,s=Math.min(sx,sy); return {x:n.x+dx*s,y:n.y+dy*s}; }
 
@@ -1675,10 +2177,10 @@ function igPaintGroupSelect(){
 function rebuildIntelGraph(){
   const model=buildGraphModel();
   IG=makeIntelGraph(model); if(!IG) return;
-  // pre-settle
+  // pre-settle the wiring's physics
   for(let i=0;i<220;i++) igTick();
-  igRender(); igFitView();   // land zoomed-out, framing the whole graph
-  updateIntelNote(); renderIntelLegend(model); igPaintGroupSelect();
+  igFitView(); igRender();
+  updateIntelNote(); renderIntelLegend(model); igPaintGroupSelect(); igPaintFoldAll(); igSetView(igbCam().view);
   if(model.linear) igApplyCliff(Number(intel.cliffDays)||0);
 }
 function updateIntelNote(){
@@ -1693,13 +2195,32 @@ function updateIntelNote(){
   const cliff=(intel.groupBy==='decision'&&!intel.groups)?` <label class="ig-cliff" style="display:inline-flex;align-items:center;gap:8px;margin-left:14px;font-size:var(--t-meta);color:var(--color-neutral-600)">${i18t('int_cliff_label')}
       <input id="ig-cliff" type="range" min="0" max="${GRAPH_CLIFF_MAX_DAYS}" step="30" value="${Number(intel.cliffDays)||0}" aria-label="${i18t('int_cliff_label')}" style="width:160px;accent-color:var(--accent-solid)">
       <span id="ig-cliff-out" style="min-width:90px;color:var(--color-text)"></span></label>`:'';
+  /* THE HEAD LINE SAYS WHAT THE MAP IS SHOWING (the brain drawing, 28 Sep
+     2026): with Copilot the one way to narrow the map, this line is where the
+     reader sees what was applied — how many of the book, grouped how, coloured
+     and sized by what, and the walk-through's place — with one way back. */
+  const total=(state.contracts||[]).length;
+  const shown=act.ids&&act.action==='filter'?act.ids.size:total;
+  const bits=[];
+  if(act.ids&&act.action==='filter') bits.push(`<b class="text-ink">${igEsc(i18t('int_did_showing',{ n:shown, t:total }))}</b>`);
+  bits.push(`${i18t('int_grouped_by')} <b class="text-ink">${gb}</b>`);
+  if(on.length) bits.push(`<b class="text-brand-700">${on.map(l=>igEsc(l.label)).join(' ∩ ')}</b>${act.action==='filter'?'':` <span class="text-ink/40">${igEsc(i18t('int_did_highlighted',{ n:act.ids?act.ids.size:0, t:total }))}</span>`}`);
+  if(intel.colourBy&&intel.colourBy!=='status'&&GRAPH_GROUP_KEYS.includes(intel.colourBy)) bits.push(igEsc(i18t('int_coloured_by',{ x:graphGroupingWord(intel.colourBy) })));
+  if(intel.sizeBy&&intel.sizeBy!=='value'&&IGB_SIZE_KEYS.includes(intel.sizeBy)) bits.push(igEsc(i18t('int_sized_by',{ x:i18t(IGB_SIZE_WORD[intel.sizeBy]) })));
+  const wk=intel.walk;
+  if(wk){ const k=Math.max(0,Math.min(wk.ids.length,Math.floor((wk.clock-IGB_PULSE_S)/IGB_STEP_S)+1));
+    bits.push(`<b class="text-ink">${igEsc(i18t('int_walking',{ k, n:wk.ids.length }))}</b> <button id="ig-walk-stop" type="button" class="ui-link">${i18t('int_walk_stop')}</button>`); }
   el.innerHTML = intel.busy ? `<span class="text-brand-700">${i18t('int_thinking')}</span>`
-    : `<span class="text-ink/60">${i18t('int_grouped_by')} <b class="text-ink">${gb}</b>${on.length?` · <b class="text-brand-700">${on.map(l=>igEsc(l.label)).join(' ∩ ')}</b> <span class="text-ink/40">· ${act.ids?act.ids.size:0} ${act.action==='filter'?'shown':'highlighted'}</span>`:''}</span>`
-      + ((on.length||intel.groups)?` <button id="ig-clear" type="button" class="ui-link" style="margin-left:6px">${icon('x','w-3.5 h-3.5')}${i18t('int_clear_all_x')}</button>`:'')
+    : `<span class="text-ink/60">${bits.join(' · ')}</span>`
+      + ((on.length||intel.groups||wk)?` <button id="ig-clear" type="button" class="ui-link" style="margin-left:6px">${i18t('int_clear_all_x')}</button>`:'')
       + cliff;
-  document.getElementById('ig-clear')?.addEventListener('click',()=>{ intel.lenses=[]; intel.groups=null; rebuildIntelGraph(); renderIntelDock(); });
+  document.getElementById('ig-clear')?.addEventListener('click',()=>{ igShowEverything(); });
+  document.getElementById('ig-walk-stop')?.addEventListener('click',()=>{ intel.walk=null; updateIntelNote(); });
   document.getElementById('ig-cliff')?.addEventListener('input',e=>{ intel.cliffDays=Number(e.target.value)||0; igApplyCliff(intel.cliffDays); });
 }
+/* SHOW EVERYTHING: every cut Copilot made comes off, its grouping with it, and
+   a walk-through stops. The colour and the size stay — they narrow nothing. */
+function igShowEverything(){ intel.lenses=[]; intel.groups=null; intel.walk=null; rebuildIntelGraph(); renderIntelDock(); }
 function renderIntelLegend(model){
   const el=document.getElementById('ig-legend'); if(!el) return;
   /* THE LEGEND FOLDS TO ITS HEAD (owner-asked 11 Sep 2026): it sits over the
@@ -1708,12 +2229,26 @@ function renderIntelLegend(model){
      the head row is the control, the chevron says which way it goes, and the
      sheet hides everything under it. Nothing is stored: a legend that came
      back folded a week later would hide the key to a graph the reader had not
-     seen since. */
+     seen since.
+     ---- A KEY, NOT A DOOR (the brain drawing, 28 Sep 2026) ----
+     "remove all these filters. the idea is the filters should come from asking
+     a question in copilot." The status rows used to filter the map when
+     pressed; they now only say what each colour means, and they follow the
+     colour Copilot was asked for. Narrowing the map is Copilot's alone. */
   el.classList.toggle('is-folded', !!intel.legendFolded);
-  el.innerHTML=`<div data-ig-legend-head class="flex items-center justify-between gap-3 mb-1.5"><span class="text-[10px] uppercase tracking-wider text-ink/40">${i18t('int_legend')}</span><button type="button" data-ig-legend-fold aria-expanded="${intel.legendFolded?'false':'true'}" title="${i18t(intel.legendFolded?'int_legend_show':'int_legend_hide')}" aria-label="${i18t(intel.legendFolded?'int_legend_show':'int_legend_hide')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon(intel.legendFolded?'chevR':'chevD','w-3.5 h-3.5')}</button></div>`+
-    `<div class="text-[10px] uppercase tracking-wider text-ink/40 mb-1.5">${i18t('int_status_click')}</div>`+
-    [['Draft','Drafting'],['Under Review','In Review'],['Signed','Executed'],['Declined','Closed']].map(([k,l])=>
-      `<button data-igstatus="${k}" class="flex items-center gap-2 text-[11.5px] text-ink/70 hover:text-ink py-0.5"><span class="h-2.5 w-2.5 rounded-[3px]" style="background:${STATUS_DOT[k]}"></span>${l}</button>`).join('');
+  const row=(attrs,col,label)=>`<div ${attrs} class="igl-row"><span class="igl-sw" style="background:${col}"></span>${igEsc(label)}</div>`;
+  const G=IG&&IG.colourRows?IG:null;
+  const colourKey=G?G.colourKey:'status';
+  let html=`<div data-ig-legend-head class="igl-head"><span class="igl-k">${i18t('int_legend')}</span><button type="button" data-ig-legend-fold aria-expanded="${intel.legendFolded?'false':'true'}" title="${i18t(intel.legendFolded?'int_legend_show':'int_legend_hide')}" aria-label="${i18t(intel.legendFolded?'int_legend_show':'int_legend_hide')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon(intel.legendFolded?'chevR':'chevD','w-3.5 h-3.5')}</button></div>`;
+  if(colourKey==='status'){
+    html+=`<div class="igl-k">${i18t('int_status_click')}</div>`+
+      IGB_FLOOR_STATUS.map(k=>row(`data-igstatus="${k}"`,IGB_STATUS_COL[k],igbStatusWord(k))).join('');
+  } else {
+    const rows=G.colourRows, max=10;
+    html+=`<div class="igl-k">${igEsc(i18t('int_colour_legend',{ x:graphGroupingWord(colourKey) }))}</div>`+
+      rows.slice(0,max).map(r=>row(`data-ig-colour="${igEsc(r.k)}"`,r.col,r.label)).join('')+
+      (rows.length>max?`<div class="igl-row igl-more">+${rows.length-max}</div>`:'');
+  }
   /* A-5: the money legend — teal in, amber out — and one sentence naming what
      the figures left out, drawn only where something was. Every hub already
      says "on paper"; the legend's own sentence about it ("what the paper says,
@@ -1722,10 +2257,10 @@ function renderIntelLegend(model){
      Its dictionary key (the paper-note one) is inert in both books. */
   if(model&&model.flow){
     const F=Object.values(model.flow); const miss=F.reduce((a,S)=>a+Object.values(S.missing||{}).reduce((x,y)=>x+y,0),0), uns=F.reduce((a,S)=>a+(S.unsided||0),0);
-    el.innerHTML+=`<div class="text-[10px] uppercase tracking-wider text-ink/40 mt-2 mb-1.5">${i18t('int_flow_legend')}</div>
-      <div data-ig-legend-flow="in" class="flex items-center gap-2 text-[11.5px] text-ink/70 py-0.5"><span class="h-2.5 w-2.5 rounded-[3px]" style="background:var(--accent-solid)"></span>${i18t('int_flow_in_word')}</div>
-      <div data-ig-legend-flow="out" class="flex items-center gap-2 text-[11.5px] text-ink/70 py-0.5"><span class="h-2.5 w-2.5 rounded-[3px]" style="background:var(--st-amber-dot)"></span>${i18t('int_flow_out_word')}</div>
-      ${(miss||uns)?`<div data-ig-legend-flow="left" class="text-[10.5px] text-ink/50 py-0.5" style="max-width:190px">${i18t('int_flow_left_out',{m:miss,u:uns})}</div>`:''}`;
+    html+=`<div class="igl-k igl-gap">${i18t('int_flow_legend')}</div>
+      <div data-ig-legend-flow="in" class="igl-row"><span class="igl-sw" style="background:#38CDB8"></span>${i18t('int_flow_in_word')}</div>
+      <div data-ig-legend-flow="out" class="igl-row"><span class="igl-sw" style="background:${IGB_FACT_TONE.amber}"></span>${i18t('int_flow_out_word')}</div>
+      ${(miss||uns)?`<div data-ig-legend-flow="left" class="igl-row igl-note">${i18t('int_flow_left_out',{m:miss,u:uns})}</div>`:''}`;
   }
   /* THE LINK KINDS ON THIS PAGE, and only those: a row for a line that is not
      drawn is furniture. Each swatch is the line's own class, so the legend
@@ -1733,12 +2268,11 @@ function renderIntelLegend(model){
   const kinds=(model&&model.edgeKinds)||[];
   if(kinds.length){
     const word={family:'int_link_family',chain:'int_link_chain',party:'int_link_party'};
-    el.innerHTML+=`<div class="text-[10px] uppercase tracking-wider text-ink/40 mt-2 mb-1.5">${i18t('int_links')}</div>`+
-      kinds.map(k=>`<div data-ig-legend-link="${k}" class="flex items-center gap-2 text-[11.5px] text-ink/70 py-0.5"><svg width="22" height="8" aria-hidden="true"><path class="ig-link ig-link-${k}" d="M1,4 L21,4" style="opacity:1"></path></svg>${i18t(word[k])}</div>`).join('');
+    html+=`<div class="igl-k igl-gap">${i18t('int_links')}</div>`+
+      kinds.map(k=>`<div data-ig-legend-link="${k}" class="igl-row"><svg width="22" height="8" aria-hidden="true"><path class="ig-link ig-link-${k}" d="M1,4 L21,4" style="opacity:1"></path></svg>${i18t(word[k])}</div>`).join('');
   }
+  el.innerHTML=html;
   el.querySelector('[data-ig-legend-fold]')?.addEventListener('click',()=>{ intel.legendFolded=!intel.legendFolded; renderIntelLegend(model); });
-  el.querySelectorAll('[data-igstatus]').forEach(b=>b.addEventListener('click',()=>{ const s=b.getAttribute('data-igstatus');
-    addLens({label:statusLabel(s), ids:state.contracts.filter(c=>c.status===s).map(c=>c.id), action:'filter'}); rebuildIntelGraph(); }));
 }
 
 const IG_SUGGESTIONS=[
@@ -1990,13 +2524,18 @@ function renderIntel(){
     <div id="ig-row" class="relative flex-1 min-h-0 bg-canvas flex" style="flex:1;min-height:0;display:flex;position:relative;background:var(--color-bg)">
       <div class="relative flex-1 min-w-0" style="flex:1;min-width:0;position:relative;display:flex;flex-direction:column">
         <div id="ig-strip" class="ig-strip" hidden></div>
-        <div id="ig-gwrap" style="flex:1;min-height:0;position:relative">
-        <svg id="ig-svg" class="w-full h-full block cursor-grab" style="width:100%;height:100%;display:block"><defs>
-          <marker id="ig-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#b7b7ba"></path></marker>
-          <marker id="ig-arrowHi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--color-accent)"></path></marker>
-        </defs><g id="ig-vp"><g id="ig-links"></g><g id="ig-nodes"></g></g></svg>
-        <div id="ig-legend" class="absolute left-4 bottom-4 bg-white border border-line rounded-xl px-3 py-2.5 shadow-[0_6px_22px_-12px_rgba(60,40,10,.3)]"></div>
-        <div class="absolute right-4 bottom-4 text-[11px] text-ink/40 bg-white border border-line rounded-lg px-2.5 py-1.5">${i18t('int_drag_nodes')}</div>
+        <div id="ig-gwrap" class="ig-brain" style="flex:1;min-height:0;position:relative">
+        <canvas id="ig-cv" aria-hidden="true"></canvas>
+        <svg id="ig-svg" class="w-full h-full block" style="width:100%;height:100%;display:block"><g id="ig-vp"><g id="ig-links"></g><g id="ig-nodes"></g></g></svg>
+        <div id="ig-legend" class="igl"></div>
+        ${''/* THE VIEW BAR — the three views, the zoom and Fold all, in the
+               stage's own corner where the old "drag nodes" hint sat. How to
+               move the map is machinery, so it lives on the bar's hover. */}
+        <div class="ig-viewbar" title="${igEsc(i18t('int_drag_nodes'))}">
+          <div class="ig-seg" role="group" aria-label="${igEsc(i18t('int_view_label'))}">${IGB_VIEWS.map((v,i)=>`<button type="button" data-ig-view="${i}" aria-pressed="${igbCam().view===i}">${i18t(IGB_VIEW_WORD[v])}</button>`).join('')}</div>
+          <div class="ig-seg"><button type="button" data-ig-zoom="out" aria-label="${igEsc(i18t('int_zoom_out'))}">${icon('minus','w-3.5 h-3.5')}</button><span id="ig-zv" class="ig-zv">${Math.round(igbCam().zoom*100)}%</span><button type="button" data-ig-zoom="in" aria-label="${igEsc(i18t('int_zoom_in'))}">${icon('plus','w-3.5 h-3.5')}</button></div>
+          <div class="ig-seg"><button type="button" id="ig-foldall">${i18t('int_fold_all')}</button></div>
+        </div>
         <div id="ig-paper" class="ig-paper" hidden></div>
         </div>
       </div>
@@ -2013,35 +2552,40 @@ function renderIntel(){
   // re-fit once layout settles so the fit uses the true viewport size
   requestAnimationFrame(()=>{ if(state.view==='intel'&&IG) igFitView(); });
 
-  // pan & zoom
+  /* ---- TURN, ZOOM, FACE AGAIN (the brain drawing, 28 Sep 2026) ----
+     A drag anywhere on the stage — on a dot or a card too — turns the view
+     that is showing; a press that did not move is a press. The wheel and a
+     pinch zoom, a double-click faces the view again. The move and release
+     pair is armed ONCE, on the window (a render replaces the stage, and a
+     pair bound per render stacked for the life of the sitting — the pan's
+     own lesson); the pair reads the LIVE graph and the live flag. */
   const svg=document.getElementById('ig-svg');
-  svg.addEventListener('wheel',e=>{ e.preventDefault(); if(!IG)return; const s=Math.exp(-e.deltaY*0.0012),nk=Math.max(0.35,Math.min(2.4,IG.view.k*s));
-    const r=svg.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top; IG.view.x=mx-(mx-IG.view.x)*(nk/IG.view.k); IG.view.y=my-(my-IG.view.y)*(nk/IG.view.k); IG.view.k=nk; igApplyView(); },{passive:false});
-  window._igPan=null;
-  svg.addEventListener('pointerdown',e=>{ if(e.target.closest('.ig-node'))return; if(!IG)return;
-    window._igPan={x:e.clientX-IG.view.x,y:e.clientY-IG.view.y}; svg.classList.add('cursor-grabbing'); });
-  /* ---- THE PAN PAIR IS ARMED ONCE, ON THE WINDOW ----
-     Bound per render, and this map is re-rendered on every grouping change and
-     every return to Insights, so the pair stacked for the life of the sitting
-     — each copy holding an svg node that had been replaced. The drag handler
-     forty lines up gets this right already: it removes its own pair on
-     pointerup. This one had no way to.
-
-     `pan` therefore lives on the window flag rather than in the closure, so
-     the one surviving listener works with whatever the CURRENT render set —
-     a closure variable would belong to the first paint for ever. */
-  if(!window._igPanWired){
-    window._igPanWired=true;
+  svg.addEventListener('wheel',e=>{ e.preventDefault(); if(!IG) return; igSetZoom(igbCam().zoom*(e.deltaY<0?1.08:1/1.08)); },{passive:false});
+  svg.addEventListener('pointerdown',e=>{ if(!IG) return;
+    const T=window._igTouch||(window._igTouch=new Map()); T.set(e.pointerId,[e.clientX,e.clientY]);
+    if(T.size===2){ const [p,q]=[...T.values()]; window._igPinch={ d:Math.hypot(p[0]-q[0],p[1]-q[1])||1, z:igbCam().zoom }; window._igTurn=null; return; }
+    window._igTurn={ x:e.clientX, y:e.clientY, moved:0 }; IG.dragMoved=false; });
+  svg.addEventListener('dblclick',e=>{ e.preventDefault(); igFaceAgain(); });
+  svg.addEventListener('dragstart',e=>e.preventDefault());
+  if(!window._igTurnWired){
+    window._igTurnWired=true;
     window.addEventListener('pointermove',e=>{
-      const p=window._igPan; if(!p||!IG) return;
-      IG.view.x=e.clientX-p.x; IG.view.y=e.clientY-p.y; igApplyView();
+      const T=window._igTouch; if(T&&T.has(e.pointerId)) T.set(e.pointerId,[e.clientX,e.clientY]);
+      if(window._igPinch&&T&&T.size>=2){ const [p,q]=[...T.values()]; igSetZoom(window._igPinch.z*Math.hypot(p[0]-q[0],p[1]-q[1])/window._igPinch.d); return; }
+      const d=window._igTurn; if(!d||!IG) return;
+      const dx=e.clientX-d.x, dy=e.clientY-d.y; d.x=e.clientX; d.y=e.clientY; d.moved+=Math.abs(dx)+Math.abs(dy);
+      if(d.moved>4){ if(!IG.turning){ IG.turning=true; IG.dragMoved=true; igHoverHide(); IG.svg.classList.add('is-turning'); } igTurnBy(dx,dy); }
     });
-    window.addEventListener('pointerup',()=>{
-      window._igPan=null;
-      const live=document.getElementById('ig-svg');
-      if(live) live.classList.remove('cursor-grabbing');
-    });
+    const end=e=>{
+      const T=window._igTouch; if(T&&e&&e.pointerId!=null) T.delete(e.pointerId); if(!T||T.size<2) window._igPinch=null;
+      window._igTurn=null;
+      if(IG&&IG.turning){ IG.turning=false; IG.svg.classList.remove('is-turning'); setTimeout(()=>{ if(IG) IG.dragMoved=false; },50); }
+    };
+    window.addEventListener('pointerup',end); window.addEventListener('pointercancel',end);
   }
+  document.querySelectorAll('[data-ig-view]').forEach(b=>b.addEventListener('click',()=>igSetView(b.getAttribute('data-ig-view'))));
+  document.querySelectorAll('[data-ig-zoom]').forEach(b=>b.addEventListener('click',()=>igSetZoom(igbCam().zoom*(b.getAttribute('data-ig-zoom')==='in'?IGB_ZOOM_STEP:1/IGB_ZOOM_STEP))));
+  document.getElementById('ig-foldall')?.addEventListener('click',()=>igFoldAll());
 
   // controls
   /* Leaving Copilot's grouping takes its row away (igPaintGroupSelect, on the rebuild). */
@@ -3688,6 +4232,24 @@ function igExplainCard(id){
     </div>
   </div>`;
 }
+/* A map answer's set as a file: reference, name, counterparty, stage, value
+   (in the contract's own currency, and only where money may be seen). Built
+   here from the record; nothing is sent anywhere. */
+function igExportCsv(ids){
+  const moneyOk=(typeof canViewValues!=='function')||canViewValues();
+  const DQ=String.fromCharCode(34);
+  const q=v=>{ const t=String(v==null?'':v); return (t.indexOf(DQ)>=0||t.indexOf(',')>=0||t.indexOf('\n')>=0)?DQ+t.split(DQ).join(DQ+DQ)+DQ:t; };
+  const head=['Reference','Name','Counterparty','Status'].concat(moneyOk?['Value','Currency']:[]);
+  const rows=ids.map(id=>getContract(id)).filter(Boolean).map(c=>[(window.contractRef?contractRef(c):c.id), c.name, c.counterparty||'', statusLabel(c.status)]
+    .concat(moneyOk?[(typeof isMonetary==='function'&&!isMonetary(c))||!(Number(c.value||0)>0)?'':Number(c.value), (typeof contractCurrency==='function')?contractCurrency(c):'']:[]));
+  return [head].concat(rows).map(r=>r.map(q).join(',')).join('\n');
+}
+function igExportList(ids){
+  try{ const blob=new Blob([igExportCsv(ids)],{ type:'text/csv;charset=utf-8' }), a=document.createElement('a');
+    a.href=URL.createObjectURL(blob); a.download='explorer-'+((typeof todayISO==='function')?todayISO():'list')+'.csv';
+    document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },0);
+  }catch(_){ if(typeof toast==='function') toast(i18t('int_export_failed'),'err'); }
+}
 function igMsgHTML(m,i){
   if(m.role==='user')
     return `<div class="ai-msg flex justify-end"><div class="ai-bub max-w-[85%] rounded-2xl rounded-br-md bg-brand-900 text-white px-3.5 py-2 text-[13px]">${igEsc(m.text)}</div></div>`;
@@ -3705,6 +4267,10 @@ function igMsgHTML(m,i){
     <div class="h-6 w-6 shrink-0 grid place-items-center rounded-lg bg-gold-500/15 text-gold-600 mt-0.5">${icon('sparkle','w-3 h-3')}</div>
     <div class="min-w-0 flex-1 space-y-1.5">
       ${m.text?`<div class="ai-bub rounded-2xl rounded-tl-md border px-3.5 py-2 text-[13px] leading-relaxed ${m.err?'bg-rose-50 border-rose-200 text-rose-800':'bg-canvas border-brand-100 text-brand-900'}">${igSafeHtml(m.text)}${cites}</div>`:''}
+      ${''/* THE ANSWER IS A WORKLIST DOOR (the brain drawing, 28 Sep 2026): the
+             set a map answer drew opens on the Contracts page as that list
+             (regShowOnly, the one named-set door), or leaves as a file. */}
+      ${(Number.isInteger(i)&&Array.isArray(m.listIds)&&m.listIds.length)?`<div class="igd-list" style="display:flex;gap:12px;flex-wrap:wrap;padding-left:2px"><button type="button" class="ui-link" data-ig-list="${i}">${i18t('int_open_list',{ n:m.listIds.length })}</button><button type="button" class="ui-link" data-ig-export="${i}">${i18t('int_export_list')}</button></div>`:''}
       ${body}
     </div>
   </div>`;
@@ -3829,6 +4395,11 @@ function renderIntelDock(){
      under an answer, each a press that puts those words in front of the
      reader. */
   dock.querySelectorAll('[data-ig-analyze]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); igAnalyze(b.getAttribute('data-ig-analyze')); }));
+  dock.querySelectorAll('[data-ig-list]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
+    const m=intel.history[Number(b.getAttribute('data-ig-list'))]; if(!m||!m.listIds||typeof regShowOnly!=='function') return;
+    regShowOnly(m.listIds.filter(id=>getContract(id)), m.listTitle||i18t(IG_TAB_LABEL.map)); }));
+  dock.querySelectorAll('[data-ig-export]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
+    const m=intel.history[Number(b.getAttribute('data-ig-export'))]; if(m&&m.listIds) igExportList(m.listIds); }));
   dock.querySelectorAll('[data-ig-cite]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
     const [t,k]=String(b.getAttribute('data-ig-cite')||'').split(':').map(Number); igLight(t,k); }));
   /* "See the list" — the register's ONE door onto a named set, carrying the
@@ -4348,5 +4919,6 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
 }
 
 Object.assign(window,{IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
-Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,ptFitTable,ptPagerHtml,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
+Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,ptFitTable,ptPagerHtml,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
+Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
