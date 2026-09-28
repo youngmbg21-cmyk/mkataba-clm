@@ -278,29 +278,44 @@ describe('f338 (4) — worst first, and it is worked out where the counting is',
 });
 
 describe('f338 (5) — the unread row leaves the table, and keeps its door', () => {
-  test('5a it is not drawn as a sixth row', () => {
-    const html = INTEL.slice(INTEL.indexOf('function exposureHtml'), INTEL.indexOf('function exposureWire'));
-    assert.ok(!/unreadRow/.test(html), 'it was a row object passed through the row builder');
-    assert.match(html, /<tbody>\$\{d\.rows\.map\(row\)\.join\(''\)\}<\/tbody>/,
-      'the table is exactly the five exposures');
+  /* RE-POINTED 28 Sep 2026 (the PATTERN GRID, owner-picked by name): the
+     grid draws the coverage reading as a row again — but UNDER A RULE, after
+     the five and after "at least one", never ranked among them. What this
+     pins is the owner's point, not the old table: the five are drawn in the
+     reading's own order and the coverage row stands apart from them. */
+  test('5a it is not drawn as a sixth exposure — it stands under the rule', () => {
+    const w = world(BOOK().concat([C('N9', 5, { liabilityCapped: 'uncapped' })]));
+    const html = w.exposureHtml();
+    const at = k => html.indexOf('data-exp-row="' + k + '"');
+    const five = w.exposureData().rows.map(r => r.k);
+    five.forEach((k, i) => { if (i) assert.ok(at(five[i - 1]) < at(k), 'the five in ranked order'); });
+    const sep = html.indexOf('exp-pg-sep');
+    assert.ok(sep > at(five[4]), 'the rule comes after the fifth exposure');
+    assert.ok(at('any') > sep && at('unread') > at('any'), 'coverage is below the rule, last');
   });
   test('5b the door survives, so the wire needs no branch', () => {
     /* AND IT IS DRAWN ONLY WHERE IT WOULD WORK — a press that opens nothing
        is not drawn, which is the rule every other row on this page obeys. */
+    /* RE-POINTED 28 Sep 2026: the grid's door is `data-exp-cell` (it lists
+       them beside the grid, whose own door opens them in Contracts). */
     const w = world(BOOK().concat([C('N9', 5, { liabilityCapped: 'uncapped' })]));
-    assert.ok(w.exposureHtml().includes('data-exp-go="unread"'));
-    assert.ok(!world(BOOK()).exposureHtml().includes('data-exp-go="unread"'),
+    assert.ok(w.exposureHtml().includes('data-exp-cell="unread"'));
+    assert.ok(!world(BOOK()).exposureHtml().includes('data-exp-cell="unread"'),
       'nothing unread, no door');
     assert.match(INTEL_C, /\(k==='unread'\)\s*\?\s*\{ ids:d\.unread\.ids/);
   });
   /* AND THE FOOT NO LONGER NAMES A ROW THAT IS NOT THERE. It read "is in the
      LAST ROW, not in one of the others" — a page contradicting itself twelve
      pixels apart, which is this codebase's most expensive fault class. */
+  /* RE-POINTED 28 Sep 2026: the grid's foot is exp_pg_foot and says the
+     unsettled contract is counted UNDER THE RULE, never in one of the five —
+     where the grid really draws it. The claim is unchanged: the foot names
+     the place the page draws it, in both books. */
   test('5b2 the foot says where that contract really is now', () => {
     const html = world(BOOK()).exposureHtml();
-    assert.ok(!/last row/i.test(html), 'there is no last row any more');
-    assert.match(html, /line under the table/);
-    assert.equal((I18N.match(/\n\s*int_exp_foot:/g) || []).length, 2);
+    assert.ok(!/last row|line under the table/i.test(html), 'neither retired place is named');
+    assert.match(html, /counted under the rule, never in one of the five/);
+    assert.equal((I18N.match(/\n\s*exp_pg_foot:/g) || []).length, 2);
     assert.ok(!/sista raden/.test(I18N), 'and the Swedish moved with it');
   });
 

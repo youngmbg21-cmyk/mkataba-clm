@@ -3818,110 +3818,322 @@ function exposureData(){
   return { rows, live:live.length, money, lead, fxLeft,
     unread:{ n:unread.length, ids:unread.map(c=>c.id), value:um.sum, left:um.left } };
 }
+/* ═══ THE PATTERN GRID (owner-picked by name, 28 Sep 2026) ═══════════════
+   The five exposures set against the company's OWN groupings — category,
+   value stream or owner, one switch — so a reader can see that "every supply
+   contract lets them change the price", which is a playbook change and not a
+   one-contract fix. Pressing a square lists its contracts beside the grid,
+   with the register's own door (regShowOnly) to open them.
+
+   EVERYTHING THE RANKED TABLE PROMISED STILL HOLDS, because the grid is drawn
+   OFF exposureData and never beside it: the same five readings, ranked the
+   same way (value where the reader is shown money, else count), the same one
+   lead, a zero row still stands down, the coverage reading is still counted
+   and still set apart from the five (under a rule, never among them), and
+   the fxMissing rule still leaves an unconvertible contract out of the money
+   and says so.
+
+   A SQUARE'S SHADE IS ITS OWN FIGURE AND NOTHING ELSE — the count, or the
+   value where the reader picks Value. It is NOT a blend of exposures, and the
+   rows are never added into one figure per group: a grid like this is easily
+   mistaken for a heat map of "how risky", and the one thing this page refuses
+   is a number a lawyer cannot derive. The "at least one" row counts each
+   contract ONCE; "two or more" is a plain fact about a contract, never a
+   ranking. The ramp is the ACCENT's, never ruby: ruby on this page is the
+   lead's bar alone.
+
+   COUNTING IS NOT DRAWING. exposureGridData groups and counts, and
+   exposureCellData lists a square; the renderer only prints what they say. */
+const EXP_PG_BY = ['cat','stream','owner'];
+const EXP_PG_STEPS = 4;
+const EXP_PG_LIST = 8;
+/* Per sitting, in memory: which grouping, what a square shows, and which
+   square is picked. `k:null` means "the lead" (or the at-least-one row when
+   nothing leads); `g:null` means every group. */
+const _expPg = { by:'cat', m:'n', k:null, g:null };
+
+/* One contract's money in the home currency — fxHome's answer, and the same
+   `!missing` test _expMoney makes, so a list item and a square can never
+   disagree about whether a contract is in the figure. */
+function _expOne(c){
+  if(typeof fxHome!=='function') return { v:Number((c&&c.value)||0), missing:false };
+  const h=fxHome(c);
+  return (h && h.missing) ? { v:null, missing:true } : { v:(h && h.v) || 0, missing:false };
+}
+/* WHICH GROUP A CONTRACT SITS IN. Each dimension is the product's own reading:
+   category is the record's closed list (metadata.category, labelled by
+   metaOptLabel, "No category yet" where absent — the register's own words);
+   value stream is c.folder named off FOLDERS, and a stream the reader cannot
+   open is NEVER named (visibleFolders); owner is contractOwnerName. An
+   absence is its own group, drawn last, rather than folded into another. */
+function _expGroupOf(c, by, seen){
+  if(by==='owner'){
+    const n=(typeof contractOwnerName==='function') ? contractOwnerName(c) : null;
+    return n ? { key:'o:'+n, label:String(n) } : { key:'', label:i18t('exp_pg_no_owner') };
+  }
+  if(by==='stream'){
+    const F=(typeof FOLDERS==='object' && FOLDERS) ? FOLDERS : {};
+    const id=c && c.folder;
+    if(!id || !F[id]) return { key:'', label:i18t('exp_pg_no_stream') };
+    if(seen && !seen.has(id)) return { key:'~', label:i18t('exp_pg_other_stream') };
+    return { key:'s:'+id, label:String(F[id].name||id) };
+  }
+  const k=(c && c.metadata && c.metadata.category) || '';
+  return k ? { key:'c:'+k, label:String((typeof metaOptLabel==='function') ? metaOptLabel(k) : k) }
+           : { key:'', label:i18t('reg_uncategorised') };
+}
+function exposureGridData(by, d){
+  by = EXP_PG_BY.indexOf(by) < 0 ? 'cat' : by;
+  d = d || exposureData();
+  const live = exposureLive();
+  const byId = new Map(live.map(c=>[c.id, c]));
+  const seen = (typeof visibleFolders==='function')
+    ? new Set((visibleFolders()||[]).map(f=>f && f.id)) : null;
+  const gOf = new Map(), groups = new Map();
+  for(const c of live){
+    const g=_expGroupOf(c, by, seen);
+    gOf.set(c.id, g.key);
+    if(!groups.has(g.key)) groups.set(g.key, { key:g.key, label:g.label, n:0 });
+    groups.get(g.key).n++;
+  }
+  /* Biggest group first, the absences last — the mock-up's order. */
+  const cols = Array.from(groups.values()).sort((a,b)=>
+    ((a.key===''||a.key==='~')?1:0) - ((b.key===''||b.key==='~')?1:0)
+    || b.n - a.n || a.label.localeCompare(b.label));
+  const money = d.money;
+  const pack = ids => {
+    const list = ids.map(id=>byId.get(id)).filter(Boolean);
+    const m = money ? _expMoney(list) : { sum:null, left:0 };
+    return { n:list.length, value:m.sum, left:m.left, ids:list.map(c=>c.id) };
+  };
+  const cellsOf = ids => {
+    const out = {};
+    cols.forEach(g=>{ out[g.key] = pack(ids.filter(id=>gOf.get(id)===g.key)); });
+    return out;
+  };
+  /* How many of the five each contract carries — a plain fact about the
+     contract, read for "two or more" and for the list's "3 of the five". */
+  const times = {};
+  d.rows.forEach(r=>r.ids.forEach(id=>{ times[id]=(times[id]||0)+1; }));
+  const anyIds = live.filter(c=>times[c.id]).map(c=>c.id);
+  const twoIds = live.filter(c=>(times[c.id]||0) > 1).map(c=>c.id);
+  const rows = d.rows.map(r=>({ k:r.k, title:r.title, sub:r.sub, n:r.n, value:r.value,
+    left:r.left, ids:r.ids, lead:d.lead===r.k, cells:cellsOf(r.ids) }));
+  /* THE SHADE: one ramp over the five rows' squares, in EXP_PG_STEPS steps of
+     the largest square — by count, and by value for the Value switch. A square
+     with contracts in it is never shaded as empty. */
+  let maxN = 0, maxV = 0;
+  rows.forEach(r=>cols.forEach(g=>{ const x=r.cells[g.key];
+    if(x.n > maxN) maxN = x.n; if((x.value||0) > maxV) maxV = x.value||0; }));
+  const step = (f, max, n) => !n ? 0
+    : (!(f > 0) || !(max > 0)) ? 1 : Math.min(EXP_PG_STEPS, Math.max(1, Math.ceil(f * EXP_PG_STEPS / max)));
+  rows.forEach(r=>cols.forEach(g=>{ const x=r.cells[g.key];
+    x.stepN = step(x.n, maxN, x.n); x.stepV = money ? step(x.value||0, maxV, x.n) : 0; }));
+  const any = Object.assign({ k:'any', title:i18t('exp_pg_any'), sub:i18t('exp_pg_any_sub') },
+    pack(anyIds), { cells:cellsOf(anyIds) });
+  const unread = Object.assign({ k:'unread', title:i18t('int_exp_unread'), sub:i18t('int_exp_unread_sub') },
+    pack(d.unread.ids), { cells:cellsOf(d.unread.ids) });
+  const two = Object.assign({ k:'two', title:i18t('exp_pg_two') }, pack(twoIds));
+  return { by, money, live:d.live, lead:d.lead, fxLeft:d.fxLeft, cols, rows, any, unread, two, times };
+}
+/* Which square is picked, checked against what the grid now holds: the
+   reader's pick where it still stands, else the lead, else "at least one". */
+function exposureGridPick(G){
+  const all = G.rows.concat([G.any, G.unread]);
+  let k = _expPg.k;
+  const r = all.find(x=>x.k===k);
+  if(!r || !r.n) k = G.lead || 'any';
+  let g = _expPg.g;
+  const row = all.find(x=>x.k===k);
+  if(g != null && (!G.cols.some(c=>c.key===g) || !row || !row.cells[g] || !row.cells[g].n)) g = null;
+  return { k, g };
+}
+/* One square's contracts, largest first where money is shown (else by name):
+   the list beside the grid and the door under it read this and nothing else. */
+function exposureCellData(G, k, g){
+  const row = G.rows.concat([G.any, G.unread, G.two]).find(r=>r.k===k) || null;
+  if(!row) return null;
+  const col = (g == null) ? null : (G.cols.find(c=>c.key===g) || null);
+  const pick = col ? row.cells[col.key] : { n:row.n, value:row.value, left:row.left, ids:row.ids };
+  const byId = new Map(exposureLive().map(c=>[c.id, c]));
+  const items = pick.ids.map(id=>byId.get(id)).filter(Boolean).map(c=>{
+    const h = G.money ? _expOne(c) : { v:null, missing:false };
+    return { id:c.id, who:String(c.counterparty||''), name:String(c.name||''),
+      value:h.v, left:h.missing, read:_expRead(c), carries:G.times[c.id]||0 };
+  });
+  items.sort((a,b)=> (G.money ? ((b.value||0) - (a.value||0)) : 0)
+    || a.who.localeCompare(b.who) || a.name.localeCompare(b.name));
+  const dim = i18t('exp_pg_by_' + G.by);
+  return { k:row.k, title:row.title, g:col ? col.key : null, group:col ? col.label : null, dim,
+    n:pick.n, value:pick.value, left:pick.left, ids:pick.ids, items };
+}
 /* THE RENDERER COMPUTES NOTHING — the page's own rule, so a figure can never
    differ between what is counted and what is drawn. */
 function exposureHtml(){
   const d = exposureData();
   const e = igEsc;
+  const G = exposureGridData(_expPg.by, d);
+  const P = exposureGridPick(G);
+  const S = exposureCellData(G, P.k, P.g);
+  const m = (G.money && _expPg.m==='v') ? 'v' : 'n';
   const money = n => { if(n==null) return ''; try{ return (typeof fmtMoneyShort==='function')?fmtMoneyShort(n):Number(n).toLocaleString(jxLocale()); }catch(_){ return String(n); } };
-  const L='font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);font-weight:var(--w-title);text-align:left;padding:0 0 7px';
+  /* In a square the currency is said once, in the column head. */
+  const bare = n => money(n).replace(/^[^\d-]+/, '');
+  const cur = (typeof jxCurrency==='function') ? jxCurrency() : '';
+  const star = x => (G.money && x && x.left)
+    ? `<span title="${e(i18t('int_exp_left_out',{n:x.left}))}" style="color:var(--st-amber-fg);font-weight:var(--w-body)"> *</span>` : '';
+  const nC = n => i18tn('exp_pg_n', n, { n });
+  /* A drawn arrow, never a typed one — `.ui-link > svg` sizes it. */
+  const chev = (typeof icon==='function') ? icon('chevR','',2) : '';
   /* ════ THE LEADING ROW CARRIES THE WEIGHT (Young, 19 Sep 2026) ════════
-     A 3px bar in the margin and the one figure drawn at the leading rung.
-     ONE TONE, AND IT IS RUBY — this product's own word for "this is against
-     you" (the friction brief's KPI cards say so in their own note). The work
-     order asked for ruby above a threshold and amber below it; THERE IS NO
-     SUCH THRESHOLD IN THIS PRODUCT, and inventing one here is the score
-     coming back through a side door, which this page exists to refuse. Said
-     out loud rather than quietly softened.
+     A 3px bar in the margin. ONE TONE, AND IT IS RUBY — this product's own
+     word for "this is against you". The work order asked for ruby above a
+     threshold and amber below it; THERE IS NO SUCH THRESHOLD IN THIS PRODUCT,
+     and inventing one here is the score coming back through a side door,
+     which this page exists to refuse.
 
      THE BAR IS RESERVED ON EVERY ROW, transparent where it does not draw —
-     the arrival strip's own lesson: a bar that appears only on one row would
-     shift that row's words 14px right of the rest. */
+     a bar that appears only on one row would shift that row's words. */
   const BAR = k => `border-left:3px solid ${d.lead===k?'var(--st-ruby-fg)':'transparent'}`;
+
+  const seg = (attr, now, opts, label) => `<div class="doc-read-seg" role="group" aria-label="${e(label)}">${
+    opts.map(([k,l])=>`<button type="button" ${attr}="${k}" aria-pressed="${now===k?'true':'false'}">${e(l)}</button>`).join('')}</div>`;
+  const byCtl = seg('data-exp-by', G.by, EXP_PG_BY.map(k=>[k, i18t('exp_pg_by_'+k)]), i18t('exp_pg_by_label'));
+  const mCtl = G.money ? seg('data-exp-m', m, [['n', i18t('exp_pg_m_n')], ['v', i18t('exp_pg_m_v')]], i18t('exp_pg_m_label')) : '';
+
+  /* THE HEADLINE FIGURES — each a door, a zero never one. */
+  const fact = (x, words, attrs) => {
+    const body = `<b>${x.n}</b> ${e(words)}${(G.money && x.n) ? ' · ' + e(money(x.value)) : ''}${star(x)}`;
+    return x.n ? `<button type="button" class="ui-link exp-pg-fact" ${attrs}>${body}${chev}</button>`
+               : `<span class="exp-pg-fact is-zero">${body}</span>`;
+  };
+  const facts = `<div class="exp-pg-facts">${
+    fact(G.any, i18tn('exp_pg_fact_any', G.any.n, { live:G.live }), 'data-exp-cell="any" data-exp-g="*"')}${
+    fact(G.two, i18tn('exp_pg_fact_two', G.two.n, {}), 'data-exp-go="two"')}${
+    fact(G.unread, i18t('exp_pg_fact_unread'), 'data-exp-cell="unread" data-exp-g="*"')}</div>`;
+
+  const picked = (k, g) => P.k===k && P.g===g;
+  const cell = (r, col) => {
+    const x = r.cells[col.key];
+    const tip = `${r.title} · ${col.label}: ${nC(x.n)}${(G.money && x.n) ? ' · ' + money(x.value) : ''}`;
+    if(!x.n) return `<span class="exp-pg-cell is-none" title="${e(r.title + ' · ' + col.label + ': ' + i18t('exp_pg_none'))}"></span>`;
+    const tone = r.k==='any' ? 'is-any' : r.k==='unread' ? 'is-cov' : ('exp-r' + (m==='v' ? x.stepV : x.stepN));
+    return `<button type="button" class="exp-pg-cell ${tone}${picked(r.k, col.key) ? ' is-sel' : ''}" data-exp-cell="${e(r.k)}" data-exp-g="${e(col.key)}" aria-pressed="${picked(r.k, col.key)}" title="${e(tip)}">${
+      m==='v' ? e(bare(x.value)) : x.n}</button>`;
+  };
   const row = r => {
     const dead = !r.n;                       /* a zero row stands down */
-    const lead = d.lead === r.k;
-    /* A ZERO ROW IS NOT HIDDEN. "No contract in the book has an uncapped
-       indemnity" is a fact worth reading, and hiding it would make the page
-       look like a list of everything that is wrong. It steps BACK instead:
-       the label shade, and no verb, because See all over nothing opens
-       nothing (which is what it already did). */
     const ink = dead ? 'var(--color-neutral-500)' : 'var(--color-text)';
-    return `
-    <tr style="border-top:1px solid var(--rule-faint)">
-      <td style="padding:13px 0 13px 11px;${BAR(r.k)}">
-        <div style="font-size:var(--t-body);font-weight:var(--w-strong);color:${ink}">${e(r.title)}</div>
-        <div style="font-size:var(--t-meta);color:var(--color-neutral-600);margin-top:2px">${e(r.sub)}</div>
-      </td>
-      <td style="padding:13px var(--s-3);text-align:right;font-size:var(--t-body);white-space:nowrap;color:${ink}">${r.n}</td>
-      <td data-exp-fig="${e(r.k)}" style="padding:13px var(--s-3);text-align:right;font-size:${
-        lead?'var(--t-section)':'var(--t-body)'};font-weight:var(--w-strong);white-space:nowrap;line-height:var(--lh-tight);color:${ink}">${d.money?e(money(r.value)):''}${
-        (d.money&&r.left)?`<span title="${e(i18t('int_exp_left_out',{n:r.left}))}" style="color:var(--st-amber-fg);font-weight:var(--w-body);font-size:var(--t-body)"> *</span>`:''}</td>
-      <td style="padding:13px var(--s-3);font-size:var(--t-body);color:var(--color-neutral-700)">${
-        r.worst ? e(r.worst.who || r.worst.name || r.worst.ref || r.worst.id) : '&mdash;'}</td>
-      <td style="padding:13px 0;text-align:right;white-space:nowrap">${
-        r.n ? `<button data-exp-go="${e(r.k)}" type="button" class="ui-link">${
-          e(i18t('int_exp_see_all'))}</button>` : ''}</td>
-    </tr>`;
+    const tot = `<b>${r.n}</b>${(G.money && r.n) ? ' · ' + e(bare(r.value)) : ''}${star(r)}`;
+    return `<span class="exp-pg-rl" data-exp-row="${e(r.k)}" style="${BAR(r.k)};color:${ink}" title="${e(r.title + ' — ' + r.sub)}">${e(r.title)}<small>${e(r.sub)}</small></span>${
+      G.cols.map(col=>cell(r, col)).join('')}${
+      r.n ? `<button type="button" class="exp-pg-tot${picked(r.k, null) ? ' is-sel' : ''}" data-exp-cell="${e(r.k)}" data-exp-g="*" aria-pressed="${picked(r.k, null)}">${tot}</button>`
+          : `<span class="exp-pg-tot" style="color:${ink}">${tot}</span>`}`;
   };
-  /* ════ THE UNREAD ROW IS NOT AN EXPOSURE ══════════════════════
-     *Not read closely enough to say* is a statement about HaTi's OWN
-     coverage, never about the contracts — the reading above says so in its
-     own words ("it is the last row instead, which is the honest one") and
-     then drew it as a sixth exposure anyway, ranked among them and competing
-     with them for the eye. It is a line beneath the table now, with its one
-     door. The DATA is byte-identical: `d.unread` is unchanged and the door
-     still carries `data-exp-go="unread"`, so the wire needs no branch. */
-  const u = d.unread;
-  const coverage = `
-    <p style="margin:var(--s-3) 0 0;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:var(--t-meta);line-height:1.6">
-      <span style="color:var(--color-text);font-weight:var(--w-strong)">${e(i18t('int_exp_unread'))}</span>
-      <span style="color:var(--color-neutral-600)">${e(i18t('int_exp_unread_sub'))}</span>
-      <span style="color:var(--color-text);font-weight:var(--w-strong);white-space:nowrap">${u.n}${
-        (d.money&&u.value!=null)?' · '+e(money(u.value)):''}${
-        (d.money&&u.left)?`<span title="${e(i18t('int_exp_left_out',{n:u.left}))}" style="color:var(--st-amber-fg);font-weight:var(--w-body)"> *</span>`:''}</span>${
-      u.n ? `<button data-exp-go="unread" type="button" class="ui-link">${
-        e(i18t('int_exp_read_them'))}</button>` : ''}
-    </p>`;
-  /* THE ASTERISK EARNS A WORD. It keeps its hover, and the page says once how
-     many contracts no figure above could carry. */
+  const head = `<span></span>${G.cols.map(col=>`<span class="exp-pg-hd" title="${e(col.label)}">${e(col.label)}<small>${e(i18t('exp_pg_live', { n:col.n }))}</small></span>`).join('')}<span class="exp-pg-hd is-tot">${
+    e(G.money ? i18t('exp_pg_all_money', { cur }) : i18t('exp_pg_all'))}</span>`;
+  const grid = `<div class="exp-pg-scroll" id="exp-pg-scroll"><div class="exp-pg-mx" style="grid-template-columns:minmax(190px,240px) repeat(${G.cols.length},minmax(60px,1fr)) 104px">${
+    head}${G.rows.map(row).join('')}<span class="exp-pg-sep"></span>${row(G.any)}${row(G.unread)}</div></div>`;
+  const legend = `<div class="exp-pg-legend">
+      <span><span class="exp-pg-ramp"><i class="exp-r1"></i><i class="exp-r2"></i><i class="exp-r3"></i><i class="exp-r4"></i></span>${e(i18t(m==='v' ? 'exp_pg_ramp_v' : 'exp_pg_ramp_n'))}</span>
+      <span><i class="exp-pg-key is-cov"></i>${e(i18t('int_exp_unread'))}</span>
+      <span><i class="exp-pg-key is-none"></i>${e(i18t('exp_pg_none'))}</span>
+    </div>`;
+  /* THE ASTERISK EARNS A WORD — once, for the whole page. */
   const fxLine = d.fxLeft ? `
-    <p style="margin:6px 0 0;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.6"><span style="color:var(--st-amber-fg)">*</span> ${
+    <p class="exp-pg-note"><span style="color:var(--st-amber-fg)">*</span> ${
       e(i18tn('int_exp_fx_line', d.fxLeft, { n:d.fxLeft }))}</p>` : '';
+
+  /* THE SQUARE'S CONTRACTS, beside the grid. Every name opens its contract;
+     the door under them opens the whole square in Contracts. */
+  const side = !S || !S.n ? `<aside class="exp-pg-card exp-pg-side"><p class="exp-pg-empty">${e(i18t('exp_pg_nothing'))}</p></aside>` : `
+    <aside class="exp-pg-card exp-pg-side" aria-live="polite">
+      <div class="exp-pg-lbl">${e(S.group == null ? i18t('exp_pg_every') : i18t('exp_pg_sel_in', { dim:S.dim, group:S.group }))}</div>
+      <div class="exp-pg-sel-t">${e(S.title)}</div>
+      <div class="exp-pg-sel-s">${e(nC(S.n))}${G.money ? ' · ' + e(money(S.value)) + star(S) + ' · ' + e(i18t('exp_pg_largest_first')) : ''}</div>
+      <div class="exp-pg-list">${S.items.slice(0, EXP_PG_LIST).map(it=>`
+        <button type="button" class="exp-pg-li" data-exp-one="${e(it.id)}" title="${e(it.who ? it.who + ' — ' + it.name : it.name)}">
+          <span class="exp-pg-who">${e(it.who || it.name || it.id)}</span>
+          <span class="exp-pg-v">${G.money ? (it.left ? '<span style="color:var(--st-amber-fg)">*</span>' : e(money(it.value))) : ''}</span>
+          <span class="exp-pg-sub">${e(it.name)}${it.read ? '' : ' · ' + e(i18t('exp_pg_not_read'))}</span>
+          <span class="exp-pg-sub is-r">${it.carries > 1 ? e(i18t('exp_pg_of_five', { n:it.carries })) : ''}</span>
+        </button>`).join('')}</div>
+      ${S.items.length > EXP_PG_LIST ? `<div class="exp-pg-more">${e(i18t('exp_pg_more', { n:S.items.length - EXP_PG_LIST }))}</div>` : ''}
+      <button type="button" class="ui-link exp-pg-open" data-exp-open="1">${e(i18tn('exp_pg_open', S.n, { n:S.n }))}${chev}</button>
+    </aside>`;
+
   return `
-  <section style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);padding:20px var(--s-6) var(--s-4)">
-    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:var(--s-3)">
-      <h2 style="margin:0;font-family:var(--font-heading);font-size:var(--t-section);font-weight:var(--w-strong)">${e(i18t('int_exp_head'))}</h2>
-      <span style="font-size:var(--t-meta);color:var(--color-neutral-600)">${e(i18t('int_exp_head_sub'))}</span>
+  <section class="exp-pg">
+    <div class="exp-pg-cols">
+      <div class="exp-pg-card exp-pg-main">
+        <div class="exp-pg-head">
+          <h2>${e(i18t('exp_pg_head'))}</h2>
+          <span class="exp-pg-head-sub">${e(i18t('exp_pg_head_sub'))}</span>
+          <span class="exp-pg-ctl">${byCtl}${mCtl}</span>
+        </div>
+        ${facts}
+        ${grid}
+        ${legend}${fxLine}
+        <p class="exp-pg-note">${e(i18t('exp_pg_foot'))}</p>
+      </div>
+      ${side}
     </div>
-    <table style="width:100%;border-collapse:collapse">
-      <thead><tr>
-        <th style="${L};padding-left:14px">${e(i18t('int_exp_col_kind'))}</th>
-        <th style="${L};text-align:right;padding-right:var(--s-3)">${e(i18t('int_exp_col_n'))}</th>
-        <th style="${L};text-align:right;padding-right:var(--s-3)">${d.money?e(i18t('int_exp_col_value')):''}</th>
-        <th style="${L};padding-left:var(--s-3)">${e(i18t('int_exp_col_worst'))}</th>
-        <th style="${L}"></th>
-      </tr></thead>
-      <tbody>${d.rows.map(row).join('')}</tbody>
-    </table>
-    ${coverage}${fxLine}
-    <p style="margin:var(--s-3) 0 0;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.6">${e(i18t('int_exp_foot'))}</p>
   </section>`;
 }
-/* EVERY ROW IS A DOOR, and it is the door the rest of this page already uses:
-   regShowOnly, the named-set filter, which SAYS on the Contracts page what it
-   is narrowed to and carries the way back on the same chip. Nothing here is a
-   number you cannot open. */
+/* Set the grid's switches and paint the body again, keeping the reader's
+   place — the body's own scroll and the grid's sideways scroll. */
+function exposureGridSet(patch){
+  Object.assign(_expPg, patch || {});
+  const host = document.getElementById('ig-exp-body');
+  if(!host) return;
+  const sx = document.getElementById('exp-pg-scroll');
+  const left = sx ? sx.scrollLeft : 0, top = host.scrollTop;
+  host.innerHTML = exposureHtml();
+  host.scrollTop = top;
+  const sx2 = document.getElementById('exp-pg-scroll');
+  if(sx2) sx2.scrollLeft = left;
+}
+/* EVERY FIGURE IS A DOOR, and the door out is the one the rest of this page
+   already uses: regShowOnly, the named-set filter, which SAYS on the Contracts
+   page what it is narrowed to and carries the way back on the same chip. A
+   square's press only picks it; a name opens its contract. Delegated on the
+   body, bound ONCE, and every press re-reads the live figures. */
 function exposureWire(){
-  document.querySelectorAll('[data-exp-go]').forEach(b=>b.addEventListener('click',()=>{
-    const k=b.getAttribute('data-exp-go');
-    const d=exposureData();
-    const r=(k==='unread') ? { ids:d.unread.ids, title:i18t('int_exp_unread') }
-                           : (d.rows.find(x=>x.k===k)||null);
+  const host = document.getElementById('ig-exp-body');
+  if(!host || host.dataset.expWired) return;
+  host.dataset.expWired = '1';
+  host.addEventListener('click', ev=>{
+    const b = ev.target && ev.target.closest && ev.target.closest('[data-exp-by],[data-exp-m],[data-exp-cell],[data-exp-go],[data-exp-open],[data-exp-one]');
+    if(!b || !host.contains(b)) return;
+    if(b.hasAttribute('data-exp-by')) return exposureGridSet({ by:b.getAttribute('data-exp-by'), g:null });
+    if(b.hasAttribute('data-exp-m')) return exposureGridSet({ m:b.getAttribute('data-exp-m') });
+    if(b.hasAttribute('data-exp-cell')){
+      const g = b.getAttribute('data-exp-g');
+      return exposureGridSet({ k:b.getAttribute('data-exp-cell'), g:(g==='*' || g==null) ? null : g });
+    }
+    if(b.hasAttribute('data-exp-one')){
+      const id = b.getAttribute('data-exp-one');
+      if(id && typeof selectContract==='function') selectContract(id);
+      return;
+    }
+    const d = exposureData();
+    const G = exposureGridData(_expPg.by, d);
+    let r = null;
+    if(b.hasAttribute('data-exp-open')){
+      const P = exposureGridPick(G);
+      const S = exposureCellData(G, P.k, P.g);
+      r = S ? { ids:S.ids, title:S.group == null ? S.title : S.title + ' · ' + S.group } : null;
+    } else {
+      const k = b.getAttribute('data-exp-go');
+      r = (k==='unread') ? { ids:d.unread.ids, title:i18t('int_exp_unread') }
+        : (k==='two') ? { ids:G.two.ids, title:G.two.title }
+        : (d.rows.find(x=>x.k===k)||null);
+    }
     if(!r || !r.ids || !r.ids.length) return;
     if(typeof regShowOnly==='function') regShowOnly(r.ids, r.title);
-  }));
+  });
 }
+Object.assign(window,{EXP_PG_BY,EXP_PG_STEPS,EXP_PG_LIST,exposureGridData,exposureGridPick,exposureCellData,exposureGridSet});
 
 function intelObligationsData(){
   const S=(window.state&&Array.isArray(state.contracts))?state.contracts:[];

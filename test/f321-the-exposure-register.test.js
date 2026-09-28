@@ -156,20 +156,25 @@ describe('f321 (4) NO SCORE — the one place the market standard is refused', (
   });
 });
 
+/* RE-POINTED 28 Sep 2026 to the PATTERN GRID (owner-picked by name): a row's
+   press is its total and its squares (`data-exp-cell`), which list the
+   contracts beside the grid; the door out to Contracts is under that list.
+   The claim is the same one — every non-empty row is a door, an empty one is
+   not — asked of the grid's own attribute. */
 describe('f321 (5) every row is a door, and it is the door that already exists', () => {
   test('5a every non-empty row carries a press', () => {
     const w = world(book());
     const html = w.exposureHtml();
     w.exposureData().rows.filter(r=>r.n).forEach(r=>{
-      assert.ok(html.includes('data-exp-go="' + r.k + '"'), r.k + ' has no door');
+      assert.ok(html.includes('data-exp-cell="' + r.k + '"'), r.k + ' has no door');
     });
-    assert.ok(html.includes('data-exp-go="unread"'));
+    assert.ok(html.includes('data-exp-cell="unread"'));
   });
   test('5b an EMPTY row draws no verb — a press that cannot work is not drawn', () => {
     const cs = [C('Z1', {})];
     const w = world(cs);
     assert.equal(w.exposureData().rows.filter(r=>r.n).length, 0);
-    assert.ok(!/data-exp-go="liability"/.test(w.exposureHtml()));
+    assert.ok(!/data-exp-cell="liability"/.test(w.exposureHtml()));
   });
   test('5c the door is regShowOnly, which says what it narrowed to and carries the way back', () => {
     assert.match(EXP, /regShowOnly\(r\.ids, r\.title\)/);

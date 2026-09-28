@@ -271,30 +271,40 @@ const SEED = () => {
     await pause(900);
     await page.screenshot({ path: path.join(OUT, '02-exposure.png'), fullPage: true });
 
+    /* RE-POINTED 28 Sep 2026 — the Exposure tab is the PATTERN GRID (the
+       owner picked it by name). The rows are the grid's row labels
+       (`.exp-pg-rl[data-exp-row]`), a row's door is its squares and its total
+       (`data-exp-cell`), and the coverage reading is a row UNDER THE RULE
+       (`.exp-pg-sep`). Every claim below is the one this section always made
+       — worst first, a zero row stands down and is not hidden, ONE ruby bar,
+       the bar reserved, coverage set apart with its door — asked of the new
+       drawing. 4h asked for "one figure at the leading rung", which the grid
+       does not draw; it asks now that the RUBY is the lead's bar alone and no
+       square is shaded in it (the grid's ramp is the accent's). */
     const exp = await page.evaluate(() => {
-      const rows = [...document.querySelectorAll('[data-exp-fig]')].map(td => {
-        const tr = td.closest('tr');
-        const first = tr.children[0], s = getComputedStyle(first);
-        const fs_ = getComputedStyle(td);
-        const title = first.firstElementChild;
-        return {
-          k: td.getAttribute('data-exp-fig'),
-          n: Number(tr.children[1].textContent.trim()),
-          figSize: parseFloat(fs_.fontSize),
-          figInk: fs_.color,
-          titleInk: getComputedStyle(title).color,
-          bar: s.borderLeftColor, barW: parseFloat(s.borderLeftWidth),
-          verb: !!tr.querySelector('[data-exp-go]'),
-          top: Math.round(tr.getBoundingClientRect().top),
-          left: Math.round(title.getBoundingClientRect().left),
-        };
-      });
-      const cov = document.querySelector('[data-exp-go="unread"]');
-      const tbl = document.querySelector('#ig-exp-body table');
+      const d0 = (typeof exposureData === 'function') ? exposureData() : null;
+      const rows = [...document.querySelectorAll('.exp-pg-rl[data-exp-row]')]
+        .filter(el => !['any', 'unread'].includes(el.getAttribute('data-exp-row')))
+        .map(el => {
+          const k = el.getAttribute('data-exp-row');
+          const s = getComputedStyle(el);
+          const row = d0 && d0.rows.find(r => r.k === k);
+          return {
+            k, n: row ? row.n : null,
+            titleInk: s.color,
+            bar: s.borderLeftColor, barW: parseFloat(s.borderLeftWidth),
+            verb: !!document.querySelector('[data-exp-cell="' + k + '"]'),
+            top: Math.round(el.getBoundingClientRect().top),
+            left: Math.round(el.getBoundingClientRect().left + parseFloat(s.borderLeftWidth) + parseFloat(s.paddingLeft)),
+          };
+        });
       const host = document.getElementById('ig-exp-body');
-      return { rows, host: !!host,
-        inTable: cov ? !!cov.closest('table') : null,
-        covBelow: (cov && tbl) ? cov.getBoundingClientRect().top > tbl.getBoundingClientRect().bottom : null,
+      const sep = document.querySelector('.exp-pg-sep');
+      const cov = document.querySelector('.exp-pg-rl[data-exp-row="unread"]');
+      const cells = [...document.querySelectorAll('button.exp-pg-cell')].map(b => getComputedStyle(b).backgroundColor);
+      return { rows, host: !!host, cells,
+        sepBelowFive: (sep && rows.length) ? sep.getBoundingClientRect().top > Math.max(...rows.map(r => r.top)) : null,
+        covBelow: (cov && sep) ? cov.getBoundingClientRect().top > sep.getBoundingClientRect().bottom : null,
         fxLine: !!host && host.textContent.replace(/\s+/g, ' ').includes('no exchange rate'),
         data: (typeof exposureData === 'function') ? (() => { const d = exposureData();
           return { lead: d.lead, order: d.rows.map(r => r.k),
@@ -307,20 +317,21 @@ const SEED = () => {
     check('4a · the rows are painted worst-first, biggest value at the top',
       exp.rows.length >= 5
       && exp.rows.every((r, i) => i === 0 || exp.rows[i - 1].top < r.top)
-      && exp.data && exp.data.vals.every((v, i) => i === 0 || exp.data.vals[i - 1] >= v),
+      && exp.data && exp.data.vals.every((v, i) => i === 0 || exp.data.vals[i - 1] >= v)
+      && exp.rows.map(r => r.k).join() === exp.data.order.join(),
       exp.data && exp.data.order.map((k, i) => k + ':' + exp.data.vals[i]));
     check('4b · a zero row sinks by construction — every zero is below every non-zero',
       nonZero.length && zero.length
       && Math.max(...nonZero.map(r => r.top)) < Math.min(...zero.map(r => r.top)),
       { nonZero: nonZero.map(r => r.k), zero: zero.map(r => r.k) });
-    check('4c · a zero row stands down — its figures take a lighter ink than a live row’s',
+    check('4c · a zero row stands down — its words take a lighter ink than a live row’s',
       zero.length && nonZero.length
       && lum(zero[0].titleInk) > lum(nonZero[0].titleInk) + 40,
       { zero: zero[0] && zero[0].titleInk, live: nonZero[0] && nonZero[0].titleInk });
     check('4d · and it is NOT hidden — "no contract has this" is a fact worth reading',
       zero.length >= 2, zero.map(r => r.k));
-    check('4e · a zero row draws no verb, because See all over nothing opens nothing',
-      zero.every(r => !r.verb) && nonZero.every(r => r.verb),
+    check('4e · a zero row draws no square to press, because a press over nothing opens nothing',
+      zero.length > 0 && nonZero.length > 0 && zero.every(r => !r.verb) && nonZero.every(r => r.verb),
       exp.rows.map(r => r.k + ':' + (r.verb ? 'verb' : '-')));
     check('4f · EXACTLY ONE row carries a painted bar, and it is the leading one',
       exp.rows.filter(r => lum(r.bar) != null && r.barW >= 3).length === 1
@@ -329,17 +340,16 @@ const SEED = () => {
     check('4g · the bar is RESERVED on every row, so no row’s words shift under it',
       new Set(exp.rows.map(r => r.left)).size === 1 && exp.rows.every(r => r.barW >= 3),
       exp.rows.map(r => r.k + '@' + r.left));
-    check('4h · EXACTLY ONE figure on the page is drawn at the leading rung',
-      exp.rows.filter(r => r.figSize > Math.min(...exp.rows.map(x => x.figSize))).length === 1
-      && exp.rows[0].figSize > exp.rows[1].figSize,
-      exp.rows.map(r => r.k + ':' + r.figSize));
-    check('4i · the unread row has LEFT the table — it is coverage, not an exposure',
-      exp.inTable === false && exp.covBelow === true
+    check('4h · the ruby is the lead’s bar alone — no square is shaded in it',
+      exp.cells.length > 0 && exp.rows[0] && lum(exp.rows[0].bar) != null && !exp.cells.includes(exp.rows[0].bar),
+      { bar: exp.rows[0] && exp.rows[0].bar, cells: [...new Set(exp.cells)] });
+    check('4i · the unread row is NOT an exposure — it stands under the rule, below the five',
+      exp.sepBelowFive === true && exp.covBelow === true
       && !exp.rows.some(r => r.k === 'unread'),
-      { inTable: exp.inTable, below: exp.covBelow });
+      { sep: exp.sepBelowFive, below: exp.covBelow });
     check('4j · and it kept its door, so nothing behind it was lost',
       exp.data && exp.data.unread >= 0
-      && await page.evaluate(() => !!document.querySelector('[data-exp-go="unread"]')));
+      && await page.evaluate(() => !!document.querySelector('[data-exp-cell="unread"]')));
     const fx = await page.evaluate(() => {
       const d = exposureData();
       const h = document.getElementById('ig-exp-body');
