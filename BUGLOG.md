@@ -19784,3 +19784,10 @@ Noticed, not fixed
 ### Noticed, not fixed
 - `deskRowHtml` in the Home view now has no caller (kept, not deleted, like the other retired builders).
 - runway-and-xray-verify 4a expects the Document tab switch to read Contract View · Plain English · X-ray, but the page says "Plain View" and "Risk View". Red on unmodified main (9f0296b8) too; not changed.
+
+## 28 Sep 2026 — Review of the counterparty's pages (design options only, no code changed)
+
+### Noticed, not fixed
+- Their clause panel prints `ng_cp_sel_hint` ("Highlight any sentence while you write to hand that passage to the Copilot") on the counterparty's seat, which has no Copilot; seen in the parity fixture's counterparty render at 1440px.
+- The paper's round chip (js/ladder.js, `ng_rung_your_move` / `ng_rung_their_move`) uses "your move / their move" to mean WHO PROPOSED, while the Negotiations list uses "your move" to mean WHOSE TURN; on their page their own pending ask reads "R1 · YOUR MOVE" while they are waiting on us.
+- Their signing page (`renderSharePortal`, sign branch) never reads the signing route, so it cannot say who has signed or whose turn it is; and it opens `openSignaturePad({ name })` without `intent:true`, so their pad lacks the intent line ours carries.
