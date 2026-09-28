@@ -44,7 +44,7 @@ const BOOKLINES = [
   ['floors by payment terms', { floors: 'payterms', view: 'floors' }],
   ['put the floors by value stream', { floors: 'folder', view: 'floors' }],
   ['stack the levels by risk', { floors: 'risk', view: 'floors' }],
-  ['make the floors the liability cap', null],
+  ['make the floors the liability cap', { floors: 'liability', view: 'floors' }],
   ['floors per counterparty', { floors: 'counterparty', view: 'floors' }],
   ['split the floors by governing law', { floors: 'law', view: 'floors' }],
   ['layers by owner', { floors: 'owner', view: 'floors' }],
@@ -56,6 +56,42 @@ const BOOKLINES = [
   ['våningar efter värdeström', { floors: 'folder', view: 'floors' }],
   ['våningar efter risk', { floors: 'risk', view: 'floors' }],
   ['nivåer efter motpart', { floors: 'counterparty', view: 'floors' }],
+  // ---------- floors without "by" (Young, 29 Sep 2026: "maybe i want copilot
+  // to create floors of value stream or floors of owners") ----------
+  ['floors of value stream', { floors: 'folder', view: 'floors' }],
+  ['floors of owners', { floors: 'owner', view: 'floors' }],
+  ['create floors of owners', { floors: 'owner', view: 'floors' }],
+  ['make floors of the counterparties', { floors: 'counterparty', view: 'floors' }],
+  ['show the streams as floors', { floors: 'folder', view: 'floors' }],
+  ['put the owners on the floors', { floors: 'owner', view: 'floors' }],
+  ['change the floors to value streams', { floors: 'folder', view: 'floors' }],
+  ['switch the floors to payment terms', { floors: 'payterms', view: 'floors' }],
+  ['make the floors governing law', { floors: 'law', view: 'floors' }],
+  ['stream floors', { floors: 'folder', view: 'floors' }],
+  ['one floor per customer', { floors: 'counterparty', view: 'floors' }],
+  ['a floor for each type', { floors: 'kind', view: 'floors' }],
+  ['floors should be risk', { floors: 'risk', view: 'floors' }],
+  ['stack them by value', { floors: 'valueBand', view: 'floors' }],
+  ['stacked by expiry window', { floors: 'expiry', view: 'floors' }],
+  ['rows by stage', { floors: 'status', view: 'floors' }],
+  ['våningar av värdeström', { floors: 'folder', view: 'floors' }],
+  ['gör våningarna till ägare', { floors: 'owner', view: 'floors' }],
+  ['visa värdeström som våningar', { floors: 'folder', view: 'floors' }],
+  ['en våning per motpart', { floors: 'counterparty', view: 'floors' }],
+  // ---------- other shapes without "by" ----------
+  ['columns of owners', { columns: 'owner', view: 'grid' }],
+  ['make the colours the risk', { colour: 'risk' }],
+  ['colour-code by payment terms', { colour: 'payterms' }],
+  ['colour-code the stages', { colour: 'status' }],
+  ['label each dot with its owner', { label: 'owner' }],
+  ['lanes by stage', { group: 'status' }],
+  ['timeline with lanes by owner', { view: 'timeline', group: 'owner' }],
+  ['group of streams', { group: 'folder' }],
+  ['färglägg risk', { colour: 'risk' }],
+  // ---------- back to where the map starts ----------
+  ['reset', { everything: true, landing: true }],
+  ['start over', { everything: true, landing: true }],
+  ['back to the start', { everything: true, landing: true }],
   // ---------- columns and the grid ----------
   ['columns by counterparty', { columns: 'counterparty', view: 'grid' }],
   ['streams against stages', { columns: 'folder', floors: 'status', view: 'grid' }],
@@ -244,10 +280,10 @@ const BOOKLINES = [
   ['tillbaka', { undo: true }],
   ['show everything', { everything: true }],
   ['show all contracts', { everything: true }],
-  ['reset the map', { everything: true }],
-  ['start again', { everything: true }],
+  ['reset the map', { everything: true, landing: true }],
+  ['start again', { everything: true, landing: true }],
   ['visa allt', { everything: true }],
-  ['återställ', { everything: true }],
+  ['återställ', { everything: true, landing: true }],
   ['save this view', { save: '' }],
   ['save this view as Renewals', { save: 'renewals' }],
   ['spara vyn som Förnyelser', { save: 'förnyelser' }],
@@ -273,6 +309,9 @@ const BOOKLINES = [
   ['Sammanfatta mitt största avtal', null],
   ['group by city', { unknown: 'group' }],
   ['cluster by sector', { unknown: 'group' }],
+  ['cluster by moon phase', { unknown: 'group' }],
+  ['floors by moon phase', { unknown: 'floors' }],
+  ['put owners on the floors', { floors: 'owner', view: 'floors' }],
 ];
 
 function world() {
@@ -292,7 +331,7 @@ function compact(p) {
   if (!p) return null;
   const o = {};
   p.acts.forEach(a => {
-    if (a.undo) o.undo = true; if (a.everything) o.everything = true;
+    if (a.undo) o.undo = true; if (a.everything) o.everything = true; if (a.landing) o.landing = true;
     if (a.save != null) o.save = String(a.save).toLowerCase(); if (a.open) o.open = String(a.open).toLowerCase();
     if (a.ask) o.ask = a.ask; if (a.unknownFact) o.unknown = a.role || 'group';
     if (a.role && !a.unknownFact) o[a.role] = a.fact; if (a.view != null) o.view = win.IGB_VIEWS[a.view];

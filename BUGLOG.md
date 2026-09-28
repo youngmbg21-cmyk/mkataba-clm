@@ -19860,3 +19860,9 @@ Noticed, not fixed
 ## 28 Sep 2026 — red underline while typing
 
 - BUILT: misspelt words get a red wavy underline while typing, in the clause editor (both seats) and the narrow window's clause panel — the same words the Save would list; the browser's own underline is off on those boxes. f428, their-edit-page-verify 3a3/6f/6g/7.
+
+## 28 Sep 2026 — Explorer turning and floors of anything
+
+- FIXED: turning the Explorer's Floors, Grid and Timeline looked stuck — a drag that started on a contract left the rest of the map dimmed, and the Grid and Timeline stood upright so a turn only narrowed them. They now lie flat like the floors, turn and tip, and a turn lets go. explorer-recipe-verify 8b–8d.
+- BUILT: floors of anything by prompt ("floors of owners", "floors of value stream", "rows by stream", "stack by owner"); "reset" goes back to the stages on the floors. f427, explorer-recipe-verify 8a/8e/8f.
+- Noticed, not fixed: two test files share the number f426 and two share f427 (the Explorer ones and the spell-check ones) — both run; the numbers just collide.

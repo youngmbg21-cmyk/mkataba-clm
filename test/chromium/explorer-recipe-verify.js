@@ -10,7 +10,9 @@
    Every claim here is a real sentence typed into the panel and a real press,
    measured as what the map now holds and draws. Waits ask for the state,
    bounded. Red at the parent (b2586354): the question reaches no floors,
-   there is no grid, timeline, undo, ask-back or saved view.
+   there is no grid, timeline, undo, ask-back or saved view. Section 8 red
+   at 49ae5241: "reset" keeps the floors, a turn leaves the map dimmed,
+   "floors of owners" and "floors of value stream" are not understood.
 
    Screenshots go to test/chromium/shots/explorer-recipe/ (or HATI_SHOT_DIR).
    Run: node test/chromium/explorer-recipe-verify.js */
@@ -124,6 +126,42 @@ const check = (name, pass, detail) => {
     const loc = await page.evaluate(() => window._igLocal);
     const map1 = await page.evaluate(() => JSON.stringify({ f: intel.floorsBy, g: intel.groupBy, l: intel.lenses.length }));
     check('7a a question about what a contract says is passed on untouched by the reader, and the map does not move', loc === null && map0 === map1, JSON.stringify({ loc, map0, map1 }));
+    /* ================= 8. TURNING THE FLAT VIEWS, AND FLOORS OF ANYTHING ====
+       Young, 28 Sep 2026: "i seem to have difficulty rotating the screen when it
+       comes to the floor, grid and timeline pages. They seem to get stuck" and
+       "Maybe i want copilot to create floors of value stream or floors of
+       owners". A drag that starts on a contract used to leave the map dimmed
+       round that contract, and the grid and timeline lay flat to the glass. */
+    await ask('reset');
+    const land = await page.evaluate(() => ({ f: intel.floorsBy, g: intel.groupBy, c: intel.colourBy }));
+    check('8a "reset" goes back to where the map starts: the stages on the floors, grouped by value stream', land.f == null && land.g === 'folder' && land.c == null, JSON.stringify(land));
+    const turn = async (v, keys) => {
+      await page.click(`[data-ig-view="${v}"]`);
+      await until(k => intel.cam.w[k] > 0.97, v);
+      /* start the drag ON a contract, as a hand does */
+      const at = await page.evaluate(() => { const g = IG.nodes.filter(n => n.kind === 'contract').map(n => n.g.getBoundingClientRect()).find(r => r.width > 4 && r.left > 400 && r.top > 200 && r.top < 700); return g ? { x: g.left + g.width / 2, y: g.top + g.height / 2 } : null; })
+        || await page.evaluate(() => { const r = document.getElementById('ig-gwrap').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+      const c0 = await page.evaluate(ks => ks.map(k => intel.cam[k]), keys);
+      await page.mouse.move(at.x, at.y); await page.waitForTimeout(250);
+      await page.mouse.down(); await page.mouse.move(at.x + 140, at.y + 70, { steps: 12 }); await page.mouse.up();
+      await page.waitForTimeout(300);
+      return page.evaluate(({ ks, c0 }) => ({ moved: ks.map((k, i) => Math.abs(intel.cam[k] - c0[i]) > 0.05), hover: IG.hover ? IG.hover.id : null, turning: IG.svg.classList.contains('is-turning'), dim: IG.nodes.filter(n => n.g.classList.contains('dim')).length }), { ks: keys, c0 });
+    };
+    const tf = await turn(2, ['rotL', 'tiltL']);
+    check('8b the Floors view turns and tips under a drag that starts on a contract, and lets go of that contract: nothing is left dimmed', tf.moved.every(Boolean) && !tf.hover && !tf.turning && tf.dim === 0, JSON.stringify(tf));
+    const tg = await turn(3, ['rotG', 'tiltG']);
+    check('8c the Grid turns and tips like the floors do, and lets go of the contract the drag started on', tg.moved.every(Boolean) && !tg.hover && !tg.turning && tg.dim === 0, JSON.stringify(tg));
+    await page.screenshot({ path: path.join(OUT, '8-grid-turned.png') });
+    const tt = await turn(4, ['rotT', 'tiltT']);
+    check('8d the Timeline turns and tips like the floors do, and lets go of the contract the drag started on', tt.moved.every(Boolean) && !tt.hover && !tt.turning && tt.dim === 0, JSON.stringify(tt));
+    await page.screenshot({ path: path.join(OUT, '8-timeline-turned.png') });
+    await ask('floors of owners');
+    const fo = await until(() => intel.cam.w[2] > 0.95 && intel.floorsBy === 'owner' ? { f: intel.floorsBy, floors: IG.floors.map(f => f.label) } : null);
+    check('8e "floors of owners" makes the floors the owners, on the Floors view', !!fo && fo.floors.length >= 1, JSON.stringify(fo));
+    await ask('floors of value stream');
+    const fv = await until(() => intel.floorsBy === 'folder' ? { floors: IG.floors.length, cols: IG.cols.length } : null);
+    check('8f "floors of value stream" puts one stream on each floor, and the floors are not also split into the same streams', !!fv && fv.floors >= 5 && fv.cols === 1, JSON.stringify(fv));
+    await page.screenshot({ path: path.join(OUT, '8-floors-of-streams.png') });
     check('7b no page errors', errors.length === 0, JSON.stringify(errors.slice(0, 3)));
   } catch (e) {
     check('the run finished', false, e.message);

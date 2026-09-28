@@ -1254,14 +1254,14 @@ function igSortWord(k){ return i18t('int_sort_'+k); }
    sentence names nothing the reader knows (it goes on to Copilot). The same
    reader serves English and Swedish; f427 is its phrase book. */
 const IG_ROLE_RE=[
-  ['floors',/\b(?:floors?|levels?|layers?|tiers?|storeys?|stories|våningar(?:na)?|våning|nivåer(?:na)?|plan(?:en)?)\b/],
+  ['floors',/\b(?:floors?|levels?|layers?|tiers?|storeys?|stories|rows?|stack(?:s|ed)?|våningar(?:na)?|våning|nivåer(?:na)?|plan(?:en)?|rader(?:na)?|rad)\b/],
   ['columns',/\b(?:columns?|kolumner(?:na)?|kolumn)\b/],
   ['colour',/\b(?:colou?r(?:ed|s|ing)?|shade[sd]?|tint(?:ed)?|färg(?:a|lägg|er|lagda)?)\b/],
   ['size',/\b(?:size[sd]?|sizing|scale[sd]?|storlek)\b/],
   ['label',/\b(?:label(?:led|ed|s)?|labels|tag(?:ged)?|etiketter(?:na)?|etikett(?:era)?|märk(?:t|a)?)\b/],
-  ['group',/\b(?:group(?:ed|s)?|cluster(?:ed|s)?|bundle[sd]?|split|divide[sd]?|separate[sd]?|segment(?:ed)?|break (?:it |them )?down|arrange[sd]?|organi[sz]e[sd]?|sort (?:them )?into|gruppera(?:d|t)?|dela(?: upp)?|klustra|samla|segmentera|ordna)\b/]
+  ['group',/\b(?:group(?:ed|s)?|lanes?|swim ?lanes?|banor|cluster(?:ed|s)?|bundle[sd]?|split|divide[sd]?|separate[sd]?|segment(?:ed)?|break (?:it |them )?down|arrange[sd]?|organi[sz]e[sd]?|sort (?:them )?into|gruppera(?:d|t)?|dela(?: upp)?|klustra|samla|segmentera|ordna)\b/]
 ];
-const IG_BY_RE=/\b(?:by|per|according to|based on|on|into|with|efter|per|enligt|utifrån|på|med)\s+(.+)$/;
+const IG_BY_RE=/\b(?:by|per|of|according to|based on|on|into|with|efter|per|enligt|utifrån|på|med|av)\s+(.+)$/;
 const IG_VIEW_WORDS=[[3,/\b(?:grid|matrix|table of|cross[- ]tab|rutnät|matris|tabell)\b/],[4,/\b(?:time ?line|over time|chronolog\w*|tidslinje|över tid)\b/],[0,/\b(?:brain view|as a brain|brain|hjärnvy|hjärna)\b/],[1,/\b(?:wiring|network view|kopplingar|nätverk)\b/],[2,/\b(?:floors view|floor view|våningsvy)\b/]];
 function igRecipeParse(qRaw){
   const q0=String(qRaw||'').trim(); if(!q0) return null;
@@ -1270,7 +1270,8 @@ function igRecipeParse(qRaw){
   /* a question about what a contract says is not for the map */
   if(/^(?:please\s+)?(?:summari[sz]e|explain|describe|quote|tell me about|draft|write|translate|sammanfatta|förklara|beskriv|citera|skriv|översätt)\b/.test(q)) return null;
   if(/^(?:undo|go back|back|previous view|revert|undo that|take that back|ångra|tillbaka|gå tillbaka|backa)$/.test(q)) return { acts:[{ undo:true }], rest:'' };
-  if(IG_EVERYTHING_RE.test(q)||/^(?:visa allt|visa alla(?: avtal)?|återställ(?: kartan)?|rensa(?: allt| kartan)?|börja om)$/.test(q)) return { acts:[{ everything:true }], rest:'' };
+  if(/^(?:please\s+)?(?:reset(?: the map| everything| it)?|start (?:again|over)|back to (?:the )?start|återställ(?: kartan| allt)?|börja om)$/.test(q)) return { acts:[{ everything:true }, { landing:true }], rest:'' };
+  if(IG_EVERYTHING_RE.test(q)||/^(?:visa allt|visa alla(?: avtal)?|rensa(?: allt| kartan)?)$/.test(q)) return { acts:[{ everything:true }], rest:'' };
   let m=q.match(/^(?:save|keep|remember)\s+(?:this|the current|the)?\s*(?:view|map|layout)(?:\s+(?:as|called|named)\s+(.+))?$/)||q.match(/^spara\s+(?:den här\s+|denna\s+)?(?:vyn|vy|kartan)(?:\s+som\s+(.+))?$/);
   if(m){ const raw=m[1]?String(q0).slice(-m[1].length).trim():''; return { acts:[{ save:(raw&&_igNorm(raw)===m[1].trim()?raw:(m[1]||'')).trim() }], rest:'' }; }
   m=q.match(/^(?:open|show|load|go to|switch to)\s+(?:the\s+|my\s+)?(?:saved\s+)?view\s+(.+)$/)||q.match(/^(?:öppna|visa)\s+(?:den sparade\s+)?vyn\s+(.+)$/);
@@ -1322,9 +1323,20 @@ function igRecipeParse(qRaw){
   let unknown=null;
   clauses.forEach(cl=>{
     const role=(IG_ROLE_RE.find(([,re])=>re.test(cl))||[])[0];
-    const by=cl.match(IG_BY_RE);
+    /* the "by" whose words name a fact: "lanes with colour by owner" reads past "with" */
+    const by0=cl.match(IG_BY_RE); let by=by0;
+    for(let m=by0; m; m=m[1].match(IG_BY_RE)){ if(igFactFind(m[1])){ by=m; break; } }
     if(role==='size'){ const k=igSizeKeyOf(by?by[1]:cl); if(k){ acts.push({ role:'size', fact:k }); return; } if(by){ unknown=unknown||{ text:by[1], role }; return; } }
-    if(role&&by){ const f=role==='colour'?igColourKeyOf(by[1]):(igFactFind(by[1])||{}).key; if(f){ acts.push({ role, fact:f }); return; } unknown=unknown||{ text:by[1], role }; return; }
+    if(role&&by){ const f=role==='colour'?igColourKeyOf(by[1]):(igFactFind(by[1])||{}).key; if(f){ acts.push({ role, fact:f }); return; } }
+    /* A ROLE AND A FACT ANYWHERE IN THE WORDS (Young, 28 Sep 2026: "maybe i
+       want copilot to create floors of value stream or floors of owners"):
+       "show streams as floors", "make the floors value streams", "put owners
+       on the floors" name a role and a fact without "by". Words AFTER a "by"
+       that named nothing are never scanned ("cluster by moon phase" is not
+       the stage just because it says "phase") — only the words before it. */
+    if(role){ const rre=(IG_ROLE_RE.find(([k])=>k===role)||[])[1], head=by0?cl.slice(0,by0.index):cl; const f=igFactAnywhere(rre?head.replace(new RegExp(rre.source,'g'),' '):head);
+      if(f){ acts.push({ role, fact:role==='colour'&&f.key==='status'?'status':f.key }); return; }
+      if(by){ unknown=unknown||{ text:by[1], role }; return; } }
     if(!role&&by&&!/^(?:the\s+)?(?:next|end|this)\b/.test(by[1])&&!IG_VIEW_WORDS.some(([,re])=>re.test(cl))&&!acts.some(a=>a.top||a.sort)&&!/\b(?:top|topp|biggest|largest|slowest|sort|order|rank|sortera)\b/.test(cl)){
       /* a bare "by <fact>" ("contracts by stream", "per counterparty") groups */
       const f=igFactFind(by[1]); if(f&&!/\b(?:only|just|bara|endast|hide|göm|dölj|which|vilka)\b/.test(cl)){ acts.push({ role:'group', fact:f.key }); return; }
@@ -1388,6 +1400,7 @@ function igRecipeRun(parsed){
   for(const a of acts){
     if(a.undo){ said.push(igRecipeUndo()?i18t('int_did_undo'):i18t('int_undo_none')); changed=true; continue; }
     if(a.everything){ intel.lenses=[]; intel.groups=null; intel.walk=null; const t=(state.contracts||[]).length; said.push(i18t('int_did_showing',{ n:t, t })+'.'); changed=true; continue; }
+    if(a.landing){ ['floorsBy','columnsBy','colourBy','sizeBy','labelBy','timeBy','sortBy','lastRole'].forEach(k=>{ intel[k]=null; }); intel.groupBy='folder'; intel.groups=null; said.push(i18t('int_did_landing')); changed=true; continue; }
     if(a.save!=null){ const n=igViewSave(a.save); said.push(n?i18t('int_did_saved',{ name:n }):i18t('int_save_failed')); continue; }
     if(a.open){ const v=igViewFind(a.open); if(v){ igRecipeSet(v.recipe); said.push(i18t('int_did_opened',{ name:v.name })); changed=true; }
       else { const names=igViewsRead().map(x=>x.name); said.push(names.length?i18t('int_view_unknown',{ name:a.open }):i18t('int_views_none')); if(names.length) choices=names.slice(-3).map(n=>({ label:n, acts:[{ open:n }] })); } continue; }
@@ -2013,7 +2026,7 @@ function buildGraphModel(){
 const SVG_NS='http://www.w3.org/2000/svg';
 const IGB_VIEWS=['brain','wiring','floors','grid','timeline'];
 const IGB_VIEW_WORD={brain:'int_view_brain',wiring:'int_view_wiring',floors:'int_view_floors',grid:'int_view_grid',timeline:'int_view_timeline'};
-const IGB_TILT=[.2,.02,.36,0,0], IGB_SCALE=[1.3,1.05,.74,1,1], IGB_CY=[.52,.5,.47,.53,.52];
+const IGB_TILT=[.2,.02,.36,.95,.9], IGB_SCALE=[1.3,1.05,.74,1,1], IGB_CY=[.52,.5,.47,.5,.5];
 const IGB_NV=5;   // the views; every weight list carries one per view
 const igbDot=(w,a)=>a.reduce((s,v,i)=>s+v*w[i],0);
 const IGB_RX=.78, IGB_RY=.64, IGB_RZ=1.08, IGB_GOLD=2.39996;
@@ -2176,38 +2189,43 @@ function igbAxes(G, hubs, order){
     const last=cols.length-1; kids.forEach(n=>{ const i=cols.findIndex(c=>c.label===cb.of(n)); n._col=i<0?last:i; }); }
   else { const cs=G.linear?hubs.slice().sort((a,b)=>(a.order??99)-(b.order??99)):order;
     cols=cs.map(h=>({ label:h.label, col:h.col, hub:h })); cs.forEach((h,i)=>h.kids.forEach(n=>{ n._col=i; })); }
+  /* FLOORS AND COLUMNS BY ONE FACT say the same thing twice (floors of value
+     streams over value-stream columns fill one diagonal), so the floors keep
+     the fact and the columns step aside: every floor spreads its contracts
+     across the whole width. */
+  if(!intel.groups&&fKey===(cKey||intel.groupBy)){ cols=[{ label:'', col:IGB_OTHER, x:0 }]; kids.forEach(n=>{ n._col=0; }); }
   const N=cols.length, span=Math.min(3.2,.4*Math.max(1,N-1)), gap=N>1?span/(N-1):.4, cw=Math.min(.08,gap/4);
   cols.forEach((c,k)=>{ c.x=N>1?-span/2+gap*k:0; });
-  G.cols=cols; G.colKey=cKey||intel.groupBy; G.floorKey=fKey;
-  const cells={};
+  G.cols=cols; G.colKey=N>1?(cKey||intel.groupBy):null; G.floorKey=fKey;
+  const cells={}, wide=N===1;
   kids.forEach(n=>{ const f=floorOf(n), key=n._col+'|'+f, c=(cells[key]=(cells[key]||0)+1)-1, x=cols[n._col]?cols[n._col].x:0;
-    n.Lt=[x+((c%3)-1)*cw, G.floors[f].y, -.4+Math.floor(c/3)*.1]; n._floor=f; });
+    n.Lt=wide?[-1.5+(c%16)*.2, G.floors[f].y, -.4+Math.floor(c/16)*.14]:[x+((c%3)-1)*cw, G.floors[f].y, -.4+Math.floor(c/3)*.1]; n._floor=f; });
   /* the grid: the same two axes, flat, one cell per pair */
-  const gx0=-1.22, gx1=1.6, gy0=.78, gy1=-.86, gcw=(gx1-gx0)/Math.max(1,N), gch=(gy0-gy1)/nf;
-  G.grid={ x0:gx0, y0:gy0, cw:gcw, ch:gch, cells:{} };
+  const gx0=-1.22, gx1=1.6, gz0=-.82, gz1=.86, gcw=(gx1-gx0)/Math.max(1,N), gch=(gz1-gz0)/nf;
+  G.grid={ x0:gx0, z0:gz0, cw:gcw, ch:gch, cells:{} };
   const byCell={}; kids.forEach(n=>{ const key=n._col+'|'+n._floor; (byCell[key]||(byCell[key]=[])).push(n); });
   Object.keys(byCell).forEach(key=>{ const [ci,fi]=key.split('|').map(Number), list=byCell[key];
     const per=Math.max(1,Math.ceil(Math.sqrt(list.length*gcw/gch))), rows=Math.ceil(list.length/per);
-    const x0=gx0+ci*gcw, y0=gy0-fi*gch, px=gcw*.8/per, py=Math.min(gch*.62/Math.max(1,rows), px);
-    list.forEach((n,j)=>{ n.Gt=[x0+gcw*.1+px*((j%per)+.5), y0-gch*.3-py*(Math.floor(j/per)+.5), 0]; });
+    const x0=gx0+ci*gcw, z0=gz0+fi*gch, px=gcw*.8/per, pz=Math.min(gch*.62/Math.max(1,rows), px);
+    list.forEach((n,j)=>{ n.Gt=[x0+gcw*.1+px*((j%per)+.5), 0, z0+gch*.3+pz*(Math.floor(j/per)+.5)]; });
     let v=0; list.forEach(n=>{ const h=igHomeValue(n.c); if(h!=null) v+=h; });
     G.grid.cells[key]={ n:list.length, v, ci, fi }; });
   /* the timeline: dates along, one lane per group */
   const tKey=IG_TIME_KEYS.includes(intel.timeBy)?intel.timeBy:'decision';
-  const lanes=order, nl=Math.max(1,lanes.length), ly=i=>nl>1?.78-i*(1.56/(nl-1)):0;
+  const lanes=order, nl=Math.max(1,lanes.length), ly=i=>nl>1?-.78+i*(1.56/(nl-1)):0;
   const dated=kids.map(n=>{ const d=igbTimeOf(n.c,tKey); const t=d?Date.parse(d):NaN; return [n,isNaN(t)?null:t]; });
   const ts=dated.map(x=>x[1]).filter(x=>x!=null), t0=ts.length?Math.min(...ts):Date.now(), t1=ts.length?Math.max(...ts):Date.now()+864e5;
   const tx=t=>-1.1+2.45*((t-t0)/Math.max(864e5,t1-t0));
   let undated=0; const laneIx=new Map(lanes.map((h,i)=>[h,i]));
   dated.forEach(([n,t],j)=>{ const li=n.hub?laneIx.get(n.hub):0, jit=((igbHash(n.id)%100)/100-.5)*.12*(1.56/nl);
-    if(t==null){ undated++; n.Tt=[1.55+((j%3)-1)*.035, ly(li)+jit, 0]; } else n.Tt=[tx(t), ly(li)+jit, 0]; });
+    if(t==null){ undated++; n.Tt=[1.55+((j%3)-1)*.035, 0, ly(li)+jit]; } else n.Tt=[tx(t), 0, ly(li)+jit]; });
   const span2=t1-t0, ticks=[];
   if(ts.length){ const d0=new Date(t0), step=span2>3*365*864e5?12:span2>400*864e5?3:1;
     const d=new Date(d0.getFullYear(), d0.getMonth()-(d0.getMonth()%step), 1);
     for(let i=0;i<60&&d.getTime()<=t1;i++){ if(d.getTime()>=t0) ticks.push({ x:tx(d.getTime()), label:step===12?String(d.getFullYear()):d.toLocaleDateString((typeof langLocale==='function')?langLocale():undefined,{ month:'short', year:'numeric' }) }); d.setMonth(d.getMonth()+step); } }
   let nowX=null; const now=Date.now(); if(ts.length&&now>=t0&&now<=t1) nowX=tx(now);
   G.tl={ key:tKey, ticks, lanes:lanes.map((h,i)=>({ label:h.label, y:ly(i), col:h.col })), undated, nowX, empty:!ts.length };
-  hubs.forEach(h=>{ const i=laneIx.get(h)||0, cc=cols.find(c=>c.hub===h); h.hLt=[cc?cc.x:0, 1.08, 0]; h.hGt=[cols.findIndex(c=>c.hub===h)>=0?cols.find(c=>c.hub===h).x:0, 1.08, 0]; h.hTt=[-1.3, ly(i), 0]; });
+  hubs.forEach(h=>{ const i=laneIx.get(h)||0, cc=cols.find(c=>c.hub===h); h.hLt=[cc?cc.x:0, 1.08, 0]; h.hGt=[cols.findIndex(c=>c.hub===h)>=0?cols.find(c=>c.hub===h).x:0, 1.08, 0]; h.hTt=[-1.3, 0, ly(i)]; });
 }
 /* COLOUR BY: status at rest; any grouping the map knows on Copilot's word.
    Coloured by the grouping it is grouped by, the dots wear their card's colour. */
@@ -2316,15 +2334,17 @@ function igbDraw(G,t){
       ctx.fillStyle='rgba(56,205,184,'+(.035*w[2])+')'; ctx.fill(); ctx.strokeStyle='rgba(56,205,184,'+(.16*w[2])+')'; ctx.lineWidth=1; ctx.stroke();
       const lab=igbTrim(String(f.label).toUpperCase(),22); ctx.font='600 10px Geist, system-ui, sans-serif';
       txt(lab, Math.max(6,d[0]-8-ctx.measureText(lab).width), d[1]+4, f.col, .9*w[2]); });
-    (G.cols||[]).forEach((c,k)=>{ const q=pj([c.x,(G.floors&&G.floors.length?G.floors[G.floors.length-1].y:-.78),.62]);
+    (G.cols||[]).forEach((c,k)=>{ if(!c.label) return; const q=pj([c.x,(G.floors&&G.floors.length?G.floors[G.floors.length-1].y:-.78),.62]);
       txt(igbTrim(String(c.label).toUpperCase(),14), q[0], q[1]+14+(k%2)*11, c.col, .85*w[2], 9, 600, 'center'); });
   }
   /* THE GRID: one cell per column × floor, each saying how many and how much. */
   if(w[3]>.05&&G.grid){ const g=G.grid, a3=w[3], money=(typeof canViewValues!=='function')||canViewValues();
     const fmt=v=>(typeof fmtMoneyShort==='function')?fmtMoneyShort(v):String(Math.round(v));
-    (G.cols||[]).forEach((c,ci)=>{ const q=pj([g.x0+(ci+.5)*g.cw, g.y0+.08, 0]); txt(igbTrim(String(c.label).toUpperCase(),Math.max(6,Math.floor(g.cw*40))), q[0], q[1], c.col, .9*a3, 10, 600, 'center'); });
-    (G.floors||[]).forEach((f,fi)=>{ const q=pj([g.x0-.04, g.y0-(fi+.5)*g.ch, 0]); txt(igbTrim(String(f.label),18), q[0], q[1]+3, f.col, .9*a3, 10, 600, 'right'); });
-    (G.cols||[]).forEach((c,ci)=>(G.floors||[]).forEach((f,fi)=>{ const x0=g.x0+ci*g.cw, y0=g.y0-fi*g.ch, P=[pj([x0+.01,y0-.01,0]),pj([x0+g.cw-.01,y0-.01,0]),pj([x0+g.cw-.01,y0-g.ch+.01,0]),pj([x0+.01,y0-g.ch+.01,0])];
+    (G.cols||[]).forEach((c,ci)=>{ if(!c.label) return; const q=pj([g.x0+(ci+.5)*g.cw, 0, g.z0-.09]), qa=pj([g.x0+ci*g.cw, 0, g.z0-.09]), qb=pj([g.x0+(ci+1)*g.cw, 0, g.z0-.09]);
+      /* the label fits the cell as it is DRAWN, so a turned grid never piles its headings on each other */
+      txt(igbTrim(String(c.label).toUpperCase(),Math.max(4,Math.floor(Math.hypot(qb[0]-qa[0],qb[1]-qa[1])/7.2))), q[0], q[1], c.col, .9*a3, 10, 600, 'center'); });
+    (G.floors||[]).forEach((f,fi)=>{ const q=pj([g.x0-.04, 0, g.z0+(fi+.5)*g.ch]); txt(igbTrim(String(f.label),18), q[0], q[1]+3, f.col, .9*a3, 10, 600, 'right'); });
+    (G.cols||[]).forEach((c,ci)=>(G.floors||[]).forEach((f,fi)=>{ const x0=g.x0+ci*g.cw, z0=g.z0+fi*g.ch, P=[pj([x0+.01,0,z0+.01]),pj([x0+g.cw-.01,0,z0+.01]),pj([x0+g.cw-.01,0,z0+g.ch-.01]),pj([x0+.01,0,z0+g.ch-.01])];
       const cell=g.cells[ci+'|'+fi];
       ctx.beginPath(); P.forEach((p,k)=>k?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.closePath();
       ctx.fillStyle='rgba(56,205,184,'+((cell?.06:.015)*a3)+')'; ctx.fill(); ctx.strokeStyle='rgba(160,220,210,'+(.18*a3)+')'; ctx.lineWidth=1; ctx.stroke();
@@ -2332,19 +2352,19 @@ function igbDraw(G,t){
   }
   /* THE TIMELINE: dates along, one lane per group, today marked, the undated counted. */
   if(w[4]>.05&&G.tl){ const tl=G.tl, a4=w[4];
-    tl.lanes.forEach(l=>{ line2(pj([-1.15,l.y,0]),pj([1.4,l.y,0]),'rgba(160,220,210,'+(.14*a4)+')'); const q=pj([-1.17,l.y,0]); txt(igbTrim(String(l.label),20), q[0], q[1]+3, l.col, .9*a4, 10, 600, 'right'); });
-    const ya=(tl.lanes.length?tl.lanes[tl.lanes.length-1].y:-.8)-.14;
-    line2(pj([-1.1,ya,0]),pj([1.35,ya,0]),'rgba(207,227,222,'+(.4*a4)+')');
-    tl.ticks.forEach(k=>{ const q=pj([k.x,ya,0]); line2([q[0],q[1]-3],[q[0],q[1]+3],'rgba(207,227,222,'+(.5*a4)+')'); txt(k.label, q[0], q[1]+15, '#8FB5AD', .9*a4, 10, 500, 'center'); });
-    if(tl.nowX!=null){ const q0=pj([tl.nowX,.9,0]), q1=pj([tl.nowX,ya,0]); line2(q0,q1,'rgba(242,178,76,'+(.55*a4)+')'); txt(i18t('int_tl_today'), q0[0], q0[1]-4, IGB_WALK, .95*a4, 10, 600, 'center'); }
-    const qu=pj([1.55,.92,0]); txt(i18t('int_tl_undated',{ n:tl.undated }), qu[0], qu[1], '#8FB5AD', .9*a4, 10, 600, 'center');
+    tl.lanes.forEach(l=>{ line2(pj([-1.15,0,l.y]),pj([1.4,0,l.y]),'rgba(160,220,210,'+(.14*a4)+')'); const q=pj([-1.17,0,l.y]); txt(igbTrim(String(l.label),20), q[0], q[1]+3, l.col, .9*a4, 10, 600, 'right'); });
+    const za=(tl.lanes.length?tl.lanes[tl.lanes.length-1].y:.8)+.16;
+    line2(pj([-1.1,0,za]),pj([1.35,0,za]),'rgba(207,227,222,'+(.4*a4)+')');
+    tl.ticks.forEach(k=>{ const q=pj([k.x,0,za]), q2=pj([k.x,0,za+.04]); line2(q,q2,'rgba(207,227,222,'+(.5*a4)+')'); txt(k.label, q[0], q[1]+15, '#8FB5AD', .9*a4, 10, 500, 'center'); });
+    if(tl.nowX!=null){ const q0=pj([tl.nowX,0,-.92]), q1=pj([tl.nowX,0,za]); line2(q0,q1,'rgba(242,178,76,'+(.55*a4)+')'); txt(i18t('int_tl_today'), q0[0], q0[1]-4, IGB_WALK, .95*a4, 10, 600, 'center'); }
+    const qu=pj([1.55,0,-.94]); txt(i18t('int_tl_undated',{ n:tl.undated }), qu[0], qu[1], '#8FB5AD', .9*a4, 10, 600, 'center');
     if(tl.empty){ const qm=pj([0,0,0]); txt(i18t('int_tl_empty',{ x:i18t('int_time_'+tl.key) }), qm[0], qm[1], '#CFE3DE', .9*a4, 12, 500, 'center'); }
   }
   const T=igbTissue(), H0=G.hubs, nh=H0.length, FL=(G.floors&&G.floors.length)?G.floors:[{ y:0 }], flat=w[3]+w[4];
   for(let i=0;i<T.length;i++){ const d=T[i];
     let W3=[d.L[0],d.L[1],d.L[2]];
     if(nh){ const ha=H0[Math.floor(d.wa*nh)], hb=H0[Math.floor(d.wb*nh)]; W3=[ha.W3[0]+(hb.W3[0]-ha.W3[0])*d.wt+d.jx, ha.W3[1]+(hb.W3[1]-ha.W3[1])*d.wt+d.jy, 0]; }
-    const Lf=[d.L[0], FL[Math.floor(d.wt*FL.length)].y, d.L[2]], Sh=[d.L[0]*.98, (d.wb*2-1)*.92, -.02];
+    const Lf=[d.L[0], FL[Math.floor(d.wt*FL.length)].y, d.L[2]], Sh=[d.L[0]*.98, -.02, (d.wb*2-1)*.92];
     const p=[0,1,2].map(k=>d.A[k]*w[0]+W3[k]*w[1]+Lf[k]*w[2]+Sh[k]*flat);
     const q=pj(p), front=igbClamp01((q[3]+1.1)/2.2), reg=G.treg&&G.treg[i];
     let a=(.2+front*.5)*(walking?.55:1)*(1-.45*w[1])*(1-.7*flat);
@@ -2481,9 +2501,12 @@ function igTurnBy(dx,dy){
   const cam=igbCam();
   if(cam.view===0){ cam.rot-=dx*.006; cam.tiltOff=Math.max(-.5,Math.min(.8,cam.tiltOff+dy*.004)); }
   else if(cam.view===1){ cam.rotW-=dx*.006; cam.tiltW=Math.max(-1.1,Math.min(1.1,cam.tiltW+dy*.004)); }
-  else if(cam.view===2){ cam.rotL-=dx*.006; cam.tiltL=Math.max(-.3,Math.min(.9,cam.tiltL+dy*.004)); }
-  else if(cam.view===3){ cam.rotG-=dx*.006; cam.tiltG=Math.max(-.2,Math.min(1.1,cam.tiltG+dy*.004)); }
-  else { cam.rotT-=dx*.006; cam.tiltT=Math.max(-.2,Math.min(1.1,cam.tiltT+dy*.004)); }
+  else if(cam.view===2){ cam.rotL-=dx*.006; cam.tiltL=Math.max(-.3,Math.min(1.1,cam.tiltL+dy*.004)); }
+  /* the grid and the timeline lie on the table: a sideways drag spins the
+     table, an up-down drag tips it between looking straight down and
+     looking along it */
+  else if(cam.view===3){ cam.rotG-=dx*.006; cam.tiltG=Math.max(-.75,Math.min(.6,cam.tiltG+dy*.004)); }
+  else { cam.rotT-=dx*.006; cam.tiltT=Math.max(-.7,Math.min(.65,cam.tiltT+dy*.004)); }
 }
 
 /* ---- the graph: the model's nodes as real elements, placed by the brain ---- */
@@ -3103,12 +3126,16 @@ function renderIntel(){
       if(window._igPinch&&T&&T.size>=2){ const [p,q]=[...T.values()]; igSetZoom(window._igPinch.z*Math.hypot(p[0]-q[0],p[1]-q[1])/window._igPinch.d); return; }
       const d=window._igTurn; if(!d||!IG) return;
       const dx=e.clientX-d.x, dy=e.clientY-d.y; d.x=e.clientX; d.y=e.clientY; d.moved+=Math.abs(dx)+Math.abs(dy);
-      if(d.moved>4){ if(!IG.turning){ IG.turning=true; IG.dragMoved=true; igHoverHide(); IG.svg.classList.add('is-turning'); } igTurnBy(dx,dy); }
+      /* A TURN LETS GO OF THE HOVER (Young, 29 Sep 2026: "they seem to get
+         stuck"): a drag that began or ended over a contract left its hover
+         light on and every other dot faded, so the map read as frozen while
+         it was turning. The light goes when the turn starts. */
+      if(d.moved>4){ if(!IG.turning){ IG.turning=true; IG.dragMoved=true; IG.hover=null; igPaint(null); igHoverHide(); IG.svg.classList.add('is-turning'); } igTurnBy(dx,dy); }
     });
     const end=e=>{
       const T=window._igTouch; if(T&&e&&e.pointerId!=null) T.delete(e.pointerId); if(!T||T.size<2) window._igPinch=null;
       window._igTurn=null;
-      if(IG&&IG.turning){ IG.turning=false; IG.svg.classList.remove('is-turning'); setTimeout(()=>{ if(IG) IG.dragMoved=false; },50); }
+      if(IG&&IG.turning){ IG.turning=false; IG.hover=null; igPaint(null); IG.svg.classList.remove('is-turning'); setTimeout(()=>{ if(IG) IG.dragMoved=false; },50); }
     };
     window.addEventListener('pointerup',end); window.addEventListener('pointercancel',end);
   }
