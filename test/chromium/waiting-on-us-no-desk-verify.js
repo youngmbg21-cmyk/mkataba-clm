@@ -123,11 +123,18 @@ async function login(browser, email, pass, errors) {
     const R = await login(browser, 'restricted@example.co.ke', 'their-own-pass-9', errors);
     await R.page.evaluate(() => { setView('dashboard'); });
     await R.page.waitForTimeout(1500);
+    /* RE-POINTED 28 Sep 2026: Home's work card is now a digest of Copilot's
+       work, which is the team's shared list (the agents page shows it to every
+       colleague who can open the deal), so the PERSONAL claim moves to the
+       bell — the one per-person list that says "has been waiting on us". */
+    await R.page.click('#hdr-notify');
+    await R.page.waitForTimeout(700);
     const other = await R.page.evaluate(() => ({
       signedIn: !!(window.currentUser && currentUser()),
       sees: !!(window.getContract && getContract('MK-A2')),
-      row: (typeof agentsData === 'function') && agentsData().agents.round.ready.some(x => x.cid === 'MK-A2') }));
-    check('3 CONTROL — a colleague who can see MK-A2 but does not own it is not told',
+      row: /Nandi Dairy has been waiting on us/.test(((document.getElementById('context-panel') || {}).textContent || '').replace(/\s+/g, ' ')) }));
+    await R.page.keyboard.press('Escape');
+    check('3 CONTROL — a colleague who can see MK-A2 but does not own it is not told in their bell',
       other.signedIn && other.sees && !other.row, JSON.stringify(other));
     await R.ctx.close();
   } finally {
