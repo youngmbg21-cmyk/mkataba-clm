@@ -133,7 +133,7 @@ describe('f399 (3) — both books carry every word the page prints', () => {
     assert.deepEqual(missing, [], 'a key missing from one book leaves a screen half in the other language');
   });
   test('3b every agent has its name, what it does, when it runs, who reviews, who pays and its idle line', () => {
-    for (const k of ['round', 'link', 'renew', 'paper', 'late', 'import'])
+    for (const k of ['round', 'link', 'renew', 'paper', 'late', 'ours', 'import'])
       for (const s of ['', '_does', '_runs', '_who', '_pays', '_idle'])
         assert.match(I18N, new RegExp('\\n\\s*ag_' + k + s + ':'), 'ag_' + k + s);
   });

@@ -169,7 +169,11 @@ describe('F221 — the shape of a delivery, and the guards at the source', () =>
        words somebody thought of; the shape is what actually needs pinning. */
     const ALLOWED = new Set(['contractId', 'requestId', 'obligationId', 'status', 'due', 'action']);
     const fires = srv.match(/webhookQueue\('[^']+',\s*\(\)\s*=>\s*\(\{[^}]*\}\)/g) || [];
-    assert.equal(fires.length, 4, 'all four events fire, and only four');
+    /* Re-pointed 28 Sep 2026 (Our promises): obligation.due now fires from two
+       sites — our side's agent and their side's sweep — so the pin is the set
+       of EVENTS, four, and every site still passes the allow-list below. */
+    const kinds = new Set(fires.map(f => f.match(/webhookQueue\('([^']+)'/)[1]));
+    assert.equal(kinds.size, 4, 'all four events fire, and only four');
     for (const f of fires) {
       const keys = [...f.matchAll(/([A-Za-z_][A-Za-z0-9_]*)\s*:/g)].map(m => m[1]).filter(k => k !== 'webhookQueue');
       assert.ok(keys.length, 'a payload with no keys is not a payload');
