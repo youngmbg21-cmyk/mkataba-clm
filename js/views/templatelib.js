@@ -926,7 +926,6 @@ async function openTemplateLibDetail(id) {
   const CARD = 'background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius)';
   const fmtAt = iso => iso ? fmtDT(iso) : '—';
   const srcC = t.sourceContractId ? (state.contracts || []).find(x => x.id === t.sourceContractId) : null;
-  const st = TPLLIB_STATUS[t.status] || TPLLIB_STATUS.draft;
   const openDraft = versions.find(v => v.status === 'draft');
 
   const vRows = versions.slice().reverse().map(v => `

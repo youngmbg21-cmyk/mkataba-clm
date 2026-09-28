@@ -104,7 +104,10 @@ describe('f277 (1) the switch reads Contract View then Plain English', () => {
     const c = { id: 'MK-1', name: 'Supply', redlineText: BODY, changes: [], audit: [] };
     const html = win.docReadSwitchHtml(c);
     assert.ok(!/<div class="(band|strip|notice)/.test(html), 'the switch draws no band of its own');
-    assert.equal((html.match(/<button/g) || []).length, 2, 'two buttons and nothing more');
+    /* RE-POINTED 27 Sep 2026 (T1): X-ray joined as the third position on
+       22 Sep 2026 (THE MAP: "one store, three positions"), so the control is
+       three buttons and nothing more. */
+    assert.equal((html.match(/<button/g) || []).length, 3, 'three buttons and nothing more');
   });
 
   test('it stands down on a window too narrow to hold two working columns', () => {
@@ -772,7 +775,10 @@ describe('f277 (10) the edition is a facing page', () => {
   /* "Let the plain english also sit in a white card and not the grey
      background" — Young, 10 Sep 2026. */
   test('the layer is a white sheet, not notes on the page ground', () => {
-    const at = INDEX.indexOf('#doc-read{');
+    /* RE-POINTED 27 Sep 2026 (T1): Plain English and X-ray share ONE rule
+       since X-ray arrived ("#doc-read/#doc-xray cover the right column as
+       white cards (one shared rule)"), so the rule is found by its pair. */
+    const at = INDEX.indexOf('#doc-read,#doc-xray{');
     const css = INDEX.slice(at, INDEX.indexOf('.doc-read-head{', at));
     assert.ok(/background:var\(--color-surface\)/.test(css), 'the surface token, so dark follows');
     assert.ok(/border:1px solid var\(--color-divider\)/.test(css));

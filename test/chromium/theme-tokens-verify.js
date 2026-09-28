@@ -31,7 +31,6 @@
 */
 const fs = require('node:fs');
 const path = require('node:path');
-const crypto = require('node:crypto');
 const { chromium } = require('playwright-core');
 const { startHati } = require('../helpers');
 

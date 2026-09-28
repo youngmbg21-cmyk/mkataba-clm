@@ -1872,7 +1872,6 @@ function portalNegoFootHtml(p){
      the other side you are ready over a contested point is the untruth the
      room's gate existed to prevent. Same engine reads, same answer. */
   const c=portalNegoContract(PORTAL_OPTS.payload||p);
-  const held=Object.keys(PORTAL_NEGO_DECISIONS).length;
   const al=(window.negoAlignment&&c)?negoAlignment(c):{ aligned:false };
   const readyOk=!!(al&&al.aligned);
   const whyNot=(window.negoAlignmentWhy&&c)?(negoAlignmentWhy(c,'counterparty')||'Changes are still waiting on a decision.')

@@ -239,7 +239,6 @@ describe('F183 — stable English keys, in all three lists', () => {
   test('and so does the server loop — one tool, both brains', () => {
     const m = SERVER_SRC.match(/const COPILOT_PANEL_NAMES = (\[[^\]]*\]);/);
     assert.ok(m, 'the server must declare the panel names');
-    // eslint-disable-next-line no-eval
     const names = eval(m[1]);
     assert.deepEqual(names.slice().sort(), w.PF_PANEL_NAMES.slice().sort(),
       'a sixth panel must not arrive in one loop and not the other');

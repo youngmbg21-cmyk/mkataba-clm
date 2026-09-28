@@ -25,7 +25,7 @@ const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { startHati, startScriptedAi, seedWorkspace, FIXTURES } = require('./helpers');
+const { startHati, startScriptedAi, seedWorkspace } = require('./helpers');
 
 const SERVER_SRC = fs.readFileSync(path.join(__dirname, '..', 'server', 'server.js'), 'utf8');
 const PLAYBOOK_SRC = fs.readFileSync(path.join(__dirname, '..', 'js', 'playbook.js'), 'utf8');
@@ -289,11 +289,9 @@ describe('F-B configured — the review the product already knows how to do, fro
     const b = SERVER_SRC.indexOf('function copilotPlaybookKey');
     const e = SERVER_SRC.indexOf('\n}', SERVER_SRC.indexOf("return '_default';", b)) + 2;
     assert.ok(a > 0 && b > a, 'the server rule and its kind table were found');
-    // eslint-disable-next-line no-new-func
     const srvKey = new Function(SERVER_SRC.slice(a, e) + '; return copilotPlaybookKey;')();
 
     /* AND THE KIND TABLE IS A MIRROR, so it is pinned to the one it mirrors. */
-    // eslint-disable-next-line no-new-func
     const srvKind = new Function(SERVER_SRC.slice(a, e) + '; return COPILOT_TEMPLATE_KIND;')();
     for (const id in KIND)
       assert.equal(srvKind[id], KIND[id],

@@ -210,7 +210,7 @@ const BUG_RULES = {
      Locals only: a top-level function that no OTHER file calls is still called
      from index.html or a data- attribute, so flagging globals here would report
      the whole app as dead code. */
-  'no-unused-vars': ['warn', { vars: 'local', args: 'none', caughtErrors: 'none' }],
+  'no-unused-vars': ['warn', { vars: 'local', args: 'none', caughtErrors: 'none', ignoreRestSiblings: true }],
 };
 
 module.exports = [

@@ -59,7 +59,7 @@ function openSignaturePad(opts={}){
     const ov=document.createElement('div');
     ov.id='sig-pad';
     ov.style.cssText='position:fixed;inset:0;z-index:95;display:flex;align-items:center;justify-content:center;padding:var(--s-4)';
-    const C='var(--color-divider)', ACC='var(--color-accent)', ACC8='var(--color-accent-800)', TXT='var(--color-text)', N6='var(--color-neutral-600)', N7='var(--color-neutral-700)';
+    const C='var(--color-divider)', ACC='var(--color-accent)', TXT='var(--color-text)', N6='var(--color-neutral-600)', N7='var(--color-neutral-700)';
     ov.innerHTML=`
       <div style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 45%,transparent)"></div>
       <div class="modal-in" style="position:relative;width:100%;max-width:560px;background:var(--color-surface);border:1px solid ${C};box-shadow:var(--shadow-lg);border-radius:var(--radius);overflow:hidden">

@@ -24,7 +24,6 @@
    through the API with a session, where scope and masking apply. */
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
-const crypto = require('node:crypto');
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');

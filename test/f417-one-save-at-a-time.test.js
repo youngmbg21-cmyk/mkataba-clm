@@ -1,5 +1,6 @@
 /* ============================================================
-   f314 — ONE SAVE AT A TIME, OR A CONTRACT CONFLICTS WITH ITSELF
+   f417 (was a second f314, renumbered 27 Sep 2026 so no two files share a
+   number) — ONE SAVE AT A TIME, OR A CONTRACT CONFLICTS WITH ITSELF
    ============================================================
    Young, 15 Sep 2026, over a screenshot of "This contract just changed on the
    server — Someone else saved a change to MK-291 while you were editing":
@@ -29,7 +30,7 @@ const { startHati, seedWorkspace, FOLDER_A } = require('./helpers');
 
 const CORE = fs.readFileSync(path.join(__dirname, '..', 'js', 'core.js'), 'utf8');
 
-describe('f314 one save at a time', () => {
+describe('f417 one save at a time', () => {
   let h, W;
   const body = (id, extra = {}) => ({ id, name: 'Supply Agreement', counterparty: 'Nordvane',
     folder: FOLDER_A, status: 'Draft', fields: {}, obligations: [], audit: [], rounds: [],

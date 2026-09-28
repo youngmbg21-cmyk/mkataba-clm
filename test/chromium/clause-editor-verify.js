@@ -4165,7 +4165,23 @@ const dismissNote = async pg => {
         }, [x, y]);
         const pressedWord = await wordAt(pt2.x, pt2.y);
         await p.mouse.click(pt2.x, pt2.y);
-        await pause(900);
+        /* A BOUNDED WAIT, NOT A FIXED PAUSE (the owner's list, 27 Sep 2026, T6):
+           on a busy machine 900ms was sometimes too short for the editor to
+           settle into the pressed clause, and 33h read the caret mid-move. It
+           waits up to 5s for the page to be in the clause with a caret in its
+           box, and measures once it is; a feature that never gets there still
+           reports below rather than timing out. */
+        for (let i = 0; i < 25; i++){
+          await pause(200);
+          const settled = await p.evaluate(id => {
+            const live = document.querySelector('#ce-doc .rl-clause-live');
+            const box = document.getElementById('ce-clausebody');
+            const sel = window.getSelection();
+            return !!(live && live.getAttribute('data-clause') === id && box && box.isContentEditable
+              && sel && sel.rangeCount && box.contains(sel.getRangeAt(0).startContainer));
+          }, other.id);
+          if (settled && i >= 3) break;
+        }
         const moved = await p.evaluate(id => {
         const caretAt = () => {
           const sel = window.getSelection();

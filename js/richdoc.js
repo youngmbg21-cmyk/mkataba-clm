@@ -672,7 +672,6 @@ function _richBlockLines(node){
     .map(l => l.replace(/[ \t]+/g,' ').trim()).filter(l => l);
 }
 function _richEditAroundBlocks(root, units, newText){
-  const doc = root.ownerDocument;
   const blocks = units.filter(u => u.opaque).map(u => u.node);
   /* Only a block sitting directly in the body can be split around: one nested
      inside a list item or a quote has no segment boundary to cut on. */

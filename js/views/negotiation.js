@@ -310,7 +310,6 @@ function negoBrokenRefsLine(broken){
    renumbering has closed the gap and left the reference behind. */
 function negoBrokenRefsOnlyHtml(c, broken, opts = {}){
   const locked = window.negoNumberingLocked ? !!negoNumberingLocked(c) : false;
-  const one = broken.length === 1;
   const what = broken.slice(0, 3).map(b =>
     `<b>${_ne(b.fromLabel || ('Clause ' + b.fromNum))} refers to Clause ${_ne(b.num)}, `
     + `which was deleted.</b>`).join(' ');
@@ -1752,7 +1751,6 @@ function negoWhoseHtml(c, ch, opts, mine){
 function negoHistoryHtml(c, opts = {}){
   const rounds = (c.negotiation && Array.isArray(c.negotiation.rounds)) ? c.negotiation.rounds : [];
   if (!rounds.length) return '';
-  const side = opts.side || 'owner';
   return `<div class="nego-history" id="nego-history">
     <div class="nego-history-head">${i18t('ng_earlier_rounds')}</div>
     ${rounds.map(r => {
@@ -7625,7 +7623,6 @@ function rlScaleHtml(row){
   const step = raw <= 12 ? 2 : raw <= 30 ? 5 : raw <= 120 ? 10 : 50;
   const hi = Math.max(step, Math.ceil(raw / step) * step);
   const pct = n => Math.max(0, Math.min(100, (n / hi) * 100));
-  const unit = row.unit || '';
   /* THE STANDARD AND THE FALLBACK ARE DOTS ON THE LINE (the reference's
      .scale, 21 Sep 2026: "30 std" hollow, "45 fallback" filled, "60 theirs"
      amber) — the green ZONE between them and the sentence that explained it
@@ -7741,7 +7738,6 @@ function rlBoardMemoText(c){
 function dealBoardHtml(c, side){
   if (typeof window.ladderBoard !== 'function') return '';
   const rows = ladderBoard(c, side);
-  const me = side === 'counterparty' ? 'counterparty' : 'owner';
   const dash = `<span class="db-none">&mdash;</span>`;
   const open = rows.filter(r => r.state === 'awaiting' || r.state === 'with').length;
   const fbOf = r => (r.topic && typeof window.ladderFallback === 'function') ? ladderFallback(r.topic) : null;
@@ -9159,7 +9155,6 @@ function openNegoMemoShare(c, m){
   if (!c || !m || m.empty || typeof window.openModal !== 'function') return null;
   const people = negoMemoRecipients();
   if (!people.length){ if (typeof toast === 'function') toast(i18t('ng_memo_send_nobody'), 'warn'); return null; }
-  const name = [m.name, m.counterparty].filter(Boolean).join(' — ') || m.id;
   const fld = 'width:100%;padding:var(--s-2) 10px;border:1px solid var(--color-divider);'
     + 'border-radius:var(--radius);font:inherit;font-size:var(--t-body);'
     + 'background:var(--color-surface);color:var(--color-text)';
@@ -10743,7 +10738,7 @@ function rlSayInPanel(text){
    is a MENU, not a dialog: it holds no fields, decides nothing, and every item
    in it hands off to the side panel or the discussion column and disappears. */
 function rlSelMenu(ctx){
-  const { text, clauseId, rect, whole } = ctx;
+  const { rect, whole } = ctx;
   /* ---- THE OFFER NARROWS ON ONE SURFACE, AND IT IS STILL ONE MENU ----
      (owner-asked 16 Aug 2026, designing the clause panel: "Remove simplify and
      compare with company standards. Leave the feature where you can highlight a
@@ -12591,7 +12586,6 @@ function redlineDocHtml(c, opts = {}){
         ${liveHtml}
       </section>`;
     }
-    const theirs = ch.authorSide !== side;
     /* A CLAUSE NOBODY HAS AGREED TO IS NOT IN THE AGREED READING. Under "As
        agreed" a live insertion simply is not there — that is what "the wording
        as it stands" means — and under "With changes" it is there as ordinary
@@ -12616,7 +12610,6 @@ function redlineDocHtml(c, opts = {}){
     }
     const st = ch.status === 'accepted' ? ' &middot; &#10003; adopted'
       : ch.status === 'rejected' ? ' &middot; &#10007; refused' : '';
-    const tagTip = ch.status === 'rejected' && ch.reply ? ` title="${_nea(ch.reply)}"` : '';
     const label = String(ch.headingText || '').trim();
     const text = String(ch.proposedText || ch.newText || '');
     /* A rejected insertion is struck rather than dropped: the clause is not in
@@ -12712,14 +12705,12 @@ function redlineDocHtml(c, opts = {}){
        the mark the other side verified. This picks between changes already on
        the record; it never rewrites one. */
     const ch = negoLeadChange(c, cl, chs);
-    const rest = chs.filter(x => x !== ch);
     /* Lead first: three selection helpers read this attribute expecting one id
        and take the first token, and the first token must stay the change whose
        marks are actually on screen. rlLinkFocus matches with [~=], so every
        card finds this clause whichever position its id holds. */
     const anchorIds = _ne(chs.map(x => x.id).reverse().join(' '));
     if (ch){
-      const theirs = ch.authorSide !== side;
       /* ---- A CLEAN READING CARRIES NO MARKERS EITHER ----
          Under "As agreed" and "With changes" the clause loses its amber box and
          its ask tag along with its strikes. The point of those readings is a
@@ -15101,7 +15092,6 @@ function rlNoticeStackHtml(c, alerts, note, id, opts){
      contain, and an empty container sits over the corner of the contract
      catching clicks meant for the document. */
   if (!n && opts && opts.side === 'counterparty') return '';
-  const cid = _nea(String((c && c.id) || ''));
   /* ---- ONE BELL PER PAGE, AND ON THEIR PAGE IT IS THE HEADER'S ----
      (owner-asked, 13 Aug 2026.) The counterparty's page has its own bell, in
      their header row, with an alerts panel behind it. Two bells on one page,
@@ -17600,7 +17590,6 @@ function redlineChangeCardsHtml(c, opts = {}){
        needs to know before it can offer a way OUT of a hold. */
     const mineDraft = !theirs && unsent.has(ch.id);
     const mineUnsent = mineDraft && !rvHeld && !rvOut;
-    const mineSent = !theirs && !unsent.has(ch.id) && ch.status === 'pending';
     const heldHere = heldIds.has(ch.id) && ch.status !== 'pending';
     const sentHere = sentIds.has(ch.id) && ch.status !== 'pending' && !heldHere;
     const reopen = sentHere && redeciding(ch.id);

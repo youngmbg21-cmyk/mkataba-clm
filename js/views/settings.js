@@ -256,8 +256,6 @@ function settingsPaintShapeBoxes(){
 /* Shared inline tokens. They were declared inside renderTeam(), which meant
    every drawer body that wanted a field had to restate them; one copy is one
    place a control's clothes are decided. */
-const ST_CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius-lg);padding:var(--s-4)';
-const ST_H4='font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-card);margin:0 0 6px;color:var(--color-text)';
 const ST_INPUT='width:100%;height:var(--field-h);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);color:inherit;outline:none';
 const ST_MONO='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:5px var(--s-2);font-family:var(--font-mono);font-size:var(--t-label);color:inherit;outline:none';
 const ST_BTN='font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-body);padding:6px 14px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:var(--radius);cursor:pointer;white-space:nowrap';

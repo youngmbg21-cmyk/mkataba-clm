@@ -26,7 +26,7 @@ const { test, describe } = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
-const { buildWorld, supplyContract } = require('./world.js');
+const { supplyContract } = require('./world.js');
 
 const read = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
 

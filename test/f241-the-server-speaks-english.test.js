@@ -31,7 +31,6 @@ function dicts() {
   const m = i18n.match(/const STRINGS = \{[\s\S]*?\n\};/);
   assert.ok(m, 'STRINGS block found');
   const sandbox = {};
-  // eslint-disable-next-line no-new-func
   new Function('g', m[0].replace('const STRINGS =', 'g.STRINGS =') + ';')(sandbox);
   return sandbox.STRINGS;
 }
@@ -41,7 +40,6 @@ function tables() {
   const b = i18n.match(/const SRV_MSG_PREFIX = \[[\s\S]*?\n\];/);
   assert.ok(a && b, 'both tables found');
   const sandbox = {};
-  // eslint-disable-next-line no-new-func
   new Function('g', a[0].replace('const SRV_MSG =', 'g.SRV_MSG =') + ';'
     + b[0].replace('const SRV_MSG_PREFIX =', 'g.SRV_MSG_PREFIX =') + ';')(sandbox);
   return sandbox;

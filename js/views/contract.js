@@ -1541,7 +1541,7 @@ function uploadPartyOptions(){
   return [...seen.values()];
 }
 function uploadConfirmHtml(ext, meta){
-  const m=meta||{}, conf=m.confidence||{}, spans=m.sourceSpans||{};
+  const m=meta||{}, spans=m.sourceSpans||{};
   const esc2=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   const attr=s=>esc2(s).replace(/"/g,'&quot;');
   const has=k=>meta!=null&&m[k]!=null&&m[k]!==''&&!(typeof m[k]==='number'&&!(m[k]>0));
@@ -2239,7 +2239,6 @@ function openEditDocModal(c){
     : (window.reflowWorkingText?reflowWorkingText(docPlainText(c)):docPlainText(c));
   if(!cur){ toast(i18t('ct_no_editable_text'),'err'); return; }
   const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
-  const firstEdit=!c.redlineText&&!isUpload(c);
   // Full-window editor: the dialog takes the whole screen and the wording sits
   // in a centred book-page column — same save-and-version behaviour, more room.
   const COL='width:100%;max-width:800px;margin-left:auto;margin-right:auto;flex:none';
@@ -7795,12 +7794,6 @@ function openNegoProposeModal(c){
     renderWorkspace();
   });
 }
-function topTabBtn(k,label,ic){
-  return `<button data-top-tab="${k}" title="${label}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:var(--radius);background:none;cursor:pointer;font:inherit;font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-neutral-600);padding:var(--s-2) var(--s-1);white-space:nowrap;transition:background var(--dur-1),color var(--dur-1)">${icon(ic,'w-4 h-4')}<span>${label}</span></button>`;
-}
-function innerTabBtn(k,label,ic){
-  return `<button data-inner-tab="${k}" title="${label}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;border:0;border-radius:var(--radius);background:none;cursor:pointer;font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-neutral-600);padding:7px var(--s-1);white-space:nowrap;transition:background var(--dur-1),color var(--dur-1)">${icon(ic,'w-3.5 h-3.5')}<span>${label}</span></button>`;
-}
 function applyDocTabs(){
   const root=document.getElementById('doc-right'); if(!root) return;
   if(_docTopTab!=='screening'&&_docTopTab!=='signing') _docTopTab='screening';
@@ -9254,7 +9247,6 @@ function roomFactsHtml(c,opts={}){
      answers (needs you / with them / nothing outstanding / no live copy) and
      the colour each of them wears. */
   const move=(window.negoMovePillHtml&&c.negotiation)?negoMovePillHtml(c):'';
-  const F=(typeof window!=='undefined'&&window.FOLDERS)||{};
   /* ---- SIX FACTS (the reference's drawing, second pass 21 Sep 2026) ----
      Counterparty · Value · Term (the date, then how many days are left) ·
      Round · Whose move · Copilot. The value stream left the row for the
@@ -10158,7 +10150,6 @@ function renderWorkspace(){
   const KKEY='color:var(--color-neutral-600);flex:none';
   const kv=(k,v)=>`<div style="${KROW}"><span style="${KKEY}">${k}</span><span style="font-weight:var(--w-body);text-align:right;min-width:0">${v}</span></div>`;
   const KIN='min-width:0;max-width:62%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:3px 7px;font:inherit;font-size:var(--t-meta);text-align:right;outline:none';
-  const tmplLabel=c.template?((window.TEMPLATES&&TEMPLATES[c.template]&&TEMPLATES[c.template].name)||c.template):(isUpload(c)?'Uploaded document':'—');
   // Key terms stay editable until the seal binds them (sealString folds
   // counterparty/value/valueType in), and only for roles that can edit.
   // Back goes to the Contracts page — or the stream drawer the room was opened

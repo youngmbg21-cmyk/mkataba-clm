@@ -310,7 +310,6 @@ describe('f242 · every new reason exists in both languages', () => {
     const i18n = read('js/i18n.js');
     const m = i18n.match(/const STRINGS = \{[\s\S]*?\n\};/);
     const g = {};
-    // eslint-disable-next-line no-new-func
     new Function('x', m[0].replace('const STRINGS =', 'x.S =') + ';')(g);
     const keys = ['ng_bulk_none_pending', 'ng_bulk_none_clear_one', 'ng_bulk_none_clear_other',
       'ng_bulk_none_theirs', 'ng_renumber_no_gaps', 'ng_pb_all_aligned',

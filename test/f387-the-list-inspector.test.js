@@ -44,7 +44,13 @@ const DESK = read('js/desk.js');
 const CT = read('js/views/contract.js');
 
 const TODAY = new Date();
-const isoIn = d => { const x = new Date(TODAY.getTime()); x.setDate(x.getDate() + d); return x.toISOString().slice(0, 10); };
+/* THE READER'S OWN CALENDAR DAY (re-pointed 27 Sep 2026, T1): this took the
+   UTC day of a local date, so for part of every day the fixture sat one day
+   off the product's own todayISO and "in 45 days" read "in 44". A local date
+   is written from its local parts — the rulebook's "never toISOString() for
+   today". */
+const isoIn = d => { const x = new Date(TODAY.getTime()); x.setDate(x.getDate() + d);
+  return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; };
 
 function fixture(id, over = {}){
   return { id, name: `Agreement ${id}`, counterparty: 'Kabras Sugar', template: 'RM',

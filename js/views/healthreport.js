@@ -98,7 +98,6 @@ function healthReportData(){
   const findingsOf=c=>(typeof openFindings==='function'&&c.scan)?openFindings(c).slice(0,2).map(f=>f.title):[];
 
   const _obState=(typeof obState==='function')?obState:(o=>(o&&o.status==='done')?'done':'open');
-  const _obDue=o=>(typeof obligationDue==='function'?obligationDue(o):(o&&o.due)||null);
   const obs=(typeof allObligations==='function')?allObligations().filter(o=>_obState(o)!=='done'):[];
   const overdueOb=obs.filter(o=>_obState(o)==='overdue');
 

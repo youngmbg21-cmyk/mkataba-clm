@@ -17,7 +17,7 @@
        lit and pressable; the scrim is a computed style and a node test cannot
        read one.
    ============================================================ */
-const fs = require('node:fs'), path = require('node:path');
+const fs = require('node:fs');
 const { chromium } = require('playwright-core');
 const { startHati, seedWorkspace } = require('../helpers');
 const EXEC = process.env.CHROMIUM_BIN

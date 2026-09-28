@@ -29,7 +29,6 @@
    Run: node test/chromium/contrast-verify.js
    ============================================================ */
 const fs = require('node:fs');
-const path = require('node:path');
 const { chromium } = require('playwright-core');
 const { startHati } = require('../helpers');
 

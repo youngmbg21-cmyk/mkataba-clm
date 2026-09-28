@@ -924,9 +924,12 @@ describe('f267 (17) payment terms is a filter on Contracts', () => {
        second half pinned the filter bar's own inline copy of "is anything
        narrowing", one of three that had drifted apart. They are one function
        now (regNarrowed), so this asks the reading itself. */
-    assert.match(REG, /R\.payterms='all';/, 'clear-all clears it');
+    /* RE-POINTED 27 Sep 2026 (T1): Clear presses regFiltersAtRest, so it is
+       driven: a payment-terms band set, then cleared, is back to all. */
     const w = regw(book());
     const R = w.regState();
+    R.payterms = '46\u201360'; w.regFiltersAtRest(R);
+    assert.equal(R.payterms, 'all', 'clear-all clears it');
     R.payterms = 'all';
     assert.equal(w.regNarrowed(R), false, 'the control: nothing narrowing');
     R.payterms = '46\u201360';

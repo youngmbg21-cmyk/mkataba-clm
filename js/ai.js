@@ -237,10 +237,15 @@ function scanRules(c){
   return F;
 }
 
-const openFindings = c => !c.scan ? [] : c.scan.findings.filter(x=>!c.scan.dismissed.includes(x.id));
+/* A SCAN WITHOUT ITS LISTS IS AN EMPTY ONE, NEVER A CRASH (the owner's list,
+   27 Sep 2026): a stored scan missing `dismissed` (or `findings`) threw here,
+   on every surface that counts open findings. */
+const openFindings = c => { if (!c || !c.scan) return [];
+  const dis = Array.isArray(c.scan.dismissed) ? c.scan.dismissed : [];
+  return (Array.isArray(c.scan.findings) ? c.scan.findings : []).filter(x => x && !dis.includes(x.id)); };
 const worstSevOf = list => list.reduce((w,x)=>SEV_RANK[x.sev]>SEV_RANK[w]?x.sev:w,'low');
 function runScan(c){
-  const prev = c.scan ? c.scan.dismissed : [];
+  const prev = (c.scan && Array.isArray(c.scan.dismissed)) ? c.scan.dismissed : [];
   /* THE LANGUAGE THE FINDINGS WERE WRITTEN IN, stored with them. A scan is
      rendered from stored text, so a scan run in Swedish and re-read next month
      by a colleague reading English must still read as the Swedish it was
@@ -493,6 +498,7 @@ function renderScanSection(c){
     renderScanSection(c);
   }));
   host.querySelectorAll('[data-scan-dismiss]').forEach(b=>b.addEventListener('click',()=>{
+    if(!Array.isArray(c.scan.dismissed)) c.scan.dismissed=[];
     c.scan.dismissed.push(b.getAttribute('data-scan-dismiss'));
     persist(c);
     renderScanSection(c); renderSignButton(c);

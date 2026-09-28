@@ -15,7 +15,6 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const { buildWorld } = require('./world');
-const F = require('./clausefixtures.js');
 
 const REF_BODY =
   '<h1>Master Agreement</h1><p>Between the parties</p>'

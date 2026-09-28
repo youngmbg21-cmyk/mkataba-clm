@@ -2772,7 +2772,6 @@ function obChainSectionHtml(o, c){
   const ch = obligationChain(o, c);
   if(!ch.length) return '';
   const money = obligationMoneyVisible();
-  const roll = obligationRoll(ch);
   const me = String((o && o.id) || '');
   const rows = ch.map((x, i) => {
     const w = obligationWindow(x, c);

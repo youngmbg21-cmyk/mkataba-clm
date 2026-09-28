@@ -30,7 +30,7 @@
      · ocrRelease, which hands back the offline recogniser's tens of
        megabytes, had NOT ONE CALLER anywhere in the product */
 'use strict';
-const { test, describe, before, beforeEach } = require('node:test');
+const { test, describe, before } = require('node:test');
 const assert = require('node:assert/strict');
 const { buildWorld } = require('./world');
 const { runFileInContext } = require('./vmcache');

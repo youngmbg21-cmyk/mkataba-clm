@@ -273,7 +273,6 @@ async function draftRead(given){
 async function draftNothingFits(out, sentence, why, closest){
   draftSay(out, i18t('dr_nothing_fits'));
   const p=out.querySelector('#dr-note'); if(!p) return;
-  const esc=s2=>String(s2==null?'':s2).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   const said=String(why||'').trim(), near=String(closest||'').trim();
   if(said||near){
     const q=document.createElement('p');

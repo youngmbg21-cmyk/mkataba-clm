@@ -7,7 +7,6 @@
    on the markup the product actually generates — "no folder-B contract id
    appears in the dashboard" has to be checked against real output, not a
    paraphrase of it. */
-const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { runFileInContext } = require('./vmcache');

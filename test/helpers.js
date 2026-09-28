@@ -18,6 +18,12 @@ const os = require('node:os');
 const path = require('node:path');
 
 const SERVER = path.join(__dirname, '..', 'server', 'server.js');
+/* A FRESH COPY WITHOUT ITS PACKAGES SAYS SO (the owner's list, 27 Sep 2026,
+   T8): the server was started anyway and died on its first require, and the
+   test then failed waiting for a port — a message about a timeout, not about
+   the missing install. Asked once, before anything is spawned. */
+try { require.resolve('express', { paths: [path.join(__dirname, '..')] }); }
+catch (_) { throw new Error('The packages are not installed — run "npm install" in the project folder first (express is missing).'); }
 
 /* ---------- a client that remembers its cookie, like a browser ---------- */
 class Client {

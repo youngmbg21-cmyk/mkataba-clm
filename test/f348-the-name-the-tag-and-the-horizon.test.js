@@ -34,7 +34,6 @@ const heads = (() => {
     const parts = [/function pbClauseHeadWords[\s\S]*?^\}/m, /^const _pbHeadFold = [^\n]*/m,
       /function pbDropRepeatedHeading[\s\S]*?^\}/m].map(re => re.exec(PB));
     if (parts.some(m => !m)) throw new Error('not built');
-    // eslint-disable-next-line no-new-func
     return new Function('window', parts.map(m => m[0]).join('\n')
       + '\nreturn { pbDropRepeatedHeading, pbClauseHeadWords };')(
       { richToText: h => String(h).replace(/<[^>]*>/g, '') });

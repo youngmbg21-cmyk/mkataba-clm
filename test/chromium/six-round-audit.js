@@ -25,7 +25,7 @@
 const path = require('node:path');
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
-const { startHati, Client, nameASigner } = require('../helpers');
+const { startHati, nameASigner } = require('../helpers');
 
 const OUT = path.join(__dirname, 'shots', 'audit');
 /* THE SAME LADDER EVERY OTHER HARNESS USES: an override, then the dev sandbox's

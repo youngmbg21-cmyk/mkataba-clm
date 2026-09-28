@@ -38,7 +38,7 @@
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const { buildWorld } = require('./world');
-const { startHati, seedWorkspace, FOLDER_A, FOLDER_B } = require('./helpers');
+const { startHati, seedWorkspace } = require('./helpers');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');

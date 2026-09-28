@@ -16,7 +16,7 @@
    setting: invitations, update notices, signing codes, the strength of every
    signature taken on the workspace, and now the questions channel between the
    parties. */
-const { test, describe, before, after } = require('node:test');
+const { test, describe, after } = require('node:test');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const { startHati, seedWorkspace } = require('./helpers');

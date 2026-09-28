@@ -297,7 +297,12 @@ describe('f258 (4) — the column, the sort and the filter', () => {
     R.signed = '2021';
     assert.equal(win.regNarrowed(R), true, 'the Signed filter counts as one');
     R.signed = keep;
-    assert.match(REG_CODE, /reg-clear-filters'\)\?\.addEventListener\('click',\(\)=>\{[^}]*R\.signed='all';/);
+    /* RE-POINTED 27 Sep 2026 (T1): Clear presses regFiltersAtRest, the one
+       resting state read off the filter catalogue, so Clear is DRIVEN here. */
+    assert.match(REG_CODE, /reg-clear-filters'\)\?\.addEventListener\('click',\(\)=>\{\s*regFiltersAtRest\(regState\(\)\);/);
+    R.signed = '2021'; win.regFiltersAtRest(R);
+    assert.equal(R.signed, 'all', 'Clear clears it');
+    R.signed = keep;
   });
 });
 

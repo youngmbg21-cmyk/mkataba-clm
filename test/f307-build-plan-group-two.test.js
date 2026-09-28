@@ -22,7 +22,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { buildWorld } = require('./world');
 const { buildPortal } = require('./portalworld');
-const { startHati, seedWorkspace, FOLDER_A } = require('./helpers');
+const { startHati, seedWorkspace } = require('./helpers');
 const F = require('./clausefixtures.js');
 
 const ROOT = path.join(__dirname, '..');

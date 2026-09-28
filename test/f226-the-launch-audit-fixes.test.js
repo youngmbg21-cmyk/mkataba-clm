@@ -18,7 +18,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
-const { startHati, startHatiWithMail, seedWorkspace } = require('./helpers.js');
+const { startHati, startHatiWithMail } = require('./helpers.js');
 
 const read = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
 

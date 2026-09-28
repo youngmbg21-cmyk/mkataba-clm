@@ -16,7 +16,6 @@
    only the application shell around it is stood in for. */
 const fs = require('node:fs');
 const path = require('node:path');
-const vm = require('node:vm');
 const crypto = require('node:crypto');
 const { JSDOM } = require('jsdom');
 const { runFileInContext } = require('./vmcache');

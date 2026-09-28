@@ -10,7 +10,7 @@ const express = require('express');
    here: a second copy would drift from the browser's the first time either
    moved, and the two would then describe different markets to the same model. */
 const { jxPack, JX_DEFAULT, JURISDICTIONS,
-  fxSetRatesReader, fxSetHomeReader, fxHome, fxHomeValue, fxMissing, contractCurrency } = require('../js/jurisdiction.js');
+  fxSetRatesReader, fxSetHomeReader, fxHome, fxMissing, contractCurrency } = require('../js/jurisdiction.js');
 /* One dictionary, two hosts. The server writes email and needs the recipient's
    own language from the SAME table the screens use — a second copy here would
    drift from js/i18n.js without anything noticing, which is the fault the
@@ -1176,11 +1176,9 @@ const rvIsRequester = (rv, u) => {
   if (!rv || !u) return false;
   return rv.byId ? rvSame(rv.byId, u.id) : rvSame(rv.by, u.name);
 };
-const rvMaySeeReview = (rv, u) => !!u && (u.role === 'admin' || rvIsReviewer(rv, u) || rvIsRequester(rv, u));
 /* The review a given change is sitting in, or null. With several open at once
    this is the only safe question — see the note in js/review.js. */
 const rvOpenFor = (c, id) => rvOpenList(c).find(r => (r.changeIds || []).some(x => rvSame(x, id))) || null;
-const rvChangeById = (c, id) => (Array.isArray(c && c.changes) ? c.changes : []).find(x => x && rvSame(x.id, id)) || null;
 /* A verdict is given to particular wording. A revision re-hashes the change, so
    an approval that outlived the words it was given for is a claim nobody made:
    a stale CLEAR is not a clear. A stale HOLD is still a hold — somebody said
@@ -2649,7 +2647,6 @@ function aiBudgetGuard(req, res, next) {
 // Tag a route with the feature its spend belongs to. Must run before the guard.
 const aiFeature = name => (req, res, next) => { req.aiFeature = name; next(); };
 // Back-compat alias — every route now goes through the budget guard.
-const aiDailyGuard = aiBudgetGuard;
 
 /* Shared estimating constants. Exposed to the client so the pre-flight estimate
    on the Migration screen and the server price the same way. These are
@@ -3861,6 +3858,8 @@ function paperTerm(c, k){
    an unsealed-but-signed record is waiting to be given. */
 const SEAL_ACQUIRABLE = new Set(['hash', 'execution', 'sealVersion', 'signedAt']);
 const isEmptyish = v => v === undefined || v === null || v === '';
+const isHollow = v => isEmptyish(v) || (Array.isArray(v) && !v.length)
+  || (!!v && typeof v === 'object' && !Array.isArray(v) && !Object.keys(v).length);
 const stable = v => JSON.stringify(v === undefined ? null : v);
 
 // Save ONE contract with its own optimistic-lock version.
@@ -4027,7 +4026,13 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     const MIG_REVIEW_MAY = new Set(['metadata', 'counterparty', 'value', 'valueType', 'expiry', 'fields']);
     const changed = EXECUTED_IMMUTABLE.filter(k => stable(prev[k]) !== stable(c[k])
       && !(SEAL_ACQUIRABLE.has(k) && isEmptyish(prev[k]))
-      && !(migReview && MIG_REVIEW_MAY.has(k)));
+      && !(migReview && MIG_REVIEW_MAY.has(k))
+      /* NOTHING AND AN EMPTY BOX ARE THE SAME THING (the owner's list, 27 Sep
+         2026): a signed record stored without a field the page adds on load
+         (`fields: {}`, `signatures: []`) refused every later save, because
+         absent and empty compared unequal. Both sides empty is no change;
+         any content on either side is still compared as before. */
+      && !(isHollow(prev[k]) && isHollow(c[k])));
     if (changed.length) {
       return res.status(409).json({
         error: `${req.params.id} is executed — ${changed.join(', ')} cannot be changed after signature. Record an amendment instead.`,
@@ -5222,11 +5227,6 @@ const ANTHROPIC_BASE = String(process.env.ANTHROPIC_BASE_URL || 'https://api.ant
    "Models overview" page (https://docs.claude.com): a Haiku-class model for
    FAST and a Sonnet-class model for DEEP. */
 const AI_TIER_DEFAULTS = { fast: 'claude-haiku-4-5-20251001', deep: 'claude-sonnet-5' };
-// Which tier each Copilot endpoint runs on.
-const AI_TASK_TIER = {
-  search: 'fast', graph: 'fast', extract: 'fast', template: 'fast',
-  obligations: 'deep', playbook: 'deep',
-};
 // Basic shape check for an admin-entered model string: non-empty, no
 // whitespace, plausible claude-* id. It does NOT prove the model exists —
 // a well-formed but unknown name is handled at call time (retry-once).
@@ -5243,7 +5243,6 @@ const aiModelForTier = (tier) => {
   if (validModelName(global)) return global.trim();
   return AI_TIER_DEFAULTS[t];
 };
-const aiModelForTask = (task) => aiModelForTier(AI_TASK_TIER[task] || 'fast');
 
 // Does an Anthropic error response mean the model name itself was rejected?
 const isModelRejection = (status, text) => {
@@ -10385,7 +10384,6 @@ function executedPdf(c) {
 }
 
 function executedAttachment(c) {
-  const esc = s => String(s == null ? '' : s).replace(/[&<>]/g, x => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[x]));
   /* THE SIGNED COPY OF RECORD (26 Sep 2026): a contract signed outside HaTi —
      or filed through the old paper door — goes out as the copy that was
      signed, never as the file uploaded at the start. */
@@ -14905,7 +14903,13 @@ function prepTake(budget) {
   if (budget.left <= 0) return false;
   budget.left--; return true;
 }
+/* AN OUTAGE STOPS THE NIGHT, NOT EACH CONTRACT (the owner's list, 27 Sep
+   2026): during a Copilot outage both sweeps called once for every waiting
+   contract. Three failed calls in a row end that sweep for the night and say
+   so (`outage`); one success resets the count. */
+const PREP_OUTAGE_STREAK = 3;
 async function runRenewalPrep(budget) {
+  let streak = 0;
   const out = { looked: 0, prepared: 0, skipped: {} };
   if (!renewalPrepOn()) return { ...out, off: true };
   const key = aiKey();
@@ -14960,9 +14964,9 @@ async function runRenewalPrep(budget) {
         { who: { id: String(owner.id), name: owner.name || String(owner.id) } });
       if (r.ok && !r.resp.truncated) {
         db.prepare('INSERT INTO reminders (rkey,created_at) VALUES (?,?)').run(rkey, now());
-        out.prepared++;
-      } else bump('failed');
-    } catch (e) { bump('failed'); }
+        out.prepared++; streak = 0;
+      } else { bump('failed'); if (++streak >= PREP_OUTAGE_STREAK) { out.outage = true; break; } }
+    } catch (e) { bump('failed'); if (++streak >= PREP_OUTAGE_STREAK) { out.outage = true; break; } }
   }
   return out;
 }
@@ -15006,6 +15010,7 @@ app.post('/api/renewal-prep/run', auth, admin, async (req, res) => res.json(awai
    'Playbook' audit line, which is what the review panel reads for "when" —
    and never on an executed record, which is not a candidate anyway. */
 async function runPlaybookPrep(budget) {
+  let streak = 0;
   const out = { looked: 0, prepared: 0, skipped: {} };
   if (!renewalPrepOn()) return { ...out, off: true };
   const key = aiKey();
@@ -15035,7 +15040,9 @@ async function runPlaybookPrep(budget) {
     try {
       const res = await aiPlaybookVerdicts(key, { text: aiDocText(null, wording), playbook: resolved, kind: copilotContractKind(c) },
         { feature: 'playbook', who: { id: String(owner.id), name: owner.name || String(owner.id) } });
-      if (!res.ok || res.resp.truncated || !Array.isArray(res.verdicts)) { bump('failed'); continue; }
+      if (!res.ok) { bump('failed'); if (++streak >= PREP_OUTAGE_STREAK) { out.outage = true; break; } continue; }
+      streak = 0;
+      if (res.resp.truncated || !Array.isArray(res.verdicts)) { bump('failed'); continue; }
       /* The record the review panel leaves, in the same shape, marked as
          HaTi's own unattended work; re-read the row first so a save made
          while the model was thinking is not overwritten. */
@@ -15048,7 +15055,7 @@ async function runPlaybookPrep(budget) {
         detail: `Playbook review prepared overnight — ${res.verdicts.length} position${res.verdicts.length === 1 ? '' : 's'} checked (Copilot-assisted), charged to ${owner.name || owner.id}` }]);
       db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(cur), r.id);
       out.prepared++;
-    } catch (e) { bump('failed'); }
+    } catch (e) { bump('failed'); if (++streak >= PREP_OUTAGE_STREAK) { out.outage = true; break; } }
   }
   return out;
 }
@@ -15423,7 +15430,6 @@ const ADVICE_DEFAULT_RATES = {
   compliance:  { rate: 9000,  hoursMin: 2, hoursMax: 4, days: 4 },
 };
 const ADVICE_STATUSES = ['Submitted', 'Scoping', 'In Progress', 'Delivered', 'Closed'];
-const ADVICE_ACTIVE = ['Submitted', 'Scoping', 'In Progress'];
 const rlAdvice = rateLimit('advice', 10, 15 * 60 * 1000, { message: 'Too many requests from this connection — please wait a few minutes and try again' });
 
 function adviceRateFor(sid) {
@@ -15743,7 +15749,6 @@ const { DOC_DESIGNS, DESIGN_LOGO_POSITIONS, normalizeDesignBranding,
 /* Same registry, template_fields row shape (options may arrive as a JSON
    string straight from SQLite). Empty is a `required` question, not a type
    question — fieldLibValidate answers it first and separately. */
-const tplValidateValue = (field, value) => fieldLibValidate({ ...field, options: tplParseOptions(field.options) }, value);
 const tplParseOptions = raw => {
   if (Array.isArray(raw)) return raw.map(String);
   try { const v = JSON.parse(raw || '[]'); return Array.isArray(v) ? v.map(String) : []; } catch (_) { return []; }
@@ -16612,12 +16617,18 @@ function tplDocxStructure(bytes) {
 /* The extraction the model reads: one line per element, labelled, in reading
    order. (empty) marks a blank table cell — the shape the detection rules in
    the prompt are written against. */
+const TPL_CONVERT_CHARS = 60000;
 function tplExtractionText(structure) {
+  return tplExtractionFull(structure).slice(0, TPL_CONVERT_CHARS);
+}
+/* The whole text, so the route can tell whether the cut above bit — A CAP IS A
+   FACT, NEVER A SILENT TRIM (the owner's list, 27 Sep 2026). */
+function tplExtractionFull(structure) {
   return structure.map(el => {
     if (el.kind === 'table_row')
       return 'TABLE ROW: ' + el.cells.map(c => c || '(empty)').join(' | ');
     return (el.kind === 'heading' ? 'HEADING: ' : 'PARA: ') + el.text;
-  }).join('\n').slice(0, 60000);
+  }).join('\n');
 }
 
 /* ---------- the PDF route -------------------------------------------------
@@ -16862,7 +16873,6 @@ INPUT FORMAT — THIS DOCUMENT ONLY: ignore the description above of an extracti
    itself; this is the instruction that travels beside it. */
 const TPL_CONVERT_PDF_INSTRUCTION = 'Convert the attached document into template blocks and fields, following the rules in your instructions. Return the result via the propose_template tool only.';
 
-const tplSafeParse = v => { try { return JSON.parse(v); } catch (_) { return null; } };
 function tplConvertClean(input) {
   // Defensive shape-check of the model's structured output. Anything that
   // fails validation is dropped with a note rather than crashing the upload.
@@ -16967,6 +16977,8 @@ app.post('/api/templates/upload', auth, paperMaker, passwordCurrent, rlAiDeep, a
     : tplExtractionText(structure);
 
   let converted = null, errorNote = null, notice = null;
+  if (!isPdf && tplExtractionFull(structure).length > TPL_CONVERT_CHARS)
+    notice = `The document is longer than the converter reads (${TPL_CONVERT_CHARS.toLocaleString('en')} characters); only the first part was converted.`;
   try {
     const out = await anthropicMessages(key, 'deep', {
       max_tokens: 8192,
@@ -16993,7 +17005,7 @@ app.post('/api/templates/upload', auth, paperMaker, passwordCurrent, rlAiDeep, a
           const capped = tplCapScanConfidence(cleaned.fields);
           if (capped) cleaned.problems.push(`${capped} number ${capped === 1 ? 'field was' : 'fields were'} marked for checking because the source was a scan`);
         }
-        if (cleaned.problems.length) notice = cleaned.problems.join(' · ');
+        if (cleaned.problems.length) notice = `${notice ? notice + ' · ' : ''}${cleaned.problems.join(' · ')}`;
         if (out.fellBack) notice = `${notice ? notice + ' · ' : ''}model “${out.rejectedModel}” was rejected; the tier default answered instead`;
       }
     }

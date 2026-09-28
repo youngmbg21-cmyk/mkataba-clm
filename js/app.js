@@ -368,7 +368,6 @@ function paintScrollGutter(view){
    nothing left to put on the title's line. Kept as an EMPTY list rather
    than deleted: it is published on window and named in a comment further
    down, and an empty list cannot put a sentence back. */
-const PAGE_HEAD_INLINE_SUB = [];
 /* ---- THE SHELL BAR NAMES THE PAGE (24 Aug 2026) ----
    The 44px bar carries the page's own name where the brand mark and its
    caption used to sit. It is BORROWED from commandMeta — the same reading the

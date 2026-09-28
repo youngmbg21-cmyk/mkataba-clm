@@ -5,7 +5,7 @@
    c.value, c.fields.value, c.metadata.value, an aggregate — fails the test. */
 const { test, before, after, describe } = require('node:test');
 const assert = require('node:assert/strict');
-const { startHati, seedWorkspace, FOLDER_A, FOLDER_B } = require('./helpers');
+const { startHati, seedWorkspace } = require('./helpers');
 
 /* Every monetary figure in the fixture set, as it would appear in JSON or CSV. */
 const AMOUNTS = ['48000000', '36000000', '85000000', '78000000'];

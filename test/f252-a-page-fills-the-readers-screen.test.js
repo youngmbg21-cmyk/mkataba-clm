@@ -54,7 +54,6 @@ function loadFit(){
     if (APP[i] === '{') depth++;
     else if (APP[i] === '}'){ depth--; if (!depth){ end = i + 1; break; } }
   }
-  // eslint-disable-next-line no-new-func
   return new Function('innerHeight', APP.slice(at, end) + '; return rowsThatFit;')(1000);
 }
 const rowsThatFit = loadFit();

@@ -26,9 +26,10 @@
    actor, which is exactly what the audit assertions read back. */
 const fs = require('node:fs');
 const path = require('node:path');
-const vm = require('node:vm');
 const crypto = require('node:crypto');
-const { JSDOM } = require('jsdom');
+let JSDOM;
+try { ({ JSDOM } = require('jsdom')); }
+catch (_) { throw new Error('The packages are not installed — run "npm install" in the project folder first (jsdom is missing).'); }
 const { runFileInContext } = require('./vmcache');
 
 const ROOT = path.join(__dirname, '..');
@@ -734,7 +735,10 @@ function buildWorld(opts = {}) {
       STREAM_SHORT: win.STREAM_SHORT || {},
       effectiveExpiry: win.effectiveExpiry || (c => (c && c.expiry) || ''),
       expirySource: win.expirySource || (() => null),
-      daysUntil: win.daysUntil || (d => { const t = Date.parse(d + 'T00:00:00'); return isNaN(t) ? 0 : Math.round((t - Date.now()) / 86400000); }),
+      /* CEILED, AS THE PRODUCT'S OWN daysUntil IS (js/views/intelligence.js) —
+         this stand-in ROUNDED, so late in the evening a date 30 days out read
+         29 here and 30 in the product (the owner's list, 27 Sep 2026, T8). */
+      daysUntil: win.daysUntil || (d => { const t = Date.parse(d + 'T00:00:00'); return isNaN(t) ? 0 : Math.ceil((t - Date.now()) / 86400000); }),
       isMonetary: win.isMonetary || (() => true),
       fmtMoneyShort: win.fmtMoneyShort || (v => 'KES ' + Number(v || 0).toLocaleString('en')),
       contractExpired: win.contractExpired || (() => false),
