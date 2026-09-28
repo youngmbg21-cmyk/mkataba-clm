@@ -19871,3 +19871,8 @@ Noticed, not fixed
 
 - BUILT: a reload now brings back the tab, the list's filters and search, the Explorer's picture, the Document tab's reading and the scroll position on every page, not just the page itself; a scroll the reader makes straight after the reload wins. refresh-keeps-your-spot-verify.
 - Noticed, not fixed: negotiations-door-verify still expects "four tabs" on the contract room, which has five; templates-tabs-verify 7c and keeps-your-place-verify stay red as listed in KNOWN_RED.
+
+## 28 Sep 2026 — Explorer on an iPad, and the whole portfolio in every view
+
+- FIXED: on a touch screen the Explorer could stop turning for good after a finger lift the page never heard (every later drag was read as a pinch); two fingers now twist and turn the map, and lifting one of two keeps the other turning. explorer-magnitude-verify 1b–1d.
+- FIXED: the map silently drew only 120 contracts (179 in the book); it now draws up to 300 and says so on its head line when a book is bigger. Floors, Grid and Timeline give every contract its own spot instead of piling them. explorer-magnitude-verify 2a–2d, 3b.

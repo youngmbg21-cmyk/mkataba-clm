@@ -116,7 +116,11 @@ function scanPortfolio(){
    customer / folder / status / value / city…). Uses the server LLM when a
    key is configured; otherwise the built-in interpreter.
    ============================================================ */
-const INTEL_CAP = 120;
+/* The map draws at most this many contracts — the largest by value, matched ones
+   first — and the head line SAYS so when it bites (a cap is a fact, never a
+   silent trim). Was 120, which cut a 179-contract book without a word; 300
+   keeps a turn smooth (measured: 420 contracts turned at 20–30 frames a second). */
+const INTEL_CAP = 300;
 const STATUS_DOT = {'Draft':'var(--st-gray-dot)','Under Review':'var(--st-amber-dot)','Signed':'var(--st-green-dot)','Declined':'var(--st-ruby-dot)'};
 
 /* ============================================================
@@ -2040,6 +2044,11 @@ function buildGraphModel(){
 const SVG_NS='http://www.w3.org/2000/svg';
 const IGB_VIEWS=['brain','wiring','floors','grid','timeline'];
 const IGB_VIEW_WORD={brain:'int_view_brain',wiring:'int_view_wiring',floors:'int_view_floors',grid:'int_view_grid',timeline:'int_view_timeline'};
+/* a twist of this many radians turns the view as far as one pixel of drag */
+const IGB_TWIST=.006;
+const IGB_PITCH_MAX=.16, IGB_TL_DX=.035, IGB_TL_RING=9, IGB_TL_ZS=1.8;
+/* the spots around a date, nearest first: the timeline's crowd packing */
+const IGB_TL_SPOTS=(()=>{ const s=[]; for(let i=-IGB_TL_RING+1;i<IGB_TL_RING;i++) for(let j=-IGB_TL_RING+1;j<IGB_TL_RING;j++) s.push([i,j]); return s.sort((a,b)=>Math.hypot(a[0],a[1])-Math.hypot(b[0],b[1])||Math.abs(a[1])-Math.abs(b[1])); })();
 const IGB_TILT=[.2,.02,.36,.95,.9], IGB_SCALE=[1.3,1.05,.74,1,1], IGB_CY=[.52,.5,.47,.5,.5];
 const IGB_NV=5;   // the views; every weight list carries one per view
 const igbDot=(w,a)=>a.reduce((s,v,i)=>s+v*w[i],0);
@@ -2088,7 +2097,9 @@ function igbBasis(d){ const a=Math.abs(d[1])<.9?[0,1,0]:[1,0,0];
   return [u, [d[1]*u[2]-d[2]*u[1], d[2]*u[0]-d[0]*u[2], d[0]*u[1]-d[1]*u[0]]]; }
 function igbRand(seed){ let s=seed||11; const rnd=()=>(s=(s*16807)%2147483647)/2147483647; return { rnd, gauss:()=>(rnd()+rnd()+rnd()-1.5)/1.5 }; }
 function igbHash(str){ let h=0; const s=String(str); for(let k=0;k<s.length;k++) h=(h*31+s.charCodeAt(k))>>>0; return h; }
-function igbHexA(h,a){ const n=parseInt(String(h).slice(1),16); return 'rgba('+(n>>16)+','+((n>>8)&255)+','+(n&255)+','+Math.max(0,Math.min(1,a))+')'; }
+/* asked for every dot on every frame: the colour is parsed once per hex */
+const _igbRgb=new Map();
+function igbHexA(h,a){ let p=_igbRgb.get(h); if(!p){ const n=parseInt(String(h).slice(1),16); p='rgba('+(n>>16)+','+((n>>8)&255)+','+(n&255)+','; _igbRgb.set(h,p); } return p+Math.max(0,Math.min(1,a))+')'; }
 const igbClamp01=x=>Math.max(0,Math.min(1,x));
 const igbStatusWord=st=>(typeof statusLabel==='function')?statusLabel(st):st;
 function igbTrim(s,n){ s=String(s==null?'':s); return s.length>n?s.slice(0,n-1)+'…':s; }
@@ -2208,12 +2219,24 @@ function igbAxes(G, hubs, order){
      the fact and the columns step aside: every floor spreads its contracts
      across the whole width. */
   if(!intel.groups&&fKey===(cKey||intel.groupBy)){ cols=[{ label:'', col:IGB_OTHER, x:0 }]; kids.forEach(n=>{ n._col=0; }); }
-  const N=cols.length, span=Math.min(3.2,.4*Math.max(1,N-1)), gap=N>1?span/(N-1):.4, cw=Math.min(.08,gap/4);
-  cols.forEach((c,k)=>{ c.x=N>1?-span/2+gap*k:0; });
+  /* EVERY CONTRACT ITS OWN PLACE ON ITS FLOOR (Young, 28 Sep 2026: "brain and
+     wiring seem to show a lot more contracts… the other screens do not seem to
+     show the magnitude of the portfolio"). The columns used to sit 0.4 apart
+     in the middle of a 3.4-wide floor and every cell stacked three abreast, so
+     179 contracts read as a few thin piles. Now the columns share the whole
+     floor and each cell lays its contracts out over its own patch, as square
+     as the patch allows, never closer than the dots need nor further than
+     IGB_PITCH_MAX apart. */
+  const N=cols.length, FW=3.1, gap=FW/Math.max(1,N);
+  cols.forEach((c,k)=>{ c.x=-FW/2+gap*(k+.5); });
   G.cols=cols; G.colKey=N>1?(cKey||intel.groupBy):null; G.floorKey=fKey;
-  const cells={}, wide=N===1;
-  kids.forEach(n=>{ const f=floorOf(n), key=n._col+'|'+f, c=(cells[key]=(cells[key]||0)+1)-1, x=cols[n._col]?cols[n._col].x:0;
-    n.Lt=wide?[-1.5+(c%16)*.2, G.floors[f].y, -.4+Math.floor(c/16)*.14]:[x+((c%3)-1)*cw, G.floors[f].y, -.4+Math.floor(c/3)*.1]; n._floor=f; });
+  const cellsL={};
+  kids.forEach(n=>{ const f=floorOf(n); n._floor=f; (cellsL[n._col+'|'+f]||(cellsL[n._col+'|'+f]=[])).push(n); });
+  const rw=gap*.86, rd=.86;
+  Object.values(cellsL).forEach(list=>{ const n0=list[0], x=cols[n0._col]?cols[n0._col].x:0, y=G.floors[n0._floor].y, k=list.length;
+    const per=Math.max(1,Math.min(k,Math.ceil(Math.sqrt(k*rw/rd)))), rows=Math.ceil(k/per), pitch=Math.min(rw/per, rd/rows, IGB_PITCH_MAX);
+    list.forEach((n,j)=>{ const r=Math.floor(j/per), inRow=r<rows-1?per:k-per*(rows-1);
+      n.Lt=[x+((j%per)-(inRow-1)/2)*pitch, y, (r-(rows-1)/2)*pitch]; }); });
   /* the grid: the same two axes, flat, one cell per pair */
   const gx0=-1.22, gx1=1.6, gz0=-.82, gz1=.86, gcw=(gx1-gx0)/Math.max(1,N), gch=(gz1-gz0)/nf;
   G.grid={ x0:gx0, z0:gz0, cw:gcw, ch:gch, cells:{} };
@@ -2230,9 +2253,21 @@ function igbAxes(G, hubs, order){
   const dated=kids.map(n=>{ const d=igbTimeOf(n.c,tKey); const t=d?Date.parse(d):NaN; return [n,isNaN(t)?null:t]; });
   const ts=dated.map(x=>x[1]).filter(x=>x!=null), t0=ts.length?Math.min(...ts):Date.now(), t1=ts.length?Math.max(...ts):Date.now()+864e5;
   const tx=t=>-1.1+2.45*((t-t0)/Math.max(864e5,t1-t0));
+  /* A crowd on one date is a crowd, not one dot: a contract that would land on
+     another's spot in its lane takes the nearest free spot around its date — a
+     small packed cluster, never wider than the lane — so a quarter-end with
+     forty renewals LOOKS like forty. */
   let undated=0; const laneIx=new Map(lanes.map((h,i)=>[h,i]));
-  dated.forEach(([n,t],j)=>{ const li=n.hub?laneIx.get(n.hub):0, jit=((igbHash(n.id)%100)/100-.5)*.12*(1.56/nl);
-    if(t==null){ undated++; n.Tt=[1.55+((j%3)-1)*.035, 0, ly(li)+jit]; } else n.Tt=[tx(t), 0, ly(li)+jit]; });
+  /* across the lane the plane is seen at an angle, so a step there is drawn
+     shorter than one along it: it is taken IGB_TL_ZS times longer */
+  const laneH=nl>1?1.56/(nl-1):.9, zMax=laneH*.45, S=IGB_TL_DX, SZ=S*IGB_TL_ZS, placed={};
+  const at=dated.map(([n,t])=>{ const li=n.hub?laneIx.get(n.hub):0; return [n,li,t==null?1.55:tx(t),t]; }).sort((a,b)=>(a[1]-b[1])||(a[2]-b[2]));
+  at.forEach(([n,li,x,t])=>{ if(t==null) undated++;
+    const mine=placed[li]||(placed[li]=[]), near=mine.filter(p=>Math.abs(p[0]-x)<S*IGB_TL_RING);
+    let spot=[x,0];
+    for(const [i,j] of IGB_TL_SPOTS){ const ox=x+i*S, oz=j*SZ; if(Math.abs(oz)>zMax) continue;
+      if(!near.some(p=>Math.hypot((p[0]-ox)/S,(p[1]-oz)/SZ)<.95)){ spot=[ox,oz]; break; } }
+    mine.push(spot); n.Tt=[spot[0], 0, ly(li)+spot[1]]; });
   const span2=t1-t0, ticks=[];
   if(ts.length){ const d0=new Date(t0), step=span2>3*365*864e5?12:span2>400*864e5?3:1;
     const d=new Date(d0.getFullYear(), d0.getMonth()-(d0.getMonth()%step), 1);
@@ -2765,6 +2800,7 @@ function updateIntelNote(){
   const shown=act.ids&&act.action==='filter'?act.ids.size:total;
   const bits=[];
   if(act.ids&&act.action==='filter') bits.push(`<b class="text-ink">${igEsc(i18t('int_did_showing',{ n:shown, t:total }))}</b>`);
+  if(shown>INTEL_CAP) bits.push(`<b class="text-ink">${igEsc(i18t('int_map_capped',{ n:INTEL_CAP, t:shown }))}</b>`);
   bits.push(`${i18t('int_grouped_by')} <b class="text-ink">${gb}</b>`);
   if(on.length) bits.push(`<b class="text-brand-700">${on.map(l=>igEsc(l.label)).join(' ∩ ')}</b>${act.action==='filter'?'':` <span class="text-ink/40">${igEsc(i18t('int_did_highlighted',{ n:act.ids?act.ids.size:0, t:total }))}</span>`}`);
   igRecipeSays().forEach(x=>bits.push(igEsc(x)));
@@ -3127,17 +3163,36 @@ function renderIntel(){
      own lesson); the pair reads the LIVE graph and the live flag. */
   const svg=document.getElementById('ig-svg');
   svg.addEventListener('wheel',e=>{ e.preventDefault(); if(!IG) return; igSetZoom(igbCam().zoom*(e.deltaY<0?1.08:1/1.08)); },{passive:false});
+  /* ---- FINGERS (Young, 28 Sep 2026, on an iPad: "all pages in explore have
+     the same issue with trying to rotate and spin the screen") ----
+     Three things a mouse never does. (1) A finger whose lift the page never
+     hears — a system gesture from the screen's edge takes it — stayed in the
+     count, so every later one-finger drag was read as the second finger of a
+     pinch and the map would not turn again until a reload: the FIRST finger
+     of a new touch (isPrimary) now starts the count afresh. (2) Two fingers
+     only zoomed; now they also turn — a twist spins the view, and moving both
+     turns and tips it as one finger does. (3) Lifting one of two fingers left
+     the other doing nothing; it now carries on turning. */
   svg.addEventListener('pointerdown',e=>{ if(!IG) return;
-    const T=window._igTouch||(window._igTouch=new Map()); T.set(e.pointerId,[e.clientX,e.clientY]);
-    if(T.size===2){ const [p,q]=[...T.values()]; window._igPinch={ d:Math.hypot(p[0]-q[0],p[1]-q[1])||1, z:igbCam().zoom }; window._igTurn=null; return; }
+    const T=window._igTouch||(window._igTouch=new Map());
+    if(e.pointerType==='touch'&&e.isPrimary) T.clear();
+    T.set(e.pointerId,[e.clientX,e.clientY]);
+    if(T.size>=2){ const [p,q]=[...T.values()]; window._igPinch={ d:Math.hypot(p[0]-q[0],p[1]-q[1])||1, z:igbCam().zoom, a:Math.atan2(q[1]-p[1],q[0]-p[0]), m:[(p[0]+q[0])/2,(p[1]+q[1])/2] }; window._igTurn=null; return; }
     window._igTurn={ x:e.clientX, y:e.clientY, moved:0 }; IG.dragMoved=false; });
   svg.addEventListener('dblclick',e=>{ e.preventDefault(); igFaceAgain(); });
   svg.addEventListener('dragstart',e=>e.preventDefault());
+  /* Safari's own pinch would zoom the PAGE under the map (the stage's touch-action says the rest) */
+  ['gesturestart','gesturechange'].forEach(k=>svg.addEventListener(k,e=>e.preventDefault(),{passive:false}));
   if(!window._igTurnWired){
     window._igTurnWired=true;
     window.addEventListener('pointermove',e=>{
       const T=window._igTouch; if(T&&T.has(e.pointerId)) T.set(e.pointerId,[e.clientX,e.clientY]);
-      if(window._igPinch&&T&&T.size>=2){ const [p,q]=[...T.values()]; igSetZoom(window._igPinch.z*Math.hypot(p[0]-q[0],p[1]-q[1])/window._igPinch.d); return; }
+      if(window._igPinch&&T&&T.size>=2){ const P=window._igPinch, [p,q]=[...T.values()];
+        igSetZoom(P.z*Math.hypot(p[0]-q[0],p[1]-q[1])/P.d);
+        const a=Math.atan2(q[1]-p[1],q[0]-p[0]), m=[(p[0]+q[0])/2,(p[1]+q[1])/2], da=Math.atan2(Math.sin(a-P.a),Math.cos(a-P.a));
+        const dx=(m[0]-P.m[0])-da/IGB_TWIST, dy=m[1]-P.m[1]; P.a=a; P.m=m;
+        if(IG&&(Math.abs(dx)+Math.abs(dy))>0){ if(!IG.turning){ IG.turning=true; IG.dragMoved=true; IG.hover=null; igPaint(null); igHoverHide(); IG.svg.classList.add('is-turning'); } igTurnBy(dx,dy); }
+        return; }
       const d=window._igTurn; if(!d||!IG) return;
       const dx=e.clientX-d.x, dy=e.clientY-d.y; d.x=e.clientX; d.y=e.clientY; d.moved+=Math.abs(dx)+Math.abs(dy);
       /* A TURN LETS GO OF THE HOVER (Young, 29 Sep 2026: "they seem to get
@@ -3148,6 +3203,8 @@ function renderIntel(){
     });
     const end=e=>{
       const T=window._igTouch; if(T&&e&&e.pointerId!=null) T.delete(e.pointerId); if(!T||T.size<2) window._igPinch=null;
+      /* the finger still down carries on turning from where it is */
+      if(T&&T.size===1&&e&&e.pointerType==='touch'){ const pt=[...T.values()][0]; window._igTurn={ x:pt[0], y:pt[1], moved:5 }; return; }
       window._igTurn=null;
       if(IG&&IG.turning){ IG.turning=false; IG.hover=null; igPaint(null); IG.svg.classList.remove('is-turning'); setTimeout(()=>{ if(IG) IG.dragMoved=false; },50); }
     };
@@ -3164,7 +3221,13 @@ function renderIntel(){
 
   // animation loop (stops when leaving intel — or when the tab is not the map;
   // intelRAF was bumped at the top, so a tab switch retires this loop too)
-  (function loop(){ if(state.view!=='intel'||myRAF!==intelRAF||!IG) return; igTick(); igRender(); requestAnimationFrame(loop); })();
+  /* The physics only SHOWS on the Wiring view; elsewhere it idles at a
+     quarter of the frames — enough to keep its drift alive for the moment the
+     reader turns to the wiring, and a third of each frame back on a big book. */
+  let _igF=0;
+  (function loop(){ if(state.view!=='intel'||myRAF!==intelRAF||!IG) return;
+    const cw=intel.cam&&intel.cam.w; if((cw&&cw[1]>.01)||(_igF++%4===0)) igTick();
+    igRender(); requestAnimationFrame(loop); })();
   setActiveNav('intel');
 }
 
