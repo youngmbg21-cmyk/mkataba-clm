@@ -62,6 +62,50 @@ const deliver = (id, answer, citations) => ({ content: [{ type: 'tool_use', id, 
     await page.evaluate(() => { intel.tab = 'map'; intel.history = []; intel.paper = null; intel.lenses = []; intel.groups = null; setView('intel'); });
     await page.waitForTimeout(1800);
 
+    /* ================= 0. EXPLORER'S ANSWERS ARE FORMATTED, AND ITS BOX WRAPS ==
+       (Young, 28 Sep 2026: Explorer's answers showed "**" round bold words and
+       ran a list into one line; "the question field in copilot does not allow
+       for wrap text".) A portfolio question answered through the graph route,
+       whose sentence was printed as escaped plain text. */
+    ai.script(deliver('tu_md', '**Two contracts renew soon.** The Kabras supply deal renews on 30 Sep and the Nandi milk deal on 12 Oct.\n\n- Kabras: give notice by 1 Sep\n- Nandi: no notice clause', []));
+    await page.fill('#igd-input', 'Which contracts renew soon?');
+    await page.press('#igd-input', 'Enter');
+    await settled();
+    await page.waitForTimeout(500);
+    const md = await page.evaluate(() => {
+      const turns = [...document.querySelectorAll('#igd-feed [data-ig-turn] .ai-bub')];
+      const last = turns[turns.length - 1];
+      const lis = last ? [...last.querySelectorAll('li')] : [];
+      return { text: last ? last.textContent.replace(/\s+/g, ' ').trim() : '',
+        strong: last ? last.querySelectorAll('strong').length : 0, lis: lis.length,
+        disc: lis[0] ? getComputedStyle(lis[0].parentElement).listStyleType : '',
+        twoLines: lis.length === 2 && lis[1].getBoundingClientRect().top > lis[0].getBoundingClientRect().top + 4 };
+    });
+    check('0a an Explorer answer is FORMATTED: bold drawn as bold, no "**" left on the page',
+      md.strong >= 1 && !/\*\*/.test(md.text), JSON.stringify({ strong: md.strong, text: md.text.slice(0, 60) }));
+    check('0b and its list is a list: two bulleted items on two lines', md.lis === 2 && md.disc === 'disc' && md.twoLines,
+      JSON.stringify({ lis: md.lis, disc: md.disc, twoLines: md.twoLines }));
+    const box = await page.evaluate(() => {
+      const t = document.getElementById('igd-input');
+      const h0 = t.getBoundingClientRect().height;
+      t.value = 'What does clause IV.2 mean for us if the goods are lost in transit, and what should we ask Verizon to change before we sign?';
+      if (window.chatFieldGrow) chatFieldGrow(t);
+      const r = t.getBoundingClientRect(), go = document.getElementById('igd-go').getBoundingClientRect();
+      const out = { tag: t.tagName, h0: Math.round(h0), h1: Math.round(r.height), sw: t.scrollWidth, cw: t.clientWidth,
+        goInside: go.right <= r.right + 1 && go.bottom <= r.bottom + 1 && go.top >= r.top - 1 };
+      t.value = ''; if (window.chatFieldGrow) chatFieldGrow(t);
+      out.h2 = Math.round(t.getBoundingClientRect().height);
+      return out; });
+    check('0c the question box WRAPS: a long question grows the box instead of running off its edge, and shrinks back',
+      box.tag === 'TEXTAREA' && box.h1 > box.h0 + 10 && box.sw <= box.cw + 1 && box.h2 <= box.h0 + 1, JSON.stringify(box));
+    check('0d and Ask stays inside the box as it grows', box.goInside, JSON.stringify(box));
+    await page.fill('#igd-input', 'line one');
+    await page.press('#igd-input', 'Shift+Enter');
+    await page.type('#igd-input', 'line two');
+    const nl = await page.evaluate(() => ({ v: document.getElementById('igd-input').value, busy: intel.busy }));
+    check('0e Shift+Enter breaks the line and asks nothing; Enter still asks (0a)', nl.v === 'line one\nline two' && !nl.busy, JSON.stringify(nl));
+    await page.evaluate(() => { const t = document.getElementById('igd-input'); t.value = ''; intel.history = []; renderIntelDock(); });
+
     /* ================= 1. THE CARD, AND THE PRESS ========================== */
     /* The node explain fires a Copilot briefing of its own; it takes the
        stand-in's default answer and the queue stays empty for the real asks. */

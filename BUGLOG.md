@@ -19824,3 +19824,11 @@ Noticed, not fixed
 
 ### Noticed, not fixed
 - Explorer's Copilot panel prints an answer's markdown raw: a scripted answer "**Two contracts renew soon.**" shows its asterisks, and its "- " list items run into one line. The side panel draws the same answer in bold with a list. Not changed.
+
+## 28 Sep 2026 — Roman and lettered clause numbers, Explorer's question box, Explorer's answers
+
+- Fixed (Young): Roman-numeral and lettered clause headings (ARTICLE V, Schedule A, IV., B)) now carry their number — on Explorer's strip, Risk View's clause labels and Plain View's citations; Explorer's question box wraps and grows; Explorer's answers show bold and lists instead of raw ** and run-together lines (the earlier "Noticed, not fixed" line above is closed).
+- Deliberately not changed: a Roman or lettered SUB-clause written as a paragraph ("X.1", "A.2") still rides inside its article, because making it its own clause would re-cut Plain View and Who does what on every contract numbered that way.
+
+### Noticed, not fixed
+- plain-english-verify 10c ("the walk reads it clause for clause, each with the paper's own number") and 17d ("the sealed paper's paragraphs follow the reader's size") fail, and 1f expects "Plain English" where the switch says "Plain View". All three the same on 86260ee; not changed.

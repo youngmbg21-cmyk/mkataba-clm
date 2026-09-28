@@ -1159,10 +1159,17 @@ describe('f277 (13) a heading carries its own number', () => {
     /* INVENTING A NUMBER IS A WRONG CITATION printed beside the agreement,
        which is worse than a missing one. "2026 Annual Review Terms" must not
        become clause 2026, and a bare "1 Scope" is left alone on purpose. */
+    /* RE-POINTED 28 Sep 2026 (Young: "contracts may have alphabetic or roman
+       numeral numbers"): 'Appendix A Fees' was on this list while letters and
+       Roman numerals were deliberately out. It is a numbered appendix now, and
+       the look-alikes that must still be refused take its place. */
     for (const t of ['Definitions', '2026 Annual Review Terms', '1 Scope of supply',
-                     '2026. Annual Review', 'Appendix A Fees', '']) {
+                     '2026. Annual Review', 'A Note on Terms', 'I Agree to the terms',
+                     'V.A.T. Registration', 'U.S. Operations', 'Part of the Agreement', '']) {
       assert.equal(win._docReadHeadNum(t), '', `"${t}" was read as a numbered clause`);
     }
+    assert.equal(win._docReadHeadNum('Appendix A Fees'), 'A');
+    assert.equal(win._docReadHeadNum('ARTICLE V: Standard of Care'), 'V');
   });
 
   test('13e the section heading carries its own number — the fault', () => {

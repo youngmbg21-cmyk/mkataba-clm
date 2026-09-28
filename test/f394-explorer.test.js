@@ -150,7 +150,11 @@ describe('f394 (5) the Ask button keeps its place in the box', () => {
     assert.ok(rel > 0 && fix > rel, 'the fix is written after the rule it outranks');
     assert.doesNotMatch(HTML.slice(fix, fix + 60), /!important/);
   });
-  test('[control] the Ask button still asks for its place with the utility it always carried', () => {
-    assert.match(IG, /id="igd-go" class="ui-btn ui-btn-sm ui-btn-primary absolute right-\[18px\] top-1\/2 -translate-y-1\/2"/);
+  /* RE-POINTED 28 Sep 2026 (Young: "the question field in copilot does not
+     allow for wrap text"): the box grows now, so Ask sits at its FOOT, placed
+     inline (the generated sheet holds no new arbitrary classes); it still asks
+     for its place with `absolute`, which is what the fix above serves. */
+  test('[control] the Ask button still asks for its place with `absolute`, at the foot of a box that grows', () => {
+    assert.match(IG, /id="igd-go" class="ui-btn ui-btn-sm ui-btn-primary absolute" style="right:18px;bottom:20px"/);
   });
 });

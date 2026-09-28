@@ -1164,8 +1164,17 @@ function intelGraphApply(q, res, opts){
   if(opts.capped&&opts.capped.total>opts.capped.sent) parts.push(i18t('int_did_capped',{ n:opts.capped.sent, t:opts.capped.total }));
   let line=parts.map(igEsc).join(' · ');
   const own=String(res.answer||'').trim();
-  if(!line) line=igEsc(own||res.note||'Done.');
-  else if(graphSaysMore(own,res.note,parts[0])) line+='<br>'+igEsc(own);
+  /* ---- COPILOT'S OWN SENTENCE IS FORMATTED, NOT PRINTED RAW (Young, 28 Sep
+     2026: Explorer's answers showed "**" round bold words and ran a list into
+     one line, where the side panel drew the same answer properly) ----
+     The model writes markdown; this line escaped it as plain text. It now goes
+     through aiRichText — the side panel's own renderer, which escapes before
+     it formats — and the dock carries the side panel's answer styles. The
+     counts composed above stay plain words, as before. */
+  const rich=typeof aiRichText==='function';
+  const ownHtml=own?(rich?aiRichText(own):igEsc(own)):'';
+  if(!line) line=own?ownHtml:igEsc(res.note||'Done.');
+  else if(graphSaysMore(own,res.note,parts[0])) line+=(rich?'':'<br>')+ownHtml;
   intel.history.push({ role:'assistant', text:line, cardIds:(ids||[]).slice(0,5) });
   return { refused:false, groupBy, ids };
 }
@@ -3762,8 +3771,14 @@ function renderIntelDock(){
       ${''/* THE BOX SAYS WHICH CONTRACT IT ASKS ABOUT (26 Sep 2026): the reader's
              own switch, read back on the control that carries it — never a
              line above it. The cost of a question rides the hover. */}
-      <input id="igd-input" placeholder="${igEsc(igAskPlaceholder())}" title="${igEsc(igAskCost())}" class="w-full rounded-xl border border-inputln bg-white pl-3.5 pr-16 py-2.5 text-[13px] outline-none focus:border-brand-600 focus:ring-[3px] focus:ring-[rgba(11,122,95,.1)] transition"/>
-      <button id="igd-go" class="ui-btn ui-btn-sm ui-btn-primary absolute right-[18px] top-1/2 -translate-y-1/2">${i18t('int_ask')}</button>
+      ${''/* A BOX THAT WRAPS (Young, 28 Sep 2026: "the question field in copilot
+             does not allow for wrap text"): the one composer on the product that
+             was a single-line <input>, so a question the strip wrote ran off its
+             right edge. It is now the chat-field every other composer is — it
+             grows with its words up to its cap, Enter asks, Shift+Enter breaks
+             the line — and Ask sits at its foot, where a growing box keeps it. */}
+      <textarea id="igd-input" rows="1" placeholder="${igEsc(igAskPlaceholder())}" title="${igEsc(igAskCost())}" class="chat-field w-full rounded-xl border border-inputln bg-white pl-3.5 pr-16 py-2.5 text-[13px] outline-none focus:border-brand-600 focus:ring-[3px] focus:ring-[rgba(11,122,95,.1)] transition" style="display:block"></textarea>
+      <button id="igd-go" class="ui-btn ui-btn-sm ui-btn-primary absolute" style="right:18px;bottom:20px">${i18t('int_ask')}</button>
     </div>`;
   const feed=document.getElementById('igd-feed'); feed.scrollTop=feed.scrollHeight;
   // charts in dock answers come back to life after every repaint
@@ -3776,13 +3791,15 @@ function renderIntelDock(){
   /* The » widen button went on 27 Sep 2026 — the divider beside the panel is
      the one way to set its width (igWireSplit). */
   if(_keep){ const n=document.getElementById('igd-input'); if(n){ n.value=_keep; if(_focus){ try{ n.focus(); }catch(_){ } } } }
+  if(window.chatFieldWire) chatFieldWire(dock);
   /* A question is only taken out of the box when it is really asked: while an
      answer is still coming it stays where it was typed (see above). */
   const go=()=>{ const inp=document.getElementById('igd-input'); const v=inp.value;
     if(!String(v||'').trim()||intel.busy) return;
-    inp.value=''; intelAsk(v); };
+    inp.value=''; if(window.chatFieldGrow) chatFieldGrow(inp); intelAsk(v); };
   document.getElementById('igd-go').addEventListener('click',go);
-  document.getElementById('igd-input').addEventListener('keydown',e=>{ if(e.key==='Enter') go(); });
+  document.getElementById('igd-input').addEventListener('keydown',e=>{
+    if(window.chatFieldSubmits ? chatFieldSubmits(e) : (e.key==='Enter'&&!e.shiftKey&&(e.preventDefault(),true))) go(); });
   dock.querySelectorAll('[data-igsug]').forEach(b=>b.addEventListener('click',()=>intelAsk(b.getAttribute('data-igsug'))));
   document.getElementById('igd-clear')?.addEventListener('click',()=>{ intel.lenses=[]; intel.groups=null; rebuildIntelGraph(); renderIntelDock(); });
   // lens chips: toggle / remove / hover-trace
@@ -4231,7 +4248,10 @@ function igStrandTopMark(row){
 }
 const igStrandPoint = m => m ? String(m.lead||m.say||'').trim().replace(/[.\s]+$/,'') : '';
 function igStrandQuestion(row){
-  const clause=(typeof docXrayLabel==='function')?docXrayLabel(row):String((row&&row.name)||'');
+  /* A CLAUSE WITH NO NAME OF ITS OWN IS CITED BY ITS NUMBER ALONE — never
+     "4.2 This clause", which is the panel's placeholder, not the paper's. */
+  const clause=(row&&!row.name&&row.cite)?String(row.cite).replace(/\.$/,'')
+    :(typeof docXrayLabel==='function')?docXrayLabel(row):String((row&&row.name)||'');
   const m=igStrandTopMark(row), point=igStrandPoint(m);
   return (m&&point)?i18t('int_strip_q',{ clause, tag:m.tag||'', point }):i18t('int_strip_q_bare',{ clause });
 }
@@ -4248,6 +4268,7 @@ function igStrandPress(sp, b, i){
   if(had.trim() && had!==_igStrandLastAsk) return;
   const q=igStrandQuestion(row);
   inp.value=q; _igStrandLastAsk=q;
+  if(window.chatFieldGrow) chatFieldGrow(inp);
   try{ inp.focus({ preventScroll:true }); inp.setSelectionRange(q.length,q.length); }catch(_){}
 }
 function igStrandTip(b){

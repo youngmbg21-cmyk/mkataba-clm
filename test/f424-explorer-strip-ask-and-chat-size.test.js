@@ -72,3 +72,44 @@ test('f424 (5) every new word is in both books', () => {
     'int_strip_more_other', 'int_grade_ruby', 'int_grade_amber', 'int_grade_steel'])
     assert.equal((I18N.match(new RegExp('\\n    ' + k + ': ', 'g')) || []).length, 2, k);
 });
+
+/* ---------------------------------------------------------------- (6)
+   ROMAN AND LETTERED NUMBERS (Young, 28 Sep 2026: "the clause numbers when in
+   roman numeral numbers they do not appear in the dna strand so review the
+   logic because contracts may have alphabetic or roman numeral numbers").
+   Walked on a real sheet, through the one reading every surface shares. */
+test('f424 (6) a Roman or lettered clause carries its number onto its block; look-alikes do not; X.1 rides in its article', () => {
+  const { buildWorld } = require('./world');
+  const win = buildWorld({ contractView: true }).win; const d = win.document;
+  const root = d.createElement('div'); d.body.appendChild(root);
+  root.innerHTML = '<h2>ARTICLE V: STANDARD OF CARE</h2><p>The Operator shall exercise reasonable care in storing Goods at all times.</p>'
+    + '<h2>PART A: Definitions</h2><p>Words used in this Agreement have the meanings given here.</p>'
+    + '<h2>IV. Term</h2><p>This Agreement runs for twelve months from the start date.</p>'
+    + '<p>X.1 Definition of Confidential Information. Means any data disclosed.</p>'
+    + '<h2>A Note on Terms</h2><p>Nothing here is numbered.</p>'
+    + '<p>I am a sentence about U.S. dollars paid monthly.</p>';
+  const c = { id: 'MK-R', name: 'Roman' };
+  const rows = win.docXrayRows(c, root);
+  assert.deepEqual(Array.from(rows, r => String(r.cite)), ['V', 'A', 'IV', ''], JSON.stringify(rows.map(r => [r.cite, r.name])));
+  assert.ok(/Definition of Confidential Information/.test(rows[2].row.text), 'a Roman sub-clause stays inside its article, as before');
+  rows.forEach(r => { r.tone = 'amber'; });   /* every clause on the map, whatever this stage's scan placed */
+  const html = win.docXraySpineHtml(rows, { numbers: true });
+  for (const n of ['V', 'A', 'IV'])
+    assert.ok(html.includes(`<span class="doc-xr-num">${n}</span>`), n + ' is drawn on its block');
+  assert.ok(!/doc-xr-num">(I|U)</.test(html), '"I am…" and "U.S." are never numbers');
+});
+
+/* ---------------------------------------------------------------- (7)
+   EXPLORER'S ANSWERS ARE FORMATTED, AND ITS BOX WRAPS (Young, 28 Sep 2026).
+   Behaviour in a browser: analyze-on-the-graph-verify 0a–0e. */
+test('f424 (7) the graph answer goes through the side panel\'s renderer, the dock has its styles, and the box is a chat-field', () => {
+  const g = code(region(IG, 'intelGraphApply'));
+  assert.match(g, /aiRichText\(own\)/);
+  assert.doesNotMatch(g, /'<br>'\+igEsc\(own\)/, 'the raw-escaped sentence is gone');
+  assert.match(HTML, /#igd-feed ul\.ai-list\{list-style:disc\}/);
+  assert.match(HTML, /#igd-feed \.ai-p\{margin:0 0 \.5em\}/);
+  assert.match(IG, /<textarea id="igd-input" rows="1"[^>]*class="chat-field /);
+  assert.doesNotMatch(IG, /<input id="igd-input"/);
+  assert.match(code(region(IG, 'renderIntelDock')), /chatFieldSubmits\(e\)/);
+  assert.match(code(region(IG, 'igStrandPress')), /chatFieldGrow\(inp\)/, 'a filled question opens the box to fit');
+});

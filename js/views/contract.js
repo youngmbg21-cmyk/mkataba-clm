@@ -10939,6 +10939,12 @@ const DOC_READ_TXT_NUM='.doc-t-n';
    own is as likely to be a list item or a sentence opening with a figure. This
    only ever ADDS anchors — a document with no numbered paragraphs walks exactly
    as it did — which is what makes it safe on paper nobody has seen. */
+/* The Roman numerals a HEADING's number may be (I to LXXXIX) — see
+   DOC_READ_HEAD_NUM. The paragraph rule above stays digits only: a sub-clause
+   such as "X.1" rides inside its article's row, because making it a row of its
+   own would re-cut Plain View and Who does what on every contract numbered
+   that way (28 Sep 2026, said to the owner). */
+const DOC_READ_ROMAN='(?=[IVXL])(?:XL|L?X{0,3})(?:IX|IV|V?I{0,3})';
 const DOC_READ_NUM=/^\s*(\d+(?:\.\d+)+)[.)]?\s+\S/;
 const _docReadNumOf=el=>{
   const m=DOC_READ_NUM.exec(String(el&&el.textContent||''));
@@ -10967,10 +10973,23 @@ const _docReadNumOf=el=>{
    word before it, that word must be taken from the paper's own heading — never
    hardcoded as "Clause", or "ARTICLE 5" is cited as clause 5.
 
-   Roman numerals and non-English self-naming words (Klausul, Artikel, Bilaga)
-   are deliberately out; both are logged. */
-const DOC_READ_HEAD_NUM=
-  /^\s*(?:(?:clause|article|section|schedule|annex|appendix|part)\s+(\d+(?:\.\d+)*)[.):]?|(\d+(?:\.\d+)+)[.)]?|(\d{1,2})[.)])\s+\S/i;
+   Non-English self-naming words (Klausul, Artikel, Bilaga) are still out.
+
+   ROMAN NUMERALS AND LETTERS ARE IN (Young, 28 Sep 2026, above DOC_READ_NUM):
+   "ARTICLE V: Standard of Care", "Schedule A — Fees", "Part II", "IV. Term",
+   "B) Scope", "V.2 Notices". The same two guards as a number: after a
+   self-naming word, or followed by a full stop or bracket — so "A Note on
+   Terms", "I Agree" and "V.A.T. Registration" are never read as numbered.
+   Roman numerals I to LXXXIX; `exhibit` joins the self-naming words. */
+const _DOC_READ_SELF='(?:clause|article|section|schedule|annex|appendix|exhibit|part)';
+const DOC_READ_HEAD_NUM=new RegExp('^\\s*(?:'
+  +_DOC_READ_SELF+'\\s+(\\d+(?:\\.\\d+)*)[.):]?'
+  +'|(\\d+(?:\\.\\d+)+)[.)]?'
+  +'|(\\d{1,2})[.)]'
+  +'|'+_DOC_READ_SELF+'\\s+((?:'+DOC_READ_ROMAN+'|[A-Z])(?:\\.\\d+)*)[.):]?'
+  +'|((?:'+DOC_READ_ROMAN+'|[A-Z])(?:\\.\\d+)+)[.)]?'
+  +'|('+DOC_READ_ROMAN+'|[A-Z])[.)]'
+  +')\\s+\\S','i');
 /* ONE READING OF A HEADING'S NUMBER AND ITS NAME, because the two are printed
    in different places — the number as a citation in its own gutter, the name
    beside it — and cutting the string twice is how the same heading comes to be
@@ -10979,7 +10998,7 @@ const _docReadHeadCut=t=>{
   const src=String(t||'').replace(/\s+/g,' ').trim();
   const m=DOC_READ_HEAD_NUM.exec(src);
   if(!m) return {num:'',rest:src};
-  const num=m[1]||m[2]||m[3]||'';
+  const num=m[1]||m[2]||m[3]||m[4]||m[5]||m[6]||'';
   /* The match ends one character INTO the name (it requires a non-space after
      the number), so the cut is one short of the match. */
   return {num,rest:src.slice(Math.max(0,m[0].length-1)).trim()};
@@ -11006,10 +11025,19 @@ const _docReadHeadNum=t=>_docReadHeadCut(t).num;
    hash of exactly what it was sent. Fold the dot into it and every contract
    already read pays for one deep call that returns an identical reading. So it
    travels as its own field and the sent shape does not move by a byte. */
+/* THE NUMBER IS FOUND AS A WHOLE TOKEN FIRST (28 Sep 2026): a lettered
+   citation's letter can also sit inside the word before it ("PART A" — the A
+   of PART), which a plain indexOf finds first and reads the wrong character
+   after. `_docReadTokAt` answers where the token starts, or -1. */
+const _docReadTokAt=(s,n)=>{
+  try{ const m=new RegExp('(^|[^A-Za-z0-9])'+n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?![A-Za-z0-9])').exec(s);
+    return m?m.index+m[1].length:-1; }catch(_){ return -1; }
+};
 const _docReadSepOf=(src,num)=>{
   const s=String(src==null?'':src), n=String(num==null?'':num);
   if(!n) return '';
-  const i=s.indexOf(n);
+  let i=_docReadTokAt(s,n);
+  if(i<0) i=s.indexOf(n);
   if(i<0) return '';
   const ch=s.charAt(i+n.length);
   return /[.):]/.test(ch)?ch:'';

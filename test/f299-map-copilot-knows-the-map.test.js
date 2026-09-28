@@ -175,14 +175,18 @@ test('f299 (5) the owner\'s own failure: custom with an empty map on "cluster by
 test('f299 (5b) Copilot\'s sentence rides as a second line only where it says something the numbers do not', () => {
   const win = world();
   win.intelGraphApply('group by status', { groupBy: 'status', note: 'By status', answer: 'Regrouped the graph.' });
-  assert.ok(!/<br>/.test(last(win).text), 'a restatement is not printed');
+  /* RE-POINTED 28 Sep 2026 (Young: Explorer's answers showed "**" and ran
+     lists together): Copilot's sentence is FORMATTED now (aiRichText), so it
+     rides as its own paragraph rather than after a <br>. Same rule: only where
+     it says something the numbers do not. */
+  assert.ok(!/<br>|<p/.test(last(win).text), 'a restatement is not printed');
   win.intelGraphApply('group by status', { groupBy: 'status', note: 'By status', answer: 'MK-3 and MK-6 are the drafts still to send.' });
-  assert.match(last(win).text, /^Grouped 6 contracts into 3 groups by status<br>MK-3 and MK-6 are the drafts still to send\.$/);
+  assert.match(last(win).text, /^Grouped 6 contracts into 3 groups by status<p class="ai-p">MK-3 and MK-6 are the drafts still to send\.<\/p>$/);
   // a filter line: showing N of T · label, and the cap is a fact
   win.eval('intel.lenses=[]; intel.groupBy="folder";');
   win.intelGraphApply('leases', { visibleIds: ['MK-1', 'MK-2'], note: 'Leases', action: 'filter', answer: 'Two leases, MK-1 the larger.' }, { capped: { sent: 600, total: 700 } });
   assert.equal(win.eval('intel.lenses.length'), 1);
-  assert.equal(last(win).text, 'Showing 2 of 6 · Leases · Copilot read the first 600 of 700 contracts<br>Two leases, MK-1 the larger.');
+  assert.equal(last(win).text, 'Showing 2 of 6 · Leases · Copilot read the first 600 of 700 contracts<p class="ai-p">Two leases, MK-1 the larger.</p>');
   win.eval('intel.lenses=[]');
   win.intelGraphApply('which expire soon', { visibleIds: ['MK-2'], note: 'Expiring', action: 'highlight', answer: '' });
   assert.match(last(win).text, /^Highlighted 1 of 6 · Expiring$/);

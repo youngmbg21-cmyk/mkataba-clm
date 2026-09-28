@@ -10182,6 +10182,23 @@
 #ai-feed .ai-table th,#ai-feed .ai-table td{border:1px solid var(--color-divider);padding:var(--s-1) 7px;text-align:left}
 #ai-feed .ai-table th{background:var(--color-bg);font-weight:var(--w-strong)}
 #ai-feed hr{border:0;border-top:1px solid var(--color-divider);margin:.6em 0}
+/* THE SAME ANSWER STYLES IN EXPLORER'S PANEL (28 Sep 2026). Its answers go
+   through the same renderer as the side panel's, but these rules were written
+   for #ai-feed alone, so a list in Explorer drew no bullets and its
+   paragraphs no gaps. The copy is scoped to the dock's feed. */
+#igd-feed .ai-p{margin:0 0 .5em}
+#igd-feed .ai-p:last-child{margin-bottom:0}
+#igd-feed .ai-h{font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-card);margin:.7em 0 .3em}
+#igd-feed .ai-list{margin:.3em 0 .5em;padding-left:1.15rem}
+#igd-feed ul.ai-list{list-style:disc}
+#igd-feed ol.ai-list{list-style:decimal}
+#igd-feed .ai-list li{margin:.15em 0}
+#igd-feed .ai-quote{border-left:2px solid var(--color-divider);padding-left:.65rem;margin:.4em 0;color:var(--color-neutral-700)}
+#igd-feed .ai-table-wrap{overflow-x:auto;margin:.45em 0}
+#igd-feed .ai-table{width:100%;border-collapse:collapse;font-size:var(--t-meta)}
+#igd-feed .ai-table th,#igd-feed .ai-table td{border:1px solid var(--color-divider);padding:var(--s-1) 7px;text-align:left}
+#igd-feed .ai-table th{background:var(--color-bg);font-weight:var(--w-strong)}
+#igd-feed hr{border:0;border-top:1px solid var(--color-divider);margin:.6em 0}
 /* THE PASSAGE A REPHRASE IS ABOUT, shown rather than remembered. The drawer
    covers the right of the screen and the reader is about to type a sentence
    about wording they can no longer necessarily see, so the wording comes with
