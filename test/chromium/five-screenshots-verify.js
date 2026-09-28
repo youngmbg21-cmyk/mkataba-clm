@@ -118,49 +118,49 @@ const drive = async (page, fn, arg, fallback) => {
     await drive(page, () => { intelGoTab('friction'); }, undefined, null);
     await pause(1600);
 
+    /* ---- RE-POINTED IN PLACE 28 Sep 2026: THE OWNER'S LATER RULING ----
+       "Clause Ledger": the four KPI cards became a strip of SIX figures, and a
+       figure with a list behind it is a DOOR onto that list now (Home's own
+       rule, which the 19 Sep note said none of those four could meet). What
+       these checks were really measuring survives: every figure is drawn on a
+       white ground in a container with an edge and a corner, one ground across
+       all of them (no verdict colour), the label leads — and a figure with NO
+       list behind it (the average, the decision time) still promises no press. */
     const fr = await drive(page, () => {
       const host = document.getElementById('ig-friction');
-      const cards = Array.from(document.querySelectorAll('.igf-kpi'));
+      const strip = document.querySelector('.igf-led-strip');
+      const cards = Array.from(document.querySelectorAll('.igf-led-fig'));
       const box = el => { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el);
         return { w: Math.round(r.width), h: Math.round(r.height), x: Math.round(r.x), y: Math.round(r.y),
-          bg: cs.backgroundColor, border: cs.borderTopWidth + ' ' + cs.borderTopColor,
-          side: cs.borderLeftWidth, radius: cs.borderTopLeftRadius,
-          tag: el.tagName, label: (el.querySelector('.igf-kpi-t') || {}).textContent,
-          n: (el.querySelector('.igf-kpi-n') || {}).textContent };
+          bg: cs.backgroundColor, key: el.getAttribute('data-igf-fig'),
+          tag: el.tagName, label: (el.querySelector('.igf-led-lbl') || {}).textContent,
+          n: (el.querySelector('.igf-led-n') || {}).textContent };
       };
+      const scs = strip ? getComputedStyle(strip) : null;
       return { drawn: !!host && host.getBoundingClientRect().height > 0,
         n: cards.length, cards: cards.map(box),
-        grid: cards.length ? getComputedStyle(cards[0].parentElement).display : null };
-    }, undefined, { drawn: false, n: 0, cards: [], grid: null });
+        strip: scs ? { side: scs.borderLeftWidth, radius: scs.borderTopLeftRadius } : null };
+    }, undefined, { drawn: false, n: 0, cards: [], strip: null });
 
-    check('1a CONTROL — the friction brief draws off a real negotiation',
+    check('1a CONTROL — the friction page draws off a real negotiation',
       fr.drawn === true && seeded.deals > 0, `${seeded.deals} deals, ${seeded.filed} changes filed`);
-    /* EVERY FIGURE THE PAGE HAS IS A CARD — the page's own rule is that an
-       absent reading draws nothing, so the count is what the book supports and
-       is reported rather than assumed. */
-    check('1b every figure the page has is drawn as a card', fr.n >= 2, `${fr.n} cards`);
-    /* A CARD IS A BOX WITH AN EDGE. At the parent these were bare divs in a
-       2-column grid — no background, no border, no corner. */
-    const boxed = (fr.cards || []).filter(c =>
-      /rgb\(255, 255, 255\)/.test(c.bg) && parseFloat(c.side) >= 1 && parseFloat(c.radius) >= 1);
-    check('1c every one is a real box — white, edged, cornered', boxed.length === fr.n && fr.n > 0,
-      `${boxed.length} of ${fr.n}`);
-    /* THE TONE EDGE, and ONE colour across all four: HaTi holds no target for
-       any of these readings, so none of them earns a verdict tone. */
-    const tops = [...new Set((fr.cards || []).map(c => c.border))];
-    check('1d one 3px tone edge, the same on every one', tops.length === 1 && /^3px/.test(tops[0] || ''),
-      tops.join(' | '));
-    /* `every` on an empty list is true, so each of these says CARDS EXIST as
-       well as what is true of them — or a build that draws none of them passes
-       the two claims under the one that caught it. */
+    check('1b every figure the page has is drawn in the strip — six of them', fr.n === 6, `${fr.n} figures`);
+    const white = (fr.cards || []).filter(c => /rgb\(255, 255, 255\)/.test(c.bg));
+    check('1c every one sits on white, in a strip with an edge and a corner',
+      fr.n > 0 && white.length === fr.n && !!fr.strip && parseFloat(fr.strip.side) >= 1 && parseFloat(fr.strip.radius) >= 1,
+      `${white.length} of ${fr.n} white · ${JSON.stringify(fr.strip)}`);
+    /* `every` on an empty list is true, so each of these says FIGURES EXIST as
+       well as what is true of them. */
+    const tones = [...new Set((fr.cards || []).map(c => c.bg))];
+    check('1d one ground across all six — no verdict colour on a cell', fr.n > 0 && tones.length === 1, tones.join(' | '));
     check('1e the label leads and the figure follows',
       (fr.cards || []).length > 0
         && fr.cards.every(c => (c.label || '').trim().length > 3 && (c.n || '').trim().length > 0),
       (fr.cards || []).map(c => (c.label || '').trim() + '=' + (c.n || '').trim()).join(' · '));
-    /* NOT A BUTTON — no door exists behind any of these four. */
-    check('1f and none of them promises a press',
-      (fr.cards || []).length > 0 && fr.cards.every(c => c.tag === 'DIV'),
-      (fr.cards || []).map(c => c.tag).join(','));
+    const tagOf = k => ((fr.cards || []).find(c => c.key === k) || {}).tag;
+    check('1f a figure with no list behind it promises no press; the book count is a door onto its list',
+      tagOf('rounds') === 'DIV' && tagOf('decide') === 'DIV' && tagOf('deals') === 'BUTTON',
+      (fr.cards || []).map(c => c.key + ':' + c.tag).join(','));
     await page.screenshot({ path: path.join(OUT, '01-friction-kpis.png') });
 
     /* ═══════════ 2 · BIGGEST BY CONTRACTED VALUE IS NOT PAINTED ═══════════ */

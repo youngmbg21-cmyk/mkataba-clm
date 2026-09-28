@@ -6561,48 +6561,145 @@
   @media (max-width:1439px){ .rp-stats{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));} }
   @media (max-width:1099px){ .rp-charts{grid-template-columns:minmax(0,1fr);} }
 
-  /* Insights — negotiation-friction split (was 1fr 1.15fr) */
-  .igf-split{grid-template-columns:1fr 1.15fr;}
-  /* ---- ON A BIG MONITOR THE SURPLUS GOES TO THE EVIDENCE, NOT TO A GAP ----
-     (owner-reported 29 Aug 2026, third of three screenshots.) The left column
-     is PROSE and caps at 78ch for the reason written beside it — a line past
-     about 80 characters measurably slows reading down — but its TRACK went on
-     growing with the card, so past about 1500px the reader got a column of
-     text with 300px of dead white beside it and the tables squeezed. Capping
-     the track at the same measure hands that surplus to the evidence column,
-     which can use it. Wide screens only: at a laptop width the two columns
-     already share the room sensibly and nothing here moves. */
-  @media (min-width:1500px){ .igf-split{grid-template-columns:minmax(0,78ch) minmax(0,1fr);} }
-  @media (max-width:1099px){ .igf-split{grid-template-columns:minmax(0,1fr);} }
-  /* ---- THE FOUR FIGURES ARE KPI CARDS (Young ruled it 19 Sep 2026) ----
-     "Make the highlighted KPIs to be KPI cards." They were four label-under-
-     figure pairs in a bare 2×2 grid at the foot of the brief's prose column —
-     the only figures on the page with no container of their own, reading as a
-     footnote to the three sentences above them rather than as the four numbers
-     the page is about.
-     THEY WEAR .hm-tile's DRESS, which is what "KPI card" means in this
-     product: pure white surface, a divider hairline, the platform's 2px
-     corner, a 3px tone edge on top, and the label above the figure.
-     ONE EDGE COLOUR, AND THE ACCENT IS THE ONE. Home cycles four tones BY
-     POSITION, which is decoration there and would be a claim here: ruby is
-     this product's word for "this is against you", and landing it on "our
-     asks / their asks accepted" because that reading happens to be third would
-     be a verdict with nothing behind it. HaTi holds no target for any of these
-     four, so it cannot say whether a given value is good — so none of them
-     gets a verdict colour.
-     AND THEY ARE NOT BUTTONS. Home's rule is that a card opens the list that
-     would change its number; none of these four has a list, so a card that
-     looked pressable would be a dead press. */
-  .igf-kpis{ display:grid; gap:var(--s-2);
-    grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr)); margin-top:var(--s-3); }
-  .igf-kpi{ background:var(--color-surface); border:1px solid var(--color-divider);
-    border-top:3px solid var(--color-accent-600); border-radius:var(--radius);
-    padding:var(--s-3) 13px; min-width:0; }
-  .igf-kpi .igf-kpi-t{ display:block; font-size:var(--t-label); font-weight:var(--w-strong);
-    color:var(--color-neutral-600); line-height:1.35; }
-  .igf-kpi .igf-kpi-n{ display:block; margin-top:5px; font-size:var(--t-section);
-    font-weight:var(--w-title); letter-spacing:-.01em; font-variant-numeric:tabular-nums;
-    color:var(--color-text); line-height:1.2; }
+  /* ---- INSIGHTS, NEGOTIATION FRICTION: THE CLAUSE LEDGER (owner-picked 28 Sep 2026) ----
+     Replaces the brief's two-column split and its four KPI cards. Copilot's
+     read keeps its own strip inside a card of its own; under it a strip of
+     six figures, then one ranked list with a details panel beside it. Every
+     value is a token; the figures are the page's own label-over-value grammar.
+     A figure with a list behind it is a BUTTON onto that list and says so on
+     hover; one without (an average, a median of decisions) is a div. */
+  .igf-led-card{ background:var(--color-surface); border:1px solid var(--color-divider);
+    border-radius:var(--radius-lg); min-width:0; }
+  .igf-led-cop{ overflow:hidden; margin-bottom:var(--s-3); }
+  /* The read's own strip drew a rule under itself when it sat on top of the
+     report in one card; alone in its card that rule would double the edge. */
+  .igf-led-cop #igf-copilot{ border-bottom:0; }
+  .igf-led-lbl{ display:block; font-size:var(--t-micro); font-weight:var(--w-strong); letter-spacing:.08em;
+    text-transform:uppercase; color:var(--color-neutral-600); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .igf-led-strip{ display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:1px; background:var(--color-divider);
+    border:1px solid var(--color-divider); border-radius:var(--radius-lg); overflow:hidden; margin-bottom:var(--s-3); }
+  .igf-led-fig{ display:block; width:100%; min-width:0; background:var(--color-surface); border:0; padding:10px 14px;
+    text-align:left; font:inherit; color:inherit; position:relative; }
+  .igf-led-fig .igf-led-n{ display:block; font-size:var(--t-page); font-weight:var(--w-title); line-height:1.3;
+    letter-spacing:-.01em; font-variant-numeric:tabular-nums; color:var(--color-text); }
+  .igf-led-fig .igf-led-s{ display:block; font-size:var(--t-meta); color:var(--color-neutral-600);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  button.igf-led-fig{ cursor:pointer; }
+  button.igf-led-fig:hover{ background:var(--surface-2); }
+  button.igf-led-fig.on{ background:color-mix(in srgb,var(--color-accent) 7%,var(--color-surface));
+    box-shadow:inset 0 -2px 0 var(--accent-fill); }
+  button.igf-led-fig:focus-visible{ outline:2px solid var(--accent-solid); outline-offset:-2px; }
+  .igf-led .is-amber{ color:var(--st-amber-fg); }
+  .igf-led-cost{ color:var(--st-ruby-fg); font-weight:var(--w-strong); }
+  .igf-led-gain{ color:var(--st-green-fg); font-weight:var(--w-strong); }
+  .igf-led-zero{ color:var(--color-neutral-500); font-variant-numeric:tabular-nums; }
+  .igf-led-grid{ display:grid; grid-template-columns:minmax(0,1.25fr) minmax(0,1fr); gap:var(--s-3); align-items:start; }
+  .igf-led-grid.is-solo{ grid-template-columns:minmax(0,1fr); }
+  .igf-led-list{ padding:var(--s-3) var(--s-4) var(--s-3); }
+  .igf-led-ch{ display:flex; align-items:center; flex-wrap:wrap; gap:6px 10px; margin-bottom:var(--s-2); }
+  .igf-led-ch > b{ font-size:var(--t-card); font-weight:var(--w-title); color:var(--color-text); }
+  .igf-led-sub{ font-size:var(--t-meta); color:var(--color-neutral-600); min-width:0; }
+  /* The lens switch is the Contracts page's own segment control (.reg-seg),
+     re-dressed by SCOPE in one respect: its lit half is a white face in a grey
+     well, never the accent fill — the one filled button in this area is
+     Copilot's "Interpret these numbers", and a second fill beside it would
+     read as a second primary act. */
+  .reg-seg.igf-led-seg{ margin-left:auto; align-self:center; background:var(--surface-2); padding:2px; gap:2px; }
+  .reg-seg.igf-led-seg button{ border-radius:var(--radius); }
+  .reg-seg.igf-led-seg button + button{ border-left:0; }
+  .reg-seg.igf-led-seg button.on{ background:var(--color-surface); color:var(--color-text); box-shadow:0 0 0 1px var(--color-divider); }
+  .igf-led-cnt{ margin-left:4px; font-size:var(--t-micro); font-variant-numeric:tabular-nums; color:var(--color-neutral-500); }
+  .reg-seg.igf-led-seg button.on .igf-led-cnt{ color:var(--color-neutral-600); }
+  .igf-led-table td.igf-led-nw{ white-space:nowrap; }
+  .igf-led-refon{ display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .igf-led-scroll{ overflow-x:auto; }
+  .igf-led-table{ width:100%; border-collapse:collapse; font-size:var(--t-body); }
+  .igf-led-table th{ text-align:left; font-size:var(--t-micro); font-weight:var(--w-strong); letter-spacing:.08em;
+    text-transform:uppercase; color:var(--color-neutral-600); padding:6px 8px; border-bottom:1px solid var(--color-divider); white-space:nowrap; }
+  .igf-led-table td{ height:40px; padding:4px 8px; border-bottom:1px solid var(--color-divider); color:var(--color-text); vertical-align:middle; }
+  .igf-led-table .r{ text-align:right; font-variant-numeric:tabular-nums; }
+  .igf-led-table tbody tr{ cursor:pointer; }
+  .igf-led-table tbody tr:hover td{ background:var(--surface-2); }
+  .igf-led-table tbody tr.is-sel td{ background:color-mix(in srgb,var(--color-accent) 7%,var(--color-surface)); }
+  .igf-led-table tbody tr.is-sel td:first-child{ box-shadow:inset 3px 0 0 var(--accent-fill); }
+  .igf-led-table tbody tr:focus-visible{ outline:2px solid var(--accent-solid); outline-offset:-2px; }
+  .igf-led-name{ font-weight:var(--w-strong); color:var(--color-text); }
+  .igf-led-rsub{ font-size:var(--t-meta); color:var(--color-neutral-600); font-weight:var(--w-body); }
+  .igf-led-barcell{ display:flex; align-items:center; gap:8px; min-width:180px; }
+  .igf-led-track{ position:relative; flex:1 1 110px; max-width:220px; height:6px; border-radius:var(--radius);
+    background:var(--color-neutral-100); overflow:visible; }
+  .igf-led-track > span{ display:block; height:100%; border-radius:var(--radius); background:var(--accent-fill); }
+  .igf-led-track.is-mini{ flex:none; width:84px; }
+  .igf-led-w{ width:34px; text-align:right; font-variant-numeric:tabular-nums; }
+  .igf-led-barcell .igf-led-rsub{ white-space:nowrap; }
+  .igf-led-tick{ position:absolute; top:-3px; bottom:-3px; width:2px; margin-left:-1px; background:var(--color-text); font-style:normal; }
+  .igf-led-chip{ display:inline-block; padding:1px 7px; border-radius:var(--radius); font-size:var(--t-meta);
+    font-weight:var(--w-strong); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .igf-led-chip.is-amber{ background:var(--st-amber-bg); color:var(--st-amber-fg); }
+  .igf-led-chip.is-green{ background:var(--st-green-bg); color:var(--st-green-fg); }
+  .igf-led-foot{ margin-top:var(--s-2); font-size:var(--t-meta); color:var(--color-neutral-600); line-height:1.5; }
+  .igf-led-none{ font-size:var(--t-meta); color:var(--color-neutral-600); }
+  .igf-led-none.is-list{ padding:var(--s-4) 0; }
+  .igf-led-detail{ padding:var(--s-3) var(--s-4) var(--s-4); position:sticky; top:0; }
+  .igf-led-dh{ display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:6px 14px; }
+  .igf-led-dh-t{ min-width:0; }
+  .igf-led-dname{ margin:2px 0 0; font-size:var(--t-section); font-weight:var(--w-title); letter-spacing:-.01em; color:var(--color-text); }
+  /* A panel's one door is the product's own text button (.ui-link, the
+     Compact ladder's rule 10); this only places it level with the name. */
+  .ui-link.igf-led-door{ margin-top:14px; }
+  .igf-led-dfigs{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1px; background:var(--color-divider);
+    border:1px solid var(--color-divider); border-radius:var(--radius); overflow:hidden; margin:var(--s-3) 0 4px; }
+  .igf-led-dfigs > div{ background:var(--color-surface); padding:8px 10px; min-width:0; }
+  .igf-led-dn{ font-size:var(--t-section); font-weight:var(--w-title); line-height:1.35; font-variant-numeric:tabular-nums; color:var(--color-text); }
+  .igf-led-dn.igf-led-cost{ color:var(--st-ruby-fg); }
+  .igf-led-ds{ font-size:var(--t-micro); color:var(--color-neutral-600); line-height:1.4; }
+  .igf-led-dsec{ padding-top:var(--s-3); margin-top:var(--s-3); border-top:1px solid var(--color-divider); }
+  .igf-led-dsh{ display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 8px; margin-bottom:var(--s-2); }
+  .igf-led-dsh b{ font-size:var(--t-body); font-weight:var(--w-title); color:var(--color-text); }
+  .igf-led-dsh span{ font-size:var(--t-meta); color:var(--color-neutral-600); }
+  .igf-led-askrow{ display:grid; grid-template-columns:78px minmax(0,1fr) 104px; gap:10px; align-items:center; margin-bottom:8px; }
+  .igf-led-askname{ font-size:var(--t-meta); font-weight:var(--w-strong); color:var(--color-text); }
+  .igf-led-asksay{ font-size:var(--t-meta); color:var(--color-neutral-600); font-variant-numeric:tabular-nums; }
+  .igf-led-asksay b{ color:var(--color-text); font-weight:var(--w-strong); }
+  .igf-led-stack{ position:relative; display:flex; height:14px; border-radius:var(--radius); background:var(--color-neutral-100); overflow:visible; }
+  .igf-led-stack > i{ display:block; height:100%; }
+  .igf-led-stack > i:first-child{ border-radius:var(--radius) 0 0 var(--radius); }
+  .igf-led-stack > i:nth-child(2){ border-radius:0 var(--radius) var(--radius) 0; }
+  .igf-led-acc{ background:var(--accent-fill); }
+  .igf-led-ref{ background:var(--color-neutral-300); }
+  .igf-led-legend{ display:flex; flex-wrap:wrap; gap:4px 14px; font-size:var(--t-meta); color:var(--color-neutral-600); }
+  .igf-led-legend span{ display:inline-flex; align-items:center; gap:5px; }
+  .igf-led-legend i{ display:inline-block; width:10px; height:10px; border-radius:var(--radius); }
+  .igf-led-legend i.igf-led-lgtick{ width:2px; height:12px; border-radius:0; background:var(--color-text); }
+  .igf-led-rows{ display:block; }
+  .igf-led-row{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; align-items:center; width:100%;
+    padding:6px 6px; margin:0 -6px; border:0; border-top:1px solid var(--color-divider); background:none; font:inherit;
+    font-size:var(--t-body); color:inherit; text-align:left; cursor:pointer; box-sizing:content-box; }
+  .igf-led-row:first-child{ border-top:0; }
+  .igf-led-row:hover{ background:var(--surface-2); }
+  .igf-led-row.is-bar{ grid-template-columns:minmax(0,1fr) 84px 52px; }
+  .igf-led-row.is-bar .igf-led-rsub{ text-align:right; }
+  .igf-led-row.is-static{ cursor:default; }
+  .igf-led-row.is-static:hover{ background:none; }
+  .igf-led-rname{ font-weight:var(--w-strong); color:var(--color-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+  .igf-led-bytable{ width:100%; border-collapse:collapse; font-size:var(--t-body); }
+  .igf-led-bytable th{ text-align:left; font-size:var(--t-micro); font-weight:var(--w-strong); letter-spacing:.08em;
+    text-transform:uppercase; color:var(--color-neutral-600); padding:4px 6px; border-bottom:1px solid var(--color-divider); }
+  .igf-led-bytable td{ padding:6px; border-bottom:1px solid var(--color-divider); color:var(--color-text); }
+  .igf-led-bytable .r{ text-align:right; font-variant-numeric:tabular-nums; }
+  @media (max-width:1100px){ .igf-led-strip{ grid-template-columns:repeat(3,minmax(0,1fr)); } }
+  /* The list and its panel stack where the two cannot both hold their columns:
+     measured, at 1100 the list lost its last column to a sideways scroll. */
+  @media (max-width:1279px){
+    .igf-led-grid{ grid-template-columns:minmax(0,1fr); }
+    .igf-led-detail{ position:static; }
+  }
+  @media (max-width:720px){
+    .igf-led-strip{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .igf-led-dfigs{ grid-template-columns:minmax(0,1fr); }
+    .igf-led-barcell{ min-width:130px; }
+    .igf-led-barcell .igf-led-rsub{ display:none; }
+  }
   /* The Insights caption is a whole sentence. Given a second line it stays
      whole; below 900 there is no line to give it, and a sentence cut off
      mid-word says less than no sentence — the tab beside it already names the
@@ -9562,7 +9659,7 @@
      paper, its marks and the seal keep their literal 0 (the 26 Aug ruling,
      untouched). Written at one class and later in source; a card that clips
      inside a parent (.st-att .st-rows at 0) keeps its own answer. */
-  .blueprint.bp-round,.sec-box,.hm-tile,.hm-rows,.obw-card,.kt-tri,.st-rows,.dir-card,.igf-kpi,.q-card,.pipe-col,.cal-card,.ik-card{border-radius:var(--radius-lg);}
+  .blueprint.bp-round,.sec-box,.hm-tile,.hm-rows,.obw-card,.kt-tri,.st-rows,.dir-card,.q-card,.pipe-col,.cal-card,.ik-card{border-radius:var(--radius-lg);}
 
   /* ---- THE SECOND PASS (21 Sep 2026): the crumb in the bar, the foot ----
      The bar's #shell-title becomes a crumb row on the two pages that show one

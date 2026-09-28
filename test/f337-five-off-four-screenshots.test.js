@@ -68,63 +68,55 @@ const ruleFor = (src, sel) => {
 /* ══════════════════════════════════════════════════════════════════════════
    1 — THE FOUR FIGURES ARE KPI CARDS
    ══════════════════════════════════════════════════════════════════════════ */
-describe('f337 (1) — the friction figures are KPI cards', () => {
+/* ---- RE-POINTED IN PLACE 28 Sep 2026: THE OWNER'S LATER RULING ----
+   He picked "Clause Ledger" for this page off the Insights design options and
+   said build. The four KPI cards became part of a strip of SIX figures across
+   the top, and three of those figures now HAVE a list behind them — so the 19
+   Sep claim "they are not buttons, no door exists" is REVERSED for those three
+   (a figure with a list is a door onto it, Home's own rule), and stands for the
+   two that have none (the average and the decision time). What these claims
+   were really about survives: the dress is a stylesheet rule, the label leads
+   the figure, no verdict colour on a figure HaTi holds no target for, and the
+   readings are all still there. The whole-book acceptance moved beside the
+   bars it is the ruler for (the clause panel's "Whole book" line). f430 pins
+   the ledger itself. */
+describe('f337 (1) — the friction figures (a strip of six since 28 Sep 2026)', () => {
+  const figBody = () => fnBody(INTEL, 'intelFrictionLedgerHtml');
   test('the dress is a stylesheet rule, not another run of inline style', () => {
-    /* The whole point of the ask is that these look like the product's own KPI
-       cards. A second set of literals in intelligence.js could not follow
-       .hm-tile the next time it is retuned. */
-    assert.ok(HTML.includes('.igf-kpis{'), 'the grid is a rule');
-    assert.ok(HTML.includes('.igf-kpi{'), 'and so is the card');
-    assert.match(INTEL, /class="igf-kpi"/, 'the builder names the class');
-    assert.match(INTEL, /class="igf-kpis"/, 'and the grid');
+    assert.ok(HTML.includes('.igf-led-strip{'), 'the strip is a rule');
+    assert.ok(HTML.includes('.igf-led-fig{'), 'and so is each figure');
+    assert.match(INTEL, /class="igf-led-fig/, 'the builder names the class');
+    assert.match(figBody(), /igf-led-strip/, 'and the strip');
   });
-  test('it wears .hm-tile\'s own four declarations', () => {
-    const card = ruleFor(HTML, '.igf-kpi{');
-    const tile = ruleFor(HTML, '.hm-tile{');
-    for (const d of ['background:var(--color-surface)', 'border:1px solid var(--color-divider)',
-                     'border-top:3px solid', 'border-radius:var(--radius)'])
-      assert.ok(card.replace(/\s+/g, ' ').includes(d),
-        'the KPI card carries the tile\'s ' + d);
-    assert.ok(tile.replace(/\s+/g, ' ').includes('background:var(--color-surface)'),
-      'CONTROL — and that is what the tile itself says, so the two are one dress');
-  });
-  test('ONE edge colour, and no verdict tone among them', () => {
-    /* Home cycles four tones BY POSITION, which is decoration there and would
-       be a claim here: ruby is this product's word for "this is against you"
-       and there is no target behind any of these four to earn it. */
-    const card = ruleFor(HTML, '.igf-kpi{');
-    assert.match(card, /border-top:3px solid var\(--color-accent-600\)/, 'the accent, once');
-    assert.ok(!/ruby|amber|green/.test(card),
+  test('no verdict tone on the figure cells themselves', () => {
+    const cell = ruleFor(HTML, '.igf-led-fig{');
+    assert.ok(cell.length > 0, 'the rule is there');
+    assert.ok(!/ruby|amber|green/.test(cell),
       'no colour saying good or bad on a figure HaTi holds no target for');
   });
-  test('and they are not buttons — no door exists behind them', () => {
-    /* Home's rule is that a card opens the list that would change its number.
-       None of these four has a list, so a card that looked pressable would be
-       a dead press. */
-    const at = INTEL.indexOf('const mini=(n,t)=>');
-    assert.ok(at > 0, 'the builder is there');
-    const body = INTEL.slice(at, at + 400);
-    assert.ok(!/<button/.test(body), 'a div, not a button');
-    assert.ok(!/data-igf|onclick|cursor:pointer/.test(body), 'and nothing that promises a press');
+  test('a figure is a door only where a list stands behind it', () => {
+    const at = INTEL.search(/function _igfFig\(/);
+    assert.ok(at > 0, 'the one figure builder is there');
+    const body = INTEL.slice(at, at + 600);
+    assert.match(body, /o\.go\?'button':'div'/, 'a button where there is a list, a div where there is none');
+    const b = figBody();
+    assert.ok(!/_igfFig\('rounds'[^)]*\{go:/.test(b), 'the average has no list and is no door');
+    assert.ok(!/_igfFig\('decide'[^)]*go:/.test(b.slice(b.indexOf("_igfFig('decide'"), b.indexOf("_igfFig('round1'"))),
+      'nor is the decision time');
   });
-  test('the same four readings, in the same order, with the same labels', () => {
-    /* WALL. The ask was about the DRESS. A re-dress that quietly drops a
-       figure or re-words a label is a different change. */
-    const at = INTEL.indexOf('const minis=');
-    const body = INTEL.slice(at, at + 1200);
-    for (const lab of ['median to signature', 'median decision time',
-                       'our asks / their asks accepted', 'signed within round 1'])
-      assert.ok(body.includes(lab), 'still says: ' + lab);
-    assert.ok(body.indexOf('median to signature') < body.indexOf('median decision time')
-      && body.indexOf('median decision time') < body.indexOf('our asks / their asks accepted')
-      && body.indexOf('our asks / their asks accepted') < body.indexOf('signed within round 1'),
-      'in the order they were in');
-    assert.match(body, /st\.medianDays!=null/, 'and an absent reading still draws no card');
+  test('the old four readings are all still drawn, beside two more', () => {
+    const b = figBody();
+    for (const k of ['igf_led_f_tosign', 'igf_led_f_decide', 'igf_led_f_round1', 'igf_led_f_deals',
+                     'igf_led_f_rounds', 'igf_led_f_open'])
+      assert.ok(b.includes(k), 'still says: ' + k);
+    assert.match(b, /st\.medianDays!=null/, 'an absent reading prints a dash, never a guess');
+    assert.match(fnBody(INTEL, 'intelFrictionDetailHtml'), /igf_led_lg_book/,
+      'our asks / their asks accepted across the book is the clause panel\'s ruler now');
   });
-  test('the label leads and the figure follows, as on the tile', () => {
-    const at = INTEL.indexOf('const mini=(n,t)=>');
-    const body = INTEL.slice(at, at + 400);
-    assert.ok(body.indexOf('igf-kpi-t') < body.indexOf('igf-kpi-n'),
+  test('the label leads and the figure follows', () => {
+    const at = INTEL.search(/function _igfFig\(/);
+    const body = INTEL.slice(at, at + 600);
+    assert.ok(body.indexOf('igf-led-lbl') < body.indexOf('igf-led-n'),
       'label above value — the tile\'s own order');
   });
 });

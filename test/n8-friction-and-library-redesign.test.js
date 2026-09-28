@@ -4,6 +4,8 @@
    you down" in three act-on-it sentences — costliest clause, refused changes
    nobody withdrew (named, not just counted), slowest counterparty — and the
    right column keeps the evidence with colour never carrying meaning alone.
+   (Since 28 Sep 2026 the page is the Clause Ledger — see section 2's note
+   and f430; the stats claims in sections 1 and 4 are unchanged.)
    The Templates page is a LIBRARY: a rail of kinds and streams, one dense
    table, every old verb still reachable. */
 const { test, describe } = require('node:test');
@@ -57,23 +59,29 @@ describe('N8 (1) — the stats behind the brief', () => {
   });
 });
 
-describe('N8 (2) — the brief itself', () => {
-  test('the left column answers in sentences with a verb on each', () => {
+/* RE-POINTED IN PLACE 28 Sep 2026 — the owner picked "Clause Ledger" for this
+   page and said build. The brief's three written sentences went (they were
+   hard-coded English and said facts the list now shows as its first rows);
+   what these two claims were really pinning survives, and is asked of the
+   ledger instead: the costliest clause leads with its door to Our standards,
+   a refused change opens its contract, a counterparty holds the page, and a
+   cost is a printed figure, never a colour alone. f430 pins the rest. */
+describe('N8 (2) — the page itself (the Clause Ledger since 28 Sep 2026)', () => {
+  test('the costliest clause leads, and every detail carries its door', () => {
     const html = frictionStage(PORTFOLIO).intelFrictionHtml();
-    assert.match(html, /What is slowing you down/);
-    assert.match(html, /of negotiations get stuck on <b>Payment terms<\/b>/);
-    assert.match(html, /data-igf-standards/, 'the clause link goes to Our standards');
-    assert.match(html, /data-igf-deadlocks/, '"see the N" unfolds the deadlocks');
-    assert.match(html, /data-igf-open="MK-1"/, 'each deadlock opens its contract');
-    assert.match(html, /Filter the page to Naivas/);
-    assert.match(html, /median to signature/);
+    assert.match(html, /Where negotiations get stuck/);
+    const first = /<tr data-igf-row="([^"]+)"/.exec(html);
+    assert.ok(first && first[1] === 'Payment terms', 'the clause costing the most extra rounds is the first row: ' + (first && first[1]));
+    assert.match(html, /data-igf-standards/, 'the clause panel opens Our standards');
+    assert.match(html, /data-igf-open="MK-1"/, 'a refused change still open opens its contract');
+    assert.match(html, /data-igf-cp="Naivas"/, 'who contested it holds the page to that counterparty');
+    assert.match(html, /To signature/);
   });
 
   test('colour never carries meaning alone: every extra-rounds figure is printed', () => {
     const html = frictionStage(PORTFOLIO).intelFrictionHtml();
     assert.match(html, /\+\d\.\d/, 'a cost is printed as +N.N beside its bar');
-    assert.match(html, /click a row to filter the page/);
-    assert.match(html, /data-igf-cp="Naivas"/, 'the table row is the filter control');
+    assert.match(html, /press a name to hold the page to them/);
   });
 
   test('an empty book says so in words, not an empty grid', () => {

@@ -3044,19 +3044,11 @@ function renderIntel(){
       if(!Object.keys(intel.frictionFilter).length) intel.frictionFilter=null;
       intelRepaint();
     }));
-    /* The brief's own verbs (WO friction redesign): the clause link opens Our
-       standards; "See the six" unfolds the named deadlocks in place; any
-       counterparty — hero link or table row — filters the page to them; a
-       deadlock row opens its contract. */
-    document.querySelector('[data-igf-standards]')?.addEventListener('click',()=>setView('playbook'));
-    document.querySelector('[data-igf-deadlocks]')?.addEventListener('click',()=>{
-      document.getElementById('igf-deadlist')?.classList.toggle('hidden'); });
-    document.querySelectorAll('[data-igf-open]').forEach(b=>b.addEventListener('click',e=>{
-      e.stopPropagation(); openWorkspace(b.getAttribute('data-igf-open')); }));
-    document.querySelectorAll('[data-igf-cp]').forEach(el=>el.addEventListener('click',()=>{
-      intel.frictionFilter={...(intel.frictionFilter||{}), counterparty:el.getAttribute('data-igf-cp')};
-      intelRepaint();
-    }));
+    /* The ledger's own doors (Clause Ledger, 28 Sep 2026): a lens, a row, a
+       figure, Our standards, a negotiation, a counterparty to hold the page
+       to. ONE delegated listener on the scroller — the ledger repaints under
+       it on every press. Copilot's read keeps its own two ids, as before. */
+    intelFrictionWire(document.getElementById('ig-friction'));
     intelFrictionWireAI();
     setActiveNav('intel');
     return;
@@ -3283,6 +3275,15 @@ function intelFrictionStats(filter){
   let deals=0, roundsSum=0, deadlocks=0, openedThisMonth=0;
   let oursAcc=0, oursRej=0, theirsAcc=0, theirsRej=0;
   let signed=0, signedRound1=0;
+  /* THE CLAUSE LEDGER'S READINGS (owner-picked 28 Sep 2026). Plain counts off
+     the same walk, collected BESIDE the old ones and never instead of them:
+     every field this function returned before still means what it meant, so
+     Copilot's snapshot, the health report and the Explorer's hub read on
+     unchanged. Nothing new calls a name that initialises a negotiation — the
+     walk below is the one it always was. */
+  const dealRows=[]; const dealIds=[]; const daysIds=[]; const round1Ids=[];
+  const clauseKey=lbl=>{ const k=_igClauseName(lbl||''); if(!k) return null;
+    const label=k.length>44?k.slice(0,44):k; return {label, kk:label.toLowerCase()}; };
   const monthKey=iso=>String(iso||'').slice(0,7);
   const thisMonth=monthKey(new Date().toISOString());
   for(const c of list){
@@ -3300,12 +3301,16 @@ function intelFrictionStats(filter){
     const cpKey=String(c.counterparty||'').trim()||'(no counterparty)';
     if(!cps.has(cpKey)) cps.set(cpKey,{name:cpKey,deals:0,rounds:0,acc:0,rej:0});
     const cp=cps.get(cpKey); cp.deals++; cp.rounds+=rounds;
+    const row={ id:c.id, name:String(c.name||c.id), cp:cpKey, round:rounds,
+      signed:false, days:null, declined:c.status==='Declined',
+      keys:new Set(), open:new Map() /* clause key → {label, ours, theirs}: refused and never withdrawn */ };
+    dealRows.push(row); dealIds.push(c.id);
     if(c.execution&&c.execution.at){
-      signed++;
-      if(((c.negotiation.rounds&&c.negotiation.rounds.length)||0)<=1) signedRound1++;
+      signed++; row.signed=true;
+      if(((c.negotiation.rounds&&c.negotiation.rounds.length)||0)<=1){ signedRound1++; round1Ids.push(c.id); }
       if(c.negotiation.startedAt){
         const d=(new Date(c.execution.at)-new Date(c.negotiation.startedAt))/86400000;
-        if(isFinite(d)&&d>=0) days.push(d);
+        if(isFinite(d)&&d>=0){ days.push(d); row.days=d; daysIds.push(c.id); }
       }
     }
     const labels=new Set();
@@ -3314,6 +3319,23 @@ function intelFrictionStats(filter){
       const k=_igClauseName(ch.clauseLabel||ch.headingText||'');
       if(k) labels.add(k.length>44?k.slice(0,44):k);
       const ours=ch.authorSide==='owner';
+      /* The ledger's per-clause counts: how each side's asks ended on this
+         clause, and what is refused and still open on it, deal by deal. The
+         same definitions as the book-wide figures beside them (a refusal is a
+         refusal whether or not it was later withdrawn; "still open" is one
+         that was not), so a clause's bar and the book's tick are one ruler. */
+      const ck=clauseKey(ch.clauseLabel||ch.headingText||'');
+      if(ck){
+        if(!per.has(ck.kk)) per.set(ck.kk,{label:ck.label,ids:new Set(),asks:{ours:{acc:0,rej:0},theirs:{acc:0,rej:0}}});
+        const pe=per.get(ck.kk); row.keys.add(ck.kk);
+        if(ch.status==='accepted') pe.asks[ours?'ours':'theirs'].acc++;
+        if(ch.status==='rejected') pe.asks[ours?'ours':'theirs'].rej++;
+      }
+      if(ch.status==='rejected'&&!ch.withdrawn){
+        const ok=ck?ck.kk:'';
+        if(!row.open.has(ok)) row.open.set(ok,{label:ck?ck.label:'',ours:0,theirs:0});
+        row.open.get(ok)[ours?'ours':'theirs']++;
+      }
       if(ch.status==='accepted'){ ours?oursAcc++:theirsAcc++; if(ours) cp.acc++; }
       if(ch.status==='rejected'){
         ours?oursRej++:theirsRej++; if(ours) cp.rej++;
@@ -3335,7 +3357,7 @@ function intelFrictionStats(filter){
          The LABEL is the report's own spelling of it, so whichever arrived
          first the row reads the same. */
       const kk=k.toLowerCase();
-      if(!per.has(kk)) per.set(kk,{label:k,ids:new Set()});
+      if(!per.has(kk)) per.set(kk,{label:k,ids:new Set(),asks:{ours:{acc:0,rej:0},theirs:{acc:0,rej:0}}});
       per.get(kk).ids.add(c.id);
     }
   }
@@ -3368,158 +3390,376 @@ function intelFrictionStats(filter){
     .map(cp=>({name:cp.name, deals:cp.deals, avgRounds:cp.rounds/cp.deals,
       acceptUs:(cp.acc+cp.rej)?cp.acc/(cp.acc+cp.rej):null}))
     .sort((a,b)=>b.avgRounds-a.avgRounds)[0]:null;
-  return { deals, openedThisMonth, avgRounds: deals?roundsSum/deals:0,
+  const out={ deals, openedThisMonth, avgRounds: deals?roundsSum/deals:0,
     avgDays: days.length?avg(days):null, medianDays: median(days),
     oursAcceptShare:(oursAcc+oursRej)?oursAcc/(oursAcc+oursRej):null,
     theirsAcceptShare:(theirsAcc+theirsRej)?theirsAcc/(theirsAcc+theirsRej):null,
     deadlocks, deadlockList, medianDecisionMs:median(decideMs),
     round1Share: signed?signedRound1/signed:null, signed,
     clauses: ranked, counterparties, slowest, insight };
+  out.ledger=intelFrictionLedgerData({ per, cps, dealRows, dealRounds, ranked, avg,
+    dealIds, daysIds, round1Ids, avgRounds:out.avgRounds, signedN:days.length });
+  return out;
 }
-/* THE FRICTION PAGE, AS A BRIEF (redesign to the approved comp).
+/* THE CLAUSE LEDGER, COUNTED (owner-picked 28 Sep 2026, "Clause Ledger").
+   intelFrictionStats walks the book once and hands its tallies here; this
+   shapes them into the three lists the page reads — clauses, counterparties,
+   and the negotiations waiting on a decision — and the facts each detail
+   prints. PLAIN COUNTS OFF THE TRACKED CHANGES, NO SCORE, and no drawing: the
+   renderer prints what this returns and works nothing out of its own.
+   THE CLAUSE LIST IS THE SAME EIGHT NAMES st.clauses CARRIES (the most
+   contested), ordered here by the extra rounds they cost — so Copilot's
+   snapshot, the health report and this page never disagree about which
+   clauses are on it. */
+function intelFrictionLedgerData(t){
+  const { per, cps, dealRows, dealRounds, ranked, avg } = t;
+  const byId=new Map(dealRows.map(r=>[r.id,r]));
+  const cpDeals=new Map(); for(const r of dealRows) cpDeals.set(r.cp,(cpDeals.get(r.cp)||0)+1);
+  const openSum=r=>{ let n=0; for(const o of r.open.values()) n+=o.ours+o.theirs; return n; };
+  const noAsks=()=>({ours:{acc:0,rej:0},theirs:{acc:0,rej:0}});
+  /* Waiting on a decision: every negotiation carrying a refused change nobody
+     withdrew — the population the "refused, still open" figure counts, named
+     in full rather than capped (deadlockList stops at twelve for the prompt). */
+  const waiting=dealRows.filter(r=>r.open.size).map(r=>{
+    let ours=0, theirs=0; for(const o of r.open.values()){ ours+=o.ours; theirs+=o.theirs; }
+    return { id:r.id, name:r.name, cp:r.cp, round:r.round, n:ours+theirs,
+      theyRefusedOurs:ours, weRefusedTheirs:theirs,
+      byClause:[...r.open.values()].map(o=>({label:o.label, ours:o.ours, theirs:o.theirs, n:o.ours+o.theirs}))
+        .sort((a,b)=>b.n-a.n) };
+  }).sort((a,b)=>b.n-a.n||b.round-a.round);
+  const clauses=ranked.map(cl=>{
+    const kk=cl.label.toLowerCase(); const e=per.get(kk)||{ids:new Set(),asks:noAsks()};
+    const withR=[], without=[];
+    for(const [id,r] of dealRounds) (e.ids.has(id)?withR:without).push(r);
+    const openDeals=dealRows.filter(r=>r.open.has(kk)).map(r=>{ const o=r.open.get(kk);
+      return { id:r.id, name:r.name, cp:r.cp, round:r.round, n:o.ours+o.theirs }; }).sort((a,b)=>b.n-a.n);
+    const byCp=new Map(); for(const id of e.ids){ const r=byId.get(id); if(r) byCp.set(r.cp,(byCp.get(r.cp)||0)+1); }
+    const by=[...byCp].map(([name,n])=>({name, n, of:cpDeals.get(name)||n}))
+      .sort((a,b)=>b.n/b.of-a.n/a.of||b.n-a.n||a.name.localeCompare(b.name));
+    return { label:cl.label, n:cl.n, share:cl.share, extra:cl.extra,
+      withAvg:withR.length?avg(withR):null, withoutAvg:without.length?avg(without):null,
+      ours:{...e.asks.ours}, theirs:{...e.asks.theirs},
+      open:openDeals.reduce((s,d)=>s+d.n,0), openDeals, by };
+  }).sort((a,b)=>(b.extra==null?-1e9:b.extra)-(a.extra==null?-1e9:a.extra)||b.n-a.n);
+  const listed=new Set(clauses.map(c=>c.label.toLowerCase()));
+  const outside=new Map();
+  for(const r of dealRows) for(const [kk,o] of r.open) if(!listed.has(kk)){
+    const w=outside.get(kk)||{label:o.label,n:0}; w.n+=o.ours+o.theirs; outside.set(kk,w); }
+  const allCps=[...cps.values()].map(cp=>{
+    const rows=dealRows.filter(r=>r.cp===cp.name);
+    const cls=new Map();
+    for(const r of rows) for(const kk of r.keys){ const e=per.get(kk); if(!e) continue;
+      cls.set(kk,{label:e.label, n:(cls.has(kk)?cls.get(kk).n:0)+1}); }
+    return { name:cp.name, deals:cp.deals, avgRounds:cp.deals?cp.rounds/cp.deals:0,
+      acceptUs:(cp.acc+cp.rej)?cp.acc/(cp.acc+cp.rej):null,
+      open:rows.reduce((s,r)=>s+openSum(r),0),
+      signedN:rows.filter(r=>r.signed).length,
+      negotiations:rows.map(r=>({ id:r.id, name:r.name, round:r.round, signed:r.signed,
+        declined:r.declined, days:r.days, open:openSum(r) }))
+        .sort((a,b)=>(a.signed-b.signed)||b.round-a.round),
+      clauses:[...cls.values()].sort((a,b)=>b.n-a.n||a.label.localeCompare(b.label)) };
+  });
+  /* The counterparty list reads as a PATTERN, so it is the parties with two or
+     more negotiations — one slow deal is an anecdote (the slowest-counterparty
+     rule this page has always had). A book with none of those shows them all. */
+  const two=allCps.filter(cp=>cp.deals>=2);
+  const cpPool=(two.length?two:allCps).sort((a,b)=>b.avgRounds-a.avgRounds||b.deals-a.deals);
+  return { clauses, waiting, counterparties:cpPool.slice(0,8),
+    cpsOne:two.length?allCps.length-two.length:0, cpsBeyond:Math.max(0,cpPool.length-8),
+    openOutside:[...outside.values()].sort((a,b)=>b.n-a.n),
+    dealIds:t.dealIds, signedIds:t.daysIds, round1Ids:t.round1Ids, signedN:t.signedN,
+    avgRounds:t.avgRounds };
+}
+/* THE FRICTION PAGE IS A CLAUSE LEDGER (owner-picked 28 Sep 2026, "Clause
+   Ledger", off the Insights design-options page; he said "build").
 
-   One panel, two columns. The LEFT answers "what is slowing you down" in
-   three sentences a reader can act on — the costliest clause, the refused
-   changes nobody withdrew, the slowest counterparty — each with its number
-   leading and one link that does the obvious thing. The RIGHT keeps the
-   evidence: the contested-clauses bars and the per-counterparty table,
-   click-to-filter. Colour is never alone: a teal bar means the clause costs
-   extra rounds and the +N figure beside it says how many (in red, a cost); a
-   grey bar with a green −N means fighting it actually shortens deals. */
+   REPLACES the 26 Aug brief — three written sentences on the left, the
+   contested-clause bars and the counterparty table on the right, four KPI
+   cards under the prose. Every fact that page carried stays: its figures are
+   the strip across the top, its costliest clause is the first row of the
+   clause list, its refused-and-open count is the amber figure, its slowest
+   counterparty is the first row of the counterparty list. What went is the
+   PROSE, which was hard-coded English and said three facts a reader then had
+   to go and find.
+
+   THE SHAPE: Copilot's read first and UNTOUCHED (the owner's one condition:
+   "leave the copilot feature"); a strip of six figures, every one that has a
+   list behind it a door onto that list; then ONE ranked list with a details
+   panel beside it. The list reads by Clauses · Counterparties · Waiting on a
+   decision; a press on a row fills the panel, and each panel carries the one
+   door to where you ACT — Our standards, the negotiation, or the page held to
+   a counterparty (the counterparty filter this page has always had).
+
+   COUNTING IS NOT DRAWING: every number below comes off intelFrictionStats(f)
+   and its .ledger (intelFrictionLedgerData). This function computes nothing
+   but percentages and the order of what it was handed. */
+const IGF_LED_LENSES=['clauses','cps','wait'];
+/* Which list and which row, per sitting and in memory — like every other cut
+   on this page. Keyed by the row's own identity (the clause's name, the
+   counterparty's, the contract's id), never by position, so a filter that
+   re-ranks the list keeps the reader on the thing they picked, and a row that
+   left the list falls back to the first one. */
+function intelFrictionLedgerState(){
+  if(!intel.frictionLedger||typeof intel.frictionLedger!=='object')
+    intel.frictionLedger={ lens:'clauses', sel:{ clauses:null, cps:null, wait:null } };
+  const s=intel.frictionLedger;
+  if(!IGF_LED_LENSES.includes(s.lens)) s.lens='clauses';
+  if(!s.sel||typeof s.sel!=='object') s.sel={ clauses:null, cps:null, wait:null };
+  return s;
+}
+const _igfLedKey={ clauses:x=>x.label, cps:x=>x.name, wait:x=>x.id };
+function intelFrictionLedgerRows(led, lens){
+  return lens==='cps'?led.counterparties:lens==='wait'?led.waiting:led.clauses;
+}
+/* The one reading of "which row is in hand": the stored key where that row is
+   still on the list, else the first. */
+function intelFrictionLedgerPick(led, lens){
+  const rows=intelFrictionLedgerRows(led, lens);
+  if(!rows.length) return { pos:-1, row:null, rows };
+  const want=intelFrictionLedgerState().sel[lens];
+  let pos=rows.findIndex(r=>_igfLedKey[lens](r)===want);
+  if(pos<0) pos=0;
+  return { pos, row:rows[pos], rows };
+}
+const _igfPc=v=>Math.round(v*100);
+/* A negotiation is named "<contract> — <counterparty>", unless the contract's
+   own name already says who it is with (a name typed "MSA — Naivas" would
+   otherwise read "MSA — Naivas — Naivas"). The party's first word counts as
+   saying so where it is a real word: "MSA — Naivas" is already about Naivas
+   Supermarkets. A display choice only; nothing is matched or counted by it. */
+const _igfDealName=(name,cp)=>{ const n=String(name||''), p=String(cp||'');
+  if(!p||p==='(no counterparty)') return n;
+  const low=n.toLowerCase(), first=p.split(/\s+/)[0]||'';
+  return (low.includes(p.toLowerCase())||(first.length>=4&&low.includes(first.toLowerCase())))?n:`${n} — ${p}`; };
+const _igfDays=d=>d==null?null:d<1?i18t('igf_led_under_day'):i18tn('igf_led_days',Math.round(d));
+const _igfSpan=ms=>{ if(ms==null) return null; const h=ms/3600000;
+  return h<1?i18t('igf_led_under_hour'):h<48?i18tn('igf_led_hours',Math.round(h)):i18tn('igf_led_days',Math.round(h/24)); };
+/* A count is a chip only where it is something; a zero is a quiet figure, and
+   never a door. */
+const _igfChip=(n,word)=>n?`<span class="igf-led-chip is-amber">${word||n}</span>`:`<span class="igf-led-zero">0</span>`;
+const _igfExtra=v=>v==null?`<span class="igf-led-zero" title="${igEsc(i18t('igf_led_tip_extra_none'))}">—</span>`
+  :v>0.05?`<b class="igf-led-cost">+${v.toFixed(1)}</b>`
+  :v<-0.05?`<b class="igf-led-gain">−${Math.abs(v).toFixed(1)}</b>`
+  :`<span class="igf-led-zero">${v<0?'−':'+'}${Math.abs(v).toFixed(1)}</span>`;
+const _igfDoor=(attr,label,tip)=>`<button type="button" class="ui-link igf-led-door" ${attr} title="${igEsc(tip||label)}">${igEsc(label)}${icon('chevR','w-3 h-3',2)}</button>`;
+const _igfHead=(lbl,name,door)=>`<div class="igf-led-dh"><div class="igf-led-dh-t"><div class="igf-led-lbl">${lbl}</div><h3 class="igf-led-dname">${igEsc(name)}</h3></div>${door||''}</div>`;
+const _igfFigs=a=>`<div class="igf-led-dfigs">${a.map(([t,n,s,tone,tip])=>`<div title="${igEsc(tip||'')}"><div class="igf-led-lbl">${t}</div><div class="igf-led-dn${tone?' '+tone:''}">${n}</div><div class="igf-led-ds">${s}</div></div>`).join('')}</div>`;
+const _igfSec=(b,s,body)=>`<div class="igf-led-dsec"><div class="igf-led-dsh"><b>${b}</b>${s?`<span>${s}</span>`:''}</div>${body}</div>`;
+/* How one side's asks on a clause ended, against the whole book's share — the
+   book's figure is intelFrictionStats' own, so the tick and the strip's
+   reading cannot disagree. */
+function _igfAskRow(label, a, book){
+  const n=a.acc+a.rej;
+  if(!n) return `<div class="igf-led-askrow"><span class="igf-led-askname">${label}</span><span class="igf-led-stack is-empty"></span><span class="igf-led-asksay">${i18t('igf_led_no_decided')}</span></div>`;
+  const p=_igfPc(a.acc/n);
+  const tick=book==null?'':`<em class="igf-led-tick" style="left:${_igfPc(book)}%"></em>`;
+  return `<div class="igf-led-askrow" title="${igEsc(i18t('igf_led_ask_tip',{a:a.acc,n,r:a.rej}))}"><span class="igf-led-askname">${label}</span><span class="igf-led-stack"><i class="igf-led-acc" style="width:${p}%"></i><i class="igf-led-ref" style="width:${100-p}%"></i>${tick}</span><span class="igf-led-asksay"><b>${p}%</b> ${i18t('igf_led_accepted_word')}</span></div>`;
+}
+function _igfNegoRow(id, name, sub, chip){
+  return `<button type="button" class="igf-led-row" data-igf-open="${igEsc(id)}" title="${igEsc(i18t('igf_led_open_tip',{name}))}"><span class="igf-led-rname">${igEsc(name)}${sub?` <span class="igf-led-rsub">· ${sub}</span>`:''}</span>${chip||'<span></span>'}</button>`;
+}
+function intelFrictionDetailHtml(st, lens, pick){
+  const led=st.ledger; const row=pick.row;
+  if(!row) return '';
+  const k=pick.pos+1, N=pick.rows.length;
+  const f=intel.frictionFilter||null;
+  if(lens==='clauses'){
+    const c=row;
+    const door=_igfDoor('data-igf-standards',i18t('igf_led_door_std'),i18t('igf_led_door_std_tip'));
+    const figs=_igfFigs([
+      [i18t('igf_led_th_contested'),_igfPc(c.share)+'%',i18t('igf_led_n_of_deals',{a:c.n,b:st.deals}),'',i18t('igf_led_tip_cont')],
+      [i18t('igf_led_th_extra'),c.extra==null?'—':`${c.extra<0?'−':'+'}${Math.abs(c.extra).toFixed(1)}`,
+        (c.withAvg!=null&&c.withoutAvg!=null)?i18t('igf_led_d_split',{w:c.withAvg.toFixed(1),wo:c.withoutAvg.toFixed(1)}):i18t('igf_led_d_split_none'),
+        c.extra!=null&&c.extra>0.05?'igf-led-cost':'',i18t('igf_led_tip_extra')],
+      [i18t('igf_led_f_open'),String(c.open),c.open?i18tn('igf_led_s_in_deals',c.openDeals.length):i18t('igf_led_s_nothing_waiting'),
+        c.open?'is-amber':'',i18t('igf_led_tip_open')]]);
+    const asks=_igfSec(i18t('igf_led_sec_asks'),i18t('igf_led_sec_asks_sub'),
+      _igfAskRow(i18t('igf_led_ours'),c.ours,st.oursAcceptShare)
+      +_igfAskRow(i18t('igf_led_theirs'),c.theirs,st.theirsAcceptShare)
+      +`<div class="igf-led-legend"><span><i class="igf-led-acc"></i>${i18t('igf_led_lg_acc')}</span><span><i class="igf-led-ref"></i>${i18t('igf_led_lg_ref')}</span>${
+        (st.oursAcceptShare!=null||st.theirsAcceptShare!=null)?`<span><i class="igf-led-lgtick"></i>${i18t('igf_led_lg_book',{o:st.oursAcceptShare!=null?_igfPc(st.oursAcceptShare)+'%':'—',t:st.theirsAcceptShare!=null?_igfPc(st.theirsAcceptShare)+'%':'—'})}</span>`:''}</div>`);
+    const shown=c.by.slice(0,5), more=c.by.length-shown.length;
+    const who=_igfSec(i18t('igf_led_sec_who'),i18t('igf_led_sec_who_sub'),
+      `<div class="igf-led-rows">${shown.map(p=>`<button type="button" class="igf-led-row is-bar" data-igf-cp="${igEsc(p.name)}" title="${igEsc(i18t('igf_led_hold_tip',{name:p.name}))}"><span class="igf-led-rname">${igEsc(p.name)}</span><span class="igf-led-track is-mini"><span style="width:${Math.round(p.n/p.of*100)}%"></span></span><span class="igf-led-rsub">${i18t('igf_led_n_of',{a:p.n,b:p.of})}</span></button>`).join('')}</div>`
+      +(more>0?`<div class="igf-led-foot">${i18tn('igf_led_who_more',more)}</div>`:''));
+    const open=_igfSec(i18t('igf_led_sec_open'),'',
+      c.openDeals.length?`<div class="igf-led-rows">${c.openDeals.map(d=>_igfNegoRow(d.id,_igfDealName(d.name,d.cp),i18t("igf_led_round_n",{n:d.round}),_igfChip(d.n,i18t('igf_led_open_n',{n:d.n})))).join('')}</div>`
+        :`<div class="igf-led-none">${i18t('igf_led_open_none')}</div>`);
+    return _igfHead(i18t('igf_led_d_clause',{k,n:N}),c.label,door)+figs+asks+who+open;
+  }
+  if(lens==='cps'){
+    const p=row;
+    const held=!!(f&&f.counterparty===p.name);
+    const door=held?'':_igfDoor(`data-igf-cp="${igEsc(p.name)}"`,i18t('igf_led_hold_tip',{name:p.name}),i18t('igf_led_hold_tip',{name:p.name}));
+    const openN=p.negotiations.filter(x=>!x.signed&&!x.declined).length;
+    const figs=_igfFigs([
+      [i18t('igf_led_f_deals'),String(p.deals),i18t('igf_led_s_signed_open',{s:p.signedN,o:openN})],
+      [i18t('igf_led_f_rounds'),p.avgRounds.toFixed(1),i18t('igf_led_s_against',{v:st.avgRounds.toFixed(1)}),p.avgRounds>=st.avgRounds+0.5?'is-amber':''],
+      [i18t('igf_led_th_accept'),p.acceptUs!=null?_igfPc(p.acceptUs)+'%':'—',
+        st.oursAcceptShare!=null?i18t('igf_led_s_against',{v:_igfPc(st.oursAcceptShare)+'%'}):i18t('igf_led_no_decided'),'',i18t('igf_led_tip_accept')]]);
+    const negs=_igfSec(i18t('igf_led_sec_theirs'),'',`<div class="igf-led-rows">${p.negotiations.map(x=>{
+      const sub=x.signed?(x.days!=null?i18t('igf_led_nego_signed',{r:x.round,d:_igfDays(x.days)}):i18t('igf_led_nego_signed_nod',{r:x.round}))
+        :x.declined?i18t('igf_led_nego_declined',{n:x.round}):i18t('igf_led_nego_open',{n:x.round});
+      /* A signed agreement says SIGNED first: that is the fact about it a
+         reader needs, and an open refusal on it is history, not a wait. */
+      const chip=x.signed?`<span class="igf-led-chip is-green">${i18t('igf_led_chip_signed')}</span>`
+        :x.open?`<span class="igf-led-chip is-amber">${i18t('igf_led_chip_refused_open',{n:x.open})}</span>`:'';
+      return _igfNegoRow(x.id,x.name,sub,chip);
+    }).join('')}</div>`);
+    const listed=new Set(led.clauses.map(c=>c.label.toLowerCase()));
+    const cls=_igfSec(i18t('igf_led_sec_cp_clauses'),'',p.clauses.length?`<div class="igf-led-rows">${p.clauses.map(c=>{
+      const inner=`<span class="igf-led-rname">${igEsc(c.label)}</span><span class="igf-led-track is-mini"><span style="width:${Math.round(c.n/p.deals*100)}%"></span></span><span class="igf-led-rsub">${i18t('igf_led_n_of',{a:c.n,b:p.deals})}</span>`;
+      /* A clause on the ledger's own list is a door back onto it; one that is
+         not (outside the eight most contested) is a line, never a dead press. */
+      return listed.has(c.label.toLowerCase())
+        ?`<button type="button" class="igf-led-row is-bar" data-igf-clause="${igEsc(c.label)}" title="${igEsc(i18t('igf_led_clause_tip',{name:c.label}))}">${inner}</button>`
+        :`<div class="igf-led-row is-bar is-static">${inner}</div>`;
+    }).join('')}</div>`:`<div class="igf-led-none">${i18t('igf_led_cp_clauses_none')}</div>`);
+    return _igfHead(i18t('igf_led_d_cp',{k,n:N}),p.name,door)+figs+negs+cls;
+  }
+  const d=row;
+  const door=_igfDoor(`data-igf-open="${igEsc(d.id)}"`,i18t('igf_led_door_nego'),i18t('igf_led_open_tip',{name:d.name}));
+  const figs=_igfFigs([
+    [i18t('igf_led_f_open'),String(d.n),i18t('igf_led_s_nobody_withdrew'),'is-amber',i18t('igf_led_tip_open')],
+    [i18t('igf_led_f_they_refused'),String(d.theyRefusedOurs),i18t('igf_led_s_ours_proposed')],
+    [i18t('igf_led_f_we_refused'),String(d.weRefusedTheirs),i18t('igf_led_s_theirs_proposed')]]);
+  const by=_igfSec(i18t('igf_led_sec_byclause'),'',`<table class="igf-led-bytable"><thead><tr><th>${i18t('igf_led_th_clause')}</th><th class="r">${i18t('igf_led_f_they_refused')}</th><th class="r">${i18t('igf_led_f_we_refused')}</th></tr></thead><tbody>${
+    d.byClause.map(x=>`<tr><td>${igEsc(x.label||i18t('igf_led_no_clause'))}</td><td class="r">${x.ours}</td><td class="r">${x.theirs}</td></tr>`).join('')}</tbody></table>`);
+  return _igfHead(i18t("igf_led_d_wait",{n:d.round}),_igfDealName(d.name,d.cp),door)+figs+by;
+}
+/* One figure in the strip. A figure with a list behind it is a BUTTON onto
+   that list; a figure without one (an average, a median of decisions) is a
+   div, and a zero is never a door. */
+function _igfFig(key, label, n, sub, o={}){
+  const tag=o.go?'button':'div';
+  return `<${tag} class="igf-led-fig${o.on?' on':''}" data-igf-fig="${key}"${o.go?` type="button" data-igf-go="${o.go}"`:''} title="${igEsc(o.tip||'')}"><span class="igf-led-lbl">${label}</span><span class="igf-led-n${o.tone?' '+o.tone:''}">${n}</span><span class="igf-led-s">${sub}</span></${tag}>`;
+}
+function intelFrictionLedgerHtml(st){
+  const led=st.ledger; const S=intelFrictionLedgerState(); const lens=S.lens;
+  const signedN=led.signedN, signedAll=st.signed||0, r1=led.round1Ids.length;
+  const openDeals=led.waiting.length;
+  const strip=`<div class="igf-led-strip">${[
+    _igfFig('deals',i18t('igf_led_f_deals'),String(st.deals),
+      st.openedThisMonth?i18t('igf_led_s_opened',{n:st.openedThisMonth}):i18t('igf_led_s_tracked'),
+      {go:st.deals?'deals':null,tip:i18t('igf_led_tip_list',{n:st.deals})}),
+    _igfFig('rounds',i18t('igf_led_f_rounds'),st.avgRounds.toFixed(1),i18t('igf_led_s_average')),
+    _igfFig('tosign',i18t('igf_led_f_tosign'),st.medianDays!=null?_igfDays(st.medianDays):'—',
+      signedN?i18t('igf_led_s_median_signed',{n:signedN}):i18t('igf_led_s_none_signed'),
+      {go:signedN?'signed':null,tip:signedN?i18t('igf_led_tip_list',{n:signedN}):''}),
+    _igfFig('decide',i18t('igf_led_f_decide'),st.medianDecisionMs!=null?_igfSpan(st.medianDecisionMs):'—',
+      st.medianDecisionMs!=null?i18t('igf_led_s_per_change'):i18t('igf_led_s_none_decided'),
+      {tip:i18t('igf_led_tip_decide')}),
+    _igfFig('round1',i18t('igf_led_f_round1'),st.round1Share!=null?_igfPc(st.round1Share)+'%':'—',
+      signedAll?i18t('igf_led_s_of_signed',{a:r1,b:signedAll}):i18t('igf_led_s_none_signed'),
+      {go:r1?'round1':null,tip:r1?i18t('igf_led_tip_list',{n:r1}):''}),
+    _igfFig('open',i18t('igf_led_f_open'),String(st.deadlocks),
+      st.deadlocks?i18tn('igf_led_s_in_deals',openDeals):i18t('igf_led_s_nothing_waiting'),
+      {go:st.deadlocks?'wait':null,on:lens==='wait',tone:st.deadlocks?'is-amber':'',tip:st.deadlocks?i18t('igf_led_tip_open')+' '+i18t('igf_led_tip_wait'):i18t('igf_led_tip_open')})
+  ].join('')}</div>`;
+  const pick=intelFrictionLedgerPick(led, lens);
+  const lensBtn=(k,label,n)=>`<button type="button" data-igf-lens="${k}" class="${lens===k?'on':''}" aria-pressed="${lens===k}">${label}<span class="igf-led-cnt">${n}</span></button>`;
+  const seg=`<span class="reg-seg igf-led-seg" role="group">${lensBtn('clauses',i18t('igf_led_lens_clauses'),led.clauses.length)}${lensBtn('cps',i18t('igf_led_lens_cps'),led.counterparties.length)}${lensBtn('wait',i18t('igf_led_lens_wait'),led.waiting.length)}</span>`;
+  const th=(t,o={})=>`<th${o.r?' class="r"':''}${o.tip?` title="${igEsc(o.tip)}"`:''}>${t}</th>`;
+  const tr=(pos,key,tip,cells)=>`<tr data-igf-row="${igEsc(key)}" tabindex="0" class="${pos===pick.pos?'is-sel':''}" aria-selected="${pos===pick.pos}" title="${igEsc(tip)}">${cells}</tr>`;
+  let sub, head, rows, foot='', empty='';
+  if(lens==='clauses'){
+    sub=i18tn('igf_led_sub_clauses',led.clauses.length);
+    head=th(i18t('igf_led_th_clause'))+th(i18t('igf_led_th_contested'),{tip:i18t('igf_led_tip_cont')})
+      +th(i18t('igf_led_th_extra'),{r:1,tip:i18t('igf_led_tip_extra')})+th(i18t('igf_led_f_open'),{r:1,tip:i18t('igf_led_tip_open')});
+    rows=led.clauses.map((c,pos)=>tr(pos,c.label,i18t('igf_led_tip_show',{name:c.label}),
+      `<td class="igf-led-name">${igEsc(c.label)}</td><td><div class="igf-led-barcell"><span class="igf-led-track"><span style="width:${Math.max(2,_igfPc(c.share))}%"></span></span><span class="igf-led-w">${_igfPc(c.share)}%</span><span class="igf-led-rsub">${i18t('igf_led_n_of',{a:c.n,b:st.deals})}</span></div></td><td class="r">${_igfExtra(c.extra)}</td><td class="r">${_igfChip(c.open)}</td>`));
+    const out=led.openOutside; const n=out.reduce((s,x)=>s+x.n,0);
+    /* Named where they have a name (the first three, the rest said as "…");
+       a refusal on a change that names no clause is counted and not named. */
+    const named=out.filter(x=>x.label);
+    if(n) foot=i18tn('igf_led_foot_outside',n,{names:named.length
+      ?': '+named.slice(0,3).map(x=>igEsc(x.label)).join(', ')+(named.length>3?' …':''):''});
+    if(!led.clauses.length) empty=i18t('igf_led_empty_clauses');
+  }else if(lens==='cps'){
+    sub=led.counterparties.some(p=>p.deals>=2)?i18t('igf_led_sub_cps_two'):i18t('igf_led_sub_cps_all');
+    const scale=Math.max(5,Math.ceil(Math.max(0,...led.counterparties.map(p=>p.avgRounds))));
+    head=th(i18t('igf_led_th_cp'))+th(i18t('igf_led_f_deals'),{r:1})+th(i18t('igf_led_f_rounds'),{tip:i18t('igf_led_foot_book',{v:st.avgRounds.toFixed(1)})})
+      +th(i18t('igf_led_th_accept'),{r:1,tip:i18t('igf_led_tip_accept')})+th(i18t('igf_led_f_open'),{r:1,tip:i18t('igf_led_tip_open')});
+    rows=led.counterparties.map((p,pos)=>tr(pos,p.name,i18t('igf_led_tip_show',{name:p.name}),
+      `<td class="igf-led-name">${igEsc(p.name)}</td><td class="r">${p.deals}</td><td><div class="igf-led-barcell"><span class="igf-led-track is-tick"><span style="width:${Math.round(p.avgRounds/scale*100)}%"></span><em class="igf-led-tick" style="left:${Math.round(st.avgRounds/scale*100)}%"></em></span><span class="igf-led-w">${p.avgRounds.toFixed(1)}</span></div></td><td class="r">${p.acceptUs!=null?_igfPc(p.acceptUs)+'%':'<span class="igf-led-zero">—</span>'}</td><td class="r">${_igfChip(p.open)}</td>`));
+    foot=[led.cpsOne?i18tn('igf_led_foot_cps_one',led.cpsOne):'', led.cpsBeyond?i18t('igf_led_foot_beyond',{n:led.cpsBeyond}):'',
+      i18t('igf_led_foot_book',{v:st.avgRounds.toFixed(1)})].filter(Boolean).join(' ');
+  }else{
+    sub=i18t('igf_led_sub_wait');
+    head=th(i18t('igf_led_th_nego'))+th(i18t('igf_led_th_round'),{r:1})+th(i18t('igf_led_th_refused_on'))+th(i18t('igf_led_f_open'),{r:1,tip:i18t('igf_led_tip_open')});
+    rows=led.waiting.map((d,pos)=>tr(pos,d.id,i18t('igf_led_tip_show',{name:d.name}),
+      `<td class="igf-led-nw"><div class="igf-led-name">${igEsc(d.name)}</div><div class="igf-led-rsub">${igEsc(d.cp)}</div></td><td class="r">${d.round}</td><td class="igf-led-rsub"><span class="igf-led-refon">${d.byClause.map(x=>igEsc(x.label||i18t('igf_led_no_clause'))).join(' · ')}</span></td><td class="r">${_igfChip(d.n)}</td>`));
+    if(led.waiting.length) foot=i18tn('igf_led_foot_wait',st.deadlocks,{deals:i18tn('igf_led_s_in_deals',led.waiting.length)});
+    else empty=i18t('igf_led_empty_wait');
+  }
+  const list=`<div class="igf-led-card igf-led-list">
+      <div class="igf-led-ch"><b>${i18t('igf_led_title')}</b><span class="igf-led-sub">${sub}</span>${seg}</div>
+      ${empty?`<div class="igf-led-none is-list">${empty}</div>`:`<div class="igf-led-scroll"><table class="igf-led-table" data-igf-list="${lens}"><thead><tr>${head}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`}
+      ${foot?`<div class="igf-led-foot">${foot}</div>`:''}
+    </div>`;
+  const detail=pick.row?`<div class="igf-led-card igf-led-detail" data-igf-detail="${lens}">${intelFrictionDetailHtml(st, lens, pick)}</div>`:'';
+  return strip+`<div class="igf-led-grid${detail?'':' is-solo'}">${list}${detail}</div>`;
+}
 function intelFrictionHtml(){
   const f=intel.frictionFilter||null;
   const st=intelFrictionStats(f);
-  const pct=v=>Math.round(v*100);
   if(!st.deals) return `<div style="max-width:960px;margin:0 auto">
     <div style="max-width:560px;margin:var(--s-10) auto;text-align:center;color:var(--color-neutral-600);font-size:var(--t-body);line-height:1.6">
     <b style="color:var(--color-text)">${f?i18t('int_nothing_matches'):i18t('int_no_negotiations')}</b><br/>${f?i18t('int_clear_filters'):i18t('int_once_contracts')}</div></div>`;
-  const hrs=ms=>{ if(ms==null) return null; const h=ms/3600000; return h<1?'&lt;1h':h<48?Math.round(h)+'h':Math.round(h/24)+'d'; };
-  const RULE='border-bottom:1px solid var(--color-divider)';
-  /* THE TEXT BUTTON'S ONE LOOK (the Compact ladder, 26 Sep 2026): accent,
-     medium, a real target, and a drawn arrow where the press goes somewhere. */
-  const LINK='display:inline-flex;align-items:center;gap:4px;min-height:var(--tap-min);margin-top:6px;font-size:var(--t-body);font-weight:var(--w-label);color:var(--accent-ink);cursor:pointer;background:none;border:0;padding:0;font-family:inherit';
-
-  /* ---- left: the three sentences ---- */
-  const top=st.clauses[0]||null;
-  const hero=(num,tone,body)=>`<div style="display:flex;gap:14px;padding:9px 0;${RULE}">
-    <div style="flex:none;min-width:62px;font-size:22px;font-weight:var(--w-title);letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums;color:${tone}">${num}</div>
-    <div style="min-width:0;font-size:var(--t-body);line-height:1.55;color:var(--color-neutral-800)">${body}</div>
+  /* COPILOT'S READ LEADS, IN A CARD OF ITS OWN, AND IS NOT TOUCHED: the strip
+     is intelFrictionCopilotHtml exactly as it was, keyed and repainted by the
+     same three functions. The card is only its frame now that the report
+     under it is several cards rather than one. */
+  return `<div class="igf-led">
+    <div class="igf-led-card igf-led-cop">${intelFrictionCopilotHtml(st)}</div>
+    <div id="igf-ledger">${intelFrictionLedgerHtml(st)}</div>
   </div>`;
-  const clauseHero=top?hero(pct(top.share)+'%','var(--color-text)',
-    `of negotiations get stuck on <b>${igEsc(top.label)}</b>${top.extra!=null&&top.extra>0
-      ?` — and when they do, the deal takes <b>${top.extra.toFixed(1)} more round${top.extra>=1.95?'s':''}</b>. It is the single change worth making to your standard paper.`
-      :` — contested more than any other clause${top.extra!=null&&top.extra<0?', though the fights there tend to settle quickly':''}.`}
-    <br><button data-igf-standards style="${LINK}">${i18t('int_open_clause_std')}${icon('chevR','w-3.5 h-3.5')}</button>`):'';
-  const dl=st.deadlockList;
-  const dealCount=new Set(dl.map(x=>x.id)).size;
-  const deadHero=hero(String(st.deadlocks), st.deadlocks?'var(--st-amber-fg,#b45309)':'var(--color-text)',
-    st.deadlocks
-      ?`change${st.deadlocks===1?' is':'s are'} <b>${i18t('int_refused_open')}</b> — nobody withdrew ${st.deadlocks===1?'it':'them'}, so ${dealCount===1?'one deal is':dealCount+' deals are'} waiting on a decision somebody has to make.
-        <br><button data-igf-deadlocks style="${LINK}">See the ${st.deadlocks<=12?['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve'][st.deadlocks]:st.deadlocks}${icon('chevR','w-3.5 h-3.5')}</button>
-        <div id="igf-deadlist" class="hidden" style="margin-top:var(--s-2)">${dl.map(x=>`<button data-igf-open="${igEsc(x.id)}" style="display:flex;gap:var(--s-2);width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;font-size:var(--t-meta);padding:var(--s-1) 0;color:var(--color-neutral-700)"><b style="color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px">${igEsc(x.name)}</b><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${igEsc(x.clause)}</span><span style="margin-left:auto;display:inline-flex;align-items:center;gap:4px;color:var(--accent-ink-700);font-weight:var(--w-label);white-space:nowrap">open${icon('chevR','w-3.5 h-3.5')}</span></button>`).join('')}</div>`
-      :`changes are refused and still open — every refusal on the book has been answered or withdrawn. Nothing is deadlocked.`);
-  const sl=st.slowest;
-  const slowHero=(sl&&st.counterparties.length>1)?hero(sl.avgRounds.toFixed(1),'var(--color-text)',
-    `rounds per deal with <b>${igEsc(sl.name)}</b>, against ${st.avgRounds.toFixed(1)} across the book — the slowest counterparty you negotiate with${sl.acceptUs!=null?`, and they accept <b>${pct(sl.acceptUs)}%</b> of what you ask`:''}.
-     ${f&&f.counterparty===sl.name?'':`<br><button data-igf-cp="${igEsc(sl.name)}" style="${LINK}">Filter the page to ${igEsc(sl.name)}${icon('chevR','w-3.5 h-3.5')}</button>`}`):'';
-  /* ---- THE FOUR FIGURES ARE KPI CARDS (Young ruled it 19 Sep 2026: "make
-     the highlighted KPIs to be KPI cards") ----
-     Same four readings, same four labels, same order — only the dress moved,
-     and it moved into a stylesheet rather than into more inline style, because
-     the whole point of the ask is that these look like the product's own KPI
-     cards and a second set of literals here could not follow .hm-tile the next
-     time it is retuned. The LABEL LEADS now, which is the tile's own order;
-     the reason for the edge colour and for these not being buttons is written
-     beside .igf-kpis in index.html. */
-  const mini=(n,t)=>`<div class="igf-kpi"><span class="igf-kpi-t">${t}</span><span class="igf-kpi-n">${n}</span></div>`;
-  const minis=`<div class="igf-kpis">
-    ${st.medianDays!=null?mini(st.medianDays<1?'&lt;1 day':Math.round(st.medianDays)+' days','median to signature'):''}
-    ${st.medianDecisionMs!=null?mini(hrs(st.medianDecisionMs),'median decision time'):''}
-    ${(st.oursAcceptShare!=null||st.theirsAcceptShare!=null)?mini(`${st.oursAcceptShare!=null?pct(st.oursAcceptShare)+'%':'—'} / ${st.theirsAcceptShare!=null?pct(st.theirsAcceptShare)+'%':'—'}`,'our asks / their asks accepted'):''}
-    ${st.round1Share!=null?mini(pct(st.round1Share)+'%','signed within round 1'):''}
-  </div>`;
-  /* THE READING COLUMN STOPS AT A READABLE MEASURE. With the card filling the
-     width (see below), these paragraphs ran ~130 characters a line on a wide
-     monitor — past the point where prose is comfortable. The CARD is full
-     width, as the owner asked; the SENTENCES are not. */
-  /* A READING MEASURE, DELIBERATELY NOT THE PLATFORM'S (29 Aug 2026). The
-     chrome fills the monitor now — --page-measure is `none` — and this column
-     is PROSE, capped for the same reason the contract sheet is: a line past
-     about 80 characters measurably slows reading down. Left as a literal
-     because it has exactly one consumer and a token with one reader is noise;
-     what it needs is the reason written beside it, which is this. */
-  const left=`<div style="padding:var(--s-3) 18px;min-width:0;max-width:78ch">
-    <div style="font-size:16px;font-weight:var(--w-title);letter-spacing:-.01em">${i18t('int_what_slowing')}</div>
-    <div style="font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px">${st.deals} negotiation${st.deals===1?'':'s'}${st.openedThisMonth?` · ${st.openedThisMonth} opened this month`:''} · ${st.avgRounds.toFixed(1)} rounds each on average</div>
-    ${clauseHero}${deadHero}${slowHero}
-    ${minis}
-  </div>`;
-
-  /* ---- right: the evidence ---- */
-  const extraTxt=cl=>cl.extra==null?`<span style="color:var(--color-neutral-500)">—</span>`
-    :cl.extra>0.05?`<span style="color:var(--st-ruby-fg,#b91c1c);font-weight:var(--w-title)">+${cl.extra.toFixed(1)}</span>`
-    :cl.extra<-0.05?`<span style="color:var(--st-green-fg,#047857);font-weight:var(--w-title)">−${Math.abs(cl.extra).toFixed(1)}</span>`
-    :`<span style="color:var(--color-neutral-500)">0.0</span>`;
-  const bars=st.clauses.map(cl=>`
-    <span style="font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${igEsc(cl.label)}">${igEsc(cl.label)}</span>
-    <span style="position:relative;height:13px;border-radius:var(--radius);background:var(--color-neutral-100);min-width:0"><span style="position:absolute;inset:0 auto 0 0;width:${Math.max(2,pct(cl.share))}%;background:${cl.extra!=null&&cl.extra>0.05?'var(--accent-solid,var(--color-accent))':'var(--color-neutral-400)'};border-radius:var(--radius)"></span></span>
-    <span style="font-size:var(--t-meta);color:var(--color-neutral-600);font-variant-numeric:tabular-nums;text-align:right">${pct(cl.share)}%</span>
-    <span style="font-size:var(--t-label);font-variant-numeric:tabular-nums;text-align:right">${extraTxt(cl)}</span>`).join('');
-  const cpRows=st.counterparties.map(cp=>{
-    const chip=cp.avgRounds>=st.avgRounds+0.5?`<span style="font-size:var(--t-figure);font-weight:var(--w-title);padding:1px 7px;border-radius:var(--radius);background:var(--st-amber-bg,#fef3c7);color:var(--st-amber-fg,#b45309)">slow</span>`
-      :cp.avgRounds<=Math.max(1,st.avgRounds-0.3)?`<span style="font-size:var(--t-figure);font-weight:var(--w-title);padding:1px 7px;border-radius:var(--radius);background:var(--st-green-bg,#d1fae5);color:var(--st-green-fg,#047857)">smooth</span>`:'';
-    return `<tr data-igf-cp="${igEsc(cp.name)}" style="cursor:pointer" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 4%,transparent)'" onmouseout="this.style.background='none'">
-      <td style="padding:6px var(--s-2);${RULE};font-size:var(--t-meta);font-weight:var(--w-strong)">${igEsc(cp.name)}</td>
-      <td style="padding:6px var(--s-2);${RULE};font-size:var(--t-meta);font-variant-numeric:tabular-nums">${cp.deals}</td>
-      <td style="padding:6px var(--s-2);${RULE};font-size:var(--t-meta);font-variant-numeric:tabular-nums">${cp.avgRounds.toFixed(1)}</td>
-      <td style="padding:6px var(--s-2);${RULE};font-size:var(--t-meta);font-variant-numeric:tabular-nums">${cp.acceptUs!=null?pct(cp.acceptUs)+'%':'—'}</td>
-      <td style="padding:6px var(--s-2);${RULE}">${chip}</td></tr>`;
-  }).join('');
-  const th=t=>`<th style="font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);text-align:left;padding:5px var(--s-2);${RULE}">${t}</th>`;
-  const right=`<div style="padding:var(--s-3) 18px;border-left:1px solid var(--color-divider);min-width:0">
-    <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:var(--t-body);font-weight:var(--w-title)">${i18t('int_most_contested')}</span>
-      <span style="font-size:var(--t-label);color:var(--color-neutral-500);margin-left:auto;white-space:nowrap">% of ${st.deals} negotiation${st.deals===1?'':'s'} · extra rounds</span></div>
-    <div role="img" aria-label="${i18t('int_bar_chart_aria')}" style="display:grid;grid-template-columns:minmax(120px,170px) 1fr 40px 40px;gap:5px 9px;align-items:center;margin:var(--s-2) 0 var(--s-3)">${bars}</div>
-    <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:var(--t-body);font-weight:var(--w-title)">${i18t('int_friction_by_cp')}</span>
-      <span style="font-size:var(--t-label);color:var(--accent-ink-700);margin-left:auto;white-space:nowrap">${i18t('int_click_row_filter')}</span></div>
-    <div style="overflow-x:auto;margin-top:6px"><table style="border-collapse:collapse;width:100%"><tr>${th('Counterparty')}${th('Deals')}${th('Rounds')}${th('Accept us')}${th('')}</tr>${cpRows}</table></div>
-    <div style="font-size:var(--t-label);color:var(--st-amber-fg,#b45309);opacity:.85;margin-top:9px;line-height:1.55">Counted from the fingerprinted tracked changes in each negotiation's record. Ask the Copilot to probe any of these numbers — it carries the same figures.</div>
-  </div>`;
-
-  /* ---- HALF THE DEAD SPACE, AT EVERY WINDOW WIDTH ----
-     The brief was capped at 1120px and centred, so every pixel a wider screen
-     offered became empty gutter: 333px of nothing either side of it at 1860,
-     while the contested-clause bars — the whole point of the right-hand column
-     — were squeezed into what was left.
-
-     Not a bigger fixed cap, because a fixed cap is only ever right on the
-     screen it was chosen on. This takes HALF of whatever is empty, whatever
-     the width: if the gutter is g, the card grows by g and the gutter becomes
-     g/2. Written out, target width = (host + 1120)/2; 50% resolves against the
-     content box while the gutter is measured from the border box, so the
-     constant carries the host's own 20px side padding too — 1120/2 + 20 = 580.
-     max-width:100% keeps it honest on a window narrower than the old cap,
-     where there was no gutter to halve in the first place. */
-  /* ---- THE CARD FILLS ITS HOST, LIKE PORTFOLIO (owner-asked 24 Aug 2026:
-     "the space between the card and the edge in the negotiation friction tab
-     should be the same as the distance in the portfolio tab") ----
-     MEASURED before: 20px each side at 1280 and 1440 — already matching — then
-     58 at 1600, 138 at 1920 and 298 at 2560. This was the only screen in
-     Insights with a width rule of its own: capped once, given back half the
-     dead space later, and the owner is asking for the other half. The design
-     reference draws these panels full width with no gutter, so this is a
-     correction toward it. Measured after: 20px each side at every width.
-     AND THE PROSE IS HELD, which is why the cap existed. At full width on a
-     2560 monitor the left column's paragraphs ran about 130 characters a line.
-     The CARD fills the width as asked; the SENTENCES inside it stop at a
-     readable measure, and the bars and the counterparty table take the extra
-     room, which is where it is useful. */
-  return `<div>
-    <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden">
-      ${intelFrictionCopilotHtml(st)}
-      <div class="igf-split" style="display:grid">${left}${right}</div>
-    </div>
-  </div>`;
+}
+/* A press on a lens or a row repaints the LEDGER alone — never the page, so
+   Copilot's read, its busy state and the reader's scroll stay where they are.
+   Focus goes back to the row that was pressed from the keyboard. */
+function intelFrictionLedgerRepaint(focusKey){
+  const host=document.getElementById('igf-ledger'); if(!host) return;
+  host.innerHTML=intelFrictionLedgerHtml(intelFrictionStats(intel.frictionFilter||null));
+  if(focusKey!=null){
+    const r=[...host.querySelectorAll('[data-igf-row]')].find(x=>x.getAttribute('data-igf-row')===focusKey);
+    if(r) r.focus();
+  }
+}
+/* EVERY DOOR ON THE PAGE, ONE DELEGATED LISTENER on the tab's own scroller,
+   bound once per element: the ledger is repainted under it on every press, so
+   a listener on a painted row would be dead after the first. */
+function intelFrictionWire(host){
+  if(!host||!host.dataset||!host.addEventListener||host.dataset.igfBound) return;
+  host.dataset.igfBound='1';
+  const S=()=>intelFrictionLedgerState();
+  const select=(row,fromKey)=>{ const s=S(); s.sel[s.lens]=row.getAttribute('data-igf-row');
+    intelFrictionLedgerRepaint(fromKey?s.sel[s.lens]:null); };
+  host.addEventListener('click',e=>{
+    const t=e.target;
+    const lens=t.closest('[data-igf-lens]'); if(lens){ S().lens=lens.getAttribute('data-igf-lens'); intelFrictionLedgerRepaint(); return; }
+    const go=t.closest('[data-igf-go]');
+    if(go){
+      const k=go.getAttribute('data-igf-go'); const st=intelFrictionStats(intel.frictionFilter||null); const led=st.ledger;
+      if(k==='wait'){ const s=S(); s.lens=s.lens==='wait'?'clauses':'wait'; intelFrictionLedgerRepaint(); return; }
+      const ids=k==='deals'?led.dealIds:k==='signed'?led.signedIds:k==='round1'?led.round1Ids:[];
+      const label=i18t(k==='deals'?'igf_led_list_deals':k==='signed'?'igf_led_list_signed':'igf_led_list_round1');
+      if(ids.length&&typeof regShowOnly==='function') regShowOnly(ids,label);
+      return;
+    }
+    const std=t.closest('[data-igf-standards]'); if(std){ setView('playbook'); return; }
+    const open=t.closest('[data-igf-open]'); if(open){ openWorkspace(open.getAttribute('data-igf-open')); return; }
+    const cp=t.closest('[data-igf-cp]');
+    if(cp){ intel.frictionFilter={...(intel.frictionFilter||{}), counterparty:cp.getAttribute('data-igf-cp')}; intelRepaint(); return; }
+    const cl=t.closest('[data-igf-clause]');
+    if(cl){ const s=S(); s.lens='clauses'; s.sel.clauses=cl.getAttribute('data-igf-clause'); intelFrictionLedgerRepaint(); return; }
+    const row=t.closest('[data-igf-row]'); if(row){ select(row,false); }
+  });
+  host.addEventListener('keydown',e=>{
+    if(e.key!=='Enter'&&e.key!==' ') return;
+    const row=e.target.closest&&e.target.closest('[data-igf-row]'); if(!row) return;
+    e.preventDefault(); select(row,true);
+  });
 }
 
 /* ---- COPILOT'S READ (hybrid layer over the counted brief) ----
@@ -3628,6 +3868,13 @@ async function intelFrictionAsk(){
   }
   if(state.view==='intel'&&intel.tab==='friction') intelFrictionRepaintAI();
 }
+/* The Clause Ledger's own names (28 Sep 2026), published here beside the code
+   rather than on the file's long list at its end — the other Insights tabs are
+   being rebuilt at the same time and one line everybody appends to is where
+   their work and this would collide. */
+Object.assign(window,{IGF_LED_LENSES,intelFrictionLedgerData,intelFrictionLedgerState,
+  intelFrictionLedgerRows,intelFrictionLedgerPick,intelFrictionDetailHtml,intelFrictionLedgerHtml,
+  intelFrictionLedgerRepaint,intelFrictionWire});
 
 
 /* ============================================================
