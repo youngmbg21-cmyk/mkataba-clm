@@ -200,10 +200,15 @@ const VERBS = [
     (() => { const r = m.verbs[0].box;
       return !!r && !!m.segs && r.left >= m.segs.right - 2; })(),
     m.segs ? `readings right=${m.segs.right}, ready left=${m.verbs[0].box && m.verbs[0].box.left}` : 'no readings');
-  check('and that row is below the identity line Compare wording sits on',
+  /* RE-POINTED 28 Sep 2026 (Young picked Mirror: "the redline page should
+     mirror the owner side"). Our room head carries its acts on the TITLE's
+     line and the readings on the row below; their head now does the same, so
+     the deal verbs sit ABOVE the row Compare wording moved into. Still in the
+     header, still at the right end: only the line changed, as it did on 23 Aug. */
+  check('and that row is the title line, above the readings row Compare wording sits on',
     (() => { const r = m.verbs[0].box;
-      return !!r && !!m.compare && r.top >= m.compare.bottom - 2; })(),
-    m.compare ? `compare bottom=${m.compare.bottom}, ready top=${m.verbs[0].box && m.verbs[0].box.top}` : 'no compare');
+      return !!r && !!m.compare && r.bottom <= m.compare.top + 2; })(),
+    m.compare ? `compare top=${m.compare.top}, ready bottom=${m.verbs[0].box && m.verbs[0].box.bottom}` : 'no compare');
   check('the text-size stepper is still in the header, untouched',
     !!m.stepper && m.stepper.w > 0, m.stepper ? `${m.stepper.w}x${m.stepper.h}` : 'absent');
 

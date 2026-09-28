@@ -19,6 +19,7 @@ import './docx.js';
 import './richdoc.js';
 import './clausemodel.js'; // what a clause IS: read from the DOM, identified by a durable id
 import './redline.js';   // the negotiation's diff: Myers ops, stored and rendered from storage
+import './spell.js';     // HaTi's own spell check, both sides of the table, no route and no spend (28 Sep 2026)
 import './richpaste.js';
 import './api.js';
 import './aimd.js';    // markdown + tone markers, escaped: a model's words are untrusted input

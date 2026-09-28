@@ -171,7 +171,10 @@ describe('f139 — and the counterparty can redline on round one', () => {
        that button retired with the clause tool row (no edits on the paper —
        all writing through the clause panel), so the route this link exists to
        open is the Edit pill and the panel's ＋. Same claim, its successor. */
-    assert.ok(/data-rl-cp-open/.test(v.html) && /data-rl-cp-edit/.test(v.html),
+    /* RE-POINTED 28 Sep 2026 (Young picked Mirror): at this width their pencil
+       opens the clause editor (data-rl-cp-editor), as ours does; the panel's ＋
+       is still drawn for a narrow window. */
+    assert.ok(/data-rl-cp-(open|editor)=/.test(v.html) && /data-rl-cp-edit/.test(v.html),
       'the counter-proposal route — this is what a counterparty could not reach');
     assert.ok(!/negotiation is closed on this link/i.test(v.html),
       'a round-one negotiation link must never say the negotiation is closed');

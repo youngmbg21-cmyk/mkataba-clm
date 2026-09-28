@@ -26,7 +26,9 @@ describe('F25 — what Erik sees when he opens the link', () => {
     const html = p.html();
     assert.match(html, /RAW MATERIAL SUPPLY AGREEMENT/);
     assert.match(html, /thirty \(30\) days/);
-    assert.match(html, /Wanjiru Catering Ltd shared a contract for your review/);
+    /* RE-POINTED 28 Sep 2026 (Signing copy): the dark bar's sentence went with
+       the bar; the head names the contract and says who it is FROM. */
+    assert.match(html, /from Wanjiru Catering Ltd/);
   });
 
   test('he can respond without an account', () => {

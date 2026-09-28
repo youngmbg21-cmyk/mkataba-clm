@@ -48,6 +48,7 @@ const MODULES = [
   'js/aimd.js',      // the markdown/tone renderer: pure, no DOM beyond escaping
   'js/aichart.js',   // the chart recipes: pure functions of state
   'js/redline.js',
+  'js/spell.js',
   'js/clausemodel.js',
   /* Who the agreement is BETWEEN. A pure model: no route, no DOM, and every
      reading it borrows (contractParty, FIRST_PARTY, i18t) is asked through

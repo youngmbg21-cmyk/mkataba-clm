@@ -212,22 +212,27 @@ describe('f210 (2a) — the pencil\'s door, and the two cases that keep the pane
     assert.ok(!pill.hasAttribute('data-rl-cp-open'), 'and not the panel as well — one door');
   });
 
-  test('THEIR seat keeps the panel, because the editor refuses them outright', async () => {
-    /* Not a preference: clauseEditorRefusal answers ce_owner_only for a
-       counterparty, and the panel is the only way their page proposes wording.
-       Sending their pencil to a page that turns them away would take that away
-       entirely. */
+  /* ---- REVERSED IN PLACE 28 Sep 2026 (Young picked Mirror: "the redline page
+     should mirror the owner side") ----
+     Their seat kept the panel because the editor refused them outright. The
+     editor opens for them now, with its Copilot half not drawn (ceNoAi), so
+     their pencil goes where ours goes. What still keeps the panel is our
+     PREVIEW of their seat — a window onto their page is not a chair at it —
+     and a window too narrow for two columns. */
+  test('THEIR seat opens the editor too, and our preview of it keeps the panel', async () => {
     const p = await bench();
     const html = p.win.redlineDocHtml(p.c, { side: 'counterparty', cpSink: [], cpPanel: true });
-    assert.match(html, /data-rl-cp-open/, 'their pencil still opens the panel');
-    assert.ok(!/data-rl-cp-editor="/.test(html), 'and never the editor');
+    assert.match(html, /data-rl-cp-editor="/, 'their pencil opens the editor, as ours does');
+    const prev = p.win.redlineDocHtml(p.c, { side: 'counterparty', cpSink: [], cpPanel: true, preview: true });
+    assert.ok(!/data-rl-cp-editor="/.test(prev), 'our preview of their seat never opens it');
   });
 
-  test('the refusal it defers to is real, and is asserted rather than assumed', () => {
+  test('the editor no longer refuses them, and the narrow window still does', () => {
     const src = fs.readFileSync(path.join(__dirname, '..', 'js/views/clauseeditor.js'), 'utf8');
-    assert.match(src, /if \(opts\.side === 'counterparty'\) return _cet\('ce_owner_only'\)/,
-      'the editor refuses a counterparty seat');
-    assert.match(src, /function clauseEditorFits/, 'and refuses a window too narrow for two columns');
+    assert.ok(!/if \(opts\.side === 'counterparty'\) return _cet\('ce_owner_only'\)/.test(src),
+      'the refusal of a counterparty seat is gone');
+    assert.match(src, /const ceNoAi = \(\) => ceSide\(\) === 'counterparty'/, 'their page opens it with no Copilot');
+    assert.match(src, /function clauseEditorFits/, 'and a window too narrow for two columns is still refused');
   });
 
   test('a caller naming its own attribute still wins', () => {

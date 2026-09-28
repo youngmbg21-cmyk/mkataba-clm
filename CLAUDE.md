@@ -344,12 +344,12 @@ Tests: f84, f89, f92–f95, f100, f152, f184, f210, f246, nego-redesign-verify, 
 
 - "Redlines N" over a 2px accent rule; Send all · N not sent (`rlUnsentSendHtml`, proxy onto `#nego-send`) and Close round beside it; both `--accent-fill`. Piles `RL_CARD_BANDS` (eight; refused leads; `rlCardBand` puts each change in exactly one; `rlCardSort` the one order). Settled rows step back (`RL_QUIET_BANDS`).
 - THE ROW IS THE WHOLE OF IT: no Open, no ⋯. `rlRowFaceVerbs` re-orders the funnel's verbs: their live ask Accept · Reject · Counter; ours Edit · Send · Review · Ladder · Discard (Discard ruby, last). Each verb carries its shell mark (`RL_FACE_MARKS`, keyed on the door). Verbs sit on their own full-width line, left-aligned 22px buttons. The clause leads the row, the CHG id at the right; a parked ask folds under its counter.
-- The counterparty's seat keeps its own boxed card and Open (`.rl-open-btn`).
+- EVERY SEAT draws this row (`banded: true`); held answers = `answered` pile.
 Tests: f246, f37, f93, redline-verify, flat-rows-and-alerts-verify.
 
 ## THE CLAUSE PANEL AND THE LADDER
 
-- The pencil (`rlClauseEditPillHtml`, hover-only, reserve `--rl-pill-reserve`) opens the clause EDITOR on our seat ≥1024px (`rlEditorTakesIt`); the clause panel (`rlClausePanelHtml`) is kept for the counterparty and narrow windows, and on our seat is the LADDER only (`rlCpNarrowSeat`, `rlCpLadderOnly`, `is-ladder`). Sections: As it stands (`negoClauseNowById`) · On the table · History (settled) · Ladder + tail (playbook, the figure scale, notes). `rlChangeWordingHtml` is the ONE "what this change proposed" builder.
+- The pencil (`rlClauseEditPillHtml`, hover-only, reserve `--rl-pill-reserve`) opens the clause EDITOR on both seats ≥1024px (`rlEditorTakesIt`; never our preview); the clause panel (`rlClausePanelHtml`) is kept for narrow windows and the preview, and on our seat is the LADDER only (`rlCpNarrowSeat`, `rlCpLadderOnly`, `is-ladder`). Sections: As it stands (`negoClauseNowById`) · On the table · History (settled) · Ladder + tail (playbook, the figure scale, notes). `rlChangeWordingHtml` is the ONE "what this change proposed" builder.
 - js/ladder.js is the ONE reading: `ladderRungs` reads `c.changes` AND `c.negotiation.rounds` RAW; never initialises (f313 walls). No walk-away figure is invented. The chip (`rlLadderChipHtml`, `data-rl-ladder`, never `data-rl-cp-open`) says a COUNT (`ladderTallyText`), not a verdict. A rung press goes to its clause (`rlLadderGoClause`); reading back is RED (`_rlReadAt`); the hover card is DORMANT. No "accept this earlier ask" verb.
 - THE DEAL BOARD is a page on our seat (`_rlBoardOpen`, `dealBoardHtml`, `data-rl-board`), not a fourth reading (`RL_READS` has three).
 Tests: f210, f313, f329, ladder-verify, clause-door-verify.
@@ -368,6 +368,7 @@ Tests: f207-D, f245 (26), clause-editor-verify 32–35, clause-door-verify.
 - The rail: one scope card (`ceRenderScope`: whole clause · your words · a question · whole contract); verbs Ask (`'ask'`, no Apply) / Edit (`'edit'`, Apply into the box); Apply is the only thing that moves wording. `ceScanGroups` splits here (edit) from missing (add through `rlFilePlaybookProposal`); `ceCostLine` states what a press takes; the rail names its clause without growing the row. Tabs Suggestions · Ladder · Figure · Playbook scan; `ceLadderCardHtml` is worked out, never asked for.
 - The writing bar: `richBarHtml`, `RICH_BAR_TOOLS`; shape tools write CHARACTERS (`redlineSplitMarker`); colour door is a fixed class list (`RICH_MARK_CLASSES`; green and red not on it).
 - The front matter is a region (`CLAUSE_FRONT_ID='front'`); a clause's heading is part of the clause (`opts.headingText`, `negoHeadingAsk`, v5 fingerprint).
+- THEIR SEAT too (`ceSide()`, `ceNoAi()`): Ladder · Figure only, no Copilot anywhere, no locks.
 - The clause lock: `POST /api/contracts/:id/lock` only; `clauseLockSign` asked at every door; never travels; the PUT keeps the stored map.
 Tests: f245, f249, f250, f287, f289, clause-editor-verify, clause-door-verify, redline-verify 25.
 
@@ -380,7 +381,11 @@ Tests: f248, f264, f266, f302–f304, f309, round-two-comments-verify, notes-two
 
 ## THE COUNTERPARTY'S PAGE (js/views/portal.js)
 
-`PORTAL_MODE` is a boolean. Their page: reading switch and More menu (PDF, Word, Focus); one bell (`#pt-bell`) with every count borrowed, delivery status inside it; the deal verbs in the header row (`#pt-nego-foot`, never hidden); Ready to sign exactly once (`#pt-nego-ready`); `cpReadyToSign(c)` is the one predicate on our side. The sender's note is an email, not a page element. `POLL_ON_ARRIVAL`; a repeating fetch failure is an alert, never a toast. Their page remembers what it sent (`portalSaveSent`). A model function may not draw (`negoSignalReady` returns null). Tests: f180, f181, f189, f191, f237, counterparty-bell-verify, portal-header-verbs-verify.
+`PORTAL_MODE` is a boolean. Head = room head: `portalStatusWordHtml` (STATUS_META, NEVER `contractStatusTextHtml`), key `rlCtlLegendHtml`. SIGNING page: no bands (`#pt-agreed`/`#pt-history` STALE), `portalBeforeSignStagesHtml` four stages, who SIGNED only (the route never travels), pad `intent:true`. Reading switch and More menu (PDF, Word, Focus); one bell (`#pt-bell`) with every count borrowed, delivery status inside it; the deal verbs in the header row (`#pt-nego-foot`, never hidden); Ready to sign exactly once (`#pt-nego-ready`); `cpReadyToSign(c)` is the one predicate on our side. The sender's note is an email, not a page element. `POLL_ON_ARRIVAL`; a repeating fetch failure is an alert, never a toast. Their page remembers what it sent (`portalSaveSent`). A model function may not draw (`negoSignalReady` returns null). Tests: f180, f181, f189, f191, f237, f422, counterparty-bell-verify, portal-header-verbs-verify, their-side-verify.
+
+## THE SPELL CHECK (js/spell.js)
+
+Both seats, no route: `spellSuspects` reads NEW words only (null = not checked); contract words, names, `SPELL_LEGAL` pass; non-English stands down. `vendor/en-words-1.txt` on first Save. Doors `ceSaveChecked`, `fileChecked`; nothing moves without a press. Tests: f422, their-side-verify.
 
 ## THE SEND SCREEN
 

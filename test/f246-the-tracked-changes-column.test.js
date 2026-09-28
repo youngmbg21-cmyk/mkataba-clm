@@ -296,7 +296,10 @@ describe('f246 (3) — the bands', () => {
       'and nothing falls off the bottom of the column');
     assert.ok(!RL_CARD_BANDS.includes('decided'),
       'there is no fifth pile — a change is pending, accepted, refused or withdrawn');
-    assert.equal(RL_CARD_BANDS.length, 8, 'eight readings, four of them outcomes');
+    /* NINE since 28 Sep 2026 (Mirror): their seat's held answers are a pile of
+       their own, `answered`, straight under what awaits them. */
+    assert.equal(RL_CARD_BANDS.length, 9, 'nine readings, four of them outcomes');
+    assert.equal(RL_CARD_BANDS[2], 'answered');
   });
 
   test('the readings are questions, not statuses', async () => {
@@ -802,16 +805,18 @@ describe('f246 (5) — the card opens instead of a menu', () => {
 });
 
 describe('f246 (6) — the counterparty\'s column is untouched', () => {
-  test('their embed draws no bands and keeps the shapes it had', async () => {
+  /* ---- REVERSED IN PLACE 28 Sep 2026 (Young picked Mirror: "the redline
+     page should mirror the owner side") ----
+     Their column was kept as it was on purpose, twice. It is ours now: the
+     same row, the same piles, the progress pile at its foot. */
+  test('their embed draws our bands and our row', async () => {
     const p = await bench();
     const box = p.win.document.createElement('div');
     box.innerHTML = p.win.redlinePanesHtml(p.c,
       { side: 'counterparty', org: 'Nordkust Industri AB', hiddenIds: [] });
-    assert.equal(box.querySelector('.rl-band'), null, 'no bands on their seat');
-    /* 21 Sep 2026: the progress pile at OUR column's foot is our seat's own —
-       their column draws neither it nor any band. */
-    assert.equal(box.querySelector('.rl-prog'), null, 'no progress pile on their seat');
-    assert.equal(box.querySelector('.rl-card-d'), null, 'and not the owner\'s card shape');
+    assert.ok(box.querySelector('.rl-band'), 'the piles on their seat');
+    assert.ok(box.querySelector('.rl-prog'), 'the progress pile at the foot');
+    assert.ok(box.querySelector('.rl-card-d'), 'and our row');
     assert.ok(box.querySelector('.rl-card'), 'they still get a column of cards');
   });
 
@@ -819,16 +824,17 @@ describe('f246 (6) — the counterparty\'s column is untouched', () => {
     /* The window's whole purpose. previewSeat is what excludes it from the
        owner branch, and it is read from the mount rather than worked out
        again. */
-    assert.ok(NEG_CODE.includes("side === 'owner' && !previewSeat"),
-      'the owner card branch refuses the preview seat');
+    /* RE-POINTED 28 Sep 2026: every seat takes the one row; the preview's
+       verbs are deadened on the face itself. */
+    assert.ok(NEG_CODE.includes('<div class="rl-card-side">${deaden(face)}</div>'),
+      'the preview draws their row with its verbs dead');
     /* ONE READING, SHARED. rlBandOpts answers "does this seat draw bands" and
        "what is unsent on it" for the card renderer AND for redlineCardIds, so
        the column and the pill cannot disagree about the order they share. */
     const i = NEG_CODE.indexOf('function rlBandOpts');
     assert.ok(i > -1, 'the reading is a named function, not a copy in each caller');
     const body = NEG_CODE.slice(i, NEG_CODE.indexOf('\n}', i));
-    assert.match(body, /banded: side === 'owner' && !previewSeat/,
-      'and the bands take the same answer');
+    assert.match(body, /banded: true/, 'and every seat is banded — one answer');
     /* RE-POINTED 26 Aug 2026, and STRENGTHENED. This pinned the call spelled
        inline; the pill reads the same answer TWICE now — once to decide
        whether settled work is in its population at all, and once to sort it —
@@ -1131,7 +1137,10 @@ describe('f246 (9) — one reading, four askers', () => {
     /* THE THREE QUESTIONS ARE UNCHANGED — their seat, a window too narrow for
        two columns, and a stage that does not load the module at all. */
     const fn = NEG_CODE.match(/function rlEditorTakesIt[\s\S]*?\n\}/)[0];
-    assert.match(fn, /side === 'counterparty' \|\| opts\.preview/);
+    /* TWO QUESTIONS AND A PREVIEW since 28 Sep 2026: their seat is let in
+       (Mirror); our preview of it is not. */
+    assert.match(fn, /if \(opts\.preview\) return false;/);
+    assert.ok(!/side === 'counterparty'/.test(fn), 'their seat is no longer refused');
     assert.match(fn, /typeof window\.rlOpenClauseEditor !== 'function'/,
       'the MODULE by name, not merely the width');
     assert.match(fn, /clauseEditorFits\(\)/);
@@ -1169,7 +1178,7 @@ describe('f246 (9) — one reading, four askers', () => {
   test('on our seat the press is a jump and nothing more', () => {
     const h = NEG_CODE.match(/\[data-rl-edit\]'\)\.forEach[\s\S]*?\n  \}\)\);/)[0];
     assert.match(h, /rlJumpToClause\(clauseId\)/, 'it still lights the clause');
-    assert.match(h, /if \(rlEditorTakesIt\(\(opts && opts\.side\) \|\| 'owner'\)\) return;/,
+    assert.match(h, /if \(rlEditorTakesIt\(\(opts && opts\.side\) \|\| 'owner', \{ preview: !!\(opts && opts\.preview\) \}\)\) return;/,
       'and stops there where the edit page is the door — the row promises a '
       + 'jump and must not also open a retired panel');
     const stop = h.indexOf('rlEditorTakesIt(');
@@ -1180,8 +1189,8 @@ describe('f246 (9) — one reading, four askers', () => {
   test('and their seat keeps both halves, because the panel is their only door', () => {
     const h = NEG_CODE.match(/\[data-rl-edit\]'\)\.forEach[\s\S]*?\n  \}\)\);/)[0];
     assert.match(h, /rlCpSetShown\(btn\.closest\('\.redline-page'\) \|\| document, clauseId\)/,
-      'rlOpenClauseEditor refuses a counterparty outright, so taking this from '
-      + 'them would take away the only way their page proposes wording');
+      'a window the editor cannot take (and our preview) still opens the panel — '
+      + 'on a narrow window it is their only way to propose wording');
     assert.match(h, /ng_cp_cannot_open/, 'and L-3\'s refusal is still theirs');
   });
 
@@ -1747,7 +1756,8 @@ describe('f246 (12) — every verb on the face carries the shell\'s own mark', (
       'and the table matches it by its class pair, which is all it carries');
   });
 
-  test('their seat is untouched — no mark reaches the counterparty\'s column', async () => {
+  /* REVERSED IN PLACE 28 Sep 2026 (Mirror): their rows are ours, marks and all. */
+  test('their column wears the same marks as ours', async () => {
     /* By construction: rlRowFaceVerbs is the owner branch's own, and their
        cards never pass through it. Asserted on their real rendering, because
        "by construction" is what this file has been wrong about before. */
@@ -1756,6 +1766,6 @@ describe('f246 (12) — every verb on the face carries the shell\'s own mark', (
     box.innerHTML = p.win.redlinePanesHtml(p.c,
       { side: 'counterparty', org: 'Nordkust Industri AB', hiddenIds: [] });
     assert.ok(box.querySelector('.rl-card'), 'they still get a column of cards');
-    assert.equal(box.querySelector('.rl-verb-i'), null, 'and not one mark on it');
+    assert.ok(box.querySelector('.rl-verb-i'), 'and the marks on their verbs too');
   });
 });

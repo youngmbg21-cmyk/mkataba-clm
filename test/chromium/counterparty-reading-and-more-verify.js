@@ -162,8 +162,13 @@ const PAPER = `(() => {
         foot: bx(document.getElementById('pt-nego-foot')),
         title: bx(document.querySelector('.pw-id-main')) };
     });
-    check('1b the readings and the deal verbs share one line, centred on it',
-      !!row2.segs && !!row2.foot && Math.abs(row2.segs.mid - row2.foot.mid) <= 2,
+    /* RE-POINTED 28 Sep 2026 (Young picked Mirror: "the redline page should
+       mirror the owner side"). Our room head carries its acts on the TITLE's
+       line and the readings on the row below it; their head now does the same,
+       so the deal verbs share the title's line and the readings keep the row
+       below, at its left. Still asserted as geometry, on centres. */
+    check('1b the deal verbs share the title\'s line, centred on it, as on our room head',
+      !!row2.title && !!row2.foot && Math.abs(row2.title.mid - row2.foot.mid) <= 4,
       JSON.stringify(row2));
     check('1b with the readings on its LEFT, as on the negotiation page',
       !!row2.segs && !!row2.foot && row2.segs.l < row2.foot.l,

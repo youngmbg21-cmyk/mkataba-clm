@@ -156,7 +156,13 @@ describe('F62 — held here is not the same as already filed', () => {
        badge now reads "Accepted" alone. The fact that the answer has GONE is
        still on the card — [data-sent] above, and the hover text — and the
        state that has NOT gone is the one that still says so ("· held"). */
-    assert.equal(v.card(id).querySelector('.rl-badge').textContent.trim(), 'Accepted');
+    /* RE-POINTED 28 Sep 2026 (Young picked Mirror): their row is ours, and on
+       ours the PILE says the state — an answer that has gone sits under the
+       accepted pile, and only an answer still HELD carries its own badge. */
+    const band = el => { for (let n = el.previousElementSibling; n; n = n.previousElementSibling)
+      if (n.matches('[data-rl-band]')) return n.getAttribute('data-rl-band'); return null; };
+    assert.equal(band(v.card(id)), 'accepted');
+    assert.equal(v.card(id).querySelector('.rl-badge'), null, 'no badge: the heading already says it');
   });
 
   test('nor offered an Undo it does not have', async () => {

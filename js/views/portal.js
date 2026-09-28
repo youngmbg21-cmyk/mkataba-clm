@@ -1667,7 +1667,10 @@ function portalNegoHtml(p){
      is, and returning '' for it would leave the reader with a document and no
      word about why they were sent it. */
   const phase=portalNegoPhase(p).phase;
-  if(phase==='sign') return portalAgreedHtml(p);
+  /* THE GREEN BAND IS RETIRED (Signing copy, 28 Sep 2026): what it said is the
+     first stage of the list beside the signing copy — see
+     portalBeforeSignStagesHtml. portalAgreedHtml has no caller now. */
+  if(phase==='sign') return '';
   /* ON A NEGOTIATION LINK THE CARD IS NOTHING BUT A DUPLICATE.
 
      This used to render the whole negotiation into a card in the page column —
@@ -2112,6 +2115,104 @@ function wirePortalNotes(){
    ordinary link, where PORTAL_PARTY is absent. The other parties are named
    only as a COUNT and a promise about order — who else is on the paper is on
    the paper itself, and this line is about what the reader may do. */
+/* ---- BEFORE YOU SIGN: THE FIRST THREE STAGES (Young picked "Signing copy",
+   28 Sep 2026) ----
+   Our Signing tab keeps one list before a signature, in four stages (paper ·
+   read · people · sign — SIGN_STAGES). Their page draws the same four, each
+   one borrowed from what THEIR copy already carries and nothing else:
+
+     1 THE WORDING — counted from the change records the link was sent with,
+       the green band's own sentence (portalAgreedHtml, which has no caller
+       now), with its "What changed" door (#pt-nego-open, same id, same
+       openPortalHistory);
+     2 THE READING — the signing copy beside this list is the copy both sides
+       sign;
+     3 THE PEOPLE — WHO HAS SIGNED: the names, capacities and dates on
+       p.contract.signatures, which travel for exactly this (the 2 Aug field
+       report). OUR ROUTE DOES NOT TRAVEL and is not drawn: buildSharePayload
+       reduces it to one boolean on purpose — it names colleagues and their
+       addresses, none of which is theirs to read — so this stage says who has
+       signed and that it is their turn, and invents no order beyond that;
+     4 THE SIGNATURE — drawn by the page itself, around the controls it has
+       always had.
+
+   A stage that is settled wears a tick; the one in hand wears its number. */
+function portalBeforeSignStagesHtml(c, p){
+  const src=(p&&p.contract)||{};
+  const org=(p&&p.org)||i18t('pt_the_sender');
+  const changes=(Array.isArray(src.changes)?src.changes:[]).filter(x=>x&&x.status!=='superseded');
+  const open=changes.filter(x=>x.status==='pending'&&!x.withdrawn).length;
+  const acc=changes.filter(x=>x.status==='accepted').length;
+  const rej=changes.filter(x=>x.status==='rejected').length;
+  const executed=portalExecuted();
+  const stage=(n,ok,head,body)=>`<li class="ps-stage${ok?' is-ok':''}"><span class="ps-ico" aria-hidden="true">${ok?'&#10003;':n}</span><div class="ps-sb"><h3 class="ps-st">${esc(head)}</h3>${body}</div></li>`;
+  const wording = !changes.length
+    ? esc(i18t('po_stage_wording_none',{org}))
+    : open
+    ? esc(i18tn('po_stage_wording_open',open,{n:open}))
+    : esc(i18tn('po_stage_wording_n',changes.length,{n:changes.length,
+        how:(acc?i18t('po_stage_adopted',{n:acc}):'')+(rej?i18t('po_stage_not_taken',{n:rej}):'')}));
+  const sigs=(Array.isArray(src.signatures)?src.signatures:[]).filter(s=>s&&s.name);
+  const people = (sigs.length
+      ? sigs.map(s=>`<p class="ps-who"><b>${esc(s.name)}</b>${s.title?` &middot; ${esc(s.title)}`:''}<span class="ps-when ok">${
+          esc(i18t('po_stage_signed_at',{at:s.at&&window.fmtDT?fmtDT(s.at):(s.at||'')}))}</span></p>`).join('')
+      : `<p class="ps-line">${esc(i18t('po_stage_none_yet'))}</p>`)
+    + (executed ? '' : `<p class="ps-who"><b>${esc(i18t('po_stage_you'))}</b><span class="ps-when now">${esc(i18t('po_stage_your_turn'))}</span></p>`);
+  return stage(1, !open, i18t('po_stage_wording'),
+      `<p class="ps-line">${wording}</p>${changes.length?`<button id="pt-nego-open" type="button" class="ui-link ps-door"
+        title="${i18t('po_every_change_oldest')}">${i18t('po_review_what_changed')}</button>`:''}`)
+    + stage(2, executed, i18t('po_stage_read'), `<p class="ps-line">${esc(i18t('po_stage_read_line'))}</p>`)
+    + stage(3, executed, i18t('po_stage_people'), people);
+}
+/* The page's own dressing, beside the head it borrows from the negotiation
+   page (portalWorkbenchStyle). Tokens only: this is the product's own page. */
+function portalSignStyle(){
+  if(document.getElementById('ps-style')) return;
+  const el=document.createElement('style'); el.id='ps-style';
+  el.textContent=`
+    .ps-page{min-height:100vh;background:var(--color-bg);display:flex;flex-direction:column;gap:12px;
+      padding:9px var(--s-4) var(--s-6);box-sizing:border-box;}
+    .ps-page .pw-id{flex:none;}
+    /* The reading verbs' trailing rule divides them from what followed them
+       on the negotiation page; here nothing follows. */
+    .ps-page .pw-id-rule{display:none;}
+    .ps-grid{display:grid;gap:18px;align-items:start;grid-template-columns:minmax(0,1fr);width:100%;max-width:1400px;margin:0 auto;}
+    .ps-grid>*{min-width:0;}
+    @media(min-width:1024px){.ps-grid{grid-template-columns:minmax(0,1fr) 380px;}
+      .ps-side{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto;}}
+    .ps-side{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);
+      box-shadow:var(--shadow-sm);padding:0 0 var(--s-3);}
+    .ps-h{font-family:var(--font-heading);font-weight:var(--w-strong);font-size:15px;color:var(--color-text);
+      margin:0;padding:12px var(--s-4);border-bottom:2px solid var(--color-accent-600);}
+    .ps-side>.ps-note{margin:var(--s-3) var(--s-4) 0;}
+    .ps-stages{list-style:none;margin:0;padding:0;}
+    .ps-stage{display:flex;gap:10px;padding:12px var(--s-4);border-bottom:1px solid var(--color-divider);}
+    .ps-stage:last-child{border-bottom:0;}
+    .ps-ico{flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;margin-top:1px;
+      font-size:var(--t-label);font-weight:var(--w-strong);background:var(--st-amber-bg);color:var(--st-amber-fg);}
+    .ps-stage.is-ok .ps-ico{background:var(--st-green-bg);color:var(--st-green-fg);}
+    .ps-sb{flex:1;min-width:0;}
+    .ps-st{margin:0 0 3px;font-family:var(--font-heading);font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);}
+    .ps-line{margin:0;font-size:var(--t-meta);line-height:1.5;color:var(--color-neutral-600);}
+    .ps-door{margin-top:4px;font-size:var(--t-meta);}
+    .ps-who{margin:4px 0 0;font-size:var(--t-meta);line-height:1.45;color:var(--color-text);display:flex;flex-wrap:wrap;gap:0 6px;align-items:baseline;}
+    .ps-who b{font-weight:var(--w-strong);}
+    .ps-when{flex-basis:100%;font-size:var(--t-label);}
+    .ps-when.ok{color:var(--st-green-fg);} .ps-when.now{color:var(--st-amber-fg);}
+    .ps-code{display:block;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600);text-align:center;}`;
+  document.head.appendChild(el);
+}
+/* ---- THE STATE WORD BESIDE THEIR TITLE (Mirror, 28 Sep 2026) ----
+   Our head prints the contract's state in coloured text beside its name; theirs
+   does too, from the PLAIN lifecycle table only. contractStatusTextHtml is not
+   used here and must not be: its overlays are our readings — a hold and its
+   reason (internal), "Counterparty ready to sign" (our view of them), a
+   hand-over's wait — none of which this page may say. */
+function portalStatusWordHtml(c){
+  const meta = (window.STATUS_META && c && STATUS_META[c.status]) || null;
+  if(!meta) return '';
+  return `<span class="pw-id-stat room-stat" style="color:${meta.tx}">${esc(meta.label)}</span>`;
+}
 function portalPartyLine(){
   try{
     /* Read off the payload the link served, which is where it is written, and
@@ -3220,7 +3321,13 @@ function portalWorkbenchStyle(){
       color:#fff;display:grid;place-items:center;font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-body);}
     .pw-id-main{min-width:0;line-height:1.3;}
     .pw-id-main h1{margin:0;font-family:var(--font-heading);font-weight:var(--w-strong);font-size:16px;
-      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+    /* THE TITLE AND ITS STATE ON ONE LINE, the room head's own pair (Mirror,
+       28 Sep 2026): the name gives way first, the state word never does. */
+    .pw-id-titlerow{display:flex;align-items:baseline;gap:10px;min-width:0;}
+    .pw-id-stat{flex:none;font-size:var(--t-meta);font-weight:var(--w-strong);white-space:nowrap;}
+    /* The control row's gap between how you READ and the reading verbs. */
+    .pw-id-sp{flex:1 1 0;min-width:0;}
     .pw-id-sub{display:block;font-size:var(--t-label);color:var(--color-neutral-600);font-family:var(--font-mono);
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     /* THE DEAL VERBS SIT WHERE THE NAME BOX USED TO (owner-asked, 12 Aug 2026).
@@ -3405,11 +3512,22 @@ function renderShareWorkbench(p, opts={}){
            stack draws no bell on the counterparty's seat. */}
     <button type="button" class="rl-focus-exit" data-rl-focus-exit
       title="${i18t('ng_leave_focus')}">${i18t('ng_exit_focus')}</button>
+    ${''/* ---- THE HEAD IS OURS, TURNED ROUND (Young picked Mirror, 28 Sep 2026) ----
+           The room head's shape: the title with its state in coloured text
+           beside it, one quiet line under it, the acts at the right — and a
+           second row that is the negotiation page's control row (how you are
+           reading, whose colour is whose, the reading verbs, the text size).
+           TWO READINGS OF OURS ARE DELIBERATELY NOT BORROWED: the state word is
+           the plain lifecycle word (STATUS_META), never contractStatusTextHtml,
+           whose overlays include a HOLD and its reason — an internal fact — and
+           "Counterparty ready to sign", which is our reading of THEM. And the
+           quiet line names who it is FROM, because on this page "with" named
+           the reader's own company back to them. */}
     <section class="pw-id">
       <span class="pw-id-badge">HT</span>
       <span class="pw-id-main">
-        <h1>${esc(c.name||'Contract')}</h1>
-        <span class="pw-id-sub">${esc((window.contractRef?contractRef(c):c.id)||'')}${c.counterparty?` &middot; with ${esc(c.counterparty)}`:''}
+        <span class="pw-id-titlerow"><h1>${esc(c.name||'Contract')}</h1>${portalStatusWordHtml(c)}</span>
+        <span class="pw-id-sub">${esc((window.contractRef?contractRef(c):c.id)||'')} &middot; ${esc(i18t('po_from_org',{org}))}
           &middot; shared by ${esc(p.sharedBy||org)}${opts.share&&opts.share.expiresAt
             ?` &middot; link expires ${esc(String(opts.share.expiresAt).slice(0,10))}`:''}</span>
       </span>
@@ -3425,7 +3543,6 @@ function renderShareWorkbench(p, opts={}){
              to correct it). */}
       ${''/* Negotiation history and Compare wording — the reading verbs, on
              the row with the other reading controls. See portalReadingBtnsHtml. */}
-      ${portalReadingBtnsHtml()}
       ${''/* ---- AND THEIR OWN BELL (owner-asked, 13 Aug 2026) ----
              The owner has one in the top bar with a count and a panel behind
              it; the counterparty had nothing, and was left to work out for
@@ -3438,7 +3555,6 @@ function renderShareWorkbench(p, opts={}){
              not a seat-relative fact. The stepper is the shared component
              (rlSetDocType updates every mounted .redline-page, this embed
              included). */}
-      ${window.rlTypeStepHtml ? rlTypeStepHtml() : ''}
       ${''/* Their own overflow: a clean PDF, a Word file with the marks, and
              focus mode. See portalMoreMenuHtml for the six rows it deliberately
              does not carry. */}
@@ -3475,9 +3591,20 @@ function renderShareWorkbench(p, opts={}){
              #pt-nego-foot keeps its id, its class and its builder — every
              refill site, portalSetBusy and f180's roll call reach it exactly as
              before; only its parent changed. */}
+      <div id="pt-nego-foot" class="pw-foot"></div>
+      ${''/* ---- THE SECOND ROW IS THE NEGOTIATION PAGE'S CONTROL ROW (28 Sep
+             2026, Mirror) ----
+             The reading switch, then the key naming whose colour is whose (it
+             was in the head of the change column on this page and on the
+             control row on ours — rlCtlLegendHtml is that one builder), then at
+             the right the two reading verbs and the text size. The deal verbs
+             moved up beside the bell and More, where our acts sit. */}
       <div class="pw-id-row2">
         ${window.rlReadSegsHtml ? rlReadSegsHtml() : ''}
-        <div id="pt-nego-foot" class="pw-foot"></div>
+        ${window.rlCtlLegendHtml ? rlCtlLegendHtml(c, 'counterparty') : ''}
+        <span class="pw-id-sp"></span>
+        ${portalReadingBtnsHtml()}
+        ${window.rlTypeStepHtml ? rlTypeStepHtml() : ''}
       </div>
     </section>
     <div class="pw-notes">
@@ -3730,23 +3857,39 @@ function renderSharePortal(p, opts={}){
     <label style="display:block;margin-bottom:10px;"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em;">${label}</span>
     <input id="${id}" type="text" placeholder="${ph}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font-family:var(--font-body);color:var(--color-text);outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>`;
   const TA='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:var(--s-2) 11px;font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none;';
+  /* ---- THE SIGNING PAGE IS OUR SIGNING TAB, TURNED ROUND (Young picked
+     "Signing copy", 28 Sep 2026) ----
+     It was the last page in the product still wearing the old dress: a dark
+     bar across the top, a 1100px two-column card, and two bands above the
+     wording — the history band and a green "Ready to sign" — before a form.
+     Now: the same head their negotiation page wears (the title and its state,
+     one quiet line, the reading verbs at the right), the SIGNING COPY in the
+     middle at full size, and on the right the one list our Signing tab keeps
+     before a signature, in its four stages — the wording, the reading, the
+     people, the signature (portalBeforeSignHtml).
+     THE TWO BANDS ARE GONE AND NOTHING THEY SAID IS LOST (the owner was told,
+     as the band rule asks): the history band's two verbs are in the head
+     (portalReadingBtnsHtml — the same ids, #pt-hist and #pt-compare), and the
+     green band's count of what was settled, with its "What changed" door
+     (#pt-nego-open, the same id and handler), is the list's first line. Every
+     id this page's handlers, portalRespond and the suite reach for is kept. */
+  portalWorkbenchStyle(); portalSignStyle();
   root.innerHTML=`
-  <div style="min-height:100vh;background:var(--color-bg);">
-    <header style="background:var(--color-accent-900);color:#fff;padding:14px var(--s-6);">
-      <div style="max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:var(--s-3);">
-        <div style="width:34px;height:34px;background:var(--color-accent);color:#fff;display:grid;place-items:center;font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-card);letter-spacing:.02em;border-radius:var(--radius);flex:none;">HT</div>
-        <div style="line-height:1.25;min-width:0;">
-          <div style="font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-card);">${i18t('po_shared_for_review',{org:esc(p.org)})}</div>
-          <div style="font-size:var(--t-label);color:var(--color-accent-200);font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc((window.contractRef?contractRef(p.contract):p.contract.id))} · shared by ${esc(p.sharedBy)} · ${fmtDT(p.at)}${opts.share&&opts.share.expiresAt?` · link expires ${String(opts.share.expiresAt).slice(0,10)}`:''} · via HaTi</div>
-        </div>
-      </div>
-    </header>
-    <div style="max-width:1100px;margin:0 auto;display:grid;gap:22px;padding:28px var(--s-6);align-items:start;" class="portal-grid">
+  <div class="ps-page">
+    <section class="pw-id">
+      <span class="pw-id-badge">HT</span>
+      <span class="pw-id-main">
+        <span class="pw-id-titlerow"><h1>${esc(c.name||'Contract')}</h1>${portalStatusWordHtml(c)}</span>
+        <span class="pw-id-sub">${esc((window.contractRef?contractRef(p.contract):p.contract.id))} &middot; ${esc(i18t('po_from_org',{org:(p&&p.org)||''}))}
+          &middot; shared by ${esc(p.sharedBy)} &middot; ${fmtDT(p.at)}${opts.share&&opts.share.expiresAt?` &middot; link expires ${String(opts.share.expiresAt).slice(0,10)}`:''}</span>
+      </span>
+      ${portalReadingBtnsHtml()}
+    </section>
+    <div class="ps-grid portal-grid">
       <div id="pt-main" style="min-width:0">
         ${portalClosedBanner()}
         ${portalRevisedBanner()}
         ${portalRoundBanner(c,p)}
-        ${portalCompareBar()}
         ${portalNegoHtml(p)}
         ${portalOpenPointsHtml(c,p)}
         ${''/* THE "TALK IT THROUGH" PANEL IS GONE, on both sides.
@@ -3800,8 +3943,11 @@ function renderSharePortal(p, opts={}){
         </div>
         `}
       </div>
-      <aside style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:18px;" class="portal-aside">
-        <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:16px;color:var(--color-text);margin:0 0 var(--s-1);">${i18t('po_respond_to',{org:esc(p.org)})}</h2>
+      <aside class="ps-side portal-aside">
+        <h2 class="ps-h">${esc(i18t(portalExecuted()?'po_signed_head':'po_before_you_sign'))}</h2>
+        <ol class="ps-stages">${portalBeforeSignStagesHtml(c,p)}
+        <li class="ps-stage"><span class="ps-ico" aria-hidden="true">4</span><div class="ps-sb">
+        <h3 class="ps-st">${esc(i18t('po_stage_sign'))}</h3>
         ${''/* The sender's covering note was reproduced here too, headed
                 "Message from <name>". Gone with the other three drawings of it
                 (13 Aug 2026) — it is in their inbox, under that same heading.
@@ -3873,7 +4019,12 @@ function renderSharePortal(p, opts={}){
           <p style="margin:0;font-size:var(--t-meta);line-height:1.55;color:var(--st-amber-fg)">${esc(i18t('po_no_signers_yet',{org:(p&&p.org)||'the sender'}))}</p>
         </div>`:''}
         <div style="display:flex;flex-direction:column;gap:var(--s-2);">
-          <button id="pt-sign" class="ui-btn ui-btn-lg ui-btn-primary" style="width:100%">${icon('finger','w-4 h-4')} ${i18t('po_sign_this_contract')}</button>
+          ${''/* THE BUTTON NAMES THE SIGNER (Signing copy, 28 Sep 2026) — our own
+                 button's "Sign as X", kept in step with the name box below as it
+                 is typed (see renderSharePortal's wiring). The code the server
+                 sends first is said beside it, because a cost stays by its button. */}
+          <button id="pt-sign" class="ui-btn ui-btn-lg ui-btn-primary" style="width:100%">${icon('finger','w-4 h-4')} <span id="pt-sign-word">${i18t('po_sign_this_contract')}</span></button>
+          ${(opts.token&&PORTAL_OPTS.emailConfigured!==false&&!portalExecuted())?`<span class="ps-code">${esc(i18t('po_code_first'))}</span>`:''}
           <button id="pt-other-toggle" type="button" aria-expanded="false" aria-controls="pt-other" class="ui-link" style="display:flex;width:100%;justify-content:center;margin:0">${i18t('po_not_ready_sign')}</button>
           <div id="pt-other" class="hidden" style="display:flex;flex-direction:column;gap:9px;border-top:1px solid var(--color-divider);padding-top:11px">
             ${''/* ---- A BUTTON THAT OPENS NOTHING IS WORSE THAN NO BUTTON ----
@@ -3908,11 +4059,12 @@ function renderSharePortal(p, opts={}){
             </div>
           </div>
         </div>
-        <div id="portal-result" style="margin-top:var(--s-4);"></div>
+        </div></li></ol>
+        <div id="portal-result" style="margin:var(--s-3) var(--s-4) 0;"></div>
       </aside>
     </div>
   </div>
-  <style>.portal-grid{grid-template-columns:1fr;}@media(min-width:1024px){.portal-grid{grid-template-columns:1fr 360px;}.portal-aside{position:sticky;top:24px;}}</style>`;
+`;
   /* The door to the other four. It opens in place and stays open — somebody who
      has decided they are not signing today should not have to find it twice. */
   document.getElementById('pt-other-toggle')?.addEventListener('click',e=>{
@@ -4040,6 +4192,13 @@ function renderSharePortal(p, opts={}){
      listener covering this box and the room's, so the two cannot disagree
      about what was remembered. */
   if(window.negoWireNameMemory) negoWireNameMemory();
+  /* THE SIGN BUTTON SAYS WHO IS SIGNING, and keeps saying it as the name box
+     is typed in — our own button's "Sign as X" (Signing copy, 28 Sep 2026). */
+  const signWord=()=>{ const w=document.getElementById('pt-sign-word'); const n=document.getElementById('pt-name');
+    if(!w) return; const v=String((n&&n.value)||'').trim();
+    w.textContent=v?i18t('po_sign_as',{name:v}):i18t('po_sign_this_contract'); };
+  document.getElementById('pt-name')?.addEventListener('input',signWord);
+  signWord();
 }
 async function portalRespond(p, action, extra){
   /* THE SAME REFUSAL THE SERVER MAKES, one layer earlier — the wall is on the
@@ -4215,7 +4374,11 @@ async function portalRespond(p, action, extra){
   // Capture the counterparty's signature mark (free choice: draw / type / upload).
   let sig=null;
   if(action==='sign' && typeof openSignaturePad==='function'){
-    sig=await openSignaturePad({ name });
+    /* THE INTENT LINE, as our own pad carries it (Signing copy, 28 Sep
+       2026): the first thing on the pad says what signing means, and the pad
+       will not take the mark until it is ticked. Our signCheck adds it on
+       our seat; theirs had never asked for it. */
+    sig=await openSignaturePad({ name, intent:true });
     if(!sig) return;   // signer cancelled the pad
   }
   /* Server-backed signing normally verifies the signer's email with a one-time

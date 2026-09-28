@@ -33,6 +33,7 @@ const MODULES = [
   'js/clausemodel.js',
   'js/parties.js',   // who the agreement is between
   'js/redline.js',
+  'js/spell.js',
   'js/docx.js',
   'js/docxwrite.js',
   'js/versioning.js',

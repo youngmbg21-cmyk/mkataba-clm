@@ -1043,8 +1043,13 @@ const dismissNote = async pg => {
     aiButtons: document.querySelectorAll('#share-root [data-nego-ai-clause]').length,
     cards: document.querySelectorAll('#share-root .rl-card').length }));
   ck('11a their page holds cards to check', theirs.cards > 0, `${theirs.cards} cards`);
-  ck('11b no ✦ door on any of their tracked changes, and no marker on their panel',
-     theirs.rowDoors === 0 && theirs.panelDoors === 0 && theirs.editorClass === 0,
+  /* RE-POINTED 28 Sep 2026 (Young picked Mirror: "the redline page should
+     mirror the owner side"). Their seat now opens the SAME editor from the
+     row's Edit, with no Copilot in its rail (f422, their-side-verify). What
+     survives of the old claim is the absence that was always the point: no
+     Copilot door on their page, and no ✦ marker on their panel. */
+  ck('11b their rows and pencils carry the editor\'s door, and none of it wears the ✦ marker',
+     theirs.rowDoors > 0 && theirs.panelDoors > 0 && theirs.editorClass === 0,
      `rows ${theirs.rowDoors}, panel ${theirs.panelDoors}, class ${theirs.editorClass}`);
   ck('11c and their panel draws no Copilot button at all — it never did',
      theirs.aiButtons === 0, `${theirs.aiButtons}`);
@@ -1054,15 +1059,22 @@ const dismissNote = async pg => {
     const seat = window.clauseEditorRefusal(window.CONTRACT, { side: 'counterparty' });
     const ro = window.clauseEditorRefusal(window.CONTRACT, { readonly: true });
     const ok = window.rlOpenClauseEditor(window.CONTRACT, id, { side: 'counterparty' });
-    return { seat, ro, ok, mounted: !!document.getElementById('clause-editor'),
-      body: document.body.className };
+    const ed = document.getElementById('clause-editor');
+    const out = { seat, ro, ok, mounted: !!ed,
+      copilot: ed ? ed.querySelectorAll('#ce-scope,.ce-disc,[data-ce-tab="chat"],[data-ce-tab="scan"]').length : -1 };
+    if (window.rlCloseClauseEditor) window.rlCloseClauseEditor();
+    out.closed = !document.getElementById('clause-editor');
+    return out;
   });
-  ck('11d forced open from their seat is refused, and mounts nothing',
-     forced.ok === false && forced.mounted === false && !/ce-open/.test(forced.body),
-     `${forced.ok}, mounted ${forced.mounted}`);
-  ck('11e each refusal names itself rather than one covering both',
-     typeof forced.seat === 'string' && typeof forced.ro === 'string' && forced.seat !== forced.ro,
-     forced.seat);
+  /* RE-POINTED 28 Sep 2026 (Mirror): their seat is no longer a refusal. It
+     opens the one editor, with nothing of Copilot's in it; a read-only mount
+     is still refused, in its own words. */
+  ck('11d opened from their seat, it mounts the one editor with no Copilot in it',
+     forced.ok !== false && forced.mounted === true && forced.copilot === 0 && forced.closed,
+     `${forced.ok}, mounted ${forced.mounted}, copilot ${forced.copilot}, closed ${forced.closed}`);
+  ck('11e their seat is not a refusal; a read-only mount still is, and says so',
+     forced.seat == null && typeof forced.ro === 'string' && forced.ro.length > 0,
+     `${forced.seat} / ${forced.ro}`);
 
   const theirPanel = await p.evaluate(() => {
     const b = document.querySelector('#share-root .rl-cp-pill');
@@ -1071,15 +1083,25 @@ const dismissNote = async pg => {
   });
   await pause(500);
   const theirOpen = await p.evaluate(() => !!(window.rlCpOpenId && rlCpOpenId()));
+  const edOpen = await p.evaluate(() => !!document.getElementById('clause-editor'));
   await p.keyboard.press('Escape');
   await answerLeave(p);
   await pause(400);
+  const back = await p.evaluate(() => ({ ed: !!document.getElementById('clause-editor'),
+    panel: !!(window.rlCpOpenId && rlCpOpenId()) }));
+  await p.keyboard.press('Escape');
+  await pause(400);
   const theirShut = await p.evaluate(() => !(window.rlCpOpenId && rlCpOpenId()));
-  ck('11f their clause panel still opens from the pill',
-     !theirPanel.none && theirOpen, `open ${theirOpen}`);
-  ck('11g and Escape still closes it — the deferral added for the editor never '
-     + 'engages on a page that cannot open one',
-     theirShut, `shut ${theirShut}`);
+  /* RE-POINTED 28 Sep 2026 (Young picked Mirror: "the redline page should
+     mirror the owner side"). Their pencil now does what ours does (8d, 9a,
+     9b): it opens the editor over the clause, Escape closes the editor and
+     lands on the clause, and the panel's own Escape still closes that. The
+     old claim — the editor's Escape deferral never engages on their page — is
+     now asked as: the deferral lets go once the editor has gone. */
+  ck('11f their pencil opens the editor over the clause, as ours does',
+     !theirPanel.none && theirOpen && edOpen, `panel ${theirOpen}, editor ${edOpen}`);
+  ck('11g Escape closes the editor back onto the clause, and Escape again closes that',
+     !back.ed && back.panel && theirShut, `editor ${back.ed}, panel ${back.panel}, shut ${theirShut}`);
 
   const theirVerbs = await p.evaluate(async () => {
     const btn = document.querySelector('#share-root [data-nego-accept]');

@@ -344,7 +344,9 @@ describe('f264 (4) — the ask is one reading of the record', () => {
       'the engine’s own inline editor, inside fileAndRepaint — the ONE '
       + 'filing wrapper on that page, so the edit, the insert and the delete '
       + 'all inherit it');
-    assert.match(CE, /rlNoteAskAfterFile\(c, ch, \{ side: 'owner'/,
+    /* the seat it files under since 28 Sep 2026 (Mirror) — the reading still
+       asks only our seat (rlNoteAskAfterFile answers null for theirs) */
+    assert.match(CE, /rlNoteAskAfterFile\(c, ch, \{ side: ceSide\(\)/,
       'and the clause editor page');
     assert.equal((VIEW.match(/openChangeNoteDialog\(c, ch, \{ \.\.\.opts, filed: true \}\)/g) || []).length, 1,
       'ONE place decides whether to ask, so two doors cannot come to disagree '
@@ -451,7 +453,8 @@ describe('f264 (6) — the gesture that means done, means done', () => {
 
   test('typing goes off only after the record moves', () => {
     const branch = CE.match(/const pencil = hit\('\[data-ce-pencil\]'\);[\s\S]*?\n      return; \}/)[0];
-    assert.match(branch, /Promise\.resolve\(ceFile\(\)\)\.then\(ch => \{\s*\n\s*if \(!ch\) return;\s*\n\s*_ceEditing = false;/,
+    /* through the spelling list since 28 Sep 2026 — ceSaveChecked answers what ceFile answers */
+    assert.match(branch, /Promise\.resolve\(ceSaveChecked\(\)\)\.then\(ch => \{\s*\n\s*if \(!ch\) return;\s*\n\s*_ceEditing = false;/,
       'turning the box read-only over wording the funnel has just REFUSED would '
       + 'hide the reader’s own work behind a page drawing the marks of a '
       + 'change that does not exist');

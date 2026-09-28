@@ -298,6 +298,10 @@ describe('the payload is what makes the two screens agree', () => {
   });
 });
 
+/* WHICH PILE A ROW SITS UNDER — since 28 Sep 2026 (Young picked Mirror) their
+   column is ours, and on ours the pile heading says the state the badge used to. */
+const bandOf = el => { for (let n = el && el.previousElementSibling; n; n = n.previousElementSibling)
+  if (n.matches('[data-rl-band]')) return n.getAttribute('data-rl-band'); return null; };
 describe('an action by one side shows up on the other', () => {
   test('Wanjiru accepts a change and Erik sees it accepted, with the wording moved', async () => {
     const o = await negotiated();
@@ -305,7 +309,7 @@ describe('an action by one side shows up on the other', () => {
 
     // before: live on both sides — a card on the table, the old wording still marked
     let v = counterpartyView(o.c);
-    assert.match(v.$(`[data-nego-card="${ch.id}"] .rl-badge`).textContent, /Sent/);
+    assert.equal(bandOf(v.$(`[data-nego-card="${ch.id}"]`)), 'with', 'sent: under "With …" (Mirror)');
     /* The old wording is still in the document, struck through — the redline
        runs "thirty (30)" and "forty-five (45)" side by side, del beside ins. */
     assert.match(liveNego(v.p.win).textContent, /thirty \(30\)/);
@@ -320,8 +324,10 @@ describe('an action by one side shows up on the other', () => {
        Changes column — the column is for what still needs an answer — and the
        decision rides the clause's own tag in the document instead. */
     v = counterpartyView(o.c);
-    assert.equal(v.$(`[data-nego-card="${ch.id}"]`), null,
-      'a settled change is no longer "tracked" — it lives in the document now');
+    /* RE-POINTED 28 Sep 2026 (Mirror): as on our column, a settled change stays
+       in the quiet Settled pile rather than leaving it. */
+    assert.equal(bandOf(v.$(`[data-nego-card="${ch.id}"]`)), 'accepted',
+      'a settled change is settled — in the Settled pile, and in the document');
 /* ---- REVERSED IN PLACE, 16 Aug 2026 ---- the ask tags have come off the
        paper (owner-asked: "remove the pills from the contracts"). What they
        said at a glance is now the red rule down the changed clause's right
@@ -353,7 +359,7 @@ describe('an action by one side shows up on the other', () => {
        whole deal, and the person who can clear it needs something to press. */
     const card = v.$(`[data-nego-card="${ch.id}"]`);
     assert.ok(card, 'a refused ask of his own stays on his table');
-    assert.match(card.textContent, /Refused/);
+    assert.equal(bandOf(card), 'refused', 'under the Refused pile (Mirror)');
     assert.ok(card.querySelector(`[data-nego-withdraw="${ch.id}"]`),
       'withdrawing it is the settlement he is offered');
 /* ---- REVERSED IN PLACE, 16 Aug 2026 ---- the tags have come off the paper
@@ -819,8 +825,12 @@ describe('the durable link keeps showing current state', () => {
       await tick();
     }
     p.open(sharePayloadFor(p, o.c));
-    assert.equal(p.win.document.querySelectorAll('[data-nego-card]').length, 0,
-      'the settled cards must not survive the refresh');
+    /* RE-POINTED 28 Sep 2026 (Mirror): a settled ask stays in the Settled pile,
+       quiet, exactly as on our column — and it carries no decision to make. */
+    assert.ok([...p.win.document.querySelectorAll('[data-nego-card]')].every(n => bandOf(n) === 'accepted'),
+      'the settled cards are settled');
+    assert.equal(p.win.document.querySelectorAll('#rl-changes-col [data-nego-accept]').length, 0,
+      'and nothing is left to decide');
     assert.ok([...liveNego(p.win).querySelectorAll('#rl-cp-body .rl-cp-who')]
       .some(t => /adopted/.test(t.textContent || '')),
       'the decisions are in the clause panel now');

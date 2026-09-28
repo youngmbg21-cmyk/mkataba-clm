@@ -5892,9 +5892,9 @@ function redlineLayoutCss(){
   .redline-page .rl-legend{display:flex;flex-wrap:wrap;gap:4px 14px;margin:var(--s-2) 0 0;
     font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5}
   .redline-page .rl-legend span{display:inline-flex;align-items:center;gap:5px}
-  .redline-page .rl-lg{width:10px;height:10px;border-radius:var(--radius);flex:none}
-  .redline-page .rl-lg-us{background:var(--st-steel-bg);box-shadow:inset 0 0 0 1px var(--color-accent-600)}
-  .redline-page .rl-lg-them{background:var(--st-amber-bg);box-shadow:inset 0 0 0 1px var(--st-amber-fg)}
+  .redline-page .rl-lg,.pw-id .rl-lg{width:10px;height:10px;border-radius:var(--radius);flex:none}
+  .redline-page .rl-lg-us,.pw-id .rl-lg-us{background:var(--st-steel-bg);box-shadow:inset 0 0 0 1px var(--color-accent-600)}
+  .redline-page .rl-lg-them,.pw-id .rl-lg-them{background:var(--st-amber-bg);box-shadow:inset 0 0 0 1px var(--st-amber-fg)}
   .redline-page .rl-lg-base{background:transparent;box-shadow:inset 0 0 0 1px var(--color-divider),
     inset 0 -2px 0 var(--color-neutral-500)}
 
@@ -6139,9 +6139,11 @@ function redlineLayoutCss(){
   ${''/* THE KEY ON THE CONTROL ROW, beside the readings, naming the two
          parties (the reference's own placement). The plain-text key rides
          the hover. Folds on the row's last two rungs like every other word. */}
-  .redline-page .rl-ctl-legend{display:inline-flex;align-items:center;gap:12px;margin-left:6px;
+  ${""/* THE CLOTHES FOLLOW THE BUILDER: their page draws the same key on its
+         head's control row (Mirror, 28 Sep 2026), outside .redline-page. */}
+  .redline-page .rl-ctl-legend,.pw-id .rl-ctl-legend{display:inline-flex;align-items:center;gap:12px;margin-left:6px;
     font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;flex:none}
-  .redline-page .rl-ctl-legend span{display:inline-flex;align-items:center;gap:4px}
+  .redline-page .rl-ctl-legend span,.pw-id .rl-ctl-legend span{display:inline-flex;align-items:center;gap:4px}
   ${''/* It folds on the LITE rung — before any word does — so a row that
          fits with the legend gone keeps its words (nego-redesign 12, 1280). */}
   .redline-page .rl-tabrow-lite .rl-ctl-legend,

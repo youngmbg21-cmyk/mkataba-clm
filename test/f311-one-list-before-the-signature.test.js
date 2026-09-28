@@ -280,8 +280,13 @@ describe('f311 (4) — the intent line is the pad\'s first line', () => {
     assert.match(pad, /if\(opts\.intent && !\(q\('#sig-intent'\)&&q\('#sig-intent'\)\.checked\)\)\{\s*toast\(i18t\('ct_tick_intent_first'\),'err'\)/);
     assert.match(pad, /consent:!!opts\.intent/, 'the answer rides out on the result');
   });
-  test('the counterparty\'s page does not ask for it (their own consent is theirs)', () => {
-    assert.match(read('js/views/portal.js'), /openSignaturePad\(\{ name \}\)/);
+  /* RE-POINTED 28 Sep 2026 (Young picked Signing copy for their signing page):
+     their page's last stage is the same pad we sign on, and it opens with the
+     same intent line, so their consent rides out on the result exactly as ours
+     does. This used to pin that their pad did NOT ask. */
+  test('the counterparty\'s page asks for it too, on the same pad', () => {
+    assert.match(read('js/views/portal.js'), /openSignaturePad\(\{ name, intent:true \}\)/);
+    assert.doesNotMatch(read('js/views/portal.js'), /openSignaturePad\(\{ name \}\)/);
   });
   test('signDocument stamps consent off the pad and never asks for a tick first', () => {
     const m = /async function signDocument\(c\)\{[\s\S]*?\n\}/.exec(strip(CONTRACT));

@@ -134,8 +134,14 @@ const SEEN = `(el => { if (!el) return null;
         .map(x => x.textContent.trim());
       const awaiting = (rows.find(t => /waiting on your answer/i.test(t)) || '').match(/\d+/);
       /* The cards the column actually draws for them to answer. */
+      /* RE-POINTED 28 Sep 2026 (Young picked Mirror: "the redline page should
+         mirror the owner side"). Their column draws OUR flat rows in OUR piles,
+         so "Awaiting you" is the heading of the pile a row sits under, not a
+         badge on the card; the count is the rows in that pile. */
+      const bandOf = el => { for (let n = el.previousElementSibling; n; n = n.previousElementSibling)
+        if (n.matches('[data-rl-band]')) return n.getAttribute('data-rl-band'); return null; };
       const cards = [...document.querySelectorAll('#rl-changes [data-nego-card]')]
-        .filter(el => /Awaiting you/i.test(el.textContent || '')).length;
+        .filter(el => bandOf(el) === 'awaiting').length;
       return { alertN: awaiting ? Number(awaiting[0]) : (rows.some(t => /waiting on your answer/i.test(t)) ? -1 : 0),
         cards, rows };
     });

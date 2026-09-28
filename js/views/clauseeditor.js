@@ -136,6 +136,22 @@ let _cePlaceAt = null;      /* where the clause moved TO was on screen — see c
 const CE_LEAVE_SNIP = 120;
 let _ceZoom = 100;          /* how big the page looks — never a font size */
 let _ceLead = null;         /* the change this editor opened on, if any */
+/* ---- THE SPELL CHECK AT SAVE (28 Sep 2026, js/spell.js) ----
+   The words the reader was last shown, and the draft they were shown FOR. A
+   second Save over the SAME draft files it as written; a draft that moves in
+   between is checked again, because the list was about different words. */
+let _ceSpellList = [];
+let _ceSpellFor = null;
+
+/* ---- WHOSE PAGE THIS IS (Young picked Mirror, 28 Sep 2026) ----
+   The counterparty edits a clause on this same page now, from their pencil,
+   exactly as we do. Every reading below that used to say 'owner' asks this
+   instead, so their marks wear their colour, their filing is theirs, and the
+   ask they are answering is ours. `ceNoAi` is the other half: their page has
+   no Copilot, so nothing that asks a model — the conversation, the chips, the
+   passage card, the Playbook scan, the highlight's Ask — is drawn or reached. */
+const ceSide = () => (_ceOpts && _ceOpts.side === 'counterparty') ? 'counterparty' : 'owner';
+const ceNoAi = () => ceSide() === 'counterparty' || !!(_ceOpts && _ceOpts.noAi);
 
 const clauseEditorOpen = () => !!_ceClauseId;
 const clauseEditorClauseId = () => _ceClauseId;
@@ -412,6 +428,8 @@ function clauseEditorCss(){
   .ce-rail .ce-lane{flex:1; min-height:0}
   .ce-railfoot{flex:none; display:flex; align-items:center; justify-content:flex-end; gap:var(--s-2);
     padding:9px 14px; border-top:1px solid var(--color-divider); background:var(--color-surface)}
+  .ce-spell{flex:none; padding:0 14px 8px; max-height:40%; overflow:auto}
+  .ce-spell:empty{display:none}
   .ce-railfoot button{height:var(--ctl-h); padding:0 var(--pad-ctl-x); font:inherit; font-size:var(--t-body); font-weight:var(--w-label);
     background:var(--color-surface); color:var(--color-text); border:1px solid var(--color-divider)}
   .ce-railfoot button.p{background:var(--color-accent-700); border-color:var(--accent-ink-700);
@@ -1003,7 +1021,7 @@ function ceProposedClause(){
   const list = (_ceC && Array.isArray(_ceC.changes)) ? _ceC.changes : [];
   const ch = list.find(x => x && String(x.clauseId) === String(_ceClauseId)
     && x.changeType === 'insertClause' && x.status === 'pending'
-    && !x.withdrawn && x.authorSide === 'owner');
+    && !x.withdrawn && x.authorSide === ceSide());
   if (!ch) return null;
   const headingText = String(ch.headingText || '').trim();
   let head = { num: '', title: headingText };
@@ -1061,7 +1079,7 @@ function ceLeadChange(named){
 function ceStacksOn(){
   const on = _ceLead;
   if (!on || on.status !== 'pending' || on.withdrawn || on.changeType === 'insertClause') return null;
-  if (on.authorSide !== 'owner') return on;
+  if (on.authorSide !== ceSide()) return on;
   /* THE LEAD IS OUR OWN COUNTER, STANDING ON THEIR PARKED ASK: a further edit
      is a revision of that counter and is still measured against THEIR wording
      — or the stack would fall apart at the first revision (the fold rewrites
@@ -1069,7 +1087,7 @@ function ceStacksOn(){
      paper's own reading of what a counter stands on. */
   try{
     const under = window.rlStackUnder ? rlStackUnder(_ceC, on) : null;
-    if (under && under.authorSide !== 'owner' && under.changeType !== 'insertClause') return under;
+    if (under && under.authorSide !== ceSide() && under.changeType !== 'insertClause') return under;
   }catch(_){}
   return null;
 }
@@ -1429,7 +1447,7 @@ function ceTypingRefusal(){
       { who: String((held.by && held.by.name) || '').trim() || _cet('cl_a_colleague') });
   }catch(_){}
   try{
-    const door = clauseEditorRefusal(_ceC, { side: 'owner', readonly: !!(_ceOpts && _ceOpts.readonly) });
+    const door = clauseEditorRefusal(_ceC, { side: ceSide(), readonly: !!(_ceOpts && _ceOpts.readonly) });
     if (door) return door;
   }catch(_){}
   return null;
@@ -1441,7 +1459,14 @@ function ceTypingRefusal(){
    no reason is what makes a reader blame themselves. */
 function clauseEditorRefusal(c, opts = {}){
   if (!c) return _cet('ce_no_contract');
-  if (opts.side === 'counterparty') return _cet('ce_owner_only');
+  /* ---- THE COUNTERPARTY IS LET IN (Young picked Mirror, 28 Sep 2026) ----
+     It refused them outright, because this page was built around Copilot and
+     their page has none. It opens for them now with the Copilot half not
+     drawn (ceNoAi), filing through the same funnel under their own side, and
+     their answers still held on their page until they press Send. What stays
+     refused is refused for the same reasons it is refused to us: a read-only
+     link, wording frozen by a signature, a window too narrow for two columns.
+     `ce_owner_only` is inert in both books. */
   if (opts.readonly) return _cet('ce_read_only');
   try{ if (window.negoWordingFrozen && negoWordingFrozen(c))
     return _cet(window.negoHandedOver && negoHandedOver(c) && !(window.negoExecuted && negoExecuted(c)) ? 'ce_handed_over' : 'ce_wording_frozen'); }catch(_){}
@@ -1449,7 +1474,8 @@ function clauseEditorRefusal(c, opts = {}){
      reading of exactly this and is deliberately not published to window, so
      this asks the same question of the same predicate rather than reaching for
      a name that is not there — which is silence, not a refusal (f232). */
-  try{ if (typeof window.deskMayRedline === 'function' && !deskMayRedline(c)) return _cet('ce_not_your_desk'); }catch(_){}
+  /* The desk is OUR seat's arrangement; their page never learns it exists. */
+  try{ if (opts.side !== 'counterparty' && typeof window.deskMayRedline === 'function' && !deskMayRedline(c)) return _cet('ce_not_your_desk'); }catch(_){}
   if (!clauseEditorFits()) return _cet('ce_too_narrow');
   return null;
 }
@@ -1620,9 +1646,18 @@ function clauseEditorHtml(){
           <span class="g"></span>
         </div>
       </div>
+      ${''/* ---- THEIR RAIL HAS NO COPILOT IN IT (Young picked Mirror, 28 Sep
+             2026) ----
+             Their page has no Copilot, so the rail keeps what spends
+             nothing and asks nobody: the clause's name, its Ladder (every
+             move on this clause, both sides, every round) and, where the
+             clause is argued in a number, the Figure. The conversation,
+             the chips, the passage card, the Playbook scan and the
+             disclaimer are NOT DRAWN — never drawn and hidden, so no
+             keyboard can reach them — and ceNoAi is the one reading. */}
       <aside class="ce-rail">
         <div class="ce-ah">
-          <span class="sp">&#10022; ${_cet('ce_copilot')}</span>
+          ${ceNoAi() ? '' : `<span class="sp">&#10022; ${_cet('ce_copilot')}</span>`}
           ${''/* ---- THE RAIL NAMES THE CLAUSE IT IS WORKING ON (Young ruled it
                  21 Sep 2026: "it is not clear which clause copilot is working
                  on") ----
@@ -1643,7 +1678,7 @@ function clauseEditorHtml(){
           <span class="ce-ah-cl" title="${_ceea(ceClauseLabel(ceClause()) || _cet('ce_this_clause'))}">${_ceea(ceClauseLabel(ceClause()) || _cet('ce_this_clause'))}</span>
           <span class="ce-tabs" id="ce-tabs" role="group"
             aria-label="${_ceea(_cet('ce_tabs_group'))}">
-            <button type="button" data-ce-tab="chat">${_cet('ce_tab_chat')}</button>
+            ${ceNoAi() ? '' : `<button type="button" data-ce-tab="chat">${_cet('ce_tab_chat')}</button>`}
             <button type="button" data-ce-tab="ladder">${_cet('ce_tab_ladder')}</button>
             <button type="button" data-ce-tab="figure" id="ce-tab-figure">${_cet('ce_tab_figure')}</button>
             ${''/* ---- THE CHANGES TAB IS DELETED (owner-asked 28 Aug 2026:
@@ -1661,23 +1696,26 @@ function clauseEditorHtml(){
                    there is no door a third caller could bring one back through.
                    ceFiledList, ceChangesHtml and the ce_tab_changes /
                    ce_changes_none keys are STALE — flag any mention. */}
-            <button type="button" data-ce-tab="scan">${_cet('ce_tab_scan')}<span class="n" id="ce-scan-n"></span></button>
+            ${ceNoAi() ? '' : `<button type="button" data-ce-tab="scan">${_cet('ce_tab_scan')}<span class="n" id="ce-scan-n"></span></button>`}
           </span>
         </div>
-        <div class="ce-disc"><b>&#10022;</b><span>${_cet('ce_disclaimer')}</span></div>
+        ${ceNoAi() ? '' : `<div class="ce-disc"><b>&#10022;</b><span>${_cet('ce_disclaimer')}</span></div>`}
         <div class="ce-lane" id="ce-lane"></div>
         ${''/* ---- WHAT IS ATTACHED, DIRECTLY OVER THE BOX YOU TYPE IN ----
                The passage the reader highlighted on the paper. Painted by
                ceRenderScope and EMPTY when nothing is attached, so this slot
                costs the ordinary rail nothing. */}
-        <div id="ce-scope"></div>
+        ${ceNoAi() ? '' : `<div id="ce-scope"></div>
         <div class="ce-chips" id="ce-chips"></div>
         <div class="ce-ask" id="ce-askrow">
           <textarea id="ce-ask" rows="1" aria-label="${_ceea(_cet('ce_ask_label'))}"
             placeholder="${_ceea(_cet('ce_ask_ph'))}"></textarea>
           <button type="button" data-ce-act="ask" aria-label="${_ceea(_cet('ce_send'))}"
             title="${_ceea(_cet('ce_send'))}">${CE_SEND_ICON}</button>
-        </div>
+        </div>`}
+        ${''/* THE SPELLING LIST'S SLOT, directly over the Save it is about
+               (28 Sep 2026). Empty unless a Save found something. */}
+        <div class="ce-spell" id="ce-spell"></div>
         <div class="ce-railfoot" id="ce-railfoot"></div>
       </aside>
       ${''/* ONE picker element, three contents — ink, highlight, size. Three
@@ -1980,7 +2018,7 @@ function ceLockBeat(stop){
   _ceLockBeat = setInterval(() => {
     if (!clauseEditorOpen()){ ceLockBeat(true); return; }
     try{
-      if (window.clauseLockKeep && clauseLockKeep(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC, { clauseId: _ceClauseId });
+      if (ceSide() === 'owner' && window.clauseLockKeep && clauseLockKeep(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC, { clauseId: _ceClauseId });
     }catch(_){}
   }, CE_LOCK_BEAT_MS);
 }
@@ -2035,7 +2073,10 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
      clause this page then refuses to open would be held by nobody who could
      let it go. It is refreshed on every pull and released at every door out. */
   try{
-    if (window.clauseLockTake && clauseLockTake(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC, { clauseId: _ceClauseId });
+    /* A LOCK IS BETWEEN COLLEAGUES, and their page has no colleague of ours
+       and no session: the lock route would refuse them, and their copy never
+       carries our locks (they never travel). So their seat takes none. */
+    if (ceSide() === 'owner' && window.clauseLockTake && clauseLockTake(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC, { clauseId: _ceClauseId });
   }catch(_){}
   ceLockBeat();
   ceSeedDraft(opts.changeId);
@@ -2090,6 +2131,7 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
     && (wantTyping || (_ceText === _ceBase && _ceHead === _ceHeadBase));
   _ceThread = []; _ceBusy = false; _ceScanBusy = false; _ceScanErr = null; _ceSel = null; _ceWhole = false;
   _ceScan = null; _ceScanFiled = {};
+  _ceSpellList = []; _ceSpellFor = null;
   /* ---- THE RAIL OPENS ON THE FINDING IT IS ALREADY HOLDING ----
      (owner-approved 13 Sep 2026, group 1 of the build plan.)
 
@@ -2122,7 +2164,7 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
      unless a caller NAMES the Playbook tab. ceClauseFindings stays as a
      reading with no caller here; the Playbook tab's own count still shows
      the findings without moving anybody onto it. */
-  _ceTab = opts.tab === 'scan' ? 'scan' : 'chat';
+  _ceTab = ceNoAi() ? 'ladder' : opts.tab === 'scan' ? 'scan' : 'chat';
 
   ceEnsureStyle();
   /* ---- THE PAPER'S OWN SHEET, ASKED FOR RATHER THAN ASSUMED ----
@@ -2218,7 +2260,7 @@ function rlCloseClauseEditor(opts = {}){
      state is cleared, because the release needs to know which clause. */
   ceLockBeat(true);
   try{
-    if (window.clauseLockRelease && clauseLockRelease(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC, { clauseId: _ceClauseId, release: true });
+    if (ceSide() === 'owner' && window.clauseLockRelease && clauseLockRelease(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC, { clauseId: _ceClauseId, release: true });
   }catch(_){}
   const page = document.getElementById('clause-editor');
   if (page) page.remove();
@@ -2229,6 +2271,7 @@ function rlCloseClauseEditor(opts = {}){
   _ceRead0 = null;
   _ceC = null; _ceClauseId = null; _ceOpts = null; _ceAgain = null;
   _ceThread = []; _ceSteps = []; _ceStep = 0; _ceSel = null; _ceLead = null; _ceWhole = false;
+  _ceSpellList = []; _ceSpellFor = null;
   _ceRendering = false; _ceZoom = 100;
   _ceOpenText = '';
   _ceBusy = false;
@@ -2953,7 +2996,11 @@ function ceRenderPaper(){
   let html = '';
   try{
     html = redlineDocHtml(_ceC, {
-      side: 'owner',
+      side: ceSide(),
+      /* THEIR COPY IS ALREADY WALLED BY THE TRANSPORT, and the rebuilt copy's
+         turn stamp cannot re-derive the wall — the embed passes [] for that
+         reason and this page draws the same paper, so it passes the same. */
+      ...((_ceOpts && Array.isArray(_ceOpts.hiddenIds)) ? { hiddenIds: _ceOpts.hiddenIds } : {}),
       canEdit: true,
       noAi: true,
       live: { clauseId: _ceClauseId, html: body,
@@ -2993,7 +3040,7 @@ function ceRenderPaper(){
     host.innerHTML = html || `<p class="rl-clause-p">${_cee(_cet('ce_this_clause'))}</p>`;
     /* THE NOTE MARKS ARE FURNITURE ON THE CANVAS, painted after it and never
        inside the typing box (rlPaintNoteMarks skips the clause being typed). */
-    try { if (window.rlPaintNoteMarks && _ceC) rlPaintNoteMarks(host, _ceC, { side: 'owner' }); } catch (e){}
+    try { if (window.rlPaintNoteMarks && _ceC) rlPaintNoteMarks(host, _ceC, { side: ceSide() }); } catch (e){}
     /* THE MARKS GO INTO THE BOX (14 Sep 2026), after it is in the document —
        the paint splits live text nodes, which markup cannot express. */
     if (typing) ceMarksMount({ fresh: true });
@@ -3626,7 +3673,7 @@ function cePullText(opts){
      IN MEMORY ONLY and therefore free — the beat above is what carries it to
      the other browser, and a save on every blur would be a save on every
      keystroke's worth of hesitation. */
-  try{ if (window.clauseLockKeep) clauseLockKeep(_ceC, _ceClauseId); }catch(_){}
+  try{ if (ceSide() === 'owner' && window.clauseLockKeep) clauseLockKeep(_ceC, _ceClauseId); }catch(_){}
   const box = _ceQ('#ce-clausebody');
   const headBox = _ceQ('#ce-clausehead');
   let next = _ceText;
@@ -3661,6 +3708,12 @@ function cePullText(opts){
 
 function ceRenderFoot(){
   if (!clauseEditorOpen()) return;
+  /* A spelling list about a draft that has since moved is about words that are
+     no longer there — see ceSaveChecked. */
+  if (_ceSpellList.length && _ceSpellFor !== ceSpellKey()){
+    _ceSpellList = []; _ceSpellFor = null;
+    const sp = _ceQ('#ce-spell'); if (sp) sp.innerHTML = '';
+  }
   const moved = _ceText !== _ceBase || _ceHead !== _ceHeadBase;
   /* ---- THE ACTS STAND DOWN WITH THE CARET (Phase 4) ----
      A page whose band says "This page is not editable" over a live Save button
@@ -3710,7 +3763,8 @@ function ceRenderFoot(){
     discard = foot.querySelector('[data-ce-act="discard"]');
     save = foot.querySelector('[data-ce-act="save"]');
   }
-  const label = _ceLead ? _cet('ce_save_to', { id: _ceLead.id }) : _cet('ce_file_as_change');
+  const label = (_ceSpellList.length && _ceSpellFor === ceSpellKey()) ? _cet('spl_save_as_written')
+    : _ceLead ? _cet('ce_save_to', { id: _ceLead.id }) : _cet('ce_file_as_change');
   /* ---- THE TWO BUTTONS ANSWER TWO DIFFERENT QUESTIONS ----
      DISCARD asks "has the wording moved from what STANDS in the contract" —
      that is what it puts back, so that is what it is live for.
@@ -3942,7 +3996,7 @@ let _ceHeldNote = '';
 let _ceLadderReply = null;
 function ceLadderRow(){
   if (!_ceC || !_ceClauseId || typeof window.ladderStand !== 'function') return null;
-  try{ return ladderStand(_ceC, String(_ceClauseId), 'owner'); }catch(_){ return null; }
+  try{ return ladderStand(_ceC, String(_ceClauseId), ceSide()); }catch(_){ return null; }
 }
 function ceFigureTopic(){ const r = ceLadderRow(); return (r && r.topic && typeof r.topic.num === 'function' && r.unit) ? r.topic : null; }
 function ceLadderCardHtml(){
@@ -4029,14 +4083,14 @@ function ceLadderCardHtml(){
 function ceLadderLaneHtml(){
   const cl = ceClause();
   if (!cl || !_ceC || typeof window.rlLadderSectionHtml !== 'function') return `<p class="ce-scan-none">${_cee(_cet('ce_lc_noladder'))}</p>`;
-  const sec = rlLadderSectionHtml(_ceC, cl, 'owner', { editor: true });
-  const tail = (typeof window.rlLadderTailHtml === 'function') ? rlLadderTailHtml(_ceC, cl, ceOnTable(), 'owner', { noFigure: true, noNotes: true }) : '';
+  const sec = rlLadderSectionHtml(_ceC, cl, ceSide(), { editor: true });
+  const tail = (typeof window.rlLadderTailHtml === 'function') ? rlLadderTailHtml(_ceC, cl, ceOnTable(), ceSide(), { noFigure: true, noNotes: true }) : '';
   return `<div class="redline-page rl-cp-src ce-ladder-lane">${sec || `<p class="ce-scan-none">${_cee(_cet('ce_lc_noladder'))}</p>`}${tail}</div>`;
 }
 function ceFigureLaneHtml(){
   const cl = ceClause();
   if (!cl || !_ceC || typeof window.rlFigureSecHtml !== 'function') return '';
-  const sec = rlFigureSecHtml(_ceC, cl.clauseId, 'owner', { act: 'editor' });
+  const sec = rlFigureSecHtml(_ceC, cl.clauseId, ceSide(), { act: 'editor' });
   return `<div class="redline-page rl-cp-src ce-ladder-lane">${sec}<p class="ce-fig-note">${_cee(_cet('ng_fig_write_title'))}</p></div>`;
 }
 /* Write the figure from the tab into the box. The draft's own wording is what
@@ -4050,7 +4104,7 @@ function ceFigureWrite(){
   const next = ladderWriteFigure(now, n, topic.unit);
   if (next === now){ ceSay(_cet('ng_fig_same')); return; }
   ceApply(next, _cet('ce_step_figure'));
-  _ceTab = 'chat'; ceRenderTabs(); ceRenderLane();
+  _ceTab = ceNoAi() ? 'ladder' : 'chat'; ceRenderTabs(); ceRenderLane();
 }
 
 function ceRenderTabs(){
@@ -4375,6 +4429,9 @@ function ceWholeContext(){
   return Object.assign({}, ctx || {}, { wholeDoc: true });
 }
 async function ceAsk(question, opts = {}){
+  /* THE WALL, NOT ONLY THE SIGN: their page draws no ask box, and a press
+     that reached this anyway still asks no model on their behalf. */
+  if (ceNoAi()) return;
   const q = String(question == null ? '' : question).trim();
   if (!q || _ceBusy) return;
   /* ---- WHAT THIS QUESTION IS ABOUT, TAKEN NOW ---- (owner-ruled 31 Aug 2026)
@@ -4669,6 +4726,7 @@ function ceScanErrHtml(){
     _cee(_cet('ce_scan_nothing_why'))}</p>`;
 }
 async function ceRunScan(){
+  if (ceNoAi()) return;   /* the wall — see ceAsk */
   if (_ceScanBusy) return;
   if (!window.runPlaybookReview){ ceSay(_cet('ce_scan_unavailable')); return; }
   _ceScanBusy = true; _ceScanErr = null; ceRenderLane();
@@ -5012,6 +5070,10 @@ const CE_MENU_PICK_MS = 600;
 function ceStampPick(){ _ceMenuPickAt = Date.now(); }
 function ceOfferPassage(sel){
   if (!sel) return;
+  /* No menu on their page: a highlight in the box is a selection to type
+     over, and every row that menu carries asks a model or opens a note room
+     this page does not draw. */
+  if (ceNoAi()) return;
   const menu = (typeof window !== 'undefined') ? window.rlSelMenu : null;
   const c = _ceC, cid = _ceClauseId;
   const mayNote = !!(c && window.rlNoteFromSelection
@@ -5043,7 +5105,7 @@ function ceOfferPassage(sel){
     if (a.id === 'comment'){
       ceDetachPassage();
       rlNoteFromSelection(c, { clauseId: cid, quote: sel.text },
-        { side: 'owner', author: (_ceOpts && _ceOpts.by) || undefined });
+        { side: ceSide(), author: (_ceOpts && _ceOpts.by) || undefined });
       return;
     }
     ceAttachPassage(sel, a.id === 'ask' ? 'ask' : 'edit');
@@ -5543,6 +5605,85 @@ function ceFiled(c){
   try{ if (typeof _ceAgain === 'function') _ceAgain(); }catch(_){}
   try{ ceFitToShell(); }catch(_){}
 }
+/* ============================================================================
+   THE SPELL CHECK STANDS AT SAVE (Young picked it 28 Sep 2026, option 2)
+   ----------------------------------------------------------------------------
+   Both filing presses a person makes with new words in hand — the rail's Save
+   and the Done pencil — come through here first; the cut does not, because a
+   cut adds no words. It reads ONLY the words this draft adds: everything that
+   was already on the page (the clause as it stands, the ask being answered,
+   the draft the page opened with) is `before`, so a typo in the other side's
+   wording is never the reader's to be told about.
+
+   A LIST, NOT A GATE THAT CANNOT BE PASSED. Where it finds something the list
+   is drawn above the Save that was pressed and nothing is filed; the Save now
+   reads "Save as written", and pressing it again over the SAME draft files it
+   exactly as typed. Nothing is ever changed in the wording without a press on
+   a suggestion, and a suggestion goes in as an ordinary step the reader can
+   Undo — the same road every other wording change takes, into the one funnel.
+
+   AN ABSENCE IS SAID: where the word list could not load, the page says the
+   spelling was not checked, and files. It answers what ceFile answers. */
+const ceSpellKey = () => String(_ceText) + '\u0000' + String(_ceHead);
+async function ceSaveChecked(){
+  const st = (typeof window.spellState === 'function' && typeof window.spellSuspects === 'function')
+    ? spellState() : 'absent';
+  if (st !== 'absent' && _ceSpellFor !== ceSpellKey()){
+    /* WAITS ONLY WHERE WAITING BUYS A CHECK — every other state files in the
+       same breath it always did (see spellState). */
+    if (st === 'idle' || st === 'loading'){ await spellLoad(); if (!clauseEditorOpen()) return null; }
+    if (spellState() !== 'ready') ceSay(_cet('spl_not_checked'));
+    else {
+      const before = [ceWords(_ceBase), ceWords(ceWordingOf(_ceLead)), ceWords(_ceOpenText),
+        _ceHeadBase, _ceOpenHead].join('\n');
+      const sus = spellSuspects(before, ceWords(_ceText) + '\n' + String(_ceHead || ''), _ceC);
+      if (sus && sus.length){
+        _ceSpellList = sus; _ceSpellFor = ceSpellKey();
+        ceRenderSpell(); ceRenderFoot();
+        return null;
+      }
+    }
+  }
+  _ceSpellList = []; _ceSpellFor = null; ceRenderSpell();
+  return ceFile();
+}
+/* The list, painted into its own slot above the rail's Save. Empty costs the
+   rail nothing. It goes the moment the draft moves (ceRenderFoot asks), because
+   a list about words that are no longer there is a list about nothing. */
+function ceRenderSpell(){
+  if (!clauseEditorOpen()) return;
+  const host = _ceQ('#ce-spell'); if (!host) return;
+  if (_ceSpellList.length && _ceSpellFor !== ceSpellKey()){ _ceSpellList = []; _ceSpellFor = null; }
+  if (window.spellEnsureStyle) spellEnsureStyle();
+  host.innerHTML = (_ceSpellList.length && window.spellListHtml) ? spellListHtml(_ceSpellList) : '';
+}
+/* A suggestion pressed: the word goes in, in the wording AND the heading, as
+   one Undo-able step, and the list is read again over what is now there. */
+function ceSpellUse(word, fix){
+  if (!clauseEditorOpen() || !window.spellFixHtml) return;
+  const text = spellFixHtml(_ceText, word, fix);
+  const head = window.spellFixText ? spellFixText(_ceHead, word, fix) : _ceHead;
+  const headMoved = head !== _ceHead;
+  /* Held across the apply: ceApply repaints the foot, and the foot lets go of
+     a list whose draft has moved — which, for this one press, it just did on
+     purpose. */
+  const keep = _ceSpellList;
+  if (headMoved) _ceHead = head;
+  if (!ceApply(text, _cet('ce_step_spelling'), { quiet: true, headMoved })) return;
+  _ceSpellList = keep;
+  ceSpellDrop(word);
+}
+function ceSpellLeave(word){
+  if (window.spellLeave) spellLeave(word);
+  ceSpellDrop(word);
+}
+/* One word off the list; the list keeps standing for the words left, and the
+   Save goes back to its own name once there are none. */
+function ceSpellDrop(word){
+  _ceSpellList = _ceSpellList.filter(s => String(s.word).toLowerCase() !== String(word).toLowerCase());
+  _ceSpellFor = _ceSpellList.length ? ceSpellKey() : null;
+  ceRenderSpell(); ceRenderFoot();
+}
 async function ceFile(why){
   /* A note kept from the ladder card rides the filing as its reason. */
   if (!why && _ceHeldNote) why = _ceHeldNote;
@@ -5567,7 +5708,7 @@ async function ceFile(why){
   _ceBusy = true;
   let ch = null, err = null;
   try{
-    const o = { side: 'owner', author: (_ceOpts && _ceOpts.by) || undefined,
+    const o = { side: ceSide(), author: (_ceOpts && _ceOpts.by) || undefined,
       why: String(why || '').trim() || undefined, note };
     /* ---- THE CLAUSE'S NAME GOES WITH ITS WORDING (owner-asked 28 Aug 2026) ----
        ONE record, one press, one fingerprint. It is passed only where the
@@ -5623,7 +5764,7 @@ async function ceFile(why){
      through window, the ES-module rule; absent, the toast is what it always
      was. */
   const _noteAsk = window.rlNoteAskAfterFile
-    ? rlNoteAskAfterFile(c, ch, { side: 'owner', author: (_ceOpts && _ceOpts.by) || undefined,
+    ? rlNoteAskAfterFile(c, ch, { side: ceSide(), author: (_ceOpts && _ceOpts.by) || undefined,
         persist: (_ceOpts && _ceOpts.persist) })
     : null;
   /* THE CONFIRMATION IS BRIEF AND ALWAYS (11 Sep 2026): the receipt window
@@ -5816,7 +5957,7 @@ function ceWirePage(page){
          opposite; the rail's File, the strip's send and the cut all still
          leave the reader writing. */
       if (_ceEditing && ceCanFile()){
-        Promise.resolve(ceFile()).then(ch => {
+        Promise.resolve(ceSaveChecked()).then(ch => {
           if (!ch) return;
           _ceEditing = false;
           ceDetachPassage(); ceRenderPaper(); ceRenderBar();
@@ -5851,12 +5992,19 @@ function ceWirePage(page){
     const tab = hit('[data-ce-tab]');
     if (tab){ ev.preventDefault();
       const want = tab.getAttribute('data-ce-tab');
-      _ceTab = ['scan', 'ladder', 'figure'].includes(want) ? want : 'chat';
+      _ceTab = ceNoAi() ? (want === 'figure' ? 'figure' : 'ladder')
+        : ['scan', 'ladder', 'figure'].includes(want) ? want : 'chat';
       ceRenderTabs(); ceRenderLane(); return; }
 
 
+    /* THE SPELLING LIST'S TWO PRESSES (28 Sep 2026) — see ceSaveChecked. */
+    const spFix = hit('[data-sp-fix]');
+    if (spFix){ ev.preventDefault(); ceSpellUse(spFix.getAttribute('data-sp-fix'), spFix.getAttribute('data-sp-to')); return; }
+    const spLeave = hit('[data-sp-leave]');
+    if (spLeave){ ev.preventDefault(); ceSpellLeave(spLeave.getAttribute('data-sp-leave')); return; }
+
     const chip = hit('[data-ce-chip]');
-    if (chip){ ev.preventDefault(); ceAsk(chip.getAttribute('data-ce-chip')); return; }
+    if (chip){ ev.preventDefault(); if (!ceNoAi()) ceAsk(chip.getAttribute('data-ce-chip')); return; }
 
     const ew = hit('[data-ce-edit-with]');
     if (ew){ ev.preventDefault(); ceEditWith(_ceThread[Number(ew.getAttribute('data-ce-edit-with'))]); return; }
@@ -6126,7 +6274,7 @@ function ceWirePage(page){
       /* ONE PRESS FILES. The act keeps its name — every check and both
          browser files reach this button by it — and what changed is where it
          goes. `reason-back`, `reason-skip` and `reason-file` are STALE. */
-      case 'save': cePullText(); ceFile(); break;
+      case 'save': cePullText(); ceSaveChecked(); break;
       case 'ladder-apply': {
         if (_ceLadderReply && _ceLadderReply.text){
           ceApply(_ceLadderReply.text, _cet('ce_step_copilot'));
@@ -6335,6 +6483,10 @@ function ceWirePage(page){
   });
 }
 function ceOfferOnPaper(){
+  /* THEIR PAGE HAS NO ASK AND NO COPILOT EDIT, so a highlight on the paper
+     offers nothing here; their notes are on the negotiation page, one press
+     back. A highlight inside the box is simply a selection to type over. */
+  if (ceNoAi()) return false;
   if (typeof window.rlPaperOfferFromRange !== 'function' || typeof window.negoReadPassage !== 'function') return false;
   const s = (typeof window.getSelection === 'function') ? window.getSelection() : null;
   const doc = _ceQ('#ce-doc');
@@ -6350,7 +6502,7 @@ function ceOfferOnPaper(){
   /* ONE FLOOR, AND IT IS EMPTINESS — see ceSelectionRead. */
   if (!passage || !String(passage.text || '').trim().length) return false;
   ceDetachPassage();
-  return !!rlPaperOfferFromRange({ c: _ceC, opts: { by: _ceOpts && _ceOpts.by }, side: 'owner',
+  return !!rlPaperOfferFromRange({ c: _ceC, opts: { by: _ceOpts && _ceOpts.by }, side: ceSide(),
     passage, text: passage.text, rect,
     openEditor: (id, o) => {
       /* THE PAPER'S OWN OFFER IS THE SECOND PICK DOOR (12 Sep 2026, the owner:

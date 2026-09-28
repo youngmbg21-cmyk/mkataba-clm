@@ -617,9 +617,11 @@ test('f289 (43) a held door keeps its size, goes DEAD, and names the holder', ()
 });
 
 test('f289 (44) all three doors are marked, and the reading-only one is NOT', () => {
-  /* The sparkle on a tracked change. */
-  assert.ok(/rlLockedBtn\(ceLock, 'rl-cp-editor-btn', ''\)/.test(NEG),
-    'the row\'s one-glyph door swaps its sparkle for the monogram');
+  /* RE-POINTED 28 Sep 2026 (Mirror): the sparkle on a tracked change went with
+     the boxed card it sat on — the row's one door onto the editor is its Edit,
+     asserted below. */
+  assert.ok(!/rlLockedBtn\(ceLock, 'rl-cp-editor-btn', ''\)/.test(NEG),
+    'the boxed card\'s one-glyph door is gone with the card');
   /* The card's Edit, in the body. */
   assert.ok(/rlLockedBtn\(editLock, 'rl-edit rl-verb-ai', i18t\('ng_cp_copilot'\)\)/.test(NEG),
     'the card keeps its verb so the shared verb column does not move');

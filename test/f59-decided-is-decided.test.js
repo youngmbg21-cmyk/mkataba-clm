@@ -114,8 +114,9 @@ describe('F59 — after Send, the card is answered and stays answered', () => {
         `#${f.id}: a sent decision is not a question still on the table`);
       assert.equal(v.$(`[data-nego-reject="${f.id}"]`), null);
       assert.ok(v.$(`[data-sent="${f.id}"]`), 'and the card says the answer has gone');
-      assert.match(v.$(`[data-nego-card="${f.id}"]`).textContent, /Accepted/,
-        'with the answer itself on it');
+      /* RE-POINTED 28 Sep 2026 (Mirror): the pile heading carries the answer. */
+      assert.equal((el => { for (let n = el && el.previousElementSibling; n; n = n.previousElementSibling) if (n.matches('[data-rl-band]')) return n.getAttribute('data-rl-band'); return null; })(v.$(`[data-nego-card="${f.id}"]`)), 'accepted',
+        'with the answer itself on it — the Settled pile');
       /* The note shortcut that used to carry data-rl-change is gone (Young,
          03 Aug 2026), and so is the Discussion column it was re-aiming (10 Aug
          2026). Talking about a decided change is still allowed — the composer

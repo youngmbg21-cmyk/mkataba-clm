@@ -745,93 +745,54 @@ describe('F100f — and all of it from the counterparty\'s own chair', () => {
   const verbsOf = card => [...card.querySelectorAll('.rl-card-verbs button')]
     .map(b => b.textContent.trim());
 
-  test('WO-1 · held on their page, it is a Draft with Retract and Send', async () => {
+  /* ---- RE-POINTED 28 Sep 2026 (Young picked Mirror: "the redline page should
+     mirror the owner side") ----
+     Every claim below was written for the boxed card this seat kept while our
+     own column became the flat row. Their seat draws OUR row now, in OUR piles,
+     so each claim is kept and asked of the row: the STATE a badge used to print
+     is the pile a row sits under (bandOf), the verbs are the row's face (still
+     .rl-card-verbs), and Open onto the clause panel is the door a mount WITHOUT
+     the editor draws (on a wide window the pencil and Edit open the editor). */
+  const bandOf = el => { for (let n = el && el.previousElementSibling; n; n = n.previousElementSibling)
+    if (n.matches('[data-rl-band]')) return n.getAttribute('data-rl-band'); return null; };
+
+  test('WO-1 · held on their page, it is a Draft with Edit, Send and Discard', async () => {
     const p = await page();
     const card = seat(p, { unsentIds: [p.c.changes[0].id] }).querySelector('[data-rl-origin="us"]');
-    assert.match(card.querySelector('.rl-badge').textContent, /Draft/,
-      'nothing has left their page yet');
-    assert.deepEqual(verbsOf(card), ['Edit', 'Retract', 'Send']);
+    assert.equal(bandOf(card), 'drafts', 'nothing has left their page yet — the drafts pile');
+    assert.deepEqual(verbsOf(card), ['Edit', 'Send', 'Discard'], 'our own draft\'s face, the same words');
   });
 
-  test('WO-1 · once it has gone it reads Sent, and carries EXACTLY Edit', async () => {
-    /* The item the work order left open. It is the same reading as the owner's
-       badge — one set, one answer — but it had not been read back from this
-       chair since the send-vs-turn fix, and this seat is where the fault was
-       reported from. */
+  test('WO-1 · once it has gone it sits With them, and carries EXACTLY Edit', async () => {
     const p = await page();
     const card = seat(p).querySelector('[data-rl-origin="us"]');
-    assert.equal(card.querySelector('.rl-badge').textContent.trim(), 'Sent');
-    /* ---- CLAIM REVERSED, 13 Aug 2026, OWNER-ASKED ----
-       On 12 Aug the spent Send kept its SLOT and lost the word, so the card
-       stopped printing "Sent" twice a centimetre apart. The owner has now
-       asked for the marker to come off the card entirely — the status corner
-       above says Sent, in colour, from the same reading. So the list is one
-       verb, not two.
-
-       AND THIS IS WHERE THE "STILL INERT" CLAIM IS PROVED. It used to hold
-       because data-rl-sent was in RL_CARD_INERT; it holds now because Edit is
-       the only verb left and Edit navigates. Asserted from the rendered card
-       — this seat is the narrowest in the product and the one the fault was
-       reported from. */
+    assert.equal(bandOf(card), 'with', 'gone: under "With …"');
     assert.deepEqual(verbsOf(card), ['Edit'],
-      'one verb, and no marker: Retract is not honest once it has gone');
-    assert.equal(card.querySelector('[data-rl-sent]'), null,
-      'nothing at all where the Send was');
+      'one verb, and no marker: Discard is not honest once it has gone');
+    assert.equal(card.querySelector('[data-rl-sent]'), null, 'nothing at all where the Send was');
     assert.equal(p.win.rlCardNeedsYou([...card.querySelectorAll('.rl-card-verbs button')]
-      .map(b => b.outerHTML)), false,
-      'and with the marker gone the card STILL reads as needing nothing');
-    assert.equal((card.textContent.match(/Sent/g) || []).length, 1,
-      'and the word appears exactly once on the whole card');
+      .map(b => b.outerHTML)), false, 'and the card STILL reads as needing nothing');
     assert.equal(card.querySelector('[data-rl-send]'), null,
-      'the fault as reported: a Sent badge beside a live Send');
+      'the fault as reported: a Sent state beside a live Send');
     assert.equal(card.querySelector('[data-rl-retract]'), null);
   });
 
-  test('WO-2 · every card is a routing row on this seat too', async () => {
-    /* Their page mounts the same renderer, so the row arrives by construction
-       — but "by construction" is the claim, not the proof. REVERSED IN PLACE
-       (16 Aug 2026): no pop markup on either state, and the Open door is drawn
-       only where the mount carries the panel — this bare harness does not, and
-       a door with no room behind it must not be drawn (the panes mount below,
-       in the WO-2 mount tests, has both). */
+  test('WO-2 · every card is our row on this seat too', async () => {
     const p = await page();
     const done = seat(p).querySelector('[data-rl-origin="us"]');
+    assert.ok(done.classList.contains('rl-card-d'), 'the flat row');
     assert.equal(done.querySelector('[data-rl-pop]'), null, 'the pop-out door is gone');
     assert.equal(done.querySelector('.rl-card-body'), null, 'and its hidden body with it');
+    assert.equal(done.querySelector('.rl-open-btn'), null, 'and the boxed card\'s Open with the card');
     const live = seat(p, { unsentIds: [p.c.changes[0].id] }).querySelector('[data-rl-origin="us"]');
     assert.ok(live.querySelector('.rl-card-head'), 'its head takes them to the clause');
-    assert.equal(live.querySelector('.rl-open-btn'), null,
-      'no panel on this mount, so no door promising one');
-    const withPanel = seat(p, { unsentIds: [p.c.changes[0].id], cpPanel: true })
+    const narrow = await page({ noEditor: true });
+    const withPanel = seat(narrow, { unsentIds: [narrow.c.changes[0].id], cpPanel: true })
       .querySelector('[data-rl-origin="us"]');
-    assert.ok(withPanel.querySelector('.rl-open-btn[data-rl-cp-open]'),
-      'where the mount has the panel, the row has its Open');
+    assert.ok(withPanel.querySelector('[data-rl-cp-open]'),
+      'where the editor cannot take the clause and the mount has the panel, the row opens it');
   });
 
-  /* ---- A DECISION THAT HAS GONE IS FINISHED BUSINESS ----
-     Reported from the field (Young, 02 Aug 2026): the counterparty answers a
-     dozen changes, sends them, and is left with a dozen full-height cards each
-     still offering a button, on a column where nothing is outstanding. The
-     owner's page goes quiet at the same moment — their settled changes leave
-     the column, and their own sent asks collapse because "Sent" is inert — so
-     the same component read as two different products.
-
-     The cause was one classification, not a second design: rlCardNeedsYou
-     counted "Change decision" as a move waiting on the reader, and a card with
-     a move on it is exempt from folding. It is not a move. It has gone, the
-     other side is holding it, and Change decision is an escape hatch — which is
-     what the peek is for.
-
-     UNDO IS NOT IN THE SAME BOX, and these tests pin that too, because the
-     obvious "collapse anything answered" is the version that bites: Undo sits
-     on an answer that has NOT been sent — the one state on this screen that
-     looks finished and is not — and the second after a click is exactly when a
-     mis-click needs its way back visible. It folds on its own once the round
-     goes. */
-  /* A DECISION IS ALWAYS ABOUT THE OTHER SIDE'S ASK — nobody rules on their
-     own — so this describe's own counterparty ask is the wrong card for these.
-     An owner ask is filed for them, which from this seat is the one the reader
-     answers. */
   const ownerAsk = async p => {
     const before = new Set(p.c.changes.map(x => x.id));
     await p.win.negoFileProposal(p.c, p.win.negoResolvedText(p.c) + '\nA cap on liability.',
@@ -845,100 +806,66 @@ describe('F100f — and all of it from the counterparty\'s own chair', () => {
     return { ch, card: seat(p, { [key]: [ch.id] }).querySelector(`[data-nego-card="${ch.id}"]`) };
   };
 
-  test('a decision that has been SENT folds to a line', async () => {
+  test('a decision that has been SENT is settled, with its way back', async () => {
     const p = await page();
     const { card } = await decided(p, 'accepted', 'sent');
-    /* CLAIM UPDATED, 13 Aug 2026: the status words were trimmed. "Accepted ·
-       sent" is now just "Accepted" — a decision on the card is only ever shown
-       there once it has gone, and the one that has NOT gone says "· held", so
-       the word "sent" was carrying nothing the other branch did not. The
-       hover text says it whole. */
-    assert.equal(card.querySelector('.rl-badge').textContent.trim(), 'Accepted',
-      'the state under test is answered AND gone');
-    assert.match(card.querySelector('.rl-badge').getAttribute('title'), /gone to the other side/,
-      'and the sentence the word gave up is in the hover text');
-    /* And "Change decision" is "Reopen" — same button, same escape hatch. */
-    assert.ok(verbsOf(card).includes('Reopen'),
-      'the escape hatch is still on the card');
+    assert.equal(bandOf(card), 'accepted', 'answered AND gone: the Settled pile says so');
+    assert.ok(verbsOf(card).includes('Reopen'), 'the escape hatch is still on the row');
   });
 
-  test('a REJECTION that has been sent folds the same way', async () => {
-    /* Accept and reject are the same act as far as the column is concerned:
-       answered, gone, nobody waiting. Asserted separately because the badge
-       and the verb list are built from the status, so "accepted works" is not
-       evidence about the other half of the decision. */
+  test('a REJECTION that has been sent settles the same way', async () => {
     const p = await page();
     const { card } = await decided(p, 'rejected', 'sent');
-    assert.match(card.querySelector('.rl-badge').textContent, /Rejected/);
-    assert.ok(card.querySelector('.rl-card-head'), 'and one press away, like every card');
+    assert.equal(bandOf(card), 'refused');
+    assert.ok(card.querySelector('.rl-card-head'), 'and one press away, like every row');
   });
 
-  test('but the badge stays readable while it is folded', async () => {
-    /* CLAIM REVERSED IN PLACE (16 Aug 2026): there is no fold and no hidden
-       body left — the row IS the head plus its verbs, so the answer and the
-       clause it belongs to are visible by construction. Asserted rather than
-       assumed, because "nothing can hide it" is exactly the kind of claim
-       that quietly stops being true. */
+  test('the state is readable at a glance, with nothing folded', async () => {
     const p = await page();
     const { card } = await decided(p, 'accepted', 'sent');
     assert.equal(card.querySelector('.rl-card-body'), null, 'no hidden body at all');
-    assert.ok(card.querySelector('.rl-card-head .rl-badge'),
-      'the status badge is in the head, on screen');
-    assert.ok(card.querySelector('.rl-card-head .rl-card-meta'),
-      'and so is the clause it belongs to');
+    assert.ok(card.querySelector('.rl-card-head .rl-card-meta'), 'the clause it belongs to is on the row');
+    assert.equal(bandOf(card), 'accepted', 'and its state is the heading above it');
   });
 
   test('an answer that has NOT been sent stays open, with its Undo showing', async () => {
     const p = await page();
     const { card } = await decided(p, 'accepted', 'held');
-    assert.match(card.querySelector('.rl-badge').textContent, /held/,
-      'answered here, and nothing has left the page');
-    /* Send FIRST, Undo beside it (asked for 11 Aug 2026: "the send should be
-       a button in the card"). The decision was made on this card, so the act
-       that makes it real lives here too — a proxy onto the page's one
-       postbox, same as the owner's per-card Send. f180 pins its visibility
-       and that pressing it posts the batch. */
+    assert.equal(bandOf(card), 'answered', 'the pile of answers not yet sent');
+    assert.match(card.querySelector('.rl-badge').textContent, /Accepted/,
+      'which answer — the one thing that pile\'s heading cannot say');
+    assert.match(card.querySelector('.rl-badge').textContent, /held/, 'and that nothing has left the page');
     assert.deepEqual(verbsOf(card), ['Send', 'Undo']);
   });
 
-  test('the verbs are on the card, and there is no fold left to hide them in', async () => {
-    /* This has moved three times and the direction is the point: open-by-rule,
-       then rendered-one-press-away, then out of the foldable body, and now (16
-       Aug 2026) there is NO fold and no hidden body at all — the row is its
-       head, its visible strips and its action bar, so nothing pressable can be
-       out of sight by construction. Asserted rather than assumed. */
+  test('the verbs are on the row, and there is no fold left to hide them in', async () => {
     const p = await page();
     const mine = p.c.changes[0].id;
     const theirs = (await ownerAsk(p)).id;
     const cases = [
-      ['our own unsent draft (Retract / Send)', { unsentIds: [mine] }, mine],
-      ['their pending ask (Accept / Reject)', {}, theirs],
+      ['our own unsent draft (Edit / Send / Discard)', { unsentIds: [mine] }, mine],
+      ['their pending ask (Accept / Reject / Counter)', {}, theirs],
     ];
     for (const [what, over, id] of cases){
       const card = seat(p, over).querySelector(`[data-nego-card="${id}"]`);
       assert.ok(card, `${what} is on the column`);
       assert.ok(card.querySelector('.rl-card-head'), `${what} has a head to press`);
-      assert.ok(card.querySelector('.rl-card-actions .rl-card-verbs button'),
-        `${what} carries its verbs on the action bar`);
+      assert.ok(card.querySelector('.rl-card-side .rl-card-verbs button'),
+        `${what} carries its verbs on the row's face`);
       assert.equal(card.querySelector('.rl-card-body'), null,
         `${what}: no hidden body for a verb to be lost in`);
     }
   });
 
-  test('and what the fold hides is reading matter, not a move waiting on anybody', async () => {
-    /* CLAIM REVERSED IN PLACE (16 Aug 2026): the fold is gone. What stays
-       visible on the row (.rl-card-info — the reason, the on-behalf and
-       revised-by stamps, the reviewer's note) is reading matter carrying no
-       verb on the change; the verbs live in .rl-card-actions, a SIBLING of the
-       head, so a press on Send can never navigate or fold anything. */
+  test('and what the row carries beside its verbs is reading matter, not a move', async () => {
     const p = await page();
     const theirs = (await ownerAsk(p)).id;
     const card = seat(p, {}).querySelector(`[data-nego-card="${theirs}"]`);
-    const info = card.querySelector('.rl-card-info');
+    const info = card.querySelector('.rl-card-actions');
     assert.ok(!info || !info.querySelector('[data-nego-accept],[data-nego-reject],[data-rl-send],[data-rl-retract],[data-nego-undo]'),
-      'nothing in the info strips is a verb on the change itself');
-    assert.ok(!card.querySelector('.rl-card-head .rl-card-actions'),
-      'the action bar must not be inside the press-through');
+      'nothing in the strips is a verb on the change itself');
+    assert.ok(!card.querySelector('.rl-card-head .rl-card-side'),
+      'the verbs must not be inside the press-through');
   });
 
   /* ---- THE MOUNT REPAINTS ITSELF, OR THE PIN NEVER LETS GO ---- */
@@ -950,36 +877,31 @@ describe('F100f — and all of it from the counterparty\'s own chair', () => {
     return host;
   };
 
-  test('WO-2 · Open works inside THIS mount, never the owner\'s workbench', async () => {
-    const p = await page();
-    /* A marker in the owner's mount. The clause panel's door is delegated on
-       document; the panel it opens must be the one inside THIS mount, and
-       nothing may repaint the owner's page from inside their portal. */
+  test('WO-2 · the panel opens inside THIS mount, never the owner\'s workbench', async () => {
+    /* The narrow window's door onto the panel, which is where their seat still
+       uses it (noEditor stands for a window the editor cannot take). */
+    const p = await page({ noEditor: true });
     p.doc.getElementById('content').innerHTML = '<b id="owner-mount-untouched"></b>';
     const host = mountPortal(p);
-    const card = () => host.querySelector('#rl-changes .rl-card');
-    assert.ok(card().querySelector('.rl-open-btn'), 'the row has its Open on this seat too');
-    card().querySelector('.rl-open-btn').click();
+    const door = () => host.querySelector('#rl-changes .rl-card [data-rl-cp-open]');
+    assert.ok(door(), 'the row has its panel door on this seat too');
+    door().click();
     assert.ok(p.win.rlCpOpenId(), 'it opens on this seat too');
     assert.ok(host.querySelector('#rl-cp.is-open'), 'and the panel is inside THIS mount');
-    card().querySelector('.rl-open-btn').click();
-    assert.equal(p.win.rlCpOpenId(), null, 'and closes here too');
     assert.ok(p.doc.getElementById('owner-mount-untouched'),
       'and the owner\'s workbench was not painted from inside their portal');
   });
 
   test('WO-2 · an open panel does not survive the mount being handed another contract', async () => {
-    /* The owner's page forgets what was open when the reader moves on
-       (renderRedline); a mount is not exempt from the rule, or a panel arrives
-       open on a clause this reader has never seen. */
-    const p = await page();
+    const p = await page({ noEditor: true });
     const host = mountPortal(p);
-    host.querySelector('#rl-changes .rl-card .rl-open-btn').click();
+    host.querySelector('#rl-changes .rl-card [data-rl-cp-open]').click();
     assert.ok(p.win.rlCpOpenId());
     p.win.redlineEmbed(host, Object.assign({}, p.c, { id: 'MK-OTHER' }), seatOpts());
     assert.equal(p.win.rlCpOpenId(), null, 'the panel let go with the contract');
   });
 });
+
 
 /* ============================================================ */
 describe('F100g — a card\'s Send sends that card, and only that card', () => {

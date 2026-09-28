@@ -151,7 +151,10 @@ describe('while there is something to negotiate, the link is the room', () => {
        claim this test has always carried. */
     const { c } = await negotiated();
     const v = theirPage(c);
-    assert.ok(v.$$('#pt-nego [id="rl-doc"] [data-rl-cp-open]').length,
+    /* RE-POINTED 28 Sep 2026 (Young picked Mirror): at this width their pencil
+       opens the clause EDITOR, as ours does — data-rl-cp-editor — and the
+       panel's door is the narrow window's. Either is the way into writing. */
+    assert.ok(v.$$('#pt-nego [id="rl-doc"] [data-rl-cp-open], #pt-nego [id="rl-doc"] [data-rl-cp-editor]').length,
       'proposing wording is the whole point of sending them the link');
     assert.ok(v.$$('#pt-nego [data-rl-cp-edit]').length,
       'and the panel behind the pill offers the draft');
@@ -346,8 +349,8 @@ describe('a SIGNING link is the signature — and it is a different link', () =>
     assert.ok(v.$('#pt-nego .rl-embed'), 'they were invited to negotiate; give them the workbench');
     /* The Edit pill, since 16 Aug 2026 — the clause tool row is retired and
        the panel is where writing happens. */
-    assert.ok(v.$$('#pt-nego [id="rl-doc"] [data-rl-cp-open]').length,
-      'with the way into writing, so there is something to do here');
+    assert.ok(v.$$('#pt-nego [id="rl-doc"] [data-rl-cp-open], #pt-nego [id="rl-doc"] [data-rl-cp-editor]').length,
+      'with the way into writing, so there is something to do here (the editor door since Mirror)');
   });
 
   test('a signing link accounts for what was settled rather than asking them to sign on trust', async () => {
@@ -356,7 +359,10 @@ describe('a SIGNING link is the signature — and it is a different link', () =>
     win.negoResolve(c, filed[1].id, 'accepted', { side: 'counterparty', by: 'Erik' });
     win.negoResolve(c, filed[2].id, 'rejected', { side: 'counterparty', by: 'Erik' });
     const v = theirPage(c, { purpose: 'sign' });
-    const t = v.$('#pt-agreed').textContent.replace(/\s+/g, ' ');
+    /* RE-POINTED 28 Sep 2026 (Signing copy): the green band is retired and
+       its sentence, word for word, is the first stage of the list beside the
+       signing copy. */
+    const t = v.$('.ps-stages .ps-stage').textContent.replace(/\s+/g, ' ');
     assert.match(t, /All 3 changes .* resolved/);
     assert.match(t, /2 adopted into the wording/);
     assert.match(t, /1 not taken/);
@@ -364,7 +370,7 @@ describe('a SIGNING link is the signature — and it is a different link', () =>
 
   test('a contract nobody proposed anything on says exactly that', () => {
     const v = theirPage(contract(), { purpose: 'sign' });
-    const box = v.$('#pt-agreed');
+    const box = v.$('.ps-stages .ps-stage');   // the retired band's sentence, as stage 1 (28 Sep 2026)
     assert.ok(box);
     assert.match(box.textContent, /No changes were proposed/);
     assert.equal(v.$('#pt-nego-open'), null, 'and offers no history, because there is none');

@@ -19791,3 +19791,15 @@ Noticed, not fixed
 - Their clause panel prints `ng_cp_sel_hint` ("Highlight any sentence while you write to hand that passage to the Copilot") on the counterparty's seat, which has no Copilot; seen in the parity fixture's counterparty render at 1440px.
 - The paper's round chip (js/ladder.js, `ng_rung_your_move` / `ng_rung_their_move`) uses "your move / their move" to mean WHO PROPOSED, while the Negotiations list uses "your move" to mean WHOSE TURN; on their page their own pending ask reads "R1 · YOUR MOVE" while they are waiting on us.
 - Their signing page (`renderSharePortal`, sign branch) never reads the signing route, so it cannot say who has signed or whose turn it is; and it opens `openSignaturePad({ name })` without `intent:true`, so their pad lacks the intent line ours carries.
+
+## 28 Sep 2026 — Their side mirrors ours, their signing page, and the spell check
+
+- Built (Young picked Mirror, Signing copy and spell-check option 2): the counterparty's change column draws our flat rows in our piles with the verbs on the row; their pencil and Edit open the same clause editor with no Copilot in it; their head carries the acts on the title line with the colour key on the second row. Their signing page is the signing copy with a side panel of four stages (wording settled · read · who has signed · sign), and their pad now asks the intent line ours does. A spell check (js/spell.js, word list served from vendor/) runs on Save in both editors on both sides, over new words only, with suggestions and "leave as written".
+- Closed by this work: the three counterparty lines above (the Copilot hint on their panel, the round chip's "your move / their move", the signing page's route and intent line).
+
+### Noticed, not fixed
+- On their page, revising their own ask that has ALREADY been sent revises it in place, and the revision is lost on the next repaint with no Send offered. Seen on unmodified main too (through the old panel).
+- js/mobile-portal.js still styles `.pw-page .rl-open-btn`, the boxed card's Open, which their seat no longer draws on a wide window.
+- The clause editor on their page covers the whole window, because `ceFitToShell` has no shell to measure there; it still works, it is just larger than on ours.
+- portal-header-verbs-verify "the Send is ON TOP OF THE REDLINE CARDS" looks for the `.rl-unsent` band the owner removed on 26 Aug; red on unmodified main too; not changed.
+- counterparty-reading-and-more-verify times out at step 2 waiting for an "As agreed" reading tab the owner removed on 23 Sep; red on unmodified main too; not changed.

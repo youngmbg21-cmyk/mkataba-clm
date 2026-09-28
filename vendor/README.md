@@ -36,3 +36,35 @@ source. This does not.
 
 Then run `node test/chromium/analytics-verify.js` — it draws a real chart
 against the real server, so it is what proves the new bytes work.
+
+## en-words-1.txt — the spell check's English word list (28 Sep 2026)
+
+- **What it is:** every word form of two Hunspell dictionaries, British and
+  American English together, lower-cased, one per line, sorted — 124,325 words,
+  1.2 MB. Both spellings are accepted on purpose: a contract that writes
+  "licence" and one that writes "license" are both spelt correctly.
+- **Where it came from:** the `dictionary-en-gb@3.0.0` and `dictionary-en@4.0.0`
+  npm packages (wooorm/dictionaries, built from SCOWL). Their `index.aff`
+  prefix/suffix rules were applied to every `index.dic` stem; a stem flagged
+  only-in-compound (`1th`, `2th`) was left out, and only words made of letters
+  and apostrophes were kept.
+- **What was changed:** nothing in any word. The list is the two dictionaries'
+  forms, merged.
+- **Licence:** (MIT AND BSD), the packages' own; free to serve, nothing owed on
+  screen.
+- **Who loads it:** `js/spell.js` fetches it on the first Save that has new
+  words to check — never on page load, so a reader who never saves a change
+  never pays for it. Reached at `/vendor/en-words-1.txt`, cached hard like
+  everything here; a new list is a NEW NAME (`en-words-2.txt`), never an edit.
+- **Words it lacks that contracts use** (counterparty, indemnitee, majeure…)
+  are the short `SPELL_LEGAL` list in `js/spell.js`, not an edit to this file.
+
+### To rebuild it
+
+    npm pack dictionary-en-gb@3.0.0 dictionary-en@4.0.0
+    # untar both, then for each: read index.aff's PFX/SFX blocks, apply every
+    # rule whose condition matches to every index.dic stem (prefixes also to the
+    # suffixed forms where the rule says cross-product), lower-case, keep
+    # /^[a-z][a-z']*$/, merge the two sets, sort, write one per line.
+
+Then run `node --test test/f422-their-side-mirrors-ours.test.js`, which reads it.

@@ -95,22 +95,21 @@ describe('f245 (1) — the doors', () => {
       + 'through to a second feature');
   });
 
-  test('the change row carries the second door, and it LEADS', () => {
+  /* ---- RE-POINTED 28 Sep 2026 (Young picked Mirror) ----
+     The ✦ beside Open went with the boxed card it sat on: every seat draws the
+     flat row now, and ITS door onto the editor is the face's own Edit (Counter
+     on their ask), carrying data-rl-cp-editor-row. It still leads our own
+     draft's face, and it still never wears .rl-open-btn. */
+  test('the change row carries the door, and on our own draft it LEADS', () => {
     assert.ok(/data-rl-cp-editor-row=/.test(NEGO), 'the row has its own door');
-    assert.ok(/\$\{ceBtn\}\$\{openBtn\}/.test(NEGO),
-      'and it is written BEFORE Open on both card shapes — the approved journey '
-      + 'puts Edit with Copilot above Open in the clause panel');
-    assert.equal((NEGO.match(/\$\{ceBtn\}\$\{openBtn\}/g) || []).length, 2,
-      'both shapes: the receipt line and the full card');
+    assert.ok(!/\$\{ceBtn\}\$\{openBtn\}/.test(NEGO), 'the boxed card\'s pair is gone');
+    assert.match(NEGO, /out\.push\(relabel\(door, i18t\('act_edit'\)\), take\(\/data-rl-send=\/\)\)/,
+      'Edit leads our own draft, before Send');
   });
 
   test('the row door does not answer to .rl-open-btn', () => {
-    /* That class MEANS the Open button and half a dozen checks resolve it by
-       the class alone. A second element answering to it makes every one of
-       them pick whichever comes first in the markup. */
-    assert.ok(/class="rl-cp-editor-btn"/.test(NEGO), 'its own class');
-    assert.ok(!/class="rl-open-btn rl-cp-editor-btn"/.test(NEGO), 'and only its own');
-    assert.ok(/\.rl-cp-editor-btn\{/.test(NEGO), 'dressed by its own rule');
+    assert.match(NEGO, /class="rl-edit" data-rl-cp-editor-row=/, 'it wears the verb\'s own class');
+    assert.ok(!/class="rl-open-btn[^"]*" data-rl-cp-editor-row/.test(NEGO), 'never the Open button\'s');
   });
 
   test('neither door is a second route into the contract', () => {
@@ -134,7 +133,8 @@ describe('f245 (2) — who may open it', () => {
     const p = await bench(); wide(p.win);
     const R = p.win.clauseEditorRefusal;
     assert.equal(R(null), p.win.i18t('ce_no_contract'));
-    assert.equal(R(p.c, { side: 'counterparty' }), p.win.i18t('ce_owner_only'));
+    /* REVERSED 28 Sep 2026 (Mirror): their seat is let in, with no Copilot. */
+    assert.equal(R(p.c, { side: 'counterparty' }), null);
     assert.equal(R(p.c, { readonly: true }), p.win.i18t('ce_read_only'));
     assert.equal(R(p.c, {}), null, 'and an ordinary owner seat is let through');
   });
@@ -448,8 +448,11 @@ describe('f245 (8) — nothing asks why, on either path', () => {
   });
 
   test('and the act goes straight to the funnel', () => {
-    assert.ok(/case 'save': cePullText\(\); ceFile\(\); break;/.test(CODE),
-      'Save pulls the wording and files it, with nothing in between');
+    /* RE-POINTED 28 Sep 2026: the spell check stands between (js/spell.js), and
+       files at once wherever it has nothing to say. */
+    assert.ok(/case 'save': cePullText\(\); ceSaveChecked\(\); break;/.test(CODE),
+      'Save pulls the wording and files it, through the spelling list only');
+    assert.match(CODE, /_ceSpellList = \[\]; _ceSpellFor = null; ceRenderSpell\(\);\n  return ceFile\(\);/);
     assert.ok(!/ceOpenReason/.test(CODE), 'the opener is gone rather than left unreachable');
   });
 
@@ -457,7 +460,7 @@ describe('f245 (8) — nothing asks why, on either path', () => {
     assert.ok(!/data-nego-skip/.test(NEGO_CODE), 'no Skip, because there is nothing to skip');
     assert.ok(!/data-nego-back/.test(NEGO_CODE), 'no way back from a step that does not exist');
     assert.ok(!/data-nego-reason/.test(NEGO_CODE), 'and no reason box on the filing path');
-    assert.ok(/data-nego-next[\s\S]{0,600}?file\(\)/.test(NEGO_CODE),
+    assert.ok(/data-nego-next[\s\S]{0,600}?fileChecked\(\)/.test(NEGO_CODE) && /spellList = \[\]; spellFor = null;\n      file\(\);/.test(NEGO_CODE),
       'Save files rather than stepping');
   });
 
@@ -729,27 +732,25 @@ describe('f245 (17) — the four faults reported off the screenshots', () => {
 });
 
 describe('f245 (9) — the counterparty\'s seat is untouched', () => {
-  test('the row door is never drawn on their page', () => {
-    /* REVERSED IN PLACE 10 Sep 2026 and STRONGER for it: this anchored on
-       `const ceBtn = (`, which was the expression rather than the claim. The
-       control has TWO branches now — the live door and the one a colleague's
-       lock marks (Young's "put the initials on those too") — and BOTH have to
-       carry the same seat guard, or the marking draws on a page the door never
-       did. So the claim is that every branch is guarded, not that one is. */
-    const i = NEGO.indexOf('const ceLock = (');
-    assert.ok(i > 0, 'the row door has a guard');
-    const region = NEGO.slice(i, NEGO.indexOf("      : '';", i));
-    const guards = region.match(/openBtn && !previewSeat && side === 'owner' && editable/g) || [];
-    assert.equal(guards.length, 2,
-      'the live door AND the marked one — a rule kept at one of two is not a rule');
-    assert.ok(/window\.rlOpenClauseEditor/.test(region),
-      'and a door claiming a page nothing can open is the dead press the draw-time decision exists to prevent');
+  /* ---- REVERSED IN PLACE 28 Sep 2026 (Young picked Mirror: "the redline page
+     should mirror the owner side") ----
+     Their seat was untouched because the editor refused them. It opens for them
+     now, with its Copilot half not drawn, so their row carries the door too —
+     in the plain verb's clothes, with no sparkle — and our preview of their
+     seat is still no chair at it. */
+  test('the row door is drawn on their page too, with no Copilot on it', () => {
+    assert.match(NEGO, /\(ceTakesIt && side === 'counterparty'\)\n\s*\? \`<button class="rl-edit" data-rl-cp-editor-row=/,
+      'their door is the plain Edit');
+    assert.match(NEGO, /const ceTakesIt = rlEditorTakesIt\(side, \{ preview: previewSeat \}\);/,
+      'and the preview is asked');
   });
 
-  test('the page refuses a counterparty seat outright', async () => {
+  test('the page opens for a counterparty seat, and draws no Copilot', async () => {
     const p = await bench(); wide(p.win);
-    assert.equal(p.win.rlOpenClauseEditor(p.c, firstClauseId(p), { side: 'counterparty' }), false);
-    assert.equal(p.doc.getElementById('clause-editor'), null, 'and nothing is mounted');
+    assert.equal(p.win.rlOpenClauseEditor(p.c, firstClauseId(p), { side: 'counterparty' }), true);
+    assert.ok(p.doc.getElementById('clause-editor'), 'the page is up');
+    assert.equal(p.doc.getElementById('ce-ask'), null, 'with no ask box');
+    p.win.rlCloseClauseEditor();
   });
 });
 
@@ -1885,7 +1886,7 @@ describe('f245 (18) — the Changes tab is gone, and Redlined shows redlines', (
        FINISHED — it files what was written and asks for the note. */
     assert.ok(!/_ceEditing = !_ceEditing/.test(CODE),
       'the toggle is gone — the pencil no longer turns typing on');
-    assert.match(CODE, /if \(_ceEditing && ceCanFile\(\)\)\{\s*Promise\.resolve\(ceFile\(\)\)/,
+    assert.match(CODE, /if \(_ceEditing && ceCanFile\(\)\)\{\s*Promise\.resolve\(ceSaveChecked\(\)\)/,
       'pressed with something to file, it files');
     assert.match(CODE, /_ceEditing = false;\s*ceDetachPassage\(\); ceRenderPaper\(\); ceRenderBar\(\);\s*return; \}/,
       'and with nothing to file it only ends the typing');
@@ -2098,7 +2099,7 @@ describe('f245 (18) — the Changes tab is gone, and Redlined shows redlines', (
     assert.match(fn[0], /ceUnderDeletion\(\)\) return _cet\('ce_under_deletion'\)/, 'a proposed deletion');
     assert.match(fn[0], /ceEditableReading\(\)\) return _cet\('ce_reading_only'\)/, 'a reading that refuses editing');
     assert.match(fn[0], /clauseLockHeldByOther[\s\S]*cl_locked_refuse/, 'a colleague\'s lock');
-    assert.match(fn[0], /clauseEditorRefusal\(_ceC, \{ side: 'owner'/, 'and every wall the door itself has');
+    assert.match(fn[0], /clauseEditorRefusal\(_ceC, \{ side: ceSide\(\)/, 'and every wall the door itself has, for whichever seat this is');
   });
 });
 

@@ -816,8 +816,11 @@ describe('signing arrives on a new link', () => {
     assert.ok(v.payload.contract.changes.find(x => x.id === filed[1].id).withdrawn,
       'without it their copy would refuse over a point we had already let go');
     assert.equal(v.readyBtn().disabled, false);
-    assert.equal(v.$(`[data-nego-card="${filed[1].id}"]`), null,
-      'withdrawn is settled — it leaves the table like an adopted change does');
+    /* RE-POINTED 28 Sep 2026 (Mirror): their column is ours — a withdrawn ask
+       sits in the Withdrawn pile, with nothing on it to decide. */
+    assert.equal((el => { for (let n = el && el.previousElementSibling; n; n = n.previousElementSibling) if (n.matches('[data-rl-band]')) return n.getAttribute('data-rl-band'); return null; })(v.$(`[data-nego-card="${filed[1].id}"]`)), 'withdrawn',
+      'withdrawn is settled — it sits in its own pile');
+    assert.equal(v.$(`[data-nego-accept="${filed[1].id}"]`), null);
   });
 
   test('a signing link opens on the document and the respond panel, not the room', async () => {
