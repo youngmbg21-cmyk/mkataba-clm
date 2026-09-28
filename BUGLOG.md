@@ -19839,3 +19839,9 @@ Noticed, not fixed
 - Removed on the owner's ruling: the legend's status rows and a press on a group card no longer filter the map. The bottom-right "Drag nodes · scroll to zoom · click a card to explain" box is gone from the stage; its reworded words are the new view bar's hover. "Clear all" on the head line now reads "Show everything".
 - Fixed on the way (found by the new check): a drag that started on selected words cancelled half-way through a turn.
 - Not built from the design: "Save this view".
+
+## 28 Sep 2026 — their Edit page and the save symbol
+
+- BUILT: counterparty landing has Edit at the top and no pencils on the paper; Edit opens the clause editor beside their live Redlines column (Discard / Save under it, header stood down, wall line kept); a column press with unsaved typing asks "Leave this clause?" and drops only the unsaved words. Done is now a save symbol on both seats (hidden until typing, hover "Save · Ctrl+S", Ctrl/⌘+S, a tick). f426, their-edit-page-verify.
+- Noticed, not fixed: in the clause editor the foot's "Save to CHG-xxx" stays greyed while the reader is still typing (the draft is read on blur), on both seats; the symbol and Ctrl+S read the box first, so they work.
+- Noticed, not fixed: portal-header-verbs-verify "Send on top of the redline cards" still fails as before this change.

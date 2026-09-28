@@ -255,6 +255,15 @@ function clauseEditorCss(){
     background:var(--color-bg); color:var(--color-text);
     font-family:var(--font-body, inherit)}
   #clause-editor[hidden]{display:none}
+  #clause-editor.is-theirs .ce-grid{grid-template-columns:minmax(0,1fr)}
+  #clause-editor.is-theirs .ce-grid > .rl-resizer{display:none}
+  #clause-editor.is-theirs .ce-rail{position:fixed; z-index:39; min-height:0; border-left:0;
+    border-top:1px solid var(--color-divider)}
+  #clause-editor.is-theirs .ce-rail > .ce-ah,
+  #clause-editor.is-theirs .ce-rail > .ce-lane{display:none}
+  #clause-editor .ce-saved-tick{position:fixed; z-index:3; display:grid; place-items:center; pointer-events:none;
+    color:var(--st-green-fg)}
+  #clause-editor .ce-saved-tick svg{width:16px; height:16px}
   #clause-editor *{box-sizing:border-box}
   #clause-editor button{cursor:pointer; font-family:inherit}
   #clause-editor button:disabled{cursor:default}
@@ -1850,7 +1859,10 @@ function ceFitSplit(scope){
      not own, and an inline gridTemplateColumns written here would beat the
      rule that makes them — an inline declaration cannot be overridden by a
      stylesheet without !important, which this codebase has paid for twice. */
-  if (ceStacked()){
+  /* AND ON THEIR PAGE the rail is pinned under their Redlines column, so the
+     grid has one column (28 Sep 2026). */
+  const theirs = !!(grid.closest && grid.closest('#clause-editor.is-theirs'));
+  if (ceStacked() || theirs){
     grid.style.gridTemplateColumns = '';
     rez.style.left = '';
     rez.removeAttribute('data-rl-at-limit');
@@ -1949,9 +1961,84 @@ function ceWireSplit(){
    A BOX OF ZERO IS NOT A BOX — the standing rule. If the scroller has not been
    laid out yet the page keeps inset:0 and the next observation corrects it,
    which is strictly better than pinning it to nothing. */
+/* THEIR SEAT'S FIT: the page takes the redline mount's box up to the left
+   edge of their Redlines column; the rail (its foot only) is pinned under
+   that column, and the column keeps room for it (--pw-edit-foot). */
+const CE_THEIRS_GAP = 8;
+function ceFitToTheirs(page){
+  const host = document.getElementById('pt-nego');
+  const side = host && host.querySelector('#rl-side');
+  if (!host || !side) return;
+  const hr = host.getBoundingClientRect(), sr = side.getBoundingClientRect();
+  if (!(hr.width > 0 && hr.height > 0 && sr.width > 0)) return;
+  /* THE WALL LINE STAYS IN VIEW: it is their promise that nothing leaves
+     before Send, so the page starts under it, level with the column. */
+  const wall = host.querySelector('#rl-banner');
+  const wr = wall && wall.getBoundingClientRect();
+  const top = (wr && wr.height > 0) ? Math.max(hr.top, wr.bottom + CE_THEIRS_GAP) : hr.top;
+  page.style.inset = 'auto';
+  page.style.left = Math.round(hr.left) + 'px';
+  page.style.top = Math.round(top) + 'px';
+  page.style.width = Math.max(0, Math.round(sr.left - CE_THEIRS_GAP - hr.left)) + 'px';
+  page.style.height = Math.max(0, Math.round(hr.bottom - top)) + 'px';
+  const rail = page.querySelector('.ce-rail');
+  if (!rail) return;
+  rail.style.left = Math.round(sr.left) + 'px';
+  rail.style.width = Math.round(sr.width) + 'px';
+  rail.style.bottom = Math.max(0, Math.round(window.innerHeight - sr.bottom)) + 'px';
+  const h = Math.round(rail.getBoundingClientRect().height);
+  if (document.body.style.getPropertyValue('--pw-edit-foot') !== h + 'px')
+    document.body.style.setProperty('--pw-edit-foot', h + 'px');
+}
+function ceObserveTheirs(page){
+  if (typeof ResizeObserver === 'undefined') return;
+  const host = document.getElementById('pt-nego');
+  const rail = page && page.querySelector('.ce-rail');
+  try{
+    const ro = new ResizeObserver(() => { const pg = document.getElementById('clause-editor'); if (pg && pg.classList.contains('is-theirs')) ceFitToTheirs(pg); });
+    if (host) ro.observe(host);
+    if (rail) ro.observe(rail);
+    page._ceRo = ro;
+  }catch(_){}
+  if (!window._ceTheirsResize){ window._ceTheirsResize = true;
+    window.addEventListener('resize', () => { const pg = document.getElementById('clause-editor'); if (pg && pg.classList.contains('is-theirs')) ceFitToTheirs(pg); }); }
+}
+/* THEIR COLUMN IS LIVE BESIDE A DRAFT: a press on any of its buttons while
+   the box holds unfiled typing asks the page's own "Leave this clause?" first
+   (ceLeaveGuard), and on "Leave and lose it" the draft goes and the press is
+   made again. Captured on the document at load, so a column repainted every
+   render needs no wiring of its own. */
+let _ceTheirPass = false;
+if (typeof document !== 'undefined' && !document._ceTheirGuard){
+  document._ceTheirGuard = true;
+  document.addEventListener('click', ev => {
+    if (_ceTheirPass) return;
+    const page = document.getElementById('clause-editor');
+    if (!page || !page.classList.contains('is-theirs')) return;
+    const btn = ev.target && ev.target.closest && ev.target.closest('#pt-nego #rl-side button, #pt-nego #rl-side [role="button"]');
+    if (!btn) return;
+    cePullText();
+    if (!(typeof clauseEditorDirty === 'function' && clauseEditorDirty())) return;
+    ev.preventDefault(); ev.stopPropagation(); ev.stopImmediatePropagation();
+    ceLeaveGuard(() => { ceForgetUnfiled(); _ceTheirPass = true; try{ if (btn.isConnected) btn.click(); } finally { _ceTheirPass = false; } });
+  }, true);
+}
+/* "LEAVE AND LOSE IT" LOSES ONLY WHAT WAS NOT FILED: the draft is seeded
+   again off the record (ceSeedDraft), so a change already filed stays and
+   the box stops typing. Not ceDiscard, which steps back to the wording as it
+   stands. */
+function ceForgetUnfiled(){
+  if (!clauseEditorOpen()) return;
+  ceSeedDraft(_ceLead && _ceLead.id);
+  _ceEditing = false;
+  const pg = document.getElementById('clause-editor');
+  if (pg) pg.classList.remove('ce-typed');
+  ceDetachPassage(); ceRenderPaper(); ceRenderFoot(); ceRenderHead(); ceRenderBar();
+}
 function ceFitToShell(){
   if (typeof document === 'undefined') return;
   const page = document.getElementById('clause-editor');
+  if (page && page.classList && page.classList.contains('is-theirs')){ ceFitToTheirs(page); return; }
   const sc = document.getElementById('content-scroll');
   if (!page || !sc || !page.style || !sc.getBoundingClientRect) return;
   const r = sc.getBoundingClientRect();
@@ -2183,6 +2270,17 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
   const page = holder.firstElementChild;
   document.body.appendChild(page);
   document.body.classList.add('ce-open');
+  /* ---- THEIR SEAT: THE EDITING PAGE BESIDE THEIR OWN REDLINES COLUMN
+     (Young ruled 28 Sep 2026: "the redline page should look exactly like it
+     does today but the side panel should still reflect the image attached")
+     ---- On the counterparty's link the page covers the contract area only;
+     their LIVE Redlines column — the same element, with every row's buttons
+     wired as on the landing page — stays beside it, and this page's rail keeps
+     only its foot (the spelling list, Discard changes, Save) pinned under that
+     column. Their header stands down while it is open (`pw-editing`). */
+  const theirs = ceSide() === 'counterparty' && !!document.querySelector('#pt-nego #rl-side');
+  page.classList.toggle('is-theirs', theirs);
+  document.body.classList.toggle('pw-editing', theirs);
   /* THE SHELL BAR'S THREE PANEL DOORS ARE DEAD WHILE THIS PAGE COVERS THE
      WINDOW — Chat, the bell and Activity all open the same drawer, which sits
      at z-index 46 against this page's 54, so every one of those presses would
@@ -2200,6 +2298,7 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
   try{ if (window.paintShellDoors) paintShellDoors(); }catch(_){}
   ceWirePage(page);
   ceFitToShell(); ceObserveShell();
+  if (theirs) ceObserveTheirs(page);
   /* AFTER ceFitToShell, so the first split is measured against the box this
      page actually occupies rather than against one still at its CSS size. */
   ceWireSplit();
@@ -2263,8 +2362,10 @@ function rlCloseClauseEditor(opts = {}){
     if (ceSide() === 'owner' && window.clauseLockRelease && clauseLockRelease(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC, { clauseId: _ceClauseId, release: true });
   }catch(_){}
   const page = document.getElementById('clause-editor');
-  if (page) page.remove();
+  if (page){ try{ if (page._ceRo) page._ceRo.disconnect(); }catch(_){} page.remove(); }
   document.body.classList.remove('ce-open');
+  document.body.classList.remove('pw-editing');
+  try{ document.body.style.removeProperty('--pw-edit-foot'); }catch(_){}
   const again = _ceAgain;
   let readMoved = false;
   try{ readMoved = _ceRead0 != null && window.rlReadMode && rlReadMode() !== _ceRead0; }catch(_){}
@@ -3023,8 +3124,13 @@ function ceRenderPaper(){
            under a proposed deletion (there is no wording to type, and the
            press in the wording speaks that refusal). */
         skip: cl => String(cl.clauseId) !== String(_ceClauseId) || !typing || ceUnderDeletion(),
-        label: () => _cet('ce_pencil_done'),
-        title: () => _cet('ce_pencil_done_title') },
+        /* ---- THE SAVE SYMBOL (Young picked "Symbol", 28 Sep 2026, both
+           seats) ---- The pressed pencil is a small save symbol with no word,
+           shown once something is typed (`ce-typed` on the page); its word
+           and the shortcut are its hover. `ce_pencil_done` is inert. */
+        icon: 'save',
+        label: () => _cet('ce_save_symbol'),
+        title: () => _cet(ceIsMac() ? 'ce_save_symbol_tip_mac' : 'ce_save_symbol_tip') },
     });
   }catch(e){ html = ''; }
   /* ---- THE WRITE IS FENCED, BECAUSE REPLACING IT BLURS WHAT IS IN IT ----
@@ -3974,6 +4080,7 @@ function ceRestoreStep(){
   _ceHead = st.head == null ? _ceHeadBase : st.head;
 }
 function ceDiscard(){
+  try{ const pg = document.getElementById('clause-editor'); if (pg) pg.classList.remove('ce-typed'); }catch(_){}
   if (!clauseEditorOpen()) return;
   _ceSteps = [{ label: _cet('ce_step_stands'), text: _ceBase, head: _ceHeadBase }];
   _ceStep = 0; _ceText = _ceBase; _ceHead = _ceHeadBase; _ceSavedAt = null;
@@ -5599,6 +5706,7 @@ function ceCutPassage(){
    so re-seeding there would move them onto wording they never asked to edit.
    Each door does its own seeding before it calls this. */
 function ceFiled(c){
+  try{ const pg = document.getElementById('clause-editor'); if (pg) pg.classList.remove('ce-typed'); }catch(_){}
   try{ if (window.negoInvalidateVerification) negoInvalidateVerification(c); }catch(_){}
   try{ if ((!_ceOpts || _ceOpts.persist !== false) && window.persist) persist(c); }catch(_){}
   ceRenderAll();
@@ -5813,7 +5921,47 @@ async function ceFile(why){
    no second mount that could claim one. Escape and the window resize are the
    two that must live on document, and they are armed ONCE at module load.
    ========================================================================== */
+/* ---- THE SAVE SYMBOL'S PRESS, AND CTRL+S (28 Sep 2026) ----
+   One act for both: file what was typed (through ceSaveChecked, so the spell
+   check and the funnel are the same as the foot's Save), turn typing off where
+   the record moved, and put a green tick where the symbol was for a moment.
+   The tick is drawn fixed at the symbol's own place on screen because the paper
+   is repainted under it. Nothing to file, nothing done. */
+const CE_SAVED_TICK_MS = 1400;
+const ceIsMac = () => { try{ return /Mac|iPhone|iPad/.test(String(navigator.platform || navigator.userAgent || '')); }catch(_){ return false; } };
+function ceSaveFromSymbol(pencil){
+  if (!_ceEditing || !ceCanFile()) return;
+  let at = null;
+  try{ if (pencil && pencil.getBoundingClientRect){ const r = pencil.getBoundingClientRect(); if (r.width > 0) at = r; } }catch(_){}
+  Promise.resolve(ceSaveChecked()).then(ch => {
+    if (!ch) return;
+    _ceEditing = false;
+    const page = document.getElementById('clause-editor');
+    if (page) page.classList.remove('ce-typed');
+    ceDetachPassage(); ceRenderPaper(); ceRenderBar();
+    if (!page || !at) return;
+    const tick = document.createElement('span');
+    tick.className = 'ce-saved-tick';
+    tick.setAttribute('role', 'status');
+    tick.setAttribute('aria-label', _cet('ce_saved_tick'));
+    tick.style.left = Math.round(at.left) + 'px'; tick.style.top = Math.round(at.top) + 'px';
+    tick.style.width = Math.round(at.width) + 'px'; tick.style.height = Math.round(at.height) + 'px';
+    tick.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>';
+    page.appendChild(tick);
+    setTimeout(() => { try{ tick.remove(); }catch(_){} }, CE_SAVED_TICK_MS);
+  });
+}
 function ceWirePage(page){
+  /* CTRL+S (⌘S) SAVES WHILE TYPING, and never reaches the browser's own
+     "save page" while this page is open. */
+  page.addEventListener('keydown', ev => {
+    if (!(ev.ctrlKey || ev.metaKey) || ev.altKey || String(ev.key || '').toLowerCase() !== 's') return;
+    ev.preventDefault();
+    if (!_ceEditing) return;
+    cePullText();
+    if (!ceCanFile()) return;
+    ceSaveFromSymbol(page.querySelector('.rl-cp-pill-save'));
+  });
   /* ---- THE WRITING BAR ----
      MOUSEDOWN, PREVENTED. A click would take the selection away before the act
      could reach it — the same reason the clause panel's own bar has used
@@ -5956,14 +6104,7 @@ function ceWirePage(page){
          untouched. What this adds is the one gesture that asks for the
          opposite; the rail's File, the strip's send and the cut all still
          leave the reader writing. */
-      if (_ceEditing && ceCanFile()){
-        Promise.resolve(ceSaveChecked()).then(ch => {
-          if (!ch) return;
-          _ceEditing = false;
-          ceDetachPassage(); ceRenderPaper(); ceRenderBar();
-        });
-        return;
-      }
+      if (_ceEditing && ceCanFile()){ ceSaveFromSymbol(pencil); return; }
       /* THE PENCIL ONLY EXISTS WHILE TYPING (13 Sep 2026), so with nothing
          to file the press means "I have finished reading this clause": typing
          goes off and the marks come back. The way IN is a click in the
@@ -6350,6 +6491,9 @@ function ceWirePage(page){
   page.addEventListener('input', ev => {
     const t = ev.target;
     if (!t || !t.closest || !t.closest('#ce-clausebody, #ce-clausehead')) return;
+    /* THE SAVE SYMBOL SHOWS ONCE SOMETHING IS TYPED (28 Sep 2026): filing,
+       discarding or leaving takes the mark off. */
+    page.classList.add('ce-typed');
     /* ---- AND TYPING CLOSES THE STRIP, HAVING DONE NOTHING ----
        (29 Aug 2026.) With the strip live during typing, a reader who highlights
        a sentence and then simply carries on writing has answered the question

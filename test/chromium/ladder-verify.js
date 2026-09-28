@@ -562,12 +562,15 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
     const card = document.querySelector('#ce-lane .ce-lcard');
     return { chip: chip ? chip.textContent.trim() : null, done: done ? done.textContent.trim() : null,
       doneSeen: !!done && done.getBoundingClientRect().width > 0,
+      label: done ? done.getAttribute('aria-label') : null, hidden: !!done && getComputedStyle(done).visibility === 'hidden',
       besides: !!(chip && done) && done.getBoundingClientRect().left >= chip.getBoundingClientRect().right,
       tabs, card: !!card && card.getBoundingClientRect().height > 0,
       cardHeads: card ? [...card.querySelectorAll('.k')].map(k => k.textContent.trim()) : [] };
   }, staged.c4);
   check('21a the chip is on the editor\'s paper too, as a statement', !!ed21.chip && /R3/.test(ed21.chip), ed21.chip);
-  check('21b while typing the pencil says Done, visibly, beside the chip', ed21.done === 'Done' && ed21.doneSeen && ed21.besides, JSON.stringify({ done: ed21.done, seen: ed21.doneSeen, besides: ed21.besides }));
+  /* RE-POINTED 28 Sep 2026 (Young picked the save symbol): Done is a drawn
+     disk named Save, beside the chip, out of sight until something is typed. */
+  check('21b the save symbol sits beside the chip, named Save, hidden until typing', ed21.done === '' && ed21.label === 'Save' && ed21.hidden && ed21.besides, JSON.stringify({ done: ed21.done, label: ed21.label, hidden: ed21.hidden, besides: ed21.besides }));
   check('21c the rail has Suggestions · Ladder · Figure · Playbook scan', ed21.tabs.join(',') === 'chat,ladder,figure,scan', ed21.tabs.join(','));
   check('21d the ladder card leads the conversation with what moved, the ladder and the precedent', ed21.card && ed21.cardHeads.length >= 3, ed21.cardHeads.join(' · '));
   await page.evaluate(() => document.querySelector('[data-ce-tab="ladder"]').click()); await pause(300);

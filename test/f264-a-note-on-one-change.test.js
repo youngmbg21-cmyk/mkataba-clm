@@ -453,8 +453,12 @@ describe('f264 (6) — the gesture that means done, means done', () => {
 
   test('typing goes off only after the record moves', () => {
     const branch = CE.match(/const pencil = hit\('\[data-ce-pencil\]'\);[\s\S]*?\n      return; \}/)[0];
-    /* through the spelling list since 28 Sep 2026 — ceSaveChecked answers what ceFile answers */
-    assert.match(branch, /Promise\.resolve\(ceSaveChecked\(\)\)\.then\(ch => \{\s*\n\s*if \(!ch\) return;\s*\n\s*_ceEditing = false;/,
+    /* through the spelling list since 28 Sep 2026 — ceSaveChecked answers what ceFile answers.
+       RE-POINTED 28 Sep 2026 (the save symbol): the press hands to
+       ceSaveFromSymbol, which Ctrl/⌘+S shares, and the order is kept there. */
+    assert.match(branch, /if \(_ceEditing && ceCanFile\(\)\)\{ ceSaveFromSymbol\(pencil\); return; \}/);
+    const save = CE.match(/function ceSaveFromSymbol\(pencil\)\{[\s\S]*?\n\}\n/)[0];
+    assert.match(save, /Promise\.resolve\(ceSaveChecked\(\)\)\.then\(ch => \{\s*\n\s*if \(!ch\) return;\s*\n\s*_ceEditing = false;/,
       'turning the box read-only over wording the funnel has just REFUSED would '
       + 'hide the reader’s own work behind a page drawing the marks of a '
       + 'change that does not exist');

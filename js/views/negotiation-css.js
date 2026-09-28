@@ -5701,6 +5701,19 @@ function redlineLayoutCss(){
     font-size:var(--t-meta);font-weight:var(--w-label);letter-spacing:0;text-transform:none}
   .redline-page .rl-cp-pill.rl-cp-pill-done svg{width:14px;height:14px}
   .redline-page .rl-cp-pill.rl-cp-pill-done:hover{background:var(--color-accent-100)}
+  ${''/* THE SAVE SYMBOL (28 Sep 2026): a small light box, the symbol alone,
+         shown once something has been typed (#clause-editor.ce-typed), its
+         word on the hover. Same corner, same reserve, so the row never moves. */}
+  .redline-page .rl-cp-pill.rl-cp-pill-save{width:26px;height:26px;padding:0;gap:0;border-color:var(--btn-edge);
+    color:var(--accent-ink);background:var(--color-surface)}
+  .redline-page .rl-cp-pill.rl-cp-pill-save svg{width:15px;height:15px}
+  .redline-page .rl-cp-pill.rl-cp-pill-save:hover,
+  .redline-page .rl-cp-pill.rl-cp-pill-save:focus-visible{border-color:var(--color-accent-600);background:var(--color-accent-50)}
+  .redline-page .rl-cp-pill.rl-cp-pill-save[data-tip]:hover::after,
+  .redline-page .rl-cp-pill.rl-cp-pill-save[data-tip]:focus-visible::after{content:attr(data-tip);position:absolute;right:0;top:calc(100% + 6px);
+    font-family:var(--font-body);font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600);white-space:nowrap;
+    background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);padding:3px 6px;pointer-events:none}
+  #clause-editor:not(.ce-typed) .redline-page .rl-cp-pill.rl-cp-pill-save{visibility:hidden}
   
   .redline-page .rl-baseline{display:flex;flex-wrap:wrap;gap:4px 18px;margin:8px 0 16px;
     font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.5}

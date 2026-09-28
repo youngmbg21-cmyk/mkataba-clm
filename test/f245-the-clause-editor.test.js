@@ -1886,13 +1886,17 @@ describe('f245 (18) — the Changes tab is gone, and Redlined shows redlines', (
        FINISHED — it files what was written and asks for the note. */
     assert.ok(!/_ceEditing = !_ceEditing/.test(CODE),
       'the toggle is gone — the pencil no longer turns typing on');
-    assert.match(CODE, /if \(_ceEditing && ceCanFile\(\)\)\{\s*Promise\.resolve\(ceSaveChecked\(\)\)/,
+    /* RE-POINTED 28 Sep 2026 (Young picked the save symbol): the press files
+       through ceSaveFromSymbol, which is ceSaveChecked and then the tick. */
+    assert.match(CODE, /if \(_ceEditing && ceCanFile\(\)\)\{ ceSaveFromSymbol\(pencil\); return; \}/,
       'pressed with something to file, it files');
+    assert.match(CODE, /function ceSaveFromSymbol\(pencil\)\{[\s\S]*?Promise\.resolve\(ceSaveChecked\(\)\)/,
+      'through the one checked save');
     assert.match(CODE, /_ceEditing = false;\s*ceDetachPassage\(\); ceRenderPaper\(\); ceRenderBar\(\);\s*return; \}/,
       'and with nothing to file it only ends the typing');
     assert.match(CODE, /skip: cl => String\(cl\.clauseId\) !== String\(_ceClauseId\) \|\| !typing \|\| ceUnderDeletion\(\)/,
       'and it is DRAWN only on the clause being typed in, only while typing');
-    assert.match(CODE, /label: \(\) => _cet\('ce_pencil_done'\)/, 'wearing the one word it means');
+    assert.match(CODE, /icon: 'save',\s*label: \(\) => _cet\('ce_save_symbol'\)/, 'drawn as the save symbol, named Save');
   });
 
   test('ONE GUARD, AND EVERY DOOR OUT OF A DRAFT GOES THROUGH IT', () => {
@@ -1924,8 +1928,13 @@ describe('f245 (18) — the Changes tab is gone, and Redlined shows redlines', (
     /* Exactly four, so a fifth door is a decision rather than a discovery.
        RE-POINTED 14 Sep 2026: the ladder card's "Accept their R{n}" leaves
        the page to press the card's own Accept, and it asks first. */
-    assert.equal((CODE.match(/ceLeaveGuard\(/g) || []).length, 5,
-      'four callers and the declaration \u2014 no fifth door written past it');
+    /* RE-POINTED 28 Sep 2026: their Redlines column stays live beside the
+       editor on their page, and a press on it while a draft is unfiled asks
+       (the fifth door, ceForgetUnfiled on "Leave and lose it"). */
+    assert.equal((CODE.match(/ceLeaveGuard\(/g) || []).length, 6,
+      'five callers and the declaration \u2014 no sixth door written past it');
+    assert.match(CODE, /closest\('#pt-nego #rl-side button[\s\S]{0,300}?ceLeaveGuard\(\(\) => \{ ceForgetUnfiled\(\);/,
+      'their column\'s press is the fifth, and it asks');
     assert.match(CODE, /case 'ladder-accept': \{[\s\S]{0,400}?ceLeaveGuard\(/,
       'the ladder card\'s Accept is the fourth, and it asks');
   });
@@ -3150,7 +3159,8 @@ describe('f245 (26) — the layered redline in the editor', () => {
     const pens = [...q.p.doc.querySelectorAll('#ce-doc [data-ce-pencil]')];
     assert.equal(pens.length, 1, 'while typing, one');
     assert.equal(pens[0].getAttribute('data-ce-pencil'), q.id);
-    assert.equal(pens[0].getAttribute('aria-label'), q.p.win.i18t('ce_pencil_done'));
+    assert.equal(pens[0].getAttribute('aria-label'), q.p.win.i18t('ce_save_symbol'));
+    assert.ok(pens[0].classList.contains('rl-cp-pill-save'), 'the save symbol, not a word');
     assert.ok(id, 'the first stage had a clause too');
     q.p.win.rlCloseClauseEditor();
   });
@@ -3181,7 +3191,9 @@ describe('f245 (26) — the layered redline in the editor', () => {
   });
 
   test('both of the pencil\'s words are in both languages', () => {
-    for (const k of ['ce_pencil_done', 'ce_pencil_done_title']){
+    /* RE-POINTED 28 Sep 2026: the symbol's name, its two hovers and the tick;
+       ce_pencil_done and its title stay inert in both books. */
+    for (const k of ['ce_save_symbol', 'ce_save_symbol_tip', 'ce_save_symbol_tip_mac', 'ce_saved_tick', 'ce_pencil_done', 'ce_pencil_done_title']){
       assert.equal(I18N.split(new RegExp('\\b' + k + ':')).length - 1, 2, k + ' is in BOTH languages');
     }
   });

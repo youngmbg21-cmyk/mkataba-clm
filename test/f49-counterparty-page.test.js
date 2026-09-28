@@ -154,7 +154,10 @@ describe('while there is something to negotiate, the link is the room', () => {
     /* RE-POINTED 28 Sep 2026 (Young picked Mirror): at this width their pencil
        opens the clause EDITOR, as ours does — data-rl-cp-editor — and the
        panel's door is the narrow window's. Either is the way into writing. */
-    assert.ok(v.$$('#pt-nego [id="rl-doc"] [data-rl-cp-open], #pt-nego [id="rl-doc"] [data-rl-cp-editor]').length,
+    /* RE-POINTED AGAIN 28 Sep 2026 (Young: "the landing page should come with
+       a button at the top that says edit but you can not edit on the landing
+       page until you click edit"): no pencil on their paper; Edit is the door. */
+    assert.ok(v.$('#pt-edit') && !v.$$('#pt-nego [id="rl-doc"] [data-rl-cp-open], #pt-nego [id="rl-doc"] [data-rl-cp-editor]').length,
       'proposing wording is the whole point of sending them the link');
     assert.ok(v.$$('#pt-nego [data-rl-cp-edit]').length,
       'and the panel behind the pill offers the draft');
@@ -349,8 +352,8 @@ describe('a SIGNING link is the signature — and it is a different link', () =>
     assert.ok(v.$('#pt-nego .rl-embed'), 'they were invited to negotiate; give them the workbench');
     /* The Edit pill, since 16 Aug 2026 — the clause tool row is retired and
        the panel is where writing happens. */
-    assert.ok(v.$$('#pt-nego [id="rl-doc"] [data-rl-cp-open], #pt-nego [id="rl-doc"] [data-rl-cp-editor]').length,
-      'with the way into writing, so there is something to do here (the editor door since Mirror)');
+    assert.ok(v.$('#pt-edit'),
+      'with the way into writing, so there is something to do here (the Edit button since 28 Sep 2026)');
   });
 
   test('a signing link accounts for what was settled rather than asking them to sign on trust', async () => {

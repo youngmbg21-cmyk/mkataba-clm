@@ -1924,7 +1924,41 @@ function portalNegoFootHtml(p){
       style="flex:none">${spent?i18t('po_readiness_sent'):i18t('po_ready_to_sign')}</button>
     <button id="pt-nego-decline" class="ui-btn ui-btn-danger" style="flex:none">${i18t('po_decline')}</button>
     ${portalCanDerive()?`<button id="pt-derive" class="ui-btn" style="flex:none"
-      title="${i18t('po_mint_readonly')}">${i18t('po_share_readonly')}</button>`:''}`;
+      title="${i18t('po_mint_readonly')}">${i18t('po_share_readonly')}</button>`:''}
+    ${portalEditHtml()}`;
+}
+/* ---- EDIT, THE ONE WAY INTO THE WORDING (Young ruled 28 Sep 2026) ----
+   *"the landing page should come with a button at the top that says edit but
+   you can not edit on the landing page until you click edit"* — and the
+   Redlines column keeps every row's buttons. So the paper draws no pencil
+   (noPaperPencil) and this is the door: it opens the editing page they
+   already have on the first clause, not typing, a clean page. Row Edit and
+   Counter still open it on their own clause. Drawn only on the workbench
+   (PORTAL_FOOT_COMPACT), only where the link can be answered, and only where
+   the editing page can take the window (clauseEditorFits); the one filled
+   button in this header. */
+function portalEditHtml(){
+  if(!PORTAL_FOOT_COMPACT || portalReadOnly()) return '';
+  if(!(window.rlOpenClauseEditor && (!window.clauseEditorFits || clauseEditorFits()))) return '';
+  return `<button id="pt-edit" type="button" class="ui-btn ui-btn-primary" style="flex:none" data-pt-edit
+      title="${esc(i18t('po_edit_title'))}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>${esc(i18t('po_edit'))}</button>`;
+}
+function portalOpenEditor(){
+  const host=document.getElementById('pt-nego');
+  if(!host || typeof host._rlOpenEditor!=='function') return false;
+  const first=host.querySelector('#rl-doc [data-clause]:not([data-clause="front"])');
+  const id=first && first.getAttribute('data-clause');
+  if(!id) return false;
+  return host._rlOpenEditor(id, { typing:false });
+}
+/* Delegated once: the header is repainted by every verb-slot refill. */
+if(typeof document!=='undefined' && !document._ptEditWired){
+  document._ptEditWired=true;
+  document.addEventListener('click', ev=>{
+    const b=ev.target && ev.target.closest && ev.target.closest('[data-pt-edit]');
+    if(b){ ev.preventDefault(); portalOpenEditor(); }
+  });
 }
 /* ---- THE LINK IS HANDED OVER ONCE, AND THE PANEL IS GONE ----
    (owner-asked, 12 Aug 2026: remove the box at the foot of the strip entirely.)
@@ -2409,6 +2443,8 @@ function wirePortalNego(c, p){
     persist:false,
     by:who, author:who,
     noAi:true,
+    /* No pencil on the paper: the wording is typed in only after Edit. */
+    noPaperPencil:true,
     selMenu(){ /* no Copilot on this page; selecting text is just reading */ },
     bannerHtml:banner,
     /* THE WHOLE WINDOW, as the owner's page gives it. The cap was
@@ -3416,6 +3452,13 @@ function portalWorkbenchStyle(){
        because the button lives in the DOM the whole time. */
     .rl-focus-exit{display:none;}
     body.pw-focused .rl-focus-exit{display:inline-flex;}
+    /* EDITING ON THIS PAGE (Young, 28 Sep 2026): Edit hands the contract's area
+       to the clause editor and keeps the Redlines column beside it; the head
+       and notices step aside as focus does, and the column leaves room at its
+       foot for the editor's Discard / Save, pinned under it. */
+    body.pw-editing .pw-id{display:none;}
+    body.pw-editing .pw-notes{display:none;}
+    body.pw-editing #pt-nego #rl-side{padding-bottom:var(--pw-edit-foot,0px);box-sizing:border-box;}
     /* The two reading verbs — see portalReadingBtnsHtml for why they stopped
        being ui-btn-secondary. The tint is mixed against whatever surface is
        under it, so the pair reads the same in either theme. */
@@ -5249,4 +5292,4 @@ async function refreshStats(){
 
 Object.assign(window,{portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
   portalAlertsOpen,portalAlertsClose,portalPaintAlerts,wirePortalAlerts,portalAlertsStyle,
-  portalGoToChange,portalPressSend,PT_READ_KEY,ptReadMap,ptRevisionKey,ptRevisionRead,ptSetRevisionRead,portalHideRevisedBanner,portalShowRevisedBanner,portalWireRevisedBanner,portalRevisedBanner,portalChangedText,openPortalCompare,PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,exportSignPagesHtml,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,openDerivedLinkDialog,portalReadingBtnsHtml,portalEnsureResponderName});
+  portalGoToChange,portalPressSend,PT_READ_KEY,ptReadMap,ptRevisionKey,ptRevisionRead,ptSetRevisionRead,portalHideRevisedBanner,portalShowRevisedBanner,portalWireRevisedBanner,portalRevisedBanner,portalChangedText,openPortalCompare,PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,exportSignPagesHtml,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,openDerivedLinkDialog,portalReadingBtnsHtml,portalEnsureResponderName,portalEditHtml,portalOpenEditor});

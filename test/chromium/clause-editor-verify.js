@@ -1048,9 +1048,13 @@ const dismissNote = async pg => {
      row's Edit, with no Copilot in its rail (f422, their-side-verify). What
      survives of the old claim is the absence that was always the point: no
      Copilot door on their page, and no ✦ marker on their panel. */
-  ck('11b their rows and pencils carry the editor\'s door, and none of it wears the ✦ marker',
-     theirs.rowDoors > 0 && theirs.panelDoors > 0 && theirs.editorClass === 0,
-     `rows ${theirs.rowDoors}, panel ${theirs.panelDoors}, class ${theirs.editorClass}`);
+  /* RE-POINTED AGAIN 28 Sep 2026 (Young: "the landing page should come with
+     a button at the top that says edit but you can not edit on the landing
+     page until you click edit"). Their paper carries no pencil now; the row's
+     Edit / Counter and the Edit button at the top are the doors. */
+  ck('11b their rows carry the editor\'s door, their paper no pencil, and none of it wears the ✦ marker',
+     theirs.rowDoors > 0 && theirs.panelDoors === 0 && theirs.editorClass === 0,
+     `rows ${theirs.rowDoors}, paper ${theirs.panelDoors}, class ${theirs.editorClass}`);
   ck('11c and their panel draws no Copilot button at all — it never did',
      theirs.aiButtons === 0, `${theirs.aiButtons}`);
 
@@ -1076,32 +1080,29 @@ const dismissNote = async pg => {
      forced.seat == null && typeof forced.ro === 'string' && forced.ro.length > 0,
      `${forced.seat} / ${forced.ro}`);
 
+  /* RE-POINTED AGAIN 28 Sep 2026: the door is the Edit button at the top of
+     their page. It opens the editor on their page, the Redlines column still
+     beside it; Escape closes it and gives their header back. */
   const theirPanel = await p.evaluate(() => {
-    const b = document.querySelector('#share-root .rl-cp-pill');
+    const b = document.querySelector('#share-root #pt-edit');
     if (!b) return { none: true };
     b.click(); return { none: false };
   });
   await pause(500);
-  const theirOpen = await p.evaluate(() => !!(window.rlCpOpenId && rlCpOpenId()));
-  const edOpen = await p.evaluate(() => !!document.getElementById('clause-editor'));
+  const edOpen = await p.evaluate(() => { const ed = document.getElementById('clause-editor');
+    return !!ed && ed.classList.contains('is-theirs') && !!document.querySelector('#share-root #rl-changes-col'); });
   await p.keyboard.press('Escape');
   await answerLeave(p);
   await pause(400);
   const back = await p.evaluate(() => ({ ed: !!document.getElementById('clause-editor'),
-    panel: !!(window.rlCpOpenId && rlCpOpenId()) }));
-  await p.keyboard.press('Escape');
-  await pause(400);
-  const theirShut = await p.evaluate(() => !(window.rlCpOpenId && rlCpOpenId()));
-  /* RE-POINTED 28 Sep 2026 (Young picked Mirror: "the redline page should
-     mirror the owner side"). Their pencil now does what ours does (8d, 9a,
-     9b): it opens the editor over the clause, Escape closes the editor and
-     lands on the clause, and the panel's own Escape still closes that. The
-     old claim — the editor's Escape deferral never engages on their page — is
-     now asked as: the deferral lets go once the editor has gone. */
-  ck('11f their pencil opens the editor over the clause, as ours does',
-     !theirPanel.none && theirOpen && edOpen, `panel ${theirOpen}, editor ${edOpen}`);
-  ck('11g Escape closes the editor back onto the clause, and Escape again closes that',
-     !back.ed && back.panel && theirShut, `editor ${back.ed}, panel ${back.panel}, shut ${theirShut}`);
+    head: !document.body.classList.contains('pw-editing') }));
+  ck('11f their Edit button opens the editor beside their Redlines column',
+     !theirPanel.none && edOpen, `button ${!theirPanel.none}, editor ${edOpen}`);
+  ck('11g Escape closes the editor and gives their header back',
+     !back.ed && back.head, `editor ${back.ed}, header back ${back.head}`);
+  /* The clause panel this stage carried in from section 10 is shut as the old
+     11g's second Escape shut it, so section 12 starts where it always did. */
+  if (await p.evaluate(() => !!(window.rlCpOpenId && rlCpOpenId()))){ await p.keyboard.press('Escape'); await pause(400); }
 
   const theirVerbs = await p.evaluate(async () => {
     const btn = document.querySelector('#share-root [data-nego-accept]');
@@ -3778,8 +3779,11 @@ const dismissNote = async pg => {
     ck('32b A REAL CLICK IN THE WORDING starts typing, and THEIR MARKS STAY — in the box, painted over the draft',
        on32.typing && !on32.twin && inBox32.them && inBox32.atoms > 0 && inBox32.wraps > 0 && inBox32.atomOpen,
        JSON.stringify({ ...on32, ...inBox32 }));
-    ck('32c the pencil appears only now, on this clause, and says Done',
-       on32.pencils === 1 && on32.pencilOnLive && /done|klar/i.test(on32.pencilWord),
+    /* RE-POINTED 28 Sep 2026 (Young: "okay we will go with symbol"): Done is
+       now the save symbol, a drawn disk named Save, and it stays out of sight
+       until something is typed (32d2). */
+    ck('32c the save symbol is placed only now, on this clause, named Save',
+       on32.pencils === 1 && on32.pencilOnLive && /^(save|spara)$/i.test(on32.pencilWord),
        `${on32.pencils} pencil(s) · "${on32.pencilWord}"`);
     /* Type, for real, at the end of the box. */
     await p.evaluate(() => { const b = document.getElementById('ce-clausebody');
@@ -3801,6 +3805,11 @@ const dismissNote = async pg => {
     ck('32d WHAT IS TYPED DRAWS AS OUR LAYER OVER THEIRS, in a second colour, IN the box, with the caret still in it',
        typed32.us && /compound/.test(typed32.usWords) && typed32.usBg !== typed32.themBg && !typed32.twin && typed32.caretIn && typed32.typing,
        JSON.stringify(typed32));
+    const sym32 = await p.evaluate(() => { const b = document.querySelector('#ce-doc .rl-cp-pill-save');
+      return b ? { vis: getComputedStyle(b).visibility, tip: b.getAttribute('data-tip'), word: b.textContent.trim(), svg: !!b.querySelector('svg') } : null; });
+    ck('32d2 once typed, the symbol shows — a drawn disk with no word, its hover naming Save and the keys',
+       !!sym32 && sym32.vis === 'visible' && sym32.svg && sym32.word === '' && /Save · (Ctrl\+S|⌘S)/.test(sym32.tip || ''),
+       JSON.stringify(sym32));
     /* THE TWO SILENCES (Young reported them 14 Sep 2026, images 1 and 2): a
        highlight of the words just typed, and a highlight that takes in a
        struck run, each OFFER — read against the live wording, without the
