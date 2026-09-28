@@ -73,14 +73,14 @@ const fnBody = (src, name) => {
   return next < 0 ? rest : rest.slice(0, next + 1);
 };
 
-describe('F381 (1) — Home is the greeting, the Map and Prepared for you', () => {
+describe('F381 (1) — Home is the greeting, the Map and Prepared by Copilot', () => {
   /* HALF REVERSED IN PLACE 25 Sep 2026 (Young: "below prepared for you card,
      add bring back the needs your attention card but only have 2 lines and
      nothing more"). The tiles and "Choose tiles" stay gone; the decisions
      card is BACK, under the Map, with its rows — and its line of time is
      still gone, which is the half of the old claim that holds. f382 pins the
      two rows. */
-  test('the Map is drawn, the tiles and Choose tiles are not, and the decisions card is back without its rail', () => {
+  test('the Map is drawn; the tiles, Choose tiles and the decisions card are not', () => {
     /* RE-POINTED IN PLACE 27 Sep 2026: the card's one row on this book was
        MK-4's "Waiting on review", which LEFT the card that day (Young: yes to
        the card listing the side panel's checklist's five kinds). The row is
@@ -96,10 +96,12 @@ describe('F381 (1) — Home is the greeting, the Map and Prepared for you', () =
     assert.ok(!html.includes('data-kpi-id'), 'no KPI tile is drawn on the desktop');
     assert.ok(!html.includes('kpi-grid'), 'and no tile row');
     assert.ok(!html.includes('kpi-customize'), '"Choose tiles" left with the tiles it chose');
-    assert.ok(html.includes('Needs your decision'), 'the decisions card is back on the page');
-    assert.ok(html.indexOf('id="hm-map"') < html.indexOf('Needs your decision'), 'under the Map');
-    assert.ok(html.includes('hm-dd-rows'), 'with its rows');
-    assert.ok(!html.includes('hm-rw'), 'and without its rail');
+    /* REVERSED 28 Sep 2026 (Young: "lets add just this part to the home page
+       and discard the current 2 cards"): the decisions card is off Home again;
+       "Prepared by Copilot" stands in its place (home-prepared-by-copilot-verify). */
+    assert.ok(!html.includes('Needs your decision'), 'the decisions card is not on the page');
+    assert.ok(!html.includes('hm-dd-rows'), 'nor its rows');
+    assert.ok(!html.includes('hm-rw'), 'nor its rail');
   });
   test('the desktop picker is deleted, not left as a door onto nothing', () => {
     assert.ok(!/function openKpiCustomizer\(/.test(HOME), 'the popover has no button to open it');
@@ -111,13 +113,15 @@ describe('F381 (1) — Home is the greeting, the Map and Prepared for you', () =
     for (const k of ['KPI_META', 'currentKpiSel', 'setKpiSel', 'kpiCatalogOrder', 'KPI_MAX', 'kpiAtMax', 'hmMySignings', 'hmDashSlices'])
       assert.ok(sb[k] != null, k + ' is still published');
   });
-  test('[wall] Prepared for you is still drawn, below the Map', () => {
+  /* REVERSED 28 Sep 2026 (Young: "discard the current 2 cards"): a late
+     promise that the desk would have drawn is on Copilot's work now, and Home's
+     own desk card is gone. */
+  test('[wall] Prepared for you is no longer drawn on Home', () => {
     const late = book();
     late[0].obligations = [{ id: 'ob1', desc: 'Pay the August invoice', party: 'them', due: day(-6), status: 'open', amount: 2e6 }];
     const { html } = world({ contracts: late });
-    const map = html.indexOf('id="hm-map"'), desk = html.indexOf('Prepared for you');
-    assert.ok(desk > 0, 'the desk card is drawn');
-    assert.ok(map > 0 && map < desk, 'under the Map');
+    assert.ok(html.indexOf('id="hm-map"') > 0, 'the Map is drawn');
+    assert.ok(!html.includes('Prepared for you') && !html.includes('hm-desk-rows'), 'the desk card is not');
   });
 });
 

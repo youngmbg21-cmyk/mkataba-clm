@@ -302,7 +302,8 @@ describe('F274 — the overnight desk', () => {
          neither list — the fault this whole section exists to prevent, running
          the other way. */
       assert.match(HOME_CODE, /deskCids\(shown\)/, 'only what is drawn may evict anything');
-      assert.match(HOME_CODE, /hmDecisionItems\(SL, deskRows\)/, 'and the page hands over the rows it drew');
+      /* RE-POINTED 28 Sep 2026 (Young: "lets add just this part to the home page and discard the current 2 cards"): Home no longer draws the decisions card, so it no longer hands the list anything. */
+      assert.ok(!/hmDecisionItems\(SL, deskRows\)/.test(HOME_CODE), 'Home no longer draws the decisions card');
       assert.ok(!/deskCids\(deskAll\)/.test(HOME_CODE), 'never the whole list');
       /* waitingLongest left this list on 27 Sep 2026 — the review queue is no
          longer a source on the card, so "never evicted" would be true of
@@ -312,13 +313,13 @@ describe('F274 — the overnight desk', () => {
           other + ' is a different subject and is never evicted by the desk');
     });
 
-    test('Home draws the desk under the Map and above the reader\u2019s own list', () => {
+    /* RE-POINTED 28 Sep 2026 (Young: "lets add just this part to the home page and discard the current 2 cards"): the desk and the decisions card are off Home; "Prepared by Copilot" draws under the Map instead, and the desk's rows live on Copilot's work. */
+    test('Home draws Prepared by Copilot under the Map, and neither the desk nor the decisions card', () => {
       const m = HOME.indexOf('id="hm-map"');
-      const i = HOME.indexOf('${deskSection}');
-      const j = HOME.indexOf('${ddSection}');
-      assert.ok(m > 0 && i > m, 'the Map leads, prepared work follows');
-      assert.ok(j > i, 'and the reader\u2019s own queue follows that');
-      assert.ok(HOME.includes("hmSec(i18t('home_needs_decision')"), 'the decisions card is drawn again');
+      const i = HOME.indexOf('${agentsSection}');
+      assert.ok(m > 0 && i > m, 'the Map leads, Copilot\u2019s work follows');
+      assert.ok(!HOME.includes('${deskSection}') && !HOME.includes('${ddSection}'), 'the two old cards are gone');
+      assert.ok(!HOME.includes("hmSec(i18t('home_needs_decision')"), 'the decisions card is not drawn');
     });
   });
 
@@ -432,18 +433,18 @@ describe('F274 — the overnight desk', () => {
        by hmCard(...) rather than by a template literal opening right there, so
        a backtick stopped being the right thing to look for. The two halves of
        the claim are the CONDITION and the EMPTY ELSE. */
+    /* RE-POINTED 28 Sep 2026 (Young: "lets add just this part to the home page and discard the current 2 cards"): the claim moves to the card that replaced the desk. */
     test('nothing prepared draws no heading and no empty state', () => {
-      const i = HOME_CODE.indexOf('const deskSection=');
-      assert.ok(i >= 0, 'the section is built in one place');
-      const expr = HOME_CODE.slice(i, HOME_CODE.indexOf('\n\n', i));
-      assert.match(expr, /const deskSection=deskRows\.length\?/,
-        'it is drawn only where something was prepared');
-      assert.match(expr, /:'';/, 'and where nothing was, the section is the empty string');
+      const i = HOME_CODE.indexOf('function hmAgentsCardHtml(');
+      assert.ok(i >= 0, 'the card is built in one place');
+      const body = HOME_CODE.slice(i, HOME_CODE.indexOf('\n}\n', i));
+      assert.match(body, /if\(!D\|\|!D\.ready\) return '';/, 'where nothing is ready, the card is the empty string');
     });
 
     /* NOT ONE OF THE ACTS IS A SECOND WAY OF DOING ANYTHING. */
-    test('Send presses the product’s own chase, and nothing else sends', () => {
-      assert.match(HOME_CODE, /await obligationChase\(cid,ob\)/);
+    /* RE-POINTED 28 Sep 2026 (Young: "lets add just this part to the home page and discard the current 2 cards"): Home has no Send of its own now; the chase is pressed on Copilot's work. */
+    test('Home never sends a chase itself', () => {
+      assert.ok(!/obligationChase\(/.test(HOME_CODE), 'no chase is pressed from Home');
       assert.ok(!/api\(`contracts\/\$\{[^}]*\}\/chase/.test(HOME_CODE),
         'Home never posts a chase itself');
     });
@@ -461,9 +462,9 @@ describe('F274 — the overnight desk', () => {
         'one definition, two readers');
     });
 
-    test('Open lands on the tab the row is about', () => {
-      assert.match(HOME_CODE, /kind==='chase'\?'oblig':'terms'/,
-        'a late promise lands on Obligations, the other two on Key terms');
+    /* RE-POINTED 28 Sep 2026 (Young: "lets add just this part to the home page and discard the current 2 cards"): a row's press is Review, and it lands on Copilot's work on that agent. */
+    test('Review lands on Copilot’s work, on the row’s own agent', () => {
+      assert.match(HOME_CODE, /if\(k&&window\.agSetSel\) agSetSel\(k\);\s*setView\('agents'\);/);
     });
   });
 
@@ -495,8 +496,9 @@ describe('F274 — the overnight desk', () => {
          back is still on Needs your decision, the Obligations worklist and the
          contract itself, and discarding a row lets the next step into the slot.
          `desk_showing` is retired and left inert in both books. */
-      assert.match(HOME_CODE, /i18tn\('desk_sub',deskRows\.length,\{n:deskRows\.length\}\)/,
-        'the sub-line counts what it is drawing');
+      /* RE-POINTED 28 Sep 2026 (Young: "lets add just this part to the home page and discard the current 2 cards"): the card that replaced the desk counts what Copilot's work counts. */
+      assert.match(HOME_CODE, /i18tn\('hm_ag_sub',D\.ready,\{n:D\.ready\}\)/,
+        'the sub-line counts what the agents hold');
       assert.ok(!/desk_showing/.test(HOME_CODE), 'and never says "showing N of M"');
       assert.ok(!/desk_discard_msg',\{n:/.test(HOME_CODE),
         'nor does the confirm introduce a count the page has stopped mentioning');
@@ -799,8 +801,8 @@ describe('F274 — the overnight desk', () => {
     });
 
     test('11t CONTROL — every door still presses the one writer with a contract and a key', () => {
-      assert.match(HOME_CODE, /deskDismiss\(c,key\)/, 'Home’s Put away');
-      assert.match(HOME_CODE, /deskDismiss\(it\.c,it\.key\)/, 'Home’s Put away all');
+      /* RE-POINTED 28 Sep 2026 (Young: "lets add just this part to the home page and discard the current 2 cards"): Home's Put away and Put away all are gone with the desk card; Copilot's work is the one place. */
+      assert.ok(!/deskDismiss\(/.test(HOME_CODE), 'Home puts nothing away itself');
       assert.match(strip(read('js/views/agents.js')), /deskDismiss\(c, it\.deskKey\)/, 'the Copilot’s work page');
     });
   });

@@ -19776,3 +19776,10 @@ Noticed, not fixed
 
 ### Noticed, not fixed
 - The obligation panel's sentence for THEIR promises (`ob_rem_theirs`) says "the admins are told once, the day after", but where a colleague is named as the assignee the sweep emails that colleague 7 days before, on the day, the day after, and the admins on day four. The sentence under-reports; not changed (not asked).
+
+## 28 Sep 2026 — Home: Prepared by Copilot replaces the two work cards
+
+- Built (owner-ruled, "lets add just this part to the home page and discard the current 2 cards"): Home draws one work card under the Map, "Prepared by Copilot" — one row per agent with work ready, the agent's own count and first item, Review opens that agent on Copilot's work. "Prepared for you" and "Needs your decision" are no longer drawn on Home; their readings stay published (Copilot's work, the side panel's checklist, the bell, The Brain).
+
+### Noticed, not fixed
+- `deskRowHtml` in the Home view now has no caller (kept, not deleted, like the other retired builders).

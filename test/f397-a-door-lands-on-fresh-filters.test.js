@@ -219,12 +219,12 @@ describe('f397 (4) — every door from another page goes through the one door', 
       assert.equal(R.query, '', 'nor the search');
     } finally { el.remove(); }
   });
-  test('4b Home\'s See all presses the named-set door, and its fallback presses the one door too', () => {
-    const h = handlerOf(HOME, `document.querySelector('[data-hm-go="needsyou"]')`);
-    assert.ok(h, 'the See all door is wired');
-    assert.match(h, /regShowOnly\(ids,/, 'it hands over the ids on the list');
-    assert.match(h, /regGoFiltered\(/, 'and with nothing to name it still lands through the one door');
-    assert.ok(!/r\.stage\s*=/.test(h), 'it keeps no list of its own');
+  /* RETIRED 28 Sep 2026 (Young: "discard the current 2 cards"): Home's See
+     all left with the decisions card. Home's one work card opens Copilot's
+     work, which is a page, not a filtered Contracts list. */
+  test('4b Home has no See all onto Contracts any more — its work card opens Copilot\'s work', () => {
+    assert.ok(!handlerOf(HOME, `document.querySelector('[data-hm-go="needsyou"]')`), 'the See all door is gone');
+    assert.match(HOME, /setView\('agents'\)/, 'the card\'s door is Copilot\'s work');
   });
   test('4c the shell search typed on another page lands fresh; typed on Contracts it narrows inside', () => {
     const h = handlerOf(APP, "search.addEventListener('input'");

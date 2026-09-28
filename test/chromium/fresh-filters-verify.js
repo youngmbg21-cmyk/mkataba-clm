@@ -109,8 +109,10 @@ function book(){
         seeAll: !!btn, n: btn ? Number((/(\d+)/.exec(btn.textContent) || [])[1]) : null,
         draftDoor: !!document.querySelector('#hm-map [data-hm-map="stage:Draft"]') };
     });
-    check('A0 the stage is set: several decisions to see, none of them a draft, and a Drafting bar to press (control)',
-      dd.seeAll && dd.ids.length >= 3 && dd.draftDoor, JSON.stringify(dd));
+    /* RE-POINTED 28 Sep 2026 (Young: "lets add just this part to the home
+       page and discard the current 2 cards"): Home's decisions card and its
+       See all are gone, so the stage asks only for the Map's door. */
+    check('A0 the stage is set: a Drafting bar to press (control)', dd.draftDoor, JSON.stringify(dd));
 
     if (dd.draftDoor) await page.click('#hm-map [data-hm-map="stage:Draft"]');
     await page.waitForTimeout(1100);
@@ -120,33 +122,15 @@ function book(){
       `${a1.view} · stage ${a1.stage} · ${a1.rows.join(', ')}`);
     await page.screenshot({ path: path.join(OUT, '01-drafting-from-the-map.png') });
 
+    /* A2–A5 RETIRED 28 Sep 2026 with Home's See all (the decisions card left
+       Home). The rule they drove — a door from another page lands on fresh
+       filters — is still driven below by the Map's Signed bar (B1–B3) and the
+       shell search (C). What stands in their place: the door is gone. */
     await goHome();
-    const want = await page.evaluate(() => ({ view: state.view,
-      ids: [...new Set((window.hmDecisionItems ? hmDecisionItems() : []).map(x => x.cid))].sort(),
-      n: (() => { const b = document.querySelector('[data-hm-go="needsyou"]'); return b ? Number((/(\d+)/.exec(b.textContent) || [])[1]) : null; })() }));
-    if (want.view === 'dashboard' && want.n) await page.click('[data-hm-go="needsyou"]');
-    await page.waitForTimeout(1200);
-    const a2 = await onContracts();
-    await page.screenshot({ path: path.join(OUT, '02-see-all-landed.png') });
-    check('A2 See all lands on every contract that needs a decision — the number on the door',
-      a2.view === 'register' && a2.rows.length === want.n && a2.rows.join(',') === want.ids.join(','),
-      `door said ${want.n} · list shows ${a2.rows.length} (${a2.rows.join(', ') || 'nothing'})`);
-    check('A3 and the Drafting filter from the earlier visit is gone — no chip is lit',
-      a2.stage === 'all' && a2.lit.length === 0,
-      `stage ${a2.stage} · lit ${JSON.stringify(a2.lit)}`);
-    check('A4 the narrowing the door named is on screen and says so (control — the chip said so before the fix too)',
-      /Needs your decision/.test(a2.only) && a2.onlyIds && a2.onlyIds.join(',') === want.ids.join(','),
-      `chip "${a2.only.replace(/\s+/g, ' ').trim()}"`);
-
-    /* A chip chosen ON the page still narrows inside the named set — the rule
-       is about ARRIVING. CONTROL: true before and after the fix. */
-    await page.evaluate(() => { const s = document.getElementById('reg-stage-sel');
-      if (s){ s.value = 'Signed'; s.dispatchEvent(new Event('change', { bubbles: true })); } });
-    await page.waitForTimeout(700);
-    const a5 = await onContracts();
-    check('A5 a stage picked on the page narrows inside the named set and keeps it (control)',
-      a5.stage === 'Signed' && !!a5.onlyIds && a5.rows.every(id => a5.onlyIds.includes(id)),
-      `stage ${a5.stage} · named set kept ${!!a5.onlyIds} · ${a5.rows.join(', ')}`);
+    const noSeeAll = await page.evaluate(() => !document.querySelector('[data-hm-go="needsyou"]'));
+    check('A2 Home has no See all onto a named set any more', noSeeAll);
+    await page.click('#side-nav [data-view="register"]').catch(() => {});
+    await page.waitForTimeout(900);
 
     /* ================ B. STALE PAGE FILTERS UNDER THE STAGE BAR ============ */
     /* What a reader leaves on the page: a stream picked from its chip, and a

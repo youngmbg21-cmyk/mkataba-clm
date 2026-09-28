@@ -295,30 +295,19 @@ const ok = (name, good, detail) => {
       held: (typeof redlineHeldId === 'function') ? redlineHeldId() : null,
       tab: (typeof roomCurrentTab === 'function') ? roomCurrentTab() : null,
       sheet: !!document.getElementById('dk-close') }));
-    const homeRows = async () => {
-      await page.evaluate(() => setView('dashboard')); await page.waitForTimeout(1100);
-      return page.evaluate(() => [...document.querySelectorAll('#hm-dd-rows [data-sel]')].map(b => ({
-        id: b.getAttribute('data-sel'), text: b.innerText.replace(/\s+/g, ' ').trim().slice(0, 90) })));
+    /* RE-POINTED 28 Sep 2026 (Young: "lets add just this part to the home
+       page and discard the current 2 cards"): Home's decisions card is gone,
+       so 8a–8e no longer press a Home row. Each is replaced by the one claim
+       that stands — Home draws no decisions row — at the same moment in the
+       stage; the stage changes between them are kept, because the bell's
+       checks (8f on) are staged on top of them. */
+    const homeHasRows = async () => {
+      await page.evaluate(() => setView('dashboard')); await page.waitForTimeout(900);
+      return page.evaluate(() => document.querySelectorAll('#hm-dd-rows [data-sel]').length);
     };
-    const pressHome = async i => {
-      await elsewhere();
-      const rows = await homeRows();
-      const b = (await page.$$('#hm-dd-rows [data-sel]'))[i];
-      if (!b) return { row: null, g: null, rows };
-      await b.click(); await page.waitForTimeout(1300);
-      return { row: rows[i], g: await landing(), rows };
-    };
-
     /* 8a–8b: as staged, the card's two rows are the Carrefour review and the
        Carrefour negotiation gone quiet (reviews lead, then quiet deals). */
-    const h1 = await pressHome(0);
-    ok('8a Home\'s review row opens the negotiation on that contract — where the checklist\'s Review button went',
-      !!h1.row && h1.row.id === 'MK-149' && /^Review/i.test(h1.row.text) && landOf(h1.g) === want(g2, 'MK-149'),
-      h1.row ? `${h1.row.text} → ${landOf(h1.g)} · button went ${landOf(g2)}` : 'no row: ' + JSON.stringify(h1.rows));
-    const h2 = await pressHome(1);
-    ok('8b Home\'s quiet-negotiation row opens the negotiation too — where the checklist\'s Answer button went',
-      !!h2.row && h2.row.id === 'MK-149' && landOf(h2.g) === want(g1, 'MK-149'),
-      h2.row ? `${h2.row.text} → ${landOf(h2.g)} · button went ${landOf(g1)}` : 'no row: ' + JSON.stringify(h2.rows));
+    ok('8a Home draws no decisions row while a review and a quiet deal wait — the checklist is the door', (await homeHasRows()) === 0);
 
     /* 8c–8d: Carrefour put on the shelf (the card reads live contracts only),
        and a colleague asking to join a negotiation this reader leads on
@@ -332,15 +321,7 @@ const ok = (name, good, detail) => {
       d.joinRequests = [{ id: 'u-peter', name: 'Peter Kamau', email: 'peter@example.co.ke',
         at: new Date(Date.now() - 2 * 864e5).toISOString(), why: 'I handle the Kabras account', status: 'pending' }];
     });
-    const h3 = await pressHome(0);
-    ok('8c Home\'s request-to-join row opens the contract with the sheet where the lead lets them in — where the checklist\'s button went',
-      !!h3.row && h3.row.id === 'MK-131' && /Peter Kamau/.test(h3.row.text) && landOf(h3.g) === want(g5, 'MK-131'),
-      h3.row ? `${h3.row.text} → ${landOf(h3.g)} · button went ${landOf(g5)}` : 'no row: ' + JSON.stringify(h3.rows));
-    await page.keyboard.press('Escape').catch(() => {});
-    const h4 = await pressHome(1);
-    ok('8d Home\'s signature row opens that contract on its Signing tab — where the checklist\'s Sign button went',
-      !!h4.row && h4.row.id === 'MK-158' && landOf(h4.g) === want(g3, 'MK-158'),
-      h4.row ? `${h4.row.text} → ${landOf(h4.g)} · button went ${landOf(g3)}` : 'no row: ' + JSON.stringify(h4.rows));
+    ok('8c Home draws no row for a request to join or a signature either', (await homeHasRows()) === 0);
 
     /* 8e: the join request answered, so the card is our signature and the
        Sendy renewal — with the Sendy renewal put away from Prepared for you
@@ -348,11 +329,7 @@ const ok = (name, good, detail) => {
        draws is taken off this card by the one-door rule (f274). */
     await page.evaluate(() => { deskOf(getContract('MK-131')).joinRequests = [];
       const r = getContract('MK-143'); deskDismiss(r, 'renewal'); deskDismiss(r, 'notice'); });
-    const h5 = await pressHome(1);
-    ok('8e Home\'s renewal row opens that contract on its Overview — where the checklist\'s Decide button went',
-      !!h5.row && h5.row.id === 'MK-143' && landOf(h5.g) === want(g4, 'MK-143'),
-      h5.row ? `${h5.row.text} → ${landOf(h5.g)} · button went ${landOf(g4)}` : 'no row: ' + JSON.stringify(h5.rows));
-    await page.screenshot({ path: path.join(OUT, '8-home-renewal-landed.png') });
+    ok('8e nor for a renewal decision', (await homeHasRows()) === 0);
 
     /* 8f–8h: THE BELL. Its renewal row rings inside thirty days, so the Sendy
        decision is brought to ten days out; the join request comes back. */

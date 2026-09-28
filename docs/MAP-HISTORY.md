@@ -24291,3 +24291,13 @@ What was built:
 - An admin's "Run the reminders" also runs Our promises, logged as a Run now.
 
 Tests: f413 (1a, 3o-a…c), f212 (our day four silent; their day four still escalates), f247, f253, f390, f399 5a; agents-do-the-work-verify 8a–8c, agents-page-verify, no-link-to-sign-verify.
+
+## HOME — THE MAP, PREPARED BY COPILOT (28 Sep 2026)
+
+The owner asked what the agents mean for Home's two cards. Answer given: "Prepared for you" (the overnight desk: notice · late promise · unread paper · renewal, one of each) and "Needs your decision" (the checklist's five kinds, two rows) had become a partial second copy of Copilot's work — three of seven agents, their own counts ("2 things" beside "5 ready"), their own Put away (two doors onto one act), and the "waiting on us" rows never said Copilot had already prepared answers. Three options were drawn (Digest, One list, Handoff); the owner picked the Digest card alone: *"lets add just this part to the home page and discard the current 2 cards"*.
+
+Built: `hmAgentsCardHtml` draws "Prepared by Copilot" under the Map — one row per agent with work ready (AG_KEYS order), the agent's own count and its first item (`agentsData`, `agCardParts`), Review → Copilot's work on that agent, the head counting `agentsData().ready` (the side menu's number). Nothing ready draws nothing (the desk's rule). The row icon is the agent's own icon from Copilot's work, not the mock's letter.
+
+Removed from Home: the desk card and its acts (Send, Open, Notice, Put away, Put away all), the decisions card and its row presses and See all. Kept published: deskItems/deskShown/deskDismiss (Copilot's work), hmDecisionItems/HM_DD_ROWS/needsYouOf/needsYouGo (the checklist, the bell, The Brain). What a reader loses on Home: a colleague's review ask, a join ask, a signing turn and a renewal they own are no longer rows on Home — they remain in the side panel's checklist, the bell and Approvals & signing.
+
+Re-pointed (each says "RE-POINTED/REVERSED/RETIRED 28 Sep 2026"): f274 (5, 8, 9, 11t), f381 (1), f382 (3), f395 (8c/8d → one "no row" claim), f252 (6), f396 (4f), f397 (4b). New: home-prepared-by-copilot-verify.

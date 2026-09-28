@@ -168,7 +168,9 @@ const PROBE = () => {
       /* RE-POINTED IN PLACE 24 Sep 2026: the last thing on Home is Prepared
          for you when something is prepared, else the Map — the decisions
          list this used to find LEFT HOME with the tiles (owner-ruled). */
-      const last = document.querySelector('#hm-desk-rows') || document.getElementById('hm-map');
+      /* RE-POINTED 28 Sep 2026: Prepared for you left Home; the last card is
+         Prepared by Copilot when an agent has work ready, else the Map. */
+      const last = document.getElementById('hm-agents') || document.getElementById('hm-map');
       const map = document.getElementById('hm-map');
       return {
         sideways: document.documentElement.scrollWidth > document.documentElement.clientWidth,

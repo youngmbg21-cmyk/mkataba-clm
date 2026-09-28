@@ -243,7 +243,7 @@ const HELPERS = `(() => {
     ok('1c at 1024 the Contracts row menu\'s square fits its cell', menu.n > 0 && menu.cut === 0, `${menu.cut} of ${menu.n} cut · cell ${menu.w}px`);
     await page.setViewportSize({ width: 1440, height: 900 });
 
-    /* ════════ 2. HOME'S TWO CARDS, ONE BUTTON SIZE ════════ */
+    /* ════════ 2. HOME'S WORK CARD, ONE BUTTON SIZE ════════ */
     /* A DESK ROW, STAGED ON REAL RECORDS — home-page-verify 11's own three
        states: an obligation of theirs past its date, an upload whose standards
        pass found something, and an agreement inside its renewal window. */
@@ -270,24 +270,25 @@ const HELPERS = `(() => {
     });
     await page.waitForTimeout(1500); await load(); await rest();
     await page.screenshot({ path: path.join(OUT, '04-home.png') });
+    /* RE-POINTED 28 Sep 2026 (Young: "lets add just this part to the home
+       page and discard the current 2 cards"): the desk and the decisions
+       card are gone, so there are no two cards to compare. Home's one work
+       card, Prepared by Copilot, carries one Review per row: asked here that
+       each is the ladder's ordinary button (--ctl-h) and none is filled —
+       one filled button per area, never one per row. */
     const home = await page.evaluate(() => { const b = window.__b;
       const m = el => { const r = el.getBoundingClientRect(), cs = getComputedStyle(el);
-        return { t: b.label(el), h: +r.height.toFixed(1), fs: cs.fontSize, fw: cs.fontWeight, px: cs.paddingLeft, bg: cs.backgroundColor, ink: cs.color, bw: cs.borderTopWidth, link: el.classList.contains('ui-link') }; };
-      const desk = [...document.querySelectorAll('#hm-desk-rows [data-desk-act]')].filter(b.vis).map(m);
-      const dec = [...document.querySelectorAll('.hm-rverb')].filter(b.vis).map(m);
-      return { desk, dec, fill: b.bg('--accent-fill'), accent: getComputedStyle(document.body).getPropertyValue('--accent-ink').trim() }; });
-    const boxes = home.desk.filter(x => !x.link);
-    ok('2-stage a desk row and a decision row are both on Home', !!staged && boxes.length > 0 && home.dec.length > 0,
-      `${home.desk.length} desk verbs · ${home.dec.length} decision verbs`);
-    const d0 = home.dec[0] || {};
-    ok('2a the desk\'s bordered verbs are the decision card\'s size: height, text size, weight and padding',
-      boxes.length > 0 && boxes.every(x => Math.abs(x.h - d0.h) <= 0.6 && x.fs === d0.fs && x.fw === d0.fw && x.px === d0.px),
-      `desk ${JSON.stringify(boxes.slice(0, 3).map(x => [x.t, x.h, x.fs, x.fw, x.px]))} · decision ${JSON.stringify([d0.t, d0.h, d0.fs, d0.fw, d0.px])}`);
-    ok('2b none of the desk\'s verbs is filled — one filled button per area, never one per row',
-      home.desk.length > 0 && home.desk.every(x => x.bg !== home.fill), JSON.stringify(home.desk.map(x => x.t + ':' + x.bg)));
-    const plain = home.desk.filter(x => x.link);
-    ok('2c Put away is the ladder\'s text button: no edge, and no taller than the row\'s own target',
-      plain.length > 0 && plain.every(x => x.bw === '0px' && x.h <= 24.6), JSON.stringify(plain.map(x => x.t + ':' + x.h + ':' + x.bw)));
+        return { t: b.label(el), h: +r.height.toFixed(1), bg: cs.backgroundColor }; };
+      const probe = document.createElement('div'); probe.style.height = 'var(--ctl-h)'; document.body.appendChild(probe);
+      const ctl = +probe.getBoundingClientRect().height.toFixed(1); probe.remove();
+      const rev = [...document.querySelectorAll('[data-hm-agent-row] [data-hm-agent]')].filter(b.vis).map(m);
+      return { rev, ctl, fill: b.bg('--accent-fill') }; });
+    ok('2-stage Home\'s Prepared by Copilot card draws a row with its Review', !!staged && home.rev.length > 0,
+      `${home.rev.length} Review buttons`);
+    ok('2a every Review is the ladder\'s ordinary button height',
+      home.rev.length > 0 && home.rev.every(x => Math.abs(x.h - home.ctl) <= 0.6), JSON.stringify({ ctl: home.ctl, rev: home.rev.map(x => x.h) }));
+    ok('2b none of them is filled — one filled button per area, never one per row',
+      home.rev.length > 0 && home.rev.every(x => x.bg !== home.fill), JSON.stringify(home.rev.map(x => x.t + ':' + x.bg)));
 
     ok('9 the pages drew without an error', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');
   } finally {

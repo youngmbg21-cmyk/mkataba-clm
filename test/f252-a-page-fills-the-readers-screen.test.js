@@ -146,8 +146,12 @@ describe('F252 — a page fills the reader\'s own screen', () => {
      TWO rows — a slice, but not a fitted one, and not a silent one: its head
      counts the WHOLE list and "See all" opens every one (f382). */
   test('6 · and Home counts the whole book, capping nothing', () => {
-    assert.match(HOME, /const ddShown=decisionItems\.slice\(0,HM_DD_ROWS\);/, 'the one slice is the two rows');
-    assert.match(HOME, /const ddN=decisionItems\.length;/, 'and the head counts the whole list, not the slice');
+    /* RE-POINTED 28 Sep 2026 (Young: "discard the current 2 cards"): the
+       decisions card and its two-row slice are off Home; the card that took
+       its place counts every agent's whole list and draws one row per agent. */
+    assert.ok(!/decisionItems\.slice\(0,HM_DD_ROWS\)/.test(HOME), 'no two-row slice is drawn');
+    const card = HOME.slice(HOME.indexOf('\nfunction hmAgentsCardHtml('), HOME.indexOf('\n}\n', HOME.indexOf('\nfunction hmAgentsCardHtml(')));
+    assert.ok(card.length > 100 && !/\.slice\(0,/.test(card), 'Prepared by Copilot slices nothing');
     const map = HOME.slice(HOME.indexOf('\nfunction hmMapData('), HOME.indexOf('\nfunction hmMapInnerHtml('));
     assert.ok(map.length > 100 && !/\.slice\(0,/.test(map), 'the Map\'s reading slices nothing');
   });

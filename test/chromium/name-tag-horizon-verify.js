@@ -53,24 +53,28 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
     await page.waitForTimeout(1600);
     await page.screenshot({ path: path.join(OUT, '01-home.png'), fullPage: true });
 
+    /* RE-POINTED 28 Sep 2026 (Young: "lets add just this part to the home
+       page and discard the current 2 cards"): the desk row and its kind tag
+       left Home. The row that took its place names its AGENT at the left —
+       the agent's own icon on a tinted square, on the sentence's line. */
     const tag = await page.evaluate(() => {
-      const row = document.querySelector('.hm-row.is-desk');
+      const row = document.querySelector('[data-hm-agent-row="renew"]');
       if (!row) return null;
-      const t = row.querySelector('.hm-dk-tag');
+      const t = row.querySelector('.hm-ag-ic');
       if (!t) return { drawn: false };
       const rr = row.getBoundingClientRect(), tr = t.getBoundingClientRect();
-      const head = row.querySelector('.hm-desk-head').getBoundingClientRect();
+      const head = row.querySelector('.hm-rb').getBoundingClientRect();
       const cs = getComputedStyle(t);
-      return { drawn: true, word: t.textContent.trim(),
-        atLeft: Math.round(tr.left - rr.left) <= 14 && tr.right <= head.left + 1,
-        h: Math.round(tr.height), bg: cs.backgroundColor, ink: cs.color,
+      return { drawn: true, name: (row.querySelector('.hm-rt') || {}).textContent,
+        atLeft: Math.round(tr.left - rr.left) <= 16 && tr.right <= head.left + 1,
+        bg: cs.backgroundColor,
         sameLine: Math.abs((tr.top + tr.height / 2) - (head.top + head.height / 2)) < 12 };
     });
-    ok('1 the row carries its kind as a tag', !!tag && tag.drawn, JSON.stringify(tag));
-    ok('1b and it sits at the LEFT, on the sentence\'s own line',
+    ok('1 the row names its agent', !!tag && tag.drawn && /Renewals/.test(tag.name || ''), JSON.stringify(tag));
+    ok('1b its mark sits at the LEFT, on the sentence\'s own line',
       !!tag && tag.atLeft && tag.sameLine, JSON.stringify(tag && { l: tag.atLeft, s: tag.sameLine }));
-    /* GATED on the tag really being drawn, or an absence satisfies it. */
-    ok('1c it is a chip, not bare words',
+    /* GATED on the mark really being drawn, or an absence satisfies it. */
+    ok('1c it is a tinted square, not a bare glyph',
       !!tag && tag.drawn && tag.bg !== 'rgba(0, 0, 0, 0)', tag && tag.bg);
 
     /* ════ 2. THE DROPDOWN'S CHOICES ════ */

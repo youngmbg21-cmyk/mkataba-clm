@@ -23,6 +23,13 @@
    cannot be edited (EXECUTED_IMMUTABLE): only a signed amendment or renewal
    moves it, and effectiveExpiry is the one reading of that.
 
+   RE-POINTED 28 Sep 2026 (Young: "lets add just this part to the home page
+   and discard the current 2 cards"): Home's Prepared for you and its Put
+   away / Put away all are gone. "On Home" now means the Renewals row of
+   Home's Prepared by Copilot card; the put-away is Copilot's work's own
+   (agRunAct(key, 'away'), the press its "Put away" button makes), which is
+   now the one place a desk row is put away.
+
    Every claim is GATED on the thing it measures being on the page, so a
    build without the feature REPORTS its failures rather than timing out.
    AT THE PARENT (8f330c7) 3a, 3b, 3c and 3e FAIL: the stamp names the kind,
@@ -77,8 +84,11 @@ const R = 'MK-9701', Q = 'MK-9702', KID = 'MK-9703';
     };
     /* What the reader can see, read off the page. */
     const look = () => page.evaluate(ids => {
-      const rows = [...document.querySelectorAll('#hm-desk-rows [data-desk-act="discard"]')]
-        .map(b => b.getAttribute('data-desk-cid') + ':' + b.getAttribute('data-desk-kind'));
+      /* Home's card draws a Renewals row while that agent holds anything; its
+         items are Copilot's work's own list. */
+      const onHome = !!document.querySelector('[data-hm-agent-row="renew"]');
+      const rows = onHome && typeof agentsData === 'function'
+        ? agentsData().agents.renew.ready.map(x => x.cid + ':' + x.kind) : [];
       const items = (typeof deskItems === 'function' ? deskItems() : []).map(x => x.cid + ':' + x.kind);
       const stamp = id => { const c = getContract(id); const v = c && c.desk && c.desk.renewal; return v == null ? null : v; };
       return { today: new Date().toISOString().slice(0, 10), rows, items,
@@ -117,16 +127,17 @@ const R = 'MK-9701', Q = 'MK-9702', KID = 'MK-9703';
       !!staged && s0.today === '2027-05-01' && s0.items.includes(R + ':renewal') && s0.items.includes(Q + ':renewal')
         && s0.rows.some(x => x.endsWith(':renewal')), JSON.stringify({ today: s0.today, items: s0.items, rows: s0.rows }));
 
-    /* ---- 1. Put away all, and the stamps survive the server ---- */
-    const all = await page.$('[data-desk-act="discard-all"]');
-    if (all) {
-      await all.click(); await page.waitForTimeout(500);
-      const go = await page.$('#cf-ok'); if (go) await go.click();
-      await page.waitForTimeout(600);
-      await page.evaluate(() => flushSaves());
-    }
+    /* ---- 1. Put each away on Copilot's work, and the stamps survive the server ---- */
+    const all = await page.evaluate(async () => {
+      if (typeof agentsData !== 'function' || typeof agRunAct !== 'function') return false;
+      setView('agents');
+      for (const it of agentsData().agents.renew.ready.slice()) await agRunAct(it.key, 'away');
+      await flushSaves(); setView('dashboard');
+      return true;
+    });
+    await page.waitForTimeout(600);
     const s1 = await look();
-    ok('1a Put away all takes both renewals off Home', !!all && !s1.rows.some(x => x.startsWith(R) || x.startsWith(Q)),
+    ok('1a putting both away on Copilot\'s work takes them off Home', !!all && !s1.rows.some(x => x.startsWith(R) || x.startsWith(Q)),
       s1.rows.join(' | ') || '(none)');
     await at('2027-05-01');
     const s1b = await look();
@@ -168,7 +179,7 @@ const R = 'MK-9701', Q = 'MK-9702', KID = 'MK-9703';
     ok('the stage: it is 1 May 2028 and the signed renewal moved the term to 30 June 2028',
       !!renewed && gate.today === '2028-05-01' && gate.kid && gate.term === '2028-06-30', JSON.stringify(gate));
     const s3 = await look();
-    ok('3a this year\'s renewal is back on Home\'s Prepared for you (RED at 8f330c7)',
+    ok('3a this year\'s renewal is back on Home\'s Prepared by Copilot (RED at 8f330c7)',
       s3.rows.includes(R + ':renewal'), s3.rows.join(' | ') || '(nothing prepared)');
     await page.screenshot({ path: path.join(OUT, '3-back-on-home.png') });
     ok('3d CONTROL — the agreement whose term did not move stays away',
@@ -181,9 +192,12 @@ const R = 'MK-9701', Q = 'MK-9702', KID = 'MK-9703';
     await page.screenshot({ path: path.join(OUT, '3-back-on-copilots-work.png') });
 
     /* Putting this year's away: a real press, not refused by last year's stamp. */
+    const btn = await page.evaluate(async r => {
+      const it = (typeof agentsData === 'function') ? agentsData().agents.renew.ready.find(x => x.cid === r) : null;
+      if (!it || typeof agRunAct !== 'function') return false;
+      await agRunAct(it.key, 'away'); await flushSaves(); return true;
+    }, R);
     await page.evaluate(() => setView('dashboard')); await page.waitForTimeout(900);
-    const btn = await page.$(`#hm-desk-rows [data-desk-act="discard"][data-desk-cid="${R}"]`);
-    if (btn) { await btn.click(); await page.waitForTimeout(600); await page.evaluate(() => flushSaves()); }
     const s4 = await look();
     ok('3c putting this year\'s renewal away takes it off Home again (RED at 8f330c7)',
       !!btn && !s4.rows.includes(R + ':renewal'), btn ? (s4.rows.join(' | ') || '(none)') : 'no row to press');

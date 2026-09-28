@@ -79,9 +79,11 @@ const CROPS = [
   { key: 'map-card',   label: 'Home — the Map\'s figures',
     go: async p => { await p.evaluate(() => setView('dashboard')); await pause(900); },
     sel: '#hm-map .hm-map-side' },
-  { key: 'prepared',   label: 'Home — prepared for you',
+  /* Re-pointed 28 Sep 2026: Prepared for you left Home; the crop is
+     Prepared by Copilot's rows. */
+  { key: 'prepared',   label: 'Home — prepared by Copilot',
     go: async p => { await p.evaluate(() => setView('dashboard')); await pause(900); },
-    sel: '#hm-desk-rows .hm-row', rows: 3 },
+    sel: '#hm-agent-rows .hm-row', rows: 3 },
   { key: 'kt-rows',    label: 'Key terms — the fact rows',
     go: async p => { await p.evaluate(() => { openWorkspace('MK-82'); roomGoTab(getContract('MK-82'), 'terms'); }); await pause(1000); },
     sel: '[data-kt-row]', rows: 5 },

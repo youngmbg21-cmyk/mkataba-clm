@@ -165,61 +165,25 @@ describe('F382 (2) — a quarter shorter, and nothing on it went', () => {
   });
 });
 
-describe('F382 (3) — Needs your decision is back, two rows and nothing more', () => {
+describe('F382 (3) — Needs your decision: the reading stays, the card is off Home', () => {
   test('one reading, published, and the row count is two', () => {
     const { sb } = world();
     assert.equal(typeof sb.hmDecisionItems, 'function', 'hmDecisionItems is published');
     assert.equal(sb.HM_DD_ROWS, 2);
     assert.equal(sb.hmDecisionItems().length, 5, 'five renewal decisions the reader owns are five items');
   });
-  test('exactly two rows are drawn, and they are the list\'s first two, in order', () => {
-    const { sb, html } = world();
-    const card = ddCard(html);
-    const rows = [...card.matchAll(/class="hm-row [^"]*" data-sel="([^"]+)"/g)].map(m => m[1]);
-    assert.equal(rows.length, 2, 'two rows');
-    /* Joined, not deepEqual: an array born inside the vm stage carries that
-       realm's prototype, and two identical lists would compare unequal. */
-    assert.equal(rows.join(','), sb.hmDecisionItems().slice(0, 2).map(x => x.cid).join(','), 'the first two, in the list\'s order');
-  });
-  test('the head counts the whole list, and See all opens the rest', () => {
-    const card = ddCard(world().html);
-    /* RE-POINTED 27 Sep 2026 (the owner's list, h4): the order is by kind, a
-       colleague waiting leading, so the sub-line says that. The count is the claim. */
-    assert.match(card, /<span class="hm-sec-sub">5 items · anyone waiting on you first<\/span>/, 'the head counts all five');
-    assert.match(card, /data-hm-go="needsyou">See all 5/, 'and See all carries the same number');
-  });
-  test('with exactly two, See all is not drawn — it would open the list already on screen', () => {
-    const card = ddCard(world({ contracts: decide(2) }).html);
-    assert.equal((card.match(/class="hm-row /g) || []).length, 2);
-    assert.ok(!card.includes('data-hm-go="needsyou"'));
-  });
-  test('with nothing to decide, it says so in one line — no rows, no See all', () => {
-    const card = ddCard(world({ contracts: [signedOne()] }).html);
-    assert.ok(card.includes('class="hm-empty"'), 'the one line');
-    assert.ok(!card.includes('hm-dd-rows') && !card.includes('data-hm-go="needsyou"'));
-    assert.match(CSS, /\.hm-card \.hm-empty\{background:none;border:0;\}/,
-      'and inside the card the line draws no frame of its own — the card is the frame');
-  });
-  test('it sits under the Map and under Prepared for you', () => {
-    /* A late promise of theirs on an agreement in force is what the desk
-       chases — the same stage f381 uses for its own wall. */
-    const late = signedOne();
-    late.obligations = [{ id: 'ob1', desc: 'Pay the August invoice', party: 'theirs', due: day(-6), status: 'open', amount: 2e6 }];
-    const cs = [late, ...decide(3)];
-    const { html } = world({ contracts: cs });
-    const map = html.indexOf('id="hm-map"'), desk = html.indexOf('Prepared for you'), dd = html.indexOf('Needs your decision');
-    assert.ok(map > 0 && desk > map && dd > desk, 'the Map, then prepared work, then the reader\'s own list');
-  });
-  test('nothing more: no line of time, no fitted slice, no triage row', () => {
-    const card = ddCard(world().html);
-    assert.ok(!card.includes('hm-rw'), 'no rail');
-    assert.ok(!/hmFitDecisions|rowsThatFit\(/.test(HOME_CODE), 'no fit');
-    assert.ok(!/it\.kind==='triage'\?triageRowHtml/.test(HOME_CODE), 'no triage branch on the rows');
-  });
-  test('a row escapes a name once', () => {
-    const cs = decide(1); cs[0].name = 'Smith & Co';
-    const card = ddCard(world({ contracts: cs }).html);
-    assert.ok(card.includes('Smith &amp; Co') && !card.includes('&amp;amp;'));
+  /* ---- THE CARD IS OFF HOME (Young ruled 28 Sep 2026: "lets add just this
+     part to the home page and discard the current 2 cards") ----
+     Seven drawn claims about the card — two rows, the head's count, See all,
+     the empty line, its place under Prepared for you, one escape, no rail —
+     are REPLACED by this one: it is not drawn. The READING (hmDecisionItems)
+     stays published and is still pinned below; the side panel's checklist,
+     The Brain and the phone's slices read what it reads. */
+  test('Needs your decision is not drawn on Home, whatever the book holds', () => {
+    for (const cs of [undefined, decide(2), [signedOne()], inReview(3)]) {
+      const html = world(cs ? { contracts: cs } : {}).html;
+      assert.ok(!html.includes('Needs your decision') && !html.includes('hm-dd-rows') && !html.includes('data-hm-go="needsyou"'));
+    }
   });
 
   /* ---- THE SAME FIVE KINDS AS THE CHECKLIST (Young: yes, 27 Sep 2026) ----
@@ -229,10 +193,8 @@ describe('F382 (3) — Needs your decision is back, two rows and nothing more', 
      slice has to stay — deleting it would satisfy the first claim here and
      break the phone. */
   test('a contract sitting in review is not a row — that queue belongs to nobody by name', () => {
-    const { sb, html } = world({ contracts: inReview(3) });
+    const { sb } = world({ contracts: inReview(3) });
     assert.equal(sb.hmDecisionItems().length, 0, 'three contracts idle in review are no decision of this reader\'s');
-    const card = ddCard(html);
-    assert.ok(card.includes('class="hm-empty"') && !card.includes('hm-dd-rows'), 'so the card says there is nothing to decide');
   });
   test('[control] the phone\'s list still has its review queue', () => {
     const { sb } = world({ contracts: inReview(3) });

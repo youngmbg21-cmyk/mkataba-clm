@@ -666,6 +666,43 @@ const hmSecHtml=(title,extra,card)=>`
       <h2>${esc(title)}</h2>${card?'':'<span class="hm-rule"></span>'}${extra||''}
     </div>`;
 
+/* ---- PREPARED BY COPILOT — HOME'S ONE WORK CARD (Young ruled 28 Sep 2026:
+   "lets add just this part to the home page and discard the current 2
+   cards", over the Digest option) ----
+   Home no longer keeps a list of its own. "Prepared for you" (the overnight
+   desk) and "Needs your decision" were a second copy of what the agents on
+   Copilot's work already hold, with their own counts and their own "Put
+   away" — two doors onto one act. This card is a DIGEST of Copilot's work:
+   one row per agent with something ready, in the page's own order, carrying
+   that agent's count and its first item, and "Review" opens that agent there.
+   EVERY NUMBER IS BORROWED: agentsData() is the one reading behind the page,
+   its rows and the side menu's count, so the three cannot disagree. Nothing
+   here writes, and putting an item away lives only on Copilot's work.
+   NOTHING READY DRAWS NOTHING, the desk's own rule. */
+function hmAgentsCardHtml(){
+  if(typeof agentsData!=='function'||!Array.isArray(window.AG_KEYS)) return '';
+  let D=null; try{ D=agentsData(); }catch(_){ D=null; }
+  if(!D||!D.ready) return '';
+  const parts=it=>{ try{ return (typeof agCardParts==='function')?agCardParts(it):{}; }catch(_){ return {}; } };
+  const rows=AG_KEYS.filter(k=>D.agents[k]&&D.agents[k].ready.length).map(k=>{
+    const a=D.agents[k], it=a.ready[0], p=parts(it);
+    const def=(window.AG_DEF&&AG_DEF[k])||{};
+    const sub=[p.who,p.sum].filter(Boolean).join(' · ');
+    const tone=it.tone==='ruby'?' is-neg':it.tone==='amber'?' is-crit':'';
+    return `<div class="hm-row is-agent${tone}" data-hm-agent-row="${esc(k)}">
+        <span class="hm-ag-ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor"><use href="#i-${esc(def.icon||'spark')}"/></svg></span>
+        <span class="hm-rb"><span class="hm-rt">${esc(i18t('ag_'+k))} <span class="ag-pill">${a.ready.length}</span></span>${sub?`<span class="hm-rm">${esc(sub)}</span>`:''}</span>
+        ${p.urg?`<span class="hm-rtag">${esc(p.urg)}</span>`:''}
+        <button type="button" class="ui-btn" data-hm-agent="${esc(k)}">${esc(i18t('hm_ag_review'))}</button>
+      </div>`;
+  }).join('');
+  const head=hmSecHtml(i18t('hm_ag_title'),
+    `<span class="hm-sec-sub">${esc(i18tn('hm_ag_sub',D.ready,{n:D.ready}))}</span>
+     <button type="button" class="hm-cz" data-hm-agent="">${esc(i18t('nav_agents'))}
+       <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><use href="#i-right"/></svg></button>`,true);
+  return `<section class="hm-card" id="hm-agents">${head}<div class="hm-rows" id="hm-agent-rows">${rows}</div></section>`;
+}
+
 /* ---- MONEY OWED TO US, ONE READING (24 Sep 2026) ----
    Lifted out of the "Money owed to us" tile when the Map took its place on
    the desktop: the tile still draws on the phone's figures list and the Map's
@@ -1584,18 +1621,10 @@ function renderDashboard(){
   const REGION_LABEL={SE:'Sweden', KE:'Kenya'};
   const regionNow=REGION_LABEL[state.region]||REGION_LABEL.KE;
 
-  /* ---- THE OVERNIGHT DESK (idea 19) ----
-     Read before the list below it, because the list below it depends on the
-     answer: a contract the desk has prepared a renewal for LEAVES "Needs your
-     decision", or Home says the same thing about the same contract twice.
-     (For one day, 24 Sep 2026, the desk was the only list on Home and there
-     was nothing to evict from; the list came back on 25 Sep, and so did the
-     eviction.) */
-  const deskAll=(typeof deskItems==='function')?deskItems(cs):[];
-  const deskRows=(typeof deskShown==='function')?deskShown(deskAll):[];
-  /* The list below, read once with the desk's own rows (see hmDecisionItems). */
-  const decisionItems=hmDecisionItems(SL, deskRows);
-
+  /* ---- PREPARED FOR YOU AND NEEDS YOUR DECISION ARE OFF HOME (Young ruled
+     28 Sep 2026) ---- one card, hmAgentsCardHtml, draws what the agents hold.
+     deskItems/deskShown, hmDecisionItems and HM_DD_ROWS stay published: the
+     side panel's checklist, Copilot's work and The Brain still read them. */
   /* THE BOTTOM ROW IS GONE (owner-asked 20 Aug 2026, with the Hero B render).
      Its three cards repeated what the page already said — Awaiting counterparty
      and Expiring are KPI cards, and the high-risk door now rides Decisions
@@ -1692,76 +1721,7 @@ function renderDashboard(){
     (()=>{ try{ return new Date().toLocaleDateString(langLocale(),{day:'numeric',month:'long',year:'numeric'}); }
            catch(e){ return ''; } })()].filter(Boolean).join(' · ');
 
-  /* ---- WHAT THE SECTION SAYS ABOUT ITSELF ----
-     "Prepared for you", never a clock time, and that is the truthfulness rule
-     this codebase applies to "sent means sent" applied to a claim about work:
-     HaTi does not yet do anything while nobody is watching, so a header reading
-     "finished 05:40" would be the page inventing a night shift. What IS true is
-     the half that matters — the reader asked for none of this and it was ready
-     when they arrived — and the promise the whole desk rests on, that NOTHING
-     WAS SENT OR FILED.
-
-     A CAP IS A FACT, NEVER A SILENT TRIM: at most one row per kind is on
-     screen, so where more qualify the sub-line says how many of how many. */
-  /* ---- THE COUNT IS WHAT IS ON SCREEN (Young ruled 9 Sep 2026) ----
-     *"keep it as it is but remove the '2 out of 9' because i have no ability to
-     see the rest of the 9."* It read "9 things … showing 2 of 9", and both
-     halves named a population the reader cannot reach: the desk draws one of
-     each kind and there is no door to the rest.
-
-     THIS NARROWS "A CAP IS A FACT, NEVER A SILENT TRIM" RATHER THAN BREAKING
-     IT. That rule exists so a reader is never shown a slice dressed as the
-     whole — and it assumes the fact is ACTIONABLE. Here it was not: nothing on
-     the page, and nothing anywhere, opens the other seven. A number you can
-     neither reach nor act on is not a fact being kept honest, it is a promise
-     the page cannot keep. So the sub-line counts the rows it is drawing, and
-     every word of it is now true and reachable.
-
-     WHAT IS NOT LOST, which is what makes this safe: the desk is a stack rather
-     than a queue, and everything held back is still where it always was — the
-     renewals in "Needs your decision" (off the page for one day, 24 Sep
-     2026) and on the Map and the Calendar, the late promises on the
-     Obligations worklist, what HaTi read on the contract itself. Discarding a row lets the
-     next one step into the slot. `desk_showing` is STALE and left inert in both
-     books; the day the desk grows a door onto the rest, it comes back. */
-  const deskSub=deskRows.length
-    ? esc(i18tn('desk_sub',deskRows.length,{n:deskRows.length}))
-    : '';
-  /* NOTHING PREPARED DRAWS NOTHING AT ALL — no heading, no empty state. An
-     empty section that says so every morning is the furniture this rulebook
-     keeps warning about, and the list below it already has its own empty
-     state (for one day, 24 Sep 2026, there was no list below it). */
-  const deskSection=deskRows.length?hmCard(
-    hmSec(i18t('desk_sec'),`<span class="hm-desk-sub">${deskSub}</span>
-      <button type="button" class="hm-cz" data-desk-act="discard-all">${esc(i18t('desk_discard_all'))}</button>`,true),
-    `<div class="hm-rows" id="hm-desk-rows">${deskRows.map(deskRowHtml).join('')}</div>`):'';
-
-  /* ---- NEEDS YOUR DECISION, TWO ROWS (Young ruled 25 Sep 2026) ----
-     The row is the reference's, as it stood: a tone dot (ruby where it is
-     urgent, amber otherwise), the decision over one quiet line, its tag, the
-     verb as a word and the chevron — one press, the row's own. THE HEAD
-     COUNTS THEM ALL and "See all" is drawn only where more wait than show,
-     because pressing it with nothing more would open the list already on
-     screen. AN EMPTY LIST SAYS SO in one line: this is the reader's own work,
-     and "nothing to decide" is worth knowing, unlike an empty desk above. */
-  const ddShown=decisionItems.slice(0,HM_DD_ROWS);
-  const ddRowsHtml=ddShown.length
-    ? `<div class="hm-rows" id="hm-dd-rows">${ddShown.map(it=>`
-        <button type="button" class="hm-row ${it.urgent?'is-neg':'is-crit'}" data-sel="${esc(it.cid)}" data-dd-kind="${esc(it.kind||'')}"${it.kind==='renewal'?` title="${esc(i18t('ins_need_go_terms'))}"`:''}>
-          <span class="hm-rdot" aria-hidden="true"></span>
-          <span class="hm-rb"><span class="hm-rt">${it.txt}</span><span class="hm-rm">${it.meta}</span></span>
-          <span class="hm-rtag">${esc(it.tag)}</span>
-          ${it.verb?`<span class="hm-rverb">${esc(it.verb)}</span>`:''}
-          <svg class="hm-rchev" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><use href="#i-right"/></svg>
-        </button>`).join('')}</div>`
-    : `<div class="hm-empty">${esc(i18t('home_nothing_to_decide'))}</div>`;
-  const ddN=decisionItems.length;
-  const ddHead=(ddN?`<span class="hm-sec-sub">${esc(i18tn('home_dd_items',ddN,{n:ddN}))} · ${esc(i18t('home_dd_sorted'))}</span>`:'')
-    + (ddN>ddShown.length
-    ? `<button type="button" class="hm-cz" data-hm-go="needsyou">${esc(i18t('home_see_all',{n:ddN}))}
-         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><use href="#i-right"/></svg></button>`
-    : '');
-  const ddSection=hmCard(hmSec(i18t('home_needs_decision'),ddHead,true), ddRowsHtml);
+  const agentsSection=hmAgentsCardHtml();
 
   document.getElementById('content').innerHTML=`
   <div class="view-enter hm-page">
@@ -1784,9 +1744,7 @@ function renderDashboard(){
            own answer, so a repaint of the card's inside knows where it stands. */}
     <section class="hm-card hm-map" id="hm-map" data-measure="${measure}">${hmMapInnerHtml(mapD, measure)}</section>
 
-    ${deskSection}
-
-    ${ddSection}
+    ${agentsSection}
   </div>`;
 
   // ---- wiring ----
@@ -1833,64 +1791,6 @@ function renderDashboard(){
      render — a card that cleared itself the moment Home drew it would be a
      reading that writes. So the card stays until somebody does something with
      it, and one press is enough. */
-  /* ---- THE DESK'S ACTS (idea 19) ----
-     NOT ONE OF THEM IS A NEW WAY OF DOING ANYTHING. Send presses
-     obligationChase, which is the product's one chase — its own confirm, its
-     own record-before-the-message ordering, its own three honest answers.
-     Open presses openWorkspace and roomGoTab, the worklist's own two lines.
-     Discard writes the desk's own stamp and touches nothing else. */
-  const deskGo=(cid,tab)=>{ if(!window.openWorkspace) return;
-    openWorkspace(cid);
-    const c=window.getContract?getContract(cid):null;
-    if(c&&window.roomGoTab) try{ roomGoTab(c,tab); }catch(_){} };
-  document.querySelectorAll('[data-desk-act]').forEach(el=>el.addEventListener('click',async ev=>{
-    ev.stopPropagation();
-    const act=el.getAttribute('data-desk-act');
-    if(act==='discard-all'){
-      /* IT ASKS, AND IT SAYS WHAT IT COSTS — which is nothing: every row here
-         is a reading of something that stays exactly where it was.
-
-         IT STILL PUTS AWAY deskAll RATHER THAN THE ROWS ON SCREEN, and that is
-         the one place the whole population is still acted on: discard only what
-         is drawn and the held-back ones step straight into the empty slots, so
-         "Discard all" would appear to do nothing. THE WORDING NO LONGER NAMES A
-         COUNT, though — the page deliberately stops mentioning a population the
-         reader cannot see (Young, 9 Sep 2026), and a confirm is the wrong place
-         to introduce one. */
-      const ok=await confirmDialog({ title:i18t('desk_discard_q'),
-        message:i18t('desk_discard_msg'),
-        /* confirmLabel, the name confirmDialog reads — `confirm:` was ignored
-           and the button said a generic "Confirm" (26 Sep 2026, the overnight
-           clean-up). */
-        confirmLabel:i18t('desk_discard_go') });
-      if(!ok) return;
-      let n=0;
-      for(const it of deskAll){ if(window.deskDismiss&&deskDismiss(it.c,it.key)) n++; }
-      if(n) renderDashboard();
-      return;
-    }
-    const cid=el.getAttribute('data-desk-cid'), key=el.getAttribute('data-desk-key');
-    const kind=el.getAttribute('data-desk-kind');
-    const c=(state.contracts||[]).find(x=>x&&x.id===cid); if(!c) return;
-    if(act==='discard'){ if(window.deskDismiss&&deskDismiss(c,key)) renderDashboard(); return; }
-    /* WHERE THE READER ENDS UP: the contract, on the tab this row is about —
-       the worklist's own rule. A late promise lands on Obligations; the other
-       two land on Key terms, where the renewal card and what HaTi read both
-       live. A row that opened the Document tab would make them hunt for what
-       they pressed. */
-    if(act==='open'){ deskGo(cid, kind==='chase'?'oblig':'terms'); return; }
-    /* THE LETTER OPENS WHERE THE READER IS. It is a reading and a dialog —
-       nothing is sent, nothing on the contract moves until they copy it — so
-       it does not need the contract's page to be open first. */
-    if(act==='notice'){ if(window.openNoticeDialog) openNoticeDialog(c); return; }
-    if(act==='send'){
-      const ob=el.getAttribute('data-desk-ob');
-      if(!window.obligationChase||!ob) return;
-      await obligationChase(cid,ob);
-      renderDashboard();
-      return;
-    }
-  }));
   document.querySelectorAll('[data-tri-fold]').forEach(el=>el.addEventListener('click',ev=>{
     ev.stopPropagation();
     const id=el.getAttribute('data-tri-fold');
@@ -1951,36 +1851,19 @@ function renderDashboard(){
     try{ lsSet(ddOpenKey(), !!e.currentTarget.open); }catch(_){}
   });
   if(window.wireEmailSetupBanner) wireEmailSetupBanner();
-  /* ---- NEEDS YOUR DECISION'S TWO PRESSES ----
-     A ROW GOES STRAIGHT TO WHERE ITS ITEM IS ANSWERED (27 Sep 2026, Young:
-     "Yes, make them go straight to the right place"). It opened the contract
-     on whatever tab that contract last showed, so a signature landed on the
-     Document tab and the reader went looking for Signing. The row carries its
-     kind — the side panel checklist's own five — and presses that checklist's
-     one door, needsYouGo, so the two cannot come to disagree about where a
-     review or a renewal is answered. A row with no kind, or a contract the
-     door cannot find, still opens the contract: a press is never dead.
-     "See all" opens Contracts narrowed to every contract on the list — the
-     rows are contracts waiting on this reader, so the door stays in
-     Contracts; the bell owns the wider "everything owed to you". Scoped to
-     the card, so no other [data-sel] on a page this module draws can answer. */
-  document.querySelectorAll('#hm-dd-rows [data-sel]').forEach(el=>el.addEventListener('click',()=>{
-    const id=el.getAttribute('data-sel'), kind=el.getAttribute('data-dd-kind')||'';
-    if(!(NEEDS_YOU_ORDER.includes(kind) && needsYouGo(kind, id))) selectContract(id);
-  }));
-  document.querySelector('[data-hm-go="needsyou"]')?.addEventListener('click',e=>{
+  /* ---- PREPARED BY COPILOT'S PRESSES ----
+     Review opens that agent on Copilot's work (agSetSel, the page's own
+     choice); the head's link opens the page where it last stood. */
+  document.querySelectorAll('[data-hm-agent]').forEach(el=>el.addEventListener('click',e=>{
     e.stopPropagation();
-    const ids=decisionItems.map(x=>x.cid).filter(Boolean);
-    if(window.regShowOnly && ids.length){ regShowOnly(ids,i18t('home_needs_decision')); return; }
-    /* Nothing on the list to name: the whole book, on fresh filters, through
-       the register's one door (27 Sep 2026) rather than a short list of its
-       own. */
-    if(window.regGoFiltered) regGoFiltered({});
-  });
+    const k=el.getAttribute('data-hm-agent');
+    if(k&&window.agSetSel) agSetSel(k);
+    setView('agents');
+  }));
   /* THE MAP'S DOORS AND ITS SWITCH, one delegated listener on the card. */
   hmMapWire(document.getElementById('hm-map'), mapD);
   setActiveNav('dashboard');
 }
 
-Object.assign(window,{renderDashboard,hmDashSlices,hmDecisionItems,HM_DD_ROWS,hmRenewalDue,HM_SOON_DAYS,hmReviewLate,needsYouOf,NEEDS_YOU_ORDER,needsYouGo,hmStageTone,hmMySignings,hmMapData,hmMapInnerHtml,hmMapWire,hmMeasure,hmSetMeasure,hmOwed,hmSecHtml,HM_MAP_MONTHS,HM_MAP_STAGES,copilotRead,copilotCoverage,gsSteps,gettingStartedHtml,gsIsSeed,
+Object.assign(window,{renderDashboard,hmAgentsCardHtml,hmDashSlices,hmDecisionItems,HM_DD_ROWS,hmRenewalDue,HM_SOON_DAYS,hmReviewLate,needsYouOf,NEEDS_YOU_ORDER,needsYouGo,hmStageTone,hmMySignings,hmMapData,hmMapInnerHtml,hmMapWire,hmMeasure,hmSetMeasure,hmOwed,hmSecHtml,HM_MAP_MONTHS,HM_MAP_STAGES,copilotRead,copilotCoverage,gsSteps,gettingStartedHtml,gsIsSeed,
   KPI_META,currentKpiSel,setKpiSel,kpiCatalogOrder,DEFAULT_KPI_SEL,KPI_MAX,kpiAtMax,readyToSignItems});

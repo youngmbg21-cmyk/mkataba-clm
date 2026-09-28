@@ -7824,6 +7824,10 @@ const STRINGS = {
     desk_sec: 'Prepared for you',
     desk_sub_one: '1 thing · nothing was sent or filed',
     desk_sub_other: '{n} things · nothing was sent or filed',
+    hm_ag_title: 'Prepared by Copilot',
+    hm_ag_sub_one: '1 ready · nothing was sent or filed',
+    hm_ag_sub_other: '{n} ready · nothing was sent or filed',
+    hm_ag_review: 'Review',
     /* STALE since 9 Sep 2026 — the desk's sub-line counted a population the
        reader has no door onto, so it counts the rows on screen instead. Left
        inert in both books: the day the desk grows a way to the rest, this is
@@ -17223,6 +17227,10 @@ const STRINGS = {
     desk_sec: 'Förberett åt dig',
     desk_sub_one: '1 sak · inget har skickats eller sparats',
     desk_sub_other: '{n} saker · inget har skickats eller sparats',
+    hm_ag_title: 'Förberett av Copilot',
+    hm_ag_sub_one: '1 klar · inget har skickats eller sparats',
+    hm_ag_sub_other: '{n} klara · inget har skickats eller sparats',
+    hm_ag_review: 'Granska',
     /* STALE — see the English book. */
     desk_showing: 'visar {n} av {total}',
     desk_kind_notice: 'Uppsägning',

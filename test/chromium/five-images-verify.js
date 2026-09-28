@@ -101,7 +101,7 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
     await page.selectOption('#reg-stage-sel', 'all');
     await page.waitForTimeout(600);
 
-    /* ════════ 1. HOME'S PREPARED ROW ════════
+    /* ════════ 1. HOME'S PREPARED BY COPILOT ROW ════════
        STAGED, because the seeded book has nothing prepared: a contract really
        executed, really inside its renewal window, with a notice period on the
        record. Everything about the row is the product's own after that. */
@@ -122,28 +122,32 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
     await page.waitForTimeout(1600);
     await page.screenshot({ path: path.join(OUT, '03-home.png'), fullPage: true });
 
+    /* RE-POINTED 28 Sep 2026 (Young: "lets add just this part to the home
+       page and discard the current 2 cards"): the prepared row is now the
+       Renewals row of Prepared by Copilot. The geometry claim is the same —
+       the verb sits beside the sentence, at the right — and the card's own
+       act is its door onto Copilot's work (Put away lives there now). */
     const desk = await page.evaluate(() => {
-      const card = [...document.querySelectorAll('.hm-card')].find(c => c.querySelector('#hm-desk-rows'));
+      const card = document.getElementById('hm-agents');
       if (!card) return { drawn: false };
-      const row = card.querySelector('.hm-row.is-desk');
+      const row = card.querySelector('[data-hm-agent-row="renew"]');
       if (!row) return { drawn: false };
-      const acts = row.querySelector('.hm-desk-acts'), head = row.querySelector('.hm-desk-head');
-      const rr = row.getBoundingClientRect(), ar = acts.getBoundingClientRect(),
-            hr = head.getBoundingClientRect();
+      const btn = row.querySelector('button[data-hm-agent]'), head = row.querySelector('.hm-rb');
+      const rr = row.getBoundingClientRect(), ar = btn.getBoundingClientRect(), hr = head.getBoundingClientRect();
       return { drawn: true,
-        verbs: [...acts.querySelectorAll('button')].map(b => b.textContent.trim()),
-        putAll: (card.querySelector('.hm-cz') || {}).textContent,
+        verbs: [...row.querySelectorAll('button')].map(b => b.textContent.trim()),
+        door: (card.querySelector('.hm-cz') || {}).textContent,
         sameLine: Math.abs((ar.top + ar.height / 2) - (hr.top + hr.height / 2)) < 10,
         rightOfText: ar.left >= hr.right - 1,
         gapToWall: Math.round(rr.right - ar.right),
         rowH: Math.round(rr.height) };
     });
-    ok('1 the prepared row draws its verbs', desk.drawn && desk.verbs.length >= 2,
+    ok('1 the Renewals row draws its Review', desk.drawn && desk.verbs.length >= 1,
       JSON.stringify(desk.verbs));
-    ok('1b they sit on the SAME LINE as the sentence', desk.sameLine === true, JSON.stringify(desk));
-    ok('1c and in a column at the RIGHT of it', desk.rightOfText === true,
+    ok('1b it sits on the SAME LINE as the sentence', desk.sameLine === true, JSON.stringify(desk));
+    ok('1c and at the RIGHT of it', desk.rightOfText === true,
       'gap to the wall ' + desk.gapToWall + 'px');
-    ok('1d the card keeps its put-all-away act', /away/i.test(desk.putAll || ''), desk.putAll);
+    ok('1d the card\'s own act opens Copilot\'s work', /Copilot/i.test(desk.door || ''), desk.door);
 
     /* ════════ 3. THE HORIZON'S DECISION COLUMN ════════ */
     await page.evaluate(() => {

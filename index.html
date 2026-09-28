@@ -5712,6 +5712,13 @@
   .hm-row.is-crit .hm-rtag{color:var(--st-amber-fg);}
   .hm-row.is-neg .hm-rtag{color:var(--st-ruby-fg);}
   .hm-rchev{flex:none;color:var(--color-neutral-400);}
+  /* PREPARED BY COPILOT (28 Sep 2026) — one row per agent with work ready;
+     the row is not a press, its Review button is. */
+  .hm-row.is-agent{cursor:default;min-height:56px;}
+  .hm-row.is-agent:hover{background:none;}
+  .hm-ag-ic{flex:none;width:28px;height:28px;border-radius:var(--radius);display:grid;place-items:center;
+    background:color-mix(in srgb,var(--color-accent) 10%,transparent);color:var(--accent-ink);}
+  .hm-row.is-agent .hm-rt .ag-pill{display:inline-block;vertical-align:1px;margin-left:4px;}
 
   /* ══ X-RAY — the map in the margin and the panel beside it (22 Sep 2026) ══
      THE SPINE FLOATS OVER THE COLUMN'S OWN GREY and is never in the flow, so

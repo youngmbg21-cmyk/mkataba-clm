@@ -256,25 +256,13 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
       !!stamp && quiet.tab === 'terms' && quiet.triageAt === stamp && !quiet.busy && !quietAsks.length,
       JSON.stringify({ quiet, asks: quietAsks.map(x => x.url) }));
 
-    /* Home's renewal row presses the same door: the same hover, and it reads
-       again too. The renewal is put away from Prepared for you first, through
-       the product's own act (deskDismiss) — a renewal the desk draws is taken
-       off Home's card by the one-door rule, and the row would never be drawn. */
-    await own.evaluate(() => { const c = getContract('MK-R9'); deskDismiss(c, 'renewal'); deskDismiss(c, 'notice'); });
+    /* 3i/3j RETIRED 28 Sep 2026 (Young: "lets add just this part to the home
+       page and discard the current 2 cards"): Home's renewal row left with
+       the decisions card. The checklist's Decide (3a–3h) and the bell's rows
+       are the doors now; asked here only that Home draws no such row. */
     await own.evaluate(() => setView('dashboard')); await pause(1200);
-    const homeRow = await own.$('#hm-dd-rows [data-dd-kind="renewal"][data-sel="MK-R9"]');
-    const homeHover = homeRow ? await homeRow.getAttribute('title') : null;
-    ok('3i Home\'s renewal row carries the same hover as the checklist\'s Decide', !!homeRow && homeHover === hover, homeHover);
-    const home2 = Date.now();
-    if (homeRow) await homeRow.click({ timeout: 5000 }).catch(() => {});
-    let again = null;
-    for (let i = 0; i < 40 && homeRow; i++) {
-      await pause(500);
-      again = await own.evaluate(() => { const c = getContract('MK-R9'); return { triageAt: c.triage ? c.triage.at : null, busy: !!c._triaging, tab: roomCurrentTab() }; });
-      if (again.triageAt && Date.parse(again.triageAt) >= home2 - 1000 && !again.busy) break;
-    }
-    ok('3j and pressing it reads the contract again, on the Overview', !!again && again.tab === 'terms' && !!again.triageAt && Date.parse(again.triageAt) >= home2 - 1000,
-      JSON.stringify(again));
+    const homeRow = await own.$('#hm-dd-rows [data-dd-kind="renewal"]');
+    ok('3i Home draws no decisions row any more — the checklist\'s Decide is the door', !homeRow);
 
     /* AND ACROSS THE WHOLE RUN. The second re-read (Home's row) is where the
        first cut of this batch broke: the fill step wrote a signed contract's

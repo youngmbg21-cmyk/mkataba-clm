@@ -85,14 +85,20 @@ async function login(browser, email, pass, errors) {
     const O = await login(browser, U.email, 'their-own-pass-9', errors);
     await O.page.evaluate(() => { setView('dashboard'); });
     await O.page.waitForTimeout(1500);
+    /* RE-POINTED 28 Sep 2026 (Young: "lets add just this part to the home
+       page and discard the current 2 cards"): "Needs your decision" left
+       Home. The owner is told on Home by Prepared by Copilot's "Their round
+       came back" row, which names the deal; the sentence "nobody on our side
+       has taken it yet" is carried by the bell (2c) and the checklist (2d). */
     const home = await O.page.evaluate(() => {
-      const row = document.querySelector('#hm-dd-rows [data-sel="MK-A2"][data-dd-kind="quiet"]');
-      return { row: !!row, text: row ? row.textContent.replace(/\s+/g, ' ').trim() : '' };
+      const row = document.querySelector('[data-hm-agent-row="round"]');
+      const ready = (typeof agentsData === 'function') ? agentsData().agents.round.ready.map(x => x.cid) : [];
+      return { row: !!row, text: row ? row.textContent.replace(/\s+/g, ' ').trim() : '', ready };
     });
-    check('2a Home\'s "Needs your decision" carries it — the other side has been waiting on us',
-      home.row && /waiting on us/.test(home.text), home.text.slice(0, 140) || 'no row');
-    check('2b and its line says nobody on our side has taken it yet — never "led by" with no name after it',
-      /nobody on our side has taken it yet/.test(home.text) && !/led by\s*(·|$)/.test(home.text), home.text.slice(0, 200) || 'no row');
+    check('2a Home\'s Prepared by Copilot carries it — under Their round came back',
+      home.row && home.ready.includes('MK-A2'), JSON.stringify(home).slice(0, 200));
+    check('2b and the row never says "led by" with no name after it',
+      home.row && !/led by\s*(·|$)/.test(home.text), home.text.slice(0, 200) || 'no row');
     await O.page.click('#hdr-notify');
     await O.page.waitForTimeout(700);
     const bell = await O.page.evaluate(() => {
@@ -120,7 +126,7 @@ async function login(browser, email, pass, errors) {
     const other = await R.page.evaluate(() => ({
       signedIn: !!(window.currentUser && currentUser()),
       sees: !!(window.getContract && getContract('MK-A2')),
-      row: !!document.querySelector('#hm-dd-rows [data-sel="MK-A2"][data-dd-kind="quiet"]') }));
+      row: (typeof agentsData === 'function') && agentsData().agents.round.ready.some(x => x.cid === 'MK-A2') }));
     check('3 CONTROL — a colleague who can see MK-A2 but does not own it is not told',
       other.signedIn && other.sees && !other.row, JSON.stringify(other));
     await R.ctx.close();

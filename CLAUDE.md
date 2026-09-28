@@ -214,12 +214,12 @@ Tests: f187, f238, f240, f264, f96, f251, f284, nav-floats-verify, alerts-and-ac
 
 Below 768px js/mobile*.js draws instead. Not a fork: same readings, files NO changes of its own (grep mobile files for `changes.push`/`negoFileChange` → nothing). A fix in a shared FUNCTION reaches both shells; one in a desktop RENDERER does not. Bottom bar labels floored at 14px. Obligations tab is read-only plus Chase/Mark done through the desktop funnel. Tests: phone-verify.
 
-## HOME — THE MAP, PREPARED FOR YOU, NEEDS YOUR DECISION
+## HOME — THE MAP, PREPARED BY COPILOT
 
-- Desktop Home: greeting, the Map (`#hm-map`: `hmMapData` counts, `hmMapInnerHtml` draws; count at rest, value is the person's choice `hmMeasure`; stage colours are the list's own `STATUS_META` dots via `hmStageTone`), Prepared for you, Needs your decision (`hmDecisionItems`, exactly `HM_DD_ROWS` 2, the side-panel checklist's five kinds, rows press `needsYouGo`). The KPI tiles and picker survive on the PHONE only. `js/runway.js` is dormant.
+- Desktop Home (owner-ruled 28 Sep 2026, "discard the current 2 cards"): greeting, the Map (`#hm-map`: `hmMapData` counts, `hmMapInnerHtml` draws; count at rest, value is the person's choice `hmMeasure`; stage colours are the list's own `STATUS_META` dots via `hmStageTone`), then ONE work card, Prepared by Copilot (`hmAgentsCardHtml`, `#hm-agents`): one row per agent with work ready, in `AG_KEYS` order, count and first item borrowed from `agentsData`/`agCardParts`; Review → `agSetSel(k)` + `setView('agents')`; nothing ready draws nothing. The KPI tiles and picker survive on the PHONE only. `js/runway.js` is dormant.
 - Every figure is a door onto the list that makes it; a zero is not a door. Door from another page lands on FRESH filters (`regGoFiltered`).
-- PREPARED FOR YOU (js/desknight.js): notice · late promise · unread paper · renewal, at most one of each (`deskShown`, `DESK_MAX`); `deskCids` evicts shown renewals from decisions; a put-away is per SUBJECT (`deskSubjectOf`, `deskDismiss` stamps `{at,on}`); a notice put away keeps its renewal row away; chase guard is `obligationBlocked(o, c)`. No route, no spend. `runRenewalPrep` (server) writes renewal memos, owner pays, `aiRenewalPrep` switch; `runPlaybookPrep` likewise for uploads (its own switch `agentCfg('paper')`) — both on the agents' clock (see COPILOT'S WORK).
-Tests: f3, f274, f275, f381, f382, f395, home-page-verify, desk-comes-back-verify.
+- Off Home but kept published: the desk (js/desknight.js `deskItems`/`deskShown`/`deskDismiss`, read by Copilot's work; `deskRowHtml` has no caller) and `hmDecisionItems`/`HM_DD_ROWS` (the checklist, The Brain). `#hm-desk-rows`, `#hm-dd-rows`, `data-hm-go="needsyou"`, `desk_sec`, `home_needs_decision` on Home are STALE. `runRenewalPrep` / `runPlaybookPrep` run on the agents' clock (see COPILOT'S WORK).
+Tests: f3, f274, f275, f381, f382, f395, home-page-verify, home-prepared-by-copilot-verify, desk-comes-back-verify.
 
 ## INSIGHTS
 

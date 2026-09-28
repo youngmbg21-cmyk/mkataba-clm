@@ -362,7 +362,9 @@ describe('f396 (4) — a renewal\'s Decide reads the contract again', () => {
     assert.match(f, /paintKtTriage\(x\);\s*roomHeadRefresh\(x\);/, 'the strip, then the head, from the same landing');
   });
   test('4f the other two homes that press this door carry the same hover — Home\'s renewal row and the bell\'s renewal rows', () => {
-    assert.match(code(HOME), /it\.kind==='renewal'\?` title="\$\{esc\(i18t\('ins_need_go_terms'\)\)\}"`/, 'Home\'s renewal row');
+    /* RE-POINTED 28 Sep 2026 (Young: "discard the current 2 cards"): Home's
+       renewal row left with the decisions card; the bell's rows carry the hover. */
+    assert.ok(!/data-dd-kind/.test(code(HOME)), 'Home draws no decisions row any more');
     const bell = code(fnOf(APP, 'buildAlerts'));
     assert.match(bell, /const renewHint=\{ hint:i18t\('ins_need_go_terms'\) \}/, 'one hint for the bell');
     assert.equal((bell.match(/bellGo\('renewal',x\.c\), renewHint\)/g) || []).length, 2, 'both renewal rows carry it');

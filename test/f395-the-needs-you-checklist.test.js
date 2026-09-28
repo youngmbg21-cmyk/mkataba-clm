@@ -438,35 +438,18 @@ describe('f395 (8) — Home\'s rows and the bell\'s rows go through the same doo
     assert.equal(kinds.slice().sort().join(','), KINDS.slice().sort().join(','), 'the five kinds, one row each: ' + kinds.join(','));
     assert.ok(kinds.every(k => win.NEEDS_YOU_ORDER.includes(k)), 'every one is a kind the door answers');
   });
-  test('8c pressing a row on Home\'s card lands exactly where the checklist\'s button for that kind lands', () => {
-    const got = [];
+  /* 8c and 8d RETIRED 28 Sep 2026 (Young: "lets add just this part to the
+     home page and discard the current 2 cards"): Home's decisions card is
+     gone, so there is no row of its own to press. The checklist's door and
+     the bell's rows, below, still go through needsYouGo. What stands in its
+     place is asked here: Home draws no row that could open a place by another
+     road. */
+  test('8c Home draws no decisions row any more — the checklist and the bell are the doors', () => {
     for (const kind of KINDS) {
-      const { win, c } = stageFor(kind);
-      const log = LOG(win);
+      const { win } = stageFor(kind);
       win.renderDashboard();
-      const rows = [...win.document.querySelectorAll('#hm-dd-rows [data-sel]')];
-      assert.equal(rows.length, 1, kind + ': one row on the card');
-      /* THE PRESS IS ASKED FIRST, so at the parent this fails on the defect
-         the owner saw — the row opened the contract, not the place. */
-      log.length = 0;
-      rows[0].click();
-      const pressed = log.join(',');
-      got.push(kind + '=' + pressed);
-      assert.equal(pressed, doorFor(win, log, kind, c.id), kind + ': the row and the checklist\'s button agree');
-      assert.equal(rows[0].getAttribute('data-dd-kind'), kind, kind + ': the row says which kind it is');
+      assert.equal(win.document.querySelectorAll('#hm-dd-rows [data-sel]').length, 0, kind + ': no row on Home');
     }
-    assert.ok(!got.some(x => /select:/.test(x)), 'no row fell back to plain opening: ' + got.join(' | '));
-  });
-  test('8d [control] a row the door cannot answer still opens its contract — a press is never dead', () => {
-    const { win, c } = stageFor('renewal');
-    const log = LOG(win);
-    win.renderDashboard();
-    const row = win.document.querySelector('#hm-dd-rows [data-sel]');
-    assert.ok(row, 'the renewal row is drawn');
-    win.getContract = () => null;
-    log.length = 0;
-    row.click();
-    assert.equal(log.join(','), 'select:' + c.id, 'the contract the door could not find is still opened');
   });
 
   /* ---- THE BELL ----
