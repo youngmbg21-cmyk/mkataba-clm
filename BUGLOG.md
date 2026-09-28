@@ -19876,3 +19876,20 @@ Noticed, not fixed
 
 - FIXED: on a touch screen the Explorer could stop turning for good after a finger lift the page never heard (every later drag was read as a pinch); two fingers now twist and turn the map, and lifting one of two keeps the other turning. explorer-magnitude-verify 1b–1d.
 - FIXED: the map silently drew only 120 contracts (179 in the book); it now draws up to 300 and says so on its head line when a book is bigger. Floors, Grid and Timeline give every contract its own spot instead of piling them. explorer-magnitude-verify 2a–2d, 3b.
+
+## 28 Sep 2026 — Insights: four tabs rebuilt to the owner's picks (Overview, Clause Ledger, Reminder Line, Pattern Grid)
+
+- BUILT: Portfolio is the Overview (bottom three cards gone; past-its-end-date tile; Value by stage; risk map coloured by scan findings, hollow = unread). f429, portfolio-frame-verify.
+- BUILT: Negotiation Friction is the Clause Ledger (Copilot's read untouched). f430.
+- BUILT: Obligations report is the Reminder Line (one predicate `obReminderOf`). f431, obligations-report-verify.
+- BUILT: Exposure is the Pattern Grid (no score). f432.
+- Noticed, not fixed: the "Ends within 90 days" tile counts every live contract but the renewal runway counts standing agreements only, so on a mixed workspace they can disagree.
+- Noticed, not fixed: the risk map's rounds axis reads `c.rounds`; a book that keeps rounds only in `c.negotiation.rounds` draws every dot at 0 rounds.
+- Noticed, not fixed: js/app.js still names the retired `.pf-find-scroll` in a comment; `PF_MAX_ROWS` is published with no reader; `pfOpenContract`'s finding branch and `pfMarkFinding` have no caller that passes a finding id.
+- Noticed, not fixed: friction's "Refused, still open" (`st.deadlocks`) also counts refusals on signed agreements and closed rounds, so a signed contract can appear in "Waiting on a decision".
+- Noticed, not fixed: the friction header's Clear is hard-coded English with a typed ✕; Copilot's read strip still has hard-coded English (left alone — the owner said leave the Copilot feature).
+- Noticed, not fixed: the browser's `obligationReminderTo` does not ask whether the member can open the contract's stream, the server's `obligationRecipient` does — Insights can call someone reminded whom the sweep never mails.
+- Noticed, not fixed: a payment-chain step held back by an earlier one gets none of the 7/0/-1 mails, but the silence rule counts it as reached; with the "ours" agent switched off, Insights still says our promises will be reminded.
+- Noticed, not fixed: docs/MAP-HISTORY.md had no EXPOSURE section before today; four-off-the-screenshots-verify section 4 still waits with fixed pause() calls.
+- Noticed, not fixed: white-band-and-tabs-verify is 17/21 and keeps-your-place-verify stops at the Templates wall (`#tpl-ov-cards` null) — both identical at ac2c7d5b.
+- Noticed, not fixed: CLAUDE.md is 86 KB, over its own ~80 KB ceiling (it was 84.7 KB before this change).
