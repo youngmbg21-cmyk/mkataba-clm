@@ -709,7 +709,7 @@ function igWireSplit(){
   });
   rez.addEventListener('dblclick',()=>{ _igDockSave(null); igFitSplit(); igSplitSettle(); });
   if(!window._igSplitResizeBound){ window._igSplitResizeBound=true;
-    window.addEventListener('resize',()=>{ if(state.view==='intel'&&intel.tab==='map') igFitSplit(); }); }
+    window.addEventListener('resize',()=>{ if(state.view==='intel'&&intel.tab==='map'){ igFitSplit(); igNoteMeasure(); } }); }
 }
 window.IG = null;      // live graph model
 window.intelRAF = 0;   // animation token
@@ -2068,12 +2068,11 @@ const IGB_FACT_TONE={amber:'#F2B24C',ruby:'#F0726A',ink:'#E6F2EF',mute:'#8FB5AD'
 const IGB_FOLD_SMALL=3, IGB_FOLD_MANY=4;
 const IGB_ZOOM_MIN=.6, IGB_ZOOM_MAX=3.5, IGB_ZOOM_STEP=1.15;
 const IGB_TURN_RATE=.08;                       // radians a second, the brain's own slow turn
+const IGB_SPIN_KEY=['rot',null,'rotL','rotG','rotT'];   // which angle each view turns by itself (Wiring drifts instead)
 /* THE FLAT VIEWS MOVE TOO (Young, 28 Sep 2026: "Floor should be spinning just
-   like brain and the others should be moving"). Floors turns at the brain's
-   rate. Grid and Timeline carry words laid on the ground, which a full turn
-   would show backwards half the time, so they SWAY: this far each way, once
-   in this many seconds, round whatever angle the reader has set. */
-const IGB_SWAY=.32, IGB_SWAY_S=24;
+   like brain and the others should be moving"), and turn ALL THE WAY ROUND
+   (29 Sep 2026: "Make grid and timeline spin fully too") — every view at the
+   brain's own rate. The sway they had for a day is gone. */
 const IGB_STEP_S=2.4, IGB_PULSE_S=.9;          // a walk-through: one contract every 2.4 s
 const IGB_LABEL_W=150;
 const IGB_SIZE_KEYS=['value','obligations','same'];
@@ -2341,7 +2340,7 @@ function igbMix(n,w){
 /* THE PROJECTION — the Brain page's own: turn, tilt, a gentle perspective. */
 function igbProjector(G){
   const cam=igbCam(), w=cam.w;
-  const rot=igbDot(w,[cam.rot,cam.rotW,cam.rotL-.2,cam.rotG+(cam.sway||0),cam.rotT+(cam.sway||0)]);
+  const rot=igbDot(w,[cam.rot,cam.rotW,cam.rotL-.2,cam.rotG,cam.rotT]);
   const tilt=igbDot(w,[IGB_TILT[0]+cam.tiltOff,IGB_TILT[1]+cam.tiltW,IGB_TILT[2]+cam.tiltL,IGB_TILT[3]+cam.tiltG,IGB_TILT[4]+cam.tiltT]);
   /* the flat views fill the stage's width, the turning ones its height */
   const base=Math.max(1,Math.min(G.W,G.H))*.36, flat=Math.max(1,Math.min(G.W/3.6,G.H/2.1));
@@ -2364,9 +2363,7 @@ function igbStep(G,dt){
   /* Turning / Still (the bar's own button, `cam.spin`; a reader who asked for
      less motion starts Still). Holding or pointing at the map holds it. */
   const spin=cam.spin==null?!rm:!!cam.spin;
-  if(spin&&!G.turning&&!G.hover){ if(cam.view===0) cam.rot+=dt*IGB_TURN_RATE; else if(cam.view===2) cam.rotL+=dt*IGB_TURN_RATE; else if(cam.view>=3) cam.swayT=(cam.swayT||0)+dt; }
-  const swayTo=spin&&cam.view>=3?IGB_SWAY*Math.sin((cam.swayT||0)*2*Math.PI/IGB_SWAY_S):0;
-  cam.sway=(cam.sway||0)+(swayTo-(cam.sway||0))*(rm?1:Math.min(1,dt*2));
+  if(spin&&!G.turning&&!G.hover){ const k=IGB_SPIN_KEY[cam.view]; if(k) cam[k]+=dt*IGB_TURN_RATE; }
   const wrap=a=>Math.atan2(Math.sin(a),Math.cos(a)); ['rot','rotW','rotL','rotG','rotT'].forEach(k=>{ cam[k]=wrap(cam[k]); });
   const wk=intel.walk;
   if(wk&&wk.playing){ wk.clock=Math.min(wk.ids.length*IGB_STEP_S+1, wk.clock+dt);
@@ -2385,7 +2382,7 @@ function igbDraw(G,t){
   const w=igbCam().w, pj=G.pj, rm=igbReduced(), walking=!!intel.walk, zs=Math.sqrt(igbCam().zoom);
   /* The canvas's own words (floor and lane names, cell counts, the axis) are
      room: igbPlace keeps every contract's words clear of them. */
-  G.reserve=[];
+  G.reserve=G.noteBox?[G.noteBox]:[];
   const txt=(t,x,y,col,a,size,weight,align)=>{ const sz=size||10; ctx.font=(weight||600)+' '+sz+'px Geist, system-ui, sans-serif'; ctx.textAlign=align||'left'; ctx.fillStyle=igbHexA(col,a); ctx.fillText(t,x,y); ctx.textAlign='left';
     if(a>.3){ const w=ctx.measureText(t).width, x0=align==='right'?x-w:align==='center'?x-w/2:x; G.reserve.push({ x:x0-2, y:y-sz, w:w+4, h:sz+4 }); } };
   if(w[2]>.05){
@@ -2838,6 +2835,15 @@ function updateIntelNote(){
   document.getElementById('ig-undo')?.addEventListener('click',()=>{ igRecipeRun({ acts:[{ undo:true }] }); renderIntelDock(); updateIntelNote(); });
   document.getElementById('ig-save')?.addEventListener('click',()=>{ igRecipeRun({ acts:[{ save:'' }] }); renderIntelDock(); });
   document.getElementById('ig-cliff')?.addEventListener('input',e=>{ intel.cliffDays=Number(e.target.value)||0; igApplyCliff(intel.cliffDays); });
+  igNoteMeasure();
+}
+/* Where the head line sits on the stage, in the stage's own pixels — read once
+   per repaint of the line (and on a resize), never per frame. */
+function igNoteMeasure(){
+  const el=document.getElementById('ig-note'), st=document.getElementById('ig-gwrap'); if(!IG) return;
+  if(!el||!st||!el.childNodes.length){ IG.noteBox=null; return; }
+  const a=el.getBoundingClientRect(), b=st.getBoundingClientRect();
+  IG.noteBox={ x:a.left-b.left-4, y:a.top-b.top-4, w:a.width+8, h:a.height+8 };
 }
 /* SHOW EVERYTHING: every cut Copilot made comes off, its grouping with it, and
    a walk-through stops. The colour and the size stay — they narrow nothing. */
@@ -3135,7 +3141,6 @@ function renderIntel(){
   document.getElementById('content').innerHTML = `
   <div id="ig-page" class="view-enter" style="height:var(--view-h);display:flex;flex-direction:column;min-height:0">
     ${headerHtml}
-    <div id="ig-note" style="flex:none;padding:0 var(--s-4) var(--s-1);font-size:var(--t-meta)"></div>
     <div id="ig-row" class="relative flex-1 min-h-0 bg-canvas flex" style="flex:1;min-height:0;display:flex;position:relative;background:var(--color-bg)">
       <div class="relative flex-1 min-w-0" style="flex:1;min-width:0;position:relative;display:flex;flex-direction:column">
         <div id="ig-strip" class="ig-strip" hidden></div>
@@ -3143,6 +3148,12 @@ function renderIntel(){
         <canvas id="ig-cv" aria-hidden="true"></canvas>
         <svg id="ig-svg" class="w-full h-full block" style="width:100%;height:100%;display:block"><g id="ig-vp"><g id="ig-links"></g><g id="ig-nodes"></g></g></svg>
         <div id="ig-legend" class="igl"></div>
+        ${''/* THE HEAD LINE RIDES THE STAGE (Young, 29 Sep 2026: "remove the space
+               in the highlighted area and give it to the dark screen"). It was a
+               row of its own between the tabs and the map; it now sits in the
+               stage's top-left corner the way the legend and the view bar sit in
+               theirs, and its row is the map's. */}
+        <div id="ig-note" class="ig-note"></div>
         ${''/* THE VIEW BAR — the three views, the zoom and Fold all, in the
                stage's own corner where the old "drag nodes" hint sat. How to
                move the map is machinery, so it lives on the bar's hover. */}
@@ -6069,7 +6080,7 @@ Object.assign(window,{IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT
 Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,ptFitTable,ptPagerHtml,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
-Object.assign(window,{IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SWAY,IGB_SWAY_S,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
+Object.assign(window,{IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
 
 /* The Reminder Line (28 Sep 2026): the one reminder predicate, its first
    milestone, and the tab's press wiring. */

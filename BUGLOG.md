@@ -19904,3 +19904,7 @@ Noticed, not fixed
 
 ### Noticed, not fixed
 - CLAUDE.md is ~86.8 KB after today's merge from main (the file's own ceiling is about 80 KB); it needs the owner's next trim.
+
+## 29 Sep 2026 — Explorer: Grid and Timeline turn fully; the head line moves onto the map
+
+- BUILT: Grid and Timeline now turn all the way round like Brain and Floors (the sway is gone). The "Grouped by…" line no longer takes a row of its own: it sits in the map's top-left corner and its space is the map's. explorer-magnitude-verify 4d, 4e, 5a, 5b.

@@ -285,7 +285,7 @@ describe('f392 (6) the switch, Focus, the bin — and nothing is thrown away', (
     assert.ok(win.document.getElementById('ig-page').classList.contains('ig-focus'));
     win.intel.paper.focus = false; win.igPaintPaper();
     assert.equal(win.document.getElementById('ig-head').style.display, 'flex');
-    assert.doesNotMatch(HTML.slice(HTML.indexOf('ANALYZE CONTRACT — the paper in the graph'), HTML.indexOf('#ig-page.ig-focus > #ig-note')), /!important/);
+    assert.doesNotMatch(HTML.slice(HTML.indexOf('ANALYZE CONTRACT — the paper in the graph'), HTML.indexOf('#ig-page.ig-focus #ig-note')), /!important/);
     assert.match(BLOCK, /e\.key!=='Escape'/);
   });
   test('the bin ends the analysis with the conversation', () => {
