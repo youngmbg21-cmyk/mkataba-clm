@@ -87,7 +87,16 @@ const check = (name, pass, detail) => {
        now says the workspace does that work, so the project cards the page
        draws for it — the workload runway, won and lost, money held back,
        promises still live — are on screen and the page is long for the
-       reason a real one would be. */
+       reason a real one would be.
+       RE-POINTED AGAIN 29 Sep 2026: Insights FITS THE SCREEN (owner-picked
+       "Fit to Screen") — on a window 1080px or wider Portfolio no longer
+       scrolls at all, and the four project cards are no longer drawn. Below
+       1080px the page is a plain scrolling column, which is where a reader can
+       still be parked partway down and a filter press can still throw them;
+       so the claim is asked there, at 1000 by 600 (the four cards that made
+       this book long are gone, so a short window is what gives it room), and
+       the window goes back after. */
+    await page.setViewportSize({ width: 1000, height: 600 });
     await page.evaluate(() => { if (window.wsSet) wsSet(['standing', 'project'], 'job'); setView('intel'); });
     await page.waitForTimeout(1200);
 
@@ -175,6 +184,7 @@ const check = (name, pass, detail) => {
       });
       check('a TAB is navigation and may start at the top', nowScroller <= 40, String(nowScroller));
     } else check("a TAB is navigation and may start at the top", true, 'no friction tab in this book');
+    await page.setViewportSize({ width: 1500, height: 900 });
 
     /* ---- AND THE PAGE FILLS THE SCREEN IT IS ON (owner-ruled 29 Aug 2026) ----
        Measured, not read: what a page shows now depends on the window, so the

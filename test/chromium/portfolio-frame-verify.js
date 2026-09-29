@@ -26,12 +26,21 @@
      7  the risk map is coloured by what Copilot found, hollow where unread,
         and drawn at its card's own width
      8  nothing on it reads as English on a Swedish screen
+     9  IT FITS THE SCREEN (owner-picked "Fit to Screen", 29 Sep 2026): at
+        1440x900 and 1920x1080 the tab does not scroll, the cards in a row
+        share their top and bottom edges, nothing spills out of a card except
+        inside a list that scrolls in it, the grid is the figures and two rows
+        of two cards; at 1000px it stacks into one column and scrolls; and in
+        a workspace that does project work the four project cards are not
+        drawn while Copilot is still handed all five panels
 
    Run: node test/chromium/portfolio-frame-verify.js */
 const fs = require('node:fs');
+const path = require('node:path');
 const { chromium } = require('playwright-core');
 const { startHati, seedWorkspace } = require('../helpers');
 
+const OUT = path.join(__dirname, 'shots', 'portfolio-frame');
 const EXEC = process.env.CHROMIUM_BIN
   || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
 
@@ -103,6 +112,7 @@ const PANELS = () => {
 };
 
 (async () => {
+  fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
   await seedWorkspace(h);
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
@@ -147,7 +157,8 @@ const PANELS = () => {
     const t = await page.evaluate(TRUTH);
     const shown = await page.evaluate(() => {
       const host = document.getElementById('ig-frame');
-      const hero = host.querySelector('[style*="brand-hero"]');
+      /* The hero tile is the shared figure tile's (Fit to Screen, 29 Sep 2026). */
+      const hero = host.querySelector('.igx-fig.is-hero');
       return { hero: hero ? hero.textContent : '', all: host.textContent };
     });
     const expectTotal = await page.evaluate(v => window.fmtMoneyShort(v), t.total);
@@ -269,6 +280,74 @@ const PANELS = () => {
     check('7 the card opens with its answer', /carr(y|ies) a high finding/.test(map.say), map.say.trim() || '(no answer line)');
     check('7 the map is drawn at its card\'s own width', map.w > 200 && Math.abs(map.w - map.drawn) <= 8,
       `card ${map.w}px · drawn ${map.drawn}px`);
+
+    /* ---- 9. IT FITS THE SCREEN (owner-picked "Fit to Screen", 29 Sep 2026) ----
+       Measured on the page a person opens: the tab's own scroller, every
+       card's box, and whatever inside a card pokes past its floor (a list that
+       scrolls inside its card is the one place allowed to be taller). */
+    const FIT = () => {
+      const host = document.getElementById('ig-frame');
+      const rows = [...host.querySelectorAll('.igx-row')].map(row => [...row.children].map(c => {
+        const b = c.getBoundingClientRect();
+        let over = 0;
+        c.querySelectorAll('*').forEach(el => {
+          const sc = el.closest('.igx-scroll'); if (sc && sc !== el) return;
+          const eb = el.getBoundingClientRect();
+          if (eb.height && eb.bottom > b.bottom + 1) over = Math.max(over, Math.round(eb.bottom - b.bottom));
+        });
+        return { top: Math.round(b.top), bottom: Math.round(b.bottom), over };
+      }));
+      return { scrollH: host.scrollHeight, clientH: host.clientHeight,
+        fits: host.scrollHeight <= host.clientHeight + 1,
+        shape: rows.map(r => r.length).join(','),
+        same: rows.map(cs => cs.every(c => Math.abs(c.top - cs[0].top) <= 1 && Math.abs(c.bottom - cs[0].bottom) <= 1)),
+        over: Math.max(0, ...rows.flat().map(c => c.over)),
+        edges: rows.map(cs => cs.map(c => c.top + '-' + c.bottom).join('|')).join(' / ') };
+    };
+    for (const [W, H] of [[1440, 900], [1920, 1080]]) {
+      await page.setViewportSize({ width: W, height: H });
+      await openFrame();
+      const m = await page.evaluate(FIT);
+      check(`9 at ${W}x${H} the tab does not scroll`, m.fits, `${m.scrollH}/${m.clientH}`);
+      check(`9 at ${W}x${H} the grid is the figures and two rows of two cards`, m.shape === '2,2', m.shape);
+      check(`9 at ${W}x${H} the cards in each row share their top and bottom edges`,
+        m.same.length === 2 && m.same.every(Boolean), m.edges);
+      check(`9 at ${W}x${H} nothing spills out of a card`, m.over === 0, m.over + 'px');
+      await page.screenshot({ path: `${OUT}/fit-${W}.png` });
+    }
+    await page.setViewportSize({ width: 1000, height: 800 });
+    await openFrame();
+    const narrow = await page.evaluate(() => {
+      const host = document.getElementById('ig-frame');
+      const cards = [...host.querySelectorAll('.igx-row > *')].map(c => c.getBoundingClientRect());
+      return { scrolls: host.scrollHeight > host.clientHeight + 40,
+        oneColumn: cards.length > 0 && cards.every(b => Math.abs(b.left - cards[0].left) <= 1) };
+    });
+    check('9 at 1000px wide it stacks into one column and scrolls', narrow.scrolls && narrow.oneColumn, JSON.stringify(narrow));
+    await page.setViewportSize({ width: 1500, height: 1000 });
+    /* A PIECE OF PROJECT WORK is added for this stage — retention and a defects
+       period, finished last month — so each of the four project panels has
+       something to say, and "not drawn" is a choice rather than an empty book. */
+    const project = await page.evaluate(() => {
+      const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
+      state.contracts.push({ id: 'MK-JOB', name: 'Roofing works', counterparty: 'Mjengo Builders', folder: 'proc',
+        value: 3000000, status: 'Signed', expiry: day(-20), rounds: [], audit: [], changes: [],
+        metadata: { category: 'works', effectiveDate: day(-200), expiryDate: day(-20), retentionPct: 10, warrantyMonths: 12 } });
+      window.wsSet(['standing', 'project'], 'job'); intel.tab = 'frame'; window.renderIntel();
+      const t = document.getElementById('ig-frame').textContent;
+      const said = ['workload_runway', 'money_held_back', 'promises_live', 'won_and_lost']
+        .filter(k => window.pfPanelData(k).drawn).join(',');
+      const out = { drawn: ['The workload runway', 'won and lost', 'Money held back', 'Promises still live'].filter(w => t.includes(w)),
+        said, counted: Object.keys(window.pfPanelsData()).sort().join(',') };
+      state.contracts = state.contracts.filter(c => c.id !== 'MK-JOB');
+      return out;
+    });
+    check('9 a project workspace draws none of the four project cards, though each has something to say',
+      project.drawn.length === 0 && project.said === 'workload_runway,money_held_back,promises_live,won_and_lost',
+      `drawn: ${project.drawn.join(', ') || 'none'} · counted with something to say: ${project.said}`);
+    check('9 and Copilot is still handed all five panels',
+      project.counted === 'money_held_back,promises_live,renewal_runway,won_and_lost,workload_runway', project.counted);
+    await page.evaluate(() => { window.wsSet(['standing'], 'job'); });
 
     /* ---- 8. Swedish reads Swedish ---- */
     await page.evaluate(() => window.langSet && window.langSet('sv'));

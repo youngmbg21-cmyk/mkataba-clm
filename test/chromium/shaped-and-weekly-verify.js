@@ -106,15 +106,27 @@ const FRAME = () => {
     check('and reaches the server, so every member sees the same answer',
       onServer && onServer.word === 'job', JSON.stringify(onServer));
 
-    /* ---- 2. THE SHAPED PANELS ---- */
+    /* ---- 2. THE SHAPED PANELS ----
+       RE-POINTED IN PLACE 29 Sep 2026 (Insights fits the screen, owner-picked
+       "Fit to Screen": "Exclude money held too, keep Copilot's answers"). The
+       four PROJECT panels are no longer drawn on Portfolio; what the setting
+       still decides is what is COUNTED and handed to Copilot (pfPanelsData,
+       the INSIGHTS block and get_insights_panel), and the renewal runway, the
+       one standing panel, is still drawn. The renderers are kept with no
+       caller, so "the business's own word" is asked of them directly. */
     await page.evaluate(() => window.setView('intel'));
     await page.waitForTimeout(1200);
     const both = await page.evaluate(FRAME);
-    const wants = ['The workload runway', 'Money held back', 'Promises still live', 'Jobs won and lost', 'The renewal runway'];
-    check('all five shaped panels are drawn when both shapes are present',
-      wants.every(w => both.includes(w)), wants.filter(w => !both.includes(w)).join(', ') || 'all five');
+    const PROJECT_TITLES = ['The workload runway', 'Money held back', 'Promises still live', 'Jobs won and lost'];
+    const counted = await page.evaluate(() => Object.keys(window.pfPanelsData()).sort().join(','));
+    check('all five shaped panels are counted for Copilot when both shapes are present',
+      counted === 'money_held_back,promises_live,renewal_runway,won_and_lost,workload_runway', counted);
+    check('the renewal runway is drawn and the four project panels are not (Fit to Screen)',
+      both.includes('The renewal runway') && !PROJECT_TITLES.some(w => both.includes(w)),
+      PROJECT_TITLES.filter(w => both.includes(w)).join(', ') || 'none of the four drawn');
+    const wordNow = await page.evaluate(() => window.pfWonLost() + window.pfWorkloadRunway());
     check('and they use the business\'s own word, not ours',
-      both.includes('Jobs won and lost') && /each job actually runs/.test(both));
+      wordNow.includes('Jobs won and lost') && /each job actually runs/.test(wordNow));
 
     /* the panel that must look past the live book */
     const wl = await page.evaluate(() => {
@@ -133,19 +145,23 @@ const FRAME = () => {
     await page.evaluate(() => { window.wsSet(['standing'], 'job'); window.renderIntel(); });
     await page.waitForTimeout(700);
     const standingOnly = await page.evaluate(FRAME);
-    check('turning the job shape off removes its four panels',
-      !['The workload runway', 'Money held back', 'Promises still live', 'Jobs won and lost']
-        .some(w => standingOnly.includes(w)));
+    const standingCounted = await page.evaluate(() => Object.keys(window.pfPanelsData()).join(','));
+    check('turning the job shape off takes its four panels out of what Copilot is handed',
+      standingCounted === 'renewal_runway'
+      && !PROJECT_TITLES.some(w => standingOnly.includes(w)), standingCounted);
     check('and leaves the renewal runway and the universal six standing',
       standingOnly.includes('The renewal runway') && standingOnly.includes('Where the value sits'));
 
     await page.evaluate(() => { window.wsSet(['project'], 'matter'); window.renderIntel(); });
     await page.waitForTimeout(700);
     const projectOnly = await page.evaluate(FRAME);
+    const projectCounted = await page.evaluate(() => Object.keys(window.pfPanelsData()).sort().join(','));
     check('turning standing off removes the renewal runway',
-      !projectOnly.includes('The renewal runway') && projectOnly.includes('The workload runway'));
+      !projectOnly.includes('The renewal runway') && !projectCounted.includes('renewal_runway')
+      && projectCounted.includes('workload_runway'), projectCounted);
+    const matterNow = await page.evaluate(() => window.pfWonLost() + window.pfWorkloadRunway());
     check('and changing the word changes every panel that names it',
-      projectOnly.includes('Matters won and lost') && /each matter actually runs/.test(projectOnly),
+      matterNow.includes('Matters won and lost') && /each matter actually runs/.test(matterNow),
       'the same panels now read "matter"');
     await page.evaluate(() => { window.wsSet(['standing', 'project'], 'job'); window.renderIntel(); });
     await page.waitForTimeout(600);
@@ -203,7 +219,10 @@ const FRAME = () => {
     /* ---- 6. SWEDISH ---- */
     await page.evaluate(() => window.langSet && window.langSet('sv'));
     await page.waitForTimeout(800);
-    const svFrame = await page.evaluate(FRAME);
+    /* The page, plus the four project renderers kept with no caller (29 Sep
+       2026) — they still speak the reader's language when they are drawn. */
+    const svFrame = await page.evaluate(FRAME) + await page.evaluate(() => [window.pfWorkloadRunway(),
+      window.pfMoneyHeld(), window.pfPromisesLive(), window.pfWonLost()].join(' ').replace(/<[^>]+>/g, ' '));
     const svLeaks = ['The workload runway', 'Money held back', 'Promises still live',
       'won and lost', 'The renewal runway', 'contracts'].filter(w => svFrame.includes(w));
     check('the shaped panels read Swedish on a Swedish screen',
