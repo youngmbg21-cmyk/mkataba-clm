@@ -115,7 +115,7 @@ describe('F434 (1) — one grid: figures, then two rows of cards sharing the hei
   test('the page is one .igx-fit whose rows are the figures and two card rows at 1.1 : 1', () => {
     const host = page(world());
     assert.ok(fit(host), 'the page wears the shared grid');
-    assert.equal(styleVar(fit(host), '--igx-rows'), 'auto minmax(0,1.1fr) minmax(0,1fr)');
+    assert.equal(styleVar(fit(host), '--igx-rows'), 'auto minmax(0,1.1fr) minmax(auto,1fr)');
     const kids = [...fit(host).children];
     assert.ok(kids[0].classList.contains('igx-figs'), 'the figures strip comes first');
     assert.equal(rowsOf(host).length, 2, 'then exactly two rows of cards');
@@ -179,13 +179,13 @@ describe('F434 (3) — the amber strip and the chips each take a row of their ow
     assert.ok(kids[0].querySelector('[data-pf-fixcats]'), 'the strip is the first row');
     assert.ok(kids[1].classList.contains('igx-figs'), 'the figures come under it');
     assert.match(kids[0].textContent, /cannot be grouped yet/);
-    assert.equal(styleVar(fit(host), '--igx-rows'), 'auto auto minmax(0,1.1fr) minmax(0,1fr)');
+    assert.equal(styleVar(fit(host), '--igx-rows'), 'auto auto minmax(0,1.1fr) minmax(auto,1fr)');
   });
   test('a focused page draws its chips in a row of their own too', () => {
     const w = world(); w.pfState().stage = 'Signed';
     const host = page(w);
     assert.ok([...fit(host).children][0].querySelector('[data-pf-unfilter="stage"]'));
-    assert.equal(styleVar(fit(host), '--igx-rows'), 'auto auto minmax(0,1.1fr) minmax(0,1fr)');
+    assert.equal(styleVar(fit(host), '--igx-rows'), 'auto auto minmax(0,1.1fr) minmax(auto,1fr)');
   });
 });
 
@@ -252,7 +252,7 @@ describe('F434 (6) — with no renewal runway the page keeps its two-row shape',
     assert.equal(styleVar(r1, '--igx-cols'), 'minmax(0,8fr) minmax(0,4fr)');
     assert.deepEqual(cardTitles(r1), ['Where the value sits', 'Value by stage']);
     assert.deepEqual(cardTitles(r2), ['The risk map']);
-    assert.equal(styleVar(fit(host), '--igx-rows'), 'auto minmax(0,1.1fr) minmax(0,1fr)');
+    assert.equal(styleVar(fit(host), '--igx-rows'), 'auto minmax(0,1.1fr) minmax(auto,1fr)');
   });
 });
 
@@ -268,7 +268,10 @@ describe('F434 (7) — the charts take the height their card gives them', () => 
   test('the map box and the runway grow only where the page fits the screen', () => {
     const css = (page(world()).querySelector('style') || {}).textContent || '';
     const wide = (css.match(/@media \(min-width:1080px\)\{([\s\S]*?)\n\s*\}/) || [])[1] || '';
-    assert.match(wide, /#pf-risk-plot\{flex:1 1 0;min-height:0\}/);
+    // the map's box never shrinks under the map's own floor, and its card asks the
+    // row for that room (the row is minmax(auto,…)) — or the map draws over its key
+    assert.match(wide, /#pf-risk-plot\{flex:1 1 0;min-height:140px\}/);
+    assert.match(wide, /\.igx-card:has\(#pf-risk-plot\)\{min-height:min-content\}/);
     assert.match(wide, /\.pf-run\{flex:1 1 0;min-height:0;grid-template-rows:minmax\(0,1fr\) auto\}/);
     assert.match(PF, /getComputedStyle\(host\)\.flexBasis==='0px'/, 'the map asks its box whether it grows');
   });

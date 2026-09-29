@@ -457,10 +457,13 @@ function pfRiskMap(){
    sits and the risk map split the bottom row evenly; the top row is 1.1 to the
    bottom row's 1. Without a runway Where the value sits takes the runway's
    place and the risk map has the bottom row to itself (`whole`). f434 reads
-   these. */
+   these. The bottom row may grow past its share (`minmax(auto,…)`): the map's
+   box never shrinks under PF_RISK_H_MIN, so on a short laptop the row takes
+   the room the map needs and the page scrolls a little, instead of the map
+   drawing over its own key (laptops-verify, 1366 x 638). */
 const PF_FIT_COLS = { top:'minmax(0,8fr) minmax(0,4fr)', bottom:'minmax(0,6fr) minmax(0,6fr)',
   whole:'minmax(0,1fr)' };
-const PF_FIT_ROWS = ['minmax(0,1.1fr)','minmax(0,1fr)'];
+const PF_FIT_ROWS = ['minmax(0,1.1fr)','minmax(auto,1fr)'];
 function portfolioFrameHtml(){
   _pfDoors = {};
   if(!pfLive().length) return `<div style="max-width:520px;margin:44px auto;text-align:center;color:var(--color-neutral-600);font-size:var(--t-body);line-height:1.65">
@@ -546,7 +549,8 @@ function portfolioFrameHtml(){
     .pf-say .pf-amber{color:var(--st-amber-fg);font-weight:var(--w-title)}
     @media (min-width:1080px){
       #ig-frame .pf-run{flex:1 1 0;min-height:0;grid-template-rows:minmax(0,1fr) auto}
-      #ig-frame #pf-risk-plot{flex:1 1 0;min-height:0}
+      #ig-frame #pf-risk-plot{flex:1 1 0;min-height:${PF_RISK_H_MIN}px}
+      #ig-frame .igx-card:has(#pf-risk-plot){min-height:min-content}
       #ig-frame .pf-hl.is-spread{display:flex;flex-direction:column;justify-content:space-between}
       #ig-frame .pf-hl .pf-hr{padding:4px 6px 5px}
       #ig-frame .pf-meter{height:22px}
