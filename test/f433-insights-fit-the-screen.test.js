@@ -46,6 +46,9 @@ test('3. ONE figure tile for every tab, its tones on the figure only', () => {
   assert.match(css, /\.igx-fig \.igx-warn\{color:var\(--st-amber-fg\)\}/);
   assert.match(css, /\.igx-fig \.igx-bad\{color:var\(--st-ruby-fg\)\}/);
   assert.match(css, /\.igx-fig \.igx-good\{color:var\(--st-green-fg\)\}/);
+  // the hero tile wears the BRAND's own hero, so a brand setting still reaches it
+  assert.match(css, /\.igx-fig\.is-hero\{background:var\(--brand-hero,/);
+  assert.match(css, /\.igx-fig\.is-hero [^{]*\{color:var\(--brand-hero-sub,/);
 });
 
 test('4. below 1080px the page becomes a plain scrolling column', () => {
