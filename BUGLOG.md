@@ -19928,3 +19928,7 @@ Noticed, not fixed
 - Noticed, not fixed: the share email still prints the link's end date as digits ("This link expires on 2026-10-12", js/core.js share email text); the owner-side share lists do too. Only the counterparty's pages were changed to words.
 - Noticed, not fixed: on our History tab a counterparty change can read "Why they asked: Written on the clause editor" — provenance showing as a reason; `NEGO_PROVENANCE_RE` only recognises "Copilot — …". Seen in the owner's screenshot of 29 Sep.
 - Noticed, not fixed: the counterparty's history (negoTimelineScreenHtml) is oldest first and prints ISO dates ("2026-09-29"), while our room's History tab is newest first with dates in words.
+
+### 29 Sep 2026 — Insights: Meaning Edge, even Portfolio row, plain Exposure list
+- FIXED (my own regression from the same day): Portfolio's bottom row on a short laptop — the risk map's card grew alone, its neighbour stopped short. The floor is now the ROW's (`pfRiskRoom`).
+- BUILT: the Meaning Edge strip on every Insights figure tile; Exposure list names regular weight.

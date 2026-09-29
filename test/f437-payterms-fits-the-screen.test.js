@@ -191,3 +191,16 @@ test('10. the new words are in both books exactly once', () => {
     assert.equal(hits.length, 2, k);
   });
 });
+test('11. THE MEANING EDGE: We pay wears its side\'s amber, the gap is green only when we are paid in first, a side that cannot answer is grey stripes', () => {
+  const { host, d } = paint(BOOK);
+  const tiles = [...host.querySelectorAll('.igx-figs > .igx-fig')];
+  assert.equal(tiles.length, 4);
+  assert.ok(!/igx-m-/.test(tiles[0].className), 'We wait is a plain count');
+  assert.ok(tiles[1].classList.contains('igx-m-amber'), 'We pay: its side\'s own amber');
+  assert.equal(tiles[2].classList.contains('igx-m-green'), d.gap < 0, 'green exactly when we are ahead');
+  // one side empty: that side and the gap say HaTi cannot answer
+  const only = paint(BOOK.filter(c => c.metadata.category === 'customer'));
+  const t2 = [...only.host.querySelectorAll('.igx-figs > .igx-fig')];
+  assert.ok(t2[1].classList.contains('igx-m-gray'), 'no supplier contracts: cannot say');
+  assert.ok(t2[2].classList.contains('igx-m-gray'), 'and so the gap cannot be said either');
+});

@@ -153,12 +153,17 @@ describe('f438 (2) four figure tiles, each a door, the lead one NOT a score', ()
     assert.equal(t[3].getAttribute('data-exp-cell'), d.lead);
     assert.ok(t[3].querySelector('.igx-fig-s').textContent.startsWith(lead.title), 'and it names the row');
   });
-  test('2d the lead tile is not a score: no tone, no ruby, no score word, and ruby stays the bar alone', () => {
+  test('2d the lead tile is not a score: no figure is toned, no score word; its ruby is the STRIP, the lead bar\'s own', () => {
     const w = world(BOOK());
     const host = mount(w);
     const strip = host.querySelector('.igx-figs');
-    assert.equal(strip.querySelectorAll('.igx-bad, .igx-warn, .igx-good').length, 0, 'no tile wears a verdict');
-    assert.ok(!/--st-ruby/.test(strip.innerHTML), 'ruby on this page is the lead\'s bar alone');
+    assert.equal(strip.querySelectorAll('.igx-bad, .igx-warn, .igx-good').length, 0, 'no figure wears a verdict');
+    assert.ok(!/--st-ruby/.test(strip.innerHTML), 'no inline ruby on a tile');
+    // THE MEANING EDGE (owner, 29 Sep 2026) reverses "ruby is the bar alone" for the lead
+    // tile's top strip only: one exposure, one red, on the tile and on its row
+    const t = [...strip.querySelectorAll('.igx-fig')];
+    assert.deepEqual(t.map(x => (x.className.match(/igx-m-(\w+)/) || [])[1] || ''), ['amber', 'amber', 'gray', 'ruby'],
+      'carrying one or two is amber, unread is HaTi-cannot-say, the lead is the bar\'s ruby');
     assert.ok(!/score|rating|grade|risk level|index|out of 100/i.test(strip.outerHTML));
     const ruby = [...host.querySelectorAll('.exp-pg-rl')].filter(el => /--st-ruby-fg/.test(el.getAttribute('style')));
     assert.equal(ruby.length, 1, 'still exactly one ruby bar');
@@ -281,5 +286,14 @@ describe('f438 (4) the old frame is retired, and nothing wins by force', () => {
     const keys = [...new Set(INTEL.match(/exp_fit_[a-z_]+/g) || [])];
     assert.ok(keys.length >= 9, keys.join());
     for (const k of keys) assert.equal((I18N.match(new RegExp('\\n\\s*' + k + ':', 'g')) || []).length, 2, k);
+  });
+});
+
+describe('f438 (9) the list beside the grid reads plainly (owner, 29 Sep 2026: "the contracts should not be in bold")', () => {
+  test('9a a contract\'s name is regular weight and its amount medium; the list\'s heading stays the strong line', () => {
+    const rule = sel => (HTML.match(new RegExp('\\n\\s*' + sel.replace('.', '\\.') + '\\{([^}]*)\\}')) || [])[1] || '';
+    assert.match(rule('.exp-pg-who'), /font-weight:var\(--w-body\)/);
+    assert.match(rule('.exp-pg-v'), /font-weight:var\(--w-label\)/);
+    assert.match(rule('.exp-pg-sel-t'), /font-weight:var\(--w-strong\)/, 'the heading keeps its weight');
   });
 });

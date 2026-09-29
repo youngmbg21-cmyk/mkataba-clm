@@ -70,3 +70,17 @@ test('6. every tab but Explorer scrolls in the same host, each keeping its own i
     assert.match(IG, re, id + ' wears .igx-host');
   }
 });
+
+test('7. THE MEANING EDGE: every tile carries a strip on top, read off its own figure\'s tone (owner-picked 29 Sep 2026)', () => {
+  const css = block();
+  assert.match(css, /\.igx-fig::before\{[^}]*height:4px[^}]*background:var\(--igx-m,var\(--color-accent-500\)\)/, 'a plain count wears the brand');
+  // the strip is the number's own tone — one reading, so the two can never disagree
+  assert.match(css, /\.igx-fig:has\(>\.igx-fig-n\.igx-warn\)\{--igx-m:var\(--st-amber-dot\)\}/);
+  assert.match(css, /\.igx-fig:has\(>\.igx-fig-n\.igx-bad\)\{--igx-m:var\(--st-ruby-dot\)\}/);
+  assert.match(css, /\.igx-fig:has\(>\.igx-fig-n\.igx-good\)\{--igx-m:var\(--st-green-dot\)\}/);
+  // a tile whose figure carries no tone by ruling names its meaning; the same five everywhere
+  for (const m of ['brand', 'amber', 'ruby', 'green', 'gray']) assert.match(css, new RegExp(`\\.igx-fig\\.igx-m-${m}\\{--igx-m:`), m);
+  assert.match(css, /\.igx-fig\.igx-m-gray\{--igx-m:repeating-linear-gradient/, 'HaTi cannot say is striped, never a colour');
+  assert.match(css, /\.igx-fig\.is-hero\{--igx-m:/, 'the hero\'s strip reads on its own gradient');
+  assert.match(css, /\.igx-fig\{position:relative;overflow:hidden;/, 'the strip is clipped to the tile\'s corners');
+});

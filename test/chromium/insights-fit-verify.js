@@ -112,6 +112,21 @@ async function measure(page, hostId) {
       rows, clipped,
       figsLead: !!figs && (first === figs || (first && first.contains(figs)) || fit.querySelectorAll('.igx-figs').length === 1 && figs.getBoundingClientRect().top <= Math.min(...[...fit.querySelectorAll('.igx-card:not(.igf-led-cop)')].map(c => c.getBoundingClientRect().top)) + 1),
       tiles: figs ? figs.querySelectorAll('.igx-fig').length : 0,
+      /* THE MEANING EDGE: each tile's top strip as painted, and the colour its
+         figure's own tone resolves to (a probe span wearing the dot token). */
+      strips: figs ? [...figs.querySelectorAll('.igx-fig')].map(t => {
+        const b = getComputedStyle(t, '::before');
+        const n = t.querySelector('.igx-fig-n');
+        const tone = n && ['warn', 'bad', 'good'].find(k => n.classList.contains('igx-' + k));
+        let want = null;
+        if (tone) {
+          const probe = document.createElement('span');
+          probe.style.color = `var(--st-${{ warn: 'amber', bad: 'ruby', good: 'green' }[tone]}-dot)`;
+          document.body.appendChild(probe); want = getComputedStyle(probe).color; probe.remove();
+        }
+        return { h: parseFloat(b.height) || 0, bg: b.backgroundColor, img: b.backgroundImage, top: Math.round(parseFloat(b.top) || 0), tone, want };
+      }) : [],
+      whoWeight: (() => { const el = host.querySelector('.exp-pg-who'); return el ? getComputedStyle(el).fontWeight : null; })(),
     };
   }, hostId);
 }
@@ -151,12 +166,50 @@ async function measure(page, hostId) {
           check(`${at}: c  cards in a row share top and bottom`, !bad.length, m.rows.map(r => `${r.n} cards Δ${r.dTop.toFixed(0)}/${r.dBot.toFixed(0)}`).join(' · ') || 'single-card rows');
           check(`${at}: d  no card hides what it cannot show`, !m.clipped.length, m.clipped.join(' | ') || 'clean');
           check(`${at}: e  the figures lead, in the shared tile`, m.figsLead && m.tiles >= 3, `${m.tiles} tiles`);
+          const painted = m.strips.filter(x => x.h === 4 && x.top === 0 && (x.bg !== 'rgba(0, 0, 0, 0)' || x.img !== 'none'));
+          check(`${at}: f  every tile wears its meaning strip on top`, m.strips.length && painted.length === m.strips.length,
+            m.strips.map(x => x.img !== 'none' ? 'striped' : x.bg).join(' · '));
+          const toned = m.strips.filter(x => x.tone);
+          check(`${at}: g  a toned figure's strip is its tone's own colour`, toned.every(x => x.bg === x.want),
+            toned.map(x => `${x.tone} ${x.bg}${x.bg === x.want ? '' : ' ≠ ' + x.want}`).join(' · ') || 'no toned figure on this tab');
+          if (tab === 'exposure') check(`${at}: h  the list's contract names are regular weight`, m.whoWeight === '400', String(m.whoWeight));
         } else {
           const side = m.rows.filter(r => r.n > 1 && !r.stacked);
           check(`${at}: narrow — the rows stack into one column`, !side.length, m.rows.map(r => r.stacked ? 'stacked' : `${r.n} side by side`).join(' · ') || 'single-card rows');
         }
         await page.screenshot({ path: path.join(OUT, `${tab}-${W}.png`) });
       }
+      await ctx.close();
+    }
+    /* A SHORT LAPTOP (1366 x 638, under the grid's floor): the page may scroll,
+       but the Portfolio's bottom row still ends on one line and the risk map
+       sits above its own key. The first fix floored the map's card alone and
+       its neighbour stopped short (owner's screenshot, 29 Sep 2026). */
+    {
+      const ctx = await browser.newContext({ viewport: { width: 1366, height: 638 } });
+      const page = await ctx.newPage();
+      page.on('pageerror', e => errors.push(e.message));
+      await page.goto(h.base + '/', { waitUntil: 'networkidle' });
+      await page.fill('#li-email', 'admin@example.co.ke');
+      await page.fill('#li-pass', 'adminpassword1');
+      await page.click('#li-go');
+      await page.waitForFunction(() => window.state && Array.isArray(state.contracts) && state.contracts.length > 0 && typeof setView === 'function', null, { timeout: 15000 });
+      await page.evaluate(() => { if (state.view !== 'intel') setView('intel'); });
+      await page.waitForSelector('[data-ig-tab="frame"]', { timeout: 8000 }).catch(() => {});
+      await page.click('[data-ig-tab="frame"]').catch(() => {});
+      await page.waitForFunction(() => { const s = document.querySelector('#pf-risk-plot svg'); return s && s.getAttribute('data-h'); }, null, { timeout: 8000 }).catch(() => {});
+      const s = await page.evaluate(() => {
+        const plot = document.getElementById('pf-risk-plot');
+        if (!plot) return null;
+        const row = plot.closest('.igx-row');
+        const bots = [...row.children].map(c => Math.round(c.getBoundingClientRect().bottom));
+        const svg = plot.querySelector('svg'), key = plot.parentElement.nextElementSibling;
+        return { bots, svgBot: Math.round(svg.getBoundingClientRect().bottom), keyTop: key ? Math.round(key.getBoundingClientRect().top) : null,
+          clipped: [...row.children].filter(c => c.scrollHeight > c.clientHeight + 1).length };
+      });
+      check('short laptop 1366×638: the Portfolio row\'s cards end on one line', s && s.bots.length > 1 && Math.max(...s.bots) - Math.min(...s.bots) <= 1, s ? s.bots.join(' / ') : 'no risk map drawn');
+      check('short laptop 1366×638: the risk map sits above its own key, nothing hidden', s && s.keyTop != null && s.svgBot <= s.keyTop && !s.clipped, s ? `map ends ${s.svgBot} · key starts ${s.keyTop} · clipped ${s.clipped}` : 'no risk map drawn');
+      await page.screenshot({ path: path.join(OUT, 'frame-1366x638.png') });
       await ctx.close();
     }
     check('no page errors anywhere', !errors.length, errors.slice(0, 3).join(' | ') || 'clean');

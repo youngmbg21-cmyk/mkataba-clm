@@ -268,10 +268,10 @@ describe('F434 (7) — the charts take the height their card gives them', () => 
   test('the map box and the runway grow only where the page fits the screen', () => {
     const css = (page(world()).querySelector('style') || {}).textContent || '';
     const wide = (css.match(/@media \(min-width:1080px\)\{([\s\S]*?)\n\s*\}/) || [])[1] || '';
-    // the map's box never shrinks under the map's own floor, and its card asks the
-    // row for that room (the row is minmax(auto,…)) — or the map draws over its key
-    assert.match(wide, /#pf-risk-plot\{flex:1 1 0;min-height:140px\}/);
-    assert.match(wide, /\.igx-card:has\(#pf-risk-plot\)\{min-height:min-content\}/);
+    assert.match(wide, /#pf-risk-plot\{flex:1 1 0;min-height:0\}/);
+    // the floor is the ROW's, not the map card's alone — a floor on one card left its
+    // neighbour stopping short (owner, 29 Sep); no card in the row may carry its own
+    assert.doesNotMatch(css, /:has\(#pf-risk-plot\)/);
     assert.match(wide, /\.pf-run\{flex:1 1 0;min-height:0;grid-template-rows:minmax\(0,1fr\) auto\}/);
     assert.match(PF, /getComputedStyle\(host\)\.flexBasis==='0px'/, 'the map asks its box whether it grows');
   });
@@ -289,5 +289,29 @@ describe('F434 (8) — the old grid rules are retired; the retired hint is inert
   });
   test('[wall] its words stay inert in BOTH books', () => {
     assert.equal((I18N.match(/\n {4}pf_ov_press_row:/g) || []).length, 2);
+  });
+});
+
+describe('F434 (9) — the ROW makes room for the map, so both cards end on one line', () => {
+  const cut = () => {
+    const doc = new JSDOM('<!doctype html><div class="igx-row"><div class="igx-card"><div id="pf-risk-plot"></div></div><div class="igx-card"></div></div>').window.document;
+    return { row: doc.querySelector('.igx-row'), host: doc.getElementById('pf-risk-plot') };
+  };
+  test('where the box grows, the floor is written on the ROW (furniture measured + the map\'s floor)', () => {
+    const w = world(); const { row, host } = cut();
+    w.pfRiskRoom(host, true);
+    const floor = Number((PF.match(/PF_RISK_H_MIN = (\d+)/) || [])[1]);
+    assert.equal(row.style.minHeight, floor + 'px', 'nothing laid out in jsdom, so the floor alone');
+    assert.equal(row.children[0].style.minHeight, '', 'never on the map\'s card by itself');
+  });
+  test('in a plain scrolling column the row has no floor', () => {
+    const w = world(); const { row, host } = cut();
+    w.pfRiskRoom(host, true); w.pfRiskRoom(host, false);
+    assert.equal(row.style.minHeight, '');
+  });
+  test('the fitter asks for the room BEFORE it reads the box\'s height', () => {
+    const body = PF.slice(PF.indexOf('function pfRiskFit('), PF.indexOf('function wirePortfolioFrame('));
+    const a = body.indexOf('pfRiskRoom(host, grows)'), b = body.indexOf('host.clientHeight');
+    assert.ok(a > 0 && b > a, 'room first, then the measure');
   });
 });
