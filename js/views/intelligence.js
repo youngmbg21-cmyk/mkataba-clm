@@ -3044,7 +3044,7 @@ function renderIntel(){
     document.getElementById('content').innerHTML=`
     <div class="view-enter" style="height:var(--view-h);display:flex;flex-direction:column;min-height:0">
       ${headerHtml}
-      <div id="ig-frame" class="scroll-thin pf-scroll" style="flex:1;min-height:0;overflow-y:auto;background:var(--color-bg);padding:var(--s-3) 20px var(--s-4)">${
+      <div id="ig-frame" class="scroll-thin pf-scroll igx-host">${
         (typeof portfolioFrameHtml==='function')?portfolioFrameHtml():''}</div>
     </div>`;
     document.querySelectorAll('[data-ig-tab]').forEach(b=>b.addEventListener('click',()=>{ intel.tab=b.getAttribute('data-ig-tab'); renderIntel(); }));
@@ -3059,7 +3059,7 @@ function renderIntel(){
     document.getElementById('content').innerHTML=`
     <div class="view-enter" style="height:var(--view-h);display:flex;flex-direction:column;min-height:0">
       ${headerHtml}
-      <div id="ig-friction" class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;background:var(--color-bg);padding:9px 20px 14px">${intelFrictionHtml()}</div>
+      <div id="ig-friction" class="scroll-thin igx-host">${intelFrictionHtml()}</div>
     </div>`;
     document.querySelectorAll('[data-ig-tab]').forEach(b=>b.addEventListener('click',()=>{ intel.tab=b.getAttribute('data-ig-tab'); renderIntel(); }));
     document.getElementById('ig-friction-clear')?.addEventListener('click',()=>{ intel.frictionFilter=null; intelRepaint(); });
@@ -3088,7 +3088,7 @@ function renderIntel(){
     document.getElementById('content').innerHTML=`
     <div class="view-enter" style="height:var(--view-h);display:flex;flex-direction:column;min-height:0">
       ${headerHtml}
-      <div id="ig-oblig" class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;background:var(--color-bg);padding:9px 20px 14px">${intelObligationsHtml()}</div>
+      <div id="ig-oblig" class="scroll-thin igx-host">${intelObligationsHtml()}</div>
     </div>`;
     intelObligationsWire(document.getElementById('ig-oblig'));
     document.querySelectorAll('[data-ig-tab]').forEach(b=>b.addEventListener('click',()=>{ intel.tab=b.getAttribute('data-ig-tab'); renderIntel(); }));
@@ -3103,7 +3103,7 @@ function renderIntel(){
     document.getElementById('content').innerHTML=`
     <div class="view-enter" style="height:var(--view-h);display:flex;flex-direction:column;min-height:0">
       ${headerHtml}
-      <div id="ig-exp-body" class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;background:var(--color-bg);padding:9px 20px 14px">${exposureHtml()}</div>
+      <div id="ig-exp-body" class="scroll-thin igx-host">${exposureHtml()}</div>
     </div>`;
     document.querySelectorAll('[data-ig-tab]').forEach(b=>b.addEventListener('click',()=>{ intel.tab=b.getAttribute('data-ig-tab'); renderIntel(); }));
     exposureWire();
@@ -3118,7 +3118,7 @@ function renderIntel(){
     document.getElementById('content').innerHTML=`
     <div class="view-enter" style="height:var(--view-h);display:flex;flex-direction:column;min-height:0">
       ${headerHtml}
-      <div id="ig-pt-body" class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;background:var(--color-bg);padding:9px 20px 14px">${intelPayTermsHtml()}</div>
+      <div id="ig-pt-body" class="scroll-thin igx-host">${intelPayTermsHtml()}</div>
     </div>`;
     document.querySelectorAll('[data-ig-tab]').forEach(b=>b.addEventListener('click',()=>{ intel.tab=b.getAttribute('data-ig-tab'); renderIntel(); }));
     ptWire();

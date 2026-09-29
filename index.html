@@ -6561,6 +6561,49 @@
   @media (max-width:1439px){ .rp-stats{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));} }
   @media (max-width:1099px){ .rp-charts{grid-template-columns:minmax(0,1fr);} }
 
+  /* ════ INSIGHTS FITS THE SCREEN (owner-picked "Fit to Screen", 29 Sep 2026) ════
+     "Help propose designs to make the pages fit with a page and for the cards to fit
+     together without cards being taller than other cards and not covering spaces fully."
+     ONE grammar for every Insights tab except Explorer (a canvas already edge to edge):
+       .igx-host  the tab's own scroller under the tab row (keeps each tab's id);
+       .igx-fit   exactly the host's height: a figure strip, then rows that share the rest
+                  (--igx-rows says how; default one row takes it all);
+       .igx-figs  the headline figures, the same tile on every tab (--igx-n across);
+       .igx-row   cards side by side, all the same height (--igx-cols says the split);
+       .igx-card  a card that fills its cell; .igx-fill grows a chart, .igx-scroll lets a
+                  long list scroll INSIDE the card instead of stretching the page.
+     Below 1080px wide, or on a window too short to read (the grid's min-height), the page
+     scrolls as a plain column instead of squeezing. Tone classes colour the FIGURE only. */
+  .igx-host{flex:1;min-height:0;overflow-y:auto;background:var(--color-bg);padding:12px 20px 16px}
+  .igx-fit{display:grid;gap:10px;height:100%;min-height:600px;grid-template-columns:minmax(0,1fr);
+    grid-template-rows:var(--igx-rows,auto minmax(0,1fr))}
+  .igx-row{display:grid;gap:10px;min-width:0;min-height:0;grid-template-columns:var(--igx-cols,minmax(0,1fr))}
+  .igx-card{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden;background:var(--color-surface);
+    border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:12px 16px}
+  .igx-fill{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+  .igx-scroll{flex:1 1 auto;min-height:0;overflow:auto}
+  .igx-figs{display:grid;gap:10px;min-width:0;grid-template-columns:repeat(var(--igx-n,4),minmax(0,1fr))}
+  .igx-fig{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0;text-align:left;font:inherit;color:var(--color-text);
+    background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:9px 14px}
+  button.igx-fig{cursor:pointer}
+  button.igx-fig:hover{border-color:var(--color-neutral-400)}
+  button.igx-fig:focus-visible{outline:2px solid var(--accent-ink);outline-offset:2px}
+  .igx-fig-t{max-width:100%;font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:.08em;text-transform:uppercase;
+    color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .igx-fig-n{font-size:var(--t-page);font-weight:var(--w-title);line-height:1.3;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .igx-fig-s{max-width:100%;font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .igx-fig.is-hero{background:linear-gradient(120deg,var(--color-accent-700),var(--color-accent-500));border-color:transparent;color:#fff}
+  .igx-fig.is-hero .igx-fig-t,.igx-fig.is-hero .igx-fig-s{color:inherit;opacity:.85}
+  .igx-fig .igx-warn{color:var(--st-amber-fg)}
+  .igx-fig .igx-bad{color:var(--st-ruby-fg)}
+  .igx-fig .igx-good{color:var(--st-green-fg)}
+  @media (max-width:1079px){
+    .igx-fit{height:auto;min-height:0;grid-template-rows:none}
+    .igx-row{grid-template-columns:minmax(0,1fr)}
+    .igx-figs{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .igx-card{overflow:visible}
+    .igx-scroll{overflow:visible}
+  }
   /* ---- INSIGHTS, NEGOTIATION FRICTION: THE CLAUSE LEDGER (owner-picked 28 Sep 2026) ----
      Replaces the brief's two-column split and its four KPI cards. Copilot's
      read keeps its own strip inside a card of its own; under it a strip of
